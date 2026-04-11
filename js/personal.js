@@ -4,10 +4,10 @@
 
 const Personal = (() => {
   const PREFIX = 'eureka-personal-';
-  const get = k => { try { return JSON.parse(localStorage.getItem(PREFIX + k)); } catch { return null; } };
-  const set = (k, v) => localStorage.setItem(PREFIX + k, JSON.stringify(v));
-  const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const today = () => dateKey(new Date());
+  const get = k => Utils.store.get(PREFIX + k);
+  const set = (k, v) => Utils.store.set(PREFIX + k, v);
+  const dateKey = Utils.dateKey;
+  const today = Utils.todayKey;
 
   // ========== AUTH ==========
   function hashPin(pin) {
@@ -16,7 +16,7 @@ const Personal = (() => {
     return 'h_' + Math.abs(h).toString(36);
   }
 
-  function hasPin() { return !!localStorage.getItem(PREFIX + 'pin'); }
+  function hasPin() { return !!Utils.store.getRaw(PREFIX + 'pin'); }
 
   function initAuth() {
     const sub = document.getElementById('lock-subtitle');
@@ -45,13 +45,12 @@ const Personal = (() => {
 
     if (!hasPin()) {
       // Setting new PIN
-      set('pin', hashPin(pin));
-      localStorage.setItem(PREFIX + 'pin', hashPin(pin));
+      Utils.store.setRaw(PREFIX + 'pin', hashPin(pin));
       showStatus('ACCESS CODE SET', true);
       setTimeout(unlock, 600);
     } else {
       // Verifying PIN
-      const stored = localStorage.getItem(PREFIX + 'pin');
+      const stored = Utils.store.getRaw(PREFIX + 'pin');
       if (hashPin(pin) === stored) {
         showStatus('ACCESS GRANTED', true);
         setTimeout(unlock, 500);
@@ -139,11 +138,12 @@ const Personal = (() => {
     const emojis = { 5: '😄', 4: '🙂', 3: '😐', 2: '😕', 1: '😢' };
 
     let html = '<div class="mood-week">';
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
+    const days = Utils.lastNDays(7);
+    for (const d of days) {
       const key = dateKey(d);
       const entry = moods[key];
-      const dayLabel = i === 0 ? 'Today' : i === 1 ? 'Yday' : d.toLocaleDateString('en-US', { weekday: 'short' });
+      const diff = Math.round((new Date() - d) / 86400000);
+      const dayLabel = diff === 0 ? 'Today' : diff === 1 ? 'Yday' : d.toLocaleDateString('en-US', { weekday: 'short' });
 
       html += `<div class="mood-day ${entry ? 'mood-has' : ''}">
         <div class="mood-day-emoji">${entry ? emojis[entry.level] : '·'}</div>
@@ -334,12 +334,7 @@ const Personal = (() => {
     }
   }
 
-  // ========== UTIL ==========
-  function escHtml(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
+  const escHtml = Utils.escHtml;
 
   // ========== INIT ==========
   function initPersonalContent() {

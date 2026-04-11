@@ -213,9 +213,7 @@ const MazeGame = (() => {
     }
   }
 
-  function delay(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
+  const delay = Utils.delay;
 
   // ---- DRAWING ----
   function draw() {

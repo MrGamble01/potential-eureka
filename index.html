@@ -83,14 +83,14 @@
       </div>
 
       <!-- Quote -->
-      <div class="widget" style="grid-column: span 2">
+      <div class="widget widget-wide">
         <div class="widget-title"><span class="dot"></span> Quote of the Day</div>
         <div class="quote-text" id="quote-text">"Loading..."</div>
         <div class="quote-author" id="quote-author"></div>
       </div>
 
       <!-- Calendar Events -->
-      <div class="widget" style="grid-column: span 2">
+      <div class="widget widget-wide">
         <div class="widget-title">
           <span class="dot"></span> Calendar Events
           <button class="widget-settings-btn" onclick="CalendarWidget.openSettings()" title="Connect Google Calendar">&#9881;</button>
@@ -99,7 +99,7 @@
       </div>
 
       <!-- Activity Graph -->
-      <div class="widget" style="grid-column: span 2">
+      <div class="widget widget-wide">
         <div class="widget-title"><span class="dot"></span> Activity Monitor</div>
         <div class="activity-graph" id="activity-graph"></div>
       </div>
@@ -133,7 +133,7 @@
       </div>
 
       <!-- Todo List -->
-      <div class="widget" style="grid-column: span 2">
+      <div class="widget widget-wide">
         <div class="widget-title">
           <span class="dot"></span> Tasks
           <span class="gt-status" id="gt-sync-status"></span>
@@ -156,7 +156,7 @@
       </div>
 
       <!-- Bookmarks -->
-      <div class="widget" style="grid-column: span 2">
+      <div class="widget widget-wide">
         <div class="widget-title"><span class="dot"></span> Bookmarks</div>
         <div id="bookmark-form" class="bookmark-form" style="display:none">
           <input type="text" id="bm-name" class="cal-input" placeholder="Name">
@@ -231,7 +231,7 @@
         </div>
 
         <!-- Journal -->
-        <div class="widget" style="grid-column: span 2">
+        <div class="widget widget-wide">
           <div class="widget-title"><span class="dot"></span> Journal</div>
           <div class="journal-nav">
             <button onclick="Personal.prevDay()">&#9664;</button>
@@ -379,6 +379,7 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="js/utils.js"></script>
   <script src="js/effects.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/calendar.js"></script>

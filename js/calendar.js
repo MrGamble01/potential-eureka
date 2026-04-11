@@ -6,14 +6,8 @@
 const CalendarWidget = (() => {
   const STORAGE_KEY = 'eureka-calendar-config';
 
-  function getConfig() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null; }
-    catch { return null; }
-  }
-
-  function saveConfig(config) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  }
+  function getConfig() { return Utils.store.get(STORAGE_KEY); }
+  function saveConfig(config) { Utils.store.set(STORAGE_KEY, config); }
 
   // ---- DEMO EVENTS ----
   function generateDemoEvents() {
@@ -102,17 +96,10 @@ const CalendarWidget = (() => {
   }
 
   // ---- RENDERING ----
-  function formatTime(d) {
-    const h = d.getHours();
-    const m = String(d.getMinutes()).padStart(2, '0');
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return `${h12}:${m} ${ampm}`;
-  }
+  const formatTime = Utils.formatTime;
 
   function isToday(d) {
-    const now = new Date();
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    return Utils.dateKey(d) === Utils.todayKey();
   }
 
   function isTomorrow(d) {
@@ -167,9 +154,7 @@ const CalendarWidget = (() => {
 
   // ---- SETTINGS MODAL ----
   function openSettings() {
-    const modal = document.getElementById('calendar-modal');
-    if (!modal) return;
-    modal.style.display = 'flex';
+    Utils.openModal('calendar-modal');
 
     const config = getConfig() || { apiKey: '', calendars: [] };
     document.getElementById('cal-api-key').value = config.apiKey || '';
@@ -185,8 +170,7 @@ const CalendarWidget = (() => {
   }
 
   function closeSettings() {
-    const modal = document.getElementById('calendar-modal');
-    if (modal) modal.style.display = 'none';
+    Utils.closeModal('calendar-modal');
   }
 
   function addCalendarRow(name, id) {
@@ -217,7 +201,7 @@ const CalendarWidget = (() => {
       await loadEvents();
     } else if (!apiKey && calendars.every(c => !c.id)) {
       // Clearing config — go back to demo
-      localStorage.removeItem(STORAGE_KEY);
+      Utils.store.remove(STORAGE_KEY);
       closeSettings();
       render(generateDemoEvents(), true);
     } else {

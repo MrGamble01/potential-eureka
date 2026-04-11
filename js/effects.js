@@ -23,7 +23,7 @@ const Effects = (() => {
   let bootSkipped = false;
 
   async function bootSequence() {
-    if (sessionStorage.getItem('eureka-booted')) {
+    if (sessionStorage.getItem('eureka-booted')) { // sessionStorage intentional — per tab
       staggerWidgets();
       return;
     }
@@ -236,7 +236,7 @@ const Effects = (() => {
     }
   }
 
-  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+  const delay = Utils.delay;
 
   async function init() {
     initMouseGlow();

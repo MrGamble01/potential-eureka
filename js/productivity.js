@@ -15,7 +15,7 @@ const Productivity = (() => {
   let pomoTime = POMO_MODES.focus.duration;
   let pomoRunning = false;
   let pomoInterval = null;
-  let pomoSessions = parseInt(localStorage.getItem('eureka-pomo-sessions') || '0');
+  let pomoSessions = parseInt(Utils.store.getRaw('eureka-pomo-sessions') || '0');
 
   function pomoToggle() {
     if (pomoRunning) {
@@ -36,7 +36,7 @@ const Productivity = (() => {
       pomoRunning = false;
       if (pomoMode === 'focus') {
         pomoSessions++;
-        localStorage.setItem('eureka-pomo-sessions', pomoSessions);
+        Utils.store.setRaw('eureka-pomo-sessions', pomoSessions);
         pomoMode = pomoSessions % 4 === 0 ? 'long' : 'short';
       } else {
         pomoMode = 'focus';
@@ -51,7 +51,7 @@ const Productivity = (() => {
     pomoRunning = false;
     if (pomoMode === 'focus') {
       pomoSessions++;
-      localStorage.setItem('eureka-pomo-sessions', pomoSessions);
+      Utils.store.setRaw('eureka-pomo-sessions', pomoSessions);
       pomoMode = pomoSessions % 4 === 0 ? 'long' : 'short';
     } else {
       pomoMode = 'focus';
@@ -118,12 +118,10 @@ const Productivity = (() => {
   }
 
   // ========== TODO LIST ==========
-  let todos = JSON.parse(localStorage.getItem('eureka-todos') || '[]');
+  let todos = Utils.store.get('eureka-todos') || [];
   let todoFilter = 'all';
 
-  function todoSave() {
-    localStorage.setItem('eureka-todos', JSON.stringify(todos));
-  }
+  function todoSave() { Utils.store.set('eureka-todos', todos); }
 
   function getActiveListId() {
     const picker = document.getElementById('todo-list-picker');
@@ -292,8 +290,8 @@ const Productivity = (() => {
   // ========== GOOGLE TASKS (multi-list) ==========
   const gt = {
     token: null,
-    clientId: localStorage.getItem('eureka-gt-clientid') || '',
-    selectedLists: JSON.parse(localStorage.getItem('eureka-gt-lists') || '[]'), // [{id, title}]
+    clientId: Utils.store.getRaw('eureka-gt-clientid'),
+    selectedLists: Utils.store.get('eureka-gt-lists') || [],
     connected: false,
     allLists: [],
   };
@@ -357,7 +355,7 @@ const Productivity = (() => {
       gtSetModalStatus('Enter a Client ID first', false);
       return;
     }
-    localStorage.setItem('eureka-gt-clientid', gt.clientId);
+    Utils.store.setRaw('eureka-gt-clientid', gt.clientId);
 
     gtSetModalStatus('Loading Google auth...', null);
     try { await loadGIS(); } catch (e) {
@@ -413,7 +411,7 @@ const Productivity = (() => {
   function readSelectedLists() {
     const checks = document.querySelectorAll('#gt-list-checks input[type=checkbox]:checked');
     gt.selectedLists = Array.from(checks).map(c => ({ id: c.value, title: c.dataset.title }));
-    localStorage.setItem('eureka-gt-lists', JSON.stringify(gt.selectedLists));
+    Utils.store.set('eureka-gt-lists', gt.selectedLists);
   }
 
   async function gtSync() {
@@ -443,31 +441,7 @@ const Productivity = (() => {
         } catch {}
       }
 
-      // Pull tasks from ALL selected lists
-      const allTasks = [];
-      for (const list of gt.selectedLists) {
-        try {
-          const res = await gtApiFetch(
-            `https://www.googleapis.com/tasks/v1/lists/${list.id}/tasks?maxResults=100&showCompleted=true&showHidden=false`
-          );
-          const data = await res.json();
-          const items = (data.items || []).filter(t => t.title);
-          items.forEach(t => {
-            allTasks.push({
-              id: t.id,
-              googleId: t.id,
-              text: t.title,
-              done: t.status === 'completed',
-              listId: list.id,
-              listName: list.title,
-            });
-          });
-        } catch (e) {
-          console.warn(`Failed to fetch list "${list.title}":`, e);
-        }
-      }
-
-      todos = allTasks;
+      todos = await gtFetchAllTasks();
       todoSave();
       renderTodos();
       updateListPicker();
@@ -483,27 +457,26 @@ const Productivity = (() => {
     }
   }
 
-  async function gtPullQuiet() {
-    if (!gt.connected || gt.selectedLists.length === 0) return;
-    try {
-      const allTasks = [];
-      for (const list of gt.selectedLists) {
+  async function gtFetchAllTasks() {
+    const all = [];
+    for (const list of gt.selectedLists) {
+      try {
         const res = await gtApiFetch(
           `https://www.googleapis.com/tasks/v1/lists/${list.id}/tasks?maxResults=100&showCompleted=true&showHidden=false`
         );
         const data = await res.json();
         (data.items || []).filter(t => t.title).forEach(t => {
-          allTasks.push({
-            id: t.id, googleId: t.id, text: t.title,
-            done: t.status === 'completed',
-            listId: list.id, listName: list.title,
-          });
+          all.push({ id: t.id, googleId: t.id, text: t.title,
+            done: t.status === 'completed', listId: list.id, listName: list.title });
         });
-      }
-      todos = allTasks;
-      todoSave();
-      renderTodos();
-    } catch {}
+      } catch (e) { console.warn(`Failed to fetch list "${list.title}":`, e); }
+    }
+    return all;
+  }
+
+  async function gtPullQuiet() {
+    if (!gt.connected || gt.selectedLists.length === 0) return;
+    try { todos = await gtFetchAllTasks(); todoSave(); renderTodos(); } catch {}
   }
 
   function gtDisconnect() {
@@ -538,17 +511,13 @@ const Productivity = (() => {
   }
 
   function openGTSettings() {
-    const modal = document.getElementById('gt-modal');
-    if (modal) modal.style.display = 'flex';
+    Utils.openModal('gt-modal');
     const input = document.getElementById('gt-client-id');
     if (input) input.value = gt.clientId;
     if (gt.connected && gt.allLists.length > 0) renderGTListCheckboxes();
   }
 
-  function closeGTSettings() {
-    const modal = document.getElementById('gt-modal');
-    if (modal) modal.style.display = 'none';
-  }
+  function closeGTSettings() { Utils.closeModal('gt-modal'); }
 
   // ========== QUICK NOTES ==========
   let notesSaveTimeout = null;
@@ -556,13 +525,13 @@ const Productivity = (() => {
   function initNotes() {
     const area = document.getElementById('notes-area');
     if (!area) return;
-    area.value = localStorage.getItem('eureka-notes') || '';
+    area.value = Utils.store.getRaw('eureka-notes');
     updateNotesCount();
     area.addEventListener('input', () => {
       updateNotesCount();
       clearTimeout(notesSaveTimeout);
       notesSaveTimeout = setTimeout(() => {
-        localStorage.setItem('eureka-notes', area.value);
+        Utils.store.setRaw('eureka-notes', area.value);
       }, 500);
     });
   }
@@ -574,11 +543,9 @@ const Productivity = (() => {
   }
 
   // ========== BOOKMARKS ==========
-  let bookmarks = JSON.parse(localStorage.getItem('eureka-bookmarks') || '[]');
+  let bookmarks = Utils.store.get('eureka-bookmarks') || [];
 
-  function bookmarkSave() {
-    localStorage.setItem('eureka-bookmarks', JSON.stringify(bookmarks));
-  }
+  function bookmarkSave() { Utils.store.set('eureka-bookmarks', bookmarks); }
 
   function addBookmark() {
     const form = document.getElementById('bookmark-form');
@@ -631,12 +598,7 @@ const Productivity = (() => {
     if (urlInput) urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') addBookmark(); });
   }
 
-  // ========== UTIL ==========
-  function escHtml(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
+  const escHtml = Utils.escHtml;
 
   // ========== INIT ==========
   function init() {

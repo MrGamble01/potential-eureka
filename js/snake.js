@@ -20,7 +20,7 @@ const SnakeGame = (() => {
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     ctx = canvas.getContext('2d');
-    highScore = parseInt(localStorage.getItem('snake-high') || '0');
+    highScore = parseInt(Utils.store.getRaw('snake-high') || '0');
     updateInfo();
     draw();
 
@@ -121,7 +121,7 @@ const SnakeGame = (() => {
       score += 10;
       if (score > highScore) {
         highScore = score;
-        localStorage.setItem('snake-high', String(highScore));
+        Utils.store.setRaw('snake-high', String(highScore));
       }
       spawnFood();
       // Speed up slightly

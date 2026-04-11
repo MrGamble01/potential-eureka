@@ -1639,6 +1639,10 @@ nav button.nav-locked::after {
   font-size: 10px;
 }
 
+/* ---- UTILITY CLASSES ---- */
+.widget-wide { grid-column: span 2; }
+.hidden { display: none; }
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 640px) {
   .dashboard-grid {
