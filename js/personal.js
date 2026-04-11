@@ -104,18 +104,39 @@ const Personal = (() => {
     moods[today()] = { level, time: Date.now() };
     set('moods', moods);
     renderMood();
-    // Highlight selected
     document.querySelectorAll('.mood-picker button').forEach((b, i) => {
       b.classList.toggle('selected', (5 - i) === level);
     });
   }
 
   function renderMood() {
+    const todayEl = document.getElementById('mood-today');
+    const toggleBtn = document.getElementById('mood-history-toggle');
+    if (!todayEl) return;
+
+    const moods = get('moods') || {};
+    const emojis = { 5: '😄', 4: '🙂', 3: '😐', 2: '😕', 1: '😢' };
+    const labels = { 5: 'Great', 4: 'Good', 3: 'Okay', 2: 'Low', 1: 'Rough' };
+
+    const todayEntry = moods[today()];
+    if (todayEntry) {
+      todayEl.innerHTML = `<span class="mood-today-emoji">${emojis[todayEntry.level]}</span> Feeling <strong>${labels[todayEntry.level]}</strong>`;
+      todayEl.style.display = 'block';
+      if (toggleBtn) toggleBtn.style.display = 'block';
+    } else {
+      todayEl.style.display = 'none';
+      if (toggleBtn) toggleBtn.style.display = 'none';
+    }
+
+    // Pre-render history (hidden by default)
+    renderMoodHistory();
+  }
+
+  function renderMoodHistory() {
     const container = document.getElementById('mood-history');
     if (!container) return;
     const moods = get('moods') || {};
     const emojis = { 5: '😄', 4: '🙂', 3: '😐', 2: '😕', 1: '😢' };
-    const labels = { 5: 'Great', 4: 'Good', 3: 'Okay', 2: 'Bad', 1: 'Rough' };
 
     let html = '<div class="mood-week">';
     for (let i = 6; i >= 0; i--) {
@@ -130,11 +151,17 @@ const Personal = (() => {
       </div>`;
     }
     html += '</div>';
+    container.innerHTML = html;
+  }
 
-    const todayEntry = moods[today()];
-    if (todayEntry) {
-      html += `<div class="mood-today">Feeling <strong>${labels[todayEntry.level]}</strong> today</div>`;
-    }
+  function toggleMoodHistory() {
+    const section = document.getElementById('mood-history-section');
+    const btn = document.getElementById('mood-history-toggle');
+    if (!section) return;
+    const showing = section.style.display !== 'none';
+    section.style.display = showing ? 'none' : 'block';
+    if (btn) btn.textContent = showing ? 'past entries' : 'hide';
+  }
 
     container.innerHTML = html;
   }
@@ -339,7 +366,7 @@ const Personal = (() => {
 
   return {
     init, submitPin, lock,
-    logMood,
+    logMood, toggleMoodHistory,
     toggleHabit, addHabit, removeHabit,
     prevDay, nextDay,
   };

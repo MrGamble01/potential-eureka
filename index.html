@@ -134,7 +134,11 @@
 
       <!-- Todo List -->
       <div class="widget" style="grid-column: span 2">
-        <div class="widget-title"><span class="dot"></span> Tasks</div>
+        <div class="widget-title">
+          <span class="dot"></span> Tasks
+          <span class="gt-status" id="gt-sync-status"></span>
+          <button class="widget-settings-btn" onclick="Productivity.openGTSettings()" title="Sync with Google Tasks">&#9881;</button>
+        </div>
         <div class="todo-input-row">
           <input type="text" id="todo-input" class="todo-input" placeholder="Add a task and press Enter...">
         </div>
@@ -201,7 +205,7 @@
 
         <!-- Mood -->
         <div class="widget">
-          <div class="widget-title"><span class="dot"></span> Mood Check</div>
+          <div class="widget-title"><span class="dot"></span> How are you feeling?</div>
           <div class="mood-picker" id="mood-picker">
             <button onclick="Personal.logMood(5)" title="Great">😄</button>
             <button onclick="Personal.logMood(4)" title="Good">🙂</button>
@@ -209,7 +213,11 @@
             <button onclick="Personal.logMood(2)" title="Low">😕</button>
             <button onclick="Personal.logMood(1)" title="Rough">😢</button>
           </div>
-          <div class="mood-history" id="mood-history"></div>
+          <div class="mood-today" id="mood-today" style="display:none"></div>
+          <div id="mood-history-section" style="display:none">
+            <div class="mood-history" id="mood-history"></div>
+          </div>
+          <button class="mood-history-toggle" id="mood-history-toggle" onclick="Personal.toggleMoodHistory()" style="display:none">past entries</button>
         </div>
 
         <!-- Habits -->
@@ -329,6 +337,30 @@
       </div>
     </div>
   </section>
+
+  <!-- GOOGLE TASKS SETTINGS MODAL -->
+  <div id="gt-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Google Tasks</h3>
+      <p>Two-way sync: tasks you add here appear in Google Tasks and vice versa.
+         Requires a Google Cloud project with the Tasks API enabled and
+         OAuth 2.0 credentials (Web application type). Add your page's URL
+         to Authorized JavaScript origins. Page must be served via HTTP(S), not file://.</p>
+      <label>OAuth Client ID</label>
+      <input type="text" id="gt-client-id" class="cal-input" placeholder="123456789.apps.googleusercontent.com">
+      <label>Task List</label>
+      <select id="gt-list-select" class="cal-input" style="display:none">
+        <option value="">Connect to see your lists</option>
+      </select>
+      <div class="modal-actions" style="margin-top:16px">
+        <button onclick="Productivity.gtConnect()">Connect</button>
+        <button onclick="Productivity.gtSync()">Sync</button>
+        <button onclick="Productivity.gtDisconnect()" style="color:var(--red);border-color:var(--red)">Disconnect</button>
+        <button onclick="Productivity.closeGTSettings()">Close</button>
+      </div>
+      <div class="gt-modal-msg" id="gt-modal-status"></div>
+    </div>
+  </div>
 
   <!-- CALENDAR SETTINGS MODAL -->
   <div id="calendar-modal" class="modal-overlay">
