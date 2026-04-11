@@ -318,6 +318,13 @@ nav button.active {
   margin-top: 4px;
 }
 
+.weather-location {
+  color: var(--cyan);
+  font-size: 12px;
+  margin-top: 6px;
+  text-shadow: var(--glow-cyan);
+}
+
 .weather-icon {
   font-size: 32px;
   margin-bottom: 4px;

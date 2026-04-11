@@ -121,24 +121,114 @@ const Dashboard = (() => {
       .join('');
   }
 
-  // ---- WEATHER (simulated) ----
-  const weatherStates = [
-    { icon: '☀️', temp: 72, desc: 'Clear skies' },
-    { icon: '⛅', temp: 65, desc: 'Partly cloudy' },
-    { icon: '🌧️', temp: 58, desc: 'Light rain' },
-    { icon: '🌤️', temp: 68, desc: 'Mostly sunny' },
-    { icon: '⛈️', temp: 54, desc: 'Thunderstorms' },
-    { icon: '🌙', temp: 61, desc: 'Clear night' },
-  ];
+  // ---- WEATHER (real via Open-Meteo + Geolocation) ----
+  const WMO_CODES = {
+    0: { icon: '☀️', desc: 'Clear sky' },
+    1: { icon: '🌤️', desc: 'Mainly clear' },
+    2: { icon: '⛅', desc: 'Partly cloudy' },
+    3: { icon: '☁️', desc: 'Overcast' },
+    45: { icon: '🌫️', desc: 'Foggy' },
+    48: { icon: '🌫️', desc: 'Depositing rime fog' },
+    51: { icon: '🌦️', desc: 'Light drizzle' },
+    53: { icon: '🌦️', desc: 'Moderate drizzle' },
+    55: { icon: '🌧️', desc: 'Dense drizzle' },
+    61: { icon: '🌧️', desc: 'Slight rain' },
+    63: { icon: '🌧️', desc: 'Moderate rain' },
+    65: { icon: '🌧️', desc: 'Heavy rain' },
+    71: { icon: '🌨️', desc: 'Slight snow' },
+    73: { icon: '🌨️', desc: 'Moderate snow' },
+    75: { icon: '❄️', desc: 'Heavy snow' },
+    77: { icon: '🌨️', desc: 'Snow grains' },
+    80: { icon: '🌦️', desc: 'Slight showers' },
+    81: { icon: '🌧️', desc: 'Moderate showers' },
+    82: { icon: '🌧️', desc: 'Violent showers' },
+    85: { icon: '🌨️', desc: 'Slight snow showers' },
+    86: { icon: '❄️', desc: 'Heavy snow showers' },
+    95: { icon: '⛈️', desc: 'Thunderstorm' },
+    96: { icon: '⛈️', desc: 'Thunderstorm with hail' },
+    99: { icon: '⛈️', desc: 'Thunderstorm with heavy hail' },
+  };
 
-  function updateWeather() {
-    const w = weatherStates[Math.floor(Math.random() * weatherStates.length)];
+  let weatherLat = null;
+  let weatherLon = null;
+
+  function setWeatherDisplay(icon, temp, desc, location) {
     const iconEl = document.getElementById('weather-icon');
     const tempEl = document.getElementById('weather-temp');
     const descEl = document.getElementById('weather-desc');
-    if (iconEl) iconEl.textContent = w.icon;
-    if (tempEl) tempEl.textContent = `${w.temp}°F`;
-    if (descEl) descEl.textContent = w.desc;
+    const locEl = document.getElementById('weather-location');
+    if (iconEl) iconEl.textContent = icon;
+    if (tempEl) tempEl.textContent = temp;
+    if (descEl) descEl.textContent = desc;
+    if (locEl) locEl.textContent = location || '';
+  }
+
+  async function fetchWeather(lat, lon) {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+        + `&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m`
+        + `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const current = data.current;
+      const code = current.weather_code;
+      const wmo = WMO_CODES[code] || { icon: '🌡️', desc: `Code ${code}` };
+      const temp = `${Math.round(current.temperature_2m)}°F`;
+      const wind = `${Math.round(current.wind_speed_10m)} mph`;
+      const humidity = `${current.relative_humidity_2m}%`;
+
+      setWeatherDisplay(wmo.icon, temp, `${wmo.desc} · Wind ${wind} · Humidity ${humidity}`, '');
+
+      // Reverse geocode for location name
+      fetchLocationName(lat, lon);
+    } catch (err) {
+      setWeatherDisplay('⚠️', '--°F', `Weather unavailable: ${err.message}`, '');
+    }
+  }
+
+  async function fetchLocationName(lat, lon) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      const addr = data.address || {};
+      const city = addr.city || addr.town || addr.village || addr.county || '';
+      const state = addr.state || '';
+      const locEl = document.getElementById('weather-location');
+      if (locEl && city) {
+        locEl.textContent = state ? `${city}, ${state}` : city;
+      }
+    } catch (_) {
+      // Location name is nice-to-have, not critical
+    }
+  }
+
+  function initWeather() {
+    if (!navigator.geolocation) {
+      setWeatherDisplay('📍', '--°F', 'Geolocation not supported', '');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        weatherLat = pos.coords.latitude;
+        weatherLon = pos.coords.longitude;
+        fetchWeather(weatherLat, weatherLon);
+      },
+      (err) => {
+        setWeatherDisplay('📍', '--°F', 'Location access denied — enable in browser', '');
+      },
+      { timeout: 10000 }
+    );
+  }
+
+  function refreshWeather() {
+    if (weatherLat !== null && weatherLon !== null) {
+      fetchWeather(weatherLat, weatherLon);
+    }
   }
 
   // ---- INIT ----
@@ -147,7 +237,7 @@ const Dashboard = (() => {
     renderCalendar();
     updateStats();
     updateActivity();
-    updateWeather();
+    initWeather();
 
     currentQuote = Math.floor(Math.random() * quotes.length);
     const q = quotes[currentQuote];
@@ -160,7 +250,7 @@ const Dashboard = (() => {
     setInterval(updateStats, 2000);
     setInterval(updateActivity, 3000);
     setInterval(rotateQuote, 8000);
-    setInterval(updateWeather, 30000);
+    setInterval(refreshWeather, 300000); // refresh weather every 5 min
   }
 
   return { init };
