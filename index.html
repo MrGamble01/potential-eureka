@@ -22,6 +22,8 @@
   <nav>
     <span class="logo glitch" data-text=">_ POTENTIAL EUREKA">&gt;_ POTENTIAL EUREKA</span>
     <button class="active" data-view="dashboard">Dashboard</button>
+    <button data-view="productivity">Productivity</button>
+    <button data-view="personal" class="nav-locked">Personal</button>
     <button data-view="snake">Snake</button>
     <button data-view="maze">Maze Solver</button>
     <button data-view="life">Game of Life</button>
@@ -102,6 +104,136 @@
         <div class="activity-graph" id="activity-graph"></div>
       </div>
 
+    </div>
+  </section>
+
+  <!-- ===================== PRODUCTIVITY ===================== -->
+  <section id="view-productivity" class="view">
+    <div class="dashboard-grid">
+
+      <!-- Pomodoro Timer -->
+      <div class="widget">
+        <div class="widget-title"><span class="dot"></span> Pomodoro Timer</div>
+        <div class="pomo-mode-label" id="pomo-mode">FOCUS</div>
+        <div class="pomo-time" id="pomo-time">25:00</div>
+        <div class="pomo-bar"><div class="pomo-fill pomo-focus" id="pomo-progress" style="width:0%"></div></div>
+        <div class="game-controls" style="margin-top:10px">
+          <button class="primary" id="pomo-toggle" onclick="Productivity.pomoToggle()">Start</button>
+          <button onclick="Productivity.pomoSkip()">Skip</button>
+          <button onclick="Productivity.pomoReset()">Reset</button>
+        </div>
+        <div class="pomo-info">Sessions completed: <strong id="pomo-sessions">0</strong></div>
+      </div>
+
+      <!-- Quick Notes -->
+      <div class="widget">
+        <div class="widget-title"><span class="dot"></span> Quick Notes</div>
+        <textarea id="notes-area" class="notes-textarea" placeholder="Type anything... auto-saves as you go."></textarea>
+        <div class="notes-meta"><span id="notes-chars">0</span> chars · auto-saved</div>
+      </div>
+
+      <!-- Todo List -->
+      <div class="widget" style="grid-column: span 2">
+        <div class="widget-title"><span class="dot"></span> Tasks</div>
+        <div class="todo-input-row">
+          <input type="text" id="todo-input" class="todo-input" placeholder="Add a task and press Enter...">
+        </div>
+        <div id="todo-list" class="todo-list"></div>
+        <div class="todo-footer">
+          <span id="todo-count">0 items left</span>
+          <div class="todo-filters">
+            <button class="active" onclick="Productivity.setTodoFilter('all')">All</button>
+            <button onclick="Productivity.setTodoFilter('active')">Active</button>
+            <button onclick="Productivity.setTodoFilter('done')">Done</button>
+          </div>
+          <button class="todo-clear" onclick="Productivity.clearCompleted()">Clear done</button>
+        </div>
+      </div>
+
+      <!-- Bookmarks -->
+      <div class="widget" style="grid-column: span 2">
+        <div class="widget-title"><span class="dot"></span> Bookmarks</div>
+        <div id="bookmark-form" class="bookmark-form" style="display:none">
+          <input type="text" id="bm-name" class="cal-input" placeholder="Name">
+          <input type="text" id="bm-url" class="cal-input" placeholder="URL">
+          <button class="primary" onclick="Productivity.addBookmark()">Add</button>
+        </div>
+        <div id="bookmarks-grid" class="bookmarks-grid"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== PERSONAL ===================== -->
+  <section id="view-personal" class="view">
+
+    <!-- Lock Screen -->
+    <div id="personal-lock" class="personal-lock">
+      <div class="lock-terminal">
+        <div class="lock-ascii">
+<pre>
+ ╔══════════════════════════╗
+ ║   ┌─────────────────┐   ║
+ ║   │    ██  ██  ██    │   ║
+ ║   │    ██  ██  ██    │   ║
+ ║   │   ┌──────────┐  │   ║
+ ║   │   │ PRIVATE  │  │   ║
+ ║   │   │ TERMINAL │  │   ║
+ ║   │   └──────────┘  │   ║
+ ║   └─────────────────┘   ║
+ ╚══════════════════════════╝
+</pre>
+        </div>
+        <div class="lock-subtitle" id="lock-subtitle">ENTER ACCESS CODE</div>
+        <input type="password" id="lock-input" class="lock-input" maxlength="20" placeholder="••••••">
+        <button class="primary lock-btn" id="lock-btn" onclick="Personal.submitPin()">ACCESS</button>
+        <div class="lock-status" id="lock-status"></div>
+      </div>
+    </div>
+
+    <!-- Content (hidden until auth) -->
+    <div id="personal-content" class="personal-content" style="display:none">
+      <div class="personal-header">
+        <span>PRIVATE TERMINAL — AUTHORIZED</span>
+        <button class="lock-out-btn" onclick="Personal.lock()">Lock</button>
+      </div>
+      <div class="dashboard-grid">
+
+        <!-- Mood -->
+        <div class="widget">
+          <div class="widget-title"><span class="dot"></span> Mood Check</div>
+          <div class="mood-picker" id="mood-picker">
+            <button onclick="Personal.logMood(5)" title="Great">😄</button>
+            <button onclick="Personal.logMood(4)" title="Good">🙂</button>
+            <button onclick="Personal.logMood(3)" title="Okay">😐</button>
+            <button onclick="Personal.logMood(2)" title="Low">😕</button>
+            <button onclick="Personal.logMood(1)" title="Rough">😢</button>
+          </div>
+          <div class="mood-history" id="mood-history"></div>
+        </div>
+
+        <!-- Habits -->
+        <div class="widget">
+          <div class="widget-title"><span class="dot"></span> Habit Tracker</div>
+          <div id="habit-list" class="habit-list"></div>
+          <div class="habit-add-row">
+            <input type="text" id="habit-input" class="todo-input" placeholder="Add a habit and press Enter...">
+          </div>
+        </div>
+
+        <!-- Journal -->
+        <div class="widget" style="grid-column: span 2">
+          <div class="widget-title"><span class="dot"></span> Journal</div>
+          <div class="journal-nav">
+            <button onclick="Personal.prevDay()">&#9664;</button>
+            <span id="journal-date"></span>
+            <button onclick="Personal.nextDay()">&#9654;</button>
+          </div>
+          <textarea id="journal-area" class="journal-textarea" placeholder="What's on your mind today?"></textarea>
+          <div class="journal-meta"><span id="journal-words">0</span> words · auto-saved</div>
+        </div>
+
+      </div>
     </div>
   </section>
 
@@ -221,11 +353,12 @@
   <script src="js/effects.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/calendar.js"></script>
+  <script src="js/productivity.js"></script>
+  <script src="js/personal.js"></script>
   <script src="js/snake.js"></script>
   <script src="js/maze.js"></script>
   <script src="js/life.js"></script>
   <script>
-    // ---- VIEW SWITCHING ----
     const navButtons = document.querySelectorAll('nav button');
     const views = document.querySelectorAll('.view');
     const inited = new Set();
@@ -237,19 +370,22 @@
       if (!inited.has(name)) {
         inited.add(name);
         switch (name) {
-          case 'dashboard': Dashboard.init(); CalendarWidget.init(); break;
-          case 'snake':     SnakeGame.init(); break;
-          case 'maze':      MazeGame.init(); break;
-          case 'life':      LifeGame.init(); break;
+          case 'dashboard':    Dashboard.init(); CalendarWidget.init(); break;
+          case 'productivity': Productivity.init(); break;
+          case 'personal':     Personal.init(); break;
+          case 'snake':        SnakeGame.init(); break;
+          case 'maze':         MazeGame.init(); break;
+          case 'life':         LifeGame.init(); break;
         }
       }
+      // Re-init 3D tilt for newly visible widgets
+      setTimeout(() => Effects.init3DTilt(), 50);
     }
 
     navButtons.forEach(btn => {
       btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
 
-    // Boot sequence first, then dashboard
     Effects.init().then(() => switchView('dashboard'));
   </script>
 
