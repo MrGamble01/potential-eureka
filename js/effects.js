@@ -23,46 +23,7 @@ const Effects = (() => {
   let bootSkipped = false;
 
   async function bootSequence() {
-    if (sessionStorage.getItem('eureka-booted')) { // sessionStorage intentional — per tab
-      staggerWidgets();
-      return;
-    }
-
-    const overlay = document.getElementById('boot-overlay');
-    const terminal = document.getElementById('boot-terminal');
-    if (!overlay || !terminal) return;
-
-    overlay.style.display = 'flex';
-
-    const skipHandler = () => { bootSkipped = true; };
-    overlay.addEventListener('click', skipHandler);
-
-    for (const line of bootLines) {
-      if (bootSkipped) break;
-      await delay(line.delay);
-      if (bootSkipped) break;
-
-      const el = document.createElement('div');
-      el.className = 'boot-line';
-      if (line.cls) el.classList.add(line.cls);
-      terminal.appendChild(el);
-      terminal.scrollTop = terminal.scrollHeight;
-
-      for (let i = 0; i < line.text.length; i++) {
-        if (bootSkipped) { el.textContent = line.text; break; }
-        el.textContent += line.text[i];
-        await delay(Math.random() * 15 + 5);
-      }
-    }
-
-    overlay.removeEventListener('click', skipHandler);
-    sessionStorage.setItem('eureka-booted', '1');
-
-    if (!bootSkipped) await delay(600);
-    overlay.classList.add('boot-fade-out');
-    await delay(500);
-    overlay.style.display = 'none';
-
+    // Boot removed — go straight to widget entry
     staggerWidgets();
   }
 
@@ -84,7 +45,7 @@ const Effects = (() => {
     window.addEventListener('resize', resize);
 
     const count = Math.min(80, Math.floor(window.innerWidth * window.innerHeight / 15000));
-    const colors = ['#00ff41', '#00d4ff', '#ff00ff'];
+    const colors = ['#6C63FF', '#58A6FF', '#F778BA'];
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * particleCanvas.width,

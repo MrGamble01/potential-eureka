@@ -203,7 +203,7 @@ const LifeGame = (() => {
 
   // ---- DRAWING ----
   function draw() {
-    ctx.fillStyle = '#0a0a0f';
+    ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     // Grid lines
@@ -224,10 +224,10 @@ const LifeGame = (() => {
           population++;
           // Color based on neighbor count for visual variety
           const n = countNeighbors(r, c);
-          if (n <= 1) ctx.fillStyle = '#ff3333';       // dying (underpopulation)
-          else if (n === 2) ctx.fillStyle = '#00ff41';  // stable
-          else if (n === 3) ctx.fillStyle = '#00d4ff';  // thriving
-          else ctx.fillStyle = '#ffaa00';               // dying (overpopulation)
+          if (n <= 1) ctx.fillStyle = '#F85149';       // dying (underpopulation)
+          else if (n === 2) ctx.fillStyle = '#3FB950';  // stable
+          else if (n === 3) ctx.fillStyle = '#58A6FF';  // thriving
+          else ctx.fillStyle = '#D29922';               // dying (overpopulation)
 
           ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
         }
