@@ -1,0 +1,181 @@
+/* ============================================
+   GAMES — Common Game Styles, Maze, Life
+   ============================================ */
+
+/* ---- GAME COMMON ---- */
+.game-container {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.game-header {
+  margin-bottom: 16px;
+}
+
+.game-title {
+  font-size: 24px;
+  color: var(--green);
+  text-shadow: var(--glow-green);
+  margin-bottom: 4px;
+}
+
+.game-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.game-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.game-controls button, .game-controls select {
+  background: var(--bg-widget);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 16px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.game-controls button:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.game-controls button.primary {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.game-controls button.primary:hover {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: var(--glow-green);
+}
+
+.game-controls button.danger {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.game-controls select {
+  appearance: none;
+  padding-right: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300ff41' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.game-info {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.game-info span {
+  color: var(--text-dim);
+}
+
+.game-info strong {
+  color: var(--green);
+}
+
+canvas.game-canvas {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
+/* Game over overlay */
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.game-overlay h2 {
+  color: var(--red);
+  font-size: 32px;
+  text-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
+  margin-bottom: 8px;
+}
+
+.game-overlay p {
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+/* Canvas wrapper for overlays */
+.canvas-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* ---- MAZE SPECIFIC ---- */
+.maze-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.maze-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  vertical-align: middle;
+  border-radius: 1px;
+}
+
+.maze-legend .wall::before { background: var(--text-dim); }
+.maze-legend .path::before { background: var(--bg-primary); }
+.maze-legend .visited::before { background: rgba(0, 212, 255, 0.4); }
+.maze-legend .solution::before { background: var(--green); }
+
+/* ---- LIFE SPECIFIC ---- */
+.life-presets {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.life-presets button {
+  background: var(--bg-widget);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.life-presets button:hover {
+  border-color: var(--magenta);
+  color: var(--magenta);
+}
