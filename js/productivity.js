@@ -125,17 +125,28 @@ const Productivity = (() => {
     localStorage.setItem('eureka-todos', JSON.stringify(todos));
   }
 
+  function getActiveListId() {
+    const picker = document.getElementById('todo-list-picker');
+    return picker ? picker.value : (gt.selectedLists[0]?.id || null);
+  }
+
+  function getListName(listId) {
+    const l = gt.allLists.find(l => l.id === listId);
+    return l ? l.title : '';
+  }
+
   async function addTodo() {
     const input = document.getElementById('todo-input');
     if (!input) return;
     const text = input.value.trim();
     if (!text) return;
 
-    const todo = { id: String(Date.now()), text, done: false };
+    const listId = getActiveListId();
+    const todo = { id: String(Date.now()), text, done: false, listId: listId || null, listName: getListName(listId) };
 
-    if (gt.connected) {
+    if (gt.connected && listId) {
       try {
-        const created = await gtApiCreate(text);
+        const created = await gtApiCreate(text, listId);
         todo.id = created.id;
         todo.googleId = created.id;
       } catch (e) {
@@ -154,9 +165,9 @@ const Productivity = (() => {
     if (!t) return;
     t.done = !t.done;
 
-    if (gt.connected && t.googleId) {
+    if (gt.connected && t.googleId && t.listId) {
       try {
-        await gtApiUpdate(t.googleId, {
+        await gtApiUpdate(t.listId, t.googleId, {
           status: t.done ? 'completed' : 'needsAction',
         });
       } catch (e) {
@@ -171,9 +182,9 @@ const Productivity = (() => {
   async function deleteTodo(id) {
     const t = todos.find(t => String(t.id) === String(id));
 
-    if (gt.connected && t && t.googleId) {
+    if (gt.connected && t && t.googleId && t.listId) {
       try {
-        await gtApiDelete(t.googleId);
+        await gtApiDelete(t.listId, t.googleId);
       } catch (e) {
         console.warn('GT delete failed:', e);
       }
@@ -189,8 +200,8 @@ const Productivity = (() => {
 
     if (gt.connected) {
       for (const t of completed) {
-        if (t.googleId) {
-          try { await gtApiDelete(t.googleId); } catch {}
+        if (t.googleId && t.listId) {
+          try { await gtApiDelete(t.listId, t.googleId); } catch {}
         }
       }
     }
@@ -208,6 +219,16 @@ const Productivity = (() => {
     renderTodos();
   }
 
+  // Color for a list name — consistent hue
+  function listColor(name) {
+    if (!name) return 'var(--text-dim)';
+    const n = name.toLowerCase();
+    if (n.includes('work') || n.includes('office') || n.includes('job')) return 'var(--cyan)';
+    if (n.includes('personal') || n.includes('home') || n.includes('life')) return 'var(--magenta)';
+    const hue = name.split('').reduce((h, c) => h + c.charCodeAt(0), 0) % 360;
+    return `hsl(${hue}, 70%, 60%)`;
+  }
+
   function renderTodos() {
     const list = document.getElementById('todo-list');
     const countEl = document.getElementById('todo-count');
@@ -219,14 +240,18 @@ const Productivity = (() => {
       return true;
     });
 
-    list.innerHTML = filtered.map(t => `
+    list.innerHTML = filtered.map(t => {
+      const tag = t.listName
+        ? `<span class="todo-list-tag" style="color:${listColor(t.listName)}">${escHtml(t.listName)}</span>`
+        : '';
+      return `
       <div class="todo-item ${t.done ? 'done' : ''}" data-id="${escHtml(String(t.id))}">
         <button class="todo-check" data-action="toggle">${t.done ? '✓' : ''}</button>
         <span class="todo-text">${escHtml(t.text)}</span>
-        ${t.googleId ? '<span class="todo-synced" title="Synced with Google Tasks">↻</span>' : ''}
+        ${tag}
         <button class="todo-delete" data-action="delete">×</button>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
 
     if (filtered.length === 0) {
       list.innerHTML = `<div class="todo-empty">${todoFilter === 'done' ? 'Nothing completed yet' : todoFilter === 'active' ? 'All done!' : 'No tasks — add one above'}</div>`;
@@ -234,6 +259,19 @@ const Productivity = (() => {
 
     const active = todos.filter(t => !t.done).length;
     if (countEl) countEl.textContent = `${active} item${active !== 1 ? 's' : ''} left`;
+  }
+
+  function updateListPicker() {
+    const picker = document.getElementById('todo-list-picker');
+    if (!picker) return;
+    if (gt.connected && gt.selectedLists.length > 0) {
+      picker.innerHTML = gt.selectedLists.map(l =>
+        `<option value="${l.id}">${escHtml(l.title)}</option>`
+      ).join('');
+      picker.style.display = 'block';
+    } else {
+      picker.style.display = 'none';
+    }
   }
 
   function initTodoEvents() {
@@ -251,13 +289,13 @@ const Productivity = (() => {
     });
   }
 
-  // ========== GOOGLE TASKS ==========
+  // ========== GOOGLE TASKS (multi-list) ==========
   const gt = {
     token: null,
     clientId: localStorage.getItem('eureka-gt-clientid') || '',
-    listId: localStorage.getItem('eureka-gt-listid') || '',
+    selectedLists: JSON.parse(localStorage.getItem('eureka-gt-lists') || '[]'), // [{id, title}]
     connected: false,
-    lists: [],
+    allLists: [],
   };
 
   function loadGIS() {
@@ -291,24 +329,24 @@ const Productivity = (() => {
     return res;
   }
 
-  async function gtApiCreate(text) {
+  async function gtApiCreate(text, listId) {
     const res = await gtApiFetch(
-      `https://www.googleapis.com/tasks/v1/lists/${gt.listId}/tasks`,
+      `https://www.googleapis.com/tasks/v1/lists/${listId}/tasks`,
       { method: 'POST', body: JSON.stringify({ title: text, status: 'needsAction' }) }
     );
     return res.json();
   }
 
-  async function gtApiUpdate(taskId, updates) {
+  async function gtApiUpdate(listId, taskId, updates) {
     await gtApiFetch(
-      `https://www.googleapis.com/tasks/v1/lists/${gt.listId}/tasks/${taskId}`,
+      `https://www.googleapis.com/tasks/v1/lists/${listId}/tasks/${taskId}`,
       { method: 'PATCH', body: JSON.stringify(updates) }
     );
   }
 
-  async function gtApiDelete(taskId) {
+  async function gtApiDelete(listId, taskId) {
     await gtApiFetch(
-      `https://www.googleapis.com/tasks/v1/lists/${gt.listId}/tasks/${taskId}`,
+      `https://www.googleapis.com/tasks/v1/lists/${listId}/tasks/${taskId}`,
       { method: 'DELETE' }
     );
   }
@@ -322,9 +360,7 @@ const Productivity = (() => {
     localStorage.setItem('eureka-gt-clientid', gt.clientId);
 
     gtSetModalStatus('Loading Google auth...', null);
-    try {
-      await loadGIS();
-    } catch (e) {
+    try { await loadGIS(); } catch (e) {
       gtSetModalStatus('Failed to load Google auth library. Are you online?', false);
       return;
     }
@@ -340,25 +376,14 @@ const Productivity = (() => {
         gt.token = response.access_token;
         gt.connected = true;
 
-        gtSetModalStatus('Connected! Fetching task lists...', true);
+        gtSetModalStatus('Connected! Fetching your task lists...', true);
 
         try {
           const res = await gtApiFetch('https://www.googleapis.com/tasks/v1/users/@me/lists');
           const data = await res.json();
-          gt.lists = data.items || [];
-
-          const sel = document.getElementById('gt-list-select');
-          if (sel) {
-            sel.innerHTML = gt.lists.map(l =>
-              `<option value="${l.id}" ${l.id === gt.listId ? 'selected' : ''}>${escHtml(l.title)}</option>`
-            ).join('');
-            sel.style.display = 'block';
-            if (!gt.listId && gt.lists.length > 0) {
-              gt.listId = gt.lists[0].id;
-            }
-          }
-
-          gtSetModalStatus(`Found ${gt.lists.length} list(s). Pick one and click Sync.`, true);
+          gt.allLists = data.items || [];
+          renderGTListCheckboxes();
+          gtSetModalStatus(`Found ${gt.allLists.length} list(s). Check the ones you want and click Sync.`, true);
         } catch (e) {
           gtSetModalStatus('Connected but failed to fetch lists: ' + e.message, false);
         }
@@ -370,54 +395,87 @@ const Productivity = (() => {
     tokenClient.requestAccessToken();
   }
 
-  async function gtSync() {
-    const sel = document.getElementById('gt-list-select');
-    if (sel && sel.value) {
-      gt.listId = sel.value;
-      localStorage.setItem('eureka-gt-listid', gt.listId);
-    }
+  function renderGTListCheckboxes() {
+    const container = document.getElementById('gt-list-checks');
+    if (!container) return;
+    const selectedIds = new Set(gt.selectedLists.map(l => l.id));
 
-    if (!gt.connected || !gt.listId) {
-      gtSetModalStatus('Connect and select a list first', false);
+    container.innerHTML = gt.allLists.map(l => `
+      <label class="gt-list-label">
+        <input type="checkbox" value="${l.id}" data-title="${escHtml(l.title)}"
+          ${selectedIds.has(l.id) ? 'checked' : ''}>
+        <span style="color:${listColor(l.title)}">${escHtml(l.title)}</span>
+      </label>
+    `).join('');
+    container.style.display = 'block';
+  }
+
+  function readSelectedLists() {
+    const checks = document.querySelectorAll('#gt-list-checks input[type=checkbox]:checked');
+    gt.selectedLists = Array.from(checks).map(c => ({ id: c.value, title: c.dataset.title }));
+    localStorage.setItem('eureka-gt-lists', JSON.stringify(gt.selectedLists));
+  }
+
+  async function gtSync() {
+    readSelectedLists();
+
+    if (!gt.connected || gt.selectedLists.length === 0) {
+      gtSetModalStatus('Connect and check at least one list first', false);
       return;
     }
 
     gtSetModalStatus('Syncing...', null);
 
     try {
-      // Upload local-only tasks to Google
+      // Upload local-only tasks to the first selected list
       const localOnly = todos.filter(t => !t.googleId);
+      const defaultList = gt.selectedLists[0];
       for (const t of localOnly) {
         try {
-          const created = await gtApiCreate(t.text);
+          const created = await gtApiCreate(t.text, defaultList.id);
           t.googleId = created.id;
           t.id = created.id;
+          t.listId = defaultList.id;
+          t.listName = defaultList.title;
           if (t.done) {
-            await gtApiUpdate(created.id, { status: 'completed' });
+            await gtApiUpdate(defaultList.id, created.id, { status: 'completed' });
           }
         } catch {}
       }
 
-      // Pull all tasks from Google
-      const res = await gtApiFetch(
-        `https://www.googleapis.com/tasks/v1/lists/${gt.listId}/tasks?maxResults=100&showCompleted=true&showHidden=false`
-      );
-      const data = await res.json();
-      const items = (data.items || []).filter(t => t.title);
+      // Pull tasks from ALL selected lists
+      const allTasks = [];
+      for (const list of gt.selectedLists) {
+        try {
+          const res = await gtApiFetch(
+            `https://www.googleapis.com/tasks/v1/lists/${list.id}/tasks?maxResults=100&showCompleted=true&showHidden=false`
+          );
+          const data = await res.json();
+          const items = (data.items || []).filter(t => t.title);
+          items.forEach(t => {
+            allTasks.push({
+              id: t.id,
+              googleId: t.id,
+              text: t.title,
+              done: t.status === 'completed',
+              listId: list.id,
+              listName: list.title,
+            });
+          });
+        } catch (e) {
+          console.warn(`Failed to fetch list "${list.title}":`, e);
+        }
+      }
 
-      todos = items.map(t => ({
-        id: t.id,
-        googleId: t.id,
-        text: t.title,
-        done: t.status === 'completed',
-      }));
-
+      todos = allTasks;
       todoSave();
       renderTodos();
-      gtSetModalStatus(`Synced ${todos.length} task(s)`, true);
+      updateListPicker();
+
+      const listNames = gt.selectedLists.map(l => l.title).join(', ');
+      gtSetModalStatus(`Synced ${todos.length} task(s) from: ${listNames}`, true);
       gtUpdateStatus();
 
-      // Auto-refresh every 5 min
       clearInterval(gt.refreshInterval);
       gt.refreshInterval = setInterval(gtPullQuiet, 300000);
     } catch (e) {
@@ -426,16 +484,23 @@ const Productivity = (() => {
   }
 
   async function gtPullQuiet() {
-    if (!gt.connected || !gt.listId) return;
+    if (!gt.connected || gt.selectedLists.length === 0) return;
     try {
-      const res = await gtApiFetch(
-        `https://www.googleapis.com/tasks/v1/lists/${gt.listId}/tasks?maxResults=100&showCompleted=true&showHidden=false`
-      );
-      const data = await res.json();
-      const items = (data.items || []).filter(t => t.title);
-      todos = items.map(t => ({
-        id: t.id, googleId: t.id, text: t.title, done: t.status === 'completed',
-      }));
+      const allTasks = [];
+      for (const list of gt.selectedLists) {
+        const res = await gtApiFetch(
+          `https://www.googleapis.com/tasks/v1/lists/${list.id}/tasks?maxResults=100&showCompleted=true&showHidden=false`
+        );
+        const data = await res.json();
+        (data.items || []).filter(t => t.title).forEach(t => {
+          allTasks.push({
+            id: t.id, googleId: t.id, text: t.title,
+            done: t.status === 'completed',
+            listId: list.id, listName: list.title,
+          });
+        });
+      }
+      todos = allTasks;
       todoSave();
       renderTodos();
     } catch {}
@@ -446,16 +511,18 @@ const Productivity = (() => {
     gt.connected = false;
     clearInterval(gt.refreshInterval);
     gtUpdateStatus();
-    gtSetModalStatus('Disconnected. Local tasks are preserved.', null);
-    const sel = document.getElementById('gt-list-select');
-    if (sel) sel.style.display = 'none';
+    updateListPicker();
+    gtSetModalStatus('Disconnected. Local tasks preserved.', null);
+    const container = document.getElementById('gt-list-checks');
+    if (container) container.style.display = 'none';
   }
 
   function gtUpdateStatus() {
     const el = document.getElementById('gt-sync-status');
     if (!el) return;
     if (gt.connected) {
-      el.textContent = '● synced';
+      const n = gt.selectedLists.length;
+      el.textContent = `● ${n} list${n !== 1 ? 's' : ''} synced`;
       el.className = 'gt-status gt-connected';
     } else {
       el.textContent = '';
@@ -475,10 +542,7 @@ const Productivity = (() => {
     if (modal) modal.style.display = 'flex';
     const input = document.getElementById('gt-client-id');
     if (input) input.value = gt.clientId;
-    if (gt.connected && gt.lists.length > 0) {
-      const sel = document.getElementById('gt-list-select');
-      if (sel) sel.style.display = 'block';
-    }
+    if (gt.connected && gt.allLists.length > 0) renderGTListCheckboxes();
   }
 
   function closeGTSettings() {

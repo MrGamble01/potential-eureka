@@ -904,9 +904,6 @@ canvas.game-canvas {
 }
 
 /* ---- TODO LIST ---- */
-.todo-input-row {
-  margin-bottom: 10px;
-}
 
 .todo-input {
   width: 100%;
@@ -1532,10 +1529,70 @@ canvas.game-canvas {
 .gt-modal-msg.gt-ok { color: var(--green); }
 .gt-modal-msg.gt-err { color: var(--red); }
 
-.todo-synced {
-  font-size: 10px;
-  color: var(--text-dim);
-  opacity: 0.4;
+.todo-list-tag {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.todo-list-picker {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--cyan);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 8px 10px;
+  border-radius: 3px 0 0 3px;
+  outline: none;
+  border-right: none;
+  flex-shrink: 0;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.todo-list-picker:focus { border-color: var(--cyan); }
+
+.todo-input-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.todo-list-picker + .todo-input {
+  border-radius: 0 3px 3px 0;
+}
+
+/* GT settings: list checkboxes */
+.gt-list-checks {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gt-list-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.gt-list-label:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.gt-list-label input[type=checkbox] {
+  accent-color: var(--green);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 /* ---- MOOD (check-in style) ---- */

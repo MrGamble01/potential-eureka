@@ -140,6 +140,7 @@
           <button class="widget-settings-btn" onclick="Productivity.openGTSettings()" title="Sync with Google Tasks">&#9881;</button>
         </div>
         <div class="todo-input-row">
+          <select id="todo-list-picker" class="todo-list-picker" style="display:none"></select>
           <input type="text" id="todo-input" class="todo-input" placeholder="Add a task and press Enter...">
         </div>
         <div id="todo-list" class="todo-list"></div>
@@ -342,19 +343,15 @@
   <div id="gt-modal" class="modal-overlay">
     <div class="modal-content">
       <h3>Google Tasks</h3>
-      <p>Two-way sync: tasks you add here appear in Google Tasks and vice versa.
-         Requires a Google Cloud project with the Tasks API enabled and
-         OAuth 2.0 credentials (Web application type). Add your page's URL
-         to Authorized JavaScript origins. Page must be served via HTTP(S), not file://.</p>
+      <p>Two-way sync with multiple Google Tasks lists. Your Work and Personal
+         lists will show up as color-coded tags on each task.
+         Requires a Google Cloud project with Tasks API + OAuth 2.0 credentials.</p>
       <label>OAuth Client ID</label>
       <input type="text" id="gt-client-id" class="cal-input" placeholder="123456789.apps.googleusercontent.com">
-      <label>Task List</label>
-      <select id="gt-list-select" class="cal-input" style="display:none">
-        <option value="">Connect to see your lists</option>
-      </select>
+      <div id="gt-list-checks" class="gt-list-checks" style="display:none"></div>
       <div class="modal-actions" style="margin-top:16px">
         <button onclick="Productivity.gtConnect()">Connect</button>
-        <button onclick="Productivity.gtSync()">Sync</button>
+        <button onclick="Productivity.gtSync()">Sync Selected</button>
         <button onclick="Productivity.gtDisconnect()" style="color:var(--red);border-color:var(--red)">Disconnect</button>
         <button onclick="Productivity.closeGTSettings()">Close</button>
       </div>
