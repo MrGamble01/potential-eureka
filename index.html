@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POTENTIAL EUREKA</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- NAVIGATION -->
+  <nav>
+    <span class="logo">&gt;_ POTENTIAL EUREKA</span>
+    <button class="active" data-view="dashboard">Dashboard</button>
+    <button data-view="snake">Snake</button>
+    <button data-view="maze">Maze Solver</button>
+    <button data-view="life">Game of Life</button>
+  </nav>
+
+  <!-- ===================== DASHBOARD ===================== -->
+  <section id="view-dashboard" class="view active">
+    <div class="dashboard-grid">
+
+      <!-- Clock -->
+      <div class="widget">
+        <div class="widget-title"><span class="dot"></span> System Clock</div>
+        <div class="clock-display" id="clock-time">--:--:--</div>
+        <div class="clock-date" id="clock-date"></div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="widget">
+        <div class="widget-title"><span class="dot"></span> Calendar</div>
+        <div class="calendar" id="calendar-container"></div>
+      </div>
+
+      <!-- System Stats -->
+      <div class="widget">
+        <div class="widget-title"><span class="dot"></span> System Monitor</div>
+        <div class="stat-row">
+          <span class="stat-label">CPU</span>
+          <div class="stat-bar"><div class="stat-fill cpu" id="stat-cpu" style="width:45%"></div></div>
+          <span class="stat-value" id="stat-cpu-val">45%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">MEM</span>
+          <div class="stat-bar"><div class="stat-fill mem" id="stat-mem" style="width:62%"></div></div>
+          <span class="stat-value" id="stat-mem-val">62%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">DISK</span>
+          <div class="stat-bar"><div class="stat-fill disk" id="stat-disk" style="width:71%"></div></div>
+          <span class="stat-value" id="stat-disk-val">71%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">NET</span>
+          <div class="stat-bar"><div class="stat-fill net" id="stat-net" style="width:23%"></div></div>
+          <span class="stat-value" id="stat-net-val">23%</span>
+        </div>
+      </div>
+
+      <!-- Weather -->
+      <div class="widget">
+        <div class="widget-title"><span class="dot"></span> Weather</div>
+        <div class="weather-display">
+          <div class="weather-icon" id="weather-icon">☀️</div>
+          <div class="weather-temp" id="weather-temp">72°F</div>
+          <div class="weather-desc" id="weather-desc">Clear skies</div>
+        </div>
+      </div>
+
+      <!-- Quote -->
+      <div class="widget" style="grid-column: span 2">
+        <div class="widget-title"><span class="dot"></span> Quote of the Day</div>
+        <div class="quote-text" id="quote-text">"Loading..."</div>
+        <div class="quote-author" id="quote-author"></div>
+      </div>
+
+      <!-- Activity Graph -->
+      <div class="widget" style="grid-column: span 2">
+        <div class="widget-title"><span class="dot"></span> Activity Monitor</div>
+        <div class="activity-graph" id="activity-graph"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== SNAKE ===================== -->
+  <section id="view-snake" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <div class="game-title">SNAKE</div>
+        <div class="game-subtitle">Use arrow keys or WASD to control</div>
+      </div>
+      <div class="game-info">
+        <span>Score: <strong id="snake-score">0</strong></span>
+        <span>High Score: <strong id="snake-high">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="snake-canvas" class="game-canvas"></canvas>
+        <div id="snake-overlay" class="game-overlay" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" onclick="SnakeGame.start()">New Game</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MAZE ===================== -->
+  <section id="view-maze" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <div class="game-title">MAZE SOLVER</div>
+        <div class="game-subtitle">Generate mazes and watch algorithms solve them</div>
+      </div>
+      <div class="game-controls">
+        <button class="primary" onclick="MazeGame.generate()">Generate New</button>
+        <select id="maze-algo">
+          <option value="bfs">BFS (Breadth-First)</option>
+          <option value="dfs">DFS (Depth-First)</option>
+          <option value="astar">A* Search</option>
+        </select>
+        <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
+      </div>
+      <div class="game-info">
+        <span id="maze-status" style="color: var(--text-dim)">Generate a maze to begin</span>
+      </div>
+      <canvas id="maze-canvas" class="game-canvas"></canvas>
+      <div class="maze-legend">
+        <span class="wall">Wall</span>
+        <span class="path">Path</span>
+        <span class="visited">Explored</span>
+        <span class="solution">Solution</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== GAME OF LIFE ===================== -->
+  <section id="view-life" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <div class="game-title">GAME OF LIFE</div>
+        <div class="game-subtitle">Conway's cellular automaton — click to draw cells</div>
+      </div>
+      <div class="game-controls">
+        <button class="primary" id="life-play-btn" onclick="LifeGame.togglePlay()">Play</button>
+        <button onclick="LifeGame.step()">Step</button>
+        <button onclick="LifeGame.randomize()">Random</button>
+        <button class="danger" onclick="LifeGame.clear()">Clear</button>
+        <select onchange="LifeGame.setSpeed(+this.value)">
+          <option value="200">Slow</option>
+          <option value="100" selected>Normal</option>
+          <option value="50">Fast</option>
+          <option value="16">Ludicrous</option>
+        </select>
+      </div>
+      <div class="game-info">
+        <span>Generation: <strong id="life-gen">0</strong></span>
+        <span>Population: <strong id="life-pop">0</strong></span>
+      </div>
+      <div class="life-presets">
+        <button onclick="LifeGame.loadPreset('glider')">Glider</button>
+        <button onclick="LifeGame.loadPreset('blinker')">Blinker</button>
+        <button onclick="LifeGame.loadPreset('toad')">Toad</button>
+        <button onclick="LifeGame.loadPreset('beacon')">Beacon</button>
+        <button onclick="LifeGame.loadPreset('pulsar')">Pulsar</button>
+        <button onclick="LifeGame.loadPreset('lwss')">LWSS</button>
+        <button onclick="LifeGame.loadPreset('rpentomino')">R-pentomino</button>
+        <button onclick="LifeGame.loadPreset('gliderGun')">Gosper Gun</button>
+      </div>
+      <canvas id="life-canvas" class="game-canvas"></canvas>
+      <div style="margin-top:8px; font-size:11px; color: var(--text-dim)">
+        Colors: <span style="color:#00ff41">stable</span> ·
+        <span style="color:#00d4ff">thriving</span> ·
+        <span style="color:#ffaa00">crowded</span> ·
+        <span style="color:#ff3333">lonely</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCRIPTS -->
+  <script src="js/dashboard.js"></script>
+  <script src="js/snake.js"></script>
+  <script src="js/maze.js"></script>
+  <script src="js/life.js"></script>
+  <script>
+    // ---- VIEW SWITCHING ----
+    const navButtons = document.querySelectorAll('nav button');
+    const views = document.querySelectorAll('.view');
+    const inited = new Set();
+
+    function switchView(name) {
+      navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+      views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
+
+      // Lazy-init games on first visit
+      if (!inited.has(name)) {
+        inited.add(name);
+        switch (name) {
+          case 'dashboard': Dashboard.init(); break;
+          case 'snake':     SnakeGame.init(); break;
+          case 'maze':      MazeGame.init(); break;
+          case 'life':      LifeGame.init(); break;
+        }
+      }
+    }
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+
+    // Init dashboard on load
+    switchView('dashboard');
+  </script>
+
+</body>
+</html>
