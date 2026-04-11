@@ -8,9 +8,19 @@
 </head>
 <body>
 
+  <!-- BOOT SEQUENCE -->
+  <div id="boot-overlay">
+    <div id="boot-terminal"></div>
+    <div id="boot-skip">click to skip</div>
+  </div>
+
+  <!-- BACKGROUND EFFECTS -->
+  <canvas id="particle-canvas"></canvas>
+  <canvas id="matrix-canvas" style="display:none"></canvas>
+
   <!-- NAVIGATION -->
   <nav>
-    <span class="logo">&gt;_ POTENTIAL EUREKA</span>
+    <span class="logo glitch" data-text=">_ POTENTIAL EUREKA">&gt;_ POTENTIAL EUREKA</span>
     <button class="active" data-view="dashboard">Dashboard</button>
     <button data-view="snake">Snake</button>
     <button data-view="maze">Maze Solver</button>
@@ -75,6 +85,15 @@
         <div class="widget-title"><span class="dot"></span> Quote of the Day</div>
         <div class="quote-text" id="quote-text">"Loading..."</div>
         <div class="quote-author" id="quote-author"></div>
+      </div>
+
+      <!-- Calendar Events -->
+      <div class="widget" style="grid-column: span 2">
+        <div class="widget-title">
+          <span class="dot"></span> Calendar Events
+          <button class="widget-settings-btn" onclick="CalendarWidget.openSettings()" title="Connect Google Calendar">&#9881;</button>
+        </div>
+        <div id="calendar-events"></div>
       </div>
 
       <!-- Activity Graph -->
@@ -179,8 +198,29 @@
     </div>
   </section>
 
+  <!-- CALENDAR SETTINGS MODAL -->
+  <div id="calendar-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Connect Your Calendars</h3>
+      <p>Add your Google Calendar API key and calendar IDs to see real events.
+         Get an API key from the Google Cloud Console with Calendar API enabled.
+         Your calendar ID is usually your email address.</p>
+      <label>Google API Key</label>
+      <input type="text" id="cal-api-key" class="cal-input" placeholder="AIzaSy...">
+      <label>Calendars</label>
+      <div id="cal-list"></div>
+      <button class="modal-add-btn" onclick="CalendarWidget.addCalendarRow('', '')">+ Add Calendar</button>
+      <div class="modal-actions">
+        <button onclick="CalendarWidget.saveSettings()">Save</button>
+        <button onclick="CalendarWidget.closeSettings()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
+  <script src="js/effects.js"></script>
   <script src="js/dashboard.js"></script>
+  <script src="js/calendar.js"></script>
   <script src="js/snake.js"></script>
   <script src="js/maze.js"></script>
   <script src="js/life.js"></script>
@@ -194,11 +234,10 @@
       navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
       views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
 
-      // Lazy-init games on first visit
       if (!inited.has(name)) {
         inited.add(name);
         switch (name) {
-          case 'dashboard': Dashboard.init(); break;
+          case 'dashboard': Dashboard.init(); CalendarWidget.init(); break;
           case 'snake':     SnakeGame.init(); break;
           case 'maze':      MazeGame.init(); break;
           case 'life':      LifeGame.init(); break;
@@ -210,8 +249,8 @@
       btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
 
-    // Init dashboard on load
-    switchView('dashboard');
+    // Boot sequence first, then dashboard
+    Effects.init().then(() => switchView('dashboard'));
   </script>
 
 </body>
