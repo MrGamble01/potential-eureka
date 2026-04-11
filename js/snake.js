@@ -21,6 +21,9 @@ const SnakeGame = (() => {
     canvas.height = HEIGHT;
     ctx = canvas.getContext('2d');
     highScore = parseInt(Utils.store.getRaw('snake-high') || '0');
+    snake = [];
+    running = false;
+    gameOver = false;
     updateInfo();
     draw();
 
@@ -162,11 +165,11 @@ const SnakeGame = (() => {
   }
 
   function draw() {
-    ctx.fillStyle = '#0f0f1a';
+    ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     // Grid lines (subtle)
-    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
     ctx.lineWidth = 0.5;
     for (let x = 0; x <= COLS; x++) {
       ctx.beginPath(); ctx.moveTo(x * GRID, 0); ctx.lineTo(x * GRID, HEIGHT); ctx.stroke();
@@ -179,11 +182,11 @@ const SnakeGame = (() => {
     snake.forEach((seg, i) => {
       const brightness = 1 - (i / snake.length) * 0.5;
       if (i === 0) {
-        ctx.fillStyle = '#00ff41';
-        ctx.shadowColor = '#00ff41';
+        ctx.fillStyle = '#6C63FF';
+        ctx.shadowColor = '#6C63FF';
         ctx.shadowBlur = 8;
       } else {
-        ctx.fillStyle = `rgba(0, 255, 65, ${brightness})`;
+        ctx.fillStyle = `rgba(108, 99, 255, ${brightness})`;
         ctx.shadowBlur = 0;
       }
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
@@ -192,8 +195,8 @@ const SnakeGame = (() => {
 
     // Food
     if (food) {
-      ctx.fillStyle = '#ff00ff';
-      ctx.shadowColor = '#ff00ff';
+      ctx.fillStyle = '#F778BA';
+      ctx.shadowColor = '#F778BA';
       ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(food.x * GRID + GRID / 2, food.y * GRID + GRID / 2, GRID / 2 - 2, 0, Math.PI * 2);
@@ -203,14 +206,14 @@ const SnakeGame = (() => {
 
     // Start prompt
     if (!running && !gameOver) {
-      ctx.fillStyle = 'rgba(10, 10, 15, 0.7)';
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      ctx.fillStyle = '#00ff41';
-      ctx.font = '20px Courier New';
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '20px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
-      ctx.font = '12px Courier New';
-      ctx.fillStyle = '#555577';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
       ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }

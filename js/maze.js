@@ -221,7 +221,7 @@ const MazeGame = (() => {
   }
 
   function drawWithVisited(visited, solution) {
-    ctx.fillStyle = '#0a0a0f';
+    ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (let r = 0; r < rows; r++) {
@@ -229,10 +229,10 @@ const MazeGame = (() => {
         const x = c * CELL, y = r * CELL;
 
         if (grid[r][c] === 1) {
-          ctx.fillStyle = '#1a1a3e';
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
           ctx.fillRect(x, y, CELL, CELL);
         } else if (visited && visited[r][c]) {
-          ctx.fillStyle = 'rgba(0, 212, 255, 0.2)';
+          ctx.fillStyle = 'rgba(88, 166, 255, 0.2)';
           ctx.fillRect(x, y, CELL, CELL);
         }
       }
@@ -241,8 +241,8 @@ const MazeGame = (() => {
     // Draw solution path
     if (solution && solution.length > 0) {
       for (const [r, c] of solution) {
-        ctx.fillStyle = '#00ff41';
-        ctx.shadowColor = '#00ff41';
+        ctx.fillStyle = '#6C63FF';
+        ctx.shadowColor = '#6C63FF';
         ctx.shadowBlur = 4;
         ctx.fillRect(c * CELL + 2, r * CELL + 2, CELL - 4, CELL - 4);
       }
@@ -250,15 +250,15 @@ const MazeGame = (() => {
     }
 
     // Start and end markers
-    ctx.fillStyle = '#00ff41';
-    ctx.shadowColor = '#00ff41';
+    ctx.fillStyle = '#6C63FF';
+    ctx.shadowColor = '#6C63FF';
     ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.arc(0 * CELL + CELL / 2, 1 * CELL + CELL / 2, CELL / 3, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#ff00ff';
-    ctx.shadowColor = '#ff00ff';
+    ctx.fillStyle = '#F778BA';
+    ctx.shadowColor = '#F778BA';
     ctx.beginPath();
     ctx.arc((cols - 1) * CELL + CELL / 2, (rows - 2) * CELL + CELL / 2, CELL / 3, 0, Math.PI * 2);
     ctx.fill();

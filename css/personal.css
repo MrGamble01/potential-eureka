@@ -1,5 +1,6 @@
 /* ============================================
-   PERSONAL — Lock Screen, Content, Mood, Habits,
+   PERSONAL — Dark Modern + Glassmorphism Theme
+   Lock Screen, Content, Mood, Habits,
    Journal, Nav Locked Button
    ============================================ */
 
@@ -19,8 +20,8 @@
 }
 
 .lock-ascii {
-  color: var(--green);
-  text-shadow: var(--glow-green);
+  color: #6C63FF;
+  text-shadow: 0 0 10px rgba(108, 99, 255, 0.4), 0 0 20px rgba(108, 99, 255, 0.15);
   font-size: 12px;
   line-height: 1.3;
   margin-bottom: 16px;
@@ -34,7 +35,7 @@
 .lock-subtitle {
   font-size: 12px;
   letter-spacing: 3px;
-  color: var(--text-dim);
+  color: #7D8590;
   margin-bottom: 16px;
 }
 
@@ -42,10 +43,10 @@
   display: block;
   width: 200px;
   margin: 0 auto 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-bottom: 2px solid var(--green);
-  color: var(--green);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2px solid #6C63FF;
+  color: #E6EDF3;
   font-family: inherit;
   font-size: 20px;
   padding: 10px 16px;
@@ -53,19 +54,22 @@
   letter-spacing: 6px;
   outline: none;
   border-radius: 3px;
-  transition: border-color 0.2s;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .lock-input:focus {
-  border-bottom-color: var(--cyan);
+  border-bottom-color: #58A6FF;
+  box-shadow: 0 2px 12px rgba(108, 99, 255, 0.15);
 }
 
 .lock-btn {
   display: block;
   margin: 0 auto;
   background: transparent;
-  border: 1px solid var(--green);
-  color: var(--green);
+  border: 1px solid #6C63FF;
+  color: #6C63FF;
   font-family: inherit;
   font-size: 13px;
   padding: 8px 32px;
@@ -76,8 +80,8 @@
 }
 
 .lock-btn:hover {
-  background: rgba(0,255,65,0.1);
-  box-shadow: var(--glow-green);
+  background: rgba(108, 99, 255, 0.15);
+  box-shadow: 0 0 15px rgba(108, 99, 255, 0.2);
 }
 
 .lock-status {
@@ -87,8 +91,15 @@
   min-height: 20px;
 }
 
-.lock-ok { color: var(--green); text-shadow: var(--glow-green); }
-.lock-err { color: var(--red); text-shadow: 0 0 10px rgba(255,51,51,0.3); }
+.lock-ok {
+  color: #3FB950;
+  text-shadow: 0 0 10px rgba(63, 185, 80, 0.3);
+}
+
+.lock-err {
+  color: #F85149;
+  text-shadow: 0 0 10px rgba(248, 81, 73, 0.3);
+}
 
 .shake {
   animation: shake 0.4s ease;
@@ -112,18 +123,20 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 12px;
   letter-spacing: 2px;
-  color: var(--green);
-  text-shadow: var(--glow-green);
+  color: #6C63FF;
+  text-shadow: 0 0 10px rgba(108, 99, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .lock-out-btn {
   background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #7D8590;
   font-family: inherit;
   font-size: 12px;
   padding: 4px 12px;
@@ -133,8 +146,8 @@
 }
 
 .lock-out-btn:hover {
-  border-color: var(--red);
-  color: var(--red);
+  border-color: #F85149;
+  color: #F85149;
 }
 
 .personal-content .dashboard-grid {
@@ -150,8 +163,8 @@
 }
 
 .mood-picker button {
-  background: var(--bg-primary);
-  border: 2px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   font-size: 28px;
   width: 50px;
   height: 50px;
@@ -161,17 +174,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .mood-picker button:hover {
-  border-color: var(--cyan);
+  border-color: #58A6FF;
   transform: scale(1.15);
 }
 
 .mood-picker button.selected {
-  border-color: var(--green);
-  box-shadow: var(--glow-green);
-  background: rgba(0,255,65,0.05);
+  border-color: #6C63FF;
+  box-shadow: 0 0 15px rgba(108, 99, 255, 0.3), 0 0 30px rgba(108, 99, 255, 0.1);
+  background: rgba(108, 99, 255, 0.1);
   transform: scale(1.1);
 }
 
@@ -184,10 +199,10 @@
 
 .mood-day {
   text-align: center;
-  opacity: 0.3;
+  opacity: 0.25;
 }
 
-.mood-day.mood-has { opacity: 1; }
+.mood-day.mood-has { opacity: 0.9; }
 
 .mood-day-emoji {
   font-size: 18px;
@@ -196,7 +211,7 @@
 
 .mood-day-label {
   font-size: 9px;
-  color: var(--text-dim);
+  color: #7D8590;
   letter-spacing: 1px;
 }
 
@@ -205,10 +220,10 @@
   text-align: center;
   padding: 8px 0;
   font-size: 14px;
-  color: var(--text-dim);
+  color: #7D8590;
 }
 
-.mood-today strong { color: var(--cyan); }
+.mood-today strong { color: #58A6FF; }
 
 .mood-today-emoji {
   font-size: 20px;
@@ -220,22 +235,22 @@
   display: block;
   background: none;
   border: none;
-  color: var(--text-dim);
+  color: #7D8590;
   font-family: inherit;
   font-size: 11px;
   cursor: pointer;
   margin: 4px auto 0;
   padding: 2px 8px;
   opacity: 0.5;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, color 0.2s;
 }
 
-.mood-history-toggle:hover { opacity: 1; color: var(--cyan); }
+.mood-history-toggle:hover { opacity: 1; color: #58A6FF; }
 
 #mood-history-section {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ---- HABITS ---- */
@@ -244,8 +259,9 @@
   align-items: center;
   gap: 4px;
   padding: 0 4px 6px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   margin-bottom: 4px;
+  color: #7D8590;
 }
 
 .habit-name-spacer { flex: 1; min-width: 80px; }
@@ -254,7 +270,7 @@
   width: 18px;
   text-align: center;
   font-size: 9px;
-  color: var(--text-dim);
+  color: #7D8590;
 }
 
 .habit-streak-head {
@@ -268,7 +284,7 @@
   align-items: center;
   gap: 4px;
   padding: 6px 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   transition: opacity 0.2s;
 }
 
@@ -277,9 +293,9 @@
 .habit-check {
   width: 20px;
   height: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   background: transparent;
-  color: var(--green);
+  color: #3FB950;
   font-size: 11px;
   cursor: pointer;
   border-radius: 3px;
@@ -291,8 +307,8 @@
 }
 
 .habit-item.done .habit-check {
-  border-color: var(--green);
-  background: rgba(0,255,65,0.1);
+  border-color: #3FB950;
+  background: rgba(63, 185, 80, 0.1);
 }
 
 .habit-name {
@@ -309,22 +325,22 @@
   width: 18px;
   text-align: center;
   font-size: 10px;
-  color: var(--text-dim);
+  color: #7D8590;
 }
 
-.habit-dot.habit-dot-done { color: var(--green); }
+.habit-dot.habit-dot-done { color: #3FB950; }
 
 .habit-streak {
   width: 26px;
   text-align: center;
   font-size: 11px;
-  color: var(--amber);
+  color: #D29922;
 }
 
 .habit-remove {
   background: none;
   border: none;
-  color: var(--text-dim);
+  color: #7D8590;
   font-size: 14px;
   cursor: pointer;
   opacity: 0;
@@ -333,7 +349,7 @@
 }
 
 .habit-item:hover .habit-remove { opacity: 1; }
-.habit-remove:hover { color: var(--red); }
+.habit-remove:hover { color: #F85149; }
 
 .habit-add-row {
   margin-top: 8px;
@@ -349,9 +365,9 @@
 }
 
 .journal-nav button {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #7D8590;
   font-family: inherit;
   font-size: 14px;
   width: 30px;
@@ -362,13 +378,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-.journal-nav button:hover { border-color: var(--cyan); color: var(--cyan); }
+.journal-nav button:hover { border-color: #58A6FF; color: #58A6FF; }
 
 .journal-nav span {
   font-size: 13px;
-  color: var(--cyan);
+  color: #58A6FF;
   min-width: 200px;
   text-align: center;
 }
@@ -376,8 +394,8 @@
 .journal-textarea {
   width: 100%;
   min-height: 200px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
@@ -386,20 +404,25 @@
   outline: none;
   resize: vertical;
   line-height: 1.7;
-  transition: border-color 0.2s;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.journal-textarea:focus { border-color: var(--magenta); }
+.journal-textarea:focus {
+  border-color: #F778BA;
+  box-shadow: 0 0 12px rgba(247, 120, 186, 0.1);
+}
 
 .journal-meta {
   font-size: 11px;
-  color: var(--text-dim);
+  color: #7D8590;
   margin-top: 6px;
   text-align: right;
 }
 
 /* ---- NAV LOCKED BUTTON ---- */
 nav button.nav-locked::after {
-  content: ' 🔒';
+  content: ' \1F512';
   font-size: 10px;
 }
