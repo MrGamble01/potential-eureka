@@ -219,10 +219,5 @@ const SnakeGame = (() => {
     }
   }
 
-  function destroy() {
-    clearInterval(gameLoop);
-    running = false;
-  }
-
-  return { init, start, destroy };
+  return { init, start };
 })();

@@ -4,29 +4,6 @@
    ============================================ */
 
 const Effects = (() => {
-  // ---- BOOT SEQUENCE ----
-  const bootLines = [
-    { text: 'BIOS v4.2.0 — POTENTIAL EUREKA SYSTEMS', delay: 100 },
-    { text: 'Memory check... 16384 MB OK', delay: 150 },
-    { text: 'Loading kernel modules......... OK', delay: 200 },
-    { text: 'Mounting filesystem............ OK', delay: 180 },
-    { text: 'Neural interface online........ OK', delay: 220 },
-    { text: 'Quantum link established....... OK', delay: 200 },
-    { text: 'Display matrix calibrated...... OK', delay: 180 },
-    { text: 'Dashboard modules loaded....... OK', delay: 200 },
-    { text: '', delay: 150 },
-    { text: 'ALL SYSTEMS NOMINAL', delay: 250, cls: 'boot-success' },
-    { text: '', delay: 150 },
-    { text: 'WELCOME, OPERATOR.', delay: 400, cls: 'boot-highlight' },
-  ];
-
-  let bootSkipped = false;
-
-  async function bootSequence() {
-    // Boot removed — go straight to widget entry
-    staggerWidgets();
-  }
-
   // ---- PARTICLE NETWORK ----
   let particleCanvas, pCtx;
   let particles = [];
@@ -197,13 +174,11 @@ const Effects = (() => {
     }
   }
 
-  const delay = Utils.delay;
-
   async function init() {
     initMouseGlow();
     initParticles();
     initKonami();
-    await bootSequence();
+    staggerWidgets();
     init3DTilt();
   }
 

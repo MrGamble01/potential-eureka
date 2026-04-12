@@ -168,19 +168,10 @@ const LifeGame = (() => {
         [5,22],[5,24],[6,10],[6,16],[6,24],[7,11],[7,15],[8,12],[8,13],
       ],
       lwss: [[0,1],[0,4],[1,0],[2,0],[2,4],[3,0],[3,1],[3,2],[3,3]],
-      pentadecathlon: [
-        [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],
-        // Actually the pentadecathlon is more nuanced, let's use the cross form
-      ],
       beacon: [[0,0],[0,1],[1,0],[2,3],[3,2],[3,3]],
       toad: [[0,1],[0,2],[0,3],[1,0],[1,1],[1,2]],
       rpentomino: [[0,1],[0,2],[1,0],[1,1],[2,1]],
     };
-
-    // Override pentadecathlon with correct pattern
-    presets.pentadecathlon = [[0,-1],[0,0],[0,1],[-1,0],[1,0],
-      [0,3],[0,4],[0,5],[0,-3],[0,-4],[0,-5],
-      [-1,-4],[-1,4],[1,-4],[1,4]];
 
     const cells = presets[name];
     if (!cells) return;
@@ -247,9 +238,5 @@ const LifeGame = (() => {
     if (btn) btn.textContent = running ? 'Pause' : 'Play';
   }
 
-  function destroy() {
-    pause();
-  }
-
-  return { init, step, togglePlay, clear, randomize, loadPreset, setSpeed, destroy };
+  return { init, step, togglePlay, clear, randomize, loadPreset, setSpeed };
 })();

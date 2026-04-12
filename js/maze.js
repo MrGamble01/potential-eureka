@@ -8,7 +8,6 @@ const MazeGame = (() => {
   let cols, rows;
   let grid;        // 2D array: 0=path, 1=wall
   let solving = false;
-  let animFrameId = null;
 
   function init() {
     canvas = document.getElementById('maze-canvas');
@@ -274,9 +273,5 @@ const MazeGame = (() => {
     if (el) el.textContent = msg;
   }
 
-  function destroy() {
-    cancelAnimation();
-  }
-
-  return { init, generate, solve, destroy };
+  return { init, generate, solve };
 })();

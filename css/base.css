@@ -338,9 +338,6 @@ nav button.active {
     font-size: 12px;
     padding: 6px 14px;
   }
-  #boot-terminal {
-    font-size: 12px;
-  }
   .modal-content {
     padding: 16px;
     border-radius: 8px;

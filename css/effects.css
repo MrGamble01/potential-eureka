@@ -1,53 +1,7 @@
 /* ============================================
-   EFFECTS — Boot Sequence, Particles, Matrix,
-   Mouse Glow, Glitch Text
+   EFFECTS — Particles, Matrix, Mouse Glow, Glitch Text
    Dark Modern Theme
    ============================================ */
-
-/* ---- BOOT SEQUENCE ---- */
-#boot-overlay {
-  position: fixed;
-  inset: 0;
-  background: #0d1117;
-  z-index: 10001;
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px;
-}
-
-#boot-terminal {
-  max-width: 600px;
-  width: 100%;
-  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.8;
-  color: #6C63FF;
-  text-shadow: 0 0 6px rgba(108, 99, 255, 0.4);
-}
-
-.boot-line { white-space: pre; }
-.boot-success { color: #58A6FF; text-shadow: 0 0 6px rgba(88, 166, 255, 0.4); font-weight: bold; }
-.boot-highlight { color: #F778BA; text-shadow: 0 0 6px rgba(247, 120, 186, 0.4); font-size: 18px; font-weight: bold; }
-
-#boot-skip {
-  position: absolute;
-  bottom: 30px;
-  color: rgba(255, 255, 255, 0.35);
-  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0.5;
-}
-
-.boot-fade-out {
-  animation: bootFade 0.5s ease forwards;
-}
-
-@keyframes bootFade {
-  to { opacity: 0; transform: scale(1.02); }
-}
 
 /* ---- PARTICLE BACKGROUND ---- */
 #particle-canvas {
