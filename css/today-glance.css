@@ -1,0 +1,43 @@
+/* ============================================
+   TODAY AT A GLANCE
+   ============================================ */
+
+.glance-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.glance-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+}
+
+.glance-row:last-child {
+  border-bottom: none;
+}
+
+.glance-icon {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.glance-text {
+  flex: 1;
+  color: #E6EDF3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-meta {
+  color: #7D8590;
+  font-size: 12px;
+  flex-shrink: 0;
+}

@@ -142,26 +142,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Quote widget */
-.quote-text {
-  font-size: 16px;
-  color: #58A6FF;
-  text-shadow: 0 0 16px rgba(88, 166, 255, 0.15);
-  line-height: 1.7;
-  padding: 10px 0;
-  min-height: 80px;
-  font-style: normal;
-  font-weight: 300;
-  letter-spacing: 0.2px;
-}
-
-.quote-author {
-  text-align: right;
-  color: #F778BA;
-  font-size: 13px;
-  font-weight: 400;
-}
-
 /* Activity widget */
 .activity-graph {
   display: flex;

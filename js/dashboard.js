@@ -80,32 +80,6 @@ const Dashboard = (() => {
     });
   }
 
-  // ---- QUOTES ----
-  const quotes = [
-    { text: "The best way to predict the future is to invent it.", author: "Alan Kay" },
-    { text: "Talk is cheap. Show me the code.", author: "Linus Torvalds" },
-    { text: "Any sufficiently advanced technology is indistinguishable from magic.", author: "Arthur C. Clarke" },
-    { text: "First, solve the problem. Then, write the code.", author: "John Johnson" },
-    { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-    { text: "Simplicity is the soul of efficiency.", author: "Austin Freeman" },
-    { text: "Code is like humor. When you have to explain it, it's bad.", author: "Cory House" },
-    { text: "It's not a bug — it's an undocumented feature.", author: "Anonymous" },
-    { text: "The computer was born to solve problems that did not exist before.", author: "Bill Gates" },
-    { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
-    { text: "Eureka! I have found it!", author: "Archimedes" },
-    { text: "The function of good software is to make the complex appear to be simple.", author: "Grady Booch" },
-  ];
-  let currentQuote = 0;
-
-  function rotateQuote() {
-    currentQuote = (currentQuote + 1) % quotes.length;
-    const q = quotes[currentQuote];
-    const textEl = document.getElementById('quote-text');
-    const authorEl = document.getElementById('quote-author');
-    if (textEl) textEl.textContent = `"${q.text}"`;
-    if (authorEl) authorEl.textContent = `— ${q.author}`;
-  }
-
   // ---- ACTIVITY GRAPH ----
   const activityData = Array.from({ length: 30 }, () => Math.random() * 80 + 10);
 
@@ -239,17 +213,9 @@ const Dashboard = (() => {
     updateActivity();
     initWeather();
 
-    currentQuote = Math.floor(Math.random() * quotes.length);
-    const q = quotes[currentQuote];
-    const textEl = document.getElementById('quote-text');
-    const authorEl = document.getElementById('quote-author');
-    if (textEl) textEl.textContent = `"${q.text}"`;
-    if (authorEl) authorEl.textContent = `— ${q.author}`;
-
     setInterval(updateClock, 1000);
     setInterval(updateStats, 2000);
     setInterval(updateActivity, 3000);
-    setInterval(rotateQuote, 8000);
     setInterval(refreshWeather, 300000); // refresh weather every 5 min
   }
 

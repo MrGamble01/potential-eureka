@@ -14,7 +14,7 @@
     if (!inited.has(name)) {
       inited.add(name);
       switch (name) {
-        case 'dashboard':    Dashboard.init(); CalendarWidget.init(); break;
+        case 'dashboard':    Dashboard.init(); CalendarWidget.init(); TodayGlance.init(); News.init(); break;
         case 'productivity': Productivity.init(); break;
         case 'personal':     Personal.init(); break;
         case 'snake':        SnakeGame.init(); break;
