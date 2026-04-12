@@ -1,0 +1,63 @@
+/* ============================================
+   GOOGLE TASKS — Status, Modal, List Checkboxes
+   ============================================ */
+
+.gt-status {
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-left: 8px;
+}
+
+.gt-status.gt-connected {
+  color: #3FB950;
+  text-shadow: 0 0 8px rgba(63, 185, 80, 0.4);
+}
+
+.gt-modal-msg {
+  margin-top: 12px;
+  font-size: 12px;
+  min-height: 18px;
+  color: #7D8590;
+}
+
+.gt-modal-msg.gt-ok {
+  color: #3FB950;
+}
+
+.gt-modal-msg.gt-err {
+  color: #F85149;
+}
+
+.gt-list-checks {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gt-list-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.gt-list-label:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.gt-list-label input[type=checkbox] {
+  accent-color: #6C63FF;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

@@ -1,0 +1,72 @@
+/* ============================================
+   POMODORO TIMER
+   ============================================ */
+
+.pomo-mode-label {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.pomo-mode-label.pomo-focus {
+  color: #3FB950;
+  text-shadow: 0 0 8px rgba(63, 185, 80, 0.4);
+}
+
+.pomo-mode-label.pomo-short {
+  color: #58A6FF;
+  text-shadow: 0 0 8px rgba(88, 166, 255, 0.4);
+}
+
+.pomo-mode-label.pomo-long {
+  color: #F778BA;
+  text-shadow: 0 0 8px rgba(247, 120, 186, 0.4);
+}
+
+.pomo-time {
+  text-align: center;
+  font-size: 56px;
+  font-weight: bold;
+  color: #E6EDF3;
+  text-shadow: 0 0 20px rgba(230, 237, 243, 0.15);
+  padding: 8px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pomo-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.pomo-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 1s linear;
+}
+
+.pomo-fill.pomo-focus {
+  background: #3FB950;
+  box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+}
+
+.pomo-fill.pomo-short {
+  background: #58A6FF;
+  box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
+}
+
+.pomo-fill.pomo-long {
+  background: #F778BA;
+  box-shadow: 0 0 8px rgba(247, 120, 186, 0.5);
+}
+
+.pomo-info {
+  text-align: center;
+  font-size: 11px;
+  color: #7D8590;
+  margin-top: 8px;
+}

@@ -2,5 +2,9 @@
 @import url('effects.css');
 @import url('dashboard.css');
 @import url('games.css');
-@import url('productivity.css');
+@import url('pomodoro.css');
+@import url('todo.css');
+@import url('notes.css');
+@import url('bookmarks.css');
+@import url('google-tasks.css');
 @import url('personal.css');

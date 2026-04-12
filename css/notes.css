@@ -1,0 +1,37 @@
+/* ============================================
+   QUICK NOTES
+   ============================================ */
+
+.notes-textarea {
+  width: 100%;
+  min-height: 180px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #E6EDF3;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  outline: none;
+  resize: vertical;
+  line-height: 1.6;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notes-textarea::placeholder {
+  color: #7D8590;
+}
+
+.notes-textarea:focus {
+  border-color: #58A6FF;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+}
+
+.notes-meta {
+  font-size: 11px;
+  color: #7D8590;
+  margin-top: 6px;
+  text-align: right;
+}
