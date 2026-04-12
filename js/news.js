@@ -1,25 +1,35 @@
 /* ============================================
-   TOP STORIES — Hacker News top 5, free API, no key.
-   Refreshes every 10 minutes.
+   IN THE NEWS — Wikipedia's curated daily news feed.
+   Free, no API key, CORS-friendly. Updates once a day.
+   Falls back to yesterday if today's feed isn't ready.
    ============================================ */
 
 const News = (() => {
   const escHtml = Utils.escHtml;
-  const TOP_URL = 'https://hacker-news.firebaseio.com/v0/topstories.json';
-  const ITEM_URL = id => `https://hacker-news.firebaseio.com/v0/item/${id}.json`;
   const COUNT = 5;
+  const FEED = (y, m, d) =>
+    `https://en.wikipedia.org/api/rest_v1/feed/featured/${y}/${m}/${d}`;
 
-  function timeAgo(ts) {
-    const sec = Math.floor(Date.now() / 1000 - ts);
-    if (sec < 60) return 'just now';
-    if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
-    if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
-    return `${Math.floor(sec / 86400)}d ago`;
+  function feedUrlForOffset(daysAgo) {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return FEED(y, m, day);
   }
 
-  function domain(url) {
-    try { return new URL(url).hostname.replace(/^www\./, ''); }
-    catch { return ''; }
+  // Strip HTML to plain text (Wikipedia's `story` is rich HTML)
+  function htmlToText(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    return tmp.textContent.trim().replace(/\s+/g, ' ');
+  }
+
+  async function tryFetch(daysAgo) {
+    const res = await fetch(feedUrlForOffset(daysAgo));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
   }
 
   async function fetchTop() {
@@ -27,19 +37,21 @@ const News = (() => {
     if (!container) return;
 
     try {
-      const res = await fetch(TOP_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const ids = await res.json();
-      const top = ids.slice(0, COUNT);
+      // Today's feed sometimes isn't published yet — fall back to yesterday.
+      let data;
+      try { data = await tryFetch(0); }
+      catch { data = await tryFetch(1); }
 
-      const items = await Promise.all(top.map(async id => {
-        const r = await fetch(ITEM_URL(id));
-        return r.ok ? r.json() : null;
-      }));
+      const items = (data.news || []).slice(0, COUNT).map(n => {
+        const text = htmlToText(n.story);
+        const link = n.links?.[0]?.content_urls?.desktop?.page || '#';
+        const source = n.links?.[0]?.titles?.normalized || '';
+        return { text, link, source };
+      }).filter(i => i.text);
 
-      render(items.filter(Boolean));
+      render(items);
     } catch (e) {
-      container.innerHTML = `<div class="news-empty">Couldn't load stories: ${escHtml(e.message)}</div>`;
+      container.innerHTML = `<div class="news-empty">Couldn't load news: ${escHtml(e.message)}</div>`;
     }
   }
 
@@ -52,29 +64,21 @@ const News = (() => {
       return;
     }
 
-    container.innerHTML = items.map((item, i) => {
-      const url = item.url || `https://news.ycombinator.com/item?id=${item.id}`;
-      const dom = domain(item.url || '');
-      const meta = [
-        dom,
-        `▲ ${item.score || 0}`,
-        `${item.descendants || 0} comments`,
-        timeAgo(item.time),
-      ].filter(Boolean).join(' · ');
-      return `
-      <a class="news-item" href="${escHtml(url)}" target="_blank" rel="noopener">
+    container.innerHTML = items.map((item, i) => `
+      <a class="news-item" href="${escHtml(item.link)}" target="_blank" rel="noopener">
         <span class="news-rank">${i + 1}</span>
         <span class="news-content">
-          <span class="news-title">${escHtml(item.title || '(untitled)')}</span>
-          <span class="news-meta">${escHtml(meta)}</span>
+          <span class="news-title">${escHtml(item.text)}</span>
+          ${item.source ? `<span class="news-meta">${escHtml(item.source)}</span>` : ''}
         </span>
-      </a>`;
-    }).join('');
+      </a>
+    `).join('');
   }
 
   function init() {
     fetchTop();
-    setInterval(fetchTop, 600000); // 10 minutes
+    // Wikipedia's feed only updates once a day, so refresh hourly is plenty.
+    setInterval(fetchTop, 3600000);
   }
 
   return { init };
