@@ -52,14 +52,24 @@ sc.left = -25; sc.right = 25; sc.top = 25; sc.bottom = -25;
 sc.near = 0.1; sc.far = 80;
 scene.add(sun);
 
-// --- Ground (peach office floor) ---
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(60, 60),
+// --- Ground: grass (left) + peach office (right) ---
+const grass = new THREE.Mesh(
+  new THREE.PlaneGeometry(30, 60),
+  new THREE.MeshLambertMaterial({ color: 0x7ec85a })
+);
+grass.rotation.x = -Math.PI / 2;
+grass.position.x = -15;
+grass.receiveShadow = true;
+scene.add(grass);
+
+const office = new THREE.Mesh(
+  new THREE.PlaneGeometry(30, 60),
   new THREE.MeshLambertMaterial({ color: 0xffc99a })
 );
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
+office.rotation.x = -Math.PI / 2;
+office.position.x = 15;
+office.receiveShadow = true;
+scene.add(office);
 
 // --- Player (capsule body + sphere head) ---
 const player = new THREE.Group();
@@ -77,7 +87,74 @@ const head = new THREE.Mesh(
 head.position.y = 1.85;
 head.castShadow = true;
 player.add(head);
+player.position.set(5, 0, 0);
 scene.add(player);
+
+// --- Player head-stack ---
+const MAX_STACK = 10;
+const stackGroup = new THREE.Group();
+stackGroup.position.y = 2.25;
+player.add(stackGroup);
+const orbGeo = new THREE.SphereGeometry(0.3, 16, 12);
+const orbMat = new THREE.MeshLambertMaterial({
+  color: 0xfff066, emissive: 0xfff066, emissiveIntensity: 0.55,
+});
+let stackCount = 0;
+const stackMeshes = [];
+function refreshStack() {
+  while (stackMeshes.length < stackCount) {
+    const m = new THREE.Mesh(orbGeo, orbMat);
+    m.castShadow = true;
+    m.position.y = stackMeshes.length * 0.45;
+    stackGroup.add(m);
+    stackMeshes.push(m);
+  }
+  for (let i = 0; i < stackMeshes.length; i++) stackMeshes[i].visible = i < stackCount;
+}
+
+// --- Idea Farm: 3x3 plots growing orbs over time ---
+const PLOT_GROW_TIME = 5;
+const plots = [];
+const plotGeo = new THREE.BoxGeometry(2.4, 0.1, 2.4);
+const plotMat = new THREE.MeshLambertMaterial({ color: 0x6b4a2a });
+for (let r = 0; r < 3; r++) {
+  for (let c = 0; c < 3; c++) {
+    const g = new THREE.Group();
+    g.position.set(-22 + c * 5, 0, -6 + r * 6);
+    const dirt = new THREE.Mesh(plotGeo, plotMat);
+    dirt.position.y = 0.05; dirt.receiveShadow = true;
+    g.add(dirt);
+    const orb = new THREE.Mesh(orbGeo, orbMat);
+    orb.position.y = 1.2; orb.castShadow = true; orb.visible = false;
+    g.add(orb);
+    scene.add(g);
+    plots.push({ group: g, orb, t: Math.random() * PLOT_GROW_TIME, ready: false });
+  }
+}
+
+const PICKUP_R2 = 1.5 * 1.5;
+function updateFarm(dt) {
+  for (const p of plots) {
+    if (!p.ready) {
+      p.t += dt;
+      if (p.t >= PLOT_GROW_TIME) { p.ready = true; p.orb.visible = true; }
+    }
+  }
+  const bob = Math.sin(performance.now() * 0.003) * 0.12;
+  for (const p of plots) if (p.ready) p.orb.position.y = 1.25 + bob;
+
+  if (stackCount >= MAX_STACK) return;
+  for (const p of plots) {
+    if (!p.ready) continue;
+    const dx = p.group.position.x - player.position.x;
+    const dz = p.group.position.z - player.position.z;
+    if (dx*dx + dz*dz < PICKUP_R2) {
+      p.ready = false; p.orb.visible = false; p.t = 0;
+      stackCount++; refreshStack();
+      if (stackCount >= MAX_STACK) return;
+    }
+  }
+}
 
 // --- Input ---
 const keys = {};
@@ -132,6 +209,8 @@ function loop(now) {
     player.position.z = Math.max(-HALF, Math.min(HALF, player.position.z + wz * SPEED * dt));
     player.rotation.y = Math.atan2(wx, wz);
   }
+
+  updateFarm(dt);
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
