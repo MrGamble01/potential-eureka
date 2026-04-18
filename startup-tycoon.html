@@ -139,10 +139,23 @@
       pointer-events: none; user-select: none;
       box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     }
+    #labels { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+    #labels > div {
+      position: absolute; top: 0; left: 0;
+      background: rgba(30,30,50,0.82); color: #fff;
+      padding: 2px 8px; border-radius: 8px;
+      font-weight: 800; font-size: 11px;
+      white-space: nowrap;
+      transform: translate(-50%, -100%);
+    }
+    #labels > div.max {
+      background: #ff4a7d; font-size: 13px; padding: 3px 10px;
+    }
   </style>
 </head>
 <body>
 <div id="offline-timer">Session 00m 00s</div>
+<div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="upgrades"></div>
 <button id="elevator-btn" title="Floors">🏢</button>
@@ -882,6 +895,46 @@ const FLOOR_CLASSES = {
 };
 let currentFloorInst = new FLOOR_CLASSES.office(scene);
 
+// --- Floating labels (projected from 3D positions) ---
+const labelsEl = document.getElementById('labels');
+const labelPool = [];
+const projV = new THREE.Vector3();
+function worldToScreen(x, y, z) {
+  projV.set(x, y, z).project(camera);
+  return { x: (projV.x * 0.5 + 0.5) * innerWidth, y: (-projV.y * 0.5 + 0.5) * innerHeight };
+}
+function updateLabels() {
+  const wants = [];
+  if (carry.count >= maxStack) {
+    const p = worldToScreen(player.position.x, 3.6, player.position.z);
+    wants.push({ text: 'MAX', cls: 'max', x: p.x, y: p.y });
+  }
+  for (const d of devs) {
+    if (d.queue > 0) {
+      const p = worldToScreen(d.pos.x, 3.2, d.pos.z);
+      wants.push({ text: `${d.queue}/${d.QUEUE_MAX}`, cls: '', x: p.x, y: p.y });
+    }
+  }
+  while (labelPool.length < wants.length) {
+    const el = document.createElement('div');
+    labelsEl.appendChild(el);
+    labelPool.push(el);
+  }
+  for (let i = 0; i < labelPool.length; i++) {
+    const el = labelPool[i];
+    if (i < wants.length) {
+      const w = wants[i];
+      el.className = w.cls;
+      el.textContent = w.text;
+      el.style.left = w.x + 'px';
+      el.style.top = w.y + 'px';
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+}
+
 // --- Loop ---
 const HALF = 28;
 let last = performance.now();
@@ -918,6 +971,7 @@ function loop(now) {
   }
 
   currentFloorInst.update(dt);
+  updateLabels();
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
