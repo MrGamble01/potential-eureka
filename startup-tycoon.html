@@ -355,6 +355,123 @@ regTop.position.set(0, 1.68, 0);
 checkout.add(regTop);
 scene.add(checkout);
 
+// --- Door (customer entry/exit) ---
+const DOOR_POS = new THREE.Vector3(27, 0, -2);
+const doorFrame = new THREE.Group();
+doorFrame.position.copy(DOOR_POS);
+const frameMat = new THREE.MeshLambertMaterial({ color: 0x8b5a2b });
+const doorL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), frameMat);
+doorL.position.set(-0.9, 1.25, 0); doorL.castShadow = true;
+const doorR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), frameMat);
+doorR.position.set(0.9, 1.25, 0); doorR.castShadow = true;
+const doorT = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, 0.2), frameMat);
+doorT.position.set(0, 2.5, 0); doorT.castShadow = true;
+doorFrame.add(doorL, doorR, doorT);
+scene.add(doorFrame);
+
+// --- Customers: spawn from door, buy from shelf, pay at checkout ---
+const customers = [];
+const CUSTOMER_SPEED = 3;
+const FEATURE_PRICE = 5;
+const MAX_CUSTOMERS = 5;
+const CUSTOMER_SPAWN_INTERVAL = 2.5;
+let customerSpawnT = 0;
+const shelfFrontOf = () => new THREE.Vector3(
+  shelf.position.x + (Math.random() - 0.5) * 2,
+  0,
+  shelf.position.z + 2.3
+);
+const checkoutFrontOf = () => new THREE.Vector3(
+  checkout.position.x - 2.2,
+  0,
+  checkout.position.z + (Math.random() - 0.5) * 0.5
+);
+
+function spawnCustomer() {
+  const g = new THREE.Group();
+  const hue = Math.random();
+  const bodyColor = new THREE.Color().setHSL(hue, 0.55, 0.55);
+  const b = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.38, 0.8, 4, 8),
+    new THREE.MeshLambertMaterial({ color: bodyColor })
+  );
+  b.position.y = 0.8; b.castShadow = true;
+  g.add(b);
+  const h = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 12, 10),
+    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
+  );
+  h.position.y = 1.7; h.castShadow = true;
+  g.add(h);
+  const carried = new THREE.Mesh(featureGeo, featureMat);
+  carried.position.y = 2.1; carried.castShadow = true; carried.visible = false;
+  g.add(carried);
+  g.position.copy(DOOR_POS);
+  g.position.x += (Math.random() - 0.5) * 0.6;
+  scene.add(g);
+  customers.push({
+    group: g, carried,
+    state: 'toShelf',
+    target: shelfFrontOf(),
+    waitT: 0,
+  });
+}
+
+function updateCustomers(dt) {
+  customerSpawnT += dt;
+  if (customerSpawnT > CUSTOMER_SPAWN_INTERVAL && customers.length < MAX_CUSTOMERS) {
+    customerSpawnT = 0;
+    if (shelfState.stock > 0 || customers.length < 2) spawnCustomer();
+  }
+
+  for (let i = customers.length - 1; i >= 0; i--) {
+    const c = customers[i];
+
+    if (c.state === 'paying') {
+      c.waitT -= dt;
+      if (c.waitT <= 0) {
+        addCash(FEATURE_PRICE);
+        c.carried.visible = false;
+        c.state = 'leaving';
+        c.target.copy(DOOR_POS);
+      }
+      continue;
+    }
+
+    const tx = c.target.x - c.group.position.x;
+    const tz = c.target.z - c.group.position.z;
+    const d = Math.hypot(tx, tz);
+    if (d > 0.12) {
+      c.group.position.x += (tx / d) * CUSTOMER_SPEED * dt;
+      c.group.position.z += (tz / d) * CUSTOMER_SPEED * dt;
+      c.group.rotation.y = Math.atan2(tx / d, tz / d);
+      continue;
+    }
+
+    if (c.state === 'toShelf') {
+      if (shelfState.stock > 0) {
+        shelfState.stock--;
+        refreshShelf();
+        c.carried.visible = true;
+        c.state = 'toCheckout';
+        c.target = checkoutFrontOf();
+      } else {
+        c.waitT = (c.waitT || 0) + dt;
+        if (c.waitT > 3) {
+          c.state = 'leaving';
+          c.target.copy(DOOR_POS);
+        }
+      }
+    } else if (c.state === 'toCheckout') {
+      c.state = 'paying';
+      c.waitT = 0.7;
+    } else if (c.state === 'leaving') {
+      scene.remove(c.group);
+      customers.splice(i, 1);
+    }
+  }
+}
+
 // --- Cash state ---
 const state = { cash: 0 };
 const cashValEl = document.getElementById('cash-val');
@@ -421,6 +538,7 @@ function loop(now) {
   updateFarm(dt);
   updateDev(dt);
   updateShelf();
+  updateCustomers(dt);
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
