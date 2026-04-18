@@ -8,9 +8,29 @@
     html, body { margin: 0; height: 100%; background: #1a1a2e; overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     canvas { display: block; touch-action: none; }
+    #cash-hud {
+      position: fixed; top: 16px; right: 18px;
+      background: rgba(255,255,255,0.92);
+      color: #1f6f3a; font-weight: 800; font-size: 22px;
+      padding: 10px 16px; border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      display: flex; align-items: center; gap: 8px;
+      pointer-events: none; user-select: none;
+    }
+    #cash-hud .bill {
+      display: inline-block; width: 24px; height: 14px; border-radius: 3px;
+      background: linear-gradient(135deg, #6fdc8c 0%, #2f9d55 100%);
+      position: relative;
+    }
+    #cash-hud .bill::after {
+      content: "$"; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 10px; font-weight: 900;
+    }
   </style>
 </head>
 <body>
+<div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
@@ -306,6 +326,43 @@ function updateShelf() {
   if (carry.count === 0) carry.kind = null;
   refreshStack(); refreshShelf();
 }
+
+// --- Checkout Counter: where customers pay ---
+const checkout = new THREE.Group();
+checkout.position.set(22, 0, 6);
+
+const counter = new THREE.Mesh(
+  new THREE.BoxGeometry(2.2, 1.1, 1.4),
+  new THREE.MeshLambertMaterial({ color: 0xb57a3d })
+);
+counter.position.y = 0.55;
+counter.castShadow = true; counter.receiveShadow = true;
+checkout.add(counter);
+
+const register = new THREE.Mesh(
+  new THREE.BoxGeometry(0.9, 0.55, 0.7),
+  new THREE.MeshLambertMaterial({ color: 0x3a3f52 })
+);
+register.position.set(0, 1.37, 0);
+register.castShadow = true;
+checkout.add(register);
+
+const regTop = new THREE.Mesh(
+  new THREE.BoxGeometry(0.7, 0.08, 0.5),
+  new THREE.MeshLambertMaterial({ color: 0x6cf7ff, emissive: 0x6cf7ff, emissiveIntensity: 0.3 })
+);
+regTop.position.set(0, 1.68, 0);
+checkout.add(regTop);
+scene.add(checkout);
+
+// --- Cash state ---
+const state = { cash: 0 };
+const cashValEl = document.getElementById('cash-val');
+function addCash(n) {
+  state.cash += n;
+  cashValEl.textContent = Math.floor(state.cash).toString();
+}
+addCash(0);
 
 // --- Input ---
 const keys = {};
