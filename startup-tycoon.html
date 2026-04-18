@@ -56,11 +56,63 @@
       display: block; color: #2f9d55; font-size: 12px; margin-top: 2px;
       font-weight: 800;
     }
+    #elevator-btn {
+      position: fixed; bottom: 18px; left: 18px;
+      width: 62px; height: 62px;
+      background: #3f51b5; color: #fff; border: none;
+      border-radius: 16px; font-size: 28px; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+    }
+    #elevator-btn:active { transform: scale(0.95); }
+    #elevator-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    #elevator-modal.open { display: flex; }
+    .elev-panel {
+      background: #fff; border-radius: 18px; padding: 22px;
+      max-width: 440px; width: 90vw;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .elev-title { font-size: 20px; font-weight: 800; margin: 0 0 16px; text-align: center; color: #222; }
+    .floor-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; margin-bottom: 10px;
+      border: 2px solid #3f51b5; border-radius: 12px;
+      cursor: pointer; font-size: 16px; font-weight: 700; color: #222;
+      background: #fff3e5;
+      transition: transform 0.08s;
+    }
+    .floor-card:hover { transform: translateY(-1px); }
+    .floor-card.locked { background: #eee; border-color: #999; color: #555; }
+    .floor-card .icon { font-size: 26px; }
+    .floor-card .sub { display: block; font-size: 12px; color: #666; font-weight: 600; margin-top: 2px; }
+    .floor-card .check { color: #2f9d55; font-size: 22px; font-weight: 900; }
+    .elev-msg {
+      text-align: center; color: #2f9d55; font-weight: 700;
+      font-size: 13px; min-height: 18px; margin: 8px 0 0;
+    }
+    .elev-close {
+      display: block; margin: 12px auto 0;
+      padding: 8px 22px; font-weight: 700; font-family: inherit;
+      background: none; color: #222; border: 2px solid #aaa;
+      border-radius: 10px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="upgrades"></div>
+<button id="elevator-btn" title="Floors">🏢</button>
+<div id="elevator-modal" role="dialog">
+  <div class="elev-panel">
+    <h3 class="elev-title">Elevator</h3>
+    <div id="floor-list"></div>
+    <div class="elev-msg" id="elev-msg"></div>
+    <button class="elev-close" id="elev-close">Close</button>
+  </div>
+</div>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
@@ -683,6 +735,61 @@ function renderUpgrades() {
   }
 }
 addCash(0);
+
+// --- Elevator + floor scaffold ---
+// Only OFFICE is active. Other floors unlock but are placeholders until a
+// Floor subclass is dropped in (see README at top of file).
+const FLOORS = [
+  { id: 'office',  name: 'Office — Floor 1', icon: '💻', cost: 0 },
+  { id: 'cafe',    name: 'Café',             icon: '☕', cost: 1000 },
+  { id: 'gym',     name: 'Gym',              icon: '💪', cost: 5000 },
+  { id: 'rooftop', name: 'Rooftop',          icon: '🌇', cost: 25000 },
+];
+const unlocked = { office: true, cafe: false, gym: false, rooftop: false };
+let currentFloor = 'office';
+const elevModal = document.getElementById('elevator-modal');
+const floorListEl = document.getElementById('floor-list');
+const elevMsgEl = document.getElementById('elev-msg');
+document.getElementById('elevator-btn').onclick = () => { renderFloors(); elevModal.classList.add('open'); };
+document.getElementById('elev-close').onclick = () => elevModal.classList.remove('open');
+elevModal.addEventListener('click', e => { if (e.target === elevModal) elevModal.classList.remove('open'); });
+
+function renderFloors() {
+  floorListEl.innerHTML = '';
+  elevMsgEl.textContent = '';
+  for (const f of FLOORS) {
+    const isCurrent = f.id === currentFloor;
+    const isUnlocked = unlocked[f.id];
+    const card = document.createElement('div');
+    card.className = 'floor-card' + (isUnlocked ? '' : ' locked');
+    card.innerHTML = `
+      <span class="icon">${isUnlocked ? f.icon : '🔒'}</span>
+      <div style="flex:1">
+        ${f.name}
+        <span class="sub">${isCurrent ? 'Currently here' : isUnlocked ? 'Tap to travel' : 'Unlock for $' + f.cost.toLocaleString()}</span>
+      </div>
+      ${isCurrent ? '<span class="check">✓</span>' : ''}
+    `;
+    card.onclick = () => {
+      if (!isUnlocked) {
+        if (state.cash >= f.cost) {
+          state.cash -= f.cost;
+          unlocked[f.id] = true;
+          addCash(0);
+          elevMsgEl.textContent = `${f.name} unlocked!`;
+          renderFloors();
+        } else {
+          elevMsgEl.textContent = `Need $${(f.cost - state.cash).toLocaleString()} more`;
+        }
+      } else if (f.id === currentFloor) {
+        elevMsgEl.textContent = "You're already here.";
+      } else {
+        elevMsgEl.textContent = `${f.name} is a placeholder — drop in a Floor subclass to activate.`;
+      }
+    };
+    floorListEl.appendChild(card);
+  }
+}
 
 // --- Input ---
 const keys = {};
