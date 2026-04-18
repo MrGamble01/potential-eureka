@@ -97,6 +97,26 @@ nav button.active {
   background: rgba(108, 99, 255, 0.08);
 }
 
+nav a.nav-link-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 16px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+nav a.nav-link-btn:hover {
+  color: var(--secondary);
+  border-color: var(--secondary);
+  background: rgba(88, 166, 255, 0.06);
+}
+
 /* ---- VIEWS ---- */
 .view {
   display: none;
