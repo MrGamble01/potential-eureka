@@ -267,7 +267,9 @@
   <div id="office-panel" class="panel">
     <div class="panel-title">Office</div>
     <div class="stat-line"><span>Employees</span><span id="emp-count">0 / 5</span></div>
-    <button class="hire-btn" id="hire-btn">Hire Employee<span class="cost" id="hire-cost">$250</span></button>
+    <button class="hire-btn" id="hire-btn">👤 Hire Employee<span class="cost" id="hire-cost">$250</span></button>
+    <div class="stat-line" style="margin-top:8px"><span>Workers</span><span id="worker-count">0 / 3</span></div>
+    <button class="hire-btn" id="hire-worker-btn" style="background:#ff7a20;border-color:#cc5500">🧑‍🔧 Hire Worker<span class="cost" id="hire-worker-cost">$150</span></button>
   </div>
   <div id="amenities-panel" class="panel">
     <div class="panel-title">Amenities</div>
@@ -421,6 +423,134 @@ const wcTank = new THREE.Mesh(
 );
 wcTank.position.y = 1.42; wcTank.castShadow = true; wcG.add(wcTank);
 wcG.position.set(5.5, 0, -11); scene.add(wcG);
+
+// Supply closet
+const supplyCloset = {
+  pos: new THREE.Vector3(10, 0, -10),
+  stock: 20,
+  maxStock: 30,
+  regenT: 0,
+  REGEN_RATE: 5,   // seconds per 1 supply unit
+  CARRY_AMT: 5,    // how many supplies a worker picks up per trip
+};
+// 3D: wooden cabinet
+const scG = new THREE.Group();
+scG.position.copy(supplyCloset.pos);
+const scBack = new THREE.Mesh(new THREE.BoxGeometry(1.8,2.1,0.18), new THREE.MeshLambertMaterial({color:0x8b5a2b}));
+scBack.position.y = 1.05; scBack.castShadow = true; scG.add(scBack);
+const scBase = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.9,0.55), new THREE.MeshLambertMaterial({color:0xae8a5a}));
+scBase.position.set(0,0.45,-0.18); scBase.castShadow = true; scBase.receiveShadow = true; scG.add(scBase);
+const scTop  = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.6,0.55), new THREE.MeshLambertMaterial({color:0xae8a5a}));
+scTop.position.set(0,1.5,-0.18); scTop.castShadow = true; scG.add(scTop);
+// supply boxes on shelves
+const sbMat = new THREE.MeshLambertMaterial({color:0x4da3ff});
+for (let si=0;si<3;si++) {
+  const sb = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3), sbMat);
+  sb.position.set(-0.55+si*0.55, 1.65, -0.15);
+  scG.add(sb);
+}
+const sbMat2 = new THREE.MeshLambertMaterial({color:0xff9a4a});
+for (let si=0;si<2;si++) {
+  const sb = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.3,10), sbMat2);
+  sb.position.set(-0.3+si*0.6, 0.75, -0.15);
+  scG.add(sb);
+}
+scene.add(scG);
+
+function updateSupplyCloset(dt) {
+  if (supplyCloset.stock < supplyCloset.maxStock) {
+    supplyCloset.regenT += dt;
+    if (supplyCloset.regenT >= supplyCloset.REGEN_RATE) {
+      supplyCloset.regenT = 0;
+      supplyCloset.stock = Math.min(supplyCloset.maxStock, supplyCloset.stock + 1);
+    }
+  }
+}
+
+// Workers — hired logistics staff, auto-stock the coffee machine
+const workers = [];
+const WORKER_SPEED = 4.5;
+const MAX_WORKERS  = 3;
+
+function workerHireCost() {
+  return Math.floor(150 * Math.pow(1.5, workers.length));
+}
+
+function hireWorker() {
+  if (workers.length >= MAX_WORKERS) return;
+  const cost = workerHireCost();
+  if (state.cash < cost) return;
+  state.cash -= cost;
+
+  const g = new THREE.Group();
+  const color = new THREE.Color().setHSL(0.08 + workers.length * 0.04, 0.7, 0.55); // orange tones
+  const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.75,4,8), new THREE.MeshLambertMaterial({color}));
+  b.position.y = 0.75; b.castShadow = true; g.add(b);
+  const h = new THREE.Mesh(new THREE.SphereGeometry(0.28,12,10), new THREE.MeshLambertMaterial({color:0xffd9a0}));
+  h.position.y = 1.6; h.castShadow = true; g.add(h);
+  // carry box (visible when holding supplies)
+  const cBox = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4), new THREE.MeshLambertMaterial({color:0x4da3ff}));
+  cBox.position.y = 2.0; cBox.castShadow = true; cBox.visible = false; g.add(cBox);
+  // start near supply closet
+  g.position.set(supplyCloset.pos.x + (Math.random()-0.5)*2, 0, supplyCloset.pos.z + 1);
+  scene.add(g);
+
+  workers.push({ group:g, carryBox:cBox, carrying:false, state:'toCloset', waitT:0 });
+  addCash(0);
+  renderOffice();
+}
+
+function updateWorkers(dt) {
+  const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
+  for (const w of workers) {
+    if (w.state === 'waiting') {
+      w.waitT -= dt;
+      if (w.waitT <= 0) w.state = 'toCloset';
+      continue;
+    }
+
+    let tx, tz, dist;
+    if (w.state === 'toCloset') {
+      tx = supplyCloset.pos.x - w.group.position.x;
+      tz = supplyCloset.pos.z + 0.8 - w.group.position.z;
+      dist = Math.hypot(tx, tz);
+      if (dist > 0.3) {
+        w.group.position.x += (tx/dist)*WORKER_SPEED*dt;
+        w.group.position.z += (tz/dist)*WORKER_SPEED*dt;
+        w.group.rotation.y = Math.atan2(tx/dist, tz/dist);
+      } else {
+        // arrived at closet
+        if (supplyCloset.stock >= supplyCloset.CARRY_AMT) {
+          supplyCloset.stock -= supplyCloset.CARRY_AMT;
+          w.carrying = true; w.carryBox.visible = true;
+          w.state = coffeeAm ? 'toCoffeeMachine' : 'waiting';
+          if (!coffeeAm) { w.carrying=false; w.carryBox.visible=false; w.waitT=3; }
+        } else {
+          // not enough supply yet, wait
+          w.state = 'waiting'; w.waitT = 3;
+        }
+      }
+    } else if (w.state === 'toCoffeeMachine' && coffeeAm) {
+      const destX = coffeeAm.position.x;
+      const destZ = coffeeAm.position.z + 1.6;
+      tx = destX - w.group.position.x;
+      tz = destZ - w.group.position.z;
+      dist = Math.hypot(tx, tz);
+      if (dist > 0.3) {
+        w.group.position.x += (tx/dist)*WORKER_SPEED*dt;
+        w.group.position.z += (tz/dist)*WORKER_SPEED*dt;
+        w.group.rotation.y = Math.atan2(tx/dist, tz/dist);
+      } else {
+        // arrived — stock the machine
+        if (coffeeAm.stock < coffeeAm.maxStock) {
+          coffeeAm.stock = Math.min(coffeeAm.maxStock, coffeeAm.stock + supplyCloset.CARRY_AMT);
+        }
+        w.carrying = false; w.carryBox.visible = false;
+        w.state = 'toCloset'; // go back for more
+      }
+    }
+  }
+}
 
 // --- Player (capsule body + sphere head) ---
 const player = new THREE.Group();
@@ -949,10 +1079,6 @@ function updateCustomers(dt) {
 }
 
 // --- Desks (claimable seats for hired employees) ---
-const DESK_ROW_Z = -14;
-const DESK_START_X = 12;
-const DESK_SPACING = 3;
-const DEFAULT_DESKS = 5;
 const desks = [];
 function createDeskMesh(x, z) {
   const g = new THREE.Group();
@@ -987,16 +1113,43 @@ function createDeskMesh(x, z) {
   scene.add(g);
   return g;
 }
-for (let i = 0; i < DEFAULT_DESKS; i++) {
-  const x = DESK_START_X + i * DESK_SPACING;
-  desks.push({ pos: new THREE.Vector3(x, 0, DESK_ROW_Z), mesh: createDeskMesh(x, DESK_ROW_Z), occupied: false });
+
+const ALL_DESK_DEFS = [
+  // Row 1 — initial 5
+  { x:12,z:-10 }, { x:15,z:-10 }, { x:18,z:-10 }, { x:21,z:-10 }, { x:24,z:-10 },
+  // Row 2 — unlocked at $1k
+  { x:12,z:-7 },  { x:15,z:-7 },  { x:18,z:-7 },
+  // Row 3 — unlocked at $5k
+  { x:21,z:-7 },  { x:24,z:-7 },  { x:12,z:-4 },  { x:15,z:-4 },
+];
+const allDeskEntries = ALL_DESK_DEFS.map(def => {
+  const mesh = createDeskMesh(def.x, def.z);
+  const entry = { pos: new THREE.Vector3(def.x, 0, def.z), mesh, occupied: false, unlocked: false };
+  mesh.visible = false;
+  return entry;
+});
+// Unlock first 5 immediately
+for (let i = 0; i < 5; i++) {
+  allDeskEntries[i].unlocked = true;
+  allDeskEntries[i].mesh.visible = true;
+  desks.push(allDeskEntries[i]);
+}
+function unlockMoreDesks(count) {
+  let added = 0;
+  for (const e of allDeskEntries) {
+    if (!e.unlocked && added < count) {
+      e.unlocked = true;
+      e.mesh.visible = true;
+      desks.push(e);
+      added++;
+    }
+  }
+  renderOffice();
 }
 
 // --- Employees (hired; buy features from shelf as their Work need) ---
 const employees = [];
 const EMP_SPEED = 3;
-const EMP_IDLE_MIN = 6;
-const EMP_IDLE_MAX = 14;
 
 function deskFront(desk) {
   return { x: desk.pos.x, z: desk.pos.z + 1.3 };
@@ -1027,103 +1180,94 @@ function hireEmployee() {
   );
   h.position.y = 1.7; h.castShadow = true;
   g.add(h);
-  const carried = new THREE.Mesh(featureGeo, featureMat);
-  carried.position.y = 2.1; carried.castShadow = true; carried.visible = false;
-  g.add(carried);
   g.position.copy(DOOR_POS);
   g.position.x += (Math.random() - 0.5) * 0.5;
   scene.add(g);
 
   employees.push({
-    group: g, carried, desk,
+    group: g, desk,
     state: 'goToDesk',
     target: deskFront(desk),
     waitT: 0,
+    caffeinated: false,
+    caffeinatedT: 0,
+    coffeeWaitT: 20 + Math.random() * 20,
     need: null,
   });
   addCash(0);
   renderOffice();
 }
 
+const EMP_REV_INTERVAL = 1.0;  // generate revenue every second
+let empRevT = 0;
+const COFFEE_BOOST_DUR = 60;   // seconds caffeinated
+
 function updateEmployees(dt) {
+  // Passive revenue tick
+  empRevT += dt;
+  if (empRevT >= EMP_REV_INTERVAL) {
+    empRevT = 0;
+    for (const e of employees) {
+      if (e.state === 'atDesk') {
+        addCash(e.caffeinated ? 4 : 2);
+      }
+    }
+  }
+
+  const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
+
   for (const e of employees) {
-    // Wait states
-    if (e.state === 'idle' || e.state === 'grabbing' || e.state === 'paying' || e.state === 'usingAmenity') {
+    // Countdown caffeine
+    if (e.caffeinated) {
+      e.caffeinatedT -= dt;
+      if (e.caffeinatedT <= 0) e.caffeinated = false;
+    }
+
+    if (e.state === 'atDesk') {
+      e.coffeeWaitT -= dt;
+      if (e.coffeeWaitT <= 0 && coffeeAm && coffeeAm.stock > 0) {
+        e.need = 'coffee';
+        e.state = 'toCoffeeMachine';
+        e.target = {
+          x: coffeeAm.position.x + (Math.random()-0.5)*0.8,
+          z: coffeeAm.position.z + 1.6,
+        };
+      }
+      continue;
+    }
+
+    if (e.state === 'gettingCoffee') {
       e.waitT -= dt;
-      if (e.waitT > 0) continue;
-      if (e.state === 'idle') {
-        // Pick between Work and any owned amenity with stock. Work is always
-        // available (shelf stock is optional; empty shelf is handled below).
-        const amenity = ownedAmenityForEmployee();
-        const useAmenity = amenity && Math.random() < 0.6;
-        if (useAmenity) {
-          e.need = amenity.id;
-          e.state = 'toAmenity';
-          e.amenity = amenity;
-          e.target = {
-            x: amenity.anchorPos.x + (Math.random() - 0.5) * 0.6,
-            z: amenity.anchorPos.z,
-          };
-        } else {
-          e.need = 'work';
-          e.state = 'toShelf';
-          e.target = {
-            x: shelf.position.x + (Math.random() - 0.5) * 2.4,
-            z: shelf.position.z + 2.3,
-          };
+      if (e.waitT <= 0) {
+        if (coffeeAm && coffeeAm.stock > 0) {
+          coffeeAm.stock--;
+          e.caffeinated = true;
+          e.caffeinatedT = COFFEE_BOOST_DUR;
         }
-      } else if (e.state === 'grabbing') {
-        if (shelfState.stock > 0) {
-          shelfState.stock--;
-          refreshShelf();
-          e.carried.visible = true;
-          e.state = 'toCheckout';
-          e.target = { x: checkout.position.x - 2.2, z: checkout.position.z };
-        } else {
-          e.state = 'goToDesk';
-          e.target = deskFront(e.desk);
-        }
-      } else if (e.state === 'paying') {
-        addCash(featurePrice);
-        e.carried.visible = false;
-        e.state = 'goToDesk';
-        e.target = deskFront(e.desk);
-      } else if (e.state === 'usingAmenity') {
-        const am = e.amenity;
-        if (am && am.stock > 0) {
-          am.stock--;
-          addCash(am.revenuePerUse);
-        }
-        e.amenity = null;
+        e.need = null;
         e.state = 'goToDesk';
         e.target = deskFront(e.desk);
       }
       continue;
     }
 
-    // Moving states
+    // Moving
     const tx = e.target.x - e.group.position.x;
     const tz = e.target.z - e.group.position.z;
     const d = Math.hypot(tx, tz);
     if (d > 0.15) {
-      e.group.position.x += (tx/d) * EMP_SPEED * dt;
-      e.group.position.z += (tz/d) * EMP_SPEED * dt;
+      e.group.position.x += (tx/d)*EMP_SPEED*dt;
+      e.group.position.z += (tz/d)*EMP_SPEED*dt;
       e.group.rotation.y = Math.atan2(tx/d, tz/d);
       continue;
     }
+
     if (e.state === 'goToDesk') {
-      e.state = 'idle';
-      e.need = null;
-      e.waitT = EMP_IDLE_MIN + Math.random() * (EMP_IDLE_MAX - EMP_IDLE_MIN);
-    } else if (e.state === 'toShelf') {
-      e.state = 'grabbing';
-      e.waitT = 0.7;
-    } else if (e.state === 'toCheckout') {
-      e.state = 'paying';
-      e.waitT = 0.6;
-    } else if (e.state === 'toAmenity') {
-      e.state = 'usingAmenity';
-      e.waitT = (e.amenity && e.amenity.useTime) || 1.4;
+      e.state = 'atDesk';
+      e.coffeeWaitT = 25 + Math.random() * 20;
+    } else if (e.state === 'toCoffeeMachine') {
+      e.state = 'gettingCoffee';
+      e.waitT = 1.5;
     }
   }
 }
@@ -1132,32 +1276,32 @@ function updateEmployees(dt) {
 const hireBtn = document.getElementById('hire-btn');
 const hireCostEl = document.getElementById('hire-cost');
 const empCountEl = document.getElementById('emp-count');
+const workerCountEl = document.getElementById('worker-count');
+const hireWorkerBtn = document.getElementById('hire-worker-btn');
+const hireWorkerCostEl = document.getElementById('hire-worker-cost');
 function renderOffice() {
+  // employees
   const hired = employees.length;
   const cap = desks.length;
   empCountEl.textContent = `${hired} / ${cap}`;
-  if (hired >= cap) {
-    hireBtn.disabled = true;
-    hireCostEl.textContent = 'Desks full';
-  } else {
-    const c = hireCost();
-    hireBtn.disabled = state.cash < c;
-    hireCostEl.textContent = '$' + c;
-  }
+  if (hired >= cap) { hireBtn.disabled = true; hireCostEl.textContent = 'Full'; }
+  else { const c = hireCost(); hireBtn.disabled = state.cash < c; hireCostEl.textContent = '$' + c; }
+  // workers
+  workerCountEl.textContent = `${workers.length} / ${MAX_WORKERS}`;
+  if (workers.length >= MAX_WORKERS) { hireWorkerBtn.disabled = true; hireWorkerCostEl.textContent = 'Full'; }
+  else { const wc = workerHireCost(); hireWorkerBtn.disabled = state.cash < wc; hireWorkerCostEl.textContent = '$' + wc; }
 }
 hireBtn.addEventListener('click', hireEmployee);
+hireWorkerBtn.addEventListener('click', hireWorker);
 
-// --- Amenities (unlockable, buyable, consume stock on use, need manual refill) ---
+// --- Amenities (unlockable, buyable; stock managed by Workers) ---
 const AMENITY_DEFS = [
   {
     id: 'coffee',
     name: 'Coffee Machine',
     icon: '☕',
     buyCost: 500,
-    revenuePerUse: 5,
     maxStock: 20,
-    refillCost: 20,
-    useTime: 1.4,
     position: new THREE.Vector3(4, 0, 10),
     unlockReq: () => employees.length >= 3,
     unlockText: () => `🔒 Needs 3 employees (${employees.length}/3)`,
@@ -1200,11 +1344,7 @@ const amenities = AMENITY_DEFS.map(def => ({
   ...def,
   stock: 0,
   isOwned: false,
-  isRefilling: false,
-  refillT: 0,
-  refillTime: 2.0,
   group: null,
-  anchorPos: new THREE.Vector3(def.position.x, 0, def.position.z + 1.4),
 }));
 
 function buildAmenity(am) {
@@ -1218,39 +1358,9 @@ function buyAmenity(id) {
   if (!am || am.isOwned || !am.unlockReq() || state.cash < am.buyCost) return;
   state.cash -= am.buyCost;
   am.isOwned = true;
-  am.stock = am.maxStock;
+  am.stock = 0; // Workers will stock it
   buildAmenity(am);
   addCash(0);
-}
-function tryStartRefill(am) {
-  if (!am.isOwned || am.isRefilling) return false;
-  if (am.stock >= am.maxStock) return false;
-  if (state.cash < am.refillCost) return false;
-  const dx = am.position.x - player.position.x;
-  const dz = am.position.z - player.position.z;
-  if (dx*dx + dz*dz > 3.5 * 3.5) return false;
-  state.cash -= am.refillCost;
-  am.isRefilling = true;
-  am.refillT = 0;
-  addCash(0);
-  return true;
-}
-function updateAmenities(dt) {
-  for (const am of amenities) {
-    if (am.isRefilling) {
-      am.refillT += dt;
-      if (am.refillT >= am.refillTime) {
-        am.stock = am.maxStock;
-        am.isRefilling = false;
-        am.refillT = 0;
-      }
-    }
-  }
-}
-function ownedAmenityForEmployee() {
-  const pool = amenities.filter(a => a.isOwned && a.stock > 0);
-  if (!pool.length) return null;
-  return pool[Math.floor(Math.random() * pool.length)];
 }
 const amenitiesList = document.getElementById('amenities-list');
 function renderAmenities() {
@@ -1315,18 +1425,19 @@ function showCashPop(amount) {
 
 // ── Milestones ──────────────────────────────────────────────
 const MILESTONES = [
-  { at:     50, msg:'🌱 First Steps — $50 earned!' },
-  { at:    250, msg:'💼 Bootstrapped — $250!' },
-  { at:   1000, msg:'🚀 Series A Ready — $1k!' },
-  { at:   5000, msg:'🦄 Unicorn Mode — $5k!' },
-  { at:  25000, msg:'🏆 IPO Ready — $25k!' },
-  { at: 100000, msg:'🎉 EXIT! — $100k!' },
+  { at:    50, msg:'🌱 First Steps — $50!',                  desks:0 },
+  { at:   250, msg:'💼 Bootstrapped — $250!',                 desks:0 },
+  { at:  1000, msg:'🚀 Series A — $1k! 3 new desks added!',  desks:3 },
+  { at:  5000, msg:'🦄 Unicorn Mode — $5k! 4 new desks!',    desks:4 },
+  { at: 25000, msg:'🏆 IPO Ready — $25k!',                   desks:0 },
+  { at:100000, msg:'🎉 EXIT! — $100k!',                      desks:0 },
 ];
 let nextMilestoneIdx = 0;
 function checkMilestones() {
-  while (nextMilestoneIdx < MILESTONES.length &&
-         state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
-    showToast(MILESTONES[nextMilestoneIdx].msg, 'milestone');
+  while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
+    const ms = MILESTONES[nextMilestoneIdx];
+    showToast(ms.msg, 'milestone');
+    if (ms.desks > 0) unlockMoreDesks(ms.desks);
     nextMilestoneIdx++;
   }
 }
@@ -1495,9 +1606,6 @@ const keys = {};
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
-  if (k === 'e') {
-    for (const am of amenities) if (am.isOwned) tryStartRefill(am);
-  }
 });
 addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
@@ -1511,21 +1619,6 @@ renderer.domElement.addEventListener('pointerdown', e => {
   pointer.x = (e.clientX / innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  // Check if tap hits an owned amenity — if so, try to refill instead of walking
-  const ownedGroups = amenities.filter(a => a.isOwned && a.group).map(a => a.group);
-  if (ownedGroups.length) {
-    const hits = raycaster.intersectObjects(ownedGroups, true);
-    if (hits.length) {
-      let node = hits[0].object;
-      let owner = null;
-      while (node) {
-        const am = amenities.find(a => a.group === node);
-        if (am) { owner = am; break; }
-        node = node.parent;
-      }
-      if (owner && tryStartRefill(owner)) return;
-    }
-  }
   const hit = new THREE.Vector3();
   if (raycaster.ray.intersectPlane(groundPlane, hit)) target = hit;
 });
@@ -1551,7 +1644,8 @@ class OfficeFloor extends Floor {
     updateShelf();
     updateCustomers(dt);
     updateEmployees(dt);
-    updateAmenities(dt);
+    updateWorkers(dt);
+    updateSupplyCloset(dt);
     updateIntern(dt);
   }
 }
@@ -1566,7 +1660,6 @@ let currentFloorInst = new FLOOR_CLASSES.office(scene);
 // --- Floating labels (projected from 3D positions) ---
 const labelsEl = document.getElementById('labels');
 const labelPool = [];
-const NEED_EMOJI = { work: '💼', coffee: '☕', water: '💧', copies: '📄', snack: '🍿' };
 function updateLabels() {
   const wants = [];
   if (carry.count >= maxStack) {
@@ -1579,12 +1672,14 @@ function updateLabels() {
       wants.push({ text: `${d.queue}/${d.QUEUE_MAX}`, cls: '', x: p.x, y: p.y });
     }
   }
+  // Show ☕ when walking to coffee machine, ⚡ when caffeinated and at desk
   for (const e of employees) {
-    const emoji = e.need && NEED_EMOJI[e.need];
-    if (emoji && (e.state === 'toShelf' || e.state === 'toAmenity' ||
-                  e.state === 'grabbing' || e.state === 'usingAmenity')) {
+    if (e.state === 'toCoffeeMachine' || e.state === 'gettingCoffee') {
       const p = worldToScreen(e.group.position.x, 2.6, e.group.position.z);
-      wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
+      wants.push({ text: '☕', cls: 'bubble', x: p.x, y: p.y });
+    } else if (e.state === 'atDesk' && e.caffeinated) {
+      const p = worldToScreen(e.group.position.x, 2.6, e.group.position.z);
+      wants.push({ text: '⚡', cls: 'bubble', x: p.x, y: p.y });
     }
   }
   for (const am of amenities) {
@@ -1596,19 +1691,15 @@ function updateLabels() {
       cls: empty ? 'max' : 'stock',
       x: p.x, y: p.y,
     });
-    if (am.isRefilling) {
-      const pct = Math.floor((am.refillT / am.refillTime) * 100);
-      wants.push({ text: `Refilling ${pct}%`, cls: 'refill', x: p.x, y: p.y + 24 });
-    } else if (am.stock < am.maxStock) {
-      const dx = am.position.x - player.position.x;
-      const dz = am.position.z - player.position.z;
-      if (dx*dx + dz*dz < 3.5 * 3.5) {
-        const canPay = state.cash >= am.refillCost;
-        wants.push({
-          text: canPay ? `Press E / tap: refill $${am.refillCost}` : `Need $${am.refillCost}`,
-          cls: 'prompt', x: p.x, y: p.y + 24,
-        });
-      }
+  }
+  // Supply closet stock label
+  const pSC = worldToScreen(supplyCloset.pos.x, 2.8, supplyCloset.pos.z);
+  wants.push({ text: `📦 ${supplyCloset.stock}/${supplyCloset.maxStock}`, cls: 'stock', x: pSC.x, y: pSC.y });
+  // Workers label (📦 bubble when carrying)
+  for (const w of workers) {
+    if (w.carrying) {
+      const p = worldToScreen(w.group.position.x, 2.6, w.group.position.z);
+      wants.push({ text: '📦', cls: 'bubble', x: p.x, y: p.y });
     }
   }
   while (labelPool.length < wants.length) {
@@ -1685,6 +1776,7 @@ function saveGame() {
       upgrades: upgLevels,
       unlocked,
       employees: employees.length,
+      workers: workers.length,
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
       savedAt: Date.now(),
     }));
@@ -1718,13 +1810,20 @@ function loadGame() {
         const am = amenities.find(a => a.id === saved.id);
         if (am && !am.isOwned) {
           am.isOwned = true;
-          am.stock = typeof saved.stock === 'number' ? saved.stock : am.maxStock;
+          am.stock = typeof saved.stock === 'number' ? saved.stock : 0;
           buildAmenity(am);
         }
       }
     }
-    // Fast-forward milestone pointer
+    if (p.workers) {
+      const orig = state.cash; state.cash = 1e12;
+      for (let i = 0; i < p.workers && workers.length < MAX_WORKERS; i++) hireWorker();
+      state.cash = orig;
+    }
+    // Fast-forward milestone pointer (also unlock desks for milestones already passed)
     while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
+      const ms = MILESTONES[nextMilestoneIdx];
+      if (ms.desks > 0) unlockMoreDesks(ms.desks);
       nextMilestoneIdx++;
     }
   } catch {}
