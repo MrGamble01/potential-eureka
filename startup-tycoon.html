@@ -296,11 +296,89 @@
     .standup-btn .cost { float: right; color: #3FB950; font-size: 11px; font-weight: 800; }
     /* ── Event status chip ────────────────────────────────── */
     #event-sep, #event-label { display: none; }
+    /* ── IPO button ───────────────────────────────────── */
+    #ipo-btn {
+      position: fixed; bottom: 18px; right: 18px;
+      background: linear-gradient(135deg, rgba(63,185,80,0.25), rgba(108,99,255,0.25));
+      border: 1px solid rgba(63,185,80,0.55);
+      color: #E6EDF3; font-size: 15px; font-weight: 800; font-family: inherit;
+      padding: 12px 22px; border-radius: 12px; cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 22px rgba(63,185,80,0.25);
+      display: none; animation: ipoPulse 1.8s ease-in-out infinite;
+      transition: transform 0.1s;
+    }
+    #ipo-btn:hover { transform: scale(1.04); }
+    #ipo-btn:active { transform: scale(0.97); }
+    @keyframes ipoPulse {
+      0%,100% { box-shadow: 0 0 22px rgba(63,185,80,0.25); }
+      50%      { box-shadow: 0 0 38px rgba(63,185,80,0.55), 0 0 60px rgba(108,99,255,0.2); }
+    }
+    /* ── IPO modal ────────────────────────────────────── */
+    #ipo-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      display: none; align-items: center; justify-content: center; z-index: 200;
+    }
+    #ipo-modal.open { display: flex; }
+    .ipo-panel {
+      background: rgba(13,17,23,0.97);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; padding: 28px 26px; max-width: 400px; width: 90vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+    .ipo-title { font-size: 28px; margin-bottom: 6px; }
+    .ipo-sub   { font-size: 14px; font-weight: 700; color: #3FB950; margin-bottom: 14px; }
+    .ipo-body  { font-size: 13px; color: #7D8590; line-height: 1.7; margin-bottom: 20px; }
+    .ipo-body strong { color: #E6EDF3; }
+    .ipo-actions { display: flex; gap: 10px; justify-content: center; }
+    .ipo-confirm {
+      background: linear-gradient(135deg, rgba(63,185,80,0.3), rgba(108,99,255,0.3));
+      border: 1px solid rgba(63,185,80,0.5); color: #E6EDF3;
+      border-radius: 8px; padding: 10px 24px; font-weight: 800; font-size: 14px;
+      font-family: inherit; cursor: pointer; transition: all 0.15s;
+    }
+    .ipo-confirm:hover { background: linear-gradient(135deg, rgba(63,185,80,0.45), rgba(108,99,255,0.45)); }
+    .ipo-cancel {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      color: #7D8590; border-radius: 8px; padding: 10px 24px;
+      font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.15s;
+    }
+    .ipo-cancel:hover { color: #E6EDF3; }
+    /* ── Activity feed ────────────────────────────────── */
+    #activity-feed {
+      position: fixed; top: 210px; right: 18px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 14px;
+      width: 168px; pointer-events: none; user-select: none;
+    }
+    .feed-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #7D8590; margin-bottom: 7px;
+    }
+    .feed-entry {
+      font-size: 11px; font-weight: 600; color: #E6EDF3;
+      padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.5;
+    }
+    .feed-entry:last-child { border-bottom: none; }
+    .feed-entry .feed-age { color: #7D8590; font-size: 10px; margin-left: 4px; }
+    /* ── Prestige season badge ────────────────────────── */
+    #season-badge {
+      display: none; background: rgba(212,153,34,0.2);
+      border: 1px solid rgba(212,153,34,0.45); border-radius: 6px;
+      padding: 1px 8px; font-size: 11px; font-weight: 800; color: #f59e0b;
+    }
   </style>
 </head>
 <body>
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
+  <span id="season-badge">S1</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
   <span id="rush-label" style="display:none"></span>
   <span class="sep" id="event-sep" style="display:none">|</span>
@@ -312,6 +390,11 @@
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
+  <div class="m-row"><span class="m-lbl">Team/s</span><span class="m-val" id="m-teamrev">$0/s</span></div>
+</div>
+<div id="activity-feed">
+  <div class="feed-title">📡 Live Feed</div>
+  <div id="feed-list"></div>
 </div>
 <div id="left-panel">
   <div id="upgrades"></div>
@@ -340,6 +423,22 @@
 </div>
 <div id="toast-container"></div>
 <button id="elevator-btn" title="Floors">🏢</button>
+<button id="ipo-btn" title="Take your startup public!">🎉 IPO!</button>
+<div id="ipo-modal">
+  <div class="ipo-panel">
+    <div class="ipo-title">🎉 IPO Time!</div>
+    <div class="ipo-sub" id="ipo-valuation">Valuation: $0</div>
+    <div class="ipo-body" id="ipo-body">
+      Taking your startup public resets cash and upgrades, but you keep a permanent
+      <strong id="ipo-mult-text">2×</strong> revenue multiplier for your next season.
+      <br><br>Your <strong id="ipo-season-text">Season 2</strong> starts with a head start bot and <strong>$200</strong>.
+    </div>
+    <div class="ipo-actions">
+      <button class="ipo-confirm" id="ipo-confirm-btn">🚀 Go Public</button>
+      <button class="ipo-cancel" id="ipo-cancel-btn">Not yet</button>
+    </div>
+  </div>
+</div>
 <div id="elevator-modal" role="dialog">
   <div class="elev-panel">
     <h3 class="elev-title">Elevator</h3>
@@ -748,6 +847,10 @@ let maxStack = 10;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
 let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
 let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
+// Prestige (IPO seasons)
+let prestigeLevel = 0;
+let prestigeMultiplier = 1; // 2^prestigeLevel, applied to dealValueMult at season start
+
 // Metrics counters
 let totalUsers = 0;
 let totalFeaturesShipped = 0;
@@ -1282,6 +1385,7 @@ function checkUserMilestones() {
   while (nextUserMilestone < USER_MILESTONES.length &&
          totalUsers >= USER_MILESTONES[nextUserMilestone].at) {
     showToast(USER_MILESTONES[nextUserMilestone].msg, 'milestone');
+    addFeedEntry(USER_MILESTONES[nextUserMilestone].msg);
     nextUserMilestone++;
   }
 }
@@ -1289,12 +1393,15 @@ function checkUserMilestones() {
 const metricsArrEl  = document.getElementById('m-arr');
 const metricsUsersEl= document.getElementById('m-users');
 const metricsShipEl = document.getElementById('m-shipped');
+const metricsTeamEl = document.getElementById('m-teamrev');
 function updateMetricsHUD() {
   const dealsPerSec = dealSpeedMult / customerSpawnInterval;
   const arr = Math.round(featurePrice * dealValueMult * dealsPerSec * 3600 * 24 * 365);
-  metricsArrEl.textContent  = '$' + fmtCash(arr) + '/yr';
-  metricsUsersEl.textContent = fmtCash(totalUsers);
-  metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
+  metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
+  metricsUsersEl.textContent  = fmtCash(totalUsers);
+  metricsShipEl.textContent   = fmtCash(totalFeaturesShipped);
+  const teamRevPerSec = employees.filter(e => e.state === 'atDesk').reduce((s, e) => s + (e.caffeinated ? 4 : 2), 0);
+  metricsTeamEl.textContent  = '$' + teamRevPerSec + '/s';
 }
 
 // --- Desks (claimable seats for hired employees) ---
@@ -1675,6 +1782,7 @@ function raiseFunding() {
   fundingRoundIdx++;
   addCash(r.amount);
   showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
+  addFeedEntry(`💼 ${r.label} raised +$${r.amount.toLocaleString()}`);
   renderFunding();
 }
 
@@ -1724,6 +1832,7 @@ function checkMilestones() {
   while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
     const ms = MILESTONES[nextMilestoneIdx];
     showToast(ms.msg, 'milestone');
+    addFeedEntry(ms.msg);
     if (ms.desks > 0) unlockMoreDesks(ms.desks);
     nextMilestoneIdx++;
   }
@@ -1741,6 +1850,7 @@ function addCash(n) {
   renderOffice();
   renderAmenities();
   renderFunding();
+  checkIPOAvailable();
 }
 
 // --- Upgrades ---
@@ -1770,6 +1880,33 @@ const UPGRADES = [
   { id:'cdnspeed',   label:'🌍 Global CDN',          base:400, scale:2.0, max:1,
     apply: lv => { customerSpawnInterval = Math.max(0.2, customerSpawnInterval * 0.4); } },
 ];
+
+// ── Activity Feed ───────────────────────────────────────
+const activityLog = [];
+const MAX_FEED = 7;
+const feedListEl = document.getElementById('feed-list');
+
+function addFeedEntry(text) {
+  activityLog.unshift({ text, at: Date.now() });
+  if (activityLog.length > MAX_FEED) activityLog.pop();
+  renderFeed();
+}
+
+function renderFeed() {
+  feedListEl.innerHTML = '';
+  const now = Date.now();
+  for (const e of activityLog) {
+    const age = Math.floor((now - e.at) / 1000);
+    const ageStr = age < 60 ? `${age}s` : `${Math.floor(age/60)}m`;
+    const div = document.createElement('div');
+    div.className = 'feed-entry';
+    div.innerHTML = `${e.text}<span class="feed-age">${ageStr}</span>`;
+    feedListEl.appendChild(div);
+  }
+}
+
+// Refresh age labels every 10s
+setInterval(renderFeed, 10000);
 
 // ── Startup Events ──────────────────────────────────────────
 const EVENT_POOL = [
@@ -1816,6 +1953,7 @@ function triggerRandomEvent() {
   if (activeEvent) return; // one event at a time
   const ev = EVENT_POOL[Math.floor(Math.random()*EVENT_POOL.length)];
   showToast(ev.msg, ev.cls);
+  addFeedEntry(ev.msg.slice(0, 45));
   ev.onStart();
   if (ev.dur > 0) {
     activeEvent = ev; eventT = 0;
@@ -1886,6 +2024,7 @@ function buyUpgrade(id) {
   state.cash -= cost;
   upgLevels[id]++;
   u.apply(upgLevels[id]);
+  addFeedEntry(`⬆️ ${u.label} → Lv${upgLevels[id]}`);
   addCash(0);
 }
 const upgEl = document.getElementById('upgrades');
@@ -2143,6 +2282,107 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// ── IPO / Prestige ──────────────────────────────────────────
+const ipoBtnEl     = document.getElementById('ipo-btn');
+const ipoModal     = document.getElementById('ipo-modal');
+const ipoValEl     = document.getElementById('ipo-valuation');
+const ipoBodyEl    = document.getElementById('ipo-body');
+const ipoMultText  = document.getElementById('ipo-mult-text');
+const ipoSeasonText= document.getElementById('ipo-season-text');
+const seasonBadge  = document.getElementById('season-badge');
+
+function checkIPOAvailable() {
+  if (state.allTimeCash >= 100000) {
+    ipoBtnEl.style.display = '';
+  }
+}
+
+function openIPOModal() {
+  const nextMult = Math.pow(2, prestigeLevel + 1);
+  const valuation = Math.floor(state.allTimeCash * 12);
+  ipoValEl.textContent = `Valuation: $${fmtCash(valuation)}`;
+  ipoMultText.textContent = nextMult + '×';
+  ipoSeasonText.textContent = `Season ${prestigeLevel + 2}`;
+  ipoModal.classList.add('open');
+}
+
+function doIPO() {
+  prestigeLevel++;
+  prestigeMultiplier = Math.pow(2, prestigeLevel);
+
+  // Reset progress
+  state.cash = 200 * prestigeLevel;
+  state.allTimeCash = 0;
+  nextMilestoneIdx = 0;
+  totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
+  fundingRoundIdx = 0;
+  dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
+
+  // Clear upgrades (apply resets tunables)
+  playerSpeed = 6; plotGrowTime = 5; maxStack = 10;
+  customerSpawnInterval = 2.5; featurePrice = 5;
+  for (const u of UPGRADES) upgLevels[u.id] = 0;
+
+  // Remove employees
+  for (const e of employees) scene.remove(e.group);
+  employees.length = 0;
+  for (const d of desks) d.occupied = false;
+
+  // Remove workers
+  for (const w of workers) scene.remove(w.group);
+  workers.length = 0;
+
+  // Remove bots
+  for (const b of productionBots) scene.remove(b.group);
+  productionBots.length = 0;
+
+  // Remove amenities
+  for (const a of amenities) {
+    if (a.isOwned && a.group) { scene.remove(a.group); a.group = null; }
+    a.isOwned = false; a.stock = 0;
+  }
+
+  // Reset shelf + plots
+  shelfState.stock = 0; refreshShelf();
+  for (const p of plots) {
+    if (p.tier > 0) { p.active = false; p.group.visible = false; }
+    p.ready = false; p.orb.visible = false; p.bulbBase.visible = false; p.t = 0;
+  }
+
+  // Reset locked desks
+  for (let i = 5; i < allDeskEntries.length; i++) {
+    if (allDeskEntries[i].unlocked) {
+      allDeskEntries[i].unlocked = false;
+      allDeskEntries[i].mesh.visible = false;
+      const idx = desks.indexOf(allDeskEntries[i]);
+      if (idx > -1) desks.splice(idx, 1);
+    }
+  }
+
+  // Reset supply closet
+  supplyCloset.stock = 20;
+
+  // Give 1 free bot as head start
+  spawnProductionBot();
+
+  // Update season badge
+  seasonBadge.style.display = '';
+  seasonBadge.textContent = `S${prestigeLevel + 1}`;
+
+  ipoBtnEl.style.display = 'none';
+  ipoModal.classList.remove('open');
+
+  addFeedEntry(`🎉 IPO! Season ${prestigeLevel + 1} — ${prestigeMultiplier}× revenue!`);
+  showToast(`🎉 IPO complete! Season ${prestigeLevel + 1} — all revenue is now ${prestigeMultiplier}×!`, 'milestone');
+  addCash(0);
+  renderFunding();
+  saveGame();
+}
+
+ipoBtnEl.addEventListener('click', openIPOModal);
+document.getElementById('ipo-confirm-btn').addEventListener('click', doIPO);
+document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoModal.classList.remove('open'));
+
 // --- Save + load ---
 const SAVE_KEY = 'startup-tycoon-v3';
 function saveGame() {
@@ -2159,6 +2399,8 @@ function saveGame() {
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
+      prestigeLevel,
+      prestigeMultiplier,
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
       savedAt: Date.now(),
     }));
@@ -2171,6 +2413,22 @@ function loadGame() {
     const p = JSON.parse(raw);
     state.cash = p.cash || 0;
     state.allTimeCash = p.allTimeCash || 0;
+    // Offline earnings: award 25% of theoretical deal revenue while away (max 4hr)
+    if (p.savedAt) {
+      const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
+      const awaySec = awayMs / 1000;
+      if (awaySec > 30 && p.upgrades) {
+        const savedInterval = 2.5; // conservative base
+        const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
+        const offlineEarned = Math.floor(savedPrice * (awaySec / savedInterval) * 0.25);
+        if (offlineEarned > 0) {
+          state.cash += offlineEarned;
+          state.allTimeCash += offlineEarned;
+          // Show after a short delay so the game renders first
+          setTimeout(() => showToast(`⏰ Offline: +$${fmtCash(offlineEarned)} earned while away`, 'milestone'), 1200);
+        }
+      }
+    }
     if (p.upgrades) {
       for (const u of UPGRADES) {
         const lv = p.upgrades[u.id] || 0;
@@ -2179,7 +2437,15 @@ function loadGame() {
       }
     }
     if (p.unlocked) Object.assign(unlocked, p.unlocked);
-    if (typeof p.fundingRoundIdx === 'number') fundingRoundIdx = p.fundingRoundIdx;
+    if (typeof p.fundingRoundIdx    === 'number') fundingRoundIdx    = p.fundingRoundIdx;
+    if (typeof p.prestigeLevel      === 'number') prestigeLevel      = p.prestigeLevel;
+    if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
+    // Apply prestige multiplier to deal value
+    if (prestigeLevel > 0) {
+      dealValueMult = prestigeMultiplier;
+      seasonBadge.style.display = '';
+      seasonBadge.textContent   = `S${prestigeLevel + 1}`;
+    }
     // Re-hire employees silently (free on load). Temporarily zero out cash
     // checks because these were already paid for in a previous session.
     if (p.employees) {
