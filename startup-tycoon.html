@@ -99,9 +99,18 @@
       background: none; color: #222; border: 2px solid #aaa;
       border-radius: 10px; cursor: pointer;
     }
+    #offline-timer {
+      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,255,255,0.88); color: #3f51b5;
+      padding: 6px 14px; border-radius: 10px;
+      font-weight: 700; font-size: 13px;
+      pointer-events: none; user-select: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
   </style>
 </head>
 <body>
+<div id="offline-timer">Session 00m 00s</div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="upgrades"></div>
 <button id="elevator-btn" title="Floors">🏢</button>
@@ -854,6 +863,53 @@ function loop(now) {
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
+
+// --- Save + load ---
+const SAVE_KEY = 'startup-tycoon-v1';
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      cash: state.cash,
+      upgrades: upgLevels,
+      unlocked,
+      savedAt: Date.now(),
+    }));
+  } catch {}
+}
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    state.cash = p.cash || 0;
+    if (p.upgrades) {
+      for (const u of UPGRADES) {
+        const lv = p.upgrades[u.id] || 0;
+        for (let i = 1; i <= lv; i++) u.apply(i);
+        upgLevels[u.id] = lv;
+      }
+    }
+    if (p.unlocked) Object.assign(unlocked, p.unlocked);
+  } catch {}
+}
+
+// --- Offline / session timer ---
+const offlineTimerEl = document.getElementById('offline-timer');
+const sessionStart = Date.now();
+function tickTimer() {
+  const s = Math.floor((Date.now() - sessionStart) / 1000);
+  const m = Math.floor(s / 60);
+  offlineTimerEl.textContent =
+    `Session ${m.toString().padStart(2,'0')}m ${(s%60).toString().padStart(2,'0')}s`;
+}
+tickTimer();
+setInterval(tickTimer, 1000);
+
+loadGame();
+addCash(0);
+setInterval(saveGame, 5000);
+addEventListener('beforeunload', saveGame);
+
 requestAnimationFrame(loop);
 </script>
 </body>
