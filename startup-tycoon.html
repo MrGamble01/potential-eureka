@@ -27,10 +27,40 @@
       display: flex; align-items: center; justify-content: center;
       color: #fff; font-size: 10px; font-weight: 900;
     }
+    #upgrades {
+      position: fixed; top: 16px; left: 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      max-width: 230px; user-select: none;
+    }
+    .upg-btn {
+      background: rgba(255,255,255,0.94);
+      border: 2px solid #3f51b5;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      color: #222;
+      font-size: 14px;
+      font-family: inherit;
+      transition: transform 0.08s;
+    }
+    .upg-btn:active:not(:disabled) { transform: scale(0.97); }
+    .upg-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .upg-btn .lvl {
+      float: right; background: #3f51b5; color: #fff;
+      padding: 1px 8px; border-radius: 10px; font-size: 11px;
+      font-weight: 800;
+    }
+    .upg-btn .cost {
+      display: block; color: #2f9d55; font-size: 12px; margin-top: 2px;
+      font-weight: 800;
+    }
   </style>
 </head>
 <body>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
+<div id="upgrades"></div>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
@@ -110,8 +140,12 @@ player.add(head);
 player.position.set(5, 0, 0);
 scene.add(player);
 
+// --- Tunables (mutated by upgrades) ---
+let playerSpeed = 6;
+let plotGrowTime = 5;
+let maxStack = 10;
+
 // --- Player head-stack (generic: holds ideas OR features) ---
-const MAX_STACK = 10;
 const stackGroup = new THREE.Group();
 stackGroup.position.y = 2.25;
 player.add(stackGroup);
@@ -143,7 +177,6 @@ function refreshStack() {
 }
 
 // --- Idea Farm: 3x3 plots growing orbs over time ---
-const PLOT_GROW_TIME = 5;
 const plots = [];
 const plotGeo = new THREE.BoxGeometry(2.4, 0.1, 2.4);
 const plotMat = new THREE.MeshLambertMaterial({ color: 0x6b4a2a });
@@ -158,7 +191,7 @@ for (let r = 0; r < 3; r++) {
     orb.position.y = 1.2; orb.castShadow = true; orb.visible = false;
     g.add(orb);
     scene.add(g);
-    plots.push({ group: g, orb, t: Math.random() * PLOT_GROW_TIME, ready: false });
+    plots.push({ group: g, orb, t: Math.random() * plotGrowTime, ready: false });
   }
 }
 
@@ -167,13 +200,13 @@ function updateFarm(dt) {
   for (const p of plots) {
     if (!p.ready) {
       p.t += dt;
-      if (p.t >= PLOT_GROW_TIME) { p.ready = true; p.orb.visible = true; }
+      if (p.t >= plotGrowTime) { p.ready = true; p.orb.visible = true; }
     }
   }
   const bob = Math.sin(performance.now() * 0.003) * 0.12;
   for (const p of plots) if (p.ready) p.orb.position.y = 1.25 + bob;
 
-  if (carry.count >= MAX_STACK) return;
+  if (carry.count >= maxStack) return;
   if (carry.kind && carry.kind !== 'idea') return; // can't mix types
   for (const p of plots) {
     if (!p.ready) continue;
@@ -182,7 +215,7 @@ function updateFarm(dt) {
     if (dx*dx + dz*dz < PICKUP_R2) {
       p.ready = false; p.orb.visible = false; p.t = 0;
       carry.kind = 'idea'; carry.count++; refreshStack();
-      if (carry.count >= MAX_STACK) return;
+      if (carry.count >= maxStack) return;
     }
   }
 }
@@ -273,8 +306,8 @@ function updateDev(dt) {
     if (carry.count === 0) carry.kind = null;
     refreshStack();
     refreshPile(devQueueGroup, devQueueMeshes, dev.queue, orbGeo, orbMat, 0.4);
-  } else if ((carry.kind === null || carry.kind === 'feature') && dev.output > 0 && carry.count < MAX_STACK) {
-    while (dev.output > 0 && carry.count < MAX_STACK) {
+  } else if ((carry.kind === null || carry.kind === 'feature') && dev.output > 0 && carry.count < maxStack) {
+    while (dev.output > 0 && carry.count < maxStack) {
       carry.kind = 'feature'; carry.count++; dev.output--;
     }
     refreshStack();
@@ -478,6 +511,57 @@ const cashValEl = document.getElementById('cash-val');
 function addCash(n) {
   state.cash += n;
   cashValEl.textContent = Math.floor(state.cash).toString();
+  renderUpgrades();
+}
+
+// --- Upgrades ---
+const UPGRADES = [
+  { id: 'growth',   label: 'Idea Growth',    base: 20,  scale: 1.6, max: 10,
+    apply: lv => { plotGrowTime = Math.max(1.0, 5 - lv * 0.35); } },
+  { id: 'speed',    label: 'Move Speed',     base: 25,  scale: 1.5, max: 10,
+    apply: lv => { playerSpeed = 6 + lv * 0.5; } },
+  { id: 'capacity', label: 'Carry Capacity', base: 30,  scale: 1.7, max: 10,
+    apply: lv => { maxStack = 10 + lv * 2; } },
+  { id: 'dev',      label: 'Dev Speed',      base: 50,  scale: 1.6, max: 10,
+    apply: lv => { dev.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
+];
+const upgLevels = {};
+for (const u of UPGRADES) upgLevels[u.id] = 0;
+function upgCost(u) {
+  return Math.floor(u.base * Math.pow(u.scale, upgLevels[u.id]));
+}
+function buyUpgrade(id) {
+  const u = UPGRADES.find(x => x.id === id);
+  if (!u || upgLevels[id] >= u.max) return;
+  const cost = upgCost(u);
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  upgLevels[id]++;
+  u.apply(upgLevels[id]);
+  addCash(0);
+}
+const upgEl = document.getElementById('upgrades');
+function renderUpgrades() {
+  // In-place update so we don't rebuild DOM every frame
+  if (upgEl.children.length !== UPGRADES.length) {
+    upgEl.innerHTML = '';
+    for (const u of UPGRADES) {
+      const btn = document.createElement('button');
+      btn.className = 'upg-btn';
+      btn.dataset.id = u.id;
+      btn.onclick = () => buyUpgrade(u.id);
+      upgEl.appendChild(btn);
+    }
+  }
+  for (const btn of upgEl.children) {
+    const u = UPGRADES.find(x => x.id === btn.dataset.id);
+    const lv = upgLevels[u.id];
+    const maxed = lv >= u.max;
+    const cost = upgCost(u);
+    btn.disabled = maxed || state.cash < cost;
+    btn.innerHTML = `<span class="lvl">${maxed ? 'MAX' : 'Lv ' + lv}</span>${u.label}` +
+      (maxed ? '' : `<span class="cost">$${cost}</span>`);
+  }
 }
 addCash(0);
 
@@ -501,7 +585,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
 });
 
 // --- Loop ---
-const SPEED = 6, HALF = 28;
+const HALF = 28;
 let last = performance.now();
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
 function loop(now) {
@@ -530,8 +614,8 @@ function loop(now) {
   }
 
   if (wx || wz) {
-    player.position.x = Math.max(-HALF, Math.min(HALF, player.position.x + wx * SPEED * dt));
-    player.position.z = Math.max(-HALF, Math.min(HALF, player.position.z + wz * SPEED * dt));
+    player.position.x = Math.max(-HALF, Math.min(HALF, player.position.x + wx * playerSpeed * dt));
+    player.position.z = Math.max(-HALF, Math.min(HALF, player.position.z + wz * playerSpeed * dt));
     player.rotation.y = Math.atan2(wx, wz);
   }
 
