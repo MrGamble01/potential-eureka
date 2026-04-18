@@ -1,3 +1,35 @@
+<!--
+  STARTUP TYCOON — single-file MVP (Three.js from CDN)
+
+  PLAY
+    WASD / arrows — move
+    Tap / click   — move to that spot on the floor
+    Left buttons  — upgrades (scale cost per level)
+    Elevator btn  — floor select (Office active; Café / Gym / Rooftop locked)
+
+  CORE LOOP (Office floor)
+    idea orbs grow on farm plots → carry on head → drop at Dev Station
+    → processed into feature boxes → carry to Shelf → customers buy at Checkout
+
+  ARCHITECTURE (extending to new floors)
+    Each floor is a subclass of Floor with a scene root, build(), update(dt),
+    and dispose(). Only OfficeFloor is implemented. To add a new one:
+
+      1. Write a class: class CafeFloor extends Floor {
+           build() { build meshes into this.root; wire interactions; }
+           update(dt) { tick your logic here; }
+           dispose() { clean up NPCs/timers; super.dispose(); }
+         }
+      2. Register: FLOOR_CLASSES.cafe = CafeFloor;
+      3. Travel from elevator (card click): replace currentFloorInst with
+         `new FLOOR_CLASSES[id](scene)`, call dispose() on the old one.
+      4. Content ideas: Café boosts idea growth, Gym boosts move speed,
+         Rooftop spawns investor NPCs who drop bigger cash.
+
+  Save state: localStorage key `startup-tycoon-v1`, written every 5s and on
+  beforeunload. Save payload is intentionally small (cash, upgrade levels,
+  unlocked floors) — transient world state (orbs, customers) is not persisted.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -819,6 +851,37 @@ renderer.domElement.addEventListener('pointerdown', e => {
   if (raycaster.ray.intersectPlane(groundPlane, hit)) target = hit;
 });
 
+// --- Floor architecture (drop-in modules, see README at top) ---
+// The Office floor is built inline above for MVP simplicity; its update()
+// fans out to the existing module-level update functions. New floors should
+// build their scene into this.root and keep their state on the instance.
+class Floor {
+  constructor(scene) {
+    this.scene = scene;
+    this.root = new THREE.Group();
+    scene.add(this.root);
+  }
+  build()     {}
+  update(dt)  {}
+  dispose()   { this.root.parent?.remove(this.root); }
+}
+class OfficeFloor extends Floor {
+  update(dt) {
+    updateFarm(dt);
+    updateDev(dt);
+    updateShelf();
+    updateCustomers(dt);
+    updateIntern(dt);
+  }
+}
+const FLOOR_CLASSES = {
+  office: OfficeFloor,
+  // cafe:    CafeFloor,    // TODO: boosts idea growth on neighboring floors
+  // gym:     GymFloor,     // TODO: boosts move speed
+  // rooftop: RooftopFloor, // TODO: attracts investor NPCs
+};
+let currentFloorInst = new FLOOR_CLASSES.office(scene);
+
 // --- Loop ---
 const HALF = 28;
 let last = performance.now();
@@ -854,11 +917,7 @@ function loop(now) {
     player.rotation.y = Math.atan2(wx, wz);
   }
 
-  updateFarm(dt);
-  updateDev(dt);
-  updateShelf();
-  updateCustomers(dt);
-  updateIntern(dt);
+  currentFloorInst.update(dt);
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
