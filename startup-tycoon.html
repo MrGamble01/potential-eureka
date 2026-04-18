@@ -94,6 +94,37 @@
       float: right; background: rgba(0,0,0,0.22);
       padding: 2px 8px; border-radius: 10px; font-size: 12px;
     }
+    .amenity-btn {
+      display: block; width: 100%; margin-top: 6px;
+      background: #4da3ff; border: 2px solid #2a7dd9; color: #fff;
+      border-radius: 10px; padding: 9px 12px;
+      font-weight: 800; font-size: 13px; font-family: inherit;
+      cursor: pointer; text-align: left;
+    }
+    .amenity-btn:active:not(:disabled) { transform: scale(0.97); }
+    .amenity-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .amenity-btn.owned { background: #2f9d55; border-color: #226d3b; }
+    .amenity-btn.locked { background: #888; border-color: #555; }
+    .amenity-btn .tag {
+      float: right; background: rgba(0,0,0,0.22);
+      padding: 2px 8px; border-radius: 10px; font-size: 11px;
+    }
+    #labels > div.bubble {
+      background: rgba(255,255,255,0.92); color: #222;
+      font-size: 15px; padding: 1px 6px;
+      border: 2px solid #3f51b5;
+    }
+    #labels > div.stock {
+      background: rgba(30,30,50,0.9); color: #fff;
+      font-size: 12px; font-weight: 800;
+    }
+    #labels > div.refill {
+      background: #3f51b5; color: #fff; font-size: 12px;
+    }
+    #labels > div.prompt {
+      background: #ff9a4a; color: #fff; font-size: 12px;
+      border: 2px solid #ff7a20;
+    }
     .upg-btn {
       background: rgba(255,255,255,0.94);
       border: 2px solid #3f51b5;
@@ -193,6 +224,10 @@
     <div class="panel-title">Office</div>
     <div class="stat-line"><span>Employees</span><span id="emp-count">0 / 5</span></div>
     <button class="hire-btn" id="hire-btn">Hire Employee<span class="cost" id="hire-cost">$250</span></button>
+  </div>
+  <div id="amenities-panel" class="panel">
+    <div class="panel-title">Amenities</div>
+    <div id="amenities-list"></div>
   </div>
 </div>
 <button id="elevator-btn" title="Floors">🏢</button>
@@ -863,17 +898,30 @@ function hireEmployee() {
 function updateEmployees(dt) {
   for (const e of employees) {
     // Wait states
-    if (e.state === 'idle' || e.state === 'grabbing' || e.state === 'paying') {
+    if (e.state === 'idle' || e.state === 'grabbing' || e.state === 'paying' || e.state === 'usingAmenity') {
       e.waitT -= dt;
       if (e.waitT > 0) continue;
       if (e.state === 'idle') {
-        // For Step 1a, only Work need exists
-        e.need = 'work';
-        e.state = 'toShelf';
-        e.target = {
-          x: shelf.position.x + (Math.random() - 0.5) * 2.4,
-          z: shelf.position.z + 2.3,
-        };
+        // Pick between Work and any owned amenity with stock. Work is always
+        // available (shelf stock is optional; empty shelf is handled below).
+        const amenity = ownedAmenityForEmployee();
+        const useAmenity = amenity && Math.random() < 0.6;
+        if (useAmenity) {
+          e.need = amenity.id;
+          e.state = 'toAmenity';
+          e.amenity = amenity;
+          e.target = {
+            x: amenity.anchorPos.x + (Math.random() - 0.5) * 0.6,
+            z: amenity.anchorPos.z,
+          };
+        } else {
+          e.need = 'work';
+          e.state = 'toShelf';
+          e.target = {
+            x: shelf.position.x + (Math.random() - 0.5) * 2.4,
+            z: shelf.position.z + 2.3,
+          };
+        }
       } else if (e.state === 'grabbing') {
         if (shelfState.stock > 0) {
           shelfState.stock--;
@@ -882,13 +930,21 @@ function updateEmployees(dt) {
           e.state = 'toCheckout';
           e.target = { x: checkout.position.x - 2.2, z: checkout.position.z };
         } else {
-          // Shelf empty — go back to desk and try again later
           e.state = 'goToDesk';
           e.target = deskFront(e.desk);
         }
       } else if (e.state === 'paying') {
         addCash(FEATURE_PRICE);
         e.carried.visible = false;
+        e.state = 'goToDesk';
+        e.target = deskFront(e.desk);
+      } else if (e.state === 'usingAmenity') {
+        const am = e.amenity;
+        if (am && am.stock > 0) {
+          am.stock--;
+          addCash(am.revenuePerUse);
+        }
+        e.amenity = null;
         e.state = 'goToDesk';
         e.target = deskFront(e.desk);
       }
@@ -915,6 +971,9 @@ function updateEmployees(dt) {
     } else if (e.state === 'toCheckout') {
       e.state = 'paying';
       e.waitT = 0.6;
+    } else if (e.state === 'toAmenity') {
+      e.state = 'usingAmenity';
+      e.waitT = (e.amenity && e.amenity.useTime) || 1.4;
     }
   }
 }
@@ -938,6 +997,140 @@ function renderOffice() {
 }
 hireBtn.addEventListener('click', hireEmployee);
 
+// --- Amenities (unlockable, buyable, consume stock on use, need manual refill) ---
+const AMENITY_DEFS = [
+  {
+    id: 'coffee',
+    name: 'Coffee Machine',
+    icon: '☕',
+    buyCost: 500,
+    revenuePerUse: 5,
+    maxStock: 20,
+    refillCost: 20,
+    useTime: 1.4,
+    position: new THREE.Vector3(4, 0, 10),
+    unlockReq: () => employees.length >= 3,
+    unlockText: () => `🔒 Needs 3 employees (${employees.length}/3)`,
+    buildMesh: (g) => {
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2, 1.5, 0.8),
+        new THREE.MeshLambertMaterial({ color: 0x2a2a32 })
+      );
+      body.position.y = 0.75; body.castShadow = true; body.receiveShadow = true;
+      g.add(body);
+      const top = new THREE.Mesh(
+        new THREE.BoxGeometry(1.0, 0.4, 0.6),
+        new THREE.MeshLambertMaterial({ color: 0x8a5a2a })
+      );
+      top.position.y = 1.7; top.castShadow = true;
+      g.add(top);
+      const tray = new THREE.Mesh(
+        new THREE.BoxGeometry(1.0, 0.08, 0.5),
+        new THREE.MeshLambertMaterial({ color: 0x4a4a52 })
+      );
+      tray.position.set(0, 0.55, 0.3);
+      g.add(tray);
+      const btn = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 0.06, 16),
+        new THREE.MeshLambertMaterial({ color: 0xff6b3d, emissive: 0xff6b3d, emissiveIntensity: 0.55 })
+      );
+      btn.rotation.x = Math.PI / 2;
+      btn.position.set(0.35, 1.05, 0.4);
+      g.add(btn);
+      const spout = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.15, 0.2),
+        new THREE.MeshLambertMaterial({ color: 0x1a1a1e })
+      );
+      spout.position.set(0, 0.75, 0.4);
+      g.add(spout);
+    },
+  },
+];
+const amenities = AMENITY_DEFS.map(def => ({
+  ...def,
+  stock: 0,
+  isOwned: false,
+  isRefilling: false,
+  refillT: 0,
+  refillTime: 2.0,
+  group: null,
+  anchorPos: new THREE.Vector3(def.position.x, 0, def.position.z + 1.4),
+}));
+
+function buildAmenity(am) {
+  am.group = new THREE.Group();
+  am.group.position.copy(am.position);
+  am.buildMesh(am.group);
+  scene.add(am.group);
+}
+function buyAmenity(id) {
+  const am = amenities.find(a => a.id === id);
+  if (!am || am.isOwned || !am.unlockReq() || state.cash < am.buyCost) return;
+  state.cash -= am.buyCost;
+  am.isOwned = true;
+  am.stock = am.maxStock;
+  buildAmenity(am);
+  addCash(0);
+}
+function tryStartRefill(am) {
+  if (!am.isOwned || am.isRefilling) return false;
+  if (am.stock >= am.maxStock) return false;
+  if (state.cash < am.refillCost) return false;
+  const dx = am.position.x - player.position.x;
+  const dz = am.position.z - player.position.z;
+  if (dx*dx + dz*dz > 3.5 * 3.5) return false;
+  state.cash -= am.refillCost;
+  am.isRefilling = true;
+  am.refillT = 0;
+  addCash(0);
+  return true;
+}
+function updateAmenities(dt) {
+  for (const am of amenities) {
+    if (am.isRefilling) {
+      am.refillT += dt;
+      if (am.refillT >= am.refillTime) {
+        am.stock = am.maxStock;
+        am.isRefilling = false;
+        am.refillT = 0;
+      }
+    }
+  }
+}
+function ownedAmenityForEmployee() {
+  const pool = amenities.filter(a => a.isOwned && a.stock > 0);
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+const amenitiesList = document.getElementById('amenities-list');
+function renderAmenities() {
+  while (amenitiesList.children.length < amenities.length) {
+    const btn = document.createElement('button');
+    btn.className = 'amenity-btn';
+    amenitiesList.appendChild(btn);
+  }
+  for (let i = 0; i < amenities.length; i++) {
+    const am = amenities[i];
+    const btn = amenitiesList.children[i];
+    if (am.isOwned) {
+      btn.className = 'amenity-btn owned';
+      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">Owned</span>`;
+      btn.disabled = true;
+      btn.onclick = null;
+    } else if (!am.unlockReq()) {
+      btn.className = 'amenity-btn locked';
+      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">${am.unlockText()}</span>`;
+      btn.disabled = true;
+      btn.onclick = null;
+    } else {
+      btn.className = 'amenity-btn';
+      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">$${am.buyCost}</span>`;
+      btn.disabled = state.cash < am.buyCost;
+      btn.onclick = () => buyAmenity(am.id);
+    }
+  }
+}
+
 // --- Cash state ---
 const state = { cash: 0 };
 const cashValEl = document.getElementById('cash-val');
@@ -946,6 +1139,7 @@ function addCash(n) {
   cashValEl.textContent = Math.floor(state.cash).toString();
   renderUpgrades();
   renderOffice();
+  renderAmenities();
 }
 
 // --- Upgrades ---
@@ -1060,7 +1254,13 @@ function renderFloors() {
 
 // --- Input ---
 const keys = {};
-addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (k === 'e') {
+    for (const am of amenities) if (am.isOwned) tryStartRefill(am);
+  }
+});
 addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
 
@@ -1073,6 +1273,21 @@ renderer.domElement.addEventListener('pointerdown', e => {
   pointer.x = (e.clientX / innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
+  // Check if tap hits an owned amenity — if so, try to refill instead of walking
+  const ownedGroups = amenities.filter(a => a.isOwned && a.group).map(a => a.group);
+  if (ownedGroups.length) {
+    const hits = raycaster.intersectObjects(ownedGroups, true);
+    if (hits.length) {
+      let node = hits[0].object;
+      let owner = null;
+      while (node) {
+        const am = amenities.find(a => a.group === node);
+        if (am) { owner = am; break; }
+        node = node.parent;
+      }
+      if (owner && tryStartRefill(owner)) return;
+    }
+  }
   const hit = new THREE.Vector3();
   if (raycaster.ray.intersectPlane(groundPlane, hit)) target = hit;
 });
@@ -1098,6 +1313,7 @@ class OfficeFloor extends Floor {
     updateShelf();
     updateCustomers(dt);
     updateEmployees(dt);
+    updateAmenities(dt);
     updateIntern(dt);
   }
 }
@@ -1117,6 +1333,7 @@ function worldToScreen(x, y, z) {
   projV.set(x, y, z).project(camera);
   return { x: (projV.x * 0.5 + 0.5) * innerWidth, y: (-projV.y * 0.5 + 0.5) * innerHeight };
 }
+const NEED_EMOJI = { work: '💼', coffee: '☕', water: '💧', copies: '📄', snack: '🍿' };
 function updateLabels() {
   const wants = [];
   if (carry.count >= maxStack) {
@@ -1127,6 +1344,38 @@ function updateLabels() {
     if (d.queue > 0) {
       const p = worldToScreen(d.pos.x, 3.2, d.pos.z);
       wants.push({ text: `${d.queue}/${d.QUEUE_MAX}`, cls: '', x: p.x, y: p.y });
+    }
+  }
+  for (const e of employees) {
+    const emoji = e.need && NEED_EMOJI[e.need];
+    if (emoji && (e.state === 'toShelf' || e.state === 'toAmenity' ||
+                  e.state === 'grabbing' || e.state === 'usingAmenity')) {
+      const p = worldToScreen(e.group.position.x, 2.6, e.group.position.z);
+      wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
+    }
+  }
+  for (const am of amenities) {
+    if (!am.isOwned) continue;
+    const p = worldToScreen(am.position.x, 2.8, am.position.z);
+    const empty = am.stock === 0;
+    wants.push({
+      text: `${am.icon} ${am.stock}/${am.maxStock}`,
+      cls: empty ? 'max' : 'stock',
+      x: p.x, y: p.y,
+    });
+    if (am.isRefilling) {
+      const pct = Math.floor((am.refillT / am.refillTime) * 100);
+      wants.push({ text: `Refilling ${pct}%`, cls: 'refill', x: p.x, y: p.y + 24 });
+    } else if (am.stock < am.maxStock) {
+      const dx = am.position.x - player.position.x;
+      const dz = am.position.z - player.position.z;
+      if (dx*dx + dz*dz < 3.5 * 3.5) {
+        const canPay = state.cash >= am.refillCost;
+        wants.push({
+          text: canPay ? `Press E / tap: refill $${am.refillCost}` : `Need $${am.refillCost}`,
+          cls: 'prompt', x: p.x, y: p.y + 24,
+        });
+      }
     }
   }
   while (labelPool.length < wants.length) {
@@ -1201,6 +1450,7 @@ function saveGame() {
       upgrades: upgLevels,
       unlocked,
       employees: employees.length,
+      amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
       savedAt: Date.now(),
     }));
   } catch {}
@@ -1226,6 +1476,16 @@ function loadGame() {
       state.cash = 1e12;
       for (let i = 0; i < p.employees && i < desks.length; i++) hireEmployee();
       state.cash = origCash;
+    }
+    if (p.amenities) {
+      for (const saved of p.amenities) {
+        const am = amenities.find(a => a.id === saved.id);
+        if (am && !am.isOwned) {
+          am.isOwned = true;
+          am.stock = typeof saved.stock === 'number' ? saved.stock : am.maxStock;
+          buildAmenity(am);
+        }
+      }
     }
   } catch {}
 }
