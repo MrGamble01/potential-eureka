@@ -221,54 +221,6 @@ function updateFarm(dt) {
 }
 
 // --- Dev Station: ideas → features on a timer ---
-const devStation = new THREE.Group();
-devStation.position.set(8, 0, -8);
-
-const desk = new THREE.Mesh(
-  new THREE.BoxGeometry(2.6, 1, 1.6),
-  new THREE.MeshLambertMaterial({ color: 0x9c7a4d })
-);
-desk.position.y = 0.5; desk.castShadow = true; desk.receiveShadow = true;
-devStation.add(desk);
-
-const monitor = new THREE.Mesh(
-  new THREE.BoxGeometry(1.3, 0.85, 0.1),
-  new THREE.MeshLambertMaterial({ color: 0x222233 })
-);
-monitor.position.set(0, 1.55, -0.35);
-monitor.castShadow = true;
-devStation.add(monitor);
-const screen = new THREE.Mesh(
-  new THREE.PlaneGeometry(1.1, 0.65),
-  new THREE.MeshBasicMaterial({ color: 0x6cf7ff })
-);
-screen.position.set(0, 1.55, -0.29);
-devStation.add(screen);
-const stand = new THREE.Mesh(
-  new THREE.BoxGeometry(0.2, 0.5, 0.18),
-  new THREE.MeshLambertMaterial({ color: 0x222233 })
-);
-stand.position.set(0, 1.05, -0.35);
-devStation.add(stand);
-scene.add(devStation);
-
-// Queue pile (orbs on desk) + output pile (feature boxes next to desk)
-const devQueueGroup = new THREE.Group();
-devQueueGroup.position.set(-0.7, 1.05, 0.4);
-devStation.add(devQueueGroup);
-const devQueueMeshes = [];
-
-const devOutputGroup = new THREE.Group();
-devOutputGroup.position.set(1.7, 0, 0);
-devStation.add(devOutputGroup);
-const devOutputMeshes = [];
-
-const dev = {
-  pos: devStation.position,
-  queue: 0, output: 0, procT: 0,
-  PROC_TIME: 2.5, QUEUE_MAX: 10, OUTPUT_MAX: 10,
-};
-
 function refreshPile(group, meshes, count, geo, mat, spacingY) {
   while (meshes.length < count) {
     const m = new THREE.Mesh(geo, mat);
@@ -281,37 +233,86 @@ function refreshPile(group, meshes, count, geo, mat, spacingY) {
   for (let i = 0; i < meshes.length; i++) meshes[i].visible = i < count;
 }
 
+function createDev(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  const desk = new THREE.Mesh(
+    new THREE.BoxGeometry(2.6, 1, 1.6),
+    new THREE.MeshLambertMaterial({ color: 0x9c7a4d })
+  );
+  desk.position.y = 0.5; desk.castShadow = true; desk.receiveShadow = true;
+  g.add(desk);
+  const monitor = new THREE.Mesh(
+    new THREE.BoxGeometry(1.3, 0.85, 0.1),
+    new THREE.MeshLambertMaterial({ color: 0x222233 })
+  );
+  monitor.position.set(0, 1.55, -0.35); monitor.castShadow = true;
+  g.add(monitor);
+  const screen = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.1, 0.65),
+    new THREE.MeshBasicMaterial({ color: 0x6cf7ff })
+  );
+  screen.position.set(0, 1.55, -0.29);
+  g.add(screen);
+  const stand = new THREE.Mesh(
+    new THREE.BoxGeometry(0.2, 0.5, 0.18),
+    new THREE.MeshLambertMaterial({ color: 0x222233 })
+  );
+  stand.position.set(0, 1.05, -0.35);
+  g.add(stand);
+
+  const queueGroup = new THREE.Group();
+  queueGroup.position.set(-0.7, 1.05, 0.4);
+  g.add(queueGroup);
+  const outputGroup = new THREE.Group();
+  outputGroup.position.set(1.7, 0, 0);
+  g.add(outputGroup);
+  scene.add(g);
+
+  return {
+    pos: g.position, group: g,
+    queueGroup, outputGroup,
+    queueMeshes: [], outputMeshes: [],
+    queue: 0, output: 0, procT: 0,
+    PROC_TIME: 2.5, QUEUE_MAX: 10, OUTPUT_MAX: 10,
+  };
+}
+
+const devs = [createDev(8, -8)];
 const STATION_R2 = 2.6 * 2.6;
+
 function updateDev(dt) {
-  if (dev.queue > 0 && dev.output < dev.OUTPUT_MAX) {
-    dev.procT += dt;
-    if (dev.procT >= dev.PROC_TIME) {
-      dev.procT = 0;
-      dev.queue--; dev.output++;
-      refreshPile(devQueueGroup, devQueueMeshes, dev.queue, orbGeo, orbMat, 0.4);
-      refreshPile(devOutputGroup, devOutputMeshes, dev.output, featureGeo, featureMat, 0.5);
+  for (const d of devs) {
+    if (d.queue > 0 && d.output < d.OUTPUT_MAX) {
+      d.procT += dt;
+      if (d.procT >= d.PROC_TIME) {
+        d.procT = 0;
+        d.queue--; d.output++;
+        refreshPile(d.queueGroup, d.queueMeshes, d.queue, orbGeo, orbMat, 0.4);
+        refreshPile(d.outputGroup, d.outputMeshes, d.output, featureGeo, featureMat, 0.5);
+      }
+    } else {
+      d.procT = 0;
     }
-  } else {
-    dev.procT = 0;
-  }
 
-  const dx = dev.pos.x - player.position.x;
-  const dz = dev.pos.z - player.position.z;
-  if (dx*dx + dz*dz > STATION_R2) return;
+    const dx = d.pos.x - player.position.x;
+    const dz = d.pos.z - player.position.z;
+    if (dx*dx + dz*dz > STATION_R2) continue;
 
-  if (carry.kind === 'idea' && dev.queue < dev.QUEUE_MAX) {
-    while (carry.count > 0 && dev.queue < dev.QUEUE_MAX) {
-      dev.queue++; carry.count--;
+    if (carry.kind === 'idea' && d.queue < d.QUEUE_MAX) {
+      while (carry.count > 0 && d.queue < d.QUEUE_MAX) {
+        d.queue++; carry.count--;
+      }
+      if (carry.count === 0) carry.kind = null;
+      refreshStack();
+      refreshPile(d.queueGroup, d.queueMeshes, d.queue, orbGeo, orbMat, 0.4);
+    } else if ((carry.kind === null || carry.kind === 'feature') && d.output > 0 && carry.count < maxStack) {
+      while (d.output > 0 && carry.count < maxStack) {
+        carry.kind = 'feature'; carry.count++; d.output--;
+      }
+      refreshStack();
+      refreshPile(d.outputGroup, d.outputMeshes, d.output, featureGeo, featureMat, 0.5);
     }
-    if (carry.count === 0) carry.kind = null;
-    refreshStack();
-    refreshPile(devQueueGroup, devQueueMeshes, dev.queue, orbGeo, orbMat, 0.4);
-  } else if ((carry.kind === null || carry.kind === 'feature') && dev.output > 0 && carry.count < maxStack) {
-    while (dev.output > 0 && carry.count < maxStack) {
-      carry.kind = 'feature'; carry.count++; dev.output--;
-    }
-    refreshStack();
-    refreshPile(devOutputGroup, devOutputMeshes, dev.output, featureGeo, featureMat, 0.5);
   }
 }
 
@@ -523,7 +524,9 @@ const UPGRADES = [
   { id: 'capacity', label: 'Carry Capacity', base: 30,  scale: 1.7, max: 10,
     apply: lv => { maxStack = 10 + lv * 2; } },
   { id: 'dev',      label: 'Dev Speed',      base: 50,  scale: 1.6, max: 10,
-    apply: lv => { dev.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
+    apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
+  { id: 'slot',     label: 'Extra Dev Slot', base: 200, scale: 1,   max: 1,
+    apply: lv => { if (lv > 0 && devs.length < 2) devs.push(createDev(8, 4)); } },
 ];
 const upgLevels = {};
 for (const u of UPGRADES) upgLevels[u.id] = 0;
