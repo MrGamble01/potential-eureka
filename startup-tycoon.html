@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Startup Tycoon</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1a1a2e; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    canvas { display: block; touch-action: none; }
+  </style>
+</head>
+<body>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// --- Scene + isometric camera ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xfde8d4);
+
+const camera = new THREE.OrthographicCamera();
+const ZOOM = 14;
+function fitCamera() {
+  const a = innerWidth / innerHeight;
+  camera.left = -ZOOM * a; camera.right = ZOOM * a;
+  camera.top = ZOOM; camera.bottom = -ZOOM;
+  camera.near = -100; camera.far = 200;
+  camera.updateProjectionMatrix();
+}
+camera.position.set(20, 20, 20);
+camera.lookAt(0, 0, 0);
+fitCamera();
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// --- Lights ---
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+sun.position.set(15, 25, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+const sc = sun.shadow.camera;
+sc.left = -25; sc.right = 25; sc.top = 25; sc.bottom = -25;
+sc.near = 0.1; sc.far = 80;
+scene.add(sun);
+
+// --- Ground (peach office floor) ---
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(60, 60),
+  new THREE.MeshLambertMaterial({ color: 0xffc99a })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// --- Player (capsule body + sphere head) ---
+const player = new THREE.Group();
+const body = new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.42, 0.9, 4, 10),
+  new THREE.MeshLambertMaterial({ color: 0x4a90ff })
+);
+body.position.y = 0.87;
+body.castShadow = true;
+player.add(body);
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(0.34, 14, 12),
+  new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
+);
+head.position.y = 1.85;
+head.castShadow = true;
+player.add(head);
+scene.add(player);
+
+// --- Input ---
+const keys = {};
+addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
+addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
+
+// Tap-to-move: project pointer onto ground plane, walk toward target
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+let target = null;
+renderer.domElement.addEventListener('pointerdown', e => {
+  pointer.x = (e.clientX / innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hit = new THREE.Vector3();
+  if (raycaster.ray.intersectPlane(groundPlane, hit)) target = hit;
+});
+
+// --- Loop ---
+const SPEED = 6, HALF = 28;
+let last = performance.now();
+const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+
+  let dx = 0, dz = 0;
+  if (keys['w'] || keys['arrowup'])    dz -= 1;
+  if (keys['s'] || keys['arrowdown'])  dz += 1;
+  if (keys['a'] || keys['arrowleft'])  dx -= 1;
+  if (keys['d'] || keys['arrowright']) dx += 1;
+
+  let wx = 0, wz = 0;
+  if (dx || dz) {
+    target = null; // keyboard cancels tap-target
+    const len = Math.hypot(dx, dz);
+    dx /= len; dz /= len;
+    wx = dx * COS - dz * SIN;
+    wz = dx * SIN + dz * COS;
+  } else if (target) {
+    const tx = target.x - player.position.x;
+    const tz = target.z - player.position.z;
+    const d = Math.hypot(tx, tz);
+    if (d < 0.1) target = null;
+    else { wx = tx / d; wz = tz / d; }
+  }
+
+  if (wx || wz) {
+    player.position.x = Math.max(-HALF, Math.min(HALF, player.position.x + wx * SPEED * dt));
+    player.position.z = Math.max(-HALF, Math.min(HALF, player.position.z + wz * SPEED * dt));
+    player.rotation.y = Math.atan2(wx, wz);
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
