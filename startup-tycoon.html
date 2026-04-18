@@ -389,6 +389,120 @@ regTop.position.set(0, 1.68, 0);
 checkout.add(regTop);
 scene.add(checkout);
 
+// --- AI Intern: autonomous worker (ideas → dev → shelf) ---
+const intern = {
+  enabled: false, group: null, stackG: null, stackMeshes: [],
+  carry: { kind: null, count: 0 },
+  maxCarry: 5, speed: 3.2, target: null,
+};
+function enableIntern() {
+  if (intern.enabled) return;
+  intern.enabled = true;
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.35, 0.75, 4, 10),
+    new THREE.MeshLambertMaterial({ color: 0xa06bff })
+  );
+  b.position.y = 0.75; b.castShadow = true;
+  g.add(b);
+  const h = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 12, 10),
+    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
+  );
+  h.position.y = 1.6; h.castShadow = true;
+  g.add(h);
+  const stackG = new THREE.Group();
+  stackG.position.y = 1.9;
+  g.add(stackG);
+  g.position.set(3, 0, 2);
+  scene.add(g);
+  intern.group = g;
+  intern.stackG = stackG;
+}
+function refreshInternStack() {
+  const c = intern.carry;
+  while (intern.stackMeshes.length < c.count) {
+    const m = new THREE.Mesh(orbGeo, orbMat);
+    m.castShadow = true;
+    m.position.y = intern.stackMeshes.length * 0.4;
+    intern.stackG.add(m);
+    intern.stackMeshes.push(m);
+  }
+  for (let i = 0; i < intern.stackMeshes.length; i++) {
+    const m = intern.stackMeshes[i];
+    m.visible = i < c.count;
+    if (m.visible) {
+      m.geometry = c.kind === 'feature' ? featureGeo : orbGeo;
+      m.material = c.kind === 'feature' ? featureMat : orbMat;
+    }
+  }
+}
+function pickInternTarget() {
+  const c = intern.carry;
+  if (c.kind === 'idea' && c.count > 0) {
+    const d = devs.find(x => x.queue < x.QUEUE_MAX);
+    if (d) return { kind: 'devDrop', dev: d, x: d.pos.x + 1.8, z: d.pos.z + 0.5 };
+  }
+  if (c.kind === 'feature' && c.count > 0) {
+    if (shelfState.stock < SHELF_MAX) return { kind: 'shelf', x: shelf.position.x, z: shelf.position.z + 1.8 };
+  }
+  if (c.count === 0) {
+    const dOut = devs.find(x => x.output > 0);
+    if (dOut && shelfState.stock < SHELF_MAX) return { kind: 'devPick', dev: dOut, x: dOut.pos.x + 1.8, z: dOut.pos.z + 0.5 };
+    let nearest = null, best = Infinity;
+    for (const p of plots) {
+      if (!p.ready) continue;
+      const dx = p.group.position.x - intern.group.position.x;
+      const dz = p.group.position.z - intern.group.position.z;
+      const dist = dx*dx + dz*dz;
+      if (dist < best) { best = dist; nearest = p; }
+    }
+    if (nearest) return { kind: 'plot', plot: nearest, x: nearest.group.position.x, z: nearest.group.position.z };
+  }
+  return null;
+}
+function updateIntern(dt) {
+  if (!intern.enabled) return;
+  if (!intern.target) intern.target = pickInternTarget();
+  if (!intern.target) return;
+  const g = intern.group;
+  const t = intern.target;
+  const tx = t.x - g.position.x;
+  const tz = t.z - g.position.z;
+  const d = Math.hypot(tx, tz);
+  if (d > 0.35) {
+    g.position.x += (tx/d) * intern.speed * dt;
+    g.position.z += (tz/d) * intern.speed * dt;
+    g.rotation.y = Math.atan2(tx/d, tz/d);
+    return;
+  }
+  const c = intern.carry;
+  if (t.kind === 'plot') {
+    if (t.plot.ready && c.count < intern.maxCarry) {
+      t.plot.ready = false; t.plot.orb.visible = false; t.plot.t = 0;
+      c.kind = 'idea'; c.count++;
+      refreshInternStack();
+    }
+  } else if (t.kind === 'devDrop') {
+    while (c.count > 0 && t.dev.queue < t.dev.QUEUE_MAX) { t.dev.queue++; c.count--; }
+    if (c.count === 0) c.kind = null;
+    refreshInternStack();
+    refreshPile(t.dev.queueGroup, t.dev.queueMeshes, t.dev.queue, orbGeo, orbMat, 0.4);
+  } else if (t.kind === 'devPick') {
+    while (t.dev.output > 0 && c.count < intern.maxCarry) {
+      c.kind = 'feature'; c.count++; t.dev.output--;
+    }
+    refreshInternStack();
+    refreshPile(t.dev.outputGroup, t.dev.outputMeshes, t.dev.output, featureGeo, featureMat, 0.5);
+  } else if (t.kind === 'shelf') {
+    while (c.count > 0 && shelfState.stock < SHELF_MAX) { c.count--; shelfState.stock++; }
+    if (c.count === 0) c.kind = null;
+    refreshInternStack();
+    refreshShelf();
+  }
+  intern.target = null;
+}
+
 // --- Door (customer entry/exit) ---
 const DOOR_POS = new THREE.Vector3(27, 0, -2);
 const doorFrame = new THREE.Group();
@@ -527,6 +641,8 @@ const UPGRADES = [
     apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
   { id: 'slot',     label: 'Extra Dev Slot', base: 200, scale: 1,   max: 1,
     apply: lv => { if (lv > 0 && devs.length < 2) devs.push(createDev(8, 4)); } },
+  { id: 'intern',   label: 'Hire AI Intern', base: 500, scale: 1,   max: 1,
+    apply: lv => { if (lv > 0) enableIntern(); } },
 ];
 const upgLevels = {};
 for (const u of UPGRADES) upgLevels[u.id] = 0;
@@ -626,6 +742,7 @@ function loop(now) {
   updateDev(dt);
   updateShelf();
   updateCustomers(dt);
+  updateIntern(dt);
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
