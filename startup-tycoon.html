@@ -252,6 +252,27 @@
     /* ── Rush hour status bar tint ───────────────────────────── */
     #status-bar.rush { background:rgba(255,160,0,0.92)!important; color:#5a2800!important; }
     #status-bar.rush .sep { color:#c87000!important; }
+
+    /* ── Funding rounds panel ───────────────────────────────── */
+    .fund-btn {
+      display: block; width: 100%; margin-top: 4px;
+      background: linear-gradient(135deg, #6c63ff 0%, #4ecdc4 100%);
+      border: none; color: #fff;
+      border-radius: 10px; padding: 10px 14px;
+      font-weight: 800; font-size: 14px; font-family: inherit;
+      cursor: pointer; text-align: left;
+      transition: transform 0.08s;
+    }
+    .fund-btn:active { transform: scale(0.97); }
+    .fund-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .fund-btn .tag {
+      float: right; background: rgba(255,255,255,0.22);
+      padding: 2px 8px; border-radius: 10px; font-size: 12px;
+    }
+    .lock-note {
+      font-size: 11px; color: #999; text-align: center;
+      padding: 6px 4px; font-style: italic; margin-top: 2px;
+    }
   </style>
 </head>
 <body>
@@ -264,12 +285,22 @@
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="left-panel">
   <div id="upgrades"></div>
+  <div id="funding-panel" class="panel">
+    <div class="panel-title">💼 Funding</div>
+    <div id="funding-status" style="font-size:11px;color:#555;margin-bottom:6px">Pre-seed ready — tap to raise!</div>
+    <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
+  </div>
   <div id="office-panel" class="panel">
     <div class="panel-title">Team</div>
-    <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 5</span></div>
-    <button class="hire-btn" id="hire-btn">👩‍💻 Hire Engineer<span class="cost" id="hire-cost">$250</span></button>
-    <div class="stat-line" style="margin-top:8px"><span>Ops</span><span id="worker-count">0 / 3</span></div>
-    <button class="hire-btn" id="hire-worker-btn" style="background:#ff7a20;border-color:#cc5500">🏢 Hire Ops<span class="cost" id="hire-worker-cost">$150</span></button>
+    <div id="hire-lock-note" class="lock-note" style="display:none">🔒 Earn $500 total to expand your team</div>
+    <div id="hire-section">
+      <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 5</span></div>
+      <button class="hire-btn" id="hire-btn">👩‍💻 Hire Engineer<span class="cost" id="hire-cost">$250</span></button>
+    </div>
+    <div id="ops-section" style="display:none;margin-top:8px">
+      <div class="stat-line"><span>Ops</span><span id="worker-count">0 / 3</span></div>
+      <button class="hire-btn" id="hire-worker-btn" style="background:#ff7a20;border-color:#cc5500">🏢 Hire Ops<span class="cost" id="hire-worker-cost">$150</span></button>
+    </div>
   </div>
   <div id="amenities-panel" class="panel">
     <div class="panel-title">Amenities</div>
@@ -1473,17 +1504,47 @@ const workerCountEl = document.getElementById('worker-count');
 const hireWorkerBtn = document.getElementById('hire-worker-btn');
 const hireWorkerCostEl = document.getElementById('hire-worker-cost');
 function renderOffice() {
-  // employees
-  const hired = employees.length;
-  const cap = desks.length;
-  empCountEl.textContent = `${hired} / ${cap}`;
-  if (hired >= cap) { hireBtn.disabled = true; hireCostEl.textContent = 'Full'; }
-  else { const c = hireCost(); hireBtn.disabled = state.cash < c; hireCostEl.textContent = '$' + c; }
-  // workers
-  workerCountEl.textContent = `${workers.length} / ${MAX_WORKERS}`;
-  if (workers.length >= MAX_WORKERS) { hireWorkerBtn.disabled = true; hireWorkerCostEl.textContent = 'Full'; }
-  else { const wc = workerHireCost(); hireWorkerBtn.disabled = state.cash < wc; hireWorkerCostEl.textContent = '$' + wc; }
+  const hiringUnlocked = state.allTimeCash >= 500;
+  const opsUnlocked = employees.length >= 1;
+
+  // Hiring gate — locked until $500 all-time earned
+  document.getElementById('hire-lock-note').style.display = hiringUnlocked ? 'none' : '';
+  document.getElementById('hire-section').style.display = hiringUnlocked ? '' : 'none';
+
+  // Ops section — only visible once 1 engineer hired
+  document.getElementById('ops-section').style.display = opsUnlocked ? '' : 'none';
+
+  if (hiringUnlocked) {
+    const hired = employees.length;
+    const cap = desks.length;
+    empCountEl.textContent = `${hired} / ${cap}`;
+    if (hired >= cap) { hireBtn.disabled = true; hireCostEl.textContent = 'Full'; }
+    else { const c = hireCost(); hireBtn.disabled = state.cash < c; hireCostEl.textContent = '$' + c; }
+  }
+
+  if (opsUnlocked) {
+    workerCountEl.textContent = `${workers.length} / ${MAX_WORKERS}`;
+    if (workers.length >= MAX_WORKERS) { hireWorkerBtn.disabled = true; hireWorkerCostEl.textContent = 'Full'; }
+    else { const wc = workerHireCost(); hireWorkerBtn.disabled = state.cash < wc; hireWorkerCostEl.textContent = '$' + wc; }
+  }
 }
+// Funding panel
+const fundingBtnEl = document.getElementById('funding-btn');
+const fundingStatusEl = document.getElementById('funding-status');
+function renderFunding() {
+  if (fundingRoundIdx >= FUNDING_ROUNDS.length) {
+    fundingStatusEl.textContent = '🎯 All rounds complete — congrats!';
+    fundingBtnEl.style.display = 'none';
+    return;
+  }
+  const r = FUNDING_ROUNDS[fundingRoundIdx];
+  const ok = r.req();
+  fundingBtnEl.innerHTML = `${r.label}<span class="tag">+$${r.amount.toLocaleString()}</span>`;
+  fundingBtnEl.disabled = !ok;
+  fundingStatusEl.textContent = ok ? '✅ Ready to raise!' : `🔒 ${r.reqText}`;
+}
+fundingBtnEl.addEventListener('click', raiseFunding);
+
 hireBtn.addEventListener('click', hireEmployee);
 hireWorkerBtn.addEventListener('click', hireWorker);
 
@@ -1584,6 +1645,25 @@ function renderAmenities() {
   }
 }
 
+// --- Funding Rounds (startup-themed cash injections) ---
+const FUNDING_ROUNDS = [
+  { label: '💰 Pre-seed Round',  amount: 100,   req: () => true,                          reqText: '' },
+  { label: '💸 Seed Round',      amount: 500,   req: () => state.allTimeCash >= 500,      reqText: 'Earn $500 total first' },
+  { label: '🚀 Series A',        amount: 2500,  req: () => employees.length >= 2,          reqText: 'Hire 2 engineers first' },
+  { label: '🦄 Series B',        amount: 10000, req: () => state.allTimeCash >= 10000,    reqText: 'Reach $10k in revenue' },
+];
+let fundingRoundIdx = 0;
+
+function raiseFunding() {
+  if (fundingRoundIdx >= FUNDING_ROUNDS.length) return;
+  const r = FUNDING_ROUNDS[fundingRoundIdx];
+  if (!r.req()) return;
+  fundingRoundIdx++;
+  addCash(r.amount);
+  showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
+  renderFunding();
+}
+
 // --- Cash state ---
 const state = { cash: 0, allTimeCash: 0 };
 const cashValEl = document.getElementById('cash-val');
@@ -1646,6 +1726,7 @@ function addCash(n) {
   renderUpgrades();
   renderOffice();
   renderAmenities();
+  renderFunding();
 }
 
 // --- Upgrades ---
@@ -1660,7 +1741,7 @@ const UPGRADES = [
     apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
   { id: 'slot',     label: '🖥️ New Workstation',   base: 200, scale: 1,   max: 1,
     apply: lv => { if (lv > 0 && devs.length < 2) devs.push(createDev(8, 4)); } },
-  { id:'bot', label:'🤖 Hire Jr. Dev', base:120, scale:1.6, max:4,
+  { id:'bot', label:'🤖 Hire Jr. Dev', base:80, scale:1.6, max:4,
     apply: lv => { spawnProductionBot(); } },
   { id:'marketing', label:'📢 Growth Hacking',     base:75,  scale:1.7, max:4,
     apply: lv => { customerSpawnInterval = [2.5,1.8,1.3,1.0,0.7][lv]; } },
@@ -1979,6 +2060,7 @@ function saveGame() {
       employees: employees.length,
       workers: workers.length,
       bots: productionBots.length,
+      fundingRoundIdx,
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
       savedAt: Date.now(),
     }));
@@ -1999,6 +2081,7 @@ function loadGame() {
       }
     }
     if (p.unlocked) Object.assign(unlocked, p.unlocked);
+    if (typeof p.fundingRoundIdx === 'number') fundingRoundIdx = p.fundingRoundIdx;
     // Re-hire employees silently (free on load). Temporarily zero out cash
     // checks because these were already paid for in a previous session.
     if (p.employees) {
@@ -2043,12 +2126,9 @@ function tickTimer() {
 tickTimer();
 setInterval(tickTimer, 1000);
 
-// Start with 2 production bots running automatically
-spawnProductionBot();
-spawnProductionBot();
-
 loadGame();
 addCash(25);
+renderFunding();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
 
