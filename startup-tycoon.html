@@ -262,6 +262,51 @@ function updateDev(dt) {
   }
 }
 
+// --- Product Shelf: drop features for customers ---
+const shelf = new THREE.Group();
+shelf.position.set(16, 0, 6);
+
+const shelfBase = new THREE.Mesh(
+  new THREE.BoxGeometry(4.2, 0.9, 1.2),
+  new THREE.MeshLambertMaterial({ color: 0xd4a66b })
+);
+shelfBase.position.y = 0.45;
+shelfBase.castShadow = true; shelfBase.receiveShadow = true;
+shelf.add(shelfBase);
+
+const shelfStockGroup = new THREE.Group();
+shelfStockGroup.position.set(-1.6, 0.9, 0);
+shelf.add(shelfStockGroup);
+scene.add(shelf);
+
+const shelfMeshes = [];
+const SHELF_MAX = 12;
+const shelfState = { stock: 0 };
+
+function refreshShelf() {
+  while (shelfMeshes.length < shelfState.stock) {
+    const m = new THREE.Mesh(featureGeo, featureMat);
+    const i = shelfMeshes.length;
+    m.position.set((i % 8) * 0.5, 0.25 + Math.floor(i / 8) * 0.5, 0);
+    m.castShadow = true;
+    shelfStockGroup.add(m);
+    shelfMeshes.push(m);
+  }
+  for (let i = 0; i < shelfMeshes.length; i++) shelfMeshes[i].visible = i < shelfState.stock;
+}
+
+function updateShelf() {
+  const dx = shelf.position.x - player.position.x;
+  const dz = shelf.position.z - player.position.z;
+  if (dx*dx + dz*dz > STATION_R2) return;
+  if (carry.kind !== 'feature' || carry.count === 0) return;
+  while (carry.count > 0 && shelfState.stock < SHELF_MAX) {
+    carry.count--; shelfState.stock++;
+  }
+  if (carry.count === 0) carry.kind = null;
+  refreshStack(); refreshShelf();
+}
+
 // --- Input ---
 const keys = {};
 addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
@@ -318,6 +363,7 @@ function loop(now) {
 
   updateFarm(dt);
   updateDev(dt);
+  updateShelf();
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
