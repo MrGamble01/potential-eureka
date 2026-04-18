@@ -59,10 +59,40 @@
       display: flex; align-items: center; justify-content: center;
       color: #fff; font-size: 10px; font-weight: 900;
     }
-    #upgrades {
+    #left-panel {
       position: fixed; top: 16px; left: 16px;
-      display: flex; flex-direction: column; gap: 8px;
+      display: flex; flex-direction: column; gap: 10px;
       max-width: 230px; user-select: none;
+    }
+    #upgrades {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .panel {
+      background: rgba(255,255,255,0.94);
+      border-radius: 12px; padding: 10px 12px; color: #222;
+    }
+    .panel-title {
+      font-weight: 800; margin-bottom: 6px; color: #3f51b5;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    }
+    .stat-line {
+      display: flex; justify-content: space-between;
+      font-weight: 700; font-size: 13px;
+      padding: 2px 0;
+    }
+    .hire-btn {
+      display: block; width: 100%; margin-top: 8px;
+      background: #ff9a4a; border: 2px solid #ff7a20; color: #fff;
+      border-radius: 10px; padding: 9px 12px;
+      font-weight: 800; font-size: 14px; font-family: inherit;
+      cursor: pointer; text-align: left;
+      transition: transform 0.08s;
+    }
+    .hire-btn:active:not(:disabled) { transform: scale(0.97); }
+    .hire-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .hire-btn .cost {
+      float: right; background: rgba(0,0,0,0.22);
+      padding: 2px 8px; border-radius: 10px; font-size: 12px;
     }
     .upg-btn {
       background: rgba(255,255,255,0.94);
@@ -157,7 +187,14 @@
 <div id="offline-timer">Session 00m 00s</div>
 <div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
-<div id="upgrades"></div>
+<div id="left-panel">
+  <div id="upgrades"></div>
+  <div id="office-panel" class="panel">
+    <div class="panel-title">Office</div>
+    <div class="stat-line"><span>Employees</span><span id="emp-count">0 / 5</span></div>
+    <button class="hire-btn" id="hire-btn">Hire Employee<span class="cost" id="hire-cost">$250</span></button>
+  </div>
+</div>
 <button id="elevator-btn" title="Floors">🏢</button>
 <div id="elevator-modal" role="dialog">
   <div class="elev-panel">
@@ -627,8 +664,8 @@ scene.add(doorFrame);
 const customers = [];
 const CUSTOMER_SPEED = 3;
 const FEATURE_PRICE = 5;
-const MAX_CUSTOMERS = 5;
-const CUSTOMER_SPAWN_INTERVAL = 2.5;
+const MAX_CUSTOMERS = 2;
+const CUSTOMER_SPAWN_INTERVAL = 10;
 let customerSpawnT = 0;
 const shelfFrontOf = () => new THREE.Vector3(
   shelf.position.x + (Math.random() - 0.5) * 2,
@@ -726,6 +763,181 @@ function updateCustomers(dt) {
   }
 }
 
+// --- Desks (claimable seats for hired employees) ---
+const DESK_ROW_Z = -14;
+const DESK_START_X = 12;
+const DESK_SPACING = 3;
+const DEFAULT_DESKS = 5;
+const desks = [];
+function createDeskMesh(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  const top = new THREE.Mesh(
+    new THREE.BoxGeometry(1.6, 0.1, 0.9),
+    new THREE.MeshLambertMaterial({ color: 0xae8a5a })
+  );
+  top.position.y = 0.9; top.castShadow = true; top.receiveShadow = true;
+  g.add(top);
+  for (const [lx, lz] of [[-0.7,-0.35],[0.7,-0.35],[-0.7,0.35],[0.7,0.35]]) {
+    const leg = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.9, 0.1),
+      new THREE.MeshLambertMaterial({ color: 0x5a4a2a })
+    );
+    leg.position.set(lx, 0.45, lz);
+    leg.castShadow = true;
+    g.add(leg);
+  }
+  const mon = new THREE.Mesh(
+    new THREE.BoxGeometry(0.6, 0.4, 0.05),
+    new THREE.MeshLambertMaterial({ color: 0x222233 })
+  );
+  mon.position.set(0, 1.25, -0.25); mon.castShadow = true;
+  g.add(mon);
+  const screen2 = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.32),
+    new THREE.MeshBasicMaterial({ color: 0x9cf5c8 })
+  );
+  screen2.position.set(0, 1.25, -0.22);
+  g.add(screen2);
+  scene.add(g);
+  return g;
+}
+for (let i = 0; i < DEFAULT_DESKS; i++) {
+  const x = DESK_START_X + i * DESK_SPACING;
+  desks.push({ pos: new THREE.Vector3(x, 0, DESK_ROW_Z), mesh: createDeskMesh(x, DESK_ROW_Z), occupied: false });
+}
+
+// --- Employees (hired; buy features from shelf as their Work need) ---
+const employees = [];
+const EMP_SPEED = 3;
+const EMP_IDLE_MIN = 6;
+const EMP_IDLE_MAX = 14;
+
+function deskFront(desk) {
+  return { x: desk.pos.x, z: desk.pos.z + 1.3 };
+}
+function hireCost() {
+  return Math.floor(250 * Math.pow(1.6, employees.length));
+}
+
+function hireEmployee() {
+  const desk = desks.find(d => !d.occupied);
+  if (!desk) return;
+  const cost = hireCost();
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  desk.occupied = true;
+
+  const g = new THREE.Group();
+  const color = new THREE.Color().setHSL(Math.random(), 0.5, 0.55);
+  const b = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.38, 0.8, 4, 8),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  b.position.y = 0.8; b.castShadow = true;
+  g.add(b);
+  const h = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 12, 10),
+    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
+  );
+  h.position.y = 1.7; h.castShadow = true;
+  g.add(h);
+  const carried = new THREE.Mesh(featureGeo, featureMat);
+  carried.position.y = 2.1; carried.castShadow = true; carried.visible = false;
+  g.add(carried);
+  g.position.copy(DOOR_POS);
+  g.position.x += (Math.random() - 0.5) * 0.5;
+  scene.add(g);
+
+  employees.push({
+    group: g, carried, desk,
+    state: 'goToDesk',
+    target: deskFront(desk),
+    waitT: 0,
+    need: null,
+  });
+  addCash(0);
+  renderOffice();
+}
+
+function updateEmployees(dt) {
+  for (const e of employees) {
+    // Wait states
+    if (e.state === 'idle' || e.state === 'grabbing' || e.state === 'paying') {
+      e.waitT -= dt;
+      if (e.waitT > 0) continue;
+      if (e.state === 'idle') {
+        // For Step 1a, only Work need exists
+        e.need = 'work';
+        e.state = 'toShelf';
+        e.target = {
+          x: shelf.position.x + (Math.random() - 0.5) * 2.4,
+          z: shelf.position.z + 2.3,
+        };
+      } else if (e.state === 'grabbing') {
+        if (shelfState.stock > 0) {
+          shelfState.stock--;
+          refreshShelf();
+          e.carried.visible = true;
+          e.state = 'toCheckout';
+          e.target = { x: checkout.position.x - 2.2, z: checkout.position.z };
+        } else {
+          // Shelf empty — go back to desk and try again later
+          e.state = 'goToDesk';
+          e.target = deskFront(e.desk);
+        }
+      } else if (e.state === 'paying') {
+        addCash(FEATURE_PRICE);
+        e.carried.visible = false;
+        e.state = 'goToDesk';
+        e.target = deskFront(e.desk);
+      }
+      continue;
+    }
+
+    // Moving states
+    const tx = e.target.x - e.group.position.x;
+    const tz = e.target.z - e.group.position.z;
+    const d = Math.hypot(tx, tz);
+    if (d > 0.15) {
+      e.group.position.x += (tx/d) * EMP_SPEED * dt;
+      e.group.position.z += (tz/d) * EMP_SPEED * dt;
+      e.group.rotation.y = Math.atan2(tx/d, tz/d);
+      continue;
+    }
+    if (e.state === 'goToDesk') {
+      e.state = 'idle';
+      e.need = null;
+      e.waitT = EMP_IDLE_MIN + Math.random() * (EMP_IDLE_MAX - EMP_IDLE_MIN);
+    } else if (e.state === 'toShelf') {
+      e.state = 'grabbing';
+      e.waitT = 0.7;
+    } else if (e.state === 'toCheckout') {
+      e.state = 'paying';
+      e.waitT = 0.6;
+    }
+  }
+}
+
+// Office UI
+const hireBtn = document.getElementById('hire-btn');
+const hireCostEl = document.getElementById('hire-cost');
+const empCountEl = document.getElementById('emp-count');
+function renderOffice() {
+  const hired = employees.length;
+  const cap = desks.length;
+  empCountEl.textContent = `${hired} / ${cap}`;
+  if (hired >= cap) {
+    hireBtn.disabled = true;
+    hireCostEl.textContent = 'Desks full';
+  } else {
+    const c = hireCost();
+    hireBtn.disabled = state.cash < c;
+    hireCostEl.textContent = '$' + c;
+  }
+}
+hireBtn.addEventListener('click', hireEmployee);
+
 // --- Cash state ---
 const state = { cash: 0 };
 const cashValEl = document.getElementById('cash-val');
@@ -733,6 +945,7 @@ function addCash(n) {
   state.cash += n;
   cashValEl.textContent = Math.floor(state.cash).toString();
   renderUpgrades();
+  renderOffice();
 }
 
 // --- Upgrades ---
@@ -884,6 +1097,7 @@ class OfficeFloor extends Floor {
     updateDev(dt);
     updateShelf();
     updateCustomers(dt);
+    updateEmployees(dt);
     updateIntern(dt);
   }
 }
@@ -982,9 +1196,11 @@ const SAVE_KEY = 'startup-tycoon-v1';
 function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v: 2,
       cash: state.cash,
       upgrades: upgLevels,
       unlocked,
+      employees: employees.length,
       savedAt: Date.now(),
     }));
   } catch {}
@@ -1003,6 +1219,14 @@ function loadGame() {
       }
     }
     if (p.unlocked) Object.assign(unlocked, p.unlocked);
+    // Re-hire employees silently (free on load). Temporarily zero out cash
+    // checks because these were already paid for in a previous session.
+    if (p.employees) {
+      const origCash = state.cash;
+      state.cash = 1e12;
+      for (let i = 0; i < p.employees && i < desks.length; i++) hireEmployee();
+      state.cash = origCash;
+    }
   } catch {}
 }
 
