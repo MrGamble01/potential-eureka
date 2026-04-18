@@ -145,6 +145,7 @@
       padding: 1px 8px; border-radius: 10px; font-size: 11px;
       font-weight: 800;
     }
+    .upg-btn .lvl.maxed { background: #f59e0b; }
     .upg-btn .cost {
       display: block; color: #2f9d55; font-size: 12px; margin-top: 2px;
       font-weight: 800;
@@ -192,14 +193,17 @@
       background: none; color: #222; border: 2px solid #aaa;
       border-radius: 10px; cursor: pointer;
     }
-    #offline-timer {
+    #status-bar {
       position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
       background: rgba(255,255,255,0.88); color: #3f51b5;
       padding: 6px 14px; border-radius: 10px;
       font-weight: 700; font-size: 13px;
       pointer-events: none; user-select: none;
       box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      display: flex; gap: 12px; align-items: center;
+      white-space: nowrap;
     }
+    #status-bar .sep { color: #ccc; }
     #labels { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
     #labels > div {
       position: absolute; top: 0; left: 0;
@@ -212,10 +216,50 @@
     #labels > div.max {
       background: #ff4a7d; font-size: 13px; padding: 3px 10px;
     }
+
+    /* ── Toast notifications ─────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 90px; right: 18px;
+      display: flex; flex-direction: column; gap: 8px;
+      pointer-events: none; z-index: 50; max-width: 280px;
+    }
+    .toast {
+      background: rgba(20,20,40,0.95); color: #fff;
+      padding: 11px 16px; border-radius: 12px;
+      font-weight: 800; font-size: 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+      animation: toastIn 0.25s ease, toastOut 0.35s ease 2.65s forwards;
+      border-left: 4px solid #6c63ff;
+    }
+    @keyframes toastIn  { from { opacity:0; transform:translateX(50px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes toastOut { to   { opacity:0; transform:translateX(50px); } }
+    .toast.rush      { border-left-color:#f59e0b; }
+    .toast.milestone { border-left-color:#2f9d55; }
+
+    /* ── Floating cash pops ─────────────────────────────────── */
+    .cash-pop {
+      position: fixed; color:#1db954; font-weight:900; font-size:18px;
+      pointer-events:none; z-index:20;
+      text-shadow:0 1px 3px rgba(0,0,0,0.35);
+      animation: cashPop 1.4s ease forwards; white-space:nowrap;
+    }
+    @keyframes cashPop {
+      0%   { opacity:1; transform:translateY(0)    scale(1); }
+      50%  { opacity:1; transform:translateY(-34px) scale(1.12); }
+      100% { opacity:0; transform:translateY(-60px) scale(0.88); }
+    }
+
+    /* ── Rush hour status bar tint ───────────────────────────── */
+    #status-bar.rush { background:rgba(255,160,0,0.92)!important; color:#5a2800!important; }
+    #status-bar.rush .sep { color:#c87000!important; }
   </style>
 </head>
 <body>
-<div id="offline-timer">Session 00m 00s</div>
+<div id="status-bar">
+  <span id="session-chip">Session 00m 00s</span>
+  <span class="sep" id="rush-sep" style="display:none">|</span>
+  <span id="rush-label" style="display:none"></span>
+</div>
 <div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="left-panel">
@@ -230,6 +274,7 @@
     <div id="amenities-list"></div>
   </div>
 </div>
+<div id="toast-container"></div>
 <button id="elevator-btn" title="Floors">🏢</button>
 <div id="elevator-modal" role="dialog">
   <div class="elev-panel">
@@ -269,6 +314,13 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
+// ── Screen-space utility ─────────────────────────────────────
+const projV = new THREE.Vector3();
+function worldToScreen(x, y, z) {
+  projV.set(x, y, z).project(camera);
+  return { x:(projV.x*0.5+0.5)*innerWidth, y:(-projV.y*0.5+0.5)*innerHeight };
+}
+
 // --- Lights ---
 scene.add(new THREE.AmbientLight(0xffffff, 0.65));
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -298,6 +350,77 @@ office.rotation.x = -Math.PI / 2;
 office.position.x = 15;
 office.receiveShadow = true;
 scene.add(office);
+
+// ── Office walls ────────────────────────────────────────────
+const wallMat = new THREE.MeshLambertMaterial({ color: 0xf2ede8 });
+// Back wall (x = 29.3)
+const backWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.4, 28), wallMat);
+backWall.position.set(29.3, 1.7, 0);
+backWall.castShadow = true; backWall.receiveShadow = true;
+scene.add(backWall);
+
+// Windows on back wall
+const frameMat2 = new THREE.MeshLambertMaterial({ color: 0x9c7a4d });
+const glassMat  = new THREE.MeshBasicMaterial({ color:0x87ceeb, transparent:true, opacity:0.55, side:THREE.DoubleSide });
+for (const wz of [-8, 0, 8]) {
+  const hBar = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.12,2.0), frameMat2);
+  hBar.position.set(29.1, 1.55, wz); scene.add(hBar);
+  const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.35,2.0,0.12), frameMat2);
+  vBar.position.set(29.1, 1.55, wz); scene.add(vBar);
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.75, 1.75), glassMat);
+  glass.rotation.y = Math.PI/2; glass.position.set(29.05, 1.55, wz); scene.add(glass);
+}
+
+// South side wall (z = 13)
+const southWall = new THREE.Mesh(new THREE.BoxGeometry(29, 3.4, 0.4), wallMat);
+southWall.position.set(14.5, 1.7, 13);
+southWall.castShadow = true; southWall.receiveShadow = true;
+scene.add(southWall);
+
+// North side wall (z = -13), gap at x > 24 for door entry
+const northWall = new THREE.Mesh(new THREE.BoxGeometry(23, 3.4, 0.4), wallMat);
+northWall.position.set(12.5, 1.7, -13);
+northWall.castShadow = true; northWall.receiveShadow = true;
+scene.add(northWall);
+
+// ── Office carpet ────────────────────────────────────────────
+const rug = new THREE.Mesh(
+  new THREE.BoxGeometry(26, 0.02, 22),
+  new THREE.MeshLambertMaterial({ color: 0xeacdb5 })
+);
+rug.position.set(16, 0.01, 0); rug.receiveShadow = true;
+scene.add(rug);
+
+// ── Office decorations ───────────────────────────────────────
+function makePlant(px, pz) {
+  const g = new THREE.Group();
+  const pot = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.25, 0.55, 12),
+    new THREE.MeshLambertMaterial({ color: 0xc1440e })
+  );
+  pot.position.y = 0.275; pot.castShadow = true; g.add(pot);
+  const leaves = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 12, 10),
+    new THREE.MeshLambertMaterial({ color: 0x3a9e3a })
+  );
+  leaves.position.y = 1.0; leaves.castShadow = true; g.add(leaves);
+  g.position.set(px, 0, pz); scene.add(g);
+}
+makePlant(4, -11); makePlant(4, 11); makePlant(26, 11);
+
+// Water cooler
+const wcG = new THREE.Group();
+const wcBody = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.28, 0.3, 1.2, 12),
+  new THREE.MeshLambertMaterial({ color: 0xd0e8f5 })
+);
+wcBody.position.y = 0.6; wcBody.castShadow = true; wcG.add(wcBody);
+const wcTank = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.18, 0.2, 0.45, 12),
+  new THREE.MeshLambertMaterial({ color: 0x6ab4e8 })
+);
+wcTank.position.y = 1.42; wcTank.castShadow = true; wcG.add(wcTank);
+wcG.position.set(5.5, 0, -11); scene.add(wcG);
 
 // --- Player (capsule body + sphere head) ---
 const player = new THREE.Group();
@@ -354,39 +477,64 @@ function refreshStack() {
   for (let i = 0; i < carry.count; i++) pool[i].visible = true;
 }
 
-// --- Idea Farm: 3x3 plots growing orbs over time ---
+// --- Idea Farm: plots growing orbs over time ---
 const plots = [];
 const plotGeo = new THREE.BoxGeometry(2.4, 0.1, 2.4);
 const plotMat = new THREE.MeshLambertMaterial({ color: 0x6b4a2a });
-for (let r = 0; r < 3; r++) {
-  for (let c = 0; c < 3; c++) {
-    const g = new THREE.Group();
-    g.position.set(-22 + c * 5, 0, -6 + r * 6);
-    const dirt = new THREE.Mesh(plotGeo, plotMat);
-    dirt.position.y = 0.05; dirt.receiveShadow = true;
-    g.add(dirt);
-    const orb = new THREE.Mesh(orbGeo, orbMat);
-    orb.position.y = 1.2; orb.castShadow = true; orb.visible = false;
-    g.add(orb);
-    scene.add(g);
-    plots.push({ group: g, orb, t: Math.random() * plotGrowTime, ready: false });
+
+const PLOT_DEFS = [
+  // Base 9
+  ...([0,1,2].flatMap(r => [0,1,2].map(c => ({ x:-22+c*5, z:-6+r*6, tier:0 })))),
+  // Tier-1 expansion (3 more)
+  { x:-22,z:12,tier:1 }, { x:-17,z:12,tier:1 }, { x:-12,z:12,tier:1 },
+  // Tier-2 expansion (3 more)
+  { x:-22,z:-12,tier:2 }, { x:-17,z:-12,tier:2 }, { x:-12,z:-12,tier:2 },
+];
+
+for (const def of PLOT_DEFS) {
+  const g = new THREE.Group();
+  g.position.set(def.x, 0, def.z);
+  const dirt = new THREE.Mesh(plotGeo, plotMat);
+  dirt.position.y = 0.05; dirt.receiveShadow = true;
+  g.add(dirt);
+  const orb = new THREE.Mesh(orbGeo, orbMat);
+  orb.position.y = 1.2; orb.castShadow = true; orb.visible = false;
+  g.add(orb);
+  const active = def.tier === 0;
+  g.visible = active;
+  scene.add(g);
+  plots.push({ group:g, orb, t: active ? Math.random()*plotGrowTime : 0, ready:false, tier:def.tier, active });
+}
+
+function activatePlots(level) {
+  for (const p of plots) {
+    if (!p.active && p.tier <= level) {
+      p.active = true;
+      p.group.visible = true;
+      p.t = 0;
+    }
   }
 }
 
 const PICKUP_R2 = 1.5 * 1.5;
 function updateFarm(dt) {
   for (const p of plots) {
+    if (!p.active) continue;
     if (!p.ready) {
       p.t += dt;
       if (p.t >= plotGrowTime) { p.ready = true; p.orb.visible = true; }
     }
   }
   const bob = Math.sin(performance.now() * 0.003) * 0.12;
-  for (const p of plots) if (p.ready) p.orb.position.y = 1.25 + bob;
+  for (const p of plots) {
+    if (!p.active) continue;
+    if (p.ready) p.orb.position.y = 1.25 + bob;
+  }
 
   if (carry.count >= maxStack) return;
   if (carry.kind && carry.kind !== 'idea') return; // can't mix types
   for (const p of plots) {
+    if (!p.active) continue;
     if (!p.ready) continue;
     const dx = p.group.position.x - player.position.x;
     const dz = p.group.position.z - player.position.z;
@@ -698,9 +846,9 @@ scene.add(doorFrame);
 // --- Customers: spawn from door, buy from shelf, pay at checkout ---
 const customers = [];
 const CUSTOMER_SPEED = 3;
-const FEATURE_PRICE = 5;
+let featurePrice = 5;
 const MAX_CUSTOMERS = 2;
-const CUSTOMER_SPAWN_INTERVAL = 10;
+let customerSpawnInterval = 2.5;
 let customerSpawnT = 0;
 const shelfFrontOf = () => new THREE.Vector3(
   shelf.position.x + (Math.random() - 0.5) * 2,
@@ -745,7 +893,9 @@ function spawnCustomer() {
 
 function updateCustomers(dt) {
   customerSpawnT += dt;
-  if (customerSpawnT > CUSTOMER_SPAWN_INTERVAL && customers.length < MAX_CUSTOMERS) {
+  const spawnInterval = rushActive ? 0.45 : customerSpawnInterval;
+  const maxCust = rushActive ? MAX_CUSTOMERS + 4 : MAX_CUSTOMERS;
+  if (customerSpawnT > spawnInterval && customers.length < maxCust) {
     customerSpawnT = 0;
     if (shelfState.stock > 0 || customers.length < 2) spawnCustomer();
   }
@@ -756,7 +906,7 @@ function updateCustomers(dt) {
     if (c.state === 'paying') {
       c.waitT -= dt;
       if (c.waitT <= 0) {
-        addCash(FEATURE_PRICE);
+        addCash(featurePrice);
         c.carried.visible = false;
         c.state = 'leaving';
         c.target.copy(DOOR_POS);
@@ -934,7 +1084,7 @@ function updateEmployees(dt) {
           e.target = deskFront(e.desk);
         }
       } else if (e.state === 'paying') {
-        addCash(FEATURE_PRICE);
+        addCash(featurePrice);
         e.carried.visible = false;
         e.state = 'goToDesk';
         e.target = deskFront(e.desk);
@@ -1132,10 +1282,62 @@ function renderAmenities() {
 }
 
 // --- Cash state ---
-const state = { cash: 0 };
+const state = { cash: 0, allTimeCash: 0 };
 const cashValEl = document.getElementById('cash-val');
+
+// ── Toast notifications ─────────────────────────────────────
+const toastContainer = document.getElementById('toast-container');
+function showToast(msg, cls = '') {
+  const el = document.createElement('div');
+  el.className = 'toast' + (cls ? ' '+cls : '');
+  el.textContent = msg;
+  toastContainer.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ── Floating cash pops ──────────────────────────────────────
+function fmtCash(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'k';
+  return Math.floor(n).toString();
+}
+
+function showCashPop(amount) {
+  const sp = worldToScreen(checkout.position.x, 2, checkout.position.z);
+  const el = document.createElement('div');
+  el.className = 'cash-pop';
+  el.textContent = '+$' + fmtCash(amount);
+  el.style.left = (sp.x + (Math.random()*30 - 15)) + 'px';
+  el.style.top  = (sp.y + (Math.random()*14 - 7))  + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1400);
+}
+
+// ── Milestones ──────────────────────────────────────────────
+const MILESTONES = [
+  { at:     50, msg:'🌱 First Steps — $50 earned!' },
+  { at:    250, msg:'💼 Bootstrapped — $250!' },
+  { at:   1000, msg:'🚀 Series A Ready — $1k!' },
+  { at:   5000, msg:'🦄 Unicorn Mode — $5k!' },
+  { at:  25000, msg:'🏆 IPO Ready — $25k!' },
+  { at: 100000, msg:'🎉 EXIT! — $100k!' },
+];
+let nextMilestoneIdx = 0;
+function checkMilestones() {
+  while (nextMilestoneIdx < MILESTONES.length &&
+         state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
+    showToast(MILESTONES[nextMilestoneIdx].msg, 'milestone');
+    nextMilestoneIdx++;
+  }
+}
+
 function addCash(n) {
   state.cash += n;
+  if (n > 0) {
+    state.allTimeCash += n;
+    showCashPop(n);
+    checkMilestones();
+  }
   cashValEl.textContent = Math.floor(state.cash).toString();
   renderUpgrades();
   renderOffice();
@@ -1156,7 +1358,43 @@ const UPGRADES = [
     apply: lv => { if (lv > 0 && devs.length < 2) devs.push(createDev(8, 4)); } },
   { id: 'intern',   label: 'Hire AI Intern', base: 500, scale: 1,   max: 1,
     apply: lv => { if (lv > 0) enableIntern(); } },
+  { id:'marketing', label:'📢 Marketing',      base:75,  scale:1.7, max:4,
+    apply: lv => { customerSpawnInterval = [2.5,1.8,1.3,1.0,0.7][lv]; } },
+  { id:'pricing',   label:'💰 Pricing',        base:100, scale:1.8, max:4,
+    apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
+  { id:'farmexp',   label:'🌿 Farm Expansion', base:150, scale:2.0, max:2,
+    apply: lv => { activatePlots(lv); } },
 ];
+
+// ── Rush Hour ───────────────────────────────────────────────
+const RUSH_CYCLE = 90;   // seconds between rushes
+const RUSH_DUR   = 20;   // seconds a rush lasts
+let rushT = 0, rushActive = false;
+const rushSepEl   = document.getElementById('rush-sep');
+const rushLabelEl = document.getElementById('rush-label');
+const statusBarEl = document.getElementById('status-bar');
+
+function updateRushHour(dt) {
+  rushT += dt;
+  if (!rushActive && rushT >= RUSH_CYCLE) {
+    rushActive = true; rushT = 0;
+    statusBarEl.classList.add('rush');
+    rushSepEl.style.display = '';
+    rushLabelEl.style.display = '';
+    showToast('⚡ Rush Hour! Customers flooding in!', 'rush');
+  } else if (rushActive && rushT >= RUSH_DUR) {
+    rushActive = false; rushT = 0;
+    statusBarEl.classList.remove('rush');
+    rushSepEl.style.display = 'none';
+    rushLabelEl.style.display = 'none';
+    showToast('Rush over — back to normal.', 'rush');
+  }
+  if (rushActive) {
+    const remaining = Math.ceil(RUSH_DUR - rushT);
+    rushLabelEl.textContent = `⚡ RUSH ${remaining}s`;
+  }
+}
+
 const upgLevels = {};
 for (const u of UPGRADES) upgLevels[u.id] = 0;
 function upgCost(u) {
@@ -1191,8 +1429,8 @@ function renderUpgrades() {
     const maxed = lv >= u.max;
     const cost = upgCost(u);
     btn.disabled = maxed || state.cash < cost;
-    btn.innerHTML = `<span class="lvl">${maxed ? 'MAX' : 'Lv ' + lv}</span>${u.label}` +
-      (maxed ? '' : `<span class="cost">$${cost}</span>`);
+    btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv}</span>${u.label}` +
+      (maxed ? '' : `<span class="cost">$${fmtCash(cost)}</span>`);
   }
 }
 addCash(0);
@@ -1328,11 +1566,6 @@ let currentFloorInst = new FLOOR_CLASSES.office(scene);
 // --- Floating labels (projected from 3D positions) ---
 const labelsEl = document.getElementById('labels');
 const labelPool = [];
-const projV = new THREE.Vector3();
-function worldToScreen(x, y, z) {
-  projV.set(x, y, z).project(camera);
-  return { x: (projV.x * 0.5 + 0.5) * innerWidth, y: (-projV.y * 0.5 + 0.5) * innerHeight };
-}
 const NEED_EMOJI = { work: '💼', coffee: '☕', water: '💧', copies: '📄', snack: '🍿' };
 function updateLabels() {
   const wants = [];
@@ -1434,6 +1667,7 @@ function loop(now) {
   }
 
   currentFloorInst.update(dt);
+  updateRushHour(dt);
   updateLabels();
 
   renderer.render(scene, camera);
@@ -1447,6 +1681,7 @@ function saveGame() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       v: 2,
       cash: state.cash,
+      allTimeCash: state.allTimeCash,
       upgrades: upgLevels,
       unlocked,
       employees: employees.length,
@@ -1461,6 +1696,7 @@ function loadGame() {
     if (!raw) return;
     const p = JSON.parse(raw);
     state.cash = p.cash || 0;
+    state.allTimeCash = p.allTimeCash || 0;
     if (p.upgrades) {
       for (const u of UPGRADES) {
         const lv = p.upgrades[u.id] || 0;
@@ -1487,16 +1723,20 @@ function loadGame() {
         }
       }
     }
+    // Fast-forward milestone pointer
+    while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
+      nextMilestoneIdx++;
+    }
   } catch {}
 }
 
-// --- Offline / session timer ---
-const offlineTimerEl = document.getElementById('offline-timer');
+// --- Session timer ---
+const sessionChipEl = document.getElementById('session-chip');
 const sessionStart = Date.now();
 function tickTimer() {
   const s = Math.floor((Date.now() - sessionStart) / 1000);
   const m = Math.floor(s / 60);
-  offlineTimerEl.textContent =
+  sessionChipEl.textContent =
     `Session ${m.toString().padStart(2,'0')}m ${(s%60).toString().padStart(2,'0')}s`;
 }
 tickTimer();
