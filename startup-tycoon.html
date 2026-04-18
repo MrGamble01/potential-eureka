@@ -37,241 +37,236 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Startup Tycoon</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #1a1a2e; overflow: hidden;
+    html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     canvas { display: block; touch-action: none; }
+
+    /* ── HUD ──────────────────────────────────────────── */
     #cash-hud {
       position: fixed; top: 16px; right: 18px;
-      background: rgba(255,255,255,0.92);
-      color: #1f6f3a; font-weight: 800; font-size: 22px;
-      padding: 10px 16px; border-radius: 12px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #3FB950; font-weight: 800; font-size: 22px;
+      padding: 10px 16px; border-radius: 10px;
+      box-shadow: 0 0 14px rgba(63,185,80,0.12);
       display: flex; align-items: center; gap: 8px;
       pointer-events: none; user-select: none;
     }
     #cash-hud .bill {
-      display: inline-block; width: 24px; height: 14px; border-radius: 3px;
-      background: linear-gradient(135deg, #6fdc8c 0%, #2f9d55 100%);
+      display: inline-block; width: 22px; height: 13px; border-radius: 3px;
+      background: linear-gradient(135deg, #3FB950 0%, #1d6f30 100%);
       position: relative;
     }
     #cash-hud .bill::after {
       content: "$"; position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 10px; font-weight: 900;
+      color: #fff; font-size: 9px; font-weight: 900;
     }
+
+    /* ── Left panel ───────────────────────────────────── */
     #left-panel {
       position: fixed; top: 16px; left: 16px;
-      display: flex; flex-direction: column; gap: 10px;
-      max-width: 230px; user-select: none;
-    }
-    #upgrades {
       display: flex; flex-direction: column; gap: 8px;
+      max-width: 220px; user-select: none;
     }
+    #upgrades { display: flex; flex-direction: column; gap: 6px; }
     .panel {
-      background: rgba(255,255,255,0.94);
-      border-radius: 12px; padding: 10px 12px; color: #222;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 12px 14px; color: #E6EDF3;
     }
     .panel-title {
-      font-weight: 800; margin-bottom: 6px; color: #3f51b5;
-      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      font-weight: 700; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #7D8590; margin-bottom: 8px;
     }
     .stat-line {
       display: flex; justify-content: space-between;
-      font-weight: 700; font-size: 13px;
-      padding: 2px 0;
+      font-weight: 600; font-size: 12px; padding: 2px 0; color: #E6EDF3;
     }
+
+    /* ── Hire buttons ─────────────────────────────────── */
     .hire-btn {
       display: block; width: 100%; margin-top: 8px;
-      background: #ff9a4a; border: 2px solid #ff7a20; color: #fff;
-      border-radius: 10px; padding: 9px 12px;
-      font-weight: 800; font-size: 14px; font-family: inherit;
-      cursor: pointer; text-align: left;
-      transition: transform 0.08s;
+      background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3);
+      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
+      font-weight: 700; font-size: 12px; font-family: inherit;
+      cursor: pointer; text-align: left; transition: all 0.15s ease;
     }
-    .hire-btn:active:not(:disabled) { transform: scale(0.97); }
-    .hire-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-    .hire-btn .cost {
-      float: right; background: rgba(0,0,0,0.22);
-      padding: 2px 8px; border-radius: 10px; font-size: 12px;
-    }
+    .hire-btn:hover:not(:disabled) { background: rgba(108,99,255,0.22); border-color: rgba(108,99,255,0.5); }
+    .hire-btn:active:not(:disabled) { transform: scale(0.98); }
+    .hire-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .hire-btn .cost { float: right; color: #3FB950; font-size: 11px; font-weight: 800; }
+
+    /* ── Amenity buttons ──────────────────────────────── */
     .amenity-btn {
       display: block; width: 100%; margin-top: 6px;
-      background: #4da3ff; border: 2px solid #2a7dd9; color: #fff;
-      border-radius: 10px; padding: 9px 12px;
-      font-weight: 800; font-size: 13px; font-family: inherit;
-      cursor: pointer; text-align: left;
+      background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.22);
+      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
+      font-weight: 700; font-size: 12px; font-family: inherit;
+      cursor: pointer; text-align: left; transition: all 0.15s;
     }
-    .amenity-btn:active:not(:disabled) { transform: scale(0.97); }
-    .amenity-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-    .amenity-btn.owned { background: #2f9d55; border-color: #226d3b; }
-    .amenity-btn.locked { background: #888; border-color: #555; }
-    .amenity-btn .tag {
-      float: right; background: rgba(0,0,0,0.22);
-      padding: 2px 8px; border-radius: 10px; font-size: 11px;
-    }
-    #labels > div.bubble {
-      background: rgba(255,255,255,0.92); color: #222;
-      font-size: 15px; padding: 1px 6px;
-      border: 2px solid #3f51b5;
-    }
-    #labels > div.stock {
-      background: rgba(30,30,50,0.9); color: #fff;
-      font-size: 12px; font-weight: 800;
-    }
-    #labels > div.refill {
-      background: #3f51b5; color: #fff; font-size: 12px;
-    }
-    #labels > div.prompt {
-      background: #ff9a4a; color: #fff; font-size: 12px;
-      border: 2px solid #ff7a20;
-    }
-    .upg-btn {
-      background: rgba(255,255,255,0.94);
-      border: 2px solid #3f51b5;
-      border-radius: 10px;
-      padding: 9px 12px;
-      font-weight: 700;
-      text-align: left;
-      cursor: pointer;
-      color: #222;
-      font-size: 14px;
-      font-family: inherit;
-      transition: transform 0.08s;
-    }
-    .upg-btn:active:not(:disabled) { transform: scale(0.97); }
-    .upg-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-    .upg-btn .lvl {
-      float: right; background: #3f51b5; color: #fff;
-      padding: 1px 8px; border-radius: 10px; font-size: 11px;
-      font-weight: 800;
-    }
-    .upg-btn .lvl.maxed { background: #f59e0b; }
-    .upg-btn .cost {
-      display: block; color: #2f9d55; font-size: 12px; margin-top: 2px;
-      font-weight: 800;
-    }
-    #elevator-btn {
-      position: fixed; bottom: 18px; left: 18px;
-      width: 62px; height: 62px;
-      background: #3f51b5; color: #fff; border: none;
-      border-radius: 16px; font-size: 28px; cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
-    }
-    #elevator-btn:active { transform: scale(0.95); }
-    #elevator-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-      display: none; align-items: center; justify-content: center;
-      z-index: 100;
-    }
-    #elevator-modal.open { display: flex; }
-    .elev-panel {
-      background: #fff; border-radius: 18px; padding: 22px;
-      max-width: 440px; width: 90vw;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-    }
-    .elev-title { font-size: 20px; font-weight: 800; margin: 0 0 16px; text-align: center; color: #222; }
-    .floor-card {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 16px; margin-bottom: 10px;
-      border: 2px solid #3f51b5; border-radius: 12px;
-      cursor: pointer; font-size: 16px; font-weight: 700; color: #222;
-      background: #fff3e5;
-      transition: transform 0.08s;
-    }
-    .floor-card:hover { transform: translateY(-1px); }
-    .floor-card.locked { background: #eee; border-color: #999; color: #555; }
-    .floor-card .icon { font-size: 26px; }
-    .floor-card .sub { display: block; font-size: 12px; color: #666; font-weight: 600; margin-top: 2px; }
-    .floor-card .check { color: #2f9d55; font-size: 22px; font-weight: 900; }
-    .elev-msg {
-      text-align: center; color: #2f9d55; font-weight: 700;
-      font-size: 13px; min-height: 18px; margin: 8px 0 0;
-    }
-    .elev-close {
-      display: block; margin: 12px auto 0;
-      padding: 8px 22px; font-weight: 700; font-family: inherit;
-      background: none; color: #222; border: 2px solid #aaa;
-      border-radius: 10px; cursor: pointer;
-    }
-    #status-bar {
-      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
-      background: rgba(255,255,255,0.88); color: #3f51b5;
-      padding: 6px 14px; border-radius: 10px;
-      font-weight: 700; font-size: 13px;
-      pointer-events: none; user-select: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-      display: flex; gap: 12px; align-items: center;
-      white-space: nowrap;
-    }
-    #status-bar .sep { color: #ccc; }
+    .amenity-btn:hover:not(:disabled) { background: rgba(88,166,255,0.18); }
+    .amenity-btn:active:not(:disabled) { transform: scale(0.98); }
+    .amenity-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .amenity-btn.owned { background: rgba(63,185,80,0.1); border-color: rgba(63,185,80,0.35); }
+    .amenity-btn.locked { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); color: #7D8590; }
+    .amenity-btn .tag { float: right; font-size: 10px; color: #7D8590; font-weight: 700; }
+
+    /* ── Labels overlay ───────────────────────────────── */
     #labels { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
     #labels > div {
       position: absolute; top: 0; left: 0;
-      background: rgba(30,30,50,0.82); color: #fff;
-      padding: 2px 8px; border-radius: 8px;
-      font-weight: 800; font-size: 11px;
-      white-space: nowrap;
+      background: rgba(13,17,23,0.88); color: #E6EDF3;
+      padding: 2px 8px; border-radius: 6px;
+      font-weight: 700; font-size: 11px; white-space: nowrap;
       transform: translate(-50%, -100%);
+      border: 1px solid rgba(255,255,255,0.08);
     }
-    #labels > div.max {
-      background: #ff4a7d; font-size: 13px; padding: 3px 10px;
+    #labels > div.bubble {
+      background: rgba(13,17,23,0.92); color: #E6EDF3;
+      font-size: 14px; padding: 1px 5px;
+      border: 1px solid rgba(255,255,255,0.12);
     }
+    #labels > div.stock { background: rgba(13,17,23,0.9); color: #7D8590; font-size: 11px; font-weight: 700; }
+    #labels > div.refill { background: rgba(108,99,255,0.85); color: #fff; font-size: 11px; }
+    #labels > div.prompt { background: rgba(245,158,11,0.9); color: #fff; font-size: 11px; }
+    #labels > div.max { background: rgba(248,81,73,0.9); color: #fff; font-size: 13px; padding: 3px 10px; }
 
-    /* ── Toast notifications ─────────────────────────────────── */
+    /* ── Upgrade buttons ──────────────────────────────── */
+    .upg-btn {
+      display: block; width: 100%;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px; padding: 8px 12px;
+      font-weight: 600; text-align: left; cursor: pointer;
+      color: #E6EDF3; font-size: 12px; font-family: inherit; transition: all 0.15s;
+    }
+    .upg-btn:hover:not(:disabled) { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.16); }
+    .upg-btn:active:not(:disabled) { transform: scale(0.98); }
+    .upg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .upg-btn .lvl {
+      float: right; background: rgba(108,99,255,0.25); color: #a89ff5;
+      padding: 1px 7px; border-radius: 8px; font-size: 10px; font-weight: 800;
+    }
+    .upg-btn .lvl.maxed { background: rgba(212,153,34,0.25); color: #f59e0b; }
+    .upg-btn .cost { display: block; color: #3FB950; font-size: 11px; margin-top: 2px; font-weight: 700; }
+
+    /* ── Elevator ─────────────────────────────────────── */
+    #elevator-btn {
+      position: fixed; bottom: 18px; left: 18px;
+      width: 52px; height: 52px;
+      background: rgba(108,99,255,0.18); border: 1px solid rgba(108,99,255,0.42);
+      color: #E6EDF3; border-radius: 12px; font-size: 22px; cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 14px rgba(108,99,255,0.18); transition: all 0.15s;
+    }
+    #elevator-btn:hover { background: rgba(108,99,255,0.32); }
+    #elevator-btn:active { transform: scale(0.94); }
+    #elevator-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    #elevator-modal.open { display: flex; }
+    .elev-panel {
+      background: rgba(13,17,23,0.97);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 22px; max-width: 420px; width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+    }
+    .elev-title { font-size: 16px; font-weight: 700; margin: 0 0 16px; text-align: center; color: #E6EDF3; }
+    .floor-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 14px; margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+      cursor: pointer; font-size: 14px; font-weight: 600; color: #E6EDF3;
+      background: rgba(255,255,255,0.04); transition: all 0.12s;
+    }
+    .floor-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(108,99,255,0.4); }
+    .floor-card.locked { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); color: #7D8590; }
+    .floor-card .icon { font-size: 22px; }
+    .floor-card .sub { display: block; font-size: 11px; color: #7D8590; font-weight: 500; margin-top: 2px; }
+    .floor-card .check { color: #3FB950; font-size: 18px; font-weight: 900; }
+    .elev-msg { text-align: center; color: #3FB950; font-weight: 600; font-size: 12px; min-height: 16px; margin: 8px 0 0; }
+    .elev-close {
+      display: block; margin: 12px auto 0;
+      padding: 7px 20px; font-weight: 600; font-family: inherit;
+      background: rgba(255,255,255,0.04); color: #7D8590;
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.15s;
+    }
+    .elev-close:hover { background: rgba(255,255,255,0.09); color: #E6EDF3; }
+
+    /* ── Status bar ───────────────────────────────────── */
+    #status-bar {
+      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #7D8590; padding: 6px 14px; border-radius: 8px;
+      font-weight: 600; font-size: 12px;
+      pointer-events: none; user-select: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: flex; gap: 12px; align-items: center; white-space: nowrap;
+    }
+    #status-bar .sep { color: rgba(255,255,255,0.12); }
+
+    /* ── Toast notifications ──────────────────────────── */
     #toast-container {
       position: fixed; bottom: 90px; right: 18px;
       display: flex; flex-direction: column; gap: 8px;
       pointer-events: none; z-index: 50; max-width: 280px;
     }
     .toast {
-      background: rgba(20,20,40,0.95); color: #fff;
-      padding: 11px 16px; border-radius: 12px;
-      font-weight: 800; font-size: 14px;
+      background: rgba(13,17,23,0.96); color: #E6EDF3;
+      padding: 10px 15px; border-radius: 10px;
+      font-weight: 700; font-size: 13px;
       box-shadow: 0 4px 18px rgba(0,0,0,0.35);
       animation: toastIn 0.25s ease, toastOut 0.35s ease 2.65s forwards;
-      border-left: 4px solid #6c63ff;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-left: 3px solid #6c63ff;
     }
     @keyframes toastIn  { from { opacity:0; transform:translateX(50px); } to { opacity:1; transform:translateX(0); } }
     @keyframes toastOut { to   { opacity:0; transform:translateX(50px); } }
-    .toast.rush      { border-left-color:#f59e0b; }
-    .toast.milestone { border-left-color:#2f9d55; }
+    .toast.rush      { border-left-color: #f59e0b; }
+    .toast.milestone { border-left-color: #3FB950; }
 
-    /* ── Floating cash pops ─────────────────────────────────── */
+    /* ── Floating cash pops ───────────────────────────── */
     .cash-pop {
-      position: fixed; color:#1db954; font-weight:900; font-size:18px;
-      pointer-events:none; z-index:20;
-      text-shadow:0 1px 3px rgba(0,0,0,0.35);
-      animation: cashPop 1.4s ease forwards; white-space:nowrap;
+      position: fixed; color: #3FB950; font-weight: 900; font-size: 16px;
+      pointer-events: none; z-index: 20;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      animation: cashPop 1.4s ease forwards; white-space: nowrap;
     }
     @keyframes cashPop {
       0%   { opacity:1; transform:translateY(0)    scale(1); }
-      50%  { opacity:1; transform:translateY(-34px) scale(1.12); }
-      100% { opacity:0; transform:translateY(-60px) scale(0.88); }
+      50%  { opacity:1; transform:translateY(-34px) scale(1.1); }
+      100% { opacity:0; transform:translateY(-60px) scale(0.9); }
     }
 
-    /* ── Rush hour status bar tint ───────────────────────────── */
-    #status-bar.rush { background:rgba(255,160,0,0.92)!important; color:#5a2800!important; }
-    #status-bar.rush .sep { color:#c87000!important; }
+    /* ── Rush hour tint ───────────────────────────────── */
+    #status-bar.rush {
+      background: rgba(245,158,11,0.18)!important; color: #f59e0b!important;
+      border-color: rgba(245,158,11,0.3)!important;
+    }
+    #status-bar.rush .sep { color: rgba(245,158,11,0.35)!important; }
 
-    /* ── Funding rounds panel ───────────────────────────────── */
+    /* ── Funding rounds ───────────────────────────────── */
     .fund-btn {
       display: block; width: 100%; margin-top: 4px;
-      background: linear-gradient(135deg, #6c63ff 0%, #4ecdc4 100%);
-      border: none; color: #fff;
-      border-radius: 10px; padding: 10px 14px;
-      font-weight: 800; font-size: 14px; font-family: inherit;
-      cursor: pointer; text-align: left;
-      transition: transform 0.08s;
+      background: rgba(108,99,255,0.14); border: 1px solid rgba(108,99,255,0.38);
+      color: #E6EDF3; border-radius: 6px; padding: 9px 12px;
+      font-weight: 700; font-size: 12px; font-family: inherit; cursor: pointer;
+      text-align: left; transition: all 0.15s;
     }
+    .fund-btn:hover:not(:disabled) { background: rgba(108,99,255,0.28); }
     .fund-btn:active { transform: scale(0.97); }
-    .fund-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .fund-btn .tag {
-      float: right; background: rgba(255,255,255,0.22);
-      padding: 2px 8px; border-radius: 10px; font-size: 12px;
-    }
+    .fund-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .fund-btn .tag { float: right; color: #a89ff5; font-size: 11px; font-weight: 800; }
     .lock-note {
-      font-size: 11px; color: #999; text-align: center;
-      padding: 6px 4px; font-style: italic; margin-top: 2px;
+      font-size: 11px; color: #7D8590; text-align: center;
+      padding: 5px 4px; font-style: italic; margin-top: 2px;
     }
   </style>
 </head>
@@ -1052,6 +1047,7 @@ const regTop = new THREE.Mesh(
 regTop.position.set(0, 1.68, 0);
 checkout.add(regTop);
 scene.add(checkout);
+checkout.visible = false; // no checkout needed — deals close digitally
 
 // --- Production Bots: autonomous workers (ideas → dev → shelf) ---
 const productionBots = [];
@@ -1196,108 +1192,30 @@ const doorT = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, 0.2), frameMat);
 doorT.position.set(0, 2.5, 0); doorT.castShadow = true;
 doorFrame.add(doorL, doorR, doorT);
 scene.add(doorFrame);
+doorFrame.visible = false; // no physical customer traffic
 
-// --- Customers: spawn from door, buy from shelf, pay at checkout ---
-const customers = [];
-const CUSTOMER_SPEED = 3;
+// --- Deal flow: features on shelf → deals close → revenue (no customer NPCs) ---
 let featurePrice = 5;
-const MAX_CUSTOMERS = 2;
-let customerSpawnInterval = 2.5;
-let customerSpawnT = 0;
-const shelfFrontOf = () => new THREE.Vector3(
-  shelf.position.x + (Math.random() - 0.5) * 2,
-  0,
-  shelf.position.z + 2.3
-);
-const checkoutFrontOf = () => new THREE.Vector3(
-  checkout.position.x - 2.2,
-  0,
-  checkout.position.z + (Math.random() - 0.5) * 0.5
-);
+let customerSpawnInterval = 2.5; // reused by marketing upgrade for deal speed
+let dealTimer = 0;
+const DEAL_MSGS = [
+  '💼 Deal closed!', '🎉 New signup!', '📈 MRR up!',
+  '🤝 Enterprise deal!', '💰 Renewal!', '✅ Demo → paid!',
+  '🚀 Product launch rev!', '📊 Usage spike!',
+];
+let _dealMsgIdx = 0;
 
-function spawnCustomer() {
-  const g = new THREE.Group();
-  const hue = Math.random();
-  const bodyColor = new THREE.Color().setHSL(hue, 0.55, 0.55);
-  const b = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.38, 0.8, 4, 8),
-    new THREE.MeshLambertMaterial({ color: bodyColor })
-  );
-  b.position.y = 0.8; b.castShadow = true;
-  g.add(b);
-  const h = new THREE.Mesh(
-    new THREE.SphereGeometry(0.3, 12, 10),
-    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
-  );
-  h.position.y = 1.7; h.castShadow = true;
-  g.add(h);
-  const carried = new THREE.Mesh(featureGeo, featureMat);
-  carried.position.y = 2.1; carried.castShadow = true; carried.visible = false;
-  g.add(carried);
-  g.position.copy(DOOR_POS);
-  g.position.x += (Math.random() - 0.5) * 0.6;
-  scene.add(g);
-  customers.push({
-    group: g, carried,
-    state: 'toShelf',
-    target: shelfFrontOf(),
-    waitT: 0,
-  });
-}
-
-function updateCustomers(dt) {
-  customerSpawnT += dt;
-  const spawnInterval = rushActive ? 0.45 : customerSpawnInterval;
-  const maxCust = rushActive ? MAX_CUSTOMERS + 4 : MAX_CUSTOMERS;
-  if (customerSpawnT > spawnInterval && customers.length < maxCust) {
-    customerSpawnT = 0;
-    if (shelfState.stock > 0 || customers.length < 2) spawnCustomer();
-  }
-
-  for (let i = customers.length - 1; i >= 0; i--) {
-    const c = customers[i];
-
-    if (c.state === 'paying') {
-      c.waitT -= dt;
-      if (c.waitT <= 0) {
-        addCash(featurePrice);
-        c.carried.visible = false;
-        c.state = 'leaving';
-        c.target.copy(DOOR_POS);
-      }
-      continue;
-    }
-
-    const tx = c.target.x - c.group.position.x;
-    const tz = c.target.z - c.group.position.z;
-    const d = Math.hypot(tx, tz);
-    if (d > 0.12) {
-      c.group.position.x += (tx / d) * CUSTOMER_SPEED * dt;
-      c.group.position.z += (tz / d) * CUSTOMER_SPEED * dt;
-      c.group.rotation.y = Math.atan2(tx / d, tz / d);
-      continue;
-    }
-
-    if (c.state === 'toShelf') {
-      if (shelfState.stock > 0) {
-        shelfState.stock--;
-        refreshShelf();
-        c.carried.visible = true;
-        c.state = 'toCheckout';
-        c.target = checkoutFrontOf();
-      } else {
-        c.waitT = (c.waitT || 0) + dt;
-        if (c.waitT > 3) {
-          c.state = 'leaving';
-          c.target.copy(DOOR_POS);
-        }
-      }
-    } else if (c.state === 'toCheckout') {
-      c.state = 'paying';
-      c.waitT = 0.7;
-    } else if (c.state === 'leaving') {
-      scene.remove(c.group);
-      customers.splice(i, 1);
+function updateDeals(dt) {
+  if (shelfState.stock === 0) { dealTimer = 0; return; }
+  dealTimer += dt;
+  const interval = rushActive ? customerSpawnInterval * 0.35 : customerSpawnInterval;
+  if (dealTimer >= interval) {
+    dealTimer = 0;
+    shelfState.stock--;
+    refreshShelf();
+    addCash(featurePrice);
+    if (Math.random() < 0.35) {
+      showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
     }
   }
 }
@@ -1686,7 +1604,7 @@ function fmtCash(n) {
 }
 
 function showCashPop(amount) {
-  const sp = worldToScreen(checkout.position.x, 2, checkout.position.z);
+  const sp = worldToScreen(shelf.position.x, 2.5, shelf.position.z);
   const el = document.createElement('div');
   el.className = 'cash-pop';
   el.textContent = '+$' + fmtCash(amount);
@@ -1916,7 +1834,7 @@ class OfficeFloor extends Floor {
     updateFarm(dt);
     updateDev(dt);
     updateShelf();
-    updateCustomers(dt);
+    updateDeals(dt);
     updateEmployees(dt);
     updateWorkers(dt);
     updateSupplyCloset(dt);
