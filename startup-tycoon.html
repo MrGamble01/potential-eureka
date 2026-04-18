@@ -268,6 +268,34 @@
       font-size: 11px; color: #7D8590; text-align: center;
       padding: 5px 4px; font-style: italic; margin-top: 2px;
     }
+    /* ── Metrics HUD ──────────────────────────────────────── */
+    #metrics-hud {
+      position: fixed; top: 72px; right: 18px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 10px 14px;
+      pointer-events: none; user-select: none; min-width: 158px;
+    }
+    .m-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; padding: 2px 0;
+    }
+    .m-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #7D8590; font-weight: 700; }
+    .m-val { font-size: 13px; font-weight: 800; color: #E6EDF3; }
+    /* ── Standup button ───────────────────────────────────── */
+    .standup-btn {
+      display: block; width: 100%; margin-top: 8px;
+      background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3);
+      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
+      font-weight: 700; font-size: 12px; font-family: inherit;
+      cursor: pointer; text-align: left; transition: all 0.15s;
+    }
+    .standup-btn:hover:not(:disabled) { background: rgba(63,185,80,0.2); }
+    .standup-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .standup-btn .cost { float: right; color: #3FB950; font-size: 11px; font-weight: 800; }
+    /* ── Event status chip ────────────────────────────────── */
+    #event-sep, #event-label { display: none; }
   </style>
 </head>
 <body>
@@ -275,9 +303,16 @@
   <span id="session-chip">Session 00m 00s</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
   <span id="rush-label" style="display:none"></span>
+  <span class="sep" id="event-sep" style="display:none">|</span>
+  <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
+<div id="metrics-hud">
+  <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
+  <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
+  <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
+</div>
 <div id="left-panel">
   <div id="upgrades"></div>
   <div id="funding-panel" class="panel">
@@ -291,6 +326,7 @@
     <div id="hire-section">
       <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 5</span></div>
       <button class="hire-btn" id="hire-btn">👩‍💻 Hire Engineer<span class="cost" id="hire-cost">$250</span></button>
+      <button class="standup-btn" id="standup-btn">📢 Daily Standup<span class="cost" id="standup-cost">FREE</span></button>
     </div>
     <div id="ops-section" style="display:none;margin-top:8px">
       <div class="stat-line"><span>Ops</span><span id="worker-count">0 / 3</span></div>
@@ -709,6 +745,20 @@ scene.add(player);
 let playerSpeed = 6;
 let plotGrowTime = 5;
 let maxStack = 10;
+let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
+let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
+let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
+// Metrics counters
+let totalUsers = 0;
+let totalFeaturesShipped = 0;
+let nextUserMilestone = 0;
+const USER_MILESTONES = [
+  { at:10,    msg:'🌱 First 10 users!' },
+  { at:100,   msg:'💯 100 users!' },
+  { at:1000,  msg:'🚀 1k users!' },
+  { at:10000, msg:'🦄 10k users!' },
+  { at:100000,msg:'🏆 100k users!' },
+];
 
 // --- Player head-stack (generic: holds ideas OR features) ---
 const stackGroup = new THREE.Group();
@@ -832,7 +882,7 @@ function updateFarm(dt) {
   for (const p of plots) {
     if (!p.active) continue;
     if (!p.ready) {
-      p.t += dt;
+      p.t += dt * ideaSpeedMult;
       if (p.t >= plotGrowTime) { p.ready = true; p.orb.visible = true; p.bulbBase.visible = true; }
     }
   }
@@ -1207,17 +1257,44 @@ let _dealMsgIdx = 0;
 
 function updateDeals(dt) {
   if (shelfState.stock === 0) { dealTimer = 0; return; }
+  if (dealSpeedMult <= 0) return; // bug event pauses deals
   dealTimer += dt;
-  const interval = rushActive ? customerSpawnInterval * 0.35 : customerSpawnInterval;
+  const rushFactor = rushActive ? 3 : 1;
+  const interval = customerSpawnInterval / (rushFactor * dealSpeedMult);
   if (dealTimer >= interval) {
     dealTimer = 0;
     shelfState.stock--;
     refreshShelf();
-    addCash(featurePrice);
-    if (Math.random() < 0.35) {
+    const earned = Math.round(featurePrice * dealValueMult);
+    addCash(earned);
+    // Track metrics
+    totalFeaturesShipped++;
+    const newUsers = Math.max(1, Math.floor(earned / 4));
+    totalUsers += newUsers;
+    checkUserMilestones();
+    if (Math.random() < 0.3) {
       showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
     }
   }
+}
+
+function checkUserMilestones() {
+  while (nextUserMilestone < USER_MILESTONES.length &&
+         totalUsers >= USER_MILESTONES[nextUserMilestone].at) {
+    showToast(USER_MILESTONES[nextUserMilestone].msg, 'milestone');
+    nextUserMilestone++;
+  }
+}
+
+const metricsArrEl  = document.getElementById('m-arr');
+const metricsUsersEl= document.getElementById('m-users');
+const metricsShipEl = document.getElementById('m-shipped');
+function updateMetricsHUD() {
+  const dealsPerSec = dealSpeedMult / customerSpawnInterval;
+  const arr = Math.round(featurePrice * dealValueMult * dealsPerSec * 3600 * 24 * 365);
+  metricsArrEl.textContent  = '$' + fmtCash(arr) + '/yr';
+  metricsUsersEl.textContent = fmtCash(totalUsers);
+  metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
 }
 
 // --- Desks (claimable seats for hired employees) ---
@@ -1438,6 +1515,9 @@ function renderOffice() {
     empCountEl.textContent = `${hired} / ${cap}`;
     if (hired >= cap) { hireBtn.disabled = true; hireCostEl.textContent = 'Full'; }
     else { const c = hireCost(); hireBtn.disabled = state.cash < c; hireCostEl.textContent = '$' + c; }
+    // Standup cooldown display
+    standupBtn.disabled = standupCooldown > 0;
+    standupCostEl.textContent = standupCooldown > 0 ? `${Math.ceil(standupCooldown)}s` : 'FREE';
   }
 
   if (opsUnlocked) {
@@ -1462,6 +1542,22 @@ function renderFunding() {
   fundingStatusEl.textContent = ok ? '✅ Ready to raise!' : `🔒 ${r.reqText}`;
 }
 fundingBtnEl.addEventListener('click', raiseFunding);
+
+// Standup mechanic
+let standupCooldown = 0;
+const STANDUP_CD = 120;
+const standupBtn  = document.getElementById('standup-btn');
+const standupCostEl = document.getElementById('standup-cost');
+function doStandup() {
+  if (standupCooldown > 0) return;
+  standupCooldown = STANDUP_CD;
+  // Caffeinate all engineers for 60s + idea speed boost
+  for (const e of employees) { e.caffeinated = true; e.caffeinatedT = 60; }
+  ideaSpeedMult = Math.max(ideaSpeedMult, 2);
+  setTimeout(() => { ideaSpeedMult = Math.max(1, ideaSpeedMult > 1.5 ? ideaSpeedMult / 2 : 1); }, 45000);
+  showToast('📢 Standup done! Team energized ⚡', 'milestone');
+}
+standupBtn.addEventListener('click', doStandup);
 
 hireBtn.addEventListener('click', hireEmployee);
 hireWorkerBtn.addEventListener('click', hireWorker);
@@ -1667,7 +1763,86 @@ const UPGRADES = [
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
   { id:'farmexp',   label:'💡 Expand Ideation',    base:150, scale:2.0, max:2,
     apply: lv => { activatePlots(lv); } },
+  { id:'aicopilot', label:'🤖 AI Copilot',          base:300, scale:1.9, max:3,
+    apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.08, d.PROC_TIME * 0.45); } },
+  { id:'enterprise', label:'🏢 Enterprise Tier',    base:500, scale:2.5, max:3,
+    apply: lv => { dealValueMult = [1,3,8,20][lv]; } },
+  { id:'cdnspeed',   label:'🌍 Global CDN',          base:400, scale:2.0, max:1,
+    apply: lv => { customerSpawnInterval = Math.max(0.2, customerSpawnInterval * 0.4); } },
 ];
+
+// ── Startup Events ──────────────────────────────────────────
+const EVENT_POOL = [
+  { id:'producthunt', label:'🚀 Product Hunt', dur:25,
+    msg:'🚀 #1 on Product Hunt! Deal flow surging!', cls:'rush',
+    onStart:()=>{ dealSpeedMult=5; },
+    onEnd:()=>{ dealSpeedMult=1; showToast('Product Hunt wave over.','rush'); } },
+  { id:'techcrunch', label:'📰 TechCrunch', dur:20,
+    msg:'📰 TechCrunch dropped an article! Insane deal flow!', cls:'rush',
+    onStart:()=>{ dealSpeedMult=8; },
+    onEnd:()=>{ dealSpeedMult=1; showToast('TechCrunch wave done.','rush'); } },
+  { id:'hackathon', label:'💡 Hackathon', dur:40,
+    msg:'💡 Internal hackathon! Ideas flowing 3× faster!', cls:'milestone',
+    onStart:()=>{ ideaSpeedMult=3; },
+    onEnd:()=>{ ideaSpeedMult=1; showToast('Hackathon over — back to normal velocity.',''); } },
+  { id:'bug', label:'🐛 Prod Bug', dur:18,
+    msg:'🐛 Critical bug in prod! Deals paused — devs on it...', cls:'',
+    onStart:()=>{ dealSpeedMult=0; },
+    onEnd:()=>{ dealSpeedMult=1; showToast('🔧 Bug fixed! Deal flow restored.','milestone'); } },
+  { id:'angel', label:'👼 Angel', dur:0,
+    msg:'👼 Angel investor dropped by!', cls:'milestone',
+    onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); },
+    onEnd:()=>{} },
+  { id:'viral', label:'📱 Viral', dur:15,
+    msg:'📱 Tweet went viral! 10× deal rate!', cls:'rush',
+    onStart:()=>{ dealSpeedMult=10; },
+    onEnd:()=>{ dealSpeedMult=1; showToast('Viral wave fading...','rush'); } },
+  { id:'competitor', label:'⚔️ Competition', dur:22,
+    msg:'⚔️ Competitor launched! Market tightening...', cls:'',
+    onStart:()=>{ dealSpeedMult=0.2; },
+    onEnd:()=>{ dealSpeedMult=1; showToast('Competitor hype passed. Revenue normalizing.','milestone'); } },
+  { id:'demo', label:'🎤 Demo Day', dur:30,
+    msg:'🎤 Demo Day! Investors watching — feature value 3×!', cls:'milestone',
+    onStart:()=>{ dealValueMult*=3; },
+    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/3); showToast('Demo Day over.',''); } },
+];
+let activeEvent = null;
+let eventT = 0;
+let nextEventIn = 75 + Math.random()*65;
+const eventSepEl   = document.getElementById('event-sep');
+const eventLabelEl = document.getElementById('event-label');
+
+function triggerRandomEvent() {
+  if (activeEvent) return; // one event at a time
+  const ev = EVENT_POOL[Math.floor(Math.random()*EVENT_POOL.length)];
+  showToast(ev.msg, ev.cls);
+  ev.onStart();
+  if (ev.dur > 0) {
+    activeEvent = ev; eventT = 0;
+    eventSepEl.style.display = '';
+    eventLabelEl.style.display = '';
+    eventLabelEl.textContent = `${ev.label} ${ev.dur}s`;
+  }
+}
+
+function updateEvents(dt) {
+  nextEventIn -= dt;
+  if (nextEventIn <= 0) {
+    nextEventIn = 75 + Math.random()*75;
+    triggerRandomEvent();
+  }
+  if (activeEvent) {
+    eventT += dt;
+    const rem = Math.ceil(activeEvent.dur - eventT);
+    eventLabelEl.textContent = `${activeEvent.label} ${rem}s`;
+    if (eventT >= activeEvent.dur) {
+      activeEvent.onEnd();
+      activeEvent = null;
+      eventSepEl.style.display = 'none';
+      eventLabelEl.style.display = 'none';
+    }
+  }
+}
 
 // ── Rush Hour ───────────────────────────────────────────────
 const RUSH_CYCLE = 90;   // seconds between rushes
@@ -1684,7 +1859,7 @@ function updateRushHour(dt) {
     statusBarEl.classList.add('rush');
     rushSepEl.style.display = '';
     rushLabelEl.style.display = '';
-    showToast('⚡ Rush Hour! Customers flooding in!', 'rush');
+    showToast('⚡ Rush Hour! Deal flow surging!', 'rush');
   } else if (rushActive && rushT >= RUSH_DUR) {
     rushActive = false; rushT = 0;
     statusBarEl.classList.remove('rush');
@@ -1959,6 +2134,9 @@ function loop(now) {
 
   currentFloorInst.update(dt);
   updateRushHour(dt);
+  updateEvents(dt);
+  updateMetricsHUD();
+  if (standupCooldown > 0) { standupCooldown -= dt; renderOffice(); }
   updateLabels();
 
   renderer.render(scene, camera);
@@ -1979,6 +2157,8 @@ function saveGame() {
       workers: workers.length,
       bots: productionBots.length,
       fundingRoundIdx,
+      totalUsers,
+      totalFeaturesShipped,
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
       savedAt: Date.now(),
     }));
@@ -2029,6 +2209,11 @@ function loadGame() {
       if (ms.desks > 0) unlockMoreDesks(ms.desks);
       nextMilestoneIdx++;
     }
+    if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
+    if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
+    // Fast-forward user milestone pointer
+    while (nextUserMilestone < USER_MILESTONES.length &&
+           totalUsers >= USER_MILESTONES[nextUserMilestone].at) nextUserMilestone++;
   } catch {}
 }
 
