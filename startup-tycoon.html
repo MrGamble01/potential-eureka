@@ -90,7 +90,7 @@ player.add(head);
 player.position.set(5, 0, 0);
 scene.add(player);
 
-// --- Player head-stack ---
+// --- Player head-stack (generic: holds ideas OR features) ---
 const MAX_STACK = 10;
 const stackGroup = new THREE.Group();
 stackGroup.position.y = 2.25;
@@ -99,17 +99,27 @@ const orbGeo = new THREE.SphereGeometry(0.3, 16, 12);
 const orbMat = new THREE.MeshLambertMaterial({
   color: 0xfff066, emissive: 0xfff066, emissiveIntensity: 0.55,
 });
-let stackCount = 0;
-const stackMeshes = [];
+const featureGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
+const featureMat = new THREE.MeshLambertMaterial({ color: 0xff6b9d });
+
+const carry = { kind: null, count: 0 };
+const stackOrbs = [], stackBoxes = [];
+function makeStackMesh(kind, i) {
+  const m = new THREE.Mesh(
+    kind === 'feature' ? featureGeo : orbGeo,
+    kind === 'feature' ? featureMat : orbMat
+  );
+  m.castShadow = true;
+  m.position.y = i * 0.45;
+  stackGroup.add(m);
+  return m;
+}
 function refreshStack() {
-  while (stackMeshes.length < stackCount) {
-    const m = new THREE.Mesh(orbGeo, orbMat);
-    m.castShadow = true;
-    m.position.y = stackMeshes.length * 0.45;
-    stackGroup.add(m);
-    stackMeshes.push(m);
-  }
-  for (let i = 0; i < stackMeshes.length; i++) stackMeshes[i].visible = i < stackCount;
+  for (const m of stackOrbs) m.visible = false;
+  for (const m of stackBoxes) m.visible = false;
+  const pool = carry.kind === 'feature' ? stackBoxes : stackOrbs;
+  while (pool.length < carry.count) pool.push(makeStackMesh(carry.kind, pool.length));
+  for (let i = 0; i < carry.count; i++) pool[i].visible = true;
 }
 
 // --- Idea Farm: 3x3 plots growing orbs over time ---
@@ -143,16 +153,112 @@ function updateFarm(dt) {
   const bob = Math.sin(performance.now() * 0.003) * 0.12;
   for (const p of plots) if (p.ready) p.orb.position.y = 1.25 + bob;
 
-  if (stackCount >= MAX_STACK) return;
+  if (carry.count >= MAX_STACK) return;
+  if (carry.kind && carry.kind !== 'idea') return; // can't mix types
   for (const p of plots) {
     if (!p.ready) continue;
     const dx = p.group.position.x - player.position.x;
     const dz = p.group.position.z - player.position.z;
     if (dx*dx + dz*dz < PICKUP_R2) {
       p.ready = false; p.orb.visible = false; p.t = 0;
-      stackCount++; refreshStack();
-      if (stackCount >= MAX_STACK) return;
+      carry.kind = 'idea'; carry.count++; refreshStack();
+      if (carry.count >= MAX_STACK) return;
     }
+  }
+}
+
+// --- Dev Station: ideas → features on a timer ---
+const devStation = new THREE.Group();
+devStation.position.set(8, 0, -8);
+
+const desk = new THREE.Mesh(
+  new THREE.BoxGeometry(2.6, 1, 1.6),
+  new THREE.MeshLambertMaterial({ color: 0x9c7a4d })
+);
+desk.position.y = 0.5; desk.castShadow = true; desk.receiveShadow = true;
+devStation.add(desk);
+
+const monitor = new THREE.Mesh(
+  new THREE.BoxGeometry(1.3, 0.85, 0.1),
+  new THREE.MeshLambertMaterial({ color: 0x222233 })
+);
+monitor.position.set(0, 1.55, -0.35);
+monitor.castShadow = true;
+devStation.add(monitor);
+const screen = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.1, 0.65),
+  new THREE.MeshBasicMaterial({ color: 0x6cf7ff })
+);
+screen.position.set(0, 1.55, -0.29);
+devStation.add(screen);
+const stand = new THREE.Mesh(
+  new THREE.BoxGeometry(0.2, 0.5, 0.18),
+  new THREE.MeshLambertMaterial({ color: 0x222233 })
+);
+stand.position.set(0, 1.05, -0.35);
+devStation.add(stand);
+scene.add(devStation);
+
+// Queue pile (orbs on desk) + output pile (feature boxes next to desk)
+const devQueueGroup = new THREE.Group();
+devQueueGroup.position.set(-0.7, 1.05, 0.4);
+devStation.add(devQueueGroup);
+const devQueueMeshes = [];
+
+const devOutputGroup = new THREE.Group();
+devOutputGroup.position.set(1.7, 0, 0);
+devStation.add(devOutputGroup);
+const devOutputMeshes = [];
+
+const dev = {
+  pos: devStation.position,
+  queue: 0, output: 0, procT: 0,
+  PROC_TIME: 2.5, QUEUE_MAX: 10, OUTPUT_MAX: 10,
+};
+
+function refreshPile(group, meshes, count, geo, mat, spacingY) {
+  while (meshes.length < count) {
+    const m = new THREE.Mesh(geo, mat);
+    const i = meshes.length;
+    m.position.set((i % 3 - 1) * 0.4, Math.floor(i / 3) * spacingY, (Math.floor(i / 3) % 2) * 0.1);
+    m.castShadow = true;
+    group.add(m);
+    meshes.push(m);
+  }
+  for (let i = 0; i < meshes.length; i++) meshes[i].visible = i < count;
+}
+
+const STATION_R2 = 2.6 * 2.6;
+function updateDev(dt) {
+  if (dev.queue > 0 && dev.output < dev.OUTPUT_MAX) {
+    dev.procT += dt;
+    if (dev.procT >= dev.PROC_TIME) {
+      dev.procT = 0;
+      dev.queue--; dev.output++;
+      refreshPile(devQueueGroup, devQueueMeshes, dev.queue, orbGeo, orbMat, 0.4);
+      refreshPile(devOutputGroup, devOutputMeshes, dev.output, featureGeo, featureMat, 0.5);
+    }
+  } else {
+    dev.procT = 0;
+  }
+
+  const dx = dev.pos.x - player.position.x;
+  const dz = dev.pos.z - player.position.z;
+  if (dx*dx + dz*dz > STATION_R2) return;
+
+  if (carry.kind === 'idea' && dev.queue < dev.QUEUE_MAX) {
+    while (carry.count > 0 && dev.queue < dev.QUEUE_MAX) {
+      dev.queue++; carry.count--;
+    }
+    if (carry.count === 0) carry.kind = null;
+    refreshStack();
+    refreshPile(devQueueGroup, devQueueMeshes, dev.queue, orbGeo, orbMat, 0.4);
+  } else if ((carry.kind === null || carry.kind === 'feature') && dev.output > 0 && carry.count < MAX_STACK) {
+    while (dev.output > 0 && carry.count < MAX_STACK) {
+      carry.kind = 'feature'; carry.count++; dev.output--;
+    }
+    refreshStack();
+    refreshPile(devOutputGroup, devOutputMeshes, dev.output, featureGeo, featureMat, 0.5);
   }
 }
 
@@ -211,6 +317,7 @@ function loop(now) {
   }
 
   updateFarm(dt);
+  updateDev(dt);
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
