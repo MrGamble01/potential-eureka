@@ -3462,6 +3462,9 @@ const GOAL_TARGET_BASE = 1_000_000;
 function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
 let seasonGoalHit = false;
 let trophiesWon = 0;
+// Personal best: the fastest time-to-goal we've ever recorded
+// (in seconds). Persisted across runs and IPOs.
+let bestTimeToGoal = null;
 const goalFillEl  = document.getElementById('goal-fill');
 const goalPctEl   = document.getElementById('goal-pct');
 const goalLabelEl = document.getElementById('goal-label');
@@ -3507,14 +3510,21 @@ function triggerWin(arr) {
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
   const m = Math.floor(elapsed / 60);
   const s = elapsed % 60;
+  // Personal best detection
+  const isPB = bestTimeToGoal == null || elapsed < bestTimeToGoal;
+  if (isPB) bestTimeToGoal = elapsed;
+  const pbBadge = isPB ? ' <strong style="color:#fcd34d">★ NEW BEST</strong>' : (bestTimeToGoal != null ? ` <span style="color:#7D8590;font-weight:600">(best ${Math.floor(bestTimeToGoal/60)}:${(bestTimeToGoal%60).toString().padStart(2,'0')})</span>` : '');
+  const nextTarget = GOAL_TARGET_BASE * Math.pow(2, prestigeLevel + 1);
+  const nextMult = Math.pow(2, prestigeLevel + 1);
   winStatsEl.innerHTML = `
     <div class="row"><span>Peak ARR</span><strong>$${fmtCash(arr)}/yr</strong></div>
     <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.allTimeCash)}</strong></div>
     <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
     <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
     <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
-    <div class="row"><span>Time to goal</span><strong>${m}:${s.toString().padStart(2,'0')}</strong></div>
+    <div class="row"><span>Time to goal</span><strong>${m}:${s.toString().padStart(2,'0')}${pbBadge}</strong></div>
     <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
+    <div class="row"><span>Next season</span><strong>S${prestigeLevel + 2} · 🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
   `;
   winModalEl.classList.add('open');
   const t = currentGoalTarget();
@@ -5031,6 +5041,7 @@ function saveGame() {
       investorAffinity: { ...investorAffinity },
       seasonGoalHit,
       trophiesWon,
+      bestTimeToGoal,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -5174,6 +5185,7 @@ function loadGame() {
     }
     if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
     if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
+    if (typeof p.bestTimeToGoal === 'number') bestTimeToGoal = p.bestTimeToGoal;
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
