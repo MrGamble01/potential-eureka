@@ -632,6 +632,7 @@
       <input type="checkbox" id="joy-enabled">
       <span>🕹️ Virtual joystick</span>
     </label>
+    <button class="hire-btn" id="restart-btn" style="margin-top:8px;background:rgba(248,81,73,0.12);border-color:rgba(248,81,73,0.35);color:#ff8a80">🗑️ Restart game</button>
   </div>
 </div>
 <div id="joystick"><div id="joy-knob"></div></div>
@@ -2651,6 +2652,18 @@ function setJoystickEnabled(on) {
 }
 setJoystickEnabled(localStorage.getItem('joystickEnabled') === '1');
 joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
+
+// Restart game: wipe save + reload. Keep the joystick preference so the UI
+// feels the same after restart.
+document.getElementById('restart-btn').addEventListener('click', () => {
+  if (!confirm('Restart the game? All progress (cash, upgrades, hires, rooms, IPO seasons) will be erased.')) return;
+  try {
+    const joy = localStorage.getItem('joystickEnabled');
+    localStorage.removeItem(SAVE_KEY);
+    if (joy !== null) localStorage.setItem('joystickEnabled', joy);
+  } catch (_) {}
+  location.reload();
+});
 
 function updateJoystick(e) {
   const rect = joyEl.getBoundingClientRect();
