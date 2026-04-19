@@ -1705,7 +1705,12 @@ const USER_MILESTONES = [
   { at:100000,msg:'🏆 100k users!' },
 ];
 
-// --- Player head-stack (generic: holds ideas OR features) ---
+// ── Reserved: carry-stack infrastructure ─────────────────────
+// stackGroup (mounted on the player) + orbGeo / featureGeo + carry /
+// makeStackMesh / refreshStack form a legacy carry-stack system from
+// the old farm mechanic. Currently dormant (no live references) but
+// deliberately kept for a future supplies mechanic where the player
+// (or workers) visibly carry stacks of items. Do not delete.
 const stackGroup = new THREE.Group();
 stackGroup.position.y = 2.25;
 player.add(stackGroup);
@@ -1716,7 +1721,7 @@ const orbMat = new THREE.MeshLambertMaterial({
 const featureGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
 const featureMat = new THREE.MeshLambertMaterial({ color: 0x4da3ff });
 
-// Paper stack: progress visual for work-in-progress + delivery carry
+// Paper stack: active visual for work-in-progress + delivery carry
 const PAPER_STACK_MAX = 10;
 const paperSheetGeo = new THREE.BoxGeometry(0.42, 0.015, 0.52);
 const paperSheetMat = new THREE.MeshLambertMaterial({ color: 0xf5f2eb });
@@ -1743,6 +1748,7 @@ function setPaperStackProgress(stackGroup, progress) {
   for (let i = 0; i < sheets.length; i++) sheets[i].visible = i < n;
 }
 
+// Reserved (see above): carry-stack for the future supplies mechanic.
 const carry = { kind: null, count: 0 };
 const stackOrbs = [], stackBoxes = [];
 function makeStackMesh(kind, i) {
@@ -2726,9 +2732,9 @@ function pickVPForEngineer() {
   return vps[0] || null;
 }
 
-// ── Support Staff (legacy; barista + runner roles fully retired) ──
-const supportStaff = [];
-function updateSupportStaff(_dt) { /* no-op */ }
+// (Legacy barista + supply-runner roles have been fully retired and
+// their array / update function removed. Saves that still carry a
+// `supportStaff` field are silently ignored on load.)
 
 // ── Hire Panel ────────────────────────────────────────────────
 const hireBtnEl       = document.getElementById('hire-btn');
@@ -3918,7 +3924,6 @@ class OfficeFloor extends Floor {
     updateBDRs(dt);
     updateInvestors(dt);
     updateSprint(dt);
-    updateSupportStaff(dt);
     checkDecorUpgrades(dt);
   }
 }
@@ -4000,13 +4005,7 @@ function updateLabels() {
       }
     }
   }
-  // Support staff carry bubbles
-  for (const s of supportStaff) {
-    if (s.carrying) {
-      const p = worldToScreen(s.group.position.x, 2.2, s.group.position.z);
-      wants.push({ text: s.role === 'barista' ? '☕' : '📄', cls: 'bubble', x: p.x, y: p.y });
-    }
-  }
+  // (Legacy support-staff carry bubbles removed with the role.)
   // Amenity stock labels
   for (const am of amenities) {
     if (!am.isOwned || am.id === 'pingpong' || am.id === 'standup') continue;
@@ -4139,9 +4138,6 @@ function doIPO() {
   for (const up of DECOR_UPGRADES) resetDecor(up.id);
   _decorCheckT = 0;
 
-  // Remove support staff
-  for (const s of supportStaff) scene.remove(s.group);
-  supportStaff.length = 0;
   // Remove Executive Assistants
   for (const e of eas) scene.remove(e.group);
   eas.length = 0;
@@ -4235,7 +4231,6 @@ function saveGame() {
       ideaWorkers: ideaWorkers.length,
       ideaWorkerExternals: ideaWorkers.map(w => !!w.external),
       bdrExternals: bdrs.map(b => !!b.external),
-      supportStaff: supportStaff.map(s => s.role),
       eaCount: eas.length,
       bdrCount: bdrs.length,
       aeCount: aes.length,
@@ -4337,11 +4332,7 @@ function loadGame() {
       const flags = Array.isArray(p.ideaWorkerExternals) ? p.ideaWorkerExternals : [];
       for (let i = 0; i < p.ideaWorkers; i++) spawnIdeaWorker({ external: !!flags[i] });
     }
-    // Re-spawn support staff silently
-    if (p.supportStaff) {
-      // The old barista + supply-runner support roles have both been retired.
-      // Drop any legacy entries so saves don't respawn them in the new office.
-    }
+    // (p.supportStaff — legacy barista + runner roles; ignored.)
     if (typeof p.eaCount === 'number') {
       for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant();
     }
