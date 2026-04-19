@@ -699,7 +699,7 @@
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
+<div id="cash-hud" title="Tap to add \$1,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="metrics-hud">
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
@@ -1518,10 +1518,8 @@ function convertRoom(roomId, opts = {}) {
   // Remember how many paid-for extra desks the room had so we can
   // rebuild them after the mode swap (they'd otherwise be lost).
   const extraCount = extraDeskCountInRoom(roomId);
-  // Remove this room's old plots from the scene + plots array
-  const oldPlots = plots.filter(p => p.roomId === roomId);
-  for (const op of oldPlots) scene.remove(op.group);
-  plots.splice(0, plots.length, ...plots.filter(p => p.roomId !== roomId));
+  // Remove this room's old plots before rebuilding for the new mode
+  purgePlotsInRoom(roomId);
   // Rebuild desks per the new mode
   for (const d of next.desks) {
     const plot = createPlot({
@@ -1888,6 +1886,17 @@ const plotMat = new THREE.MeshLambertMaterial({ color: 0xe0dbd4 });
 // Build a plot (desk + paper stack + whiteboard) and push it into the
 // plots array. Used at startup for every PLOT_DEFS entry and also by
 // the Add Desk feature when the player buys an extra desk in a room.
+// Remove every plot belonging to a given room (scene + array in one
+// pass). Used by room-conversion rebuilds and load-time mode swaps.
+function purgePlotsInRoom(roomId) {
+  for (let i = plots.length - 1; i >= 0; i--) {
+    if (plots[i].roomId === roomId) {
+      scene.remove(plots[i].group);
+      plots.splice(i, 1);
+    }
+  }
+}
+
 function createPlot(def) {
   const g = new THREE.Group();
   g.position.set(def.x, 0, def.z);
@@ -4439,9 +4448,7 @@ function loadGame() {
         if (!cfg || mode === cfg.initial) { roomModes[roomId] = mode; continue; }
         const next = cfg.modes[mode];
         if (!next) continue;
-        const oldPlots = plots.filter(pl => pl.roomId === roomId);
-        for (const op of oldPlots) scene.remove(op.group);
-        plots.splice(0, plots.length, ...plots.filter(pl => pl.roomId !== roomId));
+        purgePlotsInRoom(roomId);
         for (const d of next.desks) {
           const plot = createPlot({
             x: d.x, z: d.z,
