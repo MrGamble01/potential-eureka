@@ -147,6 +147,21 @@
     #labels > div.refill { background: rgba(108,99,255,0.85); color: #fff; font-size: 11px; }
     #labels > div.prompt { background: rgba(245,158,11,0.9); color: #fff; font-size: 11px; }
     #labels > div.max { background: rgba(248,81,73,0.9); color: #fff; font-size: 13px; padding: 3px 10px; }
+    #labels > div.workbar {
+      width: 56px; height: 7px; padding: 0;
+      border-radius: 4px; border: 1px solid rgba(255,255,255,0.22);
+      transform: translate(-50%, -4px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    #labels > div.workrate {
+      background: rgba(13,17,23,0.95); color: #E6EDF3;
+      font-size: 10px; padding: 2px 6px; border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    #labels > div.workrate.boosted {
+      background: rgba(245,158,11,0.92); color: #fff;
+      border-color: rgba(245,158,11,0.55);
+    }
 
     /* ── Upgrade buttons ──────────────────────────────── */
     .upg-btn {
@@ -1998,12 +2013,20 @@ function renderFloors() {
 
 // --- Input ---
 const keys = {};
+let mouseScreenX = -1e9, mouseScreenY = -1e9;
+addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.clientY; });
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
+  // Cheat: press M to add $10,000 (or use window.giveMoney(n) in console)
+  if (k === 'm' && !e.repeat) {
+    addCash(10000);
+    showToast('💰 +$10,000 (cheat)', 'milestone');
+  }
 });
 addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
+window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
 // Tap-to-move: project pointer onto ground plane, walk toward target
 const raycaster = new THREE.Raycaster();
@@ -2065,10 +2088,20 @@ function updateLabels() {
       wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
     } else if (w.state === 'atDesk') {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
-      const fpm = ((w.currentRate || 0) * 60).toFixed(1);
-      const prefix = w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️');
+      const pct = Math.round((w.workProgress || 0) * 100);
       const boosted = w.caffeinated || w.bossBoost > 1 || rushActive;
-      wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'refill' : 'stock', x: p.x, y: p.y });
+      const fillColor = boosted ? '#F59E0B' : '#3FB950';
+      const bg = `linear-gradient(to right, ${fillColor} 0%, ${fillColor} ${pct}%, rgba(13,17,23,0.85) ${pct}%, rgba(13,17,23,0.85) 100%)`;
+      wants.push({ text: '', cls: 'workbar', x: p.x, y: p.y, bg });
+      const dxw = player.position.x - w.desk.group.position.x;
+      const dzw = player.position.z - w.desk.group.position.z;
+      const playerNear = Math.hypot(dxw, dzw) < PROX_RANGE;
+      const mouseNear = Math.abs(mouseScreenX - p.x) < 36 && Math.abs(mouseScreenY - p.y) < 32;
+      if (playerNear || mouseNear) {
+        const fpm = ((w.currentRate || 0) * 60).toFixed(1);
+        const prefix = w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️');
+        wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
+      }
     }
   }
   // Support staff carry bubbles
@@ -2108,7 +2141,8 @@ function updateLabels() {
       const w = wants[i];
       el.className = w.cls; el.textContent = w.text;
       el.style.left = w.x + 'px'; el.style.top = w.y + 'px'; el.style.display = 'block';
-    } else { el.style.display = 'none'; }
+      el.style.background = w.bg || '';
+    } else { el.style.display = 'none'; el.style.background = ''; }
   }
 }
 
