@@ -805,22 +805,122 @@ function renderRoomPanel() {
 }
 
 
-// --- Player (capsule body + sphere head) ---
-const player = new THREE.Group();
-const body = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.42, 0.9, 4, 10),
-  new THREE.MeshLambertMaterial({ color: 0x4a90ff })
-);
-body.position.y = 0.87;
-body.castShadow = true;
-player.add(body);
-const head = new THREE.Mesh(
-  new THREE.SphereGeometry(0.34, 14, 12),
-  new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
-);
-head.position.y = 1.85;
-head.castShadow = true;
-player.add(head);
+// --- Scrappy-startup character builder (hoodie + pants + head) ---
+const HOODIE_COLORS  = [0x3a4a5e, 0x2e4a3e, 0x7a3a3a, 0x4a3e6a, 0x3a3a3a, 0xb0b0b0, 0x4a7a8a, 0x8a5a2a];
+const PANTS_COLORS   = [0x1f2937, 0x2d1e12, 0x333333, 0x1a2a3a, 0x3a2e22];
+const HAIR_COLORS    = [0x2a1a0a, 0x4a2a10, 0x6a4a2a, 0x8a6a3a, 0x1a1a1a, 0x5a3a2a, 0xb87333];
+const BEANIE_COLORS  = [0x1a1a2e, 0x6a2a2e, 0x2e4e3a, 0x4a2e5a, 0x8a6a3a, 0x2a2a2a];
+const SKIN_COLORS    = [0xffd9a0, 0xf0c080, 0xd9a56a, 0xa97a4a, 0x8a5a3a, 0x5a3a20];
+
+function buildScrappyCharacter(opts) {
+  const g = new THREE.Group();
+  const bodyColor   = opts.bodyColor   ?? HOODIE_COLORS[0];
+  const pantsColor  = opts.pantsColor  ?? PANTS_COLORS[0];
+  const hairColor   = opts.hairColor   ?? HAIR_COLORS[0];
+  const skinColor   = opts.skinColor   ?? SKIN_COLORS[0];
+  const beanieColor = opts.beanieColor ?? BEANIE_COLORS[0];
+
+  // Shoes
+  const shoeMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+  for (const sx of [-0.14, 0.14]) {
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.32), shoeMat);
+    shoe.position.set(sx, 0.05, 0.02); shoe.castShadow = true; g.add(shoe);
+  }
+  // Pants (box for angular look)
+  const pants = new THREE.Mesh(
+    new THREE.BoxGeometry(0.46, 0.62, 0.34),
+    new THREE.MeshLambertMaterial({ color: pantsColor })
+  );
+  pants.position.y = 0.41; pants.castShadow = true; g.add(pants);
+  // Hoodie body
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.34, 0.55, 4, 10),
+    new THREE.MeshLambertMaterial({ color: bodyColor })
+  );
+  body.position.y = 1.02; body.castShadow = true; g.add(body);
+  // Hood (half-sphere behind neck, same color as hoodie)
+  const hood = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshLambertMaterial({ color: bodyColor })
+  );
+  hood.position.set(0, 1.42, -0.12); hood.rotation.x = 0.35; hood.castShadow = true; g.add(hood);
+  // Hoodie drawstrings
+  const stringMat = new THREE.MeshLambertMaterial({ color: 0xf0efe8 });
+  for (const sx of [-0.07, 0.07]) {
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6), stringMat);
+    str.position.set(sx, 1.18, 0.3); g.add(str);
+  }
+  // Head
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.26, 12, 10),
+    new THREE.MeshLambertMaterial({ color: skinColor })
+  );
+  head.position.y = 1.78; head.castShadow = true; g.add(head);
+  // Hair or beanie
+  if (opts.hasBeanie) {
+    const beanie = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      new THREE.MeshLambertMaterial({ color: beanieColor })
+    );
+    beanie.position.y = 1.82; beanie.castShadow = true; g.add(beanie);
+    const cuff = new THREE.Mesh(
+      new THREE.TorusGeometry(0.25, 0.04, 6, 16),
+      new THREE.MeshLambertMaterial({ color: beanieColor })
+    );
+    cuff.rotation.x = Math.PI / 2; cuff.position.y = 1.76; g.add(cuff);
+  } else {
+    const hair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.27, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      new THREE.MeshLambertMaterial({ color: hairColor })
+    );
+    hair.position.y = 1.8; hair.castShadow = true; g.add(hair);
+  }
+  // Optional glasses
+  if (opts.hasGlasses) {
+    const frameMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    for (const sx of [-0.09, 0.09]) {
+      const lens = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.02), frameMat);
+      lens.position.set(sx, 1.76, 0.23); g.add(lens);
+    }
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), frameMat);
+    bridge.position.set(0, 1.77, 0.23); g.add(bridge);
+  }
+  // Optional apron (for barista etc.)
+  if (opts.apronColor != null) {
+    const apron = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.85, 0.08),
+      new THREE.MeshLambertMaterial({ color: opts.apronColor })
+    );
+    apron.position.set(0, 0.85, 0.24); apron.castShadow = true; g.add(apron);
+  }
+  return g;
+}
+
+function _rand01(seed, n) {
+  return Math.abs(Math.sin(seed * 9301 + n * 49297)) % 1;
+}
+function randomWorkerLook(seed) {
+  const pick = (arr, n) => arr[Math.floor(_rand01(seed, n) * arr.length)];
+  return {
+    bodyColor:   pick(HOODIE_COLORS, 1),
+    pantsColor:  pick(PANTS_COLORS,  2),
+    hairColor:   pick(HAIR_COLORS,   3),
+    skinColor:   pick(SKIN_COLORS,   4),
+    beanieColor: pick(BEANIE_COLORS, 5),
+    hasBeanie:   _rand01(seed, 6) < 0.35,
+    hasGlasses:  _rand01(seed, 7) < 0.30,
+  };
+}
+
+// --- Player (CEO: founder hoodie + glasses) ---
+const player = buildScrappyCharacter({
+  bodyColor: 0x6c63ff,   // founder purple
+  pantsColor: 0x1e1e28,
+  hairColor: 0x3a2815,
+  skinColor: 0xf0c080,
+  hasGlasses: true,
+  hasBeanie: false,
+});
 player.position.set(0, 0, 2); // start inside starter room near CEO desk
 scene.add(player);
 
@@ -997,18 +1097,7 @@ function spawnIdeaWorker() {
   if (!desk) return;
   desk.occupied = true;
 
-  const hue = (ideaWorkers.length * 0.13) % 1;
-  const g = new THREE.Group();
-  const bodyW = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.32, 0.65, 4, 8),
-    new THREE.MeshLambertMaterial({ color: new THREE.Color().setHSL(hue, 0.65, 0.55) })
-  );
-  bodyW.position.y = 0.72; bodyW.castShadow = true; g.add(bodyW);
-  const headW = new THREE.Mesh(
-    new THREE.SphereGeometry(0.25, 10, 8),
-    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
-  );
-  headW.position.y = 1.47; headW.castShadow = true; g.add(headW);
+  const g = buildScrappyCharacter(randomWorkerLook(ideaWorkers.length + 1));
   const carryMesh = makePaperStack();
   carryMesh.position.set(0, 1.15, 0.3); // held at chest, slightly in front of body
   g.add(carryMesh);
@@ -1241,18 +1330,20 @@ function supportHireCost(role) {
 }
 
 function spawnSupportStaff(role) {
-  const g = new THREE.Group();
-  const color = role === 'barista' ? 0xff7a20 : 0x20aaff;
-  const bodyS = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.3, 0.6, 4, 8),
-    new THREE.MeshLambertMaterial({ color })
-  );
-  bodyS.position.y = 0.65; bodyS.castShadow = true; g.add(bodyS);
-  const headS = new THREE.Mesh(
-    new THREE.SphereGeometry(0.23, 10, 8),
-    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
-  );
-  headS.position.y = 1.38; headS.castShadow = true; g.add(headS);
+  const seed = supportStaff.length + (role === 'barista' ? 101 : 202);
+  const look = randomWorkerLook(seed);
+  // Role-specific overrides: baristas get a brown apron + dark tee; runners get courier blue + cap
+  if (role === 'barista') {
+    look.bodyColor = 0x2a2a2a;
+    look.apronColor = 0x6a3a20;
+    look.hasBeanie = true;
+    look.beanieColor = 0x4a2a10;
+  } else {
+    look.bodyColor = 0x20aaff;
+    look.hasBeanie = true;
+    look.beanieColor = 0x1a3a5a;
+  }
+  const g = buildScrappyCharacter(look);
   const carry = new THREE.Mesh(
     new THREE.BoxGeometry(0.32, 0.32, 0.32),
     new THREE.MeshLambertMaterial({ color: role === 'barista' ? 0xff9a00 : 0x88ccff })
