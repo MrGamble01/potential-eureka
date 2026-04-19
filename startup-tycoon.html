@@ -685,6 +685,12 @@
     }
     .setting-row input[type="checkbox"]:checked { background: rgba(108,99,255,0.6); border-color: rgba(108,99,255,0.8); }
     .setting-row input[type="checkbox"]:checked::after { transform: translateX(14px); }
+    .setting-row select {
+      background: rgba(8,10,18,0.8); color: #E6EDF3;
+      border: 1px solid rgba(255,255,255,0.18); border-radius: 6px;
+      padding: 3px 6px; font-family: inherit; font-size: 11px;
+    }
+    .setting-row select:focus { outline: none; border-color: rgba(108,99,255,0.6); }
   </style>
 </head>
 <body>
@@ -766,7 +772,7 @@
     </label>
     <label class="setting-row" style="justify-content:space-between">
       <span>💬 Toast density</span>
-      <select id="toast-density" style="background:rgba(8,10,18,0.8);color:#E6EDF3;border:1px solid rgba(255,255,255,0.18);border-radius:6px;padding:3px 6px;font-family:inherit;font-size:11px">
+      <select id="toast-density">
         <option value="all">All</option>
         <option value="standard">No spam</option>
         <option value="off">Feed only</option>
