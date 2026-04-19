@@ -612,6 +612,7 @@
       <div id="hire-sales-section" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;display:none">
         <div class="panel-title" style="margin-bottom:6px">📞 Sales Team</div>
         <button class="hire-btn" id="hire-bdr-btn">📞 Hire BDR<span class="cost" id="hire-bdr-cost">$200</span></button>
+        <button class="hire-btn" id="hire-ae-btn" style="margin-top:6px;display:none">💼 Hire Account Executive<span class="cost" id="hire-ae-cost">$800</span></button>
       </div>
     </div>
   </div>
@@ -1927,6 +1928,8 @@ function spawnBDR() {
     group: g, desk,
     dealTimer: 8 + Math.random() * 10,
     pendingWithAE: false,
+    state: 'atDesk', // 'atDesk' | 'toAE' | 'returning'
+    target: null, targetAE: null, dealValue: 0,
   });
   return true;
 }
@@ -1957,13 +1960,119 @@ function popCashAt(worldX, worldZ, amount) {
 
 function updateBDRs(dt) {
   for (const b of bdrs) {
+    // Walking states
+    if (b.state === 'toAE' || b.state === 'returning') {
+      if (!b.target) { b.state = 'atDesk'; continue; }
+      const tx = b.target.x - b.group.position.x;
+      const tz = b.target.z - b.group.position.z;
+      const dist = Math.hypot(tx, tz);
+      if (dist > 0.35) {
+        b.group.position.x += (tx / dist) * 4 * dt;
+        b.group.position.z += (tz / dist) * 4 * dt;
+        b.group.rotation.y = Math.atan2(tx / dist, tz / dist);
+        continue;
+      }
+      if (b.state === 'toAE') {
+        // Arrived at AE — hand off if the slot is still free
+        if (b.targetAE && !b.targetAE.currentDeal) {
+          b.targetAE.currentDeal = { bdr: b, value: b.dealValue, processTime: 6 };
+          b.pendingWithAE = true;
+        } else {
+          // Someone beat us to it — cash the deal solo at the AE's desk
+          addCash(b.dealValue);
+          popCashAt(b.group.position.x, b.group.position.z, b.dealValue);
+        }
+        b.state = 'returning';
+        b.target = { x: b.desk.group.position.x, z: b.desk.group.position.z + 1.0 };
+        b.dealValue = 0;
+        b.targetAE = null;
+      } else if (b.state === 'returning') {
+        b.state = 'atDesk';
+        b.target = null;
+      }
+      continue;
+    }
+
+    // atDesk: tick the deal timer
     b.dealTimer -= dt;
     if (b.dealTimer > 0) continue;
     b.dealTimer = 8 + Math.random() * 10;
-    // Solo deal: small random amount. (Handoff path coming in a later commit.)
     const deal = Math.round(5 + Math.random() * 10);
+
+    // If this BDR has no pending handoff AND there's a free AE that no
+    // other BDR is already walking to → hand off for a 3× close.
+    if (!b.pendingWithAE) {
+      const claimedAEs = new Set(bdrs.map(o => o.targetAE).filter(Boolean));
+      const freeAE = aes.find(ae => !ae.currentDeal && !claimedAEs.has(ae));
+      if (freeAE) {
+        b.dealValue = deal;
+        b.targetAE = freeAE;
+        b.state = 'toAE';
+        b.target = { x: freeAE.group.position.x, z: freeAE.group.position.z + 1.0 };
+        continue;
+      }
+    }
+    // Otherwise cash the deal solo at the BDR's desk
     addCash(deal);
     popCashAt(b.group.position.x, b.group.position.z, deal);
+  }
+}
+
+// ── Account Executives (AEs) ────────────────────────────────
+// Sit at their cubicle. Passively close deals handed off by BDRs at
+// 3× value, one slot per AE (no queue stacking). Hiring more AEs adds
+// parallel handoff capacity.
+const aes = [];
+const AE_BASE_COST = 800;
+const AE_COST_SCALE = 1.7;
+const AE_PROCESS_MULT = 3;
+function aeCost() { return Math.floor(AE_BASE_COST * Math.pow(AE_COST_SCALE, aes.length)); }
+
+function spawnAE() {
+  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
+  if (!desk) return false;
+  desk.occupied = true;
+  const idx = aes.length;
+  const look = {
+    bodyColor: [0x1a1a2e, 0x2a1a1e, 0x1a2e22][idx % 3], // dark business attire
+    pantsColor: 0x111118,
+    hairColor: HAIR_COLORS[(idx + 3) % HAIR_COLORS.length],
+    skinColor: SKIN_COLORS[(idx + 3) % SKIN_COLORS.length],
+    hasBeanie: false,
+    hasGlasses: (idx % 2) === 1,
+  };
+  const g = buildScrappyCharacter(look);
+  g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
+  scene.add(g);
+  aes.push({ group: g, desk, currentDeal: null });
+  return true;
+}
+
+function hireAE() {
+  const cost = aeCost();
+  if (state.cash < cost) return;
+  const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
+  if (!hasDesk) return;
+  state.cash -= cost;
+  if (!spawnAE()) { state.cash += cost; return; }
+  addCash(0);
+  renderHirePanel();
+  addFeedEntry(`💼 Hired AE #${aes.length}`);
+  showToast(`💼 AE #${aes.length} closing deals!`, 'milestone');
+}
+
+function updateAEs(dt) {
+  for (const ae of aes) {
+    if (!ae.currentDeal) continue;
+    ae.currentDeal.processTime -= dt;
+    if (ae.currentDeal.processTime <= 0) {
+      const closedValue = Math.round(ae.currentDeal.value * AE_PROCESS_MULT);
+      addCash(closedValue);
+      popCashAt(ae.group.position.x, ae.group.position.z, closedValue);
+      const bdr = ae.currentDeal.bdr;
+      if (bdr) bdr.pendingWithAE = false;
+      ae.currentDeal = null;
+    }
   }
 }
 
@@ -1980,6 +2089,8 @@ const hireEaBtnEl  = document.getElementById('hire-ea-btn');
 const hireEaCostEl = document.getElementById('hire-ea-cost');
 const hireBdrBtnEl  = document.getElementById('hire-bdr-btn');
 const hireBdrCostEl = document.getElementById('hire-bdr-cost');
+const hireAeBtnEl   = document.getElementById('hire-ae-btn');
+const hireAeCostEl  = document.getElementById('hire-ae-cost');
 const hireSalesSectionEl = document.getElementById('hire-sales-section');
 
 function renderHirePanel() {
@@ -1995,18 +2106,36 @@ function renderHirePanel() {
   hireEaBtnEl.disabled = state.cash < ecost;
   hireEaCostEl.textContent = eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`;
 
-  // BDR section only appears once a desk that can seat one is available
+  // Sales section only appears once any seat can host a BDR or AE
   const bdrCapacity = plots.some(p => p.active && deskAcceptsRole(p, 'bdr'));
-  if (!bdrCapacity) {
+  const aeCapacity  = plots.some(p => p.active && deskAcceptsRole(p, 'ae'));
+  if (!bdrCapacity && !aeCapacity) {
     hireSalesSectionEl.style.display = 'none';
   } else {
     hireSalesSectionEl.style.display = '';
-    const availableBdrSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
-    const bcost = bdrCost();
-    hireBdrBtnEl.disabled = !availableBdrSeat || state.cash < bcost;
-    hireBdrCostEl.textContent = !availableBdrSeat
-      ? 'No desks'
-      : (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
+    if (bdrCapacity) {
+      const availableBdrSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
+      const bcost = bdrCost();
+      hireBdrBtnEl.disabled = !availableBdrSeat || state.cash < bcost;
+      hireBdrCostEl.textContent = !availableBdrSeat
+        ? 'No desks'
+        : (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
+      hireBdrBtnEl.style.display = '';
+    } else {
+      hireBdrBtnEl.style.display = 'none';
+    }
+    // AE button shows once at least one BDR exists (AEs are useless without them)
+    if (aeCapacity && bdrs.length >= 1) {
+      const availableAeSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
+      const acost = aeCost();
+      hireAeBtnEl.disabled = !availableAeSeat || state.cash < acost;
+      hireAeCostEl.textContent = !availableAeSeat
+        ? 'No desks'
+        : (aes.length === 0 ? `$${acost}` : `$${acost} · ${aes.length} on staff`);
+      hireAeBtnEl.style.display = '';
+    } else {
+      hireAeBtnEl.style.display = 'none';
+    }
   }
 }
 
@@ -2021,6 +2150,7 @@ hireBtnEl.addEventListener('click', () => {
 });
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 hireBdrBtnEl.addEventListener('click', hireBDR);
+hireAeBtnEl.addEventListener('click', hireAE);
 
 // (Product shelf removed — workers now deliver to CEO desk)
 
@@ -2875,6 +3005,7 @@ class OfficeFloor extends Floor {
     updatePlayerEspressoRefill(dt);
     updateIdeaWorkers(dt);
     updateExecutiveAssistants(dt);
+    updateAEs(dt);
     updateBDRs(dt);
     updateSupportStaff(dt);
     checkDecorUpgrades(dt);
@@ -3074,9 +3205,11 @@ function doIPO() {
   // Remove Executive Assistants
   for (const e of eas) scene.remove(e.group);
   eas.length = 0;
-  // Remove BDRs
+  // Remove BDRs + AEs
   for (const b of bdrs) scene.remove(b.group);
   bdrs.length = 0;
+  for (const a of aes) scene.remove(a.group);
+  aes.length = 0;
 
   // Remove amenities
   for (const a of amenities) {
@@ -3152,6 +3285,7 @@ function saveGame() {
       supportStaff: supportStaff.map(s => s.role),
       eaCount: eas.length,
       bdrCount: bdrs.length,
+      aeCount: aes.length,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -3229,6 +3363,9 @@ function loadGame() {
     }
     if (typeof p.bdrCount === 'number') {
       for (let i = 0; i < p.bdrCount; i++) spawnBDR();
+    }
+    if (typeof p.aeCount === 'number') {
+      for (let i = 0; i < p.aeCount; i++) spawnAE();
     }
     if (p.amenities) {
       for (const saved of p.amenities) {
