@@ -605,6 +605,7 @@
     <div id="hire-section">
       <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
       <button class="hire-btn" id="hire-btn">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
+      <button class="hire-btn" id="hire-ext-eng-btn" style="margin-top:4px;background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.14)">👔 Hire External Engineer<span class="cost" id="hire-ext-eng-cost">$225</span></button>
       <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px">
         <div class="panel-title" style="margin-bottom:6px">🛠️ Office Managers</div>
         <button class="hire-btn" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
@@ -612,6 +613,7 @@
       <div id="hire-sales-section" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;display:none">
         <div class="panel-title" style="margin-bottom:6px">📞 Sales Team</div>
         <button class="hire-btn" id="hire-bdr-btn">📞 Hire BDR<span class="cost" id="hire-bdr-cost">$200</span></button>
+        <button class="hire-btn" id="hire-ext-bdr-btn" style="margin-top:4px;background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.14)">👔 Hire External BDR<span class="cost" id="hire-ext-bdr-cost">$600</span></button>
         <button class="hire-btn" id="hire-ae-btn" style="margin-top:6px;display:none">💼 Hire Account Executive<span class="cost" id="hire-ae-cost">$800</span></button>
       </div>
       <div id="hire-leadership-section" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;display:none">
@@ -1502,23 +1504,50 @@ function buildScrappyCharacter(opts) {
     new THREE.MeshLambertMaterial({ color: pantsColor })
   );
   pants.position.y = 0.41; pants.castShadow = true; g.add(pants);
-  // Hoodie body
-  const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.34, 0.55, 4, 10),
-    new THREE.MeshLambertMaterial({ color: bodyColor })
-  );
-  body.position.y = 1.02; body.castShadow = true; g.add(body);
-  // Hood (half-sphere behind neck, same color as hoodie)
-  const hood = new THREE.Mesh(
-    new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshLambertMaterial({ color: bodyColor })
-  );
-  hood.position.set(0, 1.42, -0.12); hood.rotation.x = 0.35; hood.castShadow = true; g.add(hood);
-  // Hoodie drawstrings
-  const stringMat = new THREE.MeshLambertMaterial({ color: 0xf0efe8 });
-  for (const sx of [-0.07, 0.07]) {
-    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6), stringMat);
-    str.position.set(sx, 1.18, 0.3); g.add(str);
+  // Torso: hoodie by default, collared button-down for externals
+  if (opts.isCollared) {
+    // Collared button-down shirt
+    const shirtColor = opts.bodyColor ?? 0xdfe6ee;
+    const shirt = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.32, 0.55, 4, 10),
+      new THREE.MeshLambertMaterial({ color: shirtColor })
+    );
+    shirt.position.y = 1.02; shirt.castShadow = true; g.add(shirt);
+    // Collar (V-shape using two small wedges)
+    const collarMat = new THREE.MeshLambertMaterial({ color: shirtColor });
+    for (const sx of [-0.08, 0.08]) {
+      const c = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.05), collarMat);
+      c.position.set(sx, 1.45, 0.26); c.rotation.y = sx > 0 ? -0.4 : 0.4; g.add(c);
+    }
+    // Button placket (thin strip down the middle)
+    const placket = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.55, 0.02),
+      new THREE.MeshLambertMaterial({ color: 0xffffff })
+    );
+    placket.position.set(0, 1.05, 0.3); g.add(placket);
+    for (let bi = 0; bi < 4; bi++) {
+      const btn = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), new THREE.MeshLambertMaterial({ color: 0x2a2a2a }));
+      btn.position.set(0, 1.28 - bi * 0.14, 0.32); g.add(btn);
+    }
+  } else {
+    // Hoodie body
+    const body = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.34, 0.55, 4, 10),
+      new THREE.MeshLambertMaterial({ color: bodyColor })
+    );
+    body.position.y = 1.02; body.castShadow = true; g.add(body);
+    // Hood
+    const hood = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshLambertMaterial({ color: bodyColor })
+    );
+    hood.position.set(0, 1.42, -0.12); hood.rotation.x = 0.35; hood.castShadow = true; g.add(hood);
+    // Drawstrings
+    const stringMat = new THREE.MeshLambertMaterial({ color: 0xf0efe8 });
+    for (const sx of [-0.07, 0.07]) {
+      const str = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6), stringMat);
+      str.position.set(sx, 1.18, 0.3); g.add(str);
+    }
   }
   // Head
   const head = new THREE.Mesh(
@@ -1774,14 +1803,29 @@ function deskAcceptsRole(desk, role) {
   return desk.role === role || desk.role === 'any' || !desk.role;
 }
 
-function spawnIdeaWorker() {
+// External cost multipliers + stat bonuses. Internals use the scrappy
+// hoodie look; externals spawn in a collared button-down, cost 3× the
+// normal hire, and carry a per-hire bonus on their throughput.
+const EXTERNAL_COST_MULT = 3;
+const EXTERNAL_ENG_RATE_BONUS = 1.30; // +30% work rate on this worker
+const EXTERNAL_BDR_DEAL_BONUS = 1.50; // +50% deal value from this BDR
+
+function spawnIdeaWorker(opts = {}) {
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   if (!desk) return;
   desk.occupied = true;
 
-  const g = buildScrappyCharacter(randomWorkerLook(ideaWorkers.length + 1));
+  const look = randomWorkerLook(ideaWorkers.length + 1);
+  if (opts.external) {
+    // Collared button-down + neutral slacks
+    look.isCollared = true;
+    look.bodyColor = [0xdfe6ee, 0xeaeaea, 0xbcc7d6, 0xd7ccbc][ideaWorkers.length % 4];
+    look.pantsColor = 0x1a1a22;
+    look.hasBeanie = false;
+  }
+  const g = buildScrappyCharacter(look);
   const carryMesh = makePaperStack();
-  carryMesh.position.set(0, 1.15, 0.3); // held at chest, slightly in front of body
+  carryMesh.position.set(0, 1.15, 0.3);
   g.add(carryMesh);
 
   g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
@@ -1799,6 +1843,8 @@ function spawnIdeaWorker() {
     productValue: 0,
     waitT: 0,
     target: null,
+    external: !!opts.external,
+    externalMult: opts.external ? EXTERNAL_ENG_RATE_BONUS : 1.0,
   });
 }
 
@@ -1817,7 +1863,7 @@ function updateIdeaWorkers(dt) {
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < PROX_RANGE ? 1.5 : 1.0;
-      const rate = WORK_RATE_BASE * ideaSpeedMult * engTeamMultiplier * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
+      const rate = WORK_RATE_BASE * ideaSpeedMult * engTeamMultiplier * (w.externalMult || 1) * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
       w.currentRate = rate;
       w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
 
@@ -2206,7 +2252,7 @@ const BDR_BASE_COST = 200;
 const BDR_COST_SCALE = 1.5;
 function bdrCost() { return Math.floor(BDR_BASE_COST * Math.pow(BDR_COST_SCALE, bdrs.length)); }
 
-function spawnBDR() {
+function spawnBDR(opts = {}) {
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
   if (!desk) return false;
   desk.occupied = true;
@@ -2219,6 +2265,12 @@ function spawnBDR() {
     hasBeanie: false,
     hasGlasses: (idx % 3) === 0,
   };
+  if (opts.external) {
+    look.isCollared = true;
+    look.bodyColor = [0xdfe6ee, 0xeaeaea, 0xbcc7d6, 0xd7ccbc][idx % 4];
+    look.pantsColor = 0x1a1a22;
+    look.hasBeanie = false;
+  }
   const g = buildScrappyCharacter(look);
   g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
   scene.add(g);
@@ -2226,8 +2278,10 @@ function spawnBDR() {
     group: g, desk,
     dealTimer: 8 + Math.random() * 10,
     pendingWithAE: false,
-    state: 'atDesk', // 'atDesk' | 'toAE' | 'returning'
+    state: 'atDesk',
     target: null, targetAE: null, dealValue: 0,
+    external: !!opts.external,
+    externalMult: opts.external ? EXTERNAL_BDR_DEAL_BONUS : 1.0,
   });
   return true;
 }
@@ -2295,7 +2349,7 @@ function updateBDRs(dt) {
     b.dealTimer -= dt;
     if (b.dealTimer > 0) continue;
     b.dealTimer = 8 + Math.random() * 10;
-    const deal = Math.round(5 + Math.random() * 10);
+    const deal = Math.round((5 + Math.random() * 10) * (b.externalMult || 1));
 
     // If this BDR has no pending handoff AND there's a free AE that no
     // other BDR is already walking to → hand off for a 3× close.
@@ -2535,6 +2589,9 @@ function renderHirePanel() {
   const hcost = ideaWorkerHireCost();
   hireBtnEl.disabled = !availableEngSeat || state.cash < hcost;
   hireCostEl.textContent = availableEngSeat ? `$${hcost}` : 'No desks';
+  const extEngCost = hcost * EXTERNAL_COST_MULT;
+  hireExtEngBtnEl.disabled = !availableEngSeat || state.cash < extEngCost;
+  hireExtEngCostEl.textContent = availableEngSeat ? `$${fmtCash(extEngCost)}` : 'No desks';
 
   const ecost = eaCost();
   hireEaBtnEl.disabled = state.cash < ecost;
@@ -2557,8 +2614,13 @@ function renderHirePanel() {
         ? 'No desks'
         : (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
       hireBdrBtnEl.style.display = '';
+      const extBcost = bcost * EXTERNAL_COST_MULT;
+      hireExtBdrBtnEl.disabled = !availableBdrSeat || state.cash < extBcost;
+      hireExtBdrCostEl.textContent = availableBdrSeat ? `$${fmtCash(extBcost)}` : 'No desks';
+      hireExtBdrBtnEl.style.display = '';
     } else {
       hireBdrBtnEl.style.display = 'none';
+      hireExtBdrBtnEl.style.display = 'none';
     }
     // AE promotion: requires a BDR to promote + any desk that accepts
     // 'ae'. Flex desks work early; Account Management + converted
@@ -2600,8 +2662,34 @@ hireBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
 });
+const hireExtEngBtnEl  = document.getElementById('hire-ext-eng-btn');
+const hireExtEngCostEl = document.getElementById('hire-ext-eng-cost');
+hireExtEngBtnEl.addEventListener('click', () => {
+  const cost = ideaWorkerHireCost() * EXTERNAL_COST_MULT;
+  if (state.cash < cost) return;
+  const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
+  if (!hasDesk) return;
+  state.cash -= cost;
+  spawnIdeaWorker({ external: true });
+  addCash(0);
+  renderHirePanel();
+  addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
+});
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 hireBdrBtnEl.addEventListener('click', hireBDR);
+const hireExtBdrBtnEl  = document.getElementById('hire-ext-bdr-btn');
+const hireExtBdrCostEl = document.getElementById('hire-ext-bdr-cost');
+hireExtBdrBtnEl.addEventListener('click', () => {
+  const cost = bdrCost() * EXTERNAL_COST_MULT;
+  if (state.cash < cost) return;
+  const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
+  if (!hasDesk) return;
+  state.cash -= cost;
+  if (!spawnBDR({ external: true })) { state.cash += cost; return; }
+  addCash(0);
+  renderHirePanel();
+  addFeedEntry(`👔 Hired external BDR (+${Math.round((EXTERNAL_BDR_DEAL_BONUS - 1) * 100)}% deals)`);
+});
 hireAeBtnEl.addEventListener('click', handleAeHireOrPromote);
 hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
 
@@ -3741,6 +3829,8 @@ function saveGame() {
       upgrades: upgLevels,
       unlocked,
       ideaWorkers: ideaWorkers.length,
+      ideaWorkerExternals: ideaWorkers.map(w => !!w.external),
+      bdrExternals: bdrs.map(b => !!b.external),
       supportStaff: supportStaff.map(s => s.role),
       eaCount: eas.length,
       bdrCount: bdrs.length,
@@ -3838,7 +3928,8 @@ function loadGame() {
     }
     // Re-spawn idea workers silently (free on load)
     if (p.ideaWorkers) {
-      for (let i = 0; i < p.ideaWorkers; i++) spawnIdeaWorker();
+      const flags = Array.isArray(p.ideaWorkerExternals) ? p.ideaWorkerExternals : [];
+      for (let i = 0; i < p.ideaWorkers; i++) spawnIdeaWorker({ external: !!flags[i] });
     }
     // Re-spawn support staff silently
     if (p.supportStaff) {
@@ -3849,7 +3940,8 @@ function loadGame() {
       for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant();
     }
     if (typeof p.bdrCount === 'number') {
-      for (let i = 0; i < p.bdrCount; i++) spawnBDR();
+      const bflags = Array.isArray(p.bdrExternals) ? p.bdrExternals : [];
+      for (let i = 0; i < p.bdrCount; i++) spawnBDR({ external: !!bflags[i] });
     }
     if (typeof p.aeCount === 'number') {
       for (let i = 0; i < p.aeCount; i++) spawnAE();
