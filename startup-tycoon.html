@@ -1247,8 +1247,42 @@ const EXTRA_SLOT_OFFSETS = [
 const MAX_EXTRA_DESKS_PER_ROOM = EXTRA_SLOT_OFFSETS.length;
 function extraDeskCountInRoom(roomId) {
   const def = ROOM_DEFS.find(r => r.id === roomId);
-  const baseCount = (def?.desks || []).length;
+  let baseCount = (def?.desks || []).length;
+  // If this room has a current conversion mode, its mode's desks
+  // replace the ROOM_DEFS base — use that count instead so extras
+  // are measured against whatever the room is now.
+  const cur = currentModeOf(roomId);
+  if (cur && Array.isArray(cur.desks)) baseCount = cur.desks.length;
   return plots.filter(p => p.roomId === roomId).length - baseCount;
+}
+// Role to apply to new desks added to this room. Prefers the current
+// conversion mode's desk role (e.g. Sales Corner in AE Office mode
+// needs 'ae' desks, not 'bdr'); falls back to the room's static
+// locked role; finally to 'any' for flex rooms.
+function getRoomRole(roomId) {
+  const cur = currentModeOf(roomId);
+  if (cur && cur.desks && cur.desks.length && cur.desks[0].role) return cur.desks[0].role;
+  return ROOM_LOCKED_ROLES[roomId] || 'any';
+}
+// Create one extra desk in the given room at the next open slot.
+// Returns true on success, false if the room is at capacity or
+// doesn't exist. Does NOT spend cash — callers handle that.
+function addExtraDeskToRoom(roomId) {
+  const def = ROOM_DEFS.find(r => r.id === roomId);
+  if (!def) return false;
+  const n = extraDeskCountInRoom(roomId);
+  if (n >= MAX_EXTRA_DESKS_PER_ROOM) return false;
+  const slot = EXTRA_SLOT_OFFSETS[n];
+  const plot = createPlot({
+    x: def.gx * 16 + slot.x,
+    z: def.gz * 16 + slot.z,
+    role: getRoomRole(roomId),
+    tier: roomId === 'starter' ? 0 : 99,
+    roomId,
+  });
+  plot.active = true;
+  plot.group.visible = true;
+  return true;
 }
 function addDeskCost(roomId) {
   const n = extraDeskCountInRoom(roomId);
@@ -1398,6 +1432,9 @@ function convertRoom(roomId, opts = {}) {
       if (step.rec.hire.carryMesh) setPaperStackProgress(step.rec.hire.carryMesh, 0);
     }
   }
+  // Remember how many paid-for extra desks the room had so we can
+  // rebuild them after the mode swap (they'd otherwise be lost).
+  const extraCount = extraDeskCountInRoom(roomId);
   // Remove this room's old plots from the scene + plots array
   const oldPlots = plots.filter(p => p.roomId === roomId);
   for (const op of oldPlots) scene.remove(op.group);
@@ -1413,6 +1450,8 @@ function convertRoom(roomId, opts = {}) {
     plot.active = true;
     plot.group.visible = true;
   }
+  // Restore extra desks at the current mode's role
+  for (let i = 0; i < extraCount; i++) addExtraDeskToRoom(roomId);
   // Update mode state + fire side-effect
   roomModes[roomId] = cur.nextMode;
   addCash(0);
@@ -1427,22 +1466,10 @@ function convertRoom(roomId, opts = {}) {
 function addDeskToCurrentRoom() {
   const def = getPlayerRoom();
   if (!def) return;
-  const n = extraDeskCountInRoom(def.id);
-  if (n >= MAX_EXTRA_DESKS_PER_ROOM) return;
   const cost = addDeskCost(def.id);
   if (state.cash < cost) return;
+  if (!addExtraDeskToRoom(def.id)) return;
   state.cash -= cost;
-  const slot = EXTRA_SLOT_OFFSETS[n];
-  const role = ROOM_LOCKED_ROLES[def.id] || 'any';
-  const newPlot = createPlot({
-    x: def.gx * 16 + slot.x,
-    z: def.gz * 16 + slot.z,
-    role,
-    tier: def.id === 'starter' ? 0 : 99,
-    roomId: def.id,
-  });
-  newPlot.active = true;
-  newPlot.group.visible = true;
   addCash(0);
   renderHirePanel();
   renderRoomPanel();
@@ -4222,6 +4249,14 @@ function saveGame() {
       vpCount: vps.length,
       vpTier: vps.length > 0 ? vps[0].tier : 0,
       roomModes: { ...roomModes },
+      extraDesksByRoom: (() => {
+        const m = {};
+        for (const r of ROOM_DEFS) {
+          const n = extraDeskCountInRoom(r.id);
+          if (n > 0) m[r.id] = n;
+        }
+        return m;
+      })(),
       morale: teamMorale(),
       investorAffinity: { ...investorAffinity },
       fundingRoundIdx,
@@ -4310,6 +4345,16 @@ function loadGame() {
           plot.group.visible = true;
         }
         roomModes[roomId] = mode;
+      }
+    }
+    // Restore paid-for extra desks per room so seated workers survive
+    // a save/load. Must run after room modes so the correct role is
+    // applied (e.g. Sales Corner in AE-Office mode adds 'ae' desks).
+    if (p.extraDesksByRoom && typeof p.extraDesksByRoom === 'object') {
+      for (const [roomId, count] of Object.entries(p.extraDesksByRoom)) {
+        if (!ownedRooms.has(roomId)) continue;
+        const n = Math.max(0, Math.min(MAX_EXTRA_DESKS_PER_ROOM, count | 0));
+        for (let i = 0; i < n; i++) addExtraDeskToRoom(roomId);
       }
     }
     // Re-spawn idea workers silently (free on load)
