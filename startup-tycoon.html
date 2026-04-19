@@ -614,6 +614,10 @@
         <button class="hire-btn" id="hire-bdr-btn">📞 Hire BDR<span class="cost" id="hire-bdr-cost">$200</span></button>
         <button class="hire-btn" id="hire-ae-btn" style="margin-top:6px;display:none">💼 Hire Account Executive<span class="cost" id="hire-ae-cost">$800</span></button>
       </div>
+      <div id="hire-leadership-section" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;display:none">
+        <div class="panel-title" style="margin-bottom:6px">🏛️ Leadership</div>
+        <button class="hire-btn" id="hire-vp-btn">🏛️ Hire VP Engineering<span class="cost" id="hire-vp-cost">$1,500</span></button>
+      </div>
     </div>
   </div>
   <div id="room-panel" class="panel">
@@ -1582,15 +1586,26 @@ function updateIdeaWorkers(dt) {
         if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
         w.productValue = Math.round(featurePrice * dealValueMult * productVersionMult * w.paperBoost * w.pingPongBoost);
         w.pingPongBoost = 1.0;
-        setPaperStackProgress(w.carryMesh, 0.8); // carry an 8-sheet stack to the CEO desk
-        w.state = 'toDeliver';
-        w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 2.0 };
+        setPaperStackProgress(w.carryMesh, 0.8); // carry an 8-sheet stack
+        // VP Eng handoff: if a VP is hired and this engineer doesn't
+        // already have a submission pending, route to the VP's desk
+        // for the queue-scaling review multiplier. Otherwise ship to
+        // the CEO desk directly.
+        const vp = (!w.pendingWithVP) ? pickVPForEngineer() : null;
+        if (vp) {
+          w.targetVP = vp;
+          w.state = 'toVP';
+          w.target = { x: vp.group.position.x, z: vp.group.position.z + 1.0 };
+        } else {
+          w.state = 'toDeliver';
+          w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 2.0 };
+        }
       }
       continue;
     }
 
     // Walking states
-    if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'returning') {
+    if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'toVP' || w.state === 'returning') {
       if (!w.target) { w.state = 'atDesk'; continue; }
       const spd = IW_SPEED * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? 1.5 : 1.0);
       const tx = w.target.x - w.group.position.x;
@@ -1616,6 +1631,23 @@ function updateIdeaWorkers(dt) {
         checkUserMilestones();
         if (Math.random() < 0.35) showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
         setPaperStackProgress(w.carryMesh, 0);
+        w.state = 'returning';
+        w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
+      } else if (w.state === 'toVP') {
+        // Hand off for VP review. If the VP was removed mid-walk,
+        // fall back to delivering direct to the CEO desk.
+        if (w.targetVP && vps.includes(w.targetVP)) {
+          w.targetVP.queue.push({ worker: w, value: w.productValue, processTime: VP_REVIEW_TIME });
+          w.pendingWithVP = true;
+          totalFeaturesShipped++;  // still counts as a shipped feature
+          checkProductVersion();
+          totalUsers += Math.max(1, Math.floor(w.productValue / 4));
+          checkUserMilestones();
+        } else {
+          addCash(w.productValue);
+        }
+        setPaperStackProgress(w.carryMesh, 0);
+        w.targetVP = null;
         w.state = 'returning';
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       } else if (w.state === 'returning') {
@@ -2076,6 +2108,77 @@ function updateAEs(dt) {
   }
 }
 
+// ── VP Engineering (Leadership Suite manager) ───────────────
+// Reviews engineer features before they ship. Holds one submission
+// per engineer concurrently; all items process in parallel (6s each).
+// On completion the feature value is multiplied by
+// min(3.0, 1 + 0.3 × queueSize) — the more deals the VP is juggling
+// at that moment, the bigger the close bonus.
+const vps = [];
+const VP_BASE_COST = 1500;
+const VP_COST_SCALE = 2.0;
+const VP_REVIEW_TIME = 6;
+function vpCost() { return Math.floor(VP_BASE_COST * Math.pow(VP_COST_SCALE, vps.length)); }
+function vpMultiplier(queueSize) { return Math.min(3.0, 1 + 0.3 * Math.max(1, queueSize)); }
+
+function spawnVP() {
+  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
+  if (!desk) return false;
+  desk.occupied = true;
+  const idx = vps.length;
+  const look = {
+    bodyColor: [0x1e2e3e, 0x2e1e2e, 0x1e3e2e][idx % 3],
+    pantsColor: 0x111118,
+    hairColor: HAIR_COLORS[idx % HAIR_COLORS.length],
+    skinColor: SKIN_COLORS[idx % SKIN_COLORS.length],
+    hasBeanie: false,
+    hasGlasses: true,
+  };
+  const g = buildScrappyCharacter(look);
+  g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
+  scene.add(g);
+  vps.push({ group: g, desk, queue: [] });
+  return true;
+}
+
+function hireVP() {
+  const cost = vpCost();
+  if (state.cash < cost) return;
+  const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
+  if (!hasDesk) return;
+  state.cash -= cost;
+  if (!spawnVP()) { state.cash += cost; return; }
+  addCash(0);
+  renderHirePanel();
+  addFeedEntry(`🏛️ Hired VP Engineering #${vps.length}`);
+  showToast(`🏛️ VP Engineering in the office!`, 'milestone');
+}
+
+function updateVPs(dt) {
+  for (const v of vps) {
+    if (v.queue.length === 0) continue;
+    const queueSize = v.queue.length;
+    for (let i = v.queue.length - 1; i >= 0; i--) {
+      const item = v.queue[i];
+      item.processTime -= dt;
+      if (item.processTime <= 0) {
+        const mult = vpMultiplier(queueSize);
+        const closed = Math.round(item.value * mult);
+        addCash(closed);
+        popCashAt(v.group.position.x, v.group.position.z, closed);
+        if (item.worker) item.worker.pendingWithVP = false;
+        v.queue.splice(i, 1);
+      }
+    }
+  }
+}
+
+// Engineer picks the VP with the smallest queue to balance load
+function pickVPForEngineer() {
+  if (vps.length === 0) return null;
+  return vps.reduce((best, v) => (!best || v.queue.length < best.queue.length) ? v : best, null);
+}
+
 // ── Support Staff (legacy; barista + runner roles fully retired) ──
 const supportStaff = [];
 function updateSupportStaff(_dt) { /* no-op */ }
@@ -2092,6 +2195,9 @@ const hireBdrCostEl = document.getElementById('hire-bdr-cost');
 const hireAeBtnEl   = document.getElementById('hire-ae-btn');
 const hireAeCostEl  = document.getElementById('hire-ae-cost');
 const hireSalesSectionEl = document.getElementById('hire-sales-section');
+const hireVpBtnEl  = document.getElementById('hire-vp-btn');
+const hireVpCostEl = document.getElementById('hire-vp-cost');
+const hireLeadershipSectionEl = document.getElementById('hire-leadership-section');
 
 function renderHirePanel() {
   // Engineers can sit at 'eng' desks + any generic 'any' desk
@@ -2137,6 +2243,21 @@ function renderHirePanel() {
       hireAeBtnEl.style.display = 'none';
     }
   }
+
+  // Leadership section appears when a vp-compatible desk exists AND at
+  // least one engineer is on staff (VP Eng reviews engineer work).
+  const vpCapacity = plots.some(p => p.active && deskAcceptsRole(p, 'vp'));
+  if (!vpCapacity || ideaWorkers.length < 1) {
+    hireLeadershipSectionEl.style.display = 'none';
+  } else {
+    hireLeadershipSectionEl.style.display = '';
+    const availableVpSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
+    const vcost = vpCost();
+    hireVpBtnEl.disabled = !availableVpSeat || state.cash < vcost;
+    hireVpCostEl.textContent = !availableVpSeat
+      ? 'No offices'
+      : (vps.length === 0 ? `$${vcost}` : `$${vcost} · ${vps.length} on staff`);
+  }
 }
 
 hireBtnEl.addEventListener('click', () => {
@@ -2151,6 +2272,7 @@ hireBtnEl.addEventListener('click', () => {
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 hireBdrBtnEl.addEventListener('click', hireBDR);
 hireAeBtnEl.addEventListener('click', hireAE);
+hireVpBtnEl.addEventListener('click', hireVP);
 
 // (Product shelf removed — workers now deliver to CEO desk)
 
@@ -3005,6 +3127,7 @@ class OfficeFloor extends Floor {
     updatePlayerEspressoRefill(dt);
     updateIdeaWorkers(dt);
     updateExecutiveAssistants(dt);
+    updateVPs(dt);
     updateAEs(dt);
     updateBDRs(dt);
     updateSupportStaff(dt);
@@ -3205,11 +3328,13 @@ function doIPO() {
   // Remove Executive Assistants
   for (const e of eas) scene.remove(e.group);
   eas.length = 0;
-  // Remove BDRs + AEs
+  // Remove BDRs + AEs + VPs
   for (const b of bdrs) scene.remove(b.group);
   bdrs.length = 0;
   for (const a of aes) scene.remove(a.group);
   aes.length = 0;
+  for (const v of vps) scene.remove(v.group);
+  vps.length = 0;
 
   // Remove amenities
   for (const a of amenities) {
@@ -3286,6 +3411,7 @@ function saveGame() {
       eaCount: eas.length,
       bdrCount: bdrs.length,
       aeCount: aes.length,
+      vpCount: vps.length,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -3366,6 +3492,9 @@ function loadGame() {
     }
     if (typeof p.aeCount === 'number') {
       for (let i = 0; i < p.aeCount; i++) spawnAE();
+    }
+    if (typeof p.vpCount === 'number') {
+      for (let i = 0; i < p.vpCount; i++) spawnVP();
     }
     if (p.amenities) {
       for (const saved of p.amenities) {
