@@ -1711,6 +1711,10 @@ let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
 let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
 // Prestige (IPO seasons)
 let prestigeLevel = 0;
+// sessionGen increments on IPO reset so any in-flight setTimeouts
+// (event boosts like Pivot, Outage recovery, Corp Dev) can skip their
+// rollback if the new season has already started.
+let sessionGen = 0;
 let prestigeMultiplier = 1; // 2^prestigeLevel, applied to dealValueMult at season start
 // Product versioning — deal value bonus based on features shipped
 const PRODUCT_VERSIONS = [
@@ -3234,7 +3238,8 @@ const INVESTOR_TYPES = [
   { id: 'corpdev',    label: 'Corp Dev',        icon: '🏦', baseReward: 0,    windowSec: 32, color: 0x3a4a5a,
     onGreet: (inv) => { const prev = dealValueMult; dealValueMult *= 1.5;
       addFeedEntry('🏦 Corp Dev: deal value ×1.5 for 60s');
-      setTimeout(() => { dealValueMult = Math.max(1, prev); }, 60000); } },
+      const g = sessionGen;
+      setTimeout(() => { if (sessionGen !== g) return; dealValueMult = Math.max(1, prev); }, 60000); } },
   { id: 'advisor',    label: 'Advisor',         icon: '🎓', baseReward: 0,    windowSec: 30, color: 0x3a6a4a,
     onGreet: (inv) => { changeMorale(+20, 'Advisor pep talk'); } },
   { id: 'tirekicker', label: 'Tire-kicker',     icon: '🚪', baseReward: 150,  windowSec: 18, color: 0x6a6a6a,
@@ -3512,10 +3517,10 @@ const EVENT_POOL = [
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
     onStart:()=>{ dealSpeedMult=0; changeMorale(-8, 'Prod outage'); },
-    onEnd:()=>{ dealSpeedMult=1; const prevMult=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*3,8); setTimeout(()=>{ ideaSpeedMult=prevMult; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
+    onEnd:()=>{ dealSpeedMult=1; const prevMult=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*3,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prevMult; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
   { id:'pivot', label:'🔄 Pivot', dur:0,
     msg:'🔄 Brilliant pivot! Ideas flow 2× faster for 30s!', cls:'milestone',
-    onStart:()=>{ const prev=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*2,8); setTimeout(()=>{ ideaSpeedMult=prev; },30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
+    onStart:()=>{ const prev=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*2,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prev; },30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
     onEnd:()=>{} },
 ];
 let activeEvent = null;
@@ -4191,6 +4196,9 @@ function doIPO() {
   nextInvestorIn = 60 + Math.random() * 60;
   // Reset Sprint state so the new season starts with the button fresh
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
+  // Bump the generation so any event setTimeouts still pending from
+  // the old season skip their rollback and don't clobber new-season state
+  sessionGen++;
   // Clear shared walls map and rebuild starter room walls
   for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
   const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
