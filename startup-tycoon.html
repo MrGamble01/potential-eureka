@@ -437,6 +437,34 @@
       0%,100% { box-shadow: 0 0 22px rgba(63,185,80,0.25); }
       50%      { box-shadow: 0 0 38px rgba(63,185,80,0.55), 0 0 60px rgba(108,99,255,0.2); }
     }
+    /* ── Tip modal (first-time mechanic hints) ──────── */
+    #tip-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.68);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center; z-index: 210;
+    }
+    #tip-modal.open { display: flex; animation: tipFade 0.18s ease; }
+    @keyframes tipFade { from { opacity: 0; } to { opacity: 1; } }
+    .tip-panel {
+      background: rgba(13,17,23,0.98);
+      border: 1px solid rgba(108,99,255,0.42);
+      border-radius: 14px; padding: 24px 22px; max-width: 400px; width: 90vw;
+      box-shadow: 0 12px 44px rgba(0,0,0,0.55), 0 0 28px rgba(108,99,255,0.18);
+      text-align: center;
+    }
+    .tip-title { font-size: 22px; font-weight: 800; margin-bottom: 10px; color: #E6EDF3; }
+    .tip-body  {
+      font-size: 14px; color: #a8b0b8; line-height: 1.55;
+      margin-bottom: 18px; text-align: left;
+    }
+    .tip-ok {
+      background: linear-gradient(135deg, rgba(108,99,255,0.32), rgba(63,185,80,0.28));
+      border: 1px solid rgba(108,99,255,0.55); color: #E6EDF3;
+      border-radius: 8px; padding: 10px 24px; font-weight: 800; font-size: 14px;
+      font-family: inherit; cursor: pointer; transition: all 0.15s;
+    }
+    .tip-ok:hover { background: linear-gradient(135deg, rgba(108,99,255,0.48), rgba(63,185,80,0.4)); }
+    .tip-ok:active { transform: scale(0.97); }
     /* ── IPO modal ────────────────────────────────────── */
     #ipo-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.78);
@@ -774,6 +802,10 @@
       <input type="checkbox" id="investor-enabled">
       <span>🤝 Investor check-ins</span>
     </label>
+    <label class="setting-row">
+      <input type="checkbox" id="tips-enabled">
+      <span>💡 Show tips</span>
+    </label>
     <label class="setting-row" style="justify-content:space-between">
       <span>💬 Toast density</span>
       <select id="toast-density">
@@ -790,6 +822,13 @@
 <button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="Take your startup public!">🎉 IPO!</button>
+<div id="tip-modal" role="dialog">
+  <div class="tip-panel">
+    <div class="tip-title" id="tip-title"></div>
+    <div class="tip-body"  id="tip-body"></div>
+    <button class="tip-ok" id="tip-ok">Got it</button>
+  </div>
+</div>
 <div id="ipo-modal">
   <div class="ipo-panel">
     <div class="ipo-title">🎉 IPO Time!</div>
@@ -833,8 +872,15 @@ function fitCamera() {
   camera.near = -100; camera.far = 200;
   camera.updateProjectionMatrix();
 }
-camera.position.set(20, 20, 20);
-camera.lookAt(0, 0, 0);
+// Camera pan (0 = centered on origin). Adjusted via right-click drag
+// on desktop or two-finger drag on touch. Player + tap-to-move still
+// work on the canvas normally; pan is a separate gesture.
+let cameraPanX = 0, cameraPanZ = 0;
+function applyCameraTransform() {
+  camera.position.set(20 + cameraPanX, 20, 20 + cameraPanZ);
+  camera.lookAt(cameraPanX, 0, cameraPanZ);
+}
+applyCameraTransform();
 fitCamera();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -2135,6 +2181,8 @@ function updateIdeaWorkers(dt) {
           w.target = { x: printerAm.position.x, z: printerAm.position.z + 1.2 };
           continue;
         }
+        // First-time hint: player probably doesn't know how to fix this yet
+        showTip('paper');
         w.paperIdleT += dt;
         if (w.paperIdleT >= 15) {
           w.paperIdleT = 0;
@@ -3532,6 +3580,7 @@ function spawnInvestor() {
   });
   showToast(`${type.icon} ${type.label} just walked in — go shake their hand!`, 'milestone', 'standard');
   addFeedEntry(`${type.icon} ${type.label} arrived (${type.windowSec}s)`);
+  showTip('investor');
 }
 
 function greetInvestor(inv) {
@@ -3566,7 +3615,13 @@ function updateInvestors(dt) {
       inv.state = 'leaving';
       inv.target = { x: 0, z: 8 };
     }
-    if (stepToward(inv.group, inv.target, 3.5, dt, 0.4)) {
+    // Stop wandering when the player gets close — makes them
+    // easy to catch and greet instead of chasing a moving target.
+    const dxp = player.position.x - inv.group.position.x;
+    const dzp = player.position.z - inv.group.position.z;
+    const playerDist = Math.hypot(dxp, dzp);
+    const paused = !inv.greeted && inv.state !== 'leaving' && playerDist < 3.5;
+    if (!paused && stepToward(inv.group, inv.target, 3.5, dt, 0.4)) {
       if (inv.state === 'leaving') {
         scene.remove(inv.group);
         investors.splice(i, 1);
@@ -3575,11 +3630,12 @@ function updateInvestors(dt) {
       }
       inv.target = pickWanderTarget();
     }
-    if (!inv.greeted) {
-      const dxp = player.position.x - inv.group.position.x;
-      const dzp = player.position.z - inv.group.position.z;
-      if (Math.hypot(dxp, dzp) < 1.6) greetInvestor(inv);
+    if (paused) {
+      // Face the player while stopped
+      const d = Math.max(0.001, playerDist);
+      inv.group.rotation.y = Math.atan2(dxp / d, dzp / d);
     }
+    if (!inv.greeted && playerDist < 1.8) greetInvestor(inv);
   }
 }
 
@@ -4035,6 +4091,9 @@ renderer.domElement.addEventListener('wheel', e => {
 
 const activeCanvasTouches = new Map();
 let pinchStartDist = 0, pinchStartZoom = cameraZoom;
+let pinchLastMid = null;
+// Convert a screen-space drag (px) into world-space pan (units)
+function panScale() { return cameraZoom / 200; }
 renderer.domElement.addEventListener('pointerdown', e => {
   if (e.pointerType !== 'touch') return;
   activeCanvasTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -4042,6 +4101,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
     const pts = Array.from(activeCanvasTouches.values());
     pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
     pinchStartZoom = cameraZoom;
+    pinchLastMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
     target = null; // cancel tap-to-move if it fired before the 2nd finger landed
   }
 });
@@ -4050,19 +4110,52 @@ renderer.domElement.addEventListener('pointermove', e => {
   activeCanvasTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (activeCanvasTouches.size === 2 && pinchStartDist > 0) {
     const pts = Array.from(activeCanvasTouches.values());
+    // Pinch-zoom from distance change
     const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
     if (dist > 10) {
       cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom * (pinchStartDist / dist)));
       fitCamera();
     }
+    // Two-finger pan from midpoint change
+    const curMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+    if (pinchLastMid) {
+      const s = panScale();
+      cameraPanX -= (curMid.x - pinchLastMid.x) * s;
+      cameraPanZ -= (curMid.y - pinchLastMid.y) * s;
+      applyCameraTransform();
+    }
+    pinchLastMid = curMid;
   }
 });
 function endCanvasTouch(e) {
   activeCanvasTouches.delete(e.pointerId);
-  if (activeCanvasTouches.size < 2) pinchStartDist = 0;
+  if (activeCanvasTouches.size < 2) { pinchStartDist = 0; pinchLastMid = null; }
 }
 renderer.domElement.addEventListener('pointerup', endCanvasTouch);
 renderer.domElement.addEventListener('pointercancel', endCanvasTouch);
+
+// Desktop right-click drag to pan the camera. Left-click still moves
+// the player via the existing tap-to-move handler.
+let mousePanActive = false, mousePanX = 0, mousePanY = 0;
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+renderer.domElement.addEventListener('mousedown', e => {
+  if (e.button !== 2) return;
+  e.preventDefault();
+  mousePanActive = true;
+  mousePanX = e.clientX;
+  mousePanY = e.clientY;
+});
+window.addEventListener('mousemove', e => {
+  if (!mousePanActive) return;
+  const dx = e.clientX - mousePanX;
+  const dy = e.clientY - mousePanY;
+  mousePanX = e.clientX; mousePanY = e.clientY;
+  const s = panScale();
+  cameraPanX -= dx * s;
+  cameraPanZ -= dy * s;
+  applyCameraTransform();
+});
+window.addEventListener('mouseup', e => { if (e.button === 2) mousePanActive = false; });
 
 // ── Virtual joystick (opt-in via settings) ───────────────────
 const joyEl = document.getElementById('joystick');
@@ -4134,6 +4227,48 @@ function setInvestorEnabled(on) {
 const savedInv = localStorage.getItem('investorEnabled');
 setInvestorEnabled(savedInv === null ? true : savedInv === '1');
 investorToggleEl.addEventListener('change', () => setInvestorEnabled(investorToggleEl.checked));
+
+// ── Tip system (first-time mechanic hints) ─────────────────
+// Short pop-ups that appear the first time the player encounters a
+// mechanic (paper running out, an investor walking in, etc.). Each
+// tip is shown at most once (seen state in localStorage) and can be
+// disabled entirely from Settings.
+let tipsEnabled = true;
+const TIPS = {
+  paper: {
+    title: '📄 Out of paper!',
+    body: 'An engineer\'s desk is empty. They need paper to ship features. You can:\n• Walk up to their desk and top it up yourself\n• Buy the 📚 Supply Rack amenity so engineers restock themselves\n• Hire an 🧑‍💼 Executive Assistant who brings paper to any dry desk automatically',
+  },
+  investor: {
+    title: '🤝 An investor walked in!',
+    body: 'Investors wander the office for a short window. Walk up to them to shake their hand — different types pay out differently (cash, deal-value boost, morale, etc.). If you don\'t greet them, they leave. No penalty, just a missed opportunity.',
+  },
+};
+const tipModalEl = document.getElementById('tip-modal');
+const tipTitleEl = document.getElementById('tip-title');
+const tipBodyEl  = document.getElementById('tip-body');
+const tipOkEl    = document.getElementById('tip-ok');
+const tipsToggleEl = document.getElementById('tips-enabled');
+function showTip(key) {
+  if (!tipsEnabled) return;
+  if (localStorage.getItem('tip-seen-' + key) === '1') return;
+  const tip = TIPS[key];
+  if (!tip) return;
+  localStorage.setItem('tip-seen-' + key, '1');
+  tipTitleEl.textContent = tip.title;
+  tipBodyEl.innerHTML = tip.body.split('\n').map(l => l).join('<br>');
+  tipModalEl.classList.add('open');
+}
+tipOkEl.addEventListener('click', () => tipModalEl.classList.remove('open'));
+tipModalEl.addEventListener('click', e => { if (e.target === tipModalEl) tipModalEl.classList.remove('open'); });
+function setTipsEnabled(on) {
+  tipsEnabled = !!on;
+  tipsToggleEl.checked = tipsEnabled;
+  localStorage.setItem('tipsEnabled', tipsEnabled ? '1' : '0');
+}
+const savedTips = localStorage.getItem('tipsEnabled');
+setTipsEnabled(savedTips === null ? true : savedTips === '1');
+tipsToggleEl.addEventListener('change', () => setTipsEnabled(tipsToggleEl.checked));
 
 // Toast density setting
 const toastDensityEl = document.getElementById('toast-density');
