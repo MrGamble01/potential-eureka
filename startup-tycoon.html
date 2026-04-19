@@ -1314,6 +1314,13 @@ function checkDecorUpgrades(dt) {
 
 // ── Room purchasing ──────────────────────────────────────────
 function activatePlotsForRoom(id) {
+  // If no plots exist for this room yet (fresh buy, or IPO purge
+  // cleared them), materialize the base desks from PLOT_DEFS.
+  if (!plots.some(p => p.roomId === id)) {
+    for (const def of PLOT_DEFS) {
+      if (def.roomId === id) createPlot(def);
+    }
+  }
   for (const p of plots) {
     if (p.roomId === id) {
       p.active = true;
@@ -1369,6 +1376,7 @@ function addExtraDeskToRoom(roomId) {
     role: getRoomRole(roomId),
     tier: roomId === 'starter' ? 0 : 99,
     roomId,
+    isExtra: true,
   });
   plot.active = true;
   plot.group.visible = true;
@@ -2019,12 +2027,19 @@ function createPlot(def) {
     active,
     occupied: false,
     paperStock: 10,
+    isExtra: !!def.isExtra,
   };
   plots.push(plot);
   return plot;
 }
 
-for (const def of PLOT_DEFS) createPlot(def);
+// Only materialize the starter room's desks upfront. Other rooms
+// lazy-create their plots when bought (or restored) via
+// activatePlotsForRoom, which keeps the plots array lean and avoids
+// leaking non-starter desks across IPO cycles.
+for (const def of PLOT_DEFS) {
+  if (def.roomId === 'starter') createPlot(def);
+}
 
 function activatePlots(level) {
   // Legacy upgrade-based activation (kept for 'farmexp' upgrade compat)
@@ -4466,10 +4481,23 @@ function doIPO() {
     buildRoom(starterDef);
   }
 
-  // Reset plots
+  // Reset plots. Non-starter plots belong to rooms that are no longer
+  // owned → remove them from the scene + array entirely so a later
+  // room re-buy starts clean (no free carryover of converted-mode
+  // desks or purchased extras). Starter extras are also purged so
+  // paid-for desks don't compound across IPO seasons.
+  for (let i = plots.length - 1; i >= 0; i--) {
+    const pl = plots[i];
+    if (pl.roomId !== 'starter' || pl.isExtra) {
+      scene.remove(pl.group);
+      plots.splice(i, 1);
+    }
+  }
   for (const p of plots) {
-    if (p.roomId && p.roomId !== 'starter') { p.active = false; p.group.visible = false; }
-    p.ready = false; setPaperStackProgress(p.paperStack, 0);
+    p.occupied = false;
+    p.ready = false;
+    p.paperStock = 10;
+    setPaperStackProgress(p.paperStack, 0);
   }
 
   // (Old supply closet + free runner removed — new office ops are handled by the EA role.)
