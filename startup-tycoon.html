@@ -1010,7 +1010,11 @@ function updateIdeaWorkers(dt) {
     if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
 
     if (w.state === 'atDesk') {
-      const rate = WORK_RATE_BASE * ideaSpeedMult * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0);
+      const dxw = player.position.x - w.desk.group.position.x;
+      const dzw = player.position.z - w.desk.group.position.z;
+      w.bossBoost = Math.hypot(dxw, dzw) < PROX_RANGE ? 1.5 : 1.0;
+      const rate = WORK_RATE_BASE * ideaSpeedMult * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
+      w.currentRate = rate;
       w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
 
       // Orb visual grows with progress
@@ -1179,6 +1183,35 @@ function updatePlayerProximityWork(dt) {
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
     if (Math.random() < 0.35) showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
+  }
+}
+
+// ── CEO Desk Work ─────────────────────────────────────────────
+// When the player is at their own CEO desk they also ship features,
+// same rate as the proximity-work mechanic.
+const CEO_DESK_RANGE = 2.0;
+const CEO_CHAIR_POS = new THREE.Vector3(0, 0, 4.1);
+let ceoWorkProgress = 0;
+
+function updateCeoDeskWork(dt) {
+  const dx = player.position.x - CEO_CHAIR_POS.x;
+  const dz = player.position.z - CEO_CHAIR_POS.z;
+  if (Math.hypot(dx, dz) > CEO_DESK_RANGE) {
+    ceoWorkProgress = 0;
+    ceoMonitorGlow.material.color.setHex(0x2979ff);
+    return;
+  }
+  const rate = WORK_RATE_BASE * ideaSpeedMult * (rushActive ? 1.5 : 1.0);
+  ceoWorkProgress = Math.min(1.0, ceoWorkProgress + rate * dt);
+  ceoMonitorGlow.material.color.setHex(0x3FB950);
+  if (ceoWorkProgress >= 1.0) {
+    ceoWorkProgress = 0;
+    const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
+    addCash(earned);
+    totalFeaturesShipped++;
+    checkProductVersion();
+    totalUsers += Math.max(1, Math.floor(earned / 4));
+    checkUserMilestones();
   }
 }
 
@@ -2002,6 +2035,7 @@ class Floor {
 class OfficeFloor extends Floor {
   update(dt) {
     updatePlayerProximityWork(dt);
+    updateCeoDeskWork(dt);
     updateIdeaWorkers(dt);
     updateSupportStaff(dt);
     updateSupplyCloset(dt);
@@ -2029,9 +2063,12 @@ function updateLabels() {
     if (emoji) {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
       wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
-    } else if (w.state === 'atDesk' && w.caffeinated) {
+    } else if (w.state === 'atDesk') {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
-      wants.push({ text: '⚡', cls: 'bubble', x: p.x, y: p.y });
+      const fpm = ((w.currentRate || 0) * 60).toFixed(1);
+      const prefix = w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️');
+      const boosted = w.caffeinated || w.bossBoost > 1 || rushActive;
+      wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'refill' : 'stock', x: p.x, y: p.y });
     }
   }
   // Support staff carry bubbles
@@ -2056,6 +2093,10 @@ function updateLabels() {
     const pct = Math.floor(playerWorkProgress * 100);
     const pp = worldToScreen(player.position.x, 2.6, player.position.z);
     wants.push({ text: `💡 ${pct}%`, cls: 'refill', x: pp.x, y: pp.y });
+  } else if (ceoWorkProgress > 0) {
+    const pct = Math.floor(ceoWorkProgress * 100);
+    const pp = worldToScreen(player.position.x, 2.6, player.position.z);
+    wants.push({ text: `💼 ${pct}%`, cls: 'refill', x: pp.x, y: pp.y });
   }
 
   while (labelPool.length < wants.length) {
@@ -2163,6 +2204,7 @@ function doIPO() {
   // Free plot desks + reset player proximity work
   for (const p of plots) p.occupied = false;
   playerWorkProgress = 0; playerNearDesk = null;
+  ceoWorkProgress = 0; ceoMonitorGlow.material.color.setHex(0x2979ff);
 
   // Remove support staff
   for (const s of supportStaff) scene.remove(s.group);
