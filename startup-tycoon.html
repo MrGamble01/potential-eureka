@@ -815,7 +815,7 @@
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<button id="cash-hud" type="button" title="Tap to add $1,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></button>
+<button id="cash-hud" type="button" title="Tap to add $100,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
@@ -4292,11 +4292,11 @@ addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
-// Cheat: click the cash HUD to add $1000 (for testing)
+// Cheat: click the cash HUD to add $100,000 (for testing)
 const cashHudEl = document.getElementById('cash-hud');
 cashHudEl.addEventListener('click', () => {
-  addCash(1000);
-  showCashPop(1000);
+  addCash(100000);
+  showCashPop(100000);
   cashHudEl.classList.remove('cash-bump');
   void cashHudEl.offsetWidth; // restart animation
   cashHudEl.classList.add('cash-bump');
