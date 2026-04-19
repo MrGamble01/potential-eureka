@@ -4097,6 +4097,12 @@ addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
+  // Escape dismisses any open modal (tip, ipo, elevator)
+  if (k === 'escape') {
+    tipModalEl.classList.remove('open');
+    ipoModal.classList.remove('open');
+    elevModal.classList.remove('open');
+  }
   // Cheat: press M to add $10,000 (or use window.giveMoney(n) in console)
   if (k === 'm' && !e.repeat) {
     addCash(10000);
