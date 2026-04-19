@@ -1750,7 +1750,21 @@ function updateCeoDeskWork(dt) {
   }
 }
 
-// ── Support Staff (Barista + Supply Runner) ───────────────────
+// ── Player Refill (espresso machine) ─────────────────────────
+// Stand near the Espresso Bar to refill it. Fills faster than workers drain
+// when you're actively there; intended as a fallback when no Executive
+// Assistant is hired yet. Engineers grab their own cups from the stock.
+function updatePlayerEspressoRefill(dt) {
+  const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
+  if (!coffeeAm || coffeeAm.stock >= coffeeAm.maxStock) return;
+  const dx = player.position.x - coffeeAm.position.x;
+  const dz = player.position.z - (coffeeAm.position.z + 0.8);
+  if (Math.hypot(dx, dz) < 2.0) {
+    coffeeAm.stock = Math.min(coffeeAm.maxStock, coffeeAm.stock + dt * 4);
+  }
+}
+
+// ── Support Staff (legacy; slot kept for future Executive Assistant) ──
 const supportStaff = [];
 
 function spawnSupportStaff(role) {
@@ -2080,10 +2094,6 @@ function buyAmenity(id) {
   am.stock = 0; // Support staff will stock it
   buildAmenity(am);
   if (id === 'standup') ideaSpeedMult *= 1.3;
-  // Barista comes with the Espresso Bar — they live at the cafe, not a separate hire
-  if (id === 'coffee' && !supportStaff.some(s => s.role === 'barista')) {
-    spawnSupportStaff('barista');
-  }
   addCash(0);
 }
 const amenitiesList = document.getElementById('amenities-list');
@@ -2606,10 +2616,12 @@ function setJoystickEnabled(on) {
 setJoystickEnabled(localStorage.getItem('joystickEnabled') === '1');
 joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
 
-// Restart game: wipe save + reload. Keep the joystick preference so the UI
-// feels the same after restart.
+// Restart game: wipe save + reload. Setting _restarting stops the periodic
+// saveGame + beforeunload handler from re-saving the in-memory state over
+// the key we just cleared.
 document.getElementById('restart-btn').addEventListener('click', () => {
   if (!confirm('Restart the game? All progress (cash, upgrades, hires, rooms, IPO seasons) will be erased.')) return;
+  _restarting = true;
   try {
     const joy = localStorage.getItem('joystickEnabled');
     localStorage.removeItem(SAVE_KEY);
@@ -2666,6 +2678,7 @@ class OfficeFloor extends Floor {
   update(dt) {
     updatePlayerProximityWork(dt);
     updateCeoDeskWork(dt);
+    updatePlayerEspressoRefill(dt);
     updateIdeaWorkers(dt);
     updateSupportStaff(dt);
     updateSupplyCloset(dt);
@@ -2921,7 +2934,9 @@ document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoMod
 
 // --- Save + load ---
 const SAVE_KEY = 'startup-tycoon-v7';
+let _restarting = false; // set true by the Restart button so beforeunload / setInterval don't re-save wiped state
 function saveGame() {
+  if (_restarting) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       v: 7,
@@ -3000,8 +3015,8 @@ function loadGame() {
     }
     // Re-spawn support staff silently
     if (p.supportStaff) {
-      // Only baristas are restored from legacy saves; the old supply-runner role has been retired.
-      for (const role of p.supportStaff) if (role === 'barista') spawnSupportStaff(role);
+      // The old barista + supply-runner support roles have both been retired.
+      // Drop any legacy entries so saves don't respawn them in the new office.
     }
     if (p.amenities) {
       for (const saved of p.amenities) {
