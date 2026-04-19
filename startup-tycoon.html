@@ -219,11 +219,15 @@
     .upg-btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .upg-btn .lvl {
       float: right; background: rgba(108,99,255,0.45); color: #c4beff;
-      padding: 1px 6px; border-radius: 6px; font-size: 9px; font-weight: 800;
-      margin-left: 4px;
+      padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 800;
+      margin-left: 4px; letter-spacing: 0.4px;
+      border: 1px solid rgba(108,99,255,0.35);
     }
-    .upg-btn .lvl.maxed { background: rgba(212,153,34,0.45); color: #fcd34d; }
-    .upg-btn .cost { display: block; color: #3FB950; font-size: 10px; margin-top: 1px; font-weight: 700; }
+    .upg-btn .lvl.maxed {
+      background: rgba(212,153,34,0.45); color: #fcd34d;
+      border-color: rgba(212,153,34,0.5);
+    }
+    .upg-btn .cost { display: block; color: #3FB950; font-size: 10px; margin-top: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
     /* ── Elevator ─────────────────────────────────────── */
     #elevator-btn {
