@@ -525,6 +525,57 @@
       50%      { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 26px rgba(252,211,77,0.55); }
     }
     #goal-hud.complete #goal-pct::before { content: '✓ '; }
+    #goal-spark {
+      display: block; width: 100%; height: 18px;
+      margin-top: 5px; opacity: 0.9;
+    }
+
+    /* ── Achievements modal ─────────────────────────── */
+    #achievements-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center; z-index: 210;
+    }
+    #achievements-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    .ach-panel {
+      background: rgba(13,17,23,0.98);
+      border: 1px solid rgba(252,211,77,0.38);
+      border-radius: 14px; padding: 22px 20px; max-width: 440px; width: 92vw;
+      max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 18px 54px rgba(0,0,0,0.6), 0 0 32px rgba(252,211,77,0.15);
+      text-align: center;
+    }
+    .ach-title {
+      font-size: 22px; font-weight: 800; margin-bottom: 4px;
+      background: linear-gradient(135deg, #f59e0b, #fcd34d);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .ach-progress {
+      font-size: 12px; color: #7D8590; letter-spacing: 0.6px;
+      margin-bottom: 14px;
+    }
+    .ach-list {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 16px; text-align: left;
+    }
+    .ach-row {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 9px 11px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .ach-row.earned {
+      background: rgba(252,211,77,0.08);
+      border-color: rgba(252,211,77,0.35);
+    }
+    .ach-row .ach-icon { font-size: 22px; line-height: 1; filter: grayscale(1) opacity(0.4); }
+    .ach-row.earned .ach-icon { filter: none; }
+    .ach-row .ach-text { flex: 1; min-width: 0; }
+    .ach-row .ach-name { font-size: 13px; font-weight: 800; color: #7D8590; }
+    .ach-row.earned .ach-name { color: #fcd34d; }
+    .ach-row .ach-desc { font-size: 11px; color: #7D8590; line-height: 1.4; margin-top: 2px; }
     @media (max-width: 900px) {
       #goal-hud {
         top: calc(58px + env(safe-area-inset-top, 0px));
@@ -839,6 +890,15 @@
 <div id="goal-hud" aria-label="Season goal progress">
   <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span id="goal-pct">0%</span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
+  <canvas id="goal-spark" width="240" height="18"></canvas>
+</div>
+<div id="achievements-modal" role="dialog">
+  <div class="ach-panel">
+    <div class="ach-title">🏅 Achievements</div>
+    <div class="ach-progress" id="ach-progress">0 / 0</div>
+    <div class="ach-list" id="ach-list"></div>
+    <button class="tip-ok" id="ach-close">Close</button>
+  </div>
 </div>
 <div id="win-modal" role="dialog">
   <div class="win-panel">
@@ -918,6 +978,7 @@
         <option value="off">Feed only</option>
       </select>
     </label>
+    <button class="hire-btn" id="open-ach-btn" style="margin-top:8px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
   </div>
 </div>
@@ -3478,6 +3539,47 @@ document.getElementById('win-continue-btn').addEventListener('click',
 winModalEl.addEventListener('click', e => { if (e.target === winModalEl) winModalEl.classList.remove('open'); });
 
 const goalHudEl = document.getElementById('goal-hud');
+const goalSparkEl = document.getElementById('goal-spark');
+const goalSparkCtx = goalSparkEl.getContext('2d');
+// Rolling ARR samples for the sparkline (push one per metrics update).
+const SPARK_MAX_SAMPLES = 60;
+const sparkSamples = [];
+function pushSparkSample(v) {
+  sparkSamples.push(v);
+  if (sparkSamples.length > SPARK_MAX_SAMPLES) sparkSamples.shift();
+}
+function drawSparkline() {
+  // Hi-DPI canvas
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cw = goalSparkEl.clientWidth || 200, ch = goalSparkEl.clientHeight || 18;
+  if (goalSparkEl.width !== cw * dpr || goalSparkEl.height !== ch * dpr) {
+    goalSparkEl.width = cw * dpr;
+    goalSparkEl.height = ch * dpr;
+  }
+  const ctx = goalSparkCtx;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  if (sparkSamples.length < 2) return;
+  const max = Math.max(...sparkSamples, 1);
+  const step = cw / Math.max(1, sparkSamples.length - 1);
+  // Baseline glow
+  ctx.strokeStyle = 'rgba(252,211,77,0.85)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  for (let i = 0; i < sparkSamples.length; i++) {
+    const x = i * step;
+    const y = ch - (sparkSamples[i] / max) * (ch - 2) - 1;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Fill under the line
+  ctx.lineTo(cw, ch);
+  ctx.lineTo(0, ch);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(252,211,77,0.18)';
+  ctx.fill();
+}
 function updateGoalHud(arr) {
   const target = currentGoalTarget();
   const pct = Math.min(1, arr / target);
@@ -3489,6 +3591,8 @@ function updateGoalHud(arr) {
     triggerWin(arr);
   }
   goalHudEl.classList.toggle('complete', seasonGoalHit);
+  pushSparkSample(arr);
+  drawSparkline();
 }
 // Refresh the displayed target/sub-text when prestige changes
 function refreshGoalLabels() {
@@ -3504,6 +3608,67 @@ function refreshTrophyBadge() {
   trophySepEl.style.display   = show ? '' : 'none';
   if (show) trophyBadgeEl.textContent = `🏆 ${trophiesWon}`;
 }
+
+// ── Achievements ─────────────────────────────────────────
+// Named milestones evaluated on a 1s tick. First-time unlock fires a
+// toast + feed entry; earned state persists in localStorage and in
+// the game save so reloads don't replay.
+const ACHIEVEMENTS = [
+  { id: 'first_hire',    icon: '💻', title: 'First Hire',         desc: 'Hire your first engineer.',              check: () => ideaWorkers.length >= 1 },
+  { id: 'five_eng',      icon: '👥', title: 'Pod Built',           desc: 'Have 5 engineers on staff at once.',     check: () => ideaWorkers.length >= 5 },
+  { id: 'first_ea',      icon: '🧑‍💼', title: 'Delegated',          desc: 'Hire an Executive Assistant.',           check: () => eas.length >= 1 },
+  { id: 'first_bdr',     icon: '📞', title: 'Cold Caller',         desc: 'Hire your first BDR.',                   check: () => bdrs.length >= 1 },
+  { id: 'first_ae',      icon: '💼', title: 'Closer',              desc: 'Promote a BDR to AE.',                   check: () => aes.length >= 1 },
+  { id: 'first_vp',      icon: '💻', title: 'Promoted',            desc: 'Promote your OG engineer to Lead.',      check: () => vps.length >= 1 },
+  { id: 'reach_cto',     icon: '🏛️', title: 'C-suite',             desc: 'Reach the CTO tier.',                    check: () => vps.length >= 1 && vps[0].tier >= 2 },
+  { id: 'ext_hire',      icon: '👔', title: 'External Hire',       desc: 'Hire an external engineer or BDR.',       check: () => ideaWorkers.some(w=>w.external) || bdrs.some(b=>b.external) },
+  { id: 'greet_investor',icon: '🤝', title: 'Networker',           desc: 'Greet your first investor.',              check: () => Object.values(investorAffinity).some(v => v > 0) },
+  { id: 'convert_room',  icon: '⚡', title: 'Remodel',              desc: 'Convert a room into a different mode.',   check: () => Object.keys(roomModes).some(k => roomModes[k] !== (ROOM_MODES[k]?.initial || 'shared')) },
+  { id: 'full_floor',    icon: '🏢', title: 'Full Floor',           desc: 'Own every room on the starter floor.',   check: () => ownedRooms.size >= ROOM_DEFS.length },
+  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.allTimeCash >= 50000 },
+  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.allTimeCash >= 1000000 },
+  { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Reach $1M ARR and win a season.',        check: () => trophiesWon >= 1 },
+  { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1 },
+  { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100 },
+];
+const earnedAchievements = {}; // id → true
+function checkAchievements() {
+  for (const a of ACHIEVEMENTS) {
+    if (earnedAchievements[a.id]) continue;
+    try {
+      if (a.check()) {
+        earnedAchievements[a.id] = true;
+        showToast(`🏅 Unlocked: ${a.title} — ${a.desc}`, 'milestone', 'critical');
+        addFeedEntry(`🏅 ${a.title}`);
+      }
+    } catch (_) { /* defensive: never let a check expression crash the loop */ }
+  }
+}
+// Modal
+const achModalEl   = document.getElementById('achievements-modal');
+const achListEl    = document.getElementById('ach-list');
+const achProgEl    = document.getElementById('ach-progress');
+function renderAchievementsModal() {
+  achListEl.innerHTML = '';
+  let earned = 0;
+  for (const a of ACHIEVEMENTS) {
+    const got = !!earnedAchievements[a.id];
+    if (got) earned++;
+    const row = document.createElement('div');
+    row.className = 'ach-row' + (got ? ' earned' : '');
+    row.innerHTML = `<div class="ach-icon">${a.icon}</div><div class="ach-text"><div class="ach-name">${a.title}</div><div class="ach-desc">${got ? a.desc : '???'}</div></div>`;
+    achListEl.appendChild(row);
+  }
+  achProgEl.textContent = `${earned} / ${ACHIEVEMENTS.length} unlocked`;
+}
+document.getElementById('open-ach-btn').addEventListener('click', () => {
+  renderAchievementsModal();
+  achModalEl.classList.add('open');
+});
+document.getElementById('ach-close').addEventListener('click', () => achModalEl.classList.remove('open'));
+achModalEl.addEventListener('click', e => { if (e.target === achModalEl) achModalEl.classList.remove('open'); });
+// Run every ~1s
+setInterval(checkAchievements, 1000);
 
 function triggerWin(arr) {
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
@@ -4332,6 +4497,8 @@ addEventListener('keydown', e => {
     tipModalEl.classList.remove('open');
     ipoModal.classList.remove('open');
     elevModal.classList.remove('open');
+    achModalEl.classList.remove('open');
+    winModalEl.classList.remove('open');
   }
   // Cheat: press M to add $10,000 (or use window.giveMoney(n) in console)
   if (k === 'm' && !e.repeat) {
@@ -5042,6 +5209,7 @@ function saveGame() {
       seasonGoalHit,
       trophiesWon,
       bestTimeToGoal,
+      achievements: { ...earnedAchievements },
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -5186,6 +5354,9 @@ function loadGame() {
     if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
     if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
     if (typeof p.bestTimeToGoal === 'number') bestTimeToGoal = p.bestTimeToGoal;
+    if (p.achievements && typeof p.achievements === 'object') {
+      for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true;
+    }
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
