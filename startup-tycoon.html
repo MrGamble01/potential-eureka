@@ -379,6 +379,26 @@
       border: 1px solid rgba(212,153,34,0.45); border-radius: 6px;
       padding: 1px 8px; font-size: 11px; font-weight: 800; color: #f59e0b;
     }
+    /* ── Upgrade category headers ─────────────────────── */
+    .upg-cat {
+      font-size: 9px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #7D8590;
+      padding: 6px 2px 2px; margin-top: 4px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    /* ── All Hands button ─────────────────────────────── */
+    .allhands-btn {
+      display: block; width: 100%; margin-top: 8px;
+      background: rgba(217,119,6,0.15); border: 1px solid rgba(217,119,6,0.4);
+      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
+      font-weight: 700; font-size: 12px; font-family: inherit;
+      cursor: pointer; text-align: left; transition: all 0.15s;
+    }
+    .allhands-btn:hover:not(:disabled) { background: rgba(217,119,6,0.28); }
+    .allhands-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .allhands-btn .cost { float: right; color: #f59e0b; font-size: 11px; font-weight: 800; }
+    .allhands-btn.surge { background: rgba(217,119,6,0.35); border-color: rgba(217,119,6,0.8); animation: handsPulse 0.8s ease-in-out infinite; }
+    @keyframes handsPulse { 0%,100% { box-shadow: 0 0 8px rgba(217,119,6,0.3); } 50% { box-shadow: 0 0 20px rgba(217,119,6,0.7); } }
   </style>
 </head>
 <body>
@@ -397,6 +417,7 @@
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
   <div class="m-row"><span class="m-lbl">Team/s</span><span class="m-val" id="m-teamrev">$0/s</span></div>
+  <div class="m-row"><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
 </div>
 <div id="activity-feed">
   <div class="feed-title">📡 Live Feed</div>
@@ -416,6 +437,7 @@
       <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 5</span></div>
       <button class="hire-btn" id="hire-btn">👩‍💻 Hire Engineer<span class="cost" id="hire-cost">$250</span></button>
       <button class="standup-btn" id="standup-btn">📢 Daily Standup<span class="cost" id="standup-cost">FREE</span></button>
+      <button class="allhands-btn" id="allhands-btn">🎤 All Hands!<span class="cost" id="allhands-cost">5× SURGE</span></button>
     </div>
     <div id="ops-section" style="display:none;margin-top:8px">
       <div class="stat-line"><span>Ops</span><span id="worker-count">0 / 3</span></div>
@@ -856,6 +878,24 @@ let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
 // Prestige (IPO seasons)
 let prestigeLevel = 0;
 let prestigeMultiplier = 1; // 2^prestigeLevel, applied to dealValueMult at season start
+// Product versioning — deal value bonus based on features shipped
+const PRODUCT_VERSIONS = [
+  { ver:'v1.0', at:0,    mult:1 },
+  { ver:'v1.5', at:25,   mult:1.25 },
+  { ver:'v2.0', at:100,  mult:1.5 },
+  { ver:'v2.5', at:300,  mult:2 },
+  { ver:'v3.0', at:750,  mult:2.5 },
+  { ver:'v4.0', at:2000, mult:4 },
+];
+let currentProductVersion = PRODUCT_VERSIONS[0];
+let productVersionMult = 1;
+// All Hands meeting power-up
+let allHandsMult = 1;
+let allHandsCooldown = 0;
+let allHandsActive = false;
+let allHandsT = 0;
+const ALL_HANDS_DUR = 15;   // seconds of 5× surge
+const ALL_HANDS_CD  = 300;  // 5 minute cooldown
 
 // Metrics counters
 let totalUsers = 0;
@@ -991,7 +1031,7 @@ function updateFarm(dt) {
   for (const p of plots) {
     if (!p.active) continue;
     if (!p.ready) {
-      p.t += dt * ideaSpeedMult;
+      p.t += dt * ideaSpeedMult * allHandsMult;
       if (p.t >= plotGrowTime) { p.ready = true; p.orb.visible = true; p.bulbBase.visible = true; }
     }
   }
@@ -1369,15 +1409,16 @@ function updateDeals(dt) {
   if (dealSpeedMult <= 0) return; // bug event pauses deals
   dealTimer += dt;
   const rushFactor = rushActive ? 3 : 1;
-  const interval = customerSpawnInterval / (rushFactor * dealSpeedMult);
+  const interval = customerSpawnInterval / (rushFactor * dealSpeedMult * allHandsMult);
   if (dealTimer >= interval) {
     dealTimer = 0;
     shelfState.stock--;
     refreshShelf();
-    const earned = Math.round(featurePrice * dealValueMult);
+    const earned = Math.round(featurePrice * dealValueMult * productVersionMult * allHandsMult);
     addCash(earned);
     // Track metrics
     totalFeaturesShipped++;
+    checkProductVersion();
     const newUsers = Math.max(1, Math.floor(earned / 4));
     totalUsers += newUsers;
     checkUserMilestones();
@@ -1396,18 +1437,33 @@ function checkUserMilestones() {
   }
 }
 
+function checkProductVersion() {
+  let latest = PRODUCT_VERSIONS[0];
+  for (const pv of PRODUCT_VERSIONS) {
+    if (totalFeaturesShipped >= pv.at) latest = pv;
+  }
+  if (latest !== currentProductVersion) {
+    currentProductVersion = latest;
+    productVersionMult = latest.mult;
+    showToast(`🚀 ${latest.ver} launched! Base deal value ×${latest.mult}!`, 'milestone');
+    addFeedEntry(`🚀 ${latest.ver} — deal value ×${latest.mult}!`);
+  }
+}
+
 const metricsArrEl  = document.getElementById('m-arr');
 const metricsUsersEl= document.getElementById('m-users');
 const metricsShipEl = document.getElementById('m-shipped');
 const metricsTeamEl = document.getElementById('m-teamrev');
+const metricsVersionEl = document.getElementById('m-version');
 function updateMetricsHUD() {
-  const dealsPerSec = dealSpeedMult / customerSpawnInterval;
-  const arr = Math.round(featurePrice * dealValueMult * dealsPerSec * 3600 * 24 * 365);
+  const dealsPerSec = dealSpeedMult * allHandsMult / customerSpawnInterval;
+  const arr = Math.round(featurePrice * dealValueMult * productVersionMult * allHandsMult * dealsPerSec * 3600 * 24 * 365);
   metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
   metricsUsersEl.textContent  = fmtCash(totalUsers);
   metricsShipEl.textContent   = fmtCash(totalFeaturesShipped);
   const teamRevPerSec = employees.filter(e => e.state === 'atDesk').reduce((s, e) => s + (e.caffeinated ? 4 : 2), 0);
   metricsTeamEl.textContent  = '$' + teamRevPerSec + '/s';
+  if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
 }
 
 // --- Desks (claimable seats for hired employees) ---
@@ -1672,6 +1728,45 @@ function doStandup() {
 }
 standupBtn.addEventListener('click', doStandup);
 
+// All Hands meeting
+const allhandsBtnEl  = document.getElementById('allhands-btn');
+const allhandsCostEl = document.getElementById('allhands-cost');
+
+function doAllHands() {
+  if (allHandsCooldown > 0 || employees.length === 0) return;
+  allHandsCooldown = ALL_HANDS_CD;
+  allHandsActive = true;
+  allHandsT = 0;
+  allHandsMult = 5;
+  allhandsBtnEl.classList.add('surge');
+  showToast('🎤 ALL HANDS MEETING! 5× everything for 15s! 🚀', 'milestone');
+  addFeedEntry('🎤 All Hands — 5× surge mode activated!');
+}
+
+function updateAllHands(dt) {
+  if (allHandsCooldown > 0) allHandsCooldown -= dt;
+  if (allHandsActive) {
+    allHandsT += dt;
+    if (allHandsT >= ALL_HANDS_DUR) {
+      allHandsActive = false;
+      allHandsMult = 1;
+      allhandsBtnEl.classList.remove('surge');
+      showToast('All Hands over — back to normal velocity.', '');
+    }
+  }
+  // Update button label
+  allhandsBtnEl.disabled = allHandsCooldown > 0 || employees.length === 0;
+  if (allHandsActive) {
+    allhandsCostEl.textContent = `${Math.ceil(ALL_HANDS_DUR - allHandsT)}s 🔥`;
+  } else if (allHandsCooldown > 0) {
+    allhandsCostEl.textContent = `${Math.ceil(allHandsCooldown)}s`;
+  } else {
+    allhandsCostEl.textContent = employees.length === 0 ? 'Need team' : '5× SURGE';
+  }
+}
+
+allhandsBtnEl.addEventListener('click', doAllHands);
+
 hireBtn.addEventListener('click', hireEmployee);
 hireWorkerBtn.addEventListener('click', hireWorker);
 
@@ -1860,31 +1955,41 @@ function addCash(n) {
 }
 
 // --- Upgrades ---
+const UPGRADE_CATS = [
+  { id:'ideation',    label:'💡 Ideation' },
+  { id:'engineering', label:'⚙️ Engineering' },
+  { id:'automation',  label:'🤖 Automation' },
+  { id:'revenue',     label:'📈 Revenue' },
+];
 const UPGRADES = [
-  { id: 'growth',   label: '💡 Faster Ideation',  base: 20,  scale: 1.6, max: 10,
+  // ── Ideation ──
+  { id:'growth',    cat:'ideation',    label:'💡 Faster Ideation',  base:20,  scale:1.6, max:10,
     apply: lv => { plotGrowTime = Math.max(1.0, 5 - lv * 0.35); } },
-  { id: 'speed',    label: '🏃 Hustle Mode',       base: 25,  scale: 1.5, max: 10,
-    apply: lv => { playerSpeed = 6 + lv * 0.5; } },
-  { id: 'capacity', label: '🎒 Bigger Backpack',   base: 30,  scale: 1.7, max: 10,
-    apply: lv => { maxStack = 10 + lv * 2; } },
-  { id: 'dev',      label: '⚡ Dev Sprint',        base: 50,  scale: 1.6, max: 10,
-    apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
-  { id: 'slot',     label: '🖥️ New Workstation',   base: 200, scale: 1,   max: 1,
-    apply: lv => { if (lv > 0 && devs.length < 2) devs.push(createDev(8, 4)); } },
-  { id:'bot', label:'🤖 Hire Jr. Dev', base:80, scale:1.6, max:4,
-    apply: lv => { spawnProductionBot(); } },
-  { id:'marketing', label:'📢 Growth Hacking',     base:75,  scale:1.7, max:4,
-    apply: lv => { customerSpawnInterval = [2.5,1.8,1.3,1.0,0.7][lv]; } },
-  { id:'pricing',   label:'💸 Premium Tier',       base:100, scale:1.8, max:4,
-    apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
-  { id:'farmexp',   label:'💡 Expand Ideation',    base:150, scale:2.0, max:2,
+  { id:'farmexp',   cat:'ideation',    label:'🌱 Expand Farm',       base:150, scale:2.0, max:2,
     apply: lv => { activatePlots(lv); } },
-  { id:'aicopilot', label:'🤖 AI Copilot',          base:300, scale:1.9, max:3,
+  // ── Engineering ──
+  { id:'speed',     cat:'engineering', label:'🏃 Hustle Mode',       base:25,  scale:1.5, max:10,
+    apply: lv => { playerSpeed = 6 + lv * 0.5; } },
+  { id:'capacity',  cat:'engineering', label:'🎒 Bigger Backpack',   base:30,  scale:1.7, max:10,
+    apply: lv => { maxStack = 10 + lv * 2; } },
+  { id:'dev',       cat:'engineering', label:'⚡ Dev Sprint',        base:50,  scale:1.6, max:10,
+    apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
+  { id:'slot',      cat:'engineering', label:'🖥️ 2nd Workstation',   base:200, scale:1,   max:1,
+    apply: lv => { if (lv > 0 && devs.length < 2) devs.push(createDev(8, 4)); } },
+  // ── Automation ──
+  { id:'bot',       cat:'automation',  label:'🤖 Hire Jr. Dev',      base:80,  scale:1.6, max:4,
+    apply: lv => { spawnProductionBot(); } },
+  { id:'aicopilot', cat:'automation',  label:'🧠 AI Copilot',         base:300, scale:1.9, max:3,
     apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.08, d.PROC_TIME * 0.45); } },
-  { id:'enterprise', label:'🏢 Enterprise Tier',    base:500, scale:2.5, max:3,
-    apply: lv => { dealValueMult = [1,3,8,20][lv]; } },
-  { id:'cdnspeed',   label:'🌍 Global CDN',          base:400, scale:2.0, max:1,
+  { id:'cdnspeed',  cat:'automation',  label:'🌍 Global CDN',          base:400, scale:2.0, max:1,
     apply: lv => { customerSpawnInterval = Math.max(0.2, customerSpawnInterval * 0.4); } },
+  // ── Revenue ──
+  { id:'marketing', cat:'revenue',     label:'📢 Growth Hacking',    base:75,  scale:1.7, max:4,
+    apply: lv => { customerSpawnInterval = [2.5,1.8,1.3,1.0,0.7][lv]; } },
+  { id:'pricing',   cat:'revenue',     label:'💸 Premium Tier',      base:100, scale:1.8, max:4,
+    apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
+  { id:'enterprise',cat:'revenue',     label:'🏢 Enterprise Tier',   base:500, scale:2.5, max:3,
+    apply: lv => { dealValueMult = [1,3,8,20][lv]; } },
 ];
 
 // ── Activity Feed ───────────────────────────────────────
@@ -1948,6 +2053,26 @@ const EVENT_POOL = [
     msg:'🎤 Demo Day! Investors watching — feature value 3×!', cls:'milestone',
     onStart:()=>{ dealValueMult*=3; },
     onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/3); showToast('Demo Day over.',''); } },
+  { id:'award', label:'🏅 Award', dur:20,
+    msg:'🏅 Best Startup Award! Deal value 4× for 20s!', cls:'milestone',
+    onStart:()=>{ dealValueMult*=4; },
+    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/4); showToast('Award spotlight fading...',''); } },
+  { id:'marketdown', label:'📉 Downturn', dur:15,
+    msg:'📉 Market turbulence! Deal speed halved for 15s.', cls:'',
+    onStart:()=>{ dealSpeedMult=Math.max(0.1, dealSpeedMult*0.5); },
+    onEnd:()=>{ dealSpeedMult=Math.min(dealSpeedMult*2, 1); showToast('Market stabilized — deal flow restored!','milestone'); } },
+  { id:'vcmixer', label:'🥂 VC Mixer', dur:0,
+    msg:'🥂 VC mixer at the office! Investors are impressed!', cls:'milestone',
+    onStart:()=>{ const amt=Math.max(400, employees.length*300+400); addCash(amt); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); },
+    onEnd:()=>{} },
+  { id:'outage', label:'🔥 Outage', dur:12,
+    msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
+    onStart:()=>{ dealSpeedMult=0; },
+    onEnd:()=>{ dealSpeedMult=1; allHandsMult=3; setTimeout(()=>{ if(allHandsMult===3) allHandsMult=1; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
+  { id:'pivot', label:'🔄 Pivot', dur:0,
+    msg:'🔄 Brilliant pivot! All ideas instantly ready to harvest!', cls:'milestone',
+    onStart:()=>{ for(const p of plots){if(p.active&&!p.ready){p.ready=true;p.orb.visible=true;p.bulbBase.visible=true;p.t=plotGrowTime;}} showToast('🔄 Pivot moment — go harvest everything!','milestone'); },
+    onEnd:()=>{} },
 ];
 let activeEvent = null;
 let eventT = 0;
@@ -2035,10 +2160,19 @@ function buyUpgrade(id) {
 }
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
-  // In-place update so we don't rebuild DOM every frame
-  if (upgEl.children.length !== UPGRADES.length) {
+  // Rebuild structure if first-time (no data-id buttons present)
+  if (!upgEl.querySelector('[data-id]')) {
     upgEl.innerHTML = '';
+    let lastCat = null;
     for (const u of UPGRADES) {
+      if (u.cat !== lastCat) {
+        lastCat = u.cat;
+        const catDef = UPGRADE_CATS.find(c => c.id === u.cat);
+        const hdr = document.createElement('div');
+        hdr.className = 'upg-cat';
+        hdr.textContent = catDef ? catDef.label : u.cat;
+        upgEl.appendChild(hdr);
+      }
       const btn = document.createElement('button');
       btn.className = 'upg-btn';
       btn.dataset.id = u.id;
@@ -2046,8 +2180,10 @@ function renderUpgrades() {
       upgEl.appendChild(btn);
     }
   }
-  for (const btn of upgEl.children) {
-    const u = UPGRADES.find(x => x.id === btn.dataset.id);
+  // Update button states only (skip .upg-cat headers)
+  for (const u of UPGRADES) {
+    const btn = upgEl.querySelector(`[data-id="${u.id}"]`);
+    if (!btn) continue;
     const lv = upgLevels[u.id];
     const maxed = lv >= u.max;
     const cost = upgCost(u);
@@ -2280,6 +2416,7 @@ function loop(now) {
   currentFloorInst.update(dt);
   updateRushHour(dt);
   updateEvents(dt);
+  updateAllHands(dt);
   updateMetricsHUD();
   if (standupCooldown > 0) { standupCooldown -= dt; renderOffice(); }
   updateLabels();
@@ -2323,6 +2460,9 @@ function doIPO() {
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
+  allHandsMult = 1; allHandsActive = false; allHandsCooldown = 0; allHandsT = 0;
+  if (allhandsBtnEl) allhandsBtnEl.classList.remove('surge');
+  productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
   playerSpeed = 6; plotGrowTime = 5; maxStack = 10;
@@ -2483,6 +2623,8 @@ function loadGame() {
     }
     if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
+    // Re-derive product version from saved features shipped
+    for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
     // Fast-forward user milestone pointer
     while (nextUserMilestone < USER_MILESTONES.length &&
            totalUsers >= USER_MILESTONES[nextUserMilestone].at) nextUserMilestone++;
