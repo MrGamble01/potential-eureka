@@ -1891,6 +1891,8 @@ function spawnIdeaWorker(opts = {}) {
     target: null,
     external: !!opts.external,
     externalMult: opts.external ? EXTERNAL_ENG_RATE_BONUS : 1.0,
+    morale: 70,
+    paperIdleT: 0, // seconds spent idling without paper (for morale decay)
   });
 }
 
@@ -1904,8 +1906,17 @@ function updateIdeaWorkers(dt) {
     if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
 
     if (w.state === 'atDesk') {
-      // No paper at the desk → idle until someone refills it
-      if (w.desk.paperStock < 1) { w.currentRate = 0; continue; }
+      // No paper at the desk → idle + morale slowly ticks down
+      if (w.desk.paperStock < 1) {
+        w.currentRate = 0;
+        w.paperIdleT += dt;
+        if (w.paperIdleT >= 15) {
+          w.paperIdleT = 0;
+          changeMorale(-1, '', w);
+        }
+        continue;
+      }
+      w.paperIdleT = 0;
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < PROX_RANGE ? 1.5 : 1.0;
@@ -2232,6 +2243,24 @@ function pickEATask(self) {
       desk: worstDesk,
     };
   }
+  // Priority 3: lowest-morale engineer under 60 (only if morale is on)
+  if (moraleEnabled) {
+    const claimedWorkers = new Set(others.map(e => e.targetWorker).filter(Boolean));
+    let worstWorker = null;
+    let lowMorale = 60;
+    for (const w of ideaWorkers) {
+      if (claimedWorkers.has(w)) continue;
+      const m = w.morale ?? 70;
+      if (m < lowMorale) { worstWorker = w; lowMorale = m; }
+    }
+    if (worstWorker) {
+      return {
+        state: 'toChat',
+        target: { x: worstWorker.group.position.x, z: worstWorker.group.position.z + 1.3 },
+        worker: worstWorker,
+      };
+    }
+  }
   return null;
 }
 
@@ -2246,6 +2275,7 @@ function updateExecutiveAssistants(dt) {
         ea.target = task.target;
         ea.targetDesk = task.desk || null;
         ea.targetAmenity = task.amenity || null;
+        ea.targetWorker = task.worker || null;
         ea.carryMesh.visible = task.state === 'toDesk';
       } else {
         ea.waitT = 1.5;
@@ -2261,6 +2291,15 @@ function updateExecutiveAssistants(dt) {
         }
         ea.state = 'idle'; ea.waitT = 0.4;
         ea.targetAmenity = null;
+      }
+      continue;
+    }
+    if (ea.state === 'chatting') {
+      ea.waitT -= dt;
+      if (ea.waitT <= 0) {
+        if (ea.targetWorker) changeMorale(+5, 'EA chat', ea.targetWorker);
+        ea.state = 'idle'; ea.waitT = 0.4;
+        ea.targetWorker = null;
       }
       continue;
     }
@@ -2284,6 +2323,8 @@ function updateExecutiveAssistants(dt) {
       ea.carryMesh.visible = false;
       ea.state = 'idle'; ea.waitT = 0.4;
       ea.targetDesk = null; ea.target = null;
+    } else if (ea.state === 'toChat') {
+      ea.state = 'chatting'; ea.waitT = 2.0;
     }
   }
 }
@@ -3283,51 +3324,51 @@ setInterval(renderFeed, 10000);
 const EVENT_POOL = [
   { id:'producthunt', label:'🚀 Product Hunt', dur:25,
     msg:'🚀 #1 on Product Hunt! Deal flow surging!', cls:'rush',
-    onStart:()=>{ dealSpeedMult=5; },
+    onStart:()=>{ dealSpeedMult=5; changeMorale(+5, 'Product Hunt hype'); },
     onEnd:()=>{ dealSpeedMult=1; showToast('Product Hunt wave over.','rush','ambient'); } },
   { id:'techcrunch', label:'📰 TechCrunch', dur:20,
     msg:'📰 TechCrunch dropped an article! Insane deal flow!', cls:'rush',
-    onStart:()=>{ dealSpeedMult=8; },
+    onStart:()=>{ dealSpeedMult=8; changeMorale(+5, 'TechCrunch article'); },
     onEnd:()=>{ dealSpeedMult=1; showToast('TechCrunch wave done.','rush','ambient'); } },
   { id:'hackathon', label:'💡 Hackathon', dur:40,
     msg:'💡 Internal hackathon! Ideas flowing 3× faster!', cls:'milestone',
-    onStart:()=>{ ideaSpeedMult=3; },
+    onStart:()=>{ ideaSpeedMult=3; changeMorale(+4, 'Hackathon energy'); },
     onEnd:()=>{ ideaSpeedMult=1; showToast('Hackathon over — back to normal velocity.','','ambient'); } },
   { id:'bug', label:'🐛 Prod Bug', dur:18,
     msg:'🐛 Critical bug in prod! Deals paused — devs on it...', cls:'',
-    onStart:()=>{ dealSpeedMult=0; },
+    onStart:()=>{ dealSpeedMult=0; changeMorale(-10, 'Prod bug in flight'); },
     onEnd:()=>{ dealSpeedMult=1; showToast('🔧 Bug fixed! Deal flow restored.','milestone'); } },
   { id:'angel', label:'👼 Angel', dur:0,
     msg:'👼 Angel investor dropped by!', cls:'milestone',
-    onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); },
+    onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'Angel visit'); },
     onEnd:()=>{} },
   { id:'viral', label:'📱 Viral', dur:15,
     msg:'📱 Tweet went viral! 10× deal rate!', cls:'rush',
-    onStart:()=>{ dealSpeedMult=10; },
+    onStart:()=>{ dealSpeedMult=10; changeMorale(+4, 'Gone viral'); },
     onEnd:()=>{ dealSpeedMult=1; showToast('Viral wave fading...','rush','ambient'); } },
   { id:'competitor', label:'⚔️ Competition', dur:22,
     msg:'⚔️ Competitor launched! Market tightening...', cls:'',
-    onStart:()=>{ dealSpeedMult=0.2; },
+    onStart:()=>{ dealSpeedMult=0.2; changeMorale(-5, 'Competitor launched'); },
     onEnd:()=>{ dealSpeedMult=1; showToast('Competitor hype passed. Revenue normalizing.','milestone'); } },
   { id:'demo', label:'🎤 Demo Day', dur:30,
     msg:'🎤 Demo Day! Investors watching — feature value 3×!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=3; },
+    onStart:()=>{ dealValueMult*=3; changeMorale(+4, 'Demo Day spotlight'); },
     onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/3); showToast('Demo Day over.','','ambient'); } },
   { id:'award', label:'🏅 Award', dur:20,
     msg:'🏅 Best Startup Award! Deal value 4× for 20s!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=4; },
+    onStart:()=>{ dealValueMult*=4; changeMorale(+6, 'Best Startup Award!'); },
     onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/4); showToast('Award spotlight fading...','','ambient'); } },
   { id:'marketdown', label:'📉 Downturn', dur:15,
     msg:'📉 Market turbulence! Deal speed halved for 15s.', cls:'',
-    onStart:()=>{ dealSpeedMult=Math.max(0.1, dealSpeedMult*0.5); },
+    onStart:()=>{ dealSpeedMult=Math.max(0.1, dealSpeedMult*0.5); changeMorale(-4, 'Market downturn'); },
     onEnd:()=>{ dealSpeedMult=Math.min(dealSpeedMult*2, 1); showToast('Market stabilized — deal flow restored!','milestone'); } },
   { id:'vcmixer', label:'🥂 VC Mixer', dur:0,
     msg:'🥂 VC mixer at the office! Investors are impressed!', cls:'milestone',
-    onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); },
+    onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'VC mixer'); },
     onEnd:()=>{} },
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
-    onStart:()=>{ dealSpeedMult=0; },
+    onStart:()=>{ dealSpeedMult=0; changeMorale(-8, 'Prod outage'); },
     onEnd:()=>{ dealSpeedMult=1; const prevMult=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*3,8); setTimeout(()=>{ ideaSpeedMult=prevMult; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
   { id:'pivot', label:'🔄 Pivot', dur:0,
     msg:'🔄 Brilliant pivot! Ideas flow 2× faster for 30s!', cls:'milestone',
@@ -3788,6 +3829,23 @@ function updateLabels() {
           wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
         }
       }
+    }
+  }
+  // Mood bubble on visibly unhappy engineers (only while morale is on)
+  if (moraleEnabled) {
+    for (const w of ideaWorkers) {
+      if (w.state !== 'atDesk') continue;
+      const m = w.morale ?? 70;
+      if (m >= 60) continue;
+      const p = worldToScreen(w.group.position.x, 2.75, w.group.position.z);
+      wants.push({ text: moraleEmoji(m), cls: 'bubble', x: p.x, y: p.y });
+    }
+  }
+  // EA chat bubble
+  for (const e of eas) {
+    if (e.state === 'chatting' || e.state === 'toChat') {
+      const p = worldToScreen(e.group.position.x, 2.4, e.group.position.z);
+      wants.push({ text: '💬', cls: 'bubble', x: p.x, y: p.y });
     }
   }
   // Support staff carry bubbles
