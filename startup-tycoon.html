@@ -485,6 +485,83 @@
     .ipo-body  { font-size: 13px; color: #7D8590; line-height: 1.7; margin-bottom: 20px; }
     .ipo-body strong { color: #E6EDF3; }
     .ipo-actions { display: flex; gap: 10px; justify-content: center; }
+
+    /* ── Goal bar (top-center under status bar) ─── */
+    #goal-hud {
+      position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
+      min-width: 240px; max-width: 320px;
+      background: rgba(8,10,18,0.9);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(212,153,34,0.28);
+      border-radius: 10px; padding: 7px 12px 8px;
+      color: #E6EDF3; pointer-events: none; user-select: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+      font-variant-numeric: tabular-nums;
+    }
+    .goal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.4px;
+      margin-bottom: 5px;
+    }
+    .goal-header #goal-pct { color: #fcd34d; font-size: 11px; }
+    .goal-track {
+      height: 5px; border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .goal-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #f59e0b, #fcd34d, #fff0a8);
+      transition: width 0.35s ease-out;
+      box-shadow: 0 0 10px rgba(245,158,11,0.35);
+    }
+    @media (max-width: 900px) {
+      #goal-hud {
+        top: calc(58px + env(safe-area-inset-top, 0px));
+        min-width: 180px;
+        padding: 5px 10px 6px;
+      }
+      .goal-header { font-size: 10px; }
+    }
+
+    /* ── Win modal (celebratory overlay when goal hit) ─── */
+    #win-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      display: none; align-items: center; justify-content: center; z-index: 220;
+    }
+    #win-modal.open { display: flex; animation: winFade 0.3s ease; }
+    @keyframes winFade { from { opacity: 0; } to { opacity: 1; } }
+    .win-panel {
+      background: linear-gradient(145deg, rgba(20,17,10,0.98), rgba(13,17,23,0.98));
+      border: 1px solid rgba(252,211,77,0.5);
+      border-radius: 18px; padding: 30px 28px; max-width: 420px; width: 90vw;
+      box-shadow: 0 24px 68px rgba(0,0,0,0.65), 0 0 40px rgba(252,211,77,0.22);
+      text-align: center;
+      animation: winPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes winPop {
+      0%   { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+    .win-title {
+      font-size: 32px; font-weight: 900; margin-bottom: 6px;
+      background: linear-gradient(135deg, #f59e0b, #fcd34d);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+    .win-sub {
+      font-size: 14px; font-weight: 700; color: #fcd34d; margin-bottom: 18px;
+    }
+    .win-stats {
+      font-size: 13px; color: #c8ced4; line-height: 1.85;
+      margin-bottom: 22px; text-align: left;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .win-stats .row { display: flex; justify-content: space-between; }
+    .win-stats .row + .row { border-top: 1px solid rgba(255,255,255,0.04); padding-top: 4px; margin-top: 4px; }
+    .win-stats strong { color: #fcd34d; font-variant-numeric: tabular-nums; }
     .ipo-confirm {
       background: linear-gradient(135deg, rgba(63,185,80,0.3), rgba(108,99,255,0.3));
       border: 1px solid rgba(63,185,80,0.5); color: #E6EDF3;
@@ -746,6 +823,20 @@
   <div class="m-row"><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row"><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-morale-row" style="display:none"><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
+</div>
+<div id="goal-hud" aria-label="Season goal progress">
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span id="goal-pct">0%</span></div>
+  <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
+</div>
+<div id="win-modal" role="dialog">
+  <div class="win-panel">
+    <div class="win-title">🏆 You made it!</div>
+    <div class="win-sub" id="win-goal-sub">$1M ARR achieved</div>
+    <div class="win-stats" id="win-stats"></div>
+    <div class="ipo-actions">
+      <button class="ipo-confirm" id="win-continue-btn">Keep building →</button>
+    </div>
+  </div>
 </div>
 <div id="activity-feed">
   <div class="feed-title">📡 Live Feed</div>
@@ -3346,13 +3437,59 @@ function smoothedArr() {
   const elapsedSec = Math.max(1, (Date.now() - revenueLog[0].at) / 1000);
   return Math.round(sum * 365 * 24 * 3600 / elapsedSec);
 }
+// ── Season Goal ───────────────────────────────────────────
+// Target ARR for the current season. When smoothed ARR first crosses
+// the target, fire a win modal with a stats recap. Hit state resets
+// on IPO so each season has its own finish line.
+const GOAL_TARGET_ARR = 1_000_000;
+let seasonGoalHit = false;
+const goalFillEl  = document.getElementById('goal-fill');
+const goalPctEl   = document.getElementById('goal-pct');
+const goalLabelEl = document.getElementById('goal-label');
+const winModalEl  = document.getElementById('win-modal');
+const winStatsEl  = document.getElementById('win-stats');
+const winGoalSub  = document.getElementById('win-goal-sub');
+goalLabelEl.textContent = `🎯 $${fmtCash(GOAL_TARGET_ARR)} ARR`;
+winGoalSub.textContent  = `$${fmtCash(GOAL_TARGET_ARR)} ARR achieved`;
+document.getElementById('win-continue-btn').addEventListener('click',
+  () => winModalEl.classList.remove('open'));
+winModalEl.addEventListener('click', e => { if (e.target === winModalEl) winModalEl.classList.remove('open'); });
+
+function updateGoalHud(arr) {
+  const pct = Math.min(1, arr / GOAL_TARGET_ARR);
+  goalFillEl.style.width = (pct * 100).toFixed(1) + '%';
+  goalPctEl.textContent = Math.floor(pct * 100) + '%';
+  if (!seasonGoalHit && arr >= GOAL_TARGET_ARR) {
+    seasonGoalHit = true;
+    triggerWin(arr);
+  }
+}
+
+function triggerWin(arr) {
+  const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
+  const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  winStatsEl.innerHTML = `
+    <div class="row"><span>Peak ARR</span><strong>$${fmtCash(arr)}/yr</strong></div>
+    <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.allTimeCash)}</strong></div>
+    <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
+    <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
+    <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
+    <div class="row"><span>Time to goal</span><strong>${m}:${s.toString().padStart(2,'0')}</strong></div>
+    <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
+  `;
+  winModalEl.classList.add('open');
+  addFeedEntry(`🏆 $${fmtCash(GOAL_TARGET_ARR)} ARR — you made it!`);
+  showToast(`🏆 Goal hit: $${fmtCash(GOAL_TARGET_ARR)} ARR!`, 'milestone', 'critical');
+}
+
 function updateMetricsHUD() {
-  metricsArrEl.textContent   = '$' + fmtCash(smoothedArr()) + '/yr';
+  const arr = smoothedArr();
+  metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
   metricsUsersEl.textContent = fmtCash(totalUsers);
   metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
-  // Total headcount across every role on the floor — engineers, EAs,
-  // BDRs, AEs, and the (single-slot) leadership tier.
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
@@ -3360,6 +3497,7 @@ function updateMetricsHUD() {
     metricsMoraleRowEl.style.display = moraleEnabled ? '' : 'none';
     if (moraleEnabled) { const m = teamMorale(); metricsMoraleEl.textContent = `${moraleEmoji(m)} ${Math.round(m)}`; }
   }
+  updateGoalHud(arr);
 }
 
 // Funding panel
@@ -4717,6 +4855,10 @@ function doIPO() {
   nextInvestorIn = 60 + Math.random() * 60;
   // Reset Sprint state so the new season starts with the button fresh
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
+  // New season — finish line resets
+  seasonGoalHit = false;
+  revenueLog.length = 0;
+  winModalEl.classList.remove('open');
   // Re-show the starter room's wall-pinned decor — after IPO the
   // only owned room is starter again, so the brick / string lights /
   // whiteboard should come back.
@@ -4817,6 +4959,7 @@ function saveGame() {
       })(),
       morale: teamMorale(),
       investorAffinity: { ...investorAffinity },
+      seasonGoalHit,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -4958,6 +5101,7 @@ function loadGame() {
         if (typeof v === 'number') investorAffinity[k] = Math.max(0, Math.min(100, v));
       }
     }
+    if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
