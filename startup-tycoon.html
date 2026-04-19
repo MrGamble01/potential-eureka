@@ -721,55 +721,55 @@ scene.add(fillLight);
 const ROOM_DEFS = [
   {
     id: 'starter', gx: 0, gz: 0, cost: 0,
-    label: 'Starter Office',
+    label: '🏢 HQ',
     desks: [ {x:-4,z:-3}, {x:4,z:-3} ],
   },
   {
     id: 'left', gx: -1, gz: 0, cost: 250,
-    label: '← Left Wing',
+    label: '💻 Engineering Pod',
     desks: [ {x:-20,z:-3}, {x:-20,z:3} ],
   },
   {
     id: 'right', gx: 1, gz: 0, cost: 600,
-    label: '→ Right Wing',
-    desks: [ {x:20,z:-3}, {x:20,z:3} ],
+    label: '📞 Sales Corner',
+    desks: [ {x:20,z:-3, role:'bdr'}, {x:20,z:3, role:'bdr'} ],
   },
   {
     id: 'front', gx: 0, gz: 1, cost: 1200,
-    label: '↓ Open Plan',
+    label: '🏗️ Open Plan',
     desks: [ {x:-4,z:13}, {x:4,z:13}, {x:0,z:19} ],
   },
   {
     id: 'back', gx: 0, gz: -1, cost: 2500,
-    label: '↑ Breakroom',
+    label: '☕ Breakroom',
     desks: [ {x:0,z:-19} ],
   },
   {
     id: 'back-left', gx: -1, gz: -1, cost: 5000,
-    label: '↖ Dev Corner',
-    desks: [ {x:-20,z:-19}, {x:-12,z:-19} ],
+    label: '💼 Account Management',
+    desks: [ {x:-20,z:-19, role:'ae'}, {x:-12,z:-19, role:'ae'} ],
   },
   {
     id: 'back-right', gx: 1, gz: -1, cost: 8000,
-    label: '↗ Lab',
+    label: '🧪 R&D Lab',
     desks: [ {x:20,z:-19}, {x:12,z:-19} ],
   },
   {
     id: 'front-left', gx: -1, gz: 1, cost: 15000,
-    label: '↙ Lounge',
+    label: '🧘 Lounge',
     desks: [ {x:-20,z:13}, {x:-20,z:19} ],
   },
   {
     id: 'front-right', gx: 1, gz: 1, cost: 25000,
-    label: '↘ Event Space',
-    desks: [ {x:20,z:13}, {x:20,z:19} ],
+    label: '🏛️ Leadership Suite',
+    desks: [ {x:20,z:13, role:'vp'}, {x:20,z:19, role:'vp'} ],
   },
 ];
 
 const PLOT_DEFS = [];
 for (const r of ROOM_DEFS) {
   for (const d of (r.desks || [])) {
-    PLOT_DEFS.push({ x: d.x, z: d.z, tier: r.id === 'starter' ? 0 : 99, roomId: r.id });
+    PLOT_DEFS.push({ x: d.x, z: d.z, role: d.role || 'eng', tier: r.id === 'starter' ? 0 : 99, roomId: r.id });
   }
 }
 
@@ -2145,7 +2145,7 @@ const AMENITY_DEFS = [
     maxStock: 999,
     position: new THREE.Vector3(22, 0, 5),
     unlockReq: () => ideaWorkers.length >= 3 && ownedRooms.has('right'),
-    unlockText: () => ideaWorkers.length < 3 ? `🔒 Hire 3 idea people first` : `🔒 Buy → Right Wing first`,
+    unlockText: () => ideaWorkers.length < 3 ? `🔒 Hire 3 idea people first` : `🔒 Buy 📞 Sales Corner first`,
     buildMesh: (g) => { /* table already in scene */ },
   },
   {
@@ -2156,7 +2156,7 @@ const AMENITY_DEFS = [
     maxStock: 999,
     position: new THREE.Vector3(20, 0, 19),
     unlockReq: () => ideaWorkers.length >= 5 && ownedRooms.has('front-right'),
-    unlockText: () => ideaWorkers.length < 5 ? `🔒 Hire 5 idea people first` : `🔒 Buy ↘ Event Space first`,
+    unlockText: () => ideaWorkers.length < 5 ? `🔒 Hire 5 idea people first` : `🔒 Buy 🏛️ Leadership Suite first`,
     buildMesh: (g) => {
       const stand = new THREE.Mesh(new THREE.BoxGeometry(0.12,1.6,0.12), new THREE.MeshLambertMaterial({color:0x888888}));
       stand.position.y = 0.8; g.add(stand);
