@@ -594,6 +594,7 @@
   <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
   <div class="m-row"><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row"><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
+  <div class="m-row" id="m-morale-row" style="display:none"><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="activity-feed">
   <div class="feed-title">📡 Live Feed</div>
@@ -642,6 +643,10 @@
     <label class="setting-row">
       <input type="checkbox" id="joy-enabled">
       <span>🕹️ Virtual joystick</span>
+    </label>
+    <label class="setting-row">
+      <input type="checkbox" id="morale-enabled">
+      <span>😊 Morale system</span>
     </label>
     <button class="hire-btn" id="restart-btn" style="margin-top:8px;background:rgba(248,81,73,0.12);border-color:rgba(248,81,73,0.35);color:#ff8a80">🗑️ Restart game</button>
   </div>
@@ -1863,7 +1868,7 @@ function updateIdeaWorkers(dt) {
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < PROX_RANGE ? 1.5 : 1.0;
-      const rate = WORK_RATE_BASE * ideaSpeedMult * engTeamMultiplier * (w.externalMult || 1) * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
+      const rate = WORK_RATE_BASE * ideaSpeedMult * engTeamMultiplier * moraleWorkMult() * (w.externalMult || 1) * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
       w.currentRate = rate;
       w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
 
@@ -2297,6 +2302,7 @@ function hireBDR() {
   renderHirePanel();
   addFeedEntry(`📞 Hired BDR #${bdrs.length}`);
   showToast(`📞 BDR #${bdrs.length} on the phones!`, 'milestone');
+  changeMorale(+2, 'Sales team growing');
 }
 
 function popCashAt(worldX, worldZ, amount) {
@@ -2424,6 +2430,7 @@ function handleAeHireOrPromote() {
   renderHirePanel();
   addFeedEntry(`💼 Promoted BDR → Account Executive #${aes.length}`);
   showToast(`💼 New AE on the floor!`, 'milestone');
+  changeMorale(+4, 'BDR promoted to AE');
 }
 
 function updateAEs(dt) {
@@ -2456,6 +2463,27 @@ const VP_TIERS = [
   { id: 'cto',  label: 'CTO',                  icon: '🏛️',  cost: 15000, cap: 3.0, perQueue: 0.30, reviewTime: 6, teamBoost: 1.30, teamBoostPct: 30 },
 ];
 let engTeamMultiplier = 1.0; // set from the current VP's tier.teamBoost
+
+// ── Morale ──────────────────────────────────────────────────
+// Opt-in system. When enabled, team morale (0-100) modulates every
+// engineer's work rate by 0.7× (at 0) to 1.3× (at 100). Events
+// nudge morale up/down. When disabled, changeMorale is a no-op and
+// moraleWorkMult() returns 1 so there's zero behavioral difference.
+let moraleEnabled = true;
+let morale = 70;
+function moraleEmoji(m) { return m >= 75 ? '😊' : m >= 45 ? '😐' : m >= 20 ? '😕' : '😢'; }
+function moraleWorkMult() {
+  if (!moraleEnabled) return 1;
+  return 0.7 + (morale / 100) * 0.6;
+}
+function changeMorale(delta, reason = '') {
+  if (!moraleEnabled) return;
+  const before = morale;
+  morale = Math.max(0, Math.min(100, morale + delta));
+  if (morale !== before && reason) {
+    addFeedEntry(`${delta > 0 ? '😊' : '😕'} ${reason} (${delta > 0 ? '+' : ''}${delta})`);
+  }
+}
 function recomputeEngTeamMultiplier() {
   engTeamMultiplier = vps.length === 0 ? 1.0 : VP_TIERS[vps[0].tier].teamBoost;
 }
@@ -2523,6 +2551,7 @@ function handleVpHireOrPromote() {
     vps.push({ group: og.group, desk: newDesk, queue: [], tier: 0 });
     addFeedEntry(`💻 Promoted OG engineer → Lead Engineer`);
     showToast(`💻 Lead Engineer on the team!`, 'milestone');
+    changeMorale(+6, 'OG promoted to Lead Engineer');
   } else {
     state.cash -= cost;
     vps[0].tier++;
@@ -2530,6 +2559,7 @@ function handleVpHireOrPromote() {
     const boostText = t.teamBoostPct > 0 ? ` Engineers +${t.teamBoostPct}% speed.` : '';
     addFeedEntry(`⬆️ Promoted to ${t.label}.${boostText}`);
     showToast(`⬆️ ${t.label}!${boostText}`, 'milestone');
+    changeMorale(+5, `Promotion to ${t.label}`);
   }
   recomputeEngTeamMultiplier();
   addCash(0);
@@ -2661,6 +2691,7 @@ hireBtnEl.addEventListener('click', () => {
   addCash(0);
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
+  changeMorale(+3, 'Grew from within');
 });
 const hireExtEngBtnEl  = document.getElementById('hire-ext-eng-btn');
 const hireExtEngCostEl = document.getElementById('hire-ext-eng-cost');
@@ -2674,6 +2705,7 @@ hireExtEngBtnEl.addEventListener('click', () => {
   addCash(0);
   renderHirePanel();
   addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
+  changeMorale(-2, 'External hire rattles the team');
 });
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 hireBdrBtnEl.addEventListener('click', hireBDR);
@@ -2689,6 +2721,7 @@ hireExtBdrBtnEl.addEventListener('click', () => {
   addCash(0);
   renderHirePanel();
   addFeedEntry(`👔 Hired external BDR (+${Math.round((EXTERNAL_BDR_DEAL_BONUS - 1) * 100)}% deals)`);
+  changeMorale(-1, 'External hire rattles the team');
 });
 hireAeBtnEl.addEventListener('click', handleAeHireOrPromote);
 hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
@@ -2778,6 +2811,8 @@ const metricsUsersEl= document.getElementById('m-users');
 const metricsShipEl = document.getElementById('m-shipped');
 const metricsTeamEl = document.getElementById('m-teamrev');
 const metricsVersionEl = document.getElementById('m-version');
+const metricsMoraleRowEl = document.getElementById('m-morale-row');
+const metricsMoraleEl    = document.getElementById('m-morale');
 function updateMetricsHUD() {
   const estDeliveriesPerSec = ideaWorkers.length * WORK_RATE_BASE * ideaSpeedMult / 1.0;
   const arr = Math.round(featurePrice * dealValueMult * productVersionMult * estDeliveriesPerSec * 3600 * 24 * 365);
@@ -2787,6 +2822,10 @@ function updateMetricsHUD() {
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
   metricsTeamEl.textContent  = `${ideaWorkers.length} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
+  if (metricsMoraleRowEl) {
+    metricsMoraleRowEl.style.display = moraleEnabled ? '' : 'none';
+    if (moraleEnabled) metricsMoraleEl.textContent = `${moraleEmoji(morale)} ${Math.round(morale)}`;
+  }
 }
 
 // Funding panel
@@ -3481,6 +3520,19 @@ function setJoystickEnabled(on) {
 setJoystickEnabled(localStorage.getItem('joystickEnabled') === '1');
 joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
 
+// Morale toggle (defaults to ON; players can flip off if they want
+// pure flat-rate gameplay or for testing)
+const moraleToggleEl = document.getElementById('morale-enabled');
+function setMoraleEnabled(on) {
+  moraleEnabled = !!on;
+  moraleToggleEl.checked = moraleEnabled;
+  localStorage.setItem('moraleEnabled', moraleEnabled ? '1' : '0');
+  updateMetricsHUD();
+}
+const savedMorale = localStorage.getItem('moraleEnabled');
+setMoraleEnabled(savedMorale === null ? true : savedMorale === '1');
+moraleToggleEl.addEventListener('change', () => setMoraleEnabled(moraleToggleEl.checked));
+
 // Restart game: wipe save + reload. Setting _restarting stops the periodic
 // saveGame + beforeunload handler from re-saving the in-memory state over
 // the key we just cleared.
@@ -3776,6 +3828,8 @@ function doIPO() {
   }
   // Reset any room-conversion modes so new season starts fresh
   for (const k of Object.keys(roomModes)) delete roomModes[k];
+  // Reset morale for new season
+  morale = 70;
   // Clear shared walls map and rebuild starter room walls
   for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
   const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
@@ -3838,6 +3892,7 @@ function saveGame() {
       vpCount: vps.length,
       vpTier: vps.length > 0 ? vps[0].tier : 0,
       roomModes: { ...roomModes },
+      morale,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -3969,6 +4024,7 @@ function loadGame() {
       nextMilestoneIdx++;
     }
     if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
+    if (typeof p.morale === 'number') morale = Math.max(0, Math.min(100, p.morale));
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
