@@ -142,16 +142,17 @@
     .amenity-btn {
       display: block; width: 100%; margin-top: 4px;
       background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.22);
-      color: #E6EDF3; border-radius: 5px; padding: 6px 10px;
+      color: #E6EDF3; border-radius: 6px; padding: 7px 11px;
       font-weight: 700; font-size: 11px; font-family: inherit;
       cursor: pointer; text-align: left; transition: all 0.15s;
+      line-height: 1.3;
     }
-    .amenity-btn:hover:not(:disabled) { background: rgba(88,166,255,0.18); }
+    .amenity-btn:hover:not(:disabled) { background: rgba(88,166,255,0.18); border-color: rgba(88,166,255,0.4); transform: translateX(1px); }
     .amenity-btn:active:not(:disabled) { transform: scale(0.98); }
     .amenity-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .amenity-btn.owned { background: rgba(63,185,80,0.1); border-color: rgba(63,185,80,0.35); }
-    .amenity-btn.locked { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); color: #7D8590; }
-    .amenity-btn .tag { float: right; font-size: 10px; color: #7D8590; font-weight: 700; }
+    .amenity-btn.owned { background: rgba(63,185,80,0.12); border-color: rgba(63,185,80,0.35); }
+    .amenity-btn.locked { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.06); color: #7D8590; }
+    .amenity-btn .tag { float: right; font-size: 10px; color: #7D8590; font-weight: 700; font-variant-numeric: tabular-nums; }
 
     /* ── Labels overlay ───────────────────────────────── */
     #labels { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
@@ -296,6 +297,17 @@
     @keyframes toastOut { to   { opacity:0; transform:translateX(50px); } }
     .toast.rush      { border-left-color: #f59e0b; }
     .toast.milestone { border-left-color: #3FB950; }
+    /* Priority-level variants: ambient (routine) is dimmer + smaller;
+       critical (milestones) is louder with a stronger shadow. */
+    .toast.toast-ambient {
+      opacity: 0.88; font-size: 12px; padding: 7px 12px;
+    }
+    .toast.toast-critical {
+      border-left-width: 4px;
+      background: rgba(13,17,23,0.98);
+      box-shadow: 0 6px 26px rgba(245,158,11,0.28), 0 2px 8px rgba(0,0,0,0.45);
+      font-size: 14px;
+    }
 
     /* ── Floating cash pops ───────────────────────────── */
     .cash-pop {
@@ -320,15 +332,26 @@
     /* ── Funding rounds ───────────────────────────────── */
     .fund-btn {
       display: block; width: 100%; margin-top: 4px;
-      background: rgba(108,99,255,0.14); border: 1px solid rgba(108,99,255,0.38);
-      color: #E6EDF3; border-radius: 6px; padding: 9px 12px;
+      background: linear-gradient(135deg, rgba(108,99,255,0.16), rgba(63,185,80,0.1));
+      border: 1px solid rgba(108,99,255,0.42);
+      color: #E6EDF3; border-radius: 8px; padding: 10px 13px;
       font-weight: 700; font-size: 12px; font-family: inherit; cursor: pointer;
       text-align: left; transition: all 0.15s;
+      box-shadow: 0 2px 10px rgba(108,99,255,0.15);
     }
-    .fund-btn:hover:not(:disabled) { background: rgba(108,99,255,0.28); }
+    .fund-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(108,99,255,0.3), rgba(63,185,80,0.18));
+      border-color: rgba(108,99,255,0.65);
+      box-shadow: 0 4px 16px rgba(108,99,255,0.3);
+    }
     .fund-btn:active { transform: scale(0.97); }
-    .fund-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .fund-btn .tag { float: right; color: #a89ff5; font-size: 11px; font-weight: 800; }
+    .fund-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    .fund-btn:not(:disabled) { animation: fundPulse 2.4s ease-in-out infinite; }
+    .fund-btn .tag { float: right; color: #a89ff5; font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    @keyframes fundPulse {
+      0%,100% { box-shadow: 0 2px 10px rgba(108,99,255,0.15); }
+      50%      { box-shadow: 0 4px 18px rgba(108,99,255,0.4); }
+    }
     .lock-note {
       font-size: 11px; color: #7D8590; text-align: center;
       padding: 5px 4px; font-style: italic; margin-top: 2px;
@@ -466,13 +489,27 @@
     .room-btn {
       display: block; width: 100%; margin-top: 4px;
       background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.25);
-      color: #E6EDF3; border-radius: 5px; padding: 6px 10px;
+      color: #E6EDF3; border-radius: 6px; padding: 7px 11px;
       font-weight: 700; font-size: 11px; font-family: inherit;
       cursor: pointer; text-align: left; transition: all 0.15s;
+      line-height: 1.3;
     }
-    .room-btn:hover:not(:disabled) { background: rgba(63,185,80,0.2); border-color: rgba(63,185,80,0.5); }
+    .room-btn:hover:not(:disabled) { background: rgba(63,185,80,0.2); border-color: rgba(63,185,80,0.5); transform: translateX(1px); }
+    .room-btn:active:not(:disabled) { transform: scale(0.98); }
     .room-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .room-btn .tag { float: right; color: #3FB950; font-size: 10px; font-weight: 800; }
+    .room-btn .tag { float: right; color: #3FB950; font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    /* Convert / Add-Desk buttons use a distinct tint so they
+       visually separate from room purchases in the same panel. */
+    .room-btn.room-convert {
+      background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.35);
+    }
+    .room-btn.room-convert:hover:not(:disabled) { background: rgba(245,158,11,0.22); border-color: rgba(245,158,11,0.55); }
+    .room-btn.room-convert .tag { color: #f59e0b; }
+    .room-btn.room-desk {
+      background: rgba(108,99,255,0.1); border-color: rgba(108,99,255,0.35);
+    }
+    .room-btn.room-desk:hover:not(:disabled) { background: rgba(108,99,255,0.22); border-color: rgba(108,99,255,0.55); }
+    .room-btn.room-desk .tag { color: #a89ff5; }
 
     /* ── Upgrade category headers ─────────────────────── */
     .upg-cat {
@@ -691,7 +728,7 @@
   <div id="room-panel" class="panel">
     <div class="panel-title">🏗️ Expand Office</div>
     <div id="room-list"></div>
-    <button class="room-btn" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
+    <button class="room-btn room-desk" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
   </div>
   <div id="funding-panel" class="panel">
     <div class="panel-title">💼 Funding</div>
@@ -1550,7 +1587,7 @@ function renderRoomPanel() {
     const reqMet = !cur.nextReq || cur.nextReq();
     const canAfford = state.cash >= (cur.nextCost || 0);
     const btn = document.createElement('button');
-    btn.className = 'room-btn';
+    btn.className = 'room-btn room-convert';
     btn.disabled = !reqMet || !canAfford;
     btn.innerHTML = reqMet
       ? `⚡ Convert to ${next.label}<span class="tag">$${fmtCash(cur.nextCost)}</span>`
@@ -1736,7 +1773,6 @@ scene.add(player);
 
 // --- Tunables (mutated by upgrades) ---
 let playerSpeed = 6;
-let maxStack = 10;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
 let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
 let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
@@ -2801,10 +2837,10 @@ const hireEaCostEl = document.getElementById('hire-ea-cost');
 const hireBdrBtnEl  = document.getElementById('hire-bdr-btn');
 const hireBdrCostEl = document.getElementById('hire-bdr-cost');
 const hireAeBtnEl   = document.getElementById('hire-ae-btn');
-const hireAeCostEl  = document.getElementById('hire-ae-cost');
+// (hireAeCostEl removed — button innerHTML is replaced each render.)
 const hireSalesSectionEl = document.getElementById('hire-sales-section');
 const hireVpBtnEl  = document.getElementById('hire-vp-btn');
-const hireVpCostEl = document.getElementById('hire-vp-cost');
+// (hireVpCostEl removed — button innerHTML is replaced each render.)
 const hireLeadershipSectionEl = document.getElementById('hire-leadership-section');
 
 function renderHirePanel() {
@@ -3461,8 +3497,6 @@ const UPGRADES = [
   // ── Engineering ──
   { id:'speed',     cat:'engineering', label:'👟 Running Shoes',      base:25,  scale:1.5, max:10,
     apply: lv => { playerSpeed = 6 + lv * 0.5; } },
-  { id:'capacity',  cat:'engineering', label:'🎒 Bigger Backpack',    base:30,  scale:1.7, max:10,
-    apply: lv => { maxStack = 10 + lv * 2; } },
   { id:'marketing', cat:'engineering', label:'☕ Espresso Machine',   base:75,  scale:1.7, max:4,
     apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); } },
   // ── Revenue ──
@@ -4184,7 +4218,7 @@ function doIPO() {
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
-  playerSpeed = 6; maxStack = 10; featurePrice = 5;
+  playerSpeed = 6; featurePrice = 5;
   for (const u of UPGRADES) upgLevels[u.id] = 0;
 
   // Remove idea workers
