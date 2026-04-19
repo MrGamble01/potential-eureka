@@ -50,6 +50,7 @@
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(63,185,80,0.32);
       color: #3FB950; font-weight: 800; font-size: 22px;
+      font-family: inherit;
       padding: 11px 18px; border-radius: 12px;
       box-shadow: 0 4px 22px rgba(63,185,80,0.15), 0 0 1px rgba(255,255,255,0.05) inset;
       display: flex; align-items: center; gap: 10px;
@@ -737,7 +738,7 @@
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<div id="cash-hud" title="Tap to add $1,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></div>
+<button id="cash-hud" type="button" title="Tap to add $1,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
