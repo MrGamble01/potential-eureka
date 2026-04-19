@@ -2543,7 +2543,11 @@ function updateExecutiveAssistants(dt) {
     if (ea.state === 'chatting') {
       ea.waitT -= dt;
       if (ea.waitT <= 0) {
-        if (ea.targetWorker) changeMorale(+5, 'EA chat', ea.targetWorker);
+        // Make sure the worker still exists (could have been promoted
+        // to VP mid-chat-walk) before applying the morale bump.
+        if (ea.targetWorker && ideaWorkers.includes(ea.targetWorker)) {
+          changeMorale(+5, 'EA chat', ea.targetWorker);
+        }
         ea.state = 'idle'; ea.waitT = 0.4;
         ea.targetWorker = null;
       }
@@ -2555,7 +2559,9 @@ function updateExecutiveAssistants(dt) {
     if (ea.state === 'toCoffee') {
       ea.state = 'refillingCoffee'; ea.waitT = 1.2;
     } else if (ea.state === 'toDesk') {
-      if (ea.targetDesk) {
+      // Guard: the desk might have been purged by a room conversion
+      // between task pickup and arrival.
+      if (ea.targetDesk && plots.includes(ea.targetDesk)) {
         ea.targetDesk.paperStock = Math.min(PAPER_MAX, ea.targetDesk.paperStock + 8);
       }
       ea.carryMesh.visible = false;
@@ -2563,7 +2569,9 @@ function updateExecutiveAssistants(dt) {
       ea.targetDesk = null; ea.target = null;
     } else if (ea.state === 'toCoffeeDrop') {
       const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
-      if (ea.targetWorker && coffeeAm && coffeeAm.stock > 0) {
+      // Guard: the worker might have been promoted / room-migrated
+      // between task pickup and arrival.
+      if (ea.targetWorker && ideaWorkers.includes(ea.targetWorker) && coffeeAm && coffeeAm.stock > 0) {
         coffeeAm.stock--;
         ea.targetWorker.caffeinated = true;
         ea.targetWorker.caffeinatedT = 60;
