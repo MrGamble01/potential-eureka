@@ -515,6 +515,16 @@
       transition: width 0.35s ease-out;
       box-shadow: 0 0 10px rgba(245,158,11,0.35);
     }
+    #goal-hud.complete {
+      border-color: rgba(252,211,77,0.7);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.35);
+      animation: goalGlow 2.4s ease-in-out infinite;
+    }
+    @keyframes goalGlow {
+      0%,100% { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.25); }
+      50%      { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 26px rgba(252,211,77,0.55); }
+    }
+    #goal-hud.complete #goal-pct::before { content: '✓ '; }
     @media (max-width: 900px) {
       #goal-hud {
         top: calc(58px + env(safe-area-inset-top, 0px));
@@ -815,7 +825,7 @@
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<button id="cash-hud" type="button" title="Tap to add $100,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></button>
+<button id="cash-hud" type="button" title="Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
@@ -1801,6 +1811,7 @@ function renderRoomPanel() {
       ? `⚡ Convert to ${next.label}<span class="tag">$${fmtCash(cur.nextCost)}</span>`
       : `🔒 ${next.label}<span class="tag" style="color:#7D8590">${cur.nextReqText || ''}</span>`;
     btn.onclick = () => convertRoom(roomId);
+    if (reqMet) showTip('conversion');
     el.appendChild(btn);
   }
   if (el.children.length === 0) {
@@ -3044,6 +3055,7 @@ function triggerSprint() {
   showToast('🏃 Sprint! +100% eng speed for 30s (2× paper drain)', 'rush');
   addFeedEntry('🏃 Sprint started');
   changeMorale(+3, 'Sprint rally');
+  showTip('sprint');
 }
 function updateSprint(dt) {
   if (sprintActive) {
@@ -3290,6 +3302,7 @@ function renderHirePanel() {
     const availableSeat = !needsSeat || plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
     hireVpBtnEl.disabled = maxed || !availableSeat || state.cash < vcost;
     hireVpBtnEl.innerHTML = `${vpButtonLabel()}<span class="cost">${maxed ? '' : `$${fmtCash(vcost)}`}</span>`;
+    if (vps.length === 0) showTip('vp');
   }
 }
 
@@ -3302,6 +3315,7 @@ hireBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
   changeMorale(+3, 'Grew from within');
+  showTip('goal');
 });
 const hireExtEngBtnEl  = document.getElementById('hire-ext-eng-btn');
 const hireExtEngCostEl = document.getElementById('hire-ext-eng-cost');
@@ -3455,6 +3469,7 @@ document.getElementById('win-continue-btn').addEventListener('click',
   () => winModalEl.classList.remove('open'));
 winModalEl.addEventListener('click', e => { if (e.target === winModalEl) winModalEl.classList.remove('open'); });
 
+const goalHudEl = document.getElementById('goal-hud');
 function updateGoalHud(arr) {
   const pct = Math.min(1, arr / GOAL_TARGET_ARR);
   goalFillEl.style.width = (pct * 100).toFixed(1) + '%';
@@ -3463,6 +3478,7 @@ function updateGoalHud(arr) {
     seasonGoalHit = true;
     triggerWin(arr);
   }
+  goalHudEl.classList.toggle('complete', seasonGoalHit);
 }
 
 function triggerWin(arr) {
@@ -4292,11 +4308,23 @@ addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
-// Cheat: click the cash HUD to add $100,000 (for testing)
+// Cheat: click the cash HUD. Back-to-back taps escalate the amount:
+// 1 tap = $1k, double-tap = $10k, triple-tap = $100k. Pause >600ms
+// resets the streak.
 const cashHudEl = document.getElementById('cash-hud');
+const CHEAT_AMOUNTS = [1000, 10000, 100000];
+const CHEAT_WINDOW_MS = 600;
+let cheatStreak = 0;
+let cheatLastT = 0;
 cashHudEl.addEventListener('click', () => {
-  addCash(100000);
-  showCashPop(100000);
+  const now = performance.now();
+  cheatStreak = (now - cheatLastT < CHEAT_WINDOW_MS)
+    ? Math.min(cheatStreak + 1, CHEAT_AMOUNTS.length)
+    : 1;
+  cheatLastT = now;
+  const amt = CHEAT_AMOUNTS[cheatStreak - 1];
+  addCash(amt);
+  showCashPop(amt);
   cashHudEl.classList.remove('cash-bump');
   void cashHudEl.offsetWidth; // restart animation
   cashHudEl.classList.add('cash-bump');
@@ -4477,6 +4505,22 @@ const TIPS = {
   investor: {
     title: '🤝 An investor walked in!',
     body: 'Investors wander the office for a short window. Walk up to them to shake their hand — different types pay out differently (cash, deal-value boost, morale, etc.). If you don\'t greet them, they leave. No penalty, just a missed opportunity.',
+  },
+  sprint: {
+    title: '🏃 Sprint mode',
+    body: 'Tap the 🏃 Sprint button (bottom-right) for a 30-second push: every engineer works at 2× speed but desks burn paper twice as fast. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
+  },
+  conversion: {
+    title: '⚡ Room can be converted',
+    body: 'A room you own can now be remodeled into a different mode. Watch for the amber ⚡ Convert to … button in the Expand Office panel. Seated hires migrate to other open desks if there\'s space; if not, the conversion is blocked.',
+  },
+  vp: {
+    title: '🏛️ Leadership unlocked',
+    body: 'You can promote your OG engineer into a Lead Engineer. They move into the Leadership Suite (or any open desk early on) and review every shipped feature for a multiplier that scales with how many they\'re juggling. Promote again to Head of Engineering, then CTO — each tier boosts the whole team.',
+  },
+  goal: {
+    title: '🎯 Season goal',
+    body: 'See the gold bar at the top? That tracks your team\'s ARR toward $1M. Hit it and a 🏆 trophy fires with your run stats. IPO to start a fresh season at a higher revenue multiplier and chase it again.',
   },
 };
 const tipModalEl = document.getElementById('tip-modal');
