@@ -59,6 +59,12 @@
     }
     #cash-hud:hover { box-shadow: 0 4px 26px rgba(63,185,80,0.25); }
     #cash-hud:active { transform: scale(0.94); }
+    #cash-hud.cash-bump { animation: cashBump 0.32s ease-out; }
+    @keyframes cashBump {
+      0%   { transform: scale(0.94); box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
+      50%  { transform: scale(1.06); box-shadow: 0 6px 30px rgba(63,185,80,0.55); }
+      100% { transform: scale(1);    box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
+    }
     #cash-hud .bill {
       display: inline-block; width: 22px; height: 13px; border-radius: 3px;
       background: linear-gradient(135deg, #3FB950 0%, #1d6f30 100%);
@@ -137,6 +143,8 @@
     .hire-btn.role-exec:hover:not(:disabled) { background: linear-gradient(135deg, rgba(108,99,255,0.28), rgba(212,153,34,0.28)); }
     .hire-btn.role-ext   { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.14); color: #a0aab4; }
     .hire-btn.role-ext:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #E6EDF3; }
+    .hire-btn.role-danger { background: rgba(248,81,73,0.12); border-color: rgba(248,81,73,0.35); color: #ff8a80; }
+    .hire-btn.role-danger:hover:not(:disabled) { background: rgba(248,81,73,0.24); border-color: rgba(248,81,73,0.55); }
 
     /* ── Amenity buttons ──────────────────────────────── */
     .amenity-btn {
@@ -530,12 +538,14 @@
       background: rgba(8,10,18,0.92);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,0.14);
-      color: #E6EDF3; border-radius: 10px;
+      color: #E6EDF3; border-radius: 12px;
       font-size: 20px; font-family: inherit;
       cursor: pointer; z-index: 120;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      transition: transform 0.15s ease, background 0.15s ease;
     }
-    #sidebar-toggle:active { transform: scale(0.94); }
+    #sidebar-toggle:hover { background: rgba(8,10,18,0.98); }
+    #sidebar-toggle:active { transform: scale(0.92); }
     #drawer-backdrop {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.45);
@@ -762,7 +772,7 @@
         <option value="off">Feed only</option>
       </select>
     </label>
-    <button class="hire-btn" id="restart-btn" style="margin-top:8px;background:rgba(248,81,73,0.12);border-color:rgba(248,81,73,0.35);color:#ff8a80">🗑️ Restart game</button>
+    <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
   </div>
 </div>
 <div id="joystick"><div id="joy-knob"></div></div>
@@ -1527,7 +1537,7 @@ function convertRoom(roomId, opts = {}) {
   for (let i = 0; i < extraCount; i++) addExtraDeskToRoom(roomId);
   // Update mode state + fire side-effect
   roomModes[roomId] = cur.nextMode;
-  addCash(0);
+  refreshHud();
   addFeedEntry(`🏗️ ${cur.label} → ${next.label}`);
   showToast(`🏗️ ${next.label}!`, 'milestone');
   renderRoomPanel();
@@ -1543,7 +1553,7 @@ function addDeskToCurrentRoom() {
   if (state.cash < cost) return;
   if (!addExtraDeskToRoom(def.id)) return;
   state.cash -= cost;
-  addCash(0);
+  refreshHud();
   renderHirePanel();
   renderRoomPanel();
   addFeedEntry(`🪑 Added a desk in ${def.label}`);
@@ -1556,7 +1566,7 @@ function buyRoom(id) {
   ownedRooms.add(id);
   buildRoom(def);
   activatePlotsForRoom(id);
-  addCash(0);
+  refreshHud();
   renderRoomPanel();
   showToast(`🏗️ ${def.label} unlocked!`, 'milestone');
   addFeedEntry(`🏗️ Expanded to ${def.label}`);
@@ -2313,7 +2323,7 @@ function hireExecutiveAssistant() {
   if (state.cash < cost) return;
   state.cash -= cost;
   spawnExecutiveAssistant();
-  addCash(0);
+  refreshHud();
   renderHirePanel();
   addFeedEntry(`🧑‍💼 Hired EA #${eas.length}`);
   showToast(`🧑‍💼 EA #${eas.length} on the floor!`, 'milestone');
@@ -2475,7 +2485,7 @@ function hireBDR() {
   if (!hasDesk) return;
   state.cash -= cost;
   if (!spawnBDR()) { state.cash += cost; return; }
-  addCash(0);
+  refreshHud();
   renderHirePanel();
   addFeedEntry(`📞 Hired BDR #${bdrs.length}`);
   showToast(`📞 BDR #${bdrs.length} on the phones!`, 'milestone');
@@ -2609,7 +2619,7 @@ function handleAeHireOrPromote() {
   aeDesk.occupied = true;
   og.group.position.set(aeDesk.group.position.x, 0, aeDesk.group.position.z + 1.0);
   aes.push({ group: og.group, desk: aeDesk, currentDeal: null });
-  addCash(0);
+  refreshHud();
   renderHirePanel();
   addFeedEntry(`💼 Promoted BDR → Account Executive #${aes.length}`);
   showToast(`💼 New AE on the floor!`, 'milestone');
@@ -2794,7 +2804,7 @@ function handleVpHireOrPromote() {
     changeMorale(+5, `Promotion to ${t.label}`);
   }
   recomputeEngTeamMultiplier();
-  addCash(0);
+  refreshHud();
   renderHirePanel();
 }
 
@@ -2920,7 +2930,7 @@ hireBtnEl.addEventListener('click', () => {
   if (state.cash < cost) return;
   state.cash -= cost;
   spawnIdeaWorker();
-  addCash(0);
+  refreshHud();
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
   changeMorale(+3, 'Grew from within');
@@ -2934,7 +2944,7 @@ hireExtEngBtnEl.addEventListener('click', () => {
   if (!hasDesk) return;
   state.cash -= cost;
   spawnIdeaWorker({ external: true });
-  addCash(0);
+  refreshHud();
   renderHirePanel();
   addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
   changeMorale(-2, 'External hire rattles the team');
@@ -2950,7 +2960,7 @@ hireExtBdrBtnEl.addEventListener('click', () => {
   if (!hasDesk) return;
   state.cash -= cost;
   if (!spawnBDR({ external: true })) { state.cash += cost; return; }
-  addCash(0);
+  refreshHud();
   renderHirePanel();
   addFeedEntry(`👔 Hired external BDR (+${Math.round((EXTERNAL_BDR_DEAL_BONUS - 1) * 100)}% deals)`);
   changeMorale(-1, 'External hire rattles the team');
@@ -3230,7 +3240,7 @@ function buyAmenity(id) {
   am.stock = 0; // Support staff will stock it
   buildAmenity(am);
   if (id === 'standup') ideaSpeedMult *= 1.3;
-  addCash(0);
+  refreshHud();
 }
 const amenitiesList = document.getElementById('amenities-list');
 function renderAmenities() {
@@ -3460,13 +3470,10 @@ function checkMilestones() {
   }
 }
 
-function addCash(n) {
-  state.cash += n;
-  if (n > 0) {
-    state.allTimeCash += n;
-    showCashPop(n);
-    checkMilestones();
-  }
+// Refresh every HUD/panel that depends on cash or hire/room state.
+// Used by every gain / spend path and by ambient state changes that
+// don't actually move money (e.g. unlocking a room spot).
+function refreshHud() {
   cashValEl.textContent = Math.floor(state.cash).toString();
   renderUpgrades();
   renderHirePanel();
@@ -3474,6 +3481,15 @@ function addCash(n) {
   renderRoomPanel();
   renderFunding();
   checkIPOAvailable();
+}
+function addCash(n) {
+  state.cash += n;
+  if (n > 0) {
+    state.allTimeCash += n;
+    showCashPop(n);
+    checkMilestones();
+  }
+  refreshHud();
 }
 
 // --- Upgrades ---
@@ -3670,7 +3686,7 @@ function buyUpgrade(id) {
   upgLevels[id]++;
   u.apply(upgLevels[id]);
   addFeedEntry(`⬆️ ${u.label} → Lv${upgLevels[id]}`);
-  addCash(0);
+  refreshHud();
 }
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
@@ -3706,7 +3722,7 @@ function renderUpgrades() {
       (maxed ? '' : `<span class="cost">$${fmtCash(cost)}</span>`);
   }
 }
-addCash(0);
+refreshHud();
 
 // --- Elevator + floor scaffold ---
 // Only OFFICE is active. Other floors unlock but are placeholders until a
@@ -3769,7 +3785,7 @@ function renderFloors() {
         if (state.cash >= f.cost) {
           state.cash -= f.cost;
           unlocked[f.id] = true;
-          addCash(0);
+          refreshHud();
           elevMsgEl.textContent = `${f.name} unlocked!`;
           renderFloors();
         } else {
@@ -3803,9 +3819,13 @@ addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, inn
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
 // Cheat: click the cash HUD to add $1000 (for testing)
-document.getElementById('cash-hud').addEventListener('click', () => {
+const cashHudEl = document.getElementById('cash-hud');
+cashHudEl.addEventListener('click', () => {
   addCash(1000);
   showCashPop(1000);
+  cashHudEl.classList.remove('cash-bump');
+  void cashHudEl.offsetWidth; // restart animation
+  cashHudEl.classList.add('cash-bump');
 });
 
 // Tap-to-move: project pointer onto ground plane, walk toward target.
@@ -4307,7 +4327,7 @@ function doIPO() {
 
   addFeedEntry(`🎉 IPO! Season ${prestigeLevel + 1} — ${prestigeMultiplier}× revenue!`);
   showToast(`🎉 IPO complete! Season ${prestigeLevel + 1} — all revenue is now ${prestigeMultiplier}×!`, 'milestone');
-  addCash(0);
+  refreshHud();
   renderFunding();
   saveGame();
 }
