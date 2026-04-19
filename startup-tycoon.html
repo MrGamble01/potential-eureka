@@ -378,6 +378,18 @@
       border: 1px solid rgba(212,153,34,0.45); border-radius: 6px;
       padding: 1px 8px; font-size: 11px; font-weight: 800; color: #f59e0b;
     }
+    /* ── Room buy buttons ────────────────────────────── */
+    .room-btn {
+      display: block; width: 100%; margin-top: 4px;
+      background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.25);
+      color: #E6EDF3; border-radius: 5px; padding: 6px 10px;
+      font-weight: 700; font-size: 11px; font-family: inherit;
+      cursor: pointer; text-align: left; transition: all 0.15s;
+    }
+    .room-btn:hover:not(:disabled) { background: rgba(63,185,80,0.2); border-color: rgba(63,185,80,0.5); }
+    .room-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .room-btn .tag { float: right; color: #3FB950; font-size: 10px; font-weight: 800; }
+
     /* ── Upgrade category headers ─────────────────────── */
     .upg-cat {
       font-size: 9px; font-weight: 800; text-transform: uppercase;
@@ -423,6 +435,10 @@
         <button class="hire-btn" id="hire-runner-btn" style="margin-top:6px;background:rgba(32,170,255,0.1);border-color:rgba(32,170,255,0.3)">📦 Supply Runner<span class="cost" id="hire-runner-cost">$180</span></button>
       </div>
     </div>
+  </div>
+  <div id="room-panel" class="panel">
+    <div class="panel-title">🏗️ Expand Office</div>
+    <div id="room-list"></div>
   </div>
   <div id="funding-panel" class="panel">
     <div class="panel-title">💼 Funding</div>
@@ -514,316 +530,191 @@ const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.4);
 fillLight.position.set(-10, 15, -5);
 scene.add(fillLight);
 
-// Overhead office point lights
-for (const [lx,lz] of [[0,0],[15,0],[-15,0],[0,8],[15,8],[-15,8],[0,-8],[15,-8],[-15,-8]]) {
-  const pt = new THREE.PointLight(0xfff9f0, 0.18, 18);
-  pt.position.set(lx, 5, lz);
+// Overhead point lights are added per-room when buildRoom() is called
+
+// ── Room-by-room expansion system ───────────────────────────
+const ROOM_DEFS = [
+  {
+    id: 'starter', gx: 0, gz: 0, cost: 0,
+    label: 'Starter Office',
+    desks: [ {x:-4,z:-3}, {x:4,z:-3} ],
+  },
+  {
+    id: 'left', gx: -1, gz: 0, cost: 250,
+    label: '← Left Wing',
+    desks: [ {x:-20,z:-3}, {x:-20,z:3} ],
+  },
+  {
+    id: 'right', gx: 1, gz: 0, cost: 600,
+    label: '→ Right Wing',
+    desks: [ {x:20,z:-3}, {x:20,z:3} ],
+  },
+  {
+    id: 'front', gx: 0, gz: 1, cost: 1200,
+    label: '↓ Open Plan',
+    desks: [ {x:-4,z:13}, {x:4,z:13}, {x:0,z:19} ],
+  },
+  {
+    id: 'back', gx: 0, gz: -1, cost: 2500,
+    label: '↑ Breakroom',
+    desks: [ {x:0,z:-19} ],
+  },
+  {
+    id: 'back-left', gx: -1, gz: -1, cost: 5000,
+    label: '↖ Dev Corner',
+    desks: [ {x:-20,z:-19}, {x:-12,z:-19} ],
+  },
+  {
+    id: 'back-right', gx: 1, gz: -1, cost: 8000,
+    label: '↗ Lab',
+    desks: [ {x:20,z:-19}, {x:12,z:-19} ],
+  },
+  {
+    id: 'front-left', gx: -1, gz: 1, cost: 15000,
+    label: '↙ Lounge',
+    desks: [ {x:-20,z:13}, {x:-20,z:19} ],
+  },
+  {
+    id: 'front-right', gx: 1, gz: 1, cost: 25000,
+    label: '↘ Event Space',
+    desks: [ {x:20,z:13}, {x:20,z:19} ],
+  },
+];
+
+const PLOT_DEFS = [];
+for (const r of ROOM_DEFS) {
+  for (const d of (r.desks || [])) {
+    PLOT_DEFS.push({ x: d.x, z: d.z, tier: r.id === 'starter' ? 0 : 99, roomId: r.id });
+  }
+}
+
+// Runtime room state
+const ownedRooms = new Set(['starter']);
+const roomMeshes = {}; // roomId → { floor, walls[], decorations[] }
+const sharedWalls = {}; // "gx1,gz1:gx2,gz2" → mesh
+
+// Shared materials for room building
+const floorMat = new THREE.MeshLambertMaterial({ color: 0xf0ede8 });
+const wallMat  = new THREE.MeshLambertMaterial({ color: 0xf5f5f0 });
+
+function wallKey(gx1, gz1, gx2, gz2) {
+  // Canonical order: smaller grid coord first
+  if (gx1 > gx2 || (gx1 === gx2 && gz1 > gz2)) return `${gx2},${gz2}:${gx1},${gz1}`;
+  return `${gx1},${gz1}:${gx2},${gz2}`;
+}
+
+function buildRoom(def) {
+  const cx = def.gx * 16;
+  const cz = def.gz * 16;
+  const meshes = { floor: null, walls: [], decorations: [] };
+
+  // Floor tile
+  const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(16, 0.1, 16), floorMat);
+  floorMesh.position.set(cx, 0.05, cz);
+  floorMesh.receiveShadow = true;
+  scene.add(floorMesh);
+  meshes.floor = floorMesh;
+
+  // Determine which edges need outer walls (edges not adjacent to an owned room)
+  // Neighbors: N(gz-1), S(gz+1), W(gx-1), E(gx+1)
+  const neighbors = [
+    { dgx:  0, dgz: -1, wallAxis: 'z', wallPos: [cx, 1.6, cz - 8],  wallGeo: [16.4, 3.2, 0.3] }, // North
+    { dgx:  0, dgz:  1, wallAxis: 'z', wallPos: [cx, 1.6, cz + 8],  wallGeo: [16.4, 3.2, 0.3] }, // South
+    { dgx: -1, dgz:  0, wallAxis: 'x', wallPos: [cx - 8, 1.6, cz],  wallGeo: [0.3, 3.2, 16.4] }, // West
+    { dgx:  1, dgz:  0, wallAxis: 'x', wallPos: [cx + 8, 1.6, cz],  wallGeo: [0.3, 3.2, 16.4] }, // East
+  ];
+
+  for (const nb of neighbors) {
+    const ngx = def.gx + nb.dgx;
+    const ngz = def.gz + nb.dgz;
+    const key = wallKey(def.gx, def.gz, ngx, ngz);
+    const neighborDef = ROOM_DEFS.find(r => r.gx === ngx && r.gz === ngz);
+    const neighborOwned = ownedRooms.has(neighborDef?.id);
+
+    if (neighborOwned) {
+      // Remove the shared wall if it exists
+      if (sharedWalls[key]) {
+        scene.remove(sharedWalls[key]);
+        delete sharedWalls[key];
+      }
+    } else {
+      // Build outer wall, but for south wall of starter room add door gap
+      if (def.id === 'starter' && nb.dgz === 1) {
+        // Split south wall into two halves with 2.5-unit door gap in center
+        const halfW = (16.4 - 2.5) / 2; // ~6.95
+        const wallL = new THREE.Mesh(new THREE.BoxGeometry(halfW, 3.2, 0.3), wallMat);
+        wallL.position.set(cx - (2.5/2 + halfW/2), 1.6, cz + 8);
+        wallL.castShadow = true; wallL.receiveShadow = true;
+        scene.add(wallL);
+        const wallR = new THREE.Mesh(new THREE.BoxGeometry(halfW, 3.2, 0.3), wallMat);
+        wallR.position.set(cx + (2.5/2 + halfW/2), 1.6, cz + 8);
+        wallR.castShadow = true; wallR.receiveShadow = true;
+        scene.add(wallR);
+        meshes.walls.push(wallL, wallR);
+        sharedWalls[key] = wallL; // store one for possible removal
+      } else {
+        const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(...nb.wallGeo), wallMat);
+        wallMesh.position.set(...nb.wallPos);
+        wallMesh.castShadow = true; wallMesh.receiveShadow = true;
+        scene.add(wallMesh);
+        meshes.walls.push(wallMesh);
+        if (neighborDef) sharedWalls[key] = wallMesh;
+      }
+    }
+  }
+
+  roomMeshes[def.id] = meshes;
+
+  // Add a point light overhead for the new room
+  const pt = new THREE.PointLight(0xfff9f0, 0.22, 22);
+  pt.position.set(cx, 5, cz);
   scene.add(pt);
+  meshes.decorations.push(pt);
 }
 
-// --- Ground: single unified office floor ---
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(56, 56),
-  new THREE.MeshLambertMaterial({ color: 0xf0ede8 })
-);
-floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow = true;
-scene.add(floor);
+// CEO desk delivery position (front of desk, inside starter room)
+const ceoDeskPos = new THREE.Vector3(0, 0, 1);
 
-// ── Office walls ────────────────────────────────────────────
-const wallMat = new THREE.MeshLambertMaterial({ color: 0xf8f8f8 });
-// Back wall (x = 26)
-const backWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.5, 56), wallMat);
-backWall.position.set(26, 1.75, 0);
-backWall.castShadow = true; backWall.receiveShadow = true;
-scene.add(backWall);
-// Front wall (x = -26)
-const frontWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.5, 56), wallMat);
-frontWall.position.set(-26, 1.75, 0);
-frontWall.castShadow = true; frontWall.receiveShadow = true;
-scene.add(frontWall);
-// Left wall (z = -26)
-const leftWall = new THREE.Mesh(new THREE.BoxGeometry(56, 3.5, 0.4), wallMat);
-leftWall.position.set(0, 1.75, -26);
-leftWall.castShadow = true; leftWall.receiveShadow = true;
-scene.add(leftWall);
-// Right wall (z = 26)
-const rightWall = new THREE.Mesh(new THREE.BoxGeometry(56, 3.5, 0.4), wallMat);
-rightWall.position.set(0, 1.75, 26);
-rightWall.castShadow = true; rightWall.receiveShadow = true;
-scene.add(rightWall);
+// Build starter room
+buildRoom(ROOM_DEFS.find(r => r.id === 'starter'));
 
-// Windows on back wall
-const frameMat2 = new THREE.MeshLambertMaterial({ color: 0x9c7a4d });
-const glassMat  = new THREE.MeshBasicMaterial({ color:0x87ceeb, transparent:true, opacity:0.55, side:THREE.DoubleSide });
-for (const wz of [-16, -8, 0, 8, 16]) {
-  const hBar = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.12,2.0), frameMat2);
-  hBar.position.set(25.8, 1.55, wz); scene.add(hBar);
-  const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.35,2.0,0.12), frameMat2);
-  vBar.position.set(25.8, 1.55, wz); scene.add(vBar);
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.75, 1.75), glassMat);
-  glass.rotation.y = Math.PI/2; glass.position.set(25.75, 1.55, wz); scene.add(glass);
-}
-// Windows on left wall (z = -26)
-for (const wx of [-16, -6, 4]) {
-  const hBarL = new THREE.Mesh(new THREE.BoxGeometry(2.0,0.12,0.35), frameMat2);
-  hBarL.position.set(wx, 1.55, -25.8); scene.add(hBarL);
-  const vBarL = new THREE.Mesh(new THREE.BoxGeometry(0.12,2.0,0.35), frameMat2);
-  vBarL.position.set(wx, 1.55, -25.8); scene.add(vBarL);
-  const glassL = new THREE.Mesh(new THREE.PlaneGeometry(1.75, 1.75), glassMat);
-  glassL.position.set(wx, 1.55, -25.75); scene.add(glassL);
-}
-
-// ── CEO office (glass-walled corner, back-right quadrant) ────
-// CEO desk delivery position (front of desk, where workers walk to)
-const ceoDeskPos = new THREE.Vector3(19, 0, -15);
-
-// CEO office floor rug (dark blue carpet)
-const ceoRug = new THREE.Mesh(
-  new THREE.BoxGeometry(11, 0.02, 11),
-  new THREE.MeshLambertMaterial({ color: 0x2a3f5e })
-);
-ceoRug.position.set(19.5, 0.01, -19);
-ceoRug.receiveShadow = true;
-scene.add(ceoRug);
-
-// Glass office walls (thin transparent panes)
-const ceoGlassMat = new THREE.MeshBasicMaterial({ color:0x88bbdd, transparent:true, opacity:0.25, side:THREE.DoubleSide });
-// Front glass wall of CEO office (facing -x direction, at x=14, from z=-13 to z=-25)
-const ceoFrontGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 3.5), ceoGlassMat);
-ceoFrontGlass.rotation.y = Math.PI/2;
-ceoFrontGlass.position.set(14, 1.75, -13); // placeholder — using BoxGeometry for solid pane
-scene.remove(ceoFrontGlass);
-// Use BoxGeometry for the glass panes so they cast slight shadow
-const ceoGlassBoxMat = new THREE.MeshLambertMaterial({ color:0x88bbdd, transparent:true, opacity:0.25 });
-// Front wall of office (x=14), z from -13 to -25, with door gap z=-13 to z=-16
-const ceoGlassFrontA = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.5, 5), ceoGlassBoxMat);
-ceoGlassFrontA.position.set(14, 1.75, -20.5); // bottom portion z=-18 to z=-23
-scene.add(ceoGlassFrontA);
-// Door gap at z = -13 to -16 (open) — just don't add glass there
-const ceoGlassFrontB = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.5, 4), ceoGlassBoxMat);
-ceoGlassFrontB.position.set(14, 1.75, -14); // top portion z=-12 to z=-16 (partial)
-scene.add(ceoGlassFrontB);
-// Side glass wall along z=-13 (front face of CEO suite), x=14 to x=25
-const ceoGlassSide = new THREE.Mesh(new THREE.BoxGeometry(11, 3.5, 0.08), ceoGlassBoxMat);
-ceoGlassSide.position.set(19.5, 1.75, -13);
-scene.add(ceoGlassSide);
-
-// CEO desk (dark wood, wide L-shaped feel, two pieces)
+// CEO desk inside starter room at (0, 0, 3)
 const ceoDeskMat = new THREE.MeshLambertMaterial({ color: 0x5c3d1e });
-const ceoDeskMain = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.1, 1.5), ceoDeskMat);
-ceoDeskMain.position.set(19, 0.85, -17.5);
+const ceoDeskMain = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.1, 1.6), ceoDeskMat);
+ceoDeskMain.position.set(0, 1.0, 3);
 ceoDeskMain.castShadow = true; ceoDeskMain.receiveShadow = true;
 scene.add(ceoDeskMain);
-const ceoDeskWing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 2.5), ceoDeskMat);
-ceoDeskWing.position.set(21, 0.85, -19.25);
-ceoDeskWing.castShadow = true; ceoDeskWing.receiveShadow = true;
-scene.add(ceoDeskWing);
 // Desk legs
 const ceoDeskLegMat = new THREE.MeshLambertMaterial({ color: 0x3a2510 });
-for (const [lx,lz] of [[17.35,-17],[20.65,-17],[17.35,-18.2],[20.65,-18.2]]) {
-  const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.85,0.1), ceoDeskLegMat);
-  leg.position.set(lx, 0.42, lz); scene.add(leg);
+for (const [lx,lz] of [[-1.65,2.25],[1.65,2.25],[-1.65,3.75],[1.65,3.75]]) {
+  const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1,1.0,0.1), ceoDeskLegMat);
+  leg.position.set(lx, 0.5, lz); scene.add(leg);
 }
 // Monitor on CEO desk
 const ceoMonitorBase = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.35), new THREE.MeshLambertMaterial({color:0x222222}));
-ceoMonitorBase.position.set(18.5, 0.93, -17.8); scene.add(ceoMonitorBase);
+ceoMonitorBase.position.set(0, 1.08, 2.8); scene.add(ceoMonitorBase);
 const ceoMonitorScreen = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.75,0.06), new THREE.MeshLambertMaterial({color:0x111122}));
-ceoMonitorScreen.position.set(18.5, 1.45, -17.8); ceoMonitorScreen.castShadow = true; scene.add(ceoMonitorScreen);
+ceoMonitorScreen.position.set(0, 1.58, 2.8); ceoMonitorScreen.castShadow = true; scene.add(ceoMonitorScreen);
 const ceoMonitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.65), new THREE.MeshBasicMaterial({color:0x2979ff}));
-ceoMonitorGlow.position.set(18.5, 1.45, -17.77); scene.add(ceoMonitorGlow);
-
+ceoMonitorGlow.position.set(0, 1.58, 2.77); scene.add(ceoMonitorGlow);
 // CEO chair
 const ceoChairMat = new THREE.MeshLambertMaterial({ color: 0x1a1a2e });
 const ceoChairSeat = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.12,0.9), ceoChairMat);
-ceoChairSeat.position.set(19, 0.55, -16.2); ceoChairSeat.castShadow = true; scene.add(ceoChairSeat);
+ceoChairSeat.position.set(0, 0.55, 4.1); ceoChairSeat.castShadow = true; scene.add(ceoChairSeat);
 const ceoChairBack = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.1,0.1), ceoChairMat);
-ceoChairBack.position.set(19, 1.15, -15.75); ceoChairBack.castShadow = true; scene.add(ceoChairBack);
+ceoChairBack.position.set(0, 1.15, 4.55); ceoChairBack.castShadow = true; scene.add(ceoChairBack);
 const ceoChairPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,0.55,8), new THREE.MeshLambertMaterial({color:0x888888}));
-ceoChairPost.position.set(19, 0.27, -16.2); scene.add(ceoChairPost);
+ceoChairPost.position.set(0, 0.27, 4.1); scene.add(ceoChairPost);
 
-// Company logo sign on back wall inside CEO office
-const ceoSignBg = new THREE.Mesh(new THREE.BoxGeometry(4.5,0.9,0.12), new THREE.MeshLambertMaterial({color:0x2979ff}));
-ceoSignBg.position.set(25.7, 2.4, -18); ceoSignBg.rotation.y = Math.PI/2; scene.add(ceoSignBg);
-const ceoSignFace = new THREE.Mesh(new THREE.PlaneGeometry(4.2,0.7), new THREE.MeshBasicMaterial({color:0xffffff}));
-ceoSignFace.rotation.y = Math.PI/2; ceoSignFace.position.set(25.62, 2.4, -18); scene.add(ceoSignFace);
-// "POTENTIAL EUREKA" label strips (two colored bars to suggest text)
-const ceoSignLine1 = new THREE.Mesh(new THREE.PlaneGeometry(3.5,0.12), new THREE.MeshBasicMaterial({color:0x2979ff}));
-ceoSignLine1.rotation.y = Math.PI/2; ceoSignLine1.position.set(25.61, 2.55, -18); scene.add(ceoSignLine1);
-const ceoSignLine2 = new THREE.Mesh(new THREE.PlaneGeometry(2.8,0.12), new THREE.MeshBasicMaterial({color:0x2979ff}));
-ceoSignLine2.rotation.y = Math.PI/2; ceoSignLine2.position.set(25.61, 2.3, -18); scene.add(ceoSignLine2);
-
-// ── Office decorations ───────────────────────────────────────
-function makePlant(px, pz) {
-  const g = new THREE.Group();
-  const pot = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.25, 0.55, 12),
-    new THREE.MeshLambertMaterial({ color: 0xc1440e })
-  );
-  pot.position.y = 0.275; pot.castShadow = true; g.add(pot);
-  const leaves = new THREE.Mesh(
-    new THREE.SphereGeometry(0.55, 12, 10),
-    new THREE.MeshLambertMaterial({ color: 0x3a9e3a })
-  );
-  leaves.position.y = 1.0; leaves.castShadow = true; g.add(leaves);
-  g.position.set(px, 0, pz); scene.add(g);
-}
-// Corner plants
-makePlant(-24, 24); makePlant(24, 24); makePlant(-24, -24);
-// Plants near CEO office entrance
-makePlant(13.5, -13); makePlant(13.5, -25);
-// Plants in recreation area
-makePlant(-20, 22); makePlant(-24, 18);
-
-// Water cooler (moved near breakroom)
-const wcG = new THREE.Group();
-const wcBody = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.28, 0.3, 1.2, 12),
-  new THREE.MeshLambertMaterial({ color: 0xd0e8f5 })
-);
-wcBody.position.y = 0.6; wcBody.castShadow = true; wcG.add(wcBody);
-const wcTank = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.18, 0.2, 0.45, 12),
-  new THREE.MeshLambertMaterial({ color: 0x6ab4e8 })
-);
-wcTank.position.y = 1.42; wcTank.castShadow = true; wcG.add(wcTank);
-wcG.position.set(3, 0, -20); scene.add(wcG);
-
-// ── Breakroom area (near coffee/printer) ─────────────────────
-// Counter/table between coffee and printer
-const breakCounterMat = new THREE.MeshLambertMaterial({ color: 0xddd0b8 });
-const breakCounter = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 0.9), breakCounterMat);
-breakCounter.position.set(0, 0.95, -21);
-breakCounter.castShadow = true; breakCounter.receiveShadow = true;
-scene.add(breakCounter);
-const breakCounterBody = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.9, 0.85), new THREE.MeshLambertMaterial({color:0xc0a870}));
-breakCounterBody.position.set(0, 0.5, -21.02);
-breakCounterBody.castShadow = true; breakCounterBody.receiveShadow = true;
-scene.add(breakCounterBody);
-// Small microwave on counter
-const microwave = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.38,0.42), new THREE.MeshLambertMaterial({color:0x2a2a2a}));
-microwave.position.set(-0.7, 1.12, -21.1); microwave.castShadow = true; scene.add(microwave);
-const microwaveDoor = new THREE.Mesh(new THREE.BoxGeometry(0.44,0.3,0.04), new THREE.MeshBasicMaterial({color:0x333333}));
-microwaveDoor.position.set(-0.7, 1.12, -20.89); scene.add(microwaveDoor);
-// Barstools
-const barstoolMat = new THREE.MeshLambertMaterial({ color: 0x444455 });
-for (const bz of [-19.5, -19.5]) { /* two stools side by side */ }
-for (const [bx,bz2] of [[-0.6,-19.5],[0.6,-19.5]]) {
-  const bStool = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.18,0.05,10), barstoolMat);
-  bStool.position.set(bx, 0.75, bz2); bStool.castShadow = true; scene.add(bStool);
-  const bPost = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.07,0.75,8), new THREE.MeshLambertMaterial({color:0x888888}));
-  bPost.position.set(bx, 0.37, bz2); scene.add(bPost);
-}
-
-// ── Ping pong table (recreation area) ────────────────────────
-const ppG = new THREE.Group();
-ppG.position.set(-20, 0, 14);
-const ppTable = new THREE.Mesh(
-  new THREE.BoxGeometry(3.6, 0.08, 1.6),
-  new THREE.MeshLambertMaterial({ color: 0x1565c0 })
-);
-ppTable.position.y = 0.85; ppTable.castShadow = true; ppTable.receiveShadow = true;
-ppG.add(ppTable);
-// White lines
-const ppLine = new THREE.Mesh(new THREE.BoxGeometry(0.04,0.09,1.6), new THREE.MeshLambertMaterial({color:0xffffff}));
-ppLine.position.y = 0.85; ppG.add(ppLine);
-const ppNet  = new THREE.Mesh(new THREE.BoxGeometry(3.6,0.22,0.04), new THREE.MeshLambertMaterial({color:0xffffff}));
-ppNet.position.set(0,0.97,0); ppG.add(ppNet);
-// Legs
-const ppLegMat = new THREE.MeshLambertMaterial({color:0x888888});
-for (const [lx,lz] of [[-1.6,-0.7],[1.6,-0.7],[-1.6,0.7],[1.6,0.7]]) {
-  const l = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.85,0.08),ppLegMat);
-  l.position.set(lx,0.42,lz); ppG.add(l);
-}
-scene.add(ppG);
-
-// ── Lounge / recreation area (couch near ping pong) ──────────
-const sofaMat = new THREE.MeshLambertMaterial({ color: 0xff7043 }); // coral sofa
-const sofa1 = new THREE.Group();
-sofa1.position.set(-20, 0, 18);
-const sSeat = new THREE.Mesh(new THREE.BoxGeometry(2.4,0.35,0.9), sofaMat);
-sSeat.position.y = 0.35; sSeat.castShadow = true; sofa1.add(sSeat);
-const sBack = new THREE.Mesh(new THREE.BoxGeometry(2.4,0.65,0.22), sofaMat);
-sBack.position.set(0,0.85,-0.34); sBack.castShadow = true; sofa1.add(sBack);
-const sArm1 = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.55,0.9), sofaMat);
-sArm1.position.set(-1.11,0.55,0); sofa1.add(sArm1);
-const sArm2 = sArm1.clone(); sArm2.position.x = 1.11; sofa1.add(sArm2);
-scene.add(sofa1);
-
-// Coffee table in front of sofa
-const ctable = new THREE.Mesh(
-  new THREE.BoxGeometry(1.4,0.08,0.7),
-  new THREE.MeshLambertMaterial({color:0xfafafa})
-);
-ctable.position.set(-20,0.45,19.2); ctable.castShadow = true; scene.add(ctable);
-// Coffee table legs
-const ctLegMat = new THREE.MeshLambertMaterial({color:0x888888});
-for (const [lx,lz] of [[-0.6,-0.28],[0.6,-0.28],[-0.6,0.28],[0.6,0.28]]) {
-  const l = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.45,0.06),ctLegMat);
-  l.position.set(-20+lx,0.22,19.2+lz); scene.add(l);
-}
-
-// ── Server rack (back-left corner) ───────────────────────────
-const rackG = new THREE.Group();
-rackG.position.set(-22, 0, -8);
-const rackBody = new THREE.Mesh(
-  new THREE.BoxGeometry(0.8,2.2,0.55),
-  new THREE.MeshLambertMaterial({ color: 0x1a1a2e })
-);
-rackBody.position.y = 1.1; rackBody.castShadow = true; rackBody.receiveShadow = true;
-rackG.add(rackBody);
-// Server units in rack
-const svMat = new THREE.MeshLambertMaterial({ color: 0x2a2a40 });
-const svLight = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
-for (let ri = 0; ri < 5; ri++) {
-  const sv = new THREE.Mesh(new THREE.BoxGeometry(0.72,0.28,0.4), svMat);
-  sv.position.set(0, 0.28 + ri*0.36, 0.06); rackG.add(sv);
-  const led = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.02), svLight);
-  led.position.set(0.28, 0.28 + ri*0.36, 0.27); rackG.add(led);
-}
-scene.add(rackG);
-
-// ── Whiteboard on back wall ──────────────────────────────────
-const wbBg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.2, 4.5), new THREE.MeshLambertMaterial({color:0xffffff}));
-wbBg.position.set(25.7, 1.8, 8); scene.add(wbBg);
-const wbSurface = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.0), new THREE.MeshBasicMaterial({color:0xf5f5f0}));
-wbSurface.rotation.y = -Math.PI/2; wbSurface.position.set(25.6, 1.8, 8); scene.add(wbSurface);
-// Marker lines on whiteboard
-for (let wi=0; wi<3; wi++) {
-  const wbLine = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.06), new THREE.MeshBasicMaterial({color:0x2979ff}));
-  wbLine.rotation.y = -Math.PI/2; wbLine.position.set(25.59, 2.3 - wi*0.4, 8); scene.add(wbLine);
-}
-
-// ── Company logo on front wall (visible to whole office) ─────
-const logoBg = new THREE.Mesh(new THREE.BoxGeometry(0.12,1.2,5.5), new THREE.MeshLambertMaterial({color:0x2979ff}));
-logoBg.position.set(-25.7, 2.6, 0); scene.add(logoBg);
-const logoFace = new THREE.Mesh(new THREE.PlaneGeometry(5.2,0.9), new THREE.MeshBasicMaterial({color:0xffffff}));
-logoFace.rotation.y = Math.PI/2; logoFace.position.set(-25.6, 2.6, 0); scene.add(logoFace);
-
-// ── Zone labels (small floor signs) ─────────────────────────
-function makeFloorSign(text_color, px, pz) {
-  const sg = new THREE.Group();
-  sg.position.set(px, 0, pz);
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.4,8), new THREE.MeshLambertMaterial({color:0xaaaaaa}));
-  pole.position.y = 0.7; sg.add(pole);
-  const sign = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.35,0.06), new THREE.MeshLambertMaterial({color:text_color}));
-  sign.position.y = 1.45; sg.add(sign);
-  scene.add(sg);
-}
-makeFloorSign(0xfdd835, -20, 0);  // left wing pod — yellow
-makeFloorSign(0x00c853, 0, 0);    // center pod — green
-makeFloorSign(0x2979ff, 10, 0);   // right front pod — blue
-
-// Supply closet (back-left corner)
+// Supply closet — small cabinet in corner of starter room
 const supplyCloset = {
-  pos: new THREE.Vector3(-22, 0, -16),
+  pos: new THREE.Vector3(-5, 0, -5),
   stock: 20,
   maxStock: 30,
   regenT: 0,
-  REGEN_RATE: 5,   // seconds per 1 supply unit
-  CARRY_AMT: 5,    // how many supplies a worker picks up per trip
+  REGEN_RATE: 5,
+  CARRY_AMT: 5,
 };
-// 3D: wooden cabinet
 const scG = new THREE.Group();
 scG.position.copy(supplyCloset.pos);
 const scBack = new THREE.Mesh(new THREE.BoxGeometry(1.8,2.1,0.18), new THREE.MeshLambertMaterial({color:0x8b5a2b}));
@@ -832,18 +723,15 @@ const scBase = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.9,0.55), new THREE.Mes
 scBase.position.set(0,0.45,-0.18); scBase.castShadow = true; scBase.receiveShadow = true; scG.add(scBase);
 const scTop  = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.6,0.55), new THREE.MeshLambertMaterial({color:0xae8a5a}));
 scTop.position.set(0,1.5,-0.18); scTop.castShadow = true; scG.add(scTop);
-// supply boxes on shelves
 const sbMat = new THREE.MeshLambertMaterial({color:0x4da3ff});
 for (let si=0;si<3;si++) {
   const sb = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3), sbMat);
-  sb.position.set(-0.55+si*0.55, 1.65, -0.15);
-  scG.add(sb);
+  sb.position.set(-0.55+si*0.55, 1.65, -0.15); scG.add(sb);
 }
 const sbMat2 = new THREE.MeshLambertMaterial({color:0xff9a4a});
 for (let si=0;si<2;si++) {
   const sb = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.3,10), sbMat2);
-  sb.position.set(-0.3+si*0.6, 0.75, -0.15);
-  scG.add(sb);
+  sb.position.set(-0.3+si*0.6, 0.75, -0.15); scG.add(sb);
 }
 scene.add(scG);
 
@@ -854,6 +742,50 @@ function updateSupplyCloset(dt) {
       supplyCloset.regenT = 0;
       supplyCloset.stock = Math.min(supplyCloset.maxStock, supplyCloset.stock + 1);
     }
+  }
+}
+
+// ── Room purchasing ──────────────────────────────────────────
+function activatePlotsForRoom(id) {
+  for (const p of plots) {
+    if (p.roomId === id) {
+      p.active = true;
+      p.group.visible = true;
+    }
+  }
+  renderHirePanel();
+}
+
+function buyRoom(id) {
+  const def = ROOM_DEFS.find(r => r.id === id);
+  if (!def || ownedRooms.has(id) || state.cash < def.cost) return;
+  state.cash -= def.cost;
+  ownedRooms.add(id);
+  buildRoom(def);
+  activatePlotsForRoom(id);
+  addCash(0);
+  renderRoomPanel();
+  showToast(`🏗️ ${def.label} unlocked!`, 'milestone');
+  addFeedEntry(`🏗️ Expanded to ${def.label}`);
+}
+
+function renderRoomPanel() {
+  const el = document.getElementById('room-list');
+  if (!el) return;
+  el.innerHTML = '';
+  for (const def of ROOM_DEFS) {
+    if (def.id === 'starter') continue;
+    if (ownedRooms.has(def.id)) continue;
+    const btn = document.createElement('button');
+    btn.className = 'room-btn';
+    const canAfford = state.cash >= def.cost;
+    btn.disabled = !canAfford;
+    btn.innerHTML = `${def.label}<span class="tag">$${fmtCash(def.cost)}</span>`;
+    btn.onclick = () => buyRoom(def.id);
+    el.appendChild(btn);
+  }
+  if (el.children.length === 0) {
+    el.innerHTML = '<div style="font-size:11px;color:#3FB950;padding:4px 0">🎉 Full floor unlocked!</div>';
   }
 }
 
@@ -874,7 +806,7 @@ const head = new THREE.Mesh(
 head.position.y = 1.85;
 head.castShadow = true;
 player.add(head);
-player.position.set(19, 0, -12); // start in CEO office
+player.position.set(0, 0, 2); // start inside starter room near CEO desk
 scene.add(player);
 
 // --- Tunables (mutated by upgrades) ---
@@ -945,29 +877,6 @@ const plots = [];
 const plotGeo = new THREE.BoxGeometry(2.4, 0.1, 2.4);
 const plotMat = new THREE.MeshLambertMaterial({ color: 0xe0dbd4 });
 
-const PLOT_DEFS = [
-  // Left wing pod (3 desks)
-  { x:-12, z:4,  tier:0 },
-  { x:-12, z:-4, tier:0 },
-  { x:-12, z:-12, tier:0 },
-  // Center pod (3 desks — in front of CEO office)
-  { x:0,  z:4,  tier:0 },
-  { x:0,  z:-4, tier:0 },
-  { x:0,  z:-12, tier:0 },
-  // Right front pod (3 desks — to the left of CEO office)
-  { x:10, z:4,  tier:0 },
-  { x:10, z:-4, tier:0 },
-  { x:10, z:-12, tier:0 },
-  // Tier-1 expansion
-  { x:-20, z:4,  tier:1 },
-  { x:-20, z:-4, tier:1 },
-  { x:-20, z:-12, tier:1 },
-  // Tier-2 expansion
-  { x:-12, z:14, tier:2 },
-  { x:0,   z:14, tier:2 },
-  { x:10,  z:14, tier:2 },
-];
-
 for (const def of PLOT_DEFS) {
   const g = new THREE.Group();
   g.position.set(def.x, 0, def.z);
@@ -1024,13 +933,14 @@ for (const def of PLOT_DEFS) {
   bulbBase.visible = false;
   g.add(bulbBase);
 
-  const active = def.tier === 0;
+  const active = def.tier === 0; // tier:0 = starter room (always active)
   g.visible = active;
   scene.add(g);
-  plots.push({ group:g, orb, bulbBase, ready:false, tier:def.tier, active, occupied:false });
+  plots.push({ group:g, orb, bulbBase, ready:false, tier:def.tier, roomId:def.roomId, active, occupied:false });
 }
 
 function activatePlots(level) {
+  // Legacy upgrade-based activation (kept for 'farmexp' upgrade compat)
   for (const p of plots) {
     if (!p.active && p.tier <= level) {
       p.active = true;
@@ -1127,7 +1037,7 @@ function updateIdeaWorkers(dt) {
       if (ppAm && w.pingPongCooldown <= 0 && w.workProgress < 0.65) {
         w.pingPongCooldown = 90 + Math.random() * 60;
         w.state = 'toPingPong';
-        w.target = { x: -20, z: 15.5 };
+        w.target = { x: 22, z: 5 };
         continue;
       }
 
@@ -1528,7 +1438,7 @@ const AMENITY_DEFS = [
     icon: '☕',
     buyCost: 500,
     maxStock: 20,
-    position: new THREE.Vector3(6, 0, -20),
+    position: new THREE.Vector3(-4, 0, -22),
     unlockReq: () => ideaWorkers.length >= 1,
     unlockText: () => `🔒 Hire 1 idea person first`,
     buildMesh: (g) => {
@@ -1571,7 +1481,7 @@ const AMENITY_DEFS = [
     icon: '🖨️',
     buyCost: 300,
     maxStock: 30,
-    position: new THREE.Vector3(-6, 0, -20),
+    position: new THREE.Vector3(4, 0, -22),
     unlockReq: () => ideaWorkers.length >= 1,
     unlockText: () => `🔒 Hire 1 idea person first`,
     buildMesh: (g) => {
@@ -1595,7 +1505,7 @@ const AMENITY_DEFS = [
     icon: '🏓',
     buyCost: 400,
     maxStock: 999,
-    position: new THREE.Vector3(-20, 0, 14),
+    position: new THREE.Vector3(22, 0, 5),
     unlockReq: () => ideaWorkers.length >= 3,
     unlockText: () => `🔒 Hire 3 idea people first`,
     buildMesh: (g) => { /* table already in scene */ },
@@ -1606,7 +1516,7 @@ const AMENITY_DEFS = [
     icon: '📺',
     buyCost: 600,
     maxStock: 999,
-    position: new THREE.Vector3(0, 0, 14),
+    position: new THREE.Vector3(20, 0, 19),
     unlockReq: () => ideaWorkers.length >= 5,
     unlockText: () => `🔒 Hire 5 idea people first`,
     buildMesh: (g) => {
@@ -1753,6 +1663,7 @@ function addCash(n) {
   renderUpgrades();
   renderHirePanel();
   renderAmenities();
+  renderRoomPanel();
   renderFunding();
   checkIPOAvailable();
 }
@@ -2263,9 +2174,35 @@ function doIPO() {
     a.isOwned = false; a.stock = 0;
   }
 
+  // Reset room expansion — remove all non-starter rooms
+  for (const roomId of Array.from(ownedRooms)) {
+    if (roomId === 'starter') continue;
+    const rm = roomMeshes[roomId];
+    if (rm) {
+      if (rm.floor) scene.remove(rm.floor);
+      for (const w of rm.walls) scene.remove(w);
+      for (const d of rm.decorations) scene.remove(d);
+      delete roomMeshes[roomId];
+    }
+    ownedRooms.delete(roomId);
+  }
+  // Clear shared walls map and rebuild starter room walls
+  for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
+  const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
+  if (starterDef) {
+    const rm = roomMeshes['starter'];
+    if (rm) {
+      if (rm.floor) scene.remove(rm.floor);
+      for (const w of rm.walls) scene.remove(w);
+      for (const d of rm.decorations) scene.remove(d);
+      delete roomMeshes['starter'];
+    }
+    buildRoom(starterDef);
+  }
+
   // Reset plots
   for (const p of plots) {
-    if (p.tier > 0) { p.active = false; p.group.visible = false; }
+    if (p.roomId && p.roomId !== 'starter') { p.active = false; p.group.visible = false; }
     p.ready = false; p.orb.visible = false; p.bulbBase.visible = false;
   }
 
@@ -2294,11 +2231,11 @@ document.getElementById('ipo-confirm-btn').addEventListener('click', doIPO);
 document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoModal.classList.remove('open'));
 
 // --- Save + load ---
-const SAVE_KEY = 'startup-tycoon-v6';
+const SAVE_KEY = 'startup-tycoon-v7';
 function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 4,
+      v: 7,
       cash: state.cash,
       allTimeCash: state.allTimeCash,
       upgrades: upgLevels,
@@ -2311,6 +2248,7 @@ function saveGame() {
       prestigeLevel,
       prestigeMultiplier,
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
+      ownedRooms: Array.from(ownedRooms),
       savedAt: Date.now(),
     }));
   } catch {}
@@ -2353,6 +2291,19 @@ function loadGame() {
       dealValueMult = prestigeMultiplier;
       seasonBadge.style.display = '';
       seasonBadge.textContent   = `S${prestigeLevel + 1}`;
+    }
+    // Restore owned rooms
+    if (p.ownedRooms) {
+      for (const roomId of p.ownedRooms) {
+        if (!ownedRooms.has(roomId)) {
+          const def = ROOM_DEFS.find(r => r.id === roomId);
+          if (def) {
+            ownedRooms.add(roomId);
+            buildRoom(def);
+            activatePlotsForRoom(roomId);
+          }
+        }
+      }
     }
     // Re-spawn idea workers silently (free on load)
     if (p.ideaWorkers) {
