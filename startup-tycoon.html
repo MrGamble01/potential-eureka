@@ -485,6 +485,144 @@
     .ipo-body  { font-size: 13px; color: #7D8590; line-height: 1.7; margin-bottom: 20px; }
     .ipo-body strong { color: #E6EDF3; }
     .ipo-actions { display: flex; gap: 10px; justify-content: center; }
+
+    /* ── Goal bar (top-center under status bar) ─── */
+    #goal-hud {
+      position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
+      min-width: 240px; max-width: 320px;
+      background: rgba(8,10,18,0.9);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(212,153,34,0.28);
+      border-radius: 10px; padding: 7px 12px 8px;
+      color: #E6EDF3; pointer-events: none; user-select: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+      font-variant-numeric: tabular-nums;
+    }
+    .goal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.4px;
+      margin-bottom: 5px;
+    }
+    .goal-header #goal-pct { color: #fcd34d; font-size: 11px; }
+    .goal-track {
+      height: 5px; border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .goal-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #f59e0b, #fcd34d, #fff0a8);
+      transition: width 0.35s ease-out;
+      box-shadow: 0 0 10px rgba(245,158,11,0.35);
+    }
+    #goal-hud.complete {
+      border-color: rgba(252,211,77,0.7);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.35);
+      animation: goalGlow 2.4s ease-in-out infinite;
+    }
+    @keyframes goalGlow {
+      0%,100% { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.25); }
+      50%      { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 26px rgba(252,211,77,0.55); }
+    }
+    #goal-hud.complete #goal-pct::before { content: '✓ '; }
+    #goal-spark {
+      display: block; width: 100%; height: 18px;
+      margin-top: 5px; opacity: 0.9;
+    }
+
+    /* ── Achievements modal ─────────────────────────── */
+    #achievements-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center; z-index: 210;
+    }
+    #achievements-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    .ach-panel {
+      background: rgba(13,17,23,0.98);
+      border: 1px solid rgba(252,211,77,0.38);
+      border-radius: 14px; padding: 22px 20px; max-width: 440px; width: 92vw;
+      max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 18px 54px rgba(0,0,0,0.6), 0 0 32px rgba(252,211,77,0.15);
+      text-align: center;
+    }
+    .ach-title {
+      font-size: 22px; font-weight: 800; margin-bottom: 4px;
+      background: linear-gradient(135deg, #f59e0b, #fcd34d);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .ach-progress {
+      font-size: 12px; color: #7D8590; letter-spacing: 0.6px;
+      margin-bottom: 14px;
+    }
+    .ach-list {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 16px; text-align: left;
+    }
+    .ach-row {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 9px 11px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .ach-row.earned {
+      background: rgba(252,211,77,0.08);
+      border-color: rgba(252,211,77,0.35);
+    }
+    .ach-row .ach-icon { font-size: 22px; line-height: 1; filter: grayscale(1) opacity(0.4); }
+    .ach-row.earned .ach-icon { filter: none; }
+    .ach-row .ach-text { flex: 1; min-width: 0; }
+    .ach-row .ach-name { font-size: 13px; font-weight: 800; color: #7D8590; }
+    .ach-row.earned .ach-name { color: #fcd34d; }
+    .ach-row .ach-desc { font-size: 11px; color: #7D8590; line-height: 1.4; margin-top: 2px; }
+    @media (max-width: 900px) {
+      #goal-hud {
+        top: calc(58px + env(safe-area-inset-top, 0px));
+        min-width: 180px;
+        padding: 5px 10px 6px;
+      }
+      .goal-header { font-size: 10px; }
+    }
+
+    /* ── Win modal (celebratory overlay when goal hit) ─── */
+    #win-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      display: none; align-items: center; justify-content: center; z-index: 220;
+    }
+    #win-modal.open { display: flex; animation: winFade 0.3s ease; }
+    @keyframes winFade { from { opacity: 0; } to { opacity: 1; } }
+    .win-panel {
+      background: linear-gradient(145deg, rgba(20,17,10,0.98), rgba(13,17,23,0.98));
+      border: 1px solid rgba(252,211,77,0.5);
+      border-radius: 18px; padding: 30px 28px; max-width: 420px; width: 90vw;
+      box-shadow: 0 24px 68px rgba(0,0,0,0.65), 0 0 40px rgba(252,211,77,0.22);
+      text-align: center;
+      animation: winPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes winPop {
+      0%   { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+    .win-title {
+      font-size: 32px; font-weight: 900; margin-bottom: 6px;
+      background: linear-gradient(135deg, #f59e0b, #fcd34d);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+    .win-sub {
+      font-size: 14px; font-weight: 700; color: #fcd34d; margin-bottom: 18px;
+    }
+    .win-stats {
+      font-size: 13px; color: #c8ced4; line-height: 1.85;
+      margin-bottom: 22px; text-align: left;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .win-stats .row { display: flex; justify-content: space-between; }
+    .win-stats .row + .row { border-top: 1px solid rgba(255,255,255,0.04); padding-top: 4px; margin-top: 4px; }
+    .win-stats strong { color: #fcd34d; font-variant-numeric: tabular-nums; }
     .ipo-confirm {
       background: linear-gradient(135deg, rgba(63,185,80,0.3), rgba(108,99,255,0.3));
       border: 1px solid rgba(63,185,80,0.5); color: #E6EDF3;
@@ -732,13 +870,15 @@
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
   <span id="season-badge">S1</span>
+  <span class="sep" id="trophy-sep" style="display:none">|</span>
+  <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
   <span id="rush-label" style="display:none"></span>
   <span class="sep" id="event-sep" style="display:none">|</span>
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<button id="cash-hud" type="button" title="Tap to add $1,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></button>
+<button id="cash-hud" type="button" title="Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
@@ -746,6 +886,29 @@
   <div class="m-row"><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row"><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-morale-row" style="display:none"><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
+</div>
+<div id="goal-hud" aria-label="Season goal progress">
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span id="goal-pct">0%</span></div>
+  <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
+  <canvas id="goal-spark" width="240" height="18"></canvas>
+</div>
+<div id="achievements-modal" role="dialog">
+  <div class="ach-panel">
+    <div class="ach-title">🏅 Achievements</div>
+    <div class="ach-progress" id="ach-progress">0 / 0</div>
+    <div class="ach-list" id="ach-list"></div>
+    <button class="tip-ok" id="ach-close">Close</button>
+  </div>
+</div>
+<div id="win-modal" role="dialog">
+  <div class="win-panel">
+    <div class="win-title">🏆 You made it!</div>
+    <div class="win-sub" id="win-goal-sub">$1M ARR achieved</div>
+    <div class="win-stats" id="win-stats"></div>
+    <div class="ipo-actions">
+      <button class="ipo-confirm" id="win-continue-btn">Keep building →</button>
+    </div>
+  </div>
 </div>
 <div id="activity-feed">
   <div class="feed-title">📡 Live Feed</div>
@@ -815,6 +978,7 @@
         <option value="off">Feed only</option>
       </select>
     </label>
+    <button class="hire-btn" id="open-ach-btn" style="margin-top:8px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
   </div>
 </div>
@@ -1710,6 +1874,7 @@ function renderRoomPanel() {
       ? `⚡ Convert to ${next.label}<span class="tag">$${fmtCash(cur.nextCost)}</span>`
       : `🔒 ${next.label}<span class="tag" style="color:#7D8590">${cur.nextReqText || ''}</span>`;
     btn.onclick = () => convertRoom(roomId);
+    if (reqMet) showTip('conversion');
     el.appendChild(btn);
   }
   if (el.children.length === 0) {
@@ -2953,6 +3118,7 @@ function triggerSprint() {
   showToast('🏃 Sprint! +100% eng speed for 30s (2× paper drain)', 'rush');
   addFeedEntry('🏃 Sprint started');
   changeMorale(+3, 'Sprint rally');
+  showTip('sprint');
 }
 function updateSprint(dt) {
   if (sprintActive) {
@@ -3199,6 +3365,7 @@ function renderHirePanel() {
     const availableSeat = !needsSeat || plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
     hireVpBtnEl.disabled = maxed || !availableSeat || state.cash < vcost;
     hireVpBtnEl.innerHTML = `${vpButtonLabel()}<span class="cost">${maxed ? '' : `$${fmtCash(vcost)}`}</span>`;
+    if (vps.length === 0) showTip('vp');
   }
 }
 
@@ -3211,6 +3378,7 @@ hireBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
   changeMorale(+3, 'Grew from within');
+  showTip('goal');
 });
 const hireExtEngBtnEl  = document.getElementById('hire-ext-eng-btn');
 const hireExtEngCostEl = document.getElementById('hire-ext-eng-cost');
@@ -3346,13 +3514,198 @@ function smoothedArr() {
   const elapsedSec = Math.max(1, (Date.now() - revenueLog[0].at) / 1000);
   return Math.round(sum * 365 * 24 * 3600 / elapsedSec);
 }
+// ── Season Goal ───────────────────────────────────────────
+// Target ARR for the current season. Scales with prestige (S1 = $1M,
+// S2 = $2M, S3 = $4M, …) so each IPO raises the bar. When smoothed
+// ARR first crosses the target, fire a win modal. Hit state resets
+// on IPO so each season has its own finish line.
+const GOAL_TARGET_BASE = 1_000_000;
+function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
+let seasonGoalHit = false;
+let trophiesWon = 0;
+// Personal best: the fastest time-to-goal we've ever recorded
+// (in seconds). Persisted across runs and IPOs.
+let bestTimeToGoal = null;
+const goalFillEl  = document.getElementById('goal-fill');
+const goalPctEl   = document.getElementById('goal-pct');
+const goalLabelEl = document.getElementById('goal-label');
+const winModalEl  = document.getElementById('win-modal');
+const winStatsEl  = document.getElementById('win-stats');
+const winGoalSub  = document.getElementById('win-goal-sub');
+goalLabelEl.textContent = `🎯 $${fmtCash(currentGoalTarget())} ARR`;
+winGoalSub.textContent  = `$${fmtCash(currentGoalTarget())} ARR achieved`;
+document.getElementById('win-continue-btn').addEventListener('click',
+  () => winModalEl.classList.remove('open'));
+winModalEl.addEventListener('click', e => { if (e.target === winModalEl) winModalEl.classList.remove('open'); });
+
+const goalHudEl = document.getElementById('goal-hud');
+const goalSparkEl = document.getElementById('goal-spark');
+const goalSparkCtx = goalSparkEl.getContext('2d');
+// Rolling ARR samples for the sparkline (push one per metrics update).
+const SPARK_MAX_SAMPLES = 60;
+const sparkSamples = [];
+function pushSparkSample(v) {
+  sparkSamples.push(v);
+  if (sparkSamples.length > SPARK_MAX_SAMPLES) sparkSamples.shift();
+}
+function drawSparkline() {
+  // Hi-DPI canvas
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cw = goalSparkEl.clientWidth || 200, ch = goalSparkEl.clientHeight || 18;
+  if (goalSparkEl.width !== cw * dpr || goalSparkEl.height !== ch * dpr) {
+    goalSparkEl.width = cw * dpr;
+    goalSparkEl.height = ch * dpr;
+  }
+  const ctx = goalSparkCtx;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  if (sparkSamples.length < 2) return;
+  const max = Math.max(...sparkSamples, 1);
+  const step = cw / Math.max(1, sparkSamples.length - 1);
+  // Baseline glow
+  ctx.strokeStyle = 'rgba(252,211,77,0.85)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  for (let i = 0; i < sparkSamples.length; i++) {
+    const x = i * step;
+    const y = ch - (sparkSamples[i] / max) * (ch - 2) - 1;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Fill under the line
+  ctx.lineTo(cw, ch);
+  ctx.lineTo(0, ch);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(252,211,77,0.18)';
+  ctx.fill();
+}
+function updateGoalHud(arr) {
+  const target = currentGoalTarget();
+  const pct = Math.min(1, arr / target);
+  goalFillEl.style.width = (pct * 100).toFixed(1) + '%';
+  goalPctEl.textContent = Math.floor(pct * 100) + '%';
+  if (!seasonGoalHit && arr >= target) {
+    seasonGoalHit = true;
+    trophiesWon++;
+    triggerWin(arr);
+  }
+  goalHudEl.classList.toggle('complete', seasonGoalHit);
+  pushSparkSample(arr);
+  drawSparkline();
+}
+// Refresh the displayed target/sub-text when prestige changes
+function refreshGoalLabels() {
+  const t = currentGoalTarget();
+  goalLabelEl.textContent = `🎯 $${fmtCash(t)} ARR`;
+  winGoalSub.textContent  = `$${fmtCash(t)} ARR achieved`;
+}
+const trophyBadgeEl = document.getElementById('trophy-badge');
+const trophySepEl   = document.getElementById('trophy-sep');
+function refreshTrophyBadge() {
+  const show = trophiesWon > 0;
+  trophyBadgeEl.style.display = show ? '' : 'none';
+  trophySepEl.style.display   = show ? '' : 'none';
+  if (show) trophyBadgeEl.textContent = `🏆 ${trophiesWon}`;
+}
+
+// ── Achievements ─────────────────────────────────────────
+// Named milestones evaluated on a 1s tick. First-time unlock fires a
+// toast + feed entry; earned state persists in localStorage and in
+// the game save so reloads don't replay.
+const ACHIEVEMENTS = [
+  { id: 'first_hire',    icon: '💻', title: 'First Hire',         desc: 'Hire your first engineer.',              check: () => ideaWorkers.length >= 1 },
+  { id: 'five_eng',      icon: '👥', title: 'Pod Built',           desc: 'Have 5 engineers on staff at once.',     check: () => ideaWorkers.length >= 5 },
+  { id: 'first_ea',      icon: '🧑‍💼', title: 'Delegated',          desc: 'Hire an Executive Assistant.',           check: () => eas.length >= 1 },
+  { id: 'first_bdr',     icon: '📞', title: 'Cold Caller',         desc: 'Hire your first BDR.',                   check: () => bdrs.length >= 1 },
+  { id: 'first_ae',      icon: '💼', title: 'Closer',              desc: 'Promote a BDR to AE.',                   check: () => aes.length >= 1 },
+  { id: 'first_vp',      icon: '💻', title: 'Promoted',            desc: 'Promote your OG engineer to Lead.',      check: () => vps.length >= 1 },
+  { id: 'reach_cto',     icon: '🏛️', title: 'C-suite',             desc: 'Reach the CTO tier.',                    check: () => vps.length >= 1 && vps[0].tier >= 2 },
+  { id: 'ext_hire',      icon: '👔', title: 'External Hire',       desc: 'Hire an external engineer or BDR.',       check: () => ideaWorkers.some(w=>w.external) || bdrs.some(b=>b.external) },
+  { id: 'greet_investor',icon: '🤝', title: 'Networker',           desc: 'Greet your first investor.',              check: () => Object.values(investorAffinity).some(v => v > 0) },
+  { id: 'convert_room',  icon: '⚡', title: 'Remodel',              desc: 'Convert a room into a different mode.',   check: () => Object.keys(roomModes).some(k => roomModes[k] !== (ROOM_MODES[k]?.initial || 'shared')) },
+  { id: 'full_floor',    icon: '🏢', title: 'Full Floor',           desc: 'Own every room on the starter floor.',   check: () => ownedRooms.size >= ROOM_DEFS.length },
+  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.allTimeCash >= 50000 },
+  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.allTimeCash >= 1000000 },
+  { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Reach $1M ARR and win a season.',        check: () => trophiesWon >= 1 },
+  { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1 },
+  { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100 },
+];
+const earnedAchievements = {}; // id → true
+function checkAchievements() {
+  for (const a of ACHIEVEMENTS) {
+    if (earnedAchievements[a.id]) continue;
+    try {
+      if (a.check()) {
+        earnedAchievements[a.id] = true;
+        showToast(`🏅 Unlocked: ${a.title} — ${a.desc}`, 'milestone', 'critical');
+        addFeedEntry(`🏅 ${a.title}`);
+      }
+    } catch (_) { /* defensive: never let a check expression crash the loop */ }
+  }
+}
+// Modal
+const achModalEl   = document.getElementById('achievements-modal');
+const achListEl    = document.getElementById('ach-list');
+const achProgEl    = document.getElementById('ach-progress');
+function renderAchievementsModal() {
+  achListEl.innerHTML = '';
+  let earned = 0;
+  for (const a of ACHIEVEMENTS) {
+    const got = !!earnedAchievements[a.id];
+    if (got) earned++;
+    const row = document.createElement('div');
+    row.className = 'ach-row' + (got ? ' earned' : '');
+    row.innerHTML = `<div class="ach-icon">${a.icon}</div><div class="ach-text"><div class="ach-name">${a.title}</div><div class="ach-desc">${got ? a.desc : '???'}</div></div>`;
+    achListEl.appendChild(row);
+  }
+  achProgEl.textContent = `${earned} / ${ACHIEVEMENTS.length} unlocked`;
+}
+document.getElementById('open-ach-btn').addEventListener('click', () => {
+  renderAchievementsModal();
+  achModalEl.classList.add('open');
+});
+document.getElementById('ach-close').addEventListener('click', () => achModalEl.classList.remove('open'));
+achModalEl.addEventListener('click', e => { if (e.target === achModalEl) achModalEl.classList.remove('open'); });
+// Run every ~1s
+setInterval(checkAchievements, 1000);
+
+function triggerWin(arr) {
+  const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
+  const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  // Personal best detection
+  const isPB = bestTimeToGoal == null || elapsed < bestTimeToGoal;
+  if (isPB) bestTimeToGoal = elapsed;
+  const pbBadge = isPB ? ' <strong style="color:#fcd34d">★ NEW BEST</strong>' : (bestTimeToGoal != null ? ` <span style="color:#7D8590;font-weight:600">(best ${Math.floor(bestTimeToGoal/60)}:${(bestTimeToGoal%60).toString().padStart(2,'0')})</span>` : '');
+  const nextTarget = GOAL_TARGET_BASE * Math.pow(2, prestigeLevel + 1);
+  const nextMult = Math.pow(2, prestigeLevel + 1);
+  winStatsEl.innerHTML = `
+    <div class="row"><span>Peak ARR</span><strong>$${fmtCash(arr)}/yr</strong></div>
+    <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.allTimeCash)}</strong></div>
+    <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
+    <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
+    <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
+    <div class="row"><span>Time to goal</span><strong>${m}:${s.toString().padStart(2,'0')}${pbBadge}</strong></div>
+    <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
+    <div class="row"><span>Next season</span><strong>S${prestigeLevel + 2} · 🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
+  `;
+  winModalEl.classList.add('open');
+  const t = currentGoalTarget();
+  addFeedEntry(`🏆 $${fmtCash(t)} ARR — you made it!`);
+  showToast(`🏆 Goal hit: $${fmtCash(t)} ARR!`, 'milestone', 'critical');
+  // Subtle nudge toward the next season
+  setTimeout(() => showToast('💡 Tip: 🎉 IPO to start a new season at a higher revenue multiplier.', '', 'standard'), 3500);
+  refreshTrophyBadge();
+}
+
 function updateMetricsHUD() {
-  metricsArrEl.textContent   = '$' + fmtCash(smoothedArr()) + '/yr';
+  const arr = smoothedArr();
+  metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
   metricsUsersEl.textContent = fmtCash(totalUsers);
   metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
-  // Total headcount across every role on the floor — engineers, EAs,
-  // BDRs, AEs, and the (single-slot) leadership tier.
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
@@ -3360,6 +3713,7 @@ function updateMetricsHUD() {
     metricsMoraleRowEl.style.display = moraleEnabled ? '' : 'none';
     if (moraleEnabled) { const m = teamMorale(); metricsMoraleEl.textContent = `${moraleEmoji(m)} ${Math.round(m)}`; }
   }
+  updateGoalHud(arr);
 }
 
 // Funding panel
@@ -4143,6 +4497,8 @@ addEventListener('keydown', e => {
     tipModalEl.classList.remove('open');
     ipoModal.classList.remove('open');
     elevModal.classList.remove('open');
+    achModalEl.classList.remove('open');
+    winModalEl.classList.remove('open');
   }
   // Cheat: press M to add $10,000 (or use window.giveMoney(n) in console)
   if (k === 'm' && !e.repeat) {
@@ -4154,11 +4510,23 @@ addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
-// Cheat: click the cash HUD to add $1000 (for testing)
+// Cheat: click the cash HUD. Back-to-back taps escalate the amount:
+// 1 tap = $1k, double-tap = $10k, triple-tap = $100k. Pause >600ms
+// resets the streak.
 const cashHudEl = document.getElementById('cash-hud');
+const CHEAT_AMOUNTS = [1000, 10000, 100000];
+const CHEAT_WINDOW_MS = 600;
+let cheatStreak = 0;
+let cheatLastT = 0;
 cashHudEl.addEventListener('click', () => {
-  addCash(1000);
-  showCashPop(1000);
+  const now = performance.now();
+  cheatStreak = (now - cheatLastT < CHEAT_WINDOW_MS)
+    ? Math.min(cheatStreak + 1, CHEAT_AMOUNTS.length)
+    : 1;
+  cheatLastT = now;
+  const amt = CHEAT_AMOUNTS[cheatStreak - 1];
+  addCash(amt);
+  showCashPop(amt);
   cashHudEl.classList.remove('cash-bump');
   void cashHudEl.offsetWidth; // restart animation
   cashHudEl.classList.add('cash-bump');
@@ -4339,6 +4707,22 @@ const TIPS = {
   investor: {
     title: '🤝 An investor walked in!',
     body: 'Investors wander the office for a short window. Walk up to them to shake their hand — different types pay out differently (cash, deal-value boost, morale, etc.). If you don\'t greet them, they leave. No penalty, just a missed opportunity.',
+  },
+  sprint: {
+    title: '🏃 Sprint mode',
+    body: 'Tap the 🏃 Sprint button (bottom-right) for a 30-second push: every engineer works at 2× speed but desks burn paper twice as fast. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
+  },
+  conversion: {
+    title: '⚡ Room can be converted',
+    body: 'A room you own can now be remodeled into a different mode. Watch for the amber ⚡ Convert to … button in the Expand Office panel. Seated hires migrate to other open desks if there\'s space; if not, the conversion is blocked.',
+  },
+  vp: {
+    title: '🏛️ Leadership unlocked',
+    body: 'You can promote your OG engineer into a Lead Engineer. They move into the Leadership Suite (or any open desk early on) and review every shipped feature for a multiplier that scales with how many they\'re juggling. Promote again to Head of Engineering, then CTO — each tier boosts the whole team.',
+  },
+  goal: {
+    title: '🎯 Season goal',
+    body: 'See the gold bar at the top? That tracks your team\'s ARR toward $1M. Hit it and a 🏆 trophy fires with your run stats. IPO to start a fresh season at a higher revenue multiplier and chase it again.',
   },
 };
 const tipModalEl = document.getElementById('tip-modal');
@@ -4717,6 +5101,11 @@ function doIPO() {
   nextInvestorIn = 60 + Math.random() * 60;
   // Reset Sprint state so the new season starts with the button fresh
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
+  // New season — finish line resets and the bar's target scales up
+  seasonGoalHit = false;
+  revenueLog.length = 0;
+  winModalEl.classList.remove('open');
+  refreshGoalLabels();
   // Re-show the starter room's wall-pinned decor — after IPO the
   // only owned room is starter again, so the brick / string lights /
   // whiteboard should come back.
@@ -4817,6 +5206,10 @@ function saveGame() {
       })(),
       morale: teamMorale(),
       investorAffinity: { ...investorAffinity },
+      seasonGoalHit,
+      trophiesWon,
+      bestTimeToGoal,
+      achievements: { ...earnedAchievements },
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -4958,6 +5351,12 @@ function loadGame() {
         if (typeof v === 'number') investorAffinity[k] = Math.max(0, Math.min(100, v));
       }
     }
+    if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
+    if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
+    if (typeof p.bestTimeToGoal === 'number') bestTimeToGoal = p.bestTimeToGoal;
+    if (p.achievements && typeof p.achievements === 'object') {
+      for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true;
+    }
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
@@ -4983,6 +5382,8 @@ loadGame();
 addCash(100); // enough to hire first idea person right away
 renderFunding();
 updateStarterWallDecor();
+refreshGoalLabels();
+refreshTrophyBadge();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
 
