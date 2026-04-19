@@ -1424,8 +1424,11 @@ function convertRoom(roomId, opts = {}) {
     step.target.occupied = true;
     step.rec.hire.desk = step.target;
     step.rec.hire.group.position.set(step.target.group.position.x, 0, step.target.group.position.z + 1.0);
-    // Reset any mid-walk state on the hire
-    if ('state' in step.rec.hire) step.rec.hire.state = step.rec.role === 'ae' ? undefined : 'atDesk';
+    // Reset any mid-walk state on the hire so they don't try to
+    // resume a walk toward a desk that no longer exists.
+    // AEs don't carry a 'state' field (they're driven by currentDeal)
+    // so leave that alone; engineers + BDRs + VPs get parked at atDesk.
+    if (step.rec.role !== 'ae' && 'state' in step.rec.hire) step.rec.hire.state = 'atDesk';
     if ('target' in step.rec.hire) step.rec.hire.target = null;
     if ('workProgress' in step.rec.hire) {
       step.rec.hire.workProgress = 0;
