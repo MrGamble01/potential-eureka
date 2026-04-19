@@ -1023,7 +1023,46 @@
 <script type="module">
 import * as THREE from 'three';
 
-// --- Scene + isometric camera ---
+// ═══════════════════════════════════════════════════════════
+//  TABLE OF CONTENTS
+// ───────────────────────────────────────────────────────────
+//  Every major section in this file uses a `// ── TITLE ──`
+//  marker, so a quick grep lands you exactly where you need
+//  to be. High-level layout, top → bottom:
+//
+//  - Scene + isometric camera / Lights
+//  - Room-by-room expansion + walls
+//  - Decor registry + Tier 1 starter clutter + upgrade swaps
+//  - Room purchasing, Add Desk, Room Conversion
+//  - Character builder (scrappy / collared)
+//  - Player + tunables
+//  - Reserved carry-stack infra (for future supplies mechanic)
+//  - Plot (desk) construction
+//  - Idea Workers (state machine + rate formula)
+//  - Player Proximity Work / CEO Desk Work / Player Refill
+//  - Executive Assistants
+//  - BDRs → Account Executives (handoff + dry-pipeline mode)
+//  - Engineering Leadership (Lead → Head → CTO)
+//  - Sprint mode / Morale / Hire Panel
+//  - Amenities / Funding Rounds / Cash + refreshHud
+//  - Investor Check-ins / Toasts / Cash pops / Milestones
+//  - Upgrades + Activity Feed + Startup Events / Rush Hour
+//  - Elevator + floor scaffold
+//  - Input (keys, pointer, zoom, joystick, pan) / Tips
+//  - Floor architecture + Floating labels + main loop
+//  - IPO / Prestige + Save/Load + Session timer
+//  - Season Goal / Achievements / Sparkline
+//
+//  Conventions:
+//  • `const` for config, `let` for mutable game state.
+//  • State machines use `.state` string + a `.target {x,z}`
+//    when walking; `stepToward()` is the shared walker.
+//  • Every hire role has spawn___(), update___(), hire___().
+//  • Modals: tip / ipo / elevator / achievements / win.
+//  • refreshHud() repaints every panel; addCash(n) wraps it.
+// ═══════════════════════════════════════════════════════════
+
+// ── Scene + isometric camera ──
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xd6d0c8);
 
@@ -1062,7 +1101,7 @@ function worldToScreen(x, y, z) {
   return { x:(projV.x*0.5+0.5)*innerWidth, y:(-projV.y*0.5+0.5)*innerHeight };
 }
 
-// --- Lights ---
+// ── Lights ──
 // Warmer ambient + wider shadow frustum so every expandable room
 // (3×3 grid of 16-unit rooms ≈ 48 across) still gets proper shadows.
 scene.add(new THREE.AmbientLight(0xfff2dc, 0.7));
@@ -1076,7 +1115,7 @@ sc.near = 0.1; sc.far = 100;
 sun.shadow.bias = -0.0005;
 scene.add(sun);
 
-// --- Extra office lighting ---
+// ── Extra office lighting ──
 const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.35);
 fillLight.position.set(-10, 15, -5);
 scene.add(fillLight);
@@ -1911,7 +1950,7 @@ function renderAddDeskButton() {
 addDeskBtnEl.onclick = addDeskToCurrentRoom;
 
 
-// --- Scrappy-startup character builder (hoodie + pants + head) ---
+// ── Scrappy-startup character builder (hoodie + pants + head) ──
 const HOODIE_COLORS  = [0x3a4a5e, 0x2e4a3e, 0x7a3a3a, 0x4a3e6a, 0x3a3a3a, 0xb0b0b0, 0x4a7a8a, 0x8a5a2a];
 const PANTS_COLORS   = [0x1f2937, 0x2d1e12, 0x333333, 0x1a2a3a, 0x3a2e22];
 const HAIR_COLORS    = [0x2a1a0a, 0x4a2a10, 0x6a4a2a, 0x8a6a3a, 0x1a1a1a, 0x5a3a2a, 0xb87333];
@@ -2085,7 +2124,7 @@ function randomWorkerLook(seed) {
   };
 }
 
-// --- Player (CEO: founder hoodie + glasses) ---
+// ── Player (CEO: founder hoodie + glasses) ──
 const player = buildScrappyCharacter({
   bodyColor: 0x6c63ff,   // founder purple
   pantsColor: 0x1e1e28,
@@ -2097,7 +2136,7 @@ const player = buildScrappyCharacter({
 player.position.set(0, 0, 2); // start inside starter room near CEO desk
 scene.add(player);
 
-// --- Tunables (mutated by upgrades) ---
+// ── Tunables (mutated by upgrades) ──
 let playerSpeed = 6;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
 let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
@@ -2196,7 +2235,7 @@ function refreshStack() {
   for (let i = 0; i < carry.count; i++) pool[i].visible = true;
 }
 
-// --- Plot (desk) construction ---
+// ── Plot (desk) construction ──
 const plots = [];
 const plotGeo = new THREE.BoxGeometry(2.4, 0.1, 2.4);
 const plotMat = new THREE.MeshLambertMaterial({ color: 0xe0dbd4 });
@@ -3416,52 +3455,10 @@ hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
 // (Product shelf removed — workers now deliver to CEO desk)
 
 
-// --- Checkout Counter: where customers pay ---
-const checkout = new THREE.Group();
-checkout.position.set(22, 0, 6);
+// (Legacy checkout-counter + customer-door meshes removed — deals
+//  close digitally and there's no physical customer traffic.)
 
-const counter = new THREE.Mesh(
-  new THREE.BoxGeometry(2.2, 1.1, 1.4),
-  new THREE.MeshLambertMaterial({ color: 0xb57a3d })
-);
-counter.position.y = 0.55;
-counter.castShadow = true; counter.receiveShadow = true;
-checkout.add(counter);
-
-const register = new THREE.Mesh(
-  new THREE.BoxGeometry(0.9, 0.55, 0.7),
-  new THREE.MeshLambertMaterial({ color: 0x3a3f52 })
-);
-register.position.set(0, 1.37, 0);
-register.castShadow = true;
-checkout.add(register);
-
-const regTop = new THREE.Mesh(
-  new THREE.BoxGeometry(0.7, 0.08, 0.5),
-  new THREE.MeshLambertMaterial({ color: 0x6cf7ff, emissive: 0x6cf7ff, emissiveIntensity: 0.3 })
-);
-regTop.position.set(0, 1.68, 0);
-checkout.add(regTop);
-scene.add(checkout);
-checkout.visible = false; // no checkout needed — deals close digitally
-
-
-// --- Door (customer entry/exit) ---
-const DOOR_POS = new THREE.Vector3(27, 0, -2);
-const doorFrame = new THREE.Group();
-doorFrame.position.copy(DOOR_POS);
-const frameMat = new THREE.MeshLambertMaterial({ color: 0x8b5a2b });
-const doorL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), frameMat);
-doorL.position.set(-0.9, 1.25, 0); doorL.castShadow = true;
-const doorR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), frameMat);
-doorR.position.set(0.9, 1.25, 0); doorR.castShadow = true;
-const doorT = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, 0.2), frameMat);
-doorT.position.set(0, 2.5, 0); doorT.castShadow = true;
-doorFrame.add(doorL, doorR, doorT);
-scene.add(doorFrame);
-doorFrame.visible = false; // no physical customer traffic
-
-// --- Deal flow: features on shelf → deals close → revenue (no customer NPCs) ---
+// ── Deal flow: features on shelf → deals close → revenue (no customer NPCs) ──
 let featurePrice = 5;
 const DEAL_MSGS = [
   '💼 Deal closed!', '🎉 New signup!', '📈 MRR up!',
@@ -3734,7 +3731,7 @@ function renderFunding() {
 fundingBtnEl.addEventListener('click', raiseFunding);
 
 
-// --- Amenities (unlockable, buyable; stock managed by Workers) ---
+// ── Amenities (unlockable, buyable; stock managed by Workers) ──
 const AMENITY_DEFS = [
   {
     id: 'coffee',
@@ -3937,7 +3934,7 @@ function renderAmenities() {
   }
 }
 
-// --- Funding Rounds (startup-themed cash injections) ---
+// ── Funding Rounds (startup-themed cash injections) ──
 const FUNDING_ROUNDS = [
   { label: '💰 Pre-seed Round',  amount: 100,   req: () => true,                          reqText: '' },
   { label: '💸 Seed Round',      amount: 500,   req: () => state.allTimeCash >= 500,      reqText: 'Earn $500 total first' },
@@ -3957,7 +3954,7 @@ function raiseFunding() {
   renderFunding();
 }
 
-// --- Cash state ---
+// ── Cash state ──
 const state = { cash: 0, allTimeCash: 0 };
 const cashValEl = document.getElementById('cash-val');
 
@@ -4167,7 +4164,7 @@ function addCash(n) {
   refreshHud();
 }
 
-// --- Upgrades ---
+// ── Upgrades ──
 const UPGRADE_CATS = [
   { id:'ideation',    label:'💡 Ideation' },
   { id:'engineering', label:'⚙️ Engineering' },
@@ -4408,7 +4405,7 @@ function renderUpgrades() {
 }
 refreshHud();
 
-// --- Elevator + floor scaffold ---
+// ── Elevator + floor scaffold ──
 // Only OFFICE is active. Other floors unlock but are placeholders until a
 // Floor subclass is dropped in (see README at top of file).
 const FLOORS = [
@@ -4485,7 +4482,7 @@ function renderFloors() {
   }
 }
 
-// --- Input ---
+// ── Input ──
 const keys = {};
 let mouseScreenX = -1e9, mouseScreenY = -1e9;
 addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.clientY; });
@@ -4805,7 +4802,7 @@ function endJoystick(e) {
 joyEl.addEventListener('pointerup', endJoystick);
 joyEl.addEventListener('pointercancel', endJoystick);
 
-// --- Floor architecture (drop-in modules, see README at top) ---
+// ── Floor architecture (drop-in modules, see README at top) ──
 // The Office floor is built inline above for MVP simplicity; its update()
 // fans out to the existing module-level update functions. New floors should
 // build their scene into this.root and keep their state on the instance.
@@ -4842,7 +4839,7 @@ const FLOOR_CLASSES = {
 };
 let currentFloorInst = new FLOOR_CLASSES.office(scene);
 
-// --- Floating labels (projected from 3D positions) ---
+// ── Floating labels (projected from 3D positions) ──
 const labelsEl = document.getElementById('labels');
 const labelPool = [];
 function updateLabels() {
@@ -4958,7 +4955,7 @@ function updateLabels() {
   }
 }
 
-// --- Loop ---
+// ── Loop ──
 const HALF = 28;
 let last = performance.now();
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
@@ -5168,7 +5165,7 @@ document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoMod
 // Click outside the panel to dismiss (matches the elevator modal)
 ipoModal.addEventListener('click', e => { if (e.target === ipoModal) ipoModal.classList.remove('open'); });
 
-// --- Save + load ---
+// ── Save + load ──
 const SAVE_KEY = 'startup-tycoon-v7';
 // Sweep older versions out of localStorage so they don't sit there
 // forever after a schema bump.
@@ -5366,7 +5363,7 @@ function loadGame() {
   } catch {}
 }
 
-// --- Session timer ---
+// ── Session timer ──
 const sessionChipEl = document.getElementById('session-chip');
 const sessionStart = Date.now();
 function tickTimer() {
