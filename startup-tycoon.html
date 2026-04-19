@@ -53,8 +53,10 @@
       padding: 10px 16px; border-radius: 10px;
       box-shadow: 0 0 14px rgba(63,185,80,0.12);
       display: flex; align-items: center; gap: 8px;
-      pointer-events: none; user-select: none;
+      user-select: none; cursor: pointer;
+      transition: transform 0.08s ease;
     }
+    #cash-hud:active { transform: scale(0.94); }
     #cash-hud .bill {
       display: inline-block; width: 22px; height: 13px; border-radius: 3px;
       background: linear-gradient(135deg, #3FB950 0%, #1d6f30 100%);
@@ -2573,6 +2575,12 @@ addEventListener('keydown', e => {
 addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
+
+// Cheat: click the cash HUD to add $1000 (for testing)
+document.getElementById('cash-hud').addEventListener('click', () => {
+  addCash(1000);
+  showCashPop(1000);
+});
 
 // Tap-to-move: project pointer onto ground plane, walk toward target.
 // Skipped while two fingers are down (pinch-to-zoom).
