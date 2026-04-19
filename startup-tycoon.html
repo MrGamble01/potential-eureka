@@ -3709,6 +3709,15 @@ function addFeedEntry(text) {
 
 function renderFeed() {
   feedListEl.innerHTML = '';
+  if (activityLog.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'feed-entry';
+    hint.style.color = '#7D8590';
+    hint.style.fontStyle = 'italic';
+    hint.textContent = '👋 Hire an engineer to start shipping.';
+    feedListEl.appendChild(hint);
+    return;
+  }
   const now = Date.now();
   for (const e of activityLog) {
     const age = Math.floor((now - e.at) / 1000);
