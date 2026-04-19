@@ -1987,15 +1987,7 @@ function updateIdeaWorkers(dt) {
     if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'toVP' || w.state === 'returning') {
       if (!w.target) { w.state = 'atDesk'; continue; }
       const spd = IW_SPEED * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? 1.5 : 1.0);
-      const tx = w.target.x - w.group.position.x;
-      const tz = w.target.z - w.group.position.z;
-      const dist = Math.hypot(tx, tz);
-      if (dist > 0.25) {
-        w.group.position.x += (tx / dist) * spd * dt;
-        w.group.position.z += (tz / dist) * spd * dt;
-        w.group.rotation.y = Math.atan2(tx / dist, tz / dist);
-        continue;
-      }
+      if (!stepToward(w.group, w.target, spd, dt, 0.25)) continue;
       // Arrived
       if (w.state === 'toCoffee') {
         w.state = 'gettingCoffee'; w.waitT = 1.5;
@@ -2315,15 +2307,7 @@ function updateExecutiveAssistants(dt) {
     }
 
     if (!ea.target) { ea.state = 'idle'; continue; }
-    const tx = ea.target.x - ea.group.position.x;
-    const tz = ea.target.z - ea.group.position.z;
-    const dist = Math.hypot(tx, tz);
-    if (dist > 0.35) {
-      ea.group.position.x += (tx / dist) * 4 * dt;
-      ea.group.position.z += (tz / dist) * 4 * dt;
-      ea.group.rotation.y = Math.atan2(tx / dist, tz / dist);
-      continue;
-    }
+    if (!stepToward(ea.group, ea.target, 4, dt)) continue;
     if (ea.state === 'toCoffee') {
       ea.state = 'refillingCoffee'; ea.waitT = 1.2;
     } else if (ea.state === 'toDesk') {
@@ -2397,6 +2381,20 @@ function hireBDR() {
   changeMorale(+2, 'Sales team growing');
 }
 
+// Move `group` toward `target` at `speed` units/sec. Rotates to face
+// the direction of travel. Returns true once within `stopDist` of
+// the target — i.e. "arrived."
+function stepToward(group, target, speed, dt, stopDist = 0.35) {
+  const tx = target.x - group.position.x;
+  const tz = target.z - group.position.z;
+  const dist = Math.hypot(tx, tz);
+  if (dist <= stopDist) return true;
+  group.position.x += (tx / dist) * speed * dt;
+  group.position.z += (tz / dist) * speed * dt;
+  group.rotation.y = Math.atan2(tx / dist, tz / dist);
+  return false;
+}
+
 function popCashAt(worldX, worldZ, amount) {
   const sp = worldToScreen(worldX, 2.5, worldZ);
   const el = document.createElement('div');
@@ -2413,15 +2411,7 @@ function updateBDRs(dt) {
     // Walking states
     if (b.state === 'toAE' || b.state === 'returning') {
       if (!b.target) { b.state = 'atDesk'; continue; }
-      const tx = b.target.x - b.group.position.x;
-      const tz = b.target.z - b.group.position.z;
-      const dist = Math.hypot(tx, tz);
-      if (dist > 0.35) {
-        b.group.position.x += (tx / dist) * 4 * dt;
-        b.group.position.z += (tz / dist) * 4 * dt;
-        b.group.rotation.y = Math.atan2(tx / dist, tz / dist);
-        continue;
-      }
+      if (!stepToward(b.group, b.target, 4, dt)) continue;
       if (b.state === 'toAE') {
         // Arrived at AE — hand off if the slot is still free
         if (b.targetAE && !b.targetAE.currentDeal) {
@@ -3290,14 +3280,7 @@ function updateInvestors(dt) {
       inv.state = 'leaving';
       inv.target = { x: 0, z: 8 };
     }
-    const tx = inv.target.x - inv.group.position.x;
-    const tz = inv.target.z - inv.group.position.z;
-    const dist = Math.hypot(tx, tz);
-    if (dist > 0.4) {
-      inv.group.position.x += (tx / dist) * 3.5 * dt;
-      inv.group.position.z += (tz / dist) * 3.5 * dt;
-      inv.group.rotation.y = Math.atan2(tx / dist, tz / dist);
-    } else {
+    if (stepToward(inv.group, inv.target, 3.5, dt, 0.4)) {
       if (inv.state === 'leaving') {
         scene.remove(inv.group);
         investors.splice(i, 1);
@@ -4176,6 +4159,8 @@ function doIPO() {
   investors.length = 0;
   for (const k of Object.keys(investorAffinity)) delete investorAffinity[k];
   nextInvestorIn = 60 + Math.random() * 60;
+  // Reset Sprint state so the new season starts with the button fresh
+  sprintActive = false; sprintT = 0; sprintCooldownT = 0;
   // Clear shared walls map and rebuild starter room walls
   for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
   const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
