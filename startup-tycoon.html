@@ -892,33 +892,9 @@ const ceoChairPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,0.55,8)
 ceoChairPost.position.set(0, 0.27, 4.1); scene.add(ceoChairPost);
 
 // Supply closet — small cabinet in corner of starter room
-const supplyCloset = {
-  pos: new THREE.Vector3(-5, 0, -5),
-  stock: 20,
-  maxStock: 30,
-  regenT: 0,
-  REGEN_RATE: 5,
-  CARRY_AMT: 5,
-};
-const scG = new THREE.Group();
-scG.position.copy(supplyCloset.pos);
-const scBack = new THREE.Mesh(new THREE.BoxGeometry(1.8,2.1,0.18), new THREE.MeshLambertMaterial({color:0x8b5a2b}));
-scBack.position.y = 1.05; scBack.castShadow = true; scG.add(scBack);
-const scBase = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.9,0.55), new THREE.MeshLambertMaterial({color:0xae8a5a}));
-scBase.position.set(0,0.45,-0.18); scBase.castShadow = true; scBase.receiveShadow = true; scG.add(scBase);
-const scTop  = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.6,0.55), new THREE.MeshLambertMaterial({color:0xae8a5a}));
-scTop.position.set(0,1.5,-0.18); scTop.castShadow = true; scG.add(scTop);
-const sbMat = new THREE.MeshLambertMaterial({color:0x4da3ff});
-for (let si=0;si<3;si++) {
-  const sb = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3), sbMat);
-  sb.position.set(-0.55+si*0.55, 1.65, -0.15); scG.add(sb);
-}
-const sbMat2 = new THREE.MeshLambertMaterial({color:0xff9a4a});
-for (let si=0;si<2;si++) {
-  const sb = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.3,10), sbMat2);
-  sb.position.set(-0.3+si*0.6, 0.75, -0.15); scG.add(sb);
-}
-scene.add(scG);
+// (The old starter supply closet was removed — paper now lives on the
+// 📚 Supply Rack amenity once purchased, and EAs / players top up desks
+// directly in the meantime.)
 
 // ── Decor registry (gradual Tier 1 → Tier 2+ swaps) ──────────
 // Each swappable prop is wrapped in a THREE.Group and registered by id.
@@ -1183,15 +1159,6 @@ function checkDecorUpgrades(dt) {
   }
 }
 
-function updateSupplyCloset(dt) {
-  if (supplyCloset.stock < supplyCloset.maxStock) {
-    supplyCloset.regenT += dt;
-    if (supplyCloset.regenT >= supplyCloset.REGEN_RATE) {
-      supplyCloset.regenT = 0;
-      supplyCloset.stock = Math.min(supplyCloset.maxStock, supplyCloset.stock + 1);
-    }
-  }
-}
 
 // ── Room purchasing ──────────────────────────────────────────
 function activatePlotsForRoom(id) {
@@ -1919,77 +1886,9 @@ function updateExecutiveAssistants(dt) {
   }
 }
 
-// ── Support Staff (legacy; fully retired from gameplay) ─────
+// ── Support Staff (legacy; barista + runner roles fully retired) ──
 const supportStaff = [];
-
-function spawnSupportStaff(role) {
-  const seed = supportStaff.length + (role === 'barista' ? 101 : 202);
-  const look = randomWorkerLook(seed);
-  // Role-specific overrides: baristas get a brown apron + dark tee; runners get courier blue + cap
-  if (role === 'barista') {
-    look.bodyColor = 0x2a2a2a;
-    look.apronColor = 0x6a3a20;
-    look.hasBeanie = true;
-    look.beanieColor = 0x4a2a10;
-  } else {
-    look.bodyColor = 0x20aaff;
-    look.hasBeanie = true;
-    look.beanieColor = 0x1a3a5a;
-  }
-  const g = buildScrappyCharacter(look);
-  const carry = new THREE.Mesh(
-    new THREE.BoxGeometry(0.32, 0.32, 0.32),
-    new THREE.MeshLambertMaterial({ color: role === 'barista' ? 0xff9a00 : 0x88ccff })
-  );
-  carry.position.y = 1.75; carry.visible = false; carry.castShadow = true; g.add(carry);
-  g.position.set(supplyCloset.pos.x + (Math.random() - 0.5) * 2, 0, supplyCloset.pos.z + 1);
-  scene.add(g);
-  supportStaff.push({ group: g, carry, role, state: 'toCloset', carrying: false, waitT: 0 });
-}
-
-function updateSupportStaff(dt) {
-  const coffeeAm  = amenities.find(a => a.id === 'coffee'  && a.isOwned);
-  const printerAm = amenities.find(a => a.id === 'printer' && a.isOwned);
-
-  for (const s of supportStaff) {
-    const destAm = s.role === 'barista' ? coffeeAm : printerAm;
-    if (!destAm) { s.state = 'waiting'; s.waitT = 5; continue; }
-    if (destAm.stock >= destAm.maxStock - 2) { s.state = 'waiting'; s.waitT = 4; continue; }
-
-    if (s.state === 'waiting') { s.waitT -= dt; if (s.waitT <= 0) s.state = 'toCloset'; continue; }
-
-    let tx, tz, dist;
-    if (s.state === 'toCloset') {
-      tx = supplyCloset.pos.x - s.group.position.x;
-      tz = supplyCloset.pos.z + 0.8 - s.group.position.z;
-      dist = Math.hypot(tx, tz);
-      if (dist > 0.3) {
-        s.group.position.x += (tx / dist) * 4 * dt;
-        s.group.position.z += (tz / dist) * 4 * dt;
-        s.group.rotation.y = Math.atan2(tx / dist, tz / dist);
-      } else {
-        if (supplyCloset.stock >= 5) {
-          supplyCloset.stock -= 5;
-          s.carrying = true; s.carry.visible = true;
-          s.state = 'toAmenity';
-        } else { s.state = 'waiting'; s.waitT = 3; }
-      }
-    } else if (s.state === 'toAmenity') {
-      tx = destAm.position.x - s.group.position.x;
-      tz = destAm.position.z + 1.5 - s.group.position.z;
-      dist = Math.hypot(tx, tz);
-      if (dist > 0.3) {
-        s.group.position.x += (tx / dist) * 4 * dt;
-        s.group.position.z += (tz / dist) * 4 * dt;
-        s.group.rotation.y = Math.atan2(tx / dist, tz / dist);
-      } else {
-        destAm.stock = Math.min(destAm.maxStock, destAm.stock + 5);
-        s.carrying = false; s.carry.visible = false;
-        s.state = 'toCloset';
-      }
-    }
-  }
-}
+function updateSupportStaff(_dt) { /* no-op */ }
 
 // ── Hire Panel ────────────────────────────────────────────────
 const hireBtnEl       = document.getElementById('hire-btn');
@@ -2183,27 +2082,59 @@ const AMENITY_DEFS = [
     },
   },
   {
-    id: 'printer',
-    name: '🖨️ Office Printer',
-    icon: '🖨️',
+    id: 'printer', // legacy id kept for save compat — this is the Supply Rack now
+    name: '📚 Supply Rack',
+    icon: '📚',
     buyCost: 300,
     maxStock: 30,
     position: new THREE.Vector3(4, 0, -22),
     unlockReq: () => ideaWorkers.length >= 1 && ownedRooms.has('back'),
     unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 idea person first` : `🔒 Buy ↑ Breakroom first`,
     buildMesh: (g) => {
-      const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.32, 0.75), new THREE.MeshLambertMaterial({color:0xf0f0f0}));
-      body.position.y = 0.86; body.castShadow = true; body.receiveShadow = true; g.add(body);
-      const top = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.04, 0.65), new THREE.MeshLambertMaterial({color:0xdedede}));
-      top.position.y = 1.03; g.add(top);
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.05), new THREE.MeshLambertMaterial({color:0x2979ff}));
-      panel.position.set(0.28, 0.97, 0.37); g.add(panel);
-      const led = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.02), new THREE.MeshLambertMaterial({color:0x00ff88, emissive:0x00ff88, emissiveIntensity:0.9}));
-      led.position.set(0.44, 0.97, 0.38); g.add(led);
-      const tray = new THREE.Mesh(new THREE.BoxGeometry(0.85,0.03,0.5), new THREE.MeshLambertMaterial({color:0xcccccc}));
-      tray.position.set(0, 0.68, 0.1); g.add(tray);
-      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.75,0.05,0.4), new THREE.MeshLambertMaterial({color:0xffffff}));
-      paper.position.set(0, 0.7, 0.1); g.add(paper);
+      // Shelving-unit frame
+      const frameMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
+      for (const [sx, sy, sz, sw, sh, sd] of [
+        [-0.55, 1.0, 0, 0.06, 2.0, 0.65],     // left post
+        [ 0.55, 1.0, 0, 0.06, 2.0, 0.65],     // right post
+      ]) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), frameMat);
+        post.position.set(sx, sy, sz); post.castShadow = true; g.add(post);
+      }
+      // Shelves
+      const shelfMat = new THREE.MeshLambertMaterial({ color: 0x5a3a20 });
+      for (const sy of [0.1, 0.7, 1.3, 1.9]) {
+        const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.04, 0.65), shelfMat);
+        shelf.position.set(0, sy, 0); shelf.castShadow = true; shelf.receiveShadow = true;
+        g.add(shelf);
+      }
+      // Shelf 1 (0.1): paper reams
+      const paperMat = new THREE.MeshLambertMaterial({ color: 0xf5f2eb });
+      for (let i = 0; i < 4; i++) {
+        const ream = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.32), paperMat);
+        ream.position.set(-0.45 + i * 0.3, 0.18, 0); ream.castShadow = true; g.add(ream);
+      }
+      // Shelf 2 (0.7): binders (bookshelf-style)
+      const binderColors = [0x2a4acc, 0xcc3a2a, 0x2aaa4a, 0xccaa2a, 0x6a2aaa];
+      let bx = -0.45;
+      while (bx < 0.45) {
+        const w = 0.08 + Math.random() * 0.06;
+        const binder = new THREE.Mesh(new THREE.BoxGeometry(w, 0.42, 0.3),
+          new THREE.MeshLambertMaterial({ color: binderColors[Math.floor(Math.random() * binderColors.length)] }));
+        binder.position.set(bx + w / 2, 0.93, 0); binder.castShadow = true; g.add(binder);
+        bx += w + 0.01;
+      }
+      // Shelf 3 (1.3): paper stacks + a coffee mug
+      const stack1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.34), paperMat);
+      stack1.position.set(-0.2, 1.42, 0); stack1.castShadow = true; g.add(stack1);
+      const mug = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.14, 12),
+        new THREE.MeshLambertMaterial({ color: 0xe8e0d0 }));
+      mug.position.set(0.28, 1.4, 0); mug.castShadow = true; g.add(mug);
+      // Shelf 4 (1.9): cardboard boxes
+      const boxMat = new THREE.MeshLambertMaterial({ color: 0xa87a4a });
+      const box1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.28, 0.4), boxMat);
+      box1.position.set(-0.25, 2.06, 0); box1.castShadow = true; g.add(box1);
+      const box2 = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.34), boxMat);
+      box2.position.set(0.28, 2.03, 0); box2.castShadow = true; g.add(box2);
     },
   },
   {
@@ -2845,7 +2776,6 @@ class OfficeFloor extends Floor {
     updateIdeaWorkers(dt);
     updateExecutiveAssistants(dt);
     updateSupportStaff(dt);
-    updateSupplyCloset(dt);
     checkDecorUpgrades(dt);
   }
 }
@@ -2912,9 +2842,7 @@ function updateLabels() {
     const empty = am.stock === 0;
     wants.push({ text: `${am.icon} ${am.stock}/${am.maxStock}`, cls: empty ? 'max' : 'stock', x: p.x, y: p.y });
   }
-  // Supply closet
-  const pSC = worldToScreen(supplyCloset.pos.x, 2.8, supplyCloset.pos.z);
-  wants.push({ text: `📦 ${supplyCloset.stock}/${supplyCloset.maxStock}`, cls: 'stock', x: pSC.x, y: pSC.y });
+  // (Supply closet removed — paper/supplies live on the Supply Rack amenity.)
   // Player proximity work indicator
   if (playerNearDesk) {
     const pct = Math.floor(playerWorkProgress * 100);
@@ -3084,11 +3012,7 @@ function doIPO() {
     p.ready = false; setPaperStackProgress(p.paperStack, 0);
   }
 
-  // Reset supply closet
-  supplyCloset.stock = 20;
-
-  // Give 1 free support runner as head start
-  spawnSupportStaff('runner');
+  // (Old supply closet + free runner removed — new office ops are handled by the EA role.)
 
   // Update season badge
   seasonBadge.style.display = '';
