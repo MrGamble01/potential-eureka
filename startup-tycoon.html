@@ -320,6 +320,38 @@
     .m-val { font-size: 13px; font-weight: 800; color: #E6EDF3; }
     /* ── Event status chip ────────────────────────────────── */
     #event-sep, #event-label { display: none; }
+    /* ── Sprint button ──────────────────────────────── */
+    #sprint-btn {
+      position: fixed; bottom: 18px; right: 200px;
+      background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(255,120,60,0.25));
+      border: 1px solid rgba(245,158,11,0.5);
+      color: #E6EDF3; font-size: 14px; font-weight: 800; font-family: inherit;
+      padding: 11px 18px; border-radius: 12px; cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 14px rgba(245,158,11,0.2);
+      transition: transform 0.1s, opacity 0.15s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #sprint-btn:hover:not(:disabled) { transform: scale(1.04); }
+    #sprint-btn:active:not(:disabled) { transform: scale(0.97); }
+    #sprint-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    #sprint-btn.active {
+      background: linear-gradient(135deg, rgba(245,158,11,0.55), rgba(255,120,60,0.55));
+      border-color: rgba(245,158,11,0.85);
+      animation: sprintPulse 1s ease-in-out infinite;
+    }
+    @keyframes sprintPulse {
+      0%,100% { box-shadow: 0 0 14px rgba(245,158,11,0.35); }
+      50%      { box-shadow: 0 0 24px rgba(245,158,11,0.75); }
+    }
+    @media (max-width: 900px) {
+      #sprint-btn {
+        right: calc(14px + env(safe-area-inset-right, 0px));
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        padding: 9px 14px; font-size: 12px;
+      }
+    }
+
     /* ── IPO button ───────────────────────────────────── */
     #ipo-btn {
       position: fixed; bottom: 18px; right: 18px;
@@ -653,6 +685,7 @@
 </div>
 <div id="joystick"><div id="joy-knob"></div></div>
 <div id="toast-container"></div>
+<button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="Take your startup public!">🎉 IPO!</button>
 <div id="ipo-modal">
@@ -1868,7 +1901,7 @@ function updateIdeaWorkers(dt) {
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < PROX_RANGE ? 1.5 : 1.0;
-      const rate = WORK_RATE_BASE * ideaSpeedMult * engTeamMultiplier * moraleWorkMult() * (w.externalMult || 1) * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
+      const rate = WORK_RATE_BASE * ideaSpeedMult * engTeamMultiplier * moraleWorkMult() * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
       w.currentRate = rate;
       w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
 
@@ -1896,8 +1929,8 @@ function updateIdeaWorkers(dt) {
       if (w.workProgress >= 1.0 && dealSpeedMult > 0) {
         w.workProgress = 0;
         setPaperStackProgress(w.desk.paperStack, 0);
-        // Each shipped feature consumes a sheet of desk paper
-        w.desk.paperStock = Math.max(0, w.desk.paperStock - 1);
+        // Each shipped feature consumes paper (1 normally, 2 during a sprint)
+        w.desk.paperStock = Math.max(0, w.desk.paperStock - sprintPaperCost());
         // Paper value boost
         w.paperBoost = 1.0;
         if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
@@ -2463,6 +2496,41 @@ const VP_TIERS = [
   { id: 'cto',  label: 'CTO',                  icon: '🏛️',  cost: 15000, cap: 3.0, perQueue: 0.30, reviewTime: 6, teamBoost: 1.30, teamBoostPct: 30 },
 ];
 let engTeamMultiplier = 1.0; // set from the current VP's tier.teamBoost
+
+// ── Sprint mode ─────────────────────────────────────────────
+// Player-triggered push: 30 seconds of 2× engineer work rate at 2×
+// paper-per-feature cost, then a 90s cooldown before it can fire again.
+const SPRINT_DURATION = 30;
+const SPRINT_COOLDOWN = 90;
+const SPRINT_RATE_MULT = 2.0;
+let sprintActive = false;
+let sprintT = 0;            // seconds elapsed in current sprint
+let sprintCooldownT = 0;    // seconds until next sprint is allowed
+function sprintRateMult() { return sprintActive ? SPRINT_RATE_MULT : 1; }
+function sprintPaperCost() { return sprintActive ? 2 : 1; }
+function triggerSprint() {
+  if (sprintActive || sprintCooldownT > 0) return;
+  if (ideaWorkers.length === 0) return;
+  sprintActive = true;
+  sprintT = 0;
+  showToast('🏃 Sprint! +100% eng speed for 30s (2× paper drain)', 'rush');
+  addFeedEntry('🏃 Sprint started');
+  changeMorale(+2, 'Sprint rally');
+}
+function updateSprint(dt) {
+  if (sprintActive) {
+    sprintT += dt;
+    if (sprintT >= SPRINT_DURATION) {
+      sprintActive = false;
+      sprintCooldownT = SPRINT_COOLDOWN;
+      showToast('🏁 Sprint over.', '');
+      addFeedEntry('🏁 Sprint ended');
+      changeMorale(-3, 'Sprint burnout');
+    }
+  } else if (sprintCooldownT > 0) {
+    sprintCooldownT = Math.max(0, sprintCooldownT - dt);
+  }
+}
 
 // ── Morale ──────────────────────────────────────────────────
 // Opt-in system. When enabled, team morale (0-100) modulates every
@@ -3522,6 +3590,27 @@ joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.chec
 
 // Morale toggle (defaults to ON; players can flip off if they want
 // pure flat-rate gameplay or for testing)
+const sprintBtnEl    = document.getElementById('sprint-btn');
+const sprintStatusEl  = document.getElementById('sprint-status');
+sprintBtnEl.addEventListener('click', triggerSprint);
+function updateSprintButton() {
+  if (sprintActive) {
+    const remaining = Math.max(0, Math.ceil(SPRINT_DURATION - sprintT));
+    sprintBtnEl.classList.add('active');
+    sprintBtnEl.disabled = true;
+    sprintStatusEl.textContent = `${remaining}s`;
+  } else if (sprintCooldownT > 0) {
+    sprintBtnEl.classList.remove('active');
+    sprintBtnEl.disabled = true;
+    sprintStatusEl.textContent = `Cooldown ${Math.ceil(sprintCooldownT)}s`;
+  } else {
+    sprintBtnEl.classList.remove('active');
+    sprintBtnEl.disabled = ideaWorkers.length === 0;
+    sprintStatusEl.textContent = ideaWorkers.length === 0 ? 'Hire engineers' : 'Ready';
+  }
+}
+setInterval(updateSprintButton, 250);
+
 const moraleToggleEl = document.getElementById('morale-enabled');
 function setMoraleEnabled(on) {
   moraleEnabled = !!on;
@@ -3601,6 +3690,7 @@ class OfficeFloor extends Floor {
     updateVPs(dt);
     updateAEs(dt);
     updateBDRs(dt);
+    updateSprint(dt);
     updateSupportStaff(dt);
     checkDecorUpgrades(dt);
   }
