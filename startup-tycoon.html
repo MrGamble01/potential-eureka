@@ -1037,7 +1037,7 @@ function updateIdeaWorkers(dt) {
       if (ppAm && w.pingPongCooldown <= 0 && w.workProgress < 0.65) {
         w.pingPongCooldown = 90 + Math.random() * 60;
         w.state = 'toPingPong';
-        w.target = { x: 22, z: 5 };
+        w.target = { x: ppAm.position.x, z: ppAm.position.z + 1.4 };
         continue;
       }
 
@@ -1439,8 +1439,8 @@ const AMENITY_DEFS = [
     buyCost: 500,
     maxStock: 20,
     position: new THREE.Vector3(-4, 0, -22),
-    unlockReq: () => ideaWorkers.length >= 1,
-    unlockText: () => `🔒 Hire 1 idea person first`,
+    unlockReq: () => ideaWorkers.length >= 1 && ownedRooms.has('back'),
+    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 idea person first` : `🔒 Buy ↑ Breakroom first`,
     buildMesh: (g) => {
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1.2, 1.5, 0.8),
@@ -1482,8 +1482,8 @@ const AMENITY_DEFS = [
     buyCost: 300,
     maxStock: 30,
     position: new THREE.Vector3(4, 0, -22),
-    unlockReq: () => ideaWorkers.length >= 1,
-    unlockText: () => `🔒 Hire 1 idea person first`,
+    unlockReq: () => ideaWorkers.length >= 1 && ownedRooms.has('back'),
+    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 idea person first` : `🔒 Buy ↑ Breakroom first`,
     buildMesh: (g) => {
       const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.32, 0.75), new THREE.MeshLambertMaterial({color:0xf0f0f0}));
       body.position.y = 0.86; body.castShadow = true; body.receiveShadow = true; g.add(body);
@@ -1506,8 +1506,8 @@ const AMENITY_DEFS = [
     buyCost: 400,
     maxStock: 999,
     position: new THREE.Vector3(22, 0, 5),
-    unlockReq: () => ideaWorkers.length >= 3,
-    unlockText: () => `🔒 Hire 3 idea people first`,
+    unlockReq: () => ideaWorkers.length >= 3 && ownedRooms.has('right'),
+    unlockText: () => ideaWorkers.length < 3 ? `🔒 Hire 3 idea people first` : `🔒 Buy → Right Wing first`,
     buildMesh: (g) => { /* table already in scene */ },
   },
   {
@@ -1517,8 +1517,8 @@ const AMENITY_DEFS = [
     buyCost: 600,
     maxStock: 999,
     position: new THREE.Vector3(20, 0, 19),
-    unlockReq: () => ideaWorkers.length >= 5,
-    unlockText: () => `🔒 Hire 5 idea people first`,
+    unlockReq: () => ideaWorkers.length >= 5 && ownedRooms.has('front-right'),
+    unlockText: () => ideaWorkers.length < 5 ? `🔒 Hire 5 idea people first` : `🔒 Buy ↘ Event Space first`,
     buildMesh: (g) => {
       const stand = new THREE.Mesh(new THREE.BoxGeometry(0.12,1.6,0.12), new THREE.MeshLambertMaterial({color:0x888888}));
       stand.position.y = 0.8; g.add(stand);
@@ -1679,8 +1679,8 @@ const UPGRADES = [
   // ── Ideation ──
   { id:'growth',    cat:'ideation',    label:'💡 Faster Ideation',   base:20,  scale:1.6, max:10,
     apply: lv => { ideaSpeedMult = 1 + lv * 0.25; } },
-  { id:'farmexp',   cat:'ideation',    label:'🌱 Expand Farm',        base:150, scale:2.0, max:2,
-    apply: lv => { activatePlots(lv); renderHirePanel(); } },
+  { id:'farmexp',   cat:'ideation',    label:'🧘 Deep Focus',         base:150, scale:2.0, max:2,
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.3, 8); } },
   // ── Engineering ──
   { id:'speed',     cat:'engineering', label:'🏃 Hustle Mode',        base:25,  scale:1.5, max:10,
     apply: lv => { playerSpeed = 6 + lv * 0.5; } },
