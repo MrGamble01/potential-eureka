@@ -2678,7 +2678,7 @@ function spawnAE() {
   const g = buildScrappyCharacter(look);
   g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
   scene.add(g);
-  aes.push({ group: g, desk, currentDeal: null });
+  aes.push({ group: g, desk, currentDeal: null, dryT: 0, soloTimer: 14 + Math.random() * 8 });
   return true;
 }
 
@@ -2709,17 +2709,39 @@ function handleAeHireOrPromote() {
   changeMorale(+4, 'BDR promoted to AE');
 }
 
+// AE "dry pipeline" threshold. If no BDR has fed the AE a deal in
+// this many seconds, the AE falls back to generating their own solo
+// deals like a beefed-up BDR (bigger amount, slightly slower cadence
+// than a BDR, since an AE sourcing deals themselves is expensive).
+const AE_DRY_PIPELINE_SEC = 12;
+
 function updateAEs(dt) {
   for (const ae of aes) {
-    if (!ae.currentDeal) continue;
-    ae.currentDeal.processTime -= dt;
-    if (ae.currentDeal.processTime <= 0) {
-      const closedValue = Math.round(ae.currentDeal.value * AE_PROCESS_MULT);
-      addCash(closedValue);
-      popCashAt(ae.group.position.x, ae.group.position.z, closedValue);
-      const bdr = ae.currentDeal.bdr;
-      if (bdr) bdr.pendingWithAE = false;
-      ae.currentDeal = null;
+    if (ae.currentDeal) {
+      ae.currentDeal.processTime -= dt;
+      if (ae.currentDeal.processTime <= 0) {
+        const closedValue = Math.round(ae.currentDeal.value * AE_PROCESS_MULT);
+        addCash(closedValue);
+        popCashAt(ae.group.position.x, ae.group.position.z, closedValue);
+        const bdr = ae.currentDeal.bdr;
+        if (bdr) bdr.pendingWithAE = false;
+        ae.currentDeal = null;
+        ae.dryT = 0;
+        ae.soloTimer = 14 + Math.random() * 8;
+      }
+      continue;
+    }
+    // No deal in flight — if the pipeline's been dry for a while,
+    // the AE picks up the slack and sources their own deals.
+    ae.dryT = (ae.dryT || 0) + dt;
+    if (ae.dryT >= AE_DRY_PIPELINE_SEC) {
+      ae.soloTimer = (ae.soloTimer ?? (14 + Math.random() * 8)) - dt;
+      if (ae.soloTimer <= 0) {
+        ae.soloTimer = 14 + Math.random() * 8;
+        const amt = Math.round(30 + Math.random() * 40);
+        addCash(amt);
+        popCashAt(ae.group.position.x, ae.group.position.z, amt);
+      }
     }
   }
 }
