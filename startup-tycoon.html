@@ -1,34 +1,36 @@
 <!--
-  STARTUP TYCOON — single-file MVP (Three.js from CDN)
+  STARTUP TYCOON — single-file game (Three.js via import-map)
 
   PLAY
-    WASD / arrows — move
-    Tap / click   — move to that spot on the floor
-    Left buttons  — upgrades (scale cost per level)
-    Elevator btn  — floor select (Office active; Café / Gym / Rooftop locked)
+    WASD / arrows — move                   Tap / click — move to spot
+    Right-click drag / two-finger drag — pan camera
+    Scroll / pinch — zoom                  Esc — close any modal
+    Sidebar (☰ on mobile) — hires, rooms, upgrades, amenities, settings
+    🤝 Walk near an investor — auto-greet and collect
 
-  CORE LOOP (Office floor)
-    idea orbs grow on farm plots → carry on head → drop at Dev Station
-    → processed into feature boxes → carry to Shelf → customers buy at Checkout
+  CORE LOOP
+    Engineer sits at desk → drains desk paper → ships a feature →
+    routes to either the CEO desk OR the Leadership Suite VP (for
+    a queue-scaling multiplier) → cash pops. Coffee + paper keep
+    the team happy; run out → morale drops + work stalls.
+    Sales side: BDRs solo small deals; hand off to an AE for a 3×
+    close; AE self-sources if the pipeline dries up.
+    Goal: \$1M ARR (scales 2× per season). IPO resets + raises the
+    bar. 16 achievements track everything along the way.
 
-  ARCHITECTURE (extending to new floors)
-    Each floor is a subclass of Floor with a scene root, build(), update(dt),
-    and dispose(). Only OfficeFloor is implemented. To add a new one:
+  ARCHITECTURE
+    Single file. All UI is in <style>/<body>. Game is one module
+    script. See the "Table of Contents" block at the top of the
+    script for the section map. Conventions there too.
 
-      1. Write a class: class CafeFloor extends Floor {
-           build() { build meshes into this.root; wire interactions; }
-           update(dt) { tick your logic here; }
-           dispose() { clean up NPCs/timers; super.dispose(); }
-         }
-      2. Register: FLOOR_CLASSES.cafe = CafeFloor;
-      3. Travel from elevator (card click): replace currentFloorInst with
-         `new FLOOR_CLASSES[id](scene)`, call dispose() on the old one.
-      4. Content ideas: Café boosts idea growth, Gym boosts move speed,
-         Rooftop spawns investor NPCs who drop bigger cash.
+    Floors are extendable (Floor / FLOOR_CLASSES) but only the
+    Office floor ships. To add a new floor: subclass Floor, add to
+    FLOOR_CLASSES, wire an elevator card.
 
-  Save state: localStorage key `startup-tycoon-v1`, written every 5s and on
-  beforeunload. Save payload is intentionally small (cash, upgrade levels,
-  unlocked floors) — transient world state (orbs, customers) is not persisted.
+  Save state: localStorage key `startup-tycoon-v7`, written every 5s
+  and on beforeunload. Covers cash, upgrades, hires by role, rooms,
+  conversions, morale, affinities, achievements, prestige, best
+  run — transient walk/work state is re-seeded at spawn.
 -->
 <!DOCTYPE html>
 <html lang="en">
