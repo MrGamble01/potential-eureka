@@ -517,6 +517,60 @@
       #cash-hud { font-size: 15px; padding: 6px 9px; }
       #status-bar { max-width: calc(100vw - 200px); font-size: 10px; }
     }
+
+    /* ── Virtual joystick (opt-in via settings) ───────── */
+    #joystick {
+      position: fixed;
+      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+      left: calc(22px + env(safe-area-inset-left, 0px));
+      width: 120px; height: 120px;
+      background: rgba(8,10,18,0.35);
+      border: 2px solid rgba(255,255,255,0.22);
+      border-radius: 50%;
+      display: none;
+      touch-action: none;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 95;
+      user-select: none; -webkit-user-select: none;
+    }
+    #joystick.visible { display: block; }
+    #joy-knob {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 58px; height: 58px;
+      margin-left: -29px; margin-top: -29px;
+      background: rgba(108,99,255,0.72);
+      border: 2px solid rgba(255,255,255,0.32);
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.5);
+      transition: transform 0.05s linear;
+    }
+
+    /* ── Settings panel ───────────────────────────────── */
+    .setting-row {
+      display: flex; align-items: center; gap: 9px;
+      font-size: 12px; color: #E6EDF3; cursor: pointer;
+      padding: 6px 2px; font-weight: 600;
+    }
+    .setting-row input[type="checkbox"] {
+      appearance: none; -webkit-appearance: none;
+      width: 34px; height: 20px; border-radius: 11px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      position: relative; cursor: pointer;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .setting-row input[type="checkbox"]::after {
+      content: ""; position: absolute;
+      top: 2px; left: 2px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #E6EDF3;
+      transition: transform 0.15s;
+    }
+    .setting-row input[type="checkbox"]:checked { background: rgba(108,99,255,0.6); border-color: rgba(108,99,255,0.8); }
+    .setting-row input[type="checkbox"]:checked::after { transform: translateX(14px); }
   </style>
 </head>
 <body>
@@ -570,7 +624,15 @@
     <div class="panel-title">🏢 Amenities</div>
     <div id="amenities-list"></div>
   </div>
+  <div id="settings-panel" class="panel">
+    <div class="panel-title">⚙️ Settings</div>
+    <label class="setting-row">
+      <input type="checkbox" id="joy-enabled">
+      <span>🕹️ Virtual joystick</span>
+    </label>
+  </div>
 </div>
+<div id="joystick"><div id="joy-knob"></div></div>
 <div id="toast-container"></div>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="Take your startup public!">🎉 IPO!</button>
@@ -608,11 +670,12 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xd6d0c8);
 
 const camera = new THREE.OrthographicCamera();
-const ZOOM = 14;
+let cameraZoom = 14;
+const ZOOM_MIN = 7, ZOOM_MAX = 24;
 function fitCamera() {
   const a = innerWidth / innerHeight;
-  camera.left = -ZOOM * a; camera.right = ZOOM * a;
-  camera.top = ZOOM; camera.bottom = -ZOOM;
+  camera.left = -cameraZoom * a; camera.right = cameraZoom * a;
+  camera.top = cameraZoom; camera.bottom = -cameraZoom;
   camera.near = -100; camera.far = 200;
   camera.updateProjectionMatrix();
 }
@@ -2511,18 +2574,105 @@ addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
-// Tap-to-move: project pointer onto ground plane, walk toward target
+// Tap-to-move: project pointer onto ground plane, walk toward target.
+// Skipped while two fingers are down (pinch-to-zoom).
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 let target = null;
 renderer.domElement.addEventListener('pointerdown', e => {
+  if (activeCanvasTouches.size >= 1) return; // already have a finger → probably pinching
   pointer.x = (e.clientX / innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
   const hit = new THREE.Vector3();
   if (raycaster.ray.intersectPlane(groundPlane, hit)) target = hit;
 });
+
+// ── Zoom: mouse wheel (desktop) + pinch gesture (touch) ──────
+renderer.domElement.addEventListener('wheel', e => {
+  e.preventDefault();
+  cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cameraZoom + e.deltaY * 0.012));
+  fitCamera();
+}, { passive: false });
+
+const activeCanvasTouches = new Map();
+let pinchStartDist = 0, pinchStartZoom = cameraZoom;
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  activeCanvasTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (activeCanvasTouches.size === 2) {
+    const pts = Array.from(activeCanvasTouches.values());
+    pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    pinchStartZoom = cameraZoom;
+    target = null; // cancel tap-to-move if it fired before the 2nd finger landed
+  }
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'touch' || !activeCanvasTouches.has(e.pointerId)) return;
+  activeCanvasTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (activeCanvasTouches.size === 2 && pinchStartDist > 0) {
+    const pts = Array.from(activeCanvasTouches.values());
+    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (dist > 10) {
+      cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom * (pinchStartDist / dist)));
+      fitCamera();
+    }
+  }
+});
+function endCanvasTouch(e) {
+  activeCanvasTouches.delete(e.pointerId);
+  if (activeCanvasTouches.size < 2) pinchStartDist = 0;
+}
+renderer.domElement.addEventListener('pointerup', endCanvasTouch);
+renderer.domElement.addEventListener('pointercancel', endCanvasTouch);
+
+// ── Virtual joystick (opt-in via settings) ───────────────────
+const joyEl = document.getElementById('joystick');
+const joyKnobEl = document.getElementById('joy-knob');
+const joyToggleEl = document.getElementById('joy-enabled');
+let joyDx = 0, joyDz = 0;
+let joyPointerId = null;
+const JOY_MAX = 46;
+
+function setJoystickEnabled(on) {
+  joyEl.classList.toggle('visible', on);
+  joyToggleEl.checked = on;
+  localStorage.setItem('joystickEnabled', on ? '1' : '0');
+  if (!on) { joyDx = 0; joyDz = 0; joyKnobEl.style.transform = ''; joyPointerId = null; }
+}
+setJoystickEnabled(localStorage.getItem('joystickEnabled') === '1');
+joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
+
+function updateJoystick(e) {
+  const rect = joyEl.getBoundingClientRect();
+  let dx = e.clientX - (rect.left + rect.width / 2);
+  let dy = e.clientY - (rect.top  + rect.height / 2);
+  const dist = Math.hypot(dx, dy);
+  if (dist > JOY_MAX) { dx *= JOY_MAX / dist; dy *= JOY_MAX / dist; }
+  joyKnobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+  joyDx = dx / JOY_MAX;
+  joyDz = dy / JOY_MAX;
+}
+joyEl.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  joyEl.setPointerCapture(e.pointerId);
+  joyPointerId = e.pointerId;
+  target = null; // cancel any tap-to-move target
+  updateJoystick(e);
+});
+joyEl.addEventListener('pointermove', e => {
+  if (e.pointerId !== joyPointerId) return;
+  updateJoystick(e);
+});
+function endJoystick(e) {
+  if (e.pointerId !== joyPointerId) return;
+  joyPointerId = null;
+  joyDx = 0; joyDz = 0;
+  joyKnobEl.style.transform = '';
+}
+joyEl.addEventListener('pointerup', endJoystick);
+joyEl.addEventListener('pointercancel', endJoystick);
 
 // --- Floor architecture (drop-in modules, see README at top) ---
 // The Office floor is built inline above for MVP simplicity; its update()
@@ -2643,10 +2793,11 @@ function loop(now) {
   if (keys['s'] || keys['arrowdown'])  dz += 1;
   if (keys['a'] || keys['arrowleft'])  dx -= 1;
   if (keys['d'] || keys['arrowright']) dx += 1;
+  if (Math.abs(joyDx) > 0.08 || Math.abs(joyDz) > 0.08) { dx += joyDx; dz += joyDz; }
 
   let wx = 0, wz = 0;
   if (dx || dz) {
-    target = null; // keyboard cancels tap-target
+    target = null; // keyboard/joystick cancels tap-target
     const len = Math.hypot(dx, dz);
     dx /= len; dz /= len;
     wx = dx * COS - dz * SIN;
