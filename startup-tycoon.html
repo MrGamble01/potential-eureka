@@ -387,31 +387,6 @@
     }
     .upg-cat:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
 
-    /* ── Manual work button ──────────────────────────────── */
-    #work-btn {
-      display: flex; align-items: center; justify-content: space-between;
-      width: 100%; padding: 12px 14px;
-      background: linear-gradient(135deg, rgba(108,99,255,0.22), rgba(88,166,255,0.15));
-      border: 1px solid rgba(108,99,255,0.5);
-      border-radius: 8px; color: #E6EDF3;
-      font-family: inherit; font-size: 13px; font-weight: 800;
-      cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-      box-shadow: 0 0 14px rgba(108,99,255,0.15);
-    }
-    #work-btn:hover:not(:disabled) {
-      background: linear-gradient(135deg, rgba(108,99,255,0.35), rgba(88,166,255,0.25));
-      border-color: rgba(108,99,255,0.75);
-      box-shadow: 0 0 20px rgba(108,99,255,0.3);
-      transform: translateY(-1px);
-    }
-    #work-btn:active:not(:disabled) { transform: scale(0.97); }
-    #work-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    #work-btn span { color: #3FB950; font-size: 12px; font-weight: 800; }
-    #work-btn.cooling { animation: workCool 0.15s ease; }
-    @keyframes workCool {
-      0% { transform: scale(1.04); }
-      100% { transform: scale(1); }
-    }
   </style>
 </head>
 <body>
@@ -437,7 +412,6 @@
   <div id="feed-list"></div>
 </div>
 <div id="left-panel">
-  <button id="work-btn">💡 Work on Idea<span id="work-earnings">+$5</span></button>
   <div id="office-panel" class="panel">
     <div class="panel-title">👥 Team</div>
     <div id="hire-section">
@@ -1112,6 +1086,71 @@ function updateIdeaWorkers(dt) {
   }
 }
 
+// ── Player Proximity Work ─────────────────────────────────────
+// When player stands near an active desk they earn ideas automatically.
+// Same rate as a hired worker. They "occupy" whichever desk they're
+// closest to (within PROX_RANGE units). Walk away to stop.
+const PROX_RANGE = 3.2;
+let playerWorkProgress = 0;
+let playerNearDesk = null; // the plot the player is currently working at
+
+function updatePlayerProximityWork(dt) {
+  // Find closest active desk within range
+  let closest = null;
+  let closestDist = Infinity;
+  for (const p of plots) {
+    if (!p.active || p.occupied) continue; // skip desks with hired workers
+    const dx = player.position.x - p.group.position.x;
+    const dz = player.position.z - p.group.position.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < PROX_RANGE && dist < closestDist) {
+      closest = p;
+      closestDist = dist;
+    }
+  }
+
+  // Changed desk or left range — reset progress
+  if (closest !== playerNearDesk) {
+    if (playerNearDesk) {
+      playerNearDesk.orb.visible = false;
+      playerNearDesk.bulbBase.visible = false;
+    }
+    playerWorkProgress = 0;
+    playerNearDesk = closest;
+  }
+
+  if (!playerNearDesk) return;
+
+  // Accumulate work at the same rate as a hired worker
+  const rate = WORK_RATE_BASE * ideaSpeedMult * (rushActive ? 1.5 : 1.0);
+  playerWorkProgress = Math.min(1.0, playerWorkProgress + rate * dt);
+
+  // Show orb growing on the desk
+  const p = playerNearDesk;
+  if (playerWorkProgress > 0.2) {
+    p.orb.visible = true;
+    const s = (playerWorkProgress - 0.2) / 0.8;
+    p.orb.scale.setScalar(0.3 + s * 0.7);
+    p.orb.position.y = 1.2 + Math.sin(performance.now() * 0.003) * 0.08;
+  }
+  p.bulbBase.visible = playerWorkProgress > 0.1;
+
+  // Done — deliver instantly (player is standing there)
+  if (playerWorkProgress >= 1.0) {
+    playerWorkProgress = 0;
+    p.orb.visible = false;
+    p.orb.scale.setScalar(1.0);
+    p.bulbBase.visible = false;
+    const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
+    addCash(earned);
+    totalFeaturesShipped++;
+    checkProductVersion();
+    totalUsers += Math.max(1, Math.floor(earned / 4));
+    checkUserMilestones();
+    if (Math.random() < 0.35) showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
+  }
+}
+
 // ── Support Staff (Barista + Supply Runner) ───────────────────
 const supportStaff = [];
 
@@ -1626,36 +1665,6 @@ function addCash(n) {
   checkIPOAvailable();
 }
 
-// --- Manual Work Button ---
-const workBtnEl = document.getElementById('work-btn');
-const workEarningsEl = document.getElementById('work-earnings');
-let workCooldown = 0;
-const WORK_CD = 1.5; // seconds between clicks
-
-function manualWork() {
-  if (workCooldown > 0) return;
-  const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
-  addCash(earned);
-  totalFeaturesShipped++;
-  checkProductVersion();
-  workCooldown = WORK_CD;
-  workBtnEl.disabled = true;
-  workBtnEl.classList.add('cooling');
-  setTimeout(() => workBtnEl.classList.remove('cooling'), 150);
-  if (Math.random() < 0.3) showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
-}
-
-workBtnEl.addEventListener('click', manualWork);
-
-function updateWorkBtn(dt) {
-  if (workCooldown > 0) {
-    workCooldown = Math.max(0, workCooldown - dt);
-    if (workCooldown === 0) workBtnEl.disabled = false;
-  }
-  const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
-  workEarningsEl.textContent = `+$${earned}`;
-}
-
 // --- Upgrades ---
 const UPGRADE_CATS = [
   { id:'ideation',    label:'💡 Ideation' },
@@ -1989,6 +1998,7 @@ class Floor {
 }
 class OfficeFloor extends Floor {
   update(dt) {
+    updatePlayerProximityWork(dt);
     updateIdeaWorkers(dt);
     updateSupportStaff(dt);
     updateSupplyCloset(dt);
@@ -2038,6 +2048,12 @@ function updateLabels() {
   // Supply closet
   const pSC = worldToScreen(supplyCloset.pos.x, 2.8, supplyCloset.pos.z);
   wants.push({ text: `📦 ${supplyCloset.stock}/${supplyCloset.maxStock}`, cls: 'stock', x: pSC.x, y: pSC.y });
+  // Player proximity work indicator
+  if (playerNearDesk) {
+    const pct = Math.floor(playerWorkProgress * 100);
+    const pp = worldToScreen(player.position.x, 2.6, player.position.z);
+    wants.push({ text: `💡 ${pct}%`, cls: 'refill', x: pp.x, y: pp.y });
+  }
 
   while (labelPool.length < wants.length) {
     const el = document.createElement('div'); labelsEl.appendChild(el); labelPool.push(el);
@@ -2090,7 +2106,6 @@ function loop(now) {
   currentFloorInst.update(dt);
   updateRushHour(dt);
   updateEvents(dt);
-  updateWorkBtn(dt);
   updateMetricsHUD();
   updateLabels();
 
@@ -2142,8 +2157,9 @@ function doIPO() {
   // Remove idea workers
   for (const w of ideaWorkers) scene.remove(w.group);
   ideaWorkers.length = 0;
-  // Free plot desks
+  // Free plot desks + reset player proximity work
   for (const p of plots) p.occupied = false;
+  playerWorkProgress = 0; playerNearDesk = null;
 
   // Remove support staff
   for (const s of supportStaff) scene.remove(s.group);
