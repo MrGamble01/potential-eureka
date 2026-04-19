@@ -2110,9 +2110,16 @@ function updateIdeaWorkers(dt) {
     if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
 
     if (w.state === 'atDesk') {
-      // No paper at the desk → idle + morale slowly ticks down
+      // No paper at the desk. If the Supply Rack is owned, the engineer
+      // walks over there themselves to grab more. Otherwise they idle
+      // and morale slowly ticks down until a player / EA refills them.
       if (w.desk.paperStock < 1) {
         w.currentRate = 0;
+        if (printerAm) {
+          w.state = 'toSupply';
+          w.target = { x: printerAm.position.x, z: printerAm.position.z + 1.2 };
+          continue;
+        }
         w.paperIdleT += dt;
         if (w.paperIdleT >= 15) {
           w.paperIdleT = 0;
@@ -2178,13 +2185,15 @@ function updateIdeaWorkers(dt) {
     }
 
     // Walking states
-    if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'toVP' || w.state === 'returning') {
+    if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'toVP' || w.state === 'toSupply' || w.state === 'returning') {
       if (!w.target) { w.state = 'atDesk'; continue; }
       const spd = IW_SPEED * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? 1.5 : 1.0);
       if (!stepToward(w.group, w.target, spd, dt, 0.25)) continue;
       // Arrived
       if (w.state === 'toCoffee') {
         w.state = 'gettingCoffee'; w.waitT = 1.5;
+      } else if (w.state === 'toSupply') {
+        w.state = 'gettingPaper'; w.waitT = 1.2;
       } else if (w.state === 'toPingPong') {
         w.state = 'pingPonging'; w.waitT = 5.0;
         showToast('🏓 Taking a ping pong break!', '', 'ambient');
@@ -2226,6 +2235,16 @@ function updateIdeaWorkers(dt) {
       w.waitT -= dt;
       if (w.waitT <= 0) {
         if (coffeeAm && coffeeAm.stock > 0) { coffeeAm.stock--; w.caffeinated = true; w.caffeinatedT = 60; }
+        w.state = 'returning';
+        w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
+      }
+      continue;
+    }
+    if (w.state === 'gettingPaper') {
+      w.waitT -= dt;
+      if (w.waitT <= 0) {
+        // Grab a fresh ream (random 5-10 sheets — "not the same every time")
+        w.desk.paperStock = Math.min(PAPER_MAX, 5 + Math.floor(Math.random() * 6));
         w.state = 'returning';
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       }
@@ -2439,7 +2458,23 @@ function pickEATask(self) {
       desk: worstDesk,
     };
   }
-  // Priority 3: lowest-morale engineer under 60 (only if morale is on)
+  // Priority 3: a tired (non-caffeinated) worker at their desk —
+  // EA walks over with a cup (consumes one stock) and caffeinates
+  // them directly. Saves the engineer the walk to the bar.
+  if (coffeeAm && coffeeAm.stock > 0) {
+    const claimedWorkers = new Set(others.map(e => e.targetWorker).filter(Boolean));
+    for (const w of ideaWorkers) {
+      if (w.caffeinated) continue;
+      if (w.state !== 'atDesk') continue;
+      if (claimedWorkers.has(w)) continue;
+      return {
+        state: 'toCoffeeDrop',
+        target: { x: w.group.position.x, z: w.group.position.z + 1.1 },
+        worker: w,
+      };
+    }
+  }
+  // Priority 4: lowest-morale engineer under 60 (only if morale is on)
   if (moraleEnabled) {
     const claimedWorkers = new Set(others.map(e => e.targetWorker).filter(Boolean));
     let worstWorker = null;
@@ -2472,7 +2507,7 @@ function updateExecutiveAssistants(dt) {
         ea.targetDesk = task.desk || null;
         ea.targetAmenity = task.amenity || null;
         ea.targetWorker = task.worker || null;
-        ea.carryMesh.visible = task.state === 'toDesk';
+        ea.carryMesh.visible = task.state === 'toDesk' || task.state === 'toCoffeeDrop';
       } else {
         ea.waitT = 1.5;
       }
@@ -2511,6 +2546,17 @@ function updateExecutiveAssistants(dt) {
       ea.carryMesh.visible = false;
       ea.state = 'idle'; ea.waitT = 0.4;
       ea.targetDesk = null; ea.target = null;
+    } else if (ea.state === 'toCoffeeDrop') {
+      const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
+      if (ea.targetWorker && coffeeAm && coffeeAm.stock > 0) {
+        coffeeAm.stock--;
+        ea.targetWorker.caffeinated = true;
+        ea.targetWorker.caffeinatedT = 60;
+        changeMorale(+2, 'EA delivered coffee', ea.targetWorker);
+      }
+      ea.carryMesh.visible = false;
+      ea.state = 'idle'; ea.waitT = 0.4;
+      ea.targetWorker = null; ea.target = null;
     } else if (ea.state === 'toChat') {
       ea.state = 'chatting'; ea.waitT = 2.0;
     }
@@ -4158,7 +4204,8 @@ function updateLabels() {
     let emoji = null;
     if (w.state === 'toCoffee' || w.state === 'gettingCoffee') emoji = '☕';
     else if (w.state === 'toPingPong' || w.state === 'pingPonging') emoji = '🏓';
-    else if (w.state === 'toDeliver') emoji = '📦';
+    else if (w.state === 'toSupply' || w.state === 'gettingPaper') emoji = '📄';
+    else if (w.state === 'toDeliver' || w.state === 'toVP') emoji = '📦';
     if (emoji) {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
       wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
@@ -4199,11 +4246,15 @@ function updateLabels() {
       wants.push({ text: moraleEmoji(m), cls: 'bubble', x: p.x, y: p.y });
     }
   }
-  // EA chat bubble
+  // EA in-flight emoji
   for (const e of eas) {
-    if (e.state === 'chatting' || e.state === 'toChat') {
+    let eaEmoji = null;
+    if (e.state === 'chatting' || e.state === 'toChat') eaEmoji = '💬';
+    else if (e.state === 'toCoffeeDrop') eaEmoji = '☕';
+    else if (e.state === 'toDesk') eaEmoji = '📄';
+    if (eaEmoji) {
       const p = worldToScreen(e.group.position.x, 2.4, e.group.position.z);
-      wants.push({ text: '💬', cls: 'bubble', x: p.x, y: p.y });
+      wants.push({ text: eaEmoji, cls: 'bubble', x: p.x, y: p.y });
     }
   }
   // VP title badge — always shows their current tier so you can see
