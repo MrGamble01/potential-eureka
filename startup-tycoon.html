@@ -44,9 +44,9 @@
     /* ── HUD ──────────────────────────────────────────── */
     #cash-hud {
       position: fixed; top: 16px; right: 18px;
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(8,10,18,0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.14);
       color: #3FB950; font-weight: 800; font-size: 22px;
       padding: 10px 16px; border-radius: 10px;
       box-shadow: 0 0 14px rgba(63,185,80,0.12);
@@ -70,11 +70,17 @@
       display: flex; flex-direction: column; gap: 8px;
       max-width: 220px; user-select: none;
     }
-    #upgrades { display: flex; flex-direction: column; gap: 6px; }
+    #upgrades {
+      display: flex; flex-direction: column; gap: 6px;
+      background: rgba(8,10,18,0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 10px 10px;
+    }
     .panel {
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(8,10,18,0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px; padding: 12px 14px; color: #E6EDF3;
     }
     .panel-title {
@@ -137,19 +143,19 @@
     /* ── Upgrade buttons ──────────────────────────────── */
     .upg-btn {
       display: block; width: 100%;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
       border-radius: 6px; padding: 8px 12px;
       font-weight: 600; text-align: left; cursor: pointer;
       color: #E6EDF3; font-size: 12px; font-family: inherit; transition: all 0.15s;
     }
-    .upg-btn:hover:not(:disabled) { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.16); }
+    .upg-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
     .upg-btn:active:not(:disabled) { transform: scale(0.98); }
-    .upg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .upg-btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .upg-btn .lvl {
-      float: right; background: rgba(108,99,255,0.25); color: #a89ff5;
+      float: right; background: rgba(108,99,255,0.45); color: #c4beff;
       padding: 1px 7px; border-radius: 8px; font-size: 10px; font-weight: 800;
     }
-    .upg-btn .lvl.maxed { background: rgba(212,153,34,0.25); color: #f59e0b; }
+    .upg-btn .lvl.maxed { background: rgba(212,153,34,0.45); color: #fcd34d; }
     .upg-btn .cost { display: block; color: #3FB950; font-size: 11px; margin-top: 2px; font-weight: 700; }
 
     /* ── Elevator ─────────────────────────────────────── */
@@ -193,24 +199,24 @@
     .elev-close {
       display: block; margin: 12px auto 0;
       padding: 7px 20px; font-weight: 600; font-family: inherit;
-      background: rgba(255,255,255,0.04); color: #7D8590;
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.15s;
+      background: rgba(255,255,255,0.07); color: #7D8590;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; cursor: pointer; transition: all 0.15s;
     }
-    .elev-close:hover { background: rgba(255,255,255,0.09); color: #E6EDF3; }
+    .elev-close:hover { background: rgba(255,255,255,0.13); color: #E6EDF3; }
 
     /* ── Status bar ───────────────────────────────────── */
     #status-bar {
       position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #7D8590; padding: 6px 14px; border-radius: 8px;
+      background: rgba(8,10,18,0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #a0aab4; padding: 6px 14px; border-radius: 8px;
       font-weight: 600; font-size: 12px;
       pointer-events: none; user-select: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       display: flex; gap: 12px; align-items: center; white-space: nowrap;
     }
-    #status-bar .sep { color: rgba(255,255,255,0.12); }
+    #status-bar .sep { color: rgba(255,255,255,0.25); }
 
     /* ── Toast notifications ──────────────────────────── */
     #toast-container {
@@ -271,9 +277,9 @@
     /* ── Metrics HUD ──────────────────────────────────────── */
     #metrics-hud {
       position: fixed; top: 72px; right: 18px;
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(8,10,18,0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 10px; padding: 10px 14px;
       pointer-events: none; user-select: none; min-width: 158px;
     }
@@ -349,9 +355,9 @@
     /* ── Activity feed ────────────────────────────────── */
     #activity-feed {
       position: fixed; top: 210px; right: 18px;
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(8,10,18,0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 10px; padding: 10px 14px;
       width: 168px; pointer-events: none; user-select: none;
     }
