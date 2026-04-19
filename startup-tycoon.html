@@ -819,6 +819,8 @@
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
   <span id="season-badge">S1</span>
+  <span class="sep" id="trophy-sep" style="display:none">|</span>
+  <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
   <span id="rush-label" style="display:none"></span>
   <span class="sep" id="event-sep" style="display:none">|</span>
@@ -3452,33 +3454,52 @@ function smoothedArr() {
   return Math.round(sum * 365 * 24 * 3600 / elapsedSec);
 }
 // ── Season Goal ───────────────────────────────────────────
-// Target ARR for the current season. When smoothed ARR first crosses
-// the target, fire a win modal with a stats recap. Hit state resets
+// Target ARR for the current season. Scales with prestige (S1 = $1M,
+// S2 = $2M, S3 = $4M, …) so each IPO raises the bar. When smoothed
+// ARR first crosses the target, fire a win modal. Hit state resets
 // on IPO so each season has its own finish line.
-const GOAL_TARGET_ARR = 1_000_000;
+const GOAL_TARGET_BASE = 1_000_000;
+function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
 let seasonGoalHit = false;
+let trophiesWon = 0;
 const goalFillEl  = document.getElementById('goal-fill');
 const goalPctEl   = document.getElementById('goal-pct');
 const goalLabelEl = document.getElementById('goal-label');
 const winModalEl  = document.getElementById('win-modal');
 const winStatsEl  = document.getElementById('win-stats');
 const winGoalSub  = document.getElementById('win-goal-sub');
-goalLabelEl.textContent = `🎯 $${fmtCash(GOAL_TARGET_ARR)} ARR`;
-winGoalSub.textContent  = `$${fmtCash(GOAL_TARGET_ARR)} ARR achieved`;
+goalLabelEl.textContent = `🎯 $${fmtCash(currentGoalTarget())} ARR`;
+winGoalSub.textContent  = `$${fmtCash(currentGoalTarget())} ARR achieved`;
 document.getElementById('win-continue-btn').addEventListener('click',
   () => winModalEl.classList.remove('open'));
 winModalEl.addEventListener('click', e => { if (e.target === winModalEl) winModalEl.classList.remove('open'); });
 
 const goalHudEl = document.getElementById('goal-hud');
 function updateGoalHud(arr) {
-  const pct = Math.min(1, arr / GOAL_TARGET_ARR);
+  const target = currentGoalTarget();
+  const pct = Math.min(1, arr / target);
   goalFillEl.style.width = (pct * 100).toFixed(1) + '%';
   goalPctEl.textContent = Math.floor(pct * 100) + '%';
-  if (!seasonGoalHit && arr >= GOAL_TARGET_ARR) {
+  if (!seasonGoalHit && arr >= target) {
     seasonGoalHit = true;
+    trophiesWon++;
     triggerWin(arr);
   }
   goalHudEl.classList.toggle('complete', seasonGoalHit);
+}
+// Refresh the displayed target/sub-text when prestige changes
+function refreshGoalLabels() {
+  const t = currentGoalTarget();
+  goalLabelEl.textContent = `🎯 $${fmtCash(t)} ARR`;
+  winGoalSub.textContent  = `$${fmtCash(t)} ARR achieved`;
+}
+const trophyBadgeEl = document.getElementById('trophy-badge');
+const trophySepEl   = document.getElementById('trophy-sep');
+function refreshTrophyBadge() {
+  const show = trophiesWon > 0;
+  trophyBadgeEl.style.display = show ? '' : 'none';
+  trophySepEl.style.display   = show ? '' : 'none';
+  if (show) trophyBadgeEl.textContent = `🏆 ${trophiesWon}`;
 }
 
 function triggerWin(arr) {
@@ -3496,8 +3517,12 @@ function triggerWin(arr) {
     <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
   `;
   winModalEl.classList.add('open');
-  addFeedEntry(`🏆 $${fmtCash(GOAL_TARGET_ARR)} ARR — you made it!`);
-  showToast(`🏆 Goal hit: $${fmtCash(GOAL_TARGET_ARR)} ARR!`, 'milestone', 'critical');
+  const t = currentGoalTarget();
+  addFeedEntry(`🏆 $${fmtCash(t)} ARR — you made it!`);
+  showToast(`🏆 Goal hit: $${fmtCash(t)} ARR!`, 'milestone', 'critical');
+  // Subtle nudge toward the next season
+  setTimeout(() => showToast('💡 Tip: 🎉 IPO to start a new season at a higher revenue multiplier.', '', 'standard'), 3500);
+  refreshTrophyBadge();
 }
 
 function updateMetricsHUD() {
@@ -4899,10 +4924,11 @@ function doIPO() {
   nextInvestorIn = 60 + Math.random() * 60;
   // Reset Sprint state so the new season starts with the button fresh
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
-  // New season — finish line resets
+  // New season — finish line resets and the bar's target scales up
   seasonGoalHit = false;
   revenueLog.length = 0;
   winModalEl.classList.remove('open');
+  refreshGoalLabels();
   // Re-show the starter room's wall-pinned decor — after IPO the
   // only owned room is starter again, so the brick / string lights /
   // whiteboard should come back.
@@ -5004,6 +5030,7 @@ function saveGame() {
       morale: teamMorale(),
       investorAffinity: { ...investorAffinity },
       seasonGoalHit,
+      trophiesWon,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -5146,6 +5173,7 @@ function loadGame() {
       }
     }
     if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
+    if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
@@ -5171,6 +5199,8 @@ loadGame();
 addCash(100); // enough to hire first idea person right away
 renderFunding();
 updateStarterWallDecor();
+refreshGoalLabels();
+refreshTrophyBadge();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
 
