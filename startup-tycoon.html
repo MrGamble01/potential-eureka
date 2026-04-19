@@ -1217,13 +1217,17 @@ const lampLight = new THREE.PointLight(0xffdc8a, 0.55, 9);
 lampLight.position.set(-6.8, 2.0, 6.3);
 scene.add(lampLight);
 
-// String lights along the north wall (just below the ceiling)
+// String lights along the north wall (just below the ceiling).
+// Grouped so they can be hidden together when the starter's north
+// wall is merged with an owned neighbor (Breakroom).
 const stringBulbMat = new THREE.MeshLambertMaterial({ color: 0xffdd66, emissive: 0xffcc44, emissiveIntensity: 0.75 });
+const stringLightsG = new THREE.Group();
 for (let i = 0; i < 12; i++) {
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), stringBulbMat);
   bulb.position.set(-7 + i * 1.27, 2.85 + Math.sin(i * 0.9) * 0.12, -7.6);
-  scene.add(bulb);
+  stringLightsG.add(bulb);
 }
+scene.add(stringLightsG);
 
 // Whiteboard on the west wall with scribbles
 const wbG = new THREE.Group();
@@ -1628,10 +1632,24 @@ function buyRoom(id) {
   ownedRooms.add(id);
   buildRoom(def);
   activatePlotsForRoom(id);
+  updateStarterWallDecor();
   refreshHud();
   renderRoomPanel();
   showToast(`🏗️ ${def.label} unlocked!`, 'milestone');
   addFeedEntry(`🏗️ Expanded to ${def.label}`);
+}
+
+// Starter room decor that's glued to its exterior walls (brick accent
+// on the north wall, string lights next to it, whiteboard on the west
+// wall) needs to disappear once the wall it was mounted to becomes an
+// interior partition between two owned rooms. Otherwise it floats
+// inside the expanded floor plan.
+function updateStarterWallDecor() {
+  const northMerged = ownedRooms.has('back');  // breakroom north of starter
+  const westMerged  = ownedRooms.has('left');  // engineering pod west of starter
+  brickWallG.visible    = !northMerged;
+  stringLightsG.visible = !northMerged;
+  wbG.visible           = !westMerged;
 }
 
 function renderRoomPanel() {
@@ -2693,16 +2711,22 @@ function hireBDR() {
 }
 
 // Move `group` toward `target` at `speed` units/sec. Rotates to face
-// the direction of travel. Returns true once within `stopDist` of
-// the target — i.e. "arrived."
+// the direction of travel. Adds a small sinusoidal bob on the Y axis
+// while in motion so characters don't look like they're sliding on
+// ice. Returns true once within `stopDist` of the target.
 function stepToward(group, target, speed, dt, stopDist = 0.35) {
   const tx = target.x - group.position.x;
   const tz = target.z - group.position.z;
   const dist = Math.hypot(tx, tz);
-  if (dist <= stopDist) return true;
+  if (dist <= stopDist) {
+    group.position.y = 0;
+    return true;
+  }
   group.position.x += (tx / dist) * speed * dt;
   group.position.z += (tz / dist) * speed * dt;
   group.rotation.y = Math.atan2(tx / dist, tz / dist);
+  group.userData.walkPhase = (group.userData.walkPhase || 0) + dt * (4 + speed * 0.5);
+  group.position.y = Math.abs(Math.sin(group.userData.walkPhase)) * 0.06;
   return false;
 }
 
@@ -4511,6 +4535,10 @@ function loop(now) {
     player.position.x = Math.max(-HALF, Math.min(HALF, player.position.x + wx * playerSpeed * dt));
     player.position.z = Math.max(-HALF, Math.min(HALF, player.position.z + wz * playerSpeed * dt));
     player.rotation.y = Math.atan2(wx, wz);
+    player.userData.walkPhase = (player.userData.walkPhase || 0) + dt * (4 + playerSpeed * 0.5);
+    player.position.y = Math.abs(Math.sin(player.userData.walkPhase)) * 0.06;
+  } else {
+    player.position.y = 0;
   }
 
   currentFloorInst.update(dt);
@@ -4616,6 +4644,10 @@ function doIPO() {
   nextInvestorIn = 60 + Math.random() * 60;
   // Reset Sprint state so the new season starts with the button fresh
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
+  // Re-show the starter room's wall-pinned decor — after IPO the
+  // only owned room is starter again, so the brick / string lights /
+  // whiteboard should come back.
+  updateStarterWallDecor();
   // Bump the generation so any event setTimeouts still pending from
   // the old season skip their rollback and don't clobber new-season state
   sessionGen++;
@@ -4868,6 +4900,7 @@ setInterval(tickTimer, 1000);
 loadGame();
 addCash(100); // enough to hire first idea person right away
 renderFunding();
+updateStarterWallDecor();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
 
