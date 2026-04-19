@@ -867,6 +867,33 @@ const orbMat = new THREE.MeshLambertMaterial({
 const featureGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
 const featureMat = new THREE.MeshLambertMaterial({ color: 0x4da3ff });
 
+// Paper stack: progress visual for work-in-progress + delivery carry
+const PAPER_STACK_MAX = 10;
+const paperSheetGeo = new THREE.BoxGeometry(0.42, 0.015, 0.52);
+const paperSheetMat = new THREE.MeshLambertMaterial({ color: 0xf5f2eb });
+function makePaperStack() {
+  const g = new THREE.Group();
+  const sheets = [];
+  for (let i = 0; i < PAPER_STACK_MAX; i++) {
+    const sheet = new THREE.Mesh(paperSheetGeo, paperSheetMat);
+    sheet.castShadow = true;
+    sheet.position.y = i * 0.017;
+    sheet.position.x = (Math.random() - 0.5) * 0.04;
+    sheet.position.z = (Math.random() - 0.5) * 0.04;
+    sheet.rotation.y = (Math.random() - 0.5) * 0.08;
+    sheet.visible = false;
+    g.add(sheet);
+    sheets.push(sheet);
+  }
+  g.userData.sheets = sheets;
+  return g;
+}
+function setPaperStackProgress(stackGroup, progress) {
+  const n = Math.min(PAPER_STACK_MAX, Math.floor(progress * PAPER_STACK_MAX + 0.001));
+  const sheets = stackGroup.userData.sheets;
+  for (let i = 0; i < sheets.length; i++) sheets[i].visible = i < n;
+}
+
 const carry = { kind: null, count: 0 };
 const stackOrbs = [], stackBoxes = [];
 function makeStackMesh(kind, i) {
@@ -898,9 +925,9 @@ for (const def of PLOT_DEFS) {
   const dirt = new THREE.Mesh(plotGeo, plotMat);
   dirt.position.y = 0.05; dirt.receiveShadow = true;
   g.add(dirt);
-  const orb = new THREE.Mesh(orbGeo, orbMat);
-  orb.position.y = 1.2; orb.castShadow = true; orb.visible = false;
-  g.add(orb);
+  const paperStack = makePaperStack();
+  paperStack.position.y = 1.1; // sits on desk top
+  g.add(paperStack);
 
   // Standing desk top
   const deskTop = new THREE.Mesh(
@@ -939,19 +966,10 @@ for (const def of PLOT_DEFS) {
     g.add(note);
   }
 
-  // Lightbulb base (visible with orb)
-  const bulbBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.12, 0.16, 0.25, 10),
-    new THREE.MeshLambertMaterial({ color: 0xcccccc })
-  );
-  bulbBase.position.y = 0.92;
-  bulbBase.visible = false;
-  g.add(bulbBase);
-
   const active = def.tier === 0; // tier:0 = starter room (always active)
   g.visible = active;
   scene.add(g);
-  plots.push({ group:g, orb, bulbBase, ready:false, tier:def.tier, roomId:def.roomId, active, occupied:false });
+  plots.push({ group:g, paperStack, ready:false, tier:def.tier, roomId:def.roomId, active, occupied:false });
 }
 
 function activatePlots(level) {
@@ -991,11 +1009,9 @@ function spawnIdeaWorker() {
     new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
   );
   headW.position.y = 1.47; headW.castShadow = true; g.add(headW);
-  const carryMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.38, 0.38, 0.38),
-    new THREE.MeshLambertMaterial({ color: 0x4da3ff, emissive: 0x4da3ff, emissiveIntensity: 0.25 })
-  );
-  carryMesh.position.y = 1.88; carryMesh.visible = false; carryMesh.castShadow = true; g.add(carryMesh);
+  const carryMesh = makePaperStack();
+  carryMesh.position.set(0, 1.15, 0.3); // held at chest, slightly in front of body
+  g.add(carryMesh);
 
   g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
   scene.add(g);
@@ -1032,16 +1048,8 @@ function updateIdeaWorkers(dt) {
       w.currentRate = rate;
       w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
 
-      // Orb visual grows with progress
-      if (w.workProgress > 0.35) {
-        w.desk.orb.visible = true;
-        const s = (w.workProgress - 0.35) / 0.65;
-        w.desk.orb.scale.setScalar(0.3 + s * 0.7);
-        w.desk.orb.position.y = 1.2 + Math.sin(performance.now() * 0.003) * 0.08;
-      } else {
-        w.desk.orb.visible = false;
-      }
-      w.desk.bulbBase.visible = w.workProgress > 0.15;
+      // Paper stack grows with progress
+      setPaperStackProgress(w.desk.paperStack, w.workProgress);
 
       // Coffee break
       w.coffeeWaitT -= dt;
@@ -1063,15 +1071,13 @@ function updateIdeaWorkers(dt) {
       // Product ready → deliver (check dealSpeedMult > 0 for bug event)
       if (w.workProgress >= 1.0 && dealSpeedMult > 0) {
         w.workProgress = 0;
-        w.desk.orb.visible = false;
-        w.desk.orb.scale.setScalar(1.0);
-        w.desk.bulbBase.visible = false;
+        setPaperStackProgress(w.desk.paperStack, 0);
         // Paper value boost
         w.paperBoost = 1.0;
         if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
         w.productValue = Math.round(featurePrice * dealValueMult * productVersionMult * w.paperBoost * w.pingPongBoost);
         w.pingPongBoost = 1.0;
-        w.carryMesh.visible = true;
+        setPaperStackProgress(w.carryMesh, 0.8); // carry an 8-sheet stack to the CEO desk
         w.state = 'toDeliver';
         w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 2.0 };
       }
@@ -1104,7 +1110,7 @@ function updateIdeaWorkers(dt) {
         totalUsers += Math.max(1, Math.floor(w.productValue / 4));
         checkUserMilestones();
         if (Math.random() < 0.35) showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
-        w.carryMesh.visible = false;
+        setPaperStackProgress(w.carryMesh, 0);
         w.state = 'returning';
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       } else if (w.state === 'returning') {
@@ -1161,10 +1167,7 @@ function updatePlayerProximityWork(dt) {
 
   // Changed desk or left range — reset progress
   if (closest !== playerNearDesk) {
-    if (playerNearDesk) {
-      playerNearDesk.orb.visible = false;
-      playerNearDesk.bulbBase.visible = false;
-    }
+    if (playerNearDesk) setPaperStackProgress(playerNearDesk.paperStack, 0);
     playerWorkProgress = 0;
     playerNearDesk = closest;
   }
@@ -1175,22 +1178,14 @@ function updatePlayerProximityWork(dt) {
   const rate = WORK_RATE_BASE * ideaSpeedMult * (rushActive ? 1.5 : 1.0);
   playerWorkProgress = Math.min(1.0, playerWorkProgress + rate * dt);
 
-  // Show orb growing on the desk
+  // Paper stack grows with progress
   const p = playerNearDesk;
-  if (playerWorkProgress > 0.2) {
-    p.orb.visible = true;
-    const s = (playerWorkProgress - 0.2) / 0.8;
-    p.orb.scale.setScalar(0.3 + s * 0.7);
-    p.orb.position.y = 1.2 + Math.sin(performance.now() * 0.003) * 0.08;
-  }
-  p.bulbBase.visible = playerWorkProgress > 0.1;
+  setPaperStackProgress(p.paperStack, playerWorkProgress);
 
   // Done — deliver instantly (player is standing there)
   if (playerWorkProgress >= 1.0) {
     playerWorkProgress = 0;
-    p.orb.visible = false;
-    p.orb.scale.setScalar(1.0);
-    p.bulbBase.visible = false;
+    setPaperStackProgress(p.paperStack, 0);
     const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
     addCash(earned);
     totalFeaturesShipped++;
@@ -1208,19 +1203,26 @@ const CEO_DESK_RANGE = 2.0;
 const CEO_CHAIR_POS = new THREE.Vector3(0, 0, 4.1);
 let ceoWorkProgress = 0;
 
+const ceoPaperStack = makePaperStack();
+ceoPaperStack.position.set(-1.1, 1.1, 2.9); // on CEO desk surface, off to the side of the monitor
+scene.add(ceoPaperStack);
+
 function updateCeoDeskWork(dt) {
   const dx = player.position.x - CEO_CHAIR_POS.x;
   const dz = player.position.z - CEO_CHAIR_POS.z;
   if (Math.hypot(dx, dz) > CEO_DESK_RANGE) {
+    if (ceoWorkProgress > 0) setPaperStackProgress(ceoPaperStack, 0);
     ceoWorkProgress = 0;
     ceoMonitorGlow.material.color.setHex(0x2979ff);
     return;
   }
   const rate = WORK_RATE_BASE * ideaSpeedMult * (rushActive ? 1.5 : 1.0);
   ceoWorkProgress = Math.min(1.0, ceoWorkProgress + rate * dt);
+  setPaperStackProgress(ceoPaperStack, ceoWorkProgress);
   ceoMonitorGlow.material.color.setHex(0x3FB950);
   if (ceoWorkProgress >= 1.0) {
     ceoWorkProgress = 0;
+    setPaperStackProgress(ceoPaperStack, 0);
     const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
     addCash(earned);
     totalFeaturesShipped++;
@@ -2238,7 +2240,7 @@ function doIPO() {
   // Free plot desks + reset player proximity work
   for (const p of plots) p.occupied = false;
   playerWorkProgress = 0; playerNearDesk = null;
-  ceoWorkProgress = 0; ceoMonitorGlow.material.color.setHex(0x2979ff);
+  ceoWorkProgress = 0; setPaperStackProgress(ceoPaperStack, 0); ceoMonitorGlow.material.color.setHex(0x2979ff);
 
   // Remove support staff
   for (const s of supportStaff) scene.remove(s.group);
@@ -2279,7 +2281,7 @@ function doIPO() {
   // Reset plots
   for (const p of plots) {
     if (p.roomId && p.roomId !== 'starter') { p.active = false; p.group.visible = false; }
-    p.ready = false; p.orb.visible = false; p.bulbBase.visible = false;
+    p.ready = false; setPaperStackProgress(p.paperStack, 0);
   }
 
   // Reset supply closet
