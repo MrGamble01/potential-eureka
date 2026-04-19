@@ -1025,6 +1025,20 @@
 <script type="module">
 import * as THREE from 'three';
 
+// ── localStorage keys (single source of truth) ──────────────
+// Every key we read/write lives in this map so typos can't silently
+// fork names, a grep lands on every call site, and Restart's
+// preserve-list stays explicit.
+const LS = {
+  save:          'startup-tycoon-v7',
+  joystick:      'joystickEnabled',
+  morale:        'moraleEnabled',
+  investor:      'investorEnabled',
+  tips:          'tipsEnabled',
+  toastDensity:  'toastDensity',
+  tipSeenPrefix: 'tip-seen-',
+};
+
 // ═══════════════════════════════════════════════════════════
 //  TABLE OF CONTENTS
 // ───────────────────────────────────────────────────────────
@@ -4632,10 +4646,10 @@ const JOY_MAX = 46;
 function setJoystickEnabled(on) {
   joyEl.classList.toggle('visible', on);
   joyToggleEl.checked = on;
-  localStorage.setItem('joystickEnabled', on ? '1' : '0');
+  localStorage.setItem(LS.joystick, on ? '1' : '0');
   if (!on) { joyDx = 0; joyDz = 0; joyKnobEl.style.transform = ''; joyPointerId = null; }
 }
-setJoystickEnabled(localStorage.getItem('joystickEnabled') === '1');
+setJoystickEnabled(localStorage.getItem(LS.joystick) === '1');
 joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
 
 // Morale toggle (defaults to ON; players can flip off if they want
@@ -4670,10 +4684,10 @@ const moraleToggleEl = document.getElementById('morale-enabled');
 function setMoraleEnabled(on) {
   moraleEnabled = !!on;
   moraleToggleEl.checked = moraleEnabled;
-  localStorage.setItem('moraleEnabled', moraleEnabled ? '1' : '0');
+  localStorage.setItem(LS.morale, moraleEnabled ? '1' : '0');
   updateMetricsHUD();
 }
-const savedMorale = localStorage.getItem('moraleEnabled');
+const savedMorale = localStorage.getItem(LS.morale);
 setMoraleEnabled(savedMorale === null ? true : savedMorale === '1');
 moraleToggleEl.addEventListener('change', () => setMoraleEnabled(moraleToggleEl.checked));
 
@@ -4682,13 +4696,13 @@ const investorToggleEl = document.getElementById('investor-enabled');
 function setInvestorEnabled(on) {
   investorEnabled = !!on;
   investorToggleEl.checked = investorEnabled;
-  localStorage.setItem('investorEnabled', investorEnabled ? '1' : '0');
+  localStorage.setItem(LS.investor, investorEnabled ? '1' : '0');
   if (!investorEnabled) {
     for (const inv of investors) scene.remove(inv.group);
     investors.length = 0;
   }
 }
-const savedInv = localStorage.getItem('investorEnabled');
+const savedInv = localStorage.getItem(LS.investor);
 setInvestorEnabled(savedInv === null ? true : savedInv === '1');
 investorToggleEl.addEventListener('change', () => setInvestorEnabled(investorToggleEl.checked));
 
@@ -4731,10 +4745,10 @@ const tipOkEl    = document.getElementById('tip-ok');
 const tipsToggleEl = document.getElementById('tips-enabled');
 function showTip(key) {
   if (!tipsEnabled) return;
-  if (localStorage.getItem('tip-seen-' + key) === '1') return;
+  if (localStorage.getItem(LS.tipSeenPrefix + key) === '1') return;
   const tip = TIPS[key];
   if (!tip) return;
-  localStorage.setItem('tip-seen-' + key, '1');
+  localStorage.setItem(LS.tipSeenPrefix + key, '1');
   tipTitleEl.textContent = tip.title;
   tipBodyEl.innerHTML = tip.body.split('\n').map(l => l).join('<br>');
   tipModalEl.classList.add('open');
@@ -4744,9 +4758,9 @@ tipModalEl.addEventListener('click', e => { if (e.target === tipModalEl) tipModa
 function setTipsEnabled(on) {
   tipsEnabled = !!on;
   tipsToggleEl.checked = tipsEnabled;
-  localStorage.setItem('tipsEnabled', tipsEnabled ? '1' : '0');
+  localStorage.setItem(LS.tips, tipsEnabled ? '1' : '0');
 }
-const savedTips = localStorage.getItem('tipsEnabled');
+const savedTips = localStorage.getItem(LS.tips);
 setTipsEnabled(savedTips === null ? true : savedTips === '1');
 tipsToggleEl.addEventListener('change', () => setTipsEnabled(tipsToggleEl.checked));
 
@@ -4755,9 +4769,9 @@ const toastDensityEl = document.getElementById('toast-density');
 function setToastDensity(v) {
   toastDensity = (v === 'all' || v === 'standard' || v === 'off') ? v : 'all';
   toastDensityEl.value = toastDensity;
-  localStorage.setItem('toastDensity', toastDensity);
+  localStorage.setItem(LS.toastDensity, toastDensity);
 }
-setToastDensity(localStorage.getItem('toastDensity') || 'all');
+setToastDensity(localStorage.getItem(LS.toastDensity) || 'all');
 toastDensityEl.addEventListener('change', () => setToastDensity(toastDensityEl.value));
 
 // Restart game: wipe save + reload. Setting _restarting stops the periodic
@@ -4767,9 +4781,9 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   if (!confirm('Restart the game? All progress (cash, upgrades, hires, rooms, IPO seasons) will be erased.')) return;
   _restarting = true;
   try {
-    const joy = localStorage.getItem('joystickEnabled');
-    localStorage.removeItem(SAVE_KEY);
-    if (joy !== null) localStorage.setItem('joystickEnabled', joy);
+    const joy = localStorage.getItem(LS.joystick);
+    localStorage.removeItem(LS.save);
+    if (joy !== null) localStorage.setItem(LS.joystick, joy);
   } catch (_) {}
   location.reload();
 });
@@ -5168,7 +5182,7 @@ document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoMod
 ipoModal.addEventListener('click', e => { if (e.target === ipoModal) ipoModal.classList.remove('open'); });
 
 // ── Save + load ──
-const SAVE_KEY = 'startup-tycoon-v7';
+const SAVE_KEY = LS.save;
 // Sweep older versions out of localStorage so they don't sit there
 // forever after a schema bump.
 try {
