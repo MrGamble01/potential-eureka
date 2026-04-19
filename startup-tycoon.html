@@ -1715,12 +1715,37 @@ function buildScrappyCharacter(opts) {
       str.position.set(sx, 1.18, 0.3); g.add(str);
     }
   }
+  // Arms (match the torso color so they read as sleeves)
+  const sleeveColor = opts.isCollared ? (opts.bodyColor ?? 0xdfe6ee) : bodyColor;
+  const armMat = new THREE.MeshLambertMaterial({ color: sleeveColor });
+  for (const sx of [-0.42, 0.42]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.55, 4, 8), armMat);
+    arm.position.set(sx, 1.02, 0); arm.castShadow = true; g.add(arm);
+    // Hand peek at the cuff
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6),
+      new THREE.MeshLambertMaterial({ color: skinColor }));
+    hand.position.set(sx, 0.7, 0); hand.castShadow = true; g.add(hand);
+  }
   // Head
   const head = new THREE.Mesh(
     new THREE.SphereGeometry(0.26, 12, 10),
     new THREE.MeshLambertMaterial({ color: skinColor })
   );
   head.position.y = 1.78; head.castShadow = true; g.add(head);
+  // Eye dots
+  const eyeMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+  for (const sx of [-0.08, 0.08]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), eyeMat);
+    eye.position.set(sx, 1.80, 0.24); g.add(eye);
+  }
+  // Beard
+  if (opts.hasBeard) {
+    const beard = new THREE.Mesh(
+      new THREE.BoxGeometry(0.28, 0.14, 0.18),
+      new THREE.MeshLambertMaterial({ color: hairColor })
+    );
+    beard.position.set(0, 1.64, 0.15); g.add(beard);
+  }
   // Hair or beanie
   if (opts.hasBeanie) {
     const beanie = new THREE.Mesh(
@@ -1733,22 +1758,34 @@ function buildScrappyCharacter(opts) {
       new THREE.MeshLambertMaterial({ color: beanieColor })
     );
     cuff.rotation.x = Math.PI / 2; cuff.position.y = 1.76; g.add(cuff);
-  } else {
-    const hair = new THREE.Mesh(
-      new THREE.SphereGeometry(0.27, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
-      new THREE.MeshLambertMaterial({ color: hairColor })
+  } else if (opts.hairStyle !== 'bald') {
+    // Top hair cap
+    const hairMat = new THREE.MeshLambertMaterial({ color: hairColor });
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(opts.hairStyle === 'poof' ? 0.30 : 0.27, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      hairMat
     );
-    hair.position.y = 1.8; hair.castShadow = true; g.add(hair);
+    cap.position.y = opts.hairStyle === 'poof' ? 1.83 : 1.8;
+    cap.castShadow = true; g.add(cap);
+    // Long hair: extend down the back of the head + sides
+    if (opts.hairStyle === 'long') {
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.34, 0.12), hairMat);
+      back.position.set(0, 1.62, -0.2); g.add(back);
+      for (const sx of [-0.24, 0.24]) {
+        const side = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.22), hairMat);
+        side.position.set(sx, 1.62, -0.05); g.add(side);
+      }
+    }
   }
   // Optional glasses
   if (opts.hasGlasses) {
     const frameMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
     for (const sx of [-0.09, 0.09]) {
-      const lens = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.02), frameMat);
-      lens.position.set(sx, 1.76, 0.23); g.add(lens);
+      const lens = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.09, 0.02), frameMat);
+      lens.position.set(sx, 1.80, 0.25); g.add(lens);
     }
     const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), frameMat);
-    bridge.position.set(0, 1.77, 0.23); g.add(bridge);
+    bridge.position.set(0, 1.81, 0.25); g.add(bridge);
   }
   // Optional apron (for barista etc.)
   if (opts.apronColor != null) {
@@ -1766,14 +1803,17 @@ function _rand01(seed, n) {
 }
 function randomWorkerLook(seed) {
   const pick = (arr, n) => arr[Math.floor(_rand01(seed, n) * arr.length)];
+  const hairStyles = ['short', 'long', 'poof', 'bald'];
   return {
     bodyColor:   pick(HOODIE_COLORS, 1),
     pantsColor:  pick(PANTS_COLORS,  2),
     hairColor:   pick(HAIR_COLORS,   3),
     skinColor:   pick(SKIN_COLORS,   4),
     beanieColor: pick(BEANIE_COLORS, 5),
-    hasBeanie:   _rand01(seed, 6) < 0.35,
-    hasGlasses:  _rand01(seed, 7) < 0.30,
+    hasBeanie:   _rand01(seed, 6) < 0.30,
+    hasGlasses:  _rand01(seed, 7) < 0.35,
+    hasBeard:    _rand01(seed, 8) < 0.22,
+    hairStyle:   pick(hairStyles, 9),
   };
 }
 
@@ -1943,6 +1983,30 @@ function createPlot(def) {
     note.position.set(-0.55 + ni * 0.37, 1.75 + (ni%2)*0.28, -0.67);
     g.add(note);
   }
+  // Laptop sitting on the desk (off to one side so the paper stack
+  // still reads front-center as the feature-in-progress).
+  const laptopBase = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.03, 0.48),
+    new THREE.MeshLambertMaterial({ color: 0x2a2a2e })
+  );
+  laptopBase.position.set(0.7, 1.105, 0); laptopBase.castShadow = true; g.add(laptopBase);
+  const laptopLid = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.42, 0.03),
+    new THREE.MeshLambertMaterial({ color: 0x1a1a1e })
+  );
+  laptopLid.position.set(0.7, 1.33, -0.22); laptopLid.rotation.x = -0.15; laptopLid.castShadow = true; g.add(laptopLid);
+  const laptopScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.62, 0.36),
+    new THREE.MeshBasicMaterial({ color: 0x3a6acc })
+  );
+  laptopScreen.position.set(0.7, 1.33, -0.205); laptopScreen.rotation.x = -0.15 + Math.PI; g.add(laptopScreen);
+  // A coffee mug on the desk for atmosphere
+  const mug = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.07, 0.06, 0.13, 12),
+    new THREE.MeshLambertMaterial({ color: 0xe8e0d0 })
+  );
+  mug.position.set(-0.75, 1.16, 0.2); mug.castShadow = true; g.add(mug);
+
   const active = def.tier === 0;
   g.visible = active;
   scene.add(g);
