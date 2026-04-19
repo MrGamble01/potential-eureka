@@ -34,7 +34,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Startup Tycoon</title>
   <style>
     html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden;
@@ -414,9 +416,112 @@
     }
     .upg-cat:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
 
+    /* ── Sidebar toggle (mobile) ──────────────────────── */
+    #sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: calc(12px + env(safe-area-inset-top, 0px));
+      left: calc(12px + env(safe-area-inset-left, 0px));
+      width: 44px; height: 44px;
+      background: rgba(8,10,18,0.92);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: #E6EDF3; border-radius: 10px;
+      font-size: 20px; font-family: inherit;
+      cursor: pointer; z-index: 120;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    #sidebar-toggle:active { transform: scale(0.94); }
+    #drawer-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 90; backdrop-filter: blur(2px);
+    }
+    #drawer-backdrop.open { display: block; }
+
+    /* ── Tablet / phone breakpoint ────────────────────── */
+    @media (max-width: 900px) {
+      #sidebar-toggle { display: block; }
+      #left-panel {
+        width: 85vw; max-width: 320px;
+        top: 0; left: 0; bottom: 0;
+        padding: calc(64px + env(safe-area-inset-top, 0px)) 10px calc(10px + env(safe-area-inset-bottom, 0px)) 10px;
+        background: rgba(8,10,18,0.96);
+        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        border-right: 1px solid rgba(255,255,255,0.08);
+        transform: translateX(-105%);
+        transition: transform 0.22s ease;
+        z-index: 110;
+      }
+      #left-panel.open { transform: translateX(0); }
+
+      #cash-hud {
+        top: calc(12px + env(safe-area-inset-top, 0px));
+        right: calc(12px + env(safe-area-inset-right, 0px));
+        font-size: 16px; padding: 7px 11px;
+      }
+      #cash-hud .bill { width: 18px; height: 11px; }
+
+      #metrics-hud {
+        top: calc(62px + env(safe-area-inset-top, 0px));
+        right: calc(12px + env(safe-area-inset-right, 0px));
+        padding: 6px 9px; min-width: 0;
+      }
+      #metrics-hud .m-row { gap: 10px; padding: 1px 0; }
+      #metrics-hud .m-lbl { font-size: 9px; letter-spacing: 0.6px; }
+      #metrics-hud .m-val { font-size: 11px; }
+
+      #activity-feed { display: none; }
+
+      #status-bar {
+        top: calc(14px + env(safe-area-inset-top, 0px));
+        left: calc(68px + env(safe-area-inset-left, 0px));
+        transform: none;
+        font-size: 11px; padding: 5px 10px;
+        max-width: calc(100vw - 220px);
+        overflow: hidden; text-overflow: ellipsis;
+      }
+
+      #elevator-btn {
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        left: calc(14px + env(safe-area-inset-left, 0px));
+      }
+      #ipo-btn {
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        right: calc(14px + env(safe-area-inset-right, 0px));
+        padding: 10px 16px; font-size: 13px;
+      }
+
+      #toast-container {
+        bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+        right: calc(12px + env(safe-area-inset-right, 0px));
+        left: calc(12px + env(safe-area-inset-left, 0px));
+        max-width: none;
+      }
+
+      .hire-btn, .amenity-btn, .upg-btn, .room-btn, .fund-btn {
+        padding: 9px 11px; font-size: 12px;
+      }
+      .upg-btn .cost { font-size: 11px; }
+
+      .elev-panel, .ipo-panel {
+        width: 92vw; padding: 18px 16px;
+      }
+      .floor-card { padding: 10px 12px; font-size: 13px; }
+    }
+
+    /* Tighter spacing on small phones */
+    @media (max-width: 430px) {
+      #metrics-hud { padding: 5px 7px; }
+      #metrics-hud .m-row { gap: 8px; }
+      #cash-hud { font-size: 15px; padding: 6px 9px; }
+      #status-bar { max-width: calc(100vw - 200px); font-size: 10px; }
+    }
   </style>
 </head>
 <body>
+<button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+<div id="drawer-backdrop"></div>
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
   <span id="season-badge">S1</span>
@@ -2329,6 +2434,28 @@ const elevMsgEl = document.getElementById('elev-msg');
 document.getElementById('elevator-btn').onclick = () => { renderFloors(); elevModal.classList.add('open'); };
 document.getElementById('elev-close').onclick = () => elevModal.classList.remove('open');
 elevModal.addEventListener('click', e => { if (e.target === elevModal) elevModal.classList.remove('open'); });
+
+// Mobile sidebar drawer toggle
+const leftPanelEl = document.getElementById('left-panel');
+const drawerBackdropEl = document.getElementById('drawer-backdrop');
+const sidebarToggleEl = document.getElementById('sidebar-toggle');
+function setSidebar(open) {
+  leftPanelEl.classList.toggle('open', open);
+  drawerBackdropEl.classList.toggle('open', open);
+  sidebarToggleEl.textContent = open ? '✕' : '☰';
+}
+sidebarToggleEl.onclick = () => setSidebar(!leftPanelEl.classList.contains('open'));
+drawerBackdropEl.onclick = () => setSidebar(false);
+// Close drawer after tapping any action inside it (buy, hire, upgrade, etc.)
+leftPanelEl.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  // Only auto-close on mobile
+  if (window.matchMedia('(max-width: 900px)').matches) {
+    // Slight delay so the click effect / state-change UI can finish
+    setTimeout(() => setSidebar(false), 180);
+  }
+});
 
 function renderFloors() {
   floorListEl.innerHTML = '';
