@@ -623,6 +623,7 @@
   <div id="room-panel" class="panel">
     <div class="panel-title">🏗️ Expand Office</div>
     <div id="room-list"></div>
+    <button class="room-btn" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
   </div>
   <div id="funding-panel" class="panel">
     <div class="panel-title">💼 Funding</div>
@@ -1180,6 +1181,57 @@ function activatePlotsForRoom(id) {
   renderHirePanel();
 }
 
+// ── Add Desk (cram more desks into any owned room) ──────────
+// Each owned room can hold a handful of extra desks beyond its base.
+// Added desks default to 'any' (flex) unless the room is role-locked
+// (Sales Corner / Account Management / Leadership Suite), in which
+// case the new desk takes the room's locked role so the seating rules
+// stay consistent.
+const ROOM_LOCKED_ROLES = { 'right': 'bdr', 'back-left': 'ae', 'front-right': 'vp' };
+const EXTRA_SLOT_OFFSETS = [
+  {x:-6, z: 6}, {x:-2, z: 6}, {x: 2, z: 6}, {x: 6, z: 6},
+  {x:-6, z:-6}, {x:-2, z:-6}, {x: 2, z:-6}, {x: 6, z:-6},
+];
+const MAX_EXTRA_DESKS_PER_ROOM = EXTRA_SLOT_OFFSETS.length;
+function extraDeskCountInRoom(roomId) {
+  const def = ROOM_DEFS.find(r => r.id === roomId);
+  const baseCount = (def?.desks || []).length;
+  return plots.filter(p => p.roomId === roomId).length - baseCount;
+}
+function addDeskCost(roomId) {
+  const n = extraDeskCountInRoom(roomId);
+  return 100 * (n + 1);
+}
+function getPlayerRoom() {
+  const gx = Math.round(player.position.x / 16);
+  const gz = Math.round(player.position.z / 16);
+  return ROOM_DEFS.find(r => r.gx === gx && r.gz === gz && ownedRooms.has(r.id));
+}
+function addDeskToCurrentRoom() {
+  const def = getPlayerRoom();
+  if (!def) return;
+  const n = extraDeskCountInRoom(def.id);
+  if (n >= MAX_EXTRA_DESKS_PER_ROOM) return;
+  const cost = addDeskCost(def.id);
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  const slot = EXTRA_SLOT_OFFSETS[n];
+  const role = ROOM_LOCKED_ROLES[def.id] || 'any';
+  const newPlot = createPlot({
+    x: def.gx * 16 + slot.x,
+    z: def.gz * 16 + slot.z,
+    role,
+    tier: def.id === 'starter' ? 0 : 99,
+    roomId: def.id,
+  });
+  newPlot.active = true;
+  newPlot.group.visible = true;
+  addCash(0);
+  renderHirePanel();
+  renderRoomPanel();
+  addFeedEntry(`🪑 Added a desk in ${def.label}`);
+}
+
 function buyRoom(id) {
   const def = ROOM_DEFS.find(r => r.id === id);
   if (!def || ownedRooms.has(id) || state.cash < def.cost) return;
@@ -1211,7 +1263,33 @@ function renderRoomPanel() {
   if (el.children.length === 0) {
     el.innerHTML = '<div style="font-size:11px;color:#3FB950;padding:4px 0">🎉 Full floor unlocked!</div>';
   }
+  renderAddDeskButton();
 }
+
+const addDeskBtnEl = document.getElementById('add-desk-btn');
+const addDeskCostEl = document.getElementById('add-desk-cost');
+function renderAddDeskButton() {
+  if (!addDeskBtnEl) return;
+  const def = getPlayerRoom();
+  if (!def) {
+    addDeskBtnEl.style.display = 'none';
+    return;
+  }
+  const n = extraDeskCountInRoom(def.id);
+  if (n >= MAX_EXTRA_DESKS_PER_ROOM) {
+    addDeskBtnEl.style.display = '';
+    addDeskBtnEl.disabled = true;
+    addDeskBtnEl.innerHTML = `🪑 ${def.label} full<span class="tag"></span>`;
+    return;
+  }
+  const cost = addDeskCost(def.id);
+  addDeskBtnEl.style.display = '';
+  addDeskBtnEl.disabled = state.cash < cost;
+  addDeskBtnEl.innerHTML = `🪑 Add Desk to ${def.label}<span class="tag">$${fmtCash(cost)}</span>`;
+}
+addDeskBtnEl.onclick = addDeskToCurrentRoom;
+// Keep the Add-Desk button in sync with the room the player is in
+setInterval(renderAddDeskButton, 500);
 
 
 // --- Scrappy-startup character builder (hoodie + pants + head) ---
@@ -1423,48 +1501,41 @@ function refreshStack() {
   for (let i = 0; i < carry.count; i++) pool[i].visible = true;
 }
 
-// --- Idea Farm: plots growing orbs over time ---
+// --- Plot (desk) construction ---
 const plots = [];
 const plotGeo = new THREE.BoxGeometry(2.4, 0.1, 2.4);
 const plotMat = new THREE.MeshLambertMaterial({ color: 0xe0dbd4 });
 
-for (const def of PLOT_DEFS) {
+// Build a plot (desk + paper stack + whiteboard) and push it into the
+// plots array. Used at startup for every PLOT_DEFS entry and also by
+// the Add Desk feature when the player buys an extra desk in a room.
+function createPlot(def) {
   const g = new THREE.Group();
   g.position.set(def.x, 0, def.z);
   const dirt = new THREE.Mesh(plotGeo, plotMat);
   dirt.position.y = 0.05; dirt.receiveShadow = true;
   g.add(dirt);
   const paperStack = makePaperStack();
-  paperStack.position.y = 1.1; // sits on desk top
+  paperStack.position.y = 1.1;
   g.add(paperStack);
-
-  // Standing desk top
   const deskTop = new THREE.Mesh(
     new THREE.BoxGeometry(2.2, 0.08, 1.1),
     new THREE.MeshLambertMaterial({ color: 0xf5f0e8 })
   );
-  deskTop.position.y = 1.05;
-  deskTop.castShadow = true;
+  deskTop.position.y = 1.05; deskTop.castShadow = true;
   g.add(deskTop);
-
-  // Desk legs
   const legMat = new THREE.MeshLambertMaterial({ color: 0xa0a0a0 });
   for (const [lx, lz] of [[-0.9,-0.45],[0.9,-0.45],[-0.9,0.45],[0.9,0.45]]) {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07,1.05,0.07), legMat);
     leg.position.set(lx, 0.52, lz);
     g.add(leg);
   }
-
-  // Mini whiteboard on the wall behind the desk
   const wbBack = new THREE.Mesh(
     new THREE.BoxGeometry(1.8, 1.1, 0.05),
     new THREE.MeshLambertMaterial({ color: 0xffffff })
   );
-  wbBack.position.set(0, 1.8, -0.7);
-  wbBack.castShadow = true;
+  wbBack.position.set(0, 1.8, -0.7); wbBack.castShadow = true;
   g.add(wbBack);
-
-  // Colorful sticky notes on whiteboard
   const noteColors = [0xffeb3b, 0xff80ab, 0x80d8ff, 0xa5d6a7];
   for (let ni = 0; ni < 4; ni++) {
     const note = new THREE.Mesh(
@@ -1474,12 +1545,24 @@ for (const def of PLOT_DEFS) {
     note.position.set(-0.55 + ni * 0.37, 1.75 + (ni%2)*0.28, -0.67);
     g.add(note);
   }
-
-  const active = def.tier === 0; // tier:0 = starter room (always active)
+  const active = def.tier === 0;
   g.visible = active;
   scene.add(g);
-  plots.push({ group:g, paperStack, ready:false, tier:def.tier, roomId:def.roomId, active, occupied:false, paperStock:10 });
+  const plot = {
+    group: g, paperStack,
+    ready: false,
+    tier: def.tier,
+    roomId: def.roomId,
+    role: def.role || 'any',
+    active,
+    occupied: false,
+    paperStock: 10,
+  };
+  plots.push(plot);
+  return plot;
 }
+
+for (const def of PLOT_DEFS) createPlot(def);
 
 function activatePlots(level) {
   // Legacy upgrade-based activation (kept for 'farmexp' upgrade compat)
@@ -2086,7 +2169,9 @@ function spawnAE() {
 // up. The BDR's active handoff, if any, is dropped.
 function handleAeHireOrPromote() {
   if (bdrs.length === 0) return;
-  const aeDesk = plots.find(p => p.active && !p.occupied && p.role === 'ae');
+  // Any desk that accepts 'ae' works — flex 'any' desks let you promote
+  // AEs early before the dedicated Account Management office is built.
+  const aeDesk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
   if (!aeDesk) return;
   const cost = aeCost();
   if (state.cash < cost) return;
@@ -2118,12 +2203,6 @@ function updateAEs(dt) {
     }
   }
 }
-
-// Tracks whether the Sales Floor conversion has landed on the Open
-// Plan. Flipped to true by the room-conversion system (next commit);
-// until then, no AE hire button so AEs only arrive with the upgrade
-// that gives them a dedicated space.
-let salesFloorUnlocked = false;
 
 // ── Engineering Leadership (Lead → Head of Eng → CTO) ───────
 // Single-slot hire that reviews features before shipping. As they're
@@ -2192,7 +2271,9 @@ function handleVpHireOrPromote() {
     // dedicated Leadership Suite office. Their character reuses their
     // engineer look so it reads as the same person getting promoted.
     if (ideaWorkers.length === 0) return;
-    const newDesk = plots.find(p => p.active && !p.occupied && p.role === 'vp');
+    // Flex desks work too — early game the Lead Engineer can sit in
+    // any generic desk until the Leadership Suite is built.
+    const newDesk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
     if (!newDesk) return;
     state.cash -= cost;
     const og = ideaWorkers.shift();
@@ -2276,11 +2357,11 @@ function renderHirePanel() {
   hireEaBtnEl.disabled = state.cash < ecost;
   hireEaCostEl.textContent = eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`;
 
-  // Sales section appears once any desk can host a BDR (flex or Sales
-  // Corner). AE promotion requires a strict Account Management / AE
-  // desk AND the Sales Floor conversion (salesFloorUnlocked).
+  // Sales section appears once any desk can host a BDR or AE. Both
+  // allow flex 'any' desks so you can promote AEs early without the
+  // dedicated Account Management office.
   const bdrCapacity = plots.some(p => p.active && deskAcceptsRole(p, 'bdr'));
-  const aeCapacity  = plots.some(p => p.active && p.role === 'ae');
+  const aeCapacity  = plots.some(p => p.active && deskAcceptsRole(p, 'ae'));
   if (!bdrCapacity && !aeCapacity) {
     hireSalesSectionEl.style.display = 'none';
   } else {
@@ -2296,14 +2377,14 @@ function renderHirePanel() {
     } else {
       hireBdrBtnEl.style.display = 'none';
     }
-    // AE promotion only opens up after the Sales Floor conversion
-    // (which flips the Sales Corner into an AE Office). Requires a
-    // BDR to promote and a dedicated AE desk.
-    if (aeCapacity && bdrs.length >= 1 && salesFloorUnlocked) {
-      const availableAeSeat = plots.some(p => p.active && !p.occupied && p.role === 'ae');
+    // AE promotion: requires a BDR to promote + any desk that accepts
+    // 'ae'. Flex desks work early; Account Management + converted
+    // Sales Corner give dedicated space later.
+    if (aeCapacity && bdrs.length >= 1) {
+      const availableAeSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
       const acost = aeCost();
       hireAeBtnEl.disabled = !availableAeSeat || state.cash < acost;
-      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${availableAeSeat ? `$${fmtCash(acost)}` : 'No offices'}</span>`;
+      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${availableAeSeat ? `$${fmtCash(acost)}` : 'No desks'}</span>`;
       hireAeBtnEl.style.display = '';
     } else {
       hireAeBtnEl.style.display = 'none';
@@ -2311,9 +2392,9 @@ function renderHirePanel() {
   }
 
   // Leadership section: one-slot promotion path (Eng → Lead → Head → CTO)
-  // Requires a dedicated Leadership Suite office (strict role === 'vp')
-  // plus at least one engineer to promote for the first step.
-  const vpCapacity = plots.some(p => p.active && p.role === 'vp');
+  // Flex desks work early; Leadership Suite gives a dedicated office
+  // once you expand that far.
+  const vpCapacity = plots.some(p => p.active && deskAcceptsRole(p, 'vp'));
   if (!vpCapacity || ideaWorkers.length < 1) {
     hireLeadershipSectionEl.style.display = 'none';
   } else {
@@ -2321,7 +2402,7 @@ function renderHirePanel() {
     const vcost = vpNextCost();
     const maxed = vps.length > 0 && vps[0].tier >= VP_TIERS.length - 1;
     const needsSeat = vps.length === 0;
-    const availableSeat = !needsSeat || plots.some(p => p.active && !p.occupied && p.role === 'vp');
+    const availableSeat = !needsSeat || plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
     hireVpBtnEl.disabled = maxed || !availableSeat || state.cash < vcost;
     hireVpBtnEl.innerHTML = `${vpButtonLabel()}<span class="cost">${maxed ? '' : `$${fmtCash(vcost)}`}</span>`;
   }
