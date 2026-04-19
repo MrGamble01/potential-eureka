@@ -289,17 +289,6 @@
     }
     .m-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #7D8590; font-weight: 700; }
     .m-val { font-size: 13px; font-weight: 800; color: #E6EDF3; }
-    /* ── Standup button ───────────────────────────────────── */
-    .standup-btn {
-      display: block; width: 100%; margin-top: 8px;
-      background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3);
-      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
-      font-weight: 700; font-size: 12px; font-family: inherit;
-      cursor: pointer; text-align: left; transition: all 0.15s;
-    }
-    .standup-btn:hover:not(:disabled) { background: rgba(63,185,80,0.2); }
-    .standup-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .standup-btn .cost { float: right; color: #3FB950; font-size: 11px; font-weight: 800; }
     /* ── Event status chip ────────────────────────────────── */
     #event-sep, #event-label { display: none; }
     /* ── IPO button ───────────────────────────────────── */
@@ -386,19 +375,6 @@
       padding: 6px 2px 2px; margin-top: 4px;
       border-top: 1px solid rgba(255,255,255,0.06);
     }
-    /* ── All Hands button ─────────────────────────────── */
-    .allhands-btn {
-      display: block; width: 100%; margin-top: 8px;
-      background: rgba(217,119,6,0.15); border: 1px solid rgba(217,119,6,0.4);
-      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
-      font-weight: 700; font-size: 12px; font-family: inherit;
-      cursor: pointer; text-align: left; transition: all 0.15s;
-    }
-    .allhands-btn:hover:not(:disabled) { background: rgba(217,119,6,0.28); }
-    .allhands-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .allhands-btn .cost { float: right; color: #f59e0b; font-size: 11px; font-weight: 800; }
-    .allhands-btn.surge { background: rgba(217,119,6,0.35); border-color: rgba(217,119,6,0.8); animation: handsPulse 0.8s ease-in-out infinite; }
-    @keyframes handsPulse { 0%,100% { box-shadow: 0 0 8px rgba(217,119,6,0.3); } 50% { box-shadow: 0 0 20px rgba(217,119,6,0.7); } }
   </style>
 </head>
 <body>
@@ -416,7 +392,7 @@
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row"><span class="m-lbl">Team/s</span><span class="m-val" id="m-teamrev">$0/s</span></div>
+  <div class="m-row"><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row"><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
 </div>
 <div id="activity-feed">
@@ -431,17 +407,16 @@
     <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
   </div>
   <div id="office-panel" class="panel">
-    <div class="panel-title">Team</div>
-    <div id="hire-lock-note" class="lock-note" style="display:none">🔒 Earn $500 total to expand your team</div>
+    <div class="panel-title">👥 Team</div>
+    <div id="hire-lock-note" class="lock-note" style="display:none">🔒 Earn $100 to hire your first idea person</div>
     <div id="hire-section">
-      <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 5</span></div>
-      <button class="hire-btn" id="hire-btn">👩‍💻 Hire Engineer<span class="cost" id="hire-cost">$250</span></button>
-      <button class="standup-btn" id="standup-btn">📢 Daily Standup<span class="cost" id="standup-cost">FREE</span></button>
-      <button class="allhands-btn" id="allhands-btn">🎤 All Hands!<span class="cost" id="allhands-cost">5× SURGE</span></button>
-    </div>
-    <div id="ops-section" style="display:none;margin-top:8px">
-      <div class="stat-line"><span>Ops</span><span id="worker-count">0 / 3</span></div>
-      <button class="hire-btn" id="hire-worker-btn" style="background:#ff7a20;border-color:#cc5500">🏢 Hire Ops<span class="cost" id="hire-worker-cost">$150</span></button>
+      <div class="stat-line"><span>Idea People</span><span id="emp-count">0 / 9</span></div>
+      <button class="hire-btn" id="hire-btn">💡 Hire Idea Person<span class="cost" id="hire-cost">$200</span></button>
+      <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px">
+        <div class="panel-title" style="margin-bottom:6px">🛠️ Support Staff</div>
+        <button class="hire-btn" id="hire-barista-btn" style="margin-top:0">☕ Hire Barista<span class="cost" id="hire-barista-cost">$200</span></button>
+        <button class="hire-btn" id="hire-runner-btn" style="margin-top:6px;background:rgba(32,170,255,0.1);border-color:rgba(32,170,255,0.3)">📦 Supply Runner<span class="cost" id="hire-runner-cost">$180</span></button>
+      </div>
     </div>
   </div>
   <div id="amenities-panel" class="panel">
@@ -459,7 +434,7 @@
     <div class="ipo-body" id="ipo-body">
       Taking your startup public resets cash and upgrades, but you keep a permanent
       <strong id="ipo-mult-text">2×</strong> revenue multiplier for your next season.
-      <br><br>Your <strong id="ipo-season-text">Season 2</strong> starts with a head start bot and <strong>$200</strong>.
+      <br><br>Your <strong id="ipo-season-text">Season 2</strong> starts with a supply runner and <strong>$200</strong>.
     </div>
     <div class="ipo-actions">
       <button class="ipo-confirm" id="ipo-confirm-btn">🚀 Go Public</button>
@@ -764,90 +739,6 @@ function updateSupplyCloset(dt) {
   }
 }
 
-// Workers — hired logistics staff, auto-stock the coffee machine
-const workers = [];
-const WORKER_SPEED = 4.5;
-const MAX_WORKERS  = 3;
-
-function workerHireCost() {
-  return Math.floor(150 * Math.pow(1.5, workers.length));
-}
-
-function hireWorker() {
-  if (workers.length >= MAX_WORKERS) return;
-  const cost = workerHireCost();
-  if (state.cash < cost) return;
-  state.cash -= cost;
-
-  const g = new THREE.Group();
-  const color = new THREE.Color().setHSL(0.08 + workers.length * 0.04, 0.7, 0.55); // orange tones
-  const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.75,4,8), new THREE.MeshLambertMaterial({color}));
-  b.position.y = 0.75; b.castShadow = true; g.add(b);
-  const h = new THREE.Mesh(new THREE.SphereGeometry(0.28,12,10), new THREE.MeshLambertMaterial({color:0xffd9a0}));
-  h.position.y = 1.6; h.castShadow = true; g.add(h);
-  // carry box (visible when holding supplies)
-  const cBox = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4), new THREE.MeshLambertMaterial({color:0x4da3ff}));
-  cBox.position.y = 2.0; cBox.castShadow = true; cBox.visible = false; g.add(cBox);
-  // start near supply closet
-  g.position.set(supplyCloset.pos.x + (Math.random()-0.5)*2, 0, supplyCloset.pos.z + 1);
-  scene.add(g);
-
-  workers.push({ group:g, carryBox:cBox, carrying:false, state:'toCloset', waitT:0 });
-  addCash(0);
-  renderOffice();
-}
-
-function updateWorkers(dt) {
-  const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
-  for (const w of workers) {
-    if (w.state === 'waiting') {
-      w.waitT -= dt;
-      if (w.waitT <= 0) w.state = 'toCloset';
-      continue;
-    }
-
-    let tx, tz, dist;
-    if (w.state === 'toCloset') {
-      tx = supplyCloset.pos.x - w.group.position.x;
-      tz = supplyCloset.pos.z + 0.8 - w.group.position.z;
-      dist = Math.hypot(tx, tz);
-      if (dist > 0.3) {
-        w.group.position.x += (tx/dist)*WORKER_SPEED*dt;
-        w.group.position.z += (tz/dist)*WORKER_SPEED*dt;
-        w.group.rotation.y = Math.atan2(tx/dist, tz/dist);
-      } else {
-        // arrived at closet
-        if (supplyCloset.stock >= supplyCloset.CARRY_AMT) {
-          supplyCloset.stock -= supplyCloset.CARRY_AMT;
-          w.carrying = true; w.carryBox.visible = true;
-          w.state = coffeeAm ? 'toCoffeeMachine' : 'waiting';
-          if (!coffeeAm) { w.carrying=false; w.carryBox.visible=false; w.waitT=3; }
-        } else {
-          // not enough supply yet, wait
-          w.state = 'waiting'; w.waitT = 3;
-        }
-      }
-    } else if (w.state === 'toCoffeeMachine' && coffeeAm) {
-      const destX = coffeeAm.position.x;
-      const destZ = coffeeAm.position.z + 1.6;
-      tx = destX - w.group.position.x;
-      tz = destZ - w.group.position.z;
-      dist = Math.hypot(tx, tz);
-      if (dist > 0.3) {
-        w.group.position.x += (tx/dist)*WORKER_SPEED*dt;
-        w.group.position.z += (tz/dist)*WORKER_SPEED*dt;
-        w.group.rotation.y = Math.atan2(tx/dist, tz/dist);
-      } else {
-        // arrived — stock the machine
-        if (coffeeAm.stock < coffeeAm.maxStock) {
-          coffeeAm.stock = Math.min(coffeeAm.maxStock, coffeeAm.stock + supplyCloset.CARRY_AMT);
-        }
-        w.carrying = false; w.carryBox.visible = false;
-        w.state = 'toCloset'; // go back for more
-      }
-    }
-  }
-}
 
 // --- Player (capsule body + sphere head) ---
 const player = new THREE.Group();
@@ -870,7 +761,6 @@ scene.add(player);
 
 // --- Tunables (mutated by upgrades) ---
 let playerSpeed = 6;
-let plotGrowTime = 5;
 let maxStack = 10;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
 let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
@@ -889,14 +779,6 @@ const PRODUCT_VERSIONS = [
 ];
 let currentProductVersion = PRODUCT_VERSIONS[0];
 let productVersionMult = 1;
-// All Hands meeting power-up
-let allHandsMult = 1;
-let allHandsCooldown = 0;
-let allHandsActive = false;
-let allHandsT = 0;
-const ALL_HANDS_DUR = 15;   // seconds of 5× surge
-const ALL_HANDS_CD  = 300;  // 5 minute cooldown
-
 // Metrics counters
 let totalUsers = 0;
 let totalFeaturesShipped = 0;
@@ -1013,7 +895,7 @@ for (const def of PLOT_DEFS) {
   const active = def.tier === 0;
   g.visible = active;
   scene.add(g);
-  plots.push({ group:g, orb, bulbBase, t: active ? Math.random()*plotGrowTime : 0, ready:false, tier:def.tier, active });
+  plots.push({ group:g, orb, bulbBase, ready:false, tier:def.tier, active, occupied:false });
 }
 
 function activatePlots(level) {
@@ -1026,141 +908,313 @@ function activatePlots(level) {
   }
 }
 
-const PICKUP_R2 = 1.5 * 1.5;
-function updateFarm(dt) {
-  for (const p of plots) {
-    if (!p.active) continue;
-    if (!p.ready) {
-      p.t += dt * ideaSpeedMult * allHandsMult;
-      if (p.t >= plotGrowTime) { p.ready = true; p.orb.visible = true; p.bulbBase.visible = true; }
-    }
-  }
-  const bob = Math.sin(performance.now() * 0.003) * 0.12;
-  for (const p of plots) {
-    if (!p.active) continue;
-    if (p.ready) p.orb.position.y = 1.25 + bob;
-  }
+// ── Idea Workers ─────────────────────────────────────────────
+const ideaWorkers = [];
+const IW_SPEED = 4.2;
+const WORK_RATE_BASE = 0.032; // fills 1 product in ~31s base
 
-  if (carry.count >= maxStack) return;
-  if (carry.kind && carry.kind !== 'idea') return; // can't mix types
-  for (const p of plots) {
-    if (!p.active) continue;
-    if (!p.ready) continue;
-    const dx = p.group.position.x - player.position.x;
-    const dz = p.group.position.z - player.position.z;
-    if (dx*dx + dz*dz < PICKUP_R2) {
-      p.ready = false; p.orb.visible = false; p.bulbBase.visible = false; p.t = 0;
-      carry.kind = 'idea'; carry.count++; refreshStack();
-      if (carry.count >= maxStack) return;
-    }
-  }
+function ideaWorkerHireCost() {
+  return Math.floor(200 * Math.pow(1.55, ideaWorkers.length));
 }
 
-// --- Dev Station: ideas → features on a timer ---
-function refreshPile(group, meshes, count, geo, mat, spacingY) {
-  while (meshes.length < count) {
-    const m = new THREE.Mesh(geo, mat);
-    const i = meshes.length;
-    m.position.set((i % 3 - 1) * 0.4, Math.floor(i / 3) * spacingY, (Math.floor(i / 3) % 2) * 0.1);
-    m.castShadow = true;
-    group.add(m);
-    meshes.push(m);
-  }
-  for (let i = 0; i < meshes.length; i++) meshes[i].visible = i < count;
-}
+function spawnIdeaWorker() {
+  const desk = plots.find(p => p.active && !p.occupied);
+  if (!desk) return;
+  desk.occupied = true;
 
-function createDev(x, z) {
+  const hue = (ideaWorkers.length * 0.13) % 1;
   const g = new THREE.Group();
-  g.position.set(x, 0, z);
+  const bodyW = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.32, 0.65, 4, 8),
+    new THREE.MeshLambertMaterial({ color: new THREE.Color().setHSL(hue, 0.65, 0.55) })
+  );
+  bodyW.position.y = 0.72; bodyW.castShadow = true; g.add(bodyW);
+  const headW = new THREE.Mesh(
+    new THREE.SphereGeometry(0.25, 10, 8),
+    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
+  );
+  headW.position.y = 1.47; headW.castShadow = true; g.add(headW);
+  const carryMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.38, 0.38, 0.38),
+    new THREE.MeshLambertMaterial({ color: 0x4da3ff, emissive: 0x4da3ff, emissiveIntensity: 0.25 })
+  );
+  carryMesh.position.y = 1.88; carryMesh.visible = false; carryMesh.castShadow = true; g.add(carryMesh);
 
-  // L-shaped desk base
-  const deskMat = new THREE.MeshLambertMaterial({ color: 0xfafafa });
-  const deskMain = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.08, 1.4), deskMat);
-  deskMain.position.y = 0.95; deskMain.castShadow = true; deskMain.receiveShadow = true;
-  g.add(deskMain);
-  const deskSide = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 1.0), deskMat);
-  deskSide.position.set(1.8, 0.95, -0.7); deskSide.castShadow = true;
-  g.add(deskSide);
-
-  // Desk legs
-  const dLegMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
-  for (const [lx,lz] of [[-1.3,-0.6],[1.3,-0.6],[-1.3,0.6],[1.3,0.6]]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.95,0.08), dLegMat);
-    leg.position.set(lx,0.47,lz); g.add(leg);
-  }
-
-  // Two monitors side by side
-  const monMat = new THREE.MeshLambertMaterial({ color: 0x1a1a2e });
-  const scrMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 }); // code green
-  for (const mx of [-0.55, 0.55]) {
-    const mon = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.07), monMat);
-    mon.position.set(mx, 1.65, -0.45); mon.castShadow = true; g.add(mon);
-    const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.58), scrMat);
-    scr.position.set(mx, 1.65, -0.41); g.add(scr);
-    const stand2 = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.45,0.1), dLegMat);
-    stand2.position.set(mx, 1.2, -0.45); g.add(stand2);
-  }
-
-  // Keyboard
-  const kb = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.04,0.32), new THREE.MeshLambertMaterial({color:0xdddddd}));
-  kb.position.set(0, 0.98, 0.1); g.add(kb);
-
-  const queueGroup = new THREE.Group();
-  queueGroup.position.set(-0.7, 1.05, 0.4);
-  g.add(queueGroup);
-  const outputGroup = new THREE.Group();
-  outputGroup.position.set(1.7, 0, 0);
-  g.add(outputGroup);
+  g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
   scene.add(g);
 
-  return {
-    pos: g.position, group: g,
-    queueGroup, outputGroup,
-    queueMeshes: [], outputMeshes: [],
-    queue: 0, output: 0, procT: 0,
-    PROC_TIME: 2.5, QUEUE_MAX: 10, OUTPUT_MAX: 10,
-  };
+  ideaWorkers.push({
+    group: g, carryMesh, desk,
+    state: 'atDesk',
+    workProgress: Math.random() * 0.2,
+    caffeinated: false, caffeinatedT: 0,
+    coffeeWaitT: 15 + Math.random() * 15,
+    pingPongCooldown: 60 + Math.random() * 60,
+    pingPongBoost: 1.0,
+    paperBoost: 1.0,
+    productValue: 0,
+    waitT: 0,
+    target: null,
+  });
 }
 
-const devs = [createDev(8, -8)];
-const STATION_R2 = 2.6 * 2.6;
+function updateIdeaWorkers(dt) {
+  const coffeeAm  = amenities.find(a => a.id === 'coffee'   && a.isOwned);
+  const printerAm = amenities.find(a => a.id === 'printer'  && a.isOwned);
+  const ppAm      = amenities.find(a => a.id === 'pingpong' && a.isOwned);
 
-function updateDev(dt) {
-  for (const d of devs) {
-    if (d.queue > 0 && d.output < d.OUTPUT_MAX) {
-      d.procT += dt;
-      if (d.procT >= d.PROC_TIME) {
-        d.procT = 0;
-        d.queue--; d.output++;
-        refreshPile(d.queueGroup, d.queueMeshes, d.queue, orbGeo, orbMat, 0.4);
-        refreshPile(d.outputGroup, d.outputMeshes, d.output, featureGeo, featureMat, 0.5);
+  for (const w of ideaWorkers) {
+    if (w.caffeinated) { w.caffeinatedT -= dt; if (w.caffeinatedT <= 0) w.caffeinated = false; }
+    if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
+
+    if (w.state === 'atDesk') {
+      const rate = WORK_RATE_BASE * ideaSpeedMult * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0);
+      w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
+
+      // Orb visual grows with progress
+      if (w.workProgress > 0.35) {
+        w.desk.orb.visible = true;
+        const s = (w.workProgress - 0.35) / 0.65;
+        w.desk.orb.scale.setScalar(0.3 + s * 0.7);
+        w.desk.orb.position.y = 1.2 + Math.sin(performance.now() * 0.003) * 0.08;
+      } else {
+        w.desk.orb.visible = false;
       }
-    } else {
-      d.procT = 0;
+      w.desk.bulbBase.visible = w.workProgress > 0.15;
+
+      // Coffee break
+      w.coffeeWaitT -= dt;
+      if (w.coffeeWaitT <= 0 && coffeeAm && coffeeAm.stock > 0 && !w.caffeinated) {
+        w.coffeeWaitT = 30 + Math.random() * 20;
+        w.state = 'toCoffee';
+        w.target = { x: coffeeAm.position.x, z: coffeeAm.position.z + 1.4 };
+        continue;
+      }
+
+      // Ping pong break (if not almost done)
+      if (ppAm && w.pingPongCooldown <= 0 && w.workProgress < 0.65) {
+        w.pingPongCooldown = 90 + Math.random() * 60;
+        w.state = 'toPingPong';
+        w.target = { x: 22, z: -5.5 };
+        continue;
+      }
+
+      // Product ready → deliver (check dealSpeedMult > 0 for bug event)
+      if (w.workProgress >= 1.0 && dealSpeedMult > 0) {
+        w.workProgress = 0;
+        w.desk.orb.visible = false;
+        w.desk.orb.scale.setScalar(1.0);
+        w.desk.bulbBase.visible = false;
+        // Paper value boost
+        w.paperBoost = 1.0;
+        if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
+        w.productValue = Math.round(featurePrice * dealValueMult * productVersionMult * w.paperBoost * w.pingPongBoost);
+        w.pingPongBoost = 1.0;
+        w.carryMesh.visible = true;
+        w.state = 'toDeliver';
+        w.target = { x: shelf.position.x + (Math.random() - 0.5) * 1.5, z: shelf.position.z + 2.0 };
+      }
+      continue;
     }
 
-    const dx = d.pos.x - player.position.x;
-    const dz = d.pos.z - player.position.z;
-    if (dx*dx + dz*dz > STATION_R2) continue;
+    // Walking states
+    if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'returning') {
+      if (!w.target) { w.state = 'atDesk'; continue; }
+      const spd = IW_SPEED * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? 1.5 : 1.0);
+      const tx = w.target.x - w.group.position.x;
+      const tz = w.target.z - w.group.position.z;
+      const dist = Math.hypot(tx, tz);
+      if (dist > 0.25) {
+        w.group.position.x += (tx / dist) * spd * dt;
+        w.group.position.z += (tz / dist) * spd * dt;
+        w.group.rotation.y = Math.atan2(tx / dist, tz / dist);
+        continue;
+      }
+      // Arrived
+      if (w.state === 'toCoffee') {
+        w.state = 'gettingCoffee'; w.waitT = 1.5;
+      } else if (w.state === 'toPingPong') {
+        w.state = 'pingPonging'; w.waitT = 5.0;
+        showToast('🏓 Taking a ping pong break!', '');
+      } else if (w.state === 'toDeliver') {
+        addCash(w.productValue);
+        totalFeaturesShipped++;
+        checkProductVersion();
+        totalUsers += Math.max(1, Math.floor(w.productValue / 4));
+        checkUserMilestones();
+        if (Math.random() < 0.35) showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
+        w.carryMesh.visible = false;
+        w.state = 'returning';
+        w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
+      } else if (w.state === 'returning') {
+        w.state = 'atDesk'; w.target = null;
+      }
+      continue;
+    }
 
-    if (carry.kind === 'idea' && d.queue < d.QUEUE_MAX) {
-      while (carry.count > 0 && d.queue < d.QUEUE_MAX) {
-        d.queue++; carry.count--;
+    // Wait states
+    if (w.state === 'gettingCoffee') {
+      w.waitT -= dt;
+      if (w.waitT <= 0) {
+        if (coffeeAm && coffeeAm.stock > 0) { coffeeAm.stock--; w.caffeinated = true; w.caffeinatedT = 60; }
+        w.state = 'returning';
+        w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       }
-      if (carry.count === 0) carry.kind = null;
-      refreshStack();
-      refreshPile(d.queueGroup, d.queueMeshes, d.queue, orbGeo, orbMat, 0.4);
-    } else if ((carry.kind === null || carry.kind === 'feature') && d.output > 0 && carry.count < maxStack) {
-      while (d.output > 0 && carry.count < maxStack) {
-        carry.kind = 'feature'; carry.count++; d.output--;
+      continue;
+    }
+    if (w.state === 'pingPonging') {
+      w.waitT -= dt;
+      if (w.waitT <= 0) {
+        w.pingPongBoost = 2.0;
+        showToast('🏓 Break done! Next product is 2× quality!', 'milestone');
+        w.state = 'returning';
+        w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       }
-      refreshStack();
-      refreshPile(d.outputGroup, d.outputMeshes, d.output, featureGeo, featureMat, 0.5);
+      continue;
     }
   }
 }
 
-// --- Product Shelf: drop features for customers ---
+// ── Support Staff (Barista + Supply Runner) ───────────────────
+const supportStaff = [];
+
+function supportHireCost(role) {
+  const count = supportStaff.filter(s => s.role === role).length;
+  return Math.floor((role === 'barista' ? 200 : 180) * Math.pow(1.5, count));
+}
+
+function spawnSupportStaff(role) {
+  const g = new THREE.Group();
+  const color = role === 'barista' ? 0xff7a20 : 0x20aaff;
+  const bodyS = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.3, 0.6, 4, 8),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  bodyS.position.y = 0.65; bodyS.castShadow = true; g.add(bodyS);
+  const headS = new THREE.Mesh(
+    new THREE.SphereGeometry(0.23, 10, 8),
+    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
+  );
+  headS.position.y = 1.38; headS.castShadow = true; g.add(headS);
+  const carry = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.32, 0.32),
+    new THREE.MeshLambertMaterial({ color: role === 'barista' ? 0xff9a00 : 0x88ccff })
+  );
+  carry.position.y = 1.75; carry.visible = false; carry.castShadow = true; g.add(carry);
+  g.position.set(supplyCloset.pos.x + (Math.random() - 0.5) * 2, 0, supplyCloset.pos.z + 1);
+  scene.add(g);
+  supportStaff.push({ group: g, carry, role, state: 'toCloset', carrying: false, waitT: 0 });
+}
+
+function hireBarista() {
+  if (supportStaff.filter(s => s.role === 'barista').length >= 2) return;
+  const cost = supportHireCost('barista');
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  spawnSupportStaff('barista');
+  addCash(0);
+  renderHirePanel();
+}
+
+function hireSupplyRunner() {
+  if (supportStaff.filter(s => s.role === 'runner').length >= 2) return;
+  const cost = supportHireCost('runner');
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  spawnSupportStaff('runner');
+  addCash(0);
+  renderHirePanel();
+}
+
+function updateSupportStaff(dt) {
+  const coffeeAm  = amenities.find(a => a.id === 'coffee'  && a.isOwned);
+  const printerAm = amenities.find(a => a.id === 'printer' && a.isOwned);
+
+  for (const s of supportStaff) {
+    const destAm = s.role === 'barista' ? coffeeAm : printerAm;
+    if (!destAm) { s.state = 'waiting'; s.waitT = 5; continue; }
+    if (destAm.stock >= destAm.maxStock - 2) { s.state = 'waiting'; s.waitT = 4; continue; }
+
+    if (s.state === 'waiting') { s.waitT -= dt; if (s.waitT <= 0) s.state = 'toCloset'; continue; }
+
+    let tx, tz, dist;
+    if (s.state === 'toCloset') {
+      tx = supplyCloset.pos.x - s.group.position.x;
+      tz = supplyCloset.pos.z + 0.8 - s.group.position.z;
+      dist = Math.hypot(tx, tz);
+      if (dist > 0.3) {
+        s.group.position.x += (tx / dist) * 4 * dt;
+        s.group.position.z += (tz / dist) * 4 * dt;
+        s.group.rotation.y = Math.atan2(tx / dist, tz / dist);
+      } else {
+        if (supplyCloset.stock >= 5) {
+          supplyCloset.stock -= 5;
+          s.carrying = true; s.carry.visible = true;
+          s.state = 'toAmenity';
+        } else { s.state = 'waiting'; s.waitT = 3; }
+      }
+    } else if (s.state === 'toAmenity') {
+      tx = destAm.position.x - s.group.position.x;
+      tz = destAm.position.z + 1.5 - s.group.position.z;
+      dist = Math.hypot(tx, tz);
+      if (dist > 0.3) {
+        s.group.position.x += (tx / dist) * 4 * dt;
+        s.group.position.z += (tz / dist) * 4 * dt;
+        s.group.rotation.y = Math.atan2(tx / dist, tz / dist);
+      } else {
+        destAm.stock = Math.min(destAm.maxStock, destAm.stock + 5);
+        s.carrying = false; s.carry.visible = false;
+        s.state = 'toCloset';
+      }
+    }
+  }
+}
+
+// ── Hire Panel ────────────────────────────────────────────────
+const hireBtnEl       = document.getElementById('hire-btn');
+const hireCostEl      = document.getElementById('hire-cost');
+const empCountEl      = document.getElementById('emp-count');
+const hireBaristaBtnEl = document.getElementById('hire-barista-btn');
+const hireBaristaCostEl = document.getElementById('hire-barista-cost');
+const hireRunnerBtnEl  = document.getElementById('hire-runner-btn');
+const hireRunnerCostEl = document.getElementById('hire-runner-cost');
+
+function renderHirePanel() {
+  const unlocked = state.allTimeCash >= 100;
+  document.getElementById('hire-lock-note').style.display = unlocked ? 'none' : '';
+  document.getElementById('hire-section').style.display = unlocked ? '' : 'none';
+  if (!unlocked) return;
+
+  const totalDesks = plots.filter(p => p.active).length;
+  empCountEl.textContent = `${ideaWorkers.length} / ${totalDesks}`;
+  const canHire = ideaWorkers.length < totalDesks;
+  const hcost = ideaWorkerHireCost();
+  hireBtnEl.disabled = !canHire || state.cash < hcost;
+  hireCostEl.textContent = canHire ? `$${hcost}` : 'No desks';
+
+  const bCount = supportStaff.filter(s=>s.role==='barista').length;
+  const rCount = supportStaff.filter(s=>s.role==='runner').length;
+  const bcost = supportHireCost('barista');
+  const rcost = supportHireCost('runner');
+  hireBaristaBtnEl.disabled = bCount >= 2 || state.cash < bcost;
+  hireBaristaCostEl.textContent = bCount >= 2 ? 'Max' : `$${bcost}`;
+  hireRunnerBtnEl.disabled = rCount >= 2 || state.cash < rcost;
+  hireRunnerCostEl.textContent = rCount >= 2 ? 'Max' : `$${rcost}`;
+}
+
+hireBtnEl.addEventListener('click', () => {
+  const cost = ideaWorkerHireCost();
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  spawnIdeaWorker();
+  addCash(0);
+  renderHirePanel();
+  addFeedEntry(`💡 Hired idea person #${ideaWorkers.length}!`);
+});
+document.getElementById('hire-barista-btn').addEventListener('click', hireBarista);
+document.getElementById('hire-runner-btn').addEventListener('click', hireSupplyRunner);
+
+// --- Product Shelf: delivery zone ---
 const shelf = new THREE.Group();
 shelf.position.set(16, 0, 6);
 
@@ -1191,33 +1245,6 @@ shelfStockGroup.position.set(-1.6, 0.9, 0);
 shelf.add(shelfStockGroup);
 scene.add(shelf);
 
-const shelfMeshes = [];
-const SHELF_MAX = 12;
-const shelfState = { stock: 0 };
-
-function refreshShelf() {
-  while (shelfMeshes.length < shelfState.stock) {
-    const m = new THREE.Mesh(featureGeo, featureMat);
-    const i = shelfMeshes.length;
-    m.position.set((i % 8) * 0.5, 0.25 + Math.floor(i / 8) * 0.5, 0);
-    m.castShadow = true;
-    shelfStockGroup.add(m);
-    shelfMeshes.push(m);
-  }
-  for (let i = 0; i < shelfMeshes.length; i++) shelfMeshes[i].visible = i < shelfState.stock;
-}
-
-function updateShelf() {
-  const dx = shelf.position.x - player.position.x;
-  const dz = shelf.position.z - player.position.z;
-  if (dx*dx + dz*dz > STATION_R2) return;
-  if (carry.kind !== 'feature' || carry.count === 0) return;
-  while (carry.count > 0 && shelfState.stock < SHELF_MAX) {
-    carry.count--; shelfState.stock++;
-  }
-  if (carry.count === 0) carry.kind = null;
-  refreshStack(); refreshShelf();
-}
 
 // --- Checkout Counter: where customers pay ---
 const checkout = new THREE.Group();
@@ -1248,135 +1275,6 @@ checkout.add(regTop);
 scene.add(checkout);
 checkout.visible = false; // no checkout needed — deals close digitally
 
-// --- Production Bots: autonomous workers (ideas → dev → shelf) ---
-const productionBots = [];
-
-function spawnProductionBot() {
-  const g = new THREE.Group();
-  const b = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.35, 0.75, 4, 10),
-    new THREE.MeshLambertMaterial({ color: 0xa06bff })
-  );
-  b.position.y = 0.75; b.castShadow = true; g.add(b);
-  const h = new THREE.Mesh(
-    new THREE.SphereGeometry(0.28, 12, 10),
-    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
-  );
-  h.position.y = 1.6; h.castShadow = true; g.add(h);
-  const stackG = new THREE.Group();
-  stackG.position.y = 1.9;
-  g.add(stackG);
-  // Spread starting positions so bots don't stack on each other
-  g.position.set(-5 + productionBots.length * 2.5, 0, 1);
-  scene.add(g);
-
-  productionBots.push({
-    group: g, stackG,
-    stackMeshes: [],
-    carry: { kind: null, count: 0 },
-    maxCarry: 5, speed: 3.5,
-    target: null,
-  });
-}
-
-function refreshBotStack(bot) {
-  const c = bot.carry;
-  while (bot.stackMeshes.length < c.count) {
-    const m = new THREE.Mesh(orbGeo, orbMat);
-    m.castShadow = true;
-    m.position.y = bot.stackMeshes.length * 0.4;
-    bot.stackG.add(m);
-    bot.stackMeshes.push(m);
-  }
-  for (let i = 0; i < bot.stackMeshes.length; i++) {
-    const m = bot.stackMeshes[i];
-    m.visible = i < c.count;
-    if (m.visible) {
-      m.geometry = c.kind === 'feature' ? featureGeo : orbGeo;
-      m.material = c.kind === 'feature' ? featureMat : orbMat;
-    }
-  }
-}
-
-function pickBotTarget(bot) {
-  const c = bot.carry;
-  if (c.kind === 'idea' && c.count > 0) {
-    const d = devs.find(x => x.queue < x.QUEUE_MAX);
-    if (d) return { kind: 'devDrop', dev: d, x: d.pos.x + 1.8, z: d.pos.z + 0.5 };
-  }
-  if (c.kind === 'feature' && c.count > 0) {
-    if (shelfState.stock < SHELF_MAX) return { kind: 'shelf', x: shelf.position.x, z: shelf.position.z + 1.8 };
-  }
-  if (c.count === 0) {
-    // Prefer picking up finished features first (faster loop)
-    const dOut = devs.find(x => x.output > 0);
-    if (dOut && shelfState.stock < SHELF_MAX) return { kind: 'devPick', dev: dOut, x: dOut.pos.x + 1.8, z: dOut.pos.z + 0.5 };
-    // Then go harvest ideas
-    let nearest = null, best = Infinity;
-    for (const p of plots) {
-      if (!p.active || !p.ready) continue;
-      const dx = p.group.position.x - bot.group.position.x;
-      const dz = p.group.position.z - bot.group.position.z;
-      const dist = dx*dx + dz*dz;
-      if (dist < best) { best = dist; nearest = p; }
-    }
-    if (nearest) return { kind: 'plot', plot: nearest, x: nearest.group.position.x, z: nearest.group.position.z };
-  }
-  return null;
-}
-
-function updateProductionBots(dt) {
-  for (const bot of productionBots) {
-    if (!bot.target) bot.target = pickBotTarget(bot);
-    if (!bot.target) continue;
-
-    const t = bot.target;
-    const tx = t.x - bot.group.position.x;
-    const tz = t.z - bot.group.position.z;
-    const d = Math.hypot(tx, tz);
-
-    if (d > 0.35) {
-      bot.group.position.x += (tx/d) * bot.speed * dt;
-      bot.group.position.z += (tz/d) * bot.speed * dt;
-      bot.group.rotation.y = Math.atan2(tx/d, tz/d);
-      continue;
-    }
-
-    const c = bot.carry;
-    if (t.kind === 'plot') {
-      if (t.plot.ready && c.count < bot.maxCarry) {
-        // Collect as many adjacent ready plots as possible
-        for (const p of plots) {
-          if (!p.active || !p.ready) continue;
-          const pdx = p.group.position.x - bot.group.position.x;
-          const pdz = p.group.position.z - bot.group.position.z;
-          if (pdx*pdx + pdz*pdz < 3*3 && c.count < bot.maxCarry) {
-            p.ready = false; p.orb.visible = false; p.bulbBase.visible = false; p.t = 0;
-            c.kind = 'idea'; c.count++;
-          }
-        }
-        refreshBotStack(bot);
-      }
-    } else if (t.kind === 'devDrop') {
-      while (c.count > 0 && t.dev.queue < t.dev.QUEUE_MAX) { t.dev.queue++; c.count--; }
-      if (c.count === 0) c.kind = null;
-      refreshBotStack(bot);
-      refreshPile(t.dev.queueGroup, t.dev.queueMeshes, t.dev.queue, orbGeo, orbMat, 0.4);
-    } else if (t.kind === 'devPick') {
-      while (t.dev.output > 0 && c.count < bot.maxCarry) {
-        c.kind = 'feature'; c.count++; t.dev.output--;
-      }
-      refreshBotStack(bot);
-      refreshPile(t.dev.outputGroup, t.dev.outputMeshes, t.dev.output, featureGeo, featureMat, 0.5);
-    } else if (t.kind === 'shelf') {
-      while (c.count > 0 && shelfState.stock < SHELF_MAX) { c.count--; shelfState.stock++; }
-      if (c.count === 0) c.kind = null;
-      refreshBotStack(bot);
-      refreshShelf();
-    }
-    bot.target = null;
-  }
-}
 
 // --- Door (customer entry/exit) ---
 const DOOR_POS = new THREE.Vector3(27, 0, -2);
@@ -1395,8 +1293,6 @@ doorFrame.visible = false; // no physical customer traffic
 
 // --- Deal flow: features on shelf → deals close → revenue (no customer NPCs) ---
 let featurePrice = 5;
-let customerSpawnInterval = 2.5; // reused by marketing upgrade for deal speed
-let dealTimer = 0;
 const DEAL_MSGS = [
   '💼 Deal closed!', '🎉 New signup!', '📈 MRR up!',
   '🤝 Enterprise deal!', '💰 Renewal!', '✅ Demo → paid!',
@@ -1404,29 +1300,6 @@ const DEAL_MSGS = [
 ];
 let _dealMsgIdx = 0;
 
-function updateDeals(dt) {
-  if (shelfState.stock === 0) { dealTimer = 0; return; }
-  if (dealSpeedMult <= 0) return; // bug event pauses deals
-  dealTimer += dt;
-  const rushFactor = rushActive ? 3 : 1;
-  const interval = customerSpawnInterval / (rushFactor * dealSpeedMult * allHandsMult);
-  if (dealTimer >= interval) {
-    dealTimer = 0;
-    shelfState.stock--;
-    refreshShelf();
-    const earned = Math.round(featurePrice * dealValueMult * productVersionMult * allHandsMult);
-    addCash(earned);
-    // Track metrics
-    totalFeaturesShipped++;
-    checkProductVersion();
-    const newUsers = Math.max(1, Math.floor(earned / 4));
-    totalUsers += newUsers;
-    checkUserMilestones();
-    if (Math.random() < 0.3) {
-      showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '');
-    }
-  }
-}
 
 function checkUserMilestones() {
   while (nextUserMilestone < USER_MILESTONES.length &&
@@ -1456,245 +1329,16 @@ const metricsShipEl = document.getElementById('m-shipped');
 const metricsTeamEl = document.getElementById('m-teamrev');
 const metricsVersionEl = document.getElementById('m-version');
 function updateMetricsHUD() {
-  const dealsPerSec = dealSpeedMult * allHandsMult / customerSpawnInterval;
-  const arr = Math.round(featurePrice * dealValueMult * productVersionMult * allHandsMult * dealsPerSec * 3600 * 24 * 365);
+  const estDeliveriesPerSec = ideaWorkers.length * WORK_RATE_BASE * ideaSpeedMult / 1.0;
+  const arr = Math.round(featurePrice * dealValueMult * productVersionMult * estDeliveriesPerSec * 3600 * 24 * 365);
   metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
-  metricsUsersEl.textContent  = fmtCash(totalUsers);
-  metricsShipEl.textContent   = fmtCash(totalFeaturesShipped);
-  const teamRevPerSec = employees.filter(e => e.state === 'atDesk').reduce((s, e) => s + (e.caffeinated ? 4 : 2), 0);
-  metricsTeamEl.textContent  = '$' + teamRevPerSec + '/s';
+  metricsUsersEl.textContent = fmtCash(totalUsers);
+  metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
+  const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
+  metricsTeamEl.textContent  = `${ideaWorkers.length} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
 }
 
-// --- Desks (claimable seats for hired employees) ---
-const desks = [];
-function createDeskMesh(x, z) {
-  const g = new THREE.Group();
-  g.position.set(x, 0, z);
-  const top = new THREE.Mesh(
-    new THREE.BoxGeometry(1.6, 0.1, 0.9),
-    new THREE.MeshLambertMaterial({ color: 0xae8a5a })
-  );
-  top.position.y = 0.9; top.castShadow = true; top.receiveShadow = true;
-  g.add(top);
-  for (const [lx, lz] of [[-0.7,-0.35],[0.7,-0.35],[-0.7,0.35],[0.7,0.35]]) {
-    const leg = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.9, 0.1),
-      new THREE.MeshLambertMaterial({ color: 0x5a4a2a })
-    );
-    leg.position.set(lx, 0.45, lz);
-    leg.castShadow = true;
-    g.add(leg);
-  }
-  const mon = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.4, 0.05),
-    new THREE.MeshLambertMaterial({ color: 0x222233 })
-  );
-  mon.position.set(0, 1.25, -0.25); mon.castShadow = true;
-  g.add(mon);
-  const screen2 = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.5, 0.32),
-    new THREE.MeshBasicMaterial({ color: 0x9cf5c8 })
-  );
-  screen2.position.set(0, 1.25, -0.22);
-  g.add(screen2);
-  scene.add(g);
-  return g;
-}
-
-const ALL_DESK_DEFS = [
-  // Row 1 — initial 5
-  { x:12,z:-10 }, { x:15,z:-10 }, { x:18,z:-10 }, { x:21,z:-10 }, { x:24,z:-10 },
-  // Row 2 — unlocked at $1k
-  { x:12,z:-7 },  { x:15,z:-7 },  { x:18,z:-7 },
-  // Row 3 — unlocked at $5k
-  { x:21,z:-7 },  { x:24,z:-7 },  { x:12,z:-4 },  { x:15,z:-4 },
-];
-const allDeskEntries = ALL_DESK_DEFS.map(def => {
-  const mesh = createDeskMesh(def.x, def.z);
-  const entry = { pos: new THREE.Vector3(def.x, 0, def.z), mesh, occupied: false, unlocked: false };
-  mesh.visible = false;
-  return entry;
-});
-// Unlock first 5 immediately
-for (let i = 0; i < 5; i++) {
-  allDeskEntries[i].unlocked = true;
-  allDeskEntries[i].mesh.visible = true;
-  desks.push(allDeskEntries[i]);
-}
-function unlockMoreDesks(count) {
-  let added = 0;
-  for (const e of allDeskEntries) {
-    if (!e.unlocked && added < count) {
-      e.unlocked = true;
-      e.mesh.visible = true;
-      desks.push(e);
-      added++;
-    }
-  }
-  renderOffice();
-}
-
-// --- Employees (hired; buy features from shelf as their Work need) ---
-const employees = [];
-const EMP_SPEED = 3;
-
-function deskFront(desk) {
-  return { x: desk.pos.x, z: desk.pos.z + 1.3 };
-}
-function hireCost() {
-  return Math.floor(250 * Math.pow(1.6, employees.length));
-}
-
-function hireEmployee() {
-  const desk = desks.find(d => !d.occupied);
-  if (!desk) return;
-  const cost = hireCost();
-  if (state.cash < cost) return;
-  state.cash -= cost;
-  desk.occupied = true;
-
-  const g = new THREE.Group();
-  const color = new THREE.Color().setHSL(Math.random(), 0.5, 0.55);
-  const b = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.38, 0.8, 4, 8),
-    new THREE.MeshLambertMaterial({ color })
-  );
-  b.position.y = 0.8; b.castShadow = true;
-  g.add(b);
-  const h = new THREE.Mesh(
-    new THREE.SphereGeometry(0.3, 12, 10),
-    new THREE.MeshLambertMaterial({ color: 0xffd9a0 })
-  );
-  h.position.y = 1.7; h.castShadow = true;
-  g.add(h);
-  g.position.copy(DOOR_POS);
-  g.position.x += (Math.random() - 0.5) * 0.5;
-  scene.add(g);
-
-  employees.push({
-    group: g, desk,
-    state: 'goToDesk',
-    target: deskFront(desk),
-    waitT: 0,
-    caffeinated: false,
-    caffeinatedT: 0,
-    coffeeWaitT: 20 + Math.random() * 20,
-    need: null,
-  });
-  addCash(0);
-  renderOffice();
-}
-
-const EMP_REV_INTERVAL = 1.0;  // generate revenue every second
-let empRevT = 0;
-const COFFEE_BOOST_DUR = 60;   // seconds caffeinated
-
-function updateEmployees(dt) {
-  // Passive revenue tick
-  empRevT += dt;
-  if (empRevT >= EMP_REV_INTERVAL) {
-    empRevT = 0;
-    for (const e of employees) {
-      if (e.state === 'atDesk') {
-        addCash(e.caffeinated ? 4 : 2);
-      }
-    }
-  }
-
-  const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
-
-  for (const e of employees) {
-    // Countdown caffeine
-    if (e.caffeinated) {
-      e.caffeinatedT -= dt;
-      if (e.caffeinatedT <= 0) e.caffeinated = false;
-    }
-
-    if (e.state === 'atDesk') {
-      e.coffeeWaitT -= dt;
-      if (e.coffeeWaitT <= 0 && coffeeAm && coffeeAm.stock > 0) {
-        e.need = 'coffee';
-        e.state = 'toCoffeeMachine';
-        e.target = {
-          x: coffeeAm.position.x + (Math.random()-0.5)*0.8,
-          z: coffeeAm.position.z + 1.6,
-        };
-      }
-      continue;
-    }
-
-    if (e.state === 'gettingCoffee') {
-      e.waitT -= dt;
-      if (e.waitT <= 0) {
-        if (coffeeAm && coffeeAm.stock > 0) {
-          coffeeAm.stock--;
-          e.caffeinated = true;
-          e.caffeinatedT = COFFEE_BOOST_DUR;
-        }
-        e.need = null;
-        e.state = 'goToDesk';
-        e.target = deskFront(e.desk);
-      }
-      continue;
-    }
-
-    // Moving
-    const tx = e.target.x - e.group.position.x;
-    const tz = e.target.z - e.group.position.z;
-    const d = Math.hypot(tx, tz);
-    if (d > 0.15) {
-      e.group.position.x += (tx/d)*EMP_SPEED*dt;
-      e.group.position.z += (tz/d)*EMP_SPEED*dt;
-      e.group.rotation.y = Math.atan2(tx/d, tz/d);
-      continue;
-    }
-
-    if (e.state === 'goToDesk') {
-      e.state = 'atDesk';
-      e.coffeeWaitT = 25 + Math.random() * 20;
-    } else if (e.state === 'toCoffeeMachine') {
-      e.state = 'gettingCoffee';
-      e.waitT = 1.5;
-    }
-  }
-}
-
-// Office UI
-const hireBtn = document.getElementById('hire-btn');
-const hireCostEl = document.getElementById('hire-cost');
-const empCountEl = document.getElementById('emp-count');
-const workerCountEl = document.getElementById('worker-count');
-const hireWorkerBtn = document.getElementById('hire-worker-btn');
-const hireWorkerCostEl = document.getElementById('hire-worker-cost');
-function renderOffice() {
-  const hiringUnlocked = state.allTimeCash >= 500;
-  const opsUnlocked = employees.length >= 1;
-
-  // Hiring gate — locked until $500 all-time earned
-  document.getElementById('hire-lock-note').style.display = hiringUnlocked ? 'none' : '';
-  document.getElementById('hire-section').style.display = hiringUnlocked ? '' : 'none';
-
-  // Ops section — only visible once 1 engineer hired
-  document.getElementById('ops-section').style.display = opsUnlocked ? '' : 'none';
-
-  if (hiringUnlocked) {
-    const hired = employees.length;
-    const cap = desks.length;
-    empCountEl.textContent = `${hired} / ${cap}`;
-    if (hired >= cap) { hireBtn.disabled = true; hireCostEl.textContent = 'Full'; }
-    else { const c = hireCost(); hireBtn.disabled = state.cash < c; hireCostEl.textContent = '$' + c; }
-    // Standup cooldown display
-    standupBtn.disabled = standupCooldown > 0;
-    standupCostEl.textContent = standupCooldown > 0 ? `${Math.ceil(standupCooldown)}s` : 'FREE';
-  }
-
-  if (opsUnlocked) {
-    workerCountEl.textContent = `${workers.length} / ${MAX_WORKERS}`;
-    if (workers.length >= MAX_WORKERS) { hireWorkerBtn.disabled = true; hireWorkerCostEl.textContent = 'Full'; }
-    else { const wc = workerHireCost(); hireWorkerBtn.disabled = state.cash < wc; hireWorkerCostEl.textContent = '$' + wc; }
-  }
-}
 // Funding panel
 const fundingBtnEl = document.getElementById('funding-btn');
 const fundingStatusEl = document.getElementById('funding-status');
@@ -1712,63 +1356,6 @@ function renderFunding() {
 }
 fundingBtnEl.addEventListener('click', raiseFunding);
 
-// Standup mechanic
-let standupCooldown = 0;
-const STANDUP_CD = 120;
-const standupBtn  = document.getElementById('standup-btn');
-const standupCostEl = document.getElementById('standup-cost');
-function doStandup() {
-  if (standupCooldown > 0) return;
-  standupCooldown = STANDUP_CD;
-  // Caffeinate all engineers for 60s + idea speed boost
-  for (const e of employees) { e.caffeinated = true; e.caffeinatedT = 60; }
-  ideaSpeedMult = Math.max(ideaSpeedMult, 2);
-  setTimeout(() => { ideaSpeedMult = Math.max(1, ideaSpeedMult > 1.5 ? ideaSpeedMult / 2 : 1); }, 45000);
-  showToast('📢 Standup done! Team energized ⚡', 'milestone');
-}
-standupBtn.addEventListener('click', doStandup);
-
-// All Hands meeting
-const allhandsBtnEl  = document.getElementById('allhands-btn');
-const allhandsCostEl = document.getElementById('allhands-cost');
-
-function doAllHands() {
-  if (allHandsCooldown > 0 || employees.length === 0) return;
-  allHandsCooldown = ALL_HANDS_CD;
-  allHandsActive = true;
-  allHandsT = 0;
-  allHandsMult = 5;
-  allhandsBtnEl.classList.add('surge');
-  showToast('🎤 ALL HANDS MEETING! 5× everything for 15s! 🚀', 'milestone');
-  addFeedEntry('🎤 All Hands — 5× surge mode activated!');
-}
-
-function updateAllHands(dt) {
-  if (allHandsCooldown > 0) allHandsCooldown -= dt;
-  if (allHandsActive) {
-    allHandsT += dt;
-    if (allHandsT >= ALL_HANDS_DUR) {
-      allHandsActive = false;
-      allHandsMult = 1;
-      allhandsBtnEl.classList.remove('surge');
-      showToast('All Hands over — back to normal velocity.', '');
-    }
-  }
-  // Update button label
-  allhandsBtnEl.disabled = allHandsCooldown > 0 || employees.length === 0;
-  if (allHandsActive) {
-    allhandsCostEl.textContent = `${Math.ceil(ALL_HANDS_DUR - allHandsT)}s 🔥`;
-  } else if (allHandsCooldown > 0) {
-    allhandsCostEl.textContent = `${Math.ceil(allHandsCooldown)}s`;
-  } else {
-    allhandsCostEl.textContent = employees.length === 0 ? 'Need team' : '5× SURGE';
-  }
-}
-
-allhandsBtnEl.addEventListener('click', doAllHands);
-
-hireBtn.addEventListener('click', hireEmployee);
-hireWorkerBtn.addEventListener('click', hireWorker);
 
 // --- Amenities (unlockable, buyable; stock managed by Workers) ---
 const AMENITY_DEFS = [
@@ -1779,8 +1366,8 @@ const AMENITY_DEFS = [
     buyCost: 500,
     maxStock: 20,
     position: new THREE.Vector3(4, 0, 10),
-    unlockReq: () => employees.length >= 3,
-    unlockText: () => `🔒 Needs 3 employees (${employees.length}/3)`,
+    unlockReq: () => ideaWorkers.length >= 1,
+    unlockText: () => `🔒 Hire 1 idea person first`,
     buildMesh: (g) => {
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1.2, 1.5, 0.8),
@@ -1815,6 +1402,59 @@ const AMENITY_DEFS = [
       g.add(spout);
     },
   },
+  {
+    id: 'printer',
+    name: '🖨️ Office Printer',
+    icon: '🖨️',
+    buyCost: 300,
+    maxStock: 30,
+    position: new THREE.Vector3(8, 0, -12),
+    unlockReq: () => ideaWorkers.length >= 1,
+    unlockText: () => `🔒 Hire 1 idea person first`,
+    buildMesh: (g) => {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.32, 0.75), new THREE.MeshLambertMaterial({color:0xf0f0f0}));
+      body.position.y = 0.86; body.castShadow = true; body.receiveShadow = true; g.add(body);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.04, 0.65), new THREE.MeshLambertMaterial({color:0xdedede}));
+      top.position.y = 1.03; g.add(top);
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.05), new THREE.MeshLambertMaterial({color:0x2979ff}));
+      panel.position.set(0.28, 0.97, 0.37); g.add(panel);
+      const led = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.02), new THREE.MeshLambertMaterial({color:0x00ff88, emissive:0x00ff88, emissiveIntensity:0.9}));
+      led.position.set(0.44, 0.97, 0.38); g.add(led);
+      const tray = new THREE.Mesh(new THREE.BoxGeometry(0.85,0.03,0.5), new THREE.MeshLambertMaterial({color:0xcccccc}));
+      tray.position.set(0, 0.68, 0.1); g.add(tray);
+      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.75,0.05,0.4), new THREE.MeshLambertMaterial({color:0xffffff}));
+      paper.position.set(0, 0.7, 0.1); g.add(paper);
+    },
+  },
+  {
+    id: 'pingpong',
+    name: '🏓 Ping Pong Table',
+    icon: '🏓',
+    buyCost: 400,
+    maxStock: 999,
+    position: new THREE.Vector3(22, 0, -7),
+    unlockReq: () => ideaWorkers.length >= 3,
+    unlockText: () => `🔒 Hire 3 idea people first`,
+    buildMesh: (g) => { /* table already in scene */ },
+  },
+  {
+    id: 'standup',
+    name: '📺 All-Hands Screen',
+    icon: '📺',
+    buyCost: 600,
+    maxStock: 999,
+    position: new THREE.Vector3(16, 0, -11),
+    unlockReq: () => ideaWorkers.length >= 5,
+    unlockText: () => `🔒 Hire 5 idea people first`,
+    buildMesh: (g) => {
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(0.12,1.6,0.12), new THREE.MeshLambertMaterial({color:0x888888}));
+      stand.position.y = 0.8; g.add(stand);
+      const screen = new THREE.Mesh(new THREE.BoxGeometry(2.8,1.6,0.1), new THREE.MeshLambertMaterial({color:0x111122}));
+      screen.position.y = 1.85; g.add(screen);
+      const display = new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.4), new THREE.MeshBasicMaterial({color:0x2979ff}));
+      display.position.set(0,1.85,0.06); g.add(display);
+    },
+  },
 ];
 const amenities = AMENITY_DEFS.map(def => ({
   ...def,
@@ -1834,8 +1474,9 @@ function buyAmenity(id) {
   if (!am || am.isOwned || !am.unlockReq() || state.cash < am.buyCost) return;
   state.cash -= am.buyCost;
   am.isOwned = true;
-  am.stock = 0; // Workers will stock it
+  am.stock = 0; // Support staff will stock it
   buildAmenity(am);
+  if (id === 'standup') ideaSpeedMult *= 1.3;
   addCash(0);
 }
 const amenitiesList = document.getElementById('amenities-list');
@@ -1871,7 +1512,7 @@ function renderAmenities() {
 const FUNDING_ROUNDS = [
   { label: '💰 Pre-seed Round',  amount: 100,   req: () => true,                          reqText: '' },
   { label: '💸 Seed Round',      amount: 500,   req: () => state.allTimeCash >= 500,      reqText: 'Earn $500 total first' },
-  { label: '🚀 Series A',        amount: 2500,  req: () => employees.length >= 2,          reqText: 'Hire 2 engineers first' },
+  { label: '🚀 Series A',        amount: 2500,  req: () => ideaWorkers.length >= 2,         reqText: 'Hire 2 idea people first' },
   { label: '🦄 Series B',        amount: 10000, req: () => state.allTimeCash >= 10000,    reqText: 'Reach $10k in revenue' },
 ];
 let fundingRoundIdx = 0;
@@ -1921,12 +1562,12 @@ function showCashPop(amount) {
 
 // ── Milestones ──────────────────────────────────────────────
 const MILESTONES = [
-  { at:    50, msg:'🌱 First Steps — $50!',                  desks:0 },
-  { at:   250, msg:'💼 Bootstrapped — $250!',                 desks:0 },
-  { at:  1000, msg:'🚀 Series A — $1k! 3 new desks added!',  desks:3 },
-  { at:  5000, msg:'🦄 Unicorn Mode — $5k! 4 new desks!',    desks:4 },
-  { at: 25000, msg:'🏆 IPO Ready — $25k!',                   desks:0 },
-  { at:100000, msg:'🎉 EXIT! — $100k!',                      desks:0 },
+  { at:    50,  msg:'🌱 First Steps — $50!' },
+  { at:   250,  msg:'💼 Bootstrapped — $250!' },
+  { at:  1000,  msg:'🚀 Series A — $1k!' },
+  { at:  5000,  msg:'🦄 Unicorn Mode — $5k!' },
+  { at: 25000,  msg:'🏆 IPO Ready — $25k!' },
+  { at:100000,  msg:'🎉 EXIT! — $100k!' },
 ];
 let nextMilestoneIdx = 0;
 function checkMilestones() {
@@ -1934,7 +1575,6 @@ function checkMilestones() {
     const ms = MILESTONES[nextMilestoneIdx];
     showToast(ms.msg, 'milestone');
     addFeedEntry(ms.msg);
-    if (ms.desks > 0) unlockMoreDesks(ms.desks);
     nextMilestoneIdx++;
   }
 }
@@ -1948,7 +1588,7 @@ function addCash(n) {
   }
   cashValEl.textContent = Math.floor(state.cash).toString();
   renderUpgrades();
-  renderOffice();
+  renderHirePanel();
   renderAmenities();
   renderFunding();
   checkIPOAvailable();
@@ -1963,29 +1603,29 @@ const UPGRADE_CATS = [
 ];
 const UPGRADES = [
   // ── Ideation ──
-  { id:'growth',    cat:'ideation',    label:'💡 Faster Ideation',  base:20,  scale:1.6, max:10,
-    apply: lv => { plotGrowTime = Math.max(1.0, 5 - lv * 0.35); } },
-  { id:'farmexp',   cat:'ideation',    label:'🌱 Expand Farm',       base:150, scale:2.0, max:2,
-    apply: lv => { activatePlots(lv); } },
+  { id:'growth',    cat:'ideation',    label:'💡 Faster Ideation',   base:20,  scale:1.6, max:10,
+    apply: lv => { ideaSpeedMult = 1 + lv * 0.25; } },
+  { id:'farmexp',   cat:'ideation',    label:'🌱 Expand Farm',        base:150, scale:2.0, max:2,
+    apply: lv => { activatePlots(lv); renderHirePanel(); } },
   // ── Engineering ──
-  { id:'speed',     cat:'engineering', label:'🏃 Hustle Mode',       base:25,  scale:1.5, max:10,
+  { id:'speed',     cat:'engineering', label:'🏃 Hustle Mode',        base:25,  scale:1.5, max:10,
     apply: lv => { playerSpeed = 6 + lv * 0.5; } },
-  { id:'capacity',  cat:'engineering', label:'🎒 Bigger Backpack',   base:30,  scale:1.7, max:10,
+  { id:'capacity',  cat:'engineering', label:'🎒 Bigger Backpack',    base:30,  scale:1.7, max:10,
     apply: lv => { maxStack = 10 + lv * 2; } },
-  { id:'dev',       cat:'engineering', label:'⚡ Dev Sprint',        base:50,  scale:1.6, max:10,
-    apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.3, 2.5 - lv * 0.2); } },
-  { id:'slot',      cat:'engineering', label:'🖥️ 2nd Workstation',   base:200, scale:1,   max:1,
-    apply: lv => { if (lv > 0 && devs.length < 2) devs.push(createDev(8, 4)); } },
+  { id:'dev',       cat:'engineering', label:'⚡ Focus Boost',        base:50,  scale:1.6, max:10,
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.15, 8); } },
+  { id:'slot',      cat:'engineering', label:'🖥️ Open-Plan Office',  base:200, scale:1,   max:1,
+    apply: lv => { if (lv > 0) spawnSupportStaff('runner'); } },
   // ── Automation ──
-  { id:'bot',       cat:'automation',  label:'🤖 Hire Jr. Dev',      base:80,  scale:1.6, max:4,
-    apply: lv => { spawnProductionBot(); } },
+  { id:'bot',       cat:'automation',  label:'🤖 Hire Jr. Runner',   base:80,  scale:1.6, max:4,
+    apply: lv => { spawnSupportStaff('runner'); } },
   { id:'aicopilot', cat:'automation',  label:'🧠 AI Copilot',         base:300, scale:1.9, max:3,
-    apply: lv => { for (const d of devs) d.PROC_TIME = Math.max(0.08, d.PROC_TIME * 0.45); } },
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.5, 8); } },
   { id:'cdnspeed',  cat:'automation',  label:'🌍 Global CDN',          base:400, scale:2.0, max:1,
-    apply: lv => { customerSpawnInterval = Math.max(0.2, customerSpawnInterval * 0.4); } },
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.4, 8); } },
   // ── Revenue ──
   { id:'marketing', cat:'revenue',     label:'📢 Growth Hacking',    base:75,  scale:1.7, max:4,
-    apply: lv => { customerSpawnInterval = [2.5,1.8,1.3,1.0,0.7][lv]; } },
+    apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); } },
   { id:'pricing',   cat:'revenue',     label:'💸 Premium Tier',      base:100, scale:1.8, max:4,
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
   { id:'enterprise',cat:'revenue',     label:'🏢 Enterprise Tier',   base:500, scale:2.5, max:3,
@@ -2063,15 +1703,15 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=Math.min(dealSpeedMult*2, 1); showToast('Market stabilized — deal flow restored!','milestone'); } },
   { id:'vcmixer', label:'🥂 VC Mixer', dur:0,
     msg:'🥂 VC mixer at the office! Investors are impressed!', cls:'milestone',
-    onStart:()=>{ const amt=Math.max(400, employees.length*300+400); addCash(amt); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); },
+    onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); },
     onEnd:()=>{} },
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
     onStart:()=>{ dealSpeedMult=0; },
-    onEnd:()=>{ dealSpeedMult=1; allHandsMult=3; setTimeout(()=>{ if(allHandsMult===3) allHandsMult=1; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
+    onEnd:()=>{ dealSpeedMult=1; const prevMult=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*3,8); setTimeout(()=>{ ideaSpeedMult=prevMult; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
   { id:'pivot', label:'🔄 Pivot', dur:0,
-    msg:'🔄 Brilliant pivot! All ideas instantly ready to harvest!', cls:'milestone',
-    onStart:()=>{ for(const p of plots){if(p.active&&!p.ready){p.ready=true;p.orb.visible=true;p.bulbBase.visible=true;p.t=plotGrowTime;}} showToast('🔄 Pivot moment — go harvest everything!','milestone'); },
+    msg:'🔄 Brilliant pivot! Ideas flow 2× faster for 30s!', cls:'milestone',
+    onStart:()=>{ const prev=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*2,8); setTimeout(()=>{ ideaSpeedMult=prev; },30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
     onEnd:()=>{} },
 ];
 let activeEvent = null;
@@ -2287,14 +1927,9 @@ class Floor {
 }
 class OfficeFloor extends Floor {
   update(dt) {
-    updateFarm(dt);
-    updateDev(dt);
-    updateShelf();
-    updateDeals(dt);
-    updateEmployees(dt);
-    updateWorkers(dt);
+    updateIdeaWorkers(dt);
+    updateSupportStaff(dt);
     updateSupplyCloset(dt);
-    updateProductionBots(dt);
   }
 }
 const FLOOR_CLASSES = {
@@ -2310,71 +1945,48 @@ const labelsEl = document.getElementById('labels');
 const labelPool = [];
 function updateLabels() {
   const wants = [];
-  if (carry.count >= maxStack) {
-    const p = worldToScreen(player.position.x, 3.6, player.position.z);
-    wants.push({ text: 'MAX', cls: 'max', x: p.x, y: p.y });
-  }
-  for (const d of devs) {
-    if (d.queue > 0) {
-      const p = worldToScreen(d.pos.x, 3.2, d.pos.z);
-      wants.push({ text: `${d.queue}/${d.QUEUE_MAX}`, cls: '', x: p.x, y: p.y });
-    }
-  }
-  // Show ☕ when walking to coffee machine, ⚡ when caffeinated and at desk
-  for (const e of employees) {
-    if (e.state === 'toCoffeeMachine' || e.state === 'gettingCoffee') {
-      const p = worldToScreen(e.group.position.x, 2.6, e.group.position.z);
-      wants.push({ text: '☕', cls: 'bubble', x: p.x, y: p.y });
-    } else if (e.state === 'atDesk' && e.caffeinated) {
-      const p = worldToScreen(e.group.position.x, 2.6, e.group.position.z);
+  // Idea workers
+  for (const w of ideaWorkers) {
+    let emoji = null;
+    if (w.state === 'toCoffee' || w.state === 'gettingCoffee') emoji = '☕';
+    else if (w.state === 'toPingPong' || w.state === 'pingPonging') emoji = '🏓';
+    else if (w.state === 'toDeliver') emoji = '📦';
+    if (emoji) {
+      const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
+      wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
+    } else if (w.state === 'atDesk' && w.caffeinated) {
+      const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
       wants.push({ text: '⚡', cls: 'bubble', x: p.x, y: p.y });
     }
   }
+  // Support staff carry bubbles
+  for (const s of supportStaff) {
+    if (s.carrying) {
+      const p = worldToScreen(s.group.position.x, 2.2, s.group.position.z);
+      wants.push({ text: s.role === 'barista' ? '☕' : '📄', cls: 'bubble', x: p.x, y: p.y });
+    }
+  }
+  // Amenity stock labels
   for (const am of amenities) {
-    if (!am.isOwned) continue;
+    if (!am.isOwned || am.id === 'pingpong' || am.id === 'standup') continue;
     const p = worldToScreen(am.position.x, 2.8, am.position.z);
     const empty = am.stock === 0;
-    wants.push({
-      text: `${am.icon} ${am.stock}/${am.maxStock}`,
-      cls: empty ? 'max' : 'stock',
-      x: p.x, y: p.y,
-    });
+    wants.push({ text: `${am.icon} ${am.stock}/${am.maxStock}`, cls: empty ? 'max' : 'stock', x: p.x, y: p.y });
   }
-  // Supply closet stock label
+  // Supply closet
   const pSC = worldToScreen(supplyCloset.pos.x, 2.8, supplyCloset.pos.z);
   wants.push({ text: `📦 ${supplyCloset.stock}/${supplyCloset.maxStock}`, cls: 'stock', x: pSC.x, y: pSC.y });
-  // Workers label (📦 bubble when carrying)
-  for (const w of workers) {
-    if (w.carrying) {
-      const p = worldToScreen(w.group.position.x, 2.6, w.group.position.z);
-      wants.push({ text: '📦', cls: 'bubble', x: p.x, y: p.y });
-    }
-  }
-  // Bot carry labels
-  for (const bot of productionBots) {
-    if (bot.carry.count > 0) {
-      const p = worldToScreen(bot.group.position.x, 2.4, bot.group.position.z);
-      const emoji = bot.carry.kind === 'feature' ? '📦' : '💡';
-      wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
-    }
-  }
+
   while (labelPool.length < wants.length) {
-    const el = document.createElement('div');
-    labelsEl.appendChild(el);
-    labelPool.push(el);
+    const el = document.createElement('div'); labelsEl.appendChild(el); labelPool.push(el);
   }
   for (let i = 0; i < labelPool.length; i++) {
     const el = labelPool[i];
     if (i < wants.length) {
       const w = wants[i];
-      el.className = w.cls;
-      el.textContent = w.text;
-      el.style.left = w.x + 'px';
-      el.style.top = w.y + 'px';
-      el.style.display = 'block';
-    } else {
-      el.style.display = 'none';
-    }
+      el.className = w.cls; el.textContent = w.text;
+      el.style.left = w.x + 'px'; el.style.top = w.y + 'px'; el.style.display = 'block';
+    } else { el.style.display = 'none'; }
   }
 }
 
@@ -2416,9 +2028,7 @@ function loop(now) {
   currentFloorInst.update(dt);
   updateRushHour(dt);
   updateEvents(dt);
-  updateAllHands(dt);
   updateMetricsHUD();
-  if (standupCooldown > 0) { standupCooldown -= dt; renderOffice(); }
   updateLabels();
 
   renderer.render(scene, camera);
@@ -2460,27 +2070,21 @@ function doIPO() {
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
-  allHandsMult = 1; allHandsActive = false; allHandsCooldown = 0; allHandsT = 0;
-  if (allhandsBtnEl) allhandsBtnEl.classList.remove('surge');
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
-  playerSpeed = 6; plotGrowTime = 5; maxStack = 10;
-  customerSpawnInterval = 2.5; featurePrice = 5;
+  playerSpeed = 6; maxStack = 10; featurePrice = 5;
   for (const u of UPGRADES) upgLevels[u.id] = 0;
 
-  // Remove employees
-  for (const e of employees) scene.remove(e.group);
-  employees.length = 0;
-  for (const d of desks) d.occupied = false;
+  // Remove idea workers
+  for (const w of ideaWorkers) scene.remove(w.group);
+  ideaWorkers.length = 0;
+  // Free plot desks
+  for (const p of plots) p.occupied = false;
 
-  // Remove workers
-  for (const w of workers) scene.remove(w.group);
-  workers.length = 0;
-
-  // Remove bots
-  for (const b of productionBots) scene.remove(b.group);
-  productionBots.length = 0;
+  // Remove support staff
+  for (const s of supportStaff) scene.remove(s.group);
+  supportStaff.length = 0;
 
   // Remove amenities
   for (const a of amenities) {
@@ -2488,28 +2092,17 @@ function doIPO() {
     a.isOwned = false; a.stock = 0;
   }
 
-  // Reset shelf + plots
-  shelfState.stock = 0; refreshShelf();
+  // Reset plots
   for (const p of plots) {
     if (p.tier > 0) { p.active = false; p.group.visible = false; }
-    p.ready = false; p.orb.visible = false; p.bulbBase.visible = false; p.t = 0;
-  }
-
-  // Reset locked desks
-  for (let i = 5; i < allDeskEntries.length; i++) {
-    if (allDeskEntries[i].unlocked) {
-      allDeskEntries[i].unlocked = false;
-      allDeskEntries[i].mesh.visible = false;
-      const idx = desks.indexOf(allDeskEntries[i]);
-      if (idx > -1) desks.splice(idx, 1);
-    }
+    p.ready = false; p.orb.visible = false; p.bulbBase.visible = false;
   }
 
   // Reset supply closet
   supplyCloset.stock = 20;
 
-  // Give 1 free bot as head start
-  spawnProductionBot();
+  // Give 1 free support runner as head start
+  spawnSupportStaff('runner');
 
   // Update season badge
   seasonBadge.style.display = '';
@@ -2530,18 +2123,17 @@ document.getElementById('ipo-confirm-btn').addEventListener('click', doIPO);
 document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoModal.classList.remove('open'));
 
 // --- Save + load ---
-const SAVE_KEY = 'startup-tycoon-v3';
+const SAVE_KEY = 'startup-tycoon-v4';
 function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 3,
+      v: 4,
       cash: state.cash,
       allTimeCash: state.allTimeCash,
       upgrades: upgLevels,
       unlocked,
-      employees: employees.length,
-      workers: workers.length,
-      bots: productionBots.length,
+      ideaWorkers: ideaWorkers.length,
+      supportStaff: supportStaff.map(s => s.role),
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -2559,18 +2151,17 @@ function loadGame() {
     const p = JSON.parse(raw);
     state.cash = p.cash || 0;
     state.allTimeCash = p.allTimeCash || 0;
-    // Offline earnings: award 25% of theoretical deal revenue while away (max 4hr)
+    // Offline earnings: award 25% of theoretical revenue while away (max 4hr)
     if (p.savedAt) {
       const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
       const awaySec = awayMs / 1000;
       if (awaySec > 30 && p.upgrades) {
-        const savedInterval = 2.5; // conservative base
         const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
-        const offlineEarned = Math.floor(savedPrice * (awaySec / savedInterval) * 0.25);
+        const savedWorkers  = p.ideaWorkers || 0;
+        const offlineEarned = Math.floor(savedPrice * savedWorkers * WORK_RATE_BASE * awaySec * 0.25);
         if (offlineEarned > 0) {
           state.cash += offlineEarned;
           state.allTimeCash += offlineEarned;
-          // Show after a short delay so the game renders first
           setTimeout(() => showToast(`⏰ Offline: +$${fmtCash(offlineEarned)} earned while away`, 'milestone'), 1200);
         }
       }
@@ -2592,13 +2183,13 @@ function loadGame() {
       seasonBadge.style.display = '';
       seasonBadge.textContent   = `S${prestigeLevel + 1}`;
     }
-    // Re-hire employees silently (free on load). Temporarily zero out cash
-    // checks because these were already paid for in a previous session.
-    if (p.employees) {
-      const origCash = state.cash;
-      state.cash = 1e12;
-      for (let i = 0; i < p.employees && i < desks.length; i++) hireEmployee();
-      state.cash = origCash;
+    // Re-spawn idea workers silently (free on load)
+    if (p.ideaWorkers) {
+      for (let i = 0; i < p.ideaWorkers; i++) spawnIdeaWorker();
+    }
+    // Re-spawn support staff silently
+    if (p.supportStaff) {
+      for (const role of p.supportStaff) spawnSupportStaff(role);
     }
     if (p.amenities) {
       for (const saved of p.amenities) {
@@ -2607,18 +2198,12 @@ function loadGame() {
           am.isOwned = true;
           am.stock = typeof saved.stock === 'number' ? saved.stock : 0;
           buildAmenity(am);
+          if (saved.id === 'standup') ideaSpeedMult *= 1.3;
         }
       }
     }
-    if (p.workers) {
-      const orig = state.cash; state.cash = 1e12;
-      for (let i = 0; i < p.workers && workers.length < MAX_WORKERS; i++) hireWorker();
-      state.cash = orig;
-    }
-    // Fast-forward milestone pointer (also unlock desks for milestones already passed)
+    // Fast-forward milestone pointer
     while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
-      const ms = MILESTONES[nextMilestoneIdx];
-      if (ms.desks > 0) unlockMoreDesks(ms.desks);
       nextMilestoneIdx++;
     }
     if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
