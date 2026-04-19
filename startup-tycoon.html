@@ -737,7 +737,7 @@
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<div id="cash-hud" title="Tap to add \$1,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></div>
+<div id="cash-hud" title="Tap to add $1,000 (testing cheat)"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="metrics-hud">
   <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
@@ -832,7 +832,7 @@
 <div id="ipo-modal">
   <div class="ipo-panel">
     <div class="ipo-title">🎉 IPO Time!</div>
-    <div class="ipo-sub" id="ipo-valuation">Valuation: $0</div>
+    <div class="ipo-sub" id="ipo-valuation"></div>
     <div class="ipo-body" id="ipo-body">
       Taking your startup public resets cash and upgrades, but you keep a permanent
       <strong id="ipo-mult-text">2×</strong> revenue multiplier for your next season.
@@ -1721,20 +1721,24 @@ const addDeskBtnEl = document.getElementById('add-desk-btn');
 const addDeskCostEl = document.getElementById('add-desk-cost');
 function renderAddDeskButton() {
   if (!addDeskBtnEl) return;
+  // Always visible so the affordance is discoverable. Disabled +
+  // explanatory label when the player isn't standing in an owned
+  // room, when the room is at extra-desk cap, or when they can't
+  // afford the next desk.
+  addDeskBtnEl.style.display = '';
   const def = getPlayerRoom();
   if (!def) {
-    addDeskBtnEl.style.display = 'none';
+    addDeskBtnEl.disabled = true;
+    addDeskBtnEl.innerHTML = `🪑 Step into a room to add a desk<span class="tag"></span>`;
     return;
   }
   const n = extraDeskCountInRoom(def.id);
   if (n >= MAX_EXTRA_DESKS_PER_ROOM) {
-    addDeskBtnEl.style.display = '';
     addDeskBtnEl.disabled = true;
     addDeskBtnEl.innerHTML = `🪑 ${def.label} full<span class="tag"></span>`;
     return;
   }
   const cost = addDeskCost(def.id);
-  addDeskBtnEl.style.display = '';
   addDeskBtnEl.disabled = state.cash < cost;
   addDeskBtnEl.innerHTML = `🪑 Add Desk to ${def.label}<span class="tag">$${fmtCash(cost)}</span>`;
 }
@@ -2947,7 +2951,7 @@ function triggerSprint() {
   sprintT = 0;
   showToast('🏃 Sprint! +100% eng speed for 30s (2× paper drain)', 'rush');
   addFeedEntry('🏃 Sprint started');
-  changeMorale(+2, 'Sprint rally');
+  changeMorale(+3, 'Sprint rally');
 }
 function updateSprint(dt) {
   if (sprintActive) {
@@ -2957,7 +2961,7 @@ function updateSprint(dt) {
       sprintCooldownT = SPRINT_COOLDOWN;
       showToast('🏁 Sprint over.', '', 'ambient');
       addFeedEntry('🏁 Sprint ended');
-      changeMorale(-3, 'Sprint burnout');
+      changeMorale(-2, 'Sprint burnout');
     }
   } else if (sprintCooldownT > 0) {
     sprintCooldownT = Math.max(0, sprintCooldownT - dt);
@@ -3132,10 +3136,10 @@ function renderHirePanel() {
   const availableEngSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   const hcost = ideaWorkerHireCost();
   hireBtnEl.disabled = !availableEngSeat || state.cash < hcost;
-  hireCostEl.textContent = availableEngSeat ? `$${hcost}` : 'No desks';
+  hireCostEl.textContent = availableEngSeat ? `$${hcost}` : 'Add desks first';
   const extEngCost = hcost * EXTERNAL_COST_MULT;
   hireExtEngBtnEl.disabled = !availableEngSeat || state.cash < extEngCost;
-  hireExtEngCostEl.textContent = availableEngSeat ? `$${fmtCash(extEngCost)}` : 'No desks';
+  hireExtEngCostEl.textContent = availableEngSeat ? `$${fmtCash(extEngCost)}` : 'Add desks first';
 
   const ecost = eaCost();
   hireEaBtnEl.disabled = state.cash < ecost;
@@ -3155,12 +3159,12 @@ function renderHirePanel() {
       const bcost = bdrCost();
       hireBdrBtnEl.disabled = !availableBdrSeat || state.cash < bcost;
       hireBdrCostEl.textContent = !availableBdrSeat
-        ? 'No desks'
+        ? 'Add desks first'
         : (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
       hireBdrBtnEl.style.display = '';
       const extBcost = bcost * EXTERNAL_COST_MULT;
       hireExtBdrBtnEl.disabled = !availableBdrSeat || state.cash < extBcost;
-      hireExtBdrCostEl.textContent = availableBdrSeat ? `$${fmtCash(extBcost)}` : 'No desks';
+      hireExtBdrCostEl.textContent = availableBdrSeat ? `$${fmtCash(extBcost)}` : 'Add desks first';
       hireExtBdrBtnEl.style.display = '';
     } else {
       hireBdrBtnEl.style.display = 'none';
@@ -3173,7 +3177,7 @@ function renderHirePanel() {
       const availableAeSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
       const acost = aeCost();
       hireAeBtnEl.disabled = !availableAeSeat || state.cash < acost;
-      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${availableAeSeat ? `$${fmtCash(acost)}` : 'No desks'}</span>`;
+      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${availableAeSeat ? `$${fmtCash(acost)}` : 'Add desks first'}</span>`;
       hireAeBtnEl.style.display = '';
     } else {
       hireAeBtnEl.style.display = 'none';
@@ -3327,14 +3331,29 @@ const metricsTeamEl = document.getElementById('m-teamrev');
 const metricsVersionEl = document.getElementById('m-version');
 const metricsMoraleRowEl = document.getElementById('m-morale-row');
 const metricsMoraleEl    = document.getElementById('m-morale');
+// Rolling 30-second revenue log so ARR is based on actually-realized
+// revenue, not a peak-instant rate. Trim entries older than the
+// window each frame.
+const revenueLog = [];
+const REVENUE_WINDOW_MS = 30000;
+function recordRevenue(amount) { revenueLog.push({ at: Date.now(), amount }); }
+function smoothedArr() {
+  const cutoff = Date.now() - REVENUE_WINDOW_MS;
+  while (revenueLog.length && revenueLog[0].at < cutoff) revenueLog.shift();
+  if (revenueLog.length === 0) return 0;
+  const sum = revenueLog.reduce((s, e) => s + e.amount, 0);
+  const elapsedSec = Math.max(1, (Date.now() - revenueLog[0].at) / 1000);
+  return Math.round(sum * 365 * 24 * 3600 / elapsedSec);
+}
 function updateMetricsHUD() {
-  const estDeliveriesPerSec = ideaWorkers.length * WORK_RATE_BASE * ideaSpeedMult / 1.0;
-  const arr = Math.round(featurePrice * dealValueMult * productVersionMult * estDeliveriesPerSec * 3600 * 24 * 365);
-  metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
+  metricsArrEl.textContent   = '$' + fmtCash(smoothedArr()) + '/yr';
   metricsUsersEl.textContent = fmtCash(totalUsers);
   metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
-  metricsTeamEl.textContent  = `${ideaWorkers.length} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
+  // Total headcount across every role on the floor — engineers, EAs,
+  // BDRs, AEs, and the (single-slot) leadership tier.
+  const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
+  metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
   if (metricsMoraleRowEl) {
     metricsMoraleRowEl.style.display = moraleEnabled ? '' : 'none';
@@ -3370,7 +3389,12 @@ const AMENITY_DEFS = [
     maxStock: 20,
     position: new THREE.Vector3(-4, 0, -22),
     unlockReq: () => ideaWorkers.length >= 1 && ownedRooms.has('back'),
-    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 engineer first` : `🔒 Buy ↑ Breakroom first`,
+    unlockText: () => {
+      const need = [];
+      if (ideaWorkers.length < 1) need.push('1 engineer');
+      if (!ownedRooms.has('back')) need.push('☕ Breakroom');
+      return `🔒 ${need.join(' + ')}`;
+    },
     buildMesh: (g) => {
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1.2, 1.5, 0.8),
@@ -3413,7 +3437,12 @@ const AMENITY_DEFS = [
     maxStock: 30,
     position: new THREE.Vector3(4, 0, -22),
     unlockReq: () => ideaWorkers.length >= 1 && ownedRooms.has('back'),
-    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 engineer first` : `🔒 Buy ↑ Breakroom first`,
+    unlockText: () => {
+      const need = [];
+      if (ideaWorkers.length < 1) need.push('1 engineer');
+      if (!ownedRooms.has('back')) need.push('☕ Breakroom');
+      return `🔒 ${need.join(' + ')}`;
+    },
     buildMesh: (g) => {
       // Shelving-unit frame
       const frameMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
@@ -3469,7 +3498,12 @@ const AMENITY_DEFS = [
     maxStock: 999,
     position: new THREE.Vector3(22, 0, 5),
     unlockReq: () => ideaWorkers.length >= 3 && ownedRooms.has('right'),
-    unlockText: () => ideaWorkers.length < 3 ? `🔒 Hire 3 engineers first` : `🔒 Buy 📞 Sales Corner first`,
+    unlockText: () => {
+      const need = [];
+      if (ideaWorkers.length < 3) need.push('3 engineers');
+      if (!ownedRooms.has('right')) need.push('📞 Sales Corner');
+      return `🔒 ${need.join(' + ')}`;
+    },
     buildMesh: (g) => { /* table already in scene */ },
   },
   {
@@ -3480,7 +3514,12 @@ const AMENITY_DEFS = [
     maxStock: 999,
     position: new THREE.Vector3(20, 0, 19),
     unlockReq: () => ideaWorkers.length >= 5 && ownedRooms.has('front-right'),
-    unlockText: () => ideaWorkers.length < 5 ? `🔒 Hire 5 engineers first` : `🔒 Buy 🏛️ Leadership Suite first`,
+    unlockText: () => {
+      const need = [];
+      if (ideaWorkers.length < 5) need.push('5 engineers');
+      if (!ownedRooms.has('front-right')) need.push('🏛️ Leadership Suite');
+      return `🔒 ${need.join(' + ')}`;
+    },
     buildMesh: (g) => {
       const stand = new THREE.Mesh(new THREE.BoxGeometry(0.12,1.6,0.12), new THREE.MeshLambertMaterial({color:0x888888}));
       stand.position.y = 0.8; g.add(stand);
@@ -3766,6 +3805,7 @@ function addCash(n) {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
+    recordRevenue(n);
     showCashPop(n);
     checkMilestones();
   }
@@ -4234,7 +4274,7 @@ joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.chec
 // pure flat-rate gameplay or for testing)
 const sprintBtnEl    = document.getElementById('sprint-btn');
 const sprintStatusEl  = document.getElementById('sprint-status');
-sprintBtnEl.addEventListener('click', triggerSprint);
+sprintBtnEl.addEventListener('click', () => { triggerSprint(); updateSprintButton(); });
 function updateSprintButton() {
   if (sprintActive) {
     const remaining = Math.max(0, Math.ceil(SPRINT_DURATION - sprintT));
@@ -4735,9 +4775,18 @@ function doIPO() {
 ipoBtnEl.addEventListener('click', openIPOModal);
 document.getElementById('ipo-confirm-btn').addEventListener('click', doIPO);
 document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoModal.classList.remove('open'));
+// Click outside the panel to dismiss (matches the elevator modal)
+ipoModal.addEventListener('click', e => { if (e.target === ipoModal) ipoModal.classList.remove('open'); });
 
 // --- Save + load ---
 const SAVE_KEY = 'startup-tycoon-v7';
+// Sweep older versions out of localStorage so they don't sit there
+// forever after a schema bump.
+try {
+  for (const k of Object.keys(localStorage)) {
+    if (k.startsWith('startup-tycoon-v') && k !== SAVE_KEY) localStorage.removeItem(k);
+  }
+} catch (_) {}
 let _restarting = false; // set true by the Restart button so beforeunload / setInterval don't re-save wiped state
 function saveGame() {
   if (_restarting) return;
@@ -4924,7 +4973,7 @@ function tickTimer() {
   const s = Math.floor((Date.now() - sessionStart) / 1000);
   const m = Math.floor(s / 60);
   sessionChipEl.textContent =
-    `🚀 Day ${m.toString().padStart(2,'0')}m ${(s%60).toString().padStart(2,'0')}s`;
+    `⏱ Session ${m.toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 }
 tickTimer();
 setInterval(tickTimer, 1000);
