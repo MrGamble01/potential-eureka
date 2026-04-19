@@ -411,18 +411,11 @@
   <div id="feed-list"></div>
 </div>
 <div id="left-panel">
-  <div id="upgrades"></div>
-  <div id="funding-panel" class="panel">
-    <div class="panel-title">💼 Funding</div>
-    <div id="funding-status" style="font-size:11px;color:#555;margin-bottom:6px">Pre-seed ready — tap to raise!</div>
-    <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
-  </div>
   <div id="office-panel" class="panel">
     <div class="panel-title">👥 Team</div>
-    <div id="hire-lock-note" class="lock-note" style="display:none">🔒 Earn $100 to hire your first idea person</div>
     <div id="hire-section">
       <div class="stat-line"><span>Idea People</span><span id="emp-count">0 / 9</span></div>
-      <button class="hire-btn" id="hire-btn">💡 Hire Idea Person<span class="cost" id="hire-cost">$200</span></button>
+      <button class="hire-btn" id="hire-btn">💡 Hire Idea Person<span class="cost" id="hire-cost">$75</span></button>
       <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px">
         <div class="panel-title" style="margin-bottom:6px">🛠️ Support Staff</div>
         <button class="hire-btn" id="hire-barista-btn" style="margin-top:0">☕ Hire Barista<span class="cost" id="hire-barista-cost">$200</span></button>
@@ -430,8 +423,14 @@
       </div>
     </div>
   </div>
+  <div id="funding-panel" class="panel">
+    <div class="panel-title">💼 Funding</div>
+    <div id="funding-status" style="font-size:11px;color:#3FB950;margin-bottom:6px">Pre-seed ready — raise now!</div>
+    <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
+  </div>
+  <div id="upgrades"></div>
   <div id="amenities-panel" class="panel">
-    <div class="panel-title">Amenities</div>
+    <div class="panel-title">🏢 Amenities</div>
     <div id="amenities-list"></div>
   </div>
 </div>
@@ -925,7 +924,7 @@ const IW_SPEED = 4.2;
 const WORK_RATE_BASE = 0.032; // fills 1 product in ~31s base
 
 function ideaWorkerHireCost() {
-  return Math.floor(200 * Math.pow(1.55, ideaWorkers.length));
+  return Math.floor(75 * Math.pow(1.6, ideaWorkers.length));
 }
 
 function spawnIdeaWorker() {
@@ -1191,11 +1190,6 @@ const hireRunnerBtnEl  = document.getElementById('hire-runner-btn');
 const hireRunnerCostEl = document.getElementById('hire-runner-cost');
 
 function renderHirePanel() {
-  const unlocked = state.allTimeCash >= 100;
-  document.getElementById('hire-lock-note').style.display = unlocked ? 'none' : '';
-  document.getElementById('hire-section').style.display = unlocked ? '' : 'none';
-  if (!unlocked) return;
-
   const totalDesks = plots.filter(p => p.active).length;
   empCountEl.textContent = `${ideaWorkers.length} / ${totalDesks}`;
   const canHire = ideaWorkers.length < totalDesks;
@@ -2134,7 +2128,7 @@ document.getElementById('ipo-confirm-btn').addEventListener('click', doIPO);
 document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoModal.classList.remove('open'));
 
 // --- Save + load ---
-const SAVE_KEY = 'startup-tycoon-v4';
+const SAVE_KEY = 'startup-tycoon-v5';
 function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
@@ -2240,7 +2234,7 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
-addCash(25);
+addCash(100); // enough to hire first idea person right away
 renderFunding();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
