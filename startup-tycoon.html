@@ -603,8 +603,8 @@
   <div id="office-panel" class="panel">
     <div class="panel-title">👥 Team</div>
     <div id="hire-section">
-      <div class="stat-line"><span>Idea People</span><span id="emp-count">0 / 9</span></div>
-      <button class="hire-btn" id="hire-btn">💡 Hire Idea Person<span class="cost" id="hire-cost">$75</span></button>
+      <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
+      <button class="hire-btn" id="hire-btn">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
       <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px">
         <div class="panel-title" style="margin-bottom:6px">🛠️ Office Managers</div>
         <button class="hire-btn" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
@@ -1493,7 +1493,8 @@ function ideaWorkerHireCost() {
 }
 
 function spawnIdeaWorker() {
-  const desk = plots.find(p => p.active && !p.occupied);
+  // Engineers only sit at eng-tagged desks
+  const desk = plots.find(p => p.active && !p.occupied && (p.role || 'eng') === 'eng');
   if (!desk) return;
   desk.occupied = true;
 
@@ -1899,9 +1900,9 @@ const hireEaBtnEl  = document.getElementById('hire-ea-btn');
 const hireEaCostEl = document.getElementById('hire-ea-cost');
 
 function renderHirePanel() {
-  const totalDesks = plots.filter(p => p.active).length;
-  empCountEl.textContent = `${ideaWorkers.length} / ${totalDesks}`;
-  const canHire = ideaWorkers.length < totalDesks;
+  const engDesks = plots.filter(p => p.active && (p.role || 'eng') === 'eng').length;
+  empCountEl.textContent = `${ideaWorkers.length} / ${engDesks}`;
+  const canHire = ideaWorkers.length < engDesks;
   const hcost = ideaWorkerHireCost();
   hireBtnEl.disabled = !canHire || state.cash < hcost;
   hireCostEl.textContent = canHire ? `$${hcost}` : 'No desks';
@@ -1918,7 +1919,7 @@ hireBtnEl.addEventListener('click', () => {
   spawnIdeaWorker();
   addCash(0);
   renderHirePanel();
-  addFeedEntry(`💡 Hired idea person #${ideaWorkers.length}!`);
+  addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
 });
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 
@@ -2046,7 +2047,7 @@ const AMENITY_DEFS = [
     maxStock: 20,
     position: new THREE.Vector3(-4, 0, -22),
     unlockReq: () => ideaWorkers.length >= 1 && ownedRooms.has('back'),
-    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 idea person first` : `🔒 Buy ↑ Breakroom first`,
+    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 engineer first` : `🔒 Buy ↑ Breakroom first`,
     buildMesh: (g) => {
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1.2, 1.5, 0.8),
@@ -2089,7 +2090,7 @@ const AMENITY_DEFS = [
     maxStock: 30,
     position: new THREE.Vector3(4, 0, -22),
     unlockReq: () => ideaWorkers.length >= 1 && ownedRooms.has('back'),
-    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 idea person first` : `🔒 Buy ↑ Breakroom first`,
+    unlockText: () => ideaWorkers.length < 1 ? `🔒 Hire 1 engineer first` : `🔒 Buy ↑ Breakroom first`,
     buildMesh: (g) => {
       // Shelving-unit frame
       const frameMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
@@ -2145,7 +2146,7 @@ const AMENITY_DEFS = [
     maxStock: 999,
     position: new THREE.Vector3(22, 0, 5),
     unlockReq: () => ideaWorkers.length >= 3 && ownedRooms.has('right'),
-    unlockText: () => ideaWorkers.length < 3 ? `🔒 Hire 3 idea people first` : `🔒 Buy 📞 Sales Corner first`,
+    unlockText: () => ideaWorkers.length < 3 ? `🔒 Hire 3 engineers first` : `🔒 Buy 📞 Sales Corner first`,
     buildMesh: (g) => { /* table already in scene */ },
   },
   {
@@ -2156,7 +2157,7 @@ const AMENITY_DEFS = [
     maxStock: 999,
     position: new THREE.Vector3(20, 0, 19),
     unlockReq: () => ideaWorkers.length >= 5 && ownedRooms.has('front-right'),
-    unlockText: () => ideaWorkers.length < 5 ? `🔒 Hire 5 idea people first` : `🔒 Buy 🏛️ Leadership Suite first`,
+    unlockText: () => ideaWorkers.length < 5 ? `🔒 Hire 5 engineers first` : `🔒 Buy 🏛️ Leadership Suite first`,
     buildMesh: (g) => {
       const stand = new THREE.Mesh(new THREE.BoxGeometry(0.12,1.6,0.12), new THREE.MeshLambertMaterial({color:0x888888}));
       stand.position.y = 0.8; g.add(stand);
