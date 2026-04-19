@@ -609,6 +609,10 @@
         <div class="panel-title" style="margin-bottom:6px">🛠️ Office Managers</div>
         <button class="hire-btn" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
       </div>
+      <div id="hire-sales-section" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;display:none">
+        <div class="panel-title" style="margin-bottom:6px">📞 Sales Team</div>
+        <button class="hire-btn" id="hire-bdr-btn">📞 Hire BDR<span class="cost" id="hire-bdr-cost">$200</span></button>
+      </div>
     </div>
   </div>
   <div id="room-panel" class="panel">
@@ -769,7 +773,7 @@ const ROOM_DEFS = [
 const PLOT_DEFS = [];
 for (const r of ROOM_DEFS) {
   for (const d of (r.desks || [])) {
-    PLOT_DEFS.push({ x: d.x, z: d.z, role: d.role || 'eng', tier: r.id === 'starter' ? 0 : 99, roomId: r.id });
+    PLOT_DEFS.push({ x: d.x, z: d.z, role: d.role || 'any', tier: r.id === 'starter' ? 0 : 99, roomId: r.id });
   }
 }
 
@@ -1492,9 +1496,15 @@ function ideaWorkerHireCost() {
   return Math.floor(75 * Math.pow(1.6, ideaWorkers.length));
 }
 
+// A desk accepts a given role if it's tagged for that role OR
+// if it's a generic desk (role 'any'). Generic desks let any hire
+// sit there — that's the early-game "everyone crammed in HQ" mode.
+function deskAcceptsRole(desk, role) {
+  return desk.role === role || desk.role === 'any' || !desk.role;
+}
+
 function spawnIdeaWorker() {
-  // Engineers only sit at eng-tagged desks
-  const desk = plots.find(p => p.active && !p.occupied && (p.role || 'eng') === 'eng');
+  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   if (!desk) return;
   desk.occupied = true;
 
@@ -1887,6 +1897,76 @@ function updateExecutiveAssistants(dt) {
   }
 }
 
+// ── Business Development Reps (BDRs) ───────────────────────
+// Sit at their desk and periodically pop small solo deals. When an AE
+// is free AND this BDR doesn't already have a deal in flight with an
+// AE, they walk their deal over for a 3× bonus close. (Handoff is
+// wired in a follow-up commit — this first pass just ships solo deals.)
+const bdrs = [];
+const BDR_BASE_COST = 200;
+const BDR_COST_SCALE = 1.5;
+function bdrCost() { return Math.floor(BDR_BASE_COST * Math.pow(BDR_COST_SCALE, bdrs.length)); }
+
+function spawnBDR() {
+  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
+  if (!desk) return false;
+  desk.occupied = true;
+  const idx = bdrs.length;
+  const look = {
+    bodyColor: [0x3a5a7a, 0x7a4a3a, 0x4a3a7a][idx % 3],
+    pantsColor: 0x1a1a22,
+    hairColor: HAIR_COLORS[(idx + 2) % HAIR_COLORS.length],
+    skinColor: SKIN_COLORS[(idx + 2) % SKIN_COLORS.length],
+    hasBeanie: false,
+    hasGlasses: (idx % 3) === 0,
+  };
+  const g = buildScrappyCharacter(look);
+  g.position.set(desk.group.position.x, 0, desk.group.position.z + 1.0);
+  scene.add(g);
+  bdrs.push({
+    group: g, desk,
+    dealTimer: 8 + Math.random() * 10,
+    pendingWithAE: false,
+  });
+  return true;
+}
+
+function hireBDR() {
+  const cost = bdrCost();
+  if (state.cash < cost) return;
+  const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
+  if (!hasDesk) return;
+  state.cash -= cost;
+  if (!spawnBDR()) { state.cash += cost; return; }
+  addCash(0);
+  renderHirePanel();
+  addFeedEntry(`📞 Hired BDR #${bdrs.length}`);
+  showToast(`📞 BDR #${bdrs.length} on the phones!`, 'milestone');
+}
+
+function popCashAt(worldX, worldZ, amount) {
+  const sp = worldToScreen(worldX, 2.5, worldZ);
+  const el = document.createElement('div');
+  el.className = 'cash-pop';
+  el.textContent = '+$' + fmtCash(amount);
+  el.style.left = (sp.x + (Math.random() * 20 - 10)) + 'px';
+  el.style.top  = (sp.y + (Math.random() * 10 - 5)) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1400);
+}
+
+function updateBDRs(dt) {
+  for (const b of bdrs) {
+    b.dealTimer -= dt;
+    if (b.dealTimer > 0) continue;
+    b.dealTimer = 8 + Math.random() * 10;
+    // Solo deal: small random amount. (Handoff path coming in a later commit.)
+    const deal = Math.round(5 + Math.random() * 10);
+    addCash(deal);
+    popCashAt(b.group.position.x, b.group.position.z, deal);
+  }
+}
+
 // ── Support Staff (legacy; barista + runner roles fully retired) ──
 const supportStaff = [];
 function updateSupportStaff(_dt) { /* no-op */ }
@@ -1898,18 +1978,36 @@ const empCountEl      = document.getElementById('emp-count');
 
 const hireEaBtnEl  = document.getElementById('hire-ea-btn');
 const hireEaCostEl = document.getElementById('hire-ea-cost');
+const hireBdrBtnEl  = document.getElementById('hire-bdr-btn');
+const hireBdrCostEl = document.getElementById('hire-bdr-cost');
+const hireSalesSectionEl = document.getElementById('hire-sales-section');
 
 function renderHirePanel() {
-  const engDesks = plots.filter(p => p.active && (p.role || 'eng') === 'eng').length;
-  empCountEl.textContent = `${ideaWorkers.length} / ${engDesks}`;
-  const canHire = ideaWorkers.length < engDesks;
+  // Engineers can sit at 'eng' desks + any generic 'any' desk
+  const engCapacity = plots.filter(p => p.active && deskAcceptsRole(p, 'eng')).length;
+  empCountEl.textContent = `${ideaWorkers.length} / ${engCapacity}`;
+  const availableEngSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   const hcost = ideaWorkerHireCost();
-  hireBtnEl.disabled = !canHire || state.cash < hcost;
-  hireCostEl.textContent = canHire ? `$${hcost}` : 'No desks';
+  hireBtnEl.disabled = !availableEngSeat || state.cash < hcost;
+  hireCostEl.textContent = availableEngSeat ? `$${hcost}` : 'No desks';
 
   const ecost = eaCost();
   hireEaBtnEl.disabled = state.cash < ecost;
   hireEaCostEl.textContent = eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`;
+
+  // BDR section only appears once a desk that can seat one is available
+  const bdrCapacity = plots.some(p => p.active && deskAcceptsRole(p, 'bdr'));
+  if (!bdrCapacity) {
+    hireSalesSectionEl.style.display = 'none';
+  } else {
+    hireSalesSectionEl.style.display = '';
+    const availableBdrSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
+    const bcost = bdrCost();
+    hireBdrBtnEl.disabled = !availableBdrSeat || state.cash < bcost;
+    hireBdrCostEl.textContent = !availableBdrSeat
+      ? 'No desks'
+      : (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
+  }
 }
 
 hireBtnEl.addEventListener('click', () => {
@@ -1922,6 +2020,7 @@ hireBtnEl.addEventListener('click', () => {
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
 });
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
+hireBdrBtnEl.addEventListener('click', hireBDR);
 
 // (Product shelf removed — workers now deliver to CEO desk)
 
@@ -2776,6 +2875,7 @@ class OfficeFloor extends Floor {
     updatePlayerEspressoRefill(dt);
     updateIdeaWorkers(dt);
     updateExecutiveAssistants(dt);
+    updateBDRs(dt);
     updateSupportStaff(dt);
     checkDecorUpgrades(dt);
   }
@@ -2974,6 +3074,9 @@ function doIPO() {
   // Remove Executive Assistants
   for (const e of eas) scene.remove(e.group);
   eas.length = 0;
+  // Remove BDRs
+  for (const b of bdrs) scene.remove(b.group);
+  bdrs.length = 0;
 
   // Remove amenities
   for (const a of amenities) {
@@ -3048,6 +3151,7 @@ function saveGame() {
       ideaWorkers: ideaWorkers.length,
       supportStaff: supportStaff.map(s => s.role),
       eaCount: eas.length,
+      bdrCount: bdrs.length,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -3122,6 +3226,9 @@ function loadGame() {
     }
     if (typeof p.eaCount === 'number') {
       for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant();
+    }
+    if (typeof p.bdrCount === 'number') {
+      for (let i = 0; i < p.bdrCount; i++) spawnBDR();
     }
     if (p.amenities) {
       for (const saved of p.amenities) {
