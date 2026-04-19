@@ -3693,7 +3693,7 @@ const UPGRADES = [
   { id:'pricing',   cat:'revenue',     label:'💸 Premium Tier',       base:100, scale:1.8, max:4,
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
   { id:'enterprise',cat:'revenue',     label:'🏢 Enterprise Tier',    base:500, scale:2.5, max:3,
-    apply: lv => { dealValueMult = [1,3,8,20][lv]; } },
+    apply: lv => { dealValueMult = prestigeMultiplier * [1,3,8,20][lv]; } },
 ];
 
 // ── Activity Feed ───────────────────────────────────────
