@@ -898,18 +898,21 @@ function worldToScreen(x, y, z) {
 }
 
 // --- Lights ---
-scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+// Warmer ambient + wider shadow frustum so every expandable room
+// (3×3 grid of 16-unit rooms ≈ 48 across) still gets proper shadows.
+scene.add(new THREE.AmbientLight(0xfff2dc, 0.7));
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-sun.position.set(15, 25, 10);
+sun.position.set(15, 30, 10);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 const sc = sun.shadow.camera;
-sc.left = -25; sc.right = 25; sc.top = 25; sc.bottom = -25;
-sc.near = 0.1; sc.far = 80;
+sc.left = -40; sc.right = 40; sc.top = 40; sc.bottom = -40;
+sc.near = 0.1; sc.far = 100;
+sun.shadow.bias = -0.0005;
 scene.add(sun);
 
 // --- Extra office lighting ---
-const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.4);
+const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.35);
 fillLight.position.set(-10, 15, -5);
 scene.add(fillLight);
 
@@ -1048,11 +1051,34 @@ function buildRoom(def) {
 
   roomMeshes[def.id] = meshes;
 
-  // Add a point light overhead for the new room
-  const pt = new THREE.PointLight(0xfff9f0, 0.22, 22);
+  // Add a point light + visible pendant fixture overhead for the
+  // new room. The fixture is purely visual but anchors the light so
+  // rooms don't feel like they're lit by magic.
+  const pt = new THREE.PointLight(0xfff9f0, 0.35, 24);
   pt.position.set(cx, 5, cz);
   scene.add(pt);
   meshes.decorations.push(pt);
+
+  const fixtureMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2e });
+  const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 6), fixtureMat);
+  cord.position.set(cx, 3.75, cz);
+  scene.add(cord);
+  meshes.decorations.push(cord);
+  const shade = new THREE.Mesh(
+    new THREE.ConeGeometry(0.35, 0.45, 14, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0xf2c47a, emissive: 0xf2b05a, emissiveIntensity: 0.35, side: THREE.DoubleSide })
+  );
+  shade.position.set(cx, 3.05, cz);
+  shade.rotation.x = Math.PI;
+  scene.add(shade);
+  meshes.decorations.push(shade);
+  const bulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 10, 8),
+    new THREE.MeshBasicMaterial({ color: 0xfff0b8 })
+  );
+  bulb.position.set(cx, 3.0, cz);
+  scene.add(bulb);
+  meshes.decorations.push(bulb);
 }
 
 // CEO desk delivery position (front of desk, inside starter room)
