@@ -605,11 +605,6 @@
     <div id="hire-section">
       <div class="stat-line"><span>Idea People</span><span id="emp-count">0 / 9</span></div>
       <button class="hire-btn" id="hire-btn">💡 Hire Idea Person<span class="cost" id="hire-cost">$75</span></button>
-      <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px">
-        <div class="panel-title" style="margin-bottom:6px">🛠️ Support Staff</div>
-        <button class="hire-btn" id="hire-barista-btn" style="margin-top:0">☕ Hire Barista<span class="cost" id="hire-barista-cost">$200</span></button>
-        <button class="hire-btn" id="hire-runner-btn" style="margin-top:6px;background:rgba(32,170,255,0.1);border-color:rgba(32,170,255,0.3)">📦 Supply Runner<span class="cost" id="hire-runner-cost">$180</span></button>
-      </div>
     </div>
   </div>
   <div id="room-panel" class="panel">
@@ -1758,11 +1753,6 @@ function updateCeoDeskWork(dt) {
 // ── Support Staff (Barista + Supply Runner) ───────────────────
 const supportStaff = [];
 
-function supportHireCost(role) {
-  const count = supportStaff.filter(s => s.role === role).length;
-  return Math.floor((role === 'barista' ? 200 : 180) * Math.pow(1.5, count));
-}
-
 function spawnSupportStaff(role) {
   const seed = supportStaff.length + (role === 'barista' ? 101 : 202);
   const look = randomWorkerLook(seed);
@@ -1786,26 +1776,6 @@ function spawnSupportStaff(role) {
   g.position.set(supplyCloset.pos.x + (Math.random() - 0.5) * 2, 0, supplyCloset.pos.z + 1);
   scene.add(g);
   supportStaff.push({ group: g, carry, role, state: 'toCloset', carrying: false, waitT: 0 });
-}
-
-function hireBarista() {
-  if (supportStaff.filter(s => s.role === 'barista').length >= 2) return;
-  const cost = supportHireCost('barista');
-  if (state.cash < cost) return;
-  state.cash -= cost;
-  spawnSupportStaff('barista');
-  addCash(0);
-  renderHirePanel();
-}
-
-function hireSupplyRunner() {
-  if (supportStaff.filter(s => s.role === 'runner').length >= 2) return;
-  const cost = supportHireCost('runner');
-  if (state.cash < cost) return;
-  state.cash -= cost;
-  spawnSupportStaff('runner');
-  addCash(0);
-  renderHirePanel();
 }
 
 function updateSupportStaff(dt) {
@@ -1856,10 +1826,6 @@ function updateSupportStaff(dt) {
 const hireBtnEl       = document.getElementById('hire-btn');
 const hireCostEl      = document.getElementById('hire-cost');
 const empCountEl      = document.getElementById('emp-count');
-const hireBaristaBtnEl = document.getElementById('hire-barista-btn');
-const hireBaristaCostEl = document.getElementById('hire-barista-cost');
-const hireRunnerBtnEl  = document.getElementById('hire-runner-btn');
-const hireRunnerCostEl = document.getElementById('hire-runner-cost');
 
 function renderHirePanel() {
   const totalDesks = plots.filter(p => p.active).length;
@@ -1868,15 +1834,6 @@ function renderHirePanel() {
   const hcost = ideaWorkerHireCost();
   hireBtnEl.disabled = !canHire || state.cash < hcost;
   hireCostEl.textContent = canHire ? `$${hcost}` : 'No desks';
-
-  const bCount = supportStaff.filter(s=>s.role==='barista').length;
-  const rCount = supportStaff.filter(s=>s.role==='runner').length;
-  const bcost = supportHireCost('barista');
-  const rcost = supportHireCost('runner');
-  hireBaristaBtnEl.disabled = bCount >= 2 || state.cash < bcost;
-  hireBaristaCostEl.textContent = bCount >= 2 ? 'Max' : `$${bcost}`;
-  hireRunnerBtnEl.disabled = rCount >= 2 || state.cash < rcost;
-  hireRunnerCostEl.textContent = rCount >= 2 ? 'Max' : `$${rcost}`;
 }
 
 hireBtnEl.addEventListener('click', () => {
@@ -1888,8 +1845,6 @@ hireBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`💡 Hired idea person #${ideaWorkers.length}!`);
 });
-document.getElementById('hire-barista-btn').addEventListener('click', hireBarista);
-document.getElementById('hire-runner-btn').addEventListener('click', hireSupplyRunner);
 
 // (Product shelf removed — workers now deliver to CEO desk)
 
@@ -2125,6 +2080,10 @@ function buyAmenity(id) {
   am.stock = 0; // Support staff will stock it
   buildAmenity(am);
   if (id === 'standup') ideaSpeedMult *= 1.3;
+  // Barista comes with the Espresso Bar — they live at the cafe, not a separate hire
+  if (id === 'coffee' && !supportStaff.some(s => s.role === 'barista')) {
+    spawnSupportStaff('barista');
+  }
   addCash(0);
 }
 const amenitiesList = document.getElementById('amenities-list');
@@ -2247,7 +2206,6 @@ function addCash(n) {
 const UPGRADE_CATS = [
   { id:'ideation',    label:'💡 Ideation' },
   { id:'engineering', label:'⚙️ Engineering' },
-  { id:'automation',  label:'🤖 Automation' },
   { id:'revenue',     label:'📈 Revenue' },
 ];
 const UPGRADES = [
@@ -2269,11 +2227,6 @@ const UPGRADES = [
     apply: lv => { maxStack = 10 + lv * 2; } },
   { id:'marketing', cat:'engineering', label:'☕ Espresso Machine',   base:75,  scale:1.7, max:4,
     apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); } },
-  // ── Automation ──
-  { id:'slot',      cat:'automation',  label:'🧑‍💼 Office Assistant', base:200, scale:1,   max:1,
-    apply: lv => { if (lv > 0) spawnSupportStaff('runner'); } },
-  { id:'bot',       cat:'automation',  label:'📦 Hire Jr. Runner',    base:80,  scale:1.6, max:4,
-    apply: lv => { spawnSupportStaff('runner'); } },
   // ── Revenue ──
   { id:'pricing',   cat:'revenue',     label:'💸 Premium Tier',       base:100, scale:1.8, max:4,
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
@@ -3047,7 +3000,8 @@ function loadGame() {
     }
     // Re-spawn support staff silently
     if (p.supportStaff) {
-      for (const role of p.supportStaff) spawnSupportStaff(role);
+      // Only baristas are restored from legacy saves; the old supply-runner role has been retired.
+      for (const role of p.supportStaff) if (role === 'barista') spawnSupportStaff(role);
     }
     if (p.amenities) {
       for (const saved of p.amenities) {
