@@ -605,6 +605,10 @@
     <div id="hire-section">
       <div class="stat-line"><span>Idea People</span><span id="emp-count">0 / 9</span></div>
       <button class="hire-btn" id="hire-btn">💡 Hire Idea Person<span class="cost" id="hire-cost">$75</span></button>
+      <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px">
+        <div class="panel-title" style="margin-bottom:6px">🛠️ Office Managers</div>
+        <button class="hire-btn" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
+      </div>
     </div>
   </div>
   <div id="room-panel" class="panel">
@@ -1779,7 +1783,143 @@ function updatePlayerEspressoRefill(dt) {
   }
 }
 
-// ── Support Staff (legacy; slot kept for future Executive Assistant) ──
+// ── Executive Assistants (first office manager role) ────────
+// You can hire more than one. They each walk the office autonomously,
+// coordinating so two EAs don't target the same desk or amenity at
+// the same time. Current tasks: refill the Espresso Bar when it's
+// below 40% and top up any occupied desk whose paperStock drops
+// below 4. Future tasks: bring coffee to tired engineers etc.
+const eas = [];
+const EA_BASE_COST = 400;
+const EA_COST_SCALE = 1.6;
+function eaCost() {
+  return Math.floor(EA_BASE_COST * Math.pow(EA_COST_SCALE, eas.length));
+}
+
+function spawnExecutiveAssistant() {
+  const idx = eas.length;
+  // Mild per-hire variety: swap skin/hair so they look distinct
+  const look = {
+    bodyColor: [0x6a5a4a, 0x8a3a3a, 0x3a5a6a, 0x5a4a7a][idx % 4],
+    pantsColor: 0x1a1e28,
+    hairColor:  HAIR_COLORS[(idx * 2 + 1) % HAIR_COLORS.length],
+    skinColor:  SKIN_COLORS[(idx + 1) % SKIN_COLORS.length],
+    hasBeanie: false,
+    hasGlasses: (idx % 2) === 0,
+  };
+  const g = buildScrappyCharacter(look);
+  g.position.set(-3 + idx * 1.4, 0, 1);
+  scene.add(g);
+  const carry = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.03, 0.38),
+    new THREE.MeshLambertMaterial({ color: 0xf5efdb })
+  );
+  carry.position.set(0, 1.12, 0.3);
+  carry.castShadow = true;
+  carry.visible = false;
+  g.add(carry);
+  eas.push({
+    group: g, carryMesh: carry,
+    state: 'idle', waitT: 0,
+    target: null, targetDesk: null, targetAmenity: null,
+  });
+}
+
+function hireExecutiveAssistant() {
+  const cost = eaCost();
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  spawnExecutiveAssistant();
+  addCash(0);
+  renderHirePanel();
+  addFeedEntry(`🧑‍💼 Hired EA #${eas.length}`);
+  showToast(`🧑‍💼 EA #${eas.length} on the floor!`, 'milestone');
+}
+
+function pickEATask(self) {
+  const others = eas.filter(e => e !== self);
+  // Priority 1: espresso below 40% (skip if another EA is already handling it)
+  const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
+  const coffeeClaimed = others.some(e => e.targetAmenity === coffeeAm);
+  if (coffeeAm && !coffeeClaimed && coffeeAm.stock < coffeeAm.maxStock * 0.4) {
+    return {
+      state: 'toCoffee',
+      target: { x: coffeeAm.position.x, z: coffeeAm.position.z + 1.2 },
+      amenity: coffeeAm,
+    };
+  }
+  // Priority 2: lowest-paper occupied desk under 4 sheets, not already claimed
+  const claimedDesks = new Set(others.map(e => e.targetDesk).filter(Boolean));
+  let worstDesk = null;
+  let lowest = 4;
+  for (const p of plots) {
+    if (!p.active || !p.occupied || claimedDesks.has(p)) continue;
+    if (p.paperStock < lowest) { worstDesk = p; lowest = p.paperStock; }
+  }
+  if (worstDesk) {
+    return {
+      state: 'toDesk',
+      target: { x: worstDesk.group.position.x, z: worstDesk.group.position.z + 1.2 },
+      desk: worstDesk,
+    };
+  }
+  return null;
+}
+
+function updateExecutiveAssistants(dt) {
+  for (const ea of eas) {
+    if (ea.state === 'idle') {
+      ea.waitT -= dt;
+      if (ea.waitT > 0) continue;
+      const task = pickEATask(ea);
+      if (task) {
+        ea.state = task.state;
+        ea.target = task.target;
+        ea.targetDesk = task.desk || null;
+        ea.targetAmenity = task.amenity || null;
+        ea.carryMesh.visible = task.state === 'toDesk';
+      } else {
+        ea.waitT = 1.5;
+      }
+      continue;
+    }
+
+    if (ea.state === 'refillingCoffee') {
+      ea.waitT -= dt;
+      if (ea.waitT <= 0) {
+        if (ea.targetAmenity) {
+          ea.targetAmenity.stock = Math.min(ea.targetAmenity.maxStock, ea.targetAmenity.stock + 10);
+        }
+        ea.state = 'idle'; ea.waitT = 0.4;
+        ea.targetAmenity = null;
+      }
+      continue;
+    }
+
+    if (!ea.target) { ea.state = 'idle'; continue; }
+    const tx = ea.target.x - ea.group.position.x;
+    const tz = ea.target.z - ea.group.position.z;
+    const dist = Math.hypot(tx, tz);
+    if (dist > 0.35) {
+      ea.group.position.x += (tx / dist) * 4 * dt;
+      ea.group.position.z += (tz / dist) * 4 * dt;
+      ea.group.rotation.y = Math.atan2(tx / dist, tz / dist);
+      continue;
+    }
+    if (ea.state === 'toCoffee') {
+      ea.state = 'refillingCoffee'; ea.waitT = 1.2;
+    } else if (ea.state === 'toDesk') {
+      if (ea.targetDesk) {
+        ea.targetDesk.paperStock = Math.min(PAPER_MAX, ea.targetDesk.paperStock + 8);
+      }
+      ea.carryMesh.visible = false;
+      ea.state = 'idle'; ea.waitT = 0.4;
+      ea.targetDesk = null; ea.target = null;
+    }
+  }
+}
+
+// ── Support Staff (legacy; fully retired from gameplay) ─────
 const supportStaff = [];
 
 function spawnSupportStaff(role) {
@@ -1856,6 +1996,9 @@ const hireBtnEl       = document.getElementById('hire-btn');
 const hireCostEl      = document.getElementById('hire-cost');
 const empCountEl      = document.getElementById('emp-count');
 
+const hireEaBtnEl  = document.getElementById('hire-ea-btn');
+const hireEaCostEl = document.getElementById('hire-ea-cost');
+
 function renderHirePanel() {
   const totalDesks = plots.filter(p => p.active).length;
   empCountEl.textContent = `${ideaWorkers.length} / ${totalDesks}`;
@@ -1863,6 +2006,10 @@ function renderHirePanel() {
   const hcost = ideaWorkerHireCost();
   hireBtnEl.disabled = !canHire || state.cash < hcost;
   hireCostEl.textContent = canHire ? `$${hcost}` : 'No desks';
+
+  const ecost = eaCost();
+  hireEaBtnEl.disabled = state.cash < ecost;
+  hireEaCostEl.textContent = eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`;
 }
 
 hireBtnEl.addEventListener('click', () => {
@@ -1874,6 +2021,7 @@ hireBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`💡 Hired idea person #${ideaWorkers.length}!`);
 });
+hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 
 // (Product shelf removed — workers now deliver to CEO desk)
 
@@ -2695,6 +2843,7 @@ class OfficeFloor extends Floor {
     updateCeoDeskWork(dt);
     updatePlayerEspressoRefill(dt);
     updateIdeaWorkers(dt);
+    updateExecutiveAssistants(dt);
     updateSupportStaff(dt);
     updateSupplyCloset(dt);
     checkDecorUpgrades(dt);
@@ -2893,6 +3042,9 @@ function doIPO() {
   // Remove support staff
   for (const s of supportStaff) scene.remove(s.group);
   supportStaff.length = 0;
+  // Remove Executive Assistants
+  for (const e of eas) scene.remove(e.group);
+  eas.length = 0;
 
   // Remove amenities
   for (const a of amenities) {
@@ -2970,6 +3122,7 @@ function saveGame() {
       unlocked,
       ideaWorkers: ideaWorkers.length,
       supportStaff: supportStaff.map(s => s.role),
+      eaCount: eas.length,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -3041,6 +3194,9 @@ function loadGame() {
     if (p.supportStaff) {
       // The old barista + supply-runner support roles have both been retired.
       // Drop any legacy entries so saves don't respawn them in the new office.
+    }
+    if (typeof p.eaCount === 'number') {
+      for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant();
     }
     if (p.amenities) {
       for (const saved of p.amenities) {
