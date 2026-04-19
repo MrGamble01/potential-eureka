@@ -1498,7 +1498,7 @@ for (const def of PLOT_DEFS) {
   const active = def.tier === 0; // tier:0 = starter room (always active)
   g.visible = active;
   scene.add(g);
-  plots.push({ group:g, paperStack, ready:false, tier:def.tier, roomId:def.roomId, active, occupied:false });
+  plots.push({ group:g, paperStack, ready:false, tier:def.tier, roomId:def.roomId, active, occupied:false, paperStock:10 });
 }
 
 function activatePlots(level) {
@@ -1559,6 +1559,8 @@ function updateIdeaWorkers(dt) {
     if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
 
     if (w.state === 'atDesk') {
+      // No paper at the desk → idle until someone refills it
+      if (w.desk.paperStock < 1) { w.currentRate = 0; continue; }
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < PROX_RANGE ? 1.5 : 1.0;
@@ -1590,6 +1592,8 @@ function updateIdeaWorkers(dt) {
       if (w.workProgress >= 1.0 && dealSpeedMult > 0) {
         w.workProgress = 0;
         setPaperStackProgress(w.desk.paperStack, 0);
+        // Each shipped feature consumes a sheet of desk paper
+        w.desk.paperStock = Math.max(0, w.desk.paperStock - 1);
         // Paper value boost
         w.paperBoost = 1.0;
         if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
@@ -1750,17 +1754,28 @@ function updateCeoDeskWork(dt) {
   }
 }
 
-// ── Player Refill (espresso machine) ─────────────────────────
-// Stand near the Espresso Bar to refill it. Fills faster than workers drain
-// when you're actively there; intended as a fallback when no Executive
-// Assistant is hired yet. Engineers grab their own cups from the stock.
+// ── Player Refill (espresso machine + desks) ─────────────────
+// Stand near the Espresso Bar to refill it; stand near an occupied desk
+// to refill its paper stock. Fallbacks for when no Executive Assistant
+// is hired yet; engineers grab their own cups from the coffee stock.
+const PAPER_MAX = 10;
 function updatePlayerEspressoRefill(dt) {
   const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
-  if (!coffeeAm || coffeeAm.stock >= coffeeAm.maxStock) return;
-  const dx = player.position.x - coffeeAm.position.x;
-  const dz = player.position.z - (coffeeAm.position.z + 0.8);
-  if (Math.hypot(dx, dz) < 2.0) {
-    coffeeAm.stock = Math.min(coffeeAm.maxStock, coffeeAm.stock + dt * 4);
+  if (coffeeAm && coffeeAm.stock < coffeeAm.maxStock) {
+    const dx = player.position.x - coffeeAm.position.x;
+    const dz = player.position.z - (coffeeAm.position.z + 0.8);
+    if (Math.hypot(dx, dz) < 2.0) {
+      coffeeAm.stock = Math.min(coffeeAm.maxStock, coffeeAm.stock + dt * 4);
+    }
+  }
+  // Top up any occupied desk's paper when you're standing next to it
+  for (const p of plots) {
+    if (!p.active || !p.occupied || p.paperStock >= PAPER_MAX) continue;
+    const dx = player.position.x - p.group.position.x;
+    const dz = player.position.z - p.group.position.z;
+    if (Math.hypot(dx, dz) < 2.0) {
+      p.paperStock = Math.min(PAPER_MAX, p.paperStock + dt * 3);
+    }
   }
 }
 
@@ -2709,19 +2724,28 @@ function updateLabels() {
       wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
     } else if (w.state === 'atDesk') {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
-      const pct = Math.round((w.workProgress || 0) * 100);
-      const boosted = w.caffeinated || w.bossBoost > 1 || rushActive;
-      const fillColor = boosted ? '#F59E0B' : '#3FB950';
-      const bg = `linear-gradient(to right, ${fillColor} 0%, ${fillColor} ${pct}%, rgba(13,17,23,0.85) ${pct}%, rgba(13,17,23,0.85) 100%)`;
-      wants.push({ text: '', cls: 'workbar', x: p.x, y: p.y, bg });
-      const dxw = player.position.x - w.desk.group.position.x;
-      const dzw = player.position.z - w.desk.group.position.z;
-      const playerNear = Math.hypot(dxw, dzw) < PROX_RANGE;
-      const mouseNear = Math.abs(mouseScreenX - p.x) < 36 && Math.abs(mouseScreenY - p.y) < 32;
-      if (playerNear || mouseNear) {
-        const fpm = ((w.currentRate || 0) * 60).toFixed(1);
-        const prefix = w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️');
-        wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
+      const paper = Math.floor(w.desk.paperStock);
+      if (paper < 1) {
+        // Worker is idle waiting on paper
+        wants.push({ text: '📄❓', cls: 'bubble', x: p.x, y: p.y });
+      } else {
+        const pct = Math.round((w.workProgress || 0) * 100);
+        const boosted = w.caffeinated || w.bossBoost > 1 || rushActive;
+        const fillColor = boosted ? '#F59E0B' : '#3FB950';
+        const bg = `linear-gradient(to right, ${fillColor} 0%, ${fillColor} ${pct}%, rgba(13,17,23,0.85) ${pct}%, rgba(13,17,23,0.85) 100%)`;
+        wants.push({ text: '', cls: 'workbar', x: p.x, y: p.y, bg });
+        if (paper <= 3) {
+          wants.push({ text: `📄 ${paper}`, cls: 'prompt', x: p.x, y: p.y - 14 });
+        }
+        const dxw = player.position.x - w.desk.group.position.x;
+        const dzw = player.position.z - w.desk.group.position.z;
+        const playerNear = Math.hypot(dxw, dzw) < PROX_RANGE;
+        const mouseNear = Math.abs(mouseScreenX - p.x) < 36 && Math.abs(mouseScreenY - p.y) < 32;
+        if ((playerNear || mouseNear) && paper > 3) {
+          const fpm = ((w.currentRate || 0) * 60).toFixed(1);
+          const prefix = w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️');
+          wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
+        }
       }
     }
   }
