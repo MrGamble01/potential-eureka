@@ -66,51 +66,59 @@
 
     /* ── Left panel ───────────────────────────────────── */
     #left-panel {
-      position: fixed; top: 16px; left: 16px;
-      display: flex; flex-direction: column; gap: 8px;
-      max-width: 220px; user-select: none;
-    }
-    #upgrades {
+      position: fixed; top: 12px; left: 12px; bottom: 12px;
       display: flex; flex-direction: column; gap: 6px;
+      width: 210px; user-select: none;
+      overflow-y: auto; overflow-x: hidden;
+      scrollbar-width: thin; scrollbar-color: rgba(108,99,255,0.4) transparent;
+      padding-bottom: 4px;
+    }
+    #left-panel::-webkit-scrollbar { width: 4px; }
+    #left-panel::-webkit-scrollbar-track { background: transparent; }
+    #left-panel::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.4); border-radius: 4px; }
+    #upgrades {
+      display: flex; flex-direction: column; gap: 4px;
       background: rgba(8,10,18,0.88);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; padding: 10px 10px;
+      border-radius: 8px; padding: 8px;
+      flex-shrink: 0;
     }
     .panel {
       background: rgba(8,10,18,0.88);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; padding: 12px 14px; color: #E6EDF3;
+      border-radius: 8px; padding: 9px 11px; color: #E6EDF3;
+      flex-shrink: 0;
     }
     .panel-title {
-      font-weight: 700; font-size: 10px; text-transform: uppercase;
-      letter-spacing: 1.5px; color: #7D8590; margin-bottom: 8px;
+      font-weight: 700; font-size: 9px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #7D8590; margin-bottom: 6px;
     }
     .stat-line {
       display: flex; justify-content: space-between;
-      font-weight: 600; font-size: 12px; padding: 2px 0; color: #E6EDF3;
+      font-weight: 600; font-size: 11px; padding: 2px 0; color: #E6EDF3;
     }
 
     /* ── Hire buttons ─────────────────────────────────── */
     .hire-btn {
-      display: block; width: 100%; margin-top: 8px;
+      display: block; width: 100%; margin-top: 5px;
       background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3);
-      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
-      font-weight: 700; font-size: 12px; font-family: inherit;
+      color: #E6EDF3; border-radius: 5px; padding: 6px 10px;
+      font-weight: 700; font-size: 11px; font-family: inherit;
       cursor: pointer; text-align: left; transition: all 0.15s ease;
     }
     .hire-btn:hover:not(:disabled) { background: rgba(108,99,255,0.22); border-color: rgba(108,99,255,0.5); }
     .hire-btn:active:not(:disabled) { transform: scale(0.98); }
     .hire-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .hire-btn .cost { float: right; color: #3FB950; font-size: 11px; font-weight: 800; }
+    .hire-btn .cost { float: right; color: #3FB950; font-size: 10px; font-weight: 800; }
 
     /* ── Amenity buttons ──────────────────────────────── */
     .amenity-btn {
-      display: block; width: 100%; margin-top: 6px;
+      display: block; width: 100%; margin-top: 4px;
       background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.22);
-      color: #E6EDF3; border-radius: 6px; padding: 8px 12px;
-      font-weight: 700; font-size: 12px; font-family: inherit;
+      color: #E6EDF3; border-radius: 5px; padding: 6px 10px;
+      font-weight: 700; font-size: 11px; font-family: inherit;
       cursor: pointer; text-align: left; transition: all 0.15s;
     }
     .amenity-btn:hover:not(:disabled) { background: rgba(88,166,255,0.18); }
@@ -143,20 +151,22 @@
     /* ── Upgrade buttons ──────────────────────────────── */
     .upg-btn {
       display: block; width: 100%;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 6px; padding: 8px 12px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 5px; padding: 5px 8px;
       font-weight: 600; text-align: left; cursor: pointer;
-      color: #E6EDF3; font-size: 12px; font-family: inherit; transition: all 0.15s;
+      color: #E6EDF3; font-size: 11px; font-family: inherit; transition: all 0.15s;
+      line-height: 1.3;
     }
     .upg-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
     .upg-btn:active:not(:disabled) { transform: scale(0.98); }
     .upg-btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .upg-btn .lvl {
       float: right; background: rgba(108,99,255,0.45); color: #c4beff;
-      padding: 1px 7px; border-radius: 8px; font-size: 10px; font-weight: 800;
+      padding: 1px 6px; border-radius: 6px; font-size: 9px; font-weight: 800;
+      margin-left: 4px;
     }
     .upg-btn .lvl.maxed { background: rgba(212,153,34,0.45); color: #fcd34d; }
-    .upg-btn .cost { display: block; color: #3FB950; font-size: 11px; margin-top: 2px; font-weight: 700; }
+    .upg-btn .cost { display: block; color: #3FB950; font-size: 10px; margin-top: 1px; font-weight: 700; }
 
     /* ── Elevator ─────────────────────────────────────── */
     #elevator-btn {
@@ -372,9 +382,10 @@
     .upg-cat {
       font-size: 9px; font-weight: 800; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590;
-      padding: 6px 2px 2px; margin-top: 4px;
+      padding: 5px 2px 2px; margin-top: 2px;
       border-top: 1px solid rgba(255,255,255,0.06);
     }
+    .upg-cat:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
   </style>
 </head>
 <body>
