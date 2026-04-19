@@ -1207,6 +1207,171 @@ function getPlayerRoom() {
   const gz = Math.round(player.position.z / 16);
   return ROOM_DEFS.find(r => r.gx === gx && r.gz === gz && ownedRooms.has(r.id));
 }
+// ── Room Conversion ─────────────────────────────────────────
+// Rooms that can change purpose as the company matures. Each mode
+// swaps in a new set of desks + label; seated hires are migrated to
+// equivalent desks in other owned rooms (or the conversion is blocked
+// if there isn't space).
+const ROOM_MODES = {
+  'front': {
+    initial: 'shared',
+    modes: {
+      'shared': {
+        label: '🏗️ Open Plan',
+        desks: [{x:-4,z:13},{x:4,z:13},{x:0,z:19}],
+        nextMode: 'sales',
+        nextCost: 1500,
+        nextReq: () => ownedRooms.has('left') && ownedRooms.has('right'),
+        nextReqText: 'Needs 💻 Engineering Pod + 📞 Sales Corner',
+        nextLabel: '📞 Sales Floor',
+      },
+      'sales': {
+        label: '📞 Sales Floor',
+        desks: [{x:-4,z:13,role:'bdr'},{x:4,z:13,role:'bdr'},{x:0,z:19,role:'bdr'}],
+        nextMode: 'lounge',
+        nextCost: 5000,
+        nextReq: () => ownedRooms.has('back-left') && ownedRooms.has('front-right'),
+        nextReqText: 'Needs 💼 Account Management + 🏛️ Leadership Suite',
+        nextLabel: '🧘 Open Lounge',
+        onEnter: () => {
+          // Entering Sales Floor promotes the Sales Corner into an AE Office
+          if (ownedRooms.has('right') && (roomModes['right'] || 'bdr-corner') === 'bdr-corner') {
+            convertRoom('right', { auto: true });
+          }
+        },
+      },
+      'lounge': {
+        label: '🧘 Open Lounge',
+        desks: [],
+      },
+    },
+  },
+  'right': {
+    initial: 'bdr-corner',
+    modes: {
+      'bdr-corner': {
+        label: '📞 Sales Corner',
+        desks: [{x:20,z:-3, role:'bdr'}, {x:20,z:3, role:'bdr'}],
+      },
+      'ae-office': {
+        label: '💼 AE Office',
+        desks: [{x:20,z:-3, role:'ae'}, {x:20,z:3, role:'ae'}],
+      },
+    },
+  },
+};
+const roomModes = {}; // roomId → current mode id
+
+function currentModeOf(roomId) {
+  const cfg = ROOM_MODES[roomId];
+  if (!cfg) return null;
+  return cfg.modes[roomModes[roomId] || cfg.initial];
+}
+
+// Given a set of seated hires in a room being converted, find a
+// migration plan: each hire gets mapped to an open desk elsewhere that
+// accepts their role. Returns null if any hire can't be placed.
+function planMigration(fromRoomId, seated) {
+  const otherOpenDesks = plots.filter(p => p.active && !p.occupied && p.roomId !== fromRoomId);
+  // Soft-claim desks as we assign them
+  const claimed = new Set();
+  const plan = [];
+  for (const hire of seated) {
+    const role = hire.role;
+    const target = otherOpenDesks.find(d => !claimed.has(d) && deskAcceptsRole(d, role));
+    if (!target) return null;
+    claimed.add(target);
+    plan.push({ hire, fromDesk: hire.desk, toDesk: target });
+  }
+  return plan;
+}
+
+// Collect hires seated in a given room, tagged with their role so we
+// can match them to compatible desks elsewhere.
+function seatedInRoom(roomId) {
+  const out = [];
+  for (const w of ideaWorkers) if (w.desk && w.desk.roomId === roomId) out.push({ hire: w, role: 'eng', kind: 'eng' });
+  for (const b of bdrs)        if (b.desk && b.desk.roomId === roomId) out.push({ hire: b, role: 'bdr', kind: 'bdr' });
+  for (const a of aes)         if (a.desk && a.desk.roomId === roomId) out.push({ hire: a, role: 'ae',  kind: 'ae'  });
+  for (const v of vps)         if (v.desk && v.desk.roomId === roomId) out.push({ hire: v, role: 'vp',  kind: 'vp'  });
+  return out.map(s => ({ ...s.hire, role: s.role, _hire: s.hire }));
+}
+
+function convertRoom(roomId, opts = {}) {
+  const cfg = ROOM_MODES[roomId];
+  if (!cfg) return false;
+  const curId = roomModes[roomId] || cfg.initial;
+  const cur = cfg.modes[curId];
+  if (!cur || !cur.nextMode) return false;
+  const next = cfg.modes[cur.nextMode];
+  if (!next) return false;
+  if (!opts.auto) {
+    if (cur.nextReq && !cur.nextReq()) return false;
+    if (state.cash < (cur.nextCost || 0)) return false;
+  }
+  // Gather hires currently seated in this room and plan migration
+  const seatedRecords = [];
+  for (const w of ideaWorkers) if (w.desk && w.desk.roomId === roomId) seatedRecords.push({ hire: w, role: 'eng' });
+  for (const b of bdrs)        if (b.desk && b.desk.roomId === roomId) seatedRecords.push({ hire: b, role: 'bdr' });
+  for (const a of aes)         if (a.desk && a.desk.roomId === roomId) seatedRecords.push({ hire: a, role: 'ae'  });
+  for (const v of vps)         if (v.desk && v.desk.roomId === roomId) seatedRecords.push({ hire: v, role: 'vp'  });
+  // Try to place each seated hire at an open compatible desk in another room
+  const otherOpen = plots.filter(p => p.active && !p.occupied && p.roomId !== roomId);
+  const claimed = new Set();
+  const plan = [];
+  for (const rec of seatedRecords) {
+    const target = otherOpen.find(d => !claimed.has(d) && deskAcceptsRole(d, rec.role));
+    if (!target) {
+      if (!opts.auto) {
+        showToast(`🔒 Not enough compatible desks for ${seatedRecords.length} seated hire${seatedRecords.length > 1 ? 's' : ''}. Buy / Add Desk first.`, '');
+      }
+      return false;
+    }
+    claimed.add(target);
+    plan.push({ rec, target });
+  }
+  // Pay cost (unless auto-triggered by another conversion)
+  if (!opts.auto) state.cash -= (cur.nextCost || 0);
+  // Execute migration
+  for (const step of plan) {
+    step.rec.hire.desk.occupied = false;
+    step.target.occupied = true;
+    step.rec.hire.desk = step.target;
+    step.rec.hire.group.position.set(step.target.group.position.x, 0, step.target.group.position.z + 1.0);
+    // Reset any mid-walk state on the hire
+    if ('state' in step.rec.hire) step.rec.hire.state = step.rec.role === 'ae' ? undefined : 'atDesk';
+    if ('target' in step.rec.hire) step.rec.hire.target = null;
+    if ('workProgress' in step.rec.hire) {
+      step.rec.hire.workProgress = 0;
+      if (step.rec.hire.carryMesh) setPaperStackProgress(step.rec.hire.carryMesh, 0);
+    }
+  }
+  // Remove this room's old plots from the scene + plots array
+  const oldPlots = plots.filter(p => p.roomId === roomId);
+  for (const op of oldPlots) scene.remove(op.group);
+  plots.splice(0, plots.length, ...plots.filter(p => p.roomId !== roomId));
+  // Rebuild desks per the new mode
+  for (const d of next.desks) {
+    const plot = createPlot({
+      x: d.x, z: d.z,
+      role: d.role || 'any',
+      tier: roomId === 'starter' ? 0 : 99,
+      roomId,
+    });
+    plot.active = true;
+    plot.group.visible = true;
+  }
+  // Update mode state + fire side-effect
+  roomModes[roomId] = cur.nextMode;
+  addCash(0);
+  addFeedEntry(`🏗️ ${cur.label} → ${next.label}`);
+  showToast(`🏗️ ${next.label}!`, 'milestone');
+  renderRoomPanel();
+  renderHirePanel();
+  if (next.onEnter) next.onEnter();
+  return true;
+}
+
 function addDeskToCurrentRoom() {
   const def = getPlayerRoom();
   if (!def) return;
@@ -1249,6 +1414,7 @@ function renderRoomPanel() {
   const el = document.getElementById('room-list');
   if (!el) return;
   el.innerHTML = '';
+  // Unowned rooms (buy)
   for (const def of ROOM_DEFS) {
     if (def.id === 'starter') continue;
     if (ownedRooms.has(def.id)) continue;
@@ -1258,6 +1424,23 @@ function renderRoomPanel() {
     btn.disabled = !canAfford;
     btn.innerHTML = `${def.label}<span class="tag">$${fmtCash(def.cost)}</span>`;
     btn.onclick = () => buyRoom(def.id);
+    el.appendChild(btn);
+  }
+  // Conversion options on owned rooms that have a next mode
+  for (const roomId of ownedRooms) {
+    const cur = currentModeOf(roomId);
+    if (!cur || !cur.nextMode) continue;
+    const cfg = ROOM_MODES[roomId];
+    const next = cfg.modes[cur.nextMode];
+    const reqMet = !cur.nextReq || cur.nextReq();
+    const canAfford = state.cash >= (cur.nextCost || 0);
+    const btn = document.createElement('button');
+    btn.className = 'room-btn';
+    btn.disabled = !reqMet || !canAfford;
+    btn.innerHTML = reqMet
+      ? `⚡ Convert to ${next.label}<span class="tag">$${fmtCash(cur.nextCost)}</span>`
+      : `🔒 ${next.label}<span class="tag" style="color:#7D8590">${cur.nextReqText || ''}</span>`;
+    btn.onclick = () => convertRoom(roomId);
     el.appendChild(btn);
   }
   if (el.children.length === 0) {
@@ -3503,6 +3686,8 @@ function doIPO() {
     }
     ownedRooms.delete(roomId);
   }
+  // Reset any room-conversion modes so new season starts fresh
+  for (const k of Object.keys(roomModes)) delete roomModes[k];
   // Clear shared walls map and rebuild starter room walls
   for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
   const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
@@ -3562,6 +3747,7 @@ function saveGame() {
       aeCount: aes.length,
       vpCount: vps.length,
       vpTier: vps.length > 0 ? vps[0].tier : 0,
+      roomModes: { ...roomModes },
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -3623,6 +3809,31 @@ function loadGame() {
             activatePlotsForRoom(roomId);
           }
         }
+      }
+    }
+    // Restore converted room modes + rebuild their desks to match.
+    // Hires are spawned afterwards so they land on the current-mode
+    // desks correctly.
+    if (p.roomModes) {
+      for (const [roomId, mode] of Object.entries(p.roomModes)) {
+        const cfg = ROOM_MODES[roomId];
+        if (!cfg || mode === cfg.initial) { roomModes[roomId] = mode; continue; }
+        const next = cfg.modes[mode];
+        if (!next) continue;
+        const oldPlots = plots.filter(pl => pl.roomId === roomId);
+        for (const op of oldPlots) scene.remove(op.group);
+        plots.splice(0, plots.length, ...plots.filter(pl => pl.roomId !== roomId));
+        for (const d of next.desks) {
+          const plot = createPlot({
+            x: d.x, z: d.z,
+            role: d.role || 'any',
+            tier: 99,
+            roomId,
+          });
+          plot.active = true;
+          plot.group.visible = true;
+        }
+        roomModes[roomId] = mode;
       }
     }
     // Re-spawn idea workers silently (free on load)
