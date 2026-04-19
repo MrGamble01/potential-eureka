@@ -680,6 +680,10 @@
       <input type="checkbox" id="morale-enabled">
       <span>😊 Morale system</span>
     </label>
+    <label class="setting-row">
+      <input type="checkbox" id="investor-enabled">
+      <span>🤝 Investor check-ins</span>
+    </label>
     <label class="setting-row" style="justify-content:space-between">
       <span>💬 Toast density</span>
       <select id="toast-density" style="background:rgba(8,10,18,0.8);color:#E6EDF3;border:1px solid rgba(255,255,255,0.18);border-radius:6px;padding:3px 6px;font-family:inherit;font-size:11px">
@@ -3184,6 +3188,126 @@ function raiseFunding() {
 const state = { cash: 0, allTimeCash: 0 };
 const cashValEl = document.getElementById('cash-val');
 
+// ── Investor Check-ins ──────────────────────────────────────
+// An investor walks in from HQ's south door, wanders the owned floor
+// for a window of seconds, and leaves. Walk up to within 1.6u to
+// auto-greet (handshake). Greet → reward + affinity ↑ for that type.
+// Affinity boosts future rewards from the same type. Missed visits
+// are just a lost opportunity — no penalty.
+let investorEnabled = true;
+const investors = [];
+const INVESTOR_TYPES = [
+  { id: 'angel',      label: 'Angel investor', icon: '💰', baseReward: 500,  windowSec: 32, color: 0x8a6a2a,
+    onGreet: (inv, mult) => { const amt = Math.round(inv.type.baseReward * mult + state.allTimeCash * 0.02);
+      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt); } },
+  { id: 'vc',         label: 'VC',              icon: '🦈', baseReward: 1500, windowSec: 36, color: 0x4a3a7a,
+    onGreet: (inv, mult) => { const teamOK = ideaWorkers.length >= 5;
+      const amt = Math.round(inv.type.baseReward * mult * (teamOK ? 2 : 0.5));
+      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt);
+      addFeedEntry(teamOK ? '🦈 VC: "Big team, big check"' : '🦈 VC: "Come back when you scale"'); } },
+  { id: 'corpdev',    label: 'Corp Dev',        icon: '🏦', baseReward: 0,    windowSec: 32, color: 0x3a4a5a,
+    onGreet: (inv) => { const prev = dealValueMult; dealValueMult *= 1.5;
+      addFeedEntry('🏦 Corp Dev: deal value ×1.5 for 60s');
+      setTimeout(() => { dealValueMult = Math.max(1, prev); }, 60000); } },
+  { id: 'advisor',    label: 'Advisor',         icon: '🎓', baseReward: 0,    windowSec: 30, color: 0x3a6a4a,
+    onGreet: (inv) => { changeMorale(+20, 'Advisor pep talk'); } },
+  { id: 'tirekicker', label: 'Tire-kicker',     icon: '🚪', baseReward: 150,  windowSec: 18, color: 0x6a6a6a,
+    onGreet: (inv, mult) => { const amt = Math.round(inv.type.baseReward * mult);
+      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt); } },
+];
+const investorAffinity = {};
+let nextInvestorIn = 60 + Math.random() * 60;
+
+function pickWanderTarget() {
+  const owned = Array.from(ownedRooms);
+  const roomId = owned[Math.floor(Math.random() * owned.length)];
+  const def = ROOM_DEFS.find(r => r.id === roomId);
+  if (!def) return { x: 0, z: 0 };
+  const cx = def.gx * 16, cz = def.gz * 16;
+  return { x: cx + (Math.random() * 10 - 5), z: cz + (Math.random() * 10 - 5) };
+}
+
+function spawnInvestor() {
+  if (!investorEnabled) return;
+  const type = INVESTOR_TYPES[Math.floor(Math.random() * INVESTOR_TYPES.length)];
+  const look = {
+    bodyColor: type.color,
+    pantsColor: 0x111118,
+    hairColor: HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)],
+    skinColor: SKIN_COLORS[Math.floor(Math.random() * SKIN_COLORS.length)],
+    isCollared: true,
+    hasGlasses: type.id === 'advisor' || Math.random() < 0.4,
+  };
+  const g = buildScrappyCharacter(look);
+  g.position.set(0, 0, 8); // start at HQ's south door
+  scene.add(g);
+  investors.push({
+    type, group: g,
+    target: pickWanderTarget(),
+    remainingT: type.windowSec,
+    greeted: false,
+    state: 'walking',
+  });
+  showToast(`${type.icon} ${type.label} just walked in — go shake their hand!`, 'milestone', 'standard');
+  addFeedEntry(`${type.icon} ${type.label} arrived (${type.windowSec}s)`);
+}
+
+function greetInvestor(inv) {
+  if (inv.greeted) return;
+  inv.greeted = true;
+  const aff = investorAffinity[inv.type.id] || 0;
+  const mult = 1 + aff / 100;
+  inv.type.onGreet(inv, mult);
+  investorAffinity[inv.type.id] = Math.min(100, aff + 10);
+  changeMorale(+3, `Greeted ${inv.type.label}`);
+  showToast(`🤝 Greeted ${inv.type.label}!`, 'milestone', 'critical');
+  addFeedEntry(`🤝 Greeted ${inv.type.label} — affinity ${investorAffinity[inv.type.id]}`);
+  // Wrap up the visit and walk back out
+  inv.state = 'leaving';
+  inv.target = { x: 0, z: 8 };
+}
+
+function updateInvestors(dt) {
+  if (!investorEnabled) return;
+  if (investors.length === 0) {
+    nextInvestorIn -= dt;
+    if (nextInvestorIn <= 0) {
+      nextInvestorIn = 120 + Math.random() * 120; // 2–4 min between visits
+      if (state.allTimeCash >= 100) spawnInvestor();
+    }
+    return;
+  }
+  for (let i = investors.length - 1; i >= 0; i--) {
+    const inv = investors[i];
+    inv.remainingT -= dt;
+    if (inv.remainingT <= 0 && inv.state !== 'leaving') {
+      inv.state = 'leaving';
+      inv.target = { x: 0, z: 8 };
+    }
+    const tx = inv.target.x - inv.group.position.x;
+    const tz = inv.target.z - inv.group.position.z;
+    const dist = Math.hypot(tx, tz);
+    if (dist > 0.4) {
+      inv.group.position.x += (tx / dist) * 3.5 * dt;
+      inv.group.position.z += (tz / dist) * 3.5 * dt;
+      inv.group.rotation.y = Math.atan2(tx / dist, tz / dist);
+    } else {
+      if (inv.state === 'leaving') {
+        scene.remove(inv.group);
+        investors.splice(i, 1);
+        if (!inv.greeted) addFeedEntry(`${inv.type.icon} ${inv.type.label} left without meeting`);
+        continue;
+      }
+      inv.target = pickWanderTarget();
+    }
+    if (!inv.greeted) {
+      const dxp = player.position.x - inv.group.position.x;
+      const dzp = player.position.z - inv.group.position.z;
+      if (Math.hypot(dxp, dzp) < 1.6) greetInvestor(inv);
+    }
+  }
+}
+
 // ── Toast notifications ─────────────────────────────────────
 // Three levels: ambient (routine spam — short, gated by density),
 // standard (normal events), critical (milestones, sticky). On-screen
@@ -3699,6 +3823,21 @@ const savedMorale = localStorage.getItem('moraleEnabled');
 setMoraleEnabled(savedMorale === null ? true : savedMorale === '1');
 moraleToggleEl.addEventListener('change', () => setMoraleEnabled(moraleToggleEl.checked));
 
+// Investor check-ins toggle
+const investorToggleEl = document.getElementById('investor-enabled');
+function setInvestorEnabled(on) {
+  investorEnabled = !!on;
+  investorToggleEl.checked = investorEnabled;
+  localStorage.setItem('investorEnabled', investorEnabled ? '1' : '0');
+  if (!investorEnabled) {
+    for (const inv of investors) scene.remove(inv.group);
+    investors.length = 0;
+  }
+}
+const savedInv = localStorage.getItem('investorEnabled');
+setInvestorEnabled(savedInv === null ? true : savedInv === '1');
+investorToggleEl.addEventListener('change', () => setInvestorEnabled(investorToggleEl.checked));
+
 // Toast density setting
 const toastDensityEl = document.getElementById('toast-density');
 function setToastDensity(v) {
@@ -3777,6 +3916,7 @@ class OfficeFloor extends Floor {
     updateVPs(dt);
     updateAEs(dt);
     updateBDRs(dt);
+    updateInvestors(dt);
     updateSprint(dt);
     updateSupportStaff(dt);
     checkDecorUpgrades(dt);
@@ -3846,6 +3986,18 @@ function updateLabels() {
     if (e.state === 'chatting' || e.state === 'toChat') {
       const p = worldToScreen(e.group.position.x, 2.4, e.group.position.z);
       wants.push({ text: '💬', cls: 'bubble', x: p.x, y: p.y });
+    }
+  }
+  // Investor labels — type icon always, 🤝 prompt when player is in greet range
+  for (const inv of investors) {
+    const headP = worldToScreen(inv.group.position.x, 2.6, inv.group.position.z);
+    wants.push({ text: inv.type.icon, cls: 'bubble', x: headP.x, y: headP.y });
+    if (!inv.greeted) {
+      const dxp = player.position.x - inv.group.position.x;
+      const dzp = player.position.z - inv.group.position.z;
+      if (Math.hypot(dxp, dzp) < 4.0) {
+        wants.push({ text: '🤝 Greet', cls: 'refill', x: headP.x, y: headP.y - 22 });
+      }
     }
   }
   // Support staff carry bubbles
@@ -4023,6 +4175,11 @@ function doIPO() {
   // Reset any room-conversion modes so new season starts fresh
   for (const k of Object.keys(roomModes)) delete roomModes[k];
   // New season starts at default morale (per-worker, applied on respawn)
+  // Clear any in-flight investors and reset affinities for the new season
+  for (const inv of investors) scene.remove(inv.group);
+  investors.length = 0;
+  for (const k of Object.keys(investorAffinity)) delete investorAffinity[k];
+  nextInvestorIn = 60 + Math.random() * 60;
   // Clear shared walls map and rebuild starter room walls
   for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
   const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
@@ -4086,6 +4243,7 @@ function saveGame() {
       vpTier: vps.length > 0 ? vps[0].tier : 0,
       roomModes: { ...roomModes },
       morale: teamMorale(),
+      investorAffinity: { ...investorAffinity },
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -4218,6 +4376,11 @@ function loadGame() {
     }
     if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
     // Legacy per-session morale was a single number; new workers spawn with default and will absorb it on next tick (no-op).
+    if (p.investorAffinity && typeof p.investorAffinity === 'object') {
+      for (const [k, v] of Object.entries(p.investorAffinity)) {
+        if (typeof v === 'number') investorAffinity[k] = Math.max(0, Math.min(100, v));
+      }
+    }
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
