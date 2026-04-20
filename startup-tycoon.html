@@ -124,6 +124,11 @@
       display: inline-block; width: 9px;
       font-size: 9px; color: #5A6675;
     }
+    .panel-hint {
+      margin-left: auto;
+      font-size: 9px; font-weight: 700;
+      color: #7D8590; letter-spacing: 0.5px;
+    }
     .panel-body.collapsed { display: none; }
     .subsection {
       margin-top: 10px;
@@ -4201,7 +4206,18 @@ function refreshHud() {
   renderAmenities();
   renderRoomPanel();
   renderFunding();
+  refreshPanelHints();
   checkIPOAvailable();
+}
+function setPanelHint(key, text) {
+  const el = document.querySelector(`.panel-hint[data-hint="${key}"]`);
+  if (el) el.textContent = text;
+}
+function refreshPanelHints() {
+  const team = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
+  setPanelHint('team', team ? `${team} hired` : '');
+  const owned = amenities.filter(a => a.isOwned).length;
+  setPanelHint('amenities', owned ? `${owned}/${amenities.length}` : '');
 }
 function addCash(n) {
   state.cash += n;
@@ -4505,6 +4521,10 @@ function initCollapsiblePanel(panelId, key) {
   const chev = document.createElement('span');
   chev.className = 'panel-chev';
   title.prepend(chev);
+  const hint = document.createElement('span');
+  hint.className = 'panel-hint';
+  hint.dataset.hint = key;
+  title.appendChild(hint);
   title.classList.add('panel-title-toggle');
   const apply = () => {
     const c = !!collapsedPanels[key];
