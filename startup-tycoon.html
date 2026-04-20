@@ -698,8 +698,20 @@
       letter-spacing: 1.5px; color: #7D8590;
       padding: 5px 2px 2px; margin-top: 2px;
       border-top: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 4px;
+      transition: color 0.15s;
     }
-    .upg-cat:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
+    .upg-cat:hover { color: #B8C0CC; }
+    .upg-cat .upg-chev {
+      display: inline-block; width: 8px;
+      font-size: 8px; color: #5A6675;
+    }
+    .upg-section:first-child .upg-cat {
+      border-top: none; margin-top: 0; padding-top: 2px;
+    }
+    .upg-body { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+    .upg-body.collapsed { display: none; }
 
     /* ── Sidebar toggle (mobile) ──────────────────────── */
     #sidebar-toggle {
@@ -1037,6 +1049,7 @@ const LS = {
   tips:          'tipsEnabled',
   toastDensity:  'toastDensity',
   tipSeenPrefix: 'tip-seen-',
+  collapsedCats: 'collapsedUpgradeCats',
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -4386,25 +4399,45 @@ function buyUpgrade(id) {
   refreshHud();
 }
 const upgEl = document.getElementById('upgrades');
+let collapsedCats = {};
+try { collapsedCats = JSON.parse(localStorage.getItem(LS.collapsedCats) || '{}') || {}; }
+catch (_) { collapsedCats = {}; }
+function toggleUpgradeCat(cid) {
+  collapsedCats[cid] = !collapsedCats[cid];
+  localStorage.setItem(LS.collapsedCats, JSON.stringify(collapsedCats));
+  const body = upgEl.querySelector(`[data-body="${cid}"]`);
+  const chev = upgEl.querySelector(`.upg-cat[data-cat="${cid}"] .upg-chev`);
+  if (body) body.classList.toggle('collapsed', collapsedCats[cid]);
+  if (chev) chev.textContent = collapsedCats[cid] ? '▸' : '▾';
+}
 function renderUpgrades() {
   // Rebuild structure if first-time (no data-id buttons present)
   if (!upgEl.querySelector('[data-id]')) {
     upgEl.innerHTML = '';
-    let lastCat = null;
-    for (const u of UPGRADES) {
-      if (u.cat !== lastCat) {
-        lastCat = u.cat;
-        const catDef = UPGRADE_CATS.find(c => c.id === u.cat);
-        const hdr = document.createElement('div');
-        hdr.className = 'upg-cat';
-        hdr.textContent = catDef ? catDef.label : u.cat;
-        upgEl.appendChild(hdr);
+    for (const cat of UPGRADE_CATS) {
+      const items = UPGRADES.filter(u => u.cat === cat.id);
+      if (!items.length) continue;
+      const section = document.createElement('div');
+      section.className = 'upg-section';
+      const hdr = document.createElement('div');
+      hdr.className = 'upg-cat';
+      hdr.dataset.cat = cat.id;
+      const collapsed = !!collapsedCats[cat.id];
+      hdr.innerHTML = `<span class="upg-chev">${collapsed ? '▸' : '▾'}</span>${cat.label}`;
+      hdr.onclick = () => toggleUpgradeCat(cat.id);
+      section.appendChild(hdr);
+      const body = document.createElement('div');
+      body.className = 'upg-body' + (collapsed ? ' collapsed' : '');
+      body.dataset.body = cat.id;
+      for (const u of items) {
+        const btn = document.createElement('button');
+        btn.className = 'upg-btn';
+        btn.dataset.id = u.id;
+        btn.onclick = () => buyUpgrade(u.id);
+        body.appendChild(btn);
       }
-      const btn = document.createElement('button');
-      btn.className = 'upg-btn';
-      btn.dataset.id = u.id;
-      btn.onclick = () => buyUpgrade(u.id);
-      upgEl.appendChild(btn);
+      section.appendChild(body);
+      upgEl.appendChild(section);
     }
   }
   // Update button states only (skip .upg-cat headers)
