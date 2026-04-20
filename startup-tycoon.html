@@ -605,12 +605,28 @@
     .ach-row.earned .ach-name { color: #fcd34d; }
     .ach-row .ach-desc { font-size: 11px; color: #7D8590; line-height: 1.4; margin-top: 2px; }
     @media (max-width: 900px) {
+      /* On mobile the status bar + cash HUD + metrics stack already occupy
+         the top corners. Dock the goal HUD to the top-LEFT under the
+         sidebar toggle so it hugs the left edge without crowding the cash
+         readout, and let it shrink to fit narrow phones. */
       #goal-hud {
-        top: calc(58px + env(safe-area-inset-top, 0px));
-        min-width: 180px;
+        top: calc(64px + env(safe-area-inset-top, 0px));
+        left: calc(12px + env(safe-area-inset-left, 0px));
+        transform: none;
+        min-width: 0;
+        width: calc(100vw - 170px); /* leave room for cash-hud on the right */
+        max-width: 300px;
         padding: 5px 10px 6px;
       }
       .goal-header { font-size: 10px; }
+      #goal-spark { height: 14px; }
+    }
+    @media (max-width: 430px) {
+      /* Phones: hide the sparkline to make room for the bar + label. */
+      #goal-spark { display: none; }
+      #goal-hud {
+        width: calc(100vw - 160px);
+      }
     }
 
     /* ── Win modal (celebratory overlay when goal hit) ─── */
