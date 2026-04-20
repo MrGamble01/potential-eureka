@@ -979,44 +979,55 @@
 </div>
 <div id="left-panel">
   <div id="office-panel" class="panel">
-    <div class="panel-title">👥 Team</div>
+    <div class="panel-title" id="pt-team">👥 Team</div>
     <div id="hire-section">
       <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
       <button class="hire-btn role-eng" id="hire-btn" title="Hire Engineer (H)">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
       <button class="hire-btn role-ext" id="hire-ext-eng-btn" style="margin-top:4px">👔 Hire External Engineer<span class="cost" id="hire-ext-eng-cost">$225</span></button>
       <div class="subsection">
-        <div class="panel-title">🛠️ Office Managers</div>
+        <div class="panel-title" id="pt-managers">🛠️ Office Managers</div>
         <button class="hire-btn role-ops" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
       </div>
       <div id="hire-sales-section" class="subsection" style="display:none">
-        <div class="panel-title">📞 Sales Team</div>
+        <div class="panel-title" id="pt-sales">📞 Sales Team</div>
         <button class="hire-btn role-sales" id="hire-bdr-btn">📞 Hire BDR<span class="cost" id="hire-bdr-cost">$200</span></button>
         <button class="hire-btn role-ext" id="hire-ext-bdr-btn" style="margin-top:4px">👔 Hire External BDR<span class="cost" id="hire-ext-bdr-cost">$600</span></button>
         <button class="hire-btn role-sales" id="hire-ae-btn" style="margin-top:6px;display:none">💼 Hire Account Executive<span class="cost" id="hire-ae-cost">$800</span></button>
       </div>
       <div id="hire-leadership-section" class="subsection" style="display:none">
-        <div class="panel-title">🏛️ Leadership</div>
+        <div class="panel-title" id="pt-leadership">🏛️ Leadership</div>
         <button class="hire-btn role-exec" id="hire-vp-btn">🏛️ Hire VP Engineering<span class="cost" id="hire-vp-cost">$1,500</span></button>
       </div>
     </div>
   </div>
   <div id="room-panel" class="panel">
-    <div class="panel-title">🏗️ Expand Office</div>
+    <div class="panel-title" id="pt-expand">🏗️ Expand Office</div>
     <div id="room-list"></div>
     <button class="room-btn room-desk" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
   </div>
   <div id="funding-panel" class="panel">
-    <div class="panel-title">💼 Funding</div>
+    <div class="panel-title" id="pt-funding">💼 Funding</div>
     <div id="funding-status" style="font-size:11px;color:#3FB950;margin-bottom:6px">Pre-seed ready — raise now!</div>
     <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
   </div>
   <div id="upgrades"></div>
   <div id="amenities-panel" class="panel">
-    <div class="panel-title">🏢 Amenities</div>
+    <div class="panel-title" id="pt-amenities">🏢 Amenities</div>
     <div id="amenities-list"></div>
   </div>
   <div id="settings-panel" class="panel">
-    <div class="panel-title">⚙️ Settings</div>
+    <div class="panel-title" id="pt-settings">⚙️ Settings</div>
+    <label class="setting-row" style="justify-content:space-between">
+      <span>🎨 Theme</span>
+      <select id="theme-select">
+        <option value="startup">💻 Startup</option>
+        <option value="medieval">⚔️ Medieval</option>
+        <option value="space">🚀 Space</option>
+        <option value="mob">🔪 Mob</option>
+        <option value="wizard">🧙 Wizard</option>
+        <option value="farm">🚜 Farm</option>
+      </select>
+    </label>
     <label class="setting-row">
       <input type="checkbox" id="joy-enabled">
       <span>🕹️ Virtual joystick</span>
@@ -1100,7 +1111,150 @@ const LS = {
   tipSeenPrefix:    'tip-seen-',
   collapsedCats:    'collapsedUpgradeCats',
   collapsedPanels:  'collapsedPanels',
+  theme:            'theme',
 };
+
+// ── Theme packs ──────────────────────────────────────────
+// Same mechanics, completely different flavor. Every key below
+// names what the player sees; swap the value to reskin the game.
+// Picked via the Settings dropdown (reloads the page on change).
+const THEMES = {
+  startup: {
+    label:'💻 Startup Tycoon', docTitle:'Startup Tycoon',
+    panelTeam:'👥 Team', panelExpand:'🏗️ Expand Office',
+    panelFunding:'💼 Funding', panelAmenities:'🏢 Amenities',
+    panelSettings:'⚙️ Settings',
+    subManagers:'🛠️ Office Managers', subSales:'📞 Sales Team', subLead:'🏛️ Leadership',
+    hireEng:'💻 Hire Engineer', hireEngExt:'👔 Hire External Engineer',
+    hireEA:'🧑‍💼 Hire Executive Assistant',
+    hireBDR:'📞 Hire BDR', hireBDRExt:'👔 Hire External BDR',
+    upgCatIdeation:'💡 Ideation', upgCatEngineering:'⚙️ Engineering', upgCatRevenue:'📈 Revenue',
+    upgGrowth:'💡 Faster Ideation', upgFarmexp:'🧘 Deep Focus',
+    upgDev:'💭 Brainstorm Sessions', upgAicopilot:'🧠 AI Copilot',
+    upgCdnspeed:'☁️ Cloud Compute', upgSpeed:'👟 Running Shoes',
+    upgMarketing:'☕ Espresso Machine', upgPricing:'💸 Premium Tier',
+    upgEnterprise:'🏢 Enterprise Tier',
+    amenCoffee:'☕ Espresso Bar', amenPrinter:'📚 Supply Rack',
+    amenPingpong:'🏓 Ping Pong Table', amenStandup:'📺 All-Hands Screen',
+    feedHint:'👋 Hire an engineer to start shipping.',
+    ipoTitle:'🎉 IPO Time!', ipoBtn:'🎉 IPO!',
+    restartBtn:'🗑️ Restart game', achievementsBtn:'🏅 Achievements',
+    sprintBtn:'🏃 Sprint',
+  },
+  medieval: {
+    label:'⚔️ Medieval Smithy', docTitle:'Medieval Smithy',
+    panelTeam:'👥 Guild', panelExpand:'🏰 Expand Keep',
+    panelFunding:'👑 Royal Patronage', panelAmenities:'🍺 Guildhall',
+    panelSettings:'⚙️ Settings',
+    subManagers:'🛡️ Stewards', subSales:'📯 Heralds', subLead:'🏛️ Guildmasters',
+    hireEng:'⚒️ Hire Blacksmith', hireEngExt:'🛡️ Hire Master Smith',
+    hireEA:'🧙 Hire Steward',
+    hireBDR:'📯 Hire Herald', hireBDRExt:'🛡️ Hire Veteran Herald',
+    upgCatIdeation:'💡 Designs', upgCatEngineering:'⚒️ Forging', upgCatRevenue:'👑 Commerce',
+    upgGrowth:'💡 Better Blueprints', upgFarmexp:'🧘 Master\'s Patience',
+    upgDev:'📜 Apprentice Training', upgAicopilot:'🔨 Enchanted Hammer',
+    upgCdnspeed:'🐉 Dragon Bellows', upgSpeed:'👢 Sturdy Boots',
+    upgMarketing:'🍺 Mead Ration', upgPricing:'💎 Royal Seal',
+    upgEnterprise:'👑 Imperial Contract',
+    amenCoffee:'🍺 Mead Hall', amenPrinter:'🗡️ Weapons Rack',
+    amenPingpong:'⚔️ Sparring Ring', amenStandup:'📜 Proclamation Board',
+    feedHint:'👋 Hire a blacksmith to start forging.',
+    ipoTitle:'👑 Time for Coronation!', ipoBtn:'👑 Coronation',
+    restartBtn:'🗑️ Abandon the keep', achievementsBtn:'🏅 Deeds',
+    sprintBtn:'⚔️ Rally',
+  },
+  space: {
+    label:'🚀 Space Station', docTitle:'Space Station Commander',
+    panelTeam:'👥 Crew', panelExpand:'🛰️ Expand Station',
+    panelFunding:'🪐 Federation Grants', panelAmenities:'🛸 Station Systems',
+    panelSettings:'⚙️ Settings',
+    subManagers:'🤖 Androids', subSales:'📡 Comms', subLead:'🏛️ Command',
+    hireEng:'🧑‍🚀 Hire Astronaut', hireEngExt:'👩‍🚀 Hire Veteran Pilot',
+    hireEA:'🤖 Hire Android',
+    hireBDR:'📡 Hire Comms Officer', hireBDRExt:'📡 Hire Veteran Comms',
+    upgCatIdeation:'🔬 R&D', upgCatEngineering:'⚙️ Engineering', upgCatRevenue:'🌌 Commerce',
+    upgGrowth:'🔬 Research Lab', upgFarmexp:'🧠 Deep Scan',
+    upgDev:'🛰️ Probe Network', upgAicopilot:'🧠 Quantum AI',
+    upgCdnspeed:'⚡ Warp Drive', upgSpeed:'🚀 Jetpack',
+    upgMarketing:'☕ Synth Coffee', upgPricing:'💎 Premium Module',
+    upgEnterprise:'🌌 Federation Contract',
+    amenCoffee:'🪐 Replicator', amenPrinter:'🧰 Supply Bay',
+    amenPingpong:'🎮 Zero-G Arcade', amenStandup:'📺 Bridge Display',
+    feedHint:'👋 Hire an astronaut to start researching.',
+    ipoTitle:'🌌 Time to Ascend!', ipoBtn:'🌌 Ascend',
+    restartBtn:'🗑️ Decommission station', achievementsBtn:'🏅 Medals',
+    sprintBtn:'🚀 Burn',
+  },
+  mob: {
+    label:'🔪 Mob Syndicate', docTitle:'Mob Syndicate',
+    panelTeam:'👥 Crew', panelExpand:'🏢 Expand Turf',
+    panelFunding:'💰 Shakedowns', panelAmenities:'🍝 The Club',
+    panelSettings:'⚙️ Settings',
+    subManagers:'🥃 Consiglieres', subSales:'📞 Runners', subLead:'🏛️ Capos',
+    hireEng:'🔨 Hire Enforcer', hireEngExt:'🕶️ Hire Made Man',
+    hireEA:'🥃 Hire Consigliere',
+    hireBDR:'📞 Hire Runner', hireBDRExt:'🕴️ Hire Veteran Runner',
+    upgCatIdeation:'🤫 Schemes', upgCatEngineering:'🔧 Muscle', upgCatRevenue:'💰 Rackets',
+    upgGrowth:'🤫 Better Schemes', upgFarmexp:'🎩 Godfather Focus',
+    upgDev:'🗺️ Planning Room', upgAicopilot:'👁️ Inside Man',
+    upgCdnspeed:'🚗 Getaway Network', upgSpeed:'👞 Dress Shoes',
+    upgMarketing:'🥃 Open Bar', upgPricing:'💎 Protection+',
+    upgEnterprise:'🌐 Syndicate Deal',
+    amenCoffee:'🥃 Open Bar', amenPrinter:'🔫 Stash Locker',
+    amenPingpong:'🎱 Pool Table', amenStandup:'📺 Wiretap Screen',
+    feedHint:'👋 Hire an enforcer to start shaking down.',
+    ipoTitle:'👑 Become the Don!', ipoBtn:'👑 Be The Don',
+    restartBtn:'🗑️ Turn rat', achievementsBtn:'🏅 Reputation',
+    sprintBtn:'💨 Blitz',
+  },
+  wizard: {
+    label:'🧙 Wizard Academy', docTitle:'Wizard Academy',
+    panelTeam:'👥 Coven', panelExpand:'🏰 Expand Academy',
+    panelFunding:'📜 Royal Grants', panelAmenities:'🔮 Tower',
+    panelSettings:'⚙️ Settings',
+    subManagers:'🦉 Familiars', subSales:'📯 Criers', subLead:'🏛️ Archmages',
+    hireEng:'🧙 Hire Apprentice', hireEngExt:'✨ Hire Journeyman Mage',
+    hireEA:'🦉 Hire Familiar',
+    hireBDR:'📯 Hire Crier', hireBDRExt:'✨ Hire Veteran Crier',
+    upgCatIdeation:'📜 Scrolls', upgCatEngineering:'🔮 Spells', upgCatRevenue:'💎 Arcana',
+    upgGrowth:'📜 Scroll of Insight', upgFarmexp:'🧘 Arcane Focus',
+    upgDev:'📚 Spell Library', upgAicopilot:'🪄 Enchanted Wand',
+    upgCdnspeed:'🌌 Ley Lines', upgSpeed:'👢 Boots of Swiftness',
+    upgMarketing:'🍵 Cauldron of Focus', upgPricing:'💎 Master Spell Pricing',
+    upgEnterprise:'👑 Royal Commission',
+    amenCoffee:'🍵 Potion Brewer', amenPrinter:'🌿 Herb Shelf',
+    amenPingpong:'⚔️ Duel Circle', amenStandup:'🔮 Scrying Pool',
+    feedHint:'👋 Hire an apprentice to start studying.',
+    ipoTitle:'🌟 Ascend to Archmagus!', ipoBtn:'🌟 Ascend',
+    restartBtn:'🗑️ Close the academy', achievementsBtn:'🏅 Accolades',
+    sprintBtn:'⚡ Surge',
+  },
+  farm: {
+    label:'🚜 Farm Tycoon', docTitle:'Farm Tycoon',
+    panelTeam:'👥 Farmhands', panelExpand:'🌾 Expand Farm',
+    panelFunding:'🏦 Ag Grants', panelAmenities:'🚜 Farmstand',
+    panelSettings:'⚙️ Settings',
+    subManagers:'🐴 Ranch Hands', subSales:'📞 Traders', subLead:'🏛️ Land Barons',
+    hireEng:'🌾 Hire Farmhand', hireEngExt:'👨‍🌾 Hire Veteran Farmer',
+    hireEA:'🐴 Hire Ranch Hand',
+    hireBDR:'📞 Hire Trader', hireBDRExt:'🤝 Hire Veteran Trader',
+    upgCatIdeation:'🌱 Agronomy', upgCatEngineering:'🚜 Equipment', upgCatRevenue:'💰 Markets',
+    upgGrowth:'🌱 Crop Rotation', upgFarmexp:'🧘 Patient Hands',
+    upgDev:'📚 Agri Manual', upgAicopilot:'🤖 Smart Tractors',
+    upgCdnspeed:'💧 Irrigation System', upgSpeed:'👢 Work Boots',
+    upgMarketing:'☕ Barn Coffee', upgPricing:'💎 Premium Produce',
+    upgEnterprise:'🌽 Mega-Corp Contract',
+    amenCoffee:'☕ Feed Trough', amenPrinter:'🌽 Seed Store',
+    amenPingpong:'🐴 Horseshoe Pit', amenStandup:'📜 Almanac Board',
+    feedHint:'👋 Hire a farmhand to start harvesting.',
+    ipoTitle:'🏆 Mega-Farm Empire!', ipoBtn:'🏆 Mega-Farm',
+    restartBtn:'🗑️ Sell the farm', achievementsBtn:'🏅 Blue Ribbons',
+    sprintBtn:'⚡ Harvest',
+  },
+};
+const THEME_ID = localStorage.getItem(LS.theme) || 'startup';
+const theme = THEMES[THEME_ID] || THEMES.startup;
+const T = k => theme[k] || THEMES.startup[k] || '';
 
 // ═══════════════════════════════════════════════════════════
 //  TABLE OF CONTENTS
@@ -4326,7 +4480,7 @@ function renderFeed() {
     hint.className = 'feed-entry';
     hint.style.color = '#7D8590';
     hint.style.fontStyle = 'italic';
-    hint.textContent = '👋 Hire an engineer to start shipping.';
+    hint.textContent = T('feedHint');
     feedListEl.appendChild(hint);
     return;
   }
@@ -4586,6 +4740,71 @@ function initCollapsiblePanel(panelId, key) {
     apply();
   });
 }
+// ── Apply theme (text-swap pass) ──
+// Runs AFTER UPGRADES/UPGRADE_CATS/AMENITY_DEFS are defined so we can
+// mutate their labels in place, and BEFORE initCollapsiblePanel so the
+// panel-title text is set before chevron/hint spans wrap it.
+function applyTheme() {
+  document.title = T('docTitle');
+  const setText = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = T(key); };
+  setText('pt-team',       'panelTeam');
+  setText('pt-expand',     'panelExpand');
+  setText('pt-funding',    'panelFunding');
+  setText('pt-amenities',  'panelAmenities');
+  setText('pt-settings',   'panelSettings');
+  setText('pt-managers',   'subManagers');
+  setText('pt-sales',      'subSales');
+  setText('pt-leadership', 'subLead');
+  // Hire button labels: replace the leading text node, keep the cost span.
+  const setLabel = (id, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const first = el.firstChild;
+    if (first && first.nodeType === Node.TEXT_NODE) first.textContent = T(key);
+    else el.insertBefore(document.createTextNode(T(key)), el.firstChild);
+  };
+  setLabel('hire-btn',         'hireEng');
+  setLabel('hire-ext-eng-btn', 'hireEngExt');
+  setLabel('hire-ea-btn',      'hireEA');
+  setLabel('hire-bdr-btn',     'hireBDR');
+  setLabel('hire-ext-bdr-btn', 'hireBDRExt');
+  // Upgrade + amenity data (label fields consumed by render functions).
+  const upgKeyMap = { growth:'upgGrowth', farmexp:'upgFarmexp', dev:'upgDev',
+    aicopilot:'upgAicopilot', cdnspeed:'upgCdnspeed', speed:'upgSpeed',
+    marketing:'upgMarketing', pricing:'upgPricing', enterprise:'upgEnterprise' };
+  for (const u of UPGRADES) { const k = upgKeyMap[u.id]; if (k) u.label = T(k); }
+  const catKeyMap = { ideation:'upgCatIdeation', engineering:'upgCatEngineering', revenue:'upgCatRevenue' };
+  for (const c of UPGRADE_CATS) { const k = catKeyMap[c.id]; if (k) c.label = T(k); }
+  const amenKeyMap = { coffee:'amenCoffee', printer:'amenPrinter', pingpong:'amenPingpong', standup:'amenStandup' };
+  for (const a of AMENITY_DEFS) { const k = amenKeyMap[a.id]; if (k) a.name = T(k); }
+  for (const a of amenities) { const k = amenKeyMap[a.id]; if (k) a.name = T(k); }
+  // Modals + corner buttons
+  const ipoTitleEl = document.querySelector('#ipo-modal .ipo-title');
+  if (ipoTitleEl) ipoTitleEl.textContent = T('ipoTitle');
+  const ipoBtn = document.getElementById('ipo-btn');
+  if (ipoBtn) ipoBtn.textContent = T('ipoBtn');
+  const sprintBtn = document.getElementById('sprint-btn');
+  if (sprintBtn) {
+    const first = sprintBtn.firstChild;
+    if (first && first.nodeType === Node.TEXT_NODE) first.textContent = T('sprintBtn');
+  }
+  const restartBtn = document.getElementById('restart-btn');
+  if (restartBtn) restartBtn.textContent = T('restartBtn');
+  const achBtn = document.getElementById('open-ach-btn');
+  if (achBtn) achBtn.textContent = T('achievementsBtn');
+}
+applyTheme();
+
+// Theme selector (reloads so in-flight state doesn't mix themes)
+const themeSelectEl = document.getElementById('theme-select');
+if (themeSelectEl) {
+  themeSelectEl.value = THEME_ID;
+  themeSelectEl.addEventListener('change', () => {
+    localStorage.setItem(LS.theme, themeSelectEl.value);
+    location.reload();
+  });
+}
+
 initCollapsiblePanel('office-panel',    'team');
 initCollapsiblePanel('amenities-panel', 'amenities');
 
