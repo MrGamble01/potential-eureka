@@ -3571,15 +3571,21 @@ function smoothedArr() {
   while (revenueLog.length && revenueLog[0].at < cutoff) revenueLog.shift();
   if (revenueLog.length === 0) return 0;
   const sum = revenueLog.reduce((s, e) => s + e.amount, 0);
-  const elapsedSec = Math.max(1, (Date.now() - revenueLog[0].at) / 1000);
-  return Math.round(sum * 365 * 24 * 3600 / elapsedSec);
+  // Always divide by the full window so a single recent event can't
+  // extrapolate to an absurd annualized figure.
+  const windowSec = REVENUE_WINDOW_MS / 1000;
+  return Math.round(sum * 365 * 24 * 3600 / windowSec);
 }
 // ── Season Goal ───────────────────────────────────────────
 // Target ARR for the current season. Scales with prestige (S1 = $1M,
 // S2 = $2M, S3 = $4M, …) so each IPO raises the bar. When smoothed
 // ARR first crosses the target, fire a win modal. Hit state resets
 // on IPO so each season has its own finish line.
-const GOAL_TARGET_BASE = 1_000_000;
+// Season-1 ARR target. Our smoothedArr annualizes a 30-second window,
+// so even moderate gameplay ($5-30/sec revenue) produces ARR in the
+// hundreds of millions. Setting the season goal at $100M keeps it
+// reachable yet aspirational; doubles per prestige.
+const GOAL_TARGET_BASE = 100_000_000;
 function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
 let seasonGoalHit = false;
 let trophiesWon = 0;
@@ -4011,7 +4017,7 @@ function raiseFunding() {
   const r = FUNDING_ROUNDS[fundingRoundIdx];
   if (!r.req()) return;
   fundingRoundIdx++;
-  addCash(r.amount);
+  addCash(r.amount, {grant: true});
   showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
   addFeedEntry(`💼 ${r.label} raised +$${r.amount.toLocaleString()}`);
   renderFunding();
@@ -4243,11 +4249,13 @@ function pulseNewlyAffordable() {
     _afford.set(btn, now);
   });
 }
-function addCash(n) {
+function addCash(n, opts) {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
-    recordRevenue(n);
+    // Capital (funding rounds, cheats, starting grant) should not count
+    // toward ARR — only gameplay-earned revenue does.
+    if (!opts || !opts.grant) recordRevenue(n);
     showCashPop(n);
     checkMilestones();
   }
@@ -4670,13 +4678,13 @@ addEventListener('keydown', e => {
   }
   // Cheat: press M to add $10,000 (or use window.giveMoney(n) in console)
   if (k === 'm' && !e.repeat) {
-    addCash(10000);
+    addCash(10000, {grant: true});
     showToast('💰 +$10,000 (cheat)', 'milestone');
   }
 });
 addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
-window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
+window.giveMoney = (n = 10000) => { addCash(n, {grant: true}); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
 // Cheat: click the cash HUD. Back-to-back taps escalate the amount:
 // 1 tap = $1k, double-tap = $10k, triple-tap = $100k. Pause >600ms
@@ -4693,7 +4701,7 @@ cashHudEl.addEventListener('click', () => {
     : 1;
   cheatLastT = now;
   const amt = CHEAT_AMOUNTS[cheatStreak - 1];
-  addCash(amt);
+  addCash(amt, {grant: true});
   showCashPop(amt);
   cashHudEl.classList.remove('cash-bump');
   void cashHudEl.offsetWidth; // restart animation
@@ -5547,7 +5555,7 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
-addCash(100); // enough to hire first idea person right away
+addCash(100, {grant: true}); // enough to hire first idea person right away
 renderFunding();
 updateStarterWallDecor();
 refreshGoalLabels();
