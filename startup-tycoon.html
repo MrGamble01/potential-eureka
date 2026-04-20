@@ -112,6 +112,19 @@
       font-weight: 700; font-size: 9px; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590; margin-bottom: 6px;
     }
+    .panel-title-toggle {
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 4px;
+      padding: 6px 2px; margin: -4px -2px 4px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .panel-title-toggle:hover { color: #B8C0CC; background: rgba(255,255,255,0.03); }
+    .panel-chev {
+      display: inline-block; width: 9px;
+      font-size: 9px; color: #5A6675;
+    }
+    .panel-body.collapsed { display: none; }
     .subsection {
       margin-top: 10px;
       padding-top: 10px;
@@ -696,19 +709,26 @@
     .upg-cat {
       font-size: 9px; font-weight: 800; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590;
-      padding: 5px 2px 2px; margin-top: 2px;
+      padding: 8px 4px 7px; margin-top: 2px;
       border-top: 1px solid rgba(255,255,255,0.06);
       cursor: pointer; user-select: none;
       display: flex; align-items: center; gap: 4px;
-      transition: color 0.15s;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
     }
-    .upg-cat:hover { color: #B8C0CC; }
+    .upg-cat:hover { color: #B8C0CC; background: rgba(255,255,255,0.03); }
     .upg-cat .upg-chev {
-      display: inline-block; width: 8px;
-      font-size: 8px; color: #5A6675;
+      display: inline-block; width: 9px;
+      font-size: 9px; color: #5A6675;
     }
+    .upg-cat .upg-hint {
+      margin-left: auto;
+      font-size: 9px; font-weight: 700;
+      color: #3FB950; letter-spacing: 0.5px;
+    }
+    .upg-cat .upg-hint.max { color: #a89ff5; }
     .upg-section:first-child .upg-cat {
-      border-top: none; margin-top: 0; padding-top: 2px;
+      border-top: none; margin-top: 0;
     }
     .upg-body { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
     .upg-body.collapsed { display: none; }
@@ -1048,8 +1068,9 @@ const LS = {
   investor:      'investorEnabled',
   tips:          'tipsEnabled',
   toastDensity:  'toastDensity',
-  tipSeenPrefix: 'tip-seen-',
-  collapsedCats: 'collapsedUpgradeCats',
+  tipSeenPrefix:    'tip-seen-',
+  collapsedCats:    'collapsedUpgradeCats',
+  collapsedPanels:  'collapsedPanels',
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -4423,7 +4444,7 @@ function renderUpgrades() {
       hdr.className = 'upg-cat';
       hdr.dataset.cat = cat.id;
       const collapsed = !!collapsedCats[cat.id];
-      hdr.innerHTML = `<span class="upg-chev">${collapsed ? '▸' : '▾'}</span>${cat.label}`;
+      hdr.innerHTML = `<span class="upg-chev">${collapsed ? '▸' : '▾'}</span>${cat.label}<span class="upg-hint"></span>`;
       hdr.onclick = () => toggleUpgradeCat(cat.id);
       section.appendChild(hdr);
       const body = document.createElement('div');
@@ -4440,18 +4461,66 @@ function renderUpgrades() {
       upgEl.appendChild(section);
     }
   }
-  // Update button states only (skip .upg-cat headers)
+  // Update button states + per-category hint
+  const catStats = {};
   for (const u of UPGRADES) {
-    const btn = upgEl.querySelector(`[data-id="${u.id}"]`);
-    if (!btn) continue;
     const lv = upgLevels[u.id];
     const maxed = lv >= u.max;
     const cost = upgCost(u);
-    btn.disabled = maxed || state.cash < cost;
-    btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv}</span>${u.label}` +
-      (maxed ? '' : `<span class="cost">$${fmtCash(cost)}</span>`);
+    const btn = upgEl.querySelector(`[data-id="${u.id}"]`);
+    if (btn) {
+      btn.disabled = maxed || state.cash < cost;
+      btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv}</span>${u.label}` +
+        (maxed ? '' : `<span class="cost">$${fmtCash(cost)}</span>`);
+    }
+    const s = catStats[u.cat] || (catStats[u.cat] = { total: 0, maxed: 0, ready: 0 });
+    s.total++;
+    if (maxed) s.maxed++;
+    else if (state.cash >= cost) s.ready++;
+  }
+  for (const cat of UPGRADE_CATS) {
+    const hint = upgEl.querySelector(`.upg-cat[data-cat="${cat.id}"] .upg-hint`);
+    if (!hint) continue;
+    const s = catStats[cat.id];
+    if (!s || !s.total) { hint.textContent = ''; hint.className = 'upg-hint'; continue; }
+    if (s.maxed === s.total) { hint.textContent = '✓ MAX'; hint.className = 'upg-hint max'; }
+    else if (s.ready > 0)    { hint.textContent = `${s.ready} ready`; hint.className = 'upg-hint'; }
+    else                     { hint.textContent = ''; hint.className = 'upg-hint'; }
   }
 }
+
+// ── Collapsible panels (Team, Amenities) ──
+let collapsedPanels = {};
+try { collapsedPanels = JSON.parse(localStorage.getItem(LS.collapsedPanels) || '{}') || {}; }
+catch (_) { collapsedPanels = {}; }
+function initCollapsiblePanel(panelId, key) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  const title = panel.firstElementChild;
+  if (!title || !title.classList.contains('panel-title')) return;
+  const body = document.createElement('div');
+  body.className = 'panel-body';
+  while (title.nextElementSibling) body.appendChild(title.nextElementSibling);
+  panel.appendChild(body);
+  const chev = document.createElement('span');
+  chev.className = 'panel-chev';
+  title.prepend(chev);
+  title.classList.add('panel-title-toggle');
+  const apply = () => {
+    const c = !!collapsedPanels[key];
+    body.classList.toggle('collapsed', c);
+    chev.textContent = c ? '▸' : '▾';
+  };
+  apply();
+  title.addEventListener('click', () => {
+    collapsedPanels[key] = !collapsedPanels[key];
+    localStorage.setItem(LS.collapsedPanels, JSON.stringify(collapsedPanels));
+    apply();
+  });
+}
+initCollapsiblePanel('office-panel',    'team');
+initCollapsiblePanel('amenities-panel', 'amenities');
+
 refreshHud();
 
 // ── Elevator + floor scaffold ──
