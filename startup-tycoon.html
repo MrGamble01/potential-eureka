@@ -1,34 +1,36 @@
 <!--
-  STARTUP TYCOON — single-file MVP (Three.js from CDN)
+  STARTUP TYCOON — single-file game (Three.js via import-map)
 
   PLAY
-    WASD / arrows — move
-    Tap / click   — move to that spot on the floor
-    Left buttons  — upgrades (scale cost per level)
-    Elevator btn  — floor select (Office active; Café / Gym / Rooftop locked)
+    WASD / arrows — move                   Tap / click — move to spot
+    Right-click drag / two-finger drag — pan camera
+    Scroll / pinch — zoom                  Esc — close any modal
+    Sidebar (☰ on mobile) — hires, rooms, upgrades, amenities, settings
+    🤝 Walk near an investor — auto-greet and collect
 
-  CORE LOOP (Office floor)
-    idea orbs grow on farm plots → carry on head → drop at Dev Station
-    → processed into feature boxes → carry to Shelf → customers buy at Checkout
+  CORE LOOP
+    Engineer sits at desk → drains desk paper → ships a feature →
+    routes to either the CEO desk OR the Leadership Suite VP (for
+    a queue-scaling multiplier) → cash pops. Coffee + paper keep
+    the team happy; run out → morale drops + work stalls.
+    Sales side: BDRs solo small deals; hand off to an AE for a 3×
+    close; AE self-sources if the pipeline dries up.
+    Goal: \$1M ARR (scales 2× per season). IPO resets + raises the
+    bar. 16 achievements track everything along the way.
 
-  ARCHITECTURE (extending to new floors)
-    Each floor is a subclass of Floor with a scene root, build(), update(dt),
-    and dispose(). Only OfficeFloor is implemented. To add a new one:
+  ARCHITECTURE
+    Single file. All UI is in <style>/<body>. Game is one module
+    script. See the "Table of Contents" block at the top of the
+    script for the section map. Conventions there too.
 
-      1. Write a class: class CafeFloor extends Floor {
-           build() { build meshes into this.root; wire interactions; }
-           update(dt) { tick your logic here; }
-           dispose() { clean up NPCs/timers; super.dispose(); }
-         }
-      2. Register: FLOOR_CLASSES.cafe = CafeFloor;
-      3. Travel from elevator (card click): replace currentFloorInst with
-         `new FLOOR_CLASSES[id](scene)`, call dispose() on the old one.
-      4. Content ideas: Café boosts idea growth, Gym boosts move speed,
-         Rooftop spawns investor NPCs who drop bigger cash.
+    Floors are extendable (Floor / FLOOR_CLASSES) but only the
+    Office floor ships. To add a new floor: subclass Floor, add to
+    FLOOR_CLASSES, wire an elevator card.
 
-  Save state: localStorage key `startup-tycoon-v1`, written every 5s and on
-  beforeunload. Save payload is intentionally small (cash, upgrade levels,
-  unlocked floors) — transient world state (orbs, customers) is not persisted.
+  Save state: localStorage key `startup-tycoon-v7`, written every 5s
+  and on beforeunload. Covers cash, upgrades, hires by role, rooms,
+  conversions, morale, affinities, achievements, prestige, best
+  run — transient walk/work state is re-seeded at spawn.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -1023,7 +1025,60 @@
 <script type="module">
 import * as THREE from 'three';
 
-// --- Scene + isometric camera ---
+// ── localStorage keys (single source of truth) ──────────────
+// Every key we read/write lives in this map so typos can't silently
+// fork names, a grep lands on every call site, and Restart's
+// preserve-list stays explicit.
+const LS = {
+  save:          'startup-tycoon-v7',
+  joystick:      'joystickEnabled',
+  morale:        'moraleEnabled',
+  investor:      'investorEnabled',
+  tips:          'tipsEnabled',
+  toastDensity:  'toastDensity',
+  tipSeenPrefix: 'tip-seen-',
+};
+
+// ═══════════════════════════════════════════════════════════
+//  TABLE OF CONTENTS
+// ───────────────────────────────────────────────────────────
+//  Every major section in this file uses a `// ── TITLE ──`
+//  marker, so a quick grep lands you exactly where you need
+//  to be. High-level layout, top → bottom:
+//
+//  - Scene + isometric camera / Lights
+//  - Room-by-room expansion + walls
+//  - Decor registry + Tier 1 starter clutter + upgrade swaps
+//  - Room purchasing, Add Desk, Room Conversion
+//  - Character builder (scrappy / collared)
+//  - Player + tunables
+//  - Reserved carry-stack infra (for future supplies mechanic)
+//  - Plot (desk) construction
+//  - Idea Workers (state machine + rate formula)
+//  - Player Proximity Work / CEO Desk Work / Player Refill
+//  - Executive Assistants
+//  - BDRs → Account Executives (handoff + dry-pipeline mode)
+//  - Engineering Leadership (Lead → Head → CTO)
+//  - Sprint mode / Morale / Hire Panel
+//  - Amenities / Funding Rounds / Cash + refreshHud
+//  - Investor Check-ins / Toasts / Cash pops / Milestones
+//  - Upgrades + Activity Feed + Startup Events / Rush Hour
+//  - Elevator + floor scaffold
+//  - Input (keys, pointer, zoom, joystick, pan) / Tips
+//  - Floor architecture + Floating labels + main loop
+//  - IPO / Prestige + Save/Load + Session timer
+//  - Season Goal / Achievements / Sparkline
+//
+//  Conventions:
+//  • `const` for config, `let` for mutable game state.
+//  • State machines use `.state` string + a `.target {x,z}`
+//    when walking; `stepToward()` is the shared walker.
+//  • Every hire role has spawn___(), update___(), hire___().
+//  • Modals: tip / ipo / elevator / achievements / win.
+//  • refreshHud() repaints every panel; addCash(n) wraps it.
+// ═══════════════════════════════════════════════════════════
+
+// ── Scene + isometric camera ──
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xd6d0c8);
 
@@ -1062,7 +1117,7 @@ function worldToScreen(x, y, z) {
   return { x:(projV.x*0.5+0.5)*innerWidth, y:(-projV.y*0.5+0.5)*innerHeight };
 }
 
-// --- Lights ---
+// ── Lights ──
 // Warmer ambient + wider shadow frustum so every expandable room
 // (3×3 grid of 16-unit rooms ≈ 48 across) still gets proper shadows.
 scene.add(new THREE.AmbientLight(0xfff2dc, 0.7));
@@ -1076,7 +1131,7 @@ sc.near = 0.1; sc.far = 100;
 sun.shadow.bias = -0.0005;
 scene.add(sun);
 
-// --- Extra office lighting ---
+// ── Extra office lighting ──
 const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.35);
 fillLight.position.set(-10, 15, -5);
 scene.add(fillLight);
@@ -1911,7 +1966,7 @@ function renderAddDeskButton() {
 addDeskBtnEl.onclick = addDeskToCurrentRoom;
 
 
-// --- Scrappy-startup character builder (hoodie + pants + head) ---
+// ── Scrappy-startup character builder (hoodie + pants + head) ──
 const HOODIE_COLORS  = [0x3a4a5e, 0x2e4a3e, 0x7a3a3a, 0x4a3e6a, 0x3a3a3a, 0xb0b0b0, 0x4a7a8a, 0x8a5a2a];
 const PANTS_COLORS   = [0x1f2937, 0x2d1e12, 0x333333, 0x1a2a3a, 0x3a2e22];
 const HAIR_COLORS    = [0x2a1a0a, 0x4a2a10, 0x6a4a2a, 0x8a6a3a, 0x1a1a1a, 0x5a3a2a, 0xb87333];
@@ -2085,7 +2140,7 @@ function randomWorkerLook(seed) {
   };
 }
 
-// --- Player (CEO: founder hoodie + glasses) ---
+// ── Player (CEO: founder hoodie + glasses) ──
 const player = buildScrappyCharacter({
   bodyColor: 0x6c63ff,   // founder purple
   pantsColor: 0x1e1e28,
@@ -2097,7 +2152,7 @@ const player = buildScrappyCharacter({
 player.position.set(0, 0, 2); // start inside starter room near CEO desk
 scene.add(player);
 
-// --- Tunables (mutated by upgrades) ---
+// ── Tunables (mutated by upgrades) ──
 let playerSpeed = 6;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
 let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
@@ -2196,7 +2251,7 @@ function refreshStack() {
   for (let i = 0; i < carry.count; i++) pool[i].visible = true;
 }
 
-// --- Plot (desk) construction ---
+// ── Plot (desk) construction ──
 const plots = [];
 const plotGeo = new THREE.BoxGeometry(2.4, 0.1, 2.4);
 const plotMat = new THREE.MeshLambertMaterial({ color: 0xe0dbd4 });
@@ -3416,52 +3471,10 @@ hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
 // (Product shelf removed — workers now deliver to CEO desk)
 
 
-// --- Checkout Counter: where customers pay ---
-const checkout = new THREE.Group();
-checkout.position.set(22, 0, 6);
+// (Legacy checkout-counter + customer-door meshes removed — deals
+//  close digitally and there's no physical customer traffic.)
 
-const counter = new THREE.Mesh(
-  new THREE.BoxGeometry(2.2, 1.1, 1.4),
-  new THREE.MeshLambertMaterial({ color: 0xb57a3d })
-);
-counter.position.y = 0.55;
-counter.castShadow = true; counter.receiveShadow = true;
-checkout.add(counter);
-
-const register = new THREE.Mesh(
-  new THREE.BoxGeometry(0.9, 0.55, 0.7),
-  new THREE.MeshLambertMaterial({ color: 0x3a3f52 })
-);
-register.position.set(0, 1.37, 0);
-register.castShadow = true;
-checkout.add(register);
-
-const regTop = new THREE.Mesh(
-  new THREE.BoxGeometry(0.7, 0.08, 0.5),
-  new THREE.MeshLambertMaterial({ color: 0x6cf7ff, emissive: 0x6cf7ff, emissiveIntensity: 0.3 })
-);
-regTop.position.set(0, 1.68, 0);
-checkout.add(regTop);
-scene.add(checkout);
-checkout.visible = false; // no checkout needed — deals close digitally
-
-
-// --- Door (customer entry/exit) ---
-const DOOR_POS = new THREE.Vector3(27, 0, -2);
-const doorFrame = new THREE.Group();
-doorFrame.position.copy(DOOR_POS);
-const frameMat = new THREE.MeshLambertMaterial({ color: 0x8b5a2b });
-const doorL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), frameMat);
-doorL.position.set(-0.9, 1.25, 0); doorL.castShadow = true;
-const doorR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), frameMat);
-doorR.position.set(0.9, 1.25, 0); doorR.castShadow = true;
-const doorT = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, 0.2), frameMat);
-doorT.position.set(0, 2.5, 0); doorT.castShadow = true;
-doorFrame.add(doorL, doorR, doorT);
-scene.add(doorFrame);
-doorFrame.visible = false; // no physical customer traffic
-
-// --- Deal flow: features on shelf → deals close → revenue (no customer NPCs) ---
+// ── Deal flow: features on shelf → deals close → revenue (no customer NPCs) ──
 let featurePrice = 5;
 const DEAL_MSGS = [
   '💼 Deal closed!', '🎉 New signup!', '📈 MRR up!',
@@ -3734,7 +3747,7 @@ function renderFunding() {
 fundingBtnEl.addEventListener('click', raiseFunding);
 
 
-// --- Amenities (unlockable, buyable; stock managed by Workers) ---
+// ── Amenities (unlockable, buyable; stock managed by Workers) ──
 const AMENITY_DEFS = [
   {
     id: 'coffee',
@@ -3937,7 +3950,7 @@ function renderAmenities() {
   }
 }
 
-// --- Funding Rounds (startup-themed cash injections) ---
+// ── Funding Rounds (startup-themed cash injections) ──
 const FUNDING_ROUNDS = [
   { label: '💰 Pre-seed Round',  amount: 100,   req: () => true,                          reqText: '' },
   { label: '💸 Seed Round',      amount: 500,   req: () => state.allTimeCash >= 500,      reqText: 'Earn $500 total first' },
@@ -3957,7 +3970,7 @@ function raiseFunding() {
   renderFunding();
 }
 
-// --- Cash state ---
+// ── Cash state ──
 const state = { cash: 0, allTimeCash: 0 };
 const cashValEl = document.getElementById('cash-val');
 
@@ -4167,7 +4180,7 @@ function addCash(n) {
   refreshHud();
 }
 
-// --- Upgrades ---
+// ── Upgrades ──
 const UPGRADE_CATS = [
   { id:'ideation',    label:'💡 Ideation' },
   { id:'engineering', label:'⚙️ Engineering' },
@@ -4408,7 +4421,7 @@ function renderUpgrades() {
 }
 refreshHud();
 
-// --- Elevator + floor scaffold ---
+// ── Elevator + floor scaffold ──
 // Only OFFICE is active. Other floors unlock but are placeholders until a
 // Floor subclass is dropped in (see README at top of file).
 const FLOORS = [
@@ -4485,7 +4498,7 @@ function renderFloors() {
   }
 }
 
-// --- Input ---
+// ── Input ──
 const keys = {};
 let mouseScreenX = -1e9, mouseScreenY = -1e9;
 addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.clientY; });
@@ -4633,10 +4646,10 @@ const JOY_MAX = 46;
 function setJoystickEnabled(on) {
   joyEl.classList.toggle('visible', on);
   joyToggleEl.checked = on;
-  localStorage.setItem('joystickEnabled', on ? '1' : '0');
+  localStorage.setItem(LS.joystick, on ? '1' : '0');
   if (!on) { joyDx = 0; joyDz = 0; joyKnobEl.style.transform = ''; joyPointerId = null; }
 }
-setJoystickEnabled(localStorage.getItem('joystickEnabled') === '1');
+setJoystickEnabled(localStorage.getItem(LS.joystick) === '1');
 joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
 
 // Morale toggle (defaults to ON; players can flip off if they want
@@ -4671,10 +4684,10 @@ const moraleToggleEl = document.getElementById('morale-enabled');
 function setMoraleEnabled(on) {
   moraleEnabled = !!on;
   moraleToggleEl.checked = moraleEnabled;
-  localStorage.setItem('moraleEnabled', moraleEnabled ? '1' : '0');
+  localStorage.setItem(LS.morale, moraleEnabled ? '1' : '0');
   updateMetricsHUD();
 }
-const savedMorale = localStorage.getItem('moraleEnabled');
+const savedMorale = localStorage.getItem(LS.morale);
 setMoraleEnabled(savedMorale === null ? true : savedMorale === '1');
 moraleToggleEl.addEventListener('change', () => setMoraleEnabled(moraleToggleEl.checked));
 
@@ -4683,13 +4696,13 @@ const investorToggleEl = document.getElementById('investor-enabled');
 function setInvestorEnabled(on) {
   investorEnabled = !!on;
   investorToggleEl.checked = investorEnabled;
-  localStorage.setItem('investorEnabled', investorEnabled ? '1' : '0');
+  localStorage.setItem(LS.investor, investorEnabled ? '1' : '0');
   if (!investorEnabled) {
     for (const inv of investors) scene.remove(inv.group);
     investors.length = 0;
   }
 }
-const savedInv = localStorage.getItem('investorEnabled');
+const savedInv = localStorage.getItem(LS.investor);
 setInvestorEnabled(savedInv === null ? true : savedInv === '1');
 investorToggleEl.addEventListener('change', () => setInvestorEnabled(investorToggleEl.checked));
 
@@ -4732,10 +4745,10 @@ const tipOkEl    = document.getElementById('tip-ok');
 const tipsToggleEl = document.getElementById('tips-enabled');
 function showTip(key) {
   if (!tipsEnabled) return;
-  if (localStorage.getItem('tip-seen-' + key) === '1') return;
+  if (localStorage.getItem(LS.tipSeenPrefix + key) === '1') return;
   const tip = TIPS[key];
   if (!tip) return;
-  localStorage.setItem('tip-seen-' + key, '1');
+  localStorage.setItem(LS.tipSeenPrefix + key, '1');
   tipTitleEl.textContent = tip.title;
   tipBodyEl.innerHTML = tip.body.split('\n').map(l => l).join('<br>');
   tipModalEl.classList.add('open');
@@ -4745,9 +4758,9 @@ tipModalEl.addEventListener('click', e => { if (e.target === tipModalEl) tipModa
 function setTipsEnabled(on) {
   tipsEnabled = !!on;
   tipsToggleEl.checked = tipsEnabled;
-  localStorage.setItem('tipsEnabled', tipsEnabled ? '1' : '0');
+  localStorage.setItem(LS.tips, tipsEnabled ? '1' : '0');
 }
-const savedTips = localStorage.getItem('tipsEnabled');
+const savedTips = localStorage.getItem(LS.tips);
 setTipsEnabled(savedTips === null ? true : savedTips === '1');
 tipsToggleEl.addEventListener('change', () => setTipsEnabled(tipsToggleEl.checked));
 
@@ -4756,9 +4769,9 @@ const toastDensityEl = document.getElementById('toast-density');
 function setToastDensity(v) {
   toastDensity = (v === 'all' || v === 'standard' || v === 'off') ? v : 'all';
   toastDensityEl.value = toastDensity;
-  localStorage.setItem('toastDensity', toastDensity);
+  localStorage.setItem(LS.toastDensity, toastDensity);
 }
-setToastDensity(localStorage.getItem('toastDensity') || 'all');
+setToastDensity(localStorage.getItem(LS.toastDensity) || 'all');
 toastDensityEl.addEventListener('change', () => setToastDensity(toastDensityEl.value));
 
 // Restart game: wipe save + reload. Setting _restarting stops the periodic
@@ -4768,9 +4781,9 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   if (!confirm('Restart the game? All progress (cash, upgrades, hires, rooms, IPO seasons) will be erased.')) return;
   _restarting = true;
   try {
-    const joy = localStorage.getItem('joystickEnabled');
-    localStorage.removeItem(SAVE_KEY);
-    if (joy !== null) localStorage.setItem('joystickEnabled', joy);
+    const joy = localStorage.getItem(LS.joystick);
+    localStorage.removeItem(LS.save);
+    if (joy !== null) localStorage.setItem(LS.joystick, joy);
   } catch (_) {}
   location.reload();
 });
@@ -4805,7 +4818,7 @@ function endJoystick(e) {
 joyEl.addEventListener('pointerup', endJoystick);
 joyEl.addEventListener('pointercancel', endJoystick);
 
-// --- Floor architecture (drop-in modules, see README at top) ---
+// ── Floor architecture (drop-in modules, see README at top) ──
 // The Office floor is built inline above for MVP simplicity; its update()
 // fans out to the existing module-level update functions. New floors should
 // build their scene into this.root and keep their state on the instance.
@@ -4842,7 +4855,7 @@ const FLOOR_CLASSES = {
 };
 let currentFloorInst = new FLOOR_CLASSES.office(scene);
 
-// --- Floating labels (projected from 3D positions) ---
+// ── Floating labels (projected from 3D positions) ──
 const labelsEl = document.getElementById('labels');
 const labelPool = [];
 function updateLabels() {
@@ -4958,7 +4971,7 @@ function updateLabels() {
   }
 }
 
-// --- Loop ---
+// ── Loop ──
 const HALF = 28;
 let last = performance.now();
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
@@ -5168,8 +5181,8 @@ document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoMod
 // Click outside the panel to dismiss (matches the elevator modal)
 ipoModal.addEventListener('click', e => { if (e.target === ipoModal) ipoModal.classList.remove('open'); });
 
-// --- Save + load ---
-const SAVE_KEY = 'startup-tycoon-v7';
+// ── Save + load ──
+const SAVE_KEY = LS.save;
 // Sweep older versions out of localStorage so they don't sit there
 // forever after a schema bump.
 try {
@@ -5366,7 +5379,7 @@ function loadGame() {
   } catch {}
 }
 
-// --- Session timer ---
+// ── Session timer ──
 const sessionChipEl = document.getElementById('session-chip');
 const sessionStart = Date.now();
 function tickTimer() {
