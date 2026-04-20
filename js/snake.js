@@ -1,18 +1,29 @@
 /* ============================================
-   SNAKE — Classic arcade game
+   SNAKE — Classic arcade game with power-ups
    ============================================ */
 
 const SnakeGame = (() => {
-  const GRID = 20;          // grid cell size in pixels
+  const GRID = 20;
   const COLS = 30;
   const ROWS = 20;
   const WIDTH = COLS * GRID;
   const HEIGHT = ROWS * GRID;
 
+  const POWERUP_TYPES = ['bonus', 'slow', 'multiplier'];
+  const POWERUP_CONFIG = {
+    bonus:      { color: '#F0C040', label: 'BONUS +30',  duration: 0 },
+    slow:       { color: '#58A6FF', label: 'SLOW-MO',    duration: 5000 },
+    multiplier: { color: '#FF6BE8', label: '2x SCORE',   duration: 5000 },
+  };
+
   let canvas, ctx;
   let snake, direction, nextDirection;
-  let food, score, highScore, speed;
+  let food, powerUp, powerUpExpiry;
+  let activeBuff, buffExpiry;
+  let score, highScore, speed;
+  let scoreMultiplier;
   let gameLoop, running, gameOver;
+  let animFrame;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -29,7 +40,6 @@ const SnakeGame = (() => {
 
     document.addEventListener('keydown', handleKey);
 
-    // Mobile swipe support
     let touchStartX, touchStartY;
     canvas.addEventListener('touchstart', e => {
       touchStartX = e.touches[0].clientX;
@@ -78,9 +88,17 @@ const SnakeGame = (() => {
     direction = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
     score = 0;
+    scoreMultiplier = 1;
+    activeBuff = null;
+    buffExpiry = 0;
+    powerUp = null;
+    powerUpExpiry = 0;
     gameOver = false;
     running = true;
-    speed = 120;
+
+    const diff = document.getElementById('snake-difficulty')?.value || 'normal';
+    speed = diff === 'easy' ? 160 : diff === 'hard' ? 80 : 120;
+
     spawnFood();
     updateInfo();
 
@@ -89,62 +107,100 @@ const SnakeGame = (() => {
 
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
+
+    cancelAnimationFrame(animFrame);
+    renderLoop();
+  }
+
+  function getEmptyCell() {
+    let cell;
+    do {
+      cell = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+    } while (
+      snake.some(s => s.x === cell.x && s.y === cell.y) ||
+      (food && food.x === cell.x && food.y === cell.y) ||
+      (powerUp && powerUp.x === cell.x && powerUp.y === cell.y)
+    );
+    return cell;
   }
 
   function spawnFood() {
-    do {
-      food = {
-        x: Math.floor(Math.random() * COLS),
-        y: Math.floor(Math.random() * ROWS),
-      };
-    } while (snake.some(s => s.x === food.x && s.y === food.y));
+    food = getEmptyCell();
+    if (!powerUp && Math.random() < 0.25) {
+      const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+      powerUp = { ...getEmptyCell(), type };
+      powerUpExpiry = Date.now() + 7000;
+    }
   }
 
   function tick() {
+    const now = Date.now();
+
+    if (powerUp && now > powerUpExpiry) powerUp = null;
+
+    if (activeBuff && now > buffExpiry) {
+      if (activeBuff === 'multiplier') scoreMultiplier = 1;
+      if (activeBuff === 'slow') {
+        clearInterval(gameLoop);
+        gameLoop = setInterval(tick, speed);
+      }
+      activeBuff = null;
+    }
+
     direction = { ...nextDirection };
-    const head = {
-      x: snake[0].x + direction.x,
-      y: snake[0].y + direction.y,
-    };
+    const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
-    // Wall collision
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-      return endGame();
-    }
-
-    // Self collision
-    if (snake.some(s => s.x === head.x && s.y === head.y)) {
-      return endGame();
-    }
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return endGame();
+    if (snake.some(s => s.x === head.x && s.y === head.y)) return endGame();
 
     snake.unshift(head);
 
-    // Eat food
     if (head.x === food.x && head.y === food.y) {
-      score += 10;
+      score += 10 * scoreMultiplier;
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
       spawnFood();
-      // Speed up slightly
       if (speed > 60) {
         speed -= 2;
-        clearInterval(gameLoop);
-        gameLoop = setInterval(tick, speed);
+        if (activeBuff !== 'slow') {
+          clearInterval(gameLoop);
+          gameLoop = setInterval(tick, speed);
+        }
       }
+    } else if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
+      const type = powerUp.type;
+      if (type === 'bonus') {
+        score += 30;
+        if (score > highScore) {
+          highScore = score;
+          Utils.store.setRaw('snake-high', String(highScore));
+        }
+      } else {
+        activeBuff = type;
+        buffExpiry = now + POWERUP_CONFIG[type].duration;
+        if (type === 'multiplier') {
+          scoreMultiplier = 2;
+        } else if (type === 'slow') {
+          clearInterval(gameLoop);
+          gameLoop = setInterval(tick, speed * 2);
+        }
+      }
+      powerUp = null;
+      snake.pop();
     } else {
       snake.pop();
     }
 
     updateInfo();
-    draw();
   }
 
   function endGame() {
     running = false;
     gameOver = true;
     clearInterval(gameLoop);
+    cancelAnimationFrame(animFrame);
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -155,20 +211,38 @@ const SnakeGame = (() => {
         <p style="font-size:12px; color: var(--text-dim)">Press SPACE to restart</p>
       `;
     }
+    draw();
   }
 
   function updateInfo() {
     const scoreEl = document.getElementById('snake-score');
     const highEl = document.getElementById('snake-high');
+    const buffEl = document.getElementById('snake-buff');
     if (scoreEl) scoreEl.textContent = score || 0;
     if (highEl) highEl.textContent = highScore;
+    if (buffEl) {
+      if (activeBuff) {
+        const remaining = Math.ceil((buffExpiry - Date.now()) / 1000);
+        const cfg = POWERUP_CONFIG[activeBuff];
+        buffEl.innerHTML = `<span style="color:${cfg.color}">${cfg.label} (${remaining}s)</span>`;
+      } else {
+        buffEl.innerHTML = '';
+      }
+    }
+  }
+
+  function renderLoop() {
+    if (!running) return;
+    draw();
+    updateInfo();
+    animFrame = requestAnimationFrame(renderLoop);
   }
 
   function draw() {
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Grid lines (subtle)
+    // Grid lines
     ctx.strokeStyle = 'rgba(255,255,255,0.03)';
     ctx.lineWidth = 0.5;
     for (let x = 0; x <= COLS; x++) {
@@ -179,14 +253,18 @@ const SnakeGame = (() => {
     }
 
     // Snake
+    const isMultiplier = activeBuff === 'multiplier';
+    const headColor = isMultiplier ? '#FF6BE8' : '#6C63FF';
     snake.forEach((seg, i) => {
       const brightness = 1 - (i / snake.length) * 0.5;
       if (i === 0) {
-        ctx.fillStyle = '#6C63FF';
-        ctx.shadowColor = '#6C63FF';
-        ctx.shadowBlur = 8;
+        ctx.fillStyle = headColor;
+        ctx.shadowColor = headColor;
+        ctx.shadowBlur = 10;
       } else {
-        ctx.fillStyle = `rgba(108, 99, 255, ${brightness})`;
+        ctx.fillStyle = isMultiplier
+          ? `rgba(255, 107, 232, ${brightness})`
+          : `rgba(108, 99, 255, ${brightness})`;
         ctx.shadowBlur = 0;
       }
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
@@ -202,6 +280,38 @@ const SnakeGame = (() => {
       ctx.arc(food.x * GRID + GRID / 2, food.y * GRID + GRID / 2, GRID / 2 - 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Power-up (pulsing diamond)
+    if (powerUp) {
+      const cfg = POWERUP_CONFIG[powerUp.type];
+      const pulse = 0.75 + 0.25 * Math.sin(Date.now() / 180);
+      const cx = powerUp.x * GRID + GRID / 2;
+      const cy = powerUp.y * GRID + GRID / 2;
+      const r = (GRID / 2 - 1) * pulse;
+
+      ctx.fillStyle = cfg.color;
+      ctx.shadowColor = cfg.color;
+      ctx.shadowBlur = 14 * pulse;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r, cy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Countdown arc around power-up
+      const timeLeft = Math.max(0, powerUpExpiry - Date.now());
+      const angle = (timeLeft / 7000) * Math.PI * 2;
+      ctx.strokeStyle = cfg.color;
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, GRID / 2 - 0.5, -Math.PI / 2, -Math.PI / 2 + angle);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
 
     // Start prompt
@@ -221,6 +331,7 @@ const SnakeGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    cancelAnimationFrame(animFrame);
     running = false;
   }
 

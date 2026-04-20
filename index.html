@@ -251,6 +251,7 @@
       <div class="game-info">
         <span>Score: <strong id="snake-score">0</strong></span>
         <span>High Score: <strong id="snake-high">0</strong></span>
+        <span id="snake-buff"></span>
       </div>
       <div class="canvas-wrapper">
         <canvas id="snake-canvas" class="game-canvas"></canvas>
@@ -258,6 +259,17 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
+        <select id="snake-difficulty">
+          <option value="easy">Easy</option>
+          <option value="normal" selected>Normal</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="maze-legend" style="margin-top:8px">
+        <span style="color:#F778BA">&#9679; Food</span>
+        <span style="color:#F0C040">&#9670; Bonus +30</span>
+        <span style="color:#58A6FF">&#9670; Slow-Mo</span>
+        <span style="color:#FF6BE8">&#9670; 2x Score</span>
       </div>
     </div>
   </section>
