@@ -966,7 +966,7 @@
     <div class="panel-title">👥 Team</div>
     <div id="hire-section">
       <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
-      <button class="hire-btn role-eng" id="hire-btn">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
+      <button class="hire-btn role-eng" id="hire-btn" title="Hire Engineer (H)">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
       <button class="hire-btn role-ext" id="hire-ext-eng-btn" style="margin-top:4px">👔 Hire External Engineer<span class="cost" id="hire-ext-eng-cost">$225</span></button>
       <div class="subsection">
         <div class="panel-title">🛠️ Office Managers</div>
@@ -1031,7 +1031,7 @@
 </div>
 <div id="joystick"><div id="joy-knob"></div></div>
 <div id="toast-container"></div>
-<button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
+<button id="sprint-btn" title="30s of 2× engineer speed, costs 2× paper (Q)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="Take your startup public!">🎉 IPO!</button>
 <div id="tip-modal" role="dialog">
@@ -4650,6 +4650,9 @@ let mouseScreenX = -1e9, mouseScreenY = -1e9;
 addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.clientY; });
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
+  // Don't intercept while the user is typing into a field
+  const tag = e.target && e.target.tagName;
+  const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
   keys[k] = true;
   // Escape dismisses any open modal (tip, ipo, elevator)
   if (k === 'escape') {
@@ -4658,6 +4661,12 @@ addEventListener('keydown', e => {
     elevModal.classList.remove('open');
     achModalEl.classList.remove('open');
     winModalEl.classList.remove('open');
+  }
+  if (!typing && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    // H: hire an engineer
+    if (k === 'h' && !hireBtnEl.disabled) hireBtnEl.click();
+    // Q: trigger sprint (can't use S — it's bound to player movement)
+    else if (k === 'q' && !sprintBtnEl.disabled) sprintBtnEl.click();
   }
   // Cheat: press M to add $10,000 (or use window.giveMoney(n) in console)
   if (k === 'm' && !e.repeat) {
