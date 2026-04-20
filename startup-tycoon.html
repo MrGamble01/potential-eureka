@@ -130,6 +130,14 @@
       color: #7D8590; letter-spacing: 0.5px;
     }
     .panel-body.collapsed { display: none; }
+
+    /* ── Newly-affordable pulse (upgrades, amenities) ──── */
+    @keyframes justAffordable {
+      0%   { box-shadow: 0 0 0 0 rgba(63,185,80,0.55); }
+      60%  { box-shadow: 0 0 0 5px rgba(63,185,80,0); }
+      100% { box-shadow: 0 0 0 0 rgba(63,185,80,0); }
+    }
+    .just-affordable { animation: justAffordable 0.9s ease-out; }
     .subsection {
       margin-top: 10px;
       padding-top: 10px;
@@ -4207,6 +4215,7 @@ function refreshHud() {
   renderRoomPanel();
   renderFunding();
   refreshPanelHints();
+  pulseNewlyAffordable();
   checkIPOAvailable();
 }
 function setPanelHint(key, text) {
@@ -4218,6 +4227,21 @@ function refreshPanelHints() {
   setPanelHint('team', team ? `${team} hired` : '');
   const owned = amenities.filter(a => a.isOwned).length;
   setPanelHint('amenities', owned ? `${owned}/${amenities.length}` : '');
+}
+
+const _afford = new WeakMap();
+function pulseNewlyAffordable() {
+  document.querySelectorAll('.upg-btn, .amenity-btn').forEach(btn => {
+    if (btn.offsetParent === null) return;
+    const now = !btn.disabled;
+    const prev = _afford.get(btn);
+    if (prev === false && now === true) {
+      btn.classList.remove('just-affordable');
+      void btn.offsetWidth;
+      btn.classList.add('just-affordable');
+    }
+    _afford.set(btn, now);
+  });
 }
 function addCash(n) {
   state.cash += n;
