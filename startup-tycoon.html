@@ -1121,6 +1121,7 @@ const LS = {
 const THEMES = {
   startup: {
     label:'💻 Startup Tycoon', docTitle:'Startup Tycoon',
+    accent:'108,99,255', bg:0xd6d0c8,
     panelTeam:'👥 Team', panelExpand:'🏗️ Expand Office',
     panelFunding:'💼 Funding', panelAmenities:'🏢 Amenities',
     panelSettings:'⚙️ Settings',
@@ -1140,9 +1141,13 @@ const THEMES = {
     ipoTitle:'🎉 IPO Time!', ipoBtn:'🎉 IPO!',
     restartBtn:'🗑️ Restart game', achievementsBtn:'🏅 Achievements',
     sprintBtn:'🏃 Sprint',
+    vp1:'Lead Engineer', vp2:'Head of Engineering', vp3:'CTO',
+    invAngel:'Angel investor', invVC:'VC', invCorp:'Corp Dev',
+    invAdvisor:'Advisor', invTire:'Tire-kicker',
   },
   medieval: {
     label:'⚔️ Medieval Smithy', docTitle:'Medieval Smithy',
+    accent:'184,120,40', bg:0xc8b896,
     panelTeam:'👥 Guild', panelExpand:'🏰 Expand Keep',
     panelFunding:'👑 Royal Patronage', panelAmenities:'🍺 Guildhall',
     panelSettings:'⚙️ Settings',
@@ -1162,9 +1167,13 @@ const THEMES = {
     ipoTitle:'👑 Time for Coronation!', ipoBtn:'👑 Coronation',
     restartBtn:'🗑️ Abandon the keep', achievementsBtn:'🏅 Deeds',
     sprintBtn:'⚔️ Rally',
+    vp1:'Master Smith', vp2:'Guildmaster', vp3:'High Marshal',
+    invAngel:'Wandering Lord', invVC:'Royal Treasurer', invCorp:'Court Envoy',
+    invAdvisor:'Sage', invTire:'Peasant',
   },
   space: {
     label:'🚀 Space Station', docTitle:'Space Station Commander',
+    accent:'88,166,255', bg:0x1a1f3a,
     panelTeam:'👥 Crew', panelExpand:'🛰️ Expand Station',
     panelFunding:'🪐 Federation Grants', panelAmenities:'🛸 Station Systems',
     panelSettings:'⚙️ Settings',
@@ -1184,9 +1193,13 @@ const THEMES = {
     ipoTitle:'🌌 Time to Ascend!', ipoBtn:'🌌 Ascend',
     restartBtn:'🗑️ Decommission station', achievementsBtn:'🏅 Medals',
     sprintBtn:'🚀 Burn',
+    vp1:'Lead Astronaut', vp2:'Mission Director', vp3:'Fleet Admiral',
+    invAngel:'Federation Scout', invVC:'Mega-Corp Buyer', invCorp:'Trade Federation',
+    invAdvisor:'Veteran Captain', invTire:'Drifter',
   },
   mob: {
     label:'🔪 Mob Syndicate', docTitle:'Mob Syndicate',
+    accent:'200,50,50', bg:0x2a1818,
     panelTeam:'👥 Crew', panelExpand:'🏢 Expand Turf',
     panelFunding:'💰 Shakedowns', panelAmenities:'🍝 The Club',
     panelSettings:'⚙️ Settings',
@@ -1206,9 +1219,13 @@ const THEMES = {
     ipoTitle:'👑 Become the Don!', ipoBtn:'👑 Be The Don',
     restartBtn:'🗑️ Turn rat', achievementsBtn:'🏅 Reputation',
     sprintBtn:'💨 Blitz',
+    vp1:'Capo', vp2:'Underboss', vp3:'The Don',
+    invAngel:'Made Man', invVC:'Family Don', invCorp:'Syndicate',
+    invAdvisor:'Old-Timer', invTire:'Snitch',
   },
   wizard: {
     label:'🧙 Wizard Academy', docTitle:'Wizard Academy',
+    accent:'140,80,200', bg:0x261a3a,
     panelTeam:'👥 Coven', panelExpand:'🏰 Expand Academy',
     panelFunding:'📜 Royal Grants', panelAmenities:'🔮 Tower',
     panelSettings:'⚙️ Settings',
@@ -1228,9 +1245,13 @@ const THEMES = {
     ipoTitle:'🌟 Ascend to Archmagus!', ipoBtn:'🌟 Ascend',
     restartBtn:'🗑️ Close the academy', achievementsBtn:'🏅 Accolades',
     sprintBtn:'⚡ Surge',
+    vp1:'Senior Mage', vp2:'Magus', vp3:'Archmagus',
+    invAngel:'Wandering Mage', invVC:'Royal Patron', invCorp:'Dragon Cult',
+    invAdvisor:'Sage', invTire:'Wandering Soul',
   },
   farm: {
     label:'🚜 Farm Tycoon', docTitle:'Farm Tycoon',
+    accent:'90,160,60', bg:0xb8d090,
     panelTeam:'👥 Farmhands', panelExpand:'🌾 Expand Farm',
     panelFunding:'🏦 Ag Grants', panelAmenities:'🚜 Farmstand',
     panelSettings:'⚙️ Settings',
@@ -1250,6 +1271,9 @@ const THEMES = {
     ipoTitle:'🏆 Mega-Farm Empire!', ipoBtn:'🏆 Mega-Farm',
     restartBtn:'🗑️ Sell the farm', achievementsBtn:'🏅 Blue Ribbons',
     sprintBtn:'⚡ Harvest',
+    vp1:'Foreman', vp2:'Estate Manager', vp3:'Land Baron',
+    invAngel:'Town Investor', invVC:'Ag Conglomerate', invCorp:'Co-op',
+    invAdvisor:'Master Gardener', invTire:'Day Tripper',
   },
 };
 const THEME_ID = localStorage.getItem(LS.theme) || 'startup';
@@ -1297,7 +1321,7 @@ const T = k => theme[k] || THEMES.startup[k] || '';
 
 // ── Scene + isometric camera ──
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xd6d0c8);
+scene.background = new THREE.Color(theme.bg || 0xd6d0c8);
 
 const camera = new THREE.OrthographicCamera();
 let cameraZoom = 14;
@@ -4778,6 +4802,12 @@ function applyTheme() {
   const amenKeyMap = { coffee:'amenCoffee', printer:'amenPrinter', pingpong:'amenPingpong', standup:'amenStandup' };
   for (const a of AMENITY_DEFS) { const k = amenKeyMap[a.id]; if (k) a.name = T(k); }
   for (const a of amenities) { const k = amenKeyMap[a.id]; if (k) a.name = T(k); }
+  // VP promotion ladder + investor types — touch the label fields
+  // these arrays expose to the rendering code.
+  const vpKeyMap = { lead:'vp1', head:'vp2', cto:'vp3' };
+  for (const v of VP_TIERS) { const k = vpKeyMap[v.id]; if (k) v.label = T(k); }
+  const invKeyMap = { angel:'invAngel', vc:'invVC', corpdev:'invCorp', advisor:'invAdvisor', tirekicker:'invTire' };
+  for (const i of INVESTOR_TYPES) { const k = invKeyMap[i.id]; if (k) i.label = T(k); }
   // Modals + corner buttons
   const ipoTitleEl = document.querySelector('#ipo-modal .ipo-title');
   if (ipoTitleEl) ipoTitleEl.textContent = T('ipoTitle');
