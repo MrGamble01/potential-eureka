@@ -251,6 +251,12 @@
         <span>Score: <strong id="snake-score">0</strong></span>
         <span>High Score: <strong id="snake-high">0</strong></span>
       </div>
+      <div class="game-controls">
+        <button id="diff-easy" onclick="SnakeGame.setDifficulty('easy')">Easy</button>
+        <button id="diff-medium" class="primary" onclick="SnakeGame.setDifficulty('medium')">Medium</button>
+        <button id="diff-hard" onclick="SnakeGame.setDifficulty('hard')">Hard</button>
+        <button id="diff-insane" onclick="SnakeGame.setDifficulty('insane')">Insane</button>
+      </div>
       <div class="canvas-wrapper">
         <canvas id="snake-canvas" class="game-canvas"></canvas>
         <div id="snake-overlay" class="game-overlay" style="display:none"></div>

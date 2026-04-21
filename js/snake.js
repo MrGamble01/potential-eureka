@@ -9,10 +9,18 @@ const SnakeGame = (() => {
   const WIDTH = COLS * GRID;
   const HEIGHT = ROWS * GRID;
 
+  const DIFFICULTIES = {
+    easy:   { startSpeed: 160, minSpeed: 100, step: 1,  label: 'EASY'   },
+    medium: { startSpeed: 120, minSpeed:  60, step: 2,  label: 'MEDIUM' },
+    hard:   { startSpeed:  80, minSpeed:  40, step: 4,  label: 'HARD'   },
+    insane: { startSpeed:  50, minSpeed:  20, step: 6,  label: 'INSANE' },
+  };
+
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, score, highScore, speed;
   let gameLoop, running, gameOver;
+  let currentDifficulty = 'medium';
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -20,10 +28,11 @@ const SnakeGame = (() => {
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     ctx = canvas.getContext('2d');
-    highScore = parseInt(Utils.store.getRaw('snake-high') || '0');
+    loadHighScore();
     snake = [];
     running = false;
     gameOver = false;
+    updateDifficultyButtons();
     updateInfo();
     draw();
 
@@ -46,6 +55,26 @@ const SnakeGame = (() => {
         if (dy > 30) setDir(0, 1);
         else if (dy < -30) setDir(0, -1);
       }
+    });
+  }
+
+  function loadHighScore() {
+    highScore = parseInt(Utils.store.getRaw(`snake-high-${currentDifficulty}`) || '0');
+  }
+
+  function setDifficulty(level) {
+    if (running) return;
+    currentDifficulty = level;
+    loadHighScore();
+    updateDifficultyButtons();
+    updateInfo();
+  }
+
+  function updateDifficultyButtons() {
+    Object.keys(DIFFICULTIES).forEach(d => {
+      const btn = document.getElementById(`diff-${d}`);
+      if (!btn) return;
+      btn.className = d === currentDifficulty ? 'primary' : '';
     });
   }
 
@@ -80,8 +109,9 @@ const SnakeGame = (() => {
     score = 0;
     gameOver = false;
     running = true;
-    speed = 120;
+    speed = DIFFICULTIES[currentDifficulty].startSpeed;
     spawnFood();
+    updateDifficultyButtons();
     updateInfo();
 
     const overlay = document.getElementById('snake-overlay');
@@ -124,12 +154,12 @@ const SnakeGame = (() => {
       score += 10;
       if (score > highScore) {
         highScore = score;
-        Utils.store.setRaw('snake-high', String(highScore));
+        Utils.store.setRaw(`snake-high-${currentDifficulty}`, String(highScore));
       }
       spawnFood();
-      // Speed up slightly
-      if (speed > 60) {
-        speed -= 2;
+      const diff = DIFFICULTIES[currentDifficulty];
+      if (speed > diff.minSpeed) {
+        speed = Math.max(diff.minSpeed, speed - diff.step);
         clearInterval(gameLoop);
         gameLoop = setInterval(tick, speed);
       }
@@ -145,13 +175,14 @@ const SnakeGame = (() => {
     running = false;
     gameOver = true;
     clearInterval(gameLoop);
+    updateDifficultyButtons();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
       overlay.style.display = 'flex';
       overlay.innerHTML = `
         <h2>GAME OVER</h2>
-        <p>Score: ${score}</p>
+        <p>Score: ${score} &nbsp;|&nbsp; ${DIFFICULTIES[currentDifficulty].label}</p>
         <p style="font-size:12px; color: var(--text-dim)">Press SPACE to restart</p>
       `;
     }
@@ -224,5 +255,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, setDifficulty };
 })();
