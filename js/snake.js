@@ -1,18 +1,27 @@
 /* ============================================
-   SNAKE — Classic arcade game
+   SNAKE — Classic arcade game with power-ups
    ============================================ */
 
 const SnakeGame = (() => {
-  const GRID = 20;          // grid cell size in pixels
+  const GRID = 20;
   const COLS = 30;
   const ROWS = 20;
   const WIDTH = COLS * GRID;
   const HEIGHT = ROWS * GRID;
 
+  const POWERUP_TYPES = {
+    bonus: { color: '#FFD700', glow: '#FFD700', label: 'BONUS', points: 30 },
+    slow:  { color: '#00CED1', glow: '#00CED1', label: 'SLOW',  points: 10 },
+  };
+
   let canvas, ctx;
   let snake, direction, nextDirection;
-  let food, score, highScore, speed;
+  let food, powerUp, powerUpExpiry;
+  let effect, effectExpiry;
+  let score, highScore, speed, baseSpeed;
+  let foodEaten;
   let gameLoop, running, gameOver;
+  let floatTexts;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -24,12 +33,12 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    floatTexts = [];
     updateInfo();
     draw();
 
     document.addEventListener('keydown', handleKey);
 
-    // Mobile swipe support
     let touchStartX, touchStartY;
     canvas.addEventListener('touchstart', e => {
       touchStartX = e.touches[0].clientX;
@@ -80,7 +89,14 @@ const SnakeGame = (() => {
     score = 0;
     gameOver = false;
     running = true;
+    baseSpeed = 120;
     speed = 120;
+    foodEaten = 0;
+    powerUp = null;
+    powerUpExpiry = 0;
+    effect = null;
+    effectExpiry = 0;
+    floatTexts = [];
     spawnFood();
     updateInfo();
 
@@ -92,15 +108,51 @@ const SnakeGame = (() => {
   }
 
   function spawnFood() {
+    const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
+    if (powerUp) occupied.add(`${powerUp.x},${powerUp.y}`);
+    let pos;
     do {
-      food = {
-        x: Math.floor(Math.random() * COLS),
-        y: Math.floor(Math.random() * ROWS),
-      };
-    } while (snake.some(s => s.x === food.x && s.y === food.y));
+      pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+    } while (occupied.has(`${pos.x},${pos.y}`));
+    food = pos;
+  }
+
+  function spawnPowerUp() {
+    const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
+    occupied.add(`${food.x},${food.y}`);
+    let pos;
+    do {
+      pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+    } while (occupied.has(`${pos.x},${pos.y}`));
+    const types = Object.keys(POWERUP_TYPES);
+    const type = types[Math.floor(Math.random() * types.length)];
+    powerUp = { ...pos, type };
+    powerUpExpiry = Date.now() + 7000;
+  }
+
+  function applySpeed(newBase) {
+    baseSpeed = newBase;
+    speed = effect === 'slow' ? Math.min(baseSpeed + 50, 200) : baseSpeed;
+    clearInterval(gameLoop);
+    gameLoop = setInterval(tick, speed);
   }
 
   function tick() {
+    const now = Date.now();
+
+    // Expire power-up on the board
+    if (powerUp && now > powerUpExpiry) {
+      powerUp = null;
+    }
+
+    // Expire active effect
+    if (effect && now > effectExpiry) {
+      effect = null;
+      speed = baseSpeed;
+      clearInterval(gameLoop);
+      gameLoop = setInterval(tick, speed);
+    }
+
     direction = { ...nextDirection };
     const head = {
       x: snake[0].x + direction.x,
@@ -119,32 +171,78 @@ const SnakeGame = (() => {
 
     snake.unshift(head);
 
-    // Eat food
+    let grew = false;
+
     if (head.x === food.x && head.y === food.y) {
+      // Eat regular food
+      grew = true;
       score += 10;
+      foodEaten++;
+      addFloat(head.x, head.y, '+10', '#F778BA');
+
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+
       spawnFood();
-      // Speed up slightly
-      if (speed > 60) {
-        speed -= 2;
+
+      // Occasionally spawn a power-up
+      if (!powerUp && foodEaten % 4 === 0 && Math.random() < 0.75) {
+        spawnPowerUp();
+      }
+
+      // Speed up
+      if (baseSpeed > 60) {
+        applySpeed(baseSpeed - 2);
+      }
+
+    } else if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
+      // Eat power-up
+      grew = true;
+      const def = POWERUP_TYPES[powerUp.type];
+      score += def.points;
+      addFloat(head.x, head.y, `+${def.points} ${def.label}!`, def.color);
+
+      if (score > highScore) {
+        highScore = score;
+        Utils.store.setRaw('snake-high', String(highScore));
+      }
+
+      if (powerUp.type === 'slow') {
+        effect = 'slow';
+        effectExpiry = now + 5000;
+        speed = Math.min(baseSpeed + 50, 200);
         clearInterval(gameLoop);
         gameLoop = setInterval(tick, speed);
       }
-    } else {
-      snake.pop();
+
+      powerUp = null;
     }
+
+    if (!grew) snake.pop();
+
+    // Animate floating texts
+    floatTexts = floatTexts.filter(f => f.alpha > 0);
+    floatTexts.forEach(f => {
+      f.y -= 0.5;
+      f.alpha -= 0.02;
+    });
 
     updateInfo();
     draw();
+  }
+
+  function addFloat(gx, gy, text, color) {
+    floatTexts.push({ x: gx * GRID + GRID / 2, y: gy * GRID, text, color, alpha: 1 });
   }
 
   function endGame() {
     running = false;
     gameOver = true;
     clearInterval(gameLoop);
+    effect = null;
+    powerUp = null;
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -159,12 +257,23 @@ const SnakeGame = (() => {
 
   function updateInfo() {
     const scoreEl = document.getElementById('snake-score');
-    const highEl = document.getElementById('snake-high');
+    const highEl  = document.getElementById('snake-high');
+    const effEl   = document.getElementById('snake-effect');
     if (scoreEl) scoreEl.textContent = score || 0;
-    if (highEl) highEl.textContent = highScore;
+    if (highEl)  highEl.textContent  = highScore;
+    if (effEl) {
+      if (effect === 'slow') {
+        const secs = Math.max(0, Math.ceil((effectExpiry - Date.now()) / 1000));
+        effEl.textContent = `SLOW ${secs}s`;
+        effEl.style.color = '#00CED1';
+      } else {
+        effEl.textContent = '';
+      }
+    }
   }
 
   function draw() {
+    const now = Date.now();
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -178,22 +287,25 @@ const SnakeGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * GRID); ctx.lineTo(WIDTH, y * GRID); ctx.stroke();
     }
 
-    // Snake
+    // Snake (cyan tint when slow is active)
+    const headColor = effect === 'slow' ? '#00CED1' : '#6C63FF';
     snake.forEach((seg, i) => {
       const brightness = 1 - (i / snake.length) * 0.5;
       if (i === 0) {
-        ctx.fillStyle = '#6C63FF';
-        ctx.shadowColor = '#6C63FF';
+        ctx.fillStyle = headColor;
+        ctx.shadowColor = headColor;
         ctx.shadowBlur = 8;
       } else {
-        ctx.fillStyle = `rgba(108, 99, 255, ${brightness})`;
+        ctx.fillStyle = effect === 'slow'
+          ? `rgba(0, 206, 209, ${brightness})`
+          : `rgba(108, 99, 255, ${brightness})`;
         ctx.shadowBlur = 0;
       }
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
     });
     ctx.shadowBlur = 0;
 
-    // Food
+    // Regular food
     if (food) {
       ctx.fillStyle = '#F778BA';
       ctx.shadowColor = '#F778BA';
@@ -203,6 +315,43 @@ const SnakeGame = (() => {
       ctx.fill();
       ctx.shadowBlur = 0;
     }
+
+    // Power-up (pulsing glow)
+    if (powerUp) {
+      const def = POWERUP_TYPES[powerUp.type];
+      const pulse = 0.7 + 0.3 * Math.sin(now / 200);
+      ctx.fillStyle = def.color;
+      ctx.shadowColor = def.glow;
+      ctx.shadowBlur = 14 * pulse;
+      ctx.beginPath();
+      ctx.arc(
+        powerUp.x * GRID + GRID / 2,
+        powerUp.y * GRID + GRID / 2,
+        (GRID / 2 - 2) * pulse,
+        0, Math.PI * 2
+      );
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Single letter label inside
+      ctx.fillStyle = '#0d1117';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(def.label[0], powerUp.x * GRID + GRID / 2, powerUp.y * GRID + GRID / 2);
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+    }
+
+    // Floating score texts
+    floatTexts.forEach(f => {
+      ctx.globalAlpha = f.alpha;
+      ctx.fillStyle = f.color;
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(f.text, f.x, f.y);
+    });
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
 
     // Start prompt
     if (!running && !gameOver) {
