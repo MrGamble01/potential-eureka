@@ -1,9 +1,9 @@
 /* ============================================
-   SNAKE — Classic arcade game
+   SNAKE — Classic arcade game with bonus food
    ============================================ */
 
 const SnakeGame = (() => {
-  const GRID = 20;          // grid cell size in pixels
+  const GRID = 20;
   const COLS = 30;
   const ROWS = 20;
   const WIDTH = COLS * GRID;
@@ -12,7 +12,8 @@ const SnakeGame = (() => {
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, score, highScore, speed;
-  let gameLoop, running, gameOver;
+  let gameLoop, drawFrameId, running, gameOver;
+  let bonusFood, bonusTimeout, foodEaten;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -24,12 +25,12 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    bonusFood = null;
     updateInfo();
     draw();
 
     document.addEventListener('keydown', handleKey);
 
-    // Mobile swipe support
     let touchStartX, touchStartY;
     canvas.addEventListener('touchstart', e => {
       touchStartX = e.touches[0].clientX;
@@ -81,6 +82,9 @@ const SnakeGame = (() => {
     gameOver = false;
     running = true;
     speed = 120;
+    foodEaten = 0;
+    bonusFood = null;
+    clearTimeout(bonusTimeout);
     spawnFood();
     updateInfo();
 
@@ -89,6 +93,14 @@ const SnakeGame = (() => {
 
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
+
+    cancelAnimationFrame(drawFrameId);
+    drawFrameId = requestAnimationFrame(drawLoop);
+  }
+
+  function drawLoop() {
+    draw();
+    if (running) drawFrameId = requestAnimationFrame(drawLoop);
   }
 
   function spawnFood() {
@@ -100,6 +112,24 @@ const SnakeGame = (() => {
     } while (snake.some(s => s.x === food.x && s.y === food.y));
   }
 
+  function spawnBonusFood() {
+    clearTimeout(bonusTimeout);
+    const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
+    occupied.add(`${food.x},${food.y}`);
+    let pos;
+    let attempts = 0;
+    do {
+      pos = {
+        x: Math.floor(Math.random() * COLS),
+        y: Math.floor(Math.random() * ROWS),
+      };
+      attempts++;
+    } while (occupied.has(`${pos.x},${pos.y}`) && attempts < 100);
+
+    bonusFood = { ...pos, spawnTime: Date.now(), duration: 5000 };
+    bonusTimeout = setTimeout(() => { bonusFood = null; }, 5000);
+  }
+
   function tick() {
     direction = { ...nextDirection };
     const head = {
@@ -107,44 +137,56 @@ const SnakeGame = (() => {
       y: snake[0].y + direction.y,
     };
 
-    // Wall collision
     if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
       return endGame();
     }
 
-    // Self collision
     if (snake.some(s => s.x === head.x && s.y === head.y)) {
       return endGame();
     }
 
     snake.unshift(head);
+    let ate = false;
 
-    // Eat food
     if (head.x === food.x && head.y === food.y) {
+      ate = true;
       score += 10;
+      foodEaten++;
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
       spawnFood();
-      // Speed up slightly
+      // Spawn bonus food every 3rd regular food eaten
+      if (foodEaten % 3 === 0) spawnBonusFood();
       if (speed > 60) {
         speed -= 2;
         clearInterval(gameLoop);
         gameLoop = setInterval(tick, speed);
       }
-    } else {
-      snake.pop();
+    } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+      ate = true;
+      score += 30;
+      if (score > highScore) {
+        highScore = score;
+        Utils.store.setRaw('snake-high', String(highScore));
+      }
+      clearTimeout(bonusTimeout);
+      bonusFood = null;
     }
 
+    if (!ate) snake.pop();
     updateInfo();
-    draw();
   }
 
   function endGame() {
     running = false;
     gameOver = true;
     clearInterval(gameLoop);
+    clearTimeout(bonusTimeout);
+    bonusFood = null;
+    cancelAnimationFrame(drawFrameId);
+    draw();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -193,7 +235,7 @@ const SnakeGame = (() => {
     });
     ctx.shadowBlur = 0;
 
-    // Food
+    // Regular food
     if (food) {
       ctx.fillStyle = '#F778BA';
       ctx.shadowColor = '#F778BA';
@@ -202,6 +244,42 @@ const SnakeGame = (() => {
       ctx.arc(food.x * GRID + GRID / 2, food.y * GRID + GRID / 2, GRID / 2 - 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Bonus food — gold diamond with pulsing glow and countdown
+    if (bonusFood) {
+      const now = Date.now();
+      const elapsed = now - bonusFood.spawnTime;
+      const remaining = bonusFood.duration - elapsed;
+      const pulse = 0.5 + 0.5 * Math.sin(elapsed / 180);
+      const flicker = remaining < 1500;
+      const visible = !flicker || (Math.floor(now / (remaining < 500 ? 80 : 130)) % 2 === 0);
+
+      if (visible) {
+        const cx = bonusFood.x * GRID + GRID / 2;
+        const cy = bonusFood.y * GRID + GRID / 2;
+        const size = (GRID / 2 - 1) * (0.85 + 0.15 * pulse);
+
+        ctx.fillStyle = `rgba(255, 200, 50, ${0.8 + 0.2 * pulse})`;
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 8 + 10 * pulse;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx + size * 0.7, cy);
+        ctx.lineTo(cx, cy + size);
+        ctx.lineTo(cx - size * 0.7, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Countdown seconds above the diamond
+        const secs = Math.ceil(remaining / 1000);
+        ctx.fillStyle = `rgba(255, 215, 0, ${0.6 + 0.4 * pulse})`;
+        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${secs}s`, cx, bonusFood.y * GRID - 2);
+        ctx.textAlign = 'left';
+      }
     }
 
     // Start prompt
@@ -214,13 +292,15 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys  ·  +30pts for gold diamond', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
 
   function destroy() {
     clearInterval(gameLoop);
+    cancelAnimationFrame(drawFrameId);
+    clearTimeout(bonusTimeout);
     running = false;
   }
 
