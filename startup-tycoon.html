@@ -3524,8 +3524,13 @@ function smoothedArr() {
   while (revenueLog.length && revenueLog[0].at < cutoff) revenueLog.shift();
   if (revenueLog.length === 0) return 0;
   const sum = revenueLog.reduce((s, e) => s + e.amount, 0);
-  const elapsedSec = Math.max(1, (Date.now() - revenueLog[0].at) / 1000);
-  return Math.round(sum * 365 * 24 * 3600 / elapsedSec);
+  // Annualize against the fixed window, not the span from the oldest
+  // entry to now. Using the span makes ARR blow up when the log has
+  // only one recent entry (sum × 31.5M / ~1s → multi-billion $) and
+  // jitter as entries age in/out. Fixed-window annualization gives a
+  // smooth ramp and a stable, honest rate.
+  const windowSec = REVENUE_WINDOW_MS / 1000;
+  return Math.round(sum * 365 * 24 * 3600 / windowSec);
 }
 // ── Season Goal ───────────────────────────────────────────
 // Target ARR for the current season. Scales with prestige (S1 = $1M,
