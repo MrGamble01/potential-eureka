@@ -764,21 +764,42 @@
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 10px; padding: 10px 14px;
-      width: 188px; pointer-events: none; user-select: none;
+      width: 208px; max-height: calc(100vh - 260px); overflow: hidden;
+      pointer-events: none; user-select: none;
       box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     }
     .feed-title {
       font-size: 10px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590; margin-bottom: 8px;
     }
+    #feed-list { display: flex; flex-direction: column; gap: 0; }
     .feed-entry {
-      font-size: 11px; font-weight: 600; color: #E6EDF3;
+      font-size: 11px; font-weight: 600; color: #C4D3DD;
       padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       line-height: 1.55;
+      display: flex; align-items: center; gap: 4px;
+      transition: color 0.2s, opacity 0.2s;
     }
+    .feed-entry > :first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .feed-entry.feed-fresh { color: #E6EDF3; }
+    .feed-entry.feed-fresh::before {
+      content: ''; width: 4px; height: 4px; border-radius: 50%;
+      background: #3FB950; box-shadow: 0 0 6px #3FB950;
+      flex: 0 0 auto;
+    }
+    .feed-entry.feed-old { color: #7D8590; opacity: 0.75; }
+    .feed-entry.feed-empty { color: #7D8590; font-style: italic; }
     .feed-entry:last-child { border-bottom: none; }
-    .feed-entry .feed-age { color: #7D8590; font-size: 10px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+    .feed-entry .feed-age {
+      color: #7D8590; font-size: 10px; font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .feed-entry .feed-count {
+      background: rgba(108,99,255,0.3); color: #c4beff;
+      font-size: 9px; font-weight: 800; padding: 1px 5px;
+      border-radius: 6px; flex: 0 0 auto;
+    }
     /* ── Prestige season badge ────────────────────────── */
     #season-badge {
       display: none; background: rgba(212,153,34,0.2);
@@ -4911,12 +4932,22 @@ const UPGRADES = [
 
 // ── Activity Feed ───────────────────────────────────────
 const activityLog = [];
-const MAX_FEED = 7;
+const MAX_FEED = 14;
 const feedListEl = document.getElementById('feed-list');
 
 function addFeedEntry(text) {
-  activityLog.unshift({ text, at: Date.now() });
-  if (activityLog.length > MAX_FEED) activityLog.pop();
+  // Dedup repeats: same text within 2s increments a count badge on
+  // the existing entry instead of stacking a second line. Kills the
+  // "💻 Hired engineer #3" × N spam from batch-clicking.
+  const now = Date.now();
+  const last = activityLog[0];
+  if (last && last.text === text && now - last.at < 2000) {
+    last.count = (last.count || 1) + 1;
+    last.at = now;
+  } else {
+    activityLog.unshift({ text, at: now, count: 1 });
+    if (activityLog.length > MAX_FEED) activityLog.pop();
+  }
   renderFeed();
 }
 
@@ -4924,26 +4955,28 @@ function renderFeed() {
   feedListEl.innerHTML = '';
   if (activityLog.length === 0) {
     const hint = document.createElement('div');
-    hint.className = 'feed-entry';
-    hint.style.color = '#7D8590';
-    hint.style.fontStyle = 'italic';
+    hint.className = 'feed-entry feed-empty';
     hint.textContent = '👋 Hire an engineer to start shipping.';
     feedListEl.appendChild(hint);
     return;
   }
   const now = Date.now();
-  for (const e of activityLog) {
+  for (let i = 0; i < activityLog.length; i++) {
+    const e = activityLog[i];
     const age = Math.floor((now - e.at) / 1000);
-    const ageStr = age < 60 ? `${age}s` : `${Math.floor(age/60)}m`;
+    const ageStr = age < 5 ? 'now' : (age < 60 ? `${age}s` : `${Math.floor(age/60)}m`);
     const div = document.createElement('div');
-    div.className = 'feed-entry';
-    div.innerHTML = `${e.text}<span class="feed-age">${ageStr}</span>`;
+    // Newest entry gets a green pulse dot; older entries fade so
+    // recency is readable at a glance without reading every row.
+    div.className = 'feed-entry' + (i === 0 ? ' feed-fresh' : (i >= MAX_FEED - 4 ? ' feed-old' : ''));
+    const countBadge = (e.count && e.count > 1) ? `<span class="feed-count">×${e.count}</span>` : '';
+    div.innerHTML = `<span>${e.text}</span>${countBadge}<span class="feed-age">${ageStr}</span>`;
     feedListEl.appendChild(div);
   }
 }
 
-// Refresh age labels every 10s
-setInterval(renderFeed, 10000);
+// Refresh age labels every 5s so "now / 10s / 1m" stays current
+setInterval(renderFeed, 5000);
 
 // ── Startup Events ──────────────────────────────────────────
 const EVENT_POOL = [
