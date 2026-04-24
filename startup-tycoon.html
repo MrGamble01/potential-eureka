@@ -882,7 +882,7 @@
 <div id="labels"></div>
 <button id="cash-hud" type="button" title="Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
-  <div class="m-row"><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
+  <div class="m-row" title="Annual Recurring Revenue — smoothed from the last 30s of recurring income (engineering + sales). One-time cash (funding, investor gifts, events) moves your $ but not ARR."><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
   <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
   <div class="m-row"><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
@@ -2496,7 +2496,7 @@ function updateIdeaWorkers(dt) {
         // Paper value boost
         w.paperBoost = 1.0;
         if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
-        w.productValue = Math.round(featurePrice * dealValueMult * productVersionMult * w.paperBoost * w.pingPongBoost);
+        w.productValue = computeDealValue({ paperBoost: w.paperBoost, pingPongBoost: w.pingPongBoost });
         w.pingPongBoost = 1.0;
         setPaperStackProgress(w.carryMesh, 0.8); // carry an 8-sheet stack
         // VP Eng handoff: if a VP is hired and this engineer doesn't
@@ -2530,7 +2530,7 @@ function updateIdeaWorkers(dt) {
         w.state = 'pingPonging'; w.waitT = 5.0;
         showToast('🏓 Taking a ping pong break!', '', 'ambient');
       } else if (w.state === 'toDeliver') {
-        addCash(w.productValue);
+        addRevenue(w.productValue);
         totalFeaturesShipped++;
         checkProductVersion();
         totalUsers += Math.max(1, Math.floor(w.productValue / 4));
@@ -2550,7 +2550,7 @@ function updateIdeaWorkers(dt) {
           totalUsers += Math.max(1, Math.floor(w.productValue / 4));
           checkUserMilestones();
         } else {
-          addCash(w.productValue);
+          addRevenue(w.productValue);
         }
         setPaperStackProgress(w.carryMesh, 0);
         w.targetVP = null;
@@ -2639,8 +2639,8 @@ function updatePlayerProximityWork(dt) {
   if (playerWorkProgress >= 1.0) {
     playerWorkProgress = 0;
     setPaperStackProgress(p.paperStack, 0);
-    const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
-    addCash(earned);
+    const earned = computeDealValue();
+    addRevenue(earned);
     totalFeaturesShipped++;
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
@@ -2676,8 +2676,8 @@ function updateCeoDeskWork(dt) {
   if (ceoWorkProgress >= 1.0) {
     ceoWorkProgress = 0;
     setPaperStackProgress(ceoPaperStack, 0);
-    const earned = Math.round(featurePrice * dealValueMult * productVersionMult);
-    addCash(earned);
+    const earned = computeDealValue();
+    addRevenue(earned);
     totalFeaturesShipped++;
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
@@ -2911,6 +2911,9 @@ function updateExecutiveAssistants(dt) {
 const bdrs = [];
 const BDR_BASE_COST = 200;
 const BDR_COST_SCALE = 1.5;
+// Fraction of a full-product-unit value that a BDR lands on their own.
+// AEs then multiply handed-off deals by AE_PROCESS_MULT for the close.
+const BDR_SOLO_FRACTION = 0.6;
 function bdrCost() { return Math.floor(BDR_BASE_COST * Math.pow(BDR_COST_SCALE, bdrs.length)); }
 
 function spawnBDR(opts = {}) {
@@ -3005,7 +3008,7 @@ function updateBDRs(dt) {
           b.pendingWithAE = true;
         } else {
           // Someone beat us to it — cash the deal solo at the AE's desk
-          addCash(b.dealValue);
+          addRevenue(b.dealValue);
           popCashAt(b.group.position.x, b.group.position.z, b.dealValue);
         }
         b.state = 'returning';
@@ -3023,7 +3026,10 @@ function updateBDRs(dt) {
     b.dealTimer -= dt;
     if (b.dealTimer > 0) continue;
     b.dealTimer = 8 + Math.random() * 10;
-    const deal = Math.round((5 + Math.random() * 10) * (b.externalMult || 1));
+    // BDR solo deal = a fraction of a full product unit, scaled by
+    // whatever you've earned (Premium Tier, prestige, version, events).
+    // Floor keeps early-game BDRs from rounding to $0 before upgrades.
+    const deal = Math.max(5, Math.round(computeDealValue() * BDR_SOLO_FRACTION * (b.externalMult || 1)));
 
     // If this BDR has no pending handoff AND there's a free AE that no
     // other BDR is already walking to → hand off for a 3× close.
@@ -3039,7 +3045,7 @@ function updateBDRs(dt) {
       }
     }
     // Otherwise cash the deal solo at the BDR's desk
-    addCash(deal);
+    addRevenue(deal);
     popCashAt(b.group.position.x, b.group.position.z, deal);
   }
 }
@@ -3113,7 +3119,7 @@ function updateAEs(dt) {
       ae.currentDeal.processTime -= dt;
       if (ae.currentDeal.processTime <= 0) {
         const closedValue = Math.round(ae.currentDeal.value * AE_PROCESS_MULT);
-        addCash(closedValue);
+        addRevenue(closedValue);
         popCashAt(ae.group.position.x, ae.group.position.z, closedValue);
         const bdr = ae.currentDeal.bdr;
         if (bdr) bdr.pendingWithAE = false;
@@ -3130,8 +3136,11 @@ function updateAEs(dt) {
       ae.soloTimer = (ae.soloTimer ?? (14 + Math.random() * 8)) - dt;
       if (ae.soloTimer <= 0) {
         ae.soloTimer = 14 + Math.random() * 8;
-        const amt = Math.round(30 + Math.random() * 40);
-        addCash(amt);
+        // AE self-source = ~2 full product units worth (slightly above
+        // a BDR→AE close at 1.8×, since an AE sourcing their own is the
+        // fallback when the pipeline runs dry). Floor avoids $0 early.
+        const amt = Math.max(20, Math.round(computeDealValue() * 2));
+        addRevenue(amt);
         popCashAt(ae.group.position.x, ae.group.position.z, amt);
       }
     }
@@ -3316,7 +3325,7 @@ function updateVPs(dt) {
       if (item.processTime <= 0) {
         const mult = vpMultiplier(queueSize, v.tier);
         const closed = Math.round(item.value * mult);
-        addCash(closed);
+        addRevenue(closed);
         popCashAt(v.group.position.x, v.group.position.z, closed);
         if (item.worker) item.worker.pendingWithVP = false;
         v.queue.splice(i, 1);
@@ -3476,6 +3485,18 @@ hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
 
 // ── Deal flow: features on shelf → deals close → revenue (no customer NPCs) ──
 let featurePrice = 5;
+
+// Single source of truth for what a shipped unit of product is worth.
+// Every engineering + sales path routes through this so balance knobs
+// live in one place. dealValueMult already folds in prestige, the
+// Enterprise upgrade, and temporary boosts (Demo Day, Award, Corp Dev);
+// paperBoost + pingPongBoost are per-delivery amenity bonuses.
+function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
+  return Math.round(
+    featurePrice * dealValueMult * productVersionMult * paperBoost * pingPongBoost
+  );
+}
+
 const DEAL_MSGS = [
   '💼 Deal closed!', '🎉 New signup!', '📈 MRR up!',
   '🤝 Enterprise deal!', '💰 Renewal!', '✅ Demo → paid!',
@@ -4178,11 +4199,18 @@ function addCash(n) {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
-    recordRevenue(n);
     showCashPop(n);
     checkMilestones();
   }
   refreshHud();
+}
+// Recurring income (engineer deliveries, sales closes). Feeds the
+// smoothed-ARR display via recordRevenue. One-time windfalls (funding,
+// investor gifts, events, offline, seed, cheats) should stay on
+// addCash so they move cash without inflating ARR.
+function addRevenue(n) {
+  addCash(n);
+  if (n > 0) recordRevenue(n);
 }
 
 // ── Upgrades ──
