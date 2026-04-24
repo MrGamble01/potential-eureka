@@ -15,8 +15,9 @@
     the team happy; run out → morale drops + work stalls.
     Sales side: BDRs solo small deals; hand off to an AE for a 3×
     close; AE self-sources if the pipeline dries up.
-    Goal: \$1M ARR (scales 2× per season). IPO resets + raises the
-    bar. 16 achievements track everything along the way.
+    Goal: bank \$25k recurring revenue per season (doubles per IPO).
+    Fill the goal bar, then IPO for 2× deal value + a higher bar.
+    16 achievements track everything along the way.
 
   ARCHITECTURE
     Single file. All UI is in <style>/<body>. Game is one module
@@ -107,6 +108,47 @@
       border-radius: 10px; padding: 10px 12px; color: #E6EDF3;
       flex-shrink: 0;
       box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+    }
+    /* ── Collapsible panels ──────────────────────────────
+       A panel gets a clickable title with a ▾/▸ caret. When the parent
+       .panel has .collapsed, everything except the title is hidden. */
+    .panel.collapsible > .panel-title {
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .panel.collapsible > .panel-title::before {
+      content: '▾'; font-size: 9px; opacity: 0.75;
+      transition: transform 0.15s ease;
+    }
+    .panel.collapsed > .panel-title::before { transform: rotate(-90deg); }
+    .panel.collapsed > *:not(.panel-title) { display: none !important; }
+    .panel.collapsible > .panel-title:hover { color: #fcd34d; }
+
+    /* ── Next Best Action card (top of sidebar) ─────────── */
+    #next-action-card {
+      width: 100%;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+      cursor: pointer; text-align: left;
+      border: 1px solid rgba(252,211,77,0.35);
+      background: linear-gradient(135deg, rgba(252,211,77,0.12), rgba(245,158,11,0.08));
+      transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      font-family: inherit;
+    }
+    #next-action-card:hover {
+      border-color: rgba(252,211,77,0.7);
+      box-shadow: 0 4px 18px rgba(252,211,77,0.18);
+      transform: translateY(-1px);
+    }
+    #next-action-card:active { transform: translateY(0); }
+    #next-action-card .na-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #fcd34d;
+    }
+    #next-action-card .na-title {
+      font-size: 13px; font-weight: 800; color: #E6EDF3; line-height: 1.2;
+    }
+    #next-action-card .na-sub {
+      font-size: 10px; color: #a0aab4; line-height: 1.25;
     }
     .panel-title {
       font-weight: 700; font-size: 9px; text-transform: uppercase;
@@ -231,6 +273,8 @@
       border-color: rgba(212,153,34,0.5);
     }
     .upg-btn .cost { display: block; color: #3FB950; font-size: 10px; margin-top: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .upg-btn .upg-effect { display: block; color: #8a939e; font-size: 10px; margin-top: 2px; font-weight: 600; line-height: 1.25; }
+    .upg-btn:hover:not(:disabled) .upg-effect { color: #c4d3dd; }
 
     /* ── Elevator ─────────────────────────────────────── */
     #elevator-btn {
@@ -331,6 +375,13 @@
       text-shadow: 0 1px 4px rgba(0,0,0,0.5);
       animation: cashPop 1.4s ease forwards; white-space: nowrap;
     }
+    /* Source-coded tints so the player can tell WHERE money came from */
+    .cash-pop.src-eng      { color:#3FB950; }  /* engineering / default green */
+    .cash-pop.src-sales    { color:#F59E0B; }  /* BDR / AE closes */
+    .cash-pop.src-exec     { color:#A78BFA; }  /* VP queue closes */
+    .cash-pop.src-investor { color:#FCD34D; }  /* one-time investor gifts */
+    .cash-pop.src-funding  { color:#22D3EE; }  /* funding rounds */
+    .cash-pop.src-event    { color:#F472B6; }  /* event-driven cash */
     @keyframes cashPop {
       0%   { opacity:1; transform:translateY(0)    scale(1); }
       50%  { opacity:1; transform:translateY(-34px) scale(1.1); }
@@ -401,7 +452,20 @@
       box-shadow: 0 0 14px rgba(245,158,11,0.2);
       transition: transform 0.1s, opacity 0.15s;
       display: flex; align-items: center; gap: 8px;
+      /* Cooldown/active ring rendered via conic gradient — --sprint-pct
+         is updated each tick (0 = empty, 1 = full) */
+      --sprint-pct: 0;
+      --sprint-ring: rgba(245,158,11,0.85);
     }
+    #sprint-btn::before {
+      content: ''; position: absolute; inset: -3px;
+      border-radius: 14px; pointer-events: none;
+      background: conic-gradient(var(--sprint-ring) calc(var(--sprint-pct) * 360deg), transparent 0);
+      -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
+              mask: radial-gradient(circle, transparent 62%, #000 64%);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    #sprint-btn.ringing::before { opacity: 1; }
     #sprint-btn:hover:not(:disabled) { transform: scale(1.04); }
     #sprint-btn:active:not(:disabled) { transform: scale(0.97); }
     #sprint-btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -478,7 +542,7 @@
     .ipo-panel {
       background: rgba(13,17,23,0.97);
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 16px; padding: 28px 26px; max-width: 400px; width: 90vw;
+      border-radius: 16px; padding: 28px 26px; max-width: 520px; width: 92vw;
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
       text-align: center;
     }
@@ -486,6 +550,35 @@
     .ipo-sub   { font-size: 14px; font-weight: 700; color: #3FB950; margin-bottom: 14px; }
     .ipo-body  { font-size: 13px; color: #7D8590; line-height: 1.7; margin-bottom: 20px; }
     .ipo-body strong { color: #E6EDF3; }
+    .ipo-cols {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px; margin: 18px 0 22px; text-align: left;
+    }
+    .ipo-col {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 10px 12px;
+    }
+    .ipo-col-title {
+      font-size: 9px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .ipo-col.keeps     .ipo-col-title { color: #3FB950; }
+    .ipo-col.resets    .ipo-col-title { color: #F59E0B; }
+    .ipo-col.forever   .ipo-col-title { color: #c4beff; }
+    .ipo-col ul { list-style: none; margin: 0; padding: 0; font-size: 11px; line-height: 1.6; color: #c4d3dd; }
+    .ipo-col li::before { content: '·'; margin-right: 5px; color: #6D7784; }
+    .ipo-first-hint {
+      font-size: 11px; color: #fcd34d; background: rgba(252,211,77,0.08);
+      border: 1px solid rgba(252,211,77,0.3); border-radius: 8px;
+      padding: 8px 12px; margin-bottom: 14px; text-align: left;
+      display: none;
+    }
+    .ipo-first-hint.visible { display: block; }
+    @media (max-width: 600px) {
+      .ipo-cols { grid-template-columns: 1fr; }
+    }
     .ipo-actions { display: flex; gap: 10px; justify-content: center; }
 
     /* ── Goal bar (top-center under status bar) ─── */
@@ -506,6 +599,14 @@
       margin-bottom: 5px;
     }
     .goal-header #goal-pct { color: #fcd34d; font-size: 11px; }
+    .goal-header .goal-meta {
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .goal-header #goal-pb {
+      font-size: 10px; font-weight: 700; color: #9ec5fe;
+      letter-spacing: 0.3px;
+    }
+    .goal-header #goal-pb:empty { display: none; }
     .goal-track {
       height: 5px; border-radius: 3px;
       background: rgba(255,255,255,0.06);
@@ -590,6 +691,23 @@
     .ach-row .ach-name { font-size: 13px; font-weight: 800; color: #7D8590; }
     .ach-row.earned .ach-name { color: #fcd34d; }
     .ach-row .ach-desc { font-size: 11px; color: #7D8590; line-height: 1.4; margin-top: 2px; }
+    .ach-row .ach-progress-bar {
+      position: relative;
+      height: 5px; border-radius: 3px; margin-top: 6px;
+      background: rgba(255,255,255,0.06); overflow: hidden;
+    }
+    .ach-row .ach-progress-fill {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: linear-gradient(90deg, rgba(108,99,255,0.7), rgba(252,211,77,0.75));
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .ach-row .ach-progress-num {
+      position: absolute; right: 4px; top: -16px;
+      font-size: 10px; font-weight: 700; color: #9ec5fe;
+      font-variant-numeric: tabular-nums;
+    }
+    .ach-row.earned .ach-progress-bar { display: none; }
     @media (max-width: 900px) {
       #goal-hud {
         top: calc(58px + env(safe-area-inset-top, 0px));
@@ -650,6 +768,41 @@
       font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.15s;
     }
     .ipo-cancel:hover { color: #E6EDF3; }
+    /* ── Investor arrival banner ──────────────────────── */
+    #investor-banner {
+      position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, rgba(252,211,77,0.22), rgba(245,158,11,0.16));
+      border: 1px solid rgba(252,211,77,0.55);
+      border-radius: 12px; padding: 8px 14px;
+      color: #fcd34d; font-weight: 700; font-size: 13px;
+      box-shadow: 0 6px 24px rgba(252,211,77,0.28);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      z-index: 90; user-select: none;
+      animation: ibPulse 1.4s ease-in-out infinite;
+      max-width: min(520px, 88vw);
+    }
+    #investor-banner[hidden] { display: none; }
+    #investor-banner .ib-icon { font-size: 22px; line-height: 1; }
+    #investor-banner .ib-body {
+      display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15;
+    }
+    #investor-banner .ib-body strong { color: #E6EDF3; font-size: 13px; }
+    #investor-banner .ib-body #ib-sub { color: #c4d3dd; font-size: 11px; font-weight: 600; }
+    #investor-banner .ib-timer {
+      background: rgba(252,211,77,0.22); color: #fcd34d;
+      padding: 3px 9px; border-radius: 8px; font-size: 11px; font-weight: 800;
+      font-variant-numeric: tabular-nums; margin-left: 4px;
+    }
+    @keyframes ibPulse {
+      0%,100% { box-shadow: 0 6px 24px rgba(252,211,77,0.24); }
+      50%     { box-shadow: 0 6px 32px rgba(252,211,77,0.55); }
+    }
+    @media (max-width: 900px) {
+      #investor-banner { top: 60px; padding: 6px 10px; font-size: 12px; gap: 8px; }
+      #investor-banner .ib-icon { font-size: 18px; }
+    }
+
     /* ── Activity feed ────────────────────────────────── */
     #activity-feed {
       position: fixed; top: 232px; right: 18px;
@@ -657,21 +810,42 @@
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 10px; padding: 10px 14px;
-      width: 188px; pointer-events: none; user-select: none;
+      width: 208px; max-height: calc(100vh - 260px); overflow: hidden;
+      pointer-events: none; user-select: none;
       box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     }
     .feed-title {
       font-size: 10px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590; margin-bottom: 8px;
     }
+    #feed-list { display: flex; flex-direction: column; gap: 0; }
     .feed-entry {
-      font-size: 11px; font-weight: 600; color: #E6EDF3;
+      font-size: 11px; font-weight: 600; color: #C4D3DD;
       padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       line-height: 1.55;
+      display: flex; align-items: center; gap: 4px;
+      transition: color 0.2s, opacity 0.2s;
     }
+    .feed-entry > :first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .feed-entry.feed-fresh { color: #E6EDF3; }
+    .feed-entry.feed-fresh::before {
+      content: ''; width: 4px; height: 4px; border-radius: 50%;
+      background: #3FB950; box-shadow: 0 0 6px #3FB950;
+      flex: 0 0 auto;
+    }
+    .feed-entry.feed-old { color: #7D8590; opacity: 0.75; }
+    .feed-entry.feed-empty { color: #7D8590; font-style: italic; }
     .feed-entry:last-child { border-bottom: none; }
-    .feed-entry .feed-age { color: #7D8590; font-size: 10px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+    .feed-entry .feed-age {
+      color: #7D8590; font-size: 10px; font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .feed-entry .feed-count {
+      background: rgba(108,99,255,0.3); color: #c4beff;
+      font-size: 9px; font-weight: 800; padding: 1px 5px;
+      border-radius: 6px; flex: 0 0 auto;
+    }
     /* ── Prestige season badge ────────────────────────── */
     #season-badge {
       display: none; background: rgba(212,153,34,0.2);
@@ -691,6 +865,9 @@
     .room-btn:active:not(:disabled) { transform: scale(0.98); }
     .room-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .room-btn .tag { float: right; color: #3FB950; font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .room-btn:disabled .tag { color: #F59E0B; }
+    .room-btn .room-contents { display: block; color: #8a939e; font-size: 10px; margin-top: 3px; font-weight: 600; letter-spacing: 0.3px; }
+    .room-btn:hover:not(:disabled) .room-contents { color: #c4d3dd; }
     /* Convert / Add-Desk buttons use a distinct tint so they
        visually separate from room purchases in the same panel. */
     .room-btn.room-convert {
@@ -892,17 +1069,19 @@
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<button id="cash-hud" type="button" title="Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
+<button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
-  <div class="m-row" title="Annual Recurring Revenue — smoothed from the last 30s of recurring income (engineering + sales). One-time cash (funding, investor gifts, events) moves your $ but not ARR."><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
-  <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
-  <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row"><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
-  <div class="m-row"><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
-  <div class="m-row" id="m-morale-row" style="display:none"><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
+  <div class="m-row" title="Total recurring revenue banked this season. Fills the goal bar. Resets on IPO. One-time cash (funding, investor gifts, events) moves your $ but not this bar."><span class="m-lbl">Revenue</span><span class="m-val" id="m-arr">$0</span></div>
+  <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
+  <div class="m-row" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
+  <div class="m-row" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
+  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix shows how many engineers are caffeinated right now."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
+  <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
+  <div class="m-row" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span id="goal-pct">0%</span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
@@ -932,12 +1111,22 @@
     </div>
   </div>
 </div>
+<div id="investor-banner" hidden role="status" aria-live="polite">
+  <span class="ib-icon" id="ib-icon">💰</span>
+  <span class="ib-body"><strong id="ib-title">Investor on the floor</strong><span id="ib-sub">Walk up to shake their hand</span></span>
+  <span class="ib-timer" id="ib-timer">30s</span>
+</div>
 <div id="activity-feed">
   <div class="feed-title">📡 Live Feed</div>
   <div id="feed-list"></div>
 </div>
 <div id="left-panel">
-  <div id="office-panel" class="panel">
+  <button id="next-action-card" class="panel" type="button" style="display:none">
+    <div class="na-label">⭐ Next best step</div>
+    <div class="na-title" id="na-title">—</div>
+    <div class="na-sub" id="na-sub"></div>
+  </button>
+  <div id="office-panel" class="panel collapsible">
     <div class="panel-title">👥 Team</div>
     <div id="hire-section">
       <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
@@ -959,18 +1148,18 @@
       </div>
     </div>
   </div>
-  <div id="room-panel" class="panel">
+  <div id="room-panel" class="panel collapsible">
     <div class="panel-title">🏗️ Expand Office</div>
     <div id="room-list"></div>
     <button class="room-btn room-desk" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
   </div>
-  <div id="funding-panel" class="panel">
+  <div id="funding-panel" class="panel collapsible">
     <div class="panel-title">💼 Funding</div>
     <div id="funding-status" style="font-size:11px;color:#3FB950;margin-bottom:6px">Pre-seed ready — raise now!</div>
     <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
   </div>
   <div id="upgrades"></div>
-  <div id="amenities-panel" class="panel">
+  <div id="amenities-panel" class="panel collapsible">
     <div class="panel-title">🏢 Amenities</div>
     <div id="amenities-list"></div>
   </div>
@@ -1009,7 +1198,7 @@
 <div id="toast-container"></div>
 <button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
-<button id="ipo-btn" title="Take your startup public!">🎉 IPO!</button>
+<button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
 <div id="tip-modal" role="dialog">
   <div class="tip-panel">
     <div class="tip-title" id="tip-title"></div>
@@ -1021,10 +1210,40 @@
   <div class="ipo-panel">
     <div class="ipo-title">🎉 IPO Time!</div>
     <div class="ipo-sub" id="ipo-valuation"></div>
+    <div class="ipo-first-hint" id="ipo-first-hint">
+      💡 <strong>First IPO:</strong> a "soft reset" — you trade your current run for a permanent revenue multiplier. Keep going back to IPO each season to stack the multiplier.
+    </div>
     <div class="ipo-body" id="ipo-body">
-      Taking your startup public resets cash and upgrades, but you keep a permanent
-      <strong id="ipo-mult-text">2×</strong> revenue multiplier for your next season.
-      <br><br>Your <strong id="ipo-season-text">Season 2</strong> starts with a supply runner and <strong>$200</strong>.
+      You cash out and start fresh in <strong id="ipo-season-text">Season 2</strong> with a permanent <strong id="ipo-mult-text">2×</strong> revenue multiplier baked into every deal from here on.
+    </div>
+    <div class="ipo-cols">
+      <div class="ipo-col keeps">
+        <div class="ipo-col-title">✓ You keep</div>
+        <ul>
+          <li id="ipo-keep-trophies">Trophies</li>
+          <li>Achievements</li>
+          <li>Per-season PBs</li>
+          <li>Theme preference</li>
+        </ul>
+      </div>
+      <div class="ipo-col resets">
+        <div class="ipo-col-title">↺ Resets</div>
+        <ul>
+          <li id="ipo-reset-cash">Cash → $200</li>
+          <li>Engineers, BDRs, AEs, VPs, EA</li>
+          <li>Rooms (back to HQ)</li>
+          <li>Upgrades + amenities</li>
+          <li>Funding rounds</li>
+        </ul>
+      </div>
+      <div class="ipo-col forever">
+        <div class="ipo-col-title">∞ Forever</div>
+        <ul>
+          <li id="ipo-forever-mult">Deal value ×2</li>
+          <li id="ipo-forever-goal">Goal doubles to $50k</li>
+          <li>New season number</li>
+        </ul>
+      </div>
     </div>
     <div class="ipo-actions">
       <button class="ipo-confirm" id="ipo-confirm-btn">🚀 Go Public</button>
@@ -1228,8 +1447,8 @@ const sharedWalls = {}; // "gx1,gz1:gx2,gz2" → mesh
 const THEMES = {
   default: {
     id: 'default', icon: '🏢', name: 'Startup',
-    goalLabelFor: amt => `🎯 $${amt} ARR`,
-    goalAchievedFor: amt => `$${amt} ARR achieved`,
+    goalLabelFor: amt => `🎯 $${amt} Revenue`,
+    goalAchievedFor: amt => `$${amt} Revenue earned`,
     roomLabels: {
       starter:       '🏢 HQ',
       left:          '💻 Engineering Pod',
@@ -1455,6 +1674,181 @@ function buildRoom(def) {
   meshes.decorations.push(bulb);
 }
 
+// ── Canvas-textured screens ─────────────────────────────────
+// Shared code-scroll texture for every engineer laptop + a live
+// revenue chart for the CEO monitor. Both are tiny CanvasTextures
+// redrawn on a slow interval so the office actually reads as working.
+const CODE_LINES = [
+  'function ship(f) {',
+  '  return f.v * dealMult;',
+  '}',
+  'const deal = new Deal();',
+  'deal.on("closed", handle);',
+  'import { Worker } from "./core";',
+  'if (err) throw new Err();',
+  'const rate = perSec * 60;',
+  'await api.post("/deploy");',
+  '// TODO: ship it',
+  'state.cash += amount;',
+  'checkMilestones();',
+  '+ git commit -m "wip"',
+  'npm run build && deploy',
+  'Array.from({length: n})',
+  'if (user.premium) apply();',
+  'const mult = v * ent * 2;',
+  '  return Promise.all(p);',
+];
+const codeCanvas = document.createElement('canvas');
+codeCanvas.width = 128; codeCanvas.height = 72;
+const codeCtx = codeCanvas.getContext('2d');
+const codeTexture = new THREE.CanvasTexture(codeCanvas);
+codeTexture.minFilter = THREE.LinearFilter;
+codeTexture.magFilter = THREE.NearestFilter;
+let _codeOffset = 0;
+function drawCodeFrame() {
+  codeCtx.fillStyle = '#0b1220';
+  codeCtx.fillRect(0, 0, 128, 72);
+  codeCtx.font = 'bold 8px ui-monospace, Menlo, monospace';
+  for (let i = 0; i < 8; i++) {
+    const idx = (_codeOffset + i) % CODE_LINES.length;
+    // Newest line bright; older lines dim toward the bottom
+    const shades = ['#3FB950', '#36a048', '#2a8038', '#216029', '#18481e', '#103015', '#08200d', '#051408'];
+    codeCtx.fillStyle = shades[i] || '#051408';
+    codeCtx.fillText(CODE_LINES[idx], 3, 10 + i * 8);
+  }
+  codeTexture.needsUpdate = true;
+}
+drawCodeFrame();
+setInterval(() => { _codeOffset = (_codeOffset + 1) % CODE_LINES.length; drawCodeFrame(); }, 280);
+const engScreenMat = new THREE.MeshBasicMaterial({ map: codeTexture });
+
+// CEO revenue-chart texture
+const revenueCanvas = document.createElement('canvas');
+revenueCanvas.width = 220; revenueCanvas.height = 140;
+const revenueCtx = revenueCanvas.getContext('2d');
+const revenueTexture = new THREE.CanvasTexture(revenueCanvas);
+revenueTexture.minFilter = THREE.LinearFilter;
+const _revSamples = [];
+const REV_SAMPLES_MAX = 40;
+function drawRevenueChart() {
+  const ctx = revenueCtx;
+  ctx.fillStyle = '#0a1220';
+  ctx.fillRect(0, 0, 220, 140);
+  // Grid
+  ctx.strokeStyle = 'rgba(63,185,80,0.14)'; ctx.lineWidth = 1;
+  for (let y = 24; y < 140; y += 22) {
+    ctx.beginPath(); ctx.moveTo(6, y); ctx.lineTo(214, y); ctx.stroke();
+  }
+  // Header strip
+  ctx.fillStyle = '#3FB950';
+  ctx.font = 'bold 11px ui-monospace, Menlo, monospace';
+  const rev = (typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
+  ctx.fillText('REVENUE  $' + (typeof fmtCash === 'function' ? fmtCash(rev) : rev), 8, 15);
+  // Line chart
+  if (_revSamples.length >= 2) {
+    const max = Math.max(..._revSamples, 1);
+    const step = 200 / Math.max(1, _revSamples.length - 1);
+    ctx.strokeStyle = '#3FB950'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < _revSamples.length; i++) {
+      const x = 10 + i * step;
+      const y = 132 - (_revSamples[i] / max) * 100;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    // Soft fill under the line
+    ctx.lineTo(10 + (_revSamples.length - 1) * step, 132);
+    ctx.lineTo(10, 132);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(63,185,80,0.18)';
+    ctx.fill();
+  }
+  revenueTexture.needsUpdate = true;
+}
+drawRevenueChart();
+setInterval(() => {
+  _revSamples.push(typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
+  if (_revSamples.length > REV_SAMPLES_MAX) _revSamples.shift();
+  drawRevenueChart();
+}, 1000);
+const ceoMonitorMat = new THREE.MeshBasicMaterial({ map: revenueTexture });
+
+// Whiteboard texture shared across every engineer desk. Renders the
+// current version, progress toward the next one, season-goal pct,
+// and a dated "🎯 SPRINT" header so the boards read as planning
+// boards instead of the same 4 sticky notes everywhere.
+const wbCanvas = document.createElement('canvas');
+wbCanvas.width = 256; wbCanvas.height = 160;
+const wbCtx = wbCanvas.getContext('2d');
+const wbTexture = new THREE.CanvasTexture(wbCanvas);
+wbTexture.minFilter = THREE.LinearFilter;
+function drawWhiteboard() {
+  const W = 256, H = 160;
+  const ctx = wbCtx;
+  ctx.fillStyle = '#f5f0e8';
+  ctx.fillRect(0, 0, W, H);
+  // Header
+  ctx.fillStyle = '#1a2a3e';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillText('🎯 SPRINT BOARD', 10, 22);
+  // Underline
+  ctx.strokeStyle = '#2a6b3a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(10, 27); ctx.lineTo(150, 27); ctx.stroke();
+  // Version block
+  ctx.fillStyle = '#1a2a3e';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('Version', 12, 50);
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillStyle = '#2a6b3a';
+  ctx.fillText(currentProductVersion.ver, 12, 72);
+  // Next-version progress
+  const pvList = (typeof PRODUCT_VERSIONS !== 'undefined') ? PRODUCT_VERSIONS : [];
+  let nextPv = null;
+  for (const pv of pvList) if (pv.at > totalFeaturesShipped) { nextPv = pv; break; }
+  ctx.fillStyle = '#555';
+  ctx.font = '10px sans-serif';
+  if (nextPv) {
+    ctx.fillText(`next ${nextPv.ver} @ ${nextPv.at} ships`, 12, 88);
+    const progPct = totalFeaturesShipped / nextPv.at;
+    ctx.fillStyle = '#e8e4dc';
+    ctx.fillRect(12, 92, 100, 6);
+    ctx.fillStyle = '#2a6b3a';
+    ctx.fillRect(12, 92, Math.min(100, progPct * 100), 6);
+  } else {
+    ctx.fillText('(version maxed)', 12, 88);
+  }
+  // Goal block (right side)
+  ctx.fillStyle = '#1a2a3e';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('Goal', 150, 50);
+  const target = currentGoalTarget();
+  const pct = Math.min(1, (seasonRecurringRevenue || 0) / target);
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillStyle = '#7a2a1a';
+  ctx.fillText(Math.floor(pct * 100) + '%', 150, 72);
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#555';
+  ctx.fillText('$' + fmtCash(seasonRecurringRevenue || 0), 150, 88);
+  ctx.fillStyle = '#e8e4dc';
+  ctx.fillRect(150, 92, 90, 6);
+  ctx.fillStyle = '#c94848';
+  ctx.fillRect(150, 92, Math.min(90, pct * 90), 6);
+  // TODO bullets
+  ctx.fillStyle = '#1a2a3e';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('TODO', 12, 116);
+  ctx.fillStyle = '#444';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('· ship features', 12, 130);
+  ctx.fillText('· hire ruthlessly', 12, 144);
+  ctx.fillText('· cap paper stock', 130, 130);
+  ctx.fillText('· IPO when ready', 130, 144);
+  wbTexture.needsUpdate = true;
+}
+drawWhiteboard();
+setInterval(drawWhiteboard, 1000);
+const wbMat = new THREE.MeshLambertMaterial({ map: wbTexture });
+
 // CEO desk delivery position (front of desk, inside starter room)
 const ceoDeskPos = new THREE.Vector3(0, 0, 1);
 
@@ -1478,7 +1872,10 @@ const ceoMonitorBase = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.35), new 
 ceoMonitorBase.position.set(0, 1.08, 2.8); scene.add(ceoMonitorBase);
 const ceoMonitorScreen = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.75,0.06), new THREE.MeshLambertMaterial({color:0x111122}));
 ceoMonitorScreen.position.set(0, 1.58, 2.8); ceoMonitorScreen.castShadow = true; scene.add(ceoMonitorScreen);
-const ceoMonitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.65), new THREE.MeshBasicMaterial({color:0x2979ff}));
+// CEO monitor glow → live revenue chart (CanvasTexture). The color
+// tint is left as-is so the existing "blue at rest / green when
+// working" state toggles still produce a visual signal.
+const ceoMonitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.65), ceoMonitorMat);
 ceoMonitorGlow.position.set(0, 1.58, 2.77); scene.add(ceoMonitorGlow);
 // CEO chair
 const ceoChairMat = new THREE.MeshLambertMaterial({ color: 0x1a1a2e });
@@ -2064,7 +2461,22 @@ function renderRoomPanel() {
     btn.className = 'room-btn';
     const canAfford = state.cash >= def.cost;
     btn.disabled = !canAfford;
-    btn.innerHTML = `${roomLabel(def)}<span class="tag">$${fmtCash(def.cost)}</span>`;
+    const roleCounts = {}; // { eng: 2, bdr: 2, ae: 1, any: 0, vp: 2 }
+    for (const d of (def.desks || [])) {
+      const role = d.role || 'any';
+      roleCounts[role] = (roleCounts[role] || 0) + 1;
+    }
+    const roleIcons = { eng: '💻', bdr: '📞', ae: '💼', vp: '🏛️', any: '🪑' };
+    const roleNames = { eng: 'engineer', bdr: 'BDR', ae: 'AE', vp: 'VP', any: 'flex' };
+    const contents = Object.entries(roleCounts)
+      .map(([r, n]) => `${roleIcons[r] || '🪑'}×${n}`)
+      .join(' ');
+    const verboseContents = Object.entries(roleCounts)
+      .map(([r, n]) => `+${n} ${roleNames[r] || r} desk${n > 1 ? 's' : ''}`)
+      .join(', ');
+    const costOrLock = canAfford ? `$${fmtCash(def.cost)}` : `Need $${fmtCash(def.cost - state.cash)} more`;
+    btn.innerHTML = `${roomLabel(def)}<span class="tag">${costOrLock}</span><span class="room-contents">${contents}</span>`;
+    btn.title = `${roomLabel(def)} — ${verboseContents}. $${fmtCash(def.cost)}.`;
     btn.onclick = () => buyRoom(def.id);
     el.appendChild(btn);
   }
@@ -2192,16 +2604,26 @@ function buildScrappyCharacter(opts) {
       str.position.set(sx, 1.18, 0.3); g.add(str);
     }
   }
-  // Arms (match the torso color so they read as sleeves)
+  // Arms (match the torso color so they read as sleeves). Each arm
+  // sits inside its own Group anchored at the shoulder so walking /
+  // handshake animations can rotate the whole arm from the socket.
   const sleeveColor = opts.isCollared ? (opts.bodyColor ?? 0xdfe6ee) : bodyColor;
   const armMat = new THREE.MeshLambertMaterial({ color: sleeveColor });
-  for (const sx of [-0.42, 0.42]) {
+  for (const [sx, key] of [[-0.42, 'armL'], [0.42, 'armR']]) {
+    const armGroup = new THREE.Group();
+    armGroup.position.set(sx, 1.35, 0); // shoulder pivot
     const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.55, 4, 8), armMat);
-    arm.position.set(sx, 1.02, 0); arm.castShadow = true; g.add(arm);
+    arm.position.set(0, -0.33, 0);
+    arm.castShadow = true;
+    armGroup.add(arm);
     // Hand peek at the cuff
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6),
       new THREE.MeshLambertMaterial({ color: skinColor }));
-    hand.position.set(sx, 0.7, 0); hand.castShadow = true; g.add(hand);
+    hand.position.set(0, -0.65, 0);
+    hand.castShadow = true;
+    armGroup.add(hand);
+    g.add(armGroup);
+    g.userData[key] = armGroup;
   }
   // Head
   const head = new THREE.Mesh(
@@ -2238,19 +2660,50 @@ function buildScrappyCharacter(opts) {
   } else if (opts.hairStyle !== 'bald') {
     // Top hair cap
     const hairMat = new THREE.MeshLambertMaterial({ color: hairColor });
-    const cap = new THREE.Mesh(
-      new THREE.SphereGeometry(opts.hairStyle === 'poof' ? 0.30 : 0.27, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
-      hairMat
-    );
-    cap.position.y = opts.hairStyle === 'poof' ? 1.83 : 1.8;
-    cap.castShadow = true; g.add(cap);
-    // Long hair: extend down the back of the head + sides
-    if (opts.hairStyle === 'long') {
-      const back = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.34, 0.12), hairMat);
-      back.position.set(0, 1.62, -0.2); g.add(back);
-      for (const sx of [-0.24, 0.24]) {
-        const side = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.22), hairMat);
-        side.position.set(sx, 1.62, -0.05); g.add(side);
+    if (opts.hairStyle === 'buzz') {
+      // Thin flat cap, almost shaved
+      const cap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.25, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.35),
+        hairMat
+      );
+      cap.position.y = 1.86; cap.castShadow = true; g.add(cap);
+    } else if (opts.hairStyle === 'mohawk') {
+      // Narrow strip running front-to-back
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.26, 0.42), hairMat);
+      strip.position.set(0, 1.88, 0); strip.castShadow = true; g.add(strip);
+    } else if (opts.hairStyle === 'ponytail') {
+      // Short cap + small tail behind
+      const cap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.27, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+        hairMat
+      );
+      cap.position.y = 1.8; cap.castShadow = true; g.add(cap);
+      const band = new THREE.Mesh(
+        new THREE.TorusGeometry(0.06, 0.02, 6, 10),
+        new THREE.MeshLambertMaterial({ color: 0xc94848 })
+      );
+      band.position.set(0, 1.7, -0.22); band.rotation.x = Math.PI / 2; g.add(band);
+      const tail = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.06, 0.22, 4, 6),
+        hairMat
+      );
+      tail.position.set(0, 1.55, -0.22); g.add(tail);
+    } else {
+      // Short / long / poof
+      const cap = new THREE.Mesh(
+        new THREE.SphereGeometry(opts.hairStyle === 'poof' ? 0.30 : 0.27, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+        hairMat
+      );
+      cap.position.y = opts.hairStyle === 'poof' ? 1.83 : 1.8;
+      cap.castShadow = true; g.add(cap);
+      // Long hair: extend down the back of the head + sides
+      if (opts.hairStyle === 'long') {
+        const back = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.34, 0.12), hairMat);
+        back.position.set(0, 1.62, -0.2); g.add(back);
+        for (const sx of [-0.24, 0.24]) {
+          const side = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.22), hairMat);
+          side.position.set(sx, 1.62, -0.05); g.add(side);
+        }
       }
     }
   }
@@ -2263,6 +2716,26 @@ function buildScrappyCharacter(opts) {
     }
     const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), frameMat);
     bridge.position.set(0, 1.81, 0.25); g.add(bridge);
+  }
+  // Optional headphones — a black U-band over the top of the head
+  // plus two cylindrical ear cups. Purely cosmetic.
+  if (opts.hasHeadphones) {
+    const hpMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1e });
+    const band = new THREE.Mesh(
+      new THREE.TorusGeometry(0.27, 0.025, 8, 20, Math.PI),
+      hpMat
+    );
+    band.position.set(0, 2.0, 0); band.rotation.x = Math.PI / 2; band.rotation.z = Math.PI / 2;
+    g.add(band);
+    for (const sx of [-0.26, 0.26]) {
+      const cup = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 0.05, 12),
+        hpMat
+      );
+      cup.rotation.z = Math.PI / 2;
+      cup.position.set(sx, 1.82, 0);
+      g.add(cup);
+    }
   }
   // Optional apron (for barista etc.)
   if (opts.apronColor != null) {
@@ -2280,17 +2753,18 @@ function _rand01(seed, n) {
 }
 function randomWorkerLook(seed) {
   const pick = (arr, n) => arr[Math.floor(_rand01(seed, n) * arr.length)];
-  const hairStyles = ['short', 'long', 'poof', 'bald'];
+  const hairStyles = ['short', 'long', 'poof', 'bald', 'buzz', 'mohawk', 'ponytail'];
   return {
-    bodyColor:   pick(HOODIE_COLORS, 1),
-    pantsColor:  pick(PANTS_COLORS,  2),
-    hairColor:   pick(HAIR_COLORS,   3),
-    skinColor:   pick(SKIN_COLORS,   4),
-    beanieColor: pick(BEANIE_COLORS, 5),
-    hasBeanie:   _rand01(seed, 6) < 0.30,
-    hasGlasses:  _rand01(seed, 7) < 0.35,
-    hasBeard:    _rand01(seed, 8) < 0.22,
-    hairStyle:   pick(hairStyles, 9),
+    bodyColor:     pick(HOODIE_COLORS, 1),
+    pantsColor:    pick(PANTS_COLORS,  2),
+    hairColor:     pick(HAIR_COLORS,   3),
+    skinColor:     pick(SKIN_COLORS,   4),
+    beanieColor:   pick(BEANIE_COLORS, 5),
+    hasBeanie:     _rand01(seed, 6) < 0.25,
+    hasGlasses:    _rand01(seed, 7) < 0.30,
+    hasBeard:      _rand01(seed, 8) < 0.22,
+    hairStyle:     pick(hairStyles, 9),
+    hasHeadphones: _rand01(seed, 10) < 0.25,
   };
 }
 
@@ -2445,19 +2919,32 @@ function createPlot(def) {
     leg.position.set(lx, 0.52, lz);
     g.add(leg);
   }
+  // Whiteboard back plate with live content (version progress + goal
+  // progress, shared canvas texture so every desk reads the same
+  // planning board). Shallow offset so sticky notes can still peek
+  // over the edges.
   const wbBack = new THREE.Mesh(
     new THREE.BoxGeometry(1.8, 1.1, 0.05),
     new THREE.MeshLambertMaterial({ color: 0xffffff })
   );
   wbBack.position.set(0, 1.8, -0.7); wbBack.castShadow = true;
   g.add(wbBack);
-  const noteColors = [0xffeb3b, 0xff80ab, 0x80d8ff, 0xa5d6a7];
-  for (let ni = 0; ni < 4; ni++) {
+  const wbFace = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.72, 1.02),
+    wbMat
+  );
+  wbFace.position.set(0, 1.8, -0.67);
+  g.add(wbFace);
+  // A pair of accent sticky notes along the top corners so it still
+  // feels like a scrappy board, not a slick TV.
+  const noteColors = [0xffeb3b, 0xff80ab];
+  for (let ni = 0; ni < 2; ni++) {
     const note = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.3, 0.02),
+      new THREE.BoxGeometry(0.22, 0.22, 0.02),
       new THREE.MeshLambertMaterial({ color: noteColors[ni] })
     );
-    note.position.set(-0.55 + ni * 0.37, 1.75 + (ni%2)*0.28, -0.67);
+    note.position.set(-0.7 + ni * 1.4, 2.2, -0.66);
+    note.rotation.z = (ni === 0 ? 1 : -1) * 0.12;
     g.add(note);
   }
   // Laptop sitting on the desk (off to one side so the paper stack
@@ -2472,9 +2959,11 @@ function createPlot(def) {
     new THREE.MeshLambertMaterial({ color: 0x1a1a1e })
   );
   laptopLid.position.set(0.7, 1.33, -0.22); laptopLid.rotation.x = -0.15; laptopLid.castShadow = true; g.add(laptopLid);
+  // Engineer laptop → shared scrolling-code CanvasTexture so every
+  // desk reads as "actually writing code" instead of a blue slab.
   const laptopScreen = new THREE.Mesh(
     new THREE.PlaneGeometry(0.62, 0.36),
-    new THREE.MeshBasicMaterial({ color: 0x3a6acc })
+    engScreenMat
   );
   laptopScreen.position.set(0.7, 1.33, -0.205); laptopScreen.rotation.x = -0.15 + Math.PI; g.add(laptopScreen);
   // A coffee mug on the desk for atmosphere
@@ -2592,6 +3081,9 @@ function updateIdeaWorkers(dt) {
   for (const w of ideaWorkers) {
     if (w.caffeinated) { w.caffeinatedT -= dt; if (w.caffeinatedT <= 0) w.caffeinated = false; }
     if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
+    // Default each frame: ease arms back to rest. The walking branch
+    // below will override with an active swing when moving.
+    swingArms(w.group, false);
 
     if (w.state === 'atDesk') {
       // No paper at the desk. If the Supply Rack is owned, the engineer
@@ -2633,11 +3125,16 @@ function updateIdeaWorkers(dt) {
         continue;
       }
 
-      // Ping pong break (if not almost done)
+      // Ping pong break (if not almost done). Pick a side: if someone
+      // else is already on the north side, walk to the south side so
+      // two engineers actually face off across the table.
       if (ppAm && w.pingPongCooldown <= 0 && w.workProgress < 0.65) {
         w.pingPongCooldown = 90 + Math.random() * 60;
+        const northTaken = ideaWorkers.some(o => o !== w && (o.state === 'toPingPong' || o.state === 'pingPonging') && o.pingPongSide === 'N');
+        w.pingPongSide = northTaken ? 'S' : 'N';
+        const sideZ = w.pingPongSide === 'N' ? -1.1 : 1.1;
         w.state = 'toPingPong';
-        w.target = { x: ppAm.position.x, z: ppAm.position.z + 1.4 };
+        w.target = { x: ppAm.position.x, z: ppAm.position.z + sideZ };
         continue;
       }
 
@@ -2674,6 +3171,21 @@ function updateIdeaWorkers(dt) {
     if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'toVP' || w.state === 'toSupply' || w.state === 'returning') {
       if (!w.target) { w.state = 'atDesk'; continue; }
       const spd = IW_SPEED * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? 1.5 : 1.0);
+      // Sway the carried paper stack in sync with the walk so it feels
+      // like they're actually hauling it, not teleporting.
+      const sheets = w.carryMesh && w.carryMesh.userData.sheets;
+      if (sheets && sheets.some(s => s.visible)) {
+        const ph = w.group.userData.walkPhase || 0;
+        w.carryMesh.rotation.z = Math.sin(ph * 2) * 0.09;
+        w.carryMesh.rotation.x = Math.sin(ph * 3) * 0.05;
+        w.carryMesh.position.y = 1.15 + Math.abs(Math.sin(ph * 2.5)) * 0.04;
+      } else if (w.carryMesh) {
+        w.carryMesh.rotation.z = 0;
+        w.carryMesh.rotation.x = 0;
+        w.carryMesh.position.y = 1.15;
+      }
+      // Arm swing — left + right out of phase, drives from walkPhase
+      swingArms(w.group, true);
       if (!stepToward(w.group, w.target, spd, dt, 0.25)) continue;
       // Arrived
       if (w.state === 'toCoffee') {
@@ -2737,9 +3249,19 @@ function updateIdeaWorkers(dt) {
       continue;
     }
     if (w.state === 'pingPonging') {
+      // Face the table center (slight bob toward the ball)
+      if (ppAm) {
+        const dx = ppAm.position.x - w.group.position.x;
+        const dz = ppAm.position.z - w.group.position.z;
+        w.group.rotation.y = Math.atan2(dx, dz);
+        // Light hop in place so the pose doesn't feel frozen
+        w.group.position.y = Math.abs(Math.sin((w.waitT || 0) * 6)) * 0.04;
+      }
       w.waitT -= dt;
       if (w.waitT <= 0) {
         w.pingPongBoost = 2.0;
+        w.group.position.y = 0;
+        w.pingPongSide = null;
         showToast('🏓 Break done! Next product is 2× quality!', 'milestone');
         w.state = 'returning';
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
@@ -3122,12 +3644,30 @@ function hireBDR() {
 // the direction of travel. Adds a small sinusoidal bob on the Y axis
 // while in motion so characters don't look like they're sliding on
 // ice. Returns true once within `stopDist` of the target.
+// Swing a character's arms in opposition, driven by the group's
+// walkPhase (set by stepToward). `active = false` eases arms back to
+// rest so the pose settles cleanly when the character stops walking.
+function swingArms(group, active) {
+  const armL = group.userData.armL;
+  const armR = group.userData.armR;
+  if (!armL || !armR) return;
+  if (active) {
+    const ph = group.userData.walkPhase || 0;
+    armL.rotation.x =  Math.sin(ph) * 0.7;
+    armR.rotation.x = -Math.sin(ph) * 0.7;
+  } else {
+    armL.rotation.x *= 0.85;
+    armR.rotation.x *= 0.85;
+  }
+}
+
 function stepToward(group, target, speed, dt, stopDist = 0.35) {
   const tx = target.x - group.position.x;
   const tz = target.z - group.position.z;
   const dist = Math.hypot(tx, tz);
   if (dist <= stopDist) {
     group.position.y = 0;
+    swingArms(group, false);
     return true;
   }
   group.position.x += (tx / dist) * speed * dt;
@@ -3135,13 +3675,14 @@ function stepToward(group, target, speed, dt, stopDist = 0.35) {
   group.rotation.y = Math.atan2(tx / dist, tz / dist);
   group.userData.walkPhase = (group.userData.walkPhase || 0) + dt * (4 + speed * 0.5);
   group.position.y = Math.abs(Math.sin(group.userData.walkPhase)) * 0.06;
+  swingArms(group, true);
   return false;
 }
 
-function popCashAt(worldX, worldZ, amount) {
+function popCashAt(worldX, worldZ, amount, source = 'eng') {
   const sp = worldToScreen(worldX, 2.5, worldZ);
   const el = document.createElement('div');
-  el.className = 'cash-pop';
+  el.className = 'cash-pop src-' + source;
   el.textContent = '+$' + fmtCash(amount);
   el.style.left = (sp.x + (Math.random() * 20 - 10)) + 'px';
   el.style.top  = (sp.y + (Math.random() * 10 - 5)) + 'px';
@@ -3162,8 +3703,8 @@ function updateBDRs(dt) {
           b.pendingWithAE = true;
         } else {
           // Someone beat us to it — cash the deal solo at the AE's desk
-          addRevenue(b.dealValue);
-          popCashAt(b.group.position.x, b.group.position.z, b.dealValue);
+          addRevenue(b.dealValue, 'sales');
+          popCashAt(b.group.position.x, b.group.position.z, b.dealValue, 'sales');
         }
         b.state = 'returning';
         b.target = { x: b.desk.group.position.x, z: b.desk.group.position.z + 1.0 };
@@ -3199,8 +3740,8 @@ function updateBDRs(dt) {
       }
     }
     // Otherwise cash the deal solo at the BDR's desk
-    addRevenue(deal);
-    popCashAt(b.group.position.x, b.group.position.z, deal);
+    addRevenue(deal, 'sales');
+    popCashAt(b.group.position.x, b.group.position.z, deal, 'sales');
   }
 }
 
@@ -3273,8 +3814,8 @@ function updateAEs(dt) {
       ae.currentDeal.processTime -= dt;
       if (ae.currentDeal.processTime <= 0) {
         const closedValue = Math.round(ae.currentDeal.value * AE_PROCESS_MULT);
-        addRevenue(closedValue);
-        popCashAt(ae.group.position.x, ae.group.position.z, closedValue);
+        addRevenue(closedValue, 'sales');
+        popCashAt(ae.group.position.x, ae.group.position.z, closedValue, 'sales');
         const bdr = ae.currentDeal.bdr;
         if (bdr) bdr.pendingWithAE = false;
         ae.currentDeal = null;
@@ -3294,8 +3835,8 @@ function updateAEs(dt) {
         // a BDR→AE close at 1.8×, since an AE sourcing their own is the
         // fallback when the pipeline runs dry). Floor avoids $0 early.
         const amt = Math.max(20, Math.round(computeDealValue() * 2));
-        addRevenue(amt);
-        popCashAt(ae.group.position.x, ae.group.position.z, amt);
+        addRevenue(amt, 'sales');
+        popCashAt(ae.group.position.x, ae.group.position.z, amt, 'sales');
       }
     }
   }
@@ -3479,8 +4020,8 @@ function updateVPs(dt) {
       if (item.processTime <= 0) {
         const mult = vpMultiplier(queueSize, v.tier);
         const closed = Math.round(item.value * mult);
-        addRevenue(closed);
-        popCashAt(v.group.position.x, v.group.position.z, closed);
+        addRevenue(closed, 'exec');
+        popCashAt(v.group.position.x, v.group.position.z, closed, 'exec');
         if (item.worker) item.worker.pendingWithVP = false;
         v.queue.splice(i, 1);
       }
@@ -3514,21 +4055,35 @@ const hireVpBtnEl  = document.getElementById('hire-vp-btn');
 // (hireVpCostEl removed — button innerHTML is replaced each render.)
 const hireLeadershipSectionEl = document.getElementById('hire-leadership-section');
 
+// Returns the lockout reason string for a hire button given seat
+// availability + cost, or null if affordable (so the caller shows the
+// normal price). Keeps every hire button using the same phrasing.
+function hireLockReason(hasSeat, cost) {
+  if (!hasSeat) return 'Add desks first';
+  if (state.cash < cost) return `Need $${fmtCash(cost - state.cash)} more`;
+  return null;
+}
 function renderHirePanel() {
   // Engineers can sit at 'eng' desks + any generic 'any' desk
   const engCapacity = plots.filter(p => p.active && deskAcceptsRole(p, 'eng')).length;
   empCountEl.textContent = `${ideaWorkers.length} / ${engCapacity}`;
   const availableEngSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   const hcost = ideaWorkerHireCost();
-  hireBtnEl.disabled = !availableEngSeat || state.cash < hcost;
-  hireCostEl.textContent = availableEngSeat ? `$${hcost}` : 'Add desks first';
+  const engLock = hireLockReason(availableEngSeat, hcost);
+  hireBtnEl.disabled = engLock !== null;
+  hireCostEl.textContent = engLock || `$${hcost}`;
+  hireBtnEl.title = engLock ? `Can't hire: ${engLock}` : `Hire an engineer — $${hcost}`;
   const extEngCost = hcost * EXTERNAL_COST_MULT;
-  hireExtEngBtnEl.disabled = !availableEngSeat || state.cash < extEngCost;
-  hireExtEngCostEl.textContent = availableEngSeat ? `$${fmtCash(extEngCost)}` : 'Add desks first';
+  const extEngLock = hireLockReason(availableEngSeat, extEngCost);
+  hireExtEngBtnEl.disabled = extEngLock !== null;
+  hireExtEngCostEl.textContent = extEngLock || `$${fmtCash(extEngCost)}`;
+  hireExtEngBtnEl.title = extEngLock ? `Can't hire: ${extEngLock}` : `External engineer: +${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate, costs ${EXTERNAL_COST_MULT}× — $${fmtCash(extEngCost)}`;
 
   const ecost = eaCost();
-  hireEaBtnEl.disabled = state.cash < ecost;
-  hireEaCostEl.textContent = eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`;
+  const eaLock = state.cash < ecost ? `Need $${fmtCash(ecost - state.cash)} more` : null;
+  hireEaBtnEl.disabled = eaLock !== null;
+  hireEaCostEl.textContent = eaLock || (eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`);
+  hireEaBtnEl.title = eaLock ? `Can't hire: ${eaLock}` : `Executive Assistant refills coffee/paper and boosts morale — $${ecost}`;
 
   // Sales section appears once any desk can host a BDR or AE. Both
   // allow flex 'any' desks so you can promote AEs early without the
@@ -3542,14 +4097,17 @@ function renderHirePanel() {
     if (bdrCapacity) {
       const availableBdrSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
       const bcost = bdrCost();
-      hireBdrBtnEl.disabled = !availableBdrSeat || state.cash < bcost;
-      hireBdrCostEl.textContent = !availableBdrSeat
-        ? 'Add desks first'
-        : (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
+      const bdrLock = hireLockReason(availableBdrSeat, bcost);
+      hireBdrBtnEl.disabled = bdrLock !== null;
+      hireBdrCostEl.textContent = bdrLock
+        || (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
+      hireBdrBtnEl.title = bdrLock ? `Can't hire: ${bdrLock}` : `BDR — closes small deals solo, hands off larger ones to an AE — $${bcost}`;
       hireBdrBtnEl.style.display = '';
       const extBcost = bcost * EXTERNAL_COST_MULT;
-      hireExtBdrBtnEl.disabled = !availableBdrSeat || state.cash < extBcost;
-      hireExtBdrCostEl.textContent = availableBdrSeat ? `$${fmtCash(extBcost)}` : 'Add desks first';
+      const extBdrLock = hireLockReason(availableBdrSeat, extBcost);
+      hireExtBdrBtnEl.disabled = extBdrLock !== null;
+      hireExtBdrCostEl.textContent = extBdrLock || `$${fmtCash(extBcost)}`;
+      hireExtBdrBtnEl.title = extBdrLock ? `Can't hire: ${extBdrLock}` : `External BDR: higher deal value, costs ${EXTERNAL_COST_MULT}× — $${fmtCash(extBcost)}`;
       hireExtBdrBtnEl.style.display = '';
     } else {
       hireBdrBtnEl.style.display = 'none';
@@ -3561,8 +4119,10 @@ function renderHirePanel() {
     if (aeCapacity && bdrs.length >= 1) {
       const availableAeSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
       const acost = aeCost();
-      hireAeBtnEl.disabled = !availableAeSeat || state.cash < acost;
-      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${availableAeSeat ? `$${fmtCash(acost)}` : 'Add desks first'}</span>`;
+      const aeLock = hireLockReason(availableAeSeat, acost);
+      hireAeBtnEl.disabled = aeLock !== null;
+      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${aeLock || `$${fmtCash(acost)}`}</span>`;
+      hireAeBtnEl.title = aeLock ? `Can't promote: ${aeLock}` : `AE closes BDR handoffs at 3× — $${fmtCash(acost)}`;
       hireAeBtnEl.style.display = '';
     } else {
       hireAeBtnEl.style.display = 'none';
@@ -3581,8 +4141,10 @@ function renderHirePanel() {
     const maxed = vps.length > 0 && vps[0].tier >= VP_TIERS.length - 1;
     const needsSeat = vps.length === 0;
     const availableSeat = !needsSeat || plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
-    hireVpBtnEl.disabled = maxed || !availableSeat || state.cash < vcost;
-    hireVpBtnEl.innerHTML = `${vpButtonLabel()}<span class="cost">${maxed ? '' : `$${fmtCash(vcost)}`}</span>`;
+    const vpLock = maxed ? 'Max tier reached' : (!availableSeat ? 'Add desks first' : (state.cash < vcost ? `Need $${fmtCash(vcost - state.cash)} more` : null));
+    hireVpBtnEl.disabled = vpLock !== null;
+    hireVpBtnEl.innerHTML = `${vpButtonLabel()}<span class="cost">${maxed ? '' : (vpLock || `$${fmtCash(vcost)}`)}</span>`;
+    hireVpBtnEl.title = vpLock ? `Can't promote: ${vpLock}` : `Promote + multiply every shipped feature — $${fmtCash(vcost)}`;
     if (vps.length === 0) showTip('vp');
   }
 }
@@ -3681,50 +4243,74 @@ function checkProductVersion() {
   }
 }
 
-const metricsArrEl  = document.getElementById('m-arr');
+const metricsArrEl     = document.getElementById('m-arr');
+const metricsRateEl    = document.getElementById('m-rate');
+const metricsPerShipEl = document.getElementById('m-pership');
+const metricsPerShipRowEl = document.getElementById('m-pership-row');
 const metricsUsersEl= document.getElementById('m-users');
 const metricsShipEl = document.getElementById('m-shipped');
 const metricsTeamEl = document.getElementById('m-teamrev');
 const metricsVersionEl = document.getElementById('m-version');
 const metricsMoraleRowEl = document.getElementById('m-morale-row');
 const metricsMoraleEl    = document.getElementById('m-morale');
-// Rolling 30-second revenue log so ARR is based on actually-realized
-// revenue, not a peak-instant rate. Trim entries older than the
-// window each frame.
+// Rolling 30-second revenue log — only used for the live-rate readout
+// ($/min). Trim entries older than the window each frame.
 const revenueLog = [];
 const REVENUE_WINDOW_MS = 30000;
 function recordRevenue(amount) { revenueLog.push({ at: Date.now(), amount }); }
-function smoothedArr() {
+// Current earn rate, smoothed over the last 30 seconds and expressed
+// as $/min. Replaces the old smoothedArr(): annualizing a 30-second
+// window to a year was invented math that showed billions of $ from a
+// single $1 feature. "$/min" is a real, trackable rate.
+function currentRatePerMin() {
   const cutoff = Date.now() - REVENUE_WINDOW_MS;
   while (revenueLog.length && revenueLog[0].at < cutoff) revenueLog.shift();
   if (revenueLog.length === 0) return 0;
   const sum = revenueLog.reduce((s, e) => s + e.amount, 0);
-  // Annualize against the fixed window, not the span from the oldest
-  // entry to now. Using the span makes ARR blow up when the log has
-  // only one recent entry (sum × 31.5M / ~1s → multi-billion $) and
-  // jitter as entries age in/out. Fixed-window annualization gives a
-  // smooth ramp and a stable, honest rate.
-  const windowSec = REVENUE_WINDOW_MS / 1000;
-  return Math.round(sum * 365 * 24 * 3600 / windowSec);
+  return Math.round(sum * 60 / (REVENUE_WINDOW_MS / 1000));
 }
+// Cumulative recurring revenue banked this season. Resets on IPO.
+// This (not an annualized rate) is what the goal bar measures — real
+// dollars earned, not a projection.
+let seasonRecurringRevenue = 0;
 // ── Season Goal ───────────────────────────────────────────
-// Target ARR for the current season. Scales with prestige (S1 = $1M,
-// S2 = $2M, S3 = $4M, …) so each IPO raises the bar. When smoothed
-// ARR first crosses the target, fire a win modal. Hit state resets
-// on IPO so each season has its own finish line.
-const GOAL_TARGET_BASE = 1_000_000;
+// Cumulative recurring-revenue target for the current season. Scales
+// 2× per prestige (S1 = $25k, S2 = $50k, S3 = $100k, …) so each IPO
+// raises the bar. When cumulative revenue crosses the target, fire
+// the win modal. Hit state resets on IPO so each season has its own
+// finish line.
+const GOAL_TARGET_BASE = 25_000;
 function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
 let seasonGoalHit = false;
 let trophiesWon = 0;
-// Personal best: the fastest time-to-goal we've ever recorded
-// (in seconds). Persisted across runs and IPOs.
-let bestTimeToGoal = null;
+// Personal bests per season tier: { prestigeLevel: seconds }.
+// Fastest time from sessionStart to crossing that season's goal.
+// Persisted across runs and IPOs so each season has its own PB.
+// Legacy bestTimeToGoal (single number) migrates into tier 0 on load.
+const bestTimesToGoal = {}; // e.g. { 0: 98, 1: 184, 2: 322 }
+function bestTimeFor(prestige) {
+  const v = bestTimesToGoal[prestige];
+  return (typeof v === 'number' && v > 0) ? v : null;
+}
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 const goalFillEl  = document.getElementById('goal-fill');
 const goalPctEl   = document.getElementById('goal-pct');
+const goalPbEl    = document.getElementById('goal-pb');
 const goalLabelEl = document.getElementById('goal-label');
 const winModalEl  = document.getElementById('win-modal');
 const winStatsEl  = document.getElementById('win-stats');
 const winGoalSub  = document.getElementById('win-goal-sub');
+// Render the PB indicator next to the season-goal header. Shows
+// "PB 1:32" when a record exists for this season tier; blank otherwise.
+function refreshPBDisplay() {
+  if (!goalPbEl) return;
+  const pb = bestTimeFor(prestigeLevel);
+  goalPbEl.textContent = pb != null ? `PB ${formatTime(pb)}` : '';
+}
 goalLabelEl.textContent = currentTheme().goalLabelFor(fmtCash(currentGoalTarget()));
 winGoalSub.textContent  = currentTheme().goalAchievedFor(fmtCash(currentGoalTarget()));
 document.getElementById('win-continue-btn').addEventListener('click',
@@ -3773,18 +4359,18 @@ function drawSparkline() {
   ctx.fillStyle = 'rgba(252,211,77,0.18)';
   ctx.fill();
 }
-function updateGoalHud(arr) {
+function updateGoalHud(cumulative) {
   const target = currentGoalTarget();
-  const pct = Math.min(1, arr / target);
+  const pct = Math.min(1, cumulative / target);
   goalFillEl.style.width = (pct * 100).toFixed(1) + '%';
   goalPctEl.textContent = Math.floor(pct * 100) + '%';
-  if (!seasonGoalHit && arr >= target) {
+  if (!seasonGoalHit && cumulative >= target) {
     seasonGoalHit = true;
     trophiesWon++;
-    triggerWin(arr);
+    triggerWin(cumulative);
   }
   goalHudEl.classList.toggle('complete', seasonGoalHit);
-  pushSparkSample(arr);
+  pushSparkSample(cumulative);
   drawSparkline();
 }
 // Refresh the displayed target/sub-text when prestige or theme changes
@@ -3793,6 +4379,7 @@ function refreshGoalLabels() {
   const th = currentTheme();
   goalLabelEl.textContent = th.goalLabelFor(fmtCash(t));
   winGoalSub.textContent  = th.goalAchievedFor(fmtCash(t));
+  refreshPBDisplay();
 }
 const trophyBadgeEl = document.getElementById('trophy-badge');
 const trophySepEl   = document.getElementById('trophy-sep');
@@ -3808,22 +4395,22 @@ function refreshTrophyBadge() {
 // toast + feed entry; earned state persists in localStorage and in
 // the game save so reloads don't replay.
 const ACHIEVEMENTS = [
-  { id: 'first_hire',    icon: '💻', title: 'First Hire',         desc: 'Hire your first engineer.',              check: () => ideaWorkers.length >= 1 },
-  { id: 'five_eng',      icon: '👥', title: 'Pod Built',           desc: 'Have 5 engineers on staff at once.',     check: () => ideaWorkers.length >= 5 },
+  { id: 'first_hire',    icon: '💻', title: 'First Hire',         desc: 'Hire your first engineer.',              check: () => ideaWorkers.length >= 1, progress: () => [Math.min(ideaWorkers.length, 1), 1] },
+  { id: 'five_eng',      icon: '👥', title: 'Pod Built',           desc: 'Have 5 engineers on staff at once.',     check: () => ideaWorkers.length >= 5, progress: () => [Math.min(ideaWorkers.length, 5), 5] },
   { id: 'first_ea',      icon: '🧑‍💼', title: 'Delegated',          desc: 'Hire an Executive Assistant.',           check: () => eas.length >= 1 },
   { id: 'first_bdr',     icon: '📞', title: 'Cold Caller',         desc: 'Hire your first BDR.',                   check: () => bdrs.length >= 1 },
   { id: 'first_ae',      icon: '💼', title: 'Closer',              desc: 'Promote a BDR to AE.',                   check: () => aes.length >= 1 },
   { id: 'first_vp',      icon: '💻', title: 'Promoted',            desc: 'Promote your OG engineer to Lead.',      check: () => vps.length >= 1 },
-  { id: 'reach_cto',     icon: '🏛️', title: 'C-suite',             desc: 'Reach the CTO tier.',                    check: () => vps.length >= 1 && vps[0].tier >= 2 },
+  { id: 'reach_cto',     icon: '🏛️', title: 'C-suite',             desc: 'Reach the CTO tier.',                    check: () => vps.length >= 1 && vps[0].tier >= 2, progress: () => [vps[0]?.tier || 0, 2] },
   { id: 'ext_hire',      icon: '👔', title: 'External Hire',       desc: 'Hire an external engineer or BDR.',       check: () => ideaWorkers.some(w=>w.external) || bdrs.some(b=>b.external) },
   { id: 'greet_investor',icon: '🤝', title: 'Networker',           desc: 'Greet your first investor.',              check: () => Object.values(investorAffinity).some(v => v > 0) },
   { id: 'convert_room',  icon: '⚡', title: 'Remodel',              desc: 'Convert a room into a different mode.',   check: () => Object.keys(roomModes).some(k => roomModes[k] !== (ROOM_MODES[k]?.initial || 'shared')) },
-  { id: 'full_floor',    icon: '🏢', title: 'Full Floor',           desc: 'Own every room on the starter floor.',   check: () => ownedRooms.size >= ROOM_DEFS.length },
-  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.allTimeCash >= 50000 },
-  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.allTimeCash >= 1000000 },
-  { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Reach $1M ARR and win a season.',        check: () => trophiesWon >= 1 },
-  { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1 },
-  { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100 },
+  { id: 'full_floor',    icon: '🏢', title: 'Full Floor',           desc: 'Own every room on the starter floor.',   check: () => ownedRooms.size >= ROOM_DEFS.length, progress: () => [ownedRooms.size, ROOM_DEFS.length] },
+  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.allTimeCash >= 50000, progress: () => [Math.min(state.allTimeCash, 50000), 50000], fmt: 'cash' },
+  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.allTimeCash >= 1000000, progress: () => [Math.min(state.allTimeCash, 1000000), 1000000], fmt: 'cash' },
+  { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1, progress: () => [Math.min(trophiesWon, 1), 1] },
+  { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
+  { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -3848,9 +4435,28 @@ function renderAchievementsModal() {
   for (const a of ACHIEVEMENTS) {
     const got = !!earnedAchievements[a.id];
     if (got) earned++;
+    // Progress for non-earned trackable achievements — shows a bar +
+    // "N / M" readout so the modal feels alive even before unlocking.
+    let progressHtml = '';
+    if (!got && typeof a.progress === 'function') {
+      try {
+        const [cur, total] = a.progress();
+        if (total > 0) {
+          const pct = Math.min(1, cur / total) * 100;
+          const fmt = a.fmt === 'cash'
+            ? `$${fmtCash(cur)} / $${fmtCash(total)}`
+            : `${fmtCash(cur)} / ${fmtCash(total)}`;
+          progressHtml = `<div class="ach-progress-bar" title="${fmt}"><div class="ach-progress-fill" style="width:${pct.toFixed(1)}%"></div><span class="ach-progress-num">${fmt}</span></div>`;
+        }
+      } catch (_) {}
+    }
     const row = document.createElement('div');
     row.className = 'ach-row' + (got ? ' earned' : '');
-    row.innerHTML = `<div class="ach-icon">${a.icon}</div><div class="ach-text"><div class="ach-name">${a.title}</div><div class="ach-desc">${got ? a.desc : '???'}</div></div>`;
+    // Un-earned achievements show a hint — the first word of the
+    // description — instead of a total "???" since the progress bar
+    // now reveals what's being tracked anyway.
+    const hintText = got ? a.desc : a.desc;
+    row.innerHTML = `<div class="ach-icon">${a.icon}</div><div class="ach-text"><div class="ach-name">${a.title}</div><div class="ach-desc">${hintText}</div>${progressHtml}</div>`;
     achListEl.appendChild(row);
   }
   achProgEl.textContent = `${earned} / ${ACHIEVEMENTS.length} unlocked`;
@@ -3863,6 +4469,35 @@ document.getElementById('ach-close').addEventListener('click', () => achModalEl.
 achModalEl.addEventListener('click', e => { if (e.target === achModalEl) achModalEl.classList.remove('open'); });
 // Run every ~1s
 setInterval(checkAchievements, 1000);
+
+// ── Collapsible sidebar panels ─────────────────────────
+// Click the title bar of any .panel.collapsible to toggle. Collapsed
+// state per-panel is persisted to localStorage so the layout survives
+// reloads. Default = all expanded (discoverability wins for a new run).
+const PANEL_COLLAPSE_STORAGE_KEY = 'startup_tycoon_panels_collapsed';
+function loadCollapsedPanels() {
+  try { return new Set(JSON.parse(localStorage.getItem(PANEL_COLLAPSE_STORAGE_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function saveCollapsedPanels(set) {
+  try { localStorage.setItem(PANEL_COLLAPSE_STORAGE_KEY, JSON.stringify([...set])); } catch {}
+}
+(() => {
+  const collapsed = loadCollapsedPanels();
+  for (const panel of document.querySelectorAll('.panel.collapsible')) {
+    if (!panel.id) continue;
+    if (collapsed.has(panel.id)) panel.classList.add('collapsed');
+    const title = panel.querySelector(':scope > .panel-title');
+    if (!title) continue;
+    title.addEventListener('click', () => {
+      panel.classList.toggle('collapsed');
+      const cur = loadCollapsedPanels();
+      if (panel.classList.contains('collapsed')) cur.add(panel.id);
+      else cur.delete(panel.id);
+      saveCollapsedPanels(cur);
+    });
+  }
+})();
 
 // ── Theme modal + live swap ─────────────────────────────
 const themeModalEl = document.getElementById('theme-modal');
@@ -3921,19 +4556,23 @@ document.getElementById('open-theme-btn').addEventListener('click', () => {
 document.getElementById('theme-close').addEventListener('click', () => themeModalEl.classList.remove('open'));
 themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) themeModalEl.classList.remove('open'); });
 
-function triggerWin(arr) {
+function triggerWin(cumulative) {
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
-  const m = Math.floor(elapsed / 60);
-  const s = elapsed % 60;
-  // Personal best detection
-  const isPB = bestTimeToGoal == null || elapsed < bestTimeToGoal;
-  if (isPB) bestTimeToGoal = elapsed;
-  const pbBadge = isPB ? ' <strong style="color:#fcd34d">★ NEW BEST</strong>' : (bestTimeToGoal != null ? ` <span style="color:#7D8590;font-weight:600">(best ${Math.floor(bestTimeToGoal/60)}:${(bestTimeToGoal%60).toString().padStart(2,'0')})</span>` : '');
+  // Personal best: compare against THIS season's previous record only
+  // (not a global best, since higher seasons always take longer).
+  const priorPB = bestTimeFor(prestigeLevel);
+  const isPB = priorPB == null || elapsed < priorPB;
+  if (isPB) bestTimesToGoal[prestigeLevel] = elapsed;
+  refreshPBDisplay();
+  const pbBadge = isPB
+    ? ` <strong style="color:#fcd34d">★ NEW BEST for S${prestigeLevel + 1}</strong>`
+    : (priorPB != null ? ` <span style="color:#7D8590;font-weight:600">(S${prestigeLevel + 1} best ${formatTime(priorPB)})</span>` : '');
   const nextTarget = GOAL_TARGET_BASE * Math.pow(2, prestigeLevel + 1);
   const nextMult = Math.pow(2, prestigeLevel + 1);
   winStatsEl.innerHTML = `
-    <div class="row"><span>Peak ARR</span><strong>$${fmtCash(arr)}/yr</strong></div>
+    <div class="row"><span>Season revenue</span><strong>$${fmtCash(cumulative)}</strong></div>
+    <div class="row"><span>Peak rate</span><strong>$${fmtCash(currentRatePerMin())}/min</strong></div>
     <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.allTimeCash)}</strong></div>
     <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
     <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
@@ -3953,19 +4592,35 @@ function triggerWin(arr) {
 }
 
 function updateMetricsHUD() {
-  const arr = smoothedArr();
-  metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
+  metricsArrEl.textContent   = '$' + fmtCash(seasonRecurringRevenue);
+  if (metricsRateEl) metricsRateEl.textContent = '$' + fmtCash(currentRatePerMin()) + '/min';
   metricsUsersEl.textContent = fmtCash(totalUsers);
   metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
+  // "Per ship" base deal value + live breakdown tooltip so the player
+  // can see WHY a feature is worth $X — base × v × prestige × Ent × events.
+  if (metricsPerShipEl) {
+    const per = Math.round(featurePrice * productVersionMult * dealValueMult);
+    metricsPerShipEl.textContent = '$' + fmtCash(per);
+    const parts = [`base $${featurePrice}`];
+    if (productVersionMult !== 1) parts.push(`${currentProductVersion.ver} ×${productVersionMult}`);
+    if (prestigeMultiplier > 1) parts.push(`S${prestigeLevel + 1} ×${prestigeMultiplier}`);
+    const entLv = upgLevels.enterprise || 0;
+    const entMult = [1,3,8,20][entLv];
+    if (entMult > 1) parts.push(`Enterprise Lv${entLv} ×${entMult}`);
+    const eventFactor = dealValueMult / Math.max(0.01, prestigeMultiplier * entMult);
+    if (eventFactor > 1.05) parts.push(`Event ×${eventFactor.toFixed(1)}`);
+    else if (eventFactor < 0.95) parts.push(`Penalty ×${eventFactor.toFixed(2)}`);
+    if (metricsPerShipRowEl) metricsPerShipRowEl.title = parts.join(' × ') + ` = $${per} per shipped feature`;
+  }
   if (metricsMoraleRowEl) {
     metricsMoraleRowEl.style.display = moraleEnabled ? '' : 'none';
     if (moraleEnabled) { const m = teamMorale(); metricsMoraleEl.textContent = `${moraleEmoji(m)} ${Math.round(m)}`; }
   }
-  updateGoalHud(arr);
+  updateGoalHud(seasonRecurringRevenue);
 }
 
 // Funding panel
@@ -4034,6 +4689,22 @@ const AMENITY_DEFS = [
       );
       spout.position.set(0, 0.75, 0.4);
       g.add(spout);
+      // Steam puffs: 4 staggered white spheres that rise + fade while
+      // someone is pulling a shot. Hidden at rest. The espresso LED
+      // also pulses bright when in use. Refs stashed on userData for
+      // the updateCoffeeSteam loop to drive.
+      const steamParticles = [];
+      for (let i = 0; i < 4; i++) {
+        const puff = new THREE.Mesh(
+          new THREE.SphereGeometry(0.09, 8, 6),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
+        );
+        puff.position.set((Math.random() - 0.5) * 0.08, 0.95, 0.48);
+        g.add(puff);
+        steamParticles.push({ mesh: puff, phase: i * 0.45 });
+      }
+      g.userData.steamParticles = steamParticles;
+      g.userData.btnMesh = btn;
     },
   },
   {
@@ -4111,7 +4782,81 @@ const AMENITY_DEFS = [
       if (!ownedRooms.has('right')) need.push('📞 Sales Corner');
       return `🔒 ${need.join(' + ')}`;
     },
-    buildMesh: (g) => { /* table already in scene */ },
+    buildMesh: (g) => {
+      // Real table: green top with white edges + center line, black
+      // legs, posts + translucent net, two rotating paddles, and a
+      // small white ball. Refs stashed on userData for the ping-pong
+      // animation loop to drive when workers are playing.
+      const topMat  = new THREE.MeshLambertMaterial({ color: 0x2a6b3a });
+      const edgeMat = new THREE.MeshLambertMaterial({ color: 0xf2f2f2 });
+      const legMat  = new THREE.MeshLambertMaterial({ color: 0x1e1e24 });
+      const padMat  = new THREE.MeshLambertMaterial({ color: 0x7d2a1a });
+      const handleMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
+      const TABLE_Y = 0.76;
+      // Top
+      const top = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 1.3), topMat);
+      top.position.y = TABLE_Y; top.castShadow = true; top.receiveShadow = true;
+      g.add(top);
+      // White edges (4 strips slightly proud)
+      const edges = [
+        { w: 0.04, d: 1.32, x: -1.18, z: 0 },
+        { w: 0.04, d: 1.32, x:  1.18, z: 0 },
+        { w: 2.42, d: 0.04, x: 0, z: -0.65 },
+        { w: 2.42, d: 0.04, x: 0, z:  0.65 },
+        { w: 0.02, d: 1.28, x: 0, z: 0 }, // center line
+      ];
+      for (const e of edges) {
+        const s = new THREE.Mesh(new THREE.BoxGeometry(e.w, 0.065, e.d), edgeMat);
+        s.position.set(e.x, TABLE_Y + 0.002, e.z); g.add(s);
+      }
+      // 4 legs
+      for (const [lx, lz] of [[-1.1, -0.55], [1.1, -0.55], [-1.1, 0.55], [1.1, 0.55]]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, TABLE_Y, 0.08), legMat);
+        leg.position.set(lx, TABLE_Y / 2, lz); leg.castShadow = true; g.add(leg);
+      }
+      // Net posts + net cloth
+      const postMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2e });
+      for (const sz of [-0.68, 0.68]) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06), postMat);
+        post.position.set(0, TABLE_Y + 0.12, sz); g.add(post);
+      }
+      const net = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.36, 0.18),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+      );
+      net.rotation.y = Math.PI / 2;
+      net.position.set(0, TABLE_Y + 0.12, 0);
+      g.add(net);
+      // Paddles (grouped so we can rotate the whole paddle around its handle)
+      const mkPaddle = (sideX) => {
+        const pad = new THREE.Group();
+        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.022, 14), padMat);
+        blade.rotation.x = Math.PI / 2;
+        blade.position.y = 0.06;
+        pad.add(blade);
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8), handleMat);
+        handle.position.y = -0.05;
+        pad.add(handle);
+        pad.position.set(sideX * 1.18, TABLE_Y + 0.08, 0);
+        return pad;
+      };
+      const padL = mkPaddle(-1); g.add(padL);
+      const padR = mkPaddle( 1); g.add(padR);
+      // Ball
+      const ball = new THREE.Mesh(
+        new THREE.SphereGeometry(0.03, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      ball.position.set(-0.8, TABLE_Y + 0.08, 0);
+      ball.visible = false;
+      g.add(ball);
+      // Animation state
+      g.userData.paddleL = padL;
+      g.userData.paddleR = padR;
+      g.userData.ball    = ball;
+      g.userData.bounceT = 0;
+      g.userData.toRight = true;
+    },
   },
   {
     id: 'standup',
@@ -4132,8 +4877,20 @@ const AMENITY_DEFS = [
       stand.position.y = 0.8; g.add(stand);
       const screen = new THREE.Mesh(new THREE.BoxGeometry(2.8,1.6,0.1), new THREE.MeshLambertMaterial({color:0x111122}));
       screen.position.y = 1.85; g.add(screen);
-      const display = new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.4), new THREE.MeshBasicMaterial({color:0x2979ff}));
+      // Live slideshow: rotates through Revenue / Team / Shipped /
+      // Version slides every 4s via a dedicated CanvasTexture. Far
+      // more interesting than a flat blue plane.
+      const slideCanvas = document.createElement('canvas');
+      slideCanvas.width = 320; slideCanvas.height = 180;
+      const slideCtx = slideCanvas.getContext('2d');
+      const slideTex = new THREE.CanvasTexture(slideCanvas);
+      slideTex.minFilter = THREE.LinearFilter;
+      const display = new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.4), new THREE.MeshBasicMaterial({ map: slideTex }));
       display.position.set(0,1.85,0.06); g.add(display);
+      g.userData.slideCanvas = slideCanvas;
+      g.userData.slideCtx    = slideCtx;
+      g.userData.slideTex    = slideTex;
+      g.userData.slideIdx    = 0;
     },
   },
 ];
@@ -4203,7 +4960,7 @@ function raiseFunding() {
   const r = FUNDING_ROUNDS[fundingRoundIdx];
   if (!r.req()) return;
   fundingRoundIdx++;
-  addCash(r.amount);
+  addCash(r.amount, 'funding');
   showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
   addFeedEntry(`💼 ${r.label} raised +$${r.amount.toLocaleString()}`);
   renderFunding();
@@ -4224,11 +4981,11 @@ const investors = [];
 const INVESTOR_TYPES = [
   { id: 'angel',      label: 'Angel investor', icon: '💰', baseReward: 500,  windowSec: 32, color: 0x8a6a2a,
     onGreet: (inv, mult) => { const amt = Math.round(inv.type.baseReward * mult + state.allTimeCash * 0.02);
-      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt); } },
+      addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor'); } },
   { id: 'vc',         label: 'VC',              icon: '🦈', baseReward: 1500, windowSec: 36, color: 0x4a3a7a,
     onGreet: (inv, mult) => { const teamOK = ideaWorkers.length >= 5;
       const amt = Math.round(inv.type.baseReward * mult * (teamOK ? 2 : 0.5));
-      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt);
+      addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor');
       addFeedEntry(teamOK ? '🦈 VC: "Big team, big check"' : '🦈 VC: "Come back when you scale"'); } },
   { id: 'corpdev',    label: 'Corp Dev',        icon: '🏦', baseReward: 0,    windowSec: 32, color: 0x3a4a5a,
     onGreet: (inv) => { const prev = dealValueMult; dealValueMult *= 1.5;
@@ -4239,7 +4996,7 @@ const INVESTOR_TYPES = [
     onGreet: (inv) => { changeMorale(+20, 'Advisor pep talk'); } },
   { id: 'tirekicker', label: 'Tire-kicker',     icon: '🚪', baseReward: 150,  windowSec: 18, color: 0x6a6a6a,
     onGreet: (inv, mult) => { const amt = Math.round(inv.type.baseReward * mult);
-      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt); } },
+      addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor'); } },
 ];
 const investorAffinity = {};
 let nextInvestorIn = 60 + Math.random() * 60;
@@ -4276,7 +5033,32 @@ function spawnInvestor() {
   });
   showToast(`${type.icon} ${type.label} just walked in — go shake their hand!`, 'milestone', 'standard');
   addFeedEntry(`${type.icon} ${type.label} arrived (${type.windowSec}s)`);
+  refreshInvestorBanner();
   showTip('investor');
+}
+
+// Top-center arrival ribbon. Shows the current visiting investor +
+// a live countdown so players don't miss the visit. Hidden when no
+// un-greeted investor is on the floor.
+const investorBannerEl = document.getElementById('investor-banner');
+const ibIconEl  = document.getElementById('ib-icon');
+const ibTitleEl = document.getElementById('ib-title');
+const ibSubEl   = document.getElementById('ib-sub');
+const ibTimerEl = document.getElementById('ib-timer');
+function refreshInvestorBanner() {
+  const active = investors.find(inv => !inv.greeted && inv.state !== 'leaving');
+  if (!active) {
+    investorBannerEl.hidden = true;
+    return;
+  }
+  investorBannerEl.hidden = false;
+  ibIconEl.textContent = active.type.icon;
+  ibTitleEl.textContent = `${active.type.label} on the floor`;
+  const rewardHint = active.type.id === 'advisor' ? 'Greet for a morale boost'
+    : (active.type.id === 'corpdev' ? 'Greet for 60s of ×1.5 deal value'
+    : 'Walk up to shake their hand');
+  ibSubEl.textContent = rewardHint;
+  ibTimerEl.textContent = Math.max(0, Math.ceil(active.remainingT)) + 's';
 }
 
 function greetInvestor(inv) {
@@ -4289,9 +5071,15 @@ function greetInvestor(inv) {
   changeMorale(+3, `Greeted ${inv.type.label}`);
   showToast(`🤝 Greeted ${inv.type.label}!`, 'milestone', 'critical');
   addFeedEntry(`🤝 Greeted ${inv.type.label} — affinity ${investorAffinity[inv.type.id]}`);
-  // Wrap up the visit and walk back out
-  inv.state = 'leaving';
-  inv.target = { x: 0, z: 8 };
+  // Handshake beat: both stand still facing each other and their right
+  // arms oscillate up/down for 1.1s before the investor turns to leave.
+  inv.state = 'handshaking';
+  inv.handshakeT = 0;
+  const dx = player.position.x - inv.group.position.x;
+  const dz = player.position.z - inv.group.position.z;
+  inv.group.rotation.y = Math.atan2(dx, dz);
+  player.rotation.y    = Math.atan2(-dx, -dz);
+  refreshInvestorBanner();
 }
 
 function updateInvestors(dt) {
@@ -4307,9 +5095,27 @@ function updateInvestors(dt) {
   for (let i = investors.length - 1; i >= 0; i--) {
     const inv = investors[i];
     inv.remainingT -= dt;
-    if (inv.remainingT <= 0 && inv.state !== 'leaving') {
+    if (inv.remainingT <= 0 && inv.state !== 'leaving' && inv.state !== 'handshaking') {
       inv.state = 'leaving';
       inv.target = { x: 0, z: 8 };
+    }
+    // Mid-handshake: both parties stand still while their right arms
+    // pump up and down. After ~1.1s the investor turns to leave.
+    if (inv.state === 'handshaking') {
+      inv.handshakeT += dt;
+      const shake = Math.sin(inv.handshakeT * 14) * 0.2;
+      const invArm = inv.group.userData.armR;
+      const playerArm = player.userData.armR;
+      if (invArm)    invArm.rotation.x    = -1.35 + shake;
+      if (playerArm) playerArm.rotation.x = -1.35 + shake;
+      if (inv.handshakeT >= 1.1) {
+        // Clear pose and let them walk out
+        if (invArm)    invArm.rotation.x    = 0;
+        if (playerArm) playerArm.rotation.x = 0;
+        inv.state = 'leaving';
+        inv.target = { x: 0, z: 8 };
+      }
+      continue; // skip movement while handshaking
     }
     // Stop wandering when the player gets close — makes them
     // easy to catch and greet instead of chasing a moving target.
@@ -4322,6 +5128,7 @@ function updateInvestors(dt) {
         scene.remove(inv.group);
         investors.splice(i, 1);
         if (!inv.greeted) addFeedEntry(`${inv.type.icon} ${inv.type.label} left without meeting`);
+        refreshInvestorBanner();
         continue;
       }
       inv.target = pickWanderTarget();
@@ -4366,15 +5173,37 @@ function fmtCash(n) {
   return Math.floor(n).toString();
 }
 
-function showCashPop(amount) {
+// Recent CEO-desk pops keyed by source — lets us aggregate bursts of
+// pops of the same color into a single growing total instead of
+// spraying confetti. Keeps screens calm when 6 engineers deliver at
+// once or sales + eng fire in the same frame.
+const _recentCeoPops = {}; // source → { el, amount, at }
+const POP_MERGE_WINDOW_MS = 350;
+function showCashPop(amount, source = 'eng') {
+  const now = Date.now();
+  const recent = _recentCeoPops[source];
+  if (recent && (now - recent.at) < POP_MERGE_WINDOW_MS && recent.el.isConnected) {
+    recent.amount += amount;
+    recent.at = now;
+    recent.el.textContent = '+$' + fmtCash(recent.amount);
+    // Restart the fade animation so the merged total stays visible
+    recent.el.style.animation = 'none';
+    void recent.el.offsetWidth;
+    recent.el.style.animation = '';
+    clearTimeout(recent.timeout);
+    recent.timeout = setTimeout(() => { recent.el.remove(); delete _recentCeoPops[source]; }, 1400);
+    return;
+  }
   const sp = worldToScreen(ceoDeskPos.x, 2.5, ceoDeskPos.z);
   const el = document.createElement('div');
-  el.className = 'cash-pop';
+  el.className = 'cash-pop src-' + source;
   el.textContent = '+$' + fmtCash(amount);
   el.style.left = (sp.x + (Math.random()*30 - 15)) + 'px';
   el.style.top  = (sp.y + (Math.random()*14 - 7))  + 'px';
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1400);
+  const rec = { el, amount, at: now };
+  rec.timeout = setTimeout(() => { el.remove(); if (_recentCeoPops[source] === rec) delete _recentCeoPops[source]; }, 1400);
+  _recentCeoPops[source] = rec;
 }
 
 // ── Milestones ──────────────────────────────────────────────
@@ -4407,23 +5236,205 @@ function refreshHud() {
   renderRoomPanel();
   renderFunding();
   checkIPOAvailable();
+  renderNextAction();
 }
-function addCash(n) {
+
+// ── Next Best Action card ──────────────────────────────
+// Picks the single highest-impact thing the player should do RIGHT
+// NOW from the current state, and surfaces it as a clickable card at
+// the top of the sidebar. Click = perform the action (delegates to
+// the existing hire / buy / upgrade handlers). Priority order is the
+// natural growth curve: first engineer → funding → pricing upgrade →
+// Engineering Pod → hire #2 → BDR → Account Mgmt → AE promote → VP →
+// rooms → later upgrades → IPO.
+const nextActionCardEl = document.getElementById('next-action-card');
+const naTitleEl        = document.getElementById('na-title');
+const naSubEl          = document.getElementById('na-sub');
+let _naAction = null;
+nextActionCardEl.addEventListener('click', () => { if (_naAction) _naAction(); });
+
+function _clickBtn(id) {
+  const el = document.getElementById(id);
+  if (el && !el.disabled) el.click();
+}
+function _pricingLv()   { return upgLevels['pricing']    || 0; }
+function _growthLv()    { return upgLevels['growth']     || 0; }
+function _enterpriseLv(){ return upgLevels['enterprise'] || 0; }
+function _hasOpenEngDesk() { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng')); }
+function _hasOpenBdrDesk() { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr')); }
+function _hasOpenAeDesk()  { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae')); }
+function _hasOpenVpDesk()  { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp')); }
+function _canAfford(n)     { return state.cash >= n; }
+
+// Resolver: returns { title, sub, action } for the top-priority step.
+function resolveNextAction() {
+  // 1. No engineers yet → hire first engineer (covered by starting cash)
+  if (ideaWorkers.length === 0) {
+    const c = ideaWorkerHireCost();
+    if (_canAfford(c)) return {
+      title: `💻 Hire your first engineer`,
+      sub:   `$${fmtCash(c)} — starts shipping features automatically`,
+      action: () => _clickBtn('hire-btn'),
+    };
+    return {
+      title: `💼 Stand at your CEO desk to ship a feature`,
+      sub:   `Earn $${featurePrice} so you can afford your first engineer ($${fmtCash(c)})`,
+      action: null,
+    };
+  }
+  // 2. Free funding round available (pre-seed is always free-gated to true)
+  if (fundingRoundIdx < FUNDING_ROUNDS.length) {
+    const r = FUNDING_ROUNDS[fundingRoundIdx];
+    if (r.req()) return {
+      title: `💰 Raise ${r.label}`,
+      sub:   `+$${r.amount.toLocaleString()} — free cash, no cost`,
+      action: () => _clickBtn('funding-btn'),
+    };
+  }
+  // 3. Premium Tier upgrade — the single biggest early-game deal-value lever.
+  const pricingUpg = UPGRADES.find(u => u.id === 'pricing');
+  if (pricingUpg && _pricingLv() < pricingUpg.max) {
+    const c = upgCost(pricingUpg);
+    if (_canAfford(c)) {
+      const nextPrice = [5,8,12,18,26][_pricingLv() + 1] || 26;
+      return {
+        title: `💸 Upgrade Premium Tier → $${nextPrice}/feature`,
+        sub:   `$${fmtCash(c)} — boosts every shipped feature`,
+        action: () => buyUpgrade('pricing'),
+      };
+    }
+  }
+  // 4. Engineering Pod unlocks 2 more engineer desks — huge throughput jump.
+  const engPod = ROOM_DEFS.find(r => r.id === 'left');
+  if (engPod && !ownedRooms.has('left') && _canAfford(engPod.cost)) return {
+    title: `🏗️ Buy ${roomLabel(engPod)}`,
+    sub:   `$${fmtCash(engPod.cost)} — +2 engineer desks`,
+    action: () => buyRoom('left'),
+  };
+  // 5. Hire more engineers while desks are open.
+  if (_hasOpenEngDesk()) {
+    const c = ideaWorkerHireCost();
+    if (_canAfford(c)) return {
+      title: `💻 Hire engineer #${ideaWorkers.length + 1}`,
+      sub:   `$${fmtCash(c)} — more engineers = more features shipped`,
+      action: () => _clickBtn('hire-btn'),
+    };
+  }
+  // 6. Sales Corner + a BDR = a second revenue path.
+  const salesCorner = ROOM_DEFS.find(r => r.id === 'right');
+  if (salesCorner && !ownedRooms.has('right') && ideaWorkers.length >= 2 && _canAfford(salesCorner.cost)) return {
+    title: `📞 Buy ${roomLabel(salesCorner)}`,
+    sub:   `$${fmtCash(salesCorner.cost)} — unlocks the sales path`,
+    action: () => buyRoom('right'),
+  };
+  if (bdrs.length === 0 && _hasOpenBdrDesk() && _canAfford(bdrCost())) return {
+    title: `📞 Hire your first BDR`,
+    sub:   `$${fmtCash(bdrCost())} — BDRs close small deals on their own`,
+    action: () => _clickBtn('hire-bdr-btn'),
+  };
+  // 7. Account Management → AE promotion (multiplies BDR deals ×3).
+  if (bdrs.length >= 1 && aes.length === 0) {
+    const acct = ROOM_DEFS.find(r => r.id === 'back-left');
+    if (acct && !ownedRooms.has('back-left') && _canAfford(acct.cost)) return {
+      title: `💼 Buy ${roomLabel(acct)}`,
+      sub:   `$${fmtCash(acct.cost)} — unlock AE desks for 3× BDR closes`,
+      action: () => buyRoom('back-left'),
+    };
+    if (_hasOpenAeDesk() && _canAfford(aeCost())) return {
+      title: `💼 Promote a BDR → AE`,
+      sub:   `$${fmtCash(aeCost())} — AEs close BDR deals at 3×`,
+      action: () => _clickBtn('hire-ae-btn'),
+    };
+  }
+  // 8. Faster Ideation multiplies every engineer's shipping rate.
+  const growthUpg = UPGRADES.find(u => u.id === 'growth');
+  if (growthUpg && _growthLv() < growthUpg.max) {
+    const c = upgCost(growthUpg);
+    if (_canAfford(c)) return {
+      title: `💡 Upgrade Faster Ideation`,
+      sub:   `$${fmtCash(c)} — every engineer ships faster`,
+      action: () => buyUpgrade('growth'),
+    };
+  }
+  // 9. VP Engineering multiplies every shipped feature (Lead → Head → CTO).
+  if (ideaWorkers.length >= 3 && vps.length === 0) {
+    const leadership = ROOM_DEFS.find(r => r.id === 'front-right');
+    if (leadership && !ownedRooms.has('front-right') && _canAfford(leadership.cost)) return {
+      title: `🏛️ Buy ${roomLabel(leadership)}`,
+      sub:   `$${fmtCash(leadership.cost)} — unlock the VP Eng role`,
+      action: () => buyRoom('front-right'),
+    };
+    const vpBtn = document.getElementById('hire-vp-btn');
+    if (vpBtn && !vpBtn.disabled) return {
+      title: `🏛️ Promote OG engineer → Lead Eng`,
+      sub:   `$1,500 — multiplies every shipped feature`,
+      action: () => _clickBtn('hire-vp-btn'),
+    };
+  }
+  // 10. Enterprise Tier (prestige-gated multiplier).
+  const entUpg = UPGRADES.find(u => u.id === 'enterprise');
+  if (entUpg && _enterpriseLv() < entUpg.max) {
+    const c = upgCost(entUpg);
+    if (_canAfford(c)) return {
+      title: `🏢 Upgrade Enterprise Tier`,
+      sub:   `$${fmtCash(c)} — massive deal-value multiplier`,
+      action: () => buyUpgrade('enterprise'),
+    };
+  }
+  // 11. Any other affordable room.
+  for (const r of ROOM_DEFS) {
+    if (ownedRooms.has(r.id)) continue;
+    if (_canAfford(r.cost)) return {
+      title: `🏗️ Buy ${roomLabel(r)}`,
+      sub:   `$${fmtCash(r.cost)} — expand the floor`,
+      action: () => buyRoom(r.id),
+    };
+  }
+  // 12. IPO if prestige is available.
+  const ipoBtn = document.getElementById('ipo-btn');
+  if (ipoBtn && !ipoBtn.disabled && ipoBtn.offsetParent !== null) return {
+    title: `🎉 IPO — start a new season`,
+    sub:   `Reset progress for 2× revenue forever`,
+    action: () => _clickBtn('ipo-btn'),
+  };
+  // 13. Default: earn more.
+  return {
+    title: `⏳ Let the team work`,
+    sub:   `Earn more cash to unlock your next move`,
+    action: null,
+  };
+}
+
+function renderNextAction() {
+  const rec = resolveNextAction();
+  if (!rec) { nextActionCardEl.style.display = 'none'; return; }
+  nextActionCardEl.style.display = 'flex';
+  naTitleEl.textContent = rec.title;
+  naSubEl.textContent   = rec.sub;
+  _naAction = rec.action;
+  nextActionCardEl.style.cursor = rec.action ? 'pointer' : 'default';
+  nextActionCardEl.style.opacity = rec.action ? '1' : '0.7';
+}
+function addCash(n, source = 'eng') {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
-    showCashPop(n);
+    showCashPop(n, source);
     checkMilestones();
   }
   refreshHud();
 }
 // Recurring income (engineer deliveries, sales closes). Feeds the
-// smoothed-ARR display via recordRevenue. One-time windfalls (funding,
-// investor gifts, events, offline, seed, cheats) should stay on
-// addCash so they move cash without inflating ARR.
-function addRevenue(n) {
-  addCash(n);
-  if (n > 0) recordRevenue(n);
+// live $/min rate display and the cumulative season revenue total
+// that fills the goal bar. One-time windfalls (funding, investor
+// gifts, events, offline, seed, cheats) stay on addCash so they move
+// cash without moving the goal bar.
+function addRevenue(n, source = 'eng') {
+  addCash(n, source);
+  if (n > 0) {
+    recordRevenue(n);
+    seasonRecurringRevenue += n;
+  }
 }
 
 // ── Upgrades ──
@@ -4435,35 +5446,54 @@ const UPGRADE_CATS = [
 const UPGRADES = [
   // ── Ideation ──
   { id:'growth',    cat:'ideation',    label:'💡 Faster Ideation',    base:20,  scale:1.6, max:10,
-    apply: lv => { ideaSpeedMult = 1 + lv * 0.25; } },
+    apply: lv => { ideaSpeedMult = 1 + lv * 0.25; },
+    describe: lv => lv === 0 ? '+25% engineer speed / level' : `${Math.round((1 + lv*0.25)*100)}% eng speed → ${Math.round((1 + (lv+1)*0.25)*100)}%` },
   { id:'farmexp',   cat:'ideation',    label:'🧘 Deep Focus',         base:150, scale:2.0, max:2,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.3, 8); } },
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.3, 8); },
+    describe: lv => `+30% flat to engineer speed (stacks)` },
   { id:'dev',       cat:'ideation',    label:'💭 Brainstorm Sessions',base:50,  scale:1.6, max:10,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.15, 8); } },
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.15, 8); },
+    describe: lv => `+15% flat to engineer speed / level (stacks)` },
   { id:'aicopilot', cat:'ideation',    label:'🧠 AI Copilot',         base:300, scale:1.9, max:3,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.5, 8); } },
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.5, 8); },
+    describe: lv => `×1.5 engineer speed (multiplicative, cap 8×)` },
   { id:'cdnspeed',  cat:'ideation',    label:'☁️ Cloud Compute',      base:400, scale:2.0, max:1,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.4, 8); } },
+    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.4, 8); },
+    describe: lv => `×1.4 engineer speed (multiplicative, cap 8×)` },
   // ── Engineering ──
   { id:'speed',     cat:'engineering', label:'👟 Running Shoes',      base:25,  scale:1.5, max:10,
-    apply: lv => { playerSpeed = 6 + lv * 0.5; } },
+    apply: lv => { playerSpeed = 6 + lv * 0.5; },
+    describe: lv => lv === 0 ? 'Player speed 6 → 6.5 / level' : `Player speed ${(6 + lv*0.5).toFixed(1)} → ${(6 + (lv+1)*0.5).toFixed(1)}` },
   { id:'marketing', cat:'engineering', label:'☕ Espresso Machine',   base:75,  scale:1.7, max:4,
-    apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); } },
+    apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); },
+    describe: lv => `−20% engineer coffee-break cadence (stacks)` },
   // ── Revenue ──
   { id:'pricing',   cat:'revenue',     label:'💸 Premium Tier',       base:100, scale:1.8, max:4,
-    apply: lv => { featurePrice = [5,8,12,18,26][lv]; } },
+    apply: lv => { featurePrice = [5,8,12,18,26][lv]; },
+    describe: lv => { const v=[5,8,12,18,26]; return lv < v.length - 1 ? `$${v[lv]} → $${v[lv+1]} per shipped feature` : `$${v[lv]} / feature (max)`; } },
   { id:'enterprise',cat:'revenue',     label:'🏢 Enterprise Tier',    base:500, scale:2.5, max:3,
-    apply: lv => { dealValueMult = prestigeMultiplier * [1,3,8,20][lv]; } },
+    apply: lv => { dealValueMult = prestigeMultiplier * [1,3,8,20][lv]; },
+    describe: lv => { const v=[1,3,8,20]; return lv < v.length - 1 ? `×${v[lv]} → ×${v[lv+1]} deal-value multiplier` : `×${v[lv]} deal-value (max)`; } },
 ];
 
 // ── Activity Feed ───────────────────────────────────────
 const activityLog = [];
-const MAX_FEED = 7;
+const MAX_FEED = 14;
 const feedListEl = document.getElementById('feed-list');
 
 function addFeedEntry(text) {
-  activityLog.unshift({ text, at: Date.now() });
-  if (activityLog.length > MAX_FEED) activityLog.pop();
+  // Dedup repeats: same text within 2s increments a count badge on
+  // the existing entry instead of stacking a second line. Kills the
+  // "💻 Hired engineer #3" × N spam from batch-clicking.
+  const now = Date.now();
+  const last = activityLog[0];
+  if (last && last.text === text && now - last.at < 2000) {
+    last.count = (last.count || 1) + 1;
+    last.at = now;
+  } else {
+    activityLog.unshift({ text, at: now, count: 1 });
+    if (activityLog.length > MAX_FEED) activityLog.pop();
+  }
   renderFeed();
 }
 
@@ -4471,26 +5501,28 @@ function renderFeed() {
   feedListEl.innerHTML = '';
   if (activityLog.length === 0) {
     const hint = document.createElement('div');
-    hint.className = 'feed-entry';
-    hint.style.color = '#7D8590';
-    hint.style.fontStyle = 'italic';
+    hint.className = 'feed-entry feed-empty';
     hint.textContent = '👋 Hire an engineer to start shipping.';
     feedListEl.appendChild(hint);
     return;
   }
   const now = Date.now();
-  for (const e of activityLog) {
+  for (let i = 0; i < activityLog.length; i++) {
+    const e = activityLog[i];
     const age = Math.floor((now - e.at) / 1000);
-    const ageStr = age < 60 ? `${age}s` : `${Math.floor(age/60)}m`;
+    const ageStr = age < 5 ? 'now' : (age < 60 ? `${age}s` : `${Math.floor(age/60)}m`);
     const div = document.createElement('div');
-    div.className = 'feed-entry';
-    div.innerHTML = `${e.text}<span class="feed-age">${ageStr}</span>`;
+    // Newest entry gets a green pulse dot; older entries fade so
+    // recency is readable at a glance without reading every row.
+    div.className = 'feed-entry' + (i === 0 ? ' feed-fresh' : (i >= MAX_FEED - 4 ? ' feed-old' : ''));
+    const countBadge = (e.count && e.count > 1) ? `<span class="feed-count">×${e.count}</span>` : '';
+    div.innerHTML = `<span>${e.text}</span>${countBadge}<span class="feed-age">${ageStr}</span>`;
     feedListEl.appendChild(div);
   }
 }
 
-// Refresh age labels every 10s
-setInterval(renderFeed, 10000);
+// Refresh age labels every 5s so "now / 10s / 1m" stays current
+setInterval(renderFeed, 5000);
 
 // ── Startup Events ──────────────────────────────────────────
 const EVENT_POOL = [
@@ -4512,7 +5544,7 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=1; showToast('🔧 Bug fixed! Deal flow restored.','milestone'); } },
   { id:'angel', label:'👼 Angel', dur:0,
     msg:'👼 Angel investor dropped by!', cls:'milestone',
-    onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'Angel visit'); },
+    onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt, 'event'); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'Angel visit'); },
     onEnd:()=>{} },
   { id:'viral', label:'📱 Viral', dur:15,
     msg:'📱 Tweet went viral! 10× deal rate!', cls:'rush',
@@ -4536,7 +5568,7 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=Math.min(dealSpeedMult*2, 1); showToast('Market stabilized — deal flow restored!','milestone'); } },
   { id:'vcmixer', label:'🥂 VC Mixer', dur:0,
     msg:'🥂 VC mixer at the office! Investors are impressed!', cls:'milestone',
-    onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'VC mixer'); },
+    onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt, 'event'); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'VC mixer'); },
     onEnd:()=>{} },
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
@@ -4564,6 +5596,139 @@ function triggerRandomEvent() {
     eventSepEl.style.display = '';
     eventLabelEl.style.display = '';
     eventLabelEl.textContent = `${ev.label} ${ev.dur}s`;
+  }
+}
+
+// All-Hands Screen slideshow: cycles through live company stats
+// every 4 seconds. Each slide renders a big KPI with a subtitle so
+// the screen feels like an actual boardroom display.
+const STANDUP_SLIDE_COUNT = 4;
+function drawStandupSlide() {
+  const am = amenities.find(a => a.id === 'standup' && a.isOwned);
+  if (!am || !am.group) return;
+  const ud = am.group.userData;
+  if (!ud || !ud.slideCtx) return;
+  const ctx = ud.slideCtx;
+  const W = 320, H = 180;
+  // Background w/ subtle header bar
+  ctx.fillStyle = '#0a1426';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#1e3a5f';
+  ctx.fillRect(0, 0, W, 26);
+  ctx.fillStyle = '#9ec5fe';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('ALL-HANDS · ' + (typeof currentTheme === 'function' ? currentTheme().name : 'Startup'), 10, 18);
+  let label, value, sub;
+  switch (ud.slideIdx) {
+    case 0:
+      label = 'SEASON REVENUE';
+      value = '$' + fmtCash(typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
+      sub = 'goal $' + fmtCash(currentGoalTarget()) + ' · S' + (prestigeLevel + 1);
+      break;
+    case 1:
+      label = 'TEAM';
+      value = (ideaWorkers.length + bdrs.length + aes.length + vps.length + eas.length) + ' people';
+      sub = ideaWorkers.length + ' eng · ' + bdrs.length + ' BDR · ' + aes.length + ' AE · ' + vps.length + ' VP';
+      break;
+    case 2:
+      label = 'SHIPPED';
+      value = fmtCash(totalFeaturesShipped) + ' features';
+      sub = totalUsers + ' users served';
+      break;
+    case 3:
+      label = currentProductVersion.ver;
+      value = '$' + fmtCash(Math.round(featurePrice * productVersionMult * dealValueMult)) + ' / ship';
+      sub = (typeof currentRatePerMin === 'function' ? '$' + fmtCash(currentRatePerMin()) + ' / min' : '');
+      break;
+  }
+  ctx.fillStyle = '#8a939e';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText(label, 14, 54);
+  ctx.fillStyle = '#3FB950';
+  ctx.font = 'bold 40px sans-serif';
+  ctx.fillText(value, 14, 112);
+  ctx.fillStyle = '#c4d3dd';
+  ctx.font = '14px sans-serif';
+  ctx.fillText(sub, 14, 148);
+  // Slide indicator dots
+  for (let i = 0; i < STANDUP_SLIDE_COUNT; i++) {
+    ctx.fillStyle = i === ud.slideIdx ? '#fcd34d' : 'rgba(255,255,255,0.18)';
+    ctx.beginPath(); ctx.arc(W - 20 - (STANDUP_SLIDE_COUNT - 1 - i) * 12, H - 14, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ud.slideTex.needsUpdate = true;
+}
+setInterval(() => {
+  const am = amenities.find(a => a.id === 'standup' && a.isOwned);
+  if (!am || !am.group) return;
+  am.group.userData.slideIdx = ((am.group.userData.slideIdx || 0) + 1) % STANDUP_SLIDE_COUNT;
+  drawStandupSlide();
+}, 4000);
+setInterval(drawStandupSlide, 1000); // also refresh numbers on the current slide
+
+// Coffee machine steam puffs: 4 small white spheres rise + fade
+// while any engineer is pulling a shot. The red LED button pulses
+// bright too. Fully idle when no one's getting coffee.
+function updateCoffeeSteam(dt) {
+  const am = amenities.find(a => a.id === 'coffee' && a.isOwned);
+  if (!am || !am.group) return;
+  const ud = am.group.userData;
+  const parts = ud.steamParticles;
+  if (!parts) return;
+  const active = ideaWorkers.some(w => w.state === 'gettingCoffee');
+  for (const p of parts) {
+    if (active) {
+      p.phase += dt;
+      const t = (p.phase % 1.4) / 1.4; // 1.4s cycle per puff
+      p.mesh.position.y = 0.95 + t * 0.95;
+      p.mesh.position.x = Math.sin(p.phase * 2.2) * 0.08;
+      p.mesh.material.opacity = Math.sin(t * Math.PI) * 0.55;
+      p.mesh.scale.setScalar(0.6 + t * 1.6);
+    } else {
+      p.mesh.material.opacity = 0;
+    }
+  }
+  // Pulsing LED button when pouring
+  if (ud.btnMesh) {
+    ud.btnMesh.material.emissiveIntensity = active ? 0.55 + Math.sin(Date.now() * 0.01) * 0.4 : 0.55;
+  }
+}
+
+// Ping pong animation: ball arcs between the two paddle positions and
+// whichever paddle the ball reaches swings on contact. Ball + paddle
+// movement is fully idle when no one is playing — table just sits there.
+const PP_BOUNCE_PERIOD = 0.52; // seconds per ball leg (left → right)
+function updatePingPong(dt) {
+  const am = amenities.find(a => a.id === 'pingpong' && a.isOwned);
+  if (!am || !am.group) return;
+  const ud = am.group.userData;
+  if (!ud || !ud.ball) return;
+  const playing = ideaWorkers.some(w => w.state === 'pingPonging' || w.state === 'toPingPong');
+  if (!playing) {
+    ud.ball.visible = false;
+    ud.paddleL.rotation.y = 0;
+    ud.paddleR.rotation.y = 0;
+    ud.bounceT = 0;
+    return;
+  }
+  ud.ball.visible = true;
+  ud.bounceT += dt;
+  const t = Math.min(1, ud.bounceT / PP_BOUNCE_PERIOD);
+  // Ball flies from one paddle to the other with a parabolic arc
+  const fromX = ud.toRight ? -0.95 : 0.95;
+  const toX   = ud.toRight ?  0.95 : -0.95;
+  const x = fromX + (toX - fromX) * t;
+  const baseY = 0.84;
+  const height = baseY + Math.sin(t * Math.PI) * 0.22;
+  const z = Math.sin(ud.bounceT * 2.4) * 0.08;
+  ud.ball.position.set(x, height, z);
+  // Arriving paddle swings through a windup over the full leg
+  const arriving = ud.toRight ? ud.paddleR : ud.paddleL;
+  const resting  = ud.toRight ? ud.paddleL : ud.paddleR;
+  arriving.rotation.y = Math.sin(t * Math.PI) * (ud.toRight ? -0.9 : 0.9);
+  resting.rotation.y  = 0;
+  if (t >= 1) {
+    ud.bounceT = 0;
+    ud.toRight = !ud.toRight;
   }
 }
 
@@ -4660,9 +5825,15 @@ function renderUpgrades() {
     const lv = upgLevels[u.id];
     const maxed = lv >= u.max;
     const cost = upgCost(u);
+    const short = lv >= u.max ? null : (state.cash < cost ? `Need $${fmtCash(cost - state.cash)} more` : null);
     btn.disabled = maxed || state.cash < cost;
-    btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv}</span>${u.label}` +
-      (maxed ? '' : `<span class="cost">$${fmtCash(cost)}</span>`);
+    const effect = u.describe ? u.describe(lv) : '';
+    const costOrLock = maxed ? '' : `<span class="cost">${short || '$' + fmtCash(cost)}</span>`;
+    btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv + '/' + u.max}</span>${u.label}${costOrLock}`
+      + (effect ? `<span class="upg-effect">${effect}</span>` : '');
+    btn.title = short
+      ? `${u.label} — Lv ${lv}/${u.max}. ${effect}. ${short}.`
+      : (maxed ? `${u.label} — MAX. ${effect}.` : `${u.label} — Lv ${lv}/${u.max}. ${effect}. $${fmtCash(cost)} to upgrade.`);
   }
 }
 refreshHud();
@@ -4906,15 +6077,24 @@ sprintBtnEl.addEventListener('click', () => { triggerSprint(); updateSprintButto
 function updateSprintButton() {
   if (sprintActive) {
     const remaining = Math.max(0, Math.ceil(SPRINT_DURATION - sprintT));
+    const pct = Math.max(0, Math.min(1, 1 - sprintT / SPRINT_DURATION));
     sprintBtnEl.classList.add('active');
+    sprintBtnEl.classList.add('ringing');
+    sprintBtnEl.style.setProperty('--sprint-pct', pct.toFixed(3));
+    sprintBtnEl.style.setProperty('--sprint-ring', 'rgba(245,158,11,0.95)');
     sprintBtnEl.disabled = true;
     sprintStatusEl.textContent = `${remaining}s`;
   } else if (sprintCooldownT > 0) {
+    const pct = Math.max(0, Math.min(1, 1 - sprintCooldownT / SPRINT_COOLDOWN));
     sprintBtnEl.classList.remove('active');
+    sprintBtnEl.classList.add('ringing');
+    sprintBtnEl.style.setProperty('--sprint-pct', pct.toFixed(3));
+    sprintBtnEl.style.setProperty('--sprint-ring', 'rgba(125,133,144,0.7)');
     sprintBtnEl.disabled = true;
     sprintStatusEl.textContent = `Cooldown ${Math.ceil(sprintCooldownT)}s`;
   } else {
     sprintBtnEl.classList.remove('active');
+    sprintBtnEl.classList.remove('ringing');
     sprintBtnEl.disabled = ideaWorkers.length === 0;
     sprintStatusEl.textContent = ideaWorkers.length === 0 ? 'Hire engineers' : 'Ready';
   }
@@ -4924,6 +6104,7 @@ function updateSprintButton() {
 setInterval(() => {
   updateSprintButton();
   renderAddDeskButton();
+  refreshInvestorBanner();
 }, 250);
 
 const moraleToggleEl = document.getElementById('morale-enabled');
@@ -5253,13 +6434,17 @@ function loop(now) {
     player.rotation.y = Math.atan2(wx, wz);
     player.userData.walkPhase = (player.userData.walkPhase || 0) + dt * (4 + playerSpeed * 0.5);
     player.position.y = Math.abs(Math.sin(player.userData.walkPhase)) * 0.06;
+    swingArms(player, true);
   } else {
     player.position.y = 0;
+    swingArms(player, false);
   }
 
   currentFloorInst.update(dt);
   updateRushHour(dt);
   updateEvents(dt);
+  updatePingPong(dt);
+  updateCoffeeSteam(dt);
   updateMetricsHUD();
   updateLabels();
 
@@ -5285,9 +6470,24 @@ function checkIPOAvailable() {
 function openIPOModal() {
   const nextMult = Math.pow(2, prestigeLevel + 1);
   const valuation = Math.floor(state.allTimeCash * 12);
+  const startingCash = 200 * (prestigeLevel + 1);
+  const nextGoal = GOAL_TARGET_BASE * Math.pow(2, prestigeLevel + 1);
   ipoValEl.textContent = `Valuation: $${fmtCash(valuation)}`;
   ipoMultText.textContent = nextMult + '×';
   ipoSeasonText.textContent = `Season ${prestigeLevel + 2}`;
+  // Show the "first IPO" hint only on prestige 0 so experienced
+  // players aren't re-lectured every season.
+  const firstHint = document.getElementById('ipo-first-hint');
+  if (firstHint) firstHint.classList.toggle('visible', prestigeLevel === 0);
+  // Populate the live numbers in the 3-column breakdown
+  const keepEl = document.getElementById('ipo-keep-trophies');
+  if (keepEl) keepEl.textContent = `Trophies (${trophiesWon})`;
+  const resetEl = document.getElementById('ipo-reset-cash');
+  if (resetEl) resetEl.textContent = `Cash → $${fmtCash(startingCash)}`;
+  const multEl = document.getElementById('ipo-forever-mult');
+  if (multEl) multEl.textContent = `Deal value ×${nextMult} (stacked)`;
+  const goalEl = document.getElementById('ipo-forever-goal');
+  if (goalEl) goalEl.textContent = `Goal → $${fmtCash(nextGoal)}`;
   ipoModal.classList.add('open');
 }
 
@@ -5362,7 +6562,9 @@ function doIPO() {
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
   // New season — finish line resets and the bar's target scales up
   seasonGoalHit = false;
+  seasonRecurringRevenue = 0;
   revenueLog.length = 0;
+  sparkSamples.length = 0;
   winModalEl.classList.remove('open');
   refreshGoalLabels();
   // Re-show the starter room's wall-pinned decor — after IPO the
@@ -5466,8 +6668,9 @@ function saveGame() {
       morale: teamMorale(),
       investorAffinity: { ...investorAffinity },
       seasonGoalHit,
+      seasonRecurringRevenue,
       trophiesWon,
-      bestTimeToGoal,
+      bestTimesToGoal: { ...bestTimesToGoal },
       achievements: { ...earnedAchievements },
       fundingRoundIdx,
       totalUsers,
@@ -5611,8 +6814,17 @@ function loadGame() {
       }
     }
     if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
+    if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue;
     if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
-    if (typeof p.bestTimeToGoal === 'number') bestTimeToGoal = p.bestTimeToGoal;
+    // Per-season PBs (new). Legacy single-number bestTimeToGoal migrates
+    // into tier 0 so old players keep their Season 1 record.
+    if (p.bestTimesToGoal && typeof p.bestTimesToGoal === 'object') {
+      for (const [k, v] of Object.entries(p.bestTimesToGoal)) {
+        if (typeof v === 'number' && v > 0) bestTimesToGoal[Number(k)] = v;
+      }
+    } else if (typeof p.bestTimeToGoal === 'number' && p.bestTimeToGoal > 0) {
+      bestTimesToGoal[0] = p.bestTimeToGoal;
+    }
     if (p.achievements && typeof p.achievements === 'object') {
       for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true;
     }
