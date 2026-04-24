@@ -1199,9 +1199,25 @@ const ownedRooms = new Set(['starter']);
 const roomMeshes = {}; // roomId → { floor, walls[], decorations[] }
 const sharedWalls = {}; // "gx1,gz1:gx2,gz2" → mesh
 
-// Shared materials for room building (Tier 1: scrappy SF concrete + warm drywall)
-const floorMat = new THREE.MeshLambertMaterial({ color: 0x6a6a6e }); // polished concrete
-const wallMat  = new THREE.MeshLambertMaterial({ color: 0xdcc8a8 }); // warm cheap drywall
+// Per-room aesthetic palettes so each space reads visually at a glance
+// instead of looking like the same grey concrete box. Floor + wall
+// colors are tuned to match the room's vibe (engineering = cool blue,
+// sales = warm terracotta, leadership = black marble, etc.). Rooms
+// without an entry fall back to the default concrete + drywall.
+const ROOM_PALETTES = {
+  starter:       { floor: 0x6a6a6e, wall: 0xdcc8a8 }, // HQ: concrete + warm drywall
+  left:          { floor: 0x2a3f5f, wall: 0xc8d4e0 }, // Engineering Pod: deep blue + cool gray
+  right:         { floor: 0x5a2f2a, wall: 0xe8d4c0 }, // Sales Corner: warm terracotta + cream
+  front:         { floor: 0x8a6d4a, wall: 0xf0ebe2 }, // Open Plan: light wood + white
+  back:          { floor: 0x3a5a3a, wall: 0xd8e4d0 }, // Breakroom: forest + pale green
+  'back-left':   { floor: 0x4a4a4e, wall: 0xececec }, // Account Mgmt: dark gray + white
+  'back-right':  { floor: 0xe4eaf0, wall: 0xc4d4e4 }, // R&D Lab: white tile + pale blue
+  'front-left':  { floor: 0x3a1f1a, wall: 0x5a2a2a }, // Lounge: dark wood + deep red
+  'front-right': { floor: 0x1a1a1e, wall: 0x3a2a4a }, // Leadership Suite: black marble + royal
+};
+function paletteFor(roomId) {
+  return ROOM_PALETTES[roomId] || { floor: 0x6a6a6e, wall: 0xdcc8a8 };
+}
 
 function wallKey(gx1, gz1, gx2, gz2) {
   // Canonical order: smaller grid coord first
@@ -1214,8 +1230,16 @@ function buildRoom(def) {
   const cz = def.gz * 16;
   const meshes = { floor: null, walls: [], decorations: [] };
 
+  // Per-room palette — each room gets its own floor + wall materials.
+  // Shared between this room's floor tile and any outer walls it
+  // builds; adjacent-room walls (stored in sharedWalls) still belong
+  // to whichever room built them first.
+  const pal = paletteFor(def.id);
+  const roomFloorMat = new THREE.MeshLambertMaterial({ color: pal.floor });
+  const roomWallMat  = new THREE.MeshLambertMaterial({ color: pal.wall });
+
   // Floor tile
-  const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(16, 0.1, 16), floorMat);
+  const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(16, 0.1, 16), roomFloorMat);
   floorMesh.position.set(cx, 0.05, cz);
   floorMesh.receiveShadow = true;
   scene.add(floorMesh);
@@ -1248,18 +1272,18 @@ function buildRoom(def) {
       if (def.id === 'starter' && nb.dgz === 1) {
         // Split south wall into two halves with 2.5-unit door gap in center
         const halfW = (16.4 - 2.5) / 2; // ~6.95
-        const wallL = new THREE.Mesh(new THREE.BoxGeometry(halfW, 3.2, 0.3), wallMat);
+        const wallL = new THREE.Mesh(new THREE.BoxGeometry(halfW, 3.2, 0.3), roomWallMat);
         wallL.position.set(cx - (2.5/2 + halfW/2), 1.6, cz + 8);
         wallL.castShadow = true; wallL.receiveShadow = true;
         scene.add(wallL);
-        const wallR = new THREE.Mesh(new THREE.BoxGeometry(halfW, 3.2, 0.3), wallMat);
+        const wallR = new THREE.Mesh(new THREE.BoxGeometry(halfW, 3.2, 0.3), roomWallMat);
         wallR.position.set(cx + (2.5/2 + halfW/2), 1.6, cz + 8);
         wallR.castShadow = true; wallR.receiveShadow = true;
         scene.add(wallR);
         meshes.walls.push(wallL, wallR);
         sharedWalls[key] = wallL; // store one for possible removal
       } else {
-        const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(...nb.wallGeo), wallMat);
+        const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(...nb.wallGeo), roomWallMat);
         wallMesh.position.set(...nb.wallPos);
         wallMesh.castShadow = true; wallMesh.receiveShadow = true;
         scene.add(wallMesh);
