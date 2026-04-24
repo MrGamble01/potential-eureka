@@ -449,7 +449,20 @@
       box-shadow: 0 0 14px rgba(245,158,11,0.2);
       transition: transform 0.1s, opacity 0.15s;
       display: flex; align-items: center; gap: 8px;
+      /* Cooldown/active ring rendered via conic gradient — --sprint-pct
+         is updated each tick (0 = empty, 1 = full) */
+      --sprint-pct: 0;
+      --sprint-ring: rgba(245,158,11,0.85);
     }
+    #sprint-btn::before {
+      content: ''; position: absolute; inset: -3px;
+      border-radius: 14px; pointer-events: none;
+      background: conic-gradient(var(--sprint-ring) calc(var(--sprint-pct) * 360deg), transparent 0);
+      -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
+              mask: radial-gradient(circle, transparent 62%, #000 64%);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    #sprint-btn.ringing::before { opacity: 1; }
     #sprint-btn:hover:not(:disabled) { transform: scale(1.04); }
     #sprint-btn:active:not(:disabled) { transform: scale(0.97); }
     #sprint-btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -940,14 +953,14 @@
   <span id="event-label" style="display:none"></span>
 </div>
 <div id="labels"></div>
-<button id="cash-hud" type="button" title="Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
+<button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
   <div class="m-row" title="Annual Recurring Revenue — smoothed from the last 30s of recurring income (engineering + sales). One-time cash (funding, investor gifts, events) moves your $ but not ARR."><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
-  <div class="m-row"><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
-  <div class="m-row"><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row"><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
-  <div class="m-row"><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
-  <div class="m-row" id="m-morale-row" style="display:none"><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
+  <div class="m-row" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
+  <div class="m-row" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
+  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix shows how many engineers are caffeinated right now."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
+  <div class="m-row" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
   <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span id="goal-pct">0%</span></div>
@@ -5166,15 +5179,24 @@ sprintBtnEl.addEventListener('click', () => { triggerSprint(); updateSprintButto
 function updateSprintButton() {
   if (sprintActive) {
     const remaining = Math.max(0, Math.ceil(SPRINT_DURATION - sprintT));
+    const pct = Math.max(0, Math.min(1, 1 - sprintT / SPRINT_DURATION));
     sprintBtnEl.classList.add('active');
+    sprintBtnEl.classList.add('ringing');
+    sprintBtnEl.style.setProperty('--sprint-pct', pct.toFixed(3));
+    sprintBtnEl.style.setProperty('--sprint-ring', 'rgba(245,158,11,0.95)');
     sprintBtnEl.disabled = true;
     sprintStatusEl.textContent = `${remaining}s`;
   } else if (sprintCooldownT > 0) {
+    const pct = Math.max(0, Math.min(1, 1 - sprintCooldownT / SPRINT_COOLDOWN));
     sprintBtnEl.classList.remove('active');
+    sprintBtnEl.classList.add('ringing');
+    sprintBtnEl.style.setProperty('--sprint-pct', pct.toFixed(3));
+    sprintBtnEl.style.setProperty('--sprint-ring', 'rgba(125,133,144,0.7)');
     sprintBtnEl.disabled = true;
     sprintStatusEl.textContent = `Cooldown ${Math.ceil(sprintCooldownT)}s`;
   } else {
     sprintBtnEl.classList.remove('active');
+    sprintBtnEl.classList.remove('ringing');
     sprintBtnEl.disabled = ideaWorkers.length === 0;
     sprintStatusEl.textContent = ideaWorkers.length === 0 ? 'Hire engineers' : 'Ready';
   }
