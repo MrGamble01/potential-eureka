@@ -568,6 +568,14 @@
       margin-bottom: 5px;
     }
     .goal-header #goal-pct { color: #fcd34d; font-size: 11px; }
+    .goal-header .goal-meta {
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .goal-header #goal-pb {
+      font-size: 10px; font-weight: 700; color: #9ec5fe;
+      letter-spacing: 0.3px;
+    }
+    .goal-header #goal-pb:empty { display: none; }
     .goal-track {
       height: 5px; border-radius: 3px;
       background: rgba(255,255,255,0.06);
@@ -965,7 +973,7 @@
   <div class="m-row" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span id="goal-pct">0%</span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
@@ -3808,15 +3816,34 @@ const GOAL_TARGET_BASE = 25_000;
 function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
 let seasonGoalHit = false;
 let trophiesWon = 0;
-// Personal best: the fastest time-to-goal we've ever recorded
-// (in seconds). Persisted across runs and IPOs.
-let bestTimeToGoal = null;
+// Personal bests per season tier: { prestigeLevel: seconds }.
+// Fastest time from sessionStart to crossing that season's goal.
+// Persisted across runs and IPOs so each season has its own PB.
+// Legacy bestTimeToGoal (single number) migrates into tier 0 on load.
+const bestTimesToGoal = {}; // e.g. { 0: 98, 1: 184, 2: 322 }
+function bestTimeFor(prestige) {
+  const v = bestTimesToGoal[prestige];
+  return (typeof v === 'number' && v > 0) ? v : null;
+}
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 const goalFillEl  = document.getElementById('goal-fill');
 const goalPctEl   = document.getElementById('goal-pct');
+const goalPbEl    = document.getElementById('goal-pb');
 const goalLabelEl = document.getElementById('goal-label');
 const winModalEl  = document.getElementById('win-modal');
 const winStatsEl  = document.getElementById('win-stats');
 const winGoalSub  = document.getElementById('win-goal-sub');
+// Render the PB indicator next to the season-goal header. Shows
+// "PB 1:32" when a record exists for this season tier; blank otherwise.
+function refreshPBDisplay() {
+  if (!goalPbEl) return;
+  const pb = bestTimeFor(prestigeLevel);
+  goalPbEl.textContent = pb != null ? `PB ${formatTime(pb)}` : '';
+}
 goalLabelEl.textContent = currentTheme().goalLabelFor(fmtCash(currentGoalTarget()));
 winGoalSub.textContent  = currentTheme().goalAchievedFor(fmtCash(currentGoalTarget()));
 document.getElementById('win-continue-btn').addEventListener('click',
@@ -3885,6 +3912,7 @@ function refreshGoalLabels() {
   const th = currentTheme();
   goalLabelEl.textContent = th.goalLabelFor(fmtCash(t));
   winGoalSub.textContent  = th.goalAchievedFor(fmtCash(t));
+  refreshPBDisplay();
 }
 const trophyBadgeEl = document.getElementById('trophy-badge');
 const trophySepEl   = document.getElementById('trophy-sep');
@@ -4045,12 +4073,15 @@ themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) the
 function triggerWin(cumulative) {
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
-  const m = Math.floor(elapsed / 60);
-  const s = elapsed % 60;
-  // Personal best detection
-  const isPB = bestTimeToGoal == null || elapsed < bestTimeToGoal;
-  if (isPB) bestTimeToGoal = elapsed;
-  const pbBadge = isPB ? ' <strong style="color:#fcd34d">★ NEW BEST</strong>' : (bestTimeToGoal != null ? ` <span style="color:#7D8590;font-weight:600">(best ${Math.floor(bestTimeToGoal/60)}:${(bestTimeToGoal%60).toString().padStart(2,'0')})</span>` : '');
+  // Personal best: compare against THIS season's previous record only
+  // (not a global best, since higher seasons always take longer).
+  const priorPB = bestTimeFor(prestigeLevel);
+  const isPB = priorPB == null || elapsed < priorPB;
+  if (isPB) bestTimesToGoal[prestigeLevel] = elapsed;
+  refreshPBDisplay();
+  const pbBadge = isPB
+    ? ` <strong style="color:#fcd34d">★ NEW BEST for S${prestigeLevel + 1}</strong>`
+    : (priorPB != null ? ` <span style="color:#7D8590;font-weight:600">(S${prestigeLevel + 1} best ${formatTime(priorPB)})</span>` : '');
   const nextTarget = GOAL_TARGET_BASE * Math.pow(2, prestigeLevel + 1);
   const nextMult = Math.pow(2, prestigeLevel + 1);
   winStatsEl.innerHTML = `
@@ -5805,7 +5836,7 @@ function saveGame() {
       seasonGoalHit,
       seasonRecurringRevenue,
       trophiesWon,
-      bestTimeToGoal,
+      bestTimesToGoal: { ...bestTimesToGoal },
       achievements: { ...earnedAchievements },
       fundingRoundIdx,
       totalUsers,
@@ -5951,7 +5982,15 @@ function loadGame() {
     if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
     if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue;
     if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
-    if (typeof p.bestTimeToGoal === 'number') bestTimeToGoal = p.bestTimeToGoal;
+    // Per-season PBs (new). Legacy single-number bestTimeToGoal migrates
+    // into tier 0 so old players keep their Season 1 record.
+    if (p.bestTimesToGoal && typeof p.bestTimesToGoal === 'object') {
+      for (const [k, v] of Object.entries(p.bestTimesToGoal)) {
+        if (typeof v === 'number' && v > 0) bestTimesToGoal[Number(k)] = v;
+      }
+    } else if (typeof p.bestTimeToGoal === 'number' && p.bestTimeToGoal > 0) {
+      bestTimesToGoal[0] = p.bestTimeToGoal;
+    }
     if (p.achievements && typeof p.achievements === 'object') {
       for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true;
     }
