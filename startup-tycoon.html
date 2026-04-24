@@ -15,8 +15,9 @@
     the team happy; run out → morale drops + work stalls.
     Sales side: BDRs solo small deals; hand off to an AE for a 3×
     close; AE self-sources if the pipeline dries up.
-    Goal: \$1M ARR (scales 2× per season). IPO resets + raises the
-    bar. 16 achievements track everything along the way.
+    Goal: bank \$25k recurring revenue per season (doubles per IPO).
+    Fill the goal bar, then IPO for 2× deal value + a higher bar.
+    16 achievements track everything along the way.
 
   ARCHITECTURE
     Single file. All UI is in <style>/<body>. Game is one module
@@ -955,7 +956,8 @@
 <div id="labels"></div>
 <button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
-  <div class="m-row" title="Annual Recurring Revenue — smoothed from the last 30s of recurring income (engineering + sales). One-time cash (funding, investor gifts, events) moves your $ but not ARR."><span class="m-lbl">ARR</span><span class="m-val" id="m-arr">$0/yr</span></div>
+  <div class="m-row" title="Total recurring revenue banked this season. Fills the goal bar. Resets on IPO. One-time cash (funding, investor gifts, events) moves your $ but not this bar."><span class="m-lbl">Revenue</span><span class="m-val" id="m-arr">$0</span></div>
+  <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
   <div class="m-row" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
   <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix shows how many engineers are caffeinated right now."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
@@ -1294,8 +1296,8 @@ const sharedWalls = {}; // "gx1,gz1:gx2,gz2" → mesh
 const THEMES = {
   default: {
     id: 'default', icon: '🏢', name: 'Startup',
-    goalLabelFor: amt => `🎯 $${amt} ARR`,
-    goalAchievedFor: amt => `$${amt} ARR achieved`,
+    goalLabelFor: amt => `🎯 $${amt} Revenue`,
+    goalAchievedFor: amt => `$${amt} Revenue earned`,
     roomLabels: {
       starter:       '🏢 HQ',
       left:          '💻 Engineering Pod',
@@ -3748,37 +3750,40 @@ function checkProductVersion() {
 }
 
 const metricsArrEl  = document.getElementById('m-arr');
+const metricsRateEl = document.getElementById('m-rate');
 const metricsUsersEl= document.getElementById('m-users');
 const metricsShipEl = document.getElementById('m-shipped');
 const metricsTeamEl = document.getElementById('m-teamrev');
 const metricsVersionEl = document.getElementById('m-version');
 const metricsMoraleRowEl = document.getElementById('m-morale-row');
 const metricsMoraleEl    = document.getElementById('m-morale');
-// Rolling 30-second revenue log so ARR is based on actually-realized
-// revenue, not a peak-instant rate. Trim entries older than the
-// window each frame.
+// Rolling 30-second revenue log — only used for the live-rate readout
+// ($/min). Trim entries older than the window each frame.
 const revenueLog = [];
 const REVENUE_WINDOW_MS = 30000;
 function recordRevenue(amount) { revenueLog.push({ at: Date.now(), amount }); }
-function smoothedArr() {
+// Current earn rate, smoothed over the last 30 seconds and expressed
+// as $/min. Replaces the old smoothedArr(): annualizing a 30-second
+// window to a year was invented math that showed billions of $ from a
+// single $1 feature. "$/min" is a real, trackable rate.
+function currentRatePerMin() {
   const cutoff = Date.now() - REVENUE_WINDOW_MS;
   while (revenueLog.length && revenueLog[0].at < cutoff) revenueLog.shift();
   if (revenueLog.length === 0) return 0;
   const sum = revenueLog.reduce((s, e) => s + e.amount, 0);
-  // Annualize against the fixed window, not the span from the oldest
-  // entry to now. Using the span makes ARR blow up when the log has
-  // only one recent entry (sum × 31.5M / ~1s → multi-billion $) and
-  // jitter as entries age in/out. Fixed-window annualization gives a
-  // smooth ramp and a stable, honest rate.
-  const windowSec = REVENUE_WINDOW_MS / 1000;
-  return Math.round(sum * 365 * 24 * 3600 / windowSec);
+  return Math.round(sum * 60 / (REVENUE_WINDOW_MS / 1000));
 }
+// Cumulative recurring revenue banked this season. Resets on IPO.
+// This (not an annualized rate) is what the goal bar measures — real
+// dollars earned, not a projection.
+let seasonRecurringRevenue = 0;
 // ── Season Goal ───────────────────────────────────────────
-// Target ARR for the current season. Scales with prestige (S1 = $1M,
-// S2 = $2M, S3 = $4M, …) so each IPO raises the bar. When smoothed
-// ARR first crosses the target, fire a win modal. Hit state resets
-// on IPO so each season has its own finish line.
-const GOAL_TARGET_BASE = 1_000_000;
+// Cumulative recurring-revenue target for the current season. Scales
+// 2× per prestige (S1 = $25k, S2 = $50k, S3 = $100k, …) so each IPO
+// raises the bar. When cumulative revenue crosses the target, fire
+// the win modal. Hit state resets on IPO so each season has its own
+// finish line.
+const GOAL_TARGET_BASE = 25_000;
 function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
 let seasonGoalHit = false;
 let trophiesWon = 0;
@@ -3839,18 +3844,18 @@ function drawSparkline() {
   ctx.fillStyle = 'rgba(252,211,77,0.18)';
   ctx.fill();
 }
-function updateGoalHud(arr) {
+function updateGoalHud(cumulative) {
   const target = currentGoalTarget();
-  const pct = Math.min(1, arr / target);
+  const pct = Math.min(1, cumulative / target);
   goalFillEl.style.width = (pct * 100).toFixed(1) + '%';
   goalPctEl.textContent = Math.floor(pct * 100) + '%';
-  if (!seasonGoalHit && arr >= target) {
+  if (!seasonGoalHit && cumulative >= target) {
     seasonGoalHit = true;
     trophiesWon++;
-    triggerWin(arr);
+    triggerWin(cumulative);
   }
   goalHudEl.classList.toggle('complete', seasonGoalHit);
-  pushSparkSample(arr);
+  pushSparkSample(cumulative);
   drawSparkline();
 }
 // Refresh the displayed target/sub-text when prestige or theme changes
@@ -3887,7 +3892,7 @@ const ACHIEVEMENTS = [
   { id: 'full_floor',    icon: '🏢', title: 'Full Floor',           desc: 'Own every room on the starter floor.',   check: () => ownedRooms.size >= ROOM_DEFS.length },
   { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.allTimeCash >= 50000 },
   { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.allTimeCash >= 1000000 },
-  { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Reach $1M ARR and win a season.',        check: () => trophiesWon >= 1 },
+  { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1 },
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1 },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100 },
 ];
@@ -4016,7 +4021,7 @@ document.getElementById('open-theme-btn').addEventListener('click', () => {
 document.getElementById('theme-close').addEventListener('click', () => themeModalEl.classList.remove('open'));
 themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) themeModalEl.classList.remove('open'); });
 
-function triggerWin(arr) {
+function triggerWin(cumulative) {
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
   const m = Math.floor(elapsed / 60);
@@ -4028,7 +4033,8 @@ function triggerWin(arr) {
   const nextTarget = GOAL_TARGET_BASE * Math.pow(2, prestigeLevel + 1);
   const nextMult = Math.pow(2, prestigeLevel + 1);
   winStatsEl.innerHTML = `
-    <div class="row"><span>Peak ARR</span><strong>$${fmtCash(arr)}/yr</strong></div>
+    <div class="row"><span>Season revenue</span><strong>$${fmtCash(cumulative)}</strong></div>
+    <div class="row"><span>Peak rate</span><strong>$${fmtCash(currentRatePerMin())}/min</strong></div>
     <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.allTimeCash)}</strong></div>
     <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
     <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
@@ -4048,8 +4054,8 @@ function triggerWin(arr) {
 }
 
 function updateMetricsHUD() {
-  const arr = smoothedArr();
-  metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
+  metricsArrEl.textContent   = '$' + fmtCash(seasonRecurringRevenue);
+  if (metricsRateEl) metricsRateEl.textContent = '$' + fmtCash(currentRatePerMin()) + '/min';
   metricsUsersEl.textContent = fmtCash(totalUsers);
   metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
@@ -4060,7 +4066,7 @@ function updateMetricsHUD() {
     metricsMoraleRowEl.style.display = moraleEnabled ? '' : 'none';
     if (moraleEnabled) { const m = teamMorale(); metricsMoraleEl.textContent = `${moraleEmoji(m)} ${Math.round(m)}`; }
   }
-  updateGoalHud(arr);
+  updateGoalHud(seasonRecurringRevenue);
 }
 
 // Funding panel
@@ -4691,12 +4697,16 @@ function addCash(n, source = 'eng') {
   refreshHud();
 }
 // Recurring income (engineer deliveries, sales closes). Feeds the
-// smoothed-ARR display via recordRevenue. One-time windfalls (funding,
-// investor gifts, events, offline, seed, cheats) should stay on
-// addCash so they move cash without inflating ARR.
+// live $/min rate display and the cumulative season revenue total
+// that fills the goal bar. One-time windfalls (funding, investor
+// gifts, events, offline, seed, cheats) stay on addCash so they move
+// cash without moving the goal bar.
 function addRevenue(n, source = 'eng') {
   addCash(n, source);
-  if (n > 0) recordRevenue(n);
+  if (n > 0) {
+    recordRevenue(n);
+    seasonRecurringRevenue += n;
+  }
 }
 
 // ── Upgrades ──
@@ -5644,7 +5654,9 @@ function doIPO() {
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
   // New season — finish line resets and the bar's target scales up
   seasonGoalHit = false;
+  seasonRecurringRevenue = 0;
   revenueLog.length = 0;
+  sparkSamples.length = 0;
   winModalEl.classList.remove('open');
   refreshGoalLabels();
   // Re-show the starter room's wall-pinned decor — after IPO the
@@ -5748,6 +5760,7 @@ function saveGame() {
       morale: teamMorale(),
       investorAffinity: { ...investorAffinity },
       seasonGoalHit,
+      seasonRecurringRevenue,
       trophiesWon,
       bestTimeToGoal,
       achievements: { ...earnedAchievements },
@@ -5893,6 +5906,7 @@ function loadGame() {
       }
     }
     if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
+    if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue;
     if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
     if (typeof p.bestTimeToGoal === 'number') bestTimeToGoal = p.bestTimeToGoal;
     if (p.achievements && typeof p.achievements === 'object') {
