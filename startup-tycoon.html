@@ -108,6 +108,47 @@
       flex-shrink: 0;
       box-shadow: 0 4px 14px rgba(0,0,0,0.28);
     }
+    /* ── Collapsible panels ──────────────────────────────
+       A panel gets a clickable title with a ▾/▸ caret. When the parent
+       .panel has .collapsed, everything except the title is hidden. */
+    .panel.collapsible > .panel-title {
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .panel.collapsible > .panel-title::before {
+      content: '▾'; font-size: 9px; opacity: 0.75;
+      transition: transform 0.15s ease;
+    }
+    .panel.collapsed > .panel-title::before { transform: rotate(-90deg); }
+    .panel.collapsed > *:not(.panel-title) { display: none !important; }
+    .panel.collapsible > .panel-title:hover { color: #fcd34d; }
+
+    /* ── Next Best Action card (top of sidebar) ─────────── */
+    #next-action-card {
+      width: 100%;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+      cursor: pointer; text-align: left;
+      border: 1px solid rgba(252,211,77,0.35);
+      background: linear-gradient(135deg, rgba(252,211,77,0.12), rgba(245,158,11,0.08));
+      transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      font-family: inherit;
+    }
+    #next-action-card:hover {
+      border-color: rgba(252,211,77,0.7);
+      box-shadow: 0 4px 18px rgba(252,211,77,0.18);
+      transform: translateY(-1px);
+    }
+    #next-action-card:active { transform: translateY(0); }
+    #next-action-card .na-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #fcd34d;
+    }
+    #next-action-card .na-title {
+      font-size: 13px; font-weight: 800; color: #E6EDF3; line-height: 1.2;
+    }
+    #next-action-card .na-sub {
+      font-size: 10px; color: #a0aab4; line-height: 1.25;
+    }
     .panel-title {
       font-weight: 700; font-size: 9px; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590; margin-bottom: 6px;
@@ -331,6 +372,13 @@
       text-shadow: 0 1px 4px rgba(0,0,0,0.5);
       animation: cashPop 1.4s ease forwards; white-space: nowrap;
     }
+    /* Source-coded tints so the player can tell WHERE money came from */
+    .cash-pop.src-eng      { color:#3FB950; }  /* engineering / default green */
+    .cash-pop.src-sales    { color:#F59E0B; }  /* BDR / AE closes */
+    .cash-pop.src-exec     { color:#A78BFA; }  /* VP queue closes */
+    .cash-pop.src-investor { color:#FCD34D; }  /* one-time investor gifts */
+    .cash-pop.src-funding  { color:#22D3EE; }  /* funding rounds */
+    .cash-pop.src-event    { color:#F472B6; }  /* event-driven cash */
     @keyframes cashPop {
       0%   { opacity:1; transform:translateY(0)    scale(1); }
       50%  { opacity:1; transform:translateY(-34px) scale(1.1); }
@@ -937,7 +985,12 @@
   <div id="feed-list"></div>
 </div>
 <div id="left-panel">
-  <div id="office-panel" class="panel">
+  <button id="next-action-card" class="panel" type="button" style="display:none">
+    <div class="na-label">⭐ Next best step</div>
+    <div class="na-title" id="na-title">—</div>
+    <div class="na-sub" id="na-sub"></div>
+  </button>
+  <div id="office-panel" class="panel collapsible">
     <div class="panel-title">👥 Team</div>
     <div id="hire-section">
       <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
@@ -959,18 +1012,18 @@
       </div>
     </div>
   </div>
-  <div id="room-panel" class="panel">
+  <div id="room-panel" class="panel collapsible">
     <div class="panel-title">🏗️ Expand Office</div>
     <div id="room-list"></div>
     <button class="room-btn room-desk" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
   </div>
-  <div id="funding-panel" class="panel">
+  <div id="funding-panel" class="panel collapsible">
     <div class="panel-title">💼 Funding</div>
     <div id="funding-status" style="font-size:11px;color:#3FB950;margin-bottom:6px">Pre-seed ready — raise now!</div>
     <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
   </div>
   <div id="upgrades"></div>
-  <div id="amenities-panel" class="panel">
+  <div id="amenities-panel" class="panel collapsible">
     <div class="panel-title">🏢 Amenities</div>
     <div id="amenities-list"></div>
   </div>
@@ -3138,10 +3191,10 @@ function stepToward(group, target, speed, dt, stopDist = 0.35) {
   return false;
 }
 
-function popCashAt(worldX, worldZ, amount) {
+function popCashAt(worldX, worldZ, amount, source = 'eng') {
   const sp = worldToScreen(worldX, 2.5, worldZ);
   const el = document.createElement('div');
-  el.className = 'cash-pop';
+  el.className = 'cash-pop src-' + source;
   el.textContent = '+$' + fmtCash(amount);
   el.style.left = (sp.x + (Math.random() * 20 - 10)) + 'px';
   el.style.top  = (sp.y + (Math.random() * 10 - 5)) + 'px';
@@ -3162,8 +3215,8 @@ function updateBDRs(dt) {
           b.pendingWithAE = true;
         } else {
           // Someone beat us to it — cash the deal solo at the AE's desk
-          addRevenue(b.dealValue);
-          popCashAt(b.group.position.x, b.group.position.z, b.dealValue);
+          addRevenue(b.dealValue, 'sales');
+          popCashAt(b.group.position.x, b.group.position.z, b.dealValue, 'sales');
         }
         b.state = 'returning';
         b.target = { x: b.desk.group.position.x, z: b.desk.group.position.z + 1.0 };
@@ -3199,8 +3252,8 @@ function updateBDRs(dt) {
       }
     }
     // Otherwise cash the deal solo at the BDR's desk
-    addRevenue(deal);
-    popCashAt(b.group.position.x, b.group.position.z, deal);
+    addRevenue(deal, 'sales');
+    popCashAt(b.group.position.x, b.group.position.z, deal, 'sales');
   }
 }
 
@@ -3273,8 +3326,8 @@ function updateAEs(dt) {
       ae.currentDeal.processTime -= dt;
       if (ae.currentDeal.processTime <= 0) {
         const closedValue = Math.round(ae.currentDeal.value * AE_PROCESS_MULT);
-        addRevenue(closedValue);
-        popCashAt(ae.group.position.x, ae.group.position.z, closedValue);
+        addRevenue(closedValue, 'sales');
+        popCashAt(ae.group.position.x, ae.group.position.z, closedValue, 'sales');
         const bdr = ae.currentDeal.bdr;
         if (bdr) bdr.pendingWithAE = false;
         ae.currentDeal = null;
@@ -3294,8 +3347,8 @@ function updateAEs(dt) {
         // a BDR→AE close at 1.8×, since an AE sourcing their own is the
         // fallback when the pipeline runs dry). Floor avoids $0 early.
         const amt = Math.max(20, Math.round(computeDealValue() * 2));
-        addRevenue(amt);
-        popCashAt(ae.group.position.x, ae.group.position.z, amt);
+        addRevenue(amt, 'sales');
+        popCashAt(ae.group.position.x, ae.group.position.z, amt, 'sales');
       }
     }
   }
@@ -3479,8 +3532,8 @@ function updateVPs(dt) {
       if (item.processTime <= 0) {
         const mult = vpMultiplier(queueSize, v.tier);
         const closed = Math.round(item.value * mult);
-        addRevenue(closed);
-        popCashAt(v.group.position.x, v.group.position.z, closed);
+        addRevenue(closed, 'exec');
+        popCashAt(v.group.position.x, v.group.position.z, closed, 'exec');
         if (item.worker) item.worker.pendingWithVP = false;
         v.queue.splice(i, 1);
       }
@@ -3864,6 +3917,35 @@ achModalEl.addEventListener('click', e => { if (e.target === achModalEl) achModa
 // Run every ~1s
 setInterval(checkAchievements, 1000);
 
+// ── Collapsible sidebar panels ─────────────────────────
+// Click the title bar of any .panel.collapsible to toggle. Collapsed
+// state per-panel is persisted to localStorage so the layout survives
+// reloads. Default = all expanded (discoverability wins for a new run).
+const PANEL_COLLAPSE_STORAGE_KEY = 'startup_tycoon_panels_collapsed';
+function loadCollapsedPanels() {
+  try { return new Set(JSON.parse(localStorage.getItem(PANEL_COLLAPSE_STORAGE_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function saveCollapsedPanels(set) {
+  try { localStorage.setItem(PANEL_COLLAPSE_STORAGE_KEY, JSON.stringify([...set])); } catch {}
+}
+(() => {
+  const collapsed = loadCollapsedPanels();
+  for (const panel of document.querySelectorAll('.panel.collapsible')) {
+    if (!panel.id) continue;
+    if (collapsed.has(panel.id)) panel.classList.add('collapsed');
+    const title = panel.querySelector(':scope > .panel-title');
+    if (!title) continue;
+    title.addEventListener('click', () => {
+      panel.classList.toggle('collapsed');
+      const cur = loadCollapsedPanels();
+      if (panel.classList.contains('collapsed')) cur.add(panel.id);
+      else cur.delete(panel.id);
+      saveCollapsedPanels(cur);
+    });
+  }
+})();
+
 // ── Theme modal + live swap ─────────────────────────────
 const themeModalEl = document.getElementById('theme-modal');
 const themeListEl  = document.getElementById('theme-list');
@@ -4203,7 +4285,7 @@ function raiseFunding() {
   const r = FUNDING_ROUNDS[fundingRoundIdx];
   if (!r.req()) return;
   fundingRoundIdx++;
-  addCash(r.amount);
+  addCash(r.amount, 'funding');
   showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
   addFeedEntry(`💼 ${r.label} raised +$${r.amount.toLocaleString()}`);
   renderFunding();
@@ -4224,11 +4306,11 @@ const investors = [];
 const INVESTOR_TYPES = [
   { id: 'angel',      label: 'Angel investor', icon: '💰', baseReward: 500,  windowSec: 32, color: 0x8a6a2a,
     onGreet: (inv, mult) => { const amt = Math.round(inv.type.baseReward * mult + state.allTimeCash * 0.02);
-      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt); } },
+      addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor'); } },
   { id: 'vc',         label: 'VC',              icon: '🦈', baseReward: 1500, windowSec: 36, color: 0x4a3a7a,
     onGreet: (inv, mult) => { const teamOK = ideaWorkers.length >= 5;
       const amt = Math.round(inv.type.baseReward * mult * (teamOK ? 2 : 0.5));
-      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt);
+      addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor');
       addFeedEntry(teamOK ? '🦈 VC: "Big team, big check"' : '🦈 VC: "Come back when you scale"'); } },
   { id: 'corpdev',    label: 'Corp Dev',        icon: '🏦', baseReward: 0,    windowSec: 32, color: 0x3a4a5a,
     onGreet: (inv) => { const prev = dealValueMult; dealValueMult *= 1.5;
@@ -4239,7 +4321,7 @@ const INVESTOR_TYPES = [
     onGreet: (inv) => { changeMorale(+20, 'Advisor pep talk'); } },
   { id: 'tirekicker', label: 'Tire-kicker',     icon: '🚪', baseReward: 150,  windowSec: 18, color: 0x6a6a6a,
     onGreet: (inv, mult) => { const amt = Math.round(inv.type.baseReward * mult);
-      addCash(amt); popCashAt(inv.group.position.x, inv.group.position.z, amt); } },
+      addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor'); } },
 ];
 const investorAffinity = {};
 let nextInvestorIn = 60 + Math.random() * 60;
@@ -4366,10 +4448,10 @@ function fmtCash(n) {
   return Math.floor(n).toString();
 }
 
-function showCashPop(amount) {
+function showCashPop(amount, source = 'eng') {
   const sp = worldToScreen(ceoDeskPos.x, 2.5, ceoDeskPos.z);
   const el = document.createElement('div');
-  el.className = 'cash-pop';
+  el.className = 'cash-pop src-' + source;
   el.textContent = '+$' + fmtCash(amount);
   el.style.left = (sp.x + (Math.random()*30 - 15)) + 'px';
   el.style.top  = (sp.y + (Math.random()*14 - 7))  + 'px';
@@ -4407,12 +4489,190 @@ function refreshHud() {
   renderRoomPanel();
   renderFunding();
   checkIPOAvailable();
+  renderNextAction();
 }
-function addCash(n) {
+
+// ── Next Best Action card ──────────────────────────────
+// Picks the single highest-impact thing the player should do RIGHT
+// NOW from the current state, and surfaces it as a clickable card at
+// the top of the sidebar. Click = perform the action (delegates to
+// the existing hire / buy / upgrade handlers). Priority order is the
+// natural growth curve: first engineer → funding → pricing upgrade →
+// Engineering Pod → hire #2 → BDR → Account Mgmt → AE promote → VP →
+// rooms → later upgrades → IPO.
+const nextActionCardEl = document.getElementById('next-action-card');
+const naTitleEl        = document.getElementById('na-title');
+const naSubEl          = document.getElementById('na-sub');
+let _naAction = null;
+nextActionCardEl.addEventListener('click', () => { if (_naAction) _naAction(); });
+
+function _clickBtn(id) {
+  const el = document.getElementById(id);
+  if (el && !el.disabled) el.click();
+}
+function _pricingLv()   { return upgLevels['pricing']    || 0; }
+function _growthLv()    { return upgLevels['growth']     || 0; }
+function _enterpriseLv(){ return upgLevels['enterprise'] || 0; }
+function _hasOpenEngDesk() { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng')); }
+function _hasOpenBdrDesk() { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr')); }
+function _hasOpenAeDesk()  { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae')); }
+function _hasOpenVpDesk()  { return plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp')); }
+function _canAfford(n)     { return state.cash >= n; }
+
+// Resolver: returns { title, sub, action } for the top-priority step.
+function resolveNextAction() {
+  // 1. No engineers yet → hire first engineer (covered by starting cash)
+  if (ideaWorkers.length === 0) {
+    const c = ideaWorkerHireCost();
+    if (_canAfford(c)) return {
+      title: `💻 Hire your first engineer`,
+      sub:   `$${fmtCash(c)} — starts shipping features automatically`,
+      action: () => _clickBtn('hire-btn'),
+    };
+    return {
+      title: `💼 Stand at your CEO desk to ship a feature`,
+      sub:   `Earn $${featurePrice} so you can afford your first engineer ($${fmtCash(c)})`,
+      action: null,
+    };
+  }
+  // 2. Free funding round available (pre-seed is always free-gated to true)
+  if (fundingRoundIdx < FUNDING_ROUNDS.length) {
+    const r = FUNDING_ROUNDS[fundingRoundIdx];
+    if (r.req()) return {
+      title: `💰 Raise ${r.label}`,
+      sub:   `+$${r.amount.toLocaleString()} — free cash, no cost`,
+      action: () => _clickBtn('funding-btn'),
+    };
+  }
+  // 3. Premium Tier upgrade — the single biggest early-game deal-value lever.
+  const pricingUpg = UPGRADES.find(u => u.id === 'pricing');
+  if (pricingUpg && _pricingLv() < pricingUpg.max) {
+    const c = upgCost(pricingUpg);
+    if (_canAfford(c)) {
+      const nextPrice = [5,8,12,18,26][_pricingLv() + 1] || 26;
+      return {
+        title: `💸 Upgrade Premium Tier → $${nextPrice}/feature`,
+        sub:   `$${fmtCash(c)} — boosts every shipped feature`,
+        action: () => buyUpgrade('pricing'),
+      };
+    }
+  }
+  // 4. Engineering Pod unlocks 2 more engineer desks — huge throughput jump.
+  const engPod = ROOM_DEFS.find(r => r.id === 'left');
+  if (engPod && !ownedRooms.has('left') && _canAfford(engPod.cost)) return {
+    title: `🏗️ Buy ${roomLabel(engPod)}`,
+    sub:   `$${fmtCash(engPod.cost)} — +2 engineer desks`,
+    action: () => buyRoom('left'),
+  };
+  // 5. Hire more engineers while desks are open.
+  if (_hasOpenEngDesk()) {
+    const c = ideaWorkerHireCost();
+    if (_canAfford(c)) return {
+      title: `💻 Hire engineer #${ideaWorkers.length + 1}`,
+      sub:   `$${fmtCash(c)} — more engineers = more features shipped`,
+      action: () => _clickBtn('hire-btn'),
+    };
+  }
+  // 6. Sales Corner + a BDR = a second revenue path.
+  const salesCorner = ROOM_DEFS.find(r => r.id === 'right');
+  if (salesCorner && !ownedRooms.has('right') && ideaWorkers.length >= 2 && _canAfford(salesCorner.cost)) return {
+    title: `📞 Buy ${roomLabel(salesCorner)}`,
+    sub:   `$${fmtCash(salesCorner.cost)} — unlocks the sales path`,
+    action: () => buyRoom('right'),
+  };
+  if (bdrs.length === 0 && _hasOpenBdrDesk() && _canAfford(bdrCost())) return {
+    title: `📞 Hire your first BDR`,
+    sub:   `$${fmtCash(bdrCost())} — BDRs close small deals on their own`,
+    action: () => _clickBtn('hire-bdr-btn'),
+  };
+  // 7. Account Management → AE promotion (multiplies BDR deals ×3).
+  if (bdrs.length >= 1 && aes.length === 0) {
+    const acct = ROOM_DEFS.find(r => r.id === 'back-left');
+    if (acct && !ownedRooms.has('back-left') && _canAfford(acct.cost)) return {
+      title: `💼 Buy ${roomLabel(acct)}`,
+      sub:   `$${fmtCash(acct.cost)} — unlock AE desks for 3× BDR closes`,
+      action: () => buyRoom('back-left'),
+    };
+    if (_hasOpenAeDesk() && _canAfford(aeCost())) return {
+      title: `💼 Promote a BDR → AE`,
+      sub:   `$${fmtCash(aeCost())} — AEs close BDR deals at 3×`,
+      action: () => _clickBtn('hire-ae-btn'),
+    };
+  }
+  // 8. Faster Ideation multiplies every engineer's shipping rate.
+  const growthUpg = UPGRADES.find(u => u.id === 'growth');
+  if (growthUpg && _growthLv() < growthUpg.max) {
+    const c = upgCost(growthUpg);
+    if (_canAfford(c)) return {
+      title: `💡 Upgrade Faster Ideation`,
+      sub:   `$${fmtCash(c)} — every engineer ships faster`,
+      action: () => buyUpgrade('growth'),
+    };
+  }
+  // 9. VP Engineering multiplies every shipped feature (Lead → Head → CTO).
+  if (ideaWorkers.length >= 3 && vps.length === 0) {
+    const leadership = ROOM_DEFS.find(r => r.id === 'front-right');
+    if (leadership && !ownedRooms.has('front-right') && _canAfford(leadership.cost)) return {
+      title: `🏛️ Buy ${roomLabel(leadership)}`,
+      sub:   `$${fmtCash(leadership.cost)} — unlock the VP Eng role`,
+      action: () => buyRoom('front-right'),
+    };
+    const vpBtn = document.getElementById('hire-vp-btn');
+    if (vpBtn && !vpBtn.disabled) return {
+      title: `🏛️ Promote OG engineer → Lead Eng`,
+      sub:   `$1,500 — multiplies every shipped feature`,
+      action: () => _clickBtn('hire-vp-btn'),
+    };
+  }
+  // 10. Enterprise Tier (prestige-gated multiplier).
+  const entUpg = UPGRADES.find(u => u.id === 'enterprise');
+  if (entUpg && _enterpriseLv() < entUpg.max) {
+    const c = upgCost(entUpg);
+    if (_canAfford(c)) return {
+      title: `🏢 Upgrade Enterprise Tier`,
+      sub:   `$${fmtCash(c)} — massive deal-value multiplier`,
+      action: () => buyUpgrade('enterprise'),
+    };
+  }
+  // 11. Any other affordable room.
+  for (const r of ROOM_DEFS) {
+    if (ownedRooms.has(r.id)) continue;
+    if (_canAfford(r.cost)) return {
+      title: `🏗️ Buy ${roomLabel(r)}`,
+      sub:   `$${fmtCash(r.cost)} — expand the floor`,
+      action: () => buyRoom(r.id),
+    };
+  }
+  // 12. IPO if prestige is available.
+  const ipoBtn = document.getElementById('ipo-btn');
+  if (ipoBtn && !ipoBtn.disabled && ipoBtn.offsetParent !== null) return {
+    title: `🎉 IPO — start a new season`,
+    sub:   `Reset progress for 2× revenue forever`,
+    action: () => _clickBtn('ipo-btn'),
+  };
+  // 13. Default: earn more.
+  return {
+    title: `⏳ Let the team work`,
+    sub:   `Earn more cash to unlock your next move`,
+    action: null,
+  };
+}
+
+function renderNextAction() {
+  const rec = resolveNextAction();
+  if (!rec) { nextActionCardEl.style.display = 'none'; return; }
+  nextActionCardEl.style.display = 'flex';
+  naTitleEl.textContent = rec.title;
+  naSubEl.textContent   = rec.sub;
+  _naAction = rec.action;
+  nextActionCardEl.style.cursor = rec.action ? 'pointer' : 'default';
+  nextActionCardEl.style.opacity = rec.action ? '1' : '0.7';
+}
+function addCash(n, source = 'eng') {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
-    showCashPop(n);
+    showCashPop(n, source);
     checkMilestones();
   }
   refreshHud();
@@ -4421,8 +4681,8 @@ function addCash(n) {
 // smoothed-ARR display via recordRevenue. One-time windfalls (funding,
 // investor gifts, events, offline, seed, cheats) should stay on
 // addCash so they move cash without inflating ARR.
-function addRevenue(n) {
-  addCash(n);
+function addRevenue(n, source = 'eng') {
+  addCash(n, source);
   if (n > 0) recordRevenue(n);
 }
 
@@ -4512,7 +4772,7 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=1; showToast('🔧 Bug fixed! Deal flow restored.','milestone'); } },
   { id:'angel', label:'👼 Angel', dur:0,
     msg:'👼 Angel investor dropped by!', cls:'milestone',
-    onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'Angel visit'); },
+    onStart:()=>{ const amt=Math.max(300,Math.floor(state.allTimeCash*0.1)); addCash(amt, 'event'); showToast(`👼 Angel gave $${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'Angel visit'); },
     onEnd:()=>{} },
   { id:'viral', label:'📱 Viral', dur:15,
     msg:'📱 Tweet went viral! 10× deal rate!', cls:'rush',
@@ -4536,7 +4796,7 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=Math.min(dealSpeedMult*2, 1); showToast('Market stabilized — deal flow restored!','milestone'); } },
   { id:'vcmixer', label:'🥂 VC Mixer', dur:0,
     msg:'🥂 VC mixer at the office! Investors are impressed!', cls:'milestone',
-    onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'VC mixer'); },
+    onStart:()=>{ const amt=Math.max(400, ideaWorkers.length*300+400); addCash(amt, 'event'); showToast(`🥂 VCs loved it! +$${fmtCash(amt)}!`,'milestone'); changeMorale(+3, 'VC mixer'); },
     onEnd:()=>{} },
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
