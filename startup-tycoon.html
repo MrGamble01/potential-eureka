@@ -542,7 +542,7 @@
     .ipo-panel {
       background: rgba(13,17,23,0.97);
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 16px; padding: 28px 26px; max-width: 400px; width: 90vw;
+      border-radius: 16px; padding: 28px 26px; max-width: 520px; width: 92vw;
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
       text-align: center;
     }
@@ -550,6 +550,35 @@
     .ipo-sub   { font-size: 14px; font-weight: 700; color: #3FB950; margin-bottom: 14px; }
     .ipo-body  { font-size: 13px; color: #7D8590; line-height: 1.7; margin-bottom: 20px; }
     .ipo-body strong { color: #E6EDF3; }
+    .ipo-cols {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px; margin: 18px 0 22px; text-align: left;
+    }
+    .ipo-col {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 10px 12px;
+    }
+    .ipo-col-title {
+      font-size: 9px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .ipo-col.keeps     .ipo-col-title { color: #3FB950; }
+    .ipo-col.resets    .ipo-col-title { color: #F59E0B; }
+    .ipo-col.forever   .ipo-col-title { color: #c4beff; }
+    .ipo-col ul { list-style: none; margin: 0; padding: 0; font-size: 11px; line-height: 1.6; color: #c4d3dd; }
+    .ipo-col li::before { content: '·'; margin-right: 5px; color: #6D7784; }
+    .ipo-first-hint {
+      font-size: 11px; color: #fcd34d; background: rgba(252,211,77,0.08);
+      border: 1px solid rgba(252,211,77,0.3); border-radius: 8px;
+      padding: 8px 12px; margin-bottom: 14px; text-align: left;
+      display: none;
+    }
+    .ipo-first-hint.visible { display: block; }
+    @media (max-width: 600px) {
+      .ipo-cols { grid-template-columns: 1fr; }
+    }
     .ipo-actions { display: flex; gap: 10px; justify-content: center; }
 
     /* ── Goal bar (top-center under status bar) ─── */
@@ -1169,7 +1198,7 @@
 <div id="toast-container"></div>
 <button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
-<button id="ipo-btn" title="Take your startup public!">🎉 IPO!</button>
+<button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
 <div id="tip-modal" role="dialog">
   <div class="tip-panel">
     <div class="tip-title" id="tip-title"></div>
@@ -1181,10 +1210,40 @@
   <div class="ipo-panel">
     <div class="ipo-title">🎉 IPO Time!</div>
     <div class="ipo-sub" id="ipo-valuation"></div>
+    <div class="ipo-first-hint" id="ipo-first-hint">
+      💡 <strong>First IPO:</strong> a "soft reset" — you trade your current run for a permanent revenue multiplier. Keep going back to IPO each season to stack the multiplier.
+    </div>
     <div class="ipo-body" id="ipo-body">
-      Taking your startup public resets cash and upgrades, but you keep a permanent
-      <strong id="ipo-mult-text">2×</strong> revenue multiplier for your next season.
-      <br><br>Your <strong id="ipo-season-text">Season 2</strong> starts with a supply runner and <strong>$200</strong>.
+      You cash out and start fresh in <strong id="ipo-season-text">Season 2</strong> with a permanent <strong id="ipo-mult-text">2×</strong> revenue multiplier baked into every deal from here on.
+    </div>
+    <div class="ipo-cols">
+      <div class="ipo-col keeps">
+        <div class="ipo-col-title">✓ You keep</div>
+        <ul>
+          <li id="ipo-keep-trophies">Trophies</li>
+          <li>Achievements</li>
+          <li>Per-season PBs</li>
+          <li>Theme preference</li>
+        </ul>
+      </div>
+      <div class="ipo-col resets">
+        <div class="ipo-col-title">↺ Resets</div>
+        <ul>
+          <li id="ipo-reset-cash">Cash → $200</li>
+          <li>Engineers, BDRs, AEs, VPs, EA</li>
+          <li>Rooms (back to HQ)</li>
+          <li>Upgrades + amenities</li>
+          <li>Funding rounds</li>
+        </ul>
+      </div>
+      <div class="ipo-col forever">
+        <div class="ipo-col-title">∞ Forever</div>
+        <ul>
+          <li id="ipo-forever-mult">Deal value ×2</li>
+          <li id="ipo-forever-goal">Goal doubles to $50k</li>
+          <li>New season number</li>
+        </ul>
+      </div>
     </div>
     <div class="ipo-actions">
       <button class="ipo-confirm" id="ipo-confirm-btn">🚀 Go Public</button>
@@ -5842,9 +5901,24 @@ function checkIPOAvailable() {
 function openIPOModal() {
   const nextMult = Math.pow(2, prestigeLevel + 1);
   const valuation = Math.floor(state.allTimeCash * 12);
+  const startingCash = 200 * (prestigeLevel + 1);
+  const nextGoal = GOAL_TARGET_BASE * Math.pow(2, prestigeLevel + 1);
   ipoValEl.textContent = `Valuation: $${fmtCash(valuation)}`;
   ipoMultText.textContent = nextMult + '×';
   ipoSeasonText.textContent = `Season ${prestigeLevel + 2}`;
+  // Show the "first IPO" hint only on prestige 0 so experienced
+  // players aren't re-lectured every season.
+  const firstHint = document.getElementById('ipo-first-hint');
+  if (firstHint) firstHint.classList.toggle('visible', prestigeLevel === 0);
+  // Populate the live numbers in the 3-column breakdown
+  const keepEl = document.getElementById('ipo-keep-trophies');
+  if (keepEl) keepEl.textContent = `Trophies (${trophiesWon})`;
+  const resetEl = document.getElementById('ipo-reset-cash');
+  if (resetEl) resetEl.textContent = `Cash → $${fmtCash(startingCash)}`;
+  const multEl = document.getElementById('ipo-forever-mult');
+  if (multEl) multEl.textContent = `Deal value ×${nextMult} (stacked)`;
+  const goalEl = document.getElementById('ipo-forever-goal');
+  if (goalEl) goalEl.textContent = `Goal → $${fmtCash(nextGoal)}`;
   ipoModal.classList.add('open');
 }
 
