@@ -3582,21 +3582,35 @@ const hireVpBtnEl  = document.getElementById('hire-vp-btn');
 // (hireVpCostEl removed — button innerHTML is replaced each render.)
 const hireLeadershipSectionEl = document.getElementById('hire-leadership-section');
 
+// Returns the lockout reason string for a hire button given seat
+// availability + cost, or null if affordable (so the caller shows the
+// normal price). Keeps every hire button using the same phrasing.
+function hireLockReason(hasSeat, cost) {
+  if (!hasSeat) return 'Add desks first';
+  if (state.cash < cost) return `Need $${fmtCash(cost - state.cash)} more`;
+  return null;
+}
 function renderHirePanel() {
   // Engineers can sit at 'eng' desks + any generic 'any' desk
   const engCapacity = plots.filter(p => p.active && deskAcceptsRole(p, 'eng')).length;
   empCountEl.textContent = `${ideaWorkers.length} / ${engCapacity}`;
   const availableEngSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   const hcost = ideaWorkerHireCost();
-  hireBtnEl.disabled = !availableEngSeat || state.cash < hcost;
-  hireCostEl.textContent = availableEngSeat ? `$${hcost}` : 'Add desks first';
+  const engLock = hireLockReason(availableEngSeat, hcost);
+  hireBtnEl.disabled = engLock !== null;
+  hireCostEl.textContent = engLock || `$${hcost}`;
+  hireBtnEl.title = engLock ? `Can't hire: ${engLock}` : `Hire an engineer — $${hcost}`;
   const extEngCost = hcost * EXTERNAL_COST_MULT;
-  hireExtEngBtnEl.disabled = !availableEngSeat || state.cash < extEngCost;
-  hireExtEngCostEl.textContent = availableEngSeat ? `$${fmtCash(extEngCost)}` : 'Add desks first';
+  const extEngLock = hireLockReason(availableEngSeat, extEngCost);
+  hireExtEngBtnEl.disabled = extEngLock !== null;
+  hireExtEngCostEl.textContent = extEngLock || `$${fmtCash(extEngCost)}`;
+  hireExtEngBtnEl.title = extEngLock ? `Can't hire: ${extEngLock}` : `External engineer: +${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate, costs ${EXTERNAL_COST_MULT}× — $${fmtCash(extEngCost)}`;
 
   const ecost = eaCost();
-  hireEaBtnEl.disabled = state.cash < ecost;
-  hireEaCostEl.textContent = eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`;
+  const eaLock = state.cash < ecost ? `Need $${fmtCash(ecost - state.cash)} more` : null;
+  hireEaBtnEl.disabled = eaLock !== null;
+  hireEaCostEl.textContent = eaLock || (eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`);
+  hireEaBtnEl.title = eaLock ? `Can't hire: ${eaLock}` : `Executive Assistant refills coffee/paper and boosts morale — $${ecost}`;
 
   // Sales section appears once any desk can host a BDR or AE. Both
   // allow flex 'any' desks so you can promote AEs early without the
@@ -3610,14 +3624,17 @@ function renderHirePanel() {
     if (bdrCapacity) {
       const availableBdrSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
       const bcost = bdrCost();
-      hireBdrBtnEl.disabled = !availableBdrSeat || state.cash < bcost;
-      hireBdrCostEl.textContent = !availableBdrSeat
-        ? 'Add desks first'
-        : (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
+      const bdrLock = hireLockReason(availableBdrSeat, bcost);
+      hireBdrBtnEl.disabled = bdrLock !== null;
+      hireBdrCostEl.textContent = bdrLock
+        || (bdrs.length === 0 ? `$${bcost}` : `$${bcost} · ${bdrs.length} on floor`);
+      hireBdrBtnEl.title = bdrLock ? `Can't hire: ${bdrLock}` : `BDR — closes small deals solo, hands off larger ones to an AE — $${bcost}`;
       hireBdrBtnEl.style.display = '';
       const extBcost = bcost * EXTERNAL_COST_MULT;
-      hireExtBdrBtnEl.disabled = !availableBdrSeat || state.cash < extBcost;
-      hireExtBdrCostEl.textContent = availableBdrSeat ? `$${fmtCash(extBcost)}` : 'Add desks first';
+      const extBdrLock = hireLockReason(availableBdrSeat, extBcost);
+      hireExtBdrBtnEl.disabled = extBdrLock !== null;
+      hireExtBdrCostEl.textContent = extBdrLock || `$${fmtCash(extBcost)}`;
+      hireExtBdrBtnEl.title = extBdrLock ? `Can't hire: ${extBdrLock}` : `External BDR: higher deal value, costs ${EXTERNAL_COST_MULT}× — $${fmtCash(extBcost)}`;
       hireExtBdrBtnEl.style.display = '';
     } else {
       hireBdrBtnEl.style.display = 'none';
@@ -3629,8 +3646,10 @@ function renderHirePanel() {
     if (aeCapacity && bdrs.length >= 1) {
       const availableAeSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
       const acost = aeCost();
-      hireAeBtnEl.disabled = !availableAeSeat || state.cash < acost;
-      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${availableAeSeat ? `$${fmtCash(acost)}` : 'Add desks first'}</span>`;
+      const aeLock = hireLockReason(availableAeSeat, acost);
+      hireAeBtnEl.disabled = aeLock !== null;
+      hireAeBtnEl.innerHTML = `⬆️ Promote BDR → Account Executive<span class="cost">${aeLock || `$${fmtCash(acost)}`}</span>`;
+      hireAeBtnEl.title = aeLock ? `Can't promote: ${aeLock}` : `AE closes BDR handoffs at 3× — $${fmtCash(acost)}`;
       hireAeBtnEl.style.display = '';
     } else {
       hireAeBtnEl.style.display = 'none';
@@ -3649,8 +3668,10 @@ function renderHirePanel() {
     const maxed = vps.length > 0 && vps[0].tier >= VP_TIERS.length - 1;
     const needsSeat = vps.length === 0;
     const availableSeat = !needsSeat || plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
-    hireVpBtnEl.disabled = maxed || !availableSeat || state.cash < vcost;
-    hireVpBtnEl.innerHTML = `${vpButtonLabel()}<span class="cost">${maxed ? '' : `$${fmtCash(vcost)}`}</span>`;
+    const vpLock = maxed ? 'Max tier reached' : (!availableSeat ? 'Add desks first' : (state.cash < vcost ? `Need $${fmtCash(vcost - state.cash)} more` : null));
+    hireVpBtnEl.disabled = vpLock !== null;
+    hireVpBtnEl.innerHTML = `${vpButtonLabel()}<span class="cost">${maxed ? '' : (vpLock || `$${fmtCash(vcost)}`)}</span>`;
+    hireVpBtnEl.title = vpLock ? `Can't promote: ${vpLock}` : `Promote + multiply every shipped feature — $${fmtCash(vcost)}`;
     if (vps.length === 0) showTip('vp');
   }
 }
@@ -4467,7 +4488,27 @@ function fmtCash(n) {
   return Math.floor(n).toString();
 }
 
+// Recent CEO-desk pops keyed by source — lets us aggregate bursts of
+// pops of the same color into a single growing total instead of
+// spraying confetti. Keeps screens calm when 6 engineers deliver at
+// once or sales + eng fire in the same frame.
+const _recentCeoPops = {}; // source → { el, amount, at }
+const POP_MERGE_WINDOW_MS = 350;
 function showCashPop(amount, source = 'eng') {
+  const now = Date.now();
+  const recent = _recentCeoPops[source];
+  if (recent && (now - recent.at) < POP_MERGE_WINDOW_MS && recent.el.isConnected) {
+    recent.amount += amount;
+    recent.at = now;
+    recent.el.textContent = '+$' + fmtCash(recent.amount);
+    // Restart the fade animation so the merged total stays visible
+    recent.el.style.animation = 'none';
+    void recent.el.offsetWidth;
+    recent.el.style.animation = '';
+    clearTimeout(recent.timeout);
+    recent.timeout = setTimeout(() => { recent.el.remove(); delete _recentCeoPops[source]; }, 1400);
+    return;
+  }
   const sp = worldToScreen(ceoDeskPos.x, 2.5, ceoDeskPos.z);
   const el = document.createElement('div');
   el.className = 'cash-pop src-' + source;
@@ -4475,7 +4516,9 @@ function showCashPop(amount, source = 'eng') {
   el.style.left = (sp.x + (Math.random()*30 - 15)) + 'px';
   el.style.top  = (sp.y + (Math.random()*14 - 7))  + 'px';
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1400);
+  const rec = { el, amount, at: now };
+  rec.timeout = setTimeout(() => { el.remove(); if (_recentCeoPops[source] === rec) delete _recentCeoPops[source]; }, 1400);
+  _recentCeoPops[source] = rec;
 }
 
 // ── Milestones ──────────────────────────────────────────────
