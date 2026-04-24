@@ -2867,11 +2867,16 @@ function updateIdeaWorkers(dt) {
         continue;
       }
 
-      // Ping pong break (if not almost done)
+      // Ping pong break (if not almost done). Pick a side: if someone
+      // else is already on the north side, walk to the south side so
+      // two engineers actually face off across the table.
       if (ppAm && w.pingPongCooldown <= 0 && w.workProgress < 0.65) {
         w.pingPongCooldown = 90 + Math.random() * 60;
+        const northTaken = ideaWorkers.some(o => o !== w && (o.state === 'toPingPong' || o.state === 'pingPonging') && o.pingPongSide === 'N');
+        w.pingPongSide = northTaken ? 'S' : 'N';
+        const sideZ = w.pingPongSide === 'N' ? -1.1 : 1.1;
         w.state = 'toPingPong';
-        w.target = { x: ppAm.position.x, z: ppAm.position.z + 1.4 };
+        w.target = { x: ppAm.position.x, z: ppAm.position.z + sideZ };
         continue;
       }
 
@@ -2971,9 +2976,19 @@ function updateIdeaWorkers(dt) {
       continue;
     }
     if (w.state === 'pingPonging') {
+      // Face the table center (slight bob toward the ball)
+      if (ppAm) {
+        const dx = ppAm.position.x - w.group.position.x;
+        const dz = ppAm.position.z - w.group.position.z;
+        w.group.rotation.y = Math.atan2(dx, dz);
+        // Light hop in place so the pose doesn't feel frozen
+        w.group.position.y = Math.abs(Math.sin((w.waitT || 0) * 6)) * 0.04;
+      }
       w.waitT -= dt;
       if (w.waitT <= 0) {
         w.pingPongBoost = 2.0;
+        w.group.position.y = 0;
+        w.pingPongSide = null;
         showToast('🏓 Break done! Next product is 2× quality!', 'milestone');
         w.state = 'returning';
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
@@ -4459,7 +4474,81 @@ const AMENITY_DEFS = [
       if (!ownedRooms.has('right')) need.push('📞 Sales Corner');
       return `🔒 ${need.join(' + ')}`;
     },
-    buildMesh: (g) => { /* table already in scene */ },
+    buildMesh: (g) => {
+      // Real table: green top with white edges + center line, black
+      // legs, posts + translucent net, two rotating paddles, and a
+      // small white ball. Refs stashed on userData for the ping-pong
+      // animation loop to drive when workers are playing.
+      const topMat  = new THREE.MeshLambertMaterial({ color: 0x2a6b3a });
+      const edgeMat = new THREE.MeshLambertMaterial({ color: 0xf2f2f2 });
+      const legMat  = new THREE.MeshLambertMaterial({ color: 0x1e1e24 });
+      const padMat  = new THREE.MeshLambertMaterial({ color: 0x7d2a1a });
+      const handleMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
+      const TABLE_Y = 0.76;
+      // Top
+      const top = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 1.3), topMat);
+      top.position.y = TABLE_Y; top.castShadow = true; top.receiveShadow = true;
+      g.add(top);
+      // White edges (4 strips slightly proud)
+      const edges = [
+        { w: 0.04, d: 1.32, x: -1.18, z: 0 },
+        { w: 0.04, d: 1.32, x:  1.18, z: 0 },
+        { w: 2.42, d: 0.04, x: 0, z: -0.65 },
+        { w: 2.42, d: 0.04, x: 0, z:  0.65 },
+        { w: 0.02, d: 1.28, x: 0, z: 0 }, // center line
+      ];
+      for (const e of edges) {
+        const s = new THREE.Mesh(new THREE.BoxGeometry(e.w, 0.065, e.d), edgeMat);
+        s.position.set(e.x, TABLE_Y + 0.002, e.z); g.add(s);
+      }
+      // 4 legs
+      for (const [lx, lz] of [[-1.1, -0.55], [1.1, -0.55], [-1.1, 0.55], [1.1, 0.55]]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, TABLE_Y, 0.08), legMat);
+        leg.position.set(lx, TABLE_Y / 2, lz); leg.castShadow = true; g.add(leg);
+      }
+      // Net posts + net cloth
+      const postMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2e });
+      for (const sz of [-0.68, 0.68]) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06), postMat);
+        post.position.set(0, TABLE_Y + 0.12, sz); g.add(post);
+      }
+      const net = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.36, 0.18),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+      );
+      net.rotation.y = Math.PI / 2;
+      net.position.set(0, TABLE_Y + 0.12, 0);
+      g.add(net);
+      // Paddles (grouped so we can rotate the whole paddle around its handle)
+      const mkPaddle = (sideX) => {
+        const pad = new THREE.Group();
+        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.022, 14), padMat);
+        blade.rotation.x = Math.PI / 2;
+        blade.position.y = 0.06;
+        pad.add(blade);
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8), handleMat);
+        handle.position.y = -0.05;
+        pad.add(handle);
+        pad.position.set(sideX * 1.18, TABLE_Y + 0.08, 0);
+        return pad;
+      };
+      const padL = mkPaddle(-1); g.add(padL);
+      const padR = mkPaddle( 1); g.add(padR);
+      // Ball
+      const ball = new THREE.Mesh(
+        new THREE.SphereGeometry(0.03, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      ball.position.set(-0.8, TABLE_Y + 0.08, 0);
+      ball.visible = false;
+      g.add(ball);
+      // Animation state
+      g.userData.paddleL = padL;
+      g.userData.paddleR = padR;
+      g.userData.ball    = ball;
+      g.userData.bounceT = 0;
+      g.userData.toRight = true;
+    },
   },
   {
     id: 'standup',
@@ -5164,6 +5253,45 @@ function triggerRandomEvent() {
     eventSepEl.style.display = '';
     eventLabelEl.style.display = '';
     eventLabelEl.textContent = `${ev.label} ${ev.dur}s`;
+  }
+}
+
+// Ping pong animation: ball arcs between the two paddle positions and
+// whichever paddle the ball reaches swings on contact. Ball + paddle
+// movement is fully idle when no one is playing — table just sits there.
+const PP_BOUNCE_PERIOD = 0.52; // seconds per ball leg (left → right)
+function updatePingPong(dt) {
+  const am = amenities.find(a => a.id === 'pingpong' && a.isOwned);
+  if (!am || !am.group) return;
+  const ud = am.group.userData;
+  if (!ud || !ud.ball) return;
+  const playing = ideaWorkers.some(w => w.state === 'pingPonging' || w.state === 'toPingPong');
+  if (!playing) {
+    ud.ball.visible = false;
+    ud.paddleL.rotation.y = 0;
+    ud.paddleR.rotation.y = 0;
+    ud.bounceT = 0;
+    return;
+  }
+  ud.ball.visible = true;
+  ud.bounceT += dt;
+  const t = Math.min(1, ud.bounceT / PP_BOUNCE_PERIOD);
+  // Ball flies from one paddle to the other with a parabolic arc
+  const fromX = ud.toRight ? -0.95 : 0.95;
+  const toX   = ud.toRight ?  0.95 : -0.95;
+  const x = fromX + (toX - fromX) * t;
+  const baseY = 0.84;
+  const height = baseY + Math.sin(t * Math.PI) * 0.22;
+  const z = Math.sin(ud.bounceT * 2.4) * 0.08;
+  ud.ball.position.set(x, height, z);
+  // Arriving paddle swings through a windup over the full leg
+  const arriving = ud.toRight ? ud.paddleR : ud.paddleL;
+  const resting  = ud.toRight ? ud.paddleL : ud.paddleR;
+  arriving.rotation.y = Math.sin(t * Math.PI) * (ud.toRight ? -0.9 : 0.9);
+  resting.rotation.y  = 0;
+  if (t >= 1) {
+    ud.bounceT = 0;
+    ud.toRight = !ud.toRight;
   }
 }
 
@@ -5876,6 +6004,7 @@ function loop(now) {
   currentFloorInst.update(dt);
   updateRushHour(dt);
   updateEvents(dt);
+  updatePingPong(dt);
   updateMetricsHUD();
   updateLabels();
 
