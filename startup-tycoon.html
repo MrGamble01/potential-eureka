@@ -1674,6 +1674,105 @@ function buildRoom(def) {
   meshes.decorations.push(bulb);
 }
 
+// ── Canvas-textured screens ─────────────────────────────────
+// Shared code-scroll texture for every engineer laptop + a live
+// revenue chart for the CEO monitor. Both are tiny CanvasTextures
+// redrawn on a slow interval so the office actually reads as working.
+const CODE_LINES = [
+  'function ship(f) {',
+  '  return f.v * dealMult;',
+  '}',
+  'const deal = new Deal();',
+  'deal.on("closed", handle);',
+  'import { Worker } from "./core";',
+  'if (err) throw new Err();',
+  'const rate = perSec * 60;',
+  'await api.post("/deploy");',
+  '// TODO: ship it',
+  'state.cash += amount;',
+  'checkMilestones();',
+  '+ git commit -m "wip"',
+  'npm run build && deploy',
+  'Array.from({length: n})',
+  'if (user.premium) apply();',
+  'const mult = v * ent * 2;',
+  '  return Promise.all(p);',
+];
+const codeCanvas = document.createElement('canvas');
+codeCanvas.width = 128; codeCanvas.height = 72;
+const codeCtx = codeCanvas.getContext('2d');
+const codeTexture = new THREE.CanvasTexture(codeCanvas);
+codeTexture.minFilter = THREE.LinearFilter;
+codeTexture.magFilter = THREE.NearestFilter;
+let _codeOffset = 0;
+function drawCodeFrame() {
+  codeCtx.fillStyle = '#0b1220';
+  codeCtx.fillRect(0, 0, 128, 72);
+  codeCtx.font = 'bold 8px ui-monospace, Menlo, monospace';
+  for (let i = 0; i < 8; i++) {
+    const idx = (_codeOffset + i) % CODE_LINES.length;
+    // Newest line bright; older lines dim toward the bottom
+    const shades = ['#3FB950', '#36a048', '#2a8038', '#216029', '#18481e', '#103015', '#08200d', '#051408'];
+    codeCtx.fillStyle = shades[i] || '#051408';
+    codeCtx.fillText(CODE_LINES[idx], 3, 10 + i * 8);
+  }
+  codeTexture.needsUpdate = true;
+}
+drawCodeFrame();
+setInterval(() => { _codeOffset = (_codeOffset + 1) % CODE_LINES.length; drawCodeFrame(); }, 280);
+const engScreenMat = new THREE.MeshBasicMaterial({ map: codeTexture });
+
+// CEO revenue-chart texture
+const revenueCanvas = document.createElement('canvas');
+revenueCanvas.width = 220; revenueCanvas.height = 140;
+const revenueCtx = revenueCanvas.getContext('2d');
+const revenueTexture = new THREE.CanvasTexture(revenueCanvas);
+revenueTexture.minFilter = THREE.LinearFilter;
+const _revSamples = [];
+const REV_SAMPLES_MAX = 40;
+function drawRevenueChart() {
+  const ctx = revenueCtx;
+  ctx.fillStyle = '#0a1220';
+  ctx.fillRect(0, 0, 220, 140);
+  // Grid
+  ctx.strokeStyle = 'rgba(63,185,80,0.14)'; ctx.lineWidth = 1;
+  for (let y = 24; y < 140; y += 22) {
+    ctx.beginPath(); ctx.moveTo(6, y); ctx.lineTo(214, y); ctx.stroke();
+  }
+  // Header strip
+  ctx.fillStyle = '#3FB950';
+  ctx.font = 'bold 11px ui-monospace, Menlo, monospace';
+  const rev = (typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
+  ctx.fillText('REVENUE  $' + (typeof fmtCash === 'function' ? fmtCash(rev) : rev), 8, 15);
+  // Line chart
+  if (_revSamples.length >= 2) {
+    const max = Math.max(..._revSamples, 1);
+    const step = 200 / Math.max(1, _revSamples.length - 1);
+    ctx.strokeStyle = '#3FB950'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < _revSamples.length; i++) {
+      const x = 10 + i * step;
+      const y = 132 - (_revSamples[i] / max) * 100;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    // Soft fill under the line
+    ctx.lineTo(10 + (_revSamples.length - 1) * step, 132);
+    ctx.lineTo(10, 132);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(63,185,80,0.18)';
+    ctx.fill();
+  }
+  revenueTexture.needsUpdate = true;
+}
+drawRevenueChart();
+setInterval(() => {
+  _revSamples.push(typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
+  if (_revSamples.length > REV_SAMPLES_MAX) _revSamples.shift();
+  drawRevenueChart();
+}, 1000);
+const ceoMonitorMat = new THREE.MeshBasicMaterial({ map: revenueTexture });
+
 // CEO desk delivery position (front of desk, inside starter room)
 const ceoDeskPos = new THREE.Vector3(0, 0, 1);
 
@@ -1697,7 +1796,10 @@ const ceoMonitorBase = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.35), new 
 ceoMonitorBase.position.set(0, 1.08, 2.8); scene.add(ceoMonitorBase);
 const ceoMonitorScreen = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.75,0.06), new THREE.MeshLambertMaterial({color:0x111122}));
 ceoMonitorScreen.position.set(0, 1.58, 2.8); ceoMonitorScreen.castShadow = true; scene.add(ceoMonitorScreen);
-const ceoMonitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.65), new THREE.MeshBasicMaterial({color:0x2979ff}));
+// CEO monitor glow → live revenue chart (CanvasTexture). The color
+// tint is left as-is so the existing "blue at rest / green when
+// working" state toggles still produce a visual signal.
+const ceoMonitorGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.65), ceoMonitorMat);
 ceoMonitorGlow.position.set(0, 1.58, 2.77); scene.add(ceoMonitorGlow);
 // CEO chair
 const ceoChairMat = new THREE.MeshLambertMaterial({ color: 0x1a1a2e });
@@ -2706,9 +2808,11 @@ function createPlot(def) {
     new THREE.MeshLambertMaterial({ color: 0x1a1a1e })
   );
   laptopLid.position.set(0.7, 1.33, -0.22); laptopLid.rotation.x = -0.15; laptopLid.castShadow = true; g.add(laptopLid);
+  // Engineer laptop → shared scrolling-code CanvasTexture so every
+  // desk reads as "actually writing code" instead of a blue slab.
   const laptopScreen = new THREE.Mesh(
     new THREE.PlaneGeometry(0.62, 0.36),
-    new THREE.MeshBasicMaterial({ color: 0x3a6acc })
+    engScreenMat
   );
   laptopScreen.position.set(0.7, 1.33, -0.205); laptopScreen.rotation.x = -0.15 + Math.PI; g.add(laptopScreen);
   // A coffee mug on the desk for atmosphere
@@ -2913,6 +3017,19 @@ function updateIdeaWorkers(dt) {
     if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'toVP' || w.state === 'toSupply' || w.state === 'returning') {
       if (!w.target) { w.state = 'atDesk'; continue; }
       const spd = IW_SPEED * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? 1.5 : 1.0);
+      // Sway the carried paper stack in sync with the walk so it feels
+      // like they're actually hauling it, not teleporting.
+      const sheets = w.carryMesh && w.carryMesh.userData.sheets;
+      if (sheets && sheets.some(s => s.visible)) {
+        const ph = w.group.userData.walkPhase || 0;
+        w.carryMesh.rotation.z = Math.sin(ph * 2) * 0.09;
+        w.carryMesh.rotation.x = Math.sin(ph * 3) * 0.05;
+        w.carryMesh.position.y = 1.15 + Math.abs(Math.sin(ph * 2.5)) * 0.04;
+      } else if (w.carryMesh) {
+        w.carryMesh.rotation.z = 0;
+        w.carryMesh.rotation.x = 0;
+        w.carryMesh.position.y = 1.15;
+      }
       if (!stepToward(w.group, w.target, spd, dt, 0.25)) continue;
       // Arrived
       if (w.state === 'toCoffee') {
@@ -4397,6 +4514,22 @@ const AMENITY_DEFS = [
       );
       spout.position.set(0, 0.75, 0.4);
       g.add(spout);
+      // Steam puffs: 4 staggered white spheres that rise + fade while
+      // someone is pulling a shot. Hidden at rest. The espresso LED
+      // also pulses bright when in use. Refs stashed on userData for
+      // the updateCoffeeSteam loop to drive.
+      const steamParticles = [];
+      for (let i = 0; i < 4; i++) {
+        const puff = new THREE.Mesh(
+          new THREE.SphereGeometry(0.09, 8, 6),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
+        );
+        puff.position.set((Math.random() - 0.5) * 0.08, 0.95, 0.48);
+        g.add(puff);
+        steamParticles.push({ mesh: puff, phase: i * 0.45 });
+      }
+      g.userData.steamParticles = steamParticles;
+      g.userData.btnMesh = btn;
     },
   },
   {
@@ -5256,6 +5389,34 @@ function triggerRandomEvent() {
   }
 }
 
+// Coffee machine steam puffs: 4 small white spheres rise + fade
+// while any engineer is pulling a shot. The red LED button pulses
+// bright too. Fully idle when no one's getting coffee.
+function updateCoffeeSteam(dt) {
+  const am = amenities.find(a => a.id === 'coffee' && a.isOwned);
+  if (!am || !am.group) return;
+  const ud = am.group.userData;
+  const parts = ud.steamParticles;
+  if (!parts) return;
+  const active = ideaWorkers.some(w => w.state === 'gettingCoffee');
+  for (const p of parts) {
+    if (active) {
+      p.phase += dt;
+      const t = (p.phase % 1.4) / 1.4; // 1.4s cycle per puff
+      p.mesh.position.y = 0.95 + t * 0.95;
+      p.mesh.position.x = Math.sin(p.phase * 2.2) * 0.08;
+      p.mesh.material.opacity = Math.sin(t * Math.PI) * 0.55;
+      p.mesh.scale.setScalar(0.6 + t * 1.6);
+    } else {
+      p.mesh.material.opacity = 0;
+    }
+  }
+  // Pulsing LED button when pouring
+  if (ud.btnMesh) {
+    ud.btnMesh.material.emissiveIntensity = active ? 0.55 + Math.sin(Date.now() * 0.01) * 0.4 : 0.55;
+  }
+}
+
 // Ping pong animation: ball arcs between the two paddle positions and
 // whichever paddle the ball reaches swings on contact. Ball + paddle
 // movement is fully idle when no one is playing — table just sits there.
@@ -6005,6 +6166,7 @@ function loop(now) {
   updateRushHour(dt);
   updateEvents(dt);
   updatePingPong(dt);
+  updateCoffeeSteam(dt);
   updateMetricsHUD();
   updateLabels();
 
