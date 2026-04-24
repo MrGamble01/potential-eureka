@@ -1765,7 +1765,11 @@ function drawRevenueChart() {
   }
   revenueTexture.needsUpdate = true;
 }
-drawRevenueChart();
+// NOTE: first draw is deferred to the next event-loop tick because
+// the function reads seasonRecurringRevenue + fmtCash, which are
+// declared further down the module and are in their TDZ during
+// top-level evaluation. The setInterval below keeps refreshing.
+setTimeout(drawRevenueChart, 0);
 setInterval(() => {
   _revSamples.push(typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
   if (_revSamples.length > REV_SAMPLES_MAX) _revSamples.shift();
@@ -1845,7 +1849,8 @@ function drawWhiteboard() {
   ctx.fillText('· IPO when ready', 130, 144);
   wbTexture.needsUpdate = true;
 }
-drawWhiteboard();
+// Deferred first draw — same TDZ reason as drawRevenueChart above.
+setTimeout(drawWhiteboard, 0);
 setInterval(drawWhiteboard, 1000);
 const wbMat = new THREE.MeshLambertMaterial({ map: wbTexture });
 
