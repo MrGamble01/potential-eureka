@@ -2004,6 +2004,65 @@ function addCash(n) {
   checkIPOAvailable();
 }
 
+
+// ── Theme Text / Narrative Registry ─────────────────────────
+const THEME_TEXT={
+  default:{
+    funding:'💼 Funding',team:'Team',amenities:'Amenities',
+    feedTitle:'📡 Live Feed',
+    metrics:['ARR','Users','Shipped','Team/s','Version'],
+    hireEngineer:'👩‍💻 Hire Engineer',hireOps:'🏢 Hire Ops',
+    standup:'📢 Daily Standup',allHands:'🎤 All Hands!',
+    hireLockNote:'🔒 Earn $500 total to expand your team',
+    upgCats:{ideation:'💡 Ideation',engineering:'⚙️ Engineering',automation:'🤖 Automation',revenue:'📈 Revenue'},
+    upgrades:{growth:'💡 Faster Ideation',farmexp:'🌱 Expand Farm',speed:'🏃 Hustle Mode',capacity:'🎒 Bigger Backpack',dev:'⚡ Dev Sprint',slot:'🖥️ 2nd Workstation',bot:'🤖 Hire Jr. Dev',aicopilot:'🧠 AI Copilot',cdnspeed:'🌍 Global CDN',marketing:'📢 Growth Hacking',pricing:'💸 Premium Tier',enterprise:'🏢 Enterprise Tier'},
+    floors:{office:'Office — Floor 1',cafe:'Café',gym:'Gym',rooftop:'Rooftop'},
+  },
+  homeless:{
+    funding:'🥫 Supply Run',team:'The Crew',amenities:'Camp Gear',
+    feedTitle:'📻 Bridge Chatter',
+    metrics:['Cans/day','Fed Today','Goods Made','Crew/s','Shelter'],
+    hireEngineer:'🧔 Recruit Neighbor',hireOps:'🏚️ Hire Hauler',
+    standup:'🗣️ Morning Meetup',allHands:'📣 Rally Everyone!',
+    hireLockNote:'🔒 Need $500 in supplies to recruit more neighbors',
+    upgCats:{ideation:'🔍 Scavenging',engineering:'🔨 Building',automation:'🤝 Community',revenue:'♟️ Trading'},
+    upgrades:{growth:'🔍 Sharper Eyes',farmexp:'🏕️ Expand Camp',speed:'🏃 Faster Legs',capacity:'🛒 Better Cart',dev:'🔧 Skilled Hands',slot:'🔨 Second Workbench',bot:'👶 Extra Hands',aicopilot:'🐕 Scout Dog',cdnspeed:'📻 Word Spreads',marketing:'📣 Community Outreach',pricing:'♟️ Better Trades',enterprise:'🤝 Settlement Pact'},
+    floors:{office:'The Bridge',cafe:'Tent City',gym:'Soup Kitchen',rooftop:'Community Garden'},
+  },
+  wizard:{
+    funding:'🪄 Patronage',team:'Wizards',amenities:'Artifacts',
+    feedTitle:'📜 Castle Whispers',
+    metrics:['Gold/yr','Disciples','Spells Cast','Arcane/s','Grimoire'],
+    hireEngineer:'🧙 Recruit Apprentice',hireOps:'⚗️ Hire Alchemist',
+    standup:'🔮 Morning Prophecy',allHands:'✨ Grand Summoning!',
+    hireLockNote:'🔒 Gain 500 gold to summon more apprentices',
+    upgCats:{ideation:'🌀 Conjuring',engineering:'🪄 Enchanting',automation:'👤 Familiars',revenue:'⚗️ Alchemy'},
+    upgrades:{growth:'🌀 Faster Conjuring',farmexp:'🌙 Expand the Ether',speed:'💨 Quickening Spell',capacity:'🎒 Enchanted Satchel',dev:'⚡ Spell Acceleration',slot:'🪄 2nd Enchanting Table',bot:'👤 Summon Familiar',aicopilot:'🧿 Crystal Ball',cdnspeed:'🌐 Ley Line Network',marketing:'🔮 Prophetic Marketing',pricing:'💎 Rare Artifact Tier',enterprise:'👑 Royal Patronage'},
+    floors:{office:'Tower — Level 1',cafe:'Potion Lab',gym:'Arena',rooftop:'Battlements'},
+  },
+  druglab:{
+    funding:'💊 Cartel Fund',team:'The Crew',amenities:'Lab Gear',
+    feedTitle:'📡 Scanner Traffic',
+    metrics:['Product/day','Street Buyers','Batches','Crew/s','Formula'],
+    hireEngineer:'🥽 Recruit Cook',hireOps:'🚗 Hire Runner',
+    standup:'🧪 Shift Briefing',allHands:'⚗️ Cook Off!',
+    hireLockNote:'🔒 Need $500 to expand the operation',
+    upgCats:{ideation:'⚗️ Chemistry',engineering:'🔬 Production',automation:'📡 Automation',revenue:'🌍 Distribution'},
+    upgrades:{growth:'⚗️ Purer Formula',farmexp:'🧪 More Glassware',speed:'💊 Stimulants',capacity:'🎒 Bigger Stash',dev:'🔥 Faster Cook',slot:'🔬 2nd Lab Table',bot:'👤 Hire Chemist',aicopilot:'📡 Lookout System',cdnspeed:'🌍 Distribution Network',marketing:'📣 Street Presence',pricing:'💎 Premium Batch',enterprise:'🏢 Cartel Contract'},
+    floors:{office:'The Lab',cafe:'Grow Room',gym:'Stash House',rooftop:'Money Laundering Front'},
+  },
+  space:{
+    funding:'🛸 Mission Fund',team:'Crew',amenities:'Ship Mods',
+    feedTitle:'📡 Mission Control',
+    metrics:['Credits/yr','Colonists','Launched','Crew/s','Protocol'],
+    hireEngineer:'👨‍🚀 Recruit Astronaut',hireOps:'🔧 Hire Engineer',
+    standup:'📡 Mission Briefing',allHands:'🚀 Launch Protocol!',
+    hireLockNote:'🔒 Need 500 credits to expand the crew',
+    upgCats:{ideation:'🔭 Research',engineering:'🛠️ Engineering',automation:'🤖 AI Systems',revenue:'💫 Commerce'},
+    upgrades:{growth:'🔭 Better Research',farmexp:'🌌 Expand Array',speed:'🚀 Thruster Boost',capacity:'🎒 Cargo Bay',dev:'⚡ Code Sprint',slot:'🖥️ 2nd Terminal',bot:'🤖 Deploy Drone',aicopilot:'🧠 Neural Uplink',cdnspeed:'🛰️ Satellite Array',marketing:'📡 Signal Boost',pricing:'💫 Priority Access',enterprise:'🛸 Fleet Contract'},
+    floors:{office:'Station — Deck 1',cafe:'Hydroponics',gym:'Training Bay',rooftop:'Observation Deck'},
+  },
+};
 // --- Upgrades ---
 const UPGRADE_CATS = [
   { id:'ideation',    label:'💡 Ideation' },
@@ -2205,7 +2264,7 @@ function buyUpgrade(id) {
   state.cash -= cost;
   upgLevels[id]++;
   u.apply(upgLevels[id]);
-  addFeedEntry(`⬆️ ${u.label} → Lv${upgLevels[id]}`);
+  addFeedEntry(`⬆️ ${getTT().upgrades[u.id] || u.label} → Lv${upgLevels[id]}`);
   addCash(0);
 }
 const upgEl = document.getElementById('upgrades');
@@ -2220,7 +2279,7 @@ function renderUpgrades() {
         const catDef = UPGRADE_CATS.find(c => c.id === u.cat);
         const hdr = document.createElement('div');
         hdr.className = 'upg-cat';
-        hdr.textContent = catDef ? catDef.label : u.cat;
+        hdr.textContent = catDef ? (getTT().upgCats[catDef.id] || catDef.label) : u.cat;
         upgEl.appendChild(hdr);
       }
       const btn = document.createElement('button');
@@ -2238,7 +2297,7 @@ function renderUpgrades() {
     const maxed = lv >= u.max;
     const cost = upgCost(u);
     btn.disabled = maxed || state.cash < cost;
-    btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv}</span>${u.label}` +
+    btn.innerHTML = `<span class="lvl${maxed ? ' maxed' : ''}">${maxed ? 'MAX' : 'Lv ' + lv}</span>${getTT().upgrades[u.id] || u.label}` +
       (maxed ? '' : `<span class="cost">$${fmtCash(cost)}</span>`);
   }
 }
@@ -2470,6 +2529,7 @@ function loop(now) {
   updateMetricsHUD();
   if (standupCooldown > 0) { standupCooldown -= dt; renderOffice(); }
   updateLabels();
+  updateThemeExtras(dt);
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
@@ -2737,6 +2797,7 @@ function applyTheme(id){
   THEME_MATS.logo.color.setHex(t.three.logo);
   if(_themeAmbient)_themeAmbient.color.setHex(t.three.ambient);
   sun.color.setHex(t.three.sun);fillLight.color.setHex(t.three.fill);
+  applyThemeExtras(id);applyThemeLabels(id);
   saveThemeState();
 }
 function setTheme(id){if(!themeState.unlocked.has(id))return;applyTheme(id);renderThemeModal();}
@@ -2783,6 +2844,191 @@ document.getElementById('theme-btn').onclick=()=>{renderThemeModal();themeModalE
 document.getElementById('theme-close').onclick=()=>themeModalEl.classList.remove('open');
 themeModalEl.addEventListener('click',e=>{if(e.target===themeModalEl)themeModalEl.classList.remove('open');});
 
+function getTT(){if(typeof themeState==='undefined')return THEME_TEXT.default;return THEME_TEXT[themeState.active]||THEME_TEXT.default;}
+
+function applyButtonLabel(id,lbl){
+  const btn=document.getElementById(id);if(!btn)return;
+  const cost=btn.querySelector('.cost');
+  btn.innerHTML=lbl+(cost?cost.outerHTML:'');
+}
+function applyThemeLabels(id){
+  const tt=THEME_TEXT[id]||THEME_TEXT.default;
+  const fp=document.querySelector('#funding-panel .panel-title');if(fp)fp.textContent=tt.funding;
+  const op=document.querySelector('#office-panel .panel-title');if(op)op.textContent=tt.team;
+  const ap=document.querySelector('#amenities-panel .panel-title');if(ap)ap.textContent=tt.amenities;
+  const mlbls=[...document.querySelectorAll('.m-lbl')];
+  mlbls.forEach((el,i)=>{if(i<tt.metrics.length)el.textContent=tt.metrics[i];});
+  applyButtonLabel('hire-btn',tt.hireEngineer);
+  applyButtonLabel('standup-btn',tt.standup);
+  applyButtonLabel('allhands-btn',tt.allHands);
+  applyButtonLabel('hire-worker-btn',tt.hireOps);
+  const ft=document.querySelector('.feed-title');if(ft)ft.textContent=tt.feedTitle;
+  const hl=document.getElementById('hire-lock-note');if(hl)hl.textContent=tt.hireLockNote;
+  for(const fid of['office','cafe','gym','rooftop']){const f=FLOORS.find(x=>x.id===fid);if(f&&tt.floors[fid])f.name=tt.floors[fid];}
+  if(upgEl){upgEl.innerHTML='';renderUpgrades();}
+}
+
+// ── Theme 3D Extras ───────────────────────────────────────────
+let _themeExtras=null;
+function _clearThemeExtras(){
+  if(!_themeExtras)return;
+  scene.remove(_themeExtras);
+  _themeExtras.traverse(o=>{
+    if(o.geometry)o.geometry.dispose();
+    if(o.material&&!Array.isArray(o.material))o.material.dispose();
+  });
+  _themeExtras=null;
+}
+function _buildSpaceExtras(){
+  const pos=[];
+  for(let i=0;i<700;i++) pos.push((Math.random()-.5)*160,3+Math.random()*60,(Math.random()-.5)*160);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  const s=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.25,sizeAttenuation:true}));
+  s._kind='space';return s;
+}
+function _buildWizardExtras(){
+  const grp=new THREE.Group();grp._kind='wizard';grp._candles=[];
+  for(const[x,y,z]of[[3,2.8,7],[8,3.2,12],[14,2.6,5],[-2,3.0,14],[11,2.9,9]]){
+    const flame=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,8),
+      new THREE.MeshLambertMaterial({color:0xffdd00,emissive:0xffaa00,emissiveIntensity:1.3}));
+    flame.position.set(x,y,z);grp.add(flame);
+    const light=new THREE.PointLight(0xaa44ff,0.75,10);light.position.set(x,y,z);grp.add(light);
+    grp._candles.push({flame,light,baseY:y,t:Math.random()*Math.PI*2});
+  }
+  return grp;
+}
+function _buildDrugLabExtras(){
+  const grp=new THREE.Group();grp._kind='druglab';grp._t=0;
+  // Hazmat warning signs
+  for(const[x,y,z]of[[2,3.6,4],[9,3.8,8],[15,3.5,5],[5,3.7,14]]){
+    const back=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.0,0.06),
+      new THREE.MeshLambertMaterial({color:0x111100}));
+    back.position.set(x,y,z-0.06);grp.add(back);
+    const sign=new THREE.Mesh(new THREE.BoxGeometry(0.82,0.82,0.1),
+      new THREE.MeshLambertMaterial({color:0xeab308,emissive:0xeab308,emissiveIntensity:0.55}));
+    sign.position.set(x,y,z);sign._baseY=y;grp.add(sign);
+  }
+  // Green lab lights overhead (the tense cook-station atmosphere)
+  const gLight1=new THREE.PointLight(0x44ff66,0.6,14);gLight1.position.set(4,5,6);grp.add(gLight1);
+  const gLight2=new THREE.PointLight(0x22cc44,0.5,12);gLight2.position.set(12,5,10);grp.add(gLight2);
+  grp._greenLights=[gLight1,gLight2];
+  // Steam/smoke particles rising from cook stations
+  const steamPos=[];
+  for(let i=0;i<80;i++) steamPos.push(
+    4+(Math.random()-.5)*3, 1+Math.random()*4, 6+(Math.random()-.5)*3
+  );
+  const sg=new THREE.BufferGeometry();
+  sg.setAttribute('position',new THREE.Float32BufferAttribute(steamPos,3));
+  grp._steamGeo=sg;
+  grp._steamPosArray=new Float32Array(steamPos);
+  grp._steamVel=[];
+  for(let i=0;i<80;i++) grp._steamVel.push(
+    (Math.random()-.5)*0.3,(0.4+Math.random()*0.6),(Math.random()-.5)*0.3
+  );
+  grp._steam=new THREE.Points(sg,new THREE.PointsMaterial({color:0xccffdd,size:0.2,sizeAttenuation:true,transparent:true,opacity:0.45}));
+  grp.add(grp._steam);
+  return grp;
+}
+function _buildHomelessExtras(){
+  const grp=new THREE.Group();grp._kind='homeless';grp._t=0;
+  grp._barrelFires=[];
+  // Bridge overhead structure — big dark concrete slab
+  const bridge=new THREE.Mesh(
+    new THREE.BoxGeometry(60,1.2,18),
+    new THREE.MeshLambertMaterial({color:0x555560}));
+  bridge.position.set(8,14,18);grp.add(bridge);
+  // Bridge support pillars
+  for(const x of[-10,6,22]){
+    const pillar=new THREE.Mesh(new THREE.BoxGeometry(1.4,15,1.4),
+      new THREE.MeshLambertMaterial({color:0x666672}));
+    pillar.position.set(x,7,18);grp.add(pillar);
+  }
+  // Multiple barrel fires
+  for(const[x,z,col] of[[-2,22,0xff6600],[-10,24,0xff5500],[4,23,0xff7700],[-6,19,0xff4400]]){
+    const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.5,1.0,8),
+      new THREE.MeshLambertMaterial({color:0x444444}));
+    barrel.position.set(x,0.5,z);grp.add(barrel);
+    const fire=new THREE.Mesh(new THREE.ConeGeometry(0.38,1.2,6),
+      new THREE.MeshLambertMaterial({color:col,emissive:col,emissiveIntensity:1.1}));
+    fire.position.set(x,1.4,z);grp.add(fire);
+    const fl=new THREE.PointLight(0xff7700,1.2,12);
+    fl.position.set(x,2.2,z);grp.add(fl);
+    grp._barrelFires.push({fire,light:fl,t:Math.random()*Math.PI*2});
+  }
+  // Cardboard / tent shelters
+  const tent1=new THREE.Mesh(new THREE.ConeGeometry(2.8,3.2,4),
+    new THREE.MeshLambertMaterial({color:0x7a4a1a}));
+  tent1.rotation.y=Math.PI/4;tent1.position.set(-10,1.6,22);grp.add(tent1);
+  const tent2=new THREE.Mesh(new THREE.ConeGeometry(2.0,2.6,4),
+    new THREE.MeshLambertMaterial({color:0x5a3a10}));
+  tent2.rotation.y=Math.PI/6;tent2.position.set(4,1.3,24);grp.add(tent2);
+  const tent3=new THREE.Mesh(new THREE.ConeGeometry(1.6,2.0,4),
+    new THREE.MeshLambertMaterial({color:0x6a4520}));
+  tent3.rotation.y=Math.PI/3;tent3.position.set(-4,1.0,26);grp.add(tent3);
+  // Stacked crates / supply boxes
+  for(const[x,y,z]of[[8,0.4,20],[9,1.2,20],[8,0.4,21.2]]){
+    const box=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.8,0.9),
+      new THREE.MeshLambertMaterial({color:0x8b6914}));
+    box.position.set(x,y,z);grp.add(box);
+  }
+  return grp;
+}
+function applyThemeExtras(id){
+  _clearThemeExtras();
+  if(id==='space') _themeExtras=_buildSpaceExtras();
+  else if(id==='wizard') _themeExtras=_buildWizardExtras();
+  else if(id==='druglab') _themeExtras=_buildDrugLabExtras();
+  else if(id==='homeless') _themeExtras=_buildHomelessExtras();
+  if(_themeExtras)scene.add(_themeExtras);
+}
+function updateThemeExtras(dt){
+  if(!_themeExtras)return;
+  const kind=_themeExtras._kind;
+  if(kind==='space'){
+    _themeExtras.rotation.y+=dt*0.005;
+  }else if(kind==='wizard'){
+    for(const c of _themeExtras._candles){
+      c.t+=dt*1.8;
+      const y=c.baseY+Math.sin(c.t)*0.38;
+      c.flame.position.y=y;c.light.position.y=y;
+      c.light.intensity=0.5+Math.sin(c.t*2.1)*0.28;
+    }
+  }else if(kind==='druglab'){
+    _themeExtras._t+=dt;
+    const t=_themeExtras._t;
+    // Float hazmat signs
+    for(const o of _themeExtras.children){
+      if(o._baseY!==undefined) o.position.y=o._baseY+Math.sin(t*0.7+o.position.x*0.3)*0.2;
+    }
+    // Flicker green lights
+    if(_themeExtras._greenLights){
+      _themeExtras._greenLights[0].intensity=0.5+Math.sin(t*3.1)*0.15;
+      _themeExtras._greenLights[1].intensity=0.4+Math.sin(t*2.7+1)*0.15;
+    }
+    // Animate steam rising and looping
+    if(_themeExtras._steamGeo&&_themeExtras._steamPosArray&&_themeExtras._steamVel){
+      const pos=_themeExtras._steamPosArray;
+      const vel=_themeExtras._steamVel;
+      for(let i=0;i<80;i++){
+        pos[i*3]  +=vel[i*3]*dt;
+        pos[i*3+1]+=vel[i*3+1]*dt;
+        pos[i*3+2]+=vel[i*3+2]*dt;
+        if(pos[i*3+1]>5.5){pos[i*3]=4+(Math.random()-.5)*3;pos[i*3+1]=1;pos[i*3+2]=6+(Math.random()-.5)*3;}
+      }
+      _themeExtras._steamGeo.attributes.position.array.set(pos);
+      _themeExtras._steamGeo.attributes.position.needsUpdate=true;
+    }
+  }else if(kind==='homeless'){
+    _themeExtras._t+=dt;
+    for(const b of _themeExtras._barrelFires){
+      b.t+=dt*(5+Math.random()*3);
+      b.fire.scale.y=1+Math.sin(b.t)*0.25;
+      b.fire.scale.x=1+Math.sin(b.t*0.7+1)*0.15;
+      b.light.intensity=1.0+Math.sin(b.t*0.9)*0.5;
+    }
+  }
+}
 loadGame();
 loadThemeState();
 addCash(25);
