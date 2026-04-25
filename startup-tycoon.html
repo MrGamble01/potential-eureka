@@ -758,7 +758,7 @@ function updateSupplyCloset(dt) {
   if (supplyCloset.stock < supplyCloset.maxStock) {
     supplyCloset.regenT += dt;
     if (supplyCloset.regenT >= supplyCloset.REGEN_RATE) {
-      supplyCloset.regenT = 0;
+      supplyCloset.regenT -= supplyCloset.REGEN_RATE; // preserve remainder, don't reset to 0
       supplyCloset.stock = Math.min(supplyCloset.maxStock, supplyCloset.stock + 1);
     }
   }
@@ -1743,6 +1743,8 @@ function doAllHands() {
   addFeedEntry('🎤 All Hands — 5× surge mode activated!');
 }
 
+let _lastAllHandsText = '';
+let _lastAllHandsDisabled = null;
 function updateAllHands(dt) {
   if (allHandsCooldown > 0) allHandsCooldown -= dt;
   if (allHandsActive) {
@@ -1754,14 +1756,20 @@ function updateAllHands(dt) {
       showToast('All Hands over — back to normal velocity.', '');
     }
   }
-  // Update button label
-  allhandsBtnEl.disabled = allHandsCooldown > 0 || employees.length === 0;
-  if (allHandsActive) {
-    allhandsCostEl.textContent = `${Math.ceil(ALL_HANDS_DUR - allHandsT)}s 🔥`;
-  } else if (allHandsCooldown > 0) {
-    allhandsCostEl.textContent = `${Math.ceil(allHandsCooldown)}s`;
-  } else {
-    allhandsCostEl.textContent = employees.length === 0 ? 'Need team' : '5× SURGE';
+  // Only write DOM when displayed value changes (avoids layout thrash every frame)
+  const disabled = allHandsCooldown > 0 || employees.length === 0;
+  const text = allHandsActive
+    ? `${Math.ceil(ALL_HANDS_DUR - allHandsT)}s 🔥`
+    : allHandsCooldown > 0
+      ? `${Math.ceil(allHandsCooldown)}s`
+      : employees.length === 0 ? 'Need team' : '5× SURGE';
+  if (disabled !== _lastAllHandsDisabled) {
+    allhandsBtnEl.disabled = disabled;
+    _lastAllHandsDisabled = disabled;
+  }
+  if (text !== _lastAllHandsText) {
+    allhandsCostEl.textContent = text;
+    _lastAllHandsText = text;
   }
 }
 
@@ -1939,6 +1947,17 @@ function checkMilestones() {
   }
 }
 
+// Deferred UI re-render flag — set by addCash/state mutations, flushed once per frame.
+let uiDirty = false;
+function flushUI() {
+  if (!uiDirty) return;
+  uiDirty = false;
+  renderUpgrades();
+  renderOffice();
+  renderAmenities();
+  renderFunding();
+}
+
 function addCash(n) {
   state.cash += n;
   if (n > 0) {
@@ -1947,10 +1966,7 @@ function addCash(n) {
     checkMilestones();
   }
   cashValEl.textContent = Math.floor(state.cash).toString();
-  renderUpgrades();
-  renderOffice();
-  renderAmenities();
-  renderFunding();
+  uiDirty = true;
   checkIPOAvailable();
 }
 
@@ -2381,6 +2397,8 @@ function updateLabels() {
 // --- Loop ---
 const HALF = 28;
 let last = performance.now();
+let metricsT = 0;           // throttle metrics HUD updates
+const METRICS_INTERVAL = 0.25;
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
@@ -2417,8 +2435,16 @@ function loop(now) {
   updateRushHour(dt);
   updateEvents(dt);
   updateAllHands(dt);
-  updateMetricsHUD();
-  if (standupCooldown > 0) { standupCooldown -= dt; renderOffice(); }
+  metricsT += dt;
+  if (metricsT >= METRICS_INTERVAL) { metricsT = 0; updateMetricsHUD(); }
+  if (standupCooldown > 0) {
+    standupCooldown -= dt;
+    // Update just the standup button inline — avoids full renderOffice() every frame
+    standupBtn.disabled = standupCooldown > 0;
+    standupCostEl.textContent = standupCooldown > 0 ? `${Math.ceil(standupCooldown)}s` : 'FREE';
+    uiDirty = true;
+  }
+  flushUI();
   updateLabels();
 
   renderer.render(scene, camera);
@@ -2462,12 +2488,17 @@ function doIPO() {
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
   allHandsMult = 1; allHandsActive = false; allHandsCooldown = 0; allHandsT = 0;
   if (allhandsBtnEl) allhandsBtnEl.classList.remove('surge');
+  _lastAllHandsText = ''; _lastAllHandsDisabled = null; // force button re-render next frame
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
   playerSpeed = 6; plotGrowTime = 5; maxStack = 10;
   customerSpawnInterval = 2.5; featurePrice = 5;
   for (const u of UPGRADES) upgLevels[u.id] = 0;
+
+  // Clear player carry state to avoid visual artifacts after reset
+  carry.kind = null; carry.count = 0;
+  refreshStack();
 
   // Remove employees
   for (const e of employees) scene.remove(e.group);
@@ -2487,6 +2518,14 @@ function doIPO() {
     if (a.isOwned && a.group) { scene.remove(a.group); a.group = null; }
     a.isOwned = false; a.stock = 0;
   }
+
+  // Reset dev station queues and remove any 2nd workstation purchased this season
+  for (const d of devs) {
+    d.queue = 0; d.output = 0; d.procT = 0; d.PROC_TIME = 2.5;
+    for (const m of d.queueMeshes) m.visible = false;
+    for (const m of d.outputMeshes) m.visible = false;
+  }
+  while (devs.length > 1) { scene.remove(devs[devs.length - 1].group); devs.pop(); }
 
   // Reset shelf + plots
   shelfState.stock = 0; refreshShelf();
@@ -2541,7 +2580,6 @@ function saveGame() {
       unlocked,
       employees: employees.length,
       workers: workers.length,
-      bots: productionBots.length,
       fundingRoundIdx,
       totalUsers,
       totalFeaturesShipped,
@@ -2550,7 +2588,11 @@ function saveGame() {
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
       savedAt: Date.now(),
     }));
-  } catch {}
+  } catch (e) {
+    if (e && e.name === 'QuotaExceededError') {
+      console.warn('Startup Tycoon: save failed — localStorage quota exceeded');
+    }
+  }
 }
 function loadGame() {
   try {
@@ -2592,6 +2634,12 @@ function loadGame() {
       seasonBadge.style.display = '';
       seasonBadge.textContent   = `S${prestigeLevel + 1}`;
     }
+    // Fast-forward milestone pointer FIRST so desk slots are available before hiring
+    while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
+      const ms = MILESTONES[nextMilestoneIdx];
+      if (ms.desks > 0) unlockMoreDesks(ms.desks);
+      nextMilestoneIdx++;
+    }
     // Re-hire employees silently (free on load). Temporarily zero out cash
     // checks because these were already paid for in a previous session.
     if (p.employees) {
@@ -2614,12 +2662,6 @@ function loadGame() {
       const orig = state.cash; state.cash = 1e12;
       for (let i = 0; i < p.workers && workers.length < MAX_WORKERS; i++) hireWorker();
       state.cash = orig;
-    }
-    // Fast-forward milestone pointer (also unlock desks for milestones already passed)
-    while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
-      const ms = MILESTONES[nextMilestoneIdx];
-      if (ms.desks > 0) unlockMoreDesks(ms.desks);
-      nextMilestoneIdx++;
     }
     if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
