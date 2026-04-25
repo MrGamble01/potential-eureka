@@ -3,422 +3,1050 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POTENTIAL EUREKA</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>Potential Eureka — Game Hub</title>
+  <style>
+    :root {
+      --bg:          #09090f;
+      --bg-card:     #10101a;
+      --bg-card-2:   #141422;
+      --border:      #1e1e32;
+      --text:        #eeeef8;
+      --text-dim:    #6868a0;
+      --text-muted:  #2c2c48;
+      --indigo:      #6366f1;
+      --cyan:        #22d3ee;
+      --violet:      #a78bfa;
+      --green:       #4ade80;
+      --pink:        #ec4899;
+      --orange:      #fb923c;
+      --yellow:      #fbbf24;
+      --red:         #f87171;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--indigo); border-radius: 3px; }
+
+    /* ── NAV ─────────────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.9rem 2rem;
+      background: rgba(9,9,15,0.75);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s;
+    }
+    nav.scrolled { background: rgba(9,9,15,0.96); }
+    .nav-logo {
+      font-size: 1rem; font-weight: 800; letter-spacing: 0.06em;
+      background: linear-gradient(100deg, var(--indigo), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; text-decoration: none; margin-right: auto;
+    }
+    .nav-links { display: flex; gap: 0.25rem; list-style: none; }
+    .nav-links a {
+      color: var(--text-dim); text-decoration: none;
+      font-size: 0.8rem; padding: 0.35rem 0.75rem;
+      border-radius: 6px; transition: color 0.2s, background 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    /* ── HERO ────────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 9rem 2rem 5rem;
+      position: relative; overflow: hidden;
+    }
+    /* Grid lines */
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 80%);
+    }
+    /* Center glow */
+    .hero-glow {
+      position: absolute;
+      top: 40%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(99,102,241,0.14) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--cyan); margin-bottom: 1.5rem;
+      position: relative; z-index: 1;
+      animation: fadeUp 0.7s ease both;
+    }
+    .hero-title {
+      font-size: clamp(3rem, 9vw, 6.5rem);
+      font-weight: 900; line-height: 1.02; letter-spacing: -0.035em;
+      margin-bottom: 1.5rem; position: relative; z-index: 1;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+    .hero-title .line1 { display: block; color: var(--text); }
+    .hero-title .line2 {
+      display: block;
+      background: linear-gradient(120deg, var(--indigo) 10%, var(--cyan) 90%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(0.95rem, 2.2vw, 1.2rem);
+      color: var(--text-dim); max-width: 500px;
+      line-height: 1.65; margin-bottom: 2.5rem;
+      position: relative; z-index: 1;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+    .hero-btns {
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+      justify-content: center;
+      position: relative; z-index: 1;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.7rem 1.75rem; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 700;
+      text-decoration: none; cursor: pointer; border: none;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--indigo), var(--cyan));
+      color: #fff;
+      box-shadow: 0 4px 22px rgba(99,102,241,0.4);
+    }
+    .btn-primary:hover { box-shadow: 0 8px 32px rgba(99,102,241,0.55); }
+    .btn-ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.04); border-color: var(--indigo); }
+    .hero-stats {
+      display: flex; gap: 3rem; margin-top: 3.5rem;
+      position: relative; z-index: 1;
+      animation: fadeUp 0.7s 0.4s ease both;
+    }
+    .hero-stat-num {
+      font-size: 2rem; font-weight: 900; line-height: 1;
+      background: linear-gradient(135deg, var(--indigo), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-stat-label {
+      font-size: 0.68rem; color: var(--text-dim);
+      letter-spacing: 0.15em; text-transform: uppercase;
+      margin-top: 0.3rem;
+    }
+    .scroll-cue {
+      position: absolute; bottom: 2rem; left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+      color: var(--text-muted); font-size: 0.65rem; letter-spacing: 0.15em;
+      animation: cueFloat 2.5s ease-in-out infinite;
+    }
+    .scroll-cue-arrow {
+      width: 16px; height: 16px;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: rotate(45deg); opacity: 0.5;
+    }
+    @keyframes cueFloat {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(7px); }
+    }
+
+    /* ── FEATURE STRIP ───────────────────────────────────────────── */
+    .strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: rgba(99,102,241,0.025);
+      padding: 2.5rem 2rem;
+    }
+    .strip-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.5rem; text-align: center;
+    }
+    .strip-item { opacity: 0; transform: translateY(16px); transition: opacity 0.5s, transform 0.5s; }
+    .strip-item.vis { opacity: 1; transform: translateY(0); }
+    .strip-icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+    .strip-label { font-size: 0.825rem; font-weight: 600; margin-bottom: 0.2rem; }
+    .strip-sub { font-size: 0.7rem; color: var(--text-dim); }
+
+    /* ── SECTION HEADER ──────────────────────────────────────────── */
+    .section { padding: 5.5rem 2rem; max-width: 1140px; margin: 0 auto; }
+    .sec-label {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--indigo); margin-bottom: 0.7rem;
+    }
+    .sec-title {
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 900; letter-spacing: -0.025em; margin-bottom: 0.6rem;
+    }
+    .sec-sub { color: var(--text-dim); font-size: 0.95rem; }
+    .sec-head { margin-bottom: 3rem; }
+
+    /* ── GAME GRID ───────────────────────────────────────────────── */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ── GAME CARD ───────────────────────────────────────────────── */
+    .game-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px; overflow: hidden;
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.55s, transform 0.55s, box-shadow 0.3s, border-color 0.3s;
+      position: relative;
+    }
+    .game-card.vis { opacity: 1; transform: translateY(0); }
+    .game-card:hover {
+      box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 0 1px var(--card-color, var(--indigo));
+      border-color: var(--card-color, var(--indigo));
+    }
+    .game-card:hover .preview-art { transform: scale(1.03); }
+
+    /* ── PREVIEW PANELS ──────────────────────────────────────────── */
+    .preview-wrap {
+      height: 210px; overflow: hidden; position: relative;
+    }
+    .preview-art {
+      position: absolute; inset: 0;
+      transition: transform 0.5s ease;
+    }
+
+    /* ·· Startup Tycoon — City Skyline ·· */
+    .pt-bg {
+      background: linear-gradient(180deg, #05050f 0%, #08122a 60%, #0d1f40 100%);
+    }
+    .pt-stars { position: absolute; inset: 0; }
+    .pt-chart {
+      position: absolute; top: 14px; right: 14px;
+      display: flex; align-items: flex-end; gap: 3px; height: 38px;
+    }
+    .pt-bar {
+      width: 6px; border-radius: 2px 2px 0 0;
+      background: linear-gradient(0deg, var(--indigo), var(--cyan));
+      transform-origin: bottom; transform: scaleY(0);
+      animation: barGrow 0.6s ease-out forwards;
+    }
+    @keyframes barGrow { to { transform: scaleY(1); } }
+    .pt-ticker {
+      position: absolute; top: 13px; left: 14px;
+      font-size: 0.55rem; font-weight: 700; font-family: monospace;
+      color: rgba(34,211,238,0.75); letter-spacing: 0.04em;
+      white-space: pre-line; line-height: 1.7;
+    }
+    .pt-city {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      display: flex; align-items: flex-end; justify-content: center; gap: 3px;
+    }
+    .pt-bld {
+      background: linear-gradient(180deg, #0e2040, #06111e);
+      border: 1px solid rgba(34,211,238,0.18);
+      border-bottom: none; position: relative; flex-shrink: 0;
+    }
+    .pt-wins {
+      position: absolute; inset: 5px;
+      display: grid; gap: 3px;
+    }
+    .pt-win {
+      border-radius: 1px;
+      background: rgba(34,211,238,0.55);
+      animation: wBlink 3s infinite;
+    }
+    .pt-win.off { background: rgba(34,211,238,0.08); animation: none; }
+    @keyframes wBlink { 0%,88%,100%{opacity:1} 93%{opacity:0.1} }
+    .pt-dollar {
+      position: absolute;
+      font-size: 0.9rem; color: rgba(34,211,238,0.55);
+      animation: floatDollar 3.5s ease-in infinite;
+      pointer-events: none;
+    }
+    @keyframes floatDollar {
+      0%   { opacity: 0.9; transform: translateY(0) scale(1); }
+      100% { opacity: 0;   transform: translateY(-55px) scale(0.7); }
+    }
+
+    /* ·· Drug Lab — Flasks ·· */
+    .dl-bg {
+      background: linear-gradient(180deg, #060608 0%, #0c0814 60%, #0f0c1c 100%);
+    }
+    .dl-scan {
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 3px,
+        rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none; z-index: 2;
+    }
+    .dl-status {
+      position: absolute; top: 13px; left: 14px;
+      font-size: 0.55rem; font-family: monospace; line-height: 1.8;
+      color: rgba(167,139,250,0.8); z-index: 3; white-space: pre;
+    }
+    .dl-symbol {
+      position: absolute; top: 13px; right: 14px;
+      font-size: 1.6rem; color: rgba(167,139,250,0.4); z-index: 3;
+    }
+    .dl-flasks {
+      position: absolute; inset: 0;
+      display: flex; align-items: flex-end;
+      justify-content: center; gap: 22px; padding-bottom: 18px;
+    }
+    .flask { display: flex; flex-direction: column; align-items: center; }
+    .flask-neck {
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 18px solid;
+    }
+    .flask-body {
+      width: 50px; height: 56px; border-radius: 50% 50% 46% 46%;
+      overflow: hidden; position: relative; border: 1px solid;
+    }
+    .flask-liquid {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      animation: flaskBob 2.2s ease-in-out infinite;
+    }
+    @keyframes flaskBob { 0%,100%{height:52%} 50%{height:62%} }
+    .flask-bubble {
+      position: absolute; border-radius: 50%;
+      animation: bubRise 2s ease-in infinite;
+    }
+    @keyframes bubRise { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-28px)} }
+    .flask-glow {
+      position: absolute; border-radius: 50%;
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+    @keyframes glowPulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
+
+    /* ·· Homeless Village — Night Camp ·· */
+    .hv-bg {
+      background: linear-gradient(180deg, #060c06 0%, #080e08 50%, #0a100a 100%);
+    }
+    .hv-sky { position: absolute; inset: 0; }
+    .hv-moon {
+      position: absolute; top: 14px; right: 20px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(254,240,138,0.9);
+      box-shadow: 0 0 14px rgba(254,240,138,0.5);
+    }
+    .hv-star {
+      position: absolute; border-radius: 50%;
+      background: white; animation: starTwinkle 2.5s ease-in-out infinite;
+    }
+    @keyframes starTwinkle { 0%,100%{opacity:1} 50%{opacity:0.15} }
+    .hv-ground {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 18px;
+      background: #060c06;
+    }
+    .hv-tree {
+      position: absolute; bottom: 16px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .hv-tree-t1, .hv-tree-t2 {
+      width: 0; height: 0; border-style: solid;
+    }
+    .hv-tree-trunk { background: #2a1800; border-radius: 2px; }
+    .hv-tent { position: absolute; bottom: 16px; }
+    .hv-tent-tri {
+      width: 0; height: 0; border-style: solid;
+      border-bottom-color: transparent !important; /* will be set inline */
+    }
+    .hv-tent-floor { height: 7px; border-radius: 2px; }
+    .hv-fire { position: absolute; bottom: 21px; left: 50%; transform: translateX(-50%); }
+    .hv-fire-log { display: flex; gap: 2px; align-items: flex-end; }
+    .hv-log { width: 11px; height: 5px; background: #3d1f00; border-radius: 2px; }
+    .hv-flame-wrap { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }
+    .hv-flame-o {
+      position: absolute; left: -3px; top: 3px;
+      width: 20px; height: 18px;
+      background: linear-gradient(0deg, rgba(251,146,60,0.7), transparent);
+      border-radius: 50% 50% 28% 28%;
+      animation: flameF 0.7s ease-in-out infinite alternate-reverse;
+    }
+    .hv-flame-i {
+      width: 14px; height: 22px;
+      background: linear-gradient(0deg, #ff6600, #fef08a);
+      border-radius: 50% 50% 28% 28%;
+      animation: flameF 0.5s ease-in-out infinite alternate;
+      transform-origin: bottom;
+    }
+    @keyframes flameF { 0%{transform:scaleX(0.9) scaleY(1)} 100%{transform:scaleX(1.1) scaleY(0.92)} }
+    .hv-status {
+      position: absolute; top: 13px; left: 14px;
+      font-size: 0.55rem; font-family: monospace; line-height: 1.8;
+      color: rgba(74,222,128,0.8); z-index: 2;
+    }
+
+    /* ── CARD BODY ───────────────────────────────────────────────── */
+    .card-body { padding: 1.4rem 1.5rem 1.5rem; }
+    .card-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+    .tag {
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 0.22rem 0.55rem; border-radius: 4px;
+      border: 1px solid currentColor;
+    }
+    .t-blue   { color: var(--cyan);   border-color: rgba(34,211,238,0.4);  background: rgba(34,211,238,0.07); }
+    .t-purple { color: var(--violet); border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.07); }
+    .t-green  { color: var(--green);  border-color: rgba(74,222,128,0.4);  background: rgba(74,222,128,0.07); }
+    .t-red    { color: var(--red);    border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.07); }
+    .t-orange { color: var(--orange); border-color: rgba(251,146,60,0.4);  background: rgba(251,146,60,0.07); }
+    .card-title {
+      font-size: 1.45rem; font-weight: 900;
+      letter-spacing: -0.025em; margin-bottom: 0.45rem;
+    }
+    .card-desc {
+      font-size: 0.825rem; color: var(--text-dim);
+      line-height: 1.65; margin-bottom: 1.25rem;
+    }
+    .card-foot { display: flex; align-items: center; justify-content: space-between; }
+    .play-btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      padding: 0.55rem 1.3rem; border-radius: 8px;
+      font-size: 0.825rem; font-weight: 700; text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .play-btn:hover { transform: translateY(-2px); }
+    .play-icon {
+      width: 0; height: 0; border-style: solid;
+      border-width: 4.5px 0 4.5px 8px;
+      border-color: transparent transparent transparent currentColor;
+      display: inline-block;
+    }
+    .pb-blue {
+      background: linear-gradient(135deg, var(--indigo), var(--cyan));
+      color: #fff; box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+    }
+    .pb-blue:hover { box-shadow: 0 8px 28px rgba(99,102,241,0.5); }
+    .pb-purple {
+      background: linear-gradient(135deg, #7c3aed, var(--violet));
+      color: #fff; box-shadow: 0 4px 16px rgba(124,58,237,0.3);
+    }
+    .pb-purple:hover { box-shadow: 0 8px 28px rgba(124,58,237,0.5); }
+    .pb-green {
+      background: linear-gradient(135deg, #16a34a, var(--green));
+      color: #fff; box-shadow: 0 4px 16px rgba(22,163,74,0.3);
+    }
+    .pb-green:hover { box-shadow: 0 8px 28px rgba(22,163,74,0.5); }
+    .card-num {
+      font-size: 2.5rem; font-weight: 900;
+      color: var(--text-muted); line-height: 1; user-select: none;
+    }
+
+    /* ── COMING SOON ─────────────────────────────────────────────── */
+    .coming-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .coming-card {
+      background: var(--bg-card); border: 1px dashed var(--border);
+      border-radius: 14px; padding: 1.5rem;
+      position: relative; overflow: hidden;
+      opacity: 0; transform: translateY(18px);
+      transition: opacity 0.5s, transform 0.5s, border-color 0.3s;
+    }
+    .coming-card.vis { opacity: 1; transform: translateY(0); }
+    .coming-card:hover { border-color: rgba(99,102,241,0.3); }
+    .coming-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        45deg, transparent, transparent 9px,
+        rgba(255,255,255,0.012) 9px, rgba(255,255,255,0.012) 18px
+      );
+    }
+    .coming-badge {
+      display: inline-block;
+      font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px;
+      color: var(--yellow);
+      background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.28);
+      margin-bottom: 0.8rem;
+    }
+    .coming-icon { font-size: 2rem; margin-bottom: 0.5rem; filter: grayscale(0.3); }
+    .coming-title { font-size: 1.05rem; font-weight: 700; color: var(--text-dim); margin-bottom: 0.4rem; }
+    .coming-desc { font-size: 0.775rem; color: var(--text-muted); line-height: 1.55; }
+
+    /* ── FOOTER ──────────────────────────────────────────────────── */
+    footer {
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .footer-logo {
+      font-size: 1.1rem; font-weight: 900; letter-spacing: 0.06em;
+      background: linear-gradient(100deg, var(--indigo), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 0.6rem;
+    }
+    .footer-tagline { font-size: 0.825rem; color: var(--text-dim); margin-bottom: 1.5rem; }
+    .footer-links { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .footer-links a { font-size: 0.775rem; color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* ── PARTICLES ───────────────────────────────────────────────── */
+    #ptc { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.45; }
+
+    /* ── ANIMATIONS ──────────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────────── */
+    @media (max-width: 680px) {
+      nav { padding: 0.7rem 1rem; }
+      .nav-links { display: none; }
+      .hero { padding: 6.5rem 1.25rem 3.5rem; }
+      .hero-stats { gap: 1.75rem; }
+      .hero-btns { flex-direction: column; align-items: stretch; }
+      .hero-btns .btn { justify-content: center; }
+      .section { padding: 3.5rem 1.25rem; }
+      .games-grid { grid-template-columns: 1fr; }
+      .strip { padding: 2rem 1.25rem; }
+      .strip-inner { gap: 1.25rem; }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- BACKGROUND EFFECTS -->
-  <canvas id="particle-canvas"></canvas>
-  <canvas id="matrix-canvas" style="display:none"></canvas>
+<canvas id="ptc"></canvas>
 
-  <!-- NAVIGATION -->
-  <nav>
-    <span class="logo glitch" data-text=">_ POTENTIAL EUREKA">&gt;_ POTENTIAL EUREKA</span>
-    <button class="active" data-view="dashboard">Dashboard</button>
-    <button data-view="productivity">Productivity</button>
-    <button data-view="personal" class="nav-locked">Personal</button>
-    <button data-view="snake">Snake</button>
-    <button data-view="maze">Maze Solver</button>
-    <button data-view="life">Game of Life</button>
-    <a href="startup-tycoon.html" class="nav-link-btn">Startup Tycoon</a>
-  </nav>
+<!-- NAV -->
+<nav id="nav">
+  <a class="nav-logo" href="#">⚡ POTENTIAL EUREKA</a>
+  <ul class="nav-links">
+    <li><a href="#games">Games</a></li>
+    <li><a href="#coming-soon">Coming Soon</a></li>
+  </ul>
+</nav>
 
-  <!-- ===================== DASHBOARD ===================== -->
-  <section id="view-dashboard" class="view active">
-    <div class="dashboard-grid">
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-glow"></div>
 
-      <!-- Clock -->
-      <div class="widget">
-        <div class="widget-title"><span class="dot"></span> System Clock</div>
-        <div class="clock-display" id="clock-time">--:--:--</div>
-        <div class="clock-date" id="clock-date"></div>
-      </div>
-
-      <!-- Calendar -->
-      <div class="widget">
-        <div class="widget-title"><span class="dot"></span> Calendar</div>
-        <div class="calendar" id="calendar-container"></div>
-      </div>
-
-      <!-- System Stats -->
-      <div class="widget">
-        <div class="widget-title"><span class="dot"></span> System Monitor</div>
-        <div class="stat-row">
-          <span class="stat-label">CPU</span>
-          <div class="stat-bar"><div class="stat-fill cpu" id="stat-cpu" style="width:45%"></div></div>
-          <span class="stat-value" id="stat-cpu-val">45%</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">MEM</span>
-          <div class="stat-bar"><div class="stat-fill mem" id="stat-mem" style="width:62%"></div></div>
-          <span class="stat-value" id="stat-mem-val">62%</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">DISK</span>
-          <div class="stat-bar"><div class="stat-fill disk" id="stat-disk" style="width:71%"></div></div>
-          <span class="stat-value" id="stat-disk-val">71%</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">NET</span>
-          <div class="stat-bar"><div class="stat-fill net" id="stat-net" style="width:23%"></div></div>
-          <span class="stat-value" id="stat-net-val">23%</span>
-        </div>
-      </div>
-
-      <!-- Weather -->
-      <div class="widget">
-        <div class="widget-title"><span class="dot"></span> Weather</div>
-        <div class="weather-display">
-          <div class="weather-icon" id="weather-icon">...</div>
-          <div class="weather-temp" id="weather-temp">--°F</div>
-          <div class="weather-desc" id="weather-desc">Locating...</div>
-          <div class="weather-location" id="weather-location"></div>
-        </div>
-      </div>
-
-      <!-- Quote -->
-      <div class="widget widget-wide">
-        <div class="widget-title"><span class="dot"></span> Quote of the Day</div>
-        <div class="quote-text" id="quote-text">"Loading..."</div>
-        <div class="quote-author" id="quote-author"></div>
-      </div>
-
-      <!-- Calendar Events -->
-      <div class="widget widget-wide">
-        <div class="widget-title">
-          <span class="dot"></span> Calendar Events
-          <button class="widget-settings-btn" onclick="CalendarWidget.openSettings()" title="Connect Google Calendar">&#9881;</button>
-        </div>
-        <div id="calendar-events"></div>
-      </div>
-
-      <!-- Activity Graph -->
-      <div class="widget widget-wide">
-        <div class="widget-title"><span class="dot"></span> Activity Monitor</div>
-        <div class="activity-graph" id="activity-graph"></div>
-      </div>
-
+  <p class="hero-eyebrow">⚡ Browser Game Collection</p>
+  <h1 class="hero-title">
+    <span class="line1">Build empires.</span>
+    <span class="line2">Break rules.</span>
+  </h1>
+  <p class="hero-sub">
+    Idle games with teeth. Manage a startup, run an underground lab, or grow a community from nothing — right in your browser.
+  </p>
+  <div class="hero-btns">
+    <a href="#games" class="btn btn-primary">Browse Games</a>
+    <a href="startup-tycoon.html" class="btn btn-ghost">Quick Play →</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num">3</div>
+      <div class="hero-stat-label">Games</div>
     </div>
-  </section>
-
-  <!-- ===================== PRODUCTIVITY ===================== -->
-  <section id="view-productivity" class="view">
-    <div class="dashboard-grid">
-
-      <!-- Pomodoro Timer -->
-      <div class="widget">
-        <div class="widget-title"><span class="dot"></span> Pomodoro Timer</div>
-        <div class="pomo-mode-label" id="pomo-mode">FOCUS</div>
-        <div class="pomo-time" id="pomo-time">25:00</div>
-        <div class="pomo-bar"><div class="pomo-fill pomo-focus" id="pomo-progress" style="width:0%"></div></div>
-        <div class="game-controls" style="margin-top:10px">
-          <button class="primary" id="pomo-toggle" onclick="Productivity.pomoToggle()">Start</button>
-          <button onclick="Productivity.pomoSkip()">Skip</button>
-          <button onclick="Productivity.pomoReset()">Reset</button>
-        </div>
-        <div class="pomo-info">Sessions completed: <strong id="pomo-sessions">0</strong></div>
-      </div>
-
-      <!-- Quick Notes -->
-      <div class="widget">
-        <div class="widget-title"><span class="dot"></span> Quick Notes</div>
-        <textarea id="notes-area" class="notes-textarea" placeholder="Type anything... auto-saves as you go."></textarea>
-        <div class="notes-meta"><span id="notes-chars">0</span> chars · auto-saved</div>
-      </div>
-
-      <!-- Todo List -->
-      <div class="widget widget-wide">
-        <div class="widget-title">
-          <span class="dot"></span> Tasks
-          <span class="gt-status" id="gt-sync-status"></span>
-          <button class="widget-settings-btn" onclick="Productivity.openGTSettings()" title="Sync with Google Tasks">&#9881;</button>
-        </div>
-        <div class="todo-input-row">
-          <select id="todo-list-picker" class="todo-list-picker" style="display:none"></select>
-          <input type="text" id="todo-input" class="todo-input" placeholder="Add a task and press Enter...">
-        </div>
-        <div id="todo-list" class="todo-list"></div>
-        <div class="todo-footer">
-          <span id="todo-count">0 items left</span>
-          <div class="todo-filters">
-            <button class="active" onclick="Productivity.setTodoFilter('all')">All</button>
-            <button onclick="Productivity.setTodoFilter('active')">Active</button>
-            <button onclick="Productivity.setTodoFilter('done')">Done</button>
-          </div>
-          <button class="todo-clear" onclick="Productivity.clearCompleted()">Clear done</button>
-        </div>
-      </div>
-
-      <!-- Bookmarks -->
-      <div class="widget widget-wide">
-        <div class="widget-title"><span class="dot"></span> Bookmarks</div>
-        <div id="bookmark-form" class="bookmark-form" style="display:none">
-          <input type="text" id="bm-name" class="cal-input" placeholder="Name">
-          <input type="text" id="bm-url" class="cal-input" placeholder="URL">
-          <button class="primary" onclick="Productivity.addBookmark()">Add</button>
-        </div>
-        <div id="bookmarks-grid" class="bookmarks-grid"></div>
-      </div>
-
+    <div class="hero-stat">
+      <div class="hero-stat-num">∞</div>
+      <div class="hero-stat-label">Replayability</div>
     </div>
-  </section>
-
-  <!-- ===================== PERSONAL ===================== -->
-  <section id="view-personal" class="view">
-
-    <!-- Lock Screen -->
-    <div id="personal-lock" class="personal-lock">
-      <div class="lock-terminal">
-        <div class="lock-ascii">
-<pre>
- ╔══════════════════════════╗
- ║   ┌─────────────────┐   ║
- ║   │    ██  ██  ██    │   ║
- ║   │    ██  ██  ██    │   ║
- ║   │   ┌──────────┐  │   ║
- ║   │   │ PRIVATE  │  │   ║
- ║   │   │ TERMINAL │  │   ║
- ║   │   └──────────┘  │   ║
- ║   └─────────────────┘   ║
- ╚══════════════════════════╝
-</pre>
-        </div>
-        <div class="lock-subtitle" id="lock-subtitle">ENTER ACCESS CODE</div>
-        <input type="password" id="lock-input" class="lock-input" maxlength="20" placeholder="••••••">
-        <button class="primary lock-btn" id="lock-btn" onclick="Personal.submitPin()">ACCESS</button>
-        <div class="lock-status" id="lock-status"></div>
-      </div>
-    </div>
-
-    <!-- Content (hidden until auth) -->
-    <div id="personal-content" class="personal-content" style="display:none">
-      <div class="personal-header">
-        <span>PRIVATE TERMINAL — AUTHORIZED</span>
-        <button class="lock-out-btn" onclick="Personal.lock()">Lock</button>
-      </div>
-      <div class="dashboard-grid">
-
-        <!-- Mood -->
-        <div class="widget">
-          <div class="widget-title"><span class="dot"></span> How are you feeling?</div>
-          <div class="mood-picker" id="mood-picker">
-            <button onclick="Personal.logMood(5)" title="Great">😄</button>
-            <button onclick="Personal.logMood(4)" title="Good">🙂</button>
-            <button onclick="Personal.logMood(3)" title="Okay">😐</button>
-            <button onclick="Personal.logMood(2)" title="Low">😕</button>
-            <button onclick="Personal.logMood(1)" title="Rough">😢</button>
-          </div>
-          <div class="mood-today" id="mood-today" style="display:none"></div>
-          <div id="mood-history-section" style="display:none">
-            <div class="mood-history" id="mood-history"></div>
-          </div>
-          <button class="mood-history-toggle" id="mood-history-toggle" onclick="Personal.toggleMoodHistory()" style="display:none">past entries</button>
-        </div>
-
-        <!-- Habits -->
-        <div class="widget">
-          <div class="widget-title"><span class="dot"></span> Habit Tracker</div>
-          <div id="habit-list" class="habit-list"></div>
-          <div class="habit-add-row">
-            <input type="text" id="habit-input" class="todo-input" placeholder="Add a habit and press Enter...">
-          </div>
-        </div>
-
-        <!-- Journal -->
-        <div class="widget widget-wide">
-          <div class="widget-title"><span class="dot"></span> Journal</div>
-          <div class="journal-nav">
-            <button onclick="Personal.prevDay()">&#9664;</button>
-            <span id="journal-date"></span>
-            <button onclick="Personal.nextDay()">&#9654;</button>
-          </div>
-          <textarea id="journal-area" class="journal-textarea" placeholder="What's on your mind today?"></textarea>
-          <div class="journal-meta"><span id="journal-words">0</span> words · auto-saved</div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== SNAKE ===================== -->
-  <section id="view-snake" class="view">
-    <div class="game-container">
-      <div class="game-header">
-        <div class="game-title">SNAKE</div>
-        <div class="game-subtitle">Use arrow keys or WASD to control</div>
-      </div>
-      <div class="game-info">
-        <span>Score: <strong id="snake-score">0</strong></span>
-        <span>High Score: <strong id="snake-high">0</strong></span>
-      </div>
-      <div class="canvas-wrapper">
-        <canvas id="snake-canvas" class="game-canvas"></canvas>
-        <div id="snake-overlay" class="game-overlay" style="display:none"></div>
-      </div>
-      <div class="game-controls" style="margin-top:12px">
-        <button class="primary" onclick="SnakeGame.start()">New Game</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== MAZE ===================== -->
-  <section id="view-maze" class="view">
-    <div class="game-container">
-      <div class="game-header">
-        <div class="game-title">MAZE SOLVER</div>
-        <div class="game-subtitle">Generate mazes and watch algorithms solve them</div>
-      </div>
-      <div class="game-controls">
-        <button class="primary" onclick="MazeGame.generate()">Generate New</button>
-        <select id="maze-algo">
-          <option value="bfs">BFS (Breadth-First)</option>
-          <option value="dfs">DFS (Depth-First)</option>
-          <option value="astar">A* Search</option>
-        </select>
-        <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
-      </div>
-      <div class="game-info">
-        <span id="maze-status" style="color: var(--text-dim)">Generate a maze to begin</span>
-      </div>
-      <canvas id="maze-canvas" class="game-canvas"></canvas>
-      <div class="maze-legend">
-        <span class="wall">Wall</span>
-        <span class="path">Path</span>
-        <span class="visited">Explored</span>
-        <span class="solution">Solution</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== GAME OF LIFE ===================== -->
-  <section id="view-life" class="view">
-    <div class="game-container">
-      <div class="game-header">
-        <div class="game-title">GAME OF LIFE</div>
-        <div class="game-subtitle">Conway's cellular automaton — click to draw cells</div>
-      </div>
-      <div class="game-controls">
-        <button class="primary" id="life-play-btn" onclick="LifeGame.togglePlay()">Play</button>
-        <button onclick="LifeGame.step()">Step</button>
-        <button onclick="LifeGame.randomize()">Random</button>
-        <button class="danger" onclick="LifeGame.clear()">Clear</button>
-        <select onchange="LifeGame.setSpeed(+this.value)">
-          <option value="200">Slow</option>
-          <option value="100" selected>Normal</option>
-          <option value="50">Fast</option>
-          <option value="16">Ludicrous</option>
-        </select>
-      </div>
-      <div class="game-info">
-        <span>Generation: <strong id="life-gen">0</strong></span>
-        <span>Population: <strong id="life-pop">0</strong></span>
-      </div>
-      <div class="life-presets">
-        <button onclick="LifeGame.loadPreset('glider')">Glider</button>
-        <button onclick="LifeGame.loadPreset('blinker')">Blinker</button>
-        <button onclick="LifeGame.loadPreset('toad')">Toad</button>
-        <button onclick="LifeGame.loadPreset('beacon')">Beacon</button>
-        <button onclick="LifeGame.loadPreset('pulsar')">Pulsar</button>
-        <button onclick="LifeGame.loadPreset('lwss')">LWSS</button>
-        <button onclick="LifeGame.loadPreset('rpentomino')">R-pentomino</button>
-        <button onclick="LifeGame.loadPreset('gliderGun')">Gosper Gun</button>
-      </div>
-      <canvas id="life-canvas" class="game-canvas"></canvas>
-      <div style="margin-top:8px; font-size:11px; color: var(--text-dim)">
-        Colors: <span style="color:#3FB950">stable</span> ·
-        <span style="color:#58A6FF">thriving</span> ·
-        <span style="color:#D29922">crowded</span> ·
-        <span style="color:#F85149">lonely</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- GOOGLE TASKS SETTINGS MODAL -->
-  <div id="gt-modal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Google Tasks</h3>
-      <p>Two-way sync with multiple Google Tasks lists. Your Work and Personal
-         lists will show up as color-coded tags on each task.
-         Requires a Google Cloud project with Tasks API + OAuth 2.0 credentials.</p>
-      <label>OAuth Client ID</label>
-      <input type="text" id="gt-client-id" class="cal-input" placeholder="123456789.apps.googleusercontent.com">
-      <div id="gt-list-checks" class="gt-list-checks" style="display:none"></div>
-      <div class="modal-actions" style="margin-top:16px">
-        <button onclick="Productivity.gtConnect()">Connect</button>
-        <button onclick="Productivity.gtSync()">Sync Selected</button>
-        <button onclick="Productivity.gtDisconnect()" style="color:var(--red);border-color:var(--red)">Disconnect</button>
-        <button onclick="Productivity.closeGTSettings()">Close</button>
-      </div>
-      <div class="gt-modal-msg" id="gt-modal-status"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">0</div>
+      <div class="hero-stat-label">Paywalls</div>
     </div>
   </div>
+  <div class="scroll-cue">
+    <span>SCROLL</span>
+    <div class="scroll-cue-arrow"></div>
+  </div>
+</section>
 
-  <!-- CALENDAR SETTINGS MODAL -->
-  <div id="calendar-modal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Connect Your Calendars</h3>
-      <p>Add your Google Calendar API key and calendar IDs to see real events.
-         Get an API key from the Google Cloud Console with Calendar API enabled.
-         Your calendar ID is usually your email address.</p>
-      <label>Google API Key</label>
-      <input type="text" id="cal-api-key" class="cal-input" placeholder="AIzaSy...">
-      <label>Calendars</label>
-      <div id="cal-list"></div>
-      <button class="modal-add-btn" onclick="CalendarWidget.addCalendarRow('', '')">+ Add Calendar</button>
-      <div class="modal-actions">
-        <button onclick="CalendarWidget.saveSettings()">Save</button>
-        <button onclick="CalendarWidget.closeSettings()">Cancel</button>
-      </div>
+<!-- FEATURE STRIP -->
+<div class="strip">
+  <div class="strip-inner">
+    <div class="strip-item">
+      <div class="strip-icon">🖥️</div>
+      <div class="strip-label">Runs in Browser</div>
+      <div class="strip-sub">No installs. No plugins.</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-icon">💾</div>
+      <div class="strip-label">Auto-Saves</div>
+      <div class="strip-sub">Progress lives locally.</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-icon">🎮</div>
+      <div class="strip-label">Idle + Active</div>
+      <div class="strip-sub">Play at your own pace.</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-icon">🆓</div>
+      <div class="strip-label">Completely Free</div>
+      <div class="strip-sub">No ads. No subscriptions.</div>
     </div>
   </div>
+</div>
 
-  <!-- SCRIPTS -->
-  <script src="js/utils.js"></script>
-  <script src="js/effects.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/calendar.js"></script>
-  <script src="js/pomodoro.js"></script>
-  <script src="js/todo.js"></script>
-  <script src="js/notes.js"></script>
-  <script src="js/bookmarks.js"></script>
-  <script src="js/productivity.js"></script>
-  <script src="js/personal-auth.js"></script>
-  <script src="js/personal-content.js"></script>
-  <script src="js/personal.js"></script>
-  <script src="js/snake.js"></script>
-  <script src="js/maze.js"></script>
-  <script src="js/life.js"></script>
-  <script>
-    const navButtons = document.querySelectorAll('nav button');
-    const views = document.querySelectorAll('.view');
-    const inited = new Set();
+<!-- GAMES SECTION -->
+<div class="section" id="games">
+  <div class="sec-head">
+    <div class="sec-label">Now Playing</div>
+    <h2 class="sec-title">Choose Your Empire</h2>
+    <p class="sec-sub">Three games, three paths to power.</p>
+  </div>
+  <div class="games-grid" id="games-grid">
 
-    function switchView(name) {
-      navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
-      views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
+    <!-- ── STARTUP TYCOON ── -->
+    <article class="game-card" style="--card-color: var(--indigo); transition-delay: 0s;">
+      <div class="preview-wrap">
+        <div class="preview-art pt-bg" id="pt-art">
+          <div class="pt-stars" id="pt-stars"></div>
+          <div class="pt-ticker">NASDAQ: EURK  ▲ 4.2%&#10;SERIES B: $42M CLOSED&#10;VALUATION: $1.2B</div>
+          <div class="pt-chart" id="pt-chart"></div>
+          <div class="pt-city" id="pt-city"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-tags">
+          <span class="tag t-blue">Business Sim</span>
+          <span class="tag t-blue">Idle</span>
+          <span class="tag t-blue">Strategy</span>
+        </div>
+        <div class="card-title">Startup Tycoon</div>
+        <div class="card-desc">
+          From a solo dev in a garage to a market-dominating tech giant. Hire teams, fund research, weather hostile takeovers, and IPO your way to Silicon Valley glory.
+        </div>
+        <div class="card-foot">
+          <a href="startup-tycoon.html" class="play-btn pb-blue">
+            <span class="play-icon"></span> Play Now
+          </a>
+          <div class="card-num">01</div>
+        </div>
+      </div>
+    </article>
 
-      if (!inited.has(name)) {
-        inited.add(name);
-        switch (name) {
-          case 'dashboard':    Dashboard.init(); CalendarWidget.init(); break;
-          case 'productivity': Productivity.init(); break;
-          case 'personal':     Personal.init(); break;
-          case 'snake':        SnakeGame.init(); break;
-          case 'maze':         MazeGame.init(); break;
-          case 'life':         LifeGame.init(); break;
-        }
-      }
-      // Re-init 3D tilt for newly visible widgets
-      setTimeout(() => Effects.init3DTilt(), 50);
+    <!-- ── DRUG LAB ── -->
+    <article class="game-card" style="--card-color: var(--violet); transition-delay: 0.1s;">
+      <div class="preview-wrap">
+        <div class="preview-art dl-bg">
+          <div class="dl-scan"></div>
+          <div class="dl-status">▶ LAB STATUS: ACTIVE&#10;▶ PURITY: 99.1%&#10;▶ HEAT LEVEL: LOW&#10;▶ BATCH: #0447</div>
+          <div class="dl-symbol">⚗</div>
+          <div class="dl-flasks" id="dl-flasks"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-tags">
+          <span class="tag t-purple">Underground Empire</span>
+          <span class="tag t-purple">Idle</span>
+          <span class="tag t-red">Mature</span>
+        </div>
+        <div class="card-title">Drug Lab</div>
+        <div class="card-desc">
+          Run a clandestine operation from a dingy basement to a full distribution network. Manage purity, dodge the heat, and corner the market before rivals or the law shut you down.
+        </div>
+        <div class="card-foot">
+          <a href="drug-lab.html" class="play-btn pb-purple">
+            <span class="play-icon"></span> Play Now
+          </a>
+          <div class="card-num">02</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ── HOMELESS VILLAGE ── -->
+    <article class="game-card" style="--card-color: var(--green); transition-delay: 0.2s;">
+      <div class="preview-wrap">
+        <div class="preview-art hv-bg">
+          <div class="hv-sky" id="hv-sky"></div>
+          <div class="hv-moon"></div>
+          <div class="hv-status">👥 RESIDENTS: 12&#10;🍞 FOOD: STABLE&#10;❤️  MORALE: HIGH&#10;🏕️  SHELTERS: 4</div>
+          <div id="hv-scene"></div>
+          <div class="hv-ground"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-tags">
+          <span class="tag t-green">Survival Community</span>
+          <span class="tag t-green">Builder</span>
+          <span class="tag t-green">Management</span>
+        </div>
+        <div class="card-title">Homeless Village</div>
+        <div class="card-desc">
+          From scattered tents to a self-sustaining community. Shelter the vulnerable, manage food and trust, and fight city hall — one resident at a time.
+        </div>
+        <div class="card-foot">
+          <a href="homeless-village.html" class="play-btn pb-green">
+            <span class="play-icon"></span> Play Now
+          </a>
+          <div class="card-num">03</div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</div>
+
+<!-- COMING SOON -->
+<div class="section" id="coming-soon" style="padding-top: 0;">
+  <div class="sec-head">
+    <div class="sec-label">On the Horizon</div>
+    <h2 class="sec-title">Coming Soon</h2>
+    <p class="sec-sub">Games currently in development. Watch this space.</p>
+  </div>
+  <div class="coming-grid">
+    <div class="coming-card" style="transition-delay:0s">
+      <div class="coming-badge">In Development</div>
+      <div class="coming-icon">🧙</div>
+      <div class="coming-title">Wizard Castle</div>
+      <div class="coming-desc">Build a magical fortress, summon familiars, and unravel ancient spells in this arcane idle RPG.</div>
+    </div>
+    <div class="coming-card" style="transition-delay:0.07s">
+      <div class="coming-badge">In Development</div>
+      <div class="coming-icon">🚀</div>
+      <div class="coming-title">Space Station</div>
+      <div class="coming-desc">Manage an orbital outpost on the edge of the galaxy. Oxygen, power, crew morale — all on the line.</div>
+    </div>
+    <div class="coming-card" style="transition-delay:0.14s">
+      <div class="coming-badge">Concept</div>
+      <div class="coming-icon">🏴‍☠️</div>
+      <div class="coming-title">Pirate Cove</div>
+      <div class="coming-desc">Command a crew of scoundrels across the open seas. Trade, plunder, and build a legendary pirate empire.</div>
+    </div>
+    <div class="coming-card" style="transition-delay:0.21s">
+      <div class="coming-badge">Concept</div>
+      <div class="coming-icon">🌿</div>
+      <div class="coming-title">Eco Nation</div>
+      <div class="coming-desc">Lead a green revolution. Build sustainable infrastructure and go toe-to-toe with fossil fuel lobbies.</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">⚡ POTENTIAL EUREKA</div>
+  <div class="footer-tagline">Browser games that hit different.</div>
+  <div class="footer-links">
+    <a href="#games">Games</a>
+    <a href="#coming-soon">Coming Soon</a>
+    <a href="startup-tycoon.html">Startup Tycoon</a>
+  </div>
+  <div class="footer-copy">
+    Built with HTML, CSS &amp; vanilla JS &nbsp;·&nbsp; No frameworks were harmed &nbsp;·&nbsp; © 2025 Potential Eureka
+  </div>
+</footer>
+
+<script>
+/* ── PARTICLES ─────────────────────────────────────────────────── */
+(function () {
+  const cvs = document.getElementById('ptc');
+  const ctx = cvs.getContext('2d');
+  let ps = [], W, H;
+
+  function resize() {
+    W = cvs.width  = window.innerWidth;
+    H = cvs.height = window.innerHeight;
+  }
+  function make() {
+    ps = [];
+    const n = Math.floor(W * H / 15000);
+    for (let i = 0; i < n; i++) ps.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.1 + 0.3,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25,
+      a: Math.random() * 0.5 + 0.15
+    });
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ps.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(99,102,241,${p.a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); make(); draw();
+  window.addEventListener('resize', () => { resize(); make(); });
+})();
+
+/* ── NAV SCROLL ────────────────────────────────────────────────── */
+(function () {
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  }, { passive: true });
+})();
+
+/* ── SCROLL REVEAL ─────────────────────────────────────────────── */
+(function () {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('vis'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.game-card, .coming-card, .strip-item').forEach(el => obs.observe(el));
+})();
+
+/* ── STARTUP TYCOON ART ────────────────────────────────────────── */
+(function () {
+  /* Stars */
+  const starsEl = document.getElementById('pt-stars');
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement('div');
+    s.style.cssText = `
+      position:absolute;
+      width:${Math.random() * 1.5 + 0.5}px;
+      height:${Math.random() * 1.5 + 0.5}px;
+      border-radius:50%;background:rgba(255,255,255,${Math.random() * 0.5 + 0.2});
+      top:${Math.random() * 55}%;left:${Math.random() * 100}%;
+      animation:starTwinkle ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite;
+    `;
+    starsEl.appendChild(s);
+  }
+
+  /* Bar chart */
+  const chartEl = document.getElementById('pt-chart');
+  const heights = [28, 48, 36, 72, 58, 85, 70];
+  heights.forEach((h, i) => {
+    const b = document.createElement('div');
+    b.className = 'pt-bar';
+    b.style.cssText = `height:${h}%;animation-delay:${i * 0.08}s;`;
+    chartEl.appendChild(b);
+  });
+
+  /* City skyline */
+  const cityEl = document.getElementById('pt-city');
+  const buildings = [
+    { w: 26, h: 65,  cols: 2, rows: 3 },
+    { w: 34, h: 110, cols: 2, rows: 5 },
+    { w: 20, h: 80,  cols: 1, rows: 4 },
+    { w: 44, h: 165, cols: 3, rows: 8 },
+    { w: 18, h: 55,  cols: 1, rows: 3 },
+    { w: 38, h: 130, cols: 2, rows: 6 },
+    { w: 24, h: 90,  cols: 2, rows: 4 },
+    { w: 16, h: 50,  cols: 1, rows: 2 },
+  ];
+  buildings.forEach(b => {
+    const bld = document.createElement('div');
+    bld.className = 'pt-bld';
+    bld.style.cssText = `width:${b.w}px;height:${b.h}px;`;
+    const wins = document.createElement('div');
+    wins.className = 'pt-wins';
+    wins.style.cssText = `grid-template-columns:repeat(${b.cols},1fr);grid-template-rows:repeat(${b.rows},1fr);`;
+    const total = b.cols * b.rows;
+    for (let i = 0; i < total; i++) {
+      const w = document.createElement('div');
+      w.className = 'pt-win' + (Math.random() < 0.28 ? ' off' : '');
+      w.style.animationDelay = `${(Math.random() * 3).toFixed(1)}s`;
+      wins.appendChild(w);
+    }
+    bld.appendChild(wins);
+    cityEl.appendChild(bld);
+  });
+
+  /* Floating dollars */
+  const art = document.getElementById('pt-art');
+  const positions = [18, 38, 62, 78];
+  positions.forEach((left, i) => {
+    const d = document.createElement('div');
+    d.className = 'pt-dollar';
+    d.textContent = '$';
+    d.style.cssText = `bottom:40px;left:${left}%;animation-delay:${i * 0.9}s;`;
+    art.appendChild(d);
+  });
+
+  /* Inline keyframe for star twinkle (reuse hv-star one if exists) */
+  if (!document.getElementById('ptc-kf')) {
+    const sty = document.createElement('style');
+    sty.id = 'ptc-kf';
+    sty.textContent = '@keyframes starTwinkle{0%,100%{opacity:1}50%{opacity:0.15}}';
+    document.head.appendChild(sty);
+  }
+})();
+
+/* ── DRUG LAB ART ──────────────────────────────────────────────── */
+(function () {
+  const flasks = [
+    { color: '#8b5cf6', neck: 'rgba(139,92,246,0.35)', body: 'rgba(139,92,246,0.12)',
+      liquid: 'rgba(139,92,246,0.52)', border: 'rgba(139,92,246,0.65)',
+      liqH: '48%', bobDelay: '0s', bubbles: 2, tx: 0 },
+    { color: '#ec4899', neck: 'rgba(236,72,153,0.3)',  body: 'rgba(236,72,153,0.1)',
+      liquid: 'rgba(236,72,153,0.55)', border: 'rgba(236,72,153,0.6)',
+      liqH: '58%', bobDelay: '0.7s', bubbles: 1, tx: -8 },
+    { color: '#3b82f6', neck: 'rgba(59,130,246,0.3)',  body: 'rgba(59,130,246,0.1)',
+      liquid: 'rgba(59,130,246,0.45)', border: 'rgba(59,130,246,0.6)',
+      liqH: '70%', bobDelay: '1.2s', bubbles: 2, tx: 4 },
+  ];
+  const container = document.getElementById('dl-flasks');
+
+  flasks.forEach(f => {
+    const wrap = document.createElement('div');
+    wrap.className = 'flask';
+    wrap.style.cssText = `transform:translateY(${f.tx}px);position:relative;`;
+
+    const neck = document.createElement('div');
+    neck.className = 'flask-neck';
+    neck.style.cssText = `border-top-color:${f.neck};border-top-width:16px;border-left-width:6px;border-right-width:6px;`;
+
+    const body = document.createElement('div');
+    body.className = 'flask-body';
+    body.style.cssText = `background:${f.body};border-color:${f.border};`;
+
+    const liq = document.createElement('div');
+    liq.className = 'flask-liquid';
+    liq.style.cssText = `background:${f.liquid};height:${f.liqH};animation-delay:${f.bobDelay};`;
+
+    for (let i = 0; i < f.bubbles; i++) {
+      const bub = document.createElement('div');
+      bub.className = 'flask-bubble';
+      bub.style.cssText = `
+        width:${3 + Math.random() * 3}px;height:${3 + Math.random() * 3}px;
+        bottom:${parseInt(f.liqH) + 5 + Math.random() * 8}%;
+        left:${20 + Math.random() * 50}%;
+        background:${f.liquid};
+        animation-delay:${(i * 0.8).toFixed(1)}s;
+      `;
+      body.appendChild(bub);
     }
 
-    navButtons.forEach(btn => {
-      btn.addEventListener('click', () => switchView(btn.dataset.view));
-    });
+    /* Glow */
+    const glow = document.createElement('div');
+    glow.className = 'flask-glow';
+    glow.style.cssText = `
+      width:80px;height:80px;
+      background:radial-gradient(circle,${f.liquid},transparent);
+      top:20%;left:50%;transform:translateX(-50%);
+    `;
+    wrap.style.position = 'relative';
 
-    Effects.init().then(() => switchView('dashboard'));
-  </script>
+    body.appendChild(liq);
+    wrap.appendChild(neck);
+    wrap.appendChild(body);
+    container.appendChild(wrap);
 
+    /* Glow outside body */
+    glow.style.position = 'absolute';
+    glow.style.pointerEvents = 'none';
+    container.appendChild(glow);
+  });
+})();
+
+/* ── HOMELESS VILLAGE ART ──────────────────────────────────────── */
+(function () {
+  const sky = document.getElementById('hv-sky');
+  const scene = document.getElementById('hv-scene');
+
+  /* Stars */
+  const starData = [
+    [10,10],[20,30],[35,12],[50,22],[65,8],[78,18],[88,28],[15,40],[45,35],[72,42],[92,15],[55,45]
+  ];
+  starData.forEach(([l, t], i) => {
+    const s = document.createElement('div');
+    s.className = 'hv-star';
+    s.style.cssText = `
+      width:${Math.random() > 0.5 ? 2 : 1.5}px;height:${Math.random() > 0.5 ? 2 : 1.5}px;
+      left:${l}%;top:${t}%;
+      animation-delay:${(i * 0.3 % 2.5).toFixed(1)}s;
+    `;
+    sky.appendChild(s);
+  });
+
+  /* Trees */
+  function makeTree(left, small) {
+    const t = document.createElement('div');
+    t.className = 'hv-tree';
+    t.style.left = left;
+    const sz = small ? 0.75 : 1;
+    t.innerHTML = `
+      <div class="hv-tree-t1" style="
+        border-left-width:${14*sz}px;border-right-width:${14*sz}px;
+        border-bottom-width:${30*sz}px;border-bottom-color:rgba(21,90,47,0.75);
+        border-top:none;
+      "></div>
+      <div class="hv-tree-t2" style="
+        border-left-width:${10*sz}px;border-right-width:${10*sz}px;
+        border-bottom-width:${22*sz}px;border-bottom-color:rgba(22,110,55,0.85);
+        border-top:none;margin-left:${-8*sz}px;margin-top:${-14*sz}px;
+      "></div>
+      <div class="hv-tree-trunk" style="width:${5*sz}px;height:${13*sz}px;margin:0 auto;border-radius:2px;"></div>
+    `;
+    scene.appendChild(t);
+  }
+  makeTree('6%', false);
+  makeTree('86%', true);
+  makeTree('78%', false);
+
+  /* Tents */
+  function makeTent(left, color, w) {
+    const t = document.createElement('div');
+    t.className = 'hv-tent';
+    t.style.left = left;
+    t.innerHTML = `
+      <div style="
+        width:0;height:0;border-style:solid;
+        border-left-width:${w/2}px;border-right-width:${w/2}px;
+        border-bottom-width:${w*0.6}px;
+        border-color:transparent transparent ${color} transparent;
+      "></div>
+      <div class="hv-tent-floor" style="width:${w}px;background:${color};opacity:0.35;"></div>
+    `;
+    scene.appendChild(t);
+  }
+  makeTent('20%', 'rgba(34,197,94,0.4)',  60);
+  makeTent('58%', 'rgba(59,130,246,0.38)', 52);
+  makeTent('36%', 'rgba(251,146,60,0.32)', 44);
+
+  /* Campfire */
+  const fire = document.createElement('div');
+  fire.className = 'hv-fire';
+  fire.innerHTML = `
+    <div class="hv-fire-log">
+      <div class="hv-log" style="transform:rotate(-15deg)"></div>
+      <div class="hv-log" style="transform:rotate(15deg)"></div>
+    </div>
+    <div class="hv-flame-wrap">
+      <div class="hv-flame-o"></div>
+      <div class="hv-flame-i"></div>
+    </div>
+    <div style="
+      position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+      width:24px;height:6px;
+      background:radial-gradient(ellipse,rgba(251,146,60,0.35),transparent);
+      border-radius:50%;
+    "></div>
+  `;
+  scene.appendChild(fire);
+})();
+</script>
 </body>
 </html>
