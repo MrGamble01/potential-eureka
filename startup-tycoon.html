@@ -399,6 +399,18 @@
     .allhands-btn .cost { float: right; color: #f59e0b; font-size: 11px; font-weight: 800; }
     .allhands-btn.surge { background: rgba(217,119,6,0.35); border-color: rgba(217,119,6,0.8); animation: handsPulse 0.8s ease-in-out infinite; }
     @keyframes handsPulse { 0%,100% { box-shadow: 0 0 8px rgba(217,119,6,0.3); } 50% { box-shadow: 0 0 20px rgba(217,119,6,0.7); } }
+    .tier-btn { display:block; width:100%; margin-bottom:3px; padding:4px 8px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15); border-radius:5px; color:#e2e8f0; font-size:11px; cursor:pointer; text-align:left; transition:background 0.15s; }
+    .tier-btn:hover:not(:disabled) { background:rgba(99,179,237,0.2); border-color:#63b3ed; }
+    .tier-btn.active { background:rgba(99,179,237,0.25); border-color:#63b3ed; color:#fff; font-weight:700; }
+    .tier-btn.locked, .tier-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .spec-btn { padding:3px 8px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15); border-radius:5px; color:#e2e8f0; font-size:11px; cursor:pointer; white-space:nowrap; }
+    .spec-btn:hover:not(:disabled) { background:rgba(72,187,120,0.25); border-color:#48bb78; }
+    .spec-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .conf-btn { display:block; width:100%; margin-top:4px; padding:4px 8px; background:rgba(159,122,234,0.2); border:1px solid rgba(159,122,234,0.5); border-radius:5px; color:#d6bcfa; font-size:11px; cursor:pointer; }
+    .conf-btn:hover:not(:disabled) { background:rgba(159,122,234,0.35); }
+    .conf-btn.active { animation:confPulse 0.9s ease-in-out infinite; }
+    .conf-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    @keyframes confPulse { 0%,100% { box-shadow:0 0 6px rgba(159,122,234,0.4); } 50% { box-shadow:0 0 18px rgba(159,122,234,0.8); } }
   </style>
 </head>
 <body>
@@ -447,6 +459,10 @@
   <div id="amenities-panel" class="panel">
     <div class="panel-title">Amenities</div>
     <div id="amenities-list"></div>
+  </div>
+  <div id="product-tier-panel" class="panel" style="margin-top:6px;padding:8px"></div>
+  <div id="specialists-panel" class="panel" style="margin-top:6px;padding:8px">
+    <div id="specialists-section"></div>
   </div>
 </div>
 <div id="toast-container"></div>
@@ -897,6 +913,22 @@ let allHandsT = 0;
 const ALL_HANDS_DUR = 15;   // seconds of 5× surge
 const ALL_HANDS_CD  = 300;  // 5 minute cooldown
 
+let devStationPaused = false;
+let tierPriceMult = 1.0; let tierProcMult = 1.0;
+let marketerMult = 1.0; let seniorDevMult = 1.0; let salesRepBonus = 0;
+let conferenceBoost = 1.0; let conferenceActive = false;
+let conferenceT = 0; let conferenceCooldown = 0;
+const CONF_DUR = 30; const CONF_CD = 90;
+let serverRoomOwned = false; let serverRoomT = 0;
+const SERVER_ROOM_INTERVAL = 4.0;
+const PRODUCT_TIERS = [
+  { id:'bugfix',     name:'Bug Fix',          price:2,  procMult:0.4, unlockCash:0 },
+  { id:'feature',    name:'Feature',          price:5,  procMult:1.0, unlockCash:0 },
+  { id:'premium',    name:'Premium Feature',  price:15, procMult:2.5, unlockCash:1000 },
+  { id:'enterprise', name:'Enterprise Suite', price:50, procMult:6.0, unlockCash:10000 },
+];
+let currentTierIdx = 1;
+
 // Metrics counters
 let totalUsers = 0;
 let totalFeaturesShipped = 0;
@@ -1127,9 +1159,9 @@ const STATION_R2 = 2.6 * 2.6;
 
 function updateDev(dt) {
   for (const d of devs) {
-    if (d.queue > 0 && d.output < d.OUTPUT_MAX) {
+    if (!devStationPaused && d.queue > 0 && d.output < d.OUTPUT_MAX) {
       d.procT += dt;
-      if (d.procT >= d.PROC_TIME) {
+      if (d.procT >= d.PROC_TIME * tierProcMult * seniorDevMult) {
         d.procT = 0;
         d.queue--; d.output++;
         refreshPile(d.queueGroup, d.queueMeshes, d.queue, orbGeo, orbMat, 0.4);
@@ -1409,12 +1441,12 @@ function updateDeals(dt) {
   if (dealSpeedMult <= 0) return; // bug event pauses deals
   dealTimer += dt;
   const rushFactor = rushActive ? 3 : 1;
-  const interval = customerSpawnInterval / (rushFactor * dealSpeedMult * allHandsMult);
+  const interval = customerSpawnInterval / (rushFactor * dealSpeedMult * allHandsMult * marketerMult);
   if (dealTimer >= interval) {
     dealTimer = 0;
     shelfState.stock--;
     refreshShelf();
-    const earned = Math.round(featurePrice * dealValueMult * productVersionMult * allHandsMult);
+    const earned = Math.round((featurePrice * tierPriceMult + salesRepBonus) * dealValueMult * productVersionMult * allHandsMult * conferenceBoost);
     addCash(earned);
     // Track metrics
     totalFeaturesShipped++;
@@ -1450,14 +1482,97 @@ function checkProductVersion() {
   }
 }
 
+// --- Product tier system ---
+function selectProductTier(idx) {
+  if (idx < 0 || idx >= PRODUCT_TIERS.length) return;
+  currentTierIdx = idx;
+  const t = PRODUCT_TIERS[idx];
+  tierPriceMult = t.price / 5;
+  tierProcMult  = t.procMult;
+  renderProductTiers();
+}
+function renderProductTiers() {
+  const el = document.getElementById('product-tier-panel');
+  if (!el) return;
+  let h = '<div style="font-size:11px;color:#aaa;margin-bottom:4px;">Product Tier</div>';
+  for (let i = 0; i < PRODUCT_TIERS.length; i++) {
+    const t = PRODUCT_TIERS[i];
+    const locked = state.allTimeCash < t.unlockCash;
+    const active = i === currentTierIdx;
+    const cls = active ? 'tier-btn active' : (locked ? 'tier-btn locked' : 'tier-btn');
+    const label = locked ? t.name + ' (unlock $' + fmtCash(t.unlockCash) + ')' : t.name + ' ($' + t.price + ')';
+    h += '<button class="' + cls + '" ' + (locked ? 'disabled' : '') + ' onclick="selectProductTier(' + i + ')">' + label + '</button>';
+  }
+  el.innerHTML = h;
+}
+
+// --- Specialist employees ---
+const SPECIALIST_DEFS = [
+  { id:'marketer',   name:'Marketer',    cost:200,  desc:'+15% deal flow',     max:3 },
+  { id:'seniordev',  name:'Senior Dev',  cost:500,  desc:'Dev 20% faster',     max:3 },
+  { id:'salesrep',   name:'Sales Rep',   cost:350,  desc:'+$3 per deal',       max:3 },
+];
+const specialistCounts = { marketer:0, seniordev:0, salesrep:0 };
+function updateSpecialistBonuses() {
+  marketerMult  = Math.pow(1.15, specialistCounts.marketer);
+  seniorDevMult = Math.pow(0.80, specialistCounts.seniordev);
+  salesRepBonus = specialistCounts.salesrep * 3;
+}
+function specialistHireCost(id) {
+  const def = SPECIALIST_DEFS.find(d => d.id === id);
+  return def ? def.cost * (specialistCounts[id] + 1) : 0;
+}
+function hireSpecialist(id) {
+  const def = SPECIALIST_DEFS.find(d => d.id === id);
+  if (!def) return;
+  if (specialistCounts[id] >= def.max) { showToast('Max ' + def.name + 's hired!', 'warn'); return; }
+  const cost = specialistHireCost(id);
+  if (state.cash < cost) { showToast('Not enough cash!', 'warn'); return; }
+  addCash(-cost);
+  specialistCounts[id]++;
+  updateSpecialistBonuses();
+  spawnSpecialistNPC(id);
+  renderSpecialists();
+}
+function spawnSpecialistNPC(id) {
+  const colors = { marketer:0xff69b4, seniordev:0x4169e1, salesrep:0xffa500 };
+  const offsets = { marketer:[3,0,3], seniordev:[-3,0,3], salesrep:[0,0,-4] };
+  const col = colors[id] || 0xffffff;
+  const off = offsets[id] || [0,0,0];
+  const idx = specialistCounts[id] - 1;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.6,0.3), new THREE.MeshLambertMaterial({color:col}));
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.35,0.35), new THREE.MeshLambertMaterial({color:0xffddbb}));
+  head.position.y = 0.5;
+  const npc = new THREE.Group();
+  npc.add(body); npc.add(head);
+  npc.position.set(off[0] + idx * 0.7, 0.5, off[2]);
+  scene.add(npc);
+}
+function renderSpecialists() {
+  const el = document.getElementById('specialists-section');
+  if (!el) return;
+  let h = '<div style="font-size:11px;color:#aaa;margin-bottom:4px;">Specialists</div>';
+  for (const def of SPECIALIST_DEFS) {
+    const cnt = specialistCounts[def.id];
+    const cost = specialistHireCost(def.id);
+    const maxed = cnt >= def.max;
+    const canAfford = state.cash >= cost;
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">'
+       + '<span style="font-size:11px;">' + def.name + ' (' + cnt + '/' + def.max + ') — ' + def.desc + '</span>'
+       + '<button class="spec-btn" ' + (maxed ? 'disabled' : '') + ' onclick="hireSpecialist(\'' + def.id + '\')">'
+       + (maxed ? 'Maxed' : '$' + fmtCash(cost)) + '</button></div>';
+  }
+  el.innerHTML = h;
+}
+
 const metricsArrEl  = document.getElementById('m-arr');
 const metricsUsersEl= document.getElementById('m-users');
 const metricsShipEl = document.getElementById('m-shipped');
 const metricsTeamEl = document.getElementById('m-teamrev');
 const metricsVersionEl = document.getElementById('m-version');
 function updateMetricsHUD() {
-  const dealsPerSec = dealSpeedMult * allHandsMult / customerSpawnInterval;
-  const arr = Math.round(featurePrice * dealValueMult * productVersionMult * allHandsMult * dealsPerSec * 3600 * 24 * 365);
+  const dealsPerSec = dealSpeedMult * allHandsMult * marketerMult / customerSpawnInterval;
+  const arr = Math.round((featurePrice * tierPriceMult + salesRepBonus) * dealValueMult * productVersionMult * allHandsMult * conferenceBoost * dealsPerSec * 3600 * 24 * 365);
   metricsArrEl.textContent   = '$' + fmtCash(arr) + '/yr';
   metricsUsersEl.textContent  = fmtCash(totalUsers);
   metricsShipEl.textContent   = fmtCash(totalFeaturesShipped);
@@ -1815,6 +1930,60 @@ const AMENITY_DEFS = [
       g.add(spout);
     },
   },
+  {
+    id: 'marketing_office',
+    name: 'Marketing Office',
+    icon: '📣',
+    buyCost: 750,
+    maxStock: 0,
+    position: new THREE.Vector3(25, 0, 9),
+    unlockReq: () => state.allTimeCash >= 500,
+    unlockText: () => 'Earn $500 total to unlock',
+    buildMesh: (g) => {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.4,1.2,1.0), new THREE.MeshLambertMaterial({color:0x3b5bdb}));
+      body.position.y = 0.6; body.castShadow = true; g.add(body);
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.4,0.1), new THREE.MeshLambertMaterial({color:0xffd43b}));
+      sign.position.set(0,1.4,0.5); g.add(sign);
+    },
+    onBuy: () => { marketerMult *= 1.20; },
+  },
+  {
+    id: 'server_room',
+    name: 'Server Room',
+    icon: '🖥️',
+    buyCost: 1200,
+    maxStock: 0,
+    position: new THREE.Vector3(24, 0, -9),
+    unlockReq: () => state.allTimeCash >= 1000,
+    unlockText: () => 'Earn $1000 total to unlock',
+    buildMesh: (g) => {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.6,0.9), new THREE.MeshLambertMaterial({color:0x212529}));
+      body.position.y = 0.8; body.castShadow = true; g.add(body);
+      for (let i=0;i<3;i++) {
+        const light = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.08,0.05), new THREE.MeshLambertMaterial({color:0x51cf66,emissive:0x51cf66,emissiveIntensity:0.8}));
+        light.position.set(-0.3+i*0.3,0.6+i*0.3,0.48); g.add(light);
+      }
+    },
+    onBuy: () => { serverRoomOwned = true; },
+  },
+  {
+    id: 'conference_room',
+    name: 'Conference Room',
+    icon: '📊',
+    buyCost: 2000,
+    maxStock: 0,
+    activatable: true,
+    position: new THREE.Vector3(13, 0, 10),
+    unlockReq: () => state.allTimeCash >= 2000,
+    unlockText: () => 'Earn $2000 total to unlock',
+    buildMesh: (g) => {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.0,1.4,1.5), new THREE.MeshLambertMaterial({color:0x1a1a2e}));
+      body.position.y = 0.7; body.castShadow = true; g.add(body);
+      const table = new THREE.Mesh(new THREE.BoxGeometry(1.4,0.08,0.8), new THREE.MeshLambertMaterial({color:0x6d4c41}));
+      table.position.y = 0.6; g.add(table);
+    },
+    onBuy: () => {},
+  },
 ];
 const amenities = AMENITY_DEFS.map(def => ({
   ...def,
@@ -1834,35 +2003,80 @@ function buyAmenity(id) {
   if (!am || am.isOwned || !am.unlockReq() || state.cash < am.buyCost) return;
   state.cash -= am.buyCost;
   am.isOwned = true;
-  am.stock = 0; // Workers will stock it
+  am.stock = 0;
   buildAmenity(am);
+  if (am.onBuy) am.onBuy();
   addCash(0);
 }
 const amenitiesList = document.getElementById('amenities-list');
 function renderAmenities() {
-  while (amenitiesList.children.length < amenities.length) {
+  amenitiesList.innerHTML = '';
+  for (const am of amenities) {
     const btn = document.createElement('button');
-    btn.className = 'amenity-btn';
-    amenitiesList.appendChild(btn);
-  }
-  for (let i = 0; i < amenities.length; i++) {
-    const am = amenities[i];
-    const btn = amenitiesList.children[i];
     if (am.isOwned) {
       btn.className = 'amenity-btn owned';
-      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">Owned</span>`;
+      btn.innerHTML = am.icon + ' ' + am.name + '<span class="tag">Owned</span>';
       btn.disabled = true;
-      btn.onclick = null;
+      amenitiesList.appendChild(btn);
+      if (am.activatable) {
+        const actBtn = document.createElement('button');
+        actBtn.className = 'conf-btn' + (conferenceActive ? ' active' : '');
+        actBtn.disabled = conferenceCooldown > 0;
+        const cdLabel = conferenceActive
+          ? Math.ceil(CONF_DUR - conferenceT) + 's 🔥'
+          : conferenceCooldown > 0 ? Math.ceil(conferenceCooldown) + 's' : '2× price';
+        actBtn.innerHTML = '🎙️ Pitch Meeting<span class="cost">' + cdLabel + '</span>';
+        actBtn.onclick = activateConferenceRoom;
+        amenitiesList.appendChild(actBtn);
+      }
     } else if (!am.unlockReq()) {
       btn.className = 'amenity-btn locked';
-      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">${am.unlockText()}</span>`;
+      btn.innerHTML = am.icon + ' ' + am.name + '<span class="tag">' + am.unlockText() + '</span>';
       btn.disabled = true;
-      btn.onclick = null;
+      amenitiesList.appendChild(btn);
     } else {
       btn.className = 'amenity-btn';
-      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">$${am.buyCost}</span>`;
+      btn.innerHTML = am.icon + ' ' + am.name + '<span class="tag">$' + am.buyCost + '</span>';
       btn.disabled = state.cash < am.buyCost;
-      btn.onclick = () => buyAmenity(am.id);
+      const aid = am.id;
+      btn.onclick = () => buyAmenity(aid);
+      amenitiesList.appendChild(btn);
+    }
+  }
+}
+// ── Conference room activation ───────────────────────────────────────────────
+function activateConferenceRoom() {
+  if (conferenceCooldown > 0) return;
+  conferenceActive = true; conferenceBoost = 2.0;
+  conferenceT = 0; conferenceCooldown = CONF_CD;
+  showToast('🏛️ Pitch Meeting! Sale price 2× for 30s!', 'milestone');
+  addFeedEntry('🏛️ Conference Pitch — 2× revenue for 30s!');
+  renderAmenities();
+}
+function updateConferenceRoom(dt) {
+  if (conferenceCooldown > 0) conferenceCooldown -= dt;
+  if (conferenceActive) {
+    conferenceT += dt;
+    if (conferenceT >= CONF_DUR) {
+      conferenceActive = false; conferenceBoost = 1.0;
+      showToast('Conference Pitch over — back to normal.', '');
+      renderAmenities();
+    }
+  }
+}
+// ── Server Room auto-processing ──────────────────────────────────────────────
+function updateServerRoom(dt) {
+  if (!serverRoomOwned) return;
+  serverRoomT += dt;
+  if (serverRoomT >= SERVER_ROOM_INTERVAL) {
+    serverRoomT = 0;
+    const plotReady = plots.find(p => p.active && p.ready);
+    const devSpace  = devs.find(d => d.queue < d.QUEUE_MAX);
+    if (plotReady && devSpace) {
+      plotReady.ready = false; plotReady.orb.visible = false;
+      plotReady.bulbBase.visible = false; plotReady.t = 0;
+      devSpace.queue++;
+      refreshPile(devSpace.queueGroup, devSpace.queueMeshes, devSpace.queue, orbGeo, orbMat, 0.4);
     }
   }
 }
@@ -1951,6 +2165,8 @@ function addCash(n) {
   renderOffice();
   renderAmenities();
   renderFunding();
+  renderProductTiers();
+  renderSpecialists();
   checkIPOAvailable();
 }
 
@@ -2072,6 +2288,24 @@ const EVENT_POOL = [
   { id:'pivot', label:'🔄 Pivot', dur:0,
     msg:'🔄 Brilliant pivot! All ideas instantly ready to harvest!', cls:'milestone',
     onStart:()=>{ for(const p of plots){if(p.active&&!p.ready){p.ready=true;p.orb.visible=true;p.bulbBase.visible=true;p.t=plotGrowTime;}} showToast('🔄 Pivot moment — go harvest everything!','milestone'); },
+    onEnd:()=>{} },
+  // ── New events ──────────────────────────────────────────────────────────
+  { id:'phlaunch', label:'🚀 PH Launch', dur:30,
+    msg:'🚀 Product Hunt Launch! Massive customer flood for 30s!', cls:'rush',
+    onStart:()=>{ dealSpeedMult=12; },
+    onEnd:()=>{ dealSpeedMult=1; showToast('Product Hunt wave subsided — back to normal.','rush'); } },
+  { id:'serveroutage', label:'💥 Server Outage', dur:15,
+    msg:'💥 Server Outage! Dev stations offline for 15s!', cls:'',
+    onStart:()=>{ devStationPaused=true; },
+    onEnd:()=>{ devStationPaused=false; showToast('🔧 Servers back online! Development resumed.','milestone'); } },
+  { id:'investormeeting', label:'💼 Investor Mtg', dur:0,
+    msg:'💼 Investor Meeting! They want to see your traction...', cls:'milestone',
+    onStart:()=>{
+      const onShelf = shelfState.stock;
+      const bonus = onShelf >= 5 ? Math.max(500, onShelf * 80) : 30;
+      addCash(bonus);
+      showToast(onShelf >= 5 ? '💰 Investor impressed! +$' + fmtCash(bonus) + '!' : '😐 Only ' + onShelf + ' products on shelf. Investor gave $' + bonus, onShelf >= 5 ? 'milestone' : '');
+    },
     onEnd:()=>{} },
 ];
 let activeEvent = null;
@@ -2198,12 +2432,21 @@ addCash(0);
 // Only OFFICE is active. Other floors unlock but are placeholders until a
 // Floor subclass is dropped in (see README at top of file).
 const FLOORS = [
-  { id: 'office',  name: 'Office — Floor 1', icon: '💻', cost: 0 },
-  { id: 'cafe',    name: 'Café',             icon: '☕', cost: 1000 },
-  { id: 'gym',     name: 'Gym',              icon: '💪', cost: 5000 },
-  { id: 'rooftop', name: 'Rooftop',          icon: '🌇', cost: 25000 },
+  { id: 'office',    name: 'Office — Floor 1', icon: '💻', cost: 0 },
+  { id: 'cafe',      name: 'Café',             icon: '☕', cost: 1000 },
+  { id: 'gym',       name: 'Gym',              icon: '💪', cost: 5000 },
+  { id: 'rooftop',   name: 'Rooftop',          icon: '🌇', cost: 25000 },
+  { id: 'rdlab',     name: 'R&D Lab',           icon: '🔬', cost: 2000,
+    sub: 'Ideas grow 30% faster',
+    onUnlock: () => { plotGrowTime = Math.max(1.0, plotGrowTime * 0.7); addFeedEntry('🔬 R&D Lab: ideas 30% faster!'); } },
+  { id: 'mktgsuite', name: 'Marketing Suite',   icon: '📣', cost: 8000,
+    sub: 'Deal flow 30% faster',
+    onUnlock: () => { customerSpawnInterval = Math.max(0.2, customerSpawnInterval * 0.7); addFeedEntry('📣 Marketing Suite: deals 30% faster!'); } },
+  { id: 'executive', name: 'Executive Floor',   icon: '👔', cost: 50000,
+    sub: '+2 revenue multiplier',
+    onUnlock: () => { dealValueMult = Math.max(1, dealValueMult + 2); addFeedEntry('👔 Executive Floor: +2× revenue!'); } },
 ];
-const unlocked = { office: true, cafe: false, gym: false, rooftop: false };
+const unlocked = { office:true, cafe:false, gym:false, rooftop:false, rdlab:false, mktgsuite:false, executive:false };
 let currentFloor = 'office';
 const elevModal = document.getElementById('elevator-modal');
 const floorListEl = document.getElementById('floor-list');
@@ -2220,11 +2463,14 @@ function renderFloors() {
     const isUnlocked = unlocked[f.id];
     const card = document.createElement('div');
     card.className = 'floor-card' + (isUnlocked ? '' : ' locked');
+    const subText = isCurrent ? 'Currently here'
+      : isUnlocked ? (f.sub || 'Tap to travel')
+      : 'Unlock for $' + f.cost.toLocaleString() + (f.sub ? ' · ' + f.sub : '');
     card.innerHTML = `
       <span class="icon">${isUnlocked ? f.icon : '🔒'}</span>
       <div style="flex:1">
         ${f.name}
-        <span class="sub">${isCurrent ? 'Currently here' : isUnlocked ? 'Tap to travel' : 'Unlock for $' + f.cost.toLocaleString()}</span>
+        <span class="sub">${subText}</span>
       </div>
       ${isCurrent ? '<span class="check">✓</span>' : ''}
     `;
@@ -2233,16 +2479,18 @@ function renderFloors() {
         if (state.cash >= f.cost) {
           state.cash -= f.cost;
           unlocked[f.id] = true;
+          if (f.onUnlock) f.onUnlock();
+          addFeedEntry('🏢 ' + f.name + ' unlocked!');
           addCash(0);
-          elevMsgEl.textContent = `${f.name} unlocked!`;
+          elevMsgEl.textContent = f.name + ' unlocked!';
           renderFloors();
         } else {
-          elevMsgEl.textContent = `Need $${(f.cost - state.cash).toLocaleString()} more`;
+          elevMsgEl.textContent = 'Need $' + (f.cost - state.cash).toLocaleString() + ' more';
         }
       } else if (f.id === currentFloor) {
         elevMsgEl.textContent = "You're already here.";
       } else {
-        elevMsgEl.textContent = `${f.name} is a placeholder — drop in a Floor subclass to activate.`;
+        elevMsgEl.textContent = f.name + ' is a placeholder — drop in a Floor subclass to activate.';
       }
     };
     floorListEl.appendChild(card);
@@ -2295,6 +2543,8 @@ class OfficeFloor extends Floor {
     updateWorkers(dt);
     updateSupplyCloset(dt);
     updateProductionBots(dt);
+    updateConferenceRoom(dt);
+    updateServerRoom(dt);
   }
 }
 const FLOOR_CLASSES = {
@@ -2530,11 +2780,11 @@ document.getElementById('ipo-confirm-btn').addEventListener('click', doIPO);
 document.getElementById('ipo-cancel-btn').addEventListener('click', () => ipoModal.classList.remove('open'));
 
 // --- Save + load ---
-const SAVE_KEY = 'startup-tycoon-v3';
+const SAVE_KEY = 'startup-tycoon-v4';
 function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 3,
+      v: 4,
       cash: state.cash,
       allTimeCash: state.allTimeCash,
       upgrades: upgLevels,
@@ -2548,6 +2798,8 @@ function saveGame() {
       prestigeLevel,
       prestigeMultiplier,
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
+      specialists: specialistCounts,
+      currentTierIdx,
       savedAt: Date.now(),
     }));
   } catch {}
@@ -2607,6 +2859,8 @@ function loadGame() {
           am.isOwned = true;
           am.stock = typeof saved.stock === 'number' ? saved.stock : 0;
           buildAmenity(am);
+          if (am.id === 'server_room') serverRoomOwned = true;
+          if (am.id === 'marketing_office') customerSpawnInterval = Math.max(0.2, customerSpawnInterval * 0.8);
         }
       }
     }
@@ -2628,6 +2882,14 @@ function loadGame() {
     // Fast-forward user milestone pointer
     while (nextUserMilestone < USER_MILESTONES.length &&
            totalUsers >= USER_MILESTONES[nextUserMilestone].at) nextUserMilestone++;
+    if (p.specialists) {
+      const orig = state.cash; state.cash = 1e12;
+      for (const [id, cnt] of Object.entries(p.specialists)) {
+        for (let i = 0; i < cnt; i++) hireSpecialist(id);
+      }
+      state.cash = orig;
+    }
+    if (typeof p.currentTierIdx === 'number') selectProductTier(p.currentTierIdx);
   } catch {}
 }
 
@@ -2644,6 +2906,7 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
+selectProductTier(currentTierIdx);
 addCash(25);
 renderFunding();
 setInterval(saveGame, 5000);
