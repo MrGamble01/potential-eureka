@@ -1061,6 +1061,7 @@
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
   <span id="season-badge">S1</span>
+  <span id="player-chip"></span>
   <span class="sep" id="trophy-sep" style="display:none">|</span>
   <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
@@ -1259,6 +1260,50 @@
     <button class="elev-close" id="elev-close">Close</button>
   </div>
 </div>
+
+<!-- Player name + theme selection (shown on first visit) -->
+<div id="name-modal" class="hidden">
+  <div class="name-panel">
+    <h2>🚀 Startup Tycoon</h2>
+    <p>Enter your founder name and pick a world to build in</p>
+    <input type="text" id="player-name-input" placeholder="Your name…" maxlength="20" autocomplete="off" spellcheck="false" />
+    <div class="theme-pick-label">Choose your world</div>
+    <div class="theme-grid" id="theme-grid"></div>
+    <button class="name-start-btn" id="name-start-btn">Found Your Startup 🚀</button>
+  </div>
+</div>
+
+<!-- End-of-run stats (replaces IPO confirmation) -->
+<div id="run-stats-modal">
+  <div class="stats-panel">
+    <div class="stats-title">🎉 Going Public!</div>
+    <div class="stats-sub" id="stats-sub-text">Season 1 complete</div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="stats-share-row">
+      <button class="stats-share-btn" id="stats-share-btn">📋 Copy Score</button>
+      <button class="stats-screenshot-btn" id="stats-screenshot-btn">📸 Screenshot</button>
+    </div>
+    <div class="stats-actions">
+      <button class="stats-ipo-btn" id="stats-ipo-confirm-btn">🚀 Go Public</button>
+      <button class="stats-cancel-btn" id="stats-cancel-btn">Not yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaderboard -->
+<div id="lb-modal">
+  <div class="lb-panel">
+    <div class="lb-header">
+      <div class="lb-title">🏆 Leaderboard</div>
+    </div>
+    <div class="lb-sub">Best runs across all playthroughs</div>
+    <div class="lb-theme-tabs" id="lb-theme-tabs"></div>
+    <div id="lb-content"></div>
+    <button class="lb-close" id="lb-close-btn">Close</button>
+  </div>
+</div>
+<button id="lb-btn" title="Leaderboard">🏆</button>
+
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
@@ -1343,7 +1388,7 @@ function applyCameraTransform() {
 applyCameraTransform();
 fitCamera();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -1407,7 +1452,7 @@ const ROOM_DEFS = [
   },
   {
     id: 'back-left', gx: -1, gz: -1, cost: 5000,
-    label: '💼 Account Management',
+    label: '💼 The Bullpen',
     desks: [ {x:-20,z:-19, role:'ae'}, {x:-12,z:-19, role:'ae'} ],
   },
   {
@@ -1455,7 +1500,7 @@ const THEMES = {
       right:         '📞 Sales Corner',
       front:         '🏗️ Open Plan',
       back:          '☕ Breakroom',
-      'back-left':   '💼 Account Management',
+      'back-left':   '💼 The Bullpen',
       'back-right':  '🧪 R&D Lab',
       'front-left':  '🧘 Lounge',
       'front-right': '🏛️ Leadership Suite',
@@ -2185,7 +2230,7 @@ function activatePlotsForRoom(id) {
 // ── Add Desk (cram more desks into any owned room) ──────────
 // Each owned room can hold a handful of extra desks beyond its base.
 // Added desks default to 'any' (flex) unless the room is role-locked
-// (Sales Corner / Account Management / Leadership Suite), in which
+// (Sales Corner / The Bullpen / Leadership Suite), in which
 // case the new desk takes the room's locked role so the seating rules
 // stay consistent.
 const ROOM_LOCKED_ROLES = { 'right': 'bdr', 'back-left': 'ae', 'front-right': 'vp' };
@@ -2267,7 +2312,7 @@ const ROOM_MODES = {
         nextMode: 'lounge',
         nextCost: 5000,
         nextReq: () => ownedRooms.has('back-left') && ownedRooms.has('front-right'),
-        nextReqText: 'Needs 💼 Account Management + 🏛️ Leadership Suite',
+        nextReqText: 'Needs 💼 The Bullpen + 🏛️ Leadership Suite',
         nextLabel: '🧘 Open Lounge',
         onEnter: () => {
           // Entering Sales Floor promotes the Sales Corner into an AE Office
@@ -3202,7 +3247,7 @@ function updateIdeaWorkers(dt) {
         showToast('🏓 Taking a ping pong break!', '', 'ambient');
       } else if (w.state === 'toDeliver') {
         addRevenue(w.productValue);
-        totalFeaturesShipped++;
+        totalFeaturesShipped++; sessionSalesCount++;
         checkProductVersion();
         totalUsers += Math.max(1, Math.floor(w.productValue / 4));
         checkUserMilestones();
@@ -3216,7 +3261,7 @@ function updateIdeaWorkers(dt) {
         if (w.targetVP && vps.includes(w.targetVP)) {
           w.targetVP.queue.push({ worker: w, value: w.productValue, processTime: vpTierOf(w.targetVP).reviewTime });
           w.pendingWithVP = true;
-          totalFeaturesShipped++;  // still counts as a shipped feature
+          totalFeaturesShipped++; sessionSalesCount++;  // still counts as a shipped feature
           checkProductVersion();
           totalUsers += Math.max(1, Math.floor(w.productValue / 4));
           checkUserMilestones();
@@ -3322,7 +3367,7 @@ function updatePlayerProximityWork(dt) {
     setPaperStackProgress(p.paperStack, 0);
     const earned = computeDealValue();
     addRevenue(earned);
-    totalFeaturesShipped++;
+    totalFeaturesShipped++; sessionSalesCount++;
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -3359,7 +3404,7 @@ function updateCeoDeskWork(dt) {
     setPaperStackProgress(ceoPaperStack, 0);
     const earned = computeDealValue();
     addRevenue(earned);
-    totalFeaturesShipped++;
+    totalFeaturesShipped++; sessionSalesCount++;
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -3781,13 +3826,13 @@ function spawnAE() {
 }
 
 // AEs aren't a hire — you promote a BDR into the role. Requires a
-// dedicated AE desk (Account Management or a converted Sales Corner
+// dedicated AE desk (The Bullpen or a converted Sales Corner
 // once the Sales Floor conversion lands) and at least one BDR to pull
 // up. The BDR's active handoff, if any, is dropped.
 function handleAeHireOrPromote() {
   if (bdrs.length === 0) return;
   // Any desk that accepts 'ae' works — flex 'any' desks let you promote
-  // AEs early before the dedicated Account Management office is built.
+  // AEs early before the dedicated The Bullpen office is built.
   const aeDesk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
   if (!aeDesk) return;
   const cost = aeCost();
@@ -4092,7 +4137,7 @@ function renderHirePanel() {
 
   // Sales section appears once any desk can host a BDR or AE. Both
   // allow flex 'any' desks so you can promote AEs early without the
-  // dedicated Account Management office.
+  // dedicated The Bullpen office.
   const bdrCapacity = plots.some(p => p.active && deskAcceptsRole(p, 'bdr'));
   const aeCapacity  = plots.some(p => p.active && deskAcceptsRole(p, 'ae'));
   if (!bdrCapacity && !aeCapacity) {
@@ -4119,7 +4164,7 @@ function renderHirePanel() {
       hireExtBdrBtnEl.style.display = 'none';
     }
     // AE promotion: requires a BDR to promote + any desk that accepts
-    // 'ae'. Flex desks work early; Account Management + converted
+    // 'ae'. Flex desks work early; The Bullpen + converted
     // Sales Corner give dedicated space later.
     if (aeCapacity && bdrs.length >= 1) {
       const availableAeSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
@@ -5337,7 +5382,7 @@ function resolveNextAction() {
     sub:   `$${fmtCash(bdrCost())} — BDRs close small deals on their own`,
     action: () => _clickBtn('hire-bdr-btn'),
   };
-  // 7. Account Management → AE promotion (multiplies BDR deals ×3).
+  // 7. The Bullpen → AE promotion (multiplies BDR deals ×3).
   if (bdrs.length >= 1 && aes.length === 0) {
     const acct = ROOM_DEFS.find(r => r.id === 'back-left');
     if (acct && !ownedRooms.has('back-left') && _canAfford(acct.cost)) return {
@@ -5420,10 +5465,20 @@ function renderNextAction() {
   nextActionCardEl.style.cursor = rec.action ? 'pointer' : 'default';
   nextActionCardEl.style.opacity = rec.action ? '1' : '0.7';
 }
+
+// Session tracking — declared here so addCash can reference them on its first call
+let sessionSalesCount = 0;
+let sessionTimeToTenK = null;   // seconds from run start to first $10K
+let sessionRunStart   = Date.now();
+let sessionPeakTeam   = 0;
+
 function addCash(n, source = 'eng') {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
+    if (sessionTimeToTenK === null && state.allTimeCash >= 10000) {
+      sessionTimeToTenK = Math.floor((Date.now() - sessionRunStart) / 1000);
+    }
     showCashPop(n, source);
     checkMilestones();
   }
@@ -6862,6 +6917,312 @@ refreshGoalLabels();
 refreshTrophyBadge();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
+
+// ═══════════════════════════════════════════════════════════
+// LEADERBOARD & SOCIAL
+// ═══════════════════════════════════════════════════════════
+
+// roundRect polyfill for canvas overlay
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r) {
+    this.moveTo(x+r,y); this.lineTo(x+w-r,y);
+    this.quadraticCurveTo(x+w,y,x+w,y+r); this.lineTo(x+w,y+h-r);
+    this.quadraticCurveTo(x+w,y+h,x+w-r,y+h); this.lineTo(x+r,y+h);
+    this.quadraticCurveTo(x,y+h,x,y+h-r); this.lineTo(x,y+r);
+    this.quadraticCurveTo(x,y,x+r,y); this.closePath();
+  };
+}
+
+const PLAYER_KEY = 'startup-tycoon-player-v1';
+const LB_KEY     = 'startup-tycoon-lb-v1';
+let playerName   = 'Founder';
+
+function updatePlayerChip() {
+  const chip = document.getElementById('player-chip');
+  if (!chip) return;
+  const t = THEMES[currentThemeId] || THEMES.default;
+  chip.textContent = `${t.icon} ${playerName}`;
+  chip.style.display = '';
+}
+
+function loadPlayer() {
+  try {
+    const raw = localStorage.getItem(PLAYER_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    playerName = (p.name || 'Founder').slice(0, 20);
+    if (p.themeId && THEMES[p.themeId]) applyTheme(p.themeId);
+    updatePlayerChip();
+  } catch {}
+}
+
+function savePlayer() {
+  try {
+    localStorage.setItem(PLAYER_KEY, JSON.stringify({ name: playerName, themeId: currentThemeId }));
+  } catch {}
+}
+
+// ── Leaderboard persistence ───────────────────────────────────
+function loadLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY) || '{"entries":[]}'); }
+  catch { return { entries: [] }; }
+}
+
+function addLeaderboardEntry(entry) {
+  const lb = loadLeaderboard();
+  lb.entries.push(entry);
+  if (lb.entries.length > 200) lb.entries = lb.entries.slice(-200);
+  try { localStorage.setItem(LB_KEY, JSON.stringify(lb)); } catch {}
+}
+
+function checkRecords(entry) {
+  const lb = loadLeaderboard();
+  const same = lb.entries.filter(e => e.themeId === entry.themeId);
+  const maxE = same.length ? Math.max(...same.map(e => e.earnings)) : -1;
+  const maxS = same.length ? Math.max(...same.map(e => e.sales))    : -1;
+  const maxP = same.length ? Math.max(...same.map(e => e.prestige)) : -1;
+  const t10s = same.filter(e => e.timeToTenK !== null).map(e => e.timeToTenK);
+  const minT = t10s.length ? Math.min(...t10s) : Infinity;
+  return {
+    earnings:   entry.earnings   > maxE,
+    sales:      entry.sales      > maxS,
+    prestige:   entry.prestige   > maxP,
+    timeToTenK: entry.timeToTenK !== null && entry.timeToTenK < minT,
+  };
+}
+
+// ── Name entry modal ──────────────────────────────────────────
+const nameModal    = document.getElementById('name-modal');
+const nameInputEl  = document.getElementById('player-name-input');
+const nameStartBtn = document.getElementById('name-start-btn');
+const themeGridEl  = document.getElementById('theme-grid');
+let _selThemeId    = currentThemeId;
+
+function buildThemeGrid() {
+  themeGridEl.innerHTML = '';
+  Object.values(THEMES).forEach(t => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-btn' + (t.id === _selThemeId ? ' selected' : '');
+    btn.innerHTML = `<span class="t-emoji">${t.icon}</span>${t.name}`;
+    btn.addEventListener('click', () => {
+      _selThemeId = t.id;
+      themeGridEl.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    themeGridEl.appendChild(btn);
+  });
+}
+
+function showNameModal() {
+  _selThemeId = currentThemeId;
+  buildThemeGrid();
+  nameInputEl.value = (playerName !== 'Founder') ? playerName : '';
+  nameModal.classList.remove('hidden');
+  setTimeout(() => nameInputEl.focus(), 80);
+}
+
+function submitName() {
+  const name = nameInputEl.value.trim() || 'Founder';
+  playerName = name.slice(0, 20);
+  applyTheme(_selThemeId);
+  savePlayer();
+  nameModal.classList.add('hidden');
+  updatePlayerChip();
+}
+
+nameStartBtn.addEventListener('click', submitName);
+nameInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
+
+// ── End-of-run stats screen ───────────────────────────────────
+const runStatsModal   = document.getElementById('run-stats-modal');
+const statsSubText    = document.getElementById('stats-sub-text');
+const statsGridEl     = document.getElementById('stats-grid');
+const statsShareBtn   = document.getElementById('stats-share-btn');
+const statsScreenshot = document.getElementById('stats-screenshot-btn');
+const statsIpoConfirm = document.getElementById('stats-ipo-confirm-btn');
+const statsCancelBtn  = document.getElementById('stats-cancel-btn');
+let _pendingEntry     = null;
+
+function openRunStatsModal() {
+  const t = THEMES[currentThemeId] || THEMES.default;
+  const runSecs = Math.floor((Date.now() - sessionRunStart) / 1000);
+  const rm  = Math.floor(runSecs / 60);
+  const dur = rm >= 60 ? `${Math.floor(rm/60)}h ${rm%60}m` : `${rm}m ${runSecs%60}s`;
+
+  _pendingEntry = {
+    playerName, themeId: currentThemeId, themeName: t.name, themeIcon: t.icon,
+    season: prestigeLevel+1, earnings: state.allTimeCash, sales: sessionSalesCount,
+    prestige: prestigeLevel, timeToTenK: sessionTimeToTenK,
+    peakTeam: sessionPeakTeam, runSecs, date: new Date().toLocaleDateString(),
+  };
+
+  const rec = checkRecords(_pendingEntry);
+  statsSubText.textContent = `${t.icon} ${t.name} — Season ${prestigeLevel+1} complete`;
+
+  const fmtT10k = () => {
+    if (sessionTimeToTenK === null) return '—';
+    const m = Math.floor(sessionTimeToTenK/60), s = sessionTimeToTenK%60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+  const card = (lbl, val, isRec) =>
+    `<div class="stat-card"><div class="sc-label">${lbl}</div>` +
+    `<div class="sc-value">${val}</div>` +
+    `${isRec ? '<div class="sc-record">🏆 New Record!</div>' : ''}</div>`;
+
+  statsGridEl.innerHTML =
+    card('💰 Earnings',    '$'+fmtCash(state.allTimeCash),   rec.earnings)   +
+    card('📦 Sales Made',  sessionSalesCount.toLocaleString(), rec.sales)      +
+    card('👥 Peak Team',   sessionPeakTeam+' people',          false)          +
+    card('⏱ Time Played', dur,                                false)          +
+    card('⚡ to $10K',     fmtT10k(),                          rec.timeToTenK) +
+    card('🏆 Prestige',    'Level '+prestigeLevel,             rec.prestige);
+
+  runStatsModal.classList.add('open');
+}
+
+statsIpoConfirm.addEventListener('click', () => {
+  runStatsModal.classList.remove('open');
+  if (_pendingEntry) { addLeaderboardEntry(_pendingEntry); _pendingEntry = null; }
+  doIPO();
+  sessionSalesCount = 0; sessionTimeToTenK = null;
+  sessionRunStart = Date.now(); sessionPeakTeam = 0;
+});
+statsCancelBtn.addEventListener('click', () => {
+  runStatsModal.classList.remove('open'); _pendingEntry = null;
+});
+runStatsModal.addEventListener('click', e => {
+  if (e.target === runStatsModal) { runStatsModal.classList.remove('open'); _pendingEntry = null; }
+});
+
+// ── Share score ───────────────────────────────────────────────
+statsShareBtn.addEventListener('click', () => {
+  if (!_pendingEntry) return;
+  const e = _pendingEntry;
+  const t10k = e.timeToTenK !== null
+    ? ` | ⚡ $10K in ${Math.floor(e.timeToTenK/60)>0?Math.floor(e.timeToTenK/60)+'m ':''}${e.timeToTenK%60}s`
+    : '';
+  const txt = `${e.themeIcon} I built a $${fmtCash(e.earnings)} ${e.themeName} in Startup Tycoon! 🚀`
+    + ` Season ${e.season} | ${e.sales} deals${t10k} | Play at ${location.href}`;
+  navigator.clipboard.writeText(txt).then(() => {
+    statsShareBtn.textContent = '✅ Copied!';
+    setTimeout(() => { statsShareBtn.textContent = '📋 Copy Score'; }, 2200);
+  }).catch(() => { prompt('Copy your score:', txt); });
+});
+
+// ── Screenshot ────────────────────────────────────────────────
+statsScreenshot.addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const src = renderer.domElement;
+  const oc = document.createElement('canvas');
+  oc.width = src.width; oc.height = src.height;
+  const ctx = oc.getContext('2d');
+  ctx.drawImage(src, 0, 0);
+
+  const t = THEMES[currentThemeId] || THEMES.default;
+  const pad=20, bW=Math.min(500,oc.width-pad*2), bH=180;
+  const bx=pad, by=oc.height-bH-pad;
+  ctx.fillStyle='rgba(13,17,23,0.88)';
+  ctx.beginPath(); ctx.roundRect(bx,by,bW,bH,12); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.stroke();
+
+  const ff='-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  ctx.fillStyle='#E6EDF3'; ctx.font=`bold 18px ${ff}`;
+  ctx.fillText(`${t.icon} Startup Tycoon — ${playerName}`, bx+16, by+28);
+  ctx.fillStyle='#3FB950'; ctx.font=`bold 28px ${ff}`;
+  ctx.fillText(`$${fmtCash(state.allTimeCash)}`, bx+16, by+62);
+  ctx.fillStyle='#a0aab4'; ctx.font=`13px ${ff}`;
+  const rm2 = _pendingEntry ? Math.floor(_pendingEntry.runSecs/60) : 0;
+  ctx.fillText(`Season ${prestigeLevel+1} · ${sessionSalesCount} deals · ${sessionPeakTeam}-person team · ${rm2}m`, bx+16, by+90);
+  if (sessionTimeToTenK !== null) {
+    const m=Math.floor(sessionTimeToTenK/60), s=sessionTimeToTenK%60;
+    ctx.fillText(`⚡ $10K in ${m>0?m+'m ':''}${s}s`, bx+16, by+112);
+  }
+  ctx.fillStyle='#7D8590'; ctx.font=`11px ${ff}`;
+  ctx.fillText(location.href, bx+16, by+bH-12);
+
+  const a=document.createElement('a');
+  a.download=`startup-tycoon-s${prestigeLevel+1}.png`;
+  a.href=oc.toDataURL('image/png'); a.click();
+});
+
+// ── Leaderboard modal ─────────────────────────────────────────
+const lbModal    = document.getElementById('lb-modal');
+const lbTabsEl   = document.getElementById('lb-theme-tabs');
+const lbContent  = document.getElementById('lb-content');
+const lbCloseBtn = document.getElementById('lb-close-btn');
+const lbBtn      = document.getElementById('lb-btn');
+let _lbFilter    = 'all';
+
+const LB_CATS = [
+  { label:'💰 Highest Earnings', fmt:e=>'$'+fmtCash(e.earnings),
+    sort:(a,b)=>b.earnings-a.earnings, filter:()=>true },
+  { label:'⚡ Fastest to $10K',
+    fmt:e=>{ const m=Math.floor(e.timeToTenK/60),s=e.timeToTenK%60; return m>0?`${m}m ${s}s`:`${s}s`; },
+    sort:(a,b)=>a.timeToTenK-b.timeToTenK, filter:e=>e.timeToTenK!==null },
+  { label:'📦 Most Sales', fmt:e=>e.sales.toLocaleString()+' deals',
+    sort:(a,b)=>b.sales-a.sales, filter:()=>true },
+  { label:'🏆 Highest Prestige', fmt:e=>'Level '+e.prestige,
+    sort:(a,b)=>b.prestige-a.prestige, filter:()=>true },
+];
+
+function buildLbTabs() {
+  lbTabsEl.innerHTML = '';
+  const tab = (id, lbl) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lb-tab' + (_lbFilter===id?' active':'');
+    b.textContent = lbl;
+    b.addEventListener('click', () => { _lbFilter=id; renderLeaderboard(); });
+    lbTabsEl.appendChild(b);
+  };
+  tab('all','🌐 All Themes');
+  const used = [...new Set(loadLeaderboard().entries.map(e=>e.themeId))];
+  for (const tid of used) {
+    const t = THEMES[tid] || THEMES.default;
+    tab(tid, `${t.icon} ${t.name}`);
+  }
+}
+
+function renderLeaderboard() {
+  buildLbTabs();
+  const entries = loadLeaderboard().entries;
+  const pool = _lbFilter==='all' ? entries : entries.filter(e=>e.themeId===_lbFilter);
+  lbContent.innerHTML = '';
+  for (const cat of LB_CATS) {
+    const div = document.createElement('div');
+    div.className = 'lb-cat';
+    div.innerHTML = `<div class="lb-cat-title">${cat.label}</div>`;
+    const top = pool.filter(cat.filter).sort(cat.sort).slice(0,5);
+    if (!top.length) {
+      div.innerHTML += `<div class="lb-empty">No runs recorded yet</div>`;
+    } else {
+      top.forEach((e,i) => {
+        const medal = ['🥇','🥈','🥉'][i] || `${i+1}.`;
+        const rcls  = ['gold','silver','bronze'][i] || '';
+        const tag   = (_lbFilter==='all'&&e.themeIcon) ? `<span class="lb-meta">${e.themeIcon}</span>` : '';
+        div.innerHTML +=
+          `<div class="lb-row"><span class="lb-rank ${rcls}">${medal}</span>` +
+          `${tag}<span class="lb-name">${e.playerName||'Founder'}</span>` +
+          `<span class="lb-meta">${e.date||''}</span>` +
+          `<span class="lb-val">${cat.fmt(e)}</span></div>`;
+      });
+    }
+    lbContent.appendChild(div);
+  }
+}
+
+lbBtn.addEventListener('click', () => { renderLeaderboard(); lbModal.classList.add('open'); });
+lbCloseBtn.addEventListener('click', () => lbModal.classList.remove('open'));
+lbModal.addEventListener('click', e => { if (e.target===lbModal) lbModal.classList.remove('open'); });
+
+// Swap IPO button → stats screen
+ipoBtnEl.removeEventListener('click', openIPOModal);
+ipoBtnEl.addEventListener('click', openRunStatsModal);
+
+// ── Startup ───────────────────────────────────────────────────
+loadPlayer();
+if (!localStorage.getItem(PLAYER_KEY)) showNameModal();
 
 requestAnimationFrame(loop);
 </script>
