@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   STARTUP TYCOON — single-file MVP (Three.js from CDN)
 
   PLAY
@@ -399,7 +399,54 @@
     .allhands-btn .cost { float: right; color: #f59e0b; font-size: 11px; font-weight: 800; }
     .allhands-btn.surge { background: rgba(217,119,6,0.35); border-color: rgba(217,119,6,0.8); animation: handsPulse 0.8s ease-in-out infinite; }
     @keyframes handsPulse { 0%,100% { box-shadow: 0 0 8px rgba(217,119,6,0.3); } 50% { box-shadow: 0 0 20px rgba(217,119,6,0.7); } }
+
+    /* ── Theme button ─────────────────────────────── */
+    #theme-btn {
+      position: fixed; bottom: 18px; left: 80px; width: 52px; height: 52px;
+      background: rgba(108,99,255,0.18); border: 1px solid rgba(108,99,255,0.42);
+      color: #E6EDF3; border-radius: 12px; font-size: 22px; cursor: pointer;
+      backdrop-filter: blur(12px); z-index: 10;
+      box-shadow: 0 0 14px rgba(108,99,255,0.18); transition: all 0.15s;
+    }
+    #theme-btn:hover { background: rgba(108,99,255,0.32); }
+    #theme-btn:active { transform: scale(0.94); }
+    #theme-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    #theme-modal.open { display: flex; }
+    .theme-panel {
+      background: rgba(13,17,23,0.97); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 22px; max-width: 540px; width: 92vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.55); max-height: 88vh; overflow-y: auto;
+    }
+    #theme-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 14px; }
+    .theme-card {
+      border: 2px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+      background: rgba(255,255,255,0.03); position: relative;
+    }
+    .theme-card:hover:not(.theme-locked) { border-color: rgba(108,99,255,0.5); background: rgba(255,255,255,0.07); }
+    .theme-card.theme-active { border-color: rgba(63,185,80,0.6); background: rgba(63,185,80,0.06); }
+    .theme-card.theme-locked { opacity: 0.5; cursor: not-allowed; }
+    .theme-card-header { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+    .theme-card-emoji { font-size: 22px; }
+    .theme-card-name { font-size: 13px; font-weight: 700; color: #E6EDF3; }
+    .theme-swatches { display: flex; gap: 4px; margin-bottom: 7px; }
+    .theme-swatch { width: 24px; height: 24px; border-radius: 5px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.12); }
+    .theme-unlock-txt { font-size: 10px; color: #7D8590; font-style: italic; }
+    .theme-active-badge {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(63,185,80,0.25); border: 1px solid rgba(63,185,80,0.5);
+      color: #3FB950; font-size: 9px; font-weight: 800; letter-spacing: 0.8px;
+      padding: 2px 6px; border-radius: 8px; text-transform: uppercase;
+    }
+    .theme-lock-icon { position: absolute; top: 8px; right: 10px; font-size: 13px; }
+    html, body { transition: background-color 0.35s ease; }
   </style>
+  <style id="theme-overrides"></style>
 </head>
 <body>
 <div id="status-bar">
@@ -475,6 +522,8 @@
     <button class="elev-close" id="elev-close">Close</button>
   </div>
 </div>
+<button id="theme-btn" title="Themes">&#x1F3A8;</button>
+<div id="theme-modal"><div class="theme-panel"><h3 class="elev-title">&#x1F3A8; Themes</h3><div id="theme-grid"></div><button class="elev-close" id="theme-close">Close</button></div></div>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
@@ -1945,6 +1994,7 @@ function addCash(n) {
     state.allTimeCash += n;
     showCashPop(n);
     checkMilestones();
+    checkThemeUnlocks();
   }
   cashValEl.textContent = Math.floor(state.cash).toString();
   renderUpgrades();
@@ -2643,7 +2693,98 @@ function tickTimer() {
 tickTimer();
 setInterval(tickTimer, 1000);
 
+// ── Theme System ──────────────────────────────────────────────
+const THEMES=[
+  { id:'default',  name:'Default',         emoji:'🏢', unlockCash:0,     unlockDesc:'Always available',
+    preview:['#3FB950','#6c63ff','#f0ede8','#0d1117'], css:'',
+    three:{ scene:0xd6d0c8,floor:0xf0ede8,carpetL:0xdde4f0,carpetD:0xe8ede4,wall:0xf8f8f8,rug:0xeacdb5,plot:0xe0dbd4,player:0x4a90ff,logo:0x2979ff,ambient:0xffffff,sun:0xffffff,fill:0xfff8f0 } },
+  { id:'homeless', name:'Homeless Village', emoji:'🏚️', unlockCash:100,   unlockDesc:'Earn $100 to unlock',
+    preview:['#d97706','#92400e','#a07828','#1a0f00'],
+    css:`html,body{background:#1a0f00!important}#cash-hud,#metrics-hud,#activity-feed,.panel,#upgrades,#status-bar{background:rgba(28,16,2,.93)!important;border-color:rgba(180,120,40,.22)!important}#cash-hud{color:#d97706!important;box-shadow:0 0 14px rgba(217,119,6,.12)!important}.cash-pop{color:#d97706!important}.upg-btn .cost,.hire-btn .cost{color:#d97706!important}.upg-btn{background:rgba(180,120,40,.05)!important;border-color:rgba(180,120,40,.16)!important}.upg-btn:hover:not(:disabled){background:rgba(180,120,40,.14)!important;border-color:rgba(180,120,40,.3)!important}.upg-btn .lvl{background:rgba(180,120,40,.35)!important;color:#fcd34d!important}.hire-btn,.fund-btn{background:rgba(180,120,40,.07)!important;border-color:rgba(180,120,40,.24)!important}.hire-btn:hover:not(:disabled),.fund-btn:hover:not(:disabled){background:rgba(180,120,40,.18)!important}.amenity-btn.owned{background:rgba(180,120,40,.12)!important;border-color:rgba(180,120,40,.4)!important}.toast{background:rgba(28,16,2,.97)!important;border-left-color:#d97706!important}.toast.milestone{border-left-color:#92400e!important}#elevator-btn{background:rgba(180,120,40,.14)!important;border-color:rgba(180,120,40,.38)!important}#labels>div{background:rgba(28,16,2,.92)!important;border-color:rgba(180,120,40,.18)!important}`,
+    three:{ scene:0x8b6914,floor:0xa07828,carpetL:0x7a5e18,carpetD:0x8a6a20,wall:0x6b4c12,rug:0x5a3e10,plot:0x7a5818,player:0xff8c42,logo:0x92400e,ambient:0xffe4b0,sun:0xffcc80,fill:0xffd890 } },
+  { id:'wizard',   name:'Wizard Castle',    emoji:'🧙', unlockCash:1000,  unlockDesc:'Earn $1,000 to unlock',
+    preview:['#c084fc','#fbbf24','#2a2038','#0d0a18'],
+    css:`html,body{background:#0d0a18!important}#cash-hud,#metrics-hud,#activity-feed,.panel,#upgrades,#status-bar{background:rgba(15,10,30,.95)!important;border-color:rgba(192,132,252,.25)!important}#cash-hud{color:#fbbf24!important;box-shadow:0 0 18px rgba(251,191,36,.15)!important}.cash-pop{color:#fbbf24!important}.upg-btn .cost,.hire-btn .cost{color:#fbbf24!important}.upg-btn{background:rgba(192,132,252,.05)!important;border-color:rgba(192,132,252,.16)!important}.upg-btn:hover:not(:disabled){background:rgba(192,132,252,.14)!important;border-color:rgba(192,132,252,.34)!important}.upg-btn .lvl{background:rgba(251,191,36,.32)!important;color:#fcd34d!important}.hire-btn,.fund-btn{background:rgba(192,132,252,.07)!important;border-color:rgba(192,132,252,.26)!important}.hire-btn:hover:not(:disabled),.fund-btn:hover:not(:disabled){background:rgba(192,132,252,.18)!important}.amenity-btn{background:rgba(192,132,252,.06)!important;border-color:rgba(192,132,252,.2)!important}.amenity-btn.owned{background:rgba(251,191,36,.1)!important;border-color:rgba(251,191,36,.38)!important}.toast{background:rgba(15,10,30,.97)!important;border-left-color:#c084fc!important}.toast.milestone{border-left-color:#fbbf24!important}#elevator-btn{background:rgba(192,132,252,.16)!important;border-color:rgba(192,132,252,.42)!important;box-shadow:0 0 14px rgba(192,132,252,.2)!important}#labels>div{background:rgba(15,10,30,.92)!important;border-color:rgba(192,132,252,.18)!important}#labels>div.refill{background:rgba(192,132,252,.85)!important}`,
+    three:{ scene:0x1a1428,floor:0x2a2038,carpetL:0x1e1832,carpetD:0x241e38,wall:0x302540,rug:0x3d1a4a,plot:0x1e1830,player:0xc084fc,logo:0x7e22ce,ambient:0x9966cc,sun:0x7744aa,fill:0x8855bb } },
+  { id:'druglab',  name:'Drug Lab',          emoji:'⚗️', unlockCash:5000,  unlockDesc:'Earn $5,000 to unlock',
+    preview:['#eab308','#dc2626','#707060','#1c1c14'],
+    css:`html,body{background:#1c1c14!important}#cash-hud,#metrics-hud,#activity-feed,.panel,#upgrades,#status-bar{background:rgba(30,30,20,.94)!important;border-color:rgba(234,179,8,.3)!important}#cash-hud{color:#eab308!important;box-shadow:0 0 14px rgba(234,179,8,.18)!important}.cash-pop{color:#eab308!important}.upg-btn .cost,.hire-btn .cost{color:#eab308!important}.upg-btn{background:rgba(234,179,8,.05)!important;border-color:rgba(234,179,8,.18)!important}.upg-btn:hover:not(:disabled){background:rgba(234,179,8,.14)!important;border-color:rgba(234,179,8,.32)!important}.upg-btn .lvl{background:rgba(220,38,38,.38)!important;color:#fca5a5!important}.hire-btn,.fund-btn{background:rgba(234,179,8,.07)!important;border-color:rgba(234,179,8,.26)!important}.hire-btn:hover:not(:disabled),.fund-btn:hover:not(:disabled){background:rgba(234,179,8,.18)!important}.amenity-btn{background:rgba(234,179,8,.05)!important;border-color:rgba(234,179,8,.18)!important}.amenity-btn.owned{background:rgba(234,179,8,.14)!important;border-color:rgba(234,179,8,.4)!important}.toast{background:rgba(30,30,20,.97)!important;border-left-color:#eab308!important}.toast.milestone{border-left-color:#dc2626!important}#elevator-btn{background:rgba(234,179,8,.14)!important;border-color:rgba(234,179,8,.38)!important}#labels>div{background:rgba(30,30,20,.92)!important;border-color:rgba(234,179,8,.22)!important}#labels>div.refill{background:rgba(234,179,8,.88)!important;color:#000!important}`,
+    three:{ scene:0x606050,floor:0x707060,carpetL:0x686058,carpetD:0x787868,wall:0x909080,rug:0x4a5840,plot:0x585848,player:0xffd700,logo:0xdc2626,ambient:0xf0f0e0,sun:0xfffff0,fill:0xfffbe8 } },
+  { id:'space',    name:'Space',             emoji:'🚀', unlockCash:25000, unlockDesc:'Earn $25,000 to unlock',
+    preview:['#00e5ff','#6200ea','#0c0c28','#000008'],
+    css:`html,body{background:#000008!important}#cash-hud,#metrics-hud,#activity-feed,.panel,#upgrades,#status-bar{background:rgba(0,0,18,.94)!important;border-color:rgba(0,229,255,.2)!important}#cash-hud{color:#00e5ff!important;box-shadow:0 0 20px rgba(0,229,255,.2)!important}.cash-pop{color:#00e5ff!important}.upg-btn .cost,.hire-btn .cost{color:#00e5ff!important}.upg-btn{background:rgba(0,229,255,.03)!important;border-color:rgba(0,229,255,.13)!important}.upg-btn:hover:not(:disabled){background:rgba(0,229,255,.11)!important;border-color:rgba(0,229,255,.28)!important}.upg-btn .lvl{background:rgba(98,0,234,.4)!important;color:#ce93d8!important}.hire-btn,.fund-btn{background:rgba(98,0,234,.1)!important;border-color:rgba(98,0,234,.3)!important}.hire-btn:hover:not(:disabled),.fund-btn:hover:not(:disabled){background:rgba(98,0,234,.22)!important}.amenity-btn{background:rgba(98,0,234,.06)!important;border-color:rgba(98,0,234,.2)!important}.amenity-btn.owned{background:rgba(0,229,255,.08)!important;border-color:rgba(0,229,255,.32)!important}.toast{background:rgba(0,0,18,.97)!important;border-left-color:#6200ea!important}.toast.milestone{border-left-color:#00e5ff!important}#elevator-btn{background:rgba(98,0,234,.18)!important;border-color:rgba(98,0,234,.45)!important;box-shadow:0 0 18px rgba(0,229,255,.15)!important}#ipo-btn{background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(98,0,234,.3))!important;border-color:rgba(0,229,255,.55)!important}#labels>div{background:rgba(0,0,18,.92)!important;border-color:rgba(0,229,255,.15)!important}#labels>div.refill{background:rgba(98,0,234,.85)!important}`,
+    three:{ scene:0x060618,floor:0x0c0c28,carpetL:0x0e0e36,carpetD:0x0a0a26,wall:0x141440,rug:0x080820,plot:0x0a0a22,player:0x00e5ff,logo:0x311b92,ambient:0x3333aa,sun:0x2222cc,fill:0x1111bb } },
+];
+
+const THEME_MATS={floor:floor.material,carpetL:leftCarpet.material,carpetD:devCarpet.material,wall:wallMat,rug:rug.material,player:body.material,plot:plotMat,logo:logoBg.material};
+let _themeAmbient=null;
+for(const c of scene.children){if(c.isAmbientLight){_themeAmbient=c;break;}}
+const themeState={active:'default',unlocked:new Set(['default'])};
+const THEME_SAVE_KEY='startup-tycoon-themes-v1';
+
+function applyTheme(id){
+  const t=THEMES.find(th=>th.id===id);if(!t)return;
+  themeState.active=id;
+  document.getElementById('theme-overrides').textContent=t.css;
+  scene.background.setHex(t.three.scene);
+  THEME_MATS.floor.color.setHex(t.three.floor);
+  THEME_MATS.carpetL.color.setHex(t.three.carpetL);
+  THEME_MATS.carpetD.color.setHex(t.three.carpetD);
+  THEME_MATS.wall.color.setHex(t.three.wall);
+  THEME_MATS.rug.color.setHex(t.three.rug);
+  THEME_MATS.player.color.setHex(t.three.player);
+  THEME_MATS.plot.color.setHex(t.three.plot);
+  THEME_MATS.logo.color.setHex(t.three.logo);
+  if(_themeAmbient)_themeAmbient.color.setHex(t.three.ambient);
+  sun.color.setHex(t.three.sun);fillLight.color.setHex(t.three.fill);
+  saveThemeState();
+}
+function setTheme(id){if(!themeState.unlocked.has(id))return;applyTheme(id);renderThemeModal();}
+function unlockTheme(id){
+  if(themeState.unlocked.has(id))return;
+  themeState.unlocked.add(id);
+  const t=THEMES.find(th=>th.id===id);
+  if(t){showToast(`🎨 Theme unlocked: ${t.emoji} ${t.name}!`,'milestone');addFeedEntry(`🎨 ${t.name} theme unlocked!`);renderThemeModal();}
+  saveThemeState();
+}
+function checkThemeUnlocks(){
+  for(const t of THEMES)if(t.unlockCash>0&&state.allTimeCash>=t.unlockCash&&!themeState.unlocked.has(t.id))unlockTheme(t.id);
+}
+function saveThemeState(){try{localStorage.setItem(THEME_SAVE_KEY,JSON.stringify({active:themeState.active,unlocked:[...themeState.unlocked]}));}catch{}}
+function loadThemeState(){
+  try{
+    const raw=localStorage.getItem(THEME_SAVE_KEY);
+    if(raw){const p=JSON.parse(raw);if(Array.isArray(p.unlocked))p.unlocked.forEach(id=>themeState.unlocked.add(id));}
+    for(const t of THEMES)if(t.unlockCash>0&&state.allTimeCash>=t.unlockCash)themeState.unlocked.add(t.id);
+    const saved=raw?JSON.parse(raw):null;
+    if(saved?.active&&themeState.unlocked.has(saved.active))applyTheme(saved.active);
+  }catch{}
+}
+function renderThemeModal(){
+  const grid=document.getElementById('theme-grid');if(!grid)return;
+  grid.innerHTML='';
+  for(const t of THEMES){
+    const isActive=themeState.active===t.id,isUnlocked=themeState.unlocked.has(t.id);
+    const card=document.createElement('div');
+    card.className='theme-card'+(isActive?' theme-active':'')+(isUnlocked?'':' theme-locked');
+    const swatches=t.preview.map(c=>`<div class="theme-swatch" style="background:${c}"></div>`).join('');
+    card.innerHTML=`
+      ${isActive?'<span class="theme-active-badge">Active</span>':''}
+      ${!isUnlocked?'<span class="theme-lock-icon">🔒</span>':''}
+      <div class="theme-card-header"><span class="theme-card-emoji">${t.emoji}</span><span class="theme-card-name">${t.name}</span></div>
+      <div class="theme-swatches">${swatches}</div>
+      <div class="theme-unlock-txt">${isUnlocked?(isActive?'✓ Currently active':'Click to apply'):t.unlockDesc}</div>`;
+    if(isUnlocked&&!isActive)card.onclick=()=>setTheme(t.id);
+    grid.appendChild(card);
+  }
+}
+const themeModalEl=document.getElementById('theme-modal');
+document.getElementById('theme-btn').onclick=()=>{renderThemeModal();themeModalEl.classList.add('open');};
+document.getElementById('theme-close').onclick=()=>themeModalEl.classList.remove('open');
+themeModalEl.addEventListener('click',e=>{if(e.target===themeModalEl)themeModalEl.classList.remove('open');});
+
 loadGame();
+loadThemeState();
 addCash(25);
 renderFunding();
 setInterval(saveGame, 5000);
