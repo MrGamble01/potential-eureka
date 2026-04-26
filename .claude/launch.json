@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "homeless-village",
+      "runtimeExecutable": "C:/Users/matth/.node-portable/node-v22.14.0-win-x64/npx.cmd",
+      "env": { "PATH": "C:/Users/matth/.node-portable/node-v22.14.0-win-x64;C:/Windows/system32" },
+      "runtimeArgs": ["serve", "-l", "5556", "."],
+      "port": 5556
+    },
+    {
+      "name": "startup-tycoon",
+      "runtimeExecutable": "C:/Users/matth/.node-portable/node-v22.14.0-win-x64/npx.cmd",
+      "env": { "PATH": "C:/Users/matth/.node-portable/node-v22.14.0-win-x64" },
+      "runtimeArgs": ["serve", "-l", "5555", "."],
+      "port": 5555
+    },
+    {
+      "name": "drug-lab",
+      "runtimeExecutable": "C:/Users/matth/.node-portable/node-v22.14.0-win-x64/npx.cmd",
+      "env": { "PATH": "C:/Users/matth/.node-portable/node-v22.14.0-win-x64;C:/Windows/system32;C:/Windows/System32/WindowsPowerShell/v1.0" },
+      "runtimeArgs": ["serve", "-l", "5557", "."],
+      "port": 5557
+    }
+  ]
+}
