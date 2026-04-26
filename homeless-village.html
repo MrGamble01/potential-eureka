@@ -1088,10 +1088,388 @@ function onNewDay(){
   if(G.days - G.lastEventDay >= 2) maybeEvent();
 }
 
-// Placeholder — filled in Part 2
-function maybeEvent(){}
+// ═══════════════════════════════════════════════════════════
+//  EVENTS SYSTEM
+// ═══════════════════════════════════════════════════════════
+const EVENTS_BAD = [
+  {
+    id:'sweep', title:'City Sweep', type:'bad', weight:18,
+    desc:'Police are clearing the camp. They destroy shelters and confiscate supplies.',
+    effect(){
+      G.timesSwept++;
+      G.lastEventDay = G.days;
+      if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); }
+      if(G.structures.soup_kitchen && Math.random()<.7){ G.structures.soup_kitchen=false; log('Soup kitchen torn down.'); }
+      if(G.structures.workbench && Math.random()<.5){ G.structures.workbench=false; log('Workbench smashed.'); }
+      const sl=Math.floor(G.scraps*(0.3+Math.random()*0.4));
+      const fl=Math.floor(G.food*(0.2+Math.random()*0.3));
+      G.scraps=Math.max(0,G.scraps-sl); G.food=Math.max(0,G.food-fl);
+      G.morale=Math.max(0,G.morale-rand(15,25));
+      refreshStructures(); showSweepWarning(false);
+    }
+  },
+  {
+    id:'cold_snap', title:'Cold Snap', type:'bad', weight:14,
+    desc:"Temperature drops hard tonight. Everyone's suffering.",
+    effect(){
+      G.lastEventDay=G.days;
+      G.warmth=Math.max(0,G.warmth-rand(20,35));
+      G.health=Math.max(0,G.health-rand(8,18));
+      G.morale=Math.max(0,G.morale-rand(10,15));
+      log('Cold snap hit. Warmth and health dropped.');
+    }
+  },
+  {
+    id:'theft', title:'Theft', type:'bad', weight:12,
+    desc:'Someone raided your stash in the night. Trust no one.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(0.2+Math.random()*0.35)));
+      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(0.15+Math.random()*0.3)));
+      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(0.1+Math.random()*0.2)));
+      G.morale=Math.max(0,G.morale-rand(12,20));
+      log('Stash raided in the night.');
+    }
+  },
+  {
+    id:'injury', title:'Injury', type:'bad', weight:10,
+    desc:'You hurt yourself. Moving slowly for the next while.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.health=Math.max(0,G.health-rand(15,30));
+      G.injuredUntil=Date.now()+90000;
+      log('Injured. Actions will be slower for a while.');
+    }
+  },
+  {
+    id:'gentrify', title:'Gentrification', type:'bad', weight:8,
+    desc:'New development nearby. Harassment from locals is increasing.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.morale  =Math.max(0,G.morale  -rand(18,28));
+      G.goodwill=Math.max(0,G.goodwill-rand(3,8));
+      log('More hostility in the area. Morale suffers.');
+    }
+  },
+  {
+    id:'sickness', title:'Illness Spreading', type:'bad', weight:11,
+    desc:'A bug is going through the camp. Everyone feels terrible.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.health=Math.max(0,G.health-rand(12,22));
+      G.food  =Math.max(0,G.food  -rand(2,5));
+      log('Sickness hit the community. Health fell.');
+    }
+  },
+  {
+    id:'dumpster_locked', title:'Dumpsters Locked', type:'bad', weight:7,
+    desc:'Property management put locks on the dumpsters. Nothing to scavenge today.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.cooldowns['scavenge']=Date.now()+60000;
+      G.cooldowns['forage']  =Date.now()+45000;
+      log('Dumpsters locked. Scavenging blocked for a while.');
+    }
+  },
+  {
+    id:'fire_out', title:'Fire Went Out', type:'bad', weight:9,
+    desc:'The barrel fire died overnight. Everything is colder.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.warmth=Math.max(0,G.warmth-rand(15,25));
+      fireLights.forEach(fl=>fl.intensity=0.1);
+      setTimeout(()=>{ fireLights.forEach(fl=>fl.intensity=2.0); }, 30000);
+      log("The fire burned out. It's cold and dark.");
+    }
+  },
+];
+
+const EVENTS_GOOD = [
+  {
+    id:'kind_stranger', title:'Kind Stranger', type:'good', weight:10,
+    desc:'Someone left a bag of food near the bridge. Small mercy.',
+    effect(){
+      G.lastEventDay=G.days;
+      const f=rand(3,8); G.food+=f;
+      G.morale=Math.min(100,G.morale+rand(5,10));
+      log(`Found donated food. +${f} food.`);
+    }
+  },
+  {
+    id:'found_money', title:'Found $5', type:'good', weight:9,
+    desc:'A crumpled bill on the sidewalk. Small win.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.goodwill+=rand(3,6);
+      G.morale=Math.min(100,G.morale+rand(4,8));
+      log('Found a few dollars. +goodwill.');
+    }
+  },
+  {
+    id:'good_weather', title:'Good Weather', type:'good', weight:11,
+    desc:'Clear skies and mild temps. A rare easy day.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.warmth=Math.min(100,G.warmth+rand(10,18));
+      G.morale=Math.min(100,G.morale+rand(8,14));
+      log('Nice weather today. Warmth and morale up.');
+    }
+  },
+  {
+    id:'old_friend', title:'Old Friend', type:'good', weight:6,
+    desc:'Someone from before recognized you. The feeling fades quickly.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.morale=Math.min(100,G.morale+rand(12,20));
+      setTimeout(()=>{ G.morale=Math.max(0,G.morale-rand(8,14)); log('The good feeling from yesterday is gone.'); }, 120000);
+      log('A familiar face. Morale surged — briefly.');
+    }
+  },
+  {
+    id:'church_donation', title:'Church Donated Supplies', type:'good', weight:8,
+    desc:'A volunteer group dropped off some essentials.',
+    effect(){
+      G.lastEventDay=G.days;
+      G.food  +=rand(4,9);
+      G.scraps+=rand(2,5);
+      G.morale=Math.min(100,G.morale+rand(5,10));
+      log('Volunteers dropped supplies. Food and scraps gained.');
+    }
+  },
+];
+
+function maybeEvent(){
+  if(G.days < 2) return;
+  if(Math.random() > 0.55) return;
+
+  // Lookout warns before sweep
+  if(Math.random() < 0.18 && !G.sweepWarned){
+    if(G.workers.lookout){
+      G.sweepWarned=true;
+      showSweepWarning(true);
+      log('LOOKOUT: Police activity nearby. Sweep in ~30 seconds!');
+      setTimeout(()=>{ if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(e=>e.id==='sweep')); }, 30000);
+    } else {
+      triggerEvent(EVENTS_BAD.find(e=>e.id==='sweep'));
+    }
+    return;
+  }
+
+  const badMod = G.season===3 ? 1.6 : 1.0;
+  const pool = [];
+  EVENTS_BAD.forEach(e  => { for(let i=0;i<Math.floor(e.weight*badMod);i++) pool.push({ev:e,good:false}); });
+  EVENTS_GOOD.forEach(e => { for(let i=0;i<e.weight;i++) pool.push({ev:e,good:true}); });
+  const pick = pool[Math.floor(Math.random()*pool.length)];
+  triggerEvent(pick.ev, pick.good);
+}
+
+function triggerEvent(ev, isGood){
+  showEvent(ev, !!isGood);
+  ev.effect();
+  G.sweepWarned=false;
+  showSweepWarning(false);
+  refreshStructures();
+  updateHUD();
+}
+
+function showSweepWarning(show){
+  document.getElementById('sweep-warning').style.display = show ? 'block' : 'none';
+}
+
+function showEvent(ev, isGood){
+  const banner=document.getElementById('event-banner');
+  document.getElementById('ev-title').textContent=ev.title;
+  document.getElementById('ev-body').textContent=ev.desc;
+  banner.className=isGood?'good':'bad';
+  banner.style.display='block';
+  setTimeout(()=>{ banner.style.display='none'; }, 7000);
+}
+
 function closeEvent(){
   document.getElementById('event-banner').style.display='none';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GARDEN STRUCTURE
+// ═══════════════════════════════════════════════════════════
+let gardenMesh = null;
+function buildGarden(x, z){
+  if(gardenMesh){ scene.remove(gardenMesh); gardenMesh=null; }
+  const grp = new THREE.Group();
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(3,0.2,2), new THREE.MeshLambertMaterial({color:0x4a3820}));
+  bed.position.y=.1; grp.add(bed);
+  for(let i=0;i<6;i++){
+    const h=0.3+Math.random()*.5;
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,h,4), new THREE.MeshLambertMaterial({color:0x3a6020}));
+    stem.position.set((Math.random()-.5)*2.4,.2+h/2,(Math.random()-.5)*1.6);
+    grp.add(stem);
+  }
+  grp.position.set(x,0,z);
+  scene.add(grp);
+  gardenMesh=grp;
+}
+
+// Override refreshStructures to include garden
+function refreshStructures(){
+  if(G.structures.workbench && !workbenchMesh) buildWorkbench(3,2);
+  if(!G.structures.workbench && workbenchMesh){ scene.remove(workbenchMesh); workbenchMesh=null; }
+  if(G.structures.tent && !tentMesh) buildTent(-4,-2);
+  if(!G.structures.tent && tentMesh){ scene.remove(tentMesh); tentMesh=null; }
+  if(G.structures.soup_kitchen && !soupKitchenMesh) buildSoupKitchen(0,-6);
+  if(!G.structures.soup_kitchen && soupKitchenMesh){ scene.remove(soupKitchenMesh); soupKitchenMesh=null; }
+  if(G.structures.garden && !gardenMesh) buildGarden(-7,4);
+  if(!G.structures.garden && gardenMesh){ scene.remove(gardenMesh); gardenMesh=null; }
+}
+
+// Override tickDay to include garden yield and full sun-arc logic
+function tickDay(dt){
+  G.timeOfDay += G.daySpeed * dt;
+  if(G.timeOfDay >= 1){
+    G.timeOfDay -= 1;
+    onNewDay();
+    if(G.structures.garden){ const y=rand(1,3); G.food+=y; log(`Garden yielded ${y} food.`); }
+    buildCraftUI();
+  }
+  // Sun colour arc
+  const tod=G.timeOfDay;
+  if(tod<0.5){
+    const t=tod*2;
+    sunLight.intensity=t*1.3; ambient.intensity=0.2+t*0.7;
+    sunLight.color.setRGB(1, 0.6+t*0.4, (0.6+t*0.4)*0.8);
+  } else {
+    const t=(tod-0.5)*2;
+    sunLight.intensity=Math.max(0,1.3-t*1.2); ambient.intensity=Math.max(0.15,0.9-t*0.75);
+    sunLight.color.setRGB(1, Math.max(0.1,0.8-t*0.5), Math.max(0.0,0.5-t*0.45));
+  }
+  updateHUD();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WEB AUDIO — ambient bridge sounds
+// ═══════════════════════════════════════════════════════════
+let audioCtx = null;
+function initAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  startRumble(); startCrackle(); startTraffic();
+}
+function startRumble(){
+  function tick(){
+    if(!audioCtx) return;
+    const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.012;
+    const src=audioCtx.createBufferSource(); src.buffer=buf;
+    const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=80;
+    const g=audioCtx.createGain(); g.gain.value=0.18;
+    src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
+    src.start(); src.onended=tick;
+  }
+  tick();
+}
+function startCrackle(){
+  function tick(){
+    if(!audioCtx) return;
+    const t=audioCtx.currentTime+Math.random()*0.4;
+    const buf=audioCtx.createBuffer(1,Math.floor(audioCtx.sampleRate*0.08),audioCtx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.4;
+    const src=audioCtx.createBufferSource(); src.buffer=buf;
+    const filt=audioCtx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=1200+Math.random()*800;
+    const g=audioCtx.createGain(); g.gain.setValueAtTime(0.04+Math.random()*0.05,t); g.gain.linearRampToValueAtTime(0,t+0.1);
+    src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
+    src.start(t);
+    setTimeout(tick, 120+Math.random()*600);
+  }
+  tick();
+}
+function startTraffic(){
+  function tick(){
+    if(!audioCtx) return;
+    const dur=0.6+Math.random()*0.8;
+    const t=audioCtx.currentTime;
+    const buf=audioCtx.createBuffer(1,Math.floor(audioCtx.sampleRate*dur),audioCtx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.3;
+    const src=audioCtx.createBufferSource(); src.buffer=buf;
+    const filt=audioCtx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=400+Math.random()*400;
+    const g=audioCtx.createGain();
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.065,t+dur*.3); g.gain.linearRampToValueAtTime(0,t+dur);
+    src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
+    src.start(t);
+    setTimeout(tick, 4000+Math.random()*12000);
+  }
+  tick();
+}
+document.addEventListener('click', initAudio, {once:true});
+document.addEventListener('keydown', initAudio, {once:true});
+
+// Add garden recipe (after refreshStructures is fully defined)
+RECIPES.push({
+  id:'garden', icon:'🌱', name:'Community Garden',
+  cost:{wood:6, goodwill:8, food:3},
+  gives:{structure:'garden'},
+  time:12000,
+  desc:'Slowly generates food each day. Gets destroyed in sweeps.'
+});
+
+// ═══════════════════════════════════════════════════════════
+//  FULL RENDER LOOP (replaces stub gameLoop)
+// ═══════════════════════════════════════════════════════════
+let camSwayT = 0;
+
+function gameLoop(ts){
+  requestAnimationFrame(gameLoop);
+  const dt = Math.min(ts - lastTime, 100);
+  lastTime = ts;
+
+  // Camera gentle sway
+  camSwayT += dt * 0.0003;
+  camera.position.x = 20 + Math.sin(camSwayT) * 0.15;
+  camera.position.z = 20 + Math.cos(camSwayT * 0.7) * 0.12;
+  camera.lookAt(0, 0, 0);
+
+  // Fire light flicker
+  fireLights.forEach((fl, i) => {
+    fl.intensity = 2.0 + Math.sin(ts*.003+i*1.7)*.6 + Math.sin(ts*.007+i*.9)*.3;
+    fl.color.setRGB(1, (80+Math.sin(ts*.005+i)*30)/255, 0.04);
+  });
+
+  // Figure wander + bob
+  figures.forEach(f => {
+    f.userData.bobPhase += dt * 0.003;
+    f.position.y = Math.abs(Math.sin(f.userData.bobPhase)) * 0.06;
+    f.userData.wanderTimer -= dt;
+    if(f.userData.wanderTimer <= 0){
+      f.userData.wanderTimer = 3000 + Math.random()*5000;
+      let cx=0,cz=0;
+      const r=Math.random();
+      if(r<.35){ cx=-3+(Math.random()-.5)*3; cz=(Math.random()-.5)*3; }        // near fire
+      else if(r<.55 && G.structures.workbench){ cx=3+(Math.random()-.5)*2; cz=2+(Math.random()-.5)*2; }
+      else { cx=(Math.random()-.5)*16; cz=(Math.random()-.5)*10; }
+      f.userData.target.set(cx,0,cz);
+    }
+    const dx=f.userData.target.x-f.position.x, dz=f.userData.target.z-f.position.z;
+    const dist=Math.sqrt(dx*dx+dz*dz);
+    if(dist>.1){
+      const sp=f.userData.speed*dt*.016*60;
+      f.position.x+=dx/dist*sp; f.position.z+=dz/dist*sp;
+      f.rotation.y=Math.atan2(dx,dz);
+    }
+  });
+
+  // Action progress bars + cooldown disable
+  ACTIONS.forEach(a => {
+    const job=activeJobs[a.id];
+    const pb=document.getElementById('progress-'+a.id);
+    if(pb) pb.style.width=job?Math.min(100,((Date.now()-job.startTime)/job.duration)*100)+'%':'0%';
+    const btn=document.getElementById('action-'+a.id);
+    if(btn&&!job){ const cd=G.cooldowns[a.id]; btn.disabled=!!(cd&&Date.now()<cd); }
+  });
+
+  tickDay(dt);
+
+  autosaveTimer+=dt;
+  if(autosaveTimer>30000){ autosaveTimer=0; saveGame(); }
+
+  renderer.render(scene,camera);
 }
 
 requestAnimationFrame(gameLoop);
