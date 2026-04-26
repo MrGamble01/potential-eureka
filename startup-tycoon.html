@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   STARTUP TYCOON — single-file game (Three.js via import-map)
 
   PLAY
@@ -1053,6 +1053,134 @@
       padding: 3px 6px; font-family: inherit; font-size: 11px;
     }
     .setting-row select:focus { outline: none; border-color: rgba(108,99,255,0.6); }
+  
+    /* == TUTORIAL & ONBOARDING == */
+    #welcome-splash {
+      position: fixed; inset: 0; z-index: 1100;
+      background: rgba(5,8,14,0.97); backdrop-filter: blur(22px);
+      display: flex; align-items: center; justify-content: center;
+      animation: splashIn 0.3s ease;
+    }
+    @keyframes splashIn { from { opacity:0; } to { opacity:1; } }
+    #welcome-splash.hidden { display: none; }
+    .splash-panel { max-width: 560px; width: 92vw; text-align: center; color: #E6EDF3; padding: 8px 12px; }
+    .splash-logo { font-size: 44px; margin-bottom: 6px; }
+    .splash-title {
+      font-size: 28px; font-weight: 900; margin-bottom: 5px;
+      background: linear-gradient(135deg,#3FB950,#6c63ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .splash-tagline { font-size: 13px; color: #7D8590; margin-bottom: 20px; }
+    .splash-sec-lbl { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #7D8590; margin-bottom: 10px; }
+    .theme-pick-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+    .theme-pick-card {
+      background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 12px 6px; cursor: pointer; transition: all 0.14s;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+    }
+    .theme-pick-card:hover { background: rgba(108,99,255,0.12); border-color: rgba(108,99,255,0.38); }
+    .theme-pick-card.sel { background: rgba(108,99,255,0.2); border-color: rgba(108,99,255,0.8); box-shadow: 0 0 14px rgba(108,99,255,0.25); }
+    .tpc-icon { font-size: 24px; }
+    .tpc-name { font-size: 10px; font-weight: 700; color: #E6EDF3; }
+    .splash-flavor { font-size: 12px; color: #a0aab4; margin-bottom: 20px; min-height: 32px; line-height: 1.5; }
+    .splash-btns { display: flex; gap: 10px; justify-content: center; }
+    .splash-start-btn {
+      background: linear-gradient(135deg,rgba(63,185,80,0.28),rgba(108,99,255,0.28));
+      border: 1px solid rgba(63,185,80,0.5); color: #E6EDF3;
+      padding: 11px 32px; font-size: 15px; font-weight: 800; font-family: inherit;
+      border-radius: 11px; cursor: pointer; transition: all 0.14s;
+    }
+    .splash-start-btn:hover { background: linear-gradient(135deg,rgba(63,185,80,0.45),rgba(108,99,255,0.45)); transform: scale(1.03); }
+    .splash-continue-btn {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+      color: #7D8590; padding: 11px 18px; font-size: 13px; font-weight: 700; font-family: inherit;
+      border-radius: 11px; cursor: pointer; transition: all 0.14s;
+    }
+    .splash-continue-btn:hover { color: #E6EDF3; background: rgba(255,255,255,0.11); }
+    #tutorial-overlay { position: fixed; inset: 0; z-index: 900; display: none; pointer-events: none; }
+    #tutorial-overlay.active { display: block; }
+    #tut-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.52); }
+    #tut-card {
+      position: absolute; bottom: 82px; left: 50%; transform: translateX(-50%);
+      background: rgba(10,12,18,0.98); backdrop-filter: blur(18px);
+      border: 1px solid rgba(108,99,255,0.38); border-radius: 14px;
+      padding: 18px 20px; max-width: 400px; width: 88vw;
+      box-shadow: 0 8px 36px rgba(0,0,0,0.55);
+      pointer-events: auto; z-index: 902;
+    }
+    #tut-step-lbl { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #6c63ff; margin-bottom: 3px; }
+    #tut-title { font-size: 15px; font-weight: 800; color: #E6EDF3; margin-bottom: 6px; }
+    #tut-text { font-size: 12px; color: #a0aab4; line-height: 1.6; margin-bottom: 13px; }
+    .tut-footer { display: flex; align-items: center; justify-content: space-between; }
+    #tut-dots { display: flex; gap: 4px; align-items: center; }
+    .tut-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.18); transition: all 0.18s; }
+    .tut-dot.done { background: rgba(108,99,255,0.55); }
+    .tut-dot.cur  { background: #3FB950; width: 16px; border-radius: 3px; }
+    #tut-next {
+      background: rgba(108,99,255,0.22); border: 1px solid rgba(108,99,255,0.5);
+      color: #E6EDF3; border-radius: 8px; padding: 7px 16px;
+      font-weight: 700; font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.14s;
+    }
+    #tut-next:hover { background: rgba(108,99,255,0.42); }
+    #tut-skip { background: none; border: none; color: #7D8590; font-size: 11px; cursor: pointer; font-family: inherit; font-weight: 600; padding: 4px 2px; }
+    #tut-skip:hover { color: #a0aab4; }
+    .tut-spotlight {
+      box-shadow: 0 0 0 3px rgba(108,99,255,0.9), 0 0 0 8px rgba(108,99,255,0.15) !important;
+      position: relative !important; z-index: 901 !important;
+      animation: tutRing 1.1s ease-in-out infinite;
+      border-radius: 8px !important; pointer-events: auto !important;
+    }
+    @keyframes tutRing {
+      0%,100% { box-shadow: 0 0 0 3px rgba(108,99,255,0.9),  0 0 0 8px rgba(108,99,255,0.15); }
+      50%      { box-shadow: 0 0 0 3px #6c63ff, 0 0 0 12px rgba(108,99,255,0.05); }
+    }
+    #tut-arrow { position: absolute; z-index: 903; pointer-events: none; display: none; width: 0; height: 0; }
+    #tut-arrow.down  { border: 9px solid transparent; border-top: 12px solid #6c63ff; }
+    #tut-arrow.up    { border: 9px solid transparent; border-bottom: 12px solid #6c63ff; }
+    [data-tip] { position: relative; }
+    [data-tip]::after {
+      content: attr(data-tip); pointer-events: none;
+      position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+      background: rgba(10,12,18,0.97); border: 1px solid rgba(255,255,255,0.14);
+      color: #E6EDF3; font-size: 11px; font-weight: 500; line-height: 1.45;
+      padding: 6px 10px; border-radius: 7px;
+      opacity: 0; transition: opacity 0.14s; z-index: 700;
+      width: max-content; max-width: 180px; white-space: normal; text-align: center;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+    [data-tip].tip-l::after { left: 0; transform: none; }
+    [data-tip].tip-r::after { left: auto; right: 0; transform: none; }
+    #help-btn {
+      position: fixed; bottom: 18px; left: 80px; width: 50px; height: 50px;
+      background: rgba(88,166,255,0.15); border: 1px solid rgba(88,166,255,0.36);
+      color: #E6EDF3; border-radius: 12px; font-size: 18px; cursor: pointer;
+      backdrop-filter: blur(12px); transition: all 0.14s; z-index: 50;
+    }
+    #help-btn:hover { background: rgba(88,166,255,0.28); }
+    #help-panel {
+      position: fixed; top: 0; right: -372px; height: 100%;
+      width: 355px; z-index: 800; transition: right 0.28s cubic-bezier(.4,0,.2,1);
+      background: rgba(10,12,18,0.98); backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255,255,255,0.09);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    #help-panel.open { right: 0; }
+    .hp-hdr { padding: 16px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .hp-hdr-title { font-size: 14px; font-weight: 800; color: #E6EDF3; }
+    .hp-close-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); color: #7D8590; border-radius: 6px; padding: 4px 9px; cursor: pointer; font-family: inherit; font-size: 12px; transition: all 0.14s; }
+    .hp-close-btn:hover { color: #E6EDF3; }
+    .hp-body { flex: 1; overflow-y: auto; padding: 13px 16px; }
+    .hp-sec { margin-bottom: 17px; }
+    .hp-sec-ttl { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #6c63ff; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(108,99,255,0.18); }
+    .hp-row { display: flex; gap: 8px; margin-bottom: 7px; align-items: flex-start; }
+    .hp-row .hi { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .hp-row p { font-size: 11px; color: #a0aab4; line-height: 1.5; margin: 0; }
+    .hp-row strong { color: #E6EDF3; }
+    #hp-replay-btn { margin: 0 16px 16px; display: block; flex-shrink: 0; background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.28); color: #c4beff; border-radius: 8px; padding: 8px; font-weight: 700; font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.14s; text-align: center; }
+    #hp-replay-btn:hover { background: rgba(108,99,255,0.22); }
+    #progress-crumb { position: fixed; bottom: 78px; left: 50%; transform: translateX(-50%); background: rgba(8,10,18,0.92); backdrop-filter: blur(14px); border: 1px solid rgba(108,99,255,0.28); border-radius: 10px; padding: 6px 14px; color: #c4beff; font-size: 11px; font-weight: 700; pointer-events: none; white-space: nowrap; z-index: 40; display: none; max-width: 88vw; overflow: hidden; text-overflow: ellipsis; }
+    #progress-crumb.show { display: block; }
+    #progress-crumb .pc-lbl { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #555d6a; margin-right: 5px; }
   </style>
 </head>
 <body>
@@ -1259,7 +1387,47 @@
     <button class="elev-close" id="elev-close">Close</button>
   </div>
 </div>
-<script type="importmap">
+<!-- == TUTORIAL & ONBOARDING ELEMENTS == -->
+<div id="welcome-splash">
+  <div class="splash-panel">
+    <div class="splash-logo">🏢</div>
+    <div class="splash-title" id="splash-title-text">Startup Tycoon</div>
+    <div class="splash-tagline">Build your startup from a single desk to a billion-dollar IPO</div>
+    <div class="splash-sec-lbl">Choose your theme</div>
+    <div class="theme-pick-grid" id="theme-pick-grid"></div>
+    <div class="splash-flavor" id="splash-flavor-text">The default startup experience — ship features, close deals, grow your team.</div>
+    <div class="splash-btns">
+      <button class="splash-start-btn" id="splash-start-btn">🚀 Start Game</button>
+      <button class="splash-continue-btn" id="splash-continue-btn" style="display:none">▶ Continue</button>
+    </div>
+  </div>
+</div>
+<div id="tutorial-overlay">
+  <div id="tut-backdrop"></div>
+  <div id="tut-arrow"></div>
+  <div id="tut-card">
+    <div id="tut-step-lbl">Step 1 of 7</div>
+    <div id="tut-title">Welcome!</div>
+    <div id="tut-text">Let's walk through the core loop.</div>
+    <div class="tut-footer">
+      <div id="tut-dots"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="tut-skip">Skip tutorial</button>
+        <button id="tut-next">Got it →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<button id="help-btn" data-tip="Help & Game Guide">❓</button>
+<div id="help-panel">
+  <div class="hp-hdr">
+    <span class="hp-hdr-title">📖 Game Guide</span>
+    <button class="hp-close-btn" id="hp-close-btn">Close ✕</button>
+  </div>
+  <div class="hp-body" id="hp-body"></div>
+  <button id="hp-replay-btn">↺ Replay Tutorial</button>
+</div>
+<div id="progress-crumb"><span class="pc-lbl">Next goal</span><span id="pc-text"></span></div><script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
 <script type="module">
