@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Startup Tycoon</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+<div id="drawer-backdrop"></div>
+<div id="status-bar">
+  <span id="session-chip">Session 00m 00s</span>
+  <span id="season-badge">S1</span>
+  <span id="player-chip"></span>
+  <span class="sep" id="trophy-sep" style="display:none">|</span>
+  <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
+  <span class="sep" id="rush-sep" style="display:none">|</span>
+  <span id="rush-label" style="display:none"></span>
+  <span class="sep" id="event-sep" style="display:none">|</span>
+  <span id="event-label" style="display:none"></span>
+</div>
+<div id="labels"></div>
+<button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
+<div id="metrics-hud">
+  <div class="m-row" title="Total recurring revenue banked this season. Fills the goal bar. Resets on IPO. One-time cash (funding, investor gifts, events) moves your $ but not this bar."><span class="m-lbl">Revenue</span><span class="m-val" id="m-arr">$0</span></div>
+  <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
+  <div class="m-row" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
+  <div class="m-row" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
+  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix shows how many engineers are caffeinated right now."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
+  <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
+  <div class="m-row" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
+</div>
+<div id="goal-hud" aria-label="Season goal progress">
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
+  <canvas id="goal-spark" width="240" height="18"></canvas>
+</div>
+<div id="achievements-modal" role="dialog">
+  <div class="ach-panel">
+    <div class="ach-title">🏅 Achievements</div>
+    <div class="ach-progress" id="ach-progress">0 / 0</div>
+    <div class="ach-list" id="ach-list"></div>
+    <button class="tip-ok" id="ach-close">Close</button>
+  </div>
+</div>
+<div id="theme-modal" role="dialog">
+  <div class="ach-panel">
+    <div class="ach-title">🎨 Theme</div>
+    <div class="ach-progress">Reskin the office — mechanics stay the same, just the vibe changes.</div>
+    <div class="ach-list" id="theme-list"></div>
+    <button class="tip-ok" id="theme-close">Close</button>
+  </div>
+</div>
+<div id="win-modal" role="dialog">
+  <div class="win-panel">
+    <div class="win-title">🏆 You made it!</div>
+    <div class="win-sub" id="win-goal-sub">$1M ARR achieved</div>
+    <div class="win-stats" id="win-stats"></div>
+    <div class="ipo-actions">
+      <button class="ipo-confirm" id="win-continue-btn">Keep building →</button>
+    </div>
+  </div>
+</div>
+<div id="investor-banner" hidden role="status" aria-live="polite">
+  <span class="ib-icon" id="ib-icon">💰</span>
+  <span class="ib-body"><strong id="ib-title">Investor on the floor</strong><span id="ib-sub">Walk up to shake their hand</span></span>
+  <span class="ib-timer" id="ib-timer">30s</span>
+</div>
+<div id="activity-feed">
+  <div class="feed-title">📡 Live Feed</div>
+  <div id="feed-list"></div>
+</div>
+<div id="left-panel">
+  <button id="next-action-card" class="panel" type="button" style="display:none">
+    <div class="na-label">⭐ Next best step</div>
+    <div class="na-title" id="na-title">—</div>
+    <div class="na-sub" id="na-sub"></div>
+  </button>
+  <div id="office-panel" class="panel collapsible">
+    <div class="panel-title">👥 Team</div>
+    <div id="hire-section">
+      <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
+      <button class="hire-btn role-eng" id="hire-btn">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
+      <button class="hire-btn role-ext" id="hire-ext-eng-btn" style="margin-top:4px">👔 Hire External Engineer<span class="cost" id="hire-ext-eng-cost">$225</span></button>
+      <div class="subsection">
+        <div class="panel-title">🛠️ Office Managers</div>
+        <button class="hire-btn role-ops" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
+      </div>
+      <div id="hire-sales-section" class="subsection" style="display:none">
+        <div class="panel-title">📞 Sales Team</div>
+        <button class="hire-btn role-sales" id="hire-bdr-btn">📞 Hire BDR<span class="cost" id="hire-bdr-cost">$200</span></button>
+        <button class="hire-btn role-ext" id="hire-ext-bdr-btn" style="margin-top:4px">👔 Hire External BDR<span class="cost" id="hire-ext-bdr-cost">$600</span></button>
+        <button class="hire-btn role-sales" id="hire-ae-btn" style="margin-top:6px;display:none">💼 Hire Account Executive<span class="cost" id="hire-ae-cost">$800</span></button>
+      </div>
+      <div id="hire-leadership-section" class="subsection" style="display:none">
+        <div class="panel-title">🏛️ Leadership</div>
+        <button class="hire-btn role-exec" id="hire-vp-btn">🏛️ Hire VP Engineering<span class="cost" id="hire-vp-cost">$1,500</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="room-panel" class="panel collapsible">
+    <div class="panel-title">🏗️ Expand Office</div>
+    <div id="room-list"></div>
+    <button class="room-btn room-desk" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
+  </div>
+  <div id="funding-panel" class="panel collapsible">
+    <div class="panel-title">💼 Funding</div>
+    <div id="funding-status" style="font-size:11px;color:#3FB950;margin-bottom:6px">Pre-seed ready — raise now!</div>
+    <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
+  </div>
+  <div id="upgrades"></div>
+  <div id="amenities-panel" class="panel collapsible">
+    <div class="panel-title">🏢 Amenities</div>
+    <div id="amenities-list"></div>
+  </div>
+  <div id="settings-panel" class="panel">
+    <div class="panel-title">⚙️ Settings</div>
+    <label class="setting-row">
+      <input type="checkbox" id="joy-enabled">
+      <span>🕹️ Virtual joystick</span>
+    </label>
+    <label class="setting-row">
+      <input type="checkbox" id="morale-enabled">
+      <span>😊 Morale system</span>
+    </label>
+    <label class="setting-row">
+      <input type="checkbox" id="investor-enabled">
+      <span>🤝 Investor check-ins</span>
+    </label>
+    <label class="setting-row">
+      <input type="checkbox" id="tips-enabled">
+      <span>💡 Show tips</span>
+    </label>
+    <label class="setting-row" style="justify-content:space-between">
+      <span>💬 Toast density</span>
+      <select id="toast-density">
+        <option value="all">All</option>
+        <option value="standard">No spam</option>
+        <option value="off">Feed only</option>
+      </select>
+    </label>
+    <button class="hire-btn" id="open-ach-btn" style="margin-top:8px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
+    <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
+    <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
+  </div>
+</div>
+<div id="joystick"><div id="joy-knob"></div></div>
+<div id="toast-container"></div>
+<button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
+<button id="elevator-btn" title="Floors">🏢</button>
+<button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
+<div id="tip-modal" role="dialog">
+  <div class="tip-panel">
+    <div class="tip-title" id="tip-title"></div>
+    <div class="tip-body"  id="tip-body"></div>
+    <button class="tip-ok" id="tip-ok">Got it</button>
+  </div>
+</div>
+<div id="ipo-modal">
+  <div class="ipo-panel">
+    <div class="ipo-title">🎉 IPO Time!</div>
+    <div class="ipo-sub" id="ipo-valuation"></div>
+    <div class="ipo-first-hint" id="ipo-first-hint">
+      💡 <strong>First IPO:</strong> a "soft reset" — you trade your current run for a permanent revenue multiplier. Keep going back to IPO each season to stack the multiplier.
+    </div>
+    <div class="ipo-body" id="ipo-body">
+      You cash out and start fresh in <strong id="ipo-season-text">Season 2</strong> with a permanent <strong id="ipo-mult-text">2×</strong> revenue multiplier baked into every deal from here on.
+    </div>
+    <div class="ipo-cols">
+      <div class="ipo-col keeps">
+        <div class="ipo-col-title">✓ You keep</div>
+        <ul>
+          <li id="ipo-keep-trophies">Trophies</li>
+          <li>Achievements</li>
+          <li>Per-season PBs</li>
+          <li>Theme preference</li>
+        </ul>
+      </div>
+      <div class="ipo-col resets">
+        <div class="ipo-col-title">↺ Resets</div>
+        <ul>
+          <li id="ipo-reset-cash">Cash → $200</li>
+          <li>Engineers, BDRs, AEs, VPs, EA</li>
+          <li>Rooms (back to HQ)</li>
+          <li>Upgrades + amenities</li>
+          <li>Funding rounds</li>
+        </ul>
+      </div>
+      <div class="ipo-col forever">
+        <div class="ipo-col-title">∞ Forever</div>
+        <ul>
+          <li id="ipo-forever-mult">Deal value ×2</li>
+          <li id="ipo-forever-goal">Goal doubles to $50k</li>
+          <li>New season number</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ipo-actions">
+      <button class="ipo-confirm" id="ipo-confirm-btn">🚀 Go Public</button>
+      <button class="ipo-cancel" id="ipo-cancel-btn">Not yet</button>
+    </div>
+  </div>
+</div>
+<div id="elevator-modal" role="dialog">
+  <div class="elev-panel">
+    <h3 class="elev-title">Elevator</h3>
+    <div id="floor-list"></div>
+    <div class="elev-msg" id="elev-msg"></div>
+    <button class="elev-close" id="elev-close">Close</button>
+  </div>
+</div>
+
+<!-- Player name + theme selection (shown on first visit) -->
+<div id="name-modal" class="hidden">
+  <div class="name-panel">
+    <h2>🚀 Startup Tycoon</h2>
+    <p>Enter your founder name and pick a world to build in</p>
+    <input type="text" id="player-name-input" placeholder="Your name…" maxlength="20" autocomplete="off" spellcheck="false" />
+    <div class="theme-pick-label">Choose your world</div>
+    <div class="theme-grid" id="theme-grid"></div>
+    <button class="name-start-btn" id="name-start-btn">Found Your Startup 🚀</button>
+  </div>
+</div>
+
+<!-- End-of-run stats (replaces IPO confirmation) -->
+<div id="run-stats-modal">
+  <div class="stats-panel">
+    <div class="stats-title">🎉 Going Public!</div>
+    <div class="stats-sub" id="stats-sub-text">Season 1 complete</div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="stats-share-row">
+      <button class="stats-share-btn" id="stats-share-btn">📋 Copy Score</button>
+      <button class="stats-screenshot-btn" id="stats-screenshot-btn">📸 Screenshot</button>
+    </div>
+    <div class="stats-actions">
+      <button class="stats-ipo-btn" id="stats-ipo-confirm-btn">🚀 Go Public</button>
+      <button class="stats-cancel-btn" id="stats-cancel-btn">Not yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaderboard -->
+<div id="lb-modal">
+  <div class="lb-panel">
+    <div class="lb-header">
+      <div class="lb-title">🏆 Leaderboard</div>
+    </div>
+    <div class="lb-sub">Best runs across all playthroughs</div>
+    <div class="lb-theme-tabs" id="lb-theme-tabs"></div>
+    <div id="lb-content"></div>
+    <button class="lb-close" id="lb-close-btn">Close</button>
+  </div>
+</div>
+<button id="lb-btn" title="Leaderboard">🏆</button>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

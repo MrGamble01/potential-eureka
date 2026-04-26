@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grow Op — Idle Drug Lab</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<div id="raid-overlay"></div>
+<div id="act-badge">ACT I — THE GARAGE</div>
+<div id="status-bar">Tending the plants...</div>
+<div id="labels"></div>
+<div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
+<div id="heat-hud">
+  <div class="heat-label">🚔 Heat / Suspicion</div>
+  <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
+  <div class="heat-val"><span id="heat-val">0</span>%</div>
+</div>
+<div id="activity-feed">
+  <div class="feed-title">⚡ Dispatch</div>
+  <div id="feed-list"></div>
+</div>
+<div id="left-panel">
+  <div id="upgrades-panel" class="panel"></div>
+  <div id="hire-panel" class="panel">
+    <div class="panel-title">👥 Crew</div>
+    <div class="stat-line"><span>Trimmers</span><span id="trimmer-count">0/3</span></div>
+    <button class="act-btn" id="hire-trimmer-btn">Hire Trimmer<span class="cost" id="trimmer-cost">$150</span></button>
+    <div class="stat-line" style="margin-top:6px"><span>Lookouts</span><span id="lookout-count">0/2</span></div>
+    <button class="act-btn" id="hire-lookout-btn">Hire Lookout<span class="cost" id="lookout-cost">$300</span></button>
+    <div id="runner-row" style="display:none">
+      <div class="stat-line" style="margin-top:6px"><span>Runners</span><span id="runner-count">0/3</span></div>
+      <button class="act-btn" id="hire-runner-btn">Hire Runner<span class="cost" id="runner-cost">$400</span></button>
+    </div>
+    <div id="cook-row" style="display:none">
+      <div class="stat-line" style="margin-top:6px"><span>Cooks</span><span id="cook-count">0/3</span></div>
+      <button class="act-btn" id="hire-cook-btn">Hire Cook<span class="cost" id="cook-cost">$800</span></button>
+    </div>
+  </div>
+  <div id="expand-panel" class="panel">
+    <div class="panel-title">🏗️ Expand Operation</div>
+    <div id="expand-list"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">⚙️ Options</div>
+    <button class="act-btn danger" id="restart-btn">Reset Game</button>
+  </div>
+</div>
+<div id="toast-container"></div>
+<div id="event-modal">
+  <div class="ev-panel">
+    <div class="ev-icon" id="ev-icon">⚠️</div>
+    <div class="ev-title" id="ev-title">Event</div>
+    <div class="ev-body" id="ev-body">Something happened.</div>
+    <div class="ev-choices" id="ev-choices"></div>
+  </div>
+</div>
+<div id="bust-modal">
+  <div class="bust-panel">
+    <div class="bust-icon">🚔</div>
+    <div class="bust-title">BUSTED</div>
+    <div class="bust-sub" id="bust-sub">The feds kicked in the door.<br>Everything's gone.</div>
+    <div class="bust-stats" id="bust-stats"></div>
+    <button class="bust-restart" id="bust-restart-btn">Start Over</button>
+  </div>
+</div>
+<a href="../index.html" id="back-btn">← Back</a>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

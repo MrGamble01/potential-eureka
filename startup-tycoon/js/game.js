@@ -1,1268 +1,3 @@
-<!--
-  STARTUP TYCOON — single-file game (Three.js via import-map)
-
-  PLAY
-    WASD / arrows — move                   Tap / click — move to spot
-    Right-click drag / two-finger drag — pan camera
-    Scroll / pinch — zoom                  Esc — close any modal
-    Sidebar (☰ on mobile) — hires, rooms, upgrades, amenities, settings
-    🤝 Walk near an investor — auto-greet and collect
-
-  CORE LOOP
-    Engineer sits at desk → drains desk paper → ships a feature →
-    routes to either the CEO desk OR the Leadership Suite VP (for
-    a queue-scaling multiplier) → cash pops. Coffee + paper keep
-    the team happy; run out → morale drops + work stalls.
-    Sales side: BDRs solo small deals; hand off to an AE for a 3×
-    close; AE self-sources if the pipeline dries up.
-    Goal: bank \$25k recurring revenue per season (doubles per IPO).
-    Fill the goal bar, then IPO for 2× deal value + a higher bar.
-    16 achievements track everything along the way.
-
-  ARCHITECTURE
-    Single file. All UI is in <style>/<body>. Game is one module
-    script. See the "Table of Contents" block at the top of the
-    script for the section map. Conventions there too.
-
-    Floors are extendable (Floor / FLOOR_CLASSES) but only the
-    Office floor ships. To add a new floor: subclass Floor, add to
-    FLOOR_CLASSES, wire an elevator card.
-
-  Save state: localStorage key `startup-tycoon-v7`, written every 5s
-  and on beforeunload. Covers cash, upgrades, hires by role, rooms,
-  conversions, morale, affinities, achievements, prestige, best
-  run — transient walk/work state is re-seeded at spawn.
--->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Startup Tycoon</title>
-  <style>
-    html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    canvas { display: block; touch-action: none; }
-
-    /* ── HUD ──────────────────────────────────────────── */
-    #cash-hud {
-      position: fixed; top: 16px; right: 18px;
-      background: rgba(8,10,18,0.92);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(63,185,80,0.32);
-      color: #3FB950; font-weight: 800; font-size: 22px;
-      font-family: inherit;
-      padding: 11px 18px; border-radius: 12px;
-      box-shadow: 0 4px 22px rgba(63,185,80,0.15), 0 0 1px rgba(255,255,255,0.05) inset;
-      display: flex; align-items: center; gap: 10px;
-      user-select: none; cursor: pointer;
-      transition: transform 0.08s ease, box-shadow 0.15s ease;
-      font-variant-numeric: tabular-nums;
-    }
-    #cash-hud:hover { box-shadow: 0 4px 26px rgba(63,185,80,0.25); }
-    #cash-hud:active { transform: scale(0.94); }
-    #cash-hud.cash-bump { animation: cashBump 0.32s ease-out; }
-    @keyframes cashBump {
-      0%   { transform: scale(0.94); box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
-      50%  { transform: scale(1.06); box-shadow: 0 6px 30px rgba(63,185,80,0.55); }
-      100% { transform: scale(1);    box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
-    }
-    #cash-hud .bill {
-      display: inline-block; width: 22px; height: 13px; border-radius: 3px;
-      background: linear-gradient(135deg, #3FB950 0%, #1d6f30 100%);
-      position: relative;
-    }
-    #cash-hud .bill::after {
-      content: "$"; position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 9px; font-weight: 900;
-    }
-
-    /* ── Left panel ───────────────────────────────────── */
-    #left-panel {
-      position: fixed; top: 12px; left: 12px; bottom: 12px;
-      display: flex; flex-direction: column; gap: 6px;
-      width: 210px; user-select: none;
-      overflow-y: auto; overflow-x: hidden;
-      scrollbar-width: thin; scrollbar-color: rgba(108,99,255,0.4) transparent;
-      padding-bottom: 4px;
-    }
-    #left-panel::-webkit-scrollbar { width: 4px; }
-    #left-panel::-webkit-scrollbar-track { background: transparent; }
-    #left-panel::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.4); border-radius: 4px; }
-    #upgrades {
-      display: flex; flex-direction: column; gap: 4px;
-      background: rgba(8,10,18,0.9);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 10px;
-      flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
-    }
-    .panel {
-      background: rgba(8,10,18,0.9);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 10px 12px; color: #E6EDF3;
-      flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
-    }
-    /* ── Collapsible panels ──────────────────────────────
-       A panel gets a clickable title with a ▾/▸ caret. When the parent
-       .panel has .collapsed, everything except the title is hidden. */
-    .panel.collapsible > .panel-title {
-      cursor: pointer; user-select: none;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .panel.collapsible > .panel-title::before {
-      content: '▾'; font-size: 9px; opacity: 0.75;
-      transition: transform 0.15s ease;
-    }
-    .panel.collapsed > .panel-title::before { transform: rotate(-90deg); }
-    .panel.collapsed > *:not(.panel-title) { display: none !important; }
-    .panel.collapsible > .panel-title:hover { color: #fcd34d; }
-
-    /* ── Next Best Action card (top of sidebar) ─────────── */
-    #next-action-card {
-      width: 100%;
-      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-      cursor: pointer; text-align: left;
-      border: 1px solid rgba(252,211,77,0.35);
-      background: linear-gradient(135deg, rgba(252,211,77,0.12), rgba(245,158,11,0.08));
-      transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-      font-family: inherit;
-    }
-    #next-action-card:hover {
-      border-color: rgba(252,211,77,0.7);
-      box-shadow: 0 4px 18px rgba(252,211,77,0.18);
-      transform: translateY(-1px);
-    }
-    #next-action-card:active { transform: translateY(0); }
-    #next-action-card .na-label {
-      font-size: 9px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.8px; color: #fcd34d;
-    }
-    #next-action-card .na-title {
-      font-size: 13px; font-weight: 800; color: #E6EDF3; line-height: 1.2;
-    }
-    #next-action-card .na-sub {
-      font-size: 10px; color: #a0aab4; line-height: 1.25;
-    }
-    .panel-title {
-      font-weight: 700; font-size: 9px; text-transform: uppercase;
-      letter-spacing: 1.5px; color: #7D8590; margin-bottom: 6px;
-    }
-    .subsection {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .stat-line {
-      display: flex; justify-content: space-between;
-      font-weight: 600; font-size: 11px; padding: 2px 0; color: #E6EDF3;
-    }
-
-    /* ── Hire buttons ─────────────────────────────────── */
-    .hire-btn {
-      display: block; width: 100%; margin-top: 5px;
-      background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3);
-      color: #E6EDF3; border-radius: 6px; padding: 7px 11px;
-      font-weight: 700; font-size: 11px; font-family: inherit;
-      cursor: pointer; text-align: left; transition: all 0.15s ease;
-      line-height: 1.3;
-    }
-    .hire-btn:hover:not(:disabled) { background: rgba(108,99,255,0.22); border-color: rgba(108,99,255,0.5); transform: translateX(1px); }
-    .hire-btn:active:not(:disabled) { transform: scale(0.98); }
-    .hire-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .hire-btn .cost { float: right; color: #3FB950; font-size: 10px; font-weight: 800; }
-    /* Role-tinted hire sections */
-    .hire-btn.role-eng   { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.35); }
-    .hire-btn.role-eng:hover:not(:disabled) { background: rgba(88,166,255,0.24); border-color: rgba(88,166,255,0.55); }
-    .hire-btn.role-ops   { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); }
-    .hire-btn.role-ops:hover:not(:disabled) { background: rgba(245,158,11,0.24); border-color: rgba(245,158,11,0.55); }
-    .hire-btn.role-sales { background: rgba(63,185,80,0.12); border-color: rgba(63,185,80,0.35); }
-    .hire-btn.role-sales:hover:not(:disabled) { background: rgba(63,185,80,0.24); border-color: rgba(63,185,80,0.55); }
-    .hire-btn.role-exec  { background: linear-gradient(135deg, rgba(108,99,255,0.18), rgba(212,153,34,0.18)); border-color: rgba(212,153,34,0.45); }
-    .hire-btn.role-exec:hover:not(:disabled) { background: linear-gradient(135deg, rgba(108,99,255,0.28), rgba(212,153,34,0.28)); }
-    .hire-btn.role-ext   { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.14); color: #a0aab4; }
-    .hire-btn.role-ext:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #E6EDF3; }
-    .hire-btn.role-danger { background: rgba(248,81,73,0.12); border-color: rgba(248,81,73,0.35); color: #ff8a80; }
-    .hire-btn.role-danger:hover:not(:disabled) { background: rgba(248,81,73,0.24); border-color: rgba(248,81,73,0.55); }
-
-    /* ── Amenity buttons ──────────────────────────────── */
-    .amenity-btn {
-      display: block; width: 100%; margin-top: 4px;
-      background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.22);
-      color: #E6EDF3; border-radius: 6px; padding: 7px 11px;
-      font-weight: 700; font-size: 11px; font-family: inherit;
-      cursor: pointer; text-align: left; transition: all 0.15s;
-      line-height: 1.3;
-    }
-    .amenity-btn:hover:not(:disabled) { background: rgba(88,166,255,0.18); border-color: rgba(88,166,255,0.4); transform: translateX(1px); }
-    .amenity-btn:active:not(:disabled) { transform: scale(0.98); }
-    .amenity-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .amenity-btn.owned { background: rgba(63,185,80,0.12); border-color: rgba(63,185,80,0.35); }
-    .amenity-btn.locked { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.06); color: #7D8590; }
-    .amenity-btn .tag { float: right; font-size: 10px; color: #7D8590; font-weight: 700; font-variant-numeric: tabular-nums; }
-
-    /* ── Labels overlay ───────────────────────────────── */
-    #labels { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
-    #labels > div {
-      position: absolute; top: 0; left: 0;
-      background: rgba(13,17,23,0.88); color: #E6EDF3;
-      padding: 2px 8px; border-radius: 6px;
-      font-weight: 700; font-size: 11px; white-space: nowrap;
-      transform: translate(-50%, -100%);
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    #labels > div.bubble {
-      background: rgba(13,17,23,0.92); color: #E6EDF3;
-      font-size: 14px; padding: 1px 5px;
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-    #labels > div.stock { background: rgba(13,17,23,0.9); color: #7D8590; font-size: 11px; font-weight: 700; }
-    #labels > div.refill { background: rgba(108,99,255,0.85); color: #fff; font-size: 11px; }
-    #labels > div.prompt { background: rgba(245,158,11,0.9); color: #fff; font-size: 11px; }
-    #labels > div.max { background: rgba(248,81,73,0.9); color: #fff; font-size: 13px; padding: 3px 10px; }
-    #labels > div.workbar {
-      width: 56px; height: 7px; padding: 0;
-      border-radius: 4px; border: 1px solid rgba(255,255,255,0.22);
-      transform: translate(-50%, -4px);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    }
-    #labels > div.workrate {
-      background: rgba(13,17,23,0.95); color: #E6EDF3;
-      font-size: 10px; padding: 2px 6px; border-radius: 5px;
-      border: 1px solid rgba(255,255,255,0.18);
-    }
-    #labels > div.workrate.boosted {
-      background: rgba(245,158,11,0.92); color: #fff;
-      border-color: rgba(245,158,11,0.55);
-    }
-    #labels > div.titlebadge {
-      background: linear-gradient(135deg, rgba(108,99,255,0.92), rgba(63,185,80,0.7));
-      color: #fff; font-size: 10px; letter-spacing: 0.3px;
-      padding: 2px 7px; border-radius: 5px;
-      border: 1px solid rgba(255,255,255,0.25);
-      box-shadow: 0 2px 8px rgba(108,99,255,0.35);
-      font-weight: 800;
-    }
-
-    /* ── Upgrade buttons ──────────────────────────────── */
-    .upg-btn {
-      display: block; width: 100%;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 6px; padding: 6px 9px;
-      font-weight: 600; text-align: left; cursor: pointer;
-      color: #E6EDF3; font-size: 11px; font-family: inherit; transition: all 0.15s;
-      line-height: 1.35;
-    }
-    .upg-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); transform: translateX(1px); }
-    .upg-btn:active:not(:disabled) { transform: scale(0.98); }
-    .upg-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .upg-btn .lvl {
-      float: right; background: rgba(108,99,255,0.45); color: #c4beff;
-      padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 800;
-      margin-left: 4px; letter-spacing: 0.4px;
-      border: 1px solid rgba(108,99,255,0.35);
-    }
-    .upg-btn .lvl.maxed {
-      background: rgba(212,153,34,0.45); color: #fcd34d;
-      border-color: rgba(212,153,34,0.5);
-    }
-    .upg-btn .cost { display: block; color: #3FB950; font-size: 10px; margin-top: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .upg-btn .upg-effect { display: block; color: #8a939e; font-size: 10px; margin-top: 2px; font-weight: 600; line-height: 1.25; }
-    .upg-btn:hover:not(:disabled) .upg-effect { color: #c4d3dd; }
-
-    /* ── Elevator ─────────────────────────────────────── */
-    #elevator-btn {
-      position: fixed; bottom: 18px; left: 18px;
-      width: 52px; height: 52px;
-      background: rgba(108,99,255,0.18); border: 1px solid rgba(108,99,255,0.42);
-      color: #E6EDF3; border-radius: 12px; font-size: 22px; cursor: pointer;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 0 14px rgba(108,99,255,0.18); transition: all 0.15s;
-    }
-    #elevator-btn:hover { background: rgba(108,99,255,0.32); }
-    #elevator-btn:active { transform: scale(0.94); }
-    #elevator-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.72);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      display: none; align-items: center; justify-content: center; z-index: 100;
-    }
-    #elevator-modal.open { display: flex; }
-    .elev-panel {
-      background: rgba(13,17,23,0.97);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px; padding: 22px; max-width: 420px; width: 90vw;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.55);
-    }
-    .elev-title { font-size: 16px; font-weight: 700; margin: 0 0 16px; text-align: center; color: #E6EDF3; }
-    .floor-card {
-      display: flex; align-items: center; gap: 14px;
-      padding: 12px 14px; margin-bottom: 8px;
-      border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
-      cursor: pointer; font-size: 14px; font-weight: 600; color: #E6EDF3;
-      background: rgba(255,255,255,0.04); transition: all 0.12s;
-    }
-    .floor-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(108,99,255,0.4); }
-    .floor-card.locked { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); color: #7D8590; }
-    .floor-card .icon { font-size: 22px; }
-    .floor-card .sub { display: block; font-size: 11px; color: #7D8590; font-weight: 500; margin-top: 2px; }
-    .floor-card .check { color: #3FB950; font-size: 18px; font-weight: 900; }
-    .elev-msg { text-align: center; color: #3FB950; font-weight: 600; font-size: 12px; min-height: 16px; margin: 8px 0 0; }
-    .elev-close {
-      display: block; margin: 12px auto 0;
-      padding: 7px 20px; font-weight: 600; font-family: inherit;
-      background: rgba(255,255,255,0.07); color: #7D8590;
-      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; cursor: pointer; transition: all 0.15s;
-    }
-    .elev-close:hover { background: rgba(255,255,255,0.13); color: #E6EDF3; }
-
-    /* ── Status bar ───────────────────────────────────── */
-    #status-bar {
-      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
-      background: rgba(8,10,18,0.9);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,0.12);
-      color: #a0aab4; padding: 7px 16px; border-radius: 10px;
-      font-weight: 600; font-size: 12px;
-      pointer-events: none; user-select: none;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-      display: flex; gap: 12px; align-items: center; white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
-    #status-bar .sep { color: rgba(255,255,255,0.25); }
-
-    /* ── Toast notifications ──────────────────────────── */
-    #toast-container {
-      position: fixed; bottom: 90px; right: 18px;
-      display: flex; flex-direction: column; gap: 8px;
-      pointer-events: none; z-index: 50; max-width: 280px;
-    }
-    .toast {
-      background: rgba(13,17,23,0.96); color: #E6EDF3;
-      padding: 10px 15px; border-radius: 10px;
-      font-weight: 700; font-size: 13px;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
-      animation: toastIn 0.25s ease, toastOut 0.35s ease 2.65s forwards;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-left: 3px solid #6c63ff;
-    }
-    @keyframes toastIn  { from { opacity:0; transform:translateX(50px); } to { opacity:1; transform:translateX(0); } }
-    @keyframes toastOut { to   { opacity:0; transform:translateX(50px); } }
-    .toast.rush      { border-left-color: #f59e0b; }
-    .toast.milestone { border-left-color: #3FB950; }
-    /* Priority-level variants: ambient (routine) is dimmer + smaller;
-       critical (milestones) is louder with a stronger shadow. */
-    .toast.toast-ambient {
-      opacity: 0.88; font-size: 12px; padding: 7px 12px;
-    }
-    .toast.toast-critical {
-      border-left-width: 4px;
-      background: rgba(13,17,23,0.98);
-      box-shadow: 0 6px 26px rgba(245,158,11,0.28), 0 2px 8px rgba(0,0,0,0.45);
-      font-size: 14px;
-    }
-
-    /* ── Floating cash pops ───────────────────────────── */
-    .cash-pop {
-      position: fixed; color: #3FB950; font-weight: 900; font-size: 16px;
-      pointer-events: none; z-index: 20;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-      animation: cashPop 1.4s ease forwards; white-space: nowrap;
-    }
-    /* Source-coded tints so the player can tell WHERE money came from */
-    .cash-pop.src-eng      { color:#3FB950; }  /* engineering / default green */
-    .cash-pop.src-sales    { color:#F59E0B; }  /* BDR / AE closes */
-    .cash-pop.src-exec     { color:#A78BFA; }  /* VP queue closes */
-    .cash-pop.src-investor { color:#FCD34D; }  /* one-time investor gifts */
-    .cash-pop.src-funding  { color:#22D3EE; }  /* funding rounds */
-    .cash-pop.src-event    { color:#F472B6; }  /* event-driven cash */
-    @keyframes cashPop {
-      0%   { opacity:1; transform:translateY(0)    scale(1); }
-      50%  { opacity:1; transform:translateY(-34px) scale(1.1); }
-      100% { opacity:0; transform:translateY(-60px) scale(0.9); }
-    }
-
-    /* ── Rush hour tint ───────────────────────────────── */
-    #status-bar.rush {
-      background: rgba(245,158,11,0.18)!important; color: #f59e0b!important;
-      border-color: rgba(245,158,11,0.3)!important;
-    }
-    #status-bar.rush .sep { color: rgba(245,158,11,0.35)!important; }
-
-    /* ── Funding rounds ───────────────────────────────── */
-    .fund-btn {
-      display: block; width: 100%; margin-top: 4px;
-      background: linear-gradient(135deg, rgba(108,99,255,0.16), rgba(63,185,80,0.1));
-      border: 1px solid rgba(108,99,255,0.42);
-      color: #E6EDF3; border-radius: 8px; padding: 10px 13px;
-      font-weight: 700; font-size: 12px; font-family: inherit; cursor: pointer;
-      text-align: left; transition: all 0.15s;
-      box-shadow: 0 2px 10px rgba(108,99,255,0.15);
-    }
-    .fund-btn:hover:not(:disabled) {
-      background: linear-gradient(135deg, rgba(108,99,255,0.3), rgba(63,185,80,0.18));
-      border-color: rgba(108,99,255,0.65);
-      box-shadow: 0 4px 16px rgba(108,99,255,0.3);
-    }
-    .fund-btn:active { transform: scale(0.97); }
-    .fund-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
-    .fund-btn:not(:disabled) { animation: fundPulse 2.4s ease-in-out infinite; }
-    .fund-btn .tag { float: right; color: #a89ff5; font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
-    @keyframes fundPulse {
-      0%,100% { box-shadow: 0 2px 10px rgba(108,99,255,0.15); }
-      50%      { box-shadow: 0 4px 18px rgba(108,99,255,0.4); }
-    }
-    .lock-note {
-      font-size: 11px; color: #7D8590; text-align: center;
-      padding: 5px 4px; font-style: italic; margin-top: 2px;
-    }
-    /* ── Metrics HUD ──────────────────────────────────────── */
-    #metrics-hud {
-      position: fixed; top: 74px; right: 18px;
-      background: rgba(8,10,18,0.88);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px; padding: 10px 14px;
-      pointer-events: none; user-select: none; min-width: 170px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    }
-    .m-row {
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 16px; padding: 3px 0;
-    }
-    .m-row + .m-row { border-top: 1px solid rgba(255,255,255,0.04); }
-    .m-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: #7D8590; font-weight: 700; }
-    .m-val { font-size: 13px; font-weight: 800; color: #E6EDF3; font-variant-numeric: tabular-nums; }
-    /* ── Event status chip ────────────────────────────────── */
-    #event-sep, #event-label { display: none; }
-    /* ── Sprint button ──────────────────────────────── */
-    #sprint-btn {
-      position: fixed; bottom: 18px; right: 200px;
-      background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(255,120,60,0.25));
-      border: 1px solid rgba(245,158,11,0.5);
-      color: #E6EDF3; font-size: 14px; font-weight: 800; font-family: inherit;
-      padding: 11px 18px; border-radius: 12px; cursor: pointer;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 0 14px rgba(245,158,11,0.2);
-      transition: transform 0.1s, opacity 0.15s;
-      display: flex; align-items: center; gap: 8px;
-      /* Cooldown/active ring rendered via conic gradient — --sprint-pct
-         is updated each tick (0 = empty, 1 = full) */
-      --sprint-pct: 0;
-      --sprint-ring: rgba(245,158,11,0.85);
-    }
-    #sprint-btn::before {
-      content: ''; position: absolute; inset: -3px;
-      border-radius: 14px; pointer-events: none;
-      background: conic-gradient(var(--sprint-ring) calc(var(--sprint-pct) * 360deg), transparent 0);
-      -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
-              mask: radial-gradient(circle, transparent 62%, #000 64%);
-      opacity: 0; transition: opacity 0.2s;
-    }
-    #sprint-btn.ringing::before { opacity: 1; }
-    #sprint-btn:hover:not(:disabled) { transform: scale(1.04); }
-    #sprint-btn:active:not(:disabled) { transform: scale(0.97); }
-    #sprint-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-    #sprint-btn.active {
-      background: linear-gradient(135deg, rgba(245,158,11,0.55), rgba(255,120,60,0.55));
-      border-color: rgba(245,158,11,0.85);
-      animation: sprintPulse 1s ease-in-out infinite;
-    }
-    @keyframes sprintPulse {
-      0%,100% { box-shadow: 0 0 14px rgba(245,158,11,0.35); }
-      50%      { box-shadow: 0 0 24px rgba(245,158,11,0.75); }
-    }
-    @media (max-width: 900px) {
-      #sprint-btn {
-        right: calc(14px + env(safe-area-inset-right, 0px));
-        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-        padding: 9px 14px; font-size: 12px;
-      }
-    }
-
-    /* ── IPO button ───────────────────────────────────── */
-    #ipo-btn {
-      position: fixed; bottom: 18px; right: 18px;
-      background: linear-gradient(135deg, rgba(63,185,80,0.25), rgba(108,99,255,0.25));
-      border: 1px solid rgba(63,185,80,0.55);
-      color: #E6EDF3; font-size: 15px; font-weight: 800; font-family: inherit;
-      padding: 12px 22px; border-radius: 12px; cursor: pointer;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 0 22px rgba(63,185,80,0.25);
-      display: none; animation: ipoPulse 1.8s ease-in-out infinite;
-      transition: transform 0.1s;
-    }
-    #ipo-btn:hover { transform: scale(1.04); }
-    #ipo-btn:active { transform: scale(0.97); }
-    @keyframes ipoPulse {
-      0%,100% { box-shadow: 0 0 22px rgba(63,185,80,0.25); }
-      50%      { box-shadow: 0 0 38px rgba(63,185,80,0.55), 0 0 60px rgba(108,99,255,0.2); }
-    }
-    /* ── Tip modal (first-time mechanic hints) ──────── */
-    #tip-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.68);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      display: none; align-items: center; justify-content: center; z-index: 210;
-    }
-    #tip-modal.open { display: flex; animation: tipFade 0.18s ease; }
-    @keyframes tipFade { from { opacity: 0; } to { opacity: 1; } }
-    .tip-panel {
-      background: rgba(13,17,23,0.98);
-      border: 1px solid rgba(108,99,255,0.42);
-      border-radius: 14px; padding: 24px 22px; max-width: 400px; width: 90vw;
-      box-shadow: 0 12px 44px rgba(0,0,0,0.55), 0 0 28px rgba(108,99,255,0.18);
-      text-align: center;
-    }
-    .tip-title { font-size: 22px; font-weight: 800; margin-bottom: 10px; color: #E6EDF3; }
-    .tip-body  {
-      font-size: 14px; color: #a8b0b8; line-height: 1.55;
-      margin-bottom: 18px; text-align: left;
-    }
-    .tip-ok {
-      background: linear-gradient(135deg, rgba(108,99,255,0.32), rgba(63,185,80,0.28));
-      border: 1px solid rgba(108,99,255,0.55); color: #E6EDF3;
-      border-radius: 8px; padding: 10px 24px; font-weight: 800; font-size: 14px;
-      font-family: inherit; cursor: pointer; transition: all 0.15s;
-    }
-    .tip-ok:hover { background: linear-gradient(135deg, rgba(108,99,255,0.48), rgba(63,185,80,0.4)); }
-    .tip-ok:active { transform: scale(0.97); }
-    /* ── IPO modal ────────────────────────────────────── */
-    #ipo-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      display: none; align-items: center; justify-content: center; z-index: 200;
-    }
-    #ipo-modal.open { display: flex; }
-    .ipo-panel {
-      background: rgba(13,17,23,0.97);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 16px; padding: 28px 26px; max-width: 520px; width: 92vw;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-      text-align: center;
-    }
-    .ipo-title { font-size: 28px; margin-bottom: 6px; }
-    .ipo-sub   { font-size: 14px; font-weight: 700; color: #3FB950; margin-bottom: 14px; }
-    .ipo-body  { font-size: 13px; color: #7D8590; line-height: 1.7; margin-bottom: 20px; }
-    .ipo-body strong { color: #E6EDF3; }
-    .ipo-cols {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px; margin: 18px 0 22px; text-align: left;
-    }
-    .ipo-col {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px; padding: 10px 10px 12px;
-    }
-    .ipo-col-title {
-      font-size: 9px; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.8px; margin-bottom: 6px;
-      display: flex; align-items: center; gap: 5px;
-    }
-    .ipo-col.keeps     .ipo-col-title { color: #3FB950; }
-    .ipo-col.resets    .ipo-col-title { color: #F59E0B; }
-    .ipo-col.forever   .ipo-col-title { color: #c4beff; }
-    .ipo-col ul { list-style: none; margin: 0; padding: 0; font-size: 11px; line-height: 1.6; color: #c4d3dd; }
-    .ipo-col li::before { content: '·'; margin-right: 5px; color: #6D7784; }
-    .ipo-first-hint {
-      font-size: 11px; color: #fcd34d; background: rgba(252,211,77,0.08);
-      border: 1px solid rgba(252,211,77,0.3); border-radius: 8px;
-      padding: 8px 12px; margin-bottom: 14px; text-align: left;
-      display: none;
-    }
-    .ipo-first-hint.visible { display: block; }
-    @media (max-width: 600px) {
-      .ipo-cols { grid-template-columns: 1fr; }
-    }
-    .ipo-actions { display: flex; gap: 10px; justify-content: center; }
-
-    /* ── Goal bar (top-center under status bar) ─── */
-    #goal-hud {
-      position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
-      min-width: 240px; max-width: 320px;
-      background: rgba(8,10,18,0.9);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(212,153,34,0.28);
-      border-radius: 10px; padding: 7px 12px 8px;
-      color: #E6EDF3; pointer-events: none; user-select: none;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-      font-variant-numeric: tabular-nums;
-    }
-    .goal-header {
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 11px; font-weight: 800; letter-spacing: 0.4px;
-      margin-bottom: 5px;
-    }
-    .goal-header #goal-pct { color: #fcd34d; font-size: 11px; }
-    .goal-header .goal-meta {
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    .goal-header #goal-pb {
-      font-size: 10px; font-weight: 700; color: #9ec5fe;
-      letter-spacing: 0.3px;
-    }
-    .goal-header #goal-pb:empty { display: none; }
-    .goal-track {
-      height: 5px; border-radius: 3px;
-      background: rgba(255,255,255,0.06);
-      overflow: hidden;
-    }
-    .goal-fill {
-      height: 100%; width: 0%;
-      background: linear-gradient(90deg, #f59e0b, #fcd34d, #fff0a8);
-      transition: width 0.35s ease-out;
-      box-shadow: 0 0 10px rgba(245,158,11,0.35);
-    }
-    #goal-hud.complete {
-      border-color: rgba(252,211,77,0.7);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.35);
-      animation: goalGlow 2.4s ease-in-out infinite;
-    }
-    @keyframes goalGlow {
-      0%,100% { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.25); }
-      50%      { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 26px rgba(252,211,77,0.55); }
-    }
-    #goal-hud.complete #goal-pct::before { content: '✓ '; }
-    #goal-spark {
-      display: block; width: 100%; height: 18px;
-      margin-top: 5px; opacity: 0.9;
-    }
-
-    /* ── Achievements + Theme modals ─────────────────── */
-    #achievements-modal, #theme-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      display: none; align-items: center; justify-content: center; z-index: 210;
-    }
-    #achievements-modal.open, #theme-modal.open { display: flex; animation: tipFade 0.2s ease; }
-    .theme-row {
-      display:flex; align-items:center; gap:10px; padding:10px 12px;
-      border-radius:10px; cursor:pointer;
-      background:rgba(255,255,255,0.04);
-      border:1px solid rgba(255,255,255,0.08);
-      margin-bottom:6px; transition: background 0.15s;
-    }
-    .theme-row:hover { background:rgba(252,211,77,0.10); }
-    .theme-row.active { border-color:rgba(252,211,77,0.6); background:rgba(252,211,77,0.12); }
-    .theme-row .theme-icon { font-size:24px; width:32px; text-align:center; }
-    .theme-row .theme-name { font-weight:700; color:#eee; }
-    .theme-row .theme-sub  { font-size:11px; color:#8a939e; }
-    .ach-panel {
-      background: rgba(13,17,23,0.98);
-      border: 1px solid rgba(252,211,77,0.38);
-      border-radius: 14px; padding: 22px 20px; max-width: 440px; width: 92vw;
-      max-height: 80vh; overflow-y: auto;
-      box-shadow: 0 18px 54px rgba(0,0,0,0.6), 0 0 32px rgba(252,211,77,0.15);
-      text-align: center;
-    }
-    .ach-title {
-      font-size: 22px; font-weight: 800; margin-bottom: 4px;
-      background: linear-gradient(135deg, #f59e0b, #fcd34d);
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .ach-progress {
-      font-size: 12px; color: #7D8590; letter-spacing: 0.6px;
-      margin-bottom: 14px;
-    }
-    .ach-list {
-      display: flex; flex-direction: column; gap: 6px;
-      margin-bottom: 16px; text-align: left;
-    }
-    .ach-row {
-      display: flex; gap: 12px; align-items: flex-start;
-      padding: 9px 11px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 8px;
-      transition: all 0.15s;
-    }
-    .ach-row.earned {
-      background: rgba(252,211,77,0.08);
-      border-color: rgba(252,211,77,0.35);
-    }
-    .ach-row .ach-icon { font-size: 22px; line-height: 1; filter: grayscale(1) opacity(0.4); }
-    .ach-row.earned .ach-icon { filter: none; }
-    .ach-row .ach-text { flex: 1; min-width: 0; }
-    .ach-row .ach-name { font-size: 13px; font-weight: 800; color: #7D8590; }
-    .ach-row.earned .ach-name { color: #fcd34d; }
-    .ach-row .ach-desc { font-size: 11px; color: #7D8590; line-height: 1.4; margin-top: 2px; }
-    .ach-row .ach-progress-bar {
-      position: relative;
-      height: 5px; border-radius: 3px; margin-top: 6px;
-      background: rgba(255,255,255,0.06); overflow: hidden;
-    }
-    .ach-row .ach-progress-fill {
-      position: absolute; left: 0; top: 0; bottom: 0;
-      background: linear-gradient(90deg, rgba(108,99,255,0.7), rgba(252,211,77,0.75));
-      border-radius: 3px;
-      transition: width 0.4s ease;
-    }
-    .ach-row .ach-progress-num {
-      position: absolute; right: 4px; top: -16px;
-      font-size: 10px; font-weight: 700; color: #9ec5fe;
-      font-variant-numeric: tabular-nums;
-    }
-    .ach-row.earned .ach-progress-bar { display: none; }
-    @media (max-width: 900px) {
-      #goal-hud {
-        top: calc(58px + env(safe-area-inset-top, 0px));
-        min-width: 180px;
-        padding: 5px 10px 6px;
-      }
-      .goal-header { font-size: 10px; }
-    }
-
-    /* ── Win modal (celebratory overlay when goal hit) ─── */
-    #win-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      display: none; align-items: center; justify-content: center; z-index: 220;
-    }
-    #win-modal.open { display: flex; animation: winFade 0.3s ease; }
-    @keyframes winFade { from { opacity: 0; } to { opacity: 1; } }
-    .win-panel {
-      background: linear-gradient(145deg, rgba(20,17,10,0.98), rgba(13,17,23,0.98));
-      border: 1px solid rgba(252,211,77,0.5);
-      border-radius: 18px; padding: 30px 28px; max-width: 420px; width: 90vw;
-      box-shadow: 0 24px 68px rgba(0,0,0,0.65), 0 0 40px rgba(252,211,77,0.22);
-      text-align: center;
-      animation: winPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    @keyframes winPop {
-      0%   { transform: scale(0.85); opacity: 0; }
-      100% { transform: scale(1);    opacity: 1; }
-    }
-    .win-title {
-      font-size: 32px; font-weight: 900; margin-bottom: 6px;
-      background: linear-gradient(135deg, #f59e0b, #fcd34d);
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-      letter-spacing: 0.5px;
-    }
-    .win-sub {
-      font-size: 14px; font-weight: 700; color: #fcd34d; margin-bottom: 18px;
-    }
-    .win-stats {
-      font-size: 13px; color: #c8ced4; line-height: 1.85;
-      margin-bottom: 22px; text-align: left;
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 10px; padding: 14px 16px;
-    }
-    .win-stats .row { display: flex; justify-content: space-between; }
-    .win-stats .row + .row { border-top: 1px solid rgba(255,255,255,0.04); padding-top: 4px; margin-top: 4px; }
-    .win-stats strong { color: #fcd34d; font-variant-numeric: tabular-nums; }
-    .ipo-confirm {
-      background: linear-gradient(135deg, rgba(63,185,80,0.3), rgba(108,99,255,0.3));
-      border: 1px solid rgba(63,185,80,0.5); color: #E6EDF3;
-      border-radius: 8px; padding: 10px 24px; font-weight: 800; font-size: 14px;
-      font-family: inherit; cursor: pointer; transition: all 0.15s;
-    }
-    .ipo-confirm:hover { background: linear-gradient(135deg, rgba(63,185,80,0.45), rgba(108,99,255,0.45)); }
-    .ipo-cancel {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-      color: #7D8590; border-radius: 8px; padding: 10px 24px;
-      font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.15s;
-    }
-    .ipo-cancel:hover { color: #E6EDF3; }
-    /* ── Investor arrival banner ──────────────────────── */
-    #investor-banner {
-      position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
-      display: flex; align-items: center; gap: 10px;
-      background: linear-gradient(135deg, rgba(252,211,77,0.22), rgba(245,158,11,0.16));
-      border: 1px solid rgba(252,211,77,0.55);
-      border-radius: 12px; padding: 8px 14px;
-      color: #fcd34d; font-weight: 700; font-size: 13px;
-      box-shadow: 0 6px 24px rgba(252,211,77,0.28);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      z-index: 90; user-select: none;
-      animation: ibPulse 1.4s ease-in-out infinite;
-      max-width: min(520px, 88vw);
-    }
-    #investor-banner[hidden] { display: none; }
-    #investor-banner .ib-icon { font-size: 22px; line-height: 1; }
-    #investor-banner .ib-body {
-      display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15;
-    }
-    #investor-banner .ib-body strong { color: #E6EDF3; font-size: 13px; }
-    #investor-banner .ib-body #ib-sub { color: #c4d3dd; font-size: 11px; font-weight: 600; }
-    #investor-banner .ib-timer {
-      background: rgba(252,211,77,0.22); color: #fcd34d;
-      padding: 3px 9px; border-radius: 8px; font-size: 11px; font-weight: 800;
-      font-variant-numeric: tabular-nums; margin-left: 4px;
-    }
-    @keyframes ibPulse {
-      0%,100% { box-shadow: 0 6px 24px rgba(252,211,77,0.24); }
-      50%     { box-shadow: 0 6px 32px rgba(252,211,77,0.55); }
-    }
-    @media (max-width: 900px) {
-      #investor-banner { top: 60px; padding: 6px 10px; font-size: 12px; gap: 8px; }
-      #investor-banner .ib-icon { font-size: 18px; }
-    }
-
-    /* ── Activity feed ────────────────────────────────── */
-    #activity-feed {
-      position: fixed; top: 232px; right: 18px;
-      background: rgba(8,10,18,0.88);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 10px 14px;
-      width: 208px; max-height: calc(100vh - 260px); overflow: hidden;
-      pointer-events: none; user-select: none;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    }
-    .feed-title {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.5px; color: #7D8590; margin-bottom: 8px;
-    }
-    #feed-list { display: flex; flex-direction: column; gap: 0; }
-    .feed-entry {
-      font-size: 11px; font-weight: 600; color: #C4D3DD;
-      padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      line-height: 1.55;
-      display: flex; align-items: center; gap: 4px;
-      transition: color 0.2s, opacity 0.2s;
-    }
-    .feed-entry > :first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-    .feed-entry.feed-fresh { color: #E6EDF3; }
-    .feed-entry.feed-fresh::before {
-      content: ''; width: 4px; height: 4px; border-radius: 50%;
-      background: #3FB950; box-shadow: 0 0 6px #3FB950;
-      flex: 0 0 auto;
-    }
-    .feed-entry.feed-old { color: #7D8590; opacity: 0.75; }
-    .feed-entry.feed-empty { color: #7D8590; font-style: italic; }
-    .feed-entry:last-child { border-bottom: none; }
-    .feed-entry .feed-age {
-      color: #7D8590; font-size: 10px; font-variant-numeric: tabular-nums;
-      flex: 0 0 auto;
-    }
-    .feed-entry .feed-count {
-      background: rgba(108,99,255,0.3); color: #c4beff;
-      font-size: 9px; font-weight: 800; padding: 1px 5px;
-      border-radius: 6px; flex: 0 0 auto;
-    }
-    /* ── Prestige season badge ────────────────────────── */
-    #season-badge {
-      display: none; background: rgba(212,153,34,0.2);
-      border: 1px solid rgba(212,153,34,0.45); border-radius: 6px;
-      padding: 1px 8px; font-size: 11px; font-weight: 800; color: #f59e0b;
-    }
-    /* ── Room buy buttons ────────────────────────────── */
-    .room-btn {
-      display: block; width: 100%; margin-top: 4px;
-      background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.25);
-      color: #E6EDF3; border-radius: 6px; padding: 7px 11px;
-      font-weight: 700; font-size: 11px; font-family: inherit;
-      cursor: pointer; text-align: left; transition: all 0.15s;
-      line-height: 1.3;
-    }
-    .room-btn:hover:not(:disabled) { background: rgba(63,185,80,0.2); border-color: rgba(63,185,80,0.5); transform: translateX(1px); }
-    .room-btn:active:not(:disabled) { transform: scale(0.98); }
-    .room-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .room-btn .tag { float: right; color: #3FB950; font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .room-btn:disabled .tag { color: #F59E0B; }
-    .room-btn .room-contents { display: block; color: #8a939e; font-size: 10px; margin-top: 3px; font-weight: 600; letter-spacing: 0.3px; }
-    .room-btn:hover:not(:disabled) .room-contents { color: #c4d3dd; }
-    /* Convert / Add-Desk buttons use a distinct tint so they
-       visually separate from room purchases in the same panel. */
-    .room-btn.room-convert {
-      background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.35);
-    }
-    .room-btn.room-convert:hover:not(:disabled) { background: rgba(245,158,11,0.22); border-color: rgba(245,158,11,0.55); }
-    .room-btn.room-convert .tag { color: #f59e0b; }
-    .room-btn.room-desk {
-      background: rgba(108,99,255,0.1); border-color: rgba(108,99,255,0.35);
-    }
-    .room-btn.room-desk:hover:not(:disabled) { background: rgba(108,99,255,0.22); border-color: rgba(108,99,255,0.55); }
-    .room-btn.room-desk .tag { color: #a89ff5; }
-
-    /* ── Upgrade category headers ─────────────────────── */
-    .upg-cat {
-      font-size: 9px; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 1.5px; color: #7D8590;
-      padding: 5px 2px 2px; margin-top: 2px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .upg-cat:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
-
-    /* ── Sidebar toggle (mobile) ──────────────────────── */
-    #sidebar-toggle {
-      display: none;
-      position: fixed;
-      top: calc(12px + env(safe-area-inset-top, 0px));
-      left: calc(12px + env(safe-area-inset-left, 0px));
-      width: 44px; height: 44px;
-      background: rgba(8,10,18,0.92);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,0.14);
-      color: #E6EDF3; border-radius: 12px;
-      font-size: 20px; font-family: inherit;
-      cursor: pointer; z-index: 120;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      transition: transform 0.15s ease, background 0.15s ease;
-    }
-    #sidebar-toggle:hover { background: rgba(8,10,18,0.98); }
-    #sidebar-toggle:active { transform: scale(0.92); }
-    #drawer-backdrop {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 90; backdrop-filter: blur(2px);
-    }
-    #drawer-backdrop.open { display: block; }
-
-    /* ── Tablet / phone breakpoint ────────────────────── */
-    @media (max-width: 900px) {
-      #sidebar-toggle { display: block; }
-      #left-panel {
-        width: 85vw; max-width: 320px;
-        top: 0; left: 0; bottom: 0;
-        padding: calc(64px + env(safe-area-inset-top, 0px)) 10px calc(10px + env(safe-area-inset-bottom, 0px)) 10px;
-        background: rgba(8,10,18,0.96);
-        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-        border-right: 1px solid rgba(255,255,255,0.08);
-        transform: translateX(-105%);
-        transition: transform 0.22s ease;
-        z-index: 110;
-      }
-      #left-panel.open { transform: translateX(0); }
-
-      #cash-hud {
-        top: calc(12px + env(safe-area-inset-top, 0px));
-        right: calc(12px + env(safe-area-inset-right, 0px));
-        font-size: 16px; padding: 7px 11px;
-      }
-      #cash-hud .bill { width: 18px; height: 11px; }
-
-      #metrics-hud {
-        top: calc(62px + env(safe-area-inset-top, 0px));
-        right: calc(12px + env(safe-area-inset-right, 0px));
-        padding: 6px 9px; min-width: 0;
-      }
-      #metrics-hud .m-row { gap: 10px; padding: 1px 0; }
-      #metrics-hud .m-lbl { font-size: 9px; letter-spacing: 0.6px; }
-      #metrics-hud .m-val { font-size: 11px; }
-
-      #activity-feed { display: none; }
-
-      #status-bar {
-        top: calc(14px + env(safe-area-inset-top, 0px));
-        left: calc(68px + env(safe-area-inset-left, 0px));
-        transform: none;
-        font-size: 11px; padding: 5px 10px;
-        max-width: calc(100vw - 220px);
-        overflow: hidden; text-overflow: ellipsis;
-      }
-
-      #elevator-btn {
-        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-        left: calc(14px + env(safe-area-inset-left, 0px));
-      }
-      #ipo-btn {
-        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-        right: calc(14px + env(safe-area-inset-right, 0px));
-        padding: 10px 16px; font-size: 13px;
-      }
-
-      #toast-container {
-        bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-        right: calc(12px + env(safe-area-inset-right, 0px));
-        left: calc(12px + env(safe-area-inset-left, 0px));
-        max-width: none;
-      }
-
-      .hire-btn, .amenity-btn, .upg-btn, .room-btn, .fund-btn {
-        padding: 9px 11px; font-size: 12px;
-      }
-      .upg-btn .cost { font-size: 11px; }
-
-      .elev-panel, .ipo-panel {
-        width: 92vw; padding: 18px 16px;
-      }
-      .floor-card { padding: 10px 12px; font-size: 13px; }
-    }
-
-    /* Tighter spacing on small phones */
-    @media (max-width: 430px) {
-      #metrics-hud { padding: 5px 7px; }
-      #metrics-hud .m-row { gap: 8px; }
-      #cash-hud { font-size: 15px; padding: 6px 9px; }
-      #status-bar { max-width: calc(100vw - 200px); font-size: 10px; }
-    }
-
-    /* ── Virtual joystick (opt-in via settings) ───────── */
-    #joystick {
-      position: fixed;
-      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-      left: calc(22px + env(safe-area-inset-left, 0px));
-      width: 120px; height: 120px;
-      background: rgba(8,10,18,0.35);
-      border: 2px solid rgba(255,255,255,0.22);
-      border-radius: 50%;
-      display: none;
-      touch-action: none;
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 95;
-      user-select: none; -webkit-user-select: none;
-    }
-    #joystick.visible { display: block; }
-    #joy-knob {
-      position: absolute;
-      left: 50%; top: 50%;
-      width: 58px; height: 58px;
-      margin-left: -29px; margin-top: -29px;
-      background: rgba(108,99,255,0.72);
-      border: 2px solid rgba(255,255,255,0.32);
-      border-radius: 50%;
-      pointer-events: none;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.5);
-      transition: transform 0.05s linear;
-    }
-
-    /* ── Settings panel ───────────────────────────────── */
-    .setting-row {
-      display: flex; align-items: center; gap: 9px;
-      font-size: 12px; color: #E6EDF3; cursor: pointer;
-      padding: 6px 2px; font-weight: 600;
-    }
-    .setting-row input[type="checkbox"] {
-      appearance: none; -webkit-appearance: none;
-      width: 34px; height: 20px; border-radius: 11px;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.18);
-      position: relative; cursor: pointer;
-      transition: background 0.15s;
-      flex-shrink: 0;
-    }
-    .setting-row input[type="checkbox"]::after {
-      content: ""; position: absolute;
-      top: 2px; left: 2px;
-      width: 14px; height: 14px; border-radius: 50%;
-      background: #E6EDF3;
-      transition: transform 0.15s;
-    }
-    .setting-row input[type="checkbox"]:checked { background: rgba(108,99,255,0.6); border-color: rgba(108,99,255,0.8); }
-    .setting-row input[type="checkbox"]:checked::after { transform: translateX(14px); }
-    .setting-row select {
-      background: rgba(8,10,18,0.8); color: #E6EDF3;
-      border: 1px solid rgba(255,255,255,0.18); border-radius: 6px;
-      padding: 3px 6px; font-family: inherit; font-size: 11px;
-    }
-    .setting-row select:focus { outline: none; border-color: rgba(108,99,255,0.6); }
-  </style>
-</head>
-<body>
-<button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
-<div id="drawer-backdrop"></div>
-<div id="status-bar">
-  <span id="session-chip">Session 00m 00s</span>
-  <span id="season-badge">S1</span>
-  <span class="sep" id="trophy-sep" style="display:none">|</span>
-  <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
-  <span class="sep" id="rush-sep" style="display:none">|</span>
-  <span id="rush-label" style="display:none"></span>
-  <span class="sep" id="event-sep" style="display:none">|</span>
-  <span id="event-label" style="display:none"></span>
-</div>
-<div id="labels"></div>
-<button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
-<div id="metrics-hud">
-  <div class="m-row" title="Total recurring revenue banked this season. Fills the goal bar. Resets on IPO. One-time cash (funding, investor gifts, events) moves your $ but not this bar."><span class="m-lbl">Revenue</span><span class="m-val" id="m-arr">$0</span></div>
-  <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
-  <div class="m-row" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
-  <div class="m-row" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix shows how many engineers are caffeinated right now."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
-  <div class="m-row" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
-  <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
-  <div class="m-row" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
-</div>
-<div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-pct">0%</span></span></div>
-  <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
-  <canvas id="goal-spark" width="240" height="18"></canvas>
-</div>
-<div id="achievements-modal" role="dialog">
-  <div class="ach-panel">
-    <div class="ach-title">🏅 Achievements</div>
-    <div class="ach-progress" id="ach-progress">0 / 0</div>
-    <div class="ach-list" id="ach-list"></div>
-    <button class="tip-ok" id="ach-close">Close</button>
-  </div>
-</div>
-<div id="theme-modal" role="dialog">
-  <div class="ach-panel">
-    <div class="ach-title">🎨 Theme</div>
-    <div class="ach-progress">Reskin the office — mechanics stay the same, just the vibe changes.</div>
-    <div class="ach-list" id="theme-list"></div>
-    <button class="tip-ok" id="theme-close">Close</button>
-  </div>
-</div>
-<div id="win-modal" role="dialog">
-  <div class="win-panel">
-    <div class="win-title">🏆 You made it!</div>
-    <div class="win-sub" id="win-goal-sub">$1M ARR achieved</div>
-    <div class="win-stats" id="win-stats"></div>
-    <div class="ipo-actions">
-      <button class="ipo-confirm" id="win-continue-btn">Keep building →</button>
-    </div>
-  </div>
-</div>
-<div id="investor-banner" hidden role="status" aria-live="polite">
-  <span class="ib-icon" id="ib-icon">💰</span>
-  <span class="ib-body"><strong id="ib-title">Investor on the floor</strong><span id="ib-sub">Walk up to shake their hand</span></span>
-  <span class="ib-timer" id="ib-timer">30s</span>
-</div>
-<div id="activity-feed">
-  <div class="feed-title">📡 Live Feed</div>
-  <div id="feed-list"></div>
-</div>
-<div id="left-panel">
-  <button id="next-action-card" class="panel" type="button" style="display:none">
-    <div class="na-label">⭐ Next best step</div>
-    <div class="na-title" id="na-title">—</div>
-    <div class="na-sub" id="na-sub"></div>
-  </button>
-  <div id="office-panel" class="panel collapsible">
-    <div class="panel-title">👥 Team</div>
-    <div id="hire-section">
-      <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
-      <button class="hire-btn role-eng" id="hire-btn">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
-      <button class="hire-btn role-ext" id="hire-ext-eng-btn" style="margin-top:4px">👔 Hire External Engineer<span class="cost" id="hire-ext-eng-cost">$225</span></button>
-      <div class="subsection">
-        <div class="panel-title">🛠️ Office Managers</div>
-        <button class="hire-btn role-ops" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
-      </div>
-      <div id="hire-sales-section" class="subsection" style="display:none">
-        <div class="panel-title">📞 Sales Team</div>
-        <button class="hire-btn role-sales" id="hire-bdr-btn">📞 Hire BDR<span class="cost" id="hire-bdr-cost">$200</span></button>
-        <button class="hire-btn role-ext" id="hire-ext-bdr-btn" style="margin-top:4px">👔 Hire External BDR<span class="cost" id="hire-ext-bdr-cost">$600</span></button>
-        <button class="hire-btn role-sales" id="hire-ae-btn" style="margin-top:6px;display:none">💼 Hire Account Executive<span class="cost" id="hire-ae-cost">$800</span></button>
-      </div>
-      <div id="hire-leadership-section" class="subsection" style="display:none">
-        <div class="panel-title">🏛️ Leadership</div>
-        <button class="hire-btn role-exec" id="hire-vp-btn">🏛️ Hire VP Engineering<span class="cost" id="hire-vp-cost">$1,500</span></button>
-      </div>
-    </div>
-  </div>
-  <div id="room-panel" class="panel collapsible">
-    <div class="panel-title">🏗️ Expand Office</div>
-    <div id="room-list"></div>
-    <button class="room-btn room-desk" id="add-desk-btn" style="display:none;margin-top:6px">🪑 Add Desk<span class="tag" id="add-desk-cost"></span></button>
-  </div>
-  <div id="funding-panel" class="panel collapsible">
-    <div class="panel-title">💼 Funding</div>
-    <div id="funding-status" style="font-size:11px;color:#3FB950;margin-bottom:6px">Pre-seed ready — raise now!</div>
-    <button class="fund-btn" id="funding-btn">💰 Pre-seed Round<span class="tag">+$100</span></button>
-  </div>
-  <div id="upgrades"></div>
-  <div id="amenities-panel" class="panel collapsible">
-    <div class="panel-title">🏢 Amenities</div>
-    <div id="amenities-list"></div>
-  </div>
-  <div id="settings-panel" class="panel">
-    <div class="panel-title">⚙️ Settings</div>
-    <label class="setting-row">
-      <input type="checkbox" id="joy-enabled">
-      <span>🕹️ Virtual joystick</span>
-    </label>
-    <label class="setting-row">
-      <input type="checkbox" id="morale-enabled">
-      <span>😊 Morale system</span>
-    </label>
-    <label class="setting-row">
-      <input type="checkbox" id="investor-enabled">
-      <span>🤝 Investor check-ins</span>
-    </label>
-    <label class="setting-row">
-      <input type="checkbox" id="tips-enabled">
-      <span>💡 Show tips</span>
-    </label>
-    <label class="setting-row" style="justify-content:space-between">
-      <span>💬 Toast density</span>
-      <select id="toast-density">
-        <option value="all">All</option>
-        <option value="standard">No spam</option>
-        <option value="off">Feed only</option>
-      </select>
-    </label>
-    <button class="hire-btn" id="open-ach-btn" style="margin-top:8px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
-    <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
-    <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
-  </div>
-</div>
-<div id="joystick"><div id="joy-knob"></div></div>
-<div id="toast-container"></div>
-<button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
-<button id="elevator-btn" title="Floors">🏢</button>
-<button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
-<div id="tip-modal" role="dialog">
-  <div class="tip-panel">
-    <div class="tip-title" id="tip-title"></div>
-    <div class="tip-body"  id="tip-body"></div>
-    <button class="tip-ok" id="tip-ok">Got it</button>
-  </div>
-</div>
-<div id="ipo-modal">
-  <div class="ipo-panel">
-    <div class="ipo-title">🎉 IPO Time!</div>
-    <div class="ipo-sub" id="ipo-valuation"></div>
-    <div class="ipo-first-hint" id="ipo-first-hint">
-      💡 <strong>First IPO:</strong> a "soft reset" — you trade your current run for a permanent revenue multiplier. Keep going back to IPO each season to stack the multiplier.
-    </div>
-    <div class="ipo-body" id="ipo-body">
-      You cash out and start fresh in <strong id="ipo-season-text">Season 2</strong> with a permanent <strong id="ipo-mult-text">2×</strong> revenue multiplier baked into every deal from here on.
-    </div>
-    <div class="ipo-cols">
-      <div class="ipo-col keeps">
-        <div class="ipo-col-title">✓ You keep</div>
-        <ul>
-          <li id="ipo-keep-trophies">Trophies</li>
-          <li>Achievements</li>
-          <li>Per-season PBs</li>
-          <li>Theme preference</li>
-        </ul>
-      </div>
-      <div class="ipo-col resets">
-        <div class="ipo-col-title">↺ Resets</div>
-        <ul>
-          <li id="ipo-reset-cash">Cash → $200</li>
-          <li>Engineers, BDRs, AEs, VPs, EA</li>
-          <li>Rooms (back to HQ)</li>
-          <li>Upgrades + amenities</li>
-          <li>Funding rounds</li>
-        </ul>
-      </div>
-      <div class="ipo-col forever">
-        <div class="ipo-col-title">∞ Forever</div>
-        <ul>
-          <li id="ipo-forever-mult">Deal value ×2</li>
-          <li id="ipo-forever-goal">Goal doubles to $50k</li>
-          <li>New season number</li>
-        </ul>
-      </div>
-    </div>
-    <div class="ipo-actions">
-      <button class="ipo-confirm" id="ipo-confirm-btn">🚀 Go Public</button>
-      <button class="ipo-cancel" id="ipo-cancel-btn">Not yet</button>
-    </div>
-  </div>
-</div>
-<div id="elevator-modal" role="dialog">
-  <div class="elev-panel">
-    <h3 class="elev-title">Elevator</h3>
-    <div id="floor-list"></div>
-    <div class="elev-msg" id="elev-msg"></div>
-    <button class="elev-close" id="elev-close">Close</button>
-  </div>
-</div>
-<script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
-</script>
-<script type="module">
 import * as THREE from 'three';
 
 // ── localStorage keys (single source of truth) ──────────────
@@ -1343,7 +78,7 @@ function applyCameraTransform() {
 applyCameraTransform();
 fitCamera();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -1407,7 +142,7 @@ const ROOM_DEFS = [
   },
   {
     id: 'back-left', gx: -1, gz: -1, cost: 5000,
-    label: '💼 Account Management',
+    label: '💼 The Bullpen',
     desks: [ {x:-20,z:-19, role:'ae'}, {x:-12,z:-19, role:'ae'} ],
   },
   {
@@ -1455,7 +190,7 @@ const THEMES = {
       right:         '📞 Sales Corner',
       front:         '🏗️ Open Plan',
       back:          '☕ Breakroom',
-      'back-left':   '💼 Account Management',
+      'back-left':   '💼 The Bullpen',
       'back-right':  '🧪 R&D Lab',
       'front-left':  '🧘 Lounge',
       'front-right': '🏛️ Leadership Suite',
@@ -1672,6 +407,384 @@ function buildRoom(def) {
   bulb.position.set(cx, 3.0, cz);
   scene.add(bulb);
   meshes.decorations.push(bulb);
+  buildRoomDecor(def, cx, cz, meshes);
+}
+
+// ── Room interior decorations ─────────────────────────────────
+// Per-room furniture, props, windows, and rugs. Called at end of
+// buildRoom() so every newly-built room gets decor. All meshes are
+// pushed into meshes.decorations for automatic IPO cleanup.
+function buildRoomDecor(def, cx, cz, meshes) {
+  const D = meshes.decorations;
+
+  function box(x, y, z, w, h, d, color, opts) {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    if (opts && opts.emissive !== undefined) {
+      mat.emissive.setHex(opts.emissive);
+      mat.emissiveIntensity = (opts.emissiveInt !== undefined) ? opts.emissiveInt : 0.35;
+    }
+    if (opts && opts.transparent) {
+      mat.transparent = true; mat.opacity = (opts.opacity !== undefined) ? opts.opacity : 0.65;
+    }
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
+    scene.add(m); D.push(m); return m;
+  }
+  function cyl(x, y, z, rt, rb, h, segs, color) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, segs),
+      new THREE.MeshLambertMaterial({ color }));
+    m.position.set(x, y, z); m.castShadow = true; scene.add(m); D.push(m); return m;
+  }
+  function sph(x, y, z, r, segs, color, opts) {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    if (opts && opts.emissive !== undefined) { mat.emissive.setHex(opts.emissive); mat.emissiveIntensity = (opts.emissiveInt !== undefined) ? opts.emissiveInt : 0.5; }
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, segs, Math.ceil(segs * 0.6)), mat);
+    m.position.set(x, y, z); m.castShadow = true; scene.add(m); D.push(m); return m;
+  }
+  function pLight(x, y, z, color, intensity, dist) {
+    const l = new THREE.PointLight(color, intensity, dist);
+    l.position.set(x, y, z); scene.add(l); D.push(l); return l;
+  }
+  function pendant(x, y, z, sc) {
+    sc = sc || 0xf2c47a;
+    const cordM = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.0, 6),
+      new THREE.MeshLambertMaterial({ color: 0x2a2a2e }));
+    cordM.position.set(x, y + 0.5, z); scene.add(cordM); D.push(cordM);
+    const shM = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.4, 12, 1, true),
+      new THREE.MeshLambertMaterial({ color: sc, emissive: new THREE.Color(sc), emissiveIntensity: 0.3, side: THREE.DoubleSide }));
+    shM.position.set(x, y, z); shM.rotation.x = Math.PI; scene.add(shM); D.push(shM);
+    const bM = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xfff0b8 }));
+    bM.position.set(x, y - 0.02, z); scene.add(bM); D.push(bM);
+    pLight(x, y - 0.1, z, 0xffdd88, 0.3, 14);
+  }
+  // Window pane: frame + glass + cross dividers embedded in wall.
+  // onAxis='x' for E/W walls (thin in X); onAxis='z' for N/S walls (thin in Z).
+  function winPane(x, y, z, w, h, onAxis) {
+    const isX = onAxis === 'x';
+    const fMesh = new THREE.Mesh(
+      isX ? new THREE.BoxGeometry(0.06, h + 0.14, w + 0.14) : new THREE.BoxGeometry(w + 0.14, h + 0.14, 0.06),
+      new THREE.MeshLambertMaterial({ color: 0x4a4a5a }));
+    fMesh.position.set(x, y, z); scene.add(fMesh); D.push(fMesh);
+    const gMesh = new THREE.Mesh(
+      isX ? new THREE.BoxGeometry(0.04, h, w) : new THREE.BoxGeometry(w, h, 0.04),
+      new THREE.MeshLambertMaterial({ color: 0x8fc4e0, transparent: true, opacity: 0.72 }));
+    gMesh.position.set(x, y, z); scene.add(gMesh); D.push(gMesh);
+    const dMat = new THREE.MeshLambertMaterial({ color: 0x5a5a6a });
+    const dH = new THREE.Mesh(isX ? new THREE.BoxGeometry(0.05, 0.04, w + 0.08) : new THREE.BoxGeometry(w + 0.08, 0.04, 0.05), dMat);
+    dH.position.set(x, y, z); scene.add(dH); D.push(dH);
+    const dV = new THREE.Mesh(isX ? new THREE.BoxGeometry(0.05, h + 0.08, 0.04) : new THREE.BoxGeometry(0.04, h + 0.08, 0.05), dMat);
+    dV.position.set(x, y, z); scene.add(dV); D.push(dV);
+  }
+  function officeChair(x, z, color, rotY) {
+    const g = new THREE.Group();
+    g.position.set(x, 0, z); g.rotation.y = rotY || 0;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.05), new THREE.MeshLambertMaterial({ color: 0x555555 }));
+      arm.position.set(Math.cos(a) * 0.19, 0.05, Math.sin(a) * 0.19); arm.rotation.y = a; g.add(arm);
+    }
+    const postM = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.075, 0.6, 8), new THREE.MeshLambertMaterial({ color: 0x888888 }));
+    postM.position.y = 0.3; g.add(postM);
+    const seatM = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.1, 0.78), new THREE.MeshLambertMaterial({ color }));
+    seatM.position.y = 0.62; seatM.castShadow = true; g.add(seatM);
+    const backM = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.88, 0.08), new THREE.MeshLambertMaterial({ color }));
+    backM.position.set(0, 1.06, 0.37); backM.castShadow = true; g.add(backM);
+    scene.add(g); D.push(g); return g;
+  }
+  function plant(x, z, large) {
+    const s = large ? 1.6 : 1.0;
+    cyl(x, 0.17 * s, z, 0.18 * s, 0.14 * s, 0.34 * s, 12, 0x6e4a2a);
+    cyl(x, 0.36 * s, z, 0.155 * s, 0.155 * s, 0.04, 12, 0x3a2a1a);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.1 * s, 0.42 * s, 6), new THREE.MeshLambertMaterial({ color: 0x4a8a3a }));
+      leaf.position.set(x + Math.cos(a) * 0.08 * s, 0.58 * s, z + Math.sin(a) * 0.08 * s);
+      leaf.rotation.z = Math.cos(a) * 0.4; leaf.rotation.x = Math.sin(a) * 0.4; leaf.castShadow = true;
+      scene.add(leaf); D.push(leaf);
+    }
+  }
+  function waterCooler(x, z) {
+    cyl(x, 0.7, z, 0.27, 0.27, 1.4, 14, 0xf0f0f0);
+    cyl(x, 1.65, z, 0.19, 0.19, 0.52, 14, 0x4a90d9);
+    box(x, 0.38, z + 0.18, 0.58, 0.04, 0.28, 0xcccccc, null);
+    box(x, 0.56, z + 0.29, 0.06, 0.08, 0.1, 0x2a3a8a, null);
+  }
+  function filingCab(x, z, color) {
+    color = color || 0x8a9aaa;
+    box(x, 0.7, z, 0.62, 1.4, 0.52, color, null);
+    for (let i = 0; i < 3; i++) {
+      box(x, 0.28 + i * 0.42, z + 0.265, 0.6, 0.014, 0.01, 0x6a7a8a, null);
+      box(x, 0.38 + i * 0.42, z + 0.27, 0.14, 0.04, 0.04, 0xd0d0d0, null);
+    }
+  }
+  function deskLamp(bx, bz, lx, lz) {
+    if (lx === undefined) lx = bx + 0.5;
+    if (lz === undefined) lz = bz - 0.2;
+    cyl(lx, 0.62, lz, 0.028, 0.028, 1.24, 8, 0x2a2a2e);
+    box(lx, 1.32, lz - 0.18, 0.032, 0.32, 0.032, 0x2a2a2e, null);
+    const shM = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.18, 12, 1, true),
+      new THREE.MeshLambertMaterial({ color: 0xf0d060, emissive: new THREE.Color(0xf0c040), emissiveIntensity: 0.3, side: THREE.DoubleSide }));
+    shM.position.set(lx, 1.5, lz - 0.2); shM.rotation.x = Math.PI; scene.add(shM); D.push(shM);
+    pLight(lx, 1.4, lz - 0.2, 0xffee88, 0.38, 5.5);
+  }
+
+  switch (def.id) {
+
+    case 'starter': {
+      box(cx, 0.06, cz - 3, 11, 0.02, 7, 0x3d3d6e, null);
+      box(cx, 0.06, cz + 3.5, 5, 0.02, 4, 0x5a3a2e, null);
+      pendant(cx - 5, 3.05, cz, 0xf2c47a);
+      waterCooler(cx + 6.3, cz - 5.8);
+      filingCab(cx - 7.0, cz - 5.2, 0x7a8a9a);
+      filingCab(cx - 7.0, cz - 6.6, 0x7a8a9a);
+      plant(cx + 6.4, cz + 5.2);
+      plant(cx + 6.4, cz + 2.0);
+      winPane(cx + 7.88, 1.8, cz - 2.2, 2.0, 1.55, 'x');
+      winPane(cx + 7.88, 1.8, cz + 3.2, 2.0, 1.55, 'x');
+      winPane(cx - 2.2, 1.8, cz + 7.88, 2.2, 1.55, 'z');
+      winPane(cx + 2.8, 1.8, cz + 7.88, 2.2, 1.55, 'z');
+      break;
+    }
+
+    case 'left': {
+      box(cx, 0.06, cz, 12, 0.02, 10, 0x2a3a4e, null);
+      // Server rack SW corner
+      { const [srx, srz] = [cx - 6.4, cz + 5.8];
+        box(srx, 1.1, srz, 0.95, 2.2, 0.68, 0x1a1a22, null);
+        for (let ri = 0; ri < 7; ri++) {
+          const ryp = 0.14 + ri * 0.28;
+          box(srx, ryp, srz, 0.85, 0.22, 0.64, 0x2a2a3a, null);
+          sph(srx + 0.38, ryp + 0.07, srz + 0.35, 0.025, 8,
+            ri % 3 === 0 ? 0x00ff66 : 0x112211, { emissive: ri % 3 === 0 ? 0x00ff66 : 0x001100, emissiveInt: 0.9 });
+        }
+      }
+      // Architecture whiteboard west wall
+      { const [wbx, wby, wbz] = [cx - 7.84, 1.85, cz];
+        box(wbx, wby, wbz, 0.05, 1.85, 3.4, 0xf5f5f0, null);
+        box(wbx, wby, wbz, 0.04, 1.96, 3.52, 0x3a3a3a, null);
+        const dc = [0x2a6acc, 0xd93a2a, 0x2aa84a, 0x9a4acc];
+        for (let di = 0; di < 4; di++) box(wbx + 0.04, wby + 0.28 - di * 0.36, wbz - 0.8 + di * 0.55, 0.02, 0.28, 0.45, dc[di], null);
+        for (let li = 0; li < 3; li++) box(wbx + 0.04, wby + 0.08 - li * 0.36, wbz - 0.4 + li * 0.55, 0.02, 0.04, 0.65, 0x555555, null);
+      }
+      for (const [dx, dz] of [[-4, -3], [-4, 3]]) deskLamp(cx + dx, cz + dz, cx + dx + 0.6, cz + dz - 0.2);
+      pendant(cx + 4, 3.05, cz, 0xf2c47a);
+      plant(cx + 6.5, cz - 6.5); plant(cx - 6.5, cz - 6.5, true); plant(cx + 6.5, cz + 6.5);
+      winPane(cx - 7.88, 1.8, cz - 3, 2.0, 1.55, 'x'); winPane(cx - 7.88, 1.8, cz + 3, 2.0, 1.55, 'x');
+      winPane(cx - 3, 1.8, cz + 7.88, 2.2, 1.55, 'z'); winPane(cx + 3, 1.8, cz + 7.88, 2.2, 1.55, 'z');
+      break;
+    }
+
+    case 'right': {
+      box(cx, 0.06, cz + 3, 11, 0.02, 7, 0x4a3a2e, null);
+      box(cx, 1.02, cz - 1.5, 9, 0.08, 1.1, 0x5c3d1e, null);
+      box(cx, 0.51, cz - 1.5, 8.8, 0.9, 0.95, 0x4a2a14, null);
+      box(cx - 1.8, 1.62, cz - 1.95, 0.65, 0.45, 0.07, 0x111118, null);
+      box(cx - 1.8, 1.68, cz - 1.92, 0.55, 0.35, 0.02, 0x1a3a6e, { emissive: 0x1a3a6e, emissiveInt: 0.6 });
+      box(cx - 1.8, 1.07, cz - 2.0, 0.5, 0.05, 0.3, 0x2a2a2e, null);
+      box(cx - 3.5, 1.1, cz - 1.96, 0.4, 0.22, 0.28, 0x333333, null);
+      cyl(cx - 3.5, 1.28, cz - 1.96, 0.08, 0.08, 0.08, 8, 0x4a4a4a);
+      // Product shelves east wall
+      box(cx + 7.3, 1.0, cz - 4, 0.52, 2.05, 3.2, 0x4a3a2a, null);
+      const prc = [0x4a90d9, 0xd94a4a, 0x4ad98a, 0xd9c44a, 0xaa4ad9];
+      for (let si = 0; si < 4; si++) {
+        const sy = 0.1 + si * 0.46;
+        box(cx + 7.0, sy + 0.1, cz - 4, 0.44, 0.05, 3.0, 0x5a4a3a, null);
+        for (let pi = 0; pi < 5; pi++) box(cx + 7.0, sy + 0.22, cz - 5.2 + pi * 0.58, 0.22, 0.22, 0.18, prc[pi % prc.length], null);
+      }
+      box(cx + 7.82, 2.0, cz + 2.5, 0.05, 1.2, 0.9, 0x2a2a2e, null);
+      box(cx + 7.78, 2.0, cz + 2.5, 0.02, 1.0, 0.72, 0x3a6aee, { emissive: 0x2a4acc, emissiveInt: 0.3 });
+      for (let ci = 0; ci < 3; ci++) officeChair(cx - 5.5 + ci * 1.6, cz + 5.5, 0x3a5a7a, Math.PI);
+      cyl(cx - 2.7, 0.42, cz + 6.5, 0.06, 0.06, 0.84, 8, 0x5a3a1a);
+      cyl(cx - 2.7, 0.85, cz + 6.5, 0.5, 0.5, 0.06, 16, 0x7a5a2a);
+      box(cx - 2.7, 0.9, cz + 6.5, 0.32, 0.02, 0.24, 0xf5f5f5, null);
+      plant(cx - 6.5, cz - 6.5); plant(cx + 6.5, cz + 6.5);
+      winPane(cx + 7.88, 1.8, cz - 4.5, 2.0, 1.55, 'x'); winPane(cx + 7.88, 1.8, cz + 2.0, 2.0, 1.55, 'x');
+      winPane(cx - 2.5, 1.8, cz + 7.88, 2.2, 1.55, 'z'); winPane(cx + 3.0, 1.8, cz + 7.88, 2.2, 1.55, 'z');
+      break;
+    }
+
+    case 'front': {
+      box(cx, 0.06, cz, 13, 0.02, 9, 0x4a3a5e, null);
+      for (const [dlx, dlz] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) pendant(cx + dlx, 3.05, cz + dlz);
+      plant(cx - 6.5, cz - 6.5, true); plant(cx + 6.5, cz - 6.5); plant(cx - 6.5, cz + 6.5, true);
+      plant(cx + 6.5, cz + 6.5); plant(cx, cz - 6.8);
+      // Phone booth NE corner
+      box(cx + 5.2, 1.5, cz - 5.2, 0.07, 3.0, 2.2, 0x4a4a5a, null);
+      box(cx + 6.3, 1.5, cz - 5.2, 0.07, 3.0, 2.2, 0x4a4a5a, null);
+      box(cx + 5.75, 1.5, cz - 4.1, 1.18, 3.0, 0.07, 0x4a4a5a, null);
+      box(cx + 5.75, 1.5, cz - 6.3, 1.18, 3.0, 0.07, 0x4a4a5a, null);
+      box(cx + 5.75, 1.5, cz - 5.2, 1.08, 2.8, 2.06, 0x6a8ab8, { transparent: true, opacity: 0.28 });
+      box(cx + 5.75, 0.45, cz - 5.5, 1.0, 0.08, 0.4, 0x5a4a3a, null);
+      winPane(cx - 3, 1.8, cz + 7.88, 2.2, 1.55, 'z'); winPane(cx + 3, 1.8, cz + 7.88, 2.2, 1.55, 'z');
+      winPane(cx - 7.88, 1.8, cz, 2.2, 1.55, 'x'); winPane(cx + 7.88, 1.8, cz, 2.2, 1.55, 'x');
+      break;
+    }
+
+    case 'back': {
+      box(cx + 3, 0.06, cz, 9, 0.02, 6, 0x4a3a2e, null);
+      // Kitchen counter north wall
+      box(cx, 1.02, cz - 7.1, 14, 0.08, 0.85, 0xddd8cc, null);
+      box(cx, 0.51, cz - 7.1, 13.8, 0.9, 0.72, 0xccccbb, null);
+      box(cx + 4.5, 1.1, cz - 7.18, 1.1, 2.12, 0.82, 0xeeeeee, null);
+      box(cx + 4.5, 1.55, cz - 7.14, 1.08, 1.2, 0.05, 0xdddddd, null);
+      cyl(cx + 4.9, 1.55, cz - 7.07, 0.04, 0.04, 0.18, 8, 0xaaaaaa);
+      box(cx + 1.8, 1.18, cz - 7.16, 0.82, 0.5, 0.62, 0x555555, null);
+      box(cx + 1.8, 1.18, cz - 6.95, 0.68, 0.38, 0.05, 0x1a1a22, null);
+      cyl(cx + 2.12, 1.18, cz - 6.84, 0.07, 0.07, 0.06, 12, 0x888888);
+      box(cx - 0.4, 1.07, cz - 7.16, 0.48, 0.28, 0.38, 0x666666, null);
+      box(cx - 2.5, 1.04, cz - 7.12, 0.78, 0.07, 0.5, 0xaaaacc, null);
+      cyl(cx - 2.5, 1.1, cz - 6.96, 0.03, 0.03, 0.22, 8, 0x888888);
+      // Round table + stools
+      cyl(cx - 3, 0.76, cz, 0.07, 0.07, 1.52, 8, 0x5a3a1a);
+      cyl(cx - 3, 0.83, cz, 0.95, 0.95, 0.06, 20, 0x8a5a2a);
+      for (let si = 0; si < 4; si++) {
+        const a = (si / 4) * Math.PI * 2;
+        cyl(cx - 3 + Math.cos(a) * 1.5, 0.38, cz + Math.sin(a) * 1.5, 0.035, 0.035, 0.76, 8, 0x5a3a1a);
+        cyl(cx - 3 + Math.cos(a) * 1.5, 0.78, cz + Math.sin(a) * 1.5, 0.23, 0.23, 0.06, 12, 0x3a5a7a);
+      }
+      // Sofa east wall
+      box(cx + 6.5, 0.38, cz, 0.95, 0.72, 4.4, 0x3a5a7a, null);
+      box(cx + 7.05, 0.72, cz, 0.18, 0.68, 4.4, 0x2a4a6a, null);
+      for (let ci = 0; ci < 3; ci++) box(cx + 6.5, 0.78, cz - 1.3 + ci * 1.3, 0.82, 0.2, 1.1, 0x4a6a8a, null);
+      box(cx + 4.8, 0.62, cz, 0.9, 0.06, 2.8, 0x5a3a1a, null);
+      cyl(cx + 4.8, 0.31, cz - 1.0, 0.05, 0.05, 0.62, 8, 0x5a3a1a);
+      cyl(cx + 4.8, 0.31, cz + 1.0, 0.05, 0.05, 0.62, 8, 0x5a3a1a);
+      plant(cx - 6.5, cz + 6.5); plant(cx + 6.5, cz + 6.5);
+      winPane(cx - 3, 1.8, cz - 7.88, 2.0, 1.55, 'z'); winPane(cx + 3, 1.8, cz - 7.88, 2.0, 1.55, 'z');
+      winPane(cx - 7.88, 1.8, cz, 2.0, 1.55, 'x'); winPane(cx + 7.88, 1.8, cz, 2.0, 1.55, 'x');
+      break;
+    }
+
+    case 'back-left': {
+      box(cx, 0.06, cz, 11, 0.02, 7.5, 0x2a3a4e, null);
+      // Conference table
+      box(cx, 0.9, cz, 7.0, 0.08, 2.2, 0x7a5a30, null);
+      for (const [px, pz] of [[-3.2, -0.95], [3.2, -0.95], [-3.2, 0.95], [3.2, 0.95]]) box(cx + px, 0.45, cz + pz, 0.12, 0.9, 0.12, 0x5a3a18, null);
+      for (let ci = 0; ci < 3; ci++) {
+        const czc = cz - 0.9 + ci * 0.9;
+        officeChair(cx - 1.3, czc - 0.45, 0x1a2a3e, 0);
+        officeChair(cx + 1.3, czc - 0.45, 0x1a2a3e, Math.PI);
+      }
+      officeChair(cx, cz - 1.25 - 0.9, 0x1a2a3e, Math.PI * 0.5);
+      officeChair(cx, cz + 1.15 + 0.9, 0x1a2a3e, -Math.PI * 0.5);
+      // Presentation screen north wall
+      box(cx, 1.85, cz - 7.82, 0.06, 1.45, 3.8, 0x111118, null);
+      box(cx, 1.85, cz - 7.79, 0.02, 1.28, 3.55, 0x1a3a6e, { emissive: 0x1a3a6e, emissiveInt: 0.55 });
+      // Whiteboard west wall
+      box(cx - 7.82, 1.85, cz + 1.5, 0.05, 1.65, 3.2, 0xf5f5f0, null);
+      box(cx - 7.78, 1.85, cz + 1.5, 0.02, 1.4, 2.8, 0x3a6acc, { emissive: 0x2a4aaa, emissiveInt: 0.2 });
+      plant(cx + 6.5, cz + 6.5, true); plant(cx - 6.5, cz + 6.5);
+      winPane(cx - 7.88, 1.8, cz - 3, 2.0, 1.55, 'x'); winPane(cx - 7.88, 1.8, cz + 3, 2.0, 1.55, 'x');
+      winPane(cx - 3, 1.8, cz - 7.88, 2.0, 1.55, 'z'); winPane(cx + 3, 1.8, cz - 7.88, 2.0, 1.55, 'z');
+      break;
+    }
+
+    case 'back-right': {
+      box(cx, 0.06, cz + 2, 11, 0.02, 9, 0x2a3a3e, null);
+      // Lab bench north area
+      box(cx, 0.96, cz - 4, 11, 0.08, 1.6, 0xeeeee8, null);
+      box(cx, 0.48, cz - 4, 10.8, 0.88, 1.4, 0xddddcc, null);
+      for (let ei = 0; ei < 4; ei++) {
+        const ex = cx - 4 + ei * 2.6;
+        box(ex, 1.12, cz - 4.1, 0.58, 0.48, 0.4, 0x1a2a3a, null);
+        box(ex, 1.15, cz - 3.88, 0.46, 0.36, 0.04, 0x0a1a2a, null);
+        const gsc = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.28), new THREE.MeshBasicMaterial({ color: 0x00cc66 }));
+        gsc.position.set(ex, 1.15, cz - 3.85); gsc.rotation.y = Math.PI; scene.add(gsc); D.push(gsc);
+        cyl(ex + 0.35, 1.0, cz - 3.65, 0.06, 0.055, 0.18, 10, 0x88ccff);
+      }
+      // Server rack NE corner
+      box(cx + 6.8, 1.0, cz - 6.5, 0.85, 2.05, 0.68, 0x1a1a22, null);
+      for (let ri = 0; ri < 5; ri++) {
+        box(cx + 6.8, 0.1 + ri * 0.38, cz - 6.5, 0.76, 0.3, 0.64, 0x2a2a3a, null);
+        sph(cx + 7.12, 0.18 + ri * 0.38, cz - 6.16, 0.025, 8, ri % 2 === 0 ? 0x00ff88 : 0xff4422, { emissive: ri % 2 === 0 ? 0x00ff88 : 0xff4422, emissiveInt: 0.85 });
+      }
+      // Whiteboard north wall
+      box(cx, 1.85, cz - 7.82, 0.05, 1.68, 5.5, 0xf5f5f0, null);
+      box(cx - 1.8, 1.85, cz - 7.78, 0.02, 1.2, 0.9, 0x2266cc, null);
+      box(cx + 1.8, 2.1, cz - 7.78, 0.02, 0.8, 1.4, 0xcc3322, null);
+      box(cx, 1.5, cz - 7.78, 0.02, 0.5, 1.6, 0x22aa44, null);
+      plant(cx - 6.5, cz + 5.5, true); plant(cx + 6.5, cz + 5.5);
+      for (const [dx, dz] of [[4, -3], [4, 3]]) deskLamp(cx + dx, cz + dz, cx + dx + 0.5, cz + dz - 0.25);
+      winPane(cx + 7.88, 1.8, cz - 4, 2.0, 1.55, 'x'); winPane(cx + 7.88, 1.8, cz + 2, 2.0, 1.55, 'x');
+      winPane(cx - 3, 1.8, cz - 7.88, 2.0, 1.55, 'z'); winPane(cx + 3, 1.8, cz - 7.88, 2.0, 1.55, 'z');
+      break;
+    }
+
+    case 'front-left': {
+      box(cx, 0.06, cz, 11, 0.02, 9.5, 0x6a3a2a, null);
+      // L-sofa west piece
+      box(cx - 6.5, 0.38, cz - 0.2, 0.95, 0.72, 7.5, 0x7a4a3a, null);
+      box(cx - 7.08, 0.72, cz - 0.2, 0.18, 0.68, 7.5, 0x6a3a2a, null);
+      for (let ci = 0; ci < 4; ci++) box(cx - 6.5, 0.78, cz - 2.8 + ci * 1.4, 0.8, 0.2, 1.15, 0x8a5a4a, null);
+      // L-sofa south piece
+      box(cx - 0.5, 0.38, cz + 6.5, 6.5, 0.72, 0.95, 0x7a4a3a, null);
+      box(cx - 0.5, 0.72, cz + 7.08, 6.5, 0.68, 0.18, 0x6a3a2a, null);
+      for (let ci = 0; ci < 3; ci++) box(cx - 2.8 + ci * 2.0, 0.78, cz + 6.5, 1.45, 0.2, 0.8, 0x8a5a4a, null);
+      cyl(cx - 3.2, 0.38, cz + 4.2, 0.065, 0.065, 0.76, 8, 0x5a3a1a);
+      cyl(cx - 3.2, 0.78, cz + 4.2, 0.75, 0.75, 0.06, 20, 0x7a5a30);
+      box(cx - 3.2, 0.82, cz + 4.2, 0.28, 0.02, 0.38, 0xf5f5f5, null);
+      plant(cx + 5.5, cz - 6.5, true); plant(cx + 5.5, cz + 3.0, true); plant(cx - 3.5, cz - 6.5);
+      { const bbM = new THREE.Mesh(new THREE.SphereGeometry(0.65, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.75),
+          new THREE.MeshLambertMaterial({ color: 0x4a7a4a }));
+        bbM.position.set(cx + 4.5, 0.3, cz - 3.5); bbM.scale.set(1.1, 0.65, 1.1); bbM.castShadow = true;
+        scene.add(bbM); D.push(bbM);
+      }
+      { const slMat = new THREE.MeshLambertMaterial({ color: 0xffdd66, emissive: new THREE.Color(0xffcc44), emissiveIntensity: 0.75 });
+        for (let i = 0; i < 10; i++) {
+          const slb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), slMat);
+          slb.position.set(cx - 6.5 + i * 1.45, 2.88 + Math.sin(i * 0.9) * 0.12, cz + 7.5);
+          scene.add(slb); D.push(slb);
+        }
+        pLight(cx, 2.6, cz + 6, 0xffcc88, 0.35, 14);
+      }
+      pLight(cx, 2.8, cz, 0xffdd99, 0.3, 20);
+      winPane(cx - 7.88, 1.8, cz - 3, 2.0, 1.55, 'x'); winPane(cx - 7.88, 1.8, cz + 3, 2.0, 1.55, 'x');
+      winPane(cx - 3, 1.8, cz + 7.88, 2.2, 1.55, 'z'); winPane(cx + 3, 1.8, cz + 7.88, 2.2, 1.55, 'z');
+      break;
+    }
+
+    case 'front-right': {
+      box(cx, 0.06, cz, 13, 0.02, 8, 0x2a2a3e, null);
+      // Boardroom table
+      box(cx, 0.92, cz, 8.5, 0.08, 2.6, 0x5c3d1e, null);
+      for (const [px, pz] of [[-3.8, -1.1], [3.8, -1.1], [-3.8, 1.1], [3.8, 1.1]]) box(cx + px, 0.46, cz + pz, 0.13, 0.92, 0.13, 0x4a2a14, null);
+      const cclr = 0x1a1a3e;
+      for (let ci = 0; ci < 4; ci++) {
+        const czc = cz - 1.0 + ci * 0.68;
+        officeChair(cx - 1.4, czc - 0.42, cclr, 0);
+        officeChair(cx + 1.4, czc - 0.42, cclr, Math.PI);
+      }
+      officeChair(cx, cz - 1.5 - 0.9, cclr, Math.PI * 0.5);
+      officeChair(cx, cz + 1.2 + 0.9, cclr, -Math.PI * 0.5);
+      // Credenza north wall
+      box(cx, 0.55, cz - 7.2, 6.5, 0.09, 1.1, 0x5c3d1e, null);
+      box(cx, 0.28, cz - 7.2, 6.3, 0.52, 0.95, 0x4a2a14, null);
+      cyl(cx - 2.2, 0.82, cz - 7.2, 0.1, 0.08, 0.36, 8, 0xffd700);
+      sph(cx - 2.2, 1.08, cz - 7.2, 0.13, 12, 0xffd700, { emissive: 0xffaa00, emissiveInt: 0.35 });
+      plant(cx + 2.0, cz - 7.2);
+      box(cx, 0.59, cz - 7.18, 0.04, 0.42, 0.34, 0x2a2a2e, null);
+      box(cx, 0.59, cz - 7.16, 0.02, 0.34, 0.26, 0xd4af37, null);
+      // Trophy case east wall
+      box(cx + 7.5, 1.05, cz + 2, 0.52, 2.1, 2.8, 0x3a2a1a, null);
+      box(cx + 7.25, 1.05, cz + 2, 0.04, 1.9, 2.5, 0x8fc4e0, { transparent: true, opacity: 0.55 });
+      for (let ti = 0; ti < 3; ti++) {
+        cyl(cx + 7.22, 0.5 + ti * 0.62, cz + 0.85 + ti * 0.52, 0.07, 0.06, 0.27, 8, 0xffd700);
+        sph(cx + 7.22, 0.68 + ti * 0.62, cz + 0.85 + ti * 0.52, 0.1, 10, 0xffd700, { emissive: 0xffaa00, emissiveInt: 0.4 });
+      }
+      // Framed art west wall
+      box(cx - 7.82, 2.0, cz, 0.05, 1.85, 3.8, 0x2a2a2e, null);
+      box(cx - 7.78, 2.0, cz, 0.02, 1.65, 3.55, 0x1a3a5e, { emissive: 0x0a1a3e, emissiveInt: 0.25 });
+      box(cx - 7.78, 2.0, cz - 1.4, 0.02, 0.4, 0.8, 0xd4af37, null);
+      pLight(cx, 3.5, cz, 0xffe8cc, 0.42, 22);
+      pLight(cx, 3.5, cz - 5.5, 0xffe8cc, 0.3, 14);
+      plant(cx - 6.5, cz - 6.5, true); plant(cx + 6.5, cz - 6.5);
+      winPane(cx + 7.88, 1.8, cz - 3.5, 2.2, 1.75, 'x'); winPane(cx + 7.88, 1.8, cz, 2.2, 1.75, 'x');
+      winPane(cx + 7.88, 1.8, cz + 3.5, 2.2, 1.75, 'x');
+      winPane(cx - 2.8, 1.8, cz + 7.88, 2.2, 1.55, 'z'); winPane(cx + 2.8, 1.8, cz + 7.88, 2.2, 1.55, 'z');
+      break;
+    }
+  }
 }
 
 // ── Canvas-textured screens ─────────────────────────────────
@@ -2185,7 +1298,7 @@ function activatePlotsForRoom(id) {
 // ── Add Desk (cram more desks into any owned room) ──────────
 // Each owned room can hold a handful of extra desks beyond its base.
 // Added desks default to 'any' (flex) unless the room is role-locked
-// (Sales Corner / Account Management / Leadership Suite), in which
+// (Sales Corner / The Bullpen / Leadership Suite), in which
 // case the new desk takes the room's locked role so the seating rules
 // stay consistent.
 const ROOM_LOCKED_ROLES = { 'right': 'bdr', 'back-left': 'ae', 'front-right': 'vp' };
@@ -2267,7 +1380,7 @@ const ROOM_MODES = {
         nextMode: 'lounge',
         nextCost: 5000,
         nextReq: () => ownedRooms.has('back-left') && ownedRooms.has('front-right'),
-        nextReqText: 'Needs 💼 Account Management + 🏛️ Leadership Suite',
+        nextReqText: 'Needs 💼 The Bullpen + 🏛️ Leadership Suite',
         nextLabel: '🧘 Open Lounge',
         onEnter: () => {
           // Entering Sales Floor promotes the Sales Corner into an AE Office
@@ -3202,7 +2315,7 @@ function updateIdeaWorkers(dt) {
         showToast('🏓 Taking a ping pong break!', '', 'ambient');
       } else if (w.state === 'toDeliver') {
         addRevenue(w.productValue);
-        totalFeaturesShipped++;
+        totalFeaturesShipped++; sessionSalesCount++;
         checkProductVersion();
         totalUsers += Math.max(1, Math.floor(w.productValue / 4));
         checkUserMilestones();
@@ -3216,7 +2329,7 @@ function updateIdeaWorkers(dt) {
         if (w.targetVP && vps.includes(w.targetVP)) {
           w.targetVP.queue.push({ worker: w, value: w.productValue, processTime: vpTierOf(w.targetVP).reviewTime });
           w.pendingWithVP = true;
-          totalFeaturesShipped++;  // still counts as a shipped feature
+          totalFeaturesShipped++; sessionSalesCount++;  // still counts as a shipped feature
           checkProductVersion();
           totalUsers += Math.max(1, Math.floor(w.productValue / 4));
           checkUserMilestones();
@@ -3322,7 +2435,7 @@ function updatePlayerProximityWork(dt) {
     setPaperStackProgress(p.paperStack, 0);
     const earned = computeDealValue();
     addRevenue(earned);
-    totalFeaturesShipped++;
+    totalFeaturesShipped++; sessionSalesCount++;
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -3359,7 +2472,7 @@ function updateCeoDeskWork(dt) {
     setPaperStackProgress(ceoPaperStack, 0);
     const earned = computeDealValue();
     addRevenue(earned);
-    totalFeaturesShipped++;
+    totalFeaturesShipped++; sessionSalesCount++;
     checkProductVersion();
     totalUsers += Math.max(1, Math.floor(earned / 4));
     checkUserMilestones();
@@ -3781,13 +2894,13 @@ function spawnAE() {
 }
 
 // AEs aren't a hire — you promote a BDR into the role. Requires a
-// dedicated AE desk (Account Management or a converted Sales Corner
+// dedicated AE desk (The Bullpen or a converted Sales Corner
 // once the Sales Floor conversion lands) and at least one BDR to pull
 // up. The BDR's active handoff, if any, is dropped.
 function handleAeHireOrPromote() {
   if (bdrs.length === 0) return;
   // Any desk that accepts 'ae' works — flex 'any' desks let you promote
-  // AEs early before the dedicated Account Management office is built.
+  // AEs early before the dedicated The Bullpen office is built.
   const aeDesk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
   if (!aeDesk) return;
   const cost = aeCost();
@@ -4092,7 +3205,7 @@ function renderHirePanel() {
 
   // Sales section appears once any desk can host a BDR or AE. Both
   // allow flex 'any' desks so you can promote AEs early without the
-  // dedicated Account Management office.
+  // dedicated The Bullpen office.
   const bdrCapacity = plots.some(p => p.active && deskAcceptsRole(p, 'bdr'));
   const aeCapacity  = plots.some(p => p.active && deskAcceptsRole(p, 'ae'));
   if (!bdrCapacity && !aeCapacity) {
@@ -4119,7 +3232,7 @@ function renderHirePanel() {
       hireExtBdrBtnEl.style.display = 'none';
     }
     // AE promotion: requires a BDR to promote + any desk that accepts
-    // 'ae'. Flex desks work early; Account Management + converted
+    // 'ae'. Flex desks work early; The Bullpen + converted
     // Sales Corner give dedicated space later.
     if (aeCapacity && bdrs.length >= 1) {
       const availableAeSeat = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
@@ -5337,7 +4450,7 @@ function resolveNextAction() {
     sub:   `$${fmtCash(bdrCost())} — BDRs close small deals on their own`,
     action: () => _clickBtn('hire-bdr-btn'),
   };
-  // 7. Account Management → AE promotion (multiplies BDR deals ×3).
+  // 7. The Bullpen → AE promotion (multiplies BDR deals ×3).
   if (bdrs.length >= 1 && aes.length === 0) {
     const acct = ROOM_DEFS.find(r => r.id === 'back-left');
     if (acct && !ownedRooms.has('back-left') && _canAfford(acct.cost)) return {
@@ -5420,10 +4533,20 @@ function renderNextAction() {
   nextActionCardEl.style.cursor = rec.action ? 'pointer' : 'default';
   nextActionCardEl.style.opacity = rec.action ? '1' : '0.7';
 }
+
+// Session tracking — declared here so addCash can reference them on its first call
+let sessionSalesCount = 0;
+let sessionTimeToTenK = null;   // seconds from run start to first $10K
+let sessionRunStart   = Date.now();
+let sessionPeakTeam   = 0;
+
 function addCash(n, source = 'eng') {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
+    if (sessionTimeToTenK === null && state.allTimeCash >= 10000) {
+      sessionTimeToTenK = Math.floor((Date.now() - sessionRunStart) / 1000);
+    }
     showCashPop(n, source);
     checkMilestones();
   }
@@ -5844,8 +4967,227 @@ function renderUpgrades() {
 refreshHud();
 
 // ── Elevator + floor scaffold ──
-// Only OFFICE is active. Other floors unlock but are placeholders until a
-// Floor subclass is dropped in (see README at top of file).
+// ── Bonus floor scenes (Café / Gym / Rooftop) ─────────────────
+// Each bonus floor is a decorated 3D zone placed south of the main
+// office grid (Z ≈ 42). They're built once when the floor is unlocked
+// via the elevator and stay in the scene permanently.
+const floorScenes = {}; // id → array of meshes for potential cleanup
+
+function buildFloorScene(id) {
+  if (floorScenes[id]) return;
+  const objs = [];
+  floorScenes[id] = objs;
+
+  // World positions: café center, gym to its west, rooftop to its east
+  const POS = { cafe: { cx: 0, cz: 44 }, gym: { cx: -22, cz: 44 }, rooftop: { cx: 22, cz: 44 } };
+  const { cx, cz } = POS[id] || { cx: 0, cz: 60 };
+
+  function b(x, y, z, w, h, d, color, opts) {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    if (opts && opts.emissive) { mat.emissive.setHex(opts.emissive); mat.emissiveIntensity = opts.ei || 0.35; }
+    if (opts && opts.tr) { mat.transparent = true; mat.opacity = opts.op || 0.6; }
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
+    scene.add(m); objs.push(m); return m;
+  }
+  function cy(x, y, z, rt, rb, h, segs, color) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, segs), new THREE.MeshLambertMaterial({ color }));
+    m.position.set(x, y, z); m.castShadow = true; scene.add(m); objs.push(m); return m;
+  }
+  function sp(x, y, z, r, color, opts) {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    if (opts && opts.emissive) { mat.emissive.setHex(opts.emissive); mat.emissiveIntensity = opts.ei || 0.5; }
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), mat);
+    m.position.set(x, y, z); m.castShadow = true; scene.add(m); objs.push(m); return m;
+  }
+  function pl(x, y, z, color, intensity, dist) {
+    const l = new THREE.PointLight(color, intensity, dist);
+    l.position.set(x, y, z); scene.add(l); objs.push(l);
+  }
+  function smallPlant(x, z) {
+    cy(x, 0.17, z, 0.18, 0.14, 0.34, 12, 0x6e4a2a);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const lf = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.38, 6), new THREE.MeshLambertMaterial({ color: 0x4a8a3a }));
+      lf.position.set(x + Math.cos(a) * 0.07, 0.55, z + Math.sin(a) * 0.07);
+      lf.rotation.z = Math.cos(a) * 0.4; lf.rotation.x = Math.sin(a) * 0.4; lf.castShadow = true;
+      scene.add(lf); objs.push(lf);
+    }
+  }
+
+  // Shared: floor plate + low perimeter walls
+  const flrColor = id === 'rooftop' ? 0x8a8a9a : id === 'cafe' ? 0x6a5a4a : 0x3a3a3e;
+  const wlColor  = id === 'rooftop' ? 0x9a9aaa : id === 'cafe' ? 0x7a6a5a : 0x4a4a5e;
+  b(cx, 0.05, cz, 18, 0.1, 18, flrColor, null);
+  b(cx, 1.6, cz - 9, 18.3, 3.2, 0.3, wlColor, null); // N wall
+  b(cx, 1.6, cz + 9, 18.3, 3.2, 0.3, wlColor, null); // S wall
+  b(cx - 9, 1.6, cz, 0.3, 3.2, 18.3, wlColor, null); // W wall
+  b(cx + 9, 1.6, cz, 0.3, 3.2, 18.3, wlColor, null); // E wall
+  // Ceiling pendant
+  { const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 6), new THREE.MeshLambertMaterial({ color: 0x2a2a2e }));
+    cord.position.set(cx, 3.75, cz); scene.add(cord); objs.push(cord);
+    pl(cx, 4.5, cz, 0xfff0e0, 0.4, 28);
+  }
+
+  if (id === 'cafe') {
+    // ── Café ─────────────────────────────────────────────────────
+    // Counter / coffee bar along north wall
+    b(cx, 1.0, cz - 7, 12, 0.08, 1.0, 0x7a5a30, null);
+    b(cx, 0.5, cz - 7, 11.8, 0.9, 0.85, 0x5a3a18, null);
+    // Espresso machine on counter
+    b(cx - 3, 0.76, cz - 7.4, 1.2, 1.5, 0.8, 0x2a2a32, null);
+    b(cx - 3, 1.7, cz - 7.3, 1.0, 0.4, 0.6, 0x8a5a2a, null);
+    cy(cx - 3, 1.1, cz - 7.0, 0.08, 0.08, 0.06, 14, 0xff6b3d); // button LED
+    cy(cx - 3, 0.75, cz - 6.9, 0.08, 0.08, 0.25, 8, 0x1a1a1e); // spout
+    // Pastry display case
+    b(cx + 3, 0.6, cz - 7.35, 2.5, 1.15, 0.9, 0xf0ede5, null);
+    b(cx + 3, 0.6, cz - 7.0, 2.3, 0.9, 0.04, 0xd0ccc0, { tr: true, op: 0.7 });
+    for (let pi = 0; pi < 4; pi++) {
+      b(cx + 1.5 + pi * 0.7, 0.92, cz - 7.3, 0.45, 0.22, 0.38,
+        [0xd4a76a, 0xcc6644, 0xe8d090, 0xb06040][pi], null);
+    }
+    // Menu board on north wall
+    b(cx, 2.0, cz - 8.82, 0.05, 1.5, 3.5, 0x1a1a22, null);
+    b(cx, 2.0, cz - 8.79, 0.02, 1.3, 3.2, 0x2a4acc, { emissive: 0x2a4acc, ei: 0.4 });
+    // Round café tables with chairs
+    const tablePos = [[-4, 3], [0, 3], [4, 3], [-4, -1], [4, -1]];
+    for (const [tx, tz] of tablePos) {
+      cy(cx + tx, 0.72, cz + tz, 0.06, 0.06, 1.44, 8, 0x5a3a1a);
+      cy(cx + tx, 0.78, cz + tz, 0.6, 0.6, 0.06, 16, 0x7a5a2a);
+      // 2 chairs per table
+      for (const [ca, cr] of [[0, 0], [Math.PI, Math.PI]]) {
+        const chx = cx + tx + Math.cos(ca) * 1.0, chz = cz + tz + Math.sin(ca) * 1.0;
+        b(chx, 0.56, chz, 0.6, 0.08, 0.6, 0x3a2a1a, null);
+        b(chx, 0.9, chz + Math.sin(cr + Math.PI * 0.5) * 0.28, 0.6, 0.7, 0.07, 0x3a2a1a, null);
+      }
+    }
+    // Pendant lights over tables
+    for (const [tx, tz] of [[-4, 3], [0, 3], [4, 3]]) {
+      const cordM = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.9, 6), new THREE.MeshLambertMaterial({ color: 0x2a2a2e }));
+      cordM.position.set(cx + tx, 3.55, cz + tz); scene.add(cordM); objs.push(cordM);
+      const shM = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.35, 12, 1, true),
+        new THREE.MeshLambertMaterial({ color: 0xf2a84a, emissive: new THREE.Color(0xf2902a), emissiveIntensity: 0.35, side: THREE.DoubleSide }));
+      shM.position.set(cx + tx, 3.1, cz + tz); shM.rotation.x = Math.PI; scene.add(shM); objs.push(shM);
+      pl(cx + tx, 3.0, cz + tz, 0xffcc88, 0.4, 8);
+    }
+    smallPlant(cx - 7.5, cz + 7); smallPlant(cx + 7.5, cz + 7);
+    smallPlant(cx - 7.5, cz - 3); smallPlant(cx + 7.5, cz - 3);
+
+  } else if (id === 'gym') {
+    // ── Gym ──────────────────────────────────────────────────────
+    // Rubber mat floor strips
+    for (let mi = 0; mi < 5; mi++) b(cx - 7 + mi * 3.5, 0.07, cz, 3.3, 0.04, 16, mi % 2 === 0 ? 0x2a2a2e : 0x222228, null);
+    // Treadmill row (3 treadmills along east wall)
+    for (let ti = 0; ti < 3; ti++) {
+      const tx = cx + 5.5, tz = cz - 5.5 + ti * 5;
+      b(tx, 0.18, tz, 1.0, 0.36, 2.0, 0x1a1a22, null);        // base
+      b(tx, 0.36, tz, 0.8, 0.04, 1.8, 0x2a2a32, null);        // belt
+      b(tx, 1.5, tz - 0.88, 0.95, 1.4, 0.12, 0x1a1a22, null); // handle bar
+      b(tx, 1.55, tz - 0.82, 0.75, 0.28, 0.06, 0x2a3a6a, { emissive: 0x2a3a6a, ei: 0.5 }); // display
+    }
+    // Weight rack (west wall)
+    b(cx - 7.5, 1.0, cz, 0.5, 2.0, 5.0, 0x2a2a2e, null); // frame
+    for (let wr = 0; wr < 3; wr++) {
+      for (let wc = 0; wc < 4; wc++) {
+        cy(cx - 7.2, 0.5 + wr * 0.65, cz - 1.5 + wc * 1.1, 0.22, 0.16, 0.28, 14, 0x555555);
+        cy(cx - 7.2, 0.5 + wr * 0.65, cz - 1.5 + wc * 1.1, 0.08, 0.08, 0.4, 8, 0x888888);
+      }
+    }
+    // Pull-up bar / rig (center)
+    b(cx, 2.8, cz, 0.08, 0.08, 6, 0x333333, null);              // cross bar
+    b(cx - 2.5, 1.65, cz, 0.08, 3.3, 0.08, 0x333333, null);     // left post
+    b(cx + 2.5, 1.65, cz, 0.08, 3.3, 0.08, 0x333333, null);     // right post
+    // Bench press benches (2)
+    for (const [bx, bz] of [[cx - 3.5, cz - 4], [cx + 3.5, cz - 4]]) {
+      b(bx, 0.55, bz, 0.55, 0.1, 1.8, 0x2a2a3e, null);          // pad
+      b(bx, 0.28, bz, 0.48, 0.5, 1.6, 0x1a1a22, null);          // frame
+      cy(bx, 1.1, bz - 0.65, 0.05, 0.05, 1.1, 8, 0x555555);    // barbell post L
+      cy(bx, 1.1, bz + 0.65, 0.05, 0.05, 1.1, 8, 0x555555);    // barbell post R
+      b(bx, 1.65, bz, 2.0, 0.08, 0.08, 0x888888, null);         // barbell
+      for (const bwz of [bz - 0.92, bz + 0.92]) cy(bx, 1.65, bwz, 0.22, 0.16, 0.2, 14, 0x3a3a3a);
+    }
+    // Yoga mat area (south)
+    for (let ym = 0; ym < 4; ym++) b(cx - 4.5 + ym * 2.8, 0.06, cz + 5.5, 2.0, 0.04, 1.0, [0x5a8aaa, 0xaa5a5a, 0x5aaa6a, 0xaaaa5a][ym], null);
+    // Water fountain
+    b(cx + 7, 0.9, cz - 7, 0.55, 0.8, 0.45, 0xd0d0d0, null);
+    cy(cx + 7, 0.45, cz - 7, 0.25, 0.25, 0.9, 14, 0xcccccc);
+    // Extra lights
+    pl(cx - 4, 4.5, cz - 4, 0xfff5f0, 0.35, 18); pl(cx + 4, 4.5, cz + 4, 0xfff5f0, 0.35, 18);
+
+  } else if (id === 'rooftop') {
+    // ── Rooftop ──────────────────────────────────────────────────
+    // Patio deck planks (alternating wood strips)
+    for (let pi = 0; pi < 12; pi++) b(cx, 0.07, cz - 8.25 + pi * 1.5, 17, 0.04, 1.2, pi % 2 === 0 ? 0x7a5a3a : 0x6a4a2a, null);
+    // Parapet / low railing around edge
+    for (const [rx, ry, rz, rw, , rd] of [
+      [cx, 0.3, cz - 8.8, 17.5, 0.6, 0.2],
+      [cx, 0.3, cz + 8.8, 17.5, 0.6, 0.2],
+      [cx - 8.8, 0.3, cz, 0.2, 0.6, 17.5],
+      [cx + 8.8, 0.3, cz, 0.2, 0.6, 17.5],
+    ]) b(rx, ry, rz, rw, 0.6, rd, 0x8a8a9a, null);
+    // Outdoor lounge furniture
+    // Sectional sofa (L-shape)
+    b(cx - 4, 0.38, cz - 2, 0.9, 0.65, 5.0, 0x8a9a7a, null);
+    b(cx - 4, 0.7, cz + 2.5, 0.9, 0.62, 0.2, 0x7a8a6a, null);
+    for (let ci = 0; ci < 3; ci++) b(cx - 4, 0.75, cz - 1.6 + ci * 1.5, 0.78, 0.18, 1.1, 0x9aaa8a, null);
+    b(cx - 1.5, 0.38, cz + 3.5, 5.0, 0.65, 0.9, 0x8a9a7a, null);
+    b(cx - 1.5, 0.7, cz + 3.5, 5.0, 0.62, 0.2, 0x7a8a6a, null);
+    // Low outdoor coffee table
+    b(cx - 1.5, 0.36, cz + 1.5, 2.8, 0.06, 1.0, 0x6a5a3a, null);
+    cy(cx - 2.0, 0.18, cz + 1.5, 0.06, 0.06, 0.36, 8, 0x5a4a2a);
+    cy(cx - 1.0, 0.18, cz + 1.5, 0.06, 0.06, 0.36, 8, 0x5a4a2a);
+    // Outdoor dining table + chairs
+    b(cx + 4, 0.78, cz - 3, 0.08, 1.56, 0.08, 0x5a4a2a, null);
+    b(cx + 4, 0.82, cz - 3, 2.5, 0.08, 1.4, 0x7a6a4a, null);
+    for (const [chx, chz, cr] of [[cx + 2.65, cz - 3, 0], [cx + 5.35, cz - 3, Math.PI],
+                                    [cx + 4, cz - 4.35, Math.PI * 0.5], [cx + 4, cz - 1.65, -Math.PI * 0.5]]) {
+      const g = new THREE.Group(); g.position.set(chx, 0, chz); g.rotation.y = cr;
+      const s = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.08, 0.65), new THREE.MeshLambertMaterial({ color: 0x5a4a2a }));
+      s.position.y = 0.48; s.castShadow = true; g.add(s);
+      const bk = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 0.07), new THREE.MeshLambertMaterial({ color: 0x5a4a2a }));
+      bk.position.set(0, 0.75, 0.29); bk.castShadow = true; g.add(bk);
+      scene.add(g); objs.push(g);
+    }
+    // Potted plants in corners + along walls
+    for (const [px, pz] of [[-7, -7], [7, -7], [-7, 7], [7, 7], [0, -7.5], [0, 7.5]]) {
+      smallPlant(cx + px, cz + pz);
+      // Some get tall bamboo-style
+      if (Math.abs(px) > 5) {
+        cy(cx + px, 0.9, cz + pz, 0.1, 0.08, 1.8, 12, 0x4a7a3a);
+        cy(cx + px, 0.9, cz + pz, 0.06, 0.06, 1.85, 8, 0x3a6a2a);
+      }
+    }
+    // String lights across the whole rooftop
+    { const slMat = new THREE.MeshLambertMaterial({ color: 0xffee88, emissive: new THREE.Color(0xffdd44), emissiveIntensity: 0.8 });
+      for (let sli = 0; sli < 14; sli++) {
+        const sb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), slMat);
+        sb.position.set(cx - 8 + sli * 1.24, 2.9 + Math.sin(sli * 0.7) * 0.14, cz - 8);
+        scene.add(sb); objs.push(sb);
+        const sb2 = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), slMat);
+        sb2.position.set(cx - 8 + sli * 1.24, 2.9 + Math.sin(sli * 0.7 + 1) * 0.14, cz + 7);
+        scene.add(sb2); objs.push(sb2);
+      }
+      pl(cx, 3.2, cz, 0xffee99, 0.55, 30);
+    }
+    // Skyline backdrop on north wall (gradient of building silhouettes)
+    const bldgColors = [0x3a3a5a, 0x2a2a4a, 0x4a4a6a, 0x2e2e52, 0x3e3e5e];
+    const bldgH = [2.2, 2.8, 1.8, 3.0, 2.5, 1.6, 2.4, 2.0, 3.2, 1.9];
+    for (let bi = 0; bi < 10; bi++) {
+      const bw = 0.9 + Math.random() * 0.5;
+      b(cx - 7 + bi * 1.55, bldgH[bi] * 0.5 + 0.5, cz - 8.75, bw, bldgH[bi], 0.2, bldgColors[bi % bldgColors.length], null);
+      // Windows on buildings
+      for (let wri = 0; wri < 3; wri++) {
+        for (let wci = 0; wci < 2; wci++) {
+          b(cx - 7 + bi * 1.55, 0.7 + wri * 0.6, cz - 8.72, bw * 0.25, 0.22, 0.05,
+            Math.random() > 0.4 ? 0xffffaa : 0x4a4a2a, Math.random() > 0.4 ? { emissive: 0xffffaa, ei: 0.6 } : null);
+        }
+      }
+    }
+    // Night-sky ambient
+    pl(cx, 5, cz, 0x334466, 0.25, 40);
+  }
+}
+
 const FLOORS = [
   { id: 'office',  name: 'Office — Floor 1', icon: '💻', cost: 0 },
   { id: 'cafe',    name: 'Café',             icon: '☕', cost: 1000 },
@@ -5905,6 +5247,7 @@ function renderFloors() {
           state.cash -= f.cost;
           unlocked[f.id] = true;
           refreshHud();
+          buildFloorScene(f.id);
           elevMsgEl.textContent = `${f.name} unlocked!`;
           renderFloors();
         } else {
@@ -5913,7 +5256,7 @@ function renderFloors() {
       } else if (f.id === currentFloor) {
         elevMsgEl.textContent = "You're already here.";
       } else {
-        elevMsgEl.textContent = `${f.name} is a placeholder — drop in a Floor subclass to activate.`;
+        elevMsgEl.textContent = `Head to ${f.name}!`;
       }
     };
     floorListEl.appendChild(card);
@@ -6863,7 +6206,310 @@ refreshTrophyBadge();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
 
+// ═══════════════════════════════════════════════════════════
+// LEADERBOARD & SOCIAL
+// ═══════════════════════════════════════════════════════════
+
+// roundRect polyfill for canvas overlay
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r) {
+    this.moveTo(x+r,y); this.lineTo(x+w-r,y);
+    this.quadraticCurveTo(x+w,y,x+w,y+r); this.lineTo(x+w,y+h-r);
+    this.quadraticCurveTo(x+w,y+h,x+w-r,y+h); this.lineTo(x+r,y+h);
+    this.quadraticCurveTo(x,y+h,x,y+h-r); this.lineTo(x,y+r);
+    this.quadraticCurveTo(x,y,x+r,y); this.closePath();
+  };
+}
+
+const PLAYER_KEY = 'startup-tycoon-player-v1';
+const LB_KEY     = 'startup-tycoon-lb-v1';
+let playerName   = 'Founder';
+
+function updatePlayerChip() {
+  const chip = document.getElementById('player-chip');
+  if (!chip) return;
+  const t = THEMES[currentThemeId] || THEMES.default;
+  chip.textContent = `${t.icon} ${playerName}`;
+  chip.style.display = '';
+}
+
+function loadPlayer() {
+  try {
+    const raw = localStorage.getItem(PLAYER_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    playerName = (p.name || 'Founder').slice(0, 20);
+    if (p.themeId && THEMES[p.themeId]) applyTheme(p.themeId);
+    updatePlayerChip();
+  } catch {}
+}
+
+function savePlayer() {
+  try {
+    localStorage.setItem(PLAYER_KEY, JSON.stringify({ name: playerName, themeId: currentThemeId }));
+  } catch {}
+}
+
+// ── Leaderboard persistence ───────────────────────────────────
+function loadLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY) || '{"entries":[]}'); }
+  catch { return { entries: [] }; }
+}
+
+function addLeaderboardEntry(entry) {
+  const lb = loadLeaderboard();
+  lb.entries.push(entry);
+  if (lb.entries.length > 200) lb.entries = lb.entries.slice(-200);
+  try { localStorage.setItem(LB_KEY, JSON.stringify(lb)); } catch {}
+}
+
+function checkRecords(entry) {
+  const lb = loadLeaderboard();
+  const same = lb.entries.filter(e => e.themeId === entry.themeId);
+  const maxE = same.length ? Math.max(...same.map(e => e.earnings)) : -1;
+  const maxS = same.length ? Math.max(...same.map(e => e.sales))    : -1;
+  const maxP = same.length ? Math.max(...same.map(e => e.prestige)) : -1;
+  const t10s = same.filter(e => e.timeToTenK !== null).map(e => e.timeToTenK);
+  const minT = t10s.length ? Math.min(...t10s) : Infinity;
+  return {
+    earnings:   entry.earnings   > maxE,
+    sales:      entry.sales      > maxS,
+    prestige:   entry.prestige   > maxP,
+    timeToTenK: entry.timeToTenK !== null && entry.timeToTenK < minT,
+  };
+}
+
+// ── Name entry modal ──────────────────────────────────────────
+const nameModal    = document.getElementById('name-modal');
+const nameInputEl  = document.getElementById('player-name-input');
+const nameStartBtn = document.getElementById('name-start-btn');
+const themeGridEl  = document.getElementById('theme-grid');
+let _selThemeId    = currentThemeId;
+
+function buildThemeGrid() {
+  themeGridEl.innerHTML = '';
+  Object.values(THEMES).forEach(t => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-btn' + (t.id === _selThemeId ? ' selected' : '');
+    btn.innerHTML = `<span class="t-emoji">${t.icon}</span>${t.name}`;
+    btn.addEventListener('click', () => {
+      _selThemeId = t.id;
+      themeGridEl.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    themeGridEl.appendChild(btn);
+  });
+}
+
+function showNameModal() {
+  _selThemeId = currentThemeId;
+  buildThemeGrid();
+  nameInputEl.value = (playerName !== 'Founder') ? playerName : '';
+  nameModal.classList.remove('hidden');
+  setTimeout(() => nameInputEl.focus(), 80);
+}
+
+function submitName() {
+  const name = nameInputEl.value.trim() || 'Founder';
+  playerName = name.slice(0, 20);
+  applyTheme(_selThemeId);
+  savePlayer();
+  nameModal.classList.add('hidden');
+  updatePlayerChip();
+}
+
+nameStartBtn.addEventListener('click', submitName);
+nameInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
+
+// ── End-of-run stats screen ───────────────────────────────────
+const runStatsModal   = document.getElementById('run-stats-modal');
+const statsSubText    = document.getElementById('stats-sub-text');
+const statsGridEl     = document.getElementById('stats-grid');
+const statsShareBtn   = document.getElementById('stats-share-btn');
+const statsScreenshot = document.getElementById('stats-screenshot-btn');
+const statsIpoConfirm = document.getElementById('stats-ipo-confirm-btn');
+const statsCancelBtn  = document.getElementById('stats-cancel-btn');
+let _pendingEntry     = null;
+
+function openRunStatsModal() {
+  const t = THEMES[currentThemeId] || THEMES.default;
+  const runSecs = Math.floor((Date.now() - sessionRunStart) / 1000);
+  const rm  = Math.floor(runSecs / 60);
+  const dur = rm >= 60 ? `${Math.floor(rm/60)}h ${rm%60}m` : `${rm}m ${runSecs%60}s`;
+
+  _pendingEntry = {
+    playerName, themeId: currentThemeId, themeName: t.name, themeIcon: t.icon,
+    season: prestigeLevel+1, earnings: state.allTimeCash, sales: sessionSalesCount,
+    prestige: prestigeLevel, timeToTenK: sessionTimeToTenK,
+    peakTeam: sessionPeakTeam, runSecs, date: new Date().toLocaleDateString(),
+  };
+
+  const rec = checkRecords(_pendingEntry);
+  statsSubText.textContent = `${t.icon} ${t.name} — Season ${prestigeLevel+1} complete`;
+
+  const fmtT10k = () => {
+    if (sessionTimeToTenK === null) return '—';
+    const m = Math.floor(sessionTimeToTenK/60), s = sessionTimeToTenK%60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+  const card = (lbl, val, isRec) =>
+    `<div class="stat-card"><div class="sc-label">${lbl}</div>` +
+    `<div class="sc-value">${val}</div>` +
+    `${isRec ? '<div class="sc-record">🏆 New Record!</div>' : ''}</div>`;
+
+  statsGridEl.innerHTML =
+    card('💰 Earnings',    '$'+fmtCash(state.allTimeCash),   rec.earnings)   +
+    card('📦 Sales Made',  sessionSalesCount.toLocaleString(), rec.sales)      +
+    card('👥 Peak Team',   sessionPeakTeam+' people',          false)          +
+    card('⏱ Time Played', dur,                                false)          +
+    card('⚡ to $10K',     fmtT10k(),                          rec.timeToTenK) +
+    card('🏆 Prestige',    'Level '+prestigeLevel,             rec.prestige);
+
+  runStatsModal.classList.add('open');
+}
+
+statsIpoConfirm.addEventListener('click', () => {
+  runStatsModal.classList.remove('open');
+  if (_pendingEntry) { addLeaderboardEntry(_pendingEntry); _pendingEntry = null; }
+  doIPO();
+  sessionSalesCount = 0; sessionTimeToTenK = null;
+  sessionRunStart = Date.now(); sessionPeakTeam = 0;
+});
+statsCancelBtn.addEventListener('click', () => {
+  runStatsModal.classList.remove('open'); _pendingEntry = null;
+});
+runStatsModal.addEventListener('click', e => {
+  if (e.target === runStatsModal) { runStatsModal.classList.remove('open'); _pendingEntry = null; }
+});
+
+// ── Share score ───────────────────────────────────────────────
+statsShareBtn.addEventListener('click', () => {
+  if (!_pendingEntry) return;
+  const e = _pendingEntry;
+  const t10k = e.timeToTenK !== null
+    ? ` | ⚡ $10K in ${Math.floor(e.timeToTenK/60)>0?Math.floor(e.timeToTenK/60)+'m ':''}${e.timeToTenK%60}s`
+    : '';
+  const txt = `${e.themeIcon} I built a $${fmtCash(e.earnings)} ${e.themeName} in Startup Tycoon! 🚀`
+    + ` Season ${e.season} | ${e.sales} deals${t10k} | Play at ${location.href}`;
+  navigator.clipboard.writeText(txt).then(() => {
+    statsShareBtn.textContent = '✅ Copied!';
+    setTimeout(() => { statsShareBtn.textContent = '📋 Copy Score'; }, 2200);
+  }).catch(() => { prompt('Copy your score:', txt); });
+});
+
+// ── Screenshot ────────────────────────────────────────────────
+statsScreenshot.addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const src = renderer.domElement;
+  const oc = document.createElement('canvas');
+  oc.width = src.width; oc.height = src.height;
+  const ctx = oc.getContext('2d');
+  ctx.drawImage(src, 0, 0);
+
+  const t = THEMES[currentThemeId] || THEMES.default;
+  const pad=20, bW=Math.min(500,oc.width-pad*2), bH=180;
+  const bx=pad, by=oc.height-bH-pad;
+  ctx.fillStyle='rgba(13,17,23,0.88)';
+  ctx.beginPath(); ctx.roundRect(bx,by,bW,bH,12); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.stroke();
+
+  const ff='-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  ctx.fillStyle='#E6EDF3'; ctx.font=`bold 18px ${ff}`;
+  ctx.fillText(`${t.icon} Startup Tycoon — ${playerName}`, bx+16, by+28);
+  ctx.fillStyle='#3FB950'; ctx.font=`bold 28px ${ff}`;
+  ctx.fillText(`$${fmtCash(state.allTimeCash)}`, bx+16, by+62);
+  ctx.fillStyle='#a0aab4'; ctx.font=`13px ${ff}`;
+  const rm2 = _pendingEntry ? Math.floor(_pendingEntry.runSecs/60) : 0;
+  ctx.fillText(`Season ${prestigeLevel+1} · ${sessionSalesCount} deals · ${sessionPeakTeam}-person team · ${rm2}m`, bx+16, by+90);
+  if (sessionTimeToTenK !== null) {
+    const m=Math.floor(sessionTimeToTenK/60), s=sessionTimeToTenK%60;
+    ctx.fillText(`⚡ $10K in ${m>0?m+'m ':''}${s}s`, bx+16, by+112);
+  }
+  ctx.fillStyle='#7D8590'; ctx.font=`11px ${ff}`;
+  ctx.fillText(location.href, bx+16, by+bH-12);
+
+  const a=document.createElement('a');
+  a.download=`startup-tycoon-s${prestigeLevel+1}.png`;
+  a.href=oc.toDataURL('image/png'); a.click();
+});
+
+// ── Leaderboard modal ─────────────────────────────────────────
+const lbModal    = document.getElementById('lb-modal');
+const lbTabsEl   = document.getElementById('lb-theme-tabs');
+const lbContent  = document.getElementById('lb-content');
+const lbCloseBtn = document.getElementById('lb-close-btn');
+const lbBtn      = document.getElementById('lb-btn');
+let _lbFilter    = 'all';
+
+const LB_CATS = [
+  { label:'💰 Highest Earnings', fmt:e=>'$'+fmtCash(e.earnings),
+    sort:(a,b)=>b.earnings-a.earnings, filter:()=>true },
+  { label:'⚡ Fastest to $10K',
+    fmt:e=>{ const m=Math.floor(e.timeToTenK/60),s=e.timeToTenK%60; return m>0?`${m}m ${s}s`:`${s}s`; },
+    sort:(a,b)=>a.timeToTenK-b.timeToTenK, filter:e=>e.timeToTenK!==null },
+  { label:'📦 Most Sales', fmt:e=>e.sales.toLocaleString()+' deals',
+    sort:(a,b)=>b.sales-a.sales, filter:()=>true },
+  { label:'🏆 Highest Prestige', fmt:e=>'Level '+e.prestige,
+    sort:(a,b)=>b.prestige-a.prestige, filter:()=>true },
+];
+
+function buildLbTabs() {
+  lbTabsEl.innerHTML = '';
+  const tab = (id, lbl) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lb-tab' + (_lbFilter===id?' active':'');
+    b.textContent = lbl;
+    b.addEventListener('click', () => { _lbFilter=id; renderLeaderboard(); });
+    lbTabsEl.appendChild(b);
+  };
+  tab('all','🌐 All Themes');
+  const used = [...new Set(loadLeaderboard().entries.map(e=>e.themeId))];
+  for (const tid of used) {
+    const t = THEMES[tid] || THEMES.default;
+    tab(tid, `${t.icon} ${t.name}`);
+  }
+}
+
+function renderLeaderboard() {
+  buildLbTabs();
+  const entries = loadLeaderboard().entries;
+  const pool = _lbFilter==='all' ? entries : entries.filter(e=>e.themeId===_lbFilter);
+  lbContent.innerHTML = '';
+  for (const cat of LB_CATS) {
+    const div = document.createElement('div');
+    div.className = 'lb-cat';
+    div.innerHTML = `<div class="lb-cat-title">${cat.label}</div>`;
+    const top = pool.filter(cat.filter).sort(cat.sort).slice(0,5);
+    if (!top.length) {
+      div.innerHTML += `<div class="lb-empty">No runs recorded yet</div>`;
+    } else {
+      top.forEach((e,i) => {
+        const medal = ['🥇','🥈','🥉'][i] || `${i+1}.`;
+        const rcls  = ['gold','silver','bronze'][i] || '';
+        const tag   = (_lbFilter==='all'&&e.themeIcon) ? `<span class="lb-meta">${e.themeIcon}</span>` : '';
+        div.innerHTML +=
+          `<div class="lb-row"><span class="lb-rank ${rcls}">${medal}</span>` +
+          `${tag}<span class="lb-name">${e.playerName||'Founder'}</span>` +
+          `<span class="lb-meta">${e.date||''}</span>` +
+          `<span class="lb-val">${cat.fmt(e)}</span></div>`;
+      });
+    }
+    lbContent.appendChild(div);
+  }
+}
+
+lbBtn.addEventListener('click', () => { renderLeaderboard(); lbModal.classList.add('open'); });
+lbCloseBtn.addEventListener('click', () => lbModal.classList.remove('open'));
+lbModal.addEventListener('click', e => { if (e.target===lbModal) lbModal.classList.remove('open'); });
+
+// Swap IPO button → stats screen
+ipoBtnEl.removeEventListener('click', openIPOModal);
+ipoBtnEl.addEventListener('click', openRunStatsModal);
+
+// ── Startup ───────────────────────────────────────────────────
+loadPlayer();
+if (!localStorage.getItem(PLAYER_KEY)) showNameModal();
+
 requestAnimationFrame(loop);
-</script>
-</body>
-</html>

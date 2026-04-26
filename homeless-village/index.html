@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homeless Village — Survive Under the Bridge</title>
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<div id="canvas-container">
+  <canvas id="three-canvas"></canvas>
+</div>
+
+<div id="hud">
+  <div id="night-overlay"></div>
+  <div id="sweep-warning">POLICE SWEEP INCOMING</div>
+
+  <div id="top-bar">
+    <div class="left">
+      <button id="back-btn" onclick="window.location.href='../index.html'">&#8592; Back</button>
+      <div id="season-badge">AUTUMN</div>
+      <span id="days-counter">Days Survived: 0</span>
+    </div>
+    <div class="right">
+      <div class="stat-pill"><span class="icon">🍞</span><span class="val" id="stat-food">0</span><span> food</span></div>
+      <div class="stat-pill"><span class="icon">🧱</span><span class="val" id="stat-scraps">0</span><span> scraps</span></div>
+      <div class="stat-pill"><span class="icon">🫙</span><span class="val" id="stat-cans">0</span><span> cans</span></div>
+      <div class="stat-pill"><span class="icon">🩶</span><span class="val" id="stat-goodwill">0</span><span> goodwill</span></div>
+      <div class="stat-pill"><span class="icon">❤️</span><span class="val" id="stat-health">100</span><span>%</span></div>
+      <div class="stat-pill"><span class="icon">🌡️</span><span class="val" id="stat-warmth">100</span><span>%</span></div>
+    </div>
+  </div>
+
+  <div id="craft-panel">
+    <h3>&#9881; Craft</h3>
+    <div id="craft-list"></div>
+  </div>
+
+  <div id="workers-panel">
+    <h3>&#128101; Community</h3>
+    <div id="workers-list"></div>
+  </div>
+
+  <div id="action-panel">
+    <h3>&#9875; Actions</h3>
+    <div id="action-list"></div>
+  </div>
+
+  <div id="event-banner">
+    <div class="ev-close" onclick="closeEvent()">&#10005;</div>
+    <div class="ev-title" id="ev-title"></div>
+    <div id="ev-body"></div>
+  </div>
+
+  <div id="log-feed"></div>
+  <div id="tooltip"></div>
+
+  <div id="bottom-bar">
+    <div class="stat-pill">
+      <span class="icon">☀️</span>
+      <div id="day-bar" style="width:120px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin:0 6px">
+        <div id="day-progress" style="height:100%;background:linear-gradient(90deg,#e8a030,#e0d060);width:0%;transition:width .5s"></div>
+      </div>
+      <span id="time-label" style="font-size:11px;color:#7a6040">Dawn</span>
+    </div>
+    <div class="stat-pill" id="morale-pill">
+      <span class="icon">😔</span><span id="morale-val" class="val">50</span><span> morale</span>
+    </div>
+    <div class="stat-pill">
+      <span class="icon">👥</span><span id="pop-val" class="val">1</span><span> residents</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/save.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/player.js"></script>
+<script src="js/gameloop.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>
