@@ -21,6 +21,7 @@
     <button data-view="snake">Snake</button>
     <button data-view="maze">Maze Solver</button>
     <button data-view="life">Game of Life</button>
+    <button data-view="tetris">Tetris</button>
     <a href="startup-tycoon.html" class="nav-link-btn">Startup Tycoon</a>
   </nav>
 
@@ -291,6 +292,53 @@
     </div>
   </section>
 
+  <!-- ===================== TETRIS ===================== -->
+  <section id="view-tetris" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <div class="game-title">TETRIS</div>
+        <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
+      </div>
+      <div class="tetris-layout">
+        <div class="tetris-side">
+          <div class="tetris-panel">
+            <div class="tetris-panel-label">HOLD</div>
+            <canvas id="tetris-hold-canvas" width="120" height="90"></canvas>
+          </div>
+          <div class="tetris-panel">
+            <div class="tetris-panel-label">SCORE</div>
+            <div class="tetris-panel-value" id="tetris-score">0</div>
+          </div>
+          <div class="tetris-panel">
+            <div class="tetris-panel-label">LEVEL</div>
+            <div class="tetris-panel-value" id="tetris-level">1</div>
+          </div>
+          <div class="tetris-panel">
+            <div class="tetris-panel-label">LINES</div>
+            <div class="tetris-panel-value" id="tetris-lines">0</div>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="tetris-canvas" class="game-canvas"></canvas>
+          <div id="tetris-overlay" class="game-overlay" style="display:none"></div>
+        </div>
+        <div class="tetris-side">
+          <div class="tetris-panel">
+            <div class="tetris-panel-label">NEXT</div>
+            <canvas id="tetris-next-canvas" width="120" height="90"></canvas>
+          </div>
+          <div class="tetris-panel">
+            <div class="tetris-panel-label">HIGH SCORE</div>
+            <div class="tetris-panel-value" id="tetris-high">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" onclick="TetrisGame.start()">New Game</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== GAME OF LIFE ===================== -->
   <section id="view-life" class="view">
     <div class="game-container">
@@ -389,6 +437,7 @@
   <script src="js/snake.js"></script>
   <script src="js/maze.js"></script>
   <script src="js/life.js"></script>
+  <script src="js/tetris.js"></script>
   <script>
     const navButtons = document.querySelectorAll('nav button');
     const views = document.querySelectorAll('.view');
@@ -407,6 +456,7 @@
           case 'snake':        SnakeGame.init(); break;
           case 'maze':         MazeGame.init(); break;
           case 'life':         LifeGame.init(); break;
+          case 'tetris':       TetrisGame.init(); break;
         }
       }
       // Re-init 3D tilt for newly visible widgets

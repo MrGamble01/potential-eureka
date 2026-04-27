@@ -184,3 +184,49 @@ canvas.game-canvas {
   border-color: #58A6FF;
   color: #58A6FF;
 }
+
+/* ---- TETRIS SPECIFIC ---- */
+.tetris-layout {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tetris-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.tetris-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.tetris-panel canvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: 4px;
+  background: #0d1117;
+}
+
+.tetris-panel-label {
+  font-size: 10px;
+  color: #7D8590;
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.tetris-panel-value {
+  font-size: 22px;
+  color: #E6EDF3;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
