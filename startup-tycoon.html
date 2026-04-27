@@ -150,6 +150,29 @@
     #next-action-card .na-sub {
       font-size: 10px; color: #a0aab4; line-height: 1.25;
     }
+    /* On phones the sidebar is hidden behind a drawer toggle, so the
+       Next Action card — the most important "what now" affordance —
+       gets promoted to a fixed pill at the bottom of the screen.
+       Stays visible whether the drawer is open or closed. */
+    @media (max-width: 900px) {
+      #next-action-card {
+        position: fixed !important;
+        left: calc(12px + env(safe-area-inset-left, 0px));
+        right: calc(12px + env(safe-area-inset-right, 0px));
+        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+        width: auto;
+        z-index: 95;
+        padding: 8px 12px;
+        background: linear-gradient(135deg, rgba(252,211,77,0.22), rgba(245,158,11,0.16));
+        border: 1px solid rgba(252,211,77,0.55);
+        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+        gap: 1px;
+      }
+      #next-action-card .na-label { font-size: 8px; letter-spacing: 0.6px; }
+      #next-action-card .na-title { font-size: 12px; }
+      #next-action-card .na-sub   { font-size: 10px; }
+    }
     .panel-title {
       font-weight: 700; font-size: 9px; text-transform: uppercase;
       letter-spacing: 1.5px; color: #7D8590; margin-bottom: 6px;
@@ -799,7 +822,10 @@
       50%     { box-shadow: 0 6px 32px rgba(252,211,77,0.55); }
     }
     @media (max-width: 900px) {
-      #investor-banner { top: 60px; padding: 6px 10px; font-size: 12px; gap: 8px; }
+      /* Push the investor banner below the goal HUD so they don't
+         stack vertically. Goal HUD lives at top:58 and is ~60px tall
+         on mobile; banner now starts at 122px. */
+      #investor-banner { top: 122px; padding: 6px 10px; font-size: 12px; gap: 8px; }
       #investor-banner .ib-icon { font-size: 18px; }
     }
 
@@ -975,8 +1001,11 @@
         max-width: none;
       }
 
+      /* Tap targets bumped to ~44px tall (Apple/Google guideline) so
+         hire / room / upgrade / funding buttons aren't fiddly on
+         phones. Affects only mobile; desktop stays compact. */
       .hire-btn, .amenity-btn, .upg-btn, .room-btn, .fund-btn {
-        padding: 9px 11px; font-size: 12px;
+        padding: 11px 12px; font-size: 13px; min-height: 44px;
       }
       .upg-btn .cost { font-size: 11px; }
 
@@ -984,14 +1013,30 @@
         width: 92vw; padding: 18px 16px;
       }
       .floor-card { padding: 10px 12px; font-size: 13px; }
+
+      /* Metrics HUD: shave the on-mobile row gap so the 8-row stack
+         doesn't dominate the right side of the screen. Goal-bar
+         sparkline is also useful but small at this width — keep. */
+      #metrics-hud .m-row { padding: 0; line-height: 1.3; }
+      /* On phones the activity feed is hidden (it's a desktop affordance)
+         and the goal HUD already shows progress, so we can shrink the
+         metrics HUD vertically. Hide a few less-essential rows on the
+         narrowest screens — they're surfaced in the win modal anyway. */
     }
 
     /* Tighter spacing on small phones */
     @media (max-width: 430px) {
       #metrics-hud { padding: 5px 7px; }
       #metrics-hud .m-row { gap: 8px; }
+      /* Hide low-priority metric rows; they're available in the win
+         modal + on the All-Hands Screen + per-desk whiteboards. The
+         essentials (Revenue, Rate, Team, Per ship) stay visible. */
+      #metrics-hud .m-row[data-priority="low"] { display: none; }
       #cash-hud { font-size: 15px; padding: 6px 9px; }
       #status-bar { max-width: calc(100vw - 200px); font-size: 10px; }
+      /* Investor banner moves below the goal HUD on small phones so
+         the two don't stack on top of each other. */
+      #investor-banner { top: 152px; }
     }
 
     /* ── Virtual joystick (opt-in via settings) ───────── */
@@ -1073,12 +1118,12 @@
 <div id="metrics-hud">
   <div class="m-row" title="Total recurring revenue banked this season. Fills the goal bar. Resets on IPO. One-time cash (funding, investor gifts, events) moves your $ but not this bar."><span class="m-lbl">Revenue</span><span class="m-val" id="m-arr">$0</span></div>
   <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
-  <div class="m-row" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
-  <div class="m-row" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
+  <div class="m-row" data-priority="low" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
+  <div class="m-row" data-priority="low" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
   <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix shows how many engineers are caffeinated right now."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
-  <div class="m-row" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
+  <div class="m-row" data-priority="low" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
-  <div class="m-row" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
+  <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
   <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-pct">0%</span></span></div>
@@ -5883,6 +5928,25 @@ leftPanelEl.addEventListener('click', e => {
   }
 });
 
+// On phones the sidebar slides off-screen via transform: translateX,
+// which creates a containing block that traps any `position: fixed`
+// descendants inside the off-screen drawer. To keep the Next Best
+// Action card always visible at the bottom of the screen on mobile,
+// we re-parent it to document.body when narrow and back into the
+// sidebar when wide. The @media CSS then handles the styling.
+function syncNextActionPlacement() {
+  if (!nextActionCardEl) return;
+  const mobile = window.matchMedia('(max-width: 900px)').matches;
+  const inSidebar = nextActionCardEl.parentElement === leftPanelEl;
+  if (mobile && inSidebar) {
+    document.body.appendChild(nextActionCardEl);
+  } else if (!mobile && !inSidebar) {
+    leftPanelEl.insertBefore(nextActionCardEl, leftPanelEl.firstChild);
+  }
+}
+syncNextActionPlacement();
+window.addEventListener('resize', syncNextActionPlacement);
+
 function renderFloors() {
   floorListEl.innerHTML = '';
   elevMsgEl.textContent = '';
@@ -5953,7 +6017,15 @@ const CHEAT_AMOUNTS = [1000, 10000, 100000];
 const CHEAT_WINDOW_MS = 600;
 let cheatStreak = 0;
 let cheatLastT = 0;
-cashHudEl.addEventListener('click', () => {
+// Touch-primary devices (phones, tablets) ALWAYS trigger this when
+// the user just glances at their cash, which is hostile. Disable the
+// click-cheat on those devices and update the tooltip to match. Mouse
+// users still get the rapid-tap escalator.
+const _isTouchPrimary = window.matchMedia('(pointer: coarse)').matches;
+if (_isTouchPrimary) {
+  cashHudEl.title = 'Total cash on hand. Spend on hires, rooms, upgrades, and amenities.';
+}
+if (!_isTouchPrimary) cashHudEl.addEventListener('click', () => {
   const now = performance.now();
   cheatStreak = (now - cheatLastT < CHEAT_WINDOW_MS)
     ? Math.min(cheatStreak + 1, CHEAT_AMOUNTS.length)
