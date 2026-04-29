@@ -1,6 +1,6 @@
 /* ============================================
-   GAMES — Common Game Styles, Maze, Life
-   Dark Modern Theme
+   GAMES — Common Game Styles, Maze, Life, Tetris
+   Dark Cinematic Theme
    ============================================ */
 
 /* ---- GAME COMMON ---- */
@@ -15,15 +15,18 @@
 }
 
 .game-title {
-  font-size: 24px;
-  color: #E6EDF3;
-  text-shadow: 0 1px 4px rgba(108, 99, 255, 0.2);
+  font-size: 26px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text);
+  text-shadow: 0 0 20px rgba(108, 99, 255, 0.2);
   margin-bottom: 4px;
+  letter-spacing: 2px;
 }
 
 .game-subtitle {
   font-size: 12px;
-  color: #7D8590;
+  color: var(--text-dim);
 }
 
 .game-controls {
@@ -36,95 +39,109 @@
 
 .game-controls button,
 .game-controls select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #E6EDF3;
-  font-family: inherit;
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
   font-size: 13px;
-  padding: 6px 16px;
+  padding: 7px 18px;
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
 .game-controls button:hover {
-  border-color: #58A6FF;
-  color: #58A6FF;
+  border-color: var(--secondary);
+  color: var(--secondary);
+  background: rgba(88, 166, 255, 0.08);
+  box-shadow: var(--glow-secondary);
 }
 
 .game-controls button.primary {
-  border-color: #6C63FF;
-  color: #6C63FF;
-}
-
-.game-controls button.primary:hover {
+  border-color: rgba(108, 99, 255, 0.4);
+  color: var(--primary-light);
   background: rgba(108, 99, 255, 0.1);
 }
 
+.game-controls button.primary:hover {
+  background: rgba(108, 99, 255, 0.18);
+  box-shadow: var(--glow-primary);
+}
+
 .game-controls button.danger {
-  border-color: #F85149;
-  color: #F85149;
+  border-color: rgba(248, 81, 73, 0.4);
+  color: var(--danger);
 }
 
 .game-controls button.danger:hover {
   background: rgba(248, 81, 73, 0.1);
+  box-shadow: 0 0 16px rgba(248, 81, 73, 0.2);
 }
 
 .game-controls select {
   appearance: none;
-  padding-right: 28px;
+  padding-right: 30px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236C63FF' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 8px center;
+  background-position: right 10px center;
 }
 
 .game-info {
   display: flex;
   justify-content: center;
-  gap: 24px;
-  margin: 8px 0;
+  gap: 28px;
+  margin: 10px 0;
   font-size: 14px;
 }
 
 .game-info span {
-  color: #7D8590;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
 }
 
 .game-info strong {
-  color: #E6EDF3;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 canvas.game-canvas {
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--color-black-deep);
   display: block;
   margin: 0 auto;
   max-width: 100%;
   image-rendering: pixelated;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* Game over overlay */
 .game-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(13, 17, 23, 0.9);
+  background: rgba(2, 2, 3, 0.92);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 10;
+  border-radius: var(--radius-md);
 }
 
 .game-overlay h2 {
-  color: #F85149;
+  color: var(--danger);
   font-size: 32px;
-  text-shadow: 0 0 20px rgba(248, 81, 73, 0.3);
+  font-family: var(--font-mono);
+  text-shadow: 0 0 24px rgba(248, 81, 73, 0.35);
   margin-bottom: 8px;
+  letter-spacing: 2px;
 }
 
 .game-overlay p {
-  color: #7D8590;
+  color: var(--text-dim);
   margin-bottom: 16px;
 }
 
@@ -138,10 +155,10 @@ canvas.game-canvas {
 .maze-legend {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 18px;
+  margin-top: 10px;
   font-size: 11px;
-  color: #7D8590;
+  color: var(--text-dim);
 }
 
 .maze-legend span::before {
@@ -149,40 +166,41 @@ canvas.game-canvas {
   display: inline-block;
   width: 10px;
   height: 10px;
-  margin-right: 4px;
+  margin-right: 5px;
   vertical-align: middle;
-  border-radius: 1px;
+  border-radius: 2px;
 }
 
-.maze-legend .wall::before { background: #7D8590; }
-.maze-legend .path::before { background: #0d1117; }
+.maze-legend .wall::before { background: var(--text-dim); }
+.maze-legend .path::before { background: var(--color-black-deep); }
 .maze-legend .visited::before { background: rgba(88, 166, 255, 0.4); }
-.maze-legend .solution::before { background: #6C63FF; }
+.maze-legend .solution::before { background: var(--primary); }
 
 /* ---- LIFE SPECIFIC ---- */
 .life-presets {
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin: 8px 0;
+  margin: 10px 0;
   flex-wrap: wrap;
 }
 
 .life-presets button {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #7D8590;
-  font-family: inherit;
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-sans);
   font-size: 11px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
 .life-presets button:hover {
-  border-color: #58A6FF;
-  color: #58A6FF;
+  border-color: var(--secondary);
+  color: var(--secondary);
+  background: rgba(88, 166, 255, 0.08);
 }
 
 /* ---- TETRIS SPECIFIC ---- */
@@ -190,43 +208,48 @@ canvas.game-canvas {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
 .tetris-side {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-width: 120px;
 }
 
 .tetris-panel {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: var(--color-white-05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
   text-align: center;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .tetris-panel canvas {
   display: block;
   margin: 0 auto;
   border-radius: 4px;
-  background: #0d1117;
+  background: var(--color-black-deep);
 }
 
 .tetris-panel-label {
-  font-size: 10px;
-  color: #7D8590;
-  letter-spacing: 1.5px;
-  margin-bottom: 5px;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
   text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 .tetris-panel-value {
-  font-size: 22px;
-  color: #E6EDF3;
+  font-size: 24px;
+  color: var(--text);
   font-weight: 600;
+  font-family: var(--font-mono);
   letter-spacing: 1px;
 }

@@ -129,20 +129,20 @@
       width: 100%;
       display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
       cursor: pointer; text-align: left;
-      border: 1px solid rgba(252,211,77,0.35);
-      background: linear-gradient(135deg, rgba(252,211,77,0.12), rgba(245,158,11,0.08));
+      border: 1px solid rgba(88,166,255,0.35);
+      background: linear-gradient(135deg, rgba(88,166,255,0.12), rgba(108,99,255,0.08));
       transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
       font-family: inherit;
     }
     #next-action-card:hover {
-      border-color: rgba(252,211,77,0.7);
-      box-shadow: 0 4px 18px rgba(252,211,77,0.18);
+      border-color: rgba(88,166,255,0.7);
+      box-shadow: 0 4px 18px rgba(88,166,255,0.22);
       transform: translateY(-1px);
     }
     #next-action-card:active { transform: translateY(0); }
     #next-action-card .na-label {
       font-size: 9px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.8px; color: #fcd34d;
+      letter-spacing: 0.8px; color: #58A6FF;
     }
     #next-action-card .na-title {
       font-size: 13px; font-weight: 800; color: #E6EDF3; line-height: 1.2;
@@ -163,8 +163,8 @@
         width: auto;
         z-index: 95;
         padding: 8px 12px;
-        background: linear-gradient(135deg, rgba(252,211,77,0.22), rgba(245,158,11,0.16));
-        border: 1px solid rgba(252,211,77,0.55);
+        background: linear-gradient(135deg, rgba(88,166,255,0.22), rgba(108,99,255,0.16));
+        border: 1px solid rgba(88,166,255,0.55);
         backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
         box-shadow: 0 6px 24px rgba(0,0,0,0.45);
         gap: 1px;
@@ -1310,6 +1310,152 @@
 <script type="module">
 import * as THREE from 'three';
 
+// ── CONFIG (data-driven tunables — one place to balance the game) ──
+const CONFIG = Object.freeze({
+  // Player
+  playerBaseSpeed:      6,
+  playerSpeedPerLevel:  0.5,
+
+  // Camera
+  zoomMin: 7,
+  zoomMax: 24,
+  zoomDefault: 14,
+
+  // World
+  tileSize: 16,
+  worldHalf: 28,
+
+  // Collision
+  wallPad:  0.5,
+  bodyR:    0.4,
+  deskHalfExtent: 1.2,
+  ceoDeskCenter:  { x: 0, z: 3 },
+  ceoDeskHalf:    { x: 1.75, z: 0.8 },
+
+  // Proximity / interaction ranges
+  proxRange:     3.2,
+  ceoDeskRange:  2.0,
+  greetRange:    1.6,
+  refillRange:   2.0,
+
+  // Movement speeds
+  iwSpeed:       4.2,
+  eaSpeed:       4.0,
+  bdrSpeed:      4.0,
+  investorSpeed: 3.5,
+
+  // Work rates
+  workRateBase:  0.032,
+  caffeineBoost: 2.0,
+  caffeineDuration: 60,
+  rushBoost:     1.5,
+  bossBoost:    1.5,
+
+  // Paper
+  paperMax:      10,
+  paperStackMax: 10,
+  paperRefillMin: 5,
+  paperRefillRange: 6,
+  paperLowThreshold: 4,
+  paperPlayerRefillRate: 3,
+  coffeePlayerRefillRate: 4,
+
+  // Hiring costs
+  engBaseCost:    75,
+  engCostScale:   1.6,
+  eaBaseCost:     400,
+  eaCostScale:    1.6,
+  bdrBaseCost:    200,
+  bdrCostScale:   1.5,
+  aeBaseCost:     800,
+  aeCostScale:    1.7,
+
+  // External hire multipliers
+  externalCostMult:     3,
+  externalEngRateBonus: 1.30,
+  externalBdrDealBonus: 1.50,
+
+  // BDR / AE
+  bdrSoloFraction: 0.6,
+  bdrDealTimerMin: 8,
+  bdrDealTimerRange: 10,
+  aeProcessMult:   3,
+
+  // Sprint
+  sprintDuration:   30,
+  sprintCooldown:   90,
+  sprintRateMult:   2.0,
+
+  // Rush Hour
+  rushCycle: 90,
+  rushDuration: 20,
+
+  // Investor timing
+  investorFirstDelay: { min: 60, range: 60 },
+  investorRespawn:    { min: 120, range: 120 },
+  investorCashGate:   100,
+
+  // Morale
+  moraleDefault: 70,
+  moraleMax: 100,
+  moraleMin: 0,
+  moraleIdleDecayInterval: 15,
+
+  // Season / Prestige
+  goalTargetBase:     25_000,
+  featurePriceBase:   5,
+
+  // Revenue tracking
+  revenueWindowMs: 30_000,
+  maxFeedEntries:  14,
+
+  // Walk animation
+  walkBounceHeight: 0.06,
+  walkPhaseBase:    4,
+  walkPhaseSpeedK:  0.5,
+  moveEpsilon:      0.001,
+
+  // Arm swing
+  armSwingAmplitude: 0.7,
+  armDecay:          0.85,
+
+  // Save interval
+  saveIntervalMs: 5000,
+});
+
+// ── NPC States (enum — avoids typo bugs, enables switch optimization) ──
+const S = Object.freeze({
+  // Shared
+  IDLE:           'idle',
+  AT_DESK:        'atDesk',
+  RETURNING:      'returning',
+  // Engineer
+  TO_COFFEE:      'toCoffee',
+  GETTING_COFFEE: 'gettingCoffee',
+  TO_SUPPLY:      'toSupply',
+  GETTING_PAPER:  'gettingPaper',
+  TO_PING_PONG:   'toPingPong',
+  PING_PONGING:   'pingPonging',
+  TO_DELIVER:     'toDeliver',
+  TO_VP:          'toVP',
+  // EA
+  TO_DESK:        'toDesk',
+  TO_COFFEE_DROP: 'toCoffeeDrop',
+  TO_CHAT:        'toChat',
+  REFILLING:      'refillingCoffee',
+  CHATTING:       'chatting',
+  // BDR
+  TO_AE:          'toAE',
+  // Investor
+  WALKING:        'walking',
+  HANDSHAKING:    'handshaking',
+  LEAVING:        'leaving',
+});
+
+// ── Pre-allocated vectors (zero-alloc hot path) ──
+const _v3A = new THREE.Vector3();
+const _v3B = new THREE.Vector3();
+
 // ── localStorage keys (single source of truth) ──────────────
 // Every key we read/write lives in this map so typos can't silently
 // fork names, a grep lands on every call site, and Restart's
@@ -1365,11 +1511,11 @@ const LS = {
 
 // ── Scene + isometric camera ──
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xd6d0c8);
+scene.background = new THREE.Color(0xc2bcb2);
 
 const camera = new THREE.OrthographicCamera();
-let cameraZoom = 14;
-const ZOOM_MIN = 7, ZOOM_MAX = 24;
+let cameraZoom = CONFIG.zoomDefault;
+const ZOOM_MIN = CONFIG.zoomMin, ZOOM_MAX = CONFIG.zoomMax;
 function fitCamera() {
   const a = innerWidth / innerHeight;
   camera.left = -cameraZoom * a; camera.right = cameraZoom * a;
@@ -1396,17 +1542,16 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // ── Screen-space utility ─────────────────────────────────────
-const projV = new THREE.Vector3();
 function worldToScreen(x, y, z) {
-  projV.set(x, y, z).project(camera);
-  return { x:(projV.x*0.5+0.5)*innerWidth, y:(-projV.y*0.5+0.5)*innerHeight };
+  _v3A.set(x, y, z).project(camera);
+  return { x:(_v3A.x*0.5+0.5)*innerWidth, y:(-_v3A.y*0.5+0.5)*innerHeight };
 }
 
 // ── Lights ──
 // Warmer ambient + wider shadow frustum so every expandable room
 // (3×3 grid of 16-unit rooms ≈ 48 across) still gets proper shadows.
-scene.add(new THREE.AmbientLight(0xfff2dc, 0.7));
-const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+scene.add(new THREE.AmbientLight(0xfff2dc, 0.85));
+const sun = new THREE.DirectionalLight(0xffffff, 1.15);
 sun.position.set(15, 30, 10);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -1417,9 +1562,13 @@ sun.shadow.bias = -0.0005;
 scene.add(sun);
 
 // ── Extra office lighting ──
-const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.35);
+const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.5);
 fillLight.position.set(-10, 15, -5);
 scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0xe8f0ff, 0.3);
+rimLight.position.set(-15, 10, 15);
+scene.add(rimLight);
 
 // Overhead point lights are added per-room when buildRoom() is called
 
@@ -1506,15 +1655,15 @@ const THEMES = {
       'front-right': '🏛️ Leadership Suite',
     },
     roomPalettes: {
-      starter:       { floor: 0x6a6a6e, wall: 0xdcc8a8 },
-      left:          { floor: 0x2a3f5f, wall: 0xc8d4e0 },
-      right:         { floor: 0x5a2f2a, wall: 0xe8d4c0 },
-      front:         { floor: 0x8a6d4a, wall: 0xf0ebe2 },
-      back:          { floor: 0x3a5a3a, wall: 0xd8e4d0 },
-      'back-left':   { floor: 0x4a4a4e, wall: 0xececec },
-      'back-right':  { floor: 0xe4eaf0, wall: 0xc4d4e4 },
-      'front-left':  { floor: 0x3a1f1a, wall: 0x5a2a2a },
-      'front-right': { floor: 0x1a1a1e, wall: 0x3a2a4a },
+      starter:       { floor: 0x8a8a90, wall: 0xf0e0c8 },
+      left:          { floor: 0x4a6888, wall: 0xd8e4f0 },
+      right:         { floor: 0x8a5a48, wall: 0xf0dcc8 },
+      front:         { floor: 0xa08860, wall: 0xf5efe6 },
+      back:          { floor: 0x5a8060, wall: 0xe0ecd8 },
+      'back-left':   { floor: 0x707880, wall: 0xf0f0f0 },
+      'back-right':  { floor: 0x6888a0, wall: 0xd8e8f4 },
+      'front-left':  { floor: 0x806858, wall: 0xe0c8b0 },
+      'front-right': { floor: 0x585870, wall: 0xc8c0d8 },
     },
   },
   space: {
@@ -1533,15 +1682,15 @@ const THEMES = {
       'front-right': '🎖️ Admiral\'s Quarters',
     },
     roomPalettes: {
-      starter:       { floor: 0x2a3040, wall: 0x4a5568 },
-      left:          { floor: 0x1e3a5f, wall: 0x3a5a7e },
-      right:         { floor: 0x3a1e4a, wall: 0x5a3a6e },
-      front:         { floor: 0x1e4a4a, wall: 0x3a6a6a },
-      back:          { floor: 0x2a4a3e, wall: 0x4a6a5e },
-      'back-left':   { floor: 0x1a2a3e, wall: 0x3a4a5e },
-      'back-right':  { floor: 0x2a5e7e, wall: 0x4a7e9e },
-      'front-left':  { floor: 0x1a1a3e, wall: 0x3a3a6e },
-      'front-right': { floor: 0x0a0a1e, wall: 0x2a2a4e },
+      starter:       { floor: 0x384050, wall: 0x586878 },
+      left:          { floor: 0x284870, wall: 0x486890 },
+      right:         { floor: 0x483060, wall: 0x684880 },
+      front:         { floor: 0x286060, wall: 0x488080 },
+      back:          { floor: 0x386050, wall: 0x588068 },
+      'back-left':   { floor: 0x283848, wall: 0x485868 },
+      'back-right':  { floor: 0x387090, wall: 0x5890b0 },
+      'front-left':  { floor: 0x282850, wall: 0x484878 },
+      'front-right': { floor: 0x202038, wall: 0x383860 },
     },
   },
   wizard: {
@@ -1560,15 +1709,15 @@ const THEMES = {
       'front-right': '👑 Throne Room',
     },
     roomPalettes: {
-      starter:       { floor: 0x4a3a2a, wall: 0x7a6a4a },
-      left:          { floor: 0x3a2a4a, wall: 0x6a5a7a },
-      right:         { floor: 0x4a2a2a, wall: 0x7a4a4a },
-      front:         { floor: 0x2a4a2a, wall: 0x4a6a4a },
-      back:          { floor: 0x5a3a2a, wall: 0x8a5a3a },
-      'back-left':   { floor: 0x3a2a1a, wall: 0x6a4a2a },
-      'back-right':  { floor: 0x2a3a4a, wall: 0x4a5a6a },
-      'front-left':  { floor: 0x2a2a4a, wall: 0x4a3a6a },
-      'front-right': { floor: 0x3a1a1a, wall: 0x8a5a1a },
+      starter:       { floor: 0x604838, wall: 0x907858 },
+      left:          { floor: 0x504060, wall: 0x786888 },
+      right:         { floor: 0x603838, wall: 0x906060 },
+      front:         { floor: 0x406038, wall: 0x608058 },
+      back:          { floor: 0x705038, wall: 0xa07050 },
+      'back-left':   { floor: 0x504028, wall: 0x806840 },
+      'back-right':  { floor: 0x385060, wall: 0x587080 },
+      'front-left':  { floor: 0x384060, wall: 0x585880 },
+      'front-right': { floor: 0x502828, wall: 0xa07028 },
     },
   },
   lab: {
@@ -1587,19 +1736,19 @@ const THEMES = {
       'front-right': '👔 Kingpin Office',
     },
     roomPalettes: {
-      starter:       { floor: 0x4a4e3a, wall: 0x7a7e5a },
-      left:          { floor: 0xdceae0, wall: 0xb4c8b8 },
-      right:         { floor: 0x3a2e2a, wall: 0x5a4a3a },
-      front:         { floor: 0x8a6a3a, wall: 0xcaa24a },
-      back:          { floor: 0xc43a3a, wall: 0xffcc00 },
-      'back-left':   { floor: 0x3a3a3e, wall: 0x6a6a6e },
-      'back-right':  { floor: 0xe0f0e0, wall: 0xa0c0a0 },
-      'front-left':  { floor: 0x2a2a2e, wall: 0x4a4a4e },
-      'front-right': { floor: 0x1a1a1e, wall: 0x3a3a3e },
+      starter:       { floor: 0x606848, wall: 0x909868 },
+      left:          { floor: 0x88b898, wall: 0xa8d0b0 },
+      right:         { floor: 0x584838, wall: 0x786850 },
+      front:         { floor: 0xa08048, wall: 0xd8b060 },
+      back:          { floor: 0xd04848, wall: 0xf0c020 },
+      'back-left':   { floor: 0x505058, wall: 0x787880 },
+      'back-right':  { floor: 0x78b888, wall: 0x98d0a0 },
+      'front-left':  { floor: 0x404048, wall: 0x606068 },
+      'front-right': { floor: 0x303038, wall: 0x505058 },
     },
   },
 };
-const DEFAULT_PALETTE = { floor: 0x6a6a6e, wall: 0xdcc8a8 };
+const DEFAULT_PALETTE = { floor: 0x8a8a90, wall: 0xf0e0c8 };
 const THEME_STORAGE_KEY = 'startup_tycoon_theme';
 let currentThemeId = (() => {
   try { const v = localStorage.getItem(THEME_STORAGE_KEY); return (v && THEMES[v]) ? v : 'default'; }
@@ -2423,7 +2572,7 @@ function convertRoom(roomId, opts = {}) {
     // resume a walk toward a desk that no longer exists.
     // AEs don't carry a 'state' field (they're driven by currentDeal)
     // so leave that alone; engineers + BDRs + VPs get parked at atDesk.
-    if (step.rec.role !== 'ae' && 'state' in step.rec.hire) step.rec.hire.state = 'atDesk';
+    if (step.rec.role !== 'ae' && 'state' in step.rec.hire) step.rec.hire.state = S.AT_DESK;
     if ('target' in step.rec.hire) step.rec.hire.target = null;
     if ('workProgress' in step.rec.hire) {
       step.rec.hire.workProgress = 0;
@@ -2583,11 +2732,11 @@ addDeskBtnEl.onclick = addDeskToCurrentRoom;
 
 
 // ── Scrappy-startup character builder (hoodie + pants + head) ──
-const HOODIE_COLORS  = [0x3a4a5e, 0x2e4a3e, 0x7a3a3a, 0x4a3e6a, 0x3a3a3a, 0xb0b0b0, 0x4a7a8a, 0x8a5a2a];
-const PANTS_COLORS   = [0x1f2937, 0x2d1e12, 0x333333, 0x1a2a3a, 0x3a2e22];
-const HAIR_COLORS    = [0x2a1a0a, 0x4a2a10, 0x6a4a2a, 0x8a6a3a, 0x1a1a1a, 0x5a3a2a, 0xb87333];
-const BEANIE_COLORS  = [0x1a1a2e, 0x6a2a2e, 0x2e4e3a, 0x4a2e5a, 0x8a6a3a, 0x2a2a2a];
-const SKIN_COLORS    = [0xffd9a0, 0xf0c080, 0xd9a56a, 0xa97a4a, 0x8a5a3a, 0x5a3a20];
+const HOODIE_COLORS  = [0x3056a0, 0x287848, 0xb83838, 0x6840a0, 0x484848, 0xc8c8c8, 0x2888a0, 0xc07028, 0x904898, 0x308888];
+const PANTS_COLORS   = [0x1a2438, 0x2a1e14, 0x2a2a2a, 0x182838, 0x382818, 0x242430];
+const HAIR_COLORS    = [0x201008, 0x402810, 0x604020, 0x886838, 0x101010, 0x503020, 0xc87838, 0x882020];
+const BEANIE_COLORS  = [0x202048, 0x882030, 0x206838, 0x582878, 0xa87828, 0x282828, 0x186888];
+const SKIN_COLORS    = [0xffe0b0, 0xf5c890, 0xe0ad70, 0xc08850, 0xa06838, 0x704828];
 
 function buildScrappyCharacter(opts) {
   const g = new THREE.Group();
@@ -2831,7 +2980,7 @@ player.position.set(0, 0, 2); // start inside starter room near CEO desk
 scene.add(player);
 
 // ── Tunables (mutated by upgrades) ──
-let playerSpeed = 6;
+let playerSpeed = CONFIG.playerBaseSpeed;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
 let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
 let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
@@ -2882,7 +3031,7 @@ const featureGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
 const featureMat = new THREE.MeshLambertMaterial({ color: 0x4da3ff });
 
 // Paper stack: active visual for work-in-progress + delivery carry
-const PAPER_STACK_MAX = 10;
+const PAPER_STACK_MAX = CONFIG.paperStackMax;
 const paperSheetGeo = new THREE.BoxGeometry(0.42, 0.015, 0.52);
 const paperSheetMat = new THREE.MeshLambertMaterial({ color: 0xf5f2eb });
 function makePaperStack() {
@@ -3062,11 +3211,9 @@ function activatePlots(level) {
 
 // ── Idea Workers ─────────────────────────────────────────────
 const ideaWorkers = [];
-const IW_SPEED = 4.2;
-const WORK_RATE_BASE = 0.032; // fills 1 product in ~31s base
 
 function ideaWorkerHireCost() {
-  return Math.floor(75 * Math.pow(1.6, ideaWorkers.length));
+  return Math.floor(CONFIG.engBaseCost * Math.pow(CONFIG.engCostScale, ideaWorkers.length));
 }
 
 // A desk accepts a given role if it's tagged for that role OR
@@ -3079,9 +3226,9 @@ function deskAcceptsRole(desk, role) {
 // External cost multipliers + stat bonuses. Internals use the scrappy
 // hoodie look; externals spawn in a collared button-down, cost 3× the
 // normal hire, and carry a per-hire bonus on their throughput.
-const EXTERNAL_COST_MULT = 3;
-const EXTERNAL_ENG_RATE_BONUS = 1.30; // +30% work rate on this worker
-const EXTERNAL_BDR_DEAL_BONUS = 1.50; // +50% deal value from this BDR
+const EXTERNAL_COST_MULT = CONFIG.externalCostMult;
+const EXTERNAL_ENG_RATE_BONUS = CONFIG.externalEngRateBonus;
+const EXTERNAL_BDR_DEAL_BONUS = CONFIG.externalBdrDealBonus;
 
 function spawnIdeaWorker(opts = {}) {
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
@@ -3106,7 +3253,7 @@ function spawnIdeaWorker(opts = {}) {
 
   ideaWorkers.push({
     group: g, carryMesh, desk,
-    state: 'atDesk',
+    state: S.AT_DESK,
     workProgress: Math.random() * 0.2,
     caffeinated: false, caffeinatedT: 0,
     coffeeWaitT: 15 + Math.random() * 15,
@@ -3118,8 +3265,8 @@ function spawnIdeaWorker(opts = {}) {
     target: null,
     external: !!opts.external,
     externalMult: opts.external ? EXTERNAL_ENG_RATE_BONUS : 1.0,
-    morale: 70,
-    paperIdleT: 0, // seconds spent idling without paper (for morale decay)
+    morale: CONFIG.moraleDefault,
+    paperIdleT: 0,
   });
 }
 
@@ -3135,21 +3282,17 @@ function updateIdeaWorkers(dt) {
     // below will override with an active swing when moving.
     swingArms(w.group, false);
 
-    if (w.state === 'atDesk') {
-      // No paper at the desk. If the Supply Rack is owned, the engineer
-      // walks over there themselves to grab more. Otherwise they idle
-      // and morale slowly ticks down until a player / EA refills them.
+    if (w.state === S.AT_DESK) {
       if (w.desk.paperStock < 1) {
         w.currentRate = 0;
         if (printerAm) {
-          w.state = 'toSupply';
+          w.state = S.TO_SUPPLY;
           w.target = { x: printerAm.position.x, z: printerAm.position.z + 1.2 };
           continue;
         }
-        // First-time hint: player probably doesn't know how to fix this yet
         showTip('paper');
         w.paperIdleT += dt;
-        if (w.paperIdleT >= 15) {
+        if (w.paperIdleT >= CONFIG.moraleIdleDecayInterval) {
           w.paperIdleT = 0;
           changeMorale(-1, '', w);
         }
@@ -3158,8 +3301,8 @@ function updateIdeaWorkers(dt) {
       w.paperIdleT = 0;
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
-      w.bossBoost = Math.hypot(dxw, dzw) < PROX_RANGE ? 1.5 : 1.0;
-      const rate = WORK_RATE_BASE * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? 2.0 : 1.0) * (rushActive ? 1.5 : 1.0) * w.bossBoost;
+      w.bossBoost = Math.hypot(dxw, dzw) < CONFIG.proxRange ? CONFIG.bossBoost : 1.0;
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost;
       w.currentRate = rate;
       w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
 
@@ -3170,20 +3313,17 @@ function updateIdeaWorkers(dt) {
       w.coffeeWaitT -= dt;
       if (w.coffeeWaitT <= 0 && coffeeAm && coffeeAm.stock > 0 && !w.caffeinated) {
         w.coffeeWaitT = 30 + Math.random() * 20;
-        w.state = 'toCoffee';
+        w.state = S.TO_COFFEE;
         w.target = { x: coffeeAm.position.x, z: coffeeAm.position.z + 1.4 };
         continue;
       }
 
-      // Ping pong break (if not almost done). Pick a side: if someone
-      // else is already on the north side, walk to the south side so
-      // two engineers actually face off across the table.
       if (ppAm && w.pingPongCooldown <= 0 && w.workProgress < 0.65) {
         w.pingPongCooldown = 90 + Math.random() * 60;
-        const northTaken = ideaWorkers.some(o => o !== w && (o.state === 'toPingPong' || o.state === 'pingPonging') && o.pingPongSide === 'N');
+        const northTaken = ideaWorkers.some(o => o !== w && (o.state === S.TO_PING_PONG || o.state === S.PING_PONGING) && o.pingPongSide === 'N');
         w.pingPongSide = northTaken ? 'S' : 'N';
         const sideZ = w.pingPongSide === 'N' ? -1.1 : 1.1;
-        w.state = 'toPingPong';
+        w.state = S.TO_PING_PONG;
         w.target = { x: ppAm.position.x, z: ppAm.position.z + sideZ };
         continue;
       }
@@ -3207,10 +3347,10 @@ function updateIdeaWorkers(dt) {
         const vp = (!w.pendingWithVP) ? pickVPForEngineer() : null;
         if (vp) {
           w.targetVP = vp;
-          w.state = 'toVP';
+          w.state = S.TO_VP;
           w.target = { x: vp.group.position.x, z: vp.group.position.z + 1.0 };
         } else {
-          w.state = 'toDeliver';
+          w.state = S.TO_DELIVER;
           w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 2.0 };
         }
       }
@@ -3218,9 +3358,9 @@ function updateIdeaWorkers(dt) {
     }
 
     // Walking states
-    if (w.state === 'toCoffee' || w.state === 'toPingPong' || w.state === 'toDeliver' || w.state === 'toVP' || w.state === 'toSupply' || w.state === 'returning') {
-      if (!w.target) { w.state = 'atDesk'; continue; }
-      const spd = IW_SPEED * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? 1.5 : 1.0);
+    if (w.state === S.TO_COFFEE || w.state === S.TO_PING_PONG || w.state === S.TO_DELIVER || w.state === S.TO_VP || w.state === S.TO_SUPPLY || w.state === S.RETURNING) {
+      if (!w.target) { w.state = S.AT_DESK; continue; }
+      const spd = CONFIG.iwSpeed * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? CONFIG.rushBoost : 1.0);
       // Sway the carried paper stack in sync with the walk so it feels
       // like they're actually hauling it, not teleporting.
       const sheets = w.carryMesh && w.carryMesh.userData.sheets;
@@ -3236,16 +3376,16 @@ function updateIdeaWorkers(dt) {
       }
       // Arm swing — left + right out of phase, drives from walkPhase
       swingArms(w.group, true);
-      if (!stepToward(w.group, w.target, spd, dt, 0.25)) continue;
+      if (!stepToward(w.group, w.target, spd, dt, 0.25, w.desk ? { x: w.desk.group.position.x, z: w.desk.group.position.z } : undefined)) continue;
       // Arrived
-      if (w.state === 'toCoffee') {
-        w.state = 'gettingCoffee'; w.waitT = 1.5;
-      } else if (w.state === 'toSupply') {
-        w.state = 'gettingPaper'; w.waitT = 1.2;
-      } else if (w.state === 'toPingPong') {
-        w.state = 'pingPonging'; w.waitT = 5.0;
+      if (w.state === S.TO_COFFEE) {
+        w.state = S.GETTING_COFFEE; w.waitT = 1.5;
+      } else if (w.state === S.TO_SUPPLY) {
+        w.state = S.GETTING_PAPER; w.waitT = 1.2;
+      } else if (w.state === S.TO_PING_PONG) {
+        w.state = S.PING_PONGING; w.waitT = 5.0;
         showToast('🏓 Taking a ping pong break!', '', 'ambient');
-      } else if (w.state === 'toDeliver') {
+      } else if (w.state === S.TO_DELIVER) {
         addRevenue(w.productValue);
         totalFeaturesShipped++;
         checkProductVersion();
@@ -3253,15 +3393,13 @@ function updateIdeaWorkers(dt) {
         checkUserMilestones();
         if (Math.random() < 0.35) showToast(DEAL_MSGS[_dealMsgIdx++ % DEAL_MSGS.length], '', 'ambient');
         setPaperStackProgress(w.carryMesh, 0);
-        w.state = 'returning';
+        w.state = S.RETURNING;
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
-      } else if (w.state === 'toVP') {
-        // Hand off for VP review. If the VP was removed mid-walk,
-        // fall back to delivering direct to the CEO desk.
+      } else if (w.state === S.TO_VP) {
         if (w.targetVP && vps.includes(w.targetVP)) {
           w.targetVP.queue.push({ worker: w, value: w.productValue, processTime: vpTierOf(w.targetVP).reviewTime });
           w.pendingWithVP = true;
-          totalFeaturesShipped++;  // still counts as a shipped feature
+          totalFeaturesShipped++;
           checkProductVersion();
           totalUsers += Math.max(1, Math.floor(w.productValue / 4));
           checkUserMilestones();
@@ -3270,35 +3408,34 @@ function updateIdeaWorkers(dt) {
         }
         setPaperStackProgress(w.carryMesh, 0);
         w.targetVP = null;
-        w.state = 'returning';
+        w.state = S.RETURNING;
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
-      } else if (w.state === 'returning') {
-        w.state = 'atDesk'; w.target = null;
+      } else if (w.state === S.RETURNING) {
+        w.state = S.AT_DESK; w.target = null;
       }
       continue;
     }
 
     // Wait states
-    if (w.state === 'gettingCoffee') {
+    if (w.state === S.GETTING_COFFEE) {
       w.waitT -= dt;
       if (w.waitT <= 0) {
-        if (coffeeAm && coffeeAm.stock > 0) { coffeeAm.stock--; w.caffeinated = true; w.caffeinatedT = 60; }
-        w.state = 'returning';
+        if (coffeeAm && coffeeAm.stock > 0) { coffeeAm.stock--; w.caffeinated = true; w.caffeinatedT = CONFIG.caffeineDuration; }
+        w.state = S.RETURNING;
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       }
       continue;
     }
-    if (w.state === 'gettingPaper') {
+    if (w.state === S.GETTING_PAPER) {
       w.waitT -= dt;
       if (w.waitT <= 0) {
-        // Grab a fresh ream (random 5-10 sheets — "not the same every time")
-        w.desk.paperStock = Math.min(PAPER_MAX, 5 + Math.floor(Math.random() * 6));
-        w.state = 'returning';
+        w.desk.paperStock = Math.min(CONFIG.paperMax, CONFIG.paperRefillMin + Math.floor(Math.random() * CONFIG.paperRefillRange));
+        w.state = S.RETURNING;
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       }
       continue;
     }
-    if (w.state === 'pingPonging') {
+    if (w.state === S.PING_PONGING) {
       // Face the table center (slight bob toward the ball)
       if (ppAm) {
         const dx = ppAm.position.x - w.group.position.x;
@@ -3313,7 +3450,7 @@ function updateIdeaWorkers(dt) {
         w.group.position.y = 0;
         w.pingPongSide = null;
         showToast('🏓 Break done! Next product is 2× quality!', 'milestone');
-        w.state = 'returning';
+        w.state = S.RETURNING;
         w.target = { x: w.desk.group.position.x, z: w.desk.group.position.z + 1.0 };
       }
       continue;
@@ -3322,10 +3459,7 @@ function updateIdeaWorkers(dt) {
 }
 
 // ── Player Proximity Work ─────────────────────────────────────
-// When player stands near an active desk they earn ideas automatically.
-// Same rate as a hired worker. They "occupy" whichever desk they're
-// closest to (within PROX_RANGE units). Walk away to stop.
-const PROX_RANGE = 3.2;
+const PROX_RANGE = CONFIG.proxRange;
 let playerWorkProgress = 0;
 let playerNearDesk = null; // the plot the player is currently working at
 
@@ -3354,7 +3488,7 @@ function updatePlayerProximityWork(dt) {
   if (!playerNearDesk) return;
 
   // Accumulate work at the same rate as a hired worker
-  const rate = WORK_RATE_BASE * ideaSpeedMult * (rushActive ? 1.5 : 1.0);
+  const rate = CONFIG.workRateBase * ideaSpeedMult * (rushActive ? CONFIG.rushBoost : 1.0);
   playerWorkProgress = Math.min(1.0, playerWorkProgress + rate * dt);
 
   // Paper stack grows with progress
@@ -3378,7 +3512,7 @@ function updatePlayerProximityWork(dt) {
 // ── CEO Desk Work ─────────────────────────────────────────────
 // When the player is at their own CEO desk they also ship features,
 // same rate as the proximity-work mechanic.
-const CEO_DESK_RANGE = 2.0;
+const CEO_DESK_RANGE = CONFIG.ceoDeskRange;
 const CEO_CHAIR_POS = new THREE.Vector3(0, 0, 4.1);
 let ceoWorkProgress = 0;
 
@@ -3395,7 +3529,7 @@ function updateCeoDeskWork(dt) {
     ceoMonitorGlow.material.color.setHex(0x2979ff);
     return;
   }
-  const rate = WORK_RATE_BASE * ideaSpeedMult * (rushActive ? 1.5 : 1.0);
+  const rate = CONFIG.workRateBase * ideaSpeedMult * (rushActive ? CONFIG.rushBoost : 1.0);
   ceoWorkProgress = Math.min(1.0, ceoWorkProgress + rate * dt);
   setPaperStackProgress(ceoPaperStack, ceoWorkProgress);
   ceoMonitorGlow.material.color.setHex(0x3FB950);
@@ -3415,23 +3549,22 @@ function updateCeoDeskWork(dt) {
 // Stand near the Espresso Bar to refill it; stand near an occupied desk
 // to refill its paper stock. Fallbacks for when no Executive Assistant
 // is hired yet; engineers grab their own cups from the coffee stock.
-const PAPER_MAX = 10;
+const PAPER_MAX = CONFIG.paperMax;
 function updatePlayerEspressoRefill(dt) {
   const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
   if (coffeeAm && coffeeAm.stock < coffeeAm.maxStock) {
     const dx = player.position.x - coffeeAm.position.x;
     const dz = player.position.z - (coffeeAm.position.z + 0.8);
-    if (Math.hypot(dx, dz) < 2.0) {
-      coffeeAm.stock = Math.min(coffeeAm.maxStock, coffeeAm.stock + dt * 4);
+    if (Math.hypot(dx, dz) < CONFIG.refillRange) {
+      coffeeAm.stock = Math.min(coffeeAm.maxStock, coffeeAm.stock + dt * CONFIG.coffeePlayerRefillRate);
     }
   }
-  // Top up any occupied desk's paper when you're standing next to it
   for (const p of plots) {
     if (!p.active || !p.occupied || p.paperStock >= PAPER_MAX) continue;
     const dx = player.position.x - p.group.position.x;
     const dz = player.position.z - p.group.position.z;
-    if (Math.hypot(dx, dz) < 2.0) {
-      p.paperStock = Math.min(PAPER_MAX, p.paperStock + dt * 3);
+    if (Math.hypot(dx, dz) < CONFIG.refillRange) {
+      p.paperStock = Math.min(PAPER_MAX, p.paperStock + dt * CONFIG.paperPlayerRefillRate);
     }
   }
 }
@@ -3443,10 +3576,8 @@ function updatePlayerEspressoRefill(dt) {
 // below 40% and top up any occupied desk whose paperStock drops
 // below 4. Future tasks: bring coffee to tired engineers etc.
 const eas = [];
-const EA_BASE_COST = 400;
-const EA_COST_SCALE = 1.6;
 function eaCost() {
-  return Math.floor(EA_BASE_COST * Math.pow(EA_COST_SCALE, eas.length));
+  return Math.floor(CONFIG.eaBaseCost * Math.pow(CONFIG.eaCostScale, eas.length));
 }
 
 function spawnExecutiveAssistant() {
@@ -3473,7 +3604,7 @@ function spawnExecutiveAssistant() {
   g.add(carry);
   eas.push({
     group: g, carryMesh: carry,
-    state: 'idle', waitT: 0,
+    state: S.IDLE, waitT: 0,
     target: null, targetDesk: null, targetAmenity: null,
   });
 }
@@ -3496,22 +3627,21 @@ function pickEATask(self) {
   const coffeeClaimed = others.some(e => e.targetAmenity === coffeeAm);
   if (coffeeAm && !coffeeClaimed && coffeeAm.stock < coffeeAm.maxStock * 0.4) {
     return {
-      state: 'toCoffee',
+      state: S.TO_COFFEE,
       target: { x: coffeeAm.position.x, z: coffeeAm.position.z + 1.2 },
       amenity: coffeeAm,
     };
   }
-  // Priority 2: lowest-paper occupied desk under 4 sheets, not already claimed
   const claimedDesks = new Set(others.map(e => e.targetDesk).filter(Boolean));
   let worstDesk = null;
-  let lowest = 4;
+  let lowest = CONFIG.paperLowThreshold;
   for (const p of plots) {
     if (!p.active || !p.occupied || claimedDesks.has(p)) continue;
     if (p.paperStock < lowest) { worstDesk = p; lowest = p.paperStock; }
   }
   if (worstDesk) {
     return {
-      state: 'toDesk',
+      state: S.TO_DESK,
       target: { x: worstDesk.group.position.x, z: worstDesk.group.position.z + 1.2 },
       desk: worstDesk,
     };
@@ -3526,7 +3656,7 @@ function pickEATask(self) {
       if (w.state !== 'atDesk') continue;
       if (claimedWorkers.has(w)) continue;
       return {
-        state: 'toCoffeeDrop',
+        state: S.TO_COFFEE_DROP,
         target: { x: w.group.position.x, z: w.group.position.z + 1.1 },
         worker: w,
       };
@@ -3544,7 +3674,7 @@ function pickEATask(self) {
     }
     if (worstWorker) {
       return {
-        state: 'toChat',
+        state: S.TO_CHAT,
         target: { x: worstWorker.group.position.x, z: worstWorker.group.position.z + 1.3 },
         worker: worstWorker,
       };
@@ -3555,7 +3685,7 @@ function pickEATask(self) {
 
 function updateExecutiveAssistants(dt) {
   for (const ea of eas) {
-    if (ea.state === 'idle') {
+    if (ea.state === S.IDLE) {
       ea.waitT -= dt;
       if (ea.waitT > 0) continue;
       const task = pickEATask(ea);
@@ -3565,82 +3695,68 @@ function updateExecutiveAssistants(dt) {
         ea.targetDesk = task.desk || null;
         ea.targetAmenity = task.amenity || null;
         ea.targetWorker = task.worker || null;
-        ea.carryMesh.visible = task.state === 'toDesk' || task.state === 'toCoffeeDrop';
+        ea.carryMesh.visible = task.state === S.TO_DESK || task.state === S.TO_COFFEE_DROP;
       } else {
         ea.waitT = 1.5;
       }
       continue;
     }
 
-    if (ea.state === 'refillingCoffee') {
+    if (ea.state === S.REFILLING) {
       ea.waitT -= dt;
       if (ea.waitT <= 0) {
         if (ea.targetAmenity) {
           ea.targetAmenity.stock = Math.min(ea.targetAmenity.maxStock, ea.targetAmenity.stock + 10);
         }
-        ea.state = 'idle'; ea.waitT = 0.4;
+        ea.state = S.IDLE; ea.waitT = 0.4;
         ea.targetAmenity = null;
       }
       continue;
     }
-    if (ea.state === 'chatting') {
+    if (ea.state === S.CHATTING) {
       ea.waitT -= dt;
       if (ea.waitT <= 0) {
-        // Make sure the worker still exists (could have been promoted
-        // to VP mid-chat-walk) before applying the morale bump.
         if (ea.targetWorker && ideaWorkers.includes(ea.targetWorker)) {
           changeMorale(+5, 'EA chat', ea.targetWorker);
         }
-        ea.state = 'idle'; ea.waitT = 0.4;
+        ea.state = S.IDLE; ea.waitT = 0.4;
         ea.targetWorker = null;
       }
       continue;
     }
 
-    if (!ea.target) { ea.state = 'idle'; continue; }
-    if (!stepToward(ea.group, ea.target, 4, dt)) continue;
-    if (ea.state === 'toCoffee') {
-      ea.state = 'refillingCoffee'; ea.waitT = 1.2;
-    } else if (ea.state === 'toDesk') {
-      // Guard: the desk might have been purged by a room conversion
-      // between task pickup and arrival.
+    if (!ea.target) { ea.state = S.IDLE; continue; }
+    if (!stepToward(ea.group, ea.target, CONFIG.eaSpeed, dt, 0.35, ea.targetDesk ? { x: ea.targetDesk.group.position.x, z: ea.targetDesk.group.position.z } : undefined)) continue;
+    if (ea.state === S.TO_COFFEE) {
+      ea.state = S.REFILLING; ea.waitT = 1.2;
+    } else if (ea.state === S.TO_DESK) {
       if (ea.targetDesk && plots.includes(ea.targetDesk)) {
         ea.targetDesk.paperStock = Math.min(PAPER_MAX, ea.targetDesk.paperStock + 8);
       }
       ea.carryMesh.visible = false;
-      ea.state = 'idle'; ea.waitT = 0.4;
+      ea.state = S.IDLE; ea.waitT = 0.4;
       ea.targetDesk = null; ea.target = null;
-    } else if (ea.state === 'toCoffeeDrop') {
+    } else if (ea.state === S.TO_COFFEE_DROP) {
       const coffeeAm = amenities.find(a => a.id === 'coffee' && a.isOwned);
-      // Guard: the worker might have been promoted / room-migrated
-      // between task pickup and arrival.
       if (ea.targetWorker && ideaWorkers.includes(ea.targetWorker) && coffeeAm && coffeeAm.stock > 0) {
         coffeeAm.stock--;
         ea.targetWorker.caffeinated = true;
-        ea.targetWorker.caffeinatedT = 60;
+        ea.targetWorker.caffeinatedT = CONFIG.caffeineDuration;
         changeMorale(+2, 'EA delivered coffee', ea.targetWorker);
       }
       ea.carryMesh.visible = false;
-      ea.state = 'idle'; ea.waitT = 0.4;
+      ea.state = S.IDLE; ea.waitT = 0.4;
       ea.targetWorker = null; ea.target = null;
-    } else if (ea.state === 'toChat') {
-      ea.state = 'chatting'; ea.waitT = 2.0;
+    } else if (ea.state === S.TO_CHAT) {
+      ea.state = S.CHATTING; ea.waitT = 2.0;
     }
   }
 }
 
 // ── Business Development Reps (BDRs) ───────────────────────
-// Sit at their desk and periodically pop small solo deals. When an AE
-// is free AND this BDR doesn't already have a deal in flight with an
-// AE, they walk their deal over for a 3× bonus close. (Handoff is
-// wired in a follow-up commit — this first pass just ships solo deals.)
 const bdrs = [];
-const BDR_BASE_COST = 200;
-const BDR_COST_SCALE = 1.5;
-// Fraction of a full-product-unit value that a BDR lands on their own.
-// AEs then multiply handed-off deals by AE_PROCESS_MULT for the close.
-const BDR_SOLO_FRACTION = 0.6;
-function bdrCost() { return Math.floor(BDR_BASE_COST * Math.pow(BDR_COST_SCALE, bdrs.length)); }
+const BDR_SOLO_FRACTION = CONFIG.bdrSoloFraction;
+function bdrCost() { return Math.floor(CONFIG.bdrBaseCost * Math.pow(CONFIG.bdrCostScale, bdrs.length)); }
 
 function spawnBDR(opts = {}) {
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
@@ -3666,9 +3782,9 @@ function spawnBDR(opts = {}) {
   scene.add(g);
   bdrs.push({
     group: g, desk,
-    dealTimer: 8 + Math.random() * 10,
+    dealTimer: CONFIG.bdrDealTimerMin + Math.random() * CONFIG.bdrDealTimerRange,
     pendingWithAE: false,
-    state: 'atDesk',
+    state: S.AT_DESK,
     target: null, targetAE: null, dealValue: 0,
     external: !!opts.external,
     externalMult: opts.external ? EXTERNAL_BDR_DEAL_BONUS : 1.0,
@@ -3703,15 +3819,117 @@ function swingArms(group, active) {
   if (!armL || !armR) return;
   if (active) {
     const ph = group.userData.walkPhase || 0;
-    armL.rotation.x =  Math.sin(ph) * 0.7;
-    armR.rotation.x = -Math.sin(ph) * 0.7;
+    armL.rotation.x =  Math.sin(ph) * CONFIG.armSwingAmplitude;
+    armR.rotation.x = -Math.sin(ph) * CONFIG.armSwingAmplitude;
   } else {
-    armL.rotation.x *= 0.85;
-    armR.rotation.x *= 0.85;
+    armL.rotation.x *= CONFIG.armDecay;
+    armR.rotation.x *= CONFIG.armDecay;
   }
 }
 
-function stepToward(group, target, speed, dt, stopDist = 0.35) {
+// ── Collision system ────────────────────────────────────────
+// Wall collision: rooms sit on a 16-unit grid. A wall exists at the
+// boundary between an owned room and an unowned/nonexistent room.
+// The starter room's south wall has a 2.5-unit door gap at center.
+// Furniture collision: desks and the CEO desk are axis-aligned boxes.
+function isOwnedGrid(gx, gz) {
+  const def = ROOM_DEFS.find(r => r.gx === gx && r.gz === gz);
+  return def ? ownedRooms.has(def.id) : false;
+}
+
+const WALL_PAD = CONFIG.wallPad;
+const BODY_R = CONFIG.bodyR;
+
+function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
+  const TS = CONFIG.tileSize;
+  const H  = TS / 2; // 8 — half-tile from center to wall
+  const PAD = WALL_PAD;
+
+  // Find which room the character's OLD position is in.
+  // Bias toward the center: use rounding so the cell boundary
+  // sits at ±8 (actual wall line).
+  const ogx = Math.floor((ox + H) / TS);
+  const ogz = Math.floor((oz + H) / TS);
+
+  // If old position is somehow outside all owned rooms (e.g. spawned
+  // outside, or pushed out by furniture), find the nearest owned room
+  // and treat that as the origin room.
+  let cgx = ogx, cgz = ogz;
+  if (!isOwnedGrid(ogx, ogz)) {
+    let best = null, bestD = Infinity;
+    for (const r of ROOM_DEFS) {
+      if (!ownedRooms.has(r.id)) continue;
+      const d = Math.abs(ox - r.gx * TS) + Math.abs(oz - r.gz * TS);
+      if (d < bestD) { bestD = d; best = r; }
+    }
+    if (best) { cgx = best.gx; cgz = best.gz; }
+  }
+
+  const roomCx = cgx * TS;
+  const roomCz = cgz * TS;
+  const minX = roomCx - H + PAD;
+  const maxX = roomCx + H - PAD;
+  const minZ = roomCz - H + PAD;
+  const maxZ = roomCz + H - PAD;
+
+  // Clamp X axis: only wall if the adjacent cell isn't owned
+  if (nx < minX && !isOwnedGrid(cgx - 1, cgz)) nx = minX;
+  if (nx > maxX && !isOwnedGrid(cgx + 1, cgz)) nx = maxX;
+
+  // Clamp Z axis
+  if (nz < minZ && !isOwnedGrid(cgx, cgz - 1)) nz = minZ;
+  if (nz > maxZ && !isOwnedGrid(cgx, cgz + 1)) {
+    // Door gap: starter room ↔ front room, centered, 3 units wide
+    const hasDoor = (cgx === 0 && cgz === 0) || (cgx === 0 && cgz === 1);
+    if (hasDoor && Math.abs(nx - roomCx) < 1.5) {
+      // allow through
+    } else {
+      nz = maxZ;
+    }
+  }
+
+  // If character crossed into a new owned room, also enforce THAT
+  // room's outer walls so they can't overshoot through a thin room.
+  const ngx2 = Math.floor((nx + H) / TS);
+  const ngz2 = Math.floor((nz + H) / TS);
+  if ((ngx2 !== cgx || ngz2 !== cgz) && isOwnedGrid(ngx2, ngz2)) {
+    const r2cx = ngx2 * TS, r2cz = ngz2 * TS;
+    if (nx < r2cx - H + PAD && !isOwnedGrid(ngx2 - 1, ngz2)) nx = r2cx - H + PAD;
+    if (nx > r2cx + H - PAD && !isOwnedGrid(ngx2 + 1, ngz2)) nx = r2cx + H - PAD;
+    if (nz < r2cz - H + PAD && !isOwnedGrid(ngx2, ngz2 - 1)) nz = r2cz - H + PAD;
+    if (nz > r2cz + H - PAD && !isOwnedGrid(ngx2, ngz2 + 1)) {
+      const hasDoor2 = (ngx2 === 0 && ngz2 === 0) || (ngx2 === 0 && ngz2 === 1);
+      if (hasDoor2 && Math.abs(nx - r2cx) < 1.5) { /* door */ }
+      else nz = r2cz + H - PAD;
+    }
+  }
+
+  const ceoCx = CONFIG.ceoDeskCenter.x, ceoCz = CONFIG.ceoDeskCenter.z;
+  const ceoHx = CONFIG.ceoDeskHalf.x + BODY_R, ceoHz = CONFIG.ceoDeskHalf.z + BODY_R;
+  if (Math.abs(nx - ceoCx) < ceoHx && Math.abs(nz - ceoCz) < ceoHz) {
+    const penX = ceoHx - Math.abs(nx - ceoCx);
+    const penZ = ceoHz - Math.abs(nz - ceoCz);
+    if (penX < penZ) nx = nx < ceoCx ? ceoCx - ceoHx : ceoCx + ceoHx;
+    else             nz = nz < ceoCz ? ceoCz - ceoHz : ceoCz + ceoHz;
+  }
+
+  const deskH = CONFIG.deskHalfExtent + BODY_R;
+  for (const p of plots) {
+    if (!p.active) continue;
+    const px = p.group.position.x, pz = p.group.position.z;
+    if (skipDeskAt && Math.abs(px - skipDeskAt.x) < 0.5 && Math.abs(pz - skipDeskAt.z) < 0.5) continue;
+    if (Math.abs(nx - px) < deskH && Math.abs(nz - pz) < deskH) {
+      const penX = deskH - Math.abs(nx - px);
+      const penZ = deskH - Math.abs(nz - pz);
+      if (penX < penZ) nx = nx < px ? px - deskH : px + deskH;
+      else             nz = nz < pz ? pz - deskH : pz + deskH;
+    }
+  }
+
+  return { x: nx, z: nz };
+}
+
+function stepToward(group, target, speed, dt, stopDist = 0.35, skipDeskAt) {
   const tx = target.x - group.position.x;
   const tz = target.z - group.position.z;
   const dist = Math.hypot(tx, tz);
@@ -3720,12 +3938,23 @@ function stepToward(group, target, speed, dt, stopDist = 0.35) {
     swingArms(group, false);
     return true;
   }
-  group.position.x += (tx / dist) * speed * dt;
-  group.position.z += (tz / dist) * speed * dt;
+  const prevX = group.position.x, prevZ = group.position.z;
+  let nx = prevX + (tx / dist) * speed * dt;
+  let nz = prevZ + (tz / dist) * speed * dt;
+  const clamped = clampToWalls(prevX, prevZ, nx, nz, skipDeskAt);
+  nx = clamped.x; nz = clamped.z;
+  group.position.x = nx;
+  group.position.z = nz;
   group.rotation.y = Math.atan2(tx / dist, tz / dist);
-  group.userData.walkPhase = (group.userData.walkPhase || 0) + dt * (4 + speed * 0.5);
-  group.position.y = Math.abs(Math.sin(group.userData.walkPhase)) * 0.06;
-  swingArms(group, true);
+  const moved = Math.abs(nx - prevX) > CONFIG.moveEpsilon || Math.abs(nz - prevZ) > CONFIG.moveEpsilon;
+  if (moved) {
+    group.userData.walkPhase = (group.userData.walkPhase || 0) + dt * (CONFIG.walkPhaseBase + speed * CONFIG.walkPhaseSpeedK);
+    group.position.y = Math.abs(Math.sin(group.userData.walkPhase)) * CONFIG.walkBounceHeight;
+    swingArms(group, true);
+  } else {
+    group.position.y = 0;
+    swingArms(group, false);
+  }
   return false;
 }
 
@@ -3742,68 +3971,53 @@ function popCashAt(worldX, worldZ, amount, source = 'eng') {
 
 function updateBDRs(dt) {
   for (const b of bdrs) {
-    // Walking states
-    if (b.state === 'toAE' || b.state === 'returning') {
-      if (!b.target) { b.state = 'atDesk'; continue; }
-      if (!stepToward(b.group, b.target, 4, dt)) continue;
-      if (b.state === 'toAE') {
-        // Arrived at AE — hand off if the slot is still free
+    if (b.state === S.TO_AE || b.state === S.RETURNING) {
+      if (!b.target) { b.state = S.AT_DESK; continue; }
+      if (!stepToward(b.group, b.target, CONFIG.bdrSpeed, dt, 0.35, b.desk ? { x: b.desk.group.position.x, z: b.desk.group.position.z } : undefined)) continue;
+      if (b.state === S.TO_AE) {
         if (b.targetAE && !b.targetAE.currentDeal) {
           b.targetAE.currentDeal = { bdr: b, value: b.dealValue, processTime: 6 };
           b.pendingWithAE = true;
         } else {
-          // Someone beat us to it — cash the deal solo at the AE's desk
           addRevenue(b.dealValue, 'sales');
           popCashAt(b.group.position.x, b.group.position.z, b.dealValue, 'sales');
         }
-        b.state = 'returning';
+        b.state = S.RETURNING;
         b.target = { x: b.desk.group.position.x, z: b.desk.group.position.z + 1.0 };
         b.dealValue = 0;
         b.targetAE = null;
-      } else if (b.state === 'returning') {
-        b.state = 'atDesk';
+      } else if (b.state === S.RETURNING) {
+        b.state = S.AT_DESK;
         b.target = null;
       }
       continue;
     }
 
-    // atDesk: tick the deal timer
     b.dealTimer -= dt;
     if (b.dealTimer > 0) continue;
-    b.dealTimer = 8 + Math.random() * 10;
-    // BDR solo deal = a fraction of a full product unit, scaled by
-    // whatever you've earned (Premium Tier, prestige, version, events).
-    // Floor keeps early-game BDRs from rounding to $0 before upgrades.
+    b.dealTimer = CONFIG.bdrDealTimerMin + Math.random() * CONFIG.bdrDealTimerRange;
     const deal = Math.max(5, Math.round(computeDealValue() * BDR_SOLO_FRACTION * (b.externalMult || 1)));
 
-    // If this BDR has no pending handoff AND there's a free AE that no
-    // other BDR is already walking to → hand off for a 3× close.
     if (!b.pendingWithAE) {
       const claimedAEs = new Set(bdrs.map(o => o.targetAE).filter(Boolean));
       const freeAE = aes.find(ae => !ae.currentDeal && !claimedAEs.has(ae));
       if (freeAE) {
         b.dealValue = deal;
         b.targetAE = freeAE;
-        b.state = 'toAE';
+        b.state = S.TO_AE;
         b.target = { x: freeAE.group.position.x, z: freeAE.group.position.z + 1.0 };
         continue;
       }
     }
-    // Otherwise cash the deal solo at the BDR's desk
     addRevenue(deal, 'sales');
     popCashAt(b.group.position.x, b.group.position.z, deal, 'sales');
   }
 }
 
 // ── Account Executives (AEs) ────────────────────────────────
-// Sit at their cubicle. Passively close deals handed off by BDRs at
-// 3× value, one slot per AE (no queue stacking). Hiring more AEs adds
-// parallel handoff capacity.
 const aes = [];
-const AE_BASE_COST = 800;
-const AE_COST_SCALE = 1.7;
-const AE_PROCESS_MULT = 3;
-function aeCost() { return Math.floor(AE_BASE_COST * Math.pow(AE_COST_SCALE, aes.length)); }
+const AE_PROCESS_MULT = CONFIG.aeProcessMult;
+function aeCost() { return Math.floor(CONFIG.aeBaseCost * Math.pow(CONFIG.aeCostScale, aes.length)); }
 
 function spawnAE() {
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
@@ -3911,9 +4125,9 @@ let engTeamMultiplier = 1.0; // set from the current VP's tier.teamBoost
 // ── Sprint mode ─────────────────────────────────────────────
 // Player-triggered push: 30 seconds of 2× engineer work rate at 2×
 // paper-per-feature cost, then a 90s cooldown before it can fire again.
-const SPRINT_DURATION = 30;
-const SPRINT_COOLDOWN = 90;
-const SPRINT_RATE_MULT = 2.0;
+const SPRINT_DURATION = CONFIG.sprintDuration;
+const SPRINT_COOLDOWN = CONFIG.sprintCooldown;
+const SPRINT_RATE_MULT = CONFIG.sprintRateMult;
 let sprintActive = false;
 let sprintT = 0;            // seconds elapsed in current sprint
 let sprintCooldownT = 0;    // seconds until next sprint is allowed
@@ -3953,15 +4167,15 @@ function updateSprint(dt) {
 let moraleEnabled = true;
 function moraleEmoji(m) { return m >= 75 ? '😊' : m >= 45 ? '😐' : m >= 20 ? '😕' : '😢'; }
 function teamMorale() {
-  if (!moraleEnabled) return 70;
-  if (ideaWorkers.length === 0) return 70;
+  if (!moraleEnabled) return CONFIG.moraleDefault;
+  if (ideaWorkers.length === 0) return CONFIG.moraleDefault;
   let sum = 0;
-  for (const w of ideaWorkers) sum += (typeof w.morale === 'number' ? w.morale : 70);
+  for (const w of ideaWorkers) sum += (typeof w.morale === 'number' ? w.morale : CONFIG.moraleDefault);
   return sum / ideaWorkers.length;
 }
 function moraleWorkMult(worker) {
   if (!moraleEnabled) return 1;
-  const m = worker && typeof worker.morale === 'number' ? worker.morale : teamMorale();
+  const m = (worker && typeof worker.morale === 'number') ? worker.morale : teamMorale();
   return 0.7 + (m / 100) * 0.6;
 }
 // Apply a morale delta. target can be a specific worker, or 'team'
@@ -3971,10 +4185,10 @@ function changeMorale(delta, reason = '', target = 'team') {
   if (target === 'team') {
     if (ideaWorkers.length === 0) return;
     for (const w of ideaWorkers) {
-      w.morale = Math.max(0, Math.min(100, (w.morale ?? 70) + delta));
+      w.morale = Math.max(CONFIG.moraleMin, Math.min(CONFIG.moraleMax, (w.morale ?? CONFIG.moraleDefault) + delta));
     }
   } else if (target && typeof target === 'object') {
-    target.morale = Math.max(0, Math.min(100, (target.morale ?? 70) + delta));
+    target.morale = Math.max(CONFIG.moraleMin, Math.min(CONFIG.moraleMax, (target.morale ?? CONFIG.moraleDefault) + delta));
   }
   if (reason) addFeedEntry(`${delta > 0 ? '😊' : '😕'} ${reason} (${delta > 0 ? '+' : ''}${delta})`);
 }
@@ -4250,7 +4464,7 @@ hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
 //  close digitally and there's no physical customer traffic.)
 
 // ── Deal flow: features on shelf → deals close → revenue (no customer NPCs) ──
-let featurePrice = 5;
+let featurePrice = CONFIG.featurePriceBase;
 
 // Single source of truth for what a shipped unit of product is worth.
 // Every engineering + sales path routes through this so balance knobs
@@ -4306,7 +4520,7 @@ const metricsMoraleEl    = document.getElementById('m-morale');
 // Rolling 30-second revenue log — only used for the live-rate readout
 // ($/min). Trim entries older than the window each frame.
 const revenueLog = [];
-const REVENUE_WINDOW_MS = 30000;
+const REVENUE_WINDOW_MS = CONFIG.revenueWindowMs;
 function recordRevenue(amount) { revenueLog.push({ at: Date.now(), amount }); }
 // Current earn rate, smoothed over the last 30 seconds and expressed
 // as $/min. Replaces the old smoothedArr(): annualizing a 30-second
@@ -4329,7 +4543,7 @@ let seasonRecurringRevenue = 0;
 // raises the bar. When cumulative revenue crosses the target, fire
 // the win modal. Hit state resets on IPO so each season has its own
 // finish line.
-const GOAL_TARGET_BASE = 25_000;
+const GOAL_TARGET_BASE = CONFIG.goalTargetBase;
 function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLevel); }
 let seasonGoalHit = false;
 let trophiesWon = 0;
@@ -5049,7 +5263,7 @@ const INVESTOR_TYPES = [
       addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor'); } },
 ];
 const investorAffinity = {};
-let nextInvestorIn = 60 + Math.random() * 60;
+let nextInvestorIn = CONFIG.investorFirstDelay.min + Math.random() * CONFIG.investorFirstDelay.range;
 
 function pickWanderTarget() {
   const owned = Array.from(ownedRooms);
@@ -5079,7 +5293,7 @@ function spawnInvestor() {
     target: pickWanderTarget(),
     remainingT: type.windowSec,
     greeted: false,
-    state: 'walking',
+    state: S.WALKING,
   });
   showToast(`${type.icon} ${type.label} just walked in — go shake their hand!`, 'milestone', 'standard');
   addFeedEntry(`${type.icon} ${type.label} arrived (${type.windowSec}s)`);
@@ -5096,7 +5310,7 @@ const ibTitleEl = document.getElementById('ib-title');
 const ibSubEl   = document.getElementById('ib-sub');
 const ibTimerEl = document.getElementById('ib-timer');
 function refreshInvestorBanner() {
-  const active = investors.find(inv => !inv.greeted && inv.state !== 'leaving');
+  const active = investors.find(inv => !inv.greeted && inv.state !== S.LEAVING);
   if (!active) {
     investorBannerEl.hidden = true;
     return;
@@ -5123,7 +5337,7 @@ function greetInvestor(inv) {
   addFeedEntry(`🤝 Greeted ${inv.type.label} — affinity ${investorAffinity[inv.type.id]}`);
   // Handshake beat: both stand still facing each other and their right
   // arms oscillate up/down for 1.1s before the investor turns to leave.
-  inv.state = 'handshaking';
+  inv.state = S.HANDSHAKING;
   inv.handshakeT = 0;
   const dx = player.position.x - inv.group.position.x;
   const dz = player.position.z - inv.group.position.z;
@@ -5137,21 +5351,19 @@ function updateInvestors(dt) {
   if (investors.length === 0) {
     nextInvestorIn -= dt;
     if (nextInvestorIn <= 0) {
-      nextInvestorIn = 120 + Math.random() * 120; // 2–4 min between visits
-      if (state.allTimeCash >= 100) spawnInvestor();
+      nextInvestorIn = CONFIG.investorRespawn.min + Math.random() * CONFIG.investorRespawn.range;
+      if (state.allTimeCash >= CONFIG.investorCashGate) spawnInvestor();
     }
     return;
   }
   for (let i = investors.length - 1; i >= 0; i--) {
     const inv = investors[i];
     inv.remainingT -= dt;
-    if (inv.remainingT <= 0 && inv.state !== 'leaving' && inv.state !== 'handshaking') {
-      inv.state = 'leaving';
+    if (inv.remainingT <= 0 && inv.state !== S.LEAVING && inv.state !== S.HANDSHAKING) {
+      inv.state = S.LEAVING;
       inv.target = { x: 0, z: 8 };
     }
-    // Mid-handshake: both parties stand still while their right arms
-    // pump up and down. After ~1.1s the investor turns to leave.
-    if (inv.state === 'handshaking') {
+    if (inv.state === S.HANDSHAKING) {
       inv.handshakeT += dt;
       const shake = Math.sin(inv.handshakeT * 14) * 0.2;
       const invArm = inv.group.userData.armR;
@@ -5162,19 +5374,17 @@ function updateInvestors(dt) {
         // Clear pose and let them walk out
         if (invArm)    invArm.rotation.x    = 0;
         if (playerArm) playerArm.rotation.x = 0;
-        inv.state = 'leaving';
+        inv.state = S.LEAVING;
         inv.target = { x: 0, z: 8 };
       }
-      continue; // skip movement while handshaking
+      continue;
     }
-    // Stop wandering when the player gets close — makes them
-    // easy to catch and greet instead of chasing a moving target.
     const dxp = player.position.x - inv.group.position.x;
     const dzp = player.position.z - inv.group.position.z;
     const playerDist = Math.hypot(dxp, dzp);
-    const paused = !inv.greeted && inv.state !== 'leaving' && playerDist < 3.5;
-    if (!paused && stepToward(inv.group, inv.target, 3.5, dt, 0.4)) {
-      if (inv.state === 'leaving') {
+    const paused = !inv.greeted && inv.state !== S.LEAVING && playerDist < 3.5;
+    if (!paused && stepToward(inv.group, inv.target, CONFIG.investorSpeed, dt, 0.4)) {
+      if (inv.state === S.LEAVING) {
         scene.remove(inv.group);
         investors.splice(i, 1);
         if (!inv.greeted) addFeedEntry(`${inv.type.icon} ${inv.type.label} left without meeting`);
@@ -5512,8 +5722,8 @@ const UPGRADES = [
     describe: lv => `×1.4 engineer speed (multiplicative, cap 8×)` },
   // ── Engineering ──
   { id:'speed',     cat:'engineering', label:'👟 Running Shoes',      base:25,  scale:1.5, max:10,
-    apply: lv => { playerSpeed = 6 + lv * 0.5; },
-    describe: lv => lv === 0 ? 'Player speed 6 → 6.5 / level' : `Player speed ${(6 + lv*0.5).toFixed(1)} → ${(6 + (lv+1)*0.5).toFixed(1)}` },
+    apply: lv => { playerSpeed = CONFIG.playerBaseSpeed + lv * CONFIG.playerSpeedPerLevel; },
+    describe: lv => lv === 0 ? `Player speed ${CONFIG.playerBaseSpeed} → ${CONFIG.playerBaseSpeed + CONFIG.playerSpeedPerLevel} / level` : `Player speed ${(CONFIG.playerBaseSpeed + lv*CONFIG.playerSpeedPerLevel).toFixed(1)} → ${(CONFIG.playerBaseSpeed + (lv+1)*CONFIG.playerSpeedPerLevel).toFixed(1)}` },
   { id:'marketing', cat:'engineering', label:'☕ Espresso Machine',   base:75,  scale:1.7, max:4,
     apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); },
     describe: lv => `−20% engineer coffee-break cadence (stacks)` },
@@ -5528,7 +5738,7 @@ const UPGRADES = [
 
 // ── Activity Feed ───────────────────────────────────────
 const activityLog = [];
-const MAX_FEED = 14;
+const MAX_FEED = CONFIG.maxFeedEntries;
 const feedListEl = document.getElementById('feed-list');
 
 function addFeedEntry(text) {
@@ -5724,7 +5934,7 @@ function updateCoffeeSteam(dt) {
   const ud = am.group.userData;
   const parts = ud.steamParticles;
   if (!parts) return;
-  const active = ideaWorkers.some(w => w.state === 'gettingCoffee');
+  const active = ideaWorkers.some(w => w.state === S.GETTING_COFFEE);
   for (const p of parts) {
     if (active) {
       p.phase += dt;
@@ -5752,7 +5962,7 @@ function updatePingPong(dt) {
   if (!am || !am.group) return;
   const ud = am.group.userData;
   if (!ud || !ud.ball) return;
-  const playing = ideaWorkers.some(w => w.state === 'pingPonging' || w.state === 'toPingPong');
+  const playing = ideaWorkers.some(w => w.state === S.PING_PONGING || w.state === S.TO_PING_PONG);
   if (!playing) {
     ud.ball.visible = false;
     ud.paddleL.rotation.y = 0;
@@ -5802,8 +6012,8 @@ function updateEvents(dt) {
 }
 
 // ── Rush Hour ───────────────────────────────────────────────
-const RUSH_CYCLE = 90;   // seconds between rushes
-const RUSH_DUR   = 20;   // seconds a rush lasts
+const RUSH_CYCLE = CONFIG.rushCycle;
+const RUSH_DUR   = CONFIG.rushDuration;
 let rushT = 0, rushActive = false;
 const rushSepEl   = document.getElementById('rush-sep');
 const rushLabelEl = document.getElementById('rush-label');
@@ -6050,8 +6260,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
   pointer.x = (e.clientX / innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const hit = new THREE.Vector3();
-  if (raycaster.ray.intersectPlane(groundPlane, hit)) target = hit;
+  if (raycaster.ray.intersectPlane(groundPlane, _v3B)) target = { x: _v3B.x, z: _v3B.z };
 });
 
 // ── Zoom: mouse wheel (desktop) + pinch gesture (touch) ──────
@@ -6367,14 +6576,14 @@ function updateLabels() {
   // Idea workers
   for (const w of ideaWorkers) {
     let emoji = null;
-    if (w.state === 'toCoffee' || w.state === 'gettingCoffee') emoji = '☕';
-    else if (w.state === 'toPingPong' || w.state === 'pingPonging') emoji = '🏓';
-    else if (w.state === 'toSupply' || w.state === 'gettingPaper') emoji = '📄';
-    else if (w.state === 'toDeliver' || w.state === 'toVP') emoji = '📦';
+    if (w.state === S.TO_COFFEE || w.state === S.GETTING_COFFEE) emoji = '☕';
+    else if (w.state === S.TO_PING_PONG || w.state === S.PING_PONGING) emoji = '🏓';
+    else if (w.state === S.TO_SUPPLY || w.state === S.GETTING_PAPER) emoji = '📄';
+    else if (w.state === S.TO_DELIVER || w.state === S.TO_VP) emoji = '📦';
     if (emoji) {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
       wants.push({ text: emoji, cls: 'bubble', x: p.x, y: p.y });
-    } else if (w.state === 'atDesk') {
+    } else if (w.state === S.AT_DESK) {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
       const paper = Math.floor(w.desk.paperStock);
       if (paper < 1) {
@@ -6404,8 +6613,8 @@ function updateLabels() {
   // Mood bubble on visibly unhappy engineers (only while morale is on)
   if (moraleEnabled) {
     for (const w of ideaWorkers) {
-      if (w.state !== 'atDesk') continue;
-      const m = w.morale ?? 70;
+      if (w.state !== S.AT_DESK) continue;
+      const m = w.morale ?? CONFIG.moraleDefault;
       if (m >= 60) continue;
       const p = worldToScreen(w.group.position.x, 2.75, w.group.position.z);
       wants.push({ text: moraleEmoji(m), cls: 'bubble', x: p.x, y: p.y });
@@ -6414,9 +6623,9 @@ function updateLabels() {
   // EA in-flight emoji
   for (const e of eas) {
     let eaEmoji = null;
-    if (e.state === 'chatting' || e.state === 'toChat') eaEmoji = '💬';
-    else if (e.state === 'toCoffeeDrop') eaEmoji = '☕';
-    else if (e.state === 'toDesk') eaEmoji = '📄';
+    if (e.state === S.CHATTING || e.state === S.TO_CHAT) eaEmoji = '💬';
+    else if (e.state === S.TO_COFFEE_DROP) eaEmoji = '☕';
+    else if (e.state === S.TO_DESK) eaEmoji = '📄';
     if (eaEmoji) {
       const p = worldToScreen(e.group.position.x, 2.4, e.group.position.z);
       wants.push({ text: eaEmoji, cls: 'bubble', x: p.x, y: p.y });
@@ -6476,7 +6685,7 @@ function updateLabels() {
 }
 
 // ── Loop ──
-const HALF = 28;
+const HALF = CONFIG.worldHalf;
 let last = performance.now();
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
 function loop(now) {
@@ -6506,12 +6715,24 @@ function loop(now) {
   }
 
   if (wx || wz) {
-    player.position.x = Math.max(-HALF, Math.min(HALF, player.position.x + wx * playerSpeed * dt));
-    player.position.z = Math.max(-HALF, Math.min(HALF, player.position.z + wz * playerSpeed * dt));
+    const prevX = player.position.x, prevZ = player.position.z;
+    let nx = prevX + wx * playerSpeed * dt;
+    let nz = prevZ + wz * playerSpeed * dt;
+    const clamped = clampToWalls(prevX, prevZ, nx, nz);
+    nx = Math.max(-HALF, Math.min(HALF, clamped.x));
+    nz = Math.max(-HALF, Math.min(HALF, clamped.z));
+    player.position.x = nx;
+    player.position.z = nz;
+    const moved = Math.abs(nx - prevX) > CONFIG.moveEpsilon || Math.abs(nz - prevZ) > CONFIG.moveEpsilon;
     player.rotation.y = Math.atan2(wx, wz);
-    player.userData.walkPhase = (player.userData.walkPhase || 0) + dt * (4 + playerSpeed * 0.5);
-    player.position.y = Math.abs(Math.sin(player.userData.walkPhase)) * 0.06;
-    swingArms(player, true);
+    if (moved) {
+      player.userData.walkPhase = (player.userData.walkPhase || 0) + dt * (CONFIG.walkPhaseBase + playerSpeed * CONFIG.walkPhaseSpeedK);
+      player.position.y = Math.abs(Math.sin(player.userData.walkPhase)) * CONFIG.walkBounceHeight;
+      swingArms(player, true);
+    } else {
+      player.position.y = 0;
+      swingArms(player, false);
+    }
   } else {
     player.position.y = 0;
     swingArms(player, false);
@@ -6582,7 +6803,7 @@ function doIPO() {
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
-  playerSpeed = 6; featurePrice = 5;
+  playerSpeed = CONFIG.playerBaseSpeed; featurePrice = CONFIG.featurePriceBase;
   for (const u of UPGRADES) upgLevels[u.id] = 0;
 
   // Remove idea workers
@@ -6774,7 +6995,7 @@ function loadGame() {
       if (awaySec > 30 && p.upgrades) {
         const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
         const savedWorkers  = p.ideaWorkers || 0;
-        const offlineEarned = Math.floor(savedPrice * savedWorkers * WORK_RATE_BASE * awaySec * 0.25);
+        const offlineEarned = Math.floor(savedPrice * savedWorkers * CONFIG.workRateBase * awaySec * 0.25);
         if (offlineEarned > 0) {
           state.cash += offlineEarned;
           state.allTimeCash += offlineEarned;
