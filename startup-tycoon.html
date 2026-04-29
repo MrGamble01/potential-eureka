@@ -657,12 +657,33 @@
     }
 
     /* ── Achievements + Theme modals ─────────────────── */
-    #achievements-modal, #theme-modal {
+    #achievements-modal, #theme-modal, #help-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.7);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       display: none; align-items: center; justify-content: center; z-index: 210;
     }
-    #achievements-modal.open, #theme-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    #achievements-modal.open, #theme-modal.open, #help-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    #help-modal .ach-panel { max-width: 540px; }
+    .help-section { margin: 12px 0 4px; }
+    .help-h {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #fcd34d; margin-bottom: 6px;
+    }
+    .help-row {
+      display: flex; justify-content: space-between; gap: 12px;
+      font-size: 12px; color: #c4d3dd; padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04); line-height: 1.4;
+    }
+    .help-row:last-child { border-bottom: none; }
+    .help-row > :first-child { color: #E6EDF3; font-weight: 700; flex: 0 0 auto; }
+    .help-row kbd {
+      display: inline-block; min-width: 18px; padding: 1px 5px;
+      background: rgba(108,99,255,0.22);
+      border: 1px solid rgba(108,99,255,0.42);
+      border-radius: 4px; font-size: 10px; font-weight: 800;
+      color: #c4beff; text-align: center;
+      font-family: ui-monospace, Menlo, monospace;
+    }
     .theme-row {
       display:flex; align-items:center; gap:10px; padding:10px 12px;
       border-radius:10px; cursor:pointer;
@@ -913,8 +934,21 @@
       letter-spacing: 1.5px; color: #7D8590;
       padding: 5px 2px 2px; margin-top: 2px;
       border-top: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 6px;
+      transition: color 0.15s ease;
     }
+    .upg-cat::before {
+      content: '▾'; font-size: 9px; opacity: 0.75;
+      transition: transform 0.15s ease;
+    }
+    .upg-cat:hover { color: #fcd34d; }
+    .upg-cat.collapsed::before { transform: rotate(-90deg); }
     .upg-cat:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
+    /* Hide all .upg-btn elements between a collapsed header and the
+       next .upg-cat header. Implemented at runtime in renderUpgrades
+       since CSS selectors can't span "until next sibling of class". */
+    .upg-btn.upg-hidden { display: none !important; }
 
     /* ── Sidebar toggle (mobile) ──────────────────────── */
     #sidebar-toggle {
@@ -1146,6 +1180,40 @@
     <button class="tip-ok" id="theme-close">Close</button>
   </div>
 </div>
+<div id="help-modal" role="dialog">
+  <div class="ach-panel">
+    <div class="ach-title">⌨️ Controls + tips</div>
+    <div class="ach-progress">Press <kbd>?</kbd> any time to reopen this.</div>
+    <div class="help-section">
+      <div class="help-h">Movement</div>
+      <div class="help-row"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span><span>Walk around the office</span></div>
+      <div class="help-row"><span>Tap / click the floor</span><span>Walk to that spot (touch + mouse)</span></div>
+      <div class="help-row"><span>Stand near a desk</span><span>Player auto-ships features at that desk</span></div>
+      <div class="help-row"><span>Stand at the CEO desk</span><span>You ship + earn directly</span></div>
+    </div>
+    <div class="help-section">
+      <div class="help-h">Actions</div>
+      <div class="help-row"><span>Walk into an investor</span><span>Auto-greet — handshake + reward</span></div>
+      <div class="help-row"><span>🏃 Sprint button</span><span>30s of 2× engineer speed (90s cooldown)</span></div>
+      <div class="help-row"><span>⭐ Next best step card</span><span>Tap to do the most impactful action</span></div>
+      <div class="help-row"><span>🎉 IPO button (when ready)</span><span>Soft reset for permanent +2× revenue</span></div>
+    </div>
+    <div class="help-section">
+      <div class="help-h">Shortcuts</div>
+      <div class="help-row"><span><kbd>?</kbd></span><span>Open this help overlay</span></div>
+      <div class="help-row"><span><kbd>Esc</kbd></span><span>Close any open modal</span></div>
+      <div class="help-row"><span>☰ button (mobile)</span><span>Open / close the sidebar drawer</span></div>
+    </div>
+    <div class="help-section">
+      <div class="help-h">Tips</div>
+      <div class="help-row"><span>Hover any HUD stat</span><span>Tooltip explains what it tracks</span></div>
+      <div class="help-row"><span>Hover a hire/upgrade button</span><span>Shows the exact effect you'll get</span></div>
+      <div class="help-row"><span>Tap a panel title (▾)</span><span>Collapse it; choice persists</span></div>
+      <div class="help-row"><span>Greet investors near the south door</span><span>Affinity grows; future rewards scale up</span></div>
+    </div>
+    <button class="tip-ok" id="help-close">Got it</button>
+  </div>
+</div>
 <div id="win-modal" role="dialog">
   <div class="win-panel">
     <div class="win-title">🏆 You made it!</div>
@@ -1236,6 +1304,7 @@
     </label>
     <button class="hire-btn" id="open-ach-btn" style="margin-top:8px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
+    <button class="hire-btn" id="open-help-btn" style="margin-top:4px;background:rgba(108,99,255,0.10);border-color:rgba(108,99,255,0.3);color:#c4beff" title="Keyboard shortcuts &amp; tips (also press ?)">⌨️ Help (?)</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
   </div>
 </div>
@@ -4606,6 +4675,31 @@ document.getElementById('open-theme-btn').addEventListener('click', () => {
 document.getElementById('theme-close').addEventListener('click', () => themeModalEl.classList.remove('open'));
 themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) themeModalEl.classList.remove('open'); });
 
+// ── Help / keyboard-shortcuts overlay ────────────────────
+// Press ? any time to open. Esc closes any modal. Sidebar button
+// duplicates the entrance for touch users who can't easily reach ?.
+const helpModalEl = document.getElementById('help-modal');
+function openHelp() { helpModalEl.classList.add('open'); }
+function closeHelp() { helpModalEl.classList.remove('open'); }
+document.getElementById('open-help-btn').addEventListener('click', openHelp);
+document.getElementById('help-close').addEventListener('click', closeHelp);
+helpModalEl.addEventListener('click', e => { if (e.target === helpModalEl) closeHelp(); });
+window.addEventListener('keydown', e => {
+  // Don't intercept while the player is typing (e.g. settings inputs)
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+    e.preventDefault();
+    if (helpModalEl.classList.contains('open')) closeHelp(); else openHelp();
+  } else if (e.key === 'Escape') {
+    // Close any open modal in priority order — top-most first
+    if (helpModalEl.classList.contains('open'))           closeHelp();
+    else if (themeModalEl.classList.contains('open'))     themeModalEl.classList.remove('open');
+    else if (achModalEl.classList.contains('open'))       achModalEl.classList.remove('open');
+    else if (winModalEl.classList.contains('open'))       winModalEl.classList.remove('open');
+  }
+});
+
 function triggerWin(cumulative) {
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
@@ -5847,6 +5941,30 @@ function buyUpgrade(id) {
   refreshHud();
 }
 const upgEl = document.getElementById('upgrades');
+// Per-category collapse state, persisted to localStorage so the
+// player's layout choices survive reloads.
+const UPG_COLLAPSE_KEY = 'startup_tycoon_upg_collapsed';
+function loadCollapsedUpgCats() {
+  try { return new Set(JSON.parse(localStorage.getItem(UPG_COLLAPSE_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function saveCollapsedUpgCats(set) {
+  try { localStorage.setItem(UPG_COLLAPSE_KEY, JSON.stringify([...set])); } catch {}
+}
+function syncUpgCollapseUI() {
+  const collapsed = loadCollapsedUpgCats();
+  const headers = upgEl.querySelectorAll('.upg-cat');
+  headers.forEach(h => h.classList.toggle('collapsed', collapsed.has(h.dataset.cat)));
+  // Hide every .upg-btn that follows a collapsed header until the next header
+  let hiding = false;
+  for (const child of upgEl.children) {
+    if (child.classList.contains('upg-cat')) {
+      hiding = collapsed.has(child.dataset.cat);
+    } else if (child.classList.contains('upg-btn')) {
+      child.classList.toggle('upg-hidden', hiding);
+    }
+  }
+}
 function renderUpgrades() {
   // Rebuild structure if first-time (no data-id buttons present)
   if (!upgEl.querySelector('[data-id]')) {
@@ -5858,7 +5976,15 @@ function renderUpgrades() {
         const catDef = UPGRADE_CATS.find(c => c.id === u.cat);
         const hdr = document.createElement('div');
         hdr.className = 'upg-cat';
+        hdr.dataset.cat = u.cat;
         hdr.textContent = catDef ? catDef.label : u.cat;
+        // Click toggles collapse for this category and persists.
+        hdr.addEventListener('click', () => {
+          const cur = loadCollapsedUpgCats();
+          if (cur.has(u.cat)) cur.delete(u.cat); else cur.add(u.cat);
+          saveCollapsedUpgCats(cur);
+          syncUpgCollapseUI();
+        });
         upgEl.appendChild(hdr);
       }
       const btn = document.createElement('button');
@@ -5867,6 +5993,8 @@ function renderUpgrades() {
       btn.onclick = () => buyUpgrade(u.id);
       upgEl.appendChild(btn);
     }
+    // Apply persisted collapse state on first build
+    syncUpgCollapseUI();
   }
   // Update button states only (skip .upg-cat headers)
   for (const u of UPGRADES) {
