@@ -15,6 +15,10 @@ const SnakeGame = (() => {
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
 
+  let particles = [];
+  let scorePopups = [];
+  let rafId = null;
+
   function init() {
     canvas = document.getElementById('snake-canvas');
     if (!canvas) return;
@@ -77,6 +81,71 @@ const SnakeGame = (() => {
     }
   }
 
+  // ── Particles & popups ──────────────────────────────────────
+
+  function spawnParticles(gridX, gridY, color, count = 8) {
+    const cx = gridX * GRID + GRID / 2;
+    const cy = gridY * GRID + GRID / 2;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const spd = 1.5 + Math.random() * 2.5;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        life: 1,
+        decay: 0.035 + Math.random() * 0.025,
+        radius: 2 + Math.random() * 2.5,
+        color,
+      });
+    }
+  }
+
+  function spawnScorePopup(gridX, gridY, text, color) {
+    scorePopups.push({
+      x: gridX * GRID + GRID / 2,
+      y: gridY * GRID,
+      text,
+      color: color || '#F7C948',
+      life: 1,
+      decay: 0.022,
+    });
+  }
+
+  function updateParticles() {
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy -= 0.06;   // upward drift
+      p.vx *= 0.97;   // air resistance
+      p.life -= p.decay;
+    }
+    scorePopups = scorePopups.filter(p => p.life > 0);
+    for (const p of scorePopups) {
+      p.y -= 0.7;
+      p.life -= p.decay;
+    }
+  }
+
+  // ── RAF render loop ─────────────────────────────────────────
+
+  function startRenderLoop() {
+    if (rafId) return;
+    function loop() {
+      updateParticles();
+      draw();
+      rafId = requestAnimationFrame(loop);
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function stopRenderLoop() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  // ── Game logic ──────────────────────────────────────────────
+
   function start() {
     snake = [{ x: Math.floor(COLS / 2), y: Math.floor(ROWS / 2) }];
     direction = { x: 1, y: 0 };
@@ -87,6 +156,8 @@ const SnakeGame = (() => {
     gameOver = false;
     running = true;
     speed = 120;
+    particles = [];
+    scorePopups = [];
     spawnFood();
     updateInfo();
 
@@ -95,6 +166,7 @@ const SnakeGame = (() => {
 
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
+    startRenderLoop();
   }
 
   function spawnFood() {
@@ -168,6 +240,8 @@ const SnakeGame = (() => {
       ate = true;
       score += 10;
       foodCount++;
+      spawnParticles(food.x, food.y, '#F778BA');
+      spawnScorePopup(food.x, food.y, '+10', '#F778BA');
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -182,9 +256,11 @@ const SnakeGame = (() => {
         gameLoop = setInterval(tick, speed);
       }
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
-      // Eat bonus food (snake also grows)
+      // Eat bonus food
       ate = true;
       score += 50;
+      spawnParticles(bonusFood.x, bonusFood.y, '#F7C948', 14);
+      spawnScorePopup(bonusFood.x, bonusFood.y, '+50', '#F7C948');
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -195,7 +271,7 @@ const SnakeGame = (() => {
     if (!ate) snake.pop();
 
     updateInfo();
-    draw();
+    // draw() is handled by the RAF loop
   }
 
   function endGame() {
@@ -223,6 +299,8 @@ const SnakeGame = (() => {
     if (highEl) highEl.textContent = highScore;
     if (levelEl) levelEl.textContent = getLevel();
   }
+
+  // ── Rendering ───────────────────────────────────────────────
 
   function draw() {
     ctx.fillStyle = '#0d1117';
@@ -281,7 +359,43 @@ const SnakeGame = (() => {
       );
       ctx.fill();
       ctx.shadowBlur = 0;
+
+      // Countdown seconds above the bonus food
+      const secsLeft = Math.ceil(timeLeft / 1000);
+      if (secsLeft > 0 && running) {
+        ctx.globalAlpha = alpha * 0.9;
+        ctx.fillStyle = '#F7C948';
+        ctx.font = 'bold 10px Inter, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(secsLeft + 's', bonusFood.x * GRID + GRID / 2, bonusFood.y * GRID - 4);
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+      }
     }
+
+    // Particles
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.1, p.radius * p.life), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    // Score popups
+    ctx.font = 'bold 13px Inter, sans-serif';
+    for (const p of scorePopups) {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.textAlign = 'center';
+      ctx.fillText(p.text, p.x, p.y);
+    }
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
 
     // Start prompt
     if (!running && !gameOver) {
@@ -300,6 +414,7 @@ const SnakeGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    stopRenderLoop();
     running = false;
   }
 
