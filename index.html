@@ -265,6 +265,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
+        <button onclick="SnakeGame.togglePause()">Pause (P)</button>
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
@@ -307,7 +308,7 @@
     <div class="game-container">
       <div class="game-header">
         <div class="game-title">TETRIS</div>
-        <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
+        <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold &middot; P pause</div>
       </div>
       <div class="tetris-layout">
         <div class="tetris-side">
@@ -345,6 +346,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="TetrisGame.start()">New Game</button>
+        <button onclick="TetrisGame.togglePause()">Pause (P)</button>
       </div>
     </div>
   </section>
