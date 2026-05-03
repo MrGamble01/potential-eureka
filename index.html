@@ -252,7 +252,7 @@
     <div class="game-container">
       <div class="game-header">
         <div class="game-title">SNAKE</div>
-        <div class="game-subtitle">Use arrow keys or WASD to control</div>
+        <div class="game-subtitle">Arrow keys / WASD to move &nbsp;·&nbsp; P or Esc to pause</div>
       </div>
       <div class="game-info">
         <span>Score: <strong id="snake-score">0</strong></span>
@@ -265,6 +265,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
+        <button id="snake-pause-btn" onclick="SnakeGame.togglePause()">Pause</button>
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
