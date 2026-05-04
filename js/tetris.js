@@ -23,7 +23,8 @@ const TetrisGame = (() => {
   let canvas, ctx, nextCanvas, nextCtx, holdCanvas, holdCtx;
   let board, current, next, held;
   let score, highScore, level, linesCleared;
-  let gameLoop, running, gameOver, canHold;
+  let gameLoop, running, gameOver, paused, canHold;
+  let combo, lastClearWasTetris, clearMsg, clearMsgExpiry;
   let bag = [];
 
   // 7-bag randomiser for fair piece distribution
@@ -197,10 +198,29 @@ const TetrisGame = (() => {
         cleared++; r++;
       }
     }
-    if (!cleared) return;
-    const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
+    if (!cleared) { combo = 0; return; }
+
+    const isTetris = cleared === 4;
+    const b2b = isTetris && lastClearWasTetris;
+    combo++;
+
+    const basePts = [0, 100, 300, 500, 800][Math.min(cleared, 4)];
+    let pts = basePts * level;
+    if (b2b) pts = Math.floor(pts * 1.5);
+    if (combo > 1) pts += 50 * (combo - 1) * level;
+    score += pts;
+
+    lastClearWasTetris = isTetris;
     linesCleared += cleared;
+
+    if (b2b) clearMsg = 'BACK-TO-BACK TETRIS!';
+    else if (isTetris) clearMsg = 'TETRIS!';
+    else if (cleared === 3) clearMsg = 'TRIPLE!';
+    else if (cleared === 2) clearMsg = 'DOUBLE!';
+    else clearMsg = 'SINGLE';
+    if (combo > 1) clearMsg += `  COMBO ×${combo}`;
+    clearMsgExpiry = Date.now() + 1800;
+
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
     if (score > highScore) {
@@ -246,7 +266,8 @@ const TetrisGame = (() => {
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
-    gameOver = false; running = true;
+    gameOver = false; running = true; paused = false;
+    combo = 0; lastClearWasTetris = false; clearMsg = ''; clearMsgExpiry = 0;
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -258,6 +279,14 @@ const TetrisGame = (() => {
     clearInterval(gameLoop);
     gameLoop = setInterval(autoDown, dropMs());
     updateInfo(); draw();
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) clearInterval(gameLoop);
+    else gameLoop = setInterval(autoDown, dropMs());
+    draw();
   }
 
   function endGame() {
@@ -278,6 +307,8 @@ const TetrisGame = (() => {
   function handleKey(e) {
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
     if (!running) return;
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { togglePause(); e.preventDefault(); return; }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
@@ -349,6 +380,41 @@ const TetrisGame = (() => {
             drawCell(ctx, current.x + c, current.y + r, current.color);
     }
 
+    // Pause overlay
+    if (running && paused) {
+      ctx.fillStyle = 'rgba(13,17,23,0.75)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 24px Inter, monospace';
+      ctx.fillStyle = '#6C63FF';
+      ctx.shadowColor = '#6C63FF';
+      ctx.shadowBlur = 18;
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '11px Inter, monospace';
+      ctx.fillStyle = '#7D8590';
+      ctx.shadowBlur = 0;
+      ctx.fillText('Press P or Esc to resume', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.restore();
+    }
+
+    // Combo / line-clear message
+    if (clearMsg && clearMsgExpiry > Date.now()) {
+      const remaining = clearMsgExpiry - Date.now();
+      const alpha = Math.min(1, remaining / 300);
+      const isSpecial = clearMsg.startsWith('BACK') || clearMsg.startsWith('TETRIS');
+      const color = isSpecial ? '#F7C948' : '#58A6FF';
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+      ctx.font = `bold ${isSpecial ? 20 : 17}px Inter, monospace`;
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18;
+      ctx.fillText(clearMsg, WIDTH / 2, HEIGHT / 2 - 10);
+      ctx.restore();
+    }
+
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13,17,23,0.75)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -359,7 +425,7 @@ const TetrisGame = (() => {
       ctx.font = '11px Inter, monospace';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('← → move  ·  ↑ / X rotate  ·  ↓ soft drop', WIDTH / 2, HEIGHT / 2 + 22);
-      ctx.fillText('Space hard drop  ·  C hold', WIDTH / 2, HEIGHT / 2 + 38);
+      ctx.fillText('Space hard drop  ·  C hold  ·  P pause', WIDTH / 2, HEIGHT / 2 + 38);
       ctx.textAlign = 'left';
     }
   }
