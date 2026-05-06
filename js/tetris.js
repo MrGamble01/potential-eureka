@@ -23,7 +23,8 @@ const TetrisGame = (() => {
   let canvas, ctx, nextCanvas, nextCtx, holdCanvas, holdCtx;
   let board, current, next, held;
   let score, highScore, level, linesCleared;
-  let gameLoop, running, gameOver, canHold;
+  let gameLoop, running, gameOver, canHold, locking;
+  let flashRows = [];
   let bag = [];
 
   // 7-bag randomiser for fair piece distribution
@@ -160,27 +161,29 @@ const TetrisGame = (() => {
     return y;
   }
 
-  function hardDrop() {
+  async function hardDrop() {
     if (!current) return;
     let dropped = 0;
     while (!collides(current.shape, current.x, current.y + 1)) {
       current.y++; dropped++;
     }
     score += dropped * 2;
-    lock();
+    await lock();
   }
 
-  function lock() {
+  async function lock() {
     if (!current) return;
+    locking = true;
     for (let r = 0; r < current.shape.length; r++) {
       for (let c = 0; c < current.shape[r].length; c++) {
         if (!current.shape[r][c]) continue;
         const ny = current.y + r;
-        if (ny < 0) { endGame(); return; }
+        if (ny < 0) { locking = false; endGame(); return; }
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
+    await clearLines();
+    locking = false;
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -188,26 +191,44 @@ const TetrisGame = (() => {
     if (collides(current.shape, current.x, current.y)) endGame();
   }
 
-  function clearLines() {
-    let cleared = 0;
+  async function clearLines() {
+    const toRemove = [];
     for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
-      }
+      if (board[r].every(cell => cell !== null)) toRemove.push(r);
     }
-    if (!cleared) return;
+    if (!toRemove.length) return;
+
+    // Pause the drop timer during the flash
+    clearInterval(gameLoop);
+
+    // Flash the completed rows 3 times before clearing
+    for (let i = 0; i < 3; i++) {
+      flashRows = toRemove;
+      draw();
+      await new Promise(res => setTimeout(res, 80));
+      flashRows = [];
+      draw();
+      await new Promise(res => setTimeout(res, 60));
+    }
+    flashRows = [];
+
+    // Remove lines (toRemove is already in descending order)
+    for (const r of toRemove) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(null));
+    }
+
+    const cleared = toRemove.length;
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
-    const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    level = Math.floor(linesCleared / 10) + 1;
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
     }
     updateInfo();
+    if (running) restartLoop();
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -218,8 +239,9 @@ const TetrisGame = (() => {
     gameLoop = setInterval(autoDown, dropMs());
   }
 
-  function autoDown() {
-    if (!move(0, 1)) lock();
+  async function autoDown() {
+    if (locking) return;
+    if (!move(0, 1)) await lock();
     draw(); updateInfo();
   }
 
@@ -245,7 +267,8 @@ const TetrisGame = (() => {
     bag = [];
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
-    held = null; canHold = true;
+    held = null; canHold = true; locking = false;
+    flashRows = [];
     gameOver = false; running = true;
     current = drawFromBag();
     next    = drawFromBag();
@@ -277,7 +300,7 @@ const TetrisGame = (() => {
 
   function handleKey(e) {
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
-    if (!running) return;
+    if (!running || locking) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
@@ -321,9 +344,17 @@ const TetrisGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(WIDTH, y * CELL); ctx.stroke();
     }
 
-    for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (flashRows.includes(r)) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+          ctx.shadowBlur = 0;
+          ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+        } else if (board[r][c]) {
+          drawCell(ctx, c, r, board[r][c]);
+        }
+      }
+    }
 
     if (current && running) {
       // Ghost
