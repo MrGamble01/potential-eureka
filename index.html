@@ -22,6 +22,7 @@
     <span class="logo glitch" data-text=">_ POTENTIAL EUREKA">&gt;_ POTENTIAL EUREKA</span>
     <button class="active" data-view="dashboard">Dashboard</button>
     <button data-view="productivity">Productivity</button>
+    <button data-view="orgchart">My Org Chart</button>
     <button data-view="personal" class="nav-locked">Personal</button>
     <button data-view="snake">Snake</button>
     <button data-view="maze">Maze Solver</button>
@@ -167,6 +168,33 @@
         <div id="bookmarks-grid" class="bookmarks-grid"></div>
       </div>
 
+    </div>
+  </section>
+
+  <!-- ===================== ORG CHART ===================== -->
+  <section id="view-orgchart" class="view">
+    <div class="orgchart-container">
+      <div class="orgchart-header">
+        <div class="orgchart-title">My Org Chart</div>
+        <div class="orgchart-subtitle">Account management org · May 2026 · click a node for projects</div>
+      </div>
+      <div class="orgchart-toolbar">
+        <input type="text" id="orgchart-search" class="orgchart-search" placeholder="Search by name… (Enter to select, Esc to clear)" autocomplete="off">
+        <button id="orgchart-reset" class="orgchart-reset-btn" title="Restore the original layout">Reset Layout</button>
+      </div>
+      <div class="orgchart-layout">
+        <div class="orgchart-stage">
+          <canvas id="orgchart-canvas" class="orgchart-canvas"></canvas>
+          <div class="orgchart-hint">drag to rearrange · click to inspect</div>
+          <div class="orgchart-legend">
+            <span><span class="swatch" style="background:#8B83FF"></span>Head</span>
+            <span><span class="swatch" style="background:#58A6FF"></span>Steven's pod</span>
+            <span><span class="swatch" style="background:#3FB950"></span>Bryce's pod</span>
+            <span><span class="swatch" style="background:#F778BA"></span>Sara's pod</span>
+          </div>
+        </div>
+        <div id="orgchart-panel" class="orgchart-panel"></div>
+      </div>
     </div>
   </section>
 
@@ -448,6 +476,7 @@
   <script src="js/maze.js"></script>
   <script src="js/life.js"></script>
   <script src="js/tetris.js"></script>
+  <script src="js/orgchart.js"></script>
   <script>
     const navButtons = document.querySelectorAll('nav button');
     const views = document.querySelectorAll('.view');
@@ -467,6 +496,7 @@
           case 'maze':         MazeGame.init(); break;
           case 'life':         LifeGame.init(); break;
           case 'tetris':       TetrisGame.init(); break;
+          case 'orgchart':     OrgChart.init(); break;
         }
       }
       // Re-init 3D tilt for newly visible widgets
