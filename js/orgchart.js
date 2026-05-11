@@ -167,6 +167,7 @@ const OrgChart = (() => {
   let dragOffset = { x: 0, y: 0 };
   let rafId = null;
   let mouse = { x: 0, y: 0 };
+  let searchTerm = '';
 
   function init() {
     canvas = document.getElementById('orgchart-canvas');
@@ -177,11 +178,47 @@ const OrgChart = (() => {
     buildGraph();
     seedLayout();
     bindEvents();
+    bindToolbar();
     resize();
     renderPanel(null);
 
+    // Deep-link: #orgchart=tom selects Tom on load.
+    applyHashSelection();
+    window.addEventListener('hashchange', applyHashSelection);
+
     window.addEventListener('resize', resize);
     loop();
+  }
+
+  function applyHashSelection() {
+    const m = (location.hash || '').match(/orgchart=([a-z0-9_-]+)/i);
+    if (m && nodes.find(n => n.id === m[1])) selectNode(m[1], { skipHash: true });
+  }
+
+  function bindToolbar() {
+    const search = document.getElementById('orgchart-search');
+    const reset  = document.getElementById('orgchart-reset');
+    if (search) {
+      search.addEventListener('input', e => { searchTerm = e.target.value.trim().toLowerCase(); });
+      search.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          const match = nodes.find(n => searchTerm && n.name.toLowerCase().includes(searchTerm));
+          if (match) selectNode(match.id);
+        } else if (e.key === 'Escape') {
+          search.value = ''; searchTerm = '';
+        }
+      });
+    }
+    if (reset) {
+      reset.addEventListener('click', () => {
+        seedLayout();
+        for (const n of nodes) { n.vx = 0; n.vy = 0; }
+        selectedId = null;
+        renderPanel(null);
+        if (search) { search.value = ''; searchTerm = ''; }
+        if (history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+      });
+    }
   }
 
   function buildGraph() {
@@ -323,9 +360,39 @@ const OrgChart = (() => {
     return null;
   }
 
-  function selectNode(id) {
+  function selectNode(id, opts = {}) {
     selectedId = id;
     renderPanel(id);
+    if (!opts.skipHash && id && history.replaceState) {
+      history.replaceState(null, '', `#orgchart=${id}`);
+    }
+  }
+
+  // Set of node ids "related" to the selected node: the node itself,
+  // its parent chain, its descendants, and its direct collab peers.
+  function relatedIds(id) {
+    if (!id) return null;
+    const set = new Set([id]);
+    // Descendants (BFS over parent links).
+    let frontier = [id];
+    while (frontier.length) {
+      const next = [];
+      for (const f of frontier) {
+        for (const n of nodes) {
+          if (n.parent === f && !set.has(n.id)) { set.add(n.id); next.push(n.id); }
+        }
+      }
+      frontier = next;
+    }
+    // Ancestors.
+    let cur = nodes.find(n => n.id === id);
+    while (cur && cur.parent) { set.add(cur.parent); cur = nodes.find(n => n.id === cur.parent); }
+    // Collaboration peers.
+    for (const [a, b] of COLLAB) {
+      if (a === id) set.add(b);
+      else if (b === id) set.add(a);
+    }
+    return set;
   }
 
   function resize() {
@@ -431,22 +498,24 @@ const OrgChart = (() => {
   }
 
   function drawEdges() {
+    const related = relatedIds(selectedId);
     for (const e of edges) {
       const a = e.a, b = e.b;
       const focused = selectedId && (a.id === selectedId || b.id === selectedId);
       const hovered = hoverId && (a.id === hoverId || b.id === hoverId);
+      // Edge is "in focus" only if both endpoints belong to the related set.
+      const dim = related && !(related.has(a.id) && related.has(b.id));
+      const dimAlpha = dim ? 0.25 : 1;
 
       if (e.kind === 'collab') {
-        ctx.strokeStyle = focused || hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.06)';
+        const baseAlpha = focused || hovered ? 0.22 : 0.06;
+        ctx.strokeStyle = `rgba(255,255,255,${baseAlpha * dimAlpha})`;
         ctx.lineWidth = focused ? 1.4 : 0.8;
         ctx.setLineDash([4, 5]);
       } else {
         const c = POD_COLORS[b.pod] || '#8B83FF';
-        ctx.strokeStyle = focused
-          ? hexToRgba(c, 0.95)
-          : hovered
-            ? hexToRgba(c, 0.55)
-            : hexToRgba(c, 0.28);
+        const base = focused ? 0.95 : hovered ? 0.55 : 0.28;
+        ctx.strokeStyle = hexToRgba(c, base * dimAlpha);
         ctx.lineWidth = focused ? 2 : 1.2;
         ctx.setLineDash([]);
       }
@@ -459,15 +528,24 @@ const OrgChart = (() => {
   }
 
   function drawNodes() {
+    const related = relatedIds(selectedId);
+    const t = performance.now() / 1000;
     for (const n of nodes) {
       const c = POD_COLORS[n.pod] || '#8B83FF';
       const isSel = n.id === selectedId;
       const isHov = n.id === hoverId;
-      const r = n.r + (isSel ? 4 : isHov ? 2 : 0);
+      const isMatch = searchTerm && n.name.toLowerCase().includes(searchTerm);
+      const dim = related && !related.has(n.id);
+      const alpha = dim && !isMatch ? 0.3 : 1;
+      const pulse = isMatch ? 3 + Math.sin(t * 4) * 2 : 0;
+      const r = n.r + (isSel ? 4 : isHov ? 2 : 0) + pulse;
+
+      ctx.globalAlpha = alpha;
 
       // Outer glow
+      const glowAlpha = (isSel || isMatch) ? 0.55 : 0.25;
       const glow = ctx.createRadialGradient(n.x, n.y, r * 0.6, n.x, n.y, r * 2.4);
-      glow.addColorStop(0, hexToRgba(c, isSel ? 0.55 : 0.25));
+      glow.addColorStop(0, hexToRgba(c, glowAlpha));
       glow.addColorStop(1, hexToRgba(c, 0));
       ctx.fillStyle = glow;
       ctx.beginPath();
@@ -481,8 +559,8 @@ const OrgChart = (() => {
       ctx.fill();
 
       // Ring
-      ctx.strokeStyle = c;
-      ctx.lineWidth = isSel ? 3 : isHov ? 2 : 1.5;
+      ctx.strokeStyle = isMatch ? '#FFFFFF' : c;
+      ctx.lineWidth = isSel ? 3 : (isHov || isMatch) ? 2 : 1.5;
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
       ctx.stroke();
@@ -504,6 +582,7 @@ const OrgChart = (() => {
         ctx.fillText(n.role, n.x, n.y + r + 28);
       }
     }
+    ctx.globalAlpha = 1;
   }
 
   function initials(name) {
@@ -527,11 +606,20 @@ const OrgChart = (() => {
   // ---- Side panel ----
   function renderPanel(id) {
     if (!id) {
+      const total = nodes.length;
+      const active = nodes.reduce((s, n) => s + n.tasks.filter(t => t.status === 'active').length, 0);
+      const proposed = nodes.reduce((s, n) => s + n.tasks.filter(t => t.status === 'proposed').length, 0);
       panel.innerHTML = `
         <div class="orgchart-panel-empty">
           <span class="pulse-icon">◉</span>
           Click a node to see what they're working on.<br>
           Drag nodes to rearrange the web.
+        </div>
+        <div class="org-meta">
+          <div class="org-meta-cell"><div class="org-meta-label">People</div><div class="org-meta-value">${total}</div></div>
+          <div class="org-meta-cell"><div class="org-meta-label">In Flight</div><div class="org-meta-value">${active}</div></div>
+          <div class="org-meta-cell"><div class="org-meta-label">Proposed</div><div class="org-meta-value">${proposed}</div></div>
+          <div class="org-meta-cell"><div class="org-meta-label">Pods</div><div class="org-meta-value">3</div></div>
         </div>
         <div class="org-section-title"><span class="dot"></span> Notes & Open Questions</div>
         <div class="org-tasks">
@@ -586,6 +674,20 @@ const OrgChart = (() => {
       `;
     }).join('');
 
+    const reports = nodes.filter(n => n.parent === p.id);
+    const reportsHtml = reports.length ? `
+      <div class="org-section-title"><span class="dot"></span> Direct Reports (${reports.length})</div>
+      <div class="org-reports">
+        ${reports.map(r => `
+          <button class="org-report-chip" data-id="${r.id}" style="--c:${POD_COLORS[r.pod]}">
+            <span class="org-report-init">${initials(r.name)}</span>
+            <span class="org-report-name">${escapeHtml(r.name)}</span>
+            <span class="org-report-role">${escapeHtml(r.role)}</span>
+          </button>
+        `).join('')}
+      </div>
+    ` : '';
+
     panel.innerHTML = `
       <div class="org-card-header">
         <div class="org-avatar" style="color:${color}">${initials(p.name)}</div>
@@ -606,7 +708,12 @@ const OrgChart = (() => {
       </div>
       <div class="org-section-title"><span class="dot"></span> Current Projects</div>
       <div class="org-tasks">${taskHtml}</div>
+      ${reportsHtml}
     `;
+
+    panel.querySelectorAll('.org-report-chip').forEach(b => {
+      b.addEventListener('click', () => selectNode(b.dataset.id));
+    });
   }
 
   function escapeHtml(s) {

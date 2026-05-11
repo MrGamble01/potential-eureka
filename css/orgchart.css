@@ -30,10 +30,119 @@
   font-family: var(--font-mono);
 }
 
+.orgchart-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.orgchart-search {
+  flex: 1;
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.orgchart-search::placeholder {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.orgchart-search:focus {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.12);
+}
+
+.orgchart-reset-btn {
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+  white-space: nowrap;
+}
+
+.orgchart-reset-btn:hover {
+  background: var(--color-white-12);
+  border-color: var(--border-strong);
+}
+
 .orgchart-layout {
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 14px;
+}
+
+/* Direct reports chips */
+.org-reports {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.org-report-chip {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  grid-template-rows: auto auto;
+  gap: 2px 10px;
+  align-items: center;
+  text-align: left;
+  background: var(--color-white-05);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--c, var(--primary));
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  font-family: inherit;
+  color: var(--text);
+}
+
+.org-report-chip:hover {
+  background: var(--color-white-08);
+  transform: translateX(2px);
+}
+
+.org-report-init {
+  grid-row: 1 / 3;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--text);
+  border: 1.5px solid var(--c, var(--primary));
+  background: rgba(13, 17, 23, 0.6);
+}
+
+.org-report-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.org-report-role {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .orgchart-stage {
@@ -368,4 +477,7 @@
   .org-avatar { width: 40px; height: 40px; font-size: 14px; }
   .org-name { font-size: 14px; }
   .org-meta { grid-template-columns: 1fr; }
+  .orgchart-toolbar { flex-direction: column; align-items: stretch; }
+  .orgchart-search { font-size: 14px; }  /* avoids iOS auto-zoom on focus */
+  .org-reports { grid-template-columns: 1fr; }
 }
