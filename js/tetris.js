@@ -25,6 +25,8 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let flashRows = [];
+  let locking = false;
 
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
@@ -160,54 +162,68 @@ const TetrisGame = (() => {
     return y;
   }
 
-  function hardDrop() {
-    if (!current) return;
+  async function hardDrop() {
+    if (!current || locking) return;
     let dropped = 0;
     while (!collides(current.shape, current.x, current.y + 1)) {
       current.y++; dropped++;
     }
     score += dropped * 2;
-    lock();
+    await lock();
   }
 
-  function lock() {
-    if (!current) return;
+  async function lock() {
+    if (!current || locking) return;
+    locking = true;
     for (let r = 0; r < current.shape.length; r++) {
       for (let c = 0; c < current.shape[r].length; c++) {
         if (!current.shape[r][c]) continue;
         const ny = current.y + r;
-        if (ny < 0) { endGame(); return; }
+        if (ny < 0) { locking = false; endGame(); return; }
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
+    await clearLines();
     canHold = true;
     current = next;
     next = drawFromBag();
     drawPreview(nextCtx, next);
+    locking = false;
     if (collides(current.shape, current.x, current.y)) endGame();
   }
 
-  function clearLines() {
-    let cleared = 0;
+  async function clearLines() {
+    const fullRows = [];
     for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
-      }
+      if (board[r].every(cell => cell !== null)) fullRows.push(r);
     }
-    if (!cleared) return;
+    if (!fullRows.length) return;
+
+    clearInterval(gameLoop);
+    for (let i = 0; i < 4; i++) {
+      flashRows = i % 2 === 0 ? fullRows : [];
+      draw();
+      await new Promise(res => setTimeout(res, 70));
+    }
+    flashRows = [];
+
+    for (const r of fullRows.sort((a, b) => b - a)) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(null));
+    }
+
+    const cleared = fullRows.length;
     const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
+    score += pts[Math.min(cleared, 4)] * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    if (newLevel !== level) { level = newLevel; }
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
     }
     updateInfo();
+    if (running) restartLoop();
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -218,8 +234,8 @@ const TetrisGame = (() => {
     gameLoop = setInterval(autoDown, dropMs());
   }
 
-  function autoDown() {
-    if (!move(0, 1)) lock();
+  async function autoDown() {
+    if (!move(0, 1)) await lock();
     draw(); updateInfo();
   }
 
@@ -247,6 +263,7 @@ const TetrisGame = (() => {
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    flashRows = []; locking = false;
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -283,7 +300,7 @@ const TetrisGame = (() => {
       case 'ArrowRight': move(1, 0);  break;
       case 'ArrowDown':
         if (!move(0, 1)) lock();
-        score += 1;
+        else score += 1;
         break;
       case 'ArrowUp': case 'x': case 'X': rotateCW();  break;
       case 'z': case 'Z':                 rotateCCW(); break;
@@ -322,8 +339,10 @@ const TetrisGame = (() => {
     }
 
     for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+      for (let c = 0; c < COLS; c++) {
+        if (flashRows.includes(r)) drawCell(ctx, c, r, '#FFFFFF');
+        else if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+      }
 
     if (current && running) {
       // Ghost
