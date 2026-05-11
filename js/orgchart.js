@@ -157,7 +157,8 @@ const OrgChart = (() => {
 
   // ---- State ----
   let canvas, ctx, panel;
-  let width = 0, height = 0, dpr = 1;
+  let width = 0, height = 0, dpr = 1, scale = 1;
+  const REF_SIZE = 620;             // reference viewport the layout was designed for
   let nodes = [];                 // { ...person, x, y, vx, vy, r }
   let edges = [];                 // { a, b, kind: 'report' | 'collab' }
   let selectedId = null;
@@ -309,8 +310,8 @@ const OrgChart = (() => {
   function mousePos(e) {
     const rect = canvas.getBoundingClientRect();
     return {
-      x: (e.clientX - rect.left) - width / 2,
-      y: (e.clientY - rect.top) - height / 2,
+      x: ((e.clientX - rect.left) - width / 2) / scale,
+      y: ((e.clientY - rect.top) - height / 2) / scale,
     };
   }
 
@@ -335,6 +336,8 @@ const OrgChart = (() => {
     canvas.width = width * dpr;
     canvas.height = height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Fit the graph (designed at ~REF_SIZE) to whatever container we have.
+    scale = Math.max(0.5, Math.min(1.2, Math.min(width, height) / REF_SIZE));
   }
 
   // ---- Physics: gentle web breathing ----
@@ -397,6 +400,7 @@ const OrgChart = (() => {
     ctx.clearRect(0, 0, width, height);
     ctx.save();
     ctx.translate(width / 2, height / 2);
+    ctx.scale(scale, scale);
 
     drawWebBackdrop();
     drawEdges();
@@ -407,9 +411,11 @@ const OrgChart = (() => {
 
   function drawWebBackdrop() {
     // Concentric rings + radial spokes for the spider-web aesthetic.
+    // Drawn in graph-space, sized to cover the visible canvas after scaling.
+    const reach = Math.max(width, height) / scale;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.lineWidth = 1;
-    for (let r = 80; r < Math.max(width, height); r += 90) {
+    ctx.lineWidth = 1 / scale;
+    for (let r = 80; r < reach; r += 90) {
       ctx.beginPath();
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.stroke();
@@ -419,7 +425,7 @@ const OrgChart = (() => {
       const a = (i / spokes) * Math.PI * 2;
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(a) * Math.max(width, height), Math.sin(a) * Math.max(width, height));
+      ctx.lineTo(Math.cos(a) * reach, Math.sin(a) * reach);
       ctx.stroke();
     }
   }

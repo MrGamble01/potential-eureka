@@ -54,6 +54,7 @@
   width: 100%;
   height: 100%;
   cursor: grab;
+  touch-action: none;
 }
 
 .orgchart-canvas.dragging {
@@ -335,10 +336,36 @@
   }
   .orgchart-stage,
   .orgchart-panel {
-    min-height: 480px;
+    min-height: 0;
     height: auto;
   }
   .orgchart-stage {
-    height: 60vh;
+    aspect-ratio: 1 / 1;
+    height: auto;
   }
+  .orgchart-panel {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 640px) {
+  .orgchart-title { font-size: 18px; letter-spacing: 1.5px; }
+  .orgchart-subtitle { font-size: 11px; }
+  .orgchart-hint { display: none; }
+  .orgchart-legend {
+    gap: 8px;
+    padding: 6px 8px;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .orgchart-legend .swatch { width: 8px; height: 8px; margin-right: 3px; }
+  .orgchart-panel { padding: 14px; }
+  .org-avatar { width: 40px; height: 40px; font-size: 14px; }
+  .org-name { font-size: 14px; }
+  .org-meta { grid-template-columns: 1fr; }
 }
