@@ -180,19 +180,9 @@
       </div>
       <div class="orgchart-toolbar">
         <input type="text" id="orgchart-search" class="orgchart-search" placeholder="Search by name… (Enter to select, Esc to clear)" autocomplete="off">
-        <button id="orgchart-reset" class="orgchart-reset-btn" title="Restore the original layout">Reset Layout</button>
       </div>
       <div class="orgchart-layout">
-        <div class="orgchart-stage">
-          <canvas id="orgchart-canvas" class="orgchart-canvas"></canvas>
-          <div class="orgchart-hint">drag to rearrange · click to inspect</div>
-          <div class="orgchart-legend">
-            <span><span class="swatch" style="background:#8B83FF"></span>Head</span>
-            <span><span class="swatch" style="background:#58A6FF"></span>Steven's pod</span>
-            <span><span class="swatch" style="background:#3FB950"></span>Bryce's pod</span>
-            <span><span class="swatch" style="background:#F778BA"></span>Sara's pod</span>
-          </div>
-        </div>
+        <div id="orgchart-tree" class="orgchart-tree"></div>
         <div id="orgchart-panel" class="orgchart-panel"></div>
       </div>
     </div>
