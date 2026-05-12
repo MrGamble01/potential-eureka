@@ -17,6 +17,7 @@ const LifeGame = (() => {
   let intervalId = null;
   let speed = 100;
   let drawing = false;
+  let paintValue = 1;
 
   function init() {
     canvas = document.getElementById('life-canvas');
@@ -28,14 +29,14 @@ const LifeGame = (() => {
     grid = makeGrid();
     nextGrid = makeGrid();
 
-    canvas.addEventListener('mousedown', e => { drawing = true; toggleCell(e); });
-    canvas.addEventListener('mousemove', e => { if (drawing) toggleCell(e); });
+    canvas.addEventListener('mousedown', e => { drawing = true; paintValue = getCellAt(e) === 1 ? 0 : 1; paintCell(e); });
+    canvas.addEventListener('mousemove', e => { if (drawing) paintCell(e); });
     canvas.addEventListener('mouseup', () => drawing = false);
     canvas.addEventListener('mouseleave', () => drawing = false);
 
     // Touch support
-    canvas.addEventListener('touchstart', e => { drawing = true; toggleCell(e.touches[0]); e.preventDefault(); });
-    canvas.addEventListener('touchmove', e => { if (drawing) toggleCell(e.touches[0]); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchstart', e => { drawing = true; paintValue = getCellAt(e.touches[0]) === 1 ? 0 : 1; paintCell(e.touches[0]); e.preventDefault(); });
+    canvas.addEventListener('touchmove', e => { if (drawing) paintCell(e.touches[0]); e.preventDefault(); }, { passive: false });
     canvas.addEventListener('touchend', () => drawing = false);
 
     draw();
@@ -46,14 +47,24 @@ const LifeGame = (() => {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
   }
 
-  function toggleCell(e) {
+  function getCellAt(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const c = Math.floor((e.clientX - rect.left) * scaleX / CELL);
+    const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
+    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) return grid[r][c];
+    return -1;
+  }
+
+  function paintCell(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     const c = Math.floor((e.clientX - rect.left) * scaleX / CELL);
     const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-      grid[r][c] = 1;
+      grid[r][c] = paintValue;
       draw();
       updateInfo();
     }
