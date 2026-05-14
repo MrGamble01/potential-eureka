@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -60,17 +61,31 @@ const SnakeGame = (() => {
     else if (dy === -1 && direction.y !== 1) nextDirection = { x: 0, y: -1 };
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    if (paused) {
+      paused = false;
+      gameLoop = setInterval(tick, speed);
+    } else {
+      paused = true;
+      clearInterval(gameLoop);
+      draw();
+    }
+  }
+
   function handleKey(e) {
     if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       start();
       return;
     }
     switch (e.key) {
-      case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
-      case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
-      case 'ArrowLeft':  case 'a': case 'A': setDir(-1, 0); e.preventDefault(); break;
-      case 'ArrowRight': case 'd': case 'D': setDir(1, 0);  e.preventDefault(); break;
+      case 'p': case 'P': case 'Escape': togglePause(); e.preventDefault(); return;
+      case 'ArrowUp':    case 'w': case 'W': if (!paused) { setDir(0, -1); e.preventDefault(); } break;
+      case 'ArrowDown':  case 's': case 'S': if (!paused) { setDir(0, 1);  e.preventDefault(); } break;
+      case 'ArrowLeft':  case 'a': case 'A': if (!paused) { setDir(-1, 0); e.preventDefault(); } break;
+      case 'ArrowRight': case 'd': case 'D': if (!paused) { setDir(1, 0);  e.preventDefault(); } break;
       case ' ':
+        if (paused) { togglePause(); e.preventDefault(); return; }
         if (gameOver) start();
         e.preventDefault();
         break;
@@ -85,6 +100,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
@@ -283,6 +299,21 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Pause overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 24px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or SPACE to resume', WIDTH / 2, HEIGHT / 2 + 26);
+      ctx.textAlign = 'left';
+      return;
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -303,5 +334,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
