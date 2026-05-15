@@ -13,7 +13,8 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
+  let floatingTexts = [];
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,9 +26,11 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
+    floatingTexts = [];
     updateInfo();
     draw();
 
@@ -53,6 +56,20 @@ const SnakeGame = (() => {
     });
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    const btn = document.getElementById('snake-pause-btn');
+    if (paused) {
+      clearInterval(gameLoop);
+      if (btn) { btn.textContent = 'Resume'; btn.style.borderColor = '#3FB950'; btn.style.color = '#3FB950'; }
+      draw();
+    } else {
+      gameLoop = setInterval(tick, speed);
+      if (btn) { btn.textContent = 'Pause'; btn.style.borderColor = ''; btn.style.color = ''; }
+    }
+  }
+
   function setDir(dx, dy) {
     if (dx === 1 && direction.x !== -1) nextDirection = { x: 1, y: 0 };
     else if (dx === -1 && direction.x !== 1) nextDirection = { x: -1, y: 0 };
@@ -66,10 +83,12 @@ const SnakeGame = (() => {
       return;
     }
     switch (e.key) {
-      case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
-      case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
-      case 'ArrowLeft':  case 'a': case 'A': setDir(-1, 0); e.preventDefault(); break;
-      case 'ArrowRight': case 'd': case 'D': setDir(1, 0);  e.preventDefault(); break;
+      case 'ArrowUp':    case 'w': case 'W': if (!paused) setDir(0, -1); e.preventDefault(); break;
+      case 'ArrowDown':  case 's': case 'S': if (!paused) setDir(0, 1);  e.preventDefault(); break;
+      case 'ArrowLeft':  case 'a': case 'A': if (!paused) setDir(-1, 0); e.preventDefault(); break;
+      case 'ArrowRight': case 'd': case 'D': if (!paused) setDir(1, 0);  e.preventDefault(); break;
+      case 'p': case 'P': togglePause(); e.preventDefault(); break;
+      case 'Escape': togglePause(); e.preventDefault(); break;
       case ' ':
         if (gameOver) start();
         e.preventDefault();
@@ -85,13 +104,18 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
+    floatingTexts = [];
     speed = 120;
     spawnFood();
     updateInfo();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
+
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) { pauseBtn.textContent = 'Pause'; pauseBtn.style.borderColor = ''; pauseBtn.style.color = ''; }
 
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
@@ -168,6 +192,7 @@ const SnakeGame = (() => {
       ate = true;
       score += 10;
       foodCount++;
+      floatingTexts.push({ x: head.x * GRID + GRID / 2, y: head.y * GRID, text: '+10', color: '#F778BA', life: 1.0 });
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -185,6 +210,7 @@ const SnakeGame = (() => {
       // Eat bonus food (snake also grows)
       ate = true;
       score += 50;
+      floatingTexts.push({ x: head.x * GRID + GRID / 2, y: head.y * GRID, text: '+50', color: '#F7C948', life: 1.0 });
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -283,6 +309,38 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Floating score texts
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i];
+      ft.y -= 1.2;
+      ft.life -= 0.09;
+      if (ft.life <= 0) { floatingTexts.splice(i, 1); continue; }
+      ctx.globalAlpha = ft.life;
+      ctx.fillStyle = ft.color;
+      ctx.font = `bold 14px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.shadowColor = ft.color;
+      ctx.shadowBlur = 8;
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'left';
+
+    // Pause overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 24px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or Esc to resume', WIDTH / 2, HEIGHT / 2 + 26);
+      ctx.textAlign = 'left';
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -303,5 +361,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, togglePause, toggleWallWrap };
 })();
