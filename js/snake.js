@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let popups = [];
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -86,6 +87,7 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    popups = [];
     speed = 120;
     spawnFood();
     updateInfo();
@@ -172,6 +174,7 @@ const SnakeGame = (() => {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+      popups.push({ x: food.x * GRID + GRID / 2, y: food.y * GRID, text: '+10', alpha: 1.0 });
       spawnFood();
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
@@ -185,6 +188,7 @@ const SnakeGame = (() => {
       // Eat bonus food (snake also grows)
       ate = true;
       score += 50;
+      popups.push({ x: bonusFood.x * GRID + GRID / 2, y: bonusFood.y * GRID, text: '+50', alpha: 1.0 });
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -193,6 +197,13 @@ const SnakeGame = (() => {
     }
 
     if (!ate) snake.pop();
+
+    // Update score popups
+    popups = popups.filter(p => {
+      p.y -= 3;
+      p.alpha -= 0.05;
+      return p.alpha > 0;
+    });
 
     updateInfo();
     draw();
@@ -281,6 +292,22 @@ const SnakeGame = (() => {
       );
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Score popups
+    if (popups.length > 0) {
+      ctx.font = 'bold 15px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      for (const p of popups) {
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.text === '+50' ? '#F7C948' : '#3FB950';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 8;
+        ctx.fillText(p.text, p.x, p.y);
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.textAlign = 'left';
     }
 
     // Start prompt
