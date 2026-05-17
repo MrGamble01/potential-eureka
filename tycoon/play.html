@@ -1664,6 +1664,21 @@ const SFX = (() => {
     click() {
       tone({ freq: 1200, dur: 0.04, type: 'square', vol: 0.10 });
     },
+    arrive() {
+      // Doorbell-ish two-note for investor arrivals — pleasant, not alarming.
+      tone({ freq: 988, dur: 0.18, type: 'sine', vol: 0.22 });
+      setTimeout(() => tone({ freq: 740, dur: 0.24, type: 'sine', vol: 0.22 }), 140);
+    },
+    greet() {
+      // Handshake: bright triad.
+      tone({ freq: 659, dur: 0.10, type: 'triangle', vol: 0.26 });
+      setTimeout(() => tone({ freq: 988, dur: 0.10, type: 'triangle', vol: 0.26 }), 70);
+      setTimeout(() => tone({ freq: 1319, dur: 0.18, type: 'triangle', vol: 0.30 }), 140);
+    },
+    done() {
+      // Soft fall — used when sprint / boost ends.
+      tone({ freq: 660, slideTo: 330, dur: 0.20, type: 'sine', vol: 0.18 });
+    },
   };
 })();
 
@@ -4386,6 +4401,7 @@ function updateSprint(dt) {
       showToast('🏁 Sprint over.', '', 'ambient');
       addFeedEntry('🏁 Sprint ended');
       changeMorale(-2, 'Sprint burnout');
+      SFX.done();
     }
   } else if (sprintCooldownT > 0) {
     sprintCooldownT = Math.max(0, sprintCooldownT - dt);
@@ -5468,6 +5484,10 @@ function raiseFunding() {
   addCash(r.amount, 'funding');
   showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
   addFeedEntry(`💼 ${r.label} raised +$${r.amount.toLocaleString()}`);
+  // Funding rounds are big moments — celebrate them.
+  SFX.milestone(); Haptics.milestone();
+  launchConfetti({ pieces: 50, duration: 2400,
+    palette: ['#a89ff5', '#fcd34d', '#3FB950', '#fff'] });
   renderFunding();
 }
 
@@ -5539,6 +5559,7 @@ function spawnInvestor() {
   showToast(`${type.icon} ${type.label} just walked in — go shake their hand!`, 'milestone', 'standard');
   addFeedEntry(`${type.icon} ${type.label} arrived (${type.windowSec}s)`);
   refreshInvestorBanner();
+  SFX.arrive(); Haptics.purchase();
   showTip('investor');
 }
 
@@ -5576,6 +5597,7 @@ function greetInvestor(inv) {
   changeMorale(+3, `Greeted ${inv.type.label}`);
   showToast(`🤝 Greeted ${inv.type.label}!`, 'milestone', 'critical');
   addFeedEntry(`🤝 Greeted ${inv.type.label} — affinity ${investorAffinity[inv.type.id]}`);
+  SFX.greet(); Haptics.milestone();
   // Handshake beat: both stand still facing each other and their right
   // arms oscillate up/down for 1.1s before the investor turns to leave.
   inv.state = S.HANDSHAKING;
