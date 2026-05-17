@@ -757,12 +757,56 @@
     }
 
     /* ── Achievements + Theme modals ─────────────────── */
-    #achievements-modal, #theme-modal, #welcome-modal, #offline-modal {
+    #achievements-modal, #theme-modal, #welcome-modal, #offline-modal, #help-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.7);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       display: none; align-items: center; justify-content: center; z-index: 210;
     }
-    #achievements-modal.open, #theme-modal.open, #welcome-modal.open, #offline-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    #achievements-modal.open, #theme-modal.open, #welcome-modal.open, #offline-modal.open, #help-modal.open { display: flex; animation: tipFade 0.2s ease; }
+
+    /* Help modal sections */
+    .help-section { margin: 14px 0 6px; }
+    .help-section-title {
+      font-size: 9px; font-weight: 800; letter-spacing: 1.6px;
+      text-transform: uppercase; color: #7D8590;
+      margin-bottom: 8px;
+    }
+    .help-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 6px 0;
+      font-size: 12px; color: #cdd5df;
+    }
+    .help-keys { display: inline-flex; gap: 4px; flex-shrink: 0; min-width: 110px; }
+    .help-key {
+      display: inline-block;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      color: #E6EDF3;
+      min-width: 18px; text-align: center;
+    }
+    .help-desc { flex: 1; color: #a0aab4; line-height: 1.45; }
+    .help-tip {
+      font-size: 12px; color: #cdd5df;
+      line-height: 1.6;
+      padding: 4px 0;
+    }
+    .help-tip strong { color: #fcd34d; }
+
+    /* ETA pill on goal HUD — shows "~M:SS" estimated time to fill
+       the season goal bar at current revenue rate. */
+    #goal-eta {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.4px;
+      color: rgba(252,211,77,0.85);
+      margin-right: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+    #goal-eta:empty { display: none; }
     .theme-row {
       display:flex; align-items:center; gap:10px; padding:10px 12px;
       border-radius:10px; cursor:pointer;
@@ -1230,7 +1274,7 @@
   <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
@@ -1248,6 +1292,37 @@
     <div class="ach-progress">Reskin the office — mechanics stay the same, just the vibe changes.</div>
     <div class="ach-list" id="theme-list"></div>
     <button class="tip-ok" id="theme-close">Close</button>
+  </div>
+</div>
+<div id="help-modal" role="dialog">
+  <div class="ach-panel" style="text-align:left;max-width:480px">
+    <div class="ach-title" style="text-align:center">❓ How to Play</div>
+    <div class="ach-progress" style="text-align:center">Controls &amp; hotkeys</div>
+    <div class="help-section">
+      <div class="help-section-title">Movement</div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">W</span><span class="help-key">A</span><span class="help-key">S</span><span class="help-key">D</span></span><span class="help-desc">Walk around the office</span></div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">↑</span><span class="help-key">↓</span><span class="help-key">←</span><span class="help-key">→</span></span><span class="help-desc">Arrow keys also work</span></div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">Tap</span></span><span class="help-desc">Click anywhere to walk there</span></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">Camera</div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">RMB</span><span class="help-key">2-finger</span></span><span class="help-desc">Drag to pan</span></div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">Scroll</span><span class="help-key">Pinch</span></span><span class="help-desc">Zoom in / out</span></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">Interface</div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">☰</span></span><span class="help-desc">Sidebar on mobile (hires, rooms, upgrades)</span></div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">Esc</span></span><span class="help-desc">Close any open modal</span></div>
+      <div class="help-row"><span class="help-keys"><span class="help-key">?</span></span><span class="help-desc">Open this help screen</span></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">Core loop</div>
+      <div class="help-tip">💻 <strong>Hire engineers</strong> at desks → they ship features → 💰 cash flows.</div>
+      <div class="help-tip">🤝 <strong>Walk up to investors</strong> when they arrive — they bring big checks.</div>
+      <div class="help-tip">🏃 <strong>Sprint</strong> = +100% engineer speed for 30s (drains paper 2×).</div>
+      <div class="help-tip">🚀 Fill the goal bar then <strong>IPO</strong> for a permanent revenue multiplier.</div>
+    </div>
+    <button class="tip-ok" id="help-close-btn">Got it</button>
   </div>
 </div>
 <div id="offline-modal" role="dialog">
@@ -1371,7 +1446,8 @@
         <option value="off">Feed only</option>
       </select>
     </label>
-    <button class="hire-btn" id="open-ach-btn" style="margin-top:8px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
+    <button class="hire-btn" id="open-help-btn" style="margin-top:8px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)">❓ How to Play</button>
+    <button class="hire-btn" id="open-ach-btn" style="margin-top:4px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
   </div>
@@ -4954,6 +5030,7 @@ function formatTime(sec) {
 }
 const goalFillEl  = document.getElementById('goal-fill');
 const goalPctEl   = document.getElementById('goal-pct');
+const goalEtaEl   = document.getElementById('goal-eta');
 const goalPbEl    = document.getElementById('goal-pb');
 const goalLabelEl = document.getElementById('goal-label');
 const winModalEl  = document.getElementById('win-modal');
@@ -5019,6 +5096,23 @@ function updateGoalHud(cumulative) {
   const pct = Math.min(1, cumulative / target);
   goalFillEl.style.width = (pct * 100).toFixed(1) + '%';
   goalPctEl.textContent = Math.floor(pct * 100) + '%';
+  // Live ETA: based on recent $/min, project remaining time. Hidden
+  // when the goal is hit, when there's no rate yet, or when ETA is
+  // implausibly large (>99 min — usually just "you haven't started").
+  if (goalEtaEl) {
+    if (seasonGoalHit) {
+      goalEtaEl.textContent = '';
+    } else {
+      const ratePerSec = currentRatePerMin() / 60;
+      const remaining = target - cumulative;
+      if (ratePerSec > 0.05 && remaining > 0) {
+        const secsLeft = remaining / ratePerSec;
+        goalEtaEl.textContent = secsLeft < 99 * 60 ? `~${formatTime(secsLeft)} left` : '';
+      } else {
+        goalEtaEl.textContent = '';
+      }
+    }
+  }
   if (!seasonGoalHit && cumulative >= target) {
     seasonGoalHit = true;
     trophiesWon++;
@@ -5123,6 +5217,12 @@ document.getElementById('open-ach-btn').addEventListener('click', () => {
 });
 document.getElementById('ach-close').addEventListener('click', () => achModalEl.classList.remove('open'));
 achModalEl.addEventListener('click', e => { if (e.target === achModalEl) achModalEl.classList.remove('open'); });
+
+// Help modal — accessible from Settings or the "?" hotkey.
+const helpModalEl = document.getElementById('help-modal');
+document.getElementById('open-help-btn').addEventListener('click', () => helpModalEl.classList.add('open'));
+document.getElementById('help-close-btn').addEventListener('click', () => helpModalEl.classList.remove('open'));
+helpModalEl.addEventListener('click', e => { if (e.target === helpModalEl) helpModalEl.classList.remove('open'); });
 // Run every ~1s
 setInterval(checkAchievements, 1000);
 
@@ -6650,6 +6750,13 @@ addEventListener('keydown', e => {
     elevModal.classList.remove('open');
     achModalEl.classList.remove('open');
     winModalEl.classList.remove('open');
+    document.getElementById('help-modal').classList.remove('open');
+  }
+  // "?" or "/" opens the help / hotkeys modal. (No movement conflict
+  // since these aren't WASD/arrow keys.)
+  if ((k === '?' || k === '/') && !e.repeat) {
+    const helpEl = document.getElementById('help-modal');
+    if (helpEl) helpEl.classList.toggle('open');
   }
   // Cheat: press M to add $10,000 (or use window.giveMoney(n) in console)
   if (k === 'm' && !e.repeat) {
