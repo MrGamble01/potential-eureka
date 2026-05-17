@@ -70,6 +70,63 @@
       100% { transform: scale(1);    box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
     }
 
+    /* ── "Can afford" treatment ─────────────────────────
+       Toggled by refreshAffordability() whenever cash changes. Gives
+       every purchasable button a subtle green sheen so the player
+       can scan what's buyable at a glance. */
+    .hire-btn.can-afford,
+    .upg-btn.can-afford,
+    .room-btn.can-afford,
+    .amenity-btn.can-afford,
+    .fund-btn.can-afford {
+      border-color: rgba(63,185,80,0.55);
+      box-shadow: 0 0 0 1px rgba(63,185,80,0.18) inset, 0 0 10px rgba(63,185,80,0.16);
+    }
+    .hire-btn.can-afford .cost,
+    .upg-btn.can-afford .cost,
+    .room-btn.can-afford .tag,
+    .amenity-btn.can-afford .tag,
+    .fund-btn.can-afford .tag {
+      color: #3FB950;
+      text-shadow: 0 0 8px rgba(63,185,80,0.4);
+    }
+
+    /* ── Custom UI tooltip ──────────────────────────────
+       Replaces browser-default tooltips (300–500ms native delay)
+       with a styled one that pops in ~200ms. Hovers any element
+       with [data-tip] or [title]. */
+    #ui-tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(8,10,18,0.97);
+      color: #E6EDF3;
+      padding: 7px 11px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.14);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.45;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.45);
+      transform: translate(-50%, calc(-100% - 10px));
+      opacity: 0;
+      transition: opacity 0.14s ease;
+      z-index: 500;
+      max-width: 240px;
+      white-space: pre-wrap;
+      text-align: center;
+    }
+    #ui-tooltip.visible { opacity: 1; }
+    #ui-tooltip::after {
+      content: '';
+      position: absolute;
+      left: 50%; bottom: -5px;
+      transform: translateX(-50%) rotate(45deg);
+      width: 8px; height: 8px;
+      background: rgba(8,10,18,0.97);
+      border-right: 1px solid rgba(255,255,255,0.14);
+      border-bottom: 1px solid rgba(255,255,255,0.14);
+    }
+
     /* ── Confetti overlay (fires on season wins) ─────── */
     #confetti-layer {
       position: fixed; inset: 0;
@@ -1680,6 +1737,87 @@ const SFX = (() => {
       tone({ freq: 660, slideTo: 330, dur: 0.20, type: 'sine', vol: 0.18 });
     },
   };
+})();
+
+// ── Custom UI tooltip ────────────────────────────────────────
+// Hijacks any element with [data-tip] or [title] to render a
+// styled tooltip on hover (~200ms delay) instead of the slow,
+// ugly browser-default tooltip. Strips the title attribute while
+// hovering so the browser doesn't double up, restores on leave.
+const TipUI = (() => {
+  let el = null;
+  let showTimer = 0;
+  let hideTimer = 0;
+  let activeTarget = null;
+  let savedTitle = null;
+
+  function ensureEl() {
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'ui-tooltip';
+    el.setAttribute('role', 'tooltip');
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function position(rect) {
+    const node = ensureEl();
+    // Center above the element, clamped to viewport.
+    const x = Math.max(8, Math.min(window.innerWidth - 8, rect.left + rect.width / 2));
+    node.style.left = x + 'px';
+    node.style.top  = rect.top + 'px';
+  }
+
+  function textFor(target) {
+    return target.getAttribute('data-tip') || target.getAttribute('title') || '';
+  }
+
+  function show(target) {
+    const text = textFor(target);
+    if (!text) return;
+    clearTimeout(hideTimer);
+    clearTimeout(showTimer);
+    activeTarget = target;
+    // Suppress browser-native tooltip by stashing the title attr.
+    if (target.hasAttribute('title')) {
+      savedTitle = target.getAttribute('title');
+      target.removeAttribute('title');
+    }
+    showTimer = setTimeout(() => {
+      const node = ensureEl();
+      node.textContent = text;
+      node.classList.add('visible');
+      position(target.getBoundingClientRect());
+    }, 220);
+  }
+
+  function hide() {
+    clearTimeout(showTimer);
+    // Restore the title we stashed.
+    if (activeTarget && savedTitle !== null) {
+      activeTarget.setAttribute('title', savedTitle);
+    }
+    savedTitle = null;
+    activeTarget = null;
+    hideTimer = setTimeout(() => {
+      if (el) el.classList.remove('visible');
+    }, 60);
+  }
+
+  document.addEventListener('mouseover', e => {
+    const t = e.target.closest && e.target.closest('[data-tip], [title]');
+    if (t && t !== activeTarget) show(t);
+  });
+  document.addEventListener('mouseout', e => {
+    const t = e.target.closest && e.target.closest('[data-tip], [title]');
+    if (t === activeTarget) hide();
+  });
+  // Hide on scroll/resize/blur so a stale tooltip doesn't linger.
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+  window.addEventListener('blur', hide);
+
+  return { hide };
 })();
 
 // ── Confetti burst — DOM-based, fires on season wins. ─────────
@@ -5761,6 +5899,22 @@ function refreshHud() {
   renderFunding();
   checkIPOAvailable();
   renderNextAction();
+  refreshAffordability();
+}
+
+// Toggle .can-afford on every purchasable button after a render pass.
+// One pass, one selector — avoids touching each render function.
+const _AFFORD_SELECTOR = [
+  '#hire-section .hire-btn',
+  '#upgrades .upg-btn',
+  '#room-list .room-btn',
+  '#amenities-list .amenity-btn',
+  '#funding-btn',
+].join(', ');
+function refreshAffordability() {
+  document.querySelectorAll(_AFFORD_SELECTOR).forEach(btn => {
+    btn.classList.toggle('can-afford', !btn.disabled);
+  });
 }
 
 // Smooth count-up for the cash HUD. Tracks `state.cash` exponentially
