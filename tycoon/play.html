@@ -158,8 +158,10 @@
       #next-action-card {
         position: fixed !important;
         left: calc(12px + env(safe-area-inset-left, 0px));
-        right: calc(12px + env(safe-area-inset-right, 0px));
-        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+        /* Reserve space on the right for the Sprint button (~140px
+           wide at this breakpoint) so the two don't overlap. */
+        right: calc(160px + env(safe-area-inset-right, 0px));
+        bottom: calc(18px + env(safe-area-inset-bottom, 0px));
         width: auto;
         z-index: 95;
         padding: 8px 12px;
@@ -172,6 +174,14 @@
       #next-action-card .na-label { font-size: 8px; letter-spacing: 0.6px; }
       #next-action-card .na-title { font-size: 12px; }
       #next-action-card .na-sub   { font-size: 10px; }
+    }
+    /* Narrowest phones: stack the next-action card above sprint
+       instead of squeezing beside it (would get unreadably narrow). */
+    @media (max-width: 480px) {
+      #next-action-card {
+        right: calc(12px + env(safe-area-inset-right, 0px)) !important;
+        bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
+      }
     }
     .panel-title {
       font-weight: 700; font-size: 9px; text-transform: uppercase;
@@ -199,6 +209,16 @@
     .hire-btn:hover:not(:disabled) { background: rgba(108,99,255,0.22); border-color: rgba(108,99,255,0.5); transform: translateX(1px); }
     .hire-btn:active:not(:disabled) { transform: scale(0.94); box-shadow: 0 0 18px rgba(108,99,255,0.55); }
     .hire-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    /* Pulsing "click me next" hint applied to the first-time engineer
+       hire button right after the welcome modal dismisses. */
+    .hire-btn.pulse-hint:not(:disabled) {
+      animation: hireHintPulse 1.4s ease-in-out infinite;
+      border-color: rgba(252, 211, 77, 0.7);
+    }
+    @keyframes hireHintPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(252, 211, 77, 0.55); }
+      50%      { box-shadow: 0 0 0 6px rgba(252, 211, 77, 0); }
+    }
     .hire-btn .cost { float: right; color: #3FB950; font-size: 10px; font-weight: 800; }
     /* Role-tinted hire sections */
     .hire-btn.role-eng   { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.35); }
@@ -1028,6 +1048,10 @@
     @media (max-width: 430px) {
       #metrics-hud { padding: 5px 7px; }
       #metrics-hud .m-row { gap: 8px; }
+      /* Toast sits above the stacked next-action card so they don't pile. */
+      #toast-container {
+        bottom: calc(138px + env(safe-area-inset-bottom, 0px));
+      }
       /* Hide low-priority metric rows; they're available in the win
          modal + on the All-Hands Screen + per-desk whiteboards. The
          essentials (Revenue, Rate, Team, Per ship) stay visible. */
@@ -7277,7 +7301,11 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
-addCash(100); // enough to hire first idea person right away
+// Fresh-start players get $200 (enough to hire engineer #1 with
+// ~$125 toward #2, so the loop catches fire fast). Returning players
+// keep the existing +$100 welcome-back bonus.
+const _isFreshStart = state.allTimeCash === 0;
+addCash(_isFreshStart ? 200 : 100);
 renderFunding();
 updateStarterWallDecor();
 refreshGoalLabels();
@@ -7300,6 +7328,14 @@ addEventListener('beforeunload', saveGame);
     modal.classList.remove('open');
     try { localStorage.setItem(LS.welcome, '1'); } catch {}
     SFX.click();
+    // On mobile, the hire buttons live behind a hamburger. Auto-open
+    // the sidebar so the player sees them immediately.
+    if (window.matchMedia('(max-width: 900px)').matches) setSidebar(true);
+    // Pulse the engineer hire button so the next action is obvious.
+    // Stops automatically once the player clicks Hire Engineer.
+    hireBtnEl.classList.add('pulse-hint');
+    hireBtnEl.addEventListener('click', () => hireBtnEl.classList.remove('pulse-hint'), { once: true });
+    setTimeout(() => hireBtnEl.classList.remove('pulse-hint'), 12000);
   };
   btn.addEventListener('click', close, { once: true });
   document.addEventListener('keydown', function onEsc(e) {
