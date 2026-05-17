@@ -700,12 +700,12 @@
     }
 
     /* ── Achievements + Theme modals ─────────────────── */
-    #achievements-modal, #theme-modal, #welcome-modal {
+    #achievements-modal, #theme-modal, #welcome-modal, #offline-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.7);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       display: none; align-items: center; justify-content: center; z-index: 210;
     }
-    #achievements-modal.open, #theme-modal.open, #welcome-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    #achievements-modal.open, #theme-modal.open, #welcome-modal.open, #offline-modal.open { display: flex; animation: tipFade 0.2s ease; }
     .theme-row {
       display:flex; align-items:center; gap:10px; padding:10px 12px;
       border-radius:10px; cursor:pointer;
@@ -1193,6 +1193,18 @@
     <button class="tip-ok" id="theme-close">Close</button>
   </div>
 </div>
+<div id="offline-modal" role="dialog">
+  <div class="ach-panel" style="text-align:left">
+    <div class="ach-title" style="background:linear-gradient(135deg,#3FB950,#22c55e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center">Welcome back</div>
+    <div class="ach-progress" style="text-align:center" id="offline-away-sub">You were away</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin:14px 0 16px">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7D8590;font-weight:700">Earned while gone</div>
+      <div id="offline-amount" style="font-size:34px;font-weight:900;color:#3FB950;text-shadow:0 0 20px rgba(63,185,80,0.35);font-variant-numeric:tabular-nums">$0</div>
+      <div style="font-size:11px;color:#7D8590;text-align:center;line-height:1.5;margin-top:4px">Your engineers kept shipping at 25% rate while you were away.</div>
+    </div>
+    <button class="tip-ok" id="offline-claim-btn">Claim →</button>
+  </div>
+</div>
 <div id="welcome-modal" role="dialog">
   <div class="ach-panel" style="text-align:left">
     <div class="ach-title" style="background:linear-gradient(135deg,#3FB950,#22c55e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center">Welcome to Startup Tycoon</div>
@@ -1289,6 +1301,10 @@
     <label class="setting-row">
       <input type="checkbox" id="sfx-enabled">
       <span>🔊 Sound effects</span>
+    </label>
+    <label class="setting-row" id="haptics-row" style="display:none">
+      <input type="checkbox" id="haptics-enabled">
+      <span>📳 Haptic feedback</span>
     </label>
     <label class="setting-row" style="justify-content:space-between">
       <span>💬 Toast density</span>
@@ -1534,7 +1550,35 @@ const LS = {
   tipSeenPrefix: 'tip-seen-',
   sfx:           'sfxEnabled',
   welcome:       'welcomeSeen-v1',
+  haptics:       'hapticsEnabled',
 };
+
+// ── Haptics (Vibration API) ─────────────────────────────────
+// Tactile feedback on touch devices that support navigator.vibrate.
+// Silently no-ops on iOS/desktop. Toggle in settings.
+const Haptics = (() => {
+  const supported = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+  let enabled = (() => {
+    try { return localStorage.getItem(LS.haptics) !== '0'; } catch { return true; }
+  })();
+  function buzz(pattern) {
+    if (!enabled || !supported) return;
+    try { navigator.vibrate(pattern); } catch {}
+  }
+  return {
+    isSupported() { return supported; },
+    setEnabled(on) {
+      enabled = !!on;
+      try { localStorage.setItem(LS.haptics, enabled ? '1' : '0'); } catch {}
+    },
+    isEnabled() { return enabled; },
+    hire()      { buzz(15); },
+    purchase()  { buzz(10); },
+    sprint()    { buzz(30); },
+    milestone() { buzz([20, 60, 20]); },
+    win()       { buzz([30, 80, 30, 80, 30]); },
+  };
+})();
 
 // ── Sound effects (Web Audio API, no samples) ─────────────────
 // Tiny synth — generates clicks/chimes from oscillators so the
@@ -2818,7 +2862,7 @@ function buyRoom(id) {
   renderRoomPanel();
   showToast(`🏗️ ${roomLabel(def)} unlocked!`, 'milestone');
   addFeedEntry(`🏗️ Expanded to ${roomLabel(def)}`);
-  SFX.purchase();
+  SFX.purchase(); Haptics.purchase();
 }
 
 // Starter room decor that's glued to its exterior walls (brick accent
@@ -3804,7 +3848,7 @@ function hireExecutiveAssistant() {
   renderHirePanel();
   addFeedEntry(`🧑‍💼 Hired EA #${eas.length}`);
   showToast(`🧑‍💼 EA #${eas.length} on the floor!`, 'milestone');
-  SFX.hire();
+  SFX.hire(); Haptics.hire();
 }
 
 function pickEATask(self) {
@@ -3991,7 +4035,7 @@ function hireBDR() {
   addFeedEntry(`📞 Hired BDR #${bdrs.length}`);
   showToast(`📞 BDR #${bdrs.length} on the phones!`, 'milestone');
   changeMorale(+2, 'Sales team growing');
-  SFX.hire();
+  SFX.hire(); Haptics.hire();
 }
 
 // Move `group` toward `target` at `speed` units/sec. Rotates to face
@@ -4252,7 +4296,7 @@ function handleAeHireOrPromote() {
   addFeedEntry(`💼 Promoted BDR → Account Executive #${aes.length}`);
   showToast(`💼 New AE on the floor!`, 'milestone');
   changeMorale(+4, 'BDR promoted to AE');
-  SFX.hire();
+  SFX.hire(); Haptics.hire();
 }
 
 // AE "dry pipeline" threshold. If no BDR has fed the AE a deal in
@@ -4330,7 +4374,7 @@ function triggerSprint() {
   showToast('🏃 Sprint! +100% eng speed for 30s (2× paper drain)', 'rush');
   addFeedEntry('🏃 Sprint started');
   changeMorale(+3, 'Sprint rally');
-  SFX.sprint();
+  SFX.sprint(); Haptics.sprint();
   showTip('sprint');
 }
 function updateSprint(dt) {
@@ -4612,7 +4656,7 @@ hireBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
   changeMorale(+3, 'Grew from within');
-  SFX.hire();
+  SFX.hire(); Haptics.hire();
   showTip('goal');
 });
 const hireExtEngBtnEl  = document.getElementById('hire-ext-eng-btn');
@@ -4628,7 +4672,7 @@ hireExtEngBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
   changeMorale(-2, 'External hire rattles the team');
-  SFX.hire();
+  SFX.hire(); Haptics.hire();
 });
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 hireBdrBtnEl.addEventListener('click', hireBDR);
@@ -4645,7 +4689,7 @@ hireExtBdrBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`👔 Hired external BDR (+${Math.round((EXTERNAL_BDR_DEAL_BONUS - 1) * 100)}% deals)`);
   changeMorale(-1, 'External hire rattles the team');
-  SFX.hire();
+  SFX.hire(); Haptics.hire();
 });
 hireAeBtnEl.addEventListener('click', handleAeHireOrPromote);
 hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
@@ -4878,7 +4922,7 @@ function checkAchievements() {
         earnedAchievements[a.id] = true;
         showToast(`🏅 Unlocked: ${a.title} — ${a.desc}`, 'milestone', 'critical');
         addFeedEntry(`🏅 ${a.title}`);
-        SFX.milestone();
+        SFX.milestone(); Haptics.milestone();
       }
     } catch (_) { /* defensive: never let a check expression crash the loop */ }
   }
@@ -5015,7 +5059,7 @@ document.getElementById('theme-close').addEventListener('click', () => themeModa
 themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) themeModalEl.classList.remove('open'); });
 
 function triggerWin(cumulative) {
-  SFX.win();
+  SFX.win(); Haptics.win();
   launchConfetti({ pieces: 100, duration: 3400 });
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
@@ -5376,7 +5420,7 @@ function buyAmenity(id) {
   buildAmenity(am);
   if (id === 'standup') ideaSpeedMult *= 1.3;
   refreshHud();
-  SFX.purchase();
+  SFX.purchase(); Haptics.purchase();
 }
 const amenitiesList = document.getElementById('amenities-list');
 function renderAmenities() {
@@ -6276,7 +6320,7 @@ function buyUpgrade(id) {
   u.apply(upgLevels[id]);
   addFeedEntry(`⬆️ ${u.label} → Lv${upgLevels[id]}`);
   refreshHud();
-  SFX.purchase();
+  SFX.purchase(); Haptics.purchase();
 }
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
@@ -6586,6 +6630,20 @@ sfxToggleEl.addEventListener('change', () => {
   SFX.setEnabled(sfxToggleEl.checked);
   if (sfxToggleEl.checked) SFX.click();
 });
+
+// Haptics toggle — only revealed on devices that actually support
+// navigator.vibrate (i.e. Android/Chrome). iOS Safari and desktop
+// silently no-op so we keep the row hidden to avoid confusion.
+const hapticsRowEl    = document.getElementById('haptics-row');
+const hapticsToggleEl = document.getElementById('haptics-enabled');
+if (Haptics.isSupported()) {
+  hapticsRowEl.style.display = '';
+  hapticsToggleEl.checked = Haptics.isEnabled();
+  hapticsToggleEl.addEventListener('change', () => {
+    Haptics.setEnabled(hapticsToggleEl.checked);
+    if (hapticsToggleEl.checked) Haptics.hire();  // tiny test buzz
+  });
+}
 
 // Morale toggle (defaults to ON; players can flip off if they want
 // pure flat-rate gameplay or for testing)
@@ -7173,6 +7231,35 @@ try {
   }
 } catch (_) {}
 let _restarting = false; // set true by the Restart button so beforeunload / setInterval don't re-save wiped state
+// Offline-earnings payload captured during loadGame, surfaced as a
+// "Welcome back" modal after the DOM is settled.
+let _pendingOfflineEarnings = null;
+function showOfflineModal(amount, seconds) {
+  const modal = document.getElementById('offline-modal');
+  const amountEl = document.getElementById('offline-amount');
+  const subEl = document.getElementById('offline-away-sub');
+  const btn = document.getElementById('offline-claim-btn');
+  if (!modal || !amountEl || !btn) return;
+  amountEl.textContent = '$' + fmtCash(amount);
+  if (subEl) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    subEl.textContent = h > 0
+      ? `Away for ${h}h ${m}m`
+      : `Away for ${m}m`;
+  }
+  modal.classList.add('open');
+  const close = () => {
+    modal.classList.remove('open');
+    SFX.cash();
+  };
+  btn.addEventListener('click', close, { once: true });
+  document.addEventListener('keydown', function onKey(e) {
+    if (!modal.classList.contains('open')) { document.removeEventListener('keydown', onKey); return; }
+    if (e.key === 'Escape' || e.key === 'Enter') { close(); document.removeEventListener('keydown', onKey); }
+  });
+}
+
 function saveGame() {
   if (_restarting) return;
   try {
@@ -7235,7 +7322,8 @@ function loadGame() {
         if (offlineEarned > 0) {
           state.cash += offlineEarned;
           state.allTimeCash += offlineEarned;
-          setTimeout(() => showToast(`⏰ Offline: +$${fmtCash(offlineEarned)} earned while away`, 'milestone'), 1200);
+          // Defer to after init so the modal markup exists in the DOM.
+          _pendingOfflineEarnings = { amount: offlineEarned, seconds: awaySec };
         }
       }
     }
@@ -7426,6 +7514,13 @@ addEventListener('beforeunload', saveGame);
     if (e.key === 'Escape' || e.key === 'Enter') { close(); document.removeEventListener('keydown', onEsc); }
   });
 })();
+
+// Welcome-back modal for returning players who earned cash offline.
+// Only one of welcome / welcome-back ever shows on a given load
+// (welcome only fires for fresh games; welcome-back implies a save).
+if (_pendingOfflineEarnings && _pendingOfflineEarnings.amount > 0) {
+  setTimeout(() => showOfflineModal(_pendingOfflineEarnings.amount, _pendingOfflineEarnings.seconds), 600);
+}
 
 requestAnimationFrame(loop);
 </script>
