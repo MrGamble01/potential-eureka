@@ -63,10 +63,10 @@
     }
     #cash-hud:hover { box-shadow: 0 4px 26px rgba(63,185,80,0.25); }
     #cash-hud:active { transform: scale(0.94); }
-    #cash-hud.cash-bump { animation: cashBump 0.32s ease-out; }
+    #cash-hud.cash-bump { animation: cashBump 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
     @keyframes cashBump {
-      0%   { transform: scale(0.94); box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
-      50%  { transform: scale(1.06); box-shadow: 0 6px 30px rgba(63,185,80,0.55); }
+      0%   { transform: scale(0.92); box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
+      45%  { transform: scale(1.14); box-shadow: 0 8px 38px rgba(63,185,80,0.75); }
       100% { transform: scale(1);    box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
     }
     #cash-hud .bill {
@@ -197,7 +197,7 @@
       line-height: 1.3;
     }
     .hire-btn:hover:not(:disabled) { background: rgba(108,99,255,0.22); border-color: rgba(108,99,255,0.5); transform: translateX(1px); }
-    .hire-btn:active:not(:disabled) { transform: scale(0.98); }
+    .hire-btn:active:not(:disabled) { transform: scale(0.94); box-shadow: 0 0 18px rgba(108,99,255,0.55); }
     .hire-btn:disabled { opacity: 0.35; cursor: not-allowed; }
     .hire-btn .cost { float: right; color: #3FB950; font-size: 10px; font-weight: 800; }
     /* Role-tinted hire sections */
@@ -657,12 +657,12 @@
     }
 
     /* ── Achievements + Theme modals ─────────────────── */
-    #achievements-modal, #theme-modal {
+    #achievements-modal, #theme-modal, #welcome-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.7);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       display: none; align-items: center; justify-content: center; z-index: 210;
     }
-    #achievements-modal.open, #theme-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    #achievements-modal.open, #theme-modal.open, #welcome-modal.open { display: flex; animation: tipFade 0.2s ease; }
     .theme-row {
       display:flex; align-items:center; gap:10px; padding:10px 12px;
       border-radius:10px; cursor:pointer;
@@ -1146,6 +1146,19 @@
     <button class="tip-ok" id="theme-close">Close</button>
   </div>
 </div>
+<div id="welcome-modal" role="dialog">
+  <div class="ach-panel" style="text-align:left">
+    <div class="ach-title" style="background:linear-gradient(135deg,#3FB950,#22c55e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center">Welcome to Startup Tycoon</div>
+    <div class="ach-progress" style="text-align:center">A 30-second crash course</div>
+    <div style="font-size:13px;line-height:1.7;color:#cdd5df;margin:10px 4px 12px">
+      <div style="margin:6px 0"><strong style="color:#fcd34d">1.</strong> <strong>Hire an engineer</strong> (top-left). They sit at a desk and ship features for cash.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">2.</strong> <strong>Walk over to refill paper</strong> at desks. No paper → work stops.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">3.</strong> Around <strong>$200</strong> hire a <strong>BDR</strong> — they close deals for bigger pops.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">4.</strong> Fill the goal bar at the top, then <strong>IPO</strong> for a permanent multiplier.</div>
+    </div>
+    <button class="tip-ok" id="welcome-start-btn">Let's go →</button>
+  </div>
+</div>
 <div id="win-modal" role="dialog">
   <div class="win-panel">
     <div class="win-title">🏆 You made it!</div>
@@ -1225,6 +1238,10 @@
     <label class="setting-row">
       <input type="checkbox" id="tips-enabled">
       <span>💡 Show tips</span>
+    </label>
+    <label class="setting-row">
+      <input type="checkbox" id="sfx-enabled">
+      <span>🔊 Sound effects</span>
     </label>
     <label class="setting-row" style="justify-content:space-between">
       <span>💬 Toast density</span>
@@ -1468,7 +1485,96 @@ const LS = {
   tips:          'tipsEnabled',
   toastDensity:  'toastDensity',
   tipSeenPrefix: 'tip-seen-',
+  sfx:           'sfxEnabled',
+  welcome:       'welcomeSeen-v1',
 };
+
+// ── Sound effects (Web Audio API, no samples) ─────────────────
+// Tiny synth — generates clicks/chimes from oscillators so the
+// game has audible feedback without shipping audio files. Mute
+// toggle lives in the settings panel; honored across reloads.
+const SFX = (() => {
+  let ctx = null;
+  let masterGain = null;
+  let enabled = (() => {
+    try { return localStorage.getItem(LS.sfx) !== '0'; } catch { return true; }
+  })();
+  let lastCashAt = 0;
+  const CASH_THROTTLE_MS = 80;
+
+  function ensureCtx() {
+    if (ctx) return ctx;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = 0.22;
+      masterGain.connect(ctx.destination);
+    } catch { ctx = null; }
+    return ctx;
+  }
+
+  // ADSR-ish envelope on a single oscillator.
+  function tone({ freq, dur = 0.12, type = 'sine', vol = 0.5, attack = 0.005, slideTo = null }) {
+    if (!enabled) return;
+    const ac = ensureCtx(); if (!ac) return;
+    if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
+    const t0 = ac.currentTime;
+    const osc = ac.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t0); osc.stop(t0 + dur + 0.04);
+  }
+
+  return {
+    setEnabled(on) {
+      enabled = !!on;
+      try { localStorage.setItem(LS.sfx, enabled ? '1' : '0'); } catch {}
+      if (enabled) ensureCtx();
+    },
+    isEnabled() { return enabled; },
+    cash() {
+      const now = performance.now();
+      if (now - lastCashAt < CASH_THROTTLE_MS) return;
+      lastCashAt = now;
+      tone({ freq: 880,  dur: 0.10, type: 'triangle', vol: 0.18 });
+      tone({ freq: 1320, dur: 0.10, type: 'triangle', vol: 0.10, attack: 0.012 });
+    },
+    hire() {
+      tone({ freq: 523, dur: 0.10, type: 'sine', vol: 0.30 });
+      setTimeout(() => tone({ freq: 784, dur: 0.16, type: 'sine', vol: 0.30 }), 80);
+    },
+    purchase() {
+      tone({ freq: 660, dur: 0.07, type: 'square', vol: 0.15 });
+      setTimeout(() => tone({ freq: 990, dur: 0.10, type: 'square', vol: 0.13 }), 50);
+    },
+    sprint() {
+      tone({ freq: 220, slideTo: 880, dur: 0.30, type: 'sawtooth', vol: 0.22 });
+    },
+    milestone() {
+      [523, 659, 784, 1047].forEach((f, i) => setTimeout(
+        () => tone({ freq: f, dur: 0.18, type: 'triangle', vol: 0.28 }),
+        i * 90,
+      ));
+    },
+    win() {
+      [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(
+        () => tone({ freq: f, dur: 0.30, type: 'triangle', vol: 0.32 }),
+        i * 110,
+      ));
+    },
+    click() {
+      tone({ freq: 1200, dur: 0.04, type: 'square', vol: 0.10 });
+    },
+  };
+})();
 
 // ═══════════════════════════════════════════════════════════
 //  TABLE OF CONTENTS
@@ -2633,6 +2739,7 @@ function buyRoom(id) {
   renderRoomPanel();
   showToast(`🏗️ ${roomLabel(def)} unlocked!`, 'milestone');
   addFeedEntry(`🏗️ Expanded to ${roomLabel(def)}`);
+  SFX.purchase();
 }
 
 // Starter room decor that's glued to its exterior walls (brick accent
@@ -3618,6 +3725,7 @@ function hireExecutiveAssistant() {
   renderHirePanel();
   addFeedEntry(`🧑‍💼 Hired EA #${eas.length}`);
   showToast(`🧑‍💼 EA #${eas.length} on the floor!`, 'milestone');
+  SFX.hire();
 }
 
 function pickEATask(self) {
@@ -3804,6 +3912,7 @@ function hireBDR() {
   addFeedEntry(`📞 Hired BDR #${bdrs.length}`);
   showToast(`📞 BDR #${bdrs.length} on the phones!`, 'milestone');
   changeMorale(+2, 'Sales team growing');
+  SFX.hire();
 }
 
 // Move `group` toward `target` at `speed` units/sec. Rotates to face
@@ -4064,6 +4173,7 @@ function handleAeHireOrPromote() {
   addFeedEntry(`💼 Promoted BDR → Account Executive #${aes.length}`);
   showToast(`💼 New AE on the floor!`, 'milestone');
   changeMorale(+4, 'BDR promoted to AE');
+  SFX.hire();
 }
 
 // AE "dry pipeline" threshold. If no BDR has fed the AE a deal in
@@ -4141,6 +4251,7 @@ function triggerSprint() {
   showToast('🏃 Sprint! +100% eng speed for 30s (2× paper drain)', 'rush');
   addFeedEntry('🏃 Sprint started');
   changeMorale(+3, 'Sprint rally');
+  SFX.sprint();
   showTip('sprint');
 }
 function updateSprint(dt) {
@@ -4422,6 +4533,7 @@ hireBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
   changeMorale(+3, 'Grew from within');
+  SFX.hire();
   showTip('goal');
 });
 const hireExtEngBtnEl  = document.getElementById('hire-ext-eng-btn');
@@ -4437,6 +4549,7 @@ hireExtEngBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
   changeMorale(-2, 'External hire rattles the team');
+  SFX.hire();
 });
 hireEaBtnEl.addEventListener('click', hireExecutiveAssistant);
 hireBdrBtnEl.addEventListener('click', hireBDR);
@@ -4453,6 +4566,7 @@ hireExtBdrBtnEl.addEventListener('click', () => {
   renderHirePanel();
   addFeedEntry(`👔 Hired external BDR (+${Math.round((EXTERNAL_BDR_DEAL_BONUS - 1) * 100)}% deals)`);
   changeMorale(-1, 'External hire rattles the team');
+  SFX.hire();
 });
 hireAeBtnEl.addEventListener('click', handleAeHireOrPromote);
 hireVpBtnEl.addEventListener('click', handleVpHireOrPromote);
@@ -4685,6 +4799,7 @@ function checkAchievements() {
         earnedAchievements[a.id] = true;
         showToast(`🏅 Unlocked: ${a.title} — ${a.desc}`, 'milestone', 'critical');
         addFeedEntry(`🏅 ${a.title}`);
+        SFX.milestone();
       }
     } catch (_) { /* defensive: never let a check expression crash the loop */ }
   }
@@ -4821,6 +4936,7 @@ document.getElementById('theme-close').addEventListener('click', () => themeModa
 themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) themeModalEl.classList.remove('open'); });
 
 function triggerWin(cumulative) {
+  SFX.win();
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
   // Personal best: compare against THIS season's previous record only
@@ -5180,6 +5296,7 @@ function buyAmenity(id) {
   buildAmenity(am);
   if (id === 'standup') ideaSpeedMult *= 1.3;
   refreshHud();
+  SFX.purchase();
 }
 const amenitiesList = document.getElementById('amenities-list');
 function renderAmenities() {
@@ -5681,6 +5798,7 @@ function addCash(n, source = 'eng') {
     state.allTimeCash += n;
     showCashPop(n, source);
     checkMilestones();
+    SFX.cash();
   }
   refreshHud();
 }
@@ -6055,6 +6173,7 @@ function buyUpgrade(id) {
   u.apply(upgLevels[id]);
   addFeedEntry(`⬆️ ${u.label} → Lv${upgLevels[id]}`);
   refreshHud();
+  SFX.purchase();
 }
 const upgEl = document.getElementById('upgrades');
 function renderUpgrades() {
@@ -6354,6 +6473,16 @@ function setJoystickEnabled(on) {
 }
 setJoystickEnabled(localStorage.getItem(LS.joystick) === '1');
 joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
+
+// SFX toggle (default ON; uses Web Audio API). First click in the
+// document is what unlocks audio in most browsers, so any hire/cash
+// after that point will be audible.
+const sfxToggleEl = document.getElementById('sfx-enabled');
+sfxToggleEl.checked = SFX.isEnabled();
+sfxToggleEl.addEventListener('change', () => {
+  SFX.setEnabled(sfxToggleEl.checked);
+  if (sfxToggleEl.checked) SFX.click();
+});
 
 // Morale toggle (defaults to ON; players can flip off if they want
 // pure flat-rate gameplay or for testing)
@@ -7155,6 +7284,29 @@ refreshGoalLabels();
 refreshTrophyBadge();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
+
+// First-play welcome: show once, only when this really is a fresh
+// game (no save, no all-time cash). The "Let's go" button is also
+// what unlocks Web Audio in browsers that require a user gesture.
+(function maybeShowWelcome() {
+  let seen = false;
+  try { seen = localStorage.getItem(LS.welcome) === '1'; } catch {}
+  const isFresh = state.allTimeCash <= 100 && ideaWorkers.length === 0 && trophiesWon === 0;
+  if (seen || !isFresh) return;
+  const modal = document.getElementById('welcome-modal');
+  const btn   = document.getElementById('welcome-start-btn');
+  modal.classList.add('open');
+  const close = () => {
+    modal.classList.remove('open');
+    try { localStorage.setItem(LS.welcome, '1'); } catch {}
+    SFX.click();
+  };
+  btn.addEventListener('click', close, { once: true });
+  document.addEventListener('keydown', function onEsc(e) {
+    if (!modal.classList.contains('open')) { document.removeEventListener('keydown', onEsc); return; }
+    if (e.key === 'Escape' || e.key === 'Enter') { close(); document.removeEventListener('keydown', onEsc); }
+  });
+})();
 
 requestAnimationFrame(loop);
 </script>
