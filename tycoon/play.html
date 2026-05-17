@@ -69,6 +69,29 @@
       45%  { transform: scale(1.14); box-shadow: 0 8px 38px rgba(63,185,80,0.75); }
       100% { transform: scale(1);    box-shadow: 0 4px 22px rgba(63,185,80,0.15); }
     }
+
+    /* ── Confetti overlay (fires on season wins) ─────── */
+    #confetti-layer {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 300;
+      overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute;
+      top: -24px;
+      width: 8px; height: 14px;
+      border-radius: 2px;
+      animation: confettiFall var(--d, 2.4s) cubic-bezier(0.3, 0.7, 0.5, 1) forwards;
+      animation-delay: var(--delay, 0s);
+      will-change: transform, opacity;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+      100% { transform: translate(var(--dx, 0), calc(100vh + 80px)) rotate(var(--rot, 540deg)); opacity: 0.85; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .confetti-piece { animation: none; display: none; }
+    }
     #cash-hud .bill {
       display: inline-block; width: 22px; height: 13px; border-radius: 3px;
       background: linear-gradient(135deg, #3FB950 0%, #1d6f30 100%);
@@ -1575,6 +1598,38 @@ const SFX = (() => {
     },
   };
 })();
+
+// ── Confetti burst — DOM-based, fires on season wins. ─────────
+function launchConfetti({ pieces = 90, duration = 3200, palette } = {}) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const colors = palette || ['#3FB950', '#fcd34d', '#58A6FF', '#F778BA', '#6C63FF', '#22d3ee'];
+  const layer = document.createElement('div');
+  layer.id = 'confetti-layer';
+  document.body.appendChild(layer);
+  const W = window.innerWidth;
+  for (let i = 0; i < pieces; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const startX = 10 + Math.random() * 80; // % from left
+    const dx = (Math.random() - 0.5) * W * 1.1;
+    const rot = (Math.random() * 1440 - 720) | 0;
+    const dur = 1.8 + Math.random() * 1.4;
+    const delay = Math.random() * 0.5;
+    const c = colors[i % colors.length];
+    const w = 6 + Math.random() * 6;
+    const h = 10 + Math.random() * 8;
+    p.style.left = startX + '%';
+    p.style.background = c;
+    p.style.width  = w + 'px';
+    p.style.height = h + 'px';
+    p.style.setProperty('--dx',    dx + 'px');
+    p.style.setProperty('--rot',   rot + 'deg');
+    p.style.setProperty('--d',     dur + 's');
+    p.style.setProperty('--delay', delay + 's');
+    layer.appendChild(p);
+  }
+  setTimeout(() => layer.remove(), duration);
+}
 
 // ═══════════════════════════════════════════════════════════
 //  TABLE OF CONTENTS
@@ -4937,6 +4992,7 @@ themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) the
 
 function triggerWin(cumulative) {
   SFX.win();
+  launchConfetti({ pieces: 100, duration: 3400 });
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
   // Personal best: compare against THIS season's previous record only
@@ -5606,7 +5662,8 @@ function checkMilestones() {
 // Used by every gain / spend path and by ambient state changes that
 // don't actually move money (e.g. unlocking a room spot).
 function refreshHud() {
-  cashValEl.textContent = Math.floor(state.cash).toString();
+  // Cash display value is animated in the main loop via tickCashHud()
+  // so the number ticks up smoothly instead of snapping.
   renderUpgrades();
   renderHirePanel();
   renderAmenities();
@@ -5614,6 +5671,28 @@ function refreshHud() {
   renderFunding();
   checkIPOAvailable();
   renderNextAction();
+}
+
+// Smooth count-up for the cash HUD. Tracks `state.cash` exponentially
+// so small drips feel premium and large windfalls visibly accelerate.
+let _cashDisplayed = 0;
+let _cashSnapNext = true;
+function snapCashHud() { _cashSnapNext = true; }
+function tickCashHud(dt) {
+  const target = state.cash;
+  if (_cashSnapNext) {
+    _cashDisplayed = target;
+    _cashSnapNext = false;
+  } else {
+    const diff = target - _cashDisplayed;
+    if (Math.abs(diff) < 0.5) {
+      _cashDisplayed = target;
+    } else {
+      const k = 1 - Math.exp(-12 * dt);
+      _cashDisplayed += diff * k;
+    }
+  }
+  cashValEl.textContent = Math.floor(_cashDisplayed).toString();
 }
 
 // ── Next Best Action card ──────────────────────────────
@@ -6875,6 +6954,7 @@ function loop(now) {
   updateMetricsHUD();
   updateLabels();
 
+  tickCashHud(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
@@ -6921,10 +7001,13 @@ function openIPOModal() {
 function doIPO() {
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
+  launchConfetti({ pieces: 140, duration: 4200,
+    palette: ['#3FB950', '#fcd34d', '#22d3ee', '#fff'] });
 
   // Reset progress
   state.cash = 200 * prestigeLevel;
   state.allTimeCash = 0;
+  snapCashHud();  // skip the animated dip from old cash to new
   nextMilestoneIdx = 0;
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   fundingRoundIdx = 0;
