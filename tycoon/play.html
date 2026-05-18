@@ -3449,6 +3449,14 @@ function buildScrappyCharacter(opts) {
     );
     apron.position.set(0, 0.85, 0.24); apron.castShadow = true; g.add(apron);
   }
+  // Body variety — each character gets a slight per-instance height
+  // and width offset so the office doesn't look like a clone army.
+  // Player and explicit overrides can skip the randomization.
+  if (opts.bodyScale !== false) {
+    const h = 0.93 + Math.random() * 0.15;       // 0.93 – 1.08 tall
+    const w = 0.95 + Math.random() * 0.10;       // 0.95 – 1.05 wide
+    g.scale.set(w, h, w);
+  }
   return g;
 }
 
@@ -3480,6 +3488,7 @@ const player = buildScrappyCharacter({
   skinColor: 0xf0c080,
   hasGlasses: true,
   hasBeanie: false,
+  bodyScale: false,      // player stays at fixed 1.0 for a consistent avatar
 });
 player.position.set(0, 0, 2); // start inside starter room near CEO desk
 scene.add(player);
