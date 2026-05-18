@@ -25,7 +25,7 @@
     <button data-view="orgchart">My Org Chart</button>
     <button data-view="personal" class="nav-locked">Personal</button>
     <button data-view="snake">Snake</button>
-    <button data-view="maze">Maze Solver</button>
+    <button data-view="maze">Maze</button>
     <button data-view="life">Game of Life</button>
     <button data-view="tetris">Tetris</button>
     <a href="tycoon/" class="nav-link-btn">Startup Tycoon</a>
@@ -305,20 +305,23 @@
   <section id="view-maze" class="view">
     <div class="game-container">
       <div class="game-header">
-        <div class="game-title">MAZE SOLVER</div>
-        <div class="game-subtitle">Generate mazes and watch algorithms solve them</div>
+        <div class="game-title">MAZE</div>
+        <div class="game-subtitle">Play it yourself or watch an algorithm solve it</div>
       </div>
       <div class="game-controls">
         <button class="primary" onclick="MazeGame.generate()">Generate New</button>
+        <button id="maze-play-btn" onclick="MazeGame.startPlay()">&#9654; Play</button>
         <select id="maze-algo">
           <option value="bfs">BFS (Breadth-First)</option>
           <option value="dfs">DFS (Depth-First)</option>
           <option value="astar">A* Search</option>
         </select>
-        <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
+        <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Auto-Solve</button>
       </div>
       <div class="game-info">
         <span id="maze-status" style="color: var(--text-dim)">Generate a maze to begin</span>
+        <span id="maze-timer-display" style="display:none">Time: <strong id="maze-timer">0.0s</strong></span>
+        <span id="maze-best-display" style="display:none">Best: <strong id="maze-best">--</strong></span>
       </div>
       <canvas id="maze-canvas" class="game-canvas"></canvas>
       <div class="maze-legend">
