@@ -198,7 +198,8 @@
     }
     .panel.collapsible > .panel-title::before {
       content: '▾'; font-size: 9px; opacity: 0.75;
-      transition: transform 0.15s ease;
+      transition: transform 0.2s ease;
+      display: inline-block;
     }
     .panel.collapsed > .panel-title::before { transform: rotate(-90deg); }
     .panel.collapsed > *:not(.panel-title) { display: none !important; }
@@ -3284,17 +3285,43 @@ function buildScrappyCharacter(opts) {
     g.userData[key] = armGroup;
   }
   // Head
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.26, 12, 10),
-    new THREE.MeshLambertMaterial({ color: skinColor })
-  );
+  // Head — subtle Phong sheen so faces don't read as totally flat
+  // matte. Slightly squashed vertically for a more natural shape.
+  const skinMat = new THREE.MeshPhongMaterial({ color: skinColor, shininess: 8, specular: 0x111111 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 12), skinMat);
+  head.scale.y = 1.05;
   head.position.y = 1.78; head.castShadow = true; g.add(head);
+  // Ears — tiny skin nubs on the sides
+  for (const sx of [-0.26, 0.26]) {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), skinMat);
+    ear.position.set(sx, 1.78, 0); ear.scale.set(0.6, 1, 0.9); g.add(ear);
+  }
   // Eye dots
   const eyeMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
   for (const sx of [-0.08, 0.08]) {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), eyeMat);
     eye.position.set(sx, 1.80, 0.24); g.add(eye);
   }
+  // Eyebrows — small wedges in hair color, above each eye.
+  const browMat = new THREE.MeshLambertMaterial({ color: hairColor });
+  for (const sx of [-0.085, 0.085]) {
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.018, 0.02), browMat);
+    brow.position.set(sx, 1.86, 0.245);
+    brow.rotation.z = sx > 0 ? -0.12 : 0.12;
+    g.add(brow);
+  }
+  // Nose — small forward-pointing wedge in skin color.
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.06, 4), skinMat);
+  nose.position.set(0, 1.76, 0.27);
+  nose.rotation.x = Math.PI / 2;
+  g.add(nose);
+  // Mouth — thin dark line for a neutral expression.
+  const mouth = new THREE.Mesh(
+    new THREE.BoxGeometry(0.09, 0.012, 0.01),
+    new THREE.MeshLambertMaterial({ color: 0x3a2820 })
+  );
+  mouth.position.set(0, 1.68, 0.26);
+  g.add(mouth);
   // Beard
   if (opts.hasBeard) {
     const beard = new THREE.Mesh(
