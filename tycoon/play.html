@@ -512,6 +512,21 @@
       100% { opacity:0; transform:translateY(-60px) scale(0.9); }
     }
 
+    /* ── Spend floater (red "-$X" that drops from the cash HUD) ──
+       Makes spending feel as visceral as earning. */
+    .spend-pop {
+      position: fixed; pointer-events: none; z-index: 20;
+      color: #F85149; font-weight: 900; font-size: 16px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      animation: spendPop 1.2s ease forwards;
+    }
+    @keyframes spendPop {
+      0%   { opacity:1; transform:translateY(0)    scale(1); }
+      50%  { opacity:0.9; transform:translateY(28px) scale(1.05); }
+      100% { opacity:0; transform:translateY(54px) scale(0.92); }
+    }
+
     /* ── Rush hour tint ───────────────────────────────── */
     #status-bar.rush {
       background: rgba(245,158,11,0.18)!important; color: #f59e0b!important;
@@ -3020,7 +3035,7 @@ function convertRoom(roomId, opts = {}) {
     plan.push({ rec, target });
   }
   // Pay cost (unless auto-triggered by another conversion)
-  if (!opts.auto) state.cash -= (cur.nextCost || 0);
+  if (!opts.auto) { state.cash -= (cur.nextCost || 0); showSpendPop(cur.nextCost || 0); }
   // Execute migration
   for (const step of plan) {
     step.rec.hire.desk.occupied = false;
@@ -3073,7 +3088,7 @@ function addDeskToCurrentRoom() {
   const cost = addDeskCost(def.id);
   if (state.cash < cost) return;
   if (!addExtraDeskToRoom(def.id)) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   refreshHud();
   renderHirePanel();
   renderRoomPanel();
@@ -3083,7 +3098,7 @@ function addDeskToCurrentRoom() {
 function buyRoom(id) {
   const def = ROOM_DEFS.find(r => r.id === id);
   if (!def || ownedRooms.has(id) || state.cash < def.cost) return;
-  state.cash -= def.cost;
+  state.cash -= def.cost; showSpendPop(def.cost);
   ownedRooms.add(id);
   buildRoom(def);
   activatePlotsForRoom(id);
@@ -4098,7 +4113,7 @@ function spawnExecutiveAssistant() {
 function hireExecutiveAssistant() {
   const cost = eaCost();
   if (state.cash < cost) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   spawnExecutiveAssistant();
   refreshHud();
   renderHirePanel();
@@ -4284,7 +4299,7 @@ function hireBDR() {
   if (state.cash < cost) return;
   const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
   if (!hasDesk) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   if (!spawnBDR()) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
@@ -4539,7 +4554,7 @@ function handleAeHireOrPromote() {
   if (!aeDesk) return;
   const cost = aeCost();
   if (state.cash < cost) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   const og = bdrs.shift();
   og.desk.occupied = false;
   if (og.targetAE) og.targetAE = null; // drop any in-flight handoff claim
@@ -4739,7 +4754,7 @@ function handleVpHireOrPromote() {
     // any generic desk until the Leadership Suite is built.
     const newDesk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
     if (!newDesk) return;
-    state.cash -= cost;
+    state.cash -= cost; showSpendPop(cost);
     const og = ideaWorkers.shift();
     og.desk.occupied = false;
     // Reset any in-flight state on the now-ex-engineer
@@ -4752,7 +4767,7 @@ function handleVpHireOrPromote() {
     showToast(`💻 Lead Engineer on the team!`, 'milestone');
     changeMorale(+6, 'OG promoted to Lead Engineer');
   } else {
-    state.cash -= cost;
+    state.cash -= cost; showSpendPop(cost);
     vps[0].tier++;
     const t = VP_TIERS[vps[0].tier];
     const boostText = t.teamBoostPct > 0 ? ` Engineers +${t.teamBoostPct}% speed.` : '';
@@ -4907,7 +4922,7 @@ function renderHirePanel() {
 hireBtnEl.addEventListener('click', () => {
   const cost = ideaWorkerHireCost();
   if (state.cash < cost) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   spawnIdeaWorker();
   refreshHud();
   renderHirePanel();
@@ -4923,7 +4938,7 @@ hireExtEngBtnEl.addEventListener('click', () => {
   if (state.cash < cost) return;
   const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   if (!hasDesk) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   spawnIdeaWorker({ external: true });
   refreshHud();
   renderHirePanel();
@@ -4940,7 +4955,7 @@ hireExtBdrBtnEl.addEventListener('click', () => {
   if (state.cash < cost) return;
   const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
   if (!hasDesk) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   if (!spawnBDR({ external: true })) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
@@ -5695,7 +5710,7 @@ function buildAmenity(am) {
 function buyAmenity(id) {
   const am = amenities.find(a => a.id === id);
   if (!am || am.isOwned || !am.unlockReq() || state.cash < am.buyCost) return;
-  state.cash -= am.buyCost;
+  state.cash -= am.buyCost; showSpendPop(am.buyCost);
   am.isOwned = true;
   am.stock = 0; // Support staff will stock it
   buildAmenity(am);
@@ -5992,6 +6007,21 @@ function showCashPop(amount, source = 'eng') {
   const rec = { el, amount, at: now };
   rec.timeout = setTimeout(() => { el.remove(); if (_recentCeoPops[source] === rec) delete _recentCeoPops[source]; }, 1400);
   _recentCeoPops[source] = rec;
+}
+
+// Red "-$X" floater that drops from the cash HUD when you spend.
+// Pairs with showCashPop so the two flows (earn / spend) feel
+// symmetrical. No merging — spends are discrete clicks, not drips.
+function showSpendPop(amount) {
+  if (!cashHudEl || amount <= 0) return;
+  const rect = cashHudEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'spend-pop';
+  el.textContent = '-$' + fmtCash(amount);
+  el.style.left = (rect.left + rect.width / 2 - 30 + (Math.random() * 12 - 6)) + 'px';
+  el.style.top  = (rect.bottom + 4) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
 }
 
 // ── Milestones ──────────────────────────────────────────────
@@ -6618,7 +6648,7 @@ function buyUpgrade(id) {
   if (!u || upgLevels[id] >= u.max) return;
   const cost = upgCost(u);
   if (state.cash < cost) return;
-  state.cash -= cost;
+  state.cash -= cost; showSpendPop(cost);
   upgLevels[id]++;
   u.apply(upgLevels[id]);
   addFeedEntry(`⬆️ ${u.label} → Lv${upgLevels[id]}`);
@@ -6745,7 +6775,7 @@ function renderFloors() {
     card.onclick = () => {
       if (!isUnlocked) {
         if (state.cash >= f.cost) {
-          state.cash -= f.cost;
+          state.cash -= f.cost; showSpendPop(f.cost);
           unlocked[f.id] = true;
           refreshHud();
           elevMsgEl.textContent = `${f.name} unlocked!`;
