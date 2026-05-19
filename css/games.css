@@ -253,3 +253,35 @@ canvas.game-canvas {
   font-family: var(--font-mono);
   letter-spacing: 1px;
 }
+
+/* ---- SNAKE power-up badges ---- */
+.snake-powerup-status {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 6px 0 10px;
+  min-height: 22px;
+}
+
+.snake-power-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--c);
+  border: 1px solid var(--c);
+  background: rgba(13, 17, 23, 0.6);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--c) 35%, transparent);
+  animation: snakePowerPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes snakePowerPulse {
+  0%, 100% { box-shadow: 0 0 12px color-mix(in oklab, var(--c) 35%, transparent); }
+  50%      { box-shadow: 0 0 22px color-mix(in oklab, var(--c) 55%, transparent); }
+}
