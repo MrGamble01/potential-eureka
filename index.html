@@ -316,9 +316,11 @@
           <option value="astar">A* Search</option>
         </select>
         <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
+        <button id="maze-play-btn" onclick="MazeGame.startPlay()">Play Mode</button>
       </div>
       <div class="game-info">
         <span id="maze-status" style="color: var(--text-dim)">Generate a maze to begin</span>
+        <span id="maze-play-info" style="display:none; color: var(--green)"></span>
       </div>
       <canvas id="maze-canvas" class="game-canvas"></canvas>
       <div class="maze-legend">
@@ -326,6 +328,7 @@
         <span class="path">Path</span>
         <span class="visited">Explored</span>
         <span class="solution">Solution</span>
+        <span style="color:#3FB950">&#9679; You</span>
       </div>
     </div>
   </section>
