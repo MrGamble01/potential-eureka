@@ -12,7 +12,7 @@ const SnakeGame = (() => {
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
-  let foodCount, wallWrap;
+  let foodCount, wallWrap, paused;
   let gameLoop, running, gameOver;
 
   function init() {
@@ -28,6 +28,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
+    paused = false;
     updateInfo();
     draw();
 
@@ -70,6 +71,14 @@ const SnakeGame = (() => {
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
       case 'ArrowLeft':  case 'a': case 'A': setDir(-1, 0); e.preventDefault(); break;
       case 'ArrowRight': case 'd': case 'D': setDir(1, 0);  e.preventDefault(); break;
+      case 'p': case 'P':
+        if (running) {
+          paused = !paused;
+          if (paused) clearInterval(gameLoop);
+          else gameLoop = setInterval(tick, speed);
+          draw();
+        }
+        break;
       case ' ':
         if (gameOver) start();
         e.preventDefault();
@@ -86,6 +95,7 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
     speed = 120;
     spawnFood();
     updateInfo();
@@ -283,6 +293,20 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Pause overlay
+    if (running && paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 22px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 26);
+      ctx.textAlign = 'left';
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -293,7 +317,7 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys to move  ·  P pause', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
