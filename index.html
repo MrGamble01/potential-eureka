@@ -28,6 +28,7 @@
     <button data-view="maze">Maze Solver</button>
     <button data-view="life">Game of Life</button>
     <button data-view="tetris">Tetris</button>
+    <button data-view="ageofwar">Age of War</button>
     <a href="tycoon/" class="nav-link-btn">Startup Tycoon</a>
   </nav>
 
@@ -377,6 +378,38 @@
     </div>
   </section>
 
+  <!-- ===================== AGE OF WAR ===================== -->
+  <section id="view-ageofwar" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <div class="game-title">AGE OF WAR</div>
+        <div class="game-subtitle">Spawn units · push the enemy base · age up to unlock stronger forces · Space = Air Strike</div>
+      </div>
+      <div class="aow-hud">
+        <div class="aow-hud-chip"><span class="aow-hud-label">Era</span><span class="aow-hud-value" id="aow-era">🪨 Stone Age</span></div>
+        <div class="aow-hud-chip"><span class="aow-hud-label">Gold</span><span class="aow-hud-value" id="aow-gold">$0</span></div>
+        <div class="aow-hud-chip aow-hud-xp">
+          <span class="aow-hud-label">Age Progress</span>
+          <span class="aow-hud-value" id="aow-xp">0 / 0 XP</span>
+          <div class="aow-xp-track"><div class="aow-xp-fill" id="aow-xp-bar"></div></div>
+        </div>
+        <div class="aow-hud-chip aow-hud-base"><span class="aow-hud-label">Your Base</span><span class="aow-hud-value" id="aow-base-hp">1000 / 1000</span></div>
+        <div class="aow-hud-chip aow-hud-base aow-hud-enemy"><span class="aow-hud-label">Enemy Base</span><span class="aow-hud-value" id="aow-enemy-hp">1000 / 1000</span></div>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="aow-canvas" class="game-canvas"></canvas>
+        <div id="aow-overlay" class="game-overlay" style="display:none"></div>
+      </div>
+      <div class="aow-controls">
+        <button id="aow-ageup-btn" class="aow-control-btn aow-control-age">⬆️ Age Up</button>
+        <button id="aow-special-btn" class="aow-control-btn aow-control-special">💥 Air Strike</button>
+        <button id="aow-restart-btn" class="aow-control-btn">🔄 Restart</button>
+      </div>
+      <div id="aow-spawn-list" class="aow-spawn-list"></div>
+      <div class="aow-hint">Press <strong>1–8</strong> to spawn units · <strong>Q</strong> or click to age up · <strong>Space</strong> for Air Strike</div>
+    </div>
+  </section>
+
   <!-- ===================== GAME OF LIFE ===================== -->
   <section id="view-life" class="view">
     <div class="game-container">
@@ -476,6 +509,7 @@
   <script src="js/maze.js"></script>
   <script src="js/life.js"></script>
   <script src="js/tetris.js"></script>
+  <script src="js/ageofwar.js"></script>
   <script src="js/orgchart.js"></script>
   <script>
     const navButtons = document.querySelectorAll('nav button');
@@ -496,6 +530,7 @@
           case 'maze':         MazeGame.init(); break;
           case 'life':         LifeGame.init(); break;
           case 'tetris':       TetrisGame.init(); break;
+          case 'ageofwar':     AgeOfWarGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }

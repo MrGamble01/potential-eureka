@@ -253,3 +253,167 @@ canvas.game-canvas {
   font-family: var(--font-mono);
   letter-spacing: 1px;
 }
+
+/* ============================================
+   AGE OF WAR
+   ============================================ */
+.aow-hud {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 8px 0 12px;
+  font-family: var(--font-mono);
+}
+.aow-hud-chip {
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 110px;
+}
+.aow-hud-label {
+  font-size: 9px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--text-muted);
+  font-weight: 600;
+}
+.aow-hud-value {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.aow-hud-xp { flex: 1; min-width: 200px; }
+.aow-hud-base .aow-hud-value { color: #3FB950; }
+.aow-hud-enemy .aow-hud-value { color: #F85149; }
+.aow-xp-track {
+  margin-top: 5px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.aow-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #58A6FF, #fcd34d);
+  border-radius: 3px;
+  transition: width 0.25s ease;
+}
+
+.aow-controls {
+  display: flex; gap: 8px;
+  margin: 10px 0 8px;
+  flex-wrap: wrap;
+}
+.aow-control-btn {
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.aow-control-btn:hover:not(:disabled) {
+  background: var(--color-white-12);
+  border-color: var(--border-strong);
+}
+.aow-control-btn:active:not(:disabled) { transform: scale(0.97); }
+.aow-control-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.aow-control-age {
+  background: rgba(252,211,77,0.14);
+  border-color: rgba(252,211,77,0.4);
+  color: #fcd34d;
+}
+.aow-control-age:hover:not(:disabled) {
+  background: rgba(252,211,77,0.22);
+  box-shadow: 0 0 16px rgba(252,211,77,0.3);
+}
+.aow-control-special {
+  background: rgba(248,81,73,0.14);
+  border-color: rgba(248,81,73,0.4);
+  color: #ff8a82;
+}
+.aow-control-special:hover:not(:disabled) {
+  background: rgba(248,81,73,0.22);
+  box-shadow: 0 0 16px rgba(248,81,73,0.35);
+}
+
+.aow-spawn-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.aow-spawn-btn {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+}
+.aow-spawn-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--border-strong);
+  transform: translateX(2px);
+}
+.aow-spawn-btn:active:not(:disabled) { transform: scale(0.97); }
+.aow-spawn-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.aow-spawn-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+.aow-spawn-icon { font-size: 22px; line-height: 1; }
+.aow-spawn-info {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0;
+}
+.aow-spawn-name { font-size: 13px; font-weight: 600; }
+.aow-spawn-stats {
+  font-size: 10px; color: var(--text-dim);
+  font-family: var(--font-mono); letter-spacing: 0.3px;
+}
+.aow-spawn-cost {
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 700;
+  color: #3FB950;
+}
+
+.aow-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+.aow-hint strong {
+  color: var(--text);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+@media (max-width: 720px) {
+  .aow-hud-chip { min-width: 90px; padding: 5px 10px; }
+  .aow-hud-value { font-size: 12px; }
+  .aow-spawn-list { grid-template-columns: 1fr 1fr; }
+  .aow-spawn-name { font-size: 12px; }
+  .aow-spawn-icon { font-size: 18px; }
+}
