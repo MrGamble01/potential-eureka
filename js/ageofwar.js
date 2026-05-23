@@ -1,84 +1,208 @@
 /* ============================================
    AGE OF WAR — Side-scrolling lane battler
+   Inspired by Max Games' classic.
    Spawn units, push the enemy base, age up to
-   unlock stronger units. Last base standing wins.
+   unlock stronger units, build turrets, fire
+   ultimates. Last base standing wins.
    ============================================ */
 
 const AgeOfWarGame = (() => {
   // ---- Stage ----
-  const WIDTH  = 880;
-  const HEIGHT = 360;
+  const WIDTH  = 960;
+  const HEIGHT = 380;
   const GROUND_Y = HEIGHT - 60;
-  const BASE_W = 90;
-  const PLAYER_BASE_X = 8;
-  const ENEMY_BASE_X  = WIDTH - BASE_W - 8;
+  const BASE_W = 110;
+  const PLAYER_BASE_X = 10;
+  const ENEMY_BASE_X  = WIDTH - BASE_W - 10;
 
   // ---- Era definitions ----
-  // Each era unlocks new units. Aging up costs the next era's XP
-  // threshold; XP comes from kills.
+  // Five ages, each with a sky palette, base color, age-up XP cost,
+  // and a per-era special ability.
   const ERAS = [
-    { id: 'stone',   name: 'Stone Age',     icon: '🪨', sky: ['#3a2e1c', '#544132'], baseColor: '#7a5a3a', upXP:   100 },
-    { id: 'medieval',name: 'Medieval',      icon: '🏰', sky: ['#2a3245', '#465268'], baseColor: '#8a8a9c', upXP:   500 },
-    { id: 'industrial', name: 'Industrial', icon: '🏭', sky: ['#23202e', '#3d3a52'], baseColor: '#6b6878', upXP:  1500 },
-    { id: 'future',  name: 'Future',        icon: '🚀', sky: ['#0c1430', '#22305c'], baseColor: '#88a8ff', upXP:  4000 },
+    { id: 'stone',    name: 'Stone Age',   icon: '🪨', sky: ['#4a3a2a', '#7a604a'], baseColor: '#7a5a3a', upXP:    150,
+      special: { name: 'Boulder',    icon: '🪨', dmg: 180, color: '#a07040' } },
+    { id: 'medieval', name: 'Medieval',    icon: '🏰', sky: ['#2a3a55', '#506a85'], baseColor: '#8a8a9c', upXP:    600,
+      special: { name: 'Arrow Rain', icon: '🏹', dmg: 320, color: '#b5985a' } },
+    { id: 'industrial', name: 'Industrial', icon: '🏭', sky: ['#2d2a3a', '#4f4c5e'], baseColor: '#6b6878', upXP:   1800,
+      special: { name: 'Artillery', icon: '💣', dmg: 560, color: '#888' } },
+    { id: 'modern',   name: 'Modern',      icon: '🪖', sky: ['#1d3a45', '#356575'], baseColor: '#5a7a85', upXP:   4500,
+      special: { name: 'Air Strike', icon: '✈️', dmg: 900, color: '#ddd' } },
+    { id: 'future',   name: 'Future',      icon: '🚀', sky: ['#0e1438', '#243460'], baseColor: '#88a8ff', upXP:  10000,
+      special: { name: 'Orbital Laser', icon: '🛰️', dmg: 1500, color: '#6ec4ff' } },
   ];
 
   // ---- Unit catalog ----
-  // Two units per era. `range` is melee if low (~24), ranged if high.
-  // `dmg`/`atkSpd` (seconds per attack) tuned so each era 2x-3x the last.
+  // Three units per era: cheap melee / ranged / heavy.
   const UNITS = {
     // Stone Age
-    club:      { era: 0, name: 'Clubman',   icon: '🦴', cost: 30,   hp: 50,   dmg: 8,   range: 26,  atkSpd: 0.9, speed: 40, color: '#a07040', xp: 10,  gold: 14 },
-    sling:     { era: 0, name: 'Slinger',   icon: '🪃', cost: 60,   hp: 28,   dmg: 14,  range: 130, atkSpd: 1.2, speed: 34, color: '#7a5028', xp: 14,  gold: 22 },
+    club:     { era: 0, name: 'Clubman',    icon: '🦴', cost: 25,   hp: 60,   dmg: 9,   range: 26,  atkSpd: 0.85, speed: 42, color: '#b07040', xp: 12,  gold: 16,  silhouette: 'humanoid' },
+    sling:    { era: 0, name: 'Slinger',    icon: '🪃', cost: 55,   hp: 32,   dmg: 16,  range: 145, atkSpd: 1.2,  speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
+    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', cost: 110,  hp: 180,  dmg: 24,  range: 30,  atkSpd: 1.0,  speed: 38, color: '#5d8a4a', xp: 30,  gold: 55,  silhouette: 'beast' },
+
     // Medieval
-    swordsman: { era: 1, name: 'Swordsman', icon: '⚔️', cost: 130,  hp: 130,  dmg: 22,  range: 28,  atkSpd: 0.8, speed: 44, color: '#a0a0c0', xp: 30,  gold: 50 },
-    archer:    { era: 1, name: 'Archer',    icon: '🏹', cost: 200,  hp: 70,   dmg: 38,  range: 180, atkSpd: 1.3, speed: 38, color: '#b5985a', xp: 38,  gold: 70 },
+    swordsman:{ era: 1, name: 'Swordsman',  icon: '⚔️', cost: 130,  hp: 180,  dmg: 28,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
+    archer:   { era: 1, name: 'Archer',     icon: '🏹', cost: 200,  hp: 90,   dmg: 48,  range: 200, atkSpd: 1.3,  speed: 40, color: '#b5985a', xp: 48,  gold: 80,  silhouette: 'humanoid' },
+    knight:   { era: 1, name: 'Knight',     icon: '🐴', cost: 380,  hp: 480,  dmg: 50,  range: 30,  atkSpd: 1.0,  speed: 50, color: '#9a9bc5', xp: 90,  gold: 150, silhouette: 'beast' },
+
     // Industrial
-    rifleman:  { era: 2, name: 'Rifleman',  icon: '🔫', cost: 380,  hp: 220,  dmg: 75,  range: 220, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 80,  gold: 140 },
-    cannoneer: { era: 2, name: 'Cannoneer', icon: '💣', cost: 600,  hp: 320,  dmg: 130, range: 260, atkSpd: 1.8, speed: 32, color: '#4a4030', xp: 130, gold: 230 },
+    rifleman: { era: 2, name: 'Rifleman',   icon: '🔫', cost: 380,  hp: 270,  dmg: 90,  range: 230, atkSpd: 0.85, speed: 42, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
+    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', cost: 620,  hp: 380,  dmg: 170, range: 270, atkSpd: 1.7,  speed: 32, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
+    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', cost: 1100, hp: 950,  dmg: 200, range: 60,  atkSpd: 1.1,  speed: 30, color: '#6b5848', xp: 320, gold: 540, silhouette: 'vehicle' },
+
+    // Modern
+    soldier:  { era: 3, name: 'Soldier',    icon: '🪖', cost: 850,  hp: 480,  dmg: 200, range: 240, atkSpd: 0.7,  speed: 44, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
+    sniper:   { era: 3, name: 'Sniper',     icon: '🎯', cost: 1500, hp: 240,  dmg: 520, range: 380, atkSpd: 2.4,  speed: 38, color: '#7a7a4a', xp: 420, gold: 700, silhouette: 'humanoid' },
+    tank2:    { era: 3, name: 'Tank',       icon: '🪖', cost: 2400, hp: 2000, dmg: 380, range: 100, atkSpd: 1.0,  speed: 32, color: '#4d5a3a', xp: 700, gold: 1180, silhouette: 'vehicle' },
+
     // Future
-    laserTrooper: { era: 3, name: 'Laser Trooper', icon: '🪖', cost: 900,  hp: 450,  dmg: 160, range: 280, atkSpd: 0.7, speed: 42, color: '#6ec4ff', xp: 220, gold: 380 },
-    mech:         { era: 3, name: 'Mech',          icon: '🤖', cost: 1500, hp: 900,  dmg: 280, range: 80,  atkSpd: 1.0, speed: 36, color: '#a89cff', xp: 380, gold: 650 },
+    laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 920,  silhouette: 'humanoid' },
+    mech:     { era: 4, name: 'Mech',          icon: '🤖', cost: 3500, hp: 2800, dmg: 540, range: 110, atkSpd: 0.85, speed: 36, color: '#a89cff', xp: 1100,gold: 2000, silhouette: 'vehicle' },
+    flier:    { era: 4, name: 'Hover',         icon: '🛸', cost: 5500, hp: 1500, dmg: 820, range: 320, atkSpd: 1.4,  speed: 56, color: '#ff90ee', xp: 1600,gold: 3200, silhouette: 'flier' },
   };
 
-  // Player can spawn the era's two units; AI can too. The UI lists 6
-  // buttons total (2 per era for current + earlier eras up to current).
   function unitsForEra(era) {
     return Object.entries(UNITS).filter(([, u]) => u.era === era).map(([k]) => k);
   }
+
+  // ---- Turret catalog (one per era — upgrade to next era's tier) ----
+  const TURRETS = [
+    { era: 0, name: 'Rock Sling',    icon: '🪨', cost: 250,  dmg: 14,  range: 200, atkSpd: 1.6, color: '#7a5a3a' },
+    { era: 1, name: 'Crossbow',      icon: '🏹', cost: 700,  dmg: 38,  range: 230, atkSpd: 1.2, color: '#a08855' },
+    { era: 2, name: 'Cannon Turret', icon: '💣', cost: 2000, dmg: 130, range: 260, atkSpd: 1.4, color: '#555' },
+    { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 280, range: 300, atkSpd: 0.6, color: '#5a7a45' },
+    { era: 4, name: 'Plasma Turret', icon: '✨', cost: 12000, dmg: 700, range: 340, atkSpd: 0.9, color: '#6ec4ff' },
+  ];
+  const TURRET_SLOTS = 4;
 
   // ---- State ----
   let canvas, ctx;
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false;
-  let outcome = null;        // 'win' | 'lose'
-  let playerEra = 0;
-  let enemyEra = 0;
+  let outcome = null;
+  let playerEra = 0, enemyEra = 0;
   let gold = 0, xp = 0;
   let playerBaseHp = 1000, playerBaseMax = 1000;
   let enemyBaseHp  = 1000, enemyBaseMax  = 1000;
-  let units = [];            // { side, key, x, hp, hpMax, dmg, range, atkSpd, atkT, speed, color, name, icon, xp, gold, w, h, hit }
-  let projectiles = [];      // { side, x, y, vx, dmg, life }
+  let units = [];
+  let projectiles = [];
   let nextSpawnId = 1;
-  let spawnCooldowns = {};   // unit key -> seconds remaining
-  let enemySpawnT = 4.0;
+  let spawnCooldowns = {};
+  let enemySpawnT = 1.6;
   let goldTrickleT = 0;
-  let specialReadyT = 25;    // seconds until "Air Strike" available
-  let specialCooldownMax = 25;
-  let goldFloaters = [];     // tiny "+$N" floats
+  let specialReadyT = 6;
+  const specialCooldownMax = 25;
+  let goldFloaters = [];
+  let dmgFloaters = [];
+  let muzzleFlashes = [];
+  let strikes = [];                // air-strike effects (meteor / arrows / bombs)
+  let coinDrops = [];              // visual coins after kills
+  let ageFlash = 0;                // 1 → 0 right after aging up
+  let bgClouds = [];               // parallax cloud x positions
+  let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
+  let enemyTurrets  = [null, null, null, null];
 
+  // ---- Sound (Web Audio API, no samples) ----
+  const SFX = (() => {
+    let ctxA = null, masterGain = null;
+    let lastSpawn = 0, lastHit = 0;
+    function ensure() {
+      if (ctxA) return ctxA;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctxA = new AC();
+        masterGain = ctxA.createGain();
+        masterGain.gain.value = 0.18;
+        masterGain.connect(ctxA.destination);
+      } catch { ctxA = null; }
+      return ctxA;
+    }
+    function tone({ freq, dur = 0.12, type = 'sine', vol = 0.5, attack = 0.005, slideTo = null }) {
+      const ac = ensure(); if (!ac) return;
+      if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
+      const t0 = ac.currentTime;
+      const osc = ac.createOscillator();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol, t0 + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t0); osc.stop(t0 + dur + 0.04);
+    }
+    function noise({ dur = 0.18, vol = 0.18 }) {
+      const ac = ensure(); if (!ac) return;
+      const t0 = ac.currentTime;
+      const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const g = ac.createGain();
+      g.gain.value = vol;
+      src.connect(g); g.connect(masterGain);
+      src.start(t0);
+    }
+    return {
+      spawn() {
+        const now = performance.now();
+        if (now - lastSpawn < 30) return;
+        lastSpawn = now;
+        tone({ freq: 660, dur: 0.06, type: 'square', vol: 0.12 });
+      },
+      hit() {
+        const now = performance.now();
+        if (now - lastHit < 35) return;
+        lastHit = now;
+        tone({ freq: 220 + Math.random() * 80, dur: 0.04, type: 'square', vol: 0.10 });
+      },
+      kill()        { tone({ freq: 180, slideTo: 80, dur: 0.18, type: 'sawtooth', vol: 0.16 }); },
+      coin()        { tone({ freq: 1320, dur: 0.05, type: 'triangle', vol: 0.12 }); setTimeout(() => tone({ freq: 1760, dur: 0.05, type: 'triangle', vol: 0.10 }), 35); },
+      ageUp() {
+        [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.18, type: 'triangle', vol: 0.28 }), i * 70));
+      },
+      special()     { noise({ dur: 0.45, vol: 0.32 }); tone({ freq: 90, slideTo: 40, dur: 0.45, type: 'sawtooth', vol: 0.18 }); },
+      victory() {
+        [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.30, type: 'triangle', vol: 0.32 }), i * 100));
+      },
+      defeat() {
+        [392, 311, 247, 196].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.32, type: 'sawtooth', vol: 0.26 }), i * 120));
+      },
+      turret() { tone({ freq: 880, dur: 0.05, type: 'square', vol: 0.10 }); setTimeout(() => tone({ freq: 1320, dur: 0.06, type: 'square', vol: 0.10 }), 40); },
+    };
+  })();
+
+  // ---- Init ----
   function init() {
     canvas = document.getElementById('aow-canvas');
     if (!canvas) return;
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     ctx = canvas.getContext('2d');
+    seedClouds();
     reset();
     bindControls();
     cancelAnimationFrame(rafId);
     lastFrame = performance.now();
     rafId = requestAnimationFrame(loop);
+  }
+
+  function seedClouds() {
+    bgClouds = [];
+    for (let i = 0; i < 8; i++) {
+      bgClouds.push({
+        x: Math.random() * WIDTH,
+        y: 30 + Math.random() * (GROUND_Y * 0.45),
+        r: 18 + Math.random() * 26,
+        v: 4 + Math.random() * 8,
+      });
+    }
   }
 
   function reset() {
@@ -89,17 +213,29 @@ const AgeOfWarGame = (() => {
     enemyEra = 0;
     gold = 90;
     xp = 0;
-    playerBaseHp = playerBaseMax = 1000;
-    enemyBaseHp  = enemyBaseMax  = 1000;
+    playerBaseHp = playerBaseMax = 1200;
+    enemyBaseHp  = enemyBaseMax  = 1200;
     units = [];
     projectiles = [];
     spawnCooldowns = {};
-    enemySpawnT = 3.5;
+    enemySpawnT = 1.0;
     goldTrickleT = 0;
-    specialReadyT = 8;       // first one comes quick
+    specialReadyT = 6;
     goldFloaters = [];
+    dmgFloaters = [];
+    muzzleFlashes = [];
+    strikes = [];
+    coinDrops = [];
+    ageFlash = 0;
+    playerTurrets = [null, null, null, null];
+    enemyTurrets  = [null, null, null, null];
+    // Initial units so the battlefield isn't empty when you arrive.
+    spawnUnit('player', 'club');
+    spawnUnit('player', 'club');
+    spawnUnit('enemy',  'club');
     renderHud();
     renderSpawnPanel();
+    renderTurretPanel();
     hideOverlay();
   }
 
@@ -107,16 +243,22 @@ const AgeOfWarGame = (() => {
   function spawnUnit(side, key) {
     const def = UNITS[key];
     if (!def) return;
+    const w = def.silhouette === 'vehicle' ? 28 : def.silhouette === 'beast' ? 26 : 18;
+    const h = def.silhouette === 'flier' ? 32 : def.silhouette === 'vehicle' ? 30 : 30;
+    const flying = def.silhouette === 'flier';
     const u = {
       id: nextSpawnId++,
       side, key,
       name: def.name, icon: def.icon, color: def.color,
-      x: side === 'player' ? PLAYER_BASE_X + BASE_W + 10 : ENEMY_BASE_X - 10,
+      silhouette: def.silhouette,
+      x: side === 'player' ? PLAYER_BASE_X + BASE_W + 14 : ENEMY_BASE_X - 14,
+      yOffset: flying ? 40 : 0,
       hp: def.hp, hpMax: def.hp,
-      dmg: def.dmg, range: def.range, atkSpd: def.atkSpd, atkT: 0,
+      dmg: def.dmg, range: def.range, atkSpd: def.atkSpd, atkT: 0.4,
       speed: def.speed, xp: def.xp, gold: def.gold,
-      w: 18, h: 28,
+      w, h,
       hitFlash: 0,
+      walkPhase: Math.random() * Math.PI * 2,
     };
     units.push(u);
   }
@@ -130,7 +272,8 @@ const AgeOfWarGame = (() => {
     if ((spawnCooldowns[key] || 0) > 0) return;
     gold -= def.cost;
     spawnUnit('player', key);
-    spawnCooldowns[key] = 1.0;
+    spawnCooldowns[key] = Math.max(0.4, def.cost / 600);
+    SFX.spawn();
     renderHud();
     renderSpawnPanel();
   }
@@ -142,28 +285,58 @@ const AgeOfWarGame = (() => {
     if (xp < need) return;
     xp -= need;
     playerEra++;
-    // Base HP also gets a nice bump per age
-    const hpBoost = 400;
+    const hpBoost = 500;
     playerBaseMax += hpBoost;
     playerBaseHp = Math.min(playerBaseMax, playerBaseHp + hpBoost);
+    SFX.ageUp();
+    ageFlash = 1;
     renderHud();
     renderSpawnPanel();
+    renderTurretPanel();
   }
 
   function fireSpecial() {
     if (gameOver) return;
     if (specialReadyT > 0) return;
-    // Deal heavy damage to all enemy units in the front half of the battlefield.
-    const dmg = 200 + playerEra * 200;
-    let hit = 0;
-    for (const u of units) {
-      if (u.side === 'enemy') {
-        u.hp -= dmg; u.hitFlash = 0.3; hit++;
-      }
+    const spec = ERAS[playerEra].special;
+    // Visual: meteor/arrows/bombs sweeping across the right half.
+    const startX = WIDTH * 0.55;
+    const endX = ENEMY_BASE_X;
+    const drops = 6 + playerEra * 2;
+    for (let i = 0; i < drops; i++) {
+      const dx = startX + (endX - startX) * (i / (drops - 1));
+      strikes.push({
+        x: dx + (Math.random() - 0.5) * 30,
+        y: -40 + Math.random() * -40,
+        targetY: GROUND_Y - 10,
+        speed: 600 + Math.random() * 200,
+        delay: i * 0.08,
+        icon: spec.icon,
+        color: spec.color,
+        dmgRadius: 60,
+        dmgEach: spec.dmg / drops,
+        side: 'player',
+      });
     }
-    if (hit) addFloater('💥 AIR STRIKE', ENEMY_BASE_X - 60, GROUND_Y - 60, '#ff7733');
+    SFX.special();
     specialReadyT = specialCooldownMax;
     renderHud();
+  }
+
+  function tryBuyTurret(slot, era) {
+    if (gameOver) return;
+    const tdef = TURRETS[era];
+    if (!tdef) return;
+    if (era > playerEra) return;
+    // If slot already has same-or-higher era, can't replace.
+    const existing = playerTurrets[slot];
+    if (existing && existing.era >= era) return;
+    if (gold < tdef.cost) return;
+    gold -= tdef.cost;
+    playerTurrets[slot] = { ...tdef, atkT: 0 };
+    SFX.turret();
+    renderHud();
+    renderTurretPanel();
   }
 
   // ---- Input ----
@@ -177,17 +350,17 @@ const AgeOfWarGame = (() => {
     document.addEventListener('keydown', e => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
-      // Number keys 1–8 spawn the corresponding visible unit
       const n = parseInt(e.key, 10);
-      if (n >= 1 && n <= 8) {
+      if (n >= 1 && n <= 9) {
         const keys = visibleUnitKeys();
         const key = keys[n - 1];
         if (key) tryPlayerSpawn(key);
+        e.preventDefault();
       } else if (e.key === ' ') {
         if (gameOver) reset();
         else fireSpecial();
         e.preventDefault();
-      } else if (e.key === 'Tab' || e.key === 'q' || e.key === 'Q') {
+      } else if (e.key === 'q' || e.key === 'Q' || e.key === 'Tab') {
         ageUp();
         e.preventDefault();
       }
@@ -202,27 +375,42 @@ const AgeOfWarGame = (() => {
 
   // ---- Enemy AI ----
   function enemyTick(dt) {
-    // Difficulty ramps over time + matches player era as they advance.
     enemySpawnT -= dt;
     if (enemySpawnT > 0) return;
-    // Enemy catches up one era at a time once player has surpassed.
-    if (enemyEra < playerEra && Math.random() < 0.25) enemyEra++;
+    if (enemyEra < playerEra && Math.random() < 0.30) enemyEra++;
     const choices = unitsForEra(enemyEra);
-    const key = choices[Math.floor(Math.random() * choices.length)];
+    // Bias toward cheaper units; occasionally a heavy.
+    const heavy = Math.random() < 0.2;
+    const key = heavy ? choices[choices.length - 1] : choices[Math.floor(Math.random() * choices.length)];
     spawnUnit('enemy', key);
-    // Slower spawn rate when player is freshly losing, faster as they push.
+    // Build enemy turrets too (one tier behind, slowly).
+    if (Math.random() < 0.06) {
+      const slot = enemyTurrets.findIndex(t => !t || t.era < enemyEra);
+      if (slot >= 0 && enemyEra <= TURRETS.length - 1) {
+        const targetEra = Math.min(enemyEra, TURRETS.length - 1);
+        enemyTurrets[slot] = { ...TURRETS[targetEra], atkT: 0 };
+      }
+    }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
-    enemySpawnT = 1.6 + Math.random() * 2.0 + pressureFactor * 1.2;
+    enemySpawnT = 1.4 + Math.random() * 1.6 + pressureFactor * 1.0;
   }
 
-  // ---- Combat loop ----
+  // ---- Combat ----
   function update(dt) {
     if (!running) return;
+
+    if (ageFlash > 0) ageFlash = Math.max(0, ageFlash - dt * 1.6);
+
+    // Background clouds drift
+    for (const c of bgClouds) {
+      c.x -= c.v * dt;
+      if (c.x < -80) { c.x = WIDTH + 80; c.y = 30 + Math.random() * (GROUND_Y * 0.45); }
+    }
 
     // Resource trickle
     goldTrickleT -= dt;
     if (goldTrickleT <= 0) {
-      gold += 5 + playerEra * 3;
+      gold += 6 + playerEra * 4;
       goldTrickleT = 1.0;
       renderHud();
     }
@@ -231,7 +419,6 @@ const AgeOfWarGame = (() => {
     for (const k of Object.keys(spawnCooldowns)) {
       spawnCooldowns[k] = Math.max(0, spawnCooldowns[k] - dt);
     }
-    // Special cooldown
     if (specialReadyT > 0) {
       specialReadyT = Math.max(0, specialReadyT - dt);
       renderHud();
@@ -239,28 +426,19 @@ const AgeOfWarGame = (() => {
 
     enemyTick(dt);
 
-    // Move & fight units
+    // Move + fight units
     for (const u of units) {
       if (u.hp <= 0) continue;
       u.hitFlash = Math.max(0, u.hitFlash - dt);
       const enemies = units.filter(o => o.side !== u.side && o.hp > 0);
-      // Closest enemy in the forward direction
       let target = null, bestDist = Infinity;
       for (const e of enemies) {
         const d = Math.abs(e.x - u.x);
         if (d < bestDist) { bestDist = d; target = e; }
       }
-      // Also "target" the enemy base if no enemy units between.
-      let baseTarget = null;
-      if (u.side === 'player') {
-        baseTarget = { x: ENEMY_BASE_X, hp: enemyBaseHp };
-      } else {
-        baseTarget = { x: PLAYER_BASE_X + BASE_W, hp: playerBaseHp };
-      }
-      // Distance to base
-      const baseDx = baseTarget.x - u.x;
+      const baseTargetX = u.side === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X + BASE_W;
+      const baseDx = baseTargetX - u.x;
       const baseDist = Math.abs(baseDx);
-      // Pick whichever is closer.
       let dist, dirX, isBase;
       if (target && bestDist < baseDist) {
         dist = bestDist;
@@ -271,101 +449,185 @@ const AgeOfWarGame = (() => {
         dirX = Math.sign(baseDx) || (u.side === 'player' ? 1 : -1);
         isBase = true;
       }
-
-      // Front-line resolution: there might be a friendly directly ahead.
-      // If a friendly is in our path and we're behind them, stop.
+      const aheadGap = u.w + 6;
       const ahead = u.side === 'player'
-        ? units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x > u.x && o.x - u.x < u.w + 4)
-        : units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x < u.x && u.x - o.x < u.w + 4);
+        ? units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x > u.x && o.x - u.x < aheadGap)
+        : units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x < u.x && u.x - o.x < aheadGap);
 
       if (dist > u.range) {
-        if (!ahead) u.x += dirX * u.speed * dt;
+        if (!ahead) {
+          u.x += dirX * u.speed * dt;
+          u.walkPhase += dt * 7;
+        }
         u.atkT = Math.max(0, u.atkT - dt);
       } else {
-        // In range — attack on cooldown
         u.atkT -= dt;
         if (u.atkT <= 0) {
           u.atkT = u.atkSpd;
           if (isBase) {
             if (u.side === 'player') enemyBaseHp -= u.dmg;
             else                     playerBaseHp -= u.dmg;
+            spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
           } else if (target) {
-            // Projectile for ranged, instant for melee
             if (u.range > 60) {
               projectiles.push({
-                side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6,
-                tx: target.x, ty: GROUND_Y - target.h * 0.6,
-                vx: dirX * 320, dmg: u.dmg, life: 1.5, color: u.color,
+                side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
+                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
               });
+              muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
               target.hp -= u.dmg; target.hitFlash = 0.2;
+              spawnDmgFloater(u.dmg, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
+              SFX.hit();
             }
           }
         }
       }
     }
 
-    // Move projectiles + impact
+    // Turret fire (player + enemy)
+    fireTurrets('player', playerTurrets, dt);
+    fireTurrets('enemy',  enemyTurrets,  dt);
+
+    // Move projectiles
     for (const p of projectiles) {
       p.x += p.vx * dt;
       p.life -= dt;
-      // Hit detection: nearest enemy unit overlap, or base
       const targets = units.filter(u => u.side !== p.side && u.hp > 0);
       for (const u of targets) {
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
           u.hp -= p.dmg; u.hitFlash = 0.2;
+          spawnDmgFloater(p.dmg, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
+          SFX.hit();
           p.life = 0;
           break;
         }
       }
       if (p.life > 0) {
         if (p.side === 'player' && p.x >= ENEMY_BASE_X) {
-          enemyBaseHp -= p.dmg; p.life = 0;
+          enemyBaseHp -= p.dmg;
+          spawnDmgFloater(p.dmg, ENEMY_BASE_X + 10, GROUND_Y - 90, '#fcd34d');
+          p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
-          playerBaseHp -= p.dmg; p.life = 0;
+          playerBaseHp -= p.dmg;
+          spawnDmgFloater(p.dmg, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
+          p.life = 0;
         }
       }
     }
     projectiles = projectiles.filter(p => p.life > 0);
 
-    // Resolve kills + award gold/xp
-    let killGold = 0, killXp = 0;
-    let lostXp = 0;
+    // Tick strikes (meteors / bombs / etc.)
+    for (const s of strikes) {
+      if (s.delay > 0) { s.delay -= dt; continue; }
+      s.y += s.speed * dt;
+      if (s.y >= s.targetY && !s.exploded) {
+        s.exploded = true;
+        s.explodeT = 0.4;
+        // AoE damage on opposing units in radius.
+        for (const u of units) {
+          if (u.side === s.side) continue;
+          if (u.hp > 0 && Math.abs(u.x - s.x) < s.dmgRadius) {
+            u.hp -= s.dmgEach; u.hitFlash = 0.3;
+            spawnDmgFloater(s.dmgEach | 0, u.x, GROUND_Y - u.h - 6, '#ff7733');
+          }
+        }
+        // Also damages base if very close
+        if (s.side === 'player' && Math.abs(s.x - (ENEMY_BASE_X + BASE_W / 2)) < BASE_W) {
+          enemyBaseHp -= s.dmgEach * 0.5;
+        }
+      }
+      if (s.exploded) s.explodeT -= dt;
+    }
+    strikes = strikes.filter(s => !s.exploded || s.explodeT > 0);
+
+    // Kill resolution
     for (const u of units) {
       if (u.hp <= 0 && !u._dead) {
         u._dead = true;
-        if (u.side === 'enemy') { killGold += u.gold; killXp += u.xp; }
-        else lostXp += 0;
+        if (u.side === 'enemy') {
+          gold += u.gold;
+          xp += u.xp;
+          // Drop coins that animate up then auto-collect
+          dropCoins(u.x, GROUND_Y - u.h, u.gold);
+          SFX.kill();
+        }
       }
     }
-    if (killGold) gold += killGold;
-    if (killXp)   xp += killXp;
     units = units.filter(u => !u._dead);
 
-    // Update gold floaters
-    for (const f of goldFloaters) {
-      f.t -= dt;
-      f.y -= 26 * dt;
-    }
+    // Floater + coin tick
+    for (const f of dmgFloaters) { f.t -= dt; f.y -= 28 * dt; }
+    dmgFloaters = dmgFloaters.filter(f => f.t > 0);
+    for (const f of goldFloaters) { f.t -= dt; f.y -= 26 * dt; }
     goldFloaters = goldFloaters.filter(f => f.t > 0);
+    for (const m of muzzleFlashes) m.t -= dt;
+    muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
+    for (const c of coinDrops) {
+      c.t -= dt;
+      c.y -= 30 * dt;
+      c.x += c.vx * dt;
+      c.vx *= 0.94;
+    }
+    coinDrops = coinDrops.filter(c => c.t > 0);
 
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
+      SFX.defeat();
       showOverlay(false);
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
+      SFX.victory();
       showOverlay(true);
     }
 
     renderHud();
   }
 
-  function addFloater(text, x, y, color) {
-    goldFloaters.push({ text, x, y, color, t: 1.4 });
+  function fireTurrets(side, slots, dt) {
+    for (const t of slots) {
+      if (!t) continue;
+      t.atkT = Math.max(0, t.atkT - dt);
+      if (t.atkT > 0) continue;
+      // Find nearest opposing unit in range
+      const enemies = units.filter(u => u.side !== side && u.hp > 0);
+      const turretX = side === 'player' ? PLAYER_BASE_X + BASE_W * 0.85 : ENEMY_BASE_X + BASE_W * 0.15;
+      let target = null, bestDist = Infinity;
+      for (const u of enemies) {
+        const d = Math.abs(u.x - turretX);
+        if (d <= t.range && d < bestDist) { bestDist = d; target = u; }
+      }
+      if (target) {
+        projectiles.push({
+          side, x: turretX,
+          y: GROUND_Y - 90,
+          vx: (target.x > turretX ? 1 : -1) * 380,
+          dmg: t.dmg, life: 1.2, color: t.color || '#fcd34d',
+        });
+        muzzleFlashes.push({ x: turretX, y: GROUND_Y - 90, t: 0.12, color: t.color });
+        t.atkT = t.atkSpd;
+      }
+    }
   }
 
-  // ---- Drawing ----
+  function spawnDmgFloater(amount, x, y, color) {
+    dmgFloaters.push({ amount: Math.max(1, amount | 0), x, y, color, t: 0.9 });
+  }
+
+  function dropCoins(x, y, total) {
+    const coins = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
+    for (let i = 0; i < coins; i++) {
+      coinDrops.push({
+        x, y: y - 6,
+        vx: (Math.random() - 0.5) * 40,
+        t: 0.9,
+      });
+    }
+    setTimeout(() => SFX.coin(), 60);
+  }
+
+  // ---- Rendering ----
   function loop(now) {
     const dt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
@@ -382,24 +644,48 @@ const AgeOfWarGame = (() => {
     grad.addColorStop(1, era.sky[1]);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, GROUND_Y);
+
+    // Distant hills (silhouette)
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    for (let x = 0; x <= WIDTH; x += 24) {
+      const h = 30 + Math.sin(x * 0.011 + playerEra * 0.7) * 16 + Math.sin(x * 0.045) * 8;
+      ctx.lineTo(x, GROUND_Y - h);
+    }
+    ctx.lineTo(WIDTH, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Clouds (parallax)
+    for (const c of bgClouds) drawCloud(c.x, c.y, c.r);
+
     // Ground
     ctx.fillStyle = '#1a1a14';
     ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
-    // Ground line
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    ctx.lineTo(WIDTH, GROUND_Y);
-    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
 
     // Bases
-    drawBase(PLAYER_BASE_X, era.baseColor, era.icon, 'player');
+    drawBase(PLAYER_BASE_X, era.baseColor, era.icon);
     const eEra = ERAS[enemyEra];
-    drawBase(ENEMY_BASE_X, eEra.baseColor, eEra.icon, 'enemy');
+    drawBase(ENEMY_BASE_X, eEra.baseColor, eEra.icon);
+
+    // Turrets (player + enemy) — small icons on the base ramparts
+    drawTurrets(PLAYER_BASE_X, playerTurrets);
+    drawTurrets(ENEMY_BASE_X,  enemyTurrets);
 
     // Base HP bars
     drawBaseHpBar(PLAYER_BASE_X, playerBaseHp, playerBaseMax, '#3FB950');
-    drawBaseHpBar(ENEMY_BASE_X, enemyBaseHp, enemyBaseMax, '#F85149');
+    drawBaseHpBar(ENEMY_BASE_X,  enemyBaseHp,  enemyBaseMax,  '#F85149');
+
+    // Coin drops
+    for (const c of coinDrops) {
+      ctx.fillStyle = `rgba(252,211,77,${Math.max(0, c.t)})`;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Units
     for (const u of units) drawUnit(u);
@@ -407,44 +693,116 @@ const AgeOfWarGame = (() => {
     // Projectiles
     for (const p of projectiles) drawProjectile(p);
 
-    // Floaters
-    for (const f of goldFloaters) {
+    // Muzzle flashes
+    for (const m of muzzleFlashes) {
+      ctx.fillStyle = `rgba(255,220,120,${m.t / 0.12 * 0.9})`;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 6 + (0.12 - m.t) * 40, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Strikes
+    for (const s of strikes) {
+      if (s.delay > 0) continue;
+      if (s.exploded) {
+        const k = 1 - s.explodeT / 0.4;
+        ctx.fillStyle = `rgba(255,140,60,${(1 - k) * 0.9})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.targetY, 18 + k * 50, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(255,240,180,${(1 - k) * 0.7})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.targetY, 8 + k * 20, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = s.color || '#ccc';
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(s.icon, s.x, s.y);
+        // motion trail
+        ctx.strokeStyle = 'rgba(255,200,120,0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(s.x, s.y - 20); ctx.lineTo(s.x, s.y - 60); ctx.stroke();
+      }
+    }
+
+    // Damage floaters
+    for (const f of dmgFloaters) {
       ctx.fillStyle = f.color;
-      ctx.font = `700 14px 'JetBrains Mono', monospace`;
+      ctx.globalAlpha = Math.max(0, f.t / 0.9);
+      ctx.font = `700 13px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
-      ctx.globalAlpha = Math.max(0, f.t / 1.4);
-      ctx.fillText(f.text, f.x, f.y);
+      ctx.fillText('-' + f.amount, f.x, f.y);
       ctx.globalAlpha = 1;
+    }
+
+    // Age flash overlay
+    if (ageFlash > 0) {
+      ctx.fillStyle = `rgba(252,211,77,${ageFlash * 0.4})`;
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
     }
   }
 
-  function drawBase(x, color, icon, side) {
-    // Castle silhouette: body + battlements + flag
+  function drawCloud(x, y, r) {
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.7, y + 4, r * 0.8, 0, Math.PI * 2);
+    ctx.arc(x - r * 0.7, y + 6, r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawBase(x, color, icon) {
+    // Castle silhouette: body + battlements + flag pole
     ctx.fillStyle = color;
-    ctx.fillRect(x, GROUND_Y - 72, BASE_W, 72);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(x, GROUND_Y - 12, BASE_W, 12);
-    // Battlements
+    ctx.fillRect(x, GROUND_Y - 80, BASE_W, 80);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(x, GROUND_Y - 14, BASE_W, 14);
     ctx.fillStyle = color;
-    for (let i = 0; i < 5; i++) {
-      const bw = (BASE_W - 10) / 5 - 2;
-      ctx.fillRect(x + 5 + i * (bw + 2), GROUND_Y - 84, bw, 12);
+    for (let i = 0; i < 6; i++) {
+      const bw = (BASE_W - 10) / 6 - 2;
+      ctx.fillRect(x + 5 + i * (bw + 2), GROUND_Y - 92, bw, 12);
     }
-    // Door
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(x + BASE_W / 2 - 12, GROUND_Y - 36, 24, 36);
+    ctx.fillRect(x + BASE_W / 2 - 14, GROUND_Y - 42, 28, 42);
+    // Flag pole
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x + BASE_W / 2 - 1, GROUND_Y - 130, 2, 36);
+    ctx.fillStyle = color;
+    ctx.fillRect(x + BASE_W / 2 + 1, GROUND_Y - 128, 16, 10);
     // Era icon over the base
-    ctx.font = '22px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
-    ctx.fillText(icon, x + BASE_W / 2, GROUND_Y - 100);
+    ctx.fillText(icon, x + BASE_W / 2, GROUND_Y - 110);
+  }
+
+  function drawTurrets(baseX, slots) {
+    // 4 small turret silhouettes evenly on the rampart top
+    for (let i = 0; i < TURRET_SLOTS; i++) {
+      const t = slots[i];
+      const x = baseX + 12 + (i + 0.5) * ((BASE_W - 24) / TURRET_SLOTS);
+      const y = GROUND_Y - 96;
+      if (!t) {
+        // empty slot
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(x - 5, y, 10, 4);
+        continue;
+      }
+      // turret base
+      ctx.fillStyle = t.color || '#999';
+      ctx.fillRect(x - 6, y - 8, 12, 12);
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(t.icon, x, y - 2);
+    }
   }
 
   function drawBaseHpBar(baseX, hp, max, color) {
-    const x = baseX, y = GROUND_Y - 124;
-    const w = BASE_W, h = 7;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    const x = baseX, y = GROUND_Y - 144;
+    const w = BASE_W, h = 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.fillRect(x, y, w, h);
     const pct = Math.max(0, hp / max);
     ctx.fillStyle = color;
@@ -455,27 +813,83 @@ const AgeOfWarGame = (() => {
     ctx.fillText(Math.max(0, Math.floor(hp)) + ' / ' + max, x + w / 2, y - 3);
   }
 
+  // ---- Unit silhouettes ----
   function drawUnit(u) {
-    const y = GROUND_Y - u.h;
+    const y = GROUND_Y - u.h - u.yOffset;
+    const facing = u.side === 'player' ? 1 : -1;
     // Body
-    ctx.fillStyle = u.hitFlash > 0 ? '#fff' : u.color;
-    ctx.fillRect(u.x - u.w / 2, y, u.w, u.h);
-    // Head/icon
-    ctx.font = '14px sans-serif';
+    const bodyColor = u.hitFlash > 0 ? '#fff' : u.color;
+    ctx.save();
+
+    if (u.silhouette === 'vehicle') {
+      // Tank-like: chassis + small turret
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(u.x - u.w / 2, y + 10, u.w, u.h - 14);
+      // Tracks
+      ctx.fillStyle = '#222';
+      ctx.fillRect(u.x - u.w / 2 - 2, y + u.h - 8, u.w + 4, 6);
+      // Turret cap
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(u.x - u.w / 4, y, u.w / 2, 12);
+      // Gun barrel
+      ctx.fillStyle = '#333';
+      if (facing > 0) ctx.fillRect(u.x, y + 4, u.w / 2 + 4, 3);
+      else            ctx.fillRect(u.x - u.w / 2 - 4, y + 4, u.w / 2 + 4, 3);
+    } else if (u.silhouette === 'flier') {
+      // Hover disc
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.ellipse(u.x, y + u.h * 0.4, u.w * 0.8, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Dome
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(u.x, y + u.h * 0.25, 6, Math.PI, Math.PI * 2);
+      ctx.fill();
+    } else if (u.silhouette === 'beast') {
+      // Lower wider body + small head bump
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(u.x - u.w / 2, y + 4, u.w, u.h - 4);
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(u.x - 6, y - 4, 12, 10);
+    } else {
+      // Humanoid: legs + torso + head with simple walk cycle
+      const swing = Math.sin(u.walkPhase) * 3;
+      ctx.fillStyle = '#222';
+      ctx.fillRect(u.x - 5, y + u.h - 10, 4, 10 + swing);
+      ctx.fillRect(u.x + 1, y + u.h - 10, 4, 10 - swing);
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(u.x - u.w / 2 + 2, y + 6, u.w - 4, u.h - 18);
+      // head
+      ctx.fillStyle = '#f0c089';
+      ctx.beginPath();
+      ctx.arc(u.x, y + 4, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      // weapon hint
+      ctx.fillStyle = '#222';
+      if (u.range > 60) {
+        // long rifle/bow
+        ctx.fillRect(u.x + facing * 3, y + 10, facing * 10, 2);
+      } else {
+        ctx.fillRect(u.x + facing * 3, y + 8, facing * 7, 3);
+      }
+    }
+    ctx.restore();
+
+    // Icon overhead (small)
+    ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fillText(u.icon, u.x, y - 8);
-    // Direction marker (thin dark stripe on the front)
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    if (u.side === 'player') ctx.fillRect(u.x + u.w / 2 - 3, y + 2, 3, u.h - 4);
-    else                     ctx.fillRect(u.x - u.w / 2,     y + 2, 3, u.h - 4);
+
     // HP bar
-    const barW = u.w + 4;
+    const barW = u.w + 6;
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(u.x - barW / 2, y - 6, barW, 3);
+    ctx.fillRect(u.x - barW / 2, y - 18, barW, 3);
     const pct = Math.max(0, u.hp / u.hpMax);
     ctx.fillStyle = u.side === 'player' ? '#3FB950' : '#F85149';
-    ctx.fillRect(u.x - barW / 2 + 0.5, y - 5.5, (barW - 1) * pct, 2);
+    ctx.fillRect(u.x - barW / 2 + 0.5, y - 17.5, (barW - 1) * pct, 2);
   }
 
   function drawProjectile(p) {
@@ -483,11 +897,18 @@ const AgeOfWarGame = (() => {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
     ctx.fill();
+    // small trail
+    ctx.strokeStyle = 'rgba(252,211,77,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p.x - Math.sign(p.vx) * 8, p.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
   }
 
-  // ---- HUD + spawn panel (DOM) ----
+  // ---- HUD + panels ----
   function renderHud() {
-    const eraEl = document.getElementById('aow-era');
+    const eraEl  = document.getElementById('aow-era');
     const goldEl = document.getElementById('aow-gold');
     const xpEl   = document.getElementById('aow-xp');
     const xpBar  = document.getElementById('aow-xp-bar');
@@ -518,12 +939,33 @@ const AgeOfWarGame = (() => {
       }
     }
     if (specEl) {
+      const spec = ERAS[playerEra].special;
       if (specialReadyT > 0) {
-        specEl.textContent = `💥 Air Strike (${Math.ceil(specialReadyT)}s)`;
+        specEl.textContent = `${spec.icon} ${spec.name} (${Math.ceil(specialReadyT)}s)`;
         specEl.disabled = true;
       } else {
-        specEl.textContent = '💥 Air Strike — READY';
+        specEl.textContent = `${spec.icon} ${spec.name} — READY`;
         specEl.disabled = false;
+      }
+    }
+
+    // Live cooldown bars on spawn buttons
+    const list = document.getElementById('aow-spawn-list');
+    if (list) {
+      let i = 0;
+      for (let e = 0; e <= playerEra; e++) {
+        for (const key of unitsForEra(e)) {
+          const def = UNITS[key];
+          const btn = list.children[i];
+          if (btn) {
+            const cd = spawnCooldowns[key] || 0;
+            const cdMax = Math.max(0.4, def.cost / 600);
+            btn.style.setProperty('--aow-cd', cd > 0 ? ((1 - cd / cdMax) * 100) + '%' : '100%');
+            btn.classList.toggle('aow-not-afford', gold < def.cost);
+            btn.classList.toggle('aow-on-cd', cd > 0);
+          }
+          i++;
+        }
       }
     }
   }
@@ -546,12 +988,42 @@ const AgeOfWarGame = (() => {
             <span class="aow-spawn-stats">HP ${def.hp} · DMG ${def.dmg}</span>
           </span>
           <span class="aow-spawn-cost">$${def.cost}</span>
+          <span class="aow-spawn-cd"></span>
         `;
         btn.onclick = () => tryPlayerSpawn(key);
         list.appendChild(btn);
         idx++;
       }
     }
+  }
+
+  function renderTurretPanel() {
+    const list = document.getElementById('aow-turret-list');
+    if (!list) return;
+    list.innerHTML = '';
+    for (let i = 0; i < TURRET_SLOTS; i++) {
+      const current = playerTurrets[i];
+      const next = current ? Math.min(playerEra, current.era + 1) : 0;
+      const nextDef = (!current || current.era < playerEra) ? TURRETS[next] : null;
+      const slot = document.createElement('div');
+      slot.className = 'aow-turret-slot';
+      if (current) {
+        slot.innerHTML = `
+          <span class="aow-turret-current">${current.icon}<small>${current.name}</small></span>
+          ${nextDef ? `<button class="aow-turret-buy" data-slot="${i}" data-era="${next}">⬆️ ${nextDef.icon} $${nextDef.cost}</button>` : '<span class="aow-turret-maxed">MAX</span>'}
+        `;
+      } else {
+        const def = TURRETS[Math.min(playerEra, TURRETS.length - 1)];
+        slot.innerHTML = `
+          <span class="aow-turret-empty">empty slot</span>
+          <button class="aow-turret-buy" data-slot="${i}" data-era="${Math.min(playerEra, TURRETS.length - 1)}">${def.icon} ${def.name} · $${def.cost}</button>
+        `;
+      }
+      list.appendChild(slot);
+    }
+    list.querySelectorAll('.aow-turret-buy').forEach(b => {
+      b.addEventListener('click', () => tryBuyTurret(+b.dataset.slot, +b.dataset.era));
+    });
   }
 
   // ---- Overlay ----
