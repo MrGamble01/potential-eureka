@@ -98,7 +98,11 @@ const AgeOfWarGame = (() => {
   let strikes = [];                // air-strike effects (meteor / arrows / bombs)
   let coinDrops = [];              // visual coins after kills
   let ageFlash = 0;                // 1 → 0 right after aging up
+  let ageBannerT = 0;              // seconds banner stays visible
+  let ageBannerText = '';
   let bgClouds = [];               // parallax cloud x positions
+  let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
+  let particles = [];              // { x, y, vx, vy, color, life, size }
   let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
   let enemyTurrets  = [null, null, null, null];
 
@@ -227,6 +231,10 @@ const AgeOfWarGame = (() => {
     strikes = [];
     coinDrops = [];
     ageFlash = 0;
+    ageBannerT = 0;
+    ageBannerText = '';
+    deadUnits = [];
+    particles = [];
     playerTurrets = [null, null, null, null];
     enemyTurrets  = [null, null, null, null];
     // Initial units so the battlefield isn't empty when you arrive.
@@ -290,6 +298,23 @@ const AgeOfWarGame = (() => {
     playerBaseHp = Math.min(playerBaseMax, playerBaseHp + hpBoost);
     SFX.ageUp();
     ageFlash = 1;
+    const e = ERAS[playerEra];
+    ageBannerText = `Welcome to the ${e.name}`;
+    ageBannerT = 2.4;
+    // Confetti-ish particle burst as celebration
+    for (let i = 0; i < 26; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
+      const spd = 120 + Math.random() * 220;
+      particles.push({
+        x: PLAYER_BASE_X + BASE_W / 2,
+        y: GROUND_Y - 80,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        color: ['#fcd34d', '#3FB950', '#58A6FF', '#F778BA'][i % 4],
+        size: 2 + Math.random() * 3,
+        life: 1.4 + Math.random() * 0.6,
+      });
+    }
     renderHud();
     renderSpawnPanel();
     renderTurretPanel();
@@ -545,16 +570,54 @@ const AgeOfWarGame = (() => {
     for (const u of units) {
       if (u.hp <= 0 && !u._dead) {
         u._dead = true;
+        // Toppling corpse: rotates and fades over ~0.8s
+        deadUnits.push({
+          x: u.x, y: GROUND_Y - u.h - u.yOffset,
+          w: u.w, h: u.h, color: u.color,
+          dir: u.side === 'player' ? 1 : -1,
+          rot: 0, t: 0.9,
+        });
+        // Burst of body-color particles
+        for (let i = 0; i < 8; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 60 + Math.random() * 90;
+          particles.push({
+            x: u.x, y: GROUND_Y - u.h * 0.5 - u.yOffset,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd - 40,
+            color: u.color,
+            size: 2 + Math.random() * 2,
+            life: 0.5 + Math.random() * 0.4,
+          });
+        }
         if (u.side === 'enemy') {
           gold += u.gold;
           xp += u.xp;
-          // Drop coins that animate up then auto-collect
           dropCoins(u.x, GROUND_Y - u.h, u.gold);
           SFX.kill();
         }
       }
     }
     units = units.filter(u => !u._dead);
+
+    // Tick dead bodies (topple + fade)
+    for (const d of deadUnits) {
+      d.t -= dt;
+      d.rot += d.dir * dt * 5;
+    }
+    deadUnits = deadUnits.filter(d => d.t > 0);
+
+    // Tick particles
+    for (const p of particles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 220 * dt;        // gravity
+      p.life -= dt;
+    }
+    particles = particles.filter(p => p.life > 0);
+
+    // Age banner tick
+    if (ageBannerT > 0) ageBannerT -= dt;
 
     // Floater + coin tick
     for (const f of dmgFloaters) { f.t -= dt; f.y -= 28 * dt; }
@@ -687,8 +750,29 @@ const AgeOfWarGame = (() => {
       ctx.fill();
     }
 
+    // Toppling corpses (behind live units so survivors march "over" them)
+    for (const d of deadUnits) {
+      const alpha = Math.max(0, d.t / 0.9);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(d.x, d.y + d.h);
+      ctx.rotate(d.rot);
+      ctx.fillStyle = d.color;
+      ctx.fillRect(-d.w / 2, -d.h, d.w, d.h);
+      ctx.restore();
+    }
+
     // Units
     for (const u of units) drawUnit(u);
+
+    // Particles (over units so explosions read clearly)
+    for (const p of particles) {
+      const a = Math.max(0, Math.min(1, p.life * 1.5));
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = a;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      ctx.globalAlpha = 1;
+    }
 
     // Projectiles
     for (const p of projectiles) drawProjectile(p);
@@ -741,6 +825,32 @@ const AgeOfWarGame = (() => {
     if (ageFlash > 0) {
       ctx.fillStyle = `rgba(252,211,77,${ageFlash * 0.4})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    }
+
+    // Era-up cinematic banner
+    if (ageBannerT > 0) {
+      const k = Math.min(1, (2.4 - ageBannerT) / 0.4);   // slide in
+      const fade = ageBannerT < 0.6 ? ageBannerT / 0.6 : 1;
+      const y = HEIGHT / 2 - 60 + (1 - k) * 30;
+      ctx.save();
+      ctx.globalAlpha = fade;
+      // Backing
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, y - 6, WIDTH, 72);
+      // Top + bottom borders
+      const grad = ctx.createLinearGradient(0, y, WIDTH, y);
+      grad.addColorStop(0,    'rgba(252,211,77,0)');
+      grad.addColorStop(0.5,  'rgba(252,211,77,0.9)');
+      grad.addColorStop(1,    'rgba(252,211,77,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, y - 6, WIDTH, 2);
+      ctx.fillRect(0, y + 64, WIDTH, 2);
+      // Text
+      ctx.font = `800 28px 'Inter', sans-serif`;
+      ctx.fillStyle = '#fcd34d';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(ageBannerText, WIDTH / 2, y + 32);
+      ctx.restore();
     }
   }
 
