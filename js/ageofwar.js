@@ -666,10 +666,10 @@ const AgeOfWarGame = (() => {
     ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
 
-    // Bases
-    drawBase(PLAYER_BASE_X, era.baseColor, era.icon);
+    // Bases (per-era art)
+    drawBase(PLAYER_BASE_X, era.baseColor, era.icon, playerEra);
     const eEra = ERAS[enemyEra];
-    drawBase(ENEMY_BASE_X, eEra.baseColor, eEra.icon);
+    drawBase(ENEMY_BASE_X, eEra.baseColor, eEra.icon, enemyEra);
 
     // Turrets (player + enemy) — small icons on the base ramparts
     drawTurrets(PLAYER_BASE_X, playerTurrets);
@@ -753,29 +753,179 @@ const AgeOfWarGame = (() => {
     ctx.fill();
   }
 
-  function drawBase(x, color, icon) {
-    // Castle silhouette: body + battlements + flag pole
+  function drawBase(x, color, icon, eraIdx) {
+    // Dispatch to era-specific art so each side reflects its era.
+    if (eraIdx === undefined) eraIdx = 0;
+    switch (eraIdx) {
+      case 0: drawBaseStone(x, color); break;
+      case 1: drawBaseMedieval(x, color); break;
+      case 2: drawBaseIndustrial(x, color); break;
+      case 3: drawBaseModern(x, color); break;
+      case 4: drawBaseFuture(x, color); break;
+      default: drawBaseMedieval(x, color);
+    }
+    // Era icon flag
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x + BASE_W / 2 - 1, GROUND_Y - 132, 2, 38);
+    ctx.fillStyle = color;
+    ctx.fillRect(x + BASE_W / 2 + 1, GROUND_Y - 130, 18, 12);
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(icon, x + BASE_W / 2, GROUND_Y - 112);
+  }
+
+  function drawBaseStone(x, color) {
+    // Wooden palisade — vertical sharpened logs
+    ctx.fillStyle = color;
+    ctx.fillRect(x, GROUND_Y - 60, BASE_W, 60);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(x, GROUND_Y - 8, BASE_W, 8);
+    const logs = 10;
+    for (let i = 0; i < logs; i++) {
+      const lw = (BASE_W - 6) / logs - 1;
+      const lx = x + 3 + i * (lw + 1);
+      ctx.fillStyle = color;
+      ctx.fillRect(lx, GROUND_Y - 78, lw, 18);
+      // Pointed top
+      ctx.fillStyle = '#3a2a1a';
+      ctx.beginPath();
+      ctx.moveTo(lx, GROUND_Y - 78);
+      ctx.lineTo(lx + lw / 2, GROUND_Y - 86);
+      ctx.lineTo(lx + lw, GROUND_Y - 78);
+      ctx.fill();
+    }
+    // Cave-mouth door
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.arc(x + BASE_W / 2, GROUND_Y - 20, 16, Math.PI, 0);
+    ctx.lineTo(x + BASE_W / 2 + 16, GROUND_Y);
+    ctx.lineTo(x + BASE_W / 2 - 16, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawBaseMedieval(x, color) {
+    // Castle: body + battlements + portcullis
     ctx.fillStyle = color;
     ctx.fillRect(x, GROUND_Y - 80, BASE_W, 80);
+    // Stone-block hatching
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    for (let r = 0; r < 5; r++) {
+      const yy = GROUND_Y - 80 + r * 16;
+      ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + BASE_W, yy); ctx.stroke();
+    }
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.fillRect(x, GROUND_Y - 14, BASE_W, 14);
+    // Battlements
     ctx.fillStyle = color;
     for (let i = 0; i < 6; i++) {
       const bw = (BASE_W - 10) / 6 - 2;
       ctx.fillRect(x + 5 + i * (bw + 2), GROUND_Y - 92, bw, 12);
     }
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    // Portcullis
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(x + BASE_W / 2 - 14, GROUND_Y - 42, 28, 42);
-    // Flag pole
-    ctx.fillStyle = '#888';
-    ctx.fillRect(x + BASE_W / 2 - 1, GROUND_Y - 130, 2, 36);
+    ctx.strokeStyle = '#444';
+    for (let i = 1; i < 4; i++) {
+      ctx.beginPath(); ctx.moveTo(x + BASE_W / 2 - 14 + i * 7, GROUND_Y - 42); ctx.lineTo(x + BASE_W / 2 - 14 + i * 7, GROUND_Y); ctx.stroke();
+    }
+  }
+
+  function drawBaseIndustrial(x, color) {
+    // Brick factory: tall chimney + smoke
     ctx.fillStyle = color;
-    ctx.fillRect(x + BASE_W / 2 + 1, GROUND_Y - 128, 16, 10);
-    // Era icon over the base
-    ctx.font = '20px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillRect(x, GROUND_Y - 70, BASE_W, 70);
+    // Brick pattern
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    for (let r = 0; r < 6; r++) {
+      const yy = GROUND_Y - 70 + r * 11;
+      const offset = (r % 2) * 8;
+      for (let cx = -8; cx < BASE_W; cx += 16) {
+        ctx.fillRect(x + cx + offset, yy + 4, 14, 1);
+      }
+    }
+    // Chimney
+    ctx.fillStyle = '#3a2a22';
+    ctx.fillRect(x + BASE_W - 24, GROUND_Y - 110, 16, 40);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + BASE_W - 25, GROUND_Y - 110, 18, 4);
+    // Smoke puffs
+    ctx.fillStyle = 'rgba(120,120,120,0.45)';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(x + BASE_W - 16 + Math.sin(performance.now() / 400 + i) * 6, GROUND_Y - 124 - i * 10, 6 + i * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Iron door
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + 16, GROUND_Y - 38, 26, 38);
+    // Windows
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = '#fcd34d';
+      ctx.fillRect(x + 14 + i * 22, GROUND_Y - 62, 8, 8);
+    }
+  }
+
+  function drawBaseModern(x, color) {
+    // Concrete bunker: low, wide, with sandbags
+    ctx.fillStyle = color;
+    ctx.fillRect(x, GROUND_Y - 60, BASE_W, 60);
+    // Sloped roof
+    ctx.fillStyle = '#7a8a85';
+    ctx.beginPath();
+    ctx.moveTo(x - 4, GROUND_Y - 60);
+    ctx.lineTo(x + BASE_W + 4, GROUND_Y - 60);
+    ctx.lineTo(x + BASE_W - 10, GROUND_Y - 80);
+    ctx.lineTo(x + 10, GROUND_Y - 80);
+    ctx.closePath();
+    ctx.fill();
+    // Slit windows
+    ctx.fillStyle = '#222';
+    for (let i = 0; i < 3; i++) ctx.fillRect(x + 18 + i * 28, GROUND_Y - 36, 16, 6);
+    // Sandbags
+    ctx.fillStyle = '#8a7a55';
+    for (let i = 0; i < 7; i++) {
+      const sx = x - 4 + i * 16;
+      ctx.beginPath();
+      ctx.ellipse(sx, GROUND_Y - 4, 9, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Door
+    ctx.fillStyle = '#1a2418';
+    ctx.fillRect(x + BASE_W / 2 - 10, GROUND_Y - 30, 20, 30);
+  }
+
+  function drawBaseFuture(x, color) {
+    // Sleek tech tower: gradient + glowing core
+    const grad = ctx.createLinearGradient(x, GROUND_Y - 90, x, GROUND_Y);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, '#1a2050');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x + 6, GROUND_Y - 90, BASE_W - 12, 90);
+    // Antenna spire
+    ctx.fillStyle = color;
+    ctx.fillRect(x + BASE_W / 2 - 1, GROUND_Y - 116, 2, 26);
+    ctx.fillStyle = '#ff6b35';
+    ctx.beginPath(); ctx.arc(x + BASE_W / 2, GROUND_Y - 118, 3, 0, Math.PI * 2); ctx.fill();
+    // Glowing core
+    const pulse = 0.7 + Math.sin(performance.now() / 300) * 0.3;
+    ctx.fillStyle = `rgba(110, 196, 255, ${pulse})`;
+    ctx.beginPath();
+    ctx.arc(x + BASE_W / 2, GROUND_Y - 56, 14, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#fff';
-    ctx.fillText(icon, x + BASE_W / 2, GROUND_Y - 110);
+    ctx.beginPath();
+    ctx.arc(x + BASE_W / 2, GROUND_Y - 56, 6, 0, Math.PI * 2);
+    ctx.fill();
+    // Side panels with vertical lights
+    ctx.fillStyle = '#6ec4ff';
+    for (let i = 0; i < 4; i++) {
+      ctx.fillRect(x + 12 + i * 22, GROUND_Y - 86, 2, 64);
+    }
+    // Hover gap glow at base
+    ctx.fillStyle = 'rgba(110, 196, 255, 0.45)';
+    ctx.fillRect(x + 4, GROUND_Y - 4, BASE_W - 8, 4);
   }
 
   function drawTurrets(baseX, slots) {
