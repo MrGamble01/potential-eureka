@@ -344,6 +344,8 @@ const AgeOfWarGame = (() => {
       });
     }
     SFX.special();
+    // Screen-flash for impact
+    ageFlash = Math.max(ageFlash, 0.7);
     specialReadyT = specialCooldownMax;
     renderHud();
   }
@@ -560,6 +562,19 @@ const AgeOfWarGame = (() => {
         // Also damages base if very close
         if (s.side === 'player' && Math.abs(s.x - (ENEMY_BASE_X + BASE_W / 2)) < BASE_W) {
           enemyBaseHp -= s.dmgEach * 0.5;
+        }
+        // Explosion fragment particles
+        for (let i = 0; i < 14; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const sp = 120 + Math.random() * 240;
+          particles.push({
+            x: s.x, y: s.targetY,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp - 60,
+            color: i % 3 === 0 ? '#ff8a4a' : i % 3 === 1 ? '#fcd34d' : '#ddd',
+            size: 2 + Math.random() * 3,
+            life: 0.6 + Math.random() * 0.5,
+          });
         }
       }
       if (s.exploded) s.explodeT -= dt;
@@ -1146,23 +1161,94 @@ const AgeOfWarGame = (() => {
       ctx.fillStyle = bodyColor;
       ctx.fillRect(u.x - 6, y - 4, 12, 10);
     } else {
-      // Humanoid: legs + torso + head with simple walk cycle
+      // Humanoid — era-specific silhouette details
       const swing = Math.sin(u.walkPhase) * 3;
-      ctx.fillStyle = '#222';
+      const era = UNITS[u.key] ? UNITS[u.key].era : 0;
+      // Legs
+      ctx.fillStyle = era >= 3 ? '#2a3320' : '#222';
       ctx.fillRect(u.x - 5, y + u.h - 10, 4, 10 + swing);
       ctx.fillRect(u.x + 1, y + u.h - 10, 4, 10 - swing);
+      // Torso
       ctx.fillStyle = bodyColor;
       ctx.fillRect(u.x - u.w / 2 + 2, y + 6, u.w - 4, u.h - 18);
-      // head
-      ctx.fillStyle = '#f0c089';
-      ctx.beginPath();
-      ctx.arc(u.x, y + 4, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-      // weapon hint
-      ctx.fillStyle = '#222';
+      // Era-specific armor/clothing detail
+      if (era === 1) {
+        // Medieval: square shoulder pauldrons
+        ctx.fillStyle = '#dadce0';
+        ctx.fillRect(u.x - u.w / 2 + 1, y + 5, 4, 5);
+        ctx.fillRect(u.x + u.w / 2 - 5, y + 5, 4, 5);
+      } else if (era === 2) {
+        // Industrial: cross-belt / brown vest
+        ctx.fillStyle = '#4a3528';
+        ctx.fillRect(u.x - u.w / 2 + 2, y + 10, u.w - 4, 3);
+      } else if (era === 3) {
+        // Modern: tactical chest stripe + pocket
+        ctx.fillStyle = '#3a4a30';
+        ctx.fillRect(u.x - u.w / 2 + 2, y + 8, u.w - 4, 4);
+        ctx.fillStyle = '#2a3520';
+        ctx.fillRect(u.x - 2, y + 12, 4, 4);
+      } else if (era === 4) {
+        // Future: glowing accent lines
+        ctx.fillStyle = '#6ec4ff';
+        ctx.fillRect(u.x - u.w / 2 + 2, y + 8, u.w - 4, 1);
+        ctx.fillRect(u.x - u.w / 2 + 2, y + u.h - 22, u.w - 4, 1);
+      }
+      // Head + headwear
+      const headY = y + 4;
+      if (era === 0) {
+        // Caveman: shaggy hair
+        ctx.fillStyle = '#3a2818';
+        ctx.beginPath(); ctx.arc(u.x, headY - 1, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f0c089';
+        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4, 0, Math.PI * 2); ctx.fill();
+      } else if (era === 1) {
+        // Medieval: helmet
+        ctx.fillStyle = '#bcc4cc';
+        ctx.beginPath();
+        ctx.arc(u.x, headY, 5.5, Math.PI, 0);
+        ctx.lineTo(u.x + 5.5, headY + 3);
+        ctx.lineTo(u.x - 5.5, headY + 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#222';
+        ctx.fillRect(u.x - 4, headY, 8, 2);  // visor slit
+      } else if (era === 2) {
+        // Industrial: bowler / brown hat + face
+        ctx.fillStyle = '#f0c089';
+        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#3a2818';
+        ctx.fillRect(u.x - 5, headY - 3, 10, 2);
+        ctx.fillRect(u.x - 6, headY - 1, 12, 1);
+      } else if (era === 3) {
+        // Modern: combat helmet
+        ctx.fillStyle = '#f0c089';
+        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#3a4a30';
+        ctx.beginPath();
+        ctx.arc(u.x, headY - 1, 5.5, Math.PI, 0);
+        ctx.lineTo(u.x + 5.5, headY + 1);
+        ctx.lineTo(u.x - 5.5, headY + 1);
+        ctx.closePath();
+        ctx.fill();
+      } else if (era === 4) {
+        // Future: glowing visored helmet
+        ctx.fillStyle = '#222a44';
+        ctx.beginPath(); ctx.arc(u.x, headY, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#6ec4ff';
+        ctx.fillRect(u.x - 4, headY, 8, 2);
+        // antenna
+        ctx.fillStyle = '#6ec4ff';
+        ctx.fillRect(u.x - 0.5, headY - 9, 1, 4);
+      }
+      // Weapon (era-styled)
+      ctx.fillStyle = era >= 3 ? '#222831' : era >= 2 ? '#3a3a3a' : '#332218';
       if (u.range > 60) {
-        // long rifle/bow
-        ctx.fillRect(u.x + facing * 3, y + 10, facing * 10, 2);
+        ctx.fillRect(u.x + facing * 3, y + 10, facing * 11, era >= 2 ? 3 : 2);
+        if (era === 4) {
+          // Energy core glow at muzzle
+          ctx.fillStyle = '#6ec4ff';
+          ctx.fillRect(u.x + facing * 13, y + 10, facing * 2, 3);
+        }
       } else {
         ctx.fillRect(u.x + facing * 3, y + 8, facing * 7, 3);
       }
