@@ -124,8 +124,150 @@ const AgeOfWarGame = (() => {
   // Bonus multiplier: 1.0 at combo 0, +5% per kill stacking up to +200% (5x).
   function comboMult() { return Math.min(5, 1 + combo * 0.05); }
 
-  // ---- Run stats (shown on win/lose) ----
-  const runStats = { kills: 0, gold: 0, time: 0 };
+  // ---- Run stats (shown on win/lose + drive achievements) ----
+  const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
+
+  // ---- Achievements ----
+  // Persisted in localStorage across runs. Earned during play, toast
+  // pops in the corner. Full list lives in a modal.
+  const ACHIEVEMENTS = [
+    { id: 'first_blood',  icon: '⚔️',  title: 'First Blood',     desc: 'Kill an enemy unit.' },
+    { id: 'first_age',    icon: '🏰',  title: 'Evolving',         desc: 'Reach the Medieval Age.' },
+    { id: 'industrial',   icon: '🏭',  title: 'Industrialist',    desc: 'Reach the Industrial Age.' },
+    { id: 'modern',       icon: '🪖',  title: 'Modern Warfare',   desc: 'Reach the Modern Age.' },
+    { id: 'max_age',      icon: '🚀',  title: 'Singularity',      desc: 'Reach the Future Age.' },
+    { id: 'streak_10',    icon: '🔥',  title: 'Heating Up',       desc: '10-kill combo streak.' },
+    { id: 'streak_25',    icon: '💀',  title: 'Godlike',          desc: '25-kill combo streak.' },
+    { id: 'rich',         icon: '💰',  title: 'Tycoon',           desc: 'Hold $5,000 at once.' },
+    { id: 'turret_full',  icon: '🛡️',  title: 'Fortified',        desc: 'Fill all 4 turret slots.' },
+    { id: 'hero_summon',  icon: '🦸',  title: 'A Legend Arrives', desc: 'Summon your first Hero.' },
+    { id: 'special_5',    icon: '💥',  title: 'Pyromaniac',       desc: 'Cast 5 specials in one run.' },
+    { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
+    { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
+    { id: 'win_insane',   icon: '👑',  title: 'Unstoppable',      desc: 'Win on Insane.' },
+    { id: 'kill_100',     icon: '🧨',  title: 'Slayer',           desc: '100 kills in one run.' },
+    { id: 'collect_50',   icon: '🪙',  title: 'Collector',        desc: 'Click 50 coins in one run.' },
+  ];
+  let earnedAchievements = {};
+  function loadAchievements() {
+    try {
+      const raw = localStorage.getItem('aow-achievements');
+      earnedAchievements = raw ? JSON.parse(raw) : {};
+    } catch { earnedAchievements = {}; }
+  }
+  function saveAchievements() {
+    try { localStorage.setItem('aow-achievements', JSON.stringify(earnedAchievements)); } catch {}
+  }
+  function unlock(id) {
+    if (earnedAchievements[id]) return;
+    const a = ACHIEVEMENTS.find(x => x.id === id);
+    if (!a) return;
+    earnedAchievements[id] = Date.now();
+    saveAchievements();
+    showAchievementToast(a);
+    SFX.ageUp();
+  }
+  function showAchievementToast(a) {
+    const root = document.getElementById('aow-achievement-toasts');
+    if (!root) return;
+    const el = document.createElement('div');
+    el.className = 'aow-ach-toast';
+    el.innerHTML = `
+      <div class="aow-ach-toast-icon">${a.icon}</div>
+      <div class="aow-ach-toast-body">
+        <div class="aow-ach-toast-eyebrow">Achievement Unlocked</div>
+        <div class="aow-ach-toast-title">${a.title}</div>
+        <div class="aow-ach-toast-desc">${a.desc}</div>
+      </div>
+    `;
+    root.appendChild(el);
+    setTimeout(() => el.classList.add('out'), 3800);
+    setTimeout(() => el.remove(), 4200);
+  }
+  function checkAchievementsDuringRun() {
+    if (combo >= 10) unlock('streak_10');
+    if (combo >= 25) unlock('streak_25');
+    if (gold >= 5000) unlock('rich');
+    if (playerTurrets.every(t => t)) unlock('turret_full');
+    if (runStats.kills >= 100) unlock('kill_100');
+    if (runStats.coinsCollected >= 50) unlock('collect_50');
+    if (runStats.specialsFired >= 5) unlock('special_5');
+  }
+  function renderAchievementsModal() {
+    const list = document.getElementById('aow-ach-list');
+    const prog = document.getElementById('aow-ach-progress');
+    if (!list) return;
+    list.innerHTML = '';
+    let earned = 0;
+    for (const a of ACHIEVEMENTS) {
+      const got = !!earnedAchievements[a.id];
+      if (got) earned++;
+      const row = document.createElement('div');
+      row.className = 'aow-ach-row' + (got ? ' earned' : '');
+      row.innerHTML = `
+        <span class="aow-ach-row-icon">${a.icon}</span>
+        <div class="aow-ach-row-text">
+          <div class="aow-ach-row-title">${a.title}</div>
+          <div class="aow-ach-row-desc">${a.desc}</div>
+        </div>
+        ${got ? '<span class="aow-ach-row-check">✓</span>' : ''}
+      `;
+      list.appendChild(row);
+    }
+    if (prog) prog.textContent = `${earned} / ${ACHIEVEMENTS.length}`;
+  }
+
+  // ---- Hero summons ----
+  // One legendary unit per era, big cost + cooldown, dramatic entrance.
+  const HEROES = [
+    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', cost: 800,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 60 },
+    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', cost: 1800, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 70 },
+    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', cost: 4000, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 80 },
+    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', cost: 8500, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 90 },
+    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', cost: 18000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 110 },
+  ];
+  let heroReadyT = 0;   // seconds until current era's hero is available
+  let currentHeroCd = 0;
+
+  function heroForEra(era) { return HEROES[era]; }
+  function trySummonHero() {
+    if (gameOver) return;
+    const h = heroForEra(playerEra);
+    if (!h) return;
+    if (heroReadyT > 0) return;
+    if (gold < h.cost) return;
+    gold -= h.cost;
+    // Register a synthetic unit entry from the hero stats so the
+    // shared spawnUnit path covers it. Hero gets its own dispatch.
+    UNITS[h.key] = UNITS[h.key] || {
+      era: h.era, name: h.name, icon: h.icon, cost: h.cost,
+      hp: h.hp, dmg: h.dmg, range: h.range, atkSpd: h.atkSpd,
+      speed: h.speed, color: h.color, xp: h.xp, gold: h.gold,
+      silhouette: h.silhouette, isHero: true,
+    };
+    spawnUnit('player', h.key);
+    runStats.heroesSummoned++;
+    unlock('hero_summon');
+    heroReadyT = h.cd;
+    currentHeroCd = h.cd;
+    SFX.special();
+    shake(14, 0.5);
+    ageFlash = Math.max(ageFlash, 0.8);
+    // Spawn ring of light particles around the player base
+    for (let i = 0; i < 30; i++) {
+      const a = (i / 30) * Math.PI * 2;
+      particles.push({
+        x: PLAYER_BASE_X + BASE_W + 18,
+        y: GROUND_Y - 40,
+        vx: Math.cos(a) * 140,
+        vy: Math.sin(a) * 140,
+        color: '#fcd34d',
+        size: 3,
+        life: 0.7,
+      });
+    }
+    renderHud();
+  }
 
   // ---- Screen shake ----
   let shakeT = 0;
@@ -225,6 +367,7 @@ const AgeOfWarGame = (() => {
     } catch {}
     seedClouds();
     seedAmbient(0);
+    loadAchievements();
     reset();
     bindControls();
     cancelAnimationFrame(rafId);
@@ -374,6 +517,11 @@ const AgeOfWarGame = (() => {
     enemyTurrets  = [null, null, null, null];
     combo = 0; comboT = 0; comboBest = 0;
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
+    runStats.specialsFired = 0; runStats.coinsCollected = 0;
+    runStats.biggestCombo = 0; runStats.agesReached = 0;
+    runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
+    heroReadyT = 6;   // first summon available 6s in
+    currentHeroCd = HEROES[0].cd;
     shakeT = 0; shakeMag = 0;
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
@@ -435,6 +583,14 @@ const AgeOfWarGame = (() => {
     if (xp < need) return;
     xp -= need;
     playerEra++;
+    runStats.agesReached = Math.max(runStats.agesReached, playerEra);
+    if (playerEra === 1) unlock('first_age');
+    if (playerEra === 2) unlock('industrial');
+    if (playerEra === 3) unlock('modern');
+    if (playerEra === 4) unlock('max_age');
+    // New era → new hero costs/CD baseline
+    const h = heroForEra(playerEra);
+    if (h) { currentHeroCd = h.cd; heroReadyT = Math.min(heroReadyT, 10); }
     const hpBoost = 500;
     playerBaseMax += hpBoost;
     playerBaseHp = Math.min(playerBaseMax, playerBaseHp + hpBoost);
@@ -490,6 +646,7 @@ const AgeOfWarGame = (() => {
     // Screen-flash for impact + heavy shake
     ageFlash = Math.max(ageFlash, 0.7);
     shake(12, 0.35);
+    runStats.specialsFired++;
     specialReadyT = specialCooldownMax;
     renderHud();
   }
@@ -505,6 +662,7 @@ const AgeOfWarGame = (() => {
     if (gold < tdef.cost) return;
     gold -= tdef.cost;
     playerTurrets[slot] = { ...tdef, atkT: 0 };
+    runStats.turretsBuilt++;
     SFX.turret();
     renderHud();
     renderTurretPanel();
@@ -518,6 +676,23 @@ const AgeOfWarGame = (() => {
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
     if (specialBtn) specialBtn.onclick = fireSpecial;
+    const heroBtn = document.getElementById('aow-hero-btn');
+    if (heroBtn) heroBtn.onclick = trySummonHero;
+    const achBtn = document.getElementById('aow-ach-btn');
+    if (achBtn) achBtn.onclick = () => {
+      renderAchievementsModal();
+      const m = document.getElementById('aow-ach-modal');
+      if (m) m.style.display = 'flex';
+    };
+    const achClose = document.getElementById('aow-ach-close');
+    if (achClose) achClose.onclick = () => {
+      const m = document.getElementById('aow-ach-modal');
+      if (m) m.style.display = 'none';
+    };
+    const achModal = document.getElementById('aow-ach-modal');
+    if (achModal) achModal.addEventListener('click', e => {
+      if (e.target === achModal) achModal.style.display = 'none';
+    });
     // Click-to-collect coins. Map pointer event to canvas-internal
     // coords (canvas is responsive; rect may differ from intrinsic size).
     canvas.addEventListener('pointerdown', e => {
@@ -563,6 +738,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'q' || e.key === 'Q' || e.key === 'Tab') {
         ageUp();
+        e.preventDefault();
+      } else if (e.key === 'h' || e.key === 'H') {
+        trySummonHero();
         e.preventDefault();
       }
     });
@@ -804,6 +982,8 @@ const AgeOfWarGame = (() => {
           const mult = comboMult();
           xp += Math.round(u.xp * mult);
           runStats.kills++;
+          if (runStats.kills === 1) unlock('first_blood');
+          if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
           runStats.gold += u.gold * mult;
           dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
           SFX.kill();
@@ -868,8 +1048,15 @@ const AgeOfWarGame = (() => {
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
+      unlock('win_easy');
+      if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
+      if (difficulty === 'insane') unlock('win_insane');
       showOverlay(true);
     }
+
+    // Hero CD + achievement scans
+    if (heroReadyT > 0) heroReadyT = Math.max(0, heroReadyT - dt);
+    checkAchievementsDuringRun();
 
     renderHud();
   }
@@ -948,6 +1135,7 @@ const AgeOfWarGame = (() => {
     }
     if (collected > 0) {
       gold += collected;
+      runStats.coinsCollected += (arguments.length ? 1 : 1);  // bumped once per click batch
       goldFloaters.push({
         text: '+$' + collected, x: px, y: py - 14,
         color: '#fcd34d', t: 1.2,
@@ -2193,17 +2381,50 @@ const AgeOfWarGame = (() => {
   function drawUnit(u) {
     const y = GROUND_Y - u.h - u.yOffset;
     const facing = u.side === 'player' ? 1 : -1;
+    const isHero = u.key && u.key.startsWith('hero_');
     // Soft elliptical shadow grounds the unit
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
     ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.5, 3, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Hero gets a golden ground halo + larger scale
+    if (isHero) {
+      const pulse = 0.6 + Math.sin(performance.now() / 220) * 0.2;
+      const halo = ctx.createRadialGradient(u.x, GROUND_Y - u.h * 0.4, 4, u.x, GROUND_Y - u.h * 0.4, u.w * 1.6);
+      halo.addColorStop(0, `rgba(252,211,77,${pulse * 0.55})`);
+      halo.addColorStop(1, 'rgba(252,211,77,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(u.x, GROUND_Y - u.h * 0.4, u.w * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      // Ground rune ring
+      ctx.strokeStyle = `rgba(252,211,77,${pulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.7, 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     const bodyColor = u.hitFlash > 0 ? '#fff' : u.color;
     const walkSwing = Math.sin(u.walkPhase);
     ctx.save();
+    if (isHero) {
+      // Scale hero up ~25% for presence
+      ctx.translate(u.x, GROUND_Y);
+      ctx.scale(1.25, 1.25);
+      ctx.translate(-u.x, -GROUND_Y);
+    }
     const drawer = UNIT_DRAWERS[u.key] || drawGenericHumanoid;
     drawer(u, u.x, y, facing, walkSwing, bodyColor);
     ctx.restore();
+    // Hero name badge floating above
+    if (isHero) {
+      ctx.font = '700 11px JetBrains Mono, monospace';
+      ctx.fillStyle = '#fcd34d';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(252,211,77,0.5)'; ctx.shadowBlur = 8;
+      ctx.fillText('★ ' + u.name, u.x, y - 22);
+      ctx.shadowBlur = 0;
+    }
 
     // Icon overhead (small)
     ctx.font = '11px sans-serif';
@@ -2361,6 +2582,25 @@ const AgeOfWarGame = (() => {
       if (lbl) lbl.textContent = spec.name;
       if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
       specEl.disabled = specialReadyT > 0;
+    }
+
+    // Hero button
+    const heroBtn = document.getElementById('aow-hero-btn');
+    if (heroBtn) {
+      const h = heroForEra(playerEra);
+      const lbl = heroBtn.querySelector('.aow-action-lbl');
+      const ico = heroBtn.querySelector('.aow-action-ico');
+      const cdEl = document.getElementById('aow-hero-cd');
+      if (h) {
+        if (ico) ico.textContent = h.icon;
+        if (lbl) lbl.textContent = h.name;
+        if (cdEl) {
+          if (heroReadyT > 0) cdEl.textContent = `${Math.ceil(heroReadyT)}s`;
+          else if (gold < h.cost) cdEl.textContent = `$${h.cost}`;
+          else cdEl.textContent = `$${h.cost} · READY`;
+        }
+        heroBtn.disabled = heroReadyT > 0 || gold < h.cost;
+      }
     }
 
     // Live cooldown bars on spawn buttons

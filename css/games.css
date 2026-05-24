@@ -814,3 +814,189 @@ canvas.game-canvas {
   .aow-side-icon { width: 32px; height: 32px; font-size: 20px; }
   .aow-overlay h2 { font-size: 28px; }
 }
+
+/* ============================================
+   AGE OF WAR — Heroes / Achievements / Toasts
+   ============================================ */
+.aow-action-hero {
+  background: linear-gradient(135deg, rgba(252,211,77,0.20), rgba(255,107,53,0.16));
+  border-color: rgba(252,211,77,0.55);
+  color: #fcd34d;
+}
+.aow-action-hero:hover:not(:disabled) {
+  box-shadow: 0 0 22px rgba(252,211,77,0.45);
+}
+.aow-action-ach {
+  background: rgba(108,99,255,0.14);
+  border-color: rgba(108,99,255,0.45);
+  color: #cdd5ff;
+}
+.aow-action-ach:hover:not(:disabled) {
+  box-shadow: 0 0 18px rgba(108,99,255,0.4);
+}
+
+/* Floating achievement toasts (top-right) */
+.aow-achievement-toasts {
+  position: fixed;
+  top: 16px; right: 16px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none;
+}
+.aow-ach-toast {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, rgba(252,211,77,0.18), rgba(255,107,53,0.16));
+  border: 1px solid rgba(252,211,77,0.55);
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.55), 0 0 24px rgba(252,211,77,0.3);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  min-width: 280px;
+  max-width: 320px;
+  animation: aowAchSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.aow-ach-toast.out {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.aow-ach-toast-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.aow-ach-toast-body { flex: 1; min-width: 0; }
+.aow-ach-toast-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #fcd34d;
+  font-weight: 700;
+}
+.aow-ach-toast-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  margin-top: 1px;
+}
+.aow-ach-toast-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+@keyframes aowAchSlide {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Achievement modal */
+.aow-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 24px;
+}
+.aow-modal-card {
+  background: rgba(13,17,23,0.96);
+  border: 1px solid rgba(252,211,77,0.45);
+  border-radius: 14px;
+  padding: 22px 22px 16px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 36px rgba(252,211,77,0.18);
+}
+.aow-modal-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 14px;
+}
+.aow-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fcd34d;
+  flex: 1;
+}
+.aow-modal-prog {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.aow-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.aow-modal-close:hover { color: var(--text); }
+.aow-ach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+.aow-ach-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  opacity: 0.6;
+}
+.aow-ach-row.earned {
+  background: rgba(252,211,77,0.08);
+  border-color: rgba(252,211,77,0.4);
+  opacity: 1;
+}
+.aow-ach-row-icon {
+  font-size: 22px;
+  filter: grayscale(1) brightness(0.7);
+  width: 32px;
+  text-align: center;
+}
+.aow-ach-row.earned .aow-ach-row-icon { filter: none; }
+.aow-ach-row-text { flex: 1; }
+.aow-ach-row-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.aow-ach-row.earned .aow-ach-row-title { color: #fcd34d; }
+.aow-ach-row-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.aow-ach-row-check {
+  color: #3FB950;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .aow-actionbar { grid-template-columns: 1fr 1fr 1fr; }
+  .aow-action-restart, .aow-action-ach { grid-column: span 1; }
+}
+@media (max-width: 520px) {
+  .aow-actionbar { grid-template-columns: 1fr 1fr; }
+  .aow-ach-toast { min-width: 240px; max-width: calc(100vw - 32px); }
+}

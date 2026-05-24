@@ -116,6 +116,8 @@
       <div class="aow-actionbar">
         <button id="aow-ageup-btn" class="aow-action aow-action-age"><span class="aow-action-ico">⬆️</span><span class="aow-action-lbl">Age Up</span></button>
         <button id="aow-special-btn" class="aow-action aow-action-special"><span class="aow-action-ico">💥</span><span class="aow-action-lbl">Special</span><span class="aow-action-cd" id="aow-special-cd"></span></button>
+        <button id="aow-hero-btn" class="aow-action aow-action-hero"><span class="aow-action-ico">🦸</span><span class="aow-action-lbl">Hero</span><span class="aow-action-cd" id="aow-hero-cd"></span></button>
+        <button id="aow-ach-btn" class="aow-action aow-action-ach"><span class="aow-action-ico">🏅</span><span class="aow-action-lbl">Awards</span></button>
         <button id="aow-restart-btn" class="aow-action aow-action-restart"><span class="aow-action-ico">🔄</span><span class="aow-action-lbl">Restart</span></button>
       </div>
 
@@ -130,9 +132,24 @@
         <div id="aow-turret-list" class="aow-turret-list"></div>
       </div>
 
-      <div class="aow-hint"><strong>1–9</strong> spawn · <strong>Q</strong> age up · <strong>Space</strong> special · click coins to collect gold</div>
+      <div class="aow-hint"><strong>1–9</strong> spawn · <strong>Q</strong> age up · <strong>Space</strong> special · <strong>H</strong> summon hero · click coins to collect gold</div>
     </div>
   </section>
+
+  <!-- Floating achievement toasts -->
+  <div id="aow-achievement-toasts" class="aow-achievement-toasts"></div>
+
+  <!-- Achievements modal -->
+  <div id="aow-ach-modal" class="aow-modal" style="display:none">
+    <div class="aow-modal-card">
+      <div class="aow-modal-header">
+        <span class="aow-modal-title">🏅 Achievements</span>
+        <span class="aow-modal-prog" id="aow-ach-progress">0 / 0</span>
+        <button class="aow-modal-close" id="aow-ach-close" aria-label="Close">×</button>
+      </div>
+      <div class="aow-ach-list" id="aow-ach-list"></div>
+    </div>
+  </div>
 
   <!-- Minimal stub so ageofwar.js's Utils.store calls don't crash on the standalone page -->
   <script>
