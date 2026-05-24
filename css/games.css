@@ -1000,3 +1000,85 @@ canvas.game-canvas {
   .aow-actionbar { grid-template-columns: 1fr 1fr; }
   .aow-ach-toast { min-width: 240px; max-width: calc(100vw - 32px); }
 }
+
+/* Welcome modal */
+.aow-welcome-card {
+  max-width: 540px;
+  text-align: center;
+  border-color: rgba(252,211,77,0.5);
+}
+.aow-welcome-title {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #fcd34d;
+  text-shadow: 0 0 20px rgba(252,211,77,0.4);
+  margin-bottom: 4px;
+}
+.aow-welcome-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 22px;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+}
+.aow-welcome-steps {
+  display: flex; flex-direction: column; gap: 10px;
+  text-align: left;
+  margin-bottom: 20px;
+}
+.aow-welcome-step {
+  display: flex; align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.aow-welcome-step strong { color: var(--text); }
+.aow-welcome-step em { color: #fcd34d; font-style: normal; }
+.aow-welcome-num {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(252,211,77,0.15);
+  border: 1px solid rgba(252,211,77,0.5);
+  color: #fcd34d;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 50%;
+}
+.aow-welcome-step kbd {
+  display: inline-block;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+.aow-welcome-start {
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  color: #1a1208;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 12px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(252,211,77,0.4);
+  transition: transform 0.12s, box-shadow 0.2s;
+}
+.aow-welcome-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(252,211,77,0.55);
+}
+.aow-welcome-start:active { transform: translateY(0); }

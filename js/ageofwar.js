@@ -155,6 +155,24 @@ const AgeOfWarGame = (() => {
       earnedAchievements = raw ? JSON.parse(raw) : {};
     } catch { earnedAchievements = {}; }
   }
+  function maybeShowWelcome() {
+    let seen = false;
+    try { seen = localStorage.getItem('aow-welcome-seen') === '1'; } catch {}
+    if (seen) return;
+    const modal = document.getElementById('aow-welcome-modal');
+    const btn = document.getElementById('aow-welcome-close');
+    if (!modal || !btn) return;
+    modal.style.display = 'flex';
+    const close = () => {
+      modal.style.display = 'none';
+      try { localStorage.setItem('aow-welcome-seen', '1'); } catch {}
+    };
+    btn.addEventListener('click', close, { once: true });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (modal.style.display === 'none') { document.removeEventListener('keydown', onEsc); return; }
+      if (e.key === 'Escape' || e.key === 'Enter') { close(); document.removeEventListener('keydown', onEsc); }
+    });
+  }
   function saveAchievements() {
     try { localStorage.setItem('aow-achievements', JSON.stringify(earnedAchievements)); } catch {}
   }
@@ -370,6 +388,7 @@ const AgeOfWarGame = (() => {
     loadAchievements();
     reset();
     bindControls();
+    maybeShowWelcome();
     cancelAnimationFrame(rafId);
     lastFrame = performance.now();
     rafId = requestAnimationFrame(loop);
@@ -2354,6 +2373,308 @@ const AgeOfWarGame = (() => {
     ctx.shadowBlur = 0;
   };
 
+  // ---- Hero drawers (unique silhouettes per legendary unit) ----
+  const drawHeroGrog = (u, x, y, facing, walk, bodyColor) => {
+    // Mammoth-sized beast with rider
+    const gallop = Math.sin(u.walkPhase * 1.4) * 3;
+    // Tusks first (under)
+    ctx.fillStyle = '#f6e9c2';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.65, y + u.h * 0.55);
+    ctx.lineTo(x + facing * u.w * 0.92, y + u.h * 0.78);
+    ctx.lineTo(x + facing * u.w * 0.78, y + u.h * 0.60);
+    ctx.closePath();
+    ctx.fill();
+    // Body (shaggy brown)
+    ctx.fillStyle = '#5a3a22';
+    ctx.fillRect(x - u.w * 0.55, y + u.h * 0.4, u.w * 1.1, u.h * 0.35);
+    // Fur tufts
+    ctx.fillStyle = '#3a2812';
+    for (let i = -6; i <= 6; i++) {
+      ctx.fillRect(x + i * 4, y + u.h * 0.38, 3, 5);
+    }
+    // Head
+    ctx.fillStyle = '#5a3a22';
+    ctx.beginPath();
+    ctx.ellipse(x + facing * u.w * 0.5, y + u.h * 0.45, u.w * 0.25, u.h * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Trunk
+    ctx.strokeStyle = '#5a3a22';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.6, y + u.h * 0.50);
+    ctx.lineTo(x + facing * u.w * 0.78, y + u.h * 0.72);
+    ctx.lineTo(x + facing * u.w * 0.70, y + u.h * 0.85);
+    ctx.stroke();
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x + facing * u.w * 0.48, y + u.h * 0.42, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + facing * u.w * 0.48, y + u.h * 0.42, 1.5, 1.5);
+    // Legs
+    ctx.fillStyle = '#3a2812';
+    ctx.fillRect(x - u.w * 0.35, y + u.h * 0.75, 8, u.h * 0.25 + gallop);
+    ctx.fillRect(x + u.w * 0.10, y + u.h * 0.75, 8, u.h * 0.25 - gallop);
+    ctx.fillRect(x - u.w * 0.05, y + u.h * 0.75, 8, u.h * 0.25 - gallop);
+    ctx.fillRect(x + u.w * 0.30, y + u.h * 0.75, 8, u.h * 0.25 + gallop);
+    // Tribal rider on top
+    ctx.fillStyle = '#7a4222';
+    ctx.fillRect(x - 5, y + u.h * 0.20, 10, 14);
+    ctx.fillStyle = '#2a1808';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.18, 6, 0, Math.PI * 2);
+    ctx.fill();
+    // Spear
+    ctx.strokeStyle = '#5a3a18';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 6, y + u.h * 0.28);
+    ctx.lineTo(x + facing * 14, y + u.h * 0.05);
+    ctx.stroke();
+    ctx.fillStyle = '#aaa';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 14, y + u.h * 0.05);
+    ctx.lineTo(x + facing * 18, y + u.h * 0.02);
+    ctx.lineTo(x + facing * 13, y + u.h * 0.10);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  const drawHeroPaladin = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.1, facing, swing, bodyColor, {
+      skin: '#e8b48a',
+      pantsColor: '#444',
+      bootColor: '#222',
+      belt: '#8a6822',
+    });
+    // Pauldrons (large gold)
+    ctx.fillStyle = '#fcd34d';
+    ctx.fillRect(x - u.w * 0.42, y + base.headR * 2, 8, 6);
+    ctx.fillRect(x + u.w * 0.42 - 8, y + base.headR * 2, 8, 6);
+    // Cape (flowing)
+    ctx.fillStyle = '#c43972';
+    ctx.beginPath();
+    ctx.moveTo(x - facing * (u.w * 0.30), y + base.headR * 2);
+    ctx.lineTo(x - facing * (u.w * 0.55), y + u.h * 0.85);
+    ctx.lineTo(x - facing * (u.w * 0.15), y + u.h * 0.80);
+    ctx.closePath();
+    ctx.fill();
+    // Chest cross (gold)
+    ctx.strokeStyle = '#fcd34d';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y + base.headR * 2 + 4); ctx.lineTo(x, y + u.h * 0.55);
+    ctx.moveTo(x - 5, y + u.h * 0.30); ctx.lineTo(x + 5, y + u.h * 0.30);
+    ctx.stroke();
+    // Crowned helmet
+    ctx.fillStyle = '#bcc4cc';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY, base.headR + 2, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY + base.headR);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY + base.headR);
+    ctx.closePath();
+    ctx.fill();
+    // Helmet crown spikes (gold)
+    ctx.fillStyle = '#fcd34d';
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x + i * 4 - 1, base.headCenterY - base.headR - 1);
+      ctx.lineTo(x + i * 4 + 1, base.headCenterY - base.headR - 1);
+      ctx.lineTo(x + i * 4, base.headCenterY - base.headR - 5);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = '#0e1015';
+    ctx.fillRect(x - base.headR + 1, base.headCenterY - 1, base.headR * 2 - 2, 2);
+    // Shield (back arm)
+    ctx.fillStyle = '#dadce0';
+    ctx.beginPath();
+    ctx.arc(x - facing * (u.w * 0.3), y + u.h * 0.5, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fcd34d';
+    ctx.fillRect(x - facing * (u.w * 0.3) - 4, y + u.h * 0.5 - 1, 8, 2);
+    ctx.fillRect(x - facing * (u.w * 0.3) - 1, y + u.h * 0.5 - 4, 2, 8);
+    // Huge sword
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 6, y: base.handY - 3 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -1.4);
+      ctx.fillStyle = '#fcd34d';
+      ctx.fillRect(-7, -2, 14, 3);
+      const g = ctx.createLinearGradient(0, -30, 0, 0);
+      g.addColorStop(0, '#fff'); g.addColorStop(1, '#9aa1a8');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(-2.5, 0); ctx.lineTo(2.5, 0);
+      ctx.lineTo(1.5, -30); ctx.lineTo(0, -34); ctx.lineTo(-1.5, -30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  };
+
+  const drawHeroGeneral = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, {
+      skin: '#e0ad8a',
+      pantsColor: '#3a2818',
+      bootColor: '#1a1208',
+      belt: '#5a4022',
+    });
+    // Medal cluster on chest
+    ctx.fillStyle = '#fcd34d';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(x - 6 + i * 6, y + base.headR * 2 + 9, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Bicorne hat
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.moveTo(x - base.headR - 4, base.headCenterY - 3);
+    ctx.lineTo(x + base.headR + 4, base.headCenterY - 3);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY - 9);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY - 9);
+    ctx.closePath();
+    ctx.fill();
+    // Gold trim
+    ctx.fillStyle = '#fcd34d';
+    ctx.fillRect(x - base.headR - 4, base.headCenterY - 4, (base.headR + 4) * 2, 1);
+    // Saber + holster
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY - 2 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -0.8);
+      ctx.fillStyle = '#fcd34d';
+      ctx.fillRect(-3, -1, 6, 2);
+      ctx.fillStyle = '#cdd1d6';
+      ctx.beginPath();
+      ctx.moveTo(0, -1); ctx.lineTo(3, -1); ctx.lineTo(2, -24); ctx.lineTo(0, -26); ctx.lineTo(-1, -24); ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  };
+
+  const drawHeroSeal = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, {
+      skin: '#c08c70',
+      pantsColor: '#1a1a14',
+      bootColor: '#0a0a0a',
+      belt: '#2a2a1a',
+    });
+    // Full tactical mask
+    ctx.fillStyle = '#1a1a14';
+    ctx.beginPath(); ctx.arc(x, base.headCenterY, base.headR + 1, 0, Math.PI * 2); ctx.fill();
+    // Red goggles
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x - base.headR, base.headCenterY - 1, base.headR * 2, 3);
+    ctx.fillStyle = '#ff3333';
+    ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 6;
+    ctx.fillRect(x - base.headR + 1, base.headCenterY, base.headR - 1, 1);
+    ctx.fillRect(x + 1, base.headCenterY, base.headR - 1, 1);
+    ctx.shadowBlur = 0;
+    // Tac vest chest plate
+    ctx.fillStyle = '#0a1208';
+    ctx.fillRect(x - u.w * 0.25, y + base.headR * 2 + 4, u.w * 0.50, 6);
+    // Backpack
+    ctx.fillStyle = '#2a3520';
+    ctx.fillRect(x - facing * (u.w * 0.3), y + base.headR * 2 + 4, 4, 14);
+    // Heavy sniper rifle with bipod
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY + 1 }, bodyColor, (hx, hy) => {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(hx - facing * 6, hy - 1, facing * 36, 2.5);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx + facing * 8, hy - 5, facing * 14, 4);
+      // Laser dot trail
+      ctx.fillStyle = '#ff3333';
+      ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 4;
+      ctx.fillRect(hx + facing * 30, hy, facing * 2, 1);
+      ctx.shadowBlur = 0;
+      // Bipod
+      ctx.strokeStyle = '#0a0a0a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hx + facing * 26, hy + 1); ctx.lineTo(hx + facing * 26, hy + 8);
+      ctx.stroke();
+    });
+  };
+
+  const drawHeroTitan = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    // Massive bipedal mech
+    // Legs (heavy)
+    ctx.fillStyle = '#2a3a55';
+    ctx.fillRect(x - u.w * 0.32, y + u.h * 0.55, 10, u.h * 0.45 + swing);
+    ctx.fillRect(x + u.w * 0.20, y + u.h * 0.55, 10, u.h * 0.45 - swing);
+    // Feet
+    ctx.fillStyle = '#0a0a14';
+    ctx.fillRect(x - u.w * 0.38, y + u.h - 5, 18, 5);
+    ctx.fillRect(x + u.w * 0.14, y + u.h - 5, 18, 5);
+    // Torso (gradient)
+    const g = ctx.createLinearGradient(x - u.w / 2, y + u.h * 0.18, x + u.w / 2, y + u.h * 0.18);
+    g.addColorStop(0, '#3a3a55');
+    g.addColorStop(0.5, '#7ec8ff');
+    g.addColorStop(1, '#3a3a55');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - u.w * 0.4, y + u.h * 0.10, u.w * 0.8, u.h * 0.5);
+    // Glowing core (large)
+    const pulse = 0.6 + Math.sin(performance.now() / 180) * 0.3;
+    ctx.fillStyle = `rgba(110,196,255,${pulse})`;
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.32, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.32, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Head with horns
+    ctx.fillStyle = '#1a2244';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.06, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#7ec8ff';
+    ctx.fillRect(x - 4, y + u.h * 0.06, 8, 2);
+    // Horns
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y + u.h * 0.02); ctx.lineTo(x - 10, y - 8); ctx.lineTo(x - 4, y - 2);
+    ctx.moveTo(x + 6, y + u.h * 0.02); ctx.lineTo(x + 10, y - 8); ctx.lineTo(x + 4, y - 2);
+    ctx.fillStyle = '#a89cff';
+    ctx.fill();
+    // Twin arm-mounted plasma cannons
+    ctx.fillStyle = '#5a5a78';
+    ctx.fillRect(x - facing * (u.w * 0.5), y + u.h * 0.20, facing * u.w, 8);
+    ctx.fillStyle = '#1a1a2a';
+    ctx.fillRect(x + facing * (u.w * 0.4), y + u.h * 0.22, facing * (u.w * 0.45), 5);
+    // Glow muzzle
+    ctx.fillStyle = '#7ec8ff';
+    ctx.shadowColor = '#7ec8ff'; ctx.shadowBlur = 10;
+    ctx.fillRect(x + facing * (u.w * 0.83), y + u.h * 0.22, facing * 5, 5);
+    ctx.shadowBlur = 0;
+    // Shoulder spikes
+    ctx.fillStyle = '#7ec8ff';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - u.w * 0.3 + i * 4, y + u.h * 0.10);
+      ctx.lineTo(x - u.w * 0.3 + i * 4 + 3, y + u.h * 0.10);
+      ctx.lineTo(x - u.w * 0.3 + i * 4 + 1.5, y + u.h * 0.02);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + u.w * 0.18 + i * 4, y + u.h * 0.10);
+      ctx.lineTo(x + u.w * 0.18 + i * 4 + 3, y + u.h * 0.10);
+      ctx.lineTo(x + u.w * 0.18 + i * 4 + 1.5, y + u.h * 0.02);
+      ctx.closePath();
+      ctx.fill();
+    }
+  };
+
   // ---- Dispatch table ----
   const UNIT_DRAWERS = {
     club:         drawClubman,
@@ -2371,6 +2692,11 @@ const AgeOfWarGame = (() => {
     laser:        drawLaserTrooper,
     mech:         drawMech,
     flier:        drawHover,
+    hero_grog:    drawHeroGrog,
+    hero_paladin: drawHeroPaladin,
+    hero_general: drawHeroGeneral,
+    hero_seal:    drawHeroSeal,
+    hero_titan:   drawHeroTitan,
   };
 
   // ---- Unit silhouettes ----
