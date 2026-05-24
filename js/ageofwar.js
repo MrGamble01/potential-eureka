@@ -101,6 +101,7 @@ const AgeOfWarGame = (() => {
   let ageBannerT = 0;              // seconds banner stays visible
   let ageBannerText = '';
   let bgClouds = [];               // parallax cloud x positions
+  let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
   let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
   let particles = [];              // { x, y, vx, vy, color, life, size }
   let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
@@ -223,6 +224,7 @@ const AgeOfWarGame = (() => {
       if (saved && DIFFICULTIES[saved]) difficulty = saved;
     } catch {}
     seedClouds();
+    seedAmbient(0);
     reset();
     bindControls();
     cancelAnimationFrame(rafId);
@@ -239,6 +241,106 @@ const AgeOfWarGame = (() => {
         r: 18 + Math.random() * 26,
         v: 4 + Math.random() * 8,
       });
+    }
+  }
+
+  // Spawn era-themed ambient background particles (birds, smoke, snow, neon).
+  // Called on init + on every age-up so the scene's flavor matches the era.
+  function seedAmbient(eraIdx) {
+    ambient = [];
+    if (eraIdx === 0) {
+      // Stone: small dust motes drifting right
+      for (let i = 0; i < 10; i++) ambient.push({
+        type: 'dust', x: Math.random() * WIDTH, y: GROUND_Y - 40 - Math.random() * 80,
+        vx: 8 + Math.random() * 14, vy: -2 + Math.random() * 4,
+        size: 1 + Math.random() * 1.5, color: 'rgba(220,170,100,0.4)',
+      });
+    } else if (eraIdx === 1) {
+      // Medieval: birds gliding across the sky
+      for (let i = 0; i < 4; i++) ambient.push({
+        type: 'bird', x: Math.random() * WIDTH, y: 40 + Math.random() * 100,
+        vx: 30 + Math.random() * 20, phase: Math.random() * Math.PI * 2,
+      });
+    } else if (eraIdx === 2) {
+      // Industrial: rising smog plumes
+      for (let i = 0; i < 14; i++) ambient.push({
+        type: 'smog', x: Math.random() * WIDTH, y: GROUND_Y - Math.random() * GROUND_Y * 0.5,
+        vx: 4 + Math.random() * 6, vy: -8 - Math.random() * 5,
+        size: 4 + Math.random() * 6, color: 'rgba(120,110,90,0.30)',
+      });
+    } else if (eraIdx === 3) {
+      // Modern: hi-altitude jet contrails
+      for (let i = 0; i < 2; i++) ambient.push({
+        type: 'jet', x: -120 - Math.random() * 200, y: 40 + Math.random() * 50,
+        vx: 80 + Math.random() * 40,
+      });
+    } else if (eraIdx === 4) {
+      // Future: floating neon hex particles
+      for (let i = 0; i < 16; i++) ambient.push({
+        type: 'hex', x: Math.random() * WIDTH, y: 30 + Math.random() * (GROUND_Y - 60),
+        vx: 6 + Math.random() * 10, vy: -3 + Math.random() * 6,
+        size: 2 + Math.random() * 2, color: 'rgba(110,196,255,0.55)',
+        bob: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  function tickAmbient(dt) {
+    for (const p of ambient) {
+      p.x += p.vx * dt;
+      if (p.type === 'bird') {
+        p.phase += dt * 4;
+        if (p.x > WIDTH + 40) { p.x = -40; p.y = 40 + Math.random() * 100; }
+      } else if (p.type === 'jet') {
+        if (p.x > WIDTH + 200) { p.x = -200 - Math.random() * 200; p.y = 40 + Math.random() * 50; }
+      } else {
+        p.y += (p.vy || 0) * dt;
+        if (p.type === 'hex') p.bob += dt * 2;
+        if (p.x > WIDTH + 20 || p.y < -20) {
+          p.x = -20; p.y = GROUND_Y - 20 - Math.random() * GROUND_Y * 0.6;
+        }
+      }
+    }
+  }
+
+  function drawAmbient() {
+    for (const p of ambient) {
+      if (p.type === 'bird') {
+        // Simple "M" shape that flaps via phase
+        const flap = Math.sin(p.phase) * 3;
+        ctx.strokeStyle = 'rgba(40,40,50,0.7)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(p.x - 6, p.y + flap);
+        ctx.lineTo(p.x - 2, p.y - 2);
+        ctx.lineTo(p.x + 2, p.y - 2);
+        ctx.lineTo(p.x + 6, p.y + flap);
+        ctx.stroke();
+      } else if (p.type === 'jet') {
+        // Tiny silhouette + trailing contrail
+        ctx.fillStyle = 'rgba(180,180,200,0.85)';
+        ctx.fillRect(p.x - 3, p.y - 1, 6, 2);
+        ctx.fillStyle = 'rgba(200,200,210,0.30)';
+        ctx.fillRect(p.x - 80, p.y - 0.5, 80, 1);
+      } else if (p.type === 'hex') {
+        ctx.fillStyle = p.color;
+        const yy = p.y + Math.sin(p.bob) * 2;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          const xi = p.x + Math.cos(a) * p.size;
+          const yi = yy + Math.sin(a) * p.size;
+          if (i === 0) ctx.moveTo(xi, yi); else ctx.lineTo(xi, yi);
+        }
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // dust / smog
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
@@ -338,6 +440,7 @@ const AgeOfWarGame = (() => {
     playerBaseHp = Math.min(playerBaseMax, playerBaseHp + hpBoost);
     SFX.ageUp();
     ageFlash = 1;
+    seedAmbient(playerEra);  // refresh ambient particles for new era
     const e = ERAS[playerEra];
     ageBannerText = `Welcome to the ${e.name}`;
     ageBannerT = 2.4;
@@ -505,6 +608,7 @@ const AgeOfWarGame = (() => {
       c.x -= c.v * dt;
       if (c.x < -80) { c.x = WIDTH + 80; c.y = 30 + Math.random() * (GROUND_Y * 0.45); }
     }
+    tickAmbient(dt);
 
     // Resource trickle
     goldTrickleT -= dt;
@@ -589,6 +693,7 @@ const AgeOfWarGame = (() => {
             } else {
               target.hp -= u.dmg; target.hitFlash = 0.2;
               spawnDmgFloater(u.dmg, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
+              spawnHitSparks(target.x, GROUND_Y - target.h * 0.5);
               SFX.hit();
             }
           }
@@ -609,6 +714,7 @@ const AgeOfWarGame = (() => {
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
           u.hp -= p.dmg; u.hitFlash = 0.2;
           spawnDmgFloater(p.dmg, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
+          spawnHitSparks(p.x, p.y, p.color);
           SFX.hit();
           p.life = 0;
           break;
@@ -798,6 +904,24 @@ const AgeOfWarGame = (() => {
     dmgFloaters.push({ amount: Math.max(1, amount | 0), x, y, color, t: 0.9 });
   }
 
+  // Quick burst of yellow sparks at every hit so combat reads as
+  // physical instead of two boxes silently overlapping.
+  function spawnHitSparks(x, y, tint) {
+    const color = tint || '#fcd34d';
+    for (let i = 0; i < 5; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 60 + Math.random() * 90;
+      particles.push({
+        x, y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s - 30,
+        color,
+        size: 1.5 + Math.random() * 1.5,
+        life: 0.3 + Math.random() * 0.2,
+      });
+    }
+  }
+
   function collectCoinsNear(px, py) {
     // Generous hit radius (touch-friendly): 18px.
     const R = 18;
@@ -919,6 +1043,7 @@ const AgeOfWarGame = (() => {
 
     // Clouds (parallax)
     for (const c of bgClouds) drawCloud(c.x, c.y, c.r);
+    drawAmbient();
 
     // Ground (per-era color + speckle texture)
     drawGround(playerEra);
@@ -2195,7 +2320,15 @@ const AgeOfWarGame = (() => {
       if (combo > 0) {
         comboEl.style.display = '';
         if (comboXEl)  comboXEl.textContent = '×' + comboMult().toFixed(1);
-        if (comboLblEl) comboLblEl.textContent = combo + ' kill' + (combo === 1 ? '' : 's');
+        // Label intensifies at higher streaks: "5 kills" → "INSANE!" → "GODLIKE!"
+        let label = combo + ' kill' + (combo === 1 ? '' : 's');
+        if      (combo >= 25) label = 'GODLIKE!';
+        else if (combo >= 15) label = 'INSANE!';
+        else if (combo >= 8)  label = 'RAMPAGE!';
+        if (comboLblEl) comboLblEl.textContent = label;
+        // Color + scale tier
+        const tier = combo >= 25 ? 3 : combo >= 15 ? 2 : combo >= 8 ? 1 : 0;
+        comboEl.dataset.tier = tier;
       } else {
         comboEl.style.display = 'none';
       }

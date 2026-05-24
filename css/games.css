@@ -400,6 +400,36 @@ canvas.game-canvas {
   0%, 100% { box-shadow: 0 0 0 0 rgba(247,120,186,0.4); }
   50%      { box-shadow: 0 0 0 6px rgba(247,120,186,0); }
 }
+.aow-combo { transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
+.aow-combo[data-tier="1"] {
+  background: rgba(252,211,77,0.18);
+  border-color: rgba(252,211,77,0.6);
+  transform: scale(1.06);
+}
+.aow-combo[data-tier="1"] .aow-combo-x { color: #fcd34d; font-size: 20px; }
+.aow-combo[data-tier="1"] .aow-combo-label { color: #fcd34d; }
+.aow-combo[data-tier="2"] {
+  background: rgba(255,107,53,0.22);
+  border-color: rgba(255,107,53,0.7);
+  transform: scale(1.12);
+  animation: aowComboPulse 0.55s ease-in-out infinite;
+}
+.aow-combo[data-tier="2"] .aow-combo-x { color: #ffa288; font-size: 22px; }
+.aow-combo[data-tier="2"] .aow-combo-label { color: #ffa288; font-weight: 800; }
+.aow-combo[data-tier="3"] {
+  background: linear-gradient(135deg, rgba(255,107,53,0.30), rgba(247,120,186,0.30));
+  border-color: rgba(255,200,120,0.85);
+  transform: scale(1.20);
+  animation: aowComboPulse 0.32s ease-in-out infinite;
+}
+.aow-combo[data-tier="3"] .aow-combo-x {
+  color: #fff; font-size: 26px;
+  text-shadow: 0 0 12px rgba(255,180,120,0.9);
+}
+.aow-combo[data-tier="3"] .aow-combo-label {
+  color: #fff; font-weight: 900;
+  text-shadow: 0 0 8px rgba(255,180,120,0.6);
+}
 .aow-diff {
   display: inline-flex;
   background: rgba(255,255,255,0.04);
