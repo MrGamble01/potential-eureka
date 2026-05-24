@@ -101,6 +101,7 @@ const AgeOfWarGame = (() => {
   let ageBannerT = 0;              // seconds banner stays visible
   let ageBannerText = '';
   let bgClouds = [];               // parallax cloud x positions
+  let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
   let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
   let particles = [];              // { x, y, vx, vy, color, life, size }
   let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
@@ -123,8 +124,179 @@ const AgeOfWarGame = (() => {
   // Bonus multiplier: 1.0 at combo 0, +5% per kill stacking up to +200% (5x).
   function comboMult() { return Math.min(5, 1 + combo * 0.05); }
 
-  // ---- Run stats (shown on win/lose) ----
-  const runStats = { kills: 0, gold: 0, time: 0 };
+  // ---- Run stats (shown on win/lose + drive achievements) ----
+  const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
+
+  // ---- Achievements ----
+  // Persisted in localStorage across runs. Earned during play, toast
+  // pops in the corner. Full list lives in a modal.
+  const ACHIEVEMENTS = [
+    { id: 'first_blood',  icon: '⚔️',  title: 'First Blood',     desc: 'Kill an enemy unit.' },
+    { id: 'first_age',    icon: '🏰',  title: 'Evolving',         desc: 'Reach the Medieval Age.' },
+    { id: 'industrial',   icon: '🏭',  title: 'Industrialist',    desc: 'Reach the Industrial Age.' },
+    { id: 'modern',       icon: '🪖',  title: 'Modern Warfare',   desc: 'Reach the Modern Age.' },
+    { id: 'max_age',      icon: '🚀',  title: 'Singularity',      desc: 'Reach the Future Age.' },
+    { id: 'streak_10',    icon: '🔥',  title: 'Heating Up',       desc: '10-kill combo streak.' },
+    { id: 'streak_25',    icon: '💀',  title: 'Godlike',          desc: '25-kill combo streak.' },
+    { id: 'rich',         icon: '💰',  title: 'Tycoon',           desc: 'Hold $5,000 at once.' },
+    { id: 'turret_full',  icon: '🛡️',  title: 'Fortified',        desc: 'Fill all 4 turret slots.' },
+    { id: 'hero_summon',  icon: '🦸',  title: 'A Legend Arrives', desc: 'Summon your first Hero.' },
+    { id: 'special_5',    icon: '💥',  title: 'Pyromaniac',       desc: 'Cast 5 specials in one run.' },
+    { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
+    { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
+    { id: 'win_insane',   icon: '👑',  title: 'Unstoppable',      desc: 'Win on Insane.' },
+    { id: 'kill_100',     icon: '🧨',  title: 'Slayer',           desc: '100 kills in one run.' },
+    { id: 'collect_50',   icon: '🪙',  title: 'Collector',        desc: 'Click 50 coins in one run.' },
+  ];
+  let earnedAchievements = {};
+  function loadAchievements() {
+    try {
+      const raw = localStorage.getItem('aow-achievements');
+      earnedAchievements = raw ? JSON.parse(raw) : {};
+    } catch { earnedAchievements = {}; }
+  }
+  function maybeShowWelcome() {
+    let seen = false;
+    try { seen = localStorage.getItem('aow-welcome-seen') === '1'; } catch {}
+    if (seen) return;
+    const modal = document.getElementById('aow-welcome-modal');
+    const btn = document.getElementById('aow-welcome-close');
+    if (!modal || !btn) return;
+    modal.style.display = 'flex';
+    const close = () => {
+      modal.style.display = 'none';
+      try { localStorage.setItem('aow-welcome-seen', '1'); } catch {}
+    };
+    btn.addEventListener('click', close, { once: true });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (modal.style.display === 'none') { document.removeEventListener('keydown', onEsc); return; }
+      if (e.key === 'Escape' || e.key === 'Enter') { close(); document.removeEventListener('keydown', onEsc); }
+    });
+  }
+  function saveAchievements() {
+    try { localStorage.setItem('aow-achievements', JSON.stringify(earnedAchievements)); } catch {}
+  }
+  function unlock(id) {
+    if (earnedAchievements[id]) return;
+    const a = ACHIEVEMENTS.find(x => x.id === id);
+    if (!a) return;
+    earnedAchievements[id] = Date.now();
+    saveAchievements();
+    showAchievementToast(a);
+    SFX.ageUp();
+  }
+  function showAchievementToast(a) {
+    const root = document.getElementById('aow-achievement-toasts');
+    if (!root) return;
+    const el = document.createElement('div');
+    el.className = 'aow-ach-toast';
+    el.innerHTML = `
+      <div class="aow-ach-toast-icon">${a.icon}</div>
+      <div class="aow-ach-toast-body">
+        <div class="aow-ach-toast-eyebrow">Achievement Unlocked</div>
+        <div class="aow-ach-toast-title">${a.title}</div>
+        <div class="aow-ach-toast-desc">${a.desc}</div>
+      </div>
+    `;
+    root.appendChild(el);
+    setTimeout(() => el.classList.add('out'), 3800);
+    setTimeout(() => el.remove(), 4200);
+  }
+  function checkAchievementsDuringRun() {
+    if (combo >= 10) unlock('streak_10');
+    if (combo >= 25) unlock('streak_25');
+    if (gold >= 5000) unlock('rich');
+    if (playerTurrets.every(t => t)) unlock('turret_full');
+    if (runStats.kills >= 100) unlock('kill_100');
+    if (runStats.coinsCollected >= 50) unlock('collect_50');
+    if (runStats.specialsFired >= 5) unlock('special_5');
+  }
+  function renderAchievementsModal() {
+    const list = document.getElementById('aow-ach-list');
+    const prog = document.getElementById('aow-ach-progress');
+    if (!list) return;
+    list.innerHTML = '';
+    let earned = 0;
+    for (const a of ACHIEVEMENTS) {
+      const got = !!earnedAchievements[a.id];
+      if (got) earned++;
+      const row = document.createElement('div');
+      row.className = 'aow-ach-row' + (got ? ' earned' : '');
+      row.innerHTML = `
+        <span class="aow-ach-row-icon">${a.icon}</span>
+        <div class="aow-ach-row-text">
+          <div class="aow-ach-row-title">${a.title}</div>
+          <div class="aow-ach-row-desc">${a.desc}</div>
+        </div>
+        ${got ? '<span class="aow-ach-row-check">✓</span>' : ''}
+      `;
+      list.appendChild(row);
+    }
+    if (prog) prog.textContent = `${earned} / ${ACHIEVEMENTS.length}`;
+  }
+
+  // ---- Hero summons ----
+  // One legendary unit per era, big cost + cooldown, dramatic entrance.
+  const HEROES = [
+    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', cost: 800,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 60 },
+    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', cost: 1800, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 70 },
+    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', cost: 4000, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 80 },
+    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', cost: 8500, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 90 },
+    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', cost: 18000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 110 },
+  ];
+  let heroReadyT = 0;   // seconds until current era's hero is available
+  let currentHeroCd = 0;
+
+  // ---- Wave system ----
+  // Enemy spawns are grouped into waves. Every 5th wave is a boss wave
+  // with a single, beefy enemy that drops a large coin pile.
+  let waveNum = 1;
+  let waveEnemiesRemaining = 4;
+  let waveBreatherT = 0;      // seconds remaining in the gap between waves
+  let bossWaveActive = false;
+  let bossKilledThisWave = false;
+  let killFeed = [];          // recent kill entries floating up
+  function isBossWave(n) { return n > 0 && n % 5 === 0; }
+
+  function heroForEra(era) { return HEROES[era]; }
+  function trySummonHero() {
+    if (gameOver) return;
+    const h = heroForEra(playerEra);
+    if (!h) return;
+    if (heroReadyT > 0) return;
+    if (gold < h.cost) return;
+    gold -= h.cost;
+    // Register a synthetic unit entry from the hero stats so the
+    // shared spawnUnit path covers it. Hero gets its own dispatch.
+    UNITS[h.key] = UNITS[h.key] || {
+      era: h.era, name: h.name, icon: h.icon, cost: h.cost,
+      hp: h.hp, dmg: h.dmg, range: h.range, atkSpd: h.atkSpd,
+      speed: h.speed, color: h.color, xp: h.xp, gold: h.gold,
+      silhouette: h.silhouette, isHero: true,
+    };
+    spawnUnit('player', h.key);
+    runStats.heroesSummoned++;
+    unlock('hero_summon');
+    heroReadyT = h.cd;
+    currentHeroCd = h.cd;
+    SFX.special();
+    shake(14, 0.5);
+    ageFlash = Math.max(ageFlash, 0.8);
+    // Spawn ring of light particles around the player base
+    for (let i = 0; i < 30; i++) {
+      const a = (i / 30) * Math.PI * 2;
+      particles.push({
+        x: PLAYER_BASE_X + BASE_W + 18,
+        y: GROUND_Y - 40,
+        vx: Math.cos(a) * 140,
+        vy: Math.sin(a) * 140,
+        color: '#fcd34d',
+        size: 3,
+        life: 0.7,
+      });
+    }
+    renderHud();
+  }
 
   // ---- Screen shake ----
   let shakeT = 0;
@@ -223,8 +395,11 @@ const AgeOfWarGame = (() => {
       if (saved && DIFFICULTIES[saved]) difficulty = saved;
     } catch {}
     seedClouds();
+    seedAmbient(0);
+    loadAchievements();
     reset();
     bindControls();
+    maybeShowWelcome();
     cancelAnimationFrame(rafId);
     lastFrame = performance.now();
     rafId = requestAnimationFrame(loop);
@@ -239,6 +414,106 @@ const AgeOfWarGame = (() => {
         r: 18 + Math.random() * 26,
         v: 4 + Math.random() * 8,
       });
+    }
+  }
+
+  // Spawn era-themed ambient background particles (birds, smoke, snow, neon).
+  // Called on init + on every age-up so the scene's flavor matches the era.
+  function seedAmbient(eraIdx) {
+    ambient = [];
+    if (eraIdx === 0) {
+      // Stone: small dust motes drifting right
+      for (let i = 0; i < 10; i++) ambient.push({
+        type: 'dust', x: Math.random() * WIDTH, y: GROUND_Y - 40 - Math.random() * 80,
+        vx: 8 + Math.random() * 14, vy: -2 + Math.random() * 4,
+        size: 1 + Math.random() * 1.5, color: 'rgba(220,170,100,0.4)',
+      });
+    } else if (eraIdx === 1) {
+      // Medieval: birds gliding across the sky
+      for (let i = 0; i < 4; i++) ambient.push({
+        type: 'bird', x: Math.random() * WIDTH, y: 40 + Math.random() * 100,
+        vx: 30 + Math.random() * 20, phase: Math.random() * Math.PI * 2,
+      });
+    } else if (eraIdx === 2) {
+      // Industrial: rising smog plumes
+      for (let i = 0; i < 14; i++) ambient.push({
+        type: 'smog', x: Math.random() * WIDTH, y: GROUND_Y - Math.random() * GROUND_Y * 0.5,
+        vx: 4 + Math.random() * 6, vy: -8 - Math.random() * 5,
+        size: 4 + Math.random() * 6, color: 'rgba(120,110,90,0.30)',
+      });
+    } else if (eraIdx === 3) {
+      // Modern: hi-altitude jet contrails
+      for (let i = 0; i < 2; i++) ambient.push({
+        type: 'jet', x: -120 - Math.random() * 200, y: 40 + Math.random() * 50,
+        vx: 80 + Math.random() * 40,
+      });
+    } else if (eraIdx === 4) {
+      // Future: floating neon hex particles
+      for (let i = 0; i < 16; i++) ambient.push({
+        type: 'hex', x: Math.random() * WIDTH, y: 30 + Math.random() * (GROUND_Y - 60),
+        vx: 6 + Math.random() * 10, vy: -3 + Math.random() * 6,
+        size: 2 + Math.random() * 2, color: 'rgba(110,196,255,0.55)',
+        bob: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  function tickAmbient(dt) {
+    for (const p of ambient) {
+      p.x += p.vx * dt;
+      if (p.type === 'bird') {
+        p.phase += dt * 4;
+        if (p.x > WIDTH + 40) { p.x = -40; p.y = 40 + Math.random() * 100; }
+      } else if (p.type === 'jet') {
+        if (p.x > WIDTH + 200) { p.x = -200 - Math.random() * 200; p.y = 40 + Math.random() * 50; }
+      } else {
+        p.y += (p.vy || 0) * dt;
+        if (p.type === 'hex') p.bob += dt * 2;
+        if (p.x > WIDTH + 20 || p.y < -20) {
+          p.x = -20; p.y = GROUND_Y - 20 - Math.random() * GROUND_Y * 0.6;
+        }
+      }
+    }
+  }
+
+  function drawAmbient() {
+    for (const p of ambient) {
+      if (p.type === 'bird') {
+        // Simple "M" shape that flaps via phase
+        const flap = Math.sin(p.phase) * 3;
+        ctx.strokeStyle = 'rgba(40,40,50,0.7)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(p.x - 6, p.y + flap);
+        ctx.lineTo(p.x - 2, p.y - 2);
+        ctx.lineTo(p.x + 2, p.y - 2);
+        ctx.lineTo(p.x + 6, p.y + flap);
+        ctx.stroke();
+      } else if (p.type === 'jet') {
+        // Tiny silhouette + trailing contrail
+        ctx.fillStyle = 'rgba(180,180,200,0.85)';
+        ctx.fillRect(p.x - 3, p.y - 1, 6, 2);
+        ctx.fillStyle = 'rgba(200,200,210,0.30)';
+        ctx.fillRect(p.x - 80, p.y - 0.5, 80, 1);
+      } else if (p.type === 'hex') {
+        ctx.fillStyle = p.color;
+        const yy = p.y + Math.sin(p.bob) * 2;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          const xi = p.x + Math.cos(a) * p.size;
+          const yi = yy + Math.sin(a) * p.size;
+          if (i === 0) ctx.moveTo(xi, yi); else ctx.lineTo(xi, yi);
+        }
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // dust / smog
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
@@ -272,6 +547,17 @@ const AgeOfWarGame = (() => {
     enemyTurrets  = [null, null, null, null];
     combo = 0; comboT = 0; comboBest = 0;
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
+    runStats.specialsFired = 0; runStats.coinsCollected = 0;
+    runStats.biggestCombo = 0; runStats.agesReached = 0;
+    runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
+    heroReadyT = 6;   // first summon available 6s in
+    currentHeroCd = HEROES[0].cd;
+    waveNum = 1;
+    waveEnemiesRemaining = 4;
+    waveBreatherT = 0;
+    bossWaveActive = false;
+    bossKilledThisWave = false;
+    killFeed = [];
     shakeT = 0; shakeMag = 0;
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
@@ -333,11 +619,20 @@ const AgeOfWarGame = (() => {
     if (xp < need) return;
     xp -= need;
     playerEra++;
+    runStats.agesReached = Math.max(runStats.agesReached, playerEra);
+    if (playerEra === 1) unlock('first_age');
+    if (playerEra === 2) unlock('industrial');
+    if (playerEra === 3) unlock('modern');
+    if (playerEra === 4) unlock('max_age');
+    // New era → new hero costs/CD baseline
+    const h = heroForEra(playerEra);
+    if (h) { currentHeroCd = h.cd; heroReadyT = Math.min(heroReadyT, 10); }
     const hpBoost = 500;
     playerBaseMax += hpBoost;
     playerBaseHp = Math.min(playerBaseMax, playerBaseHp + hpBoost);
     SFX.ageUp();
     ageFlash = 1;
+    seedAmbient(playerEra);  // refresh ambient particles for new era
     const e = ERAS[playerEra];
     ageBannerText = `Welcome to the ${e.name}`;
     ageBannerT = 2.4;
@@ -387,6 +682,7 @@ const AgeOfWarGame = (() => {
     // Screen-flash for impact + heavy shake
     ageFlash = Math.max(ageFlash, 0.7);
     shake(12, 0.35);
+    runStats.specialsFired++;
     specialReadyT = specialCooldownMax;
     renderHud();
   }
@@ -402,6 +698,7 @@ const AgeOfWarGame = (() => {
     if (gold < tdef.cost) return;
     gold -= tdef.cost;
     playerTurrets[slot] = { ...tdef, atkT: 0 };
+    runStats.turretsBuilt++;
     SFX.turret();
     renderHud();
     renderTurretPanel();
@@ -415,6 +712,23 @@ const AgeOfWarGame = (() => {
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
     if (specialBtn) specialBtn.onclick = fireSpecial;
+    const heroBtn = document.getElementById('aow-hero-btn');
+    if (heroBtn) heroBtn.onclick = trySummonHero;
+    const achBtn = document.getElementById('aow-ach-btn');
+    if (achBtn) achBtn.onclick = () => {
+      renderAchievementsModal();
+      const m = document.getElementById('aow-ach-modal');
+      if (m) m.style.display = 'flex';
+    };
+    const achClose = document.getElementById('aow-ach-close');
+    if (achClose) achClose.onclick = () => {
+      const m = document.getElementById('aow-ach-modal');
+      if (m) m.style.display = 'none';
+    };
+    const achModal = document.getElementById('aow-ach-modal');
+    if (achModal) achModal.addEventListener('click', e => {
+      if (e.target === achModal) achModal.style.display = 'none';
+    });
     // Click-to-collect coins. Map pointer event to canvas-internal
     // coords (canvas is responsive; rect may differ from intrinsic size).
     canvas.addEventListener('pointerdown', e => {
@@ -461,6 +775,9 @@ const AgeOfWarGame = (() => {
       } else if (e.key === 'q' || e.key === 'Q' || e.key === 'Tab') {
         ageUp();
         e.preventDefault();
+      } else if (e.key === 'h' || e.key === 'H') {
+        trySummonHero();
+        e.preventDefault();
       }
     });
   }
@@ -473,14 +790,59 @@ const AgeOfWarGame = (() => {
 
   // ---- Enemy AI ----
   function enemyTick(dt) {
+    // Wave breather (gap between waves)
+    if (waveBreatherT > 0) {
+      waveBreatherT -= dt;
+      return;
+    }
+    // Are we starting a new wave?
+    if (waveEnemiesRemaining <= 0) {
+      // Boss wave check: ended via boss death — credit + advance.
+      if (bossWaveActive && !bossKilledThisWave) return;  // wait for boss
+      waveNum++;
+      bossWaveActive = isBossWave(waveNum);
+      bossKilledThisWave = false;
+      waveEnemiesRemaining = bossWaveActive ? 1 : (3 + Math.floor(waveNum * 0.4));
+      waveBreatherT = bossWaveActive ? 3.5 : 2.5;
+      // Announce
+      const txt = bossWaveActive ? `BOSS WAVE ${waveNum}` : `WAVE ${waveNum}`;
+      ageBannerText = txt;
+      ageBannerT = 1.8;
+      shake(bossWaveActive ? 6 : 3, 0.3);
+      if (waveNum >= 10) unlock('kill_100');  // proxy: surviving 10 waves implies kills
+      return;
+    }
     enemySpawnT -= dt;
     if (enemySpawnT > 0) return;
     if (enemyEra < playerEra && Math.random() < 0.30) enemyEra++;
     const choices = unitsForEra(enemyEra);
-    // Bias toward cheaper units; occasionally a heavy.
-    const heavy = Math.random() < 0.2;
-    const key = heavy ? choices[choices.length - 1] : choices[Math.floor(Math.random() * choices.length)];
-    spawnUnit('enemy', key);
+    if (bossWaveActive && waveEnemiesRemaining === 1) {
+      // Spawn a single beefy boss instead of normal unit
+      const baseKey = choices[choices.length - 1];
+      const baseDef = UNITS[baseKey];
+      const bossKey = 'boss_' + baseKey + '_' + waveNum;
+      if (!UNITS[bossKey]) {
+        UNITS[bossKey] = {
+          ...baseDef,
+          name: 'Boss ' + baseDef.name,
+          hp: baseDef.hp * 5,
+          dmg: baseDef.dmg * 1.8,
+          gold: baseDef.gold * 6,
+          xp: baseDef.xp * 5,
+          color: '#a020a0',
+        };
+      }
+      spawnUnit('enemy', bossKey);
+      // Tag the freshly spawned unit as boss + scale it
+      const u = units[units.length - 1];
+      if (u) { u.w = Math.round(u.w * 1.7); u.h = Math.round(u.h * 1.5); u.isBoss = true; u.icon = '👑'; }
+      waveEnemiesRemaining = 0;  // breather waits for boss death
+    } else {
+      const heavy = Math.random() < 0.2 + (waveNum - 1) * 0.04;
+      const key = heavy ? choices[choices.length - 1] : choices[Math.floor(Math.random() * choices.length)];
+      spawnUnit('enemy', key);
+      waveEnemiesRemaining--;
+    }
     // Build enemy turrets too (one tier behind, slowly).
     if (Math.random() < 0.06) {
       const slot = enemyTurrets.findIndex(t => !t || t.era < enemyEra);
@@ -491,7 +853,7 @@ const AgeOfWarGame = (() => {
     }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
     const D = DIFFICULTIES[difficulty];
-    enemySpawnT = (1.4 + Math.random() * 1.6 + pressureFactor * 1.0) * D.spawnMult;
+    enemySpawnT = (1.2 + Math.random() * 1.4 + pressureFactor * 0.8) * D.spawnMult;
   }
 
   // ---- Combat ----
@@ -505,6 +867,7 @@ const AgeOfWarGame = (() => {
       c.x -= c.v * dt;
       if (c.x < -80) { c.x = WIDTH + 80; c.y = 30 + Math.random() * (GROUND_Y * 0.45); }
     }
+    tickAmbient(dt);
 
     // Resource trickle
     goldTrickleT -= dt;
@@ -589,6 +952,7 @@ const AgeOfWarGame = (() => {
             } else {
               target.hp -= u.dmg; target.hitFlash = 0.2;
               spawnDmgFloater(u.dmg, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
+              spawnHitSparks(target.x, GROUND_Y - target.h * 0.5);
               SFX.hit();
             }
           }
@@ -609,6 +973,7 @@ const AgeOfWarGame = (() => {
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
           u.hp -= p.dmg; u.hitFlash = 0.2;
           spawnDmgFloater(p.dmg, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
+          spawnHitSparks(p.x, p.y, p.color);
           SFX.hit();
           p.life = 0;
           break;
@@ -698,8 +1063,35 @@ const AgeOfWarGame = (() => {
           const mult = comboMult();
           xp += Math.round(u.xp * mult);
           runStats.kills++;
+          if (runStats.kills === 1) unlock('first_blood');
+          if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
           runStats.gold += u.gold * mult;
           dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
+          if (u.isBoss) {
+            bossKilledThisWave = true;
+            shake(10, 0.5);
+            ageFlash = Math.max(ageFlash, 0.4);
+            // Boss explosion
+            for (let i = 0; i < 40; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const s = 80 + Math.random() * 200;
+              particles.push({
+                x: u.x, y: GROUND_Y - u.h * 0.5,
+                vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60,
+                color: i % 2 === 0 ? '#fcd34d' : '#a020a0',
+                size: 3 + Math.random() * 3,
+                life: 0.8 + Math.random() * 0.5,
+              });
+            }
+          }
+          // Kill feed entry
+          killFeed.push({
+            text: '+' + (u.icon || '⚔') + ' ' + (combo > 1 ? '×' + comboMult().toFixed(1) : '+' + Math.round(u.xp * mult) + ' XP'),
+            t: 1.6, y: 0,
+            color: combo >= 10 ? '#ff77c8' : '#fcd34d',
+          });
+          // Cap kill feed length
+          if (killFeed.length > 6) killFeed.shift();
           SFX.kill();
           shake(2, 0.12);
         }
@@ -730,6 +1122,8 @@ const AgeOfWarGame = (() => {
     for (const f of dmgFloaters) { f.t -= dt; f.y -= 28 * dt; }
     dmgFloaters = dmgFloaters.filter(f => f.t > 0);
     for (const f of goldFloaters) { f.t -= dt; f.y -= 26 * dt; }
+    for (const f of killFeed) { f.t -= dt; f.y += 20 * dt; }
+    killFeed = killFeed.filter(f => f.t > 0);
     goldFloaters = goldFloaters.filter(f => f.t > 0);
     for (const m of muzzleFlashes) m.t -= dt;
     muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
@@ -762,8 +1156,15 @@ const AgeOfWarGame = (() => {
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
+      unlock('win_easy');
+      if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
+      if (difficulty === 'insane') unlock('win_insane');
       showOverlay(true);
     }
+
+    // Hero CD + achievement scans
+    if (heroReadyT > 0) heroReadyT = Math.max(0, heroReadyT - dt);
+    checkAchievementsDuringRun();
 
     renderHud();
   }
@@ -798,6 +1199,24 @@ const AgeOfWarGame = (() => {
     dmgFloaters.push({ amount: Math.max(1, amount | 0), x, y, color, t: 0.9 });
   }
 
+  // Quick burst of yellow sparks at every hit so combat reads as
+  // physical instead of two boxes silently overlapping.
+  function spawnHitSparks(x, y, tint) {
+    const color = tint || '#fcd34d';
+    for (let i = 0; i < 5; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 60 + Math.random() * 90;
+      particles.push({
+        x, y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s - 30,
+        color,
+        size: 1.5 + Math.random() * 1.5,
+        life: 0.3 + Math.random() * 0.2,
+      });
+    }
+  }
+
   function collectCoinsNear(px, py) {
     // Generous hit radius (touch-friendly): 18px.
     const R = 18;
@@ -824,6 +1243,7 @@ const AgeOfWarGame = (() => {
     }
     if (collected > 0) {
       gold += collected;
+      runStats.coinsCollected += (arguments.length ? 1 : 1);  // bumped once per click batch
       goldFloaters.push({
         text: '+$' + collected, x: px, y: py - 14,
         color: '#fcd34d', t: 1.2,
@@ -875,19 +1295,42 @@ const AgeOfWarGame = (() => {
     } else {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-    // Sky gradient
+    // Sky gradient (3-stop for depth)
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    grad.addColorStop(0, era.sky[0]);
-    grad.addColorStop(1, era.sky[1]);
+    grad.addColorStop(0,    era.sky[0]);
+    grad.addColorStop(0.55, era.sky[1]);
+    grad.addColorStop(1,    SKY_HORIZON[playerEra] || era.sky[1]);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, GROUND_Y);
 
-    // Distant hills (silhouette)
-    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    // Sun / moon disc per era — adds a focal point to the sky.
+    drawSunOrMoon(playerEra);
+
+    // Atmospheric haze right above the horizon
+    const haze = ctx.createLinearGradient(0, GROUND_Y - 80, 0, GROUND_Y);
+    haze.addColorStop(0, 'rgba(0,0,0,0)');
+    haze.addColorStop(1, HORIZON_HAZE[playerEra] || 'rgba(255,255,255,0.08)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, GROUND_Y - 80, WIDTH, 80);
+
+    // Distant hills — far layer (darker, smaller variation)
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
     for (let x = 0; x <= WIDTH; x += 24) {
-      const h = 30 + Math.sin(x * 0.011 + playerEra * 0.7) * 16 + Math.sin(x * 0.045) * 8;
+      const h = 22 + Math.sin(x * 0.014 + playerEra * 0.7) * 14 + Math.sin(x * 0.06) * 6;
+      ctx.lineTo(x, GROUND_Y - h);
+    }
+    ctx.lineTo(WIDTH, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Near hills — slightly lighter, bigger amplitude (parallax depth)
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    for (let x = 0; x <= WIDTH; x += 16) {
+      const h = 12 + Math.sin(x * 0.022 + 1.3) * 10 + Math.sin(x * 0.08) * 4;
       ctx.lineTo(x, GROUND_Y - h);
     }
     ctx.lineTo(WIDTH, GROUND_Y);
@@ -896,6 +1339,7 @@ const AgeOfWarGame = (() => {
 
     // Clouds (parallax)
     for (const c of bgClouds) drawCloud(c.x, c.y, c.r);
+    drawAmbient();
 
     // Ground (per-era color + speckle texture)
     drawGround(playerEra);
@@ -1038,6 +1482,17 @@ const AgeOfWarGame = (() => {
       ctx.globalAlpha = 1;
     }
 
+    // Kill feed (right side, stacks vertically)
+    ctx.textAlign = 'right';
+    ctx.font = `700 12px 'JetBrains Mono', monospace`;
+    for (let i = 0; i < killFeed.length; i++) {
+      const f = killFeed[i];
+      ctx.globalAlpha = Math.max(0, f.t / 1.6);
+      ctx.fillStyle = f.color || '#fcd34d';
+      ctx.fillText(f.text, WIDTH - 14, 24 + i * 16 - f.y);
+    }
+    ctx.globalAlpha = 1;
+
     // Age flash overlay
     if (ageFlash > 0) {
       ctx.fillStyle = `rgba(252,211,77,${ageFlash * 0.4})`;
@@ -1075,6 +1530,50 @@ const AgeOfWarGame = (() => {
   // deterministic per (era, x) so they don't flicker each frame.
   const GROUND_COLORS = ['#3a2818', '#1f2a1c', '#222024', '#1f231a', '#0e1226'];
   const GROUND_SPECKS = ['#5a4530', '#3a4a32', '#2c2a30', '#36402a', '#1c2a4a'];
+  // Atmosphere palettes
+  const SKY_HORIZON = ['#a26845', '#7e88a8', '#564f5e', '#5c7c8a', '#3a4a90'];
+  const HORIZON_HAZE = [
+    'rgba(220,160,90,0.22)',   // stone — orange dust
+    'rgba(180,200,220,0.16)',  // medieval — pale fog
+    'rgba(200,180,140,0.16)',  // industrial — smog
+    'rgba(150,220,220,0.14)',  // modern — clean haze
+    'rgba(120,200,255,0.18)',  // future — neon blue
+  ];
+  // Per-era sun / moon — color, radius, position offset from top
+  const CELESTIALS = [
+    { color: '#ffd089', glow: 'rgba(255,200,120,0.35)', r: 18, x: 0.78, y: 60, halo: true },   // stone — warm sun
+    { color: '#e8e8f0', glow: 'rgba(200,210,230,0.30)', r: 14, x: 0.22, y: 50, halo: false },  // medieval — pale moon
+    { color: '#ffcc77', glow: 'rgba(255,180,100,0.30)', r: 16, x: 0.84, y: 70, halo: false },  // industrial — smoky sun
+    { color: '#dde0e6', glow: 'rgba(220,225,235,0.25)', r: 13, x: 0.18, y: 56, halo: false },  // modern — overcast moon
+    { color: '#7ec8ff', glow: 'rgba(120,200,255,0.55)', r: 20, x: 0.80, y: 64, halo: true },   // future — neon sun
+  ];
+
+  function drawSunOrMoon(eraIdx) {
+    const c = CELESTIALS[eraIdx];
+    if (!c) return;
+    const cx = WIDTH * c.x, cy = c.y;
+    // Soft halo
+    const halo = ctx.createRadialGradient(cx, cy, c.r * 0.4, cx, cy, c.r * 3.2);
+    halo.addColorStop(0, c.glow);
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(cx, cy, c.r * 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    // Body
+    ctx.fillStyle = c.color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, c.r, 0, Math.PI * 2);
+    ctx.fill();
+    // Outer ring for stone-age sun + future
+    if (c.halo) {
+      ctx.strokeStyle = c.glow;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, c.r + 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
   function drawGround(eraIdx) {
     const base = GROUND_COLORS[eraIdx] || '#1a1a14';
     const speck = GROUND_SPECKS[eraIdx] || '#2a2a20';
@@ -1093,11 +1592,61 @@ const AgeOfWarGame = (() => {
     // Top edge line
     ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
+    // Era-specific ground decorations (deterministic placement)
+    drawGroundDecor(eraIdx);
     // Future era: faint glowing grid lines on the ground
     if (eraIdx === 4) {
       ctx.strokeStyle = 'rgba(110,196,255,0.18)';
       for (let x = 0; x < WIDTH; x += 24) {
         ctx.beginPath(); ctx.moveTo(x, GROUND_Y + 2); ctx.lineTo(x - 30, HEIGHT); ctx.stroke();
+      }
+    }
+  }
+
+  function drawGroundDecor(eraIdx) {
+    // Each "slot" along the ground has a stable seeded random so
+    // tufts/rocks don't jitter between frames.
+    for (let x = 20; x < WIDTH - 20; x += 32) {
+      const seed = (x * 9301 + eraIdx * 49297) | 0;
+      const r = (Math.abs(Math.sin(seed)) * 1000) % 1;
+      if (r > 0.55) continue;
+      const xi = x + ((seed >> 3) % 12) - 6;
+      const yi = GROUND_Y + 1;
+      if (eraIdx === 0) {
+        // Stone: small rocks
+        ctx.fillStyle = '#6a5238';
+        ctx.beginPath(); ctx.ellipse(xi, yi + 3, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#857058';
+        ctx.fillRect(xi - 1, yi + 1, 2, 1);
+      } else if (eraIdx === 1) {
+        // Medieval: grass tufts
+        ctx.strokeStyle = '#4a6a30';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(xi - 2, yi + 4); ctx.lineTo(xi - 2, yi - 2);
+        ctx.moveTo(xi,     yi + 4); ctx.lineTo(xi + 1, yi - 3);
+        ctx.moveTo(xi + 2, yi + 4); ctx.lineTo(xi + 3, yi - 2);
+        ctx.stroke();
+      } else if (eraIdx === 2) {
+        // Industrial: scrap / pipes
+        ctx.fillStyle = '#3a3528';
+        ctx.fillRect(xi - 4, yi + 2, 8, 2);
+        ctx.fillStyle = '#5a5040';
+        ctx.fillRect(xi - 3, yi + 2, 1, 2);
+        ctx.fillRect(xi + 2, yi + 2, 1, 2);
+      } else if (eraIdx === 3) {
+        // Modern: short concrete tile lines
+        ctx.strokeStyle = 'rgba(180,180,180,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(xi - 5, yi + 5); ctx.lineTo(xi + 5, yi + 5);
+        ctx.stroke();
+      } else if (eraIdx === 4) {
+        // Future: glowing hex chips
+        ctx.fillStyle = 'rgba(110,196,255,0.45)';
+        ctx.beginPath();
+        ctx.arc(xi, yi + 4, 1.6, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
   }
@@ -1344,10 +1893,18 @@ const AgeOfWarGame = (() => {
     ctx.fillRect(x - bodyW * 0.3 - 3, bodyBottom + legH + swing * 2 - 2, 6, 3);
     ctx.fillRect(x + bodyW * 0.3 - 3, bodyBottom + legH - swing * 2 - 2, 6, 3);
 
-    // Torso (rounded-corner rect)
-    ctx.fillStyle = bodyColor;
+    // Torso (rounded-corner rect with vertical highlight gradient)
     roundRectPath(x - bodyW / 2, bodyTop, bodyW, bodyH, 3);
+    const torsoGrad = ctx.createLinearGradient(x - bodyW / 2, bodyTop, x + bodyW / 2, bodyTop);
+    torsoGrad.addColorStop(0,    shadeColor(bodyColor, -18));
+    torsoGrad.addColorStop(0.45, bodyColor);
+    torsoGrad.addColorStop(1,    shadeColor(bodyColor,  14));
+    ctx.fillStyle = torsoGrad;
     ctx.fill();
+    // Dark outline for cell-shaded read at distance
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     // Belt
     if (opts.belt) {
@@ -1394,6 +1951,17 @@ const AgeOfWarGame = (() => {
       ctx.fillStyle = '#222';
       ctx.fillRect(cx + (opts.facing || 1) * 1.5, cy - 0.5, 1.5, 1.5);
     }
+  }
+
+  // Lighten/darken a hex color by `amt` units (-100..100).
+  function shadeColor(hex, amt) {
+    if (!hex || hex[0] !== '#') return hex;
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const r = Math.max(0, Math.min(255, parseInt(h.slice(0, 2), 16) + amt));
+    const g = Math.max(0, Math.min(255, parseInt(h.slice(2, 4), 16) + amt));
+    const b = Math.max(0, Math.min(255, parseInt(h.slice(4, 6), 16) + amt));
+    return `rgb(${r}, ${g}, ${b})`;
   }
 
   function roundRectPath(x, y, w, h, r) {
@@ -1905,6 +2473,308 @@ const AgeOfWarGame = (() => {
     ctx.shadowBlur = 0;
   };
 
+  // ---- Hero drawers (unique silhouettes per legendary unit) ----
+  const drawHeroGrog = (u, x, y, facing, walk, bodyColor) => {
+    // Mammoth-sized beast with rider
+    const gallop = Math.sin(u.walkPhase * 1.4) * 3;
+    // Tusks first (under)
+    ctx.fillStyle = '#f6e9c2';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.65, y + u.h * 0.55);
+    ctx.lineTo(x + facing * u.w * 0.92, y + u.h * 0.78);
+    ctx.lineTo(x + facing * u.w * 0.78, y + u.h * 0.60);
+    ctx.closePath();
+    ctx.fill();
+    // Body (shaggy brown)
+    ctx.fillStyle = '#5a3a22';
+    ctx.fillRect(x - u.w * 0.55, y + u.h * 0.4, u.w * 1.1, u.h * 0.35);
+    // Fur tufts
+    ctx.fillStyle = '#3a2812';
+    for (let i = -6; i <= 6; i++) {
+      ctx.fillRect(x + i * 4, y + u.h * 0.38, 3, 5);
+    }
+    // Head
+    ctx.fillStyle = '#5a3a22';
+    ctx.beginPath();
+    ctx.ellipse(x + facing * u.w * 0.5, y + u.h * 0.45, u.w * 0.25, u.h * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Trunk
+    ctx.strokeStyle = '#5a3a22';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.6, y + u.h * 0.50);
+    ctx.lineTo(x + facing * u.w * 0.78, y + u.h * 0.72);
+    ctx.lineTo(x + facing * u.w * 0.70, y + u.h * 0.85);
+    ctx.stroke();
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x + facing * u.w * 0.48, y + u.h * 0.42, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + facing * u.w * 0.48, y + u.h * 0.42, 1.5, 1.5);
+    // Legs
+    ctx.fillStyle = '#3a2812';
+    ctx.fillRect(x - u.w * 0.35, y + u.h * 0.75, 8, u.h * 0.25 + gallop);
+    ctx.fillRect(x + u.w * 0.10, y + u.h * 0.75, 8, u.h * 0.25 - gallop);
+    ctx.fillRect(x - u.w * 0.05, y + u.h * 0.75, 8, u.h * 0.25 - gallop);
+    ctx.fillRect(x + u.w * 0.30, y + u.h * 0.75, 8, u.h * 0.25 + gallop);
+    // Tribal rider on top
+    ctx.fillStyle = '#7a4222';
+    ctx.fillRect(x - 5, y + u.h * 0.20, 10, 14);
+    ctx.fillStyle = '#2a1808';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.18, 6, 0, Math.PI * 2);
+    ctx.fill();
+    // Spear
+    ctx.strokeStyle = '#5a3a18';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 6, y + u.h * 0.28);
+    ctx.lineTo(x + facing * 14, y + u.h * 0.05);
+    ctx.stroke();
+    ctx.fillStyle = '#aaa';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 14, y + u.h * 0.05);
+    ctx.lineTo(x + facing * 18, y + u.h * 0.02);
+    ctx.lineTo(x + facing * 13, y + u.h * 0.10);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  const drawHeroPaladin = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.1, facing, swing, bodyColor, {
+      skin: '#e8b48a',
+      pantsColor: '#444',
+      bootColor: '#222',
+      belt: '#8a6822',
+    });
+    // Pauldrons (large gold)
+    ctx.fillStyle = '#fcd34d';
+    ctx.fillRect(x - u.w * 0.42, y + base.headR * 2, 8, 6);
+    ctx.fillRect(x + u.w * 0.42 - 8, y + base.headR * 2, 8, 6);
+    // Cape (flowing)
+    ctx.fillStyle = '#c43972';
+    ctx.beginPath();
+    ctx.moveTo(x - facing * (u.w * 0.30), y + base.headR * 2);
+    ctx.lineTo(x - facing * (u.w * 0.55), y + u.h * 0.85);
+    ctx.lineTo(x - facing * (u.w * 0.15), y + u.h * 0.80);
+    ctx.closePath();
+    ctx.fill();
+    // Chest cross (gold)
+    ctx.strokeStyle = '#fcd34d';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y + base.headR * 2 + 4); ctx.lineTo(x, y + u.h * 0.55);
+    ctx.moveTo(x - 5, y + u.h * 0.30); ctx.lineTo(x + 5, y + u.h * 0.30);
+    ctx.stroke();
+    // Crowned helmet
+    ctx.fillStyle = '#bcc4cc';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY, base.headR + 2, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY + base.headR);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY + base.headR);
+    ctx.closePath();
+    ctx.fill();
+    // Helmet crown spikes (gold)
+    ctx.fillStyle = '#fcd34d';
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x + i * 4 - 1, base.headCenterY - base.headR - 1);
+      ctx.lineTo(x + i * 4 + 1, base.headCenterY - base.headR - 1);
+      ctx.lineTo(x + i * 4, base.headCenterY - base.headR - 5);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = '#0e1015';
+    ctx.fillRect(x - base.headR + 1, base.headCenterY - 1, base.headR * 2 - 2, 2);
+    // Shield (back arm)
+    ctx.fillStyle = '#dadce0';
+    ctx.beginPath();
+    ctx.arc(x - facing * (u.w * 0.3), y + u.h * 0.5, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fcd34d';
+    ctx.fillRect(x - facing * (u.w * 0.3) - 4, y + u.h * 0.5 - 1, 8, 2);
+    ctx.fillRect(x - facing * (u.w * 0.3) - 1, y + u.h * 0.5 - 4, 2, 8);
+    // Huge sword
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 6, y: base.handY - 3 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -1.4);
+      ctx.fillStyle = '#fcd34d';
+      ctx.fillRect(-7, -2, 14, 3);
+      const g = ctx.createLinearGradient(0, -30, 0, 0);
+      g.addColorStop(0, '#fff'); g.addColorStop(1, '#9aa1a8');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(-2.5, 0); ctx.lineTo(2.5, 0);
+      ctx.lineTo(1.5, -30); ctx.lineTo(0, -34); ctx.lineTo(-1.5, -30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  };
+
+  const drawHeroGeneral = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, {
+      skin: '#e0ad8a',
+      pantsColor: '#3a2818',
+      bootColor: '#1a1208',
+      belt: '#5a4022',
+    });
+    // Medal cluster on chest
+    ctx.fillStyle = '#fcd34d';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(x - 6 + i * 6, y + base.headR * 2 + 9, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Bicorne hat
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.moveTo(x - base.headR - 4, base.headCenterY - 3);
+    ctx.lineTo(x + base.headR + 4, base.headCenterY - 3);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY - 9);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY - 9);
+    ctx.closePath();
+    ctx.fill();
+    // Gold trim
+    ctx.fillStyle = '#fcd34d';
+    ctx.fillRect(x - base.headR - 4, base.headCenterY - 4, (base.headR + 4) * 2, 1);
+    // Saber + holster
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY - 2 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -0.8);
+      ctx.fillStyle = '#fcd34d';
+      ctx.fillRect(-3, -1, 6, 2);
+      ctx.fillStyle = '#cdd1d6';
+      ctx.beginPath();
+      ctx.moveTo(0, -1); ctx.lineTo(3, -1); ctx.lineTo(2, -24); ctx.lineTo(0, -26); ctx.lineTo(-1, -24); ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  };
+
+  const drawHeroSeal = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, {
+      skin: '#c08c70',
+      pantsColor: '#1a1a14',
+      bootColor: '#0a0a0a',
+      belt: '#2a2a1a',
+    });
+    // Full tactical mask
+    ctx.fillStyle = '#1a1a14';
+    ctx.beginPath(); ctx.arc(x, base.headCenterY, base.headR + 1, 0, Math.PI * 2); ctx.fill();
+    // Red goggles
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x - base.headR, base.headCenterY - 1, base.headR * 2, 3);
+    ctx.fillStyle = '#ff3333';
+    ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 6;
+    ctx.fillRect(x - base.headR + 1, base.headCenterY, base.headR - 1, 1);
+    ctx.fillRect(x + 1, base.headCenterY, base.headR - 1, 1);
+    ctx.shadowBlur = 0;
+    // Tac vest chest plate
+    ctx.fillStyle = '#0a1208';
+    ctx.fillRect(x - u.w * 0.25, y + base.headR * 2 + 4, u.w * 0.50, 6);
+    // Backpack
+    ctx.fillStyle = '#2a3520';
+    ctx.fillRect(x - facing * (u.w * 0.3), y + base.headR * 2 + 4, 4, 14);
+    // Heavy sniper rifle with bipod
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY + 1 }, bodyColor, (hx, hy) => {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(hx - facing * 6, hy - 1, facing * 36, 2.5);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx + facing * 8, hy - 5, facing * 14, 4);
+      // Laser dot trail
+      ctx.fillStyle = '#ff3333';
+      ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 4;
+      ctx.fillRect(hx + facing * 30, hy, facing * 2, 1);
+      ctx.shadowBlur = 0;
+      // Bipod
+      ctx.strokeStyle = '#0a0a0a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hx + facing * 26, hy + 1); ctx.lineTo(hx + facing * 26, hy + 8);
+      ctx.stroke();
+    });
+  };
+
+  const drawHeroTitan = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    // Massive bipedal mech
+    // Legs (heavy)
+    ctx.fillStyle = '#2a3a55';
+    ctx.fillRect(x - u.w * 0.32, y + u.h * 0.55, 10, u.h * 0.45 + swing);
+    ctx.fillRect(x + u.w * 0.20, y + u.h * 0.55, 10, u.h * 0.45 - swing);
+    // Feet
+    ctx.fillStyle = '#0a0a14';
+    ctx.fillRect(x - u.w * 0.38, y + u.h - 5, 18, 5);
+    ctx.fillRect(x + u.w * 0.14, y + u.h - 5, 18, 5);
+    // Torso (gradient)
+    const g = ctx.createLinearGradient(x - u.w / 2, y + u.h * 0.18, x + u.w / 2, y + u.h * 0.18);
+    g.addColorStop(0, '#3a3a55');
+    g.addColorStop(0.5, '#7ec8ff');
+    g.addColorStop(1, '#3a3a55');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - u.w * 0.4, y + u.h * 0.10, u.w * 0.8, u.h * 0.5);
+    // Glowing core (large)
+    const pulse = 0.6 + Math.sin(performance.now() / 180) * 0.3;
+    ctx.fillStyle = `rgba(110,196,255,${pulse})`;
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.32, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.32, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Head with horns
+    ctx.fillStyle = '#1a2244';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.06, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#7ec8ff';
+    ctx.fillRect(x - 4, y + u.h * 0.06, 8, 2);
+    // Horns
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y + u.h * 0.02); ctx.lineTo(x - 10, y - 8); ctx.lineTo(x - 4, y - 2);
+    ctx.moveTo(x + 6, y + u.h * 0.02); ctx.lineTo(x + 10, y - 8); ctx.lineTo(x + 4, y - 2);
+    ctx.fillStyle = '#a89cff';
+    ctx.fill();
+    // Twin arm-mounted plasma cannons
+    ctx.fillStyle = '#5a5a78';
+    ctx.fillRect(x - facing * (u.w * 0.5), y + u.h * 0.20, facing * u.w, 8);
+    ctx.fillStyle = '#1a1a2a';
+    ctx.fillRect(x + facing * (u.w * 0.4), y + u.h * 0.22, facing * (u.w * 0.45), 5);
+    // Glow muzzle
+    ctx.fillStyle = '#7ec8ff';
+    ctx.shadowColor = '#7ec8ff'; ctx.shadowBlur = 10;
+    ctx.fillRect(x + facing * (u.w * 0.83), y + u.h * 0.22, facing * 5, 5);
+    ctx.shadowBlur = 0;
+    // Shoulder spikes
+    ctx.fillStyle = '#7ec8ff';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - u.w * 0.3 + i * 4, y + u.h * 0.10);
+      ctx.lineTo(x - u.w * 0.3 + i * 4 + 3, y + u.h * 0.10);
+      ctx.lineTo(x - u.w * 0.3 + i * 4 + 1.5, y + u.h * 0.02);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + u.w * 0.18 + i * 4, y + u.h * 0.10);
+      ctx.lineTo(x + u.w * 0.18 + i * 4 + 3, y + u.h * 0.10);
+      ctx.lineTo(x + u.w * 0.18 + i * 4 + 1.5, y + u.h * 0.02);
+      ctx.closePath();
+      ctx.fill();
+    }
+  };
+
   // ---- Dispatch table ----
   const UNIT_DRAWERS = {
     club:         drawClubman,
@@ -1922,6 +2792,11 @@ const AgeOfWarGame = (() => {
     laser:        drawLaserTrooper,
     mech:         drawMech,
     flier:        drawHover,
+    hero_grog:    drawHeroGrog,
+    hero_paladin: drawHeroPaladin,
+    hero_general: drawHeroGeneral,
+    hero_seal:    drawHeroSeal,
+    hero_titan:   drawHeroTitan,
   };
 
   // ---- Unit silhouettes ----
@@ -1932,17 +2807,50 @@ const AgeOfWarGame = (() => {
   function drawUnit(u) {
     const y = GROUND_Y - u.h - u.yOffset;
     const facing = u.side === 'player' ? 1 : -1;
+    const isHero = u.key && u.key.startsWith('hero_');
     // Soft elliptical shadow grounds the unit
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
     ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.5, 3, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Hero gets a golden ground halo + larger scale
+    if (isHero) {
+      const pulse = 0.6 + Math.sin(performance.now() / 220) * 0.2;
+      const halo = ctx.createRadialGradient(u.x, GROUND_Y - u.h * 0.4, 4, u.x, GROUND_Y - u.h * 0.4, u.w * 1.6);
+      halo.addColorStop(0, `rgba(252,211,77,${pulse * 0.55})`);
+      halo.addColorStop(1, 'rgba(252,211,77,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(u.x, GROUND_Y - u.h * 0.4, u.w * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      // Ground rune ring
+      ctx.strokeStyle = `rgba(252,211,77,${pulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.7, 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     const bodyColor = u.hitFlash > 0 ? '#fff' : u.color;
     const walkSwing = Math.sin(u.walkPhase);
     ctx.save();
+    if (isHero) {
+      // Scale hero up ~25% for presence
+      ctx.translate(u.x, GROUND_Y);
+      ctx.scale(1.25, 1.25);
+      ctx.translate(-u.x, -GROUND_Y);
+    }
     const drawer = UNIT_DRAWERS[u.key] || drawGenericHumanoid;
     drawer(u, u.x, y, facing, walkSwing, bodyColor);
     ctx.restore();
+    // Hero name badge floating above
+    if (isHero) {
+      ctx.font = '700 11px JetBrains Mono, monospace';
+      ctx.fillStyle = '#fcd34d';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(252,211,77,0.5)'; ctx.shadowBlur = 8;
+      ctx.fillText('★ ' + u.name, u.x, y - 22);
+      ctx.shadowBlur = 0;
+    }
 
     // Icon overhead (small)
     ctx.font = '11px sans-serif';
@@ -2059,7 +2967,15 @@ const AgeOfWarGame = (() => {
       if (combo > 0) {
         comboEl.style.display = '';
         if (comboXEl)  comboXEl.textContent = '×' + comboMult().toFixed(1);
-        if (comboLblEl) comboLblEl.textContent = combo + ' kill' + (combo === 1 ? '' : 's');
+        // Label intensifies at higher streaks: "5 kills" → "INSANE!" → "GODLIKE!"
+        let label = combo + ' kill' + (combo === 1 ? '' : 's');
+        if      (combo >= 25) label = 'GODLIKE!';
+        else if (combo >= 15) label = 'INSANE!';
+        else if (combo >= 8)  label = 'RAMPAGE!';
+        if (comboLblEl) comboLblEl.textContent = label;
+        // Color + scale tier
+        const tier = combo >= 25 ? 3 : combo >= 15 ? 2 : combo >= 8 ? 1 : 0;
+        comboEl.dataset.tier = tier;
       } else {
         comboEl.style.display = 'none';
       }
@@ -2092,6 +3008,39 @@ const AgeOfWarGame = (() => {
       if (lbl) lbl.textContent = spec.name;
       if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
       specEl.disabled = specialReadyT > 0;
+    }
+
+    // Wave indicator
+    const waveEl = document.getElementById('aow-wave');
+    const waveNumEl = document.getElementById('aow-wave-num');
+    const waveSubEl = document.getElementById('aow-wave-sub');
+    if (waveEl) {
+      waveEl.classList.toggle('aow-wave-boss', bossWaveActive);
+      if (waveNumEl) waveNumEl.textContent = (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum;
+      if (waveSubEl) {
+        if (waveBreatherT > 0) waveSubEl.textContent = `next in ${Math.ceil(waveBreatherT)}s`;
+        else if (bossWaveActive && !bossKilledThisWave) waveSubEl.textContent = 'kill the boss';
+        else waveSubEl.textContent = `${waveEnemiesRemaining} incoming`;
+      }
+    }
+
+    // Hero button
+    const heroBtn = document.getElementById('aow-hero-btn');
+    if (heroBtn) {
+      const h = heroForEra(playerEra);
+      const lbl = heroBtn.querySelector('.aow-action-lbl');
+      const ico = heroBtn.querySelector('.aow-action-ico');
+      const cdEl = document.getElementById('aow-hero-cd');
+      if (h) {
+        if (ico) ico.textContent = h.icon;
+        if (lbl) lbl.textContent = h.name;
+        if (cdEl) {
+          if (heroReadyT > 0) cdEl.textContent = `${Math.ceil(heroReadyT)}s`;
+          else if (gold < h.cost) cdEl.textContent = `$${h.cost}`;
+          else cdEl.textContent = `$${h.cost} · READY`;
+        }
+        heroBtn.disabled = heroReadyT > 0 || gold < h.cost;
+      }
     }
 
     // Live cooldown bars on spawn buttons
