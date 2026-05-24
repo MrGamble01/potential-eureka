@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Age of War</title>
+  <meta name="description" content="Side-scrolling lane battler — spawn units, push the enemy base, age up through 5 eras. Last base standing wins.">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23080a12'/><text x='50%25' y='58%25' font-size='40' text-anchor='middle' dominant-baseline='middle'>⚔</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/games.css">
+  <style>
+    body {
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(252,211,77,0.06) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 100%, rgba(248,81,73,0.08) 0%, transparent 55%),
+        linear-gradient(180deg, #050609 0%, #0d1117 100%);
+      min-height: 100vh;
+    }
+    .aow-page-bar {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1.2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .aow-page-bar a {
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .aow-page-bar a:hover { color: #fcd34d; }
+    .aow-page-brand {
+      color: #fcd34d;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 3px;
+    }
+    @media (max-width: 720px) {
+      .aow-page-bar { padding: 10px 14px; font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="aow-page-bar">
+    <a href="/">← Dashboard</a>
+    <span class="aow-page-brand">⚔ AGE OF WAR</span>
+    <span></span>
+  </div>
+
+  <section id="view-ageofwar" class="view active">
+    <div class="aow-shell">
+      <header class="aow-topbar">
+        <div class="aow-brand">
+          <span class="aow-brand-mark">⚔</span>
+          <span class="aow-brand-name">Age of War</span>
+        </div>
+        <div class="aow-resource aow-resource-gold" title="Gold — click coins on the battlefield to collect">
+          <span class="aow-resource-icon">$</span>
+          <span class="aow-resource-value" id="aow-gold">90</span>
+        </div>
+        <div class="aow-era-pill">
+          <span class="aow-era-icon" id="aow-era-icon">🪨</span>
+          <div class="aow-era-text">
+            <span class="aow-era-name" id="aow-era-name">Stone Age</span>
+            <span class="aow-era-sub" id="aow-era-sub">0 / 150 XP</span>
+          </div>
+          <div class="aow-era-track"><div class="aow-era-fill" id="aow-xp-bar"></div></div>
+        </div>
+        <div class="aow-combo" id="aow-combo" style="display:none">
+          <span class="aow-combo-x" id="aow-combo-x">×1.0</span>
+          <span class="aow-combo-label" id="aow-combo-label">combo</span>
+        </div>
+        <div class="aow-diff" id="aow-diff" title="Difficulty">
+          <button data-diff="easy">Easy</button>
+          <button data-diff="normal" class="active">Normal</button>
+          <button data-diff="hard">Hard</button>
+          <button data-diff="insane">Insane</button>
+        </div>
+      </header>
+
+      <div class="aow-battle-strip">
+        <div class="aow-side aow-side-player">
+          <div class="aow-side-icon" id="aow-player-side-icon">🏰</div>
+          <div class="aow-side-bar">
+            <div class="aow-side-label">YOU</div>
+            <div class="aow-side-track"><div class="aow-side-fill aow-fill-player" id="aow-player-hp-bar"></div></div>
+            <div class="aow-side-hp" id="aow-base-hp">1200 / 1200</div>
+          </div>
+        </div>
+        <div class="aow-vs">VS</div>
+        <div class="aow-side aow-side-enemy">
+          <div class="aow-side-bar">
+            <div class="aow-side-label">ENEMY</div>
+            <div class="aow-side-track"><div class="aow-side-fill aow-fill-enemy" id="aow-enemy-hp-bar"></div></div>
+            <div class="aow-side-hp" id="aow-enemy-hp">1200 / 1200</div>
+          </div>
+          <div class="aow-side-icon" id="aow-enemy-side-icon">🏰</div>
+        </div>
+      </div>
+
+      <div class="aow-stage">
+        <canvas id="aow-canvas" class="aow-canvas"></canvas>
+        <div id="aow-overlay" class="aow-overlay" style="display:none"></div>
+      </div>
+
+      <div class="aow-actionbar">
+        <button id="aow-ageup-btn" class="aow-action aow-action-age"><span class="aow-action-ico">⬆️</span><span class="aow-action-lbl">Age Up</span></button>
+        <button id="aow-special-btn" class="aow-action aow-action-special"><span class="aow-action-ico">💥</span><span class="aow-action-lbl">Special</span><span class="aow-action-cd" id="aow-special-cd"></span></button>
+        <button id="aow-restart-btn" class="aow-action aow-action-restart"><span class="aow-action-ico">🔄</span><span class="aow-action-lbl">Restart</span></button>
+      </div>
+
+      <div class="aow-tabs">
+        <button class="aow-tab active" data-tab="units">Units</button>
+        <button class="aow-tab" data-tab="turrets">Turrets</button>
+      </div>
+      <div id="aow-units-tab" class="aow-tabpanel active">
+        <div id="aow-spawn-list" class="aow-spawn-list"></div>
+      </div>
+      <div id="aow-turrets-tab" class="aow-tabpanel">
+        <div id="aow-turret-list" class="aow-turret-list"></div>
+      </div>
+
+      <div class="aow-hint"><strong>1–9</strong> spawn · <strong>Q</strong> age up · <strong>Space</strong> special · click coins to collect gold</div>
+    </div>
+  </section>
+
+  <!-- Minimal stub so ageofwar.js's Utils.store calls don't crash on the standalone page -->
+  <script>
+    window.Utils = window.Utils || {
+      store: {
+        getRaw: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+        setRaw: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+      },
+    };
+  </script>
+  <script src="../js/ageofwar.js"></script>
+  <script>AgeOfWarGame.init();</script>
+</body>
+</html>

@@ -875,19 +875,42 @@ const AgeOfWarGame = (() => {
     } else {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-    // Sky gradient
+    // Sky gradient (3-stop for depth)
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    grad.addColorStop(0, era.sky[0]);
-    grad.addColorStop(1, era.sky[1]);
+    grad.addColorStop(0,    era.sky[0]);
+    grad.addColorStop(0.55, era.sky[1]);
+    grad.addColorStop(1,    SKY_HORIZON[playerEra] || era.sky[1]);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, GROUND_Y);
 
-    // Distant hills (silhouette)
-    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    // Sun / moon disc per era — adds a focal point to the sky.
+    drawSunOrMoon(playerEra);
+
+    // Atmospheric haze right above the horizon
+    const haze = ctx.createLinearGradient(0, GROUND_Y - 80, 0, GROUND_Y);
+    haze.addColorStop(0, 'rgba(0,0,0,0)');
+    haze.addColorStop(1, HORIZON_HAZE[playerEra] || 'rgba(255,255,255,0.08)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, GROUND_Y - 80, WIDTH, 80);
+
+    // Distant hills — far layer (darker, smaller variation)
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
     for (let x = 0; x <= WIDTH; x += 24) {
-      const h = 30 + Math.sin(x * 0.011 + playerEra * 0.7) * 16 + Math.sin(x * 0.045) * 8;
+      const h = 22 + Math.sin(x * 0.014 + playerEra * 0.7) * 14 + Math.sin(x * 0.06) * 6;
+      ctx.lineTo(x, GROUND_Y - h);
+    }
+    ctx.lineTo(WIDTH, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Near hills — slightly lighter, bigger amplitude (parallax depth)
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    for (let x = 0; x <= WIDTH; x += 16) {
+      const h = 12 + Math.sin(x * 0.022 + 1.3) * 10 + Math.sin(x * 0.08) * 4;
       ctx.lineTo(x, GROUND_Y - h);
     }
     ctx.lineTo(WIDTH, GROUND_Y);
@@ -1075,6 +1098,50 @@ const AgeOfWarGame = (() => {
   // deterministic per (era, x) so they don't flicker each frame.
   const GROUND_COLORS = ['#3a2818', '#1f2a1c', '#222024', '#1f231a', '#0e1226'];
   const GROUND_SPECKS = ['#5a4530', '#3a4a32', '#2c2a30', '#36402a', '#1c2a4a'];
+  // Atmosphere palettes
+  const SKY_HORIZON = ['#a26845', '#7e88a8', '#564f5e', '#5c7c8a', '#3a4a90'];
+  const HORIZON_HAZE = [
+    'rgba(220,160,90,0.22)',   // stone — orange dust
+    'rgba(180,200,220,0.16)',  // medieval — pale fog
+    'rgba(200,180,140,0.16)',  // industrial — smog
+    'rgba(150,220,220,0.14)',  // modern — clean haze
+    'rgba(120,200,255,0.18)',  // future — neon blue
+  ];
+  // Per-era sun / moon — color, radius, position offset from top
+  const CELESTIALS = [
+    { color: '#ffd089', glow: 'rgba(255,200,120,0.35)', r: 18, x: 0.78, y: 60, halo: true },   // stone — warm sun
+    { color: '#e8e8f0', glow: 'rgba(200,210,230,0.30)', r: 14, x: 0.22, y: 50, halo: false },  // medieval — pale moon
+    { color: '#ffcc77', glow: 'rgba(255,180,100,0.30)', r: 16, x: 0.84, y: 70, halo: false },  // industrial — smoky sun
+    { color: '#dde0e6', glow: 'rgba(220,225,235,0.25)', r: 13, x: 0.18, y: 56, halo: false },  // modern — overcast moon
+    { color: '#7ec8ff', glow: 'rgba(120,200,255,0.55)', r: 20, x: 0.80, y: 64, halo: true },   // future — neon sun
+  ];
+
+  function drawSunOrMoon(eraIdx) {
+    const c = CELESTIALS[eraIdx];
+    if (!c) return;
+    const cx = WIDTH * c.x, cy = c.y;
+    // Soft halo
+    const halo = ctx.createRadialGradient(cx, cy, c.r * 0.4, cx, cy, c.r * 3.2);
+    halo.addColorStop(0, c.glow);
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(cx, cy, c.r * 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    // Body
+    ctx.fillStyle = c.color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, c.r, 0, Math.PI * 2);
+    ctx.fill();
+    // Outer ring for stone-age sun + future
+    if (c.halo) {
+      ctx.strokeStyle = c.glow;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, c.r + 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
   function drawGround(eraIdx) {
     const base = GROUND_COLORS[eraIdx] || '#1a1a14';
     const speck = GROUND_SPECKS[eraIdx] || '#2a2a20';
@@ -1093,11 +1160,61 @@ const AgeOfWarGame = (() => {
     // Top edge line
     ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
+    // Era-specific ground decorations (deterministic placement)
+    drawGroundDecor(eraIdx);
     // Future era: faint glowing grid lines on the ground
     if (eraIdx === 4) {
       ctx.strokeStyle = 'rgba(110,196,255,0.18)';
       for (let x = 0; x < WIDTH; x += 24) {
         ctx.beginPath(); ctx.moveTo(x, GROUND_Y + 2); ctx.lineTo(x - 30, HEIGHT); ctx.stroke();
+      }
+    }
+  }
+
+  function drawGroundDecor(eraIdx) {
+    // Each "slot" along the ground has a stable seeded random so
+    // tufts/rocks don't jitter between frames.
+    for (let x = 20; x < WIDTH - 20; x += 32) {
+      const seed = (x * 9301 + eraIdx * 49297) | 0;
+      const r = (Math.abs(Math.sin(seed)) * 1000) % 1;
+      if (r > 0.55) continue;
+      const xi = x + ((seed >> 3) % 12) - 6;
+      const yi = GROUND_Y + 1;
+      if (eraIdx === 0) {
+        // Stone: small rocks
+        ctx.fillStyle = '#6a5238';
+        ctx.beginPath(); ctx.ellipse(xi, yi + 3, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#857058';
+        ctx.fillRect(xi - 1, yi + 1, 2, 1);
+      } else if (eraIdx === 1) {
+        // Medieval: grass tufts
+        ctx.strokeStyle = '#4a6a30';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(xi - 2, yi + 4); ctx.lineTo(xi - 2, yi - 2);
+        ctx.moveTo(xi,     yi + 4); ctx.lineTo(xi + 1, yi - 3);
+        ctx.moveTo(xi + 2, yi + 4); ctx.lineTo(xi + 3, yi - 2);
+        ctx.stroke();
+      } else if (eraIdx === 2) {
+        // Industrial: scrap / pipes
+        ctx.fillStyle = '#3a3528';
+        ctx.fillRect(xi - 4, yi + 2, 8, 2);
+        ctx.fillStyle = '#5a5040';
+        ctx.fillRect(xi - 3, yi + 2, 1, 2);
+        ctx.fillRect(xi + 2, yi + 2, 1, 2);
+      } else if (eraIdx === 3) {
+        // Modern: short concrete tile lines
+        ctx.strokeStyle = 'rgba(180,180,180,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(xi - 5, yi + 5); ctx.lineTo(xi + 5, yi + 5);
+        ctx.stroke();
+      } else if (eraIdx === 4) {
+        // Future: glowing hex chips
+        ctx.fillStyle = 'rgba(110,196,255,0.45)';
+        ctx.beginPath();
+        ctx.arc(xi, yi + 4, 1.6, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
   }
@@ -1344,10 +1461,18 @@ const AgeOfWarGame = (() => {
     ctx.fillRect(x - bodyW * 0.3 - 3, bodyBottom + legH + swing * 2 - 2, 6, 3);
     ctx.fillRect(x + bodyW * 0.3 - 3, bodyBottom + legH - swing * 2 - 2, 6, 3);
 
-    // Torso (rounded-corner rect)
-    ctx.fillStyle = bodyColor;
+    // Torso (rounded-corner rect with vertical highlight gradient)
     roundRectPath(x - bodyW / 2, bodyTop, bodyW, bodyH, 3);
+    const torsoGrad = ctx.createLinearGradient(x - bodyW / 2, bodyTop, x + bodyW / 2, bodyTop);
+    torsoGrad.addColorStop(0,    shadeColor(bodyColor, -18));
+    torsoGrad.addColorStop(0.45, bodyColor);
+    torsoGrad.addColorStop(1,    shadeColor(bodyColor,  14));
+    ctx.fillStyle = torsoGrad;
     ctx.fill();
+    // Dark outline for cell-shaded read at distance
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     // Belt
     if (opts.belt) {
@@ -1394,6 +1519,17 @@ const AgeOfWarGame = (() => {
       ctx.fillStyle = '#222';
       ctx.fillRect(cx + (opts.facing || 1) * 1.5, cy - 0.5, 1.5, 1.5);
     }
+  }
+
+  // Lighten/darken a hex color by `amt` units (-100..100).
+  function shadeColor(hex, amt) {
+    if (!hex || hex[0] !== '#') return hex;
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const r = Math.max(0, Math.min(255, parseInt(h.slice(0, 2), 16) + amt));
+    const g = Math.max(0, Math.min(255, parseInt(h.slice(2, 4), 16) + amt));
+    const b = Math.max(0, Math.min(255, parseInt(h.slice(4, 6), 16) + amt));
+    return `rgb(${r}, ${g}, ${b})`;
   }
 
   function roundRectPath(x, y, w, h, r) {
