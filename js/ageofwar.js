@@ -106,6 +106,34 @@ const AgeOfWarGame = (() => {
   let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
   let enemyTurrets  = [null, null, null, null];
 
+  // ---- Difficulty ----
+  const DIFFICULTIES = {
+    easy:   { label: 'Easy',   spawnMult: 1.5, dmgMult: 0.7, hpMult: 0.8, color: '#3FB950' },
+    normal: { label: 'Normal', spawnMult: 1.0, dmgMult: 1.0, hpMult: 1.0, color: '#58A6FF' },
+    hard:   { label: 'Hard',   spawnMult: 0.7, dmgMult: 1.25, hpMult: 1.2, color: '#fcd34d' },
+    insane: { label: 'Insane', spawnMult: 0.5, dmgMult: 1.6, hpMult: 1.5, color: '#F85149' },
+  };
+  let difficulty = 'normal';
+
+  // ---- Combo / streak ----
+  let combo = 0;
+  let comboT = 0;                 // seconds until streak breaks
+  const COMBO_WINDOW = 3.0;
+  let comboBest = 0;              // best in current run
+  // Bonus multiplier: 1.0 at combo 0, +5% per kill stacking up to +200% (5x).
+  function comboMult() { return Math.min(5, 1 + combo * 0.05); }
+
+  // ---- Run stats (shown on win/lose) ----
+  const runStats = { kills: 0, gold: 0, time: 0 };
+
+  // ---- Screen shake ----
+  let shakeT = 0;
+  let shakeMag = 0;
+  function shake(mag, dur) {
+    if (mag > shakeMag) shakeMag = mag;
+    if (dur > shakeT)   shakeT   = dur;
+  }
+
   // ---- Sound (Web Audio API, no samples) ----
   const SFX = (() => {
     let ctxA = null, masterGain = null;
@@ -189,6 +217,11 @@ const AgeOfWarGame = (() => {
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     ctx = canvas.getContext('2d');
+    try {
+      const saved = (typeof Utils !== 'undefined' && Utils.store && Utils.store.getRaw('aow-difficulty'))
+                  || localStorage.getItem('aow-difficulty');
+      if (saved && DIFFICULTIES[saved]) difficulty = saved;
+    } catch {}
     seedClouds();
     reset();
     bindControls();
@@ -237,6 +270,9 @@ const AgeOfWarGame = (() => {
     particles = [];
     playerTurrets = [null, null, null, null];
     enemyTurrets  = [null, null, null, null];
+    combo = 0; comboT = 0; comboBest = 0;
+    runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
+    shakeT = 0; shakeMag = 0;
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
     spawnUnit('player', 'club');
@@ -251,9 +287,13 @@ const AgeOfWarGame = (() => {
   function spawnUnit(side, key) {
     const def = UNITS[key];
     if (!def) return;
-    const w = def.silhouette === 'vehicle' ? 28 : def.silhouette === 'beast' ? 26 : 18;
-    const h = def.silhouette === 'flier' ? 32 : def.silhouette === 'vehicle' ? 30 : 30;
+    // Per-silhouette sizing tuned for legibility at this canvas resolution.
+    const w = def.silhouette === 'vehicle' ? 44 : def.silhouette === 'beast' ? 40 : def.silhouette === 'flier' ? 36 : 26;
+    const h = def.silhouette === 'flier' ? 38 : def.silhouette === 'vehicle' ? 38 : def.silhouette === 'beast' ? 40 : 44;
     const flying = def.silhouette === 'flier';
+    const D = DIFFICULTIES[difficulty];
+    const hpMult  = side === 'enemy' ? D.hpMult  : 1;
+    const dmgMult = side === 'enemy' ? D.dmgMult : 1;
     const u = {
       id: nextSpawnId++,
       side, key,
@@ -261,8 +301,8 @@ const AgeOfWarGame = (() => {
       silhouette: def.silhouette,
       x: side === 'player' ? PLAYER_BASE_X + BASE_W + 14 : ENEMY_BASE_X - 14,
       yOffset: flying ? 40 : 0,
-      hp: def.hp, hpMax: def.hp,
-      dmg: def.dmg, range: def.range, atkSpd: def.atkSpd, atkT: 0.4,
+      hp: def.hp * hpMult, hpMax: def.hp * hpMult,
+      dmg: def.dmg * dmgMult, range: def.range, atkSpd: def.atkSpd, atkT: 0.4,
       speed: def.speed, xp: def.xp, gold: def.gold,
       w, h,
       hitFlash: 0,
@@ -344,8 +384,9 @@ const AgeOfWarGame = (() => {
       });
     }
     SFX.special();
-    // Screen-flash for impact
+    // Screen-flash for impact + heavy shake
     ageFlash = Math.max(ageFlash, 0.7);
+    shake(12, 0.35);
     specialReadyT = specialCooldownMax;
     renderHud();
   }
@@ -374,6 +415,36 @@ const AgeOfWarGame = (() => {
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
     if (specialBtn) specialBtn.onclick = fireSpecial;
+    // Click-to-collect coins. Map pointer event to canvas-internal
+    // coords (canvas is responsive; rect may differ from intrinsic size).
+    canvas.addEventListener('pointerdown', e => {
+      const rect = canvas.getBoundingClientRect();
+      const px = (e.clientX - rect.left) * (canvas.width  / rect.width);
+      const py = (e.clientY - rect.top)  * (canvas.height / rect.height);
+      collectCoinsNear(px, py);
+    });
+    // Difficulty selector
+    const diffEl = document.getElementById('aow-diff');
+    if (diffEl) {
+      diffEl.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.diff === difficulty);
+        btn.addEventListener('click', () => {
+          difficulty = btn.dataset.diff;
+          try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
+          diffEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+          reset();
+        });
+      });
+    }
+    // Tab switching (Units / Turrets)
+    document.querySelectorAll('.aow-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.aow-tab').forEach(t => t.classList.toggle('active', t === tab));
+        document.getElementById('aow-units-tab').classList.toggle('active', target === 'units');
+        document.getElementById('aow-turrets-tab').classList.toggle('active', target === 'turrets');
+      });
+    });
     document.addEventListener('keydown', e => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
@@ -419,7 +490,8 @@ const AgeOfWarGame = (() => {
       }
     }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
-    enemySpawnT = 1.4 + Math.random() * 1.6 + pressureFactor * 1.0;
+    const D = DIFFICULTIES[difficulty];
+    enemySpawnT = (1.4 + Math.random() * 1.6 + pressureFactor * 1.0) * D.spawnMult;
   }
 
   // ---- Combat ----
@@ -452,6 +524,16 @@ const AgeOfWarGame = (() => {
     }
 
     enemyTick(dt);
+
+    // Combo timer + run timer
+    if (combo > 0) {
+      comboT -= dt;
+      if (comboT <= 0) { combo = 0; }
+    }
+    runStats.time += dt;
+    // Screen shake decay
+    if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
+    else            shakeMag *= 0.85;
 
     // Move + fight units
     for (const u of units) {
@@ -495,6 +577,8 @@ const AgeOfWarGame = (() => {
             if (u.side === 'player') enemyBaseHp -= u.dmg;
             else                     playerBaseHp -= u.dmg;
             spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
+            // Heavy hit = noticeable shake; small hit = light shake.
+            shake(Math.min(8, 1 + u.dmg / 80), 0.18);
           } else if (target) {
             if (u.range > 60) {
               projectiles.push({
@@ -606,10 +690,18 @@ const AgeOfWarGame = (() => {
           });
         }
         if (u.side === 'enemy') {
-          gold += u.gold;
-          xp += u.xp;
-          dropCoins(u.x, GROUND_Y - u.h, u.gold);
+          // Combo: each kill within COMBO_WINDOW seconds of the last
+          // stacks. Multiplier boosts XP gain + coin gold value.
+          combo += 1;
+          comboT = COMBO_WINDOW;
+          if (combo > comboBest) comboBest = combo;
+          const mult = comboMult();
+          xp += Math.round(u.xp * mult);
+          runStats.kills++;
+          runStats.gold += u.gold * mult;
+          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
           SFX.kill();
+          shake(2, 0.12);
         }
       }
     }
@@ -641,11 +733,24 @@ const AgeOfWarGame = (() => {
     goldFloaters = goldFloaters.filter(f => f.t > 0);
     for (const m of muzzleFlashes) m.t -= dt;
     muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
+    // Coin physics: arc + bounce + rest. Once landed they bob in place
+    // and slowly fade so the player has time (~6s) to click them.
     for (const c of coinDrops) {
       c.t -= dt;
-      c.y -= 30 * dt;
-      c.x += c.vx * dt;
-      c.vx *= 0.94;
+      c.bob += dt * 5;
+      if (!c.landed) {
+        c.vy += 380 * dt;          // gravity
+        c.y += c.vy * dt;
+        c.x += c.vx * dt;
+        c.vx *= 0.96;
+        if (c.y >= c.landY) {
+          c.y = c.landY;
+          if (c.vy > 80) { c.vy *= -0.35; c.vx *= 0.6; } else {
+            c.landed = true;
+            c.vy = 0; c.vx = 0;
+          }
+        }
+      }
     }
     coinDrops = coinDrops.filter(c => c.t > 0);
 
@@ -693,16 +798,60 @@ const AgeOfWarGame = (() => {
     dmgFloaters.push({ amount: Math.max(1, amount | 0), x, y, color, t: 0.9 });
   }
 
+  function collectCoinsNear(px, py) {
+    // Generous hit radius (touch-friendly): 18px.
+    const R = 18;
+    let collected = 0;
+    for (let i = coinDrops.length - 1; i >= 0; i--) {
+      const c = coinDrops[i];
+      if (Math.hypot(c.x - px, c.y - py) <= R) {
+        collected += c.gold;
+        // Pop with a small particle burst at the coin location
+        for (let k = 0; k < 4; k++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = 60 + Math.random() * 60;
+          particles.push({
+            x: c.x, y: c.y,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s - 40,
+            color: '#fcd34d',
+            size: 2 + Math.random() * 2,
+            life: 0.45 + Math.random() * 0.25,
+          });
+        }
+        coinDrops.splice(i, 1);
+      }
+    }
+    if (collected > 0) {
+      gold += collected;
+      goldFloaters.push({
+        text: '+$' + collected, x: px, y: py - 14,
+        color: '#fcd34d', t: 1.2,
+      });
+      SFX.coin();
+      renderHud();
+    }
+  }
+
   function dropCoins(x, y, total) {
-    const coins = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
-    for (let i = 0; i < coins; i++) {
+    // Split the total into 1-6 individual coins. Each must be clicked
+    // (or expires after a few seconds). Original Age of War made
+    // coin-collection part of the loop.
+    const coinCount = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
+    const perCoin = Math.max(1, Math.floor(total / coinCount));
+    for (let i = 0; i < coinCount; i++) {
       coinDrops.push({
         x, y: y - 6,
-        vx: (Math.random() - 0.5) * 40,
-        t: 0.9,
+        vy: -80 - Math.random() * 60,
+        vx: (Math.random() - 0.5) * 100,
+        landY: GROUND_Y - 8 - Math.random() * 4,
+        landed: false,
+        gold: perCoin,
+        t: 6.5,                    // seconds to claim before fading
+        bob: Math.random() * Math.PI * 2,
       });
     }
-    setTimeout(() => SFX.coin(), 60);
+    SFX.coin();
   }
 
   // ---- Rendering ----
@@ -716,6 +865,16 @@ const AgeOfWarGame = (() => {
 
   function draw() {
     const era = ERAS[playerEra];
+    // Screen shake — applied as a small canvas translate. shakeMag
+    // decays after the timed pulse expires.
+    if (shakeMag > 0.1) {
+      const k = shakeT > 0 ? 1 : 0.6;
+      const ox = (Math.random() - 0.5) * shakeMag * k * 2;
+      const oy = (Math.random() - 0.5) * shakeMag * k * 2;
+      ctx.setTransform(1, 0, 0, 1, ox, oy);
+    } else {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
     // Sky gradient
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
     grad.addColorStop(0, era.sky[0]);
@@ -754,12 +913,49 @@ const AgeOfWarGame = (() => {
     drawBaseHpBar(PLAYER_BASE_X, playerBaseHp, playerBaseMax, '#3FB950');
     drawBaseHpBar(ENEMY_BASE_X,  enemyBaseHp,  enemyBaseMax,  '#F85149');
 
-    // Coin drops
+    // Coin drops — round gold disks with a $ glyph. Click to collect.
     for (const c of coinDrops) {
-      ctx.fillStyle = `rgba(252,211,77,${Math.max(0, c.t)})`;
+      const fadeStart = 1.6;
+      const alpha = c.t > fadeStart ? 1 : Math.max(0, c.t / fadeStart);
+      const wobble = c.landed ? Math.sin(c.bob) * 1.5 : 0;
+      const yy = c.y + wobble;
+      const r = 8;
+      // Subtle shadow when landed
+      if (c.landed) {
+        ctx.fillStyle = `rgba(0,0,0,${0.35 * alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.landY + 8, r * 0.9, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Coin face (radial gradient)
+      const grad = ctx.createRadialGradient(c.x - 2, yy - 2, 1, c.x, yy, r);
+      grad.addColorStop(0, `rgba(255,238,160,${alpha})`);
+      grad.addColorStop(0.7, `rgba(252,211,77,${alpha})`);
+      grad.addColorStop(1, `rgba(180,130,30,${alpha})`);
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
+      ctx.arc(c.x, yy, r, 0, Math.PI * 2);
       ctx.fill();
+      // Rim
+      ctx.strokeStyle = `rgba(120,80,20,${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(c.x, yy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      // $ glyph
+      ctx.fillStyle = `rgba(120,80,20,${alpha})`;
+      ctx.font = '700 10px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', c.x, yy + 1);
+      // Glow halo if expiring soon
+      if (c.t < 1.6) {
+        ctx.strokeStyle = `rgba(252,211,77,${(1.6 - c.t) / 1.6 * 0.6})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(c.x, yy, r + 3 + (1 - c.t / 1.6) * 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
 
     // Toppling corpses (behind live units so survivors march "over" them)
@@ -830,6 +1026,15 @@ const AgeOfWarGame = (() => {
       ctx.font = `700 13px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.fillText('-' + f.amount, f.x, f.y);
+      ctx.globalAlpha = 1;
+    }
+    // Gold floaters (e.g. "+$24" on coin collect)
+    for (const f of goldFloaters) {
+      ctx.fillStyle = f.color || '#fcd34d';
+      ctx.globalAlpha = Math.max(0, f.t / 1.2);
+      ctx.font = `800 14px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(f.text || '', f.x, f.y);
       ctx.globalAlpha = 1;
     }
 
@@ -1116,143 +1321,627 @@ const AgeOfWarGame = (() => {
     ctx.fillText(Math.max(0, Math.floor(hp)) + ' / ' + max, x + w / 2, y - 3);
   }
 
+  // ---- Per-unit drawing helpers ----
+  // Skin tone palette — random per character at spawn? for now fixed per-era so look stays cohesive.
+  function skinFor(era) { return era < 4 ? '#e8b48a' : '#d9c6b0'; }
+
+  function drawHumanoidBase(x, y, h, w, facing, swing, bodyColor, opts = {}) {
+    // Proportions: head ~22% h, body ~45% h, legs ~33% h.
+    const headR = Math.round(h * 0.11);
+    const bodyTop = y + headR * 2 + 2;
+    const bodyH = Math.round(h * 0.45);
+    const bodyBottom = bodyTop + bodyH;
+    const legH = Math.round(h * 0.30);
+    const bodyW = Math.round(w * 0.6);
+    const skin = opts.skin || '#e8b48a';
+
+    // Legs (with walk swing)
+    ctx.fillStyle = opts.pantsColor || '#222';
+    ctx.fillRect(x - bodyW * 0.3 - 2, bodyBottom, 4, legH + swing * 2);
+    ctx.fillRect(x + bodyW * 0.3 - 2, bodyBottom, 4, legH - swing * 2);
+    // Boots
+    ctx.fillStyle = opts.bootColor || '#000';
+    ctx.fillRect(x - bodyW * 0.3 - 3, bodyBottom + legH + swing * 2 - 2, 6, 3);
+    ctx.fillRect(x + bodyW * 0.3 - 3, bodyBottom + legH - swing * 2 - 2, 6, 3);
+
+    // Torso (rounded-corner rect)
+    ctx.fillStyle = bodyColor;
+    roundRectPath(x - bodyW / 2, bodyTop, bodyW, bodyH, 3);
+    ctx.fill();
+
+    // Belt
+    if (opts.belt) {
+      ctx.fillStyle = opts.belt;
+      ctx.fillRect(x - bodyW / 2, bodyBottom - 4, bodyW, 3);
+    }
+
+    // Arm holding weapon (front arm swings opposite of leg)
+    const armSwing = -swing * 4;
+    const shoulderX = x + facing * (bodyW * 0.45);
+    const shoulderY = bodyTop + 4;
+    const handX = shoulderX + facing * 6 + armSwing * 0.4;
+    const handY = shoulderY + 10 + Math.abs(armSwing) * 0.4;
+    // Back arm (further from camera, simpler)
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - facing * (bodyW * 0.45), shoulderY);
+    ctx.lineTo(x - facing * (bodyW * 0.45) - facing * 2 - armSwing * 0.5, shoulderY + 12);
+    ctx.stroke();
+    // Front arm — drawn later by weapon code so the weapon sits in the hand.
+    return { shoulderX, shoulderY, handX, handY, headR, headCenterY: y + headR };
+  }
+
+  function drawArmAndWeapon(x, y, shoulder, hand, bodyColor, weaponDraw) {
+    // Front arm line from shoulder to hand
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x, shoulder.y);
+    ctx.lineTo(hand.x, hand.y);
+    ctx.stroke();
+    if (weaponDraw) weaponDraw(hand.x, hand.y);
+  }
+
+  function drawHead(cx, cy, r, skin, opts = {}) {
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    if (opts.eye !== false) {
+      ctx.fillStyle = '#222';
+      ctx.fillRect(cx + (opts.facing || 1) * 1.5, cy - 0.5, 1.5, 1.5);
+    }
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x,     y + h, rr);
+    ctx.arcTo(x,     y + h, x,     y,     rr);
+    ctx.arcTo(x,     y,     x + w, y,     rr);
+    ctx.closePath();
+  }
+
+  // ---- Unit-specific drawers ----
+  function drawGenericHumanoid(u, x, y, facing, walk, bodyColor) {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: '#e8b48a' });
+    drawHead(x, base.headCenterY, base.headR, '#e8b48a', { facing });
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX, y: base.handY }, bodyColor, null);
+  }
+
+  // === STONE AGE ===
+  const drawClubman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.1, facing, swing, bodyColor, { skin: skinFor(0), pantsColor: '#5a3a22' });
+    // Shaggy hair on head
+    const hr = base.headR + 1;
+    ctx.fillStyle = '#2a1808';
+    ctx.beginPath(); ctx.arc(x - 1, base.headCenterY - 1, hr, 0, Math.PI * 2); ctx.fill();
+    drawHead(x, base.headCenterY, base.headR, skinFor(0), { facing });
+    // Big wooden club in hand
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY - 6 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -0.5);
+      // Club shaft
+      ctx.fillStyle = '#5a3a18';
+      ctx.fillRect(-2, -10, 4, 14);
+      // Big head
+      ctx.fillStyle = '#7a4e22';
+      ctx.beginPath();
+      ctx.arc(0, -14, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // Spikes
+      ctx.strokeStyle = '#3a2210';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-3, -16); ctx.lineTo(-5, -19);
+      ctx.moveTo(3, -16);  ctx.lineTo(5, -19);
+      ctx.stroke();
+      ctx.restore();
+    });
+  };
+
+  const drawSlinger = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(0), pantsColor: '#3a2a18' });
+    ctx.fillStyle = '#3a2818';
+    ctx.beginPath(); ctx.arc(x - 1, base.headCenterY - 2, base.headR + 1, 0, Math.PI * 2); ctx.fill();
+    drawHead(x, base.headCenterY, base.headR, skinFor(0), { facing });
+    // Sling being whirled overhead
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 3, y: base.handY - 14 }, bodyColor, (hx, hy) => {
+      ctx.strokeStyle = '#6a4828';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(hx, hy - 6, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      // Stone in the sling
+      ctx.fillStyle = '#888';
+      ctx.beginPath();
+      ctx.arc(hx + facing * 3, hy - 12, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  };
+
+  // === MEDIEVAL ===
+  const drawSwordsman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(1), pantsColor: '#2a2a2a', bootColor: '#444', belt: '#6a4a22' });
+    // Pauldrons
+    ctx.fillStyle = '#cdd1d6';
+    ctx.fillRect(x - u.w * 0.32, y + base.headR * 2, 5, 4);
+    ctx.fillRect(x + u.w * 0.32 - 5, y + base.headR * 2, 5, 4);
+    // Helmet (great helm with visor)
+    ctx.fillStyle = '#a8aeb6';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY, base.headR + 1, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 1, base.headCenterY + base.headR);
+    ctx.lineTo(x - base.headR - 1, base.headCenterY + base.headR);
+    ctx.closePath();
+    ctx.fill();
+    // Visor slit
+    ctx.fillStyle = '#0e1015';
+    ctx.fillRect(x - base.headR + 1, base.headCenterY - 1, base.headR * 2 - 2, 1.5);
+    // Sword
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 2, y: base.handY - 2 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -1.3);
+      // Crossguard
+      ctx.fillStyle = '#5a4022';
+      ctx.fillRect(-5, -2, 10, 2);
+      // Blade
+      const bladeGrad = ctx.createLinearGradient(0, -22, 0, 0);
+      bladeGrad.addColorStop(0, '#e8ecef');
+      bladeGrad.addColorStop(1, '#9aa1a8');
+      ctx.fillStyle = bladeGrad;
+      ctx.beginPath();
+      ctx.moveTo(-1.5, 0); ctx.lineTo(1.5, 0); ctx.lineTo(1, -22); ctx.lineTo(0, -24); ctx.lineTo(-1, -22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  };
+
+  const drawArcher = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(1), pantsColor: '#3a2e1a', bootColor: '#3a2810', belt: '#5a3a18' });
+    // Green hood
+    ctx.fillStyle = '#3a5028';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY - 1, base.headR + 2, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY + base.headR + 1);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY + base.headR + 1);
+    ctx.closePath();
+    ctx.fill();
+    drawHead(x - facing * 1, base.headCenterY + 1, base.headR - 1, skinFor(1), { facing });
+    // Bow + arrow held drawn
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 6, y: base.handY }, bodyColor, (hx, hy) => {
+      // Bow
+      ctx.strokeStyle = '#6a3a1a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 12, -Math.PI / 2 - 0.4, Math.PI / 2 + 0.4, facing < 0);
+      ctx.stroke();
+      // Bowstring
+      ctx.strokeStyle = '#cccccc';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy - 10);
+      ctx.lineTo(hx - facing * 3, hy);
+      ctx.lineTo(hx, hy + 10);
+      ctx.stroke();
+      // Arrow
+      ctx.strokeStyle = '#3a2210';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(hx - facing * 3, hy);
+      ctx.lineTo(hx + facing * 8, hy);
+      ctx.stroke();
+    });
+  };
+
+  // === INDUSTRIAL ===
+  const drawRifleman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(2), pantsColor: '#2a2218', bootColor: '#1a1208', belt: '#3a2010' });
+    // Helmet (brodie-style)
+    ctx.fillStyle = '#5a6a40';
+    ctx.beginPath();
+    ctx.ellipse(x, base.headCenterY - 1, base.headR + 2, base.headR, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(x - base.headR - 2, base.headCenterY - 2, (base.headR + 2) * 2, 2);
+    drawHead(x, base.headCenterY + 1, base.headR - 1, skinFor(2), { facing });
+    // Bolt-action rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY }, bodyColor, (hx, hy) => {
+      // Stock
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(hx - facing * 6, hy - 1, facing * 8, 3);
+      // Barrel
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx, hy - 1, facing * 18, 2);
+      // Bolt
+      ctx.fillStyle = '#888';
+      ctx.fillRect(hx + facing * 3, hy - 2.5, facing * 3, 1.5);
+    });
+  };
+
+  const drawCannoneer = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 2;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.1, facing, swing, bodyColor, { skin: skinFor(2), pantsColor: '#2a1a08', bootColor: '#0a0805', belt: '#3a2010' });
+    // Wide-brim hat
+    ctx.fillStyle = '#2a1a0a';
+    ctx.fillRect(x - base.headR - 4, base.headCenterY - base.headR, (base.headR + 4) * 2, 2);
+    ctx.fillRect(x - base.headR - 1, base.headCenterY - base.headR - 4, (base.headR + 1) * 2, 4);
+    drawHead(x, base.headCenterY + 1, base.headR - 1, skinFor(2), { facing });
+    // Shoulder-mounted cannon
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY - 2 }, bodyColor, (hx, hy) => {
+      // Cannon body
+      ctx.fillStyle = '#2a2a2a';
+      ctx.beginPath();
+      ctx.ellipse(hx + facing * 8, hy - 1, 14, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Reinforcement bands
+      ctx.fillStyle = '#444';
+      ctx.fillRect(hx + facing * 4, hy - 6, 2, 10);
+      ctx.fillRect(hx + facing * 12, hy - 6, 2, 10);
+      // Muzzle ring
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx + facing * 20, hy - 5, 2, 8);
+    });
+  };
+
+  // === MODERN ===
+  const drawSoldier = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(3), pantsColor: '#3a4528', bootColor: '#1a1f10', belt: '#3a2818' });
+    // Tactical vest stripe
+    ctx.fillStyle = '#2a3520';
+    ctx.fillRect(x - u.w * 0.28, y + base.headR * 2 + 6, u.w * 0.56, 5);
+    // Combat helmet
+    ctx.fillStyle = '#3a4828';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY - 1, base.headR + 2, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY + 1);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY + 1);
+    ctx.closePath();
+    ctx.fill();
+    drawHead(x, base.headCenterY + 1, base.headR - 1, skinFor(3), { facing });
+    // M4-style rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY }, bodyColor, (hx, hy) => {
+      ctx.fillStyle = '#1a1f10';
+      ctx.fillRect(hx - facing * 4, hy - 1.5, facing * 22, 3);
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(hx + facing * 14, hy - 3, facing * 4, 5);    // optic
+      ctx.fillStyle = '#5a3a18';
+      ctx.fillRect(hx - facing * 4, hy + 1.5, facing * 6, 2);   // stock
+    });
+  };
+
+  const drawSniper = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(3), pantsColor: '#4a4a32', bootColor: '#28281a', belt: '#3a2818' });
+    // Ghillie/balaclava
+    ctx.fillStyle = '#3a3818';
+    ctx.beginPath(); ctx.arc(x, base.headCenterY, base.headR + 1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1808';
+    ctx.fillRect(x - base.headR, base.headCenterY - 1, base.headR * 2, 2);
+    // Long-barreled rifle with scope
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY + 1 }, bodyColor, (hx, hy) => {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx - facing * 5, hy - 1, facing * 32, 2);
+      // Long scope
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(hx + facing * 8, hy - 4, facing * 12, 3);
+      // Bipod
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hx + facing * 22, hy);
+      ctx.lineTo(hx + facing * 22, hy + 6);
+      ctx.stroke();
+    });
+  };
+
+  // === FUTURE ===
+  const drawLaserTrooper = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(4), pantsColor: '#222a44', bootColor: '#0e1428' });
+    // Energy chest strip
+    ctx.fillStyle = '#6ec4ff';
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 8;
+    ctx.fillRect(x - u.w * 0.28, y + base.headR * 2 + 8, u.w * 0.56, 1.5);
+    ctx.shadowBlur = 0;
+    // Closed-visor helmet
+    ctx.fillStyle = '#1a2244';
+    ctx.beginPath(); ctx.arc(x, base.headCenterY, base.headR + 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6ec4ff';
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 6;
+    ctx.fillRect(x - base.headR + 1, base.headCenterY - 1, (base.headR - 1) * 2, 2);
+    ctx.shadowBlur = 0;
+    // Antenna
+    ctx.fillStyle = '#6ec4ff';
+    ctx.fillRect(x - 0.5, base.headCenterY - base.headR - 6, 1, 4);
+    // Energy rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY }, bodyColor, (hx, hy) => {
+      // Body
+      ctx.fillStyle = '#3a4470';
+      ctx.fillRect(hx - facing * 4, hy - 2, facing * 18, 4);
+      // Energy core
+      ctx.fillStyle = '#6ec4ff';
+      ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 6;
+      ctx.fillRect(hx + facing * 4, hy - 1, facing * 4, 2);
+      ctx.fillRect(hx + facing * 14, hy - 1.5, facing * 3, 3);  // muzzle glow
+      ctx.shadowBlur = 0;
+    });
+  };
+
+  // === MOUNTED / VEHICLE / FLIER (one drawer each — these don't need per-unit variation) ===
+  const drawHorseAndRider = (u, x, y, facing, walk, bodyColor) => {
+    // Horse body
+    const gallop = Math.sin(u.walkPhase * 1.5) * 2;
+    ctx.fillStyle = '#5a3a22';
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.45, u.w, u.h * 0.30);
+    // Horse head + neck
+    ctx.fillStyle = '#5a3a22';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.4, y + u.h * 0.45);
+    ctx.lineTo(x + facing * u.w * 0.6, y + u.h * 0.30);
+    ctx.lineTo(x + facing * u.w * 0.7, y + u.h * 0.35);
+    ctx.lineTo(x + facing * u.w * 0.5, y + u.h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    // Mane
+    ctx.fillStyle = '#2a1808';
+    ctx.fillRect(x + facing * u.w * 0.42, y + u.h * 0.32, 2, 10);
+    // Legs (galloping)
+    ctx.fillStyle = '#2a1808';
+    ctx.fillRect(x - u.w * 0.35, y + u.h * 0.75, 4, u.h * 0.25 + gallop);
+    ctx.fillRect(x + u.w * 0.30, y + u.h * 0.75, 4, u.h * 0.25 - gallop);
+    ctx.fillRect(x - u.w * 0.05, y + u.h * 0.75, 4, u.h * 0.25 - gallop);
+    ctx.fillRect(x + u.w * 0.05, y + u.h * 0.75, 4, u.h * 0.25 + gallop);
+    // Rider (smaller, mounted on top)
+    const riderY = y - 4;
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - 5, riderY + 6, 10, 12);
+    // Rider helmet
+    ctx.fillStyle = '#a8aeb6';
+    ctx.beginPath();
+    ctx.arc(x, riderY + 4, 5, Math.PI, 0);
+    ctx.lineTo(x + 5, riderY + 6);
+    ctx.lineTo(x - 5, riderY + 6);
+    ctx.closePath();
+    ctx.fill();
+    // Lance
+    ctx.strokeStyle = '#5a3a18';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 4, riderY + 10);
+    ctx.lineTo(x + facing * 26, riderY + 4);
+    ctx.stroke();
+    // Lance tip
+    ctx.fillStyle = '#ccc';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 26, riderY + 4);
+    ctx.lineTo(x + facing * 30, riderY + 3);
+    ctx.lineTo(x + facing * 26, riderY + 6);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  const drawDinoRider = (u, x, y, facing, walk, bodyColor) => {
+    const gallop = Math.sin(u.walkPhase * 1.4) * 2;
+    // Dino body
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.45, u.w, u.h * 0.30);
+    // Head with snout
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.4, y + u.h * 0.45);
+    ctx.lineTo(x + facing * u.w * 0.7, y + u.h * 0.32);
+    ctx.lineTo(x + facing * u.w * 0.75, y + u.h * 0.42);
+    ctx.lineTo(x + facing * u.w * 0.55, y + u.h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    // Eye
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(x + facing * u.w * 0.55, y + u.h * 0.36, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Teeth
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + facing * u.w * 0.62, y + u.h * 0.45, facing * 6, 2);
+    // Tail
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(x - facing * u.w * 0.4, y + u.h * 0.5);
+    ctx.lineTo(x - facing * u.w * 0.7, y + u.h * 0.4);
+    ctx.lineTo(x - facing * u.w * 0.7, y + u.h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    // Legs
+    ctx.fillStyle = '#3a5530';
+    ctx.fillRect(x - u.w * 0.25, y + u.h * 0.75, 5, u.h * 0.25 + gallop);
+    ctx.fillRect(x + u.w * 0.18, y + u.h * 0.75, 5, u.h * 0.25 - gallop);
+    // Caveman rider
+    const riderY = y - 6;
+    ctx.fillStyle = '#b07040';
+    ctx.fillRect(x - 4, riderY + 6, 8, 10);
+    ctx.fillStyle = '#2a1808';
+    ctx.beginPath(); ctx.arc(x, riderY + 3, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = skinFor(0);
+    ctx.beginPath(); ctx.arc(x, riderY + 4, 3.5, 0, Math.PI * 2); ctx.fill();
+  };
+
+  const drawSteamTank = (u, x, y, facing, walk, bodyColor) => {
+    // Tracks (lower)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x - u.w / 2 - 2, y + u.h - 8, u.w + 4, 7);
+    // Treads
+    ctx.fillStyle = '#3a3a3a';
+    for (let i = 0; i < 8; i++) ctx.fillRect(x - u.w / 2 + i * (u.w / 7), y + u.h - 5, 3, 3);
+    // Hull
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.35, u.w, u.h * 0.4);
+    // Turret
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w * 0.3, y + u.h * 0.2, u.w * 0.6, u.h * 0.2);
+    // Cannon barrel
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + facing * u.w * 0.3, y + u.h * 0.28, facing * u.w * 0.45, 5);
+    // Smokestack with puffs
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x - u.w * 0.42, y + u.h * 0.05, 4, u.h * 0.32);
+    ctx.fillStyle = 'rgba(140,140,140,0.5)';
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.arc(x - u.w * 0.4 + Math.sin(performance.now() / 300 + i) * 4, y + u.h * 0.02 - i * 6, 4 + i, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  const drawModernTank = (u, x, y, facing, walk, bodyColor) => {
+    // Tracks
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x - u.w / 2 - 3, y + u.h - 9, u.w + 6, 8);
+    ctx.fillStyle = '#444';
+    for (let i = 0; i < 9; i++) ctx.fillRect(x - u.w / 2 + i * (u.w / 8) - 1, y + u.h - 6, 4, 4);
+    // Hull
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.4, u.w, u.h * 0.42);
+    // Sloped frontal armor
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w / 2, y + u.h * 0.4);
+    ctx.lineTo(x + facing * (u.w / 2 + 6), y + u.h * 0.55);
+    ctx.lineTo(x + facing * u.w / 2, y + u.h * 0.82);
+    ctx.closePath();
+    ctx.fill();
+    // Turret (low dome)
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.35, u.w * 0.32, u.h * 0.16, 0, Math.PI, 0);
+    ctx.fill();
+    // Main gun barrel (long)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + facing * u.w * 0.1, y + u.h * 0.30, facing * u.w * 0.55, 4);
+    // Muzzle brake
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x + facing * u.w * 0.55, y + u.h * 0.28, facing * 5, 8);
+  };
+
+  const drawMech = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    // Legs (heavy)
+    ctx.fillStyle = '#3a3a55';
+    ctx.fillRect(x - u.w * 0.32, y + u.h * 0.55, 8, u.h * 0.45 + swing);
+    ctx.fillRect(x + u.w * 0.20, y + u.h * 0.55, 8, u.h * 0.45 - swing);
+    // Feet
+    ctx.fillStyle = '#1a1a2a';
+    ctx.fillRect(x - u.w * 0.38, y + u.h - 4, 14, 4);
+    ctx.fillRect(x + u.w * 0.14, y + u.h - 4, 14, 4);
+    // Torso
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w * 0.35, y + u.h * 0.18, u.w * 0.7, u.h * 0.4);
+    // Cockpit glow
+    ctx.fillStyle = '#6ec4ff';
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 10;
+    ctx.fillRect(x - 4, y + u.h * 0.25, 8, 6);
+    ctx.shadowBlur = 0;
+    // Shoulder cannons
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x - u.w * 0.4, y + u.h * 0.20, 5, 7);
+    ctx.fillRect(x + u.w * 0.35, y + u.h * 0.20, 5, 7);
+    // Big arm + plasma cannon
+    ctx.fillStyle = '#5a5a78';
+    ctx.fillRect(x - u.w * 0.5, y + u.h * 0.30, u.w, 8);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + facing * u.w * 0.4, y + u.h * 0.32, facing * u.w * 0.5, 6);
+    ctx.fillStyle = '#ff90ee';
+    ctx.shadowColor = '#ff90ee'; ctx.shadowBlur = 8;
+    ctx.fillRect(x + facing * u.w * 0.8, y + u.h * 0.31, facing * 4, 8);
+    ctx.shadowBlur = 0;
+  };
+
+  const drawHover = (u, x, y, facing, walk, bodyColor) => {
+    const bob = Math.sin(performance.now() / 200) * 2;
+    // Hover disc body
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.5 + bob, u.w * 0.5, u.h * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Top dome / cockpit
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.35 + bob, u.w * 0.22, u.h * 0.18, 0, Math.PI, 0);
+    ctx.fill();
+    // Pilot silhouette
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.32 + bob, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Pink/magenta hover glow under the disc
+    ctx.fillStyle = 'rgba(255, 144, 238, 0.55)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.65 + bob, u.w * 0.45, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Side wing pods with thrusters
+    ctx.fillStyle = '#444';
+    ctx.fillRect(x - u.w * 0.5, y + u.h * 0.48 + bob, 5, 6);
+    ctx.fillRect(x + u.w * 0.45, y + u.h * 0.48 + bob, 5, 6);
+    ctx.fillStyle = '#ffd56e';
+    ctx.fillRect(x - u.w * 0.5 + 1, y + u.h * 0.54 + bob, 3, 3);
+    ctx.fillRect(x + u.w * 0.45 + 1, y + u.h * 0.54 + bob, 3, 3);
+    // Forward laser cannon
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + facing * u.w * 0.25, y + u.h * 0.5 + bob - 1, facing * u.w * 0.4, 3);
+    ctx.fillStyle = '#ff90ee';
+    ctx.shadowColor = '#ff90ee'; ctx.shadowBlur = 6;
+    ctx.fillRect(x + facing * u.w * 0.6, y + u.h * 0.5 + bob - 1, facing * 3, 3);
+    ctx.shadowBlur = 0;
+  };
+
+  // ---- Dispatch table ----
+  const UNIT_DRAWERS = {
+    club:         drawClubman,
+    sling:        drawSlinger,
+    dino:         drawDinoRider,
+    swordsman:    drawSwordsman,
+    archer:       drawArcher,
+    knight:       drawHorseAndRider,
+    rifleman:     drawRifleman,
+    cannon:       drawCannoneer,
+    tank1:        drawSteamTank,
+    soldier:      drawSoldier,
+    sniper:       drawSniper,
+    tank2:        drawModernTank,
+    laser:        drawLaserTrooper,
+    mech:         drawMech,
+    flier:        drawHover,
+  };
+
   // ---- Unit silhouettes ----
+  // Each unit gets a dedicated drawer so the silhouettes are
+  // recognizable at a glance, not just colored rectangles. All
+  // drawers accept (u, x, y, facing, walkSwing, bodyColor) and
+  // render with the origin at the bottom-center of the unit.
   function drawUnit(u) {
     const y = GROUND_Y - u.h - u.yOffset;
     const facing = u.side === 'player' ? 1 : -1;
-    // Shadow under the unit (slightly squashed ellipse)
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    // Soft elliptical shadow grounds the unit
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
-    ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.55, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.5, 3, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Body
     const bodyColor = u.hitFlash > 0 ? '#fff' : u.color;
+    const walkSwing = Math.sin(u.walkPhase);
     ctx.save();
-
-    if (u.silhouette === 'vehicle') {
-      // Tank-like: chassis + small turret
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 2, y + 10, u.w, u.h - 14);
-      // Tracks
-      ctx.fillStyle = '#222';
-      ctx.fillRect(u.x - u.w / 2 - 2, y + u.h - 8, u.w + 4, 6);
-      // Turret cap
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 4, y, u.w / 2, 12);
-      // Gun barrel
-      ctx.fillStyle = '#333';
-      if (facing > 0) ctx.fillRect(u.x, y + 4, u.w / 2 + 4, 3);
-      else            ctx.fillRect(u.x - u.w / 2 - 4, y + 4, u.w / 2 + 4, 3);
-    } else if (u.silhouette === 'flier') {
-      // Hover disc
-      ctx.fillStyle = bodyColor;
-      ctx.beginPath();
-      ctx.ellipse(u.x, y + u.h * 0.4, u.w * 0.8, 7, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Dome
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(u.x, y + u.h * 0.25, 6, Math.PI, Math.PI * 2);
-      ctx.fill();
-    } else if (u.silhouette === 'beast') {
-      // Lower wider body + small head bump
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 2, y + 4, u.w, u.h - 4);
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - 6, y - 4, 12, 10);
-    } else {
-      // Humanoid — era-specific silhouette details
-      const swing = Math.sin(u.walkPhase) * 3;
-      const era = UNITS[u.key] ? UNITS[u.key].era : 0;
-      // Legs
-      ctx.fillStyle = era >= 3 ? '#2a3320' : '#222';
-      ctx.fillRect(u.x - 5, y + u.h - 10, 4, 10 + swing);
-      ctx.fillRect(u.x + 1, y + u.h - 10, 4, 10 - swing);
-      // Torso
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 2 + 2, y + 6, u.w - 4, u.h - 18);
-      // Era-specific armor/clothing detail
-      if (era === 1) {
-        // Medieval: square shoulder pauldrons
-        ctx.fillStyle = '#dadce0';
-        ctx.fillRect(u.x - u.w / 2 + 1, y + 5, 4, 5);
-        ctx.fillRect(u.x + u.w / 2 - 5, y + 5, 4, 5);
-      } else if (era === 2) {
-        // Industrial: cross-belt / brown vest
-        ctx.fillStyle = '#4a3528';
-        ctx.fillRect(u.x - u.w / 2 + 2, y + 10, u.w - 4, 3);
-      } else if (era === 3) {
-        // Modern: tactical chest stripe + pocket
-        ctx.fillStyle = '#3a4a30';
-        ctx.fillRect(u.x - u.w / 2 + 2, y + 8, u.w - 4, 4);
-        ctx.fillStyle = '#2a3520';
-        ctx.fillRect(u.x - 2, y + 12, 4, 4);
-      } else if (era === 4) {
-        // Future: glowing accent lines
-        ctx.fillStyle = '#6ec4ff';
-        ctx.fillRect(u.x - u.w / 2 + 2, y + 8, u.w - 4, 1);
-        ctx.fillRect(u.x - u.w / 2 + 2, y + u.h - 22, u.w - 4, 1);
-      }
-      // Head + headwear
-      const headY = y + 4;
-      if (era === 0) {
-        // Caveman: shaggy hair
-        ctx.fillStyle = '#3a2818';
-        ctx.beginPath(); ctx.arc(u.x, headY - 1, 6, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#f0c089';
-        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4, 0, Math.PI * 2); ctx.fill();
-      } else if (era === 1) {
-        // Medieval: helmet
-        ctx.fillStyle = '#bcc4cc';
-        ctx.beginPath();
-        ctx.arc(u.x, headY, 5.5, Math.PI, 0);
-        ctx.lineTo(u.x + 5.5, headY + 3);
-        ctx.lineTo(u.x - 5.5, headY + 3);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#222';
-        ctx.fillRect(u.x - 4, headY, 8, 2);  // visor slit
-      } else if (era === 2) {
-        // Industrial: bowler / brown hat + face
-        ctx.fillStyle = '#f0c089';
-        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#3a2818';
-        ctx.fillRect(u.x - 5, headY - 3, 10, 2);
-        ctx.fillRect(u.x - 6, headY - 1, 12, 1);
-      } else if (era === 3) {
-        // Modern: combat helmet
-        ctx.fillStyle = '#f0c089';
-        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#3a4a30';
-        ctx.beginPath();
-        ctx.arc(u.x, headY - 1, 5.5, Math.PI, 0);
-        ctx.lineTo(u.x + 5.5, headY + 1);
-        ctx.lineTo(u.x - 5.5, headY + 1);
-        ctx.closePath();
-        ctx.fill();
-      } else if (era === 4) {
-        // Future: glowing visored helmet
-        ctx.fillStyle = '#222a44';
-        ctx.beginPath(); ctx.arc(u.x, headY, 5.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#6ec4ff';
-        ctx.fillRect(u.x - 4, headY, 8, 2);
-        // antenna
-        ctx.fillStyle = '#6ec4ff';
-        ctx.fillRect(u.x - 0.5, headY - 9, 1, 4);
-      }
-      // Weapon (era-styled)
-      ctx.fillStyle = era >= 3 ? '#222831' : era >= 2 ? '#3a3a3a' : '#332218';
-      if (u.range > 60) {
-        ctx.fillRect(u.x + facing * 3, y + 10, facing * 11, era >= 2 ? 3 : 2);
-        if (era === 4) {
-          // Energy core glow at muzzle
-          ctx.fillStyle = '#6ec4ff';
-          ctx.fillRect(u.x + facing * 13, y + 10, facing * 2, 3);
-        }
-      } else {
-        ctx.fillRect(u.x + facing * 3, y + 8, facing * 7, 3);
-      }
-    }
+    const drawer = UNIT_DRAWERS[u.key] || drawGenericHumanoid;
+    drawer(u, u.x, y, facing, walkSwing, bodyColor);
     ctx.restore();
 
     // Icon overhead (small)
@@ -1324,45 +2013,85 @@ const AgeOfWarGame = (() => {
 
   // ---- HUD + panels ----
   function renderHud() {
-    const eraEl  = document.getElementById('aow-era');
-    const goldEl = document.getElementById('aow-gold');
-    const xpEl   = document.getElementById('aow-xp');
-    const xpBar  = document.getElementById('aow-xp-bar');
-    const baseEl = document.getElementById('aow-base-hp');
-    const enemyEl= document.getElementById('aow-enemy-hp');
-    const specEl = document.getElementById('aow-special-btn');
-    const ageBtn = document.getElementById('aow-ageup-btn');
     const era = ERAS[playerEra];
-    if (eraEl) eraEl.textContent = era.icon + ' ' + era.name;
-    if (goldEl) goldEl.textContent = '$' + Math.floor(gold);
-    if (xpEl) {
-      if (playerEra >= ERAS.length - 1) xpEl.textContent = xp + ' XP · MAX AGE';
-      else xpEl.textContent = `${xp} / ${era.upXP} XP`;
-    }
+    const eEra = ERAS[enemyEra];
+
+    // Gold
+    const goldEl = document.getElementById('aow-gold');
+    if (goldEl) goldEl.textContent = Math.floor(gold);
+
+    // Era pill (icon + name + XP sub-text + bar)
+    const eraIconEl = document.getElementById('aow-era-icon');
+    const eraNameEl = document.getElementById('aow-era-name');
+    const eraSubEl  = document.getElementById('aow-era-sub');
+    const xpBar     = document.getElementById('aow-xp-bar');
+    if (eraIconEl) eraIconEl.textContent = era.icon;
+    if (eraNameEl) eraNameEl.textContent = era.name;
+    if (eraSubEl)  eraSubEl.textContent  = playerEra >= ERAS.length - 1
+      ? `${xp} XP · MAX`
+      : `${xp} / ${era.upXP} XP`;
     if (xpBar) {
       const pct = playerEra >= ERAS.length - 1 ? 100 : Math.min(100, (xp / era.upXP) * 100);
       xpBar.style.width = pct + '%';
     }
+
+    // Base HP bars (text + fill width)
+    const baseEl = document.getElementById('aow-base-hp');
+    const enemyEl = document.getElementById('aow-enemy-hp');
+    const playerBar = document.getElementById('aow-player-hp-bar');
+    const enemyBar  = document.getElementById('aow-enemy-hp-bar');
     if (baseEl)  baseEl.textContent  = `${Math.max(0, Math.floor(playerBaseHp))} / ${playerBaseMax}`;
     if (enemyEl) enemyEl.textContent = `${Math.max(0, Math.floor(enemyBaseHp))} / ${enemyBaseMax}`;
+    if (playerBar) playerBar.style.width = (Math.max(0, playerBaseHp) / playerBaseMax * 100) + '%';
+    if (enemyBar)  enemyBar.style.width  = (Math.max(0, enemyBaseHp)  / enemyBaseMax  * 100) + '%';
+
+    // Era-themed castle icons on the side bars
+    const playerIcon = document.getElementById('aow-player-side-icon');
+    const enemyIcon  = document.getElementById('aow-enemy-side-icon');
+    if (playerIcon) playerIcon.textContent = era.icon;
+    if (enemyIcon)  enemyIcon.textContent  = eEra.icon;
+
+    // Combo pill (only when combo > 0)
+    const comboEl = document.getElementById('aow-combo');
+    const comboXEl = document.getElementById('aow-combo-x');
+    const comboLblEl = document.getElementById('aow-combo-label');
+    if (comboEl) {
+      if (combo > 0) {
+        comboEl.style.display = '';
+        if (comboXEl)  comboXEl.textContent = '×' + comboMult().toFixed(1);
+        if (comboLblEl) comboLblEl.textContent = combo + ' kill' + (combo === 1 ? '' : 's');
+      } else {
+        comboEl.style.display = 'none';
+      }
+    }
+
+    // Age Up button
+    const ageBtn = document.getElementById('aow-ageup-btn');
     if (ageBtn) {
+      const lbl = ageBtn.querySelector('.aow-action-lbl');
+      const ico = ageBtn.querySelector('.aow-action-ico');
       if (playerEra >= ERAS.length - 1) {
-        ageBtn.textContent = '🌟 Max Age';
+        if (ico) ico.textContent = '🌟';
+        if (lbl) lbl.textContent = 'Max Age';
         ageBtn.disabled = true;
       } else {
-        ageBtn.textContent = `⬆️ Age Up → ${ERAS[playerEra + 1].name} (${era.upXP} XP)`;
+        if (ico) ico.textContent = '⬆️';
+        if (lbl) lbl.textContent = `Age Up · ${ERAS[playerEra + 1].name}`;
         ageBtn.disabled = xp < era.upXP;
       }
     }
+
+    // Special button
+    const specEl  = document.getElementById('aow-special-btn');
+    const specCdEl = document.getElementById('aow-special-cd');
     if (specEl) {
       const spec = ERAS[playerEra].special;
-      if (specialReadyT > 0) {
-        specEl.textContent = `${spec.icon} ${spec.name} (${Math.ceil(specialReadyT)}s)`;
-        specEl.disabled = true;
-      } else {
-        specEl.textContent = `${spec.icon} ${spec.name} — READY`;
-        specEl.disabled = false;
-      }
+      const lbl = specEl.querySelector('.aow-action-lbl');
+      const ico = specEl.querySelector('.aow-action-ico');
+      if (ico) ico.textContent = spec.icon;
+      if (lbl) lbl.textContent = spec.name;
+      if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
+      specEl.disabled = specialReadyT > 0;
     }
 
     // Live cooldown bars on spawn buttons
@@ -1399,13 +2128,10 @@ const AgeOfWarGame = (() => {
         btn.innerHTML = `
           <span class="aow-spawn-key">${idx}</span>
           <span class="aow-spawn-icon">${def.icon}</span>
-          <span class="aow-spawn-info">
-            <span class="aow-spawn-name">${def.name}</span>
-            <span class="aow-spawn-stats">HP ${def.hp} · DMG ${def.dmg}</span>
-          </span>
+          <span class="aow-spawn-name">${def.name}</span>
           <span class="aow-spawn-cost">$${def.cost}</span>
-          <span class="aow-spawn-cd"></span>
         `;
+        btn.title = `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
         btn.onclick = () => tryPlayerSpawn(key);
         list.appendChild(btn);
         idx++;
@@ -1450,13 +2176,21 @@ const AgeOfWarGame = (() => {
   function showOverlay(won) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
+    const m = Math.floor(runStats.time / 60);
+    const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
         ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
       </h2>
       <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
-      <p style="font-size:12px; color: var(--text-dim)">Press SPACE or click below to restart</p>
+      <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${(1 + comboBest * 0.05).toFixed(1)}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+      </div>
+      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
   }
 

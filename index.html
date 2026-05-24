@@ -380,35 +380,79 @@
 
   <!-- ===================== AGE OF WAR ===================== -->
   <section id="view-ageofwar" class="view">
-    <div class="game-container">
-      <div class="game-header">
-        <div class="game-title">AGE OF WAR</div>
-        <div class="game-subtitle">Spawn units · push the enemy base · age up to unlock stronger forces · Space = Air Strike</div>
-      </div>
-      <div class="aow-hud">
-        <div class="aow-hud-chip"><span class="aow-hud-label">Era</span><span class="aow-hud-value" id="aow-era">🪨 Stone Age</span></div>
-        <div class="aow-hud-chip"><span class="aow-hud-label">Gold</span><span class="aow-hud-value" id="aow-gold">$0</span></div>
-        <div class="aow-hud-chip aow-hud-xp">
-          <span class="aow-hud-label">Age Progress</span>
-          <span class="aow-hud-value" id="aow-xp">0 / 0 XP</span>
-          <div class="aow-xp-track"><div class="aow-xp-fill" id="aow-xp-bar"></div></div>
+    <div class="aow-shell">
+      <header class="aow-topbar">
+        <div class="aow-brand">
+          <span class="aow-brand-mark">⚔</span>
+          <span class="aow-brand-name">Age of War</span>
         </div>
-        <div class="aow-hud-chip aow-hud-base"><span class="aow-hud-label">Your Base</span><span class="aow-hud-value" id="aow-base-hp">1000 / 1000</span></div>
-        <div class="aow-hud-chip aow-hud-base aow-hud-enemy"><span class="aow-hud-label">Enemy Base</span><span class="aow-hud-value" id="aow-enemy-hp">1000 / 1000</span></div>
+        <div class="aow-resource aow-resource-gold" title="Gold — click coins on the battlefield to collect">
+          <span class="aow-resource-icon">$</span>
+          <span class="aow-resource-value" id="aow-gold">90</span>
+        </div>
+        <div class="aow-era-pill">
+          <span class="aow-era-icon" id="aow-era-icon">🪨</span>
+          <div class="aow-era-text">
+            <span class="aow-era-name" id="aow-era-name">Stone Age</span>
+            <span class="aow-era-sub" id="aow-era-sub">0 / 150 XP</span>
+          </div>
+          <div class="aow-era-track"><div class="aow-era-fill" id="aow-xp-bar"></div></div>
+        </div>
+        <div class="aow-combo" id="aow-combo" style="display:none">
+          <span class="aow-combo-x" id="aow-combo-x">×1.0</span>
+          <span class="aow-combo-label" id="aow-combo-label">combo</span>
+        </div>
+        <div class="aow-diff" id="aow-diff" title="Difficulty">
+          <button data-diff="easy">Easy</button>
+          <button data-diff="normal" class="active">Normal</button>
+          <button data-diff="hard">Hard</button>
+          <button data-diff="insane">Insane</button>
+        </div>
+      </header>
+
+      <div class="aow-battle-strip">
+        <div class="aow-side aow-side-player">
+          <div class="aow-side-icon" id="aow-player-side-icon">🏰</div>
+          <div class="aow-side-bar">
+            <div class="aow-side-label">YOU</div>
+            <div class="aow-side-track"><div class="aow-side-fill aow-fill-player" id="aow-player-hp-bar"></div></div>
+            <div class="aow-side-hp" id="aow-base-hp">1200 / 1200</div>
+          </div>
+        </div>
+        <div class="aow-vs">VS</div>
+        <div class="aow-side aow-side-enemy">
+          <div class="aow-side-bar">
+            <div class="aow-side-label">ENEMY</div>
+            <div class="aow-side-track"><div class="aow-side-fill aow-fill-enemy" id="aow-enemy-hp-bar"></div></div>
+            <div class="aow-side-hp" id="aow-enemy-hp">1200 / 1200</div>
+          </div>
+          <div class="aow-side-icon" id="aow-enemy-side-icon">🏰</div>
+        </div>
       </div>
-      <div class="canvas-wrapper">
-        <canvas id="aow-canvas" class="game-canvas"></canvas>
-        <div id="aow-overlay" class="game-overlay" style="display:none"></div>
+
+      <div class="aow-stage">
+        <canvas id="aow-canvas" class="aow-canvas"></canvas>
+        <div id="aow-overlay" class="aow-overlay" style="display:none"></div>
       </div>
-      <div class="aow-controls">
-        <button id="aow-ageup-btn" class="aow-control-btn aow-control-age">⬆️ Age Up</button>
-        <button id="aow-special-btn" class="aow-control-btn aow-control-special">💥 Special</button>
-        <button id="aow-restart-btn" class="aow-control-btn">🔄 Restart</button>
+
+      <div class="aow-actionbar">
+        <button id="aow-ageup-btn" class="aow-action aow-action-age"><span class="aow-action-ico">⬆️</span><span class="aow-action-lbl">Age Up</span></button>
+        <button id="aow-special-btn" class="aow-action aow-action-special"><span class="aow-action-ico">💥</span><span class="aow-action-lbl">Special</span><span class="aow-action-cd" id="aow-special-cd"></span></button>
+        <button id="aow-restart-btn" class="aow-action aow-action-restart"><span class="aow-action-ico">🔄</span><span class="aow-action-lbl">Restart</span></button>
       </div>
-      <div id="aow-spawn-list" class="aow-spawn-list"></div>
-      <div class="aow-section-label">Base Turrets <span>4 slots — upgrade each era</span></div>
-      <div id="aow-turret-list" class="aow-turret-list"></div>
-      <div class="aow-hint">Press <strong>1–9</strong> to spawn units · <strong>Q</strong> to age up · <strong>Space</strong> for special</div>
+
+      <div class="aow-tabs">
+        <button class="aow-tab active" data-tab="units">Units</button>
+        <button class="aow-tab" data-tab="turrets">Turrets</button>
+      </div>
+      <div id="aow-units-tab" class="aow-tabpanel active">
+        <div id="aow-spawn-list" class="aow-spawn-list"></div>
+      </div>
+      <div id="aow-turrets-tab" class="aow-tabpanel">
+        <div id="aow-turret-list" class="aow-turret-list"></div>
+      </div>
+
+      <div class="aow-hint"><strong>1–9</strong> spawn · <strong>Q</strong> age up · <strong>Space</strong> special · click coins to collect gold</div>
     </div>
   </section>
 
