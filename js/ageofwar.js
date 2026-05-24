@@ -1875,82 +1875,166 @@ const AgeOfWarGame = (() => {
   function skinFor(era) { return era < 4 ? '#e8b48a' : '#d9c6b0'; }
 
   function drawHumanoidBase(x, y, h, w, facing, swing, bodyColor, opts = {}) {
-    // Proportions: head ~22% h, body ~45% h, legs ~33% h.
-    const headR = Math.round(h * 0.11);
-    const bodyTop = y + headR * 2 + 2;
-    const bodyH = Math.round(h * 0.45);
+    // Proportions: head ~22% h, torso ~40% h, legs ~38% h.
+    const headR = Math.round(h * 0.10);
+    const neckY = y + headR * 2;
+    const bodyTop = neckY + 3;
+    const bodyH = Math.round(h * 0.40);
     const bodyBottom = bodyTop + bodyH;
-    const legH = Math.round(h * 0.30);
-    const bodyW = Math.round(w * 0.6);
+    const legH = Math.round(h * 0.32);
+    const upperLegH = legH * 0.55;
+    const lowerLegH = legH * 0.45;
+    const bodyW = Math.round(w * 0.62);
     const skin = opts.skin || '#e8b48a';
 
-    // Legs (with walk swing)
-    ctx.fillStyle = opts.pantsColor || '#222';
-    ctx.fillRect(x - bodyW * 0.3 - 2, bodyBottom, 4, legH + swing * 2);
-    ctx.fillRect(x + bodyW * 0.3 - 2, bodyBottom, 4, legH - swing * 2);
-    // Boots
-    ctx.fillStyle = opts.bootColor || '#000';
-    ctx.fillRect(x - bodyW * 0.3 - 3, bodyBottom + legH + swing * 2 - 2, 6, 3);
-    ctx.fillRect(x + bodyW * 0.3 - 3, bodyBottom + legH - swing * 2 - 2, 6, 3);
+    // Walk cycle parameters
+    const liftL = Math.max(0, swing) * 4;        // how far front leg lifts
+    const liftR = Math.max(0, -swing) * 4;
+    const knee = 2 + Math.abs(swing) * 3;
+    const hipL = { x: x - bodyW * 0.22, y: bodyBottom - 1 };
+    const hipR = { x: x + bodyW * 0.22, y: bodyBottom - 1 };
+    const pants = opts.pantsColor || '#222';
+    const boot  = opts.bootColor  || '#000';
 
-    // Torso (rounded-corner rect with vertical highlight gradient)
-    roundRectPath(x - bodyW / 2, bodyTop, bodyW, bodyH, 3);
+    // Articulated legs (upper thigh + lower shin, with knee bend)
+    function drawLeg(hip, lift) {
+      const kneeX = hip.x + facing * (lift * 0.3);
+      const kneeY = hip.y + upperLegH - lift;
+      const footX = kneeX + facing * (lift * -0.15);
+      const footY = kneeY + lowerLegH - lift * 0.5;
+      ctx.strokeStyle = pants;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(hip.x,  hip.y);
+      ctx.lineTo(kneeX,  kneeY);
+      ctx.lineTo(footX,  footY);
+      ctx.stroke();
+      // Boot
+      ctx.fillStyle = boot;
+      ctx.fillRect(footX - 4, footY - 2, 7, 3);
+    }
+    drawLeg(hipL, liftL);
+    drawLeg(hipR, liftR);
+
+    // Torso — rounded rect with horizontal shading + dark outline
+    roundRectPath(x - bodyW / 2, bodyTop, bodyW, bodyH, 4);
     const torsoGrad = ctx.createLinearGradient(x - bodyW / 2, bodyTop, x + bodyW / 2, bodyTop);
-    torsoGrad.addColorStop(0,    shadeColor(bodyColor, -18));
+    torsoGrad.addColorStop(0,    shadeColor(bodyColor, -22));
     torsoGrad.addColorStop(0.45, bodyColor);
-    torsoGrad.addColorStop(1,    shadeColor(bodyColor,  14));
+    torsoGrad.addColorStop(1,    shadeColor(bodyColor,  18));
     ctx.fillStyle = torsoGrad;
     ctx.fill();
-    // Dark outline for cell-shaded read at distance
-    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
     // Belt
     if (opts.belt) {
       ctx.fillStyle = opts.belt;
-      ctx.fillRect(x - bodyW / 2, bodyBottom - 4, bodyW, 3);
+      ctx.fillRect(x - bodyW / 2, bodyBottom - 5, bodyW, 4);
+      ctx.fillStyle = shadeColor(opts.belt, 30);
+      ctx.fillRect(x - 2, bodyBottom - 5, 4, 4);  // buckle
     }
 
-    // Arm holding weapon (front arm swings opposite of leg)
-    const armSwing = -swing * 4;
-    const shoulderX = x + facing * (bodyW * 0.45);
-    const shoulderY = bodyTop + 4;
-    const handX = shoulderX + facing * 6 + armSwing * 0.4;
-    const handY = shoulderY + 10 + Math.abs(armSwing) * 0.4;
-    // Back arm (further from camera, simpler)
+    // Neck (small skin nub between head and torso)
+    ctx.fillStyle = skin;
+    ctx.fillRect(x - 3, neckY - 1, 6, 4);
+
+    // Arms — both swing during walk. Front arm holds the weapon
+    // (drawn by the caller after this returns); back arm bobs at
+    // opposite phase. We use 3-segment limbs with elbow bend.
+    const armSwing = -swing * 6;
+    const frontShoulder = { x: x + facing * (bodyW * 0.45), y: bodyTop + 5 };
+    const backShoulder  = { x: x - facing * (bodyW * 0.45), y: bodyTop + 5 };
+    // Back arm — draw a bent arm with the hand at the side
+    const backElbow = {
+      x: backShoulder.x - facing * 2 - armSwing * 0.3,
+      y: backShoulder.y + 8,
+    };
+    const backHand = {
+      x: backElbow.x - facing * 1 + armSwing * 0.2,
+      y: backElbow.y + 7,
+    };
     ctx.strokeStyle = bodyColor;
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(x - facing * (bodyW * 0.45), shoulderY);
-    ctx.lineTo(x - facing * (bodyW * 0.45) - facing * 2 - armSwing * 0.5, shoulderY + 12);
+    ctx.moveTo(backShoulder.x, backShoulder.y);
+    ctx.lineTo(backElbow.x,    backElbow.y);
+    ctx.lineTo(backHand.x,     backHand.y);
     ctx.stroke();
-    // Front arm — drawn later by weapon code so the weapon sits in the hand.
-    return { shoulderX, shoulderY, handX, handY, headR, headCenterY: y + headR };
+    // Back hand (small skin dot)
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(backHand.x, backHand.y, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Front arm anchor — caller wires the weapon hold around handX/handY
+    const elbowX = frontShoulder.x + facing * 4 + armSwing * 0.4;
+    const elbowY = frontShoulder.y + 7;
+    const handX  = elbowX + facing * 6;
+    const handY  = elbowY + 6 + Math.abs(armSwing) * 0.3;
+    return {
+      shoulderX: frontShoulder.x, shoulderY: frontShoulder.y,
+      elbowX, elbowY, handX, handY,
+      headR, headCenterY: y + headR,
+      bodyTop, bodyBottom, bodyW,
+    };
   }
 
-  function drawArmAndWeapon(x, y, shoulder, hand, bodyColor, weaponDraw) {
-    // Front arm line from shoulder to hand
+  function drawArmAndWeapon(x, y, shoulder, hand, bodyColor, weaponDraw, opts = {}) {
+    // Front arm bent at elbow (3 segments: shoulder → elbow → hand).
+    // Caller's hand position drives wrist; we compute an elbow halfway.
+    const elbowX = opts.elbowX != null ? opts.elbowX : (shoulder.x + hand.x) * 0.5;
+    const elbowY = opts.elbowY != null ? opts.elbowY : (shoulder.y + hand.y) * 0.5 + 2;
     ctx.strokeStyle = bodyColor;
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(shoulder.x, shoulder.y);
-    ctx.lineTo(hand.x, hand.y);
+    ctx.lineTo(elbowX,     elbowY);
+    ctx.lineTo(hand.x,     hand.y);
     ctx.stroke();
+    // Hand dot under the weapon
+    ctx.fillStyle = opts.skin || '#e8b48a';
+    ctx.beginPath();
+    ctx.arc(hand.x, hand.y, 2.4, 0, Math.PI * 2);
+    ctx.fill();
     if (weaponDraw) weaponDraw(hand.x, hand.y);
   }
 
   function drawHead(cx, cy, r, skin, opts = {}) {
+    // Slightly oval head with subtle shading and 2 small eyes
+    const facing = opts.facing || 1;
+    // Soft drop shadow under jaw
+    ctx.fillStyle = shadeColor(skin, -28);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + r * 0.55, r * 0.7, r * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Face
     ctx.fillStyle = skin;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
+    // Cheek highlight (front-facing side)
+    ctx.fillStyle = shadeColor(skin, 18);
+    ctx.beginPath();
+    ctx.arc(cx + facing * r * 0.35, cy + r * 0.1, r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
     if (opts.eye !== false) {
-      ctx.fillStyle = '#222';
-      ctx.fillRect(cx + (opts.facing || 1) * 1.5, cy - 0.5, 1.5, 1.5);
+      // Two eye dots (the back eye is a hint, front eye more visible)
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(cx + facing * 1.4, cy - 1.2, 1.6, 1.6);
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(cx + facing * -1.4, cy - 1.0, 1.2, 1.4);
     }
+    // Subtle outline
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   // Lighten/darken a hex color by `amt` units (-100..100).
