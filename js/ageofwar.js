@@ -287,8 +287,9 @@ const AgeOfWarGame = (() => {
   function spawnUnit(side, key) {
     const def = UNITS[key];
     if (!def) return;
-    const w = def.silhouette === 'vehicle' ? 28 : def.silhouette === 'beast' ? 26 : 18;
-    const h = def.silhouette === 'flier' ? 32 : def.silhouette === 'vehicle' ? 30 : 30;
+    // Per-silhouette sizing tuned for legibility at this canvas resolution.
+    const w = def.silhouette === 'vehicle' ? 44 : def.silhouette === 'beast' ? 40 : def.silhouette === 'flier' ? 36 : 26;
+    const h = def.silhouette === 'flier' ? 38 : def.silhouette === 'vehicle' ? 38 : def.silhouette === 'beast' ? 40 : 44;
     const flying = def.silhouette === 'flier';
     const D = DIFFICULTIES[difficulty];
     const hpMult  = side === 'enemy' ? D.hpMult  : 1;
@@ -1320,143 +1321,627 @@ const AgeOfWarGame = (() => {
     ctx.fillText(Math.max(0, Math.floor(hp)) + ' / ' + max, x + w / 2, y - 3);
   }
 
+  // ---- Per-unit drawing helpers ----
+  // Skin tone palette — random per character at spawn? for now fixed per-era so look stays cohesive.
+  function skinFor(era) { return era < 4 ? '#e8b48a' : '#d9c6b0'; }
+
+  function drawHumanoidBase(x, y, h, w, facing, swing, bodyColor, opts = {}) {
+    // Proportions: head ~22% h, body ~45% h, legs ~33% h.
+    const headR = Math.round(h * 0.11);
+    const bodyTop = y + headR * 2 + 2;
+    const bodyH = Math.round(h * 0.45);
+    const bodyBottom = bodyTop + bodyH;
+    const legH = Math.round(h * 0.30);
+    const bodyW = Math.round(w * 0.6);
+    const skin = opts.skin || '#e8b48a';
+
+    // Legs (with walk swing)
+    ctx.fillStyle = opts.pantsColor || '#222';
+    ctx.fillRect(x - bodyW * 0.3 - 2, bodyBottom, 4, legH + swing * 2);
+    ctx.fillRect(x + bodyW * 0.3 - 2, bodyBottom, 4, legH - swing * 2);
+    // Boots
+    ctx.fillStyle = opts.bootColor || '#000';
+    ctx.fillRect(x - bodyW * 0.3 - 3, bodyBottom + legH + swing * 2 - 2, 6, 3);
+    ctx.fillRect(x + bodyW * 0.3 - 3, bodyBottom + legH - swing * 2 - 2, 6, 3);
+
+    // Torso (rounded-corner rect)
+    ctx.fillStyle = bodyColor;
+    roundRectPath(x - bodyW / 2, bodyTop, bodyW, bodyH, 3);
+    ctx.fill();
+
+    // Belt
+    if (opts.belt) {
+      ctx.fillStyle = opts.belt;
+      ctx.fillRect(x - bodyW / 2, bodyBottom - 4, bodyW, 3);
+    }
+
+    // Arm holding weapon (front arm swings opposite of leg)
+    const armSwing = -swing * 4;
+    const shoulderX = x + facing * (bodyW * 0.45);
+    const shoulderY = bodyTop + 4;
+    const handX = shoulderX + facing * 6 + armSwing * 0.4;
+    const handY = shoulderY + 10 + Math.abs(armSwing) * 0.4;
+    // Back arm (further from camera, simpler)
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - facing * (bodyW * 0.45), shoulderY);
+    ctx.lineTo(x - facing * (bodyW * 0.45) - facing * 2 - armSwing * 0.5, shoulderY + 12);
+    ctx.stroke();
+    // Front arm — drawn later by weapon code so the weapon sits in the hand.
+    return { shoulderX, shoulderY, handX, handY, headR, headCenterY: y + headR };
+  }
+
+  function drawArmAndWeapon(x, y, shoulder, hand, bodyColor, weaponDraw) {
+    // Front arm line from shoulder to hand
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x, shoulder.y);
+    ctx.lineTo(hand.x, hand.y);
+    ctx.stroke();
+    if (weaponDraw) weaponDraw(hand.x, hand.y);
+  }
+
+  function drawHead(cx, cy, r, skin, opts = {}) {
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    if (opts.eye !== false) {
+      ctx.fillStyle = '#222';
+      ctx.fillRect(cx + (opts.facing || 1) * 1.5, cy - 0.5, 1.5, 1.5);
+    }
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x,     y + h, rr);
+    ctx.arcTo(x,     y + h, x,     y,     rr);
+    ctx.arcTo(x,     y,     x + w, y,     rr);
+    ctx.closePath();
+  }
+
+  // ---- Unit-specific drawers ----
+  function drawGenericHumanoid(u, x, y, facing, walk, bodyColor) {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: '#e8b48a' });
+    drawHead(x, base.headCenterY, base.headR, '#e8b48a', { facing });
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX, y: base.handY }, bodyColor, null);
+  }
+
+  // === STONE AGE ===
+  const drawClubman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.1, facing, swing, bodyColor, { skin: skinFor(0), pantsColor: '#5a3a22' });
+    // Shaggy hair on head
+    const hr = base.headR + 1;
+    ctx.fillStyle = '#2a1808';
+    ctx.beginPath(); ctx.arc(x - 1, base.headCenterY - 1, hr, 0, Math.PI * 2); ctx.fill();
+    drawHead(x, base.headCenterY, base.headR, skinFor(0), { facing });
+    // Big wooden club in hand
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY - 6 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -0.5);
+      // Club shaft
+      ctx.fillStyle = '#5a3a18';
+      ctx.fillRect(-2, -10, 4, 14);
+      // Big head
+      ctx.fillStyle = '#7a4e22';
+      ctx.beginPath();
+      ctx.arc(0, -14, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // Spikes
+      ctx.strokeStyle = '#3a2210';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-3, -16); ctx.lineTo(-5, -19);
+      ctx.moveTo(3, -16);  ctx.lineTo(5, -19);
+      ctx.stroke();
+      ctx.restore();
+    });
+  };
+
+  const drawSlinger = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(0), pantsColor: '#3a2a18' });
+    ctx.fillStyle = '#3a2818';
+    ctx.beginPath(); ctx.arc(x - 1, base.headCenterY - 2, base.headR + 1, 0, Math.PI * 2); ctx.fill();
+    drawHead(x, base.headCenterY, base.headR, skinFor(0), { facing });
+    // Sling being whirled overhead
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 3, y: base.handY - 14 }, bodyColor, (hx, hy) => {
+      ctx.strokeStyle = '#6a4828';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(hx, hy - 6, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      // Stone in the sling
+      ctx.fillStyle = '#888';
+      ctx.beginPath();
+      ctx.arc(hx + facing * 3, hy - 12, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  };
+
+  // === MEDIEVAL ===
+  const drawSwordsman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(1), pantsColor: '#2a2a2a', bootColor: '#444', belt: '#6a4a22' });
+    // Pauldrons
+    ctx.fillStyle = '#cdd1d6';
+    ctx.fillRect(x - u.w * 0.32, y + base.headR * 2, 5, 4);
+    ctx.fillRect(x + u.w * 0.32 - 5, y + base.headR * 2, 5, 4);
+    // Helmet (great helm with visor)
+    ctx.fillStyle = '#a8aeb6';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY, base.headR + 1, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 1, base.headCenterY + base.headR);
+    ctx.lineTo(x - base.headR - 1, base.headCenterY + base.headR);
+    ctx.closePath();
+    ctx.fill();
+    // Visor slit
+    ctx.fillStyle = '#0e1015';
+    ctx.fillRect(x - base.headR + 1, base.headCenterY - 1, base.headR * 2 - 2, 1.5);
+    // Sword
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 2, y: base.handY - 2 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -1.3);
+      // Crossguard
+      ctx.fillStyle = '#5a4022';
+      ctx.fillRect(-5, -2, 10, 2);
+      // Blade
+      const bladeGrad = ctx.createLinearGradient(0, -22, 0, 0);
+      bladeGrad.addColorStop(0, '#e8ecef');
+      bladeGrad.addColorStop(1, '#9aa1a8');
+      ctx.fillStyle = bladeGrad;
+      ctx.beginPath();
+      ctx.moveTo(-1.5, 0); ctx.lineTo(1.5, 0); ctx.lineTo(1, -22); ctx.lineTo(0, -24); ctx.lineTo(-1, -22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  };
+
+  const drawArcher = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(1), pantsColor: '#3a2e1a', bootColor: '#3a2810', belt: '#5a3a18' });
+    // Green hood
+    ctx.fillStyle = '#3a5028';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY - 1, base.headR + 2, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY + base.headR + 1);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY + base.headR + 1);
+    ctx.closePath();
+    ctx.fill();
+    drawHead(x - facing * 1, base.headCenterY + 1, base.headR - 1, skinFor(1), { facing });
+    // Bow + arrow held drawn
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 6, y: base.handY }, bodyColor, (hx, hy) => {
+      // Bow
+      ctx.strokeStyle = '#6a3a1a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 12, -Math.PI / 2 - 0.4, Math.PI / 2 + 0.4, facing < 0);
+      ctx.stroke();
+      // Bowstring
+      ctx.strokeStyle = '#cccccc';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy - 10);
+      ctx.lineTo(hx - facing * 3, hy);
+      ctx.lineTo(hx, hy + 10);
+      ctx.stroke();
+      // Arrow
+      ctx.strokeStyle = '#3a2210';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(hx - facing * 3, hy);
+      ctx.lineTo(hx + facing * 8, hy);
+      ctx.stroke();
+    });
+  };
+
+  // === INDUSTRIAL ===
+  const drawRifleman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(2), pantsColor: '#2a2218', bootColor: '#1a1208', belt: '#3a2010' });
+    // Helmet (brodie-style)
+    ctx.fillStyle = '#5a6a40';
+    ctx.beginPath();
+    ctx.ellipse(x, base.headCenterY - 1, base.headR + 2, base.headR, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(x - base.headR - 2, base.headCenterY - 2, (base.headR + 2) * 2, 2);
+    drawHead(x, base.headCenterY + 1, base.headR - 1, skinFor(2), { facing });
+    // Bolt-action rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY }, bodyColor, (hx, hy) => {
+      // Stock
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(hx - facing * 6, hy - 1, facing * 8, 3);
+      // Barrel
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx, hy - 1, facing * 18, 2);
+      // Bolt
+      ctx.fillStyle = '#888';
+      ctx.fillRect(hx + facing * 3, hy - 2.5, facing * 3, 1.5);
+    });
+  };
+
+  const drawCannoneer = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 2;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.1, facing, swing, bodyColor, { skin: skinFor(2), pantsColor: '#2a1a08', bootColor: '#0a0805', belt: '#3a2010' });
+    // Wide-brim hat
+    ctx.fillStyle = '#2a1a0a';
+    ctx.fillRect(x - base.headR - 4, base.headCenterY - base.headR, (base.headR + 4) * 2, 2);
+    ctx.fillRect(x - base.headR - 1, base.headCenterY - base.headR - 4, (base.headR + 1) * 2, 4);
+    drawHead(x, base.headCenterY + 1, base.headR - 1, skinFor(2), { facing });
+    // Shoulder-mounted cannon
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY - 2 }, bodyColor, (hx, hy) => {
+      // Cannon body
+      ctx.fillStyle = '#2a2a2a';
+      ctx.beginPath();
+      ctx.ellipse(hx + facing * 8, hy - 1, 14, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Reinforcement bands
+      ctx.fillStyle = '#444';
+      ctx.fillRect(hx + facing * 4, hy - 6, 2, 10);
+      ctx.fillRect(hx + facing * 12, hy - 6, 2, 10);
+      // Muzzle ring
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx + facing * 20, hy - 5, 2, 8);
+    });
+  };
+
+  // === MODERN ===
+  const drawSoldier = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(3), pantsColor: '#3a4528', bootColor: '#1a1f10', belt: '#3a2818' });
+    // Tactical vest stripe
+    ctx.fillStyle = '#2a3520';
+    ctx.fillRect(x - u.w * 0.28, y + base.headR * 2 + 6, u.w * 0.56, 5);
+    // Combat helmet
+    ctx.fillStyle = '#3a4828';
+    ctx.beginPath();
+    ctx.arc(x, base.headCenterY - 1, base.headR + 2, Math.PI, 0);
+    ctx.lineTo(x + base.headR + 2, base.headCenterY + 1);
+    ctx.lineTo(x - base.headR - 2, base.headCenterY + 1);
+    ctx.closePath();
+    ctx.fill();
+    drawHead(x, base.headCenterY + 1, base.headR - 1, skinFor(3), { facing });
+    // M4-style rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY }, bodyColor, (hx, hy) => {
+      ctx.fillStyle = '#1a1f10';
+      ctx.fillRect(hx - facing * 4, hy - 1.5, facing * 22, 3);
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(hx + facing * 14, hy - 3, facing * 4, 5);    // optic
+      ctx.fillStyle = '#5a3a18';
+      ctx.fillRect(hx - facing * 4, hy + 1.5, facing * 6, 2);   // stock
+    });
+  };
+
+  const drawSniper = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(3), pantsColor: '#4a4a32', bootColor: '#28281a', belt: '#3a2818' });
+    // Ghillie/balaclava
+    ctx.fillStyle = '#3a3818';
+    ctx.beginPath(); ctx.arc(x, base.headCenterY, base.headR + 1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1808';
+    ctx.fillRect(x - base.headR, base.headCenterY - 1, base.headR * 2, 2);
+    // Long-barreled rifle with scope
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY + 1 }, bodyColor, (hx, hy) => {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(hx - facing * 5, hy - 1, facing * 32, 2);
+      // Long scope
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(hx + facing * 8, hy - 4, facing * 12, 3);
+      // Bipod
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hx + facing * 22, hy);
+      ctx.lineTo(hx + facing * 22, hy + 6);
+      ctx.stroke();
+    });
+  };
+
+  // === FUTURE ===
+  const drawLaserTrooper = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(4), pantsColor: '#222a44', bootColor: '#0e1428' });
+    // Energy chest strip
+    ctx.fillStyle = '#6ec4ff';
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 8;
+    ctx.fillRect(x - u.w * 0.28, y + base.headR * 2 + 8, u.w * 0.56, 1.5);
+    ctx.shadowBlur = 0;
+    // Closed-visor helmet
+    ctx.fillStyle = '#1a2244';
+    ctx.beginPath(); ctx.arc(x, base.headCenterY, base.headR + 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6ec4ff';
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 6;
+    ctx.fillRect(x - base.headR + 1, base.headCenterY - 1, (base.headR - 1) * 2, 2);
+    ctx.shadowBlur = 0;
+    // Antenna
+    ctx.fillStyle = '#6ec4ff';
+    ctx.fillRect(x - 0.5, base.headCenterY - base.headR - 6, 1, 4);
+    // Energy rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY }, bodyColor, (hx, hy) => {
+      // Body
+      ctx.fillStyle = '#3a4470';
+      ctx.fillRect(hx - facing * 4, hy - 2, facing * 18, 4);
+      // Energy core
+      ctx.fillStyle = '#6ec4ff';
+      ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 6;
+      ctx.fillRect(hx + facing * 4, hy - 1, facing * 4, 2);
+      ctx.fillRect(hx + facing * 14, hy - 1.5, facing * 3, 3);  // muzzle glow
+      ctx.shadowBlur = 0;
+    });
+  };
+
+  // === MOUNTED / VEHICLE / FLIER (one drawer each — these don't need per-unit variation) ===
+  const drawHorseAndRider = (u, x, y, facing, walk, bodyColor) => {
+    // Horse body
+    const gallop = Math.sin(u.walkPhase * 1.5) * 2;
+    ctx.fillStyle = '#5a3a22';
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.45, u.w, u.h * 0.30);
+    // Horse head + neck
+    ctx.fillStyle = '#5a3a22';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.4, y + u.h * 0.45);
+    ctx.lineTo(x + facing * u.w * 0.6, y + u.h * 0.30);
+    ctx.lineTo(x + facing * u.w * 0.7, y + u.h * 0.35);
+    ctx.lineTo(x + facing * u.w * 0.5, y + u.h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    // Mane
+    ctx.fillStyle = '#2a1808';
+    ctx.fillRect(x + facing * u.w * 0.42, y + u.h * 0.32, 2, 10);
+    // Legs (galloping)
+    ctx.fillStyle = '#2a1808';
+    ctx.fillRect(x - u.w * 0.35, y + u.h * 0.75, 4, u.h * 0.25 + gallop);
+    ctx.fillRect(x + u.w * 0.30, y + u.h * 0.75, 4, u.h * 0.25 - gallop);
+    ctx.fillRect(x - u.w * 0.05, y + u.h * 0.75, 4, u.h * 0.25 - gallop);
+    ctx.fillRect(x + u.w * 0.05, y + u.h * 0.75, 4, u.h * 0.25 + gallop);
+    // Rider (smaller, mounted on top)
+    const riderY = y - 4;
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - 5, riderY + 6, 10, 12);
+    // Rider helmet
+    ctx.fillStyle = '#a8aeb6';
+    ctx.beginPath();
+    ctx.arc(x, riderY + 4, 5, Math.PI, 0);
+    ctx.lineTo(x + 5, riderY + 6);
+    ctx.lineTo(x - 5, riderY + 6);
+    ctx.closePath();
+    ctx.fill();
+    // Lance
+    ctx.strokeStyle = '#5a3a18';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 4, riderY + 10);
+    ctx.lineTo(x + facing * 26, riderY + 4);
+    ctx.stroke();
+    // Lance tip
+    ctx.fillStyle = '#ccc';
+    ctx.beginPath();
+    ctx.moveTo(x + facing * 26, riderY + 4);
+    ctx.lineTo(x + facing * 30, riderY + 3);
+    ctx.lineTo(x + facing * 26, riderY + 6);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  const drawDinoRider = (u, x, y, facing, walk, bodyColor) => {
+    const gallop = Math.sin(u.walkPhase * 1.4) * 2;
+    // Dino body
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.45, u.w, u.h * 0.30);
+    // Head with snout
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.4, y + u.h * 0.45);
+    ctx.lineTo(x + facing * u.w * 0.7, y + u.h * 0.32);
+    ctx.lineTo(x + facing * u.w * 0.75, y + u.h * 0.42);
+    ctx.lineTo(x + facing * u.w * 0.55, y + u.h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    // Eye
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(x + facing * u.w * 0.55, y + u.h * 0.36, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Teeth
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + facing * u.w * 0.62, y + u.h * 0.45, facing * 6, 2);
+    // Tail
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(x - facing * u.w * 0.4, y + u.h * 0.5);
+    ctx.lineTo(x - facing * u.w * 0.7, y + u.h * 0.4);
+    ctx.lineTo(x - facing * u.w * 0.7, y + u.h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    // Legs
+    ctx.fillStyle = '#3a5530';
+    ctx.fillRect(x - u.w * 0.25, y + u.h * 0.75, 5, u.h * 0.25 + gallop);
+    ctx.fillRect(x + u.w * 0.18, y + u.h * 0.75, 5, u.h * 0.25 - gallop);
+    // Caveman rider
+    const riderY = y - 6;
+    ctx.fillStyle = '#b07040';
+    ctx.fillRect(x - 4, riderY + 6, 8, 10);
+    ctx.fillStyle = '#2a1808';
+    ctx.beginPath(); ctx.arc(x, riderY + 3, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = skinFor(0);
+    ctx.beginPath(); ctx.arc(x, riderY + 4, 3.5, 0, Math.PI * 2); ctx.fill();
+  };
+
+  const drawSteamTank = (u, x, y, facing, walk, bodyColor) => {
+    // Tracks (lower)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x - u.w / 2 - 2, y + u.h - 8, u.w + 4, 7);
+    // Treads
+    ctx.fillStyle = '#3a3a3a';
+    for (let i = 0; i < 8; i++) ctx.fillRect(x - u.w / 2 + i * (u.w / 7), y + u.h - 5, 3, 3);
+    // Hull
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.35, u.w, u.h * 0.4);
+    // Turret
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w * 0.3, y + u.h * 0.2, u.w * 0.6, u.h * 0.2);
+    // Cannon barrel
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + facing * u.w * 0.3, y + u.h * 0.28, facing * u.w * 0.45, 5);
+    // Smokestack with puffs
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x - u.w * 0.42, y + u.h * 0.05, 4, u.h * 0.32);
+    ctx.fillStyle = 'rgba(140,140,140,0.5)';
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.arc(x - u.w * 0.4 + Math.sin(performance.now() / 300 + i) * 4, y + u.h * 0.02 - i * 6, 4 + i, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  const drawModernTank = (u, x, y, facing, walk, bodyColor) => {
+    // Tracks
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x - u.w / 2 - 3, y + u.h - 9, u.w + 6, 8);
+    ctx.fillStyle = '#444';
+    for (let i = 0; i < 9; i++) ctx.fillRect(x - u.w / 2 + i * (u.w / 8) - 1, y + u.h - 6, 4, 4);
+    // Hull
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w / 2, y + u.h * 0.4, u.w, u.h * 0.42);
+    // Sloped frontal armor
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w / 2, y + u.h * 0.4);
+    ctx.lineTo(x + facing * (u.w / 2 + 6), y + u.h * 0.55);
+    ctx.lineTo(x + facing * u.w / 2, y + u.h * 0.82);
+    ctx.closePath();
+    ctx.fill();
+    // Turret (low dome)
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.35, u.w * 0.32, u.h * 0.16, 0, Math.PI, 0);
+    ctx.fill();
+    // Main gun barrel (long)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + facing * u.w * 0.1, y + u.h * 0.30, facing * u.w * 0.55, 4);
+    // Muzzle brake
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x + facing * u.w * 0.55, y + u.h * 0.28, facing * 5, 8);
+  };
+
+  const drawMech = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    // Legs (heavy)
+    ctx.fillStyle = '#3a3a55';
+    ctx.fillRect(x - u.w * 0.32, y + u.h * 0.55, 8, u.h * 0.45 + swing);
+    ctx.fillRect(x + u.w * 0.20, y + u.h * 0.55, 8, u.h * 0.45 - swing);
+    // Feet
+    ctx.fillStyle = '#1a1a2a';
+    ctx.fillRect(x - u.w * 0.38, y + u.h - 4, 14, 4);
+    ctx.fillRect(x + u.w * 0.14, y + u.h - 4, 14, 4);
+    // Torso
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x - u.w * 0.35, y + u.h * 0.18, u.w * 0.7, u.h * 0.4);
+    // Cockpit glow
+    ctx.fillStyle = '#6ec4ff';
+    ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 10;
+    ctx.fillRect(x - 4, y + u.h * 0.25, 8, 6);
+    ctx.shadowBlur = 0;
+    // Shoulder cannons
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x - u.w * 0.4, y + u.h * 0.20, 5, 7);
+    ctx.fillRect(x + u.w * 0.35, y + u.h * 0.20, 5, 7);
+    // Big arm + plasma cannon
+    ctx.fillStyle = '#5a5a78';
+    ctx.fillRect(x - u.w * 0.5, y + u.h * 0.30, u.w, 8);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + facing * u.w * 0.4, y + u.h * 0.32, facing * u.w * 0.5, 6);
+    ctx.fillStyle = '#ff90ee';
+    ctx.shadowColor = '#ff90ee'; ctx.shadowBlur = 8;
+    ctx.fillRect(x + facing * u.w * 0.8, y + u.h * 0.31, facing * 4, 8);
+    ctx.shadowBlur = 0;
+  };
+
+  const drawHover = (u, x, y, facing, walk, bodyColor) => {
+    const bob = Math.sin(performance.now() / 200) * 2;
+    // Hover disc body
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.5 + bob, u.w * 0.5, u.h * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Top dome / cockpit
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.35 + bob, u.w * 0.22, u.h * 0.18, 0, Math.PI, 0);
+    ctx.fill();
+    // Pilot silhouette
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(x, y + u.h * 0.32 + bob, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Pink/magenta hover glow under the disc
+    ctx.fillStyle = 'rgba(255, 144, 238, 0.55)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + u.h * 0.65 + bob, u.w * 0.45, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Side wing pods with thrusters
+    ctx.fillStyle = '#444';
+    ctx.fillRect(x - u.w * 0.5, y + u.h * 0.48 + bob, 5, 6);
+    ctx.fillRect(x + u.w * 0.45, y + u.h * 0.48 + bob, 5, 6);
+    ctx.fillStyle = '#ffd56e';
+    ctx.fillRect(x - u.w * 0.5 + 1, y + u.h * 0.54 + bob, 3, 3);
+    ctx.fillRect(x + u.w * 0.45 + 1, y + u.h * 0.54 + bob, 3, 3);
+    // Forward laser cannon
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + facing * u.w * 0.25, y + u.h * 0.5 + bob - 1, facing * u.w * 0.4, 3);
+    ctx.fillStyle = '#ff90ee';
+    ctx.shadowColor = '#ff90ee'; ctx.shadowBlur = 6;
+    ctx.fillRect(x + facing * u.w * 0.6, y + u.h * 0.5 + bob - 1, facing * 3, 3);
+    ctx.shadowBlur = 0;
+  };
+
+  // ---- Dispatch table ----
+  const UNIT_DRAWERS = {
+    club:         drawClubman,
+    sling:        drawSlinger,
+    dino:         drawDinoRider,
+    swordsman:    drawSwordsman,
+    archer:       drawArcher,
+    knight:       drawHorseAndRider,
+    rifleman:     drawRifleman,
+    cannon:       drawCannoneer,
+    tank1:        drawSteamTank,
+    soldier:      drawSoldier,
+    sniper:       drawSniper,
+    tank2:        drawModernTank,
+    laser:        drawLaserTrooper,
+    mech:         drawMech,
+    flier:        drawHover,
+  };
+
   // ---- Unit silhouettes ----
+  // Each unit gets a dedicated drawer so the silhouettes are
+  // recognizable at a glance, not just colored rectangles. All
+  // drawers accept (u, x, y, facing, walkSwing, bodyColor) and
+  // render with the origin at the bottom-center of the unit.
   function drawUnit(u) {
     const y = GROUND_Y - u.h - u.yOffset;
     const facing = u.side === 'player' ? 1 : -1;
-    // Shadow under the unit (slightly squashed ellipse)
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    // Soft elliptical shadow grounds the unit
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
-    ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.55, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.5, 3, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Body
     const bodyColor = u.hitFlash > 0 ? '#fff' : u.color;
+    const walkSwing = Math.sin(u.walkPhase);
     ctx.save();
-
-    if (u.silhouette === 'vehicle') {
-      // Tank-like: chassis + small turret
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 2, y + 10, u.w, u.h - 14);
-      // Tracks
-      ctx.fillStyle = '#222';
-      ctx.fillRect(u.x - u.w / 2 - 2, y + u.h - 8, u.w + 4, 6);
-      // Turret cap
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 4, y, u.w / 2, 12);
-      // Gun barrel
-      ctx.fillStyle = '#333';
-      if (facing > 0) ctx.fillRect(u.x, y + 4, u.w / 2 + 4, 3);
-      else            ctx.fillRect(u.x - u.w / 2 - 4, y + 4, u.w / 2 + 4, 3);
-    } else if (u.silhouette === 'flier') {
-      // Hover disc
-      ctx.fillStyle = bodyColor;
-      ctx.beginPath();
-      ctx.ellipse(u.x, y + u.h * 0.4, u.w * 0.8, 7, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Dome
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(u.x, y + u.h * 0.25, 6, Math.PI, Math.PI * 2);
-      ctx.fill();
-    } else if (u.silhouette === 'beast') {
-      // Lower wider body + small head bump
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 2, y + 4, u.w, u.h - 4);
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - 6, y - 4, 12, 10);
-    } else {
-      // Humanoid — era-specific silhouette details
-      const swing = Math.sin(u.walkPhase) * 3;
-      const era = UNITS[u.key] ? UNITS[u.key].era : 0;
-      // Legs
-      ctx.fillStyle = era >= 3 ? '#2a3320' : '#222';
-      ctx.fillRect(u.x - 5, y + u.h - 10, 4, 10 + swing);
-      ctx.fillRect(u.x + 1, y + u.h - 10, 4, 10 - swing);
-      // Torso
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(u.x - u.w / 2 + 2, y + 6, u.w - 4, u.h - 18);
-      // Era-specific armor/clothing detail
-      if (era === 1) {
-        // Medieval: square shoulder pauldrons
-        ctx.fillStyle = '#dadce0';
-        ctx.fillRect(u.x - u.w / 2 + 1, y + 5, 4, 5);
-        ctx.fillRect(u.x + u.w / 2 - 5, y + 5, 4, 5);
-      } else if (era === 2) {
-        // Industrial: cross-belt / brown vest
-        ctx.fillStyle = '#4a3528';
-        ctx.fillRect(u.x - u.w / 2 + 2, y + 10, u.w - 4, 3);
-      } else if (era === 3) {
-        // Modern: tactical chest stripe + pocket
-        ctx.fillStyle = '#3a4a30';
-        ctx.fillRect(u.x - u.w / 2 + 2, y + 8, u.w - 4, 4);
-        ctx.fillStyle = '#2a3520';
-        ctx.fillRect(u.x - 2, y + 12, 4, 4);
-      } else if (era === 4) {
-        // Future: glowing accent lines
-        ctx.fillStyle = '#6ec4ff';
-        ctx.fillRect(u.x - u.w / 2 + 2, y + 8, u.w - 4, 1);
-        ctx.fillRect(u.x - u.w / 2 + 2, y + u.h - 22, u.w - 4, 1);
-      }
-      // Head + headwear
-      const headY = y + 4;
-      if (era === 0) {
-        // Caveman: shaggy hair
-        ctx.fillStyle = '#3a2818';
-        ctx.beginPath(); ctx.arc(u.x, headY - 1, 6, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#f0c089';
-        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4, 0, Math.PI * 2); ctx.fill();
-      } else if (era === 1) {
-        // Medieval: helmet
-        ctx.fillStyle = '#bcc4cc';
-        ctx.beginPath();
-        ctx.arc(u.x, headY, 5.5, Math.PI, 0);
-        ctx.lineTo(u.x + 5.5, headY + 3);
-        ctx.lineTo(u.x - 5.5, headY + 3);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#222';
-        ctx.fillRect(u.x - 4, headY, 8, 2);  // visor slit
-      } else if (era === 2) {
-        // Industrial: bowler / brown hat + face
-        ctx.fillStyle = '#f0c089';
-        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#3a2818';
-        ctx.fillRect(u.x - 5, headY - 3, 10, 2);
-        ctx.fillRect(u.x - 6, headY - 1, 12, 1);
-      } else if (era === 3) {
-        // Modern: combat helmet
-        ctx.fillStyle = '#f0c089';
-        ctx.beginPath(); ctx.arc(u.x, headY + 1, 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#3a4a30';
-        ctx.beginPath();
-        ctx.arc(u.x, headY - 1, 5.5, Math.PI, 0);
-        ctx.lineTo(u.x + 5.5, headY + 1);
-        ctx.lineTo(u.x - 5.5, headY + 1);
-        ctx.closePath();
-        ctx.fill();
-      } else if (era === 4) {
-        // Future: glowing visored helmet
-        ctx.fillStyle = '#222a44';
-        ctx.beginPath(); ctx.arc(u.x, headY, 5.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#6ec4ff';
-        ctx.fillRect(u.x - 4, headY, 8, 2);
-        // antenna
-        ctx.fillStyle = '#6ec4ff';
-        ctx.fillRect(u.x - 0.5, headY - 9, 1, 4);
-      }
-      // Weapon (era-styled)
-      ctx.fillStyle = era >= 3 ? '#222831' : era >= 2 ? '#3a3a3a' : '#332218';
-      if (u.range > 60) {
-        ctx.fillRect(u.x + facing * 3, y + 10, facing * 11, era >= 2 ? 3 : 2);
-        if (era === 4) {
-          // Energy core glow at muzzle
-          ctx.fillStyle = '#6ec4ff';
-          ctx.fillRect(u.x + facing * 13, y + 10, facing * 2, 3);
-        }
-      } else {
-        ctx.fillRect(u.x + facing * 3, y + 8, facing * 7, 3);
-      }
-    }
+    const drawer = UNIT_DRAWERS[u.key] || drawGenericHumanoid;
+    drawer(u, u.x, y, facing, walkSwing, bodyColor);
     ctx.restore();
 
     // Icon overhead (small)
