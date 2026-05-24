@@ -247,6 +247,17 @@ const AgeOfWarGame = (() => {
   let heroReadyT = 0;   // seconds until current era's hero is available
   let currentHeroCd = 0;
 
+  // ---- Wave system ----
+  // Enemy spawns are grouped into waves. Every 5th wave is a boss wave
+  // with a single, beefy enemy that drops a large coin pile.
+  let waveNum = 1;
+  let waveEnemiesRemaining = 4;
+  let waveBreatherT = 0;      // seconds remaining in the gap between waves
+  let bossWaveActive = false;
+  let bossKilledThisWave = false;
+  let killFeed = [];          // recent kill entries floating up
+  function isBossWave(n) { return n > 0 && n % 5 === 0; }
+
   function heroForEra(era) { return HEROES[era]; }
   function trySummonHero() {
     if (gameOver) return;
@@ -541,6 +552,12 @@ const AgeOfWarGame = (() => {
     runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
+    waveNum = 1;
+    waveEnemiesRemaining = 4;
+    waveBreatherT = 0;
+    bossWaveActive = false;
+    bossKilledThisWave = false;
+    killFeed = [];
     shakeT = 0; shakeMag = 0;
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
@@ -773,14 +790,59 @@ const AgeOfWarGame = (() => {
 
   // ---- Enemy AI ----
   function enemyTick(dt) {
+    // Wave breather (gap between waves)
+    if (waveBreatherT > 0) {
+      waveBreatherT -= dt;
+      return;
+    }
+    // Are we starting a new wave?
+    if (waveEnemiesRemaining <= 0) {
+      // Boss wave check: ended via boss death — credit + advance.
+      if (bossWaveActive && !bossKilledThisWave) return;  // wait for boss
+      waveNum++;
+      bossWaveActive = isBossWave(waveNum);
+      bossKilledThisWave = false;
+      waveEnemiesRemaining = bossWaveActive ? 1 : (3 + Math.floor(waveNum * 0.4));
+      waveBreatherT = bossWaveActive ? 3.5 : 2.5;
+      // Announce
+      const txt = bossWaveActive ? `BOSS WAVE ${waveNum}` : `WAVE ${waveNum}`;
+      ageBannerText = txt;
+      ageBannerT = 1.8;
+      shake(bossWaveActive ? 6 : 3, 0.3);
+      if (waveNum >= 10) unlock('kill_100');  // proxy: surviving 10 waves implies kills
+      return;
+    }
     enemySpawnT -= dt;
     if (enemySpawnT > 0) return;
     if (enemyEra < playerEra && Math.random() < 0.30) enemyEra++;
     const choices = unitsForEra(enemyEra);
-    // Bias toward cheaper units; occasionally a heavy.
-    const heavy = Math.random() < 0.2;
-    const key = heavy ? choices[choices.length - 1] : choices[Math.floor(Math.random() * choices.length)];
-    spawnUnit('enemy', key);
+    if (bossWaveActive && waveEnemiesRemaining === 1) {
+      // Spawn a single beefy boss instead of normal unit
+      const baseKey = choices[choices.length - 1];
+      const baseDef = UNITS[baseKey];
+      const bossKey = 'boss_' + baseKey + '_' + waveNum;
+      if (!UNITS[bossKey]) {
+        UNITS[bossKey] = {
+          ...baseDef,
+          name: 'Boss ' + baseDef.name,
+          hp: baseDef.hp * 5,
+          dmg: baseDef.dmg * 1.8,
+          gold: baseDef.gold * 6,
+          xp: baseDef.xp * 5,
+          color: '#a020a0',
+        };
+      }
+      spawnUnit('enemy', bossKey);
+      // Tag the freshly spawned unit as boss + scale it
+      const u = units[units.length - 1];
+      if (u) { u.w = Math.round(u.w * 1.7); u.h = Math.round(u.h * 1.5); u.isBoss = true; u.icon = '👑'; }
+      waveEnemiesRemaining = 0;  // breather waits for boss death
+    } else {
+      const heavy = Math.random() < 0.2 + (waveNum - 1) * 0.04;
+      const key = heavy ? choices[choices.length - 1] : choices[Math.floor(Math.random() * choices.length)];
+      spawnUnit('enemy', key);
+      waveEnemiesRemaining--;
+    }
     // Build enemy turrets too (one tier behind, slowly).
     if (Math.random() < 0.06) {
       const slot = enemyTurrets.findIndex(t => !t || t.era < enemyEra);
@@ -791,7 +853,7 @@ const AgeOfWarGame = (() => {
     }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
     const D = DIFFICULTIES[difficulty];
-    enemySpawnT = (1.4 + Math.random() * 1.6 + pressureFactor * 1.0) * D.spawnMult;
+    enemySpawnT = (1.2 + Math.random() * 1.4 + pressureFactor * 0.8) * D.spawnMult;
   }
 
   // ---- Combat ----
@@ -1005,6 +1067,31 @@ const AgeOfWarGame = (() => {
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
           runStats.gold += u.gold * mult;
           dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
+          if (u.isBoss) {
+            bossKilledThisWave = true;
+            shake(10, 0.5);
+            ageFlash = Math.max(ageFlash, 0.4);
+            // Boss explosion
+            for (let i = 0; i < 40; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const s = 80 + Math.random() * 200;
+              particles.push({
+                x: u.x, y: GROUND_Y - u.h * 0.5,
+                vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60,
+                color: i % 2 === 0 ? '#fcd34d' : '#a020a0',
+                size: 3 + Math.random() * 3,
+                life: 0.8 + Math.random() * 0.5,
+              });
+            }
+          }
+          // Kill feed entry
+          killFeed.push({
+            text: '+' + (u.icon || '⚔') + ' ' + (combo > 1 ? '×' + comboMult().toFixed(1) : '+' + Math.round(u.xp * mult) + ' XP'),
+            t: 1.6, y: 0,
+            color: combo >= 10 ? '#ff77c8' : '#fcd34d',
+          });
+          // Cap kill feed length
+          if (killFeed.length > 6) killFeed.shift();
           SFX.kill();
           shake(2, 0.12);
         }
@@ -1035,6 +1122,8 @@ const AgeOfWarGame = (() => {
     for (const f of dmgFloaters) { f.t -= dt; f.y -= 28 * dt; }
     dmgFloaters = dmgFloaters.filter(f => f.t > 0);
     for (const f of goldFloaters) { f.t -= dt; f.y -= 26 * dt; }
+    for (const f of killFeed) { f.t -= dt; f.y += 20 * dt; }
+    killFeed = killFeed.filter(f => f.t > 0);
     goldFloaters = goldFloaters.filter(f => f.t > 0);
     for (const m of muzzleFlashes) m.t -= dt;
     muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
@@ -1392,6 +1481,17 @@ const AgeOfWarGame = (() => {
       ctx.fillText(f.text || '', f.x, f.y);
       ctx.globalAlpha = 1;
     }
+
+    // Kill feed (right side, stacks vertically)
+    ctx.textAlign = 'right';
+    ctx.font = `700 12px 'JetBrains Mono', monospace`;
+    for (let i = 0; i < killFeed.length; i++) {
+      const f = killFeed[i];
+      ctx.globalAlpha = Math.max(0, f.t / 1.6);
+      ctx.fillStyle = f.color || '#fcd34d';
+      ctx.fillText(f.text, WIDTH - 14, 24 + i * 16 - f.y);
+    }
+    ctx.globalAlpha = 1;
 
     // Age flash overlay
     if (ageFlash > 0) {
@@ -2908,6 +3008,20 @@ const AgeOfWarGame = (() => {
       if (lbl) lbl.textContent = spec.name;
       if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
       specEl.disabled = specialReadyT > 0;
+    }
+
+    // Wave indicator
+    const waveEl = document.getElementById('aow-wave');
+    const waveNumEl = document.getElementById('aow-wave-num');
+    const waveSubEl = document.getElementById('aow-wave-sub');
+    if (waveEl) {
+      waveEl.classList.toggle('aow-wave-boss', bossWaveActive);
+      if (waveNumEl) waveNumEl.textContent = (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum;
+      if (waveSubEl) {
+        if (waveBreatherT > 0) waveSubEl.textContent = `next in ${Math.ceil(waveBreatherT)}s`;
+        else if (bossWaveActive && !bossKilledThisWave) waveSubEl.textContent = 'kill the boss';
+        else waveSubEl.textContent = `${waveEnemiesRemaining} incoming`;
+      }
     }
 
     // Hero button
