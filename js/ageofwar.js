@@ -723,11 +723,8 @@ const AgeOfWarGame = (() => {
     // Clouds (parallax)
     for (const c of bgClouds) drawCloud(c.x, c.y, c.r);
 
-    // Ground
-    ctx.fillStyle = '#1a1a14';
-    ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
+    // Ground (per-era color + speckle texture)
+    drawGround(playerEra);
 
     // Bases (per-era art)
     drawBase(PLAYER_BASE_X, era.baseColor, era.icon, playerEra);
@@ -851,6 +848,37 @@ const AgeOfWarGame = (() => {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(ageBannerText, WIDTH / 2, y + 32);
       ctx.restore();
+    }
+  }
+
+  // Per-era ground palette + speckle texture. The speckles are
+  // deterministic per (era, x) so they don't flicker each frame.
+  const GROUND_COLORS = ['#3a2818', '#1f2a1c', '#222024', '#1f231a', '#0e1226'];
+  const GROUND_SPECKS = ['#5a4530', '#3a4a32', '#2c2a30', '#36402a', '#1c2a4a'];
+  function drawGround(eraIdx) {
+    const base = GROUND_COLORS[eraIdx] || '#1a1a14';
+    const speck = GROUND_SPECKS[eraIdx] || '#2a2a20';
+    ctx.fillStyle = base;
+    ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
+    // Deterministic speckle (pseudo-random from x)
+    for (let x = 4; x < WIDTH; x += 6) {
+      const seed = (x * 9301 + eraIdx * 49297) | 0;
+      const r = (Math.abs(Math.sin(seed)) * 1000) % 1;
+      if (r < 0.35) {
+        const y = GROUND_Y + 4 + ((seed * 7) % (HEIGHT - GROUND_Y - 8));
+        ctx.fillStyle = speck;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+    // Top edge line
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
+    // Future era: faint glowing grid lines on the ground
+    if (eraIdx === 4) {
+      ctx.strokeStyle = 'rgba(110,196,255,0.18)';
+      for (let x = 0; x < WIDTH; x += 24) {
+        ctx.beginPath(); ctx.moveTo(x, GROUND_Y + 2); ctx.lineTo(x - 30, HEIGHT); ctx.stroke();
+      }
     }
   }
 
@@ -1077,6 +1105,11 @@ const AgeOfWarGame = (() => {
   function drawUnit(u) {
     const y = GROUND_Y - u.h - u.yOffset;
     const facing = u.side === 'player' ? 1 : -1;
+    // Shadow under the unit (slightly squashed ellipse)
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.55, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
     // Body
     const bodyColor = u.hitFlash > 0 ? '#fff' : u.color;
     ctx.save();
@@ -1153,17 +1186,54 @@ const AgeOfWarGame = (() => {
   }
 
   function drawProjectile(p) {
-    ctx.fillStyle = p.color || '#fcd34d';
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-    ctx.fill();
-    // small trail
-    ctx.strokeStyle = 'rgba(252,211,77,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(p.x - Math.sign(p.vx) * 8, p.y);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
+    const dir = Math.sign(p.vx) || 1;
+    // Era-ish render based on projectile size / color.
+    // Bright laser-ish for high-tech colors, otherwise arrow/bullet.
+    if (p.color === '#6ec4ff' || p.color === '#ff90ee') {
+      // Laser beam
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(p.x - dir * 18, p.y);
+      ctx.lineTo(p.x + dir * 4,  p.y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else if (p.dmg >= 100) {
+      // Heavy round / shell
+      ctx.fillStyle = '#444';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#888';
+      ctx.fillRect(p.x - dir * 4, p.y - 1, dir * 4, 2);
+    } else if (p.dmg >= 30) {
+      // Arrow
+      ctx.strokeStyle = '#5a3a22';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p.x - dir * 10, p.y); ctx.lineTo(p.x + dir * 4, p.y);
+      ctx.stroke();
+      // Arrowhead
+      ctx.fillStyle = '#ccc';
+      ctx.beginPath();
+      ctx.moveTo(p.x + dir * 4, p.y);
+      ctx.lineTo(p.x + dir * -1, p.y - 3);
+      ctx.lineTo(p.x + dir * -1, p.y + 3);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // Bullet / stone
+      ctx.fillStyle = p.color || '#fcd34d';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(252,211,77,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x - dir * 8, p.y); ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
   }
 
   // ---- HUD + panels ----
