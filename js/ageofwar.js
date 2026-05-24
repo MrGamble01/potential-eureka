@@ -374,6 +374,14 @@ const AgeOfWarGame = (() => {
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
     if (specialBtn) specialBtn.onclick = fireSpecial;
+    // Click-to-collect coins. Map pointer event to canvas-internal
+    // coords (canvas is responsive; rect may differ from intrinsic size).
+    canvas.addEventListener('pointerdown', e => {
+      const rect = canvas.getBoundingClientRect();
+      const px = (e.clientX - rect.left) * (canvas.width  / rect.width);
+      const py = (e.clientY - rect.top)  * (canvas.height / rect.height);
+      collectCoinsNear(px, py);
+    });
     document.addEventListener('keydown', e => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
@@ -606,7 +614,7 @@ const AgeOfWarGame = (() => {
           });
         }
         if (u.side === 'enemy') {
-          gold += u.gold;
+          // XP comes free, but gold drops as coins you must click to claim.
           xp += u.xp;
           dropCoins(u.x, GROUND_Y - u.h, u.gold);
           SFX.kill();
@@ -641,11 +649,24 @@ const AgeOfWarGame = (() => {
     goldFloaters = goldFloaters.filter(f => f.t > 0);
     for (const m of muzzleFlashes) m.t -= dt;
     muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
+    // Coin physics: arc + bounce + rest. Once landed they bob in place
+    // and slowly fade so the player has time (~6s) to click them.
     for (const c of coinDrops) {
       c.t -= dt;
-      c.y -= 30 * dt;
-      c.x += c.vx * dt;
-      c.vx *= 0.94;
+      c.bob += dt * 5;
+      if (!c.landed) {
+        c.vy += 380 * dt;          // gravity
+        c.y += c.vy * dt;
+        c.x += c.vx * dt;
+        c.vx *= 0.96;
+        if (c.y >= c.landY) {
+          c.y = c.landY;
+          if (c.vy > 80) { c.vy *= -0.35; c.vx *= 0.6; } else {
+            c.landed = true;
+            c.vy = 0; c.vx = 0;
+          }
+        }
+      }
     }
     coinDrops = coinDrops.filter(c => c.t > 0);
 
@@ -693,16 +714,60 @@ const AgeOfWarGame = (() => {
     dmgFloaters.push({ amount: Math.max(1, amount | 0), x, y, color, t: 0.9 });
   }
 
+  function collectCoinsNear(px, py) {
+    // Generous hit radius (touch-friendly): 18px.
+    const R = 18;
+    let collected = 0;
+    for (let i = coinDrops.length - 1; i >= 0; i--) {
+      const c = coinDrops[i];
+      if (Math.hypot(c.x - px, c.y - py) <= R) {
+        collected += c.gold;
+        // Pop with a small particle burst at the coin location
+        for (let k = 0; k < 4; k++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = 60 + Math.random() * 60;
+          particles.push({
+            x: c.x, y: c.y,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s - 40,
+            color: '#fcd34d',
+            size: 2 + Math.random() * 2,
+            life: 0.45 + Math.random() * 0.25,
+          });
+        }
+        coinDrops.splice(i, 1);
+      }
+    }
+    if (collected > 0) {
+      gold += collected;
+      goldFloaters.push({
+        text: '+$' + collected, x: px, y: py - 14,
+        color: '#fcd34d', t: 1.2,
+      });
+      SFX.coin();
+      renderHud();
+    }
+  }
+
   function dropCoins(x, y, total) {
-    const coins = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
-    for (let i = 0; i < coins; i++) {
+    // Split the total into 1-6 individual coins. Each must be clicked
+    // (or expires after a few seconds). Original Age of War made
+    // coin-collection part of the loop.
+    const coinCount = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
+    const perCoin = Math.max(1, Math.floor(total / coinCount));
+    for (let i = 0; i < coinCount; i++) {
       coinDrops.push({
         x, y: y - 6,
-        vx: (Math.random() - 0.5) * 40,
-        t: 0.9,
+        vy: -80 - Math.random() * 60,
+        vx: (Math.random() - 0.5) * 100,
+        landY: GROUND_Y - 8 - Math.random() * 4,
+        landed: false,
+        gold: perCoin,
+        t: 6.5,                    // seconds to claim before fading
+        bob: Math.random() * Math.PI * 2,
       });
     }
-    setTimeout(() => SFX.coin(), 60);
+    SFX.coin();
   }
 
   // ---- Rendering ----
@@ -754,12 +819,49 @@ const AgeOfWarGame = (() => {
     drawBaseHpBar(PLAYER_BASE_X, playerBaseHp, playerBaseMax, '#3FB950');
     drawBaseHpBar(ENEMY_BASE_X,  enemyBaseHp,  enemyBaseMax,  '#F85149');
 
-    // Coin drops
+    // Coin drops — round gold disks with a $ glyph. Click to collect.
     for (const c of coinDrops) {
-      ctx.fillStyle = `rgba(252,211,77,${Math.max(0, c.t)})`;
+      const fadeStart = 1.6;
+      const alpha = c.t > fadeStart ? 1 : Math.max(0, c.t / fadeStart);
+      const wobble = c.landed ? Math.sin(c.bob) * 1.5 : 0;
+      const yy = c.y + wobble;
+      const r = 8;
+      // Subtle shadow when landed
+      if (c.landed) {
+        ctx.fillStyle = `rgba(0,0,0,${0.35 * alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.landY + 8, r * 0.9, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Coin face (radial gradient)
+      const grad = ctx.createRadialGradient(c.x - 2, yy - 2, 1, c.x, yy, r);
+      grad.addColorStop(0, `rgba(255,238,160,${alpha})`);
+      grad.addColorStop(0.7, `rgba(252,211,77,${alpha})`);
+      grad.addColorStop(1, `rgba(180,130,30,${alpha})`);
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
+      ctx.arc(c.x, yy, r, 0, Math.PI * 2);
       ctx.fill();
+      // Rim
+      ctx.strokeStyle = `rgba(120,80,20,${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(c.x, yy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      // $ glyph
+      ctx.fillStyle = `rgba(120,80,20,${alpha})`;
+      ctx.font = '700 10px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', c.x, yy + 1);
+      // Glow halo if expiring soon
+      if (c.t < 1.6) {
+        ctx.strokeStyle = `rgba(252,211,77,${(1.6 - c.t) / 1.6 * 0.6})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(c.x, yy, r + 3 + (1 - c.t / 1.6) * 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
 
     // Toppling corpses (behind live units so survivors march "over" them)
@@ -830,6 +932,15 @@ const AgeOfWarGame = (() => {
       ctx.font = `700 13px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.fillText('-' + f.amount, f.x, f.y);
+      ctx.globalAlpha = 1;
+    }
+    // Gold floaters (e.g. "+$24" on coin collect)
+    for (const f of goldFloaters) {
+      ctx.fillStyle = f.color || '#fcd34d';
+      ctx.globalAlpha = Math.max(0, f.t / 1.2);
+      ctx.font = `800 14px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(f.text || '', f.x, f.y);
       ctx.globalAlpha = 1;
     }
 
