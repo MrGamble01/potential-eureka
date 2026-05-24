@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Startup Tycoon — Build Your Unicorn</title>
+  <meta name="description" content="A bite-sized startup management game. Hire engineers, ship features, close deals, and IPO. Built with Three.js — runs in your browser, no install.">
+  <meta property="og:title" content="Startup Tycoon">
+  <meta property="og:description" content="Hire engineers, ship features, close deals, and IPO. Runs in your browser.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23080a12'/><text x='50%25' y='58%25' font-size='38' font-family='Inter,sans-serif' font-weight='800' fill='%233FB950' text-anchor='middle' dominant-baseline='middle'>$</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #050609;
+      --bg: #0d1117;
+      --bg-elev: rgba(255, 255, 255, 0.04);
+      --bg-elev-hover: rgba(255, 255, 255, 0.07);
+      --text: #E6EDF3;
+      --text-dim: #9aa3ad;
+      --text-muted: #6b7480;
+      --border: rgba(255, 255, 255, 0.10);
+      --border-strong: rgba(255, 255, 255, 0.18);
+      --money: #3FB950;
+      --money-glow: rgba(63, 185, 80, 0.35);
+      --accent: #6C63FF;
+      --accent-light: #8B83FF;
+      --warn: #D29922;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 20% 10%, rgba(63, 185, 80, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 90%, rgba(108, 99, 255, 0.10) 0%, transparent 55%),
+        linear-gradient(180deg, var(--bg-deep) 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+
+    /* ---- Floating background dollar signs (subtle, decorative) ---- */
+    .floaters {
+      position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+    }
+    .floater {
+      position: absolute;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: rgba(63, 185, 80, 0.05);
+      user-select: none;
+      animation: drift 28s linear infinite;
+    }
+    @keyframes drift {
+      0%   { transform: translateY(110vh) rotate(-10deg); opacity: 0; }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { transform: translateY(-20vh) rotate(15deg); opacity: 0; }
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Top bar ---- */
+    header.bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 80px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .bar a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+    .bar a:hover { color: var(--text); }
+    .bar .logo { color: var(--money); font-weight: 700; }
+
+    /* ---- Hero ---- */
+    .hero {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 4px;
+      color: var(--money);
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero-title {
+      font-size: clamp(48px, 11vw, 112px);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 22px;
+      background: linear-gradient(180deg, #fff 0%, #b0b8c2 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 8px 60px rgba(63, 185, 80, 0.18);
+    }
+    .hero-tag {
+      font-size: clamp(15px, 2.4vw, 19px);
+      color: var(--text-dim);
+      max-width: 540px;
+      margin: 0 auto 38px;
+    }
+
+    /* ---- Play button ---- */
+    .play-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .play-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: linear-gradient(135deg, #3FB950 0%, #2ea843 100%);
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 18px 42px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow:
+        0 10px 30px rgba(63, 185, 80, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      transition: transform 0.12s ease, box-shadow 0.2s ease;
+    }
+    .play-btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 16px 40px rgba(63, 185, 80, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+    }
+    .play-btn:active { transform: translateY(0); }
+    .play-btn .arrow {
+      transition: transform 0.2s ease;
+    }
+    .play-btn:hover .arrow { transform: translateX(4px); }
+    .play-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* ---- Best run pill ---- */
+    .best-run {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .best-run strong {
+      color: var(--money);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .best-run .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--money);
+      box-shadow: 0 0 12px var(--money-glow);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* ---- Sections grid ---- */
+    .sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 80px;
+    }
+    .card {
+      background: var(--bg-elev);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 26px;
+      transition: border-color 0.2s, transform 0.2s, background 0.2s;
+    }
+    .card:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-elev-hover);
+      transform: translateY(-2px);
+    }
+    .card-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--money);
+      box-shadow: 0 0 10px var(--money-glow);
+    }
+    .card-body { color: var(--text-dim); font-size: 14px; line-height: 1.7; }
+    .card-body p + p { margin-top: 10px; }
+    .card-body strong { color: var(--text); font-weight: 600; }
+
+    /* ---- Controls grid inside controls card ---- */
+    .controls-list {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 14px;
+      align-items: center;
+    }
+    .key {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      padding: 3px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      min-width: 28px;
+      text-align: center;
+    }
+    .controls-list .desc {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      margin-top: 80px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    footer a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+    footer a:hover { color: var(--money); }
+
+    @media (max-width: 720px) {
+      .wrap { padding: 20px 18px 50px; }
+      header.bar { margin-bottom: 50px; }
+      .hero { margin-bottom: 40px; }
+      .sections { grid-template-columns: 1fr; margin-top: 50px; gap: 14px; }
+      .card { padding: 20px; }
+      footer { margin-top: 50px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="floaters" aria-hidden="true">
+    <span class="floater" style="left:8%;  font-size:120px; animation-delay:-3s;">$</span>
+    <span class="floater" style="left:28%; font-size:80px;  animation-delay:-15s;">$</span>
+    <span class="floater" style="left:52%; font-size:160px; animation-delay:-9s;">$</span>
+    <span class="floater" style="left:72%; font-size:100px; animation-delay:-22s;">$</span>
+    <span class="floater" style="left:88%; font-size:70px;  animation-delay:-1s;">$</span>
+  </div>
+
+  <div class="wrap">
+    <header class="bar">
+      <span class="logo">STARTUP TYCOON</span>
+      <a href="/">← Dashboard</a>
+    </header>
+
+    <section class="hero">
+      <div class="hero-eyebrow">Browser game · No install</div>
+      <h1 class="hero-title">Build your<br>unicorn.</h1>
+      <p class="hero-tag">
+        Hire engineers, ship features, close deals, and IPO. A bite-sized startup
+        sim that runs in your browser.
+      </p>
+      <div class="play-row">
+        <a href="play" class="play-btn">
+          <span>Play Now</span>
+          <span class="arrow">→</span>
+        </a>
+        <div class="play-meta">Auto-saves to this browser</div>
+        <div id="best-run-pill" class="best-run" style="display:none">
+          <span class="dot"></span>
+          <span><strong id="stat-cash">$0</strong> all-time · <strong id="stat-trophies">0</strong> trophies · <strong id="stat-ipos">0</strong> IPOs</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="sections">
+      <div class="card">
+        <div class="card-title">How it plays</div>
+        <div class="card-body">
+          <p>
+            Hire <strong>engineers</strong> to ship features at desks. Each feature routes
+            to your <strong>CEO</strong> or a <strong>VP</strong> who multiplies the deal.
+          </p>
+          <p>
+            On the sales side, <strong>BDRs</strong> solo small deals and hand off larger
+            ones to <strong>AEs</strong> for a 3× close.
+          </p>
+          <p>
+            Keep <strong>coffee</strong> and <strong>paper</strong> stocked — run out and
+            morale tanks. Hit the season's revenue goal, then <strong>IPO</strong> for
+            2× deal value and a tougher next round. 16 achievements along the way.
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Controls</div>
+        <div class="card-body">
+          <div class="controls-list">
+            <span><span class="key">WASD</span> <span class="key">↑↓←→</span></span>
+            <span class="desc">Walk around the office</span>
+
+            <span><span class="key">Tap</span></span>
+            <span class="desc">Click a spot to move there</span>
+
+            <span><span class="key">RMB</span> <span class="key">2-finger</span></span>
+            <span class="desc">Drag to pan the camera</span>
+
+            <span><span class="key">Scroll</span> <span class="key">Pinch</span></span>
+            <span class="desc">Zoom in and out</span>
+
+            <span><span class="key">☰</span></span>
+            <span class="desc">Sidebar: hires, rooms, upgrades, amenities</span>
+
+            <span><span class="key">Esc</span></span>
+            <span class="desc">Close any modal</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>Built with Three.js · single page, no install</span>
+      <a href="/">Back to dashboard</a>
+    </footer>
+  </div>
+
+  <script>
+    // Pull stats from the game's localStorage save (key: startup-tycoon-v7), if present.
+    (function () {
+      try {
+        const raw = localStorage.getItem('startup-tycoon-v7');
+        if (!raw) return;
+        const save = JSON.parse(raw);
+        const cash      = Number(save.allTimeCash || save.cash || 0);
+        const trophies  = Number(save.trophiesWon || 0);
+        const ipos      = Number(save.prestigeLevel || 0);
+        if (!cash && !trophies && !ipos) return;
+        const fmt = n => {
+          if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1) + 'M';
+          if (n >= 1000)      return '$' + (n / 1000).toFixed(n >= 10_000 ? 0 : 1) + 'K';
+          return '$' + Math.round(n);
+        };
+        document.getElementById('stat-cash').textContent = fmt(cash);
+        document.getElementById('stat-trophies').textContent = trophies;
+        document.getElementById('stat-ipos').textContent = ipos;
+        document.getElementById('best-run-pill').style.display = 'inline-flex';
+      } catch (e) { /* save isn't readable — fine, hide the pill */ }
+    })();
+  </script>
+</body>
+</html>

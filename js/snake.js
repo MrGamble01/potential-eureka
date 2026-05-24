@@ -11,7 +11,8 @@ const SnakeGame = (() => {
 
   let canvas, ctx;
   let snake, direction, nextDirection;
-  let food, score, highScore, speed;
+  let food, bonusFood, score, highScore, speed;
+  let foodCount, wallWrap;
   let gameLoop, running, gameOver;
 
   function init() {
@@ -24,6 +25,9 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    foodCount = 0;
+    bonusFood = null;
+    wallWrap = false;
     updateInfo();
     draw();
 
@@ -78,6 +82,8 @@ const SnakeGame = (() => {
     direction = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
     score = 0;
+    foodCount = 0;
+    bonusFood = null;
     gameOver = false;
     running = true;
     speed = 120;
@@ -100,15 +106,46 @@ const SnakeGame = (() => {
     } while (snake.some(s => s.x === food.x && s.y === food.y));
   }
 
+  function spawnBonusFood() {
+    let pos, attempts = 0;
+    do {
+      pos = {
+        x: Math.floor(Math.random() * COLS),
+        y: Math.floor(Math.random() * ROWS),
+      };
+      attempts++;
+    } while (attempts < 100 && (
+      snake.some(s => s.x === pos.x && s.y === pos.y) ||
+      (food && food.x === pos.x && food.y === pos.y)
+    ));
+    bonusFood = { ...pos, expireAt: Date.now() + 5000 };
+  }
+
+  function getLevel() {
+    return Math.floor(foodCount / 3) + 1;
+  }
+
+  function toggleWallWrap() {
+    wallWrap = !wallWrap;
+    const btn = document.getElementById('snake-wrap-btn');
+    if (btn) {
+      btn.textContent = `Wrap: ${wallWrap ? 'ON' : 'OFF'}`;
+      btn.style.borderColor = wallWrap ? '#3FB950' : '';
+      btn.style.color = wallWrap ? '#3FB950' : '';
+    }
+  }
+
   function tick() {
     direction = { ...nextDirection };
-    const head = {
+    let head = {
       x: snake[0].x + direction.x,
       y: snake[0].y + direction.y,
     };
 
-    // Wall collision
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+    if (wallWrap) {
+      head.x = (head.x + COLS) % COLS;
+      head.y = (head.y + ROWS) % ROWS;
+    } else if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
       return endGame();
     }
 
@@ -119,23 +156,43 @@ const SnakeGame = (() => {
 
     snake.unshift(head);
 
-    // Eat food
+    // Expire bonus food
+    if (bonusFood && Date.now() > bonusFood.expireAt) {
+      bonusFood = null;
+    }
+
+    let ate = false;
+
+    // Eat regular food
     if (head.x === food.x && head.y === food.y) {
+      ate = true;
       score += 10;
+      foodCount++;
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
       spawnFood();
+      // Spawn bonus food every 5 regular foods
+      if (foodCount % 5 === 0) spawnBonusFood();
       // Speed up slightly
       if (speed > 60) {
         speed -= 2;
         clearInterval(gameLoop);
         gameLoop = setInterval(tick, speed);
       }
-    } else {
-      snake.pop();
+    } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+      // Eat bonus food (snake also grows)
+      ate = true;
+      score += 50;
+      bonusFood = null;
+      if (score > highScore) {
+        highScore = score;
+        Utils.store.setRaw('snake-high', String(highScore));
+      }
     }
+
+    if (!ate) snake.pop();
 
     updateInfo();
     draw();
@@ -144,6 +201,7 @@ const SnakeGame = (() => {
   function endGame() {
     running = false;
     gameOver = true;
+    bonusFood = null;
     clearInterval(gameLoop);
 
     const overlay = document.getElementById('snake-overlay');
@@ -151,7 +209,7 @@ const SnakeGame = (() => {
       overlay.style.display = 'flex';
       overlay.innerHTML = `
         <h2>GAME OVER</h2>
-        <p>Score: ${score}</p>
+        <p>Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}</p>
         <p style="font-size:12px; color: var(--text-dim)">Press SPACE to restart</p>
       `;
     }
@@ -160,8 +218,10 @@ const SnakeGame = (() => {
   function updateInfo() {
     const scoreEl = document.getElementById('snake-score');
     const highEl = document.getElementById('snake-high');
+    const levelEl = document.getElementById('snake-level');
     if (scoreEl) scoreEl.textContent = score || 0;
     if (highEl) highEl.textContent = highScore;
+    if (levelEl) levelEl.textContent = getLevel();
   }
 
   function draw() {
@@ -193,13 +253,32 @@ const SnakeGame = (() => {
     });
     ctx.shadowBlur = 0;
 
-    // Food
+    // Regular food
     if (food) {
       ctx.fillStyle = '#F778BA';
       ctx.shadowColor = '#F778BA';
       ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(food.x * GRID + GRID / 2, food.y * GRID + GRID / 2, GRID / 2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Bonus food — gold, pulsing, fades out in last 1.5s
+    if (bonusFood) {
+      const timeLeft = bonusFood.expireAt - Date.now();
+      const alpha = timeLeft < 1500 ? timeLeft / 1500 : 1;
+      const pulse = Math.sin(Date.now() / 120) * 1.5;
+      ctx.fillStyle = `rgba(247, 201, 72, ${alpha})`;
+      ctx.shadowColor = '#F7C948';
+      ctx.shadowBlur = 14 + pulse;
+      ctx.beginPath();
+      ctx.arc(
+        bonusFood.x * GRID + GRID / 2,
+        bonusFood.y * GRID + GRID / 2,
+        GRID / 2 - 1 + pulse,
+        0, Math.PI * 2
+      );
       ctx.fill();
       ctx.shadowBlur = 0;
     }
@@ -224,5 +303,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, toggleWallWrap };
 })();

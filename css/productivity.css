@@ -1,46 +1,50 @@
 /* ============================================
    PRODUCTIVITY — Pomodoro, Todo List, Quick Notes,
    Bookmarks, Google Tasks
-   Dark Modern + Glassmorphism Theme
+   Dark Cinematic Glassmorphism Theme
    ============================================ */
 
 /* ---- POMODORO ---- */
 .pomo-mode-label {
   text-align: center;
-  font-size: 11px;
-  letter-spacing: 3px;
+  font-size: 10px;
+  letter-spacing: 4px;
   text-transform: uppercase;
   margin-bottom: 4px;
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 .pomo-mode-label.pomo-focus {
-  color: #3FB950;
-  text-shadow: 0 0 8px rgba(63, 185, 80, 0.4);
+  color: var(--success);
+  text-shadow: 0 0 10px rgba(63, 185, 80, 0.5);
 }
 
 .pomo-mode-label.pomo-short {
-  color: #58A6FF;
-  text-shadow: 0 0 8px rgba(88, 166, 255, 0.4);
+  color: var(--secondary);
+  text-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
 }
 
 .pomo-mode-label.pomo-long {
-  color: #F778BA;
-  text-shadow: 0 0 8px rgba(247, 120, 186, 0.4);
+  color: var(--tertiary);
+  text-shadow: 0 0 10px rgba(247, 120, 186, 0.5);
 }
 
 .pomo-time {
   text-align: center;
-  font-size: 56px;
-  font-weight: bold;
-  color: #E6EDF3;
-  text-shadow: 0 0 20px rgba(230, 237, 243, 0.15);
+  font-size: 60px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+  text-shadow: 0 0 24px rgba(230, 237, 243, 0.1);
   padding: 8px 0;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
 }
 
 .pomo-bar {
   height: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-white-05);
   border-radius: 9999px;
   overflow: hidden;
   margin-bottom: 4px;
@@ -53,51 +57,52 @@
 }
 
 .pomo-fill.pomo-focus {
-  background: #3FB950;
-  box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+  background: linear-gradient(90deg, var(--success), #4ADE80);
+  box-shadow: 0 0 10px rgba(63, 185, 80, 0.5);
 }
 
 .pomo-fill.pomo-short {
-  background: #58A6FF;
-  box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
+  background: linear-gradient(90deg, var(--secondary), #79B8FF);
+  box-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
 }
 
 .pomo-fill.pomo-long {
-  background: #F778BA;
-  box-shadow: 0 0 8px rgba(247, 120, 186, 0.5);
+  background: linear-gradient(90deg, var(--tertiary), #FF9FCB);
+  box-shadow: 0 0 10px rgba(247, 120, 186, 0.5);
 }
 
 .pomo-info {
   text-align: center;
   font-size: 11px;
-  color: #7D8590;
-  margin-top: 8px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  font-family: var(--font-sans);
 }
 
 /* ---- TODO LIST ---- */
 
 .todo-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #E6EDF3;
-  font-family: inherit;
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
   font-size: 13px;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
   outline: none;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .todo-input::placeholder {
-  color: #7D8590;
+  color: var(--text-muted);
 }
 
 .todo-input:focus {
-  border-color: #6C63FF;
-  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
 }
 
 .todo-list {
@@ -109,13 +114,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: opacity 0.2s;
+  padding: 9px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--duration-fast);
+  border-radius: var(--radius-sm);
+}
+
+.todo-item:hover {
+  background: var(--color-white-05);
 }
 
 .todo-item.done {
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
 .todo-item.done .todo-text {
@@ -125,42 +135,44 @@
 .todo-check {
   width: 22px;
   height: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1.5px solid var(--border-strong);
   background: transparent;
-  color: #3FB950;
+  color: var(--success);
   font-size: 12px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 5px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
 .todo-item.done .todo-check {
-  border-color: #3FB950;
-  background: rgba(63, 185, 80, 0.1);
+  border-color: var(--success);
+  background: rgba(63, 185, 80, 0.12);
+  box-shadow: 0 0 8px rgba(63, 185, 80, 0.2);
 }
 
 .todo-check:hover {
-  border-color: #3FB950;
+  border-color: var(--success);
+  background: rgba(63, 185, 80, 0.06);
 }
 
 .todo-text {
   flex: 1;
   font-size: 13px;
-  color: #E6EDF3;
+  color: var(--text);
 }
 
 .todo-delete {
   background: none;
   border: none;
-  color: #7D8590;
+  color: var(--text-muted);
   font-size: 16px;
   cursor: pointer;
   opacity: 0;
-  transition: all 0.2s;
+  transition: all var(--duration-fast);
   padding: 0 4px;
 }
 
@@ -169,13 +181,13 @@
 }
 
 .todo-delete:hover {
-  color: #F85149;
+  color: var(--danger);
 }
 
 .todo-empty {
   text-align: center;
-  color: #7D8590;
-  padding: 20px;
+  color: var(--text-dim);
+  padding: 24px;
   font-size: 13px;
 }
 
@@ -183,11 +195,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
   font-size: 12px;
-  color: #7D8590;
+  color: var(--text-dim);
 }
 
 .todo-filters {
@@ -199,36 +211,41 @@
 .todo-filters button {
   background: transparent;
   border: 1px solid transparent;
-  color: #7D8590;
-  font-family: inherit;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast);
 }
 
 .todo-filters button:hover {
-  color: #E6EDF3;
+  color: var(--text);
+  background: var(--color-white-05);
 }
 
 .todo-filters button.active {
-  border-color: #6C63FF;
-  color: #6C63FF;
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--primary-light);
+  background: rgba(108, 99, 255, 0.08);
 }
 
 .todo-clear {
   background: transparent;
   border: none;
-  color: #7D8590;
-  font-family: inherit;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
   font-size: 11px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color var(--duration-fast);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
 }
 
 .todo-clear:hover {
-  color: #F85149;
+  color: var(--danger);
+  background: rgba(248, 81, 73, 0.06);
 }
 
 /* ---- TODO LIST TAGS & PICKER ---- */
@@ -236,19 +253,20 @@
 .todo-list-tag {
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   flex-shrink: 0;
   opacity: 0.7;
+  font-family: var(--font-mono);
 }
 
 .todo-list-picker {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #58A6FF;
-  font-family: inherit;
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--secondary);
+  font-family: var(--font-sans);
   font-size: 11px;
   padding: 8px 10px;
-  border-radius: 6px 0 0 6px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
   outline: none;
   border-right: none;
   flex-shrink: 0;
@@ -256,21 +274,21 @@
   cursor: pointer;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .todo-list-picker:focus {
-  border-color: #6C63FF;
-  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
 }
 
 .todo-input-row {
   display: flex;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .todo-list-picker + .todo-input {
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 /* ---- QUICK NOTES ---- */
@@ -278,35 +296,36 @@
 .notes-textarea {
   width: 100%;
   min-height: 180px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #E6EDF3;
-  font-family: inherit;
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
   font-size: 13px;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
   outline: none;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.7;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .notes-textarea::placeholder {
-  color: #7D8590;
+  color: var(--text-muted);
 }
 
 .notes-textarea:focus {
-  border-color: #58A6FF;
-  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.12);
 }
 
 .notes-meta {
   font-size: 11px;
-  color: #7D8590;
-  margin-top: 6px;
+  color: var(--text-muted);
+  margin-top: 8px;
   text-align: right;
+  font-family: var(--font-mono);
 }
 
 /* ---- BOOKMARKS ---- */
@@ -314,7 +333,7 @@
 .bookmark-form {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   align-items: center;
 }
 
@@ -330,31 +349,31 @@
 .bookmarks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .bookmark-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 14px 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  gap: 8px;
+  padding: 16px 8px;
+  background: var(--color-white-05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   text-decoration: none;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
+  transition: all var(--duration-normal) var(--ease-out-expo);
   position: relative;
   cursor: pointer;
 }
 
 .bookmark-tile:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  background: var(--color-white-12);
+  box-shadow: var(--widget-shadow-hover);
+  transform: translateY(-2px);
 }
 
 .bookmark-icon {
@@ -364,7 +383,7 @@
 
 .bookmark-name {
   font-size: 11px;
-  color: #7D8590;
+  color: var(--text-dim);
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -374,15 +393,15 @@
 
 .bookmark-del {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: 4px;
+  right: 6px;
   background: none;
   border: none;
-  color: #7D8590;
+  color: var(--text-muted);
   font-size: 14px;
   cursor: pointer;
   opacity: 0;
-  transition: all 0.2s;
+  transition: all var(--duration-fast);
 }
 
 .bookmark-tile:hover .bookmark-del {
@@ -390,58 +409,60 @@
 }
 
 .bookmark-del:hover {
-  color: #F85149;
+  color: var(--danger);
 }
 
 .bookmark-add {
   border-style: dashed;
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--border);
 }
 
 .bookmark-add:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--success);
+  border-style: dashed;
 }
 
 .bookmark-add .bookmark-icon {
-  color: #7D8590;
+  color: var(--text-muted);
 }
 
 .bookmark-add:hover .bookmark-icon {
-  color: #3FB950;
+  color: var(--success);
 }
 
 /* ---- GOOGLE TASKS STATUS ---- */
 
 .gt-status {
-  font-size: 10px;
-  letter-spacing: 1px;
+  font-size: 9px;
+  letter-spacing: 1.5px;
   margin-left: 8px;
+  font-family: var(--font-mono);
 }
 
 .gt-status.gt-connected {
-  color: #3FB950;
+  color: var(--success);
   text-shadow: 0 0 8px rgba(63, 185, 80, 0.4);
 }
 
 .gt-modal-msg {
-  margin-top: 12px;
+  margin-top: 14px;
   font-size: 12px;
   min-height: 18px;
-  color: #7D8590;
+  color: var(--text-dim);
 }
 
 .gt-modal-msg.gt-ok {
-  color: #3FB950;
+  color: var(--success);
 }
 
 .gt-modal-msg.gt-err {
-  color: #F85149;
+  color: var(--danger);
 }
 
 /* GT settings: list checkboxes */
 
 .gt-list-checks {
-  margin-top: 12px;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -450,25 +471,25 @@
 .gt-list-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
   cursor: pointer;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--color-white-05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: background 0.2s, border-color 0.2s;
+  transition: all var(--duration-fast);
 }
 
 .gt-list-label:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--color-white-08);
+  border-color: var(--border-strong);
 }
 
 .gt-list-label input[type=checkbox] {
-  accent-color: #6C63FF;
+  accent-color: var(--primary);
   width: 16px;
   height: 16px;
   cursor: pointer;
