@@ -106,6 +106,34 @@ const AgeOfWarGame = (() => {
   let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
   let enemyTurrets  = [null, null, null, null];
 
+  // ---- Difficulty ----
+  const DIFFICULTIES = {
+    easy:   { label: 'Easy',   spawnMult: 1.5, dmgMult: 0.7, hpMult: 0.8, color: '#3FB950' },
+    normal: { label: 'Normal', spawnMult: 1.0, dmgMult: 1.0, hpMult: 1.0, color: '#58A6FF' },
+    hard:   { label: 'Hard',   spawnMult: 0.7, dmgMult: 1.25, hpMult: 1.2, color: '#fcd34d' },
+    insane: { label: 'Insane', spawnMult: 0.5, dmgMult: 1.6, hpMult: 1.5, color: '#F85149' },
+  };
+  let difficulty = 'normal';
+
+  // ---- Combo / streak ----
+  let combo = 0;
+  let comboT = 0;                 // seconds until streak breaks
+  const COMBO_WINDOW = 3.0;
+  let comboBest = 0;              // best in current run
+  // Bonus multiplier: 1.0 at combo 0, +5% per kill stacking up to +200% (5x).
+  function comboMult() { return Math.min(5, 1 + combo * 0.05); }
+
+  // ---- Run stats (shown on win/lose) ----
+  const runStats = { kills: 0, gold: 0, time: 0 };
+
+  // ---- Screen shake ----
+  let shakeT = 0;
+  let shakeMag = 0;
+  function shake(mag, dur) {
+    if (mag > shakeMag) shakeMag = mag;
+    if (dur > shakeT)   shakeT   = dur;
+  }
+
   // ---- Sound (Web Audio API, no samples) ----
   const SFX = (() => {
     let ctxA = null, masterGain = null;
@@ -189,6 +217,11 @@ const AgeOfWarGame = (() => {
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     ctx = canvas.getContext('2d');
+    try {
+      const saved = (typeof Utils !== 'undefined' && Utils.store && Utils.store.getRaw('aow-difficulty'))
+                  || localStorage.getItem('aow-difficulty');
+      if (saved && DIFFICULTIES[saved]) difficulty = saved;
+    } catch {}
     seedClouds();
     reset();
     bindControls();
@@ -237,6 +270,9 @@ const AgeOfWarGame = (() => {
     particles = [];
     playerTurrets = [null, null, null, null];
     enemyTurrets  = [null, null, null, null];
+    combo = 0; comboT = 0; comboBest = 0;
+    runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
+    shakeT = 0; shakeMag = 0;
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
     spawnUnit('player', 'club');
@@ -254,6 +290,9 @@ const AgeOfWarGame = (() => {
     const w = def.silhouette === 'vehicle' ? 28 : def.silhouette === 'beast' ? 26 : 18;
     const h = def.silhouette === 'flier' ? 32 : def.silhouette === 'vehicle' ? 30 : 30;
     const flying = def.silhouette === 'flier';
+    const D = DIFFICULTIES[difficulty];
+    const hpMult  = side === 'enemy' ? D.hpMult  : 1;
+    const dmgMult = side === 'enemy' ? D.dmgMult : 1;
     const u = {
       id: nextSpawnId++,
       side, key,
@@ -261,8 +300,8 @@ const AgeOfWarGame = (() => {
       silhouette: def.silhouette,
       x: side === 'player' ? PLAYER_BASE_X + BASE_W + 14 : ENEMY_BASE_X - 14,
       yOffset: flying ? 40 : 0,
-      hp: def.hp, hpMax: def.hp,
-      dmg: def.dmg, range: def.range, atkSpd: def.atkSpd, atkT: 0.4,
+      hp: def.hp * hpMult, hpMax: def.hp * hpMult,
+      dmg: def.dmg * dmgMult, range: def.range, atkSpd: def.atkSpd, atkT: 0.4,
       speed: def.speed, xp: def.xp, gold: def.gold,
       w, h,
       hitFlash: 0,
@@ -344,8 +383,9 @@ const AgeOfWarGame = (() => {
       });
     }
     SFX.special();
-    // Screen-flash for impact
+    // Screen-flash for impact + heavy shake
     ageFlash = Math.max(ageFlash, 0.7);
+    shake(12, 0.35);
     specialReadyT = specialCooldownMax;
     renderHud();
   }
@@ -381,6 +421,28 @@ const AgeOfWarGame = (() => {
       const px = (e.clientX - rect.left) * (canvas.width  / rect.width);
       const py = (e.clientY - rect.top)  * (canvas.height / rect.height);
       collectCoinsNear(px, py);
+    });
+    // Difficulty selector
+    const diffEl = document.getElementById('aow-diff');
+    if (diffEl) {
+      diffEl.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.diff === difficulty);
+        btn.addEventListener('click', () => {
+          difficulty = btn.dataset.diff;
+          try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
+          diffEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+          reset();
+        });
+      });
+    }
+    // Tab switching (Units / Turrets)
+    document.querySelectorAll('.aow-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.aow-tab').forEach(t => t.classList.toggle('active', t === tab));
+        document.getElementById('aow-units-tab').classList.toggle('active', target === 'units');
+        document.getElementById('aow-turrets-tab').classList.toggle('active', target === 'turrets');
+      });
     });
     document.addEventListener('keydown', e => {
       const view = document.getElementById('view-ageofwar');
@@ -427,7 +489,8 @@ const AgeOfWarGame = (() => {
       }
     }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
-    enemySpawnT = 1.4 + Math.random() * 1.6 + pressureFactor * 1.0;
+    const D = DIFFICULTIES[difficulty];
+    enemySpawnT = (1.4 + Math.random() * 1.6 + pressureFactor * 1.0) * D.spawnMult;
   }
 
   // ---- Combat ----
@@ -460,6 +523,16 @@ const AgeOfWarGame = (() => {
     }
 
     enemyTick(dt);
+
+    // Combo timer + run timer
+    if (combo > 0) {
+      comboT -= dt;
+      if (comboT <= 0) { combo = 0; }
+    }
+    runStats.time += dt;
+    // Screen shake decay
+    if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
+    else            shakeMag *= 0.85;
 
     // Move + fight units
     for (const u of units) {
@@ -503,6 +576,8 @@ const AgeOfWarGame = (() => {
             if (u.side === 'player') enemyBaseHp -= u.dmg;
             else                     playerBaseHp -= u.dmg;
             spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
+            // Heavy hit = noticeable shake; small hit = light shake.
+            shake(Math.min(8, 1 + u.dmg / 80), 0.18);
           } else if (target) {
             if (u.range > 60) {
               projectiles.push({
@@ -614,10 +689,18 @@ const AgeOfWarGame = (() => {
           });
         }
         if (u.side === 'enemy') {
-          // XP comes free, but gold drops as coins you must click to claim.
-          xp += u.xp;
-          dropCoins(u.x, GROUND_Y - u.h, u.gold);
+          // Combo: each kill within COMBO_WINDOW seconds of the last
+          // stacks. Multiplier boosts XP gain + coin gold value.
+          combo += 1;
+          comboT = COMBO_WINDOW;
+          if (combo > comboBest) comboBest = combo;
+          const mult = comboMult();
+          xp += Math.round(u.xp * mult);
+          runStats.kills++;
+          runStats.gold += u.gold * mult;
+          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
           SFX.kill();
+          shake(2, 0.12);
         }
       }
     }
@@ -781,6 +864,16 @@ const AgeOfWarGame = (() => {
 
   function draw() {
     const era = ERAS[playerEra];
+    // Screen shake — applied as a small canvas translate. shakeMag
+    // decays after the timed pulse expires.
+    if (shakeMag > 0.1) {
+      const k = shakeT > 0 ? 1 : 0.6;
+      const ox = (Math.random() - 0.5) * shakeMag * k * 2;
+      const oy = (Math.random() - 0.5) * shakeMag * k * 2;
+      ctx.setTransform(1, 0, 0, 1, ox, oy);
+    } else {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
     // Sky gradient
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
     grad.addColorStop(0, era.sky[0]);
@@ -1435,45 +1528,85 @@ const AgeOfWarGame = (() => {
 
   // ---- HUD + panels ----
   function renderHud() {
-    const eraEl  = document.getElementById('aow-era');
-    const goldEl = document.getElementById('aow-gold');
-    const xpEl   = document.getElementById('aow-xp');
-    const xpBar  = document.getElementById('aow-xp-bar');
-    const baseEl = document.getElementById('aow-base-hp');
-    const enemyEl= document.getElementById('aow-enemy-hp');
-    const specEl = document.getElementById('aow-special-btn');
-    const ageBtn = document.getElementById('aow-ageup-btn');
     const era = ERAS[playerEra];
-    if (eraEl) eraEl.textContent = era.icon + ' ' + era.name;
-    if (goldEl) goldEl.textContent = '$' + Math.floor(gold);
-    if (xpEl) {
-      if (playerEra >= ERAS.length - 1) xpEl.textContent = xp + ' XP · MAX AGE';
-      else xpEl.textContent = `${xp} / ${era.upXP} XP`;
-    }
+    const eEra = ERAS[enemyEra];
+
+    // Gold
+    const goldEl = document.getElementById('aow-gold');
+    if (goldEl) goldEl.textContent = Math.floor(gold);
+
+    // Era pill (icon + name + XP sub-text + bar)
+    const eraIconEl = document.getElementById('aow-era-icon');
+    const eraNameEl = document.getElementById('aow-era-name');
+    const eraSubEl  = document.getElementById('aow-era-sub');
+    const xpBar     = document.getElementById('aow-xp-bar');
+    if (eraIconEl) eraIconEl.textContent = era.icon;
+    if (eraNameEl) eraNameEl.textContent = era.name;
+    if (eraSubEl)  eraSubEl.textContent  = playerEra >= ERAS.length - 1
+      ? `${xp} XP · MAX`
+      : `${xp} / ${era.upXP} XP`;
     if (xpBar) {
       const pct = playerEra >= ERAS.length - 1 ? 100 : Math.min(100, (xp / era.upXP) * 100);
       xpBar.style.width = pct + '%';
     }
+
+    // Base HP bars (text + fill width)
+    const baseEl = document.getElementById('aow-base-hp');
+    const enemyEl = document.getElementById('aow-enemy-hp');
+    const playerBar = document.getElementById('aow-player-hp-bar');
+    const enemyBar  = document.getElementById('aow-enemy-hp-bar');
     if (baseEl)  baseEl.textContent  = `${Math.max(0, Math.floor(playerBaseHp))} / ${playerBaseMax}`;
     if (enemyEl) enemyEl.textContent = `${Math.max(0, Math.floor(enemyBaseHp))} / ${enemyBaseMax}`;
+    if (playerBar) playerBar.style.width = (Math.max(0, playerBaseHp) / playerBaseMax * 100) + '%';
+    if (enemyBar)  enemyBar.style.width  = (Math.max(0, enemyBaseHp)  / enemyBaseMax  * 100) + '%';
+
+    // Era-themed castle icons on the side bars
+    const playerIcon = document.getElementById('aow-player-side-icon');
+    const enemyIcon  = document.getElementById('aow-enemy-side-icon');
+    if (playerIcon) playerIcon.textContent = era.icon;
+    if (enemyIcon)  enemyIcon.textContent  = eEra.icon;
+
+    // Combo pill (only when combo > 0)
+    const comboEl = document.getElementById('aow-combo');
+    const comboXEl = document.getElementById('aow-combo-x');
+    const comboLblEl = document.getElementById('aow-combo-label');
+    if (comboEl) {
+      if (combo > 0) {
+        comboEl.style.display = '';
+        if (comboXEl)  comboXEl.textContent = '×' + comboMult().toFixed(1);
+        if (comboLblEl) comboLblEl.textContent = combo + ' kill' + (combo === 1 ? '' : 's');
+      } else {
+        comboEl.style.display = 'none';
+      }
+    }
+
+    // Age Up button
+    const ageBtn = document.getElementById('aow-ageup-btn');
     if (ageBtn) {
+      const lbl = ageBtn.querySelector('.aow-action-lbl');
+      const ico = ageBtn.querySelector('.aow-action-ico');
       if (playerEra >= ERAS.length - 1) {
-        ageBtn.textContent = '🌟 Max Age';
+        if (ico) ico.textContent = '🌟';
+        if (lbl) lbl.textContent = 'Max Age';
         ageBtn.disabled = true;
       } else {
-        ageBtn.textContent = `⬆️ Age Up → ${ERAS[playerEra + 1].name} (${era.upXP} XP)`;
+        if (ico) ico.textContent = '⬆️';
+        if (lbl) lbl.textContent = `Age Up · ${ERAS[playerEra + 1].name}`;
         ageBtn.disabled = xp < era.upXP;
       }
     }
+
+    // Special button
+    const specEl  = document.getElementById('aow-special-btn');
+    const specCdEl = document.getElementById('aow-special-cd');
     if (specEl) {
       const spec = ERAS[playerEra].special;
-      if (specialReadyT > 0) {
-        specEl.textContent = `${spec.icon} ${spec.name} (${Math.ceil(specialReadyT)}s)`;
-        specEl.disabled = true;
-      } else {
-        specEl.textContent = `${spec.icon} ${spec.name} — READY`;
-        specEl.disabled = false;
-      }
+      const lbl = specEl.querySelector('.aow-action-lbl');
+      const ico = specEl.querySelector('.aow-action-ico');
+      if (ico) ico.textContent = spec.icon;
+      if (lbl) lbl.textContent = spec.name;
+      if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
+      specEl.disabled = specialReadyT > 0;
     }
 
     // Live cooldown bars on spawn buttons
@@ -1510,13 +1643,10 @@ const AgeOfWarGame = (() => {
         btn.innerHTML = `
           <span class="aow-spawn-key">${idx}</span>
           <span class="aow-spawn-icon">${def.icon}</span>
-          <span class="aow-spawn-info">
-            <span class="aow-spawn-name">${def.name}</span>
-            <span class="aow-spawn-stats">HP ${def.hp} · DMG ${def.dmg}</span>
-          </span>
+          <span class="aow-spawn-name">${def.name}</span>
           <span class="aow-spawn-cost">$${def.cost}</span>
-          <span class="aow-spawn-cd"></span>
         `;
+        btn.title = `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
         btn.onclick = () => tryPlayerSpawn(key);
         list.appendChild(btn);
         idx++;
@@ -1561,13 +1691,21 @@ const AgeOfWarGame = (() => {
   function showOverlay(won) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
+    const m = Math.floor(runStats.time / 60);
+    const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
         ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
       </h2>
       <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
-      <p style="font-size:12px; color: var(--text-dim)">Press SPACE or click below to restart</p>
+      <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${(1 + comboBest * 0.05).toFixed(1)}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+      </div>
+      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
   }
 
