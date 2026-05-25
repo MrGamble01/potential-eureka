@@ -8,12 +8,12 @@
 
 const AgeOfWarGame = (() => {
   // ---- Stage ----
-  const WIDTH  = 960;
-  const HEIGHT = 380;
-  const GROUND_Y = HEIGHT - 60;
-  const BASE_W = 110;
-  const PLAYER_BASE_X = 10;
-  const ENEMY_BASE_X  = WIDTH - BASE_W - 10;
+  const WIDTH  = 1280;
+  const HEIGHT = 560;
+  const GROUND_Y = HEIGHT - 90;
+  const BASE_W = 150;
+  const PLAYER_BASE_X = 14;
+  const ENEMY_BASE_X  = WIDTH - BASE_W - 14;
 
   // ---- Era definitions ----
   // Five ages, each with a sky palette, base color, age-up XP cost,
@@ -574,8 +574,8 @@ const AgeOfWarGame = (() => {
     const def = UNITS[key];
     if (!def) return;
     // Per-silhouette sizing tuned for legibility at this canvas resolution.
-    const w = def.silhouette === 'vehicle' ? 44 : def.silhouette === 'beast' ? 40 : def.silhouette === 'flier' ? 36 : 26;
-    const h = def.silhouette === 'flier' ? 38 : def.silhouette === 'vehicle' ? 38 : def.silhouette === 'beast' ? 40 : 44;
+    const w = def.silhouette === 'vehicle' ? 78 : def.silhouette === 'beast' ? 72 : def.silhouette === 'flier' ? 64 : 46;
+    const h = def.silhouette === 'flier' ? 64 : def.silhouette === 'vehicle' ? 68 : def.silhouette === 'beast' ? 74 : 82;
     const flying = def.silhouette === 'flier';
     const D = DIFFICULTIES[difficulty];
     const hpMult  = side === 'enemy' ? D.hpMult  : 1;
@@ -1295,51 +1295,49 @@ const AgeOfWarGame = (() => {
     } else {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-    // Sky gradient (3-stop for depth)
+    // OG Age of War style: bright, flat sky → simple mountain silhouette → flat ground.
+    // Bright per-era sky (much higher saturation than before)
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    grad.addColorStop(0,    era.sky[0]);
-    grad.addColorStop(0.55, era.sky[1]);
-    grad.addColorStop(1,    SKY_HORIZON[playerEra] || era.sky[1]);
+    grad.addColorStop(0, OG_SKY[playerEra][0]);
+    grad.addColorStop(1, OG_SKY[playerEra][1]);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, GROUND_Y);
 
-    // Sun / moon disc per era — adds a focal point to the sky.
-    drawSunOrMoon(playerEra);
+    // A single, simple sun (cartoon disc, no halo clutter)
+    const sunC = OG_SUN[playerEra];
+    if (sunC) {
+      ctx.fillStyle = sunC;
+      ctx.beginPath();
+      ctx.arc(WIDTH * 0.82, 80, 36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
 
-    // Atmospheric haze right above the horizon
-    const haze = ctx.createLinearGradient(0, GROUND_Y - 80, 0, GROUND_Y);
-    haze.addColorStop(0, 'rgba(0,0,0,0)');
-    haze.addColorStop(1, HORIZON_HAZE[playerEra] || 'rgba(255,255,255,0.08)');
-    ctx.fillStyle = haze;
-    ctx.fillRect(0, GROUND_Y - 80, WIDTH, 80);
-
-    // Distant hills — far layer (darker, smaller variation)
-    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    // One simple distant mountain silhouette
+    ctx.fillStyle = OG_HILL[playerEra];
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
-    for (let x = 0; x <= WIDTH; x += 24) {
-      const h = 22 + Math.sin(x * 0.014 + playerEra * 0.7) * 14 + Math.sin(x * 0.06) * 6;
+    for (let x = 0; x <= WIDTH; x += 40) {
+      const h = 60 + Math.sin(x * 0.008) * 36 + Math.sin(x * 0.025) * 18;
       ctx.lineTo(x, GROUND_Y - h);
     }
     ctx.lineTo(WIDTH, GROUND_Y);
     ctx.closePath();
     ctx.fill();
-
-    // Near hills — slightly lighter, bigger amplitude (parallax depth)
-    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    for (let x = 0; x <= WIDTH; x += 16) {
-      const h = 12 + Math.sin(x * 0.022 + 1.3) * 10 + Math.sin(x * 0.08) * 4;
-      ctx.lineTo(x, GROUND_Y - h);
+    for (let x = 0; x <= WIDTH; x += 40) {
+      const h = 60 + Math.sin(x * 0.008) * 36 + Math.sin(x * 0.025) * 18;
+      if (x === 0) ctx.moveTo(x, GROUND_Y - h);
+      else ctx.lineTo(x, GROUND_Y - h);
     }
-    ctx.lineTo(WIDTH, GROUND_Y);
-    ctx.closePath();
-    ctx.fill();
+    ctx.stroke();
 
-    // Clouds (parallax)
+    // A few simple clouds (cartoon, white)
     for (const c of bgClouds) drawCloud(c.x, c.y, c.r);
-    drawAmbient();
 
     // Ground (per-era color + speckle texture)
     drawGround(playerEra);
@@ -1526,10 +1524,20 @@ const AgeOfWarGame = (() => {
     }
   }
 
-  // Per-era ground palette + speckle texture. The speckles are
-  // deterministic per (era, x) so they don't flicker each frame.
-  const GROUND_COLORS = ['#3a2818', '#1f2a1c', '#222024', '#1f231a', '#0e1226'];
-  const GROUND_SPECKS = ['#5a4530', '#3a4a32', '#2c2a30', '#36402a', '#1c2a4a'];
+  // OG-style brighter palette
+  const OG_SKY = [
+    ['#a8c8e8', '#e8d4a8'],  // stone — warm dawn
+    ['#7eb6e8', '#cde8f4'],  // medieval — bright day
+    ['#9a8aa8', '#d0b08a'],  // industrial — smoggy sunset
+    ['#5a8aac', '#b8c8d0'],  // modern — overcast
+    ['#2a3a78', '#7e90c8'],  // future — twilight
+  ];
+  const OG_SUN = ['#fff0a8', '#fff4d0', '#ffa860', null, '#a8e0ff'];
+  const OG_HILL = ['#7e5a3a', '#4a6a32', '#5a4a3a', '#3a4a48', '#2a3a68'];
+  const OG_GROUND = ['#a87e4a', '#6a8a44', '#7a6648', '#6a7060', '#4a5a90'];
+  // Grass/decor tint per era
+  const GROUND_COLORS = OG_GROUND;
+  const GROUND_SPECKS = ['#8a5a30', '#4a6a30', '#5a4828', '#4a5040', '#3a4a78'];
   // Atmosphere palettes
   const SKY_HORIZON = ['#a26845', '#7e88a8', '#564f5e', '#5c7c8a', '#3a4a90'];
   const HORIZON_HAZE = [
@@ -1575,32 +1583,20 @@ const AgeOfWarGame = (() => {
     }
   }
   function drawGround(eraIdx) {
-    const base = GROUND_COLORS[eraIdx] || '#1a1a14';
-    const speck = GROUND_SPECKS[eraIdx] || '#2a2a20';
+    // OG style: solid flat ground with a single dark top edge line.
+    const base = GROUND_COLORS[eraIdx] || '#7a6648';
     ctx.fillStyle = base;
     ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
-    // Deterministic speckle (pseudo-random from x)
-    for (let x = 4; x < WIDTH; x += 6) {
-      const seed = (x * 9301 + eraIdx * 49297) | 0;
-      const r = (Math.abs(Math.sin(seed)) * 1000) % 1;
-      if (r < 0.35) {
-        const y = GROUND_Y + 4 + ((seed * 7) % (HEIGHT - GROUND_Y - 8));
-        ctx.fillStyle = speck;
-        ctx.fillRect(x, y, 2, 2);
-      }
-    }
-    // Top edge line
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    // Bright top edge line (the "horizon")
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
-    // Era-specific ground decorations (deterministic placement)
-    drawGroundDecor(eraIdx);
-    // Future era: faint glowing grid lines on the ground
-    if (eraIdx === 4) {
-      ctx.strokeStyle = 'rgba(110,196,255,0.18)';
-      for (let x = 0; x < WIDTH; x += 24) {
-        ctx.beginPath(); ctx.moveTo(x, GROUND_Y + 2); ctx.lineTo(x - 30, HEIGHT); ctx.stroke();
-      }
-    }
+    // Subtle vertical fade to suggest depth (lighter near horizon)
+    const fade = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
+    fade.addColorStop(0, 'rgba(255,255,255,0.06)');
+    fade.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
   }
 
   function drawGroundDecor(eraIdx) {
@@ -1652,11 +1648,20 @@ const AgeOfWarGame = (() => {
   }
 
   function drawCloud(x, y, r) {
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    // Cartoon clouds: solid white blob, dark outline, slight shadow
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.arc(x + r * 0.7, y + 4, r * 0.8, 0, Math.PI * 2);
-    ctx.arc(x - r * 0.7, y + 6, r * 0.7, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.75, y + 4, r * 0.85, 0, Math.PI * 2);
+    ctx.arc(x - r * 0.75, y + 6, r * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Underside shadow
+    ctx.fillStyle = 'rgba(120,160,200,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + r * 0.45, r * 1.2, r * 0.18, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -1902,9 +1907,18 @@ const AgeOfWarGame = (() => {
       const kneeY = hip.y + upperLegH - lift;
       const footX = kneeX + facing * (lift * -0.15);
       const footY = kneeY + lowerLegH - lift * 0.5;
-      ctx.strokeStyle = pants;
-      ctx.lineWidth = 5;
+      // Draw a dark outline pass first so the leg reads as solid
+      // even against a busy background.
+      ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+      ctx.lineWidth = 11;
       ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(hip.x,  hip.y);
+      ctx.lineTo(kneeX,  kneeY);
+      ctx.lineTo(footX,  footY);
+      ctx.stroke();
+      ctx.strokeStyle = pants;
+      ctx.lineWidth = 8;
       ctx.beginPath();
       ctx.moveTo(hip.x,  hip.y);
       ctx.lineTo(kneeX,  kneeY);
@@ -1912,7 +1926,7 @@ const AgeOfWarGame = (() => {
       ctx.stroke();
       // Boot
       ctx.fillStyle = boot;
-      ctx.fillRect(footX - 4, footY - 2, 7, 3);
+      ctx.fillRect(footX - 6, footY - 3, 12, 5);
     }
     drawLeg(hipL, liftL);
     drawLeg(hipR, liftR);
@@ -1925,8 +1939,8 @@ const AgeOfWarGame = (() => {
     torsoGrad.addColorStop(1,    shadeColor(bodyColor,  18));
     ctx.fillStyle = torsoGrad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
     // Belt
@@ -1956,18 +1970,25 @@ const AgeOfWarGame = (() => {
       x: backElbow.x - facing * 1 + armSwing * 0.2,
       y: backElbow.y + 7,
     };
-    ctx.strokeStyle = bodyColor;
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 9;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(backShoulder.x, backShoulder.y);
     ctx.lineTo(backElbow.x,    backElbow.y);
     ctx.lineTo(backHand.x,     backHand.y);
     ctx.stroke();
-    // Back hand (small skin dot)
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(backShoulder.x, backShoulder.y);
+    ctx.lineTo(backElbow.x,    backElbow.y);
+    ctx.lineTo(backHand.x,     backHand.y);
+    ctx.stroke();
+    // Back hand (skin dot)
     ctx.fillStyle = skin;
     ctx.beginPath();
-    ctx.arc(backHand.x, backHand.y, 2.2, 0, Math.PI * 2);
+    ctx.arc(backHand.x, backHand.y, 3.4, 0, Math.PI * 2);
     ctx.fill();
 
     // Front arm anchor — caller wires the weapon hold around handX/handY
@@ -1985,21 +2006,29 @@ const AgeOfWarGame = (() => {
 
   function drawArmAndWeapon(x, y, shoulder, hand, bodyColor, weaponDraw, opts = {}) {
     // Front arm bent at elbow (3 segments: shoulder → elbow → hand).
-    // Caller's hand position drives wrist; we compute an elbow halfway.
     const elbowX = opts.elbowX != null ? opts.elbowX : (shoulder.x + hand.x) * 0.5;
     const elbowY = opts.elbowY != null ? opts.elbowY : (shoulder.y + hand.y) * 0.5 + 2;
-    ctx.strokeStyle = bodyColor;
-    ctx.lineWidth = 4;
+    // Outline pass
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 9;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(shoulder.x, shoulder.y);
     ctx.lineTo(elbowX,     elbowY);
     ctx.lineTo(hand.x,     hand.y);
     ctx.stroke();
-    // Hand dot under the weapon
+    // Fill pass
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x, shoulder.y);
+    ctx.lineTo(elbowX,     elbowY);
+    ctx.lineTo(hand.x,     hand.y);
+    ctx.stroke();
+    // Hand under the weapon
     ctx.fillStyle = opts.skin || '#e8b48a';
     ctx.beginPath();
-    ctx.arc(hand.x, hand.y, 2.4, 0, Math.PI * 2);
+    ctx.arc(hand.x, hand.y, 3.8, 0, Math.PI * 2);
     ctx.fill();
     if (weaponDraw) weaponDraw(hand.x, hand.y);
   }
