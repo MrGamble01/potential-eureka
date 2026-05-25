@@ -35,29 +35,29 @@ const AgeOfWarGame = (() => {
   // Three units per era: cheap melee / ranged / heavy.
   const UNITS = {
     // Stone Age
-    club:     { era: 0, name: 'Clubman',    icon: '🦴', cost: 25,   hp: 60,   dmg: 9,   range: 26,  atkSpd: 0.85, speed: 42, color: '#b07040', xp: 12,  gold: 16,  silhouette: 'humanoid' },
-    sling:    { era: 0, name: 'Slinger',    icon: '🪃', cost: 55,   hp: 32,   dmg: 16,  range: 145, atkSpd: 1.2,  speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
-    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', cost: 110,  hp: 180,  dmg: 24,  range: 30,  atkSpd: 1.0,  speed: 38, color: '#5d8a4a', xp: 30,  gold: 55,  silhouette: 'beast' },
+    club:     { era: 0, name: 'Clubman',    icon: '🦴', sprite: '🧌',  cost: 25,   hp: 60,   dmg: 9,   range: 26,  atkSpd: 0.85, speed: 42, color: '#b07040', xp: 12,  gold: 16,  silhouette: 'humanoid' },
+    sling:    { era: 0, name: 'Slinger',    icon: '🪃', sprite: '🧙',  cost: 55,   hp: 32,   dmg: 16,  range: 145, atkSpd: 1.2,  speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
+    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', sprite: '🦖',  cost: 110,  hp: 180,  dmg: 24,  range: 30,  atkSpd: 1.0,  speed: 38, color: '#5d8a4a', xp: 30,  gold: 55,  silhouette: 'beast' },
 
     // Medieval
-    swordsman:{ era: 1, name: 'Swordsman',  icon: '⚔️', cost: 130,  hp: 180,  dmg: 28,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
-    archer:   { era: 1, name: 'Archer',     icon: '🏹', cost: 200,  hp: 90,   dmg: 48,  range: 200, atkSpd: 1.3,  speed: 40, color: '#b5985a', xp: 48,  gold: 80,  silhouette: 'humanoid' },
-    knight:   { era: 1, name: 'Knight',     icon: '🐴', cost: 380,  hp: 480,  dmg: 50,  range: 30,  atkSpd: 1.0,  speed: 50, color: '#9a9bc5', xp: 90,  gold: 150, silhouette: 'beast' },
+    swordsman:{ era: 1, name: 'Swordsman',  icon: '⚔️', sprite: '🤺',  cost: 130,  hp: 180,  dmg: 28,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
+    archer:   { era: 1, name: 'Archer',     icon: '🏹', sprite: '🏹',  cost: 200,  hp: 90,   dmg: 48,  range: 200, atkSpd: 1.3,  speed: 40, color: '#b5985a', xp: 48,  gold: 80,  silhouette: 'humanoid' },
+    knight:   { era: 1, name: 'Knight',     icon: '🐴', sprite: '🐎',  cost: 380,  hp: 480,  dmg: 50,  range: 30,  atkSpd: 1.0,  speed: 50, color: '#9a9bc5', xp: 90,  gold: 150, silhouette: 'beast' },
 
     // Industrial
-    rifleman: { era: 2, name: 'Rifleman',   icon: '🔫', cost: 380,  hp: 270,  dmg: 90,  range: 230, atkSpd: 0.85, speed: 42, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
-    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', cost: 620,  hp: 380,  dmg: 170, range: 270, atkSpd: 1.7,  speed: 32, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
-    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', cost: 1100, hp: 950,  dmg: 200, range: 60,  atkSpd: 1.1,  speed: 30, color: '#6b5848', xp: 320, gold: 540, silhouette: 'vehicle' },
+    rifleman: { era: 2, name: 'Rifleman',   icon: '🔫', sprite: '💂',  cost: 380,  hp: 270,  dmg: 90,  range: 230, atkSpd: 0.85, speed: 42, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
+    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', sprite: '🧨',  cost: 620,  hp: 380,  dmg: 170, range: 270, atkSpd: 1.7,  speed: 32, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
+    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', sprite: '🚂',  cost: 1100, hp: 950,  dmg: 200, range: 60,  atkSpd: 1.1,  speed: 30, color: '#6b5848', xp: 320, gold: 540, silhouette: 'vehicle' },
 
     // Modern
-    soldier:  { era: 3, name: 'Soldier',    icon: '🪖', cost: 850,  hp: 480,  dmg: 200, range: 240, atkSpd: 0.7,  speed: 44, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
-    sniper:   { era: 3, name: 'Sniper',     icon: '🎯', cost: 1500, hp: 240,  dmg: 520, range: 380, atkSpd: 2.4,  speed: 38, color: '#7a7a4a', xp: 420, gold: 700, silhouette: 'humanoid' },
-    tank2:    { era: 3, name: 'Tank',       icon: '🪖', cost: 2400, hp: 2000, dmg: 380, range: 100, atkSpd: 1.0,  speed: 32, color: '#4d5a3a', xp: 700, gold: 1180, silhouette: 'vehicle' },
+    soldier:  { era: 3, name: 'Soldier',    icon: '🪖', sprite: '🪖',  cost: 850,  hp: 480,  dmg: 200, range: 240, atkSpd: 0.7,  speed: 44, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
+    sniper:   { era: 3, name: 'Sniper',     icon: '🎯', sprite: '🥷',  cost: 1500, hp: 240,  dmg: 520, range: 380, atkSpd: 2.4,  speed: 38, color: '#7a7a4a', xp: 420, gold: 700, silhouette: 'humanoid' },
+    tank2:    { era: 3, name: 'Tank',       icon: '🪖', sprite: '🚜',  cost: 2400, hp: 2000, dmg: 380, range: 100, atkSpd: 1.0,  speed: 32, color: '#4d5a3a', xp: 700, gold: 1180, silhouette: 'vehicle' },
 
     // Future
-    laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 920,  silhouette: 'humanoid' },
-    mech:     { era: 4, name: 'Mech',          icon: '🤖', cost: 3500, hp: 2800, dmg: 540, range: 110, atkSpd: 0.85, speed: 36, color: '#a89cff', xp: 1100,gold: 2000, silhouette: 'vehicle' },
-    flier:    { era: 4, name: 'Hover',         icon: '🛸', cost: 5500, hp: 1500, dmg: 820, range: 320, atkSpd: 1.4,  speed: 56, color: '#ff90ee', xp: 1600,gold: 3200, silhouette: 'flier' },
+    laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 920,  silhouette: 'humanoid' },
+    mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3500, hp: 2800, dmg: 540, range: 110, atkSpd: 0.85, speed: 36, color: '#a89cff', xp: 1100,gold: 2000, silhouette: 'vehicle' },
+    flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 5500, hp: 1500, dmg: 820, range: 320, atkSpd: 1.4,  speed: 56, color: '#ff90ee', xp: 1600,gold: 3200, silhouette: 'flier' },
   };
 
   function unitsForEra(era) {
@@ -238,11 +238,11 @@ const AgeOfWarGame = (() => {
   // ---- Hero summons ----
   // One legendary unit per era, big cost + cooldown, dramatic entrance.
   const HEROES = [
-    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', cost: 800,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 60 },
-    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', cost: 1800, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 70 },
-    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', cost: 4000, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 80 },
-    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', cost: 8500, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 90 },
-    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', cost: 18000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 110 },
+    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', sprite: '🦣',  cost: 800,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 60 },
+    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', sprite: '⚔️',  cost: 1800, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 70 },
+    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', sprite: '🎖️',  cost: 4000, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 80 },
+    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 8500, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 90 },
+    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 18000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 110 },
   ];
   let heroReadyT = 0;   // seconds until current era's hero is available
   let currentHeroCd = 0;
@@ -269,7 +269,7 @@ const AgeOfWarGame = (() => {
     // Register a synthetic unit entry from the hero stats so the
     // shared spawnUnit path covers it. Hero gets its own dispatch.
     UNITS[h.key] = UNITS[h.key] || {
-      era: h.era, name: h.name, icon: h.icon, cost: h.cost,
+      era: h.era, name: h.name, icon: h.icon, sprite: h.sprite, cost: h.cost,
       hp: h.hp, dmg: h.dmg, range: h.range, atkSpd: h.atkSpd,
       speed: h.speed, color: h.color, xp: h.xp, gold: h.gold,
       silhouette: h.silhouette, isHero: true,
@@ -2917,68 +2917,113 @@ const AgeOfWarGame = (() => {
   // recognizable at a glance, not just colored rectangles. All
   // drawers accept (u, x, y, facing, walkSwing, bodyColor) and
   // render with the origin at the bottom-center of the unit.
+  // Render a unit as a large emoji sprite (uses the browser's built-in
+  // emoji art — much more polished than hand-drawn canvas shapes).
   function drawUnit(u) {
-    const y = GROUND_Y - u.h - u.yOffset;
+    const def = UNITS[u.key] || {};
+    const sprite = def.sprite || u.icon || '⚔';
     const facing = u.side === 'player' ? 1 : -1;
     const isHero = u.key && u.key.startsWith('hero_');
-    // Soft elliptical shadow grounds the unit
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    const isBoss = u.isBoss;
+
+    // Scale: hero +30%, boss +60%, otherwise 1.0
+    const scale = isBoss ? 1.6 : (isHero ? 1.30 : 1.0);
+    const drawH = u.h * scale;
+    const drawW = u.w * scale;
+    const feetY = GROUND_Y - u.yOffset;
+    const cx = u.x;
+    const cy = feetY - drawH / 2;
+
+    // Walk bob — small Y oscillation
+    const bob = Math.sin(u.walkPhase * 2) * 2.2;
+
+    // Soft elliptical shadow at feet
+    ctx.fillStyle = 'rgba(0,0,0,0.40)';
     ctx.beginPath();
-    ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.5, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, feetY - 2, drawW * 0.45, 5, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Hero gets a golden ground halo + larger scale
+
+    // Hero / boss ground halo
     if (isHero) {
       const pulse = 0.6 + Math.sin(performance.now() / 220) * 0.2;
-      const halo = ctx.createRadialGradient(u.x, GROUND_Y - u.h * 0.4, 4, u.x, GROUND_Y - u.h * 0.4, u.w * 1.6);
+      const halo = ctx.createRadialGradient(cx, feetY - drawH * 0.35, 4, cx, feetY - drawH * 0.35, drawW * 1.4);
       halo.addColorStop(0, `rgba(252,211,77,${pulse * 0.55})`);
       halo.addColorStop(1, 'rgba(252,211,77,0)');
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(u.x, GROUND_Y - u.h * 0.4, u.w * 1.6, 0, Math.PI * 2);
+      ctx.arc(cx, feetY - drawH * 0.35, drawW * 1.4, 0, Math.PI * 2);
       ctx.fill();
-      // Ground rune ring
       ctx.strokeStyle = `rgba(252,211,77,${pulse})`;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(u.x, GROUND_Y - 1, u.w * 0.7, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, feetY - 1, drawW * 0.55, 5, 0, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (isBoss) {
+      const pulse = 0.6 + Math.sin(performance.now() / 180) * 0.3;
+      const halo = ctx.createRadialGradient(cx, feetY - drawH * 0.35, 4, cx, feetY - drawH * 0.35, drawW * 1.5);
+      halo.addColorStop(0, `rgba(160,32,160,${pulse * 0.6})`);
+      halo.addColorStop(1, 'rgba(160,32,160,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(cx, feetY - drawH * 0.35, drawW * 1.5, 0, Math.PI * 2);
+      ctx.fill();
     }
-    const bodyColor = u.hitFlash > 0 ? '#fff' : u.color;
-    const walkSwing = Math.sin(u.walkPhase);
+
+    // Sprite — drawn as a giant emoji. Mirror for enemy side via
+    // canvas transform. Hit flash drops a white glow underneath.
     ctx.save();
-    if (isHero) {
-      // Scale hero up ~25% for presence
-      ctx.translate(u.x, GROUND_Y);
-      ctx.scale(1.25, 1.25);
-      ctx.translate(-u.x, -GROUND_Y);
+    ctx.translate(cx, cy + bob);
+    if (facing < 0) ctx.scale(-1, 1);
+    const fontSize = Math.round(drawH * 0.95);
+    ctx.font = `${fontSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (u.hitFlash > 0) {
+      ctx.shadowColor = 'rgba(255,255,255,0.85)';
+      ctx.shadowBlur = 14;
+    } else if (isHero) {
+      ctx.shadowColor = 'rgba(252,211,77,0.6)';
+      ctx.shadowBlur = 12;
+    } else if (isBoss) {
+      ctx.shadowColor = 'rgba(255,80,255,0.55)';
+      ctx.shadowBlur = 14;
     }
-    const drawer = UNIT_DRAWERS[u.key] || drawGenericHumanoid;
-    drawer(u, u.x, y, facing, walkSwing, bodyColor);
+    ctx.fillText(sprite, 0, 0);
+    ctx.shadowBlur = 0;
     ctx.restore();
+
     // Hero name badge floating above
     if (isHero) {
-      ctx.font = '700 11px JetBrains Mono, monospace';
+      ctx.font = '800 13px "Inter",sans-serif';
       ctx.fillStyle = '#fcd34d';
       ctx.textAlign = 'center';
-      ctx.shadowColor = 'rgba(252,211,77,0.5)'; ctx.shadowBlur = 8;
-      ctx.fillText('★ ' + u.name, u.x, y - 22);
+      ctx.textBaseline = 'alphabetic';
+      ctx.shadowColor = 'rgba(252,211,77,0.6)'; ctx.shadowBlur = 8;
+      ctx.fillText('★ ' + u.name, cx, cy - drawH * 0.55);
+      ctx.shadowBlur = 0;
+    } else if (isBoss) {
+      ctx.font = '800 13px "Inter",sans-serif';
+      ctx.fillStyle = '#ff9cff';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(255,80,255,0.6)'; ctx.shadowBlur = 8;
+      ctx.fillText('👑 BOSS', cx, cy - drawH * 0.55);
       ctx.shadowBlur = 0;
     }
 
-    // Icon overhead (small)
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText(u.icon, u.x, y - 8);
-
-    // HP bar
-    const barW = u.w + 6;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(u.x - barW / 2, y - 18, barW, 3);
+    // HP bar above the sprite
+    const barW = drawW + 4;
+    const barY = cy - drawH * 0.5 - (isHero || isBoss ? 20 : 8);
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillRect(cx - barW / 2, barY, barW, 5);
     const pct = Math.max(0, u.hp / u.hpMax);
-    ctx.fillStyle = u.side === 'player' ? '#3FB950' : '#F85149';
-    ctx.fillRect(u.x - barW / 2 + 0.5, y - 17.5, (barW - 1) * pct, 2);
+    const grad = ctx.createLinearGradient(cx - barW / 2, 0, cx + barW / 2, 0);
+    if (u.side === 'player') { grad.addColorStop(0, '#3FB950'); grad.addColorStop(1, '#6ee87f'); }
+    else                     { grad.addColorStop(0, '#F85149'); grad.addColorStop(1, '#ff8a82'); }
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - barW / 2 + 1, barY + 1, (barW - 2) * pct, 3);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx - barW / 2, barY, barW, 5);
   }
 
   function drawProjectile(p) {
