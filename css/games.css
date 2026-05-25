@@ -544,7 +544,7 @@ canvas.game-canvas {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 960 / 380;
+  aspect-ratio: 1280 / 560;
   background: #0d1117;
 }
 .aow-overlay {
