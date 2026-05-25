@@ -91,7 +91,7 @@ const AgeOfWarGame = (() => {
   let enemySpawnT = 1.6;
   let goldTrickleT = 0;
   let specialReadyT = 6;
-  const specialCooldownMax = 25;
+  const specialCooldownMax = 20;
   let goldFloaters = [];
   let dmgFloaters = [];
   let muzzleFlashes = [];
@@ -108,11 +108,13 @@ const AgeOfWarGame = (() => {
   let enemyTurrets  = [null, null, null, null];
 
   // ---- Difficulty ----
+  // Tuned to be more forgiving on Easy/Normal: Easy gives ~2x slower spawns,
+  // weaker enemies. Hard/Insane keep the original challenge curve.
   const DIFFICULTIES = {
-    easy:   { label: 'Easy',   spawnMult: 1.5, dmgMult: 0.7, hpMult: 0.8, color: '#3FB950' },
-    normal: { label: 'Normal', spawnMult: 1.0, dmgMult: 1.0, hpMult: 1.0, color: '#58A6FF' },
-    hard:   { label: 'Hard',   spawnMult: 0.7, dmgMult: 1.25, hpMult: 1.2, color: '#fcd34d' },
-    insane: { label: 'Insane', spawnMult: 0.5, dmgMult: 1.6, hpMult: 1.5, color: '#F85149' },
+    easy:   { label: 'Easy',   spawnMult: 1.8, dmgMult: 0.65, hpMult: 0.75, color: '#3FB950' },
+    normal: { label: 'Normal', spawnMult: 1.2, dmgMult: 0.90, hpMult: 0.95, color: '#58A6FF' },
+    hard:   { label: 'Hard',   spawnMult: 0.8, dmgMult: 1.20, hpMult: 1.15, color: '#fcd34d' },
+    insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, color: '#F85149' },
   };
   let difficulty = 'normal';
 
@@ -121,8 +123,9 @@ const AgeOfWarGame = (() => {
   let comboT = 0;                 // seconds until streak breaks
   const COMBO_WINDOW = 3.0;
   let comboBest = 0;              // best in current run
-  // Bonus multiplier: 1.0 at combo 0, +5% per kill stacking up to +200% (5x).
-  function comboMult() { return Math.min(5, 1 + combo * 0.05); }
+  // Bonus multiplier: 1.0 at combo 0, +4% per kill stacking up to +200% (3x).
+  // Lowered from 5%/5x — runaway combos were trivializing late waves.
+  function comboMult() { return Math.min(3, 1 + combo * 0.04); }
 
   // ---- Run stats (shown on win/lose + drive achievements) ----
   const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
@@ -238,11 +241,11 @@ const AgeOfWarGame = (() => {
   // ---- Hero summons ----
   // One legendary unit per era, big cost + cooldown, dramatic entrance.
   const HEROES = [
-    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', sprite: '🦣',  cost: 800,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 60 },
-    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', sprite: '⚔️',  cost: 1800, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 70 },
-    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', sprite: '🎖️',  cost: 4000, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 80 },
-    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 8500, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 90 },
-    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 18000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 110 },
+    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', sprite: '🦣',  cost: 600,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 55 },
+    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', sprite: '⚔️',  cost: 1400, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 65 },
+    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', sprite: '🎖️',  cost: 3200, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 75 },
+    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 7000, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 85 },
+    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 15000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 100 },
   ];
   let heroReadyT = 0;   // seconds until current era's hero is available
   let currentHeroCd = 0;
@@ -523,10 +526,10 @@ const AgeOfWarGame = (() => {
     outcome = null;
     playerEra = 0;
     enemyEra = 0;
-    gold = 90;
+    gold = 140;
     xp = 0;
-    playerBaseHp = playerBaseMax = 1200;
-    enemyBaseHp  = enemyBaseMax  = 1200;
+    playerBaseHp = playerBaseMax = 1500;
+    enemyBaseHp  = enemyBaseMax  = 1500;
     units = [];
     projectiles = [];
     spawnCooldowns = {};
@@ -553,8 +556,8 @@ const AgeOfWarGame = (() => {
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
     waveNum = 1;
-    waveEnemiesRemaining = 4;
-    waveBreatherT = 0;
+    waveEnemiesRemaining = 3;     // gentler first wave
+    waveBreatherT = 4.0;          // give the player ~4s to orient before enemies surge
     bossWaveActive = false;
     bossKilledThisWave = false;
     killFeed = [];
@@ -731,12 +734,34 @@ const AgeOfWarGame = (() => {
     });
     // Click-to-collect coins. Map pointer event to canvas-internal
     // coords (canvas is responsive; rect may differ from intrinsic size).
-    canvas.addEventListener('pointerdown', e => {
+    // We also handle pointermove during a held press so dragging a
+    // finger across the field sweeps up coins — much more forgiving
+    // than tapping each one individually on a small touchscreen.
+    let pointerHeld = false;
+    function pointerToCanvas(e) {
       const rect = canvas.getBoundingClientRect();
-      const px = (e.clientX - rect.left) * (canvas.width  / rect.width);
-      const py = (e.clientY - rect.top)  * (canvas.height / rect.height);
-      collectCoinsNear(px, py);
+      return {
+        x: (e.clientX - rect.left) * (canvas.width  / rect.width),
+        y: (e.clientY - rect.top)  * (canvas.height / rect.height),
+      };
+    }
+    canvas.addEventListener('pointerdown', e => {
+      pointerHeld = true;
+      const p = pointerToCanvas(e);
+      collectCoinsNear(p.x, p.y);
     });
+    canvas.addEventListener('pointermove', e => {
+      if (!pointerHeld) return;
+      const p = pointerToCanvas(e);
+      collectCoinsNear(p.x, p.y);
+    });
+    const stop = () => { pointerHeld = false; };
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+    canvas.addEventListener('pointerleave', stop);
+    // Prevent the browser's "drag to scroll the page" while a finger is
+    // on the canvas — otherwise the swipe-collect sweeps the page too.
+    canvas.style.touchAction = 'none';
     // Difficulty selector
     const diffEl = document.getElementById('aow-diff');
     if (diffEl) {
@@ -802,8 +827,9 @@ const AgeOfWarGame = (() => {
       waveNum++;
       bossWaveActive = isBossWave(waveNum);
       bossKilledThisWave = false;
-      waveEnemiesRemaining = bossWaveActive ? 1 : (3 + Math.floor(waveNum * 0.4));
-      waveBreatherT = bossWaveActive ? 3.5 : 2.5;
+      // Smaller first few waves, gentler growth.
+      waveEnemiesRemaining = bossWaveActive ? 1 : (2 + Math.floor(waveNum * 0.35));
+      waveBreatherT = bossWaveActive ? 4.0 : 3.0;
       // Announce
       const txt = bossWaveActive ? `BOSS WAVE ${waveNum}` : `WAVE ${waveNum}`;
       ageBannerText = txt;
@@ -814,19 +840,26 @@ const AgeOfWarGame = (() => {
     }
     enemySpawnT -= dt;
     if (enemySpawnT > 0) return;
-    if (enemyEra < playerEra && Math.random() < 0.30) enemyEra++;
+    // Enemy era catch-up: faster so player isn't always fighting much
+    // weaker enemies (which made the mid-game trivial).
+    if (enemyEra < playerEra && Math.random() < 0.45) enemyEra++;
     const choices = unitsForEra(enemyEra);
     if (bossWaveActive && waveEnemiesRemaining === 1) {
-      // Spawn a single beefy boss instead of normal unit
+      // Spawn a single beefy boss instead of normal unit.
+      // Boss strength now scales with wave# rather than a flat 5x, so
+      // early bosses (wave 5) are tough-but-fair and late bosses ramp up.
       const baseKey = choices[choices.length - 1];
       const baseDef = UNITS[baseKey];
       const bossKey = 'boss_' + baseKey + '_' + waveNum;
+      // wave 5 → ~3.2x HP, wave 10 → ~4.4x, wave 15 → ~5.6x
+      const hpScale  = 3.0 + (waveNum - 5) * 0.24;
+      const dmgScale = 1.4 + (waveNum - 5) * 0.10;
       if (!UNITS[bossKey]) {
         UNITS[bossKey] = {
           ...baseDef,
           name: 'Boss ' + baseDef.name,
-          hp: baseDef.hp * 5,
-          dmg: baseDef.dmg * 1.8,
+          hp: Math.round(baseDef.hp * hpScale),
+          dmg: Math.round(baseDef.dmg * dmgScale),
           gold: baseDef.gold * 6,
           xp: baseDef.xp * 5,
           color: '#a020a0',
@@ -838,7 +871,7 @@ const AgeOfWarGame = (() => {
       if (u) { u.w = Math.round(u.w * 1.7); u.h = Math.round(u.h * 1.5); u.isBoss = true; u.icon = '👑'; }
       waveEnemiesRemaining = 0;  // breather waits for boss death
     } else {
-      const heavy = Math.random() < 0.2 + (waveNum - 1) * 0.04;
+      const heavy = Math.random() < 0.15 + (waveNum - 1) * 0.035;
       const key = heavy ? choices[choices.length - 1] : choices[Math.floor(Math.random() * choices.length)];
       spawnUnit('enemy', key);
       waveEnemiesRemaining--;
@@ -853,7 +886,7 @@ const AgeOfWarGame = (() => {
     }
     const pressureFactor = enemyBaseHp / enemyBaseMax;
     const D = DIFFICULTIES[difficulty];
-    enemySpawnT = (1.2 + Math.random() * 1.4 + pressureFactor * 0.8) * D.spawnMult;
+    enemySpawnT = (1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult;
   }
 
   // ---- Combat ----
@@ -869,10 +902,10 @@ const AgeOfWarGame = (() => {
     }
     tickAmbient(dt);
 
-    // Resource trickle
+    // Resource trickle (slightly faster early so player can build a comp).
     goldTrickleT -= dt;
     if (goldTrickleT <= 0) {
-      gold += 6 + playerEra * 4;
+      gold += 9 + playerEra * 4;
       goldTrickleT = 1.0;
       renderHud();
     }
@@ -1127,8 +1160,10 @@ const AgeOfWarGame = (() => {
     goldFloaters = goldFloaters.filter(f => f.t > 0);
     for (const m of muzzleFlashes) m.t -= dt;
     muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
-    // Coin physics: arc + bounce + rest. Once landed they bob in place
-    // and slowly fade so the player has time (~6s) to click them.
+    // Coin physics: arc + bounce + rest. Once landed they bob in place;
+    // after a short window they auto-credit to gold so mobile players
+    // who can't tap fast enough never lose all their income to fade.
+    // Tapping still works for the satisfying pop + grants the same amount.
     for (const c of coinDrops) {
       c.t -= dt;
       c.bob += dt * 5;
@@ -1142,7 +1177,20 @@ const AgeOfWarGame = (() => {
           if (c.vy > 80) { c.vy *= -0.35; c.vx *= 0.6; } else {
             c.landed = true;
             c.vy = 0; c.vx = 0;
+            c.landedT = 0;
           }
+        }
+      } else if (!c.autoCollected) {
+        c.landedT = (c.landedT || 0) + dt;
+        if (c.landedT >= 3.0) {
+          // Silent auto-collect: full value, no combo bonus, no toast spam.
+          c.autoCollected = true;
+          gold += c.gold;
+          goldFloaters.push({
+            text: '+$' + c.gold, x: c.x, y: c.y - 14,
+            color: '#9ad48a', t: 0.9,
+          });
+          c.t = 0;
         }
       }
     }
@@ -1217,14 +1265,20 @@ const AgeOfWarGame = (() => {
     }
   }
 
+  // Touch devices: bigger hit area so fingers can reliably catch coins.
+  const IS_TOUCH = (typeof window !== 'undefined') &&
+                   ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const COIN_HIT_R = IS_TOUCH ? 42 : 22;
+
   function collectCoinsNear(px, py) {
-    // Generous hit radius (touch-friendly): 18px.
-    const R = 18;
     let collected = 0;
+    let coinsHit = 0;
     for (let i = coinDrops.length - 1; i >= 0; i--) {
       const c = coinDrops[i];
-      if (Math.hypot(c.x - px, c.y - py) <= R) {
+      if (c.autoCollected) continue;
+      if (Math.hypot(c.x - px, c.y - py) <= COIN_HIT_R) {
         collected += c.gold;
+        coinsHit++;
         // Pop with a small particle burst at the coin location
         for (let k = 0; k < 4; k++) {
           const a = Math.random() * Math.PI * 2;
@@ -1243,7 +1297,7 @@ const AgeOfWarGame = (() => {
     }
     if (collected > 0) {
       gold += collected;
-      runStats.coinsCollected += (arguments.length ? 1 : 1);  // bumped once per click batch
+      runStats.coinsCollected += coinsHit;
       goldFloaters.push({
         text: '+$' + collected, x: px, y: py - 14,
         color: '#fcd34d', t: 1.2,
@@ -1356,12 +1410,13 @@ const AgeOfWarGame = (() => {
     drawBaseHpBar(ENEMY_BASE_X,  enemyBaseHp,  enemyBaseMax,  '#F85149');
 
     // Coin drops — round gold disks with a $ glyph. Click to collect.
+    // Bigger on touch devices so a fingertip can hit them.
     for (const c of coinDrops) {
       const fadeStart = 1.6;
       const alpha = c.t > fadeStart ? 1 : Math.max(0, c.t / fadeStart);
       const wobble = c.landed ? Math.sin(c.bob) * 1.5 : 0;
       const yy = c.y + wobble;
-      const r = 8;
+      const r = IS_TOUCH ? 13 : 10;
       // Subtle shadow when landed
       if (c.landed) {
         ctx.fillStyle = `rgba(0,0,0,${0.35 * alpha})`;
@@ -1384,9 +1439,9 @@ const AgeOfWarGame = (() => {
       ctx.beginPath();
       ctx.arc(c.x, yy, r, 0, Math.PI * 2);
       ctx.stroke();
-      // $ glyph
+      // $ glyph (slightly bigger on touch to match the bigger coin)
       ctx.fillStyle = `rgba(120,80,20,${alpha})`;
-      ctx.font = '700 10px JetBrains Mono, monospace';
+      ctx.font = `700 ${IS_TOUCH ? 13 : 11}px JetBrains Mono, monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('$', c.x, yy + 1);

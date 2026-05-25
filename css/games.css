@@ -792,27 +792,89 @@ canvas.game-canvas {
 }
 
 /* ── Responsive ── */
+/* Tablet / wide-phone landscape — keep desktop-ish layout, tighten gaps */
 @media (max-width: 900px) {
   .aow-topbar {
+    display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-auto-flow: row dense;
+    gap: 6px 8px;
+    padding: 8px 12px;
   }
-  .aow-brand { grid-column: 1 / 3; }
-  .aow-era-pill { grid-column: 1 / 3; min-width: 0; }
-  .aow-diff { grid-column: 1 / 3; justify-self: stretch; }
-  .aow-diff button { flex: 1; }
-  .aow-actionbar { grid-template-columns: 1fr 1fr; }
-  .aow-action-restart { grid-column: 1 / 3; }
+  .aow-brand { display: none; }                  /* save horizontal room */
+  .aow-resource { grid-column: 1 / 2; grid-row: 1; min-width: 0; font-size: 14px; padding: 5px 12px; justify-self: start; }
+  .aow-wave     { grid-column: 2 / 3; grid-row: 1; min-width: 0; justify-self: end; padding: 4px 10px; }
+  .aow-combo    { grid-column: 1 / -1; grid-row: 2;              justify-self: center; }
+  .aow-era-pill { grid-column: 1 / -1; min-width: 0; padding: 5px 12px; }
+  .aow-diff     { grid-column: 1 / -1; justify-self: stretch; }
+  .aow-diff button { flex: 1; padding: 6px 4px; }
   .aow-turret-list { grid-template-columns: 1fr 1fr; }
   .aow-battle-strip { gap: 8px; }
   .aow-vs { display: none; }
 }
-@media (max-width: 520px) {
-  .aow-spawn-list { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); }
-  .aow-spawn-icon { font-size: 22px; }
-  .aow-spawn-name { font-size: 10px; }
-  .aow-side-icon { width: 32px; height: 32px; font-size: 20px; }
+
+/* Phone — the real "fix mobile" pass.
+   - Bigger spawn buttons so a thumb can land cleanly
+   - Action bar pinned to the bottom in a tight icon row
+   - Canvas locked to a usable height instead of squashing to a thin strip */
+@media (max-width: 720px) {
+  .aow-shell { padding: 6px 0 0; gap: 8px; }
+  /* Canvas keeps its 1280×560 aspect — stretching units to fill a tall
+     phone box looks awful. The shorter display height is fine because
+     the touch hit radius for coins is 2× bigger on touch devices and
+     drag-sweep collects them en masse. */
+  .aow-canvas {
+    aspect-ratio: 1280 / 560;
+    width: 100%;
+    height: auto;
+    max-height: 38vh;
+  }
+  .aow-stage { border-radius: 10px; background: #0d1117; }
+
+  /* Battle strip — tighter, no icon flourish */
+  .aow-battle-strip { gap: 6px; padding: 0 4px; }
+  .aow-side { padding: 6px 8px; gap: 8px; border-radius: 10px; }
+  .aow-side-icon { width: 28px; height: 28px; font-size: 16px; }
+  .aow-side-label { font-size: 9px; margin-bottom: 2px; letter-spacing: 1.4px; }
+  .aow-side-hp { font-size: 10px; margin-top: 2px; }
+  .aow-side-track { height: 9px; }
+
+  /* Tabs */
+  .aow-tab { padding: 8px 14px; font-size: 10px; }
+
+  /* Spawn buttons: bigger touch targets */
+  .aow-spawn-list {
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .aow-spawn-btn { padding: 10px 6px 8px; min-height: 78px; }
+  .aow-spawn-icon { font-size: 30px; margin-top: 2px; }
+  .aow-spawn-name { font-size: 11px; }
+  .aow-spawn-cost { font-size: 13px; }
+  .aow-spawn-key { font-size: 10px; padding: 1px 5px; }
+
+  /* Turret slots — single row of 4 chips */
+  .aow-turret-list { grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .aow-turret-slot { padding: 8px; min-height: 76px; }
+  .aow-turret-buy { padding: 8px 6px; font-size: 11px; }
+
+  /* Overlay */
   .aow-overlay h2 { font-size: 28px; }
+
+  /* Hint isn't useful on touch (no keyboard) */
+  .aow-hint { display: none; }
+}
+
+/* Very small phones — drop minor flourishes */
+@media (max-width: 420px) {
+  .aow-resource { min-width: 78px; font-size: 13px; padding: 4px 10px; }
+  .aow-era-icon { font-size: 22px; }
+  .aow-era-name { font-size: 12px; }
+  .aow-spawn-list { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
+  .aow-spawn-icon { font-size: 26px; }
+  .aow-spawn-name { font-size: 10px; }
+  .aow-overlay h2 { font-size: 24px; }
 }
 
 /* ============================================
@@ -992,13 +1054,67 @@ canvas.game-canvas {
   font-weight: 800;
 }
 
+/* Action bar — 5 buttons.
+   Desktop: comfortable 5 in a row.
+   Tablet (<=900): still 5 across but tighter.
+   Phone (<=720): icon-first compact row pinned to the bottom of the page so
+   it's always reachable without scrolling. */
+.aow-actionbar { grid-template-columns: repeat(5, 1fr); }
+
 @media (max-width: 900px) {
-  .aow-actionbar { grid-template-columns: 1fr 1fr 1fr; }
-  .aow-action-restart, .aow-action-ach { grid-column: span 1; }
+  .aow-actionbar { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .aow-action { padding: 10px 8px; font-size: 13px; }
+  .aow-action-lbl { font-size: 12px; }
 }
-@media (max-width: 520px) {
-  .aow-actionbar { grid-template-columns: 1fr 1fr; }
+@media (max-width: 720px) {
+  .aow-actionbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    margin: 0 -6px;
+    background: linear-gradient(180deg, rgba(13,17,23,0.55), rgba(13,17,23,0.95));
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .aow-action {
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 2px;
+    min-height: 56px;
+    border-radius: 8px;
+  }
+  .aow-action-ico { font-size: 20px; }
+  .aow-action-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    line-height: 1.1;
+    text-align: center;
+    /* Truncate long labels like "Age Up · Medieval" so they don't wrap and
+       break the row height. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .aow-action-cd {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 9px;
+    margin: 0;
+    background: rgba(0,0,0,0.5);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
   .aow-ach-toast { min-width: 240px; max-width: calc(100vw - 32px); }
+  .aow-ach-toast-icon { font-size: 24px; }
+  .aow-ach-toast-title { font-size: 13px; }
+  .aow-ach-toast-desc { font-size: 10px; }
 }
 
 /* Welcome modal */
