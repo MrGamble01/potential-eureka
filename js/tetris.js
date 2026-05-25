@@ -24,6 +24,7 @@ const TetrisGame = (() => {
   let board, current, next, held;
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
+  let flashRows = [], flashPhase = 0, clearMsg = '';
   let bag = [];
 
   // 7-bag randomiser for fair piece distribution
@@ -180,34 +181,64 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
-    canHold = true;
-    current = next;
-    next = drawFromBag();
-    drawPreview(nextCtx, next);
-    if (collides(current.shape, current.x, current.y)) endGame();
+    const toRemove = [];
+    for (let r = 0; r < ROWS; r++) {
+      if (board[r].every(cell => cell !== null)) toRemove.push(r);
+    }
+    current = null;
+    if (toRemove.length) startLineClearAnim(toRemove);
+    else afterLock();
   }
 
-  function clearLines() {
-    let cleared = 0;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
+  function startLineClearAnim(rows) {
+    const msgs = ['', '', 'DOUBLE!', 'TRIPLE!', 'TETRIS!!'];
+    clearMsg = msgs[Math.min(rows.length, 4)] || '';
+    flashRows = rows;
+    flashPhase = 1;
+    clearInterval(gameLoop);
+    draw();
+    let phases = 1;
+    const id = setInterval(() => {
+      phases++;
+      flashPhase = phases;
+      draw();
+      if (phases >= 6) {
+        clearInterval(id);
+        finishLineClear(rows);
       }
-    }
-    if (!cleared) return;
+    }, 50);
+  }
+
+  function finishLineClear(rows) {
+    const rowSet = new Set(rows);
+    const kept = board.filter((_, i) => !rowSet.has(i));
+    const empties = Array.from({ length: rows.length }, () => Array(COLS).fill(null));
+    board = [...empties, ...kept];
+    const cleared = rows.length;
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    if (newLevel !== level) level = newLevel;
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
     }
     updateInfo();
+    flashRows = [];
+    flashPhase = 0;
+    clearMsg = '';
+    afterLock();
+  }
+
+  function afterLock() {
+    canHold = true;
+    current = next;
+    next = drawFromBag();
+    drawPreview(nextCtx, next);
+    if (collides(current.shape, current.x, current.y)) endGame();
+    else if (running) restartLoop();
+    draw();
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -247,6 +278,7 @@ const TetrisGame = (() => {
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    flashRows = []; flashPhase = 0; clearMsg = '';
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -325,6 +357,12 @@ const TetrisGame = (() => {
       for (let c = 0; c < COLS; c++)
         if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
 
+    if (flashRows.length) {
+      const lit = flashPhase % 2 === 1;
+      ctx.fillStyle = lit ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.1)';
+      flashRows.forEach(r => ctx.fillRect(0, r * CELL, WIDTH, CELL));
+    }
+
     if (current && running) {
       // Ghost
       const gy = ghostRow();
@@ -347,6 +385,20 @@ const TetrisGame = (() => {
         for (let c = 0; c < current.shape[r].length; c++)
           if (current.shape[r][c] && current.y + r >= 0)
             drawCell(ctx, current.x + c, current.y + r, current.color);
+    }
+
+    if (clearMsg) {
+      const isTetris = clearMsg === 'TETRIS!!';
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.font = `bold ${isTetris ? 30 : 22}px Inter, monospace`;
+      ctx.fillStyle = isTetris ? '#F7C948' : '#E6EDF3';
+      ctx.shadowColor = isTetris ? '#F7C948' : '#6C63FF';
+      ctx.shadowBlur = 24;
+      ctx.fillText(clearMsg, WIDTH / 2, HEIGHT / 2);
+      ctx.shadowBlur = 0;
+      ctx.textAlign = 'left';
+      ctx.restore();
     }
 
     if (!running && !gameOver) {
