@@ -565,7 +565,7 @@ canvas.game-canvas {
 /* ── Action bar ── */
 .aow-actionbar {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 .aow-action {
@@ -615,9 +615,32 @@ canvas.game-canvas {
   box-shadow: 0 0 20px rgba(255,107,53,0.4);
 }
 .aow-action-restart {
+  grid-column: span 2;
   background: rgba(255,255,255,0.04);
   border-color: var(--border);
   color: var(--text-dim);
+}
+.aow-action-pause {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+.aow-action-pause.aow-paused {
+  background: rgba(88,166,255,0.14);
+  border-color: rgba(88,166,255,0.55);
+  color: #58A6FF;
+  box-shadow: 0 0 14px rgba(88,166,255,0.25);
+}
+.aow-action-speed {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+.aow-action-speed.aow-fast {
+  background: rgba(63,185,80,0.14);
+  border-color: rgba(63,185,80,0.55);
+  color: #3FB950;
+  box-shadow: 0 0 14px rgba(63,185,80,0.25);
 }
 
 /* ── Tabs (Units / Turrets) ── */
@@ -802,7 +825,7 @@ canvas.game-canvas {
   .aow-diff { grid-column: 1 / 3; justify-self: stretch; }
   .aow-diff button { flex: 1; }
   .aow-actionbar { grid-template-columns: 1fr 1fr; }
-  .aow-action-restart { grid-column: 1 / 3; }
+  .aow-action-restart { grid-column: span 2; }
   .aow-turret-list { grid-template-columns: 1fr 1fr; }
   .aow-battle-strip { gap: 8px; }
   .aow-vs { display: none; }
@@ -993,8 +1016,8 @@ canvas.game-canvas {
 }
 
 @media (max-width: 900px) {
-  .aow-actionbar { grid-template-columns: 1fr 1fr 1fr; }
-  .aow-action-restart, .aow-action-ach { grid-column: span 1; }
+  .aow-actionbar { grid-template-columns: repeat(4, 1fr); }
+  .aow-action-restart { grid-column: span 2; }
 }
 @media (max-width: 520px) {
   .aow-actionbar { grid-template-columns: 1fr 1fr; }
