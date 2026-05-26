@@ -79,6 +79,8 @@ const AgeOfWarGame = (() => {
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false;
+  let paused = false;
+  let gameSpeed = 1;   // 1 or 2
   let outcome = null;
   let playerEra = 0, enemyEra = 0;
   let gold = 0, xp = 0;
@@ -260,7 +262,7 @@ const AgeOfWarGame = (() => {
 
   function heroForEra(era) { return HEROES[era]; }
   function trySummonHero() {
-    if (gameOver) return;
+    if (gameOver || paused) return;
     const h = heroForEra(playerEra);
     if (!h) return;
     if (heroReadyT > 0) return;
@@ -521,6 +523,15 @@ const AgeOfWarGame = (() => {
     running = true;
     gameOver = false;
     outcome = null;
+    paused = false;
+    const pauseBtn = document.getElementById('aow-pause-btn');
+    if (pauseBtn) {
+      const ico = pauseBtn.querySelector('.aow-action-ico');
+      const lbl = pauseBtn.querySelector('.aow-action-lbl');
+      if (ico) ico.textContent = '⏸';
+      if (lbl) lbl.textContent = 'Pause';
+      pauseBtn.classList.remove('aow-paused');
+    }
     playerEra = 0;
     enemyEra = 0;
     gold = 90;
@@ -598,7 +609,7 @@ const AgeOfWarGame = (() => {
   }
 
   function tryPlayerSpawn(key) {
-    if (gameOver) return;
+    if (gameOver || paused) return;
     const def = UNITS[key];
     if (!def) return;
     if (def.era > playerEra) return;
@@ -613,7 +624,7 @@ const AgeOfWarGame = (() => {
   }
 
   function ageUp() {
-    if (gameOver) return;
+    if (gameOver || paused) return;
     if (playerEra >= ERAS.length - 1) return;
     const need = ERAS[playerEra].upXP;
     if (xp < need) return;
@@ -656,7 +667,7 @@ const AgeOfWarGame = (() => {
   }
 
   function fireSpecial() {
-    if (gameOver) return;
+    if (gameOver || paused) return;
     if (specialReadyT > 0) return;
     const spec = ERAS[playerEra].special;
     // Visual: meteor/arrows/bombs sweeping across the right half.
@@ -687,8 +698,31 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
-  function tryBuyTurret(slot, era) {
+  function togglePause() {
     if (gameOver) return;
+    paused = !paused;
+    const btn = document.getElementById('aow-pause-btn');
+    if (btn) {
+      const ico = btn.querySelector('.aow-action-ico');
+      const lbl = btn.querySelector('.aow-action-lbl');
+      if (ico) ico.textContent = paused ? '▶' : '⏸';
+      if (lbl) lbl.textContent = paused ? 'Resume' : 'Pause';
+      btn.classList.toggle('aow-paused', paused);
+    }
+  }
+
+  function toggleSpeed() {
+    gameSpeed = gameSpeed === 1 ? 2 : 1;
+    const btn = document.getElementById('aow-speed-btn');
+    if (btn) {
+      const lbl = btn.querySelector('.aow-action-lbl');
+      if (lbl) lbl.textContent = gameSpeed + '×';
+      btn.classList.toggle('aow-fast', gameSpeed === 2);
+    }
+  }
+
+  function tryBuyTurret(slot, era) {
+    if (gameOver || paused) return;
     const tdef = TURRETS[era];
     if (!tdef) return;
     if (era > playerEra) return;
@@ -714,6 +748,10 @@ const AgeOfWarGame = (() => {
     if (specialBtn) specialBtn.onclick = fireSpecial;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
+    const pauseBtn2 = document.getElementById('aow-pause-btn');
+    if (pauseBtn2) pauseBtn2.onclick = togglePause;
+    const speedBtn = document.getElementById('aow-speed-btn');
+    if (speedBtn) speedBtn.onclick = toggleSpeed;
     const achBtn = document.getElementById('aow-ach-btn');
     if (achBtn) achBtn.onclick = () => {
       renderAchievementsModal();
@@ -732,6 +770,7 @@ const AgeOfWarGame = (() => {
     // Click-to-collect coins. Map pointer event to canvas-internal
     // coords (canvas is responsive; rect may differ from intrinsic size).
     canvas.addEventListener('pointerdown', e => {
+      if (paused) return;
       const rect = canvas.getBoundingClientRect();
       const px = (e.clientX - rect.left) * (canvas.width  / rect.width);
       const py = (e.clientY - rect.top)  * (canvas.height / rect.height);
@@ -777,6 +816,12 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'h' || e.key === 'H') {
         trySummonHero();
+        e.preventDefault();
+      } else if (e.key === 'p' || e.key === 'P') {
+        togglePause();
+        e.preventDefault();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleSpeed();
         e.preventDefault();
       }
     });
@@ -1278,7 +1323,7 @@ const AgeOfWarGame = (() => {
   function loop(now) {
     const dt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
-    update(dt);
+    if (!paused) update(dt * gameSpeed);
     draw();
     rafId = requestAnimationFrame(loop);
   }
@@ -1495,6 +1540,25 @@ const AgeOfWarGame = (() => {
     if (ageFlash > 0) {
       ctx.fillStyle = `rgba(252,211,77,${ageFlash * 0.4})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    }
+
+    // Paused overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.save();
+      ctx.font = '800 48px "Inter", sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(88,166,255,0.8)';
+      ctx.shadowBlur = 24;
+      ctx.fillText('⏸ PAUSED', WIDTH / 2, HEIGHT / 2 - 10);
+      ctx.font = '500 16px "Inter", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.shadowBlur = 0;
+      ctx.fillText('Press P or click Pause to resume', WIDTH / 2, HEIGHT / 2 + 38);
+      ctx.restore();
     }
 
     // Era-up cinematic banner
