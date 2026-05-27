@@ -576,9 +576,11 @@ const AgeOfWarGame = (() => {
   function spawnUnit(side, key) {
     const def = UNITS[key];
     if (!def) return;
-    // Per-silhouette sizing tuned for legibility at this canvas resolution.
-    const w = def.silhouette === 'vehicle' ? 78 : def.silhouette === 'beast' ? 72 : def.silhouette === 'flier' ? 64 : 46;
-    const h = def.silhouette === 'flier' ? 64 : def.silhouette === 'vehicle' ? 68 : def.silhouette === 'beast' ? 74 : 82;
+    // Per-silhouette sizing — bumped ~12% over the original so units
+    // remain legible on phone-sized canvases. Doesn't affect balance,
+    // only display size + visual collision/spacing.
+    const w = def.silhouette === 'vehicle' ? 88 : def.silhouette === 'beast' ? 82 : def.silhouette === 'flier' ? 72 : 52;
+    const h = def.silhouette === 'flier' ? 72 : def.silhouette === 'vehicle' ? 76 : def.silhouette === 'beast' ? 84 : 94;
     const flying = def.silhouette === 'flier';
     const D = DIFFICULTIES[difficulty];
     const hpMult  = side === 'enemy' ? D.hpMult  : 1;
@@ -1393,6 +1395,10 @@ const AgeOfWarGame = (() => {
     // A few simple clouds (cartoon, white)
     for (const c of bgClouds) drawCloud(c.x, c.y, c.r);
 
+    // Midground foliage (per-era trees, lined up just in front of the
+    // hills so they break up the empty sky-to-ground gap.)
+    drawFoliage(playerEra);
+
     // Ground (per-era color + speckle texture)
     drawGround(playerEra);
 
@@ -1581,15 +1587,15 @@ const AgeOfWarGame = (() => {
 
   // OG-style brighter palette
   const OG_SKY = [
-    ['#a8c8e8', '#e8d4a8'],  // stone — warm dawn
-    ['#7eb6e8', '#cde8f4'],  // medieval — bright day
-    ['#9a8aa8', '#d0b08a'],  // industrial — smoggy sunset
-    ['#5a8aac', '#b8c8d0'],  // modern — overcast
-    ['#2a3a78', '#7e90c8'],  // future — twilight
+    ['#7dc4ec', '#cfe7f5'],  // stone — bright sky → pale horizon (matches OG cartoon)
+    ['#6fb8ec', '#c4e5f3'],  // medieval — vivid summer day
+    ['#a9a0b8', '#dcc498'],  // industrial — smoggy sunset
+    ['#5d8fb4', '#c2d0d8'],  // modern — overcast
+    ['#2c3d80', '#7c92d2'],  // future — twilight
   ];
-  const OG_SUN = ['#fff0a8', '#fff4d0', '#ffa860', null, '#a8e0ff'];
-  const OG_HILL = ['#7e5a3a', '#4a6a32', '#5a4a3a', '#3a4a48', '#2a3a68'];
-  const OG_GROUND = ['#a87e4a', '#6a8a44', '#7a6648', '#6a7060', '#4a5a90'];
+  const OG_SUN = ['#ffe488', '#fffaca', '#ff9c4a', null, '#a8e0ff'];
+  const OG_HILL = ['#d28a3a', '#3a8a3a', '#5a4a3a', '#3a4a48', '#2a3a68'];
+  const OG_GROUND = ['#a9824e', '#88aa50', '#7a6648', '#6a7060', '#4a5a90'];
   // Grass/decor tint per era
   const GROUND_COLORS = OG_GROUND;
   const GROUND_SPECKS = ['#8a5a30', '#4a6a30', '#5a4828', '#4a5040', '#3a4a78'];
@@ -1652,6 +1658,155 @@ const AgeOfWarGame = (() => {
     fade.addColorStop(1, 'rgba(0,0,0,0.35)');
     ctx.fillStyle = fade;
     ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
+  }
+
+  // Midground foliage — small cartoon trees / bushes / pylons arranged at
+  // stable seeded positions so the row of units has something to march
+  // through instead of standing in front of a flat color. Anchored at
+  // GROUND_Y so they sit on the same line as the units.
+  function drawFoliage(eraIdx) {
+    const drawTree = (x, scale, fillA, fillB) => {
+      // Trunk
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(x - 3 * scale, GROUND_Y - 18 * scale, 6 * scale, 18 * scale);
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(x - 3 * scale, GROUND_Y - 18 * scale, 6 * scale, 18 * scale);
+      // Three stacked canopy blobs
+      ctx.fillStyle = fillA;
+      ctx.beginPath();
+      ctx.arc(x,              GROUND_Y - 28 * scale, 14 * scale, 0, Math.PI * 2);
+      ctx.arc(x - 11 * scale, GROUND_Y - 22 * scale, 11 * scale, 0, Math.PI * 2);
+      ctx.arc(x + 11 * scale, GROUND_Y - 22 * scale, 11 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 1.6 * scale;
+      ctx.stroke();
+      // Highlight
+      ctx.fillStyle = fillB;
+      ctx.beginPath();
+      ctx.arc(x - 3 * scale, GROUND_Y - 31 * scale, 4 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    const drawConifer = (x, scale, fill) => {
+      ctx.fillStyle = '#4a2e14';
+      ctx.fillRect(x - 2 * scale, GROUND_Y - 6 * scale, 4 * scale, 6 * scale);
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 1.4;
+      for (let i = 0; i < 3; i++) {
+        const yTop = GROUND_Y - (40 - i * 9) * scale;
+        const yBot = yTop + 12 * scale;
+        const w = (10 + i * 4) * scale;
+        ctx.beginPath();
+        ctx.moveTo(x,       yTop);
+        ctx.lineTo(x - w/2, yBot);
+        ctx.lineTo(x + w/2, yBot);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    };
+    const drawBush = (x, scale, fill) => {
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(x - 6 * scale, GROUND_Y - 6 * scale, 7 * scale, 0, Math.PI * 2);
+      ctx.arc(x + 5 * scale, GROUND_Y - 7 * scale, 8 * scale, 0, Math.PI * 2);
+      ctx.arc(x,              GROUND_Y - 10 * scale, 9 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    };
+    const drawRock = (x, scale) => {
+      ctx.fillStyle = '#7a6a55';
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(x, GROUND_Y - 5 * scale, 14 * scale, 7 * scale, 0, Math.PI, 0);
+      ctx.lineTo(x + 14 * scale, GROUND_Y);
+      ctx.lineTo(x - 14 * scale, GROUND_Y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#a8957a';
+      ctx.fillRect(x - 8 * scale, GROUND_Y - 9 * scale, 5 * scale, 2 * scale);
+    };
+    const drawPipe = (x, scale) => {
+      ctx.fillStyle = '#5a4a38';
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 1.4;
+      ctx.fillRect(x - 4 * scale, GROUND_Y - 22 * scale, 8 * scale, 22 * scale);
+      ctx.strokeRect(x - 4 * scale, GROUND_Y - 22 * scale, 8 * scale, 22 * scale);
+      ctx.fillStyle = '#3a2c22';
+      ctx.fillRect(x - 5 * scale, GROUND_Y - 24 * scale, 10 * scale, 3 * scale);
+    };
+    const drawNeonPylon = (x, scale) => {
+      ctx.fillStyle = '#1a2050';
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 1.4;
+      ctx.fillRect(x - 3 * scale, GROUND_Y - 26 * scale, 6 * scale, 26 * scale);
+      ctx.strokeRect(x - 3 * scale, GROUND_Y - 26 * scale, 6 * scale, 26 * scale);
+      ctx.fillStyle = '#6ec4ff';
+      ctx.shadowColor = '#6ec4ff'; ctx.shadowBlur = 6;
+      ctx.fillRect(x - 2 * scale, GROUND_Y - 24 * scale, 4 * scale, 4 * scale);
+      ctx.fillRect(x - 2 * scale, GROUND_Y - 14 * scale, 4 * scale, 4 * scale);
+      ctx.shadowBlur = 0;
+    };
+
+    // Per-era pick + palette
+    let drawer, paletteA, paletteB;
+    if (eraIdx === 0) {        // stone — palm-style tropical trees + bushes
+      drawer = drawTree; paletteA = '#2e7d32'; paletteB = '#5dbb63';
+    } else if (eraIdx === 1) { // medieval — round-canopy trees
+      drawer = drawTree; paletteA = '#2e7d32'; paletteB = '#7ed47e';
+    } else if (eraIdx === 2) { // industrial — conifers + scrap
+      drawer = drawConifer; paletteA = '#2a5a2a';
+    } else if (eraIdx === 3) { // modern — pipes + bushes
+      drawer = drawPipe;
+    } else {                    // future — neon pylons
+      drawer = drawNeonPylon;
+    }
+
+    // Deterministic positions across the field (skip near the bases).
+    // The clip area inside the canvas where units fight is roughly
+    // x ∈ [PLAYER_BASE_X+BASE_W, ENEMY_BASE_X]. Place foliage outside the
+    // battle path so it doesn't visually collide with marching units.
+    const slots = [];
+    for (let i = 0; i < 14; i++) {
+      const seed = (i * 9973 + eraIdx * 7177) | 0;
+      const r = (Math.abs(Math.sin(seed)) * 10000) % 1;
+      const x = PLAYER_BASE_X + BASE_W + 30 + ((i * 92 + (seed & 31)) % (ENEMY_BASE_X - PLAYER_BASE_X - BASE_W - 60));
+      slots.push({ x, r, seed });
+    }
+    // Two passes — back layer (smaller, dimmer) first, then front layer.
+    for (const s of slots) {
+      if (s.r < 0.5) continue;       // back layer cull
+      const scale = 0.6 + (s.seed & 7) * 0.04;
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      if (eraIdx === 2) drawConifer(s.x, scale, '#1f4520');
+      else if (eraIdx === 4) drawNeonPylon(s.x, scale);
+      else drawTree(s.x, scale, '#1f5a25', '#3b8a3b');
+      ctx.restore();
+    }
+    for (const s of slots) {
+      if (s.r >= 0.5) continue;     // front layer
+      const scale = 0.9 + (s.seed & 7) * 0.04;
+      if (eraIdx === 0 || eraIdx === 1) {
+        if ((s.seed & 3) === 0) drawBush(s.x, scale, '#3b8a3b');
+        else if ((s.seed & 3) === 1) drawRock(s.x, scale * 0.8);
+        else drawTree(s.x, scale, paletteA, paletteB);
+      } else if (eraIdx === 2) {
+        if ((s.seed & 1) === 0) drawConifer(s.x, scale, paletteA);
+        else drawPipe(s.x, scale * 0.7);
+      } else if (eraIdx === 3) {
+        if ((s.seed & 1) === 0) drawBush(s.x, scale, '#4a5a40');
+        else drawPipe(s.x, scale);
+      } else {
+        drawNeonPylon(s.x, scale);
+      }
+    }
   }
 
   function drawGroundDecor(eraIdx) {
@@ -1743,41 +1898,71 @@ const AgeOfWarGame = (() => {
   }
 
   function drawBaseStone(x, color) {
-    // Wooden palisade — vertical sharpened logs
-    ctx.fillStyle = color;
-    ctx.fillRect(x, GROUND_Y - 60, BASE_W, 60);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(x, GROUND_Y - 8, BASE_W, 8);
-    const logs = 10;
-    for (let i = 0; i < logs; i++) {
-      const lw = (BASE_W - 6) / logs - 1;
-      const lx = x + 3 + i * (lw + 1);
-      ctx.fillStyle = color;
-      ctx.fillRect(lx, GROUND_Y - 78, lw, 18);
-      // Pointed top
-      ctx.fillStyle = '#3a2a1a';
-      ctx.beginPath();
-      ctx.moveTo(lx, GROUND_Y - 78);
-      ctx.lineTo(lx + lw / 2, GROUND_Y - 86);
-      ctx.lineTo(lx + lw, GROUND_Y - 78);
-      ctx.fill();
-    }
-    // Cave-mouth door
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    // Cave entrance: irregular gray boulder pile with a dark mouth in
+    // the middle. Matches the OG Age-of-War stone-age base.
+    const cx = x + BASE_W / 2;
+    // Outline-first dome shape so the boulders read against the sky
+    ctx.fillStyle = '#7d8084';
+    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x + BASE_W / 2, GROUND_Y - 20, 16, Math.PI, 0);
-    ctx.lineTo(x + BASE_W / 2 + 16, GROUND_Y);
-    ctx.lineTo(x + BASE_W / 2 - 16, GROUND_Y);
+    ctx.moveTo(x - 4, GROUND_Y);
+    ctx.lineTo(x + 6, GROUND_Y - 50);
+    ctx.lineTo(x + 30, GROUND_Y - 86);
+    ctx.lineTo(cx,    GROUND_Y - 96);
+    ctx.lineTo(x + BASE_W - 30, GROUND_Y - 86);
+    ctx.lineTo(x + BASE_W - 6,  GROUND_Y - 50);
+    ctx.lineTo(x + BASE_W + 4,  GROUND_Y);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
+    // Individual boulders piled up — vary tone for depth
+    const boulders = [
+      { x: x + 10,            y: GROUND_Y - 18, r: 14, c: '#888c90' },
+      { x: x + 36,            y: GROUND_Y - 30, r: 18, c: '#9ea2a6' },
+      { x: x + 22,            y: GROUND_Y - 58, r: 16, c: '#7d8084' },
+      { x: cx,                y: GROUND_Y - 80, r: 18, c: '#9ea2a6' },
+      { x: x + BASE_W - 22,   y: GROUND_Y - 58, r: 16, c: '#7d8084' },
+      { x: x + BASE_W - 36,   y: GROUND_Y - 30, r: 18, c: '#9ea2a6' },
+      { x: x + BASE_W - 10,   y: GROUND_Y - 18, r: 14, c: '#888c90' },
+    ];
+    for (const b of boulders) {
+      ctx.fillStyle = b.c;
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Highlight chip
+      ctx.fillStyle = '#c9ccce';
+      ctx.beginPath();
+      ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.4, b.r * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Dark cave mouth
+    ctx.fillStyle = '#1a1208';
+    ctx.beginPath();
+    ctx.moveTo(cx - 18, GROUND_Y);
+    ctx.quadraticCurveTo(cx - 18, GROUND_Y - 42, cx, GROUND_Y - 46);
+    ctx.quadraticCurveTo(cx + 18, GROUND_Y - 42, cx + 18, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   function drawBaseMedieval(x, color) {
-    // Castle: body + battlements + portcullis
+    // Castle: body + battlements + portcullis + red banners
     ctx.fillStyle = color;
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.lineWidth = 2;
     ctx.fillRect(x, GROUND_Y - 80, BASE_W, 80);
+    ctx.strokeRect(x, GROUND_Y - 80, BASE_W, 80);
     // Stone-block hatching
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+    ctx.lineWidth = 1;
     for (let r = 0; r < 5; r++) {
       const yy = GROUND_Y - 80 + r * 16;
       ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + BASE_W, yy); ctx.stroke();
@@ -1786,14 +1971,43 @@ const AgeOfWarGame = (() => {
     ctx.fillRect(x, GROUND_Y - 14, BASE_W, 14);
     // Battlements
     ctx.fillStyle = color;
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.lineWidth = 2;
     for (let i = 0; i < 6; i++) {
       const bw = (BASE_W - 10) / 6 - 2;
-      ctx.fillRect(x + 5 + i * (bw + 2), GROUND_Y - 92, bw, 12);
+      const bx = x + 5 + i * (bw + 2);
+      ctx.fillRect(bx, GROUND_Y - 92, bw, 12);
+      ctx.strokeRect(bx, GROUND_Y - 92, bw, 12);
     }
+    // Two red banners hanging from the wall (left + right of door)
+    const drawBanner = (bx) => {
+      ctx.fillStyle = '#c43838';
+      ctx.beginPath();
+      ctx.moveTo(bx - 6, GROUND_Y - 80);
+      ctx.lineTo(bx + 6, GROUND_Y - 80);
+      ctx.lineTo(bx + 6, GROUND_Y - 30);
+      ctx.lineTo(bx, GROUND_Y - 24);
+      ctx.lineTo(bx - 6, GROUND_Y - 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      // Yellow cross emblem
+      ctx.strokeStyle = '#fcd34d';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(bx, GROUND_Y - 72); ctx.lineTo(bx, GROUND_Y - 50);
+      ctx.moveTo(bx - 4, GROUND_Y - 62); ctx.lineTo(bx + 4, GROUND_Y - 62);
+      ctx.stroke();
+    };
+    drawBanner(x + 22);
+    drawBanner(x + BASE_W - 22);
     // Portcullis
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(x + BASE_W / 2 - 14, GROUND_Y - 42, 28, 42);
     ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1.2;
     for (let i = 1; i < 4; i++) {
       ctx.beginPath(); ctx.moveTo(x + BASE_W / 2 - 14 + i * 7, GROUND_Y - 42); ctx.lineTo(x + BASE_W / 2 - 14 + i * 7, GROUND_Y); ctx.stroke();
     }
