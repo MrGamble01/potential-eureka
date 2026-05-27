@@ -2970,82 +2970,88 @@ const AgeOfWarGame = (() => {
   // ---- Unit silhouettes ----
   // Each unit gets a dedicated drawer so the silhouettes are
   // recognizable at a glance, not just colored rectangles. All
-  // drawers accept (u, x, y, facing, walkSwing, bodyColor) and
-  // render with the origin at the bottom-center of the unit.
-  // Render a unit as a large emoji sprite (uses the browser's built-in
-  // emoji art — much more polished than hand-drawn canvas shapes).
+  // drawers accept (u, x, y, facing, walkSwing, bodyColor) where
+  // y is the top of the unit and (x, y, u.w, u.h) is the bounding box.
   function drawUnit(u) {
     const def = UNITS[u.key] || {};
-    const sprite = def.sprite || u.icon || '⚔';
     const facing = u.side === 'player' ? 1 : -1;
     const isHero = u.key && u.key.startsWith('hero_');
     const isBoss = u.isBoss;
-
-    // Scale: hero +30%, boss +60%, otherwise 1.0
-    const scale = isBoss ? 1.6 : (isHero ? 1.30 : 1.0);
-    const drawH = u.h * scale;
+    const scale = isBoss ? 1.45 : (isHero ? 1.18 : 1.0);
     const drawW = u.w * scale;
+    const drawH = u.h * scale;
     const feetY = GROUND_Y - u.yOffset;
-    const cx = u.x;
-    const cy = feetY - drawH / 2;
+    const topY = feetY - u.h;       // drawer's y-arg (unscaled — canvas transform handles scale)
 
-    // Walk bob — small Y oscillation
-    const bob = Math.sin(u.walkPhase * 2) * 2.2;
+    // Walk swing — -1..1, used by drawers for limb cycling
+    const walkSwing = Math.sin(u.walkPhase);
+    const bodyColor = u.color || def.color || '#888';
 
-    // Soft elliptical shadow at feet
+    // Soft elliptical foot shadow (scaled with display size)
     ctx.fillStyle = 'rgba(0,0,0,0.40)';
     ctx.beginPath();
-    ctx.ellipse(cx, feetY - 2, drawW * 0.45, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(u.x, feetY - 1, drawW * 0.42, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Hero / boss ground halo
     if (isHero) {
       const pulse = 0.6 + Math.sin(performance.now() / 220) * 0.2;
-      const halo = ctx.createRadialGradient(cx, feetY - drawH * 0.35, 4, cx, feetY - drawH * 0.35, drawW * 1.4);
-      halo.addColorStop(0, `rgba(252,211,77,${pulse * 0.55})`);
+      const halo = ctx.createRadialGradient(u.x, feetY - drawH * 0.3, 4, u.x, feetY - drawH * 0.3, drawW * 1.4);
+      halo.addColorStop(0, `rgba(252,211,77,${pulse * 0.5})`);
       halo.addColorStop(1, 'rgba(252,211,77,0)');
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(cx, feetY - drawH * 0.35, drawW * 1.4, 0, Math.PI * 2);
+      ctx.arc(u.x, feetY - drawH * 0.3, drawW * 1.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = `rgba(252,211,77,${pulse})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(cx, feetY - 1, drawW * 0.55, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(u.x, feetY - 1, drawW * 0.5, 4.5, 0, 0, Math.PI * 2);
       ctx.stroke();
     } else if (isBoss) {
-      const pulse = 0.6 + Math.sin(performance.now() / 180) * 0.3;
-      const halo = ctx.createRadialGradient(cx, feetY - drawH * 0.35, 4, cx, feetY - drawH * 0.35, drawW * 1.5);
-      halo.addColorStop(0, `rgba(160,32,160,${pulse * 0.6})`);
+      const pulse = 0.55 + Math.sin(performance.now() / 180) * 0.25;
+      const halo = ctx.createRadialGradient(u.x, feetY - drawH * 0.3, 4, u.x, feetY - drawH * 0.3, drawW * 1.5);
+      halo.addColorStop(0, `rgba(160,32,160,${pulse * 0.55})`);
       halo.addColorStop(1, 'rgba(160,32,160,0)');
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(cx, feetY - drawH * 0.35, drawW * 1.5, 0, Math.PI * 2);
+      ctx.arc(u.x, feetY - drawH * 0.3, drawW * 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Sprite — drawn as a giant emoji. Mirror for enemy side via
-    // canvas transform. Hit flash drops a white glow underneath.
+    // Resolve drawer. Bosses use their base unit's drawer; synthetic
+    // boss keys look like `boss_<baseKey>_<waveNum>`.
+    let drawerKey = u.key;
+    if (drawerKey.startsWith('boss_')) {
+      drawerKey = drawerKey.replace(/^boss_/, '').replace(/_\d+$/, '');
+    }
+    const drawer = UNIT_DRAWERS[drawerKey] || drawGenericHumanoid;
+
+    // Scale heroes and bosses around their feet so the existing
+    // per-unit drawers (which size everything against u.w/u.h) render
+    // proportionally larger without each drawer needing its own scale.
     ctx.save();
-    ctx.translate(cx, cy + bob);
-    if (facing < 0) ctx.scale(-1, 1);
-    const fontSize = Math.round(drawH * 0.95);
-    ctx.font = `${fontSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    if (scale !== 1.0) {
+      ctx.translate(u.x, feetY);
+      ctx.scale(scale, scale);
+      ctx.translate(-u.x, -feetY);
+    }
+    // Hit flash: bright white glow under all strokes/fills inside the drawer.
     if (u.hitFlash > 0) {
-      ctx.shadowColor = 'rgba(255,255,255,0.85)';
+      ctx.shadowColor = `rgba(255,255,255,${Math.min(1, u.hitFlash * 4)})`;
       ctx.shadowBlur = 14;
     } else if (isHero) {
-      ctx.shadowColor = 'rgba(252,211,77,0.6)';
-      ctx.shadowBlur = 12;
+      ctx.shadowColor = 'rgba(252,211,77,0.45)';
+      ctx.shadowBlur = 8;
     } else if (isBoss) {
-      ctx.shadowColor = 'rgba(255,80,255,0.55)';
-      ctx.shadowBlur = 14;
+      ctx.shadowColor = 'rgba(255,80,255,0.5)';
+      ctx.shadowBlur = 10;
     }
-    ctx.fillText(sprite, 0, 0);
+    drawer(u, u.x, topY, facing, walkSwing, bodyColor);
     ctx.shadowBlur = 0;
     ctx.restore();
+
+    const cy = feetY - drawH / 2;
 
     // Hero name badge floating above
     if (isHero) {
@@ -3054,31 +3060,31 @@ const AgeOfWarGame = (() => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.shadowColor = 'rgba(252,211,77,0.6)'; ctx.shadowBlur = 8;
-      ctx.fillText('★ ' + u.name, cx, cy - drawH * 0.55);
+      ctx.fillText('★ ' + u.name, u.x, feetY - drawH - 4);
       ctx.shadowBlur = 0;
     } else if (isBoss) {
       ctx.font = '800 13px "Inter",sans-serif';
       ctx.fillStyle = '#ff9cff';
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(255,80,255,0.6)'; ctx.shadowBlur = 8;
-      ctx.fillText('👑 BOSS', cx, cy - drawH * 0.55);
+      ctx.fillText('👑 BOSS', u.x, feetY - drawH - 4);
       ctx.shadowBlur = 0;
     }
 
     // HP bar above the sprite
     const barW = drawW + 4;
-    const barY = cy - drawH * 0.5 - (isHero || isBoss ? 20 : 8);
+    const barY = feetY - drawH - (isHero || isBoss ? 20 : 8);
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
-    ctx.fillRect(cx - barW / 2, barY, barW, 5);
+    ctx.fillRect(u.x - barW / 2, barY, barW, 5);
     const pct = Math.max(0, u.hp / u.hpMax);
-    const grad = ctx.createLinearGradient(cx - barW / 2, 0, cx + barW / 2, 0);
+    const grad = ctx.createLinearGradient(u.x - barW / 2, 0, u.x + barW / 2, 0);
     if (u.side === 'player') { grad.addColorStop(0, '#3FB950'); grad.addColorStop(1, '#6ee87f'); }
     else                     { grad.addColorStop(0, '#F85149'); grad.addColorStop(1, '#ff8a82'); }
     ctx.fillStyle = grad;
-    ctx.fillRect(cx - barW / 2 + 1, barY + 1, (barW - 2) * pct, 3);
+    ctx.fillRect(u.x - barW / 2 + 1, barY + 1, (barW - 2) * pct, 3);
     ctx.strokeStyle = 'rgba(0,0,0,0.5)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(cx - barW / 2, barY, barW, 5);
+    ctx.strokeRect(u.x - barW / 2 + 0.5, barY + 0.5, barW - 1, 4);
   }
 
   function drawProjectile(p) {
