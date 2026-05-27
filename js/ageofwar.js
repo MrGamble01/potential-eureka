@@ -115,6 +115,8 @@ const AgeOfWarGame = (() => {
     insane: { label: 'Insane', spawnMult: 0.5, dmgMult: 1.6, hpMult: 1.5, color: '#F85149' },
   };
   let difficulty = 'normal';
+  let paused = false;
+  let gameSpeed = 1;   // 1 = normal, 2 = fast-forward
 
   // ---- Combo / streak ----
   let combo = 0;
@@ -518,6 +520,8 @@ const AgeOfWarGame = (() => {
   }
 
   function reset() {
+    paused = false;
+    gameSpeed = 1;
     running = true;
     gameOver = false;
     outcome = null;
@@ -704,10 +708,43 @@ const AgeOfWarGame = (() => {
     renderTurretPanel();
   }
 
+  // ---- Pause / Speed ----
+  function togglePause() {
+    if (gameOver) return;
+    paused = !paused;
+    if (!paused) lastFrame = performance.now();  // prevent dt spike on resume
+    _syncPauseSpeedBtns();
+  }
+
+  function toggleSpeed() {
+    gameSpeed = gameSpeed === 1 ? 2 : 1;
+    _syncPauseSpeedBtns();
+  }
+
+  function _syncPauseSpeedBtns() {
+    const pauseBtn = document.getElementById('aow-pause-btn');
+    if (pauseBtn) {
+      const ico = pauseBtn.querySelector('.aow-action-ico');
+      const lbl = pauseBtn.querySelector('.aow-action-lbl');
+      if (ico) ico.textContent = paused ? '▶️' : '⏸️';
+      if (lbl) lbl.textContent = paused ? 'Resume' : 'Pause';
+    }
+    const speedBtn = document.getElementById('aow-speed-btn');
+    if (speedBtn) {
+      const lbl = speedBtn.querySelector('.aow-action-lbl');
+      if (lbl) lbl.textContent = gameSpeed === 2 ? '1×' : '2×';
+      speedBtn.classList.toggle('aow-speed-active', gameSpeed === 2);
+    }
+  }
+
   // ---- Input ----
   function bindControls() {
     const restartBtn = document.getElementById('aow-restart-btn');
     if (restartBtn) restartBtn.onclick = reset;
+    const pauseBtn = document.getElementById('aow-pause-btn');
+    if (pauseBtn) pauseBtn.onclick = togglePause;
+    const speedBtn = document.getElementById('aow-speed-btn');
+    if (speedBtn) speedBtn.onclick = toggleSpeed;
     const ageBtn = document.getElementById('aow-ageup-btn');
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
@@ -777,6 +814,12 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'h' || e.key === 'H') {
         trySummonHero();
+        e.preventDefault();
+      } else if (e.key === 'p' || e.key === 'P') {
+        togglePause();
+        e.preventDefault();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleSpeed();
         e.preventDefault();
       }
     });
@@ -1150,11 +1193,11 @@ const AgeOfWarGame = (() => {
 
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
-      gameOver = true; running = false; outcome = 'lose';
+      gameOver = true; running = false; outcome = 'lose'; paused = false;
       SFX.defeat();
       showOverlay(false);
     } else if (enemyBaseHp <= 0 && !gameOver) {
-      gameOver = true; running = false; outcome = 'win';
+      gameOver = true; running = false; outcome = 'win'; paused = false;
       SFX.victory();
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
@@ -1278,7 +1321,7 @@ const AgeOfWarGame = (() => {
   function loop(now) {
     const dt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
-    update(dt);
+    if (!paused) update(dt * gameSpeed);
     draw();
     rafId = requestAnimationFrame(loop);
   }
@@ -1520,6 +1563,27 @@ const AgeOfWarGame = (() => {
       ctx.fillStyle = '#fcd34d';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(ageBannerText, WIDTH / 2, y + 32);
+      ctx.restore();
+    }
+
+    // Pause overlay
+    if (paused && !gameOver) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.62)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = "bold 44px 'Inter', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⏸ PAUSED', WIDTH / 2, HEIGHT / 2 - 20);
+      ctx.font = "14px 'Inter', sans-serif";
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or click Resume to continue  ·  F to toggle speed', WIDTH / 2, HEIGHT / 2 + 22);
+      if (gameSpeed === 2) {
+        ctx.fillStyle = '#fcd34d';
+        ctx.font = "bold 13px 'JetBrains Mono', monospace";
+        ctx.fillText('⚡ FAST FORWARD ACTIVE', WIDTH / 2, HEIGHT / 2 + 50);
+      }
       ctx.restore();
     }
   }
