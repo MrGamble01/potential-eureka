@@ -834,6 +834,28 @@ canvas.game-canvas {
 .aow-action-ach:hover:not(:disabled) {
   box-shadow: 0 0 18px rgba(108,99,255,0.4);
 }
+.aow-action-pause {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(200,200,200,0.35);
+  color: #E6EDF3;
+}
+.aow-action-pause:hover:not(:disabled) {
+  box-shadow: 0 0 14px rgba(230,237,243,0.25);
+}
+.aow-action-speed {
+  background: rgba(252,211,77,0.10);
+  border-color: rgba(252,211,77,0.35);
+  color: #fcd34d;
+  transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.aow-action-speed:hover:not(:disabled) {
+  box-shadow: 0 0 16px rgba(252,211,77,0.35);
+}
+.aow-action-speed.aow-speed-active {
+  background: rgba(252,211,77,0.22);
+  border-color: rgba(252,211,77,0.75);
+  box-shadow: 0 0 18px rgba(252,211,77,0.45);
+}
 
 /* Floating achievement toasts (top-right) */
 .aow-achievement-toasts {
