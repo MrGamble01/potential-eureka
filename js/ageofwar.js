@@ -576,11 +576,12 @@ const AgeOfWarGame = (() => {
   function spawnUnit(side, key) {
     const def = UNITS[key];
     if (!def) return;
-    // Per-silhouette sizing — bumped ~12% over the original so units
-    // remain legible on phone-sized canvases. Doesn't affect balance,
-    // only display size + visual collision/spacing.
-    const w = def.silhouette === 'vehicle' ? 88 : def.silhouette === 'beast' ? 82 : def.silhouette === 'flier' ? 72 : 52;
-    const h = def.silhouette === 'flier' ? 72 : def.silhouette === 'vehicle' ? 76 : def.silhouette === 'beast' ? 84 : 94;
+    // Per-silhouette sizing — significantly larger than the original
+    // so units are legible on phone-sized canvases (reference: Max
+    // Games' Age of War, where units occupy ~25-30% of canvas height).
+    // Doesn't affect balance — only display size and visual spacing.
+    const w = def.silhouette === 'vehicle' ? 110 : def.silhouette === 'beast' ? 102 : def.silhouette === 'flier' ? 92 : 72;
+    const h = def.silhouette === 'flier' ? 88 : def.silhouette === 'vehicle' ? 96 : def.silhouette === 'beast' ? 108 : 124;
     const flying = def.silhouette === 'flier';
     const D = DIFFICULTIES[difficulty];
     const hpMult  = side === 'enemy' ? D.hpMult  : 1;

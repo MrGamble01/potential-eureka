@@ -814,49 +814,89 @@ canvas.game-canvas {
 }
 
 /* Phone — the real "fix mobile" pass.
-   - Bigger spawn buttons so a thumb can land cleanly
-   - Action bar pinned to the bottom in a tight icon row
-   - Canvas locked to a usable height instead of squashing to a thin strip */
+   Goal: give the canvas at least 40% of viewport height by compressing
+   the surrounding chrome aggressively. Previous pass left ~20% for the
+   game; this pass collapses the HUD into a single thin strip. */
 @media (max-width: 720px) {
-  .aow-shell { padding: 6px 0 0; gap: 8px; }
-  /* Canvas keeps its 1280×560 aspect — stretching units to fill a tall
-     phone box looks awful. The shorter display height is fine because
-     the touch hit radius for coins is 2× bigger on touch devices and
-     drag-sweep collects them en masse. */
+  .aow-shell { padding: 4px 0 0; gap: 6px; }
+
+  /* HUD — collapse into ONE compact row: gold | era | wave. Drop the
+     difficulty selector and the standalone XP bar; they're available
+     in the welcome modal / settings if needed. */
+  .aow-topbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
+  .aow-resource {
+    min-width: 0; padding: 4px 10px; font-size: 13px;
+    box-shadow: none;
+  }
+  .aow-resource-icon { width: 16px; height: 16px; font-size: 10px; }
+  .aow-era-pill {
+    flex: 1; min-width: 0;
+    grid-template-columns: auto 1fr;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+  .aow-era-icon { font-size: 20px; }
+  .aow-era-name { font-size: 11px; }
+  .aow-era-sub  { font-size: 9px; }
+  .aow-era-track { height: 3px; margin-top: 2px; }
+  .aow-wave {
+    min-width: 0; padding: 4px 8px;
+    border-radius: 8px;
+  }
+  .aow-wave-num { font-size: 11px; letter-spacing: 0.8px; }
+  .aow-wave-sub { font-size: 9px; }
+  .aow-combo { padding: 2px 8px; }
+  .aow-combo-x { font-size: 14px; }
+  .aow-combo-label { font-size: 8px; }
+  .aow-diff { display: none; }   /* moved to settings; was eating a full row */
+
+  /* Battle strip — one tight line, no icons, half height */
+  .aow-battle-strip { gap: 6px; padding: 0 4px; }
+  .aow-side {
+    padding: 4px 8px; gap: 6px; border-radius: 8px;
+  }
+  .aow-side-icon { display: none; }
+  .aow-side-bar { padding: 1px 0; }
+  .aow-side-label { font-size: 8px; margin-bottom: 1px; letter-spacing: 1.2px; }
+  .aow-side-hp { font-size: 9px; margin-top: 1px; }
+  .aow-side-track { height: 7px; }
+  .aow-vs { display: none; }
+
+  /* Canvas — take more vertical real estate now that the HUD is thin.
+     Keep aspect ratio so the units aren't stretched. */
   .aow-canvas {
     aspect-ratio: 1280 / 560;
     width: 100%;
     height: auto;
-    max-height: 38vh;
+    max-height: 46vh;
   }
   .aow-stage { border-radius: 10px; background: #0d1117; }
 
-  /* Battle strip — tighter, no icon flourish */
-  .aow-battle-strip { gap: 6px; padding: 0 4px; }
-  .aow-side { padding: 6px 8px; gap: 8px; border-radius: 10px; }
-  .aow-side-icon { width: 28px; height: 28px; font-size: 16px; }
-  .aow-side-label { font-size: 9px; margin-bottom: 2px; letter-spacing: 1.4px; }
-  .aow-side-hp { font-size: 10px; margin-top: 2px; }
-  .aow-side-track { height: 9px; }
-
   /* Tabs */
-  .aow-tab { padding: 8px 14px; font-size: 10px; }
+  .aow-tab { padding: 6px 12px; font-size: 10px; }
 
   /* Spawn buttons: bigger touch targets */
   .aow-spawn-list {
     grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
     gap: 6px;
-    margin-top: 8px;
+    margin-top: 6px;
   }
-  .aow-spawn-btn { padding: 10px 6px 8px; min-height: 78px; }
-  .aow-spawn-icon { font-size: 30px; margin-top: 2px; }
+  .aow-spawn-btn { padding: 8px 6px 6px; min-height: 72px; }
+  .aow-spawn-icon { font-size: 28px; margin-top: 2px; }
   .aow-spawn-name { font-size: 11px; }
-  .aow-spawn-cost { font-size: 13px; }
+  .aow-spawn-cost { font-size: 12px; }
   .aow-spawn-key { font-size: 10px; padding: 1px 5px; }
 
-  /* Turret slots — single row of 4 chips */
-  .aow-turret-list { grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
-  .aow-turret-slot { padding: 8px; min-height: 76px; }
+  /* Turret slots */
+  .aow-turret-list { grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .aow-turret-slot { padding: 8px; min-height: 70px; }
   .aow-turret-buy { padding: 8px 6px; font-size: 11px; }
 
   /* Overlay */
@@ -868,11 +908,11 @@ canvas.game-canvas {
 
 /* Very small phones — drop minor flourishes */
 @media (max-width: 420px) {
-  .aow-resource { min-width: 78px; font-size: 13px; padding: 4px 10px; }
-  .aow-era-icon { font-size: 22px; }
-  .aow-era-name { font-size: 12px; }
-  .aow-spawn-list { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
-  .aow-spawn-icon { font-size: 26px; }
+  .aow-resource { padding: 3px 8px; font-size: 12px; }
+  .aow-era-icon { font-size: 18px; }
+  .aow-era-name { font-size: 10px; }
+  .aow-spawn-list { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+  .aow-spawn-icon { font-size: 24px; }
   .aow-spawn-name { font-size: 10px; }
   .aow-overlay h2 { font-size: 24px; }
 }
