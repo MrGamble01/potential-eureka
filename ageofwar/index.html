@@ -10,8 +10,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/base.css">
-  <link rel="stylesheet" href="../css/games.css">
+  <link rel="stylesheet" href="aow.css">
+  <style>
+    /* Page-level styles (these were inherited from base.css in the
+       parent dashboard repo; inlined here so this folder is fully
+       self-contained and easy to extract into its own repo). */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    body {
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+  </style>
   <style>
     body {
       background:
@@ -180,7 +192,7 @@
       },
     };
   </script>
-  <script src="../js/ageofwar.js"></script>
+  <script src="ageofwar.js"></script>
   <script>AgeOfWarGame.init();</script>
 </body>
 </html>
