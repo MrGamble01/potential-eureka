@@ -294,10 +294,11 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
+        <button id="snake-pause-btn" onclick="SnakeGame.togglePause()">Pause</button>
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
-        Gold food = +50 pts &nbsp;·&nbsp; Spawns every 5 apples &nbsp;·&nbsp; Disappears in 5s
+        Gold food = +50 pts &nbsp;·&nbsp; Spawns every 5 apples &nbsp;·&nbsp; Obstacles appear from level 3 &nbsp;·&nbsp; P to pause
       </div>
     </div>
   </section>
