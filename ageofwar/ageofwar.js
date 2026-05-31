@@ -399,6 +399,7 @@ const AgeOfWarGame = (() => {
     } catch {}
     seedClouds();
     seedAmbient(0);
+    preloadSprites();
     loadAchievements();
     reset();
     bindControls();
@@ -3158,6 +3159,337 @@ const AgeOfWarGame = (() => {
     }
   };
 
+  // ============================================================
+  //  VECTOR SPRITE ENGINE
+  //  Each unit is described as an SVG (built parametrically for
+  //  humanoids so they all share proportions, bespoke for mounts /
+  //  vehicles). SVGs are rasterized once into <img> at high res and
+  //  blitted with drawImage — crisp, swappable, App-Store clean.
+  //  If a sprite hasn't loaded yet (or none exists) we fall back to
+  //  the hand-coded canvas drawer below.
+  // ============================================================
+
+  // Sprites are authored facing RIGHT, feet centered at the bottom of
+  // the viewBox. The engine mirrors them for the enemy side.
+  const SPRITE_VB = { w: 120, h: 200 };        // humanoid viewBox
+  const spriteCache = {};                       // key -> { img, ready }
+
+  // ---- Parametric humanoid ----
+  // A clean cel-shaded marcher: dark outline (via stroke), 2-tone
+  // fills, a mid-stride pose so it reads as walking. cfg picks palette,
+  // headgear and weapon so all 15 humans look like one art set.
+  function svgHumanoid(cfg) {
+    const c = Object.assign({
+      skin: '#e0a86b', skinSh: '#c2854a',
+      torso: '#7a5a3a', torsoSh: '#5c4329',
+      legs: '#4a3320', legsSh: '#2f2010', boots: '#241810',
+      hair: '#2c1c0e', accent: '#cccccc', accentSh: '#8a8a8a',
+      headgear: 'none', weapon: 'none', cape: null,
+    }, cfg);
+    const OUT = '#15110c';                       // outline color
+    const O = `stroke="${OUT}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"`;
+    // limb(): dark outline underlay + colored fill on top → bold cel outline
+    const limb = (d, col, w) =>
+      `<path d="${d}" fill="none" stroke="${OUT}" stroke-width="${w + 4}" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const parts = [];
+
+    // Cape (behind everything)
+    if (c.cape) {
+      parts.push(`<path d="M58 68 Q34 100 30 156 L60 142 L68 78 Z" fill="${c.cape}" ${O}/>`);
+    }
+    // Back arm (behind torso) — bent, hanging
+    parts.push(limb('M55 74 q-13 10 -12 30', c.skinSh, 12));
+    // Back leg (stepped back)
+    parts.push(limb('M55 116 l-9 42 -3 22', c.legsSh, 15));
+    parts.push(`<path d="M37 190 l20 0" fill="none" stroke="${c.boots}" stroke-width="10" stroke-linecap="round"/>`);
+    // Front leg (stepped forward)
+    parts.push(limb('M66 116 l10 40 5 22', c.legs, 15));
+    parts.push(`<path d="M76 190 l22 0" fill="none" stroke="${c.boots}" stroke-width="10" stroke-linecap="round"/>`);
+    // Torso
+    parts.push(`<path d="M43 64 q17 -9 34 0 l5 52 q-22 9 -44 0 Z" fill="${c.torso}" ${O}/>`);
+    parts.push(`<path d="M60 64 l5 0 5 52 q-5 1.6 -10 2.6 Z" fill="${c.torsoSh}"/>`);
+    if (c.belt) parts.push(`<rect x="40" y="108" width="40" height="7" rx="2" fill="${c.belt}" ${O}/>`);
+    // Neck
+    parts.push(`<path d="M55 56 l10 0 0 11 -10 0 Z" fill="${c.skinSh}"/>`);
+    // Head
+    parts.push(`<circle cx="60" cy="40" r="20" fill="${c.skin}" ${O}/>`);
+    parts.push(`<path d="M60 20 a20 20 0 0 1 0 40 Z" fill="${c.skinSh}" opacity="0.5"/>`);
+    // Hair (unless a covering helmet)
+    if (!['helm', 'visor', 'brodie', 'combat'].includes(c.headgear)) {
+      parts.push(`<path d="M40 40 q-2 -25 20 -25 q22 0 20 25 q-7 -13 -20 -13 q-13 0 -20 13 Z" fill="${c.hair}" ${O}/>`);
+    }
+    // Face — brow + eye + nose, facing right
+    parts.push(`<circle cx="71" cy="40" r="2.6" fill="${OUT}"/>`);
+    parts.push(`<path d="M78 44 q3 2 0 5" fill="none" stroke="${c.skinSh}" stroke-width="2"/>`);
+    // Headgear
+    if (c.headgear === 'helm') {            // medieval great-helm
+      parts.push(`<path d="M39 42 a21 22 0 0 1 42 0 l0 5 -42 0 Z" fill="${c.accent}" ${O}/>`);
+      parts.push(`<rect x="58" y="38" width="22" height="4" rx="1" fill="${OUT}"/>`);
+      parts.push(`<rect x="58" y="14" width="4" height="12" rx="2" fill="${c.accentSh}" ${O}/>`);
+      parts.push(`<path d="M60 14 l8 -3 -8 -3 Z" fill="${c.crest || '#c43838'}"/>`);
+    } else if (c.headgear === 'hood') {     // archer hood
+      parts.push(`<path d="M37 44 q2 -29 23 -29 q21 0 23 29 q-11 -15 -23 -15 q-12 0 -23 15 Z" fill="${c.accent}" ${O}/>`);
+    } else if (c.headgear === 'brodie') {   // WW1 helmet
+      parts.push(`<path d="M35 38 a25 13 0 0 1 50 0 Z" fill="${c.accent}" ${O}/>`);
+      parts.push(`<ellipse cx="60" cy="38" rx="25" ry="4.5" fill="${c.accentSh}"/>`);
+    } else if (c.headgear === 'combat') {   // modern combat helmet
+      parts.push(`<path d="M38 42 a22 21 0 0 1 44 -2 l0 6 -44 0 Z" fill="${c.accent}" ${O}/>`);
+      parts.push(`<rect x="40" y="40" width="42" height="4" fill="${c.accentSh}"/>`);
+    } else if (c.headgear === 'visor') {    // future visor helmet
+      parts.push(`<path d="M39 42 a21 22 0 0 1 42 0 l0 7 -42 0 Z" fill="${c.accent}" ${O}/>`);
+      parts.push(`<rect x="55" y="36" width="26" height="7" rx="3.5" fill="#6ec4ff"/>`);
+      parts.push(`<rect x="55" y="36" width="26" height="2.5" rx="1" fill="#bfeaff"/>`);
+    } else if (c.headgear === 'bandana') {  // sniper wrap
+      parts.push(`<path d="M40 38 a20 20 0 0 1 40 0 l0 5 -40 0 Z" fill="${c.accent}" ${O}/>`);
+      parts.push(`<path d="M40 40 l-10 4 4 6 8 -4 Z" fill="${c.accent}" ${O}/>`);
+    }
+
+    // Weapon + front arm (in front of torso)
+    parts.push(weaponSVG(c.weapon, c, O));
+    return svgWrap(parts.join(''));
+  }
+
+  function weaponSVG(weapon, c, O) {
+    const OUT = '#15110c';
+    const arm = (d) =>
+      `<path d="${d}" fill="none" stroke="${OUT}" stroke-width="16" stroke-linecap="round"/>` +
+      `<path d="${d}" fill="none" stroke="${c.skin}" stroke-width="12" stroke-linecap="round"/>`;
+    switch (weapon) {
+      case 'club':
+        return arm('M66 78 q18 6 24 18') +
+          `<g transform="translate(92 92) rotate(28)"><rect x="-5" y="-2" width="10" height="34" rx="4" fill="#7a4e22" ${O}/><circle cx="0" cy="-6" r="13" fill="#8a5a2a" ${O}/></g>`;
+      case 'sling':
+        return arm('M66 76 q16 -4 22 -18') +
+          `<circle cx="92" cy="48" r="11" fill="none" stroke="#6a4828" stroke-width="3"/><circle cx="92" cy="37" r="4" fill="#888" ${O}/>`;
+      case 'sword':
+        return arm('M66 78 q20 2 28 -6') +
+          `<g transform="translate(96 70) rotate(-32)"><rect x="-7" y="0" width="14" height="4" fill="#caa84a" ${O}/><path d="M-3 0 L3 0 L2 -42 L0 -48 L-2 -42 Z" fill="#dfe4e8" ${O}/></g>`;
+      case 'bow':
+        return arm('M66 78 q22 0 30 -2') +
+          `<path d="M98 50 q16 28 0 56" fill="none" stroke="#6a3a1a" stroke-width="5"/><path d="M98 50 L98 106" stroke="#ddd" stroke-width="1.5"/><path d="M82 78 L112 78" stroke="#3a2210" stroke-width="3"/>`;
+      case 'rifle':
+        return arm('M66 80 q20 0 30 2') +
+          `<g transform="translate(70 84)"><rect x="0" y="-3" width="44" height="6" rx="2" fill="#222" ${O}/><rect x="-8" y="-2" width="12" height="8" rx="2" fill="#5a3a1a" ${O}/></g>`;
+      case 'cannon':
+        return arm('M64 80 q18 -2 26 -6') +
+          `<g transform="translate(74 70) rotate(-8)"><rect x="0" y="-9" width="40" height="18" rx="6" fill="#2c2c2c" ${O}/><rect x="36" y="-10" width="6" height="20" rx="2" fill="#181818"/></g>`;
+      case 'sniper':
+        return arm('M66 82 q22 0 34 0') +
+          `<g transform="translate(68 86)"><rect x="0" y="-2.5" width="54" height="5" rx="2" fill="#2a2a1a" ${O}/><rect x="20" y="-7" width="14" height="5" rx="2" fill="#111"/><rect x="-8" y="-1.5" width="12" height="7" rx="2" fill="#3a3a22" ${O}/></g>`;
+      case 'laser':
+        return arm('M66 80 q20 0 30 0') +
+          `<g transform="translate(70 84)"><rect x="0" y="-4" width="40" height="9" rx="4" fill="#2a3550" ${O}/><rect x="34" y="-2" width="12" height="4" rx="2" fill="#6ec4ff"/><circle cx="46" cy="0" r="3" fill="#bfeaff"/></g>`;
+      default:
+        return arm('M66 80 q14 8 12 26');
+    }
+  }
+
+  function svgWrap(inner) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SPRITE_VB.w} ${SPRITE_VB.h}" width="${SPRITE_VB.w*2}" height="${SPRITE_VB.h*2}">${inner}</svg>`;
+  }
+  // Bespoke sprites (mounts / vehicles) use their own viewBox aspect.
+  function svgWrapVB(w, h, inner) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w*2}" height="${h*2}">${inner}</svg>`;
+  }
+
+  // ---- Bespoke beast / vehicle sprites (authored facing RIGHT) ----
+  const OUTC = '#15110c';
+  const Ob = `stroke="${OUTC}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"`;
+
+  function svgDino() {  // raptor + tribal rider
+    return svgWrapVB(170, 150, `
+      <path d="M150 96 q14 -10 16 2 q-8 4 -16 4 Z" fill="#4d7a3c" ${Ob}/>
+      <path d="M40 92 Q10 88 16 70 Q26 80 44 84 Z" fill="#3f6831" ${Ob}/>
+      <path d="M44 96 q-6 26 -2 44 l12 0 q-2 -22 4 -40 Z" fill="#3f6831" ${Ob}/>
+      <path d="M108 98 q-2 26 2 44 l12 0 q0 -22 4 -42 Z" fill="#4d7a3c" ${Ob}/>
+      <path d="M44 132 l18 0" fill="none" stroke="#2c4a22" stroke-width="9" stroke-linecap="round"/>
+      <path d="M110 134 l18 0" fill="none" stroke="#2c4a22" stroke-width="9" stroke-linecap="round"/>
+      <path d="M40 96 q30 -28 78 -10 q26 8 32 16 q-30 14 -70 12 q-30 -2 -40 -18 Z" fill="#4d7a3c" ${Ob}/>
+      <path d="M118 86 l30 6 q6 4 4 12 l-22 -4 q-8 -6 -12 -14 Z" fill="#56894a" ${Ob}/>
+      <path d="M150 96 l10 -1" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="140" cy="92" r="2.6" fill="${OUTC}"/>
+      <path d="M70 70 q6 -16 18 -10 l-3 12 Z" fill="#7a4e22" ${Ob}/>
+      <circle cx="80" cy="58" r="8" fill="#d99a63" ${Ob}/>
+      <path d="M64 60 q12 -4 20 6" fill="none" stroke="${OUTC}" stroke-width="9" stroke-linecap="round"/>
+      <path d="M84 56 l18 -10" fill="none" stroke="#5a3a18" stroke-width="3"/>
+    `);
+  }
+
+  function svgHorse() {  // armored warhorse + lancer w/ red caparison
+    return svgWrapVB(180, 150, `
+      <path d="M150 78 q22 -6 24 8 q-2 10 -14 8 Z" fill="#7a5a3a" ${Ob}/>
+      <path d="M40 80 q60 -22 104 -6 q20 8 18 26 q-70 16 -120 6 q-12 -10 -2 -32 Z" fill="#8a6a46" ${Ob}/>
+      <path d="M30 84 q-14 -4 -10 -22 q12 6 24 12 Z" fill="#6e4f30" ${Ob}/>
+      <path d="M40 96 l-4 44 12 0 4 -40 Z" fill="#6e4f30" ${Ob}/>
+      <path d="M70 100 l-2 42 12 0 2 -40 Z" fill="#7a5a3a" ${Ob}/>
+      <path d="M118 100 l-2 42 12 0 2 -40 Z" fill="#6e4f30" ${Ob}/>
+      <path d="M144 96 l2 44 12 0 -2 -42 Z" fill="#7a5a3a" ${Ob}/>
+      <path d="M44 104 q40 18 96 2 l-6 30 -84 0 Z" fill="#c43838" ${Ob}/>
+      <path d="M150 70 q16 -14 14 -30 q-10 4 -16 14 Z" fill="#8a6a46" ${Ob}/>
+      <circle cx="158" cy="66" r="2.4" fill="${OUTC}"/>
+      <path d="M150 40 q-6 8 -2 18" fill="none" stroke="#2c1c0e" stroke-width="4"/>
+      <path d="M82 56 q4 -18 18 -14 l-2 16 Z" fill="#9aa0ab" ${Ob}/>
+      <circle cx="92" cy="46" r="9" fill="#c2c8d0" ${Ob}/>
+      <rect x="90" y="44" width="12" height="3" fill="${OUTC}"/>
+      <path d="M100 50 l46 -30" fill="none" stroke="#caa84a" stroke-width="4"/>
+      <path d="M146 20 l8 -3 -6 8 Z" fill="#dfe4e8" ${Ob}/>
+    `);
+  }
+
+  function svgMammoth() {  // hero: woolly mammoth + chief
+    return svgWrapVB(180, 160, `
+      <path d="M44 90 Q14 96 18 74 Q30 86 50 88 Z" fill="#5a3a22" ${Ob}/>
+      <path d="M40 88 q34 -34 92 -16 q34 10 30 40 q-6 26 -44 30 q-58 6 -82 -14 q-14 -16 4 -40 Z" fill="#6e4426" ${Ob}/>
+      <g stroke="#4a2e16" stroke-width="3"><path d="M48 70 l0 10"/><path d="M64 64 l0 12"/><path d="M84 62 l0 12"/><path d="M104 64 l0 12"/><path d="M124 70 l0 10"/></g>
+      <path d="M132 92 q22 -4 30 10 q-4 12 -18 10 Z" fill="#6e4426" ${Ob}/>
+      <ellipse cx="150" cy="88" rx="22" ry="20" fill="#6e4426" ${Ob}/>
+      <path d="M158 96 q4 28 -6 44 q-10 2 -10 -8 q2 -22 6 -36 Z" fill="#f3e6c0" ${Ob}/>
+      <path d="M148 96 q12 26 0 48" fill="none" stroke="#5a3a22" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="156" cy="82" r="2.6" fill="${OUTC}"/>
+      <path d="M44 96 l-4 46 14 0 2 -44 Z" fill="#4a2e16" ${Ob}/>
+      <path d="M84 100 l-2 44 14 0 2 -44 Z" fill="#5a3a22" ${Ob}/>
+      <path d="M120 100 l2 44 14 0 -2 -44 Z" fill="#4a2e16" ${Ob}/>
+      <path d="M70 54 q6 -20 22 -14 l-3 16 Z" fill="#8a5a2a" ${Ob}/>
+      <circle cx="84" cy="42" r="9" fill="#d99a63" ${Ob}/>
+      <path d="M74 34 q10 -10 22 -2 q-6 -2 -22 2 Z" fill="#2c1c0e" ${Ob}/>
+      <path d="M92 40 l22 -16" fill="none" stroke="#5a3a18" stroke-width="3"/>
+      <path d="M114 24 l8 -2 -6 8 Z" fill="#aaa" ${Ob}/>
+    `);
+  }
+
+  function svgTankSteam() {  // industrial steam tank
+    return svgWrapVB(170, 120, `
+      <rect x="20" y="96" width="130" height="14" rx="7" fill="#1a1a1a" ${Ob}/>
+      <g fill="#3a3a3a">${Array.from({length:9},(_,i)=>`<circle cx="${30+i*15}" cy="103" r="6" stroke="${OUTC}" stroke-width="2"/>`).join('')}</g>
+      <path d="M28 96 q0 -34 30 -34 l70 0 q16 0 16 16 l0 22 Z" fill="#6b5848" ${Ob}/>
+      <rect x="60" y="44" width="44" height="22" rx="5" fill="#7a6452" ${Ob}/>
+      <rect x="100" y="50" width="46" height="9" rx="4" fill="#2a2a2a" ${Ob}/>
+      <rect x="44" y="34" width="12" height="22" rx="3" fill="#3a2a22" ${Ob}/>
+      <ellipse cx="50" cy="30" rx="9" ry="5" fill="rgba(140,140,140,0.6)"/>
+      <circle cx="80" cy="78" r="6" fill="#caa84a" ${Ob}/>
+    `);
+  }
+
+  function svgTankModern() {  // modern MBT
+    return svgWrapVB(180, 110, `
+      <rect x="16" y="84" width="150" height="16" rx="8" fill="#1a1a1a" ${Ob}/>
+      <g fill="#333">${Array.from({length:7},(_,i)=>`<circle cx="${34+i*20}" cy="92" r="9" stroke="${OUTC}" stroke-width="2"/>`).join('')}</g>
+      <path d="M22 84 l8 -22 120 0 8 22 Z" fill="#5a6a40" ${Ob}/>
+      <path d="M54 62 q4 -16 28 -16 l40 0 q14 0 14 16 Z" fill="#66794a" ${Ob}/>
+      <rect x="118" y="50" width="56" height="7" rx="3" fill="#3a3a2a" ${Ob}/>
+      <rect x="166" y="48" width="8" height="11" rx="2" fill="#222" ${Ob}/>
+      <rect x="78" y="38" width="16" height="12" rx="2" fill="#44502f" ${Ob}/>
+    `);
+  }
+
+  function svgMech() {  // future bipedal mech
+    return svgWrapVB(150, 160, `
+      <path d="M42 92 l-10 36 -2 24 18 0 4 -24 Z" fill="#7a6fb0" ${Ob}/>
+      <path d="M104 92 l10 36 2 24 -18 0 -4 -24 Z" fill="#6a5fa0" ${Ob}/>
+      <path d="M26 150 l24 0" fill="none" stroke="#3a3460" stroke-width="10" stroke-linecap="round"/>
+      <path d="M96 150 l24 0" fill="none" stroke="#3a3460" stroke-width="10" stroke-linecap="round"/>
+      <path d="M40 44 q36 -14 70 0 l6 50 q-40 16 -82 0 Z" fill="#8a7fc0" ${Ob}/>
+      <path d="M76 44 l6 0 6 50 q-6 2 -12 3 Z" fill="#6a5fa0"/>
+      <rect x="52" y="56" width="46" height="16" rx="4" fill="#2a2350" ${Ob}/>
+      <rect x="56" y="59" width="38" height="9" rx="3" fill="#6ec4ff"/>
+      <path d="M110 56 l34 -6 q8 4 4 14 l-30 4 Z" fill="#5a5090" ${Ob}/>
+      <circle cx="146" cy="56" r="5" fill="#ff6b6b" ${Ob}/>
+      <path d="M40 56 l-22 4 q-6 6 0 14 l24 -4 Z" fill="#6a5fa0" ${Ob}/>
+    `);
+  }
+
+  function svgHover() {  // future hover gunship
+    return svgWrapVB(160, 120, `
+      <ellipse cx="80" cy="96" rx="60" ry="9" fill="rgba(255,144,238,0.4)"/>
+      <path d="M24 74 q56 -26 112 0 q-56 22 -112 0 Z" fill="#c46ad6" ${Ob}/>
+      <path d="M48 66 q32 -22 64 0 q-32 12 -64 0 Z" fill="#e6b8f0" ${Ob}/>
+      <ellipse cx="80" cy="60" rx="14" ry="10" fill="#bfeaff" ${Ob}/>
+      <circle cx="84" cy="58" r="3" fill="#2a2350"/>
+      <rect x="120" y="72" width="34" height="7" rx="3" fill="#2a2350" ${Ob}/>
+      <circle cx="154" cy="75" r="4" fill="#ff90ee"/>
+      <path d="M22 78 l-10 2 4 8 8 -2 Z" fill="#a050c0" ${Ob}/>
+      <path d="M138 78 l10 2 -4 8 -8 -2 Z" fill="#a050c0" ${Ob}/>
+    `);
+  }
+
+  function svgTitan() {  // hero: armored future titan
+    return svgWrapVB(150, 170, `
+      <path d="M40 96 l-10 40 -2 26 20 0 4 -26 Z" fill="#3a4a78" ${Ob}/>
+      <path d="M106 96 l10 40 2 26 -20 0 -4 -26 Z" fill="#2e3c64" ${Ob}/>
+      <path d="M24 158 l26 0" fill="none" stroke="#1d2540" stroke-width="12" stroke-linecap="round"/>
+      <path d="M98 158 l26 0" fill="none" stroke="#1d2540" stroke-width="12" stroke-linecap="round"/>
+      <path d="M36 44 q38 -16 76 0 l8 56 q-46 18 -92 0 Z" fill="#46568a" ${Ob}/>
+      <path d="M74 44 l8 0 8 56 q-8 3 -16 4 Z" fill="#2e3c64"/>
+      <path d="M30 50 l-16 8 q-6 8 2 18 l20 -8 Z" fill="#3a4a78" ${Ob}/>
+      <path d="M118 50 l16 8 q6 8 -2 18 l-20 -8 Z" fill="#3a4a78" ${Ob}/>
+      <circle cx="36" cy="92" r="9" fill="#7ec8ff"/><circle cx="112" cy="92" r="9" fill="#7ec8ff"/>
+      <path d="M52 30 q22 -16 44 0 l0 18 -44 0 Z" fill="#54649a" ${Ob}/>
+      <path d="M58 36 l32 0 0 8 -32 0 Z" fill="#ff5a5a"/>
+      <path d="M52 30 l-6 -14 10 6 Z" fill="#54649a" ${Ob}/>
+      <path d="M96 30 l6 -14 -10 6 Z" fill="#54649a" ${Ob}/>
+    `);
+  }
+
+  // ---- Per-unit sprite definitions ----
+  // Humanoid configs share the builder; bespoke SVGs (mounts, vehicles,
+  // beasts) are authored as functions returning a full <svg>.
+  const SPRITE_DEFS = {
+    // ---- Stone Age ----
+    club:  () => svgHumanoid({ skin:'#d99a63', skinSh:'#b87b46', torso:'#caa17a', torsoSh:'#a87f56', legs:'#8a5a36', legsSh:'#5e3f24', boots:'#4a2f18', hair:'#2c1c0e', weapon:'club' }),
+    sling: () => svgHumanoid({ skin:'#d99a63', skinSh:'#b87b46', torso:'#b98e5e', torsoSh:'#946b42', legs:'#7a4e2e', legsSh:'#523218', boots:'#3a2510', hair:'#3a2412', weapon:'sling' }),
+    // ---- Medieval ----
+    swordsman: () => svgHumanoid({ skin:'#e3ab72', skinSh:'#c2854a', torso:'#9aa0ab', torsoSh:'#737985', legs:'#3a3a44', legsSh:'#26262e', boots:'#1c1c22', accent:'#c2c8d0', accentSh:'#9098a2', crest:'#c43838', belt:'#6a4a22', headgear:'helm', weapon:'sword' }),
+    archer:    () => svgHumanoid({ skin:'#e3ab72', skinSh:'#c2854a', torso:'#4f6a39', torsoSh:'#3a5028', legs:'#5a4326', legsSh:'#3f2e18', boots:'#33240f', accent:'#3a5a28', accentSh:'#2a4420', hair:'#5a3a1a', belt:'#5a3a18', headgear:'hood', weapon:'bow' }),
+    // ---- Industrial ----
+    rifleman: () => svgHumanoid({ skin:'#dba36a', skinSh:'#b87b46', torso:'#6f7a45', torsoSh:'#535d31', legs:'#4a4326', legsSh:'#332e18', boots:'#241c0f', accent:'#5a6a40', accentSh:'#44502f', belt:'#3a2010', headgear:'brodie', weapon:'rifle' }),
+    cannon:   () => svgHumanoid({ skin:'#dba36a', skinSh:'#b87b46', torso:'#5a4a38', torsoSh:'#3f3526', legs:'#3a2c1c', legsSh:'#281e12', boots:'#1a1208', accent:'#4a4030', accentSh:'#332b20', hair:'#2a1c0e', belt:'#3a2010', headgear:'brodie', weapon:'cannon' }),
+    // ---- Modern ----
+    soldier: () => svgHumanoid({ skin:'#d8a067', skinSh:'#b07d44', torso:'#52613a', torsoSh:'#3d4a2a', legs:'#444f2c', legsSh:'#2f381e', boots:'#20180e', accent:'#46542f', accentSh:'#333f22', belt:'#33281a', headgear:'combat', weapon:'rifle' }),
+    sniper:  () => svgHumanoid({ skin:'#d8a067', skinSh:'#b07d44', torso:'#6a6a48', torsoSh:'#4e4e32', legs:'#5a5a3c', legsSh:'#3f3f28', boots:'#28281a', accent:'#5a5838', accentSh:'#403f26', headgear:'bandana', weapon:'sniper' }),
+    // ---- Future ----
+    laser: () => svgHumanoid({ skin:'#bfeaff', skinSh:'#88c4e4', torso:'#3a4a78', torsoSh:'#2a375c', legs:'#2c3550', legsSh:'#1d2540', boots:'#161d34', accent:'#4a5a90', accentSh:'#36446e', headgear:'visor', weapon:'laser' }),
+    // ---- Heroes (humanoid) ----
+    hero_paladin: () => svgHumanoid({ skin:'#e8c79a', skinSh:'#c79b62', torso:'#dadce0', torsoSh:'#abb0b8', legs:'#4a4a52', legsSh:'#33333a', boots:'#222', accent:'#e6e9ee', accentSh:'#b6bcc4', crest:'#fcd34d', cape:'#c43872', belt:'#caa84a', headgear:'helm', weapon:'sword' }),
+    hero_general: () => svgHumanoid({ skin:'#e0ad8a', skinSh:'#bd875f', torso:'#5d7b3a', torsoSh:'#456029', legs:'#3a2818', legsSh:'#281b10', boots:'#1a1208', accent:'#caa84a', accentSh:'#9c8030', hair:'#2a1c0e', belt:'#5a4022', headgear:'none', weapon:'rifle' }),
+    hero_seal:    () => svgHumanoid({ skin:'#c9a978', skinSh:'#9a7a4a', torso:'#2a3520', torsoSh:'#1c2416', legs:'#2a2e1c', legsSh:'#1c2012', boots:'#121208', accent:'#2a3520', accentSh:'#1c2416', headgear:'bandana', weapon:'sniper' }),
+    // ---- Bespoke beasts / vehicles ----
+    dino:       svgDino,
+    knight:     svgHorse,
+    tank1:      svgTankSteam,
+    tank2:      svgTankModern,
+    mech:       svgMech,
+    flier:      svgHover,
+    hero_grog:  svgMammoth,
+    hero_titan: svgTitan,
+  };
+
+  // Natural aspect (w/h) per sprite so the blit doesn't distort them.
+  const SPRITE_ASPECT = {
+    dino: 170/150, knight: 180/150, hero_grog: 180/160,
+    tank1: 170/120, tank2: 180/110, mech: 150/160,
+    flier: 160/120, hero_titan: 150/170,
+  };
+
+  function getSprite(key) {
+    // Map boss synthetic keys to their base unit
+    let k = key;
+    if (k.startsWith('boss_')) k = k.replace(/^boss_/, '').replace(/_\d+$/, '');
+    const cached = spriteCache[k];
+    if (cached) return cached.ready ? cached : null;
+    const def = SPRITE_DEFS[k];
+    if (!def) { spriteCache[k] = { ready: false, img: null, none: true }; return null; }
+    const entry = { ready: false, img: new Image() };
+    entry.img.onload = () => { entry.ready = true; };
+    entry.img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def());
+    spriteCache[k] = entry;
+    return null;
+  }
+
+  function preloadSprites() {
+    for (const k of Object.keys(SPRITE_DEFS)) getSprite(k);
+  }
+
   // ---- Dispatch table ----
   const UNIT_DRAWERS = {
     club:         drawClubman,
@@ -3240,18 +3572,15 @@ const AgeOfWarGame = (() => {
     if (drawerKey.startsWith('boss_')) {
       drawerKey = drawerKey.replace(/^boss_/, '').replace(/_\d+$/, '');
     }
-    const drawer = UNIT_DRAWERS[drawerKey] || drawGenericHumanoid;
 
-    // Scale heroes and bosses around their feet so the existing
-    // per-unit drawers (which size everything against u.w/u.h) render
-    // proportionally larger without each drawer needing its own scale.
+    // Prefer a loaded vector sprite; fall back to the canvas drawer.
+    const sprite = getSprite(u.key);
     ctx.save();
     if (scale !== 1.0) {
       ctx.translate(u.x, feetY);
       ctx.scale(scale, scale);
       ctx.translate(-u.x, -feetY);
     }
-    // Hit flash: bright white glow under all strokes/fills inside the drawer.
     if (u.hitFlash > 0) {
       ctx.shadowColor = `rgba(255,255,255,${Math.min(1, u.hitFlash * 4)})`;
       ctx.shadowBlur = 14;
@@ -3262,7 +3591,31 @@ const AgeOfWarGame = (() => {
       ctx.shadowColor = 'rgba(255,80,255,0.5)';
       ctx.shadowBlur = 10;
     }
-    drawer(u, u.x, topY, facing, walkSwing, bodyColor);
+    if (sprite && sprite.ready) {
+      const aspect = SPRITE_ASPECT[drawerKey];   // bespoke vehicles/beasts
+      let sw, sh, bob, lean;
+      if (aspect) {
+        // Preserve the sprite's natural aspect; gentle bob, no lean
+        // (tanks/hovercraft shouldn't tilt like walkers).
+        sh = u.h * 1.14;
+        sw = sh * aspect;
+        bob = Math.sin(u.walkPhase * 1.4) * (u.h * 0.012);
+        lean = 0;
+      } else {
+        // Humanoid: a touch wider than the hitbox, bob + slight march lean.
+        sw = u.w * 1.18;
+        sh = u.h * 1.06;
+        bob = Math.abs(Math.sin(u.walkPhase * 1.6)) * (u.h * 0.025);
+        lean = Math.sin(u.walkPhase * 1.6) * 0.04;
+      }
+      ctx.translate(u.x, feetY - bob);
+      if (lean) ctx.rotate(lean * facing);
+      ctx.scale(facing, 1);            // mirror for enemy side
+      ctx.drawImage(sprite.img, -sw / 2, -sh, sw, sh);
+    } else {
+      const drawer = UNIT_DRAWERS[drawerKey] || drawGenericHumanoid;
+      drawer(u, u.x, topY, facing, walkSwing, bodyColor);
+    }
     ctx.shadowBlur = 0;
     ctx.restore();
 
