@@ -600,6 +600,7 @@ const AgeOfWarGame = (() => {
       w, h,
       hitFlash: 0,
       walkPhase: Math.random() * Math.PI * 2,
+      attackPose: 0,                       // seconds remaining in strike pose
     };
     units.push(u);
   }
@@ -963,6 +964,7 @@ const AgeOfWarGame = (() => {
         ? units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x > u.x && o.x - u.x < aheadGap)
         : units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x < u.x && u.x - o.x < aheadGap);
 
+      u.attackPose = Math.max(0, u.attackPose - dt);
       if (dist > u.range) {
         if (!ahead) {
           u.x += dirX * u.speed * dt;
@@ -973,6 +975,7 @@ const AgeOfWarGame = (() => {
         u.atkT -= dt;
         if (u.atkT <= 0) {
           u.atkT = u.atkSpd;
+          u.attackPose = 0.22;  // hold strike pose ~220ms
           if (isBase) {
             if (u.side === 'player') enemyBaseHp -= u.dmg;
             else                     playerBaseHp -= u.dmg;
@@ -3184,7 +3187,8 @@ const AgeOfWarGame = (() => {
   // active running. Anatomy anchors:
   //   shoulder ≈ (60, 64), hip ≈ (60, 108), head center ≈ (62, 38).
   // Light comes from the upper-left so all sprites stay consistent.
-  function svgHumanoid(cfg) {
+  function svgHumanoid(cfg, pose) {
+    const isStrike = pose === 'strike';
     const c = Object.assign({
       skin:'#e0a86b', skinSh:'#b07d44', skinHi:'#f3c690',
       torso:'#6f5a3a', torsoSh:'#3f3220',
@@ -3312,7 +3316,7 @@ const AgeOfWarGame = (() => {
     }
 
     // --- Weapon + front arm (always in front) ------------------------
-    P.push(weaponSVG(c.weapon, c, OUT, STR, shoRX));
+    P.push(weaponSVG(c.weapon, c, OUT, STR, shoRX, isStrike));
 
     return svgWrap(P.join(''));
   }
@@ -3381,16 +3385,36 @@ const AgeOfWarGame = (() => {
 
   // Weapons: rendered with the front arm(s) wrapped around them so the
   // grip reads. shoRX is the front shoulder X so arms anchor consistently.
-  function weaponSVG(weapon, c, OUT, STR, shoRX) {
+  // When isStrike is true, render the wind-down/strike pose:
+  //   - melee: weapon swung forward/down at the target
+  //   - ranged: muzzle flash + recoil (shoulder kicked back)
+  function weaponSVG(weapon, c, OUT, STR, shoRX, isStrike) {
     const arm = (d, w = 11) =>
       `<path d="${d}" fill="none" stroke="${OUT}" stroke-width="${w + 3}" stroke-linecap="round"/>` +
       `<path d="${d}" fill="none" stroke="${c.skin}" stroke-width="${w}" stroke-linecap="round"/>`;
     const hand = (x, y) =>
       `<circle cx="${x}" cy="${y}" r="5" fill="${c.skinSh}" stroke="${OUT}" stroke-width="2.5"/>`;
+    const flash = (x, y, r = 8) => `
+      <path d="M ${x-r} ${y} L ${x-r*0.4} ${y-r*0.5} L ${x} ${y-r} L ${x+r*0.4} ${y-r*0.5} L ${x+r*1.4} ${y} L ${x+r*0.4} ${y+r*0.5} L ${x} ${y+r} L ${x-r*0.4} ${y+r*0.5} Z" fill="#ffe48a" stroke="${OUT}" stroke-width="1.5"/>
+      <circle cx="${x+r*0.2}" cy="${y}" r="${r*0.45}" fill="#fff8d0"/>
+    `;
 
     switch (weapon) {
       case 'club': {
-        // arm raised, club arcing back over shoulder
+        if (isStrike) {
+          // club crashing down forward
+          const a = arm(`M${shoRX-2} 70 Q 92 78, 104 92`);
+          const club = `
+            <g transform="translate(104 92) rotate(46)">
+              <rect x="-4" y="-2" width="8" height="36" rx="3" fill="#7a4e22" ${STR}/>
+              <path d="M -10 -4 Q 0 -22, 10 -4 L 8 6 Q 0 0, -8 6 Z" fill="#9a6a32" ${STR}/>
+              <circle cx="-3" cy="-8" r="1.5" fill="${OUT}"/>
+              <circle cx="3" cy="-6" r="1.5" fill="${OUT}"/>
+            </g>
+            <path d="M 118 116 L 124 110 M 122 122 L 130 120 M 116 128 L 122 130" stroke="${OUT}" stroke-width="2" stroke-linecap="round"/>`;
+          return a + hand(104, 92) + club;
+        }
+        // run: arm raised, club arcing back over shoulder
         const a = arm(`M${shoRX-2} 70 Q 80 56, 92 42`);
         const club = `
           <g transform="translate(92 42) rotate(-26)">
@@ -3402,7 +3426,15 @@ const AgeOfWarGame = (() => {
         return a + hand(92, 42) + club;
       }
       case 'sling': {
-        // sling spun overhead
+        if (isStrike) {
+          // mid-release: stone flung forward, sling cords trail back
+          const a = arm(`M${shoRX-2} 70 Q 92 60, 106 56`);
+          return a + hand(106, 58) + `
+            <path d="M 106 58 Q 96 76, 90 88" fill="none" stroke="#5a3a1a" stroke-width="2.5"/>
+            <path d="M 106 58 Q 100 80, 96 92" fill="none" stroke="#5a3a1a" stroke-width="2.5"/>
+            <circle cx="120" cy="56" r="4.5" fill="#888" ${STR}/>
+            <path d="M 116 56 L 100 56" stroke="${OUT}" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.6"/>`;
+        }
         const a = arm(`M${shoRX-2} 70 Q 86 50, 92 32`);
         return a + hand(92, 34) + `
           <path d="M 92 34 Q 104 50, 96 70" fill="none" stroke="#5a3a1a" stroke-width="2.5"/>
@@ -3410,7 +3442,19 @@ const AgeOfWarGame = (() => {
           <circle cx="92" cy="72" r="5" fill="#6a6a6a" ${STR}/>`;
       }
       case 'sword': {
-        // sword held high in slashing pose
+        if (isStrike) {
+          // slash follow-through: sword swung forward + down
+          const a = arm(`M${shoRX-2} 70 Q 92 80, 110 90`);
+          const sword = `
+            <g transform="translate(110 90) rotate(54)">
+              <rect x="-7" y="0" width="14" height="4" fill="#caa84a" stroke="${OUT}" stroke-width="1.8"/>
+              <rect x="-1.5" y="3" width="3" height="7" fill="#7a4e22" stroke="${OUT}" stroke-width="1.4"/>
+              <path d="M -3 0 L 3 0 L 2.2 -48 L 0 -54 L -2.2 -48 Z" fill="#e6eaf0" ${STR}/>
+              <path d="M -1 0 L -1 -46" stroke="#9098a2" stroke-width="1.4"/>
+            </g>
+            <path d="M 80 84 Q 100 72, 124 64" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.6"/>`;
+          return a + hand(110, 90) + sword;
+        }
         const a = arm(`M${shoRX-2} 70 Q 84 54, 96 40`);
         const sword = `
           <g transform="translate(96 40) rotate(-24)">
@@ -3422,7 +3466,17 @@ const AgeOfWarGame = (() => {
         return a + hand(96, 42) + sword;
       }
       case 'bow': {
-        // two-handed: front arm holds bow, back arm draws string
+        if (isStrike) {
+          // loosed: string flat across, arm extended
+          const a = arm(`M${shoRX-2} 72 Q 88 78, 104 80`);
+          return a + `
+            <path d="M 106 50 Q 120 78, 106 106" fill="none" stroke="${OUT}" stroke-width="5"/>
+            <path d="M 106 50 Q 117 78, 106 106" fill="none" stroke="#6a3a1a" stroke-width="3"/>
+            <path d="M 106 50 L 106 106" stroke="#e8e0c0" stroke-width="1.5"/>
+            <path d="M 106 78 L 130 78" stroke="#3a2210" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 130 78 L 136 76 L 130 80 Z" fill="#3a2210"/>
+            ${hand(104, 80)}`;
+        }
         const a = arm(`M${shoRX-2} 72 Q 88 78, 100 78`);
         return a + `
           <path d="M 102 50 Q 116 78, 102 106" fill="none" stroke="${OUT}" stroke-width="5"/>
@@ -3434,7 +3488,19 @@ const AgeOfWarGame = (() => {
           ${arm('M52 72 Q 70 80, 90 80', 9)}`;
       }
       case 'rifle': {
-        // hip-fire ready, both hands on the rifle
+        if (isStrike) {
+          // recoil: shoulder kicked back, muzzle flash
+          const a = arm(`M${shoRX-2} 70 Q 78 76, 96 80`);
+          return a + arm(`M 50 78 Q 62 82, 76 86`, 9) + `
+            <g transform="translate(64 84) rotate(-6)">
+              <rect x="0" y="-3" width="50" height="6" rx="1.5" fill="#222" ${STR}/>
+              <rect x="-8" y="-1" width="14" height="8" rx="1.5" fill="#5a3a1a" ${STR}/>
+              <rect x="20" y="-6" width="8" height="4" rx="1" fill="#333" stroke="${OUT}" stroke-width="1.2"/>
+            </g>
+            ${flash(118, 78, 9)}
+            <path d="M 116 70 Q 122 64, 130 62" stroke="#fff" stroke-width="1.5" opacity="0.6"/>` +
+            hand(96, 82) + hand(76, 86);
+        }
         const a = arm(`M${shoRX-2} 72 Q 80 80, 98 84`);
         return a + arm(`M 50 78 Q 64 86, 78 88`, 9) + `
           <g transform="translate(64 86)">
@@ -3445,7 +3511,20 @@ const AgeOfWarGame = (() => {
           </g>` + hand(98, 86) + hand(78, 88);
       }
       case 'cannon': {
-        // shouldered, big tube angled up
+        if (isStrike) {
+          // big boom: ringed muzzle blast, shoulder rocks back
+          const a = arm(`M${shoRX-2} 72 Q 78 60, 88 56`);
+          return a + `
+            <g transform="translate(78 62) rotate(-12)">
+              <rect x="0" y="-10" width="48" height="20" rx="5" fill="#2a2a2a" ${STR}/>
+              <rect x="44" y="-12" width="8" height="24" rx="2" fill="#181818" stroke="${OUT}" stroke-width="2"/>
+              <rect x="6" y="-3" width="12" height="3" fill="#caa84a" stroke="${OUT}" stroke-width="1.2"/>
+            </g>
+            ${flash(132, 50, 14)}
+            <circle cx="138" cy="50" r="20" fill="none" stroke="#ffd28a" stroke-width="2.5" opacity="0.6"/>
+            <path d="M 96 38 L 90 30 M 104 30 L 102 22 M 90 56 L 76 56" stroke="#ffd28a" stroke-width="2" opacity="0.6"/>` +
+            hand(88, 58);
+        }
         const a = arm(`M${shoRX-2} 72 Q 80 64, 92 60`);
         return a + `
           <g transform="translate(80 64) rotate(-8)">
@@ -3456,7 +3535,19 @@ const AgeOfWarGame = (() => {
           </g>` + hand(92, 60);
       }
       case 'sniper': {
-        // long rifle, lined up to the eye, scope visible
+        if (isStrike) {
+          // sharp recoil + small flash at the muzzle
+          const a = arm(`M${shoRX-2} 70 Q 84 74, 94 78`);
+          return a + arm(`M 50 76 Q 62 80, 78 82`, 9) + `
+            <g transform="translate(64 80) rotate(-4)">
+              <rect x="0" y="-2.5" width="64" height="5" rx="1" fill="#2a261a" ${STR}/>
+              <rect x="-8" y="-1" width="14" height="7" rx="1.5" fill="#3a2410" ${STR}/>
+              <rect x="22" y="-9" width="18" height="7" rx="2" fill="#15110c" stroke="${OUT}" stroke-width="1.5"/>
+              <circle cx="40" cy="-5.5" r="2" fill="#3aa3ff"/>
+            </g>
+            ${flash(132, 76, 7)}` +
+            hand(94, 80) + hand(78, 82);
+        }
         const a = arm(`M${shoRX-2} 72 Q 84 78, 96 82`);
         return a + arm(`M 50 76 Q 64 84, 80 86`, 9) + `
           <g transform="translate(64 84)">
@@ -3468,7 +3559,21 @@ const AgeOfWarGame = (() => {
           </g>` + hand(96, 84) + hand(80, 86);
       }
       case 'laser': {
-        // sci-fi rifle with glowing barrel
+        if (isStrike) {
+          // beam discharge: glowing barrel, cyan blast forward
+          const a = arm(`M${shoRX-2} 70 Q 80 76, 96 80`);
+          return a + arm(`M 50 78 Q 62 82, 76 86`, 9) + `
+            <g transform="translate(62 82) rotate(-4)">
+              <rect x="0" y="-5" width="46" height="11" rx="5" fill="#2a3550" ${STR}/>
+              <rect x="36" y="-3" width="14" height="5" rx="2" fill="#bfeaff"/>
+              <circle cx="48" cy="0" r="5" fill="#bfeaff"/>
+              <circle cx="48" cy="0" r="2.5" fill="#fff"/>
+              <rect x="-6" y="-1" width="10" height="8" rx="2" fill="#3a4a78" ${STR}/>
+            </g>
+            <rect x="110" y="78" width="36" height="6" rx="3" fill="#bfeaff" opacity="0.85"/>
+            <rect x="110" y="79.5" width="36" height="3" rx="1.5" fill="#ffffff"/>` +
+            hand(96, 82) + hand(76, 86);
+        }
         const a = arm(`M${shoRX-2} 72 Q 80 80, 96 84`);
         return a + arm(`M 50 78 Q 64 86, 76 88`, 9) + `
           <g transform="translate(62 84)">
@@ -3727,22 +3832,22 @@ const AgeOfWarGame = (() => {
   // beasts) are authored as functions returning a full <svg>.
   const SPRITE_DEFS = {
     // ---- Stone Age ----
-    club:  () => svgHumanoid({
+    club: (pose) => svgHumanoid({
       skin:'#d99a63', skinSh:'#a36a3a', skinHi:'#f0c084',
       torso:'#8e6440', torsoSh:'#5a3e22',
       legs:'#6a4528', legsSh:'#3e2814',
       boots:'#3a2510', bootCuff:'#5a3a1a',
       hair:'#2c1c0e', build:'bulky', weapon:'club',
-    }),
-    sling: () => svgHumanoid({
+    }, pose),
+    sling: (pose) => svgHumanoid({
       skin:'#d99a63', skinSh:'#a36a3a', skinHi:'#f0c084',
       torso:'#a87a48', torsoSh:'#704826',
       legs:'#5a3820', legsSh:'#34200f',
       boots:'#2a1808', bootCuff:'#4a2a14',
       hair:'#1c1208', build:'slim', weapon:'sling',
-    }),
+    }, pose),
     // ---- Medieval ----
-    swordsman: () => svgHumanoid({
+    swordsman: (pose) => svgHumanoid({
       skin:'#e3ab72', skinSh:'#a6743f', skinHi:'#f3c690',
       torso:'#9aa0ab', torsoSh:'#5a606a',
       legs:'#2a2a32', legsSh:'#15151a',
@@ -3751,8 +3856,8 @@ const AgeOfWarGame = (() => {
       crest:'#c43838', belt:'#5a3a18', beltBuckle:'#caa84a',
       pauldron:'#8a9098', pauldronTrim:'#caa84a',
       headgear:'helm', weapon:'sword',
-    }),
-    archer: () => svgHumanoid({
+    }, pose),
+    archer: (pose) => svgHumanoid({
       skin:'#e3ab72', skinSh:'#a6743f', skinHi:'#f3c690',
       torso:'#46603a', torsoSh:'#26361f',
       legs:'#5a3a20', legsSh:'#321e0e',
@@ -3760,9 +3865,9 @@ const AgeOfWarGame = (() => {
       accent:'#3e5a28', accentSh:'#243818', accentHi:'#5a7a3a',
       hair:'#5a3a1a', belt:'#3a2410', beltBuckle:'#9a7a3a',
       build:'slim', headgear:'hood', weapon:'bow',
-    }),
+    }, pose),
     // ---- Industrial ----
-    rifleman: () => svgHumanoid({
+    rifleman: (pose) => svgHumanoid({
       skin:'#dba36a', skinSh:'#a36a3a', skinHi:'#f0c084',
       torso:'#6a7445', torsoSh:'#3d4524',
       legs:'#4a4326', legsSh:'#26210f',
@@ -3770,8 +3875,8 @@ const AgeOfWarGame = (() => {
       accent:'#7a7050', accentSh:'#4a4230', accentHi:'#a39676',
       belt:'#2a1c0e', beltBuckle:'#caa84a',
       headgear:'brodie', weapon:'rifle',
-    }),
-    cannon: () => svgHumanoid({
+    }, pose),
+    cannon: (pose) => svgHumanoid({
       skin:'#dba36a', skinSh:'#a36a3a', skinHi:'#f0c084',
       torso:'#52442e', torsoSh:'#2c2418',
       legs:'#3a2c1c', legsSh:'#1e1408',
@@ -3779,9 +3884,9 @@ const AgeOfWarGame = (() => {
       accent:'#6a604a', accentSh:'#3e3624', accentHi:'#8a7e60',
       hair:'#2a1c0e', belt:'#2a1c0e', beltBuckle:'#caa84a',
       build:'bulky', headgear:'brodie', weapon:'cannon',
-    }),
+    }, pose),
     // ---- Modern ----
-    soldier: () => svgHumanoid({
+    soldier: (pose) => svgHumanoid({
       skin:'#d8a067', skinSh:'#9a6a3a', skinHi:'#f0c084',
       torso:'#4a5a36', torsoSh:'#26321a',
       legs:'#3e4a2a', legsSh:'#1f2812',
@@ -3790,8 +3895,8 @@ const AgeOfWarGame = (() => {
       belt:'#2a221a', beltBuckle:'#7a6a4a',
       chestEmblem:'star', emblemColor:'#caa84a',
       headgear:'combat', weapon:'rifle',
-    }),
-    sniper: () => svgHumanoid({
+    }, pose),
+    sniper: (pose) => svgHumanoid({
       skin:'#d8a067', skinSh:'#9a6a3a', skinHi:'#f0c084',
       torso:'#5a5a3c', torsoSh:'#34341e',
       legs:'#4a4a32', legsSh:'#24241a',
@@ -3799,9 +3904,9 @@ const AgeOfWarGame = (() => {
       accent:'#5a5838', accentSh:'#34321e', accentHi:'#7a7850',
       belt:'#2a261a', beltBuckle:'#7a6a4a',
       build:'slim', headgear:'bandana', weapon:'sniper',
-    }),
+    }, pose),
     // ---- Future ----
-    laser: () => svgHumanoid({
+    laser: (pose) => svgHumanoid({
       skin:'#c5d8e8', skinSh:'#6a8aa0', skinHi:'#e8f0f8',
       torso:'#2a3a68', torsoSh:'#15203e',
       legs:'#1f2a4a', legsSh:'#0e1428',
@@ -3810,9 +3915,9 @@ const AgeOfWarGame = (() => {
       belt:'#15110c', beltBuckle:'#3aa3ff',
       chestEmblem:'core',
       headgear:'visor', weapon:'laser',
-    }),
+    }, pose),
     // ---- Heroes (humanoid) ----
-    hero_paladin: () => svgHumanoid({
+    hero_paladin: (pose) => svgHumanoid({
       skin:'#e8c79a', skinSh:'#a8855a', skinHi:'#f5d8a8',
       torso:'#dadce0', torsoSh:'#8a9098',
       legs:'#3a3a42', legsSh:'#1e1e26',
@@ -3823,8 +3928,8 @@ const AgeOfWarGame = (() => {
       pauldron:'#ebeef2', pauldronTrim:'#fcd34d',
       chestEmblem:'cross', emblemColor:'#fcd34d',
       build:'bulky', headgear:'helm', weapon:'sword',
-    }),
-    hero_general: () => svgHumanoid({
+    }, pose),
+    hero_general: (pose) => svgHumanoid({
       skin:'#e0ad8a', skinSh:'#a37a52', skinHi:'#f3c8a3',
       torso:'#5d7b3a', torsoSh:'#34461c',
       legs:'#3a2818', legsSh:'#1e1408',
@@ -3833,8 +3938,8 @@ const AgeOfWarGame = (() => {
       hair:'#2a1c0e', belt:'#3a2014', beltBuckle:'#caa84a',
       chestEmblem:'star', emblemColor:'#caa84a',
       headgear:'none', weapon:'rifle',
-    }),
-    hero_seal: () => svgHumanoid({
+    }, pose),
+    hero_seal: (pose) => svgHumanoid({
       skin:'#c9a978', skinSh:'#8a6a3a', skinHi:'#e8c898',
       torso:'#2a3520', torsoSh:'#141a10',
       legs:'#262e1a', legsSh:'#121608',
@@ -3842,7 +3947,7 @@ const AgeOfWarGame = (() => {
       accent:'#2a3520', accentSh:'#141a10', accentHi:'#3e4a30',
       belt:'#15110a', beltBuckle:'#5a4a2a',
       build:'slim', headgear:'bandana', weapon:'sniper',
-    }),
+    }, pose),
     // ---- Bespoke beasts / vehicles ----
     dino:       svgDino,
     knight:     svgHorse,
@@ -3861,23 +3966,30 @@ const AgeOfWarGame = (() => {
     flier: 160/120, hero_titan: 150/170,
   };
 
-  function getSprite(key) {
-    // Map boss synthetic keys to their base unit
+  // Cache lookup returns { run, strike } where each is { img, ready }.
+  // Bespoke sprites (vehicles, beasts) ignore the pose arg so their
+  // run/strike images are identical -- harmless duplication.
+  function getSprite(key, pose) {
     let k = key;
     if (k.startsWith('boss_')) k = k.replace(/^boss_/, '').replace(/_\d+$/, '');
-    const cached = spriteCache[k];
-    if (cached) return cached.ready ? cached : null;
-    const def = SPRITE_DEFS[k];
-    if (!def) { spriteCache[k] = { ready: false, img: null, none: true }; return null; }
-    const entry = { ready: false, img: new Image() };
-    entry.img.onload = () => { entry.ready = true; };
-    entry.img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def());
-    spriteCache[k] = entry;
-    return null;
+    let entry = spriteCache[k];
+    if (!entry) {
+      const def = SPRITE_DEFS[k];
+      if (!def) { spriteCache[k] = { none: true }; return null; }
+      entry = { run: { ready: false, img: new Image() }, strike: { ready: false, img: new Image() } };
+      entry.run.img.onload    = () => { entry.run.ready = true; };
+      entry.strike.img.onload = () => { entry.strike.ready = true; };
+      entry.run.img.src    = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def('run'));
+      entry.strike.img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def('strike'));
+      spriteCache[k] = entry;
+    }
+    if (entry.none) return null;
+    const slot = pose === 'strike' && entry.strike.ready ? entry.strike : entry.run;
+    return slot.ready ? slot : null;
   }
 
   function preloadSprites() {
-    for (const k of Object.keys(SPRITE_DEFS)) getSprite(k);
+    for (const k of Object.keys(SPRITE_DEFS)) getSprite(k, 'run');
   }
 
   // ---- Dispatch table ----
@@ -3964,7 +4076,7 @@ const AgeOfWarGame = (() => {
     }
 
     // Prefer a loaded vector sprite; fall back to the canvas drawer.
-    const sprite = getSprite(u.key);
+    const sprite = getSprite(u.key, u.attackPose > 0 ? 'strike' : 'run');
     ctx.save();
     if (scale !== 1.0) {
       ctx.translate(u.x, feetY);
