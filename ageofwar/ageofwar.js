@@ -3247,6 +3247,7 @@ const AgeOfWarGame = (() => {
   // Light comes from the upper-left so all sprites stay consistent.
   function svgHumanoid(cfg, pose) {
     const isStrike = pose === 'strike';
+    const isStepB  = pose === 'runB';                // alternate stride frame
     const c = Object.assign({
       skin:'#e0a86b', skinSh:'#b07d44', skinHi:'#f3c690',
       torso:'#6f5a3a', torsoSh:'#3f3220',
@@ -3279,13 +3280,20 @@ const AgeOfWarGame = (() => {
       P.push(`<path d="M 40 100 L 48 144 L 60 148 L 60 88 Z" fill="${c.capeSh}" opacity="0.35"/>`);
     }
 
-    // --- Back leg: high knee, mid-stride lift ------------------------
-    // hip(58,110) → knee(46,142) → ankle(38,166) → toe(30,176)
-    P.push(limb('M58 110 Q 48 138, 40 162 L 32 174', c.legsSh, 13));
-    // back foot (lifted)
-    P.push(`<path d="M 22 168 L 36 168 L 38 178 L 22 178 Z"
-             fill="${c.boots}" ${STR}/>`);
-    P.push(`<rect x="22" y="166" width="16" height="3.5" fill="${c.bootCuff}" stroke="${OUT}" stroke-width="2"/>`);
+    // --- Back leg ----------------------------------------------------
+    // Stride A: lifted (high knee). Stride B: planted (straight, foot back).
+    if (!isStepB) {
+      P.push(limb('M58 110 Q 48 138, 40 162 L 32 174', c.legsSh, 13));
+      P.push(`<path d="M 22 168 L 36 168 L 38 178 L 22 178 Z"
+               fill="${c.boots}" ${STR}/>`);
+      P.push(`<rect x="22" y="166" width="16" height="3.5" fill="${c.bootCuff}" stroke="${OUT}" stroke-width="2"/>`);
+    } else {
+      // planted, foot trailing behind
+      P.push(limb('M58 110 L 50 156 L 42 184', c.legsSh, 13));
+      P.push(`<path d="M 32 184 L 56 184 L 58 192 L 32 192 Z"
+               fill="${c.boots}" ${STR}/>`);
+      P.push(`<rect x="32" y="180" width="26" height="4" fill="${c.bootCuff}" stroke="${OUT}" stroke-width="2"/>`);
+    }
 
     // --- Back arm: bent, swinging back behind hip --------------------
     P.push(limb(`M${shoLX+6} 70 Q 42 92, 48 110`, c.skinSh, 11));
@@ -3329,12 +3337,20 @@ const AgeOfWarGame = (() => {
                fill="${c.emblemColor}" stroke="${OUT}" stroke-width="1.5" stroke-linejoin="round"/>`);
     }
 
-    // --- Front leg: planted, knee bent forward -----------------------
-    // hip(62,110) → knee(78,140) → ankle(82,170) → toe extending forward
-    P.push(limb('M62 110 Q 76 138, 82 168 L 86 180', c.legs, 13));
-    P.push(`<path d="M 80 178 L 100 178 L 102 188 L 78 188 Z"
-             fill="${c.boots}" ${STR}/>`);
-    P.push(`<rect x="78" y="174" width="22" height="4" fill="${c.bootCuff}" stroke="${OUT}" stroke-width="2"/>`);
+    // --- Front leg ---------------------------------------------------
+    // Stride A: planted forward. Stride B: lifted, high knee.
+    if (!isStepB) {
+      P.push(limb('M62 110 Q 76 138, 82 168 L 86 180', c.legs, 13));
+      P.push(`<path d="M 80 178 L 100 178 L 102 188 L 78 188 Z"
+               fill="${c.boots}" ${STR}/>`);
+      P.push(`<rect x="78" y="174" width="22" height="4" fill="${c.bootCuff}" stroke="${OUT}" stroke-width="2"/>`);
+    } else {
+      // lifted forward, knee high
+      P.push(limb('M62 110 Q 80 130, 86 150 L 92 162', c.legs, 13));
+      P.push(`<path d="M 84 156 L 102 156 L 104 166 L 82 166 Z"
+               fill="${c.boots}" ${STR}/>`);
+      P.push(`<rect x="82" y="154" width="22" height="3.5" fill="${c.bootCuff}" stroke="${OUT}" stroke-width="2"/>`);
+    }
 
     // --- Neck ---------------------------------------------------------
     P.push(`<path d="M 56 58 L 64 58 L 64 68 L 56 68 Z" fill="${c.skinSh}" stroke="${OUT}" stroke-width="2"/>`);
@@ -4225,9 +4241,9 @@ const AgeOfWarGame = (() => {
     flier: 200/160, hero_titan: 150/170,
   };
 
-  // Cache lookup returns { run, strike } where each is { img, ready }.
-  // Bespoke sprites (vehicles, beasts) ignore the pose arg so their
-  // run/strike images are identical -- harmless duplication.
+  // Cache lookup returns { runA, runB, strike } where each is { img, ready }.
+  // Bespoke sprites (vehicles, beasts) ignore the pose arg so all three
+  // images are identical -- harmless duplication, one decode each.
   function getSprite(key, pose) {
     let k = key;
     if (k.startsWith('boss_')) k = k.replace(/^boss_/, '').replace(/_\d+$/, '');
@@ -4235,15 +4251,24 @@ const AgeOfWarGame = (() => {
     if (!entry) {
       const def = SPRITE_DEFS[k];
       if (!def) { spriteCache[k] = { none: true }; return null; }
-      entry = { run: { ready: false, img: new Image() }, strike: { ready: false, img: new Image() } };
-      entry.run.img.onload    = () => { entry.run.ready = true; };
+      entry = {
+        runA:   { ready: false, img: new Image() },
+        runB:   { ready: false, img: new Image() },
+        strike: { ready: false, img: new Image() },
+      };
+      entry.runA.img.onload   = () => { entry.runA.ready = true; };
+      entry.runB.img.onload   = () => { entry.runB.ready = true; };
       entry.strike.img.onload = () => { entry.strike.ready = true; };
-      entry.run.img.src    = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def('run'));
+      entry.runA.img.src   = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def('run'));
+      entry.runB.img.src   = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def('runB'));
       entry.strike.img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(def('strike'));
       spriteCache[k] = entry;
     }
     if (entry.none) return null;
-    const slot = pose === 'strike' && entry.strike.ready ? entry.strike : entry.run;
+    let slot;
+    if (pose === 'strike') slot = entry.strike.ready ? entry.strike : entry.runA;
+    else if (pose === 'runB') slot = entry.runB.ready ? entry.runB : entry.runA;
+    else slot = entry.runA;
     return slot.ready ? slot : null;
   }
 
@@ -4335,7 +4360,11 @@ const AgeOfWarGame = (() => {
     }
 
     // Prefer a loaded vector sprite; fall back to the canvas drawer.
-    const sprite = getSprite(u.key, u.attackPose > 0 ? 'strike' : 'run');
+    // Walk frame swap: alternate runA / runB on each half-cycle of walkPhase.
+    // walkPhase advances ~7 rad/s, so legs swap roughly every 0.45s -- in step
+    // with the existing bob frequency so the foot lift looks coordinated.
+    const stride = (Math.floor(u.walkPhase / Math.PI) & 1) === 0 ? 'run' : 'runB';
+    const sprite = getSprite(u.key, u.attackPose > 0 ? 'strike' : stride);
     ctx.save();
     if (scale !== 1.0) {
       ctx.translate(u.x, feetY);
@@ -4366,7 +4395,7 @@ const AgeOfWarGame = (() => {
         // Humanoid: a touch wider than the hitbox, bob + slight march lean.
         sw = u.w * 1.18;
         sh = u.h * 1.06;
-        bob = Math.abs(Math.sin(u.walkPhase * 1.6)) * (u.h * 0.025);
+        bob = Math.abs(Math.sin(u.walkPhase * 1.6)) * (u.h * 0.012);
         lean = Math.sin(u.walkPhase * 1.6) * 0.04;
       }
       ctx.translate(u.x, feetY - bob);
