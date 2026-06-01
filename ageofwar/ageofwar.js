@@ -3726,24 +3726,116 @@ const AgeOfWarGame = (() => {
     `);
   }
 
-  function svgHorse() {  // armored warhorse + lancer w/ red caparison
-    return svgWrapVB(180, 150, `
-      <path d="M150 78 q22 -6 24 8 q-2 10 -14 8 Z" fill="#7a5a3a" ${Ob}/>
-      <path d="M40 80 q60 -22 104 -6 q20 8 18 26 q-70 16 -120 6 q-12 -10 -2 -32 Z" fill="#8a6a46" ${Ob}/>
-      <path d="M30 84 q-14 -4 -10 -22 q12 6 24 12 Z" fill="#6e4f30" ${Ob}/>
-      <path d="M40 96 l-4 44 12 0 4 -40 Z" fill="#6e4f30" ${Ob}/>
-      <path d="M70 100 l-2 42 12 0 2 -40 Z" fill="#7a5a3a" ${Ob}/>
-      <path d="M118 100 l-2 42 12 0 2 -40 Z" fill="#6e4f30" ${Ob}/>
-      <path d="M144 96 l2 44 12 0 -2 -42 Z" fill="#7a5a3a" ${Ob}/>
-      <path d="M44 104 q40 18 96 2 l-6 30 -84 0 Z" fill="#c43838" ${Ob}/>
-      <path d="M150 70 q16 -14 14 -30 q-10 4 -16 14 Z" fill="#8a6a46" ${Ob}/>
-      <circle cx="158" cy="66" r="2.4" fill="${OUTC}"/>
-      <path d="M150 40 q-6 8 -2 18" fill="none" stroke="#2c1c0e" stroke-width="4"/>
-      <path d="M82 56 q4 -18 18 -14 l-2 16 Z" fill="#9aa0ab" ${Ob}/>
-      <circle cx="92" cy="46" r="9" fill="#c2c8d0" ${Ob}/>
-      <rect x="90" y="44" width="12" height="3" fill="${OUTC}"/>
-      <path d="M100 50 l46 -30" fill="none" stroke="#caa84a" stroke-width="4"/>
-      <path d="M146 20 l8 -3 -6 8 Z" fill="#dfe4e8" ${Ob}/>
+  function svgHorse() {  // armored warhorse + plate-mail lancer
+    // Charging right. Layout: tail at left, hind quarters x=40-90,
+    // belly x=70-150, chest x=130-180, neck rising x=160-200,
+    // head jutting forward at x=200-230. Rider centered over saddle.
+    return svgWrapVB(240, 200, `
+      <!-- Tail flowing back -->
+      <path d="M 14 110 Q 32 102, 60 110 L 58 130 Q 32 132, 12 128 Z" fill="#3a2a18" ${Ob}/>
+      <path d="M 18 116 Q 30 116, 50 122" fill="none" stroke="#1c1208" stroke-width="2"/>
+
+      <!-- Hind leg back -->
+      <path d="M 70 130 Q 56 156, 50 184 L 40 192" fill="none" stroke="${OUTC}" stroke-width="15" stroke-linecap="round"/>
+      <path d="M 70 130 Q 56 156, 50 184 L 40 192" fill="none" stroke="#5a3a1f" stroke-width="12" stroke-linecap="round"/>
+      <path d="M 32 188 L 56 188 L 58 196 L 32 196 Z" fill="#1c1208" ${Ob}/>
+
+      <!-- Hind leg forward (mid-stride lift) -->
+      <path d="M 102 132 Q 98 148, 108 172 L 116 180" fill="none" stroke="${OUTC}" stroke-width="15" stroke-linecap="round"/>
+      <path d="M 102 132 Q 98 148, 108 172 L 116 180" fill="none" stroke="#6a4626" stroke-width="12" stroke-linecap="round"/>
+      <path d="M 108 178 L 132 178 L 134 188 L 108 188 Z" fill="#1c1208" ${Ob}/>
+
+      <!-- Body (chest pushed forward, rear muscled) -->
+      <path d="M 50 96 Q 80 60, 140 70 Q 180 76, 184 116 Q 130 130, 70 122 Q 40 118, 50 96 Z" fill="#7a5230" ${Ob}/>
+      <!-- Belly highlight -->
+      <path d="M 60 108 Q 100 120, 170 116 L 168 124 Q 110 128, 60 118 Z" fill="${OUTC}" opacity="0.22"/>
+
+      <!-- Red caparison / barding draped over body -->
+      <path d="M 56 112 Q 100 130, 178 118 L 174 156 L 60 148 Z" fill="#b53030" ${Ob}/>
+      <path d="M 64 144 L 76 156 L 88 144 L 100 156 L 112 144 L 124 156 L 136 144 L 148 156 L 160 144 L 172 156" fill="none" stroke="${OUTC}" stroke-width="2"/>
+      <path d="M 56 116 Q 100 132, 178 122" fill="none" stroke="#8a1a1a" stroke-width="2"/>
+      <!-- Gold trim on barding -->
+      <path d="M 60 116 Q 100 134, 180 122" fill="none" stroke="#fcd34d" stroke-width="2"/>
+
+      <!-- Front leg planted -->
+      <path d="M 160 122 L 162 168 L 166 188" fill="none" stroke="${OUTC}" stroke-width="14" stroke-linecap="round"/>
+      <path d="M 160 122 L 162 168 L 166 188" fill="none" stroke="#5a3a1f" stroke-width="11" stroke-linecap="round"/>
+      <path d="M 158 188 L 182 188 L 184 196 L 158 196 Z" fill="#1c1208" ${Ob}/>
+
+      <!-- Front leg lifted high (charging) -->
+      <path d="M 182 120 Q 196 138, 190 156 L 196 168" fill="none" stroke="${OUTC}" stroke-width="14" stroke-linecap="round"/>
+      <path d="M 182 120 Q 196 138, 190 156 L 196 168" fill="none" stroke="#6a4626" stroke-width="11" stroke-linecap="round"/>
+      <path d="M 188 166 L 208 166 L 210 174 L 188 174 Z" fill="#1c1208" ${Ob}/>
+
+      <!-- Neck arching forward + up -->
+      <path d="M 158 78 Q 180 50, 206 56 Q 216 70, 200 86 Q 178 84, 162 96 Z" fill="#7a5230" ${Ob}/>
+      <!-- Neck mane -->
+      <path d="M 168 72 L 174 60 L 178 72 L 182 60 L 186 72 L 190 60 L 194 70" fill="none" stroke="#3a2818" stroke-width="3.5" stroke-linecap="round"/>
+
+      <!-- Head (long elegant) -->
+      <path d="M 196 56 Q 226 56, 230 76 Q 228 86, 218 90 L 210 92 L 204 86 L 198 82 Q 192 76, 196 56 Z" fill="#7a5230" ${Ob}/>
+      <!-- Chamfron (face plate) -->
+      <path d="M 196 60 Q 224 60, 228 76 L 224 80 L 210 84 L 198 78 Z" fill="#9aa0ab" ${Ob}/>
+      <path d="M 212 60 L 214 50 L 218 62" fill="#fcd34d" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Eye -->
+      <circle cx="218" cy="74" r="2" fill="${OUTC}"/>
+      <!-- Mouth + nostril -->
+      <path d="M 218 88 L 226 86" stroke="${OUTC}" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="223" cy="82" r="1" fill="${OUTC}"/>
+      <!-- Forelock -->
+      <path d="M 198 50 L 200 38 L 204 50" fill="#3a2818" ${Ob}/>
+
+      <!-- Saddle base under rider -->
+      <path d="M 90 70 Q 130 60, 158 72 L 154 88 L 92 86 Z" fill="#5a3018" ${Ob}/>
+
+      <!-- Rider legs (one each side of horse) -->
+      <path d="M 96 68 L 88 100 L 80 124" fill="none" stroke="${OUTC}" stroke-width="13" stroke-linecap="round"/>
+      <path d="M 96 68 L 88 100 L 80 124" fill="none" stroke="#3a3a48" stroke-width="10" stroke-linecap="round"/>
+      <rect x="72" y="120" width="14" height="10" rx="2" fill="#1c1c24" stroke="${OUTC}" stroke-width="2"/>
+
+      <!-- Rider torso (plate mail) -->
+      <path d="M 96 30 Q 130 24, 142 32 L 146 70 Q 120 78, 92 72 Z" fill="#c2c8d0" ${Ob}/>
+      <!-- Plate shading -->
+      <path d="M 118 30 Q 130 28, 142 32 L 146 70 Q 130 74, 122 75 Z" fill="${OUTC}" opacity="0.22"/>
+      <!-- Plate seam lines -->
+      <path d="M 100 46 Q 122 50, 144 46" fill="none" stroke="${OUTC}" stroke-width="1.5"/>
+      <path d="M 100 58 Q 122 62, 144 58" fill="none" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Gold cross emblem on chest -->
+      <rect x="118" y="42" width="4" height="22" fill="#fcd34d" stroke="${OUTC}" stroke-width="1.2"/>
+      <rect x="110" y="48" width="20" height="4" fill="#fcd34d" stroke="${OUTC}" stroke-width="1.2"/>
+
+      <!-- Pauldron (over shoulder facing camera) -->
+      <path d="M 88 26 Q 96 16, 110 24 L 110 44 Q 96 48, 86 42 Z" fill="#c2c8d0" ${Ob}/>
+      <path d="M 88 26 Q 102 22, 110 30" fill="none" stroke="#fcd34d" stroke-width="2"/>
+
+      <!-- Helm (great-helm with plume) -->
+      <path d="M 102 -2 Q 124 -2, 134 12 L 134 30 Q 134 36, 128 38 L 108 38 Q 102 36, 102 30 Z" fill="#c2c8d0" ${Ob}/>
+      <!-- Visor slit -->
+      <rect x="108" y="14" width="22" height="4" fill="${OUTC}"/>
+      <rect x="116" y="18" width="4" height="14" fill="${OUTC}"/>
+      <!-- Rivets -->
+      <path d="M 106 24 L 130 24" stroke="#7e858e" stroke-width="1.4"/>
+      <!-- Crest plume -->
+      <path d="M 118 -4 L 132 -22 L 124 -16 L 138 -28 L 122 -10 L 134 -14 L 118 0 Z" fill="#c43030" ${Ob}/>
+
+      <!-- Couched lance (long, gold tip, pennant) -->
+      <path d="M 110 48 L 244 -10" fill="none" stroke="#5a3a18" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 110 48 L 244 -10" fill="none" stroke="#8a5a2a" stroke-width="3" stroke-linecap="round"/>
+      <!-- Lance head -->
+      <path d="M 238 -8 L 250 -16 L 244 -2 Z" fill="#dfe4e8" ${Ob}/>
+      <!-- Pennant flag -->
+      <path d="M 220 0 L 232 -4 L 226 8 L 230 18 L 214 14 Z" fill="#c43030" ${Ob}/>
+      <path d="M 220 4 L 226 0 L 224 8 Z" fill="#fcd34d"/>
+
+      <!-- Rider hand on lance -->
+      <circle cx="110" cy="48" r="5" fill="#3a3a48" stroke="${OUTC}" stroke-width="2"/>
+
+      <!-- Shield arm + heater shield -->
+      <path d="M 140 38 Q 156 42, 168 40 L 168 92 Q 152 100, 140 88 Z" fill="#c2c8d0" ${Ob}/>
+      <path d="M 154 50 L 154 72" stroke="${OUTC}" stroke-width="2"/>
+      <path d="M 144 50 L 164 50" stroke="${OUTC}" stroke-width="2"/>
+      <!-- Shield emblem -->
+      <path d="M 154 56 L 158 68 L 154 78 L 150 68 Z" fill="#c43030" ${Ob}/>
     `);
   }
 
@@ -3768,16 +3860,76 @@ const AgeOfWarGame = (() => {
     `);
   }
 
-  function svgTankSteam() {  // industrial steam tank
-    return svgWrapVB(170, 120, `
-      <rect x="20" y="96" width="130" height="14" rx="7" fill="#1a1a1a" ${Ob}/>
-      <g fill="#3a3a3a">${Array.from({length:9},(_,i)=>`<circle cx="${30+i*15}" cy="103" r="6" stroke="${OUTC}" stroke-width="2"/>`).join('')}</g>
-      <path d="M28 96 q0 -34 30 -34 l70 0 q16 0 16 16 l0 22 Z" fill="#6b5848" ${Ob}/>
-      <rect x="60" y="44" width="44" height="22" rx="5" fill="#7a6452" ${Ob}/>
-      <rect x="100" y="50" width="46" height="9" rx="4" fill="#2a2a2a" ${Ob}/>
-      <rect x="44" y="34" width="12" height="22" rx="3" fill="#3a2a22" ${Ob}/>
-      <ellipse cx="50" cy="30" rx="9" ry="5" fill="rgba(140,140,140,0.6)"/>
-      <circle cx="80" cy="78" r="6" fill="#caa84a" ${Ob}/>
+  function svgTankSteam() {  // industrial steampunk land cruiser
+    // Brass + riveted iron, billowing smoke from a tall stack, armored
+    // boiler hull on a short tank tread base, side-mounted cannon.
+    return svgWrapVB(200, 160, `
+      <!-- Smoke billow from stack (behind everything) -->
+      <ellipse cx="56" cy="14" rx="22" ry="14" fill="#888" opacity="0.5"/>
+      <ellipse cx="44" cy="22" rx="16" ry="10" fill="#a8a8a8" opacity="0.55"/>
+      <ellipse cx="70" cy="22" rx="14" ry="9" fill="#7a7a7a" opacity="0.6"/>
+      <ellipse cx="60" cy="30" rx="20" ry="10" fill="#9a9a9a" opacity="0.5"/>
+
+      <!-- Tread base -->
+      <rect x="10" y="118" width="180" height="22" rx="11" fill="#1a1a1a" ${Ob}/>
+      <!-- Tread plates -->
+      <g>${Array.from({length:11},(_,i)=>`<rect x="${16+i*16}" y="121" width="12" height="16" rx="1.5" fill="#2a2a2a" stroke="${OUTC}" stroke-width="1.5"/>`).join('')}</g>
+      <!-- Big drive wheels left + right -->
+      <circle cx="24" cy="128" r="14" fill="#3a2c20" ${Ob}/>
+      <circle cx="24" cy="128" r="6" fill="#caa84a" ${Ob}/>
+      <path d="M 24 122 L 24 134 M 18 128 L 30 128" stroke="${OUTC}" stroke-width="1.5"/>
+      <circle cx="176" cy="128" r="14" fill="#3a2c20" ${Ob}/>
+      <circle cx="176" cy="128" r="6" fill="#caa84a" ${Ob}/>
+      <path d="M 176 122 L 176 134 M 170 128 L 182 128" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Smaller idler wheels -->
+      <g fill="#5a4030">${Array.from({length:5},(_,i)=>`<circle cx="${56+i*22}" cy="130" r="7" stroke="${OUTC}" stroke-width="2"/>`).join('')}</g>
+
+      <!-- Boiler hull (curved iron body) -->
+      <path d="M 28 118 Q 18 92, 30 70 L 162 70 Q 178 92, 168 118 Z" fill="#6a4a2a" ${Ob}/>
+      <!-- Hull plating shadow -->
+      <path d="M 100 70 Q 178 78, 168 118 L 162 118 L 162 76 L 100 76 Z" fill="${OUTC}" opacity="0.22"/>
+
+      <!-- Rivet lines around hull -->
+      <g fill="#caa84a">${Array.from({length:8},(_,i)=>`<circle cx="${42+i*16}" cy="78" r="2" stroke="${OUTC}" stroke-width="1"/>`).join('')}</g>
+      <g fill="#caa84a">${Array.from({length:8},(_,i)=>`<circle cx="${42+i*16}" cy="112" r="2" stroke="${OUTC}" stroke-width="1"/>`).join('')}</g>
+
+      <!-- Brass band horizontal -->
+      <rect x="32" y="94" width="132" height="6" fill="#caa84a" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="32" y="94" width="132" height="2" fill="#ebd078"/>
+
+      <!-- Side porthole (looks like a window) -->
+      <circle cx="84" cy="90" r="7" fill="#15110c" stroke="#caa84a" stroke-width="2"/>
+      <circle cx="84" cy="90" r="5" fill="#3a5a78"/>
+      <circle cx="82" cy="88" r="1.5" fill="#bfeaff"/>
+
+      <!-- Big smokestack -->
+      <rect x="42" y="32" width="20" height="38" rx="2" fill="#3a2c20" ${Ob}/>
+      <!-- Stack flare top -->
+      <path d="M 38 32 L 66 32 L 62 24 L 42 24 Z" fill="#5a3a22" ${Ob}/>
+      <!-- Stack band -->
+      <rect x="42" y="44" width="20" height="3" fill="#caa84a" stroke="${OUTC}" stroke-width="1"/>
+
+      <!-- Secondary smaller stack -->
+      <rect x="72" y="46" width="10" height="24" rx="1.5" fill="#3a2c20" ${Ob}/>
+      <ellipse cx="77" cy="42" rx="10" ry="6" fill="#9a9a9a" opacity="0.55"/>
+
+      <!-- Cannon turret on top -->
+      <path d="M 102 70 Q 110 56, 138 58 L 148 70 Z" fill="#5a4030" ${Ob}/>
+      <!-- Cannon barrel -->
+      <rect x="142" y="60" width="48" height="9" rx="3" fill="#3a2c20" ${Ob}/>
+      <rect x="186" y="58" width="6" height="14" rx="1.5" fill="#15110c" ${Ob}/>
+      <!-- Barrel reinforcement bands -->
+      <rect x="150" y="58" width="3" height="13" fill="#caa84a" stroke="${OUTC}" stroke-width="0.8"/>
+      <rect x="166" y="58" width="3" height="13" fill="#caa84a" stroke="${OUTC}" stroke-width="0.8"/>
+
+      <!-- Pressure gauge on side -->
+      <circle cx="124" cy="84" r="6" fill="#15110c" stroke="#caa84a" stroke-width="2"/>
+      <circle cx="124" cy="84" r="4" fill="#f3e6c0"/>
+      <path d="M 124 84 L 126 80" stroke="#c43030" stroke-width="1.5" stroke-linecap="round"/>
+
+      <!-- Steam vents under hull -->
+      <ellipse cx="46" cy="118" rx="6" ry="3" fill="#9a9a9a" opacity="0.65"/>
+      <ellipse cx="140" cy="118" rx="6" ry="3" fill="#9a9a9a" opacity="0.65"/>
     `);
   }
 
@@ -3854,16 +4006,65 @@ const AgeOfWarGame = (() => {
   }
 
   function svgHover() {  // future hover gunship
-    return svgWrapVB(160, 120, `
-      <ellipse cx="80" cy="96" rx="60" ry="9" fill="rgba(255,144,238,0.4)"/>
-      <path d="M24 74 q56 -26 112 0 q-56 22 -112 0 Z" fill="#c46ad6" ${Ob}/>
-      <path d="M48 66 q32 -22 64 0 q-32 12 -64 0 Z" fill="#e6b8f0" ${Ob}/>
-      <ellipse cx="80" cy="60" rx="14" ry="10" fill="#bfeaff" ${Ob}/>
-      <circle cx="84" cy="58" r="3" fill="#2a2350"/>
-      <rect x="120" y="72" width="34" height="7" rx="3" fill="#2a2350" ${Ob}/>
-      <circle cx="154" cy="75" r="4" fill="#ff90ee"/>
-      <path d="M22 78 l-10 2 4 8 8 -2 Z" fill="#a050c0" ${Ob}/>
-      <path d="M138 78 l10 2 -4 8 -8 -2 Z" fill="#a050c0" ${Ob}/>
+    return svgWrapVB(200, 160, `
+      <!-- Anti-grav hover plume (below) -->
+      <ellipse cx="100" cy="138" rx="80" ry="10" fill="rgba(190,80,220,0.45)"/>
+      <ellipse cx="100" cy="146" rx="70" ry="6" fill="rgba(255,144,238,0.55)"/>
+      <ellipse cx="100" cy="152" rx="56" ry="4" fill="rgba(255,200,250,0.4)"/>
+
+      <!-- Wing pylons hanging missiles -->
+      <path d="M 30 96 L 30 116 L 50 116 L 50 100 Z" fill="#4a4a6a" ${Ob}/>
+      <path d="M 150 96 L 150 116 L 170 116 L 170 100 Z" fill="#4a4a6a" ${Ob}/>
+      <!-- Missiles -->
+      <path d="M 26 116 L 26 130 L 54 130 L 54 116 Z" fill="#7a3a78" ${Ob}/>
+      <path d="M 26 130 L 22 138 L 30 134 Z" fill="#15110c" ${Ob}/>
+      <path d="M 54 130 L 58 138 L 50 134 Z" fill="#15110c" ${Ob}/>
+      <path d="M 146 116 L 146 130 L 174 130 L 174 116 Z" fill="#7a3a78" ${Ob}/>
+      <path d="M 146 130 L 142 138 L 150 134 Z" fill="#15110c" ${Ob}/>
+      <path d="M 174 130 L 178 138 L 170 134 Z" fill="#15110c" ${Ob}/>
+      <!-- Missile tips white -->
+      <circle cx="40" cy="118" r="2" fill="#fff"/>
+      <circle cx="160" cy="118" r="2" fill="#fff"/>
+
+      <!-- Lower hull (curved disc bottom) -->
+      <path d="M 12 90 Q 100 124, 188 90 L 178 110 Q 100 124, 22 110 Z" fill="#7a3a78" ${Ob}/>
+
+      <!-- Main body / saucer disc -->
+      <path d="M 12 80 Q 100 30, 188 80 Q 188 96, 178 100 Q 100 124, 22 100 Q 12 96, 12 80 Z" fill="#c46ad6" ${Ob}/>
+      <!-- Mid-body highlight band -->
+      <path d="M 24 76 Q 100 38, 176 76" fill="none" stroke="#e6b8f0" stroke-width="4"/>
+      <path d="M 28 70 Q 100 40, 172 70" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+
+      <!-- Cockpit bubble -->
+      <path d="M 70 52 Q 100 28, 130 52 Q 130 64, 100 68 Q 70 64, 70 52 Z" fill="#bfeaff" ${Ob}/>
+      <path d="M 80 46 Q 100 36, 120 46" fill="none" stroke="#fff" stroke-width="2.5"/>
+      <!-- Pilot silhouette -->
+      <ellipse cx="100" cy="58" rx="10" ry="6" fill="#2a2350"/>
+
+      <!-- Antenna mast -->
+      <rect x="98" y="14" width="4" height="14" fill="#4a4a6a" stroke="${OUTC}" stroke-width="1.5"/>
+      <circle cx="100" cy="12" r="3" fill="#ff5a5a" stroke="${OUTC}" stroke-width="1.5"/>
+
+      <!-- Side rear thrusters (glowing) -->
+      <rect x="2" y="84" width="14" height="10" rx="3" fill="#2a1f3a" ${Ob}/>
+      <ellipse cx="2" cy="89" rx="6" ry="4" fill="#ff90ee"/>
+      <ellipse cx="0" cy="89" rx="3" ry="2" fill="#fff"/>
+
+      <!-- Front gun barrel mounted center -->
+      <rect x="156" y="84" width="32" height="6" rx="2" fill="#2a2350" ${Ob}/>
+      <rect x="184" y="82" width="6" height="10" rx="1.5" fill="#15110c" ${Ob}/>
+      <!-- Targeting glow -->
+      <circle cx="186" cy="87" r="3" fill="#ff90ee"/>
+      <circle cx="186" cy="87" r="1.5" fill="#fff"/>
+
+      <!-- Side fins -->
+      <path d="M 12 84 L 0 70 L 4 88" fill="#a050c0" ${Ob}/>
+      <path d="M 188 84 L 200 70 L 196 88" fill="#a050c0" ${Ob}/>
+
+      <!-- Underside running lights -->
+      <circle cx="50" cy="108" r="2" fill="#ff90ee"/>
+      <circle cx="100" cy="116" r="2.5" fill="#bfeaff"/>
+      <circle cx="150" cy="108" r="2" fill="#ff90ee"/>
     `);
   }
 
@@ -4019,9 +4220,9 @@ const AgeOfWarGame = (() => {
 
   // Natural aspect (w/h) per sprite so the blit doesn't distort them.
   const SPRITE_ASPECT = {
-    dino: 170/150, knight: 180/150, hero_grog: 180/160,
-    tank1: 170/120, tank2: 180/110, mech: 150/160,
-    flier: 160/120, hero_titan: 150/170,
+    dino: 220/170, knight: 240/200, hero_grog: 180/160,
+    tank1: 200/160, tank2: 180/110, mech: 180/180,
+    flier: 200/160, hero_titan: 150/170,
   };
 
   // Cache lookup returns { run, strike } where each is { img, ready }.
