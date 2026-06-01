@@ -95,6 +95,7 @@ const AgeOfWarGame = (() => {
   let goldFloaters = [];
   let dmgFloaters = [];
   let muzzleFlashes = [];
+  let impactRings = [];                            // hit impact shockwave rings
   let strikes = [];                // air-strike effects (meteor / arrows / bombs)
   let coinDrops = [];              // visual coins after kills
   let ageFlash = 0;                // 1 → 0 right after aging up
@@ -540,6 +541,7 @@ const AgeOfWarGame = (() => {
     goldFloaters = [];
     dmgFloaters = [];
     muzzleFlashes = [];
+    impactRings = [];
     strikes = [];
     coinDrops = [];
     ageFlash = 0;
@@ -987,6 +989,7 @@ const AgeOfWarGame = (() => {
               projectiles.push({
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
                 vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
@@ -1006,6 +1009,10 @@ const AgeOfWarGame = (() => {
 
     // Move projectiles
     for (const p of projectiles) {
+      // Record a brief trail (last 6 positions) for fade rendering
+      if (!p.trail) p.trail = [];
+      p.trail.push(p.x);
+      if (p.trail.length > 6) p.trail.shift();
       p.x += p.vx * dt;
       p.life -= dt;
       const targets = units.filter(u => u.side !== p.side && u.hp > 0);
@@ -1167,6 +1174,8 @@ const AgeOfWarGame = (() => {
     goldFloaters = goldFloaters.filter(f => f.t > 0);
     for (const m of muzzleFlashes) m.t -= dt;
     muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
+    for (const r of impactRings) r.t -= dt;
+    impactRings = impactRings.filter(r => r.t > 0);
     // Coin physics: arc + bounce + rest. Once landed they bob in place;
     // after a short window they auto-credit to gold so mobile players
     // who can't tap fast enough never lose all their income to fade.
@@ -1270,6 +1279,8 @@ const AgeOfWarGame = (() => {
         life: 0.3 + Math.random() * 0.2,
       });
     }
+    // Shockwave ring at the impact point
+    impactRings.push({ x, y, t: 0.32, max: 0.32, color });
   }
 
   // Touch devices: bigger hit area so fingers can reliably catch coins.
@@ -1376,7 +1387,24 @@ const AgeOfWarGame = (() => {
       ctx.stroke();
     }
 
-    // One simple distant mountain silhouette
+    // Far-back parallax silhouette — darker, lower-amplitude.
+    // Sits below the near hill to suggest a distant horizon.
+    const farColor = OG_HILL[playerEra];
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = farColor;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    for (let x = 0; x <= WIDTH; x += 30) {
+      const h = 36 + Math.sin(x * 0.014 + 1.7) * 16 + Math.sin(x * 0.04) * 8;
+      ctx.lineTo(x, GROUND_Y - h);
+    }
+    ctx.lineTo(WIDTH, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Near distant mountain silhouette
     ctx.fillStyle = OG_HILL[playerEra];
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
@@ -1493,12 +1521,42 @@ const AgeOfWarGame = (() => {
     // Projectiles
     for (const p of projectiles) drawProjectile(p);
 
-    // Muzzle flashes
+    // Muzzle flashes: bursty 6-spoke star with hot center
     for (const m of muzzleFlashes) {
-      ctx.fillStyle = `rgba(255,220,120,${m.t / 0.12 * 0.9})`;
+      const k = m.t / 0.12;                 // 1 -> 0
+      const r = 6 + (1 - k) * 14;
+      ctx.save();
+      ctx.translate(m.x, m.y);
+      ctx.fillStyle = `rgba(255,220,120,${k * 0.85})`;
       ctx.beginPath();
-      ctx.arc(m.x, m.y, 6 + (0.12 - m.t) * 40, 0, Math.PI * 2);
+      for (let s = 0; s < 6; s++) {
+        const a = (s * Math.PI) / 3;
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        ctx.lineTo(Math.cos(a + Math.PI/6) * r * 0.4, Math.sin(a + Math.PI/6) * r * 0.4);
+      }
       ctx.fill();
+      ctx.fillStyle = `rgba(255,255,220,${k * 0.95})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Impact shockwave rings: expand + fade
+    for (const r of impactRings) {
+      const k = 1 - r.t / r.max;          // 0 -> 1
+      const radius = 6 + k * 26;
+      ctx.strokeStyle = `rgba(255,236,170,${(1 - k) * 0.9})`;
+      ctx.lineWidth = 3 * (1 - k);
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255,255,255,${(1 - k) * 0.5})`;
+      ctx.lineWidth = 1.5 * (1 - k);
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, radius * 0.6, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
     // Strikes
@@ -4159,8 +4217,27 @@ const AgeOfWarGame = (() => {
 
   function drawProjectile(p) {
     const dir = Math.sign(p.vx) || 1;
-    // Era-ish render based on projectile size / color.
-    // Bright laser-ish for high-tech colors, otherwise arrow/bullet.
+    // Trail: fade older positions, brighter near the projectile head.
+    // Drawn first so the projectile head paints over it.
+    if (p.trail && p.trail.length > 1) {
+      const isLaser = p.color === '#6ec4ff' || p.color === '#ff90ee';
+      const isHeavy = p.dmg >= 100;
+      const isArrow = !isLaser && p.dmg >= 30 && p.dmg < 100;
+      const trailW = isLaser ? 4 : isHeavy ? 5 : isArrow ? 2 : 2.2;
+      const trailColor = isLaser ? p.color : isHeavy ? '#3a3a3a' : isArrow ? '#5a3a22' : (p.color || '#fcd34d');
+      ctx.lineCap = 'round';
+      for (let i = 0; i < p.trail.length - 1; i++) {
+        const a = (i + 1) / p.trail.length;
+        ctx.strokeStyle = trailColor;
+        ctx.globalAlpha = a * (isLaser ? 0.55 : 0.4);
+        ctx.lineWidth = trailW * a;
+        ctx.beginPath();
+        ctx.moveTo(p.trail[i], p.y);
+        ctx.lineTo(p.trail[i + 1], p.y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
     if (p.color === '#6ec4ff' || p.color === '#ff90ee') {
       // Laser beam
       ctx.strokeStyle = p.color;
