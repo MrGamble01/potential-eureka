@@ -4670,9 +4670,13 @@ const AgeOfWarGame = (() => {
         const def = UNITS[key];
         const btn = document.createElement('button');
         btn.className = 'aow-spawn-btn';
+        const svgFn = SPRITE_DEFS[key];
+        const iconHtml = svgFn
+          ? `<img class="aow-spawn-sprite" alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgFn('run'))}"/>`
+          : `<span class="aow-spawn-icon">${def.icon}</span>`;
         btn.innerHTML = `
           <span class="aow-spawn-key">${idx}</span>
-          <span class="aow-spawn-icon">${def.icon}</span>
+          ${iconHtml}
           <span class="aow-spawn-name">${def.name}</span>
           <span class="aow-spawn-cost">$${def.cost}</span>
         `;

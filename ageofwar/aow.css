@@ -313,12 +313,22 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--widget-shadow);
+  /* Wrap in a centered container that respects both width and height
+     so the canvas shrinks horizontally if the viewport height is the
+     binding constraint. HUD + actionbar + tabs + spawn rail need ~420px;
+     anything left over is canvas. */
+  width: 100%;
+  margin-inline: auto;
+  aspect-ratio: 1280 / 560;
+  max-height: calc(100vh - 500px);
+  min-height: 220px;
+  /* Shrink width to keep aspect ratio when max-height is the constraint */
+  max-width: calc((100vh - 500px) * 1280 / 560);
 }
 .aow-canvas {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 1280 / 560;
+  height: 100%;
   background: #0d1117;
 }
 .aow-overlay {
@@ -339,8 +349,9 @@
 /* ── Action bar ── */
 .aow-actionbar {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 .aow-action {
   position: relative;
@@ -477,6 +488,17 @@
   border-radius: 3px;
 }
 .aow-spawn-icon { font-size: 26px; line-height: 1; margin-top: 4px; }
+.aow-spawn-sprite {
+  width: 56px; height: 56px;
+  object-fit: contain; object-position: bottom;
+  margin-top: 2px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
+}
+@media (max-width: 720px) {
+  .aow-spawn-sprite { width: 48px; height: 48px; }
+}
 .aow-spawn-name {
   font-size: 11px; font-weight: 600;
   color: var(--text);
@@ -603,7 +625,7 @@
    the surrounding chrome aggressively. Previous pass left ~20% for the
    game; this pass collapses the HUD into a single thin strip. */
 @media (max-width: 720px) {
-  .aow-shell { padding: 4px 0 0; gap: 6px; }
+  .aow-shell { padding: 4px 8px 12px; gap: 6px; }
 
   /* HUD — collapse into ONE compact row: gold | era | wave. Drop the
      difficulty selector and the standalone XP bar; they're available
@@ -660,12 +682,34 @@
     aspect-ratio: 1280 / 560;
     width: 100%;
     height: auto;
-    max-height: 46vh;
   }
-  .aow-stage { border-radius: 10px; background: #0d1117; }
+  .aow-stage {
+    border-radius: 10px;
+    background: #0d1117;
+    min-height: 0;
+    max-height: none;
+    max-width: 100%;
+  }
 
   /* Tabs */
   .aow-tab { padding: 6px 12px; font-size: 10px; }
+
+  /* Action bar at phone width: tight columns that always fit container */
+  .aow-actionbar {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+  .aow-action {
+    padding: 10px 6px;
+    font-size: 12px;
+    min-width: 0;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .aow-action-ico { font-size: 16px; }
+  .aow-action-lbl { font-size: 12px; }
+  .aow-action-lbl small { font-size: 9px; max-width: 11ch; }
 
   /* Spawn buttons: bigger touch targets */
   .aow-spawn-list {
