@@ -4588,7 +4588,7 @@ const AgeOfWarGame = (() => {
         ageBtn.disabled = true;
       } else {
         if (ico) ico.textContent = '⬆️';
-        if (lbl) lbl.textContent = `Age Up · ${ERAS[playerEra + 1].name}`;
+        if (lbl) lbl.innerHTML = `Age Up<small>${ERAS[playerEra + 1].name}</small>`;
         ageBtn.disabled = xp < era.upXP;
       }
     }
@@ -4629,7 +4629,7 @@ const AgeOfWarGame = (() => {
       const cdEl = document.getElementById('aow-hero-cd');
       if (h) {
         if (ico) ico.textContent = h.icon;
-        if (lbl) lbl.textContent = h.name;
+        if (lbl) lbl.innerHTML = `Hero<small>${h.name}</small>`;
         if (cdEl) {
           if (heroReadyT > 0) cdEl.textContent = `${Math.ceil(heroReadyT)}s`;
           else if (gold < h.cost) cdEl.textContent = `$${h.cost}`;

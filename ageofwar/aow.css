@@ -31,13 +31,13 @@
   --glow-secondary: 0 0 16px rgba(88, 166, 255, 0.2);
   --widget-shadow:  0 4px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--border-subtle);
 }
-
-  max-width: 1080px;
+.aow-shell {
+  max-width: min(1600px, 100vw);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 6px 0 18px;
+  gap: 8px;
+  padding: 6px 16px 18px;
 }
 
 /* ── Top bar (brand · gold · era · combo · difficulty) ── */
@@ -366,6 +366,17 @@
 .aow-action:active:not(:disabled) { transform: translateY(0) scale(0.98); }
 .aow-action:disabled { opacity: 0.45; cursor: not-allowed; }
 .aow-action-ico { font-size: 18px; }
+.aow-action-lbl {
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  line-height: 1.1; gap: 2px;
+}
+.aow-action-lbl small {
+  font-size: 10px; font-weight: 600; color: var(--text-dim);
+  letter-spacing: 0.4px; text-transform: uppercase;
+  max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.aow-action-hero .aow-action-lbl small,
+.aow-action-age .aow-action-lbl small { color: inherit; opacity: 0.75; }
 .aow-action-cd {
   font-family: var(--font-mono);
   font-size: 11px;
