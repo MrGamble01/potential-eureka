@@ -2123,6 +2123,49 @@ const AgeOfWarGame = (() => {
     ctx.strokeStyle = 'rgba(0,0,0,0.8)';
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    // Campfire flicker inside the cave mouth: warm radial glow + animated flame tongues + ember dots.
+    const flameT = performance.now() / 120;
+    const flicker = 0.85 + Math.sin(flameT) * 0.15;
+    const glow = ctx.createRadialGradient(cx, GROUND_Y - 8, 2, cx, GROUND_Y - 8, 28);
+    glow.addColorStop(0, `rgba(255, 200, 80, ${0.85 * flicker})`);
+    glow.addColorStop(0.5, `rgba(255, 130, 40, ${0.45 * flicker})`);
+    glow.addColorStop(1, 'rgba(255, 80, 20, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, GROUND_Y - 8, 28, 0, Math.PI * 2); ctx.fill();
+    // Flame tongues (3 layered)
+    ctx.fillStyle = `rgba(255,180,60,${0.85 * flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, GROUND_Y - 4);
+    ctx.quadraticCurveTo(cx - 5, GROUND_Y - 18, cx, GROUND_Y - 22 - Math.sin(flameT * 1.3) * 3);
+    ctx.quadraticCurveTo(cx + 5, GROUND_Y - 18, cx + 8, GROUND_Y - 4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = `rgba(255,230,140,${flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(cx - 4, GROUND_Y - 4);
+    ctx.quadraticCurveTo(cx - 2, GROUND_Y - 14, cx, GROUND_Y - 16 - Math.cos(flameT * 1.6) * 2);
+    ctx.quadraticCurveTo(cx + 2, GROUND_Y - 14, cx + 4, GROUND_Y - 4);
+    ctx.closePath(); ctx.fill();
+    // Logs (two crossed sticks)
+    ctx.strokeStyle = '#3a2010';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx - 10, GROUND_Y - 3); ctx.lineTo(cx + 10, GROUND_Y - 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 8, GROUND_Y - 5); ctx.lineTo(cx + 8, GROUND_Y - 3); ctx.stroke();
+
+    // Skull mounted above the cave mouth (signature tribal warning)
+    const skullY = GROUND_Y - 56;
+    ctx.fillStyle = '#e8e0c0';
+    ctx.beginPath(); ctx.arc(cx, skullY, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#15110c'; ctx.lineWidth = 1.2; ctx.stroke();
+    // Eye sockets
+    ctx.fillStyle = '#15110c';
+    ctx.beginPath(); ctx.arc(cx - 2, skullY - 1, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 2, skullY - 1, 1.2, 0, Math.PI * 2); ctx.fill();
+    // Jaw
+    ctx.fillRect(cx - 3, skullY + 4, 6, 3);
+    ctx.fillStyle = '#15110c';
+    ctx.fillRect(cx - 2, skullY + 5, 1, 1.5);
+    ctx.fillRect(cx + 1, skullY + 5, 1, 1.5);
   }
 
   function drawBaseMedieval(x, color) {
@@ -2183,6 +2226,57 @@ const AgeOfWarGame = (() => {
     for (let i = 1; i < 4; i++) {
       ctx.beginPath(); ctx.moveTo(x + BASE_W / 2 - 14 + i * 7, GROUND_Y - 42); ctx.lineTo(x + BASE_W / 2 - 14 + i * 7, GROUND_Y); ctx.stroke();
     }
+    // Wall-mounted torches flanking the gate (animated flame)
+    const tT = performance.now() / 110;
+    const tFlick = 0.85 + Math.sin(tT) * 0.15;
+    const drawTorch = (tx) => {
+      // Bracket
+      ctx.fillStyle = '#3a2010'; ctx.fillRect(tx - 3, GROUND_Y - 50, 6, 14);
+      ctx.strokeStyle = '#15110c'; ctx.lineWidth = 1; ctx.strokeRect(tx - 3, GROUND_Y - 50, 6, 14);
+      // Glow
+      const g = ctx.createRadialGradient(tx, GROUND_Y - 56, 1, tx, GROUND_Y - 56, 20);
+      g.addColorStop(0, `rgba(255,200,80,${0.8 * tFlick})`);
+      g.addColorStop(1, 'rgba(255,80,20,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(tx, GROUND_Y - 56, 20, 0, Math.PI * 2); ctx.fill();
+      // Flame
+      ctx.fillStyle = `rgba(255,170,50,${tFlick})`;
+      ctx.beginPath();
+      ctx.moveTo(tx - 4, GROUND_Y - 50);
+      ctx.quadraticCurveTo(tx - 2, GROUND_Y - 60, tx, GROUND_Y - 64 - Math.sin(tT * 1.3) * 2);
+      ctx.quadraticCurveTo(tx + 2, GROUND_Y - 60, tx + 4, GROUND_Y - 50);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = `rgba(255,230,140,${tFlick})`;
+      ctx.beginPath();
+      ctx.moveTo(tx - 2, GROUND_Y - 50);
+      ctx.quadraticCurveTo(tx, GROUND_Y - 58, tx + 2, GROUND_Y - 50);
+      ctx.closePath(); ctx.fill();
+    };
+    drawTorch(x + 8);
+    drawTorch(x + BASE_W - 8);
+
+    // Tall pennant flagpole on the rampart (waving)
+    const pX = x + BASE_W / 2;
+    const pT = performance.now() / 600;
+    ctx.strokeStyle = '#1a1208'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pX, GROUND_Y - 92); ctx.lineTo(pX, GROUND_Y - 130); ctx.stroke();
+    ctx.fillStyle = '#caa84a';
+    ctx.beginPath(); ctx.arc(pX, GROUND_Y - 131, 2, 0, Math.PI * 2); ctx.fill();
+    // Pennant (triangular flag waving)
+    ctx.fillStyle = '#c43838';
+    const wave = Math.sin(pT) * 2;
+    ctx.beginPath();
+    ctx.moveTo(pX, GROUND_Y - 128);
+    ctx.quadraticCurveTo(pX + 12, GROUND_Y - 126 + wave, pX + 20 + wave, GROUND_Y - 122);
+    ctx.quadraticCurveTo(pX + 12, GROUND_Y - 118 + wave, pX, GROUND_Y - 116);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#7a1818'; ctx.lineWidth = 1; ctx.stroke();
+    // Gold cross on pennant
+    ctx.strokeStyle = '#fcd34d'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(pX + 6, GROUND_Y - 126); ctx.lineTo(pX + 6, GROUND_Y - 118);
+    ctx.moveTo(pX + 3, GROUND_Y - 122); ctx.lineTo(pX + 9, GROUND_Y - 122);
+    ctx.stroke();
   }
 
   function drawBaseIndustrial(x, color) {
@@ -2213,10 +2307,38 @@ const AgeOfWarGame = (() => {
     // Iron door
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(x + 16, GROUND_Y - 38, 26, 38);
-    // Windows
+    // Glowing furnace mouth visible through the door (pulses warm)
+    const furnT = performance.now() / 300;
+    const furnPulse = 0.7 + Math.sin(furnT) * 0.3;
+    const furnGrad = ctx.createRadialGradient(x + 29, GROUND_Y - 18, 1, x + 29, GROUND_Y - 18, 16);
+    furnGrad.addColorStop(0, `rgba(255, 180, 60, ${0.9 * furnPulse})`);
+    furnGrad.addColorStop(0.6, `rgba(255, 90, 30, ${0.5 * furnPulse})`);
+    furnGrad.addColorStop(1, 'rgba(255, 50, 10, 0)');
+    ctx.fillStyle = furnGrad;
+    ctx.beginPath(); ctx.arc(x + 29, GROUND_Y - 18, 16, 0, Math.PI * 2); ctx.fill();
+    // Door bolts
+    ctx.fillStyle = '#5a4a35';
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath(); ctx.arc(x + 19, GROUND_Y - 32 + i * 8, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 39, GROUND_Y - 32 + i * 8, 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+    // Windows (lit -- gold panes with cross frame)
     for (let i = 0; i < 3; i++) {
+      const wx = x + 14 + i * 22;
       ctx.fillStyle = '#fcd34d';
-      ctx.fillRect(x + 14 + i * 22, GROUND_Y - 62, 8, 8);
+      ctx.fillRect(wx, GROUND_Y - 62, 8, 8);
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+      ctx.strokeRect(wx, GROUND_Y - 62, 8, 8);
+      ctx.beginPath(); ctx.moveTo(wx + 4, GROUND_Y - 62); ctx.lineTo(wx + 4, GROUND_Y - 54);
+      ctx.moveTo(wx, GROUND_Y - 58); ctx.lineTo(wx + 8, GROUND_Y - 58); ctx.stroke();
+    }
+    // Chimney top warning light (blinks)
+    const blink = Math.floor(performance.now() / 800) & 1;
+    if (blink) {
+      ctx.fillStyle = '#ff5a5a';
+      ctx.beginPath(); ctx.arc(x + BASE_W - 16, GROUND_Y - 112, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,90,90,0.4)';
+      ctx.beginPath(); ctx.arc(x + BASE_W - 16, GROUND_Y - 112, 5, 0, Math.PI * 2); ctx.fill();
     }
   }
 
@@ -2236,17 +2358,69 @@ const AgeOfWarGame = (() => {
     // Slit windows
     ctx.fillStyle = '#222';
     for (let i = 0; i < 3; i++) ctx.fillRect(x + 18 + i * 28, GROUND_Y - 36, 16, 6);
+    // Camo dapples on the wall
+    ctx.fillStyle = 'rgba(40,55,30,0.55)';
+    ctx.beginPath(); ctx.ellipse(x + 22, GROUND_Y - 48, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x + 70, GROUND_Y - 22, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x + 96, GROUND_Y - 44, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
     // Sandbags
     ctx.fillStyle = '#8a7a55';
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.8;
     for (let i = 0; i < 7; i++) {
       const sx = x - 4 + i * 16;
       ctx.beginPath();
       ctx.ellipse(sx, GROUND_Y - 4, 9, 5, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fill(); ctx.stroke();
+      // stitch line
+      ctx.beginPath(); ctx.moveTo(sx - 7, GROUND_Y - 4); ctx.lineTo(sx + 7, GROUND_Y - 4); ctx.stroke();
     }
     // Door
     ctx.fillStyle = '#1a2418';
     ctx.fillRect(x + BASE_W / 2 - 10, GROUND_Y - 30, 20, 30);
+    ctx.strokeStyle = '#0a0e0a'; ctx.lineWidth = 1.4;
+    ctx.strokeRect(x + BASE_W / 2 - 10, GROUND_Y - 30, 20, 30);
+    // Tactical handle bar
+    ctx.fillStyle = '#444'; ctx.fillRect(x + BASE_W / 2 - 6, GROUND_Y - 18, 12, 1.5);
+
+    // Comms tower on the roof: tall mast with red blinker + sweeping radar dish
+    const mastX = x + BASE_W - 14;
+    const mastTop = GROUND_Y - 116;
+    ctx.strokeStyle = '#2a3520'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(mastX, GROUND_Y - 80); ctx.lineTo(mastX, mastTop); ctx.stroke();
+    // Cross arms
+    ctx.beginPath(); ctx.moveTo(mastX - 6, GROUND_Y - 100); ctx.lineTo(mastX + 6, GROUND_Y - 100); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mastX - 4, GROUND_Y - 108); ctx.lineTo(mastX + 4, GROUND_Y - 108); ctx.stroke();
+    // Blinker (red, every ~1s)
+    const mBlink = (performance.now() % 1200) < 400;
+    ctx.fillStyle = mBlink ? '#ff5a5a' : '#5a2018';
+    ctx.beginPath(); ctx.arc(mastX, mastTop - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+    if (mBlink) {
+      ctx.fillStyle = 'rgba(255,90,90,0.4)';
+      ctx.beginPath(); ctx.arc(mastX, mastTop - 2, 6, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Roof-mounted searchlight (sweeps slowly across the sky toward the enemy)
+    const lampX = x + 18;
+    const lampY = GROUND_Y - 80;
+    // Lamp body
+    ctx.fillStyle = '#4a4a4a';
+    ctx.beginPath(); ctx.arc(lampX, lampY, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#0a0e0a'; ctx.lineWidth = 1.2; ctx.stroke();
+    // Sweep angle (0 = up, oscillates)
+    const sweep = Math.sin(performance.now() / 2200) * 0.35;
+    const beamLen = 80;
+    const dx = Math.sin(sweep) * beamLen;
+    const dy = -Math.cos(sweep) * beamLen;
+    const beam = ctx.createLinearGradient(lampX, lampY, lampX + dx, lampY + dy);
+    beam.addColorStop(0, 'rgba(220,240,255,0.45)');
+    beam.addColorStop(1, 'rgba(220,240,255,0)');
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.moveTo(lampX - 3, lampY);
+    ctx.lineTo(lampX + dx - 14, lampY + dy);
+    ctx.lineTo(lampX + dx + 14, lampY + dy);
+    ctx.lineTo(lampX + 3, lampY);
+    ctx.closePath(); ctx.fill();
   }
 
   function drawBaseFuture(x, color) {
@@ -2279,6 +2453,48 @@ const AgeOfWarGame = (() => {
     // Hover gap glow at base
     ctx.fillStyle = 'rgba(110, 196, 255, 0.45)';
     ctx.fillRect(x + 4, GROUND_Y - 4, BASE_W - 8, 4);
+
+    // Holographic shield shimmer arcing over the tower
+    const sT = performance.now() / 700;
+    const shimmer = 0.35 + Math.sin(sT * 1.3) * 0.2;
+    const cxF = x + BASE_W / 2;
+    ctx.strokeStyle = `rgba(110, 196, 255, ${shimmer})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(cxF, GROUND_Y - 40, BASE_W / 2 + 6, 80, 0, Math.PI, 2 * Math.PI);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(160, 220, 255, ${shimmer * 0.6})`;
+    ctx.beginPath();
+    ctx.ellipse(cxF, GROUND_Y - 40, BASE_W / 2 + 12, 88, 0, Math.PI, 2 * Math.PI);
+    ctx.stroke();
+    // Hexagonal shield tessellation flashes (random hex on the dome)
+    const hexHash = Math.floor(performance.now() / 280) % 5;
+    const hexPos = [[-22, -28], [18, -34], [-12, -52], [22, -58], [0, -68]][hexHash];
+    if (hexPos) {
+      ctx.strokeStyle = `rgba(180, 230, 255, 0.55)`;
+      ctx.lineWidth = 1;
+      const hxx = cxF + hexPos[0], hyy = GROUND_Y + hexPos[1];
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        const px = hxx + Math.cos(a) * 5, py = hyy + Math.sin(a) * 5;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath(); ctx.stroke();
+    }
+
+    // Orbiting drone with red eye (slow circular orbit above the spire)
+    const oT = performance.now() / 1100;
+    const ox = cxF + Math.cos(oT) * 30;
+    const oy = GROUND_Y - 102 + Math.sin(oT) * 6;
+    ctx.fillStyle = '#2a3454';
+    ctx.beginPath(); ctx.ellipse(ox, oy, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#15110c'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#ff5a5a';
+    ctx.beginPath(); ctx.arc(ox + Math.cos(oT) * 2, oy, 1.2, 0, Math.PI * 2); ctx.fill();
+    // Drone underglow
+    ctx.fillStyle = 'rgba(110,196,255,0.3)';
+    ctx.beginPath(); ctx.ellipse(ox, oy + 4, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawTurrets(baseX, slots) {
