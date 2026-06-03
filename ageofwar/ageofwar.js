@@ -4037,84 +4037,176 @@ const AgeOfWarGame = (() => {
     `);
   }
 
-  function svgHover() {  // future hover gunship
-    return svgWrapVB(200, 160, `
-      <!-- Anti-grav hover plume (below) -->
-      <ellipse cx="100" cy="138" rx="80" ry="10" fill="rgba(190,80,220,0.45)"/>
-      <ellipse cx="100" cy="146" rx="70" ry="6" fill="rgba(255,144,238,0.55)"/>
-      <ellipse cx="100" cy="152" rx="56" ry="4" fill="rgba(255,200,250,0.4)"/>
+  function svgHover() {  // future hover attack gunship (faces right)
+    // Sleek dark gunship: pointed nose, swept wings, tail fin, twin
+    // engines, glowing cockpit + underwing missile pods. Dark hull
+    // with cyan accents replaces the previous pink-saucer cyclops.
+    return svgWrapVB(220, 170, `
+      <!-- Anti-grav exhaust plumes (below the hull) -->
+      <ellipse cx="60"  cy="138" rx="22" ry="6" fill="rgba(120,220,255,0.45)"/>
+      <ellipse cx="60"  cy="146" rx="14" ry="3" fill="rgba(200,240,255,0.55)"/>
+      <ellipse cx="140" cy="138" rx="22" ry="6" fill="rgba(120,220,255,0.45)"/>
+      <ellipse cx="140" cy="146" rx="14" ry="3" fill="rgba(200,240,255,0.55)"/>
 
-      <!-- Wing pylons hanging missiles -->
-      <path d="M 30 96 L 30 116 L 50 116 L 50 100 Z" fill="#4a4a6a" ${Ob}/>
-      <path d="M 150 96 L 150 116 L 170 116 L 170 100 Z" fill="#4a4a6a" ${Ob}/>
-      <!-- Missiles -->
-      <path d="M 26 116 L 26 130 L 54 130 L 54 116 Z" fill="#7a3a78" ${Ob}/>
-      <path d="M 26 130 L 22 138 L 30 134 Z" fill="#15110c" ${Ob}/>
-      <path d="M 54 130 L 58 138 L 50 134 Z" fill="#15110c" ${Ob}/>
-      <path d="M 146 116 L 146 130 L 174 130 L 174 116 Z" fill="#7a3a78" ${Ob}/>
-      <path d="M 146 130 L 142 138 L 150 134 Z" fill="#15110c" ${Ob}/>
-      <path d="M 174 130 L 178 138 L 170 134 Z" fill="#15110c" ${Ob}/>
-      <!-- Missile tips white -->
-      <circle cx="40" cy="118" r="2" fill="#fff"/>
-      <circle cx="160" cy="118" r="2" fill="#fff"/>
+      <!-- Tail fin (rear left) -->
+      <path d="M 18 80 L 6 56 L 14 86 Z" fill="#2a3454" ${Ob}/>
+      <path d="M 10 60 L 12 78" stroke="#7ec8ff" stroke-width="1.5"/>
 
-      <!-- Lower hull (curved disc bottom) -->
-      <path d="M 12 90 Q 100 124, 188 90 L 178 110 Q 100 124, 22 110 Z" fill="#7a3a78" ${Ob}/>
+      <!-- Lower hull (shadow band) -->
+      <path d="M 10 96 Q 110 124, 210 92 L 196 116 Q 110 134, 26 118 Z" fill="#1a2238" ${Ob}/>
 
-      <!-- Main body / saucer disc -->
-      <path d="M 12 80 Q 100 30, 188 80 Q 188 96, 178 100 Q 100 124, 22 100 Q 12 96, 12 80 Z" fill="#c46ad6" ${Ob}/>
-      <!-- Mid-body highlight band -->
-      <path d="M 24 76 Q 100 38, 176 76" fill="none" stroke="#e6b8f0" stroke-width="4"/>
-      <path d="M 28 70 Q 100 40, 172 70" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+      <!-- Main hull - sleek arrow shape pointing right -->
+      <path d="M 14 76 Q 70 50, 160 60 L 212 88 L 162 100 Q 70 110, 22 96 Z" fill="#3a4870" ${Ob}/>
+      <!-- Upper highlight band -->
+      <path d="M 30 72 Q 90 56, 158 64" fill="none" stroke="#6a85bc" stroke-width="3"/>
+      <path d="M 34 68 Q 90 56, 156 62" fill="none" stroke="#bfdcff" stroke-width="1.4" opacity="0.7"/>
 
-      <!-- Cockpit bubble -->
-      <path d="M 70 52 Q 100 28, 130 52 Q 130 64, 100 68 Q 70 64, 70 52 Z" fill="#bfeaff" ${Ob}/>
-      <path d="M 80 46 Q 100 36, 120 46" fill="none" stroke="#fff" stroke-width="2.5"/>
-      <!-- Pilot silhouette -->
-      <ellipse cx="100" cy="58" rx="10" ry="6" fill="#2a2350"/>
+      <!-- Swept-back wing (visible) -->
+      <path d="M 50 82 L 18 110 L 30 110 L 84 90 Z" fill="#2a3454" ${Ob}/>
+      <path d="M 35 100 L 70 92" stroke="#7ec8ff" stroke-width="1.5"/>
 
-      <!-- Antenna mast -->
-      <rect x="98" y="14" width="4" height="14" fill="#4a4a6a" stroke="${OUTC}" stroke-width="1.5"/>
-      <circle cx="100" cy="12" r="3" fill="#ff5a5a" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Cockpit canopy (forward, glowing) -->
+      <path d="M 110 56 Q 140 46, 168 64 L 162 78 Q 130 80, 108 72 Z" fill="#9bdcff" ${Ob}/>
+      <path d="M 116 58 Q 140 50, 162 64" fill="none" stroke="#fff" stroke-width="2.2"/>
+      <!-- Pilot silhouette through canopy -->
+      <ellipse cx="138" cy="68" rx="9" ry="5" fill="#1a2238"/>
+      <circle cx="142" cy="66" r="2" fill="#0a0e18"/>
 
-      <!-- Side rear thrusters (glowing) -->
-      <rect x="2" y="84" width="14" height="10" rx="3" fill="#2a1f3a" ${Ob}/>
-      <ellipse cx="2" cy="89" rx="6" ry="4" fill="#ff90ee"/>
-      <ellipse cx="0" cy="89" rx="3" ry="2" fill="#fff"/>
+      <!-- Nose tip with sensor -->
+      <path d="M 195 80 L 212 88 L 195 96 Z" fill="#15110c" ${Ob}/>
+      <circle cx="200" cy="88" r="2.5" fill="#ff5a5a"/>
 
-      <!-- Front gun barrel mounted center -->
-      <rect x="156" y="84" width="32" height="6" rx="2" fill="#2a2350" ${Ob}/>
-      <rect x="184" y="82" width="6" height="10" rx="1.5" fill="#15110c" ${Ob}/>
-      <!-- Targeting glow -->
-      <circle cx="186" cy="87" r="3" fill="#ff90ee"/>
-      <circle cx="186" cy="87" r="1.5" fill="#fff"/>
+      <!-- Wing-mounted gun pod (top) -->
+      <rect x="72" y="64" width="20" height="6" rx="1.5" fill="#1a2238" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="88" y="65" width="10" height="4" rx="1" fill="#7ec8ff"/>
 
-      <!-- Side fins -->
-      <path d="M 12 84 L 0 70 L 4 88" fill="#a050c0" ${Ob}/>
-      <path d="M 188 84 L 200 70 L 196 88" fill="#a050c0" ${Ob}/>
+      <!-- Underwing missile racks (3 missiles per side) -->
+      <g stroke="${OUTC}" stroke-width="1.5">
+        <rect x="38" y="106" width="56" height="4" rx="1" fill="#2a3454"/>
+        <rect x="40" y="110" width="14" height="10" rx="1" fill="#54649a"/>
+        <rect x="58" y="110" width="14" height="10" rx="1" fill="#54649a"/>
+        <rect x="76" y="110" width="14" height="10" rx="1" fill="#54649a"/>
+      </g>
+      <!-- Missile tips -->
+      <circle cx="47" cy="115" r="2" fill="#ff5a5a"/>
+      <circle cx="65" cy="115" r="2" fill="#ff5a5a"/>
+      <circle cx="83" cy="115" r="2" fill="#ff5a5a"/>
 
-      <!-- Underside running lights -->
-      <circle cx="50" cy="108" r="2" fill="#ff90ee"/>
-      <circle cx="100" cy="116" r="2.5" fill="#bfeaff"/>
-      <circle cx="150" cy="108" r="2" fill="#ff90ee"/>
+      <!-- Right-side missile rack (smaller, forward) -->
+      <g stroke="${OUTC}" stroke-width="1.5">
+        <rect x="118" y="104" width="40" height="4" rx="1" fill="#2a3454"/>
+        <rect x="120" y="108" width="14" height="10" rx="1" fill="#54649a"/>
+        <rect x="138" y="108" width="14" height="10" rx="1" fill="#54649a"/>
+      </g>
+      <circle cx="127" cy="113" r="2" fill="#ff5a5a"/>
+      <circle cx="145" cy="113" r="2" fill="#ff5a5a"/>
+
+      <!-- Engine intakes (twin, glowing) -->
+      <ellipse cx="60"  cy="92" rx="10" ry="4" fill="#15110c" stroke="${OUTC}" stroke-width="1.5"/>
+      <ellipse cx="60"  cy="92" rx="6"  ry="2" fill="#7ec8ff"/>
+      <ellipse cx="140" cy="94" rx="10" ry="4" fill="#15110c" stroke="${OUTC}" stroke-width="1.5"/>
+      <ellipse cx="140" cy="94" rx="6"  ry="2" fill="#7ec8ff"/>
+
+      <!-- Hull panel lines -->
+      <path d="M 80 84 L 130 84" stroke="${OUTC}" stroke-width="1.2" opacity="0.6"/>
+      <path d="M 90 92 L 130 92" stroke="${OUTC}" stroke-width="1.2" opacity="0.4"/>
+
+      <!-- Rear running lights -->
+      <circle cx="20" cy="86" r="1.6" fill="#ff5a5a"/>
+      <circle cx="44" cy="98" r="1.6" fill="#7ec8ff"/>
+
+      <!-- Antenna -->
+      <rect x="76" y="56" width="2" height="10" fill="#1a2238"/>
+      <circle cx="77" cy="54" r="1.5" fill="#ff5a5a"/>
     `);
   }
 
-  function svgTitan() {  // hero: armored future titan
-    return svgWrapVB(150, 170, `
-      <path d="M40 96 l-10 40 -2 26 20 0 4 -26 Z" fill="#3a4a78" ${Ob}/>
-      <path d="M106 96 l10 40 2 26 -20 0 -4 -26 Z" fill="#2e3c64" ${Ob}/>
-      <path d="M24 158 l26 0" fill="none" stroke="#1d2540" stroke-width="12" stroke-linecap="round"/>
-      <path d="M98 158 l26 0" fill="none" stroke="#1d2540" stroke-width="12" stroke-linecap="round"/>
-      <path d="M36 44 q38 -16 76 0 l8 56 q-46 18 -92 0 Z" fill="#46568a" ${Ob}/>
-      <path d="M74 44 l8 0 8 56 q-8 3 -16 4 Z" fill="#2e3c64"/>
-      <path d="M30 50 l-16 8 q-6 8 2 18 l20 -8 Z" fill="#3a4a78" ${Ob}/>
-      <path d="M118 50 l16 8 q6 8 -2 18 l-20 -8 Z" fill="#3a4a78" ${Ob}/>
-      <circle cx="36" cy="92" r="9" fill="#7ec8ff"/><circle cx="112" cy="92" r="9" fill="#7ec8ff"/>
-      <path d="M52 30 q22 -16 44 0 l0 18 -44 0 Z" fill="#54649a" ${Ob}/>
-      <path d="M58 36 l32 0 0 8 -32 0 Z" fill="#ff5a5a"/>
-      <path d="M52 30 l-6 -14 10 6 Z" fill="#54649a" ${Ob}/>
-      <path d="M96 30 l6 -14 -10 6 Z" fill="#54649a" ${Ob}/>
+  function svgTitan() {  // hero: end-game sci-fi mech colossus (faces right)
+    // Big, intimidating walking battle-mech with a glowing visor band,
+    // shoulder cannons, exhaust vents, and panel-line detail. Anchored
+    // at the bottom of the viewBox like all bespoke sprites.
+    return svgWrapVB(200, 220, `
+      <!-- Back leg (planted) -->
+      <path d="M 64 120 L 56 168 L 58 200" fill="none" stroke="${OUTC}" stroke-width="26" stroke-linecap="round"/>
+      <path d="M 64 120 L 56 168 L 58 200" fill="none" stroke="#2a3454" stroke-width="22" stroke-linecap="round"/>
+      <!-- Back knee joint -->
+      <circle cx="56" cy="168" r="11" fill="#7ec8ff" stroke="${OUTC}" stroke-width="2"/>
+      <circle cx="56" cy="168" r="5" fill="#15110c"/>
+      <!-- Back foot plate -->
+      <path d="M 36 198 L 86 198 L 90 214 L 32 214 Z" fill="#15110c" ${Ob}/>
+      <path d="M 40 204 L 84 204" stroke="#7ec8ff" stroke-width="2"/>
+      <!-- Back hip thruster -->
+      <ellipse cx="68" cy="124" rx="8" ry="5" fill="#ff8a4a"/>
+
+      <!-- Front leg (lifted, stepping forward) -->
+      <path d="M 124 120 Q 138 142, 130 168 L 134 196" fill="none" stroke="${OUTC}" stroke-width="26" stroke-linecap="round"/>
+      <path d="M 124 120 Q 138 142, 130 168 L 134 196" fill="none" stroke="#3a4a78" stroke-width="22" stroke-linecap="round"/>
+      <circle cx="138" cy="146" r="11" fill="#7ec8ff" stroke="${OUTC}" stroke-width="2"/>
+      <circle cx="138" cy="146" r="5" fill="#15110c"/>
+      <!-- Front foot plate -->
+      <path d="M 112 194 L 162 194 L 166 210 L 108 210 Z" fill="#15110c" ${Ob}/>
+      <path d="M 116 200 L 160 200" stroke="#7ec8ff" stroke-width="2"/>
+      <!-- Front hip thruster -->
+      <ellipse cx="124" cy="124" rx="8" ry="5" fill="#ff8a4a"/>
+
+      <!-- Hip / waist armor block -->
+      <path d="M 50 116 L 142 116 L 138 138 L 54 138 Z" fill="#1d2540" ${Ob}/>
+      <rect x="86" y="120" width="20" height="14" rx="2" fill="#7ec8ff" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="90" y="123" width="12" height="8" fill="#bfeaff"/>
+
+      <!-- Main torso plate -->
+      <path d="M 46 56 L 146 56 L 152 120 L 40 120 Z" fill="#46568a" ${Ob}/>
+      <!-- Right shadow on torso (light from upper left) -->
+      <path d="M 96 56 L 146 56 L 152 120 L 100 120 Z" fill="${OUTC}" opacity="0.22"/>
+      <!-- Center power core panel -->
+      <rect x="80" y="68" width="32" height="40" rx="4" fill="#1d2540" ${Ob}/>
+      <circle cx="96" cy="88" r="12" fill="#15110c"/>
+      <circle cx="96" cy="88" r="9" fill="#7ec8ff"/>
+      <circle cx="96" cy="88" r="5" fill="#bfeaff"/>
+      <circle cx="93" cy="85" r="2" fill="#fff"/>
+      <!-- Side panel seams -->
+      <path d="M 56 64 L 76 64 L 78 116 L 52 116 Z" fill="none" stroke="${OUTC}" stroke-width="1.5"/>
+      <path d="M 116 64 L 136 64 L 140 116 L 118 116 Z" fill="none" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Top torso highlight -->
+      <path d="M 50 58 Q 96 50, 142 58" fill="none" stroke="#7e98d8" stroke-width="2"/>
+
+      <!-- Left shoulder pauldron + shoulder cannon -->
+      <path d="M 28 48 Q 32 28, 56 30 L 60 70 Q 36 76, 24 64 Z" fill="#3a4a78" ${Ob}/>
+      <rect x="20" y="34" width="22" height="10" rx="2" fill="#15110c" stroke="${OUTC}" stroke-width="2"/>
+      <rect x="14" y="36" width="8" height="6" fill="#ff5a5a"/>
+
+      <!-- Right shoulder pauldron + missile pod -->
+      <path d="M 164 48 Q 160 28, 136 30 L 132 70 Q 156 76, 168 64 Z" fill="#54649a" ${Ob}/>
+      <rect x="146" y="32" width="26" height="18" rx="3" fill="#1d2540" stroke="${OUTC}" stroke-width="2"/>
+      <!-- Missile tips -->
+      <g fill="#ff5a5a">
+        <circle cx="152" cy="38" r="2.4" stroke="${OUTC}" stroke-width="1"/>
+        <circle cx="162" cy="38" r="2.4" stroke="${OUTC}" stroke-width="1"/>
+        <circle cx="152" cy="46" r="2.4" stroke="${OUTC}" stroke-width="1"/>
+        <circle cx="162" cy="46" r="2.4" stroke="${OUTC}" stroke-width="1"/>
+      </g>
+
+      <!-- Back exhaust pack -->
+      <rect x="38" y="60" width="6" height="22" fill="#15110c" ${Ob}/>
+      <rect x="40" y="56" width="6" height="6" fill="#9a9a9a" stroke="${OUTC}" stroke-width="1"/>
+      <ellipse cx="36" cy="56" rx="6" ry="3" fill="#ff8a4a" opacity="0.7"/>
+
+      <!-- Helmet / head module -->
+      <path d="M 68 18 L 124 18 L 132 50 L 60 50 Z" fill="#54649a" ${Ob}/>
+      <!-- Visor band (horizontal slit) -->
+      <rect x="64" y="28" width="64" height="14" rx="2" fill="#0a0e18" stroke="${OUTC}" stroke-width="2"/>
+      <!-- Glowing visor strip -->
+      <rect x="68" y="32" width="56" height="6" fill="#ff5a5a"/>
+      <rect x="68" y="32" width="56" height="2" fill="#ffb0b0"/>
+      <!-- Visor specular highlight -->
+      <rect x="72" y="33" width="14" height="2" fill="#fff" opacity="0.8"/>
+      <!-- Crown / antennae -->
+      <path d="M 76 18 L 78 6 L 82 18 Z" fill="#7ec8ff" ${Ob}/>
+      <path d="M 114 18 L 116 6 L 120 18 Z" fill="#7ec8ff" ${Ob}/>
+      <rect x="94" y="2" width="8" height="14" rx="1.5" fill="#1d2540" stroke="${OUTC}" stroke-width="1.5"/>
+      <circle cx="98" cy="2" r="2.5" fill="#ff5a5a"/>
+      <!-- Jaw line -->
+      <path d="M 70 46 L 122 46" stroke="${OUTC}" stroke-width="1.5"/>
     `);
   }
 
@@ -4254,7 +4346,7 @@ const AgeOfWarGame = (() => {
   const SPRITE_ASPECT = {
     dino: 220/170, knight: 240/200, hero_grog: 180/160,
     tank1: 200/160, tank2: 180/110, mech: 180/180,
-    flier: 200/160, hero_titan: 150/170,
+    flier: 220/170, hero_titan: 200/220,
   };
 
   // Cache lookup returns { runA, runB, strike } where each is { img, ready }.
