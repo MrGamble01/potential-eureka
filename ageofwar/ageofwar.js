@@ -19,9 +19,9 @@ const AgeOfWarGame = (() => {
   // Five ages, each with a sky palette, base color, age-up XP cost,
   // and a per-era special ability.
   const ERAS = [
-    { id: 'stone',    name: 'Stone Age',   icon: '🪨', sky: ['#4a3a2a', '#7a604a'], baseColor: '#7a5a3a', upXP:    150,
+    { id: 'stone',    name: 'Stone Age',   icon: '🪨', sky: ['#4a3a2a', '#7a604a'], baseColor: '#7a5a3a', upXP:    100,
       special: { name: 'Boulder',    icon: '🪨', dmg: 180, color: '#a07040' } },
-    { id: 'medieval', name: 'Medieval',    icon: '🏰', sky: ['#2a3a55', '#506a85'], baseColor: '#8a8a9c', upXP:    600,
+    { id: 'medieval', name: 'Medieval',    icon: '🏰', sky: ['#2a3a55', '#506a85'], baseColor: '#8a8a9c', upXP:    480,
       special: { name: 'Arrow Rain', icon: '🏹', dmg: 320, color: '#b5985a' } },
     { id: 'industrial', name: 'Industrial', icon: '🏭', sky: ['#2d2a3a', '#4f4c5e'], baseColor: '#6b6878', upXP:   1800,
       special: { name: 'Artillery', icon: '💣', dmg: 560, color: '#888' } },
@@ -293,7 +293,10 @@ const AgeOfWarGame = (() => {
   let bossWaveActive = false;
   let bossKilledThisWave = false;
   let killFeed = [];          // recent kill entries floating up
-  function isBossWave(n) { return n > 0 && n % 5 === 0; }
+  // Bosses every 7 waves starting at wave 7. Previously every 5 made the
+  // first boss hit before players could even age up, which felt like an
+  // early-game wall. Wave 7 gives ~2 min of room to push to Medieval first.
+  function isBossWave(n) { return n > 0 && n % 7 === 0; }
 
   function heroForEra(era) { return HEROES[era]; }
   function trySummonHero() {
