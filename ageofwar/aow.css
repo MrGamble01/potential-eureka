@@ -316,14 +316,15 @@
   /* Wrap in a centered container that respects both width and height
      so the canvas shrinks horizontally if the viewport height is the
      binding constraint. HUD + actionbar + tabs + spawn rail need ~420px;
-     anything left over is canvas. */
+     anything left over is canvas. Uses dvh so iOS Safari's collapsing
+     URL bar doesn't push content off-screen. */
   width: 100%;
   margin-inline: auto;
   aspect-ratio: 1280 / 560;
-  max-height: calc(100vh - 500px);
+  max-height: calc(100dvh - 500px);
   min-height: 220px;
   /* Shrink width to keep aspect ratio when max-height is the constraint */
-  max-width: calc((100vh - 500px) * 1280 / 560);
+  max-width: calc((100dvh - 500px) * 1280 / 560);
 }
 .aow-canvas {
   display: block;
@@ -625,7 +626,18 @@
    the surrounding chrome aggressively. Previous pass left ~20% for the
    game; this pass collapses the HUD into a single thin strip. */
 @media (max-width: 720px) {
-  .aow-shell { padding: 4px 8px 12px; gap: 6px; }
+  /* Hide the dashboard link + brand on phones -- it's site chrome that
+     wastes precious vertical real estate in the game view. */
+  .aow-page-bar { display: none; }
+
+  /* Mobile shell: hug content; the canvas keeps its aspect ratio and
+     the dark body background absorbs anything below. Uses dvh on the
+     stage cap so iOS Safari's collapsing URL bar doesn't squeeze the
+     game off-screen. */
+  .aow-shell {
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
+  }
 
   /* HUD — collapse into ONE compact row: gold | era | wave. Drop the
      difficulty selector and the standalone XP bar; they're available
@@ -664,17 +676,11 @@
   .aow-combo-label { font-size: 8px; }
   .aow-diff { display: none; }   /* moved to settings; was eating a full row */
 
-  /* Battle strip — one tight line, no icons, half height */
-  .aow-battle-strip { gap: 6px; padding: 0 4px; }
-  .aow-side {
-    padding: 4px 8px; gap: 6px; border-radius: 8px;
-  }
-  .aow-side-icon { display: none; }
-  .aow-side-bar { padding: 1px 0; }
-  .aow-side-label { font-size: 8px; margin-bottom: 1px; letter-spacing: 1.2px; }
-  .aow-side-hp { font-size: 9px; margin-top: 1px; }
-  .aow-side-track { height: 7px; }
-  .aow-vs { display: none; }
+  /* Battle strip on mobile: hide entirely. The canvas already renders
+     base HP bars above each base (drawBaseHpBar), so this DOM strip is
+     duplicate info that just costs vertical space. Saves ~50px for the
+     canvas. */
+  .aow-battle-strip { display: none; }
 
   /* Canvas — take more vertical real estate now that the HUD is thin.
      Keep aspect ratio so the units aren't stretched. */
@@ -970,6 +976,9 @@
     text-overflow: ellipsis;
     max-width: 100%;
   }
+  /* Drop the era / hero subname on phones -- it always truncates ugly
+     ("GROG THE S..."), and the icon + verb already convey the action. */
+  .aow-action-lbl small { display: none; }
   .aow-action-cd {
     position: absolute;
     top: 2px;

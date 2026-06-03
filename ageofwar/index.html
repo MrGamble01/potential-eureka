@@ -57,8 +57,10 @@
       font-size: 13px;
       letter-spacing: 3px;
     }
+    /* Hide the dashboard page bar on phones -- it's site chrome that
+       wastes ~40px of vertical real estate in the game view. */
     @media (max-width: 720px) {
-      .aow-page-bar { padding: 10px 14px; font-size: 10px; }
+      .aow-page-bar { display: none; }
     }
   </style>
 </head>

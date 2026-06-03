@@ -166,6 +166,22 @@ const AgeOfWarGame = (() => {
     const modal = document.getElementById('aow-welcome-modal');
     const btn = document.getElementById('aow-welcome-close');
     if (!modal || !btn) return;
+    // On touch devices, swap the keyboard-centric tutorial for tap-friendly
+    // wording. Keep the same 5-step structure so the layout is unchanged.
+    const isTouch = (typeof window !== 'undefined') &&
+                    ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    if (isTouch) {
+      const steps = modal.querySelector('.aow-welcome-steps');
+      if (steps) {
+        steps.innerHTML = `
+          <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Tap a unit card</strong> at the bottom to send a soldier into battle. Each unit costs gold and has a brief cooldown.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap coins</strong> dropped by kills to scoop up gold. Drag a finger across the screen to sweep many at once. Coins you miss auto-collect after a few seconds.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with the <em>Age Up</em> button when you have enough XP. Unlocks stronger units and a new <strong>Special</strong> attack.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">4</span><div><strong>Summon a Hero</strong> with the <em>Hero</em> button — expensive but devastating. A new hero unlocks each era.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> in the <em>Turrets</em> tab. They snipe enemies for you while you focus on coins.</div></div>
+        `;
+      }
+    }
     modal.style.display = 'flex';
     const close = () => {
       modal.style.display = 'none';
