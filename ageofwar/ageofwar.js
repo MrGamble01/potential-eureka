@@ -3351,6 +3351,25 @@ const AgeOfWarGame = (() => {
     } else if (c.chestEmblem === 'star') {
       P.push(`<path d="M60 80 L 63 88 L 71 88 L 65 93 L 67 101 L 60 96 L 53 101 L 55 93 L 49 88 L 57 88 Z"
                fill="${c.emblemColor}" stroke="${OUT}" stroke-width="1.5" stroke-linejoin="round"/>`);
+    } else if (c.chestEmblem === 'stars4') {
+      // Four-star general insignia: 4 small gold stars in a row across the chest
+      const star = (cx) => `<path d="M ${cx} 82 L ${cx+1.6} 86 L ${cx+5} 86 L ${cx+2.2} 88.5 L ${cx+3.4} 92 L ${cx} 89.7 L ${cx-3.4} 92 L ${cx-2.2} 88.5 L ${cx-5} 86 L ${cx-1.6} 86 Z"
+                              fill="${c.emblemColor}" stroke="${OUT}" stroke-width="0.8" stroke-linejoin="round"/>`;
+      P.push(star(52) + star(58) + star(64) + star(70));
+      // Two rows of ribbon bars beneath
+      P.push(`<rect x="50" y="96" width="6" height="3" fill="#ff5a5a" stroke="${OUT}" stroke-width="0.8"/>`);
+      P.push(`<rect x="57" y="96" width="6" height="3" fill="#3aa3ff" stroke="${OUT}" stroke-width="0.8"/>`);
+      P.push(`<rect x="64" y="96" width="6" height="3" fill="${c.emblemColor}" stroke="${OUT}" stroke-width="0.8"/>`);
+      P.push(`<rect x="50" y="100" width="6" height="3" fill="#3FB950" stroke="${OUT}" stroke-width="0.8"/>`);
+      P.push(`<rect x="57" y="100" width="6" height="3" fill="#fcd34d" stroke="${OUT}" stroke-width="0.8"/>`);
+      P.push(`<rect x="64" y="100" width="6" height="3" fill="#caa84a" stroke="${OUT}" stroke-width="0.8"/>`);
+    }
+    // Officer epaulettes (gold shoulder boards) -- opt-in
+    if (c.epaulettes) {
+      P.push(`<path d="M 44 66 L 60 64 L 58 72 L 44 74 Z" fill="${c.emblemColor || '#caa84a'}" stroke="${OUT}" stroke-width="1.5"/>`);
+      P.push(`<path d="M 76 64 L 80 72 L 72 72 L 70 64 Z" fill="${c.emblemColor || '#caa84a'}" stroke="${OUT}" stroke-width="1.5"/>`);
+      // Gold fringe
+      P.push(`<path d="M 44 74 L 46 78 L 48 74 L 50 78 L 52 74 L 54 78 L 56 74 L 58 78" fill="none" stroke="${c.emblemColor || '#caa84a'}" stroke-width="1.5"/>`);
     }
 
     // --- Front leg ---------------------------------------------------
@@ -3468,6 +3487,19 @@ const AgeOfWarGame = (() => {
                   fill="${c.accent}" ${STR}/>`
              + `<path d="M 44 38 L 30 44 L 36 50 L 46 46 Z" fill="${c.accent}" ${STR}/>`
              + `<path d="M 44 40 L 80 40" stroke="${c.accentSh}" stroke-width="1.5"/>`;
+      }
+      case 'beret': {       // officer's beret with badge -- slanted to the side
+        return `<path d="M 44 32 Q 44 18, 62 18 Q 84 18, 86 30 L 84 38 Q 64 42, 44 38 Z"
+                  fill="${c.accent}" ${STR}/>`
+             // Top crown highlight
+             + `<path d="M 48 24 Q 62 20, 80 26" fill="none" stroke="${c.accentHi}" stroke-width="2"/>`
+             // Slanted side dip (right side falls lower)
+             + `<path d="M 80 28 Q 86 32, 84 38" fill="${c.accent}" ${STR}/>`
+             // Headband
+             + `<path d="M 44 36 L 84 38" stroke="${c.accentSh}" stroke-width="2"/>`
+             // Brass badge (front-left of beret)
+             + `<circle cx="56" cy="30" r="3.5" fill="${c.emblemColor || '#caa84a'}" stroke="${OUT}" stroke-width="1.5"/>`
+             + `<path d="M 53 30 L 56 27 L 59 30 L 56 33 Z" fill="${OUT}" opacity="0.6"/>`;
       }
       default: return '';
     }
@@ -4526,13 +4558,14 @@ const AgeOfWarGame = (() => {
     }, pose),
     hero_general: (pose) => svgHumanoid({
       skin:'#e0ad8a', skinSh:'#a37a52', skinHi:'#f3c8a3',
-      torso:'#5d7b3a', torsoSh:'#34461c',
+      torso:'#3a4824', torsoSh:'#1e2810',
       legs:'#3a2818', legsSh:'#1e1408',
       boots:'#1a1208', bootCuff:'#3a2818',
-      accent:'#caa84a', accentSh:'#7a6628', accentHi:'#ebd078',
+      accent:'#2a3520', accentSh:'#141a10', accentHi:'#46582a',
       hair:'#2a1c0e', belt:'#3a2014', beltBuckle:'#caa84a',
-      chestEmblem:'star', emblemColor:'#caa84a',
-      headgear:'none', weapon:'rifle',
+      chestEmblem:'stars4', emblemColor:'#caa84a',
+      epaulettes:true,
+      headgear:'beret', weapon:'sword',
     }, pose),
     hero_seal: (pose) => svgHumanoid({
       skin:'#c9a978', skinSh:'#8a6a3a', skinHi:'#e8c898',
