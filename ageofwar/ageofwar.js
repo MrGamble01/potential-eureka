@@ -3871,24 +3871,119 @@ const AgeOfWarGame = (() => {
     `);
   }
 
-  function svgMammoth() {  // hero: woolly mammoth + chief
-    return svgWrapVB(180, 160, `
-      <path d="M44 90 Q14 96 18 74 Q30 86 50 88 Z" fill="#5a3a22" ${Ob}/>
-      <path d="M40 88 q34 -34 92 -16 q34 10 30 40 q-6 26 -44 30 q-58 6 -82 -14 q-14 -16 4 -40 Z" fill="#6e4426" ${Ob}/>
-      <g stroke="#4a2e16" stroke-width="3"><path d="M48 70 l0 10"/><path d="M64 64 l0 12"/><path d="M84 62 l0 12"/><path d="M104 64 l0 12"/><path d="M124 70 l0 10"/></g>
-      <path d="M132 92 q22 -4 30 10 q-4 12 -18 10 Z" fill="#6e4426" ${Ob}/>
-      <ellipse cx="150" cy="88" rx="22" ry="20" fill="#6e4426" ${Ob}/>
-      <path d="M158 96 q4 28 -6 44 q-10 2 -10 -8 q2 -22 6 -36 Z" fill="#f3e6c0" ${Ob}/>
-      <path d="M148 96 q12 26 0 48" fill="none" stroke="#5a3a22" stroke-width="9" stroke-linecap="round"/>
-      <circle cx="156" cy="82" r="2.6" fill="${OUTC}"/>
-      <path d="M44 96 l-4 46 14 0 2 -44 Z" fill="#4a2e16" ${Ob}/>
-      <path d="M84 100 l-2 44 14 0 2 -44 Z" fill="#5a3a22" ${Ob}/>
-      <path d="M120 100 l2 44 14 0 -2 -44 Z" fill="#4a2e16" ${Ob}/>
-      <path d="M70 54 q6 -20 22 -14 l-3 16 Z" fill="#8a5a2a" ${Ob}/>
-      <circle cx="84" cy="42" r="9" fill="#d99a63" ${Ob}/>
-      <path d="M74 34 q10 -10 22 -2 q-6 -2 -22 2 Z" fill="#2c1c0e" ${Ob}/>
-      <path d="M92 40 l22 -16" fill="none" stroke="#5a3a18" stroke-width="3"/>
-      <path d="M114 24 l8 -2 -6 8 Z" fill="#aaa" ${Ob}/>
+  function svgMammoth() {  // hero: woolly mammoth + chieftain (faces right)
+    // Big shaggy stone-age boss beast. Head/trunk/tusks on the right;
+    // chieftain rides atop a fur saddle with a spear raised high.
+    return svgWrapVB(220, 220, `
+      <g transform="translate(0 30)">
+      <!-- Tail (left) with fur tuft -->
+      <path d="M 12 96 Q 0 104, 6 118 L 10 116 Q 14 110, 16 102 Z" fill="#3a2010" ${Ob}/>
+      <g stroke="#15110c" stroke-width="2" stroke-linecap="round">
+        <path d="M 8 116 L 4 122"/>
+        <path d="M 12 118 L 10 126"/>
+      </g>
+
+      <!-- Back legs (chunky) -->
+      <path d="M 36 124 L 30 162 L 28 178 L 56 178 L 58 162 L 56 124 Z" fill="#3a2010" ${Ob}/>
+      <path d="M 30 178 L 56 178 L 58 188 L 28 188 Z" fill="#15110c" ${Ob}/>
+      <!-- Fur skirts on back legs -->
+      <path d="M 32 154 L 28 160 L 34 160 L 32 168 L 38 164 L 40 172 L 46 162 L 48 170 L 54 158 L 56 168 L 60 156" fill="none" stroke="#15110c" stroke-width="2"/>
+
+      <!-- Front legs (slightly forward) -->
+      <path d="M 130 130 L 128 162 L 126 178 L 154 178 L 156 162 L 152 130 Z" fill="#4a2818" ${Ob}/>
+      <path d="M 128 178 L 154 178 L 156 188 L 126 188 Z" fill="#15110c" ${Ob}/>
+      <path d="M 130 154 L 126 160 L 132 160 L 130 168 L 138 162 L 140 172 L 146 162 L 148 170 L 154 158 L 156 168" fill="none" stroke="#15110c" stroke-width="2"/>
+
+      <!-- Belly + body bulk (big shaggy form) -->
+      <path d="M 28 94 Q 40 56, 110 56 Q 174 56, 178 100 Q 180 132, 144 138 L 38 138 Q 18 132, 28 94 Z" fill="#6a3a1c" ${Ob}/>
+      <!-- Body fur strokes layered -->
+      <g stroke="#3a2010" stroke-width="3" stroke-linecap="round">
+        <path d="M 36 88 L 32 96"/>
+        <path d="M 52 78 L 48 88"/>
+        <path d="M 70 72 L 66 84"/>
+        <path d="M 92 70 L 88 82"/>
+        <path d="M 114 70 L 110 82"/>
+        <path d="M 134 74 L 130 86"/>
+        <path d="M 152 80 L 148 92"/>
+      </g>
+      <!-- Belly fur dangling -->
+      <path d="M 40 130 L 36 140 L 44 136 L 48 144 L 56 134 L 60 142 L 68 134 L 74 142 L 82 134 L 88 144 L 96 134 L 104 142 L 112 134 L 120 144 L 128 134 L 134 142 L 142 134" fill="none" stroke="#15110c" stroke-width="2"/>
+      <!-- Upper body highlight (light from upper left) -->
+      <path d="M 40 80 Q 96 64, 158 78" fill="none" stroke="#8a5a32" stroke-width="3"/>
+      <!-- Right-side shadow -->
+      <path d="M 110 64 Q 174 60, 178 100 Q 180 132, 144 138 L 120 138 Z" fill="${OUTC}" opacity="0.22"/>
+
+      <!-- Head + dome (right side) -->
+      <path d="M 154 70 Q 198 70, 200 110 Q 198 132, 172 134 L 152 134 Q 144 110, 154 70 Z" fill="#6a3a1c" ${Ob}/>
+      <!-- Forehead bump highlight -->
+      <path d="M 168 76 Q 188 78, 196 92" fill="none" stroke="#8a5a32" stroke-width="3"/>
+
+      <!-- Trunk (curling forward) -->
+      <path d="M 178 116 Q 208 124, 212 148 Q 210 168, 196 168 Q 194 156, 200 148 Q 196 138, 184 138 Z" fill="#6a3a1c" ${Ob}/>
+      <!-- Trunk fur strokes -->
+      <g stroke="#3a2010" stroke-width="2">
+        <path d="M 184 124 L 188 130"/>
+        <path d="M 190 130 L 194 136"/>
+        <path d="M 198 136 L 202 142"/>
+        <path d="M 204 144 L 206 150"/>
+        <path d="M 202 156 L 206 160"/>
+      </g>
+
+      <!-- Tusks (big curving) -->
+      <path d="M 170 132 Q 180 162, 198 168 Q 192 162, 188 154 Q 178 138, 172 132 Z" fill="#f3e6c0" ${Ob}/>
+      <path d="M 174 134 Q 184 162, 196 168" fill="none" stroke="#caa84a" stroke-width="1.5"/>
+      <path d="M 158 134 Q 162 152, 176 162 Q 170 158, 166 152 Q 158 142, 156 134 Z" fill="#f3e6c0" ${Ob}/>
+
+      <!-- Eye + brow -->
+      <circle cx="180" cy="100" r="3" fill="${OUTC}"/>
+      <circle cx="180" cy="100" r="1" fill="#fff"/>
+      <path d="M 174 90 Q 184 86, 188 92" fill="none" stroke="${OUTC}" stroke-width="2.5"/>
+
+      <!-- Ear -->
+      <path d="M 150 78 Q 138 70, 132 82 Q 138 94, 154 90 Z" fill="#3a2010" ${Ob}/>
+
+      <!-- Saddle (between bumps) -->
+      <path d="M 60 60 Q 100 50, 132 62 L 128 76 Q 96 80, 64 74 Z" fill="#3a2010" ${Ob}/>
+      <path d="M 64 64 L 128 66" stroke="#caa84a" stroke-width="1.5"/>
+
+      <!-- Chieftain rider: torso -->
+      <path d="M 80 28 Q 102 22, 110 28 L 112 60 Q 90 64, 78 58 Z" fill="#8a5a2a" ${Ob}/>
+      <path d="M 78 32 L 112 32" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Fur shoulder pelt -->
+      <path d="M 76 30 Q 90 22, 116 28 L 116 42 Q 92 44, 78 42 Z" fill="#cdb480" ${Ob}/>
+      <path d="M 78 38 L 82 44 L 86 38 L 90 44 L 96 38 L 102 44 L 108 38 L 114 44" fill="none" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Rider legs straddling -->
+      <path d="M 76 56 L 70 70" stroke="${OUTC}" stroke-width="9" stroke-linecap="round"/>
+      <path d="M 76 56 L 70 70" stroke="#5a3a18" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 114 56 L 122 70" stroke="${OUTC}" stroke-width="9" stroke-linecap="round"/>
+      <path d="M 114 56 L 122 70" stroke="#5a3a18" stroke-width="6" stroke-linecap="round"/>
+
+      <!-- Rider head -->
+      <ellipse cx="96" cy="14" rx="11" ry="13" fill="#d99a63" ${Ob}/>
+      <path d="M 96 1 A 11 13 0 0 1 96 27 Z" fill="${OUTC}" opacity="0.15"/>
+      <!-- Beard -->
+      <path d="M 88 18 Q 96 28, 104 18 L 102 26 Q 96 30, 90 26 Z" fill="#2c1c0e" ${Ob}/>
+      <!-- Eyes -->
+      <circle cx="92" cy="13" r="1.4" fill="${OUTC}"/>
+      <circle cx="100" cy="13" r="1.4" fill="${OUTC}"/>
+      <!-- Headdress: feather strap -->
+      <path d="M 84 4 L 108 4 L 108 8 L 84 8 Z" fill="#5a3a18" ${Ob}/>
+      <!-- Feathers -->
+      <path d="M 88 4 L 84 -10 L 90 -2 Z" fill="#ff5a5a" ${Ob}/>
+      <path d="M 96 4 L 94 -14 L 100 -4 Z" fill="#cdb480" ${Ob}/>
+      <path d="M 104 4 L 108 -10 L 106 -2 Z" fill="#7ec8ff" ${Ob}/>
+
+      <!-- Raised spear (held high) -->
+      <path d="M 72 38 L 40 -10" stroke="#5a3a18" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M 72 38 L 40 -10" stroke="#8a5a2a" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- Spear head -->
+      <path d="M 36 -12 L 28 -22 L 44 -8 Z" fill="#dfe4e8" ${Ob}/>
+      <!-- Bound feathers under spear head -->
+      <path d="M 44 -2 L 38 -8 L 50 -4 Z" fill="#ff5a5a" ${Ob}/>
+
+      <!-- Rider hand on spear -->
+      <circle cx="72" cy="38" r="4.5" fill="#d99a63" stroke="${OUTC}" stroke-width="2"/>
+      </g>
     `);
   }
 
@@ -4461,7 +4556,7 @@ const AgeOfWarGame = (() => {
 
   // Natural aspect (w/h) per sprite so the blit doesn't distort them.
   const SPRITE_ASPECT = {
-    dino: 220/170, knight: 240/200, hero_grog: 180/160,
+    dino: 220/170, knight: 240/200, hero_grog: 220/220,
     tank1: 200/160, tank2: 220/130, mech: 200/200,
     flier: 220/170, hero_titan: 200/220,
   };
