@@ -3965,75 +3965,192 @@ const AgeOfWarGame = (() => {
     `);
   }
 
-  function svgTankModern() {  // modern MBT
-    return svgWrapVB(180, 110, `
-      <rect x="16" y="84" width="150" height="16" rx="8" fill="#1a1a1a" ${Ob}/>
-      <g fill="#333">${Array.from({length:7},(_,i)=>`<circle cx="${34+i*20}" cy="92" r="9" stroke="${OUTC}" stroke-width="2"/>`).join('')}</g>
-      <path d="M22 84 l8 -22 120 0 8 22 Z" fill="#5a6a40" ${Ob}/>
-      <path d="M54 62 q4 -16 28 -16 l40 0 q14 0 14 16 Z" fill="#66794a" ${Ob}/>
-      <rect x="118" y="50" width="56" height="7" rx="3" fill="#3a3a2a" ${Ob}/>
-      <rect x="166" y="48" width="8" height="11" rx="2" fill="#222" ${Ob}/>
-      <rect x="78" y="38" width="16" height="12" rx="2" fill="#44502f" ${Ob}/>
+  function svgTankModern() {  // modern MBT (faces right)
+    // Proper main battle tank: angular hull, low-profile turret with
+    // commander hatch + crew, gun barrel with thermal sleeve + muzzle
+    // brake, side skirts + camo dapples, antenna, smoke grenade rack,
+    // fuel cans on the rear deck.
+    return svgWrapVB(220, 130, `
+      <!-- Tread base + drive wheels -->
+      <rect x="14" y="100" width="190" height="20" rx="10" fill="#1a1a1a" ${Ob}/>
+      <!-- Tread plate detail -->
+      <g>${Array.from({length:18},(_,i)=>`<rect x="${18+i*10}" y="103" width="8" height="14" rx="1" fill="#2a2a2a" stroke="${OUTC}" stroke-width="1"/>`).join('')}</g>
+      <!-- Front sprocket wheel -->
+      <circle cx="196" cy="110" r="11" fill="#3a3a3a" stroke="${OUTC}" stroke-width="2"/>
+      <circle cx="196" cy="110" r="4" fill="#222"/>
+      <path d="M 196 99 L 196 121 M 185 110 L 207 110 M 188 102 L 204 118 M 188 118 L 204 102" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Rear idler wheel -->
+      <circle cx="24" cy="110" r="11" fill="#3a3a3a" stroke="${OUTC}" stroke-width="2"/>
+      <circle cx="24" cy="110" r="4" fill="#222"/>
+      <path d="M 24 99 L 24 121 M 13 110 L 35 110" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Road wheels (smaller) -->
+      <g fill="#3a3a3a">${Array.from({length:5},(_,i)=>`<circle cx="${48+i*30}" cy="112" r="7" stroke="${OUTC}" stroke-width="2"/>`).join('')}</g>
+
+      <!-- Lower hull / side skirt -->
+      <path d="M 28 96 L 192 96 L 198 110 L 22 110 Z" fill="#3a4824" ${Ob}/>
+      <!-- Side skirt panel lines -->
+      <path d="M 60 96 L 60 108 M 96 96 L 96 108 M 132 96 L 132 108 M 168 96 L 168 108" stroke="${OUTC}" stroke-width="1.2" opacity="0.6"/>
+
+      <!-- Main hull -->
+      <path d="M 30 78 L 32 70 L 196 70 L 200 80 L 198 96 L 28 96 Z" fill="#5a6a40" ${Ob}/>
+      <!-- Hull top highlight -->
+      <path d="M 36 72 L 192 72" stroke="#7e9054" stroke-width="2"/>
+      <!-- Hull shadow band -->
+      <path d="M 28 88 L 200 88 L 198 96 L 28 96 Z" fill="${OUTC}" opacity="0.18"/>
+      <!-- Camo dapples on hull -->
+      <g fill="#3a4824" opacity="0.75">
+        <ellipse cx="56" cy="84" rx="9" ry="3"/>
+        <ellipse cx="92" cy="80" rx="7" ry="3"/>
+        <ellipse cx="124" cy="86" rx="8" ry="3"/>
+        <ellipse cx="160" cy="82" rx="9" ry="3"/>
+      </g>
+
+      <!-- Front glacis (angled armor plate) -->
+      <path d="M 196 70 L 210 80 L 198 96 Z" fill="#46552e" ${Ob}/>
+      <path d="M 200 76 L 206 80" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Headlights -->
+      <circle cx="202" cy="86" r="2" fill="#fcd34d" stroke="${OUTC}" stroke-width="1"/>
+
+      <!-- Rear deck: fuel cans + tow hooks -->
+      <rect x="32" y="62" width="10" height="10" rx="1" fill="#3a3a2a" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="34" y="64" width="6" height="2" fill="#5a5a4a"/>
+      <rect x="44" y="62" width="10" height="10" rx="1" fill="#3a3a2a" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="46" y="64" width="6" height="2" fill="#5a5a4a"/>
+      <!-- Rear stowage box -->
+      <rect x="58" y="64" width="14" height="8" rx="1" fill="#44502f" stroke="${OUTC}" stroke-width="1.5"/>
+
+      <!-- Turret (low-profile, angular) -->
+      <path d="M 78 58 Q 78 44, 96 44 L 158 44 Q 176 44, 176 60 L 168 70 L 84 70 Z" fill="#66794a" ${Ob}/>
+      <!-- Turret highlight -->
+      <path d="M 84 48 Q 96 46, 158 48" fill="none" stroke="#869c64" stroke-width="2"/>
+      <!-- Turret shadow (right side) -->
+      <path d="M 128 44 L 158 44 Q 176 44, 176 60 L 168 70 L 128 70 Z" fill="${OUTC}" opacity="0.22"/>
+      <!-- Turret panel lines -->
+      <path d="M 100 56 L 154 56" stroke="${OUTC}" stroke-width="1" opacity="0.5"/>
+
+      <!-- Commander cupola + hatch -->
+      <ellipse cx="116" cy="42" rx="12" ry="5" fill="#3a4824" ${Ob}/>
+      <rect x="108" y="32" width="16" height="12" rx="2" fill="#5a6a40" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Commander silhouette -->
+      <ellipse cx="116" cy="32" rx="5" ry="4" fill="#15110c"/>
+      <rect x="113" y="26" width="6" height="6" rx="1" fill="#3a3a2a" stroke="${OUTC}" stroke-width="1.2"/>
+
+      <!-- Antenna -->
+      <rect x="138" y="34" width="2" height="22" fill="#1a1a1a"/>
+      <path d="M 139 32 Q 142 28, 146 30" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+      <!-- Smoke grenade launcher cluster on turret -->
+      <g fill="#1a1a1a" stroke="${OUTC}" stroke-width="1">
+        <rect x="148" y="46" width="3" height="6" rx="0.5"/>
+        <rect x="152" y="44" width="3" height="6" rx="0.5"/>
+        <rect x="156" y="46" width="3" height="6" rx="0.5"/>
+      </g>
+
+      <!-- Main gun: mantlet + thermal sleeve + barrel + muzzle brake -->
+      <rect x="172" y="56" width="14" height="10" rx="2" fill="#44502f" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="186" y="58" width="22" height="7" rx="1.5" fill="#2e3520" ${Ob}/>
+      <!-- Thermal sleeve segments -->
+      <rect x="190" y="57" width="3" height="9" fill="#1a1a1a"/>
+      <rect x="196" y="57" width="3" height="9" fill="#1a1a1a"/>
+      <rect x="202" y="57" width="3" height="9" fill="#1a1a1a"/>
+      <!-- Barrel (long, thin) -->
+      <rect x="208" y="59" width="10" height="5" rx="1" fill="#2e3520" ${Ob}/>
+      <!-- Muzzle brake -->
+      <rect x="216" y="56" width="6" height="11" rx="1" fill="#1a1a1a" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="218" y="58" width="2" height="3" fill="#5a5a4a"/>
+      <rect x="218" y="62" width="2" height="3" fill="#5a5a4a"/>
     `);
   }
 
-  function svgMech() {  // future bipedal mech, sleek armored plates
-    // Color: titanium blue-gray + glowing cyan trim. Layout: legs as
-    // chunky reverse-jointed pistons, big torso plate, head as a
-    // sensor pod between shoulder cannons.
-    return svgWrapVB(180, 180, `
-      <!-- Back leg shadow -->
-      <path d="M 60 96 L 50 130 L 56 160 L 70 160 L 76 130 L 70 100 Z" fill="#2c3550" ${Ob}/>
-      <!-- Front leg highlighted -->
-      <path d="M 112 96 L 122 130 L 116 160 L 102 160 L 96 130 L 102 100 Z" fill="#4a5a90" ${Ob}/>
-      <!-- Knee pistons -->
-      <rect x="60" y="120" width="12" height="6" fill="#bfeaff" stroke="${OUTC}" stroke-width="1.5"/>
-      <rect x="106" y="120" width="12" height="6" fill="#bfeaff" stroke="${OUTC}" stroke-width="1.5"/>
-      <!-- Feet -->
-      <path d="M 44 158 L 78 158 L 82 170 L 40 170 Z" fill="#1d2540" ${Ob}/>
-      <path d="M 96 158 L 130 158 L 132 170 L 92 170 Z" fill="#1d2540" ${Ob}/>
-      <!-- Toe lights -->
-      <circle cx="50" cy="166" r="2" fill="#3aa3ff"/>
-      <circle cx="72" cy="166" r="2" fill="#3aa3ff"/>
-      <circle cx="102" cy="166" r="2" fill="#3aa3ff"/>
-      <circle cx="124" cy="166" r="2" fill="#3aa3ff"/>
+  function svgMech() {  // future bipedal mech (faces right)
+    // Reverse-jointed digitigrade legs, chunky armored torso, twin
+    // shoulder weapons (gatling on left, missile box on right), glowing
+    // cyan visor + reactor vents, claw-style feet.
+    return svgWrapVB(200, 200, `
+      <!-- Back leg: reverse-jointed (digitigrade) -->
+      <path d="M 70 100 L 64 130 L 80 156 L 70 180" fill="none" stroke="${OUTC}" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 70 100 L 64 130 L 80 156 L 70 180" fill="none" stroke="#2c3550" stroke-width="18" stroke-linecap="round"/>
+      <!-- Back knee joint (glowing) -->
+      <circle cx="64" cy="130" r="9" fill="#3aa3ff" stroke="${OUTC}" stroke-width="2"/>
+      <circle cx="64" cy="130" r="4" fill="#15110c"/>
+      <!-- Back ankle -->
+      <circle cx="80" cy="156" r="7" fill="#1d2540" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Back foot (claw) -->
+      <path d="M 60 178 L 88 178 L 94 192 L 56 192 Z" fill="#15110c" ${Ob}/>
+      <path d="M 60 192 L 56 198 L 64 196 Z M 78 192 L 80 198 L 86 196 Z M 88 192 L 94 198 L 94 194 Z" fill="#15110c" ${Ob}/>
+
+      <!-- Front leg: stepped forward, reverse-jointed -->
+      <path d="M 130 100 Q 142 124, 130 148 L 142 178" fill="none" stroke="${OUTC}" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 130 100 Q 142 124, 130 148 L 142 178" fill="none" stroke="#3a4870" stroke-width="18" stroke-linecap="round"/>
+      <circle cx="142" cy="124" r="9" fill="#3aa3ff" stroke="${OUTC}" stroke-width="2"/>
+      <circle cx="142" cy="124" r="4" fill="#15110c"/>
+      <circle cx="130" cy="148" r="7" fill="#1d2540" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Front foot -->
+      <path d="M 124 176 L 158 176 L 164 190 L 122 190 Z" fill="#15110c" ${Ob}/>
+      <path d="M 124 190 L 120 196 L 128 194 Z M 142 190 L 144 196 L 150 194 Z M 154 190 L 162 196 L 162 192 Z" fill="#15110c" ${Ob}/>
 
       <!-- Hip block -->
-      <path d="M 56 96 L 124 96 L 120 110 L 60 110 Z" fill="#3a4a78" ${Ob}/>
+      <path d="M 58 96 L 142 96 L 138 116 L 62 116 Z" fill="#1d2540" ${Ob}/>
+      <rect x="92" y="100" width="16" height="12" rx="2" fill="#3aa3ff" stroke="${OUTC}" stroke-width="1.5"/>
+      <rect x="95" y="102" width="10" height="8" fill="#bfeaff"/>
 
-      <!-- Torso plate (chunky chest armor) -->
-      <path d="M 50 48 Q 90 38, 130 48 L 132 96 Q 90 104, 48 96 Z" fill="#46568a" ${Ob}/>
-      <!-- Center vent -->
-      <rect x="78" y="62" width="24" height="34" rx="4" fill="#15110c" ${Ob}/>
-      <rect x="82" y="66" width="16" height="3" fill="#3aa3ff"/>
-      <rect x="82" y="72" width="16" height="3" fill="#3aa3ff"/>
-      <rect x="82" y="78" width="16" height="3" fill="#3aa3ff"/>
-      <rect x="82" y="84" width="16" height="3" fill="#3aa3ff"/>
-      <!-- Shoulder plates -->
-      <path d="M 36 50 Q 50 38, 64 50 L 64 76 Q 50 80, 36 76 Z" fill="#3a4a78" ${Ob}/>
-      <path d="M 116 50 Q 130 38, 144 50 L 144 76 Q 130 80, 116 76 Z" fill="#3a4a78" ${Ob}/>
-      <!-- Shoulder cannons mounted on top of plates -->
-      <g transform="translate(36 38)">
-        <rect x="0" y="0" width="32" height="10" rx="3" fill="#2a3552" ${Ob}/>
-        <rect x="28" y="-1" width="6" height="12" rx="1.5" fill="#15110c" ${Ob}/>
+      <!-- Main torso plate -->
+      <path d="M 46 44 L 154 44 L 158 96 L 42 96 Z" fill="#46568a" ${Ob}/>
+      <!-- Right side shadow -->
+      <path d="M 100 44 L 154 44 L 158 96 L 102 96 Z" fill="${OUTC}" opacity="0.2"/>
+      <!-- Center reactor vent (vertical louvers + glowing core) -->
+      <rect x="84" y="56" width="32" height="36" rx="3" fill="#15110c" ${Ob}/>
+      <circle cx="100" cy="74" r="10" fill="#15110c"/>
+      <circle cx="100" cy="74" r="7" fill="#3aa3ff"/>
+      <circle cx="100" cy="74" r="3" fill="#bfeaff"/>
+      <!-- Louver slits -->
+      <rect x="88" y="60" width="8" height="2.5" fill="#3aa3ff"/>
+      <rect x="88" y="86" width="8" height="2.5" fill="#3aa3ff"/>
+      <rect x="104" y="60" width="8" height="2.5" fill="#3aa3ff"/>
+      <rect x="104" y="86" width="8" height="2.5" fill="#3aa3ff"/>
+      <!-- Plate seams -->
+      <path d="M 56 50 L 80 50 L 80 92 L 54 92 Z" fill="none" stroke="${OUTC}" stroke-width="1.4"/>
+      <path d="M 120 50 L 144 50 L 148 92 L 122 92 Z" fill="none" stroke="${OUTC}" stroke-width="1.4"/>
+      <!-- Top torso highlight -->
+      <path d="M 50 46 Q 100 38, 150 46" fill="none" stroke="#7e98d8" stroke-width="2"/>
+
+      <!-- Left shoulder pauldron + gatling -->
+      <path d="M 30 42 Q 36 26, 56 28 L 62 60 Q 40 68, 24 60 Z" fill="#3a4a78" ${Ob}/>
+      <!-- Gatling barrel cluster (mounted forward) -->
+      <rect x="20" y="42" width="22" height="14" rx="2" fill="#15110c" stroke="${OUTC}" stroke-width="1.5"/>
+      <g fill="#5a5a4a">
+        <circle cx="22" cy="46" r="2"/>
+        <circle cx="28" cy="46" r="2"/>
+        <circle cx="22" cy="52" r="2"/>
+        <circle cx="28" cy="52" r="2"/>
       </g>
-      <g transform="translate(112 38)">
-        <rect x="0" y="0" width="32" height="10" rx="3" fill="#2a3552" ${Ob}/>
-        <rect x="28" y="-1" width="6" height="12" rx="1.5" fill="#15110c" ${Ob}/>
+      <rect x="14" y="46" width="8" height="6" rx="1" fill="#15110c"/>
+
+      <!-- Right shoulder pauldron + missile box -->
+      <path d="M 170 42 Q 164 26, 144 28 L 138 60 Q 160 68, 176 60 Z" fill="#54649a" ${Ob}/>
+      <rect x="160" y="32" width="32" height="22" rx="2" fill="#2a3552" stroke="${OUTC}" stroke-width="1.5"/>
+      <!-- Missile tube ends -->
+      <g fill="#ff5a5a" stroke="${OUTC}" stroke-width="1">
+        <circle cx="167" cy="40" r="2.4"/>
+        <circle cx="177" cy="40" r="2.4"/>
+        <circle cx="187" cy="40" r="2.4"/>
+        <circle cx="167" cy="48" r="2.4"/>
+        <circle cx="177" cy="48" r="2.4"/>
+        <circle cx="187" cy="48" r="2.4"/>
       </g>
 
-      <!-- Highlight on left torso -->
-      <path d="M 50 50 Q 60 46, 70 52 L 68 88 L 50 90 Z" fill="#ffffff" opacity="0.10"/>
-
-      <!-- Head/sensor pod -->
-      <path d="M 70 22 L 110 22 L 116 36 L 64 36 Z" fill="#3a4a78" ${Ob}/>
+      <!-- Head / sensor pod -->
+      <path d="M 76 14 L 124 14 L 132 40 L 68 40 Z" fill="#3a4a78" ${Ob}/>
       <!-- Visor strip -->
-      <rect x="68" y="26" width="44" height="7" rx="3" fill="${OUTC}"/>
-      <rect x="70" y="27" width="40" height="4" rx="2" fill="#3aa3ff"/>
-      <rect x="72" y="27" width="6" height="3" rx="1" fill="#bfeaff"/>
-      <!-- Antenna -->
-      <rect x="88" y="10" width="3" height="14" fill="#2a3552" stroke="${OUTC}" stroke-width="1.4"/>
-      <circle cx="89.5" cy="9" r="3" fill="#ff5a5a" stroke="${OUTC}" stroke-width="1.2"/>
+      <rect x="72" y="22" width="56" height="12" rx="2" fill="#0a0e18" stroke="${OUTC}" stroke-width="2"/>
+      <rect x="76" y="25" width="48" height="6" fill="#3aa3ff"/>
+      <rect x="76" y="25" width="48" height="2" fill="#bfeaff"/>
+      <rect x="80" y="26" width="10" height="2" fill="#fff" opacity="0.7"/>
+      <!-- Antennae -->
+      <rect x="84" y="2" width="3" height="14" fill="#1d2540" stroke="${OUTC}" stroke-width="1.2"/>
+      <circle cx="85.5" cy="2" r="2" fill="#ff5a5a"/>
+      <rect x="116" y="6" width="3" height="10" fill="#1d2540" stroke="${OUTC}" stroke-width="1.2"/>
+      <!-- Jaw -->
+      <path d="M 76 36 L 124 36" stroke="${OUTC}" stroke-width="1.5"/>
     `);
   }
 
@@ -4345,7 +4462,7 @@ const AgeOfWarGame = (() => {
   // Natural aspect (w/h) per sprite so the blit doesn't distort them.
   const SPRITE_ASPECT = {
     dino: 220/170, knight: 240/200, hero_grog: 180/160,
-    tank1: 200/160, tank2: 180/110, mech: 180/180,
+    tank1: 200/160, tank2: 220/130, mech: 200/200,
     flier: 220/170, hero_titan: 200/220,
   };
 
