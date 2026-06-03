@@ -1550,8 +1550,8 @@ const AgeOfWarGame = (() => {
     drawBase(ENEMY_BASE_X, eEra.baseColor, eEra.icon, enemyEra);
 
     // Turrets (player + enemy) — small icons on the base ramparts
-    drawTurrets(PLAYER_BASE_X, playerTurrets);
-    drawTurrets(ENEMY_BASE_X,  enemyTurrets);
+    drawTurrets(PLAYER_BASE_X, playerTurrets, +1);
+    drawTurrets(ENEMY_BASE_X,  enemyTurrets,  -1);
 
     // Base HP bars
     drawBaseHpBar(PLAYER_BASE_X, playerBaseHp, playerBaseMax, '#3FB950');
@@ -2497,24 +2497,159 @@ const AgeOfWarGame = (() => {
     ctx.beginPath(); ctx.ellipse(ox, oy + 4, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
   }
 
-  function drawTurrets(baseX, slots) {
-    // 4 small turret silhouettes evenly on the rampart top
+  function drawTurrets(baseX, slots, facing) {
+    // facing: +1 = aim right (player), -1 = aim left (enemy).
+    // Each slot renders a tiny era-themed silhouette of the turret with
+    // a barrel/arm pointing toward the enemy.
+    const dir = facing || +1;
     for (let i = 0; i < TURRET_SLOTS; i++) {
       const t = slots[i];
       const x = baseX + 12 + (i + 0.5) * ((BASE_W - 24) / TURRET_SLOTS);
       const y = GROUND_Y - 96;
       if (!t) {
-        // empty slot
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.fillRect(x - 5, y, 10, 4);
+        // empty slot: low mount platform with bolt holes
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.fillRect(x - 6, y, 12, 4);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(x - 5, y - 1, 1, 1);
+        ctx.fillRect(x + 4, y - 1, 1, 1);
         continue;
       }
-      // turret base
-      ctx.fillStyle = t.color || '#999';
-      ctx.fillRect(x - 6, y - 8, 12, 12);
-      ctx.font = '11px sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(t.icon, x, y - 2);
+      drawTurretArt(x, y, t, dir);
+    }
+  }
+
+  // Era-themed mini-turret rendered atop the rampart. The era of the
+  // turret is inferred from t.name (matches TURRETS catalog).
+  function drawTurretArt(x, y, t, dir) {
+    const STR = (w=1.2) => { ctx.strokeStyle = '#15110c'; ctx.lineWidth = w; };
+    switch (t.name) {
+      case 'Rock Sling': {
+        // Wooden tripod with a sling pouch holding a stone, ready to whip.
+        // Tripod legs
+        STR(1.4); ctx.strokeStyle = '#5a3a18';
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y + 4); ctx.lineTo(x, y - 6);
+        ctx.moveTo(x + 6, y + 4); ctx.lineTo(x, y - 6);
+        ctx.moveTo(x, y + 4); ctx.lineTo(x, y - 6);
+        ctx.stroke();
+        // Pivot head
+        ctx.fillStyle = '#3a2010'; ctx.beginPath(); ctx.arc(x, y - 6, 2.5, 0, Math.PI * 2); ctx.fill();
+        // Sling arm + stone (cocked back)
+        ctx.strokeStyle = '#3a2010'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 6);
+        ctx.lineTo(x - dir * 6, y - 14);
+        ctx.stroke();
+        ctx.fillStyle = '#7d8084';
+        ctx.beginPath(); ctx.arc(x - dir * 7, y - 15, 2.5, 0, Math.PI * 2); ctx.fill();
+        STR(0.8); ctx.stroke();
+        break;
+      }
+      case 'Crossbow': {
+        // Wooden trestle with a horizontal crossbow bow + bolt.
+        ctx.fillStyle = '#5a3a18'; ctx.fillRect(x - 5, y - 2, 10, 6);
+        STR(1); ctx.strokeRect(x - 5, y - 2, 10, 6);
+        // Bow arms
+        ctx.strokeStyle = '#8a6a36'; ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(x - dir * 9, y - 8);
+        ctx.quadraticCurveTo(x + dir * 2, y - 4, x + dir * 9, y - 8);
+        ctx.stroke();
+        // Bowstring
+        ctx.strokeStyle = '#e8e0c0'; ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x - dir * 9, y - 8);
+        ctx.lineTo(x + dir * 9, y - 8);
+        ctx.stroke();
+        // Bolt loaded
+        ctx.strokeStyle = '#3a2010'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(x + dir * 8, y - 6); ctx.stroke();
+        ctx.fillStyle = '#9aa0ab';
+        ctx.beginPath();
+        ctx.moveTo(x + dir * 8, y - 6); ctx.lineTo(x + dir * 11, y - 7); ctx.lineTo(x + dir * 11, y - 5);
+        ctx.closePath(); ctx.fill();
+        break;
+      }
+      case 'Cannon Turret': {
+        // Iron base block + black cannon barrel angled forward.
+        ctx.fillStyle = '#444'; ctx.fillRect(x - 6, y - 4, 12, 8);
+        STR(1); ctx.strokeRect(x - 6, y - 4, 12, 8);
+        // Wheels
+        ctx.fillStyle = '#222';
+        ctx.beginPath(); ctx.arc(x - 6, y + 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 6, y + 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        // Barrel (slightly tilted up)
+        ctx.save();
+        ctx.translate(x, y - 4);
+        ctx.rotate(-dir * 0.25);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, -2, dir * 12, 4);
+        STR(0.8); ctx.strokeRect(Math.min(0, dir * 12), -2, Math.abs(dir * 12), 4);
+        // Muzzle reinforcement
+        ctx.fillRect(dir * 10, -3, dir * 3, 6);
+        ctx.restore();
+        break;
+      }
+      case 'MG Nest': {
+        // Sandbag ring + tripod-mounted machine gun + ammo belt.
+        // Sandbag base
+        ctx.fillStyle = '#8a7a55';
+        ctx.beginPath(); ctx.ellipse(x, y + 3, 9, 4, 0, 0, Math.PI * 2); ctx.fill();
+        STR(0.8); ctx.stroke();
+        // MG body
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(x - 4, y - 5, 8, 5);
+        STR(0.8); ctx.strokeRect(x - 4, y - 5, 8, 5);
+        // Barrel (long, perforated cooling jacket)
+        ctx.fillStyle = '#222';
+        ctx.fillRect(x, y - 4, dir * 12, 2.5);
+        // Cooling jacket vents
+        ctx.fillStyle = '#5a5a4a';
+        ctx.fillRect(x + dir * 3, y - 4, 1, 2.5);
+        ctx.fillRect(x + dir * 6, y - 4, 1, 2.5);
+        ctx.fillRect(x + dir * 9, y - 4, 1, 2.5);
+        // Ammo belt
+        ctx.fillStyle = '#caa84a';
+        for (let bi = 0; bi < 3; bi++) {
+          ctx.fillRect(x - dir * (2 + bi * 2), y - 1, 1.5, 2);
+        }
+        break;
+      }
+      case 'Plasma Turret': {
+        // Cyan glowing orb on a glowing pedestal + plasma coil.
+        const t = performance.now() / 280;
+        const pulse = 0.7 + Math.sin(t) * 0.3;
+        // Pedestal
+        ctx.fillStyle = '#2a3454';
+        ctx.fillRect(x - 5, y - 2, 10, 6);
+        STR(0.8); ctx.strokeRect(x - 5, y - 2, 10, 6);
+        // Glowing core orb
+        const glow = ctx.createRadialGradient(x, y - 8, 1, x, y - 8, 12);
+        glow.addColorStop(0, `rgba(180,230,255,${pulse})`);
+        glow.addColorStop(0.6, `rgba(110,196,255,${pulse * 0.6})`);
+        glow.addColorStop(1, 'rgba(110,196,255,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(x, y - 8, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(110,196,255,${pulse})`;
+        ctx.beginPath(); ctx.arc(x, y - 8, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(x, y - 8, 1.5, 0, Math.PI * 2); ctx.fill();
+        // Plasma emitter barrel
+        ctx.fillStyle = '#1d2540';
+        ctx.fillRect(x, y - 9, dir * 10, 2);
+        ctx.fillStyle = `rgba(110,196,255,${pulse})`;
+        ctx.fillRect(x + dir * 9, y - 10, dir * 2, 4);
+        break;
+      }
+      default: {
+        // Fallback: simple colored block + emoji icon
+        ctx.fillStyle = t.color || '#999';
+        ctx.fillRect(x - 6, y - 8, 12, 12);
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(t.icon || '', x, y - 2);
+      }
     }
   }
 
