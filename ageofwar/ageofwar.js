@@ -78,8 +78,23 @@ const AgeOfWarGame = (() => {
   let canvas, ctx;
   let rafId = null;
   let lastFrame = 0;
-  let running = false, gameOver = false;
+  let running = false, gameOver = false, modalPaused = false;
   let outcome = null;
+  // Any modal opening calls setModalPaused(true), closing calls (false).
+  // Centralised so the sim/render code only checks one flag.
+  function setModalPaused(p) {
+    modalPaused = !!p;
+    // Show a small "PAUSED" hint via the existing banner when paused.
+    if (modalPaused) { ageBannerText = '⏸ PAUSED'; ageBannerT = 999; }
+    else if (ageBannerText === '⏸ PAUSED') { ageBannerT = 0; }
+  }
+  function anyModalOpen() {
+    for (const id of ['aow-welcome-modal','aow-ach-modal','aow-settings-modal']) {
+      const m = document.getElementById(id);
+      if (m && m.style.display && m.style.display !== 'none') return true;
+    }
+    return false;
+  }
   let playerEra = 0, enemyEra = 0;
   let gold = 0, xp = 0;
   let playerBaseHp = 1000, playerBaseMax = 1000;
@@ -183,9 +198,11 @@ const AgeOfWarGame = (() => {
       }
     }
     modal.style.display = 'flex';
+    setModalPaused(true);
     const close = () => {
       modal.style.display = 'none';
       try { localStorage.setItem('aow-welcome-seen', '1'); } catch {}
+      setModalPaused(anyModalOpen());
     };
     btn.addEventListener('click', close, { once: true });
     document.addEventListener('keydown', function onEsc(e) {
@@ -750,16 +767,20 @@ const AgeOfWarGame = (() => {
     if (achBtn) achBtn.onclick = () => {
       renderAchievementsModal();
       const m = document.getElementById('aow-ach-modal');
-      if (m) m.style.display = 'flex';
+      if (m) { m.style.display = 'flex'; setModalPaused(true); }
     };
     const achClose = document.getElementById('aow-ach-close');
     if (achClose) achClose.onclick = () => {
       const m = document.getElementById('aow-ach-modal');
       if (m) m.style.display = 'none';
+      setModalPaused(anyModalOpen());
     };
     const achModal = document.getElementById('aow-ach-modal');
     if (achModal) achModal.addEventListener('click', e => {
-      if (e.target === achModal) achModal.style.display = 'none';
+      if (e.target === achModal) {
+        achModal.style.display = 'none';
+        setModalPaused(anyModalOpen());
+      }
     });
 
     // Settings modal (gear icon in the HUD)
@@ -776,11 +797,16 @@ const AgeOfWarGame = (() => {
       const mt = document.getElementById('aow-mute-toggle');
       if (mt) mt.setAttribute('aria-pressed', String(soundMuted));
       settingsModal.style.display = 'flex';
+      setModalPaused(true);
+    }
+    function closeSettings() {
+      if (settingsModal) settingsModal.style.display = 'none';
+      setModalPaused(anyModalOpen());
     }
     if (settingsBtn) settingsBtn.onclick = openSettings;
-    if (settingsClose) settingsClose.onclick = () => { settingsModal.style.display = 'none'; };
+    if (settingsClose) settingsClose.onclick = closeSettings;
     if (settingsModal) settingsModal.addEventListener('click', e => {
-      if (e.target === settingsModal) settingsModal.style.display = 'none';
+      if (e.target === settingsModal) closeSettings();
     });
     // Difficulty buttons inside the modal
     settingsModal && settingsModal.querySelectorAll('#aow-diff-modal button').forEach(btn => {
@@ -804,7 +830,7 @@ const AgeOfWarGame = (() => {
     const replayBtn = document.getElementById('aow-replay-tutorial');
     if (replayBtn) replayBtn.onclick = () => {
       try { localStorage.removeItem('aow-welcome-seen'); } catch {}
-      settingsModal.style.display = 'none';
+      closeSettings();
       maybeShowWelcome();
     };
     // Reset progress
@@ -816,7 +842,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
-      settingsModal.style.display = 'none';
+      closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
     // coords (canvas is responsive; rect may differ from intrinsic size).
@@ -979,6 +1005,9 @@ const AgeOfWarGame = (() => {
   // ---- Combat ----
   function update(dt) {
     if (!running) return;
+    // Pause sim while a modal is open so the player isn't punished for
+    // reading the tutorial / tweaking settings / browsing achievements.
+    if (modalPaused) return;
 
     if (ageFlash > 0) ageFlash = Math.max(0, ageFlash - dt * 1.6);
 
