@@ -13,7 +13,8 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
+  let particles, rafId;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,9 +26,12 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
+    particles = [];
+    rafId = null;
     updateInfo();
     draw();
 
@@ -74,7 +78,25 @@ const SnakeGame = (() => {
         if (gameOver) start();
         e.preventDefault();
         break;
+      case 'p': case 'P':
+        togglePause();
+        e.preventDefault();
+        break;
     }
+  }
+
+  function togglePause() {
+    if (!running && !paused) return;
+    paused = !paused;
+    const btn = document.getElementById('snake-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume (P)' : 'Pause (P)';
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      clearInterval(gameLoop);
+      gameLoop = setInterval(tick, speed);
+    }
+    if (!rafId) rafId = requestAnimationFrame(renderLoop);
   }
 
   function start() {
@@ -86,15 +108,22 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
     speed = 120;
+    particles = [];
     spawnFood();
     updateInfo();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
 
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) pauseBtn.textContent = 'Pause (P)';
+
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
+
+    if (!rafId) rafId = requestAnimationFrame(renderLoop);
   }
 
   function spawnFood() {
@@ -119,6 +148,24 @@ const SnakeGame = (() => {
       (food && food.x === pos.x && food.y === pos.y)
     ));
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
+  }
+
+  function spawnParticles(x, y, color, count) {
+    count = count || 10;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+      const spd = 1 + Math.random() * 2.5;
+      particles.push({
+        x: x * GRID + GRID / 2,
+        y: y * GRID + GRID / 2,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        color,
+        life: 1.0,
+        decay: 0.02 + Math.random() * 0.015,
+        size: 2 + Math.random() * 2.5,
+      });
+    }
   }
 
   function getLevel() {
@@ -168,6 +215,7 @@ const SnakeGame = (() => {
       ate = true;
       score += 10;
       foodCount++;
+      spawnParticles(food.x, food.y, '#F778BA', 10);
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -182,9 +230,10 @@ const SnakeGame = (() => {
         gameLoop = setInterval(tick, speed);
       }
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
-      // Eat bonus food (snake also grows)
+      // Eat bonus food
       ate = true;
       score += 50;
+      spawnParticles(bonusFood.x, bonusFood.y, '#F7C948', 16);
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -195,14 +244,17 @@ const SnakeGame = (() => {
     if (!ate) snake.pop();
 
     updateInfo();
-    draw();
   }
 
   function endGame() {
     running = false;
     gameOver = true;
+    paused = false;
     bonusFood = null;
     clearInterval(gameLoop);
+
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) pauseBtn.textContent = 'Pause (P)';
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -212,6 +264,31 @@ const SnakeGame = (() => {
         <p>Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}</p>
         <p style="font-size:12px; color: var(--text-dim)">Press SPACE to restart</p>
       `;
+    }
+    // RAF continues until particles drain
+    if (!rafId && particles.length > 0) {
+      rafId = requestAnimationFrame(renderLoop);
+    }
+  }
+
+  // RAF-based render loop: decouples rendering from game tick for smooth particles
+  function renderLoop() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      p.vx *= 0.9;
+      p.vy *= 0.9;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    draw();
+
+    if (running || paused || particles.length > 0) {
+      rafId = requestAnimationFrame(renderLoop);
+    } else {
+      rafId = null;
     }
   }
 
@@ -283,6 +360,34 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Particles
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+
+    // Pause overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.65)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 22px Inter, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 26);
+      ctx.textAlign = 'left';
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -293,7 +398,7 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys  ·  P to pause', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
@@ -301,7 +406,10 @@ const SnakeGame = (() => {
   function destroy() {
     clearInterval(gameLoop);
     running = false;
+    paused = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    document.removeEventListener('keydown', handleKey);
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
