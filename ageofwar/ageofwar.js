@@ -35,9 +35,9 @@ const AgeOfWarGame = (() => {
   // Three units per era: cheap melee / ranged / heavy.
   const UNITS = {
     // Stone Age
-    club:     { era: 0, name: 'Clubman',    icon: '🦴', sprite: '🧌',  cost: 25,   hp: 60,   dmg: 9,   range: 26,  atkSpd: 0.85, speed: 42, color: '#b07040', xp: 12,  gold: 16,  silhouette: 'humanoid' },
-    sling:    { era: 0, name: 'Slinger',    icon: '🪃', sprite: '🧙',  cost: 55,   hp: 32,   dmg: 16,  range: 145, atkSpd: 1.2,  speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
-    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', sprite: '🦖',  cost: 110,  hp: 180,  dmg: 24,  range: 30,  atkSpd: 1.0,  speed: 38, color: '#5d8a4a', xp: 30,  gold: 55,  silhouette: 'beast' },
+    club:     { era: 0, name: 'Clubman',    icon: '🦴', sprite: '🧌',  cost: 25,   hp: 56,   dmg: 8,   range: 26,  atkSpd: 1.0,  speed: 42, color: '#b07040', xp: 12,  gold: 16,  silhouette: 'humanoid' },
+    sling:    { era: 0, name: 'Slinger',    icon: '🪃', sprite: '🧙',  cost: 55,   hp: 36,   dmg: 18,  range: 150, atkSpd: 1.15, speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
+    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', sprite: '🦖',  cost: 90,   hp: 200,  dmg: 26,  range: 30,  atkSpd: 0.95, speed: 40, color: '#5d8a4a', xp: 30,  gold: 55,  silhouette: 'beast' },
 
     // Medieval
     swordsman:{ era: 1, name: 'Swordsman',  icon: '⚔️', sprite: '🤺',  cost: 130,  hp: 180,  dmg: 28,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
@@ -46,8 +46,8 @@ const AgeOfWarGame = (() => {
 
     // Industrial
     rifleman: { era: 2, name: 'Rifleman',   icon: '🔫', sprite: '💂',  cost: 380,  hp: 270,  dmg: 90,  range: 230, atkSpd: 0.85, speed: 42, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
-    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', sprite: '🧨',  cost: 620,  hp: 380,  dmg: 170, range: 270, atkSpd: 1.7,  speed: 32, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
-    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', sprite: '🚂',  cost: 1100, hp: 950,  dmg: 200, range: 60,  atkSpd: 1.1,  speed: 30, color: '#6b5848', xp: 320, gold: 540, silhouette: 'vehicle' },
+    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', sprite: '🧨',  cost: 620,  hp: 380,  dmg: 170, range: 270, atkSpd: 1.6,  speed: 36, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
+    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', sprite: '🚂',  cost: 1100, hp: 1000, dmg: 200, range: 60,  atkSpd: 1.1,  speed: 34, color: '#6b5848', xp: 320, gold: 540, silhouette: 'vehicle' },
 
     // Modern
     soldier:  { era: 3, name: 'Soldier',    icon: '🪖', sprite: '🪖',  cost: 850,  hp: 480,  dmg: 200, range: 240, atkSpd: 0.7,  speed: 44, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
@@ -56,8 +56,8 @@ const AgeOfWarGame = (() => {
 
     // Future
     laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 920,  silhouette: 'humanoid' },
-    mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3500, hp: 2800, dmg: 540, range: 110, atkSpd: 0.85, speed: 36, color: '#a89cff', xp: 1100,gold: 2000, silhouette: 'vehicle' },
-    flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 5500, hp: 1500, dmg: 820, range: 320, atkSpd: 1.4,  speed: 56, color: '#ff90ee', xp: 1600,gold: 3200, silhouette: 'flier' },
+    mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 2800, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 2000, silhouette: 'vehicle' },
+    flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 320, atkSpd: 1.4,  speed: 56, color: '#ff90ee', xp: 1600,gold: 3200, silhouette: 'flier' },
   };
 
   function unitsForEra(era) {
@@ -258,11 +258,11 @@ const AgeOfWarGame = (() => {
   // ---- Hero summons ----
   // One legendary unit per era, big cost + cooldown, dramatic entrance.
   const HEROES = [
-    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', sprite: '🦣',  cost: 600,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 55 },
-    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', sprite: '⚔️',  cost: 1400, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 65 },
-    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', sprite: '🎖️',  cost: 3200, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 75 },
-    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 7000, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 85 },
-    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 15000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 100 },
+    { era: 0, key: 'hero_grog',    name: 'Grog the Stomper', icon: '🦣', sprite: '🦣',  cost: 600,  hp: 1200, dmg: 80,  range: 28,  atkSpd: 0.6, speed: 38, color: '#7a4a22', xp: 200, gold: 400, silhouette: 'beast',  cd: 50 },
+    { era: 1, key: 'hero_paladin', name: 'Sir Lancelot',     icon: '🛡️', sprite: '⚔️',  cost: 1400, hp: 2400, dmg: 130, range: 28,  atkSpd: 0.7, speed: 40, color: '#dadce0', xp: 400, gold: 800, silhouette: 'humanoid', cd: 55 },
+    { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', sprite: '🎖️',  cost: 3200, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 60 },
+    { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 7000, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 65 },
+    { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 15000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 70 },
   ];
   let heroReadyT = 0;   // seconds until current era's hero is available
   let currentHeroCd = 0;
@@ -632,7 +632,9 @@ const AgeOfWarGame = (() => {
     if ((spawnCooldowns[key] || 0) > 0) return;
     gold -= def.cost;
     spawnUnit('player', key);
-    spawnCooldowns[key] = Math.max(0.4, def.cost / 600);
+    // Cooldown scales with cost but capped so expensive late-game units
+    // (flier, mech) stay playable instead of locking up for ~10s each.
+    spawnCooldowns[key] = Math.max(0.4, Math.min(5, def.cost / 700));
     SFX.spawn();
     renderHud();
     renderSpawnPanel();
@@ -874,9 +876,10 @@ const AgeOfWarGame = (() => {
       const baseKey = choices[choices.length - 1];
       const baseDef = UNITS[baseKey];
       const bossKey = 'boss_' + baseKey + '_' + waveNum;
-      // wave 5 → ~3.2x HP, wave 10 → ~4.4x, wave 15 → ~5.6x
-      const hpScale  = 3.0 + (waveNum - 5) * 0.24;
-      const dmgScale = 1.4 + (waveNum - 5) * 0.10;
+      // Gentler scaling so late bosses stay beatable. wave 5 -> ~2.8x HP,
+      // wave 10 -> ~3.7x, wave 15 -> ~4.6x. Capped at ~6x at wave 25.
+      const hpScale  = Math.min(6.0, 2.8 + (waveNum - 5) * 0.18);
+      const dmgScale = Math.min(2.4, 1.3 + (waveNum - 5) * 0.08);
       if (!UNITS[bossKey]) {
         UNITS[bossKey] = {
           ...baseDef,
