@@ -327,6 +327,9 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Sound (Web Audio API, no samples) ----
+  // Persisted mute toggle (set via the settings modal).
+  let soundMuted = false;
+  try { soundMuted = localStorage.getItem('aow-muted') === '1'; } catch {}
   const SFX = (() => {
     let ctxA = null, masterGain = null;
     let lastSpawn = 0, lastHit = 0;
@@ -343,6 +346,7 @@ const AgeOfWarGame = (() => {
       return ctxA;
     }
     function tone({ freq, dur = 0.12, type = 'sine', vol = 0.5, attack = 0.005, slideTo = null }) {
+      if (soundMuted) return;
       const ac = ensure(); if (!ac) return;
       if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
       const t0 = ac.currentTime;
@@ -757,6 +761,63 @@ const AgeOfWarGame = (() => {
     if (achModal) achModal.addEventListener('click', e => {
       if (e.target === achModal) achModal.style.display = 'none';
     });
+
+    // Settings modal (gear icon in the HUD)
+    const settingsModal = document.getElementById('aow-settings-modal');
+    const settingsBtn   = document.getElementById('aow-settings-btn');
+    const settingsClose = document.getElementById('aow-settings-close');
+    function openSettings() {
+      if (!settingsModal) return;
+      // Sync the modal's difficulty pills with current state
+      settingsModal.querySelectorAll('#aow-diff-modal button').forEach(b => {
+        b.classList.toggle('active', b.dataset.diff === difficulty);
+      });
+      // Sync mute toggle
+      const mt = document.getElementById('aow-mute-toggle');
+      if (mt) mt.setAttribute('aria-pressed', String(soundMuted));
+      settingsModal.style.display = 'flex';
+    }
+    if (settingsBtn) settingsBtn.onclick = openSettings;
+    if (settingsClose) settingsClose.onclick = () => { settingsModal.style.display = 'none'; };
+    if (settingsModal) settingsModal.addEventListener('click', e => {
+      if (e.target === settingsModal) settingsModal.style.display = 'none';
+    });
+    // Difficulty buttons inside the modal
+    settingsModal && settingsModal.querySelectorAll('#aow-diff-modal button').forEach(btn => {
+      btn.onclick = () => {
+        difficulty = btn.dataset.diff;
+        try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
+        // Reflect in both pill rows
+        document.querySelectorAll('.aow-diff button').forEach(b => {
+          b.classList.toggle('active', b.dataset.diff === difficulty);
+        });
+      };
+    });
+    // Mute toggle
+    const muteToggle = document.getElementById('aow-mute-toggle');
+    if (muteToggle) muteToggle.onclick = () => {
+      soundMuted = !soundMuted;
+      try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
+      muteToggle.setAttribute('aria-pressed', String(soundMuted));
+    };
+    // Replay tutorial
+    const replayBtn = document.getElementById('aow-replay-tutorial');
+    if (replayBtn) replayBtn.onclick = () => {
+      try { localStorage.removeItem('aow-welcome-seen'); } catch {}
+      settingsModal.style.display = 'none';
+      maybeShowWelcome();
+    };
+    // Reset progress
+    const resetBtn = document.getElementById('aow-reset-progress');
+    if (resetBtn) resetBtn.onclick = () => {
+      if (!confirm('Reset all achievements and best run? This cannot be undone.')) return;
+      try {
+        localStorage.removeItem('aow-achievements');
+        localStorage.removeItem('aow-best-run');
+      } catch {}
+      earnedAchievements = {};
+      settingsModal.style.display = 'none';
+    };
     // Click-to-collect coins. Map pointer event to canvas-internal
     // coords (canvas is responsive; rect may differ from intrinsic size).
     // We also handle pointermove during a held press so dragging a

@@ -104,6 +104,7 @@
           <button data-diff="hard">Hard</button>
           <button data-diff="insane">Insane</button>
         </div>
+        <button class="aow-settings-btn" id="aow-settings-btn" aria-label="Settings" title="Settings">⚙</button>
       </header>
 
       <div class="aow-battle-strip">
@@ -182,6 +183,42 @@
         <button class="aow-modal-close" id="aow-ach-close" aria-label="Close">×</button>
       </div>
       <div class="aow-ach-list" id="aow-ach-list"></div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="aow-settings-modal" class="aow-modal" style="display:none">
+    <div class="aow-modal-card aow-settings-card">
+      <div class="aow-modal-header">
+        <span class="aow-modal-title">⚙ Settings</span>
+        <button class="aow-modal-close" id="aow-settings-close" aria-label="Close">×</button>
+      </div>
+      <div class="aow-settings-body">
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Difficulty</div>
+          <div class="aow-diff aow-diff-modal" id="aow-diff-modal">
+            <button data-diff="easy">Easy</button>
+            <button data-diff="normal" class="active">Normal</button>
+            <button data-diff="hard">Hard</button>
+            <button data-diff="insane">Insane</button>
+          </div>
+        </div>
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Sound</div>
+          <button class="aow-setting-toggle" id="aow-mute-toggle" aria-pressed="false">
+            <span class="aow-toggle-on">🔊 ON</span>
+            <span class="aow-toggle-off">🔇 MUTED</span>
+          </button>
+        </div>
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Help</div>
+          <button class="aow-setting-action" id="aow-replay-tutorial">Show how to play</button>
+        </div>
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Reset</div>
+          <button class="aow-setting-action aow-setting-danger" id="aow-reset-progress">Reset achievements + best</button>
+        </div>
+      </div>
     </div>
   </div>
 
