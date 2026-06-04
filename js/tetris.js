@@ -25,6 +25,74 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let paused = false;
+
+  const audio = (() => {
+    let ctx = null, muted = false;
+
+    function getCtx() {
+      if (!ctx) {
+        try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+
+    function tone(freq, type, vol, t, dur, freqEnd) {
+      const ac = getCtx();
+      if (!ac) return;
+      try {
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t);
+        if (freqEnd !== undefined) osc.frequency.linearRampToValueAtTime(freqEnd, t + dur);
+        gain.gain.setValueAtTime(vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.start(t);
+        osc.stop(t + dur + 0.01);
+      } catch(e) {}
+    }
+
+    function play(name) {
+      if (muted) return;
+      const ac = getCtx();
+      if (!ac) return;
+      const t = ac.currentTime;
+      switch (name) {
+        case 'rotate':  tone(330, 'square',   0.12, t,        0.06, 440); break;
+        case 'drop':    tone(200, 'sawtooth',  0.2,  t,        0.08, 80);  break;
+        case 'clear1':
+          tone(440, 'square', 0.18, t,        0.1);
+          tone(880, 'square', 0.18, t + 0.09, 0.15);
+          break;
+        case 'clear2':
+          tone(440, 'square', 0.15, t,        0.08);
+          tone(550, 'square', 0.15, t + 0.07, 0.08);
+          tone(880, 'square', 0.18, t + 0.14, 0.15);
+          break;
+        case 'clear3':
+          tone(440, 'square', 0.15, t,        0.07);
+          tone(550, 'square', 0.15, t + 0.06, 0.07);
+          tone(660, 'square', 0.15, t + 0.12, 0.07);
+          tone(880, 'square', 0.18, t + 0.18, 0.15);
+          break;
+        case 'tetris':
+          [440, 550, 660, 880, 1100].forEach((f, i) => tone(f, 'square',   0.2,  t + i * 0.07, 0.15));
+          break;
+        case 'levelup':
+          [330, 440, 550, 660, 880].forEach((f, i)  => tone(f, 'square',   0.18, t + i * 0.06, 0.1));
+          break;
+        case 'gameover':
+          [440, 370, 311, 261, 220, 185].forEach((f, i) => tone(f, 'sawtooth', 0.2, t + i * 0.13, 0.18));
+          break;
+      }
+    }
+
+    return { play, toggleMute() { muted = !muted; return muted; }, isMuted: () => muted };
+  })();
 
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
@@ -71,7 +139,7 @@ const TetrisGame = (() => {
 
     highScore = parseInt(localStorage.getItem('tetris-high') || '0');
     board = createBoard();
-    running = gameOver = false;
+    running = gameOver = paused = false;
     score = level = 0; linesCleared = 0;
     current = next = held = null;
     bag = [];
@@ -167,6 +235,7 @@ const TetrisGame = (() => {
       current.y++; dropped++;
     }
     score += dropped * 2;
+    audio.play('drop');
     lock();
   }
 
@@ -198,11 +267,12 @@ const TetrisGame = (() => {
       }
     }
     if (!cleared) return;
+    audio.play(cleared >= 4 ? 'tetris' : cleared === 3 ? 'clear3' : cleared === 2 ? 'clear2' : 'clear1');
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    if (newLevel !== level) { level = newLevel; audio.play('levelup'); restartLoop(); }
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
@@ -241,6 +311,17 @@ const TetrisGame = (() => {
     draw();
   }
 
+  function togglePause() {
+    if (!running) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(autoDown, dropMs());
+    }
+    draw();
+  }
+
   function start() {
     bag = [];
     board = createBoard();
@@ -261,6 +342,7 @@ const TetrisGame = (() => {
   }
 
   function endGame() {
+    audio.play('gameover');
     running = false; gameOver = true;
     clearInterval(gameLoop);
     const ov = document.getElementById('tetris-overlay');
@@ -276,8 +358,12 @@ const TetrisGame = (() => {
   }
 
   function handleKey(e) {
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+      if (running) { togglePause(); e.preventDefault(); }
+      return;
+    }
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
-    if (!running) return;
+    if (!running || paused) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
@@ -285,8 +371,8 @@ const TetrisGame = (() => {
         if (!move(0, 1)) lock();
         score += 1;
         break;
-      case 'ArrowUp': case 'x': case 'X': rotateCW();  break;
-      case 'z': case 'Z':                 rotateCCW(); break;
+      case 'ArrowUp': case 'x': case 'X': rotateCW();  audio.play('rotate'); break;
+      case 'z': case 'Z':                 rotateCCW(); audio.play('rotate'); break;
       case ' ':  hardDrop(); e.preventDefault(); return;
       case 'c': case 'C':   holdPiece(); break;
       default: return;
@@ -349,6 +435,19 @@ const TetrisGame = (() => {
             drawCell(ctx, current.x + c, current.y + r, current.color);
     }
 
+    if (paused) {
+      ctx.fillStyle = 'rgba(13,17,23,0.7)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 22px Inter, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '11px Inter, monospace';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or Esc to resume', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.textAlign = 'left';
+    }
+
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13,17,23,0.75)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -359,7 +458,7 @@ const TetrisGame = (() => {
       ctx.font = '11px Inter, monospace';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('← → move  ·  ↑ / X rotate  ·  ↓ soft drop', WIDTH / 2, HEIGHT / 2 + 22);
-      ctx.fillText('Space hard drop  ·  C hold', WIDTH / 2, HEIGHT / 2 + 38);
+      ctx.fillText('Space hard drop  ·  C hold  ·  P pause', WIDTH / 2, HEIGHT / 2 + 38);
       ctx.textAlign = 'left';
     }
   }
@@ -417,5 +516,5 @@ const TetrisGame = (() => {
     document.removeEventListener('keydown', handleKey);
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause, toggleMute: () => audio.toggleMute() };
 })();
