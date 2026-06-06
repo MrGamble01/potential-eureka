@@ -102,7 +102,7 @@ const AgeOfWarGame = (() => {
   let ageBannerText = '';
   let bgClouds = [];               // parallax cloud x positions
   let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
-  let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
+  let deadUnits = [];              // { x, feetY, sprite, drawW, drawH, dir, rot, t } toppling emoji corpses
   let particles = [];              // { x, y, vx, vy, color, life, size }
   let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
   let enemyTurrets  = [null, null, null, null];
@@ -1035,9 +1035,12 @@ const AgeOfWarGame = (() => {
       if (u.hp <= 0 && !u._dead) {
         u._dead = true;
         // Toppling corpse: rotates and fades over ~0.8s
+        const deathScale = u.isBoss ? 1.6 : (u.key && u.key.startsWith('hero_') ? 1.3 : 1);
+        const deathDef = UNITS[u.key] || {};
         deadUnits.push({
-          x: u.x, y: GROUND_Y - u.h - u.yOffset,
-          w: u.w, h: u.h, color: u.color,
+          x: u.x, feetY: GROUND_Y - u.yOffset,
+          sprite: deathDef.sprite || u.icon || '⚔',
+          drawW: u.w * deathScale, drawH: u.h * deathScale,
           dir: u.side === 'player' ? 1 : -1,
           rot: 0, t: 0.9,
         });
@@ -1102,7 +1105,8 @@ const AgeOfWarGame = (() => {
     // Tick dead bodies (topple + fade)
     for (const d of deadUnits) {
       d.t -= dt;
-      d.rot += d.dir * dt * 5;
+      // Topple forward and settle flat (~90°); facing handled by mirror at draw
+      d.rot = Math.min(d.rot + dt * 6, Math.PI / 2);
     }
     deadUnits = deadUnits.filter(d => d.t > 0);
 
@@ -1407,15 +1411,20 @@ const AgeOfWarGame = (() => {
       }
     }
 
-    // Toppling corpses (behind live units so survivors march "over" them)
+    // Toppling corpses (behind live units so survivors march "over" them).
+    // Same emoji sprite as the live unit — mirrored for facing, falling flat
+    // and fading out, so deaths read consistently with the roster.
     for (const d of deadUnits) {
       const alpha = Math.max(0, d.t / 0.9);
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.translate(d.x, d.y + d.h);
+      ctx.translate(d.x, d.feetY);
+      if (d.dir < 0) ctx.scale(-1, 1);
       ctx.rotate(d.rot);
-      ctx.fillStyle = d.color;
-      ctx.fillRect(-d.w / 2, -d.h, d.w, d.h);
+      ctx.font = `${Math.round(d.drawH * 0.95)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.sprite, 0, -d.drawH / 2);
       ctx.restore();
     }
 
