@@ -594,6 +594,21 @@ const AgeOfWarGame = (() => {
       hitFlash: 0,
       walkPhase: Math.random() * Math.PI * 2,
     };
+    // Dust kicked up at the feet on deploy (ground units only)
+    if (!flying) {
+      const feetY = GROUND_Y - u.yOffset;
+      for (let i = 0; i < 7; i++) {
+        const dp = Math.random() < 0.5 ? -1 : 1;
+        particles.push({
+          x: u.x, y: feetY - 2,
+          vx: dp * (20 + Math.random() * 50),
+          vy: -(12 + Math.random() * 22),
+          color: '#d8c8a8',
+          size: 2 + Math.random() * 2.5,
+          life: 0.35 + Math.random() * 0.2,
+        });
+      }
+    }
     units.push(u);
   }
 
