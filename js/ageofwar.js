@@ -1434,21 +1434,31 @@ const AgeOfWarGame = (() => {
     // Particles (over units so explosions read clearly)
     for (const p of particles) {
       const a = Math.max(0, Math.min(1, p.life * 1.5));
+      const sz = p.size * (0.4 + 0.6 * a);   // shrink as it fades out
       ctx.fillStyle = p.color;
       ctx.globalAlpha = a;
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      ctx.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz);
       ctx.globalAlpha = 1;
     }
 
     // Projectiles
     for (const p of projectiles) drawProjectile(p);
 
-    // Muzzle flashes
+    // Muzzle flashes — hot core + glow + a quick spark cross
     for (const m of muzzleFlashes) {
-      ctx.fillStyle = `rgba(255,220,120,${m.t / 0.12 * 0.9})`;
+      const k = Math.max(0, m.t / 0.12);   // 1 → 0 over the flash lifetime
+      const r = 5 + (1 - k) * 16;
+      ctx.fillStyle = `rgba(255,210,120,${k * 0.5})`;
+      ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(255,250,220,${k * 0.9})`;
+      ctx.beginPath(); ctx.arc(m.x, m.y, r * 0.45, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(255,230,150,${k * 0.8})`;
+      ctx.lineWidth = 1.5;
+      const sp = r * 1.6;
       ctx.beginPath();
-      ctx.arc(m.x, m.y, 6 + (0.12 - m.t) * 40, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(m.x - sp, m.y); ctx.lineTo(m.x + sp, m.y);
+      ctx.moveTo(m.x, m.y - sp * 0.6); ctx.lineTo(m.x, m.y + sp * 0.6);
+      ctx.stroke();
     }
 
     // Strikes
@@ -1972,34 +1982,53 @@ const AgeOfWarGame = (() => {
 
   function drawProjectile(p) {
     const dir = Math.sign(p.vx) || 1;
-    // Era-ish render based on projectile size / color.
-    // Bright laser-ish for high-tech colors, otherwise arrow/bullet.
-    if (p.color === '#6ec4ff' || p.color === '#ff90ee') {
-      // Laser beam
+    // Classify by color / damage: laser (energy), shell (heavy), arrow, bullet.
+    const isLaser = p.color === '#6ec4ff' || p.color === '#ff90ee';
+    const isShell = !isLaser && p.dmg >= 100;
+    const isArrow = !isLaser && !isShell && p.dmg >= 30;
+
+    // Motion tracer behind energy/metal rounds (not arrows) — a tapered
+    // streak fading to transparent at the tail, to convey speed.
+    if (!isArrow) {
+      const trailLen = isLaser ? 34 : isShell ? 22 : 14;
+      const rgb = isShell ? '170,150,130'
+                : isLaser ? (p.color === '#6ec4ff' ? '110,196,255' : '255,144,238')
+                : '252,211,77';
+      const tailX = p.x - dir * trailLen;
+      const grad = ctx.createLinearGradient(tailX, 0, p.x, 0);
+      grad.addColorStop(0, `rgba(${rgb},0)`);
+      grad.addColorStop(1, `rgba(${rgb},0.5)`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = isShell ? 4 : isLaser ? 3 : 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(tailX, p.y); ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+
+    if (isLaser) {
+      // Glowing laser bolt
       ctx.strokeStyle = p.color;
       ctx.lineWidth = 3;
       ctx.shadowColor = p.color; ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.moveTo(p.x - dir * 18, p.y);
-      ctx.lineTo(p.x + dir * 4,  p.y);
+      ctx.moveTo(p.x - dir * 14, p.y); ctx.lineTo(p.x + dir * 4, p.y);
       ctx.stroke();
       ctx.shadowBlur = 0;
-    } else if (p.dmg >= 100) {
-      // Heavy round / shell
-      ctx.fillStyle = '#444';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#888';
-      ctx.fillRect(p.x - dir * 4, p.y - 1, dir * 4, 2);
-    } else if (p.dmg >= 30) {
-      // Arrow
+    } else if (isShell) {
+      // Heavy round with a specular highlight (reads as a metal ball)
+      ctx.fillStyle = '#3a3a3a';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(220,220,220,0.85)';
+      ctx.beginPath(); ctx.arc(p.x - dir * 1.5, p.y - 1.6, 1.7, 0, Math.PI * 2); ctx.fill();
+    } else if (isArrow) {
+      // Arrow: shaft + steel head + red fletching
       ctx.strokeStyle = '#5a3a22';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(p.x - dir * 10, p.y); ctx.lineTo(p.x + dir * 4, p.y);
       ctx.stroke();
-      // Arrowhead
       ctx.fillStyle = '#ccc';
       ctx.beginPath();
       ctx.moveTo(p.x + dir * 4, p.y);
@@ -2007,17 +2036,16 @@ const AgeOfWarGame = (() => {
       ctx.lineTo(p.x + dir * -1, p.y + 3);
       ctx.closePath();
       ctx.fill();
-    } else {
-      // Bullet / stone
-      ctx.fillStyle = p.color || '#fcd34d';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(252,211,77,0.35)';
+      ctx.strokeStyle = '#aa3322';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(p.x - dir * 8, p.y); ctx.lineTo(p.x, p.y);
+      ctx.moveTo(p.x - dir * 10, p.y); ctx.lineTo(p.x - dir * 13, p.y - 2.5);
+      ctx.moveTo(p.x - dir * 10, p.y); ctx.lineTo(p.x - dir * 13, p.y + 2.5);
       ctx.stroke();
+    } else {
+      // Bright bullet / stone (the tracer supplies the streak)
+      ctx.fillStyle = p.color || '#fcd34d';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
     }
   }
 
