@@ -679,9 +679,22 @@ const AgeOfWarGame = (() => {
     // New era → new hero costs/CD baseline
     const h = heroForEra(playerEra);
     if (h) { currentHeroCd = h.cd; heroReadyT = Math.min(heroReadyT, 10); }
-    const hpBoost = 500;
+    // Evolving is the ONLY way to recover base HP, so make it count:
+    // raise max HP and FULLY restore current HP to the new max. This turns
+    // a well-timed Age Up into a genuine "heal under pressure" moment.
+    const hpBoost = 600;
+    const before = playerBaseHp;
     playerBaseMax += hpBoost;
-    playerBaseHp = Math.min(playerBaseMax, playerBaseHp + hpBoost);
+    playerBaseHp = playerBaseMax;             // full restore
+    const healed = Math.round(playerBaseHp - before);
+    if (healed > 0) {
+      // Reuse the gold-floater renderer (supports arbitrary text + color)
+      // so we can show a green "+N HP" pop above the base on evolve.
+      goldFloaters.push({
+        text: '+' + healed + ' HP', x: PLAYER_BASE_X + BASE_W / 2,
+        y: GROUND_Y - 150, color: '#3FB950', t: 1.6,
+      });
+    }
     SFX.ageUp();
     ageFlash = 1;
     seedAmbient(playerEra);  // refresh ambient particles for new era
