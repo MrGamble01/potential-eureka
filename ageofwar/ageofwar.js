@@ -102,7 +102,18 @@ const AgeOfWarGame = (() => {
   let units = [];
   let projectiles = [];
   let nextSpawnId = 1;
-  let spawnCooldowns = {};
+  // Training queue: gold is committed up front when the player buys a unit,
+  // and the unit actually appears at the base only after its training time.
+  // Units are trained one at a time, front-of-queue first (canonical Age of
+  // War behaviour). Cap of 5 simultaneous queue slots.
+  let trainingQueue = [];                    // [{ key, total, remaining }]
+  const TRAINING_MAX = 5;
+  function trainingTimeFor(def) {
+    // Cost / 500 (s) but always between 0.6s and 7s so cheap units cycle
+    // fast while expensive units feel weighty without locking up the lane.
+    return Math.max(0.6, Math.min(7, def.cost / 500));
+  }
+  let spawnCooldowns = {};                   // kept for legacy refs (always empty now)
   let enemySpawnT = 1.6;
   let goldTrickleT = 0;
   let specialReadyT = 6;
@@ -575,6 +586,7 @@ const AgeOfWarGame = (() => {
     units = [];
     projectiles = [];
     spawnCooldowns = {};
+    trainingQueue = [];
     enemySpawnT = 1.0;
     goldTrickleT = 0;
     specialReadyT = 6;
@@ -611,6 +623,7 @@ const AgeOfWarGame = (() => {
     spawnUnit('enemy',  'club');
     renderHud();
     renderSpawnPanel();
+    renderTrainingQueue();
     renderTurretPanel();
     hideOverlay();
   }
@@ -653,15 +666,41 @@ const AgeOfWarGame = (() => {
     if (!def) return;
     if (def.era > playerEra) return;
     if (gold < def.cost) return;
-    if ((spawnCooldowns[key] || 0) > 0) return;
+    if (trainingQueue.length >= TRAINING_MAX) return;
     gold -= def.cost;
-    spawnUnit('player', key);
-    // Cooldown scales with cost but capped so expensive late-game units
-    // (flier, mech) stay playable instead of locking up for ~10s each.
-    spawnCooldowns[key] = Math.max(0.4, Math.min(5, def.cost / 700));
+    const total = trainingTimeFor(def);
+    trainingQueue.push({ key, total, remaining: total });
     SFX.spawn();
     renderHud();
+    renderTrainingQueue();
     renderSpawnPanel();
+  }
+  function cancelTrainingAt(idx) {
+    // Click a queue slot to cancel: full refund (no penalty -- cheap UX
+    // since the only "cost" was the queue slot which is being freed).
+    const entry = trainingQueue[idx];
+    if (!entry) return;
+    const def = UNITS[entry.key];
+    if (def) gold += def.cost;
+    trainingQueue.splice(idx, 1);
+    renderHud();
+    renderTrainingQueue();
+    renderSpawnPanel();
+  }
+  function tickTraining(dt) {
+    if (!trainingQueue.length) return;
+    const front = trainingQueue[0];
+    front.remaining -= dt;
+    if (front.remaining <= 0) {
+      spawnUnit('player', front.key);
+      trainingQueue.shift();
+      renderTrainingQueue();
+      renderSpawnPanel();
+    } else {
+      // Cheap update: just push the progress style update for the front slot.
+      const slot = document.getElementById('aow-train-slot-0');
+      if (slot) slot.style.setProperty('--aow-train', ((1 - front.remaining / front.total) * 100) + '%');
+    }
   }
 
   function ageUp() {
@@ -717,6 +756,7 @@ const AgeOfWarGame = (() => {
     }
     renderHud();
     renderSpawnPanel();
+    renderTrainingQueue();
     renderTurretPanel();
   }
 
@@ -1042,10 +1082,8 @@ const AgeOfWarGame = (() => {
       renderHud();
     }
 
-    // Spawn cooldowns
-    for (const k of Object.keys(spawnCooldowns)) {
-      spawnCooldowns[k] = Math.max(0, spawnCooldowns[k] - dt);
-    }
+    // Tick the training queue: front entry trains down, spawns when done.
+    tickTraining(dt);
     if (specialReadyT > 0) {
       specialReadyT = Math.max(0, specialReadyT - dt);
       renderHud();
@@ -5452,24 +5490,56 @@ const AgeOfWarGame = (() => {
       }
     }
 
-    // Live cooldown bars on spawn buttons
+    // Spawn button affordability + queue-full disabled state. Per-button
+    // cooldowns were replaced by the unified training queue, so the only
+    // gates here are "can I afford this?" and "is the queue full?".
     const list = document.getElementById('aow-spawn-list');
     if (list) {
+      const queueFull = trainingQueue.length >= TRAINING_MAX;
       let i = 0;
       for (let e = 0; e <= playerEra; e++) {
         for (const key of unitsForEra(e)) {
           const def = UNITS[key];
           const btn = list.children[i];
           if (btn) {
-            const cd = spawnCooldowns[key] || 0;
-            const cdMax = Math.max(0.4, def.cost / 600);
-            btn.style.setProperty('--aow-cd', cd > 0 ? ((1 - cd / cdMax) * 100) + '%' : '100%');
             btn.classList.toggle('aow-not-afford', gold < def.cost);
-            btn.classList.toggle('aow-on-cd', cd > 0);
+            btn.classList.toggle('aow-queue-full', queueFull);
           }
           i++;
         }
       }
+    }
+  }
+
+  function renderTrainingQueue() {
+    const root = document.getElementById('aow-train-slots');
+    if (!root) return;
+    root.innerHTML = '';
+    for (let i = 0; i < TRAINING_MAX; i++) {
+      const slot = document.createElement('button');
+      slot.className = 'aow-train-slot';
+      slot.id = 'aow-train-slot-' + i;
+      const entry = trainingQueue[i];
+      if (entry) {
+        const def = UNITS[entry.key];
+        const svgFn = SPRITE_DEFS[entry.key];
+        const iconHtml = svgFn
+          ? `<img class="aow-train-sprite" alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgFn('run'))}"/>`
+          : `<span class="aow-train-icon">${def?.icon || '?'}</span>`;
+        slot.innerHTML = iconHtml + `<span class="aow-train-cancel" aria-hidden="true">×</span>`;
+        slot.title = `${def?.name || entry.key} — click to cancel + refund $${def?.cost}`;
+        slot.onclick = () => cancelTrainingAt(i);
+        if (i === 0) {
+          slot.style.setProperty('--aow-train', ((1 - entry.remaining / entry.total) * 100) + '%');
+        } else {
+          slot.style.setProperty('--aow-train', '0%');
+        }
+      } else {
+        slot.classList.add('aow-train-empty');
+        slot.disabled = true;
+        slot.innerHTML = `<span class="aow-train-dot">·</span>`;
+      }
+      root.appendChild(slot);
     }
   }
 
