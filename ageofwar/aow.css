@@ -671,6 +671,49 @@
 }
 .aow-turret-buy:active { transform: scale(0.96); }
 
+/* Side-by-side upgrade + sell on occupied turret slots */
+.aow-turret-actions {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.aow-turret-actions > * { flex: 1; min-width: 0; }
+.aow-turret-sell {
+  background: rgba(248,81,73,0.10);
+  border: 1px solid rgba(248,81,73,0.4);
+  color: #ffb0a8;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.aow-turret-sell:hover {
+  background: rgba(248,81,73,0.22);
+  border-color: rgba(248,81,73,0.65);
+}
+.aow-turret-sell:active { transform: scale(0.96); }
+
+/* Locked-slot card: greyed out with a unlock-cost button (or LOCKED label) */
+.aow-turret-slot.aow-turret-locked {
+  opacity: 0.85;
+  border-style: dashed;
+}
+.aow-turret-slot.aow-turret-locked .aow-turret-empty {
+  color: var(--text-dim);
+}
+.aow-turret-slot-buy {
+  background: rgba(252,211,77,0.12);
+  border: 1px solid rgba(252,211,77,0.45);
+  color: #fcd34d;
+}
+.aow-turret-slot-buy:hover {
+  background: rgba(252,211,77,0.22);
+  border-color: rgba(252,211,77,0.65);
+}
+
 /* ── Settings gear button + modal ── */
 .aow-settings-btn {
   width: 32px; height: 32px;

@@ -72,7 +72,17 @@ const AgeOfWarGame = (() => {
     { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 280, range: 300, atkSpd: 0.6, color: '#5a7a45' },
     { era: 4, name: 'Plasma Turret', icon: '✨', cost: 12000, dmg: 700, range: 340, atkSpd: 0.9, color: '#6ec4ff' },
   ];
-  const TURRET_SLOTS = 4;
+  // Player starts with 2 turret slots and can purchase up to 2 more (max 4).
+  // Enemy keeps all 4 unlocked so the AI ramps as it would in canon.
+  // The underlying arrays are always sized to TURRET_SLOTS_MAX so positions
+  // are stable; slots beyond playerSlotsOwned just render as "locked".
+  const TURRET_SLOTS_MAX = 4;
+  // Cost progression per purchased slot (slots 2 -> index 2 costs SLOT_COSTS[2], slot 4 -> index 3).
+  const SLOT_PURCHASE_COSTS = [0, 0, 600, 2200];
+  // Sell refund as a fraction of the turret's purchase cost.
+  const SELL_REFUND = 0.5;
+  // Back-compat alias (some older spots still read TURRET_SLOTS).
+  const TURRET_SLOTS = TURRET_SLOTS_MAX;
 
   // ---- State ----
   let canvas, ctx;
@@ -133,6 +143,7 @@ const AgeOfWarGame = (() => {
   let particles = [];              // { x, y, vx, vy, color, life, size }
   let playerTurrets = [null, null, null, null];  // each: { era, atkT, ...TURRETS[era] }
   let enemyTurrets  = [null, null, null, null];
+  let playerSlotsOwned = 2;                       // starts with 2 turret slots (canon)
 
   // ---- Difficulty ----
   // Tuned to be more forgiving on Easy/Normal: Easy gives ~2x slower spawns,
@@ -254,7 +265,10 @@ const AgeOfWarGame = (() => {
     if (combo >= 10) unlock('streak_10');
     if (combo >= 25) unlock('streak_25');
     if (gold >= 5000) unlock('rich');
-    if (playerTurrets.every(t => t)) unlock('turret_full');
+    // Turret-full now requires all 4 slots PURCHASED (was: array-full when
+    // slots were free). More meaningful since slots cost gold now.
+    if (playerSlotsOwned === TURRET_SLOTS_MAX &&
+        playerTurrets.slice(0, playerSlotsOwned).every(t => t)) unlock('turret_full');
     if (runStats.kills >= 100) unlock('kill_100');
     if (runStats.coinsCollected >= 50) unlock('collect_50');
     if (runStats.specialsFired >= 5) unlock('special_5');
@@ -603,6 +617,7 @@ const AgeOfWarGame = (() => {
     particles = [];
     playerTurrets = [null, null, null, null];
     enemyTurrets  = [null, null, null, null];
+    playerSlotsOwned = 2;
     combo = 0; comboT = 0; comboBest = 0;
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
     runStats.specialsFired = 0; runStats.coinsCollected = 0;
@@ -794,6 +809,7 @@ const AgeOfWarGame = (() => {
 
   function tryBuyTurret(slot, era) {
     if (gameOver) return;
+    if (slot >= playerSlotsOwned) return;             // can't build on locked slots
     const tdef = TURRETS[era];
     if (!tdef) return;
     if (era > playerEra) return;
@@ -804,6 +820,35 @@ const AgeOfWarGame = (() => {
     gold -= tdef.cost;
     playerTurrets[slot] = { ...tdef, atkT: 0 };
     runStats.turretsBuilt++;
+    SFX.turret();
+    renderHud();
+    renderTurretPanel();
+  }
+  function trySellTurret(slot) {
+    if (gameOver) return;
+    const t = playerTurrets[slot];
+    if (!t) return;
+    // Refund based on the turret's original cost (sum of upgrade path
+    // would be ideal, but the catalog only stores current-tier cost, so
+    // refund a flat 50% of that as the canonical "partial refund").
+    const refund = Math.round(t.cost * SELL_REFUND);
+    gold += refund;
+    playerTurrets[slot] = null;
+    SFX.coin();
+    goldFloaters.push({
+      text: '+$' + refund, x: PLAYER_BASE_X + BASE_W / 2,
+      y: GROUND_Y - 110, color: '#fcd34d', t: 1.2,
+    });
+    renderHud();
+    renderTurretPanel();
+  }
+  function tryBuyTurretSlot() {
+    if (gameOver) return;
+    if (playerSlotsOwned >= TURRET_SLOTS_MAX) return;
+    const cost = SLOT_PURCHASE_COSTS[playerSlotsOwned] || 0;
+    if (gold < cost) return;
+    gold -= cost;
+    playerSlotsOwned += 1;
     SFX.turret();
     renderHud();
     renderTurretPanel();
@@ -2553,13 +2598,27 @@ const AgeOfWarGame = (() => {
 
   function drawTurrets(baseX, slots, facing) {
     // facing: +1 = aim right (player), -1 = aim left (enemy).
-    // Each slot renders a tiny era-themed silhouette of the turret with
-    // a barrel/arm pointing toward the enemy.
+    // For the player side, slots beyond playerSlotsOwned render as
+    // locked padlocks instead of empty mounts. Enemy keeps full ramp.
     const dir = facing || +1;
+    const isPlayer = dir === +1;
     for (let i = 0; i < TURRET_SLOTS; i++) {
       const t = slots[i];
       const x = baseX + 12 + (i + 0.5) * ((BASE_W - 24) / TURRET_SLOTS);
       const y = GROUND_Y - 96;
+      if (isPlayer && i >= playerSlotsOwned) {
+        // Locked slot: small grey padlock so the player can see "future slot here"
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(x - 5, y, 10, 4);
+        ctx.strokeStyle = 'rgba(180,180,180,0.6)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(x, y - 4, 3, Math.PI, 2 * Math.PI);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(180,180,180,0.55)';
+        ctx.fillRect(x - 3, y - 4, 6, 5);
+        continue;
+      }
       if (!t) {
         // empty slot: low mount platform with bolt holes
         ctx.fillStyle = 'rgba(0,0,0,0.45)';
@@ -5575,16 +5634,37 @@ const AgeOfWarGame = (() => {
     const list = document.getElementById('aow-turret-list');
     if (!list) return;
     list.innerHTML = '';
-    for (let i = 0; i < TURRET_SLOTS; i++) {
+    for (let i = 0; i < TURRET_SLOTS_MAX; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'aow-turret-slot';
+      // Slot beyond what we've purchased: show a "Buy slot" prompt with cost.
+      if (i >= playerSlotsOwned) {
+        slot.classList.add('aow-turret-locked');
+        // Only the NEXT-to-unlock slot is buyable; further-out slots stay
+        // visible but greyed so the player knows how many slots exist total.
+        if (i === playerSlotsOwned) {
+          const cost = SLOT_PURCHASE_COSTS[i] || 0;
+          slot.innerHTML = `
+            <span class="aow-turret-empty">🔒 slot ${i + 1}</span>
+            <button class="aow-turret-buy aow-turret-slot-buy" data-buy-slot="1">Buy slot · $${cost}</button>
+          `;
+        } else {
+          slot.innerHTML = `<span class="aow-turret-empty">🔒 slot ${i + 1}</span><span class="aow-turret-maxed">LOCKED</span>`;
+        }
+        list.appendChild(slot);
+        continue;
+      }
       const current = playerTurrets[i];
       const next = current ? Math.min(playerEra, current.era + 1) : 0;
       const nextDef = (!current || current.era < playerEra) ? TURRETS[next] : null;
-      const slot = document.createElement('div');
-      slot.className = 'aow-turret-slot';
       if (current) {
+        const refund = Math.round(current.cost * SELL_REFUND);
         slot.innerHTML = `
           <span class="aow-turret-current">${current.icon}<small>${current.name}</small></span>
-          ${nextDef ? `<button class="aow-turret-buy" data-slot="${i}" data-era="${next}">⬆️ ${nextDef.icon} $${nextDef.cost}</button>` : '<span class="aow-turret-maxed">MAX</span>'}
+          <div class="aow-turret-actions">
+            ${nextDef ? `<button class="aow-turret-buy" data-slot="${i}" data-era="${next}">⬆️ ${nextDef.icon} $${nextDef.cost}</button>` : '<span class="aow-turret-maxed">MAX</span>'}
+            <button class="aow-turret-sell" data-sell="${i}" title="Sell turret for $${refund}">Sell $${refund}</button>
+          </div>
         `;
       } else {
         const def = TURRETS[Math.min(playerEra, TURRETS.length - 1)];
@@ -5595,8 +5675,14 @@ const AgeOfWarGame = (() => {
       }
       list.appendChild(slot);
     }
-    list.querySelectorAll('.aow-turret-buy').forEach(b => {
+    list.querySelectorAll('.aow-turret-buy:not(.aow-turret-slot-buy)').forEach(b => {
       b.addEventListener('click', () => tryBuyTurret(+b.dataset.slot, +b.dataset.era));
+    });
+    list.querySelectorAll('.aow-turret-slot-buy').forEach(b => {
+      b.addEventListener('click', tryBuyTurretSlot);
+    });
+    list.querySelectorAll('.aow-turret-sell').forEach(b => {
+      b.addEventListener('click', () => trySellTurret(+b.dataset.sell));
     });
   }
 
