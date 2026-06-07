@@ -21,9 +21,9 @@ const AgeOfWarGame = (() => {
   const ERAS = [
     { id: 'stone',    name: 'Stone Age',   icon: '🪨', sky: ['#4a3a2a', '#7a604a'], baseColor: '#7a5a3a', upXP:    100,
       special: { name: 'Boulder',    icon: '🪨', dmg: 180, color: '#a07040' } },
-    { id: 'medieval', name: 'Medieval',    icon: '🏰', sky: ['#2a3a55', '#506a85'], baseColor: '#8a8a9c', upXP:    480,
+    { id: 'medieval', name: 'Castle Age',  icon: '🏰', sky: ['#2a3a55', '#506a85'], baseColor: '#8a8a9c', upXP:    480,
       special: { name: 'Arrow Rain', icon: '🏹', dmg: 320, color: '#b5985a' } },
-    { id: 'industrial', name: 'Industrial', icon: '🏭', sky: ['#2d2a3a', '#4f4c5e'], baseColor: '#6b6878', upXP:   1800,
+    { id: 'industrial', name: 'Renaissance', icon: '🏭', sky: ['#2d2a3a', '#4f4c5e'], baseColor: '#6b6878', upXP:   1800,
       special: { name: 'Artillery', icon: '💣', dmg: 560, color: '#888' } },
     { id: 'modern',   name: 'Modern',      icon: '🪖', sky: ['#1d3a45', '#356575'], baseColor: '#5a7a85', upXP:   4500,
       special: { name: 'Air Strike', icon: '✈️', dmg: 900, color: '#ddd' } },
@@ -173,8 +173,8 @@ const AgeOfWarGame = (() => {
   // pops in the corner. Full list lives in a modal.
   const ACHIEVEMENTS = [
     { id: 'first_blood',  icon: '⚔️',  title: 'First Blood',     desc: 'Kill an enemy unit.' },
-    { id: 'first_age',    icon: '🏰',  title: 'Evolving',         desc: 'Reach the Medieval Age.' },
-    { id: 'industrial',   icon: '🏭',  title: 'Industrialist',    desc: 'Reach the Industrial Age.' },
+    { id: 'first_age',    icon: '🏰',  title: 'Evolving',         desc: 'Reach the Castle Age.' },
+    { id: 'industrial',   icon: '🏭',  title: 'Renaissance Man',  desc: 'Reach the Renaissance Age.' },
     { id: 'modern',       icon: '🪖',  title: 'Modern Warfare',   desc: 'Reach the Modern Age.' },
     { id: 'max_age',      icon: '🚀',  title: 'Singularity',      desc: 'Reach the Future Age.' },
     { id: 'streak_10',    icon: '🔥',  title: 'Heating Up',       desc: '10-kill combo streak.' },
