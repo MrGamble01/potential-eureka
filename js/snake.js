@@ -8,12 +8,14 @@ const SnakeGame = (() => {
   const ROWS = 20;
   const WIDTH = COLS * GRID;
   const HEIGHT = ROWS * GRID;
+  const COMBO_TIMEOUT = 2000; // ms window to maintain a combo chain
 
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let particles, floatingTexts, combo, comboExpiry;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -28,6 +30,10 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
+    particles = [];
+    floatingTexts = [];
+    combo = 0;
+    comboExpiry = 0;
     updateInfo();
     draw();
 
@@ -86,6 +92,10 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    particles = [];
+    floatingTexts = [];
+    combo = 0;
+    comboExpiry = 0;
     speed = 120;
     spawnFood();
     updateInfo();
@@ -119,6 +129,24 @@ const SnakeGame = (() => {
       (food && food.x === pos.x && food.y === pos.y)
     ));
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
+  }
+
+  function spawnParticles(gridX, gridY, color) {
+    const cx = gridX * GRID + GRID / 2;
+    const cy = gridY * GRID + GRID / 2;
+    const count = 12;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+      const speed = (0.6 + Math.random() * 1.0) * GRID * 0.22;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1,
+        radius: 1.5 + Math.random() * 2,
+        color,
+      });
+    }
   }
 
   function getLevel() {
@@ -166,30 +194,68 @@ const SnakeGame = (() => {
     // Eat regular food
     if (head.x === food.x && head.y === food.y) {
       ate = true;
-      score += 10;
+      const now = Date.now();
+      combo = now < comboExpiry ? Math.min(combo + 1, 5) : 1;
+      comboExpiry = now + COMBO_TIMEOUT;
+      const pts = 10 * combo;
+      score += pts;
       foodCount++;
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+      spawnParticles(food.x, food.y, '#F778BA');
+      floatingTexts.push({
+        x: food.x * GRID + GRID / 2,
+        y: food.y * GRID - 2,
+        text: combo > 1 ? `+${pts} ×${combo}` : `+${pts}`,
+        color: combo > 1 ? '#F7C948' : '#3FB950',
+        alpha: 1, vy: -0.9,
+      });
       spawnFood();
-      // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
-      // Speed up slightly
       if (speed > 60) {
         speed -= 2;
         clearInterval(gameLoop);
         gameLoop = setInterval(tick, speed);
       }
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
-      // Eat bonus food (snake also grows)
       ate = true;
-      score += 50;
+      const now = Date.now();
+      combo = now < comboExpiry ? Math.min(combo + 1, 5) : 1;
+      comboExpiry = now + COMBO_TIMEOUT;
+      const pts = 50 * combo;
+      score += pts;
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+      spawnParticles(head.x, head.y, '#F7C948');
+      floatingTexts.push({
+        x: head.x * GRID + GRID / 2,
+        y: head.y * GRID - 2,
+        text: combo > 1 ? `+${pts} ×${combo}` : `+${pts}`,
+        color: '#F7C948',
+        alpha: 1, vy: -0.9,
+      });
+    }
+
+    // Update particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy;
+      p.vx *= 0.88; p.vy *= 0.88;
+      p.alpha -= 0.1;
+      if (p.alpha <= 0) particles.splice(i, 1);
+    }
+
+    // Update floating texts
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const t = floatingTexts[i];
+      t.y += t.vy;
+      t.alpha -= 0.055;
+      if (t.alpha <= 0) floatingTexts.splice(i, 1);
     }
 
     if (!ate) snake.pop();
@@ -202,6 +268,8 @@ const SnakeGame = (() => {
     running = false;
     gameOver = true;
     bonusFood = null;
+    combo = 0;
+    comboExpiry = 0;
     clearInterval(gameLoop);
 
     const overlay = document.getElementById('snake-overlay');
@@ -281,6 +349,49 @@ const SnakeGame = (() => {
       );
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Particles
+    particles.forEach(p => {
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+
+    // Floating score texts
+    floatingTexts.forEach(t => {
+      ctx.globalAlpha = Math.max(0, t.alpha);
+      ctx.fillStyle = t.color;
+      ctx.shadowColor = t.color;
+      ctx.shadowBlur = 8;
+      ctx.font = 'bold 13px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(t.text, t.x, t.y);
+    });
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
+
+    // Combo indicator (top-right corner)
+    if (running && combo > 1) {
+      const label = `×${combo} COMBO`;
+      const pulse = 0.85 + Math.sin(Date.now() / 150) * 0.15;
+      ctx.globalAlpha = pulse;
+      ctx.font = `bold 14px Inter, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#F7C948';
+      ctx.shadowColor = '#F7C948';
+      ctx.shadowBlur = 12;
+      ctx.fillText(label, WIDTH - 8, 20);
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.textAlign = 'left';
     }
 
     // Start prompt
