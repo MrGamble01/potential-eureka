@@ -1575,32 +1575,63 @@ const AgeOfWarGame = (() => {
     } else {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-    // OG Age of War style: bright, flat sky → simple mountain silhouette → flat ground.
-    // Bright per-era sky (much higher saturation than before)
+    // ---- Atmosphere ----
+    // 4-stop sky gradient (deeper at zenith, hazier near horizon) for depth.
+    const [skyTop, skyHorizon] = OG_SKY[playerEra];
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    grad.addColorStop(0, OG_SKY[playerEra][0]);
-    grad.addColorStop(1, OG_SKY[playerEra][1]);
+    grad.addColorStop(0,    skyTop);
+    grad.addColorStop(0.55, skyHorizon);
+    grad.addColorStop(0.85, mixHex(skyHorizon, '#ffffff', 0.18));
+    grad.addColorStop(1,    mixHex(skyHorizon, '#ffffff', 0.32));
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, GROUND_Y);
 
-    // A single, simple sun (cartoon disc, no halo clutter)
+    // Soft sun halo glow behind the disc -- huge atmospheric impact for a
+    // tiny amount of paint. Skips at the (null) era (modern, overcast).
     const sunC = OG_SUN[playerEra];
+    const sunX = WIDTH * 0.82, sunY = 80;
     if (sunC) {
+      // Outer warm halo
+      const halo = ctx.createRadialGradient(sunX, sunY, 18, sunX, sunY, 260);
+      halo.addColorStop(0,    sunC + 'ee');
+      halo.addColorStop(0.18, sunC + '70');
+      halo.addColorStop(0.45, sunC + '22');
+      halo.addColorStop(1,    sunC + '00');
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(sunX, sunY, 260, 0, Math.PI * 2); ctx.fill();
+      // Tight inner bloom
+      const bloom = ctx.createRadialGradient(sunX, sunY, 8, sunX, sunY, 70);
+      bloom.addColorStop(0, '#ffffffcc');
+      bloom.addColorStop(0.5, sunC + 'aa');
+      bloom.addColorStop(1, sunC + '00');
+      ctx.fillStyle = bloom;
+      ctx.beginPath(); ctx.arc(sunX, sunY, 70, 0, Math.PI * 2); ctx.fill();
+      // Sun disc itself
       ctx.fillStyle = sunC;
-      ctx.beginPath();
-      ctx.arc(WIDTH * 0.82, 80, 36, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.beginPath(); ctx.arc(sunX, sunY, 36, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 1.5; ctx.stroke();
+      // Faint vertical god rays (very subtle)
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = sunC + '14';
+      for (let r = 0; r < 6; r++) {
+        const ang = -Math.PI / 2 + (r - 2.5) * 0.18;
+        ctx.beginPath();
+        ctx.moveTo(sunX, sunY);
+        ctx.lineTo(sunX + Math.cos(ang) * 600 - 24, sunY + Math.sin(ang) * 600);
+        ctx.lineTo(sunX + Math.cos(ang) * 600 + 24, sunY + Math.sin(ang) * 600);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
     }
 
     // Far-back parallax silhouette — darker, lower-amplitude.
     // Sits below the near hill to suggest a distant horizon.
     const farColor = OG_HILL[playerEra];
     ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = farColor;
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = mixHex(farColor, skyHorizon, 0.45);  // tinted toward sky for atmosphere
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
     for (let x = 0; x <= WIDTH; x += 30) {
@@ -1632,6 +1663,14 @@ const AgeOfWarGame = (() => {
       else ctx.lineTo(x, GROUND_Y - h);
     }
     ctx.stroke();
+
+    // Horizon haze band — desaturates+blurs the hill-to-ground transition.
+    // Drawn after hills so it tints them; before clouds so clouds stay crisp.
+    const hazeBand = ctx.createLinearGradient(0, GROUND_Y - 60, 0, GROUND_Y);
+    hazeBand.addColorStop(0, mixHex(skyHorizon, '#ffffff', 0.32) + '00');
+    hazeBand.addColorStop(1, mixHex(skyHorizon, '#ffffff', 0.32) + '80');
+    ctx.fillStyle = hazeBand;
+    ctx.fillRect(0, GROUND_Y - 60, WIDTH, 60);
 
     // A few simple clouds (cartoon, white)
     for (const c of bgClouds) drawCloud(c.x, c.y, c.r);
@@ -1856,6 +1895,18 @@ const AgeOfWarGame = (() => {
     }
   }
 
+  // Blend two #rrggbb colors. t=0 returns a, t=1 returns b. Used for
+  // atmospheric haze tinting (distant hills toward sky color, etc).
+  function mixHex(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ar = (pa >> 16) & 255, ag = (pa >> 8) & 255, ab = pa & 255;
+    const br = (pb >> 16) & 255, bg = (pb >> 8) & 255, bb = pb & 255;
+    const r = Math.round(ar + (br - ar) * t);
+    const g = Math.round(ag + (bg - ag) * t);
+    const bl = Math.round(ab + (bb - ab) * t);
+    return '#' + ((r << 16) | (g << 8) | bl).toString(16).padStart(6, '0');
+  }
+
   // OG-style brighter palette
   const OG_SKY = [
     ['#7dc4ec', '#cfe7f5'],  // stone — bright sky → pale horizon (matches OG cartoon)
@@ -1915,20 +1966,72 @@ const AgeOfWarGame = (() => {
     }
   }
   function drawGround(eraIdx) {
-    // OG style: solid flat ground with a single dark top edge line.
+    // Layered ground: base color → highlight-near-horizon band → darker
+    // foreground for depth → speckle texture so it doesn't read as flat.
     const base = GROUND_COLORS[eraIdx] || '#7a6648';
     ctx.fillStyle = base;
     ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
-    // Bright top edge line (the "horizon")
+
+    // Brighter highlight strip right at the horizon (sun-lit catch)
+    const horizonHi = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + 28);
+    horizonHi.addColorStop(0, 'rgba(255, 245, 200, 0.32)');
+    horizonHi.addColorStop(1, 'rgba(255, 245, 200, 0)');
+    ctx.fillStyle = horizonHi;
+    ctx.fillRect(0, GROUND_Y, WIDTH, 28);
+
+    // Dark horizon edge line (defines the ground silhouette)
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
-    // Subtle vertical fade to suggest depth (lighter near horizon)
+
+    // Deeper-front vertical vignette (the foreground recedes into shadow)
     const fade = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
-    fade.addColorStop(0, 'rgba(255,255,255,0.06)');
-    fade.addColorStop(1, 'rgba(0,0,0,0.35)');
+    fade.addColorStop(0,    'rgba(255,255,255,0.04)');
+    fade.addColorStop(0.55, 'rgba(0,0,0,0.10)');
+    fade.addColorStop(1,    'rgba(0,0,0,0.45)');
     ctx.fillStyle = fade;
     ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
+
+    // Ground texture: deterministic speckles + dirt patches anchored to
+    // their x-coord so they don't shimmer between frames. Two passes:
+    // light pebbles near the horizon, darker dirt closer to camera.
+    ctx.fillStyle = 'rgba(255,255,240,0.10)';
+    for (let i = 0; i < 60; i++) {
+      const sx = (i * 137 + 53) % WIDTH;
+      const sy = GROUND_Y + 6 + (i * 19) % 22;
+      ctx.fillRect(sx, sy, 2, 1);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    for (let i = 0; i < 80; i++) {
+      const sx = (i * 91 + 17) % WIDTH;
+      const sy = GROUND_Y + 30 + (i * 23) % (HEIGHT - GROUND_Y - 32);
+      const sz = 1 + (i % 3);
+      ctx.fillRect(sx, sy, sz, 1);
+    }
+    // A few larger dirt smudges
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    for (let i = 0; i < 14; i++) {
+      const sx = (i * 211 + 71) % WIDTH;
+      const sy = GROUND_Y + 18 + (i * 41) % (HEIGHT - GROUND_Y - 24);
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 10 + (i % 4) * 4, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Grass tufts (stone + medieval eras only — green organic)
+    if (eraIdx <= 1) {
+      ctx.strokeStyle = eraIdx === 0 ? 'rgba(60,120,40,0.6)' : 'rgba(40,110,30,0.7)';
+      ctx.lineWidth = 1.4;
+      for (let i = 0; i < 36; i++) {
+        const gx = (i * 167 + 29) % WIDTH;
+        const gy = GROUND_Y + 4 + (i * 13) % 14;
+        ctx.beginPath();
+        ctx.moveTo(gx - 2, gy + 4); ctx.lineTo(gx,     gy);
+        ctx.moveTo(gx,     gy + 4); ctx.lineTo(gx + 1, gy - 1);
+        ctx.moveTo(gx + 2, gy + 4); ctx.lineTo(gx + 4, gy);
+        ctx.stroke();
+      }
+    }
   }
 
   // Midground foliage — small cartoon trees / bushes / pylons arranged at
@@ -1937,9 +2040,16 @@ const AgeOfWarGame = (() => {
   // GROUND_Y so they sit on the same line as the units.
   function drawFoliage(eraIdx) {
     const drawTree = (x, scale, fillA, fillB) => {
-      // Trunk
+      // Ground shadow (anchors the tree)
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.beginPath();
+      ctx.ellipse(x + 4 * scale, GROUND_Y - 1, 18 * scale, 4 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Trunk with a darker side-shadow (light from upper-left)
       ctx.fillStyle = '#5a3a1a';
       ctx.fillRect(x - 3 * scale, GROUND_Y - 18 * scale, 6 * scale, 18 * scale);
+      ctx.fillStyle = '#3a2410';
+      ctx.fillRect(x + 0.5 * scale, GROUND_Y - 18 * scale, 2.5 * scale, 18 * scale);
       ctx.strokeStyle = 'rgba(0,0,0,0.6)';
       ctx.lineWidth = 1.4;
       ctx.strokeRect(x - 3 * scale, GROUND_Y - 18 * scale, 6 * scale, 18 * scale);
@@ -1953,18 +2063,36 @@ const AgeOfWarGame = (() => {
       ctx.strokeStyle = 'rgba(0,0,0,0.55)';
       ctx.lineWidth = 1.6 * scale;
       ctx.stroke();
-      // Highlight
+      // Canopy shading on right side (light from upper-left)
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x,              GROUND_Y - 28 * scale, 14 * scale, 0, Math.PI * 2);
+      ctx.arc(x - 11 * scale, GROUND_Y - 22 * scale, 11 * scale, 0, Math.PI * 2);
+      ctx.arc(x + 11 * scale, GROUND_Y - 22 * scale, 11 * scale, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(x + 1 * scale, GROUND_Y - 36 * scale, 26 * scale, 26 * scale);
+      ctx.restore();
+      // Two highlight dabs
       ctx.fillStyle = fillB;
       ctx.beginPath();
       ctx.arc(x - 3 * scale, GROUND_Y - 31 * scale, 4 * scale, 0, Math.PI * 2);
+      ctx.arc(x - 11 * scale, GROUND_Y - 24 * scale, 2.5 * scale, 0, Math.PI * 2);
       ctx.fill();
     };
     const drawConifer = (x, scale, fill) => {
+      // Ground shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.beginPath();
+      ctx.ellipse(x + 3 * scale, GROUND_Y - 1, 14 * scale, 3.5 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = '#4a2e14';
       ctx.fillRect(x - 2 * scale, GROUND_Y - 6 * scale, 4 * scale, 6 * scale);
       ctx.fillStyle = fill;
       ctx.strokeStyle = 'rgba(0,0,0,0.6)';
       ctx.lineWidth = 1.4;
+      // Shadow color for the right-side of each tier
+      const sh = 'rgba(0,0,0,0.20)';
       for (let i = 0; i < 3; i++) {
         const yTop = GROUND_Y - (40 - i * 9) * scale;
         const yBot = yTop + 12 * scale;
@@ -1976,9 +2104,25 @@ const AgeOfWarGame = (() => {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+        // Right-half shadow (light from upper-left)
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x,       yTop);
+        ctx.lineTo(x - w/2, yBot);
+        ctx.lineTo(x + w/2, yBot);
+        ctx.closePath();
+        ctx.clip();
+        ctx.fillStyle = sh;
+        ctx.fillRect(x, yTop, w, yBot - yTop);
+        ctx.restore();
       }
     };
     const drawBush = (x, scale, fill) => {
+      // Ground shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(x + 2 * scale, GROUND_Y - 1, 11 * scale, 3 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = fill;
       ctx.strokeStyle = 'rgba(0,0,0,0.55)';
       ctx.lineWidth = 1.4;
@@ -1988,8 +2132,23 @@ const AgeOfWarGame = (() => {
       ctx.arc(x,              GROUND_Y - 10 * scale, 9 * scale, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+      // Right-side shading clip
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x - 6 * scale, GROUND_Y - 6 * scale, 7 * scale, 0, Math.PI * 2);
+      ctx.arc(x + 5 * scale, GROUND_Y - 7 * scale, 8 * scale, 0, Math.PI * 2);
+      ctx.arc(x,              GROUND_Y - 10 * scale, 9 * scale, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(x + 1 * scale, GROUND_Y - 16 * scale, 18 * scale, 18 * scale);
+      ctx.restore();
     };
     const drawRock = (x, scale) => {
+      // Ground shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(x + 3 * scale, GROUND_Y - 1, 16 * scale, 3 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = '#7a6a55';
       ctx.strokeStyle = 'rgba(0,0,0,0.55)';
       ctx.lineWidth = 1.4;
@@ -2000,8 +2159,19 @@ const AgeOfWarGame = (() => {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      // Highlight + shadow side
       ctx.fillStyle = '#a8957a';
       ctx.fillRect(x - 8 * scale, GROUND_Y - 9 * scale, 5 * scale, 2 * scale);
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(x, GROUND_Y - 5 * scale, 14 * scale, 7 * scale, 0, Math.PI, 0);
+      ctx.lineTo(x + 14 * scale, GROUND_Y);
+      ctx.lineTo(x - 14 * scale, GROUND_Y);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle = 'rgba(0,0,0,0.20)';
+      ctx.fillRect(x + 2 * scale, GROUND_Y - 12 * scale, 14 * scale, 14 * scale);
+      ctx.restore();
     };
     const drawPipe = (x, scale) => {
       ctx.fillStyle = '#5a4a38';
