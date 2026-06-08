@@ -96,7 +96,6 @@ const AgeOfWarGame = (() => {
   let dmgFloaters = [];
   let muzzleFlashes = [];
   let strikes = [];                // air-strike effects (meteor / arrows / bombs)
-  let coinDrops = [];              // visual coins after kills
   let ageFlash = 0;                // 1 → 0 right after aging up
   let ageBannerT = 0;              // seconds banner stays visible
   let ageBannerText = '';
@@ -125,7 +124,7 @@ const AgeOfWarGame = (() => {
   function comboMult() { return Math.min(5, 1 + combo * 0.05); }
 
   // ---- Run stats (shown on win/lose + drive achievements) ----
-  const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
+  const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
 
   // ---- Achievements ----
   // Persisted in localStorage across runs. Earned during play, toast
@@ -146,7 +145,7 @@ const AgeOfWarGame = (() => {
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
     { id: 'win_insane',   icon: '👑',  title: 'Unstoppable',      desc: 'Win on Insane.' },
     { id: 'kill_100',     icon: '🧨',  title: 'Slayer',           desc: '100 kills in one run.' },
-    { id: 'collect_50',   icon: '🪙',  title: 'Collector',        desc: 'Click 50 coins in one run.' },
+    { id: 'collect_50',   icon: '🪙',  title: 'Payday',           desc: 'Earn $10,000 in one run.' },
   ];
   let earnedAchievements = {};
   function loadAchievements() {
@@ -208,7 +207,7 @@ const AgeOfWarGame = (() => {
     if (gold >= 5000) unlock('rich');
     if (playerTurrets.every(t => t)) unlock('turret_full');
     if (runStats.kills >= 100) unlock('kill_100');
-    if (runStats.coinsCollected >= 50) unlock('collect_50');
+    if (runStats.gold >= 10000) unlock('collect_50');
     if (runStats.specialsFired >= 5) unlock('special_5');
   }
   function renderAchievementsModal() {
@@ -537,7 +536,6 @@ const AgeOfWarGame = (() => {
     dmgFloaters = [];
     muzzleFlashes = [];
     strikes = [];
-    coinDrops = [];
     ageFlash = 0;
     ageBannerT = 0;
     ageBannerText = '';
@@ -547,7 +545,7 @@ const AgeOfWarGame = (() => {
     enemyTurrets  = [null, null, null, null];
     combo = 0; comboT = 0; comboBest = 0;
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
-    runStats.specialsFired = 0; runStats.coinsCollected = 0;
+    runStats.specialsFired = 0;
     runStats.biggestCombo = 0; runStats.agesReached = 0;
     runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
     heroReadyT = 6;   // first summon available 6s in
@@ -743,14 +741,6 @@ const AgeOfWarGame = (() => {
     const achModal = document.getElementById('aow-ach-modal');
     if (achModal) achModal.addEventListener('click', e => {
       if (e.target === achModal) achModal.style.display = 'none';
-    });
-    // Click-to-collect coins. Map pointer event to canvas-internal
-    // coords (canvas is responsive; rect may differ from intrinsic size).
-    canvas.addEventListener('pointerdown', e => {
-      const rect = canvas.getBoundingClientRect();
-      const px = (e.clientX - rect.left) * (canvas.width  / rect.width);
-      const py = (e.clientY - rect.top)  * (canvas.height / rect.height);
-      collectCoinsNear(px, py);
     });
     // Difficulty selector
     const diffEl = document.getElementById('aow-diff');
@@ -1083,8 +1073,15 @@ const AgeOfWarGame = (() => {
           runStats.kills++;
           if (runStats.kills === 1) unlock('first_blood');
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
-          runStats.gold += u.gold * mult;
-          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
+          // OG Age of War: a kill pays out gold instantly — no coins to
+          // chase on the battlefield. Combo multiplier still applies.
+          const earned = Math.round(u.gold * mult);
+          gold += earned;
+          runStats.gold += earned;
+          goldFloaters.push({
+            text: '+$' + earned, x: u.x, y: GROUND_Y - u.h - 14,
+            color: combo >= 10 ? '#ff77c8' : '#fcd34d', t: 1.1,
+          });
           if (u.isBoss) {
             bossKilledThisWave = true;
             shake(10, 0.5);
@@ -1146,26 +1143,6 @@ const AgeOfWarGame = (() => {
     goldFloaters = goldFloaters.filter(f => f.t > 0);
     for (const m of muzzleFlashes) m.t -= dt;
     muzzleFlashes = muzzleFlashes.filter(m => m.t > 0);
-    // Coin physics: arc + bounce + rest. Once landed they bob in place
-    // and slowly fade so the player has time (~6s) to click them.
-    for (const c of coinDrops) {
-      c.t -= dt;
-      c.bob += dt * 5;
-      if (!c.landed) {
-        c.vy += 380 * dt;          // gravity
-        c.y += c.vy * dt;
-        c.x += c.vx * dt;
-        c.vx *= 0.96;
-        if (c.y >= c.landY) {
-          c.y = c.landY;
-          if (c.vy > 80) { c.vy *= -0.35; c.vx *= 0.6; } else {
-            c.landed = true;
-            c.vy = 0; c.vx = 0;
-          }
-        }
-      }
-    }
-    coinDrops = coinDrops.filter(c => c.t > 0);
 
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
@@ -1234,63 +1211,6 @@ const AgeOfWarGame = (() => {
         life: 0.3 + Math.random() * 0.2,
       });
     }
-  }
-
-  function collectCoinsNear(px, py) {
-    // Generous hit radius (touch-friendly): 18px.
-    const R = 18;
-    let collected = 0;
-    for (let i = coinDrops.length - 1; i >= 0; i--) {
-      const c = coinDrops[i];
-      if (Math.hypot(c.x - px, c.y - py) <= R) {
-        collected += c.gold;
-        // Pop with a small particle burst at the coin location
-        for (let k = 0; k < 4; k++) {
-          const a = Math.random() * Math.PI * 2;
-          const s = 60 + Math.random() * 60;
-          particles.push({
-            x: c.x, y: c.y,
-            vx: Math.cos(a) * s,
-            vy: Math.sin(a) * s - 40,
-            color: '#fcd34d',
-            size: 2 + Math.random() * 2,
-            life: 0.45 + Math.random() * 0.25,
-          });
-        }
-        coinDrops.splice(i, 1);
-      }
-    }
-    if (collected > 0) {
-      gold += collected;
-      runStats.coinsCollected += (arguments.length ? 1 : 1);  // bumped once per click batch
-      goldFloaters.push({
-        text: '+$' + collected, x: px, y: py - 14,
-        color: '#fcd34d', t: 1.2,
-      });
-      SFX.coin();
-      renderHud();
-    }
-  }
-
-  function dropCoins(x, y, total) {
-    // Split the total into 1-6 individual coins. Each must be clicked
-    // (or expires after a few seconds). Original Age of War made
-    // coin-collection part of the loop.
-    const coinCount = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
-    const perCoin = Math.max(1, Math.floor(total / coinCount));
-    for (let i = 0; i < coinCount; i++) {
-      coinDrops.push({
-        x, y: y - 6,
-        vy: -80 - Math.random() * 60,
-        vx: (Math.random() - 0.5) * 100,
-        landY: GROUND_Y - 8 - Math.random() * 4,
-        landed: false,
-        gold: perCoin,
-        t: 6.5,                    // seconds to claim before fading
-        bob: Math.random() * Math.PI * 2,
-      });
-    }
-    SFX.coin();
   }
 
   // ---- Rendering ----
@@ -1380,51 +1300,6 @@ const AgeOfWarGame = (() => {
     // Base HP bars
     drawBaseHpBar(PLAYER_BASE_X, playerBaseHp, playerBaseMax, '#3FB950');
     drawBaseHpBar(ENEMY_BASE_X,  enemyBaseHp,  enemyBaseMax,  '#F85149');
-
-    // Coin drops — round gold disks with a $ glyph. Click to collect.
-    for (const c of coinDrops) {
-      const fadeStart = 1.6;
-      const alpha = c.t > fadeStart ? 1 : Math.max(0, c.t / fadeStart);
-      const wobble = c.landed ? Math.sin(c.bob) * 1.5 : 0;
-      const yy = c.y + wobble;
-      const r = 8;
-      // Subtle shadow when landed
-      if (c.landed) {
-        ctx.fillStyle = `rgba(0,0,0,${0.35 * alpha})`;
-        ctx.beginPath();
-        ctx.ellipse(c.x, c.landY + 8, r * 0.9, 2.2, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      // Coin face (radial gradient)
-      const grad = ctx.createRadialGradient(c.x - 2, yy - 2, 1, c.x, yy, r);
-      grad.addColorStop(0, `rgba(255,238,160,${alpha})`);
-      grad.addColorStop(0.7, `rgba(252,211,77,${alpha})`);
-      grad.addColorStop(1, `rgba(180,130,30,${alpha})`);
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(c.x, yy, r, 0, Math.PI * 2);
-      ctx.fill();
-      // Rim
-      ctx.strokeStyle = `rgba(120,80,20,${alpha})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(c.x, yy, r, 0, Math.PI * 2);
-      ctx.stroke();
-      // $ glyph
-      ctx.fillStyle = `rgba(120,80,20,${alpha})`;
-      ctx.font = '700 10px JetBrains Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('$', c.x, yy + 1);
-      // Glow halo if expiring soon
-      if (c.t < 1.6) {
-        ctx.strokeStyle = `rgba(252,211,77,${(1.6 - c.t) / 1.6 * 0.6})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(c.x, yy, r + 3 + (1 - c.t / 1.6) * 4, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
 
     // Toppling corpses (behind live units so survivors march "over" them).
     // Same emoji sprite as the live unit — mirrored for facing, falling flat
