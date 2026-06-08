@@ -1664,6 +1664,10 @@ const AgeOfWarGame = (() => {
     }
     ctx.stroke();
 
+    // Midground silhouettes (distant trees / windmills / smokestacks / spires
+    // depending on era). Drawn before the haze so the haze tints them.
+    drawMidgroundSilhouettes(playerEra);
+
     // Horizon haze band — desaturates+blurs the hill-to-ground transition.
     // Drawn after hills so it tints them; before clouds so clouds stay crisp.
     const hazeBand = ctx.createLinearGradient(0, GROUND_Y - 60, 0, GROUND_Y);
@@ -2299,21 +2303,158 @@ const AgeOfWarGame = (() => {
   }
 
   function drawCloud(x, y, r) {
-    // Cartoon clouds: solid white blob, dark outline, slight shadow
+    // Soft volumetric cloud: three painted passes per cloud so they have
+    // light/mid/shadow tone instead of reading as a flat white sticker.
+    // Five-lobe silhouette with top-light highlights + sky-tinted underside.
+    const lobes = [
+      { dx: 0,            dy: 0,            r: r          },
+      { dx: r * 0.85,     dy: r * 0.10,     r: r * 0.85   },
+      { dx: -r * 0.85,    dy: r * 0.15,     r: r * 0.78   },
+      { dx: r * 0.35,     dy: -r * 0.45,    r: r * 0.65   },
+      { dx: -r * 0.30,    dy: -r * 0.40,    r: r * 0.60   },
+    ];
+
+    // 1) Soft cool underside shadow (the cloud's belly catches sky color)
+    ctx.fillStyle = 'rgba(80, 120, 170, 0.22)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + r * 0.55, r * 1.55, r * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2) Main cloud body — slightly cool off-white
+    ctx.fillStyle = '#f0f5fa';
+    ctx.beginPath();
+    for (const l of lobes) {
+      ctx.moveTo(x + l.dx + l.r, y + l.dy);
+      ctx.arc(x + l.dx, y + l.dy, l.r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    // 2b) Inner cool shade — paints lobe undersides with a sky-blue tint
+    ctx.save();
+    ctx.beginPath();
+    for (const l of lobes) {
+      ctx.moveTo(x + l.dx + l.r, y + l.dy);
+      ctx.arc(x + l.dx, y + l.dy, l.r, 0, Math.PI * 2);
+    }
+    ctx.clip();
+    ctx.fillStyle = 'rgba(140, 170, 200, 0.35)';
+    ctx.fillRect(x - r * 2, y + r * 0.05, r * 4, r * 1.2);
+    ctx.restore();
+
+    // 3) Top highlights — bright catch on the upper-left of each lobe
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.arc(x + r * 0.75, y + 4, r * 0.85, 0, Math.PI * 2);
-    ctx.arc(x - r * 0.75, y + 6, r * 0.75, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    // Underside shadow
-    ctx.fillStyle = 'rgba(120,160,200,0.25)';
-    ctx.beginPath();
-    ctx.ellipse(x, y + r * 0.45, r * 1.2, r * 0.18, 0, 0, Math.PI * 2);
-    ctx.fill();
+    for (const l of lobes) {
+      const hx = x + l.dx - l.r * 0.25;
+      const hy = y + l.dy - l.r * 0.30;
+      ctx.beginPath();
+      ctx.arc(hx, hy, l.r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 3b) Crisp specular dab at the very top
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    for (const l of lobes) {
+      const hx = x + l.dx - l.r * 0.40;
+      const hy = y + l.dy - l.r * 0.55;
+      ctx.beginPath();
+      ctx.arc(hx, hy, l.r * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Distant midground silhouettes — sit between the back hills and the
+  // play area to fill the visually empty middle band of the screen.
+  // Era-specific: stone gets tree clusters, medieval gets a windmill +
+  // tree, industrial gets smokestacks with plumes, modern gets low
+  // buildings + antenna, future gets glowing spire towers.
+  function drawMidgroundSilhouettes(eraIdx) {
+    const skyHorizon = OG_SKY[eraIdx][1];
+    const hillC = OG_HILL[eraIdx];
+    // Silhouette color: hill tinted toward sky (atmospheric perspective)
+    const silColor = mixHex(hillC, skyHorizon, 0.55);
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = silColor;
+    const groups = [
+      { cx: WIDTH * 0.28, scale: 1.0 },
+      { cx: WIDTH * 0.72, scale: 0.9 },
+    ];
+    const baseY = GROUND_Y - 14;
+    for (const g of groups) {
+      const s = g.scale;
+      if (eraIdx === 0) {
+        for (let i = 0; i < 5; i++) {
+          const tx = g.cx + (i - 2) * 14 * s;
+          const ty = baseY - 22 * s + Math.abs(i - 2) * 2;
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(tx - 8 * s, baseY);
+          ctx.lineTo(tx + 8 * s, baseY);
+          ctx.closePath(); ctx.fill();
+        }
+      } else if (eraIdx === 1) {
+        const wx = g.cx;
+        ctx.fillRect(wx - 6 * s, baseY - 36 * s, 12 * s, 36 * s);
+        ctx.beginPath();
+        ctx.moveTo(wx - 9 * s, baseY - 36 * s);
+        ctx.lineTo(wx + 9 * s, baseY - 36 * s);
+        ctx.lineTo(wx, baseY - 46 * s);
+        ctx.closePath(); ctx.fill();
+        ctx.save();
+        ctx.translate(wx, baseY - 40 * s);
+        ctx.rotate(Math.sin(performance.now() / 1800 + g.cx) * 0.05);
+        for (let i = 0; i < 4; i++) {
+          ctx.rotate(Math.PI / 2);
+          ctx.fillRect(-1.5 * s, 0, 3 * s, 20 * s);
+        }
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(wx + 22 * s, baseY - 14 * s, 8 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(wx + 21 * s, baseY - 8 * s, 2 * s, 8 * s);
+      } else if (eraIdx === 2) {
+        for (let i = 0; i < 3; i++) {
+          const sx = g.cx + (i - 1) * 14 * s;
+          const sh = (28 + (i % 2) * 8) * s;
+          ctx.fillRect(sx - 3 * s, baseY - sh, 6 * s, sh);
+          ctx.save();
+          ctx.fillStyle = mixHex(silColor, '#ffffff', 0.55);
+          ctx.globalAlpha = 0.45;
+          ctx.beginPath();
+          ctx.ellipse(sx + 2 * s, baseY - sh - 8 * s, 9 * s, 6 * s, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      } else if (eraIdx === 3) {
+        for (let i = 0; i < 4; i++) {
+          const sx = g.cx + (i - 1.5) * 18 * s;
+          const sh = (18 + (i % 3) * 10) * s;
+          ctx.fillRect(sx - 8 * s, baseY - sh, 16 * s, sh);
+        }
+        const ax = g.cx + 10 * s;
+        ctx.fillRect(ax - 1 * s, baseY - 60 * s, 2 * s, 60 * s);
+        ctx.save();
+        ctx.fillStyle = '#ff5a5a';
+        ctx.globalAlpha = (Math.floor(performance.now() / 700) & 1) ? 0.9 : 0.2;
+        ctx.beginPath();
+        ctx.arc(ax, baseY - 62 * s, 2 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        for (let i = 0; i < 4; i++) {
+          const sx = g.cx + (i - 1.5) * 14 * s;
+          const sh = (40 + (i % 2) * 14) * s;
+          ctx.fillRect(sx - 2 * s, baseY - sh, 4 * s, sh);
+          ctx.save();
+          ctx.fillStyle = '#7ec8ff';
+          ctx.globalAlpha = 0.6 + Math.sin(performance.now() / 320 + i) * 0.25;
+          ctx.beginPath();
+          ctx.arc(sx, baseY - sh - 2 * s, 2 * s, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+    ctx.restore();
   }
 
   function drawBase(x, color, icon, eraIdx) {
