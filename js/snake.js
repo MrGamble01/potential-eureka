@@ -12,7 +12,7 @@ const SnakeGame = (() => {
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
-  let foodCount, wallWrap;
+  let foodCount, wallWrap, paused;
   let gameLoop, running, gameOver;
 
   function init() {
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -61,6 +62,11 @@ const SnakeGame = (() => {
   }
 
   function handleKey(e) {
+    if (e.key === 'p' || e.key === 'P') {
+      togglePause();
+      return;
+    }
+    if (paused) return;
     if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       start();
       return;
@@ -77,6 +83,17 @@ const SnakeGame = (() => {
     }
   }
 
+  function togglePause() {
+    if (!running) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(tick, speed);
+    }
+    draw();
+  }
+
   function start() {
     snake = [{ x: Math.floor(COLS / 2), y: Math.floor(ROWS / 2) }];
     direction = { x: 1, y: 0 };
@@ -86,6 +103,7 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
     speed = 120;
     spawnFood();
     updateInfo();
@@ -201,6 +219,7 @@ const SnakeGame = (() => {
   function endGame() {
     running = false;
     gameOver = true;
+    paused = false;
     bonusFood = null;
     clearInterval(gameLoop);
 
@@ -293,7 +312,21 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys to move  ·  P to pause', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.textAlign = 'left';
+    }
+
+    // Pause overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.65)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 22px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 26);
       ctx.textAlign = 'left';
     }
   }

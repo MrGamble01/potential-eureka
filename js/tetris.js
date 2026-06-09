@@ -25,6 +25,7 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let paused, lineClearRows, lineClearPhase;
 
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
@@ -75,6 +76,9 @@ const TetrisGame = (() => {
     score = level = 0; linesCleared = 0;
     current = next = held = null;
     bag = [];
+    paused = false;
+    lineClearRows = null;
+    lineClearPhase = 0;
 
     updateInfo();
     draw();
@@ -180,7 +184,21 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
+
+    // Find completed rows before clearing
+    const fullRows = [];
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (board[r].every(cell => cell !== null)) fullRows.push(r);
+    }
+
+    if (fullRows.length > 0) {
+      startClearAnim(fullRows);
+    } else {
+      advancePiece();
+    }
+  }
+
+  function advancePiece() {
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -188,26 +206,50 @@ const TetrisGame = (() => {
     if (collides(current.shape, current.x, current.y)) endGame();
   }
 
-  function clearLines() {
-    let cleared = 0;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
+  // Flash cleared rows white/dim alternately, then remove them
+  function startClearAnim(rows) {
+    lineClearRows = rows;
+    lineClearPhase = 0;
+    clearInterval(gameLoop);
+    draw();
+
+    const step = () => {
+      lineClearPhase++;
+      draw();
+      if (lineClearPhase >= 5) {
+        finishClear(rows);
+      } else {
+        setTimeout(step, 55);
       }
+    };
+    setTimeout(step, 55);
+  }
+
+  function finishClear(rows) {
+    const cleared = rows.length;
+    // rows are in descending order; remove from bottom up to keep indices valid
+    for (const r of rows) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(null));
     }
-    if (!cleared) return;
+
     const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
+    score += pts[Math.min(cleared, 4)] * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    if (newLevel !== level) { level = newLevel; }
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
     }
+
+    lineClearRows = null;
+    lineClearPhase = 0;
     updateInfo();
+    advancePiece();
+
+    if (running && !paused && !gameOver) restartLoop();
+    draw();
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -219,6 +261,7 @@ const TetrisGame = (() => {
   }
 
   function autoDown() {
+    if (paused || lineClearRows) return;
     if (!move(0, 1)) lock();
     draw(); updateInfo();
   }
@@ -241,12 +284,26 @@ const TetrisGame = (() => {
     draw();
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else if (!lineClearRows) {
+      gameLoop = setInterval(autoDown, dropMs());
+    }
+    draw();
+  }
+
   function start() {
     bag = [];
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    paused = false;
+    lineClearRows = null;
+    lineClearPhase = 0;
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -262,6 +319,7 @@ const TetrisGame = (() => {
 
   function endGame() {
     running = false; gameOver = true;
+    paused = false;
     clearInterval(gameLoop);
     const ov = document.getElementById('tetris-overlay');
     if (ov) {
@@ -276,8 +334,9 @@ const TetrisGame = (() => {
   }
 
   function handleKey(e) {
+    if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
-    if (!running) return;
+    if (!running || paused || lineClearRows) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
@@ -321,11 +380,21 @@ const TetrisGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(WIDTH, y * CELL); ctx.stroke();
     }
 
-    for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!board[r][c]) continue;
+        if (lineClearRows && lineClearRows.includes(r)) {
+          // Alternate between bright white and original color for flash effect
+          const flashOn = lineClearPhase % 2 === 1;
+          drawCell(ctx, c, r, flashOn ? '#FFFFFF' : board[r][c]);
+        } else {
+          drawCell(ctx, c, r, board[r][c]);
+        }
+      }
+    }
 
-    if (current && running) {
+    // Hide current piece and ghost during line-clear animation
+    if (current && running && !lineClearRows) {
       // Ghost
       const gy = ghostRow();
       for (let r = 0; r < current.shape.length; r++) {
@@ -359,7 +428,20 @@ const TetrisGame = (() => {
       ctx.font = '11px Inter, monospace';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('← → move  ·  ↑ / X rotate  ·  ↓ soft drop', WIDTH / 2, HEIGHT / 2 + 22);
-      ctx.fillText('Space hard drop  ·  C hold', WIDTH / 2, HEIGHT / 2 + 38);
+      ctx.fillText('Space hard drop  ·  C hold  ·  P pause', WIDTH / 2, HEIGHT / 2 + 38);
+      ctx.textAlign = 'left';
+    }
+
+    if (paused) {
+      ctx.fillStyle = 'rgba(13,17,23,0.65)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 20px Inter, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '11px Inter, monospace';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
