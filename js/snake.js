@@ -12,7 +12,7 @@ const SnakeGame = (() => {
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
-  let foodCount, wallWrap;
+  let foodCount, wallWrap, prevLevel;
   let gameLoop, running, gameOver;
 
   function init() {
@@ -83,6 +83,7 @@ const SnakeGame = (() => {
     nextDirection = { x: 1, y: 0 };
     score = 0;
     foodCount = 0;
+    prevLevel = 1;
     bonusFood = null;
     gameOver = false;
     running = true;
@@ -168,6 +169,7 @@ const SnakeGame = (() => {
       ate = true;
       score += 10;
       foodCount++;
+      Sound.eat();
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -175,6 +177,12 @@ const SnakeGame = (() => {
       spawnFood();
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
+      // Level up check
+      const curLevel = getLevel();
+      if (curLevel > prevLevel) {
+        prevLevel = curLevel;
+        Sound.levelUp();
+      }
       // Speed up slightly
       if (speed > 60) {
         speed -= 2;
@@ -186,6 +194,7 @@ const SnakeGame = (() => {
       ate = true;
       score += 50;
       bonusFood = null;
+      Sound.bonus();
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -203,6 +212,7 @@ const SnakeGame = (() => {
     gameOver = true;
     bonusFood = null;
     clearInterval(gameLoop);
+    Sound.gameOver();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {

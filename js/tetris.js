@@ -150,8 +150,8 @@ const TetrisGame = (() => {
     }
   }
 
-  function rotateCW()  { if (current) tryRotate(rotateMat(current.shape)); }
-  function rotateCCW() { if (current) tryRotate(rotateMat(rotateMat(rotateMat(current.shape)))); }
+  function rotateCW()  { if (current) { tryRotate(rotateMat(current.shape)); Sound.rotate(); } }
+  function rotateCCW() { if (current) { tryRotate(rotateMat(rotateMat(rotateMat(current.shape)))); Sound.rotate(); } }
 
   function ghostRow() {
     if (!current) return 0;
@@ -180,6 +180,7 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
+    Sound.lock();
     clearLines();
     canHold = true;
     current = next;
@@ -198,11 +199,12 @@ const TetrisGame = (() => {
       }
     }
     if (!cleared) return;
+    Sound.lineClear(cleared);
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    if (newLevel !== level) { level = newLevel; restartLoop(); Sound.levelUp(); }
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
@@ -263,6 +265,7 @@ const TetrisGame = (() => {
   function endGame() {
     running = false; gameOver = true;
     clearInterval(gameLoop);
+    Sound.gameOver();
     const ov = document.getElementById('tetris-overlay');
     if (ov) {
       ov.style.display = 'flex';

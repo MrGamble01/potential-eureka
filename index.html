@@ -24,6 +24,7 @@
     <button data-view="productivity">Productivity</button>
     <button data-view="orgchart">My Org Chart</button>
     <button data-view="personal" class="nav-locked">Personal</button>
+    <button class="sound-toggle-btn" onclick="Sound.toggle()">SFX: ON</button>
     <button data-view="snake">Snake</button>
     <button data-view="maze">Maze Solver</button>
     <button data-view="life">Game of Life</button>
@@ -461,6 +462,7 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="js/sound.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/effects.js"></script>
   <script src="js/dashboard.js"></script>
@@ -519,6 +521,7 @@
       if (v) switchView(v);
     });
 
+    Sound.initBtn(document.querySelector('.sound-toggle-btn'));
     Effects.init().then(() => switchView(viewFromHash() || 'dashboard'));
   </script>
 
