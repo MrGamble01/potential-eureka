@@ -1761,8 +1761,435 @@ const AgeOfWarGame = (() => {
     ctx.fillText(Math.max(0, Math.floor(hp)) + ' / ' + max, x + w / 2, y - 3);
   }
 
-  // Render a unit as a large emoji sprite (uses the browser's built-in
-  // emoji art — much more polished than hand-drawn canvas shapes).
+  // ============================================================
+  //  Hand-drawn cartoon unit renderer
+  //  Layered Canvas characters: articulated legs + arms with knee/elbow
+  //  bends, bold dark outlines, cel-shaded torso, and a walk cycle.
+  //  Replaces the emoji sprites era by era. Each drawer takes
+  //  (u, x, y, facing, walk, bodyColor) with the origin at the
+  //  TOP-CENTER of the unit (feet are at y + u.h).
+  // ============================================================
+  function skinFor(era) { return era < 4 ? '#e8b48a' : '#d9c6b0'; }
+
+  // Lighten/darken a hex color by `amt` units (-100..100).
+  function shadeColor(hex, amt) {
+    if (!hex || hex[0] !== '#') return hex;
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const r = Math.max(0, Math.min(255, parseInt(h.slice(0, 2), 16) + amt));
+    const g = Math.max(0, Math.min(255, parseInt(h.slice(2, 4), 16) + amt));
+    const b = Math.max(0, Math.min(255, parseInt(h.slice(4, 6), 16) + amt));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x,     y + h, rr);
+    ctx.arcTo(x,     y + h, x,     y,     rr);
+    ctx.arcTo(x,     y,     x + w, y,     rr);
+    ctx.closePath();
+  }
+
+  function drawHumanoidBase(x, y, h, w, facing, swing, bodyColor, opts = {}) {
+    // Proportions: head ~22% h, torso ~40% h, legs ~38% h.
+    const headR = Math.round(h * 0.10);
+    const neckY = y + headR * 2;
+    const bodyTop = neckY + 3;
+    const bodyH = Math.round(h * 0.40);
+    const bodyBottom = bodyTop + bodyH;
+    const legH = Math.round(h * 0.32);
+    const upperLegH = legH * 0.55;
+    const lowerLegH = legH * 0.45;
+    const bodyW = Math.round(w * 0.62);
+    const skin = opts.skin || '#e8b48a';
+
+    // Walk cycle parameters
+    const liftL = Math.max(0, swing) * 4;        // how far front leg lifts
+    const liftR = Math.max(0, -swing) * 4;
+    const hipL = { x: x - bodyW * 0.22, y: bodyBottom - 1 };
+    const hipR = { x: x + bodyW * 0.22, y: bodyBottom - 1 };
+    const pants = opts.pantsColor || '#222';
+    const boot  = opts.bootColor  || '#000';
+
+    // Articulated legs (upper thigh + lower shin, with knee bend)
+    function drawLeg(hip, lift) {
+      const kneeX = hip.x + facing * (lift * 0.3);
+      const kneeY = hip.y + upperLegH - lift;
+      const footX = kneeX + facing * (lift * -0.15);
+      const footY = kneeY + lowerLegH - lift * 0.5;
+      // Dark outline pass first so the leg reads as solid against a busy bg.
+      ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+      ctx.lineWidth = 11;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(hip.x,  hip.y);
+      ctx.lineTo(kneeX,  kneeY);
+      ctx.lineTo(footX,  footY);
+      ctx.stroke();
+      ctx.strokeStyle = pants;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(hip.x,  hip.y);
+      ctx.lineTo(kneeX,  kneeY);
+      ctx.lineTo(footX,  footY);
+      ctx.stroke();
+      // Boot
+      ctx.fillStyle = boot;
+      ctx.fillRect(footX - 6, footY - 3, 12, 5);
+    }
+    drawLeg(hipL, liftL);
+    drawLeg(hipR, liftR);
+
+    // Torso — rounded rect with horizontal shading + dark outline
+    roundRectPath(x - bodyW / 2, bodyTop, bodyW, bodyH, 4);
+    const torsoGrad = ctx.createLinearGradient(x - bodyW / 2, bodyTop, x + bodyW / 2, bodyTop);
+    torsoGrad.addColorStop(0,    shadeColor(bodyColor, -22));
+    torsoGrad.addColorStop(0.45, bodyColor);
+    torsoGrad.addColorStop(1,    shadeColor(bodyColor,  18));
+    ctx.fillStyle = torsoGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Belt
+    if (opts.belt) {
+      ctx.fillStyle = opts.belt;
+      ctx.fillRect(x - bodyW / 2, bodyBottom - 5, bodyW, 4);
+      ctx.fillStyle = shadeColor(opts.belt, 30);
+      ctx.fillRect(x - 2, bodyBottom - 5, 4, 4);  // buckle
+    }
+
+    // Neck (small skin nub between head and torso)
+    ctx.fillStyle = skin;
+    ctx.fillRect(x - 3, neckY - 1, 6, 4);
+
+    // Arms — both swing during walk. Front arm holds the weapon (drawn by
+    // the caller); back arm bobs at opposite phase. 3-segment limbs.
+    const armSwing = -swing * 6;
+    const frontShoulder = { x: x + facing * (bodyW * 0.45), y: bodyTop + 5 };
+    const backShoulder  = { x: x - facing * (bodyW * 0.45), y: bodyTop + 5 };
+    const backElbow = {
+      x: backShoulder.x - facing * 2 - armSwing * 0.3,
+      y: backShoulder.y + 8,
+    };
+    const backHand = {
+      x: backElbow.x - facing * 1 + armSwing * 0.2,
+      y: backElbow.y + 7,
+    };
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 9;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(backShoulder.x, backShoulder.y);
+    ctx.lineTo(backElbow.x,    backElbow.y);
+    ctx.lineTo(backHand.x,     backHand.y);
+    ctx.stroke();
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(backShoulder.x, backShoulder.y);
+    ctx.lineTo(backElbow.x,    backElbow.y);
+    ctx.lineTo(backHand.x,     backHand.y);
+    ctx.stroke();
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(backHand.x, backHand.y, 3.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Front arm anchor — caller wires the weapon hold around handX/handY
+    const elbowX = frontShoulder.x + facing * 4 + armSwing * 0.4;
+    const elbowY = frontShoulder.y + 7;
+    const handX  = elbowX + facing * 6;
+    const handY  = elbowY + 6 + Math.abs(armSwing) * 0.3;
+    return {
+      shoulderX: frontShoulder.x, shoulderY: frontShoulder.y,
+      elbowX, elbowY, handX, handY,
+      headR, headCenterY: y + headR,
+      bodyTop, bodyBottom, bodyW,
+    };
+  }
+
+  function drawArmAndWeapon(x, y, shoulder, hand, bodyColor, weaponDraw, opts = {}) {
+    // Front arm bent at elbow (3 segments: shoulder → elbow → hand).
+    const elbowX = opts.elbowX != null ? opts.elbowX : (shoulder.x + hand.x) * 0.5;
+    const elbowY = opts.elbowY != null ? opts.elbowY : (shoulder.y + hand.y) * 0.5 + 2;
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 9;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x, shoulder.y);
+    ctx.lineTo(elbowX,     elbowY);
+    ctx.lineTo(hand.x,     hand.y);
+    ctx.stroke();
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x, shoulder.y);
+    ctx.lineTo(elbowX,     elbowY);
+    ctx.lineTo(hand.x,     hand.y);
+    ctx.stroke();
+    ctx.fillStyle = opts.skin || '#e8b48a';
+    ctx.beginPath();
+    ctx.arc(hand.x, hand.y, 3.8, 0, Math.PI * 2);
+    ctx.fill();
+    if (weaponDraw) weaponDraw(hand.x, hand.y);
+  }
+
+  function drawHead(cx, cy, r, skin, opts = {}) {
+    const facing = opts.facing || 1;
+    // Soft drop shadow under jaw
+    ctx.fillStyle = shadeColor(skin, -28);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + r * 0.55, r * 0.7, r * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Face
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    // Cheek highlight (front-facing side)
+    ctx.fillStyle = shadeColor(skin, 18);
+    ctx.beginPath();
+    ctx.arc(cx + facing * r * 0.35, cy + r * 0.1, r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    if (opts.eye !== false) {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(cx + facing * 1.4, cy - 1.2, 1.6, 1.6);
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(cx + facing * -1.4, cy - 1.0, 1.2, 1.4);
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // === STONE AGE ===
+  const drawClubman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    const base = drawHumanoidBase(x, y, u.h, u.w * 1.1, facing, swing, bodyColor, { skin: skinFor(0), pantsColor: '#5a3a22' });
+    // Shaggy hair on head
+    const hr = base.headR + 1;
+    ctx.fillStyle = '#2a1808';
+    ctx.beginPath(); ctx.arc(x - 1, base.headCenterY - 1, hr, 0, Math.PI * 2); ctx.fill();
+    drawHead(x, base.headCenterY, base.headR, skinFor(0), { facing });
+    // Big wooden club in hand
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 4, y: base.handY - 6 }, bodyColor, (hx, hy) => {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(facing * -0.5);
+      ctx.fillStyle = '#5a3a18';
+      ctx.fillRect(-2, -10, 4, 14);
+      ctx.fillStyle = '#7a4e22';
+      ctx.beginPath();
+      ctx.arc(0, -14, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#3a2210';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-3, -16); ctx.lineTo(-5, -19);
+      ctx.moveTo(3, -16);  ctx.lineTo(5, -19);
+      ctx.stroke();
+      ctx.restore();
+    });
+  };
+
+  const drawSlinger = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4;
+    const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: skinFor(0), pantsColor: '#3a2a18' });
+    ctx.fillStyle = '#3a2818';
+    ctx.beginPath(); ctx.arc(x - 1, base.headCenterY - 2, base.headR + 1, 0, Math.PI * 2); ctx.fill();
+    drawHead(x, base.headCenterY, base.headR, skinFor(0), { facing });
+    // Sling whirled overhead
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + facing * 3, y: base.handY - 14 }, bodyColor, (hx, hy) => {
+      ctx.strokeStyle = '#6a4828';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(hx, hy - 6, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#888';
+      ctx.beginPath();
+      ctx.arc(hx + facing * 3, hy - 12, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  };
+
+  const drawDinoRider = (u, x, y, facing, walk, bodyColor) => {
+    const gallop = Math.sin(u.walkPhase * 1.4) * 2.5;
+    const bodyTop = y + u.h * 0.42;
+    const bodyH = u.h * 0.34;
+    const outline = 'rgba(0,0,0,0.85)';
+    // Legs (outlined, two pairs offset by gallop)
+    const dinoLeg = (lx, lift) => {
+      ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(lx, bodyTop + bodyH * 0.7); ctx.lineTo(lx, y + u.h - 1 + lift); ctx.stroke();
+      ctx.strokeStyle = shadeColor(bodyColor, -34); ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(lx, bodyTop + bodyH * 0.7); ctx.lineTo(lx, y + u.h - 1 + lift); ctx.stroke();
+    };
+    dinoLeg(x - u.w * 0.22, gallop);
+    dinoLeg(x + u.w * 0.20, -gallop);
+    // Tail (outlined)
+    ctx.fillStyle = bodyColor; ctx.strokeStyle = outline; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - facing * u.w * 0.34, bodyTop + bodyH * 0.15);
+    ctx.lineTo(x - facing * u.w * 0.80, bodyTop + bodyH * 0.05);
+    ctx.lineTo(x - facing * u.w * 0.48, bodyTop + bodyH * 0.70);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Body (rounded, shaded, outlined)
+    roundRectPath(x - u.w * 0.42, bodyTop, u.w * 0.84, bodyH, 9);
+    const bg = ctx.createLinearGradient(0, bodyTop, 0, bodyTop + bodyH);
+    bg.addColorStop(0, shadeColor(bodyColor, 20));
+    bg.addColorStop(1, shadeColor(bodyColor, -18));
+    ctx.fillStyle = bg; ctx.fill();
+    ctx.strokeStyle = outline; ctx.lineWidth = 2.5; ctx.stroke();
+    // Back spikes
+    ctx.fillStyle = shadeColor(bodyColor, -36);
+    for (let i = -3; i <= 3; i++) {
+      const sx = x + i * (u.w * 0.10);
+      ctx.beginPath();
+      ctx.moveTo(sx - 4, bodyTop + 1);
+      ctx.lineTo(sx,     bodyTop - 6);
+      ctx.lineTo(sx + 4, bodyTop + 1);
+      ctx.closePath(); ctx.fill();
+    }
+    // Neck + head (outlined)
+    const hx = x + facing * u.w * 0.52, hy = bodyTop - u.h * 0.02;
+    ctx.fillStyle = bodyColor; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x + facing * u.w * 0.28, bodyTop + 3);
+    ctx.lineTo(hx - facing * u.w * 0.02, hy - u.h * 0.12);
+    ctx.lineTo(hx + facing * u.w * 0.26, hy - u.h * 0.05);
+    ctx.lineTo(hx + facing * u.w * 0.30, hy + u.h * 0.06);
+    ctx.lineTo(x + facing * u.w * 0.32, bodyTop + bodyH * 0.55);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Eye + teeth
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(hx + facing * 1, hy - u.h * 0.04, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(hx + facing * 2, hy - u.h * 0.04, 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(hx + facing * u.w * 0.16, hy + u.h * 0.05);
+    ctx.lineTo(hx + facing * u.w * 0.26, hy + u.h * 0.05);
+    ctx.lineTo(hx + facing * u.w * 0.20, hy + u.h * 0.10);
+    ctx.closePath(); ctx.fill();
+    // Caveman rider (outlined torso + shaggy head)
+    const ry = bodyTop - u.h * 0.17;
+    ctx.fillStyle = '#7a4222'; roundRectPath(x - 5, ry, 10, 13, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#2a1808'; ctx.beginPath(); ctx.arc(x, ry - 2, 5.5, 0, Math.PI * 2); ctx.fill();
+    drawHead(x + facing * 0.5, ry - 1, 4, skinFor(0), { facing });
+  };
+
+  const drawHeroGrog = (u, x, y, facing, walk, bodyColor) => {
+    // Woolly mammoth with a tribal rider — humped back, domed head,
+    // big curved tusks, shaggy fur.
+    const gallop = Math.sin(u.walkPhase * 1.4) * 3;
+    const fur = '#6b4426', furDk = '#3a2812', furLt = '#8a6038', outline = 'rgba(0,0,0,0.88)';
+    const W = u.w, H = u.h, f = facing, cx = x;
+    const midY = y + H * 0.52;
+    // ---- Legs (4 thick fur columns) ----
+    const legTop = y + H * 0.58, legBot = y + H - 1;
+    const grogLeg = (lx, lift) => {
+      ctx.strokeStyle = outline; ctx.lineWidth = 15; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(lx, legTop); ctx.lineTo(lx, legBot + lift); ctx.stroke();
+      ctx.strokeStyle = furDk; ctx.lineWidth = 11;
+      ctx.beginPath(); ctx.moveTo(lx, legTop); ctx.lineTo(lx, legBot + lift); ctx.stroke();
+      ctx.fillStyle = '#e8dcc0';
+      ctx.fillRect(lx - 5, legBot + lift - 2, 4, 3);
+      ctx.fillRect(lx + 1, legBot + lift - 2, 4, 3);
+    };
+    grogLeg(cx - W * 0.34, gallop);
+    grogLeg(cx + W * 0.30, gallop);
+    grogLeg(cx - W * 0.05, -gallop);
+    grogLeg(cx + W * 0.16, -gallop);
+    // ---- Body: humped oval, high at the shoulder ----
+    ctx.fillStyle = fur; ctx.strokeStyle = outline; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - f * W * 0.52, midY + H * 0.10);
+    ctx.bezierCurveTo(cx - f * W * 0.62, y + H * 0.30, cx - f * W * 0.12, y + H * 0.18, cx + f * W * 0.16, y + H * 0.22);
+    ctx.bezierCurveTo(cx + f * W * 0.44, y + H * 0.26, cx + f * W * 0.56, y + H * 0.46, cx + f * W * 0.50, midY + H * 0.12);
+    ctx.lineTo(cx - f * W * 0.44, midY + H * 0.16);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Shaggy belly fringe
+    ctx.fillStyle = furDk;
+    for (let i = -5; i <= 5; i++) {
+      const fx = cx + i * (W * 0.085);
+      ctx.beginPath(); ctx.moveTo(fx - 4, midY + H * 0.09); ctx.lineTo(fx, midY + H * 0.20); ctx.lineTo(fx + 4, midY + H * 0.09); ctx.closePath(); ctx.fill();
+    }
+    // Back highlight along the hump
+    ctx.strokeStyle = furLt; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - f * W * 0.30, y + H * 0.26);
+    ctx.quadraticCurveTo(cx, y + H * 0.17, cx + f * W * 0.16, y + H * 0.23);
+    ctx.stroke();
+    // ---- Head: big domed head at the front ----
+    const hx = cx + f * W * 0.46, hy = y + H * 0.46;
+    ctx.fillStyle = fur; ctx.strokeStyle = outline; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(hx, hy, W * 0.24, H * 0.21, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(hx - f * W * 0.03, hy - H * 0.15, W * 0.15, H * 0.11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Ear
+    ctx.fillStyle = furDk;
+    ctx.beginPath(); ctx.ellipse(hx - f * W * 0.13, hy - H * 0.01, W * 0.08, H * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+    // Eye
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(hx + f * W * 0.05, hy - H * 0.04, 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(hx + f * W * 0.06, hy - H * 0.04, 1.3, 0, Math.PI * 2); ctx.fill();
+    // ---- Trunk (curved, tapering) ----
+    ctx.strokeStyle = outline; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(hx + f * W * 0.12, hy + H * 0.06);
+    ctx.quadraticCurveTo(hx + f * W * 0.34, hy + H * 0.22, hx + f * W * 0.18, hy + H * 0.42);
+    ctx.stroke();
+    ctx.strokeStyle = fur; ctx.lineWidth = 6.5;
+    ctx.beginPath();
+    ctx.moveTo(hx + f * W * 0.12, hy + H * 0.06);
+    ctx.quadraticCurveTo(hx + f * W * 0.34, hy + H * 0.22, hx + f * W * 0.18, hy + H * 0.42);
+    ctx.stroke();
+    // ---- Tusks (two big curved ivory tusks) ----
+    const tusk = (off) => {
+      ctx.strokeStyle = outline; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(hx + f * W * 0.08, hy + H * 0.11 + off);
+      ctx.quadraticCurveTo(hx + f * W * 0.36, hy + H * 0.24 + off, hx + f * W * 0.42, hy + H * 0.02 + off);
+      ctx.stroke();
+      ctx.strokeStyle = '#f1e7c8'; ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(hx + f * W * 0.08, hy + H * 0.11 + off);
+      ctx.quadraticCurveTo(hx + f * W * 0.36, hy + H * 0.24 + off, hx + f * W * 0.42, hy + H * 0.02 + off);
+      ctx.stroke();
+    };
+    tusk(4); tusk(8);
+    // ---- Rider on the hump ----
+    const ry = y + H * 0.06, rx = cx - f * W * 0.05;
+    ctx.fillStyle = '#7a4222'; ctx.strokeStyle = 'rgba(0,0,0,0.82)'; ctx.lineWidth = 2.5;
+    roundRectPath(rx - 6, ry, 12, 16, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#2a1808'; ctx.beginPath(); ctx.arc(rx, ry - 3, 7, 0, Math.PI * 2); ctx.fill();
+    drawHead(rx + f * 0.5, ry - 2, 5, skinFor(0), { facing });
+    // Spear
+    ctx.strokeStyle = '#5a3a18'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(rx + f * 7, ry + 4); ctx.lineTo(rx + f * 17, ry - H * 0.20); ctx.stroke();
+    ctx.fillStyle = '#cbd5e1'; ctx.strokeStyle = outline; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(rx + f * 17, ry - H * 0.20);
+    ctx.lineTo(rx + f * 22, ry - H * 0.24);
+    ctx.lineTo(rx + f * 16, ry - H * 0.14);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+
+  // Hand-drawn drawers wired in by unit key. Keys absent here fall back to
+  // the emoji sprite, so eras can be converted one at a time.
+  const UNIT_DRAWERS = {
+    club:      drawClubman,
+    sling:     drawSlinger,
+    dino:      drawDinoRider,
+    hero_grog: drawHeroGrog,
+  };
+
+  // Render a unit's character: the hand-drawn cartoon drawer for its key
+  // when one exists (see UNIT_DRAWERS), otherwise the emoji sprite.
   function drawUnit(u) {
     const def = UNITS[u.key] || {};
     const sprite = def.sprite || u.icon || '⚔';
@@ -1813,28 +2240,48 @@ const AgeOfWarGame = (() => {
       ctx.fill();
     }
 
-    // Sprite — drawn as a giant emoji. Mirror for enemy side via
-    // canvas transform. Hit flash drops a white glow underneath.
-    ctx.save();
-    ctx.translate(cx, cy + bob);
-    if (facing < 0) ctx.scale(-1, 1);
-    const fontSize = Math.round(drawH * 0.95);
-    ctx.font = `${fontSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (u.hitFlash > 0) {
-      ctx.shadowColor = 'rgba(255,255,255,0.85)';
-      ctx.shadowBlur = 14;
-    } else if (isHero) {
-      ctx.shadowColor = 'rgba(252,211,77,0.6)';
-      ctx.shadowBlur = 12;
-    } else if (isBoss) {
-      ctx.shadowColor = 'rgba(255,80,255,0.55)';
-      ctx.shadowBlur = 14;
+    // Character — hand-drawn cartoon drawer when one exists for this unit
+    // key, otherwise the emoji sprite. Hero/boss scale is applied here so
+    // both render paths grow consistently.
+    const drawer = UNIT_DRAWERS[u.key];
+    if (drawer) {
+      const topY = feetY - u.h;   // natural top-of-head; scale enlarges it
+      const bodyColor = u.hitFlash > 0 ? '#fff' : (u.color || '#b07040');
+      ctx.save();
+      if (scale !== 1) {
+        ctx.translate(cx, feetY);
+        ctx.scale(scale, scale);
+        ctx.translate(-cx, -feetY);
+      }
+      if (u.hitFlash > 0)   { ctx.shadowColor = 'rgba(255,255,255,0.9)'; ctx.shadowBlur = 12; }
+      else if (isHero)      { ctx.shadowColor = 'rgba(252,211,77,0.5)';  ctx.shadowBlur = 10; }
+      else if (isBoss)      { ctx.shadowColor = 'rgba(255,80,255,0.5)';  ctx.shadowBlur = 12; }
+      drawer(u, cx, topY, facing, Math.sin(u.walkPhase), bodyColor);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    } else {
+      // Emoji fallback — mirror for enemy side; hit flash glows white.
+      ctx.save();
+      ctx.translate(cx, cy + bob);
+      if (facing < 0) ctx.scale(-1, 1);
+      const fontSize = Math.round(drawH * 0.95);
+      ctx.font = `${fontSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (u.hitFlash > 0) {
+        ctx.shadowColor = 'rgba(255,255,255,0.85)';
+        ctx.shadowBlur = 14;
+      } else if (isHero) {
+        ctx.shadowColor = 'rgba(252,211,77,0.6)';
+        ctx.shadowBlur = 12;
+      } else if (isBoss) {
+        ctx.shadowColor = 'rgba(255,80,255,0.55)';
+        ctx.shadowBlur = 14;
+      }
+      ctx.fillText(sprite, 0, 0);
+      ctx.shadowBlur = 0;
+      ctx.restore();
     }
-    ctx.fillText(sprite, 0, 0);
-    ctx.shadowBlur = 0;
-    ctx.restore();
 
     // Hero name badge floating above
     if (isHero) {
