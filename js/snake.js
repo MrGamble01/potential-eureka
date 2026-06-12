@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let combo, lastFoodTime, comboFlash;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -84,6 +85,9 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    combo = 1;
+    lastFoodTime = 0;
+    comboFlash = null;
     gameOver = false;
     running = true;
     speed = 120;
@@ -137,6 +141,7 @@ const SnakeGame = (() => {
 
   function tick() {
     direction = { ...nextDirection };
+    if (combo > 1 && Date.now() - lastFoodTime > 3000) combo = 1;
     let head = {
       x: snake[0].x + direction.x,
       y: snake[0].y + direction.y,
@@ -166,7 +171,12 @@ const SnakeGame = (() => {
     // Eat regular food
     if (head.x === food.x && head.y === food.y) {
       ate = true;
-      score += 10;
+      const now = Date.now();
+      combo = (lastFoodTime > 0 && now - lastFoodTime <= 3000) ? Math.min(combo + 1, 5) : 1;
+      lastFoodTime = now;
+      const pts = 10 * combo;
+      score += pts;
+      comboFlash = { x: food.x, y: food.y, pts, time: now };
       foodCount++;
       if (score > highScore) {
         highScore = score;
@@ -184,7 +194,12 @@ const SnakeGame = (() => {
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
       // Eat bonus food (snake also grows)
       ate = true;
-      score += 50;
+      const now = Date.now();
+      combo = (lastFoodTime > 0 && now - lastFoodTime <= 3000) ? Math.min(combo + 1, 5) : 1;
+      lastFoodTime = now;
+      const pts = 50 * combo;
+      score += pts;
+      comboFlash = { x: head.x, y: head.y, pts, time: now };
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -238,20 +253,31 @@ const SnakeGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * GRID); ctx.lineTo(WIDTH, y * GRID); ctx.stroke();
     }
 
-    // Snake
+    // Snake body
     snake.forEach((seg, i) => {
       const brightness = 1 - (i / snake.length) * 0.5;
-      if (i === 0) {
-        ctx.fillStyle = '#6C63FF';
-        ctx.shadowColor = '#6C63FF';
-        ctx.shadowBlur = 8;
-      } else {
-        ctx.fillStyle = `rgba(108, 99, 255, ${brightness})`;
-        ctx.shadowBlur = 0;
-      }
+      ctx.fillStyle = i === 0 ? '#8078FF' : `rgba(108, 99, 255, ${brightness})`;
+      ctx.shadowColor = '#6C63FF';
+      ctx.shadowBlur = i === 0 ? 10 : 0;
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
     });
     ctx.shadowBlur = 0;
+
+    // Snake head eyes
+    if (snake.length > 0 && running) {
+      const h = snake[0];
+      const ex = direction.x, ey = direction.y;
+      const px = ey, py = -ex; // perpendicular to movement
+      const cx = h.x * GRID + GRID / 2, cy = h.y * GRID + GRID / 2;
+      [[1, 1], [-1, -1]].forEach(([s]) => {
+        const eyeX = cx + ex * 4.5 + px * 3.5 * s;
+        const eyeY = cy + ey * 4.5 + py * 3.5 * s;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(eyeX, eyeY, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1a0a2e';
+        ctx.beginPath(); ctx.arc(eyeX + ex * 0.9, eyeY + ey * 0.9, 1.3, 0, Math.PI * 2); ctx.fill();
+      });
+    }
 
     // Regular food
     if (food) {
@@ -280,6 +306,40 @@ const SnakeGame = (() => {
         0, Math.PI * 2
       );
       ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Floating score popup
+    if (comboFlash) {
+      const elapsed = Date.now() - comboFlash.time;
+      if (elapsed < 900) {
+        const alpha = 1 - elapsed / 900;
+        const rise = (elapsed / 900) * 28;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = comboFlash.pts > 10 ? '#F7C948' : '#3FB950';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 6;
+        ctx.font = `bold ${comboFlash.pts > 10 ? 15 : 13}px Inter, monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`+${comboFlash.pts}`, comboFlash.x * GRID + GRID / 2, comboFlash.y * GRID - rise);
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.textAlign = 'left';
+      } else {
+        comboFlash = null;
+      }
+    }
+
+    // Combo badge
+    if (running && combo > 1) {
+      const comboColors = ['', '', '#3FB950', '#F0A500', '#F85149', '#9E7FFF'];
+      const cc = comboColors[combo] || '#9E7FFF';
+      const label = `×${combo} COMBO`;
+      ctx.font = 'bold 12px Inter, monospace';
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = cc + '33';
+      ctx.fillRect(WIDTH - tw - 18, 5, tw + 14, 20);
+      ctx.fillStyle = cc;
+      ctx.shadowColor = cc; ctx.shadowBlur = 8;
+      ctx.fillText(label, WIDTH - tw - 11, 19);
       ctx.shadowBlur = 0;
     }
 
