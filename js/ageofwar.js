@@ -2424,19 +2424,351 @@ const AgeOfWarGame = (() => {
     for (let i = 0; i < 3; i++) { ctx.fillStyle = `rgba(190,190,190,${0.55 - i * 0.13})`; ctx.beginPath(); ctx.arc(x - f * W * 0.3 + f * 4 - f * i * 3, hullY - H * 0.2 - i * 7 - drift, 3 + i, 0, Math.PI * 2); ctx.fill(); }
   };
 
+  // === MODERN ===
+  const drawSoldier = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3.5, f = facing;
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(3), pantsColor: shadeColor(bodyColor, -12), bootColor: '#1d1d16', belt: '#3a3325',
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    const bodyH = bodyBottom - bodyTop, midY = bodyTop + bodyH * 0.4;
+    // Tactical vest with camo dabs + pouches
+    ctx.fillStyle = shadeColor(bodyColor, -22);
+    roundRectPath(x - bodyW * 0.34, bodyTop + 1, bodyW * 0.68, bodyH * 0.82, 3); ctx.fill();
+    ctx.fillStyle = shadeColor(bodyColor, 14);
+    ctx.beginPath(); ctx.arc(x - bodyW * 0.1, bodyTop + 6, 3, 0, Math.PI * 2); ctx.arc(x + bodyW * 0.13, bodyTop + 13, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#26261a';
+    ctx.fillRect(x - bodyW * 0.28, bodyBottom - 13, 5, 6); ctx.fillRect(x + bodyW * 0.1, bodyBottom - 13, 5, 6);
+    // Combat helmet
+    drawHead(x, headCenterY, headR, skinFor(3), { facing: f });
+    ctx.fillStyle = shadeColor(bodyColor, -6); ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(x, headCenterY - 1, headR + 1.5, Math.PI * 1.0, Math.PI * 2.04); ctx.fill(); ctx.stroke();
+    ctx.fillRect(x + f * headR * 0.1, headCenterY - 2.2, f * (headR + 2), 2.2);
+    ctx.fillStyle = skinFor(3); ctx.beginPath(); ctx.arc(x + f * bodyW * 0.5, midY + 3, 3, 0, Math.PI * 2); ctx.fill();
+    // Assault rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 7, y: midY }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(f * -0.05);
+      ctx.fillStyle = '#2a2a2e'; ctx.fillRect(f * -12, -1.4, f * 30, 2.8);
+      ctx.fillStyle = '#19191d'; ctx.fillRect(f * -12, -1.6, f * 5, 5);
+      ctx.save(); ctx.translate(f * 2, 2); ctx.rotate(f * 0.45); ctx.fillStyle = '#19191d'; ctx.fillRect(-1.5, 0, 3, 8); ctx.restore();
+      ctx.fillStyle = '#19191d'; ctx.fillRect(f * 6, -3.2, f * 2, 2);
+      ctx.restore();
+    }, { skin: skinFor(3) });
+  };
+
+  const drawSniper = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 2.5, f = facing;
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(3), pantsColor: shadeColor(bodyColor, -14), bootColor: '#26261a', belt: '#3a3322',
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    const midY = bodyTop + (bodyBottom - bodyTop) * 0.38;
+    // Ragged ghillie strips over the torso
+    ctx.fillStyle = shadeColor(bodyColor, -14);
+    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(x + i * 5 - 2.4, bodyTop + 2); ctx.lineTo(x + i * 5 + 2.4, bodyTop + 2); ctx.lineTo(x + i * 5, bodyTop + 11 + Math.abs(i) * 2); ctx.closePath(); ctx.fill(); }
+    // Boonie hat
+    drawHead(x, headCenterY, headR, skinFor(3), { facing: f });
+    ctx.fillStyle = shadeColor(bodyColor, -2); ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, headCenterY - headR * 0.7, headR * 0.95, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, headCenterY - headR * 0.35, headR + 4, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = skinFor(3); ctx.beginPath(); ctx.arc(x + f * bodyW * 0.55, midY + 4, 3, 0, Math.PI * 2); ctx.fill();
+    // Long scoped rifle
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 8, y: midY }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(f * -0.04);
+      ctx.fillStyle = '#22221b'; ctx.fillRect(f * -14, -1.4, f * 40, 2.8);
+      ctx.fillStyle = '#14140e'; ctx.fillRect(f * -14, -1.7, f * 6, 5.2);
+      ctx.fillStyle = '#2e2e34'; roundRectPath(f * 4, -6, f * 9, 3.6, 1.5); ctx.fill();
+      ctx.fillStyle = '#15151a'; ctx.fillRect(f * 4, -5.6, 1.5, 3); ctx.fillRect(f * 12, -5.6, 1.5, 3);
+      ctx.fillStyle = '#444'; ctx.fillRect(f * 24, -1.9, f * 4, 3.8);
+      ctx.restore();
+    }, { skin: skinFor(3) });
+  };
+
+  const drawTank2 = (u, x, y, facing, walk, bodyColor) => {
+    const f = facing, W = u.w, H = u.h, outline = 'rgba(0,0,0,0.85)';
+    const lt = shadeColor(bodyColor, 18), dk = shadeColor(bodyColor, -22);
+    // Tracks
+    const trackY = y + H * 0.62, trackH = H * 0.34;
+    ctx.fillStyle = '#24242a'; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    roundRectPath(x - W * 0.5, trackY, W * 1.0, trackH, trackH * 0.45); ctx.fill(); ctx.stroke();
+    for (let i = -3; i <= 3; i++) { const wx = x + i * (W * 0.15); ctx.fillStyle = '#48484a'; ctx.beginPath(); ctx.arc(wx, trackY + trackH * 0.55, trackH * 0.26, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.stroke(); }
+    // Sloped hull
+    const hullY = y + H * 0.4, hullH = H * 0.24;
+    const g = ctx.createLinearGradient(0, hullY, 0, hullY + hullH); g.addColorStop(0, lt); g.addColorStop(1, dk);
+    ctx.fillStyle = g; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x - W * 0.46, hullY + hullH); ctx.lineTo(x - W * 0.5, hullY + 2); ctx.lineTo(x + f * W * 0.34, hullY - 2);
+    ctx.lineTo(x + f * W * 0.5, hullY + hullH * 0.5); ctx.lineTo(x + W * 0.46, hullY + hullH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Turret + mantlet
+    const turY = hullY - H * 0.02;
+    ctx.fillStyle = bodyColor; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    roundRectPath(x - W * 0.22, turY - H * 0.16, W * 0.5, H * 0.18, 5); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = shadeColor(bodyColor, 10); ctx.beginPath(); ctx.ellipse(x + f * W * 0.05, turY - H * 0.16, W * 0.16, H * 0.07, 0, Math.PI, 0); ctx.fill();
+    // Gun barrel + muzzle brake
+    ctx.fillStyle = '#2e2e34'; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(x + f * W * 0.2, turY - H * 0.1, f * W * 0.46, 5, 2.5); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#444'; roundRectPath(x + f * W * 0.6, turY - H * 0.11, f * W * 0.07, 7, 1.5); ctx.fill();
+    // Antenna
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x - f * W * 0.18, turY - H * 0.16); ctx.lineTo(x - f * W * 0.25, turY - H * 0.36); ctx.stroke();
+  };
+
+  // === FUTURE ===
+  const drawLaser = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3.5, f = facing, glow = '#7df0ff';
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(4), pantsColor: shadeColor(bodyColor, -32), bootColor: '#26384a', belt: shadeColor(bodyColor, -12),
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    const midY = bodyTop + (bodyBottom - bodyTop) * 0.4;
+    // Chest core + shoulder pad
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(x, bodyTop + (bodyBottom - bodyTop) * 0.45, 3, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = shadeColor(bodyColor, 16); ctx.beginPath(); ctx.arc(x + f * bodyW * 0.45, bodyTop + 4, 5, 0, Math.PI * 2); ctx.fill();
+    // Sleek helmet with glowing visor
+    ctx.fillStyle = shadeColor(bodyColor, 6); ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, headCenterY, headR + 1.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 5;
+    ctx.fillRect(x - headR * 0.2, headCenterY - 1.5, f * (headR + 1), 2.6); ctx.shadowBlur = 0;
+    ctx.fillStyle = skinFor(4); ctx.beginPath(); ctx.arc(x + f * bodyW * 0.5, midY + 3, 3, 0, Math.PI * 2); ctx.fill();
+    // Energy rifle with glowing core
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 7, y: midY }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy);
+      ctx.fillStyle = '#2a3340'; roundRectPath(f * -10, -2.6, f * 30, 5.2, 2); ctx.fill();
+      ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 8;
+      roundRectPath(f * 4, -1, f * 20, 2, 1); ctx.fill();
+      ctx.beginPath(); ctx.arc(f * 24, 0, 2.6, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.restore();
+    }, { skin: skinFor(4) });
+  };
+
+  const drawMech = (u, x, y, facing, walk, bodyColor) => {
+    const f = facing, W = u.w, H = u.h, outline = 'rgba(0,0,0,0.85)';
+    const dk = shadeColor(bodyColor, -26), lt = shadeColor(bodyColor, 20), glow = '#c7b8ff';
+    const stride = Math.sin(u.walkPhase * 2) * 4;
+    const hipY = y + H * 0.5, footY = y + H - 2;
+    const mleg = (hipX, dir) => {
+      const kneeX = hipX + f * 8, kneeY = hipY + (footY - hipY) * 0.5 + dir, footX = hipX + f * 2;
+      ctx.strokeStyle = outline; ctx.lineWidth = 10; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(kneeX, kneeY); ctx.lineTo(footX, footY); ctx.stroke();
+      ctx.strokeStyle = dk; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(kneeX, kneeY); ctx.lineTo(footX, footY); ctx.stroke();
+      ctx.fillStyle = dk; ctx.fillRect(footX - 5, footY - 2, 14, 5);
+    };
+    mleg(x - W * 0.12, stride); mleg(x + W * 0.12, -stride);
+    // Torso
+    const tY = y + H * 0.16, tH = H * 0.38;
+    const g = ctx.createLinearGradient(0, tY, 0, tY + tH); g.addColorStop(0, lt); g.addColorStop(1, dk);
+    ctx.fillStyle = g; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    roundRectPath(x - W * 0.28, tY, W * 0.56, tH, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = dk; roundRectPath(x - W * 0.16, tY + tH - 3, W * 0.32, 8, 3); ctx.fill();
+    // Cockpit head
+    ctx.fillStyle = bodyColor; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(x - W * 0.1, tY - H * 0.12, W * 0.2, H * 0.13, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 6;
+    ctx.fillRect(x - W * 0.06, tY - H * 0.08, f * W * 0.12, 3); ctx.shadowBlur = 0;
+    // Shoulder block + cannon
+    ctx.fillStyle = shadeColor(bodyColor, 8); ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(x - W * 0.34, tY + 2, W * 0.18, 10, 3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#2a3340'; roundRectPath(x + f * W * 0.1, tY + 3, f * W * 0.4, 6, 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 6; ctx.beginPath(); ctx.arc(x + f * W * 0.48, tY + 6, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+  };
+
+  const drawHover = (u, x, y, facing, walk, bodyColor) => {
+    const f = facing, W = u.w, H = u.h, glow = '#ffb3f5';
+    const cx = x, cyMid = y + H * 0.45, bob = Math.sin(u.walkPhase * 2) * 2;
+    // Energy glow underneath
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.ellipse(cx, cyMid + H * 0.18 + bob, W * 0.34, H * 0.1, 0, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    // Saucer disc + shading
+    ctx.fillStyle = bodyColor; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(cx, cyMid + bob, W * 0.46, H * 0.18, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = shadeColor(bodyColor, -20);
+    ctx.beginPath(); ctx.ellipse(cx, cyMid + H * 0.04 + bob, W * 0.45, H * 0.12, 0, 0, Math.PI); ctx.fill();
+    // Dome
+    ctx.fillStyle = shadeColor(bodyColor, 20); ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(cx, cyMid + bob, W * 0.22, H * 0.22, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(cx + f * W * 0.06, cyMid - H * 0.06 + bob, 3, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    // Forward cannon
+    ctx.fillStyle = '#2a3340'; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.5;
+    roundRectPath(cx + f * W * 0.3, cyMid + bob - 2, f * W * 0.2, 4, 2); ctx.fill(); ctx.stroke();
+    // Running lights
+    ctx.fillStyle = glow;
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.arc(cx + i * W * 0.2, cyMid + H * 0.09 + bob, 1.5, 0, Math.PI * 2); ctx.fill(); }
+  };
+
+  // === HEROES (grander, ornate variants) ===
+  const drawPaladin = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3, f = facing, gold = '#f0d050', glow = '#fff6c8';
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(1), pantsColor: '#9aa0b0', bootColor: '#6a7080', belt: gold,
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    const bodyH = bodyBottom - bodyTop;
+    ctx.fillStyle = gold; ctx.fillRect(x - 1.5, bodyTop + 2, 3, bodyH - 4);
+    // Pauldrons
+    ctx.fillStyle = shadeColor(bodyColor, 12); ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x + f * bodyW * 0.5, bodyTop + 4, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x - f * bodyW * 0.5, bodyTop + 4, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Kite shield with gold cross
+    const shX = x + f * bodyW * 0.18, shY = bodyTop + bodyH * 0.5;
+    ctx.fillStyle = '#c8ccd6'; ctx.strokeStyle = gold; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(shX, shY - bodyH * 0.4); ctx.lineTo(shX + bodyW * 0.32, shY - bodyH * 0.28);
+    ctx.lineTo(shX + bodyW * 0.3, shY + bodyH * 0.15); ctx.lineTo(shX, shY + bodyH * 0.52);
+    ctx.lineTo(shX - bodyW * 0.3, shY + bodyH * 0.15); ctx.lineTo(shX - bodyW * 0.32, shY - bodyH * 0.28);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = gold;
+    ctx.fillRect(shX - 1.5, shY - bodyH * 0.26, 3, bodyH * 0.6);
+    ctx.fillRect(shX - bodyW * 0.16, shY - bodyH * 0.01, bodyW * 0.32, 3);
+    // Plumed helm
+    drawHead(x, headCenterY, headR, skinFor(1), { facing: f, eye: false });
+    ctx.fillStyle = shadeColor(bodyColor, 8); ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.lineWidth = 1.6;
+    roundRectPath(x - headR - 1, headCenterY - headR - 1, (headR + 1) * 2, headR * 2.1, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#23252b'; ctx.fillRect(x - headR * 0.8, headCenterY - 1, headR * 1.6, 2);
+    ctx.fillStyle = glow; ctx.shadowColor = 'rgba(255,255,255,0.6)'; ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.moveTo(x, headCenterY - headR - 1);
+    ctx.quadraticCurveTo(x - f * 4, headCenterY - headR - 17, x + f * 2, headCenterY - headR - 19);
+    ctx.quadraticCurveTo(x + f * 2, headCenterY - headR - 8, x + f * 4, headCenterY - headR - 1);
+    ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+    // Glowing holy sword
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 4, y: base.handY - 9 }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(f * -0.82);
+      ctx.fillStyle = gold; ctx.fillRect(-6, -1, 12, 3);
+      ctx.fillStyle = '#8a6a2a'; ctx.fillRect(-1.5, 0, 3, 6);
+      ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(0, 7, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = glow; ctx.shadowBlur = 9;
+      const bl = ctx.createLinearGradient(-2, 0, 2, 0); bl.addColorStop(0, '#cfd6e6'); bl.addColorStop(0.5, '#ffffff'); bl.addColorStop(1, '#cfd6e6');
+      ctx.fillStyle = bl;
+      ctx.beginPath(); ctx.moveTo(-2.6, -1); ctx.lineTo(2.6, -1); ctx.lineTo(2.6, -30); ctx.lineTo(0, -36); ctx.lineTo(-2.6, -30); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0; ctx.restore();
+    }, { skin: skinFor(1) });
+  };
+
+  const drawGeneral = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3, f = facing, gold = '#e6c34a';
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(2), pantsColor: shadeColor(bodyColor, -14), bootColor: '#1f1f16', belt: '#3a2a16',
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    // Sash + medals + epaulettes
+    ctx.strokeStyle = '#b03030'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - f * bodyW * 0.4, bodyTop + 1); ctx.lineTo(x + f * bodyW * 0.34, bodyBottom - 2); ctx.stroke();
+    ctx.fillStyle = gold;
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(x - f * bodyW * 0.22, bodyTop + 5 + i * 4, 1.6, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#cdd3df';
+    for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(x - f * bodyW * 0.08, bodyTop + 6 + i * 4, 1.4, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = gold;
+    ctx.beginPath(); ctx.arc(x + f * bodyW * 0.45, bodyTop + 3, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x - f * bodyW * 0.45, bodyTop + 3, 3.5, 0, Math.PI * 2); ctx.fill();
+    // Peaked officer cap
+    drawHead(x, headCenterY, headR, skinFor(2), { facing: f });
+    ctx.fillStyle = shadeColor(bodyColor, -6); ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 1.5;
+    roundRectPath(x - headR - 1, headCenterY - headR - 3, (headR + 1) * 2, headR * 1.15, 3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1a1a14'; ctx.fillRect(x + f * headR * 0.1, headCenterY - headR + 2, f * (headR + 3), 2.4);
+    ctx.fillStyle = gold; ctx.fillRect(x - 2, headCenterY - headR - 1.5, 4, 2.4);
+    // Raised saber
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 3, y: base.handY - 9 }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(f * -0.95);
+      ctx.fillStyle = gold; ctx.fillRect(-3, -1, 6, 3);
+      const bl = ctx.createLinearGradient(-2, 0, 2, 0); bl.addColorStop(0, '#aab0bd'); bl.addColorStop(0.5, '#f0f3f8'); bl.addColorStop(1, '#aab0bd');
+      ctx.fillStyle = bl;
+      ctx.beginPath(); ctx.moveTo(-1.6, -1); ctx.lineTo(1.6, -1); ctx.quadraticCurveTo(3.5, -22, -1, -31); ctx.lineTo(-1.6, -20); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }, { skin: skinFor(2) });
+  };
+
+  const drawSeal = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3.5, f = facing, nvg = '#7dff9a', skin = '#caa985';
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin, pantsColor: shadeColor(bodyColor, -6), bootColor: '#121309', belt: '#121309',
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    const midY = bodyTop + (bodyBottom - bodyTop) * 0.4;
+    // Tactical vest + pouches
+    ctx.fillStyle = shadeColor(bodyColor, -12);
+    roundRectPath(x - bodyW * 0.32, bodyTop + 1, bodyW * 0.64, (bodyBottom - bodyTop) * 0.82, 3); ctx.fill();
+    ctx.fillStyle = '#0e0f0a';
+    ctx.fillRect(x - bodyW * 0.26, bodyBottom - 13, 5, 6); ctx.fillRect(x + bodyW * 0.08, bodyBottom - 13, 5, 6);
+    // Helmet + NVG tubes
+    drawHead(x, headCenterY, headR, skin, { facing: f, eye: false });
+    ctx.fillStyle = '#16180f'; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, headCenterY - 1, headR + 1.5, Math.PI * 1.0, Math.PI * 2.04); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#0e0f0a'; ctx.fillRect(x + f * headR * 0.2, headCenterY - 1, f * 5, 3.6);
+    ctx.fillStyle = nvg; ctx.shadowColor = nvg; ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.arc(x + f * (headR * 0.2 + 5), headCenterY + 0.6, 1.4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(x + f * bodyW * 0.5, midY + 3, 3, 0, Math.PI * 2); ctx.fill();
+    // Suppressed carbine
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 7, y: midY }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy);
+      ctx.fillStyle = '#1a1a1e'; ctx.fillRect(f * -11, -1.4, f * 22, 2.8);
+      ctx.fillStyle = '#0e0e12'; ctx.fillRect(f * -11, -1.6, f * 5, 5);
+      ctx.fillStyle = '#15151a'; roundRectPath(f * 11, -2.3, f * 12, 4.6, 2); ctx.fill();
+      ctx.save(); ctx.translate(f * 1, 2); ctx.rotate(f * 0.42); ctx.fillStyle = '#0e0e12'; ctx.fillRect(-1.5, 0, 3, 7); ctx.restore();
+      ctx.restore();
+    }, { skin });
+  };
+
+  const drawTitan = (u, x, y, facing, walk, bodyColor) => {
+    const f = facing, W = u.w, H = u.h, outline = 'rgba(0,0,0,0.9)';
+    const dk = shadeColor(bodyColor, -28), lt = shadeColor(bodyColor, 18), glow = '#9be0ff';
+    const stride = Math.sin(u.walkPhase * 1.6) * 3;
+    const hipY = y + H * 0.52, footY = y + H - 1;
+    const tleg = (hipX, dir) => {
+      ctx.strokeStyle = outline; ctx.lineWidth = 15; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(hipX + f * 4, hipY + (footY - hipY) * 0.5 + dir); ctx.lineTo(hipX, footY); ctx.stroke();
+      ctx.strokeStyle = dk; ctx.lineWidth = 11;
+      ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(hipX + f * 4, hipY + (footY - hipY) * 0.5 + dir); ctx.lineTo(hipX, footY); ctx.stroke();
+      ctx.fillStyle = '#14151a'; ctx.fillRect(hipX - 7, footY - 3, 16, 5);
+    };
+    tleg(x - W * 0.16, stride); tleg(x + W * 0.16, -stride);
+    // Massive torso
+    const tY = y + H * 0.12, tH = H * 0.42;
+    const g = ctx.createLinearGradient(0, tY, 0, tY + tH); g.addColorStop(0, lt); g.addColorStop(1, dk);
+    ctx.fillStyle = g; ctx.strokeStyle = outline; ctx.lineWidth = 3;
+    roundRectPath(x - W * 0.36, tY, W * 0.72, tH, 8); ctx.fill(); ctx.stroke();
+    // Chest energy core
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.arc(x, tY + tH * 0.45, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e8f7ff'; ctx.beginPath(); ctx.arc(x, tY + tH * 0.45, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    // Shoulder pods
+    ctx.fillStyle = lt; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    roundRectPath(x - W * 0.5, tY - 2, W * 0.2, 16, 4); ctx.fill(); ctx.stroke();
+    roundRectPath(x + W * 0.3, tY - 2, W * 0.2, 16, 4); ctx.fill(); ctx.stroke();
+    // Arm cannon forward
+    ctx.fillStyle = '#2a3340'; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(x + f * W * 0.3, tY + 10, f * W * 0.34, 9, 3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(x + f * W * 0.62, tY + 14.5, 3, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    // Head + glowing eyes
+    ctx.fillStyle = bodyColor; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(x - W * 0.12, tY - H * 0.14, W * 0.24, H * 0.15, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = glow; ctx.shadowColor = glow; ctx.shadowBlur = 6;
+    ctx.fillRect(x - W * 0.08, tY - H * 0.1, f * W * 0.16, 3); ctx.shadowBlur = 0;
+  };
+
   // Hand-drawn drawers wired in by unit key. Keys absent here fall back to
   // the emoji sprite, so eras can be converted one at a time.
   const UNIT_DRAWERS = {
-    club:      drawClubman,
-    sling:     drawSlinger,
-    dino:      drawDinoRider,
-    swordsman: drawSwordsman,
-    archer:    drawArcher,
-    knight:    drawKnight,
-    rifleman:  drawRifleman,
-    cannon:    drawCannoneer,
-    tank1:     drawSteamTank,
-    hero_grog: drawHeroGrog,
+    club:         drawClubman,
+    sling:        drawSlinger,
+    dino:         drawDinoRider,
+    swordsman:    drawSwordsman,
+    archer:       drawArcher,
+    knight:       drawKnight,
+    rifleman:     drawRifleman,
+    cannon:       drawCannoneer,
+    tank1:        drawSteamTank,
+    soldier:      drawSoldier,
+    sniper:       drawSniper,
+    tank2:        drawTank2,
+    laser:        drawLaser,
+    mech:         drawMech,
+    flier:        drawHover,
+    hero_grog:    drawHeroGrog,
+    hero_paladin: drawPaladin,
+    hero_general: drawGeneral,
+    hero_seal:    drawSeal,
+    hero_titan:   drawTitan,
   };
 
   // ---- Optional raster sprites (AI-generated art) ----
