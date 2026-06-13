@@ -1284,7 +1284,7 @@
   <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
   <div class="m-row" data-priority="low" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row" data-priority="low" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix shows how many engineers are caffeinated right now."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts caffeinated engineers; 💊 counts engineers currently dosed on Adderall."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row" data-priority="low" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
   <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
@@ -1336,6 +1336,7 @@
       <div class="help-tip">💻 <strong>Hire engineers</strong> at desks → they ship features → 💰 cash flows.</div>
       <div class="help-tip">🤝 <strong>Walk up to investors</strong> when they arrive — they bring big checks.</div>
       <div class="help-tip">🏃 <strong>Sprint</strong> = +100% engineer speed for 30s (drains paper 2×).</div>
+      <div class="help-tip">💊 <strong>Stimulants</strong> = dose engineers for a ~3× speed spike, then a comedown + morale dip.</div>
       <div class="help-tip">🚀 Fill the goal bar then <strong>IPO</strong> for a permanent revenue multiplier.</div>
     </div>
     <button class="tip-ok" id="help-close-btn">Got it</button>
@@ -1427,6 +1428,13 @@
   <div id="amenities-panel" class="panel collapsible">
     <div class="panel-title">🏢 Amenities</div>
     <div id="amenities-list"></div>
+  </div>
+  <div id="stim-panel" class="panel collapsible" style="display:none">
+    <div class="panel-title">💊 Stimulants</div>
+    <div class="stat-line"><span>Adderall supply</span><span id="stim-supply">0 pills</span></div>
+    <button class="hire-btn role-danger" id="dose-btn" title="Spend one pill per engineer for a hard speed boost. When the high fades they crash: slower work + a morale hit. No cooldown — just your pill supply and the burnout.">💊 Dose the Team</button>
+    <button class="hire-btn role-eng" id="buy-stim-btn" style="margin-top:4px" title="Buy a pack of Adderall. Habit-forming — each pack costs more than the last.">🛒 Buy Adderall<span class="cost" id="stim-cost">$600</span></button>
+    <div style="font-size:11px;color:#7D8590;line-height:1.5;margin-top:6px">One pill = a big speed spike for an engineer, then a comedown slump + morale dip. Every pack you buy costs more.</div>
   </div>
   <div id="settings-panel" class="panel">
     <div class="panel-title">⚙️ Settings</div>
@@ -1614,6 +1622,20 @@ const CONFIG = Object.freeze({
   sprintDuration:   30,
   sprintCooldown:   90,
   sprintRateMult:   2.0,
+
+  // Stimulants (💊 Adderall) — player-bought pills dosed to engineers
+  // for a hard productivity spike, paid back with a comedown slump and
+  // a morale hit. Habit-forming: every pack you buy costs more.
+  stimDuration:     25,     // seconds of the high
+  stimRateMult:     3.0,    // work-rate multiplier while dosed
+  stimSpeedMult:    1.7,    // walk-speed multiplier while dosed
+  stimComedownDur:  22,     // seconds of the crash afterward
+  stimComedownMult: 0.45,   // work-rate multiplier during the crash
+  stimMoraleHigh:   2,      // morale bump on dose (feels great…)
+  stimMoraleCrash:  6,      // …then the comedown bites (subtracted)
+  stimPackSize:     8,      // pills per purchase
+  stimPackBaseCost: 600,    // first pack price
+  stimPackScale:    1.55,   // each pack costs more
 
   // Rush Hour
   rushCycle: 90,
@@ -3770,6 +3792,7 @@ function spawnIdeaWorker(opts = {}) {
     state: S.AT_DESK,
     workProgress: Math.random() * 0.2,
     caffeinated: false, caffeinatedT: 0,
+    dosed: false, dosedT: 0, comedown: false, comedownT: 0, doses: 0,
     coffeeWaitT: 15 + Math.random() * 15,
     pingPongCooldown: 60 + Math.random() * 60,
     pingPongBoost: 1.0,
@@ -3791,6 +3814,10 @@ function updateIdeaWorkers(dt) {
 
   for (const w of ideaWorkers) {
     if (w.caffeinated) { w.caffeinatedT -= dt; if (w.caffeinatedT <= 0) w.caffeinated = false; }
+    // Adderall lifecycle: dosed → comedown → normal. The high ticks down
+    // into a crash (endDose); the crash ticks down back to baseline.
+    if (w.dosed) { w.dosedT -= dt; if (w.dosedT <= 0) endDose(w); }
+    else if (w.comedown) { w.comedownT -= dt; if (w.comedownT <= 0) w.comedown = false; }
     if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
     // Default each frame: ease arms back to rest. The walking branch
     // below will override with an active swing when moving.
@@ -3816,7 +3843,12 @@ function updateIdeaWorkers(dt) {
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < CONFIG.proxRange ? CONFIG.bossBoost : 1.0;
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost;
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost;
+      // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
+      // Seated workers never set rotation otherwise, so this is safe to
+      // drive directly and reset to 0 once the high wears off.
+      if (w.dosed) w.group.rotation.y = Math.sin(performance.now() * 0.025 + w.workProgress * 10) * 0.07;
+      else if (w.group.rotation.y !== 0) w.group.rotation.y = 0;
       w.currentRate = rate;
       w.workProgress = Math.min(1.0, w.workProgress + rate * dt);
 
@@ -3874,7 +3906,7 @@ function updateIdeaWorkers(dt) {
     // Walking states
     if (w.state === S.TO_COFFEE || w.state === S.TO_PING_PONG || w.state === S.TO_DELIVER || w.state === S.TO_VP || w.state === S.TO_SUPPLY || w.state === S.RETURNING) {
       if (!w.target) { w.state = S.AT_DESK; continue; }
-      const spd = CONFIG.iwSpeed * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? CONFIG.rushBoost : 1.0);
+      const spd = CONFIG.iwSpeed * Math.max(0.5, dealSpeedMult > 0 ? Math.min(dealSpeedMult, 2.5) : 0.5) * (rushActive ? CONFIG.rushBoost : 1.0) * (w.dosed ? CONFIG.stimSpeedMult : 1.0);
       // Sway the carried paper stack in sync with the walk so it feels
       // like they're actually hauling it, not teleporting.
       const sheets = w.carryMesh && w.carryMesh.userData.sheets;
@@ -4677,6 +4709,84 @@ function updateSprint(dt) {
   }
 }
 
+// ── Stimulants (💊 Adderall) ─────────────────────────────────
+// Buy packs of pills in the sidebar, then "Dose the Team" to spend one
+// pill per engineer for a hard, per-employee work-rate + walk-speed
+// spike. When the high wears off each engineer crashes into a comedown
+// (slower work + a morale hit). Unlike Sprint there's no cooldown — the
+// limiter is your dwindling, ever-pricier pill supply and the burnout it
+// leaves behind. Supply is persisted; dose/comedown state is transient.
+let stimSupply      = 0;   // pills on hand
+let stimPacksBought = 0;   // drives the escalating pack price
+let stimDosesGiven  = 0;   // lifetime doses handed out (achievement track)
+
+function stimWorkMult(w) {
+  if (w.dosed)    return CONFIG.stimRateMult;
+  if (w.comedown) return CONFIG.stimComedownMult;
+  return 1;
+}
+function stimPackCost() {
+  return Math.round(CONFIG.stimPackBaseCost * Math.pow(CONFIG.stimPackScale, stimPacksBought));
+}
+// A worker's high ends → drop them into the comedown slump + morale hit.
+function endDose(w) {
+  w.dosed = false;
+  w.dosedT = 0;
+  w.comedown = true;
+  w.comedownT = CONFIG.stimComedownDur;
+  w.group.rotation.y = 0;
+  changeMorale(-CONFIG.stimMoraleCrash, '', w);
+}
+function buyStimPack() {
+  const cost = stimPackCost();
+  if (state.cash < cost) return;
+  state.cash -= cost; showSpendPop(cost);
+  stimSupply += CONFIG.stimPackSize;
+  stimPacksBought++;
+  addFeedEntry(`💊 Bought ${CONFIG.stimPackSize} Adderall ($${fmtCash(cost)})`);
+  SFX.purchase(); Haptics.purchase();
+  refreshHud();
+  updateStimPanel();
+}
+function doseTeam() {
+  if (ideaWorkers.length === 0) {
+    showToast('💊 No engineers to dose yet.', '', 'standard');
+    return;
+  }
+  // Only engineers not already riding a high are valid targets.
+  const targets = ideaWorkers.filter(w => !w.dosed);
+  if (targets.length === 0) {
+    showToast('💊 Whole team is already wired.', '', 'standard');
+    return;
+  }
+  if (stimSupply <= 0) {
+    showToast('💊 Out of Adderall — buy a pack in the sidebar.', '', 'standard');
+    showTip('stim');
+    return;
+  }
+  let dosed = 0;
+  for (const w of targets) {
+    if (stimSupply <= 0) break;
+    stimSupply--;
+    w.dosed = true;
+    w.dosedT = CONFIG.stimDuration;
+    w.comedown = false;
+    w.comedownT = 0;
+    w.doses = (w.doses || 0) + 1;
+    dosed++;
+  }
+  stimDosesGiven += dosed;
+  changeMorale(CONFIG.stimMoraleHigh, 'Adderall rush');
+  const pct = Math.round((CONFIG.stimRateMult - 1) * 100);
+  showToast(`💊 Dosed ${dosed} engineer${dosed > 1 ? 's' : ''}! +${pct}% speed for ${CONFIG.stimDuration}s`, 'rush');
+  addFeedEntry(`💊 Dosed ${dosed} engineer${dosed > 1 ? 's' : ''}`);
+  SFX.sprint(); Haptics.sprint();
+  checkAchievements();
+  refreshHud();
+  updateStimPanel();
+  showTip('stim');
+}
+
 // ── Morale (v2: per-worker, with EA chat bumps + event hooks) ────
 // Each engineer carries their own morale 0-100. Team morale (for the
 // HUD) is their average. Their individual morale feeds into the work-
@@ -5215,6 +5325,8 @@ const ACHIEVEMENTS = [
   { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1, progress: () => [Math.min(trophiesWon, 1), 1] },
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
+  { id: 'first_dose',    icon: '💊', title: 'Better Living',         desc: 'Dose an engineer with Adderall.',        check: () => stimDosesGiven >= 1 },
+  { id: 'tweaker',       icon: '⚗️', title: 'Move Fast, Break Brains', desc: 'Hand out 50 doses across all time.',   check: () => stimDosesGiven >= 50, progress: () => [Math.min(stimDosesGiven, 50), 50] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -5410,8 +5522,9 @@ function updateMetricsHUD() {
   metricsUsersEl.textContent = fmtCash(totalUsers);
   metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
+  const dosedCount = ideaWorkers.filter(w => w.dosed).length;
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
-  metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}`;
+  metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}${dosedCount ? ' 💊' + dosedCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
   // "Per ship" base deal value + live breakdown tooltip so the player
   // can see WHY a feature is worth $X — base × v × prestige × Ent × events.
@@ -5760,6 +5873,39 @@ function renderAmenities() {
   }
 }
 
+// ── Stimulants panel (supply, buy, dose) ──
+// Unlocks once you have at least one engineer to dose. Buy button shows
+// the next (escalating) pack price; dose button reflects supply, the
+// number of engineers ready to dose, and whether a high is in progress.
+const stimPanelEl   = document.getElementById('stim-panel');
+const stimSupplyEl   = document.getElementById('stim-supply');
+const stimCostEl     = document.getElementById('stim-cost');
+const doseBtnEl      = document.getElementById('dose-btn');
+const buyStimBtnEl   = document.getElementById('buy-stim-btn');
+function updateStimPanel() {
+  const unlocked = ideaWorkers.length >= 1;
+  stimPanelEl.style.display = unlocked ? '' : 'none';
+  if (!unlocked) return;
+
+  stimSupplyEl.textContent = `${stimSupply} pill${stimSupply === 1 ? '' : 's'}`;
+
+  const cost = stimPackCost();
+  stimCostEl.textContent = `$${fmtCash(cost)}`;
+  buyStimBtnEl.disabled = state.cash < cost;
+  buyStimBtnEl.classList.toggle('can-afford', state.cash >= cost);
+
+  const dosedNow  = ideaWorkers.filter(w => w.dosed).length;
+  const readyNow  = ideaWorkers.filter(w => !w.dosed).length;
+  if (dosedNow > 0) {
+    doseBtnEl.textContent = `💊 Dosed ${dosedNow}/${ideaWorkers.length}`;
+  } else {
+    doseBtnEl.textContent = '💊 Dose the Team';
+  }
+  doseBtnEl.disabled = stimSupply <= 0 || readyNow === 0;
+}
+doseBtnEl.addEventListener('click', () => { doseTeam(); });
+buyStimBtnEl.addEventListener('click', () => { buyStimPack(); });
+
 // ── Funding Rounds (startup-themed cash injections) ──
 const FUNDING_ROUNDS = [
   { label: '💰 Pre-seed Round',  amount: 100,   req: () => true,                          reqText: '' },
@@ -6067,6 +6213,7 @@ function refreshHud() {
   renderAmenities();
   renderRoomPanel();
   renderFunding();
+  updateStimPanel();
   checkIPOAvailable();
   renderNextAction();
   refreshAffordability();
@@ -7032,6 +7179,7 @@ function updateSprintButton() {
 // belong in the main 60fps loop (cheap reads that only need ~4Hz).
 setInterval(() => {
   updateSprintButton();
+  updateStimPanel();
   renderAddDeskButton();
   refreshInvestorBanner();
 }, 250);
@@ -7080,6 +7228,10 @@ const TIPS = {
   sprint: {
     title: '🏃 Sprint mode',
     body: 'Tap the 🏃 Sprint button (bottom-right) for a 30-second push: every engineer works at 2× speed but desks burn paper twice as fast. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
+  },
+  stim: {
+    title: '💊 Stimulants',
+    body: 'Open the 💊 Stimulants panel in the sidebar to buy Adderall and "Dose the Team". Each pill makes one engineer work ~3× faster (and walk faster) for 25s — then they crash into a comedown: slower work plus a morale hit. No cooldown, but pills run out and every pack you buy costs more. Pair a dose with Sprint and a Rush Hour for an absurd burst, then let the team recover.',
   },
   conversion: {
     title: '⚡ Room can be converted',
@@ -7234,8 +7386,8 @@ function updateLabels() {
         wants.push({ text: '📄❓', cls: 'bubble', x: p.x, y: p.y });
       } else {
         const pct = Math.round((w.workProgress || 0) * 100);
-        const boosted = w.caffeinated || w.bossBoost > 1 || rushActive;
-        const fillColor = boosted ? '#F59E0B' : '#3FB950';
+        const boosted = w.caffeinated || w.dosed || w.bossBoost > 1 || rushActive;
+        const fillColor = w.dosed ? '#F85149' : (w.comedown ? '#7D8590' : (boosted ? '#F59E0B' : '#3FB950'));
         const bg = `linear-gradient(to right, ${fillColor} 0%, ${fillColor} ${pct}%, rgba(13,17,23,0.85) ${pct}%, rgba(13,17,23,0.85) 100%)`;
         wants.push({ text: '', cls: 'workbar', x: p.x, y: p.y, bg });
         if (paper <= 3) {
@@ -7247,7 +7399,7 @@ function updateLabels() {
         const mouseNear = Math.abs(mouseScreenX - p.x) < 36 && Math.abs(mouseScreenY - p.y) < 32;
         if ((playerNear || mouseNear) && paper > 3) {
           const fpm = ((w.currentRate || 0) * 60).toFixed(1);
-          const prefix = w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️');
+          const prefix = w.dosed ? '💊' : (w.comedown ? '😵' : (w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️')));
           wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
         }
       }
@@ -7262,6 +7414,13 @@ function updateLabels() {
       const p = worldToScreen(w.group.position.x, 2.75, w.group.position.z);
       wants.push({ text: moraleEmoji(m), cls: 'bubble', x: p.x, y: p.y });
     }
+  }
+  // Stim bubble: 💊 while wired, 😵 while crashing — always visible so
+  // you can read the team's chemical state at a glance.
+  for (const w of ideaWorkers) {
+    if (!w.dosed && !w.comedown) continue;
+    const p = worldToScreen(w.group.position.x, 3.05, w.group.position.z);
+    wants.push({ text: w.dosed ? '💊' : '😵', cls: 'bubble', x: p.x, y: p.y });
   }
   // EA in-flight emoji
   for (const e of eas) {
@@ -7523,6 +7682,9 @@ function doIPO() {
   nextInvestorIn = 60 + Math.random() * 60;
   // Reset Sprint state so the new season starts with the button fresh
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
+  // Fresh company → empty medicine cabinet and reset pack pricing.
+  // Lifetime stimDosesGiven persists (it tracks an achievement).
+  stimSupply = 0; stimPacksBought = 0;
   // New season — finish line resets and the bar's target scales up
   seasonGoalHit = false;
   seasonRecurringRevenue = 0;
@@ -7671,6 +7833,9 @@ function saveGame() {
       prestigeMultiplier,
       amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
       ownedRooms: Array.from(ownedRooms),
+      stimSupply,
+      stimPacksBought,
+      stimDosesGiven,
       savedAt: Date.now(),
     }));
   } catch {}
@@ -7821,6 +7986,9 @@ function loadGame() {
     if (p.achievements && typeof p.achievements === 'object') {
       for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true;
     }
+    if (typeof p.stimSupply      === 'number') stimSupply      = Math.max(0, p.stimSupply | 0);
+    if (typeof p.stimPacksBought === 'number') stimPacksBought = Math.max(0, p.stimPacksBought | 0);
+    if (typeof p.stimDosesGiven  === 'number') stimDosesGiven  = Math.max(0, p.stimDosesGiven | 0);
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
