@@ -1284,7 +1284,7 @@
   <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
   <div class="m-row" data-priority="low" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row" data-priority="low" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts caffeinated engineers; 💊 counts engineers currently dosed on Adderall."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The 💊 suffix counts engineers currently dosed on Adderall."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row" data-priority="low" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
   <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
@@ -1335,7 +1335,7 @@
       <div class="help-section-title">Core loop</div>
       <div class="help-tip">💻 <strong>Hire engineers</strong> at desks → they ship features → 💰 cash flows.</div>
       <div class="help-tip">🤝 <strong>Walk up to investors</strong> when they arrive — they bring big checks.</div>
-      <div class="help-tip">🏃 <strong>Sprint</strong> = +100% engineer speed for 30s (drains paper 2×).</div>
+      <div class="help-tip">🏃 <strong>Sprint</strong> = +100% engineer speed for the whole team for 30s.</div>
       <div class="help-tip">💊 <strong>Stimulants</strong> = dose engineers for a ~3× speed spike, then a comedown + morale dip.</div>
       <div class="help-tip">🚀 Fill the goal bar then <strong>IPO</strong> for a permanent revenue multiplier.</div>
     </div>
@@ -1360,7 +1360,7 @@
     <div class="ach-progress" style="text-align:center">A 30-second crash course</div>
     <div style="font-size:13px;line-height:1.7;color:#cdd5df;margin:10px 4px 12px">
       <div style="margin:6px 0"><strong style="color:#fcd34d">1.</strong> <strong>Hire an engineer</strong> (top-left). They sit at a desk and ship features for cash.</div>
-      <div style="margin:6px 0"><strong style="color:#fcd34d">2.</strong> <strong>Walk over to refill paper</strong> at desks. No paper → work stops.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">2.</strong> Buy <strong>💊 Adderall</strong> and Dose the Team for a big, short-lived speed burst.</div>
       <div style="margin:6px 0"><strong style="color:#fcd34d">3.</strong> Around <strong>$200</strong> hire a <strong>BDR</strong> — they close deals for bigger pops.</div>
       <div style="margin:6px 0"><strong style="color:#fcd34d">4.</strong> Fill the goal bar at the top, then <strong>IPO</strong> for a permanent multiplier.</div>
     </div>
@@ -1478,7 +1478,7 @@
 </div>
 <div id="joystick"><div id="joy-knob"></div></div>
 <div id="toast-container"></div>
-<button id="sprint-btn" title="30s of 2× engineer speed (costs 2× paper)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
+<button id="sprint-btn" title="30s of 2× engineer speed for the whole team">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
 <div id="tip-modal" role="dialog">
@@ -3878,11 +3878,10 @@ function updateIdeaWorkers(dt) {
       if (w.workProgress >= 1.0 && dealSpeedMult > 0) {
         w.workProgress = 0;
         setPaperStackProgress(w.desk.paperStack, 0);
-        // Each shipped feature consumes paper (1 normally, 2 during a sprint)
-        w.desk.paperStock = Math.max(0, w.desk.paperStock - sprintPaperCost());
-        // Paper value boost
+        // No paper economy anymore — shipping a feature costs nothing, so
+        // engineers never run dry and the supply-run / stall branches stay
+        // dormant.
         w.paperBoost = 1.0;
-        if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
         w.productValue = computeDealValue({ paperBoost: w.paperBoost, pingPongBoost: w.pingPongBoost });
         w.pingPongBoost = 1.0;
         setPaperStackProgress(w.carryMesh, 0.8); // carry an 8-sheet stack
@@ -4687,7 +4686,7 @@ function triggerSprint() {
   if (ideaWorkers.length === 0) return;
   sprintActive = true;
   sprintT = 0;
-  showToast('🏃 Sprint! +100% eng speed for 30s (2× paper drain)', 'rush');
+  showToast('🏃 Sprint! +100% eng speed for 30s', 'rush');
   addFeedEntry('🏃 Sprint started');
   changeMorale(+3, 'Sprint rally');
   SFX.sprint(); Haptics.sprint();
@@ -5820,7 +5819,12 @@ const AMENITY_DEFS = [
     },
   },
 ];
-const amenities = AMENITY_DEFS.map(def => ({
+const amenities = AMENITY_DEFS
+  // No more office supplies — the ☕ Espresso Bar and 📚 Supply Rack
+  // (paper) are retired. Defs stay for save-compat (an old save listing
+  // them just finds nothing to restore).
+  .filter(def => def.id !== 'coffee' && def.id !== 'printer')
+  .map(def => ({
   ...def,
   stock: 0,
   isOwned: false,
