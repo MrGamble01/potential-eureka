@@ -2188,6 +2188,33 @@ const AgeOfWarGame = (() => {
     hero_grog: drawHeroGrog,
   };
 
+  // ---- Optional raster sprites (AI-generated art) ----
+  // Drop a transparent PNG at ageofwar/assets/units/<key>.png and add the
+  // key to SPRITE_MANIFEST below to render that unit from the image instead
+  // of the canvas drawing. The image is anchored at the feet, scaled to the
+  // unit's size, and mirrored for facing. The hand-drawn / emoji art stays
+  // as the fallback, so the game looks complete while art is still incoming
+  // and we can switch units over one at a time. See assets/units/README.md.
+  const SPRITE_BASE = 'assets/units/';
+  const SPRITE_MANIFEST = {
+    // Enable a unit once its art exists, e.g.:  club: {},  knight: { scale: 1.1 }
+  };
+  const _spriteCache = {};
+  function spriteImage(key) {
+    const m = SPRITE_MANIFEST[key];
+    if (!m || typeof Image === 'undefined') return null;   // not enabled, or non-DOM (tests)
+    let e = _spriteCache[key];
+    if (e === undefined) {
+      const img = new Image();
+      e = { img, ok: false };
+      img.onload = () => { e.ok = img.naturalWidth > 0; };
+      img.onerror = () => { e.ok = false; };
+      img.src = SPRITE_BASE + (m.src || key + '.png');
+      _spriteCache[key] = e;
+    }
+    return e.ok ? e.img : null;
+  }
+
   // Render a unit's character: the hand-drawn cartoon drawer for its key
   // when one exists (see UNIT_DRAWERS), otherwise the emoji sprite.
   function drawUnit(u) {
@@ -2240,11 +2267,26 @@ const AgeOfWarGame = (() => {
       ctx.fill();
     }
 
-    // Character — hand-drawn cartoon drawer when one exists for this unit
-    // key, otherwise the emoji sprite. Hero/boss scale is applied here so
-    // both render paths grow consistently.
+    // Character — priority: raster sprite (if art is enabled for this key)
+    // → hand-drawn cartoon drawer → emoji. Hero/boss scale applies to every
+    // path so they grow consistently.
+    const img = spriteImage(u.key);
     const drawer = UNIT_DRAWERS[u.key];
-    if (drawer) {
+    if (img) {
+      const tune = SPRITE_MANIFEST[u.key] || {};
+      const sH = drawH * (tune.scale || 1) * 1.18;          // sprites read a touch taller than the hit box
+      const sW = sH * (img.naturalWidth / img.naturalHeight);
+      const bobY = Math.sin(u.walkPhase * 2) * 1.5;
+      ctx.save();
+      ctx.translate(cx, feetY);
+      if (facing < 0) ctx.scale(-1, 1);
+      if (u.hitFlash > 0)   { ctx.shadowColor = 'rgba(255,255,255,0.95)'; ctx.shadowBlur = 14; }
+      else if (isHero)      { ctx.shadowColor = 'rgba(252,211,77,0.55)';  ctx.shadowBlur = 12; }
+      else if (isBoss)      { ctx.shadowColor = 'rgba(255,80,255,0.55)';  ctx.shadowBlur = 14; }
+      ctx.drawImage(img, -sW / 2, -sH + bobY, sW, sH);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    } else if (drawer) {
       const topY = feetY - u.h;   // natural top-of-head; scale enlarges it
       const bodyColor = u.hitFlash > 0 ? '#fff' : (u.color || '#b07040');
       ctx.save();
