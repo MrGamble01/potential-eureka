@@ -25,6 +25,7 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let paused, flashing, flashRows, combo, lastClearWasTetris, comboDisplayUntil;
 
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
@@ -75,6 +76,8 @@ const TetrisGame = (() => {
     score = level = 0; linesCleared = 0;
     current = next = held = null;
     bag = [];
+    paused = false; flashing = false; flashRows = [];
+    combo = 0; lastClearWasTetris = false; comboDisplayUntil = 0;
 
     updateInfo();
     draw();
@@ -93,6 +96,7 @@ const TetrisGame = (() => {
       const dx = e.changedTouches[0].clientX - tx;
       const dy = e.changedTouches[0].clientY - ty;
       if (!running) { start(); return; }
+      if (paused || flashing) return;
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
         rotateCW(); // tap = rotate
       } else if (Math.abs(dx) > Math.abs(dy)) {
@@ -181,6 +185,9 @@ const TetrisGame = (() => {
       }
     }
     clearLines();
+  }
+
+  function spawnNext() {
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -189,25 +196,66 @@ const TetrisGame = (() => {
   }
 
   function clearLines() {
-    let cleared = 0;
+    const toRemove = [];
     for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
+      if (board[r].every(cell => cell !== null)) toRemove.push(r);
+    }
+
+    if (!toRemove.length) {
+      combo = 0;
+      lastClearWasTetris = false;
+      spawnNext();
+      return;
+    }
+
+    // Pause the drop timer and flash the cleared rows before removing them
+    clearInterval(gameLoop);
+    flashing = true;
+    flashRows = [...toRemove];
+    draw();
+
+    setTimeout(() => {
+      if (!running) { flashing = false; flashRows = []; return; }
+
+      flashRows = [];
+      flashing = false;
+
+      // Remove lines top-to-bottom so indices stay valid after each splice
+      toRemove.sort((a, b) => b - a);
+      for (const r of toRemove) {
         board.splice(r, 1);
         board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
       }
-    }
-    if (!cleared) return;
-    const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
-    linesCleared += cleared;
-    const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem('tetris-high', String(highScore));
-    }
-    updateInfo();
+
+      const cleared = toRemove.length;
+      const pts = [0, 100, 300, 500, 800];
+      combo++;
+      score += pts[Math.min(cleared, 4)] * level;
+
+      // Back-to-back Tetris bonus (+50%)
+      if (cleared === 4 && lastClearWasTetris) score += 400 * level;
+      lastClearWasTetris = cleared === 4;
+
+      // Combo bonus for consecutive line-clearing moves
+      if (combo > 1) {
+        score += (combo - 1) * 50 * level;
+        comboDisplayUntil = Date.now() + 1400;
+      }
+
+      linesCleared += cleared;
+      const newLevel = Math.floor(linesCleared / 10) + 1;
+      if (newLevel !== level) level = newLevel;
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('tetris-high', String(highScore));
+      }
+      updateInfo();
+
+      spawnNext();
+      if (running && !paused) restartLoop();
+      draw();
+    }, 240);
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -219,6 +267,7 @@ const TetrisGame = (() => {
   }
 
   function autoDown() {
+    if (paused || flashing) return;
     if (!move(0, 1)) lock();
     draw(); updateInfo();
   }
@@ -241,12 +290,31 @@ const TetrisGame = (() => {
     draw();
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+      const ov = document.getElementById('tetris-overlay');
+      if (ov) {
+        ov.style.display = 'flex';
+        ov.innerHTML = `<h2>PAUSED</h2><p style="font-size:12px; color: var(--text-dim)">Press P to resume</p>`;
+      }
+    } else {
+      const ov = document.getElementById('tetris-overlay');
+      if (ov) ov.style.display = 'none';
+      if (!flashing) restartLoop();
+    }
+  }
+
   function start() {
     bag = [];
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    paused = false; flashing = false; flashRows = [];
+    combo = 0; lastClearWasTetris = false; comboDisplayUntil = 0;
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -278,6 +346,8 @@ const TetrisGame = (() => {
   function handleKey(e) {
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
     if (!running) return;
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { togglePause(); e.preventDefault(); return; }
+    if (paused || flashing) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
@@ -325,8 +395,19 @@ const TetrisGame = (() => {
       for (let c = 0; c < COLS; c++)
         if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
 
-    if (current && running) {
-      // Ghost
+    // Line-clear flash: bright white overlay on cleared rows
+    if (flashRows.length) {
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+      for (const r of flashRows) {
+        ctx.fillRect(1, r * CELL + 1, WIDTH - 2, CELL - 2);
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    if (current && running && !flashing) {
+      // Ghost piece
       const gy = ghostRow();
       for (let r = 0; r < current.shape.length; r++) {
         for (let c = 0; c < current.shape[r].length; c++) {
@@ -342,11 +423,26 @@ const TetrisGame = (() => {
           ctx.globalAlpha = 1;
         }
       }
-      // Piece
+      // Active piece
       for (let r = 0; r < current.shape.length; r++)
         for (let c = 0; c < current.shape[r].length; c++)
           if (current.shape[r][c] && current.y + r >= 0)
             drawCell(ctx, current.x + c, current.y + r, current.color);
+    }
+
+    // Combo banner — fades out over the last 400 ms
+    if (combo > 1 && Date.now() < comboDisplayUntil) {
+      const alpha = Math.min(1, (comboDisplayUntil - Date.now()) / 400);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#F7C948';
+      ctx.shadowColor = '#F7C948';
+      ctx.shadowBlur = 14;
+      ctx.font = 'bold 20px Inter, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${combo}× COMBO`, WIDTH / 2, HEIGHT - 22);
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.textAlign = 'left';
     }
 
     if (!running && !gameOver) {
@@ -359,7 +455,7 @@ const TetrisGame = (() => {
       ctx.font = '11px Inter, monospace';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('← → move  ·  ↑ / X rotate  ·  ↓ soft drop', WIDTH / 2, HEIGHT / 2 + 22);
-      ctx.fillText('Space hard drop  ·  C hold', WIDTH / 2, HEIGHT / 2 + 38);
+      ctx.fillText('Space hard drop  ·  C hold  ·  P pause', WIDTH / 2, HEIGHT / 2 + 38);
       ctx.textAlign = 'left';
     }
   }
