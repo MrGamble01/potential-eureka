@@ -2179,12 +2179,263 @@ const AgeOfWarGame = (() => {
     ctx.closePath(); ctx.fill(); ctx.stroke();
   };
 
+  // === MEDIEVAL ===
+  const drawSwordsman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 4, f = facing;
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(1), pantsColor: '#6b7280', bootColor: '#3b3f47', belt: '#6b4a2a',
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    const bodyH = bodyBottom - bodyTop;
+    // Tabard (surcoat) with a cross
+    ctx.fillStyle = '#2f4aa0';
+    roundRectPath(x - bodyW * 0.26, bodyTop + 1, bodyW * 0.52, bodyH - 2, 3); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillRect(x - 1.5, bodyTop + 4, 3, bodyH * 0.62);
+    ctx.fillRect(x - bodyW * 0.14, bodyTop + bodyH * 0.26, bodyW * 0.28, 3);
+    // Round shield strapped over the chest
+    const shCx = x + f * bodyW * 0.18, shCy = bodyTop + bodyH * 0.55, shR = bodyW * 0.42;
+    ctx.fillStyle = '#c0c6d4'; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(shCx, shCy, shR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#2f4aa0';
+    ctx.fillRect(shCx - shR * 0.15, shCy - shR * 0.78, shR * 0.3, shR * 1.56);
+    ctx.fillRect(shCx - shR * 0.78, shCy - shR * 0.15, shR * 1.56, shR * 0.3);
+    ctx.fillStyle = '#e6c34a'; ctx.beginPath(); ctx.arc(shCx, shCy, shR * 0.18, 0, Math.PI * 2); ctx.fill();
+    // Great helm (covers the head)
+    const hw = (headR + 1.6) * 2, hh = headR * 2.2;
+    ctx.fillStyle = '#cdd3df'; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 1.8;
+    roundRectPath(x - hw / 2, headCenterY - headR - 1, hw, hh, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,0.13)';
+    roundRectPath(x - hw / 2, headCenterY - headR - 1, hw / 2 - f * (hw / 2), hh, 4); ctx.fill();
+    ctx.fillStyle = '#23252b';
+    ctx.fillRect(x - headR * 0.85, headCenterY - 1, headR * 1.7, 2);          // eye slit
+    ctx.fillRect(x - 1, headCenterY + 1.5, 2, headR * 0.9);                   // breath slit
+    ctx.fillStyle = '#c0392b';                                               // plume
+    ctx.beginPath(); ctx.moveTo(x, headCenterY - headR - 1);
+    ctx.quadraticCurveTo(x - f * 7, headCenterY - headR - 10, x - f * 1, headCenterY - headR - 1); ctx.fill();
+    // Sword raised in the front hand
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 3, y: base.handY - 7 }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(f * -0.75);
+      ctx.fillStyle = '#8a6a2a'; ctx.fillRect(-5, -1, 10, 3);                 // crossguard
+      ctx.fillStyle = '#5a3a1a'; ctx.fillRect(-1.5, 0, 3, 6);                 // grip
+      ctx.fillStyle = '#c8a84a'; ctx.beginPath(); ctx.arc(0, 7, 2.2, 0, Math.PI * 2); ctx.fill();
+      const bl = ctx.createLinearGradient(-2, 0, 2, 0);
+      bl.addColorStop(0, '#9aa0ad'); bl.addColorStop(0.5, '#eef1f6'); bl.addColorStop(1, '#9aa0ad');
+      ctx.fillStyle = bl;
+      ctx.beginPath(); ctx.moveTo(-2.4, -1); ctx.lineTo(2.4, -1); ctx.lineTo(2.4, -26); ctx.lineTo(0, -31); ctx.lineTo(-2.4, -26); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.restore();
+    }, { skin: skinFor(1) });
+  };
+
+  const drawArcher = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3, f = facing;
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(1), pantsColor: '#5a4326', bootColor: '#3a2a16', belt: '#4a3318',
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    // Quiver on the back shoulder
+    ctx.fillStyle = '#6b4a28'; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.5;
+    roundRectPath(x - f * bodyW * 0.52, bodyTop + 2, 5, 16, 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#dadada';
+    for (let i = 0; i < 3; i++) ctx.fillRect(x - f * bodyW * 0.52 + 0.6 + i * 1.6, bodyTop - 4, 1.3, 6);
+    // Head + green hood
+    drawHead(x, headCenterY, headR, skinFor(1), { facing: f });
+    ctx.fillStyle = '#3f5d34'; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(x - f * 1, headCenterY - 1, headR + 1.6, Math.PI * 0.62, Math.PI * 1.95);
+    ctx.lineTo(x - f * (headR + 1), headCenterY + headR * 0.9);
+    ctx.quadraticCurveTo(x - f * headR * 0.5, headCenterY + headR * 0.2, x - f * 1, headCenterY - headR);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Bow + nocked arrow in the front hand
+    const bowHandX = x + f * bodyW * 0.6, bowHandY = bodyTop + (bodyBottom - bodyTop) * 0.45;
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: bowHandX, y: bowHandY }, bodyColor, (hx, hy) => {
+      const bh = u.h * 0.44;
+      ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(hx, hy - bh * 0.5);
+      ctx.quadraticCurveTo(hx + f * bh * 0.4, hy, hx, hy + bh * 0.5); ctx.stroke();
+      const nockX = x + f * bodyW * 0.06, nockY = headCenterY + headR * 0.7;
+      ctx.strokeStyle = '#ededed'; ctx.lineWidth = 0.9;
+      ctx.beginPath(); ctx.moveTo(hx, hy - bh * 0.5); ctx.lineTo(nockX, nockY); ctx.lineTo(hx, hy + bh * 0.5); ctx.stroke();
+      ctx.strokeStyle = '#caa46a'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(nockX, nockY); ctx.lineTo(hx + f * 5, hy); ctx.stroke();
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath(); ctx.moveTo(hx + f * 5, hy); ctx.lineTo(hx + f * 10, hy - 2.2); ctx.lineTo(hx + f * 10, hy + 2.2); ctx.closePath(); ctx.fill();
+    }, { skin: skinFor(1) });
+  };
+
+  const drawKnight = (u, x, y, facing, walk, bodyColor) => {
+    const f = facing, W = u.w, H = u.h, cx = x;
+    const gallop = Math.sin(u.walkPhase * 1.5) * 3;
+    const horse = '#6b4a2e', horseDk = '#412c18', armor = bodyColor, cloth = '#7a2f8a';
+    const outline = 'rgba(0,0,0,0.85)';
+    const legTop = y + H * 0.56, legBot = y + H - 1;
+    const hleg = (lx, lift) => {
+      ctx.strokeStyle = outline; ctx.lineWidth = 9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(lx, legTop); ctx.lineTo(lx, legBot + lift); ctx.stroke();
+      ctx.strokeStyle = horseDk; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(lx, legTop); ctx.lineTo(lx, legBot + lift); ctx.stroke();
+      ctx.fillStyle = '#15110c'; ctx.fillRect(lx - 3, legBot + lift - 2, 6, 3);
+    };
+    hleg(cx - f * W * 0.34, gallop);
+    hleg(cx + f * W * 0.30, -gallop);
+    // Tail
+    ctx.strokeStyle = horseDk; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - f * W * 0.44, y + H * 0.44);
+    ctx.quadraticCurveTo(cx - f * W * 0.6, y + H * 0.52, cx - f * W * 0.55, y + H * 0.74); ctx.stroke();
+    // Barrel
+    ctx.fillStyle = horse; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(cx, y + H * 0.5, W * 0.46, H * 0.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Neck + head toward facing
+    const nx = cx + f * W * 0.44, ny = y + H * 0.33;
+    ctx.beginPath();
+    ctx.moveTo(cx + f * W * 0.30, y + H * 0.4);
+    ctx.lineTo(nx - f * W * 0.05, ny - H * 0.03);
+    ctx.lineTo(nx + f * W * 0.12, ny);
+    ctx.lineTo(nx + f * W * 0.15, ny + H * 0.13);
+    ctx.lineTo(cx + f * W * 0.34, y + H * 0.52);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(nx + f * W * 0.1, ny + H * 0.03, W * 0.13, H * 0.09, f * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = horseDk;                                          // ear + mane
+    ctx.beginPath(); ctx.moveTo(nx - f * 1, ny - H * 0.05); ctx.lineTo(nx - f * 3, ny - H * 0.14); ctx.lineTo(nx + f * 2, ny - H * 0.05); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = horseDk; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx + f * W * 0.28, y + H * 0.36); ctx.lineTo(nx - f * W * 0.03, ny); ctx.stroke();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(nx + f * W * 0.09, ny + H * 0.01, 1.3, 0, Math.PI * 2); ctx.fill();
+    // Barding cloth
+    ctx.fillStyle = cloth; ctx.strokeStyle = outline; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - f * W * 0.4, y + H * 0.5); ctx.lineTo(cx + f * W * 0.32, y + H * 0.5);
+    ctx.lineTo(cx + f * W * 0.26, y + H * 0.72); ctx.lineTo(cx - f * W * 0.34, y + H * 0.72);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#e6c34a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx - f * W * 0.34, y + H * 0.7); ctx.lineTo(cx + f * W * 0.27, y + H * 0.7); ctx.stroke();
+    // Near legs over the barding
+    hleg(cx + f * W * 0.16, -gallop * 0.6);
+    hleg(cx - f * W * 0.18, gallop * 0.6);
+    // Rider
+    const rx = cx - f * W * 0.04, ry = y + H * 0.1;
+    ctx.fillStyle = armor; ctx.strokeStyle = outline; ctx.lineWidth = 2.2;
+    roundRectPath(rx - 7, ry, 14, 18, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = shadeColor(armor, 16);
+    ctx.beginPath(); ctx.arc(rx + f * 5, ry + 3, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = shadeColor(armor, 8); ctx.strokeStyle = outline; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(rx + f * 1, ry - 6, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#23252b'; ctx.fillRect(rx + f * 1 - 4, ry - 7, 8, 1.8);
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath(); ctx.moveTo(rx + f * 1, ry - 12); ctx.quadraticCurveTo(rx - f * 5, ry - 18, rx - f * 1, ry - 11); ctx.fill();
+    // Couched lance
+    ctx.strokeStyle = '#7a5326'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(rx - f * 8, ry + 14); ctx.lineTo(rx + f * W * 0.5, ry + 2); ctx.stroke();
+    ctx.fillStyle = '#cbd5e1'; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(rx + f * W * 0.5, ry + 2); ctx.lineTo(rx + f * W * 0.42, ry - 2.5); ctx.lineTo(rx + f * W * 0.42, ry + 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = cloth;
+    ctx.beginPath(); ctx.moveTo(rx + f * W * 0.33, ry + 3.5); ctx.lineTo(rx + f * W * 0.2, ry - 1.5); ctx.lineTo(rx + f * W * 0.22, ry + 6); ctx.closePath(); ctx.fill();
+  };
+
+  // === INDUSTRIAL ===
+  const drawRifleman = (u, x, y, facing, walk, bodyColor) => {
+    const swing = walk * 3.5, f = facing;
+    const base = drawHumanoidBase(x, y, u.h, u.w, f, swing, bodyColor, {
+      skin: skinFor(2), pantsColor: shadeColor(bodyColor, -16), bootColor: '#26261e', belt: '#4a3318',
+    });
+    const { bodyTop, bodyBottom, bodyW, headR, headCenterY } = base;
+    const midY = bodyTop + (bodyBottom - bodyTop) * 0.4;
+    // Webbing strap across the chest
+    ctx.strokeStyle = '#3a2a16'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - f * bodyW * 0.42, bodyTop + 2); ctx.lineTo(x + f * bodyW * 0.42, bodyBottom - 3); ctx.stroke();
+    // Head + brodie helmet (dome + wide brim)
+    drawHead(x, headCenterY, headR, skinFor(2), { facing: f });
+    ctx.fillStyle = shadeColor(bodyColor, -4); ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(x, headCenterY - 1, headR + 1, Math.PI, 0); ctx.fill(); ctx.stroke();
+    ctx.fillRect(x - headR - 3, headCenterY - 2.4, (headR + 3) * 2, 2.6);
+    // Back support hand under the barrel
+    ctx.fillStyle = skinFor(2); ctx.beginPath(); ctx.arc(x + f * bodyW * 0.5, midY + 3, 3, 0, Math.PI * 2); ctx.fill();
+    // Rifle aimed forward, held in the front hand
+    drawArmAndWeapon(x, y, { x: base.shoulderX, y: base.shoulderY }, { x: base.handX + f * 7, y: midY }, bodyColor, (hx, hy) => {
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(f * -0.07);
+      ctx.fillStyle = '#5a3a1a'; ctx.fillRect(f * -16, -1.6, f * 12, 5);          // stock
+      ctx.fillStyle = '#2a2a2e'; ctx.fillRect(f * -5, -1.3, f * 24, 2.8);          // body + barrel
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5;                            // bayonet
+      ctx.beginPath(); ctx.moveTo(f * 19, 0); ctx.lineTo(f * 28, 0); ctx.stroke();
+      ctx.restore();
+    }, { skin: skinFor(2) });
+  };
+
+  const drawCannoneer = (u, x, y, facing, walk, bodyColor) => {
+    const f = facing, W = u.w, H = u.h, outline = 'rgba(0,0,0,0.85)';
+    const wheelY = y + H - 8, wheelR = H * 0.17;
+    // Carriage trail
+    ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - f * W * 0.5, y + H - 2); ctx.lineTo(x + f * W * 0.12, wheelY - 3); ctx.stroke();
+    // Wheel with spokes
+    ctx.fillStyle = '#6b4a28'; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(x, wheelY, wheelR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#3a2410'; ctx.lineWidth = 1.6;
+    for (let a = 0; a < 6; a++) { const ang = a * Math.PI / 3 + u.walkPhase * 0.4; ctx.beginPath(); ctx.moveTo(x, wheelY); ctx.lineTo(x + Math.cos(ang) * wheelR, wheelY + Math.sin(ang) * wheelR); ctx.stroke(); }
+    ctx.fillStyle = '#2a1c10'; ctx.beginPath(); ctx.arc(x, wheelY, 2.6, 0, Math.PI * 2); ctx.fill();
+    // Barrel angled up toward facing
+    ctx.save(); ctx.translate(x, wheelY - 7); ctx.rotate(f * -0.34);
+    const bg = ctx.createLinearGradient(0, -6, 0, 6); bg.addColorStop(0, '#4a4a52'); bg.addColorStop(1, '#1f1f24');
+    ctx.fillStyle = bg; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(0, -6, f * W * 0.66, 12, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#555'; roundRectPath(f * W * 0.58, -7.5, f * W * 0.1, 15, 2); ctx.fill(); ctx.stroke();   // muzzle ring
+    ctx.restore();
+    // Crewman behind the breech (compact figure)
+    const cmx = x - f * W * 0.4, cmTop = y + H * 0.36, cmBot = wheelY - 2;
+    ctx.strokeStyle = outline; ctx.lineWidth = 7; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cmx, cmBot - 8); ctx.lineTo(cmx - f * 2, cmBot); ctx.stroke();             // leg
+    ctx.beginPath(); ctx.moveTo(cmx, cmBot - 8); ctx.lineTo(cmx + f * 4, cmBot); ctx.stroke();
+    ctx.fillStyle = bodyColor; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(cmx - 5, cmTop, 10, (cmBot - 8) - cmTop, 3); ctx.fill(); ctx.stroke();                   // torso
+    ctx.strokeStyle = bodyColor; ctx.lineWidth = 5; ctx.lineCap = 'round';                                 // arm to breech
+    ctx.beginPath(); ctx.moveTo(cmx + f * 3, cmTop + 4); ctx.lineTo(cmx + f * 12, cmTop + 2); ctx.stroke();
+    drawHead(cmx, cmTop - 4, 5, skinFor(2), { facing: f });
+    ctx.fillStyle = shadeColor(bodyColor, -6); ctx.beginPath(); ctx.arc(cmx, cmTop - 5, 5.5, Math.PI, 0); ctx.fill();  // cap
+    ctx.fillRect(cmx - 6, cmTop - 5, 12, 1.8);
+  };
+
+  const drawSteamTank = (u, x, y, facing, walk, bodyColor) => {
+    const f = facing, W = u.w, H = u.h, outline = 'rgba(0,0,0,0.85)';
+    const ironDk = shadeColor(bodyColor, -24), ironLt = shadeColor(bodyColor, 20);
+    // Tracks
+    const trackY = y + H * 0.6, trackH = H * 0.36;
+    ctx.fillStyle = '#2a2a2e'; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    roundRectPath(x - W * 0.48, trackY, W * 0.96, trackH, trackH * 0.5); ctx.fill(); ctx.stroke();
+    const phase = u.walkPhase * 2;
+    for (let i = -2; i <= 2; i++) {
+      const wx = x + i * (W * 0.2);
+      ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(wx, trackY + trackH * 0.5, trackH * 0.32, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(wx, trackY + trackH * 0.5); ctx.lineTo(wx + Math.cos(phase + i) * trackH * 0.3, trackY + trackH * 0.5 + Math.sin(phase + i) * trackH * 0.3); ctx.stroke();
+    }
+    // Hull
+    const hullY = y + H * 0.26, hullH = H * 0.4;
+    const g = ctx.createLinearGradient(0, hullY, 0, hullY + hullH); g.addColorStop(0, ironLt); g.addColorStop(1, ironDk);
+    ctx.fillStyle = g; ctx.strokeStyle = outline; ctx.lineWidth = 2.5;
+    roundRectPath(x - W * 0.42, hullY, W * 0.84, hullH, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = ironDk;
+    for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.arc(x + i * (W * 0.12), hullY + 3.5, 1.3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(x + i * (W * 0.12), hullY + hullH - 3.5, 1.3, 0, Math.PI * 2); ctx.fill(); }
+    // Cannon barrel
+    ctx.fillStyle = '#2e2e34'; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(x + f * W * 0.18, hullY + hullH * 0.32, f * W * 0.42, 7, 3); ctx.fill(); ctx.stroke();
+    // Smokestack + puffs
+    ctx.fillStyle = ironDk; ctx.strokeStyle = outline; ctx.lineWidth = 2;
+    roundRectPath(x - f * W * 0.3, hullY - H * 0.2, f * 8, H * 0.22, 2); ctx.fill(); ctx.stroke();
+    const drift = (u.walkPhase * 4) % 9;
+    for (let i = 0; i < 3; i++) { ctx.fillStyle = `rgba(190,190,190,${0.55 - i * 0.13})`; ctx.beginPath(); ctx.arc(x - f * W * 0.3 + f * 4 - f * i * 3, hullY - H * 0.2 - i * 7 - drift, 3 + i, 0, Math.PI * 2); ctx.fill(); }
+  };
+
   // Hand-drawn drawers wired in by unit key. Keys absent here fall back to
   // the emoji sprite, so eras can be converted one at a time.
   const UNIT_DRAWERS = {
     club:      drawClubman,
     sling:     drawSlinger,
     dino:      drawDinoRider,
+    swordsman: drawSwordsman,
+    archer:    drawArcher,
+    knight:    drawKnight,
+    rifleman:  drawRifleman,
+    cannon:    drawCannoneer,
+    tank1:     drawSteamTank,
     hero_grog: drawHeroGrog,
   };
 
