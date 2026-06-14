@@ -76,6 +76,7 @@ const AgeOfWarGame = (() => {
 
   // ---- State ----
   let canvas, ctx;
+  let viewScale = 1;   // canvas backing-store scale (device pixel ratio)
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false;
@@ -385,9 +386,14 @@ const AgeOfWarGame = (() => {
   function init() {
     canvas = document.getElementById('aow-canvas');
     if (!canvas) return;
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    // Render at device pixel ratio (capped) so the battlefield stays crisp
+    // when CSS scales the canvas up on hi-DPI / mobile screens. The game's
+    // coordinate space stays WIDTH×HEIGHT; the ctx is pre-scaled to match.
+    viewScale = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+    canvas.width = Math.round(WIDTH * viewScale);
+    canvas.height = Math.round(HEIGHT * viewScale);
     ctx = canvas.getContext('2d');
+    ctx.setTransform(viewScale, 0, 0, viewScale, 0, 0);
     try {
       const saved = (typeof Utils !== 'undefined' && Utils.store && Utils.store.getRaw('aow-difficulty'))
                   || localStorage.getItem('aow-difficulty');
@@ -1230,9 +1236,9 @@ const AgeOfWarGame = (() => {
       const k = shakeT > 0 ? 1 : 0.6;
       const ox = (Math.random() - 0.5) * shakeMag * k * 2;
       const oy = (Math.random() - 0.5) * shakeMag * k * 2;
-      ctx.setTransform(1, 0, 0, 1, ox, oy);
+      ctx.setTransform(viewScale, 0, 0, viewScale, ox * viewScale, oy * viewScale);
     } else {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.setTransform(viewScale, 0, 0, viewScale, 0, 0);
     }
     // OG Age of War style: bright, flat sky → simple mountain silhouette → flat ground.
     // Bright per-era sky (much higher saturation than before)

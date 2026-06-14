@@ -1110,3 +1110,98 @@ canvas.game-canvas {
   color: #ff9cff;
   text-shadow: 0 0 10px rgba(160,32,160,0.6);
 }
+
+/* ============================================================
+   AGE OF WAR — touch hygiene + mobile play layout
+   ============================================================ */
+/* Kill double-tap zoom, tap-flash and text selection on controls you
+   mash during play. Harmless on desktop. */
+.aow-action, .aow-spawn-btn, .aow-diff button, .aow-tab,
+.aow-turret-buy, .aow-modal-close, .aow-welcome-start,
+.aow-side, .aow-resource {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}
+
+/* ── Phones: the game fits the viewport, no page scroll ── */
+@media (max-width: 900px) {
+  body > .aow-page-bar { display: none; }   /* beats the page's inline display:flex */
+  #view-ageofwar { padding: 0; }
+  .aow-shell {
+    height: 100vh; height: 100svh;
+    max-width: none;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    gap: 5px; overflow: hidden;
+  }
+  .aow-shell > * { flex: 0 0 auto; }
+
+  .aow-topbar { grid-template-columns: auto 1fr auto; gap: 4px 7px; padding: 5px 8px; border-radius: 10px; }
+  .aow-brand { display: none; }
+  .aow-resource { min-width: 0; padding: 3px 9px; font-size: 12px; }
+  .aow-resource-icon { width: 15px; height: 15px; font-size: 10px; }
+  .aow-era-pill { min-width: 0; padding: 3px 8px; gap: 0 6px; }
+  .aow-era-icon { font-size: 16px; }
+  .aow-era-name { font-size: 9px; letter-spacing: 0.6px; }
+  .aow-era-sub { font-size: 8px; }
+  .aow-wave { padding: 2px 7px; }
+  .aow-wave-num { font-size: 10px; } .aow-wave-sub { font-size: 8px; }
+  .aow-combo { padding: 2px 8px; }
+  .aow-diff { grid-column: 1 / -1; justify-self: stretch; }
+  .aow-diff button { flex: 1; padding: 5px 4px; font-size: 9px; }
+
+  .aow-battle-strip { gap: 6px; padding: 0; }
+  .aow-side { padding: 4px 8px; gap: 7px; border-radius: 9px; }
+  .aow-side-icon { width: 24px; height: 24px; font-size: 15px; }
+  .aow-side-label { font-size: 8px; letter-spacing: 1px; margin-bottom: 1px; }
+  .aow-side-track { height: 7px; }
+  .aow-side-hp { font-size: 8px; margin-top: 1px; }
+  .aow-vs { display: none; }
+
+  .aow-stage { min-height: 0; }
+
+  .aow-actionbar { display: flex; gap: 5px; }
+  .aow-action { flex: 1; min-width: 0; flex-direction: column; gap: 1px; padding: 6px 3px; border-radius: 9px; }
+  .aow-action-ico { font-size: 16px; }
+  .aow-action-lbl { font-size: 9px; line-height: 1.1; text-align: center; }
+  .aow-action-cd { position: absolute; top: 3px; right: 5px; margin: 0; font-size: 8px; }
+
+  .aow-tabs { padding: 0 2px; } .aow-tab { padding: 6px 14px; font-size: 10px; }
+
+  .aow-spawn-key { display: none; }
+  .aow-spawn-icon { font-size: 22px; margin-top: 2px; }
+  .aow-spawn-name { font-size: 9px; }
+  .aow-spawn-cost { font-size: 11px; }
+  .aow-turret-list { grid-template-columns: 1fr 1fr; }
+  .aow-hint { display: none; }
+}
+
+/* ── Portrait: full-width battlefield up top, control deck below ── */
+@media (max-width: 900px) and (orientation: portrait) {
+  .aow-canvas { width: 100%; height: auto; aspect-ratio: 1280 / 560; object-fit: fill; }
+  .aow-tabpanel.active { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .aow-spawn-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; margin-top: 8px; }
+}
+
+/* ── Landscape: HUD floats on the sky, canvas fills the screen ── */
+@media (max-width: 900px) and (orientation: landscape) {
+  .aow-shell { position: relative; }
+  .aow-topbar, .aow-battle-strip { position: absolute; left: 6px; right: 6px; margin: 0; z-index: 4; }
+  .aow-topbar { top: 6px; background: rgba(13,17,23,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-color: rgba(255,255,255,0.12); }
+  .aow-diff { display: none; }
+  .aow-battle-strip { top: 46px; }
+  .aow-side { background: rgba(13,17,23,0.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .aow-stage { flex: 1 1 auto; }
+  .aow-canvas { width: 100%; height: 100%; aspect-ratio: auto; object-fit: contain; }
+  .aow-spawn-list { display: flex; gap: 6px; margin-top: 6px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 0; }
+  .aow-spawn-list::-webkit-scrollbar { display: none; }
+  .aow-spawn-btn { flex: 0 0 auto; width: 74px; padding: 6px; }
+}
+
+/* ── Modals stay usable on short phones (scroll body, keep button) ── */
+@media (max-width: 900px) {
+  .aow-modal { padding: 14px; }
+  .aow-modal-card { max-height: 90vh; max-height: 90svh; padding: 18px 16px 14px; }
+  .aow-welcome-steps { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .aow-ach-list { overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
+}
