@@ -13,7 +13,13 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, rafId, running, gameOver;
+
+  let particles = [];
+  let floatingTexts = [];
+  let combo = 0;
+  let lastFoodTime = 0;
+  const COMBO_WINDOW = 3000; // ms window to chain food for combo
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -27,9 +33,15 @@ const SnakeGame = (() => {
     gameOver = false;
     foodCount = 0;
     bonusFood = null;
+    particles = [];
+    floatingTexts = [];
+    combo = 0;
+    lastFoodTime = 0;
     wallWrap = false;
     updateInfo();
-    draw();
+
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(renderFrame);
 
     document.addEventListener('keydown', handleKey);
 
@@ -87,6 +99,10 @@ const SnakeGame = (() => {
     gameOver = false;
     running = true;
     speed = 120;
+    particles = [];
+    floatingTexts = [];
+    combo = 0;
+    lastFoodTime = 0;
     spawnFood();
     updateInfo();
 
@@ -135,7 +151,41 @@ const SnakeGame = (() => {
     }
   }
 
+  function spawnParticles(gridX, gridY, color, count = 7) {
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+      const spd = 1.5 + Math.random() * 2.5;
+      particles.push({
+        x: gridX * GRID + GRID / 2,
+        y: gridY * GRID + GRID / 2,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        radius: 2 + Math.random() * 2,
+        color,
+        alpha: 1,
+        decay: 0.035 + Math.random() * 0.03,
+      });
+    }
+  }
+
+  function spawnFloatingText(gridX, gridY, text, color) {
+    floatingTexts.push({
+      x: gridX * GRID + GRID / 2,
+      y: gridY * GRID - 4,
+      text,
+      color,
+      alpha: 1,
+      vy: -0.9,
+    });
+  }
+
   function tick() {
+    // Expire combo if player was too slow
+    if (combo > 1 && lastFoodTime && (Date.now() - lastFoodTime) >= COMBO_WINDOW) {
+      combo = 1;
+      updateInfo();
+    }
+
     direction = { ...nextDirection };
     let head = {
       x: snake[0].x + direction.x,
@@ -166,12 +216,27 @@ const SnakeGame = (() => {
     // Eat regular food
     if (head.x === food.x && head.y === food.y) {
       ate = true;
-      score += 10;
+      const now = Date.now();
+      if (lastFoodTime && (now - lastFoodTime) < COMBO_WINDOW) {
+        combo = Math.min(combo + 1, 6);
+      } else {
+        combo = 1;
+      }
+      lastFoodTime = now;
+
+      const points = 10 * combo;
+      score += points;
       foodCount++;
+
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+
+      spawnParticles(food.x, food.y, '#F778BA');
+      const label = combo > 1 ? `+${points} x${combo}!` : `+${points}`;
+      spawnFloatingText(food.x, food.y, label, combo > 1 ? '#FFD700' : '#F778BA');
+
       spawnFood();
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
@@ -185,6 +250,8 @@ const SnakeGame = (() => {
       // Eat bonus food (snake also grows)
       ate = true;
       score += 50;
+      spawnParticles(bonusFood.x, bonusFood.y, '#F7C948', 10);
+      spawnFloatingText(bonusFood.x, bonusFood.y, '+50', '#F7C948');
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -195,14 +262,15 @@ const SnakeGame = (() => {
     if (!ate) snake.pop();
 
     updateInfo();
-    draw();
   }
 
   function endGame() {
     running = false;
     gameOver = true;
     bonusFood = null;
+    combo = 0;
     clearInterval(gameLoop);
+    updateInfo();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -219,12 +287,28 @@ const SnakeGame = (() => {
     const scoreEl = document.getElementById('snake-score');
     const highEl = document.getElementById('snake-high');
     const levelEl = document.getElementById('snake-level');
+    const comboEl = document.getElementById('snake-combo');
     if (scoreEl) scoreEl.textContent = score || 0;
     if (highEl) highEl.textContent = highScore;
     if (levelEl) levelEl.textContent = getLevel();
+    if (comboEl) {
+      if (combo > 1 && running) {
+        comboEl.textContent = `${combo}× COMBO`;
+        comboEl.style.color = combo >= 5 ? '#FF6B6B' : combo >= 3 ? '#FF9F43' : '#FFD700';
+        comboEl.style.opacity = '1';
+      } else {
+        comboEl.style.opacity = '0';
+      }
+    }
+  }
+
+  function renderFrame() {
+    draw();
+    rafId = requestAnimationFrame(renderFrame);
   }
 
   function draw() {
+    if (!ctx) return;
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -283,6 +367,43 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.92;
+      p.vy *= 0.92;
+      p.alpha -= p.decay;
+      if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Floating score texts
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const t = floatingTexts[i];
+      t.y += t.vy;
+      t.alpha -= 0.018;
+      if (t.alpha <= 0) { floatingTexts.splice(i, 1); continue; }
+      ctx.globalAlpha = t.alpha;
+      ctx.fillStyle = t.color;
+      ctx.font = 'bold 12px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = t.color;
+      ctx.shadowBlur = 8;
+      ctx.fillText(t.text, t.x, t.y);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -300,6 +421,7 @@ const SnakeGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    if (rafId) cancelAnimationFrame(rafId);
     running = false;
   }
 
