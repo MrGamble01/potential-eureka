@@ -25,6 +25,8 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let flashingRows = null, flashPhase = false;
+  let levelUpMsg = null;
 
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
@@ -180,34 +182,65 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
+
+    const toRemove = [];
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (board[r].every(cell => cell !== null)) toRemove.push(r);
+    }
+
+    if (!toRemove.length) { afterClear(0); return; }
+
+    // Pause gravity and animate the cleared rows flashing
+    current = null;
+    clearInterval(gameLoop);
+    flashingRows = toRemove;
+    flashPhase = true;
+    draw();
+
+    let ticks = 0;
+    const flashId = setInterval(() => {
+      flashPhase = !flashPhase;
+      draw();
+      ticks++;
+      if (ticks >= 7) {
+        clearInterval(flashId);
+        flashingRows = null;
+        flashPhase = false;
+        for (const r of toRemove.sort((a, b) => b - a)) {
+          board.splice(r, 1);
+          board.unshift(Array(COLS).fill(null));
+        }
+        afterClear(toRemove.length);
+      }
+    }, 65);
+  }
+
+  function afterClear(cleared) {
+    if (cleared > 0) {
+      const pts = [0, 100, 300, 500, 800];
+      score += pts[Math.min(cleared, 4)] * level;
+      linesCleared += cleared;
+      const prevLevel = level;
+      level = Math.floor(linesCleared / 10) + 1;
+      if (level !== prevLevel) {
+        levelUpMsg = { text: `LEVEL ${level}!`, until: Date.now() + 1500 };
+      }
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('tetris-high', String(highScore));
+      }
+      updateInfo();
+    }
     canHold = true;
     current = next;
     next = drawFromBag();
     drawPreview(nextCtx, next);
-    if (collides(current.shape, current.x, current.y)) endGame();
-  }
-
-  function clearLines() {
-    let cleared = 0;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
-      }
+    if (collides(current.shape, current.x, current.y)) {
+      endGame();
+    } else if (running) {
+      restartLoop();
+      draw();
     }
-    if (!cleared) return;
-    const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
-    linesCleared += cleared;
-    const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem('tetris-high', String(highScore));
-    }
-    updateInfo();
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -321,9 +354,22 @@ const TetrisGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(WIDTH, y * CELL); ctx.stroke();
     }
 
-    for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+    for (let r = 0; r < ROWS; r++) {
+      const isFlash = flashingRows && flashingRows.includes(r);
+      for (let c = 0; c < COLS; c++) {
+        if (isFlash) {
+          if (flashPhase) {
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#ffffff';
+            ctx.shadowBlur = 14;
+            ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+            ctx.shadowBlur = 0;
+          }
+        } else if (board[r][c]) {
+          drawCell(ctx, c, r, board[r][c]);
+        }
+      }
+    }
 
     if (current && running) {
       // Ghost
@@ -347,6 +393,27 @@ const TetrisGame = (() => {
         for (let c = 0; c < current.shape[r].length; c++)
           if (current.shape[r][c] && current.y + r >= 0)
             drawCell(ctx, current.x + c, current.y + r, current.color);
+    }
+
+    if (levelUpMsg && Date.now() < levelUpMsg.until) {
+      const progress = (levelUpMsg.until - Date.now()) / 1500;
+      const alpha = Math.min(1, progress * 3);
+      const scale = 1 + (1 - progress) * 0.4;
+      ctx.save();
+      ctx.translate(WIDTH / 2, HEIGHT / 2);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#FFD700';
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 20;
+      ctx.font = 'bold 28px Inter, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(levelUpMsg.text, 0, 0);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    } else if (levelUpMsg && Date.now() >= levelUpMsg.until) {
+      levelUpMsg = null;
     }
 
     if (!running && !gameOver) {
