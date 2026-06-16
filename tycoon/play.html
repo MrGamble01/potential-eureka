@@ -1284,7 +1284,7 @@
   <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
   <div class="m-row" data-priority="low" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row" data-priority="low" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts engineers amped from the Adderall Cabinet; 💊 counts engineers force-dosed via Dose the Team."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts engineers currently amped from the 💊 Adderall Cabinet."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row" data-priority="low" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
   <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
@@ -1336,7 +1336,7 @@
       <div class="help-tip">💻 <strong>Hire engineers</strong> at desks → they ship features → 💰 cash flows.</div>
       <div class="help-tip">🤝 <strong>Walk up to investors</strong> when they arrive — they bring big checks.</div>
       <div class="help-tip">🏃 <strong>Sprint</strong> = +100% engineer speed for the whole team for 30s.</div>
-      <div class="help-tip">💊 <strong>Stimulants</strong> = dose engineers for a ~3× speed spike, then a comedown + morale dip.</div>
+      <div class="help-tip">💊 Buy the <strong>Adderall Cabinet</strong> + 🥫 <strong>Zyn Stash</strong> (sidebar) — engineers self-serve to ship faster.</div>
       <div class="help-tip">🚀 Fill the goal bar then <strong>IPO</strong> for a permanent revenue multiplier.</div>
     </div>
     <button class="tip-ok" id="help-close-btn">Got it</button>
@@ -1428,13 +1428,6 @@
   <div id="amenities-panel" class="panel collapsible">
     <div class="panel-title">🏢 Amenities</div>
     <div id="amenities-list"></div>
-  </div>
-  <div id="stim-panel" class="panel collapsible" style="display:none">
-    <div class="panel-title">💊 Stimulants</div>
-    <div class="stat-line"><span>Adderall supply</span><span id="stim-supply">0 pills</span></div>
-    <button class="hire-btn role-danger" id="dose-btn" title="Spend one pill per engineer for a hard speed boost. When the high fades they crash: slower work + a morale hit. No cooldown — just your pill supply and the burnout.">💊 Dose the Team</button>
-    <button class="hire-btn role-eng" id="buy-stim-btn" style="margin-top:4px" title="Buy a pack of Adderall. Habit-forming — each pack costs more than the last.">🛒 Buy Adderall<span class="cost" id="stim-cost">$600</span></button>
-    <div style="font-size:11px;color:#7D8590;line-height:1.5;margin-top:6px">One pill = a big speed spike for an engineer, then a comedown slump + morale dip. Every pack you buy costs more.</div>
   </div>
   <div id="settings-panel" class="panel">
     <div class="panel-title">⚙️ Settings</div>
@@ -4709,14 +4702,13 @@ function updateSprint(dt) {
   }
 }
 
-// ── Stimulants (💊 Adderall) ─────────────────────────────────
-// Buy packs of pills in the sidebar, then "Dose the Team" to spend one
-// pill per engineer for a hard, per-employee work-rate + walk-speed
-// spike. When the high wears off each engineer crashes into a comedown
-// (slower work + a morale hit). Unlike Sprint there's no cooldown — the
-// limiter is your dwindling, ever-pricier pill supply and the burnout it
-// leaves behind. Supply is persisted; dose/comedown state is transient.
-let stimSupply      = 0;   // pills on hand
+// ── Stim counters (legacy) ───────────────────────────────────
+// The active "Dose the Team" panel was removed — Adderall is now the
+// single passive 💊 Adderall Cabinet amenity (engineers self-serve via
+// the existing caffeine path). These counters persist only for
+// save-compat; nothing sets w.dosed anymore so the dose/comedown
+// lifecycle (endDose / stimWorkMult) stays a harmless no-op.
+let stimSupply      = 0;   // legacy, kept for save-compat
 let stimPacksBought = 0;   // drives the escalating pack price
 let stimDosesGiven  = 0;   // lifetime doses handed out (achievement track)
 
@@ -4737,55 +4729,10 @@ function endDose(w) {
   w.group.rotation.y = 0;
   changeMorale(-CONFIG.stimMoraleCrash, '', w);
 }
-function buyStimPack() {
-  const cost = stimPackCost();
-  if (state.cash < cost) return;
-  state.cash -= cost; showSpendPop(cost);
-  stimSupply += CONFIG.stimPackSize;
-  stimPacksBought++;
-  addFeedEntry(`💊 Bought ${CONFIG.stimPackSize} Adderall ($${fmtCash(cost)})`);
-  SFX.purchase(); Haptics.purchase();
-  refreshHud();
-  updateStimPanel();
-}
-function doseTeam() {
-  if (ideaWorkers.length === 0) {
-    showToast('💊 No engineers to dose yet.', '', 'standard');
-    return;
-  }
-  // Only engineers not already riding a high are valid targets.
-  const targets = ideaWorkers.filter(w => !w.dosed);
-  if (targets.length === 0) {
-    showToast('💊 Whole team is already wired.', '', 'standard');
-    return;
-  }
-  if (stimSupply <= 0) {
-    showToast('💊 Out of Adderall — buy a pack in the sidebar.', '', 'standard');
-    showTip('stim');
-    return;
-  }
-  let dosed = 0;
-  for (const w of targets) {
-    if (stimSupply <= 0) break;
-    stimSupply--;
-    w.dosed = true;
-    w.dosedT = CONFIG.stimDuration;
-    w.comedown = false;
-    w.comedownT = 0;
-    w.doses = (w.doses || 0) + 1;
-    dosed++;
-  }
-  stimDosesGiven += dosed;
-  changeMorale(CONFIG.stimMoraleHigh, 'Adderall rush');
-  const pct = Math.round((CONFIG.stimRateMult - 1) * 100);
-  showToast(`💊 Dosed ${dosed} engineer${dosed > 1 ? 's' : ''}! +${pct}% speed for ${CONFIG.stimDuration}s`, 'rush');
-  addFeedEntry(`💊 Dosed ${dosed} engineer${dosed > 1 ? 's' : ''}`);
-  SFX.sprint(); Haptics.sprint();
-  checkAchievements();
-  refreshHud();
-  updateStimPanel();
-  showTip('stim');
-}
+// The old active "Dose the Team" Adderall panel was merged into the
+// single passive 💊 Adderall Cabinet amenity — engineers self-serve.
+// endDose / stimWorkMult stay as harmless no-ops (nothing sets w.dosed
+// anymore); the persisted stim* counters remain for save-compat.
 
 // ── Morale (v2: per-worker, with EA chat bumps + event hooks) ────
 // Each engineer carries their own morale 0-100. Team morale (for the
@@ -5325,8 +5272,6 @@ const ACHIEVEMENTS = [
   { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1, progress: () => [Math.min(trophiesWon, 1), 1] },
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
-  { id: 'first_dose',    icon: '💊', title: 'Better Living',         desc: 'Dose an engineer with Adderall.',        check: () => stimDosesGiven >= 1 },
-  { id: 'tweaker',       icon: '⚗️', title: 'Move Fast, Break Brains', desc: 'Hand out 50 doses across all time.',   check: () => stimDosesGiven >= 50, progress: () => [Math.min(stimDosesGiven, 50), 50] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -5873,38 +5818,10 @@ function renderAmenities() {
   }
 }
 
-// ── Stimulants panel (supply, buy, dose) ──
-// Unlocks once you have at least one engineer to dose. Buy button shows
-// the next (escalating) pack price; dose button reflects supply, the
-// number of engineers ready to dose, and whether a high is in progress.
-const stimPanelEl   = document.getElementById('stim-panel');
-const stimSupplyEl   = document.getElementById('stim-supply');
-const stimCostEl     = document.getElementById('stim-cost');
-const doseBtnEl      = document.getElementById('dose-btn');
-const buyStimBtnEl   = document.getElementById('buy-stim-btn');
-function updateStimPanel() {
-  const unlocked = ideaWorkers.length >= 1;
-  stimPanelEl.style.display = unlocked ? '' : 'none';
-  if (!unlocked) return;
-
-  stimSupplyEl.textContent = `${stimSupply} pill${stimSupply === 1 ? '' : 's'}`;
-
-  const cost = stimPackCost();
-  stimCostEl.textContent = `$${fmtCash(cost)}`;
-  buyStimBtnEl.disabled = state.cash < cost;
-  buyStimBtnEl.classList.toggle('can-afford', state.cash >= cost);
-
-  const dosedNow  = ideaWorkers.filter(w => w.dosed).length;
-  const readyNow  = ideaWorkers.filter(w => !w.dosed).length;
-  if (dosedNow > 0) {
-    doseBtnEl.textContent = `💊 Dosed ${dosedNow}/${ideaWorkers.length}`;
-  } else {
-    doseBtnEl.textContent = '💊 Dose the Team';
-  }
-  doseBtnEl.disabled = stimSupply <= 0 || readyNow === 0;
-}
-doseBtnEl.addEventListener('click', () => { doseTeam(); });
-buyStimBtnEl.addEventListener('click', () => { buyStimPack(); });
+// (The active "Dose the Team" stimulants panel was removed — Adderall is
+// now the single passive 💊 Adderall Cabinet amenity. updateStimPanel()
+// is kept as a no-op so its existing call sites stay harmless.)
+function updateStimPanel() {}
 
 // ── Funding Rounds (startup-themed cash injections) ──
 const FUNDING_ROUNDS = [
@@ -7228,10 +7145,6 @@ const TIPS = {
   sprint: {
     title: '🏃 Sprint mode',
     body: 'Tap the 🏃 Sprint button (bottom-right) for a 30-second push: every engineer works at 2× speed but desks burn Zyn twice as fast. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
-  },
-  stim: {
-    title: '💊 Stimulants',
-    body: 'Open the 💊 Stimulants panel in the sidebar to buy Adderall and "Dose the Team". Each pill makes one engineer work ~3× faster (and walk faster) for 25s — then they crash into a comedown: slower work plus a morale hit. No cooldown, but pills run out and every pack you buy costs more. Pair a dose with Sprint and a Rush Hour for an absurd burst, then let the team recover.',
   },
   conversion: {
     title: '⚡ Room can be converted',
