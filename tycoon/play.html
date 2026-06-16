@@ -9,9 +9,9 @@
     🤝 Walk near an investor — auto-greet and collect
 
   CORE LOOP
-    Engineer sits at desk → drains desk paper → ships a feature →
+    Engineer sits at desk → burns desk Zyn → ships a feature →
     routes to either the CEO desk OR the Leadership Suite VP (for
-    a queue-scaling multiplier) → cash pops. Coffee + paper keep
+    a queue-scaling multiplier) → cash pops. Adderall + Zyn keep
     the team happy; run out → morale drops + work stalls.
     Sales side: BDRs solo small deals; hand off to an AE for a 3×
     close; AE self-sources if the pipeline dries up.
@@ -1284,7 +1284,7 @@
   <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
   <div class="m-row" data-priority="low" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row" data-priority="low" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The 💊 suffix counts engineers currently dosed on Adderall."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts engineers amped from the Adderall Cabinet; 💊 counts engineers force-dosed via Dose the Team."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
   <div class="m-row" data-priority="low" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
   <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
@@ -1360,7 +1360,7 @@
     <div class="ach-progress" style="text-align:center">A 30-second crash course</div>
     <div style="font-size:13px;line-height:1.7;color:#cdd5df;margin:10px 4px 12px">
       <div style="margin:6px 0"><strong style="color:#fcd34d">1.</strong> <strong>Hire an engineer</strong> (top-left). They sit at a desk and ship features for cash.</div>
-      <div style="margin:6px 0"><strong style="color:#fcd34d">2.</strong> Buy <strong>💊 Adderall</strong> and Dose the Team for a big, short-lived speed burst.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">2.</strong> Engineers burn <strong>🥫 Zyn</strong> as they ship. Top up dry desks yourself, or buy a Zyn Stash / hire an EA to restock.</div>
       <div style="margin:6px 0"><strong style="color:#fcd34d">3.</strong> Around <strong>$200</strong> hire a <strong>BDR</strong> — they close deals for bigger pops.</div>
       <div style="margin:6px 0"><strong style="color:#fcd34d">4.</strong> Fill the goal bar at the top, then <strong>IPO</strong> for a permanent multiplier.</div>
     </div>
@@ -1478,7 +1478,7 @@
 </div>
 <div id="joystick"><div id="joy-knob"></div></div>
 <div id="toast-container"></div>
-<button id="sprint-btn" title="30s of 2× engineer speed for the whole team">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
+<button id="sprint-btn" title="30s of 2× engineer speed for the whole team (burns 2× Zyn)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
 <div id="tip-modal" role="dialog">
@@ -2535,7 +2535,7 @@ function drawWhiteboard() {
   ctx.font = '10px sans-serif';
   ctx.fillText('· ship features', 12, 130);
   ctx.fillText('· hire ruthlessly', 12, 144);
-  ctx.fillText('· cap paper stock', 130, 130);
+  ctx.fillText('· stock the Zyn', 130, 130);
   ctx.fillText('· IPO when ready', 130, 144);
   wbTexture.needsUpdate = true;
 }
@@ -2829,7 +2829,7 @@ const DECOR_UPGRADES = [
     id: 'deskDrinks',
     check: () => amenities.some(a => a.id === 'coffee' && a.isOwned),
     build: buildCoffeeMugs,
-    msg: '☕ Upgraded: real coffee on the desk.',
+    msg: '💊 Upgraded: an Addy stash on the desk.',
   },
   {
     id: 'storage',
@@ -3878,10 +3878,11 @@ function updateIdeaWorkers(dt) {
       if (w.workProgress >= 1.0 && dealSpeedMult > 0) {
         w.workProgress = 0;
         setPaperStackProgress(w.desk.paperStack, 0);
-        // No paper economy anymore — shipping a feature costs nothing, so
-        // engineers never run dry and the supply-run / stall branches stay
-        // dormant.
+        // Each shipped feature burns a Zyn (1 normally, 2 during a sprint)
+        w.desk.paperStock = Math.max(0, w.desk.paperStock - sprintPaperCost());
+        // Fresh-tin boost: a stocked Zyn Stash gives shipped work a bump
         w.paperBoost = 1.0;
+        if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
         w.productValue = computeDealValue({ paperBoost: w.paperBoost, pingPongBoost: w.pingPongBoost });
         w.pingPongBoost = 1.0;
         setPaperStackProgress(w.carryMesh, 0.8); // carry an 8-sheet stack
@@ -4288,7 +4289,7 @@ function updateExecutiveAssistants(dt) {
         coffeeAm.stock--;
         ea.targetWorker.caffeinated = true;
         ea.targetWorker.caffeinatedT = CONFIG.caffeineDuration;
-        changeMorale(+2, 'EA delivered coffee', ea.targetWorker);
+        changeMorale(+2, 'EA delivered Adderall', ea.targetWorker);
       }
       ea.carryMesh.visible = false;
       ea.state = S.IDLE; ea.waitT = 0.4;
@@ -4975,7 +4976,7 @@ function renderHirePanel() {
   const eaLock = state.cash < ecost ? `Need $${fmtCash(ecost - state.cash)} more` : null;
   hireEaBtnEl.disabled = eaLock !== null;
   hireEaCostEl.textContent = eaLock || (eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`);
-  hireEaBtnEl.title = eaLock ? `Can't hire: ${eaLock}` : `Executive Assistant refills coffee/paper and boosts morale — $${ecost}`;
+  hireEaBtnEl.title = eaLock ? `Can't hire: ${eaLock}` : `Executive Assistant restocks Adderall/Zyn and boosts morale — $${ecost}`;
 
   // Sales section appears once any desk can host a BDR or AE. Both
   // allow flex 'any' desks so you can promote AEs early without the
@@ -5569,9 +5570,9 @@ fundingBtnEl.addEventListener('click', raiseFunding);
 // ── Amenities (unlockable, buyable; stock managed by Workers) ──
 const AMENITY_DEFS = [
   {
-    id: 'coffee',
-    name: '☕ Espresso Bar',
-    icon: '☕',
+    id: 'coffee', // legacy id kept for save compat — this is the Adderall Cabinet now
+    name: '💊 Adderall Cabinet',
+    icon: '💊',
     buyCost: 500,
     maxStock: 20,
     position: new THREE.Vector3(-4, 0, -22),
@@ -5633,9 +5634,9 @@ const AMENITY_DEFS = [
     },
   },
   {
-    id: 'printer', // legacy id kept for save compat — this is the Supply Rack now
-    name: '📚 Supply Rack',
-    icon: '📚',
+    id: 'printer', // legacy id kept for save compat — this is the Zyn Stash now
+    name: '🥫 Zyn Stash',
+    icon: '🥫',
     buyCost: 300,
     maxStock: 30,
     position: new THREE.Vector3(4, 0, -22),
@@ -5819,12 +5820,7 @@ const AMENITY_DEFS = [
     },
   },
 ];
-const amenities = AMENITY_DEFS
-  // No more office supplies — the ☕ Espresso Bar and 📚 Supply Rack
-  // (paper) are retired. Defs stay for save-compat (an old save listing
-  // them just finds nothing to restore).
-  .filter(def => def.id !== 'coffee' && def.id !== 'printer')
-  .map(def => ({
+const amenities = AMENITY_DEFS.map(def => ({
   ...def,
   stock: 0,
   isOwned: false,
@@ -6486,9 +6482,9 @@ const UPGRADES = [
   { id:'speed',     cat:'engineering', label:'👟 Running Shoes',      base:25,  scale:1.5, max:10,
     apply: lv => { playerSpeed = CONFIG.playerBaseSpeed + lv * CONFIG.playerSpeedPerLevel; },
     describe: lv => lv === 0 ? `Player speed ${CONFIG.playerBaseSpeed} → ${CONFIG.playerBaseSpeed + CONFIG.playerSpeedPerLevel} / level` : `Player speed ${(CONFIG.playerBaseSpeed + lv*CONFIG.playerSpeedPerLevel).toFixed(1)} → ${(CONFIG.playerBaseSpeed + (lv+1)*CONFIG.playerSpeedPerLevel).toFixed(1)}` },
-  { id:'marketing', cat:'engineering', label:'☕ Espresso Machine',   base:75,  scale:1.7, max:4,
+  { id:'marketing', cat:'engineering', label:'💊 Adderall Subscription', base:75,  scale:1.7, max:4,
     apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); },
-    describe: lv => `−20% engineer coffee-break cadence (stacks)` },
+    describe: lv => `−20% time between Adderall hits (stacks)` },
   // ── Revenue ──
   { id:'pricing',   cat:'revenue',     label:'💸 Premium Tier',       base:100, scale:1.8, max:4,
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; },
@@ -7222,8 +7218,8 @@ investorToggleEl.addEventListener('change', () => setInvestorEnabled(investorTog
 let tipsEnabled = true;
 const TIPS = {
   paper: {
-    title: '📄 Out of paper!',
-    body: 'An engineer\'s desk is empty. They need paper to ship features. You can:\n• Walk up to their desk and top it up yourself\n• Buy the 📚 Supply Rack amenity so engineers restock themselves\n• Hire an 🧑‍💼 Executive Assistant who brings paper to any dry desk automatically',
+    title: '🥫 Out of Zyn!',
+    body: 'An engineer\'s desk is out of Zyn. They need a pouch to ship features. You can:\n• Walk up to their desk and top it up yourself\n• Buy the 🥫 Zyn Stash amenity so engineers restock themselves\n• Hire an 🧑‍💼 Executive Assistant who brings Zyn to any dry desk automatically',
   },
   investor: {
     title: '🤝 An investor walked in!',
@@ -7231,7 +7227,7 @@ const TIPS = {
   },
   sprint: {
     title: '🏃 Sprint mode',
-    body: 'Tap the 🏃 Sprint button (bottom-right) for a 30-second push: every engineer works at 2× speed but desks burn paper twice as fast. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
+    body: 'Tap the 🏃 Sprint button (bottom-right) for a 30-second push: every engineer works at 2× speed but desks burn Zyn twice as fast. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
   },
   stim: {
     title: '💊 Stimulants',
@@ -7375,9 +7371,9 @@ function updateLabels() {
   // Idea workers
   for (const w of ideaWorkers) {
     let emoji = null;
-    if (w.state === S.TO_COFFEE || w.state === S.GETTING_COFFEE) emoji = '☕';
+    if (w.state === S.TO_COFFEE || w.state === S.GETTING_COFFEE) emoji = '💊';
     else if (w.state === S.TO_PING_PONG || w.state === S.PING_PONGING) emoji = '🏓';
-    else if (w.state === S.TO_SUPPLY || w.state === S.GETTING_PAPER) emoji = '📄';
+    else if (w.state === S.TO_SUPPLY || w.state === S.GETTING_PAPER) emoji = '🥫';
     else if (w.state === S.TO_DELIVER || w.state === S.TO_VP) emoji = '📦';
     if (emoji) {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
@@ -7386,8 +7382,8 @@ function updateLabels() {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
       const paper = Math.floor(w.desk.paperStock);
       if (paper < 1) {
-        // Worker is idle waiting on paper
-        wants.push({ text: '📄❓', cls: 'bubble', x: p.x, y: p.y });
+        // Worker is idle, out of Zyn
+        wants.push({ text: '🥫❓', cls: 'bubble', x: p.x, y: p.y });
       } else {
         const pct = Math.round((w.workProgress || 0) * 100);
         const boosted = w.caffeinated || w.dosed || w.bossBoost > 1 || rushActive;
@@ -7395,7 +7391,7 @@ function updateLabels() {
         const bg = `linear-gradient(to right, ${fillColor} 0%, ${fillColor} ${pct}%, rgba(13,17,23,0.85) ${pct}%, rgba(13,17,23,0.85) 100%)`;
         wants.push({ text: '', cls: 'workbar', x: p.x, y: p.y, bg });
         if (paper <= 3) {
-          wants.push({ text: `📄 ${paper}`, cls: 'prompt', x: p.x, y: p.y - 14 });
+          wants.push({ text: `🥫 ${paper}`, cls: 'prompt', x: p.x, y: p.y - 14 });
         }
         const dxw = player.position.x - w.desk.group.position.x;
         const dzw = player.position.z - w.desk.group.position.z;
@@ -7430,8 +7426,8 @@ function updateLabels() {
   for (const e of eas) {
     let eaEmoji = null;
     if (e.state === S.CHATTING || e.state === S.TO_CHAT) eaEmoji = '💬';
-    else if (e.state === S.TO_COFFEE_DROP) eaEmoji = '☕';
-    else if (e.state === S.TO_DESK) eaEmoji = '📄';
+    else if (e.state === S.TO_COFFEE_DROP) eaEmoji = '💊';
+    else if (e.state === S.TO_DESK) eaEmoji = '🥫';
     if (eaEmoji) {
       const p = worldToScreen(e.group.position.x, 2.4, e.group.position.z);
       wants.push({ text: eaEmoji, cls: 'bubble', x: p.x, y: p.y });
