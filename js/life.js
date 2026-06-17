@@ -17,6 +17,7 @@ const LifeGame = (() => {
   let intervalId = null;
   let speed = 100;
   let drawing = false;
+  let erasing = false;
 
   function init() {
     canvas = document.getElementById('life-canvas');
@@ -28,13 +29,28 @@ const LifeGame = (() => {
     grid = makeGrid();
     nextGrid = makeGrid();
 
-    canvas.addEventListener('mousedown', e => { drawing = true; toggleCell(e); });
+    canvas.addEventListener('mousedown', e => {
+      drawing = true;
+      const rect = canvas.getBoundingClientRect();
+      const c = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width) / CELL);
+      const r = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height) / CELL);
+      erasing = (r >= 0 && r < ROWS && c >= 0 && c < COLS && grid[r][c] === 1);
+      toggleCell(e);
+    });
     canvas.addEventListener('mousemove', e => { if (drawing) toggleCell(e); });
     canvas.addEventListener('mouseup', () => drawing = false);
     canvas.addEventListener('mouseleave', () => drawing = false);
 
     // Touch support
-    canvas.addEventListener('touchstart', e => { drawing = true; toggleCell(e.touches[0]); e.preventDefault(); });
+    canvas.addEventListener('touchstart', e => {
+      drawing = true;
+      const t = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const c = Math.floor((t.clientX - rect.left) * (canvas.width / rect.width) / CELL);
+      const r = Math.floor((t.clientY - rect.top) * (canvas.height / rect.height) / CELL);
+      erasing = (r >= 0 && r < ROWS && c >= 0 && c < COLS && grid[r][c] === 1);
+      toggleCell(t); e.preventDefault();
+    });
     canvas.addEventListener('touchmove', e => { if (drawing) toggleCell(e.touches[0]); e.preventDefault(); }, { passive: false });
     canvas.addEventListener('touchend', () => drawing = false);
 
@@ -53,7 +69,7 @@ const LifeGame = (() => {
     const c = Math.floor((e.clientX - rect.left) * scaleX / CELL);
     const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-      grid[r][c] = 1;
+      grid[r][c] = erasing ? 0 : 1;
       draw();
       updateInfo();
     }

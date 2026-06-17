@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -74,6 +75,7 @@ const SnakeGame = (() => {
         if (gameOver) start();
         e.preventDefault();
         break;
+      case 'p': case 'P': togglePause(); e.preventDefault(); break;
     }
   }
 
@@ -85,6 +87,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
@@ -125,6 +128,23 @@ const SnakeGame = (() => {
     return Math.floor(foodCount / 3) + 1;
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    const overlay = document.getElementById('snake-overlay');
+    if (overlay) {
+      if (paused) {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+          <h2>PAUSED</h2>
+          <p style="font-size:12px; color: var(--text-dim)">Press P to resume</p>
+        `;
+      } else {
+        overlay.style.display = 'none';
+      }
+    }
+  }
+
   function toggleWallWrap() {
     wallWrap = !wallWrap;
     const btn = document.getElementById('snake-wrap-btn');
@@ -136,6 +156,7 @@ const SnakeGame = (() => {
   }
 
   function tick() {
+    if (paused) return;
     direction = { ...nextDirection };
     let head = {
       x: snake[0].x + direction.x,
@@ -303,5 +324,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
