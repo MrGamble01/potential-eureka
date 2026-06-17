@@ -287,6 +287,7 @@
         <span>Score: <strong id="snake-score">0</strong></span>
         <span>High Score: <strong id="snake-high">0</strong></span>
         <span>Level: <strong id="snake-level">1</strong></span>
+        <span id="snake-effect" style="display:none; font-weight:600"></span>
       </div>
       <div class="canvas-wrapper">
         <canvas id="snake-canvas" class="game-canvas"></canvas>
@@ -297,7 +298,7 @@
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
-        Gold food = +50 pts &nbsp;·&nbsp; Spawns every 5 apples &nbsp;·&nbsp; Disappears in 5s
+        Gold = +50 pts &nbsp;·&nbsp; Power-ups: <span style="color:#58A6FF">SLOW</span> &nbsp;·&nbsp; <span style="color:#3FB950">×2 score</span> &nbsp;·&nbsp; <span style="color:#F85149">TRIM</span>
       </div>
     </div>
   </section>
