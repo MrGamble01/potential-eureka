@@ -25,6 +25,7 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let flashRows = null, flashOn = false, flashing = false;
 
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
@@ -93,6 +94,7 @@ const TetrisGame = (() => {
       const dx = e.changedTouches[0].clientX - tx;
       const dy = e.changedTouches[0].clientY - ty;
       if (!running) { start(); return; }
+      if (flashing) return;
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
         rotateCW(); // tap = rotate
       } else if (Math.abs(dx) > Math.abs(dy)) {
@@ -160,17 +162,17 @@ const TetrisGame = (() => {
     return y;
   }
 
-  function hardDrop() {
+  async function hardDrop() {
     if (!current) return;
     let dropped = 0;
     while (!collides(current.shape, current.x, current.y + 1)) {
       current.y++; dropped++;
     }
     score += dropped * 2;
-    lock();
+    await lock();
   }
 
-  function lock() {
+  async function lock() {
     if (!current) return;
     for (let r = 0; r < current.shape.length; r++) {
       for (let c = 0; c < current.shape[r].length; c++) {
@@ -180,7 +182,7 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
+    await clearLines();
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -188,7 +190,26 @@ const TetrisGame = (() => {
     if (collides(current.shape, current.x, current.y)) endGame();
   }
 
-  function clearLines() {
+  async function clearLines() {
+    const full = [];
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (board[r].every(cell => cell !== null)) full.push(r);
+    }
+    if (!full.length) return;
+
+    clearInterval(gameLoop);
+    flashing = true;
+    flashRows = new Set(full);
+
+    for (let i = 0; i < 6; i++) {
+      flashOn = i % 2 === 0;
+      draw();
+      await new Promise(resolve => setTimeout(resolve, 55));
+      if (!running) { flashRows = null; flashing = false; return; }
+    }
+    flashRows = null;
+    flashing = false;
+
     let cleared = 0;
     for (let r = ROWS - 1; r >= 0; r--) {
       if (board[r].every(cell => cell !== null)) {
@@ -197,17 +218,18 @@ const TetrisGame = (() => {
         cleared++; r++;
       }
     }
-    if (!cleared) return;
+
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    if (newLevel !== level) { level = newLevel; }
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
     }
     updateInfo();
+    if (running) restartLoop();
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -218,8 +240,8 @@ const TetrisGame = (() => {
     gameLoop = setInterval(autoDown, dropMs());
   }
 
-  function autoDown() {
-    if (!move(0, 1)) lock();
+  async function autoDown() {
+    if (!move(0, 1)) await lock();
     draw(); updateInfo();
   }
 
@@ -247,6 +269,7 @@ const TetrisGame = (() => {
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    flashRows = null; flashing = false;
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -277,7 +300,7 @@ const TetrisGame = (() => {
 
   function handleKey(e) {
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
-    if (!running) return;
+    if (!running || flashing) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
@@ -322,8 +345,13 @@ const TetrisGame = (() => {
     }
 
     for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+      for (let c = 0; c < COLS; c++) {
+        if (flashRows && flashRows.has(r)) {
+          drawCell(ctx, c, r, flashOn ? '#FFFFFF' : 'rgba(200,200,255,0.5)');
+        } else if (board[r][c]) {
+          drawCell(ctx, c, r, board[r][c]);
+        }
+      }
 
     if (current && running) {
       // Ghost
