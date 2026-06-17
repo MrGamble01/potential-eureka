@@ -13,7 +13,8 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
+  let combo, lastFoodTime, floatingTexts;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,6 +26,10 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
+    combo = 1;
+    lastFoodTime = 0;
+    floatingTexts = [];
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -60,11 +65,29 @@ const SnakeGame = (() => {
     else if (dy === -1 && direction.y !== 1) nextDirection = { x: 0, y: -1 };
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+      drawPauseOverlay();
+    } else {
+      gameLoop = setInterval(tick, speed);
+      draw();
+    }
+  }
+
   function handleKey(e) {
+    if (e.key === 'p' || e.key === 'P') {
+      togglePause();
+      e.preventDefault();
+      return;
+    }
     if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       start();
       return;
     }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
@@ -86,6 +109,10 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
+    combo = 1;
+    lastFoodTime = 0;
+    floatingTexts = [];
     speed = 120;
     spawnFood();
     updateInfo();
@@ -161,13 +188,41 @@ const SnakeGame = (() => {
       bonusFood = null;
     }
 
+    // Advance floating texts
+    floatingTexts = floatingTexts.filter(ft => ft.alpha > 0);
+    floatingTexts.forEach(ft => {
+      ft.y += ft.vy;
+      ft.alpha -= 0.03;
+    });
+
     let ate = false;
 
     // Eat regular food
     if (head.x === food.x && head.y === food.y) {
       ate = true;
-      score += 10;
       foodCount++;
+
+      // Combo: eating within 3s of the previous food increments the multiplier
+      const now = Date.now();
+      if (lastFoodTime && (now - lastFoodTime) < 3000) {
+        combo = Math.min(combo + 1, 5);
+      } else {
+        combo = 1;
+      }
+      lastFoodTime = now;
+
+      const earned = 10 * combo;
+      score += earned;
+
+      floatingTexts.push({
+        x: food.x * GRID + GRID / 2,
+        y: food.y * GRID - 4,
+        text: combo > 1 ? `+${earned} ×${combo}` : `+${earned}`,
+        alpha: 1,
+        color: combo > 1 ? '#F7C948' : '#3FB950',
+        vy: -1.2,
+      });
+
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -182,10 +237,21 @@ const SnakeGame = (() => {
         gameLoop = setInterval(tick, speed);
       }
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
-      // Eat bonus food (snake also grows)
+      // Eat bonus food — combo multiplier applies here too
       ate = true;
-      score += 50;
+      const earned = 50 * combo;
+      score += earned;
       bonusFood = null;
+
+      floatingTexts.push({
+        x: head.x * GRID + GRID / 2,
+        y: head.y * GRID - 4,
+        text: combo > 1 ? `+${earned} ×${combo}` : `+${earned}`,
+        alpha: 1,
+        color: '#F7C948',
+        vy: -1.5,
+      });
+
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -201,6 +267,7 @@ const SnakeGame = (() => {
   function endGame() {
     running = false;
     gameOver = true;
+    combo = 1;
     bonusFood = null;
     clearInterval(gameLoop);
 
@@ -222,6 +289,19 @@ const SnakeGame = (() => {
     if (scoreEl) scoreEl.textContent = score || 0;
     if (highEl) highEl.textContent = highScore;
     if (levelEl) levelEl.textContent = getLevel();
+  }
+
+  function drawPauseOverlay() {
+    ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = '#E6EDF3';
+    ctx.font = 'bold 24px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+    ctx.font = '13px Inter, sans-serif';
+    ctx.fillStyle = '#7D8590';
+    ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 28);
+    ctx.textAlign = 'left';
   }
 
   function draw() {
@@ -283,6 +363,32 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Combo indicator — shown in top-right corner when combo > 1
+    if (running && combo > 1) {
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#F7C948';
+      ctx.shadowColor = '#F7C948';
+      ctx.shadowBlur = 10;
+      ctx.font = `bold ${10 + combo * 2}px Inter, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText(`COMBO ×${combo}`, WIDTH - 8, 20);
+      ctx.restore();
+    }
+
+    // Floating score pop-ups
+    ctx.save();
+    floatingTexts.forEach(ft => {
+      ctx.globalAlpha = ft.alpha;
+      ctx.fillStyle = ft.color;
+      ctx.shadowColor = ft.color;
+      ctx.shadowBlur = 6;
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(ft.text, ft.x, ft.y);
+    });
+    ctx.restore();
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -293,7 +399,7 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys to move  ·  P to pause', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
