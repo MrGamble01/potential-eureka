@@ -53,7 +53,7 @@ const LifeGame = (() => {
     const c = Math.floor((e.clientX - rect.left) * scaleX / CELL);
     const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-      grid[r][c] = 1;
+      grid[r][c] = grid[r][c] ? 0 : 1;
       draw();
       updateInfo();
     }
