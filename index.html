@@ -307,7 +307,7 @@
     <div class="game-container">
       <div class="game-header">
         <div class="game-title">MAZE SOLVER</div>
-        <div class="game-subtitle">Generate mazes and watch algorithms solve them</div>
+        <div class="game-subtitle">Generate mazes, watch algorithms solve them, or play yourself</div>
       </div>
       <div class="game-controls">
         <button class="primary" onclick="MazeGame.generate()">Generate New</button>
@@ -317,9 +317,12 @@
           <option value="astar">A* Search</option>
         </select>
         <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
+        <button id="maze-play-btn" onclick="MazeGame.enterPlayerMode()">Play</button>
       </div>
       <div class="game-info">
         <span id="maze-status" style="color: var(--text-dim)">Generate a maze to begin</span>
+        <span>Time: <strong id="maze-player-time">--</strong></span>
+        <span>Best: <strong id="maze-player-best">--</strong></span>
       </div>
       <canvas id="maze-canvas" class="game-canvas"></canvas>
       <div class="maze-legend">

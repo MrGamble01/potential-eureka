@@ -10,6 +10,16 @@ const MazeGame = (() => {
   let solving = false;
   let animFrameId = null;
 
+  // Player mode state
+  let playerMode = false;
+  let player = null;        // { r, c }
+  let playerWon = false;
+  let timerStart = null;
+  let timerElapsed = 0;     // ms
+  let timerInterval = null;
+  let bestTime = parseInt(localStorage.getItem('maze-best') || '0');
+  let renderFrameId = null;
+
   function init() {
     canvas = document.getElementById('maze-canvas');
     if (!canvas) return;
@@ -19,10 +29,146 @@ const MazeGame = (() => {
     canvas.height = rows * CELL;
     ctx = canvas.getContext('2d');
     generate();
+    updatePlayerUI();
+  }
+
+  // ---- PLAYER MODE ----
+  function enterPlayerMode() {
+    if (playerMode) {
+      exitPlayerMode();
+      return;
+    }
+    cancelAnimation();
+    solving = false;
+    playerMode = true;
+    playerWon = false;
+    player = { r: 1, c: 0 };
+    timerStart = null;
+    timerElapsed = 0;
+    stopTimer();
+    updatePlayerUI();
+    drawPlayer();
+    updateStatus('Use arrow keys or WASD to reach the pink exit! Press P again to exit.');
+    document.addEventListener('keydown', handlePlayerKey);
+    startRenderLoop();
+  }
+
+  function exitPlayerMode() {
+    playerMode = false;
+    playerWon = false;
+    player = null;
+    stopTimer();
+    stopRenderLoop();
+    document.removeEventListener('keydown', handlePlayerKey);
+    updatePlayerUI();
+    draw();
+    updateStatus('Maze generated. Choose an algorithm and solve!');
+  }
+
+  function handlePlayerKey(e) {
+    if (!playerMode || playerWon) return;
+    const moves = {
+      ArrowUp: [-1, 0], w: [-1, 0], W: [-1, 0],
+      ArrowDown: [1, 0], s: [1, 0], S: [1, 0],
+      ArrowLeft: [0, -1], a: [0, -1], A: [0, -1],
+      ArrowRight: [0, 1], d: [0, 1], D: [0, 1],
+      p: null, P: null,
+    };
+    if (!(e.key in moves)) return;
+    if (e.key === 'p' || e.key === 'P') { exitPlayerMode(); return; }
+    e.preventDefault();
+
+    const [dr, dc] = moves[e.key];
+    const nr = player.r + dr;
+    const nc = player.c + dc;
+    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return;
+    if (grid[nr][nc] !== 0) return;
+
+    // Start timer on first move
+    if (!timerStart) {
+      timerStart = Date.now();
+      timerInterval = setInterval(tickTimer, 50);
+    }
+
+    player = { r: nr, c: nc };
+
+    // Check win (exit cell)
+    if (nr === rows - 2 && nc === cols - 1) {
+      playerWon = true;
+      timerElapsed = Date.now() - timerStart;
+      stopTimer();
+      const ms = timerElapsed;
+      const isNew = bestTime === 0 || ms < bestTime;
+      if (isNew) {
+        bestTime = ms;
+        localStorage.setItem('maze-best', String(bestTime));
+      }
+      updatePlayerUI();
+      updateStatus(`You escaped! Time: ${formatTime(ms)}${isNew ? ' 🏆 New best!' : ` · Best: ${formatTime(bestTime)}`}`);
+      document.removeEventListener('keydown', handlePlayerKey);
+    }
+  }
+
+  function tickTimer() {
+    if (!timerStart || playerWon) return;
+    timerElapsed = Date.now() - timerStart;
+    updatePlayerUI();
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  function formatTime(ms) {
+    if (!ms) return '0.0s';
+    const s = (ms / 1000).toFixed(1);
+    return `${s}s`;
+  }
+
+  function updatePlayerUI() {
+    const timeEl = document.getElementById('maze-player-time');
+    const bestEl = document.getElementById('maze-player-best');
+    const btn = document.getElementById('maze-play-btn');
+    if (timeEl) timeEl.textContent = playerMode ? formatTime(timerElapsed) : '--';
+    if (bestEl) bestEl.textContent = bestTime ? formatTime(bestTime) : '--';
+    if (btn) {
+      btn.textContent = playerMode ? 'Exit Play' : 'Play';
+      btn.style.borderColor = playerMode ? '#F778BA' : '';
+      btn.style.color = playerMode ? '#F778BA' : '';
+    }
+  }
+
+  function startRenderLoop() {
+    stopRenderLoop();
+    function loop() {
+      if (playerMode) { drawPlayer(); renderFrameId = requestAnimationFrame(loop); }
+    }
+    renderFrameId = requestAnimationFrame(loop);
+  }
+
+  function stopRenderLoop() {
+    if (renderFrameId) { cancelAnimationFrame(renderFrameId); renderFrameId = null; }
+  }
+
+  function drawPlayer() {
+    drawWithVisited(null, []);
+    if (!player) return;
+    const pulse = Math.sin(Date.now() / 200) * 2;
+    const x = player.c * CELL + CELL / 2;
+    const y = player.r * CELL + CELL / 2;
+    ctx.beginPath();
+    ctx.arc(x, y, CELL / 2 - 1 + pulse * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#3FB950';
+    ctx.shadowColor = '#3FB950';
+    ctx.shadowBlur = 10 + pulse;
+    ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   // ---- GENERATION (Recursive Backtracking) ----
   function generate() {
+    if (playerMode) exitPlayerMode();
     cancelAnimation();
     solving = false;
     grid = Array.from({ length: rows }, () => Array(cols).fill(1));
@@ -276,7 +422,8 @@ const MazeGame = (() => {
 
   function destroy() {
     cancelAnimation();
+    if (playerMode) exitPlayerMode();
   }
 
-  return { init, generate, solve, destroy };
+  return { init, generate, solve, enterPlayerMode, destroy };
 })();
