@@ -287,6 +287,7 @@
         <span>Score: <strong id="snake-score">0</strong></span>
         <span>High Score: <strong id="snake-high">0</strong></span>
         <span>Level: <strong id="snake-level">1</strong></span>
+        <span id="snake-slow-indicator" style="display:none; color:#58D2FF; font-weight:600">❄ SLOW</span>
       </div>
       <div class="canvas-wrapper">
         <canvas id="snake-canvas" class="game-canvas"></canvas>
@@ -294,10 +295,11 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
+        <button id="snake-pause-btn" onclick="SnakeGame.togglePause()">Pause</button>
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
-        Gold food = +50 pts &nbsp;·&nbsp; Spawns every 5 apples &nbsp;·&nbsp; Disappears in 5s
+        🟡 +50 pts (every 5 apples) &nbsp;·&nbsp; 🔷 Slow +20 pts &nbsp;·&nbsp; 🟩 Shrink +30 pts &nbsp;·&nbsp; P = Pause
       </div>
     </div>
   </section>
