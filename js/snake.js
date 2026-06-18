@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -60,7 +60,20 @@ const SnakeGame = (() => {
     else if (dy === -1 && direction.y !== 1) nextDirection = { x: 0, y: -1 };
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(tick, speed);
+    }
+    draw();
+  }
+
   function handleKey(e) {
+    if (e.key === 'p' || e.key === 'P') { togglePause(); e.preventDefault(); return; }
+    if (paused) return;
     if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       start();
       return;
@@ -86,6 +99,7 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
     speed = 120;
     spawnFood();
     updateInfo();
@@ -293,7 +307,21 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys to move  ·  P to pause', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.textAlign = 'left';
+    }
+
+    // Pause overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.78)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 22px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 26);
       ctx.textAlign = 'left';
     }
   }
@@ -303,5 +331,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
