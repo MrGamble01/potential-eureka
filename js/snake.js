@@ -167,6 +167,7 @@ const SnakeGame = (() => {
     if (head.x === food.x && head.y === food.y) {
       ate = true;
       score += 10;
+      const prevLevel = getLevel();
       foodCount++;
       if (score > highScore) {
         highScore = score;
@@ -181,6 +182,8 @@ const SnakeGame = (() => {
         clearInterval(gameLoop);
         gameLoop = setInterval(tick, speed);
       }
+      if (getLevel() > prevLevel) SoundEngine.levelUp();
+      else SoundEngine.eat();
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
       // Eat bonus food (snake also grows)
       ate = true;
@@ -190,6 +193,7 @@ const SnakeGame = (() => {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+      SoundEngine.eatBonus();
     }
 
     if (!ate) snake.pop();
@@ -203,6 +207,7 @@ const SnakeGame = (() => {
     gameOver = true;
     bonusFood = null;
     clearInterval(gameLoop);
+    SoundEngine.died();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
