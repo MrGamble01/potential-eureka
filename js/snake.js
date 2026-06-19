@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -60,11 +61,35 @@ const SnakeGame = (() => {
     else if (dy === -1 && direction.y !== 1) nextDirection = { x: 0, y: -1 };
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    const overlay = document.getElementById('snake-overlay');
+    if (paused) {
+      clearInterval(gameLoop);
+      if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+          <h2 style="color:#6C63FF; text-shadow:0 0 24px rgba(108,99,255,0.4)">PAUSED</h2>
+          <p style="font-size:12px; color: var(--text-dim)">Press P or Escape to resume</p>
+        `;
+      }
+    } else {
+      if (overlay) overlay.style.display = 'none';
+      gameLoop = setInterval(tick, speed);
+    }
+  }
+
   function handleKey(e) {
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+      if (running && !gameOver) { togglePause(); e.preventDefault(); }
+      return;
+    }
     if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       start();
       return;
     }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
@@ -85,6 +110,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
@@ -303,5 +329,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
