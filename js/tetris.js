@@ -180,34 +180,51 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
-    canHold = true;
-    current = next;
-    next = drawFromBag();
-    drawPreview(nextCtx, next);
-    if (collides(current.shape, current.x, current.y)) endGame();
+    clearLines(function() {
+      canHold = true;
+      current = next;
+      next = drawFromBag();
+      drawPreview(nextCtx, next);
+      if (collides(current.shape, current.x, current.y)) endGame();
+    });
   }
 
-  function clearLines() {
-    let cleared = 0;
+  function clearLines(callback) {
+    const fullRows = [];
     for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
-      }
+      if (board[r].every(cell => cell !== null)) fullRows.push(r);
     }
-    if (!cleared) return;
-    const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
-    linesCleared += cleared;
-    const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem('tetris-high', String(highScore));
+    if (fullRows.length === 0) { callback(); return; }
+
+    clearInterval(gameLoop);
+    let phase = 0;
+
+    function flash() {
+      phase++;
+      const lit = phase % 2 === 1;
+      fullRows.forEach(r => {
+        ctx.fillStyle = lit ? 'rgba(255,255,255,0.9)' : '#0d1117';
+        ctx.fillRect(0, r * CELL, WIDTH, CELL);
+      });
+      if (phase < 6) { setTimeout(flash, 55); return; }
+
+      const cleared = fullRows.length;
+      fullRows.sort((a, b) => b - a);
+      fullRows.forEach(r => { board.splice(r, 1); board.unshift(Array(COLS).fill(null)); });
+
+      const pts = [0, 100, 300, 500, 800];
+      score += pts[Math.min(cleared, 4)] * level;
+      linesCleared += cleared;
+      const newLevel = Math.floor(linesCleared / 10) + 1;
+      if (newLevel !== level) level = newLevel;
+      if (score > highScore) { highScore = score; localStorage.setItem('tetris-high', String(highScore)); }
+      updateInfo();
+      draw();
+      if (running) restartLoop();
+      callback();
     }
-    updateInfo();
+
+    flash();
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
