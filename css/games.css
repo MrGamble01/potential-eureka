@@ -254,3 +254,76 @@ canvas.game-canvas {
   letter-spacing: 1px;
 }
 
+.tetris-panel-value.combo-active {
+  color: #F0D000;
+  text-shadow: 0 0 8px #F0D000;
+}
+
+/* Clear toast overlay */
+#tetris-clear-toast {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  white-space: nowrap;
+}
+
+#tetris-clear-toast.tetris-toast-animate {
+  animation: tetrisToastRise 1.3s ease-out forwards;
+}
+
+@keyframes tetrisToastRise {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0px); }
+  70%  { opacity: 1; transform: translateX(-50%) translateY(-18px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-40px); }
+}
+
+.toast-main {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #E6EDF3;
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px currentColor;
+}
+
+.toast-main.toast-tetris {
+  font-size: 26px;
+  color: #58A6FF;
+  text-shadow: 0 0 16px #58A6FF;
+}
+
+.toast-b2b {
+  font-size: 11px;
+  color: #F0A500;
+  letter-spacing: 2px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-shadow: 0 0 8px #F0A500;
+  margin-top: 2px;
+}
+
+.toast-combo {
+  font-size: 13px;
+  color: #F0D000;
+  letter-spacing: 2px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-shadow: 0 0 8px #F0D000;
+  margin-top: 2px;
+}
+
+.toast-pts {
+  font-size: 14px;
+  color: #3FB950;
+  letter-spacing: 1px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  margin-top: 3px;
+}
+

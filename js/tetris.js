@@ -24,6 +24,7 @@ const TetrisGame = (() => {
   let board, current, next, held;
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
+  let combo, backToBack;
   let bag = [];
 
   // 7-bag randomiser for fair piece distribution
@@ -73,6 +74,7 @@ const TetrisGame = (() => {
     board = createBoard();
     running = gameOver = false;
     score = level = 0; linesCleared = 0;
+    combo = 0; backToBack = false;
     current = next = held = null;
     bag = [];
 
@@ -197,10 +199,34 @@ const TetrisGame = (() => {
         cleared++; r++;
       }
     }
-    if (!cleared) return;
+    if (!cleared) {
+      combo = 0;
+      updateInfo();
+      return;
+    }
+
+    combo++;
+
+    const clearNames = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS!'];
     const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
+    const base = pts[Math.min(cleared, 4)] * level;
+
+    let bonus = 0;
+    let isB2B = false;
+    if (cleared === 4) {
+      if (backToBack) { bonus = Math.floor(base * 0.5); isB2B = true; }
+      backToBack = true;
+    } else {
+      backToBack = false;
+    }
+
+    const comboBonus = combo > 1 ? (combo - 1) * 50 * level : 0;
+    const earned = base + bonus + comboBonus;
+    score += earned;
     linesCleared += cleared;
+
+    showClearToast(clearNames[Math.min(cleared, 4)], isB2B, combo, earned);
+
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
     if (score > highScore) {
@@ -208,6 +234,20 @@ const TetrisGame = (() => {
       localStorage.setItem('tetris-high', String(highScore));
     }
     updateInfo();
+  }
+
+  function showClearToast(clearName, isB2B, comboCount, points) {
+    const toast = document.getElementById('tetris-clear-toast');
+    if (!toast) return;
+    const isTetris = clearName === 'TETRIS!';
+    let html = `<div class="toast-main${isTetris ? ' toast-tetris' : ''}">${clearName}</div>`;
+    if (isB2B) html += `<div class="toast-b2b">BACK-TO-BACK!</div>`;
+    if (comboCount > 1) html += `<div class="toast-combo">COMBO x${comboCount}</div>`;
+    html += `<div class="toast-pts">+${points.toLocaleString()}</div>`;
+    toast.innerHTML = html;
+    toast.classList.remove('tetris-toast-animate');
+    void toast.offsetWidth;
+    toast.classList.add('tetris-toast-animate');
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -245,6 +285,7 @@ const TetrisGame = (() => {
     bag = [];
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
+    combo = 0; backToBack = false;
     held = null; canHold = true;
     gameOver = false; running = true;
     current = drawFromBag();
@@ -405,10 +446,20 @@ const TetrisGame = (() => {
   function updateInfo() {
     const el = id => document.getElementById(id);
     const s = el('tetris-score'), lv = el('tetris-level'), li = el('tetris-lines'), h = el('tetris-high');
+    const co = el('tetris-combo');
     if (s)  s.textContent  = score        || 0;
     if (lv) lv.textContent = level        || 1;
     if (li) li.textContent = linesCleared || 0;
     if (h)  h.textContent  = highScore;
+    if (co) {
+      if (combo > 1) {
+        co.textContent = `x${combo}`;
+        co.classList.add('combo-active');
+      } else {
+        co.textContent = '-';
+        co.classList.remove('combo-active');
+      }
+    }
   }
 
   function destroy() {
