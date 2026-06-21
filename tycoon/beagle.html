@@ -9,9 +9,9 @@
     🤝 Walk near an investor — auto-greet and collect
 
   CORE LOOP
-    Engineer sits at desk → burns desk Zyn → ships a feature →
+    Engineer sits at desk → drains desk paper → ships a feature →
     routes to either the CEO desk OR the Leadership Suite VP (for
-    a queue-scaling multiplier) → cash pops. Adderall + Zyn keep
+    a queue-scaling multiplier) → cash pops. Coffee + paper keep
     the team happy; run out → morale drops + work stalls.
     Sales side: BDRs solo small deals; hand off to an AE for a 3×
     close; AE self-sources if the pipeline dries up.
@@ -40,7 +40,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Startup Tycoon</title>
+  <title>Beagle Sim</title>
   <style>
     html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -1284,7 +1284,7 @@
   <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
   <div class="m-row" data-priority="low" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
   <div class="m-row" data-priority="low" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts engineers currently amped from the 💊 Adderall Cabinet."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" title="Headcount: beagles + BDRs + AEs + leads + dog walkers. The 🦴 suffix counts beagles currently on a treat-fuelled zoomie."><span class="m-lbl">Pack</span><span class="m-val" id="m-teamrev">0 🐶</span></div>
   <div class="m-row" data-priority="low" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
   <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
@@ -1333,11 +1333,11 @@
     </div>
     <div class="help-section">
       <div class="help-section-title">Core loop</div>
-      <div class="help-tip">💻 <strong>Hire engineers</strong> at desks → they ship features → 💰 cash flows.</div>
+      <div class="help-tip">🐶 <strong>Adopt beagles</strong> at dig spots → they sniff out & dig up bones → 💰 cash flows.</div>
       <div class="help-tip">🤝 <strong>Walk up to investors</strong> when they arrive — they bring big checks.</div>
-      <div class="help-tip">🏃 <strong>Sprint</strong> = +100% engineer speed for the whole team for 30s.</div>
-      <div class="help-tip">💊 Buy the <strong>Adderall Cabinet</strong> + 🥫 <strong>Zyn Stash</strong> (sidebar) — engineers self-serve to ship faster.</div>
-      <div class="help-tip">🚀 Fill the goal bar then <strong>IPO</strong> for a permanent revenue multiplier.</div>
+      <div class="help-tip">🐾 <strong>Frenzy</strong> = +100% dig speed for the whole pack for 30s.</div>
+      <div class="help-tip">🦴 <strong>Treats</strong> = a beagle gets the zoomies (~3× dig speed), then a sleepy nap + mood dip.</div>
+      <div class="help-tip">🚀 Fill the goal bar then <strong>IPO</strong> for a permanent reward multiplier.</div>
     </div>
     <button class="tip-ok" id="help-close-btn">Got it</button>
   </div>
@@ -1356,12 +1356,12 @@
 </div>
 <div id="welcome-modal" role="dialog">
   <div class="ach-panel" style="text-align:left">
-    <div class="ach-title" style="background:linear-gradient(135deg,#3FB950,#22c55e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center">Welcome to Startup Tycoon</div>
+    <div class="ach-title" style="background:linear-gradient(135deg,#3FB950,#22c55e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center">Welcome to Beagle Sim</div>
     <div class="ach-progress" style="text-align:center">A 30-second crash course</div>
     <div style="font-size:13px;line-height:1.7;color:#cdd5df;margin:10px 4px 12px">
-      <div style="margin:6px 0"><strong style="color:#fcd34d">1.</strong> <strong>Hire an engineer</strong> (top-left). They sit at a desk and ship features for cash.</div>
-      <div style="margin:6px 0"><strong style="color:#fcd34d">2.</strong> Engineers burn <strong>🥫 Zyn</strong> as they ship. Top up dry desks yourself, or buy a Zyn Stash / hire an EA to restock.</div>
-      <div style="margin:6px 0"><strong style="color:#fcd34d">3.</strong> Around <strong>$200</strong> hire a <strong>BDR</strong> — they close deals for bigger pops.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">1.</strong> <strong>Adopt a beagle</strong> (top-left). They take a dig spot and sniff out bones for cash.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">2.</strong> <strong>Buy 🦴 Treats</strong> and give the pack the zoomies for a big dig-speed burst.</div>
+      <div style="margin:6px 0"><strong style="color:#fcd34d">3.</strong> Around <strong>$200</strong> bring on a <strong>BDR</strong> — they sniff out bigger finds.</div>
       <div style="margin:6px 0"><strong style="color:#fcd34d">4.</strong> Fill the goal bar at the top, then <strong>IPO</strong> for a permanent multiplier.</div>
     </div>
     <button class="tip-ok" id="welcome-start-btn">Let's go →</button>
@@ -1393,14 +1393,14 @@
     <div class="na-sub" id="na-sub"></div>
   </button>
   <div id="office-panel" class="panel collapsible">
-    <div class="panel-title">👥 Team</div>
+    <div class="panel-title">🐾 The Pack</div>
     <div id="hire-section">
-      <div class="stat-line"><span>Engineers</span><span id="emp-count">0 / 9</span></div>
-      <button class="hire-btn role-eng" id="hire-btn">💻 Hire Engineer<span class="cost" id="hire-cost">$75</span></button>
-      <button class="hire-btn role-ext" id="hire-ext-eng-btn" style="margin-top:4px">👔 Hire External Engineer<span class="cost" id="hire-ext-eng-cost">$225</span></button>
+      <div class="stat-line"><span>Beagles</span><span id="emp-count">0 / 9</span></div>
+      <button class="hire-btn role-eng" id="hire-btn">🐶 Adopt Beagle<span class="cost" id="hire-cost">$75</span></button>
+      <button class="hire-btn role-ext" id="hire-ext-eng-btn" style="margin-top:4px">🦮 Adopt Pedigree Beagle<span class="cost" id="hire-ext-eng-cost">$225</span></button>
       <div class="subsection">
-        <div class="panel-title">🛠️ Office Managers</div>
-        <button class="hire-btn role-ops" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
+        <div class="panel-title">🦴 Kennel Staff</div>
+        <button class="hire-btn role-ops" id="hire-ea-btn">🧑‍🌾 Hire Dog Walker<span class="cost" id="hire-ea-cost">$400</span></button>
       </div>
       <div id="hire-sales-section" class="subsection" style="display:none">
         <div class="panel-title">📞 Sales Team</div>
@@ -1428,6 +1428,13 @@
   <div id="amenities-panel" class="panel collapsible">
     <div class="panel-title">🏢 Amenities</div>
     <div id="amenities-list"></div>
+  </div>
+  <div id="stim-panel" class="panel collapsible" style="display:none">
+    <div class="panel-title">🦴 Treats</div>
+    <div class="stat-line"><span>Treats in the bag</span><span id="stim-supply">0 treats</span></div>
+    <button class="hire-btn role-danger" id="dose-btn" title="Hand a treat to every beagle for a big burst of zoomies — they dig way faster. When the sugar rush fades they flop into a nap: slower digging + a mood dip. No cooldown — just how many treats are left in the bag.">🦴 Give the Pack Treats</button>
+    <button class="hire-btn role-eng" id="buy-stim-btn" style="margin-top:4px" title="Buy a bag of treats. The good stuff isn't cheap — every bag costs more than the last.">🛒 Buy Treats<span class="cost" id="stim-cost">$600</span></button>
+    <div style="font-size:11px;color:#7D8590;line-height:1.5;margin-top:6px">One treat = a burst of zoomies for a beagle, then a sleepy nap + mood dip. Every bag you buy costs more.</div>
   </div>
   <div id="settings-panel" class="panel">
     <div class="panel-title">⚙️ Settings</div>
@@ -1471,7 +1478,7 @@
 </div>
 <div id="joystick"><div id="joy-knob"></div></div>
 <div id="toast-container"></div>
-<button id="sprint-btn" title="30s of 2× engineer speed for the whole team (burns 2× Zyn)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
+<button id="sprint-btn" title="30s of 2× dig speed for the whole pack">🐾 Frenzy<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
 <div id="tip-modal" role="dialog">
@@ -1616,10 +1623,10 @@ const CONFIG = Object.freeze({
   sprintCooldown:   90,
   sprintRateMult:   2.0,
 
-  // Stimulants (💊 Adderall) — player-bought pills dosed to engineers
-  // for a hard productivity spike, paid back with a comedown slump and
-  // a morale hit. Habit-forming: every pack you buy costs more.
-  stimDuration:     25,     // seconds of the high
+  // Treats (🦴) — player-bought treats handed to beagles for a hard
+  // burst of zoomies, paid back with a sleepy nap and a mood dip.
+  // The good stuff isn't cheap: every bag you buy costs more.
+  stimDuration:     25,     // seconds of the zoomies
   stimRateMult:     3.0,    // work-rate multiplier while dosed
   stimSpeedMult:    1.7,    // walk-speed multiplier while dosed
   stimComedownDur:  22,     // seconds of the crash afterward
@@ -2129,9 +2136,9 @@ const sharedWalls = {}; // "gx1,gz1:gx2,gz2" → mesh
 // scope kept tight so adding theme #5 is just a data entry.
 const THEMES = {
   default: {
-    id: 'default', icon: '🏢', name: 'Startup',
-    goalLabelFor: amt => `🎯 $${amt} Revenue`,
-    goalAchievedFor: amt => `$${amt} Revenue earned`,
+    id: 'default', icon: '🏡', name: 'Backyard',
+    goalLabelFor: amt => `🎯 $${amt} Earned`,
+    goalAchievedFor: amt => `$${amt} earned`,
     roomLabels: {
       starter:       '🏢 HQ',
       left:          '💻 Engineering Pod',
@@ -2528,7 +2535,7 @@ function drawWhiteboard() {
   ctx.font = '10px sans-serif';
   ctx.fillText('· ship features', 12, 130);
   ctx.fillText('· hire ruthlessly', 12, 144);
-  ctx.fillText('· stock the Zyn', 130, 130);
+  ctx.fillText('· cap paper stock', 130, 130);
   ctx.fillText('· IPO when ready', 130, 144);
   wbTexture.needsUpdate = true;
 }
@@ -2822,7 +2829,7 @@ const DECOR_UPGRADES = [
     id: 'deskDrinks',
     check: () => amenities.some(a => a.id === 'coffee' && a.isOwned),
     build: buildCoffeeMugs,
-    msg: '💊 Upgraded: an Addy stash on the desk.',
+    msg: '☕ Upgraded: real coffee on the desk.',
   },
   {
     id: 'storage',
@@ -3248,6 +3255,18 @@ function buildScrappyCharacter(opts) {
     new THREE.MeshLambertMaterial({ color: pantsColor })
   );
   pants.position.y = 0.41; pants.castShadow = true; g.add(pants);
+  // Tail — upright beagle tail with a white tip at the lower back.
+  const tail = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.05, 0.28, 4, 8),
+    new THREE.MeshLambertMaterial({ color: 0xC79A5B })
+  );
+  tail.position.set(0, 0.6, -0.22);
+  tail.rotation.x = -0.6; tail.castShadow = true; g.add(tail);
+  const tailTip = new THREE.Mesh(
+    new THREE.SphereGeometry(0.055, 8, 6),
+    new THREE.MeshLambertMaterial({ color: 0xf3efe6 })
+  );
+  tailTip.position.set(0, 0.82, -0.33); g.add(tailTip);
   // Torso: hoodie by default, collared button-down for externals
   if (opts.isCollared) {
     // Collared button-down shirt
@@ -3318,44 +3337,48 @@ function buildScrappyCharacter(opts) {
   // Head — subtle Phong sheen so faces don't read as totally flat
   // matte. Slightly squashed vertically for a more natural shape.
   const skinMat = new THREE.MeshPhongMaterial({ color: skinColor, shininess: 8, specular: 0x111111 });
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 12), skinMat);
-  head.scale.y = 1.05;
+  // ── Beagle head ── tricolor pup: tan crown, pale muzzle, shiny black
+  // nose, and long floppy brown ears. Built on the same head anchor so
+  // the idle breath sway + floating-label projection keep working.
+  const furMat = new THREE.MeshPhongMaterial({ color: 0xC79A5B, shininess: 6, specular: 0x161616 });
+  const earMat = new THREE.MeshLambertMaterial({ color: 0x6b4426 });
+  const muzMat = new THREE.MeshLambertMaterial({ color: 0xefe7d6 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 12), furMat);
+  head.scale.y = 1.02;
   head.position.y = 1.78; head.castShadow = true; g.add(head);
-  // Stash a head ref + per-character breath phase so the idle
-  // animation can give them a subtle "alive" sway when standing still.
   g.userData.head = head;
   g.userData.breathOffset = Math.random() * Math.PI * 2;
-  // Ears — tiny skin nubs on the sides
-  for (const sx of [-0.26, 0.26]) {
-    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), skinMat);
-    ear.position.set(sx, 1.78, 0); ear.scale.set(0.6, 1, 0.9); g.add(ear);
+  // Floppy ears — long drooping lobes hanging down each side of the head.
+  for (const sx of [-0.24, 0.24]) {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), earMat);
+    ear.scale.set(0.55, 1.7, 0.5);
+    ear.position.set(sx, 1.64, -0.02);
+    ear.rotation.z = sx > 0 ? -0.18 : 0.18;
+    ear.castShadow = true;
+    g.add(ear);
   }
-  // Eye dots
-  const eyeMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
-  for (const sx of [-0.08, 0.08]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), eyeMat);
-    eye.position.set(sx, 1.80, 0.24); g.add(eye);
-  }
-  // Eyebrows — small wedges in hair color, above each eye.
-  const browMat = new THREE.MeshLambertMaterial({ color: hairColor });
-  for (const sx of [-0.085, 0.085]) {
-    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.018, 0.02), browMat);
-    brow.position.set(sx, 1.86, 0.245);
-    brow.rotation.z = sx > 0 ? -0.12 : 0.12;
-    g.add(brow);
-  }
-  // Nose — small forward-pointing wedge in skin color.
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.06, 4), skinMat);
-  nose.position.set(0, 1.76, 0.27);
-  nose.rotation.x = Math.PI / 2;
-  g.add(nose);
-  // Mouth — thin dark line for a neutral expression.
-  const mouth = new THREE.Mesh(
-    new THREE.BoxGeometry(0.09, 0.012, 0.01),
-    new THREE.MeshLambertMaterial({ color: 0x3a2820 })
+  // Muzzle — pale snout pushing forward, capped with a black nose.
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), muzMat);
+  muzzle.scale.set(0.78, 0.6, 1.05);
+  muzzle.position.set(0, 1.70, 0.2);
+  muzzle.castShadow = true; g.add(muzzle);
+  const nose = new THREE.Mesh(
+    new THREE.SphereGeometry(0.045, 8, 8),
+    new THREE.MeshPhongMaterial({ color: 0x101010, shininess: 30 })
   );
-  mouth.position.set(0, 1.68, 0.26);
-  g.add(mouth);
+  nose.position.set(0, 1.72, 0.34); g.add(nose);
+  // Eyes — friendly dark dots above the muzzle.
+  const eyeMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+  for (const sx of [-0.1, 0.1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), eyeMat);
+    eye.position.set(sx, 1.86, 0.2); g.add(eye);
+  }
+  // Mouth — thin smile line tucked under the muzzle.
+  const mouth = new THREE.Mesh(
+    new THREE.BoxGeometry(0.07, 0.012, 0.01),
+    new THREE.MeshLambertMaterial({ color: 0x2a1c14 })
+  );
+  mouth.position.set(0, 1.60, 0.3); g.add(mouth);
   // Beard
   if (opts.hasBeard) {
     const beard = new THREE.Mesh(
@@ -3807,8 +3830,8 @@ function updateIdeaWorkers(dt) {
 
   for (const w of ideaWorkers) {
     if (w.caffeinated) { w.caffeinatedT -= dt; if (w.caffeinatedT <= 0) w.caffeinated = false; }
-    // Adderall lifecycle: dosed → comedown → normal. The high ticks down
-    // into a crash (endDose); the crash ticks down back to baseline.
+    // Treat lifecycle: zoomies → nap → normal. The zoomies tick down
+    // into a nap (endDose); the nap ticks down back to baseline.
     if (w.dosed) { w.dosedT -= dt; if (w.dosedT <= 0) endDose(w); }
     else if (w.comedown) { w.comedownT -= dt; if (w.comedownT <= 0) w.comedown = false; }
     if (w.pingPongCooldown > 0) w.pingPongCooldown -= dt;
@@ -3837,9 +3860,9 @@ function updateIdeaWorkers(dt) {
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < CONFIG.proxRange ? CONFIG.bossBoost : 1.0;
       const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost;
-      // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
-      // Seated workers never set rotation otherwise, so this is safe to
-      // drive directly and reset to 0 once the high wears off.
+      // Zoomies wiggle: a treated beagle visibly vibrates at their dig
+      // spot. Seated diggers never set rotation otherwise, so this is
+      // safe to drive directly and reset to 0 once the zoomies wear off.
       if (w.dosed) w.group.rotation.y = Math.sin(performance.now() * 0.025 + w.workProgress * 10) * 0.07;
       else if (w.group.rotation.y !== 0) w.group.rotation.y = 0;
       w.currentRate = rate;
@@ -3871,11 +3894,9 @@ function updateIdeaWorkers(dt) {
       if (w.workProgress >= 1.0 && dealSpeedMult > 0) {
         w.workProgress = 0;
         setPaperStackProgress(w.desk.paperStack, 0);
-        // Each shipped feature burns a Zyn (1 normally, 2 during a sprint)
-        w.desk.paperStock = Math.max(0, w.desk.paperStock - sprintPaperCost());
-        // Fresh-tin boost: a stocked Zyn Stash gives shipped work a bump
+        // Beagle Sim: digging up a bone no longer costs paper — beagles
+        // never run dry, so the supply-run / stall branches stay dormant.
         w.paperBoost = 1.0;
-        if (printerAm && printerAm.stock > 0) { printerAm.stock--; w.paperBoost = 1.5; }
         w.productValue = computeDealValue({ paperBoost: w.paperBoost, pingPongBoost: w.pingPongBoost });
         w.pingPongBoost = 1.0;
         setPaperStackProgress(w.carryMesh, 0.8); // carry an 8-sheet stack
@@ -4282,7 +4303,7 @@ function updateExecutiveAssistants(dt) {
         coffeeAm.stock--;
         ea.targetWorker.caffeinated = true;
         ea.targetWorker.caffeinatedT = CONFIG.caffeineDuration;
-        changeMorale(+2, 'EA delivered Adderall', ea.targetWorker);
+        changeMorale(+2, 'EA delivered coffee', ea.targetWorker);
       }
       ea.carryMesh.visible = false;
       ea.state = S.IDLE; ea.waitT = 0.4;
@@ -4680,9 +4701,9 @@ function triggerSprint() {
   if (ideaWorkers.length === 0) return;
   sprintActive = true;
   sprintT = 0;
-  showToast('🏃 Sprint! +100% eng speed for 30s', 'rush');
-  addFeedEntry('🏃 Sprint started');
-  changeMorale(+3, 'Sprint rally');
+  showToast('🐾 Frenzy! +100% dig speed for the whole pack for 30s', 'rush');
+  addFeedEntry('🐾 Frenzy started');
+  changeMorale(+3, 'Frenzy rally');
   SFX.sprint(); Haptics.sprint();
   showTip('sprint');
 }
@@ -4692,9 +4713,9 @@ function updateSprint(dt) {
     if (sprintT >= SPRINT_DURATION) {
       sprintActive = false;
       sprintCooldownT = SPRINT_COOLDOWN;
-      showToast('🏁 Sprint over.', '', 'ambient');
-      addFeedEntry('🏁 Sprint ended');
-      changeMorale(-2, 'Sprint burnout');
+      showToast('🏁 Frenzy over.', '', 'ambient');
+      addFeedEntry('🏁 Frenzy ended');
+      changeMorale(-2, 'Frenzy tired-out');
       SFX.done();
     }
   } else if (sprintCooldownT > 0) {
@@ -4702,13 +4723,14 @@ function updateSprint(dt) {
   }
 }
 
-// ── Stim counters (legacy) ───────────────────────────────────
-// The active "Dose the Team" panel was removed — Adderall is now the
-// single passive 💊 Adderall Cabinet amenity (engineers self-serve via
-// the existing caffeine path). These counters persist only for
-// save-compat; nothing sets w.dosed anymore so the dose/comedown
-// lifecycle (endDose / stimWorkMult) stays a harmless no-op.
-let stimSupply      = 0;   // legacy, kept for save-compat
+// ── Treats (🦴) ──────────────────────────────────────────────
+// Buy bags of treats in the sidebar, then "Give the Pack Treats" to
+// spend one treat per beagle for a hard, per-dog dig-rate + run-speed
+// spike (the zoomies). When the zoomies wear off each beagle flops into
+// a nap (slower digging + a mood dip). Unlike a Frenzy there's no
+// cooldown — the limiter is your dwindling, ever-pricier treat bag and
+// the nap it leaves behind. Supply is persisted; zoomie/nap is transient.
+let stimSupply      = 0;   // pills on hand
 let stimPacksBought = 0;   // drives the escalating pack price
 let stimDosesGiven  = 0;   // lifetime doses handed out (achievement track)
 
@@ -4729,10 +4751,55 @@ function endDose(w) {
   w.group.rotation.y = 0;
   changeMorale(-CONFIG.stimMoraleCrash, '', w);
 }
-// The old active "Dose the Team" Adderall panel was merged into the
-// single passive 💊 Adderall Cabinet amenity — engineers self-serve.
-// endDose / stimWorkMult stay as harmless no-ops (nothing sets w.dosed
-// anymore); the persisted stim* counters remain for save-compat.
+function buyStimPack() {
+  const cost = stimPackCost();
+  if (state.cash < cost) return;
+  state.cash -= cost; showSpendPop(cost);
+  stimSupply += CONFIG.stimPackSize;
+  stimPacksBought++;
+  addFeedEntry(`🦴 Bought a bag of ${CONFIG.stimPackSize} treats ($${fmtCash(cost)})`);
+  SFX.purchase(); Haptics.purchase();
+  refreshHud();
+  updateStimPanel();
+}
+function doseTeam() {
+  if (ideaWorkers.length === 0) {
+    showToast('🦴 No beagles to treat yet.', '', 'standard');
+    return;
+  }
+  // Only beagles not already mid-zoomies are valid targets.
+  const targets = ideaWorkers.filter(w => !w.dosed);
+  if (targets.length === 0) {
+    showToast('🦴 The whole pack is already zooming.', '', 'standard');
+    return;
+  }
+  if (stimSupply <= 0) {
+    showToast('🦴 Treat bag is empty — buy more in the sidebar.', '', 'standard');
+    showTip('stim');
+    return;
+  }
+  let dosed = 0;
+  for (const w of targets) {
+    if (stimSupply <= 0) break;
+    stimSupply--;
+    w.dosed = true;
+    w.dosedT = CONFIG.stimDuration;
+    w.comedown = false;
+    w.comedownT = 0;
+    w.doses = (w.doses || 0) + 1;
+    dosed++;
+  }
+  stimDosesGiven += dosed;
+  changeMorale(CONFIG.stimMoraleHigh, 'Treat zoomies');
+  const pct = Math.round((CONFIG.stimRateMult - 1) * 100);
+  showToast(`🦴 Treated ${dosed} beagle${dosed > 1 ? 's' : ''}! Zoomies: +${pct}% dig speed for ${CONFIG.stimDuration}s`, 'rush');
+  addFeedEntry(`🦴 Treated ${dosed} beagle${dosed > 1 ? 's' : ''}`);
+  SFX.sprint(); Haptics.sprint();
+  checkAchievements();
+  refreshHud();
+  updateStimPanel();
+  showTip('stim');
+}
 
 // ── Morale (v2: per-worker, with EA chat bumps + event hooks) ────
 // Each engineer carries their own morale 0-100. Team morale (for the
@@ -4912,7 +4979,7 @@ function renderHirePanel() {
   const engLock = hireLockReason(availableEngSeat, hcost);
   hireBtnEl.disabled = engLock !== null;
   hireCostEl.textContent = engLock || `$${hcost}`;
-  hireBtnEl.title = engLock ? `Can't hire: ${engLock}` : `Hire an engineer — $${hcost}`;
+  hireBtnEl.title = engLock ? `Can't adopt: ${engLock}` : `Adopt a beagle — $${hcost}`;
   const extEngCost = hcost * EXTERNAL_COST_MULT;
   const extEngLock = hireLockReason(availableEngSeat, extEngCost);
   hireExtEngBtnEl.disabled = extEngLock !== null;
@@ -4923,7 +4990,7 @@ function renderHirePanel() {
   const eaLock = state.cash < ecost ? `Need $${fmtCash(ecost - state.cash)} more` : null;
   hireEaBtnEl.disabled = eaLock !== null;
   hireEaCostEl.textContent = eaLock || (eas.length === 0 ? `$${ecost}` : `$${ecost} · ${eas.length} on staff`);
-  hireEaBtnEl.title = eaLock ? `Can't hire: ${eaLock}` : `Executive Assistant restocks Adderall/Zyn and boosts morale — $${ecost}`;
+  hireEaBtnEl.title = eaLock ? `Can't hire: ${eaLock}` : `Executive Assistant refills coffee/paper and boosts morale — $${ecost}`;
 
   // Sales section appears once any desk can host a BDR or AE. Both
   // allow flex 'any' desks so you can promote AEs early without the
@@ -5272,6 +5339,8 @@ const ACHIEVEMENTS = [
   { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1, progress: () => [Math.min(trophiesWon, 1), 1] },
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
+  { id: 'first_dose',    icon: '🦴', title: 'Good Boy',              desc: 'Give a beagle a treat.',                 check: () => stimDosesGiven >= 1 },
+  { id: 'tweaker',       icon: '🐾', title: 'Zoomie Master',         desc: 'Hand out 50 treats across all time.',    check: () => stimDosesGiven >= 50, progress: () => [Math.min(stimDosesGiven, 50), 50] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -5466,10 +5535,9 @@ function updateMetricsHUD() {
   if (metricsRateEl) metricsRateEl.textContent = '$' + fmtCash(currentRatePerMin()) + '/min';
   metricsUsersEl.textContent = fmtCash(totalUsers);
   metricsShipEl.textContent  = fmtCash(totalFeaturesShipped);
-  const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
   const dosedCount = ideaWorkers.filter(w => w.dosed).length;
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
-  metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}${dosedCount ? ' 💊' + dosedCount : ''}`;
+  metricsTeamEl.textContent  = `${headcount} 🐶${dosedCount ? ' 🦴' + dosedCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
   // "Per ship" base deal value + live breakdown tooltip so the player
   // can see WHY a feature is worth $X — base × v × prestige × Ent × events.
@@ -5515,9 +5583,9 @@ fundingBtnEl.addEventListener('click', raiseFunding);
 // ── Amenities (unlockable, buyable; stock managed by Workers) ──
 const AMENITY_DEFS = [
   {
-    id: 'coffee', // legacy id kept for save compat — this is the Adderall Cabinet now
-    name: '💊 Adderall Cabinet',
-    icon: '💊',
+    id: 'coffee',
+    name: '☕ Espresso Bar',
+    icon: '☕',
     buyCost: 500,
     maxStock: 20,
     position: new THREE.Vector3(-4, 0, -22),
@@ -5579,9 +5647,9 @@ const AMENITY_DEFS = [
     },
   },
   {
-    id: 'printer', // legacy id kept for save compat — this is the Zyn Stash now
-    name: '🥫 Zyn Stash',
-    icon: '🥫',
+    id: 'printer', // legacy id kept for save compat — this is the Supply Rack now
+    name: '📚 Supply Rack',
+    icon: '📚',
     buyCost: 300,
     maxStock: 30,
     position: new THREE.Vector3(4, 0, -22),
@@ -5765,7 +5833,12 @@ const AMENITY_DEFS = [
     },
   },
 ];
-const amenities = AMENITY_DEFS.map(def => ({
+const amenities = AMENITY_DEFS
+  // Beagle Sim: no more office supplies — the ☕ Espresso Bar and
+  // 📚 Supply Rack (paper) are retired. Their defs stay for save-compat
+  // (an old save listing them just finds nothing to restore).
+  .filter(def => def.id !== 'coffee' && def.id !== 'printer')
+  .map(def => ({
   ...def,
   stock: 0,
   isOwned: false,
@@ -5818,10 +5891,38 @@ function renderAmenities() {
   }
 }
 
-// (The active "Dose the Team" stimulants panel was removed — Adderall is
-// now the single passive 💊 Adderall Cabinet amenity. updateStimPanel()
-// is kept as a no-op so its existing call sites stay harmless.)
-function updateStimPanel() {}
+// ── Treats panel (supply, buy, give) ──
+// Unlocks once you have at least one beagle to treat. Buy button shows
+// the next (escalating) bag price; give button reflects supply, the
+// number of beagles ready for a treat, and whether zoomies are going.
+const stimPanelEl   = document.getElementById('stim-panel');
+const stimSupplyEl   = document.getElementById('stim-supply');
+const stimCostEl     = document.getElementById('stim-cost');
+const doseBtnEl      = document.getElementById('dose-btn');
+const buyStimBtnEl   = document.getElementById('buy-stim-btn');
+function updateStimPanel() {
+  const unlocked = ideaWorkers.length >= 1;
+  stimPanelEl.style.display = unlocked ? '' : 'none';
+  if (!unlocked) return;
+
+  stimSupplyEl.textContent = `${stimSupply} treat${stimSupply === 1 ? '' : 's'}`;
+
+  const cost = stimPackCost();
+  stimCostEl.textContent = `$${fmtCash(cost)}`;
+  buyStimBtnEl.disabled = state.cash < cost;
+  buyStimBtnEl.classList.toggle('can-afford', state.cash >= cost);
+
+  const dosedNow  = ideaWorkers.filter(w => w.dosed).length;
+  const readyNow  = ideaWorkers.filter(w => !w.dosed).length;
+  if (dosedNow > 0) {
+    doseBtnEl.textContent = `🦴 Zoomies ${dosedNow}/${ideaWorkers.length}`;
+  } else {
+    doseBtnEl.textContent = '🦴 Give the Pack Treats';
+  }
+  doseBtnEl.disabled = stimSupply <= 0 || readyNow === 0;
+}
+doseBtnEl.addEventListener('click', () => { doseTeam(); });
+buyStimBtnEl.addEventListener('click', () => { buyStimPack(); });
 
 // ── Funding Rounds (startup-themed cash injections) ──
 const FUNDING_ROUNDS = [
@@ -6399,9 +6500,9 @@ const UPGRADES = [
   { id:'speed',     cat:'engineering', label:'👟 Running Shoes',      base:25,  scale:1.5, max:10,
     apply: lv => { playerSpeed = CONFIG.playerBaseSpeed + lv * CONFIG.playerSpeedPerLevel; },
     describe: lv => lv === 0 ? `Player speed ${CONFIG.playerBaseSpeed} → ${CONFIG.playerBaseSpeed + CONFIG.playerSpeedPerLevel} / level` : `Player speed ${(CONFIG.playerBaseSpeed + lv*CONFIG.playerSpeedPerLevel).toFixed(1)} → ${(CONFIG.playerBaseSpeed + (lv+1)*CONFIG.playerSpeedPerLevel).toFixed(1)}` },
-  { id:'marketing', cat:'engineering', label:'💊 Adderall Subscription', base:75,  scale:1.7, max:4,
+  { id:'marketing', cat:'engineering', label:'☕ Espresso Machine',   base:75,  scale:1.7, max:4,
     apply: lv => { for(const w of ideaWorkers) w.coffeeWaitT = Math.max(5, w.coffeeWaitT * 0.8); },
-    describe: lv => `−20% time between Adderall hits (stacks)` },
+    describe: lv => `−20% engineer coffee-break cadence (stacks)` },
   // ── Revenue ──
   { id:'pricing',   cat:'revenue',     label:'💸 Premium Tier',       base:100, scale:1.8, max:4,
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; },
@@ -6437,7 +6538,7 @@ function renderFeed() {
   if (activityLog.length === 0) {
     const hint = document.createElement('div');
     hint.className = 'feed-entry feed-empty';
-    hint.textContent = '👋 Hire an engineer to start shipping.';
+    hint.textContent = '👋 Adopt a beagle to start digging.';
     feedListEl.appendChild(hint);
     return;
   }
@@ -6494,8 +6595,8 @@ const EVENT_POOL = [
     onStart:()=>{ dealValueMult*=3; changeMorale(+4, 'Demo Day spotlight'); },
     onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/3); showToast('Demo Day over.','','ambient'); } },
   { id:'award', label:'🏅 Award', dur:20,
-    msg:'🏅 Best Startup Award! Deal value 4× for 20s!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=4; changeMorale(+6, 'Best Startup Award!'); },
+    msg:'🏅 Best in Show ribbon! Find value 4× for 20s!', cls:'milestone',
+    onStart:()=>{ dealValueMult*=4; changeMorale(+6, 'Best in Show ribbon!'); },
     onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/4); showToast('Award spotlight fading...','','ambient'); } },
   { id:'marketdown', label:'📉 Downturn', dur:15,
     msg:'📉 Market turbulence! Deal speed halved for 15s.', cls:'',
@@ -7089,7 +7190,7 @@ function updateSprintButton() {
     sprintBtnEl.classList.remove('active');
     sprintBtnEl.classList.remove('ringing');
     sprintBtnEl.disabled = ideaWorkers.length === 0;
-    sprintStatusEl.textContent = ideaWorkers.length === 0 ? 'Hire engineers' : 'Ready';
+    sprintStatusEl.textContent = ideaWorkers.length === 0 ? 'Adopt beagles' : 'Ready';
   }
 }
 // Single shared UI tick for lightweight DOM refreshes that don't
@@ -7135,16 +7236,20 @@ investorToggleEl.addEventListener('change', () => setInvestorEnabled(investorTog
 let tipsEnabled = true;
 const TIPS = {
   paper: {
-    title: '🥫 Out of Zyn!',
-    body: 'An engineer\'s desk is out of Zyn. They need a pouch to ship features. You can:\n• Walk up to their desk and top it up yourself\n• Buy the 🥫 Zyn Stash amenity so engineers restock themselves\n• Hire an 🧑‍💼 Executive Assistant who brings Zyn to any dry desk automatically',
+    title: '📄 Out of paper!',
+    body: 'An engineer\'s desk is empty. They need paper to ship features. You can:\n• Walk up to their desk and top it up yourself\n• Buy the 📚 Supply Rack amenity so engineers restock themselves\n• Hire an 🧑‍💼 Executive Assistant who brings paper to any dry desk automatically',
   },
   investor: {
     title: '🤝 An investor walked in!',
     body: 'Investors wander the office for a short window. Walk up to them to shake their hand — different types pay out differently (cash, deal-value boost, morale, etc.). If you don\'t greet them, they leave. No penalty, just a missed opportunity.',
   },
   sprint: {
-    title: '🏃 Sprint mode',
-    body: 'Tap the 🏃 Sprint button (bottom-right) for a 30-second push: every engineer works at 2× speed but desks burn Zyn twice as fast. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
+    title: '🐾 Frenzy mode',
+    body: 'Tap the 🐾 Frenzy button (bottom-right) for a 30-second push: the whole pack digs at 2× speed. 90s cooldown after. Use during a Rush Hour or just before an investor arrives for max effect.',
+  },
+  stim: {
+    title: '🦴 Treats',
+    body: 'Open the 🦴 Treats panel in the sidebar to buy treats and "Give the Pack Treats". Each treat sends one beagle into the zoomies — ~3× dig speed (and faster running) for 25s — then they flop into a nap: slower digging plus a mood dip. No cooldown, but the bag runs out and every bag you buy costs more. Pair treats with a Frenzy and a Rush Hour for an absurd burst, then let the pack snooze it off.',
   },
   conversion: {
     title: '⚡ Room can be converted',
@@ -7284,9 +7389,9 @@ function updateLabels() {
   // Idea workers
   for (const w of ideaWorkers) {
     let emoji = null;
-    if (w.state === S.TO_COFFEE || w.state === S.GETTING_COFFEE) emoji = '💊';
+    if (w.state === S.TO_COFFEE || w.state === S.GETTING_COFFEE) emoji = '☕';
     else if (w.state === S.TO_PING_PONG || w.state === S.PING_PONGING) emoji = '🏓';
-    else if (w.state === S.TO_SUPPLY || w.state === S.GETTING_PAPER) emoji = '🥫';
+    else if (w.state === S.TO_SUPPLY || w.state === S.GETTING_PAPER) emoji = '📄';
     else if (w.state === S.TO_DELIVER || w.state === S.TO_VP) emoji = '📦';
     if (emoji) {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
@@ -7295,16 +7400,16 @@ function updateLabels() {
       const p = worldToScreen(w.group.position.x, 2.4, w.group.position.z);
       const paper = Math.floor(w.desk.paperStock);
       if (paper < 1) {
-        // Worker is idle, out of Zyn
-        wants.push({ text: '🥫❓', cls: 'bubble', x: p.x, y: p.y });
+        // Worker is idle waiting on paper
+        wants.push({ text: '📄❓', cls: 'bubble', x: p.x, y: p.y });
       } else {
         const pct = Math.round((w.workProgress || 0) * 100);
-        const boosted = w.caffeinated || w.dosed || w.bossBoost > 1 || rushActive;
-        const fillColor = w.dosed ? '#F85149' : (w.comedown ? '#7D8590' : (boosted ? '#F59E0B' : '#3FB950'));
+        const boosted = w.dosed || w.bossBoost > 1 || rushActive;
+        const fillColor = w.dosed ? '#F59E0B' : (w.comedown ? '#7D8590' : (boosted ? '#F59E0B' : '#3FB950'));
         const bg = `linear-gradient(to right, ${fillColor} 0%, ${fillColor} ${pct}%, rgba(13,17,23,0.85) ${pct}%, rgba(13,17,23,0.85) 100%)`;
         wants.push({ text: '', cls: 'workbar', x: p.x, y: p.y, bg });
         if (paper <= 3) {
-          wants.push({ text: `🥫 ${paper}`, cls: 'prompt', x: p.x, y: p.y - 14 });
+          wants.push({ text: `📄 ${paper}`, cls: 'prompt', x: p.x, y: p.y - 14 });
         }
         const dxw = player.position.x - w.desk.group.position.x;
         const dzw = player.position.z - w.desk.group.position.z;
@@ -7312,7 +7417,7 @@ function updateLabels() {
         const mouseNear = Math.abs(mouseScreenX - p.x) < 36 && Math.abs(mouseScreenY - p.y) < 32;
         if ((playerNear || mouseNear) && paper > 3) {
           const fpm = ((w.currentRate || 0) * 60).toFixed(1);
-          const prefix = w.dosed ? '💊' : (w.comedown ? '😵' : (w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️')));
+          const prefix = w.dosed ? '🦴' : (w.comedown ? '😴' : (w.bossBoost > 1 ? '👀' : '🐾'));
           wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
         }
       }
@@ -7328,19 +7433,19 @@ function updateLabels() {
       wants.push({ text: moraleEmoji(m), cls: 'bubble', x: p.x, y: p.y });
     }
   }
-  // Stim bubble: 💊 while wired, 😵 while crashing — always visible so
-  // you can read the team's chemical state at a glance.
+  // Treat bubble: 🦴 while on zoomies, 😴 while napping it off — always
+  // visible so you can read the pack's energy at a glance.
   for (const w of ideaWorkers) {
     if (!w.dosed && !w.comedown) continue;
     const p = worldToScreen(w.group.position.x, 3.05, w.group.position.z);
-    wants.push({ text: w.dosed ? '💊' : '😵', cls: 'bubble', x: p.x, y: p.y });
+    wants.push({ text: w.dosed ? '🦴' : '😴', cls: 'bubble', x: p.x, y: p.y });
   }
   // EA in-flight emoji
   for (const e of eas) {
     let eaEmoji = null;
     if (e.state === S.CHATTING || e.state === S.TO_CHAT) eaEmoji = '💬';
-    else if (e.state === S.TO_COFFEE_DROP) eaEmoji = '💊';
-    else if (e.state === S.TO_DESK) eaEmoji = '🥫';
+    else if (e.state === S.TO_COFFEE_DROP) eaEmoji = '☕';
+    else if (e.state === S.TO_DESK) eaEmoji = '📄';
     if (eaEmoji) {
       const p = worldToScreen(e.group.position.x, 2.4, e.group.position.z);
       wants.push({ text: eaEmoji, cls: 'bubble', x: p.x, y: p.y });
@@ -7595,8 +7700,8 @@ function doIPO() {
   nextInvestorIn = 60 + Math.random() * 60;
   // Reset Sprint state so the new season starts with the button fresh
   sprintActive = false; sprintT = 0; sprintCooldownT = 0;
-  // Fresh company → empty medicine cabinet and reset pack pricing.
-  // Lifetime stimDosesGiven persists (it tracks an achievement).
+  // Fresh start → empty treat bag and reset bag pricing. Lifetime
+  // stimDosesGiven persists (it tracks an achievement).
   stimSupply = 0; stimPacksBought = 0;
   // New season — finish line resets and the bar's target scales up
   seasonGoalHit = false;
