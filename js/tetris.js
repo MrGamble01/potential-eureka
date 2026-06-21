@@ -23,7 +23,7 @@ const TetrisGame = (() => {
   let canvas, ctx, nextCanvas, nextCtx, holdCanvas, holdCtx;
   let board, current, next, held;
   let score, highScore, level, linesCleared;
-  let gameLoop, running, gameOver, canHold;
+  let gameLoop, running, gameOver, canHold, paused;
   let bag = [];
 
   // 7-bag randomiser for fair piece distribution
@@ -246,7 +246,9 @@ const TetrisGame = (() => {
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
-    gameOver = false; running = true;
+    gameOver = false; paused = false; running = true;
+    const pauseBtn = document.getElementById('tetris-pause-btn');
+    if (pauseBtn) pauseBtn.textContent = 'Pause';
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -275,9 +277,39 @@ const TetrisGame = (() => {
     }
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    const btn = document.getElementById('tetris-pause-btn');
+    if (paused) {
+      clearInterval(gameLoop);
+      if (btn) btn.textContent = 'Resume';
+      drawPauseOverlay();
+    } else {
+      gameLoop = setInterval(autoDown, dropMs());
+      if (btn) btn.textContent = 'Pause';
+      draw();
+    }
+  }
+
+  function drawPauseOverlay() {
+    ctx.fillStyle = 'rgba(13,17,23,0.75)';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = '#E6EDF3';
+    ctx.font = 'bold 20px Inter, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+    ctx.font = '11px Inter, monospace';
+    ctx.fillStyle = '#7D8590';
+    ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 26);
+    ctx.textAlign = 'left';
+  }
+
   function handleKey(e) {
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
     if (!running) return;
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { togglePause(); e.preventDefault(); return; }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
@@ -417,5 +449,5 @@ const TetrisGame = (() => {
     document.removeEventListener('keydown', handleKey);
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause };
 })();
