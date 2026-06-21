@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let paused, scorePopups;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,9 +26,11 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
+    scorePopups = [];
     updateInfo();
     draw();
 
@@ -65,6 +68,11 @@ const SnakeGame = (() => {
       start();
       return;
     }
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+      if (running) { togglePause(); e.preventDefault(); }
+      return;
+    }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
@@ -86,6 +94,8 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
+    scorePopups = [];
     speed = 120;
     spawnFood();
     updateInfo();
@@ -135,6 +145,23 @@ const SnakeGame = (() => {
     }
   }
 
+  function pauseGame() {
+    if (!running || gameOver || paused) return;
+    paused = true;
+    clearInterval(gameLoop);
+    draw();
+  }
+
+  function resumeGame() {
+    if (!running || !paused) return;
+    paused = false;
+    gameLoop = setInterval(tick, speed);
+  }
+
+  function togglePause() {
+    if (paused) resumeGame(); else pauseGame();
+  }
+
   function tick() {
     direction = { ...nextDirection };
     let head = {
@@ -167,6 +194,7 @@ const SnakeGame = (() => {
     if (head.x === food.x && head.y === food.y) {
       ate = true;
       score += 10;
+      scorePopups.push({ x: food.x * GRID + GRID / 2, y: food.y * GRID, text: '+10', color: '#F778BA', age: 0 });
       foodCount++;
       if (score > highScore) {
         highScore = score;
@@ -185,6 +213,7 @@ const SnakeGame = (() => {
       // Eat bonus food (snake also grows)
       ate = true;
       score += 50;
+      scorePopups.push({ x: bonusFood.x * GRID + GRID / 2, y: bonusFood.y * GRID, text: '+50', color: '#F7C948', age: 0 });
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -283,6 +312,39 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Score popups
+    if (scorePopups) {
+      scorePopups = scorePopups.filter(p => p.age < 36);
+      ctx.font = 'bold 14px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      for (const p of scorePopups) {
+        p.age++;
+        const alpha = Math.max(0, 1 - p.age / 36);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.fillText(p.text, p.x, p.y - p.age * 1.1);
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.textAlign = 'left';
+    }
+
+    // Pause overlay
+    if (paused && running) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.78)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '22px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 26);
+      ctx.textAlign = 'left';
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -293,7 +355,7 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys to move  ·  P to pause', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
