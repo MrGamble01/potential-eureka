@@ -14,6 +14,8 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let particles = [];
+  let animFrame;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -27,9 +29,10 @@ const SnakeGame = (() => {
     gameOver = false;
     foodCount = 0;
     bonusFood = null;
+    particles = [];
     wallWrap = false;
     updateInfo();
-    draw();
+    startDrawLoop();
 
     document.addEventListener('keydown', handleKey);
 
@@ -84,6 +87,7 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    particles = [];
     gameOver = false;
     running = true;
     speed = 120;
@@ -119,6 +123,17 @@ const SnakeGame = (() => {
       (food && food.x === pos.x && food.y === pos.y)
     ));
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
+  }
+
+  function spawnParticle(gridX, gridY, text, color) {
+    particles.push({
+      x: gridX * GRID + GRID / 2,
+      y: gridY * GRID,
+      text,
+      color,
+      startTime: Date.now(),
+      duration: 900,
+    });
   }
 
   function getLevel() {
@@ -172,6 +187,7 @@ const SnakeGame = (() => {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+      spawnParticle(head.x, head.y, '+10', '#F778BA');
       spawnFood();
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
@@ -185,6 +201,7 @@ const SnakeGame = (() => {
       // Eat bonus food (snake also grows)
       ate = true;
       score += 50;
+      spawnParticle(head.x, head.y, '+50', '#F7C948');
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -195,7 +212,6 @@ const SnakeGame = (() => {
     if (!ate) snake.pop();
 
     updateInfo();
-    draw();
   }
 
   function endGame() {
@@ -224,7 +240,70 @@ const SnakeGame = (() => {
     if (levelEl) levelEl.textContent = getLevel();
   }
 
+  function startDrawLoop() {
+    cancelAnimationFrame(animFrame);
+    function loop() {
+      draw();
+      animFrame = requestAnimationFrame(loop);
+    }
+    animFrame = requestAnimationFrame(loop);
+  }
+
+  function drawEyes() {
+    if (!snake.length || !running) return;
+    const head = snake[0];
+    const hx = head.x * GRID;
+    const hy = head.y * GRID;
+    const near = 5;
+    const far = GRID - 5;
+
+    let e1x, e1y, e2x, e2y;
+    if (direction.x === 1) {
+      e1x = hx + far;  e1y = hy + near;
+      e2x = hx + far;  e2y = hy + far;
+    } else if (direction.x === -1) {
+      e1x = hx + near; e1y = hy + near;
+      e2x = hx + near; e2y = hy + far;
+    } else if (direction.y === -1) {
+      e1x = hx + near; e1y = hy + near;
+      e2x = hx + far;  e2y = hy + near;
+    } else {
+      e1x = hx + near; e1y = hy + far;
+      e2x = hx + far;  e2y = hy + far;
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath(); ctx.arc(e1x, e1y, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(e2x, e2y, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(e1x, e1y, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(e2x, e2y, 1.2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawParticles() {
+    const now = Date.now();
+    particles = particles.filter(p => now - p.startTime < p.duration);
+    if (!particles.length) return;
+
+    ctx.save();
+    ctx.font = 'bold 13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    particles.forEach(p => {
+      const progress = (now - p.startTime) / p.duration;
+      const alpha = 1 - progress;
+      const dy = progress * 36;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 10;
+      ctx.fillText(p.text, p.x, p.y - dy);
+    });
+    ctx.restore();
+  }
+
   function draw() {
+    if (!ctx) return;
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -252,6 +331,9 @@ const SnakeGame = (() => {
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
     });
     ctx.shadowBlur = 0;
+
+    // Eyes on the head
+    drawEyes();
 
     // Regular food
     if (food) {
@@ -281,7 +363,24 @@ const SnakeGame = (() => {
       );
       ctx.fill();
       ctx.shadowBlur = 0;
+
+      // Countdown bar below the bonus food
+      if (timeLeft > 0) {
+        const barW = GRID + 6;
+        const barH = 3;
+        const bx = bonusFood.x * GRID + GRID / 2 - barW / 2;
+        const by = bonusFood.y * GRID + GRID + 2;
+        const fill = (timeLeft / 5000) * barW;
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillRect(bx, by, barW, barH);
+        const fillAlpha = timeLeft < 1500 ? timeLeft / 1500 : 1;
+        ctx.fillStyle = `rgba(247, 201, 72, ${fillAlpha})`;
+        ctx.fillRect(bx, by, fill, barH);
+      }
     }
+
+    // Floating score popups
+    drawParticles();
 
     // Start prompt
     if (!running && !gameOver) {
@@ -300,6 +399,7 @@ const SnakeGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    cancelAnimationFrame(animFrame);
     running = false;
   }
 
