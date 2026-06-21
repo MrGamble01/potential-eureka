@@ -181,6 +181,8 @@ const SnakeGame = (() => {
         clearInterval(gameLoop);
         gameLoop = setInterval(tick, speed);
       }
+      if (foodCount % 3 === 0) GameAudio.snakeLevelUp();
+      else GameAudio.snakeEat();
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
       // Eat bonus food (snake also grows)
       ate = true;
@@ -190,6 +192,7 @@ const SnakeGame = (() => {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+      GameAudio.snakeBonus();
     }
 
     if (!ate) snake.pop();
@@ -203,6 +206,7 @@ const SnakeGame = (() => {
     gameOver = true;
     bonusFood = null;
     clearInterval(gameLoop);
+    GameAudio.snakeDie();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {

@@ -180,7 +180,9 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
+    const prevLines = linesCleared;
     clearLines();
+    if (linesCleared === prevLines) GameAudio.tetrisLock();
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -198,6 +200,7 @@ const TetrisGame = (() => {
       }
     }
     if (!cleared) return;
+    GameAudio.tetrisClear(cleared);
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
@@ -225,6 +228,7 @@ const TetrisGame = (() => {
 
   function holdPiece() {
     if (!canHold || !current) return;
+    GameAudio.tetrisHold();
     canHold = false;
     const swapOut = freshPiece(current.type);
     if (held) {
@@ -263,6 +267,7 @@ const TetrisGame = (() => {
   function endGame() {
     running = false; gameOver = true;
     clearInterval(gameLoop);
+    GameAudio.tetrisGameOver();
     const ov = document.getElementById('tetris-overlay');
     if (ov) {
       ov.style.display = 'flex';
@@ -279,15 +284,15 @@ const TetrisGame = (() => {
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
     if (!running) return;
     switch (e.key) {
-      case 'ArrowLeft':  move(-1, 0); break;
-      case 'ArrowRight': move(1, 0);  break;
+      case 'ArrowLeft':  if (move(-1, 0)) GameAudio.tetrisMove(); break;
+      case 'ArrowRight': if (move(1, 0))  GameAudio.tetrisMove(); break;
       case 'ArrowDown':
         if (!move(0, 1)) lock();
         score += 1;
         break;
-      case 'ArrowUp': case 'x': case 'X': rotateCW();  break;
-      case 'z': case 'Z':                 rotateCCW(); break;
-      case ' ':  hardDrop(); e.preventDefault(); return;
+      case 'ArrowUp': case 'x': case 'X': rotateCW();  GameAudio.tetrisRotate(); break;
+      case 'z': case 'Z':                 rotateCCW(); GameAudio.tetrisRotate(); break;
+      case ' ':  GameAudio.tetrisHardDrop(); hardDrop(); e.preventDefault(); return;
       case 'c': case 'C':   holdPiece(); break;
       default: return;
     }
