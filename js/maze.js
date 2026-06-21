@@ -10,6 +10,14 @@ const MazeGame = (() => {
   let solving = false;
   let animFrameId = null;
 
+  // Play mode state
+  let playMode = false;
+  let player = null;
+  let playStartTime = null;
+  let playWon = false;
+  let timerInterval = null;
+  let moveCount = 0;
+
   function init() {
     canvas = document.getElementById('maze-canvas');
     if (!canvas) return;
@@ -18,12 +26,149 @@ const MazeGame = (() => {
     canvas.width = cols * CELL;
     canvas.height = rows * CELL;
     ctx = canvas.getContext('2d');
+    document.addEventListener('keydown', handlePlayKey);
     generate();
+  }
+
+  // ---- PLAY MODE ----
+  function startPlay() {
+    if (solving) return;
+    cancelAnimation();
+    stopTimer();
+    playMode = true;
+    playWon = false;
+    moveCount = 0;
+    player = { r: 1, c: 0 };
+    playStartTime = Date.now();
+
+    const btn = document.getElementById('maze-play-btn');
+    if (btn) { btn.textContent = 'Stop Playing'; btn.style.borderColor = '#F778BA'; btn.style.color = '#F778BA'; }
+
+    const solveBtn = document.getElementById('maze-solve-btn');
+    if (solveBtn) solveBtn.disabled = true;
+
+    timerInterval = setInterval(updatePlayInfo, 100);
+    updatePlayInfo();
+    drawPlay(null);
+    updateStatus('Navigate the maze with arrow keys! Find the exit.');
+  }
+
+  function stopPlay() {
+    playMode = false;
+    player = null;
+    stopTimer();
+
+    const btn = document.getElementById('maze-play-btn');
+    if (btn) { btn.textContent = 'Play'; btn.style.borderColor = ''; btn.style.color = ''; }
+
+    const solveBtn = document.getElementById('maze-solve-btn');
+    if (solveBtn) solveBtn.disabled = false;
+
+    const timerEl = document.getElementById('maze-timer');
+    if (timerEl) timerEl.textContent = '';
+
+    draw();
+    updateStatus('Maze generated. Choose an algorithm and solve!');
+  }
+
+  function togglePlay() {
+    if (playMode) stopPlay();
+    else startPlay();
+  }
+
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  function updatePlayInfo() {
+    const timerEl = document.getElementById('maze-timer');
+    if (!timerEl || !playStartTime) return;
+    const elapsed = (Date.now() - playStartTime) / 1000;
+    const moves = moveCount;
+    timerEl.textContent = `${elapsed.toFixed(1)}s · ${moves} moves`;
+  }
+
+  function handlePlayKey(e) {
+    if (!playMode || playWon) return;
+    const dirs = {
+      ArrowUp:    { dr: -1, dc: 0 },
+      ArrowDown:  { dr:  1, dc: 0 },
+      ArrowLeft:  { dr:  0, dc: -1 },
+      ArrowRight: { dr:  0, dc:  1 },
+    };
+    const d = dirs[e.key];
+    if (!d) return;
+    e.preventDefault();
+
+    const nr = player.r + d.dr;
+    const nc = player.c + d.dc;
+    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return;
+    if (grid[nr][nc] !== 0) return;
+
+    player.r = nr;
+    player.c = nc;
+    moveCount++;
+    updatePlayInfo();
+    drawPlay(null);
+
+    if (nr === rows - 2 && nc === cols - 1) {
+      playWon = true;
+      stopTimer();
+      const elapsed = ((Date.now() - playStartTime) / 1000).toFixed(1);
+      const timerEl = document.getElementById('maze-timer');
+      if (timerEl) timerEl.textContent = `${elapsed}s · ${moveCount} moves`;
+
+      const btn = document.getElementById('maze-play-btn');
+      if (btn) { btn.textContent = 'Play Again'; btn.style.borderColor = '#3FB950'; btn.style.color = '#3FB950'; }
+
+      const solveBtn = document.getElementById('maze-solve-btn');
+      if (solveBtn) solveBtn.disabled = false;
+
+      playMode = false;
+      drawPlay(null);
+      updateStatus(`You escaped! Time: ${elapsed}s, Moves: ${moveCount}`);
+
+      setTimeout(() => {
+        const b = document.getElementById('maze-play-btn');
+        if (b) { b.textContent = 'Play'; b.style.borderColor = ''; b.style.color = ''; }
+        player = null;
+      }, 3000);
+    }
+  }
+
+  function drawPlay(visited) {
+    drawWithVisited(visited || null, []);
+
+    if (!player) return;
+
+    // Draw player
+    const px = player.c * CELL + CELL / 2;
+    const py = player.r * CELL + CELL / 2;
+    const radius = CELL / 2 - 2;
+
+    ctx.save();
+    ctx.shadowColor = '#3FB950';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#3FB950';
+    ctx.beginPath();
+    ctx.arc(px, py, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (playWon) {
+      ctx.shadowColor = '#F7C948';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = '#F7C948';
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   // ---- GENERATION (Recursive Backtracking) ----
   function generate() {
     cancelAnimation();
+    stopPlay();
     solving = false;
     grid = Array.from({ length: rows }, () => Array(cols).fill(1));
 
@@ -65,7 +210,7 @@ const MazeGame = (() => {
 
   // ---- SOLVING ----
   async function solve(algorithm) {
-    if (solving) return;
+    if (solving || playMode) return;
     solving = true;
 
     // Reset visited/solution display
@@ -276,7 +421,9 @@ const MazeGame = (() => {
 
   function destroy() {
     cancelAnimation();
+    stopPlay();
+    document.removeEventListener('keydown', handlePlayKey);
   }
 
-  return { init, generate, solve, destroy };
+  return { init, generate, solve, togglePlay, destroy };
 })();
