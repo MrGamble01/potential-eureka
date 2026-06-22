@@ -26,6 +26,10 @@ const TetrisGame = (() => {
   let gameLoop, running, gameOver, canHold;
   let bag = [];
 
+  // DAS (Delayed Auto Shift) + ARR (Auto Repeat Rate) for smooth lateral movement
+  let dasTimer = null, arrTimer = null, dasKey = null;
+  const DAS_DELAY = 170, ARR_RATE = 50;
+
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
     if (bag.length === 0) {
@@ -82,6 +86,7 @@ const TetrisGame = (() => {
     drawPreview(holdCtx, null);
 
     document.addEventListener('keydown', handleKey);
+    document.addEventListener('keyup', handleKeyUp);
 
     // Basic touch support: swipe to move/drop, tap to rotate
     let tx = 0, ty = 0;
@@ -180,47 +185,80 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
-    clearLines();
-    canHold = true;
-    current = next;
-    next = drawFromBag();
-    drawPreview(nextCtx, next);
-    if (collides(current.shape, current.x, current.y)) endGame();
+
+    clearInterval(gameLoop); // Pause loop during clear animation
+
+    clearLines(() => {
+      canHold = true;
+      current = next;
+      next = drawFromBag();
+      drawPreview(nextCtx, next);
+      if (collides(current.shape, current.x, current.y)) { endGame(); return; }
+      if (running) gameLoop = setInterval(autoDown, dropMs());
+    });
   }
 
-  function clearLines() {
-    let cleared = 0;
+  // Finds full rows, plays a flash animation, then removes them and calls back.
+  function clearLines(callback) {
+    const fullRows = [];
     for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
+      if (board[r].every(cell => cell !== null)) fullRows.push(r);
+    }
+
+    if (!fullRows.length) { callback(); return; }
+
+    let flashes = 0;
+    const TOTAL_FLASHES = 6; // 3 on/off cycles
+
+    function flashStep() {
+      const bright = (flashes % 2 === 0);
+      for (const r of fullRows) {
+        if (bright) {
+          ctx.fillStyle = 'rgba(255,255,255,0.88)';
+          ctx.fillRect(0, r * CELL, WIDTH, CELL);
+        } else {
+          ctx.fillStyle = '#0d1117';
+          ctx.fillRect(0, r * CELL, WIDTH, CELL);
+          for (let c = 0; c < COLS; c++) {
+            if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+          }
+        }
+      }
+      flashes++;
+      if (flashes < TOTAL_FLASHES) {
+        setTimeout(flashStep, 55);
+      } else {
+        // Remove full rows top-to-bottom to keep indices stable
+        const sorted = fullRows.slice().sort((a, b) => b - a);
+        for (const r of sorted) {
+          board.splice(r, 1);
+          board.unshift(Array(COLS).fill(null));
+        }
+
+        const count = fullRows.length;
+        const pts = [0, 100, 300, 500, 800];
+        score += pts[Math.min(count, 4)] * level;
+        linesCleared += count;
+        const newLevel = Math.floor(linesCleared / 10) + 1;
+        if (newLevel !== level) level = newLevel;
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('tetris-high', String(highScore));
+        }
+        updateInfo();
+        draw();
+        callback();
       }
     }
-    if (!cleared) return;
-    const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
-    linesCleared += cleared;
-    const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem('tetris-high', String(highScore));
-    }
-    updateInfo();
+
+    setTimeout(flashStep, 0);
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
 
-  function restartLoop() {
-    if (!running) return;
-    clearInterval(gameLoop);
-    gameLoop = setInterval(autoDown, dropMs());
-  }
-
   function autoDown() {
     if (!move(0, 1)) lock();
-    draw(); updateInfo();
+    else { draw(); updateInfo(); }
   }
 
   function holdPiece() {
@@ -263,6 +301,7 @@ const TetrisGame = (() => {
   function endGame() {
     running = false; gameOver = true;
     clearInterval(gameLoop);
+    stopDAS();
     const ov = document.getElementById('tetris-overlay');
     if (ov) {
       ov.style.display = 'flex';
@@ -275,12 +314,41 @@ const TetrisGame = (() => {
     }
   }
 
+  // ── DAS / ARR ─────────────────────────────────────────────────
+
+  function startDAS(key) {
+    stopDAS();
+    dasKey = key;
+    dasTimer = setTimeout(() => {
+      arrTimer = setInterval(() => {
+        if (!running) { stopDAS(); return; }
+        if (dasKey === 'ArrowLeft') move(-1, 0);
+        else if (dasKey === 'ArrowRight') move(1, 0);
+        draw(); updateInfo();
+      }, ARR_RATE);
+    }, DAS_DELAY);
+  }
+
+  function stopDAS() {
+    clearTimeout(dasTimer);
+    clearInterval(arrTimer);
+    dasTimer = arrTimer = dasKey = null;
+  }
+
+  // ── Input ─────────────────────────────────────────────────────
+
   function handleKey(e) {
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
     if (!running) return;
     switch (e.key) {
-      case 'ArrowLeft':  move(-1, 0); break;
-      case 'ArrowRight': move(1, 0);  break;
+      case 'ArrowLeft':
+        move(-1, 0);
+        startDAS('ArrowLeft');
+        break;
+      case 'ArrowRight':
+        move(1, 0);
+        startDAS('ArrowRight');
+        break;
       case 'ArrowDown':
         if (!move(0, 1)) lock();
         score += 1;
@@ -292,6 +360,10 @@ const TetrisGame = (() => {
       default: return;
     }
     draw(); updateInfo();
+  }
+
+  function handleKeyUp(e) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') stopDAS();
   }
 
   // ── Rendering ──────────────────────────────────────────────
@@ -414,7 +486,9 @@ const TetrisGame = (() => {
   function destroy() {
     clearInterval(gameLoop);
     running = false;
+    stopDAS();
     document.removeEventListener('keydown', handleKey);
+    document.removeEventListener('keyup', handleKeyUp);
   }
 
   return { init, start, destroy };
