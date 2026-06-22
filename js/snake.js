@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let particles = [];
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -84,6 +85,7 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    particles = [];
     gameOver = false;
     running = true;
     speed = 120;
@@ -119,6 +121,22 @@ const SnakeGame = (() => {
       (food && food.x === pos.x && food.y === pos.y)
     ));
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
+  }
+
+  function spawnParticles(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 2.5;
+      particles.push({
+        x: x * GRID + GRID / 2,
+        y: y * GRID + GRID / 2,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 2 + Math.random() * 2,
+        life: 10,
+        color,
+      });
+    }
   }
 
   function getLevel() {
@@ -167,6 +185,7 @@ const SnakeGame = (() => {
     if (head.x === food.x && head.y === food.y) {
       ate = true;
       score += 10;
+      spawnParticles(food.x, food.y, '#F778BA');
       foodCount++;
       if (score > highScore) {
         highScore = score;
@@ -185,6 +204,7 @@ const SnakeGame = (() => {
       // Eat bonus food (snake also grows)
       ate = true;
       score += 50;
+      spawnParticles(bonusFood.x, bonusFood.y, '#F7C948');
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
@@ -193,6 +213,9 @@ const SnakeGame = (() => {
     }
 
     if (!ate) snake.pop();
+
+    particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; });
+    particles = particles.filter(p => p.life > 0);
 
     updateInfo();
     draw();
@@ -252,6 +275,40 @@ const SnakeGame = (() => {
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
     });
     ctx.shadowBlur = 0;
+
+    // Snake eyes on head
+    if (snake.length > 0 && running) {
+      const head = snake[0];
+      const perpX = direction.y;
+      const perpY = -direction.x;
+      const cx = head.x * GRID + GRID / 2 + direction.x * 3;
+      const cy = head.y * GRID + GRID / 2 + direction.y * 3;
+      [1, -1].forEach(side => {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(cx + perpX * 4 * side, cy + perpY * 4 * side, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0d1117';
+        ctx.beginPath();
+        ctx.arc(cx + perpX * 4 * side + direction.x, cy + perpY * 4 * side + direction.y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // Food burst particles
+    if (particles.length > 0) {
+      particles.forEach(p => {
+        ctx.globalAlpha = p.life / 10;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    }
 
     // Regular food
     if (food) {
