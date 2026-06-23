@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -65,6 +65,12 @@ const SnakeGame = (() => {
       start();
       return;
     }
+    if (running && (e.key === 'p' || e.key === 'P' || e.key === 'Escape')) {
+      togglePause();
+      e.preventDefault();
+      return;
+    }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
@@ -77,6 +83,16 @@ const SnakeGame = (() => {
     }
   }
 
+  function togglePause() {
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(tick, speed);
+    }
+    draw();
+  }
+
   function start() {
     snake = [{ x: Math.floor(COLS / 2), y: Math.floor(ROWS / 2) }];
     direction = { x: 1, y: 0 };
@@ -85,6 +101,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
@@ -201,6 +218,7 @@ const SnakeGame = (() => {
   function endGame() {
     running = false;
     gameOver = true;
+    paused = false;
     bonusFood = null;
     clearInterval(gameLoop);
 
@@ -283,6 +301,22 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Paused overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 22px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2 - 16);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('P or Esc to resume', WIDTH / 2, HEIGHT / 2 + 10);
+      ctx.fillText('WASD / Arrows · Wrap: ' + (wallWrap ? 'ON' : 'OFF'), WIDTH / 2, HEIGHT / 2 + 28);
+      ctx.textAlign = 'left';
+      return;
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -293,7 +327,7 @@ const SnakeGame = (() => {
       ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD or Arrow Keys to move  ·  P to pause', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
