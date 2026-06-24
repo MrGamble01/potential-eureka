@@ -145,6 +145,7 @@ const TetrisGame = (() => {
       if (!collides(rotated, current.x + k, current.y)) {
         current.shape = rotated;
         current.x += k;
+        SoundEngine.rotate();
         return;
       }
     }
@@ -167,6 +168,7 @@ const TetrisGame = (() => {
       current.y++; dropped++;
     }
     score += dropped * 2;
+    SoundEngine.hardDrop();
     lock();
   }
 
@@ -202,7 +204,13 @@ const TetrisGame = (() => {
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
-    if (newLevel !== level) { level = newLevel; restartLoop(); }
+    if (newLevel !== level) {
+      level = newLevel;
+      SoundEngine.levelUp();
+      restartLoop();
+    } else {
+      SoundEngine.clearLines(cleared);
+    }
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('tetris-high', String(highScore));
@@ -226,6 +234,7 @@ const TetrisGame = (() => {
   function holdPiece() {
     if (!canHold || !current) return;
     canHold = false;
+    SoundEngine.hold();
     const swapOut = freshPiece(current.type);
     if (held) {
       const swapIn = held;
@@ -263,6 +272,7 @@ const TetrisGame = (() => {
   function endGame() {
     running = false; gameOver = true;
     clearInterval(gameLoop);
+    SoundEngine.died();
     const ov = document.getElementById('tetris-overlay');
     if (ov) {
       ov.style.display = 'flex';
