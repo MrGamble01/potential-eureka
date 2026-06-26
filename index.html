@@ -294,6 +294,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
+        <button id="snake-pause-btn" onclick="SnakeGame.togglePause()" style="display:none">Pause</button>
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
@@ -317,6 +318,11 @@
           <option value="astar">A* Search</option>
         </select>
         <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim)">
+          Speed
+          <input type="range" id="maze-speed" min="1" max="5" value="3" style="width:72px;cursor:pointer" title="Animation speed" oninput="document.getElementById('maze-speed-label').textContent=['','Slow','Med-Slow','Medium','Fast','Instant'][this.value]">
+          <span id="maze-speed-label">Medium</span>
+        </label>
       </div>
       <div class="game-info">
         <span id="maze-status" style="color: var(--text-dim)">Generate a maze to begin</span>

@@ -12,7 +12,7 @@ const SnakeGame = (() => {
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
-  let foodCount, wallWrap;
+  let foodCount, wallWrap, paused;
   let gameLoop, running, gameOver;
 
   function init() {
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -65,6 +66,8 @@ const SnakeGame = (() => {
       start();
       return;
     }
+    if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
@@ -77,6 +80,35 @@ const SnakeGame = (() => {
     }
   }
 
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    const btn = document.getElementById('snake-pause-btn');
+    if (paused) {
+      clearInterval(gameLoop);
+      if (btn) btn.textContent = 'Resume';
+      drawPauseOverlay();
+    } else {
+      gameLoop = setInterval(tick, speed);
+      if (btn) btn.textContent = 'Pause';
+      draw();
+    }
+  }
+
+  function drawPauseOverlay() {
+    draw();
+    ctx.fillStyle = 'rgba(13,17,23,0.65)';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = '#E6EDF3';
+    ctx.font = 'bold 22px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillStyle = '#7D8590';
+    ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 24);
+    ctx.textAlign = 'left';
+  }
+
   function start() {
     snake = [{ x: Math.floor(COLS / 2), y: Math.floor(ROWS / 2) }];
     direction = { x: 1, y: 0 };
@@ -85,6 +117,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
@@ -92,6 +125,8 @@ const SnakeGame = (() => {
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = 'Pause'; }
 
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
@@ -201,8 +236,11 @@ const SnakeGame = (() => {
   function endGame() {
     running = false;
     gameOver = true;
+    paused = false;
     bonusFood = null;
     clearInterval(gameLoop);
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) pauseBtn.style.display = 'none';
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -303,5 +341,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
