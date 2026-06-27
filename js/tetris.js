@@ -188,6 +188,20 @@ const TetrisGame = (() => {
     if (collides(current.shape, current.x, current.y)) endGame();
   }
 
+  function showClearMsg(cleared) {
+    const el = document.getElementById('tetris-clear-msg');
+    if (!el) return;
+    const labels = ['', 'SINGLE', 'DOUBLE!', 'TRIPLE!!', 'TETRIS!!!'];
+    const colors = ['', '#3FB950', '#58A6FF', '#6C63FF', '#F0D000'];
+    const sizes  = ['', '18px', '22px', '26px', '30px'];
+    el.textContent  = labels[Math.min(cleared, 4)];
+    el.style.color    = colors[Math.min(cleared, 4)];
+    el.style.fontSize = sizes[Math.min(cleared, 4)];
+    el.classList.remove('show');
+    void el.offsetWidth; // restart animation
+    el.classList.add('show');
+  }
+
   function clearLines() {
     let cleared = 0;
     for (let r = ROWS - 1; r >= 0; r--) {
@@ -200,6 +214,7 @@ const TetrisGame = (() => {
     if (!cleared) return;
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
+    showClearMsg(cleared);
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
