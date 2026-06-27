@@ -254,3 +254,29 @@ canvas.game-canvas {
   letter-spacing: 1px;
 }
 
+/* Line-clear popup */
+.tetris-clear-msg {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  white-space: nowrap;
+  text-shadow: 0 0 16px currentColor;
+}
+
+.tetris-clear-msg.show {
+  animation: tetris-clear-pop 900ms ease-out forwards;
+}
+
+@keyframes tetris-clear-pop {
+  0%   { opacity: 1; transform: translate(-50%, -20%); }
+  55%  { opacity: 1; transform: translate(-50%, -55%); }
+  100% { opacity: 0; transform: translate(-50%, -75%); }
+}
+
