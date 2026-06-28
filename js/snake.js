@@ -3,17 +3,26 @@
    ============================================ */
 
 const SnakeGame = (() => {
-  const GRID = 20;          // grid cell size in pixels
+  const GRID = 20;
   const COLS = 30;
   const ROWS = 20;
   const WIDTH = COLS * GRID;
   const HEIGHT = ROWS * GRID;
 
+  // Power-up definitions
+  const PUPS = {
+    SLOW:   { color: '#56D4F5', glow: '#56D4F5', label: 'SLOW',   sym: 'S', duration: 7000 },
+    SHIELD: { color: '#3FB950', glow: '#3FB950', label: 'SHIELD', sym: 'H', duration: 0    },
+    DOUBLE: { color: '#FF9F1C', glow: '#FF9F1C', label: '×2',     sym: '2', duration: 8000 },
+  };
+  const PUP_KEYS = Object.keys(PUPS);
+
   let canvas, ctx;
   let snake, direction, nextDirection;
-  let food, bonusFood, score, highScore, speed;
+  let food, bonusFood, powerUp, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let slowUntil, shieldActive, doubleUntil;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -27,6 +36,10 @@ const SnakeGame = (() => {
     gameOver = false;
     foodCount = 0;
     bonusFood = null;
+    powerUp = null;
+    slowUntil = 0;
+    shieldActive = false;
+    doubleUntil = 0;
     wallWrap = false;
     updateInfo();
     draw();
@@ -84,11 +97,16 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    powerUp = null;
+    slowUntil = 0;
+    shieldActive = false;
+    doubleUntil = 0;
     gameOver = false;
     running = true;
     speed = 120;
     spawnFood();
     updateInfo();
+    updateEffectsUI();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
@@ -121,8 +139,43 @@ const SnakeGame = (() => {
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
   }
 
+  function spawnPowerUp() {
+    let pos, attempts = 0;
+    do {
+      pos = {
+        x: Math.floor(Math.random() * COLS),
+        y: Math.floor(Math.random() * ROWS),
+      };
+      attempts++;
+    } while (attempts < 100 && (
+      snake.some(s => s.x === pos.x && s.y === pos.y) ||
+      (food && food.x === pos.x && food.y === pos.y) ||
+      (bonusFood && bonusFood.x === pos.x && bonusFood.y === pos.y)
+    ));
+    const type = PUP_KEYS[Math.floor(Math.random() * PUP_KEYS.length)];
+    powerUp = { ...pos, type, expireAt: Date.now() + 9000 };
+  }
+
+  function applyPowerUp(type) {
+    const now = Date.now();
+    if (type === 'SLOW') {
+      slowUntil = now + PUPS.SLOW.duration;
+      clearInterval(gameLoop);
+      gameLoop = setInterval(tick, Math.round(speed * 1.8));
+    } else if (type === 'SHIELD') {
+      shieldActive = true;
+    } else if (type === 'DOUBLE') {
+      doubleUntil = now + PUPS.DOUBLE.duration;
+    }
+    updateEffectsUI();
+  }
+
   function getLevel() {
     return Math.floor(foodCount / 3) + 1;
+  }
+
+  function getMultiplier() {
+    return (doubleUntil && Date.now() < doubleUntil) ? 2 : 1;
   }
 
   function toggleWallWrap() {
@@ -136,6 +189,21 @@ const SnakeGame = (() => {
   }
 
   function tick() {
+    const now = Date.now();
+
+    // Check SLOW expiry — restore normal tick speed
+    if (slowUntil && now > slowUntil) {
+      slowUntil = 0;
+      clearInterval(gameLoop);
+      gameLoop = setInterval(tick, speed);
+      updateEffectsUI();
+    }
+    // Check DOUBLE expiry
+    if (doubleUntil && now > doubleUntil) {
+      doubleUntil = 0;
+      updateEffectsUI();
+    }
+
     direction = { ...nextDirection };
     let head = {
       x: snake[0].x + direction.x,
@@ -146,55 +214,74 @@ const SnakeGame = (() => {
       head.x = (head.x + COLS) % COLS;
       head.y = (head.y + ROWS) % ROWS;
     } else if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+      if (shieldActive) {
+        // Shield absorbs wall hit — snake freezes for this tick
+        shieldActive = false;
+        updateEffectsUI();
+        draw();
+        return;
+      }
       return endGame();
     }
 
     // Self collision
     if (snake.some(s => s.x === head.x && s.y === head.y)) {
+      if (shieldActive) {
+        // Shield absorbs self collision
+        shieldActive = false;
+        updateEffectsUI();
+        draw();
+        return;
+      }
       return endGame();
     }
 
     snake.unshift(head);
 
-    // Expire bonus food
-    if (bonusFood && Date.now() > bonusFood.expireAt) {
-      bonusFood = null;
-    }
+    // Expire bonus food and power-up
+    if (bonusFood && now > bonusFood.expireAt) bonusFood = null;
+    if (powerUp && now > powerUp.expireAt) powerUp = null;
 
     let ate = false;
 
     // Eat regular food
     if (head.x === food.x && head.y === food.y) {
       ate = true;
-      score += 10;
+      score += 10 * getMultiplier();
       foodCount++;
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
       spawnFood();
-      // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
-      // Speed up slightly
+      if (foodCount % 8 === 0) spawnPowerUp();
+      // Speed up slightly (only update interval when SLOW is not active)
       if (speed > 60) {
         speed -= 2;
-        clearInterval(gameLoop);
-        gameLoop = setInterval(tick, speed);
+        if (!slowUntil) {
+          clearInterval(gameLoop);
+          gameLoop = setInterval(tick, speed);
+        }
       }
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
-      // Eat bonus food (snake also grows)
       ate = true;
-      score += 50;
+      score += 50 * getMultiplier();
       bonusFood = null;
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
       }
+    } else if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
+      // Power-ups don't grow the snake
+      applyPowerUp(powerUp.type);
+      powerUp = null;
     }
 
     if (!ate) snake.pop();
 
     updateInfo();
+    updateEffectsUI();
     draw();
   }
 
@@ -202,7 +289,12 @@ const SnakeGame = (() => {
     running = false;
     gameOver = true;
     bonusFood = null;
+    powerUp = null;
+    slowUntil = 0;
+    shieldActive = false;
+    doubleUntil = 0;
     clearInterval(gameLoop);
+    updateEffectsUI();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -224,6 +316,59 @@ const SnakeGame = (() => {
     if (levelEl) levelEl.textContent = getLevel();
   }
 
+  function updateEffectsUI() {
+    const el = document.getElementById('snake-effects');
+    if (!el) return;
+    const now = Date.now();
+    const pills = [];
+    if (slowUntil && now < slowUntil) {
+      const secs = Math.ceil((slowUntil - now) / 1000);
+      pills.push(`<span class="snake-effect-pill" style="border-color:#56D4F5;color:#56D4F5;background:rgba(86,212,245,0.12)">SLOW ${secs}s</span>`);
+    }
+    if (shieldActive) {
+      pills.push(`<span class="snake-effect-pill" style="border-color:#3FB950;color:#3FB950;background:rgba(63,185,80,0.12)">SHIELD</span>`);
+    }
+    if (doubleUntil && now < doubleUntil) {
+      const secs = Math.ceil((doubleUntil - now) / 1000);
+      pills.push(`<span class="snake-effect-pill" style="border-color:#FF9F1C;color:#FF9F1C;background:rgba(255,159,28,0.12)">×2 ${secs}s</span>`);
+    }
+    el.innerHTML = pills.join('');
+  }
+
+  // ---- Canvas helpers ----
+
+  function drawDiamond(cx, cy, r) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r);
+    ctx.lineTo(cx + r, cy);
+    ctx.lineTo(cx, cy + r);
+    ctx.lineTo(cx - r, cy);
+    ctx.closePath();
+  }
+
+  function drawHexagon(cx, cy, r) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i - Math.PI / 6;
+      const x = cx + r * Math.cos(a);
+      const y = cy + r * Math.sin(a);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  function drawStar(cx, cy, outerR, innerR) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const a = (Math.PI / 5) * i - Math.PI / 2;
+      const x = cx + r * Math.cos(a);
+      const y = cy + r * Math.sin(a);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
   function draw() {
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -238,15 +383,17 @@ const SnakeGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * GRID); ctx.lineTo(WIDTH, y * GRID); ctx.stroke();
     }
 
-    // Snake
+    // Snake — tinted green when SHIELD is active
+    const headColor = shieldActive ? '#3FB950' : '#6C63FF';
     snake.forEach((seg, i) => {
       const brightness = 1 - (i / snake.length) * 0.5;
       if (i === 0) {
-        ctx.fillStyle = '#6C63FF';
-        ctx.shadowColor = '#6C63FF';
+        ctx.fillStyle = headColor;
+        ctx.shadowColor = headColor;
         ctx.shadowBlur = 8;
       } else {
-        ctx.fillStyle = `rgba(108, 99, 255, ${brightness})`;
+        const c = shieldActive ? '63, 185, 80' : '108, 99, 255';
+        ctx.fillStyle = `rgba(${c}, ${brightness})`;
         ctx.shadowBlur = 0;
       }
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
@@ -281,6 +428,41 @@ const SnakeGame = (() => {
       );
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Power-up — distinct shape per type, fades in last 2s
+    if (powerUp) {
+      const cfg = PUPS[powerUp.type];
+      const timeLeft = powerUp.expireAt - Date.now();
+      const alpha = timeLeft < 2000 ? timeLeft / 2000 : 1;
+      const pulse = Math.sin(Date.now() / 150) * 1;
+      const cx = powerUp.x * GRID + GRID / 2;
+      const cy = powerUp.y * GRID + GRID / 2;
+      const r = GRID / 2 - 1 + pulse * 0.5;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = cfg.glow;
+      ctx.shadowBlur = 12 + pulse * 2;
+      ctx.fillStyle = cfg.color;
+
+      if (powerUp.type === 'SLOW') {
+        drawDiamond(cx, cy, r);
+      } else if (powerUp.type === 'SHIELD') {
+        drawHexagon(cx, cy, r);
+      } else {
+        drawStar(cx, cy, r, r * 0.45);
+      }
+      ctx.fill();
+
+      // Inset symbol
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#0d1117';
+      ctx.font = `bold ${Math.floor(GRID * 0.42)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cfg.sym, cx, cy + 1);
+      ctx.restore();
     }
 
     // Start prompt
