@@ -773,12 +773,77 @@
     }
 
     /* ── Achievements + Theme modals ─────────────────── */
-    #achievements-modal, #theme-modal, #welcome-modal, #offline-modal, #help-modal {
+    #achievements-modal, #theme-modal, #welcome-modal, #offline-modal, #help-modal, #dash-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.7);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       display: none; align-items: center; justify-content: center; z-index: 210;
     }
-    #achievements-modal.open, #theme-modal.open, #welcome-modal.open, #offline-modal.open, #help-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    #achievements-modal.open, #theme-modal.open, #welcome-modal.open, #offline-modal.open, #help-modal.open, #dash-modal.open { display: flex; animation: tipFade 0.2s ease; }
+
+    /* ── Company Dashboard modal ─────────────────────── */
+    .dash-panel {
+      background: rgba(13,17,23,0.98);
+      border: 1px solid rgba(63,185,80,0.34);
+      border-radius: 16px; padding: 22px 22px 20px; max-width: 600px; width: 94vw;
+      max-height: 88vh; overflow-y: auto;
+      box-shadow: 0 18px 54px rgba(0,0,0,0.6), 0 0 32px rgba(63,185,80,0.14);
+      text-align: left;
+    }
+    .dash-title {
+      font-size: 22px; font-weight: 800; margin-bottom: 2px; text-align: center;
+      background: linear-gradient(135deg, #3FB950, #22d3ee);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .dash-sub { font-size: 12px; color:#7D8590; letter-spacing:0.5px; margin-bottom:16px; text-align:center; }
+    .dash-hero {
+      text-align:center; margin: 0 0 18px; padding:14px 12px;
+      background: linear-gradient(135deg, rgba(63,185,80,0.11), rgba(34,211,238,0.08));
+      border:1px solid rgba(63,185,80,0.26); border-radius:12px;
+    }
+    .dash-hero .h-lbl { font-size:10px; text-transform:uppercase; letter-spacing:1.4px; color:#7D8590; font-weight:700; }
+    .dash-hero .h-val {
+      font-size:34px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1.15; margin-top:2px;
+      background:linear-gradient(135deg,#3FB950,#22d3ee);
+      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .dash-hero .h-sub { font-size:10px; color:#7D8590; margin-top:3px; }
+    #valuation-chip { color:#67e8f9; font-weight:800; font-variant-numeric:tabular-nums; display:inline-block; }
+    @keyframes valPulse { 0%,100%{ transform:none; text-shadow:none; } 40%{ transform:scale(1.28); text-shadow:0 0 14px rgba(103,232,249,0.85); } }
+    #valuation-chip.pulse { animation: valPulse 0.6s ease; }
+    @media (prefers-reduced-motion: reduce) { #valuation-chip.pulse { animation: none; } }
+    @media (max-width: 640px) { #val-sep, #valuation-chip { display:none; } }
+    .dash-kpis { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:18px; }
+    .dash-kpi {
+      background: rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08);
+      border-radius:10px; padding:10px 12px;
+    }
+    .dash-kpi .k-lbl { font-size:9px; text-transform:uppercase; letter-spacing:0.9px; color:#7D8590; font-weight:700; }
+    .dash-kpi .k-val { font-size:18px; font-weight:800; color:#E6EDF3; font-variant-numeric:tabular-nums; margin-top:3px; }
+    .dash-kpi.accent { border-color:rgba(63,185,80,0.32); background:rgba(63,185,80,0.07); }
+    .dash-kpi.accent .k-val { color:#3FB950; }
+    .dash-section-title { font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; color:#7D8590; margin:2px 0 8px; }
+    .dash-chart-wrap {
+      position:relative; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);
+      border-radius:10px; padding:10px; margin-bottom:18px;
+    }
+    #dash-spark { width:100%; height:120px; display:block; }
+    .dash-chart-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#5a626d; font-size:12px; font-weight:600; }
+    .dash-src { display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+    .dash-src-row { display:flex; align-items:center; gap:10px; }
+    .dash-src-row .s-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+    .dash-src-row .s-name { font-size:11px; color:#cdd5df; font-weight:600; width:84px; flex-shrink:0; }
+    .dash-src-row .s-bar { flex:1; height:8px; border-radius:4px; background:rgba(255,255,255,0.06); overflow:hidden; }
+    .dash-src-row .s-fill { height:100%; border-radius:4px; }
+    .dash-src-row .s-amt { font-size:11px; font-weight:700; color:#E6EDF3; width:64px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
+    .dash-team { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:18px; }
+    .dash-team .t-chip {
+      display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:5px 11px;
+      font-size:12px; font-weight:700; color:#E6EDF3;
+    }
+    .dash-team .t-chip .t-emoji { font-size:14px; }
+    .dash-team .t-chip .t-n { color:#3FB950; font-variant-numeric:tabular-nums; }
+    @media (max-width:560px){ .dash-kpis { grid-template-columns: repeat(2,1fr); } }
 
     /* Help modal sections */
     .help-section { margin: 14px 0 6px; }
@@ -1270,6 +1335,8 @@
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
   <span id="season-badge">S1</span>
+  <span class="sep" id="val-sep">|</span>
+  <span id="valuation-chip" title="Company valuation — a momentum-weighted estimate from your cash, recurring revenue, live earn rate, and users. Watch it climb.">💎 $0</span>
   <span class="sep" id="trophy-sep" style="display:none">|</span>
   <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
@@ -1300,6 +1367,28 @@
     <div class="ach-progress" id="ach-progress">0 / 0</div>
     <div class="ach-list" id="ach-list"></div>
     <button class="tip-ok" id="ach-close">Close</button>
+  </div>
+</div>
+<div id="dash-modal" role="dialog">
+  <div class="dash-panel">
+    <div class="dash-title">📊 Company Dashboard</div>
+    <div class="dash-sub" id="dash-sub">Your startup at a glance</div>
+    <div class="dash-hero" id="dash-hero">
+      <div class="h-lbl">💎 Estimated valuation</div>
+      <div class="h-val" id="dash-val">$0</div>
+      <div class="h-sub" id="dash-val-sub">cash + recurring revenue + run-rate momentum</div>
+    </div>
+    <div class="dash-kpis" id="dash-kpis"></div>
+    <div class="dash-section-title">📈 Season revenue over time</div>
+    <div class="dash-chart-wrap">
+      <canvas id="dash-spark"></canvas>
+      <div class="dash-chart-empty" id="dash-chart-empty">Collecting data…</div>
+    </div>
+    <div class="dash-section-title">💰 Income by source · this session</div>
+    <div class="dash-src" id="dash-src"></div>
+    <div class="dash-section-title">👥 Team</div>
+    <div class="dash-team" id="dash-team"></div>
+    <button class="tip-ok" id="dash-close">Close</button>
   </div>
 </div>
 <div id="theme-modal" role="dialog">
@@ -1464,6 +1553,7 @@
       </select>
     </label>
     <button class="hire-btn" id="open-help-btn" style="margin-top:8px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)">❓ How to Play</button>
+    <button class="hire-btn" id="open-dash-btn" style="margin-top:4px;background:rgba(63,185,80,0.12);border-color:rgba(63,185,80,0.3);color:#3FB950">📊 Dashboard</button>
     <button class="hire-btn" id="open-ach-btn" style="margin-top:4px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
@@ -5330,6 +5420,146 @@ document.getElementById('open-ach-btn').addEventListener('click', () => {
 document.getElementById('ach-close').addEventListener('click', () => achModalEl.classList.remove('open'));
 achModalEl.addEventListener('click', e => { if (e.target === achModalEl) achModalEl.classList.remove('open'); });
 
+// ── Company Dashboard ───────────────────────────────────────────
+// A full-screen "command center": KPI cards, a season-revenue
+// sparkline, an income-by-source breakdown, and team composition.
+// Pure read-out of existing game state — opened from Settings or by
+// tapping the metrics HUD; nothing here mutates the simulation.
+const incomeBySource = { eng: 0, sales: 0, exec: 0, investor: 0, funding: 0, event: 0 };
+const dashHistory = [];            // [{ t, rev }] season-revenue samples
+let _dashT0 = Date.now();
+// Sample season revenue on a steady cadence so the chart is time-true
+// regardless of frame rate. Capped buffer keeps memory flat.
+setInterval(() => {
+  if (typeof seasonRecurringRevenue !== 'number') return;
+  dashHistory.push({ t: Date.now() - _dashT0, rev: seasonRecurringRevenue });
+  if (dashHistory.length > 240) dashHistory.shift();
+  if (dashModalEl.classList.contains('open')) drawDashSpark();
+}, 1500);
+
+const dashModalEl = document.getElementById('dash-modal');
+const dashKpisEl  = document.getElementById('dash-kpis');
+const dashSubEl   = document.getElementById('dash-sub');
+const dashSrcEl   = document.getElementById('dash-src');
+const dashTeamEl  = document.getElementById('dash-team');
+const dashValEl   = document.getElementById('dash-val');
+const valuationChipEl = document.getElementById('valuation-chip');
+
+// A momentum-weighted "what would a VC pay" number. Deliberately
+// generous and growth-tilted so it climbs satisfyingly: cash in the
+// bank, a fat multiple on recurring revenue, the live run-rate
+// annualised-ish and scaled by product maturity, plus a little per
+// user. Pure cosmetic readout — never gates anything.
+function companyValuation() {
+  const cash = state.cash || 0;
+  const arr  = (typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
+  const rate = (typeof currentRatePerMin === 'function' ? currentRatePerMin() : 0) || 0;
+  const vMult = (typeof productVersionMult === 'number' ? productVersionMult : 1) || 1;
+  const pMult = (typeof prestigeMultiplier === 'number' ? prestigeMultiplier : 1) || 1;
+  const runRate = rate * 60 * 10 * vMult;   // hourly run-rate × 10 × product version
+  const users   = (typeof totalUsers === 'number' ? totalUsers : 0) * 3;
+  return Math.round(cash + arr * 5 * pMult + runRate + users);
+}
+
+function drawDashSpark() {
+  const cv = document.getElementById('dash-spark');
+  const empty = document.getElementById('dash-chart-empty');
+  if (!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 520, h = cv.clientHeight || 120;
+  if (w === 0) return; // modal not laid out yet
+  cv.width = w * dpr; cv.height = h * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const data = dashHistory;
+  if (data.length < 2) { if (empty) empty.style.display = 'flex'; return; }
+  if (empty) empty.style.display = 'none';
+  const maxRev = Math.max(1, ...data.map(d => d.rev));
+  const n = data.length;
+  const px = i => (i / (n - 1)) * (w - 8) + 4;
+  const py = v => h - 6 - (v / maxRev) * (h - 18);
+  // gridlines
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+  for (let g = 1; g <= 3; g++) { const gy = (h / 4) * g; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
+  // area fill
+  ctx.beginPath(); ctx.moveTo(px(0), py(data[0].rev));
+  for (let i = 1; i < n; i++) ctx.lineTo(px(i), py(data[i].rev));
+  ctx.lineTo(px(n - 1), h); ctx.lineTo(px(0), h); ctx.closePath();
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(63,185,80,0.34)'); grad.addColorStop(1, 'rgba(63,185,80,0.02)');
+  ctx.fillStyle = grad; ctx.fill();
+  // line
+  ctx.beginPath(); ctx.moveTo(px(0), py(data[0].rev));
+  for (let i = 1; i < n; i++) ctx.lineTo(px(i), py(data[i].rev));
+  ctx.lineWidth = 2; ctx.strokeStyle = '#3FB950'; ctx.lineJoin = 'round'; ctx.stroke();
+  // end marker
+  ctx.beginPath(); ctx.arc(px(n - 1), py(data[n - 1].rev), 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#3FB950'; ctx.fill();
+}
+
+const DASH_SOURCES = [
+  ['eng',      '💻 Product',   '#3FB950'],
+  ['sales',    '📞 Sales',     '#F59E0B'],
+  ['exec',     '👔 Exec',      '#A78BFA'],
+  ['investor', '🤝 Investors', '#FCD34D'],
+  ['funding',  '💸 Funding',   '#22D3EE'],
+  ['event',    '🎲 Events',    '#F472B6'],
+];
+function renderDashboard() {
+  if (dashValEl) dashValEl.textContent = '$' + fmtCash(companyValuation());
+  const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
+  const kpis = [
+    ['Cash on hand',    '$' + fmtCash(state.cash), true],
+    ['Season revenue',  '$' + fmtCash(seasonRecurringRevenue), false],
+    ['Earn rate',       '$' + fmtCash(currentRatePerMin()) + '/min', false],
+    ['Earned (season)', '$' + fmtCash(state.allTimeCash), false],
+    ['Users',           fmtCash(totalUsers), false],
+    ['Features shipped', fmtCash(totalFeaturesShipped), false],
+  ];
+  dashKpisEl.innerHTML = kpis.map(([l, v, a]) =>
+    `<div class="dash-kpi${a ? ' accent' : ''}"><div class="k-lbl">${l}</div><div class="k-val">${v}</div></div>`).join('');
+  dashSubEl.textContent = `${currentProductVersion.ver} · ${headcount} on the team · season ${prestigeLevel + 1}`;
+
+  const total = Math.max(1, DASH_SOURCES.reduce((s, [k]) => s + (incomeBySource[k] || 0), 0));
+  const rows = DASH_SOURCES.filter(([k]) => (incomeBySource[k] || 0) > 0).map(([k, name, col]) => {
+    const amt = incomeBySource[k] || 0;
+    return `<div class="dash-src-row"><span class="s-dot" style="background:${col}"></span>` +
+      `<span class="s-name">${name}</span>` +
+      `<span class="s-bar"><span class="s-fill" style="width:${(amt / total * 100).toFixed(1)}%;background:${col}"></span></span>` +
+      `<span class="s-amt">$${fmtCash(amt)}</span></div>`;
+  }).join('');
+  dashSrcEl.innerHTML = rows || '<div style="color:#5a626d;font-size:12px">No income yet — hire an engineer to start shipping.</div>';
+
+  const team = [
+    ['💻', 'Engineers', ideaWorkers.length],
+    ['📞', 'BDRs', bdrs.length],
+    ['💼', 'AEs', aes.length],
+    ['👔', 'VPs', vps.length],
+    ['🎧', 'EAs', eas.length],
+  ];
+  dashTeamEl.innerHTML = team.map(([e, name, n]) =>
+    `<span class="t-chip"><span class="t-emoji">${e}</span>${name} <span class="t-n">${n}</span></span>`).join('');
+}
+function openDashboard() {
+  renderDashboard();
+  dashModalEl.classList.add('open');
+  requestAnimationFrame(drawDashSpark); // draw once the panel has a layout
+}
+document.getElementById('open-dash-btn').addEventListener('click', openDashboard);
+document.getElementById('dash-close').addEventListener('click', () => dashModalEl.classList.remove('open'));
+dashModalEl.addEventListener('click', e => { if (e.target === dashModalEl) dashModalEl.classList.remove('open'); });
+// The metrics HUD doubles as a shortcut into the full dashboard.
+{
+  const mh = document.getElementById('metrics-hud');
+  if (mh) {
+    mh.style.pointerEvents = 'auto';
+    mh.style.cursor = 'pointer';
+    mh.title = 'Open the full company dashboard';
+    mh.addEventListener('click', openDashboard);
+  }
+}
+
 // Help modal — accessible from Settings or the "?" hotkey.
 const helpModalEl = document.getElementById('help-modal');
 document.getElementById('open-help-btn').addEventListener('click', () => helpModalEl.classList.add('open'));
@@ -6353,6 +6583,7 @@ function addCash(n, source = 'eng') {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
+    if (source in incomeBySource) incomeBySource[source] += n;
     showCashPop(n, source);
     checkMilestones();
     SFX.cash();
@@ -6884,6 +7115,7 @@ addEventListener('keydown', e => {
     elevModal.classList.remove('open');
     achModalEl.classList.remove('open');
     winModalEl.classList.remove('open');
+    dashModalEl.classList.remove('open');
     document.getElementById('help-modal').classList.remove('open');
   }
   // "?" or "/" opens the help / hotkeys modal. (No movement conflict
@@ -7535,6 +7767,7 @@ function doIPO() {
   snapCashHud();  // skip the animated dip from old cash to new
   nextMilestoneIdx = 0;
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
+  dashHistory.length = 0; _dashT0 = Date.now(); // restart the season revenue chart
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
@@ -7919,6 +8152,39 @@ function tickTimer() {
   const m = Math.floor(s / 60);
   sessionChipEl.textContent =
     `⏱ Session ${m.toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+  const val = companyValuation();
+  if (valuationChipEl) valuationChipEl.textContent = '💎 $' + fmtCash(val);
+  checkValuationMilestone(val);
+}
+// Celebrate the first time valuation crosses each headline tier. The
+// index only advances, so an IPO cash-dip (which lowers valuation) never
+// re-fires a tier you've already passed. The first tick after load just
+// syncs the index to the current tier without a celebration, so
+// returning players aren't spammed.
+const VAL_MILESTONES = [
+  [10000,        'Five figures 📈'],
+  [100000,       'Six figures 💼'],
+  [1000000,      'Unicorn-curious 🦄'],
+  [10000000,     'Eight figures 🚀'],
+  [100000000,    'Nine figures 🏦'],
+  [1000000000,   'Billion-dollar startup 👑'],
+];
+let _valMilestoneIdx = 0;
+let _valMilestoneInit = false;
+function checkValuationMilestone(val) {
+  if (!_valMilestoneInit) {
+    while (_valMilestoneIdx < VAL_MILESTONES.length && val >= VAL_MILESTONES[_valMilestoneIdx][0]) _valMilestoneIdx++;
+    _valMilestoneInit = true;
+    return;
+  }
+  while (_valMilestoneIdx < VAL_MILESTONES.length && val >= VAL_MILESTONES[_valMilestoneIdx][0]) {
+    const [amt, label] = VAL_MILESTONES[_valMilestoneIdx];
+    _valMilestoneIdx++;
+    showToast(`💎 $${fmtCash(amt)} valuation — ${label}`, 'milestone', 'critical');
+    addFeedEntry(`💎 Valuation crossed $${fmtCash(amt)} — ${label}`);
+    if (valuationChipEl) { valuationChipEl.classList.remove('pulse'); void valuationChipEl.offsetWidth; valuationChipEl.classList.add('pulse'); }
+    if (typeof launchConfetti === 'function') launchConfetti({ pieces: 80, duration: 3200, palette: ['#67e8f9', '#3FB950', '#22d3ee', '#fff'] });
+  }
 }
 tickTimer();
 setInterval(tickTimer, 1000);
