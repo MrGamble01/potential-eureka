@@ -4682,7 +4682,7 @@ function waltTextSprite(text, color, bg) {
   return spr;
 }
 
-function spawnWalt() {
+function spawnWalt(silent) {
   if (walt) return;
   const look = { bodyColor: 0x9b59b6, pantsColor: 0x141420, hairColor: 0x201008, skinColor: 0xf5c890, hasGlasses: true };
   const g = buildScrappyCharacter(look);
@@ -4716,8 +4716,10 @@ function spawnWalt() {
   halo.scale.set(1.5, 1.5, 1); halo.position.set(0, 1.25, 0); halo.visible = false; g.add(halo);
   walt = { group: g, nameplate, sign, laserGroup, halo, iron, reactor,
     stage: 'bdr', stageT: 0, dealTimer: 6, mode: 'off', modeT: 4, t: 0, workProg: 0 };
-  addFeedEntry('🧑‍💼 Walt joined as your first BDR.');
-  showToast('🧑‍💼 Walt joined the team — your first BDR!', 'milestone');
+  if (!silent) {
+    addFeedEntry('🧑‍💼 Walt joined as your first BDR.');
+    showToast('🧑‍💼 Walt joined the team — your first BDR!', 'milestone');
+  }
 }
 
 function waltSetStage(stage) {
@@ -4793,7 +4795,7 @@ function updateWalt(dt) {
 let jeff = null;
 const JEFF_COST = 5000;
 
-function spawnJeff() {
+function spawnJeff(silent) {
   if (jeff) return;
   const look = { bodyColor: 0xe0a820, pantsColor: 0x20140a, hairColor: 0x402810, skinColor: 0xe0ad70, hasGlasses: true };
   const g = buildScrappyCharacter(look);
@@ -4801,9 +4803,13 @@ function spawnJeff() {
   const nameplate = waltTextSprite('🧥 Jeff Jackets', '#ffd966');
   nameplate.position.set(0, 2.15, 0); g.add(nameplate);
   jeff = { group: g, nameplate, churnTimer: 8, churns: 0, t: 0 };
-  addFeedEntry('🧥 Jeff Jackets signed — your new star closer!');
-  showToast('🧥 Jeff Jackets joined — allegedly a legendary closer.', 'milestone');
-  setTimeout(() => addFeedEntry('📄 HR note: his résumé actually says "Jack Coats."'), 4500);
+  const btn = document.getElementById('recruit-jeff-btn');
+  if (btn) btn.style.display = 'none';
+  if (!silent) {
+    addFeedEntry('🧥 Jeff Jackets signed — your new star closer!');
+    showToast('🧥 Jeff Jackets joined — allegedly a legendary closer.', 'milestone');
+    setTimeout(() => addFeedEntry('📄 HR note: his résumé actually says "Jack Coats."'), 4500);
+  }
 }
 
 function updateJeff(dt) {
@@ -8176,6 +8182,8 @@ function saveGame() {
       stimSupply,
       stimPacksBought,
       stimDosesGiven,
+      walt: walt ? { stage: walt.stage, stageT: walt.stageT } : null,
+      jeff: jeff ? { churns: jeff.churns } : null,
       savedAt: Date.now(),
     }));
   } catch {}
@@ -8329,6 +8337,17 @@ function loadGame() {
     if (typeof p.stimSupply      === 'number') stimSupply      = Math.max(0, p.stimSupply | 0);
     if (typeof p.stimPacksBought === 'number') stimPacksBought = Math.max(0, p.stimPacksBought | 0);
     if (typeof p.stimDosesGiven  === 'number') stimDosesGiven  = Math.max(0, p.stimDosesGiven | 0);
+    // Special characters live outside the desk system — respawn them
+    // silently (no "joined!" toast) and restore their progress.
+    if (p.walt) {
+      spawnWalt(true);
+      if (p.walt.stage && p.walt.stage !== 'bdr') waltSetStage(p.walt.stage);
+      if (typeof p.walt.stageT === 'number') walt.stageT = p.walt.stageT;
+    }
+    if (p.jeff) {
+      spawnJeff(true);
+      if (typeof p.jeff.churns === 'number') jeff.churns = p.jeff.churns;
+    }
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
     for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
