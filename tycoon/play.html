@@ -807,7 +807,10 @@
       -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
     }
     .dash-hero .h-sub { font-size:10px; color:#7D8590; margin-top:3px; }
-    #valuation-chip { color:#67e8f9; font-weight:800; font-variant-numeric:tabular-nums; }
+    #valuation-chip { color:#67e8f9; font-weight:800; font-variant-numeric:tabular-nums; display:inline-block; }
+    @keyframes valPulse { 0%,100%{ transform:none; text-shadow:none; } 40%{ transform:scale(1.28); text-shadow:0 0 14px rgba(103,232,249,0.85); } }
+    #valuation-chip.pulse { animation: valPulse 0.6s ease; }
+    @media (prefers-reduced-motion: reduce) { #valuation-chip.pulse { animation: none; } }
     @media (max-width: 640px) { #val-sep, #valuation-chip { display:none; } }
     .dash-kpis { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:18px; }
     .dash-kpi {
@@ -8149,7 +8152,39 @@ function tickTimer() {
   const m = Math.floor(s / 60);
   sessionChipEl.textContent =
     `⏱ Session ${m.toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-  if (valuationChipEl) valuationChipEl.textContent = '💎 $' + fmtCash(companyValuation());
+  const val = companyValuation();
+  if (valuationChipEl) valuationChipEl.textContent = '💎 $' + fmtCash(val);
+  checkValuationMilestone(val);
+}
+// Celebrate the first time valuation crosses each headline tier. The
+// index only advances, so an IPO cash-dip (which lowers valuation) never
+// re-fires a tier you've already passed. The first tick after load just
+// syncs the index to the current tier without a celebration, so
+// returning players aren't spammed.
+const VAL_MILESTONES = [
+  [10000,        'Five figures 📈'],
+  [100000,       'Six figures 💼'],
+  [1000000,      'Unicorn-curious 🦄'],
+  [10000000,     'Eight figures 🚀'],
+  [100000000,    'Nine figures 🏦'],
+  [1000000000,   'Billion-dollar startup 👑'],
+];
+let _valMilestoneIdx = 0;
+let _valMilestoneInit = false;
+function checkValuationMilestone(val) {
+  if (!_valMilestoneInit) {
+    while (_valMilestoneIdx < VAL_MILESTONES.length && val >= VAL_MILESTONES[_valMilestoneIdx][0]) _valMilestoneIdx++;
+    _valMilestoneInit = true;
+    return;
+  }
+  while (_valMilestoneIdx < VAL_MILESTONES.length && val >= VAL_MILESTONES[_valMilestoneIdx][0]) {
+    const [amt, label] = VAL_MILESTONES[_valMilestoneIdx];
+    _valMilestoneIdx++;
+    showToast(`💎 $${fmtCash(amt)} valuation — ${label}`, 'milestone', 'critical');
+    addFeedEntry(`💎 Valuation crossed $${fmtCash(amt)} — ${label}`);
+    if (valuationChipEl) { valuationChipEl.classList.remove('pulse'); void valuationChipEl.offsetWidth; valuationChipEl.classList.add('pulse'); }
+    if (typeof launchConfetti === 'function') launchConfetti({ pieces: 80, duration: 3200, palette: ['#67e8f9', '#3FB950', '#22d3ee', '#fff'] });
+  }
 }
 tickTimer();
 setInterval(tickTimer, 1000);
