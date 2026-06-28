@@ -199,6 +199,37 @@
       50% { opacity: 0.5; transform: scale(0.85); }
     }
 
+    /* ---- "What's inside" feature strip ---- */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 64px;
+    }
+    .feat {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      transition: border-color 0.2s, transform 0.2s, background 0.2s;
+    }
+    .feat:hover {
+      border-color: rgba(63, 185, 80, 0.4);
+      background: var(--bg-elev-hover);
+      transform: translateY(-2px);
+    }
+    .feat-ic {
+      font-size: 22px;
+      line-height: 1;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 10px var(--money-glow));
+    }
+    .feat-h { font-size: 14px; font-weight: 700; color: var(--text); }
+    .feat-s { font-size: 12px; color: var(--text-dim); line-height: 1.45; margin-top: 2px; }
+
     /* ---- Sections grid ---- */
     .sections {
       display: grid;
@@ -291,9 +322,13 @@
       .wrap { padding: 20px 18px 50px; }
       header.bar { margin-bottom: 50px; }
       .hero { margin-bottom: 40px; }
-      .sections { grid-template-columns: 1fr; margin-top: 50px; gap: 14px; }
+      .features { grid-template-columns: 1fr 1fr; margin-top: 44px; }
+      .sections { grid-template-columns: 1fr; margin-top: 40px; gap: 14px; }
       .card { padding: 20px; }
       footer { margin-top: 50px; }
+    }
+    @media (max-width: 440px) {
+      .features { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -333,6 +368,15 @@
       </div>
     </section>
 
+    <section class="features" aria-label="What's inside">
+      <div class="feat"><span class="feat-ic">📊</span><div><div class="feat-h">Live dashboard</div><div class="feat-s">KPIs, a revenue chart & income-by-source breakdown</div></div></div>
+      <div class="feat"><span class="feat-ic">💎</span><div><div class="feat-h">Company valuation</div><div class="feat-s">A momentum number that climbs from $0 to billions</div></div></div>
+      <div class="feat"><span class="feat-ic">🚀</span><div><div class="feat-h">IPO & prestige</div><div class="feat-s">Cash out, then restart at a higher multiplier</div></div></div>
+      <div class="feat"><span class="feat-ic">🤝</span><div><div class="feat-h">Investor visits</div><div class="feat-s">Walk up when they drop by for big checks</div></div></div>
+      <div class="feat"><span class="feat-ic">🏅</span><div><div class="feat-h">Achievements</div><div class="feat-s">Dozens to unlock as your startup scales</div></div></div>
+      <div class="feat"><span class="feat-ic">🥫</span><div><div class="feat-h">Office vices</div><div class="feat-s">Keep the team stocked on Zyn & Adderall</div></div></div>
+    </section>
+
     <section class="sections">
       <div class="card">
         <div class="card-title">How it plays</div>
@@ -346,9 +390,9 @@
             ones to <strong>AEs</strong> for a 3× close.
           </p>
           <p>
-            Keep <strong>coffee</strong> and <strong>paper</strong> stocked — run out and
-            morale tanks. Push harder with <strong>💊 Adderall</strong>: dose your engineers
-            for a ~3× speed spike, then ride out the comedown.
+            Keep <strong>🥫 Zyn</strong> and <strong>💊 Adderall</strong> stocked — engineers
+            burn a Zyn per feature and self-serve from the Adderall Cabinet for a speed amp.
+            Let a desk run dry and shipping stalls.
           </p>
           <p>
             Hit the season's revenue goal, then <strong>IPO</strong> for
