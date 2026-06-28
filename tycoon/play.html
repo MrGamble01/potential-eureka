@@ -3980,7 +3980,12 @@ function updateIdeaWorkers(dt) {
           w.target = { x: vp.group.position.x, z: vp.group.position.z + 1.0 };
         } else {
           w.state = S.TO_DELIVER;
-          w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 2.0 };
+          // Drop off in FRONT of the CEO desk (office side). The desk's
+          // collision box spans z≈2.2–3.8, so the old z+2.0 (=3.0) target
+          // sat *inside* the desk — engineers collided with the front face
+          // and never "arrived", so deliveries silently never completed.
+          // z+1.0 (=2.0) is just in front of the desk and always reachable.
+          w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 1.0 };
         }
       }
       continue;
