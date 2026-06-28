@@ -10,8 +10,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/base.css">
-  <link rel="stylesheet" href="../css/games.css">
+  <link rel="stylesheet" href="/ageofwar/aow.css">
+  <style>
+    /* Page-level styles (these were inherited from base.css in the
+       parent dashboard repo; inlined here so this folder is fully
+       self-contained and easy to extract into its own repo). */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    body {
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+  </style>
   <style>
     body {
       background:
@@ -45,8 +57,10 @@
       font-size: 13px;
       letter-spacing: 3px;
     }
+    /* Hide the dashboard page bar on phones -- it's site chrome that
+       wastes ~40px of vertical real estate in the game view. */
     @media (max-width: 720px) {
-      .aow-page-bar { padding: 10px 14px; font-size: 10px; }
+      .aow-page-bar { display: none; }
     }
   </style>
 </head>
@@ -64,7 +78,7 @@
           <span class="aow-brand-mark">⚔</span>
           <span class="aow-brand-name">Age of War</span>
         </div>
-        <div class="aow-resource aow-resource-gold" title="Gold — earned instantly from kills, plus a steady trickle over time">
+        <div class="aow-resource aow-resource-gold" title="Gold — click coins on the battlefield to collect">
           <span class="aow-resource-icon">$</span>
           <span class="aow-resource-value" id="aow-gold">90</span>
         </div>
@@ -90,6 +104,7 @@
           <button data-diff="hard">Hard</button>
           <button data-diff="insane">Insane</button>
         </div>
+        <button class="aow-settings-btn" id="aow-settings-btn" aria-label="Settings" title="Settings">⚙</button>
       </header>
 
       <div class="aow-battle-strip">
@@ -130,13 +145,17 @@
         <button class="aow-tab" data-tab="turrets">Turrets</button>
       </div>
       <div id="aow-units-tab" class="aow-tabpanel active">
+        <div class="aow-train-row" id="aow-train-row" aria-label="Training queue">
+          <div class="aow-train-row-label">TRAINING</div>
+          <div class="aow-train-slots" id="aow-train-slots"></div>
+        </div>
         <div id="aow-spawn-list" class="aow-spawn-list"></div>
       </div>
       <div id="aow-turrets-tab" class="aow-tabpanel">
         <div id="aow-turret-list" class="aow-turret-list"></div>
       </div>
 
-      <div class="aow-hint"><strong>1–9</strong> spawn · <strong>Q</strong> age up · <strong>Space</strong> special · <strong>H</strong> summon hero · kills pay gold automatically</div>
+      <div class="aow-hint"><strong>1–9</strong> spawn · <strong>Q</strong> age up · <strong>Space</strong> special · <strong>H</strong> summon hero · click or drag across coins to collect gold</div>
     </div>
   </section>
 
@@ -150,7 +169,7 @@
       <div class="aow-welcome-sub">Push the enemy base. Age up. Last one standing wins.</div>
       <div class="aow-welcome-steps">
         <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Spawn units</strong> — click an icon or press <kbd>1–9</kbd>. Each kind costs gold and has a brief cooldown.</div></div>
-        <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Earn gold</strong> — every enemy you kill pays out gold instantly, plus a steady trickle over time. Spend it on units &amp; turrets.</div></div>
+        <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Collect coins</strong> — kills drop gold coins. <strong>Tap them</strong> for an instant pop (or drag a finger across to sweep). They auto-collect after a few seconds if you leave them.</div></div>
         <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with <kbd>Q</kbd> when you have enough XP. Unlocks stronger units and a new <strong>Special</strong> (<kbd>Space</kbd>).</div></div>
         <div class="aow-welcome-step"><span class="aow-welcome-num">4</span><div><strong>Summon a Hero</strong> with <kbd>H</kbd> — expensive but devastating. New hero every era.</div></div>
         <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> on your base in the <em>Turrets</em> tab. They snipe enemies passively.</div></div>
@@ -171,6 +190,42 @@
     </div>
   </div>
 
+  <!-- Settings modal -->
+  <div id="aow-settings-modal" class="aow-modal" style="display:none">
+    <div class="aow-modal-card aow-settings-card">
+      <div class="aow-modal-header">
+        <span class="aow-modal-title">⚙ Settings</span>
+        <button class="aow-modal-close" id="aow-settings-close" aria-label="Close">×</button>
+      </div>
+      <div class="aow-settings-body">
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Difficulty</div>
+          <div class="aow-diff aow-diff-modal" id="aow-diff-modal">
+            <button data-diff="easy">Easy</button>
+            <button data-diff="normal" class="active">Normal</button>
+            <button data-diff="hard">Hard</button>
+            <button data-diff="insane">Insane</button>
+          </div>
+        </div>
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Sound</div>
+          <button class="aow-setting-toggle" id="aow-mute-toggle" aria-pressed="false">
+            <span class="aow-toggle-on">🔊 ON</span>
+            <span class="aow-toggle-off">🔇 MUTED</span>
+          </button>
+        </div>
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Help</div>
+          <button class="aow-setting-action" id="aow-replay-tutorial">Show how to play</button>
+        </div>
+        <div class="aow-setting-row">
+          <div class="aow-setting-label">Reset</div>
+          <button class="aow-setting-action aow-setting-danger" id="aow-reset-progress">Reset achievements + best</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Minimal stub so ageofwar.js's Utils.store calls don't crash on the standalone page -->
   <script>
     window.Utils = window.Utils || {
@@ -180,7 +235,7 @@
       },
     };
   </script>
-  <script src="../js/ageofwar.js"></script>
+  <script src="/ageofwar/ageofwar.js"></script>
   <script>AgeOfWarGame.init();</script>
 </body>
 </html>
