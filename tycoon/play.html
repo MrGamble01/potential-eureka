@@ -795,6 +795,20 @@
       -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
     .dash-sub { font-size: 12px; color:#7D8590; letter-spacing:0.5px; margin-bottom:16px; text-align:center; }
+    .dash-hero {
+      text-align:center; margin: 0 0 18px; padding:14px 12px;
+      background: linear-gradient(135deg, rgba(63,185,80,0.11), rgba(34,211,238,0.08));
+      border:1px solid rgba(63,185,80,0.26); border-radius:12px;
+    }
+    .dash-hero .h-lbl { font-size:10px; text-transform:uppercase; letter-spacing:1.4px; color:#7D8590; font-weight:700; }
+    .dash-hero .h-val {
+      font-size:34px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1.15; margin-top:2px;
+      background:linear-gradient(135deg,#3FB950,#22d3ee);
+      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .dash-hero .h-sub { font-size:10px; color:#7D8590; margin-top:3px; }
+    #valuation-chip { color:#67e8f9; font-weight:800; font-variant-numeric:tabular-nums; }
+    @media (max-width: 640px) { #val-sep, #valuation-chip { display:none; } }
     .dash-kpis { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:18px; }
     .dash-kpi {
       background: rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08);
@@ -1318,6 +1332,8 @@
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
   <span id="season-badge">S1</span>
+  <span class="sep" id="val-sep">|</span>
+  <span id="valuation-chip" title="Company valuation — a momentum-weighted estimate from your cash, recurring revenue, live earn rate, and users. Watch it climb.">💎 $0</span>
   <span class="sep" id="trophy-sep" style="display:none">|</span>
   <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
@@ -1354,6 +1370,11 @@
   <div class="dash-panel">
     <div class="dash-title">📊 Company Dashboard</div>
     <div class="dash-sub" id="dash-sub">Your startup at a glance</div>
+    <div class="dash-hero" id="dash-hero">
+      <div class="h-lbl">💎 Estimated valuation</div>
+      <div class="h-val" id="dash-val">$0</div>
+      <div class="h-sub" id="dash-val-sub">cash + recurring revenue + run-rate momentum</div>
+    </div>
     <div class="dash-kpis" id="dash-kpis"></div>
     <div class="dash-section-title">📈 Season revenue over time</div>
     <div class="dash-chart-wrap">
@@ -5418,6 +5439,24 @@ const dashKpisEl  = document.getElementById('dash-kpis');
 const dashSubEl   = document.getElementById('dash-sub');
 const dashSrcEl   = document.getElementById('dash-src');
 const dashTeamEl  = document.getElementById('dash-team');
+const dashValEl   = document.getElementById('dash-val');
+const valuationChipEl = document.getElementById('valuation-chip');
+
+// A momentum-weighted "what would a VC pay" number. Deliberately
+// generous and growth-tilted so it climbs satisfyingly: cash in the
+// bank, a fat multiple on recurring revenue, the live run-rate
+// annualised-ish and scaled by product maturity, plus a little per
+// user. Pure cosmetic readout — never gates anything.
+function companyValuation() {
+  const cash = state.cash || 0;
+  const arr  = (typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0);
+  const rate = (typeof currentRatePerMin === 'function' ? currentRatePerMin() : 0) || 0;
+  const vMult = (typeof productVersionMult === 'number' ? productVersionMult : 1) || 1;
+  const pMult = (typeof prestigeMultiplier === 'number' ? prestigeMultiplier : 1) || 1;
+  const runRate = rate * 60 * 10 * vMult;   // hourly run-rate × 10 × product version
+  const users   = (typeof totalUsers === 'number' ? totalUsers : 0) * 3;
+  return Math.round(cash + arr * 5 * pMult + runRate + users);
+}
 
 function drawDashSpark() {
   const cv = document.getElementById('dash-spark');
@@ -5465,6 +5504,7 @@ const DASH_SOURCES = [
   ['event',    '🎲 Events',    '#F472B6'],
 ];
 function renderDashboard() {
+  if (dashValEl) dashValEl.textContent = '$' + fmtCash(companyValuation());
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const kpis = [
     ['Cash on hand',    '$' + fmtCash(state.cash), true],
@@ -8109,6 +8149,7 @@ function tickTimer() {
   const m = Math.floor(s / 60);
   sessionChipEl.textContent =
     `⏱ Session ${m.toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+  if (valuationChipEl) valuationChipEl.textContent = '💎 $' + fmtCash(companyValuation());
 }
 tickTimer();
 setInterval(tickTimer, 1000);
