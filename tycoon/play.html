@@ -1490,6 +1490,7 @@
       <div class="subsection">
         <div class="panel-title">🛠️ Office Managers</div>
         <button class="hire-btn role-ops" id="hire-ea-btn">🧑‍💼 Hire Executive Assistant<span class="cost" id="hire-ea-cost">$400</span></button>
+        <button class="hire-btn" id="recruit-jeff-btn" style="margin-top:6px;background:linear-gradient(135deg,rgba(224,168,32,0.22),rgba(176,28,28,0.16));border-color:rgba(224,168,32,0.55);color:#ffd966" title="A legendary closer, by all accounts. Commands a steep signing bonus — but a closer like this pays for himself, right?">🧥 Recruit Jeff Jackets<span class="cost" id="recruit-jeff-cost">$5,000</span></button>
       </div>
       <div id="hire-sales-section" class="subsection" style="display:none">
         <div class="panel-title">📞 Sales Team</div>
@@ -4785,6 +4786,57 @@ function updateWalt(dt) {
   }
 }
 
+// ── Jeff Jackets (real name: Jack Coats) — the premium bait-hire ────
+// Sold as a superstar closer for a steep fee. He looks busy at his desk
+// but quietly CHURNS your accounts — a net-negative trap that punishes
+// the temptation to buy your way to greatness.
+let jeff = null;
+const JEFF_COST = 5000;
+
+function spawnJeff() {
+  if (jeff) return;
+  const look = { bodyColor: 0xe0a820, pantsColor: 0x20140a, hairColor: 0x402810, skinColor: 0xe0ad70, hasGlasses: true };
+  const g = buildScrappyCharacter(look);
+  g.position.set(6, 0, 0); g.rotation.y = -Math.PI / 2; scene.add(g);
+  const nameplate = waltTextSprite('🧥 Jeff Jackets', '#ffd966');
+  nameplate.position.set(0, 2.15, 0); g.add(nameplate);
+  jeff = { group: g, nameplate, churnTimer: 8, churns: 0, t: 0 };
+  addFeedEntry('🧥 Jeff Jackets signed — your new star closer!');
+  showToast('🧥 Jeff Jackets joined — allegedly a legendary closer.', 'milestone');
+  setTimeout(() => addFeedEntry('📄 HR note: his résumé actually says "Jack Coats."'), 4500);
+}
+
+function updateJeff(dt) {
+  if (!jeff) return;
+  const j = jeff; j.t += dt;
+  j.group.position.y = Math.abs(Math.sin(j.t * 2)) * 0.03; // looks "busy"
+  j.churnTimer -= dt;
+  if (j.churnTimer > 0) return;
+  j.churnTimer = 9 + Math.random() * 7;
+  const churn = Math.max(60, Math.round(computeDealValue() * (2 + Math.random() * 2)));
+  state.cash = Math.max(0, state.cash - churn);
+  showSpendPop(churn);
+  j.churns++;
+  refreshHud();
+  if (j.churns === 3) addFeedEntry('😬 "Jeff Jackets" (Jack Coats) has already churned 3 accounts…');
+  else if (j.churns % 5 === 0) showToast(`🧥 Jeff churned another account (-$${fmtCash(churn)})`, '', 'ambient');
+  else addFeedEntry(`🧥 Jeff Jackets churned an account (-$${fmtCash(churn)})`);
+}
+
+const recruitJeffBtnEl = document.getElementById('recruit-jeff-btn');
+if (recruitJeffBtnEl) {
+  const costEl = recruitJeffBtnEl.querySelector('.cost');
+  if (costEl) costEl.textContent = '$' + fmtCash(JEFF_COST);
+  recruitJeffBtnEl.addEventListener('click', () => {
+    if (jeff || state.cash < JEFF_COST) return;
+    state.cash -= JEFF_COST; showSpendPop(JEFF_COST);
+    spawnJeff();
+    recruitJeffBtnEl.style.display = 'none';
+    SFX.hire(); Haptics.hire();
+    refreshHud();
+  });
+}
+
 // ── Account Executives (AEs) ────────────────────────────────
 const aes = [];
 const AE_PROCESS_MULT = CONFIG.aeProcessMult;
@@ -7636,6 +7688,7 @@ class OfficeFloor extends Floor {
     updateAEs(dt);
     updateBDRs(dt);
     updateWalt(dt);
+    updateJeff(dt);
     updateInvestors(dt);
     updateSprint(dt);
     checkDecorUpgrades(dt);
