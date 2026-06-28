@@ -4729,18 +4729,26 @@ function waltSetStage(stage) {
   np.position.set(0, 2.15, 0); walt.group.add(np); walt.nameplate = np;
 }
 
+// Walt's arc is gated by SEASONS, not a timer: one role per prestige.
+// S1 he's a BDR; the first IPO makes him an AM; the second makes him an
+// engineer (which unlocks his Iron Man / Katy Trail chaos). Called from
+// doIPO().
+function waltAdvanceSeason() {
+  if (!walt) return;
+  if (walt.stage === 'bdr') {
+    waltSetStage('am');
+    showToast('🎬 Season premiere — Walt got promoted to Account Manager!', 'milestone');
+    addFeedEntry('📈 New season: Walt is now an AM.');
+  } else if (walt.stage === 'am') {
+    waltSetStage('eng');
+    showToast('🎬 Season premiere — Walt switched to ENGINEERING. Buckle up.', 'milestone');
+    addFeedEntry('💻 New season: Walt became an engineer. God help us.');
+  }
+}
+
 function updateWalt(dt) {
   if (!walt) return;
   const w = walt; w.t += dt;
-  // Stage progression: BDR (35s) → AM (35s) → Engineer (forever).
-  if (w.stage !== 'eng') {
-    w.stageT += dt;
-    if (w.stageT >= 35) {
-      w.stageT = 0;
-      if (w.stage === 'bdr') { waltSetStage('am'); showToast('📈 Walt got promoted — Account Manager now!', 'milestone'); addFeedEntry('📈 Walt promoted to Account Manager.'); }
-      else { waltSetStage('eng'); showToast('🤯 Walt switched to engineering?! Buckle up.', 'milestone'); addFeedEntry('💻 Walt became an engineer. God help us.'); }
-    }
-  }
   // BDR / AM: periodic deal closes, feet on the ground.
   if (w.stage === 'bdr' || w.stage === 'am') {
     w.dealTimer -= dt;
@@ -4795,27 +4803,71 @@ function updateWalt(dt) {
 let jeff = null;
 const JEFF_COST = 5000;
 
+function jeffSetStage(stage) {
+  jeff.stage = stage;
+  jeff.group.remove(jeff.nameplate);
+  const np = waltTextSprite(stage === 'am' ? '🧥 Jeff Jackets · AM' : '🧥 Jeff Jackets · BDR', '#ffd966');
+  np.position.set(0, 2.15, 0); jeff.group.add(np); jeff.nameplate = np;
+}
+
 function spawnJeff(silent) {
   if (jeff) return;
   const look = { bodyColor: 0xe0a820, pantsColor: 0x20140a, hairColor: 0x402810, skinColor: 0xe0ad70, hasGlasses: true };
   const g = buildScrappyCharacter(look);
   g.position.set(6, 0, 0); g.rotation.y = -Math.PI / 2; scene.add(g);
-  const nameplate = waltTextSprite('🧥 Jeff Jackets', '#ffd966');
+  const nameplate = waltTextSprite('🧥 Jeff Jackets · BDR', '#ffd966');
   nameplate.position.set(0, 2.15, 0); g.add(nameplate);
-  jeff = { group: g, nameplate, churnTimer: 8, churns: 0, t: 0 };
-  const btn = document.getElementById('recruit-jeff-btn');
-  if (btn) btn.style.display = 'none';
+  jeff = { group: g, nameplate, stage: 'bdr', dealTimer: 5, churnTimer: 8, churns: 0, t: 0 };
   if (!silent) {
-    addFeedEntry('🧥 Jeff Jackets signed — your new star closer!');
-    showToast('🧥 Jeff Jackets joined — allegedly a legendary closer.', 'milestone');
-    setTimeout(() => addFeedEntry('📄 HR note: his résumé actually says "Jack Coats."'), 4500);
+    addFeedEntry('🧥 Jeff Jackets signed — and he is closing everything!');
+    showToast('🧥 Jeff Jackets joined — a genuinely elite BDR.', 'milestone');
+    setTimeout(() => addFeedEntry('📄 (HR: his résumé actually says "Jack Coats." Whatever — he closes.)'), 5000);
+  }
+  setJeffButton();
+}
+
+function promoteJeffToAM() {
+  if (!jeff || jeff.stage !== 'bdr') return;
+  jeffSetStage('am');
+  showToast("⬆️ You promoted Jeff to AM — he earned it, right?", 'milestone');
+  addFeedEntry('⬆️ Jeff Jackets promoted to Account Manager.');
+  setTimeout(() => addFeedEntry('😬 …Jeff was a phenomenal BDR. As an AM? Not so much.'), 6000);
+  setJeffButton();
+}
+
+// Single sidebar slot, morphs with Jeff's state: Recruit → Promote → gone.
+function setJeffButton() {
+  const btn = document.getElementById('recruit-jeff-btn');
+  if (!btn) return;
+  if (!jeff) {
+    btn.style.display = '';
+    btn.innerHTML = '🧥 Recruit Jeff Jackets<span class="cost">$' + fmtCash(JEFF_COST) + '</span>';
+    btn.title = 'A legendary closer, by all accounts. Steep signing bonus — but a closer like this pays for himself, right?';
+  } else if (jeff.stage === 'bdr') {
+    btn.style.display = '';
+    btn.innerHTML = '⬆️ Promote Jeff to AM';
+    btn.title = 'Reward your star closer with a management role. What could possibly go wrong?';
+  } else {
+    btn.style.display = 'none';
   }
 }
 
 function updateJeff(dt) {
   if (!jeff) return;
   const j = jeff; j.t += dt;
-  j.group.position.y = Math.abs(Math.sin(j.t * 2)) * 0.03; // looks "busy"
+  j.group.position.y = Math.abs(Math.sin(j.t * 2)) * 0.03; // looks busy
+  if (j.stage === 'bdr') {
+    // Genuinely elite closer: frequent, fat deals. Net positive.
+    j.dealTimer -= dt;
+    if (j.dealTimer <= 0) {
+      j.dealTimer = 4 + Math.random() * 3;
+      const deal = Math.max(20, Math.round(computeDealValue() * (1.6 + Math.random() * 0.8)));
+      addRevenue(deal, 'sales');
+      popCashAt(j.group.position.x, j.group.position.z, deal, 'sales');
+    }
+    return;
+  }
+  // AM: the Peter Principle. He churns accounts — net negative.
   j.churnTimer -= dt;
   if (j.churnTimer > 0) return;
   j.churnTimer = 9 + Math.random() * 7;
@@ -4824,22 +4876,24 @@ function updateJeff(dt) {
   showSpendPop(churn);
   j.churns++;
   refreshHud();
-  if (j.churns === 3) addFeedEntry('😬 "Jeff Jackets" (Jack Coats) has already churned 3 accounts…');
+  if (j.churns === 3) addFeedEntry('😬 "Jeff Jackets" (Jack Coats) has churned 3 accounts as an AM…');
   else if (j.churns % 5 === 0) showToast(`🧥 Jeff churned another account (-$${fmtCash(churn)})`, '', 'ambient');
   else addFeedEntry(`🧥 Jeff Jackets churned an account (-$${fmtCash(churn)})`);
 }
 
 const recruitJeffBtnEl = document.getElementById('recruit-jeff-btn');
 if (recruitJeffBtnEl) {
-  const costEl = recruitJeffBtnEl.querySelector('.cost');
-  if (costEl) costEl.textContent = '$' + fmtCash(JEFF_COST);
+  setJeffButton();
   recruitJeffBtnEl.addEventListener('click', () => {
-    if (jeff || state.cash < JEFF_COST) return;
-    state.cash -= JEFF_COST; showSpendPop(JEFF_COST);
-    spawnJeff();
-    recruitJeffBtnEl.style.display = 'none';
-    SFX.hire(); Haptics.hire();
-    refreshHud();
+    if (!jeff) {
+      if (state.cash < JEFF_COST) return;
+      state.cash -= JEFF_COST; showSpendPop(JEFF_COST);
+      spawnJeff();
+      SFX.hire(); Haptics.hire();
+      refreshHud();
+    } else if (jeff.stage === 'bdr') {
+      promoteJeffToAM();
+    }
   });
 }
 
@@ -7958,6 +8012,9 @@ function openIPOModal() {
 function doIPO() {
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
+  waltAdvanceSeason(); // Walt levels up one role each season
+
+
   launchConfetti({ pieces: 140, duration: 4200,
     palette: ['#3FB950', '#fcd34d', '#22d3ee', '#fff'] });
 
@@ -8183,7 +8240,7 @@ function saveGame() {
       stimPacksBought,
       stimDosesGiven,
       walt: walt ? { stage: walt.stage, stageT: walt.stageT } : null,
-      jeff: jeff ? { churns: jeff.churns } : null,
+      jeff: jeff ? { churns: jeff.churns, stage: jeff.stage } : null,
       savedAt: Date.now(),
     }));
   } catch {}
@@ -8347,6 +8404,8 @@ function loadGame() {
     if (p.jeff) {
       spawnJeff(true);
       if (typeof p.jeff.churns === 'number') jeff.churns = p.jeff.churns;
+      if (p.jeff.stage === 'am') jeffSetStage('am');
+      setJeffButton();
     }
     if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
     // Re-derive product version from saved features shipped
