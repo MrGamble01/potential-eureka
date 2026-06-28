@@ -1329,3 +1329,12 @@
   color: #ff9cff;
   text-shadow: 0 0 10px rgba(160,32,160,0.6);
 }
+
+/* ===== Touch hygiene (mobile): kill double-tap zoom, tap-flash, selection
+   when mashing controls during play. Harmless on desktop. ===== */
+.aow-action, .aow-spawn-btn, .aow-tab, .aow-diff button,
+.aow-turret-buy, .aow-modal-close, .aow-welcome-start {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}

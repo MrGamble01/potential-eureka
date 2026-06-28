@@ -165,6 +165,23 @@ const AgeOfWarGame = (() => {
   // Lowered from 5%/5x — runaway combos were trivializing late waves.
   function comboMult() { return Math.min(3, 1 + combo * 0.04); }
 
+  // ---- Haptics ----
+  // Buzz the device when your OWN base takes damage, so an attack is felt
+  // on mobile even when you're not watching the HP bar. Throttled so
+  // sustained fire pulses like an alarm; a stronger pattern kicks in once
+  // the base is critical. Honors reduce-motion and is a harmless no-op
+  // where the Vibration API is unsupported (desktop, iOS Safari).
+  let lastHapticT = -9999, hapticsOK = true;
+  function vibrateBaseHit() {
+    if (!hapticsOK || gameOver) return;
+    if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    if (now - lastHapticT < 300) return;
+    lastHapticT = now;
+    const critical = playerBaseMax > 0 && playerBaseHp / playerBaseMax <= 0.25;
+    navigator.vibrate(critical ? [22, 36, 22] : 16);
+  }
+
   // ---- Run stats (shown on win/lose + drive achievements) ----
   const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
 
@@ -458,6 +475,7 @@ const AgeOfWarGame = (() => {
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     ctx = canvas.getContext('2d');
+    try { hapticsOK = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
     try {
       const saved = (typeof Utils !== 'undefined' && Utils.store && Utils.store.getRaw('aow-difficulty'))
                   || localStorage.getItem('aow-difficulty');
@@ -1188,7 +1206,7 @@ const AgeOfWarGame = (() => {
           u.attackPose = 0.22;  // hold strike pose ~220ms
           if (isBase) {
             if (u.side === 'player') enemyBaseHp -= u.dmg;
-            else                     playerBaseHp -= u.dmg;
+            else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
             spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
             // Heavy hit = noticeable shake; small hit = light shake.
             shake(Math.min(8, 1 + u.dmg / 80), 0.18);
@@ -1241,6 +1259,7 @@ const AgeOfWarGame = (() => {
           p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
           playerBaseHp -= p.dmg;
+          vibrateBaseHit();
           spawnDmgFloater(p.dmg, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
           p.life = 0;
         }
