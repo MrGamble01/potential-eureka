@@ -3954,7 +3954,7 @@ function updateIdeaWorkers(dt) {
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < CONFIG.proxRange ? CONFIG.bossBoost : 1.0;
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost;
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura;
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -4686,7 +4686,11 @@ function updateBDRs(dt) {
 // form he flips a coin every ~15s: LOCKED IN (flies, fires lasers,
 // ships ~3×) or GONE — a "Walking Katy Trail" sign and zero output.
 let walt = null;
-const WALT_LABELS = { bdr: '☎️ Walt · BDR', am: '💼 Walt · AM', eng: '💻 Walt · Engineer' };
+let waltAura = 1; // office-wide engineer work multiplier from a high-level Walt
+const WALT_LABELS = { bdr: '☎️ Walt · BDR', am: '💼 Walt · AM' };
+const WALT_MARKS = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+function waltMark(level) { return 'Mark ' + (WALT_MARKS[level] || ('L' + (level + 1))); }
+function waltEngLabel() { return '💻 Walt · ' + waltMark(walt ? walt.level : 0); }
 
 function waltTextSprite(text, color, bg) {
   const cv = document.createElement('canvas');
@@ -4742,7 +4746,7 @@ function spawnWalt(silent) {
   const halo = waltTextSprite('⚡', '#fde047', 'rgba(0,0,0,0)');
   halo.scale.set(1.5, 1.5, 1); halo.position.set(0, 1.25, 0); halo.visible = false; g.add(halo);
   walt = { group: g, nameplate, sign, laserGroup, halo, iron, reactor,
-    stage: 'bdr', stageT: 0, dealTimer: 6, mode: 'off', modeT: 4, t: 0, workProg: 0 };
+    stage: 'bdr', stageT: 0, dealTimer: 6, mode: 'off', modeT: 4, t: 0, workProg: 0, level: 0 };
   if (!silent) {
     addFeedEntry('🧑‍💼 Walt joined as your first BDR.');
     showToast('🧑‍💼 Walt joined the team — your first BDR!', 'milestone');
@@ -4752,7 +4756,8 @@ function spawnWalt(silent) {
 function waltSetStage(stage) {
   walt.stage = stage;
   walt.group.remove(walt.nameplate);
-  const np = waltTextSprite(WALT_LABELS[stage], '#fcd34d');
+  const label = stage === 'eng' ? waltEngLabel() : WALT_LABELS[stage];
+  const np = waltTextSprite(label, '#fcd34d');
   np.position.set(0, 2.15, 0); walt.group.add(np); walt.nameplate = np;
 }
 
@@ -4770,6 +4775,17 @@ function waltAdvanceSeason() {
     waltSetStage('eng');
     showToast('🎬 Season premiere — Walt switched to ENGINEERING. Buckle up.', 'milestone');
     addFeedEntry('💻 New season: Walt became an engineer. God help us.');
+  } else {
+    // Already an engineer → he levels up his powers each subsequent season.
+    walt.level++;
+    waltSetStage('eng'); // refresh nameplate to the new Mark
+    const perks = {
+      1: 'Locked in more often now, and shipping way harder.',
+      2: 'His repulsors now buff the WHOLE engineering team.',
+      3: 'He barely touches the ground anymore.',
+    };
+    showToast(`🎬 Season premiere — Walt upgraded to ${waltMark(walt.level)}! ${perks[walt.level] || 'He just keeps getting stronger.'}`, 'milestone');
+    addFeedEntry(`⚡ Walt leveled up to ${waltMark(walt.level)}.`);
   }
 }
 
@@ -4788,13 +4804,16 @@ function updateWalt(dt) {
     }
     w.group.position.y += (0 - w.group.position.y) * Math.min(1, dt * 6);
     w.sign.visible = false; w.laserGroup.visible = false; w.halo.visible = false; w.iron.visible = false;
+    waltAura = 1;
     return;
   }
-  // Engineer: chaos. Flip LOCKED-IN ↔ GONE every 14–24s.
+  // Engineer: chaos. Each level tilts the coin toward LOCKED-IN, lengthens
+  // his highs, shortens the Katy Trail, and (Mark III+) buffs the whole team.
   w.modeT -= dt;
   if (w.modeT <= 0) {
-    w.mode = Math.random() < 0.5 ? 'super' : 'off';
-    w.modeT = 14 + Math.random() * 10;
+    const superChance = Math.min(0.9, 0.5 + w.level * 0.1);
+    w.mode = Math.random() < superChance ? 'super' : 'off';
+    w.modeT = (w.mode === 'super' ? 14 + w.level * 3 : Math.max(6, 14 - w.level * 2)) + Math.random() * 8;
     if (w.mode === 'super') showToast('🦸 Walt is LOCKED IN — lasers hot!', '', 'ambient');
     else showToast('🚶 Walt went to walk the Katy Trail…', '', 'ambient');
   }
@@ -4808,10 +4827,11 @@ function updateWalt(dt) {
     w.halo.visible = true; w.halo.material.opacity = 0.7 + 0.3 * Math.sin(w.t * 10);
     w.iron.visible = true; w.reactor.material.color.setHSL(0.55, 1, 0.7 + 0.25 * Math.sin(w.t * 12));
     w.sign.visible = false;
+    waltAura = w.level >= 2 ? 1.25 : 1; // Mark III+ buffs the whole eng team
     w.workProg += dt * 0.9; // ships ~ every 1.1s
     if (w.workProg >= 1) {
       w.workProg = 0;
-      const val = Math.max(8, Math.round((typeof featurePrice === 'number' ? featurePrice : 8) * productVersionMult * dealValueMult * 3));
+      const val = Math.max(8, Math.round((typeof featurePrice === 'number' ? featurePrice : 8) * productVersionMult * dealValueMult * (3 + w.level)));
       addRevenue(val, 'eng');
       popCashAt(w.group.position.x, w.group.position.z, val, 'eng');
     }
@@ -4820,6 +4840,7 @@ function updateWalt(dt) {
     w.group.rotation.y = Math.PI / 2;
     w.laserGroup.visible = false; w.halo.visible = false; w.iron.visible = false;
     w.sign.visible = true;
+    waltAura = 1;
   }
 }
 
@@ -8311,7 +8332,7 @@ function saveGame() {
       stimSupply,
       stimPacksBought,
       stimDosesGiven,
-      walt: walt ? { stage: walt.stage, stageT: walt.stageT } : null,
+      walt: walt ? { stage: walt.stage, stageT: walt.stageT, level: walt.level } : null,
       jeff: jeff ? { churns: jeff.churns, stage: jeff.stage } : null,
       savedAt: Date.now(),
     }));
@@ -8470,6 +8491,7 @@ function loadGame() {
     // silently (no "joined!" toast) and restore their progress.
     if (p.walt) {
       spawnWalt(true);
+      if (typeof p.walt.level === 'number') walt.level = Math.max(0, p.walt.level | 0);
       if (p.walt.stage && p.walt.stage !== 'bdr') waltSetStage(p.walt.stage);
       if (typeof p.walt.stageT === 'number') walt.stageT = p.walt.stageT;
     }
