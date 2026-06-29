@@ -997,6 +997,36 @@
   box-shadow: 0 0 18px rgba(108,99,255,0.4);
 }
 
+.aow-action-pause {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.2);
+  color: var(--text);
+}
+.aow-action-pause:hover:not(:disabled) {
+  box-shadow: 0 0 14px rgba(255,255,255,0.15);
+}
+.aow-action-pause.active {
+  background: rgba(252,211,77,0.14);
+  border-color: rgba(252,211,77,0.55);
+  color: #fcd34d;
+  box-shadow: 0 0 14px rgba(252,211,77,0.3);
+}
+
+.aow-action-speed {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.2);
+  color: var(--text);
+}
+.aow-action-speed:hover:not(:disabled) {
+  box-shadow: 0 0 14px rgba(255,255,255,0.15);
+}
+.aow-action-speed.active {
+  background: rgba(110,196,255,0.14);
+  border-color: rgba(110,196,255,0.55);
+  color: #6ec4ff;
+  box-shadow: 0 0 14px rgba(110,196,255,0.3);
+}
+
 /* Floating achievement toasts (top-right) */
 .aow-achievement-toasts {
   position: fixed;
@@ -1154,15 +1184,15 @@
   font-weight: 800;
 }
 
-/* Action bar — 5 buttons.
-   Desktop: comfortable 5 in a row.
-   Tablet (<=900): still 5 across but tighter.
+/* Action bar — 7 buttons.
+   Desktop: comfortable 7 in a row.
+   Tablet (<=900): still 7 across but tighter.
    Phone (<=720): icon-first compact row pinned to the bottom of the page so
    it's always reachable without scrolling. */
-.aow-actionbar { grid-template-columns: repeat(5, 1fr); }
+.aow-actionbar { grid-template-columns: repeat(7, 1fr); }
 
 @media (max-width: 900px) {
-  .aow-actionbar { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .aow-actionbar { grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .aow-action { padding: 10px 8px; font-size: 13px; }
   .aow-action-lbl { font-size: 12px; }
 }
@@ -1171,7 +1201,7 @@
     position: sticky;
     bottom: 0;
     z-index: 30;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     gap: 4px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
     margin: 0 -6px;
