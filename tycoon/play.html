@@ -966,6 +966,25 @@
     }
 
     /* ── Win modal (celebratory overlay when goal hit) ─── */
+    /* ── Season title card (Netflix-style premiere on IPO) ── */
+    #season-card {
+      position: fixed; inset: 0; z-index: 320;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; opacity: 0;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.5), rgba(0,0,0,0.85));
+    }
+    #season-card.show { animation: scFade 4.4s ease forwards; }
+    @keyframes scFade { 0%{opacity:0} 7%{opacity:1} 84%{opacity:1} 100%{opacity:0} }
+    #season-card .sc-inner { text-align: center; padding: 0 24px; }
+    #season-card.show .sc-inner { animation: scRise 4.4s cubic-bezier(0.2,0.8,0.2,1) forwards; }
+    @keyframes scRise { 0%{transform:translateY(26px);opacity:0} 11%{transform:translateY(0);opacity:1} 100%{transform:translateY(0)} }
+    #season-card .sc-eyebrow { font-size: 13px; letter-spacing: 6px; font-weight: 800; color: #e50914; text-transform: uppercase; margin-bottom: 12px; }
+    #season-card .sc-num { font-size: clamp(22px,4vw,40px); font-weight: 900; letter-spacing: 3px; color: #fff; line-height: 1; }
+    #season-card .sc-title { font-size: clamp(40px,10vw,92px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.02; margin-top: 8px;
+      background: linear-gradient(180deg,#fff,#aeb6c0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    #season-card .sc-note { margin-top: 18px; font-size: 15px; color: #9aa3ad; font-style: italic; }
+    @media (prefers-reduced-motion: reduce) { #season-card.show, #season-card.show .sc-inner { animation: none; opacity: 1; } }
+
     #win-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.78);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
@@ -1454,6 +1473,14 @@
       <div style="margin:6px 0"><strong style="color:#fcd34d">4.</strong> Fill the goal bar at the top, then <strong>IPO</strong> for a permanent multiplier.</div>
     </div>
     <button class="tip-ok" id="welcome-start-btn">Let's go →</button>
+  </div>
+</div>
+<div id="season-card" aria-hidden="true">
+  <div class="sc-inner">
+    <div class="sc-eyebrow">Season</div>
+    <div class="sc-num">SEASON 1</div>
+    <div class="sc-title">Pre-Seed</div>
+    <div class="sc-note"></div>
   </div>
 </div>
 <div id="win-modal" role="dialog">
@@ -5931,7 +5958,9 @@ function triggerWin(cumulative) {
     <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
     <div class="row"><span>Time to goal</span><strong>${m}:${s.toString().padStart(2,'0')}${pbBadge}</strong></div>
     <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
-    <div class="row"><span>Next season</span><strong>S${prestigeLevel + 2} · 🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
+    <div class="row"><span>Next season</span><strong>S${prestigeLevel + 2} · ${seasonTitle(prestigeLevel + 1)}</strong></div>
+    <div class="row"><span>The deal</span><strong style="color:#7D8590;font-weight:600">🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
+    <div class="row"><span>Coming up</span><strong style="color:#fcd34d">${seasonTeaser(prestigeLevel + 2)}</strong></div>
   `;
   winModalEl.classList.add('open');
   const t = currentGoalTarget();
@@ -8009,10 +8038,53 @@ function openIPOModal() {
   ipoModal.classList.add('open');
 }
 
+// ── The Show: each prestige is a TV season ─────────────────────────
+// Seasons 1–3 are "canon" (the real story so far — placeholder titles,
+// rename freely); Season 3 is present day; Season 4+ is the unwritten
+// future. seasonTitle() takes a 0-indexed prestige level.
+const SEASON_TITLES = [
+  'Pre-Seed',            // S1
+  'Product–Market Fit',  // S2
+  'Hypergrowth',         // S3 — present day
+  'The Unwritten',       // S4 — past real life
+  'Blitzscale',          // S5
+  'Category King',       // S6
+  'The Reckoning',       // S7
+  'Endgame',             // S8
+];
+const PRESENT_DAY_SEASON = 3; // S3 = caught up to real life
+function seasonTitle(level) { return SEASON_TITLES[level] || `Uncharted ${level + 1}`; }
+function seasonTeaser(nextSeasonNum) {
+  if (nextSeasonNum > PRESENT_DAY_SEASON + 1) return '🔒 The future — unwritten';
+  if (nextSeasonNum === PRESENT_DAY_SEASON + 1) return '🔮 You pass real life — anything goes';
+  if (walt && walt.stage === 'bdr') return '🔒 Walt makes AM';
+  if (walt && walt.stage === 'am')  return '🔒 Walt switches to Engineering';
+  return '🔒 New floor + a tougher goal';
+}
+let _seasonCardTimer = null;
+function showSeasonCard(level) {
+  const card = document.getElementById('season-card');
+  if (!card) return;
+  const num = level + 1;
+  card.querySelector('.sc-eyebrow').textContent =
+    num === PRESENT_DAY_SEASON ? 'Season · Present Day'
+    : num > PRESENT_DAY_SEASON ? 'Season · The Future' : 'Season';
+  card.querySelector('.sc-num').textContent = 'SEASON ' + num;
+  card.querySelector('.sc-title').textContent = seasonTitle(level);
+  card.querySelector('.sc-note').textContent =
+    num === PRESENT_DAY_SEASON ? "You've caught up to real life."
+    : num === PRESENT_DAY_SEASON + 1 ? "Past reality now — this part hasn't happened yet."
+    : '';
+  card.classList.remove('show'); void card.offsetWidth; card.classList.add('show');
+  clearTimeout(_seasonCardTimer);
+  _seasonCardTimer = setTimeout(() => card.classList.remove('show'), 4400);
+}
+
 function doIPO() {
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
   waltAdvanceSeason(); // Walt levels up one role each season
+  showSeasonCard(prestigeLevel); // premiere of the new season
 
 
   launchConfetti({ pieces: 140, duration: 4200,
