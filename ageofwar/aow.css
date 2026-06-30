@@ -996,6 +996,30 @@
 .aow-action-ach:hover:not(:disabled) {
   box-shadow: 0 0 18px rgba(108,99,255,0.4);
 }
+.aow-action-speed {
+  background: rgba(88,166,255,0.10);
+  border-color: rgba(88,166,255,0.38);
+  color: #58A6FF;
+}
+.aow-action-speed:hover:not(:disabled) {
+  box-shadow: 0 0 18px rgba(88,166,255,0.3);
+}
+.aow-action-speed[data-speed="2"] {
+  background: rgba(252,211,77,0.14);
+  border-color: rgba(252,211,77,0.50);
+  color: #fcd34d;
+}
+.aow-action-speed[data-speed="2"]:hover {
+  box-shadow: 0 0 18px rgba(252,211,77,0.35);
+}
+.aow-action-speed[data-speed="3"] {
+  background: rgba(248,81,73,0.16);
+  border-color: rgba(248,81,73,0.50);
+  color: #ff7a72;
+}
+.aow-action-speed[data-speed="3"]:hover {
+  box-shadow: 0 0 20px rgba(248,81,73,0.4);
+}
 
 /* Floating achievement toasts (top-right) */
 .aow-achievement-toasts {
@@ -1154,15 +1178,15 @@
   font-weight: 800;
 }
 
-/* Action bar — 5 buttons.
-   Desktop: comfortable 5 in a row.
-   Tablet (<=900): still 5 across but tighter.
+/* Action bar — 6 buttons (Age Up / Special / Hero / Awards / Speed / Restart).
+   Desktop: comfortable 6 in a row.
+   Tablet (<=900): still 6 across but tighter.
    Phone (<=720): icon-first compact row pinned to the bottom of the page so
    it's always reachable without scrolling. */
-.aow-actionbar { grid-template-columns: repeat(5, 1fr); }
+.aow-actionbar { grid-template-columns: repeat(6, 1fr); }
 
 @media (max-width: 900px) {
-  .aow-actionbar { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .aow-actionbar { grid-template-columns: repeat(6, 1fr); gap: 6px; }
   .aow-action { padding: 10px 8px; font-size: 13px; }
   .aow-action-lbl { font-size: 12px; }
 }
@@ -1171,7 +1195,7 @@
     position: sticky;
     bottom: 0;
     z-index: 30;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 4px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
     margin: 0 -6px;
