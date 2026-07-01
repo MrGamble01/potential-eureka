@@ -576,6 +576,9 @@
       gap: 16px; padding: 3px 0;
     }
     .m-row + .m-row { border-top: 1px solid rgba(255,255,255,0.04); }
+    /* Declutter: low-priority rows (Users/Shipped/Version/Morale) live in
+       the 📊 Dashboard now; the always-on HUD keeps only the essentials. */
+    #metrics-hud .m-row[data-priority="low"] { display: none; }
     .m-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: #7D8590; font-weight: 700; }
     .m-val { font-size: 13px; font-weight: 800; color: #E6EDF3; font-variant-numeric: tabular-nums; }
     /* ── Event status chip ────────────────────────────────── */
@@ -1089,6 +1092,14 @@
       letter-spacing: 1.5px; color: #7D8590; margin-bottom: 8px;
     }
     #feed-list { display: flex; flex-direction: column; gap: 0; }
+    /* Declutter: the feed is collapsible (just the title bar by default),
+       click to expand. Only the title re-enables pointer events so the
+       rest of the screen stays click-through. */
+    .feed-title { pointer-events: auto; cursor: pointer; }
+    .feed-title::after { content: '▾'; float: right; opacity: 0.55; font-weight: 700; }
+    #activity-feed.feed-collapsed .feed-title { margin-bottom: 0; }
+    #activity-feed.feed-collapsed .feed-title::after { content: '▸'; }
+    #activity-feed.feed-collapsed #feed-list { display: none; }
     .feed-entry {
       font-size: 11px; font-weight: 600; color: #C4D3DD;
       padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -1498,7 +1509,7 @@
   <span class="ib-body"><strong id="ib-title">Investor on the floor</strong><span id="ib-sub">Walk up to shake their hand</span></span>
   <span class="ib-timer" id="ib-timer">30s</span>
 </div>
-<div id="activity-feed">
+<div id="activity-feed" class="feed-collapsed">
   <div class="feed-title">📡 Live Feed</div>
   <div id="feed-list"></div>
 </div>
@@ -5901,9 +5912,15 @@ setInterval(checkAchievements, 1000);
 // state per-panel is persisted to localStorage so the layout survives
 // reloads. Default = all expanded (discoverability wins for a new run).
 const PANEL_COLLAPSE_STORAGE_KEY = 'startup_tycoon_panels_collapsed';
+// New players start with the secondary panels collapsed (clean by
+// default); Team stays open. Returning players keep their saved layout.
+const PANEL_COLLAPSE_DEFAULT = ['room-panel', 'funding-panel', 'amenities-panel'];
 function loadCollapsedPanels() {
-  try { return new Set(JSON.parse(localStorage.getItem(PANEL_COLLAPSE_STORAGE_KEY) || '[]')); }
-  catch { return new Set(); }
+  try {
+    const raw = localStorage.getItem(PANEL_COLLAPSE_STORAGE_KEY);
+    if (raw === null) return new Set(PANEL_COLLAPSE_DEFAULT);
+    return new Set(JSON.parse(raw));
+  } catch { return new Set(); }
 }
 function saveCollapsedPanels(set) {
   try { localStorage.setItem(PANEL_COLLAPSE_STORAGE_KEY, JSON.stringify([...set])); } catch {}
@@ -5923,6 +5940,18 @@ function saveCollapsedPanels(set) {
       saveCollapsedPanels(cur);
     });
   }
+})();
+
+// Live feed: collapsed by default (just the title bar); click to expand.
+(() => {
+  const feed = document.getElementById('activity-feed');
+  const title = feed && feed.querySelector('.feed-title');
+  if (!feed || !title) return;
+  try { if (localStorage.getItem('startup_tycoon_feed_open') === '1') feed.classList.remove('feed-collapsed'); } catch {}
+  title.addEventListener('click', () => {
+    feed.classList.toggle('feed-collapsed');
+    try { localStorage.setItem('startup_tycoon_feed_open', feed.classList.contains('feed-collapsed') ? '0' : '1'); } catch {}
+  });
 })();
 
 // ── Theme modal + live swap ─────────────────────────────
