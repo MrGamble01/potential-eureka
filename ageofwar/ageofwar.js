@@ -1128,6 +1128,33 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Combat ----
+  // Visual identity of each shooter's projectile. Hit detection is
+  // x-based, so the arc fields (vy/grav) added at fire time are purely
+  // cosmetic. Unknown keys fall back to dmg-based heuristics in
+  // drawProjectile, so modded/boss units still render sensibly.
+  const PROJECTILE_KINDS = {
+    sling: 'stone', archer: 'arrow', rifleman: 'bullet', cannon: 'shell',
+    tank1: 'shell', soldier: 'bullet', sniper: 'tracer', tank2: 'shell',
+    laser: 'laser', flier: 'plasma',
+    hero_general: 'bullet', hero_seal: 'tracer',
+  };
+  const TURRET_PROJECTILE_KINDS = ['stone', 'arrow', 'shell', 'bullet', 'plasma'];
+  function projectileKindFor(key) {
+    if (!key) return null;
+    if (key.startsWith('boss_')) key = key.slice(5).replace(/_\d+$/, '');
+    return PROJECTILE_KINDS[key] || null;
+  }
+  // Arc gravity (px/s^2) per kind. Launch vy is derived from the shot
+  // distance so every lobbed round rises and lands level with its launch
+  // height: vy0 = -g * flight / 2, flight = dist / projectile speed.
+  const PROJECTILE_ARC_G = { stone: 700, arrow: 550, shell: 520 };
+  function projectileArc(kind, dist, speed) {
+    const g = PROJECTILE_ARC_G[kind];
+    if (!g) return { vy: 0, grav: 0 };
+    const flight = Math.max(0.15, dist / speed);
+    return { vy: -g * flight / 2, grav: g };
+  }
+
   function update(dt) {
     if (!running) return;
     // Pause sim while a modal is open so the player isn't punished for
@@ -1218,9 +1245,12 @@ const AgeOfWarGame = (() => {
             shake(Math.min(8, 1 + u.dmg / 80), 0.18);
           } else if (target) {
             if (u.range > 60) {
+              const kind = projectileKindFor(u.key);
+              const arc = projectileArc(kind, dist, 360);
               projectiles.push({
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
                 vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                kind, vy: arc.vy, grav: arc.grav,
                 trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
@@ -1243,9 +1273,15 @@ const AgeOfWarGame = (() => {
     for (const p of projectiles) {
       // Record a brief trail (last 6 positions) for fade rendering
       if (!p.trail) p.trail = [];
-      p.trail.push(p.x);
+      p.trail.push({ x: p.x, y: p.y });
       if (p.trail.length > 6) p.trail.shift();
       p.x += p.vx * dt;
+      if (p.grav) {
+        // Cosmetic ballistic arc — collisions stay x-based.
+        p.y += p.vy * dt;
+        p.vy += p.grav * dt;
+        if (p.y > GROUND_Y - 8) { p.y = GROUND_Y - 8; p.vy = 0; p.grav = 0; }
+      }
       p.life -= dt;
       const targets = units.filter(u => u.side !== p.side && u.hp > 0);
       for (const u of targets) {
@@ -1480,11 +1516,14 @@ const AgeOfWarGame = (() => {
         if (d <= t.range && d < bestDist) { bestDist = d; target = u; }
       }
       if (target) {
+        const tKind = TURRET_PROJECTILE_KINDS[t.era] || null;
+        const tArc = projectileArc(tKind, bestDist, 380);
         projectiles.push({
           side, x: turretX,
           y: GROUND_Y - 90,
           vx: (target.x > turretX ? 1 : -1) * 380,
           dmg: t.dmg, life: 1.2, color: t.color || '#fcd34d',
+          kind: tKind, vy: tArc.vy, grav: tArc.grav,
         });
         muzzleFlashes.push({ x: turretX, y: GROUND_Y - 90, t: 0.12, color: t.color });
         t.atkT = t.atkSpd;
@@ -1712,9 +1751,9 @@ const AgeOfWarGame = (() => {
     drawGround(playerEra);
 
     // Bases (per-era art)
-    drawBase(PLAYER_BASE_X, era.baseColor, era.icon, playerEra);
+    drawBase(PLAYER_BASE_X, era.baseColor, era.icon, playerEra, playerBaseHp / playerBaseMax);
     const eEra = ERAS[enemyEra];
-    drawBase(ENEMY_BASE_X, eEra.baseColor, eEra.icon, enemyEra);
+    drawBase(ENEMY_BASE_X, eEra.baseColor, eEra.icon, enemyEra, enemyBaseHp / enemyBaseMax);
 
     // Turrets (player + enemy) — small icons on the base ramparts
     drawTurrets(PLAYER_BASE_X, playerTurrets, +1);
@@ -2482,9 +2521,10 @@ const AgeOfWarGame = (() => {
     ctx.restore();
   }
 
-  function drawBase(x, color, icon, eraIdx) {
+  function drawBase(x, color, icon, eraIdx, hpFrac) {
     // Dispatch to era-specific art so each side reflects its era.
     if (eraIdx === undefined) eraIdx = 0;
+    if (hpFrac === undefined) hpFrac = 1;
     switch (eraIdx) {
       case 0: drawBaseStone(x, color); break;
       case 1: drawBaseMedieval(x, color); break;
@@ -2493,6 +2533,7 @@ const AgeOfWarGame = (() => {
       case 4: drawBaseFuture(x, color); break;
       default: drawBaseMedieval(x, color);
     }
+    if (hpFrac < 0.7) drawBaseDamage(x, hpFrac);
     // Era icon flag
     ctx.fillStyle = '#888';
     ctx.fillRect(x + BASE_W / 2 - 1, GROUND_Y - 132, 2, 38);
@@ -2502,6 +2543,72 @@ const AgeOfWarGame = (() => {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
     ctx.fillText(icon, x + BASE_W / 2, GROUND_Y - 112);
+  }
+
+  // Battle-damage overlay: cracks open below 70% HP, smoke rises below
+  // 45%, open flames below 20% — one glance at a base reads the war state.
+  // Crack positions are fixed (no per-frame randomness) so damage looks
+  // structural instead of flickering.
+  function drawBaseDamage(x, frac) {
+    const now = performance.now();
+    const cracks = [
+      [x + BASE_W * 0.22, GROUND_Y - 4,  x + BASE_W * 0.30, GROUND_Y - 34, x + BASE_W * 0.24, GROUND_Y - 58],
+      [x + BASE_W * 0.72, GROUND_Y - 2,  x + BASE_W * 0.64, GROUND_Y - 28, x + BASE_W * 0.70, GROUND_Y - 50],
+      [x + BASE_W * 0.46, GROUND_Y - 10, x + BASE_W * 0.52, GROUND_Y - 40, x + BASE_W * 0.44, GROUND_Y - 66],
+    ];
+    const n = frac < 0.25 ? 3 : frac < 0.5 ? 2 : 1;
+    ctx.strokeStyle = 'rgba(10,8,6,0.75)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < n; i++) {
+      const c = cracks[i];
+      ctx.beginPath();
+      ctx.moveTo(c[0], c[1]); ctx.lineTo(c[2], c[3]); ctx.lineTo(c[4], c[5]);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(c[2], c[3]); ctx.lineTo(c[2] + (i % 2 ? -9 : 9), c[3] - 8);
+      ctx.stroke();
+      ctx.lineWidth = 2;
+    }
+    if (frac < 0.45) {
+      const plumes = frac < 0.2 ? [0.3, 0.62] : [0.42];
+      for (let pi = 0; pi < plumes.length; pi++) {
+        const px = x + BASE_W * plumes[pi];
+        for (let i = 0; i < 4; i++) {
+          const t = ((now / 1300) + i / 4 + pi * 0.37) % 1;
+          const sy = GROUND_Y - 55 - t * 70;
+          const sx = px + Math.sin((t * 5) + pi * 2) * 7;
+          ctx.fillStyle = `rgba(70,66,62,${(1 - t) * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(sx, sy, 5 + t * 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    if (frac < 0.2) {
+      const spots = [0.3, 0.62];
+      for (let fi = 0; fi < spots.length; fi++) {
+        const fx = x + BASE_W * spots[fi], fy = GROUND_Y - 46 - fi * 10;
+        const fl = 0.75 + Math.sin(now / 90 + fi * 1.7) * 0.25;
+        const glow = ctx.createRadialGradient(fx, fy, 2, fx, fy, 26);
+        glow.addColorStop(0, `rgba(255,160,60,${0.5 * fl})`);
+        glow.addColorStop(1, 'rgba(255,120,40,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(fx, fy, 26, 0, Math.PI * 2); ctx.fill();
+        for (let i = 0; i < 3; i++) {
+          const tx = fx + (i - 1) * 7;
+          const th = (13 + i * 4) * fl;
+          ctx.fillStyle = i === 1 ? `rgba(255,214,110,${0.9 * fl})` : `rgba(255,140,50,${0.85 * fl})`;
+          ctx.beginPath();
+          ctx.moveTo(tx - 4, fy + 8);
+          ctx.quadraticCurveTo(tx - 5 + Math.sin(now / 70 + i) * 2.5, fy - th * 0.5, tx, fy - th);
+          ctx.quadraticCurveTo(tx + 5 + Math.sin(now / 80 + i * 2) * 2.5, fy - th * 0.5, tx + 4, fy + 8);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
   }
 
   function drawBaseStone(x, color) {
@@ -5693,73 +5800,121 @@ const AgeOfWarGame = (() => {
 
   function drawProjectile(p) {
     const dir = Math.sign(p.vx) || 1;
-    // Trail: fade older positions, brighter near the projectile head.
-    // Drawn first so the projectile head paints over it.
-    if (p.trail && p.trail.length > 1) {
-      const isLaser = p.color === '#6ec4ff' || p.color === '#ff90ee';
-      const isHeavy = p.dmg >= 100;
-      const isArrow = !isLaser && p.dmg >= 30 && p.dmg < 100;
-      const trailW = isLaser ? 4 : isHeavy ? 5 : isArrow ? 2 : 2.2;
-      const trailColor = isLaser ? p.color : isHeavy ? '#3a3a3a' : isArrow ? '#5a3a22' : (p.color || '#fcd34d');
+    // Trails are {x,y} points (older saves may hold bare x numbers).
+    const pts = (p.trail || []).map(t => (typeof t === 'number') ? { x: t, y: p.y } : t);
+    const kind = p.kind || (
+      (p.color === '#6ec4ff' || p.color === '#ff90ee') ? 'laser' :
+      p.dmg >= 100 ? 'shell' : p.dmg >= 30 ? 'arrow' : 'bullet');
+    const TRAIL_STYLE = {
+      laser:  { w: 4,   c: p.color || '#6ec4ff', a: 0.55 },
+      plasma: { w: 5,   c: p.color || '#ff90ee', a: 0.5 },
+      shell:  { w: 5,   c: '#3a3a3a',            a: 0.4 },
+      tracer: { w: 2.4, c: '#ffe9b0',            a: 0.7 },
+      bullet: { w: 2.2, c: '#ffd98a',            a: 0.5 },
+      arrow:  { w: 2,   c: '#5a3a22',            a: 0.35 },
+      stone:  { w: 3,   c: '#8a7a60',            a: 0.3 },
+    };
+    if (pts.length > 1) {
+      const st = TRAIL_STYLE[kind] || TRAIL_STYLE.bullet;
       ctx.lineCap = 'round';
-      for (let i = 0; i < p.trail.length - 1; i++) {
-        const a = (i + 1) / p.trail.length;
-        ctx.strokeStyle = trailColor;
-        ctx.globalAlpha = a * (isLaser ? 0.55 : 0.4);
-        ctx.lineWidth = trailW * a;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = (i + 1) / pts.length;
+        ctx.strokeStyle = st.c;
+        ctx.globalAlpha = a * st.a;
+        ctx.lineWidth = st.w * a;
         ctx.beginPath();
-        ctx.moveTo(p.trail[i], p.y);
-        ctx.lineTo(p.trail[i + 1], p.y);
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[i + 1].x, pts[i + 1].y);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
     }
-    if (p.color === '#6ec4ff' || p.color === '#ff90ee') {
-      // Laser beam
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = p.color; ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.moveTo(p.x - dir * 18, p.y);
-      ctx.lineTo(p.x + dir * 4,  p.y);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    } else if (p.dmg >= 100) {
-      // Heavy round / shell
-      ctx.fillStyle = '#444';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#888';
-      ctx.fillRect(p.x - dir * 4, p.y - 1, dir * 4, 2);
-    } else if (p.dmg >= 30) {
-      // Arrow
-      ctx.strokeStyle = '#5a3a22';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(p.x - dir * 10, p.y); ctx.lineTo(p.x + dir * 4, p.y);
-      ctx.stroke();
-      // Arrowhead
-      ctx.fillStyle = '#ccc';
-      ctx.beginPath();
-      ctx.moveTo(p.x + dir * 4, p.y);
-      ctx.lineTo(p.x + dir * -1, p.y - 3);
-      ctx.lineTo(p.x + dir * -1, p.y + 3);
-      ctx.closePath();
-      ctx.fill();
-    } else {
-      // Bullet / stone
-      ctx.fillStyle = p.color || '#fcd34d';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(252,211,77,0.35)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(p.x - dir * 8, p.y); ctx.lineTo(p.x, p.y);
-      ctx.stroke();
+    // Arcing kinds pitch along their velocity so arrows/shells nose over.
+    const ang = Math.atan2(p.vy || 0, p.vx || dir);
+    switch (kind) {
+      case 'laser':
+        ctx.strokeStyle = p.color || '#6ec4ff';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = p.color || '#6ec4ff'; ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(p.x - dir * 18, p.y);
+        ctx.lineTo(p.x + dir * 4,  p.y);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        break;
+      case 'plasma': {
+        ctx.shadowColor = p.color || '#ff90ee'; ctx.shadowBlur = 12;
+        ctx.fillStyle = p.color || '#ff90ee';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+      case 'shell': {
+        // Cannonball: dark sphere with a rim light, faint smoke puffs behind.
+        for (let i = 0; i < Math.min(2, pts.length); i++) {
+          const q = pts[i];
+          ctx.fillStyle = `rgba(120,116,110,${0.18 + i * 0.08})`;
+          ctx.beginPath(); ctx.arc(q.x, q.y, 4 + i, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = '#33343a';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.arc(p.x - dir * 1.6, p.y - 1.8, 1.8, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+      case 'tracer':
+        // Sniper round: long white-hot streak with a warm halo.
+        ctx.save();
+        ctx.translate(p.x, p.y); ctx.rotate(ang);
+        ctx.strokeStyle = 'rgba(255,210,130,0.55)'; ctx.lineWidth = 3.6;
+        ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(2, 0); ctx.stroke();
+        ctx.strokeStyle = '#fff6e0'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(4, 0); ctx.stroke();
+        ctx.restore();
+        break;
+      case 'arrow':
+        ctx.save();
+        ctx.translate(p.x, p.y); ctx.rotate(ang);
+        ctx.strokeStyle = '#6a4a28'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(5, 0); ctx.stroke();
+        ctx.fillStyle = '#cfd4dc';                       // steel head
+        ctx.beginPath();
+        ctx.moveTo(9, 0); ctx.lineTo(3, -2.6); ctx.lineTo(3, 2.6);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#e8e2d0';                       // fletching
+        ctx.beginPath();
+        ctx.moveTo(-11, 0); ctx.lineTo(-15, -3); ctx.lineTo(-9, 0); ctx.lineTo(-15, 3);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+        break;
+      case 'stone': {
+        // Tumbling rock — rotation phase driven by travel distance.
+        ctx.save();
+        ctx.translate(p.x, p.y); ctx.rotate(p.x * 0.04);
+        ctx.fillStyle = '#8d8378';
+        ctx.beginPath();
+        ctx.moveTo(-4, -2.5); ctx.lineTo(0.5, -4); ctx.lineTo(4, -1.5);
+        ctx.lineTo(3, 3); ctx.lineTo(-2.5, 3.6); ctx.lineTo(-4.5, 0.5);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.beginPath(); ctx.arc(-1.2, -1.6, 1.4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        break;
+      }
+      default:
+        // Bullet: bright tip + short warm streak.
+        ctx.fillStyle = p.color || '#fcd34d';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(252,211,77,0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(p.x - dir * 8, p.y); ctx.lineTo(p.x, p.y);
+        ctx.stroke();
     }
   }
+
 
   // ---- HUD + panels ----
   function renderHud() {
