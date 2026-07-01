@@ -33,31 +33,36 @@ const AgeOfWarGame = (() => {
 
   // ---- Unit catalog ----
   // Three units per era: cheap melee / ranged / heavy.
+  // Stats are sim-tuned so every era forms an intransitive counter
+  // triangle (no dominant or dominated unit; see the balance PR for the
+  // duel matrices). Two structural premiums to preserve when retuning:
+  // walls (short-range heavies) need outsized HP because only the front
+  // melee unit fights, and long range must be paid for with fire rate.
   const UNITS = {
     // Stone Age
-    club:     { era: 0, name: 'Clubman',    icon: '🦴', sprite: '🧌',  cost: 25,   hp: 56,   dmg: 8,   range: 26,  atkSpd: 1.0,  speed: 42, color: '#b07040', xp: 12,  gold: 16,  silhouette: 'humanoid' },
-    sling:    { era: 0, name: 'Slinger',    icon: '🪃', sprite: '🧙',  cost: 55,   hp: 36,   dmg: 18,  range: 150, atkSpd: 1.15, speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
-    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', sprite: '🦖',  cost: 90,   hp: 200,  dmg: 26,  range: 30,  atkSpd: 0.95, speed: 40, color: '#5d8a4a', xp: 30,  gold: 55,  silhouette: 'beast' },
+    club:     { era: 0, name: 'Clubman',    icon: '🦴', sprite: '🧌',  cost: 25,   hp: 84,   dmg: 12,  range: 26,  atkSpd: 1.0,  speed: 50, color: '#b07040', xp: 10,  gold: 12,  silhouette: 'humanoid' },
+    sling:    { era: 0, name: 'Slinger',    icon: '🪃', sprite: '🧙',  cost: 55,   hp: 36,   dmg: 21,  range: 150, atkSpd: 1.15, speed: 36, color: '#8a5028', xp: 16,  gold: 26,  silhouette: 'humanoid' },
+    dino:     { era: 0, name: 'Dino Rider', icon: '🦖', sprite: '🦖',  cost: 90,   hp: 170,  dmg: 20,  range: 30,  atkSpd: 0.95, speed: 40, color: '#5d8a4a', xp: 30,  gold: 42,  silhouette: 'beast' },
 
     // Medieval
-    swordsman:{ era: 1, name: 'Swordsman',  icon: '⚔️', sprite: '🤺',  cost: 130,  hp: 180,  dmg: 28,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
-    archer:   { era: 1, name: 'Archer',     icon: '🏹', sprite: '🏹',  cost: 200,  hp: 90,   dmg: 48,  range: 200, atkSpd: 1.3,  speed: 40, color: '#b5985a', xp: 48,  gold: 80,  silhouette: 'humanoid' },
-    knight:   { era: 1, name: 'Knight',     icon: '🐴', sprite: '🐎',  cost: 380,  hp: 480,  dmg: 50,  range: 30,  atkSpd: 1.0,  speed: 50, color: '#9a9bc5', xp: 90,  gold: 150, silhouette: 'beast' },
+    swordsman:{ era: 1, name: 'Swordsman',  icon: '⚔️', sprite: '🤺',  cost: 130,  hp: 240,  dmg: 38,  range: 28,  atkSpd: 0.75, speed: 46, color: '#a0a0c0', xp: 38,  gold: 60,  silhouette: 'humanoid' },
+    archer:   { era: 1, name: 'Archer',     icon: '🏹', sprite: '🏹',  cost: 200,  hp: 90,   dmg: 48,  range: 200, atkSpd: 1.25, speed: 40, color: '#b5985a', xp: 48,  gold: 92,  silhouette: 'humanoid' },
+    knight:   { era: 1, name: 'Knight',     icon: '🐴', sprite: '🐎',  cost: 380,  hp: 560,  dmg: 55,  range: 30,  atkSpd: 1.0,  speed: 54, color: '#9a9bc5', xp: 90,  gold: 175, silhouette: 'beast' },
 
     // Industrial
-    rifleman: { era: 2, name: 'Rifleman',   icon: '🔫', sprite: '💂',  cost: 380,  hp: 270,  dmg: 90,  range: 230, atkSpd: 0.85, speed: 42, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
-    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', sprite: '🧨',  cost: 620,  hp: 380,  dmg: 170, range: 270, atkSpd: 1.6,  speed: 36, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
-    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', sprite: '🚂',  cost: 1100, hp: 1000, dmg: 200, range: 60,  atkSpd: 1.1,  speed: 34, color: '#6b5848', xp: 320, gold: 540, silhouette: 'vehicle' },
+    rifleman: { era: 2, name: 'Rifleman',   icon: '🔫', sprite: '💂',  cost: 380,  hp: 270,  dmg: 100, range: 230, atkSpd: 0.7,  speed: 46, color: '#5d7b3a', xp: 110, gold: 180, silhouette: 'humanoid' },
+    cannon:   { era: 2, name: 'Cannoneer',  icon: '💣', sprite: '🧨',  cost: 620,  hp: 380,  dmg: 190, range: 270, atkSpd: 1.6,  speed: 36, color: '#4a4030', xp: 170, gold: 290, silhouette: 'humanoid' },
+    tank1:    { era: 2, name: 'Steam Tank', icon: '🚂', sprite: '🚂',  cost: 1100, hp: 2600, dmg: 200, range: 90,  atkSpd: 0.95, speed: 42, color: '#6b5848', xp: 320, gold: 520, silhouette: 'vehicle' },
 
     // Modern
-    soldier:  { era: 3, name: 'Soldier',    icon: '🪖', sprite: '🪖',  cost: 850,  hp: 480,  dmg: 200, range: 240, atkSpd: 0.7,  speed: 44, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
-    sniper:   { era: 3, name: 'Sniper',     icon: '🎯', sprite: '🥷',  cost: 1500, hp: 240,  dmg: 520, range: 380, atkSpd: 2.4,  speed: 38, color: '#7a7a4a', xp: 420, gold: 700, silhouette: 'humanoid' },
-    tank2:    { era: 3, name: 'Tank',       icon: '🪖', sprite: '🚜',  cost: 2400, hp: 2000, dmg: 380, range: 100, atkSpd: 1.0,  speed: 32, color: '#4d5a3a', xp: 700, gold: 1180, silhouette: 'vehicle' },
+    soldier:  { era: 3, name: 'Soldier',    icon: '🪖', sprite: '🪖',  cost: 850,  hp: 500,  dmg: 190, range: 240, atkSpd: 0.7,  speed: 46, color: '#5a7a45', xp: 240, gold: 410, silhouette: 'humanoid' },
+    sniper:   { era: 3, name: 'Sniper',     icon: '🎯', sprite: '🥷',  cost: 1500, hp: 240,  dmg: 490, range: 360, atkSpd: 2.5,  speed: 38, color: '#7a7a4a', xp: 420, gold: 700, silhouette: 'humanoid' },
+    tank2:    { era: 3, name: 'Tank',       icon: '🪖', sprite: '🚜',  cost: 2400, hp: 4200, dmg: 380, range: 100, atkSpd: 1.0,  speed: 36, color: '#4d5a3a', xp: 700, gold: 1180, silhouette: 'vehicle' },
 
     // Future
-    laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 920,  silhouette: 'humanoid' },
-    mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 2800, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 2000, silhouette: 'vehicle' },
-    flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 320, atkSpd: 1.4,  speed: 56, color: '#ff90ee', xp: 1600,gold: 3200, silhouette: 'flier' },
+    laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 800,  silhouette: 'humanoid' },
+    mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 3600, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 1450, silhouette: 'vehicle' },
+    flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 250, atkSpd: 1.3,  speed: 56, color: '#ff90ee', xp: 1600,gold: 2150, silhouette: 'flier' },
   };
 
   function unitsForEra(era) {
@@ -69,7 +74,7 @@ const AgeOfWarGame = (() => {
     { era: 0, name: 'Rock Sling',    icon: '🪨', cost: 250,  dmg: 14,  range: 200, atkSpd: 1.6, color: '#7a5a3a' },
     { era: 1, name: 'Crossbow',      icon: '🏹', cost: 700,  dmg: 38,  range: 230, atkSpd: 1.2, color: '#a08855' },
     { era: 2, name: 'Cannon Turret', icon: '💣', cost: 2000, dmg: 130, range: 260, atkSpd: 1.4, color: '#555' },
-    { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 280, range: 300, atkSpd: 0.6, color: '#5a7a45' },
+    { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 240, range: 300, atkSpd: 0.8, color: '#5a7a45' },
     { era: 4, name: 'Plasma Turret', icon: '✨', cost: 12000, dmg: 700, range: 340, atkSpd: 0.9, color: '#6ec4ff' },
   ];
   // Player starts with 2 turret slots and can purchase up to 2 more (max 4).
@@ -1082,9 +1087,10 @@ const AgeOfWarGame = (() => {
       const baseKey = choices[choices.length - 1];
       const baseDef = UNITS[baseKey];
       const bossKey = 'boss_' + baseKey + '_' + waveNum;
-      // Gentler scaling so late bosses stay beatable. wave 5 -> ~2.8x HP,
-      // wave 10 -> ~3.7x, wave 15 -> ~4.6x. Capped at ~6x at wave 25.
-      const hpScale  = Math.min(6.0, 2.8 + (waveNum - 5) * 0.18);
+      // Gentler scaling so late bosses stay beatable. Heavies now carry a
+      // wall-premium HP pool themselves, so the boss multiplier is softer:
+      // wave 5 -> ~2.4x HP, wave 10 -> ~3.2x, wave 15 -> ~3.9x, cap ~5x.
+      const hpScale  = Math.min(5.0, 2.4 + (waveNum - 5) * 0.15);
       const dmgScale = Math.min(2.4, 1.3 + (waveNum - 5) * 0.08);
       if (!UNITS[bossKey]) {
         UNITS[bossKey] = {
