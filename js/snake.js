@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused, pauseStart;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -41,6 +42,7 @@ const SnakeGame = (() => {
     });
     canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     canvas.addEventListener('touchend', e => {
+      if (paused) return;
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -61,10 +63,16 @@ const SnakeGame = (() => {
   }
 
   function handleKey(e) {
-    if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+    if (!running && !paused && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       start();
       return;
     }
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+      togglePause();
+      e.preventDefault();
+      return;
+    }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
@@ -77,6 +85,27 @@ const SnakeGame = (() => {
     }
   }
 
+  function togglePause() {
+    if (!running && !paused) return;
+    paused = !paused;
+    if (paused) {
+      running = false;
+      pauseStart = Date.now();
+      clearInterval(gameLoop);
+    } else {
+      running = true;
+      if (bonusFood) bonusFood.expireAt += Date.now() - pauseStart;
+      gameLoop = setInterval(tick, speed);
+    }
+    updatePauseBtn();
+    draw();
+  }
+
+  function updatePauseBtn() {
+    const btn = document.getElementById('snake-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+  }
+
   function start() {
     snake = [{ x: Math.floor(COLS / 2), y: Math.floor(ROWS / 2) }];
     direction = { x: 1, y: 0 };
@@ -85,10 +114,12 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
     updateInfo();
+    updatePauseBtn();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
@@ -283,8 +314,22 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Paused overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '20px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or Escape to resume', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.textAlign = 'left';
+    }
+
     // Start prompt
-    if (!running && !gameOver) {
+    if (!running && !gameOver && !paused) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
       ctx.fillStyle = '#E6EDF3';
@@ -303,5 +348,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
