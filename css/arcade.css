@@ -1,0 +1,226 @@
+/* ============================================
+   ARCADE — Home Screen, Nav Utility Drawer,
+   Game Card Grid, In-Game Back Button
+   ============================================ */
+
+/* ---- NAV TWEAKS ---- */
+nav .logo-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.nav-spacer {
+  flex: 1;
+}
+
+.nav-utils-toggle {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.nav-utils-toggle:hover {
+  color: var(--text-dim);
+  border-color: var(--border);
+  background: var(--color-white-05);
+}
+
+/* Utility views (dashboard/productivity/org chart/personal) are
+   intentionally tucked into a closed-by-default drawer — they are
+   not the point of this site anymore, the games are. */
+.nav-utils {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: var(--nav-height);
+  z-index: 99;
+  max-width: 220px;
+  margin: 0 0 0 auto;
+  padding: 6px;
+  background: rgba(6, 6, 8, 0.92);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border: 1px solid var(--border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.nav-utils.open {
+  display: flex;
+}
+
+.nav-utils button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  text-align: left;
+  padding: 7px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast);
+}
+
+.nav-utils button:hover {
+  color: var(--text-dim);
+  background: var(--color-white-05);
+}
+
+.nav-utils button.active {
+  color: var(--text-dim);
+  background: var(--color-white-08);
+}
+
+/* ---- ARCADE HERO ---- */
+.arcade-hero {
+  text-align: center;
+  max-width: 900px;
+  margin: 40px auto 36px;
+}
+
+.arcade-hero-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(24px, 5vw, 42px);
+  letter-spacing: 2px;
+  color: var(--text);
+  text-shadow: 0 0 32px rgba(108, 99, 255, 0.35);
+}
+
+.arcade-hero-sub {
+  margin-top: 10px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+/* ---- ARCADE GAME GRID ---- */
+.arcade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.arcade-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  background: var(--bg-widget);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 20px 22px;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  color: inherit;
+  transition:
+    transform var(--duration-normal) var(--ease-out-expo),
+    box-shadow var(--duration-normal) var(--ease-out-expo),
+    border-color var(--duration-normal) var(--ease-out-expo),
+    background var(--duration-normal) var(--ease-out-expo);
+  will-change: transform;
+}
+
+.arcade-card:hover {
+  background: var(--bg-widget-hover);
+  border-color: rgba(108, 99, 255, 0.4);
+  transform: translateY(-4px);
+  box-shadow: var(--widget-shadow-hover), var(--glow-primary);
+}
+
+.arcade-card-art {
+  font-size: 44px;
+  line-height: 1;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 0 12px rgba(108, 99, 255, 0.25));
+}
+
+.arcade-card-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.arcade-card-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  min-height: 36px;
+}
+
+.arcade-card-play {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--primary-light);
+  opacity: 0.85;
+  transition: opacity var(--duration-fast), transform var(--duration-fast);
+}
+
+.arcade-card:hover .arcade-card-play {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+/* ---- BACK-TO-ARCADE (inside a game view) ---- */
+.game-back-btn {
+  display: inline-block;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  padding: 6px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.game-back-btn:hover {
+  color: var(--secondary);
+  border-color: var(--secondary);
+  background: rgba(88, 166, 255, 0.08);
+}
+
+@media (max-width: 640px) {
+  .arcade-hero {
+    margin: 24px auto 24px;
+  }
+  .arcade-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .arcade-card {
+    padding: 18px 12px 14px;
+  }
+  .arcade-card-art {
+    font-size: 34px;
+  }
+  .nav-utils {
+    max-width: none;
+    margin: 0;
+  }
+}
