@@ -19,21 +19,79 @@
 
   <!-- NAVIGATION -->
   <nav>
-    <span class="logo glitch" data-text=">_ POTENTIAL EUREKA">&gt;_ POTENTIAL EUREKA</span>
-    <button class="active" data-view="dashboard">Dashboard</button>
+    <button class="logo logo-btn glitch" data-text=">_ EUREKA ARCADE" data-view="arcade">&gt;_ EUREKA ARCADE</button>
+    <div class="nav-spacer"></div>
+    <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools">&#8943; more</button>
+  </nav>
+
+  <!-- Tucked-away utility views — not games, kept out of the way -->
+  <div class="nav-utils" id="nav-utils">
+    <button data-view="dashboard">Dashboard</button>
     <button data-view="productivity">Productivity</button>
     <button data-view="orgchart">My Org Chart</button>
     <button data-view="personal" class="nav-locked">Personal</button>
-    <button data-view="snake">Snake</button>
-    <button data-view="maze">Maze Solver</button>
-    <button data-view="life">Game of Life</button>
-    <button data-view="tetris">Tetris</button>
-    <a href="ageofwar/" class="nav-link-btn">Age of War</a>
-    <a href="tycoon/" class="nav-link-btn">Startup Tycoon</a>
-  </nav>
+  </div>
+
+  <!-- ===================== ARCADE (HOME) ===================== -->
+  <section id="view-arcade" class="view active">
+    <div class="arcade-hero">
+      <div class="arcade-hero-title glitch" data-text="POTENTIAL EUREKA ARCADE">POTENTIAL EUREKA ARCADE</div>
+      <div class="arcade-hero-sub">Pick a machine. Insert coin. Play.</div>
+    </div>
+    <div class="arcade-grid">
+      <a class="arcade-card" href="ageofwar/">
+        <div class="arcade-card-art">&#9876;&#65039;</div>
+        <div class="arcade-card-title">Age of War</div>
+        <div class="arcade-card-desc">Evolve your army through the ages and crush the enemy base.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </a>
+      <a class="arcade-card" href="tycoon/">
+        <div class="arcade-card-art">&#128188;</div>
+        <div class="arcade-card-title">Startup Tycoon</div>
+        <div class="arcade-card-desc">Build your startup, hire engineers, and chase the valuation.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </a>
+      <a class="arcade-card" href="drug-lab.html">
+        <div class="arcade-card-art">&#129514;</div>
+        <div class="arcade-card-title">Grow Op</div>
+        <div class="arcade-card-desc">Build your empire from the ground up. Watch the heat.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </a>
+      <a class="arcade-card" href="homeless-village.html">
+        <div class="arcade-card-art">&#127968;</div>
+        <div class="arcade-card-title">Homeless Village</div>
+        <div class="arcade-card-desc">Survive under the bridge and build a village from nothing.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </a>
+      <button class="arcade-card" data-view="snake">
+        <div class="arcade-card-art">&#128013;</div>
+        <div class="arcade-card-title">Snake</div>
+        <div class="arcade-card-desc">Classic snake. Arrow keys or WASD, don't hit yourself.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </button>
+      <button class="arcade-card" data-view="tetris">
+        <div class="arcade-card-art">&#129513;</div>
+        <div class="arcade-card-title">Tetris</div>
+        <div class="arcade-card-desc">Stack the blocks, clear the lines, don't top out.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </button>
+      <button class="arcade-card" data-view="maze">
+        <div class="arcade-card-art">&#129504;</div>
+        <div class="arcade-card-title">Maze Solver</div>
+        <div class="arcade-card-desc">Generate mazes and watch BFS, DFS &amp; A* race to the exit.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </button>
+      <button class="arcade-card" data-view="life">
+        <div class="arcade-card-art">&#9883;&#65039;</div>
+        <div class="arcade-card-title">Game of Life</div>
+        <div class="arcade-card-desc">Conway's cellular automaton. Click cells, hit play.</div>
+        <div class="arcade-card-play">PLAY &rarr;</div>
+      </button>
+    </div>
+  </section>
 
   <!-- ===================== DASHBOARD ===================== -->
-  <section id="view-dashboard" class="view active">
+  <section id="view-dashboard" class="view">
     <div class="dashboard-grid">
 
       <!-- Clock -->
@@ -280,6 +338,7 @@
   <section id="view-snake" class="view">
     <div class="game-container">
       <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
         <div class="game-title">SNAKE</div>
         <div class="game-subtitle">Use arrow keys or WASD to control</div>
       </div>
@@ -306,6 +365,7 @@
   <section id="view-maze" class="view">
     <div class="game-container">
       <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
         <div class="game-title">MAZE SOLVER</div>
         <div class="game-subtitle">Generate mazes and watch algorithms solve them</div>
       </div>
@@ -335,6 +395,7 @@
   <section id="view-tetris" class="view">
     <div class="game-container">
       <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
         <div class="game-title">TETRIS</div>
         <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
       </div>
@@ -382,6 +443,7 @@
   <section id="view-life" class="view">
     <div class="game-container">
       <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
         <div class="game-title">GAME OF LIFE</div>
         <div class="game-subtitle">Conway's cellular automaton — click to draw cells</div>
       </div>
@@ -479,13 +541,16 @@
   <script src="js/tetris.js"></script>
   <script src="js/orgchart.js"></script>
   <script>
-    const navButtons = document.querySelectorAll('nav button');
+    const navButtons = document.querySelectorAll('[data-view]');
     const views = document.querySelectorAll('.view');
+    const navUtils = document.getElementById('nav-utils');
+    const navUtilsToggle = document.getElementById('nav-utils-toggle');
     const inited = new Set();
 
     function switchView(name) {
       navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
       views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
+      navUtils.classList.remove('open');
 
       if (!inited.has(name)) {
         inited.add(name);
@@ -500,7 +565,7 @@
           case 'orgchart':     OrgChart.init(); break;
         }
       }
-      // Re-init 3D tilt for newly visible widgets
+      // Re-init 3D tilt for newly visible widgets/cards
       setTimeout(() => Effects.init3DTilt(), 50);
     }
 
@@ -508,10 +573,15 @@
       btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
 
+    navUtilsToggle.addEventListener('click', () => navUtils.classList.toggle('open'));
+    document.addEventListener('click', (e) => {
+      if (!navUtils.contains(e.target) && e.target !== navUtilsToggle) navUtils.classList.remove('open');
+    });
+
     // Hash-route deep linking — e.g. /#ageofwar opens the game directly.
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {
@@ -519,7 +589,7 @@
       if (v) switchView(v);
     });
 
-    Effects.init().then(() => switchView(viewFromHash() || 'dashboard'));
+    Effects.init().then(() => switchView(viewFromHash() || 'arcade'));
   </script>
 
 </body>

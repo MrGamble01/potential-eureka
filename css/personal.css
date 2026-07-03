@@ -451,7 +451,8 @@
 }
 
 /* ---- NAV LOCKED BUTTON ---- */
-nav button.nav-locked::after {
+nav button.nav-locked::after,
+.nav-utils button.nav-locked::after {
   content: ' \1F512';
   font-size: 10px;
 }
