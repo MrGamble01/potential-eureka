@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -65,6 +65,12 @@ const SnakeGame = (() => {
       start();
       return;
     }
+    if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && (running || paused)) {
+      togglePause();
+      e.preventDefault();
+      return;
+    }
+    if (paused) return;
     switch (e.key) {
       case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
       case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
@@ -77,6 +83,25 @@ const SnakeGame = (() => {
     }
   }
 
+  function togglePause() {
+    if (!running && !paused) return;
+    paused = !paused;
+    const overlay = document.getElementById('snake-overlay');
+    if (paused) {
+      clearInterval(gameLoop);
+      if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+          <h2>PAUSED</h2>
+          <p style="font-size:12px; color: var(--text-dim)">Press P or Esc to resume</p>
+        `;
+      }
+    } else {
+      if (overlay) overlay.style.display = 'none';
+      gameLoop = setInterval(tick, speed);
+    }
+  }
+
   function start() {
     snake = [{ x: Math.floor(COLS / 2), y: Math.floor(ROWS / 2) }];
     direction = { x: 1, y: 0 };
@@ -86,6 +111,7 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
     speed = 120;
     spawnFood();
     updateInfo();
@@ -201,6 +227,7 @@ const SnakeGame = (() => {
   function endGame() {
     running = false;
     gameOver = true;
+    paused = false;
     bonusFood = null;
     clearInterval(gameLoop);
 
@@ -303,5 +330,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
