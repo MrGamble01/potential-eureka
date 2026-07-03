@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POTENTIAL EUREKA</title>
+  <title>EUREKA ARCADE</title>
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#128377;&#65039;&lt;/text&gt;&lt;/svg&gt;">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,69 +25,110 @@
     <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools">&#8943; more</button>
   </nav>
 
-  <!-- Tucked-away utility views — not games, kept out of the way -->
+  <!-- Tucked-away utility views + toys — not games, kept out of the way -->
   <div class="nav-utils" id="nav-utils">
     <button data-view="dashboard">Dashboard</button>
     <button data-view="productivity">Productivity</button>
     <button data-view="orgchart">My Org Chart</button>
     <button data-view="personal" class="nav-locked">Personal</button>
+    <div class="nav-utils-divider">toys</div>
+    <button data-view="maze">Maze Solver</button>
+    <button data-view="life">Game of Life</button>
   </div>
 
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-title glitch" data-text="POTENTIAL EUREKA ARCADE">POTENTIAL EUREKA ARCADE</div>
-      <div class="arcade-hero-sub">Pick a machine. Insert coin. Play.</div>
+      <div class="arcade-hero-kicker">&#9679; FREE PLAY &mdash; NO QUARTERS NEEDED</div>
+      <div class="arcade-hero-title glitch" data-text="EUREKA ARCADE">EUREKA ARCADE</div>
+      <div class="arcade-hero-sub">PICK A MACHINE <span class="arcade-blink">&#9646;</span></div>
     </div>
     <div class="arcade-grid">
-      <a class="arcade-card" href="ageofwar/">
-        <div class="arcade-card-art">&#9876;&#65039;</div>
-        <div class="arcade-card-title">Age of War</div>
-        <div class="arcade-card-desc">Evolve your army through the ages and crush the enemy base.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
+
+      <a class="arcade-card" href="ageofwar/" style="--accent:#D29922">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">AGE OF WAR</div>
+          <div class="arcade-card-tags"><span>Strategy</span><span>Waves</span><span>Bosses</span></div>
+          <div class="arcade-card-desc">March your army through the ages and crush the enemy base.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
       </a>
-      <a class="arcade-card" href="tycoon/">
-        <div class="arcade-card-art">&#128188;</div>
-        <div class="arcade-card-title">Startup Tycoon</div>
-        <div class="arcade-card-desc">Build your startup, hire engineers, and chase the valuation.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
+
+      <a class="arcade-card" href="tycoon/" style="--accent:#58A6FF">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/tycoon.jpg" alt="Startup Tycoon gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/tycoon.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">STARTUP TYCOON</div>
+          <div class="arcade-card-tags"><span>Idle</span><span>3D</span><span>Story</span></div>
+          <div class="arcade-card-desc">Hire engineers, ship features, and grind your way to IPO.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
       </a>
-      <a class="arcade-card" href="drug-lab.html">
-        <div class="arcade-card-art">&#129514;</div>
-        <div class="arcade-card-title">Grow Op</div>
-        <div class="arcade-card-desc">Build your empire from the ground up. Watch the heat.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
+
+      <a class="arcade-card arcade-card-dim" href="drug-lab.html" style="--accent:#3FB950">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/growop.jpg" alt="Grow Op gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/growop.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">GROW OP</div>
+          <div class="arcade-card-tags"><span>Builder</span><span>3D</span><span>Risk</span></div>
+          <div class="arcade-card-desc">Expand the operation room by room &mdash; and watch the heat.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
       </a>
-      <a class="arcade-card" href="homeless-village.html">
-        <div class="arcade-card-art">&#127968;</div>
-        <div class="arcade-card-title">Homeless Village</div>
-        <div class="arcade-card-desc">Survive under the bridge and build a village from nothing.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
+
+      <a class="arcade-card arcade-card-dim" href="homeless-village.html" style="--accent:#F0883E">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/homeless.jpg" alt="Homeless Village gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/homeless.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">HOMELESS VILLAGE</div>
+          <div class="arcade-card-tags"><span>Survival</span><span>3D</span><span>Idle</span></div>
+          <div class="arcade-card-desc">Survive under the bridge and build a village from nothing.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
       </a>
-      <button class="arcade-card" data-view="snake">
-        <div class="arcade-card-art">&#128013;</div>
-        <div class="arcade-card-title">Snake</div>
-        <div class="arcade-card-desc">Classic snake. Arrow keys or WASD, don't hit yourself.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
+
+      <button class="arcade-card" data-view="snake" style="--accent:#6C63FF">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/snake.jpg" alt="Snake gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/snake.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">SNAKE</div>
+          <div class="arcade-card-tags"><span>Classic</span><span>Arcade</span></div>
+          <div class="arcade-card-desc">Chase the food, grow long, don't bite yourself.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
       </button>
-      <button class="arcade-card" data-view="tetris">
-        <div class="arcade-card-art">&#129513;</div>
-        <div class="arcade-card-title">Tetris</div>
-        <div class="arcade-card-desc">Stack the blocks, clear the lines, don't top out.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
+
+      <button class="arcade-card" data-view="tetris" style="--accent:#F778BA">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/tetris.jpg" alt="Tetris gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/tetris.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">TETRIS</div>
+          <div class="arcade-card-tags"><span>Classic</span><span>Puzzle</span></div>
+          <div class="arcade-card-desc">Stack the blocks, clear the lines, don't top out.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
       </button>
-      <button class="arcade-card" data-view="maze">
-        <div class="arcade-card-art">&#129504;</div>
-        <div class="arcade-card-title">Maze Solver</div>
-        <div class="arcade-card-desc">Generate mazes and watch BFS, DFS &amp; A* race to the exit.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
-      </button>
-      <button class="arcade-card" data-view="life">
-        <div class="arcade-card-art">&#9883;&#65039;</div>
-        <div class="arcade-card-title">Game of Life</div>
-        <div class="arcade-card-desc">Conway's cellular automaton. Click cells, hit play.</div>
-        <div class="arcade-card-play">PLAY &rarr;</div>
-      </button>
+
     </div>
   </section>
 
@@ -577,6 +619,23 @@
     document.addEventListener('click', (e) => {
       if (!navUtils.contains(e.target) && e.target !== navUtilsToggle) navUtils.classList.remove('open');
     });
+
+    // Hover-to-play gameplay clips on arcade cards (hover-capable devices only).
+    if (window.matchMedia('(hover: hover)').matches) {
+      document.querySelectorAll('.arcade-card').forEach(card => {
+        const clip = card.querySelector('.arcade-card-clip');
+        if (!clip) return;
+        clip.addEventListener('playing', () => card.classList.add('clip-live'));
+        card.addEventListener('mouseenter', () => {
+          clip.play().catch(() => {});
+        });
+        card.addEventListener('mouseleave', () => {
+          card.classList.remove('clip-live');
+          clip.pause();
+          clip.currentTime = 0;
+        });
+      });
+    }
 
     // Hash-route deep linking — e.g. /#ageofwar opens the game directly.
     function viewFromHash() {

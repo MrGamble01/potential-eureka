@@ -108,7 +108,7 @@ const Effects = (() => {
 
   // ---- 3D CARD TILT ----
   function init3DTilt() {
-    document.querySelectorAll('.widget, .arcade-card').forEach(w => {
+    document.querySelectorAll('.widget').forEach(w => {
       w.addEventListener('mousemove', e => {
         const r = w.getBoundingClientRect();
         const rx = ((e.clientY - r.top) / r.height - 0.5) * -10;
