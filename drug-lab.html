@@ -238,7 +238,7 @@ canvas{display:block;touch-action:none;}
 }
 .bust-icon{font-size:48px;margin-bottom:12px;}
 .bust-title{font-size:26px;font-weight:900;color:#ef4444;margin-bottom:8px;letter-spacing:2px;}
-.bust-sub{font-size:13px;color:#884444;line-height:1.6;margin-bottom:20px;}
+.bust-sub{font-size:13px;color:#884444;line-height:1.6;margin-bottom:20px;white-space:pre-line;}
 .bust-stats{font-size:12px;color:#664444;margin-bottom:20px;
   background:rgba(255,255,255,0.02);border:1px solid rgba(255,0,0,0.1);
   border-radius:6px;padding:12px;}
@@ -423,7 +423,6 @@ let state = {
 const UPG = [
   {id:'lights1',  name:'Better Grow Lights',    icon:'💡', cat:'Grow Op',       maxLv:3, base:120, mult:2.2, desc:'Plants grow 30% faster per level'},
   {id:'yield1',   name:'Bigger Yield',           icon:'🌿', cat:'Grow Op',       maxLv:4, base:200, mult:2.0, desc:'+20% product per harvest per level'},
-  {id:'potsize',  name:'Larger Pots',            icon:'🪴', cat:'Grow Op',       maxLv:2, base:350, mult:2.5, desc:'Double the plant capacity'},
   {id:'trim',     name:'Electric Trimmer',       icon:'✂️', cat:'Processing',    maxLv:3, base:180, mult:2.0, desc:'Trim 25% faster per level'},
   {id:'bags',     name:'Vac-Seal Bags',          icon:'📦', cat:'Processing',    maxLv:3, base:250, mult:2.0, desc:'+15% sale price per level'},
   {id:'network',  name:'Distribution Network',   icon:'🚗', cat:'Sales',         maxLv:4, base:400, mult:1.8, desc:'Buyers arrive 30% faster per level'},
@@ -675,7 +674,6 @@ const GROW_TIME_BASE = 18; // seconds
 
 function upgLv(id) { return state.upgrades[id] || 0; }
 function growTime() { return GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3); }
-function yieldCount() { return 1 + Math.floor(upgLv('yield1') * 0.4); }
 
 function buildGrowPlot(x, z, roomId) {
   const g = new THREE.Group();
@@ -1904,14 +1902,6 @@ function updateLabels() {
   }
 }
 
-// Also handle click on chem station deposit if carrying bud
-renderer.domElement.addEventListener('click', e => {
-  if (!chemStation || !pCarrying) return;
-  // Already handled in updatePlayer proximity check below
-}, true);
-
-// Override player near-chem check: if carrying bud near chem, deposit there instead
-const _origUpdatePlayer = updatePlayer;
 // Extend proximity check in main update to include chem station
 const _chemDepositCheck = (dt) => {
   if(pCarrying==='bud' && chemStation) {

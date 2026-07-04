@@ -56,7 +56,7 @@
   <div id="log-feed"></div>
   <div id="tooltip"></div>
 
-  <button id="craft-toggle">&#9881; Craft</button>
+  <button id="craft-toggle" aria-controls="craft-panel" aria-expanded="false">&#9881; Craft</button>
 
   <div id="bottom-bar">
     <div class="stat-pill">
@@ -93,7 +93,9 @@
   }
   toggle.addEventListener('click', function () {
     craftPanel.classList.toggle('mobile-open');
-    toggle.innerHTML = craftPanel.classList.contains('mobile-open') ? '&#10005; Close' : '&#9881; Craft';
+    var open = craftPanel.classList.contains('mobile-open');
+    toggle.innerHTML = open ? '&#10005; Close' : '&#9881; Craft';
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
 })();
 </script>

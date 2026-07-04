@@ -22,7 +22,7 @@
   <nav>
     <button class="logo logo-btn glitch" data-text=">_ EUREKA ARCADE" data-view="arcade">&gt;_ EUREKA ARCADE</button>
     <div class="nav-spacer"></div>
-    <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools">&#8943; more</button>
+    <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
   </nav>
 
   <!-- Tucked-away utility views + toys — not games, kept out of the way -->
@@ -390,7 +390,7 @@
         <span>Level: <strong id="snake-level">1</strong></span>
       </div>
       <div class="canvas-wrapper">
-        <canvas id="snake-canvas" class="game-canvas"></canvas>
+        <canvas id="snake-canvas" class="game-canvas" role="img" aria-label="Snake game board"></canvas>
         <div id="snake-overlay" class="game-overlay" style="display:none"></div>
       </div>
       <div class="game-controls" style="margin-top:12px">
@@ -421,7 +421,7 @@
         <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
       </div>
       <div class="game-info">
-        <span id="maze-status" style="color: var(--text-dim)">Generate a maze to begin</span>
+        <span id="maze-status" role="status" aria-live="polite" style="color: var(--text-dim)">Generate a maze to begin</span>
       </div>
       <canvas id="maze-canvas" class="game-canvas"></canvas>
       <div class="maze-legend">
@@ -503,7 +503,7 @@
         <button onclick="LifeGame.step()">Step</button>
         <button onclick="LifeGame.randomize()">Random</button>
         <button class="danger" onclick="LifeGame.clear()">Clear</button>
-        <select onchange="LifeGame.setSpeed(+this.value)">
+        <select onchange="LifeGame.setSpeed(+this.value)" aria-label="Simulation speed">
           <option value="200">Slow</option>
           <option value="100" selected>Normal</option>
           <option value="50">Fast</option>
@@ -524,7 +524,7 @@
         <button onclick="LifeGame.loadPreset('rpentomino')">R-pentomino</button>
         <button onclick="LifeGame.loadPreset('gliderGun')">Gosper Gun</button>
       </div>
-      <canvas id="life-canvas" class="game-canvas"></canvas>
+      <canvas id="life-canvas" class="game-canvas" role="img" aria-label="Game of Life grid — click or tap to draw cells"></canvas>
       <div style="margin-top:8px; font-size:11px; color: var(--text-dim)">
         Colors: <span style="color:#3FB950">stable</span> ·
         <span style="color:#58A6FF">thriving</span> ·
@@ -598,10 +598,25 @@
     const navUtilsToggle = document.getElementById('nav-utils-toggle');
     const inited = new Set();
 
+    // Tear down the view being left so games don't keep running off-screen
+    // (Life's setInterval, Maze's solve animation) after you navigate away.
+    let currentView = null;
+    const teardown = {
+      snake:  () => SnakeGame.destroy(),
+      tetris: () => TetrisGame.destroy(),
+      maze:   () => MazeGame.destroy(),
+      life:   () => LifeGame.destroy(),
+    };
+
     function switchView(name) {
+      if (currentView && currentView !== name && teardown[currentView]) {
+        try { teardown[currentView](); } catch (e) {}
+      }
       navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
       views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
       navUtils.classList.remove('open');
+      // Keep the URL hash in sync so Back/reload and deep links stay consistent.
+      if ((location.hash || '').replace(/^#/, '') !== name) location.hash = name;
 
       if (!inited.has(name)) {
         inited.add(name);
@@ -616,6 +631,7 @@
           case 'orgchart':     OrgChart.init(); break;
         }
       }
+      currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
       setTimeout(() => Effects.init3DTilt(), 50);
     }
@@ -624,9 +640,12 @@
       btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
 
-    navUtilsToggle.addEventListener('click', () => navUtils.classList.toggle('open'));
+    function syncNavUtilsExpanded() {
+      navUtilsToggle.setAttribute('aria-expanded', navUtils.classList.contains('open') ? 'true' : 'false');
+    }
+    navUtilsToggle.addEventListener('click', () => { navUtils.classList.toggle('open'); syncNavUtilsExpanded(); });
     document.addEventListener('click', (e) => {
-      if (!navUtils.contains(e.target) && e.target !== navUtilsToggle) navUtils.classList.remove('open');
+      if (!navUtils.contains(e.target) && e.target !== navUtilsToggle) { navUtils.classList.remove('open'); syncNavUtilsExpanded(); }
     });
 
     // Tetris touch pad — buttons dispatch the same key events the keyboard uses.
@@ -668,7 +687,9 @@
       });
     }
 
-    // Hash-route deep linking — e.g. /#ageofwar opens the game directly.
+    // Hash-route deep linking — e.g. /#snake opens that view directly.
+    // (Age of War, Startup Tycoon, Grow Op and Homeless Village are separate
+    //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
       const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris'];
@@ -676,7 +697,7 @@
     }
     window.addEventListener('hashchange', () => {
       const v = viewFromHash();
-      if (v) switchView(v);
+      if (v && v !== currentView) switchView(v);
     });
 
     Effects.init().then(() => switchView(viewFromHash() || 'arcade'));

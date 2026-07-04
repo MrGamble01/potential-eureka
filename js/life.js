@@ -37,6 +37,7 @@ const LifeGame = (() => {
     canvas.addEventListener('touchstart', e => { drawing = true; toggleCell(e.touches[0]); e.preventDefault(); });
     canvas.addEventListener('touchmove', e => { if (drawing) toggleCell(e.touches[0]); e.preventDefault(); }, { passive: false });
     canvas.addEventListener('touchend', () => drawing = false);
+    canvas.addEventListener('touchcancel', () => drawing = false);
 
     draw();
     updateInfo();

@@ -67,7 +67,12 @@ const SnakeGame = (() => {
   }
 
   function handleKey(e) {
-    if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+    // Only respond while the Snake view is actually on screen — the listener
+    // is bound to document and never removed, so without this guard arrow/WASD
+    // presses on other views would start a hidden game and block typing.
+    const view = document.getElementById('view-snake');
+    if (!view || !view.classList.contains('active')) return;
+    if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
       start();
       return;
     }

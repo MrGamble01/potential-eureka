@@ -1,5 +1,6 @@
 function buildActionUI(){
   var el=document.getElementById('action-list');
+  hideTip(); // an item being hovered may be destroyed by innerHTML reset
   el.innerHTML='';
   ACTIONS.forEach(function(a){
     var btn=document.createElement('button');
@@ -15,6 +16,7 @@ function buildActionUI(){
 
 function buildCraftUI(){
   var el=document.getElementById('craft-list');
+  hideTip(); // an item being hovered may be destroyed by innerHTML reset
   el.innerHTML='';
   RECIPES.forEach(function(r){
     var div=document.createElement('div');
@@ -47,6 +49,8 @@ function buildWorkersUI(){
 }
 
 function canCraft(r){
+  // A permanent structure that's already built can't be crafted again.
+  if(r.gives && r.gives.structure && G.structures[r.gives.structure]) return false;
   return Object.entries(r.cost).every(function(e){ return G[e[0]]>=e[1]; });
 }
 
@@ -85,6 +89,10 @@ function log(msg){
 
 var tip=document.getElementById('tooltip');
 function showTip(e){
+  // No hover on touch devices — a tap fires synthetic mouseenter and the
+  // tooltip would stick with no mouseleave to clear it. The cost/label text
+  // is already visible on the item, so just skip it.
+  if(window.matchMedia('(hover:none)').matches) return;
   var t=e.currentTarget.getAttribute('data-tip'); if(!t) return;
   tip.textContent=t; tip.style.display='block'; moveTip(e);
 }

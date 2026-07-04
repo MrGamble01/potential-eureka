@@ -98,7 +98,9 @@ const MazeGame = (() => {
       path.reverse();
       await animateSolution(path, visited);
       updateStatus(`Solved with ${algorithm.toUpperCase()}! Path length: ${path.length}`);
-    } else {
+    } else if (solving) {
+      // Only a genuine no-path result — not a solve that was cancelled by
+      // regenerating the maze mid-run — should show the failure message.
       updateStatus('No solution found (this shouldn\'t happen!)');
     }
 

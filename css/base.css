@@ -210,25 +210,6 @@ nav button.active {
   box-shadow: 0 0 20px rgba(108, 99, 255, 0.1);
 }
 
-nav a.nav-link-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-dim);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 7px 16px;
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease-out-expo);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-}
-
-nav a.nav-link-btn:hover {
-  color: var(--text);
-  background: var(--color-white-08);
-}
-
 /* ---- VIEWS ---- */
 .view {
   display: none;
