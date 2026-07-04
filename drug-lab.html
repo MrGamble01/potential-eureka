@@ -293,6 +293,37 @@ canvas{display:block;touch-action:none;}
   position:absolute;bottom:0;left:0;right:0;height:4px;
   background:rgba(0,180,60,0.15);border-radius:2px;overflow:hidden;
 }
+
+/* ── Manage toggle (mobile only) ── */
+#manage-btn{
+  display:none;
+  position:fixed;bottom:14px;right:14px;z-index:70;
+  background:rgba(4,10,4,0.95);border:1px solid rgba(0,180,60,0.4);
+  color:#22dd55;font-size:13px;font-weight:800;font-family:inherit;
+  padding:10px 16px;border-radius:8px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,0.5);
+}
+
+/* ── Mobile layout: HUD compacts, side panels become a bottom sheet ── */
+@media (max-width:700px){
+  #manage-btn{display:block;}
+  #left-panel{
+    top:auto;bottom:0;left:0;right:0;
+    max-width:none;width:100%;max-height:55vh;
+    background:rgba(4,10,4,0.97);
+    border-top:1px solid rgba(0,180,60,0.3);
+    padding:10px 10px calc(14px + env(safe-area-inset-bottom));
+    transform:translateY(105%);transition:transform 0.25s ease;
+    z-index:60;
+  }
+  #left-panel.mobile-open{transform:translateY(0);}
+  #activity-feed{display:none;}
+  #act-badge{top:8px;font-size:11px;padding:4px 10px;}
+  #status-bar{top:34px;font-size:10px;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #cash-hud{top:8px;right:8px;font-size:15px;padding:6px 10px;}
+  #heat-hud{top:44px;right:8px;min-width:120px;padding:6px 10px;}
+  #back-btn{bottom:14px;left:14px;z-index:70;}
+}
 </style>
 </head>
 <body>
@@ -355,6 +386,13 @@ canvas{display:block;touch-action:none;}
   </div>
 </div>
 <a href="index.html" id="back-btn">← Back</a>
+<button id="manage-btn">🔧 Manage</button>
+<script>
+document.getElementById('manage-btn').addEventListener('click', function () {
+  document.getElementById('left-panel').classList.toggle('mobile-open');
+  this.textContent = document.getElementById('left-panel').classList.contains('mobile-open') ? '✕ Close' : '🔧 Manage';
+});
+</script>
 
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}

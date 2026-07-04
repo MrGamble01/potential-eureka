@@ -382,7 +382,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
         <div class="game-title">SNAKE</div>
-        <div class="game-subtitle">Use arrow keys or WASD to control</div>
+        <div class="game-subtitle">Arrow keys / WASD &middot; swipe on mobile</div>
       </div>
       <div class="game-info">
         <span>Score: <strong id="snake-score">0</strong></span>
@@ -474,6 +474,15 @@
             <div class="tetris-panel-value" id="tetris-high">0</div>
           </div>
         </div>
+      </div>
+      <!-- Touch controls — shown on small / touch screens only -->
+      <div class="tetris-touch" id="tetris-touch">
+        <button data-tkey="ArrowLeft" data-repeat aria-label="Move left">&#9664;</button>
+        <button data-tkey="ArrowDown" data-repeat aria-label="Soft drop">&#9660;</button>
+        <button data-tkey="ArrowUp" aria-label="Rotate">&#10227;</button>
+        <button data-tkey=" " aria-label="Hard drop">&#10515;</button>
+        <button data-tkey="c" aria-label="Hold piece">HOLD</button>
+        <button data-tkey="ArrowRight" data-repeat aria-label="Move right">&#9654;</button>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="TetrisGame.start()">New Game</button>
@@ -619,6 +628,28 @@
     document.addEventListener('click', (e) => {
       if (!navUtils.contains(e.target) && e.target !== navUtilsToggle) navUtils.classList.remove('open');
     });
+
+    // Tetris touch pad — buttons dispatch the same key events the keyboard uses.
+    (() => {
+      const pad = document.getElementById('tetris-touch');
+      if (!pad) return;
+      const press = key => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+      pad.querySelectorAll('button').forEach(btn => {
+        const key = btn.dataset.tkey;
+        let repeatTimer = null;
+        const stop = () => { clearInterval(repeatTimer); repeatTimer = null; };
+        btn.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          press(key);
+          if (btn.hasAttribute('data-repeat')) {
+            stop();
+            repeatTimer = setInterval(() => press(key), 110);
+          }
+        });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
+        btn.addEventListener('contextmenu', e => e.preventDefault());
+      });
+    })();
 
     // Hover-to-play gameplay clips on arcade cards (hover-capable devices only).
     if (window.matchMedia('(hover: hover)').matches) {

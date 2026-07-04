@@ -254,3 +254,87 @@ canvas.game-canvas {
   letter-spacing: 1px;
 }
 
+/* ---- TETRIS TOUCH PAD ---- */
+.tetris-touch {
+  display: none;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  max-width: 480px;
+  margin: 12px auto 0;
+  touch-action: manipulation;
+}
+
+.tetris-touch button {
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  padding: 14px 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tetris-touch button:active {
+  background: rgba(108, 99, 255, 0.25);
+  border-color: var(--primary);
+}
+
+.tetris-touch button[data-tkey="c"] {
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+/* Show the pad wherever touch is the primary input */
+@media (hover: none) and (pointer: coarse) {
+  .tetris-touch { display: grid; }
+}
+
+/* ---- GAMES: MOBILE LAYOUT ---- */
+@media (max-width: 700px) {
+  /* Board first, stats in compact rows below — instead of tall side stacks
+     that push the board below the fold. */
+  .tetris-layout {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .tetris-layout .canvas-wrapper {
+    order: 1;
+  }
+  #tetris-canvas {
+    max-height: 52vh;
+    width: auto;
+  }
+  .tetris-side {
+    order: 2;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+  }
+  .tetris-panel {
+    padding: 6px 10px;
+  }
+  .tetris-panel canvas {
+    width: 60px;
+    height: 45px;
+  }
+  .tetris-panel-label {
+    font-size: 8px;
+    margin-bottom: 2px;
+  }
+  .tetris-panel-value {
+    font-size: 16px;
+  }
+  #snake-canvas {
+    touch-action: none;
+  }
+}
+
