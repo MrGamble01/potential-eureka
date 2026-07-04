@@ -1,6 +1,6 @@
 /* ============================================
    ARCADE — Home Screen, Nav Utility Drawer,
-   Game Card Grid, In-Game Back Button
+   Cabinet Cards (poster + hover clip), Back Button
    ============================================ */
 
 /* ---- NAV TWEAKS ---- */
@@ -34,9 +34,8 @@ nav .logo-btn {
   background: var(--color-white-05);
 }
 
-/* Utility views (dashboard/productivity/org chart/personal) are
-   intentionally tucked into a closed-by-default drawer — they are
-   not the point of this site anymore, the games are. */
+/* Utility views + non-game toys live in a closed-by-default drawer —
+   the games are the point of this site, everything else stays out of the way. */
 .nav-utils {
   display: none;
   flex-direction: column;
@@ -82,51 +81,83 @@ nav .logo-btn {
   background: var(--color-white-08);
 }
 
+.nav-utils-divider {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  padding: 8px 12px 2px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 4px;
+}
+
 /* ---- ARCADE HERO ---- */
 .arcade-hero {
   text-align: center;
   max-width: 900px;
-  margin: 40px auto 36px;
+  margin: 44px auto 40px;
+}
+
+.arcade-hero-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--success);
+  text-shadow: 0 0 12px rgba(63, 185, 80, 0.5);
+  margin-bottom: 14px;
 }
 
 .arcade-hero-title {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: clamp(24px, 5vw, 42px);
-  letter-spacing: 2px;
+  font-size: clamp(32px, 7vw, 64px);
+  letter-spacing: 6px;
   color: var(--text);
-  text-shadow: 0 0 32px rgba(108, 99, 255, 0.35);
+  text-shadow:
+    0 0 24px rgba(108, 99, 255, 0.5),
+    0 0 64px rgba(108, 99, 255, 0.25);
 }
 
 .arcade-hero-sub {
-  margin-top: 10px;
+  margin-top: 14px;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 13px;
   font-family: var(--font-mono);
-  letter-spacing: 0.5px;
+  letter-spacing: 4px;
+}
+
+.arcade-blink {
+  animation: arcadeBlink 1.1s steps(1) infinite;
+  color: var(--primary-light);
+}
+
+@keyframes arcadeBlink {
+  50% { opacity: 0; }
 }
 
 /* ---- ARCADE GAME GRID ---- */
 .arcade-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 22px;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 0 auto 40px;
 }
 
+/* ---- CABINET CARD ---- */
 .arcade-card {
+  --accent: var(--primary);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 6px;
+  text-align: left;
   background: var(--bg-widget);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 28px 20px 22px;
+  padding: 0;
+  overflow: hidden;
   text-decoration: none;
   cursor: pointer;
   font-family: var(--font-sans);
@@ -134,54 +165,142 @@ nav .logo-btn {
   transition:
     transform var(--duration-normal) var(--ease-out-expo),
     box-shadow var(--duration-normal) var(--ease-out-expo),
-    border-color var(--duration-normal) var(--ease-out-expo),
-    background var(--duration-normal) var(--ease-out-expo);
+    border-color var(--duration-normal) var(--ease-out-expo);
   will-change: transform;
 }
 
 .arcade-card:hover {
-  background: var(--bg-widget-hover);
-  border-color: rgba(108, 99, 255, 0.4);
-  transform: translateY(-4px);
-  box-shadow: var(--widget-shadow-hover), var(--glow-primary);
+  border-color: var(--accent);
+  transform: translateY(-5px);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.5),
+    0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.arcade-card-art {
-  font-size: 44px;
-  line-height: 1;
-  margin-bottom: 6px;
-  filter: drop-shadow(0 0 12px rgba(108, 99, 255, 0.25));
+/* The screen: poster underneath, clip fades in on hover once playing */
+.arcade-card-screen {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--color-black-deep);
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.arcade-card-poster,
+.arcade-card-clip {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.arcade-card-poster {
+  transform: scale(1);
+  transition: transform 4s ease-out;
+}
+
+.arcade-card:hover .arcade-card-poster {
+  transform: scale(1.06); /* slow Ken Burns even before/without the clip */
+}
+
+.arcade-card-clip {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.arcade-card.clip-live .arcade-card-clip {
+  opacity: 1;
+}
+
+/* Brightness lift for the two darkest game scenes */
+.arcade-card-dim .arcade-card-poster,
+.arcade-card-dim .arcade-card-clip {
+  filter: brightness(1.35) saturate(1.25);
+}
+
+/* Sweeping shine on hover */
+.arcade-card-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.arcade-card:hover .arcade-card-shine {
+  animation: cardShine 0.9s var(--ease-out-expo) 1;
+}
+
+@keyframes cardShine {
+  to { transform: translateX(120%); }
+}
+
+/* Name plate */
+.arcade-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 16px 16px;
 }
 
 .arcade-card-title {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 16px;
+  font-size: 17px;
+  letter-spacing: 1.5px;
   color: var(--text);
-  letter-spacing: 0.5px;
+  transition: color var(--duration-fast), text-shadow var(--duration-fast);
+}
+
+.arcade-card:hover .arcade-card-title {
+  color: var(--accent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.arcade-card-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.arcade-card-tags span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 9px;
 }
 
 .arcade-card-desc {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-dim);
-  line-height: 1.5;
-  min-height: 36px;
+  line-height: 1.55;
 }
 
 .arcade-card-play {
-  margin-top: 10px;
+  margin-top: 6px;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--primary-light);
-  opacity: 0.85;
+  letter-spacing: 2.5px;
+  color: var(--accent);
+  opacity: 0.8;
   transition: opacity var(--duration-fast), transform var(--duration-fast);
 }
 
 .arcade-card:hover .arcade-card-play {
   opacity: 1;
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
 /* ---- BACK-TO-ARCADE (inside a game view) ---- */
@@ -205,19 +324,27 @@ nav .logo-btn {
   background: rgba(88, 166, 255, 0.08);
 }
 
+/* ---- RESPONSIVE ---- */
+@media (max-width: 1020px) {
+  .arcade-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 640px) {
   .arcade-hero {
-    margin: 24px auto 24px;
+    margin: 26px auto 26px;
+  }
+  .arcade-hero-title {
+    letter-spacing: 3px;
   }
   .arcade-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    max-width: 480px;
   }
-  .arcade-card {
-    padding: 18px 12px 14px;
-  }
-  .arcade-card-art {
-    font-size: 34px;
+  .arcade-card-body {
+    padding: 12px 14px 14px;
   }
   .nav-utils {
     max-width: none;
