@@ -180,6 +180,7 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
+    if (typeof SFX !== 'undefined') SFX.play('lock');
     clearLines();
     canHold = true;
     current = next;
@@ -198,6 +199,7 @@ const TetrisGame = (() => {
       }
     }
     if (!cleared) return;
+    if (typeof SFX !== 'undefined') SFX.play('clear');
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
@@ -262,6 +264,7 @@ const TetrisGame = (() => {
 
   function endGame() {
     running = false; gameOver = true;
+    if (typeof SFX !== 'undefined') SFX.play('over');
     clearInterval(gameLoop);
     // Persist the high score here too — drops (not just line clears) add points,
     // so a run's best score can land outside clearLines().

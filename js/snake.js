@@ -180,6 +180,7 @@ const SnakeGame = (() => {
       ate = true;
       score += 10;
       foodCount++;
+      if (typeof SFX !== 'undefined') SFX.play('eat');
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -198,6 +199,7 @@ const SnakeGame = (() => {
       ate = true;
       score += 50;
       bonusFood = null;
+      if (typeof SFX !== 'undefined') SFX.play('bonus');
       if (score > highScore) {
         highScore = score;
         Utils.store.setRaw('snake-high', String(highScore));
@@ -214,6 +216,7 @@ const SnakeGame = (() => {
     running = false;
     gameOver = true;
     bonusFood = null;
+    if (typeof SFX !== 'undefined') SFX.play('die');
     clearInterval(gameLoop);
 
     const overlay = document.getElementById('snake-overlay');

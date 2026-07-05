@@ -28,6 +28,29 @@ nav .logo-btn {
   transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
+.nav-sfx-toggle {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+  padding: 5px 9px;
+  margin-right: 6px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.nav-sfx-toggle:hover {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--color-white-05);
+}
+
+.nav-sfx-toggle.muted {
+  opacity: 0.55;
+}
+
 .nav-utils-toggle:hover {
   color: var(--text-dim);
   border-color: var(--border);
