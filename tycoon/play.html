@@ -7118,8 +7118,8 @@ function triggerRandomEvent() {
   ev.onStart();
   if (ev.dur > 0) {
     activeEvent = ev; eventT = 0;
-    eventSepEl.style.display = '';
-    eventLabelEl.style.display = '';
+    eventSepEl.style.display = 'inline';
+    eventLabelEl.style.display = 'inline';
     eventLabelEl.textContent = `${ev.label} ${ev.dur}s`;
   }
 }
@@ -7531,6 +7531,7 @@ const pointer = new THREE.Vector2();
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 let target = null;
 renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return; // only primary button (left-click / touch)
   if (activeCanvasTouches.size >= 1) return; // already have a finger → probably pinching
   pointer.x = (e.clientX / innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;

@@ -719,13 +719,13 @@ function buildGrowPlot(x, z, roomId) {
 
 function updatePlantMesh(plot) {
   const {plantG, progress} = plot;
-  // Clear old
-  while (plantG.children.length) plantG.remove(plantG.children[0]);
-  if (progress <= 0.01) { plot.stage = 0; return; }
-
-  const stage = progress < 0.35 ? 1 : progress < 0.7 ? 2 : 3;
+  const stage = progress <= 0.01 ? 0 : progress < 0.35 ? 1 : progress < 0.7 ? 2 : 3;
   if (stage === plot.stage) return;
+  // Only clear/rebuild when the visible stage actually changed, so a no-op
+  // call no longer blanks a fully-grown plant.
+  while (plantG.children.length) plantG.remove(plantG.children[0]);
   plot.stage = stage;
+  if (stage === 0) return;
 
   const greenShade = stage === 3 ? 0x22cc44 : stage === 2 ? 0x2a8a2a : 0x1a5a1a;
   const mat = new THREE.MeshLambertMaterial({
@@ -1090,6 +1090,7 @@ let eventTimer = 0;
 let eventCooldown = 60; // seconds between events
 let raidActive = false;
 let raidTimer = 0;
+let busted = false;
 
 const EVENTS = [
   {
@@ -1209,6 +1210,10 @@ function heatDrainPerSec() {
 
 // ── Bust ──
 function triggerBust() {
+  busted = true;
+  // Make the loss stick: stop the sim/autosave and wipe the save so a reload
+  // can't resume the busted run.
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
   state.heat = 100;
   document.getElementById('bust-sub').textContent =
     'The DEA kicked in the door. Everything\'s seized.\n10 to 15, no deal.';
@@ -1229,28 +1234,10 @@ document.getElementById('bust-restart-btn').addEventListener('click', () => {
 });
 
 function resetGame() {
-  state = {
-    cash:50, totalEarned:0, totalSold:0, heat:0,
-    upgrades:{}, ownedRooms:['garage'],
-    trimmers:0, lookouts:0, runners:0, cooks:0,
-    batches:0, sessionStart:Date.now(),
-  };
-  stashCount=0; trimQueue=0; trimBags=0; trimProgress=0;
-  chemQueue=0; chemProduct=0; chemProgress=0;
-  raidActive=false; raidTimer=0;
-  pState='idle'; pTarget=null; pCarrying=null;
-  for(const d of dealers){scene.remove(d.group);}
-  dealers.length=0;
-  for(const t of trimmerNPCs){scene.remove(t.group);}
-  trimmerNPCs.length=0;
-  for(const l of lookoutNPCs){scene.remove(l.group);}
-  lookoutNPCs.length=0;
-  for(const p of growPlots){p.progress=Math.random()*0.3;p.ready=false;p.stage=-1;updatePlantMesh(p);}
-  saveGame();
-  refreshHud();
-  renderExpandPanel();
-  renderUpgradesPanel();
-  showToast('Starting over. Stay low.','info');
+  // Authoritative reset: clear the save and reload for a guaranteed-clean
+  // scene, empty ownedRoomSet, null chemStation, and default state.
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  location.reload();
 }
 
 // ── Sale value ──
@@ -1275,7 +1262,9 @@ window.addEventListener('keydown', e => { keys[e.code]=true; });
 window.addEventListener('keyup',   e => { keys[e.code]=false; });
 
 // Click to move
+let suppressClick = false; // set by a touch pan-drag to cancel the synthetic click
 renderer.domElement.addEventListener('click', e => {
+  if (suppressClick) { suppressClick = false; return; }
   if (activeEvent || raidActive) return;
   const mouse = new THREE.Vector2(
     (e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
@@ -1517,6 +1506,48 @@ renderer.domElement.addEventListener('wheel', e=>{
   fitCamera();
 });
 
+// ── Touch controls: one-finger drag pans, two-finger pinch zooms ──
+// Mirrors the desktop right-drag pan and wheel zoom so expanded rooms are
+// reachable on phones/tablets.
+let touchPanning=false, touchStartX=0, touchStartY=0, touchPanStartX=0, touchPanStartZ=0, touchMoved=false;
+let pinchDist=0, pinchZoomStart=0;
+const TOUCH_PAN_THRESHOLD=8; // px of movement before a drag counts as a pan (vs a tap)
+renderer.domElement.addEventListener('touchstart', e=>{
+  if(e.touches.length===1){
+    touchPanning=true; touchMoved=false;
+    touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY;
+    touchPanStartX=panX; touchPanStartZ=panZ;
+  } else if(e.touches.length===2){
+    touchPanning=false;
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    pinchDist=Math.sqrt(dx*dx+dy*dy);
+    pinchZoomStart=cameraZoom;
+  }
+}, {passive:false});
+renderer.domElement.addEventListener('touchmove', e=>{
+  if(e.touches.length===1 && touchPanning){
+    const mx=e.touches[0].clientX-touchStartX, my=e.touches[0].clientY-touchStartY;
+    if(!touchMoved && Math.sqrt(mx*mx+my*my)>TOUCH_PAN_THRESHOLD) touchMoved=true;
+    if(touchMoved){
+      e.preventDefault();
+      panX=touchPanStartX-mx*0.04; panZ=touchPanStartZ-my*0.04;
+      applyCamera();
+    }
+  } else if(e.touches.length===2 && pinchDist>0){
+    e.preventDefault();
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    cameraZoom=Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchZoomStart*(pinchDist/d)));
+    fitCamera();
+  }
+}, {passive:false});
+renderer.domElement.addEventListener('touchend', e=>{
+  if(touchMoved) suppressClick=true; // cancel the tap-to-move click after a pan
+  if(e.touches.length===0){ touchPanning=false; pinchDist=0; touchMoved=false; }
+});
+
 // ── Save / Load ──
 function saveGame() {
   const sv = {
@@ -1728,6 +1759,8 @@ function harvestPlot(p) {
   updatePlantMesh(p);
   removeLabel('plot_'+growPlots.indexOf(p));
   pCarrying='bud';
+  player.userData.carryMesh.material.color.setHex(0x22ff44);
+  player.userData.carryMesh.material.emissive.setHex(0x00aa22);
   player.userData.carryMesh.visible=true;
   setStatus('Harvest done! Take it to the Trim Station.');
   addFeed('🌿 Harvested a plant');
@@ -1927,6 +1960,13 @@ function animate(now_ms) {
   requestAnimationFrame(animate);
   const dt=Math.min((now_ms-lastTime)/1000, 0.1);
   lastTime=now_ms;
+
+  if(busted) {
+    // Game over: freeze the simulation behind the modal.
+    updateLabels();
+    renderer.render(scene,camera);
+    return;
+  }
 
   if(!raidActive) {
     updateGrowPlots(dt);

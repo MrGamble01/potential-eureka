@@ -2,6 +2,7 @@ var lastTime=0, autosaveTimer=0, camSwayT=0;
 
 loadGame();
 refreshStructures();
+for (var i = 1; i < G.population; i++) { spawnFigure((Math.random()-.5)*10, (Math.random()-.5)*10, 'community'); }
 buildActionUI();
 buildCraftUI();
 buildWorkersUI();
@@ -19,8 +20,10 @@ function gameLoop(ts){
   camera.position.z=20+Math.cos(camSwayT*.7)*.12;
   camera.lookAt(0,0,0);
 
-  // Fire flicker
+  // Fire flicker (dimmed while a "fire burned out" event is active)
+  var fireOut = Date.now() < (G.fireOutUntil||0);
   fireLights.forEach(function(fl,i){
+    if(fireOut){ fl.intensity=0.1; fl.color.setRGB(1,.3,.04); return; }
     fl.intensity=2.0+Math.sin(ts*.003+i*1.7)*.6+Math.sin(ts*.007+i*.9)*.3;
     fl.color.setRGB(1,(80+Math.sin(ts*.005+i)*30)/255,.04);
   });

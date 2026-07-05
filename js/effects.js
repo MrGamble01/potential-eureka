@@ -16,6 +16,7 @@ const Effects = (() => {
   let mouseX = -1000, mouseY = -1000;
 
   function initParticles() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     particleCanvas = document.getElementById('particle-canvas');
     if (!particleCanvas) return;
     pCtx = particleCanvas.getContext('2d');
