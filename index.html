@@ -29,6 +29,7 @@
   <nav>
     <button class="logo logo-btn glitch" data-text=">_ EUREKA ARCADE" data-view="arcade">&gt;_ EUREKA ARCADE</button>
     <div class="nav-spacer"></div>
+    <button class="nav-sfx-toggle" id="nav-sfx-toggle" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
     <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
   </nav>
 
@@ -587,6 +588,7 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="js/sfx.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/effects.js"></script>
   <script src="js/dashboard.js"></script>
@@ -657,6 +659,16 @@
     function syncNavUtilsExpanded() {
       navUtilsToggle.setAttribute('aria-expanded', navUtils.classList.contains('open') ? 'true' : 'false');
     }
+    // Global sound toggle (SFX from js/sfx.js persists mute in localStorage).
+    const sfxToggle = document.getElementById('nav-sfx-toggle');
+    const syncSfxIcon = () => {
+      const m = SFX.isMuted();
+      sfxToggle.innerHTML = m ? '&#128263;' : '&#128266;'; // 🔇 / 🔊
+      sfxToggle.classList.toggle('muted', m);
+    };
+    syncSfxIcon();
+    sfxToggle.addEventListener('click', () => { SFX.toggle(); syncSfxIcon(); if (!SFX.isMuted()) SFX.play('start'); });
+
     navUtilsToggle.addEventListener('click', () => { navUtils.classList.toggle('open'); syncNavUtilsExpanded(); });
     document.addEventListener('click', (e) => {
       if (!navUtils.contains(e.target) && e.target !== navUtilsToggle) { navUtils.classList.remove('open'); syncNavUtilsExpanded(); }
