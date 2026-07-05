@@ -296,6 +296,46 @@ canvas.game-canvas {
   .tetris-touch { display: grid; }
 }
 
+/* ---- VECTOR STORM TOUCH PAD ---- */
+.ast-touch {
+  display: none;
+  grid-template-columns: 1fr 1fr 1fr 1.4fr;
+  gap: 8px;
+  max-width: 480px;
+  margin: 12px auto 0;
+  touch-action: manipulation;
+}
+
+.ast-touch button {
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  padding: 16px 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ast-touch button:active {
+  background: rgba(34, 211, 238, 0.22);
+  border-color: #22d3ee;
+}
+
+.ast-touch #ast-fire {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #22d3ee;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .ast-touch { display: grid; }
+}
+
 /* ---- GAMES: MOBILE LAYOUT ---- */
 @media (max-width: 700px) {
   /* Board first, stats in compact rows below — instead of tall side stacks
