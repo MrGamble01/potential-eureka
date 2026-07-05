@@ -234,6 +234,18 @@ const LifeGame = (() => {
         }
       }
     }
+
+    // Idle prompt on an empty board, so a blank grid isn't a dead end.
+    if (population === 0 && !running) {
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '18px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Click or tap to draw cells', WIDTH / 2, HEIGHT / 2 - 8);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('…or pick a pattern below, then press Play', WIDTH / 2, HEIGHT / 2 + 16);
+      ctx.textAlign = 'left';
+    }
   }
 
   function updateInfo() {

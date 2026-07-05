@@ -368,7 +368,7 @@ const TetrisGame = (() => {
       ctx.fillStyle = '#E6EDF3';
       ctx.font = 'bold 18px Inter, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('Press SPACE to start', WIDTH / 2, HEIGHT / 2);
+      ctx.fillText('Press SPACE or tap New Game to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '11px Inter, monospace';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('← → move  ·  ↑ / X rotate  ·  ↓ soft drop', WIDTH / 2, HEIGHT / 2 + 22);
