@@ -50,6 +50,7 @@
       <div class="arcade-hero-kicker">&#9679; FREE PLAY &mdash; NO QUARTERS NEEDED</div>
       <div class="arcade-hero-title glitch" data-text="EUREKA ARCADE">EUREKA ARCADE</div>
       <div class="arcade-hero-sub">PICK A MACHINE <span class="arcade-blink">&#9646;</span></div>
+      <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
     </div>
     <div class="arcade-grid">
 
@@ -563,6 +564,21 @@
     </div>
   </section>
 
+  <!-- ===================== HALL OF FAME ===================== -->
+  <section id="view-halloffame" class="view">
+    <div class="hof-wrap">
+      <div class="hof-scanlines"></div>
+      <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
+      <div class="hof-title">&#9733; HALL OF FAME &#9733;</div>
+      <div class="hof-sub">YOUR PERSONAL BESTS</div>
+      <div id="hof-board" class="hof-board"></div>
+      <div class="hof-footer">
+        <button id="hof-reset" class="hof-reset">Reset my scores</button>
+        <span class="hof-coin arcade-blink">&#9646;</span> INSERT COIN TO BEAT THEM
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== VECTOR STORM ===================== -->
   <section id="view-asteroids" class="view">
     <div class="game-container">
@@ -743,10 +759,62 @@
           case 'orgchart':     OrgChart.init(); break;
         }
       }
+      if (name === 'halloffame') renderHallOfFame();
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
       setTimeout(() => Effects.init3DTilt(), 50);
     }
+
+    // ---- HALL OF FAME ----
+    const HOF_GAMES = [
+      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar/',
+        best: () => { const a = hofJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
+      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon/',
+        best: () => { const s = hofJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? hofMoney(v) + ' raised' : null; } },
+      { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
+        best: () => { const s = hofJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? hofMoney(v) + ' earned' : null; } },
+      { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
+        best: () => { const s = hofJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
+      { name: 'Snake',            accent: '#6C63FF', go: () => switchView('snake'),
+        best: () => { const v = hofNum('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+      { name: 'Tetris',           accent: '#F778BA', go: () => switchView('tetris'),
+        best: () => { const v = hofNum('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+      { name: 'Neon Breaker',     accent: '#22d3ee', go: () => switchView('breakout'),
+        best: () => { const v = hofNum('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+      { name: 'Vector Storm',     accent: '#a78bfa', go: () => switchView('asteroids'),
+        best: () => { const v = hofNum('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+    ];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1'];
+    function hofJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }
+    function hofNum(k) { const v = parseInt(localStorage.getItem(k) || '0', 10); return isNaN(v) ? 0 : v; }
+    function hofMoney(n) { n = +n || 0; return n >= 1000 ? '$' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : '$' + n; }
+
+    function renderHallOfFame() {
+      const board = document.getElementById('hof-board');
+      if (!board) return;
+      let played = 0;
+      board.innerHTML = HOF_GAMES.map((g, i) => {
+        const best = g.best();
+        if (best) played++;
+        const rank = String(i + 1).padStart(2, '0');
+        return '<button class="hof-row' + (best ? '' : ' hof-row-empty') + '" data-hof="' + i + '" style="--accent:' + g.accent + '">' +
+                 '<span class="hof-rank">' + rank + '</span>' +
+                 '<span class="hof-dot"></span>' +
+                 '<span class="hof-name">' + g.name + '</span>' +
+                 '<span class="hof-dots"></span>' +
+                 '<span class="hof-score">' + (best || '— not played —') + '</span>' +
+               '</button>';
+      }).join('');
+      board.querySelectorAll('.hof-row').forEach(row => {
+        row.addEventListener('click', () => HOF_GAMES[+row.dataset.hof].go());
+      });
+    }
+
+    document.getElementById('hof-reset').addEventListener('click', () => {
+      if (!confirm('Clear all your high scores and game saves? This can’t be undone.')) return;
+      HOF_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+      renderHallOfFame();
+    });
 
     navButtons.forEach(btn => {
       btn.addEventListener('click', () => switchView(btn.dataset.view));
@@ -837,7 +905,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {
