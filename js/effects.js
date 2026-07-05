@@ -4,26 +4,9 @@
    ============================================ */
 
 const Effects = (() => {
-  // ---- BOOT SEQUENCE ----
-  const bootLines = [
-    { text: 'BIOS v4.2.0 — POTENTIAL EUREKA SYSTEMS', delay: 100 },
-    { text: 'Memory check... 16384 MB OK', delay: 150 },
-    { text: 'Loading kernel modules......... OK', delay: 200 },
-    { text: 'Mounting filesystem............ OK', delay: 180 },
-    { text: 'Neural interface online........ OK', delay: 220 },
-    { text: 'Quantum link established....... OK', delay: 200 },
-    { text: 'Display matrix calibrated...... OK', delay: 180 },
-    { text: 'Dashboard modules loaded....... OK', delay: 200 },
-    { text: '', delay: 150 },
-    { text: 'ALL SYSTEMS NOMINAL', delay: 250, cls: 'boot-success' },
-    { text: '', delay: 150 },
-    { text: 'WELCOME, OPERATOR.', delay: 400, cls: 'boot-highlight' },
-  ];
-
-  let bootSkipped = false;
-
+  // ---- WIDGET ENTRY ----
   async function bootSequence() {
-    // Boot removed — go straight to widget entry
+    // Boot screen was removed — go straight to the staggered widget entry.
     staggerWidgets();
   }
 
@@ -109,6 +92,8 @@ const Effects = (() => {
   // ---- 3D CARD TILT ----
   function init3DTilt() {
     document.querySelectorAll('.widget').forEach(w => {
+      if (w.dataset.tiltBound) return; // switchView re-runs this on every view change
+      w.dataset.tiltBound = '1';
       w.addEventListener('mousemove', e => {
         const r = w.getBoundingClientRect();
         const rx = ((e.clientY - r.top) / r.height - 0.5) * -10;
@@ -196,8 +181,6 @@ const Effects = (() => {
       if (matrixRaf) cancelAnimationFrame(matrixRaf);
     }
   }
-
-  const delay = Utils.delay;
 
   async function init() {
     initMouseGlow();

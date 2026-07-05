@@ -1023,6 +1023,7 @@ const AgeOfWarGame = (() => {
     document.addEventListener('keydown', e => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
+      if (modalPaused) return; // ignore game keys while a modal has the sim paused
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 9) {
         const keys = visibleUnitKeys();
@@ -1033,7 +1034,7 @@ const AgeOfWarGame = (() => {
         if (gameOver) reset();
         else fireSpecial();
         e.preventDefault();
-      } else if (e.key === 'q' || e.key === 'Q' || e.key === 'Tab') {
+      } else if (e.key === 'q' || e.key === 'Q') {
         ageUp();
         e.preventDefault();
       } else if (e.key === 'h' || e.key === 'H') {
@@ -6196,7 +6197,7 @@ const AgeOfWarGame = (() => {
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${(1 + comboBest * 0.05).toFixed(1)}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>

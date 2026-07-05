@@ -263,6 +263,13 @@ const TetrisGame = (() => {
   function endGame() {
     running = false; gameOver = true;
     clearInterval(gameLoop);
+    // Persist the high score here too — drops (not just line clears) add points,
+    // so a run's best score can land outside clearLines().
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem('tetris-high', String(highScore));
+      updateInfo();
+    }
     const ov = document.getElementById('tetris-overlay');
     if (ov) {
       ov.style.display = 'flex';
@@ -276,8 +283,14 @@ const TetrisGame = (() => {
   }
 
   function handleKey(e) {
+    // Scope key handling to when the Tetris view is visible — the document
+    // listener is never torn down, so otherwise SPACE on another view would
+    // silently start a hidden game and arrow keys would scroll the page.
+    const view = document.getElementById('view-tetris');
+    if (!view || !view.classList.contains('active')) return;
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
     if (!running) return;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;

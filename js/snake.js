@@ -33,6 +33,10 @@ const SnakeGame = (() => {
 
     document.addEventListener('keydown', handleKey);
 
+    // Tap the game-over overlay to restart (it covers the canvas)
+    const overlayEl = document.getElementById('snake-overlay');
+    if (overlayEl) overlayEl.addEventListener('click', () => { if (gameOver) start(); });
+
     // Mobile swipe support
     let touchStartX, touchStartY;
     canvas.addEventListener('touchstart', e => {
@@ -41,6 +45,8 @@ const SnakeGame = (() => {
     });
     canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     canvas.addEventListener('touchend', e => {
+      if (!running && !gameOver) { start(); return; }
+      if (gameOver) { start(); return; }
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -61,7 +67,12 @@ const SnakeGame = (() => {
   }
 
   function handleKey(e) {
-    if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+    // Only respond while the Snake view is actually on screen — the listener
+    // is bound to document and never removed, so without this guard arrow/WASD
+    // presses on other views would start a hidden game and block typing.
+    const view = document.getElementById('view-snake');
+    if (!view || !view.classList.contains('active')) return;
+    if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
       start();
       return;
     }
@@ -210,7 +221,7 @@ const SnakeGame = (() => {
       overlay.innerHTML = `
         <h2>GAME OVER</h2>
         <p>Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}</p>
-        <p style="font-size:12px; color: var(--text-dim)">Press SPACE to restart</p>
+        <p style="font-size:12px; color: var(--text-dim)">Press SPACE or tap to restart</p>
       `;
     }
   }
@@ -290,10 +301,10 @@ const SnakeGame = (() => {
       ctx.fillStyle = '#E6EDF3';
       ctx.font = '20px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Press any arrow key to start', WIDTH / 2, HEIGHT / 2);
+      ctx.fillText('Press any arrow key or tap to start', WIDTH / 2, HEIGHT / 2);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
-      ctx.fillText('WASD or Arrow Keys to move', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.fillText('WASD / Arrow Keys — or swipe to steer', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
   }
