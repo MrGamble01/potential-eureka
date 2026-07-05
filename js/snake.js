@@ -73,6 +73,7 @@ const SnakeGame = (() => {
     const view = document.getElementById('view-snake');
     if (!view || !view.classList.contains('active')) return;
     if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
+      e.preventDefault();
       start();
       return;
     }

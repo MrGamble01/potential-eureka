@@ -427,7 +427,6 @@ const TetrisGame = (() => {
   function destroy() {
     clearInterval(gameLoop);
     running = false;
-    document.removeEventListener('keydown', handleKey);
   }
 
   return { init, start, destroy };

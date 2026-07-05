@@ -138,8 +138,7 @@ var EVENTS_BAD=[
    effect:function(){
      G.lastEventDay=G.days;
      G.warmth=Math.max(0,G.warmth-rand(15,25));
-     fireLights.forEach(function(fl){ fl.intensity=.1; });
-     setTimeout(function(){ fireLights.forEach(function(fl){ fl.intensity=2.0; }); },30000);
+     G.fireOutUntil = Date.now()+30000;
      log("The fire burned out. It's cold and dark.");
    }},
 ];

@@ -1072,7 +1072,6 @@ const AgeOfWarGame = (() => {
       ageBannerText = txt;
       ageBannerT = 1.8;
       shake(bossWaveActive ? 6 : 3, 0.3);
-      if (waveNum >= 10) unlock('kill_100');  // proxy: surviving 10 waves implies kills
       return;
     }
     enemySpawnT -= dt;
@@ -6109,7 +6108,7 @@ const AgeOfWarGame = (() => {
           ? `<img class="aow-spawn-sprite" alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgFn('run'))}"/>`
           : `<span class="aow-spawn-icon">${def.icon}</span>`;
         btn.innerHTML = `
-          <span class="aow-spawn-key">${idx}</span>
+          <span class="aow-spawn-key">${idx <= 9 ? idx : ''}</span>
           ${iconHtml}
           <span class="aow-spawn-name">${def.name}</span>
           <span class="aow-spawn-cost">$${def.cost}</span>

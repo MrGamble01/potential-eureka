@@ -79,6 +79,7 @@ function updateHUD(){
 
 var logFeed=document.getElementById('log-feed');
 var logLines=[];
+var eventTimer=null;
 function log(msg){
   var d=document.createElement('div');
   d.className='log-line'; d.textContent='> '+msg;
@@ -106,7 +107,8 @@ function showEvent(ev, isGood){
   document.getElementById('ev-body').textContent=ev.desc;
   banner.className=isGood?'good':'bad';
   banner.style.display='block';
-  setTimeout(function(){ banner.style.display='none'; },7000);
+  clearTimeout(eventTimer);
+  eventTimer=setTimeout(function(){ banner.style.display='none'; },7000);
 }
 function closeEvent(){ document.getElementById('event-banner').style.display='none'; }
 function showSweepWarning(show){ document.getElementById('sweep-warning').style.display=show?'block':'none'; }
