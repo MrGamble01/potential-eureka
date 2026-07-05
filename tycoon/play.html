@@ -1358,8 +1358,17 @@
     }
     .setting-row select:focus { outline: none; border-color: rgba(108,99,255,0.6); }
   </style>
+  <link rel="stylesheet" href="/css/arcade-chrome.css">
+  <style>
+    /* On mobile the ☰ sidebar toggle shares the top-left corner with the
+       Arcade pill — shift it right so they don't overlap. */
+    @media (max-width: 860px) {
+      #sidebar-toggle { left: calc(116px + env(safe-area-inset-left, 0px)) !important; }
+    }
+  </style>
 </head>
 <body>
+<a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">ARCADE</span></a>
 <button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
 <div id="drawer-backdrop"></div>
 <div id="status-bar">

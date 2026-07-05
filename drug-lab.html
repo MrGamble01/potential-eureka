@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Grow Op — Build Your Empire</title>
+<link rel="stylesheet" href="/css/arcade-chrome.css">
 <style>
 html,body{margin:0;height:100%;background:#0a0a08;overflow:hidden;
   font-family:"Courier New",Lucida Console,monospace;}
@@ -79,10 +80,10 @@ canvas{display:block;touch-action:none;}
 
 /* ── Left panel ── */
 #left-panel{
-  position:fixed;top:14px;left:14px;
+  position:fixed;top:54px;left:14px;
   display:flex;flex-direction:column;gap:7px;
   max-width:210px;user-select:none;
-  max-height:calc(100vh - 28px);overflow-y:auto;
+  max-height:calc(100vh - 68px);overflow-y:auto;
 }
 #left-panel::-webkit-scrollbar{width:4px;}
 #left-panel::-webkit-scrollbar-track{background:transparent;}
@@ -385,7 +386,7 @@ canvas{display:block;touch-action:none;}
     <button class="bust-restart" id="bust-restart-btn">Start Over</button>
   </div>
 </div>
-<a href="index.html" id="back-btn">← Back</a>
+<a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">ARCADE</span></a>
 <button id="manage-btn">🔧 Manage</button>
 <script>
 document.getElementById('manage-btn').addEventListener('click', function () {
