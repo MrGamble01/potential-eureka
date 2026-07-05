@@ -942,6 +942,7 @@ function buildDealer() {
   return g;
 }
 
+let dealerSeq = 0;
 function spawnDealer() {
   if (stashCount < 1) return;
   // Spawn at edge, walk to stash
@@ -949,7 +950,8 @@ function spawnDealer() {
   const g = buildDealer();
   g.position.set(spawnX, 0, 9);
   scene.add(g);
-  const d = {group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2)};
+  // Stable id so labels don't shift when a middle dealer is spliced out.
+  const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2)};
   dealers.push(d);
   addFeed(`👤 Buyer incoming`);
 }
@@ -1323,7 +1325,9 @@ function refreshHud() {
 
   // Show cook/runner rows in act 2+
   const act = currentAct();
-  document.getElementById('runner-row').style.display = act>=2?'':'none';
+  // Runners have no gameplay effect yet, so keep the hire option hidden
+  // rather than let players waste cash on a no-op.
+  document.getElementById('runner-row').style.display = 'none';
   document.getElementById('cook-row').style.display   = chemStation?'':'none';
 
   // Stash label
@@ -1616,14 +1620,7 @@ function updateTrimStation(dt) {
     trimBags += bags; state.batches++;
     addFeed(`✂️ Trimmed batch → ${bags} bags`);
   }
-  // Auto trimmer NPCs work their way toward station
-  for (const t of trimmerNPCs) {
-    if (trimQueue>0) {
-      stepToward(t.group, trimStation.x+(Math.random()-0.5)*0.8, trimStation.z+1, 2.5, dt);
-      // Arm swing animation
-      const ag = t.group.children.find(c=>c instanceof THREE.Group);
-    }
-  }
+  // Trimmer NPC movement is handled once per frame in updateTrimmerNPCs().
 }
 
 // ── Update chemistry station ──
@@ -1815,14 +1812,14 @@ function updateDealers(dt) {
     const d=dealers[i];
     if(d.state==='walking') {
       const arrived=stepToward(d.group, stashNode.x+(Math.random()-0.5)*2, stashNode.z+3, 2.2, dt);
-      if(arrived) { d.state='waiting'; setLabel('deal_'+i,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
+      if(arrived) { d.state='waiting'; setLabel('deal_'+d.id,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
     } else if(d.state==='leaving') {
-      removeLabel('deal_'+i);
+      removeLabel('deal_'+d.id);
       const gone=stepToward(d.group,d.group.position.x+(Math.random()-0.5)*4,10,2.5,dt);
       if(gone||d.group.position.z>12){ scene.remove(d.group); dealers.splice(i,1); }
     } else if(d.state==='waiting') {
       // If no stash, leave
-      if(stashCount<=0){ d.state='leaving'; removeLabel('deal_'+i); }
+      if(stashCount<=0){ d.state='leaving'; removeLabel('deal_'+d.id); }
     }
   }
 }
@@ -1892,7 +1889,7 @@ function updateLabels() {
   for(let i=0;i<dealers.length;i++) {
     const d=dealers[i];
     if(d.state==='waiting') {
-      setLabel('deal_'+i,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt');
+      setLabel('deal_'+d.id,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt');
     }
   }
   // Trim station label
