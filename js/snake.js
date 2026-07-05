@@ -161,17 +161,22 @@ const SnakeGame = (() => {
       return endGame();
     }
 
-    // Self collision
-    if (snake.some(s => s.x === head.x && s.y === head.y)) {
-      return endGame();
-    }
-
-    snake.unshift(head);
-
     // Expire bonus food
     if (bonusFood && Date.now() > bonusFood.expireAt) {
       bonusFood = null;
     }
+
+    // Self collision — unless the snake is about to eat and grow, its tail
+    // cell is vacated this same tick, so moving into it is legal (a very
+    // common maneuver when curling into a tight loop).
+    const willGrow = (head.x === food.x && head.y === food.y) ||
+      (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y);
+    const body = willGrow ? snake : snake.slice(0, -1);
+    if (body.some(s => s.x === head.x && s.y === head.y)) {
+      return endGame();
+    }
+
+    snake.unshift(head);
 
     let ate = false;
 
