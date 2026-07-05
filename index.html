@@ -143,6 +143,21 @@
         </div>
       </button>
 
+      <button class="arcade-card" data-view="breakout" style="--accent:#22d3ee">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/breakout.jpg" alt="Neon Breaker gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/breakout.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="breakout"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">NEON BREAKER</div>
+          <div class="arcade-card-tags"><span>Classic</span><span>Arcade</span><span>Power-ups</span></div>
+          <div class="arcade-card-desc">Smash neon bricks, grab power-ups, chase the combo.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
     </div>
   </section>
 
@@ -504,6 +519,35 @@
     </div>
   </section>
 
+  <!-- ===================== NEON BREAKER ===================== -->
+  <section id="view-breakout" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
+        <div class="game-title">NEON BREAKER</div>
+        <div class="game-subtitle">Move to aim &middot; catch power-ups &middot; clear every brick</div>
+      </div>
+      <div class="game-info">
+        <span>Score: <strong id="breakout-score">0</strong></span>
+        <span>High Score: <strong id="breakout-high">0</strong></span>
+        <span>Level: <strong id="breakout-level">1</strong></span>
+        <span>Lives: <strong id="breakout-lives">&hearts;&hearts;&hearts;</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="breakout-canvas" class="game-canvas" role="img" aria-label="Neon Breaker play field"></canvas>
+        <div id="breakout-overlay" class="game-overlay" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" onclick="BreakoutGame.start()">New Game</button>
+      </div>
+      <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
+        Power-ups: <span style="color:#58A6FF">×3 multiball</span> &nbsp;·&nbsp;
+        <span style="color:#3FB950">↔ wide paddle</span> &nbsp;·&nbsp;
+        <span style="color:#D29922">⏱ slow-mo</span> &nbsp;·&nbsp; combos multiply your score
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== GAME OF LIFE ===================== -->
   <section id="view-life" class="view">
     <div class="game-container">
@@ -605,6 +649,7 @@
   <script src="js/maze.js"></script>
   <script src="js/life.js"></script>
   <script src="js/tetris.js"></script>
+  <script src="js/breakout.js"></script>
   <script src="js/orgchart.js"></script>
   <script>
     const navButtons = document.querySelectorAll('[data-view]');
@@ -617,10 +662,11 @@
     // (Life's setInterval, Maze's solve animation) after you navigate away.
     let currentView = null;
     const teardown = {
-      snake:  () => SnakeGame.destroy(),
-      tetris: () => TetrisGame.destroy(),
-      maze:   () => MazeGame.destroy(),
-      life:   () => LifeGame.destroy(),
+      snake:    () => SnakeGame.destroy(),
+      tetris:   () => TetrisGame.destroy(),
+      maze:     () => MazeGame.destroy(),
+      life:     () => LifeGame.destroy(),
+      breakout: () => BreakoutGame.destroy(),
     };
 
     function switchView(name) {
@@ -644,6 +690,7 @@
           case 'maze':         MazeGame.init(); break;
           case 'life':         LifeGame.init(); break;
           case 'tetris':       TetrisGame.init(); break;
+          case 'breakout':     BreakoutGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -682,6 +729,7 @@
       const HI = {
         snake:    () => { const v = num('snake-high');  return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         tetris:   () => { const v = num('tetris-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
+        breakout: () => { const v = num('breakout-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         ageofwar: () => { const a = readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' ★' : ''; },
         tycoon:   () => { const s = readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + fmtMoney(v) : ''; },
         growop:   () => { const s = readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? fmtMoney(v) + ' earned' : ''; },
@@ -739,7 +787,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {
