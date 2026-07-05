@@ -220,6 +220,28 @@ nav .logo-btn {
   filter: brightness(1.35) saturate(1.25);
 }
 
+/* High-score / best-stat badge in the screen corner (filled by JS) */
+.arcade-card-hi {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--accent);
+  background: rgba(2, 2, 3, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  padding: 3px 9px;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+  pointer-events: none;
+}
+
 /* Sweeping shine on hover */
 .arcade-card-shine {
   position: absolute;
