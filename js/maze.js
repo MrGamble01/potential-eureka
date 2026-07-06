@@ -128,9 +128,10 @@ const MazeGame = (() => {
       }
 
       steps++;
-      if (steps % 4 === 0) {
+      const sp = speedSettings();
+      if (steps % sp.batch === 0) {
         drawWithVisited(visited, []);
-        await delay(10);
+        await delay(sp.ms);
         if (!solving) return false;
       }
     }
@@ -158,9 +159,10 @@ const MazeGame = (() => {
       }
 
       steps++;
-      if (steps % 3 === 0) {
+      const sp = speedSettings();
+      if (steps % sp.batch === 0) {
         drawWithVisited(visited, []);
-        await delay(10);
+        await delay(sp.ms);
         if (!solving) return false;
       }
     }
@@ -198,9 +200,10 @@ const MazeGame = (() => {
       }
 
       steps++;
-      if (steps % 4 === 0) {
+      const sp = speedSettings();
+      if (steps % sp.batch === 0) {
         drawWithVisited(visited, []);
-        await delay(10);
+        await delay(sp.ms);
         if (!solving) return false;
       }
     }
@@ -208,14 +211,30 @@ const MazeGame = (() => {
   }
 
   async function animateSolution(path, visited) {
+    const { ms, batch } = speedSettings();
     for (let i = 0; i < path.length; i++) {
-      drawWithVisited(visited, path.slice(0, i + 1));
-      await delay(15);
-      if (!solving) return;
+      if (i % batch === 0 || i === path.length - 1) {
+        drawWithVisited(visited, path.slice(0, i + 1));
+        await delay(ms);
+        if (!solving) return;
+      }
     }
+    drawWithVisited(visited, path);
   }
 
   const delay = Utils.delay;
+
+  const SPEED_LABELS = ['', 'Slow', 'Medium-Slow', 'Medium', 'Fast', 'Instant'];
+  const SPEED_DELAYS = [0, 60, 20, 8, 2, 0];
+  const SPEED_BATCHES = [1, 2, 3, 4, 8, 999];
+
+  function speedSettings() {
+    const el = document.getElementById('maze-speed');
+    const v = el ? Math.max(1, Math.min(5, parseInt(el.value))) : 3;
+    const label = document.getElementById('maze-speed-label');
+    if (label) label.textContent = SPEED_LABELS[v];
+    return { ms: SPEED_DELAYS[v], batch: SPEED_BATCHES[v] };
+  }
 
   // ---- DRAWING ----
   function draw() {
