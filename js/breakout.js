@@ -175,7 +175,15 @@ const BreakoutGame = (() => {
           // Reflect on the shallower penetration axis
           const overlapX = Math.min(b.x + BALL_R - br.x, br.x + BRICK_W - (b.x - BALL_R));
           const overlapY = Math.min(b.y + BALL_R - br.y, br.y + BRICK_H - (b.y - BALL_R));
-          if (overlapX < overlapY) b.vx = -b.vx; else b.vy = -b.vy;
+          // Reflect AND push the ball out of the brick, so shallow-angle hits
+          // don't stay overlapping and double-hit / tunnel next frame.
+          if (overlapX < overlapY) {
+            b.vx = -b.vx;
+            b.x += (b.x < br.x + BRICK_W / 2) ? -overlapX : overlapX;
+          } else {
+            b.vy = -b.vy;
+            b.y += (b.y < br.y + BRICK_H / 2) ? -overlapY : overlapY;
+          }
           br.hp--;
           if (br.hp <= 0) {
             combo++;
@@ -230,6 +238,7 @@ const BreakoutGame = (() => {
       sfx('clear');
       buildLevel();
       resetBall();
+      updateInfo(); // reflect the new level immediately, not on next brick
     }
   }
 
@@ -410,7 +419,12 @@ const BreakoutGame = (() => {
 
   function destroy() {
     cancelAnimationFrame(raf);
-    running = false;
+    raf = null;
+    // Shell re-inits a view only once and won't redraw on return — paint the
+    // idle start screen now so returning doesn't show a frozen frame.
+    running = false; gameOver = false;
+    const ov = document.getElementById('breakout-overlay'); if (ov) ov.style.display = 'none';
+    draw();
   }
 
   return { init, start, destroy };

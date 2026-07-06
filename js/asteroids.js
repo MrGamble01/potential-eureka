@@ -177,7 +177,7 @@ const AsteroidsGame = (() => {
       if (b.life <= 0) { bullets.splice(i, 1); continue; }
       for (let j = rocks.length - 1; j >= 0; j--) {
         const r = rocks[j];
-        if (Math.hypot(b.x - r.x, b.y - r.y) < r.r) {
+        if (Math.hypot(b.x - r.x, b.y - r.y) < r.r + 2.5) { // +bullet radius so grazing spikes still count
           bullets.splice(i, 1);
           destroyRock(j);
           break;
@@ -200,7 +200,7 @@ const AsteroidsGame = (() => {
       if (p.life <= 0) particles.splice(i, 1);
     }
 
-    if (rocks.length === 0) { wave++; sfx('clear'); invuln = 60; spawnWave(); }
+    if (rocks.length === 0) { wave++; sfx('clear'); invuln = Math.max(invuln, 60); spawnWave(); }
   }
 
   function destroyRock(j) {
@@ -323,8 +323,13 @@ const AsteroidsGame = (() => {
 
   function destroy() {
     cancelAnimationFrame(raf);
-    running = false;
+    raf = null;
     keys.left = keys.right = keys.thrust = false;
+    // Shell re-inits a view only once and won't redraw on return — paint the
+    // idle start screen now so returning doesn't show a frozen frame.
+    running = false; gameOver = false;
+    const ov = document.getElementById('asteroids-overlay'); if (ov) ov.style.display = 'none';
+    draw();
   }
 
   return { init, start, destroy };

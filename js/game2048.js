@@ -26,26 +26,38 @@ const Game2048 = (() => {
     if (!canvas) return;
     canvas.width = SIZE; canvas.height = SIZE;
     ctx = canvas.getContext('2d');
+    canvas.style.touchAction = 'none'; // swipes drive the board, not page scroll
     best = parseInt(localStorage.getItem('g2048-best') || '0', 10) || 0;
     newGame(false);
 
-    document.addEventListener('keydown', onKey);
-    canvas.addEventListener('mousedown', () => { if (!running || over) newGame(true); });
-    let sx = 0, sy = 0;
-    canvas.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-    canvas.addEventListener('touchend', e => {
-      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { if (over) newGame(true); return; }
-      if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'R' : 'L');
-      else move(dy > 0 ? 'D' : 'U');
-    }, { passive: true });
+    // Bind input once — init() runs on every view entry, so guard against
+    // stacking duplicate listeners (which would leak and multi-fire).
+    if (!bound) {
+      bound = true;
+      document.addEventListener('keydown', onKey);
+      canvas.addEventListener('mousedown', onMouseDown);
+      canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+      canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+    }
     updateInfo();
     draw();
+  }
+
+  let bound = false, touchSX = 0, touchSY = 0;
+  function onMouseDown() { if (!running || over) newGame(true); }
+  function onTouchStart(e) { touchSX = e.touches[0].clientX; touchSY = e.touches[0].clientY; }
+  function onTouchEnd(e) {
+    const dx = e.changedTouches[0].clientX - touchSX, dy = e.changedTouches[0].clientY - touchSY;
+    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { if (over) newGame(true); return; }
+    if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'R' : 'L');
+    else move(dy > 0 ? 'D' : 'U');
   }
 
   function onKey(e) {
     const view = document.getElementById('view-2048');
     if (!view || !view.classList.contains('active')) return;
+    // Space / Enter (re)starts when idle or after game over — matches the overlay hint.
+    if ((e.key === ' ' || e.key === 'Enter') && (over || !running)) { newGame(true); e.preventDefault(); return; }
     const map = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D',
       a: 'L', d: 'R', w: 'U', s: 'D', A: 'L', D: 'R', W: 'U', S: 'D' };
     const dir = map[e.key];
@@ -53,6 +65,7 @@ const Game2048 = (() => {
   }
 
   function newGame(run) {
+    clearTimeout(overTimer);
     grid = Array.from({ length: N }, () => Array(N).fill(0));
     score = 0; won = false; over = false;
     anim = null;
@@ -110,6 +123,7 @@ const Game2048 = (() => {
 
   function move(dir) {
     if (!running || over || anim) return;
+    const wasWon = won;
     const allMoves = []; let gained = 0; let changed = false;
     const next = Array.from({ length: N }, () => Array(N).fill(0));
     for (let lineNo = 0; lineNo < N; lineNo++) {
@@ -127,7 +141,8 @@ const Game2048 = (() => {
     if (!changed) return;
 
     score += gained;
-    if (gained > 0) SFX_play(won ? 'clear' : 'bonus'); else SFX_play('move');
+    // Victory jingle only on the move that first reaches 2048; merges otherwise.
+    if (gained > 0) SFX_play((won && !wasWon) ? 'clear' : 'bonus'); else SFX_play('move');
     if (score > best) { best = score; localStorage.setItem('g2048-best', String(best)); }
 
     // Commit the model, then animate the slide from old positions.
@@ -138,11 +153,11 @@ const Game2048 = (() => {
     ensureLoop();
 
     // After the slide, check for game over.
-    if (!spawn && isStuck()) endGameSoon();
-    else if (isStuck()) endGameSoon();
+    if (isStuck()) endGameSoon();
   }
 
-  function endGameSoon() { setTimeout(() => { if (isStuck()) endGame(); }, 160); }
+  let overTimer = null;
+  function endGameSoon() { clearTimeout(overTimer); overTimer = setTimeout(() => { if (isStuck()) endGame(); }, 160); }
 
   function isStuck() {
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
@@ -266,7 +281,14 @@ const Game2048 = (() => {
     ctx.closePath();
   }
 
-  function destroy() { cancelAnimationFrame(raf); raf = null; running = false; }
+  function destroy() {
+    cancelAnimationFrame(raf); raf = null; clearTimeout(overTimer);
+    // The shell re-inits a view only once, and won't redraw on return — so
+    // paint the idle "tap to start" state now, else a frozen frame shows.
+    running = false; over = false;
+    const ov = document.getElementById('g2048-overlay'); if (ov) ov.style.display = 'none';
+    draw();
+  }
 
   return { init, start, destroy };
 })();
