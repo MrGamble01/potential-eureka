@@ -174,6 +174,21 @@
         </div>
       </button>
 
+      <button class="arcade-card" data-view="2048" style="--accent:#facc15">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/2048.jpg" alt="2048 gameplay">
+          <video class="arcade-card-clip" src="assets/thumbs/2048.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="g2048"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">2048</div>
+          <div class="arcade-card-tags"><span>Puzzle</span><span>Numbers</span></div>
+          <div class="arcade-card-desc">Slide the tiles, merge the numbers, reach 2048.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
     </div>
   </section>
 
@@ -535,6 +550,28 @@
     </div>
   </section>
 
+  <!-- ===================== 2048 ===================== -->
+  <section id="view-2048" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Arcade</button>
+        <div class="game-title">2048</div>
+        <div class="game-subtitle">Swipe or arrow keys &middot; combine tiles to reach 2048</div>
+      </div>
+      <div class="game-info">
+        <span>Score: <strong id="g2048-score">0</strong></span>
+        <span>Best: <strong id="g2048-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="g2048-canvas" class="game-canvas" role="img" aria-label="2048 board"></canvas>
+        <div id="g2048-overlay" class="game-overlay" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button class="primary" onclick="Game2048.start()">New Game</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== NEON BREAKER ===================== -->
   <section id="view-breakout" class="view">
     <div class="game-container">
@@ -712,6 +749,7 @@
   <script src="js/life.js"></script>
   <script src="js/tetris.js"></script>
   <script src="js/breakout.js"></script>
+  <script src="js/game2048.js"></script>
   <script src="js/asteroids.js"></script>
   <script src="js/orgchart.js"></script>
   <script>
@@ -730,6 +768,7 @@
       maze:     () => MazeGame.destroy(),
       life:     () => LifeGame.destroy(),
       breakout: () => BreakoutGame.destroy(),
+      2048:     () => Game2048.destroy(),
       asteroids: () => AsteroidsGame.destroy(),
     };
 
@@ -755,6 +794,7 @@
           case 'life':         LifeGame.init(); break;
           case 'tetris':       TetrisGame.init(); break;
           case 'breakout':     BreakoutGame.init(); break;
+          case '2048':         Game2048.init(); break;
           case 'asteroids':    AsteroidsGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
@@ -783,8 +823,10 @@
         best: () => { const v = hofNum('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Vector Storm',     accent: '#a78bfa', go: () => switchView('asteroids'),
         best: () => { const v = hofNum('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+      { name: '2048',             accent: '#facc15', go: () => switchView('2048'),
+        best: () => { const v = hofNum('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1'];
     function hofJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }
     function hofNum(k) { const v = parseInt(localStorage.getItem(k) || '0', 10); return isNaN(v) ? 0 : v; }
     function hofMoney(n) { n = +n || 0; return n >= 1000 ? '$' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : '$' + n; }
@@ -847,6 +889,7 @@
         snake:    () => { const v = num('snake-high');  return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         tetris:   () => { const v = num('tetris-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         breakout: () => { const v = num('breakout-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
+        g2048:    () => { const v = num('g2048-best'); return v > 0 ? 'BEST ' + v.toLocaleString() : ''; },
         asteroids: () => { const v = num('asteroids-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         ageofwar: () => { const a = readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' ★' : ''; },
         tycoon:   () => { const s = readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + fmtMoney(v) : ''; },
@@ -905,7 +948,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {

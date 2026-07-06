@@ -1,0 +1,272 @@
+/* ============================================
+   2048 — slide & merge. Canvas board with a
+   slide tween and pop on spawn/merge. Arrow keys /
+   WASD / swipe. Score + best; win at 2048, keep going.
+   Follows the arcade module pattern.
+   ============================================ */
+
+const Game2048 = (() => {
+  const N = 4;
+  const GAP = 12, CELL = 108, PAD = 14;
+  const SIZE = PAD * 2 + N * CELL + (N - 1) * GAP; // board pixel size
+  const TILE_COLORS = {
+    2: '#1f6feb', 4: '#388bfd', 8: '#3fb950', 16: '#d29922', 32: '#f0883e',
+    64: '#f85149', 128: '#f778ba', 256: '#a371f7', 512: '#22d3ee',
+    1024: '#facc15', 2048: '#ffd700',
+  };
+
+  let canvas, ctx;
+  let grid;          // N×N of values (0 empty)
+  let score, best, won, over, running;
+  let anim = null;   // { t, dur, moves:[{val,fr,fc,tr,tc,merge}], spawn:{r,c} }
+  let raf, lastT;
+
+  function init() {
+    canvas = document.getElementById('g2048-canvas');
+    if (!canvas) return;
+    canvas.width = SIZE; canvas.height = SIZE;
+    ctx = canvas.getContext('2d');
+    best = parseInt(localStorage.getItem('g2048-best') || '0', 10) || 0;
+    newGame(false);
+
+    document.addEventListener('keydown', onKey);
+    canvas.addEventListener('mousedown', () => { if (!running || over) newGame(true); });
+    let sx = 0, sy = 0;
+    canvas.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    canvas.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { if (over) newGame(true); return; }
+      if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'R' : 'L');
+      else move(dy > 0 ? 'D' : 'U');
+    }, { passive: true });
+    updateInfo();
+    draw();
+  }
+
+  function onKey(e) {
+    const view = document.getElementById('view-2048');
+    if (!view || !view.classList.contains('active')) return;
+    const map = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D',
+      a: 'L', d: 'R', w: 'U', s: 'D', A: 'L', D: 'R', W: 'U', S: 'D' };
+    const dir = map[e.key];
+    if (dir) { move(dir); e.preventDefault(); }
+  }
+
+  function newGame(run) {
+    grid = Array.from({ length: N }, () => Array(N).fill(0));
+    score = 0; won = false; over = false;
+    anim = null;
+    addRandom(); addRandom();
+    running = run !== false;
+    const ov = document.getElementById('g2048-overlay');
+    if (ov) ov.style.display = 'none';
+    updateInfo();
+    ensureLoop();
+    draw();
+  }
+  function start() { newGame(true); }
+
+  function addRandom() {
+    const empty = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!grid[r][c]) empty.push([r, c]);
+    if (!empty.length) return null;
+    const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+    grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+    return { r, c };
+  }
+
+  // Compress one line (array of 4 values) toward index 0; returns moves relative to line.
+  function compress(line) {
+    const nz = [];
+    line.forEach((v, i) => { if (v) nz.push({ v, i }); });
+    const out = [0, 0, 0, 0], moves = []; let pos = 0, gained = 0;
+    for (let k = 0; k < nz.length; k++) {
+      if (k + 1 < nz.length && nz[k + 1].v === nz[k].v) {
+        const val = nz[k].v * 2; out[pos] = val; gained += val; if (val === 2048) won = true;
+        moves.push({ from: nz[k].i, to: pos, val: nz[k].v, merge: true });
+        moves.push({ from: nz[k + 1].i, to: pos, val: nz[k].v, merge: true });
+        k++; pos++;
+      } else {
+        out[pos] = nz[k].v; moves.push({ from: nz[k].i, to: pos, val: nz[k].v, merge: false }); pos++;
+      }
+    }
+    return { out, moves, gained };
+  }
+
+  // Map a line index + row number into grid (r,c) for a given direction.
+  function coord(dir, lineNo, idx) {
+    switch (dir) {
+      case 'L': return [lineNo, idx];
+      case 'R': return [lineNo, N - 1 - idx];
+      case 'U': return [idx, lineNo];
+      case 'D': return [N - 1 - idx, lineNo];
+    }
+  }
+  function readLine(dir, lineNo) {
+    const line = [];
+    for (let i = 0; i < N; i++) { const [r, c] = coord(dir, lineNo, i); line.push(grid[r][c]); }
+    return line;
+  }
+
+  function move(dir) {
+    if (!running || over || anim) return;
+    const allMoves = []; let gained = 0; let changed = false;
+    const next = Array.from({ length: N }, () => Array(N).fill(0));
+    for (let lineNo = 0; lineNo < N; lineNo++) {
+      const line = readLine(dir, lineNo);
+      const { out, moves, gained: g } = compress(line);
+      gained += g;
+      for (let i = 0; i < N; i++) { const [r, c] = coord(dir, lineNo, i); next[r][c] = out[i]; }
+      moves.forEach(m => {
+        const [fr, fc] = coord(dir, lineNo, m.from);
+        const [tr, tc] = coord(dir, lineNo, m.to);
+        if (fr !== tr || fc !== tc || m.merge) changed = true;
+        allMoves.push({ val: m.val, fr, fc, tr, tc, merge: m.merge });
+      });
+    }
+    if (!changed) return;
+
+    score += gained;
+    if (gained > 0) SFX_play(won ? 'clear' : 'bonus'); else SFX_play('move');
+    if (score > best) { best = score; localStorage.setItem('g2048-best', String(best)); }
+
+    // Commit the model, then animate the slide from old positions.
+    grid = next;
+    const spawn = addRandom();
+    anim = { t: 0, dur: 90, moves: allMoves, spawn, start: performance.now() };
+    updateInfo();
+    ensureLoop();
+
+    // After the slide, check for game over.
+    if (!spawn && isStuck()) endGameSoon();
+    else if (isStuck()) endGameSoon();
+  }
+
+  function endGameSoon() { setTimeout(() => { if (isStuck()) endGame(); }, 160); }
+
+  function isStuck() {
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (!grid[r][c]) return false;
+      if (c + 1 < N && grid[r][c] === grid[r][c + 1]) return false;
+      if (r + 1 < N && grid[r][c] === grid[r + 1][c]) return false;
+    }
+    return true;
+  }
+
+  function endGame() {
+    over = true; running = false;
+    SFX_play('over');
+    if (score > best) { best = score; localStorage.setItem('g2048-best', String(best)); }
+    const ov = document.getElementById('g2048-overlay');
+    if (ov) {
+      ov.style.display = 'flex';
+      ov.innerHTML = '<h2>GAME OVER</h2><p>Score: ' + score + '</p>' +
+        '<p style="font-size:12px;color:var(--text-dim)">Press SPACE or tap to play again</p>';
+    }
+  }
+
+  function SFX_play(n) { if (typeof SFX !== 'undefined') SFX.play(n); }
+
+  function updateInfo() {
+    const s = document.getElementById('g2048-score'), b = document.getElementById('g2048-best');
+    if (s) s.textContent = score;
+    if (b) b.textContent = best;
+  }
+
+  function cellXY(r, c) { return [PAD + c * (CELL + GAP), PAD + r * (CELL + GAP)]; }
+
+  function ease(t) { return 1 - Math.pow(1 - t, 3); }
+
+  let spawnCell = null, spawnAt = 0;
+
+  function ensureLoop() { if (!raf) { lastT = performance.now(); loop(); } }
+  function loop() {
+    raf = requestAnimationFrame(loop);
+    draw();
+  }
+
+  function drawTile(x, y, val, scale) {
+    const s = CELL * scale, off = (CELL - s) / 2;
+    ctx.fillStyle = TILE_COLORS[val] || '#ffd700';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = val >= 128 ? 16 : 8;
+    roundRect(x + off, y + off, s, s, 8); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = val <= 4 ? '#dbeafe' : '#0d1117';
+    const fs = val < 100 ? 40 : val < 1000 ? 32 : 26;
+    ctx.font = '800 ' + Math.round(fs * scale) + 'px JetBrains Mono, monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(val), x + CELL / 2, y + CELL / 2 + 1);
+  }
+
+  function draw() {
+    if (!ctx) return;
+    // board bg
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, SIZE, SIZE);
+    roundRect(2, 2, SIZE - 4, SIZE - 4, 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fill();
+    // empty cells
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const [x, y] = cellXY(r, c);
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      roundRect(x, y, CELL, CELL, 8); ctx.fill();
+    }
+
+    const nowMs = performance.now();
+    let sliding = false;
+    if (anim) {
+      const t = Math.min(1, (nowMs - anim.start) / anim.dur);
+      const e = ease(t);
+      sliding = t < 1;
+      for (const m of anim.moves) {
+        const [fx, fy] = cellXY(m.fr, m.fc);
+        const [tx, ty] = cellXY(m.tr, m.tc);
+        drawTile(fx + (tx - fx) * e, fy + (ty - fy) * e, m.val, 1);
+      }
+      if (!sliding) { spawnCell = anim.spawn; spawnAt = nowMs; anim = null; }
+    }
+
+    if (!sliding) {
+      const popActive = spawnCell && nowMs - spawnAt < 130;
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        const v = grid[r][c];
+        if (!v) continue;
+        const [x, y] = cellXY(r, c);
+        let scale = 1;
+        if (popActive && spawnCell.r === r && spawnCell.c === c) {
+          scale = 0.3 + 0.7 * ease((nowMs - spawnAt) / 130);
+        }
+        drawTile(x, y, v, scale);
+      }
+    }
+
+    // idle prompt
+    if (!running && !over) {
+      ctx.fillStyle = 'rgba(13,17,23,0.72)'; ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.fillStyle = '#E6EDF3'; ctx.font = "800 24px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('2048', SIZE / 2, SIZE / 2 - 14);
+      ctx.font = '13px Inter, sans-serif'; ctx.fillStyle = '#7D8590';
+      ctx.fillText('Swipe or arrow keys to combine tiles', SIZE / 2, SIZE / 2 + 16);
+      ctx.fillText('Click or tap to start', SIZE / 2, SIZE / 2 + 38);
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+    // Stop the loop when fully static (nothing sliding, no pop in flight).
+    const popActive = spawnCell && nowMs - spawnAt < 130;
+    if (!anim && !sliding && !popActive) { cancelAnimationFrame(raf); raf = null; }
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function destroy() { cancelAnimationFrame(raf); raf = null; running = false; }
+
+  return { init, start, destroy };
+})();
