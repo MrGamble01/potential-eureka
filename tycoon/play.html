@@ -1197,6 +1197,48 @@
     }
     #sidebar-toggle:hover { background: rgba(8,10,18,0.98); }
     #sidebar-toggle:active { transform: scale(0.92); }
+
+    /* ── 3rd-person "walk the office" toggle ── */
+    #tp-toggle {
+      position: fixed;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      right: calc(16px + env(safe-area-inset-right, 0px));
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 14px;
+      background: rgba(8,10,18,0.92);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: #E6EDF3; border-radius: 12px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.4px;
+      font-family: inherit; cursor: pointer; z-index: 120;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    #tp-toggle .tp-ico { font-size: 15px; line-height: 1; }
+    #tp-toggle:hover { background: rgba(8,10,18,0.98); }
+    #tp-toggle:active { transform: scale(0.94); }
+    #tp-toggle.on {
+      border-color: rgba(108,99,255,0.7);
+      color: #c7c2ff;
+      box-shadow: 0 2px 16px rgba(108,99,255,0.35);
+    }
+    /* Hint ribbon shown briefly on entering walk mode */
+    #tp-hint {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+      background: rgba(8,10,18,0.92);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: #E6EDF3; border-radius: 10px;
+      padding: 8px 14px; font-size: 12px; z-index: 121;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #tp-hint.show { opacity: 1; }
+    @media (max-width: 900px) {
+      #tp-toggle { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+    }
     #drawer-backdrop {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.45);
@@ -1378,6 +1420,8 @@
 <body>
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+<button id="tp-toggle" type="button" title="Walk the office in 3rd person (V)"><span class="tp-ico">🎥</span><span id="tp-label">3RD PERSON</span></button>
+<div id="tp-hint">Walk: WASD / arrows · Look: drag · Zoom: scroll · Exit: V</div>
 <div id="drawer-backdrop"></div>
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
@@ -2176,9 +2220,33 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
+// ── Third-person camera (walk-the-office mode) ───────────────
+// A perspective camera that orbits behind the player avatar. The
+// isometric ortho `camera` above stays the default; pressing V (or the
+// 🎥 button) flips `thirdPerson` and we render `pcam` instead. Movement
+// becomes camera-relative and the player turns to face where they walk.
+const pcam = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 500);
+let thirdPerson = false;
+let camYaw = Math.PI * 0.25;   // orbit angle around the player (radians)
+let camPitch = 0.42;           // look-down angle above the horizon
+let camDist = 8;               // distance from the player
+const TP_DIST_MIN = 3.5, TP_DIST_MAX = 15;
+const TP_PITCH_MIN = 0.12, TP_PITCH_MAX = 1.15;
+function activeCamera() { return thirdPerson ? pcam : camera; }
+function updateThirdPersonCamera() {
+  const px = player.position.x, py = player.position.y, pz = player.position.z;
+  const horiz = Math.cos(camPitch) * camDist;
+  pcam.position.set(
+    px + Math.sin(camYaw) * horiz,
+    py + 1.1 + Math.sin(camPitch) * camDist,
+    pz + Math.cos(camYaw) * horiz
+  );
+  pcam.lookAt(px, py + 1.15, pz);
+}
+
 // ── Screen-space utility ─────────────────────────────────────
 function worldToScreen(x, y, z) {
-  _v3A.set(x, y, z).project(camera);
+  _v3A.set(x, y, z).project(activeCamera());
   return { x:(_v3A.x*0.5+0.5)*innerWidth, y:(-_v3A.y*0.5+0.5)*innerHeight };
 }
 
@@ -7506,9 +7574,16 @@ addEventListener('keydown', e => {
     addCash(10000);
     showToast('💰 +$10,000 (cheat)', 'milestone');
   }
+  // V toggles the 3rd-person "walk the office" camera
+  if (k === 'v' && !e.repeat) setThirdPerson(!thirdPerson);
 });
 addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
-addEventListener('resize', () => { fitCamera(); renderer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', () => {
+  fitCamera();
+  pcam.aspect = innerWidth / innerHeight;
+  pcam.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 window.giveMoney = (n = 10000) => { addCash(n); showToast(`💰 +$${fmtCash(n)} (cheat)`, 'milestone'); };
 
 // Cheat: click the cash HUD. Back-to-back taps escalate the amount:
@@ -7549,6 +7624,7 @@ const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 let target = null;
 renderer.domElement.addEventListener('pointerdown', e => {
   if (e.button !== 0) return; // only primary button (left-click / touch)
+  if (thirdPerson) return; // in walk mode, drag orbits the camera instead
   if (activeCanvasTouches.size >= 1) return; // already have a finger → probably pinching
   pointer.x = (e.clientX / innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
@@ -7559,12 +7635,16 @@ renderer.domElement.addEventListener('pointerdown', e => {
 // ── Zoom: mouse wheel (desktop) + pinch gesture (touch) ──────
 renderer.domElement.addEventListener('wheel', e => {
   e.preventDefault();
+  if (thirdPerson) {
+    camDist = Math.max(TP_DIST_MIN, Math.min(TP_DIST_MAX, camDist + e.deltaY * 0.01));
+    return;
+  }
   cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cameraZoom + e.deltaY * 0.012));
   fitCamera();
 }, { passive: false });
 
 const activeCanvasTouches = new Map();
-let pinchStartDist = 0, pinchStartZoom = cameraZoom;
+let pinchStartDist = 0, pinchStartZoom = cameraZoom, pinchStartCamDist = camDist;
 let pinchLastMid = null;
 // Convert a screen-space drag (px) into world-space pan (units)
 function panScale() { return cameraZoom / 200; }
@@ -7575,8 +7655,10 @@ renderer.domElement.addEventListener('pointerdown', e => {
     const pts = Array.from(activeCanvasTouches.values());
     pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
     pinchStartZoom = cameraZoom;
+    pinchStartCamDist = camDist;
     pinchLastMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
     target = null; // cancel tap-to-move if it fired before the 2nd finger landed
+    tpLookId = null; // a 2nd finger ends single-finger orbit
   }
 });
 renderer.domElement.addEventListener('pointermove', e => {
@@ -7587,12 +7669,16 @@ renderer.domElement.addEventListener('pointermove', e => {
     // Pinch-zoom from distance change
     const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
     if (dist > 10) {
-      cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom * (pinchStartDist / dist)));
-      fitCamera();
+      if (thirdPerson) {
+        camDist = Math.max(TP_DIST_MIN, Math.min(TP_DIST_MAX, pinchStartCamDist * (pinchStartDist / dist)));
+      } else {
+        cameraZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom * (pinchStartDist / dist)));
+        fitCamera();
+      }
     }
-    // Two-finger pan from midpoint change
+    // Two-finger pan from midpoint change (isometric mode only)
     const curMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
-    if (pinchLastMid) {
+    if (pinchLastMid && !thirdPerson) {
       const s = panScale();
       cameraPanX -= (curMid.x - pinchLastMid.x) * s;
       cameraPanZ -= (curMid.y - pinchLastMid.y) * s;
@@ -7614,6 +7700,7 @@ let mousePanActive = false, mousePanX = 0, mousePanY = 0;
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 renderer.domElement.addEventListener('mousedown', e => {
   if (e.button !== 2) return;
+  if (thirdPerson) return; // right-drag orbits instead of panning in walk mode
   e.preventDefault();
   mousePanActive = true;
   mousePanX = e.clientX;
@@ -7630,6 +7717,58 @@ window.addEventListener('mousemove', e => {
   applyCameraTransform();
 });
 window.addEventListener('mouseup', e => { if (e.button === 2) mousePanActive = false; });
+
+// ── Third-person walk mode: toggle + camera orbit ────────────
+const tpToggleEl = document.getElementById('tp-toggle');
+const tpLabelEl  = document.getElementById('tp-label');
+const tpHintEl   = document.getElementById('tp-hint');
+const tpLabelsEl = document.getElementById('labels');
+const tpIsTouch  = matchMedia('(hover: none) and (pointer: coarse)').matches;
+let tpLookId = null, tpLookX = 0, tpLookY = 0;
+let tpJoyWasOn = false, tpHintTimer = null;
+
+function setThirdPerson(on) {
+  if (on === thirdPerson) return;
+  thirdPerson = on;
+  target = null;
+  tpToggleEl.classList.toggle('on', on);
+  tpLabelEl.textContent = on ? 'TOP-DOWN' : '3RD PERSON';
+  if (tpLabelsEl) tpLabelsEl.style.display = on ? 'none' : ''; // nameplates clutter the walk view
+  if (on) {
+    updateThirdPersonCamera();
+    // Touch users need the joystick to walk — auto-show it, remember prior state.
+    if (tpIsTouch) {
+      tpJoyWasOn = joyEl.classList.contains('visible');
+      if (!tpJoyWasOn) setJoystickEnabled(true);
+    }
+    tpHintEl.classList.add('show');
+    clearTimeout(tpHintTimer);
+    tpHintTimer = setTimeout(() => tpHintEl.classList.remove('show'), 4200);
+  } else {
+    tpHintEl.classList.remove('show');
+    if (tpIsTouch && !tpJoyWasOn) setJoystickEnabled(false);
+  }
+  if (typeof SFX !== 'undefined' && SFX.click) SFX.click();
+}
+tpToggleEl.addEventListener('click', () => setThirdPerson(!thirdPerson));
+
+// Drag to orbit the camera (mouse any button, or single-finger touch).
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (!thirdPerson) return;
+  if (e.pointerType === 'touch' && activeCanvasTouches.size > 1) return; // pinch, not orbit
+  tpLookId = e.pointerId; tpLookX = e.clientX; tpLookY = e.clientY;
+});
+window.addEventListener('pointermove', e => {
+  if (tpLookId === null || e.pointerId !== tpLookId) return;
+  if (activeCanvasTouches.size > 1) { tpLookId = null; return; } // turned into a pinch
+  const dx = e.clientX - tpLookX, dy = e.clientY - tpLookY;
+  tpLookX = e.clientX; tpLookY = e.clientY;
+  camYaw  -= dx * 0.007;
+  camPitch = Math.max(TP_PITCH_MIN, Math.min(TP_PITCH_MAX, camPitch + dy * 0.005));
+});
+function endTpLook(e) { if (tpLookId !== null && e.pointerId === tpLookId) tpLookId = null; }
+window.addEventListener('pointerup', endTpLook);
+window.addEventListener('pointercancel', endTpLook);
 
 // ── Virtual joystick (opt-in via settings) ───────────────────
 const joyEl = document.getElementById('joystick');
@@ -8031,8 +8170,14 @@ function loop(now) {
     target = null; // keyboard/joystick cancels tap-target
     const len = Math.hypot(dx, dz);
     dx /= len; dz /= len;
-    wx = dx * COS - dz * SIN;
-    wz = dx * SIN + dz * COS;
+    if (thirdPerson) {
+      // Camera-relative: W walks away from the camera, A/D strafe.
+      wx =  dx * Math.cos(camYaw) + dz * Math.sin(camYaw);
+      wz = -dx * Math.sin(camYaw) + dz * Math.cos(camYaw);
+    } else {
+      wx = dx * COS - dz * SIN;
+      wz = dx * SIN + dz * COS;
+    }
   } else if (target) {
     const tx = target.x - player.position.x;
     const tz = target.z - player.position.z;
@@ -8075,7 +8220,8 @@ function loop(now) {
 
   tickCashHud(dt);
   tickIdleBreathing(now);
-  renderer.render(scene, camera);
+  if (thirdPerson) updateThirdPersonCamera();
+  renderer.render(scene, activeCamera());
   requestAnimationFrame(loop);
 }
 
