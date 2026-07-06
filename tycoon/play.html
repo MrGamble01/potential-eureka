@@ -1236,6 +1236,16 @@
       transition: opacity 0.3s ease;
     }
     #tp-hint.show { opacity: 1; }
+    /* First-person reticle — a soft dot, fades in only in 1st-person */
+    #tp-crosshair {
+      position: fixed; left: 50%; top: 50%;
+      width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.55);
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.28), 0 0 6px rgba(0,0,0,0.4);
+      z-index: 118; pointer-events: none;
+      opacity: 0; transition: opacity 0.25s ease;
+    }
     @media (max-width: 900px) {
       #tp-toggle { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
     }
@@ -1422,6 +1432,7 @@
 <button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
 <button id="tp-toggle" type="button" title="Walk the office in 3rd person (V)"><span class="tp-ico">🎥</span><span id="tp-label">3RD PERSON</span></button>
 <div id="tp-hint">Walk: WASD / arrows · Look: drag · Zoom in for 1st-person · Exit: V</div>
+<div id="tp-crosshair"></div>
 <div id="drawer-backdrop"></div>
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
@@ -2228,7 +2239,7 @@ document.body.appendChild(renderer.domElement);
 // Zoom (scroll / pinch) pulls the camera in from a low over-the-shoulder
 // view all the way to FIRST PERSON — you standing in the room, the
 // avatar hidden, looking around with drag.
-const pcam = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 500);
+const pcam = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 500);
 let thirdPerson = false;
 let firstPerson = false;       // derived: true once you zoom all the way in
 let camYaw = Math.PI * 0.25;   // look/orbit angle around vertical (radians)
@@ -2247,8 +2258,15 @@ function updateThirdPersonCamera() {
   if (player) player.visible = !firstPerson; // don't stare at your own head
   // Horizontal forward (the way W walks): away from the camera.
   const fwdX = -Math.sin(camYaw), fwdZ = -Math.cos(camYaw);
+  if (tpCrossEl) tpCrossEl.style.opacity = firstPerson ? '1' : '0';
   if (firstPerson) {
-    const ex = px, ey = py + EYE_HEIGHT, ez = pz;
+    // Head-bob + a little lateral sway while walking, for presence.
+    const moving = !!player.userData.moving;
+    const wp = player.userData.walkPhase || 0;
+    const sway = moving ? Math.sin(wp) * 0.035 : 0;
+    const bobY = moving ? Math.abs(Math.sin(wp)) * 0.03 : 0;
+    const rx = -fwdZ, rz = fwdX; // right vector, perpendicular to forward
+    const ex = px + rx * sway, ey = EYE_HEIGHT + bobY, ez = pz + rz * sway;
     const cp = Math.cos(fpPitch);
     pcam.position.set(ex, ey, ez);
     pcam.lookAt(ex + fwdX * cp * 4, ey + Math.sin(fpPitch) * 4, ez + fwdZ * cp * 4);
@@ -2266,6 +2284,9 @@ function updateThirdPersonCamera() {
 // ── Screen-space utility ─────────────────────────────────────
 function worldToScreen(x, y, z) {
   _v3A.set(x, y, z).project(activeCamera());
+  // In perspective (walk mode) points behind the camera project to bogus
+  // screen coords — push them off-screen so labels don't ghost.
+  if (_v3A.z > 1) return { x: -9999, y: -9999 };
   return { x:(_v3A.x*0.5+0.5)*innerWidth, y:(-_v3A.y*0.5+0.5)*innerHeight };
 }
 
@@ -7741,7 +7762,7 @@ window.addEventListener('mouseup', e => { if (e.button === 2) mousePanActive = f
 const tpToggleEl = document.getElementById('tp-toggle');
 const tpLabelEl  = document.getElementById('tp-label');
 const tpHintEl   = document.getElementById('tp-hint');
-const tpLabelsEl = document.getElementById('labels');
+const tpCrossEl  = document.getElementById('tp-crosshair');
 const tpIsTouch  = matchMedia('(hover: none) and (pointer: coarse)').matches;
 let tpLookId = null, tpLookX = 0, tpLookY = 0;
 let tpJoyWasOn = false, tpHintTimer = null;
@@ -7752,7 +7773,6 @@ function setThirdPerson(on) {
   target = null;
   tpToggleEl.classList.toggle('on', on);
   tpLabelEl.textContent = on ? 'TOP-DOWN' : '3RD PERSON';
-  if (tpLabelsEl) tpLabelsEl.style.display = on ? 'none' : ''; // nameplates clutter the walk view
   if (on) {
     updateThirdPersonCamera();
     // Touch users need the joystick to walk — auto-show it, remember prior state.
@@ -7766,6 +7786,7 @@ function setThirdPerson(on) {
   } else {
     tpHintEl.classList.remove('show');
     firstPerson = false;
+    if (tpCrossEl) tpCrossEl.style.opacity = '0';
     if (player) player.visible = true; // restore the avatar when leaving walk mode
     if (tpIsTouch && !tpJoyWasOn) setJoystickEnabled(false);
   }
@@ -8218,6 +8239,7 @@ function loop(now) {
     player.position.x = nx;
     player.position.z = nz;
     const moved = Math.abs(nx - prevX) > CONFIG.moveEpsilon || Math.abs(nz - prevZ) > CONFIG.moveEpsilon;
+    player.userData.moving = moved;
     player.rotation.y = Math.atan2(wx, wz);
     if (moved) {
       player.userData.walkPhase = (player.userData.walkPhase || 0) + dt * (CONFIG.walkPhaseBase + playerSpeed * CONFIG.walkPhaseSpeedK);
@@ -8228,6 +8250,7 @@ function loop(now) {
       swingArms(player, false);
     }
   } else {
+    player.userData.moving = false;
     player.position.y = 0;
     swingArms(player, false);
   }
