@@ -1421,7 +1421,7 @@
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
 <button id="tp-toggle" type="button" title="Walk the office in 3rd person (V)"><span class="tp-ico">🎥</span><span id="tp-label">3RD PERSON</span></button>
-<div id="tp-hint">Walk: WASD / arrows · Look: drag · Zoom: scroll · Exit: V</div>
+<div id="tp-hint">Walk: WASD / arrows · Look: drag · Zoom in for 1st-person · Exit: V</div>
 <div id="drawer-backdrop"></div>
 <div id="status-bar">
   <span id="session-chip">Session 00m 00s</span>
@@ -2220,28 +2220,47 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-// ── Third-person camera (walk-the-office mode) ───────────────
-// A perspective camera that orbits behind the player avatar. The
+// ── Walk-the-office camera (3rd- & 1st-person) ───────────────
+// A perspective camera you can walk around inside the office with. The
 // isometric ortho `camera` above stays the default; pressing V (or the
 // 🎥 button) flips `thirdPerson` and we render `pcam` instead. Movement
-// becomes camera-relative and the player turns to face where they walk.
-const pcam = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 500);
+// is camera-relative and the player turns to face where they walk.
+// Zoom (scroll / pinch) pulls the camera in from a low over-the-shoulder
+// view all the way to FIRST PERSON — you standing in the room, the
+// avatar hidden, looking around with drag.
+const pcam = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 500);
 let thirdPerson = false;
-let camYaw = Math.PI * 0.25;   // orbit angle around the player (radians)
-let camPitch = 0.42;           // look-down angle above the horizon
-let camDist = 8;               // distance from the player
-const TP_DIST_MIN = 3.5, TP_DIST_MAX = 15;
-const TP_PITCH_MIN = 0.12, TP_PITCH_MAX = 1.15;
+let firstPerson = false;       // derived: true once you zoom all the way in
+let camYaw = Math.PI * 0.25;   // look/orbit angle around vertical (radians)
+let camPitch = 0.22;           // 3rd-person: camera height above the player
+let fpPitch = -0.05;           // 1st-person: vertical look (+ up / − down)
+let camDist = 4.5;             // distance from the player
+const TP_DIST_MIN = 0.8, TP_DIST_MAX = 15;
+const TP_PITCH_MIN = 0.05, TP_PITCH_MAX = 1.15;
+const FP_PITCH_MIN = -0.9, FP_PITCH_MAX = 0.9;
+const FP_DIST = 1.15;          // at/below this distance we're first-person
+const EYE_HEIGHT = 1.55;       // character eye level
 function activeCamera() { return thirdPerson ? pcam : camera; }
 function updateThirdPersonCamera() {
   const px = player.position.x, py = player.position.y, pz = player.position.z;
-  const horiz = Math.cos(camPitch) * camDist;
-  pcam.position.set(
-    px + Math.sin(camYaw) * horiz,
-    py + 1.1 + Math.sin(camPitch) * camDist,
-    pz + Math.cos(camYaw) * horiz
-  );
-  pcam.lookAt(px, py + 1.15, pz);
+  firstPerson = camDist <= FP_DIST;
+  if (player) player.visible = !firstPerson; // don't stare at your own head
+  // Horizontal forward (the way W walks): away from the camera.
+  const fwdX = -Math.sin(camYaw), fwdZ = -Math.cos(camYaw);
+  if (firstPerson) {
+    const ex = px, ey = py + EYE_HEIGHT, ez = pz;
+    const cp = Math.cos(fpPitch);
+    pcam.position.set(ex, ey, ez);
+    pcam.lookAt(ex + fwdX * cp * 4, ey + Math.sin(fpPitch) * 4, ez + fwdZ * cp * 4);
+  } else {
+    const horiz = Math.cos(camPitch) * camDist;
+    pcam.position.set(
+      px - fwdX * horiz,
+      py + 1.1 + Math.sin(camPitch) * camDist,
+      pz - fwdZ * horiz
+    );
+    pcam.lookAt(px, py + 1.15, pz);
+  }
 }
 
 // ── Screen-space utility ─────────────────────────────────────
@@ -7746,6 +7765,8 @@ function setThirdPerson(on) {
     tpHintTimer = setTimeout(() => tpHintEl.classList.remove('show'), 4200);
   } else {
     tpHintEl.classList.remove('show');
+    firstPerson = false;
+    if (player) player.visible = true; // restore the avatar when leaving walk mode
     if (tpIsTouch && !tpJoyWasOn) setJoystickEnabled(false);
   }
   if (typeof SFX !== 'undefined' && SFX.click) SFX.click();
@@ -7763,8 +7784,9 @@ window.addEventListener('pointermove', e => {
   if (activeCanvasTouches.size > 1) { tpLookId = null; return; } // turned into a pinch
   const dx = e.clientX - tpLookX, dy = e.clientY - tpLookY;
   tpLookX = e.clientX; tpLookY = e.clientY;
-  camYaw  -= dx * 0.007;
-  camPitch = Math.max(TP_PITCH_MIN, Math.min(TP_PITCH_MAX, camPitch + dy * 0.005));
+  camYaw -= dx * 0.007;
+  if (firstPerson) fpPitch  = Math.max(FP_PITCH_MIN, Math.min(FP_PITCH_MAX, fpPitch - dy * 0.005));
+  else             camPitch = Math.max(TP_PITCH_MIN, Math.min(TP_PITCH_MAX, camPitch + dy * 0.005));
 });
 function endTpLook(e) { if (tpLookId !== null && e.pointerId === tpLookId) tpLookId = null; }
 window.addEventListener('pointerup', endTpLook);
