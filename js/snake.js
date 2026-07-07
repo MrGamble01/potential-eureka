@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -86,7 +87,24 @@ const SnakeGame = (() => {
         if (gameOver) start();
         e.preventDefault();
         break;
+      case 'p': case 'P': case 'Escape':
+        togglePause();
+        e.preventDefault();
+        break;
     }
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(tick, speed);
+    }
+    const btn = document.getElementById('snake-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+    draw();
   }
 
   function start() {
@@ -97,6 +115,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
@@ -104,6 +123,8 @@ const SnakeGame = (() => {
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) pauseBtn.textContent = 'Pause';
 
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
@@ -298,6 +319,20 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Paused overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '20px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or Esc to resume', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.textAlign = 'left';
+    }
+
     // Start prompt
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
@@ -318,5 +353,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
