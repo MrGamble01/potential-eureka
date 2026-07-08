@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let particles = [];
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -96,6 +97,7 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    particles = [];
     gameOver = false;
     running = true;
     speed = 120;
@@ -131,6 +133,25 @@ const SnakeGame = (() => {
       (food && food.x === pos.x && food.y === pos.y)
     ));
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
+  }
+
+  function spawnParticles(gridX, gridY, color) {
+    const cx = gridX * GRID + GRID / 2;
+    const cy = gridY * GRID + GRID / 2;
+    const count = color === '#F7C948' ? 14 : 10;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+      const spd = 1.8 + Math.random() * 2.2;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        life: 1.0,
+        decay: 0.07 + Math.random() * 0.05,
+        radius: 2 + Math.random() * 2,
+        color,
+      });
+    }
   }
 
   function getLevel() {
@@ -178,6 +199,7 @@ const SnakeGame = (() => {
     // Eat regular food
     if (head.x === food.x && head.y === food.y) {
       ate = true;
+      spawnParticles(food.x, food.y, '#F778BA');
       score += 10;
       foodCount++;
       if (typeof SFX !== 'undefined') SFX.play('eat');
@@ -197,6 +219,7 @@ const SnakeGame = (() => {
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
       // Eat bonus food (snake also grows)
       ate = true;
+      spawnParticles(bonusFood.x, bonusFood.y, '#F7C948');
       score += 50;
       bonusFood = null;
       if (typeof SFX !== 'undefined') SFX.play('bonus');
@@ -207,6 +230,16 @@ const SnakeGame = (() => {
     }
 
     if (!ate) snake.pop();
+
+    // Advance particles
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.88;
+      p.vy *= 0.88;
+      p.life -= p.decay;
+    });
+    particles = particles.filter(p => p.life > 0);
 
     updateInfo();
     draw();
@@ -265,6 +298,28 @@ const SnakeGame = (() => {
         ctx.shadowBlur = 0;
       }
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
+
+      // Eyes on head
+      if (i === 0) {
+        ctx.shadowBlur = 0;
+        const bx = seg.x * GRID;
+        const by = seg.y * GRID;
+        // Eye positions keyed by direction
+        const eyes = direction.x === 1  ? [[14, 5],  [14, 14]] :
+                     direction.x === -1 ? [[5,  5],  [5,  14]] :
+                     direction.y === 1  ? [[5,  14], [14, 14]] :
+                                          [[5,  5],  [14, 5]];
+        eyes.forEach(([ex, ey]) => {
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(bx + ex, by + ey, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#1a0040';
+          ctx.beginPath();
+          ctx.arc(bx + ex, by + ey, 1.3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
     });
     ctx.shadowBlur = 0;
 
@@ -297,6 +352,19 @@ const SnakeGame = (() => {
       ctx.fill();
       ctx.shadowBlur = 0;
     }
+
+    // Particles
+    particles.forEach(p => {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 
     // Start prompt
     if (!running && !gameOver) {
