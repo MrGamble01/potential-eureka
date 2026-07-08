@@ -12,8 +12,8 @@ const SnakeGame = (() => {
   let canvas, ctx;
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
-  let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let foodCount, wallWrap, obstacles;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,8 +25,10 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
+    obstacles = [];
     wallWrap = false;
     updateInfo();
     draw();
@@ -78,15 +80,30 @@ const SnakeGame = (() => {
       return;
     }
     switch (e.key) {
-      case 'ArrowUp':    case 'w': case 'W': setDir(0, -1); e.preventDefault(); break;
-      case 'ArrowDown':  case 's': case 'S': setDir(0, 1);  e.preventDefault(); break;
-      case 'ArrowLeft':  case 'a': case 'A': setDir(-1, 0); e.preventDefault(); break;
-      case 'ArrowRight': case 'd': case 'D': setDir(1, 0);  e.preventDefault(); break;
+      case 'ArrowUp':    case 'w': case 'W': if (!paused) setDir(0, -1); e.preventDefault(); break;
+      case 'ArrowDown':  case 's': case 'S': if (!paused) setDir(0, 1);  e.preventDefault(); break;
+      case 'ArrowLeft':  case 'a': case 'A': if (!paused) setDir(-1, 0); e.preventDefault(); break;
+      case 'ArrowRight': case 'd': case 'D': if (!paused) setDir(1, 0);  e.preventDefault(); break;
+      case 'p': case 'P':
+        if (running && !gameOver) { togglePause(); }
+        e.preventDefault();
+        break;
+      case 'Escape':
+        if (running && paused) { togglePause(); }
+        e.preventDefault();
+        break;
       case ' ':
         if (gameOver) start();
         e.preventDefault();
         break;
     }
+  }
+
+  function togglePause() {
+    paused = !paused;
+    const btn = document.getElementById('snake-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+    if (!paused) draw();
   }
 
   function start() {
@@ -96,11 +113,15 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    obstacles = [];
     gameOver = false;
+    paused = false;
     running = true;
     speed = 120;
     spawnFood();
     updateInfo();
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) pauseBtn.textContent = 'Pause';
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
@@ -133,6 +154,26 @@ const SnakeGame = (() => {
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
   }
 
+  function spawnObstacles() {
+    if (getLevel() < 3) return;
+    let added = 0, attempts = 0;
+    while (added < 2 && attempts < 300) {
+      attempts++;
+      const pos = {
+        x: Math.floor(Math.random() * COLS),
+        y: Math.floor(Math.random() * ROWS),
+      };
+      if (snake.some(s => s.x === pos.x && s.y === pos.y)) continue;
+      if (food && food.x === pos.x && food.y === pos.y) continue;
+      if (bonusFood && bonusFood.x === pos.x && bonusFood.y === pos.y) continue;
+      if (obstacles.some(o => o.x === pos.x && o.y === pos.y)) continue;
+      // Keep at least 4 cells away from the snake head
+      if (Math.abs(pos.x - snake[0].x) <= 4 && Math.abs(pos.y - snake[0].y) <= 4) continue;
+      obstacles.push(pos);
+      added++;
+    }
+  }
+
   function getLevel() {
     return Math.floor(foodCount / 3) + 1;
   }
@@ -148,6 +189,8 @@ const SnakeGame = (() => {
   }
 
   function tick() {
+    if (paused) return;
+
     direction = { ...nextDirection };
     let head = {
       x: snake[0].x + direction.x,
@@ -163,6 +206,11 @@ const SnakeGame = (() => {
 
     // Self collision
     if (snake.some(s => s.x === head.x && s.y === head.y)) {
+      return endGame();
+    }
+
+    // Obstacle collision
+    if (obstacles.some(o => o.x === head.x && o.y === head.y)) {
       return endGame();
     }
 
@@ -186,6 +234,8 @@ const SnakeGame = (() => {
         Utils.store.setRaw('snake-high', String(highScore));
       }
       spawnFood();
+      // Spawn obstacles on every new level (level 3+)
+      if (foodCount % 3 === 0) spawnObstacles();
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
       // Speed up slightly
@@ -215,9 +265,12 @@ const SnakeGame = (() => {
   function endGame() {
     running = false;
     gameOver = true;
+    paused = false;
     bonusFood = null;
     if (typeof SFX !== 'undefined') SFX.play('die');
     clearInterval(gameLoop);
+    const pauseBtn = document.getElementById('snake-pause-btn');
+    if (pauseBtn) pauseBtn.textContent = 'Pause';
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) {
@@ -279,6 +332,25 @@ const SnakeGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Obstacles
+    if (obstacles.length > 0) {
+      ctx.shadowColor = 'rgba(180,60,60,0.5)';
+      ctx.shadowBlur = 6;
+      for (const o of obstacles) {
+        ctx.fillStyle = '#3a2a2a';
+        ctx.fillRect(o.x * GRID + 1, o.y * GRID + 1, GRID - 2, GRID - 2);
+        ctx.strokeStyle = '#7a3a3a';
+        ctx.lineWidth = 1.5;
+        const x1 = o.x * GRID + 4, y1 = o.y * GRID + 4;
+        const x2 = o.x * GRID + GRID - 4, y2 = o.y * GRID + GRID - 4;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.moveTo(x2, y1); ctx.lineTo(x1, y2);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+    }
+
     // Bonus food — gold, pulsing, fades out in last 1.5s
     if (bonusFood) {
       const timeLeft = bonusFood.expireAt - Date.now();
@@ -296,6 +368,20 @@ const SnakeGame = (() => {
       );
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Pause overlay
+    if (paused && running) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.72)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 26px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '13px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or Escape to resume', WIDTH / 2, HEIGHT / 2 + 30);
+      ctx.textAlign = 'left';
     }
 
     // Start prompt
@@ -318,5 +404,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
