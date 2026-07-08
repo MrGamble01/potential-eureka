@@ -218,6 +218,19 @@ const AgeOfWarGame = (() => {
       earnedAchievements = raw ? JSON.parse(raw) : {};
     } catch { earnedAchievements = {}; }
   }
+
+  // ---- Best run (persisted high score: furthest wave reached) ----
+  let bestWave = 0;
+  function loadBestRun() {
+    try { bestWave = parseInt(localStorage.getItem('aow-best-run'), 10) || 0; }
+    catch { bestWave = 0; }
+  }
+  function saveBestRun(wave) {
+    if (wave <= bestWave) return false;
+    bestWave = wave;
+    try { localStorage.setItem('aow-best-run', String(bestWave)); } catch {}
+    return true;
+  }
   function maybeShowWelcome() {
     let seen = false;
     try { seen = localStorage.getItem('aow-welcome-seen') === '1'; } catch {}
@@ -490,6 +503,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -966,6 +980,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestWave = 0;
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1485,14 +1500,14 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
-      showOverlay(false);
+      showOverlay(false, saveBestRun(waveNum));
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      showOverlay(true, saveBestRun(waveNum));
     }
 
     // Hero CD + achievement scans
@@ -6182,7 +6197,7 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
-  function showOverlay(won) {
+  function showOverlay(won, isNewBest) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
     const m = Math.floor(runStats.time / 60);
@@ -6198,7 +6213,9 @@ const AgeOfWarGame = (() => {
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Wave</div><div style="font-weight:800;font-size:18px;color:#58A6FF">${bestWave}${isNewBest ? ' 🆕' : ''}</div></div>
       </div>
+      ${isNewBest ? `<p style="font-size:12px; color:#58A6FF; font-weight:700; margin-top:8px">NEW BEST — WAVE ${waveNum}!</p>` : ''}
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
   }
