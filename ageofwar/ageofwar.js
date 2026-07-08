@@ -94,14 +94,40 @@ const AgeOfWarGame = (() => {
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false, modalPaused = false;
+  let playerPaused = false;   // explicit pause via button / P key
+  let gameSpeed = 1;          // 1 = normal, 2 = fast-forward
   let outcome = null;
+
+  function togglePause() {
+    if (gameOver || !running) return;
+    playerPaused = !playerPaused;
+    if (playerPaused) { ageBannerText = '⏸ PAUSED'; ageBannerT = 999; }
+    else              { ageBannerT = 0; }
+    const btn = document.getElementById('aow-pause-btn');
+    if (btn) {
+      btn.querySelector('.aow-action-ico').textContent = playerPaused ? '▶' : '⏸';
+      btn.querySelector('.aow-action-lbl').textContent  = playerPaused ? 'Resume' : 'Pause';
+      btn.classList.toggle('active', playerPaused);
+    }
+  }
+
+  function toggleSpeed() {
+    gameSpeed = gameSpeed === 1 ? 2 : 1;
+    const btn = document.getElementById('aow-speed-btn');
+    if (btn) {
+      btn.querySelector('.aow-action-ico').textContent = gameSpeed === 2 ? '⏩' : '⚡';
+      btn.querySelector('.aow-action-lbl').textContent  = gameSpeed === 2 ? '1× Speed' : '2× Speed';
+      btn.classList.toggle('active', gameSpeed === 2);
+    }
+  }
+
   // Any modal opening calls setModalPaused(true), closing calls (false).
   // Centralised so the sim/render code only checks one flag.
   function setModalPaused(p) {
     modalPaused = !!p;
     // Show a small "PAUSED" hint via the existing banner when paused.
     if (modalPaused) { ageBannerText = '⏸ PAUSED'; ageBannerT = 999; }
-    else if (ageBannerText === '⏸ PAUSED') { ageBannerT = 0; }
+    else if (ageBannerText === '⏸ PAUSED' && !playerPaused) { ageBannerT = 0; }
   }
   function anyModalOpen() {
     for (const id of ['aow-welcome-modal','aow-ach-modal','aow-settings-modal']) {
@@ -655,6 +681,21 @@ const AgeOfWarGame = (() => {
     bossKilledThisWave = false;
     killFeed = [];
     shakeT = 0; shakeMag = 0;
+    // Reset pause/speed state
+    playerPaused = false;
+    gameSpeed = 1;
+    const pauseBtn = document.getElementById('aow-pause-btn');
+    if (pauseBtn) {
+      pauseBtn.querySelector('.aow-action-ico').textContent = '⏸';
+      pauseBtn.querySelector('.aow-action-lbl').textContent  = 'Pause';
+      pauseBtn.classList.remove('active');
+    }
+    const speedBtn = document.getElementById('aow-speed-btn');
+    if (speedBtn) {
+      speedBtn.querySelector('.aow-action-ico').textContent = '⚡';
+      speedBtn.querySelector('.aow-action-lbl').textContent  = '2× Speed';
+      speedBtn.classList.remove('active');
+    }
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
     spawnUnit('player', 'club');
@@ -881,6 +922,10 @@ const AgeOfWarGame = (() => {
   function bindControls() {
     const restartBtn = document.getElementById('aow-restart-btn');
     if (restartBtn) restartBtn.onclick = reset;
+    const pauseBtn = document.getElementById('aow-pause-btn');
+    if (pauseBtn) pauseBtn.onclick = togglePause;
+    const speedBtn = document.getElementById('aow-speed-btn');
+    if (speedBtn) speedBtn.onclick = toggleSpeed;
     const ageBtn = document.getElementById('aow-ageup-btn');
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
@@ -1039,6 +1084,12 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'h' || e.key === 'H') {
         trySummonHero();
+        e.preventDefault();
+      } else if (e.key === 'p' || e.key === 'P') {
+        togglePause();
+        e.preventDefault();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleSpeed();
         e.preventDefault();
       }
     });
@@ -1620,9 +1671,9 @@ const AgeOfWarGame = (() => {
 
   // ---- Rendering ----
   function loop(now) {
-    const dt = Math.min((now - lastFrame) / 1000, 0.05);
+    const rawDt = Math.min((now - lastFrame) / 1000, 0.05);
     lastFrame = now;
-    update(dt);
+    if (!playerPaused) update(rawDt * gameSpeed);
     draw();
     rafId = requestAnimationFrame(loop);
   }
