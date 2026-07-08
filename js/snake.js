@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let floatingTexts;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -96,6 +97,7 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    floatingTexts = [];
     gameOver = false;
     running = true;
     speed = 120;
@@ -107,6 +109,16 @@ const SnakeGame = (() => {
 
     clearInterval(gameLoop);
     gameLoop = setInterval(tick, speed);
+  }
+
+  function addFloat(gx, gy, text, color) {
+    floatingTexts.push({
+      x: gx * GRID + GRID / 2,
+      baseY: gy * GRID,
+      text,
+      color,
+      createdAt: Date.now(),
+    });
   }
 
   function spawnFood() {
@@ -179,6 +191,7 @@ const SnakeGame = (() => {
     if (head.x === food.x && head.y === food.y) {
       ate = true;
       score += 10;
+      addFloat(head.x, head.y, '+10', '#3FB950');
       foodCount++;
       if (typeof SFX !== 'undefined') SFX.play('eat');
       if (score > highScore) {
@@ -198,6 +211,7 @@ const SnakeGame = (() => {
       // Eat bonus food (snake also grows)
       ate = true;
       score += 50;
+      addFloat(head.x, head.y, '+50 BONUS!', '#F7C948');
       bonusFood = null;
       if (typeof SFX !== 'undefined') SFX.play('bonus');
       if (score > highScore) {
@@ -265,6 +279,21 @@ const SnakeGame = (() => {
         ctx.shadowBlur = 0;
       }
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
+
+      // Eyes on head
+      if (i === 0) {
+        ctx.fillStyle = '#0d1117';
+        ctx.shadowBlur = 0;
+        const cx = seg.x * GRID + GRID / 2;
+        const cy = seg.y * GRID + GRID / 2;
+        const d = direction;
+        const e1x = cx + d.x * 3 + d.y * -4;
+        const e1y = cy + d.y * 3 + d.x * 4;
+        const e2x = cx + d.x * 3 + d.y * 4;
+        const e2y = cy + d.y * 3 + d.x * -4;
+        ctx.beginPath(); ctx.arc(e1x, e1y, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(e2x, e2y, 2, 0, Math.PI * 2); ctx.fill();
+      }
     });
     ctx.shadowBlur = 0;
 
@@ -296,6 +325,25 @@ const SnakeGame = (() => {
       );
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Floating score texts
+    if (floatingTexts && floatingTexts.length) {
+      const now = Date.now();
+      floatingTexts = floatingTexts.filter(ft => now - ft.createdAt < 1000);
+      floatingTexts.forEach(ft => {
+        const age = (now - ft.createdAt) / 1000;
+        ctx.globalAlpha = 1 - age;
+        ctx.fillStyle = ft.color;
+        ctx.shadowColor = ft.color;
+        ctx.shadowBlur = 8;
+        ctx.font = `bold ${Math.round(13 + (1 - age) * 4)}px Inter, monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, ft.x, ft.baseY - age * 32);
+      });
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.textAlign = 'left';
     }
 
     // Start prompt
