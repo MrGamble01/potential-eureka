@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -25,6 +25,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -33,9 +34,12 @@ const SnakeGame = (() => {
 
     document.addEventListener('keydown', handleKey);
 
-    // Tap the game-over overlay to restart (it covers the canvas)
+    // Tap the game-over overlay to restart (it covers the canvas), or resume if paused
     const overlayEl = document.getElementById('snake-overlay');
-    if (overlayEl) overlayEl.addEventListener('click', () => { if (gameOver) start(); });
+    if (overlayEl) overlayEl.addEventListener('click', () => {
+      if (gameOver) start();
+      else if (paused) togglePause();
+    });
 
     // Mobile swipe support
     let touchStartX, touchStartY;
@@ -47,6 +51,7 @@ const SnakeGame = (() => {
     canvas.addEventListener('touchend', e => {
       if (!running && !gameOver) { start(); return; }
       if (gameOver) { start(); return; }
+      if (paused) { togglePause(); return; }
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -60,6 +65,7 @@ const SnakeGame = (() => {
   }
 
   function setDir(dx, dy) {
+    if (paused) return;
     if (dx === 1 && direction.x !== -1) nextDirection = { x: 1, y: 0 };
     else if (dx === -1 && direction.x !== 1) nextDirection = { x: -1, y: 0 };
     else if (dy === 1 && direction.y !== -1) nextDirection = { x: 0, y: 1 };
@@ -86,6 +92,29 @@ const SnakeGame = (() => {
         if (gameOver) start();
         e.preventDefault();
         break;
+      case 'p': case 'P': case 'Escape':
+        togglePause();
+        e.preventDefault();
+        break;
+    }
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    const overlay = document.getElementById('snake-overlay');
+    if (paused) {
+      clearInterval(gameLoop);
+      if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+          <h2>PAUSED</h2>
+          <p style="font-size:12px; color: var(--text-dim)">Press P or tap to resume</p>
+        `;
+      }
+    } else {
+      if (overlay) overlay.style.display = 'none';
+      gameLoop = setInterval(tick, speed);
     }
   }
 
@@ -98,6 +127,7 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
     speed = 120;
     spawnFood();
     updateInfo();
@@ -318,5 +348,5 @@ const SnakeGame = (() => {
     running = false;
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
