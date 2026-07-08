@@ -161,6 +161,10 @@ const AgeOfWarGame = (() => {
   };
   let difficulty = 'normal';
 
+  // ---- Game speed ----
+  let gameSpeed = 1;
+  const GAME_SPEEDS = [1, 2, 3];
+
   // ---- Combo / streak ----
   let combo = 0;
   let comboT = 0;                 // seconds until streak breaks
@@ -655,6 +659,8 @@ const AgeOfWarGame = (() => {
     bossKilledThisWave = false;
     killFeed = [];
     shakeT = 0; shakeMag = 0;
+    gameSpeed = 1;
+    syncSpeedBtn();
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
     spawnUnit('player', 'club');
@@ -877,6 +883,23 @@ const AgeOfWarGame = (() => {
     renderTurretPanel();
   }
 
+  // ---- Game speed ----
+  function syncSpeedBtn() {
+    const btn = document.getElementById('aow-speed-btn');
+    if (!btn) return;
+    const ico = btn.querySelector('.aow-action-ico');
+    const lbl = btn.querySelector('.aow-action-lbl');
+    if (ico) ico.textContent = gameSpeed === 1 ? '▶' : gameSpeed === 2 ? '⏩' : '⚡';
+    if (lbl) lbl.textContent = gameSpeed + 'x';
+    btn.dataset.speed = gameSpeed;
+  }
+  function toggleGameSpeed() {
+    if (gameOver) return;
+    const idx = GAME_SPEEDS.indexOf(gameSpeed);
+    gameSpeed = GAME_SPEEDS[(idx + 1) % GAME_SPEEDS.length];
+    syncSpeedBtn();
+  }
+
   // ---- Input ----
   function bindControls() {
     const restartBtn = document.getElementById('aow-restart-btn');
@@ -887,6 +910,9 @@ const AgeOfWarGame = (() => {
     if (specialBtn) specialBtn.onclick = fireSpecial;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
+    const speedBtn = document.getElementById('aow-speed-btn');
+    if (speedBtn) speedBtn.onclick = toggleGameSpeed;
+    syncSpeedBtn();
     const achBtn = document.getElementById('aow-ach-btn');
     if (achBtn) achBtn.onclick = () => {
       renderAchievementsModal();
@@ -1039,6 +1065,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'h' || e.key === 'H') {
         trySummonHero();
+        e.preventDefault();
+      } else if (e.key === 's' || e.key === 'S') {
+        toggleGameSpeed();
         e.preventDefault();
       }
     });
@@ -1620,7 +1649,7 @@ const AgeOfWarGame = (() => {
 
   // ---- Rendering ----
   function loop(now) {
-    const dt = Math.min((now - lastFrame) / 1000, 0.05);
+    const dt = Math.min((now - lastFrame) / 1000, 0.05) * gameSpeed;
     lastFrame = now;
     update(dt);
     draw();
