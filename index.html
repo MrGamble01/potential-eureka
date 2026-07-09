@@ -383,13 +383,14 @@
         <input type="password" id="lock-input" class="lock-input" maxlength="20" placeholder="••••••">
         <button class="primary lock-btn" id="lock-btn" onclick="Personal.submitPin()">ACCESS</button>
         <div class="lock-status" id="lock-status"></div>
+        <div class="lock-disclosure">Casual screen lock only — entries are stored unencrypted in this browser, and this code won't stop anyone with access to this device.</div>
       </div>
     </div>
 
     <!-- Content (hidden until auth) -->
     <div id="personal-content" class="personal-content" style="display:none">
       <div class="personal-header">
-        <span>PRIVATE TERMINAL — AUTHORIZED</span>
+        <span>PERSONAL TERMINAL — SCREEN UNLOCKED</span>
         <button class="lock-out-btn" onclick="Personal.lock()">Lock</button>
       </div>
       <div class="dashboard-grid">
