@@ -6164,7 +6164,7 @@ function triggerWin(cumulative) {
     <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
     <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
     <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
-    <div class="row"><span>Time to goal</span><strong>${m}:${s.toString().padStart(2,'0')}${pbBadge}</strong></div>
+    <div class="row"><span>Time to goal</span><strong>${formatTime(elapsed)}${pbBadge}</strong></div>
     <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
     <div class="row"><span>Next season</span><strong>S${prestigeLevel + 2} · ${seasonTitle(prestigeLevel + 1)}</strong></div>
     <div class="row"><span>The deal</span><strong style="color:#7D8590;font-weight:600">🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
