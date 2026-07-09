@@ -23,7 +23,7 @@ const TetrisGame = (() => {
   let canvas, ctx, nextCanvas, nextCtx, holdCanvas, holdCtx;
   let board, current, next, held;
   let score, highScore, level, linesCleared;
-  let gameLoop, running, gameOver, canHold;
+  let gameLoop, running, gameOver, canHold, paused;
   let bag = [];
 
   // 7-bag randomiser for fair piece distribution
@@ -71,7 +71,7 @@ const TetrisGame = (() => {
 
     highScore = parseInt(localStorage.getItem('tetris-high') || '0');
     board = createBoard();
-    running = gameOver = false;
+    running = gameOver = paused = false;
     score = level = 0; linesCleared = 0;
     current = next = held = null;
     bag = [];
@@ -93,6 +93,7 @@ const TetrisGame = (() => {
       const dx = e.changedTouches[0].clientX - tx;
       const dy = e.changedTouches[0].clientY - ty;
       if (!running) { start(); return; }
+      if (paused) return;
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
         rotateCW(); // tap = rotate
       } else if (Math.abs(dx) > Math.abs(dy)) {
@@ -215,9 +216,20 @@ const TetrisGame = (() => {
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
 
   function restartLoop() {
-    if (!running) return;
+    if (!running || paused) return;
     clearInterval(gameLoop);
     gameLoop = setInterval(autoDown, dropMs());
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(autoDown, dropMs());
+    }
+    draw();
   }
 
   function autoDown() {
@@ -248,7 +260,7 @@ const TetrisGame = (() => {
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
-    gameOver = false; running = true;
+    gameOver = false; running = true; paused = false;
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -293,6 +305,8 @@ const TetrisGame = (() => {
     if (!view || !view.classList.contains('active')) return;
     if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
     if (!running) return;
+    if (e.key === 'p' || e.key === 'P') { togglePause(); e.preventDefault(); return; }
+    if (paused) return;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
@@ -378,6 +392,19 @@ const TetrisGame = (() => {
       ctx.fillText('Space hard drop  ·  C hold', WIDTH / 2, HEIGHT / 2 + 38);
       ctx.textAlign = 'left';
     }
+
+    if (paused) {
+      ctx.fillStyle = 'rgba(13,17,23,0.75)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = 'bold 20px Inter, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '11px Inter, monospace';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 22);
+      ctx.textAlign = 'left';
+    }
   }
 
   function drawPreview(c, piece) {
@@ -430,7 +457,8 @@ const TetrisGame = (() => {
   function destroy() {
     clearInterval(gameLoop);
     running = false;
+    paused = false;
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause };
 })();

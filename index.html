@@ -499,7 +499,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">TETRIS</div>
-        <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
+        <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold &middot; P pause</div>
       </div>
       <div class="tetris-layout">
         <div class="tetris-side">
@@ -542,10 +542,12 @@
         <button data-tkey="ArrowUp" aria-label="Rotate">&#10227;</button>
         <button data-tkey=" " aria-label="Hard drop">&#10515;</button>
         <button data-tkey="c" aria-label="Hold piece">HOLD</button>
+        <button data-tkey="p" aria-label="Pause">&#9208;</button>
         <button data-tkey="ArrowRight" data-repeat aria-label="Move right">&#9654;</button>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="TetrisGame.start()">New Game</button>
+        <button onclick="TetrisGame.togglePause()">Pause</button>
       </div>
     </div>
   </section>
