@@ -28,7 +28,7 @@
     Office floor ships. To add a new floor: subclass Floor, add to
     FLOOR_CLASSES, wire an elevator card.
 
-  Save state: localStorage key `startup-tycoon-v7`, written every 5s
+  Save state: localStorage key `beagle-sim-v1`, written every 5s
   and on beforeunload. Covers cash, upgrades, hires by role, rooms,
   conversions, morale, affinities, achievements, prestige, best
   run — transient walk/work state is re-seeded at spawn.
@@ -1712,7 +1712,7 @@ const _v3B = new THREE.Vector3();
 // fork names, a grep lands on every call site, and Restart's
 // preserve-list stays explicit.
 const LS = {
-  save:          'startup-tycoon-v7',
+  save:          'beagle-sim-v1',
   joystick:      'joystickEnabled',
   morale:        'moraleEnabled',
   investor:      'investorEnabled',
@@ -2245,7 +2245,7 @@ const THEMES = {
   },
 };
 const DEFAULT_PALETTE = { floor: 0x8a8a90, wall: 0xf0e0c8 };
-const THEME_STORAGE_KEY = 'startup_tycoon_theme';
+const THEME_STORAGE_KEY = 'beagle_sim_theme';
 let currentThemeId = (() => {
   try { const v = localStorage.getItem(THEME_STORAGE_KEY); return (v && THEMES[v]) ? v : 'default'; }
   catch { return 'default'; }
@@ -5411,7 +5411,7 @@ setInterval(checkAchievements, 1000);
 // Click the title bar of any .panel.collapsible to toggle. Collapsed
 // state per-panel is persisted to localStorage so the layout survives
 // reloads. Default = all expanded (discoverability wins for a new run).
-const PANEL_COLLAPSE_STORAGE_KEY = 'startup_tycoon_panels_collapsed';
+const PANEL_COLLAPSE_STORAGE_KEY = 'beagle_sim_panels_collapsed';
 function loadCollapsedPanels() {
   try { return new Set(JSON.parse(localStorage.getItem(PANEL_COLLAPSE_STORAGE_KEY) || '[]')); }
   catch { return new Set(); }
@@ -7778,7 +7778,7 @@ const SAVE_KEY = LS.save;
 // forever after a schema bump.
 try {
   for (const k of Object.keys(localStorage)) {
-    if (k.startsWith('startup-tycoon-v') && k !== SAVE_KEY) localStorage.removeItem(k);
+    if (k.startsWith('beagle-sim-v') && k !== SAVE_KEY) localStorage.removeItem(k);
   }
 } catch (_) {}
 let _restarting = false; // set true by the Restart button so beforeunload / setInterval don't re-save wiped state
