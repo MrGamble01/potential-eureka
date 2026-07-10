@@ -1567,6 +1567,11 @@ function saveGame() {
     runners:state.runners||0, cooks:state.cooks||0,
     batches:state.batches, sessionStart:state.sessionStart,
     stashCount, trimQueue, trimBags,
+    // Chem pipeline + per-plot growth + in-hand item (all previously
+    // dropped on reload — the core loop's progress silently reset).
+    chemQueue, chemProduct, chemProgress,
+    pCarrying,
+    plots: growPlots.map(p=>({r:p.roomId, g:+p.progress.toFixed(4)})),
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1614,6 +1619,25 @@ function loadGame() {
       g.position.set(6+(Math.random()-0.5)*3,0,7+(Math.random()-0.5)*3);
       scene.add(g); lookoutNPCs.push({group:g,patrolAngle:Math.random()*Math.PI*2,patrolRadius:4+Math.random()*2});
     }
+    // Restore the chem pipeline (queued + cooked product + progress)
+    chemQueue=sv.chemQueue||0; chemProduct=sv.chemProduct||0; chemProgress=sv.chemProgress||0;
+    // Restore per-plot growth. Rooms (and their plots) were just
+    // rebuilt above with random stagger; match saved entries to plots
+    // by roomId in order and overwrite the stagger.
+    if(Array.isArray(sv.plots)) {
+      const pool=[...sv.plots];
+      for(const p of growPlots) {
+        const i=pool.findIndex(e=>e && e.r===p.roomId);
+        if(i<0) continue;
+        const e=pool.splice(i,1)[0];
+        p.progress=Math.max(0,Math.min(1,Number(e.g)||0));
+        updatePlantMesh(p);
+      }
+    }
+    // A bud that was in-hand at save time becomes a queued trim job —
+    // exactly what delivering it would do. (A carried 'bag' needs
+    // nothing: its count lives in trimBags/chemProduct, saved above.)
+    if(sv.pCarrying==='bud') trimQueue++;
   }catch(e){console.warn('Load failed',e);}
 }
 
