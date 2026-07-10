@@ -41,6 +41,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Beagle Sim</title>
+  <meta name="description" content="Adopt beagles, dig up bones, and grow the goodest startup. A 3D idle sim from Eureka Games.">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230d1117'/><text x='50%25' y='58%25' font-size='38' text-anchor='middle' dominant-baseline='middle'>🐶</text></svg>">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Beagle Sim — Eureka Games">
+  <meta property="og:description" content="Adopt beagles, dig up bones, and grow the goodest startup.">
+  <meta property="og:image" content="/assets/thumbs/tycoon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/css/arcade-chrome.css">
   <style>
     html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -1265,6 +1274,7 @@
   </style>
 </head>
 <body>
+<a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
 <div id="drawer-backdrop"></div>
 <div id="status-bar">
@@ -3911,7 +3921,7 @@ function updateIdeaWorkers(dt) {
           w.target = { x: vp.group.position.x, z: vp.group.position.z + 1.0 };
         } else {
           w.state = S.TO_DELIVER;
-          w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 2.0 };
+          w.target = { x: ceoDeskPos.x + (Math.random()-0.5)*1.2, z: ceoDeskPos.z + 1.0 };
         }
       }
       continue;
@@ -6985,6 +6995,7 @@ addEventListener('keydown', e => {
     elevModal.classList.remove('open');
     achModalEl.classList.remove('open');
     winModalEl.classList.remove('open');
+    themeModalEl.classList.remove('open');
     document.getElementById('help-modal').classList.remove('open');
   }
   // "?" or "/" opens the help / hotkeys modal. (No movement conflict
