@@ -17,7 +17,7 @@ const AsteroidsGame = (() => {
   let canvas, ctx;
   let ship, bullets, rocks, particles;
   let score, high, lives, wave, fireTimer, invuln;
-  let running, gameOver, raf, lastT;
+  let running, gameOver, paused, raf, lastT;
   const keys = { left: false, right: false, thrust: false };
 
   function init() {
@@ -32,7 +32,10 @@ const AsteroidsGame = (() => {
     document.addEventListener('keyup', onKeyUp);
     // On-screen controls (mobile) — wired by index after render
     bindTouchButtons();
-    canvas.addEventListener('touchstart', e => { if (!running || gameOver) start(); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchstart', e => {
+      if (!running || gameOver) start(); else if (paused) togglePause();
+      e.preventDefault();
+    }, { passive: false });
     updateInfo();
     draw();
   }
@@ -48,7 +51,8 @@ const AsteroidsGame = (() => {
       case 'ArrowLeft': case 'a': keys.left = true; e.preventDefault(); break;
       case 'ArrowRight': case 'd': keys.right = true; e.preventDefault(); break;
       case 'ArrowUp': case 'w': keys.thrust = true; e.preventDefault(); break;
-      case ' ': if (!running || gameOver) start(); else fire(); e.preventDefault(); break;
+      case ' ': if (!running || gameOver) start(); else if (!paused) fire(); e.preventDefault(); break;
+      case 'p': case 'P': case 'Escape': togglePause(); e.preventDefault(); break;
     }
   }
   function onKeyUp(e) {
@@ -73,9 +77,16 @@ const AsteroidsGame = (() => {
     const fireBtn = document.getElementById('ast-fire');
     if (fireBtn && !fireBtn.dataset.bound) {
       fireBtn.dataset.bound = '1';
-      const f = e => { if (!running || gameOver) start(); else fire(); e.preventDefault(); };
+      const f = e => { if (!running || gameOver) start(); else if (!paused) fire(); e.preventDefault(); };
       fireBtn.addEventListener('touchstart', f, { passive: false });
       fireBtn.addEventListener('pointerdown', f);
+    }
+    const pauseBtn = document.getElementById('ast-pause');
+    if (pauseBtn && !pauseBtn.dataset.bound) {
+      pauseBtn.dataset.bound = '1';
+      const p = e => { togglePause(); e.preventDefault(); };
+      pauseBtn.addEventListener('touchstart', p, { passive: false });
+      pauseBtn.addEventListener('pointerdown', p);
     }
   }
 
@@ -84,7 +95,7 @@ const AsteroidsGame = (() => {
     bullets = []; particles = [];
     score = 0; lives = 3; wave = 1; fireTimer = 0; invuln = 90;
     spawnWave();
-    running = !!startRun; gameOver = false;
+    running = !!startRun; gameOver = false; paused = false;
     updateInfo();
   }
 
@@ -121,6 +132,7 @@ const AsteroidsGame = (() => {
     if (ov) ov.style.display = 'none';
     cancelAnimationFrame(raf);
     lastT = performance.now();
+    updatePauseBtn();
     loop();
   }
 
@@ -142,8 +154,22 @@ const AsteroidsGame = (() => {
     const now = performance.now();
     const dt = Math.min((now - lastT) / 16.667, 2.2);
     lastT = now;
-    if (running && !gameOver) update(dt);
+    if (running && !gameOver && !paused) update(dt);
     draw();
+  }
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    sfx(paused ? 'move' : 'rotate');
+    updatePauseBtn();
+  }
+
+  function updatePauseBtn() {
+    const btn = document.getElementById('asteroids-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
+    const touchBtn = document.getElementById('ast-pause');
+    if (touchBtn) touchBtn.textContent = paused ? '▶' : '❚❚';
   }
 
   function wrap(o) {
@@ -319,6 +345,17 @@ const AsteroidsGame = (() => {
       ctx.fillText('Click or tap to start', WIDTH / 2, HEIGHT / 2 + 34);
       ctx.textAlign = 'left';
     }
+
+    if (running && paused) {
+      ctx.fillStyle = 'rgba(13,17,23,0.72)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3'; ctx.textAlign = 'center';
+      ctx.font = 'bold 22px JetBrains Mono, monospace';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2 - 6);
+      ctx.font = '13px Inter, sans-serif'; ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P/Esc, tap, or hit Resume to continue', WIDTH / 2, HEIGHT / 2 + 18);
+      ctx.textAlign = 'left';
+    }
   }
 
   function destroy() {
@@ -327,10 +364,10 @@ const AsteroidsGame = (() => {
     keys.left = keys.right = keys.thrust = false;
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
-    running = false; gameOver = false;
+    running = false; gameOver = false; paused = false;
     const ov = document.getElementById('asteroids-overlay'); if (ov) ov.style.display = 'none';
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, togglePause };
 })();
