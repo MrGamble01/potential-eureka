@@ -443,7 +443,7 @@
         const raw = localStorage.getItem('startup-tycoon-v7');
         if (!raw) return;
         const save = JSON.parse(raw);
-        const cash      = Number(save.allTimeCash || save.cash || 0);
+        const cash      = Number(save.lifetimeCash || save.allTimeCash || save.cash || 0);
         const trophies  = Number(save.trophiesWon || 0);
         const ipos      = Number(save.prestigeLevel || 0);
         if (!cash && !trophies && !ipos) return;
