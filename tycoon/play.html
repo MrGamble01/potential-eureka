@@ -8836,8 +8836,8 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
-// Fresh-start players get $200 (enough to hire engineer #1 with
-// ~$125 toward #2, so the loop catches fire fast). Returning players
+// Fresh-start players get $400 (enough to hire engineer #1 with
+// change toward #2, so the loop catches fire fast). Returning players
 // keep the existing +$100 welcome-back bonus.
 const _isFreshStart = state.allTimeCash === 0;
 addCash(_isFreshStart ? 400 : 100);
@@ -8854,7 +8854,10 @@ addEventListener('beforeunload', saveGame);
 (function maybeShowWelcome() {
   let seen = false;
   try { seen = localStorage.getItem(LS.welcome) === '1'; } catch {}
-  const isFresh = state.allTimeCash <= 100 && ideaWorkers.length === 0 && trophiesWon === 0;
+  // Use the pre-bonus snapshot: addCash above already bumped
+  // allTimeCash to 400, so a cash-threshold check here could never
+  // pass (which is exactly the bug that kept this modal from showing).
+  const isFresh = _isFreshStart && ideaWorkers.length === 0 && trophiesWon === 0;
   if (seen || !isFresh) return;
   const modal = document.getElementById('welcome-modal');
   const btn   = document.getElementById('welcome-start-btn');
