@@ -6,5 +6,6 @@ function loadGame(){
   try{
     var raw = localStorage.getItem(SAVE_KEY);
     if(raw){ Object.assign(G, JSON.parse(raw)); }
+    if(!G.activeCrafts) G.activeCrafts={}; // saves from before crafts were persisted
   }catch(e){}
 }
