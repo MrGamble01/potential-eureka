@@ -229,6 +229,8 @@ canvas{display:block;touch-action:none;}
 .ev-choice:hover{background:rgba(0,140,40,0.25);border-color:rgba(0,200,60,0.5);}
 .ev-choice.risky{border-color:rgba(200,60,0,0.4);background:rgba(140,30,0,0.12);color:#cc8866;}
 .ev-choice.risky:hover{background:rgba(140,30,0,0.25);}
+.ev-choice:disabled{opacity:0.4;cursor:not-allowed;}
+.ev-choice:disabled:hover{background:rgba(0,140,40,0.12);border-color:rgba(0,200,60,0.28);}
 .ev-effect{font-size:10px;color:#334433;margin-top:3px;font-style:italic;}
 
 /* ── Bust modal ── */
@@ -1174,8 +1176,16 @@ function triggerEvent() {
     let txt = choice.text;
     if (choice.cost) txt += ` (-$${choice.cost})`;
     btn.innerHTML = txt;
+    // A paid option you can't afford is not a free exit: disable it so
+    // the player has to take the other branch instead of dodging the
+    // event's consequence for $0.
+    if (choice.cost && state.cash < choice.cost) { btn.disabled = true; btn.title = "You can't afford this."; }
     btn.onclick = () => {
       const result = choice.effect();
+      // effect() returns null when it couldn't apply (cash changed
+      // while the modal was open, or big_order with an empty stash):
+      // keep the event open so a failed choice never dismisses it free.
+      if (result === null) return;
       document.getElementById('event-modal').classList.remove('open');
       activeEvent = null;
       eventCooldown = 50 + Math.random()*40;
