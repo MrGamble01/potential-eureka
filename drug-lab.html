@@ -1977,7 +1977,12 @@ function animate(now_ms) {
     return;
   }
 
-  if(!raidActive) {
+  // Pause the whole sim while an event modal is open: clicks were
+  // already blocked, but WASD movement kept working — a sale made
+  // behind the modal could push heat to 100 and stack the bust modal
+  // on top of the still-open event, and updateEvents' early-return
+  // while activeEvent let heat skip past the 95% raid check entirely.
+  if(!raidActive && !activeEvent) {
     updateGrowPlots(dt);
     updateTrimStation(dt);
     updateChemStation_tick(dt);
@@ -1990,7 +1995,7 @@ function animate(now_ms) {
     updateHeatDrain(dt);
     updateEvents(dt);
     updateDealerSpawn(dt);
-  } else {
+  } else if(raidActive) {
     raidTimer-=dt;
     if(raidTimer<=0) {
       raidActive=false;
