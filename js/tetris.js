@@ -291,9 +291,15 @@ const TetrisGame = (() => {
     // silently start a hidden game and arrow keys would scroll the page.
     const view = document.getElementById('view-tetris');
     if (!view || !view.classList.contains('active')) return;
-    if (!running && e.key === ' ') { start(); e.preventDefault(); return; }
+    if (!running && e.key === ' ') { if (!e.repeat) start(); e.preventDefault(); return; }
     if (!running) return;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
+    // One-shot actions must not fire on OS key auto-repeat: holding
+    // Space delivered a hardDrop per repeat event, instantly locking
+    // and free-falling every subsequent piece into a top-out (rotate
+    // and hold had the same repeat bug). Held movement keys still
+    // repeat — that's how left/right/soft-drop are meant to work.
+    if (e.repeat && !['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.key)) return;
     switch (e.key) {
       case 'ArrowLeft':  move(-1, 0); break;
       case 'ArrowRight': move(1, 0);  break;
