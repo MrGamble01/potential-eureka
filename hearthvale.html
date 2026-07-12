@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>Hearthvale — Cozy Town Builder</title>
+  <meta name="description" content="A cozy top-down colony builder. Grow a riverside village, place homes and workshops, let villagers wander and work, and trade with a traveling merchant. Retro pixel art, runs in your browser, no install.">
+  <meta property="og:title" content="Hearthvale">
+  <meta property="og:description" content="Build a cozy riverside town. Place homes and workshops, watch villagers work, trade with a traveling merchant.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#3a5f43">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%233a5f43'/><path d='M14 34 L32 18 L50 34 L50 50 L14 50 Z' fill='%23c8574f'/><rect x='22' y='38' width='8' height='12' fill='%236e4a2c'/><rect x='36' y='38' width='8' height='8' fill='%23bfe4f2'/></svg>">
+  <link rel="stylesheet" href="css/arcade-chrome.css">
+  <style>
+    :root {
+      --panel: rgba(24, 30, 26, 0.92);
+      --panel-2: rgba(34, 42, 36, 0.95);
+      --ink: #eef3ea;
+      --ink-dim: #a9b6a6;
+      --gold: #f2c14e;
+      --wood: #c99a6a;
+      --stone: #b7bec8;
+      --food: #8ec26b;
+      --line: rgba(255,255,255,0.12);
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: #2b3a2e;
+      color: var(--ink);
+      font-family: var(--font);
+      user-select: none;
+      touch-action: none;
+    }
+    #game { position: fixed; inset: 0; display: block; image-rendering: pixelated; cursor: grab; }
+    #game.building { cursor: crosshair; }
+    #game.panning { cursor: grabbing; }
+
+    /* ---- Top resource HUD ---- */
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px 8px 130px;
+      background: linear-gradient(180deg, rgba(20,26,22,0.9), rgba(20,26,22,0));
+      font-family: var(--mono); font-size: 14px; font-weight: 600;
+      pointer-events: none; z-index: 400; flex-wrap: wrap;
+    }
+    .res {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; padding: 6px 11px; backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .res .ic { font-size: 15px; }
+    .res .val { min-width: 26px; font-variant-numeric: tabular-nums; }
+    .res .rate { font-size: 11px; color: var(--ink-dim); font-weight: 500; }
+    .res.flash { animation: resflash .5s ease; }
+    @keyframes resflash { 0%{ background:#3a5f43;} 100%{ background: var(--panel);} }
+    .res.wood .ic { color: var(--wood); }
+    .res.stone .ic { color: var(--stone); }
+    .res.food .ic { color: var(--food); }
+    .res.gold .ic { color: var(--gold); }
+    #clock { margin-left: auto; }
+    #clock .day { color: var(--gold); }
+
+    /* ---- Build bar ---- */
+    #buildbar {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 12px; z-index: 400;
+      display: flex; gap: 7px; padding: 8px;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 16px; backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px); max-width: calc(100vw - 20px);
+      overflow-x: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+    }
+    .btn {
+      position: relative; flex: 0 0 auto;
+      width: 60px; height: 66px; border: 1px solid var(--line);
+      border-radius: 11px; background: var(--panel-2); color: var(--ink);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px; cursor: pointer; transition: transform .12s, border-color .12s, background .12s;
+      font-family: var(--font);
+    }
+    .btn:hover { transform: translateY(-3px); border-color: rgba(242,193,78,0.6); }
+    .btn.sel { border-color: var(--gold); background: #3a4a3c; box-shadow: 0 0 0 2px rgba(242,193,78,0.35); }
+    .btn.locked { opacity: 0.4; }
+    .btn.cantafford .cost { color: #e06a5c; }
+    .btn .emoji { font-size: 24px; line-height: 1; }
+    .btn .lbl { font-size: 9px; letter-spacing: .3px; color: var(--ink-dim); text-transform: uppercase; }
+    .btn .cost { font-family: var(--mono); font-size: 8.5px; color: var(--ink-dim); white-space: nowrap; }
+    .btn.tool { width: 52px; }
+
+    /* ---- Building info panel ---- */
+    #panel {
+      position: fixed; right: 12px; top: 62px; width: 240px; z-index: 400;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      padding: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      display: none; box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+    }
+    #panel.show { display: block; }
+    #panel h3 { font-size: 16px; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+    #panel .sub { font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; }
+    #panel .stat { display: flex; justify-content: space-between; font-size: 12.5px; font-family: var(--mono); padding: 3px 0; }
+    #panel .stat b { color: var(--gold); }
+    #panel .row { display: flex; gap: 8px; margin-top: 11px; }
+    #panel button {
+      flex: 1; padding: 8px; border-radius: 9px; border: 1px solid var(--line);
+      background: var(--panel-2); color: var(--ink); font-family: var(--font);
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s, border-color .12s;
+    }
+    #panel button:hover { border-color: rgba(242,193,78,0.6); }
+    #panel button.danger:hover { border-color: #e06a5c; color: #ffb3aa; }
+
+    /* ---- Toast / event log ---- */
+    #toasts { position: fixed; left: 12px; bottom: 92px; z-index: 400; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+    .toast {
+      background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold);
+      border-radius: 9px; padding: 8px 12px; font-size: 12.5px; max-width: 280px;
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      animation: toastin .3s ease, toastout .4s ease forwards 4.4s;
+    }
+    @keyframes toastin { from { transform: translateX(-16px); opacity: 0; } }
+    @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
+
+    /* ---- Trader modal ---- */
+    #trader {
+      position: fixed; inset: 0; z-index: 600; display: none;
+      align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
+      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    }
+    #trader.show { display: flex; }
+    .trader-card {
+      width: min(440px, 92vw); background: var(--panel-2); border: 1px solid var(--line);
+      border-radius: 18px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .trader-card h2 { font-size: 20px; margin-bottom: 2px; display: flex; align-items: center; gap: 9px; }
+    .trader-card .flavor { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; font-style: italic; }
+    .trade-row {
+      display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px;
+      padding: 9px 0; border-top: 1px solid var(--line);
+    }
+    .trade-row .good { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 13px; }
+    .trade-row .price { font-family: var(--mono); font-size: 12px; color: var(--gold); }
+    .trade-row .tbtns { display: flex; gap: 6px; }
+    .trade-row button {
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+      border-radius: 8px; padding: 5px 9px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--mono);
+    }
+    .trade-row button:hover { border-color: var(--gold); }
+    .trade-row button:disabled { opacity: 0.35; cursor: default; }
+    .trader-card .closebtn {
+      width: 100%; margin-top: 16px; padding: 11px; border-radius: 11px; border: none;
+      background: var(--gold); color: #2b2410; font-weight: 800; font-size: 14px; cursor: pointer;
+    }
+
+    /* ---- Hint / first-run ---- */
+    #hint {
+      position: fixed; left: 50%; top: 54px; transform: translateX(-50%); z-index: 350;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      padding: 8px 15px; font-size: 12.5px; color: var(--ink-dim);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); pointer-events: none;
+      transition: opacity .4s;
+    }
+    @media (max-width: 640px) {
+      #hud { padding-left: 10px; font-size: 12px; }
+      #panel { top: auto; bottom: 90px; right: 8px; left: 8px; width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">ARCADE</span></a>
+
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="res wood"><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span></div>
+    <div class="res stone"><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span></div>
+    <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span></div>
+    <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span></div>
+    <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
+    <div class="res" id="clock"><span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span></div>
+  </div>
+
+  <div id="hint">Drag to look around &middot; pick a building below &middot; click the ground to place it</div>
+
+  <div id="buildbar"></div>
+
+  <div id="panel">
+    <h3><span id="p-emoji">&#127968;</span><span id="p-name">Building</span></h3>
+    <div class="sub" id="p-sub">&mdash;</div>
+    <div id="p-stats"></div>
+    <div class="row" id="p-actions"></div>
+  </div>
+
+  <div id="toasts"></div>
+
+  <div id="trader">
+    <div class="trader-card">
+      <h2><span>&#128658;</span><span>Traveling Merchant</span></h2>
+      <div class="flavor" id="trader-flavor">"Fine wares from far-off roads! What'll it be?"</div>
+      <div id="trade-rows"></div>
+      <button class="closebtn" id="trader-close">Send them on their way</button>
+    </div>
+  </div>
+
+<script>
+"use strict";
+(function () {
+  // ============================================================
+  //  HEARTHVALE — a cozy top-down riverside colony builder.
+  //  Zero dependencies. Procedural pixel art, tile world,
+  //  wandering villagers, a small economy, a traveling trader.
+  // ============================================================
+
+  const SAVE_KEY = 'hearthvale-v1';
+  const TILE = 16;               // base pixel size of one tile
+  const MAP_W = 56, MAP_H = 42;  // world size in tiles
+  const WORLD_PX_W = MAP_W * TILE, WORLD_PX_H = MAP_H * TILE;
+
+  // ---- Palette -------------------------------------------------
+  const C = {
+    grass:   ['#7fbf63', '#77b95c', '#88c76e'],
+    grassDk: '#5c9a4a', grassLt: '#a2d982',
+    dirt: '#c8a06e', dirtDk: '#a87f52', dirtLt: '#d8b587',
+    water: '#5fb0dd', waterDk: '#458fc4', waterLt: '#8fd0ef',
+    sand: '#e3cf9a',
+    leaf: '#4f9b52', leafDk: '#3d7d43', leafLt: '#69b566', trunk: '#7a5232',
+    rock: '#9aa1ab', rockDk: '#767d87', rockLt: '#bcc3cc',
+    wood: '#caa06c', woodDk: '#a67c4c', woodLt: '#e0bd8a',
+    roofRed: '#c8574f', roofRedDk: '#9e4139',
+    roofBlue: '#5f83c8', roofBlueDk: '#47649e',
+    thatch: '#cba25a', thatchDk: '#a37f3f',
+    door: '#6e4a2c', window: '#bfe4f2', windowDk: '#7fb8cf',
+    stoneW: '#b7bec8', stoneWDk: '#8f97a3',
+    flower: ['#f2c14e','#e06a8b','#c78be0','#ffffff'],
+    skin: '#f2c39c', skinDk: '#d69f74',
+    plank: '#d8b184',
+  };
+
+  // ---- Sprite factory -----------------------------------------
+  // Draw at base resolution into an offscreen canvas, then blit
+  // scaled with smoothing off for a crisp retro look.
+  function makeCanvas(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    return { c, x };
+  }
+  function rrand(seed) { // deterministic per-tile variation
+    let t = seed + 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  // ---- Tile sprites (16x16) -----------------------------------
+  const SPR = {};
+  function buildTileSprites() {
+    // grass variants with speckle detail
+    for (let v = 0; v < 4; v++) {
+      const { c, x } = makeCanvas(TILE, TILE);
+      x.fillStyle = C.grass[v % 3]; x.fillRect(0, 0, TILE, TILE);
+      for (let i = 0; i < 10; i++) {
+        const rx = Math.floor(rrand(v * 99 + i) * TILE);
+        const ry = Math.floor(rrand(v * 71 + i * 3) * TILE);
+        x.fillStyle = (i % 3 === 0) ? C.grassLt : C.grassDk;
+        x.fillRect(rx, ry, 1, 1);
+      }
+      // a few grass blades
+      for (let i = 0; i < 3; i++) {
+        const rx = 2 + Math.floor(rrand(v * 13 + i * 5) * (TILE - 4));
+        const ry = 3 + Math.floor(rrand(v * 29 + i * 7) * (TILE - 6));
+        x.fillStyle = C.grassDk; x.fillRect(rx, ry, 1, 2);
+        x.fillStyle = C.grassLt; x.fillRect(rx + 1, ry, 1, 1);
+      }
+      SPR['grass' + v] = c;
+    }
+    // dirt / path
+    {
+      const { c, x } = makeCanvas(TILE, TILE);
+      x.fillStyle = C.dirt; x.fillRect(0, 0, TILE, TILE);
+      for (let i = 0; i < 14; i++) {
+        const rx = Math.floor(rrand(i * 7) * TILE), ry = Math.floor(rrand(i * 11 + 2) * TILE);
+        x.fillStyle = (i % 2) ? C.dirtDk : C.dirtLt; x.fillRect(rx, ry, 1, 1);
+      }
+      SPR.dirt = c;
+    }
+    // water (two frames for gentle shimmer)
+    for (let f = 0; f < 2; f++) {
+      const { c, x } = makeCanvas(TILE, TILE);
+      x.fillStyle = C.water; x.fillRect(0, 0, TILE, TILE);
+      for (let i = 0; i < 5; i++) {
+        const ry = 2 + i * 3 + (f ? 1 : 0);
+        const rx = (i % 2 ? 2 : 7) + (f ? 2 : 0);
+        x.fillStyle = C.waterLt; x.fillRect(rx % TILE, ry, 3, 1);
+        x.fillStyle = C.waterDk; x.fillRect((rx + 6) % TILE, ry + 1, 2, 1);
+      }
+      SPR['water' + f] = c;
+    }
+    // sand edge
+    {
+      const { c, x } = makeCanvas(TILE, TILE);
+      x.fillStyle = C.sand; x.fillRect(0, 0, TILE, TILE);
+      for (let i = 0; i < 8; i++) { x.fillStyle = C.dirtLt; x.fillRect(Math.floor(rrand(i*5)*TILE), Math.floor(rrand(i*9)*TILE),1,1); }
+      SPR.sand = c;
+    }
+    // tree (occupies 1 tile, drawn a bit taller)
+    {
+      const { c, x } = makeCanvas(TILE, TILE * 2);
+      // trunk
+      x.fillStyle = C.trunk; x.fillRect(7, 22, 3, 8);
+      x.fillStyle = '#5f3e26'; x.fillRect(9, 22, 1, 8);
+      // canopy
+      const blob = (cx, cy, r, col) => { x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); };
+      blob(8, 12, 8, C.leafDk); blob(6, 11, 6, C.leaf); blob(11, 10, 5, C.leaf);
+      blob(8, 8, 5, C.leafLt); blob(10, 13, 4, C.leafLt);
+      SPR.tree = c;
+    }
+    // rock
+    {
+      const { c, x } = makeCanvas(TILE, TILE);
+      x.fillStyle = C.rockDk; x.fillRect(3, 8, 11, 6);
+      x.fillStyle = C.rock; x.fillRect(3, 7, 10, 5);
+      x.fillStyle = C.rockLt; x.fillRect(4, 7, 4, 2);
+      x.fillStyle = C.rockDk; x.fillRect(9, 10, 3, 3);
+      SPR.rock = c;
+    }
+    // flowers overlay
+    {
+      const { c, x } = makeCanvas(TILE, TILE);
+      for (let i = 0; i < 4; i++) {
+        const rx = 2 + Math.floor(rrand(i * 17) * (TILE - 4));
+        const ry = 3 + Math.floor(rrand(i * 23) * (TILE - 5));
+        x.fillStyle = C.grassDk; x.fillRect(rx, ry + 2, 1, 2);
+        x.fillStyle = C.flower[i % C.flower.length];
+        x.fillRect(rx, ry, 1, 1); x.fillRect(rx - 1, ry + 1, 3, 1); x.fillRect(rx, ry + 1, 1, 1);
+        x.fillStyle = '#fff9d6'; x.fillRect(rx, ry + 1, 1, 1);
+      }
+      SPR.flowers = c;
+    }
+    // bridge (over water)
+    {
+      const { c, x } = makeCanvas(TILE, TILE);
+      x.fillStyle = C.woodDk; x.fillRect(0, 0, TILE, TILE);
+      for (let i = 0; i < TILE; i += 3) { x.fillStyle = C.wood; x.fillRect(0, i, TILE, 2); }
+      x.fillStyle = C.woodLt; x.fillRect(0, 0, TILE, 1); x.fillRect(0, TILE - 1, TILE, 1);
+      SPR.bridge = c;
+    }
+  }
+
+  // ---- Building sprites (procedural, sized to footprint) -------
+  function makeBuildingSprite(type) {
+    const def = BUILDINGS[type];
+    const w = def.w * TILE, h = def.h * TILE;
+    const roofH = Math.floor(h * 0.55);
+    const { c, x } = makeCanvas(w, h + 6); // +6 so roof can overhang upward
+    const oy = 6;
+    const wallTop = oy + roofH;
+    // shadow
+    x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(1, h + oy - 2, w - 1, 3);
+    // walls
+    x.fillStyle = def.wall || C.wood; x.fillRect(1, wallTop, w - 2, (h + oy) - wallTop);
+    x.fillStyle = def.wallDk || C.woodDk;
+    for (let i = wallTop + 2; i < h + oy; i += 4) x.fillRect(1, i, w - 2, 1); // plank lines
+    x.fillStyle = def.wallLt || C.woodLt; x.fillRect(1, wallTop, w - 2, 1);
+    // roof (pitched triangle-ish)
+    const rc = def.roof, rcd = def.roofDk;
+    for (let r = 0; r < roofH; r++) {
+      const inset = Math.floor((roofH - r) * (w * 0.5) / roofH);
+      x.fillStyle = rc; x.fillRect(inset, oy + r, w - inset * 2, 1);
+      if (r % 3 === 0) { x.fillStyle = rcd; x.fillRect(inset, oy + r, w - inset * 2, 1); }
+    }
+    x.fillStyle = rcd; x.fillRect(0, wallTop - 1, w, 2); // eave line
+    // door
+    const dw = Math.max(4, Math.floor(w * 0.16)), dh = Math.floor((h + oy - wallTop) * 0.7);
+    const dx = Math.floor(w / 2 - dw / 2), dy = h + oy - dh;
+    x.fillStyle = C.door; x.fillRect(dx, dy, dw, dh);
+    x.fillStyle = '#4d3320'; x.fillRect(dx, dy, dw, 1);
+    x.fillStyle = C.gold; x.fillRect(dx + dw - 2, dy + Math.floor(dh / 2), 1, 1);
+    // windows
+    x.fillStyle = C.window;
+    const wy = wallTop + 3;
+    if (dx > 5) { x.fillRect(3, wy, 4, 4); x.fillStyle = C.windowDk; x.fillRect(3, wy + 2, 4, 1); x.fillRect(5, wy, 1, 4); x.fillStyle = C.window; }
+    if (w - dx - dw > 5) { x.fillRect(w - 7, wy, 4, 4); x.fillStyle = C.windowDk; x.fillRect(w - 7, wy + 2, 4, 1); x.fillRect(w - 5, wy, 1, 4); }
+    // rooftop marker emoji-ish detail per type (little chimney / sign)
+    if (def.chimney) { x.fillStyle = C.rockDk; x.fillRect(w - 6, oy + 1, 3, roofH - 2); x.fillStyle = '#c9c9c9'; x.fillRect(w - 6, oy, 3, 1); }
+    def._sprite = c; def._spriteOY = oy;
+    return c;
+  }
+
+  // ---- Building definitions -----------------------------------
+  // prod: {res, amount} per production cycle (every PROD_INTERVAL game-hours) when staffed
+  // cons: consumed per cycle. house: housing. All costs in wood/stone/gold/food.
+  const BUILDINGS = {
+    house:      { name: 'Cottage',     emoji: '🏠', w: 2, h: 2, cost: { wood: 12 },            housing: 2, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Homes 2 villagers. More cottages, more hands.' },
+    farm:       { name: 'Farm',        emoji: '🌾', w: 3, h: 2, cost: { wood: 10 },            prod: { food: 6 }, worker: true, roof: C.thatch, roofDk: C.thatchDk, wall: C.thatch, wallDk: C.thatchDk, desc: 'A worker grows food to feed the town.' },
+    lumber:     { name: 'Woodcutter',  emoji: '🪓', w: 2, h: 2, cost: { wood: 6, gold: 8 },    prod: { wood: 5 }, worker: true, roof: C.roofBlue, roofDk: C.roofBlueDk, wantsNear: 'tree', desc: 'Fells nearby trees for lumber. Better beside a forest.' },
+    quarry:     { name: 'Quarry',      emoji: '⛏️', w: 2, h: 2, cost: { wood: 18 },           prod: { stone: 4 }, worker: true, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, wantsNear: 'rock', desc: 'Cuts stone from the earth. Best beside rocks.' },
+    bakery:     { name: 'Bakery',      emoji: '🍞', w: 2, h: 2, cost: { wood: 16, stone: 6 },  prod: { gold: 9 }, cons: { food: 3 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Turns food into coin. Needs food on hand.' },
+    carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods sold for gold.' },
+    market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the traveling merchant.' },
+    well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
+  };
+  const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'bakery', 'carpenter', 'market', 'well'];
+  const PROD_INTERVAL = 6;   // production every 6 in-game hours
+  const HOURS_PER_DAY = 24;
+  const DAY_SECONDS = 90;    // real seconds per in-game day
+  const FOOD_PER_VILLAGER = 1; // per production cycle
+
+  // ---- Game state ---------------------------------------------
+  let state, cam, view, tiles, tileObj, occ;
+  let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+  function defaultState() {
+    return {
+      res: { wood: 40, stone: 20, food: 30, gold: 25 },
+      buildings: [],   // {type, tx, ty, staffed, id}
+      villagers: [],   // {x,y,tx,ty,home,job,state,anim,color,ph}
+      day: 1, time: 8, // start at 8am
+      nextTraderDay: 3,
+      traderHereUntil: 0,
+      _nextId: 1,
+      _lastProdHour: 8,
+      happy: 50,
+      seenIntro: false,
+    };
+  }
+
+  // Terrain codes
+  const T_GRASS = 0, T_DIRT = 1, T_WATER = 2, T_SAND = 3, T_BRIDGE = 4;
+  // Object codes (decoration on top of terrain)
+  const O_NONE = 0, O_TREE = 1, O_ROCK = 2, O_FLOWER = 3;
+
+  function idx(tx, ty) { return ty * MAP_W + tx; }
+  function inMap(tx, ty) { return tx >= 0 && ty >= 0 && tx < MAP_W && ty < MAP_H; }
+
+  function generateWorld(seed) {
+    tiles = new Uint8Array(MAP_W * MAP_H);
+    tileObj = new Uint8Array(MAP_W * MAP_H);
+    occ = new Int16Array(MAP_W * MAP_H).fill(-1); // building id occupying tile, -1 none
+
+    // base grass with variant speckle
+    for (let ty = 0; ty < MAP_H; ty++)
+      for (let tx = 0; tx < MAP_W; tx++)
+        tiles[idx(tx, ty)] = T_GRASS;
+
+    // a winding river down the middle (Riverwood!)
+    let rx = MAP_W * 0.5;
+    for (let ty = 0; ty < MAP_H; ty++) {
+      rx += (rrand(seed + ty * 3) - 0.5) * 2.4;
+      rx = Math.max(6, Math.min(MAP_W - 6, rx));
+      const width = 2 + Math.floor(rrand(seed + ty) * 2);
+      for (let w = -width; w <= width; w++) {
+        const cx = Math.round(rx + w);
+        if (!inMap(cx, ty)) continue;
+        if (Math.abs(w) === width) { if (tiles[idx(cx, ty)] === T_GRASS) tiles[idx(cx, ty)] = T_SAND; }
+        else tiles[idx(cx, ty)] = T_WATER;
+      }
+    }
+
+    // forests (clusters of trees) and rock fields, avoiding water
+    function scatter(count, obj, clusterR, seedBase) {
+      for (let i = 0; i < count; i++) {
+        const cx = 2 + Math.floor(rrand(seedBase + i * 13) * (MAP_W - 4));
+        const cy = 2 + Math.floor(rrand(seedBase + i * 7 + 5) * (MAP_H - 4));
+        const n = 3 + Math.floor(rrand(seedBase + i) * 6);
+        for (let k = 0; k < n; k++) {
+          const ox = cx + Math.floor((rrand(seedBase + i * 31 + k) - 0.5) * clusterR * 2);
+          const oy = cy + Math.floor((rrand(seedBase + i * 17 + k * 3) - 0.5) * clusterR * 2);
+          if (inMap(ox, oy) && tiles[idx(ox, oy)] === T_GRASS && tileObj[idx(ox, oy)] === O_NONE)
+            tileObj[idx(ox, oy)] = obj;
+        }
+      }
+    }
+    scatter(10, O_TREE, 3, seed + 100);
+    scatter(6, O_ROCK, 2, seed + 400);
+    // flower sprinkles
+    for (let i = 0; i < 90; i++) {
+      const tx = Math.floor(rrand(seed + i * 5 + 900) * MAP_W);
+      const ty = Math.floor(rrand(seed + i * 9 + 300) * MAP_H);
+      if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS && tileObj[idx(tx, ty)] === O_NONE)
+        tileObj[idx(tx, ty)] = O_FLOWER;
+    }
+
+    // a starter clearing near center-left with a bridge across the river
+    const startX = Math.floor(MAP_W * 0.28), startY = Math.floor(MAP_H * 0.5);
+    for (let ty = startY - 4; ty <= startY + 4; ty++)
+      for (let tx = startX - 4; tx <= startX + 4; tx++)
+        if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS) tileObj[idx(tx, ty)] = O_NONE;
+    // build a bridge: find water row near startY and plank it
+    for (let ty = startY - 1; ty <= startY + 1; ty++) {
+      for (let tx = 0; tx < MAP_W; tx++) {
+        if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_WATER) tiles[idx(tx, ty)] = T_BRIDGE;
+      }
+    }
+    return { startX, startY };
+  }
+
+  // walkable for villagers
+  function walkable(tx, ty) {
+    if (!inMap(tx, ty)) return false;
+    const t = tiles[idx(tx, ty)];
+    if (t === T_WATER) return false;
+    if (occ[idx(tx, ty)] >= 0) return false;
+    if (tileObj[idx(tx, ty)] === O_TREE || tileObj[idx(tx, ty)] === O_ROCK) return false;
+    return true;
+  }
+
+  // ---- Camera --------------------------------------------------
+  function clampCam() {
+    const vw = view.w / cam.z, vh = view.h / cam.z;
+    cam.x = Math.max(0, Math.min(WORLD_PX_W - vw, cam.x));
+    cam.y = Math.max(0, Math.min(WORLD_PX_H - vh, cam.y));
+    if (WORLD_PX_W < vw) cam.x = (WORLD_PX_W - vw) / 2;
+    if (WORLD_PX_H < vh) cam.y = (WORLD_PX_H - vh) / 2;
+  }
+
+  // ---- Placement ----------------------------------------------
+  let buildMode = null;   // building type key or 'demolish' or null
+  let hoverTile = null;
+
+  function canPlaceAt(type, tx, ty) {
+    const def = BUILDINGS[type];
+    if (def.unique && state.buildings.some(b => b.type === type)) return false;
+    for (let dy = 0; dy < def.h; dy++)
+      for (let dx = 0; dx < def.w; dx++) {
+        const gx = tx + dx, gy = ty + dy;
+        if (!inMap(gx, gy)) return false;
+        const t = tiles[idx(gx, gy)];
+        if (t === T_WATER || t === T_BRIDGE) return false;
+        if (occ[idx(gx, gy)] >= 0) return false;
+        if (tileObj[idx(gx, gy)] === O_TREE || tileObj[idx(gx, gy)] === O_ROCK) return false;
+      }
+    return true;
+  }
+  function canAfford(type) {
+    const cost = BUILDINGS[type].cost;
+    return Object.keys(cost).every(k => state.res[k] >= cost[k]);
+  }
+  function payCost(type, refund) {
+    const cost = BUILDINGS[type].cost, sign = refund ? 1 : -1, mult = refund ? 0.5 : 1;
+    for (const k in cost) state.res[k] += sign * Math.floor(cost[k] * mult);
+  }
+  function nearCount(tx, ty, def, obj) {
+    let n = 0;
+    for (let dy = -1; dy <= def.h; dy++)
+      for (let dx = -1; dx <= def.w; dx++) {
+        const gx = tx + dx, gy = ty + dy;
+        if (inMap(gx, gy) && tileObj[idx(gx, gy)] === obj) n++;
+      }
+    return n;
+  }
+
+  function placeBuilding(type, tx, ty) {
+    const def = BUILDINGS[type];
+    const b = { id: state._nextId++, type, tx, ty, staffed: false, worker: null };
+    // clear flowers under footprint; mark occupancy
+    for (let dy = 0; dy < def.h; dy++)
+      for (let dx = 0; dx < def.w; dx++) {
+        const i = idx(tx + dx, ty + dy);
+        if (tileObj[i] === O_FLOWER) tileObj[i] = O_NONE;
+        occ[i] = b.id;
+      }
+    // bonus flavor for lumber/quarry near resource
+    if (def.wantsNear) b.bonus = nearCount(tx, ty, def, def.wantsNear === 'tree' ? O_TREE : O_ROCK) > 0;
+    state.buildings.push(b);
+    payCost(type);
+    if (def.housing) { for (let k = 0; k < def.housing; k++) spawnVillager(b); }
+    assignJobs();
+    toast(def.emoji + ' ' + def.name + ' built!');
+    save();
+    return b;
+  }
+
+  function demolish(b) {
+    const def = BUILDINGS[b.type];
+    for (let dy = 0; dy < def.h; dy++)
+      for (let dx = 0; dx < def.w; dx++) occ[idx(b.tx + dx, b.ty + dy)] = -1;
+    // villagers of this home leave; villagers working here go idle
+    state.villagers = state.villagers.filter(v => v.homeId !== b.id);
+    state.villagers.forEach(v => { if (v.jobId === b.id) { v.jobId = null; v.state = 'idle'; } });
+    state.buildings = state.buildings.filter(x => x.id !== b.id);
+    payCost(b.type, true);
+    assignJobs();
+    toast('Removed ' + def.name + ' (half materials refunded)');
+    save();
+  }
+
+  function doorTile(b) {
+    const def = BUILDINGS[b.type];
+    return { tx: b.tx + Math.floor(def.w / 2), ty: b.ty + def.h - 1 };
+  }
+
+  // ---- Villagers ----------------------------------------------
+  const V_COLORS = ['#e06a5c', '#5f83c8', '#e0a13f', '#7bbf63', '#c78be0', '#4fb0a8', '#e0708b'];
+  function spawnVillager(home) {
+    const d = doorTile(home);
+    const spot = findWalkableNear(d.tx, d.ty) || d;
+    const v = {
+      id: state._nextId++, homeId: home.id, jobId: null,
+      x: spot.tx * TILE + TILE / 2, y: spot.ty * TILE + TILE / 2,
+      tx: spot.tx, ty: spot.ty, state: 'idle',
+      color: V_COLORS[Math.floor(rrand(state._nextId * 7) * V_COLORS.length)],
+      ph: rrand(state._nextId * 3) * 6, wait: 0,
+    };
+    state.villagers.push(v);
+    return v;
+  }
+  function findWalkableNear(tx, ty) {
+    for (let r = 0; r < 5; r++)
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          if (walkable(tx + dx, ty + dy)) return { tx: tx + dx, ty: ty + dy };
+        }
+    return null;
+  }
+  function popCap() {
+    return state.buildings.filter(b => BUILDINGS[b.type].housing)
+      .reduce((s, b) => s + BUILDINGS[b.type].housing, 0);
+  }
+  // Assign idle villagers to unstaffed worker-buildings.
+  function assignJobs() {
+    const needy = state.buildings.filter(b => BUILDINGS[b.type].worker && !state.villagers.some(v => v.jobId === b.id));
+    const free = state.villagers.filter(v => !v.jobId);
+    needy.forEach((b, i) => { if (free[i]) { free[i].jobId = b.id; free[i].state = 'toWork'; } });
+    // recompute staffed flags
+    state.buildings.forEach(b => { b.staffed = state.villagers.some(v => v.jobId === b.id); });
+  }
+
+  function buildingById(id) { return state.buildings.find(b => b.id === id); }
+
+  function villagerTick(v, dt) {
+    v.wait -= dt;
+    // pick a destination based on state
+    if (!v.path || v.path.length === 0) {
+      if (v.wait > 0) return;
+      let dest = null;
+      if (v.jobId) {
+        const b = buildingById(v.jobId);
+        if (b) {
+          const d = doorTile(b);
+          // alternate between working near job and strolling home
+          dest = (v.state === 'toHome') ? homeDoor(v) : findWalkableNear(d.tx, d.ty);
+          v.state = (v.state === 'toHome') ? 'toWork' : 'toHome';
+        } else { v.jobId = null; }
+      }
+      if (!dest) dest = randomStroll(v);
+      if (dest) v.path = [dest];
+      v.wait = 0.4 + rrand((v.id + state.time) * 13) * 1.6;
+      return;
+    }
+    // move toward path[0]
+    const tgt = v.path[0];
+    const gx = tgt.tx * TILE + TILE / 2, gy = tgt.ty * TILE + TILE / 2;
+    const dx = gx - v.x, dy = gy - v.y;
+    const dist = Math.hypot(dx, dy);
+    const spd = 22 * dt * TILE / 16;
+    if (dist < 1.5) {
+      v.x = gx; v.y = gy; v.tx = tgt.tx; v.ty = tgt.ty; v.path.shift();
+    } else {
+      v.x += dx / dist * Math.min(spd, dist);
+      v.y += dy / dist * Math.min(spd, dist);
+    }
+  }
+  function homeDoor(v) {
+    const b = buildingById(v.homeId);
+    if (!b) return null;
+    const d = doorTile(b);
+    return findWalkableNear(d.tx, d.ty);
+  }
+  function randomStroll(v) {
+    for (let i = 0; i < 8; i++) {
+      const nx = v.tx + Math.floor((rrand((v.id + i + state.time * 10) * 5) - 0.5) * 8);
+      const ny = v.ty + Math.floor((rrand((v.id + i * 3 + state.time * 7) * 9) - 0.5) * 8);
+      if (walkable(nx, ny)) return { tx: nx, ty: ny };
+    }
+    return walkable(v.tx, v.ty) ? { tx: v.tx, ty: v.ty } : null;
+  }
+
+  // ---- Economy / time -----------------------------------------
+  let prodFlashTimer = {};
+  // Production fires every PROD_INTERVAL in-game hours, tracked against an
+  // absolute hour counter (_prodAbs) so day-wrap can't drop or double a cycle.
+  let _prodAbs = null;
+
+  function runProduction() {
+    const pop = state.villagers.length;
+    let gained = {};
+    state.buildings.forEach(b => {
+      const def = BUILDINGS[b.type];
+      if (def.prod && (!def.worker || b.staffed)) {
+        // consumption gate
+        let ok = true;
+        if (def.cons) for (const k in def.cons) if (state.res[k] < def.cons[k]) ok = false;
+        if (!ok) return;
+        if (def.cons) for (const k in def.cons) state.res[k] -= def.cons[k];
+        for (const k in def.prod) {
+          let amt = def.prod[k];
+          if (b.bonus) amt = Math.ceil(amt * 1.5);
+          state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
+        }
+      }
+    });
+    // villagers eat
+    const eat = pop * FOOD_PER_VILLAGER;
+    state.res.food -= eat;
+    if (state.res.food < 0) {
+      state.res.food = 0;
+      state.happy = Math.max(0, state.happy - 8);
+      toast('⚠️ Not enough food — villagers are hungry!');
+    } else {
+      state.happy = Math.min(100, state.happy + 1);
+    }
+    // wells add happiness passively
+    if (state.buildings.some(b => b.type === 'well')) state.happy = Math.min(100, state.happy + 1);
+    Object.keys(gained).forEach(k => { prodFlashTimer[k] = 0.5; });
+    updateHUD();
+  }
+
+  function onNewDay() {
+    // trader arrival
+    if (state.day >= state.nextTraderDay && state.buildings.some(b => b.type === 'market')) {
+      openTrader();
+      state.nextTraderDay = state.day + 3 + Math.floor(rrand(state.day * 17) * 3);
+    } else if (state.day >= state.nextTraderDay) {
+      // no market yet — remind and push out
+      state.nextTraderDay = state.day + 2;
+    }
+    // gentle population growth: a new villager may arrive if housing + food spare
+    if (state.villagers.length < popCap() && state.res.food > state.villagers.length * 3) {
+      const homes = state.buildings.filter(b => BUILDINGS[b.type].housing &&
+        state.villagers.filter(v => v.homeId === b.id).length < BUILDINGS[b.type].housing);
+      if (homes.length) {
+        spawnVillager(homes[Math.floor(rrand(state.day * 5) * homes.length)]);
+        assignJobs();
+        toast('👶 A new villager joined Hearthvale!');
+      }
+    }
+    save();
+  }
+
+  // ---- Trader --------------------------------------------------
+  const TRADE_GOODS = [
+    { k: 'wood', ic: '🪵', name: 'Wood' },
+    { k: 'stone', ic: '🪨', name: 'Stone' },
+    { k: 'food', ic: '🍎', name: 'Food' },
+  ];
+  let traderPrices = null;
+  function openTrader() {
+    traderPrices = {};
+    TRADE_GOODS.forEach(g => {
+      const base = { wood: 2, stone: 3, food: 2 }[g.k];
+      const buy = base + Math.round(rrand((state.day + g.k.length) * 31) * base); // trader sells to you
+      const sell = Math.max(1, buy - 1 - Math.floor(rrand(state.day * 7 + g.k.length) * 2)); // trader buys from you
+      traderPrices[g.k] = { buy, sell };
+    });
+    renderTrader();
+    document.getElementById('trader').classList.add('show');
+    toast('🚚 A traveling merchant has arrived at the market!');
+  }
+  function renderTrader() {
+    const rows = document.getElementById('trade-rows');
+    rows.innerHTML = '';
+    TRADE_GOODS.forEach(g => {
+      const p = traderPrices[g.k];
+      const row = document.createElement('div');
+      row.className = 'trade-row';
+      row.innerHTML =
+        '<div class="good"><span>' + g.ic + '</span>' + g.name + ' <span style="color:var(--ink-dim)">(have ' + Math.floor(state.res[g.k]) + ')</span></div>' +
+        '<div class="price">buy ' + p.buy + ' / sell ' + p.sell + '</div>' +
+        '<div class="tbtns"><button data-act="buy" data-k="' + g.k + '"' + (state.res.gold < p.buy ? ' disabled' : '') + '>Buy</button>' +
+        '<button data-act="sell" data-k="' + g.k + '"' + (state.res[g.k] < 1 ? ' disabled' : '') + '>Sell</button></div>';
+      rows.appendChild(row);
+    });
+    rows.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      const k = btn.dataset.k, p = traderPrices[k];
+      if (btn.dataset.act === 'buy' && state.res.gold >= p.buy) { state.res.gold -= p.buy; state.res[k] += 1; }
+      else if (btn.dataset.act === 'sell' && state.res[k] >= 1) { state.res[k] -= 1; state.res.gold += p.sell; }
+      renderTrader(); updateHUD(); save();
+    }));
+  }
+  document.getElementById('trader-close').addEventListener('click', () => {
+    document.getElementById('trader').classList.remove('show'); save();
+  });
+
+  // ============================================================
+  //  Rendering
+  // ============================================================
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  let waterFrame = 0, waterTimer = 0;
+
+  function resize() {
+    view = { w: window.innerWidth, h: window.innerHeight };
+    canvas.width = Math.floor(view.w * dpr);
+    canvas.height = Math.floor(view.h * dpr);
+    canvas.style.width = view.w + 'px';
+    canvas.style.height = view.h + 'px';
+    ctx.imageSmoothingEnabled = false;
+    clampCam();
+  }
+
+  function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    const z = cam.z;
+    // visible tile bounds
+    const x0 = Math.max(0, Math.floor(cam.x / TILE));
+    const y0 = Math.max(0, Math.floor(cam.y / TILE));
+    const x1 = Math.min(MAP_W - 1, Math.ceil((cam.x + view.w / z) / TILE));
+    const y1 = Math.min(MAP_H - 1, Math.ceil((cam.y + view.h / z) / TILE));
+    const sx = -cam.x * z, sy = -cam.y * z;
+
+    // sky/void behind
+    ctx.fillStyle = '#3a5240'; ctx.fillRect(0, 0, view.w, view.h);
+
+    // terrain layer
+    for (let ty = y0; ty <= y1; ty++) {
+      for (let tx = x0; tx <= x1; tx++) {
+        const t = tiles[idx(tx, ty)];
+        let spr;
+        if (t === T_GRASS) spr = SPR['grass' + ((tx * 7 + ty * 13) & 3)];
+        else if (t === T_DIRT) spr = SPR.dirt;
+        else if (t === T_SAND) spr = SPR.sand;
+        else if (t === T_BRIDGE) spr = SPR.bridge;
+        else spr = SPR['water' + waterFrame];
+        ctx.drawImage(spr, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
+      }
+    }
+    // object layer (flowers under, trees/rocks drawn taller so sort by y)
+    const drawables = [];
+    for (let ty = y0; ty <= y1; ty++)
+      for (let tx = x0; tx <= x1; tx++) {
+        const o = tileObj[idx(tx, ty)];
+        if (o === O_FLOWER) ctx.drawImage(SPR.flowers, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
+        else if (o === O_TREE) drawables.push({ y: ty, kind: 'tree', tx, ty });
+        else if (o === O_ROCK) drawables.push({ y: ty, kind: 'rock', tx, ty });
+      }
+    // buildings + villagers + trees sorted by baseline y for overlap
+    state.buildings.forEach(b => { if (b.ty + BUILDINGS[b.type].h >= y0 && b.ty <= y1 + 2) drawables.push({ y: b.ty + BUILDINGS[b.type].h, kind: 'building', b }); });
+    state.villagers.forEach(v => { const vty = v.y / TILE; if (vty >= y0 - 2 && vty <= y1 + 2) drawables.push({ y: vty, kind: 'villager', v }); });
+    drawables.sort((a, b) => a.y - b.y);
+
+    for (const d of drawables) {
+      if (d.kind === 'tree') {
+        const spr = SPR.tree;
+        ctx.drawImage(spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + (d.ty * TILE - TILE) * z), TILE * z, TILE * 2 * z);
+      } else if (d.kind === 'rock') {
+        ctx.drawImage(SPR.rock, Math.round(sx + d.tx * TILE * z), Math.round(sy + d.ty * TILE * z), TILE * z, TILE * z);
+      } else if (d.kind === 'building') {
+        drawBuilding(d.b, sx, sy, z);
+      } else if (d.kind === 'villager') {
+        drawVillager(d.v, sx, sy, z);
+      }
+    }
+
+    // placement ghost
+    if (buildMode && buildMode !== 'demolish' && hoverTile) {
+      const def = BUILDINGS[buildMode];
+      const ok = canPlaceAt(buildMode, hoverTile.tx, hoverTile.ty) && canAfford(buildMode);
+      ctx.globalAlpha = 0.55;
+      if (def._sprite) ctx.drawImage(def._sprite, Math.round(sx + hoverTile.tx * TILE * z), Math.round(sy + (hoverTile.ty * TILE - 6) * z), def.w * TILE * z, (def.h * TILE + 6) * z);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = ok ? '#8ec26b' : '#e06a5c';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(Math.round(sx + hoverTile.tx * TILE * z) + 1, Math.round(sy + hoverTile.ty * TILE * z) + 1, def.w * TILE * z - 2, def.h * TILE * z - 2);
+    }
+    if (buildMode === 'demolish' && hoverTile) {
+      const i = idx(hoverTile.tx, hoverTile.ty);
+      if (inMap(hoverTile.tx, hoverTile.ty) && occ[i] >= 0) {
+        const b = buildingById(occ[i]); const def = BUILDINGS[b.type];
+        ctx.strokeStyle = '#e06a5c'; ctx.lineWidth = 2;
+        ctx.strokeRect(Math.round(sx + b.tx * TILE * z) + 1, Math.round(sy + b.ty * TILE * z) + 1, def.w * TILE * z - 2, def.h * TILE * z - 2);
+      }
+    }
+    // selection highlight
+    if (selected) {
+      const b = selected, def = BUILDINGS[b.type];
+      ctx.strokeStyle = '#f2c14e'; ctx.lineWidth = 2;
+      ctx.strokeRect(Math.round(sx + b.tx * TILE * z) + 1, Math.round(sy + b.ty * TILE * z) + 1, def.w * TILE * z - 2, def.h * TILE * z - 2);
+    }
+
+    // day/night tint
+    drawDayNight();
+  }
+
+  function drawBuilding(b, sx, sy, z) {
+    const def = BUILDINGS[b.type];
+    const spr = def._sprite || makeBuildingSprite(b.type);
+    ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - 6) * z), def.w * TILE * z, (def.h * TILE + 6) * z);
+    // unstaffed worker building: little "need worker" bob
+    if (def.worker && !b.staffed) {
+      const px = sx + (b.tx * TILE + def.w * TILE / 2) * z;
+      const py = sy + (b.ty * TILE - 8) * z + Math.sin(perfNow / 300) * 2 * z;
+      ctx.font = Math.round(11 * z) + 'px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('💤', px, py);
+    }
+  }
+
+  function drawVillager(v, sx, sy, z) {
+    const px = Math.round(sx + v.x * z), py = Math.round(sy + v.y * z);
+    const s = z; // 1 base-pixel unit on screen
+    const bob = (v.path && v.path.length) ? Math.round(Math.sin((perfNow / 140) + v.ph) * 1) : 0;
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(px - 3 * s, py + 4 * s, 6 * s, 2 * s);
+    // legs
+    ctx.fillStyle = '#4a3b2a';
+    ctx.fillRect(px - 2 * s, py + 2 * s + bob * s, 2 * s, 3 * s);
+    ctx.fillRect(px + 1 * s, py + 2 * s - bob * s, 2 * s, 3 * s);
+    // body
+    ctx.fillStyle = v.color;
+    ctx.fillRect(px - 3 * s, py - 3 * s, 6 * s, 6 * s);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(px - 3 * s, py - 3 * s, 6 * s, 1 * s);
+    // head
+    ctx.fillStyle = C.skin;
+    ctx.fillRect(px - 2 * s, py - 7 * s, 4 * s, 4 * s);
+    // hair
+    ctx.fillStyle = '#5a3d29'; ctx.fillRect(px - 2 * s, py - 7 * s, 4 * s, 1.5 * s);
+  }
+
+  function drawDayNight() {
+    // 0..24 → tint. Warm dawn/dusk, deep-blue night, clear day.
+    const h = state.time;
+    let a = 0, col = '10,18,40';
+    if (h < 5) a = 0.5;
+    else if (h < 7) { a = 0.5 * (1 - (h - 5) / 2); col = '60,40,70'; }
+    else if (h < 17) a = 0;
+    else if (h < 20) { a = 0.35 * ((h - 17) / 3); col = '80,45,30'; }
+    else if (h < 22) { a = 0.35 + 0.15 * ((h - 20) / 2); col = '30,25,55'; }
+    else a = 0.5;
+    if (a > 0.001) {
+      ctx.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
+      ctx.fillRect(0, 0, view.w, view.h);
+    }
+    // window glow at night
+    if (a > 0.25) {
+      // handled implicitly by tint; keep simple
+    }
+  }
+
+  // ============================================================
+  //  HUD / UI
+  // ============================================================
+  function updateHUD() {
+    document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
+    document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
+    document.getElementById('r-food').textContent = Math.floor(state.res.food);
+    document.getElementById('r-gold').textContent = Math.floor(state.res.gold);
+    document.getElementById('r-pop').textContent = state.villagers.length;
+    document.getElementById('r-popcap').textContent = '/' + popCap();
+    document.getElementById('r-day').textContent = state.day;
+    const h = state.time;
+    document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
+    ['wood', 'stone', 'food', 'gold'].forEach(k => {
+      const el = document.querySelector('.res.' + k);
+      if (prodFlashTimer[k] > 0 && el) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 500); prodFlashTimer[k] = 0; }
+    });
+  }
+
+  function buildBar() {
+    const bar = document.getElementById('buildbar');
+    bar.innerHTML = '';
+    BUILD_ORDER.forEach(type => {
+      const def = BUILDINGS[type];
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      const costStr = Object.keys(def.cost).map(k => Math.floor(def.cost[k]) + shortRes(k)).join(' ');
+      btn.innerHTML = '<span class="emoji">' + def.emoji + '</span><span class="lbl">' + def.name + '</span><span class="cost">' + costStr + '</span>';
+      btn.dataset.type = type;
+      btn.addEventListener('click', () => selectBuild(type));
+      bar.appendChild(btn);
+    });
+    // demolish tool
+    const dem = document.createElement('button');
+    dem.className = 'btn tool';
+    dem.innerHTML = '<span class="emoji">⛏️</span><span class="lbl">Remove</span>';
+    dem.dataset.type = 'demolish';
+    dem.addEventListener('click', () => selectBuild('demolish'));
+    bar.appendChild(dem);
+    refreshBarState();
+  }
+  function shortRes(k) { return { wood: '🪵', stone: '🪨', food: '🍎', gold: '💰' }[k] || k; }
+  function refreshBarState() {
+    document.querySelectorAll('#buildbar .btn').forEach(btn => {
+      const type = btn.dataset.type;
+      btn.classList.toggle('sel', buildMode === type);
+      if (type !== 'demolish') {
+        const def = BUILDINGS[type];
+        btn.classList.toggle('cantafford', !canAfford(type));
+        const taken = def.unique && state.buildings.some(b => b.type === type);
+        btn.classList.toggle('locked', taken);
+      }
+    });
+  }
+
+  function selectBuild(type) {
+    if (type !== 'demolish' && BUILDINGS[type].unique && state.buildings.some(b => b.type === type)) { toast('You already have a ' + BUILDINGS[type].name + '.'); return; }
+    buildMode = (buildMode === type) ? null : type;
+    selected = null; hidePanel();
+    canvas.classList.toggle('building', !!buildMode);
+    refreshBarState();
+    hideHint();
+  }
+
+  let selected = null;
+  function showPanel(b) {
+    selected = b; buildMode = null; canvas.classList.remove('building'); refreshBarState();
+    const def = BUILDINGS[b.type];
+    document.getElementById('p-emoji').textContent = def.emoji;
+    document.getElementById('p-name').textContent = def.name;
+    document.getElementById('p-sub').textContent = def.desc;
+    const stats = document.getElementById('p-stats');
+    let html = '';
+    if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + def.housing + ' villagers');
+    if (def.worker) html += statRow('Worker', b.staffed ? 'Assigned ✅' : 'Needs a villager 💤');
+    if (def.prod) { const k = Object.keys(def.prod)[0]; html += statRow('Produces', (b.bonus ? Math.ceil(def.prod[k] * 1.5) : def.prod[k]) + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : '') + ' / cycle'); }
+    if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
+    if (def.happy) html += statRow('Happiness', '+' + def.happy);
+    if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
+    stats.innerHTML = html;
+    const actions = document.getElementById('p-actions');
+    actions.innerHTML = '<button class="danger" id="p-demolish">Remove</button>';
+    document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
+    document.getElementById('panel').classList.add('show');
+  }
+  function statRow(a, b) { return '<div class="stat"><span>' + a + '</span><b>' + b + '</b></div>'; }
+  function hidePanel() { selected = null; document.getElementById('panel').classList.remove('show'); }
+
+  let toastId = 0;
+  function toast(msg) {
+    const wrap = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = 'toast'; el.textContent = msg;
+    wrap.appendChild(el);
+    const id = ++toastId;
+    setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 4900);
+    // cap visible toasts
+    while (wrap.children.length > 4) wrap.removeChild(wrap.firstChild);
+  }
+  function hideHint() { const h = document.getElementById('hint'); if (h) { h.style.opacity = '0'; state.seenIntro = true; } }
+
+  // ============================================================
+  //  Input
+  // ============================================================
+  let dragging = false, dragMoved = false, lastPX = 0, lastPY = 0, downX = 0, downY = 0;
+
+  function screenToTile(px, py) {
+    const wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;
+    return { tx: Math.floor(wx / TILE), ty: Math.floor(wy / TILE) };
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    dragging = true; dragMoved = false;
+    lastPX = downX = e.clientX; lastPY = downY = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    hoverTile = screenToTile(e.clientX, e.clientY);
+    if (dragging) {
+      const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
+      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5) { dragMoved = true; canvas.classList.add('panning'); }
+      cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+      clampCam();
+      lastPX = e.clientX; lastPY = e.clientY;
+    }
+  });
+  canvas.addEventListener('pointerup', e => {
+    canvas.classList.remove('panning');
+    if (dragging && !dragMoved) handleClick(e.clientX, e.clientY);
+    dragging = false;
+  });
+  canvas.addEventListener('pointercancel', () => { dragging = false; canvas.classList.remove('panning'); });
+
+  function handleClick(px, py) {
+    const t = screenToTile(px, py);
+    if (!inMap(t.tx, t.ty)) return;
+    if (buildMode === 'demolish') {
+      const o = occ[idx(t.tx, t.ty)];
+      if (o >= 0) demolish(buildingById(o));
+      return;
+    }
+    if (buildMode) {
+      if (!canAfford(buildMode)) { toast("Can't afford that yet."); return; }
+      if (!canPlaceAt(buildMode, t.tx, t.ty)) { toast("Can't build there."); return; }
+      const b = placeBuilding(buildMode, t.tx, t.ty);
+      refreshBarState();
+      if (!canAfford(buildMode)) { buildMode = null; canvas.classList.remove('building'); refreshBarState(); }
+      return;
+    }
+    // else: select a building
+    const o = occ[idx(t.tx, t.ty)];
+    if (o >= 0) showPanel(buildingById(o));
+    else hidePanel();
+  }
+
+  // wheel zoom
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const before = screenToTile(e.clientX, e.clientY);
+    const oldZ = cam.z;
+    cam.z = Math.max(minZoom(), Math.min(6, cam.z * (e.deltaY < 0 ? 1.15 : 0.87)));
+    // keep cursor world point stable
+    const wx = cam.x + e.clientX / oldZ, wy = cam.y + e.clientY / oldZ;
+    cam.x = wx - e.clientX / cam.z; cam.y = wy - e.clientY / cam.z;
+    clampCam();
+  }, { passive: false });
+  function minZoom() { return Math.max(view.w / WORLD_PX_W, view.h / WORLD_PX_H, 1.5); }
+
+  // keyboard pan + hotkeys
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); }
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= BUILD_ORDER.length) selectBuild(BUILD_ORDER[n - 1]);
+  });
+  window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  function keyboardPan(dt) {
+    const sp = 260 * dt / cam.z;
+    if (keys['w'] || keys['arrowup']) cam.y -= sp;
+    if (keys['s'] || keys['arrowdown']) cam.y += sp;
+    if (keys['a'] || keys['arrowleft']) cam.x -= sp;
+    if (keys['d'] || keys['arrowright']) cam.x += sp;
+    if (keys['w'] || keys['a'] || keys['s'] || keys['d'] || keys['arrowup'] || keys['arrowdown'] || keys['arrowleft'] || keys['arrowright']) clampCam();
+  }
+
+  // ============================================================
+  //  Save / load
+  // ============================================================
+  function save() {
+    try {
+      const s = {
+        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus })),
+        villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph })),
+        day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
+        _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
+        happy: state.happy, seenIntro: state.seenIntro, seed: state.seed,
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+    } catch (e) { /* private mode / quota — ignore */ }
+  }
+  function load() {
+    let raw = null;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { }
+    if (!raw) return false;
+    try {
+      const s = JSON.parse(raw);
+      state = defaultState();
+      state.seed = s.seed || 12345;
+      const start = generateWorld(state.seed);
+      Object.assign(state.res, s.res || {});
+      state.day = s.day || 1; state.time = s.time || 8;
+      state.nextTraderDay = s.nextTraderDay || 3;
+      state._nextId = s._nextId || 1;
+      state._lastProdHour = s._lastProdHour || 8;
+      _prodAbs = (typeof s._prodAbs === 'number') ? s._prodAbs : (state.day * HOURS_PER_DAY + state.time);
+      state.happy = s.happy != null ? s.happy : 50;
+      state.seenIntro = !!s.seenIntro;
+      // rebuild occupancy + buildings
+      (s.buildings || []).forEach(sb => {
+        if (!BUILDINGS[sb.type]) return;
+        const def = BUILDINGS[sb.type];
+        const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, staffed: false, worker: null };
+        for (let dy = 0; dy < def.h; dy++) for (let dx = 0; dx < def.w; dx++) { const i = idx(sb.tx + dx, sb.ty + dy); if (inMap(sb.tx + dx, sb.ty + dy)) occ[i] = b.id; }
+        state.buildings.push(b);
+      });
+      (s.villagers || []).forEach(sv => {
+        const v = {
+          id: sv.id, homeId: sv.homeId, jobId: sv.jobId,
+          x: sv.tx * TILE + TILE / 2, y: sv.ty * TILE + TILE / 2, tx: sv.tx, ty: sv.ty,
+          state: 'idle', color: sv.color || V_COLORS[0], ph: sv.ph || 0, wait: 0,
+        };
+        state.villagers.push(v);
+      });
+      state.buildings.forEach(b => { b.staffed = state.villagers.some(v => v.jobId === b.id); });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  window.__hvReset = function () {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    location.reload();
+  };
+
+  // ============================================================
+  //  Boot + main loop
+  // ============================================================
+  let perfNow = 0, lastT = 0, acc = 0;
+
+  function newGame() {
+    state = defaultState();
+    state.seed = 1000 + Math.floor((Date.now ? 0 : 0)); // deterministic-ish; Date.now blocked in some envs
+    try { state.seed = (Date.now() % 100000) | 0; } catch (e) { state.seed = 42424; }
+    const start = generateWorld(state.seed);
+    _prodAbs = state.day * HOURS_PER_DAY + state.time;
+    // center camera on the starter clearing
+    cam = { x: start.startX * TILE - 200, y: start.startY * TILE - 150, z: 3 };
+  }
+
+  function init() {
+    buildTileSprites();
+    Object.keys(BUILDINGS).forEach(makeBuildingSprite);
+    view = { w: window.innerWidth, h: window.innerHeight };
+    cam = { x: 0, y: 0, z: 3 };
+
+    const loaded = load();
+    if (!loaded) newGame();
+    else if (cam == null) cam = { x: MAP_W * TILE / 2, y: MAP_H * TILE / 2, z: 3 };
+    if (!cam) cam = { x: 0, y: 0, z: 3 };
+
+    resize();
+    clampCam();
+    buildBar();
+    updateHUD();
+    if (state.seenIntro) hideHint();
+
+    window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); });
+    document.getElementById('game').addEventListener('contextmenu', e => e.preventDefault());
+
+    requestAnimationFrame(loop);
+  }
+
+  // fixed-ish timestep for sim, render every frame
+  function loop(ts) {
+    perfNow = ts;
+    if (!lastT) lastT = ts;
+    let dt = (ts - lastT) / 1000; lastT = ts;
+    if (dt > 0.1) dt = 0.1; // clamp big gaps (tab switches)
+
+    // sim
+    stepSim(dt);
+    // render
+    draw();
+    // hud light refresh
+    hudTick += dt;
+    if (hudTick > 0.25) { updateHUD(); refreshBarState(); hudTick = 0; }
+
+    requestAnimationFrame(loop);
+  }
+  let hudTick = 0, saveTick = 0;
+
+  function stepSim(dt) {
+    keyboardPan(dt);
+    // water shimmer
+    waterTimer += dt; if (waterTimer > 0.6) { waterTimer = 0; waterFrame ^= 1; }
+    advanceTimeSafe(dt);
+    // villagers
+    for (const v of state.villagers) villagerTick(v, dt);
+    // autosave
+    saveTick += dt; if (saveTick > 5) { save(); saveTick = 0; }
+  }
+
+  // Robust time advance using an absolute hour counter for production.
+  function advanceTimeSafe(dt) {
+    const hoursPerSec = HOURS_PER_DAY / DAY_SECONDS;
+    const dh = dt * hoursPerSec;
+    state.time += dh;
+    while (state.time >= HOURS_PER_DAY) {
+      state.time -= HOURS_PER_DAY; state.day++; onNewDay();
+    }
+    // production: fire every PROD_INTERVAL absolute hours
+    let guard = 0;
+    while ((state.day * HOURS_PER_DAY + state.time) - _prodAbs >= PROD_INTERVAL && guard++ < 50) {
+      _prodAbs += PROD_INTERVAL;
+      runProduction();
+    }
+  }
+
+  // kick off
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>
