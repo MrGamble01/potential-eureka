@@ -154,6 +154,19 @@
       background: var(--gold); color: #2b2410; font-weight: 800; font-size: 14px; cursor: pointer;
     }
 
+    /* ---- Town goal panel ---- */
+    #goals {
+      position: fixed; left: 12px; top: 56px; z-index: 360; width: 210px;
+      background: linear-gradient(180deg, #4a3826, #362819);
+      border: 2px solid #6b4e30; border-top-color: #85643f; border-radius: 12px;
+      padding: 9px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .goals-title { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; color: var(--gold); margin-bottom: 3px; }
+    .goals-text { font-size: 13px; font-weight: 600; line-height: 1.25; margin-bottom: 7px; }
+    .goals-bar { height: 6px; border-radius: 4px; background: rgba(0,0,0,0.35); overflow: hidden; }
+    .goals-fill { height: 100%; width: 0%; border-radius: 4px; background: linear-gradient(90deg, #8ec26b, #f2c14e); transition: width .4s ease; }
+    #happy-chip .ic { font-size: 15px; }
+
     /* ---- Hint / first-run ---- */
     #hint {
       position: fixed; left: 50%; top: 54px; transform: translateX(-50%); z-index: 350;
@@ -165,6 +178,8 @@
     @media (max-width: 640px) {
       #hud { padding-left: 10px; font-size: 12px; }
       #panel { top: auto; bottom: 90px; right: 8px; left: 8px; width: auto; }
+      #goals { top: auto; bottom: 92px; left: 8px; width: 170px; }
+      #hint { display: none; }
     }
   </style>
 </head>
@@ -179,7 +194,14 @@
     <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span></div>
     <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span></div>
     <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
+    <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span></div>
     <div class="res" id="clock"><span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span></div>
+  </div>
+
+  <div id="goals">
+    <div class="goals-title">&#10022; TOWN GOAL</div>
+    <div class="goals-text" id="goal-text">&mdash;</div>
+    <div class="goals-bar"><div class="goals-fill" id="goal-fill"></div></div>
   </div>
 
   <div id="hint">Drag to look around &middot; pick a building below &middot; click the ground to place it</div>
@@ -594,7 +616,42 @@
       _lastProdHour: 8,
       happy: 50,
       seenIntro: false,
+      goalIndex: 0,   // current town-goal in GOALS
+      sadDays: 0,     // consecutive days of misery before someone leaves
     };
+  }
+
+  // ---- Town goals: a soft progression curve that gives direction --
+  function countType(t) { return state.buildings.filter(b => b.type === t).length; }
+  const GOALS = [
+    { text: 'Build a second cottage', prog: () => [countType('house'), 2], done: () => countType('house') >= 2, reward: { gold: 20 } },
+    { text: 'Build a farm to grow food', prog: () => [countType('farm'), 1], done: () => countType('farm') >= 1, reward: { wood: 15 } },
+    { text: 'Grow to 5 villagers', prog: () => [state.villagers.length, 5], done: () => state.villagers.length >= 5, reward: { gold: 30 } },
+    { text: 'Build a woodcutter and a quarry', prog: () => [Math.min(countType('lumber'), 1) + Math.min(countType('quarry'), 1), 2], done: () => countType('lumber') >= 1 && countType('quarry') >= 1, reward: { gold: 30 } },
+    { text: 'Open a market for the merchant', prog: () => [countType('market'), 1], done: () => countType('market') >= 1, reward: { gold: 40 } },
+    { text: 'Bank 150 gold', prog: () => [Math.floor(state.res.gold), 150], done: () => state.res.gold >= 150, reward: { stone: 25 } },
+    { text: 'Grow to 10 villagers', prog: () => [state.villagers.length, 10], done: () => state.villagers.length >= 10, reward: { gold: 80 } },
+    { text: 'Keep the town happy (85%+)', prog: () => [Math.floor(state.happy), 85], done: () => state.happy >= 85, reward: { gold: 120 } },
+  ];
+  function checkGoals() {
+    if (!state || state.goalIndex >= GOALS.length) return;
+    const g = GOALS[state.goalIndex];
+    if (g.done()) {
+      for (const k in g.reward) state.res[k] = (state.res[k] || 0) + g.reward[k];
+      const rew = Object.keys(g.reward).map(k => '+' + g.reward[k] + ' ' + shortRes(k)).join(' ');
+      toast('✦ Goal done: ' + g.text + '  ' + rew);
+      state.goalIndex++;
+      state.happy = Math.min(100, state.happy + 5); // a win cheers the town
+      renderGoal(); save();
+    }
+  }
+  function renderGoal() {
+    const tEl = document.getElementById('goal-text'), fEl = document.getElementById('goal-fill');
+    if (!tEl || !fEl) return;
+    if (state.goalIndex >= GOALS.length) { tEl.textContent = 'Hearthvale is thriving! 🎉'; fEl.style.width = '100%'; return; }
+    const g = GOALS[state.goalIndex], p = g.prog();
+    tEl.textContent = g.text;
+    fEl.style.width = Math.max(0, Math.min(100, (p[0] / p[1]) * 100)) + '%';
   }
 
   // Terrain codes
@@ -934,8 +991,9 @@
       // no market yet — remind and push out
       state.nextTraderDay = state.day + 2;
     }
-    // gentle population growth: a new villager may arrive if housing + food spare
-    if (state.villagers.length < popCap() && state.res.food > state.villagers.length * 3) {
+    // happiness drives population: happy towns attract newcomers,
+    // miserable ones drive people away.
+    if (state.happy >= 55 && state.villagers.length < popCap() && state.res.food > state.villagers.length * 2) {
       const homes = state.buildings.filter(b => BUILDINGS[b.type].housing &&
         state.villagers.filter(v => v.homeId === b.id).length < BUILDINGS[b.type].housing);
       if (homes.length) {
@@ -943,6 +1001,18 @@
         assignJobs();
         toast('👶 A new villager joined Hearthvale!');
       }
+      state.sadDays = 0;
+    } else if (state.happy < 25) {
+      state.sadDays = (state.sadDays || 0) + 1;
+      if (state.sadDays >= 2 && state.villagers.length > 0) {
+        const leaver = state.villagers[state.villagers.length - 1];
+        state.villagers = state.villagers.filter(v => v !== leaver);
+        assignJobs();
+        toast('💔 A villager left — Hearthvale is unhappy.');
+        state.sadDays = 0;
+      }
+    } else {
+      state.sadDays = 0;
     }
     save();
   }
@@ -1187,6 +1257,9 @@
     document.getElementById('r-pop').textContent = state.villagers.length;
     document.getElementById('r-popcap').textContent = '/' + popCap();
     document.getElementById('r-day').textContent = state.day;
+    const hp = Math.round(state.happy);
+    document.getElementById('r-happy').textContent = hp;
+    document.getElementById('r-happyface').textContent = hp >= 70 ? '😀' : hp >= 40 ? '🙂' : '😟';
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
@@ -1370,6 +1443,7 @@
         day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
         happy: state.happy, seenIntro: state.seenIntro, seed: state.seed,
+        goalIndex: state.goalIndex, sadDays: state.sadDays,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -1390,6 +1464,8 @@
       state._lastProdHour = s._lastProdHour || 8;
       _prodAbs = (typeof s._prodAbs === 'number') ? s._prodAbs : (state.day * HOURS_PER_DAY + state.time);
       state.happy = s.happy != null ? s.happy : 50;
+      state.goalIndex = s.goalIndex || 0;
+      state.sadDays = s.sadDays || 0;
       state.seenIntro = !!s.seenIntro;
       // rebuild occupancy + buildings
       (s.buildings || []).forEach(sb => {
@@ -1447,6 +1523,7 @@
     clampCam();
     buildBar();
     updateHUD();
+    renderGoal();
     if (state.seenIntro) hideHint();
 
     window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); });
@@ -1468,7 +1545,7 @@
     draw();
     // hud light refresh
     hudTick += dt;
-    if (hudTick > 0.25) { updateHUD(); refreshBarState(); hudTick = 0; }
+    if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); hudTick = 0; }
 
     requestAnimationFrame(loop);
   }
