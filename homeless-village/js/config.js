@@ -1,9 +1,16 @@
 var SAVE_KEY = 'homeless_village_v1';
 
+// One in-game day in real milliseconds. The old per-ms daySpeed
+// multiplier (0.00025) made a full day last 4 real seconds — a units
+// bug that had onNewDay's decay/warmth/event rolls firing ~15x per
+// minute while action cooldowns were tuned in real seconds. Lives
+// OUTSIDE G on purpose: saveGame serializes G wholesale, so a stale
+// daySpeed in an old save must not be able to shrink the day again.
+var DAY_LENGTH_MS = 600000; // 10 minutes per day
+
 var G = {
   days: 0,
   timeOfDay: 0,
-  daySpeed: 0.00025,
   season: 0,
 
   food: 0, scraps: 0, cans: 0, cardboard: 0, wood: 0, goodwill: 0,
@@ -13,6 +20,7 @@ var G = {
   structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false },
 
   cooldowns: {},
+  activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
   sweepWarned: false, sweepCountdown: 0,
   injuredUntil: 0, lastEventDay: -2,
 

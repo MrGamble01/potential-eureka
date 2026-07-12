@@ -53,7 +53,7 @@ function onNewDay(){
 }
 
 function tickDay(dt){
-  G.timeOfDay+=G.daySpeed*dt;
+  G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
   var tod=G.timeOfDay;
@@ -201,7 +201,11 @@ function maybeEvent(){
     return;
   }
   var bm=G.season===3?1.6:1, pool=[];
-  EVENTS_BAD.forEach(function(e){ for(var i=0;i<Math.floor(e.weight*bm);i++) pool.push({ev:e,good:false}); });
+  // Sweeps only ever come through the dedicated branch above (which
+  // honors the Lookout's warning). Leaving 'sweep' in this general
+  // pool let ~38% of sweeps fire instantly with no warning even when
+  // the player had paid for a Lookout.
+  EVENTS_BAD.forEach(function(e){ if(e.id==='sweep') return; for(var i=0;i<Math.floor(e.weight*bm);i++) pool.push({ev:e,good:false}); });
   EVENTS_GOOD.forEach(function(e){ for(var i=0;i<e.weight;i++) pool.push({ev:e,good:true}); });
   var pick=pool[Math.floor(Math.random()*pool.length)];
   triggerEvent(pick.ev,pick.good);

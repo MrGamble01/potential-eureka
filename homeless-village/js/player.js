@@ -43,21 +43,45 @@ function finishAction(a){
 }
 
 function doCraft(r){
+  // Mutex, like doAction's activeJobs: any craft completion rebuilds
+  // the whole panel (fresh clickable nodes), so without this a second
+  // click on a still-running recipe deducted its cost twice.
+  if(G.activeCrafts[r.id]) return;
   if(!canCraft(r)) return;
   var dur=r.time*(G.workers.builder?.5:1);
   Object.entries(r.cost).forEach(function(e){ G[e[0]]-=e[1]; });
+  // Persist the in-flight job in the same write as the cost — closing
+  // the tab mid-craft used to destroy the resources with no result.
+  G.activeCrafts[r.id]={start:Date.now(),duration:dur};
+  saveGame();
   updateHUD();
-  var el=document.getElementById('craft-'+r.id);
-  if(el){ el.style.opacity='.5'; el.style.pointerEvents='none'; }
-  setTimeout(function(){
-    if(el){ el.style.opacity=''; el.style.pointerEvents=''; }
-    if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
-    if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
-    if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
-    G.totalCrafted++;
-    log('Crafted '+r.name+'.');
-    updateHUD(); buildCraftUI();
-  }, dur);
+  markCraftBusy(r.id,true);
+  setTimeout(function(){ finishCraft(r); }, dur);
+}
+
+function finishCraft(r){
+  if(!G.activeCrafts[r.id]) return; // already resolved (fast-forwarded on load)
+  delete G.activeCrafts[r.id];
+  markCraftBusy(r.id,false);
+  if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
+  if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
+  if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
+  G.totalCrafted++;
+  log('Crafted '+r.name+'.');
+  saveGame();
+  updateHUD(); buildCraftUI();
+}
+
+// Crafts that were mid-flight when the page closed: the cost was paid
+// at start, so grant elapsed ones now and re-arm timers for the rest.
+function resumeCrafts(){
+  Object.keys(G.activeCrafts).forEach(function(id){
+    var r=RECIPES.find(function(x){ return x.id===id; });
+    if(!r){ delete G.activeCrafts[id]; return; }
+    var j=G.activeCrafts[id], remaining=(j.start+j.duration)-Date.now();
+    if(remaining<=0) finishCraft(r);
+    else setTimeout(function(){ finishCraft(r); }, remaining);
+  });
 }
 
 function hireWorker(id){
