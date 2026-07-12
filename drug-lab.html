@@ -1069,29 +1069,40 @@ let chemProduct = 0;
 const CHEM_TIME = 12;
 
 function buildChemStation(x, z) {
-  const g = new THREE.Group();
+  const parts = []; // every mesh/light, so the station can relocate
   const tableMat = new THREE.MeshLambertMaterial({color:0x1a2418});
   const top = new THREE.Mesh(new THREE.BoxGeometry(2.8,0.1,1.3), tableMat);
-  top.position.set(x, 1.0, z); top.castShadow=true; scene.add(top);
+  top.position.set(x, 1.0, z); top.castShadow=true; scene.add(top); parts.push(top);
   for (const [lx,lz] of [[-1.3,0.55],[1.3,0.55],[-1.3,-0.55],[1.3,-0.55]]) {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.95,0.08),
       new THREE.MeshLambertMaterial({color:0x111111}));
-    leg.position.set(x+lx, 0.48, z+lz); scene.add(leg);
+    leg.position.set(x+lx, 0.48, z+lz); scene.add(leg); parts.push(leg);
   }
   // Flasks
   const glassMat = new THREE.MeshLambertMaterial({color:0x88ccaa,transparent:true,opacity:0.6});
   for (const [fx,fz] of [[-0.8,0],[0,0.1],[0.8,0]]) {
     const flask = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.2,0.45,8), glassMat);
-    flask.position.set(x+fx, 1.35, z+fz); scene.add(flask);
+    flask.position.set(x+fx, 1.35, z+fz); scene.add(flask); parts.push(flask);
     const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.17,0.25,8),
       new THREE.MeshLambertMaterial({color:0x00ff55,emissive:0x003311,emissiveIntensity:0.8}));
-    liquid.position.set(x+fx, 1.25, z+fz); scene.add(liquid);
+    liquid.position.set(x+fx, 1.25, z+fz); scene.add(liquid); parts.push(liquid);
   }
   // Bunsen burner glow
   const burnerLight = new THREE.PointLight(0x00ff44, 0.8, 4);
-  burnerLight.position.set(x, 1.4, z); scene.add(burnerLight);
+  burnerLight.position.set(x, 1.4, z); scene.add(burnerLight); parts.push(burnerLight);
 
-  chemStation = {x, z, burnerLight, labelKey:'chem'};
+  chemStation = {x, z, burnerLight, parts, labelKey:'chem'};
+  setLabel('chem','⚗️ Chemistry Station', x, 2.2, z);
+}
+
+// Move the station (e.g. from its garage fallback spot into a freshly
+// bought Lab room) by shifting every tracked part; interaction checks
+// read chemStation.x/z so they follow automatically.
+function relocateChemStation(x, z) {
+  if (!chemStation) return;
+  const dx = x - chemStation.x, dz = z - chemStation.z;
+  for (const m of (chemStation.parts || [])) { m.position.x += dx; m.position.z += dz; }
+  chemStation.x = x; chemStation.z = z;
   setLabel('chem','⚗️ Chemistry Station', x, 2.2, z);
 }
 
@@ -1401,9 +1412,16 @@ function onRoomUnlocked(id) {
     buildGrowPlot(cx-2, cz-2, id);
     buildGrowPlot(cx+2, cz-2, id);
   }
-  if (id==='lab' && !chemStation) {
-    buildChemStation(cx, cz);
-    showToast('⚗️ Chemistry Station built! Time to cook.', 'info');
+  if (id==='lab') {
+    if (!chemStation) {
+      buildChemStation(cx, cz);
+      showToast('⚗️ Chemistry Station built! Time to cook.', 'info');
+    } else {
+      // Upgrade was bought first: the station is sitting at its garage
+      // fallback spot — move it into the room the player just paid for.
+      relocateChemStation(cx, cz);
+      showToast('⚗️ Chemistry Station moved into The Lab.', 'info');
+    }
   }
 }
 
@@ -1416,7 +1434,7 @@ function renderUpgradesPanel() {
   let lastCat = '';
   for (const u of UPG) {
     const lv = upgLv(u.id);
-    if (lv >= u.maxLv && u.id==='chemistry') continue; // hide if bought
+    if (u.id==='chemistry' && (lv >= u.maxLv || chemStation)) continue; // hide if bought or Lab already built it
     // Lock chemistry until act 2
     if (u.cat==='The Next Level' && currentAct()<2) continue;
     if (u.cat !== lastCat) {
@@ -1441,6 +1459,9 @@ function buyUpgrade(id) {
   if (!u) return;
   const cost = upgCost(u);
   if (state.cash<cost || upgLv(id)>=u.maxLv) return;
+  // The Lab room builds the chem station too — once it exists this
+  // upgrade buys nothing, so refuse instead of taking the cash.
+  if (id==='chemistry' && chemStation) { showToast('⚗️ You already have a chemistry station.',''); renderUpgradesPanel(); return; }
   state.cash -= cost;
   state.upgrades[id] = (state.upgrades[id]||0)+1;
   if (id==='chemistry' && !chemStation) {
