@@ -20,6 +20,7 @@ var G = {
   structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false },
 
   cooldowns: {},
+  activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
   sweepWarned: false, sweepCountdown: 0,
   injuredUntil: 0, lastEventDay: -2,
 

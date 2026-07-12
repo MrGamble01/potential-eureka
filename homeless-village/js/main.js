@@ -6,6 +6,7 @@ for (var i = 1; i < G.population; i++) { spawnFigure((Math.random()-.5)*10, (Mat
 buildActionUI();
 buildCraftUI();
 buildWorkersUI();
+resumeCrafts();
 updateHUD();
 log('Another day under the bridge. Same as always.');
 

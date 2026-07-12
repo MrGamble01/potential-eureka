@@ -29,7 +29,15 @@ function buildCraftUI(){
     div.addEventListener('mouseenter',showTip);
     div.addEventListener('mouseleave',hideTip);
     el.appendChild(div);
+    // Rebuilds discard the busy styling doCraft applied to the old
+    // node — re-apply it so an in-flight recipe stays locked.
+    if(G.activeCrafts && G.activeCrafts[r.id]) markCraftBusy(r.id,true);
   });
+}
+
+function markCraftBusy(id,busy){
+  var el=document.getElementById('craft-'+id);
+  if(el){ el.style.opacity=busy?'.5':''; el.style.pointerEvents=busy?'none':''; }
 }
 
 function buildWorkersUI(){
