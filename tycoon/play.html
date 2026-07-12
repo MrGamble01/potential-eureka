@@ -4694,8 +4694,12 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
   // Clamp Z axis
   if (nz < minZ && !isOwnedGrid(cgx, cgz - 1)) nz = minZ;
   if (nz > maxZ && !isOwnedGrid(cgx, cgz + 1)) {
-    // Door gap: starter room ↔ front room, centered, 3 units wide
-    const hasDoor = (cgx === 0 && cgz === 0) || (cgx === 0 && cgz === 1);
+    // Door gap: starter room → front room, centered, 3 units wide.
+    // Only passable from the starter cell AND only once 'front' is
+    // owned — otherwise it defeats the purchase gate, and matching
+    // the front cell (0,1) here let characters walk out through the
+    // front room's exterior north wall into the void.
+    const hasDoor = cgx === 0 && cgz === 0 && ownedRooms.has('front');
     if (hasDoor && Math.abs(nx - roomCx) < 1.5) {
       // allow through
     } else {
@@ -4713,7 +4717,7 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
     if (nx > r2cx + H - PAD && !isOwnedGrid(ngx2 + 1, ngz2)) nx = r2cx + H - PAD;
     if (nz < r2cz - H + PAD && !isOwnedGrid(ngx2, ngz2 - 1)) nz = r2cz - H + PAD;
     if (nz > r2cz + H - PAD && !isOwnedGrid(ngx2, ngz2 + 1)) {
-      const hasDoor2 = (ngx2 === 0 && ngz2 === 0) || (ngx2 === 0 && ngz2 === 1);
+      const hasDoor2 = ngx2 === 0 && ngz2 === 0 && ownedRooms.has('front');
       if (hasDoor2 && Math.abs(nx - r2cx) < 1.5) { /* door */ }
       else nz = r2cz + H - PAD;
     }
