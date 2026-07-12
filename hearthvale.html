@@ -49,15 +49,14 @@
     }
     .res {
       display: inline-flex; align-items: center; gap: 6px;
-      background: var(--panel); border: 1px solid var(--line);
-      border-radius: 10px; padding: 6px 11px; backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      background: linear-gradient(180deg, #4a3826, #3a2b1c);
+      border: 1px solid #6b4e30; border-top-color: #85643f;
+      border-radius: 9px; padding: 6px 11px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
     }
     .res .ic { font-size: 15px; }
     .res .val { min-width: 26px; font-variant-numeric: tabular-nums; }
     .res .rate { font-size: 11px; color: var(--ink-dim); font-weight: 500; }
-    .res.flash { animation: resflash .5s ease; }
-    @keyframes resflash { 0%{ background:#3a5f43;} 100%{ background: var(--panel);} }
     .res.wood .ic { color: var(--wood); }
     .res.stone .ic { color: var(--stone); }
     .res.food .ic { color: var(--food); }
@@ -69,22 +68,22 @@
     #buildbar {
       position: fixed; left: 50%; transform: translateX(-50%);
       bottom: 12px; z-index: 400;
-      display: flex; gap: 7px; padding: 8px;
-      background: var(--panel); border: 1px solid var(--line);
-      border-radius: 16px; backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px); max-width: calc(100vw - 20px);
-      overflow-x: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+      display: flex; gap: 7px; padding: 9px;
+      background: linear-gradient(180deg, #4a3826, #362819);
+      border: 2px solid #6b4e30; border-top-color: #85643f;
+      border-radius: 15px; max-width: calc(100vw - 20px);
+      overflow-x: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
     }
     .btn {
       position: relative; flex: 0 0 auto;
-      width: 60px; height: 66px; border: 1px solid var(--line);
-      border-radius: 11px; background: var(--panel-2); color: var(--ink);
+      width: 60px; height: 66px; border: 1px solid #6b4e30;
+      border-radius: 10px; background: linear-gradient(180deg, #5a4531, #46351f); color: var(--ink);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 2px; cursor: pointer; transition: transform .12s, border-color .12s, background .12s;
       font-family: var(--font);
     }
-    .btn:hover { transform: translateY(-3px); border-color: rgba(242,193,78,0.6); }
-    .btn.sel { border-color: var(--gold); background: #3a4a3c; box-shadow: 0 0 0 2px rgba(242,193,78,0.35); }
+    .btn:hover { transform: translateY(-3px); border-color: rgba(242,193,78,0.7); }
+    .btn.sel { border-color: var(--gold); background: linear-gradient(180deg, #6b5335, #514027); box-shadow: 0 0 0 2px rgba(242,193,78,0.4); }
     .btn.locked { opacity: 0.4; }
     .btn.cantafford .cost { color: #e06a5c; }
     .btn .emoji { font-size: 24px; line-height: 1; }
@@ -219,25 +218,56 @@
   const MAP_W = 56, MAP_H = 42;  // world size in tiles
   const WORLD_PX_W = MAP_W * TILE, WORLD_PX_H = MAP_H * TILE;
 
-  // ---- Palette -------------------------------------------------
+  // ---- Palette (warm, cohesive, DS/Stardew-flavored) -----------
   const C = {
-    grass:   ['#7fbf63', '#77b95c', '#88c76e'],
-    grassDk: '#5c9a4a', grassLt: '#a2d982',
-    dirt: '#c8a06e', dirtDk: '#a87f52', dirtLt: '#d8b587',
-    water: '#5fb0dd', waterDk: '#458fc4', waterLt: '#8fd0ef',
-    sand: '#e3cf9a',
-    leaf: '#4f9b52', leafDk: '#3d7d43', leafLt: '#69b566', trunk: '#7a5232',
-    rock: '#9aa1ab', rockDk: '#767d87', rockLt: '#bcc3cc',
-    wood: '#caa06c', woodDk: '#a67c4c', woodLt: '#e0bd8a',
-    roofRed: '#c8574f', roofRedDk: '#9e4139',
-    roofBlue: '#5f83c8', roofBlueDk: '#47649e',
-    thatch: '#cba25a', thatchDk: '#a37f3f',
-    door: '#6e4a2c', window: '#bfe4f2', windowDk: '#7fb8cf',
-    stoneW: '#b7bec8', stoneWDk: '#8f97a3',
-    flower: ['#f2c14e','#e06a8b','#c78be0','#ffffff'],
-    skin: '#f2c39c', skinDk: '#d69f74',
-    plank: '#d8b184',
+    // ground
+    grass: ['#80bd63', '#7cba5f'], grassDk: '#5f9a4c', grassLt: '#9ccd7c', grassTuft: '#6cae54',
+    dirt: '#c49a63', dirtDk: '#a67b48', dirtLt: '#d6b380', dirtEdge: '#8c6236',
+    water: '#57abdd', waterDk: '#3d8ec7', waterHi: '#93d6ef', shore: '#e4d29e',
+    // vegetation
+    pine: '#3f8a4c', pineDk: '#2f6b3b', pineHi: '#5aa85f',
+    leaf: '#57a556', leafDk: '#3c8145', leafHi: '#76bd6b',
+    trunk: '#7a5232', trunkDk: '#573a22',
+    // stone / mountains
+    rock: '#a1a8b2', rockDk: '#787f8a', rockHi: '#c2c8d0',
+    mtn: '#9299a3', mtnDk: '#6d737c', mtnHi: '#c0c6cf', mtnSnow: '#eef2f6',
+    // timber-frame walls
+    beam: '#6a4830', beamDk: '#4d331f', beamHi: '#84603f',
+    plaster: '#ecdcb4', plasterDk: '#d4c091', plasterSh: '#c2ad7e',
+    stoneW: '#aab1bb', stoneWDk: '#828a95', stoneWHi: '#c7cdd5',
+    // roofs
+    roofRed: '#c1564d', roofRedDk: '#93382f', roofRedHi: '#d67a6f',
+    roofBlue: '#5a7ec2', roofBlueDk: '#3f5c98', roofBlueHi: '#7c9bd6',
+    thatch: '#d3b25c', thatchDk: '#a9873c', thatchHi: '#e6cc82',
+    slate: '#8a929e', slateDk: '#626a76', slateHi: '#b6bcc5',
+    // details
+    outline: '#2b1f16', door: '#7a5230', doorDk: '#573a22', handle: '#e8c25a',
+    glass: '#bfe4f2', glassDk: '#7fb2c9', glow: '#ffdf9e', glowDim: '#e0a44a',
+    skin: '#f1bf95', skinDk: '#d29a70',
+    hair: ['#5a3d29', '#8a5a2b', '#2d2420', '#a9702f', '#c9a24a'],
+    flower: ['#f2c14e', '#e0708b', '#c78be0', '#fff4d6'],
+    fence: '#9a6c3e', fenceDk: '#5f4022', fenceHi: '#b98a54',
+    lamp: '#3c3a44', lampGlow: '#ffdf9e', wood: '#b98a54', woodDk: '#7a5230',
   };
+
+  // Convert #rrggbb → [r,g,b]
+  function hexToRgb(h) { h = h.replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+  // Stamp a 1px dark outline into transparent pixels bordering opaque ones —
+  // the single biggest lever for a crisp, intentional pixel-art silhouette.
+  function addOutline(x, w, h, color) {
+    color = color || C.outline;
+    const img = x.getImageData(0, 0, w, h), d = img.data;
+    const solid = (px, py) => px >= 0 && py >= 0 && px < w && py < h && d[(py * w + px) * 4 + 3] > 32;
+    const hits = [];
+    for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) {
+      const i = (py * w + px) * 4;
+      if (d[i + 3] > 32) continue;
+      if (solid(px - 1, py) || solid(px + 1, py) || solid(px, py - 1) || solid(px, py + 1)) hits.push(i);
+    }
+    const [r, g, b] = hexToRgb(color);
+    for (const i of hits) { d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255; }
+    x.putImageData(img, 0, 0);
+  }
 
   // ---- Sprite factory -----------------------------------------
   // Draw at base resolution into an offscreen canvas, then blit
@@ -259,135 +289,272 @@
   // ---- Tile sprites (16x16) -----------------------------------
   const SPR = {};
   function buildTileSprites() {
-    // grass variants with speckle detail
+    const P = (x, px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
+
+    // --- grass: warm two-tone with sparse tufts (baked, stable, low-noise) ---
     for (let v = 0; v < 4; v++) {
       const { c, x } = makeCanvas(TILE, TILE);
-      x.fillStyle = C.grass[v % 3]; x.fillRect(0, 0, TILE, TILE);
-      for (let i = 0; i < 10; i++) {
-        const rx = Math.floor(rrand(v * 99 + i) * TILE);
-        const ry = Math.floor(rrand(v * 71 + i * 3) * TILE);
-        x.fillStyle = (i % 3 === 0) ? C.grassLt : C.grassDk;
-        x.fillRect(rx, ry, 1, 1);
+      x.fillStyle = C.grass[v & 1]; x.fillRect(0, 0, TILE, TILE);
+      for (let i = 0; i < 3; i++) { // soft organic darker patches
+        const rx = Math.floor(rrand(v * 40 + i * 7) * (TILE - 3));
+        const ry = Math.floor(rrand(v * 22 + i * 5) * (TILE - 2));
+        x.globalAlpha = 0.22; x.fillStyle = C.grassDk; x.fillRect(rx, ry, 3, 2); x.globalAlpha = 1;
       }
-      // a few grass blades
-      for (let i = 0; i < 3; i++) {
-        const rx = 2 + Math.floor(rrand(v * 13 + i * 5) * (TILE - 4));
-        const ry = 3 + Math.floor(rrand(v * 29 + i * 7) * (TILE - 6));
-        x.fillStyle = C.grassDk; x.fillRect(rx, ry, 1, 2);
-        x.fillStyle = C.grassLt; x.fillRect(rx + 1, ry, 1, 1);
+      for (let i = 0; i < 2; i++) { // tiny grass tufts
+        const rx = 3 + Math.floor(rrand(v * 13 + i * 9) * (TILE - 6));
+        const ry = 5 + Math.floor(rrand(v * 29 + i * 3) * (TILE - 8));
+        P(x, rx, ry, 1, 2, C.grassDk); P(x, rx + 1, ry - 1, 1, 2, C.grassTuft); P(x, rx + 2, ry, 1, 2, C.grassDk);
       }
       SPR['grass' + v] = c;
     }
-    // dirt / path
+    // --- dirt road ---
     {
       const { c, x } = makeCanvas(TILE, TILE);
       x.fillStyle = C.dirt; x.fillRect(0, 0, TILE, TILE);
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 10; i++) {
         const rx = Math.floor(rrand(i * 7) * TILE), ry = Math.floor(rrand(i * 11 + 2) * TILE);
-        x.fillStyle = (i % 2) ? C.dirtDk : C.dirtLt; x.fillRect(rx, ry, 1, 1);
+        P(x, rx, ry, 2, 1, (i % 2) ? C.dirtDk : C.dirtLt);
       }
+      P(x, 4, 6, 1, 1, C.dirtEdge); P(x, 11, 10, 1, 1, C.dirtEdge);
       SPR.dirt = c;
     }
-    // water (two frames for gentle shimmer)
-    for (let f = 0; f < 2; f++) {
+    // --- water: static gentle ripples (no frame swap → no blink) ---
+    {
       const { c, x } = makeCanvas(TILE, TILE);
       x.fillStyle = C.water; x.fillRect(0, 0, TILE, TILE);
-      for (let i = 0; i < 5; i++) {
-        const ry = 2 + i * 3 + (f ? 1 : 0);
-        const rx = (i % 2 ? 2 : 7) + (f ? 2 : 0);
-        x.fillStyle = C.waterLt; x.fillRect(rx % TILE, ry, 3, 1);
-        x.fillStyle = C.waterDk; x.fillRect((rx + 6) % TILE, ry + 1, 2, 1);
+      for (let i = 0; i < 4; i++) {
+        const ry = 2 + i * 4;
+        P(x, 2 + (i & 1) * 5, ry, 4, 1, C.waterHi);
+        P(x, 9 - (i & 1) * 4, ry + 2, 3, 1, C.waterDk);
       }
-      SPR['water' + f] = c;
+      SPR.water0 = c; SPR.water1 = c;
     }
-    // sand edge
+    // --- shore/sand ---
     {
       const { c, x } = makeCanvas(TILE, TILE);
-      x.fillStyle = C.sand; x.fillRect(0, 0, TILE, TILE);
-      for (let i = 0; i < 8; i++) { x.fillStyle = C.dirtLt; x.fillRect(Math.floor(rrand(i*5)*TILE), Math.floor(rrand(i*9)*TILE),1,1); }
+      x.fillStyle = C.shore; x.fillRect(0, 0, TILE, TILE);
+      for (let i = 0; i < 6; i++) P(x, Math.floor(rrand(i * 5) * TILE), Math.floor(rrand(i * 9) * TILE), 1, 1, C.dirtLt);
       SPR.sand = c;
     }
-    // tree (occupies 1 tile, drawn a bit taller)
+    // --- pine tree (tall, outlined) ---
     {
       const { c, x } = makeCanvas(TILE, TILE * 2);
-      // trunk
-      x.fillStyle = C.trunk; x.fillRect(7, 22, 3, 8);
-      x.fillStyle = '#5f3e26'; x.fillRect(9, 22, 1, 8);
-      // canopy
-      const blob = (cx, cy, r, col) => { x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); };
-      blob(8, 12, 8, C.leafDk); blob(6, 11, 6, C.leaf); blob(11, 10, 5, C.leaf);
-      blob(8, 8, 5, C.leafLt); blob(10, 13, 4, C.leafLt);
-      SPR.tree = c;
+      P(x, 7, 24, 3, 6, C.trunk); P(x, 9, 24, 1, 6, C.trunkDk);
+      const tier = (cy, halfW) => {
+        for (let r = 0; r < 8; r++) {
+          const gap = Math.round((r / 8) * halfW);
+          P(x, 8 - halfW + gap, cy + r, (halfW - gap) * 2, 1, r < 2 ? C.pineDk : C.pine);
+        }
+      };
+      tier(16, 7); tier(10, 6); tier(5, 4);
+      P(x, 4, 15, 2, 1, C.pineHi); P(x, 5, 10, 2, 1, C.pineHi); P(x, 6, 6, 1, 1, C.pineHi);
+      addOutline(x, TILE, TILE * 2); SPR.tree = c;
     }
-    // rock
+    // --- round bush-tree (tall, outlined) ---
+    {
+      const { c, x } = makeCanvas(TILE, TILE * 2);
+      P(x, 7, 22, 3, 8, C.trunk); P(x, 9, 22, 1, 8, C.trunkDk);
+      const blob = (cx, cy, r, col) => { x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); };
+      blob(8, 14, 7, C.leafDk); blob(6, 12, 5, C.leaf); blob(11, 12, 5, C.leaf); blob(8, 9, 5, C.leaf);
+      blob(6, 9, 3, C.leafHi); blob(9, 7, 3, C.leafHi);
+      addOutline(x, TILE, TILE * 2); SPR.bush = c;
+    }
+    // --- rock ---
     {
       const { c, x } = makeCanvas(TILE, TILE);
-      x.fillStyle = C.rockDk; x.fillRect(3, 8, 11, 6);
-      x.fillStyle = C.rock; x.fillRect(3, 7, 10, 5);
-      x.fillStyle = C.rockLt; x.fillRect(4, 7, 4, 2);
-      x.fillStyle = C.rockDk; x.fillRect(9, 10, 3, 3);
-      SPR.rock = c;
+      x.fillStyle = C.rockDk; x.beginPath(); x.ellipse(8, 11, 6, 4, 0, 0, 7); x.fill();
+      x.fillStyle = C.rock; x.beginPath(); x.ellipse(8, 10, 5, 3.4, 0, 0, 7); x.fill();
+      P(x, 5, 8, 3, 1, C.rockHi);
+      addOutline(x, TILE, TILE); SPR.rock = c;
     }
-    // flowers overlay
+    // --- mountain (map border) ---
+    {
+      const { c, x } = makeCanvas(TILE, TILE);
+      for (let r = 0; r < TILE; r++) {
+        const half = Math.round((r / TILE) * 8);
+        P(x, 8 - half, r, half * 2, 1, r < 5 ? C.mtnDk : C.mtn);
+      }
+      P(x, 6, 2, 4, 3, C.mtnSnow); P(x, 5, 8, 2, 1, C.mtnHi);
+      addOutline(x, TILE, TILE); SPR.mtn = c;
+    }
+    // --- flowers overlay ---
     {
       const { c, x } = makeCanvas(TILE, TILE);
       for (let i = 0; i < 4; i++) {
-        const rx = 2 + Math.floor(rrand(i * 17) * (TILE - 4));
-        const ry = 3 + Math.floor(rrand(i * 23) * (TILE - 5));
-        x.fillStyle = C.grassDk; x.fillRect(rx, ry + 2, 1, 2);
-        x.fillStyle = C.flower[i % C.flower.length];
-        x.fillRect(rx, ry, 1, 1); x.fillRect(rx - 1, ry + 1, 3, 1); x.fillRect(rx, ry + 1, 1, 1);
-        x.fillStyle = '#fff9d6'; x.fillRect(rx, ry + 1, 1, 1);
+        const rx = 3 + Math.floor(rrand(i * 17) * (TILE - 6));
+        const ry = 4 + Math.floor(rrand(i * 23) * (TILE - 7));
+        P(x, rx, ry + 2, 1, 2, C.grassDk);
+        const col = C.flower[i % C.flower.length];
+        P(x, rx, ry, 1, 1, col); P(x, rx - 1, ry + 1, 3, 1, col); P(x, rx, ry + 1, 1, 1, '#fff4d6');
       }
       SPR.flowers = c;
     }
-    // bridge (over water)
+    // --- bridge ---
     {
       const { c, x } = makeCanvas(TILE, TILE);
       x.fillStyle = C.woodDk; x.fillRect(0, 0, TILE, TILE);
-      for (let i = 0; i < TILE; i += 3) { x.fillStyle = C.wood; x.fillRect(0, i, TILE, 2); }
-      x.fillStyle = C.woodLt; x.fillRect(0, 0, TILE, 1); x.fillRect(0, TILE - 1, TILE, 1);
+      for (let i = 0; i < TILE; i += 3) P(x, 0, i, TILE, 2, C.wood);
+      P(x, 0, 0, TILE, 1, C.fenceHi); P(x, 0, TILE - 1, TILE, 1, C.fenceHi);
       SPR.bridge = c;
+    }
+    // === props / decorations ===
+    { // fence
+      const { c, x } = makeCanvas(TILE, TILE);
+      P(x, 2, 4, 2, 9, C.fence); P(x, 12, 4, 2, 9, C.fence);
+      P(x, 2, 4, 2, 1, C.fenceHi); P(x, 12, 4, 2, 1, C.fenceHi);
+      P(x, 0, 6, TILE, 2, C.fence); P(x, 0, 6, TILE, 1, C.fenceHi); P(x, 0, 10, TILE, 2, C.fenceDk);
+      addOutline(x, TILE, TILE); SPR.fence = c;
+    }
+    { // well
+      const { c, x } = makeCanvas(TILE, TILE + 8);
+      for (let r = 0; r < 5; r++) P(x, 2 + r, r, 12 - r * 2, 1, r < 2 ? C.roofRedDk : C.roofRed);
+      P(x, 2, 4, 12, 1, C.beamDk);
+      P(x, 3, 5, 2, 8, C.wood); P(x, 11, 5, 2, 8, C.wood);
+      P(x, 3, 13, 10, 6, C.stoneW); P(x, 3, 13, 10, 1, C.stoneWHi);
+      for (let i = 4; i < 13; i += 3) P(x, i, 15, 1, 4, C.stoneWDk);
+      P(x, 5, 15, 6, 3, '#274a5a');
+      addOutline(x, TILE, TILE + 8); SPR.well = c;
+    }
+    { // lamp post
+      const { c, x } = makeCanvas(TILE, TILE + 8);
+      P(x, 7, 6, 2, 16, C.lamp);
+      P(x, 5, 3, 6, 5, C.lamp); P(x, 6, 4, 4, 3, C.lampGlow);
+      P(x, 4, 21, 8, 2, C.lamp);
+      addOutline(x, TILE, TILE + 8); SPR.lamp = c;
+    }
+    { // barrel
+      const { c, x } = makeCanvas(TILE, TILE);
+      P(x, 4, 4, 8, 11, C.wood); P(x, 4, 4, 8, 1, C.fenceHi);
+      P(x, 4, 6, 8, 1, C.fenceDk); P(x, 4, 12, 8, 1, C.fenceDk);
+      P(x, 5, 4, 1, 11, C.woodDk); P(x, 10, 4, 1, 11, C.woodDk);
+      addOutline(x, TILE, TILE); SPR.barrel = c;
+    }
+    { // log pile
+      const { c, x } = makeCanvas(TILE, TILE);
+      const log = (yy) => { P(x, 2, yy, 12, 3, C.trunk); P(x, 2, yy, 2, 3, C.trunkDk); P(x, 3, yy, 1, 1, '#a8794a'); };
+      log(10); log(7); P(x, 5, 4, 6, 3, C.trunk); P(x, 5, 4, 2, 3, C.trunkDk);
+      addOutline(x, TILE, TILE); SPR.logs = c;
+    }
+    { // crop patch (wheat, flat)
+      const { c, x } = makeCanvas(TILE, TILE);
+      x.fillStyle = '#7a5230'; x.fillRect(0, 0, TILE, TILE);
+      for (let cx = 1; cx < TILE; cx += 3) for (let cy = 2; cy < TILE; cy += 4) {
+        P(x, cx, cy, 1, 4, '#c9a24a'); P(x, cx, cy, 1, 1, '#e6cc82');
+      }
+      SPR.crop = c;
     }
   }
 
-  // ---- Building sprites (procedural, sized to footprint) -------
+  // ---- Building sprites: 3/4-view timber-frame, outlined ------
+  const B_ART = {
+    house:     { roof: 'red',    wall: 'timber', chimney: true },
+    farm:      { roof: 'thatch', wall: 'timber', chimney: false },
+    lumber:    { roof: 'blue',   wall: 'timber', chimney: false },
+    quarry:    { roof: 'slate',  wall: 'stone',  chimney: false },
+    bakery:    { roof: 'red',    wall: 'timber', chimney: true },
+    carpenter: { roof: 'blue',   wall: 'timber', chimney: true },
+    market:    { roof: 'thatch', wall: 'timber', chimney: false },
+    well:      { well: true },
+  };
+  const B_ROOF = {
+    red:   [C.roofRed, C.roofRedDk, C.roofRedHi],
+    blue:  [C.roofBlue, C.roofBlueDk, C.roofBlueHi],
+    thatch:[C.thatch, C.thatchDk, C.thatchHi],
+    slate: [C.slate, C.slateDk, C.slateHi],
+  };
+
   function makeBuildingSprite(type) {
     const def = BUILDINGS[type];
-    const w = def.w * TILE, h = def.h * TILE;
-    const roofH = Math.floor(h * 0.55);
-    const { c, x } = makeCanvas(w, h + 6); // +6 so roof can overhang upward
-    const oy = 6;
-    const wallTop = oy + roofH;
-    // shadow
-    x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(1, h + oy - 2, w - 1, 3);
-    // walls
-    x.fillStyle = def.wall || C.wood; x.fillRect(1, wallTop, w - 2, (h + oy) - wallTop);
-    x.fillStyle = def.wallDk || C.woodDk;
-    for (let i = wallTop + 2; i < h + oy; i += 4) x.fillRect(1, i, w - 2, 1); // plank lines
-    x.fillStyle = def.wallLt || C.woodLt; x.fillRect(1, wallTop, w - 2, 1);
-    // roof (pitched triangle-ish)
-    const rc = def.roof, rcd = def.roofDk;
-    for (let r = 0; r < roofH; r++) {
-      const inset = Math.floor((roofH - r) * (w * 0.5) / roofH);
-      x.fillStyle = rc; x.fillRect(inset, oy + r, w - inset * 2, 1);
-      if (r % 3 === 0) { x.fillStyle = rcd; x.fillRect(inset, oy + r, w - inset * 2, 1); }
+    const art = B_ART[type] || { roof: 'red', wall: 'timber' };
+    const W = def.w * TILE, gh = def.h * TILE;
+    const RISE = Math.round(TILE * 0.85);   // roof rises above the top tile
+    const H = gh + RISE;
+    const { c, x } = makeCanvas(W, H);
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(Math.round(px), Math.round(py), Math.round(pw), Math.round(ph)); };
+
+    if (art.well) {
+      const cx = W / 2;
+      for (let r = 0; r < 6; r++) { const half = 6 - r; P(cx - half - 1, r, (half + 1) * 2, 1, r < 2 ? C.roofRedDk : C.roofRed); }
+      P(cx - 7, 5, 14, 1, C.beamDk);
+      P(cx - 6, 6, 2, H - 16, C.wood); P(cx + 4, 6, 2, H - 16, C.wood);
+      const ry = H - 10;
+      P(cx - 6, ry, 12, 8, C.stoneW); P(cx - 6, ry, 12, 1, C.stoneWHi);
+      for (let i = -5; i < 6; i += 3) P(cx + i, ry + 2, 1, 5, C.stoneWDk);
+      P(cx - 3, ry + 2, 6, 4, '#274a5a');
+      addOutline(x, W, H); def._sprite = c; def._rise = RISE; return c;
     }
-    x.fillStyle = rcd; x.fillRect(0, wallTop - 1, w, 2); // eave line
-    // door
-    const dw = Math.max(4, Math.floor(w * 0.16)), dh = Math.floor((h + oy - wallTop) * 0.7);
-    const dx = Math.floor(w / 2 - dw / 2), dy = h + oy - dh;
-    x.fillStyle = C.door; x.fillRect(dx, dy, dw, dh);
-    x.fillStyle = '#4d3320'; x.fillRect(dx, dy, dw, 1);
-    x.fillStyle = C.gold; x.fillRect(dx + dw - 2, dy + Math.floor(dh / 2), 1, 1);
-    // windows
-    x.fillStyle = C.window;
-    const wy = wallTop + 3;
-    if (dx > 5) { x.fillRect(3, wy, 4, 4); x.fillStyle = C.windowDk; x.fillRect(3, wy + 2, 4, 1); x.fillRect(5, wy, 1, 4); x.fillStyle = C.window; }
-    if (w - dx - dw > 5) { x.fillRect(w - 7, wy, 4, 4); x.fillStyle = C.windowDk; x.fillRect(w - 7, wy + 2, 4, 1); x.fillRect(w - 5, wy, 1, 4); }
-    // rooftop marker emoji-ish detail per type (little chimney / sign)
-    if (def.chimney) { x.fillStyle = C.rockDk; x.fillRect(w - 6, oy + 1, 3, roofH - 2); x.fillStyle = '#c9c9c9'; x.fillRect(w - 6, oy, 3, 1); }
-    def._sprite = c; def._spriteOY = oy;
+
+    const foundH = 5;
+    const wallH = Math.max(11, Math.round(gh * 0.5));
+    const wallBottom = H - foundH;
+    const wallTop = wallBottom - wallH;
+    const roofH = wallTop; // roof spans from top of sprite down to the eave
+    const [rc, rcd, rch] = B_ROOF[art.roof];
+
+    // stone foundation
+    P(0, wallBottom, W, foundH, C.stoneWDk); P(0, wallBottom, W, 1, C.stoneW);
+    for (let i = 1; i < W; i += 4) P(i, wallBottom + 1, 1, foundH - 1, C.slateDk);
+
+    // walls
+    if (art.wall === 'stone') {
+      P(0, wallTop, W, wallH, C.stoneW); P(0, wallTop, W, 1, C.stoneWHi);
+      for (let yy = wallTop + 2; yy < wallBottom; yy += 3) P(0, yy, W, 1, C.stoneWDk);
+      for (let xx = 3; xx < W; xx += 5) P(xx, wallTop, 1, wallH, C.stoneWDk);
+    } else {
+      P(0, wallTop, W, wallH, C.plaster);
+      P(0, wallBottom - 2, W, 2, C.plasterSh);
+      P(0, wallTop, 2, wallH, C.beam); P(W - 2, wallTop, 2, wallH, C.beam);
+      P(0, wallTop, W, 2, C.beam);
+      P(Math.round(W / 2 - 1), wallTop, 2, wallH, C.beamDk);
+      P(Math.round(W * 0.28), wallTop, 1, wallH, C.beamDk);
+      P(Math.round(W * 0.72), wallTop, 1, wallH, C.beamDk);
+      P(0, wallTop, W, 1, C.beamHi);
+    }
+
+    // roof: overhanging gable with shingle rows + ridge
+    const eave = 2;
+    for (let r = 0; r < roofH; r++) {
+      const t = roofH > 1 ? r / roofH : 0;
+      const inset = Math.round(t * (W / 2 - 3));
+      const x0 = inset - eave, x1 = W - inset + eave;
+      P(x0, r, x1 - x0, 1, ((roofH - r) % 3 === 0) ? rcd : rc);
+      P(x0, r, 1, 1, rcd); P(x1 - 1, r, 1, 1, rcd);
+      if (r > 1 && r < roofH - 1) P(x0 + 1, r, 1, 1, rch);
+    }
+    P(Math.round(W / 2 - 4), 0, 8, 2, rcd);   // ridge cap
+    P(0, wallTop - 2, W, 2, C.beamDk);         // dark eave beam
+
+    // door with frame
+    const dw = Math.max(5, Math.round(W * 0.24)), dh = Math.round(wallH * 0.72);
+    const ddx = Math.round(W / 2 - dw / 2), ddy = wallBottom - dh;
+    P(ddx - 1, ddy - 1, dw + 2, dh + 1, C.beamDk);
+    P(ddx, ddy, dw, dh, C.door); P(ddx, ddy, dw, 1, C.doorDk);
+    P(ddx + 1, ddy + 2, 1, dh - 3, C.doorDk);
+    P(ddx + dw - 2, ddy + Math.round(dh / 2), 1, 1, C.handle);
+
+    // windows with a warm glow
+    const wy = wallTop + Math.round(wallH * 0.28), winW = 4, winH = 4;
+    const win = (wx) => {
+      P(wx - 1, wy - 1, winW + 2, winH + 2, C.beam);
+      P(wx, wy, winW, winH, C.glow); P(wx, wy, winW, 1, C.glass);
+      P(wx + 2, wy, 1, winH, C.beamDk); P(wx, wy + 2, winW, 1, C.beamDk);
+    };
+    if (ddx > 6) win(3);
+    if (W - ddx - dw > 6) win(W - 7);
+    if (W >= 40) { win(Math.round(W * 0.30)); win(Math.round(W * 0.62)); }
+
+    // chimney with static smoke
+    if (art.chimney) {
+      const cxp = W - 8;
+      P(cxp, 2, 4, roofH * 0.6 + 4, C.slateDk); P(cxp, 2, 4, 1, C.slate); P(cxp, 1, 4, 1, C.rock);
+      x.globalAlpha = 0.45; x.fillStyle = '#e8e8ee';
+      x.beginPath(); x.arc(cxp + 2, 0, 2, 0, 7); x.fill();
+      x.beginPath(); x.arc(cxp + 4, -3, 2.3, 0, 7); x.fill();
+      x.globalAlpha = 1;
+    }
+
+    addOutline(x, W, H);
+    def._sprite = c; def._rise = RISE;
     return c;
   }
 
@@ -412,6 +579,7 @@
 
   // ---- Game state ---------------------------------------------
   let state, cam, view, tiles, tileObj, occ;
+  let decos = [];  // cosmetic props regenerated from seed: {kind, tx, ty}
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   function defaultState() {
@@ -432,7 +600,7 @@
   // Terrain codes
   const T_GRASS = 0, T_DIRT = 1, T_WATER = 2, T_SAND = 3, T_BRIDGE = 4;
   // Object codes (decoration on top of terrain)
-  const O_NONE = 0, O_TREE = 1, O_ROCK = 2, O_FLOWER = 3;
+  const O_NONE = 0, O_TREE = 1, O_ROCK = 2, O_FLOWER = 3, O_BUSH = 4, O_MTN = 5;
 
   function idx(tx, ty) { return ty * MAP_W + tx; }
   function inMap(tx, ty) { return tx >= 0 && ty >= 0 && tx < MAP_W && ty < MAP_H; }
@@ -441,6 +609,8 @@
     tiles = new Uint8Array(MAP_W * MAP_H);
     tileObj = new Uint8Array(MAP_W * MAP_H);
     occ = new Int16Array(MAP_W * MAP_H).fill(-1); // building id occupying tile, -1 none
+    decos = [];
+    const pushDeco = (kind, tx, ty) => { if (inMap(tx, ty)) decos.push({ kind, tx, ty }); };
 
     // base grass with variant speckle
     for (let ty = 0; ty < MAP_H; ty++)
@@ -461,41 +631,74 @@
       }
     }
 
-    // forests (clusters of trees) and rock fields, avoiding water
-    function scatter(count, obj, clusterR, seedBase) {
+    // mountain border ring — frames the valley like the reference
+    for (let ty = 0; ty < MAP_H; ty++)
+      for (let tx = 0; tx < MAP_W; tx++) {
+        const edge = Math.min(tx, ty, MAP_W - 1 - tx, MAP_H - 1 - ty);
+        if (edge === 0) { tiles[idx(tx, ty)] = T_GRASS; tileObj[idx(tx, ty)] = O_MTN; }
+        else if (edge === 1 && tiles[idx(tx, ty)] === T_GRASS && rrand(seed + tx * 3 + ty * 7) < 0.5) tileObj[idx(tx, ty)] = O_MTN;
+      }
+
+    // forests (dense clusters of mixed pine + bush) and rock fields
+    function scatter(count, objs, clusterR, density, seedBase) {
       for (let i = 0; i < count; i++) {
-        const cx = 2 + Math.floor(rrand(seedBase + i * 13) * (MAP_W - 4));
-        const cy = 2 + Math.floor(rrand(seedBase + i * 7 + 5) * (MAP_H - 4));
-        const n = 3 + Math.floor(rrand(seedBase + i) * 6);
+        const cx = 4 + Math.floor(rrand(seedBase + i * 13) * (MAP_W - 8));
+        const cy = 4 + Math.floor(rrand(seedBase + i * 7 + 5) * (MAP_H - 8));
+        const n = density + Math.floor(rrand(seedBase + i) * density);
         for (let k = 0; k < n; k++) {
           const ox = cx + Math.floor((rrand(seedBase + i * 31 + k) - 0.5) * clusterR * 2);
           const oy = cy + Math.floor((rrand(seedBase + i * 17 + k * 3) - 0.5) * clusterR * 2);
           if (inMap(ox, oy) && tiles[idx(ox, oy)] === T_GRASS && tileObj[idx(ox, oy)] === O_NONE)
-            tileObj[idx(ox, oy)] = obj;
+            tileObj[idx(ox, oy)] = objs.length > 1 ? (rrand(seedBase + ox * 5 + oy) < 0.7 ? objs[0] : objs[1]) : objs[0];
         }
       }
     }
-    scatter(10, O_TREE, 3, seed + 100);
-    scatter(6, O_ROCK, 2, seed + 400);
+    scatter(16, [O_TREE, O_BUSH], 3, 6, seed + 100);
+    scatter(8, [O_ROCK], 2, 3, seed + 400);
+    // scattered lone trees for a lived-in valley
+    for (let i = 0; i < 45; i++) {
+      const tx = 2 + Math.floor(rrand(seed + i * 5 + 700) * (MAP_W - 4));
+      const ty = 2 + Math.floor(rrand(seed + i * 9 + 350) * (MAP_H - 4));
+      if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS && tileObj[idx(tx, ty)] === O_NONE)
+        tileObj[idx(tx, ty)] = rrand(seed + i) < 0.7 ? O_TREE : O_BUSH;
+    }
     // flower sprinkles
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 80; i++) {
       const tx = Math.floor(rrand(seed + i * 5 + 900) * MAP_W);
       const ty = Math.floor(rrand(seed + i * 9 + 300) * MAP_H);
       if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS && tileObj[idx(tx, ty)] === O_NONE)
         tileObj[idx(tx, ty)] = O_FLOWER;
     }
 
-    // a starter clearing near center-left with a bridge across the river
-    const startX = Math.floor(MAP_W * 0.28), startY = Math.floor(MAP_H * 0.5);
-    for (let ty = startY - 4; ty <= startY + 4; ty++)
-      for (let tx = startX - 4; tx <= startX + 4; tx++)
+    // starter clearing near center-left
+    const startX = Math.floor(MAP_W * 0.30), startY = Math.floor(MAP_H * 0.5);
+    for (let ty = startY - 5; ty <= startY + 5; ty++)
+      for (let tx = startX - 6; tx <= startX + 6; tx++)
         if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS) tileObj[idx(tx, ty)] = O_NONE;
-    // build a bridge: find water row near startY and plank it
-    for (let ty = startY - 1; ty <= startY + 1; ty++) {
-      for (let tx = 0; tx < MAP_W; tx++) {
+
+    // dirt roads: a vertical lane + a horizontal lane out to the bridge
+    for (let ty = startY - 6; ty <= startY + 6; ty++)
+      for (let d = 0; d < 2; d++) { const tx = startX + d; if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS) { tiles[idx(tx, ty)] = T_DIRT; tileObj[idx(tx, ty)] = O_NONE; } }
+    for (let tx = startX; tx < MAP_W - 2; tx++)
+      for (let d = 0; d < 2; d++) { const ty = startY + d; if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS) { tiles[idx(tx, ty)] = T_DIRT; tileObj[idx(tx, ty)] = O_NONE; } }
+
+    // bridge across the river along the horizontal road
+    for (let ty = startY - 1; ty <= startY + 2; ty++)
+      for (let tx = 0; tx < MAP_W; tx++)
         if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_WATER) tiles[idx(tx, ty)] = T_BRIDGE;
-      }
-    }
+
+    // a little fenced crop plot NW of the clearing (cosmetic)
+    const fx = startX - 6, fy = startY - 5;
+    for (let ty = fy; ty < fy + 3; ty++)
+      for (let tx = fx; tx < fx + 4; tx++)
+        if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS) { tiles[idx(tx, ty)] = T_DIRT; tileObj[idx(tx, ty)] = O_NONE; pushDeco('crop', tx, ty); }
+    for (let tx = fx - 1; tx <= fx + 4; tx++) { pushDeco('fence', tx, fy - 1); pushDeco('fence', tx, fy + 3); }
+
+    // props to make the clearing feel lived-in
+    pushDeco('well', startX - 2, startY - 2);
+    pushDeco('lamp', startX - 1, startY - 3); pushDeco('lamp', startX + 4, startY + 2); pushDeco('lamp', startX + 7, startY - 2);
+    pushDeco('barrel', startX + 3, startY - 2); pushDeco('logs', startX - 3, startY + 2);
+
     return { startX, startY };
   }
 
@@ -505,7 +708,8 @@
     const t = tiles[idx(tx, ty)];
     if (t === T_WATER) return false;
     if (occ[idx(tx, ty)] >= 0) return false;
-    if (tileObj[idx(tx, ty)] === O_TREE || tileObj[idx(tx, ty)] === O_ROCK) return false;
+    const o = tileObj[idx(tx, ty)];
+    if (o === O_TREE || o === O_ROCK || o === O_BUSH || o === O_MTN) return false;
     return true;
   }
 
@@ -532,7 +736,8 @@
         const t = tiles[idx(gx, gy)];
         if (t === T_WATER || t === T_BRIDGE) return false;
         if (occ[idx(gx, gy)] >= 0) return false;
-        if (tileObj[idx(gx, gy)] === O_TREE || tileObj[idx(gx, gy)] === O_ROCK) return false;
+        const o = tileObj[idx(gx, gy)];
+        if (o === O_TREE || o === O_ROCK || o === O_BUSH || o === O_MTN) return false;
       }
     return true;
   }
@@ -830,30 +1035,40 @@
         ctx.drawImage(spr, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
       }
     }
-    // object layer (flowers under, trees/rocks drawn taller so sort by y)
+    // flat decorations (crop patches) drawn on the ground
+    for (const d of decos) {
+      if (d.kind !== 'crop' || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
+      ctx.drawImage(SPR.crop, Math.round(sx + d.tx * TILE * z), Math.round(sy + d.ty * TILE * z), TILE * z, TILE * z);
+    }
+    // object layer (flowers flat; trees/rocks/mountains/props sorted by baseline y)
     const drawables = [];
     for (let ty = y0; ty <= y1; ty++)
       for (let tx = x0; tx <= x1; tx++) {
         const o = tileObj[idx(tx, ty)];
         if (o === O_FLOWER) ctx.drawImage(SPR.flowers, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
-        else if (o === O_TREE) drawables.push({ y: ty, kind: 'tree', tx, ty });
-        else if (o === O_ROCK) drawables.push({ y: ty, kind: 'rock', tx, ty });
+        else if (o === O_TREE) drawables.push({ y: ty + 0.9, spr: SPR.tree, tx, ty });
+        else if (o === O_BUSH) drawables.push({ y: ty + 0.9, spr: SPR.bush, tx, ty });
+        else if (o === O_ROCK) drawables.push({ y: ty + 0.9, spr: SPR.rock, tx, ty });
+        else if (o === O_MTN) drawables.push({ y: ty + 0.9, spr: SPR.mtn, tx, ty });
       }
-    // buildings + villagers + trees sorted by baseline y for overlap
-    state.buildings.forEach(b => { if (b.ty + BUILDINGS[b.type].h >= y0 && b.ty <= y1 + 2) drawables.push({ y: b.ty + BUILDINGS[b.type].h, kind: 'building', b }); });
+    // decoration props (fences short, everything sorted for overlap)
+    for (const d of decos) {
+      if (d.kind === 'crop' || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
+      const spr = SPR[d.kind]; if (!spr) continue;
+      drawables.push({ y: d.ty + (d.kind === 'fence' ? 0.5 : 0.9), spr, tx: d.tx, ty: d.ty });
+    }
+    // buildings + villagers
+    state.buildings.forEach(b => { const def = BUILDINGS[b.type]; if (b.ty + def.h >= y0 - 2 && b.ty <= y1 + 2) drawables.push({ y: b.ty + def.h, kind: 'building', b }); });
     state.villagers.forEach(v => { const vty = v.y / TILE; if (vty >= y0 - 2 && vty <= y1 + 2) drawables.push({ y: vty, kind: 'villager', v }); });
     drawables.sort((a, b) => a.y - b.y);
 
     for (const d of drawables) {
-      if (d.kind === 'tree') {
-        const spr = SPR.tree;
-        ctx.drawImage(spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + (d.ty * TILE - TILE) * z), TILE * z, TILE * 2 * z);
-      } else if (d.kind === 'rock') {
-        ctx.drawImage(SPR.rock, Math.round(sx + d.tx * TILE * z), Math.round(sy + d.ty * TILE * z), TILE * z, TILE * z);
-      } else if (d.kind === 'building') {
-        drawBuilding(d.b, sx, sy, z);
-      } else if (d.kind === 'villager') {
-        drawVillager(d.v, sx, sy, z);
+      if (d.kind === 'building') drawBuilding(d.b, sx, sy, z);
+      else if (d.kind === 'villager') drawVillager(d.v, sx, sy, z);
+      else { // sprite prop: bottom-aligned to its tile so it "stands" on the ground
+        const wpx = d.spr.width, hpx = d.spr.height;
+        const drawY = (d.ty + 1) * TILE - hpx;
+        ctx.drawImage(d.spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + drawY * z), wpx * z, hpx * z);
       }
     }
 
@@ -861,8 +1076,8 @@
     if (buildMode && buildMode !== 'demolish' && hoverTile) {
       const def = BUILDINGS[buildMode];
       const ok = canPlaceAt(buildMode, hoverTile.tx, hoverTile.ty) && canAfford(buildMode);
-      ctx.globalAlpha = 0.55;
-      if (def._sprite) ctx.drawImage(def._sprite, Math.round(sx + hoverTile.tx * TILE * z), Math.round(sy + (hoverTile.ty * TILE - 6) * z), def.w * TILE * z, (def.h * TILE + 6) * z);
+      ctx.globalAlpha = 0.6;
+      if (def._sprite) ctx.drawImage(def._sprite, Math.round(sx + hoverTile.tx * TILE * z), Math.round(sy + (hoverTile.ty * TILE - (def._rise || 6)) * z), def.w * TILE * z, (def.h * TILE + (def._rise || 6)) * z);
       ctx.globalAlpha = 1;
       ctx.strokeStyle = ok ? '#8ec26b' : '#e06a5c';
       ctx.lineWidth = 2;
@@ -890,48 +1105,67 @@
   function drawBuilding(b, sx, sy, z) {
     const def = BUILDINGS[b.type];
     const spr = def._sprite || makeBuildingSprite(b.type);
-    ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - 6) * z), def.w * TILE * z, (def.h * TILE + 6) * z);
-    // unstaffed worker building: little "need worker" bob
+    const rise = def._rise || 6;
+    // soft ground shadow for depth
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    ctx.beginPath();
+    ctx.ellipse(sx + (b.tx * TILE + def.w * TILE / 2) * z, sy + (b.ty + def.h) * TILE * z - 2 * z, def.w * TILE * 0.5 * z, 3 * z, 0, 0, 7);
+    ctx.fill();
+    ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - rise) * z), def.w * TILE * z, (def.h * TILE + rise) * z);
+    // unstaffed worker building: a STATIC amber "!" badge (no animation)
     if (def.worker && !b.staffed) {
-      const px = sx + (b.tx * TILE + def.w * TILE / 2) * z;
-      const py = sy + (b.ty * TILE - 8) * z + Math.sin(perfNow / 300) * 2 * z;
-      ctx.font = Math.round(11 * z) + 'px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('💤', px, py);
+      const bx = sx + (b.tx * TILE + def.w * TILE / 2) * z;
+      const by = sy + (b.ty * TILE - rise - 1) * z;
+      ctx.fillStyle = '#e0a44a'; ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.6);
+      ctx.beginPath(); ctx.arc(bx, by, 4 * z, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.outline;
+      ctx.fillRect(bx - 0.5 * z, by - 2 * z, z, 2.4 * z); ctx.fillRect(bx - 0.5 * z, by + 1.4 * z, z, z);
     }
   }
 
+  // Villager sprites: cached per (color, frame), outlined. Frame is chosen
+  // from position while walking, so there's no idle timer → nothing blinks.
+  const VSPR = {};
+  function shade(hex, f) { const [r, g, b] = hexToRgb(hex); const c = v => Math.max(0, Math.min(255, Math.round(v * f))); return 'rgb(' + c(r) + ',' + c(g) + ',' + c(b) + ')'; }
+  function villagerSprite(color, frame) {
+    const key = color + '|' + frame;
+    if (VSPR[key]) return VSPR[key];
+    const W = 10, H = 14, { c, x } = makeCanvas(W, H);
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
+    P(3, 10, 2, 3 + (frame === 2 ? -1 : 0), '#3a2f22');   // legs
+    P(5, 10, 2, 3 + (frame === 1 ? -1 : 0), '#3a2f22');
+    P(2, 5, 6, 6, color);                                  // tunic
+    P(1, 6, 1, 4, shade(color, 0.72)); P(8, 6, 1, 4, shade(color, 0.72)); // arms
+    P(2, 5, 6, 1, shade(color, 1.18));                     // highlight
+    P(3, 1, 4, 4, C.skin); P(3, 4, 4, 1, C.skinDk);        // head
+    const hair = C.hair[(color.charCodeAt(1) + color.charCodeAt(3)) % C.hair.length];
+    P(3, 1, 4, 2, hair); P(2, 2, 1, 2, hair); P(7, 2, 1, 2, hair); // hair
+    P(4, 3, 1, 1, C.outline); P(6, 3, 1, 1, C.outline);    // eyes
+    addOutline(x, W, H);
+    VSPR[key] = c; return c;
+  }
+
   function drawVillager(v, sx, sy, z) {
-    const px = Math.round(sx + v.x * z), py = Math.round(sy + v.y * z);
-    const s = z; // 1 base-pixel unit on screen
-    const bob = (v.path && v.path.length) ? Math.round(Math.sin((perfNow / 140) + v.ph) * 1) : 0;
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(px - 3 * s, py + 4 * s, 6 * s, 2 * s);
-    // legs
-    ctx.fillStyle = '#4a3b2a';
-    ctx.fillRect(px - 2 * s, py + 2 * s + bob * s, 2 * s, 3 * s);
-    ctx.fillRect(px + 1 * s, py + 2 * s - bob * s, 2 * s, 3 * s);
-    // body
-    ctx.fillStyle = v.color;
-    ctx.fillRect(px - 3 * s, py - 3 * s, 6 * s, 6 * s);
-    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(px - 3 * s, py - 3 * s, 6 * s, 1 * s);
-    // head
-    ctx.fillStyle = C.skin;
-    ctx.fillRect(px - 2 * s, py - 7 * s, 4 * s, 4 * s);
-    // hair
-    ctx.fillStyle = '#5a3d29'; ctx.fillRect(px - 2 * s, py - 7 * s, 4 * s, 1.5 * s);
+    const moving = v.path && v.path.length > 0;
+    const frame = moving ? (Math.floor((v.x + v.y) / 3) % 2 === 0 ? 1 : 2) : 0;
+    const spr = villagerSprite(v.color, frame);
+    const W = spr.width, H = spr.height;
+    const px = sx + v.x * z, py = sy + v.y * z;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.ellipse(px, py + 2 * z, 3.2 * z, 1.6 * z, 0, 0, 7); ctx.fill();
+    ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
   }
 
   function drawDayNight() {
     // 0..24 → tint. Warm dawn/dusk, deep-blue night, clear day.
     const h = state.time;
-    let a = 0, col = '10,18,40';
-    if (h < 5) a = 0.5;
-    else if (h < 7) { a = 0.5 * (1 - (h - 5) / 2); col = '60,40,70'; }
+    let a = 0, col = '24,32,64';
+    if (h < 5) a = 0.4;
+    else if (h < 7) { a = 0.4 * (1 - (h - 5) / 2); col = '70,52,80'; }
     else if (h < 17) a = 0;
-    else if (h < 20) { a = 0.35 * ((h - 17) / 3); col = '80,45,30'; }
-    else if (h < 22) { a = 0.35 + 0.15 * ((h - 20) / 2); col = '30,25,55'; }
-    else a = 0.5;
+    else if (h < 20) { a = 0.28 * ((h - 17) / 3); col = '96,58,34'; }
+    else if (h < 22) { a = 0.28 + 0.12 * ((h - 20) / 2); col = '40,36,66'; }
+    else a = 0.4;
     if (a > 0.001) {
       ctx.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
       ctx.fillRect(0, 0, view.w, view.h);
@@ -955,10 +1189,7 @@
     document.getElementById('r-day').textContent = state.day;
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
-    ['wood', 'stone', 'food', 'gold'].forEach(k => {
-      const el = document.querySelector('.res.' + k);
-      if (prodFlashTimer[k] > 0 && el) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 500); prodFlashTimer[k] = 0; }
-    });
+    // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
   function buildBar() {
@@ -1245,8 +1476,6 @@
 
   function stepSim(dt) {
     keyboardPan(dt);
-    // water shimmer
-    waterTimer += dt; if (waterTimer > 0.6) { waterTimer = 0; waterFrame ^= 1; }
     advanceTimeSafe(dt);
     // villagers
     for (const v of state.villagers) villagerTick(v, dt);
