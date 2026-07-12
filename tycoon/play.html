@@ -3239,6 +3239,10 @@ const ROOM_MODES = {
       'bdr-corner': {
         label: '📞 Sales Corner',
         desks: [{x:20,z:-3, role:'bdr'}, {x:20,z:3, role:'bdr'}],
+        // Promoted automatically by the Sales Floor's onEnter — no
+        // manual convert button (autoOnly) and no cost (auto skips it).
+        nextMode: 'ae-office',
+        autoOnly: true,
       },
       'ae-office': {
         label: '💼 AE Office',
@@ -3440,7 +3444,7 @@ function renderRoomPanel() {
   // Conversion options on owned rooms that have a next mode
   for (const roomId of ownedRooms) {
     const cur = currentModeOf(roomId);
-    if (!cur || !cur.nextMode) continue;
+    if (!cur || !cur.nextMode || cur.autoOnly) continue;
     const cfg = ROOM_MODES[roomId];
     const next = cfg.modes[cur.nextMode];
     const reqMet = !cur.nextReq || cur.nextReq();
