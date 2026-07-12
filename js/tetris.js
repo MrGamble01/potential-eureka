@@ -240,6 +240,7 @@ const TetrisGame = (() => {
       drawPreview(nextCtx, next);
     }
     drawPreview(holdCtx, held);
+    if (collides(current.shape, current.x, current.y)) endGame();
     draw();
   }
 
