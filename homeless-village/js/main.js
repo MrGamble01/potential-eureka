@@ -10,8 +10,24 @@ resumeCrafts();
 updateHUD();
 log('Another day under the bridge. Same as always.');
 
+// The next frame used to be scheduled BEFORE the body ran, so any
+// per-frame exception (e.g. the three.js CDN failing → camera
+// undefined) repeated at 60fps forever over a black canvas. Schedule
+// at the end instead, tolerate a few transient errors, then stop the
+// loop and surface the failure.
+var frameErrors=0;
 function gameLoop(ts){
+  try{ frame(ts); }
+  catch(e){
+    if(++frameErrors>10){
+      if(typeof hvFatal==='function') hvFatal('The game hit a fatal error and stopped. Reload to continue.');
+      return; // stop re-arming — no more error storm
+    }
+  }
   requestAnimationFrame(gameLoop);
+}
+
+function frame(ts){
   var dt=Math.min(ts-lastTime,100);
   lastTime=ts;
 

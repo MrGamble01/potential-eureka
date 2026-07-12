@@ -84,7 +84,22 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Shown when the 3D engine fails to load or the game loop crashes —
+// without this the page was a silent black canvas (and, pre-fix, an
+// endless per-frame exception storm). Vendoring three.js itself is
+// tracked separately (SITE-1); this only makes failure visible.
+function hvFatal(msg){
+  if(document.getElementById('hv-fatal')) return;
+  var d=document.createElement('div');
+  d.id='hv-fatal';
+  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,6,8,.94);color:#d8cbb0;font-family:monospace;text-align:center;padding:24px;';
+  d.innerHTML='<div style="font-size:34px">🌉</div><div style="max-width:420px;line-height:1.6">'+msg+'</div><button onclick="location.reload()" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">RELOAD</button>';
+  document.body.appendChild(d);
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+        onerror="hvFatal('Couldn\'t load the 3D engine (three.js). Check your connection and reload.')"></script>
 <script src="homeless-village/js/config.js"></script>
 <script src="homeless-village/js/save.js"></script>
 <script src="homeless-village/js/scene.js"></script>
