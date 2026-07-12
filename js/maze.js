@@ -9,6 +9,7 @@ const MazeGame = (() => {
   let grid;        // 2D array: 0=path, 1=wall
   let solving = false;
   let animFrameId = null;
+  let solveRun = 0; // monotonic token — invalidates stale solve coroutines
 
   function init() {
     canvas = document.getElementById('maze-canvas');
@@ -67,6 +68,11 @@ const MazeGame = (() => {
   async function solve(algorithm) {
     if (solving) return;
     solving = true;
+    // Every run gets its own token. A stale coroutine (from a solve that was
+    // superseded by a regenerate or another solve) compares its captured
+    // token against the current one at each yield and bails instead of
+    // going on to corrupt the new run's canvas/status.
+    const myRun = ++solveRun;
 
     // Reset visited/solution display
     const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
@@ -80,12 +86,17 @@ const MazeGame = (() => {
     updateStatus(`Solving with ${algorithm.toUpperCase()}...`);
 
     if (algorithm === 'bfs') {
-      found = await solveBFS(startR, startC, endR, endC, visited, parent);
+      found = await solveBFS(myRun, startR, startC, endR, endC, visited, parent);
     } else if (algorithm === 'dfs') {
-      found = await solveDFS(startR, startC, endR, endC, visited, parent);
+      found = await solveDFS(myRun, startR, startC, endR, endC, visited, parent);
     } else if (algorithm === 'astar') {
-      found = await solveAStar(startR, startC, endR, endC, visited, parent);
+      found = await solveAStar(myRun, startR, startC, endR, endC, visited, parent);
     }
+
+    // Superseded by a newer run (regenerate or another solve) — leave the
+    // shared `solving`/status state alone; whoever holds the current token
+    // owns it.
+    if (myRun !== solveRun) return;
 
     if (found) {
       // Trace solution path
@@ -96,18 +107,17 @@ const MazeGame = (() => {
         cur = parent[cur[0]][cur[1]];
       }
       path.reverse();
-      await animateSolution(path, visited);
+      await animateSolution(myRun, path, visited);
+      if (myRun !== solveRun) return;
       updateStatus(`Solved with ${algorithm.toUpperCase()}! Path length: ${path.length}`);
-    } else if (solving) {
-      // Only a genuine no-path result — not a solve that was cancelled by
-      // regenerating the maze mid-run — should show the failure message.
+    } else {
       updateStatus('No solution found (this shouldn\'t happen!)');
     }
 
     solving = false;
   }
 
-  async function solveBFS(sr, sc, er, ec, visited, parent) {
+  async function solveBFS(myRun, sr, sc, er, ec, visited, parent) {
     const queue = [[sr, sc]];
     visited[sr][sc] = true;
     const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
@@ -131,13 +141,13 @@ const MazeGame = (() => {
       if (steps % 4 === 0) {
         drawWithVisited(visited, []);
         await delay(10);
-        if (!solving) return false;
+        if (myRun !== solveRun) return false;
       }
     }
     return false;
   }
 
-  async function solveDFS(sr, sc, er, ec, visited, parent) {
+  async function solveDFS(myRun, sr, sc, er, ec, visited, parent) {
     const stack = [[sr, sc]];
     visited[sr][sc] = true;
     const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
@@ -161,13 +171,13 @@ const MazeGame = (() => {
       if (steps % 3 === 0) {
         drawWithVisited(visited, []);
         await delay(10);
-        if (!solving) return false;
+        if (myRun !== solveRun) return false;
       }
     }
     return false;
   }
 
-  async function solveAStar(sr, sc, er, ec, visited, parent) {
+  async function solveAStar(myRun, sr, sc, er, ec, visited, parent) {
     const heuristic = (r, c) => Math.abs(r - er) + Math.abs(c - ec);
     const gScore = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
     gScore[sr][sc] = 0;
@@ -201,17 +211,17 @@ const MazeGame = (() => {
       if (steps % 4 === 0) {
         drawWithVisited(visited, []);
         await delay(10);
-        if (!solving) return false;
+        if (myRun !== solveRun) return false;
       }
     }
     return false;
   }
 
-  async function animateSolution(path, visited) {
+  async function animateSolution(myRun, path, visited) {
     for (let i = 0; i < path.length; i++) {
       drawWithVisited(visited, path.slice(0, i + 1));
       await delay(15);
-      if (!solving) return;
+      if (myRun !== solveRun) return;
     }
   }
 
@@ -269,6 +279,7 @@ const MazeGame = (() => {
 
   function cancelAnimation() {
     solving = false;
+    solveRun++; // invalidate any in-flight solve coroutine
   }
 
   function updateStatus(msg) {
