@@ -315,7 +315,14 @@ const SnakeGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
-    running = false;
+    // Shell re-inits a view only once and won't redraw on return — reset
+    // state and paint the idle start screen now so returning doesn't show
+    // a frozen mid-game frame.
+    running = false; gameOver = false;
+    snake = [];
+    bonusFood = null;
+    const ov = document.getElementById('snake-overlay'); if (ov) ov.style.display = 'none';
+    draw();
   }
 
   return { init, start, destroy, toggleWallWrap };
