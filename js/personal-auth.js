@@ -1,5 +1,13 @@
 /* ============================================
-   PERSONAL AUTH — PIN gate
+   PERSONAL AUTH — casual PIN screen-lock.
+   NOT security: the code is stored as a weak
+   32-bit hash and the journal/mood/habit data in
+   localStorage is unencrypted. This gate only
+   hides the view from shoulder-surfers — anyone
+   with device access can read the data directly.
+   If real protection is ever wanted, encrypt the
+   payloads with WebCrypto (PBKDF2 → AES-GCM)
+   keyed off the PIN instead of gating display.
    ============================================ */
 
 const PersonalAuth = (() => {

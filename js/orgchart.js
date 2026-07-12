@@ -1,6 +1,6 @@
 /* ============================================
-   ORG CHART — Interactive spider-web visualization
-   Real account-management org as of May 2026.
+   STUDIO CREW — Interactive spider-web visualization
+   The (entirely fictional) EUREKA GAMES dev team.
    Click a person to see their current projects.
    ============================================ */
 
@@ -9,130 +9,130 @@ const OrgChart = (() => {
   // status: 'active' (named project) | 'proposed' (italicized TBD suggestion) | 'ownership' (day-to-day scope)
   const PEOPLE = [
     {
-      id: 'matthew', name: 'Matthew Gamble', role: 'Head of Account Management',
+      id: 'vex', name: 'Vex Pixelheart', role: 'Studio Director',
       pod: 'root', parent: null,
       tasks: [
-        { title: 'Org design & pod leadership', status: 'ownership',
-          detail: 'Oversees Steven, Bryce, and Sara\'s pods across AM, OS, and CM.' },
-        { title: 'Confirming named-project model', status: 'proposed',
-          detail: 'Open question: does each pod need exactly one named project per person, or are some ICs intentionally focused only on book-of-business work?' },
+        { title: 'Studio vision & pod leadership', status: 'ownership',
+          detail: 'Oversees Glitch, Nova, and Byte\'s pods across design, engineering, and QA.' },
+        { title: 'Greenlighting the next cabinet', status: 'proposed',
+          detail: 'Open question: does the arcade need another puzzle game, or is it finally time for the rhythm game nobody asked for?' },
       ],
     },
 
-    // ---- Steven's pod (AMs) ----
+    // ---- Glitch's pod (Game Design) ----
     {
-      id: 'steven', name: 'Steven', role: 'Lead AM',
-      pod: 'steven', parent: 'matthew',
+      id: 'glitch', name: 'Glitch Ramirez', role: 'Lead Designer',
+      pod: 'glitch', parent: 'vex',
       tasks: [
-        { title: 'Commission structure', status: 'active',
-          detail: 'Owns the AM-facing comp model.' },
+        { title: 'Difficulty curves', status: 'active',
+          detail: 'Owns the "hard but fair" doctrine across every cabinet.' },
       ],
     },
     {
-      id: 'musarrat', name: 'Musarrat', role: 'AM',
-      pod: 'steven', parent: 'steven',
+      id: 'penny', name: 'Penny Pixels', role: 'Level Designer',
+      pod: 'glitch', parent: 'glitch',
       tasks: [
-        { title: 'AM SOPs & PM-facing documentation', status: 'active',
-          detail: 'Building the playbooks the team and PMs use day-to-day.' },
+        { title: 'Design SOPs & playtest scripts', status: 'active',
+          detail: 'Building the playbooks the team uses for every playtest night.' },
       ],
     },
     {
-      id: 'kashvi', name: 'Kashvi', role: 'AM',
-      pod: 'steven', parent: 'steven',
+      id: 'moxie', name: 'Moxie Sprite', role: 'Systems Designer',
+      pod: 'glitch', parent: 'glitch',
       tasks: [
-        { title: 'Product knowledge & upsell talk tracks', status: 'active',
-          detail: 'Owning the cross-sell motion for Pet Damage Waiver, SDA, and the Resident Kit.' },
+        { title: 'Economy & progression tuning', status: 'active',
+          detail: 'Owning the balance pass for Tycoon prestige, Age of War relics, and the coin economy.' },
       ],
     },
     {
-      id: 'walt', name: 'Walt', role: 'AM',
-      pod: 'steven', parent: 'steven',
+      id: 'wombat', name: 'Wombat Jones', role: 'Narrative Designer',
+      pod: 'glitch', parent: 'glitch',
       tasks: [
-        { title: 'Renewal motion / churn diagnostics', status: 'proposed',
+        { title: 'Lore bible / flavor-text audit', status: 'proposed',
           detail: 'Project TBD — starting point, not an assignment.' },
       ],
     },
     {
-      id: 'john', name: 'John', role: 'AM',
-      pod: 'steven', parent: 'steven',
+      id: 'juniper', name: 'Juniper Blit', role: 'UX Designer',
+      pod: 'glitch', parent: 'glitch',
       tasks: [
-        { title: 'PMS-specific playbook', status: 'proposed',
-          detail: 'Project TBD — e.g. Yardi or RealPage. Starting point, not an assignment.' },
+        { title: 'Cabinet-chrome style guide', status: 'proposed',
+          detail: 'Project TBD — e.g. unified back buttons or the mute toggle. Starting point, not an assignment.' },
       ],
     },
 
-    // ---- Bryce's pod (AMs + OS) ----
+    // ---- Nova's pod (Engineering) ----
     {
-      id: 'bryce', name: 'Bryce', role: 'Lead AM · OS Lead',
-      pod: 'bryce', parent: 'matthew',
+      id: 'nova', name: 'Nova Kernel', role: 'Lead Engineer · Tools Lead',
+      pod: 'nova', parent: 'vex',
       tasks: [
-        { title: 'Integration & permission guides', status: 'active',
-          detail: 'Wears two hats: leading a half-pod of AMs and owning the onboarding specialist team.' },
+        { title: 'Engine & build guides', status: 'active',
+          detail: 'Wears two hats: leading a half-pod of gameplay engineers and owning the zero-dependency toolchain.' },
       ],
     },
     {
-      id: 'adam', name: 'Adam', role: 'AM',
-      pod: 'bryce', parent: 'bryce',
+      id: 'rasterio', name: 'Rasterio Chen', role: 'Gameplay Engineer',
+      pod: 'nova', parent: 'nova',
       tasks: [
-        { title: 'Named-account expansion', status: 'proposed',
+        { title: 'Canvas performance passes', status: 'proposed',
           detail: 'Project TBD — starting point, not an assignment.' },
       ],
     },
     {
-      id: 'patrick', name: 'Patrick', role: 'AM',
-      pod: 'bryce', parent: 'bryce',
+      id: 'pixel8', name: 'Pixel-8 Petrov', role: 'Gameplay Engineer',
+      pod: 'nova', parent: 'nova',
       tasks: [
-        { title: 'Discovery / pre-launch QBRs', status: 'proposed',
+        { title: 'Physics & collision cleanup', status: 'proposed',
           detail: 'Project TBD — starting point, not an assignment.' },
       ],
     },
     {
-      id: 'arjun', name: 'Arjun', role: 'OS',
-      pod: 'bryce', parent: 'bryce',
+      id: 'lag', name: 'Lag Nakamura', role: 'Tools Engineer',
+      pod: 'nova', parent: 'nova',
       tasks: [
-        { title: 'OS SOPs', status: 'active',
-          detail: 'Owning the onboarding-side playbooks and process documentation.' },
+        { title: 'Tooling SOPs', status: 'active',
+          detail: 'Owning the sprite pipeline and process documentation.' },
       ],
     },
     {
-      id: 'ben', name: 'Ben', role: 'OS',
-      pod: 'bryce', parent: 'bryce',
+      id: 'crash', name: 'Crash Okafor', role: 'Tools Engineer',
+      pod: 'nova', parent: 'nova',
       tasks: [
-        { title: 'PMS data-mapping checklists', status: 'proposed',
+        { title: 'Save-schema migration checklists', status: 'proposed',
           detail: 'Project TBD — starting point, not an assignment.' },
       ],
     },
 
-    // ---- Sara's pod (Backend / Charge Management) ----
+    // ---- Byte's pod (QA / Live Ops) ----
     {
-      id: 'sara', name: 'Sara', role: 'Backend Lead',
-      pod: 'sara', parent: 'matthew',
+      id: 'byte', name: 'Byte Delacroix', role: 'QA Lead',
+      pod: 'byte', parent: 'vex',
       tasks: [
-        { title: 'Backend / OS / charge-management docs & SOPs', status: 'active',
-          detail: 'Sits between AMs and CS as the operational connective tissue.' },
+        { title: 'QA / release / live-ops docs & SOPs', status: 'active',
+          detail: 'Sits between design and engineering as the operational connective tissue.' },
       ],
     },
     {
-      id: 'tom', name: 'Tom', role: 'Lead CM',
-      pod: 'sara', parent: 'sara',
+      id: 'bugsy', name: 'Bugsy Malone', role: 'Lead Tester',
+      pod: 'byte', parent: 'byte',
       tasks: [
-        { title: 'PMS audit automation', status: 'active',
-          detail: 'Audit processes across all PMS. Partnering with Hammond (cross-department) to build a tool that automates the audit once the reports are pulled.' },
+        { title: 'Regression automation', status: 'active',
+          detail: 'Smoke tests across all cabinets. Partnering with a certain beagle (cross-species) to build a tool that plays every game overnight.' },
       ],
     },
     {
-      id: 'paula', name: 'Paula', role: 'CM',
-      pod: 'sara', parent: 'tom',
+      id: 'echo', name: 'Echo Vantablack', role: 'Tester',
+      pod: 'byte', parent: 'bugsy',
       tasks: [
-        { title: 'Claims-side reconciliation', status: 'proposed',
+        { title: 'Speedrun-exploit triage', status: 'proposed',
           detail: 'Project TBD — starting point, not an assignment.' },
       ],
     },
     {
-      id: 'david', name: 'David', role: 'CM',
-      pod: 'sara', parent: 'tom',
+      id: 'zilch', name: 'Zilch Moreno', role: 'Tester',
+      pod: 'byte', parent: 'bugsy',
       tasks: [
-        { title: 'PM billing dispute workflow', status: 'proposed',
+        { title: 'Bug-report intake workflow', status: 'proposed',
           detail: 'Project TBD — starting point, not an assignment.' },
       ],
     },
@@ -140,19 +140,19 @@ const OrgChart = (() => {
 
   // Cross-pod collaboration edges for the spider-web feel (lighter lines).
   const COLLAB = [
-    ['steven', 'bryce'], ['bryce', 'sara'], ['steven', 'sara'],     // pod leads peer ring
-    ['musarrat', 'arjun'],                                          // SOPs across AM + OS
-    ['kashvi', 'adam'], ['kashvi', 'patrick'],                      // cross-sell affects all AMs
-    ['arjun', 'ben'],                                               // OS pair
-    ['tom', 'sara'],                                                // already linear, reinforced
-    ['walt', 'john'], ['paula', 'david'],                           // peer support
+    ['glitch', 'nova'], ['nova', 'byte'], ['glitch', 'byte'],       // pod leads peer ring
+    ['penny', 'lag'],                                               // SOPs across design + tools
+    ['moxie', 'rasterio'], ['moxie', 'pixel8'],                     // balance tuning touches all gameplay code
+    ['lag', 'crash'],                                               // tools pair
+    ['bugsy', 'byte'],                                              // already linear, reinforced
+    ['wombat', 'juniper'], ['echo', 'zilch'],                       // peer support
   ];
 
   const POD_COLORS = {
     root:   '#8B83FF',  // indigo
-    steven: '#58A6FF',  // blue
-    bryce:  '#3FB950',  // green
-    sara:   '#F778BA',  // pink/purple
+    glitch: '#58A6FF',  // blue
+    nova:   '#3FB950',  // green
+    byte:   '#F778BA',  // pink/purple
   };
 
   // ---- State ----
@@ -182,7 +182,7 @@ const OrgChart = (() => {
     resize();
     renderPanel(null);
 
-    // Deep-link: #orgchart=tom selects Tom on load.
+    // Deep-link: #orgchart=bugsy selects Bugsy on load.
     applyHashSelection();
     window.addEventListener('hashchange', applyHashSelection);
 
@@ -225,7 +225,7 @@ const OrgChart = (() => {
     nodes = PEOPLE.map(p => ({
       ...p,
       x: 0, y: 0, vx: 0, vy: 0,
-      r: p.id === 'matthew' ? 28 : (p.parent === 'matthew' || p.id === 'tom' ? 22 : 18),
+      r: p.id === 'vex' ? 28 : (p.parent === 'vex' || p.id === 'bugsy' ? 22 : 18),
     }));
     const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
     edges = [];
@@ -241,10 +241,10 @@ const OrgChart = (() => {
 
   function seedLayout() {
     // Radial seed: Matthew at center, pod leads on inner ring, ICs on outer arcs.
-    const root = nodes.find(n => n.id === 'matthew');
+    const root = nodes.find(n => n.id === 'vex');
     root.x = 0; root.y = 0;
 
-    const podLeads = nodes.filter(n => n.parent === 'matthew');
+    const podLeads = nodes.filter(n => n.parent === 'vex');
     const ringInner = 170;
     podLeads.forEach((n, i) => {
       const angle = (-Math.PI / 2) + (i / podLeads.length) * Math.PI * 2;
@@ -444,7 +444,7 @@ const OrgChart = (() => {
 
     // Mild pull toward origin so the graph doesn't drift off-screen.
     for (const n of nodes) {
-      if (n.id === 'matthew') {
+      if (n.id === 'vex') {
         // Pin Matthew softly to center.
         n.vx += (cx - n.x) * 0.05;
         n.vy += (cy - n.y) * 0.05;
@@ -567,7 +567,7 @@ const OrgChart = (() => {
 
       // Initials
       ctx.fillStyle = '#E6EDF3';
-      ctx.font = `600 ${n.id === 'matthew' ? 13 : 11}px 'JetBrains Mono', monospace`;
+      ctx.font = `600 ${n.id === 'vex' ? 13 : 11}px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(initials(n.name), n.x, n.y);
@@ -576,7 +576,7 @@ const OrgChart = (() => {
       ctx.fillStyle = isSel ? '#E6EDF3' : '#9aa3ad';
       ctx.font = `${isSel ? 600 : 500} 11px 'Inter', sans-serif`;
       ctx.fillText(n.name.split(' ')[0], n.x, n.y + r + 14);
-      if (isSel || isHov || n.id === 'matthew') {
+      if (isSel || isHov || n.id === 'vex') {
         ctx.fillStyle = '#7D8590';
         ctx.font = `500 10px 'JetBrains Mono', monospace`;
         ctx.fillText(n.role, n.x, n.y + r + 28);
@@ -627,19 +627,19 @@ const OrgChart = (() => {
             <div class="org-task-header">
               <span class="org-task-title">Italicized projects are starting points, not assignments</span>
             </div>
-            <div class="org-task-meta"><span>Most ICs don't have a named project yet</span></div>
+            <div class="org-task-meta"><span>Most of the crew doesn't have a named project yet</span></div>
           </div>
           <div class="org-task status-review">
             <div class="org-task-header">
-              <span class="org-task-title">One named project per IC?</span>
+              <span class="org-task-title">One named project per dev?</span>
             </div>
-            <div class="org-task-meta"><span>Or are some ICs intentionally focused only on book-of-business work?</span></div>
+            <div class="org-task-meta"><span>Or are some intentionally focused only on keeping the cabinets running?</span></div>
           </div>
           <div class="org-task status-done">
             <div class="org-task-header">
-              <span class="org-task-title">Hammond removed from this roster</span>
+              <span class="org-task-title">The beagle removed from this roster</span>
             </div>
-            <div class="org-task-meta"><span>Sits in another department but supports NPS work</span></div>
+            <div class="org-task-meta"><span>Sits in another department but supports morale work</span></div>
           </div>
         </div>
       `;
@@ -650,10 +650,10 @@ const OrgChart = (() => {
     if (!p) return;
     const color = POD_COLORS[p.pod];
     const podLabel = ({
-      root: 'Org Head',
-      steven: "Steven's pod — AMs",
-      bryce: "Bryce's pod — AMs + OS",
-      sara: "Sara's pod — Backend / CM",
+      root: 'Studio Director',
+      glitch: "Glitch's pod — Game Design",
+      nova: "Nova's pod — Engineering",
+      byte: "Byte's pod — QA / Live Ops",
     })[p.pod];
 
     const taskHtml = p.tasks.map(t => {

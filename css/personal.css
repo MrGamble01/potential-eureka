@@ -97,6 +97,14 @@
   font-family: var(--font-mono);
 }
 
+.lock-disclosure {
+  margin-top: 10px;
+  max-width: 320px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
 .lock-ok {
   color: var(--success);
   text-shadow: 0 0 12px rgba(63, 185, 80, 0.35);

@@ -37,7 +37,7 @@
   <div class="nav-utils" id="nav-utils">
     <button data-view="dashboard">Dashboard</button>
     <button data-view="productivity">Productivity</button>
-    <button data-view="orgchart">My Org Chart</button>
+    <button data-view="orgchart">Studio Crew</button>
     <button data-view="personal" class="nav-locked">Personal</button>
     <div class="nav-utils-divider">toys</div>
     <button data-view="maze">Maze Solver</button>
@@ -336,8 +336,8 @@
   <section id="view-orgchart" class="view">
     <div class="orgchart-container">
       <div class="orgchart-header">
-        <div class="orgchart-title">My Org Chart</div>
-        <div class="orgchart-subtitle">Account management org · May 2026 · click a node for projects</div>
+        <div class="orgchart-title">Studio Crew</div>
+        <div class="orgchart-subtitle">The (fictional) EUREKA GAMES team · click a node for projects</div>
       </div>
       <div class="orgchart-toolbar">
         <input type="text" id="orgchart-search" class="orgchart-search" placeholder="Search by name… (Enter to select, Esc to clear)" autocomplete="off">
@@ -383,13 +383,14 @@
         <input type="password" id="lock-input" class="lock-input" maxlength="20" placeholder="••••••">
         <button class="primary lock-btn" id="lock-btn" onclick="Personal.submitPin()">ACCESS</button>
         <div class="lock-status" id="lock-status"></div>
+        <div class="lock-disclosure">Casual screen lock only — entries are stored unencrypted in this browser, and this code won't stop anyone with access to this device.</div>
       </div>
     </div>
 
     <!-- Content (hidden until auth) -->
     <div id="personal-content" class="personal-content" style="display:none">
       <div class="personal-header">
-        <span>PRIVATE TERMINAL — AUTHORIZED</span>
+        <span>PERSONAL TERMINAL — SCREEN UNLOCKED</span>
         <button class="lock-out-btn" onclick="Personal.lock()">Lock</button>
       </div>
       <div class="dashboard-grid">
