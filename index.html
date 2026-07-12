@@ -801,6 +801,7 @@
         }
       }
       if (name === 'halloffame') renderHallOfFame();
+      if (name === 'arcade') refreshArcadeBadges();
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
       setTimeout(() => Effects.init3DTilt(), 50);
@@ -857,6 +858,7 @@
       if (!confirm('Clear all your high scores and game saves? This can’t be undone.')) return;
       HOF_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch {} });
       renderHallOfFame();
+      refreshArcadeBadges();
     });
 
     navButtons.forEach(btn => {
@@ -882,7 +884,7 @@
     });
 
     // Cabinet high-score / best-stat badges — read each game's own localStorage.
-    (() => {
+    function refreshArcadeBadges() {
       const fmtMoney = n => { n = +n || 0; return n >= 1000 ? '$' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : '$' + n; };
       const readJSON = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
       const num = k => { const v = parseInt(localStorage.getItem(k) || '0', 10); return isNaN(v) ? 0 : v; };
@@ -901,9 +903,11 @@
         const fn = HI[el.dataset.hi];
         if (!fn) return;
         const txt = fn();
-        if (txt) { el.textContent = txt; el.style.display = 'block'; }
+        el.textContent = txt;
+        el.style.display = txt ? 'block' : 'none';
       });
-    })();
+    }
+    refreshArcadeBadges();
 
     // Tetris touch pad — buttons dispatch the same key events the keyboard uses.
     (() => {
