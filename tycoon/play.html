@@ -5842,8 +5842,8 @@ const ACHIEVEMENTS = [
   { id: 'greet_investor',icon: '🤝', title: 'Networker',           desc: 'Greet your first investor.',              check: () => Object.values(investorAffinity).some(v => v > 0) },
   { id: 'convert_room',  icon: '⚡', title: 'Remodel',              desc: 'Convert a room into a different mode.',   check: () => Object.keys(roomModes).some(k => roomModes[k] !== (ROOM_MODES[k]?.initial || 'shared')) },
   { id: 'full_floor',    icon: '🏢', title: 'Full Floor',           desc: 'Own every room on the starter floor.',   check: () => ownedRooms.size >= ROOM_DEFS.length, progress: () => [ownedRooms.size, ROOM_DEFS.length] },
-  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.allTimeCash >= 50000, progress: () => [Math.min(state.allTimeCash, 50000), 50000], fmt: 'cash' },
-  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.allTimeCash >= 1000000, progress: () => [Math.min(state.allTimeCash, 1000000), 1000000], fmt: 'cash' },
+  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.lifetimeCash >= 50000, progress: () => [Math.min(state.lifetimeCash, 50000), 50000], fmt: 'cash' },
+  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.lifetimeCash >= 1000000, progress: () => [Math.min(state.lifetimeCash, 1000000), 1000000], fmt: 'cash' },
   { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1, progress: () => [Math.min(trophiesWon, 1), 1] },
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
@@ -6176,7 +6176,7 @@ function triggerWin(cumulative) {
   winStatsEl.innerHTML = `
     <div class="row"><span>Season revenue</span><strong>$${fmtCash(cumulative)}</strong></div>
     <div class="row"><span>Peak rate</span><strong>$${fmtCash(currentRatePerMin())}/min</strong></div>
-    <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.allTimeCash)}</strong></div>
+    <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.lifetimeCash)}</strong></div>
     <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
     <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
     <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
@@ -6583,7 +6583,7 @@ function raiseFunding() {
 }
 
 // ── Cash state ──
-const state = { cash: 0, allTimeCash: 0 };
+const state = { cash: 0, allTimeCash: 0, lifetimeCash: 0 };
 const cashValEl = document.getElementById('cash-val');
 
 // ── Investor Check-ins ──────────────────────────────────────
@@ -7089,6 +7089,7 @@ function addCash(n, source = 'eng') {
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
+    state.lifetimeCash += n;      // never reset (allTimeCash zeroes each IPO)
     if (source in incomeBySource) incomeBySource[source] += n;
     showCashPop(n, source);
     checkMilestones();
@@ -8593,6 +8594,7 @@ function saveGame() {
       v: 7,
       cash: state.cash,
       allTimeCash: state.allTimeCash,
+      lifetimeCash: state.lifetimeCash,
       upgrades: upgLevels,
       unlocked,
       ideaWorkers: ideaWorkers.length,
@@ -8642,6 +8644,9 @@ function loadGame() {
     const p = JSON.parse(raw);
     state.cash = p.cash || 0;
     state.allTimeCash = p.allTimeCash || 0;
+    // Migration: old saves have no lifetimeCash — seed it from the
+    // season total (best available lower bound).
+    state.lifetimeCash = Number.isFinite(p.lifetimeCash) ? p.lifetimeCash : (p.allTimeCash || 0);
     // Offline earnings: award 25% of theoretical revenue while away (max 4hr)
     if (p.savedAt) {
       const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
@@ -8653,6 +8658,7 @@ function loadGame() {
         if (offlineEarned > 0) {
           state.cash += offlineEarned;
           state.allTimeCash += offlineEarned;
+          state.lifetimeCash += offlineEarned;
           // Defer to after init so the modal markup exists in the DOM.
           _pendingOfflineEarnings = { amount: offlineEarned, seconds: awaySec };
         }

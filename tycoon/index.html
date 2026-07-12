@@ -444,7 +444,7 @@
         if (!raw) return;
         const save = JSON.parse(raw);
         const num = v => { const n = Number(v || 0); return Number.isFinite(n) ? n : 0; };
-        const cash      = num(save.allTimeCash || save.cash);
+        const cash      = num(save.lifetimeCash || save.allTimeCash || save.cash);
         const trophies  = num(save.trophiesWon);
         const ipos      = num(save.prestigeLevel);
         if (!cash && !trophies && !ipos) return;
