@@ -1918,6 +1918,15 @@ const LS = {
   haptics:       'hapticsEnabled',
 };
 
+// Storage access can throw (Safari private mode, storage-blocked
+// iframes, disabled site data). A throw at module top level would
+// abort the whole script before the game loop ever starts, so every
+// settings read/write goes through these wrappers and falls back to
+// defaults instead.
+function lsGet(key)      { try { return localStorage.getItem(key); } catch { return null; } }
+function lsSet(key, val) { try { localStorage.setItem(key, val); } catch {} }
+function lsRemove(key)   { try { localStorage.removeItem(key); } catch {} }
+
 // ── Haptics (Vibration API) ─────────────────────────────────
 // Tactile feedback on touch devices that support navigator.vibrate.
 // Silently no-ops on iOS/desktop. Toggle in settings.
@@ -3230,6 +3239,10 @@ const ROOM_MODES = {
       'bdr-corner': {
         label: '📞 Sales Corner',
         desks: [{x:20,z:-3, role:'bdr'}, {x:20,z:3, role:'bdr'}],
+        // Promoted automatically by the Sales Floor's onEnter — no
+        // manual convert button (autoOnly) and no cost (auto skips it).
+        nextMode: 'ae-office',
+        autoOnly: true,
       },
       'ae-office': {
         label: '💼 AE Office',
@@ -3431,7 +3444,7 @@ function renderRoomPanel() {
   // Conversion options on owned rooms that have a next mode
   for (const roomId of ownedRooms) {
     const cur = currentModeOf(roomId);
-    if (!cur || !cur.nextMode) continue;
+    if (!cur || !cur.nextMode || cur.autoOnly) continue;
     const cfg = ROOM_MODES[roomId];
     const next = cfg.modes[cur.nextMode];
     const reqMet = !cur.nextReq || cur.nextReq();
@@ -4685,8 +4698,12 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
   // Clamp Z axis
   if (nz < minZ && !isOwnedGrid(cgx, cgz - 1)) nz = minZ;
   if (nz > maxZ && !isOwnedGrid(cgx, cgz + 1)) {
-    // Door gap: starter room ↔ front room, centered, 3 units wide
-    const hasDoor = (cgx === 0 && cgz === 0) || (cgx === 0 && cgz === 1);
+    // Door gap: starter room → front room, centered, 3 units wide.
+    // Only passable from the starter cell AND only once 'front' is
+    // owned — otherwise it defeats the purchase gate, and matching
+    // the front cell (0,1) here let characters walk out through the
+    // front room's exterior north wall into the void.
+    const hasDoor = cgx === 0 && cgz === 0 && ownedRooms.has('front');
     if (hasDoor && Math.abs(nx - roomCx) < 1.5) {
       // allow through
     } else {
@@ -4704,7 +4721,7 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
     if (nx > r2cx + H - PAD && !isOwnedGrid(ngx2 + 1, ngz2)) nx = r2cx + H - PAD;
     if (nz < r2cz - H + PAD && !isOwnedGrid(ngx2, ngz2 - 1)) nz = r2cz - H + PAD;
     if (nz > r2cz + H - PAD && !isOwnedGrid(ngx2, ngz2 + 1)) {
-      const hasDoor2 = (ngx2 === 0 && ngz2 === 0) || (ngx2 === 0 && ngz2 === 1);
+      const hasDoor2 = ngx2 === 0 && ngz2 === 0 && ownedRooms.has('front');
       if (hasDoor2 && Math.abs(nx - r2cx) < 1.5) { /* door */ }
       else nz = r2cz + H - PAD;
     }
@@ -5610,9 +5627,12 @@ let featurePrice = CONFIG.featurePriceBase;
 // Enterprise upgrade, and temporary boosts (Demo Day, Award, Corp Dev);
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
-  return Math.round(
+  const v = Math.round(
     featurePrice * dealValueMult * productVersionMult * paperBoost * pingPongBoost
   );
+  // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
+  // one NaN deal would poison state.cash permanently via addCash.
+  return Number.isFinite(v) ? v : 8;
 }
 
 const DEAL_MSGS = [
@@ -5826,8 +5846,8 @@ const ACHIEVEMENTS = [
   { id: 'greet_investor',icon: '🤝', title: 'Networker',           desc: 'Greet your first investor.',              check: () => Object.values(investorAffinity).some(v => v > 0) },
   { id: 'convert_room',  icon: '⚡', title: 'Remodel',              desc: 'Convert a room into a different mode.',   check: () => Object.keys(roomModes).some(k => roomModes[k] !== (ROOM_MODES[k]?.initial || 'shared')) },
   { id: 'full_floor',    icon: '🏢', title: 'Full Floor',           desc: 'Own every room on the starter floor.',   check: () => ownedRooms.size >= ROOM_DEFS.length, progress: () => [ownedRooms.size, ROOM_DEFS.length] },
-  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.allTimeCash >= 50000, progress: () => [Math.min(state.allTimeCash, 50000), 50000], fmt: 'cash' },
-  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.allTimeCash >= 1000000, progress: () => [Math.min(state.allTimeCash, 1000000), 1000000], fmt: 'cash' },
+  { id: 'hit_50k',       icon: '💵', title: 'Bootstrap',            desc: 'Earn $50k total.',                       check: () => state.lifetimeCash >= 50000, progress: () => [Math.min(state.lifetimeCash, 50000), 50000], fmt: 'cash' },
+  { id: 'hit_1m_total',  icon: '💰', title: 'Million Earned',       desc: 'Earn $1M total across seasons.',         check: () => state.lifetimeCash >= 1000000, progress: () => [Math.min(state.lifetimeCash, 1000000), 1000000], fmt: 'cash' },
   { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1, progress: () => [Math.min(trophiesWon, 1), 1] },
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
@@ -6160,11 +6180,11 @@ function triggerWin(cumulative) {
   winStatsEl.innerHTML = `
     <div class="row"><span>Season revenue</span><strong>$${fmtCash(cumulative)}</strong></div>
     <div class="row"><span>Peak rate</span><strong>$${fmtCash(currentRatePerMin())}/min</strong></div>
-    <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.allTimeCash)}</strong></div>
+    <div class="row"><span>All-time cash</span><strong>$${fmtCash(state.lifetimeCash)}</strong></div>
     <div class="row"><span>Features shipped</span><strong>${fmtCash(totalFeaturesShipped)}</strong></div>
     <div class="row"><span>Users</span><strong>${fmtCash(totalUsers)}</strong></div>
     <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
-    <div class="row"><span>Time to goal</span><strong>${m}:${s.toString().padStart(2,'0')}${pbBadge}</strong></div>
+    <div class="row"><span>Time to goal</span><strong>${formatTime(elapsed)}${pbBadge}</strong></div>
     <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
     <div class="row"><span>Next season</span><strong>S${prestigeLevel + 2} · ${seasonTitle(prestigeLevel + 1)}</strong></div>
     <div class="row"><span>The deal</span><strong style="color:#7D8590;font-weight:600">🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
@@ -6567,7 +6587,7 @@ function raiseFunding() {
 }
 
 // ── Cash state ──
-const state = { cash: 0, allTimeCash: 0 };
+const state = { cash: 0, allTimeCash: 0, lifetimeCash: 0 };
 const cashValEl = document.getElementById('cash-val');
 
 // ── Investor Check-ins ──────────────────────────────────────
@@ -7069,9 +7089,11 @@ function renderNextAction() {
   nextActionCardEl.style.opacity = rec.action ? '1' : '0.7';
 }
 function addCash(n, source = 'eng') {
+  if (!Number.isFinite(n)) return; // a single NaN/Infinity would stick to state.cash forever
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
+    state.lifetimeCash += n;      // never reset (allTimeCash zeroes each IPO)
     if (source in incomeBySource) incomeBySource[source] += n;
     showCashPop(n, source);
     checkMilestones();
@@ -7837,10 +7859,10 @@ const JOY_MAX = 46;
 function setJoystickEnabled(on) {
   joyEl.classList.toggle('visible', on);
   joyToggleEl.checked = on;
-  localStorage.setItem(LS.joystick, on ? '1' : '0');
+  lsSet(LS.joystick, on ? '1' : '0');
   if (!on) { joyDx = 0; joyDz = 0; joyKnobEl.style.transform = ''; joyPointerId = null; }
 }
-setJoystickEnabled(localStorage.getItem(LS.joystick) === '1');
+setJoystickEnabled(lsGet(LS.joystick) === '1');
 joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.checked));
 
 // SFX toggle (default ON; uses Web Audio API). First click in the
@@ -7910,10 +7932,10 @@ const moraleToggleEl = document.getElementById('morale-enabled');
 function setMoraleEnabled(on) {
   moraleEnabled = !!on;
   moraleToggleEl.checked = moraleEnabled;
-  localStorage.setItem(LS.morale, moraleEnabled ? '1' : '0');
+  lsSet(LS.morale, moraleEnabled ? '1' : '0');
   updateMetricsHUD();
 }
-const savedMorale = localStorage.getItem(LS.morale);
+const savedMorale = lsGet(LS.morale);
 setMoraleEnabled(savedMorale === null ? true : savedMorale === '1');
 moraleToggleEl.addEventListener('change', () => setMoraleEnabled(moraleToggleEl.checked));
 
@@ -7922,13 +7944,13 @@ const investorToggleEl = document.getElementById('investor-enabled');
 function setInvestorEnabled(on) {
   investorEnabled = !!on;
   investorToggleEl.checked = investorEnabled;
-  localStorage.setItem(LS.investor, investorEnabled ? '1' : '0');
+  lsSet(LS.investor, investorEnabled ? '1' : '0');
   if (!investorEnabled) {
     for (const inv of investors) scene.remove(inv.group);
     investors.length = 0;
   }
 }
-const savedInv = localStorage.getItem(LS.investor);
+const savedInv = lsGet(LS.investor);
 setInvestorEnabled(savedInv === null ? true : savedInv === '1');
 investorToggleEl.addEventListener('change', () => setInvestorEnabled(investorToggleEl.checked));
 
@@ -7971,10 +7993,10 @@ const tipOkEl    = document.getElementById('tip-ok');
 const tipsToggleEl = document.getElementById('tips-enabled');
 function showTip(key) {
   if (!tipsEnabled) return;
-  if (localStorage.getItem(LS.tipSeenPrefix + key) === '1') return;
+  if (lsGet(LS.tipSeenPrefix + key) === '1') return;
   const tip = TIPS[key];
   if (!tip) return;
-  localStorage.setItem(LS.tipSeenPrefix + key, '1');
+  lsSet(LS.tipSeenPrefix + key, '1');
   tipTitleEl.textContent = tip.title;
   tipBodyEl.innerHTML = tip.body.split('\n').map(l => l).join('<br>');
   tipModalEl.classList.add('open');
@@ -7984,9 +8006,9 @@ tipModalEl.addEventListener('click', e => { if (e.target === tipModalEl) tipModa
 function setTipsEnabled(on) {
   tipsEnabled = !!on;
   tipsToggleEl.checked = tipsEnabled;
-  localStorage.setItem(LS.tips, tipsEnabled ? '1' : '0');
+  lsSet(LS.tips, tipsEnabled ? '1' : '0');
 }
-const savedTips = localStorage.getItem(LS.tips);
+const savedTips = lsGet(LS.tips);
 setTipsEnabled(savedTips === null ? true : savedTips === '1');
 tipsToggleEl.addEventListener('change', () => setTipsEnabled(tipsToggleEl.checked));
 
@@ -7995,9 +8017,9 @@ const toastDensityEl = document.getElementById('toast-density');
 function setToastDensity(v) {
   toastDensity = (v === 'all' || v === 'standard' || v === 'off') ? v : 'all';
   toastDensityEl.value = toastDensity;
-  localStorage.setItem(LS.toastDensity, toastDensity);
+  lsSet(LS.toastDensity, toastDensity);
 }
-setToastDensity(localStorage.getItem(LS.toastDensity) || 'all');
+setToastDensity(lsGet(LS.toastDensity) || 'all');
 toastDensityEl.addEventListener('change', () => setToastDensity(toastDensityEl.value));
 
 // Restart game: wipe save + reload. Setting _restarting stops the periodic
@@ -8007,9 +8029,9 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   if (!confirm('Restart the game? All progress (cash, upgrades, hires, rooms, IPO seasons) will be erased.')) return;
   _restarting = true;
   try {
-    const joy = localStorage.getItem(LS.joystick);
-    localStorage.removeItem(LS.save);
-    if (joy !== null) localStorage.setItem(LS.joystick, joy);
+    const joy = lsGet(LS.joystick);
+    lsRemove(LS.save);
+    if (joy !== null) lsSet(LS.joystick, joy);
   } catch (_) {}
   location.reload();
 });
@@ -8576,6 +8598,7 @@ function saveGame() {
       v: 7,
       cash: state.cash,
       allTimeCash: state.allTimeCash,
+      lifetimeCash: state.lifetimeCash,
       upgrades: upgLevels,
       unlocked,
       ideaWorkers: ideaWorkers.length,
@@ -8625,6 +8648,9 @@ function loadGame() {
     const p = JSON.parse(raw);
     state.cash = p.cash || 0;
     state.allTimeCash = p.allTimeCash || 0;
+    // Migration: old saves have no lifetimeCash — seed it from the
+    // season total (best available lower bound).
+    state.lifetimeCash = Number.isFinite(p.lifetimeCash) ? p.lifetimeCash : (p.allTimeCash || 0);
     // Offline earnings: award 25% of theoretical revenue while away (max 4hr)
     if (p.savedAt) {
       const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
@@ -8636,6 +8662,7 @@ function loadGame() {
         if (offlineEarned > 0) {
           state.cash += offlineEarned;
           state.allTimeCash += offlineEarned;
+          state.lifetimeCash += offlineEarned;
           // Defer to after init so the modal markup exists in the DOM.
           _pendingOfflineEarnings = { amount: offlineEarned, seconds: awaySec };
         }
@@ -8643,7 +8670,10 @@ function loadGame() {
     }
     if (p.upgrades) {
       for (const u of UPGRADES) {
-        const lv = p.upgrades[u.id] || 0;
+        // Clamp to u.max: an out-of-range level in the save (hand-edit,
+        // corruption, future schema) would index past the fixed price/mult
+        // arrays in u.apply and NaN-poison every deal from then on.
+        const lv = Math.max(0, Math.min(Number(p.upgrades[u.id]) || 0, u.max));
         for (let i = 1; i <= lv; i++) u.apply(i);
         upgLevels[u.id] = lv;
       }
@@ -8836,8 +8866,8 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
-// Fresh-start players get $200 (enough to hire engineer #1 with
-// ~$125 toward #2, so the loop catches fire fast). Returning players
+// Fresh-start players get $400 (enough to hire engineer #1 with
+// change toward #2, so the loop catches fire fast). Returning players
 // keep the existing +$100 welcome-back bonus.
 const _isFreshStart = state.allTimeCash === 0;
 addCash(_isFreshStart ? 400 : 100);
@@ -8854,7 +8884,10 @@ addEventListener('beforeunload', saveGame);
 (function maybeShowWelcome() {
   let seen = false;
   try { seen = localStorage.getItem(LS.welcome) === '1'; } catch {}
-  const isFresh = state.allTimeCash <= 100 && ideaWorkers.length === 0 && trophiesWon === 0;
+  // Use the pre-bonus snapshot: addCash above already bumped
+  // allTimeCash to 400, so a cash-threshold check here could never
+  // pass (which is exactly the bug that kept this modal from showing).
+  const isFresh = _isFreshStart && ideaWorkers.length === 0 && trophiesWon === 0;
   if (seen || !isFresh) return;
   const modal = document.getElementById('welcome-modal');
   const btn   = document.getElementById('welcome-start-btn');
