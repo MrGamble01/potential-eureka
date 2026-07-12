@@ -53,7 +53,7 @@ function onNewDay(){
 }
 
 function tickDay(dt){
-  G.timeOfDay+=G.daySpeed*dt;
+  G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
   var tod=G.timeOfDay;
