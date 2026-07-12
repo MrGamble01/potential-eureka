@@ -229,6 +229,8 @@ canvas{display:block;touch-action:none;}
 .ev-choice:hover{background:rgba(0,140,40,0.25);border-color:rgba(0,200,60,0.5);}
 .ev-choice.risky{border-color:rgba(200,60,0,0.4);background:rgba(140,30,0,0.12);color:#cc8866;}
 .ev-choice.risky:hover{background:rgba(140,30,0,0.25);}
+.ev-choice:disabled{opacity:0.4;cursor:not-allowed;}
+.ev-choice:disabled:hover{background:rgba(0,140,40,0.12);border-color:rgba(0,200,60,0.28);}
 .ev-effect{font-size:10px;color:#334433;margin-top:3px;font-style:italic;}
 
 /* ── Bust modal ── */
@@ -1067,29 +1069,40 @@ let chemProduct = 0;
 const CHEM_TIME = 12;
 
 function buildChemStation(x, z) {
-  const g = new THREE.Group();
+  const parts = []; // every mesh/light, so the station can relocate
   const tableMat = new THREE.MeshLambertMaterial({color:0x1a2418});
   const top = new THREE.Mesh(new THREE.BoxGeometry(2.8,0.1,1.3), tableMat);
-  top.position.set(x, 1.0, z); top.castShadow=true; scene.add(top);
+  top.position.set(x, 1.0, z); top.castShadow=true; scene.add(top); parts.push(top);
   for (const [lx,lz] of [[-1.3,0.55],[1.3,0.55],[-1.3,-0.55],[1.3,-0.55]]) {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.95,0.08),
       new THREE.MeshLambertMaterial({color:0x111111}));
-    leg.position.set(x+lx, 0.48, z+lz); scene.add(leg);
+    leg.position.set(x+lx, 0.48, z+lz); scene.add(leg); parts.push(leg);
   }
   // Flasks
   const glassMat = new THREE.MeshLambertMaterial({color:0x88ccaa,transparent:true,opacity:0.6});
   for (const [fx,fz] of [[-0.8,0],[0,0.1],[0.8,0]]) {
     const flask = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.2,0.45,8), glassMat);
-    flask.position.set(x+fx, 1.35, z+fz); scene.add(flask);
+    flask.position.set(x+fx, 1.35, z+fz); scene.add(flask); parts.push(flask);
     const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.17,0.25,8),
       new THREE.MeshLambertMaterial({color:0x00ff55,emissive:0x003311,emissiveIntensity:0.8}));
-    liquid.position.set(x+fx, 1.25, z+fz); scene.add(liquid);
+    liquid.position.set(x+fx, 1.25, z+fz); scene.add(liquid); parts.push(liquid);
   }
   // Bunsen burner glow
   const burnerLight = new THREE.PointLight(0x00ff44, 0.8, 4);
-  burnerLight.position.set(x, 1.4, z); scene.add(burnerLight);
+  burnerLight.position.set(x, 1.4, z); scene.add(burnerLight); parts.push(burnerLight);
 
-  chemStation = {x, z, burnerLight, labelKey:'chem'};
+  chemStation = {x, z, burnerLight, parts, labelKey:'chem'};
+  setLabel('chem','⚗️ Chemistry Station', x, 2.2, z);
+}
+
+// Move the station (e.g. from its garage fallback spot into a freshly
+// bought Lab room) by shifting every tracked part; interaction checks
+// read chemStation.x/z so they follow automatically.
+function relocateChemStation(x, z) {
+  if (!chemStation) return;
+  const dx = x - chemStation.x, dz = z - chemStation.z;
+  for (const m of (chemStation.parts || [])) { m.position.x += dx; m.position.z += dz; }
+  chemStation.x = x; chemStation.z = z;
   setLabel('chem','⚗️ Chemistry Station', x, 2.2, z);
 }
 
@@ -1174,8 +1187,16 @@ function triggerEvent() {
     let txt = choice.text;
     if (choice.cost) txt += ` (-$${choice.cost})`;
     btn.innerHTML = txt;
+    // A paid option you can't afford is not a free exit: disable it so
+    // the player has to take the other branch instead of dodging the
+    // event's consequence for $0.
+    if (choice.cost && state.cash < choice.cost) { btn.disabled = true; btn.title = "You can't afford this."; }
     btn.onclick = () => {
       const result = choice.effect();
+      // effect() returns null when it couldn't apply (cash changed
+      // while the modal was open, or big_order with an empty stash):
+      // keep the event open so a failed choice never dismisses it free.
+      if (result === null) return;
       document.getElementById('event-modal').classList.remove('open');
       activeEvent = null;
       eventCooldown = 50 + Math.random()*40;
@@ -1391,9 +1412,16 @@ function onRoomUnlocked(id) {
     buildGrowPlot(cx-2, cz-2, id);
     buildGrowPlot(cx+2, cz-2, id);
   }
-  if (id==='lab' && !chemStation) {
-    buildChemStation(cx, cz);
-    showToast('⚗️ Chemistry Station built! Time to cook.', 'info');
+  if (id==='lab') {
+    if (!chemStation) {
+      buildChemStation(cx, cz);
+      showToast('⚗️ Chemistry Station built! Time to cook.', 'info');
+    } else {
+      // Upgrade was bought first: the station is sitting at its garage
+      // fallback spot — move it into the room the player just paid for.
+      relocateChemStation(cx, cz);
+      showToast('⚗️ Chemistry Station moved into The Lab.', 'info');
+    }
   }
 }
 
@@ -1406,7 +1434,7 @@ function renderUpgradesPanel() {
   let lastCat = '';
   for (const u of UPG) {
     const lv = upgLv(u.id);
-    if (lv >= u.maxLv && u.id==='chemistry') continue; // hide if bought
+    if (u.id==='chemistry' && (lv >= u.maxLv || chemStation)) continue; // hide if bought or Lab already built it
     // Lock chemistry until act 2
     if (u.cat==='The Next Level' && currentAct()<2) continue;
     if (u.cat !== lastCat) {
@@ -1431,6 +1459,9 @@ function buyUpgrade(id) {
   if (!u) return;
   const cost = upgCost(u);
   if (state.cash<cost || upgLv(id)>=u.maxLv) return;
+  // The Lab room builds the chem station too — once it exists this
+  // upgrade buys nothing, so refuse instead of taking the cash.
+  if (id==='chemistry' && chemStation) { showToast('⚗️ You already have a chemistry station.',''); renderUpgradesPanel(); return; }
   state.cash -= cost;
   state.upgrades[id] = (state.upgrades[id]||0)+1;
   if (id==='chemistry' && !chemStation) {
@@ -1559,6 +1590,12 @@ renderer.domElement.addEventListener('touchend', e=>{
 
 // ── Save / Load ──
 function saveGame() {
+  // Never re-save a busted run: triggerBust() wipes the save so the
+  // loss sticks, but sellToDealer()'s trailing saveGame() (a sale can
+  // bust synchronously via addHeat) and the unconditional beforeunload
+  // save were writing the busted state right back — refreshing the
+  // page undid the game's only lose condition.
+  if (busted) return;
   const sv = {
     cash:state.cash, totalEarned:state.totalEarned, totalSold:state.totalSold,
     heat:state.heat, upgrades:state.upgrades,
@@ -1567,6 +1604,11 @@ function saveGame() {
     runners:state.runners||0, cooks:state.cooks||0,
     batches:state.batches, sessionStart:state.sessionStart,
     stashCount, trimQueue, trimBags,
+    // Chem pipeline + per-plot growth + in-hand item (all previously
+    // dropped on reload — the core loop's progress silently reset).
+    chemQueue, chemProduct, chemProgress,
+    pCarrying,
+    plots: growPlots.map(p=>({r:p.roomId, g:+p.progress.toFixed(4)})),
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1614,6 +1656,25 @@ function loadGame() {
       g.position.set(6+(Math.random()-0.5)*3,0,7+(Math.random()-0.5)*3);
       scene.add(g); lookoutNPCs.push({group:g,patrolAngle:Math.random()*Math.PI*2,patrolRadius:4+Math.random()*2});
     }
+    // Restore the chem pipeline (queued + cooked product + progress)
+    chemQueue=sv.chemQueue||0; chemProduct=sv.chemProduct||0; chemProgress=sv.chemProgress||0;
+    // Restore per-plot growth. Rooms (and their plots) were just
+    // rebuilt above with random stagger; match saved entries to plots
+    // by roomId in order and overwrite the stagger.
+    if(Array.isArray(sv.plots)) {
+      const pool=[...sv.plots];
+      for(const p of growPlots) {
+        const i=pool.findIndex(e=>e && e.r===p.roomId);
+        if(i<0) continue;
+        const e=pool.splice(i,1)[0];
+        p.progress=Math.max(0,Math.min(1,Number(e.g)||0));
+        updatePlantMesh(p);
+      }
+    }
+    // A bud that was in-hand at save time becomes a queued trim job —
+    // exactly what delivering it would do. (A carried 'bag' needs
+    // nothing: its count lives in trimBags/chemProduct, saved above.)
+    if(sv.pCarrying==='bud') trimQueue++;
   }catch(e){console.warn('Load failed',e);}
 }
 
@@ -1977,7 +2038,12 @@ function animate(now_ms) {
     return;
   }
 
-  if(!raidActive) {
+  // Pause the whole sim while an event modal is open: clicks were
+  // already blocked, but WASD movement kept working — a sale made
+  // behind the modal could push heat to 100 and stack the bust modal
+  // on top of the still-open event, and updateEvents' early-return
+  // while activeEvent let heat skip past the 95% raid check entirely.
+  if(!raidActive && !activeEvent) {
     updateGrowPlots(dt);
     updateTrimStation(dt);
     updateChemStation_tick(dt);
@@ -1990,7 +2056,7 @@ function animate(now_ms) {
     updateHeatDrain(dt);
     updateEvents(dt);
     updateDealerSpawn(dt);
-  } else {
+  } else if(raidActive) {
     raidTimer-=dt;
     if(raidTimer<=0) {
       raidActive=false;
