@@ -140,8 +140,8 @@ const CalendarWidget = (() => {
       html += `<div class="cal-event ${calClass} ${timeClass}">
         <span class="cal-time">${formatTime(ev.start)}</span>
         <span class="cal-dot"></span>
-        <span class="cal-title">${ev.title}</span>
-        <span class="cal-tag">${ev.cal}</span>
+        <span class="cal-title">${Utils.escHtml(ev.title)}</span>
+        <span class="cal-tag">${Utils.escHtml(ev.cal)}</span>
       </div>`;
     }
 
@@ -178,10 +178,12 @@ const CalendarWidget = (() => {
     const row = document.createElement('div');
     row.className = 'cal-row';
     row.innerHTML = `
-      <input type="text" placeholder="Label" value="${name || ''}" class="cal-input cal-name-input">
-      <input type="text" placeholder="Calendar ID (email or ID)" value="${id || ''}" class="cal-input cal-id-input">
+      <input type="text" placeholder="Label" class="cal-input cal-name-input">
+      <input type="text" placeholder="Calendar ID (email or ID)" class="cal-input cal-id-input">
       <button class="cal-remove-btn" onclick="this.parentElement.remove()" title="Remove">×</button>
     `;
+    row.querySelector('.cal-name-input').value = name || '';
+    row.querySelector('.cal-id-input').value = id || '';
     list.appendChild(row);
   }
 
