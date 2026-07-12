@@ -5619,9 +5619,12 @@ let featurePrice = CONFIG.featurePriceBase;
 // Enterprise upgrade, and temporary boosts (Demo Day, Award, Corp Dev);
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
-  return Math.round(
+  const v = Math.round(
     featurePrice * dealValueMult * productVersionMult * paperBoost * pingPongBoost
   );
+  // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
+  // one NaN deal would poison state.cash permanently via addCash.
+  return Number.isFinite(v) ? v : 8;
 }
 
 const DEAL_MSGS = [
@@ -7078,6 +7081,7 @@ function renderNextAction() {
   nextActionCardEl.style.opacity = rec.action ? '1' : '0.7';
 }
 function addCash(n, source = 'eng') {
+  if (!Number.isFinite(n)) return; // a single NaN/Infinity would stick to state.cash forever
   state.cash += n;
   if (n > 0) {
     state.allTimeCash += n;
@@ -8652,7 +8656,10 @@ function loadGame() {
     }
     if (p.upgrades) {
       for (const u of UPGRADES) {
-        const lv = p.upgrades[u.id] || 0;
+        // Clamp to u.max: an out-of-range level in the save (hand-edit,
+        // corruption, future schema) would index past the fixed price/mult
+        // arrays in u.apply and NaN-poison every deal from then on.
+        const lv = Math.max(0, Math.min(Number(p.upgrades[u.id]) || 0, u.max));
         for (let i = 1; i <= lv; i++) u.apply(i);
         upgLevels[u.id] = lv;
       }

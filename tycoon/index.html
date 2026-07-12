@@ -443,9 +443,10 @@
         const raw = localStorage.getItem('startup-tycoon-v7');
         if (!raw) return;
         const save = JSON.parse(raw);
-        const cash      = Number(save.allTimeCash || save.cash || 0);
-        const trophies  = Number(save.trophiesWon || 0);
-        const ipos      = Number(save.prestigeLevel || 0);
+        const num = v => { const n = Number(v || 0); return Number.isFinite(n) ? n : 0; };
+        const cash      = num(save.allTimeCash || save.cash);
+        const trophies  = num(save.trophiesWon);
+        const ipos      = num(save.prestigeLevel);
         if (!cash && !trophies && !ipos) return;
         const fmt = n => {
           if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1) + 'M';
