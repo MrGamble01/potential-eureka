@@ -198,9 +198,9 @@
   <canvas id="game"></canvas>
 
   <div id="hud">
-    <div class="res wood"><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span></div>
-    <div class="res stone"><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span></div>
-    <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span></div>
+    <div class="res wood"><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span></div>
+    <div class="res stone"><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span><span class="rate" id="r-stonecap"></span></div>
+    <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span></div>
     <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span></div>
     <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
     <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span></div>
@@ -555,6 +555,7 @@
     market:    { roof: 'thatch', wall: 'timber', chimney: false, open: true },
     well:      { well: true },
     tavern:    { roof: 'red',    wall: 'timber', chimney: true,  open: true },
+    warehouse: { roof: 'slate',  wall: 'timber', chimney: false, open: true },
   };
   const B_ROOF = {
     red:   [C.roofRed, C.roofRedDk, C.roofRedHi],
@@ -710,6 +711,11 @@
     else if (type === 'quarry') { P(sx0, floor - 5, 6, 5, C.stoneW); P(sx0, floor - 5, 6, 1, C.stoneWHi); P(sx0 + 3, floor - 5, 1, 5, C.stoneWDk); P(sx0 + 1, floor - 8, 4, 3, C.stoneW); }
     else if (type === 'market') { P(oX, floor - 4, oW, 2, '#8a5a2b'); P(oX + 2, floor - 7, 2, 3, '#c1564d'); P(oX + 6, floor - 7, 2, 3, '#3f9950'); P(oX + 10, floor - 7, 2, 3, '#f2c14e'); }
     else if (type === 'tavern') { P(oX, floor - 4, oW, 2, '#8a5a2b'); P(sx0, floor - 8, 6, 6, C.wood); P(sx0, floor - 8, 6, 1, C.fenceHi); P(sx0, floor - 5, 6, 1, C.fenceDk); P(oX + 2, floor - 7, 2, 2, '#f2c14e'); }
+    else if (type === 'warehouse') {             // stacked crates (no worker needed)
+      const crate = (cx, cy) => { P(cx, cy, 6, 5, C.wood); P(cx, cy, 6, 1, C.fenceHi); P(cx, cy + 2, 6, 1, C.fenceDk); P(cx + 2, cy, 1, 5, C.woodDk); };
+      crate(oX + 1, floor - 5); crate(oX + 8, floor - 5); crate(oX + 4, floor - 10);
+      return; // warehouse shows goods, not a person
+    }
     // worker on the left (implies the shop is staffed)
     const wk = oX + 2;
     P(wk, floor - 5, 4, 3, '#5f83c8'); P(wk, floor - 2, 1, 2, '#3a2f22'); P(wk + 2, floor - 2, 1, 2, '#3a2f22');
@@ -729,8 +735,10 @@
     market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the traveling merchant.' },
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
+    warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'bakery', 'carpenter', 'market', 'well', 'tavern'];
+  const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'bakery', 'carpenter', 'market', 'well', 'tavern', 'warehouse'];
+  const BASE_CAP = { wood: 250, stone: 250, food: 200 };  // gold is uncapped currency
   const PROD_INTERVAL = 6;   // production every 6 in-game hours
   const HOURS_PER_DAY = 24;
   const DAY_SECONDS = 90;    // real seconds per in-game day
@@ -1050,7 +1058,17 @@
       .reduce((s, b) => s + effHousing(b), 0);
   }
   const MAX_LEVEL = 3;
-  function canUpgrade(b) { const d = BUILDINGS[b.type]; return (d.housing || d.prod || d.happy) && (b.level || 1) < MAX_LEVEL; }
+  function canUpgrade(b) { const d = BUILDINGS[b.type]; return (d.housing || d.prod || d.happy || d.storage) && (b.level || 1) < MAX_LEVEL; }
+  function capOf(res) {
+    if (!(res in BASE_CAP)) return Infinity;
+    return BASE_CAP[res] + state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].storage ? BUILDINGS[b.type].storage * (b.level || 1) : 0), 0);
+  }
+  let _storageFullTimer = 0;
+  function clampRes() {
+    let full = false;
+    for (const k in BASE_CAP) { const cap = capOf(k); if (state.res[k] > cap) { state.res[k] = cap; full = true; } }
+    if (full && _storageFullTimer <= 0) { toast('📦 Storage full — build a Warehouse to hold more.'); _storageFullTimer = 20; }
+  }
   function upgradeCost(b) {
     const def = BUILDINGS[b.type], lvl = b.level || 1, cost = {};
     for (const k in def.cost) cost[k] = Math.ceil(def.cost[k] * (lvl + 1) * 0.7);
@@ -1208,6 +1226,7 @@
     // amenities (well, tavern) add happiness passively, scaled by level
     const amenity = state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].happy ? Math.ceil(BUILDINGS[b.type].happy / 6) * (b.level || 1) : 0), 0);
     if (amenity) state.happy = Math.min(100, state.happy + amenity);
+    clampRes();
     Object.keys(gained).forEach(k => { prodFlashTimer[k] = 0.5; });
     updateHUD();
   }
@@ -1577,6 +1596,11 @@
     document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
     document.getElementById('r-food').textContent = Math.floor(state.res.food);
     document.getElementById('r-gold').textContent = Math.floor(state.res.gold);
+    ['wood', 'stone', 'food'].forEach(k => {
+      const el = document.getElementById('r-' + k + 'cap'); if (!el) return;
+      const cap = capOf(k); el.textContent = '/' + cap;
+      el.style.color = state.res[k] >= cap ? '#e0705c' : 'var(--ink-dim)';
+    });
     document.getElementById('r-pop').textContent = state.villagers.length;
     document.getElementById('r-popcap').textContent = '/' + popCap();
     document.getElementById('r-day').textContent = state.day;
@@ -1656,6 +1680,7 @@
     if (def.prod) { const k = Object.keys(def.prod)[0]; const base = def.prod[k] * lvl; html += statRow('Produces', (b.bonus ? Math.ceil(base * 1.5) : base) + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : '') + ' / cycle'); }
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
     if (def.happy) html += statRow('Happiness', '+' + (Math.ceil(def.happy / 6) * lvl) + ' / cycle');
+    if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
     if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
     html += statRow('Level', lvl + ' / ' + MAX_LEVEL);
     stats.innerHTML = html;
@@ -1940,6 +1965,7 @@
 
   function stepSim(dt) {
     keyboardPan(dt);
+    if (_storageFullTimer > 0) _storageFullTimer -= dt;
     advanceTimeSafe(dt);
     // villagers
     for (const v of state.villagers) villagerTick(v, dt);
