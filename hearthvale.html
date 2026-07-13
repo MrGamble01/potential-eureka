@@ -124,12 +124,12 @@
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
 
     /* ---- Trader modal ---- */
-    #trader, #event {
+    #trader, #event, #welcome {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show { display: flex; }
+    #trader.show, #event.show, #welcome.show { display: flex; }
     #ev-choices { display: flex; flex-direction: column; gap: 9px; }
     .ev-choice {
       width: 100%; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line);
@@ -278,6 +278,20 @@
       <h2><span id="ev-emoji">&#127881;</span><span id="ev-title">Something happens</span></h2>
       <div class="flavor" id="ev-text">&mdash;</div>
       <div id="ev-choices"></div>
+    </div>
+  </div>
+
+  <div id="welcome">
+    <div class="trader-card">
+      <h2><span>&#127794;</span><span>Welcome to Hearthvale</span></h2>
+      <div class="flavor">Build a cozy riverside town and watch it come to life.</div>
+      <div style="font-size:13.5px; line-height:1.7; margin-bottom:4px;">
+        &bull; Pick a building from the bar and click the ground to place it.<br>
+        &bull; <b>Cottages</b> bring villagers; <b>farms &amp; fishing</b> feed them; workshops earn coin.<br>
+        &bull; Keep folk <b>happy</b> and the town grows. Follow the <b>Town Goal</b> for direction.<br>
+        &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
+      </div>
+      <button class="closebtn" id="welcome-close">Begin building</button>
     </div>
   </div>
 
@@ -2084,6 +2098,15 @@
       if (confirm('Start a new town? Your current progress will be lost.')) { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } location.reload(); }
     };
     syncSound();
+
+    // first-run welcome
+    if (!state.seenIntro) {
+      document.getElementById('welcome').classList.add('show');
+      document.getElementById('welcome-close').onclick = () => {
+        document.getElementById('welcome').classList.remove('show');
+        hideHint(); save();
+      };
+    }
 
     const mc = document.getElementById('minimap');
     if (mc) mc.addEventListener('pointerdown', e => {
