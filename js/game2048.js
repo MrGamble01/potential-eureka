@@ -48,7 +48,7 @@ const Game2048 = (() => {
   function onTouchStart(e) { touchSX = e.touches[0].clientX; touchSY = e.touches[0].clientY; }
   function onTouchEnd(e) {
     const dx = e.changedTouches[0].clientX - touchSX, dy = e.changedTouches[0].clientY - touchSY;
-    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { if (over) newGame(true); return; }
+    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { if (over || !running) newGame(true); return; }
     if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'R' : 'L');
     else move(dy > 0 ? 'D' : 'U');
   }
