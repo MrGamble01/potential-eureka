@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Not Found · EUREKA GAMES</title>
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
+  <meta name="description" content="Page not found. Head back to the EUREKA GAMES arcade — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris and more.">
+  <meta name="theme-color" content="#060608">
+  <meta name="robots" content="noindex,follow">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Logo is a plain link on this static page (no JS router here) */
+    nav .logo-link { text-decoration: none; cursor: pointer; display: inline-block; }
+    a.hof-link { text-decoration: none; display: inline-block; }
+    .notfound-hero { min-height: calc(100vh - var(--nav-height)); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
+    .notfound-code { font-family: var(--font-mono); font-weight: 700; font-size: clamp(64px, 16vw, 140px); letter-spacing: 6px; color: var(--text); text-shadow: 0 0 24px rgba(108, 99, 255, 0.5), 0 0 64px rgba(108, 99, 255, 0.25); line-height: 1; }
+    .notfound-actions { margin-top: 28px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  </style>
+</head>
+<body>
+
+  <!-- AMBIENT GLOW BLOBS -->
+  <div class="ambient-blob ambient-blob-1"></div>
+  <div class="ambient-blob ambient-blob-2"></div>
+  <div class="ambient-blob ambient-blob-3"></div>
+
+  <!-- NAVIGATION -->
+  <nav>
+    <a class="logo logo-link glitch" data-text=">_ EUREKA GAMES" href="/">&gt;_ EUREKA GAMES</a>
+    <div class="nav-spacer"></div>
+  </nav>
+
+  <!-- ===================== 404 ===================== -->
+  <section class="notfound-hero">
+    <div class="arcade-hero-kicker">&#9679; ERROR CODE</div>
+    <div class="notfound-code glitch" data-text="404">404</div>
+    <div class="arcade-hero-sub">GAME OVER &mdash; PAGE NOT FOUND <span class="arcade-blink">&#9646;</span></div>
+    <div class="notfound-actions">
+      <a class="hof-link" href="/">&#127918; BACK TO ARCADE</a>
+    </div>
+  </section>
+
+</body>
+</html>
