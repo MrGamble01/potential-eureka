@@ -176,6 +176,15 @@
     .goals-fill { height: 100%; width: 0%; border-radius: 4px; background: linear-gradient(90deg, #8ec26b, #f2c14e); transition: width .4s ease; }
     #happy-chip .ic { font-size: 15px; }
 
+    /* ---- Minimap ---- */
+    #minimap {
+      position: fixed; right: 12px; bottom: 86px; z-index: 380;
+      width: 168px; height: 126px; image-rendering: pixelated;
+      border: 2px solid #6b4e30; border-top-color: #85643f; border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.45); background: #3a5240; cursor: pointer;
+    }
+    @media (max-width: 640px) { #minimap { width: 116px; height: 87px; bottom: 150px; } }
+
     /* ---- Hint / first-run ---- */
     #hint {
       position: fixed; left: 50%; top: 54px; transform: translateX(-50%); z-index: 350;
@@ -223,6 +232,8 @@
     <div id="p-stats"></div>
     <div class="row" id="p-actions"></div>
   </div>
+
+  <canvas id="minimap" width="56" height="42" title="Click to jump there"></canvas>
 
   <div id="toasts"></div>
 
@@ -748,6 +759,7 @@
   let state, cam, view, tiles, tileObj, occ;
   let decos = [];  // cosmetic props regenerated from seed: {kind, tx, ty}
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
+  let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   function defaultState() {
@@ -1568,6 +1580,37 @@
     ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
   }
 
+  // ---- Minimap ------------------------------------------------
+  function buildMiniTerrain() {
+    const { c, x } = makeCanvas(MAP_W, MAP_H);
+    for (let ty = 0; ty < MAP_H; ty++) for (let tx = 0; tx < MAP_W; tx++) {
+      const i = idx(tx, ty), t = tiles[i], o = tileObj[i];
+      let col = '#7cba5f';
+      if (t === T_WATER) col = '#57abdd';
+      else if (t === T_DIRT) col = '#c49a63';
+      else if (t === T_SAND) col = '#e4d29e';
+      else if (t === T_BRIDGE) col = '#a67b48';
+      if (o === O_MTN || o === O_ROCK) col = '#9299a3';
+      else if (o === O_TREE || o === O_BUSH) col = '#3f8a4c';
+      x.fillStyle = col; x.fillRect(tx, ty, 1, 1);
+    }
+    miniTerrain = c;
+  }
+  function drawMinimap() {
+    const mc = document.getElementById('minimap'); if (!mc || !miniTerrain) return;
+    const mx = mc.getContext('2d'); mx.imageSmoothingEnabled = false;
+    mx.clearRect(0, 0, MAP_W, MAP_H);
+    mx.drawImage(miniTerrain, 0, 0);
+    state.buildings.forEach(b => {
+      const def = BUILDINGS[b.type];
+      mx.fillStyle = def.housing ? '#e0b84e' : def.storage ? '#b98a54' : def.happy ? '#e0708b' : '#d86a52';
+      mx.fillRect(b.tx, b.ty, def.w, def.h);
+    });
+    const vw = view.w / cam.z / TILE, vh = view.h / cam.z / TILE;
+    mx.strokeStyle = 'rgba(255,255,255,0.9)'; mx.lineWidth = 1;
+    mx.strokeRect(cam.x / TILE + 0.5, cam.y / TILE + 0.5, Math.max(1, vw - 1), Math.max(1, vh - 1));
+  }
+
   function drawDayNight() {
     // 0..24 → tint. Warm dawn/dusk, deep-blue night, clear day.
     const h = state.time;
@@ -1779,6 +1822,7 @@
       if (occ[i] >= 0 || tile === T_WATER || tile === T_DIRT || tile === T_BRIDGE || o === O_TREE || o === O_ROCK || o === O_MTN || o === O_BUSH) { SFX('error'); return; }
       state.res.wood -= 1; tiles[i] = T_DIRT; tileObj[i] = O_NONE;
       (state.roads || (state.roads = [])).push({ tx: t.tx, ty: t.ty });
+      buildMiniTerrain();
       SFX('place'); refreshBarState(); save();
       return;
     }
@@ -1934,8 +1978,17 @@
     resize();
     clampCam();
     buildBar();
+    buildMiniTerrain();
     updateHUD();
     renderGoal();
+    drawMinimap();
+    const mc = document.getElementById('minimap');
+    if (mc) mc.addEventListener('pointerdown', e => {
+      const r = mc.getBoundingClientRect();
+      const wx = ((e.clientX - r.left) / r.width) * WORLD_PX_W;
+      const wy = ((e.clientY - r.top) / r.height) * WORLD_PX_H;
+      cam.x = wx - view.w / cam.z / 2; cam.y = wy - view.h / cam.z / 2; clampCam();
+    });
     if (state.seenIntro) hideHint();
 
     window.addEventListener('resize', () => { dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); resize(); });
@@ -1957,7 +2010,7 @@
     draw();
     // hud light refresh
     hudTick += dt;
-    if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); hudTick = 0; }
+    if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); drawMinimap(); hudTick = 0; }
 
     requestAnimationFrame(loop);
   }
