@@ -847,7 +847,35 @@
       muted: false,
       nextEventDay: 3, // next random village event
       raining: false,  // cosmetic weather for the current day
+      achievements: [],
     };
+  }
+  const ACHIEVEMENTS = [
+    { id: 'first_home', emoji: '🏠', name: 'Homestead', desc: 'Build your first cottage.', done: () => countType('house') >= 1 },
+    { id: 'hamlet', emoji: '👪', name: 'Hamlet', desc: 'Reach 5 villagers.', done: () => state.villagers.length >= 5 },
+    { id: 'village', emoji: '🏘️', name: 'Village', desc: 'Reach 10 villagers.', done: () => state.villagers.length >= 10 },
+    { id: 'township', emoji: '🏙️', name: 'Township', desc: 'Reach 18 villagers.', done: () => state.villagers.length >= 18 },
+    { id: 'harvest', emoji: '🌾', name: 'Breadbasket', desc: 'Build a farm.', done: () => countType('farm') >= 1 },
+    { id: 'riverfolk', emoji: '🎣', name: 'Riverfolk', desc: 'Build a fishing hut.', done: () => countType('fishing') >= 1 },
+    { id: 'market', emoji: '🏪', name: 'Open for Business', desc: 'Open a market.', done: () => countType('market') >= 1 },
+    { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.length >= 10 },
+    { id: 'architect', emoji: '⬆️', name: 'Architect', desc: 'Upgrade a building to Level 3.', done: () => state.buildings.some(b => (b.level || 1) >= 3) },
+    { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300 },
+    { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20 },
+    { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95 },
+  ];
+  function checkAchievements() {
+    if (!state || !state.achievements) return;
+    let unlocked = false;
+    for (const a of ACHIEVEMENTS) {
+      if (state.achievements.indexOf(a.id) < 0 && a.done()) {
+        state.achievements.push(a.id);
+        toast('🏆 Achievement: ' + a.name);
+        SFX('goal');
+        unlocked = true;
+      }
+    }
+    if (unlocked) save();
   }
   function rollWeather() {
     const s = seasonOf(state.day);
@@ -2033,6 +2061,7 @@
         happy: state.happy, seenIntro: state.seenIntro, seed: state.seed,
         goalIndex: state.goalIndex, sadDays: state.sadDays,
         roads: state.roads || [], muted: !!state.muted, nextEventDay: state.nextEventDay,
+        achievements: state.achievements || [],
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -2058,6 +2087,7 @@
       state.seenIntro = !!s.seenIntro;
       state.muted = !!s.muted;
       state.nextEventDay = s.nextEventDay || (state.day + 2);
+      state.achievements = s.achievements || [];
       // reapply player-painted roads over the regenerated terrain
       state.roads = s.roads || [];
       state.roads.forEach(r => { if (inMap(r.tx, r.ty) && tiles[idx(r.tx, r.ty)] !== T_WATER) { tiles[idx(r.tx, r.ty)] = T_DIRT; tileObj[idx(r.tx, r.ty)] = O_NONE; } });
@@ -2170,7 +2200,7 @@
     draw();
     // hud light refresh
     hudTick += dt;
-    if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); drawMinimap(); hudTick = 0; }
+    if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); checkAchievements(); drawMinimap(); hudTick = 0; }
 
     requestAnimationFrame(loop);
   }
