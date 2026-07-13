@@ -20,6 +20,7 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 - **Startup Tycoon** (`tycoon/`) — idle/story tycoon game with a 3D scene (`play.html`, `beagle.html`)
 - **Grow Op** (`drug-lab.html`) — 3D room-builder with risk/heat mechanics
 - **Homeless Village** (`homeless-village.html`) — 3D survival/village-building game
+- **Hearthvale** (`hearthvale.html`) — cozy top-down town builder with procedural pixel-art, villagers, seasons, and a warm settlement to grow
 
 The hub also has a few non-game utilities: a productivity view (notes, todos, pomodoro, bookmarks), a "Studio Crew" org chart, and a Hall of Fame view for high scores.
 
