@@ -391,14 +391,18 @@
     {
       const { c, x } = makeCanvas(TILE, TILE * 2);
       P(x, 7, 24, 3, 6, C.trunk); P(x, 9, 24, 1, 6, C.trunkDk);
+      // each tier is a triangle: narrow at the top (tip), wide at the base
       const tier = (cy, halfW) => {
         for (let r = 0; r < 8; r++) {
-          const gap = Math.round((r / 8) * halfW);
-          P(x, 8 - halfW + gap, cy + r, (halfW - gap) * 2, 1, r < 2 ? C.pineDk : C.pine);
+          const gap = Math.round(((7 - r) / 7) * halfW);
+          const w = (halfW - gap) * 2;
+          if (w <= 0) continue;
+          const x0 = 8 - halfW + gap;
+          P(x, x0, cy + r, w, 1, r >= 6 ? C.pineDk : C.pine);
+          if (w >= 3 && r >= 1) P(x, x0, cy + r, 1, 1, C.pineHi); // left-edge highlight
         }
       };
       tier(16, 7); tier(10, 6); tier(5, 4);
-      P(x, 4, 15, 2, 1, C.pineHi); P(x, 5, 10, 2, 1, C.pineHi); P(x, 6, 6, 1, 1, C.pineHi);
       addOutline(x, TILE, TILE * 2); SPR.tree = c;
     }
     // --- round bush-tree (tall, outlined) ---
@@ -458,7 +462,7 @@
     }
     { // well
       const { c, x } = makeCanvas(TILE, TILE + 8);
-      for (let r = 0; r < 5; r++) P(x, 2 + r, r, 12 - r * 2, 1, r < 2 ? C.roofRedDk : C.roofRed);
+      for (let r = 0; r < 5; r++) P(x, 6 - r, r, 4 + r * 2, 1, r < 2 ? C.roofRedDk : C.roofRed);
       P(x, 2, 4, 12, 1, C.beamDk);
       P(x, 3, 5, 2, 8, C.wood); P(x, 11, 5, 2, 8, C.wood);
       P(x, 3, 13, 10, 6, C.stoneW); P(x, 3, 13, 10, 1, C.stoneWHi);
@@ -526,7 +530,7 @@
 
     if (art.well) {
       const cx = W / 2;
-      for (let r = 0; r < 6; r++) { const half = 6 - r; P(cx - half - 1, r, (half + 1) * 2, 1, r < 2 ? C.roofRedDk : C.roofRed); }
+      for (let r = 0; r < 6; r++) { const half = r + 1; P(cx - half - 1, r, (half + 1) * 2, 1, r < 2 ? C.roofRedDk : C.roofRed); }
       P(cx - 7, 5, 14, 1, C.beamDk);
       P(cx - 6, 6, 2, H - 16, C.wood); P(cx + 4, 6, 2, H - 16, C.wood);
       const ry = H - 10;
@@ -567,7 +571,7 @@
     const eave = 2;
     for (let r = 0; r < roofH; r++) {
       const t = roofH > 1 ? r / roofH : 0;
-      const inset = Math.round(t * (W / 2 - 3));
+      const inset = Math.round((1 - t) * (W / 2 - 3)); // widest at the eave (bottom), narrow ridge on top
       const x0 = inset - eave, x1 = W - inset + eave;
       P(x0, r, x1 - x0, 1, ((roofH - r) % 3 === 0) ? rcd : rc);
       P(x0, r, 1, 1, rcd); P(x1 - 1, r, 1, 1, rcd);
