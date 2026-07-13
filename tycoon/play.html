@@ -1909,16 +1909,52 @@ const _v3B = new THREE.Vector3();
 // preserve-list stays explicit.
 const LS = {
   save:          'startup-tycoon-v7',
-  joystick:      'joystickEnabled',
-  morale:        'moraleEnabled',
-  investor:      'investorEnabled',
-  tips:          'tipsEnabled',
-  toastDensity:  'toastDensity',
-  tipSeenPrefix: 'tip-seen-',
-  sfx:           'sfxEnabled',
-  welcome:       'welcomeSeen-v1',
-  haptics:       'hapticsEnabled',
+  joystick:      'tycoon:joystickEnabled',
+  morale:        'tycoon:moraleEnabled',
+  investor:      'tycoon:investorEnabled',
+  tips:          'tycoon:tipsEnabled',
+  toastDensity:  'tycoon:toastDensity',
+  tipSeenPrefix: 'tycoon:tip-seen-',
+  sfx:           'tycoon:sfxEnabled',
+  welcome:       'tycoon:welcomeSeen-v1',
+  haptics:       'tycoon:hapticsEnabled',
 };
+
+// SITE-3: these settings keys used to be bare (`joystickEnabled`,
+// `sfxEnabled`, ...) and shared verbatim with tycoon/beagle.html, so
+// muting one game muted the other and one's welcome dismissal
+// suppressed the other's. Now each build owns a prefixed key; this
+// one-time migration copies any pre-existing shared value in so a
+// returning player's settings don't silently reset. Old keys are left
+// in place (harmless) so beagle.html can migrate from them too.
+(function migrateLegacyTycoonSettingsKeys() {
+  const renamed = {
+    joystickEnabled:  LS.joystick,
+    moraleEnabled:    LS.morale,
+    investorEnabled:  LS.investor,
+    tipsEnabled:      LS.tips,
+    toastDensity:     LS.toastDensity,
+    sfxEnabled:       LS.sfx,
+    'welcomeSeen-v1': LS.welcome,
+    hapticsEnabled:   LS.haptics,
+  };
+  try {
+    for (const [oldKey, newKey] of Object.entries(renamed)) {
+      if (localStorage.getItem(newKey) === null) {
+        const old = localStorage.getItem(oldKey);
+        if (old !== null) localStorage.setItem(newKey, old);
+      }
+    }
+    for (const k of Object.keys(localStorage)) {
+      if (k.startsWith('tip-seen-')) {
+        const newKey = LS.tipSeenPrefix + k.slice('tip-seen-'.length);
+        if (localStorage.getItem(newKey) === null) {
+          localStorage.setItem(newKey, localStorage.getItem(k));
+        }
+      }
+    }
+  } catch {}
+})();
 
 // Storage access can throw (Safari private mode, storage-blocked
 // iframes, disabled site data). A throw at module top level would
