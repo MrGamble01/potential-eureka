@@ -5,7 +5,9 @@
    Responsive, Accessibility
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Google Fonts (Inter + JetBrains Mono) are loaded via <link rel="preconnect">
+   + <link rel="stylesheet"> in index.html's <head> — not @import here — so the
+   font CSS fetch happens in parallel with this stylesheet instead of after it. */
 
 /* ---- PRIMITIVE TOKENS ---- */
 :root {
