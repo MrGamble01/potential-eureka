@@ -196,6 +196,13 @@
       font-weight: 600; cursor: pointer; text-align: left; white-space: nowrap;
     }
     #menu button:hover { border-color: var(--gold); }
+    #paused {
+      position: fixed; top: 96px; left: 50%; transform: translateX(-50%); z-index: 385;
+      display: none; background: rgba(24,20,14,0.9); border: 1px solid var(--line);
+      border-radius: 10px; padding: 8px 16px; font-family: var(--mono); font-size: 13px;
+      letter-spacing: 1px; color: var(--gold); pointer-events: none;
+    }
+    #paused.show { display: block; }
 
     /* ---- Minimap ---- */
     #minimap {
@@ -227,9 +234,11 @@
 
   <button id="menu-btn" title="Menu">&#9881;</button>
   <div id="menu">
+    <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
     <button id="m-new">New Game</button>
   </div>
+  <div id="paused">&#9208; PAUSED &middot; press Space</div>
 
   <canvas id="game"></canvas>
 
@@ -817,6 +826,7 @@
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap
   let floaters = [];       // floating "+N" production feedback {wx,wy,text,color,life,maxLife}
   const RES_COLOR = { wood: '#e0bd8a', stone: '#c7cdd5', food: '#a2d982', gold: '#f2c14e' };
+  let gameSpeed = 1, prevSpeed = 1;   // 0 = paused, 1/2/3 = time multiplier
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   function defaultState() {
@@ -1757,6 +1767,10 @@
   // ============================================================
   //  HUD / UI
   // ============================================================
+  function syncPaused() {
+    const pe = document.getElementById('paused'); if (pe) pe.classList.toggle('show', gameSpeed === 0);
+    const sb = document.getElementById('m-speed'); if (sb && gameSpeed > 0) sb.innerHTML = 'Speed: ' + gameSpeed + '&times;';
+  }
   function updateHUD() {
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
     document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
@@ -1992,6 +2006,7 @@
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
+    if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= BUILD_ORDER.length) selectBuild(BUILD_ORDER[n - 1]);
   });
@@ -2111,6 +2126,8 @@
     const syncSound = () => { soundBtn.textContent = 'Sound: ' + (state.muted ? 'Off' : 'On'); };
     menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); };
     soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
+    const speedBtn = document.getElementById('m-speed');
+    speedBtn.onclick = () => { gameSpeed = gameSpeed >= 3 ? 1 : (gameSpeed < 1 ? 1 : gameSpeed + 1); prevSpeed = gameSpeed; speedBtn.innerHTML = 'Speed: ' + gameSpeed + '&times;'; syncPaused(); };
     document.getElementById('m-new').onclick = () => {
       if (confirm('Start a new town? Your current progress will be lost.')) { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } location.reload(); }
     };
@@ -2160,14 +2177,17 @@
   let hudTick = 0, saveTick = 0;
 
   function stepSim(dt) {
-    keyboardPan(dt);
-    if (_storageFullTimer > 0) _storageFullTimer -= dt;
-    if (floaters.length) { for (const f of floaters) { f.life -= dt; f.wy -= 11 * dt; } floaters = floaters.filter(f => f.life > 0); }
-    advanceTimeSafe(dt);
-    // villagers
-    for (const v of state.villagers) villagerTick(v, dt);
+    keyboardPan(dt);   // panning works even while paused
+    const sdt = dt * gameSpeed;   // time/production/villagers obey game speed
+    if (sdt <= 0) return;
+    if (_storageFullTimer > 0) _storageFullTimer -= sdt;
+    if (floaters.length) { for (const f of floaters) { f.life -= sdt; f.wy -= 11 * sdt; } floaters = floaters.filter(f => f.life > 0); }
+    advanceTimeSafe(sdt);
+    // villagers (obey game speed, capped so pathing stays stable at 3x)
+    const vdt = Math.min(sdt, 0.12);
+    for (const v of state.villagers) villagerTick(v, vdt);
     // autosave
-    saveTick += dt; if (saveTick > 5) { save(); saveTick = 0; }
+    saveTick += sdt; if (saveTick > 5) { save(); saveTick = 0; }
   }
 
   // Robust time advance using an absolute hour counter for production.
