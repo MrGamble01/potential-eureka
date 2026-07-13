@@ -213,7 +213,7 @@
     <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span></div>
     <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
     <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span></div>
-    <div class="res" id="clock"><span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span></div>
+    <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span></div>
   </div>
 
   <div id="goals">
@@ -750,6 +750,14 @@
   };
   const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'bakery', 'carpenter', 'market', 'well', 'tavern', 'warehouse'];
   const BASE_CAP = { wood: 250, stone: 250, food: 200 };  // gold is uncapped currency
+  const SEASONS = [
+    { name: 'Spring', emoji: '🌱', tint: null },
+    { name: 'Summer', emoji: '☀️', tint: 'rgba(255,210,120,0.05)' },
+    { name: 'Autumn', emoji: '🍂', tint: 'rgba(210,120,40,0.10)' },
+    { name: 'Winter', emoji: '❄️', tint: 'rgba(180,200,230,0.13)' },
+  ];
+  const DAYS_PER_SEASON = 6;
+  function seasonOf(day) { return SEASONS[Math.floor((day - 1) / DAYS_PER_SEASON) % 4]; }
   const PROD_INTERVAL = 6;   // production every 6 in-game hours
   const HOURS_PER_DAY = 24;
   const DAY_SECONDS = 90;    // real seconds per in-game day
@@ -792,7 +800,12 @@
     { text: 'Open a market for the merchant', prog: () => [countType('market'), 1], done: () => countType('market') >= 1, reward: { gold: 40 } },
     { text: 'Bank 150 gold', prog: () => [Math.floor(state.res.gold), 150], done: () => state.res.gold >= 150, reward: { stone: 25 } },
     { text: 'Grow to 10 villagers', prog: () => [state.villagers.length, 10], done: () => state.villagers.length >= 10, reward: { gold: 80 } },
+    { text: 'Build a Warehouse to store more', prog: () => [countType('warehouse'), 1], done: () => countType('warehouse') >= 1, reward: { stone: 30 } },
+    { text: 'Raise a Tavern for the town', prog: () => [countType('tavern'), 1], done: () => countType('tavern') >= 1, reward: { gold: 60 } },
     { text: 'Keep the town happy (85%+)', prog: () => [Math.floor(state.happy), 85], done: () => state.happy >= 85, reward: { gold: 120 } },
+    { text: 'Upgrade a building to Level 3', prog: () => [state.buildings.some(b => (b.level || 1) >= 3) ? 1 : 0, 1], done: () => state.buildings.some(b => (b.level || 1) >= 3), reward: { gold: 100 } },
+    { text: 'Bank 400 gold', prog: () => [Math.floor(state.res.gold), 400], done: () => state.res.gold >= 400, reward: { wood: 60, stone: 40 } },
+    { text: 'Grow to 18 villagers', prog: () => [state.villagers.length, 18], done: () => state.villagers.length >= 18, reward: { gold: 200 } },
   ];
   function checkGoals() {
     if (!state || state.goalIndex >= GOALS.length) return;
@@ -1621,6 +1634,8 @@
     else if (h < 20) { a = 0.28 * ((h - 17) / 3); col = '96,58,34'; }
     else if (h < 22) { a = 0.28 + 0.12 * ((h - 20) / 2); col = '40,36,66'; }
     else a = 0.4;
+    const season = seasonOf(state.day);
+    if (season.tint) { ctx.fillStyle = season.tint; ctx.fillRect(0, 0, view.w, view.h); }
     if (a > 0.001) {
       ctx.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
       ctx.fillRect(0, 0, view.w, view.h);
@@ -1652,6 +1667,7 @@
     document.getElementById('r-happyface').textContent = hp >= 70 ? '😀' : hp >= 40 ? '🙂' : '😟';
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
+    const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name; }
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
