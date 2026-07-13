@@ -11,6 +11,8 @@
   <meta property="og:title" content="Eureka Games">
   <meta property="og:description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Snake, Tetris and more. No install, no sign-up.">
   <meta property="og:image" content="/assets/thumbs/ageofwar.jpg">
+  <meta property="og:url" content="/">
+  <link rel="canonical" href="/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -54,7 +56,7 @@
     </div>
     <div class="arcade-grid">
 
-      <a class="arcade-card" href="ageofwar/" style="--accent:#D29922">
+      <a class="arcade-card" href="ageofwar" style="--accent:#D29922">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay">
           <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
@@ -69,7 +71,7 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="tycoon/" style="--accent:#58A6FF">
+      <a class="arcade-card" href="tycoon" style="--accent:#58A6FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/tycoon.jpg" alt="Startup Tycoon gameplay">
           <video class="arcade-card-clip" src="assets/thumbs/tycoon.webm" muted loop playsinline preload="none"></video>
@@ -823,9 +825,9 @@
 
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
-      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar/',
+      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar',
         best: () => { const a = hofJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
-      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon/',
+      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
         best: () => { const s = hofJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? hofMoney(v) + ' raised' : null; } },
       { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
         best: () => { const s = hofJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? hofMoney(v) + ' earned' : null; } },
