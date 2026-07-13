@@ -547,14 +547,14 @@
   // ---- Building sprites: 3/4-view timber-frame, outlined ------
   const B_ART = {
     house:     { roof: 'red',    wall: 'timber', chimney: true },
-    farm:      { roof: 'thatch', wall: 'timber', chimney: false },
-    lumber:    { roof: 'blue',   wall: 'timber', chimney: false },
-    quarry:    { roof: 'slate',  wall: 'stone',  chimney: false },
-    bakery:    { roof: 'red',    wall: 'timber', chimney: true },
-    carpenter: { roof: 'blue',   wall: 'timber', chimney: true },
-    market:    { roof: 'thatch', wall: 'timber', chimney: false },
+    farm:      { roof: 'thatch', wall: 'timber', chimney: false, open: true },
+    lumber:    { roof: 'blue',   wall: 'timber', chimney: false, open: true },
+    quarry:    { roof: 'slate',  wall: 'stone',  chimney: false, open: true },
+    bakery:    { roof: 'red',    wall: 'timber', chimney: true,  open: true },
+    carpenter: { roof: 'blue',   wall: 'timber', chimney: true,  open: true },
+    market:    { roof: 'thatch', wall: 'timber', chimney: false, open: true },
     well:      { well: true },
-    tavern:    { roof: 'red',    wall: 'timber', chimney: true },
+    tavern:    { roof: 'red',    wall: 'timber', chimney: true,  open: true },
   };
   const B_ROOF = {
     red:   [C.roofRed, C.roofRedDk, C.roofRedHi],
@@ -624,14 +624,6 @@
     P(Math.round(W / 2 - 4), 0, 8, 2, rcd);   // ridge cap
     P(0, wallTop - 2, W, 2, C.beamDk);         // dark eave beam
 
-    // door with frame
-    const dw = Math.max(5, Math.round(W * 0.24)), dh = Math.round(wallH * 0.72);
-    const ddx = Math.round(W / 2 - dw / 2), ddy = wallBottom - dh;
-    P(ddx - 1, ddy - 1, dw + 2, dh + 1, C.beamDk);
-    P(ddx, ddy, dw, dh, C.door); P(ddx, ddy, dw, 1, C.doorDk);
-    P(ddx + 1, ddy + 2, 1, dh - 3, C.doorDk);
-    P(ddx + dw - 2, ddy + Math.round(dh / 2), 1, 1, C.handle);
-
     // windows with a warm glow
     const wy = wallTop + Math.round(wallH * 0.28), winW = 4, winH = 4;
     const win = (wx) => {
@@ -639,9 +631,30 @@
       P(wx, wy, winW, winH, C.glow); P(wx, wy, winW, 1, C.glass);
       P(wx + 2, wy, 1, winH, C.beamDk); P(wx, wy + 2, winW, 1, C.beamDk);
     };
-    if (ddx > 6) win(3);
-    if (W - ddx - dw > 6) win(W - 7);
-    if (W >= 40) { win(Math.round(W * 0.30)); win(Math.round(W * 0.62)); }
+
+    if (!art.open) {
+      // solid front with a door (houses, well already returned)
+      const dw = Math.max(5, Math.round(W * 0.24)), dh = Math.round(wallH * 0.72);
+      const ddx = Math.round(W / 2 - dw / 2), ddy = wallBottom - dh;
+      P(ddx - 1, ddy - 1, dw + 2, dh + 1, C.beamDk);
+      P(ddx, ddy, dw, dh, C.door); P(ddx, ddy, dw, 1, C.doorDk);
+      P(ddx + 1, ddy + 2, 1, dh - 3, C.doorDk);
+      P(ddx + dw - 2, ddy + Math.round(dh / 2), 1, 1, C.handle);
+      if (ddx > 6) win(3);
+      if (W - ddx - dw > 6) win(W - 7);
+      if (W >= 40) { win(Math.round(W * 0.30)); win(Math.round(W * 0.62)); }
+    } else {
+      // cutaway open front: a workshop you can see into
+      const oX = Math.round(W * 0.18), oW = W - oX * 2, oTop = wallTop + Math.round(wallH * 0.32), oBot = wallBottom;
+      P(oX, oTop, oW, oBot - oTop, '#2c1f14');                 // dark interior
+      P(oX + 1, oTop + 1, oW - 2, 2, '#4a3626');               // faint back-wall light
+      P(oX, oBot - 3, oW, 3, '#5a4028'); P(oX, oBot - 3, oW, 1, '#6e4f30'); // floor
+      P(oX - 1, oTop - 1, 1, oBot - oTop + 1, C.beamDk); P(oX + oW, oTop - 1, 1, oBot - oTop + 1, C.beamDk); // posts
+      P(oX - 1, oTop - 1, oW + 2, 1, C.beam);                  // lintel
+      interiorScene(x, type, oX, oW, oTop, oBot);
+      if (oX > 6) win(3);
+      if (W - (oX + oW) > 6) win(W - 7);
+    }
 
     // chimney with static smoke
     if (art.chimney) {
@@ -653,7 +666,7 @@
       x.globalAlpha = 1;
     }
 
-    buildingDetails(x, type, W, wallTop, wallBottom);
+    if (!art.open) buildingDetails(x, type, W, wallTop, wallBottom); // open builds show their interior instead
     addOutline(x, W, H);
     def._sprite = c; def._rise = RISE;
     return c;
@@ -683,6 +696,24 @@
     } else if (type === 'carpenter') {           // planks + sawhorse
       P(1, baseY - 2, 9, 2, '#d8b184'); P(1, baseY - 5, 9, 2, '#d8b184'); P(2, baseY - 3, 1, 3, C.woodDk); P(8, baseY - 3, 1, 3, C.woodDk);
     }
+  }
+
+  // Interior scene for cutaway (open-front) buildings: a workstation on the
+  // right and a small worker on the left — the shop's trade at a glance.
+  function interiorScene(x, type, oX, oW, oTop, oBot) {
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(Math.round(px), Math.round(py), Math.round(pw), Math.round(ph)); };
+    const floor = oBot - 3, sx0 = oX + oW - 8;
+    if (type === 'bakery') { P(sx0, floor - 8, 7, 8, '#3e2a1c'); P(sx0 + 1, floor - 5, 5, 4, '#ff9a3a'); P(sx0 + 2, floor - 4, 3, 2, '#ffd070'); P(sx0, floor - 8, 7, 1, '#5a4030'); }
+    else if (type === 'carpenter') { P(sx0, floor - 5, 7, 2, '#8a5a2b'); P(sx0 + 1, floor - 3, 1, 3, C.woodDk); P(sx0 + 5, floor - 3, 1, 3, C.woodDk); P(sx0 + 2, floor - 8, 3, 2, C.slate); }
+    else if (type === 'farm') { P(sx0, floor - 7, 6, 7, '#c9a24a'); P(sx0, floor - 7, 6, 1, '#e6cc82'); P(sx0 + 2, floor - 5, 1, 5, '#a8794a'); }
+    else if (type === 'lumber') { P(sx0, floor - 5, 7, 5, C.trunk); P(sx0, floor - 5, 7, 1, '#a8794a'); P(sx0 + 4, floor - 9, 1, 4, C.trunkDk); P(sx0 + 3, floor - 10, 3, 2, C.slate); }
+    else if (type === 'quarry') { P(sx0, floor - 5, 6, 5, C.stoneW); P(sx0, floor - 5, 6, 1, C.stoneWHi); P(sx0 + 3, floor - 5, 1, 5, C.stoneWDk); P(sx0 + 1, floor - 8, 4, 3, C.stoneW); }
+    else if (type === 'market') { P(oX, floor - 4, oW, 2, '#8a5a2b'); P(oX + 2, floor - 7, 2, 3, '#c1564d'); P(oX + 6, floor - 7, 2, 3, '#3f9950'); P(oX + 10, floor - 7, 2, 3, '#f2c14e'); }
+    else if (type === 'tavern') { P(oX, floor - 4, oW, 2, '#8a5a2b'); P(sx0, floor - 8, 6, 6, C.wood); P(sx0, floor - 8, 6, 1, C.fenceHi); P(sx0, floor - 5, 6, 1, C.fenceDk); P(oX + 2, floor - 7, 2, 2, '#f2c14e'); }
+    // worker on the left (implies the shop is staffed)
+    const wk = oX + 2;
+    P(wk, floor - 5, 4, 3, '#5f83c8'); P(wk, floor - 2, 1, 2, '#3a2f22'); P(wk + 2, floor - 2, 1, 2, '#3a2f22');
+    P(wk, floor - 7, 4, 2, C.skin); P(wk, floor - 7, 4, 1, '#5a3d29');
   }
 
   // ---- Building definitions -----------------------------------
@@ -989,15 +1020,18 @@
 
   // ---- Villagers ----------------------------------------------
   const V_COLORS = ['#e06a5c', '#5f83c8', '#e0a13f', '#7bbf63', '#c78be0', '#4fb0a8', '#e0708b'];
+  const V_NAMES = ['Mira', 'Tobin', 'Elara', 'Finn', 'Rowan', 'Sable', 'Bram', 'Wren', 'Cassia', 'Odo', 'Hazel', 'Pippin', 'Fern', 'Garrick', 'Lila', 'Marn', 'Nessa', 'Corin', 'Dahlia', 'Emrys', 'Juniper', 'Alden', 'Petra', 'Wilan'];
   function spawnVillager(home) {
     const d = doorTile(home);
     const spot = findWalkableNear(d.tx, d.ty) || d;
+    const id = state._nextId++;
     const v = {
-      id: state._nextId++, homeId: home.id, jobId: null,
+      id: id, homeId: home.id, jobId: null,
       x: spot.tx * TILE + TILE / 2, y: spot.ty * TILE + TILE / 2,
       tx: spot.tx, ty: spot.ty, state: 'idle',
-      color: V_COLORS[Math.floor(rrand(state._nextId * 7) * V_COLORS.length)],
-      ph: rrand(state._nextId * 3) * 6, wait: 0,
+      color: V_COLORS[Math.floor(rrand(id * 7) * V_COLORS.length)],
+      name: V_NAMES[Math.floor(rrand(id * 17 + 3) * V_NAMES.length)],
+      ph: rrand(id * 3) * 6, wait: 0,
     };
     state.villagers.push(v);
     return v;
@@ -1642,6 +1676,24 @@
   function statRow(a, b) { return '<div class="stat"><span>' + a + '</span><b>' + b + '</b></div>'; }
   function hidePanel() { selected = null; document.getElementById('panel').classList.remove('show'); }
 
+  function showVillagerPanel(v) {
+    selected = null; buildMode = null; canvas.classList.remove('building'); refreshBarState();
+    const jb = v.jobId ? buildingById(v.jobId) : null;
+    const job = jb ? BUILDINGS[jb.type].name : 'Idle';
+    const jobEmoji = jb ? BUILDINGS[jb.type].emoji : '🚶';
+    const mood = state.happy >= 70 ? '😀 Cheerful' : state.happy >= 40 ? '🙂 Content' : '😟 Unsettled';
+    const homeB = buildingById(v.homeId);
+    document.getElementById('p-emoji').textContent = jobEmoji;
+    document.getElementById('p-name').textContent = v.name;
+    document.getElementById('p-sub').textContent = 'A villager of Hearthvale';
+    document.getElementById('p-stats').innerHTML =
+      statRow('Trade', job) + statRow('Mood', mood) + statRow('Home', homeB ? BUILDINGS[homeB.type].name : '—');
+    const actions = document.getElementById('p-actions');
+    actions.innerHTML = '<button id="p-close">Close</button>';
+    document.getElementById('p-close').onclick = hidePanel;
+    document.getElementById('panel').classList.add('show');
+  }
+
   let toastId = 0;
   function toast(msg) {
     const wrap = document.getElementById('toasts');
@@ -1713,6 +1765,15 @@
       if (!canAfford(buildMode)) { buildMode = null; canvas.classList.remove('building'); refreshBarState(); }
       return;
     }
+    // click a villager to inspect them (takes priority over the tile below)
+    const wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;
+    let hitV = null, best = 9;
+    for (const v of state.villagers) {
+      if (v.sleeping) continue;
+      const d = Math.hypot(v.x - wx, v.y - wy);
+      if (d < best) { best = d; hitV = v; }
+    }
+    if (hitV && best < 8) { showVillagerPanel(hitV); return; }
     // else: select a building
     const o = occ[idx(t.tx, t.ty)];
     if (o >= 0) showPanel(buildingById(o));
@@ -1758,7 +1819,7 @@
     try {
       const s = {
         res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1 })),
-        villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph })),
+        villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph, name: v.name })),
         day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
         happy: state.happy, seenIntro: state.seenIntro, seed: state.seed,
@@ -1805,6 +1866,7 @@
           id: sv.id, homeId: sv.homeId, jobId: sv.jobId,
           x: sv.tx * TILE + TILE / 2, y: sv.ty * TILE + TILE / 2, tx: sv.tx, ty: sv.ty,
           state: 'idle', color: sv.color || V_COLORS[0], ph: sv.ph || 0, wait: 0,
+          name: sv.name || V_NAMES[sv.id % V_NAMES.length],
         };
         state.villagers.push(v);
       });
