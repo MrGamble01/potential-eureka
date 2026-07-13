@@ -291,6 +291,35 @@
     x.putImageData(img, 0, 0);
   }
 
+  // ---- Procedural sound (tiny WebAudio synth, no assets) -------
+  let _actx = null;
+  function audioCtx() {
+    if (_actx === null) { try { _actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { _actx = false; } }
+    if (_actx && _actx.state === 'suspended') { try { _actx.resume(); } catch (e) { } }
+    return _actx || null;
+  }
+  function tone(freq, dur, type, vol, when) {
+    const ac = audioCtx(); if (!ac) return;
+    const t = ac.currentTime + (when || 0);
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol || 0.12, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.03);
+  }
+  function SFX(kind) {
+    if (typeof state !== 'undefined' && state && state.muted) return;
+    switch (kind) {
+      case 'place':   tone(330, 0.08, 'square', 0.10); tone(494, 0.12, 'square', 0.09, 0.06); break;
+      case 'upgrade': tone(392, 0.09, 'triangle', 0.11); tone(587, 0.10, 'triangle', 0.10, 0.07); tone(784, 0.15, 'triangle', 0.10, 0.14); break;
+      case 'coin':    tone(880, 0.05, 'square', 0.09); tone(1175, 0.10, 'square', 0.08, 0.05); break;
+      case 'goal':    tone(523, 0.10, 'triangle', 0.12); tone(659, 0.10, 'triangle', 0.12, 0.10); tone(784, 0.20, 'triangle', 0.12, 0.20); break;
+      case 'error':   tone(150, 0.16, 'sawtooth', 0.08); break;
+      case 'trader':  tone(440, 0.10, 'sine', 0.10); tone(330, 0.16, 'sine', 0.09, 0.09); break;
+    }
+  }
+
   // ---- Sprite factory -----------------------------------------
   // Draw at base resolution into an offscreen canvas, then blit
   // scaled with smoothing off for a crisp retro look.
@@ -477,6 +506,7 @@
     carpenter: { roof: 'blue',   wall: 'timber', chimney: true },
     market:    { roof: 'thatch', wall: 'timber', chimney: false },
     well:      { well: true },
+    tavern:    { roof: 'red',    wall: 'timber', chimney: true },
   };
   const B_ROOF = {
     red:   [C.roofRed, C.roofRedDk, C.roofRedHi],
@@ -592,8 +622,9 @@
     carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods sold for gold.' },
     market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the traveling merchant.' },
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
+    tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'bakery', 'carpenter', 'market', 'well'];
+  const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'bakery', 'carpenter', 'market', 'well', 'tavern'];
   const PROD_INTERVAL = 6;   // production every 6 in-game hours
   const HOURS_PER_DAY = 24;
   const DAY_SECONDS = 90;    // real seconds per in-game day
@@ -618,6 +649,8 @@
       seenIntro: false,
       goalIndex: 0,   // current town-goal in GOALS
       sadDays: 0,     // consecutive days of misery before someone leaves
+      roads: [],      // player-painted road tiles {tx,ty} (reapplied on load)
+      muted: false,
     };
   }
 
@@ -640,6 +673,7 @@
       for (const k in g.reward) state.res[k] = (state.res[k] || 0) + g.reward[k];
       const rew = Object.keys(g.reward).map(k => '+' + g.reward[k] + ' ' + shortRes(k)).join(' ');
       toast('✦ Goal done: ' + g.text + '  ' + rew);
+      SFX('goal');
       state.goalIndex++;
       state.happy = Math.min(100, state.happy + 5); // a win cheers the town
       renderGoal(); save();
@@ -818,7 +852,7 @@
 
   function placeBuilding(type, tx, ty) {
     const def = BUILDINGS[type];
-    const b = { id: state._nextId++, type, tx, ty, staffed: false, worker: null };
+    const b = { id: state._nextId++, type, tx, ty, staffed: false, worker: null, level: 1 };
     // clear flowers under footprint; mark occupancy
     for (let dy = 0; dy < def.h; dy++)
       for (let dx = 0; dx < def.w; dx++) {
@@ -832,6 +866,7 @@
     payCost(type);
     if (def.housing) { for (let k = 0; k < def.housing; k++) spawnVillager(b); }
     assignJobs();
+    SFX('place');
     toast(def.emoji + ' ' + def.name + ' built!');
     save();
     return b;
@@ -879,9 +914,31 @@
         }
     return null;
   }
+  function effHousing(b) { return (BUILDINGS[b.type].housing || 0) * (b.level || 1); }
   function popCap() {
     return state.buildings.filter(b => BUILDINGS[b.type].housing)
-      .reduce((s, b) => s + BUILDINGS[b.type].housing, 0);
+      .reduce((s, b) => s + effHousing(b), 0);
+  }
+  const MAX_LEVEL = 3;
+  function canUpgrade(b) { const d = BUILDINGS[b.type]; return (d.housing || d.prod || d.happy) && (b.level || 1) < MAX_LEVEL; }
+  function upgradeCost(b) {
+    const def = BUILDINGS[b.type], lvl = b.level || 1, cost = {};
+    for (const k in def.cost) cost[k] = Math.ceil(def.cost[k] * (lvl + 1) * 0.7);
+    if (Object.keys(cost).length === 0) cost.wood = 10 * lvl; // decoratives (well)
+    return cost;
+  }
+  function upgradeBuilding(b) {
+    if (!canUpgrade(b)) return;
+    const cost = upgradeCost(b);
+    if (!Object.keys(cost).every(k => state.res[k] >= cost[k])) { toast("Can't afford the upgrade yet."); SFX('error'); return; }
+    for (const k in cost) state.res[k] -= cost[k];
+    b.level = (b.level || 1) + 1;
+    const def = BUILDINGS[b.type];
+    if (def.housing) { for (let k = 0; k < def.housing; k++) spawnVillager(b); assignJobs(); } // extra rooms → extra folk
+    state.happy = Math.min(100, state.happy + 3);
+    SFX('upgrade');
+    toast('⬆️ ' + def.name + ' upgraded to Lv' + b.level + '!');
+    save();
   }
   // Assign idle villagers to unstaffed worker-buildings.
   function assignJobs() {
@@ -894,38 +951,80 @@
 
   function buildingById(id) { return state.buildings.find(b => b.id === id); }
 
-  function villagerTick(v, dt) {
-    v.wait -= dt;
-    // pick a destination based on state
-    if (!v.path || v.path.length === 0) {
-      if (v.wait > 0) return;
-      let dest = null;
-      if (v.jobId) {
-        const b = buildingById(v.jobId);
-        if (b) {
-          const d = doorTile(b);
-          // alternate between working near job and strolling home
-          dest = (v.state === 'toHome') ? homeDoor(v) : findWalkableNear(d.tx, d.ty);
-          v.state = (v.state === 'toHome') ? 'toWork' : 'toHome';
-        } else { v.jobId = null; }
+  function isNight() { return state.time < 6 || state.time >= 20.5; }
+
+  // Road-preferring Dijkstra over walkable tiles. Villagers hug the dirt
+  // roads (cost 1) and only cut across grass (cost 3) when it's shorter.
+  function pathfind(sx, sy, tx, ty) {
+    if (!walkable(tx, ty)) { const n = findWalkableNear(tx, ty); if (!n) return null; tx = n.tx; ty = n.ty; }
+    if (sx === tx && sy === ty) return [];
+    const W = MAP_W, H = MAP_H, N = W * H;
+    const start = sy * W + sx, goal = ty * W + tx;
+    const dist = new Float32Array(N); dist.fill(Infinity);
+    const prev = new Int32Array(N); prev.fill(-1);
+    dist[start] = 0;
+    const heap = [[0, start]];
+    const push = (d, i) => { heap.push([d, i]); let c = heap.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (heap[p][0] <= heap[c][0]) break; const t = heap[p]; heap[p] = heap[c]; heap[c] = t; c = p; } };
+    const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let c = 0; for (; ;) { let l = 2 * c + 1, r = 2 * c + 2, s = c; if (l < heap.length && heap[l][0] < heap[s][0]) s = l; if (r < heap.length && heap[r][0] < heap[s][0]) s = r; if (s === c) break; const t = heap[s]; heap[s] = heap[c]; heap[c] = t; c = s; } } return top; };
+    let iters = 0;
+    while (heap.length && iters++ < 20000) {
+      const [d, cur] = pop();
+      if (d > dist[cur]) continue;
+      if (cur === goal) break;
+      const cx = cur % W, cy = (cur / W) | 0;
+      const nbs = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+      for (const nb of nbs) {
+        const nx = nb[0], ny = nb[1];
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const isGoal = (nx === tx && ny === ty);
+        if (!isGoal && !walkable(nx, ny)) continue;
+        const ni = ny * W + nx;
+        const t = tiles[ni];
+        const step = (t === T_DIRT || t === T_BRIDGE) ? 1 : 3;
+        const nd = d + step;
+        if (nd < dist[ni]) { dist[ni] = nd; prev[ni] = cur; push(nd, ni); }
       }
-      if (!dest) dest = randomStroll(v);
-      if (dest) v.path = [dest];
-      v.wait = 0.4 + rrand((v.id + state.time) * 13) * 1.6;
+    }
+    if (goal !== start && prev[goal] === -1) return null;
+    const path = []; let c = goal;
+    while (c !== -1 && c !== start) { path.push({ tx: c % W, ty: (c / W) | 0 }); c = prev[c]; }
+    path.reverse();
+    return path;
+  }
+
+  function villagerTick(v, dt) {
+    // follow an existing path, tile by tile; faster on roads
+    if (v.path && v.path.length) {
+      v.sleeping = false;
+      const tgt = v.path[0];
+      const gx = tgt.tx * TILE + TILE / 2, gy = tgt.ty * TILE + TILE / 2;
+      const dx = gx - v.x, dy = gy - v.y, dist = Math.hypot(dx, dy);
+      const onRoad = inMap(v.tx, v.ty) && (tiles[idx(v.tx, v.ty)] === T_DIRT || tiles[idx(v.tx, v.ty)] === T_BRIDGE);
+      const spd = (onRoad ? 34 : 22) * dt * TILE / 16;
+      if (dist < 1.5) { v.x = gx; v.y = gy; v.tx = tgt.tx; v.ty = tgt.ty; v.path.shift(); }
+      else { v.x += dx / dist * Math.min(spd, dist); v.y += dy / dist * Math.min(spd, dist); }
       return;
     }
-    // move toward path[0]
-    const tgt = v.path[0];
-    const gx = tgt.tx * TILE + TILE / 2, gy = tgt.ty * TILE + TILE / 2;
-    const dx = gx - v.x, dy = gy - v.y;
-    const dist = Math.hypot(dx, dy);
-    const spd = 22 * dt * TILE / 16;
-    if (dist < 1.5) {
-      v.x = gx; v.y = gy; v.tx = tgt.tx; v.ty = tgt.ty; v.path.shift();
-    } else {
-      v.x += dx / dist * Math.min(spd, dist);
-      v.y += dy / dist * Math.min(spd, dist);
+    // arrived / idle — decide the next destination
+    v.wait -= dt;
+    if (v.wait > 0) return;
+    v.wait = 0.5 + rrand((v.id + Math.floor(state.time)) * 13) * 1.8;
+
+    let dest = null;
+    if (isNight()) {
+      const hd = homeDoor(v);
+      if (hd && v.tx === hd.tx && v.ty === hd.ty) { v.sleeping = true; return; } // tucked in
+      dest = hd;
+    } else if (v.jobId) {
+      const b = buildingById(v.jobId);
+      if (b) {
+        const wd = findWalkableNear(doorTile(b).tx, doorTile(b).ty);
+        dest = (v.state === 'atWork') ? randomStroll(v) : wd;   // work, then wander a bit
+        v.state = (v.state === 'atWork') ? 'roam' : 'atWork';
+      } else { v.jobId = null; }
     }
+    if (!dest) dest = randomStroll(v);
+    if (dest) { const p = pathfind(v.tx, v.ty, dest.tx, dest.ty); if (p && p.length) v.path = p; }
   }
   function homeDoor(v) {
     const b = buildingById(v.homeId);
@@ -935,8 +1034,8 @@
   }
   function randomStroll(v) {
     for (let i = 0; i < 8; i++) {
-      const nx = v.tx + Math.floor((rrand((v.id + i + state.time * 10) * 5) - 0.5) * 8);
-      const ny = v.ty + Math.floor((rrand((v.id + i * 3 + state.time * 7) * 9) - 0.5) * 8);
+      const nx = v.tx + Math.floor((rrand((v.id + i + Math.floor(state.time) * 10) * 5) - 0.5) * 9);
+      const ny = v.ty + Math.floor((rrand((v.id + i * 3 + Math.floor(state.time) * 7) * 9) - 0.5) * 9);
       if (walkable(nx, ny)) return { tx: nx, ty: ny };
     }
     return walkable(v.tx, v.ty) ? { tx: v.tx, ty: v.ty } : null;
@@ -960,7 +1059,7 @@
         if (!ok) return;
         if (def.cons) for (const k in def.cons) state.res[k] -= def.cons[k];
         for (const k in def.prod) {
-          let amt = def.prod[k];
+          let amt = def.prod[k] * (b.level || 1);   // higher tier → more output
           if (b.bonus) amt = Math.ceil(amt * 1.5);
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
         }
@@ -976,8 +1075,9 @@
     } else {
       state.happy = Math.min(100, state.happy + 1);
     }
-    // wells add happiness passively
-    if (state.buildings.some(b => b.type === 'well')) state.happy = Math.min(100, state.happy + 1);
+    // amenities (well, tavern) add happiness passively, scaled by level
+    const amenity = state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].happy ? Math.ceil(BUILDINGS[b.type].happy / 6) * (b.level || 1) : 0), 0);
+    if (amenity) state.happy = Math.min(100, state.happy + amenity);
     Object.keys(gained).forEach(k => { prodFlashTimer[k] = 0.5; });
     updateHUD();
   }
@@ -1034,6 +1134,7 @@
     });
     renderTrader();
     document.getElementById('trader').classList.add('show');
+    SFX('trader');
     toast('🚚 A traveling merchant has arrived at the market!');
   }
   function renderTrader() {
@@ -1052,8 +1153,8 @@
     });
     rows.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
       const k = btn.dataset.k, p = traderPrices[k];
-      if (btn.dataset.act === 'buy' && state.res.gold >= p.buy) { state.res.gold -= p.buy; state.res[k] += 1; }
-      else if (btn.dataset.act === 'sell' && state.res[k] >= 1) { state.res[k] -= 1; state.res.gold += p.sell; }
+      if (btn.dataset.act === 'buy' && state.res.gold >= p.buy) { state.res.gold -= p.buy; state.res[k] += 1; SFX('coin'); }
+      else if (btn.dataset.act === 'sell' && state.res[k] >= 1) { state.res[k] -= 1; state.res.gold += p.sell; SFX('coin'); }
       renderTrader(); updateHUD(); save();
     }));
   }
@@ -1142,8 +1243,16 @@
       }
     }
 
+    // road tool: single-tile hover highlight
+    if (buildMode === 'road' && hoverTile && inMap(hoverTile.tx, hoverTile.ty)) {
+      const i = idx(hoverTile.tx, hoverTile.ty), tl = tiles[i], o = tileObj[i];
+      const ok = state.res.wood >= 1 && occ[i] < 0 && tl !== T_WATER && tl !== T_DIRT && tl !== T_BRIDGE && o !== O_TREE && o !== O_ROCK && o !== O_MTN && o !== O_BUSH;
+      if (ok) { ctx.globalAlpha = 0.55; ctx.drawImage(SPR.dirt, Math.round(sx + hoverTile.tx * TILE * z), Math.round(sy + hoverTile.ty * TILE * z), TILE * z, TILE * z); ctx.globalAlpha = 1; }
+      ctx.strokeStyle = ok ? '#8ec26b' : '#e06a5c'; ctx.lineWidth = 2;
+      ctx.strokeRect(Math.round(sx + hoverTile.tx * TILE * z) + 1, Math.round(sy + hoverTile.ty * TILE * z) + 1, TILE * z - 2, TILE * z - 2);
+    }
     // placement ghost
-    if (buildMode && buildMode !== 'demolish' && hoverTile) {
+    if (buildMode && buildMode !== 'demolish' && buildMode !== 'road' && hoverTile) {
       const def = BUILDINGS[buildMode];
       const ok = canPlaceAt(buildMode, hoverTile.tx, hoverTile.ty) && canAfford(buildMode);
       ctx.globalAlpha = 0.6;
@@ -1182,6 +1291,26 @@
     ctx.ellipse(sx + (b.tx * TILE + def.w * TILE / 2) * z, sy + (b.ty + def.h) * TILE * z - 2 * z, def.w * TILE * 0.5 * z, 3 * z, 0, 0, 7);
     ctx.fill();
     ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - rise) * z), def.w * TILE * z, (def.h * TILE + rise) * z);
+    // warm window glow at night — the town looks alive after dark
+    if (isNight()) {
+      const gx = sx + (b.tx * TILE + def.w * TILE / 2) * z;
+      const gy = sy + (b.ty * TILE + def.h * TILE * 0.42) * z;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5;
+      const rg = ctx.createRadialGradient(gx, gy, 1, gx, gy, def.w * TILE * 0.55 * z);
+      rg.addColorStop(0, 'rgba(255,210,120,0.9)'); rg.addColorStop(1, 'rgba(255,210,120,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, def.w * TILE * 0.55 * z, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    // level pips (gold dots) for upgraded buildings
+    const lvl = b.level || 1;
+    if (lvl > 1) {
+      const px0 = sx + (b.tx * TILE + 2) * z, py0 = sy + (b.ty * TILE - rise + 1) * z;
+      for (let i = 0; i < lvl - 1; i++) {
+        ctx.fillStyle = '#f2c14e'; ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.5);
+        ctx.beginPath(); ctx.arc(px0 + i * 3.2 * z, py0, 1.4 * z, 0, 7); ctx.fill(); ctx.stroke();
+      }
+    }
     // unstaffed worker building: a STATIC amber "!" badge (no animation)
     if (def.worker && !b.staffed) {
       const bx = sx + (b.tx * TILE + def.w * TILE / 2) * z;
@@ -1216,6 +1345,7 @@
   }
 
   function drawVillager(v, sx, sy, z) {
+    if (v.sleeping) return;   // tucked in at home for the night
     const moving = v.path && v.path.length > 0;
     const frame = moving ? (Math.floor((v.x + v.y) / 3) % 2 === 0 ? 1 : 2) : 0;
     const spr = villagerSprite(v.color, frame);
@@ -1278,6 +1408,13 @@
       btn.addEventListener('click', () => selectBuild(type));
       bar.appendChild(btn);
     });
+    // road tool — paves a tile so villagers walk it faster
+    const road = document.createElement('button');
+    road.className = 'btn tool';
+    road.innerHTML = '<span class="emoji">🛤️</span><span class="lbl">Road</span><span class="cost">1🪵</span>';
+    road.dataset.type = 'road';
+    road.addEventListener('click', () => selectBuild('road'));
+    bar.appendChild(road);
     // demolish tool
     const dem = document.createElement('button');
     dem.className = 'btn tool';
@@ -1292,17 +1429,19 @@
     document.querySelectorAll('#buildbar .btn').forEach(btn => {
       const type = btn.dataset.type;
       btn.classList.toggle('sel', buildMode === type);
-      if (type !== 'demolish') {
+      if (type !== 'demolish' && type !== 'road') {
         const def = BUILDINGS[type];
         btn.classList.toggle('cantafford', !canAfford(type));
         const taken = def.unique && state.buildings.some(b => b.type === type);
         btn.classList.toggle('locked', taken);
+      } else if (type === 'road') {
+        btn.classList.toggle('cantafford', state.res.wood < 1);
       }
     });
   }
 
   function selectBuild(type) {
-    if (type !== 'demolish' && BUILDINGS[type].unique && state.buildings.some(b => b.type === type)) { toast('You already have a ' + BUILDINGS[type].name + '.'); return; }
+    if (type !== 'demolish' && type !== 'road' && BUILDINGS[type].unique && state.buildings.some(b => b.type === type)) { toast('You already have a ' + BUILDINGS[type].name + '.'); return; }
     buildMode = (buildMode === type) ? null : type;
     selected = null; hidePanel();
     canvas.classList.toggle('building', !!buildMode);
@@ -1313,21 +1452,31 @@
   let selected = null;
   function showPanel(b) {
     selected = b; buildMode = null; canvas.classList.remove('building'); refreshBarState();
-    const def = BUILDINGS[b.type];
+    const def = BUILDINGS[b.type], lvl = b.level || 1;
     document.getElementById('p-emoji').textContent = def.emoji;
-    document.getElementById('p-name').textContent = def.name;
+    document.getElementById('p-name').textContent = def.name + (lvl > 1 ? ' · Lv' + lvl : '');
     document.getElementById('p-sub').textContent = def.desc;
     const stats = document.getElementById('p-stats');
     let html = '';
-    if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + def.housing + ' villagers');
+    if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) html += statRow('Worker', b.staffed ? 'Assigned ✅' : 'Needs a villager 💤');
-    if (def.prod) { const k = Object.keys(def.prod)[0]; html += statRow('Produces', (b.bonus ? Math.ceil(def.prod[k] * 1.5) : def.prod[k]) + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : '') + ' / cycle'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; const base = def.prod[k] * lvl; html += statRow('Produces', (b.bonus ? Math.ceil(base * 1.5) : base) + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : '') + ' / cycle'); }
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
-    if (def.happy) html += statRow('Happiness', '+' + def.happy);
+    if (def.happy) html += statRow('Happiness', '+' + (Math.ceil(def.happy / 6) * lvl) + ' / cycle');
     if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
+    html += statRow('Level', lvl + ' / ' + MAX_LEVEL);
     stats.innerHTML = html;
     const actions = document.getElementById('p-actions');
-    actions.innerHTML = '<button class="danger" id="p-demolish">Remove</button>';
+    let btns = '';
+    if (canUpgrade(b)) {
+      const cost = upgradeCost(b);
+      const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
+      btns += '<button id="p-upgrade">⬆️ Upgrade <span style="opacity:.7;font-size:11px">' + costStr + '</span></button>';
+    }
+    btns += '<button class="danger" id="p-demolish">Remove</button>';
+    actions.innerHTML = btns;
+    const upBtn = document.getElementById('p-upgrade');
+    if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
@@ -1384,12 +1533,22 @@
     if (!inMap(t.tx, t.ty)) return;
     if (buildMode === 'demolish') {
       const o = occ[idx(t.tx, t.ty)];
-      if (o >= 0) demolish(buildingById(o));
+      if (o >= 0) demolish(buildingById(o)); else SFX('error');
+      return;
+    }
+    if (buildMode === 'road') {
+      const i = idx(t.tx, t.ty), tile = tiles[i];
+      const o = tileObj[i];
+      if (state.res.wood < 1) { toast("Need 1 🪵 for a road."); SFX('error'); return; }
+      if (occ[i] >= 0 || tile === T_WATER || tile === T_DIRT || tile === T_BRIDGE || o === O_TREE || o === O_ROCK || o === O_MTN || o === O_BUSH) { SFX('error'); return; }
+      state.res.wood -= 1; tiles[i] = T_DIRT; tileObj[i] = O_NONE;
+      (state.roads || (state.roads = [])).push({ tx: t.tx, ty: t.ty });
+      SFX('place'); refreshBarState(); save();
       return;
     }
     if (buildMode) {
-      if (!canAfford(buildMode)) { toast("Can't afford that yet."); return; }
-      if (!canPlaceAt(buildMode, t.tx, t.ty)) { toast("Can't build there."); return; }
+      if (!canAfford(buildMode)) { toast("Can't afford that yet."); SFX('error'); return; }
+      if (!canPlaceAt(buildMode, t.tx, t.ty)) { toast("Can't build there."); SFX('error'); return; }
       const b = placeBuilding(buildMode, t.tx, t.ty);
       refreshBarState();
       if (!canAfford(buildMode)) { buildMode = null; canvas.classList.remove('building'); refreshBarState(); }
@@ -1419,6 +1578,7 @@
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); }
+    if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= BUILD_ORDER.length) selectBuild(BUILD_ORDER[n - 1]);
   });
@@ -1438,12 +1598,13 @@
   function save() {
     try {
       const s = {
-        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus })),
+        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1 })),
         villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph })),
         day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
         happy: state.happy, seenIntro: state.seenIntro, seed: state.seed,
         goalIndex: state.goalIndex, sadDays: state.sadDays,
+        roads: state.roads || [], muted: !!state.muted,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -1467,11 +1628,15 @@
       state.goalIndex = s.goalIndex || 0;
       state.sadDays = s.sadDays || 0;
       state.seenIntro = !!s.seenIntro;
+      state.muted = !!s.muted;
+      // reapply player-painted roads over the regenerated terrain
+      state.roads = s.roads || [];
+      state.roads.forEach(r => { if (inMap(r.tx, r.ty) && tiles[idx(r.tx, r.ty)] !== T_WATER) { tiles[idx(r.tx, r.ty)] = T_DIRT; tileObj[idx(r.tx, r.ty)] = O_NONE; } });
       // rebuild occupancy + buildings
       (s.buildings || []).forEach(sb => {
         if (!BUILDINGS[sb.type]) return;
         const def = BUILDINGS[sb.type];
-        const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, staffed: false, worker: null };
+        const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, level: sb.level || 1, staffed: false, worker: null };
         for (let dy = 0; dy < def.h; dy++) for (let dx = 0; dx < def.w; dx++) { const i = idx(sb.tx + dx, sb.ty + dy); if (inMap(sb.tx + dx, sb.ty + dy)) occ[i] = b.id; }
         state.buildings.push(b);
       });
