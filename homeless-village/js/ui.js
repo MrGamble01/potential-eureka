@@ -19,7 +19,8 @@ function buildCraftUI(){
   hideTip(); // an item being hovered may be destroyed by innerHTML reset
   el.innerHTML='';
   RECIPES.forEach(function(r){
-    var div=document.createElement('div');
+    var div=document.createElement('button');
+    div.type='button';
     div.className='craft-item'+(canCraft(r)?'':' cant-afford');
     div.id='craft-'+r.id;
     var costStr=Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
@@ -28,6 +29,8 @@ function buildCraftUI(){
     div.onclick=function(){ doCraft(r); };
     div.addEventListener('mouseenter',showTip);
     div.addEventListener('mouseleave',hideTip);
+    div.addEventListener('focus',showTip);
+    div.addEventListener('blur',hideTip);
     el.appendChild(div);
     // Rebuilds discard the busy styling doCraft applied to the old
     // node — re-apply it so an in-flight recipe stays locked.
@@ -103,7 +106,14 @@ function showTip(e){
   // is already visible on the item, so just skip it.
   if(window.matchMedia('(hover:none)').matches) return;
   var t=e.currentTarget.getAttribute('data-tip'); if(!t) return;
-  tip.textContent=t; tip.style.display='block'; moveTip(e);
+  tip.textContent=t; tip.style.display='block';
+  // Keyboard focus events have no pointer coordinates — anchor the
+  // tooltip to the focused element instead of the (absent) cursor.
+  if(typeof e.clientX==='number') moveTip(e);
+  else{
+    var r=e.currentTarget.getBoundingClientRect();
+    tip.style.left=(r.left)+'px'; tip.style.top=(r.top-8)+'px';
+  }
 }
 function moveTip(e){ tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-8)+'px'; }
 function hideTip(){ tip.style.display='none'; }

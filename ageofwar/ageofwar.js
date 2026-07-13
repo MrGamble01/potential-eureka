@@ -180,6 +180,10 @@ const AgeOfWarGame = (() => {
   // the base is critical. Honors reduce-motion and is a harmless no-op
   // where the Vibration API is unsupported (desktop, iOS Safari).
   let lastHapticT = -9999, hapticsOK = true;
+  // Screen shake / hit-flash are motion effects — suppress them for
+  // players who've asked the OS for reduced motion (same signal hapticsOK
+  // already honors below).
+  let reducedMotion = false;
   function vibrateBaseHit() {
     if (!hapticsOK || gameOver) return;
     if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
@@ -392,6 +396,7 @@ const AgeOfWarGame = (() => {
   let shakeT = 0;
   let shakeMag = 0;
   function shake(mag, dur) {
+    if (reducedMotion) return; // no-op the camera-shake effect
     if (mag > shakeMag) shakeMag = mag;
     if (dur > shakeT)   shakeT   = dur;
   }
@@ -490,7 +495,8 @@ const AgeOfWarGame = (() => {
     canvas.height = HEIGHT * dpr;
     ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    try { hapticsOK = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
+    try { reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
+    hapticsOK = !reducedMotion;
     try {
       const saved = (typeof Utils !== 'undefined' && Utils.store && Utils.store.getRaw('aow-difficulty'))
                   || localStorage.getItem('aow-difficulty');
@@ -1949,7 +1955,7 @@ const AgeOfWarGame = (() => {
     ctx.globalAlpha = 1;
 
     // Age flash overlay
-    if (ageFlash > 0) {
+    if (ageFlash > 0 && !reducedMotion) {
       ctx.fillStyle = `rgba(252,211,77,${ageFlash * 0.4})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
     }

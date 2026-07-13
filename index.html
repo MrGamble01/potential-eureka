@@ -464,14 +464,14 @@
         <div class="game-title">SNAKE</div>
         <div class="game-subtitle">Arrow keys / WASD &middot; swipe on mobile</div>
       </div>
-      <div class="game-info">
+      <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="snake-score">0</strong></span>
         <span>High Score: <strong id="snake-high">0</strong></span>
         <span>Level: <strong id="snake-level">1</strong></span>
       </div>
       <div class="canvas-wrapper">
         <canvas id="snake-canvas" class="game-canvas" role="img" aria-label="Snake game board"></canvas>
-        <div id="snake-overlay" class="game-overlay" style="display:none"></div>
+        <div id="snake-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
@@ -529,7 +529,7 @@
           </div>
           <div class="tetris-panel">
             <div class="tetris-panel-label">SCORE</div>
-            <div class="tetris-panel-value" id="tetris-score">0</div>
+            <div class="tetris-panel-value" id="tetris-score" role="status" aria-live="polite">0</div>
           </div>
           <div class="tetris-panel">
             <div class="tetris-panel-label">LEVEL</div>
@@ -542,7 +542,7 @@
         </div>
         <div class="canvas-wrapper">
           <canvas id="tetris-canvas" class="game-canvas" role="img" aria-label="Tetris game board"></canvas>
-          <div id="tetris-overlay" class="game-overlay" style="display:none"></div>
+          <div id="tetris-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
         </div>
         <div class="tetris-side">
           <div class="tetris-panel">
@@ -578,13 +578,13 @@
         <div class="game-title">2048</div>
         <div class="game-subtitle">Swipe or arrow keys &middot; combine tiles to reach 2048</div>
       </div>
-      <div class="game-info">
+      <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="g2048-score">0</strong></span>
         <span>Best: <strong id="g2048-best">0</strong></span>
       </div>
       <div class="canvas-wrapper">
         <canvas id="g2048-canvas" class="game-canvas" role="img" aria-label="2048 board"></canvas>
-        <div id="g2048-overlay" class="game-overlay" style="display:none"></div>
+        <div id="g2048-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="Game2048.start()">New Game</button>
@@ -600,7 +600,7 @@
         <div class="game-title">NEON BREAKER</div>
         <div class="game-subtitle">Move to aim &middot; catch power-ups &middot; clear every brick</div>
       </div>
-      <div class="game-info">
+      <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="breakout-score">0</strong></span>
         <span>High Score: <strong id="breakout-high">0</strong></span>
         <span>Level: <strong id="breakout-level">1</strong></span>
@@ -608,7 +608,7 @@
       </div>
       <div class="canvas-wrapper">
         <canvas id="breakout-canvas" class="game-canvas" role="img" aria-label="Neon Breaker play field"></canvas>
-        <div id="breakout-overlay" class="game-overlay" style="display:none"></div>
+        <div id="breakout-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="BreakoutGame.start()">New Game</button>
@@ -644,7 +644,7 @@
         <div class="game-title">VECTOR STORM</div>
         <div class="game-subtitle">Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; buttons on touch</div>
       </div>
-      <div class="game-info">
+      <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="asteroids-score">0</strong></span>
         <span>High Score: <strong id="asteroids-high">0</strong></span>
         <span>Wave: <strong id="asteroids-wave">1</strong></span>
@@ -652,7 +652,7 @@
       </div>
       <div class="canvas-wrapper">
         <canvas id="asteroids-canvas" class="game-canvas" role="img" aria-label="Vector Storm play field"></canvas>
-        <div id="asteroids-overlay" class="game-overlay" style="display:none"></div>
+        <div id="asteroids-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
       <!-- On-screen controls — touch devices only -->
       <div class="ast-touch" id="ast-touch">
@@ -967,6 +967,16 @@
           clip.play().catch(() => {});
         });
         card.addEventListener('mouseleave', () => {
+          card.classList.remove('clip-live');
+          clip.pause();
+          clip.currentTime = 0;
+        });
+        // Keyboard users tabbing through the cards get the same preview
+        // a mouse hover triggers.
+        card.addEventListener('focusin', () => {
+          clip.play().catch(() => {});
+        });
+        card.addEventListener('focusout', () => {
           card.classList.remove('clip-live');
           clip.pause();
           clip.currentTime = 0;

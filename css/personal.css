@@ -127,6 +127,10 @@
   80% { transform: translateX(4px); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .shake { animation: none; }
+}
+
 /* ---- PERSONAL CONTENT ---- */
 .personal-content {
   padding: 0;
