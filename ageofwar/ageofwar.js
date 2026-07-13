@@ -160,6 +160,11 @@ const AgeOfWarGame = (() => {
     insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, color: '#F85149' },
   };
   let difficulty = 'normal';
+  const DIFF_RANK = { easy: 0, normal: 1, hard: 2, insane: 3 };
+  // Tracks the easiest difficulty selected at any point in the current run —
+  // switching to Insane just before the winning blow shouldn't unlock
+  // win_insane if most of the run was played on Easy.
+  let runLowestDifficulty = difficulty;
 
   // ---- Combo / streak ----
   let combo = 0;
@@ -642,6 +647,7 @@ const AgeOfWarGame = (() => {
     enemyTurrets  = [null, null, null, null];
     playerSlotsOwned = 2;
     combo = 0; comboT = 0; comboBest = 0;
+    runLowestDifficulty = difficulty;
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
     runStats.specialsFired = 0; runStats.coinsCollected = 0;
     runStats.biggestCombo = 0; runStats.agesReached = 0;
@@ -753,9 +759,11 @@ const AgeOfWarGame = (() => {
     if (playerEra === 2) unlock('industrial');
     if (playerEra === 3) unlock('modern');
     if (playerEra === 4) unlock('max_age');
-    // New era → new hero costs/CD baseline
+    // New era → new hero costs/CD baseline. Only updates the baseline for
+    // the *next* summon — it must not shorten a cooldown already in
+    // progress, or repeated age-ups become a free hero-cooldown reset.
     const h = heroForEra(playerEra);
-    if (h) { currentHeroCd = h.cd; heroReadyT = Math.min(heroReadyT, 10); }
+    if (h) { currentHeroCd = h.cd; }
     // Evolving is the ONLY way to recover base HP, so make it count:
     // raise max HP and FULLY restore current HP to the new max. This turns
     // a well-timed Age Up into a genuine "heal under pressure" moment.
@@ -936,6 +944,7 @@ const AgeOfWarGame = (() => {
     settingsModal && settingsModal.querySelectorAll('#aow-diff-modal button').forEach(btn => {
       btn.onclick = () => {
         difficulty = btn.dataset.diff;
+        if (DIFF_RANK[difficulty] < DIFF_RANK[runLowestDifficulty]) runLowestDifficulty = difficulty;
         try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
         // Reflect in both pill rows
         document.querySelectorAll('.aow-diff button').forEach(b => {
@@ -1171,9 +1180,12 @@ const AgeOfWarGame = (() => {
     tickAmbient(dt);
 
     // Resource trickle (slightly faster early so player can build a comp).
+    // Scale with difficulty like enemy hp/dmg do — otherwise Insane's
+    // tougher, faster-spawning enemies drain the economy the trickle can't
+    // replenish, effectively starving the player instead of just testing them.
     goldTrickleT -= dt;
     if (goldTrickleT <= 0) {
-      gold += 9 + playerEra * 4;
+      gold += Math.round((9 + playerEra * 4) * DIFFICULTIES[difficulty].dmgMult);
       goldTrickleT = 1.0;
       renderHud();
     }
@@ -1187,8 +1199,10 @@ const AgeOfWarGame = (() => {
 
     enemyTick(dt);
 
-    // Combo timer + run timer
-    if (combo > 0) {
+    // Combo timer + run timer. Paused during the wave breather so a streak
+    // isn't wiped by a lull with nothing to hit (breathers run 3-4s, longer
+    // than COMBO_WINDOW itself).
+    if (combo > 0 && waveBreatherT <= 0) {
       comboT -= dt;
       if (comboT <= 0) { combo = 0; }
     }
@@ -1238,11 +1252,28 @@ const AgeOfWarGame = (() => {
           u.atkT = u.atkSpd;
           u.attackPose = 0.22;  // hold strike pose ~220ms
           if (isBase) {
-            if (u.side === 'player') enemyBaseHp -= u.dmg;
-            else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
-            spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
-            // Heavy hit = noticeable shake; small hit = light shake.
-            shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+            if (u.range > 60) {
+              // Ranged attacker (e.g. a 360-range sniper) hitting the base —
+              // reuse the same projectile pipeline as unit-vs-unit ranged
+              // attacks so it gets a visible arc + muzzle flash instead of
+              // silently teleporting damage onto the base.
+              const kind = projectileKindFor(u.key);
+              const arc = projectileArc(kind, dist, 360);
+              projectiles.push({
+                side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
+                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                kind, vy: arc.vy, grav: arc.grav,
+                trail: [],
+              });
+              muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
+            } else {
+              if (u.side === 'player') enemyBaseHp -= u.dmg;
+              else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
+              spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
+              // Heavy hit = noticeable shake; small hit = light shake.
+              shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+              SFX.hit();
+            }
           } else if (target) {
             if (u.range > 60) {
               const kind = projectileKindFor(u.key);
@@ -1298,11 +1329,15 @@ const AgeOfWarGame = (() => {
         if (p.side === 'player' && p.x >= ENEMY_BASE_X) {
           enemyBaseHp -= p.dmg;
           spawnDmgFloater(p.dmg, ENEMY_BASE_X + 10, GROUND_Y - 90, '#fcd34d');
+          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
+          SFX.hit();
           p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
           playerBaseHp -= p.dmg;
           vibrateBaseHit();
           spawnDmgFloater(p.dmg, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
+          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
+          SFX.hit();
           p.life = 0;
         }
       }
@@ -1490,8 +1525,10 @@ const AgeOfWarGame = (() => {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
       unlock('win_easy');
-      if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
-      if (difficulty === 'insane') unlock('win_insane');
+      // Gate on the lowest difficulty selected this run so switching to
+      // Insane right before the winning blow can't fake a hard-mode win.
+      if (runLowestDifficulty === 'hard'   || runLowestDifficulty === 'insane') unlock('win_hard');
+      if (runLowestDifficulty === 'insane') unlock('win_insane');
       showOverlay(true);
     }
 
@@ -1603,6 +1640,9 @@ const AgeOfWarGame = (() => {
     // coin-collection part of the loop.
     const coinCount = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
     const perCoin = Math.max(1, Math.floor(total / coinCount));
+    // Flooring each coin loses the remainder (up to coinCount-1 gold per
+    // kill) — fold it into the last coin so the full total is collectible.
+    const remainder = total - perCoin * coinCount;
     for (let i = 0; i < coinCount; i++) {
       coinDrops.push({
         x, y: y - 6,
@@ -1610,7 +1650,7 @@ const AgeOfWarGame = (() => {
         vx: (Math.random() - 0.5) * 100,
         landY: GROUND_Y - 8 - Math.random() * 4,
         landed: false,
-        gold: perCoin,
+        gold: perCoin + (i === coinCount - 1 ? remainder : 0),
         t: 6.5,                    // seconds to claim before fading
         bob: Math.random() * Math.PI * 2,
       });
