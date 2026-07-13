@@ -63,9 +63,14 @@ const TetrisGame = (() => {
     holdCanvas = document.getElementById('tetris-hold-canvas');
     if (!canvas) return;
 
-    canvas.width  = WIDTH;
-    canvas.height = HEIGHT;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering; game logic keeps using WIDTH/HEIGHT (CSS/logical) coords.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width  = WIDTH * dpr;
+    canvas.height = HEIGHT * dpr;
+    canvas.style.width = WIDTH + 'px';
     ctx     = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     nextCtx = nextCanvas ? nextCanvas.getContext('2d') : null;
     holdCtx = holdCanvas ? holdCanvas.getContext('2d') : null;
 

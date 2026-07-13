@@ -16,9 +16,15 @@ const MazeGame = (() => {
     if (!canvas) return;
     cols = 41;  // must be odd
     rows = 31;  // must be odd
-    canvas.width = cols * CELL;
-    canvas.height = rows * CELL;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering; grid/logic keeps using cols*CELL / rows*CELL (CSS/logical).
+    const cssW = cols * CELL, cssH = rows * CELL;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.width = cssW + 'px';
     ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     generate();
   }
 
@@ -234,7 +240,7 @@ const MazeGame = (() => {
 
   function drawWithVisited(visited, solution) {
     ctx.fillStyle = '#0d1117';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, cols * CELL, rows * CELL);
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {

@@ -91,6 +91,9 @@ const AgeOfWarGame = (() => {
 
   // ---- State ----
   let canvas, ctx;
+  let dpr = 1; // devicePixelRatio applied to the backing store; render draws
+               // in WIDTH/HEIGHT logical units, so every ctx.setTransform
+               // call below must reapply this factor (see draw()'s shake).
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false, modalPaused = false;
@@ -477,9 +480,16 @@ const AgeOfWarGame = (() => {
   function init() {
     canvas = document.getElementById('aow-canvas');
     if (!canvas) return;
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering. The canvas's on-screen CSS size is already fully
+    // responsive (width:100%/height:100% inside an aspect-ratio-locked
+    // .aow-stage), so we deliberately do NOT touch canvas.style.width/height
+    // here — only the backing-store resolution changes.
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = WIDTH * dpr;
+    canvas.height = HEIGHT * dpr;
     ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     try { hapticsOK = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
     try {
       const saved = (typeof Utils !== 'undefined' && Utils.store && Utils.store.getRaw('aow-difficulty'))
@@ -976,9 +986,13 @@ const AgeOfWarGame = (() => {
     let pointerHeld = false;
     function pointerToCanvas(e) {
       const rect = canvas.getBoundingClientRect();
+      // Map into WIDTH/HEIGHT logical space (not canvas.width/height, which
+      // is the DPR-scaled backing store) — game entities live in logical
+      // coordinates, so dividing by the backing store here would silently
+      // scale every click by devicePixelRatio.
       return {
-        x: (e.clientX - rect.left) * (canvas.width  / rect.width),
-        y: (e.clientY - rect.top)  * (canvas.height / rect.height),
+        x: (e.clientX - rect.left) * (WIDTH  / rect.width),
+        y: (e.clientY - rect.top)  * (HEIGHT / rect.height),
       };
     }
     canvas.addEventListener('pointerdown', e => {
@@ -1635,9 +1649,13 @@ const AgeOfWarGame = (() => {
       const k = shakeT > 0 ? 1 : 0.6;
       const ox = (Math.random() - 0.5) * shakeMag * k * 2;
       const oy = (Math.random() - 0.5) * shakeMag * k * 2;
-      ctx.setTransform(1, 0, 0, 1, ox, oy);
+      // Reapply dpr on every setTransform — the shake offset (ox, oy) is in
+      // logical units, but setTransform's translate is in device pixels, so
+      // it must be scaled by dpr too; otherwise HiDPI screens would either
+      // lose the backing-store scale (blurry/tiny render) or shake too little.
+      ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
     } else {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     // ---- Atmosphere ----
     // 4-stop sky gradient (deeper at zenith, hazier near horizon) for depth.

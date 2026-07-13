@@ -21,9 +21,14 @@ const LifeGame = (() => {
   function init() {
     canvas = document.getElementById('life-canvas');
     if (!canvas) return;
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering; game logic keeps using WIDTH/HEIGHT (CSS/logical) coords.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = WIDTH * dpr;
+    canvas.height = HEIGHT * dpr;
+    canvas.style.width = WIDTH + 'px';
     ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     grid = makeGrid();
     nextGrid = makeGrid();
@@ -49,8 +54,10 @@ const LifeGame = (() => {
 
   function toggleCell(e) {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    // Use logical WIDTH/HEIGHT (not the DPR-scaled backing store) so the
+    // click-to-cell mapping isn't thrown off by devicePixelRatio.
+    const scaleX = WIDTH / rect.width;
+    const scaleY = HEIGHT / rect.height;
     const c = Math.floor((e.clientX - rect.left) * scaleX / CELL);
     const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {

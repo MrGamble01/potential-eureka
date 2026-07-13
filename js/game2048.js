@@ -24,8 +24,13 @@ const Game2048 = (() => {
   function init() {
     canvas = document.getElementById('g2048-canvas');
     if (!canvas) return;
-    canvas.width = SIZE; canvas.height = SIZE;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering; game logic keeps using the SIZE (CSS/logical) coords.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = SIZE * dpr; canvas.height = SIZE * dpr;
+    canvas.style.width = SIZE + 'px';
     ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     canvas.style.touchAction = 'none'; // swipes drive the board, not page scroll
     best = parseInt(localStorage.getItem('g2048-best') || '0', 10) || 0;
     newGame(false);

@@ -18,9 +18,15 @@ const SnakeGame = (() => {
   function init() {
     canvas = document.getElementById('snake-canvas');
     if (!canvas) return;
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    // Size the backing store to CSS px * devicePixelRatio so the board is
+    // crisp on retina/phone screens; game logic still works in WIDTH/HEIGHT
+    // (CSS/logical) coordinates via the scaled context transform.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = WIDTH * dpr;
+    canvas.height = HEIGHT * dpr;
+    canvas.style.width = WIDTH + 'px';
     ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     highScore = parseInt(Utils.store.getRaw('snake-high') || '0');
     snake = [];
     running = false;

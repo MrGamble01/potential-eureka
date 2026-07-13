@@ -23,8 +23,13 @@ const AsteroidsGame = (() => {
   function init() {
     canvas = document.getElementById('asteroids-canvas');
     if (!canvas) return;
-    canvas.width = WIDTH; canvas.height = HEIGHT;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering; game logic keeps using WIDTH/HEIGHT (CSS/logical) coords.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = WIDTH * dpr; canvas.height = HEIGHT * dpr;
+    canvas.style.width = WIDTH + 'px';
     ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     high = parseInt(localStorage.getItem('asteroids-high') || '0', 10) || 0;
     resetGame(false);
 
