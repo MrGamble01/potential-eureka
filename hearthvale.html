@@ -124,12 +124,21 @@
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
 
     /* ---- Trader modal ---- */
-    #trader {
+    #trader, #event {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show { display: flex; }
+    #trader.show, #event.show { display: flex; }
+    #ev-choices { display: flex; flex-direction: column; gap: 9px; }
+    .ev-choice {
+      width: 100%; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line);
+      background: var(--panel); color: var(--ink); font-weight: 700; font-size: 13.5px;
+      cursor: pointer; text-align: left; font-family: var(--font); transition: border-color .12s, background .12s;
+    }
+    .ev-choice:hover { border-color: var(--gold); background: #3a4a3c; }
+    .ev-choice:disabled { opacity: 0.4; cursor: default; }
+    .ev-choice.primary { background: var(--gold); color: #2b2410; border: none; }
     .trader-card {
       width: min(440px, 92vw); background: var(--panel-2); border: 1px solid var(--line);
       border-radius: 18px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
@@ -223,6 +232,14 @@
       <div class="flavor" id="trader-flavor">"Fine wares from far-off roads! What'll it be?"</div>
       <div id="trade-rows"></div>
       <button class="closebtn" id="trader-close">Send them on their way</button>
+    </div>
+  </div>
+
+  <div id="event">
+    <div class="trader-card">
+      <h2><span id="ev-emoji">&#127881;</span><span id="ev-title">Something happens</span></h2>
+      <div class="flavor" id="ev-text">&mdash;</div>
+      <div id="ev-choices"></div>
     </div>
   </div>
 
@@ -710,6 +727,7 @@
       sadDays: 0,     // consecutive days of misery before someone leaves
       roads: [],      // player-painted road tiles {tx,ty} (reapplied on load)
       muted: false,
+      nextEventDay: 3, // next random village event
     };
   }
 
@@ -1192,7 +1210,61 @@
     } else {
       state.sadDays = 0;
     }
+    // random village event every few days
+    if (state.day >= (state.nextEventDay || 3)) {
+      state.nextEventDay = state.day + 2 + Math.floor(rrand(state.day * 3 + 1) * 3);
+      triggerEvent();
+    }
     save();
+  }
+
+  // ---- Random village events ----------------------------------
+  const EVENTS = [
+    { emoji: '🎉', title: 'Village Festival', text: 'The town throws a merry midsummer festival — spirits soar!', good: true, auto: s => { s.happy = Math.min(100, s.happy + 15); }, note: '+15 happiness' },
+    { emoji: '🌾', title: 'Bountiful Harvest', text: 'The fields yield far more than anyone expected this season.', good: true, auto: s => { s.res.food += 25; }, note: '+25 food' },
+    { emoji: '💰', title: 'Buried Coins', text: 'A villager unearths a pouch of old coins while digging a garden.', good: true, auto: s => { s.res.gold += 30; }, note: '+30 gold' },
+    { emoji: '🎶', title: 'Wandering Bard', text: 'A travelling bard plays through the night and lifts every heart.', good: true, auto: s => { s.happy = Math.min(100, s.happy + 10); }, note: '+10 happiness' },
+    { emoji: '⛈️', title: 'Summer Storm', text: 'A sudden storm scatters woodpiles across the whole valley.', good: false, auto: s => { s.res.wood = Math.max(0, s.res.wood - 10); }, note: '-10 wood' },
+    { emoji: '🐛', title: 'Crop Blight', text: 'A creeping blight spoils some of the stored grain.', good: false, auto: s => { s.res.food = Math.max(0, Math.floor(s.res.food * 0.75)); }, note: '-¼ food' },
+    {
+      emoji: '🧳', title: 'Weary Travelers', text: 'A family of travelers asks to settle in Hearthvale. Take them in?',
+      choices: [
+        { label: '👪 Welcome them (10 🍎)', enabled: s => s.res.food >= 10 && s.villagers.length < popCap(), run: s => { s.res.food -= 10; const homes = s.buildings.filter(b => BUILDINGS[b.type].housing && s.villagers.filter(v => v.homeId === b.id).length < effHousing(b)); if (homes.length) { spawnVillager(homes[0]); assignJobs(); } s.happy = Math.min(100, s.happy + 5); toast('👪 The travelers make Hearthvale home!'); } },
+        { label: 'Send them on their way', run: s => { toast('The travelers wander on down the road.'); } },
+      ]
+    },
+    {
+      emoji: '🛒', title: "Peddler's Bargain", text: 'A passing peddler offers a whole crate of good stone, cheap.',
+      choices: [
+        { label: '📦 Buy the crate (20 💰)', enabled: s => s.res.gold >= 20, run: s => { s.res.gold -= 20; s.res.stone += 25; SFX('coin'); toast('📦 Bought 25 stone.'); } },
+        { label: 'No thanks', run: s => { } },
+      ]
+    },
+  ];
+  function triggerEvent() {
+    const ev = EVENTS[Math.floor(rrand(state.day * 137 + Math.floor(state.time) * 7 + 11) * EVENTS.length)];
+    if (ev.choices) { openEvent(ev); return; }
+    ev.auto(state);
+    SFX(ev.good ? 'goal' : 'error');
+    toast(ev.emoji + ' ' + ev.title + ' — ' + ev.note);
+    updateHUD(); save();
+  }
+  function openEvent(ev) {
+    document.getElementById('ev-emoji').textContent = ev.emoji;
+    document.getElementById('ev-title').textContent = ev.title;
+    document.getElementById('ev-text').textContent = ev.text;
+    const wrap = document.getElementById('ev-choices');
+    wrap.innerHTML = '';
+    ev.choices.forEach((ch, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'ev-choice' + (i === 0 ? ' primary' : '');
+      btn.textContent = ch.label;
+      if (ch.enabled && !ch.enabled(state)) btn.disabled = true;
+      btn.onclick = () => { ch.run(state); document.getElementById('event').classList.remove('show'); updateHUD(); save(); };
+      wrap.appendChild(btn);
+    });
+    SFX('trader');
+    document.getElementById('event').classList.add('show');
   }
 
   // ---- Trader --------------------------------------------------
@@ -1691,7 +1763,7 @@
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
         happy: state.happy, seenIntro: state.seenIntro, seed: state.seed,
         goalIndex: state.goalIndex, sadDays: state.sadDays,
-        roads: state.roads || [], muted: !!state.muted,
+        roads: state.roads || [], muted: !!state.muted, nextEventDay: state.nextEventDay,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -1716,6 +1788,7 @@
       state.sadDays = s.sadDays || 0;
       state.seenIntro = !!s.seenIntro;
       state.muted = !!s.muted;
+      state.nextEventDay = s.nextEventDay || (state.day + 2);
       // reapply player-painted roads over the regenerated terrain
       state.roads = s.roads || [];
       state.roads.forEach(r => { if (inMap(r.tx, r.ty) && tiles[idx(r.tx, r.ty)] !== T_WATER) { tiles[idx(r.tx, r.ty)] = T_DIRT; tileObj[idx(r.tx, r.ty)] = O_NONE; } });
