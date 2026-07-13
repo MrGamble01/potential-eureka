@@ -1,5 +1,9 @@
 {
     "outputDirectory": ".",
     "cleanUrls": true,
-    "trailingSlash": false
+    "trailingSlash": false,
+    "redirects": [
+        { "source": "/startup-tycoon.html", "destination": "/tycoon", "permanent": true },
+        { "source": "/startup-tycoon", "destination": "/tycoon", "permanent": true }
+    ]
 }
