@@ -300,6 +300,9 @@
         &bull; Keep folk <b>happy</b> and the town grows. Follow the <b>Town Goal</b> for direction.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
+      <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Name your town</label>
+      <input id="townname-input" type="text" maxlength="20" placeholder="Hearthvale" autocomplete="off"
+        style="width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-family:var(--font); font-size:14px; font-weight:600;">
       <button class="closebtn" id="welcome-close">Begin building</button>
     </div>
   </div>
@@ -465,33 +468,51 @@
       for (let i = 0; i < 6; i++) P(x, Math.floor(rrand(i * 5) * TILE), Math.floor(rrand(i * 9) * TILE), 1, 1, C.dirtLt);
       SPR.sand = c;
     }
-    // --- pine tree (tall, outlined) ---
-    {
+    // --- pine tree (tall, outlined) — one variant per season ---
+    // Pines stay evergreen; autumn warms the needles, winter dusts them with snow.
+    const PINE_SEASON = [
+      { pine: C.pine, dk: C.pineDk, hi: C.pineHi, snow: null, accent: null },              // spring
+      { pine: '#3f8f4a', dk: '#2c6b38', hi: '#63b062', snow: null, accent: null },          // summer (a touch deeper)
+      { pine: '#5a8a3f', dk: '#436d30', hi: '#87ab52', snow: null, accent: '#d8a24a' },     // autumn (golden cast)
+      { pine: '#5c7d5c', dk: '#456245', hi: '#7c9a7c', snow: '#eef4fb', accent: null },     // winter (muted, snowy)
+    ];
+    PINE_SEASON.forEach((pal, si) => {
       const { c, x } = makeCanvas(TILE, TILE * 2);
       P(x, 7, 24, 3, 6, C.trunk); P(x, 9, 24, 1, 6, C.trunkDk);
-      // each tier is a triangle: narrow at the top (tip), wide at the base
       const tier = (cy, halfW) => {
         for (let r = 0; r < 8; r++) {
           const gap = Math.round(((7 - r) / 7) * halfW);
           const w = (halfW - gap) * 2;
           if (w <= 0) continue;
           const x0 = 8 - halfW + gap;
-          P(x, x0, cy + r, w, 1, r >= 6 ? C.pineDk : C.pine);
-          if (w >= 3 && r >= 1) P(x, x0, cy + r, 1, 1, C.pineHi); // left-edge highlight
+          P(x, x0, cy + r, w, 1, r >= 6 ? pal.dk : pal.pine);
+          if (w >= 3 && r >= 1) P(x, x0, cy + r, 1, 1, pal.hi);          // left-edge highlight
+          if (pal.snow && r <= 1 && w >= 3) P(x, x0 + 1, cy + r, w - 2, 1, pal.snow); // snow on the shoulders
+          if (pal.accent && r === 3 && w >= 4) P(x, x0 + w - 2, cy + r, 1, 1, pal.accent); // a golden fleck
         }
       };
       tier(16, 7); tier(10, 6); tier(5, 4);
-      addOutline(x, TILE, TILE * 2); SPR.tree = c;
-    }
-    // --- round bush-tree (tall, outlined) ---
-    {
+      addOutline(x, TILE, TILE * 2); SPR['tree' + si] = c;
+    });
+    SPR.tree = SPR.tree0;
+    // --- round bush-tree (tall, outlined) — deciduous, so it changes a lot ---
+    const BUSH_SEASON = [
+      { leaf: C.leaf, dk: C.leafDk, hi: C.leafHi, blossom: '#f6c2d6', snow: null },        // spring: blossoms
+      { leaf: '#4f9e4b', dk: '#357b3e', hi: '#79c46b', blossom: null, snow: null },        // summer: lush
+      { leaf: '#d5893a', dk: '#b3652a', hi: '#ecc25a', blossom: '#c9503f', snow: null },   // autumn: fiery (blossom slot = red berries)
+      { leaf: '#8fa88a', dk: '#6f8a6c', hi: '#b6c9af', blossom: null, snow: '#eef4fb' },   // winter: frosted
+    ];
+    BUSH_SEASON.forEach((pal, si) => {
       const { c, x } = makeCanvas(TILE, TILE * 2);
       P(x, 7, 22, 3, 8, C.trunk); P(x, 9, 22, 1, 8, C.trunkDk);
       const blob = (cx, cy, r, col) => { x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); };
-      blob(8, 14, 7, C.leafDk); blob(6, 12, 5, C.leaf); blob(11, 12, 5, C.leaf); blob(8, 9, 5, C.leaf);
-      blob(6, 9, 3, C.leafHi); blob(9, 7, 3, C.leafHi);
-      addOutline(x, TILE, TILE * 2); SPR.bush = c;
-    }
+      blob(8, 14, 7, pal.dk); blob(6, 12, 5, pal.leaf); blob(11, 12, 5, pal.leaf); blob(8, 9, 5, pal.leaf);
+      blob(6, 9, 3, pal.hi); blob(9, 7, 3, pal.hi);
+      if (pal.blossom) { P(x, 5, 8, 1, 1, pal.blossom); P(x, 10, 9, 1, 1, pal.blossom); P(x, 8, 6, 1, 1, pal.blossom); P(x, 7, 11, 1, 1, pal.blossom); P(x, 11, 12, 1, 1, pal.blossom); }
+      if (pal.snow) { blob(7, 7, 3, pal.snow); P(x, 5, 9, 6, 1, pal.snow); }
+      addOutline(x, TILE, TILE * 2); SPR['bush' + si] = c;
+    });
+    SPR.bush = SPR.bush0;
     // --- rock ---
     {
       const { c, x } = makeCanvas(TILE, TILE);
@@ -647,6 +668,77 @@
       addOutline(x, W, H); def._sprite = c; def._rise = RISE; return c;
     }
 
+    if (type === 'windmill') {
+      const RISE2 = Math.round(TILE * 1.35), H2 = gh + RISE2;
+      const mk = makeCanvas(W, H2), c2 = mk.c, x2 = mk.x;
+      const P2 = (px, py, pw, ph, col) => { x2.fillStyle = col; x2.fillRect(Math.round(px), Math.round(py), Math.round(pw), Math.round(ph)); };
+      const cx = W / 2, baseY = H2 - 4, towerTop = RISE2 + 3, towerBot = baseY;
+      const halfAt = y => 5 + ((y - towerTop) / (towerBot - towerTop)) * 6; // narrow top, wide base
+      // tapered plaster tower with timber edges
+      for (let y = towerTop; y <= towerBot; y++) { const hw = halfAt(y); P2(cx - hw, y, hw * 2, 1, C.plaster); P2(cx - hw, y, 1, 1, C.beam); P2(cx + hw - 1, y, 1, 1, C.beamDk); }
+      for (let y = towerTop + 5; y < towerBot; y += 6) { const hw = halfAt(y); P2(cx - hw, y, hw * 2, 1, C.plasterSh); }
+      P2(cx - 1, towerTop, 2, towerBot - towerTop, C.beamDk); // central post
+      // stone foundation + door
+      P2(cx - 11, baseY, 22, 4, C.stoneWDk); P2(cx - 11, baseY, 22, 1, C.stoneW);
+      P2(cx - 3, towerBot - 7, 6, 7, C.door); P2(cx - 3, towerBot - 7, 6, 1, C.doorDk); P2(cx + 1, towerBot - 4, 1, 1, C.handle);
+      // window with warm glow
+      P2(cx - 2, towerTop + 6, 4, 4, C.glow); P2(cx - 2, towerTop + 6, 4, 1, C.glass); P2(cx, towerTop + 6, 1, 4, C.beamDk);
+      // rounded cap
+      for (let r = 0; r < 6; r++) { const hw = 6 - r; P2(cx - hw - 1, towerTop - 6 + r, (hw + 1) * 2, 1, r < 2 ? C.roofBlueDk : C.roofBlue); }
+      P2(cx - 1, towerTop - 8, 2, 3, C.beamDk); // finial the blades mount on
+      // four lattice sails in an X (static — a landmark, never spins/flickers)
+      const hubY = towerTop - 3;
+      for (let s = 1; s <= 12; s++) {
+        P2(cx + s, hubY + s, 1, 1, C.beamDk); P2(cx - s, hubY - s, 1, 1, C.beamDk);
+        P2(cx + s, hubY - s, 1, 1, C.beamDk); P2(cx - s, hubY + s, 1, 1, C.beamDk);
+      }
+      const cloth = (sx, sy) => { P2(sx - 1, sy - 1, 3, 3, C.thatch); P2(sx - 1, sy - 1, 3, 1, C.thatchHi); P2(sx + 1, sy + 1, 1, 1, C.thatchDk); };
+      for (let s = 4; s <= 11; s++) if (s % 2) { cloth(cx + s, hubY + s); cloth(cx - s, hubY - s); cloth(cx + s, hubY - s); cloth(cx - s, hubY + s); }
+      P2(cx - 1, hubY - 1, 3, 3, C.slateDk); P2(cx, hubY, 1, 1, C.slate); // hub
+      addOutline(x2, W, H2); def._sprite = c2; def._rise = RISE2; return c2;
+    }
+
+    if (type === 'chapel') {
+      const RISE2 = Math.round(TILE * 1.7), H2 = gh + RISE2;
+      const mk = makeCanvas(W, H2), c2 = mk.c, x2 = mk.x;
+      const P2 = (px, py, pw, ph, col) => { x2.fillStyle = col; x2.fillRect(Math.round(px), Math.round(py), Math.round(pw), Math.round(ph)); };
+      const foundH = 5, naveH = Math.max(13, Math.round(gh * 0.62));
+      const naveBot = H2 - foundH, naveTop = naveBot - naveH;
+      // foundation
+      P2(0, naveBot, W, foundH, C.stoneWDk); P2(0, naveBot, W, 1, C.stoneW);
+      for (let i = 1; i < W; i += 4) P2(i, naveBot + 1, 1, foundH - 1, C.slateDk);
+      // nave: stone walls
+      P2(0, naveTop, W, naveH, C.stoneW); P2(0, naveTop, W, 1, C.stoneWHi);
+      for (let yy = naveTop + 2; yy < naveBot; yy += 3) P2(0, yy, W, 1, C.stoneWDk);
+      for (let xx = 4; xx < W; xx += 6) P2(xx, naveTop, 1, naveH, C.stoneWDk);
+      // arched door with warm glow inside
+      const dw = 8, dx = Math.round(W / 2 - dw / 2), dh = Math.round(naveH * 0.7), dy = naveBot - dh;
+      P2(dx - 1, dy - 1, dw + 2, dh + 1, C.beamDk); P2(dx, dy, dw, dh, C.door);
+      P2(dx, dy, dw, 2, C.doorDk); P2(dx + 1, dy - 2, dw - 2, 2, C.beamDk); // arch top
+      P2(dx + dw - 3, dy + Math.round(dh / 2), 1, 1, C.handle);
+      // small round window (rose) each side
+      const rose = (rx) => { P2(rx - 1, naveTop + 3, 3, 3, C.glassDk); P2(rx, naveTop + 3, 1, 3, C.glow); P2(rx - 1, naveTop + 4, 3, 1, C.glow); };
+      rose(6); rose(W - 7);
+      // nave slate roof (low gable over the whole nave)
+      const naveRoofH = 6;
+      for (let r = 0; r < naveRoofH; r++) { const inset = Math.round((r / naveRoofH) * (W / 2 - 4)); P2(inset - 1, naveTop - naveRoofH + r, W - inset * 2 + 2, 1, r < 2 ? C.slateHi : C.slate); }
+      P2(0, naveTop - 1, W, 1, C.slateDk);
+      // steeple: a tall tower rising from the centre
+      const stW = 12, stX = Math.round(W / 2 - stW / 2), stTop = 8, stBot = naveTop - naveRoofH + 2;
+      P2(stX, stTop, stW, stBot - stTop, C.stoneW); P2(stX, stTop, stW, 1, C.stoneWHi);
+      P2(stX, stTop, 1, stBot - stTop, C.stoneWDk); P2(stX + stW - 1, stTop, 1, stBot - stTop, C.stoneWDk);
+      for (let yy = stTop + 3; yy < stBot; yy += 4) P2(stX, yy, stW, 1, C.stoneWDk);
+      // belfry opening with a hanging bell
+      const bY = stTop + 3;
+      P2(stX + 2, bY, stW - 4, 7, '#20303a'); P2(stX + 2, bY - 1, stW - 4, 1, C.beamDk);
+      P2(stX + Math.round(stW / 2) - 2, bY + 2, 4, 4, C.gold); P2(stX + Math.round(stW / 2) - 2, bY + 2, 4, 1, '#fff0c0');
+      P2(stX + Math.round(stW / 2) - 1, bY + 6, 2, 1, C.slateDk); // clapper
+      // spire (pointed slate roof)
+      const spH = stTop; for (let r = 0; r < spH; r++) { const hw = Math.round(((spH - r) / spH) * (stW / 2 + 1)); P2(W / 2 - hw, r, hw * 2, 1, r % 3 === 0 ? C.slateDk : C.slate); if (hw >= 2) P2(W / 2 - hw, r, 1, 1, C.slateHi); }
+      P2(W / 2 - 1, -2, 2, 4, C.gold); // finial
+      addOutline(x2, W, H2); def._sprite = c2; def._rise = RISE2; return c2;
+    }
+
     const foundH = 5;
     const wallH = Math.max(11, Math.round(gh * 0.5));
     const wallBottom = H - foundH;
@@ -719,14 +811,10 @@
       if (W - (oX + oW) > 6) win(W - 7);
     }
 
-    // chimney with static smoke
+    // chimney stack (smoke is drawn live at render time, so it can drift)
     if (art.chimney) {
       const cxp = W - 8;
       P(cxp, 2, 4, roofH * 0.6 + 4, C.slateDk); P(cxp, 2, 4, 1, C.slate); P(cxp, 1, 4, 1, C.rock);
-      x.globalAlpha = 0.45; x.fillStyle = '#e8e8ee';
-      x.beginPath(); x.arc(cxp + 2, 0, 2, 0, 7); x.fill();
-      x.beginPath(); x.arc(cxp + 4, -3, 2.3, 0, 7); x.fill();
-      x.globalAlpha = 1;
     }
 
     if (!art.open) buildingDetails(x, type, W, wallTop, wallBottom); // open builds show their interior instead
@@ -803,8 +891,20 @@
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
     warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
     fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, cost: { wood: 14 }, prod: { food: 4 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'A worker nets fish. Much better built right beside water.' },
+    windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — and lifts nearby farms’ harvest by half again.' },
+    chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'fishing', 'bakery', 'carpenter', 'market', 'well', 'tavern', 'warehouse'];
+  const BUILD_ORDER = ['house', 'farm', 'lumber', 'quarry', 'fishing', 'windmill', 'bakery', 'carpenter', 'market', 'well', 'tavern', 'chapel', 'warehouse'];
+  const WINDMILL_RANGE = 4.5;   // farms within this Chebyshev tile distance get a food boost
+  function windmillBoostsFarm(b) {
+    if (b.type !== 'farm') return false;
+    const def = BUILDINGS.farm, cx = b.tx + def.w / 2, cy = b.ty + def.h / 2;
+    return state.buildings.some(w => {
+      if (w.type !== 'windmill') return false;
+      const wd = BUILDINGS.windmill, wx = w.tx + wd.w / 2, wy = w.ty + wd.h / 2;
+      return Math.abs(wx - cx) <= WINDMILL_RANGE && Math.abs(wy - cy) <= WINDMILL_RANGE;
+    });
+  }
   const BASE_CAP = { wood: 250, stone: 250, food: 200 };  // gold is uncapped currency
   const SEASONS = [
     { name: 'Spring', emoji: '🌱', tint: null },
@@ -814,6 +914,7 @@
   ];
   const DAYS_PER_SEASON = 6;
   function seasonOf(day) { return SEASONS[Math.floor((day - 1) / DAYS_PER_SEASON) % 4]; }
+  function seasonIdx() { return Math.floor((state.day - 1) / DAYS_PER_SEASON) % 4; }
   const PROD_INTERVAL = 6;   // production every 6 in-game hours
   const HOURS_PER_DAY = 24;
   const DAY_SECONDS = 90;    // real seconds per in-game day
@@ -825,6 +926,9 @@
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap
   let floaters = [];       // floating "+N" production feedback {wx,wy,text,color,life,maxLife}
+  // ambient life (cosmetic, non-persistent) — all move on continuous curves, never blink
+  let birds = [], butters = [], fireflies = [], leaves = [], critters = [];
+  let ambientTime = 0;     // seconds of real time, drives smooth ambient motion
   const RES_COLOR = { wood: '#e0bd8a', stone: '#c7cdd5', food: '#a2d982', gold: '#f2c14e' };
   let gameSpeed = 1, prevSpeed = 1;   // 0 = paused, 1/2/3 = time multiplier
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
@@ -848,6 +952,7 @@
       nextEventDay: 3, // next random village event
       raining: false,  // cosmetic weather for the current day
       achievements: [],
+      townName: 'Hearthvale',
     };
   }
   const ACHIEVEMENTS = [
@@ -858,6 +963,8 @@
     { id: 'harvest', emoji: '🌾', name: 'Breadbasket', desc: 'Build a farm.', done: () => countType('farm') >= 1 },
     { id: 'riverfolk', emoji: '🎣', name: 'Riverfolk', desc: 'Build a fishing hut.', done: () => countType('fishing') >= 1 },
     { id: 'market', emoji: '🏪', name: 'Open for Business', desc: 'Open a market.', done: () => countType('market') >= 1 },
+    { id: 'miller', emoji: '🌬️', name: 'The Miller', desc: 'Raise a windmill.', done: () => countType('windmill') >= 1 },
+    { id: 'chapel', emoji: '🔔', name: 'Bells of Hearthvale', desc: 'Build a chapel.', done: () => countType('chapel') >= 1 },
     { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.length >= 10 },
     { id: 'architect', emoji: '⬆️', name: 'Architect', desc: 'Upgrade a building to Level 3.', done: () => state.buildings.some(b => (b.level || 1) >= 3) },
     { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300 },
@@ -897,6 +1004,8 @@
     { text: 'Grow to 10 villagers', prog: () => [state.villagers.length, 10], done: () => state.villagers.length >= 10, reward: { gold: 80 } },
     { text: 'Build a Warehouse to store more', prog: () => [countType('warehouse'), 1], done: () => countType('warehouse') >= 1, reward: { stone: 30 } },
     { text: 'Raise a Tavern for the town', prog: () => [countType('tavern'), 1], done: () => countType('tavern') >= 1, reward: { gold: 60 } },
+    { text: 'Build a Windmill by your farms', prog: () => [countType('windmill'), 1], done: () => countType('windmill') >= 1, reward: { food: 30, gold: 30 } },
+    { text: 'Raise a Chapel for the town', prog: () => [countType('chapel'), 1], done: () => countType('chapel') >= 1, reward: { gold: 90 } },
     { text: 'Keep the town happy (85%+)', prog: () => [Math.floor(state.happy), 85], done: () => state.happy >= 85, reward: { gold: 120 } },
     { text: 'Upgrade a building to Level 3', prog: () => [state.buildings.some(b => (b.level || 1) >= 3) ? 1 : 0, 1], done: () => state.buildings.some(b => (b.level || 1) >= 3), reward: { gold: 100 } },
     { text: 'Bank 400 gold', prog: () => [Math.floor(state.res.gold), 400], done: () => state.res.gold >= 400, reward: { wood: 60, stone: 40 } },
@@ -918,7 +1027,9 @@
   function renderGoal() {
     const tEl = document.getElementById('goal-text'), fEl = document.getElementById('goal-fill');
     if (!tEl || !fEl) return;
-    if (state.goalIndex >= GOALS.length) { tEl.textContent = 'Hearthvale is thriving! 🎉'; fEl.style.width = '100%'; return; }
+    const titleEl = document.querySelector('#goals .goals-title');
+    if (titleEl) titleEl.innerHTML = '&#10022; ' + (state.townName || 'Hearthvale').toUpperCase();
+    if (state.goalIndex >= GOALS.length) { tEl.textContent = (state.townName || 'Hearthvale') + ' is thriving! 🎉'; fEl.style.width = '100%'; return; }
     const g = GOALS[state.goalIndex], p = g.prog();
     tEl.textContent = g.text;
     fEl.style.width = Math.max(0, Math.min(100, (p[0] / p[1]) * 100)) + '%';
@@ -1129,6 +1240,7 @@
     payCost(type);
     if (def.housing) { for (let k = 0; k < def.housing; k++) spawnVillager(b); }
     assignJobs();
+    if (type === 'farm' || state.buildings.length <= 3) rebuildCritters();
     SFX('place');
     toast(def.emoji + ' ' + def.name + ' built!');
     save();
@@ -1145,6 +1257,7 @@
     state.buildings = state.buildings.filter(x => x.id !== b.id);
     payCost(b.type, true);
     assignJobs();
+    rebuildCritters();
     toast('Removed ' + def.name + ' (half materials refunded)');
     save();
   }
@@ -1286,21 +1399,44 @@
     if (v.wait > 0) return;
     v.wait = 0.5 + rrand((v.id + Math.floor(state.time)) * 13) * 1.8;
 
+    const evening = state.time >= 18 && state.time < 20.5;
+    const roll = k => rrand((v.id + Math.floor(state.time)) * k);
     let dest = null;
     if (isNight()) {
       const hd = homeDoor(v);
       if (hd && v.tx === hd.tx && v.ty === hd.ty) { v.sleeping = true; return; } // tucked in
+      if (roll(41) < 0.3) setEmote(v, '💤', 2.4);
       dest = hd;
+    } else if (evening && (v.id % 2 === 0) && (state.buildings.some(b => b.type === 'tavern' || b.type === 'chapel'))) {
+      // the town gathers of an evening — at the tavern if there is one
+      const gather = state.buildings.find(b => b.type === 'tavern') || state.buildings.find(b => b.type === 'chapel');
+      const gd = doorTile(gather);
+      dest = strollNear(gd.tx, gd.ty, 3);
+      if (roll(29) < 0.5) setEmote(v, gather.type === 'tavern' ? (roll(7) < 0.5 ? '🍺' : '🎶') : '🔔', 2.8);
     } else if (v.jobId) {
       const b = buildingById(v.jobId);
       if (b) {
-        const wd = findWalkableNear(doorTile(b).tx, doorTile(b).ty);
-        dest = (v.state === 'atWork') ? randomStroll(v) : wd;   // work, then wander a bit
-        v.state = (v.state === 'atWork') ? 'roam' : 'atWork';
+        if (v.state === 'atWork') { dest = randomStroll(v); v.state = 'roam'; }
+        else { // heading in to work
+          dest = findWalkableNear(doorTile(b).tx, doorTile(b).ty); v.state = 'atWork';
+          if (roll(23) < 0.5) setEmote(v, ROLE_EMOTE[b.type] || '🔨', 2.4);
+        }
       } else { v.jobId = null; }
     }
-    if (!dest) dest = randomStroll(v);
+    if (!dest) {
+      dest = randomStroll(v);
+      if (state.happy >= 65 && roll(53) < 0.12) setEmote(v, roll(11) < 0.5 ? '🎶' : '❤️', 2.2);
+    }
     if (dest) { const p = pathfind(v.tx, v.ty, dest.tx, dest.ty); if (p && p.length) v.path = p; }
+  }
+  const ROLE_EMOTE = { farm: '🌾', lumber: '🪵', quarry: '⛏️', bakery: '🍞', carpenter: '🪚', fishing: '🐟', windmill: '🌬️', market: '🪙' };
+  function strollNear(atx, aty, radius) {
+    for (let i = 0; i < 10; i++) {
+      const nx = atx + Math.floor((rrand((atx + i + Math.floor(state.time) * 3) * 5) - 0.5) * radius * 2);
+      const ny = aty + Math.floor((rrand((aty + i * 3 + Math.floor(state.time) * 2) * 9) - 0.5) * radius * 2);
+      if (walkable(nx, ny)) return { tx: nx, ty: ny };
+    }
+    return findWalkableNear(atx, aty);
   }
   function homeDoor(v) {
     const b = buildingById(v.homeId);
@@ -1334,9 +1470,11 @@
         if (def.cons) for (const k in def.cons) if (state.res[k] < def.cons[k]) ok = false;
         if (!ok) return;
         if (def.cons) for (const k in def.cons) state.res[k] -= def.cons[k];
+        const milled = b.type === 'farm' && windmillBoostsFarm(b);
         for (const k in def.prod) {
           let amt = def.prod[k] * (b.level || 1);   // higher tier → more output
           if (b.bonus) amt = Math.ceil(amt * 1.5);
+          if (milled && k === 'food') amt = Math.ceil(amt * 1.5); // nearby windmill lifts the harvest
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
@@ -1523,6 +1661,7 @@
     const x1 = Math.min(MAP_W - 1, Math.ceil((cam.x + view.w / z) / TILE));
     const y1 = Math.min(MAP_H - 1, Math.ceil((cam.y + view.h / z) / TILE));
     const sx = -cam.x * z, sy = -cam.y * z;
+    const seas = seasonIdx();
 
     // sky/void behind
     ctx.fillStyle = '#3a5240'; ctx.fillRect(0, 0, view.w, view.h);
@@ -1551,8 +1690,8 @@
       for (let tx = x0; tx <= x1; tx++) {
         const o = tileObj[idx(tx, ty)];
         if (o === O_FLOWER) ctx.drawImage(SPR.flowers, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
-        else if (o === O_TREE) drawables.push({ y: ty + 0.9, spr: SPR.tree, tx, ty });
-        else if (o === O_BUSH) drawables.push({ y: ty + 0.9, spr: SPR.bush, tx, ty });
+        else if (o === O_TREE) drawables.push({ y: ty + 0.9, spr: SPR['tree' + seas], tx, ty });
+        else if (o === O_BUSH) drawables.push({ y: ty + 0.9, spr: SPR['bush' + seas], tx, ty });
         else if (o === O_ROCK) drawables.push({ y: ty + 0.9, spr: SPR.rock, tx, ty });
         else if (o === O_MTN) drawables.push({ y: ty + 0.9, spr: SPR.mtn, tx, ty });
       }
@@ -1565,11 +1704,13 @@
     // buildings + villagers
     state.buildings.forEach(b => { const def = BUILDINGS[b.type]; if (b.ty + def.h >= y0 - 2 && b.ty <= y1 + 2) drawables.push({ y: b.ty + def.h, kind: 'building', b }); });
     state.villagers.forEach(v => { const vty = v.y / TILE; if (vty >= y0 - 2 && vty <= y1 + 2) drawables.push({ y: vty, kind: 'villager', v }); });
+    for (const cr of critters) { const cty = cr.y / TILE; if (cty >= y0 - 2 && cty <= y1 + 2) drawables.push({ y: cty, kind: 'critter', cr }); }
     drawables.sort((a, b) => a.y - b.y);
 
     for (const d of drawables) {
       if (d.kind === 'building') drawBuilding(d.b, sx, sy, z);
       else if (d.kind === 'villager') drawVillager(d.v, sx, sy, z);
+      else if (d.kind === 'critter') drawCritter(d.cr, sx, sy, z);
       else { // sprite prop: bottom-aligned to its tile so it "stands" on the ground
         const wpx = d.spr.width, hpx = d.spr.height;
         const drawY = (d.ty + 1) * TILE - hpx;
@@ -1624,8 +1765,14 @@
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
     }
+    // ambient life that lives in the world layer
+    drawButterflies(sx, sy, z);
+    drawLeaves(sx, sy, z);
+    drawBirds(sx, sy, z);
     // day/night tint
     drawDayNight();
+    // fireflies glow over the darkened night
+    drawFireflies(sx, sy, z);
     if (state.raining) drawWeather();
   }
 
@@ -1665,6 +1812,8 @@
     ctx.ellipse(sx + (b.tx * TILE + def.w * TILE / 2) * z, sy + (b.ty + def.h) * TILE * z - 2 * z, def.w * TILE * 0.5 * z, 3 * z, 0, 0, 7);
     ctx.fill();
     ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - rise) * z), def.w * TILE * z, (def.h * TILE + rise) * z);
+    // drifting hearth-smoke from chimneys
+    if (B_ART[b.type] && B_ART[b.type].chimney) drawSmoke(b, sx, sy, z);
     // warm window glow at night — the town looks alive after dark
     if (isNight()) {
       const gx = sx + (b.tx * TILE + def.w * TILE / 2) * z;
@@ -1737,6 +1886,231 @@
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath(); ctx.ellipse(px, py + 2 * z, 3.2 * z, 1.6 * z, 0, 0, 7); ctx.fill();
     ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+    // soft speech/thought bubble — fades in and out smoothly, never pops
+    if (v.emote && v.emote.life > 0) {
+      const e = v.emote, k = e.life / e.maxLife;
+      const a = Math.min(1, Math.min(k, 1 - k) * 5);   // ease in at start, out at end
+      const bx = px, by = py - (H + 4) * z;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = Math.max(1, z * 0.5);
+      ctx.beginPath(); ctx.arc(bx, by, 5.5 * z, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(bx - 3 * z, by + 5 * z, 1.6 * z, 0, 7); ctx.fill(); // tail
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = Math.round(6.5 * z) + 'px -apple-system, system-ui, sans-serif';
+      ctx.globalAlpha = a; ctx.fillStyle = '#000';
+      ctx.fillText(e.icon, bx, by + 0.5 * z);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    }
+  }
+  function setEmote(v, icon, dur) {
+    // don't stomp a livelier emote already showing
+    if (v.emote && v.emote.life > (dur || 2.4) * 0.5) return;
+    v.emote = { icon: icon, life: dur || 2.4, maxLife: dur || 2.4 };
+  }
+
+  // ============================================================
+  //  Ambient life — birds, butterflies, fireflies, falling leaves,
+  //  and town critters (chickens, a cat, a dog). All cosmetic and
+  //  non-persistent; motion is continuous so nothing ever flickers.
+  // ============================================================
+  function visRect() { const z = cam.z; return { x0: cam.x, y0: cam.y, x1: cam.x + view.w / z, y1: cam.y + view.h / z }; }
+  let _rndc = 0;
+  function rnd(a, b) { _rndc = (_rndc + 1) % 1000003; return a + rrand(_rndc * 2.7 + Math.floor(ambientTime * 60)) * (b - a); } // unique per call so spawns spread out
+  function updateAmbient(rdt) {
+    ambientTime += rdt;
+    const r = visRect(), seas = seasonIdx(), night = isNight();
+    const margin = 40, vw = r.x1 - r.x0, vh = r.y1 - r.y0;
+    // --- birds: glide across the sky in gentle sine paths (all seasons, daytime) ---
+    const wantBirds = night ? 0 : 3;
+    while (birds.length < wantBirds) birds.push({ x: r.x0 - margin, y: r.y0 + rnd(0.05, 0.45) * vh, vx: 14 + rnd(0, 10), baseY: 0, ph: rnd(0, 6), wob: 6 + rnd(0, 8), dir: 1 });
+    if (birds.length > wantBirds) birds.length = wantBirds;
+    for (const b of birds) {
+      if (b.baseY === 0) b.baseY = b.y;
+      b.x += b.vx * b.dir * rdt; b.ph += rdt * 2.4;
+      b.y = b.baseY + Math.sin(b.ph) * b.wob;
+      if (b.dir > 0 && b.x > r.x1 + margin) { b.dir = -1; b.baseY = r.y0 + rnd(0.05, 0.45) * vh; b.x = r.x1 + margin; }
+      else if (b.dir < 0 && b.x < r.x0 - margin) { b.dir = 1; b.baseY = r.y0 + rnd(0.05, 0.45) * vh; b.x = r.x0 - margin; }
+      // keep birds within the vertical band even after camera moves
+      if (b.baseY < r.y0 - margin || b.baseY > r.y0 + vh * 0.6) b.baseY = r.y0 + rnd(0.05, 0.45) * vh;
+    }
+    // --- butterflies: flutter low over the meadow in warm seasons, daytime ---
+    const wantBf = (!night && (seas === 0 || seas === 1)) ? 6 : 0;
+    while (butters.length < wantBf) butters.push({ x: r.x0 + rnd(0, 1) * vw, y: r.y0 + rnd(0.3, 0.95) * vh, ph: rnd(0, 6), sp: 10 + rnd(0, 10), col: C.flower[Math.floor(rnd(0, C.flower.length))], ang: rnd(0, 6) });
+    if (butters.length > wantBf) butters.length = wantBf;
+    for (const f of butters) {
+      f.ph += rdt * 3.2; f.ang += (rrand(Math.floor(f.ph * 3) + f.sp) - 0.5) * 0.9;
+      f.x += Math.cos(f.ang) * f.sp * rdt; f.y += Math.sin(f.ang) * f.sp * 0.6 * rdt + Math.sin(f.ph) * 4 * rdt;
+      if (f.x < r.x0 - 20) f.x = r.x1 + 10; if (f.x > r.x1 + 20) f.x = r.x0 - 10;
+      if (f.y < r.y0 - 20) f.y = r.y1 - 20; if (f.y > r.y1 + 20) f.y = r.y0 + vh * 0.4;
+    }
+    // --- fireflies: drift and glow at night ---
+    const wantFf = night ? 20 : 0;
+    while (fireflies.length < wantFf) fireflies.push({ x: r.x0 + rnd(0, 1) * vw, y: r.y0 + rnd(0.2, 1) * vh, ph: rnd(0, 6), sp: 5 + rnd(0, 6), ang: rnd(0, 6), gl: rnd(0, 6) });
+    if (fireflies.length > wantFf) fireflies.length = wantFf;
+    for (const f of fireflies) {
+      f.ang += (rrand(Math.floor(f.ph * 2) + f.sp * 3) - 0.5) * 0.7; f.ph += rdt; f.gl += rdt * 1.6;
+      f.x += Math.cos(f.ang) * f.sp * rdt; f.y += Math.sin(f.ang) * f.sp * rdt;
+      if (f.x < r.x0 - 20) f.x = r.x1 + 10; if (f.x > r.x1 + 20) f.x = r.x0 - 10;
+      if (f.y < r.y0 - 20) f.y = r.y1 + 10; if (f.y > r.y1 + 20) f.y = r.y0 - 10;
+    }
+    // --- falling leaves in autumn (daytime & dusk) ---
+    const wantLv = seas === 2 ? 26 : 0;
+    while (leaves.length < wantLv) leaves.push({ x: r.x0 + rnd(0, 1) * vw, y: r.y0 - rnd(0, 1) * vh, ph: rnd(0, 6), sp: 12 + rnd(0, 10), sway: 10 + rnd(0, 10), col: ['#d5893a', '#c9503f', '#ecc25a', '#b3652a'][Math.floor(rnd(0, 4))], sz: 2 + Math.floor(rnd(0, 2)) });
+    if (leaves.length > wantLv) leaves.length = wantLv;
+    for (const l of leaves) {
+      l.ph += rdt * 2; l.y += l.sp * rdt; l.x += Math.sin(l.ph) * l.sway * rdt;
+      if (l.y > r.y1 + 20) { l.y = r.y0 - 20; l.x = r.x0 + rnd(0, 1) * vw; }
+      if (l.x < r.x0 - 20) l.x = r.x1 + 10; if (l.x > r.x1 + 20) l.x = r.x0 - 10;
+    }
+  }
+  function drawBirds(sx, sy, z) {
+    if (!birds.length) return;
+    ctx.strokeStyle = 'rgba(38,30,24,0.72)'; ctx.lineWidth = Math.max(1, 1.1 * z); ctx.lineCap = 'round';
+    for (const b of birds) {
+      const px = sx + b.x * z, py = sy + b.y * z;
+      if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
+      const flap = Math.sin(b.ph * 3) * 2.2 * z + 1.2 * z;  // smooth wing beat
+      const w = 3.2 * z;
+      ctx.beginPath();
+      ctx.moveTo(px - w, py); ctx.lineTo(px, py - flap); ctx.lineTo(px + w, py);
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+  }
+  function drawButterflies(sx, sy, z) {
+    for (const f of butters) {
+      const px = sx + f.x * z, py = sy + f.y * z;
+      if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
+      const wing = (Math.sin(f.ph * 2) * 0.5 + 0.5) * 1.6 * z + 0.7 * z;
+      ctx.fillStyle = f.col;
+      ctx.beginPath(); ctx.ellipse(px - wing, py, wing, 1.5 * z, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(px + wing, py, wing, 1.5 * z, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(30,20,16,0.85)'; ctx.fillRect(px - 0.5 * z, py - 1.2 * z, z, 2.4 * z);
+    }
+  }
+  function drawLeaves(sx, sy, z) {
+    for (const l of leaves) {
+      const px = sx + l.x * z, py = sy + l.y * z;
+      if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
+      ctx.save(); ctx.translate(px, py); ctx.rotate(l.ph);
+      ctx.fillStyle = l.col; ctx.fillRect(-l.sz * z * 0.5, -l.sz * z * 0.5, l.sz * z, l.sz * z * 0.7);
+      ctx.restore();
+    }
+  }
+  function drawFireflies(sx, sy, z) {
+    if (!fireflies.length) return;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const f of fireflies) {
+      const px = sx + f.x * z, py = sy + f.y * z;
+      if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
+      const gl = (Math.sin(f.gl) * 0.5 + 0.5);       // smooth pulse 0..1, never a hard blink
+      ctx.globalAlpha = 0.35 + gl * 0.5;
+      const rr = (2 + gl * 2) * z;
+      const rg = ctx.createRadialGradient(px, py, 0, px, py, rr);
+      rg.addColorStop(0, 'rgba(255,240,150,0.95)'); rg.addColorStop(1, 'rgba(255,220,90,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(px, py, rr, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ---- Town critters -----------------------------------------
+  const CRITTER_SPR = {};
+  function critterSprite(kind, frame) {
+    const key = kind + frame;
+    if (CRITTER_SPR[key]) return CRITTER_SPR[key];
+    let W = 10, H = 9;
+    if (kind === 'chicken') { W = 8; H = 9; }
+    const { c, x } = makeCanvas(W, H);
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
+    if (kind === 'chicken') {
+      const legY = frame === 1 ? 8 : 7;
+      P(3, legY, 1, 1, '#e0a13f'); P(5, legY, 1, 1, '#e0a13f');
+      P(2, 3, 5, 4, '#f4ede0'); P(2, 3, 5, 1, '#fff'); P(2, 6, 5, 1, '#d8cfc0'); // body
+      P(6, 1, 2, 3, '#f4ede0'); P(7, 1, 1, 3, '#fff');                            // head/neck
+      P(7, 0, 1, 1, '#c1564d');                                                    // comb
+      P(8, 2, 1, 1, '#e0a13f'); P(7, 2, 1, 1, C.outline);                          // beak + eye
+      P(1, 4, 1, 2, '#d8cfc0');                                                    // tail
+    } else if (kind === 'cat') {
+      const tail = frame === 1 ? 2 : 3;
+      P(1, 8 - tail, 1, tail, '#e0913f');                                          // tail
+      P(2, 5, 6, 3, '#e0913f'); P(2, 5, 6, 1, '#efab5c');                          // body
+      P(7, 3, 3, 3, '#e0913f'); P(7, 3, 1, 1, '#c9772c'); P(9, 3, 1, 1, '#c9772c');// head + ears
+      P(8, 4, 1, 1, C.outline);                                                    // eye
+      P(3, 8, 1, 1, '#c9772c'); P(6, 8, 1, 1, '#c9772c');                          // legs
+    } else { // dog
+      const tail = frame === 1 ? 3 : 2;
+      P(1, 6 - tail, 1, tail, '#8a5a2b');                                          // tail
+      P(2, 5, 6, 3, '#9a6b3a'); P(2, 5, 6, 1, '#b07f48');                          // body
+      P(7, 3, 3, 3, '#9a6b3a'); P(9, 2, 1, 2, '#7a4e28');                          // head + ear
+      P(9, 5, 1, 1, '#3a2a1a'); P(8, 4, 1, 1, C.outline);                          // snout + eye
+      P(3, 8, 1, 1, '#7a4e28'); P(6, 8, 1, 1, '#7a4e28');                          // legs
+    }
+    addOutline(x, W, H); CRITTER_SPR[key] = c; return c;
+  }
+  function rebuildCritters() {
+    critters = [];
+    if (!state) return;
+    const farms = state.buildings.filter(b => b.type === 'farm');
+    let seedn = 1;
+    const spawnAt = (kind, atx, aty, roam) => {
+      const spot = findWalkableNear(atx, aty); if (!spot) return;
+      critters.push({ kind, x: spot.tx * TILE + TILE / 2, y: spot.ty * TILE + TILE / 2, tx: spot.tx, ty: spot.ty, ax: atx, ay: aty, roam, wait: rrand(seedn++ * 7) * 2, ph: rrand(seedn++ * 3) * 6, path: null });
+    };
+    farms.forEach(f => { const d = doorTile(f); for (let i = 0; i < 3; i++) spawnAt('chicken', d.tx, d.ty, 4); });
+    if (critters.length > 12) critters.length = 12;   // cap chickens
+    // one cat + one dog once the town has a few buildings, roaming the whole settlement
+    if (state.buildings.length >= 3) {
+      const cx = Math.round(state.buildings.reduce((s, b) => s + b.tx, 0) / state.buildings.length);
+      const cy = Math.round(state.buildings.reduce((s, b) => s + b.ty, 0) / state.buildings.length);
+      spawnAt('cat', cx, cy, 9); spawnAt('dog', cx + 1, cy, 10);
+    }
+  }
+  function critterTick(cr, dt) {
+    cr.ph += dt;
+    if (cr.path && cr.path.length) {
+      const t = cr.path[0], gx = t.tx * TILE + TILE / 2, gy = t.ty * TILE + TILE / 2;
+      const dx = gx - cr.x, dy = gy - cr.y, dist = Math.hypot(dx, dy);
+      const spd = (cr.kind === 'chicken' ? 16 : 30) * dt * TILE / 16;
+      if (dist < 1.5) { cr.x = gx; cr.y = gy; cr.tx = t.tx; cr.ty = t.ty; cr.path.shift(); }
+      else { cr.x += dx / dist * Math.min(spd, dist); cr.y += dy / dist * Math.min(spd, dist); cr.moving = true; }
+      return;
+    }
+    cr.moving = false;
+    cr.wait -= dt; if (cr.wait > 0) return;
+    cr.wait = 0.6 + rrand(Math.floor((cr.ph + cr.tx) * 5)) * (cr.kind === 'chicken' ? 2.2 : 1.4);
+    // pick a nearby walkable tile within roam radius of the anchor
+    for (let i = 0; i < 8; i++) {
+      const nx = cr.ax + Math.floor((rrand((cr.tx + i + Math.floor(cr.ph * 3)) * 5) - 0.5) * cr.roam * 2);
+      const ny = cr.ay + Math.floor((rrand((cr.ty + i * 3 + Math.floor(cr.ph * 2)) * 9) - 0.5) * cr.roam * 2);
+      if (walkable(nx, ny) && Math.abs(nx - cr.tx) + Math.abs(ny - cr.ty) <= (cr.kind === 'chicken' ? 3 : 6)) {
+        const p = pathfind(cr.tx, cr.ty, nx, ny); if (p && p.length) { cr.path = p; return; }
+      }
+    }
+  }
+  function drawCritter(cr, sx, sy, z) {
+    const frame = cr.moving ? (Math.floor((cr.x + cr.y) / 4) % 2 === 0 ? 1 : 2) : 0;
+    const spr = critterSprite(cr.kind, frame);
+    const W = spr.width, H = spr.height, px = sx + cr.x * z, py = sy + cr.y * z;
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.beginPath(); ctx.ellipse(px, py + 1 * z, 2.6 * z, 1.2 * z, 0, 0, 7); ctx.fill();
+    ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 1) * z), W * z, H * z);
+  }
+
+  // Drifting chimney smoke — soft puffs rise and fade on a continuous loop.
+  function drawSmoke(b, sx, sy, z) {
+    const def = BUILDINGS[b.type], rise = def._rise || 6;
+    const ox = (b.tx * TILE + def.w * TILE - 6), oy = (b.ty * TILE - rise + 3);
+    const period = 2.6, n = 3;
+    ctx.save(); ctx.fillStyle = '#e6e8ee';
+    for (let i = 0; i < n; i++) {
+      const t = ((ambientTime / period) + i / n) % 1;         // 0..1 loop per puff
+      const py = oy - t * 15, drift = Math.sin(t * 4 + b.id) * 3;
+      const a = Math.sin(t * Math.PI) * 0.32;                 // fade in then out — smooth
+      const rr = (1.5 + t * 3) * z;
+      ctx.globalAlpha = a;
+      ctx.beginPath(); ctx.arc(sx + (ox + drift) * z, sy + py * z, rr, 0, 7); ctx.fill();
+    }
+    ctx.restore();
   }
 
   // ---- Minimap ------------------------------------------------
@@ -1886,7 +2260,8 @@
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) html += statRow('Worker', b.staffed ? 'Assigned ✅' : 'Needs a villager 💤');
-    if (def.prod) { const k = Object.keys(def.prod)[0]; const base = def.prod[k] * lvl; html += statRow('Produces', (b.bonus ? Math.ceil(base * 1.5) : base) + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : '') + ' / cycle'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); html += statRow('Produces', base + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : '') + ' / cycle'); }
+    if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
     if (def.happy) html += statRow('Happiness', '+' + (Math.ceil(def.happy / 6) * lvl) + ' / cycle');
     if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
@@ -2061,7 +2436,7 @@
         happy: state.happy, seenIntro: state.seenIntro, seed: state.seed,
         goalIndex: state.goalIndex, sadDays: state.sadDays,
         roads: state.roads || [], muted: !!state.muted, nextEventDay: state.nextEventDay,
-        achievements: state.achievements || [],
+        achievements: state.achievements || [], townName: state.townName || 'Hearthvale',
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -2088,6 +2463,7 @@
       state.muted = !!s.muted;
       state.nextEventDay = s.nextEventDay || (state.day + 2);
       state.achievements = s.achievements || [];
+      state.townName = s.townName || 'Hearthvale';
       // reapply player-painted roads over the regenerated terrain
       state.roads = s.roads || [];
       state.roads.forEach(r => { if (inMap(r.tx, r.ty) && tiles[idx(r.tx, r.ty)] !== T_WATER) { tiles[idx(r.tx, r.ty)] = T_DIRT; tileObj[idx(r.tx, r.ty)] = O_NONE; } });
@@ -2148,6 +2524,7 @@
     clampCam();
     buildBar();
     buildMiniTerrain();
+    rebuildCritters();
     updateHUD();
     renderGoal();
     drawMinimap();
@@ -2166,10 +2543,15 @@
     // first-run welcome
     if (!state.seenIntro) {
       document.getElementById('welcome').classList.add('show');
-      document.getElementById('welcome-close').onclick = () => {
+      const nameInput = document.getElementById('townname-input');
+      if (nameInput) setTimeout(() => nameInput.focus(), 60);
+      const beginGame = () => {
+        if (nameInput) { const nm = nameInput.value.trim().slice(0, 20); if (nm) state.townName = nm; }
         document.getElementById('welcome').classList.remove('show');
-        hideHint(); save();
+        renderGoal(); hideHint(); save();
       };
+      document.getElementById('welcome-close').onclick = beginGame;
+      if (nameInput) nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') beginGame(); });
     }
 
     const mc = document.getElementById('minimap');
@@ -2196,6 +2578,8 @@
 
     // sim
     stepSim(dt);
+    // ambient life runs on real time, so it keeps gently moving even when paused
+    updateAmbient(dt);
     // render
     draw();
     // hud light refresh
@@ -2216,6 +2600,9 @@
     // villagers (obey game speed, capped so pathing stays stable at 3x)
     const vdt = Math.min(sdt, 0.12);
     for (const v of state.villagers) villagerTick(v, vdt);
+    for (const cr of critters) critterTick(cr, vdt);
+    // fade villager emotes
+    for (const v of state.villagers) if (v.emote && v.emote.life > 0) v.emote.life -= sdt;
     // autosave
     saveTick += sdt; if (saveTick > 5) { save(); saveTick = 0; }
   }
