@@ -498,6 +498,33 @@
       }
       SPR.crop = c;
     }
+    // === scattered ground detail (flat, on transparent — breaks up the grass) ===
+    { // pebbles
+      const { c, x } = makeCanvas(TILE, TILE);
+      for (let i = 0; i < 3; i++) { const rx = 3 + Math.floor(rrand(i * 11) * 9), ry = 4 + Math.floor(rrand(i * 7 + 1) * 8); P(x, rx, ry, 2, 1, C.rockDk); P(x, rx, ry - 1 + 1, 2, 1, C.rock); P(x, rx, ry, 1, 1, C.rockHi); }
+      addOutline(x, TILE, TILE); SPR.pebble = c;
+    }
+    { // mushrooms
+      const { c, x } = makeCanvas(TILE, TILE);
+      const m = (mx, my, cap) => { P(x, mx, my + 2, 1, 2, '#e8dcc0'); P(x, mx - 1, my, 3, 2, cap); P(x, mx, my, 1, 1, '#fff4d6'); };
+      m(5, 8, '#c1564d'); m(9, 10, '#d98a3a');
+      addOutline(x, TILE, TILE); SPR.mushroom = c;
+    }
+    { // tall grass tuft
+      const { c, x } = makeCanvas(TILE, TILE);
+      for (let i = 0; i < 5; i++) { const gx = 3 + i * 2 + Math.floor(rrand(i) * 2), gy = 8 + Math.floor(rrand(i * 3) * 3); P(x, gx, gy, 1, 4, C.grassDk); P(x, gx, gy, 1, 2, C.grassTuft); }
+      SPR.tallgrass = c;
+    }
+    { // reeds / cattails (near water)
+      const { c, x } = makeCanvas(TILE, TILE);
+      for (let i = 0; i < 3; i++) { const gx = 4 + i * 3, gy = 4; P(x, gx, gy, 1, 10, '#4f8a3e'); P(x, gx, gy - 1, 1, 3, '#7a5230'); }
+      addOutline(x, TILE, TILE); SPR.reeds = c;
+    }
+    { // tree stump
+      const { c, x } = makeCanvas(TILE, TILE);
+      P(x, 5, 8, 6, 5, C.trunk); P(x, 5, 8, 6, 2, '#9a6b40'); P(x, 6, 9, 4, 2, C.trunkDk); P(x, 7, 9, 2, 1, '#a8794a');
+      addOutline(x, TILE, TILE); SPR.stump = c;
+    }
   }
 
   // ---- Building sprites: 3/4-view timber-frame, outlined ------
@@ -609,9 +636,36 @@
       x.globalAlpha = 1;
     }
 
+    buildingDetails(x, type, W, wallTop, wallBottom);
     addOutline(x, W, H);
     def._sprite = c; def._rise = RISE;
     return c;
+  }
+
+  // Per-type props/signage painted onto the building so each trade reads
+  // at a glance (hay, logs, awnings, barrels, stone, planks).
+  function buildingDetails(x, type, W, wallTop, wallBottom) {
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(Math.round(px), Math.round(py), Math.round(pw), Math.round(ph)); };
+    const baseY = wallBottom, wallH = wallBottom - wallTop;
+    if (type === 'farm') {                       // hay bales
+      for (let i = 0; i < 2; i++) { const bx = 1 + i * 7, by = baseY - 5; P(bx, by, 6, 5, C.thatch); P(bx, by, 6, 1, C.thatchHi); P(bx, by + 2, 6, 1, C.thatchDk); P(bx + 2, by, 1, 5, C.thatchDk); }
+    } else if (type === 'lumber') {              // log stack
+      const lg = (bx, by) => { P(bx, by, 7, 3, C.trunk); P(bx, by, 7, 1, '#8a5a2b'); P(bx, by + 1, 1, 1, '#c9a24a'); P(bx + 6, by + 1, 1, 1, '#c9a24a'); };
+      lg(1, baseY - 3); lg(1, baseY - 6); P(3, baseY - 9, 4, 3, C.trunk);
+    } else if (type === 'bakery') {              // striped awning over the door
+      const aw = Math.round(W * 0.5), ax = Math.round(W / 2 - aw / 2), ay = wallTop + Math.round(wallH * 0.5);
+      for (let i = 0; i < aw; i += 4) { P(ax + i, ay, 2, 3, '#c1564d'); P(ax + i + 2, ay, 2, 3, '#f4ede0'); } P(ax, ay + 3, aw, 1, C.beamDk);
+    } else if (type === 'market') {              // full awning + crate
+      const ay = wallTop + 2; for (let i = 0; i < W; i += 4) { P(i, ay, 2, 3, '#3f9950'); P(i + 2, ay, 2, 3, '#f4ede0'); } P(0, ay + 3, W, 1, C.beamDk);
+      P(1, baseY - 6, 6, 6, C.wood); P(1, baseY - 6, 6, 1, C.fenceHi); P(1, baseY - 3, 6, 1, C.woodDk); P(3, baseY - 6, 1, 6, C.woodDk);
+    } else if (type === 'tavern') {              // hanging mug sign + barrel
+      P(2, wallTop + 3, 1, 4, C.beamDk); P(1, wallTop + 7, 4, 4, '#caa06c'); P(2, wallTop + 8, 2, 2, '#f2c14e');
+      const bx = W - 8, by = baseY - 7; P(bx, by, 7, 7, C.wood); P(bx, by, 7, 1, C.fenceHi); P(bx, by + 2, 7, 1, C.fenceDk); P(bx, by + 5, 7, 1, C.fenceDk);
+    } else if (type === 'quarry') {              // stone blocks
+      P(1, baseY - 4, 5, 4, C.stoneW); P(1, baseY - 4, 5, 1, C.stoneWHi); P(6, baseY - 4, 4, 4, C.stoneWDk); P(2, baseY - 8, 5, 4, C.stoneW); P(2, baseY - 8, 5, 1, C.stoneWHi);
+    } else if (type === 'carpenter') {           // planks + sawhorse
+      P(1, baseY - 2, 9, 2, '#d8b184'); P(1, baseY - 5, 9, 2, '#d8b184'); P(2, baseY - 3, 1, 3, C.woodDk); P(8, baseY - 3, 1, 3, C.woodDk);
+    }
   }
 
   // ---- Building definitions -----------------------------------
@@ -637,6 +691,7 @@
   // ---- Game state ---------------------------------------------
   let state, cam, view, tiles, tileObj, occ;
   let decos = [];  // cosmetic props regenerated from seed: {kind, tx, ty}
+  const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   function defaultState() {
@@ -748,22 +803,41 @@
         }
       }
     }
-    scatter(16, [O_TREE, O_BUSH], 3, 6, seed + 100);
-    scatter(8, [O_ROCK], 2, 3, seed + 400);
+    scatter(22, [O_TREE, O_BUSH], 3, 7, seed + 100);
+    scatter(9, [O_ROCK], 2, 3, seed + 400);
     // scattered lone trees for a lived-in valley
-    for (let i = 0; i < 45; i++) {
+    for (let i = 0; i < 70; i++) {
       const tx = 2 + Math.floor(rrand(seed + i * 5 + 700) * (MAP_W - 4));
       const ty = 2 + Math.floor(rrand(seed + i * 9 + 350) * (MAP_H - 4));
       if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS && tileObj[idx(tx, ty)] === O_NONE)
         tileObj[idx(tx, ty)] = rrand(seed + i) < 0.7 ? O_TREE : O_BUSH;
     }
     // flower sprinkles
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 90; i++) {
       const tx = Math.floor(rrand(seed + i * 5 + 900) * MAP_W);
       const ty = Math.floor(rrand(seed + i * 9 + 300) * MAP_H);
       if (inMap(tx, ty) && tiles[idx(tx, ty)] === T_GRASS && tileObj[idx(tx, ty)] === O_NONE)
         tileObj[idx(tx, ty)] = O_FLOWER;
     }
+    // ground detail decorations (flat, cosmetic) — fills the empty grass
+    function scatterDeco(kind, count, seedBase, nearWater) {
+      for (let i = 0; i < count; i++) {
+        const tx = 2 + Math.floor(rrand(seedBase + i * 5) * (MAP_W - 4));
+        const ty = 2 + Math.floor(rrand(seedBase + i * 9 + 3) * (MAP_H - 4));
+        if (!inMap(tx, ty) || tiles[idx(tx, ty)] !== T_GRASS || tileObj[idx(tx, ty)] !== O_NONE) continue;
+        if (nearWater) {
+          let ok = false;
+          for (const d of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = tx + d[0], ny = ty + d[1]; if (inMap(nx, ny) && tiles[idx(nx, ny)] === T_WATER) ok = true; }
+          if (!ok) continue;
+        }
+        pushDeco(kind, tx, ty);
+      }
+    }
+    scatterDeco('tallgrass', 100, seed + 1000, false);
+    scatterDeco('pebble', 45, seed + 2000, false);
+    scatterDeco('mushroom', 28, seed + 3000, false);
+    scatterDeco('stump', 12, seed + 4000, false);
+    scatterDeco('reeds', 44, seed + 5000, true);
 
     // starter clearing near center-left
     const startX = Math.floor(MAP_W * 0.30), startY = Math.floor(MAP_H * 0.5);
@@ -1210,10 +1284,10 @@
         ctx.drawImage(spr, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
       }
     }
-    // flat decorations (crop patches) drawn on the ground
+    // flat decorations (crop patches, pebbles, mushrooms, tall grass, reeds)
     for (const d of decos) {
-      if (d.kind !== 'crop' || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
-      ctx.drawImage(SPR.crop, Math.round(sx + d.tx * TILE * z), Math.round(sy + d.ty * TILE * z), TILE * z, TILE * z);
+      if (!FLAT_DECO[d.kind] || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
+      const spr = SPR[d.kind]; if (spr) ctx.drawImage(spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + d.ty * TILE * z), TILE * z, TILE * z);
     }
     // object layer (flowers flat; trees/rocks/mountains/props sorted by baseline y)
     const drawables = [];
@@ -1226,11 +1300,11 @@
         else if (o === O_ROCK) drawables.push({ y: ty + 0.9, spr: SPR.rock, tx, ty });
         else if (o === O_MTN) drawables.push({ y: ty + 0.9, spr: SPR.mtn, tx, ty });
       }
-    // decoration props (fences short, everything sorted for overlap)
+    // decoration props (fences/stumps short, everything sorted for overlap)
     for (const d of decos) {
-      if (d.kind === 'crop' || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
+      if (FLAT_DECO[d.kind] || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
       const spr = SPR[d.kind]; if (!spr) continue;
-      drawables.push({ y: d.ty + (d.kind === 'fence' ? 0.5 : 0.9), spr, tx: d.tx, ty: d.ty });
+      drawables.push({ y: d.ty + (d.kind === 'fence' || d.kind === 'stump' ? 0.5 : 0.9), spr, tx: d.tx, ty: d.ty });
     }
     // buildings + villagers
     state.buildings.forEach(b => { const def = BUILDINGS[b.type]; if (b.ty + def.h >= y0 - 2 && b.ty <= y1 + 2) drawables.push({ y: b.ty + def.h, kind: 'building', b }); });
@@ -1326,24 +1400,32 @@
     }
   }
 
-  // Villager sprites: cached per (color, frame), outlined. Frame is chosen
-  // from position while walking, so there's no idle timer → nothing blinks.
+  // Villager sprites: cached per (color, frame, role), outlined. Frame is
+  // chosen from position while walking, so nothing animates on a timer.
   const VSPR = {};
+  const SKINS = ['#f1bf95', '#e6b088', '#d69a6e', '#c8875a'];
   function shade(hex, f) { const [r, g, b] = hexToRgb(hex); const c = v => Math.max(0, Math.min(255, Math.round(v * f))); return 'rgb(' + c(r) + ',' + c(g) + ',' + c(b) + ')'; }
-  function villagerSprite(color, frame) {
-    const key = color + '|' + frame;
+  function villagerSprite(color, frame, role) {
+    const key = color + '|' + frame + '|' + (role || '');
     if (VSPR[key]) return VSPR[key];
-    const W = 10, H = 14, { c, x } = makeCanvas(W, H);
+    const W = 12, H = 17, { c, x } = makeCanvas(W, H);
     const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
-    P(3, 10, 2, 3 + (frame === 2 ? -1 : 0), '#3a2f22');   // legs
-    P(5, 10, 2, 3 + (frame === 1 ? -1 : 0), '#3a2f22');
-    P(2, 5, 6, 6, color);                                  // tunic
-    P(1, 6, 1, 4, shade(color, 0.72)); P(8, 6, 1, 4, shade(color, 0.72)); // arms
-    P(2, 5, 6, 1, shade(color, 1.18));                     // highlight
-    P(3, 1, 4, 4, C.skin); P(3, 4, 4, 1, C.skinDk);        // head
-    const hair = C.hair[(color.charCodeAt(1) + color.charCodeAt(3)) % C.hair.length];
-    P(3, 1, 4, 2, hair); P(2, 2, 1, 2, hair); P(7, 2, 1, 2, hair); // hair
-    P(4, 3, 1, 1, C.outline); P(6, 3, 1, 1, C.outline);    // eyes
+    const h = (color.charCodeAt(1) + color.charCodeAt(3));
+    const skin = SKINS[h % SKINS.length], skinDk = shade(skin, 0.82);
+    const legF = frame === 1 ? -1 : 0, legB = frame === 2 ? -1 : 0;
+    P(4, 13, 2, 4 + legF, '#3a2f22'); P(6, 13, 2, 4 + legB, '#3a2f22');   // legs
+    P(3, 8, 6, 6, color); P(3, 8, 6, 1, shade(color, 1.2)); P(3, 13, 6, 1, shade(color, 0.7)); // tunic
+    P(2, 9, 1, 4, shade(color, 0.72)); P(9, 9, 1, 4, shade(color, 0.72)); // arms
+    // tool by trade (held in the right hand)
+    if (role === 'lumber') { P(10, 6, 1, 7, '#6b4a30'); P(9, 5, 3, 2, C.slate); P(9, 5, 1, 1, C.slateHi); }
+    else if (role === 'farm') { P(10, 5, 1, 9, '#8a5a2b'); P(9, 5, 3, 1, C.slate); }
+    else if (role === 'quarry') { P(10, 6, 1, 7, '#6b4a30'); P(9, 5, 3, 1, C.stoneWDk); P(9, 6, 1, 1, C.stoneWDk); P(11, 6, 1, 1, C.stoneWDk); }
+    else if (role === 'carpenter') { P(9, 8, 3, 2, '#8a5a2b'); P(9, 8, 3, 1, '#a8794a'); }
+    else if (role === 'bakery') { P(9, 9, 3, 3, '#e6cc82'); P(9, 9, 3, 1, '#fff4d6'); }
+    P(4, 3, 4, 5, skin); P(4, 7, 4, 1, skinDk);            // head
+    const hair = C.hair[h % C.hair.length];
+    P(4, 3, 4, 2, hair); P(3, 4, 1, 2, hair); P(8, 4, 1, 2, hair); // hair
+    P(5, 5, 1, 1, C.outline); P(7, 5, 1, 1, C.outline);    // eyes
     addOutline(x, W, H);
     VSPR[key] = c; return c;
   }
@@ -1352,7 +1434,8 @@
     if (v.sleeping) return;   // tucked in at home for the night
     const moving = v.path && v.path.length > 0;
     const frame = moving ? (Math.floor((v.x + v.y) / 3) % 2 === 0 ? 1 : 2) : 0;
-    const spr = villagerSprite(v.color, frame);
+    let role = null; if (v.jobId) { const jb = buildingById(v.jobId); if (jb) role = jb.type; }
+    const spr = villagerSprite(v.color, frame, role);
     const W = spr.width, H = spr.height;
     const px = sx + v.x * z, py = sy + v.y * z;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
