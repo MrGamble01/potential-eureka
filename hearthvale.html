@@ -815,6 +815,8 @@
   let decos = [];  // cosmetic props regenerated from seed: {kind, tx, ty}
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap
+  let floaters = [];       // floating "+N" production feedback {wx,wy,text,color,life,maxLife}
+  const RES_COLOR = { wood: '#e0bd8a', stone: '#c7cdd5', food: '#a2d982', gold: '#f2c14e' };
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   function defaultState() {
@@ -1298,9 +1300,11 @@
           let amt = def.prod[k] * (b.level || 1);   // higher tier → more output
           if (b.bonus) amt = Math.ceil(amt * 1.5);
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
+          floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
       }
     });
+    if (floaters.length > 60) floaters.splice(0, floaters.length - 60);
     // villagers eat
     const eat = pop * FOOD_PER_VILLAGER;
     state.res.food -= eat;
@@ -1569,6 +1573,19 @@
       ctx.strokeRect(Math.round(sx + b.tx * TILE * z) + 1, Math.round(sy + b.ty * TILE * z) + 1, def.w * TILE * z - 2, def.h * TILE * z - 2);
     }
 
+    // floating production feedback
+    if (floaters.length) {
+      ctx.textAlign = 'center'; ctx.font = 'bold ' + Math.round(7 * z) + 'px ' + '-apple-system, system-ui, sans-serif';
+      ctx.lineWidth = Math.max(1.5, 2 * z); ctx.lineJoin = 'round';
+      for (const f of floaters) {
+        const px = sx + f.wx * z, py = sy + f.wy * z;
+        if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
+        ctx.globalAlpha = Math.min(1, (f.life / f.maxLife) * 1.6);
+        ctx.strokeStyle = 'rgba(0,0,0,0.65)'; ctx.strokeText(f.text, px, py);
+        ctx.fillStyle = f.color; ctx.fillText(f.text, px, py);
+      }
+      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    }
     // day/night tint
     drawDayNight();
     if (state.raining) drawWeather();
@@ -2145,6 +2162,7 @@
   function stepSim(dt) {
     keyboardPan(dt);
     if (_storageFullTimer > 0) _storageFullTimer -= dt;
+    if (floaters.length) { for (const f of floaters) { f.life -= dt; f.wy -= 11 * dt; } floaters = floaters.filter(f => f.life > 0); }
     advanceTimeSafe(dt);
     // villagers
     for (const v of state.villagers) villagerTick(v, dt);
