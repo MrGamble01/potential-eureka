@@ -25,6 +25,7 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  const sfx = Utils.sfx;
 
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
@@ -63,13 +64,18 @@ const TetrisGame = (() => {
     holdCanvas = document.getElementById('tetris-hold-canvas');
     if (!canvas) return;
 
-    canvas.width  = WIDTH;
-    canvas.height = HEIGHT;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering; game logic keeps using WIDTH/HEIGHT (CSS/logical) coords.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width  = WIDTH * dpr;
+    canvas.height = HEIGHT * dpr;
+    canvas.style.width = WIDTH + 'px';
     ctx     = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     nextCtx = nextCanvas ? nextCanvas.getContext('2d') : null;
     holdCtx = holdCanvas ? holdCanvas.getContext('2d') : null;
 
-    highScore = parseInt(localStorage.getItem('tetris-high') || '0');
+    highScore = Utils.highScore.load('tetris-high');
     board = createBoard();
     running = gameOver = false;
     score = level = 0; linesCleared = 0;
@@ -81,7 +87,7 @@ const TetrisGame = (() => {
     drawPreview(nextCtx, null);
     drawPreview(holdCtx, null);
 
-    document.addEventListener('keydown', handleKey);
+    document.addEventListener('keydown', Utils.whenViewActive('view-tetris', handleKey));
 
     // Basic touch support: swipe to move/drop, tap to rotate
     let tx = 0, ty = 0;
@@ -180,7 +186,7 @@ const TetrisGame = (() => {
         board[ny][current.x + c] = current.color;
       }
     }
-    if (typeof SFX !== 'undefined') SFX.play('lock');
+    sfx('lock');
     clearLines();
     canHold = true;
     current = next;
@@ -199,16 +205,13 @@ const TetrisGame = (() => {
       }
     }
     if (!cleared) return;
-    if (typeof SFX !== 'undefined') SFX.play('clear');
+    sfx('clear');
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem('tetris-high', String(highScore));
-    }
+    highScore = Utils.highScore.save('tetris-high', score, highScore);
     updateInfo();
   }
 
@@ -265,33 +268,20 @@ const TetrisGame = (() => {
 
   function endGame() {
     running = false; gameOver = true;
-    if (typeof SFX !== 'undefined') SFX.play('over');
+    sfx('over');
     clearInterval(gameLoop);
     // Persist the high score here too — drops (not just line clears) add points,
     // so a run's best score can land outside clearLines().
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem('tetris-high', String(highScore));
-      updateInfo();
-    }
-    const ov = document.getElementById('tetris-overlay');
-    if (ov) {
-      ov.style.display = 'flex';
-      ov.innerHTML = `
-        <h2>GAME OVER</h2>
-        <p>Score: ${score}</p>
-        <p>Level ${level} &middot; ${linesCleared} lines</p>
-        <p style="font-size:12px; color: var(--text-dim)">Press SPACE to restart</p>
-      `;
-    }
+    const prevHigh = highScore;
+    highScore = Utils.highScore.save('tetris-high', score, highScore);
+    if (highScore !== prevHigh) updateInfo();
+    Utils.showGameOver('tetris-overlay', {
+      lines: [`Score: ${score}`, `Level ${level} &middot; ${linesCleared} lines`],
+      hint: 'Press SPACE to restart',
+    });
   }
 
   function handleKey(e) {
-    // Scope key handling to when the Tetris view is visible — the document
-    // listener is never torn down, so otherwise SPACE on another view would
-    // silently start a hidden game and arrow keys would scroll the page.
-    const view = document.getElementById('view-tetris');
-    if (!view || !view.classList.contains('active')) return;
     if (!running && e.key === ' ') { if (!e.repeat) start(); e.preventDefault(); return; }
     if (!running) return;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();

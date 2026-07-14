@@ -37,7 +37,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Beagle Sim</title>
@@ -8089,6 +8089,11 @@ refreshGoalLabels();
 refreshTrophyBadge();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
+// iOS Safari (and other mobile browsers) can kill a backgrounded tab
+// without ever firing beforeunload, so also save on the events that
+// reliably fire when a tab is hidden/backgrounded/closed on mobile.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
+addEventListener('pagehide', () => saveGame());
 
 // First-play welcome: show once, only when this really is a fresh
 // game (no save, no all-time cash). The "Let's go" button is also

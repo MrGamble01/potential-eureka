@@ -59,7 +59,7 @@
   </div>
 
   <div id="event-banner">
-    <div class="ev-close" onclick="closeEvent()">&#10005;</div>
+    <button type="button" class="ev-close" onclick="closeEvent()" aria-label="Close event">&#10005;</button>
     <div class="ev-title" id="ev-title"></div>
     <div id="ev-body"></div>
   </div>
@@ -111,12 +111,36 @@ function hvFatal(msg){
 <script src="homeless-village/js/main.js"></script>
 <script>
 // Mobile: fold the community panel into the craft sheet and wire its toggle.
+// Runs once at load AND on every viewport change (rotation, devtools resize,
+// browser window drag across the breakpoint) — previously this only ever
+// checked matchMedia() once at boot, so rotating a phone or resizing a
+// window across 700px left the layout stuck in whichever mode it booted in.
 (function () {
+  var hud = document.getElementById('hud');
   var craftPanel = document.getElementById('craft-panel');
+  var workersPanel = document.getElementById('workers-panel');
   var toggle = document.getElementById('craft-toggle');
-  if (window.matchMedia('(max-width:700px)').matches) {
-    craftPanel.appendChild(document.getElementById('workers-panel'));
+  var mq = window.matchMedia('(max-width:700px)');
+
+  function applyLayout(isMobile) {
+    if (isMobile) {
+      if (workersPanel.parentElement !== craftPanel) craftPanel.appendChild(workersPanel);
+    } else {
+      if (workersPanel.parentElement !== hud) hud.appendChild(workersPanel);
+      // Leaving mobile: make sure the sheet isn't left open/mid-transition
+      // and the toggle label matches the (now hidden) closed state.
+      craftPanel.classList.remove('mobile-open');
+      toggle.innerHTML = '&#9881; Craft';
+      toggle.setAttribute('aria-expanded', 'false');
+    }
   }
+
+  applyLayout(mq.matches);
+  // addEventListener('change', ...) is the modern API; addListener is the
+  // deprecated fallback some older WebViews still need.
+  if (mq.addEventListener) mq.addEventListener('change', function (e) { applyLayout(e.matches); });
+  else if (mq.addListener) mq.addListener(function (e) { applyLayout(e.matches); });
+
   toggle.addEventListener('click', function () {
     craftPanel.classList.toggle('mobile-open');
     var open = craftPanel.classList.contains('mobile-open');

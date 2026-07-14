@@ -37,7 +37,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Startup Tycoon</title>
@@ -490,6 +490,7 @@
     @keyframes toastOut { to   { opacity:0; transform:translateX(50px); } }
     .toast.rush      { border-left-color: #f59e0b; }
     .toast.milestone { border-left-color: #3FB950; }
+    .toast.save-fail { border-left-color: #f85149; }
     /* Priority-level variants: ambient (routine) is dimmer + smaller;
        critical (milestones) is louder with a stronger shadow. */
     .toast.toast-ambient {
@@ -1050,7 +1051,9 @@
     .ipo-cancel:hover { color: #E6EDF3; }
     /* ── Investor arrival banner ──────────────────────── */
     #investor-banner {
-      position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+      /* Sits below #goal-hud (top:58px, ~65px tall on desktop) so the two
+         don't stack on top of each other. */
+      position: fixed; top: 128px; left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; gap: 10px;
       background: linear-gradient(135deg, rgba(252,211,77,0.22), rgba(245,158,11,0.16));
       border: 1px solid rgba(252,211,77,0.55);
@@ -1423,8 +1426,11 @@
   <link rel="stylesheet" href="/css/arcade-chrome.css">
   <style>
     /* On mobile the ☰ sidebar toggle shares the top-left corner with the
-       Arcade pill — shift it right so they don't overlap. */
-    @media (max-width: 860px) {
+       Arcade pill — shift it right so they don't overlap. Must match the
+       900px breakpoint where #sidebar-toggle becomes visible (display:
+       block), or there's a window (861-900px) where it's shown without
+       the shift and overlaps the pill. */
+    @media (max-width: 900px) {
       #sidebar-toggle { left: calc(116px + env(safe-area-inset-left, 0px)) !important; }
     }
   </style>
@@ -1440,7 +1446,7 @@
   <span id="session-chip">Session 00m 00s</span>
   <span id="season-badge">S1</span>
   <span class="sep" id="val-sep">|</span>
-  <span id="valuation-chip" title="Company valuation — a momentum-weighted estimate from your cash, recurring revenue, live earn rate, and users. Watch it climb.">💎 $0</span>
+  <span id="valuation-chip" tabindex="0" title="Company valuation — a momentum-weighted estimate from your cash, recurring revenue, live earn rate, and users. Watch it climb.">💎 $0</span>
   <span class="sep" id="trophy-sep" style="display:none">|</span>
   <span id="trophy-badge" style="display:none;color:#fcd34d;font-weight:800">🏆 0</span>
   <span class="sep" id="rush-sep" style="display:none">|</span>
@@ -1451,21 +1457,21 @@
 <div id="labels"></div>
 <button id="cash-hud" type="button" title="Total cash on hand. Spend on hires, rooms, upgrades, and amenities. Tap to cheat — single $1k, double $10k, triple $100k"><span class="bill"></span><span id="cash-val">0</span></button>
 <div id="metrics-hud">
-  <div class="m-row" title="Total recurring revenue banked this season. Fills the goal bar. Resets on IPO. One-time cash (funding, investor gifts, events) moves your $ but not this bar."><span class="m-lbl">Revenue</span><span class="m-val" id="m-arr">$0</span></div>
-  <div class="m-row" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
-  <div class="m-row" data-priority="low" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
-  <div class="m-row" data-priority="low" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
-  <div class="m-row" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts engineers currently amped from the 💊 Adderall Cabinet."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
-  <div class="m-row" data-priority="low" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
+  <div class="m-row" tabindex="0" title="Total recurring revenue banked this season. Fills the goal bar. Resets on IPO. One-time cash (funding, investor gifts, events) moves your $ but not this bar."><span class="m-lbl">Revenue</span><span class="m-val" id="m-arr">$0</span></div>
+  <div class="m-row" tabindex="0" title="Live earn rate — smoothed over the last 30s of recurring income. Goes up when the team is shipping, decays when it's quiet."><span class="m-lbl">Rate</span><span class="m-val" id="m-rate">$0/min</span></div>
+  <div class="m-row" data-priority="low" tabindex="0" title="Total users your product has served. Each shipped feature adds users scaled by its value — more users = more social proof for investors."><span class="m-lbl">Users</span><span class="m-val" id="m-users">0</span></div>
+  <div class="m-row" data-priority="low" tabindex="0" title="Total features shipped this season. Hit 25 / 100 / 500 / 2000 to unlock a new product version, which multiplies every deal's value."><span class="m-lbl">Shipped</span><span class="m-val" id="m-shipped">0</span></div>
+  <div class="m-row" tabindex="0" title="Headcount: engineers + BDRs + AEs + VPs + EAs. The ⚡ suffix counts engineers currently amped from the 💊 Adderall Cabinet."><span class="m-lbl">Team</span><span class="m-val" id="m-teamrev">0 ppl</span></div>
+  <div class="m-row" data-priority="low" tabindex="0" title="Current product version. Upgrades automatically as you ship features: v1.0 (0) → v2.0 (25) → v3.0 (100) → v4.0 (500+). Each step multiplies deal value."><span class="m-lbl">Version</span><span class="m-val" id="m-version">v1.0</span></div>
   <div class="m-row" id="m-pership-row"><span class="m-lbl">Per ship</span><span class="m-val" id="m-pership">$5</span></div>
-  <div class="m-row" data-priority="low" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
+  <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
-<div id="achievements-modal" role="dialog">
+<div id="achievements-modal" role="dialog" aria-modal="true" aria-label="Achievements">
   <div class="ach-panel">
     <div class="ach-title">🏅 Achievements</div>
     <div class="ach-progress" id="ach-progress">0 / 0</div>
@@ -1473,7 +1479,7 @@
     <button class="tip-ok" id="ach-close">Close</button>
   </div>
 </div>
-<div id="dash-modal" role="dialog">
+<div id="dash-modal" role="dialog" aria-modal="true" aria-label="Company Dashboard">
   <div class="dash-panel">
     <div class="dash-title">📊 Company Dashboard</div>
     <div class="dash-sub" id="dash-sub">Your startup at a glance</div>
@@ -1495,7 +1501,7 @@
     <button class="tip-ok" id="dash-close">Close</button>
   </div>
 </div>
-<div id="theme-modal" role="dialog">
+<div id="theme-modal" role="dialog" aria-modal="true" aria-label="Theme">
   <div class="ach-panel">
     <div class="ach-title">🎨 Theme</div>
     <div class="ach-progress">Reskin the office — mechanics stay the same, just the vibe changes.</div>
@@ -1503,7 +1509,7 @@
     <button class="tip-ok" id="theme-close">Close</button>
   </div>
 </div>
-<div id="help-modal" role="dialog">
+<div id="help-modal" role="dialog" aria-modal="true" aria-label="How to Play">
   <div class="ach-panel" style="text-align:left;max-width:480px">
     <div class="ach-title" style="text-align:center">❓ How to Play</div>
     <div class="ach-progress" style="text-align:center">Controls &amp; hotkeys</div>
@@ -1535,7 +1541,7 @@
     <button class="tip-ok" id="help-close-btn">Got it</button>
   </div>
 </div>
-<div id="offline-modal" role="dialog">
+<div id="offline-modal" role="dialog" aria-modal="true" aria-label="Welcome back">
   <div class="ach-panel" style="text-align:left">
     <div class="ach-title" style="background:linear-gradient(135deg,#3FB950,#22c55e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center">Welcome back</div>
     <div class="ach-progress" style="text-align:center" id="offline-away-sub">You were away</div>
@@ -1547,7 +1553,7 @@
     <button class="tip-ok" id="offline-claim-btn">Claim →</button>
   </div>
 </div>
-<div id="welcome-modal" role="dialog">
+<div id="welcome-modal" role="dialog" aria-modal="true" aria-label="Welcome to Startup Tycoon">
   <div class="ach-panel" style="text-align:left">
     <div class="ach-title" style="background:linear-gradient(135deg,#3FB950,#22c55e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center">Welcome to Startup Tycoon</div>
     <div class="ach-progress" style="text-align:center">A 30-second crash course</div>
@@ -1568,7 +1574,7 @@
     <div class="sc-note"></div>
   </div>
 </div>
-<div id="win-modal" role="dialog">
+<div id="win-modal" role="dialog" aria-modal="true" aria-label="You made it">
   <div class="win-panel">
     <div class="win-title">🏆 You made it!</div>
     <div class="win-sub" id="win-goal-sub">$1M ARR achieved</div>
@@ -1677,14 +1683,14 @@
 <button id="sprint-btn" title="30s of 2× engineer speed for the whole team (burns 2× Zyn)">🏃 Sprint<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span></button>
 <button id="elevator-btn" title="Floors">🏢</button>
 <button id="ipo-btn" title="IPO: cash out for a permanent +2× revenue multiplier. Resets cash/hires/rooms but keeps trophies, achievements, PBs, and theme.">🎉 IPO!</button>
-<div id="tip-modal" role="dialog">
+<div id="tip-modal" role="dialog" aria-modal="true" aria-labelledby="tip-title">
   <div class="tip-panel">
     <div class="tip-title" id="tip-title"></div>
     <div class="tip-body"  id="tip-body"></div>
     <button class="tip-ok" id="tip-ok">Got it</button>
   </div>
 </div>
-<div id="ipo-modal">
+<div id="ipo-modal" role="dialog" aria-modal="true" aria-label="IPO">
   <div class="ipo-panel">
     <div class="ipo-title">🎉 IPO Time!</div>
     <div class="ipo-sub" id="ipo-valuation"></div>
@@ -1729,7 +1735,7 @@
     </div>
   </div>
 </div>
-<div id="elevator-modal" role="dialog">
+<div id="elevator-modal" role="dialog" aria-modal="true" aria-label="Elevator">
   <div class="elev-panel">
     <h3 class="elev-title">Elevator</h3>
     <div id="floor-list"></div>
@@ -2167,6 +2173,16 @@ const TipUI = (() => {
     const t = e.target.closest && e.target.closest('[data-tip], [title]');
     if (t === activeTarget) hide();
   });
+  // Keyboard users: show/hide on focus, same as hover, so tab-only
+  // navigation reaches the same info a mouse hover would give.
+  document.addEventListener('focusin', e => {
+    const t = e.target.closest && e.target.closest('[data-tip], [title]');
+    if (t && t !== activeTarget) show(t);
+  });
+  document.addEventListener('focusout', e => {
+    const t = e.target.closest && e.target.closest('[data-tip], [title]');
+    if (t === activeTarget) hide();
+  });
   // Hide on scroll/resize/blur so a stale tooltip doesn't linger.
   window.addEventListener('scroll', hide, true);
   window.addEventListener('resize', hide);
@@ -2427,6 +2443,10 @@ for (const r of ROOM_DEFS) {
 const ownedRooms = new Set(['starter']);
 const roomMeshes = {}; // roomId → { floor, walls[], decorations[] }
 const sharedWalls = {}; // "gx1,gz1:gx2,gz2" → mesh
+// The starter room's south wall is split into two segments (door gap) —
+// sharedWalls only tracks one (wallL) for recolor/removal purposes, so
+// the other segment (wallR) is tracked here to be removed alongside it.
+const doorWallPairs = {}; // "gx1,gz1:gx2,gz2" → paired mesh
 
 // ── Themes ──────────────────────────────────────────────────
 // Each theme reskins the game's aesthetic: per-room floor/wall palette
@@ -2605,6 +2625,12 @@ function buildRoom(def) {
         scene.remove(sharedWalls[key]);
         delete sharedWalls[key];
       }
+      // Door-gap walls come in a pair (wallL/wallR) — remove the other
+      // half too, or it's left floating in the scene forever.
+      if (doorWallPairs[key]) {
+        scene.remove(doorWallPairs[key]);
+        delete doorWallPairs[key];
+      }
     } else {
       // Build outer wall, but for south wall of starter room add door gap
       if (def.id === 'starter' && nb.dgz === 1) {
@@ -2620,6 +2646,7 @@ function buildRoom(def) {
         scene.add(wallR);
         meshes.walls.push(wallL, wallR);
         sharedWalls[key] = wallL; // store one for possible removal
+        doorWallPairs[key] = wallR; // ...and the other half of the pair
       } else {
         const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(...nb.wallGeo), roomWallMat);
         wallMesh.position.set(...nb.wallPos);
@@ -4071,7 +4098,7 @@ const EXTERNAL_BDR_DEAL_BONUS = CONFIG.externalBdrDealBonus;
 
 function spawnIdeaWorker(opts = {}) {
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
-  if (!desk) return;
+  if (!desk) return false;
   desk.occupied = true;
 
   const look = randomWorkerLook(ideaWorkers.length + 1);
@@ -4108,6 +4135,7 @@ function spawnIdeaWorker(opts = {}) {
     morale: CONFIG.moraleDefault,
     paperIdleT: 0,
   });
+  return true;
 }
 
 function updateIdeaWorkers(dt) {
@@ -4736,13 +4764,16 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
   // Clamp Z axis
   if (nz < minZ && !isOwnedGrid(cgx, cgz - 1)) nz = minZ;
   if (nz > maxZ && !isOwnedGrid(cgx, cgz + 1)) {
-    // Door gap: starter room → front room, centered, 3 units wide.
+    // Door gap: starter room → front room, centered, 2.5 units wide
+    // (must match the actual door-mesh gap built in buildRoom(), or the
+    // collision passes wider than the visual opening and characters
+    // clip through the solid wall segments flanking it).
     // Only passable from the starter cell AND only once 'front' is
     // owned — otherwise it defeats the purchase gate, and matching
     // the front cell (0,1) here let characters walk out through the
     // front room's exterior north wall into the void.
     const hasDoor = cgx === 0 && cgz === 0 && ownedRooms.has('front');
-    if (hasDoor && Math.abs(nx - roomCx) < 1.5) {
+    if (hasDoor && Math.abs(nx - roomCx) < 1.25) {
       // allow through
     } else {
       nz = maxZ;
@@ -4760,7 +4791,7 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
     if (nz < r2cz - H + PAD && !isOwnedGrid(ngx2, ngz2 - 1)) nz = r2cz - H + PAD;
     if (nz > r2cz + H - PAD && !isOwnedGrid(ngx2, ngz2 + 1)) {
       const hasDoor2 = ngx2 === 0 && ngz2 === 0 && ownedRooms.has('front');
-      if (hasDoor2 && Math.abs(nx - r2cx) < 1.5) { /* door */ }
+      if (hasDoor2 && Math.abs(nx - r2cx) < 1.25) { /* door */ }
       else nz = r2cz + H - PAD;
     }
   }
@@ -5208,6 +5239,12 @@ function handleAeHireOrPromote() {
   if (state.cash < cost) return;
   state.cash -= cost; showSpendPop(cost);
   const og = bdrs.shift();
+  // Flush any in-flight deal the BDR was carrying to an AE — otherwise
+  // promoting mid-carry silently discards money that's already "closed."
+  if (og.state === S.TO_AE && og.dealValue > 0) {
+    addRevenue(og.dealValue, 'sales');
+    popCashAt(og.group.position.x, og.group.position.z, og.dealValue, 'sales');
+  }
   og.desk.occupied = false;
   if (og.targetAE) og.targetAE = null; // drop any in-flight handoff claim
   og.pendingWithAE = false;
@@ -5440,6 +5477,13 @@ function handleVpHireOrPromote() {
     if (!newDesk) return;
     state.cash -= cost; showSpendPop(cost);
     const og = ideaWorkers.shift();
+    // Flush an in-flight shipped feature before repurposing this engineer
+    // — otherwise a promotion mid-carry (walking to the VP or CEO desk)
+    // silently discards a feature's value.
+    if ((og.state === S.TO_VP || og.state === S.TO_DELIVER) && og.productValue > 0) {
+      addRevenue(og.productValue);
+      popCashAt(og.group.position.x, og.group.position.z, og.productValue, 'eng');
+    }
     og.desk.occupied = false;
     // Reset any in-flight state on the now-ex-engineer
     setPaperStackProgress(og.carryMesh, 0);
@@ -5606,8 +5650,10 @@ function renderHirePanel() {
 hireBtnEl.addEventListener('click', () => {
   const cost = ideaWorkerHireCost();
   if (state.cash < cost) return;
+  const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
+  if (!hasDesk) return;
   state.cash -= cost; showSpendPop(cost);
-  spawnIdeaWorker();
+  if (!spawnIdeaWorker()) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
@@ -8086,6 +8132,7 @@ function updateJoystick(e) {
 }
 joyEl.addEventListener('pointerdown', e => {
   e.preventDefault();
+  if (joyPointerId !== null) return; // already tracking a finger — don't let a 2nd touch hijack it
   joyEl.setPointerCapture(e.pointerId);
   joyPointerId = e.pointerId;
   target = null; // cancel any tap-to-move target
@@ -8537,6 +8584,7 @@ function doIPO() {
   sessionGen++;
   // Clear shared walls map and rebuild starter room walls
   for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
+  for (const key of Object.keys(doorWallPairs)) { scene.remove(doorWallPairs[key]); delete doorWallPairs[key]; }
   const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
   if (starterDef) {
     const rm = roomMeshes['starter'];
@@ -8629,84 +8677,53 @@ function showOfflineModal(amount, seconds) {
   });
 }
 
-function saveGame() {
-  if (_restarting) return;
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 7,
-      cash: state.cash,
-      allTimeCash: state.allTimeCash,
-      lifetimeCash: state.lifetimeCash,
-      upgrades: upgLevels,
-      unlocked,
-      ideaWorkers: ideaWorkers.length,
-      ideaWorkerExternals: ideaWorkers.map(w => !!w.external),
-      bdrExternals: bdrs.map(b => !!b.external),
-      eaCount: eas.length,
-      bdrCount: bdrs.length,
-      aeCount: aes.length,
-      vpCount: vps.length,
-      vpTier: vps.length > 0 ? vps[0].tier : 0,
-      roomModes: { ...roomModes },
-      extraDesksByRoom: (() => {
-        const m = {};
-        for (const r of ROOM_DEFS) {
-          const n = extraDeskCountInRoom(r.id);
-          if (n > 0) m[r.id] = n;
-        }
-        return m;
-      })(),
-      morale: teamMorale(),
-      investorAffinity: { ...investorAffinity },
-      seasonGoalHit,
-      seasonRecurringRevenue,
-      trophiesWon,
-      bestTimesToGoal: { ...bestTimesToGoal },
-      achievements: { ...earnedAchievements },
-      fundingRoundIdx,
-      totalUsers,
-      totalFeaturesShipped,
-      prestigeLevel,
-      prestigeMultiplier,
-      amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
-      ownedRooms: Array.from(ownedRooms),
-      stimSupply,
-      stimPacksBought,
-      stimDosesGiven,
-      walt: walt ? { stage: walt.stage, stageT: walt.stageT, level: walt.level } : null,
-      jeff: jeff ? { churns: jeff.churns, stage: jeff.stage } : null,
-      savedAt: Date.now(),
-    }));
-  } catch {}
-}
-function loadGame() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    const p = JSON.parse(raw);
-    state.cash = p.cash || 0;
-    state.allTimeCash = p.allTimeCash || 0;
+// ── Save schema ──
+// Single source of truth for every persisted field. Each entry knows
+// how to pull its value out of live state (`write`) and how to put a
+// loaded value back into live state (`read`) — saveGame() and
+// loadGame() both walk this exact list, so a field can never again be
+// written on save and silently forgotten on load (the bug class this
+// replaces: ~220 lines of hand-matched save/load that had drifted out
+// of sync more than once).
+//
+// `read(p)` receives the whole parsed payload (not just its own key)
+// because several fields have legacy/migration fallbacks that need a
+// sibling field (e.g. lifetimeCash seeding itself from allTimeCash on
+// old saves) — that's the `migrate`-shaped behavior baked into `read`
+// rather than split into a separate hook.
+//
+// Order matters for a handful of entries (documented inline) because
+// spawning/restoring some things depends on others already being in
+// place — e.g. rooms/desks must exist before workers are spawned into
+// them. Preserve the relative order below; it matches the order the
+// original hand-written loader ran in.
+const SAVE_VERSION = 7;
+const SAVE_SCHEMA = [
+  {
+    key: 'cash',
+    write: p => { p.cash = state.cash; },
+    read:  p => { state.cash = p.cash || 0; },
+  },
+  {
+    key: 'allTimeCash',
+    write: p => { p.allTimeCash = state.allTimeCash; },
+    read:  p => { state.allTimeCash = p.allTimeCash || 0; },
+  },
+  {
+    key: 'lifetimeCash',
+    write: p => { p.lifetimeCash = state.lifetimeCash; },
     // Migration: old saves have no lifetimeCash — seed it from the
     // season total (best available lower bound).
-    state.lifetimeCash = Number.isFinite(p.lifetimeCash) ? p.lifetimeCash : (p.allTimeCash || 0);
-    // Offline earnings: award 25% of theoretical revenue while away (max 4hr)
-    if (p.savedAt) {
-      const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
-      const awaySec = awayMs / 1000;
-      if (awaySec > 30 && p.upgrades) {
-        const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
-        const savedWorkers  = p.ideaWorkers || 0;
-        const offlineEarned = Math.floor(savedPrice * savedWorkers * CONFIG.workRateBase * awaySec * 0.25);
-        if (offlineEarned > 0) {
-          state.cash += offlineEarned;
-          state.allTimeCash += offlineEarned;
-          state.lifetimeCash += offlineEarned;
-          // Defer to after init so the modal markup exists in the DOM.
-          _pendingOfflineEarnings = { amount: offlineEarned, seconds: awaySec };
-        }
-      }
-    }
-    if (p.upgrades) {
+    read: p => { state.lifetimeCash = Number.isFinite(p.lifetimeCash) ? p.lifetimeCash : (p.allTimeCash || 0); },
+  },
+  {
+    key: 'upgrades',
+    write: p => { p.upgrades = upgLevels; },
+    // Must run before ideaWorkers are re-spawned below: per-worker
+    // upgrade effects (e.g. Adderall Subscription) only touch workers
+    // that already exist at apply time, matching pre-refactor behavior.
+    read: p => {
+      if (!p.upgrades) return;
       for (const u of UPGRADES) {
         // Clamp to u.max: an out-of-range level in the save (hand-edit,
         // corruption, future schema) would index past the fixed price/mult
@@ -8715,19 +8732,38 @@ function loadGame() {
         for (let i = 1; i <= lv; i++) u.apply(i);
         upgLevels[u.id] = lv;
       }
-    }
-    if (p.unlocked) Object.assign(unlocked, p.unlocked);
-    if (typeof p.fundingRoundIdx    === 'number') fundingRoundIdx    = p.fundingRoundIdx;
-    if (typeof p.prestigeLevel      === 'number') prestigeLevel      = p.prestigeLevel;
-    if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
-    // Apply prestige multiplier to deal value
-    if (prestigeLevel > 0) {
-      dealValueMult = prestigeMultiplier;
-      seasonBadge.style.display = '';
-      seasonBadge.textContent   = `S${prestigeLevel + 1}`;
-    }
-    // Restore owned rooms
-    if (p.ownedRooms) {
+    },
+  },
+  {
+    key: 'unlocked',
+    write: p => { p.unlocked = unlocked; },
+    read: p => { if (p.unlocked) Object.assign(unlocked, p.unlocked); },
+  },
+  {
+    key: 'fundingRoundIdx',
+    write: p => { p.fundingRoundIdx = fundingRoundIdx; },
+    read: p => { if (typeof p.fundingRoundIdx === 'number') fundingRoundIdx = p.fundingRoundIdx; },
+  },
+  {
+    key: 'prestige', // prestigeLevel + prestigeMultiplier travel together
+    write: p => { p.prestigeLevel = prestigeLevel; p.prestigeMultiplier = prestigeMultiplier; },
+    read: p => {
+      if (typeof p.prestigeLevel      === 'number') prestigeLevel      = p.prestigeLevel;
+      if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
+      // Apply prestige multiplier to deal value
+      if (prestigeLevel > 0) {
+        dealValueMult = prestigeMultiplier;
+        seasonBadge.style.display = '';
+        seasonBadge.textContent   = `S${prestigeLevel + 1}`;
+      }
+    },
+  },
+  {
+    key: 'ownedRooms',
+    write: p => { p.ownedRooms = Array.from(ownedRooms); },
+    // Must run before roomModes/extraDesksByRoom, which key off it.
+    read: p => {
+      if (!p.ownedRooms) return;
       for (const roomId of p.ownedRooms) {
         if (!ownedRooms.has(roomId)) {
           const def = ROOM_DEFS.find(r => r.id === roomId);
@@ -8738,11 +8774,16 @@ function loadGame() {
           }
         }
       }
-    }
+    },
+  },
+  {
+    key: 'roomModes',
+    write: p => { p.roomModes = { ...roomModes }; },
     // Restore converted room modes + rebuild their desks to match.
     // Hires are spawned afterwards so they land on the current-mode
     // desks correctly.
-    if (p.roomModes) {
+    read: p => {
+      if (!p.roomModes) return;
       for (const [roomId, mode] of Object.entries(p.roomModes)) {
         const cfg = ROOM_MODES[roomId];
         if (!cfg || mode === cfg.initial) { roomModes[roomId] = mode; continue; }
@@ -8761,41 +8802,86 @@ function loadGame() {
         }
         roomModes[roomId] = mode;
       }
-    }
+    },
+  },
+  {
+    key: 'extraDesksByRoom',
+    write: p => {
+      const m = {};
+      for (const r of ROOM_DEFS) {
+        const n = extraDeskCountInRoom(r.id);
+        if (n > 0) m[r.id] = n;
+      }
+      p.extraDesksByRoom = m;
+    },
     // Restore paid-for extra desks per room so seated workers survive
     // a save/load. Must run after room modes so the correct role is
     // applied (e.g. Sales Corner in AE-Office mode adds 'ae' desks).
-    if (p.extraDesksByRoom && typeof p.extraDesksByRoom === 'object') {
+    read: p => {
+      if (!p.extraDesksByRoom || typeof p.extraDesksByRoom !== 'object') return;
       for (const [roomId, count] of Object.entries(p.extraDesksByRoom)) {
         if (!ownedRooms.has(roomId)) continue;
         const n = Math.max(0, Math.min(MAX_EXTRA_DESKS_PER_ROOM, count | 0));
         for (let i = 0; i < n; i++) addExtraDeskToRoom(roomId);
       }
-    }
-    // Re-spawn idea workers silently (free on load)
-    if (p.ideaWorkers) {
+    },
+  },
+  {
+    key: 'ideaWorkers', // count + per-worker external flags travel together
+    write: p => {
+      p.ideaWorkers = ideaWorkers.length;
+      p.ideaWorkerExternals = ideaWorkers.map(w => !!w.external);
+    },
+    // Re-spawn idea workers silently (free on load).
+    // (p.supportStaff — legacy barista + runner roles; ignored.)
+    read: p => {
+      if (!p.ideaWorkers) return;
       const flags = Array.isArray(p.ideaWorkerExternals) ? p.ideaWorkerExternals : [];
       for (let i = 0; i < p.ideaWorkers; i++) spawnIdeaWorker({ external: !!flags[i] });
-    }
-    // (p.supportStaff — legacy barista + runner roles; ignored.)
-    if (typeof p.eaCount === 'number') {
-      for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant();
-    }
-    if (typeof p.bdrCount === 'number') {
+    },
+  },
+  {
+    key: 'eaCount',
+    write: p => { p.eaCount = eas.length; },
+    read: p => { if (typeof p.eaCount === 'number') for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant(); },
+  },
+  {
+    key: 'bdrCount', // count + per-BDR external flags travel together
+    write: p => {
+      p.bdrCount = bdrs.length;
+      p.bdrExternals = bdrs.map(b => !!b.external);
+    },
+    read: p => {
+      if (typeof p.bdrCount !== 'number') return;
       const bflags = Array.isArray(p.bdrExternals) ? p.bdrExternals : [];
       for (let i = 0; i < p.bdrCount; i++) spawnBDR({ external: !!bflags[i] });
-    }
-    if (typeof p.aeCount === 'number') {
-      for (let i = 0; i < p.aeCount; i++) spawnAE();
-    }
-    if (typeof p.vpCount === 'number' && p.vpCount > 0) {
+    },
+  },
+  {
+    key: 'aeCount',
+    write: p => { p.aeCount = aes.length; },
+    read: p => { if (typeof p.aeCount === 'number') for (let i = 0; i < p.aeCount; i++) spawnAE(); },
+  },
+  {
+    key: 'vpCount', // count + tier travel together
+    write: p => {
+      p.vpCount = vps.length;
+      p.vpTier = vps.length > 0 ? vps[0].tier : 0;
+    },
+    read: p => {
+      if (typeof p.vpCount !== 'number' || p.vpCount <= 0) return;
       spawnVP();
       if (vps[0] && typeof p.vpTier === 'number') {
         vps[0].tier = Math.max(0, Math.min(VP_TIERS.length - 1, p.vpTier));
       }
       recomputeEngTeamMultiplier();
-    }
-    if (p.amenities) {
+    },
+  },
+  {
+    key: 'amenities',
+    write: p => { p.amenities = amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })); },
+    read: p => {
+      if (!p.amenities) return;
       for (const saved of p.amenities) {
         const am = amenities.find(a => a.id === saved.id);
         if (am && !am.isOwned) {
@@ -8805,57 +8891,171 @@ function loadGame() {
           if (saved.id === 'standup') ideaSpeedMult *= 1.3;
         }
       }
-    }
-    // Fast-forward milestone pointer
-    while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
-      nextMilestoneIdx++;
-    }
-    if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
-    // Legacy per-session morale was a single number; new workers spawn with default and will absorb it on next tick (no-op).
-    if (p.investorAffinity && typeof p.investorAffinity === 'object') {
+    },
+  },
+  {
+    key: 'investorAffinity',
+    write: p => { p.investorAffinity = { ...investorAffinity }; },
+    read: p => {
+      if (!p.investorAffinity || typeof p.investorAffinity !== 'object') return;
       for (const [k, v] of Object.entries(p.investorAffinity)) {
         if (typeof v === 'number') investorAffinity[k] = Math.max(0, Math.min(100, v));
       }
-    }
-    if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
-    if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue;
-    if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
+    },
+  },
+  {
+    key: 'seasonGoalHit',
+    write: p => { p.seasonGoalHit = seasonGoalHit; },
+    read: p => { if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit; },
+  },
+  {
+    key: 'seasonRecurringRevenue',
+    write: p => { p.seasonRecurringRevenue = seasonRecurringRevenue; },
+    read: p => { if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue; },
+  },
+  {
+    key: 'trophiesWon',
+    write: p => { p.trophiesWon = trophiesWon; },
+    read: p => { if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon; },
+  },
+  {
+    key: 'bestTimesToGoal',
+    write: p => { p.bestTimesToGoal = { ...bestTimesToGoal }; },
     // Per-season PBs (new). Legacy single-number bestTimeToGoal migrates
     // into tier 0 so old players keep their Season 1 record.
-    if (p.bestTimesToGoal && typeof p.bestTimesToGoal === 'object') {
-      for (const [k, v] of Object.entries(p.bestTimesToGoal)) {
-        if (typeof v === 'number' && v > 0) bestTimesToGoal[Number(k)] = v;
+    read: p => {
+      if (p.bestTimesToGoal && typeof p.bestTimesToGoal === 'object') {
+        for (const [k, v] of Object.entries(p.bestTimesToGoal)) {
+          if (typeof v === 'number' && v > 0) bestTimesToGoal[Number(k)] = v;
+        }
+      } else if (typeof p.bestTimeToGoal === 'number' && p.bestTimeToGoal > 0) {
+        bestTimesToGoal[0] = p.bestTimeToGoal;
       }
-    } else if (typeof p.bestTimeToGoal === 'number' && p.bestTimeToGoal > 0) {
-      bestTimesToGoal[0] = p.bestTimeToGoal;
-    }
-    if (p.achievements && typeof p.achievements === 'object') {
-      for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true;
-    }
-    if (typeof p.stimSupply      === 'number') stimSupply      = Math.max(0, p.stimSupply | 0);
-    if (typeof p.stimPacksBought === 'number') stimPacksBought = Math.max(0, p.stimPacksBought | 0);
-    if (typeof p.stimDosesGiven  === 'number') stimDosesGiven  = Math.max(0, p.stimDosesGiven | 0);
+    },
+  },
+  {
+    key: 'achievements',
+    write: p => { p.achievements = { ...earnedAchievements }; },
+    read: p => { if (p.achievements && typeof p.achievements === 'object') for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true; },
+  },
+  {
+    key: 'totalUsers',
+    write: p => { p.totalUsers = totalUsers; },
+    read: p => { if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers; },
+  },
+  {
+    key: 'stimSupply',
+    write: p => { p.stimSupply = stimSupply; },
+    read: p => { if (typeof p.stimSupply === 'number') stimSupply = Math.max(0, p.stimSupply | 0); },
+  },
+  {
+    key: 'stimPacksBought',
+    write: p => { p.stimPacksBought = stimPacksBought; },
+    read: p => { if (typeof p.stimPacksBought === 'number') stimPacksBought = Math.max(0, p.stimPacksBought | 0); },
+  },
+  {
+    key: 'stimDosesGiven',
+    write: p => { p.stimDosesGiven = stimDosesGiven; },
+    read: p => { if (typeof p.stimDosesGiven === 'number') stimDosesGiven = Math.max(0, p.stimDosesGiven | 0); },
+  },
+  {
+    key: 'walt',
     // Special characters live outside the desk system — respawn them
     // silently (no "joined!" toast) and restore their progress.
-    if (p.walt) {
+    write: p => { p.walt = walt ? { stage: walt.stage, stageT: walt.stageT, level: walt.level } : null; },
+    read: p => {
+      if (!p.walt) return;
       spawnWalt(true);
       if (typeof p.walt.level === 'number') walt.level = Math.max(0, p.walt.level | 0);
       if (p.walt.stage && p.walt.stage !== 'bdr') waltSetStage(p.walt.stage);
       if (typeof p.walt.stageT === 'number') walt.stageT = p.walt.stageT;
-    }
-    if (p.jeff) {
+    },
+  },
+  {
+    key: 'jeff',
+    write: p => { p.jeff = jeff ? { churns: jeff.churns, stage: jeff.stage } : null; },
+    read: p => {
+      if (!p.jeff) return;
       spawnJeff(true);
       if (typeof p.jeff.churns === 'number') jeff.churns = p.jeff.churns;
       if (p.jeff.stage === 'am') jeffSetStage('am');
       setJeffButton();
+    },
+  },
+  {
+    key: 'totalFeaturesShipped',
+    write: p => { p.totalFeaturesShipped = totalFeaturesShipped; },
+    read: p => {
+      if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
+      // Re-derive product version from saved features shipped
+      for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion = pv; productVersionMult = pv.mult; } }
+    },
+  },
+  // (morale intentionally not persisted: it was written every ~5s but
+  // never read back anywhere — see DEBT-2. Per-worker morale, which IS
+  // live gameplay state, isn't persisted at all and simply resets to
+  // CONFIG.moraleDefault for respawned workers, same as before.)
+];
+
+// Offline earnings: award 25% of theoretical revenue while away (max
+// 4hr). Reads the raw payload directly (not the schema-restored
+// runtime values) and adds on top of the cash figures the schema loop
+// above just restored — kept as its own step because it isn't itself
+// a persisted field, it's a load-time bonus derived from savedAt.
+function applyOfflineEarnings(p) {
+  if (!p.savedAt) return;
+  const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
+  const awaySec = awayMs / 1000;
+  if (awaySec > 30 && p.upgrades) {
+    const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
+    const savedWorkers  = p.ideaWorkers || 0;
+    const offlineEarned = Math.floor(savedPrice * savedWorkers * CONFIG.workRateBase * awaySec * 0.25);
+    if (offlineEarned > 0) {
+      state.cash += offlineEarned;
+      state.allTimeCash += offlineEarned;
+      state.lifetimeCash += offlineEarned;
+      // Defer to after init so the modal markup exists in the DOM.
+      _pendingOfflineEarnings = { amount: offlineEarned, seconds: awaySec };
     }
-    if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
-    // Re-derive product version from saved features shipped
-    for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
+  }
+}
+
+function saveGame() {
+  if (_restarting) return;
+  try {
+    const p = { v: SAVE_VERSION, savedAt: Date.now() };
+    for (const f of SAVE_SCHEMA) f.write(p);
+    localStorage.setItem(SAVE_KEY, JSON.stringify(p));
+  } catch (err) {
+    console.warn('Tycoon save failed:', err);
+    showToast('⚠️ Save failed — progress may not persist', 'save-fail', 'critical');
+  }
+}
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    // Version gate. The on-disk shape hasn't changed since v7, and
+    // every field's read() above already tolerates missing/legacy data
+    // via its own guard + migration fallback (lifetimeCash,
+    // bestTimeToGoal, etc.), so saves from v7 (or missing v, i.e.
+    // pre-version-gate saves) load through the exact same path. A
+    // future schema change should bump SAVE_VERSION and branch here.
+    const saveVersion = typeof p.v === 'number' ? p.v : 0;
+    void saveVersion; // reserved for future migrate() branching
+    for (const f of SAVE_SCHEMA) f.read(p);
+    applyOfflineEarnings(p);
+    // Fast-forward milestone pointer
+    while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
+      nextMilestoneIdx++;
+    }
     // Fast-forward user milestone pointer
     while (nextUserMilestone < USER_MILESTONES.length &&
            totalUsers >= USER_MILESTONES[nextUserMilestone].at) nextUserMilestone++;
-  } catch {}
+  } catch (err) {
+    console.warn('Tycoon save failed to parse — starting fresh:', err);
+  }
 }
 
 // ── Session timer ──
@@ -8915,6 +9115,11 @@ refreshGoalLabels();
 refreshTrophyBadge();
 setInterval(saveGame, 5000);
 addEventListener('beforeunload', saveGame);
+// iOS Safari (and other mobile browsers) can kill a backgrounded tab
+// without ever firing beforeunload, so also save on the events that
+// reliably fire when a tab is hidden/backgrounded/closed on mobile.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
+addEventListener('pagehide', () => saveGame());
 
 // First-play welcome: show once, only when this really is a fresh
 // game (no save, no all-time cash). The "Let's go" button is also

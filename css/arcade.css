@@ -200,6 +200,11 @@ nav .logo-btn {
     0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
+.arcade-card:focus-visible {
+  outline: 2px solid #8b83ff;
+  outline-offset: 2px;
+}
+
 /* The screen: poster underneath, clip fades in on hover once playing */
 .arcade-card-screen {
   position: relative;

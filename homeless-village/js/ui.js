@@ -19,15 +19,20 @@ function buildCraftUI(){
   hideTip(); // an item being hovered may be destroyed by innerHTML reset
   el.innerHTML='';
   RECIPES.forEach(function(r){
-    var div=document.createElement('div');
+    var div=document.createElement('button');
+    div.type='button';
     div.className='craft-item'+(canCraft(r)?'':' cant-afford');
     div.id='craft-'+r.id;
     var costStr=Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
     div.innerHTML='<span class="ci-icon">'+r.icon+'</span><div class="ci-info"><span class="ci-name">'+r.name+'</span><span class="ci-cost">'+costStr+'</span></div>';
-    div.setAttribute('data-tip',r.desc);
+    var tipText=r.desc;
+    if(r.requires && !G.structures[r.requires]) tipText+=' Requires a '+r.requires.replace('_',' ')+'.';
+    div.setAttribute('data-tip',tipText);
     div.onclick=function(){ doCraft(r); };
     div.addEventListener('mouseenter',showTip);
     div.addEventListener('mouseleave',hideTip);
+    div.addEventListener('focus',showTip);
+    div.addEventListener('blur',hideTip);
     el.appendChild(div);
     // Rebuilds discard the busy styling doCraft applied to the old
     // node — re-apply it so an in-flight recipe stays locked.
@@ -59,6 +64,9 @@ function buildWorkersUI(){
 function canCraft(r){
   // A permanent structure that's already built can't be crafted again.
   if(r.gives && r.gives.structure && G.structures[r.gives.structure]) return false;
+  // Workbench-gated "crafting upgrades" (Tent, Soup Kitchen, Garden) stay
+  // locked until the Workbench structure actually exists.
+  if(r.requires && !G.structures[r.requires]) return false;
   return Object.entries(r.cost).every(function(e){ return G[e[0]]>=e[1]; });
 }
 
@@ -103,7 +111,14 @@ function showTip(e){
   // is already visible on the item, so just skip it.
   if(window.matchMedia('(hover:none)').matches) return;
   var t=e.currentTarget.getAttribute('data-tip'); if(!t) return;
-  tip.textContent=t; tip.style.display='block'; moveTip(e);
+  tip.textContent=t; tip.style.display='block';
+  // Keyboard focus events have no pointer coordinates — anchor the
+  // tooltip to the focused element instead of the (absent) cursor.
+  if(typeof e.clientX==='number') moveTip(e);
+  else{
+    var r=e.currentTarget.getBoundingClientRect();
+    tip.style.left=(r.left)+'px'; tip.style.top=(r.top-8)+'px';
+  }
 }
 function moveTip(e){ tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-8)+'px'; }
 function hideTip(){ tip.style.display='none'; }

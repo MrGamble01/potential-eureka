@@ -57,6 +57,12 @@
   box-shadow: var(--glow-secondary);
 }
 
+.game-controls button:focus-visible,
+.game-controls select:focus-visible {
+  outline: 2px solid #8b83ff;
+  outline-offset: 2px;
+}
+
 .game-controls button.primary {
   border-color: rgba(108, 99, 255, 0.4);
   color: var(--primary-light);
@@ -115,6 +121,14 @@ canvas.game-canvas {
   height: auto; /* preserve aspect ratio when max-width clamps the width on mobile */
   image-rendering: pixelated;
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Tetris and 2048 render anti-aliased vector shapes (not pixel-art sprites),
+   so at HiDPI they look sharper without the browser's nearest-neighbor
+   pixelated upscaling — override the shared game-canvas default above. */
+#tetris-canvas,
+#g2048-canvas {
+  image-rendering: auto;
 }
 
 /* Game over overlay */
@@ -350,7 +364,11 @@ canvas.game-canvas {
   }
   #tetris-canvas {
     max-height: 52vh;
-    width: auto;
+    /* !important: JS now sets an inline canvas.style.width (for HiDPI
+       backing-store sizing), which would otherwise always outrank this
+       rule and pin the board at its desktop width instead of shrinking
+       to fit short mobile viewports. */
+    width: auto !important;
   }
   .tetris-side {
     order: 2;

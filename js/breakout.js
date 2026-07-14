@@ -13,29 +13,44 @@ const BreakoutGame = (() => {
   const GRID_TOP = 60, GRID_LEFT = (WIDTH - (COLS * (BRICK_W + BRICK_GAP) - BRICK_GAP)) / 2;
   const PADDLE_W = 108, PADDLE_H = 12, PADDLE_Y = HEIGHT - 34;
   const BALL_R = 7;
+  // Hard cap on ball speed (px per 16.667ms frame) — without this, high
+  // levels (speed = 4.4 + level*0.35) combined with the dt clamp (up to
+  // 2.2) can move the ball farther per frame than the paddle/brick
+  // thickness, tunneling straight through them.
+  const BALL_SPEED_MAX = 11;
   const ROW_COLORS = ['#F778BA', '#F85149', '#F0883E', '#D29922', '#3FB950', '#58A6FF'];
 
   let canvas, ctx;
   let paddleX, paddleW;
   let balls, bricks, particles, powerups;
   let score, high, lives, level, combo;
-  let running, launched, gameOver, raf, lastT;
+  let running, launched, gameOver;
   let slowUntil, wideUntil;
   let pointerX = null;
+
+  const loop = Utils.gameLoop(dt => {
+    if (running && !gameOver) update(dt);
+    draw();
+  });
 
   function init() {
     canvas = document.getElementById('breakout-canvas');
     if (!canvas) return;
-    canvas.width = WIDTH; canvas.height = HEIGHT;
+    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
+    // rendering; game logic keeps using WIDTH/HEIGHT (CSS/logical) coords.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = WIDTH * dpr; canvas.height = HEIGHT * dpr;
+    canvas.style.width = WIDTH + 'px';
     ctx = canvas.getContext('2d');
-    high = parseInt(localStorage.getItem('breakout-high') || '0', 10) || 0;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    high = Utils.highScore.load('breakout-high');
     resetGame(false);
 
     canvas.addEventListener('mousemove', e => { pointerX = relX(e.clientX); });
     canvas.addEventListener('mousedown', () => launch());
     canvas.addEventListener('touchstart', e => { pointerX = relX(e.touches[0].clientX); launch(); e.preventDefault(); }, { passive: false });
     canvas.addEventListener('touchmove', e => { pointerX = relX(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
-    document.addEventListener('keydown', onKey);
+    document.addEventListener('keydown', Utils.whenViewActive('view-breakout', onKey));
     updateInfo();
     draw();
   }
@@ -46,8 +61,6 @@ const BreakoutGame = (() => {
   }
 
   function onKey(e) {
-    const view = document.getElementById('view-breakout');
-    if (!view || !view.classList.contains('active')) return;
     if (e.key === ' ' || e.key === 'ArrowUp') { launch(); e.preventDefault(); }
     else if (e.key === 'ArrowLeft')  { pointerX = (paddleX + paddleW / 2) - 44; }
     else if (e.key === 'ArrowRight') { pointerX = (paddleX + paddleW / 2) + 44; }
@@ -87,7 +100,7 @@ const BreakoutGame = (() => {
 
   function resetBall() {
     launched = false;
-    const speed = 4.4 + level * 0.35;
+    const speed = Math.min(BALL_SPEED_MAX, 4.4 + level * 0.35);
     balls = [{
       x: WIDTH / 2, y: PADDLE_Y - BALL_R - 1,
       vx: 0, vy: 0, speed, trail: [],
@@ -98,9 +111,7 @@ const BreakoutGame = (() => {
     resetGame(true);
     const ov = document.getElementById('breakout-overlay');
     if (ov) ov.style.display = 'none';
-    cancelAnimationFrame(raf);
-    lastT = performance.now();
-    loop();
+    loop.start();
   }
 
   function launch() {
@@ -115,22 +126,14 @@ const BreakoutGame = (() => {
     sfx('start');
   }
 
-  function loop() {
-    raf = requestAnimationFrame(loop);
-    const now = performance.now();
-    const dt = Math.min((now - lastT) / 16.667, 2.2);
-    lastT = now;
-    if (running && !gameOver) update(dt);
-    draw();
-  }
-
   function update(dt) {
-    // Paddle follows pointer (smoothed)
+    // Paddle follows pointer (smoothed). Scaled by dt so the easing
+    // reaches the same real-time speed regardless of frame rate.
     const targetW = now() < wideUntil ? PADDLE_W * 1.6 : PADDLE_W;
-    paddleW += (targetW - paddleW) * 0.2;
+    paddleW += (targetW - paddleW) * Math.min(1, 0.2 * dt);
     if (pointerX != null) {
       const want = pointerX - paddleW / 2;
-      paddleX += (want - paddleX) * 0.4;
+      paddleX += (want - paddleX) * Math.min(1, 0.4 * dt);
     }
     paddleX = Math.max(0, Math.min(WIDTH - paddleW, paddleX));
 
@@ -197,7 +200,7 @@ const BreakoutGame = (() => {
           } else {
             sfx('move');
           }
-          if (score > high) { high = score; localStorage.setItem('breakout-high', String(high)); }
+          high = Utils.highScore.save('breakout-high', score, high);
           updateInfo();
           break;
         }
@@ -254,15 +257,11 @@ const BreakoutGame = (() => {
   function endGame() {
     running = false; gameOver = true;
     sfx('over');
-    if (score > high) { high = score; localStorage.setItem('breakout-high', String(high)); }
-    const ov = document.getElementById('breakout-overlay');
-    if (ov) {
-      ov.style.display = 'flex';
-      ov.innerHTML =
-        '<h2>GAME OVER</h2>' +
-        '<p>Score: ' + score + ' &nbsp;·&nbsp; Level: ' + level + '</p>' +
-        '<p style="font-size:12px;color:var(--text-dim)">Click or tap to play again</p>';
-    }
+    high = Utils.highScore.save('breakout-high', score, high);
+    Utils.showGameOver('breakout-overlay', {
+      lines: ['Score: ' + score + ' &nbsp;·&nbsp; Level: ' + level],
+      hint: 'Click or tap to play again',
+    });
     updateInfo();
   }
 
@@ -306,7 +305,7 @@ const BreakoutGame = (() => {
   const POWER_META = { multi: { c: '#58A6FF', t: '×3' }, wide: { c: '#3FB950', t: '↔' }, slow: { c: '#D29922', t: '⏱' } };
 
   function now() { return performance.now(); }
-  function sfx(n) { if (typeof SFX !== 'undefined') SFX.play(n); }
+  const sfx = Utils.sfx;
 
   function updateInfo() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -418,8 +417,7 @@ const BreakoutGame = (() => {
   }
 
   function destroy() {
-    cancelAnimationFrame(raf);
-    raf = null;
+    loop.stop();
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;
