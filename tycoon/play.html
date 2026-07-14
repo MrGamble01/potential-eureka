@@ -490,6 +490,7 @@
     @keyframes toastOut { to   { opacity:0; transform:translateX(50px); } }
     .toast.rush      { border-left-color: #f59e0b; }
     .toast.milestone { border-left-color: #3FB950; }
+    .toast.save-fail { border-left-color: #f85149; }
     /* Priority-level variants: ambient (routine) is dimmer + smaller;
        critical (milestones) is louder with a stronger shadow. */
     .toast.toast-ambient {
@@ -8676,84 +8677,53 @@ function showOfflineModal(amount, seconds) {
   });
 }
 
-function saveGame() {
-  if (_restarting) return;
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 7,
-      cash: state.cash,
-      allTimeCash: state.allTimeCash,
-      lifetimeCash: state.lifetimeCash,
-      upgrades: upgLevels,
-      unlocked,
-      ideaWorkers: ideaWorkers.length,
-      ideaWorkerExternals: ideaWorkers.map(w => !!w.external),
-      bdrExternals: bdrs.map(b => !!b.external),
-      eaCount: eas.length,
-      bdrCount: bdrs.length,
-      aeCount: aes.length,
-      vpCount: vps.length,
-      vpTier: vps.length > 0 ? vps[0].tier : 0,
-      roomModes: { ...roomModes },
-      extraDesksByRoom: (() => {
-        const m = {};
-        for (const r of ROOM_DEFS) {
-          const n = extraDeskCountInRoom(r.id);
-          if (n > 0) m[r.id] = n;
-        }
-        return m;
-      })(),
-      morale: teamMorale(),
-      investorAffinity: { ...investorAffinity },
-      seasonGoalHit,
-      seasonRecurringRevenue,
-      trophiesWon,
-      bestTimesToGoal: { ...bestTimesToGoal },
-      achievements: { ...earnedAchievements },
-      fundingRoundIdx,
-      totalUsers,
-      totalFeaturesShipped,
-      prestigeLevel,
-      prestigeMultiplier,
-      amenities: amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })),
-      ownedRooms: Array.from(ownedRooms),
-      stimSupply,
-      stimPacksBought,
-      stimDosesGiven,
-      walt: walt ? { stage: walt.stage, stageT: walt.stageT, level: walt.level } : null,
-      jeff: jeff ? { churns: jeff.churns, stage: jeff.stage } : null,
-      savedAt: Date.now(),
-    }));
-  } catch {}
-}
-function loadGame() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    const p = JSON.parse(raw);
-    state.cash = p.cash || 0;
-    state.allTimeCash = p.allTimeCash || 0;
+// ── Save schema ──
+// Single source of truth for every persisted field. Each entry knows
+// how to pull its value out of live state (`write`) and how to put a
+// loaded value back into live state (`read`) — saveGame() and
+// loadGame() both walk this exact list, so a field can never again be
+// written on save and silently forgotten on load (the bug class this
+// replaces: ~220 lines of hand-matched save/load that had drifted out
+// of sync more than once).
+//
+// `read(p)` receives the whole parsed payload (not just its own key)
+// because several fields have legacy/migration fallbacks that need a
+// sibling field (e.g. lifetimeCash seeding itself from allTimeCash on
+// old saves) — that's the `migrate`-shaped behavior baked into `read`
+// rather than split into a separate hook.
+//
+// Order matters for a handful of entries (documented inline) because
+// spawning/restoring some things depends on others already being in
+// place — e.g. rooms/desks must exist before workers are spawned into
+// them. Preserve the relative order below; it matches the order the
+// original hand-written loader ran in.
+const SAVE_VERSION = 7;
+const SAVE_SCHEMA = [
+  {
+    key: 'cash',
+    write: p => { p.cash = state.cash; },
+    read:  p => { state.cash = p.cash || 0; },
+  },
+  {
+    key: 'allTimeCash',
+    write: p => { p.allTimeCash = state.allTimeCash; },
+    read:  p => { state.allTimeCash = p.allTimeCash || 0; },
+  },
+  {
+    key: 'lifetimeCash',
+    write: p => { p.lifetimeCash = state.lifetimeCash; },
     // Migration: old saves have no lifetimeCash — seed it from the
     // season total (best available lower bound).
-    state.lifetimeCash = Number.isFinite(p.lifetimeCash) ? p.lifetimeCash : (p.allTimeCash || 0);
-    // Offline earnings: award 25% of theoretical revenue while away (max 4hr)
-    if (p.savedAt) {
-      const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
-      const awaySec = awayMs / 1000;
-      if (awaySec > 30 && p.upgrades) {
-        const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
-        const savedWorkers  = p.ideaWorkers || 0;
-        const offlineEarned = Math.floor(savedPrice * savedWorkers * CONFIG.workRateBase * awaySec * 0.25);
-        if (offlineEarned > 0) {
-          state.cash += offlineEarned;
-          state.allTimeCash += offlineEarned;
-          state.lifetimeCash += offlineEarned;
-          // Defer to after init so the modal markup exists in the DOM.
-          _pendingOfflineEarnings = { amount: offlineEarned, seconds: awaySec };
-        }
-      }
-    }
-    if (p.upgrades) {
+    read: p => { state.lifetimeCash = Number.isFinite(p.lifetimeCash) ? p.lifetimeCash : (p.allTimeCash || 0); },
+  },
+  {
+    key: 'upgrades',
+    write: p => { p.upgrades = upgLevels; },
+    // Must run before ideaWorkers are re-spawned below: per-worker
+    // upgrade effects (e.g. Adderall Subscription) only touch workers
+    // that already exist at apply time, matching pre-refactor behavior.
+    read: p => {
+      if (!p.upgrades) return;
       for (const u of UPGRADES) {
         // Clamp to u.max: an out-of-range level in the save (hand-edit,
         // corruption, future schema) would index past the fixed price/mult
@@ -8762,19 +8732,38 @@ function loadGame() {
         for (let i = 1; i <= lv; i++) u.apply(i);
         upgLevels[u.id] = lv;
       }
-    }
-    if (p.unlocked) Object.assign(unlocked, p.unlocked);
-    if (typeof p.fundingRoundIdx    === 'number') fundingRoundIdx    = p.fundingRoundIdx;
-    if (typeof p.prestigeLevel      === 'number') prestigeLevel      = p.prestigeLevel;
-    if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
-    // Apply prestige multiplier to deal value
-    if (prestigeLevel > 0) {
-      dealValueMult = prestigeMultiplier;
-      seasonBadge.style.display = '';
-      seasonBadge.textContent   = `S${prestigeLevel + 1}`;
-    }
-    // Restore owned rooms
-    if (p.ownedRooms) {
+    },
+  },
+  {
+    key: 'unlocked',
+    write: p => { p.unlocked = unlocked; },
+    read: p => { if (p.unlocked) Object.assign(unlocked, p.unlocked); },
+  },
+  {
+    key: 'fundingRoundIdx',
+    write: p => { p.fundingRoundIdx = fundingRoundIdx; },
+    read: p => { if (typeof p.fundingRoundIdx === 'number') fundingRoundIdx = p.fundingRoundIdx; },
+  },
+  {
+    key: 'prestige', // prestigeLevel + prestigeMultiplier travel together
+    write: p => { p.prestigeLevel = prestigeLevel; p.prestigeMultiplier = prestigeMultiplier; },
+    read: p => {
+      if (typeof p.prestigeLevel      === 'number') prestigeLevel      = p.prestigeLevel;
+      if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
+      // Apply prestige multiplier to deal value
+      if (prestigeLevel > 0) {
+        dealValueMult = prestigeMultiplier;
+        seasonBadge.style.display = '';
+        seasonBadge.textContent   = `S${prestigeLevel + 1}`;
+      }
+    },
+  },
+  {
+    key: 'ownedRooms',
+    write: p => { p.ownedRooms = Array.from(ownedRooms); },
+    // Must run before roomModes/extraDesksByRoom, which key off it.
+    read: p => {
+      if (!p.ownedRooms) return;
       for (const roomId of p.ownedRooms) {
         if (!ownedRooms.has(roomId)) {
           const def = ROOM_DEFS.find(r => r.id === roomId);
@@ -8785,11 +8774,16 @@ function loadGame() {
           }
         }
       }
-    }
+    },
+  },
+  {
+    key: 'roomModes',
+    write: p => { p.roomModes = { ...roomModes }; },
     // Restore converted room modes + rebuild their desks to match.
     // Hires are spawned afterwards so they land on the current-mode
     // desks correctly.
-    if (p.roomModes) {
+    read: p => {
+      if (!p.roomModes) return;
       for (const [roomId, mode] of Object.entries(p.roomModes)) {
         const cfg = ROOM_MODES[roomId];
         if (!cfg || mode === cfg.initial) { roomModes[roomId] = mode; continue; }
@@ -8808,41 +8802,86 @@ function loadGame() {
         }
         roomModes[roomId] = mode;
       }
-    }
+    },
+  },
+  {
+    key: 'extraDesksByRoom',
+    write: p => {
+      const m = {};
+      for (const r of ROOM_DEFS) {
+        const n = extraDeskCountInRoom(r.id);
+        if (n > 0) m[r.id] = n;
+      }
+      p.extraDesksByRoom = m;
+    },
     // Restore paid-for extra desks per room so seated workers survive
     // a save/load. Must run after room modes so the correct role is
     // applied (e.g. Sales Corner in AE-Office mode adds 'ae' desks).
-    if (p.extraDesksByRoom && typeof p.extraDesksByRoom === 'object') {
+    read: p => {
+      if (!p.extraDesksByRoom || typeof p.extraDesksByRoom !== 'object') return;
       for (const [roomId, count] of Object.entries(p.extraDesksByRoom)) {
         if (!ownedRooms.has(roomId)) continue;
         const n = Math.max(0, Math.min(MAX_EXTRA_DESKS_PER_ROOM, count | 0));
         for (let i = 0; i < n; i++) addExtraDeskToRoom(roomId);
       }
-    }
-    // Re-spawn idea workers silently (free on load)
-    if (p.ideaWorkers) {
+    },
+  },
+  {
+    key: 'ideaWorkers', // count + per-worker external flags travel together
+    write: p => {
+      p.ideaWorkers = ideaWorkers.length;
+      p.ideaWorkerExternals = ideaWorkers.map(w => !!w.external);
+    },
+    // Re-spawn idea workers silently (free on load).
+    // (p.supportStaff — legacy barista + runner roles; ignored.)
+    read: p => {
+      if (!p.ideaWorkers) return;
       const flags = Array.isArray(p.ideaWorkerExternals) ? p.ideaWorkerExternals : [];
       for (let i = 0; i < p.ideaWorkers; i++) spawnIdeaWorker({ external: !!flags[i] });
-    }
-    // (p.supportStaff — legacy barista + runner roles; ignored.)
-    if (typeof p.eaCount === 'number') {
-      for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant();
-    }
-    if (typeof p.bdrCount === 'number') {
+    },
+  },
+  {
+    key: 'eaCount',
+    write: p => { p.eaCount = eas.length; },
+    read: p => { if (typeof p.eaCount === 'number') for (let i = 0; i < p.eaCount; i++) spawnExecutiveAssistant(); },
+  },
+  {
+    key: 'bdrCount', // count + per-BDR external flags travel together
+    write: p => {
+      p.bdrCount = bdrs.length;
+      p.bdrExternals = bdrs.map(b => !!b.external);
+    },
+    read: p => {
+      if (typeof p.bdrCount !== 'number') return;
       const bflags = Array.isArray(p.bdrExternals) ? p.bdrExternals : [];
       for (let i = 0; i < p.bdrCount; i++) spawnBDR({ external: !!bflags[i] });
-    }
-    if (typeof p.aeCount === 'number') {
-      for (let i = 0; i < p.aeCount; i++) spawnAE();
-    }
-    if (typeof p.vpCount === 'number' && p.vpCount > 0) {
+    },
+  },
+  {
+    key: 'aeCount',
+    write: p => { p.aeCount = aes.length; },
+    read: p => { if (typeof p.aeCount === 'number') for (let i = 0; i < p.aeCount; i++) spawnAE(); },
+  },
+  {
+    key: 'vpCount', // count + tier travel together
+    write: p => {
+      p.vpCount = vps.length;
+      p.vpTier = vps.length > 0 ? vps[0].tier : 0;
+    },
+    read: p => {
+      if (typeof p.vpCount !== 'number' || p.vpCount <= 0) return;
       spawnVP();
       if (vps[0] && typeof p.vpTier === 'number') {
         vps[0].tier = Math.max(0, Math.min(VP_TIERS.length - 1, p.vpTier));
       }
       recomputeEngTeamMultiplier();
-    }
-    if (p.amenities) {
+    },
+  },
+  {
+    key: 'amenities',
+    write: p => { p.amenities = amenities.filter(a => a.isOwned).map(a => ({ id: a.id, stock: a.stock })); },
+    read: p => {
+      if (!p.amenities) return;
       for (const saved of p.amenities) {
         const am = amenities.find(a => a.id === saved.id);
         if (am && !am.isOwned) {
@@ -8852,57 +8891,171 @@ function loadGame() {
           if (saved.id === 'standup') ideaSpeedMult *= 1.3;
         }
       }
-    }
-    // Fast-forward milestone pointer
-    while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
-      nextMilestoneIdx++;
-    }
-    if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers;
-    // Legacy per-session morale was a single number; new workers spawn with default and will absorb it on next tick (no-op).
-    if (p.investorAffinity && typeof p.investorAffinity === 'object') {
+    },
+  },
+  {
+    key: 'investorAffinity',
+    write: p => { p.investorAffinity = { ...investorAffinity }; },
+    read: p => {
+      if (!p.investorAffinity || typeof p.investorAffinity !== 'object') return;
       for (const [k, v] of Object.entries(p.investorAffinity)) {
         if (typeof v === 'number') investorAffinity[k] = Math.max(0, Math.min(100, v));
       }
-    }
-    if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit;
-    if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue;
-    if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon;
+    },
+  },
+  {
+    key: 'seasonGoalHit',
+    write: p => { p.seasonGoalHit = seasonGoalHit; },
+    read: p => { if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit; },
+  },
+  {
+    key: 'seasonRecurringRevenue',
+    write: p => { p.seasonRecurringRevenue = seasonRecurringRevenue; },
+    read: p => { if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue; },
+  },
+  {
+    key: 'trophiesWon',
+    write: p => { p.trophiesWon = trophiesWon; },
+    read: p => { if (typeof p.trophiesWon === 'number') trophiesWon = p.trophiesWon; },
+  },
+  {
+    key: 'bestTimesToGoal',
+    write: p => { p.bestTimesToGoal = { ...bestTimesToGoal }; },
     // Per-season PBs (new). Legacy single-number bestTimeToGoal migrates
     // into tier 0 so old players keep their Season 1 record.
-    if (p.bestTimesToGoal && typeof p.bestTimesToGoal === 'object') {
-      for (const [k, v] of Object.entries(p.bestTimesToGoal)) {
-        if (typeof v === 'number' && v > 0) bestTimesToGoal[Number(k)] = v;
+    read: p => {
+      if (p.bestTimesToGoal && typeof p.bestTimesToGoal === 'object') {
+        for (const [k, v] of Object.entries(p.bestTimesToGoal)) {
+          if (typeof v === 'number' && v > 0) bestTimesToGoal[Number(k)] = v;
+        }
+      } else if (typeof p.bestTimeToGoal === 'number' && p.bestTimeToGoal > 0) {
+        bestTimesToGoal[0] = p.bestTimeToGoal;
       }
-    } else if (typeof p.bestTimeToGoal === 'number' && p.bestTimeToGoal > 0) {
-      bestTimesToGoal[0] = p.bestTimeToGoal;
-    }
-    if (p.achievements && typeof p.achievements === 'object') {
-      for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true;
-    }
-    if (typeof p.stimSupply      === 'number') stimSupply      = Math.max(0, p.stimSupply | 0);
-    if (typeof p.stimPacksBought === 'number') stimPacksBought = Math.max(0, p.stimPacksBought | 0);
-    if (typeof p.stimDosesGiven  === 'number') stimDosesGiven  = Math.max(0, p.stimDosesGiven | 0);
+    },
+  },
+  {
+    key: 'achievements',
+    write: p => { p.achievements = { ...earnedAchievements }; },
+    read: p => { if (p.achievements && typeof p.achievements === 'object') for (const k of Object.keys(p.achievements)) earnedAchievements[k] = true; },
+  },
+  {
+    key: 'totalUsers',
+    write: p => { p.totalUsers = totalUsers; },
+    read: p => { if (typeof p.totalUsers === 'number') totalUsers = p.totalUsers; },
+  },
+  {
+    key: 'stimSupply',
+    write: p => { p.stimSupply = stimSupply; },
+    read: p => { if (typeof p.stimSupply === 'number') stimSupply = Math.max(0, p.stimSupply | 0); },
+  },
+  {
+    key: 'stimPacksBought',
+    write: p => { p.stimPacksBought = stimPacksBought; },
+    read: p => { if (typeof p.stimPacksBought === 'number') stimPacksBought = Math.max(0, p.stimPacksBought | 0); },
+  },
+  {
+    key: 'stimDosesGiven',
+    write: p => { p.stimDosesGiven = stimDosesGiven; },
+    read: p => { if (typeof p.stimDosesGiven === 'number') stimDosesGiven = Math.max(0, p.stimDosesGiven | 0); },
+  },
+  {
+    key: 'walt',
     // Special characters live outside the desk system — respawn them
     // silently (no "joined!" toast) and restore their progress.
-    if (p.walt) {
+    write: p => { p.walt = walt ? { stage: walt.stage, stageT: walt.stageT, level: walt.level } : null; },
+    read: p => {
+      if (!p.walt) return;
       spawnWalt(true);
       if (typeof p.walt.level === 'number') walt.level = Math.max(0, p.walt.level | 0);
       if (p.walt.stage && p.walt.stage !== 'bdr') waltSetStage(p.walt.stage);
       if (typeof p.walt.stageT === 'number') walt.stageT = p.walt.stageT;
-    }
-    if (p.jeff) {
+    },
+  },
+  {
+    key: 'jeff',
+    write: p => { p.jeff = jeff ? { churns: jeff.churns, stage: jeff.stage } : null; },
+    read: p => {
+      if (!p.jeff) return;
       spawnJeff(true);
       if (typeof p.jeff.churns === 'number') jeff.churns = p.jeff.churns;
       if (p.jeff.stage === 'am') jeffSetStage('am');
       setJeffButton();
+    },
+  },
+  {
+    key: 'totalFeaturesShipped',
+    write: p => { p.totalFeaturesShipped = totalFeaturesShipped; },
+    read: p => {
+      if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
+      // Re-derive product version from saved features shipped
+      for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion = pv; productVersionMult = pv.mult; } }
+    },
+  },
+  // (morale intentionally not persisted: it was written every ~5s but
+  // never read back anywhere — see DEBT-2. Per-worker morale, which IS
+  // live gameplay state, isn't persisted at all and simply resets to
+  // CONFIG.moraleDefault for respawned workers, same as before.)
+];
+
+// Offline earnings: award 25% of theoretical revenue while away (max
+// 4hr). Reads the raw payload directly (not the schema-restored
+// runtime values) and adds on top of the cash figures the schema loop
+// above just restored — kept as its own step because it isn't itself
+// a persisted field, it's a load-time bonus derived from savedAt.
+function applyOfflineEarnings(p) {
+  if (!p.savedAt) return;
+  const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
+  const awaySec = awayMs / 1000;
+  if (awaySec > 30 && p.upgrades) {
+    const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
+    const savedWorkers  = p.ideaWorkers || 0;
+    const offlineEarned = Math.floor(savedPrice * savedWorkers * CONFIG.workRateBase * awaySec * 0.25);
+    if (offlineEarned > 0) {
+      state.cash += offlineEarned;
+      state.allTimeCash += offlineEarned;
+      state.lifetimeCash += offlineEarned;
+      // Defer to after init so the modal markup exists in the DOM.
+      _pendingOfflineEarnings = { amount: offlineEarned, seconds: awaySec };
     }
-    if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
-    // Re-derive product version from saved features shipped
-    for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion=pv; productVersionMult=pv.mult; } }
+  }
+}
+
+function saveGame() {
+  if (_restarting) return;
+  try {
+    const p = { v: SAVE_VERSION, savedAt: Date.now() };
+    for (const f of SAVE_SCHEMA) f.write(p);
+    localStorage.setItem(SAVE_KEY, JSON.stringify(p));
+  } catch (err) {
+    console.warn('Tycoon save failed:', err);
+    showToast('⚠️ Save failed — progress may not persist', 'save-fail', 'critical');
+  }
+}
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    // Version gate. The on-disk shape hasn't changed since v7, and
+    // every field's read() above already tolerates missing/legacy data
+    // via its own guard + migration fallback (lifetimeCash,
+    // bestTimeToGoal, etc.), so saves from v7 (or missing v, i.e.
+    // pre-version-gate saves) load through the exact same path. A
+    // future schema change should bump SAVE_VERSION and branch here.
+    const saveVersion = typeof p.v === 'number' ? p.v : 0;
+    void saveVersion; // reserved for future migrate() branching
+    for (const f of SAVE_SCHEMA) f.read(p);
+    applyOfflineEarnings(p);
+    // Fast-forward milestone pointer
+    while (nextMilestoneIdx < MILESTONES.length && state.allTimeCash >= MILESTONES[nextMilestoneIdx].at) {
+      nextMilestoneIdx++;
+    }
     // Fast-forward user milestone pointer
     while (nextUserMilestone < USER_MILESTONES.length &&
            totalUsers >= USER_MILESTONES[nextUserMilestone].at) nextUserMilestone++;
-  } catch {}
+  } catch (err) {
+    console.warn('Tycoon save failed to parse — starting fresh:', err);
+  }
 }
 
 // ── Session timer ──
