@@ -185,11 +185,16 @@ const AgeOfWarGame = (() => {
   // ---- Difficulty ----
   // Tuned to be more forgiving on Easy/Normal: Easy gives ~2x slower spawns,
   // weaker enemies. Hard/Insane keep the original challenge curve.
+  // goldMult (GAME-1d): passive gold trickle scaling. Enemy spawn rate/dmg/hp
+  // all get harder with difficulty, but the trickle was flat -- Insane's
+  // faster, tankier, harder-hitting waves left the player unable to afford
+  // upkeep. Scale trickle up with difficulty so it's never worse off; kept
+  // modest so it doesn't outrun the intended challenge curve.
   const DIFFICULTIES = {
-    easy:   { label: 'Easy',   spawnMult: 1.8, dmgMult: 0.65, hpMult: 0.75, color: '#3FB950' },
-    normal: { label: 'Normal', spawnMult: 1.2, dmgMult: 0.90, hpMult: 0.95, color: '#58A6FF' },
-    hard:   { label: 'Hard',   spawnMult: 0.8, dmgMult: 1.20, hpMult: 1.15, color: '#fcd34d' },
-    insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, color: '#F85149' },
+    easy:   { label: 'Easy',   spawnMult: 1.8, dmgMult: 0.65, hpMult: 0.75, goldMult: 1.00, color: '#3FB950' },
+    normal: { label: 'Normal', spawnMult: 1.2, dmgMult: 0.90, hpMult: 0.95, goldMult: 1.00, color: '#58A6FF' },
+    hard:   { label: 'Hard',   spawnMult: 0.8, dmgMult: 1.20, hpMult: 1.15, goldMult: 1.15, color: '#fcd34d' },
+    insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, goldMult: 1.35, color: '#F85149' },
   };
   let difficulty = 'normal';
 
@@ -814,9 +819,14 @@ const AgeOfWarGame = (() => {
     if (playerEra === 2) unlock('industrial');
     if (playerEra === 3) unlock('modern');
     if (playerEra === 4) unlock('max_age');
-    // New era → new hero costs/CD baseline
+    // New era → new hero costs/CD baseline. GAME-1f: don't touch the
+    // player's actual remaining cooldown here -- clamping it to <=10s let
+    // repeated age-ups (whenever XP allowed) shortcut a long hero cooldown
+    // into a short one, effectively spamming the hero ability. The new
+    // era's cd only applies to the *next* summon (trySummonHero sets
+    // heroReadyT = h.cd there); the current wait just keeps counting down.
     const h = heroForEra(playerEra);
-    if (h) { currentHeroCd = h.cd; heroReadyT = Math.min(heroReadyT, 10); }
+    if (h) { currentHeroCd = h.cd; }
     // Evolving is the ONLY way to recover base HP, so make it count:
     // raise max HP and FULLY restore current HP to the new max. This turns
     // a well-timed Age Up into a genuine "heal under pressure" moment.
@@ -1002,6 +1012,13 @@ const AgeOfWarGame = (() => {
         document.querySelectorAll('.aow-diff button').forEach(b => {
           b.classList.toggle('active', b.dataset.diff === difficulty);
         });
+        // GAME-1c: unify with the HUD difficulty switch, which already
+        // resets the run on change (below). Without this, switching here
+        // changed difficulty mid-run with none of the HUD switch's reset,
+        // making win_hard/win_insane gameable (start Easy, flip to Insane
+        // right before the kill).
+        reset();
+        closeSettings();
       };
     });
     // Mute toggle
@@ -1249,9 +1266,11 @@ const AgeOfWarGame = (() => {
     tickAmbient(dt);
 
     // Resource trickle (slightly faster early so player can build a comp).
+    // Scaled by goldMult (GAME-1d) so higher difficulty's tougher, faster
+    // waves don't also starve the player economically.
     goldTrickleT -= dt;
     if (goldTrickleT <= 0) {
-      gold += 9 + playerEra * 4;
+      gold += Math.round((9 + playerEra * 4) * DIFFICULTIES[difficulty].goldMult);
       goldTrickleT = 1.0;
       renderHud();
     }
@@ -1266,7 +1285,11 @@ const AgeOfWarGame = (() => {
     enemyTick(dt);
 
     // Combo timer + run timer
-    if (combo > 0) {
+    // GAME-1b: freeze the combo countdown during the between-wave breather
+    // (waveBreatherT > 0). COMBO_WINDOW (3.0s) is <= the breather (3-4s),
+    // so without this a streak was mathematically guaranteed to expire at
+    // every wave boundary even though the player had no enemies to fight.
+    if (combo > 0 && waveBreatherT <= 0) {
       comboT -= dt;
       if (comboT <= 0) { combo = 0; }
     }
@@ -1335,11 +1358,30 @@ const AgeOfWarGame = (() => {
           u.atkT = u.atkSpd;
           u.attackPose = 0.22;  // hold strike pose ~220ms
           if (isBase) {
-            if (u.side === 'player') enemyBaseHp -= u.dmg;
-            else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
-            spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
-            // Heavy hit = noticeable shake; small hit = light shake.
-            shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+            // GAME-1a: reuse the same projectile/impact path unit-vs-unit
+            // hits use, so a base hit is never silent/invisible -- long
+            // range attackers fire a visible projectile that lands with a
+            // hit flash + sound (handled where projectiles resolve below),
+            // and melee attackers get the same spark/sound feedback here.
+            if (u.range > 60) {
+              const kind = projectileKindFor(u.key);
+              const arc = projectileArc(kind, dist, 360);
+              projectiles.push({
+                side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
+                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                kind, vy: arc.vy, grav: arc.grav,
+                trail: [],
+              });
+              muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
+            } else {
+              if (u.side === 'player') enemyBaseHp -= u.dmg;
+              else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
+              spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
+              spawnHitSparks(baseTargetX, GROUND_Y - 90, u.color);
+              SFX.hit();
+              // Heavy hit = noticeable shake; small hit = light shake.
+              shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+            }
           } else if (target) {
             if (u.range > 60) {
               const kind = projectileKindFor(u.key);
@@ -1398,11 +1440,17 @@ const AgeOfWarGame = (() => {
         if (p.side === 'player' && p.x >= ENEMY_BASE_X) {
           enemyBaseHp -= p.dmg;
           spawnDmgFloater(p.dmg, ENEMY_BASE_X + 10, GROUND_Y - 90, '#fcd34d');
+          spawnHitSparks(ENEMY_BASE_X + 10, GROUND_Y - 90, p.color);
+          SFX.hit();
+          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
           playerBaseHp -= p.dmg;
           vibrateBaseHit();
           spawnDmgFloater(p.dmg, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
+          spawnHitSparks(PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, p.color);
+          SFX.hit();
+          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         }
       }
@@ -1707,13 +1755,17 @@ const AgeOfWarGame = (() => {
     const coinCount = Math.min(6, Math.max(1, Math.round(Math.sqrt(total) / 2)));
     const perCoin = Math.max(1, Math.floor(total / coinCount));
     for (let i = 0; i < coinCount; i++) {
+      // GAME-1e: flooring `total / coinCount` drops the remainder (0.3-0.8%
+      // of every kill's reward). Give the leftover to the last coin so the
+      // sum of all coins always equals `total` exactly.
+      const coinGold = (i === coinCount - 1) ? (total - perCoin * (coinCount - 1)) : perCoin;
       coinDrops.push({
         x, y: y - 6,
         vy: -80 - Math.random() * 60,
         vx: (Math.random() - 0.5) * 100,
         landY: GROUND_Y - 8 - Math.random() * 4,
         landed: false,
-        gold: perCoin,
+        gold: coinGold,
         t: 6.5,                    // seconds to claim before fading
         bob: Math.random() * Math.PI * 2,
       });
