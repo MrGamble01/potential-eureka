@@ -1238,11 +1238,27 @@ const AgeOfWarGame = (() => {
           u.atkT = u.atkSpd;
           u.attackPose = 0.22;  // hold strike pose ~220ms
           if (isBase) {
-            if (u.side === 'player') enemyBaseHp -= u.dmg;
-            else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
-            spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
-            // Heavy hit = noticeable shake; small hit = light shake.
-            shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+            if (u.range > 60) {
+              // Ranged units fire on the base same as they would a unit,
+              // instead of teleporting damage in silently.
+              const kind = projectileKindFor(u.key);
+              const arc = projectileArc(kind, dist, 360);
+              projectiles.push({
+                side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
+                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                kind, vy: arc.vy, grav: arc.grav,
+                trail: [],
+              });
+              muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
+            } else {
+              if (u.side === 'player') enemyBaseHp -= u.dmg;
+              else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
+              spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
+              spawnHitSparks(baseTargetX, GROUND_Y - 90);
+              SFX.hit();
+              // Heavy hit = noticeable shake; small hit = light shake.
+              shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+            }
           } else if (target) {
             if (u.range > 60) {
               const kind = projectileKindFor(u.key);
@@ -1298,11 +1314,17 @@ const AgeOfWarGame = (() => {
         if (p.side === 'player' && p.x >= ENEMY_BASE_X) {
           enemyBaseHp -= p.dmg;
           spawnDmgFloater(p.dmg, ENEMY_BASE_X + 10, GROUND_Y - 90, '#fcd34d');
+          spawnHitSparks(p.x, p.y, p.color);
+          SFX.hit();
+          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
           playerBaseHp -= p.dmg;
           vibrateBaseHit();
           spawnDmgFloater(p.dmg, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
+          spawnHitSparks(p.x, p.y, p.color);
+          SFX.hit();
+          shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         }
       }
