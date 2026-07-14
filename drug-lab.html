@@ -1233,8 +1233,10 @@ function addHeat(amount) {
   if (state.heat >= 100) triggerBust();
   refreshHud();
 }
-function heatGainPerSale() {
-  return Math.max(1, 6 - upgLv('lookout_sys')*1.5);
+// qty scales the heat hit so selling more units in one sale isn't
+// strictly better than making the same number of smaller sales.
+function heatGainPerSale(qty = 1) {
+  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty;
 }
 function heatDrainPerSec() {
   return 0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5;
@@ -1629,7 +1631,7 @@ function loadGame() {
     state.cooks=sv.cooks||0;
     state.batches=sv.batches||0;
     state.sessionStart=sv.sessionStart||Date.now();
-    stashCount=sv.stashCount||0;
+    stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
     // Restore rooms
@@ -1848,13 +1850,20 @@ function depositAtTrim() {
 function depositAtStash() {
   if(trimBags>0) {
     const b=trimBags; trimBags=0;
-    stashCount+=b;
+    const room=Math.max(0, STASH_MAX_BASE-stashCount);
+    const added=Math.min(b, room);
+    stashCount+=added;
     setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
-    addFeed(`📦 Stashed ${b} bags`);
+    addFeed(`📦 Stashed ${added} bags`);
+    if(added<b) showToast(`📦 Stash full! Lost ${b-added} bags.`,'event');
   }
   if(chemProduct>0) {
-    stashCount+=chemProduct; chemProduct=0;
+    const room=Math.max(0, STASH_MAX_BASE-stashCount);
+    const added=Math.min(chemProduct, room);
+    const lost=chemProduct-added;
+    stashCount+=added; chemProduct=0;
     setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+    if(lost>0) showToast(`📦 Stash full! Lost ${lost} product.`,'event');
   }
   pCarrying=null;
   player.userData.carryMesh.visible=false;
@@ -1898,7 +1907,7 @@ function sellToDealer(d, idx) {
   const price=salePrice()*qty;
   stashCount-=qty; state.totalSold+=qty;
   addCash(price);
-  addHeat(heatGainPerSale());
+  addHeat(heatGainPerSale(qty));
   const s=worldToScreen(d.group.position.x,2,d.group.position.z);
   cashPop(s.x,s.y,price);
   if(state.heat<85) heatPop(s.x,s.y+20);

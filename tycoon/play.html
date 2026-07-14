@@ -1050,7 +1050,9 @@
     .ipo-cancel:hover { color: #E6EDF3; }
     /* ── Investor arrival banner ──────────────────────── */
     #investor-banner {
-      position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+      /* Sits below #goal-hud (top:58px, ~65px tall on desktop) so the two
+         don't stack on top of each other. */
+      position: fixed; top: 128px; left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; gap: 10px;
       background: linear-gradient(135deg, rgba(252,211,77,0.22), rgba(245,158,11,0.16));
       border: 1px solid rgba(252,211,77,0.55);
@@ -1423,8 +1425,11 @@
   <link rel="stylesheet" href="/css/arcade-chrome.css">
   <style>
     /* On mobile the ☰ sidebar toggle shares the top-left corner with the
-       Arcade pill — shift it right so they don't overlap. */
-    @media (max-width: 860px) {
+       Arcade pill — shift it right so they don't overlap. Must match the
+       900px breakpoint where #sidebar-toggle becomes visible (display:
+       block), or there's a window (861-900px) where it's shown without
+       the shift and overlaps the pill. */
+    @media (max-width: 900px) {
       #sidebar-toggle { left: calc(116px + env(safe-area-inset-left, 0px)) !important; }
     }
   </style>
@@ -2437,6 +2442,10 @@ for (const r of ROOM_DEFS) {
 const ownedRooms = new Set(['starter']);
 const roomMeshes = {}; // roomId → { floor, walls[], decorations[] }
 const sharedWalls = {}; // "gx1,gz1:gx2,gz2" → mesh
+// The starter room's south wall is split into two segments (door gap) —
+// sharedWalls only tracks one (wallL) for recolor/removal purposes, so
+// the other segment (wallR) is tracked here to be removed alongside it.
+const doorWallPairs = {}; // "gx1,gz1:gx2,gz2" → paired mesh
 
 // ── Themes ──────────────────────────────────────────────────
 // Each theme reskins the game's aesthetic: per-room floor/wall palette
@@ -2615,6 +2624,12 @@ function buildRoom(def) {
         scene.remove(sharedWalls[key]);
         delete sharedWalls[key];
       }
+      // Door-gap walls come in a pair (wallL/wallR) — remove the other
+      // half too, or it's left floating in the scene forever.
+      if (doorWallPairs[key]) {
+        scene.remove(doorWallPairs[key]);
+        delete doorWallPairs[key];
+      }
     } else {
       // Build outer wall, but for south wall of starter room add door gap
       if (def.id === 'starter' && nb.dgz === 1) {
@@ -2630,6 +2645,7 @@ function buildRoom(def) {
         scene.add(wallR);
         meshes.walls.push(wallL, wallR);
         sharedWalls[key] = wallL; // store one for possible removal
+        doorWallPairs[key] = wallR; // ...and the other half of the pair
       } else {
         const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(...nb.wallGeo), roomWallMat);
         wallMesh.position.set(...nb.wallPos);
@@ -4081,7 +4097,7 @@ const EXTERNAL_BDR_DEAL_BONUS = CONFIG.externalBdrDealBonus;
 
 function spawnIdeaWorker(opts = {}) {
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
-  if (!desk) return;
+  if (!desk) return false;
   desk.occupied = true;
 
   const look = randomWorkerLook(ideaWorkers.length + 1);
@@ -4118,6 +4134,7 @@ function spawnIdeaWorker(opts = {}) {
     morale: CONFIG.moraleDefault,
     paperIdleT: 0,
   });
+  return true;
 }
 
 function updateIdeaWorkers(dt) {
@@ -4746,13 +4763,16 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
   // Clamp Z axis
   if (nz < minZ && !isOwnedGrid(cgx, cgz - 1)) nz = minZ;
   if (nz > maxZ && !isOwnedGrid(cgx, cgz + 1)) {
-    // Door gap: starter room → front room, centered, 3 units wide.
+    // Door gap: starter room → front room, centered, 2.5 units wide
+    // (must match the actual door-mesh gap built in buildRoom(), or the
+    // collision passes wider than the visual opening and characters
+    // clip through the solid wall segments flanking it).
     // Only passable from the starter cell AND only once 'front' is
     // owned — otherwise it defeats the purchase gate, and matching
     // the front cell (0,1) here let characters walk out through the
     // front room's exterior north wall into the void.
     const hasDoor = cgx === 0 && cgz === 0 && ownedRooms.has('front');
-    if (hasDoor && Math.abs(nx - roomCx) < 1.5) {
+    if (hasDoor && Math.abs(nx - roomCx) < 1.25) {
       // allow through
     } else {
       nz = maxZ;
@@ -4770,7 +4790,7 @@ function clampToWalls(ox, oz, nx, nz, skipDeskAt) {
     if (nz < r2cz - H + PAD && !isOwnedGrid(ngx2, ngz2 - 1)) nz = r2cz - H + PAD;
     if (nz > r2cz + H - PAD && !isOwnedGrid(ngx2, ngz2 + 1)) {
       const hasDoor2 = ngx2 === 0 && ngz2 === 0 && ownedRooms.has('front');
-      if (hasDoor2 && Math.abs(nx - r2cx) < 1.5) { /* door */ }
+      if (hasDoor2 && Math.abs(nx - r2cx) < 1.25) { /* door */ }
       else nz = r2cz + H - PAD;
     }
   }
@@ -5218,6 +5238,12 @@ function handleAeHireOrPromote() {
   if (state.cash < cost) return;
   state.cash -= cost; showSpendPop(cost);
   const og = bdrs.shift();
+  // Flush any in-flight deal the BDR was carrying to an AE — otherwise
+  // promoting mid-carry silently discards money that's already "closed."
+  if (og.state === S.TO_AE && og.dealValue > 0) {
+    addRevenue(og.dealValue, 'sales');
+    popCashAt(og.group.position.x, og.group.position.z, og.dealValue, 'sales');
+  }
   og.desk.occupied = false;
   if (og.targetAE) og.targetAE = null; // drop any in-flight handoff claim
   og.pendingWithAE = false;
@@ -5450,6 +5476,13 @@ function handleVpHireOrPromote() {
     if (!newDesk) return;
     state.cash -= cost; showSpendPop(cost);
     const og = ideaWorkers.shift();
+    // Flush an in-flight shipped feature before repurposing this engineer
+    // — otherwise a promotion mid-carry (walking to the VP or CEO desk)
+    // silently discards a feature's value.
+    if ((og.state === S.TO_VP || og.state === S.TO_DELIVER) && og.productValue > 0) {
+      addRevenue(og.productValue);
+      popCashAt(og.group.position.x, og.group.position.z, og.productValue, 'eng');
+    }
     og.desk.occupied = false;
     // Reset any in-flight state on the now-ex-engineer
     setPaperStackProgress(og.carryMesh, 0);
@@ -5616,8 +5649,10 @@ function renderHirePanel() {
 hireBtnEl.addEventListener('click', () => {
   const cost = ideaWorkerHireCost();
   if (state.cash < cost) return;
+  const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
+  if (!hasDesk) return;
   state.cash -= cost; showSpendPop(cost);
-  spawnIdeaWorker();
+  if (!spawnIdeaWorker()) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
   addFeedEntry(`💻 Hired engineer #${ideaWorkers.length}!`);
@@ -8096,6 +8131,7 @@ function updateJoystick(e) {
 }
 joyEl.addEventListener('pointerdown', e => {
   e.preventDefault();
+  if (joyPointerId !== null) return; // already tracking a finger — don't let a 2nd touch hijack it
   joyEl.setPointerCapture(e.pointerId);
   joyPointerId = e.pointerId;
   target = null; // cancel any tap-to-move target
@@ -8547,6 +8583,7 @@ function doIPO() {
   sessionGen++;
   // Clear shared walls map and rebuild starter room walls
   for (const key of Object.keys(sharedWalls)) { scene.remove(sharedWalls[key]); delete sharedWalls[key]; }
+  for (const key of Object.keys(doorWallPairs)) { scene.remove(doorWallPairs[key]); delete doorWallPairs[key]; }
   const starterDef = ROOM_DEFS.find(r => r.id === 'starter');
   if (starterDef) {
     const rm = roomMeshes['starter'];

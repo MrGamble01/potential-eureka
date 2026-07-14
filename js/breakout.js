@@ -13,6 +13,11 @@ const BreakoutGame = (() => {
   const GRID_TOP = 60, GRID_LEFT = (WIDTH - (COLS * (BRICK_W + BRICK_GAP) - BRICK_GAP)) / 2;
   const PADDLE_W = 108, PADDLE_H = 12, PADDLE_Y = HEIGHT - 34;
   const BALL_R = 7;
+  // Hard cap on ball speed (px per 16.667ms frame) — without this, high
+  // levels (speed = 4.4 + level*0.35) combined with the dt clamp (up to
+  // 2.2) can move the ball farther per frame than the paddle/brick
+  // thickness, tunneling straight through them.
+  const BALL_SPEED_MAX = 11;
   const ROW_COLORS = ['#F778BA', '#F85149', '#F0883E', '#D29922', '#3FB950', '#58A6FF'];
 
   let canvas, ctx;
@@ -92,7 +97,7 @@ const BreakoutGame = (() => {
 
   function resetBall() {
     launched = false;
-    const speed = 4.4 + level * 0.35;
+    const speed = Math.min(BALL_SPEED_MAX, 4.4 + level * 0.35);
     balls = [{
       x: WIDTH / 2, y: PADDLE_Y - BALL_R - 1,
       vx: 0, vy: 0, speed, trail: [],
@@ -130,12 +135,13 @@ const BreakoutGame = (() => {
   }
 
   function update(dt) {
-    // Paddle follows pointer (smoothed)
+    // Paddle follows pointer (smoothed). Scaled by dt so the easing
+    // reaches the same real-time speed regardless of frame rate.
     const targetW = now() < wideUntil ? PADDLE_W * 1.6 : PADDLE_W;
-    paddleW += (targetW - paddleW) * 0.2;
+    paddleW += (targetW - paddleW) * Math.min(1, 0.2 * dt);
     if (pointerX != null) {
       const want = pointerX - paddleW / 2;
-      paddleX += (want - paddleX) * 0.4;
+      paddleX += (want - paddleX) * Math.min(1, 0.4 * dt);
     }
     paddleX = Math.max(0, Math.min(WIDTH - paddleW, paddleX));
 
