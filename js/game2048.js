@@ -32,14 +32,14 @@ const Game2048 = (() => {
     ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     canvas.style.touchAction = 'none'; // swipes drive the board, not page scroll
-    best = parseInt(localStorage.getItem('g2048-best') || '0', 10) || 0;
+    best = Utils.highScore.load('g2048-best');
     newGame(false);
 
     // Bind input once — init() runs on every view entry, so guard against
     // stacking duplicate listeners (which would leak and multi-fire).
     if (!bound) {
       bound = true;
-      document.addEventListener('keydown', onKey);
+      document.addEventListener('keydown', Utils.whenViewActive('view-2048', onKey));
       canvas.addEventListener('mousedown', onMouseDown);
       canvas.addEventListener('touchstart', onTouchStart, { passive: true });
       canvas.addEventListener('touchend', onTouchEnd, { passive: true });
@@ -59,8 +59,6 @@ const Game2048 = (() => {
   }
 
   function onKey(e) {
-    const view = document.getElementById('view-2048');
-    if (!view || !view.classList.contains('active')) return;
     // Space / Enter (re)starts when idle or after game over — matches the overlay hint.
     if ((e.key === ' ' || e.key === 'Enter') && (over || !running)) { newGame(true); e.preventDefault(); return; }
     const map = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D',
@@ -148,7 +146,7 @@ const Game2048 = (() => {
     score += gained;
     // Victory jingle only on the move that first reaches 2048; merges otherwise.
     if (gained > 0) SFX_play((won && !wasWon) ? 'clear' : 'bonus'); else SFX_play('move');
-    if (score > best) { best = score; localStorage.setItem('g2048-best', String(best)); }
+    best = Utils.highScore.save('g2048-best', score, best);
 
     // Commit the model, then animate the slide from old positions.
     grid = next;
@@ -176,16 +174,14 @@ const Game2048 = (() => {
   function endGame() {
     over = true; running = false;
     SFX_play('over');
-    if (score > best) { best = score; localStorage.setItem('g2048-best', String(best)); }
-    const ov = document.getElementById('g2048-overlay');
-    if (ov) {
-      ov.style.display = 'flex';
-      ov.innerHTML = '<h2>GAME OVER</h2><p>Score: ' + score + '</p>' +
-        '<p style="font-size:12px;color:var(--text-dim)">Press SPACE or tap to play again</p>';
-    }
+    best = Utils.highScore.save('g2048-best', score, best);
+    Utils.showGameOver('g2048-overlay', {
+      lines: ['Score: ' + score],
+      hint: 'Press SPACE or tap to play again',
+    });
   }
 
-  function SFX_play(n) { if (typeof SFX !== 'undefined') SFX.play(n); }
+  const SFX_play = Utils.sfx;
 
   function updateInfo() {
     const s = document.getElementById('g2048-score'), b = document.getElementById('g2048-best');

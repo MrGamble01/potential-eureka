@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  const sfx = Utils.sfx;
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -27,7 +28,7 @@ const SnakeGame = (() => {
     canvas.style.width = WIDTH + 'px';
     ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    highScore = parseInt(Utils.store.getRaw('snake-high') || '0');
+    highScore = Utils.highScore.load('snake-high');
     snake = [];
     running = false;
     gameOver = false;
@@ -37,7 +38,7 @@ const SnakeGame = (() => {
     updateInfo();
     draw();
 
-    document.addEventListener('keydown', handleKey);
+    document.addEventListener('keydown', Utils.whenViewActive('view-snake', handleKey));
 
     // Tap the game-over overlay to restart (it covers the canvas)
     const overlayEl = document.getElementById('snake-overlay');
@@ -73,11 +74,6 @@ const SnakeGame = (() => {
   }
 
   function handleKey(e) {
-    // Only respond while the Snake view is actually on screen — the listener
-    // is bound to document and never removed, so without this guard arrow/WASD
-    // presses on other views would start a hidden game and block typing.
-    const view = document.getElementById('view-snake');
-    if (!view || !view.classList.contains('active')) return;
     if (!running && !gameOver && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
       e.preventDefault();
       start();
@@ -186,11 +182,8 @@ const SnakeGame = (() => {
       ate = true;
       score += 10;
       foodCount++;
-      if (typeof SFX !== 'undefined') SFX.play('eat');
-      if (score > highScore) {
-        highScore = score;
-        Utils.store.setRaw('snake-high', String(highScore));
-      }
+      sfx('eat');
+      highScore = Utils.highScore.save('snake-high', score, highScore);
       spawnFood();
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
@@ -205,11 +198,8 @@ const SnakeGame = (() => {
       ate = true;
       score += 50;
       bonusFood = null;
-      if (typeof SFX !== 'undefined') SFX.play('bonus');
-      if (score > highScore) {
-        highScore = score;
-        Utils.store.setRaw('snake-high', String(highScore));
-      }
+      sfx('bonus');
+      highScore = Utils.highScore.save('snake-high', score, highScore);
     }
 
     if (!ate) snake.pop();
@@ -222,18 +212,13 @@ const SnakeGame = (() => {
     running = false;
     gameOver = true;
     bonusFood = null;
-    if (typeof SFX !== 'undefined') SFX.play('die');
+    sfx('die');
     clearInterval(gameLoop);
 
-    const overlay = document.getElementById('snake-overlay');
-    if (overlay) {
-      overlay.style.display = 'flex';
-      overlay.innerHTML = `
-        <h2>GAME OVER</h2>
-        <p>Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}</p>
-        <p style="font-size:12px; color: var(--text-dim)">Press SPACE or tap to restart</p>
-      `;
-    }
+    Utils.showGameOver('snake-overlay', {
+      lines: [`Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}`],
+      hint: 'Press SPACE or tap to restart',
+    });
   }
 
   function updateInfo() {

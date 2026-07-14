@@ -753,6 +753,7 @@
   <!-- SCRIPTS -->
   <script src="js/sfx.js" defer></script>
   <script src="js/utils.js" defer></script>
+  <script src="js/scores.js" defer></script>
   <script src="js/effects.js" defer></script>
   <script src="js/dashboard.js" defer></script>
   <script src="js/calendar.js" defer></script>
@@ -836,28 +837,25 @@
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
       { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar',
-        best: () => { const a = hofJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
+        best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
       { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
-        best: () => { const s = hofJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? hofMoney(v) + ' raised' : null; } },
+        best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
       { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
-        best: () => { const s = hofJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? hofMoney(v) + ' earned' : null; } },
+        best: () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : null; } },
       { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
-        best: () => { const s = hofJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
+        best: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
       { name: 'Snake',            accent: '#6C63FF', go: () => switchView('snake'),
-        best: () => { const v = hofNum('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+        best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Tetris',           accent: '#F778BA', go: () => switchView('tetris'),
-        best: () => { const v = hofNum('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+        best: () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Neon Breaker',     accent: '#22d3ee', go: () => switchView('breakout'),
-        best: () => { const v = hofNum('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+        best: () => { const v = Scores.num('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Vector Storm',     accent: '#a78bfa', go: () => switchView('asteroids'),
-        best: () => { const v = hofNum('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+        best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: '2048',             accent: '#facc15', go: () => switchView('2048'),
-        best: () => { const v = hofNum('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+        best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
     ];
     const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1'];
-    function hofJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }
-    function hofNum(k) { const v = parseInt(localStorage.getItem(k) || '0', 10); return isNaN(v) ? 0 : v; }
-    function hofMoney(n) { n = +n || 0; return n >= 1000 ? '$' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : '$' + n; }
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -911,19 +909,16 @@
 
     // Cabinet high-score / best-stat badges — read each game's own localStorage.
     function refreshArcadeBadges() {
-      const fmtMoney = n => { n = +n || 0; return n >= 1000 ? '$' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : '$' + n; };
-      const readJSON = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
-      const num = k => { const v = parseInt(localStorage.getItem(k) || '0', 10); return isNaN(v) ? 0 : v; };
       const HI = {
-        snake:    () => { const v = num('snake-high');  return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
-        tetris:   () => { const v = num('tetris-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
-        breakout: () => { const v = num('breakout-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
-        g2048:    () => { const v = num('g2048-best'); return v > 0 ? 'BEST ' + v.toLocaleString() : ''; },
-        asteroids: () => { const v = num('asteroids-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
-        ageofwar: () => { const a = readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' ★' : ''; },
-        tycoon:   () => { const s = readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + fmtMoney(v) : ''; },
-        growop:   () => { const s = readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? fmtMoney(v) + ' earned' : ''; },
-        homeless: () => { const s = readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
+        snake:    () => { const v = Scores.num('snake-high');  return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
+        tetris:   () => { const v = Scores.num('tetris-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
+        breakout: () => { const v = Scores.num('breakout-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
+        g2048:    () => { const v = Scores.num('g2048-best'); return v > 0 ? 'BEST ' + v.toLocaleString() : ''; },
+        asteroids: () => { const v = Scores.num('asteroids-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
+        ageofwar: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' ★' : ''; },
+        tycoon:   () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + Scores.fmtMoney(v) : ''; },
+        growop:   () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : ''; },
+        homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];

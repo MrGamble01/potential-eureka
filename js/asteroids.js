@@ -17,8 +17,13 @@ const AsteroidsGame = (() => {
   let canvas, ctx;
   let ship, bullets, rocks, particles;
   let score, high, lives, wave, fireTimer, invuln;
-  let running, gameOver, raf, lastT;
+  let running, gameOver;
   const keys = { left: false, right: false, thrust: false };
+
+  const loop = Utils.gameLoop(dt => {
+    if (running && !gameOver) update(dt);
+    draw();
+  });
 
   function init() {
     canvas = document.getElementById('asteroids-canvas');
@@ -30,10 +35,10 @@ const AsteroidsGame = (() => {
     canvas.style.width = WIDTH + 'px';
     ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    high = parseInt(localStorage.getItem('asteroids-high') || '0', 10) || 0;
+    high = Utils.highScore.load('asteroids-high');
     resetGame(false);
 
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keydown', Utils.whenViewActive('view-asteroids', onKeyDown));
     document.addEventListener('keyup', onKeyUp);
     // On-screen controls (mobile) — wired by index after render
     bindTouchButtons();
@@ -42,13 +47,7 @@ const AsteroidsGame = (() => {
     draw();
   }
 
-  function active() {
-    const v = document.getElementById('view-asteroids');
-    return v && v.classList.contains('active');
-  }
-
   function onKeyDown(e) {
-    if (!active()) return;
     switch (e.key) {
       case 'ArrowLeft': case 'a': keys.left = true; e.preventDefault(); break;
       case 'ArrowRight': case 'd': keys.right = true; e.preventDefault(); break;
@@ -124,9 +123,7 @@ const AsteroidsGame = (() => {
     resetGame(true);
     const ov = document.getElementById('asteroids-overlay');
     if (ov) ov.style.display = 'none';
-    cancelAnimationFrame(raf);
-    lastT = performance.now();
-    loop();
+    loop.start();
   }
 
   function fire() {
@@ -140,15 +137,6 @@ const AsteroidsGame = (() => {
       life: BULLET_LIFE,
     });
     sfx('move');
-  }
-
-  function loop() {
-    raf = requestAnimationFrame(loop);
-    const now = performance.now();
-    const dt = Math.min((now - lastT) / 16.667, 2.2);
-    lastT = now;
-    if (running && !gameOver) update(dt);
-    draw();
   }
 
   function wrap(o) {
@@ -211,7 +199,7 @@ const AsteroidsGame = (() => {
   function destroyRock(j) {
     const r = rocks[j];
     score += SCORES[r.tier];
-    if (score > high) { high = score; localStorage.setItem('asteroids-high', String(high)); }
+    high = Utils.highScore.save('asteroids-high', score, high);
     burst(r.x, r.y, r.tier, 'hsl(' + r.hue + ',80%,65%)');
     sfx(r.tier === 1 ? 'bonus' : 'eat');
     rocks.splice(j, 1);
@@ -242,17 +230,15 @@ const AsteroidsGame = (() => {
   function endGame() {
     running = false; gameOver = true;
     sfx('over');
-    if (score > high) { high = score; localStorage.setItem('asteroids-high', String(high)); }
-    const ov = document.getElementById('asteroids-overlay');
-    if (ov) {
-      ov.style.display = 'flex';
-      ov.innerHTML = '<h2>GAME OVER</h2><p>Score: ' + score + ' &nbsp;·&nbsp; Wave: ' + wave +
-        '</p><p style="font-size:12px;color:var(--text-dim)">Press Space or tap to play again</p>';
-    }
+    high = Utils.highScore.save('asteroids-high', score, high);
+    Utils.showGameOver('asteroids-overlay', {
+      lines: ['Score: ' + score + ' &nbsp;·&nbsp; Wave: ' + wave],
+      hint: 'Press Space or tap to play again',
+    });
     updateInfo();
   }
 
-  function sfx(n) { if (typeof SFX !== 'undefined') SFX.play(n); }
+  const sfx = Utils.sfx;
 
   function updateInfo() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -327,8 +313,7 @@ const AsteroidsGame = (() => {
   }
 
   function destroy() {
-    cancelAnimationFrame(raf);
-    raf = null;
+    loop.stop();
     keys.left = keys.right = keys.thrust = false;
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
