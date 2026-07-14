@@ -66,7 +66,21 @@ const AgeOfWarGame = (() => {
   };
 
   function unitsForEra(era) {
-    return Object.entries(UNITS).filter(([, u]) => u.era === era).map(([k]) => k);
+    // Exclude boss_* entries: they're spread-copied from a base unit's def
+    // (see enemyTick's boss spawner) so they inherit that unit's `.era`
+    // and would otherwise show up as "just another era-N unit" here. That
+    // was a latent bug pre-dating this fix: unitsForEra() feeds both the
+    // enemy AI's random/heavy-unit spawn choice AND the player's spawn
+    // panel, so once a boss entry existed it could get selected as the
+    // "heaviest" unit for its era (choices[choices.length-1] in
+    // enemyTick) on the NEXT lookup -- corrupting future heavy-unit
+    // picks and, worse, making the bounded boss key ('boss_' + baseKey)
+    // recurse into 'boss_boss_...' every time a new boss spawned,
+    // defeating the whole point of keying bosses by era. Filtering boss_*
+    // out here keeps choices/the spawn panel to the real catalog only.
+    return Object.entries(UNITS)
+      .filter(([k, u]) => u.era === era && !k.startsWith('boss_'))
+      .map(([k]) => k);
   }
 
   // ---- Turret catalog (one per era — upgrade to next era's tier) ----
@@ -120,6 +134,21 @@ const AgeOfWarGame = (() => {
   let units = [];
   let projectiles = [];
   let nextSpawnId = 1;
+  // Soft anti-runaway cap on concurrently-alive units per side. This is
+  // NOT a balance lever -- normal play (even a maxed-out late-game army
+  // with a full training queue) tops out around a few dozen units per
+  // side, so 150 is far above anything a real match reaches. It only
+  // exists to bound worst-case per-frame work if something pathological
+  // (a bug, a modded save, an idle tab left running for hours) keeps
+  // spawning units. When a side is at the cap, spawnUnit() is a no-op
+  // (spawn "skipped" -- the training queue / wave counter still advances
+  // as normal, exactly as if the unit had spawned and died instantly).
+  const MAX_UNITS_PER_SIDE = 150;
+  function sideUnitCount(side) {
+    let n = 0;
+    for (const u of units) if (u.side === side) n++;
+    return n;
+  }
   // Training queue: gold is committed up front when the player buys a unit,
   // and the unit actually appears at the base only after its training time.
   // Units are trained one at a time, front-of-queue first (canonical Age of
@@ -627,6 +656,12 @@ const AgeOfWarGame = (() => {
   }
 
   function reset() {
+    // Drop any boss_* entries the UNITS catalog picked up during a
+    // previous run so the table returns to its clean, static baseline
+    // instead of carrying boss rows across resets/playthroughs.
+    for (const k of Object.keys(UNITS)) {
+      if (k.startsWith('boss_')) delete UNITS[k];
+    }
     running = true;
     gameOver = false;
     outcome = null;
@@ -683,9 +718,16 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Spawning ----
-  function spawnUnit(side, key) {
+  // `overrides` (optional) lets a caller override the base hp/dmg used for
+  // this one instance (before the difficulty multiplier is applied) without
+  // minting a new UNITS[] catalog entry -- used by the boss spawner so
+  // per-wave scaling lives on the unit, not the shared table. Returns the
+  // spawned unit, or null if the def is unknown or the side is at its
+  // population cap (see MAX_UNITS_PER_SIDE).
+  function spawnUnit(side, key, overrides) {
     const def = UNITS[key];
-    if (!def) return;
+    if (!def) return null;
+    if (sideUnitCount(side) >= MAX_UNITS_PER_SIDE) return null;
     // Per-silhouette sizing — significantly larger than the original
     // so units are legible on phone-sized canvases (reference: Max
     // Games' Age of War, where units occupy ~25-30% of canvas height).
@@ -696,6 +738,8 @@ const AgeOfWarGame = (() => {
     const D = DIFFICULTIES[difficulty];
     const hpMult  = side === 'enemy' ? D.hpMult  : 1;
     const dmgMult = side === 'enemy' ? D.dmgMult : 1;
+    const baseHp  = overrides && overrides.hp  != null ? overrides.hp  : def.hp;
+    const baseDmg = overrides && overrides.dmg != null ? overrides.dmg : def.dmg;
     const u = {
       id: nextSpawnId++,
       side, key,
@@ -703,8 +747,8 @@ const AgeOfWarGame = (() => {
       silhouette: def.silhouette,
       x: side === 'player' ? PLAYER_BASE_X + BASE_W + 14 : ENEMY_BASE_X - 14,
       yOffset: flying ? 40 : 0,
-      hp: def.hp * hpMult, hpMax: def.hp * hpMult,
-      dmg: def.dmg * dmgMult, range: def.range, atkSpd: def.atkSpd, atkT: 0.4,
+      hp: baseHp * hpMult, hpMax: baseHp * hpMult,
+      dmg: baseDmg * dmgMult, range: def.range, atkSpd: def.atkSpd, atkT: 0.4,
       speed: def.speed, xp: def.xp, gold: def.gold,
       w, h,
       hitFlash: 0,
@@ -712,6 +756,7 @@ const AgeOfWarGame = (() => {
       attackPose: 0,                       // seconds remaining in strike pose
     };
     units.push(u);
+    return u;
   }
 
   function tryPlayerSpawn(key) {
@@ -1106,7 +1151,13 @@ const AgeOfWarGame = (() => {
       // early bosses (wave 5) are tough-but-fair and late bosses ramp up.
       const baseKey = choices[choices.length - 1];
       const baseDef = UNITS[baseKey];
-      const bossKey = 'boss_' + baseKey + '_' + waveNum;
+      // Keyed by the (bounded, era-derived) baseKey only -- NOT by
+      // waveNum. baseKey only ever takes one of a handful of values (the
+      // strongest unit per era), so this table entry set is bounded and
+      // stable across the whole run instead of growing by one row every
+      // 7 waves. Per-wave HP/DMG scaling is applied to the *spawned
+      // instance* below, never baked into the shared UNITS entry.
+      const bossKey = 'boss_' + baseKey;
       // Gentler scaling so late bosses stay beatable. Heavies now carry a
       // wall-premium HP pool themselves, so the boss multiplier is softer:
       // wave 5 -> ~2.4x HP, wave 10 -> ~3.2x, wave 15 -> ~3.9x, cap ~5x.
@@ -1116,17 +1167,24 @@ const AgeOfWarGame = (() => {
         UNITS[bossKey] = {
           ...baseDef,
           name: 'Boss ' + baseDef.name,
-          hp: Math.round(baseDef.hp * hpScale),
-          dmg: Math.round(baseDef.dmg * dmgScale),
           gold: baseDef.gold * 6,
           xp: baseDef.xp * 5,
           color: '#a020a0',
         };
       }
-      spawnUnit('enemy', bossKey);
-      // Tag the freshly spawned unit as boss + scale it
-      const u = units[units.length - 1];
-      if (u) { u.w = Math.round(u.w * 1.7); u.h = Math.round(u.h * 1.5); u.isBoss = true; u.icon = '👑'; }
+      // Pass this wave's scaled hp/dmg as spawn overrides so the shared
+      // UNITS[bossKey] entry stays generic (era-scaling lives on the
+      // instance, matching the old per-wave-key numbers exactly).
+      const bossUnit = spawnUnit('enemy', bossKey, {
+        hp:  Math.round(baseDef.hp  * hpScale),
+        dmg: Math.round(baseDef.dmg * dmgScale),
+      });
+      if (bossUnit) {
+        bossUnit.w = Math.round(bossUnit.w * 1.7);
+        bossUnit.h = Math.round(bossUnit.h * 1.5);
+        bossUnit.isBoss = true;
+        bossUnit.icon = '👑';
+      }
       waveEnemiesRemaining = 0;  // breather waits for boss death
     } else {
       const heavy = Math.random() < 0.15 + (waveNum - 1) * 0.035;
@@ -1218,12 +1276,31 @@ const AgeOfWarGame = (() => {
     else            shakeMag *= 0.85;
 
     // Move + fight units
+    //
+    // Bucket units into per-side arrays ONCE per frame instead of every
+    // unit re-running `units.filter(...)` over the whole array (was
+    // O(n^2) + a fresh garbage array per unit per frame). The buckets are
+    // built here, right after spawning (tickTraining/enemyTick above) and
+    // before any unit is processed or removed this frame, and `units`'
+    // membership doesn't change again until the "Kill resolution" pass
+    // below runs -- so a bucket is exactly `units.filter(o => o.side ===
+    // <side>)` would have returned at any point during this loop.
+    // Liveness (hp > 0) still has to be checked at scan time, same as the
+    // old inline filters, since hp mutates unit-by-unit as combat
+    // resolves within this very loop.
+    const playerBucket = [];
+    const enemyBucket = [];
+    for (const u of units) {
+      (u.side === 'player' ? playerBucket : enemyBucket).push(u);
+    }
     for (const u of units) {
       if (u.hp <= 0) continue;
       u.hitFlash = Math.max(0, u.hitFlash - dt);
-      const enemies = units.filter(o => o.side !== u.side && o.hp > 0);
+      const ownBucket = u.side === 'player' ? playerBucket : enemyBucket;
+      const foeBucket  = u.side === 'player' ? enemyBucket  : playerBucket;
       let target = null, bestDist = Infinity;
-      for (const e of enemies) {
+      for (const e of foeBucket) {
+        if (e.hp <= 0) continue;
         const d = Math.abs(e.x - u.x);
         if (d < bestDist) { bestDist = d; target = e; }
       }
@@ -1242,8 +1319,8 @@ const AgeOfWarGame = (() => {
       }
       const aheadGap = u.w + 6;
       const ahead = u.side === 'player'
-        ? units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x > u.x && o.x - u.x < aheadGap)
-        : units.find(o => o.side === u.side && o !== u && o.hp > 0 && o.x < u.x && u.x - o.x < aheadGap);
+        ? ownBucket.find(o => o !== u && o.hp > 0 && o.x > u.x && o.x - u.x < aheadGap)
+        : ownBucket.find(o => o !== u && o.hp > 0 && o.x < u.x && u.x - o.x < aheadGap);
 
       u.attackPose = Math.max(0, u.attackPose - dt);
       if (dist > u.range) {
@@ -1286,8 +1363,11 @@ const AgeOfWarGame = (() => {
     }
 
     // Turret fire (player + enemy)
-    fireTurrets('player', playerTurrets, dt);
-    fireTurrets('enemy',  enemyTurrets,  dt);
+    // Reuse this frame's buckets instead of each turret re-filtering the
+    // whole `units` array (units haven't been added/removed since the
+    // buckets were built above, so they're still accurate).
+    fireTurrets('player', playerTurrets, dt, enemyBucket);
+    fireTurrets('enemy',  enemyTurrets,  dt, playerBucket);
 
     // Move projectiles
     for (const p of projectiles) {
@@ -1522,16 +1602,19 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
-  function fireTurrets(side, slots, dt) {
+  // `enemies` is the caller's pre-built per-frame bucket of opposing-side
+  // units (see update()) -- avoids every turret re-filtering the whole
+  // `units` array on every shot check.
+  function fireTurrets(side, slots, dt, enemies) {
     for (const t of slots) {
       if (!t) continue;
       t.atkT = Math.max(0, t.atkT - dt);
       if (t.atkT > 0) continue;
       // Find nearest opposing unit in range
-      const enemies = units.filter(u => u.side !== side && u.hp > 0);
       const turretX = side === 'player' ? PLAYER_BASE_X + BASE_W * 0.85 : ENEMY_BASE_X + BASE_W * 0.15;
       let target = null, bestDist = Infinity;
       for (const u of enemies) {
+        if (u.hp <= 0) continue;
         const d = Math.abs(u.x - turretX);
         if (d <= t.range && d < bestDist) { bestDist = d; target = u; }
       }
