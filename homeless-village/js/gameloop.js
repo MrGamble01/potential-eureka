@@ -78,6 +78,10 @@ var EVENTS_BAD=[
      if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); }
      if(G.structures.soup_kitchen&&Math.random()<.7){ G.structures.soup_kitchen=false; log('Soup kitchen torn down.'); }
      if(G.structures.workbench&&Math.random()<.5){ G.structures.workbench=false; log('Workbench smashed.'); }
+     // The Garden's own description ("Gets destroyed in sweeps") promised
+     // this outright — it's an exposed, unguarded plot, so unlike the
+     // workbench/soup kitchen it isn't a coin-flip.
+     if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.3+Math.random()*.4)));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.2+Math.random()*.3)));
      G.morale=Math.max(0,G.morale-rand(15,25));

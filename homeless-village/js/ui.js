@@ -25,7 +25,9 @@ function buildCraftUI(){
     div.id='craft-'+r.id;
     var costStr=Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
     div.innerHTML='<span class="ci-icon">'+r.icon+'</span><div class="ci-info"><span class="ci-name">'+r.name+'</span><span class="ci-cost">'+costStr+'</span></div>';
-    div.setAttribute('data-tip',r.desc);
+    var tipText=r.desc;
+    if(r.requires && !G.structures[r.requires]) tipText+=' Requires a '+r.requires.replace('_',' ')+'.';
+    div.setAttribute('data-tip',tipText);
     div.onclick=function(){ doCraft(r); };
     div.addEventListener('mouseenter',showTip);
     div.addEventListener('mouseleave',hideTip);
@@ -62,6 +64,9 @@ function buildWorkersUI(){
 function canCraft(r){
   // A permanent structure that's already built can't be crafted again.
   if(r.gives && r.gives.structure && G.structures[r.gives.structure]) return false;
+  // Workbench-gated "crafting upgrades" (Tent, Soup Kitchen, Garden) stay
+  // locked until the Workbench structure actually exists.
+  if(r.requires && !G.structures[r.requires]) return false;
   return Object.entries(r.cost).every(function(e){ return G[e[0]]>=e[1]; });
 }
 
