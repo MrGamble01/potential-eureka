@@ -2024,6 +2024,11 @@ addFeed('🏃 Walk to ready plants to harvest');
 
 // Autosave on unload
 window.addEventListener('beforeunload', saveGame);
+// iOS Safari (and other mobile browsers) can kill a backgrounded tab
+// without ever firing beforeunload, so also save on the events that
+// reliably fire when a tab is hidden/backgrounded/closed on mobile.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
+window.addEventListener('pagehide', () => saveGame());
 
 // ── Start ──
 requestAnimationFrame(animate);
