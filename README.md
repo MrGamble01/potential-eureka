@@ -21,6 +21,7 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 - **Grow Op** (`drug-lab.html`) — 3D room-builder with risk/heat mechanics
 - **Homeless Village** (`homeless-village.html`) — 3D survival/village-building game
 - **Hearthvale** (`hearthvale.html`) — cozy top-down town builder with procedural pixel-art, villagers, seasons, and a warm settlement to grow
+- **Agentic OS** (`agentic-os.html`) — a simulated desktop operating system where every process is an AI agent: boot it, type a goal into Mission Control, and watch a planner decompose it into tasks that specialist agents work through — writing real files into a virtual filesystem you can browse with the Files app or a working terminal (`ls`, `cat`, `ps`, `spawn`, `mission`, …). Window manager, system monitor, CRT mode, and localStorage persistence included; all agents are theatrical simulations, no network calls
 
 The hub also has a few non-game utilities: a productivity view (notes, todos, pomodoro, bookmarks), a "Studio Crew" org chart, and a Hall of Fame view for high scores.
 
