@@ -259,6 +259,23 @@ const AgeOfWarGame = (() => {
       earnedAchievements = raw ? JSON.parse(raw) : {};
     } catch { earnedAchievements = {}; }
   }
+  // Best Endless Mode run reached so far — `aow-best-run` was already
+  // referenced by the Reset button (settings modal) but nothing wrote it.
+  let bestRun = null;   // { wave, kills, time } | null
+  function loadBestRun() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      bestRun = raw ? JSON.parse(raw) : null;
+    } catch { bestRun = null; }
+  }
+  function saveBestRunIfRecord(run) {
+    if (!bestRun || run.wave > bestRun.wave) {
+      bestRun = run;
+      try { localStorage.setItem('aow-best-run', JSON.stringify(run)); } catch {}
+      return true;
+    }
+    return false;
+  }
   function maybeShowWelcome() {
     let seen = false;
     try { seen = localStorage.getItem('aow-welcome-seen') === '1'; } catch {}
@@ -381,6 +398,11 @@ const AgeOfWarGame = (() => {
   let bossWaveActive = false;
   let bossKilledThisWave = false;
   let killFeed = [];          // recent kill entries floating up
+  // IDEA-AOW-1: once the enemy base falls, the player can choose to keep
+  // fighting instead of ending the run. Waves keep escalating (isBossWave
+  // etc. are already unbounded) until the player's own base falls; score is
+  // the wave reached, persisted as the previously-unwritten `aow-best-run`.
+  let endlessMode = false;
   // Bosses every 7 waves starting at wave 7. Previously every 5 made the
   // first boss hit before players could even age up, which felt like an
   // early-game wall. Wave 7 gives ~2 min of room to push to Medieval first.
@@ -540,6 +562,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -670,6 +693,7 @@ const AgeOfWarGame = (() => {
     running = true;
     gameOver = false;
     outcome = null;
+    endlessMode = false;
     playerEra = 0;
     enemyEra = 0;
     gold = 140;
@@ -991,6 +1015,8 @@ const AgeOfWarGame = (() => {
       // Sync mute toggle
       const mt = document.getElementById('aow-mute-toggle');
       if (mt) mt.setAttribute('aria-pressed', String(soundMuted));
+      const bestEl = document.getElementById('aow-best-run-value');
+      if (bestEl) bestEl.textContent = bestRun ? `Wave ${bestRun.wave}` : 'No runs yet';
       settingsModal.style.display = 'flex';
       setModalPaused(true);
     }
@@ -1044,6 +1070,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRun = null;
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1217,7 +1244,10 @@ const AgeOfWarGame = (() => {
         enemyTurrets[slot] = { ...TURRETS[targetEra], atkT: 0 };
       }
     }
-    const pressureFactor = enemyBaseHp / enemyBaseMax;
+    // Clamp: once endless mode keeps the run going past enemyBaseHp <= 0,
+    // continued player damage would otherwise drive this arbitrarily
+    // negative and collapse enemySpawnT below zero (spawn-storm risk).
+    const pressureFactor = Math.max(0, enemyBaseHp) / enemyBaseMax;
     const D = DIFFICULTIES[difficulty];
     enemySpawnT = (1.4 + Math.random() * 1.5 + pressureFactor * 0.9) * D.spawnMult;
   }
@@ -1633,8 +1663,11 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
+      if (endlessMode) {
+        saveBestRunIfRecord({ wave: waveNum, kills: runStats.kills, time: runStats.time });
+      }
       showOverlay(false);
-    } else if (enemyBaseHp <= 0 && !gameOver) {
+    } else if (enemyBaseHp <= 0 && !gameOver && !endlessMode) {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
       unlock('win_easy');
@@ -6172,7 +6205,7 @@ const AgeOfWarGame = (() => {
     const waveSubEl = document.getElementById('aow-wave-sub');
     if (waveEl) {
       waveEl.classList.toggle('aow-wave-boss', bossWaveActive);
-      if (waveNumEl) waveNumEl.textContent = (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum;
+      if (waveNumEl) waveNumEl.textContent = (endlessMode ? 'ENDLESS · ' : (bossWaveActive ? 'BOSS · ' : '')) + 'WAVE ' + waveNum;
       if (waveSubEl) {
         if (waveBreatherT > 0) waveSubEl.textContent = `next in ${Math.ceil(waveBreatherT)}s`;
         else if (bossWaveActive && !bossKilledThisWave) waveSubEl.textContent = 'kill the boss';
@@ -6346,20 +6379,48 @@ const AgeOfWarGame = (() => {
     if (!ov) return;
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
+    // Lost mid-Endless Mode: report the wave reached instead of the plain
+    // defeat message, and call out a new best.
+    const endlessLoss = !won && endlessMode;
+    const isNewBest = endlessLoss && bestRun && bestRun.wave === waveNum && bestRun.time === runStats.time;
+    let headline = won ? '🏆 VICTORY' : (endlessLoss ? '☠️ RUN OVER' : '💀 DEFEAT');
+    let subline = won ? 'You wiped the enemy base.'
+      : endlessLoss ? `Fell in Endless Mode at Wave ${waveNum}.${isNewBest ? ' New best!' : ''}`
+      : 'Your base has fallen.';
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
-        ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
+        ${headline}
       </h2>
-      <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
+      <p>${subline}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">${endlessLoss ? 'Wave' : 'Reached'}</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${endlessLoss ? waveNum : ERAS[playerEra].name}</div></div>
       </div>
-      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
+      ${endlessLoss && bestRun ? `<p style="font-size:12px; color: var(--text-dim); margin-top:10px">Best Endless run: Wave ${bestRun.wave}</p>` : ''}
+      ${won ? `<button id="aow-endless-btn" class="aow-action" style="margin-top:18px;color:#3FB950">
+        <span class="aow-action-ico">♾️</span>
+        <span class="aow-action-lbl">Continue<small>Endless Mode</small></span>
+      </button>` : ''}
+      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart${won ? ' to end the run' : ''}</p>
     `;
+    if (won) {
+      const btn = document.getElementById('aow-endless-btn');
+      if (btn) btn.onclick = enterEndlessMode;
+    }
+  }
+
+  function enterEndlessMode() {
+    if (!gameOver || outcome !== 'win') return;
+    endlessMode = true;
+    gameOver = false;
+    outcome = null;
+    running = true;
+    hideOverlay();
+    ageBannerText = 'ENDLESS MODE';
+    ageBannerT = 1.8;
   }
 
   function destroy() {
