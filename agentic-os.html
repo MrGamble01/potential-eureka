@@ -297,6 +297,27 @@ input.field:focus,textarea.field:focus{border-color:var(--accent)}
 .arc-goal{font-size:12px;font-weight:600;line-height:1.4}
 .arc-meta{font-size:10px;color:var(--faint);margin-top:3px}
 @media (max-width:900px){#widgets{display:none !important}}
+
+/* v5: board, avatars, energy, free-drag icons */
+#icons{display:block;flex-direction:unset;top:0;left:0;right:auto;width:100%;height:100%;pointer-events:none}
+.icon{position:absolute;pointer-events:auto;touch-action:none}
+.bd-cols{display:flex;gap:10px;flex:1;min-height:0;padding:10px;overflow-x:auto}
+.bd-col{flex:1;min-width:160px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:8px;overflow-y:auto}
+.bd-head{font-size:9px;letter-spacing:.14em;color:var(--faint);font-weight:700;padding:2px 4px 8px;
+  display:flex;justify-content:space-between}
+.bd-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 9px;margin-bottom:8px}
+.bd-top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.bd-wait{font-size:9px;color:var(--warn)}
+.bd-title{font-size:11px;line-height:1.45;margin-bottom:6px}
+.bd-who{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim);margin-bottom:6px}
+.bd-who img{width:16px;height:16px;border-radius:4px}
+.face-img{width:30px;height:30px;border-radius:7px;flex:0 0 30px}
+.en-bar{height:3px;background:#101822;border-radius:2px;margin-top:5px;max-width:180px}
+.en-bar i{display:block;height:100%;background:var(--good);border-radius:2px}
+.en-bar i.low{background:var(--warn)}
+.cm-av{width:15px;height:15px;border-radius:4px;vertical-align:-3px;margin-right:4px}
+.w-av{width:15px;height:15px;border-radius:4px}
 </style>
 </head>
 <body>
@@ -545,6 +566,7 @@ const ACHV_DEFS = [
   { id: 'rework',   icon: '\u{1F3AD}', name: 'QA DRAMA',           desc: 'witness a review rejection' },
   { id: 'reboot',   icon: '\u{1F50C}', name: 'IT CROWD',           desc: 'turn it off and on again' },
   { id: 'surfer',   icon: '\u{1F310}', name: 'NET SURFER',         desc: 'browse the agentnet in NETSCOPE' },
+  { id: 'coffee',   icon: '\u{2615}',  name: 'BARISTA',            desc: 'serve coffee to a tired agent' },
   { id: 'zen',      icon: '\u{1F9D8}', name: 'SCREEN ZEN',         desc: 'let the screensaver find you' }
 ];
 const Achv = {
@@ -619,6 +641,53 @@ const Archive = {
     Bus.emit('archive');
   }
 };
+
+/* ================= PROCEDURAL AVATARS =================
+   Tiny robot portraits, deterministic per agent name. */
+const AVATARS = {};
+function avatarFor(name) {
+  if (AVATARS[name]) return AVATARS[name];
+  let h = 7;
+  for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 48;
+  const ctx = cv.getContext('2d');
+  const hue = h % 360;
+  // backplate
+  ctx.fillStyle = `hsl(${hue} 45% 16%)`;
+  ctx.beginPath(); ctx.roundRect(0, 0, 48, 48, 10); ctx.fill();
+  // head
+  ctx.fillStyle = `hsl(${hue} 55% 55%)`;
+  ctx.beginPath(); ctx.roundRect(8, 12, 32, 26, 7); ctx.fill();
+  // ears
+  ctx.fillStyle = `hsl(${hue} 45% 38%)`;
+  ctx.fillRect(4, 20, 4, 10); ctx.fillRect(40, 20, 4, 10);
+  // antenna variants
+  const ant = (h >> 3) % 3;
+  if (ant !== 2) {
+    ctx.strokeStyle = `hsl(${hue} 45% 70%)`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(24, 12); ctx.lineTo(24, 6); ctx.stroke();
+    ctx.fillStyle = ant === 0 ? '#ffd75e' : `hsl(${(hue + 120) % 360} 70% 60%)`;
+    ctx.beginPath(); ctx.arc(24, 5, 2.6, 0, 7); ctx.fill();
+  }
+  // eyes variants
+  ctx.fillStyle = '#0a0f16';
+  const eye = (h >> 5) % 3;
+  if (eye === 0) { ctx.fillRect(15, 20, 6, 6); ctx.fillRect(27, 20, 6, 6); }
+  else if (eye === 1) { ctx.beginPath(); ctx.arc(18, 23, 3.4, 0, 7); ctx.arc(30, 23, 3.4, 0, 7); ctx.fill(); }
+  else { ctx.fillRect(14, 21, 8, 3.5); ctx.fillRect(26, 21, 8, 3.5); }
+  // eye glints
+  ctx.fillStyle = '#e8f6ff';
+  ctx.fillRect(16.5, 21.5, 2, 2); ctx.fillRect(28.5, 21.5, 2, 2);
+  // mouth variants
+  ctx.fillStyle = '#0a0f16';
+  const m = (h >> 7) % 4;
+  if (m === 0) ctx.fillRect(19, 31, 10, 2.5);
+  else if (m === 1) { for (let i = 0; i < 4; i++) ctx.fillRect(17 + i * 4, 31, 2.5, 3); }
+  else if (m === 2) { ctx.beginPath(); ctx.arc(24, 31, 3.6, 0, Math.PI); ctx.fill(); }
+  else ctx.fillRect(21, 30.5, 6, 3.5);
+  return (AVATARS[name] = cv.toDataURL());
+}
 
 /* ================= WINDOW MANAGER ================= */
 const WM = {
@@ -936,6 +1005,10 @@ const LINES = {
   idle: [
     'idling. contemplating the heat death of the universe', 'defragging thoughts',
     'watching the cursor blink', 'ready for work', 'humming quietly in binary'
+  ],
+  tired: [
+    'running on fumes here', 'my registers ache', 'is it hot in this loop or is it me',
+    'progress slowing. coffee would help. hint hint', 'yawning in binary', 'the tokens taste stale'
   ]
 };
 
@@ -1068,6 +1141,7 @@ const Engine = {
     const a = {
       pid: ++this.pid, name, role, ephemeral: !!ephemeral, xp: xp || 0,
       trait: TRAITS[trait] ? trait : pick(Object.keys(TRAITS)),
+      energy: 100,
       status: 'idle', taskId: null, missionId: null,
       tokens: 0, logs: [], idleTicks: 0, blockTicks: 0, born: this.tick
     };
@@ -1232,7 +1306,10 @@ const Engine = {
         const burn = irand(40, 180);
         a.tokens += burn; this.totalTokens += burn; this.tokensThisTick += burn;
         m.tokens = (m.tokens || 0) + burn;
-        t.progress = Math.min(100, t.progress + rand(5, 13));
+        a.energy = Math.max(0, a.energy - rand(.6, 1.4));
+        const fatigued = a.energy < 25;
+        if (fatigued && Math.random() < .18) a.say(pick(LINES.tired), 'err');
+        t.progress = Math.min(100, t.progress + rand(5, 13) * (fatigued ? .45 : 1));
         if (Math.random() < .6) {
           let line = pick(LINES[t.kind] || LINES.build).replace('{topic}', shortGoal(m.goal));
           if (Math.random() < .3) line += pick(TRAITS[a.trait].suffix);
@@ -1283,6 +1360,7 @@ const Engine = {
         }
       } else if (a.status === 'idle') {
         a.idleTicks++;
+        a.energy = Math.min(100, a.energy + 1.8);
         if (Math.random() < .05) a.say(pick(LINES.idle), 'dim');
         // ephemeral helpers despawn after a while
         if (a.ephemeral && a.idleTicks > 18) {
@@ -1323,6 +1401,16 @@ const Engine = {
 };
 
 function shortGoal(g) { return g.length > 34 ? g.slice(0, 32) + '…' : g; }
+
+Engine.coffee = function (pid) {
+  const a = this.agents.find(x => x.pid === pid);
+  if (!a) return false;
+  a.energy = Math.min(100, a.energy + 45);
+  a.say(pick(['coffee acquired. clarity restored', 'ah. the good bytes', 'caffeine.exe running', 'thank you. resuming at full clock speed']), 'sys');
+  Achv.unlock('coffee');
+  Bus.emit('agents');
+  return true;
+};
 
 Engine.commsSay = function (who, msg, cls) {
   this.comms.push({ at: nowHMS(), who, msg, cls: cls || '' });
@@ -1488,9 +1576,10 @@ Apps.agents = {
             const m = Engine.missions.find(x => x.id === a.missionId);
             const t = m && m.tasks.find(t => t.id === a.taskId);
             return `<div class="ag-row ${a.pid === selPid ? 'sel' : ''}" data-pid="${a.pid}">
-              <span class="face">${(ROLES[a.role] || {}).emoji || '\u{1F916}'}</span>
-              <span><div class="nm">${esc(a.name)} <span class="lv">LV.${levelOf(a.xp)}</span> <span class="rl">· ${a.role} · ${a.trait} · pid ${a.pid}${a.ephemeral ? ' · temp' : ''}</span></div>
-                <div class="rl">${t ? esc(t.title) : '—'}</div></span>
+              <img class="face-img" src="${avatarFor(a.name)}" alt="">
+              <span style="min-width:0"><div class="nm">${esc(a.name)} <span class="lv">LV.${levelOf(a.xp)}</span> <span class="rl">· ${a.role} · ${a.trait} · pid ${a.pid}${a.ephemeral ? ' · temp' : ''}</span></div>
+                <div class="rl">${t ? esc(t.title) : '—'}</div>
+                <div class="en-bar" title="energy ${Math.round(a.energy)}%"><i class="${a.energy < 25 ? 'low' : ''}" style="width:${Math.round(a.energy)}%"></i></div></span>
               <span class="right"><span class="pill ${a.status}">${a.status.toUpperCase()}</span><br>${a.tokens.toLocaleString()} tok</span>
             </div>`;
           }).join('') || '<div class="pad app-note">no agents alive. spawn one.</div>';
@@ -1501,12 +1590,17 @@ Apps.agents = {
           logBox.innerHTML = a
             ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px">
                  <b style="font-size:10px;color:var(--dim)">${esc(a.name)} — log</b>
-                 ${a.role !== 'planner' ? '<button class="btn danger ag-kill" style="height:18px;padding:0 8px;font-size:9px">TERMINATE</button>' : ''}
+                 <span>
+                   <button class="btn ghost ag-coffee" style="height:18px;padding:0 8px;font-size:9px" title="restore energy">&#9749; COFFEE</button>
+                   ${a.role !== 'planner' ? '<button class="btn danger ag-kill" style="height:18px;padding:0 8px;font-size:9px">TERMINATE</button>' : ''}
+                 </span>
                </div>` +
               a.logs.slice(-30).map(l => `<div class="${l.cls === 'err' ? 'err' : ''}" style="${l.cls === 'err' ? 'color:var(--bad)' : l.cls === 'sys' ? 'color:var(--purple)' : ''}"><span style="color:var(--faint)">${l.at}</span> ${esc(l.msg)}</div>`).join('')
             : '<span class="app-note">select an agent to see its log</span>';
           const k = $('.ag-kill', logBox);
           if (k) k.addEventListener('click', () => { if (Engine.kill(selPid)) Achv.unlock('kill'); render(); });
+          const cf = $('.ag-coffee', logBox);
+          if (cf) cf.addEventListener('click', () => { Engine.coffee(selPid); render(); });
           if (atBottom) logBox.scrollTop = logBox.scrollHeight;
         }
         render();
@@ -1973,8 +2067,9 @@ Apps.manual = {
           <p style="margin-bottom:6px;color:var(--dim)">// ALSO ON THIS MACHINE</p>
           <p style="margin-bottom:10px"><b>COMMS</b> — the crew's chat channel; talk to them, they talk back.<br>
           <b>NETSCOPE</b> — browse the agentnet, a tiny local internet with news generated from your crew's actual work.<br>
+          <b>TASK BOARD</b> — a live kanban of the selected mission's task graph.<br>
           <b>ACHIEVEMENTS</b> — a trophy cabinet of questionable honors.<br>
-          Agents earn XP and levels that survive reboots. Reviewers sometimes reject finished work and send it back. Drag a window to a screen edge to snap it (top edge maximizes). Alt+&#96; cycles windows, Alt+W closes the focused one. Idle 90s and the agents start dreaming.</p>
+          Agents earn XP and levels that survive reboots. Reviewers sometimes reject finished work and send it back. Agents tire as they work — a drowsy agent slows to half speed until it rests or you buy it a ☕ in the AGENTS app. Desktop icons are draggable; your layout persists. Drag a window to a screen edge to snap it (top edge maximizes). Alt+&#96; cycles windows, Alt+W closes the focused one. Idle 90s and the agents start dreaming.</p>
           <p style="margin-bottom:6px;color:var(--dim)">// FINE PRINT</p>
           <p>Everything is simulated in your browser tab. The disk persists in localStorage. No real AI, no network, no consequences — the safest OS ever shipped.</p>
         </div>`;
@@ -2001,9 +2096,10 @@ Apps.comms = {
         const feed = $('.cm-feed', win.body), inp = $('.cm-in', win.body);
         function render() {
           const atBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 30;
-          feed.innerHTML = Engine.comms.length ? Engine.comms.map(l =>
-            `<div><span style="color:var(--faint)">${l.at}</span> <b style="color:${l.cls === 'you' ? 'var(--good)' : l.cls === 'sys' ? 'var(--purple)' : 'var(--accent)'}">${esc(l.who)}</b> <span>${esc(l.msg)}</span></div>`
-          ).join('') : '<div class="app-note">channel is quiet. the crew banters while they work — or say hi.</div>';
+          feed.innerHTML = Engine.comms.length ? Engine.comms.map(l => {
+            const isAgent = l.cls !== 'you' && l.cls !== 'sys' && l.who !== 'agentd';
+            return `<div>${isAgent ? `<img class="cm-av" src="${avatarFor(l.who)}" alt="">` : ''}<span style="color:var(--faint)">${l.at}</span> <b style="color:${l.cls === 'you' ? 'var(--good)' : l.cls === 'sys' ? 'var(--purple)' : 'var(--accent)'}">${esc(l.who)}</b> <span>${esc(l.msg)}</span></div>`;
+          }).join('') : '<div class="app-note">channel is quiet. the crew banters while they work — or say hi.</div>';
           if (atBottom) feed.scrollTop = feed.scrollHeight;
         }
         const send = () => { Engine.userSay(inp.value); inp.value = ''; };
@@ -2199,8 +2295,87 @@ Apps.archive = {
   }
 };
 
+/* ---------- TASK BOARD (kanban over the mission DAG) ---------- */
+Apps.board = {
+  id: 'board', name: 'TASK BOARD', icon: '\u{1F4CB}', desc: 'kanban of the mission graph',
+  launch() {
+    WM.open({
+      app: 'board', title: 'TASK BOARD', icon: this.icon, w: 700, h: 440,
+      render(win) {
+        let selId = null;
+        function ensureSel() {
+          if (Engine.missions.some(m => m.id === selId)) return;
+          const live = Engine.missions.find(m => m.status === 'running' || m.status === 'planning');
+          selId = (live || Engine.missions[0] || {}).id || null;
+        }
+        function card(t) {
+          const a = Engine.agents.find(x => x.pid === t.assignee);
+          const m = Engine.missions.find(x => x.id === selId);
+          const unmet = t.deps.filter(d => !(m.tasks[d] && m.tasks[d].status === 'done')).length;
+          return `<div class="bd-card">
+            <div class="bd-top"><span class="pill ${t.status === 'active' ? 'working' : t.status === 'done' ? 'done' : 'idle'}">${t.kind.toUpperCase()}</span>
+              ${t.status === 'todo' && unmet ? `<span class="bd-wait">⏳ ${unmet} dep${unmet > 1 ? 's' : ''}</span>` : ''}</div>
+            <div class="bd-title">${esc(t.title)}</div>
+            ${a ? `<div class="bd-who"><img src="${avatarFor(a.name)}" alt=""> ${esc(a.name)}</div>` : ''}
+            ${t.status !== 'todo' ? `<div class="bar ${t.status === 'done' ? 'done' : ''}"><i style="width:${t.status === 'done' ? 100 : Math.round(t.progress)}%"></i></div>` : ''}
+          </div>`;
+        }
+        function render() {
+          ensureSel();
+          const m = Engine.missions.find(x => x.id === selId);
+          win.body.innerHTML =
+            `<div style="display:flex;flex-direction:column;height:100%">
+              <div style="display:flex;gap:8px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel2)">
+                <select class="field bd-sel" style="width:auto;flex:1">${Engine.missions.map(x =>
+                  `<option value="${x.id}" ${x.id === selId ? 'selected' : ''}>#${x.n} ${esc(shortGoal(x.goal))} — ${x.status.toUpperCase()}</option>`).join('') || '<option>no missions yet</option>'}</select>
+              </div>
+              ${m ? `<div class="bd-cols">
+                ${[['QUEUED', 'todo'], ['IN FLIGHT', 'active'], ['DONE', 'done']].map(([label, st]) => {
+                  const list = m.tasks.filter(t => t.status === st);
+                  return `<div class="bd-col"><div class="bd-head">${label} <span>${list.length}</span></div>
+                    ${list.map(card).join('') || '<div class="app-note" style="padding:8px 4px">—</div>'}</div>`;
+                }).join('')}
+              </div>` : '<div class="pad app-note">Launch a mission in MISSION CONTROL and its task graph shows up here as a live kanban.</div>'}
+            </div>`;
+          const sel = $('.bd-sel', win.body);
+          if (sel) sel.addEventListener('change', () => { selId = sel.value; render(); });
+        }
+        render();
+        win.cleanups.push(Bus.on('tick', () => {
+          // avoid rebuilding while the user has the dropdown open
+          if (win.body.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return;
+          render();
+        }));
+        win.cleanups.push(Bus.on('missions', render));
+      }
+    });
+  }
+};
+
 /* ================= DESKTOP ICONS + START MENU ================= */
-const ICON_ORDER = ['missions', 'agents', 'comms', 'netscope', 'terminal', 'files', 'monitor', 'archive', 'notepad', 'achievements', 'manual', 'settings'];
+const ICON_ORDER = ['missions', 'board', 'agents', 'comms', 'netscope', 'terminal', 'files', 'monitor', 'archive', 'notepad', 'achievements', 'manual', 'settings'];
+
+const IconLayout = {
+  load() { try { return JSON.parse(localStorage.getItem('aos-icons') || '{}'); } catch (e) { return {}; } },
+  save(map) { try { localStorage.setItem('aos-icons', JSON.stringify(map)); } catch (e) {} },
+  reset() { try { localStorage.removeItem('aos-icons'); } catch (e) {} layoutIcons(); }
+};
+function layoutIcons() {
+  const saved = IconLayout.load();
+  const availH = innerHeight - 46 - 40;
+  const perCol = Math.max(1, Math.floor(availH / 94));
+  $$('.icon').forEach((el, i) => {
+    const id = el.dataset.app;
+    const p = saved[id];
+    if (p && p[0] >= 0 && p[0] < innerWidth - 60 && p[1] >= 0 && p[1] < innerHeight - 90) {
+      el.style.left = p[0] + 'px'; el.style.top = p[1] + 'px';
+    } else {
+      el.style.left = (16 + Math.floor(i / perCol) * 96) + 'px';
+      el.style.top = (18 + (i % perCol) * 94) + 'px';
+    }
+  });
+}
+window.addEventListener('resize', layoutIcons);
 
 function buildDesktop() {
   const icons = $('#icons');
@@ -2209,10 +2384,34 @@ function buildDesktop() {
     const app = Apps[id];
     const el = document.createElement('div');
     el.className = 'icon';
+    el.dataset.app = id;
     el.innerHTML = `<div class="glyph">${app.icon}</div><div class="lbl">${esc(app.name)}</div>`;
-    el.addEventListener('click', () => app.launch()); // single click launches (kinder on touch)
+    // click launches; drag >6px repositions and persists
+    el.addEventListener('pointerdown', ev => {
+      ev.preventDefault();
+      const sx = ev.clientX, sy = ev.clientY;
+      const ox = ev.clientX - el.offsetLeft, oy = ev.clientY - el.offsetTop;
+      let dragging = false;
+      const move = mv => {
+        if (!dragging && Math.hypot(mv.clientX - sx, mv.clientY - sy) < 6) return;
+        dragging = true;
+        el.style.left = clamp(mv.clientX - ox, 0, innerWidth - 70) + 'px';
+        el.style.top = clamp(mv.clientY - oy, 0, innerHeight - 130) + 'px';
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+        if (dragging) {
+          const map = IconLayout.load();
+          map[id] = [el.offsetLeft, el.offsetTop];
+          IconLayout.save(map);
+        } else app.launch();
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    });
     icons.appendChild(el);
   });
+  layoutIcons();
 
   const sm = $('#sm-apps');
   sm.innerHTML = '';
@@ -2372,7 +2571,7 @@ const Widgets = {
     ctx.stroke();
     // crew list
     $('.w-crew', this.el).innerHTML = Engine.agents.slice(0, 6).map(a =>
-      `<div class="w-row"><span>${(ROLES[a.role] || {}).emoji || ''} ${esc(a.name)}</span>
+      `<div class="w-row"><span style="display:flex;align-items:center;gap:6px"><img class="w-av" src="${avatarFor(a.name)}" alt=""> ${esc(a.name)}</span>
        <span class="w-dot ${a.status}"></span></div>`).join('') || '<div class="w-row">no agents</div>';
   }
 };
@@ -2392,6 +2591,7 @@ const CtxMenu = {
         Settings.set('accent', keys[(keys.indexOf(Settings.data.accent) + 1) % keys.length]);
       }],
       ['\u{1F9E9} Toggle widgets', () => Settings.set('widgets', Settings.data.widgets === false)],
+      ['\u{1F4CF} Arrange icons', () => IconLayout.reset()],
       ['\u{1F5BC}️ Redraw wallpaper', () => drawWallpaper()],
       ['\u{1F504} Reboot', () => { Achv.unlock('reboot'); Boot.run(true); }]
     ];
