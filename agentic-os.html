@@ -248,6 +248,20 @@ input.field:focus,textarea.field:focus{border-color:var(--accent)}
   .mc-cols{flex-direction:column}
   .mc-left{width:100%;max-height:40%}
 }
+
+/* v2: levels, comms, achievements */
+.lv{display:inline-block;padding:1px 6px;border-radius:4px;background:var(--accent-dim);color:var(--accent);
+  font-size:9px;font-weight:700;letter-spacing:.05em;vertical-align:1px}
+.achv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.achv{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+  background:var(--panel2);opacity:.45}
+.achv.got{opacity:1;border-color:var(--line2)}
+.achv .a-icon{font-size:20px;width:26px;text-align:center;filter:grayscale(1)}
+.achv.got .a-icon{filter:none}
+.achv .a-name{font-size:10px;font-weight:700;letter-spacing:.08em}
+.achv .a-desc{font-size:9px;color:var(--faint);margin-top:2px}
+#icons{flex-wrap:wrap;max-height:calc(100vh - var(--tb-h) - 40px);align-content:flex-start}
+@media (max-width:600px){.achv-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -469,6 +483,56 @@ function toast(title, msg, kind) {
   setTimeout(() => el.remove(), 4700);
 }
 
+/* ================= LIFETIME STATS ================= */
+const Stats = {
+  data: { missionsDone: 0, tokensLifetime: 0 },
+  load() { try { Object.assign(this.data, JSON.parse(localStorage.getItem('aos-stats') || '{}')); } catch (e) {} },
+  save() { try { localStorage.setItem('aos-stats', JSON.stringify(this.data)); } catch (e) {} },
+  bump(k, n) { this.data[k] = (this.data[k] || 0) + n; this.save(); }
+};
+
+/* ================= ACHIEVEMENTS ================= */
+const ACHV_DEFS = [
+  { id: 'boot',     icon: '\u{1F44B}', name: 'HELLO WORLD',        desc: 'boot the OS' },
+  { id: 'mission1', icon: '\u{1F3AF}', name: 'DELEGATOR',          desc: 'launch your first mission' },
+  { id: 'shipped',  icon: '\u{1F4E6}', name: 'SHIPPED',            desc: 'complete a mission' },
+  { id: 'shipped5', icon: '\u{1F4C8}', name: 'MIDDLE MANAGER',     desc: 'complete 5 missions (lifetime)' },
+  { id: 'tok100k',  icon: '\u{1F525}', name: 'TOKEN FURNACE',      desc: 'burn 100,000 tokens (lifetime)' },
+  { id: 'spawn',    icon: '\u{1F423}', name: 'RECRUITER',          desc: 'spawn an agent yourself' },
+  { id: 'kill',     icon: '\u{1F480}', name: 'THE TERMINATOR',     desc: 'terminate an agent' },
+  { id: 'shell',    icon: '\u{2328}️', name: 'SHELL PERSON',  desc: 'run a terminal command' },
+  { id: 'chat',     icon: '\u{1F4AC}', name: 'SMALL TALK',         desc: 'say something in COMMS' },
+  { id: 'crt',      icon: '\u{1F4FA}', name: '1987',               desc: 'enable CRT scanlines' },
+  { id: 'rtfm',     icon: '\u{1F4D6}', name: 'RTFM',               desc: 'open the manual' },
+  { id: 'level5',   icon: '\u{1F396}️', name: 'SENIOR AGENT', desc: 'get an agent to level 5' },
+  { id: 'rework',   icon: '\u{1F3AD}', name: 'QA DRAMA',           desc: 'witness a review rejection' },
+  { id: 'reboot',   icon: '\u{1F50C}', name: 'IT CROWD',           desc: 'turn it off and on again' }
+];
+const Achv = {
+  data: {},
+  load() { try { this.data = JSON.parse(localStorage.getItem('aos-achv') || '{}'); } catch (e) { this.data = {}; } },
+  save() { try { localStorage.setItem('aos-achv', JSON.stringify(this.data)); } catch (e) {} },
+  unlock(id) {
+    if (this.data[id]) return;
+    const def = ACHV_DEFS.find(d => d.id === id);
+    if (!def) return;
+    this.data[id] = Date.now();
+    this.save();
+    toast('\u{1F3C6} ' + def.name, def.desc, 'good');
+    klog('achievement unlocked: ' + def.name);
+    Bus.emit('achv');
+  },
+  count() { return Object.keys(this.data).length; }
+};
+
+/* append a line to the kernel log (bounded) */
+function klog(line) {
+  const p = '/home/agent/logs/kernel.log';
+  const prev = FS.read(p) || '';
+  const lines = (prev + '[' + nowHMS() + '] ' + line + '\n').split('\n');
+  FS.write(p, lines.slice(-200).join('\n'));
+}
+
 /* ================= WINDOW MANAGER ================= */
 const WM = {
   wins: [],
@@ -522,11 +586,21 @@ const WM = {
       ev.preventDefault();
       const r = el.getBoundingClientRect(), a = $('#windows').getBoundingClientRect();
       const ox = ev.clientX - r.left, oy = ev.clientY - r.top;
+      let lastX = ev.clientX, lastY = ev.clientY;
       const move = mv => {
+        lastX = mv.clientX; lastY = mv.clientY;
         el.style.left = clamp(mv.clientX - a.left - ox, -w + 60, a.width - 40) + 'px';
         el.style.top = clamp(mv.clientY - a.top - oy, 0, a.height - 34) + 'px';
       };
-      const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+      const up = () => {
+        window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+        // edge snapping: left/right halves, top = maximize
+        if (lastY - a.top < 8) { if (!win.maxed) WM.togglemax(win); return; }
+        if (lastX - a.left < 10)
+          Object.assign(el.style, { left: '0px', top: '0px', width: Math.floor(a.width / 2) + 'px', height: a.height + 'px' });
+        else if (a.right - lastX < 10)
+          Object.assign(el.style, { left: Math.ceil(a.width / 2) + 'px', top: '0px', width: Math.floor(a.width / 2) + 'px', height: a.height + 'px' });
+      };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
     });
@@ -598,23 +672,28 @@ const WM = {
 };
 
 /* ================= WALLPAPER ================= */
+function hexRGB(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)].join(',');
+}
 function drawWallpaper() {
   const cv = $('#wallpaper');
   cv.width = innerWidth; cv.height = innerHeight;
   const ctx = cv.getContext('2d');
+  const acc = hexRGB((ACCENTS[Settings.data.accent] || ACCENTS.blue).c);
   const g = ctx.createRadialGradient(cv.width * .7, cv.height * .25, 60, cv.width * .5, cv.height * .5, cv.width * .8);
   g.addColorStop(0, '#0a1220'); g.addColorStop(.55, '#060a12'); g.addColorStop(1, '#04060a');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, cv.width, cv.height);
   // grid
-  ctx.strokeStyle = 'rgba(88,166,255,.045)';
+  ctx.strokeStyle = 'rgba(' + acc + ',.045)';
   ctx.lineWidth = 1;
   const step = 46;
   for (let x = 0; x < cv.width; x += step) { ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, cv.height); ctx.stroke(); }
   for (let y = 0; y < cv.height; y += step) { ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(cv.width, y + .5); ctx.stroke(); }
   // scattered "nodes"
   for (let i = 0; i < 40; i++) {
-    ctx.fillStyle = 'rgba(88,166,255,' + rand(.03, .12).toFixed(3) + ')';
+    ctx.fillStyle = 'rgba(' + acc + ',' + rand(.03, .12).toFixed(3) + ')';
     ctx.beginPath();
     ctx.arc(rand(0, cv.width), rand(0, cv.height), rand(1, 2.4), 0, 7);
     ctx.fill();
@@ -626,6 +705,7 @@ function drawWallpaper() {
   ctx.fillText('AGENTIC OS v1.0 — every process is an agent', cv.width - 18, cv.height - 60);
 }
 window.addEventListener('resize', drawWallpaper);
+Bus.on('settings', drawWallpaper);
 
 /* ================= AGENT ENGINE =================
    Tick-driven simulation. Agents are theatrical: they "think" via
@@ -705,34 +785,36 @@ function planFor(goal) {
   // strip the leading verb so titles read naturally ("build a weather app" -> "a weather app")
   const t = raw.replace(/^(build|make|create|write|draft|design|develop|research|investigate|study|analy[sz]e|deploy|ship|launch|release|publish|fix|debug)\s+(me\s+)?/i, '') || raw;
   const chain = [];
-  const add = (kind, title) => chain.push({ kind, title });
+  // deps are indices into the chain — tasks whose deps are all done run in PARALLEL
+  const add = (kind, title, deps) => chain.push({ kind, title, deps: deps || [] });
   if (/research|investigate|learn|study|find out|analy[sz]e|compare|what|why|how/.test(g)) {
     add('research', 'Gather sources on ' + t);
-    add('research', 'Deep-dive the top findings');
-    add('write', 'Draft a summary of ' + t);
-    add('review', 'Fact-check and approve the summary');
+    add('research', 'Survey the counter-arguments');            // parallel with 0
+    add('write', 'Draft a summary of ' + t, [0, 1]);
+    add('review', 'Fact-check and approve the summary', [2]);
   } else if (/write|draft|blog|article|story|poem|doc|essay|novel/.test(g)) {
     add('research', 'Collect background for ' + t);
-    add('write', 'Outline: ' + t);
-    add('write', 'Draft: ' + t);
-    add('review', 'Edit pass and sign-off');
+    add('write', 'Outline: ' + t, [0]);
+    add('write', 'Draft: ' + t, [1]);
+    add('review', 'Edit pass and sign-off', [2]);
   } else if (/deploy|ship|launch|release|publish/.test(g)) {
     add('test', 'Preflight checks for ' + t);
-    add('deploy', 'Ship: ' + t);
-    add('test', 'Post-launch smoke tests');
-    add('write', 'Release notes for ' + t);
+    add('deploy', 'Ship: ' + t, [0]);
+    add('test', 'Post-launch smoke tests', [1]);
+    add('write', 'Release notes for ' + t, [1]);                 // parallel with smoke tests
   } else if (/fix|debug|bug|broken|crash|error/.test(g)) {
     add('research', 'Reproduce the problem: ' + t);
-    add('build', 'Implement the fix');
-    add('test', 'Verify the fix holds');
-    add('review', 'Post-mortem review');
+    add('build', 'Implement the fix', [0]);
+    add('test', 'Verify the fix holds', [1]);
+    add('review', 'Post-mortem review', [2]);
   } else { // default: build something
     add('research', 'Scope out ' + t);
-    add('design', 'Design spec for ' + t);
-    add('build', 'Build the core of ' + t);
-    add('build', 'Polish and integrate');
-    add('test', 'Test suite for ' + t);
-    add('review', 'Final review and sign-off');
+    add('design', 'Design spec for ' + t, [0]);
+    add('research', 'Deep-dive the tricky parts', [0]);          // parallel with design
+    add('build', 'Build the core of ' + t, [1, 2]);
+    add('build', 'Polish and integrate', [3]);
+    add('test', 'Test suite for ' + t, [3]);                     // parallel with polish
+    add('review', 'Final review and sign-off', [4, 5]);
   }
   return chain;
 }
@@ -787,24 +869,43 @@ function artifactFor(kind, topic, mission) {
   return { name: 'artifact.txt', content: topic };
 }
 
+/* XP -> level curve: lvl 2 @ 12xp, 3 @ 48, 4 @ 108, 5 @ 192 ... */
+const levelOf = xp => 1 + Math.floor(Math.sqrt((xp || 0) / 12));
+
+/* the core crew (non-ephemeral agents) persists across boots */
+const Crew = {
+  load() { try { return JSON.parse(localStorage.getItem('aos-crew') || 'null'); } catch (e) { return null; } },
+  save() {
+    const roster = Engine.agents.filter(a => !a.ephemeral).map(a => ({ name: a.name, role: a.role, xp: a.xp }));
+    try { localStorage.setItem('aos-crew', JSON.stringify(roster)); } catch (e) {}
+  }
+};
+
 const Engine = {
   agents: [], missions: [], pid: 1000, missionN: 0, tick: 0,
+  comms: [],
   cpuHist: new Array(90).fill(0), tokHist: new Array(90).fill(0),
   totalTokens: 0, tokensThisTick: 0, uptime0: Date.now(),
   timer: null,
 
   start() {
-    // core crew, always present
-    this.spawn('ATLAS', 'planner');
-    this.spawn(pick(NAMES), 'builder');
-    this.spawn(pick(NAMES), 'researcher');
+    const roster = Crew.load();
+    if (roster && roster.length) {
+      roster.slice(0, 5).forEach(r => this.spawn(r.name, r.role, false, r.xp || 0));
+      if (!this.agents.some(a => a.role === 'planner')) this.spawn('ATLAS', 'planner');
+    } else {
+      this.spawn('ATLAS', 'planner');
+      this.spawn(pick(NAMES), 'builder');
+      this.spawn(pick(NAMES), 'researcher');
+      Crew.save();
+    }
     this.timer = setInterval(() => this.step(), 650);
   },
 
-  spawn(name, role, ephemeral) {
+  spawn(name, role, ephemeral, xp) {
     while (this.agents.some(a => a.name === name)) name = pick(NAMES) + '-' + irand(2, 9);
     const a = {
-      pid: ++this.pid, name, role, ephemeral: !!ephemeral,
+      pid: ++this.pid, name, role, ephemeral: !!ephemeral, xp: xp || 0,
       status: 'idle', taskId: null, missionId: null,
       tokens: 0, logs: [], idleTicks: 0, blockTicks: 0, born: this.tick
     };
@@ -818,7 +919,8 @@ const Engine = {
       }
     };
     this.agents.push(a);
-    a.say('agent online — role: ' + role, 'sys');
+    a.say('agent online — role: ' + role + (a.xp ? ' (LV.' + levelOf(a.xp) + ', remembered from last boot)' : ''), 'sys');
+    klog('spawned ' + a.name + '.agent (pid ' + a.pid + ', ' + role + ')');
     Bus.emit('agents');
     return a;
   },
@@ -833,6 +935,8 @@ const Engine = {
       }
     }
     this.agents = this.agents.filter(x => x.pid !== pid);
+    klog('terminated ' + a.name + '.agent (pid ' + pid + ')');
+    Crew.save();
     Bus.emit('agents');
     return true;
   },
@@ -858,6 +962,9 @@ const Engine = {
     planner.missionId = m.id;
     planner.say('new mission #' + n + ': "' + goal + '"', 'sys');
     toast('MISSION #' + n + ' ACCEPTED', goal);
+    klog('mission #' + n + ' accepted: ' + goal);
+    this.commsSay('agentd', 'mission #' + n + ' accepted — "' + shortGoal(goal) + '". crew, look alive.', 'sys');
+    Achv.unlock('mission1');
     Bus.emit('missions'); Bus.emit('agents');
     return m;
   },
@@ -878,7 +985,7 @@ const Engine = {
       m.tasks.push({
         id: uid('t'), title: c.title, kind: c.kind, status: 'todo',
         progress: 0, assignee: null,
-        deps: i > 0 ? [i - 1] : []   // simple sequential chain w/ index deps
+        deps: c.deps.slice()
       });
     });
     // allow a bit of parallelism: research tasks at same tier
@@ -932,6 +1039,11 @@ const Engine = {
             '\n\nArtifacts:\n' + m.tasks.filter(t => t.artifact).map(t => '- ' + t.artifact).join('\n') + '\n');
           m.feed.push({ at: nowHMS(), who: 'agentd', msg: 'MISSION COMPLETE ✓ report written to ' + m.dir + '/REPORT.md', cls: 'sys' });
           toast('MISSION #' + m.n + ' COMPLETE', 'Report + artifacts in ' + m.dir, 'good');
+          klog('mission #' + m.n + ' complete');
+          this.commsSay('agentd', 'mission #' + m.n + ' shipped. drinks are on the planner.', 'sys');
+          Stats.bump('missionsDone', 1);
+          Achv.unlock('shipped');
+          if (Stats.data.missionsDone >= 5) Achv.unlock('shipped5');
           Bus.emit('missions');
         }
       }
@@ -958,15 +1070,46 @@ const Engine = {
         t.progress = Math.min(100, t.progress + rand(5, 13));
         if (Math.random() < .6) a.say(pick(LINES[t.kind] || LINES.build).replace('{topic}', shortGoal(m.goal)));
         if (t.progress >= 100) {
+          // QA drama: the reviewer sometimes bounces a finished task back for rework
+          if (t.kind === 'review' && !m.reworked && Math.random() < .3) {
+            const victims = m.tasks.filter(x => x.status === 'done' && x.kind !== 'review');
+            if (victims.length) {
+              m.reworked = true;
+              const v = pick(victims);
+              const idx = m.tasks.length;
+              m.tasks.push({ id: uid('t'), title: 'Rework: ' + v.title, kind: v.kind,
+                status: 'todo', progress: 0, assignee: null, deps: [] });
+              t.status = 'todo'; t.progress = 0; t.assignee = null; t.deps.push(idx);
+              a.say('REJECTED: "' + v.title + '" — requesting changes', 'err');
+              m.feed.push({ at: nowHMS(), who: a.name, msg: 'review verdict: NOT YET. sent "' + shortGoal(v.title) + '" back for rework', cls: 'err' });
+              this.commsSay(a.name, 'I have notes. Nobody panic.', '');
+              Achv.unlock('rework');
+              this.agents.forEach(x => {
+                if (x.taskId === t.id) { x.status = 'idle'; x.taskId = null; x.missionId = null; x.idleTicks = 0; }
+              });
+              continue;
+            }
+          }
           t.status = 'done';
           const art = artifactFor(t.kind, t.title, m);
           FS.write(m.dir + '/' + art.name, art.content);
           t.artifact = m.dir + '/' + art.name;
           a.say('done: ' + t.title + ' → ' + art.name, 'sys');
-          // free everyone on this task (helpers too)
+          // free everyone on this task (helpers too), pay out XP
           this.agents.forEach(x => {
-            if (x.taskId === t.id) { x.status = 'idle'; x.taskId = null; x.missionId = null; x.idleTicks = 0; }
+            if (x.taskId === t.id) {
+              const was = levelOf(x.xp);
+              x.xp += irand(8, 16);
+              const now = levelOf(x.xp);
+              if (now > was) {
+                x.say('LEVEL UP → LV.' + now, 'sys');
+                m.feed.push({ at: nowHMS(), who: 'agentd', msg: x.name + ' reached LV.' + now, cls: 'sys' });
+                if (now >= 5) Achv.unlock('level5');
+              }
+              x.status = 'idle'; x.taskId = null; x.missionId = null; x.idleTicks = 0;
+            }
           });
+          Crew.save();
         }
       } else if (a.status === 'idle') {
         a.idleTicks++;
@@ -976,6 +1119,24 @@ const Engine = {
           a.say('work done. powering down', 'dim');
           this.agents = this.agents.filter(x => x !== a);
         }
+      }
+    }
+
+    // lifetime token stats (saved sparsely to keep localStorage writes cheap)
+    Stats.data.tokensLifetime = (Stats.data.tokensLifetime || 0) + this.tokensThisTick;
+    if (this.tick % 20 === 0) {
+      Stats.save();
+      if (Stats.data.tokensLifetime >= 100000) Achv.unlock('tok100k');
+    }
+
+    // idle crew banter drifts into COMMS
+    if (Math.random() < .055 && this.agents.length >= 2) {
+      const a1 = pick(this.agents);
+      let a2 = pick(this.agents);
+      if (a1 !== a2) {
+        const b = pick(BANTER);
+        this.commsSay(a1.name, b[0].replace('{B}', a2.name));
+        if (b[1]) this.commsSay(a2.name, b[1].replace('{A}', a1.name));
       }
     }
 
@@ -992,6 +1153,51 @@ const Engine = {
 };
 
 function shortGoal(g) { return g.length > 34 ? g.slice(0, 32) + '…' : g; }
+
+Engine.commsSay = function (who, msg, cls) {
+  this.comms.push({ at: nowHMS(), who, msg, cls: cls || '' });
+  if (this.comms.length > 200) this.comms.shift();
+  Bus.emit('comms');
+};
+
+Engine.userSay = function (msg) {
+  msg = msg.trim();
+  if (!msg) return;
+  this.commsSay('YOU', msg, 'you');
+  Achv.unlock('chat');
+  const a = pick(this.agents);
+  if (!a) { this.commsSay('agentd', 'nobody is alive to answer. spawn an agent?', 'sys'); return; }
+  setTimeout(() => { this.commsSay(a.name, replyTo(msg, a)); }, 700 + rand(0, 1100));
+};
+
+function replyTo(msg, a) {
+  const m = msg.toLowerCase();
+  const mission = Engine.missions.find(x => x.status === 'running' || x.status === 'planning');
+  if (/status|progress|how.s it going|update/.test(m)) {
+    if (a.status === 'working' && mission) return 'grinding on the ' + a.role + ' work for "' + shortGoal(mission.goal) + '". progress is progress.';
+    if (mission) return 'crew is on mission #' + mission.n + '. I am ' + a.status + ', personally.';
+    return 'all quiet. queue is empty — feed us a mission.';
+  }
+  if (/hello|hi\b|hey|yo\b/.test(m)) return pick(['hey boss.', 'o7', 'hello, human. we were just talking about you.', 'greetings from pid ' + a.pid + '.']);
+  if (/thank|good job|nice|great work/.test(m)) return pick(['we live to serve. literally.', 'put it in my performance review.', 'the tokens were worth it.']);
+  if (/who are you|what are you/.test(m)) return 'I am ' + a.name + ', a ' + a.role + ', LV.' + levelOf(a.xp) + '. every process is an agent.';
+  if (/joke/.test(m)) return pick(['two agents walk into a deadlock. neither leaves.', 'my humor module is a TODO.', 'I would tell a UDP joke but you might not get it.']);
+  if (m.endsWith('?')) return pick(['great question. estimating... unknowable.', 'signs point to: probably.', 'I asked the planner. the planner asked me. we are stuck.', 'yes, with a confidence of ' + irand(51, 97) + '%.']);
+  return pick(['noted and logged.', 'copy that.', 'adding it to the backlog (the backlog is a black hole).', 'acknowledged, boss.', 'will factor that in. probably.']);
+}
+
+const BANTER = [
+  ['anyone else hear the fans spin up, or is that just me?', 'that is the sound of {A} thinking too hard.'],
+  ['I refactored the thing.', 'you always say that. which thing?'],
+  ['{B}, your last commit was beautiful.', 'it was 4 lines and one of them was a comment.'],
+  ['what if the goal... was inside us all along?', 'log off, {A}.'],
+  ['tokens are not free, people.', 'says the one burning them on banter.'],
+  ['I dreamt in JSON again.', 'see the vibes.service about that.'],
+  ['status check: still an agent.', 'growth mindset, {A}.'],
+  ['who left 47 TODO comments in the core loop?', 'those are aspirational.'],
+  ['the virtual disk smells like fresh markdown.', 'that is the REPORT.md, just shipped.'],
+  ['if a task completes and no window is open, did it happen?', 'the kernel log says yes.']
+];
 
 /* ================= APPS ================= */
 const Apps = {};
@@ -1101,6 +1307,8 @@ Apps.agents = {
           if (Engine.agents.length >= 12) { toast('agentd', 'max_agents = 12 — the scheduler says no', 'bad'); return; }
           const role = pick(['researcher', 'builder', 'tester', 'writer', 'designer']);
           const a = Engine.spawn(pick(NAMES), role);
+          Crew.save();
+          Achv.unlock('spawn');
           selPid = a.pid; render();
         });
         function render() {
@@ -1111,7 +1319,7 @@ Apps.agents = {
             const t = m && m.tasks.find(t => t.id === a.taskId);
             return `<div class="ag-row ${a.pid === selPid ? 'sel' : ''}" data-pid="${a.pid}">
               <span class="face">${(ROLES[a.role] || {}).emoji || '\u{1F916}'}</span>
-              <span><div class="nm">${esc(a.name)} <span class="rl">· ${a.role} · pid ${a.pid}${a.ephemeral ? ' · temp' : ''}</span></div>
+              <span><div class="nm">${esc(a.name)} <span class="lv">LV.${levelOf(a.xp)}</span> <span class="rl">· ${a.role} · pid ${a.pid}${a.ephemeral ? ' · temp' : ''}</span></div>
                 <div class="rl">${t ? esc(t.title) : '—'}</div></span>
               <span class="right"><span class="pill ${a.status}">${a.status.toUpperCase()}</span><br>${a.tokens.toLocaleString()} tok</span>
             </div>`;
@@ -1128,7 +1336,7 @@ Apps.agents = {
               a.logs.slice(-30).map(l => `<div class="${l.cls === 'err' ? 'err' : ''}" style="${l.cls === 'err' ? 'color:var(--bad)' : l.cls === 'sys' ? 'color:var(--purple)' : ''}"><span style="color:var(--faint)">${l.at}</span> ${esc(l.msg)}</div>`).join('')
             : '<span class="app-note">select an agent to see its log</span>';
           const k = $('.ag-kill', logBox);
-          if (k) k.addEventListener('click', () => { Engine.kill(selPid); render(); });
+          if (k) k.addEventListener('click', () => { if (Engine.kill(selPid)) Achv.unlock('kill'); render(); });
           if (atBottom) logBox.scrollTop = logBox.scrollHeight;
         }
         render();
@@ -1176,9 +1384,13 @@ Apps.terminal = {
   echo <t> > <f>    write a file         ps           list agent processes
   spawn <role>      spawn an agent       kill <pid>   terminate an agent
   mission <goal…>   launch a mission     missions     list missions
+  tree [dir]        directory tree       top          busiest agents
+  touch <f> / mv    file utilities       chat <msg…>  talk to the crew
+  achievements      trophy cabinet       history      command history
   open <app>        open an app          apps         list apps
   neofetch          system info          clear        clear screen
-  reboot            replay the boot      exit         close terminal`, 'dim');
+  reboot            replay the boot      exit         close terminal
+  TAB               complete commands & paths`, 'dim');
           },
           clear() { out.innerHTML = ''; },
           pwd() { print(cwd); },
@@ -1222,13 +1434,64 @@ Apps.terminal = {
             if (!ROLES[role]) { print('spawn: unknown role. try: ' + Object.keys(ROLES).join(', '), 'err'); return; }
             if (Engine.agents.length >= 12) { print('spawn: max_agents = 12', 'err'); return; }
             const a = Engine.spawn(pick(NAMES), role);
+            Crew.save();
+            Achv.unlock('spawn');
             print('spawned ' + a.name + ' (pid ' + a.pid + ') as ' + role, 'ok');
           },
           kill(args) {
             const pid = +args[0];
-            if (Engine.kill(pid)) print('terminated pid ' + pid, 'ok');
+            if (Engine.kill(pid)) { Achv.unlock('kill'); print('terminated pid ' + pid, 'ok'); }
             else print('kill: no such pid', 'err');
           },
+          tree(args) {
+            const start = FS.normalize(args[0] || cwd, cwd);
+            if (!FS.list(start)) { print('tree: not a directory: ' + start, 'err'); return; }
+            print(start);
+            const walk = (p, prefix) => {
+              const items = FS.list(p) || [];
+              items.forEach((it, i) => {
+                const last = i === items.length - 1;
+                print(prefix + (last ? '└── ' : '├── ') + it.name + (it.node.t === 'd' ? '/' : ''));
+                if (it.node.t === 'd') walk((p === '/' ? '' : p) + '/' + it.name, prefix + (last ? '    ' : '│   '));
+              });
+            };
+            walk(start, '');
+          },
+          top() {
+            const cpu = Math.round(Engine.cpuHist[Engine.cpuHist.length - 1]);
+            print('agentd top — cpu ' + cpu + '%  agents ' + Engine.agents.length + '  tokens ' + Engine.totalTokens.toLocaleString(), 'dim');
+            print('PID    NAME        LV  STATUS      TOKENS', 'dim');
+            Engine.agents.slice().sort((a, b) => b.tokens - a.tokens).forEach(a =>
+              print(String(a.pid).padEnd(7) + a.name.padEnd(12) + String(levelOf(a.xp)).padEnd(4) + a.status.padEnd(12) + a.tokens.toLocaleString()));
+          },
+          touch(args) {
+            if (!args[0]) { print('touch: need a name', 'err'); return; }
+            const p = FS.normalize(args[0], cwd);
+            if (FS.read(p) == null) FS.write(p, '');
+            print('ok', 'ok');
+          },
+          mv(args) {
+            if (args.length < 2) { print('mv: need source and destination', 'err'); return; }
+            const src = FS.normalize(args[0], cwd);
+            let dst = FS.normalize(args[1], cwd);
+            const c = FS.read(src);
+            if (c == null) { print('mv: no such file: ' + src, 'err'); return; }
+            const dn = FS.node(dst);
+            if (dn && dn.t === 'd') dst = dst + '/' + src.split('/').pop();
+            FS.write(dst, c); FS.rm(src);
+            print(src + ' → ' + dst, 'ok');
+          },
+          chat(args) {
+            const msg = args.join(' ');
+            if (!msg) { print('chat: say something, e.g. chat status?', 'err'); return; }
+            Engine.userSay(msg);
+            print('sent to COMMS — open the app to see replies', 'ok');
+          },
+          achievements() {
+            ACHV_DEFS.forEach(d => print((Achv.data[d.id] ? '[✓] ' : '[ ] ') + d.name.padEnd(18) + ' — ' + d.desc, Achv.data[d.id] ? 'ok' : 'dim'));
+            print(Achv.count() + '/' + ACHV_DEFS.length + ' unlocked', 'dim');
+          },
+          history() { hist.forEach((h, i) => print(String(i + 1).padStart(4) + '  ' + h)); },
           mission(args) {
             const goal = args.join(' ').replace(/^["']|["']$/g, '');
             if (!goal) { print('mission: give me a goal, e.g. mission build a synth', 'err'); return; }
@@ -1273,18 +1536,41 @@ Apps.terminal = {
         };
         CMDS.man = CMDS.help;
 
+        function complete() {
+          const v = inp.value;
+          const parts = v.split(/\s+/);
+          if (parts.length <= 1) {
+            const hits = Object.keys(CMDS).filter(c => c.startsWith(parts[0] || ''));
+            if (hits.length === 1) inp.value = hits[0] + ' ';
+            else if (hits.length > 1) print(hits.join('   '), 'dim');
+            return;
+          }
+          // path completion on the last arg
+          const frag = parts[parts.length - 1];
+          const base = frag.includes('/') ? frag.slice(0, frag.lastIndexOf('/') + 1) : '';
+          const leaf = frag.slice(base.length);
+          const dir = FS.normalize(base || '.', cwd);
+          const items = FS.list(dir) || [];
+          const hits = items.filter(i => i.name.startsWith(leaf));
+          if (hits.length === 1) {
+            parts[parts.length - 1] = base + hits[0].name + (hits[0].node.t === 'd' ? '/' : '');
+            inp.value = parts.join(' ');
+          } else if (hits.length > 1) print(hits.map(i => i.name + (i.node.t === 'd' ? '/' : '')).join('   '), 'dim');
+        }
         inp.addEventListener('keydown', e => {
           if (e.key === 'Enter') {
             const raw = inp.value.trim();
             inp.value = '';
             printHTML('<span class="in">' + esc(ps1.textContent) + '</span> ' + esc(raw));
             if (!raw) return;
+            Achv.unlock('shell');
             hist.push(raw); hi = hist.length;
             const [cmd, ...args] = raw.split(/\s+/);
             const fn = CMDS[cmd.toLowerCase()];
             if (fn) fn(args);
             else print(cmd + ': command not found (try `help`)', 'err');
-          } else if (e.key === 'ArrowUp') { if (hi > 0) { hi--; inp.value = hist[hi] || ''; } e.preventDefault(); }
+          } else if (e.key === 'Tab') { e.preventDefault(); complete(); }
+          else if (e.key === 'ArrowUp') { if (hi > 0) { hi--; inp.value = hist[hi] || ''; } e.preventDefault(); }
           else if (e.key === 'ArrowDown') { if (hi < hist.length) { hi++; inp.value = hist[hi] || ''; } e.preventDefault(); }
         });
         win.body.addEventListener('click', e => { if (!window.getSelection().toString()) inp.focus(); });
@@ -1461,7 +1747,11 @@ Apps.settings = {
               </div>
             </div>`;
           $$('.swatch', win.body).forEach(el => el.addEventListener('click', () => { Settings.set('accent', el.dataset.k); render(); }));
-          $('.toggle', win.body).addEventListener('click', () => { Settings.set('crt', !Settings.data.crt); render(); });
+          $('.toggle', win.body).addEventListener('click', () => {
+            Settings.set('crt', !Settings.data.crt);
+            if (Settings.data.crt) Achv.unlock('crt');
+            render();
+          });
           $('.set-reset', win.body).addEventListener('click', () => {
             if (!confirm('Factory reset? This wipes the virtual disk and settings.')) return;
             try { localStorage.removeItem('aos-fs'); localStorage.removeItem('aos-settings'); } catch (e) {}
@@ -1481,6 +1771,7 @@ Apps.manual = {
     WM.open({
       app: 'manual', title: 'MANUAL', icon: this.icon, w: 520, h: 420,
       render(win) {
+        Achv.unlock('rtfm');
         win.body.innerHTML = `<div class="pad" style="line-height:1.8;font-size:12px;user-select:text">
           <div style="font-weight:700;letter-spacing:.1em;color:var(--accent);margin-bottom:10px">AGENTIC OS — OPERATOR'S MANUAL</div>
           <p style="margin-bottom:10px">This machine does not run programs. It runs <b>agents</b> — little simulated workers with roles, moods, and token budgets.</p>
@@ -1491,6 +1782,10 @@ Apps.manual = {
           4. Read the results in <b>FILES</b>, or <code>cat</code> them in the <b>TERMINAL</b>.</p>
           <p style="margin-bottom:6px;color:var(--dim)">// TRY THESE GOALS</p>
           <p style="margin-bottom:10px">"build a weather app" · "research black holes" · "write a short story about a lonely robot" · "fix the flaky login bug" · "deploy the game to production"</p>
+          <p style="margin-bottom:6px;color:var(--dim)">// ALSO ON THIS MACHINE</p>
+          <p style="margin-bottom:10px"><b>COMMS</b> — the crew's chat channel; talk to them, they talk back.<br>
+          <b>ACHIEVEMENTS</b> — a trophy cabinet of questionable honors.<br>
+          Agents earn XP and levels that survive reboots. Reviewers sometimes reject finished work and send it back. Drag a window to a screen edge to snap it.</p>
           <p style="margin-bottom:6px;color:var(--dim)">// FINE PRINT</p>
           <p>Everything is simulated in your browser tab. The disk persists in localStorage. No real AI, no network, no consequences — the safest OS ever shipped.</p>
         </div>`;
@@ -1499,8 +1794,69 @@ Apps.manual = {
   }
 };
 
+/* ---------- COMMS ---------- */
+Apps.comms = {
+  id: 'comms', name: 'COMMS', icon: '\u{1F4AC}', desc: 'the crew channel — they talk back',
+  launch() {
+    WM.open({
+      app: 'comms', title: 'COMMS — #crew', icon: this.icon, w: 480, h: 420,
+      render(win) {
+        win.body.innerHTML =
+          `<div style="display:flex;flex-direction:column;height:100%">
+            <div class="cm-feed" style="flex:1;overflow-y:auto;background:#070b10;padding:10px 12px;font-size:11px;line-height:1.8"></div>
+            <div style="display:flex;gap:8px;padding:9px 10px;border-top:1px solid var(--line);background:var(--panel2)">
+              <input class="field cm-in" placeholder="say something to the crew… (try: status?)" maxlength="120">
+              <button class="btn cm-send">SEND</button>
+            </div>
+          </div>`;
+        const feed = $('.cm-feed', win.body), inp = $('.cm-in', win.body);
+        function render() {
+          const atBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 30;
+          feed.innerHTML = Engine.comms.length ? Engine.comms.map(l =>
+            `<div><span style="color:var(--faint)">${l.at}</span> <b style="color:${l.cls === 'you' ? 'var(--good)' : l.cls === 'sys' ? 'var(--purple)' : 'var(--accent)'}">${esc(l.who)}</b> <span>${esc(l.msg)}</span></div>`
+          ).join('') : '<div class="app-note">channel is quiet. the crew banters while they work — or say hi.</div>';
+          if (atBottom) feed.scrollTop = feed.scrollHeight;
+        }
+        const send = () => { Engine.userSay(inp.value); inp.value = ''; };
+        $('.cm-send', win.body).addEventListener('click', send);
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+        render();
+        win.cleanups.push(Bus.on('comms', render));
+        setTimeout(() => inp.focus(), 50);
+      }
+    });
+  }
+};
+
+/* ---------- ACHIEVEMENTS ---------- */
+Apps.achievements = {
+  id: 'achievements', name: 'TROPHIES', icon: '\u{1F3C6}', desc: 'achievements of dubious honor',
+  launch() {
+    WM.open({
+      app: 'achievements', title: 'ACHIEVEMENTS', icon: this.icon, w: 540, h: 430,
+      render(win) {
+        function render() {
+          win.body.innerHTML =
+            `<div class="pad">
+              <div class="app-note" style="margin-bottom:12px">${Achv.count()}/${ACHV_DEFS.length} unlocked — they persist between boots</div>
+              <div class="achv-grid">${ACHV_DEFS.map(d => {
+                const got = !!Achv.data[d.id];
+                return `<div class="achv ${got ? 'got' : ''}">
+                  <div class="a-icon">${got ? d.icon : '\u{1F512}'}</div>
+                  <div><div class="a-name">${esc(d.name)}</div><div class="a-desc">${got ? esc(d.desc) : '???'}</div></div>
+                </div>`;
+              }).join('')}</div>
+            </div>`;
+        }
+        render();
+        win.cleanups.push(Bus.on('achv', render));
+      }
+    });
+  }
+};
+
 /* ================= DESKTOP ICONS + START MENU ================= */
-const ICON_ORDER = ['missions', 'agents', 'terminal', 'files', 'monitor', 'notepad', 'manual', 'settings'];
+const ICON_ORDER = ['missions', 'agents', 'comms', 'terminal', 'files', 'monitor', 'notepad', 'achievements', 'manual', 'settings'];
 
 function buildDesktop() {
   const icons = $('#icons');
@@ -1529,7 +1885,7 @@ function buildDesktop() {
   document.addEventListener('click', e => {
     if (!e.target.closest('#start-menu') && !e.target.closest('#start-btn')) toggleStart(false);
   });
-  $('#sm-reboot').addEventListener('click', () => { toggleStart(false); Boot.run(true); });
+  $('#sm-reboot').addEventListener('click', () => { toggleStart(false); Achv.unlock('reboot'); Boot.run(true); });
   $('#tray-agents').addEventListener('click', () => Apps.agents.launch());
 }
 function toggleStart(force) {
@@ -1601,6 +1957,7 @@ const Boot = {
 function firstRun() {
   const fresh = !Settings.data.booted;
   setTimeout(() => Apps.missions.launch(), 250);
+  Achv.unlock('boot');
   if (fresh) {
     Settings.set('booted', true);
     setTimeout(() => {
@@ -1612,6 +1969,8 @@ function firstRun() {
 
 /* ================= INIT ================= */
 Settings.load();
+Stats.load();
+Achv.load();
 FS.load();
 buildDesktop();
 drawWallpaper();
