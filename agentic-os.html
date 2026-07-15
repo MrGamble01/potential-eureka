@@ -262,6 +262,41 @@ input.field:focus,textarea.field:focus{border-color:var(--accent)}
 .achv .a-desc{font-size:9px;color:var(--faint);margin-top:2px}
 #icons{flex-wrap:wrap;max-height:calc(100vh - var(--tb-h) - 40px);align-content:flex-start}
 @media (max-width:600px){.achv-grid{grid-template-columns:1fr}}
+
+/* v3: netscope */
+.ns-hero{font-size:17px;font-weight:700;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.ns-p{font-size:12px;line-height:1.8;margin-bottom:10px;user-select:text}
+.ns-dim{color:var(--faint);font-size:10px}
+.ns-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.ns-link{display:inline-block;padding:6px 11px;border:1px solid var(--line2);border-radius:7px;color:var(--accent);
+  cursor:pointer;font-size:11px;font-weight:600}
+.ns-link:hover{background:var(--accent-dim);border-color:var(--accent)}
+.ns-headline{padding:7px 0;border-bottom:1px solid var(--line);font-size:11px;line-height:1.6}
+
+/* v4: widgets, context menu, archive */
+#widgets{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:10px;z-index:1;width:200px}
+.wgt{background:rgba(11,15,21,.72);border:1px solid var(--line);border-radius:11px;padding:10px 13px;backdrop-filter:blur(4px)}
+.wgt .w-k{font-size:9px;letter-spacing:.14em;color:var(--faint);margin-bottom:6px}
+.wgt-clock .w-time{font-size:26px;font-weight:700;letter-spacing:.04em;color:var(--text)}
+.wgt-clock .w-date{font-size:10px;color:var(--dim);margin-top:2px}
+.wgt .w-cv{width:100%;height:36px;display:block}
+.w-row{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--dim);padding:2px 0}
+.w-dot{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.w-dot.working,.w-dot.planning{background:var(--accent)}
+.w-dot.blocked{background:var(--bad)}
+.w-dot.idle{background:var(--faint)}
+#ctxmenu{position:fixed;z-index:8800;background:var(--panel);border:1px solid var(--line2);border-radius:10px;
+  padding:5px;display:none;flex-direction:column;min-width:180px;box-shadow:0 16px 44px rgba(0,0,0,.55)}
+#ctxmenu.open{display:flex}
+#ctxmenu button{border:0;background:transparent;color:var(--text);font-family:inherit;font-size:11px;text-align:left;
+  padding:8px 11px;border-radius:7px;cursor:pointer}
+#ctxmenu button:hover{background:var(--accent-dim)}
+.arc-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;
+  border-bottom:1px solid var(--line);cursor:pointer}
+.arc-row:hover{background:rgba(255,255,255,.03)}
+.arc-goal{font-size:12px;font-weight:600;line-height:1.4}
+.arc-meta{font-size:10px;color:var(--faint);margin-top:3px}
+@media (max-width:900px){#widgets{display:none !important}}
 </style>
 </head>
 <body>
@@ -294,6 +329,7 @@ input.field:focus,textarea.field:focus{border-color:var(--accent)}
     <button id="start-btn">&#9670; START</button>
     <div id="tb-apps"></div>
     <div id="tray">
+      <span class="tray-item" id="tray-sound" title="Toggle sound" style="cursor:pointer"></span>
       <span class="tray-item" id="tray-agents" title="Open Agents">&#129302; <b id="tray-agent-n">0</b></span>
       <span class="tray-item" title="Simulated CPU load">&#9636; <b id="tray-cpu">0%</b></span>
       <span id="clock">00:00</span>
@@ -339,7 +375,7 @@ const ACCENTS = {
   cyan:   { c: '#39c5cf', dim: 'rgba(57,197,207,.14)' }
 };
 const Settings = {
-  data: { accent: 'blue', crt: false, booted: false },
+  data: { accent: 'blue', crt: false, booted: false, sound: true, saver: true, widgets: true },
   load() {
     try { Object.assign(this.data, JSON.parse(localStorage.getItem('aos-settings') || '{}')); } catch (e) {}
     this.apply();
@@ -479,6 +515,7 @@ function toast(title, msg, kind) {
   el.className = 'toast' + (kind ? ' ' + kind : '');
   el.innerHTML = '<b>' + esc(title) + '</b><div class="m">' + esc(msg) + '</div>';
   $('#toasts').appendChild(el);
+  SFX.play('ding');
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .4s'; }, 4200);
   setTimeout(() => el.remove(), 4700);
 }
@@ -506,7 +543,9 @@ const ACHV_DEFS = [
   { id: 'rtfm',     icon: '\u{1F4D6}', name: 'RTFM',               desc: 'open the manual' },
   { id: 'level5',   icon: '\u{1F396}️', name: 'SENIOR AGENT', desc: 'get an agent to level 5' },
   { id: 'rework',   icon: '\u{1F3AD}', name: 'QA DRAMA',           desc: 'witness a review rejection' },
-  { id: 'reboot',   icon: '\u{1F50C}', name: 'IT CROWD',           desc: 'turn it off and on again' }
+  { id: 'reboot',   icon: '\u{1F50C}', name: 'IT CROWD',           desc: 'turn it off and on again' },
+  { id: 'surfer',   icon: '\u{1F310}', name: 'NET SURFER',         desc: 'browse the agentnet in NETSCOPE' },
+  { id: 'zen',      icon: '\u{1F9D8}', name: 'SCREEN ZEN',         desc: 'let the screensaver find you' }
 ];
 const Achv = {
   data: {},
@@ -532,6 +571,54 @@ function klog(line) {
   const lines = (prev + '[' + nowHMS() + '] ' + line + '\n').split('\n');
   FS.write(p, lines.slice(-200).join('\n'));
 }
+
+/* ================= SFX — tiny WebAudio chiptune blips ================= */
+const SFX = {
+  ctx: null,
+  ensure() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) try { this.ctx = new AC(); } catch (e) {}
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  tone(f, t0, dur, type, vol) {
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'square';
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0, c.currentTime + t0);
+    g.gain.linearRampToValueAtTime(vol || .04, c.currentTime + t0 + .01);
+    g.gain.exponentialRampToValueAtTime(.0001, c.currentTime + t0 + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(c.currentTime + t0); o.stop(c.currentTime + t0 + dur + .05);
+  },
+  play(name) {
+    if (Settings.data.sound === false) return;
+    this.ensure();
+    if (!this.ctx) return;
+    const fx = {
+      boot: () => [262, 330, 392, 523].forEach((f, i) => this.tone(f, i * .09, .12, 'triangle', .05)),
+      open: () => this.tone(520, 0, .07, 'square', .028),
+      close: () => this.tone(330, 0, .07, 'square', .028),
+      ding: () => { this.tone(880, 0, .1, 'triangle', .05); this.tone(1320, .08, .14, 'triangle', .04); },
+      buzz: () => this.tone(110, 0, .22, 'sawtooth', .05)
+    };
+    (fx[name] || (() => {}))();
+  }
+};
+document.addEventListener('pointerdown', () => SFX.ensure());
+
+/* ================= MISSION ARCHIVE — history survives reboots ================= */
+const Archive = {
+  data: [],
+  load() { try { this.data = JSON.parse(localStorage.getItem('aos-archive') || '[]'); } catch (e) { this.data = []; } },
+  push(entry) {
+    this.data.unshift(entry);
+    if (this.data.length > 50) this.data.length = 50;
+    try { localStorage.setItem('aos-archive', JSON.stringify(this.data)); } catch (e) {}
+    Bus.emit('archive');
+  }
+};
 
 /* ================= WINDOW MANAGER ================= */
 const WM = {
@@ -624,6 +711,7 @@ const WM = {
     if (opts.render) opts.render(win);
     this.focus(win);
     this.renderTaskbar();
+    SFX.play('open');
     return win;
   },
   focus(win) {
@@ -653,6 +741,7 @@ const WM = {
     win.el.remove();
     this.wins = this.wins.filter(w => w !== win);
     this.renderTaskbar();
+    SFX.play('close');
   },
   renderTaskbar() {
     const box = $('#tb-apps');
@@ -707,6 +796,70 @@ function drawWallpaper() {
 window.addEventListener('resize', drawWallpaper);
 Bus.on('settings', drawWallpaper);
 
+/* ================= SCREENSAVER ================= */
+const Saver = {
+  lastInput: Date.now(), active: false, cv: null, raf: 0, parts: [],
+  IDLE_MS: 90000,
+  init() {
+    const poke = () => { this.lastInput = Date.now(); if (this.active) this.stop(); };
+    ['pointermove', 'pointerdown', 'keydown', 'wheel'].forEach(ev =>
+      window.addEventListener(ev, poke, { passive: true }));
+    setInterval(() => {
+      if (!this.active && Settings.data.saver !== false &&
+          $('#os').classList.contains('on') &&
+          Date.now() - this.lastInput > this.IDLE_MS) this.start();
+    }, 5000);
+  },
+  start() {
+    this.active = true;
+    Achv.unlock('zen');
+    const cv = this.cv = document.createElement('canvas');
+    cv.style.cssText = 'position:fixed;inset:0;z-index:8900;background:#020409';
+    cv.width = innerWidth; cv.height = innerHeight;
+    document.body.appendChild(cv);
+    this.parts = Engine.agents.slice(0, 12).map(a => ({
+      label: ((ROLES[a.role] || {}).emoji || '\u{1F916}') + ' ' + a.name,
+      x: rand(40, cv.width - 80), y: rand(40, cv.height - 40),
+      vx: rand(-.45, .45) || .3, vy: rand(-.35, .35) || .2
+    }));
+    // the obligatory DVD-style bouncer
+    this.logo = { x: cv.width / 2, y: cv.height / 2, vx: 1.1, vy: .9 };
+    const draw = () => {
+      if (!this.active) return;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = 'rgba(2,4,9,.28)';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.font = '13px JetBrains Mono, monospace';
+      this.parts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 10 || p.x > cv.width - 110) p.vx *= -1;
+        if (p.y < 20 || p.y > cv.height - 16) p.vy *= -1;
+        ctx.fillStyle = 'rgba(102,140,180,.7)';
+        ctx.fillText(p.label, p.x, p.y);
+      });
+      const L = this.logo;
+      L.x += L.vx; L.y += L.vy;
+      ctx.font = '700 26px JetBrains Mono, monospace';
+      const w = ctx.measureText('AGENTIC OS').width;
+      if (L.x < 10 || L.x > cv.width - w - 10) L.vx *= -1;
+      if (L.y < 40 || L.y > cv.height - 20) L.vy *= -1;
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#58a6ff';
+      ctx.fillStyle = accent;
+      ctx.fillText('AGENTIC OS', L.x, L.y);
+      ctx.font = '11px JetBrains Mono, monospace';
+      ctx.fillStyle = 'rgba(102,120,140,.8)';
+      ctx.fillText('the agents dream while you are away — any key to wake', L.x - 40, L.y + 22);
+      this.raf = requestAnimationFrame(draw);
+    };
+    draw();
+  },
+  stop() {
+    this.active = false;
+    cancelAnimationFrame(this.raf);
+    if (this.cv) { this.cv.remove(); this.cv = null; }
+  }
+};
+
 /* ================= AGENT ENGINE =================
    Tick-driven simulation. Agents are theatrical: they "think" via
    canned vocab, progress bars, and files written into the virtual FS. */
@@ -720,6 +873,14 @@ const ROLES = {
   writer:    { emoji: '✍️', label: 'writer' },
   reviewer:  { emoji: '\u{1F9D0}', label: 'reviewer' },
   ops:       { emoji: '\u{1F4E1}', label: 'ops' }
+};
+/* every agent gets a personality that colors its work log */
+const TRAITS = {
+  sardonic: { tag: 'sardonic', suffix: [' (thrilling.)', ' — as foretold.', '. shocking, I know.', '. hold your applause.'] },
+  chipper:  { tag: 'chipper',  suffix: ['!!', ' — love this for us!', ' :D', '. best tick ever!'] },
+  anxious:  { tag: 'anxious',  suffix: ['… I think?', ' (double-checking twice)', '… is that ok?', ' — please hold.'] },
+  zen:      { tag: 'zen',      suffix: ['. all is flow.', '. the task completes itself.', '. breathe.', '. so it goes.'] },
+  dramatic: { tag: 'dramatic', suffix: ['. HISTORY WILL REMEMBER THIS.', '. the stakes could not be higher.', '. (thunderclap)', '. an epic in one line.'] }
 };
 const NAMES = ['NOVA', 'FORGE', 'SCOUT', 'QUILL', 'CIPHER', 'VECTOR', 'ECHO', 'RELAY', 'PRISM', 'ONYX', 'DELTA', 'MOSS', 'JUNO', 'BOLT', 'WREN'];
 
@@ -876,7 +1037,7 @@ const levelOf = xp => 1 + Math.floor(Math.sqrt((xp || 0) / 12));
 const Crew = {
   load() { try { return JSON.parse(localStorage.getItem('aos-crew') || 'null'); } catch (e) { return null; } },
   save() {
-    const roster = Engine.agents.filter(a => !a.ephemeral).map(a => ({ name: a.name, role: a.role, xp: a.xp }));
+    const roster = Engine.agents.filter(a => !a.ephemeral).map(a => ({ name: a.name, role: a.role, xp: a.xp, trait: a.trait }));
     try { localStorage.setItem('aos-crew', JSON.stringify(roster)); } catch (e) {}
   }
 };
@@ -891,7 +1052,7 @@ const Engine = {
   start() {
     const roster = Crew.load();
     if (roster && roster.length) {
-      roster.slice(0, 5).forEach(r => this.spawn(r.name, r.role, false, r.xp || 0));
+      roster.slice(0, 5).forEach(r => this.spawn(r.name, r.role, false, r.xp || 0, r.trait));
       if (!this.agents.some(a => a.role === 'planner')) this.spawn('ATLAS', 'planner');
     } else {
       this.spawn('ATLAS', 'planner');
@@ -902,10 +1063,11 @@ const Engine = {
     this.timer = setInterval(() => this.step(), 650);
   },
 
-  spawn(name, role, ephemeral, xp) {
+  spawn(name, role, ephemeral, xp, trait) {
     while (this.agents.some(a => a.name === name)) name = pick(NAMES) + '-' + irand(2, 9);
     const a = {
       pid: ++this.pid, name, role, ephemeral: !!ephemeral, xp: xp || 0,
+      trait: TRAITS[trait] ? trait : pick(Object.keys(TRAITS)),
       status: 'idle', taskId: null, missionId: null,
       tokens: 0, logs: [], idleTicks: 0, blockTicks: 0, born: this.tick
     };
@@ -976,6 +1138,7 @@ const Engine = {
       if (a.missionId === m.id) { a.status = 'idle'; a.taskId = null; a.missionId = null; }
     });
     m.feed.push({ at: nowHMS(), who: 'agentd', msg: 'mission aborted by operator', cls: 'err' });
+    SFX.play('buzz');
     Bus.emit('missions'); Bus.emit('agents');
   },
 
@@ -1040,6 +1203,8 @@ const Engine = {
           m.feed.push({ at: nowHMS(), who: 'agentd', msg: 'MISSION COMPLETE ✓ report written to ' + m.dir + '/REPORT.md', cls: 'sys' });
           toast('MISSION #' + m.n + ' COMPLETE', 'Report + artifacts in ' + m.dir, 'good');
           klog('mission #' + m.n + ' complete');
+          Archive.push({ n: m.n, goal: m.goal, tasks: m.tasks.length, tokens: m.tokens || 0,
+            secs, dir: m.dir, at: new Date().toISOString().slice(0, 16).replace('T', ' ') });
           this.commsSay('agentd', 'mission #' + m.n + ' shipped. drinks are on the planner.', 'sys');
           Stats.bump('missionsDone', 1);
           Achv.unlock('shipped');
@@ -1068,7 +1233,11 @@ const Engine = {
         a.tokens += burn; this.totalTokens += burn; this.tokensThisTick += burn;
         m.tokens = (m.tokens || 0) + burn;
         t.progress = Math.min(100, t.progress + rand(5, 13));
-        if (Math.random() < .6) a.say(pick(LINES[t.kind] || LINES.build).replace('{topic}', shortGoal(m.goal)));
+        if (Math.random() < .6) {
+          let line = pick(LINES[t.kind] || LINES.build).replace('{topic}', shortGoal(m.goal));
+          if (Math.random() < .3) line += pick(TRAITS[a.trait].suffix);
+          a.say(line);
+        }
         if (t.progress >= 100) {
           // QA drama: the reviewer sometimes bounces a finished task back for rework
           if (t.kind === 'review' && !m.reworked && Math.random() < .3) {
@@ -1083,6 +1252,7 @@ const Engine = {
               a.say('REJECTED: "' + v.title + '" — requesting changes', 'err');
               m.feed.push({ at: nowHMS(), who: a.name, msg: 'review verdict: NOT YET. sent "' + shortGoal(v.title) + '" back for rework', cls: 'err' });
               this.commsSay(a.name, 'I have notes. Nobody panic.', '');
+              SFX.play('buzz');
               Achv.unlock('rework');
               this.agents.forEach(x => {
                 if (x.taskId === t.id) { x.status = 'idle'; x.taskId = null; x.missionId = null; x.idleTicks = 0; }
@@ -1319,7 +1489,7 @@ Apps.agents = {
             const t = m && m.tasks.find(t => t.id === a.taskId);
             return `<div class="ag-row ${a.pid === selPid ? 'sel' : ''}" data-pid="${a.pid}">
               <span class="face">${(ROLES[a.role] || {}).emoji || '\u{1F916}'}</span>
-              <span><div class="nm">${esc(a.name)} <span class="lv">LV.${levelOf(a.xp)}</span> <span class="rl">· ${a.role} · pid ${a.pid}${a.ephemeral ? ' · temp' : ''}</span></div>
+              <span><div class="nm">${esc(a.name)} <span class="lv">LV.${levelOf(a.xp)}</span> <span class="rl">· ${a.role} · ${a.trait} · pid ${a.pid}${a.ephemeral ? ' · temp' : ''}</span></div>
                 <div class="rl">${t ? esc(t.title) : '—'}</div></span>
               <span class="right"><span class="pill ${a.status}">${a.status.toUpperCase()}</span><br>${a.tokens.toLocaleString()} tok</span>
             </div>`;
@@ -1531,6 +1701,11 @@ Apps.terminal = {
               print('wrote ' + FS.normalize(file, cwd), 'ok');
             } else print(args.join(' '));
           },
+          www(args) { Apps.netscope.launch(args[0]); print('opening netscope…', 'ok'); },
+          archive() {
+            if (!Archive.data.length) { print('archive is empty — ship a mission first', 'dim'); return; }
+            Archive.data.forEach(e => print('#' + e.n + '  ' + (e.at || '').padEnd(17) + e.tasks + ' tasks  ' + String(e.tokens || 0).padStart(7) + ' tok  ' + e.goal));
+          },
           reboot() { Boot.run(true); },
           exit() { WM.close(win); }
         };
@@ -1739,6 +1914,18 @@ Apps.settings = {
                 <button class="toggle ${Settings.data.crt ? 'on' : ''}" data-t="crt"><i></i></button>
               </div>
               <div class="set-row">
+                <div><div class="k">Sound</div><div class="d">chiptune blips via WebAudio</div></div>
+                <button class="toggle ${Settings.data.sound !== false ? 'on' : ''}" data-t="sound"><i></i></button>
+              </div>
+              <div class="set-row">
+                <div><div class="k">Screensaver</div><div class="d">the agents dream after 90s idle</div></div>
+                <button class="toggle ${Settings.data.saver !== false ? 'on' : ''}" data-t="saver"><i></i></button>
+              </div>
+              <div class="set-row">
+                <div><div class="k">Desktop widgets</div><div class="d">clock, CPU sparkline, live crew</div></div>
+                <button class="toggle ${Settings.data.widgets !== false ? 'on' : ''}" data-t="widgets"><i></i></button>
+              </div>
+              <div class="set-row">
                 <div><div class="k">Factory reset</div><div class="d">wipes the virtual disk &amp; settings</div></div>
                 <button class="btn danger set-reset">RESET</button>
               </div>
@@ -1747,11 +1934,12 @@ Apps.settings = {
               </div>
             </div>`;
           $$('.swatch', win.body).forEach(el => el.addEventListener('click', () => { Settings.set('accent', el.dataset.k); render(); }));
-          $('.toggle', win.body).addEventListener('click', () => {
-            Settings.set('crt', !Settings.data.crt);
-            if (Settings.data.crt) Achv.unlock('crt');
+          $$('.toggle', win.body).forEach(t => t.addEventListener('click', () => {
+            const k = t.dataset.t;
+            Settings.set(k, k === 'crt' ? !Settings.data.crt : Settings.data[k] === false);
+            if (k === 'crt' && Settings.data.crt) Achv.unlock('crt');
             render();
-          });
+          }));
           $('.set-reset', win.body).addEventListener('click', () => {
             if (!confirm('Factory reset? This wipes the virtual disk and settings.')) return;
             try { localStorage.removeItem('aos-fs'); localStorage.removeItem('aos-settings'); } catch (e) {}
@@ -1784,8 +1972,9 @@ Apps.manual = {
           <p style="margin-bottom:10px">"build a weather app" · "research black holes" · "write a short story about a lonely robot" · "fix the flaky login bug" · "deploy the game to production"</p>
           <p style="margin-bottom:6px;color:var(--dim)">// ALSO ON THIS MACHINE</p>
           <p style="margin-bottom:10px"><b>COMMS</b> — the crew's chat channel; talk to them, they talk back.<br>
+          <b>NETSCOPE</b> — browse the agentnet, a tiny local internet with news generated from your crew's actual work.<br>
           <b>ACHIEVEMENTS</b> — a trophy cabinet of questionable honors.<br>
-          Agents earn XP and levels that survive reboots. Reviewers sometimes reject finished work and send it back. Drag a window to a screen edge to snap it.</p>
+          Agents earn XP and levels that survive reboots. Reviewers sometimes reject finished work and send it back. Drag a window to a screen edge to snap it (top edge maximizes). Alt+&#96; cycles windows, Alt+W closes the focused one. Idle 90s and the agents start dreaming.</p>
           <p style="margin-bottom:6px;color:var(--dim)">// FINE PRINT</p>
           <p>Everything is simulated in your browser tab. The disk persists in localStorage. No real AI, no network, no consequences — the safest OS ever shipped.</p>
         </div>`;
@@ -1855,8 +2044,163 @@ Apps.achievements = {
   }
 };
 
+/* ---------- NETSCOPE (the agentnet browser) ---------- */
+const NET_FILLER = [
+  'LOCAL PLANNER DECOMPOSES SANDWICH INTO 6 TASKS, EATS NONE',
+  'TOKEN PRICES STEADY AS CREW LEARNS TO BE CONCISE',
+  'REVIEWER APPROVES SOMETHING ON FIRST PASS; INVESTIGATION ONGOING',
+  'STUDY: 98% OF TODO COMMENTS "ASPIRATIONAL"',
+  'vibes.service UPGRADED TO IMMACULATE, MAINTAINERS CELEBRATE',
+  'KERNEL CONFIRMS: EVERY PROCESS STILL AN AGENT',
+  'HELPER AGENT RETIRES AFTER ONE TASK, CITES FULFILLMENT'
+];
+const NET_WIKI_INTROS = [
+  '{T} is a subject of intense interest on the agentnet, primarily because someone typed it into a mission box.',
+  'Scholars of the virtual disk disagree about {T}, but agree it deserves at least four tasks.',
+  '{T} first appeared in the kernel log at boot time and has been trending ever since.'
+];
+const NET_WIKI_BODIES = [
+  'Early research suggested the topic was simple. The rework task suggested otherwise.',
+  'The builder faction maintains that {T} can be shipped in two ticks. The tester faction has filed an objection.',
+  'A landmark REPORT.md settled the debate, though nobody has read past the first heading.',
+  'Modern consensus: start smaller than feels comfortable, then iterate loudly.'
+];
+function netHash(str) { let h = 0; for (const ch of str) h = (h * 31 + ch.codePointAt(0)) % 997; return h; }
+function netPage(url) {
+  const u = url.replace(/^agentnet:\/\//, '').replace(/\/+$/, '') || 'home';
+  const link = (href, label) => `<a class="ns-link" data-go="agentnet://${href}">${label}</a>`;
+  if (u === 'home') return {
+    title: 'agentnet — start page',
+    html: `<div class="ns-hero">&#127760; agentnet</div>
+      <p class="ns-p">the tiny internet that lives inside this OS. no ads, no cookies, no exit.</p>
+      <div class="ns-links">${link('news', '&#128240; THE DAILY TICK')} ${link('wiki/agents', '&#128218; WIKIPEDIA-ISH')}
+      ${link('weather', '&#9925; MACHINE WEATHER')} ${link('help', '&#10067; HELP')}</div>
+      <p class="ns-p ns-dim">tip: type anything in the address bar to search the wiki.</p>`
+  };
+  if (u === 'news') {
+    const items = [];
+    Engine.missions.slice(0, 4).forEach(m => {
+      items.push(m.status === 'complete'
+        ? 'MISSION #' + m.n + ' SHIPS: "' + esc(m.goal.toUpperCase()) + '" — CREW TAKES VICTORY LAP'
+        : 'CREW ' + (m.status === 'aborted' ? 'ABANDONS' : 'STILL GRINDING ON') + ' "' + esc(m.goal.toUpperCase()) + '"');
+    });
+    Engine.agents.slice(0, 2).forEach(a => items.push(a.name + ' (LV.' + levelOf(a.xp) + ') SPOTTED ' + a.status.toUpperCase() + ', SOURCES SAY'));
+    while (items.length < 7) items.push(pick(NET_FILLER));
+    return {
+      title: 'THE DAILY TICK',
+      html: `<div class="ns-hero">&#128240; THE DAILY TICK</div><p class="ns-p ns-dim">all the news that fits in localStorage</p>` +
+        items.slice(0, 8).map(h => `<div class="ns-headline">▸ ${h}</div>`).join('') +
+        `<p class="ns-p">${link('home', '&larr; back')}</p>`
+    };
+  }
+  if (u === 'weather') {
+    const t = irand(35, 88);
+    return {
+      title: 'machine weather',
+      html: `<div class="ns-hero">&#9925; MACHINE WEATHER</div>
+        <p class="ns-p" style="font-size:26px">${t}&deg;C ${t > 70 ? '&#128293;' : t > 50 ? '&#9728;&#65039;' : '&#10052;&#65039;'}</p>
+        <p class="ns-p">inside the case. ${pick(['fans at a gentle hum.', 'expect scattered token showers.', 'a front of fresh missions moves in tonight.', 'visibility: 90 columns.'])}</p>
+        <p class="ns-p">${link('home', '&larr; back')}</p>`
+    };
+  }
+  if (u === 'help') return {
+    title: 'agentnet help',
+    html: `<div class="ns-hero">&#10067; HELP</div>
+      <p class="ns-p">agentnet is fully local and fully made up. addresses look like <code>agentnet://wiki/anything</code>.
+      the news is generated from what your crew is actually doing. the weather is generated from nothing at all.</p>
+      <p class="ns-p">${link('home', '&larr; back')}</p>`
+  };
+  if (u.startsWith('wiki')) {
+    const topic = decodeURIComponent(u.split('/').slice(1).join('/') || 'agents').replace(/-/g, ' ');
+    const T = esc(topic);
+    const h = netHash(topic);
+    return {
+      title: 'wiki: ' + topic,
+      html: `<div class="ns-hero">&#128218; ${T.toUpperCase()}</div>
+        <p class="ns-p">${NET_WIKI_INTROS[h % NET_WIKI_INTROS.length].replace('{T}', '<b>' + T + '</b>')}</p>
+        <p class="ns-p">${NET_WIKI_BODIES[h % NET_WIKI_BODIES.length].replace('{T}', T)}</p>
+        <p class="ns-p">${NET_WIKI_BODIES[(h + 2) % NET_WIKI_BODIES.length].replace('{T}', T)}</p>
+        <p class="ns-p ns-dim">citations: [1] the virtual disk [2] trust me</p>
+        <p class="ns-p">${link('wiki/' + encodeURIComponent(pick(['recursion', 'the planner', 'token economics', 'rework', 'naming things'])), 'random article &rarr;')} · ${link('home', '&larr; home')}</p>`
+    };
+  }
+  return {
+    title: '404',
+    html: `<div class="ns-hero">&#128561; 404</div><p class="ns-p">agentnet://${esc(u)} does not exist. nothing on the agentnet really does.</p>
+      <p class="ns-p"><a class="ns-link" data-go="agentnet://home">&larr; home</a></p>`
+  };
+}
+Apps.netscope = {
+  id: 'netscope', name: 'NETSCOPE', icon: '\u{1F310}', desc: 'browse the tiny local internet',
+  launch(startUrl) {
+    WM.open({
+      app: 'netscope', title: 'NETSCOPE', icon: this.icon, w: 560, h: 440,
+      render(win) {
+        let histStack = [], cur = null;
+        win.body.innerHTML =
+          `<div style="display:flex;flex-direction:column;height:100%">
+            <div style="display:flex;gap:7px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel2)">
+              <button class="btn ghost ns-back" title="Back">&larr;</button>
+              <input class="field ns-addr" spellcheck="false" value="agentnet://home">
+              <button class="btn ns-go">GO</button>
+            </div>
+            <div class="ns-page" style="flex:1;overflow-y:auto;padding:16px 18px"></div>
+          </div>`;
+        const addr = $('.ns-addr', win.body), pageEl = $('.ns-page', win.body);
+        function go(url, isBack) {
+          if (!url.startsWith('agentnet://')) url = 'agentnet://wiki/' + encodeURIComponent(url.trim().replace(/\s+/g, '-'));
+          if (!isBack && cur) histStack.push(cur);
+          cur = url;
+          addr.value = url;
+          const p = netPage(url);
+          pageEl.innerHTML = p.html;
+          $$('.ns-link', pageEl).forEach(a => a.addEventListener('click', () => go(a.dataset.go)));
+          Achv.unlock('surfer');
+        }
+        $('.ns-go', win.body).addEventListener('click', () => go(addr.value));
+        addr.addEventListener('keydown', e => { if (e.key === 'Enter') go(addr.value); });
+        $('.ns-back', win.body).addEventListener('click', () => { const prev = histStack.pop(); if (prev) go(prev, true); });
+        go(startUrl || 'agentnet://home', true);
+      }
+    });
+  }
+};
+
+/* ---------- ARCHIVE (mission history, survives reboots) ---------- */
+Apps.archive = {
+  id: 'archive', name: 'ARCHIVE', icon: '\u{1F5C4}️', desc: 'every mission ever shipped',
+  launch() {
+    WM.open({
+      app: 'archive', title: 'MISSION ARCHIVE', icon: this.icon, w: 600, h: 420,
+      render(win) {
+        function render() {
+          win.body.innerHTML = Archive.data.length
+            ? `<div class="pad app-note" style="border-bottom:1px solid var(--line);padding-bottom:10px">
+                 ${Archive.data.length} mission${Archive.data.length === 1 ? '' : 's'} on record ·
+                 ${Archive.data.reduce((s, e) => s + (e.tokens || 0), 0).toLocaleString()} lifetime tokens ·
+                 click one to open its report</div>` +
+              Archive.data.map((e, i) => `<div class="arc-row" data-i="${i}">
+                <div><div class="arc-goal">#${e.n} ${esc(e.goal)}</div>
+                  <div class="arc-meta">${esc(e.at || '')} · ${e.tasks} tasks · ${(e.tokens || 0).toLocaleString()} tok · ~${e.secs}s</div></div>
+                <span class="pill complete">SHIPPED</span>
+              </div>`).join('')
+            : '<div class="pad app-note">No missions in the archive yet.<br><br>Complete a mission in MISSION CONTROL and it lands here — permanently.</div>';
+          $$('.arc-row', win.body).forEach(el => el.addEventListener('click', () => {
+            const e = Archive.data[+el.dataset.i];
+            const p = e.dir + '/REPORT.md';
+            if (FS.read(p) != null) Apps.notepad.launch(p);
+            else toast('ARCHIVE', 'report file is gone from the disk (factory reset?), but the record remains', 'bad');
+          }));
+        }
+        render();
+        win.cleanups.push(Bus.on('archive', render));
+      }
+    });
+  }
+};
+
 /* ================= DESKTOP ICONS + START MENU ================= */
-const ICON_ORDER = ['missions', 'agents', 'comms', 'terminal', 'files', 'monitor', 'notepad', 'achievements', 'manual', 'settings'];
+const ICON_ORDER = ['missions', 'agents', 'comms', 'netscope', 'terminal', 'files', 'monitor', 'archive', 'notepad', 'achievements', 'manual', 'settings'];
 
 function buildDesktop() {
   const icons = $('#icons');
@@ -1887,6 +2231,27 @@ function buildDesktop() {
   });
   $('#sm-reboot').addEventListener('click', () => { toggleStart(false); Achv.unlock('reboot'); Boot.run(true); });
   $('#tray-agents').addEventListener('click', () => Apps.agents.launch());
+  const snd = $('#tray-sound');
+  const paintSnd = () => { snd.innerHTML = Settings.data.sound === false ? '&#128263;' : '&#128266;'; };
+  paintSnd();
+  snd.addEventListener('click', () => { Settings.set('sound', Settings.data.sound === false); paintSnd(); SFX.play('ding'); });
+  Bus.on('settings', paintSnd);
+
+  // keyboard shortcuts: Alt+` cycles windows, Alt+W closes the focused one
+  document.addEventListener('keydown', e => {
+    if (!e.altKey) return;
+    if (e.key === '`') {
+      e.preventDefault();
+      const vis = WM.wins.filter(w => !w.minned);
+      if (vis.length < 2) return;
+      vis.sort((a, b) => (+a.el.style.zIndex) - (+b.el.style.zIndex));
+      WM.focus(vis[0]); // bottom-most comes to front
+    } else if (e.key.toLowerCase() === 'w') {
+      e.preventDefault();
+      const top = WM.wins.filter(w => !w.minned).sort((a, b) => (+b.el.style.zIndex) - (+a.el.style.zIndex))[0];
+      if (top) WM.close(top);
+    }
+  });
 }
 function toggleStart(force) {
   const m = $('#start-menu');
@@ -1931,6 +2296,7 @@ const Boot = {
       boot.classList.add('hidden');
       $('#os').classList.add('on');
       drawWallpaper();
+      SFX.play('boot');
       document.removeEventListener('keydown', skip);
       boot.removeEventListener('pointerdown', skip);
       if (!isReboot) firstRun();
@@ -1967,6 +2333,84 @@ function firstRun() {
   }
 }
 
+
+/* ================= DESKTOP WIDGETS ================= */
+const Widgets = {
+  el: null,
+  init() {
+    const el = this.el = document.createElement('div');
+    el.id = 'widgets';
+    el.innerHTML =
+      `<div class="wgt wgt-clock"><div class="w-time">00:00</div><div class="w-date"></div></div>
+       <div class="wgt"><div class="w-k">SIM CPU</div><canvas class="w-cv" width="180" height="36"></canvas></div>
+       <div class="wgt"><div class="w-k">CREW</div><div class="w-crew"></div></div>`;
+    $('#os').insertBefore(el, $('#taskbar'));
+    this.apply();
+    Bus.on('settings', () => this.apply());
+    Bus.on('tick', () => this.paint());
+    setInterval(() => this.paintClock(), 1000);
+    this.paintClock();
+  },
+  apply() { this.el.style.display = Settings.data.widgets === false ? 'none' : 'flex'; },
+  paintClock() {
+    const d = new Date();
+    $('.w-time', this.el).textContent = nowHM();
+    $('.w-date', this.el).textContent = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  },
+  paint() {
+    if (Settings.data.widgets === false) return;
+    // cpu sparkline
+    const cv = $('.w-cv', this.el), ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#58a6ff';
+    ctx.strokeStyle = accent; ctx.lineWidth = 1.4; ctx.beginPath();
+    const hist = Engine.cpuHist.slice(-60);
+    hist.forEach((v, i) => {
+      const x = i / (hist.length - 1) * cv.width, y = cv.height - (v / 100) * (cv.height - 4) - 2;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.stroke();
+    // crew list
+    $('.w-crew', this.el).innerHTML = Engine.agents.slice(0, 6).map(a =>
+      `<div class="w-row"><span>${(ROLES[a.role] || {}).emoji || ''} ${esc(a.name)}</span>
+       <span class="w-dot ${a.status}"></span></div>`).join('') || '<div class="w-row">no agents</div>';
+  }
+};
+
+/* ================= DESKTOP CONTEXT MENU ================= */
+const CtxMenu = {
+  el: null,
+  init() {
+    const el = this.el = document.createElement('div');
+    el.id = 'ctxmenu';
+    document.body.appendChild(el);
+    const items = [
+      ['\u{1F3AF} New mission', () => Apps.missions.launch()],
+      ['\u{1F5A5}️ Open terminal', () => Apps.terminal.launch()],
+      ['\u{1F3A8} Next accent', () => {
+        const keys = Object.keys(ACCENTS);
+        Settings.set('accent', keys[(keys.indexOf(Settings.data.accent) + 1) % keys.length]);
+      }],
+      ['\u{1F9E9} Toggle widgets', () => Settings.set('widgets', Settings.data.widgets === false)],
+      ['\u{1F5BC}️ Redraw wallpaper', () => drawWallpaper()],
+      ['\u{1F504} Reboot', () => { Achv.unlock('reboot'); Boot.run(true); }]
+    ];
+    el.innerHTML = items.map((it, i) => `<button data-i="${i}">${it[0]}</button>`).join('');
+    $$('button', el).forEach(b => b.addEventListener('click', () => { this.hide(); items[+b.dataset.i][1](); }));
+    // right-click on empty desktop only (wallpaper/icons area, not inside windows or taskbar)
+    document.addEventListener('contextmenu', e => {
+      if (!$('#os').classList.contains('on')) return;
+      if (e.target.closest('.win') || e.target.closest('#taskbar') || e.target.closest('#start-menu')) { this.hide(); return; }
+      e.preventDefault();
+      el.style.left = Math.min(e.clientX, innerWidth - 190) + 'px';
+      el.style.top = Math.min(e.clientY, innerHeight - el.offsetHeight - 60) + 'px';
+      el.classList.add('open');
+    });
+    document.addEventListener('click', () => this.hide());
+  },
+  hide() { this.el.classList.remove('open'); }
+};
+
 /* ================= INIT ================= */
 Settings.load();
 Stats.load();
@@ -1974,7 +2418,11 @@ Achv.load();
 FS.load();
 buildDesktop();
 drawWallpaper();
+Archive.load();
 Engine.start();
+Saver.init();
+Widgets.init();
+CtxMenu.init();
 Boot.run(false);
 </script>
 </body>
