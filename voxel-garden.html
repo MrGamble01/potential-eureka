@@ -174,6 +174,24 @@ const SFX={ctx:null,
       islet:()=>{[262,330,392,523,659].forEach((f,i)=>this.tone(f,0.3,'sine',0.08,0,i*0.12));this.tone(80,1.2,'sine',0.10,50);},
     };
     if(P[n])P[n]();
+  },
+  rainNode:null,
+  rainStart(){
+    if(state.muted)return;this.ensure();if(!this.ctx||this.rainNode)return;
+    const len=this.ctx.sampleRate*2,buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const src=this.ctx.createBufferSource();src.buffer=buf;src.loop=true;
+    const lp=this.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;
+    const g=this.ctx.createGain();g.gain.setValueAtTime(0.0001,this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.045,this.ctx.currentTime+2);
+    src.connect(lp);lp.connect(g);g.connect(this.ctx.destination);src.start();
+    this.rainNode={src,g};
+  },
+  rainStop(){
+    if(!this.rainNode||!this.ctx)return;
+    const {src,g}=this.rainNode;this.rainNode=null;
+    g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+1.5);
+    setTimeout(()=>{try{src.stop();}catch(e){}},1700);
   }
 };
 
@@ -479,6 +497,7 @@ function refreshPlantMesh(p){
 /* ============================== scene ============================== */
 let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
 let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
+let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
 const pickables=[];
 function initScene(){
   scene=new THREE.Scene();
@@ -544,6 +563,11 @@ function initScene(){
     g.add(w1);g.add(w2);g.userData={w1,w2,seed:Math.random()*9,r:5+Math.random()*12,h:6+Math.random()*5};
     scene.add(g);butterflies.push(g);
   }
+  // rain — a tall box of falling streaks above the isles
+  const rp=[];for(let i=0;i<420;i++)rp.push((Math.random()-0.5)*90,Math.random()*40-5,(Math.random()-0.5)*90);
+  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));
+  rainMat=new THREE.PointsMaterial({color:0xbfe0f5,size:0.24,transparent:true,opacity:0,depthWrite:false});
+  rain=new THREE.Points(rg,rainMat);rain.visible=false;scene.add(rain);
   // highlight + ghost
   highlightBox=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002,1.002,1.002)),
     new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85}));
@@ -634,6 +658,7 @@ function updateDay(dt){
   const night=1-clamp(daylight*2.2,0,1);
   const duskAmt=Math.max(gaussish(frac,NIGHT_AT-0.02,0.05),gaussish(frac,0.985,0.04))*0.75;
   _sky.copy(C_NIGHT).lerp(C_DAY,clamp(daylight*1.35,0,1)).lerp(C_DUSK,duskAmt);
+  _sky.multiplyScalar(1-rainAmt*0.22);           // showers grey the sky down
   renderer.setClearColor(_sky);
   scene.fog.color.copy(_sky);
   // sun path
@@ -646,7 +671,7 @@ function updateDay(dt){
   moonMesh.visible=night>0.4&&frac>=NIGHT_AT;
   if(daylight>0.02){
     sunLight.position.set(sunX*0.8,Math.max(sunY*0.8,8),sunZ*0.8);
-    sunLight.intensity=0.25+daylight*0.95;
+    sunLight.intensity=(0.25+daylight*0.95)*(1-rainAmt*0.45);
     sunLight.color.setHex(duskAmt>0.3?0xffc890:0xfff2d0);
   } else {
     sunLight.position.set(Math.cos(ma)*80,Math.max(Math.sin(ma)*70,10),-40);
@@ -1180,6 +1205,47 @@ function load(){
   return true;
 }
 
+/* ============================== weather ============================== */
+function updateRain(dt){
+  if(rainActive){
+    rainLeft-=dt;
+    if(rainLeft<=0){rainActive=false;rainT=100+Math.random()*160;SFX.rainStop();}
+  } else {
+    rainT-=dt;
+    if(rainT<=0){
+      rainActive=true;rainLeft=22+Math.random()*20;
+      toast('🌧️ A gentle shower rolls in — your garden drinks it up');
+      SFX.rainStart();
+    }
+  }
+  rainAmt+=(  (rainActive?1:0)-rainAmt)*Math.min(1,dt*1.6);
+  rain.visible=rainAmt>0.02;
+  rainMat.opacity=rainAmt*0.55;
+  if(rain.visible){
+    const pos=rain.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      let y=pos.getY(i)-dt*26;
+      if(y<-8){y=32+Math.random()*4;pos.setX(i,(Math.random()-0.5)*90);pos.setZ(i,(Math.random()-0.5)*90);}
+      pos.setY(i,y);
+    }
+    pos.needsUpdate=true;
+  }
+  // rain waters every dry tilled plot for free, once a second while it falls
+  if(rainActive){
+    rainWaterT-=dt;
+    if(rainWaterT<=0){
+      rainWaterT=1;
+      let changed=false;
+      for(const [k,id] of W.blocks){
+        if(id===5){const [x,y,z]=k.split(',').map(Number);
+          if(!getB(x,y+1,z)||W.plants.has(k3(x,y+1,z))){setB(x,y,z,6);changed=true;}}
+        if(id===6)W.wet.set(k,Math.max(W.wet.get(k)||0,95));
+      }
+      if(changed)flushChunks();
+    }
+  }
+}
+
 /* ============================== ambient life ============================== */
 function updateAmbient(dt,dn){
   // clouds drift
@@ -1191,7 +1257,7 @@ function updateAmbient(dt,dn){
   for(const b of butterflies){
     const u=b.userData;
     const t=perf*0.4+u.seed*7;
-    b.visible=dn.daylight>0.15;
+    b.visible=dn.daylight>0.15&&rainAmt<0.5;   // butterflies shelter from rain
     b.position.set(Math.cos(t)*u.r+Math.sin(u.seed*3+perf*0.7)*3,
       u.h+Math.sin(perf*1.3+u.seed)*1.6,
       Math.sin(t)*u.r+Math.cos(u.seed*5+perf*0.5)*3);
@@ -1244,6 +1310,7 @@ function boot(){
     if(dt>0.1)dt=0.1;
     perf+=dt;
     const dn=updateDay(dt);
+    updateRain(dt);
     updatePlants(dt,dn);
     updateWet(dt);
     updateParticles(dt);
