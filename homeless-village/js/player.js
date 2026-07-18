@@ -25,20 +25,25 @@ function finishAction(a){
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
       G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
+      var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
+      if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
     var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
+    floatText('+'+w+'🪵 +'+cb+'📦');
     log('Found '+w+' wood and '+cb+' cardboard.');
   } else if(a.id==='panhandle'){
-    if(Math.random()<.55){ var g=rand(1,4); G.goodwill+=g; log('Someone gave you a few coins. +'+g+' goodwill.'); }
+    if(Math.random()<.55){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.'); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
     var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
+    floatText('+'+h+'❤️');
     log('You rest. Health +'+h+'.');
   } else if(a.id==='trade'){
-    if(G.cans>=3){ G.cans-=3; G.food+=2; log('Traded 3 cans → 2 food.'); }
+    if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.'); }
     else log('Not enough cans to trade.');
   }
+  sfx('action');
   updateHUD();
 }
 
@@ -67,6 +72,7 @@ function finishCraft(r){
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
+  sfx('craft');
   log('Crafted '+r.name+'.');
   saveGame();
   updateHUD(); buildCraftUI();
@@ -90,7 +96,9 @@ function hireWorker(id){
   if(G.goodwill<def.cost){ log('Not enough goodwill to recruit '+def.name+'.'); return; }
   G.goodwill-=def.cost; G.workers[id]=true;
   G.population=Math.min(20,G.population+1);
+  G.peakPopulation=Math.max(G.peakPopulation,G.population); // was tracked in G but never updated
   spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
+  sfx('hire');
   log(def.name+' joined the community.');
   buildWorkersUI(); updateHUD();
 }
