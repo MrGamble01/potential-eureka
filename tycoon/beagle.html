@@ -7556,6 +7556,10 @@ function updateLabels() {
 // ── Loop ──
 const HALF = CONFIG.worldHalf;
 let last = performance.now();
+// HUD text + floating-label DOM writes don't need 60fps — run them at
+// ~10Hz. Starts "due" so the very first frame still paints everything.
+const HUD_UPDATE_INTERVAL = 0.1;
+let _hudAcc = HUD_UPDATE_INTERVAL;
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
@@ -7612,8 +7616,12 @@ function loop(now) {
   updateEvents(dt);
   updatePingPong(dt);
   updateCoffeeSteam(dt);
-  updateMetricsHUD();
-  updateLabels();
+  _hudAcc += dt;
+  if (_hudAcc >= HUD_UPDATE_INTERVAL) {
+    _hudAcc %= HUD_UPDATE_INTERVAL;
+    updateMetricsHUD();
+    updateLabels();
+  }
 
   tickCashHud(dt);
   tickIdleBreathing(now);
@@ -7625,12 +7633,24 @@ function loop(now) {
 // doesn't look like a statue. Cheap — one sin per character per
 // frame, applied as a small scale modulation on the existing
 // head.scale.y baseline of 1.05.
+// The character list is memoized and only rebuilt when a roster length
+// changes (hire / promote / IPO reset / investor churn) — every add or
+// remove path goes through push/shift/splice/length=0 on these six
+// arrays, so a per-array length signature can't go stale. Rebuilding
+// six spread/.map() arrays every frame was measurable GC churn.
+let _breathChars = null;
+let _breathSig = '';
 function tickIdleBreathing(now) {
   const t = now / 1000;
-  const all = [player, ...ideaWorkers.map(w => w.group), ...eas.map(e => e.group),
-               ...bdrs.map(b => b.group), ...aes.map(a => a.group),
-               ...vps.map(v => v.group), ...investors.map(i => i.group)];
-  for (const g of all) {
+  const sig = ideaWorkers.length + ',' + eas.length + ',' + bdrs.length + ',' +
+              aes.length + ',' + vps.length + ',' + investors.length;
+  if (!_breathChars || sig !== _breathSig) {
+    _breathSig = sig;
+    _breathChars = [player, ...ideaWorkers.map(w => w.group), ...eas.map(e => e.group),
+                    ...bdrs.map(b => b.group), ...aes.map(a => a.group),
+                    ...vps.map(v => v.group), ...investors.map(i => i.group)];
+  }
+  for (const g of _breathChars) {
     const h = g.userData && g.userData.head;
     if (!h) continue;
     const off = g.userData.breathOffset || 0;
@@ -7860,11 +7880,41 @@ function showOfflineModal(amount, seconds) {
   });
 }
 
+// Steady-state $/sec across every earning role, routed through the
+// same computeDealValue() pipeline live income uses — so prestige, the
+// product version, Enterprise pricing, and the VP team boost all
+// count. Written into the save payload (offlineRatePerSec) so offline
+// earnings pay sales-heavy and high-prestige builds fairly. Transient
+// per-worker boosts (coffee, sprint, rush hour, stims, boss proximity)
+// are deliberately left out — they wouldn't persist while away.
+function estimateOfflineRatePerSec() {
+  const dealVal = computeDealValue();
+  let rate = 0;
+  // Engineers: work progress/sec × value per shipped feature.
+  for (const w of ideaWorkers) {
+    rate += CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * (w.externalMult || 1) * dealVal;
+  }
+  // BDRs: one deal per ~(min + range/2)s at the solo fraction; deals
+  // routed to a free AE close at aeProcessMult× instead, so each BDR
+  // with an AE to hand off to gets the closer's multiplier.
+  const bdrPeriod = CONFIG.bdrDealTimerMin + CONFIG.bdrDealTimerRange / 2;
+  for (let i = 0; i < bdrs.length; i++) {
+    const closeMult = i < aes.length ? CONFIG.aeProcessMult : 1;
+    rate += dealVal * CONFIG.bdrSoloFraction * (bdrs[i].externalMult || 1) * closeMult / bdrPeriod;
+  }
+  // AEs with no BDR feeding them self-source ~2× deals every ~18s
+  // (the dry-pipeline fallback in updateAEs).
+  const soloAEs = Math.max(0, aes.length - bdrs.length);
+  rate += soloAEs * dealVal * 2 / 18;
+  return Number.isFinite(rate) && rate > 0 ? rate : 0;
+}
+
 function saveGame() {
   if (_restarting) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       v: 7,
+      offlineRatePerSec: estimateOfflineRatePerSec(),
       cash: state.cash,
       allTimeCash: state.allTimeCash,
       upgrades: upgLevels,
@@ -7914,14 +7964,24 @@ function loadGame() {
     const p = JSON.parse(raw);
     state.cash = p.cash || 0;
     state.allTimeCash = p.allTimeCash || 0;
-    // Offline earnings: award 25% of theoretical revenue while away (max 4hr)
+    // Offline earnings: award 25% of revenue-while-away (max 4hr). New
+    // saves carry offlineRatePerSec — a true all-role $/sec written at
+    // save time (see estimateOfflineRatePerSec) — so sales-heavy and
+    // high-prestige builds no longer come back to pennies. Saves from
+    // before that field fall back to the legacy engineers-only estimate.
     if (p.savedAt) {
       const awayMs  = Math.min(Date.now() - p.savedAt, 4 * 3600 * 1000);
       const awaySec = awayMs / 1000;
-      if (awaySec > 30 && p.upgrades) {
-        const savedPrice    = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
-        const savedWorkers  = p.ideaWorkers || 0;
-        const offlineEarned = Math.floor(savedPrice * savedWorkers * CONFIG.workRateBase * awaySec * 0.25);
+      if (awaySec > 30) {
+        let offlineEarned = 0;
+        if (typeof p.offlineRatePerSec === 'number' && Number.isFinite(p.offlineRatePerSec)) {
+          offlineEarned = Math.floor(p.offlineRatePerSec * awaySec * 0.25);
+        } else if (p.upgrades) {
+          // Legacy save: engineers-only estimate from the old pricing table.
+          const savedPrice   = p.upgrades.pricing ? [5,8,12,18,26][p.upgrades.pricing] : 5;
+          const savedWorkers = p.ideaWorkers || 0;
+          offlineEarned = Math.floor(savedPrice * savedWorkers * CONFIG.workRateBase * awaySec * 0.25);
+        }
         if (offlineEarned > 0) {
           state.cash += offlineEarned;
           state.allTimeCash += offlineEarned;
