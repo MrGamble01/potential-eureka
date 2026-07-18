@@ -14,6 +14,7 @@ const SnakeGame = (() => {
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
   let gameLoop, running, gameOver;
+  let particles = [];
   const sfx = Utils.sfx;
 
   function init() {
@@ -98,10 +99,12 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    particles = [];
     gameOver = false;
     running = true;
     speed = 120;
     spawnFood();
+    sfx('start');
     updateInfo();
 
     const overlay = document.getElementById('snake-overlay');
@@ -163,8 +166,14 @@ const SnakeGame = (() => {
       return endGame();
     }
 
-    // Self collision
-    if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    // Self collision — the tail cell is excluded unless the snake is eating
+    // this tick, because a non-growing snake vacates its tail as the head
+    // moves; killing the player for entering that cell would be unfair.
+    const willEat = (head.x === food.x && head.y === food.y) ||
+      (bonusFood && Date.now() <= bonusFood.expireAt &&
+       head.x === bonusFood.x && head.y === bonusFood.y);
+    const tail = snake[snake.length - 1];
+    if (snake.some(s => s.x === head.x && s.y === head.y && (willEat || s !== tail))) {
       return endGame();
     }
 
@@ -183,6 +192,7 @@ const SnakeGame = (() => {
       score += 10;
       foodCount++;
       sfx('eat');
+      spawnBurst(head.x, head.y, '#F778BA');
       highScore = Utils.highScore.save('snake-high', score, highScore);
       spawnFood();
       // Spawn bonus food every 5 regular foods
@@ -199,13 +209,33 @@ const SnakeGame = (() => {
       score += 50;
       bonusFood = null;
       sfx('bonus');
+      spawnBurst(head.x, head.y, '#F7C948');
       highScore = Utils.highScore.save('snake-high', score, highScore);
     }
 
     if (!ate) snake.pop();
 
+    // Particles from eaten food (advance per tick, in-style with the loop)
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.life -= 1;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
     updateInfo();
     draw();
+  }
+
+  function spawnBurst(cx, cy, color) {
+    for (let i = 0; i < 12; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 2 + Math.random() * 4;
+      particles.push({
+        x: cx * GRID + GRID / 2, y: cy * GRID + GRID / 2,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        life: 4 + Math.random() * 4, color,
+      });
+    }
   }
 
   function endGame() {
@@ -213,6 +243,7 @@ const SnakeGame = (() => {
     gameOver = true;
     bonusFood = null;
     sfx('die');
+    Effects.shakeCanvas(canvas, 8, 300);
     clearInterval(gameLoop);
 
     Utils.showGameOver('snake-overlay', {
@@ -269,6 +300,14 @@ const SnakeGame = (() => {
       ctx.fill();
       ctx.shadowBlur = 0;
     }
+
+    // Food-burst particles
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 6));
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
 
     // Bonus food — gold, pulsing, fades out in last 1.5s
     if (bonusFood) {

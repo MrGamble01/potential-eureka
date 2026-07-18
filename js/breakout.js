@@ -167,7 +167,7 @@ const BreakoutGame = (() => {
         b.vy = Math.sin(ang) * sp;
         b.y = PADDLE_Y - BALL_R - 1;
         combo = 0;
-        sfx('lock');
+        sfx('bounce');
       }
 
       // Bricks
@@ -196,6 +196,7 @@ const BreakoutGame = (() => {
             maybeDropPowerup(br);
             bricks.splice(i, 1);
             sfx('eat');
+            Effects.shakeCanvas(canvas, 2 + Math.min(combo, 8) * 0.5, 120);
             if (combo > 1 && combo % 4 === 0) sfx('bonus');
           } else {
             sfx('move');
@@ -249,6 +250,7 @@ const BreakoutGame = (() => {
     lives--;
     combo = 0;
     sfx('die');
+    Effects.shakeCanvas(canvas, 10, 350);
     if (lives <= 0) { endGame(); return; }
     resetBall();
     updateInfo();

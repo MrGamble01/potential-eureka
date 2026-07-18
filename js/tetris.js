@@ -25,6 +25,9 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let clearingRows = null;   // rows flashing white before they collapse
+  let clearTimer = null;
+  let sparks = [], sparkRaf = null;
   const sfx = Utils.sfx;
 
   // 7-bag randomiser for fair piece distribution
@@ -139,6 +142,7 @@ const TetrisGame = (() => {
     if (!collides(current.shape, current.x + dx, current.y + dy)) {
       current.x += dx;
       current.y += dy;
+      if (dx !== 0) sfx('move'); // horizontal only — gravity would spam it
       return true;
     }
     return false;
@@ -151,6 +155,7 @@ const TetrisGame = (() => {
       if (!collides(rotated, current.x + k, current.y)) {
         current.shape = rotated;
         current.x += k;
+        sfx('rotate');
         return;
       }
     }
@@ -188,6 +193,9 @@ const TetrisGame = (() => {
     }
     sfx('lock');
     clearLines();
+  }
+
+  function spawnNext() {
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -196,23 +204,69 @@ const TetrisGame = (() => {
   }
 
   function clearLines() {
-    let cleared = 0;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
-      }
+    const full = [];
+    for (let r = 0; r < ROWS; r++) {
+      if (board[r].every(cell => cell !== null)) full.push(r);
     }
-    if (!cleared) return;
+    if (!full.length) { spawnNext(); return; }
     sfx('clear');
+    // Flash the rows white for a beat before collapsing them. The piece is
+    // parked at null so the gravity interval no-ops until the collapse; the
+    // one-shot timer then splices the rows and spawns the next piece.
+    clearingRows = full;
+    current = null;
+    spawnClearSparks(full);
+    Effects.shakeCanvas(canvas, 2 + full.length * 2, 140 + full.length * 60);
+    draw();
+    clearTimeout(clearTimer);
+    clearTimer = setTimeout(collapseRows, 90);
+  }
+
+  function collapseRows() {
+    if (!clearingRows) return;
+    const cleared = clearingRows.length;
+    // Ascending order: splice+unshift leaves rows below the removed row at
+    // the same index, so the remaining (lower) full rows stay valid.
+    for (const r of clearingRows) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(null));
+    }
+    clearingRows = null;
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
     highScore = Utils.highScore.save('tetris-high', score, highScore);
+    spawnNext();
     updateInfo();
+    draw();
+  }
+
+  function spawnClearSparks(rows) {
+    for (const r of rows) {
+      for (let c = 0; c < COLS; c++) {
+        if (Math.random() < 0.65) {
+          sparks.push({
+            x: c * CELL + CELL / 2, y: r * CELL + CELL / 2,
+            vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 3,
+            life: 18 + Math.random() * 16, color: board[r][c] || '#E6EDF3',
+          });
+        }
+      }
+    }
+    if (!sparkRaf) tickSparks();
+  }
+
+  function tickSparks() {
+    sparkRaf = requestAnimationFrame(tickSparks);
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.x += s.vx; s.y += s.vy; s.vy += 0.15; s.life -= 1;
+      if (s.life <= 0) sparks.splice(i, 1);
+    }
+    draw();
+    if (!sparks.length) { cancelAnimationFrame(sparkRaf); sparkRaf = null; }
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -253,6 +307,10 @@ const TetrisGame = (() => {
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    clearTimeout(clearTimer);
+    clearingRows = null;
+    sparks = [];
+    sfx('start');
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -337,6 +395,20 @@ const TetrisGame = (() => {
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
         if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+
+    // White flash over rows about to collapse
+    if (clearingRows) {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const r of clearingRows) ctx.fillRect(0, r * CELL, WIDTH, CELL);
+    }
+
+    // Line-clear sparks
+    for (const s of sparks) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, s.life / 20));
+      ctx.fillStyle = s.color;
+      ctx.fillRect(s.x - 2, s.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
 
     if (current && running) {
       // Ghost
@@ -426,6 +498,9 @@ const TetrisGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    clearTimeout(clearTimer);
+    if (sparkRaf) { cancelAnimationFrame(sparkRaf); sparkRaf = null; }
+    clearingRows = null; sparks = [];
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;

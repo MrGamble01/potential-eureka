@@ -18,6 +18,7 @@ const AsteroidsGame = (() => {
   let ship, bullets, rocks, particles;
   let score, high, lives, wave, fireTimer, invuln;
   let running, gameOver;
+  let nextLifeAt, lifeFlashUntil = 0, thrustSoundAt = 0;
   const keys = { left: false, right: false, thrust: false };
 
   const loop = Utils.gameLoop(dt => {
@@ -87,6 +88,7 @@ const AsteroidsGame = (() => {
     ship = { x: WIDTH / 2, y: HEIGHT / 2, a: -Math.PI / 2, vx: 0, vy: 0 };
     bullets = []; particles = [];
     score = 0; lives = 3; wave = 1; fireTimer = 0; invuln = 90;
+    nextLifeAt = 10000; lifeFlashUntil = 0;
     spawnWave();
     running = !!startRun; gameOver = false;
     updateInfo();
@@ -106,7 +108,9 @@ const AsteroidsGame = (() => {
 
   function makeRock(x, y, tier) {
     const r = SIZES[tier];
-    const speed = (0.6 + Math.random() * 1.1) * (4 - tier) * 0.6;
+    // Rocks drift a little faster on later waves (capped so it stays fair).
+    const waveBoost = 1 + Math.min(wave - 1, 10) * 0.06;
+    const speed = (0.6 + Math.random() * 1.1) * (4 - tier) * 0.6 * waveBoost;
     const ang = Math.random() * Math.PI * 2;
     const verts = 8 + Math.floor(Math.random() * 5);
     const shape = [];
@@ -153,6 +157,9 @@ const AsteroidsGame = (() => {
     if (keys.thrust) {
       ship.vx += Math.cos(ship.a) * THRUST * dt;
       ship.vy += Math.sin(ship.a) * THRUST * dt;
+      // Throttled so the whoosh repeats without stacking every frame.
+      const tNow = performance.now();
+      if (tNow - thrustSoundAt > 120) { thrustSoundAt = tNow; sfx('thrust'); }
       if (Math.random() < 0.5) particles.push({
         x: ship.x - Math.cos(ship.a) * SHIP_R, y: ship.y - Math.sin(ship.a) * SHIP_R,
         vx: -Math.cos(ship.a) * 2 + (Math.random() - 0.5), vy: -Math.sin(ship.a) * 2 + (Math.random() - 0.5),
@@ -202,6 +209,15 @@ const AsteroidsGame = (() => {
     high = Utils.highScore.save('asteroids-high', score, high);
     burst(r.x, r.y, r.tier, 'hsl(' + r.hue + ',80%,65%)');
     sfx(r.tier === 1 ? 'bonus' : 'eat');
+    Effects.shakeCanvas(canvas, 1.5 + r.tier * 1.5, 90 + r.tier * 50);
+    // Extra life every 10,000 points.
+    if (score >= nextLifeAt) {
+      nextLifeAt += 10000;
+      lives++;
+      sfx('bonus');
+      lifeFlashUntil = performance.now() + 1400;
+      burst(ship.x, ship.y, 2, '#3FB950');
+    }
     rocks.splice(j, 1);
     if (r.tier > 1) {
       for (let k = 0; k < 2; k++) rocks.push(makeRock(r.x, r.y, r.tier - 1));
@@ -221,6 +237,7 @@ const AsteroidsGame = (() => {
     lives--;
     burst(ship.x, ship.y, 3, '#22d3ee');
     sfx('die');
+    Effects.shakeCanvas(canvas, 10, 400);
     if (lives <= 0) { endGame(); return; }
     ship.x = WIDTH / 2; ship.y = HEIGHT / 2; ship.vx = ship.vy = 0; ship.a = -Math.PI / 2;
     invuln = 100;
@@ -297,6 +314,15 @@ const AsteroidsGame = (() => {
       ctx.closePath(); ctx.stroke();
       ctx.restore();
       ctx.shadowBlur = 0;
+    }
+
+    // Extra-life callout
+    if (lifeFlashUntil > performance.now()) {
+      ctx.fillStyle = '#3FB950'; ctx.shadowColor = '#3FB950'; ctx.shadowBlur = 10;
+      ctx.font = 'bold 18px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('EXTRA LIFE!', WIDTH / 2, 56);
+      ctx.shadowBlur = 0; ctx.textAlign = 'left';
     }
 
     if (!running && !gameOver) {
