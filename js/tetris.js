@@ -183,6 +183,7 @@ const TetrisGame = (() => {
 
   function lock() {
     if (!current) return;
+    cancelLock(); lockResets = 0;
     for (let r = 0; r < current.shape.length; r++) {
       for (let c = 0; c < current.shape[r].length; c++) {
         if (!current.shape[r][c]) continue;
@@ -196,6 +197,7 @@ const TetrisGame = (() => {
   }
 
   function spawnNext() {
+    cancelLock(); lockResets = 0;
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -277,14 +279,44 @@ const TetrisGame = (() => {
     gameLoop = setInterval(autoDown, dropMs());
   }
 
+  // ── Lock delay ────────────────────────────────────────────
+  // A grounded piece gets a ~half-second grace window before locking, and a
+  // successful move/rotate while grounded restarts it (capped, so you can't
+  // stall forever). This is what makes tucks and slides possible.
+  const LOCK_DELAY_MS = 480, LOCK_RESET_MAX = 8;
+  let lockTimer = null, lockResets = 0;
+
+  function grounded() { return !!current && collides(current.shape, current.x, current.y + 1); }
+
+  function scheduleLock() {
+    if (lockTimer !== null) return;
+    lockTimer = setTimeout(() => {
+      lockTimer = null;
+      if (running && grounded()) { lock(); draw(); updateInfo(); }
+    }, LOCK_DELAY_MS);
+  }
+  function cancelLock() {
+    if (lockTimer !== null) { clearTimeout(lockTimer); lockTimer = null; }
+  }
+  // Called after a player move/rotate: while grounded, each successful input
+  // buys the lock window back — up to LOCK_RESET_MAX times per touchdown.
+  function touchLockDelay() {
+    if (!grounded()) { cancelLock(); lockResets = 0; return; }
+    if (lockTimer !== null && lockResets < LOCK_RESET_MAX) {
+      cancelLock(); lockResets++; scheduleLock();
+    } else if (lockTimer === null) scheduleLock();
+  }
+
   function autoDown() {
-    if (!move(0, 1)) lock();
+    if (move(0, 1)) { cancelLock(); lockResets = 0; }
+    else scheduleLock();
     draw(); updateInfo();
   }
 
   function holdPiece() {
     if (!canHold || !current) return;
     canHold = false;
+    cancelLock(); lockResets = 0;
     const swapOut = freshPiece(current.type);
     if (held) {
       const swapIn = held;
@@ -307,6 +339,7 @@ const TetrisGame = (() => {
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    cancelLock(); lockResets = 0;
     clearTimeout(clearTimer);
     clearingRows = null;
     sparks = [];
@@ -328,6 +361,7 @@ const TetrisGame = (() => {
     running = false; gameOver = true;
     sfx('over');
     clearInterval(gameLoop);
+    cancelLock();
     // Persist the high score here too — drops (not just line clears) add points,
     // so a run's best score can land outside clearLines().
     const prevHigh = highScore;
@@ -350,14 +384,17 @@ const TetrisGame = (() => {
     // repeat — that's how left/right/soft-drop are meant to work.
     if (e.repeat && !['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.key)) return;
     switch (e.key) {
-      case 'ArrowLeft':  move(-1, 0); break;
-      case 'ArrowRight': move(1, 0);  break;
+      case 'ArrowLeft':  if (move(-1, 0)) touchLockDelay(); break;
+      case 'ArrowRight': if (move(1, 0))  touchLockDelay(); break;
       case 'ArrowDown':
-        if (!move(0, 1)) lock();
+        // Soft drop rides the lock delay too — landing softly no longer
+        // slams the piece in place before you can slide it.
+        if (move(0, 1)) { cancelLock(); lockResets = 0; }
+        else scheduleLock();
         score += 1;
         break;
-      case 'ArrowUp': case 'x': case 'X': rotateCW();  break;
-      case 'z': case 'Z':                 rotateCCW(); break;
+      case 'ArrowUp': case 'x': case 'X': rotateCW();  touchLockDelay(); break;
+      case 'z': case 'Z':                 rotateCCW(); touchLockDelay(); break;
       case ' ':  hardDrop(); e.preventDefault(); return;
       case 'c': case 'C':   holdPiece(); break;
       default: return;

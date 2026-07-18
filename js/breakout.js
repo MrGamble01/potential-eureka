@@ -25,6 +25,7 @@ const BreakoutGame = (() => {
   let balls, bricks, particles, powerups;
   let score, high, lives, level, combo;
   let running, launched, gameOver;
+  let stickyLeft = 0;                 // sticky-paddle catches remaining
   let slowUntil, wideUntil;
   let pointerX = null;
 
@@ -70,7 +71,7 @@ const BreakoutGame = (() => {
     paddleW = PADDLE_W;
     paddleX = (WIDTH - paddleW) / 2;
     score = 0; lives = 3; level = 1; combo = 0;
-    slowUntil = 0; wideUntil = 0;
+    slowUntil = 0; wideUntil = 0; stickyLeft = 0;
     particles = []; powerups = [];
     buildLevel();
     resetBall();
@@ -117,7 +118,22 @@ const BreakoutGame = (() => {
   function launch() {
     if (gameOver) { start(); return; }
     if (!running) { start(); return; }
-    if (launched) return;
+    if (launched) {
+      // Release any balls caught by the sticky paddle, aimed by position.
+      let released = false;
+      for (const b of balls) {
+        if (b.stuck == null) continue;
+        const hit = (b.x - (paddleX + paddleW / 2)) / (paddleW / 2);
+        const ang = -Math.PI / 2 + hit * (Math.PI / 3);
+        const sp = b.relSpeed || b.speed;
+        b.vx = Math.cos(ang) * sp;
+        b.vy = Math.sin(ang) * sp;
+        b.stuck = null;
+        released = true;
+      }
+      if (released) sfx('start');
+      return;
+    }
     launched = true;
     const b = balls[0];
     const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.5;
@@ -147,6 +163,12 @@ const BreakoutGame = (() => {
     for (let bi = balls.length - 1; bi >= 0; bi--) {
       const b = balls[bi];
       if (!launched) break;
+      if (b.stuck != null) {
+        // Riding the sticky paddle — released by click/Space in launch().
+        b.x = Math.max(BALL_R, Math.min(WIDTH - BALL_R, paddleX + b.stuck));
+        b.y = PADDLE_Y - BALL_R - 1;
+        continue;
+      }
       b.trail.push({ x: b.x, y: b.y });
       if (b.trail.length > 10) b.trail.shift();
       b.x += b.vx * dt * slow;
@@ -161,8 +183,19 @@ const BreakoutGame = (() => {
       if (b.vy > 0 && b.y + BALL_R >= PADDLE_Y && b.y - BALL_R <= PADDLE_Y + PADDLE_H &&
           b.x >= paddleX - BALL_R && b.x <= paddleX + paddleW + BALL_R) {
         const hit = (b.x - (paddleX + paddleW / 2)) / (paddleW / 2); // -1..1
-        const ang = -Math.PI / 2 + hit * (Math.PI / 3);
         const sp = Math.hypot(b.vx, b.vy);
+        if (stickyLeft > 0) {
+          // Catch it — aim at leisure, release with click/Space.
+          stickyLeft--;
+          b.stuck = b.x - paddleX;
+          b.relSpeed = sp;
+          b.vx = b.vy = 0;
+          b.y = PADDLE_Y - BALL_R - 1;
+          combo = 0;
+          sfx('lock');
+          continue;
+        }
+        const ang = -Math.PI / 2 + hit * (Math.PI / 3);
         b.vx = Math.cos(ang) * sp;
         b.vy = Math.sin(ang) * sp;
         b.y = PADDLE_Y - BALL_R - 1;
@@ -281,10 +314,14 @@ const BreakoutGame = (() => {
 
   function maybeDropPowerup(br) {
     if (Math.random() < 0.12) {
-      const kinds = ['multi', 'wide', 'slow'];
+      // Rare +1 life, occasional sticky paddle, otherwise the classics.
+      const roll = Math.random();
+      const kind = roll < 0.08 ? 'life'
+                 : roll < 0.30 ? 'sticky'
+                 : ['multi', 'wide', 'slow'][Math.floor(Math.random() * 3)];
       powerups.push({
         x: br.x + BRICK_W / 2, y: br.y + BRICK_H / 2,
-        kind: kinds[Math.floor(Math.random() * kinds.length)], spin: 0,
+        kind, spin: 0,
       });
     }
   }
@@ -292,6 +329,8 @@ const BreakoutGame = (() => {
   function applyPowerup(kind) {
     if (kind === 'wide') wideUntil = now() + 9000;
     else if (kind === 'slow') slowUntil = now() + 7000;
+    else if (kind === 'sticky') stickyLeft = 3;
+    else if (kind === 'life') { lives++; updateInfo(); }
     else if (kind === 'multi') {
       const src = balls.find(b => true) || balls[0];
       if (src && launched) {
@@ -304,7 +343,8 @@ const BreakoutGame = (() => {
     }
   }
 
-  const POWER_META = { multi: { c: '#58A6FF', t: '×3' }, wide: { c: '#3FB950', t: '↔' }, slow: { c: '#D29922', t: '⏱' } };
+  const POWER_META = { multi: { c: '#58A6FF', t: '×3' }, wide: { c: '#3FB950', t: '↔' }, slow: { c: '#D29922', t: '⏱' },
+                       sticky: { c: '#F778BA', t: '⊙' }, life: { c: '#F85149', t: '♥' } };
 
   function now() { return performance.now(); }
   const sfx = Utils.sfx;

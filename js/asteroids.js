@@ -19,6 +19,7 @@ const AsteroidsGame = (() => {
   let score, high, lives, wave, fireTimer, invuln;
   let running, gameOver;
   let nextLifeAt, lifeFlashUntil = 0, thrustSoundAt = 0;
+  let ufo, ufoShots, ufoTimer;                 // hunting saucer + its shots
   const keys = { left: false, right: false, thrust: false };
 
   const loop = Utils.gameLoop(dt => {
@@ -89,6 +90,7 @@ const AsteroidsGame = (() => {
     bullets = []; particles = [];
     score = 0; lives = 3; wave = 1; fireTimer = 0; invuln = 90;
     nextLifeAt = 10000; lifeFlashUntil = 0;
+    ufo = null; ufoShots = []; ufoTimer = 1100 + Math.random() * 500;
     spawnWave();
     running = !!startRun; gameOver = false;
     updateInfo();
@@ -175,6 +177,11 @@ const AsteroidsGame = (() => {
       const b = bullets[i];
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; wrap(b);
       if (b.life <= 0) { bullets.splice(i, 1); continue; }
+      if (ufo && Math.hypot(b.x - ufo.x, b.y - ufo.y) < 17) {
+        bullets.splice(i, 1);
+        destroyUfo();
+        continue;
+      }
       for (let j = rocks.length - 1; j >= 0; j--) {
         const r = rocks[j];
         if (Math.hypot(b.x - r.x, b.y - r.y) < r.r + 2.5) { // +bullet radius so grazing spikes still count
@@ -186,6 +193,37 @@ const AsteroidsGame = (() => {
     }
 
     for (const r of rocks) { r.x += r.vx * dt; r.y += r.vy * dt; r.a += r.rot * dt; wrap(r); }
+
+    // ---- UFO saucer: crosses the field hunting the player ----
+    if (!ufo) {
+      ufoTimer -= dt;
+      if (ufoTimer <= 0) spawnUfo();
+    } else {
+      ufo.x += ufo.vx * dt;
+      ufo.wob += dt * 0.045;
+      ufo.y = ufo.baseY + Math.sin(ufo.wob) * 26;
+      ufo.fireT -= dt;
+      if (ufo.fireT <= 0) {
+        ufo.fireT = ufo.fireEvery;
+        // Aimed at the ship, with a spread that tightens on later waves.
+        const aim = Math.atan2(ship.y - ufo.y, ship.x - ufo.x) + (Math.random() - 0.5) * ufo.spread;
+        ufoShots.push({ x: ufo.x, y: ufo.y + 5, vx: Math.cos(aim) * 3.1, vy: Math.sin(aim) * 3.1, life: 200 });
+        sfx('rotate');
+      }
+      if (ufo.x < -46 || ufo.x > WIDTH + 46) { ufo = null; ufoTimer = 1000 + Math.random() * 700; }
+    }
+    for (let i = ufoShots.length - 1; i >= 0; i--) {
+      const s = ufoShots[i];
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      if (s.life <= 0 || s.x < -10 || s.x > WIDTH + 10 || s.y < -10 || s.y > HEIGHT + 10) {
+        ufoShots.splice(i, 1); continue;
+      }
+      if (invuln <= 0 && Math.hypot(ship.x - s.x, ship.y - s.y) < SHIP_R * 0.8 + 3) {
+        ufoShots.splice(i, 1);
+        loseLife();
+      }
+    }
+    if (ufo && invuln <= 0 && Math.hypot(ship.x - ufo.x, ship.y - ufo.y) < 16 + SHIP_R * 0.7) loseLife();
 
     // ship vs rocks
     if (invuln <= 0) {
@@ -222,6 +260,32 @@ const AsteroidsGame = (() => {
     if (r.tier > 1) {
       for (let k = 0; k < 2; k++) rocks.push(makeRock(r.x, r.y, r.tier - 1));
     }
+    updateInfo();
+  }
+
+  function spawnUfo() {
+    const fromLeft = Math.random() < 0.5;
+    ufo = {
+      x: fromLeft ? -36 : WIDTH + 36,
+      baseY: 50 + Math.random() * (HEIGHT - 130),
+      y: 0, wob: Math.random() * 9,
+      vx: (fromLeft ? 1 : -1) * (1.1 + Math.min(wave, 10) * 0.06),
+      fireEvery: Math.max(70, 130 - wave * 5),
+      fireT: 70,
+      spread: Math.max(0.12, 0.65 - wave * 0.05),
+    };
+    ufo.y = ufo.baseY;
+    sfx('bonus');
+  }
+
+  function destroyUfo() {
+    score += 200 + wave * 25;
+    high = Utils.highScore.save('asteroids-high', score, high);
+    burst(ufo.x, ufo.y, 3, '#F778BA');
+    sfx('clear');
+    Effects.shakeCanvas(canvas, 6, 260);
+    ufo = null;
+    ufoTimer = 1100 + Math.random() * 800;
     updateInfo();
   }
 
@@ -299,6 +363,21 @@ const AsteroidsGame = (() => {
     // bullets
     ctx.fillStyle = '#fff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
     for (const b of bullets) { ctx.beginPath(); ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2); ctx.fill(); }
+    ctx.shadowBlur = 0;
+
+    // UFO saucer + its shots
+    if (ufo) {
+      ctx.save();
+      ctx.translate(ufo.x, ufo.y);
+      ctx.strokeStyle = '#F778BA'; ctx.shadowColor = '#F778BA'; ctx.shadowBlur = 10; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(0, 0, 16, 6, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -4, 7, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(16, 0); ctx.stroke();
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    }
+    ctx.fillStyle = '#F778BA'; ctx.shadowColor = '#F778BA'; ctx.shadowBlur = 8;
+    for (const s of ufoShots) { ctx.beginPath(); ctx.arc(s.x, s.y, 2.2, 0, Math.PI * 2); ctx.fill(); }
     ctx.shadowBlur = 0;
 
     // ship (blink while invulnerable)
