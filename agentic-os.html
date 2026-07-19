@@ -147,6 +147,38 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 #splash .t{font-weight:700;letter-spacing:.2em;color:var(--accent)}
 #splash .s{font-size:11px;color:var(--faint)}
 
+
+/* ---------- v2: ci, party, ships, board, cat, night, sound ---------- */
+.ci-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:0}
+.ci-dot.success{background:var(--good)}
+.ci-dot.failure{background:var(--bad);animation:blink 1s infinite}
+.ci-dot.pending{background:var(--warn);animation:blink 1.6s infinite}
+.party .d-status{background:rgba(188,140,255,.16);color:var(--purple)}
+.party .bot{animation:partybounce .55s ease-in-out infinite}
+@keyframes partybounce{0%,100%{transform:translateX(-50%) translateY(0) rotate(-4deg)}50%{transform:translateX(-50%) translateY(-6px) rotate(4deg)}}
+.party .mscreen{background:#120a18}
+.party .mscreen .code{opacity:1;animation:scroll 1s linear infinite;
+  background:repeating-linear-gradient(180deg,rgba(188,140,255,.7) 0 2px,transparent 2px 6px,rgba(210,153,34,.6) 6px 8px,transparent 8px 12px,rgba(63,185,80,.6) 12px 14px,transparent 14px 20px);background-size:70% 40px}
+.party .bub.party{display:block;color:var(--purple);border-color:rgba(188,140,255,.4);font-size:10px;font-weight:700}
+.party .mscreen::after{content:none}
+.d-lv{font-size:9px;color:var(--warn);font-weight:700;margin-left:5px}
+#board{max-width:1400px;margin:0 auto;width:100%;padding:0 22px 22px}
+#board h2{font-size:10px;letter-spacing:.16em;color:var(--faint);font-weight:700;margin-bottom:9px}
+.ship-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(28,40,54,.6);font-size:11px}
+.ship-row .n{color:var(--purple);font-weight:700;white-space:nowrap}
+.ship-row .t{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ship-row .w{color:var(--faint);white-space:nowrap;font-size:10px}
+#cat{position:fixed;bottom:46px;left:-40px;font-size:22px;z-index:70;cursor:pointer;user-select:none;
+  transition:left 14s linear;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+#cat.flip{transform:scaleX(-1)}
+#cat.dash{transition:left 1.2s ease-in}
+body.night .scene{filter:brightness(.68) saturate(.85)}
+body.night .scene::before{content:'';position:absolute;left:14%;top:8px;width:40px;height:40px;
+  background:radial-gradient(circle,rgba(255,215,120,.18),transparent 70%);pointer-events:none}
+#snd{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--dim);
+  font-family:inherit;font-size:12px;cursor:pointer;padding:5px 10px}
+#snd:hover{color:var(--text)}
+
 footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;line-height:1.7}
 
 @media (max-width:640px){
@@ -163,6 +195,7 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
   <span class="h-title">&#127970; EUREKA STUDIO</span>
   <span class="h-live"><i></i>LIVE</span>
   <span class="h-spacer"></span>
+  <button id="snd" title="Keyboard sounds">&#128263;</button>
   <span id="sync">syncing&hellip;</span>
   <a class="h-back" href="index.html">&larr; EUREKA GAMES</a>
 </header>
@@ -174,6 +207,13 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 </div>
 
 <div id="office"></div>
+
+<div id="board" hidden>
+  <h2>&#128230; RECENTLY SHIPPED</h2>
+  <div id="board-list"></div>
+</div>
+
+<div id="cat" title="the office cat">&#128008;</div>
 
 <div id="ticker"><div class="inner" id="ticker-inner"></div></div>
 
@@ -264,10 +304,35 @@ function avatarFor(name) {
 const state = {
   prs: [],            // open PRs from GitHub
   byDesk: {},         // desk key -> array of PRs
+  merged: [],         // recently merged PRs (closed list, merged_at set)
+  mergedByDesk: {},   // desk key -> merged PRs (for celebration + career stats)
+  ci: {},             // pr number -> combined status (success|failure|pending)
   lastSync: null,
-  etag: null,
+  etag: null, etagClosed: null,
   error: null
 };
+
+/* CI results cached by head SHA — terminal states only, pending gets refetched */
+const CICACHE_KEY = 'studio-ci';
+function ciCache() { try { return JSON.parse(localStorage.getItem(CICACHE_KEY) || '{}'); } catch (e) { return {}; } }
+async function ciFor(pr) {
+  const sha = pr.head && pr.head.sha;
+  if (!sha) return null;
+  const cache = ciCache();
+  if (cache[sha]) return cache[sha];
+  try {
+    const res = await fetch(API + '/commits/' + sha + '/status');
+    if (!res.ok) return null;
+    const st = (await res.json()).state; // success | failure | pending
+    if (st === 'success' || st === 'failure') {
+      cache[sha] = st;
+      const keys = Object.keys(cache);
+      while (keys.length > 60) delete cache[keys.shift()];
+      try { localStorage.setItem(CICACHE_KEY, JSON.stringify(cache)); } catch (e) {}
+    }
+    return st;
+  } catch (e) { return null; }
+}
 
 /* changed-files cache: refetch a PR's files only when its updated_at moves */
 const FCACHE_KEY = 'studio-fcache';
@@ -317,6 +382,27 @@ async function sync() {
       for (const key of desksFor(pr, files)) byDesk[key].push(pr);
     }
     state.byDesk = byDesk;
+    // CI status for each open PR (cheap: cached by SHA once terminal)
+    const ci = {};
+    for (const pr of state.prs.slice(0, 10)) ci[pr.number] = await ciFor(pr);
+    state.ci = ci;
+    // recently merged work -> celebrations + shipped board + career stats
+    try {
+      const h2 = {};
+      if (state.etagClosed) h2['If-None-Match'] = state.etagClosed;
+      const rc = await fetch(API + '/pulls?state=closed&sort=updated&direction=desc&per_page=50', { headers: h2 });
+      if (rc.status !== 304 && rc.ok) {
+        state.etagClosed = rc.headers.get('ETag');
+        state.merged = (await rc.json()).filter(p => p.merged_at);
+        const mByDesk = {};
+        for (const d of DESKS) mByDesk[d.key] = [];
+        for (const pr of state.merged) {
+          const cached = fcache()[pr.number];
+          for (const key of desksFor(pr, cached ? cached.f : null)) mByDesk[key].push(pr);
+        }
+        state.mergedByDesk = mByDesk;
+      }
+    } catch (e) { /* celebrations are optional */ }
     state.lastSync = new Date();
     state.error = null;
   } catch (e) {
@@ -349,6 +435,7 @@ function buildOffice() {
         <div class="hands"><i></i><i></i></div>
         <div class="bub zzz">&#128164;</div>
         <div class="bub pr"></div>
+        <div class="bub party">SHIPPED &#127881;</div>
         <div class="mug"></div>
         <div class="plant">&#127793;</div>
       </div>
@@ -364,16 +451,42 @@ function render() {
     if (!el) continue;
     const prs = (state.byDesk[d.key] || []);
     const working = prs.length > 0;
+    const mergedRecent = (state.mergedByDesk[d.key] || []).filter(p =>
+      Date.now() - new Date(p.merged_at) < 2 * 3600 * 1000);
+    const party = !working && mergedRecent.length > 0;
     el.classList.toggle('working', working);
-    el.classList.toggle('idle', !working);
-    $('.d-status', el).textContent = working ? 'WORKING' : 'OFF DUTY';
+    el.classList.toggle('party', party);
+    el.classList.toggle('idle', !working && !party);
+    // career level from real merged-PR count on this desk
+    const ships = (state.mergedByDesk[d.key] || []).length;
+    const lvEl = $('.d-agent', el);
+    lvEl.innerHTML = esc(d.agent) + (ships ? ` <span class="d-lv">LV.${1 + Math.floor(Math.sqrt(ships))} · ${ships} shipped</span>` : '');
+    const st = $('.d-status', el);
+    if (working) {
+      const ci = state.ci[prs[0].number];
+      st.innerHTML = (ci ? `<span class="ci-dot ${ci}" title="CI ${ci}"></span>` : '') + 'WORKING';
+    } else st.textContent = party ? 'SHIPPED!' : 'OFF DUTY';
     if (working) {
       const newest = prs.reduce((a, b) => a.updated_at > b.updated_at ? a : b);
       $('.bub.pr', el).textContent = 'PR #' + newest.number + (prs.length > 1 ? ' +' + (prs.length - 1) : '');
       $('.d-foot', el).innerHTML = `<b>${prs.length} open PR${prs.length > 1 ? 's' : ''}</b> · last activity ${ago(newest.updated_at)}`;
+    } else if (party) {
+      $('.d-foot', el).innerHTML = `<b>just shipped #${mergedRecent[0].number}</b> · ${ago(mergedRecent[0].merged_at)} — victory lap in progress`;
     } else {
       $('.d-foot', el).innerHTML = `no open work — ${esc(d.agent)} is ${['on break', 'napping', 'refilling coffee', 'contemplating the backlog'][(d.key.length * 7) % 4]}`;
     }
+  }
+  // shipped board
+  const board = $('#board');
+  if (state.merged.length) {
+    board.hidden = false;
+    $('#board-list').innerHTML = state.merged.slice(0, 8).map(p => {
+      const deskKeys = Object.entries(state.mergedByDesk).filter(([, l]) => l.includes(p)).map(([k]) => k);
+      const names = deskKeys.map(k => (DESKS.find(d => d.key === k) || {}).game).filter(Boolean).join(', ');
+      return `<div class="ship-row"><span class="n">#${p.number}</span>
+        <a class="t" href="${esc(p.html_url)}" target="_blank" rel="noopener">${esc(p.title)}</a>
+        <span class="w">${esc(names || 'SITE OPS')} · ${ago(p.merged_at)}</span></div>`;
+    }).join('');
   }
   // ticker
   const t = $('#ticker-inner');
@@ -421,6 +534,61 @@ function openModal(key) {
 function closeModal() { $('#overlay').classList.remove('open'); }
 $('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ---------- ambiance: night shift, keyboard sounds, the office cat ---------- */
+const hr = new Date().getHours();
+if (hr >= 20 || hr < 6) document.body.classList.add('night');
+
+let soundOn = false;
+let actx = null;
+function clack() {
+  if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; actx = new AC(); }
+  if (actx.state === 'suspended') actx.resume();
+  const len = actx.sampleRate * 0.02;
+  const buf = actx.createBuffer(1, len, actx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const g = actx.createGain(); g.gain.value = 0.028 + Math.random() * 0.02;
+  const f = actx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1800;
+  src.connect(f); f.connect(g); g.connect(actx.destination); src.start();
+}
+$('#snd').addEventListener('click', () => {
+  soundOn = !soundOn;
+  $('#snd').innerHTML = soundOn ? '&#128266;' : '&#128263;';
+  if (soundOn) clack();
+});
+setInterval(() => {
+  if (!soundOn) return;
+  const n = document.querySelectorAll('.desk.working').length;
+  if (n && Math.random() < Math.min(0.85, 0.35 + n * 0.18)) clack();
+}, 140);
+
+const cat = $('#cat');
+let catWalking = false;
+function catWalk() {
+  if (catWalking || document.hidden) return;
+  catWalking = true;
+  const ltr = Math.random() < 0.5;
+  cat.classList.remove('dash');
+  cat.classList.toggle('flip', ltr);
+  cat.style.transition = 'none';
+  cat.style.left = ltr ? '-50px' : (innerWidth + 20) + 'px';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    cat.style.transition = '';
+    cat.style.left = ltr ? (innerWidth + 20) + 'px' : '-50px';
+  }));
+  setTimeout(() => { catWalking = false; }, 15000);
+}
+cat.addEventListener('click', () => {
+  cat.classList.add('dash');
+  cat.style.left = cat.classList.contains('flip') ? (innerWidth + 40) + 'px' : '-60px';
+  if (soundOn) { clack(); setTimeout(clack, 90); }
+  setTimeout(() => { catWalking = false; }, 1400);
+});
+cat.addEventListener('transitionend', () => { catWalking = false; });
+setInterval(() => { if (Math.random() < 0.45) catWalk(); }, 40000);
+setTimeout(catWalk, 7000);
 
 /* ---------- go ---------- */
 buildOffice();
