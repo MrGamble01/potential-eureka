@@ -125,12 +125,23 @@
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
 
     /* ---- Trader modal ---- */
-    #trader, #event, #welcome {
+    #trader, #event, #welcome, #achv {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show, #welcome.show { display: flex; }
+    #trader.show, #event.show, #welcome.show, #achv.show { display: flex; }
+    #achv-list { max-height: min(52vh, 420px); overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 4px; }
+    .achv-row {
+      display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+      border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+    }
+    .achv-row .aemoji { font-size: 20px; width: 26px; text-align: center; }
+    .achv-row .aname { font-size: 13px; font-weight: 700; }
+    .achv-row .adesc { font-size: 11.5px; color: var(--ink-dim); }
+    .achv-row.locked { opacity: 0.45; }
+    .achv-row.locked .aemoji { filter: grayscale(1); }
+    .achv-row.done { border-color: rgba(242,193,78,0.45); }
     #ev-choices { display: flex; flex-direction: column; gap: 9px; }
     .ev-choice {
       width: 100%; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line);
@@ -237,6 +248,7 @@
   <div id="menu">
     <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
+    <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
   <div id="paused">&#9208; PAUSED &middot; press Space</div>
@@ -288,6 +300,15 @@
       <h2><span id="ev-emoji">&#127881;</span><span id="ev-title">Something happens</span></h2>
       <div class="flavor" id="ev-text">&mdash;</div>
       <div id="ev-choices"></div>
+    </div>
+  </div>
+
+  <div id="achv">
+    <div class="trader-card">
+      <h2><span>&#127942;</span><span>Achievements</span></h2>
+      <div class="flavor" id="achv-count">&mdash;</div>
+      <div id="achv-list"></div>
+      <button class="closebtn" id="achv-close">Back to town</button>
     </div>
   </div>
 
@@ -1022,6 +1043,8 @@
       raining: false,  // cosmetic weather for the current day
       achievements: [],
       townName: 'Hearthvale',
+      trades: 0,       // lifetime deals struck with the traveling merchant
+      traderDay: 0,    // day the merchant's cart is (or was last) in town
     };
   }
   const ACHIEVEMENTS = [
@@ -1035,6 +1058,8 @@
     { id: 'miller', emoji: '🌬️', name: 'The Miller', desc: 'Raise a windmill.', done: () => countType('windmill') >= 1 },
     { id: 'chapel', emoji: '🔔', name: 'Bells of Hearthvale', desc: 'Build a chapel.', done: () => countType('chapel') >= 1 },
     { id: 'orchardist', emoji: '🍎', name: 'Orchardist', desc: 'Plant an orchard.', done: () => countType('orchard') >= 1 },
+    { id: 'first_trade', emoji: '🤝', name: 'Fair Deal', desc: 'Strike a deal with the traveling merchant.', done: () => (state.trades || 0) >= 1 },
+    { id: 'trade_baron', emoji: '🐴', name: 'Friend of the Road', desc: 'Make 25 trades with the merchant.', done: () => (state.trades || 0) >= 25 },
     { id: 'gardener', emoji: '🌷', name: 'Green Thumb', desc: 'Place your first decoration.', done: () => state.buildings.some(b => BUILDINGS[b.type].decor) },
     { id: 'square', emoji: '⛲', name: 'Town Square', desc: 'Build a fountain.', done: () => countType('fountain') >= 1 },
     { id: 'beautiful', emoji: '✨', name: 'A Beautiful Town', desc: 'Reach 40 town charm.', done: () => townCharm() >= 40 },
@@ -1056,6 +1081,16 @@
       }
     }
     if (unlocked) save();
+  }
+  function openAchievements() {
+    const wrap = document.getElementById('achv-list');
+    const got = state.achievements || [];
+    document.getElementById('achv-count').textContent = got.length + ' of ' + ACHIEVEMENTS.length + ' earned';
+    wrap.innerHTML = ACHIEVEMENTS.map(a => {
+      const done = got.indexOf(a.id) >= 0;
+      return '<div class="achv-row ' + (done ? 'done' : 'locked') + '"><span class="aemoji">' + a.emoji + '</span><span><div class="aname">' + a.name + '</div><div class="adesc">' + a.desc + '</div></span></div>';
+    }).join('');
+    document.getElementById('achv').classList.add('show');
   }
   function rollWeather() {
     const s = seasonOf(state.day);
@@ -1344,6 +1379,18 @@
   // ---- Villagers ----------------------------------------------
   const V_COLORS = ['#e06a5c', '#5f83c8', '#e0a13f', '#7bbf63', '#c78be0', '#4fb0a8', '#e0708b'];
   const V_NAMES = ['Mira', 'Tobin', 'Elara', 'Finn', 'Rowan', 'Sable', 'Bram', 'Wren', 'Cassia', 'Odo', 'Hazel', 'Pippin', 'Fern', 'Garrick', 'Lila', 'Marn', 'Nessa', 'Corin', 'Dahlia', 'Emrys', 'Juniper', 'Alden', 'Petra', 'Wilan'];
+  // Each villager has a nature — pure flavor that colors their panel and emotes.
+  const V_TRAITS = [
+    { name: 'Cheerful',    emoji: '😊', mote: '🎶' },
+    { name: 'Dreamer',     emoji: '💭', mote: '💭' },
+    { name: 'Hardworking', emoji: '💪', mote: '🔨' },
+    { name: 'Sleepyhead',  emoji: '😴', mote: '💤' },
+    { name: 'Friendly',    emoji: '👋', mote: '❤️' },
+    { name: 'Curious',     emoji: '🔍', mote: '❓' },
+    { name: 'Gourmand',    emoji: '🍞', mote: '🍎' },
+    { name: 'Green thumb', emoji: '🌱', mote: '🌼' },
+  ];
+  function traitOf(v) { return V_TRAITS[Math.floor(rrand(v.id * 41 + 5) * V_TRAITS.length) % V_TRAITS.length]; }
   function spawnVillager(home) {
     const d = doorTile(home);
     const spot = findWalkableNear(d.tx, d.ty) || d;
@@ -1462,6 +1509,7 @@
       const tgt = v.path[0];
       const gx = tgt.tx * TILE + TILE / 2, gy = tgt.ty * TILE + TILE / 2;
       const dx = gx - v.x, dy = gy - v.y, dist = Math.hypot(dx, dy);
+      if (Math.abs(dx) > 0.5) v.face = dx < 0 ? -1 : 1;
       const onRoad = inMap(v.tx, v.ty) && (tiles[idx(v.tx, v.ty)] === T_DIRT || tiles[idx(v.tx, v.ty)] === T_BRIDGE);
       const spd = (onRoad ? 34 : 22) * dt * TILE / 16;
       if (dist < 1.5) { v.x = gx; v.y = gy; v.tx = tgt.tx; v.ty = tgt.ty; v.path.shift(); }
@@ -1499,11 +1547,11 @@
     }
     if (!dest) {
       dest = randomStroll(v);
-      if (state.happy >= 65 && roll(53) < 0.12) setEmote(v, roll(11) < 0.5 ? '🎶' : '❤️', 2.2);
+      if (state.happy >= 65 && roll(53) < 0.12) setEmote(v, roll(11) < 0.5 ? traitOf(v).mote : '❤️', 2.2);
     }
     if (dest) { const p = pathfind(v.tx, v.ty, dest.tx, dest.ty); if (p && p.length) v.path = p; }
   }
-  const ROLE_EMOTE = { farm: '🌾', lumber: '🪵', quarry: '⛏️', bakery: '🍞', carpenter: '🪚', fishing: '🐟', windmill: '🌬️', market: '🪙' };
+  const ROLE_EMOTE = { farm: '🌾', lumber: '🪵', quarry: '⛏️', bakery: '🍞', carpenter: '🪚', fishing: '🐟', windmill: '🌬️', market: '🪙', orchard: '🍎' };
   function strollNear(atx, aty, radius) {
     for (let i = 0; i < 10; i++) {
       const nx = atx + Math.floor((rrand((atx + i + Math.floor(state.time) * 3) * 5) - 0.5) * radius * 2);
@@ -1577,10 +1625,12 @@
   }
 
   function onNewDay() {
-    // trader arrival
+    // trader visit — mark the merchant as due today; the wagon itself
+    // rolls in at morning (see cartTick), not in the middle of the night
     if (state.day >= state.nextTraderDay && state.buildings.some(b => b.type === 'market')) {
-      openTrader();
+      state.traderDay = state.day;
       state.nextTraderDay = state.day + 3 + Math.floor(rrand(state.day * 17) * 3);
+      toast('🐴 Word is the traveling merchant will pass through today.');
     } else if (state.day >= state.nextTraderDay) {
       // no market yet — remind and push out
       state.nextTraderDay = state.day + 2;
@@ -1684,7 +1734,6 @@
     renderTrader();
     document.getElementById('trader').classList.add('show');
     SFX('trader');
-    toast('🚚 A traveling merchant has arrived at the market!');
   }
   function renderTrader() {
     const rows = document.getElementById('trade-rows');
@@ -1702,8 +1751,8 @@
     });
     rows.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
       const k = btn.dataset.k, p = traderPrices[k];
-      if (btn.dataset.act === 'buy' && state.res.gold >= p.buy) { state.res.gold -= p.buy; state.res[k] += 1; SFX('coin'); }
-      else if (btn.dataset.act === 'sell' && state.res[k] >= 1) { state.res[k] -= 1; state.res.gold += p.sell; SFX('coin'); }
+      if (btn.dataset.act === 'buy' && state.res.gold >= p.buy) { state.res.gold -= p.buy; state.res[k] += 1; state.trades = (state.trades || 0) + 1; SFX('coin'); }
+      else if (btn.dataset.act === 'sell' && state.res[k] >= 1) { state.res[k] -= 1; state.res.gold += p.sell; state.trades = (state.trades || 0) + 1; SFX('coin'); }
       renderTrader(); updateHUD(); save();
     }));
   }
@@ -1754,6 +1803,19 @@
         else if (t === T_BRIDGE) spr = SPR.bridge;
         else spr = SPR['water' + waterFrame];
         ctx.drawImage(spr, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
+        if (t === T_WATER) {
+          // living water: two soft highlights per tile drifting on smooth sines (never snaps)
+          const wt = ambientTime;
+          const hx = 8 + Math.sin(wt * 0.9 + tx * 1.7 + ty * 2.3) * 5;
+          const hy = 8 + Math.sin(wt * 0.7 + tx * 2.9 + ty * 1.3) * 4;
+          const hy2 = 9 + Math.sin(wt * 0.55 + tx * 1.1 + ty * 3.1) * 4;
+          ctx.fillStyle = '#bfe9f7';
+          ctx.globalAlpha = 0.20;
+          ctx.fillRect(sx + (tx * TILE + hx - 2) * z, sy + (ty * TILE + hy) * z, 4 * z, 1 * z);
+          ctx.globalAlpha = 0.12;
+          ctx.fillRect(sx + (tx * TILE + (15 - hx)) * z, sy + (ty * TILE + hy2) * z, 3 * z, 1 * z);
+          ctx.globalAlpha = 1;
+        }
       }
     }
     // flat decorations (crop patches, pebbles, mushrooms, tall grass, reeds)
@@ -1782,12 +1844,14 @@
     state.buildings.forEach(b => { const def = BUILDINGS[b.type]; if (b.ty + def.h >= y0 - 2 && b.ty <= y1 + 2) drawables.push({ y: b.ty + def.h, kind: 'building', b }); });
     state.villagers.forEach(v => { const vty = v.y / TILE; if (vty >= y0 - 2 && vty <= y1 + 2) drawables.push({ y: vty, kind: 'villager', v }); });
     for (const cr of critters) { const cty = cr.y / TILE; if (cty >= y0 - 2 && cty <= y1 + 2) drawables.push({ y: cty, kind: 'critter', cr }); }
+    if (cart) drawables.push({ y: cart.y / TILE + 0.55, kind: 'cart' });
     drawables.sort((a, b) => a.y - b.y);
 
     for (const d of drawables) {
       if (d.kind === 'building') drawBuilding(d.b, sx, sy, z);
       else if (d.kind === 'villager') drawVillager(d.v, sx, sy, z);
       else if (d.kind === 'critter') drawCritter(d.cr, sx, sy, z);
+      else if (d.kind === 'cart') drawCart(sx, sy, z);
       else { // sprite prop: bottom-aligned to its tile so it "stands" on the ground
         const wpx = d.spr.width, hpx = d.spr.height;
         const drawY = (d.ty + 1) * TILE - hpx;
@@ -1842,7 +1906,8 @@
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
     }
-    // ambient life that lives in the world layer
+    // cloud shadows drift over the whole scene; flying life renders above them
+    drawClouds(sx, sy, z);
     drawButterflies(sx, sy, z);
     drawLeaves(sx, sy, z);
     drawBirds(sx, sy, z);
@@ -1971,7 +2036,13 @@
     const px = sx + v.x * z, py = sy + v.y * z;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath(); ctx.ellipse(px, py + 2 * z, 3.2 * z, 1.6 * z, 0, 0, 7); ctx.fill();
-    ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+    if (v.face === -1) {   // mirror when walking left
+      ctx.save(); ctx.scale(-1, 1);
+      ctx.drawImage(spr, Math.round(-px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+      ctx.restore();
+    } else {
+      ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+    }
     // soft speech/thought bubble — fades in and out smoothly, never pops
     if (v.emote && v.emote.life > 0) {
       const e = v.emote, k = e.life / e.maxLife;
@@ -2004,6 +2075,7 @@
   function rnd(a, b) { _rndc = (_rndc + 1) % 1000003; return a + rrand(_rndc * 2.7 + Math.floor(ambientTime * 60)) * (b - a); } // unique per call so spawns spread out
   function updateAmbient(rdt) {
     ambientTime += rdt;
+    updateClouds(rdt);
     const r = visRect(), seas = seasonIdx(), night = isNight();
     const margin = 40, vw = r.x1 - r.x0, vh = r.y1 - r.y0;
     // --- birds: glide across the sky in gentle sine paths (all seasons, daytime) ---
@@ -2156,6 +2228,7 @@
     if (cr.path && cr.path.length) {
       const t = cr.path[0], gx = t.tx * TILE + TILE / 2, gy = t.ty * TILE + TILE / 2;
       const dx = gx - cr.x, dy = gy - cr.y, dist = Math.hypot(dx, dy);
+      if (Math.abs(dx) > 0.5) cr.face = dx < 0 ? -1 : 1;
       const spd = (cr.kind === 'chicken' ? 16 : 30) * dt * TILE / 16;
       if (dist < 1.5) { cr.x = gx; cr.y = gy; cr.tx = t.tx; cr.ty = t.ty; cr.path.shift(); }
       else { cr.x += dx / dist * Math.min(spd, dist); cr.y += dy / dist * Math.min(spd, dist); cr.moving = true; }
@@ -2179,7 +2252,13 @@
     const W = spr.width, H = spr.height, px = sx + cr.x * z, py = sy + cr.y * z;
     ctx.fillStyle = 'rgba(0,0,0,0.16)';
     ctx.beginPath(); ctx.ellipse(px, py + 1 * z, 2.6 * z, 1.2 * z, 0, 0, 7); ctx.fill();
-    ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 1) * z), W * z, H * z);
+    if (cr.face === -1) {   // mirror when walking left
+      ctx.save(); ctx.scale(-1, 1);
+      ctx.drawImage(spr, Math.round(-px - (W / 2) * z), Math.round(py - (H - 1) * z), W * z, H * z);
+      ctx.restore();
+    } else {
+      ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 1) * z), W * z, H * z);
+    }
   }
 
   // Drifting chimney smoke — soft puffs rise and fade on a continuous loop.
@@ -2197,6 +2276,120 @@
       ctx.beginPath(); ctx.arc(sx + (ox + drift) * z, sy + py * z, rr, 0, 7); ctx.fill();
     }
     ctx.restore();
+  }
+
+  // ============================================================
+  //  The traveling merchant — a horse-drawn wagon that physically
+  //  rolls into town along the road, parks near the market, and
+  //  drives off at dusk. Click the wagon to trade.
+  // ============================================================
+  let cart = null;       // {x, y, phase:'arriving'|'parked'|'leaving', parkX, face} — not persisted; respawned from state.traderDay
+  let CART_SPR = null;
+  function cartSprite() {
+    if (CART_SPR) return CART_SPR;
+    const W = 40, H = 26, { c, x } = makeCanvas(W, H);
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
+    // --- horse (facing left) ---
+    P(4, 11, 12, 6, '#8a5a34'); P(4, 11, 12, 1, '#a06b3f');      // body
+    P(4, 16, 12, 1, '#6b4426');                                   // belly shade
+    P(5, 17, 1, 6, '#5f3d22'); P(8, 17, 1, 6, '#5f3d22');         // front legs
+    P(12, 17, 1, 6, '#5f3d22'); P(15, 17, 1, 6, '#5f3d22');       // hind legs
+    P(3, 7, 3, 5, '#8a5a34');                                     // neck
+    P(0, 6, 5, 4, '#8a5a34'); P(0, 8, 3, 2, '#6b4426');           // head + muzzle
+    P(4, 4, 1, 2, '#8a5a34');                                     // ear
+    P(1, 7, 1, 1, C.outline);                                     // eye
+    P(3, 5, 3, 3, '#4a2f1a'); P(5, 7, 2, 4, '#4a2f1a');           // mane
+    P(16, 12, 1, 6, '#4a2f1a');                                   // tail
+    P(10, 11, 1, 6, '#3a2a18');                                   // harness strap
+    // --- hitch bar ---
+    P(14, 14, 6, 1, C.woodDk);
+    // --- wagon ---
+    P(18, 13, 21, 5, C.wood); P(18, 13, 21, 1, C.fenceHi); P(18, 17, 21, 1, C.woodDk); // bed
+    // canvas cover: rounded top, widest at the base
+    for (let r = 0; r < 10; r++) {
+      const inset = r < 2 ? 4 - r * 2 : 0;
+      P(19 + inset, 3 + r, 20 - inset * 2, 1, r % 4 === 3 ? '#cdbd97' : '#ece0c2');
+    }
+    P(23, 3, 1, 10, '#b3a37f'); P(29, 3, 1, 10, '#b3a37f'); P(35, 3, 1, 10, '#b3a37f'); // ribs
+    // wheels: dark ring + lighter hub
+    const wheel = (cx, cy) => {
+      x.fillStyle = '#4a3320'; x.beginPath(); x.arc(cx, cy, 4.6, 0, 7); x.fill();
+      x.fillStyle = '#2e1f12'; x.beginPath(); x.arc(cx, cy, 2.8, 0, 7); x.fill();
+      P(cx - 1, cy - 1, 2, 2, '#caa06c');
+    };
+    wheel(23, 20); wheel(35, 20);
+    addOutline(x, W, H);
+    CART_SPR = c; return c;
+  }
+  // Sparse ambient audio: a birdsong chirp by day, cricket pulses at night.
+  // Very quiet, respects mute, silent while paused.
+  let ambSndTimer = 6;
+  function ambientSoundTick(rdt) {
+    if (!state || state.muted || gameSpeed === 0) return;
+    ambSndTimer -= rdt;
+    if (ambSndTimer > 0) return;
+    ambSndTimer = 7 + rnd(0, 10);
+    if (isNight()) {
+      for (let i = 0; i < 3; i++) tone(3800 + rnd(0, 300), 0.03, 'square', 0.012, i * 0.09);
+    } else {
+      const f = 2100 + rnd(0, 700);
+      tone(f, 0.06, 'sine', 0.022);
+      tone(f * 0.85, 0.05, 'sine', 0.018, 0.09);
+      if (rnd(0, 1) < 0.5) tone(f * 1.12, 0.05, 'sine', 0.015, 0.18);
+    }
+  }
+
+  function cartRoadY() { return (Math.floor(MAP_H * 0.5) + 1) * TILE; }   // the horizontal road through town
+  function cartParkX() {
+    const startX = Math.floor(MAP_W * 0.30);
+    const m = state.buildings.find(b => b.type === 'market');
+    let tx = m ? (m.tx + BUILDINGS.market.w / 2) : startX + 7;
+    tx = Math.max(startX + 3, Math.min(MAP_W - 6, tx));
+    return tx * TILE;
+  }
+  function arriveCart() {
+    cart = { x: (MAP_W - 1) * TILE + 24, y: cartRoadY(), phase: 'arriving', parkX: cartParkX(), face: -1 };
+    state.traderDay = state.day;
+    SFX('trader');
+    toast('🐴 The traveling merchant is rolling into town!');
+  }
+  function cartTick(sdt) {
+    // due today and it's morning → the wagon rolls in from the east road
+    if (!cart && state.traderDay === state.day && state.time >= 8 && state.time < 17) arriveCart();
+    if (!cart) return;
+    if (cart.phase !== 'leaving' && (state.time >= 19 || isNight())) {
+      cart.phase = 'leaving'; cart.face = 1;
+      const tm = document.getElementById('trader');
+      if (tm.classList.contains('show')) { tm.classList.remove('show'); toast('🌆 The merchant packs up and heads down the road.'); }
+    }
+    if (cart.phase === 'arriving') {
+      cart.x -= 30 * sdt;
+      if (cart.x <= cart.parkX) { cart.x = cart.parkX; cart.phase = 'parked'; toast('🛒 The merchant has set up shop — click the wagon to trade.'); }
+    } else if (cart.phase === 'leaving') {
+      cart.x += 34 * sdt;
+      if (cart.x > MAP_W * TILE + 48) cart = null;
+    }
+  }
+  function drawCart(sx, sy, z) {
+    if (!cart) return;
+    const spr = cartSprite(), W = spr.width, H = spr.height;
+    const px = sx + cart.x * z, py = sy + cart.y * z;
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.beginPath(); ctx.ellipse(px, py + 1.5 * z, 16 * z, 3 * z, 0, 0, 7); ctx.fill();
+    if (cart.face === 1) {
+      ctx.save(); ctx.scale(-1, 1);
+      ctx.drawImage(spr, Math.round(-px - (W / 2) * z), Math.round(py - (H - 3) * z), W * z, H * z);
+      ctx.restore();
+    } else {
+      ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 3) * z), W * z, H * z);
+    }
+    if (cart.phase === 'parked') {   // static coin badge: "open for business"
+      const bx = px, by = py - (H + 3) * z;
+      ctx.fillStyle = '#f2c14e'; ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.6);
+      ctx.beginPath(); ctx.arc(bx, by, 4 * z, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#a97b1e'; ctx.lineWidth = Math.max(1, z * 0.7);
+      ctx.beginPath(); ctx.arc(bx, by, 2 * z, 0, 7); ctx.stroke();
+    }
   }
 
   // ---- Minimap ------------------------------------------------
@@ -2230,8 +2423,8 @@
     mx.strokeRect(cam.x / TILE + 0.5, cam.y / TILE + 0.5, Math.max(1, vw - 1), Math.max(1, vh - 1));
   }
 
-  function drawDayNight() {
-    // 0..24 → tint. Warm dawn/dusk, deep-blue night, clear day.
+  // 0..24 → tint strength/colour. Warm dawn/dusk, deep-blue night, clear day.
+  function nightTint() {
     const h = state.time;
     let a = 0, col = '24,32,64';
     if (h < 5) a = 0.4;
@@ -2240,6 +2433,34 @@
     else if (h < 20) { a = 0.28 * ((h - 17) / 3); col = '96,58,34'; }
     else if (h < 22) { a = 0.28 + 0.12 * ((h - 20) / 2); col = '40,36,66'; }
     else a = 0.4;
+    return { a, col };
+  }
+  // Soft cloud shadows drifting over the valley — daytime only, fading
+  // smoothly through dusk (alpha follows the tint, so nothing pops).
+  let clouds = [];
+  function updateClouds(rdt) {
+    if (!clouds.length)
+      for (let i = 0; i < 5; i++) clouds.push({ x: rnd(0, 1) * WORLD_PX_W, y: rnd(0, 1) * WORLD_PX_H, vx: 2.5 + rnd(0, 2.5), rx: 30 + rnd(0, 28), ry: 13 + rnd(0, 10) });
+    for (const cl of clouds) {
+      cl.x += cl.vx * rdt;
+      if (cl.x - cl.rx * 2 > WORLD_PX_W) { cl.x = -cl.rx * 2; cl.y = rnd(0, 1) * WORLD_PX_H; }
+    }
+  }
+  function drawClouds(sx, sy, z) {
+    const a = Math.max(0, 0.07 * (1 - nightTint().a * 3.2));
+    if (a <= 0.005) return;
+    ctx.save(); ctx.fillStyle = '#18221c'; ctx.globalAlpha = a;
+    for (const cl of clouds) {
+      const px = sx + cl.x * z, py = sy + cl.y * z;
+      ctx.beginPath();
+      ctx.ellipse(px, py, cl.rx * z, cl.ry * z, 0, 0, 7);
+      ctx.ellipse(px + cl.rx * 0.7 * z, py + 3 * z, cl.rx * 0.6 * z, cl.ry * 0.7 * z, 0, 0, 7);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawDayNight() {
+    const { a, col } = nightTint();
     const season = seasonOf(state.day);
     if (season.tint) { ctx.fillStyle = season.tint; ctx.fillRect(0, 0, view.w, view.h); }
     if (a > 0.001) {
@@ -2385,8 +2606,9 @@
     document.getElementById('p-emoji').textContent = jobEmoji;
     document.getElementById('p-name').textContent = v.name;
     document.getElementById('p-sub').textContent = 'A villager of Hearthvale';
+    const tr = traitOf(v);
     document.getElementById('p-stats').innerHTML =
-      statRow('Trade', job) + statRow('Mood', mood) + statRow('Home', homeB ? BUILDINGS[homeB.type].name : '—');
+      statRow('Trade', job) + statRow('Nature', tr.emoji + ' ' + tr.name) + statRow('Mood', mood) + statRow('Home', homeB ? BUILDINGS[homeB.type].name : '—');
     const actions = document.getElementById('p-actions');
     actions.innerHTML = '<button id="p-close">Close</button>';
     document.getElementById('p-close').onclick = hidePanel;
@@ -2423,13 +2645,19 @@
   });
   canvas.addEventListener('pointermove', e => {
     hoverTile = screenToTile(e.clientX, e.clientY);
-    if (dragging) {
-      const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
-      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5) { dragMoved = true; canvas.classList.add('panning'); }
-      cam.x -= dx / cam.z; cam.y -= dy / cam.z;
-      clampCam();
+    if (!dragging) return;
+    if (buildMode === 'road') {
+      // in road mode, dragging paints a path instead of panning the camera
+      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5) dragMoved = true;
+      if (dragMoved) paintRoad(hoverTile.tx, hoverTile.ty, true);
       lastPX = e.clientX; lastPY = e.clientY;
+      return;
     }
+    const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
+    if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5) { dragMoved = true; canvas.classList.add('panning'); }
+    cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+    clampCam();
+    lastPX = e.clientX; lastPY = e.clientY;
   });
   canvas.addEventListener('pointerup', e => {
     canvas.classList.remove('panning');
@@ -2437,6 +2665,20 @@
     dragging = false;
   });
   canvas.addEventListener('pointercancel', () => { dragging = false; canvas.classList.remove('panning'); });
+
+  // Pave one road tile. silent=true (drag-painting) skips error feedback so
+  // sweeping across invalid tiles doesn't buzz; success always clicks.
+  function paintRoad(tx, ty, silent) {
+    if (!inMap(tx, ty)) return false;
+    const i = idx(tx, ty), tile = tiles[i], o = tileObj[i];
+    if (state.res.wood < 1) { if (!silent) { toast("Need 1 🪵 for a road."); SFX('error'); } return false; }
+    if (occ[i] >= 0 || tile === T_WATER || tile === T_DIRT || tile === T_BRIDGE || o === O_TREE || o === O_ROCK || o === O_MTN || o === O_BUSH) { if (!silent) SFX('error'); return false; }
+    state.res.wood -= 1; tiles[i] = T_DIRT; tileObj[i] = O_NONE;
+    (state.roads || (state.roads = [])).push({ tx, ty });
+    buildMiniTerrain();
+    SFX('place'); refreshBarState(); save();
+    return true;
+  }
 
   function handleClick(px, py) {
     const t = screenToTile(px, py);
@@ -2447,14 +2689,7 @@
       return;
     }
     if (buildMode === 'road') {
-      const i = idx(t.tx, t.ty), tile = tiles[i];
-      const o = tileObj[i];
-      if (state.res.wood < 1) { toast("Need 1 🪵 for a road."); SFX('error'); return; }
-      if (occ[i] >= 0 || tile === T_WATER || tile === T_DIRT || tile === T_BRIDGE || o === O_TREE || o === O_ROCK || o === O_MTN || o === O_BUSH) { SFX('error'); return; }
-      state.res.wood -= 1; tiles[i] = T_DIRT; tileObj[i] = O_NONE;
-      (state.roads || (state.roads = [])).push({ tx: t.tx, ty: t.ty });
-      buildMiniTerrain();
-      SFX('place'); refreshBarState(); save();
+      paintRoad(t.tx, t.ty, false);
       return;
     }
     if (buildMode) {
@@ -2465,8 +2700,13 @@
       if (!canAfford(buildMode)) { buildMode = null; canvas.classList.remove('building'); refreshBarState(); }
       return;
     }
-    // click a villager to inspect them (takes priority over the tile below)
+    // click the merchant's wagon to trade (top priority while it's in town)
     const wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;
+    if (cart && cart.phase !== 'leaving' && Math.abs(wx - cart.x) < 22 && wy > cart.y - 28 && wy < cart.y + 7) {
+      openTrader();
+      return;
+    }
+    // click a villager to inspect them (takes priority over the tile below)
     let hitV = null, best = 9;
     for (const v of state.villagers) {
       if (v.sleeping) continue;
@@ -2497,7 +2737,7 @@
   const keys = {};
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); }
+    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
@@ -2527,6 +2767,7 @@
         goalIndex: state.goalIndex, sadDays: state.sadDays,
         roads: state.roads || [], muted: !!state.muted, nextEventDay: state.nextEventDay,
         achievements: state.achievements || [], townName: state.townName || 'Hearthvale',
+        trades: state.trades || 0, traderDay: state.traderDay || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -2575,6 +2816,11 @@
         state.villagers.push(v);
       });
       state.buildings.forEach(b => { b.staffed = state.villagers.some(v => v.jobId === b.id); });
+      state.trades = s.trades || 0;
+      state.traderDay = s.traderDay || 0;
+      // if the save was made while the merchant was in town, respawn the parked wagon
+      if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
+        cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
       return true;
     } catch (e) { return false; }
   }
@@ -2623,6 +2869,8 @@
     const syncSound = () => { soundBtn.textContent = 'Sound: ' + (state.muted ? 'Off' : 'On'); };
     menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); };
     soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
+    document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
+    document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
     const speedBtn = document.getElementById('m-speed');
     speedBtn.onclick = () => { gameSpeed = gameSpeed >= 3 ? 1 : (gameSpeed < 1 ? 1 : gameSpeed + 1); prevSpeed = gameSpeed; speedBtn.innerHTML = 'Speed: ' + gameSpeed + '&times;'; syncPaused(); };
     document.getElementById('m-new').onclick = () => {
@@ -2670,6 +2918,7 @@
     stepSim(dt);
     // ambient life runs on real time, so it keeps gently moving even when paused
     updateAmbient(dt);
+    ambientSoundTick(dt);
     // render
     draw();
     // hud light refresh
@@ -2691,6 +2940,7 @@
     const vdt = Math.min(sdt, 0.12);
     for (const v of state.villagers) villagerTick(v, vdt);
     for (const cr of critters) critterTick(cr, vdt);
+    cartTick(sdt);
     // fade villager emotes
     for (const v of state.villagers) if (v.emote && v.emote.life > 0) v.emote.life -= sdt;
     // autosave
