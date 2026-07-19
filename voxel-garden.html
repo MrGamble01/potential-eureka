@@ -76,7 +76,23 @@
     padding:10px 22px;font-size:14px;cursor:pointer}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(6,10,18,.38) 100%)}
+  #achOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
+  #achOv.open{display:flex}
+  #achOv .card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px 26px;
+    max-width:560px;width:94vw;max-height:84vh;overflow:auto}
+  #achOv h2{color:var(--gold);margin-bottom:14px}
+  .ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ach{background:var(--panel2);border-radius:10px;padding:9px 11px;font-size:12px;border:1px solid transparent}
+  .ach.done{border-color:rgba(255,209,102,.5)}
+  .ach.locked{opacity:.45}
+  .ach b{display:block;font-size:13px;margin-bottom:2px}
+  .ach.done b{color:var(--gold)}
+  .ach small{color:var(--dim);line-height:1.3}
+  #achOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
+    padding:9px 20px;font-size:14px;cursor:pointer}
+  body.photo .hud,body.photo #back,body.photo .panel,body.photo #toasts{display:none!important}
   @media (max-width:640px){
+    .ach-grid{grid-template-columns:1fr}
     .slot{width:48px;height:48px;font-size:19px}
     #quests{display:none}
     #lvlChip{min-width:110px}
@@ -88,9 +104,10 @@
 <div class="hud" id="topbar">
   <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
   <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
-  <div class="chip" id="dayChip">☀️ Day <span id="day">1</span></div>
+  <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
 </div>
 <div id="back">
+  <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
   <button id="helpBtn" title="Help (H)">?</button>
@@ -112,6 +129,11 @@
 <div class="panel" id="blockPanel"></div>
 <div id="toasts"></div>
 <div id="banner"><h2 id="bH"></h2><p id="bP"></p></div>
+<div id="achOv"><div class="card">
+  <h2>🏆 Achievements</h2>
+  <div class="ach-grid" id="achGrid"></div>
+  <button id="achClose">Back to the garden</button>
+</div></div>
 <div id="helpOv"><div class="card">
   <h2>🏝️ Voxel Isle</h2>
   <p>A tiny floating island, all yours. Grow a garden in the sky.</p>
@@ -122,7 +144,8 @@
     <li><b>🧱 Build</b> with blocks &amp; decorations &middot; <b>⛏️ Dig</b> to remove</li>
     <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b></li>
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
-    <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; your isle autosaves</li>
+    <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
 </div></div>
@@ -173,6 +196,9 @@ const SFX={ctx:null,
       click:()=>{this.tone(700,0.04,'triangle',0.05);},
       level:()=>{[523,659,784,1047].forEach((f,i)=>this.tone(f,0.16,'triangle',0.09,0,i*0.09));},
       islet:()=>{[262,330,392,523,659].forEach((f,i)=>this.tone(f,0.3,'sine',0.08,0,i*0.12));this.tone(80,1.2,'sine',0.10,50);},
+      chirp:()=>{this.tone(2300,0.05,'sine',0.03,2700);this.tone(2600,0.06,'sine',0.025,2200,0.09);},
+      ach:()=>{[659,784,1047].forEach((f,i)=>this.tone(f,0.14,'triangle',0.09,0,i*0.09));},
+      season:()=>{this.tone(392,0.25,'sine',0.06,440);this.tone(523,0.3,'sine',0.05,494,0.2);},
     };
     if(P[n])P[n]();
   },
@@ -208,6 +234,14 @@ const SFX={ctx:null,
 
 /* ============================== config ============================== */
 const CYCLE=240, NIGHT_AT=0.72;             // seconds per full day; night starts at 72%
+const SEASON_DAYS=3;                        // days per season, 12-day year
+const SEASONS=[
+  {key:'spring',name:'Spring',ico:'🌸',grass:0x6fc24e,growMult:1.15},
+  {key:'summer',name:'Summer',ico:'☀️',grass:0x82ca41,growMult:1.0},
+  {key:'autumn',name:'Autumn',ico:'🍂',grass:0xa8a03c,growMult:0.9},
+  {key:'winter',name:'Winter',ico:'❄️',grass:0xe6edf2,growMult:0.65},
+];
+const seasonOf=day=>SEASONS[Math.floor((day-1)/SEASON_DAYS)%4];
 const BLOCKS={
   1:{name:'Grass', ico:'🟩', top:0x6fc24e, side:0x7a5b3c, sideTint:0x5aa042, bottom:0x6b4a30, cost:2},
   2:{name:'Dirt',  ico:'🟫', top:0x8a6a42, side:0x82613c, bottom:0x6b4a30, cost:1},
@@ -227,26 +261,34 @@ const PLANTS={
   berry:    {name:'Berry bush',ico:'🫐', cost:60, grow:150, sell:34,  xp:11, lvl:5, multi:true, regrow:60},
   moonpetal:{name:'Moonpetal', ico:'🌙', cost:90, grow:100, sell:170, xp:45, lvl:6, night:true},
   startree: {name:'Star tree', ico:'⭐', cost:220,grow:300, sell:65,  xp:20, lvl:7, multi:true, regrow:150, tall:true},
+  glowshroom:{name:'Glowshroom',ico:'🍄', cost:150,grow:130, sell:260, xp:55, lvl:8},
+  crystalberry:{name:'Crystalberry',ico:'💎', cost:400,grow:420, sell:150, xp:35, lvl:9, multi:true, regrow:120},
 };
 const DECOR={
   fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
   lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
-  gnome:  {name:'Gnome',   ico:'🍄', cost:40, lvl:4},
+  gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
+  sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
 };
-const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500];   // cumulative; level = idx+1
+const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
-  4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Berry bushes',
-  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings',8:'You did it — a master gardener 🌟'};
+  4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Berry bushes · Sprinklers',
+  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings',
+  8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
+  10:'A master gardener of the skies 🌈',11:'The isle hums with life',
+  12:'Nothing left to prove — everything left to grow 🌟'};
 const ISLETS=[
   {id:0,x:27,z:6,r:7,lvl:4,seedOff:101,name:'East Islet'},
   {id:1,x:-25,z:-17,r:8,lvl:6,seedOff:202,name:'West Islet'},
+  {id:2,x:3,z:-29,r:6,lvl:8,seedOff:303,name:'South Islet'},
 ];
 
 /* ============================== state ============================== */
 const SAVE_KEY='voxel-garden-v1';
 let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
-  muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false};
+  muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
+  ach:{},achFlags:{}};
 const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
   edits:new Map(), islets:[], chunkDirty:new Set(), chunkMeshes:new Map()};
 const k3=(x,y,z)=>x+','+y+','+z;
@@ -342,6 +384,7 @@ function buildChunk(cx,cz){
     for(const f of FACES){
       if(getB(x+f.n[0],y+f.n[1],z+f.n[2]))continue;
       let hex=f.which==='top'?def.top:f.which==='bottom'?def.bottom:def.side;
+      if(id===1&&f.which==='top')hex=seasonOf(state.day).grass;   // the isle wears the season
       if(id===1&&f.which==='side'&&!getB(x,y+1,z)){
         // grass side: blend a green rim in by mixing colors
         hex=def.sideTint&&hash3(x,y,z,7)<2?def.side:def.side;
@@ -469,6 +512,29 @@ function cubesFor(type,stage,vseed){
       add(0,0.52,0,0.14,0.22,0.14,0xd64545);
       add(0,0.3,0.11,0.16,0.1,0.05,0xe8e8e8);
       break;
+    case 'sprinkler':
+      add(0,0.22,0,0.12,0.44,0.12,0x8b9199);
+      add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
+      add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
+      break;
+    case 'glowshroom':
+      add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
+      if(stage>=2){
+        add(0,0.42,0,0.44,0.18,0.44,0x35d0c0);
+        add(0,0.54,0,0.28,0.1,0.28,0x6ff0e0);
+        add(0.14,0.36,0.14,0.06,0.06,0.06,0xbfffF4);
+        add(-0.15,0.38,-0.1,0.05,0.05,0.05,0xbffff4);
+      } else add(0,0.34,0,0.2,0.1,0.2,0x4a9a8e);
+      break;
+    case 'crystalberry':
+      add(0,0.1,0,0.3,0.2,0.3,0x5a6a7a);
+      if(stage>=1)add(0,0.32,0,0.16,0.34,0.16,0x8fb8d8);
+      if(stage>=2){
+        add(0.14,0.4,0.08,0.1,0.3,0.1,0xa8d4f0);
+        add(-0.13,0.36,-0.06,0.09,0.24,0.09,0xc8e8ff);
+        add(0,0.56,0,0.11,0.22,0.11,0xe8f6ff);
+      }
+      break;
   }
   return c;
 }
@@ -509,6 +575,7 @@ function refreshPlantMesh(p){
 let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
 let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
 let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
+let leaves,leafMat,bird=null;
 const pickables=[];
 function initScene(){
   scene=new THREE.Scene();
@@ -579,6 +646,12 @@ function initScene(){
   const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));
   rainMat=new THREE.PointsMaterial({color:0xbfe0f5,size:0.24,transparent:true,opacity:0,depthWrite:false});
   rain=new THREE.Points(rg,rainMat);rain.visible=false;scene.add(rain);
+  // autumn leaves — lazy drifting flecks over the main island
+  const lp=[];for(let i=0;i<70;i++)lp.push((Math.random()-0.5)*44,Math.random()*26-2,(Math.random()-0.5)*44);
+  const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  leafMat=new THREE.PointsMaterial({color:0xd8912e,size:0.26,transparent:true,opacity:0,depthWrite:false});
+  leaves=new THREE.Points(lg,leafMat);leaves.visible=false;scene.add(leaves);
+  initBird();
   // highlight + ghost
   highlightBox=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002,1.002,1.002)),
     new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85}));
@@ -662,8 +735,23 @@ const _sky=new THREE.Color();
 function gaussish(f,c,w){let d=Math.abs(f-c);d=Math.min(d,1-d);return Math.max(0,1-d/w);}
 function updateDay(dt){
   state.time+=dt;
-  if(state.time>=CYCLE){state.time-=CYCLE;state.day++;el.day.textContent=state.day;
-    toast('☀️ Day '+state.day+' begins');}
+  if(state.time>=CYCLE){
+    const prevSeason=seasonOf(state.day);
+    state.time-=CYCLE;state.day++;el.day.textContent=state.day;
+    const s=seasonOf(state.day);
+    if(s!==prevSeason){
+      // repaint every grass top in the new season's colours
+      markAllDirty();flushChunks();
+      refreshSeasonHud();
+      SFX.play('season');
+      banner(s.ico+' '+s.name+' arrives',
+        s.key==='winter'?'The isle sleeps under frost — growth slows, snow falls.':
+        s.key==='spring'?'Everything grows a little faster. Plant boldly!':
+        s.key==='autumn'?'Leaves drift on the wind. Harvests feel golden.':
+        'Long bright days. The garden basks.');
+      checkAch();
+    } else toast('☀️ Day '+state.day+' begins');
+  }
   const frac=state.time/CYCLE;
   const daylight=frac<NIGHT_AT?Math.sin(Math.PI*frac/NIGHT_AT):0;
   const night=1-clamp(daylight*2.2,0,1);
@@ -727,8 +815,8 @@ function updatePlants(dt,dn){
       if(!popsHas(p.mesh))p.mesh.scale.setScalar(s);
       continue;
     }
-    let rate=1;
-    if(def.night)rate=dn.night>0.5?1.6:0.12;
+    let rate=seasonOf(state.day).growMult;
+    if(def.night)rate*=dn.night>0.5?1.6:0.12;
     const soilK=k3(p.x,p.y-1,p.z);
     if(W.wet.has(soilK))rate*=2;
     p.prog+=dt*rate;
@@ -816,6 +904,7 @@ const QUESTS=[
   {text:'Reach Garden Level 6',prog:()=>'LV '+state.level,done:()=>state.level>=6,reward:150},
 ];
 function questCheck(){
+  checkAch();
   const q=QUESTS[state.questIdx];
   if(!q)return;
   if(q.done()){
@@ -914,6 +1003,9 @@ function actOnPlant(p){
   if(p.stage>=2){
     // harvest!
     state.harvests++;
+    if(p.type==='moonpetal')state.achFlags.moon=true;
+    if(p.type==='startree')state.achFlags.tree=true;
+    if(isNight())state.achFlags.night=true;
     grantCoins(def.sell,p.x+0.5,p.y+0.9,p.z+0.5);
     grantXP(def.xp);
     SFX.play('harvest');
@@ -1031,7 +1123,9 @@ function bindInput(){
     else if(e.key==='e'||e.key==='E')cam.tyaw+=Math.PI/4;
     else if(e.key==='m'||e.key==='M')toggleMute();
     else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
-    else if(e.key==='Escape'){el.helpOv.classList.remove('open');closePanels();}
+    else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
+    else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');
+      document.body.classList.remove('photo');closePanels();}
     else if(e.key>='1'&&e.key<='5'){
       const tools=['hoe','water','seed','block','pick'];
       selectTool(tools[+e.key-1]);
@@ -1082,6 +1176,9 @@ function initHud(){
   $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
   $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
   $('muteBtn').addEventListener('click',toggleMute);
+  $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
+  $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
+  refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
     state.musicOff=!state.musicOff;
     $('musicBtn').style.opacity=state.musicOff?0.4:1;
@@ -1095,6 +1192,7 @@ function initHud(){
   if(!state.helpSeen)el.helpOv.classList.add('open');
 }
 function toggleMute(){state.muted=!state.muted;$('muteBtn').textContent=state.muted?'🔇':'🔊';}
+function refreshSeasonHud(){const s=seasonOf(state.day);const t=$('seasonTag');if(t)t.textContent=s.ico+' '+s.name;}
 function selectTool(t,fromClick){
   const wasSel=state.tool===t;
   state.tool=t;
@@ -1252,17 +1350,25 @@ function updateRain(dt){
     rainT-=dt;
     if(rainT<=0){
       rainActive=true;rainLeft=22+Math.random()*20;
-      toast('🌧️ A gentle shower rolls in — your garden drinks it up');
+      const winter=seasonOf(state.day).key==='winter';
+      toast(winter?'❄️ Snow drifts across the isle — soft and slow':
+        '🌧️ A gentle shower rolls in — your garden drinks it up');
+      if(!state.achFlags.rain){state.achFlags.rain=true;checkAch();}
+      if(winter&&!state.achFlags.snow){state.achFlags.snow=true;checkAch();}
       SFX.rainStart();
     }
   }
+  const snowy=seasonOf(state.day).key==='winter';
   rainAmt+=(  (rainActive?1:0)-rainAmt)*Math.min(1,dt*1.6);
   rain.visible=rainAmt>0.02;
-  rainMat.opacity=rainAmt*0.55;
+  rainMat.opacity=rainAmt*(snowy?0.85:0.55);
+  rainMat.color.setHex(snowy?0xffffff:0xbfe0f5);
+  rainMat.size=snowy?0.3:0.24;
   if(rain.visible){
     const pos=rain.geometry.attributes.position;
+    const fall=snowy?7:26;
     for(let i=0;i<pos.count;i++){
-      let y=pos.getY(i)-dt*26;
+      let y=pos.getY(i)-dt*fall;
       if(y<-8){y=32+Math.random()*4;pos.setX(i,(Math.random()-0.5)*90);pos.setZ(i,(Math.random()-0.5)*90);}
       pos.setY(i,y);
     }
@@ -1284,6 +1390,132 @@ function updateRain(dt){
   }
 }
 
+/* ============================== the sparrow ============================== */
+// A tiny voxel sparrow lives on the isle: hops between perches, flies in a
+// long arc when its next perch is far, sits on fences and lanterns, chirps.
+// Pure ambience — it asks nothing of the player and gives a lot back.
+function initBird(){
+  const g=new THREE.Group();
+  const M=(sx,sy,sz,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),
+    new THREE.MeshLambertMaterial({color:c}));m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;};
+  M(0.26,0.2,0.2,0x8a6a4e,0,0.14,0);                 // body
+  M(0.16,0.15,0.15,0x9a7a5a,0.16,0.24,0);            // head
+  M(0.07,0.05,0.05,0xe8b23e,0.26,0.22,0);            // beak
+  M(0.16,0.05,0.12,0x6e5238,-0.17,0.18,0);           // tail
+  const w1=M(0.16,0.03,0.1,0x7a5c42,0.0,0.2,0.12);   // wings
+  const w2=M(0.16,0.03,0.1,0x7a5c42,0.0,0.2,-0.12);
+  scene.add(g);
+  bird={g,w1,w2,st:'idle',t:3+Math.random()*4,from:new THREE.Vector3(),to:new THREE.Vector3(),ft:0,dur:1,phase:Math.random()*9};
+  const p=birdPerch();g.position.copy(p);
+}
+function birdPerch(){
+  // 40% of the time aim for a decor top (fence/lantern) — peak cottagecore
+  const decor=[...W.plants.values()].filter(p=>p.type==='fence'||p.type==='lantern');
+  if(decor.length&&Math.random()<0.4){
+    const d=decor[(Math.random()*decor.length)|0];
+    return new THREE.Vector3(d.x+0.5,d.y+(d.type==='lantern'?0.96:0.5),d.z+0.5);
+  }
+  for(let i=0;i<40;i++){
+    const x=((Math.random()*28)|0)-14,z=((Math.random()*28)|0)-14;
+    const y=surfaceY(x,z);
+    if(y!==null&&!W.plants.has(k3(x,y+1,z)))return new THREE.Vector3(x+0.5,y+1.02,z+0.5);
+  }
+  return new THREE.Vector3(0.5,(surfaceY(0,0)||4)+1,0.5);
+}
+function updateBird(dt,dn){
+  if(!bird)return;
+  const b=bird;
+  if(b.st==='idle'){
+    b.g.position.y+=Math.sin(perf*3+b.phase)*0.0012;       // tiny breathing bob
+    b.w1.rotation.x=0;b.w2.rotation.x=0;
+    b.t-=dt;
+    if(b.t<=0){
+      b.from.copy(b.g.position);
+      b.to.copy(birdPerch());
+      const d=b.from.distanceTo(b.to);
+      b.st=d>6?'fly':'hop';b.ft=0;b.dur=b.st==='fly'?Math.max(1.6,d*0.14):0.45;
+      b.g.rotation.y=Math.atan2(-(b.to.z-b.from.z),b.to.x-b.from.x);
+      if(dn.daylight>0.2&&Math.random()<0.5)SFX.play('chirp');
+    }
+  } else {
+    b.ft+=dt/b.dur;
+    if(b.ft>=1){
+      b.g.position.copy(b.to);b.st='idle';
+      b.t=(dn.daylight>0.15?2.5:7)+Math.random()*6;        // sleepier at night
+    } else {
+      const t=b.ft,arc=b.st==='fly'?4+b.dur:0.7;
+      b.g.position.lerpVectors(b.from,b.to,t);
+      b.g.position.y+=Math.sin(t*Math.PI)*arc;
+      const flap=Math.sin(perf*26)*0.9;
+      b.w1.rotation.x=flap;b.w2.rotation.x=-flap;
+    }
+  }
+}
+
+/* ============================== sprinklers ============================== */
+function updateSprinklers(dt){
+  for(const p of W.plants.values()){
+    if(p.type!=='sprinkler')continue;
+    p.prog=(p.prog||0)+dt;
+    if(p.prog<18)continue;
+    p.prog=0;
+    let sprayed=false;
+    for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+      const x=p.x+dx,z=p.z+dz;
+      for(let y=p.y+1;y>=p.y-3;y--){
+        const id=getB(x,y,z);
+        if(id===5){setB(x,y,z,6);W.wet.set(k3(x,y,z),95);sprayed=true;break;}
+        if(id===6){W.wet.set(k3(x,y,z),Math.max(W.wet.get(k3(x,y,z))||0,95));break;}
+        if(id)break;
+      }
+    }
+    if(sprayed)flushChunks();
+    burst(p.x+0.5,p.y+0.7,p.z+0.5,0x7ec8ff,10,{up:1.8,g:4,spread:1.6});
+  }
+}
+
+/* ============================== achievements ============================== */
+const ACH=[
+  ['sprout','First Sprout','Plant your first seed',()=>state.planted>=1],
+  ['tiller','Breaking Ground','Till 20 plots',()=>state.tills>=20],
+  ['green25','Green Thumb','Harvest 25 crops',()=>state.harvests>=25],
+  ['green100','Master Gardener','Harvest 100 crops',()=>state.harvests>=100],
+  ['moon','Moonlit','Harvest a moonpetal',()=>!!state.achFlags.moon],
+  ['tree','Arborist','Pick fruit from a star tree',()=>!!state.achFlags.tree],
+  ['night','Night Owl','Harvest under the stars',()=>!!state.achFlags.night],
+  ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1],
+  ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3],
+  ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10],
+  ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
+  ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
+  ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
+  ['bloom','Full Bloom','Have 20 plants growing at once',
+    ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
+  ['year','A Year Aloft','Tend the garden through all four seasons',()=>state.day>=SEASON_DAYS*4+1],
+  ['maxlvl','Sky’s the Limit','Reach the final garden level',()=>state.level>=LVL_XP.length],
+];
+function checkAch(){
+  if(!state.ach)state.ach={};
+  for(const [id,name,desc,test] of ACH){
+    if(state.ach[id])continue;
+    let ok=false;try{ok=test();}catch(e){}
+    if(!ok)continue;
+    state.ach[id]=true;
+    SFX.play('ach');
+    toast('🏆 Achievement: '+name+'!');
+  }
+}
+function renderAchievements(){
+  const grid=$('achGrid');grid.innerHTML='';
+  for(const [id,name,desc] of ACH){
+    const done=!!(state.ach&&state.ach[id]);
+    const d=document.createElement('div');
+    d.className='ach '+(done?'done':'locked');
+    d.innerHTML='<b>'+(done?'🏆 ':'🔒 ')+name+'</b><small>'+desc+'</small>';
+    grid.appendChild(d);
+  }
+}
+
 /* ============================== ambient life ============================== */
 function updateAmbient(dt,dn){
   // clouds drift
@@ -1302,6 +1534,20 @@ function updateAmbient(dt,dn){
     b.rotation.y=-t+Math.PI/2;
     const flap=Math.sin(perf*18+u.seed*9)*0.9;
     u.w1.rotation.z=flap;u.w2.rotation.z=-flap;
+  }
+  // autumn leaves drift down over the isle
+  const autumn=seasonOf(state.day).key==='autumn';
+  leafMat.opacity=lerp(leafMat.opacity,autumn?0.85:0,Math.min(1,dt*1.5));
+  leaves.visible=leafMat.opacity>0.03;
+  if(leaves.visible){
+    const pos=leaves.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      let y=pos.getY(i)-dt*1.3;
+      let x=pos.getX(i)+Math.sin(perf*0.9+i)*dt*0.8;
+      if(y<-4){y=20+Math.random()*6;x=(Math.random()-0.5)*44;pos.setZ(i,(Math.random()-0.5)*44);}
+      pos.setY(i,y);pos.setX(i,x);
+    }
+    pos.needsUpdate=true;
   }
   // fireflies
   if(dn.night>0.05){
@@ -1351,6 +1597,8 @@ function boot(){
     MUSIC.tick(dt,dn);
     updateRain(dt);
     updatePlants(dt,dn);
+    updateSprinklers(dt);
+    updateBird(dt,dn);
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
