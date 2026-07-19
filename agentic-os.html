@@ -179,6 +179,41 @@ body.night .scene::before{content:'';position:absolute;left:14%;top:8px;width:40
   font-family:inherit;font-size:12px;cursor:pointer;padding:5px 10px}
 #snd:hover{color:var(--text)}
 
+/* ---------- v3: request board, commit wall, settings, emotes, shift ---------- */
+#walls{max-width:1400px;margin:0 auto;width:100%;padding:0 22px 22px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:900px){#walls{grid-template-columns:1fr}}
+#walls h2{font-size:10px;letter-spacing:.16em;color:var(--faint);font-weight:700;margin-bottom:12px}
+#walls h2 span{font-weight:400;letter-spacing:0}
+#stickies{display:flex;flex-wrap:wrap;gap:12px;align-content:flex-start}
+.sticky{width:128px;min-height:98px;padding:10px 9px 7px;font-size:10px;line-height:1.45;color:#2a2413;
+  background:linear-gradient(180deg,#f6e58d,#eccc68);border-radius:2px;box-shadow:0 4px 8px rgba(0,0,0,.35);
+  position:relative;display:flex;flex-direction:column;transition:transform .15s}
+.sticky::before{content:'\1F4CC';position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:11px}
+.sticky:nth-child(4n+1){transform:rotate(-2.2deg)}
+.sticky:nth-child(4n+2){transform:rotate(1.6deg);background:linear-gradient(180deg,#f8a5c2,#f78fb3)}
+.sticky:nth-child(4n+3){transform:rotate(-1deg);background:linear-gradient(180deg,#aee1f9,#82ccdd)}
+.sticky:nth-child(4n){transform:rotate(2.4deg);background:linear-gradient(180deg,#b8e994,#78e08f)}
+.sticky:hover{transform:rotate(0) scale(1.05);text-decoration:none;z-index:5}
+.sticky .st-t{flex:1;font-weight:600;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+.sticky .st-m{margin-top:6px;font-size:9px;opacity:.65;display:flex;justify-content:space-between;gap:6px}
+.walls-empty{font-size:10px;color:var(--faint);line-height:1.7}
+.com-row{display:flex;gap:9px;align-items:baseline;padding:6px 0;border-bottom:1px solid rgba(28,40,54,.6);font-size:11px}
+.com-row .sha{color:var(--warn);font-size:10px}
+.com-row .msg{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.com-row .who{color:var(--faint);font-size:10px;white-space:nowrap}
+.bub.emote{left:auto;right:calc(50% + 30px);color:var(--text)}
+.bub.emote.show{display:block;animation:floaty 3s ease-in-out infinite}
+#shift{font-size:10px;color:var(--faint);white-space:nowrap}
+#gear{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--dim);
+  font-family:inherit;font-size:12px;cursor:pointer;padding:5px 10px}
+#gear:hover{color:var(--text)}
+.set-body{padding:16px 18px;font-size:11px;color:var(--dim);line-height:1.7}
+.set-body input{width:100%;background:#0a0e14;border:1px solid var(--line2);border-radius:7px;color:var(--text);
+  font-family:inherit;font-size:11px;padding:8px 10px;margin:10px 0}
+.set-body .btn{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:7px;color:var(--accent);
+  font-family:inherit;font-size:11px;cursor:pointer;padding:7px 12px;margin-right:8px}
+.set-ok{color:var(--good)}
+
 footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;line-height:1.7}
 
 @media (max-width:640px){
@@ -195,7 +230,9 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
   <span class="h-title">&#127970; EUREKA STUDIO</span>
   <span class="h-live"><i></i>LIVE</span>
   <span class="h-spacer"></span>
+  <span id="shift"></span>
   <button id="snd" title="Keyboard sounds">&#128263;</button>
+  <button id="gear" title="Settings">&#9881;</button>
   <span id="sync">syncing&hellip;</span>
   <a class="h-back" href="index.html">&larr; EUREKA GAMES</a>
 </header>
@@ -207,6 +244,17 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 </div>
 
 <div id="office"></div>
+
+<div id="walls" hidden>
+  <div>
+    <h2>&#128204; REQUEST BOARD <span>&mdash; open issues, pinned</span></h2>
+    <div id="stickies"></div>
+  </div>
+  <div>
+    <h2>&#128221; WALL OF COMMITS <span>&mdash; latest on main</span></h2>
+    <div id="commits"></div>
+  </div>
+</div>
 
 <div id="board" hidden>
   <h2>&#128230; RECENTLY SHIPPED</h2>
@@ -307,10 +355,28 @@ const state = {
   merged: [],         // recently merged PRs (closed list, merged_at set)
   mergedByDesk: {},   // desk key -> merged PRs (for celebration + career stats)
   ci: {},             // pr number -> combined status (success|failure|pending)
+  issues: [],         // open issues -> the request board
+  commits: [],        // latest commits on main -> the wall
+  rate: null,         // {rem, max} from the latest response headers
   lastSync: null,
-  etag: null, etagClosed: null,
+  etag: null, etagClosed: null, etagIssues: null, etagCommits: null,
   error: null
 };
+
+/* Optional personal token (localStorage only, sent only to api.github.com).
+   Anonymous = 60 req/hr; with a no-scope token = 5,000. */
+const TOKEN_KEY = 'studio-token';
+function token() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; } }
+function gh(path, extra) {
+  const headers = Object.assign({}, extra);
+  const t = token();
+  if (t) headers['Authorization'] = 'Bearer ' + t;
+  return fetch(API + path, { headers }).then(res => {
+    const rem = res.headers.get('X-RateLimit-Remaining');
+    if (rem !== null) state.rate = { rem: +rem, max: +res.headers.get('X-RateLimit-Limit') };
+    return res;
+  });
+}
 
 /* CI results cached by head SHA — terminal states only, pending gets refetched */
 const CICACHE_KEY = 'studio-ci';
@@ -321,7 +387,7 @@ async function ciFor(pr) {
   const cache = ciCache();
   if (cache[sha]) return cache[sha];
   try {
-    const res = await fetch(API + '/commits/' + sha + '/status');
+    const res = await gh('/commits/' + sha + '/status');
     if (!res.ok) return null;
     const st = (await res.json()).state; // success | failure | pending
     if (st === 'success' || st === 'failure') {
@@ -343,7 +409,7 @@ async function filesFor(pr) {
   const cache = fcache();
   const hit = cache[pr.number];
   if (hit && hit.u === pr.updated_at) return hit.f;
-  const res = await fetch(API + '/pulls/' + pr.number + '/files?per_page=100');
+  const res = await gh('/pulls/' + pr.number + '/files?per_page=100');
   if (!res.ok) return null; // rate limited etc — caller falls back to keywords
   const files = (await res.json()).map(f => f.filename);
   cache[pr.number] = { u: pr.updated_at, f: files };
@@ -366,11 +432,17 @@ function desksFor(pr, files) {
   return [...hits];
 }
 
+/* keyword-only mapping for things without a file list (issues, commits) */
+function deskByText(text) {
+  for (const d of DESKS) if (d.kw.test(text)) return d;
+  return null;
+}
+
 async function sync() {
   try {
     const headers = {};
     if (state.etag) headers['If-None-Match'] = state.etag;
-    const res = await fetch(API + '/pulls?state=open&per_page=50', { headers });
+    const res = await gh('/pulls?state=open&per_page=50', headers);
     if (res.status === 304) { state.lastSync = new Date(); state.error = null; paintSync(); return; }
     if (!res.ok) throw new Error('GitHub said ' + res.status + (res.status === 403 ? ' (rate limited — will retry)' : ''));
     state.etag = res.headers.get('ETag');
@@ -390,7 +462,7 @@ async function sync() {
     try {
       const h2 = {};
       if (state.etagClosed) h2['If-None-Match'] = state.etagClosed;
-      const rc = await fetch(API + '/pulls?state=closed&sort=updated&direction=desc&per_page=50', { headers: h2 });
+      const rc = await gh('/pulls?state=closed&sort=updated&direction=desc&per_page=50', h2);
       if (rc.status !== 304 && rc.ok) {
         state.etagClosed = rc.headers.get('ETag');
         state.merged = (await rc.json()).filter(p => p.merged_at);
@@ -403,6 +475,26 @@ async function sync() {
         state.mergedByDesk = mByDesk;
       }
     } catch (e) { /* celebrations are optional */ }
+    // open issues -> the request board (the issues API also returns PRs; drop those)
+    try {
+      const h3 = {};
+      if (state.etagIssues) h3['If-None-Match'] = state.etagIssues;
+      const ri = await gh('/issues?state=open&per_page=30', h3);
+      if (ri.status !== 304 && ri.ok) {
+        state.etagIssues = ri.headers.get('ETag');
+        state.issues = (await ri.json()).filter(i => !i.pull_request);
+      }
+    } catch (e) { /* the board is optional */ }
+    // latest commits on the default branch -> the wall
+    try {
+      const h4 = {};
+      if (state.etagCommits) h4['If-None-Match'] = state.etagCommits;
+      const rk = await gh('/commits?per_page=12', h4);
+      if (rk.status !== 304 && rk.ok) {
+        state.etagCommits = rk.headers.get('ETag');
+        state.commits = await rk.json();
+      }
+    } catch (e) { /* the wall is optional */ }
     state.lastSync = new Date();
     state.error = null;
   } catch (e) {
@@ -436,6 +528,7 @@ function buildOffice() {
         <div class="bub zzz">&#128164;</div>
         <div class="bub pr"></div>
         <div class="bub party">SHIPPED &#127881;</div>
+        <div class="bub emote"></div>
         <div class="mug"></div>
         <div class="plant">&#127793;</div>
       </div>
@@ -488,6 +581,26 @@ function render() {
         <span class="w">${esc(names || 'SITE OPS')} · ${ago(p.merged_at)}</span></div>`;
     }).join('');
   }
+  // request board + commit wall
+  const walls = $('#walls');
+  if (state.issues.length || state.commits.length) {
+    walls.hidden = false;
+    $('#stickies').innerHTML = state.issues.length ? state.issues.slice(0, 8).map(i => {
+      const d = deskByText(i.title + ' ' + (i.labels || []).map(l => l.name).join(' '));
+      return `<a class="sticky" href="${esc(i.html_url)}" target="_blank" rel="noopener">
+        <span class="st-t">${esc(i.title)}</span>
+        <span class="st-m"><span>#${i.number}${d ? ' &rarr; ' + esc(d.agent) : ''}</span><span>${ago(i.created_at)}</span></span></a>`;
+    }).join('') : `<div class="walls-empty">board's clear — no open issues.<br>
+      <a href="https://github.com/${REPO}/issues/new" target="_blank" rel="noopener">file one on GitHub</a> and it gets pinned here.</div>`;
+    $('#commits').innerHTML = state.commits.slice(0, 10).map(c => {
+      const msg = ((c.commit && c.commit.message) || '').split('\n')[0];
+      const who = (c.commit && c.commit.author && c.commit.author.name) || '?';
+      const when = (c.commit && c.commit.author) ? ago(c.commit.author.date) : '';
+      return `<div class="com-row"><span class="sha">${esc((c.sha || '').slice(0, 7))}</span>
+        <a class="msg" href="${esc(c.html_url)}" target="_blank" rel="noopener">${esc(msg)}</a>
+        <span class="who">${esc(who)}${when ? ' · ' + when : ''}</span></div>`;
+    }).join('');
+  }
   // ticker
   const t = $('#ticker-inner');
   if (state.prs.length) {
@@ -503,9 +616,14 @@ function paintSync() {
   const el = $('#sync');
   if (state.error) { el.textContent = '⚠ ' + state.error; el.className = 'err'; return; }
   el.className = '';
-  el.textContent = state.lastSync
+  let txt = state.lastSync
     ? state.prs.length + ' open PR' + (state.prs.length === 1 ? '' : 's') + ' · synced ' + state.lastSync.toLocaleTimeString()
     : 'syncing…';
+  if (state.rate) {
+    txt += ' · API ' + state.rate.rem + '/' + state.rate.max;
+    if (state.rate.rem < 8 && !token()) { txt += ' — add a token in ⚙'; el.className = 'err'; }
+  }
+  el.textContent = txt;
 }
 
 /* ---------- modal ---------- */
@@ -531,6 +649,39 @@ function openModal(key) {
   $('#overlay').classList.add('open');
   $('.m-close').addEventListener('click', closeModal);
 }
+/* ---------- settings: optional personal token for a bigger rate limit ---------- */
+function openSettings() {
+  $('#modal').innerHTML = `
+    <div class="m-head">
+      <span><div class="m-title">&#9881; STUDIO SETTINGS</div><div class="m-sub">stays in this browser only</div></span>
+      <button class="m-close" aria-label="Close">&#10005;</button>
+    </div>
+    <div class="set-body">
+      Watching anonymously gives the office <b>60</b> GitHub API calls an hour — plenty for a visit.
+      If you hang out all day, paste a
+      <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">personal access token</a>
+      (no scopes/permissions needed — this page reads public data only) to raise it to <b>5,000</b>/hr.
+      It's saved to this browser's localStorage and sent only to api.github.com, nowhere else.
+      <input id="tok" type="password" placeholder="github_pat_… (optional)" autocomplete="off">
+      <div><button class="btn" id="tok-save">SAVE</button><button class="btn" id="tok-clear">CLEAR</button>
+      <span id="tok-msg">${token() ? 'a token is set' : 'no token set'}</span></div>
+    </div>`;
+  $('#tok').value = token();
+  $('#overlay').classList.add('open');
+  $('.m-close').addEventListener('click', closeModal);
+  $('#tok-save').addEventListener('click', () => {
+    try { localStorage.setItem(TOKEN_KEY, $('#tok').value.trim()); } catch (e) {}
+    $('#tok-msg').textContent = 'saved — next sync uses it'; $('#tok-msg').className = 'set-ok';
+    sync();
+  });
+  $('#tok-clear').addEventListener('click', () => {
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+    $('#tok').value = '';
+    $('#tok-msg').textContent = 'cleared'; $('#tok-msg').className = 'set-ok';
+  });
+}
+$('#gear').addEventListener('click', openSettings);
+
 function closeModal() { $('#overlay').classList.remove('open'); }
 $('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
@@ -538,6 +689,19 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 /* ---------- ambiance: night shift, keyboard sounds, the office cat ---------- */
 const hr = new Date().getHours();
 if (hr >= 20 || hr < 6) document.body.classList.add('night');
+$('#shift').textContent = (hr >= 20 || hr < 6) ? '\u{1F319} NIGHT SHIFT' : (hr < 12 ? '☀ MORNING SHIFT' : '☀ DAY SHIFT');
+
+/* off-duty agents have a life: little emotes over idle desks */
+const EMOTES = ['☕', '\u{1F3A7}', '\u{1F35C}', '\u{1F4D6}', '\u{1F9D8}', '\u{1F4AD}', '\u{1F331}'];
+setInterval(() => {
+  if (document.hidden) return;
+  const idlers = document.querySelectorAll('.desk.idle');
+  if (!idlers.length || Math.random() > 0.6) return;
+  const el = $('.bub.emote', idlers[Math.floor(Math.random() * idlers.length)]);
+  el.textContent = EMOTES[Math.floor(Math.random() * EMOTES.length)];
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}, 9000);
 
 let soundOn = false;
 let actx = null;
