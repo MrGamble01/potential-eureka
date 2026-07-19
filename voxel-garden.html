@@ -91,6 +91,7 @@
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span></div>
 </div>
 <div id="back">
+  <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
   <button id="helpBtn" title="Help (H)">?</button>
   <a href="index.html">&larr; ARCADE</a>
@@ -174,6 +175,16 @@ const SFX={ctx:null,
       islet:()=>{[262,330,392,523,659].forEach((f,i)=>this.tone(f,0.3,'sine',0.08,0,i*0.12));this.tone(80,1.2,'sine',0.10,50);},
     };
     if(P[n])P[n]();
+  },
+  pluck(f,vol,delay){
+    if(state.muted||state.musicOff)return;this.ensure();if(!this.ctx)return;
+    const t=this.ctx.currentTime+(delay||0);
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(vol,t+0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+1.9);
+    o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+2);
   },
   rainNode:null,
   rainStart(){
@@ -1071,6 +1082,12 @@ function initHud(){
   $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
   $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
   $('muteBtn').addEventListener('click',toggleMute);
+  $('musicBtn').addEventListener('click',()=>{
+    state.musicOff=!state.musicOff;
+    $('musicBtn').style.opacity=state.musicOff?0.4:1;
+    SFX.play('click');
+  });
+  $('musicBtn').style.opacity=state.musicOff?0.4:1;
   buildSeedPanel();buildBlockPanel();
   refreshXpHud();refreshQuestHud();
   el.coins.textContent=state.coins;el.day.textContent=state.day;
@@ -1205,6 +1222,27 @@ function load(){
   return true;
 }
 
+/* ============================== ambient music ============================== */
+// A sparse generative kalimba: soft pentatonic plucks a few seconds apart,
+// sometimes with a fifth or an octave answering. Slower and quieter at night
+// and during rain, so it never crowds the weather or the fireflies.
+const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],
+  tick(dt,dn){
+    if(state.muted||state.musicOff)return;
+    if(!SFX.ctx)return;                      // waits for the first user gesture
+    this.t+=dt;
+    if(this.t<this.next)return;
+    this.t=0;
+    const calm=(dn.night>0.5?1.8:1)*(rainAmt>0.5?1.5:1);
+    this.next=(2.4+Math.random()*3.6)*calm;
+    const f=this.scale[(Math.random()*this.scale.length)|0];
+    const vol=dn.night>0.5?0.028:0.04;
+    SFX.pluck(f,vol);
+    const r=Math.random();
+    if(r<0.3)SFX.pluck(f*1.5,vol*0.7,0.35);
+    else if(r<0.45)SFX.pluck(f*2,vol*0.55,0.5);
+  }};
+
 /* ============================== weather ============================== */
 function updateRain(dt){
   if(rainActive){
@@ -1310,6 +1348,7 @@ function boot(){
     if(dt>0.1)dt=0.1;
     perf+=dt;
     const dn=updateDay(dt);
+    MUSIC.tick(dt,dn);
     updateRain(dt);
     updatePlants(dt,dn);
     updateWet(dt);
