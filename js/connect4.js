@@ -14,6 +14,7 @@ const ConnectFourGame = (() => {
   let board;              // ROWS×COLS: 0 empty, 1 player, 2 ai
   let turn, state;        // state: 'playing' | 'won' | 'lost' | 'draw'
   let difficulty = 'medium';
+  let mode = 'ai';        // 'ai' vs the computer, or '2p' local hotseat
   let streak = 0, bestStreak = 0;
   let winLine = null;     // [[r,c],...] for the highlight
   let hoverCol = -1;
@@ -40,6 +41,7 @@ const ConnectFourGame = (() => {
 
     difficulty = localStorage.getItem('c4-diff') || 'medium';
     if (!DEPTHS[difficulty]) difficulty = 'medium';
+    mode = localStorage.getItem('c4-mode') === '2p' ? '2p' : 'ai';
     bestStreak = Utils.highScore.load('connect4-streak');
 
     canvas.addEventListener('mousemove', e => { hoverCol = colAt(e.clientX); });
@@ -63,6 +65,13 @@ const ConnectFourGame = (() => {
     if (!DEPTHS[d]) return;
     difficulty = d;
     localStorage.setItem('c4-diff', d);
+    newGame();
+    syncControls();
+  }
+
+  function setMode(m) {
+    mode = m === '2p' ? '2p' : 'ai';
+    localStorage.setItem('c4-mode', mode);
     newGame();
     syncControls();
   }
@@ -104,10 +113,13 @@ const ConnectFourGame = (() => {
 
   // ---- player / turn flow ----
   function drop(col) {
-    if (state !== 'playing' || turn !== PLAYER || anim || aiThinking || col < 0) return;
+    if (state !== 'playing' || anim || aiThinking || col < 0) return;
+    // In 2-player hotseat both turns are human; vs AI only the red turn is.
+    if (mode === 'ai' && turn !== PLAYER) return;
     const r = dropRow(board, col);
     if (r < 0) return;
-    startDrop(col, r, PLAYER, () => afterMove(r, col, PLAYER));
+    const who = turn;
+    startDrop(col, r, who, () => afterMove(r, col, who));
   }
 
   function startDrop(col, targetRow, who, done) {
@@ -122,7 +134,7 @@ const ConnectFourGame = (() => {
     if (isFull(board)) { endGame('draw', null); return; }
     turn = who === PLAYER ? AI : PLAYER;
     updateHud();
-    if (turn === AI) {
+    if (mode === 'ai' && turn === AI) {
       aiThinking = true;
       // brief think delay so it doesn't feel instant
       setTimeout(aiMove, 260);
@@ -144,11 +156,13 @@ const ConnectFourGame = (() => {
   function endGame(result, line) {
     state = result; winLine = line;
     if (result === 'won') {
-      streak++; bestStreak = Utils.highScore.save('connect4-streak', streak, bestStreak);
+      // Streak only tracks wins against the AI.
+      if (mode === 'ai') { streak++; bestStreak = Utils.highScore.save('connect4-streak', streak, bestStreak); }
       sfx('bonus'); burstConfetti();
     } else if (result === 'lost') {
-      streak = 0; sfx('die'); flash = 30;
-      if (window.Effects) Effects.shakeCanvas(canvas, 7, 320);
+      if (mode === 'ai') { streak = 0; flash = 30; if (window.Effects) Effects.shakeCanvas(canvas, 7, 320); }
+      else burstConfetti();       // 2P: yellow winning is still a win worth celebrating
+      sfx(mode === 'ai' ? 'die' : 'bonus');
     } else {
       sfx('rotate');
     }
@@ -332,7 +346,10 @@ const ConnectFourGame = (() => {
       ctx.fillStyle = 'rgba(13,17,23,0.55)'; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = '#E6EDF3'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = 'bold 30px JetBrains Mono, monospace';
-      const msg = state === 'won' ? '🎉 YOU WIN!' : state === 'lost' ? '🤖 AI WINS' : '🤝 DRAW';
+      const msg = state === 'draw' ? '🤝 DRAW'
+        : mode === '2p'
+          ? (state === 'won' ? '🔴 RED WINS!' : '🟡 YELLOW WINS!')
+          : (state === 'won' ? '🎉 YOU WIN!' : '🤖 AI WINS');
       ctx.fillText(msg, W / 2, H / 2 - 10);
       ctx.font = '13px Inter, sans-serif'; ctx.fillStyle = '#7D8590';
       ctx.fillText('New Game to play again', W / 2, H / 2 + 18);
@@ -346,14 +363,28 @@ const ConnectFourGame = (() => {
     set('c4-best', bestStreak);
     const turnEl = document.getElementById('c4-turn');
     if (turnEl) {
-      turnEl.textContent = state === 'playing'
-        ? (turn === PLAYER ? 'Your move (red)' : 'AI thinking…')
-        : (state === 'won' ? 'You won!' : state === 'lost' ? 'AI won' : 'Draw');
+      if (state === 'playing') {
+        turnEl.textContent = mode === '2p'
+          ? (turn === PLAYER ? "Red's move" : "Yellow's move")
+          : (turn === PLAYER ? 'Your move (red)' : 'AI thinking…');
+      } else if (state === 'draw') {
+        turnEl.textContent = 'Draw';
+      } else if (mode === '2p') {
+        turnEl.textContent = state === 'won' ? 'Red won!' : 'Yellow won!';
+      } else {
+        turnEl.textContent = state === 'won' ? 'You won!' : 'AI won';
+      }
     }
+    // Streak line is AI-only; hint it in 2P.
+    const streakWrap = document.getElementById('c4-streak-wrap');
+    if (streakWrap) streakWrap.style.opacity = mode === 'ai' ? '1' : '0.35';
   }
 
   function syncControls() {
     document.querySelectorAll('.c4-diff-btn').forEach(btn => btn.classList.toggle('primary', btn.dataset.diff === difficulty));
+    document.querySelectorAll('.c4-mode-btn').forEach(btn => btn.classList.toggle('primary', btn.dataset.mode === mode));
+    // Difficulty only matters vs the AI — dim it in hotseat.
+    document.querySelectorAll('.c4-diff-btn').forEach(btn => { btn.style.opacity = mode === '2p' ? '0.4' : '1'; });
     updateHud();
   }
 
@@ -362,5 +393,5 @@ const ConnectFourGame = (() => {
     confetti = []; flash = 0;
   }
 
-  return { init, newGame, setDifficulty, destroy };
+  return { init, newGame, setDifficulty, setMode, destroy };
 })();

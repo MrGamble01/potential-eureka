@@ -704,13 +704,16 @@
       </div>
       <div class="game-controls" style="flex-wrap:wrap">
         <button class="primary" onclick="ConnectFourGame.newGame()">New Game</button>
+        <button class="c4-mode-btn" data-mode="ai" onclick="ConnectFourGame.setMode('ai')">vs AI</button>
+        <button class="c4-mode-btn" data-mode="2p" onclick="ConnectFourGame.setMode('2p')">2 Player</button>
+        <span style="opacity:.5;font-size:13px">·</span>
         <button class="c4-diff-btn" data-diff="easy" onclick="ConnectFourGame.setDifficulty('easy')">Easy</button>
         <button class="c4-diff-btn" data-diff="medium" onclick="ConnectFourGame.setDifficulty('medium')">Medium</button>
         <button class="c4-diff-btn" data-diff="hard" onclick="ConnectFourGame.setDifficulty('hard')">Hard</button>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span id="c4-turn">Your move (red)</span>
-        <span>Streak: <strong id="c4-streak">0</strong></span>
+        <span id="c4-streak-wrap">Streak: <strong id="c4-streak">0</strong></span>
         <span>Best: <strong id="c4-best">0</strong></span>
       </div>
       <div class="canvas-wrapper" style="overflow:auto;max-width:100%">
