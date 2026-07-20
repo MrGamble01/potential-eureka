@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris and more. Eleven games plus an agentic OS sandbox, no install, no sign-up.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper and more. Twelve games plus an agentic OS sandbox, no install, no sign-up.">
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
@@ -52,7 +52,7 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; ELEVEN GAMES + ONE OS &mdash; FREE TO PLAY</div>
+      <div class="arcade-hero-kicker">&#9679; TWELVE GAMES + ONE OS &mdash; FREE TO PLAY</div>
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
@@ -232,6 +232,20 @@
           <div class="arcade-card-title">2048</div>
           <div class="arcade-card-tags"><span>Puzzle</span><span>Numbers</span></div>
           <div class="arcade-card-desc">Slide the tiles, merge the numbers, reach 2048.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="minesweeper" style="--accent:#F0883E">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" alt="Minefield gameplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'><rect width='320' height='200' fill='%230d1117'/><g><rect x='40' y='30' width='240' height='140' fill='%23161b22'/></g><g stroke='%230d1117' stroke-width='2'><g fill='%232b333d'><rect x='42' y='32' width='38' height='26'/><rect x='122' y='32' width='38' height='26'/><rect x='202' y='32' width='38' height='26'/><rect x='242' y='32' width='38' height='26'/><rect x='42' y='60' width='38' height='26'/><rect x='202' y='60' width='38' height='26'/><rect x='42' y='88' width='38' height='26'/><rect x='82' y='88' width='38' height='26'/><rect x='162' y='116' width='38' height='26'/><rect x='242' y='116' width='38' height='26'/><rect x='42' y='144' width='38' height='26'/><rect x='122' y='144' width='38' height='26'/></g></g><g font-family='monospace' font-weight='bold' font-size='18' text-anchor='middle'><text x='101' y='51' fill='%2358A6FF'>1</text><text x='181' y='51' fill='%233FB950'>2</text><text x='101' y='79' fill='%23F85149'>3</text><text x='141' y='79' fill='%2358A6FF'>1</text><text x='181' y='79' fill='%2358A6FF'>1</text><text x='141' y='107' fill='%233FB950'>2</text><text x='221' y='107' fill='%23F85149'>3</text><text x='101' y='135' fill='%2358A6FF'>1</text><text x='221' y='163' fill='%23BC8CFF'>4</text></g><g font-size='20' text-anchor='middle'><text x='141' y='52'>🚩</text><text x='61' y='135'>🚩</text><text x='261' y='163'>💣</text></g></svg>">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="minesweeper"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">MINEFIELD</div>
+          <div class="arcade-card-tags"><span>Puzzle</span><span>Logic</span></div>
+          <div class="arcade-card-desc">Flag the mines, clear the board, beat your best time.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -666,6 +680,35 @@
     </div>
   </section>
 
+  <!-- ===================== MINEFIELD ===================== -->
+  <section id="view-minesweeper" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">MINEFIELD</div>
+        <div class="game-subtitle">Click reveal &middot; right-click / long-press flags &middot; click a number to chord &middot; first click is always safe</div>
+      </div>
+      <div class="game-controls" style="flex-wrap:wrap">
+        <button class="mines-diff-btn" data-diff="beginner" onclick="MinesweeperGame.setDifficulty('beginner')">Beginner</button>
+        <button class="mines-diff-btn" data-diff="intermediate" onclick="MinesweeperGame.setDifficulty('intermediate')">Intermediate</button>
+        <button class="mines-diff-btn" data-diff="expert" onclick="MinesweeperGame.setDifficulty('expert')">Expert</button>
+        <button id="mines-flag-btn" onclick="MinesweeperGame.toggleFlagMode()">🚩 Flag mode: OFF</button>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>💣 <strong id="mines-count">0</strong></span>
+        <span><button id="mines-face" onclick="MinesweeperGame.newGame()" title="New game" style="background:none;border:0;cursor:pointer;font-size:20px;line-height:1">🙂</button></span>
+        <span>⏱ <strong id="mines-time">0</strong>s</span>
+        <span>Best: <strong id="mines-best">—</strong></span>
+      </div>
+      <div class="canvas-wrapper" style="overflow:auto;max-width:100%">
+        <canvas id="mines-canvas" class="game-canvas" role="img" aria-label="Minefield board — reveal cells, flag mines"></canvas>
+      </div>
+      <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
+        Chording: with the right number of flags around a revealed cell, click it to open the rest.
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== VECTOR STORM ===================== -->
   <section id="view-asteroids" class="view">
     <div class="game-container">
@@ -803,6 +846,7 @@
   <script src="js/breakout.js" defer></script>
   <script src="js/game2048.js" defer></script>
   <script src="js/asteroids.js" defer></script>
+  <script src="js/minesweeper.js" defer></script>
   <script src="js/orgchart.js" defer></script>
   <script>
   // The scripts above are now `defer`red, so they run in order right before
@@ -829,6 +873,7 @@
       breakout: () => BreakoutGame.destroy(),
       2048:     () => Game2048.destroy(),
       asteroids: () => AsteroidsGame.destroy(),
+      minesweeper: () => MinesweeperGame.destroy(),
     };
 
     function switchView(name) {
@@ -855,6 +900,7 @@
           case 'breakout':     BreakoutGame.init(); break;
           case '2048':         Game2048.init(); break;
           case 'asteroids':    AsteroidsGame.init(); break;
+          case 'minesweeper':  MinesweeperGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -887,8 +933,10 @@
         best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: '2048',             accent: '#facc15', go: () => switchView('2048'),
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+      { name: 'Minefield',        accent: '#F0883E', go: () => switchView('minesweeper'),
+        best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -953,6 +1001,7 @@
         growop:   () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : ''; },
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
         voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
+        minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
@@ -1018,7 +1067,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {

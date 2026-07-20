@@ -12,8 +12,9 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 - **Neon Breaker** — brick-breaker with paddle and ball physics
 - **Vector Storm** — asteroids-style vector shooter
 - **2048** — sliding tile puzzle
-- **Maze Solver** — generates mazes via recursive backtracking, then solves them with animated BFS, DFS, or A*
-- **Game of Life** — Conway's cellular automaton with click-to-draw and preset patterns
+- **Minefield** — a modern Minesweeper: first-click-safe, chording, three difficulties, per-difficulty best times, mobile long-press flagging, and win confetti
+- **Maze Runner** — a playable timed maze: run to the exit, grab the gems, dodge fog-of-war at higher levels, with a BFS/DFS/A* visualizer kept as a "Watch AI Solve" mode
+- **Game of Life** — Conway's cellular automaton with click-to-draw, preset patterns, age-based cell coloring, and a live population sparkline
 
 **Standalone pages:**
 - **Age of War** (`ageofwar/`) — side-scrolling strategy game: march your army through the ages and crush the enemy base
