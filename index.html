@@ -45,7 +45,7 @@
     <button data-view="orgchart">Studio Crew</button>
     <button data-view="personal" class="nav-locked">Personal</button>
     <div class="nav-utils-divider">toys</div>
-    <button data-view="maze">Maze Solver</button>
+    <button data-view="maze">Maze Runner</button>
     <button data-view="life">Game of Life</button>
   </div>
 
@@ -516,11 +516,12 @@
     <div class="game-container">
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
-        <div class="game-title">MAZE SOLVER</div>
-        <div class="game-subtitle">Generate mazes and watch algorithms solve them</div>
+        <div class="game-title">MAZE RUNNER</div>
+        <div class="game-subtitle">Arrow keys / WASD / swipe &middot; reach the pink exit, grab the gems, beat the clock &middot; N = new game</div>
       </div>
       <div class="game-controls">
-        <button class="primary" onclick="MazeGame.generate()">Generate New</button>
+        <button class="primary" onclick="MazeGame.newGame()">New Game</button>
+        <span style="opacity:.6;font-size:13px">Watch AI:</span>
         <select id="maze-algo">
           <option value="bfs">BFS (Breadth-First)</option>
           <option value="dfs">DFS (Depth-First)</option>
@@ -529,14 +530,15 @@
         <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
       </div>
       <div class="game-info">
-        <span id="maze-status" role="status" aria-live="polite" style="color: var(--text-dim)">Generate a maze to begin</span>
+        <span id="maze-status" role="status" aria-live="polite" style="color: var(--text-dim)">Loading…</span>
+        <span style="margin-left:12px">⏱ <strong id="maze-time">0.0s</strong></span>
       </div>
-      <canvas id="maze-canvas" class="game-canvas" role="img" aria-label="Maze grid"></canvas>
+      <canvas id="maze-canvas" class="game-canvas" role="img" aria-label="Maze runner — use arrow keys, WASD, or swipe to reach the exit"></canvas>
       <div class="maze-legend">
-        <span class="wall">Wall</span>
-        <span class="path">Path</span>
-        <span class="visited">Explored</span>
-        <span class="solution">Solution</span>
+        <span class="path" style="color:#3FB950">● You</span>
+        <span class="solution" style="color:#F778BA">● Exit</span>
+        <span style="color:#F7C948">◆ Gem</span>
+        <span class="visited">AI explored</span>
       </div>
     </div>
   </section>
