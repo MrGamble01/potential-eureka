@@ -13,7 +13,7 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
-  let gameLoop, running, gameOver;
+  let gameLoop, running, gameOver, paused;
   const sfx = Utils.sfx;
 
   function init() {
@@ -32,6 +32,7 @@ const SnakeGame = (() => {
     snake = [];
     running = false;
     gameOver = false;
+    paused = false;
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
@@ -54,6 +55,7 @@ const SnakeGame = (() => {
     canvas.addEventListener('touchend', e => {
       if (!running && !gameOver) { start(); return; }
       if (gameOver) { start(); return; }
+      if (paused) { togglePause(); return; }
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -88,7 +90,28 @@ const SnakeGame = (() => {
         if (gameOver) start();
         e.preventDefault();
         break;
+      case 'p': case 'P': case 'Escape':
+        togglePause();
+        e.preventDefault();
+        break;
     }
+  }
+
+  function togglePause() {
+    if (!running) return;
+    paused = !paused;
+    if (paused) {
+      clearInterval(gameLoop);
+    } else {
+      gameLoop = setInterval(tick, speed);
+    }
+    updatePauseBtn();
+    draw();
+  }
+
+  function updatePauseBtn() {
+    const btn = document.getElementById('snake-pause-btn');
+    if (btn) btn.textContent = paused ? 'Resume' : 'Pause';
   }
 
   function start() {
@@ -100,9 +123,11 @@ const SnakeGame = (() => {
     bonusFood = null;
     gameOver = false;
     running = true;
+    paused = false;
     speed = 120;
     spawnFood();
     updateInfo();
+    updatePauseBtn();
 
     const overlay = document.getElementById('snake-overlay');
     if (overlay) overlay.style.display = 'none';
@@ -210,10 +235,12 @@ const SnakeGame = (() => {
 
   function endGame() {
     running = false;
+    paused = false;
     gameOver = true;
     bonusFood = null;
     sfx('die');
     clearInterval(gameLoop);
+    updatePauseBtn();
 
     Utils.showGameOver('snake-overlay', {
       lines: [`Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}`],
@@ -302,16 +329,30 @@ const SnakeGame = (() => {
       ctx.fillText('WASD / Arrow Keys — or swipe to steer', WIDTH / 2, HEIGHT / 2 + 24);
       ctx.textAlign = 'left';
     }
+
+    // Pause overlay
+    if (paused) {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.7)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '20px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Paused', WIDTH / 2, HEIGHT / 2);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P or Esc to resume', WIDTH / 2, HEIGHT / 2 + 24);
+      ctx.textAlign = 'left';
+    }
   }
 
   function destroy() {
     clearInterval(gameLoop);
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
-    running = false; gameOver = false;
+    running = false; gameOver = false; paused = false;
     const ov = document.getElementById('snake-overlay'); if (ov) ov.style.display = 'none';
     draw();
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  return { init, start, destroy, toggleWallWrap, togglePause };
 })();
