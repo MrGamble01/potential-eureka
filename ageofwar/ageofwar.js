@@ -231,6 +231,30 @@ const AgeOfWarGame = (() => {
   // ---- Run stats (shown on win/lose + drive achievements) ----
   const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
 
+  // ---- Best run (persisted across runs; the Reset-progress button has
+  // promised to clear this since it was added, but nothing ever wrote it) ----
+  let bestRun = { wave: 0, kills: 0, gold: 0, time: 0 };
+  let lastRunWasNewBest = false;
+  function loadBestRun() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed.wave === 'number') bestRun = parsed;
+    } catch { bestRun = { wave: 0, kills: 0, gold: 0, time: 0 }; }
+  }
+  function saveBestRun() {
+    try { localStorage.setItem('aow-best-run', JSON.stringify(bestRun)); } catch {}
+  }
+  // Waves survived is the primary ranking (matches the eventual
+  // survival/endless framing) since a win always reaches the final wave.
+  function recordRunEnd() {
+    lastRunWasNewBest = waveNum > bestRun.wave;
+    if (lastRunWasNewBest) {
+      bestRun = { wave: waveNum, kills: runStats.kills, gold: runStats.gold, time: runStats.time };
+      saveBestRun();
+    }
+  }
+
   // ---- Achievements ----
   // Persisted in localStorage across runs. Earned during play, toast
   // pops in the corner. Full list lives in a modal.
@@ -540,6 +564,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -991,6 +1016,8 @@ const AgeOfWarGame = (() => {
       // Sync mute toggle
       const mt = document.getElementById('aow-mute-toggle');
       if (mt) mt.setAttribute('aria-pressed', String(soundMuted));
+      const brv = document.getElementById('aow-best-run-value');
+      if (brv) brv.textContent = 'Wave ' + bestRun.wave;
       settingsModal.style.display = 'flex';
       setModalPaused(true);
     }
@@ -1044,6 +1071,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRun = { wave: 0, kills: 0, gold: 0, time: 0 };
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1633,6 +1661,7 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
+      recordRunEnd();
       showOverlay(false);
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
@@ -1640,6 +1669,7 @@ const AgeOfWarGame = (() => {
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
+      recordRunEnd();
       showOverlay(true);
     }
 
@@ -6352,11 +6382,13 @@ const AgeOfWarGame = (() => {
         ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
       </h2>
       <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
+      ${lastRunWasNewBest ? '<p style="font-weight:800;color:#fcd34d;letter-spacing:1px;margin-top:4px">🌟 NEW BEST RUN — WAVE ' + waveNum + '</p>' : ''}
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Wave</div><div style="font-weight:800;font-size:18px;color:#9ad48a">${bestRun.wave}</div></div>
       </div>
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
