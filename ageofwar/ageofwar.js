@@ -197,6 +197,11 @@ const AgeOfWarGame = (() => {
     insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, goldMult: 1.35, color: '#F85149' },
   };
   let difficulty = 'normal';
+  // Survival mode: destroying the enemy base doesn't end the run -- it
+  // refills (a little tougher each time) and waveNum keeps climbing until
+  // your own base falls. Score is waves survived, tracked in `aow-best-run`
+  // (a key the Reset button already cleared but nothing ever wrote).
+  let survivalMode = false;
 
   // ---- Combo / streak ----
   let combo = 0;
@@ -229,7 +234,7 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Run stats (shown on win/lose + drive achievements) ----
-  const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
+  const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0, basesDestroyed: 0 };
 
   // ---- Achievements ----
   // Persisted in localStorage across runs. Earned during play, toast
@@ -536,6 +541,7 @@ const AgeOfWarGame = (() => {
                   || localStorage.getItem('aow-difficulty');
       if (saved && DIFFICULTIES[saved]) difficulty = saved;
     } catch {}
+    try { survivalMode = localStorage.getItem('aow-survival-mode') === '1'; } catch {}
     seedClouds();
     seedAmbient(0);
     preloadSprites();
@@ -701,7 +707,7 @@ const AgeOfWarGame = (() => {
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
     runStats.specialsFired = 0; runStats.coinsCollected = 0;
     runStats.biggestCombo = 0; runStats.agesReached = 0;
-    runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
+    runStats.turretsBuilt = 0; runStats.heroesSummoned = 0; runStats.basesDestroyed = 0;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
     waveNum = 1;
@@ -991,6 +997,9 @@ const AgeOfWarGame = (() => {
       // Sync mute toggle
       const mt = document.getElementById('aow-mute-toggle');
       if (mt) mt.setAttribute('aria-pressed', String(soundMuted));
+      // Sync mode toggle
+      const modeT = document.getElementById('aow-mode-toggle');
+      if (modeT) modeT.setAttribute('aria-pressed', String(survivalMode));
       settingsModal.style.display = 'flex';
       setModalPaused(true);
     }
@@ -1027,6 +1036,16 @@ const AgeOfWarGame = (() => {
       soundMuted = !soundMuted;
       try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
       muteToggle.setAttribute('aria-pressed', String(soundMuted));
+    };
+    // Mode toggle (Campaign <-> Survival) -- switching modes mid-run would
+    // let a player dodge a loss, so restart like the difficulty switch does.
+    const modeToggle = document.getElementById('aow-mode-toggle');
+    if (modeToggle) modeToggle.onclick = () => {
+      survivalMode = !survivalMode;
+      try { localStorage.setItem('aow-survival-mode', survivalMode ? '1' : '0'); } catch {}
+      modeToggle.setAttribute('aria-pressed', String(survivalMode));
+      reset();
+      closeSettings();
     };
     // Replay tutorial
     const replayBtn = document.getElementById('aow-replay-tutorial');
@@ -1633,14 +1652,31 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
+      if (survivalMode) {
+        try {
+          const prevBest = parseInt(localStorage.getItem('aow-best-run'), 10) || 0;
+          if (waveNum > prevBest) localStorage.setItem('aow-best-run', String(waveNum));
+        } catch {}
+      }
       showOverlay(false);
     } else if (enemyBaseHp <= 0 && !gameOver) {
-      gameOver = true; running = false; outcome = 'win';
       SFX.victory();
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      if (survivalMode) {
+        // Push on instead of ending the run: refill the enemy base (a
+        // little tougher each time) and let waveNum keep climbing.
+        runStats.basesDestroyed++;
+        enemyBaseMax = Math.round(enemyBaseMax * 1.15);
+        enemyBaseHp = enemyBaseMax;
+        ageBannerText = 'ENEMY BASE DESTROYED — PUSH ON';
+        ageBannerT = 2.2;
+        shake(6, 0.35);
+      } else {
+        gameOver = true; running = false; outcome = 'win';
+        showOverlay(true);
+      }
     }
 
     // Hero CD + achievement scans
@@ -6346,17 +6382,28 @@ const AgeOfWarGame = (() => {
     if (!ov) return;
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
+    let survivalStat = '';
+    if (survivalMode && !won) {
+      let prevBest = 0;
+      try { prevBest = parseInt(localStorage.getItem('aow-best-run'), 10) || 0; } catch {}
+      const isNewBest = waveNum >= prevBest;
+      survivalStat = `
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Waves Survived</div><div style="font-weight:800;font-size:18px;color:${isNewBest ? '#3FB950' : '#fcd34d'}">${waveNum}${isNewBest ? ' 🆕' : ''}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Run</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${Math.max(waveNum, prevBest)}</div></div>
+      `;
+    }
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
         ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
       </h2>
-      <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
-      <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
+      <p>${won ? 'You wiped the enemy base.' : survivalMode ? 'Your base has fallen. Survival run over.' : 'Your base has fallen.'}</p>
+      <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px;flex-wrap:wrap">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+        ${survivalStat}
       </div>
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
