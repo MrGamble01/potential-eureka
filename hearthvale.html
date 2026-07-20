@@ -92,6 +92,54 @@
     .btn.tool { width: 52px; }
     .bardiv { flex: 0 0 auto; width: 2px; align-self: stretch; margin: 2px 3px; border-radius: 2px; background: linear-gradient(180deg, transparent, rgba(242,193,78,0.5), transparent); }
 
+    /* ---- Build category tabs ---- */
+    #buildtabs {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 102px; z-index: 400; display: flex; gap: 5px;
+    }
+    .btab {
+      border: 2px solid #6b4e30; border-bottom-color: #4d3820; border-radius: 10px 10px 4px 4px;
+      background: linear-gradient(180deg, #43331f, #382a17); color: var(--ink-dim);
+      font-family: var(--font); font-size: 12px; font-weight: 700;
+      padding: 6px 13px; cursor: pointer; transition: background .12s, color .12s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+    .btab:hover { color: var(--ink); }
+    .btab.on { background: linear-gradient(180deg, #6b5335, #514027); color: var(--gold); border-color: rgba(242,193,78,0.65); }
+
+    /* ---- Build tooltip ---- */
+    #tip {
+      position: fixed; z-index: 700; display: none; width: 216px;
+      background: var(--panel-2); border: 1px solid rgba(242,193,78,0.35); border-radius: 11px;
+      padding: 10px 12px; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+      font-size: 12px; line-height: 1.45;
+    }
+    #tip.show { display: block; }
+    #tip .t-name { font-size: 13.5px; font-weight: 800; margin-bottom: 1px; }
+    #tip .t-lock { color: #f2c14e; font-weight: 700; font-size: 11.5px; }
+    #tip .t-desc { color: var(--ink-dim); margin: 3px 0 6px; }
+    #tip .t-line { font-family: var(--mono); font-size: 11.5px; padding: 1px 0; }
+    #tip .t-line b { color: var(--gold); font-weight: 600; }
+
+    /* ---- Speed controls ---- */
+    #speedctl {
+      position: fixed; top: 54px; right: 54px; z-index: 390; display: flex; gap: 4px;
+    }
+    #speedctl button {
+      width: 34px; height: 36px; border-radius: 9px;
+      border: 2px solid #6b4e30; border-top-color: #85643f;
+      background: linear-gradient(180deg, #4a3826, #362819); color: var(--ink-dim);
+      font-family: var(--mono); font-size: 12.5px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4); transition: color .12s, border-color .12s;
+    }
+    #speedctl button:hover { border-color: rgba(242,193,78,0.7); color: var(--ink); }
+    #speedctl button.on { color: var(--gold); border-color: rgba(242,193,78,0.8); background: linear-gradient(180deg, #5c4730, #453520); }
+    @media (max-width: 640px) { #speedctl { top: 96px; right: 8px; } }
+
+    .res .net { font-size: 10.5px; font-weight: 700; font-family: var(--mono); }
+    .res .net.up { color: #9fd487; }
+    .res .net.down { color: #e0705c; }
+
     /* ---- Building info panel ---- */
     #panel {
       position: fixed; right: 12px; top: 62px; width: 240px; z-index: 400;
@@ -256,10 +304,10 @@
   <canvas id="game"></canvas>
 
   <div id="hud">
-    <div class="res wood"><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span></div>
-    <div class="res stone"><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span><span class="rate" id="r-stonecap"></span></div>
-    <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span></div>
-    <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span></div>
+    <div class="res wood"><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span><span class="net" id="r-woodnet"></span></div>
+    <div class="res stone"><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span><span class="rate" id="r-stonecap"></span><span class="net" id="r-stonenet"></span></div>
+    <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span><span class="net" id="r-foodnet"></span></div>
+    <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span><span class="net" id="r-goldnet"></span></div>
     <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
     <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span></div>
     <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span></div>
@@ -273,7 +321,16 @@
 
   <div id="hint">Drag to look around &middot; pick a building below &middot; click the ground to place it</div>
 
+  <div id="speedctl">
+    <button data-sp="0" title="Pause (Space)">&#9208;</button>
+    <button data-sp="1" title="Normal speed">1&times;</button>
+    <button data-sp="2" title="Double speed">2&times;</button>
+    <button data-sp="3" title="Triple speed">3&times;</button>
+  </div>
+
+  <div id="buildtabs"></div>
   <div id="buildbar"></div>
+  <div id="tip"></div>
 
   <div id="panel">
     <h3><span id="p-emoji">&#127968;</span><span id="p-name">Building</span></h3>
@@ -1860,14 +1917,22 @@
       row.innerHTML =
         '<div class="good"><span>' + g.ic + '</span>' + g.name + ' <span style="color:var(--ink-dim)">(have ' + Math.floor(state.res[g.k]) + ')</span></div>' +
         '<div class="price">buy ' + p.buy + ' / sell ' + p.sell + '</div>' +
-        '<div class="tbtns"><button data-act="buy" data-k="' + g.k + '"' + (state.res.gold < p.buy ? ' disabled' : '') + '>Buy</button>' +
-        '<button data-act="sell" data-k="' + g.k + '"' + (state.res[g.k] < 1 ? ' disabled' : '') + '>Sell</button></div>';
+        '<div class="tbtns">' +
+        '<button data-act="buy" data-k="' + g.k + '" data-q="1"' + (state.res.gold < p.buy || Math.floor(state.res[g.k]) >= capOf(g.k) ? ' disabled' : '') + '>Buy</button>' +
+        '<button data-act="buy" data-k="' + g.k + '" data-q="10"' + (state.res.gold < p.buy || Math.floor(state.res[g.k]) >= capOf(g.k) ? ' disabled' : '') + '>×10</button>' +
+        '<button data-act="sell" data-k="' + g.k + '" data-q="1"' + (state.res[g.k] < 1 ? ' disabled' : '') + '>Sell</button>' +
+        '<button data-act="sell" data-k="' + g.k + '" data-q="10"' + (state.res[g.k] < 1 ? ' disabled' : '') + '>×10</button></div>';
       rows.appendChild(row);
     });
     rows.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
-      const k = btn.dataset.k, p = traderPrices[k];
-      if (btn.dataset.act === 'buy' && state.res.gold >= p.buy) { state.res.gold -= p.buy; state.res[k] += 1; state.trades = (state.trades || 0) + 1; SFX('coin'); }
-      else if (btn.dataset.act === 'sell' && state.res[k] >= 1) { state.res[k] -= 1; state.res.gold += p.sell; state.trades = (state.trades || 0) + 1; SFX('coin'); }
+      const k = btn.dataset.k, p = traderPrices[k], q = parseInt(btn.dataset.q, 10) || 1;
+      if (btn.dataset.act === 'buy') {
+        const n = Math.min(q, Math.floor(state.res.gold / p.buy), Math.max(0, capOf(k) - Math.floor(state.res[k])));
+        if (n > 0) { state.res.gold -= n * p.buy; state.res[k] += n; state.trades = (state.trades || 0) + 1; SFX('coin'); }
+      } else {
+        const n = Math.min(q, Math.floor(state.res[k]));
+        if (n > 0) { state.res[k] -= n; state.res.gold += n * p.sell; state.trades = (state.trades || 0) + 1; SFX('coin'); }
+      }
       renderTrader(); updateHUD(); save();
     }));
   }
@@ -2623,9 +2688,31 @@
   // ============================================================
   //  HUD / UI
   // ============================================================
+  // Expected net resource change per production cycle for the HUD readout.
+  function cycleNet() {
+    const net = { wood: 0, stone: 0, food: 0, gold: 0 };
+    state.buildings.forEach(b => {
+      const def = BUILDINGS[b.type];
+      if (b.done === false || !def.prod || (def.worker && !b.staffed)) return;
+      const milled = b.type === 'farm' && windmillBoostsFarm(b);
+      for (const k in def.prod) {
+        let amt = def.prod[k] * (b.level || 1);
+        if (b.bonus) amt = Math.ceil(amt * 1.5);
+        if (milled && k === 'food') amt = Math.ceil(amt * 1.5);
+        net[k] += amt;
+      }
+      if (def.cons) for (const k in def.cons) net[k] -= def.cons[k];
+    });
+    net.food -= state.villagers.length * FOOD_PER_VILLAGER;
+    if (seasonOf(state.day).name === 'Winter')
+      net.wood -= Math.ceil(state.buildings.filter(b => b.type === 'house' && b.done !== false).length / 2);
+    return net;
+  }
+
   function syncPaused() {
     const pe = document.getElementById('paused'); if (pe) pe.classList.toggle('show', gameSpeed === 0);
     const sb = document.getElementById('m-speed'); if (sb && gameSpeed > 0) sb.innerHTML = 'Speed: ' + gameSpeed + '&times;';
+    document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
   function updateHUD() {
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
@@ -2636,6 +2723,14 @@
       const el = document.getElementById('r-' + k + 'cap'); if (!el) return;
       const cap = capOf(k); el.textContent = '/' + cap;
       el.style.color = state.res[k] >= cap ? '#e0705c' : 'var(--ink-dim)';
+    });
+    // net production per cycle, so the economy is legible at a glance
+    const net = cycleNet();
+    ['wood', 'stone', 'food', 'gold'].forEach(k => {
+      const el = document.getElementById('r-' + k + 'net'); if (!el) return;
+      const n = Math.round(net[k]);
+      el.textContent = n > 0 ? '+' + n : n < 0 ? String(n) : '';
+      el.className = 'net ' + (n > 0 ? 'up' : n < 0 ? 'down' : '');
     });
     document.getElementById('r-pop').textContent = state.villagers.length;
     document.getElementById('r-popcap').textContent = '/' + popCap();
@@ -2649,14 +2744,65 @@
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
+  // The build bar is organised into category tabs so it never overflows.
+  const BUILD_TABS = [
+    { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'warehouse'] },
+    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'tavern', 'chapel'] },
+    { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
+  ];
+  let buildTab = 'homes';
+  function activeTabTypes() {
+    const tab = BUILD_TABS.find(t => t.id === buildTab) || BUILD_TABS[0];
+    return tab.types.concat(['road', 'demolish']);   // tools answer the last hotkeys
+  }
+  function tipFor(type) {
+    const def = BUILDINGS[type];
+    let h = '<div class="t-name">' + def.emoji + ' ' + def.name + '</div>';
+    if (tierLocked(type)) { const t = TIERS[def.tier]; h += '<div class="t-lock">🔒 Unlocks at ' + t.name + ' (' + t.at + ' villagers)</div>'; }
+    h += '<div class="t-desc">' + def.desc + '</div>';
+    h += '<div class="t-line">Cost <b>' + Object.keys(def.cost).map(k => def.cost[k] + shortRes(k)).join(' ') + '</b></div>';
+    if (def.prod) { const k = Object.keys(def.prod)[0]; h += '<div class="t-line">Makes <b>' + def.prod[k] + shortRes(k) + '</b> / cycle</div>'; }
+    if (def.cons) { const k = Object.keys(def.cons)[0]; h += '<div class="t-line">Uses <b>' + def.cons[k] + shortRes(k) + '</b> / cycle</div>'; }
+    if (def.worker) h += '<div class="t-line">Needs <b>1 worker</b></div>';
+    if (def.housing) h += '<div class="t-line">Homes <b>' + def.housing + ' villagers</b></div>';
+    if (def.happy) h += '<div class="t-line">Happiness <b>+' + Math.ceil(def.happy / 6) + '</b> / cycle</div>';
+    if (def.charm) h += '<div class="t-line">Charm <b>+' + def.charm + '</b></div>';
+    if (def.storage) h += '<div class="t-line">Storage <b>+' + def.storage + '</b> cap</div>';
+    if (def.boostFarms) h += '<div class="t-line">Nearby farms <b>+50% food</b></div>';
+    if (def.wantsNear) h += '<div class="t-line">Best near <b>' + ({ tree: 'trees', rock: 'rocks', water: 'water' })[def.wantsNear] + '</b></div>';
+    return h;
+  }
+  const tipEl = () => document.getElementById('tip');
+  function showTip(btn, html) {
+    const tip = tipEl(); if (!tip) return;
+    tip.innerHTML = html;
+    const r = btn.getBoundingClientRect();
+    tip.classList.add('show');
+    const w = tip.offsetWidth;
+    let left = r.left + r.width / 2 - w / 2;
+    left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
+    tip.style.left = left + 'px';
+    tip.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    tip.style.top = 'auto';
+  }
+  function hideTip() { const tip = tipEl(); if (tip) tip.classList.remove('show'); }
+
   function buildBar() {
+    const tabs = document.getElementById('buildtabs');
+    tabs.innerHTML = '';
+    BUILD_TABS.forEach(t => {
+      const tb = document.createElement('button');
+      tb.className = 'btab' + (t.id === buildTab ? ' on' : '');
+      tb.textContent = t.label;
+      tb.addEventListener('click', () => { buildTab = t.id; buildBar(); });
+      tabs.appendChild(tb);
+    });
     const bar = document.getElementById('buildbar');
     bar.innerHTML = '';
-    BUILD_ORDER.forEach(type => {
+    const tab = BUILD_TABS.find(t => t.id === buildTab) || BUILD_TABS[0];
+    tab.types.forEach(type => {
       const def = BUILDINGS[type];
-      if (def.decor && !bar.querySelector('.bardiv')) {          // divider before the decoration group
-        const d = document.createElement('div'); d.className = 'bardiv'; bar.appendChild(d);
-      }
       const btn = document.createElement('button');
       btn.className = 'btn';
       const costStr = Object.keys(def.cost).map(k => Math.floor(def.cost[k]) + shortRes(k)).join(' ');
@@ -2664,14 +2810,19 @@
       btn.dataset.type = type;
       btn.dataset.costhtml = costStr;
       btn.addEventListener('click', () => selectBuild(type));
+      btn.addEventListener('mouseenter', () => showTip(btn, tipFor(type)));
+      btn.addEventListener('mouseleave', hideTip);
       bar.appendChild(btn);
     });
+    const div = document.createElement('div'); div.className = 'bardiv'; bar.appendChild(div);
     // road tool — paves a tile so villagers walk it faster
     const road = document.createElement('button');
     road.className = 'btn tool';
     road.innerHTML = '<span class="emoji">🛤️</span><span class="lbl">Road</span><span class="cost">1🪵</span>';
     road.dataset.type = 'road';
     road.addEventListener('click', () => selectBuild('road'));
+    road.addEventListener('mouseenter', () => showTip(road, '<div class="t-name">🛤️ Road</div><div class="t-desc">Villagers walk much faster on roads. Hold and drag to pave a whole path.</div><div class="t-line">Cost <b>1🪵</b> per tile</div>'));
+    road.addEventListener('mouseleave', hideTip);
     bar.appendChild(road);
     // demolish tool
     const dem = document.createElement('button');
@@ -2679,6 +2830,8 @@
     dem.innerHTML = '<span class="emoji">⛏️</span><span class="lbl">Remove</span>';
     dem.dataset.type = 'demolish';
     dem.addEventListener('click', () => selectBuild('demolish'));
+    dem.addEventListener('mouseenter', () => showTip(dem, '<div class="t-name">⛏️ Remove</div><div class="t-desc">Tear a building down for half its materials back. Cancelling an unfinished site refunds everything.</div>'));
+    dem.addEventListener('mouseleave', hideTip);
     bar.appendChild(dem);
     refreshBarState();
   }
@@ -2747,7 +2900,7 @@
     const stats = document.getElementById('p-stats');
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
-    if (def.worker) html += statRow('Worker', b.staffed ? 'Assigned ✅' : 'Needs a villager 💤');
+    if (def.worker) { const wk = state.villagers.find(v => v.jobId === b.id); html += statRow('Worker', wk ? '👤 ' + wk.name : 'Needs a villager 💤'); }
     if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); html += statRow('Produces', base + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : '') + ' / cycle'); }
     if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
@@ -2919,7 +3072,8 @@
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
-    if (n >= 1 && n <= BUILD_ORDER.length) selectBuild(BUILD_ORDER[n - 1]);
+    if (n >= 1) { const list = activeTabTypes(); if (n <= list.length) selectBuild(list[n - 1]); }
+    if (e.key === 'Tab') { e.preventDefault(); const i = BUILD_TABS.findIndex(t => t.id === buildTab); buildTab = BUILD_TABS[(i + 1) % BUILD_TABS.length].id; buildBar(); }
   });
   window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
   function keyboardPan(dt) {
@@ -3051,6 +3205,13 @@
     soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
     document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
     document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
+    document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
+      const sp = parseInt(b.dataset.sp, 10);
+      if (sp === 0) { if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else gameSpeed = prevSpeed || 1; }
+      else { gameSpeed = sp; prevSpeed = sp; }
+      syncPaused();
+    }));
+    syncPaused();
     const speedBtn = document.getElementById('m-speed');
     speedBtn.onclick = () => { gameSpeed = gameSpeed >= 3 ? 1 : (gameSpeed < 1 ? 1 : gameSpeed + 1); prevSpeed = gameSpeed; speedBtn.innerHTML = 'Speed: ' + gameSpeed + '&times;'; syncPaused(); };
     document.getElementById('m-new').onclick = () => {
