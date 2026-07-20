@@ -259,6 +259,37 @@ const AgeOfWarGame = (() => {
       earnedAchievements = raw ? JSON.parse(raw) : {};
     } catch { earnedAchievements = {}; }
   }
+  // IDEA-AOW-1: best-run tracking. The Reset button has referenced/cleared
+  // `aow-best-run` since it was added, but nothing ever wrote it -- resetting
+  // "reset" a stat that could never be earned. Track the furthest wave
+  // survived (kills as a tiebreaker) across both wins and losses, since wave
+  // number is the one progress metric every run produces regardless of
+  // outcome.
+  let bestRun = null;
+  function loadBestRun() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      bestRun = raw ? JSON.parse(raw) : null;
+    } catch { bestRun = null; }
+  }
+  function saveBestRun() {
+    try { localStorage.setItem('aow-best-run', JSON.stringify(bestRun)); } catch {}
+  }
+  function recordRun(won) {
+    const candidate = { wave: waveNum, kills: runStats.kills, time: runStats.time, won, ts: Date.now() };
+    const isNewBest = !bestRun || candidate.wave > bestRun.wave ||
+      (candidate.wave === bestRun.wave && candidate.kills > bestRun.kills);
+    if (isNewBest) { bestRun = candidate; saveBestRun(); }
+    return isNewBest;
+  }
+  function bestRunLabel() {
+    if (!bestRun) return '—';
+    return `Wave ${bestRun.wave}${bestRun.won ? ' (Win)' : ''}`;
+  }
+  function refreshBestRunDisplay() {
+    const el = document.getElementById('aow-best-run-value');
+    if (el) el.textContent = bestRunLabel();
+  }
   function maybeShowWelcome() {
     let seen = false;
     try { seen = localStorage.getItem('aow-welcome-seen') === '1'; } catch {}
@@ -540,6 +571,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -991,6 +1023,7 @@ const AgeOfWarGame = (() => {
       // Sync mute toggle
       const mt = document.getElementById('aow-mute-toggle');
       if (mt) mt.setAttribute('aria-pressed', String(soundMuted));
+      refreshBestRunDisplay();
       settingsModal.style.display = 'flex';
       setModalPaused(true);
     }
@@ -1044,6 +1077,8 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRun = null;
+      refreshBestRunDisplay();
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1633,14 +1668,14 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
-      showOverlay(false);
+      showOverlay(false, recordRun(false));
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      showOverlay(true, recordRun(true));
     }
 
     // Hero CD + achievement scans
@@ -6341,7 +6376,7 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
-  function showOverlay(won) {
+  function showOverlay(won, isNewBest) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
     const m = Math.floor(runStats.time / 60);
@@ -6352,13 +6387,15 @@ const AgeOfWarGame = (() => {
         ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
       </h2>
       <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
+      ${isNewBest ? '<p style="color:#fcd34d;font-weight:800;font-size:13px;letter-spacing:0.5px;margin-top:4px">🎉 New Best Run — Wave ' + waveNum + '</p>' : ''}
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Wave</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${waveNum}</div></div>
       </div>
-      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
+      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Best run: ${bestRunLabel()} &nbsp;·&nbsp; Press SPACE or click Restart</p>
     `;
   }
 
