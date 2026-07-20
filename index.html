@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper and more. Twelve games plus an agentic OS sandbox, no install, no sign-up.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper and more. Thirteen games plus an agentic OS sandbox, no install, no sign-up.">
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
@@ -52,7 +52,7 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; TWELVE GAMES + ONE OS &mdash; FREE TO PLAY</div>
+      <div class="arcade-hero-kicker">&#9679; THIRTEEN GAMES + ONE OS &mdash; FREE TO PLAY</div>
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
@@ -246,6 +246,20 @@
           <div class="arcade-card-title">MINEFIELD</div>
           <div class="arcade-card-tags"><span>Puzzle</span><span>Logic</span></div>
           <div class="arcade-card-desc">Flag the mines, clear the board, beat your best time.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="connect4" style="--accent:#f7c948">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" alt="Drop Four gameplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'><rect width='320' height='200' fill='%230d1117'/><g transform='translate(80,20)'><rect width='161' height='138' rx='6' fill='%231c3a6e'/><g><circle cx='16' cy='16' r='9' fill='%230d1117'/><circle cx='39' cy='16' r='9' fill='%230d1117'/><circle cx='62' cy='16' r='9' fill='%230d1117'/><circle cx='85' cy='16' r='9' fill='%23e63946'/><circle cx='108' cy='16' r='9' fill='%230d1117'/><circle cx='131' cy='16' r='9' fill='%230d1117'/><circle cx='16' cy='39' r='9' fill='%230d1117'/><circle cx='39' cy='39' r='9' fill='%230d1117'/><circle cx='62' cy='39' r='9' fill='%23f7c948'/><circle cx='85' cy='39' r='9' fill='%23e63946'/><circle cx='108' cy='39' r='9' fill='%230d1117'/><circle cx='131' cy='39' r='9' fill='%230d1117'/><circle cx='16' cy='62' r='9' fill='%230d1117'/><circle cx='39' cy='62' r='9' fill='%23e63946'/><circle cx='62' cy='62' r='9' fill='%23e63946'/><circle cx='85' cy='62' r='9' fill='%23f7c948'/><circle cx='108' cy='62' r='9' fill='%23f7c948'/><circle cx='131' cy='62' r='9' fill='%230d1117'/><circle cx='16' cy='85' r='9' fill='%23f7c948'/><circle cx='39' cy='85' r='9' fill='%23e63946'/><circle cx='62' cy='85' r='9' fill='%23f7c948'/><circle cx='85' cy='85' r='9' fill='%23e63946'/><circle cx='108' cy='85' r='9' fill='%23f7c948'/><circle cx='131' cy='85' r='9' fill='%23e63946'/><circle cx='16' cy='108' r='9' fill='%23e63946'/><circle cx='39' cy='108' r='9' fill='%23f7c948'/><circle cx='62' cy='108' r='9' fill='%23e63946'/><circle cx='85' cy='108' r='9' fill='%23f7c948'/><circle cx='108' cy='108' r='9' fill='%23e63946'/><circle cx='131' cy='108' r='9' fill='%23f7c948'/></g></g></svg>">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="connect4"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">DROP FOUR</div>
+          <div class="arcade-card-tags"><span>Strategy</span><span>vs AI</span></div>
+          <div class="arcade-card-desc">Connect four in a row against a thinking opponent.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -680,6 +694,34 @@
     </div>
   </section>
 
+  <!-- ===================== DROP FOUR ===================== -->
+  <section id="view-connect4" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">DROP FOUR</div>
+        <div class="game-subtitle">Click a column to drop a disc &middot; connect four in a row before the AI does &middot; you're red</div>
+      </div>
+      <div class="game-controls" style="flex-wrap:wrap">
+        <button class="primary" onclick="ConnectFourGame.newGame()">New Game</button>
+        <button class="c4-diff-btn" data-diff="easy" onclick="ConnectFourGame.setDifficulty('easy')">Easy</button>
+        <button class="c4-diff-btn" data-diff="medium" onclick="ConnectFourGame.setDifficulty('medium')">Medium</button>
+        <button class="c4-diff-btn" data-diff="hard" onclick="ConnectFourGame.setDifficulty('hard')">Hard</button>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span id="c4-turn">Your move (red)</span>
+        <span>Streak: <strong id="c4-streak">0</strong></span>
+        <span>Best: <strong id="c4-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper" style="overflow:auto;max-width:100%">
+        <canvas id="c4-canvas" class="game-canvas" role="img" aria-label="Connect Four board — click a column to drop a disc"></canvas>
+      </div>
+      <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
+        The AI plays a minimax search (Easy looks 2 moves ahead, Hard looks 6). Win to build your streak.
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== MINEFIELD ===================== -->
   <section id="view-minesweeper" class="view">
     <div class="game-container">
@@ -847,6 +889,7 @@
   <script src="js/game2048.js" defer></script>
   <script src="js/asteroids.js" defer></script>
   <script src="js/minesweeper.js" defer></script>
+  <script src="js/connect4.js" defer></script>
   <script src="js/orgchart.js" defer></script>
   <script>
   // The scripts above are now `defer`red, so they run in order right before
@@ -874,6 +917,7 @@
       2048:     () => Game2048.destroy(),
       asteroids: () => AsteroidsGame.destroy(),
       minesweeper: () => MinesweeperGame.destroy(),
+      connect4: () => ConnectFourGame.destroy(),
     };
 
     function switchView(name) {
@@ -901,6 +945,7 @@
           case '2048':         Game2048.init(); break;
           case 'asteroids':    AsteroidsGame.init(); break;
           case 'minesweeper':  MinesweeperGame.init(); break;
+          case 'connect4':     ConnectFourGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -935,8 +980,10 @@
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Minefield',        accent: '#F0883E', go: () => switchView('minesweeper'),
         best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
+      { name: 'Drop Four',        accent: '#f7c948', go: () => switchView('connect4'),
+        best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1002,6 +1049,7 @@
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
         voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
         minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },
+        connect4: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
@@ -1067,7 +1115,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {

@@ -13,6 +13,7 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 - **Vector Storm** — asteroids-style vector shooter
 - **2048** — sliding tile puzzle
 - **Minefield** — a modern Minesweeper: first-click-safe, chording, three difficulties, per-difficulty best times, mobile long-press flagging, and win confetti
+- **Drop Four** — Connect Four against a minimax + alpha-beta AI (three search depths), with drop animations, win-line highlight, and a win-streak record
 - **Maze Runner** — a playable timed maze: run to the exit, grab the gems, dodge fog-of-war at higher levels, with a BFS/DFS/A* visualizer kept as a "Watch AI Solve" mode
 - **Game of Life** — Conway's cellular automaton with click-to-draw, preset patterns, age-based cell coloring, and a live population sparkline
 
