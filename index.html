@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris and more. Ten games plus a live dev-office dashboard, no install, no sign-up.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Fourteen games plus a live dev-office dashboard, no install, no sign-up.">
+
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
@@ -45,14 +46,15 @@
     <button data-view="orgchart">Studio Crew</button>
     <button data-view="personal" class="nav-locked">Personal</button>
     <div class="nav-utils-divider">toys</div>
-    <button data-view="maze">Maze Solver</button>
+    <button data-view="maze">Maze Runner</button>
     <button data-view="life">Game of Life</button>
   </div>
 
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; TEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
+      <div class="arcade-hero-kicker">&#9679; FOURTEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
+
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
@@ -129,6 +131,21 @@
           <div class="arcade-card-title">HEARTHVALE</div>
           <div class="arcade-card-tags"><span>Builder</span><span>Cozy</span><span>Pixel</span></div>
           <div class="arcade-card-desc">Grow a cozy riverside town &mdash; homes, workers, trade, seasons &amp; wildlife.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </a>
+
+      <a class="arcade-card arcade-card-dim" href="voxel-garden.html" style="--accent:#7EC8FF">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/voxelisle.jpg" alt="Voxel Isle gameplay" width="640" height="400" loading="lazy">
+          <video class="arcade-card-clip" src="assets/thumbs/voxelisle.webm" muted loop playsinline preload="none"></video>
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="voxelgarden"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">VOXEL ISLE</div>
+          <div class="arcade-card-tags"><span>Voxel</span><span>3D</span><span>Cozy</span></div>
+          <div class="arcade-card-desc">A floating voxel island, all yours &mdash; till, plant, water, harvest, grow.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -217,6 +234,48 @@
           <div class="arcade-card-title">2048</div>
           <div class="arcade-card-tags"><span>Puzzle</span><span>Numbers</span></div>
           <div class="arcade-card-desc">Slide the tiles, merge the numbers, reach 2048.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="minesweeper" style="--accent:#F0883E">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/minefield.jpg" alt="Minefield gameplay" width="416" height="416" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="minesweeper"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">MINEFIELD</div>
+          <div class="arcade-card-tags"><span>Puzzle</span><span>Logic</span></div>
+          <div class="arcade-card-desc">Flag the mines, clear the board, beat your best time.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="connect4" style="--accent:#f7c948">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/dropfour.jpg" alt="Drop Four gameplay" width="434" height="372" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="connect4"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">DROP FOUR</div>
+          <div class="arcade-card-tags"><span>Strategy</span><span>vs AI</span></div>
+          <div class="arcade-card-desc">Connect four in a row against a thinking opponent.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="word5" style="--accent:#3FB950">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/word5.jpg" alt="Word Five gameplay" width="300" height="358" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="word5"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">WORD FIVE</div>
+          <div class="arcade-card-tags"><span>Puzzle</span><span>Words</span></div>
+          <div class="arcade-card-desc">Guess the hidden five-letter word in six tries.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -501,11 +560,12 @@
     <div class="game-container">
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
-        <div class="game-title">MAZE SOLVER</div>
-        <div class="game-subtitle">Generate mazes and watch algorithms solve them</div>
+        <div class="game-title">MAZE RUNNER</div>
+        <div class="game-subtitle">Arrow keys / WASD / swipe &middot; reach the pink exit, grab the gems, beat the clock &middot; N = new game</div>
       </div>
       <div class="game-controls">
-        <button class="primary" onclick="MazeGame.generate()">Generate New</button>
+        <button class="primary" onclick="MazeGame.newGame()">New Game</button>
+        <span style="opacity:.6;font-size:13px">Watch AI:</span>
         <select id="maze-algo">
           <option value="bfs">BFS (Breadth-First)</option>
           <option value="dfs">DFS (Depth-First)</option>
@@ -514,14 +574,15 @@
         <button onclick="MazeGame.solve(document.getElementById('maze-algo').value)">Solve</button>
       </div>
       <div class="game-info">
-        <span id="maze-status" role="status" aria-live="polite" style="color: var(--text-dim)">Generate a maze to begin</span>
+        <span id="maze-status" role="status" aria-live="polite" style="color: var(--text-dim)">Loading…</span>
+        <span style="margin-left:12px">⏱ <strong id="maze-time">0.0s</strong></span>
       </div>
-      <canvas id="maze-canvas" class="game-canvas" role="img" aria-label="Maze grid"></canvas>
+      <canvas id="maze-canvas" class="game-canvas" role="img" aria-label="Maze runner — use arrow keys, WASD, or swipe to reach the exit"></canvas>
       <div class="maze-legend">
-        <span class="wall">Wall</span>
-        <span class="path">Path</span>
-        <span class="visited">Explored</span>
-        <span class="solution">Solution</span>
+        <span class="path" style="color:#3FB950">● You</span>
+        <span class="solution" style="color:#F778BA">● Exit</span>
+        <span style="color:#F7C948">◆ Gem</span>
+        <span class="visited">AI explored</span>
       </div>
     </div>
   </section>
@@ -649,6 +710,116 @@
     </div>
   </section>
 
+  <!-- ===================== WORD FIVE ===================== -->
+  <section id="view-word5" class="view">
+    <style>
+      #view-word5 .w5-wrap{display:flex;flex-direction:column;align-items:center;gap:14px}
+      #word5-grid{display:flex;flex-direction:column;gap:6px}
+      .w5-row{display:flex;gap:6px;justify-content:center}
+      .w5-tile{width:52px;height:52px;display:flex;align-items:center;justify-content:center;
+        font-size:26px;font-weight:800;text-transform:uppercase;color:#E6EDF3;
+        border:2px solid #30363d;border-radius:6px;background:transparent;transition:transform .1s}
+      .w5-tile.w5-filled{border-color:#586069;transform:scale(1.04)}
+      .w5-tile.w5-correct{background:#3FB950;border-color:#3FB950;color:#0d1117}
+      .w5-tile.w5-present{background:#D9A62E;border-color:#D9A62E;color:#0d1117}
+      .w5-tile.w5-absent{background:#30363d;border-color:#30363d;color:#8b949e}
+      .w5-reveal{animation:w5flip .4s ease}
+      @keyframes w5flip{0%{transform:rotateX(0)}45%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+      .w5-shake{animation:w5shake .4s}
+      @keyframes w5shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+      #word5-msg{min-height:22px;font-size:14px;font-weight:700;color:var(--text-dim)}
+      .w5-msg-good{color:#3FB950!important}
+      .w5-msg-bad{color:#F85149!important}
+      #word5-kb{display:flex;flex-direction:column;gap:6px;width:100%;max-width:500px}
+      .w5-kb-row{display:flex;gap:5px;justify-content:center}
+      .w5-key{min-width:30px;height:48px;padding:0 8px;border:0;border-radius:6px;cursor:pointer;
+        background:#3a4048;color:#E6EDF3;font-size:14px;font-weight:700;text-transform:uppercase;flex:1;max-width:44px}
+      .w5-key:hover{background:#474e57}
+      .w5-key-wide{max-width:64px;font-size:12px;flex:1.5}
+      .w5-key.w5-correct{background:#3FB950;color:#0d1117}
+      .w5-key.w5-present{background:#D9A62E;color:#0d1117}
+      .w5-key.w5-absent{background:#21262d;color:#6e7681}
+      @media(max-width:480px){.w5-tile{width:44px;height:44px;font-size:22px}.w5-key{height:44px;min-width:26px}}
+    </style>
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">WORD FIVE</div>
+        <div class="game-subtitle">Guess the five-letter word in six tries &middot; green = right spot, gold = wrong spot</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Streak: <strong id="word5-streak">0</strong></span>
+        <span>Best: <strong id="word5-best">0</strong></span>
+        <button class="primary" onclick="WordFiveGame.newGame()" style="padding:4px 12px">New Word</button>
+      </div>
+      <div class="w5-wrap">
+        <div id="word5-msg" class="w5-msg" role="status" aria-live="polite"></div>
+        <div id="word5-grid"></div>
+        <div id="word5-kb"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DROP FOUR ===================== -->
+  <section id="view-connect4" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">DROP FOUR</div>
+        <div class="game-subtitle">Click a column to drop a disc &middot; connect four in a row before the AI does &middot; you're red</div>
+      </div>
+      <div class="game-controls" style="flex-wrap:wrap">
+        <button class="primary" onclick="ConnectFourGame.newGame()">New Game</button>
+        <button class="c4-mode-btn" data-mode="ai" onclick="ConnectFourGame.setMode('ai')">vs AI</button>
+        <button class="c4-mode-btn" data-mode="2p" onclick="ConnectFourGame.setMode('2p')">2 Player</button>
+        <span style="opacity:.5;font-size:13px">·</span>
+        <button class="c4-diff-btn" data-diff="easy" onclick="ConnectFourGame.setDifficulty('easy')">Easy</button>
+        <button class="c4-diff-btn" data-diff="medium" onclick="ConnectFourGame.setDifficulty('medium')">Medium</button>
+        <button class="c4-diff-btn" data-diff="hard" onclick="ConnectFourGame.setDifficulty('hard')">Hard</button>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span id="c4-turn">Your move (red)</span>
+        <span id="c4-streak-wrap">Streak: <strong id="c4-streak">0</strong></span>
+        <span>Best: <strong id="c4-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper" style="overflow:auto;max-width:100%">
+        <canvas id="c4-canvas" class="game-canvas" role="img" aria-label="Connect Four board — click a column to drop a disc"></canvas>
+      </div>
+      <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
+        The AI plays a minimax search (Easy looks 2 moves ahead, Hard looks 6). Win to build your streak.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MINEFIELD ===================== -->
+  <section id="view-minesweeper" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">MINEFIELD</div>
+        <div class="game-subtitle">Click reveal &middot; right-click / long-press flags &middot; click a number to chord &middot; first click is always safe</div>
+      </div>
+      <div class="game-controls" style="flex-wrap:wrap">
+        <button class="mines-diff-btn" data-diff="beginner" onclick="MinesweeperGame.setDifficulty('beginner')">Beginner</button>
+        <button class="mines-diff-btn" data-diff="intermediate" onclick="MinesweeperGame.setDifficulty('intermediate')">Intermediate</button>
+        <button class="mines-diff-btn" data-diff="expert" onclick="MinesweeperGame.setDifficulty('expert')">Expert</button>
+        <button id="mines-flag-btn" onclick="MinesweeperGame.toggleFlagMode()">🚩 Flag mode: OFF</button>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>💣 <strong id="mines-count">0</strong></span>
+        <span><button id="mines-face" onclick="MinesweeperGame.newGame()" title="New game" style="background:none;border:0;cursor:pointer;font-size:20px;line-height:1">🙂</button></span>
+        <span>⏱ <strong id="mines-time">0</strong>s</span>
+        <span>Best: <strong id="mines-best">—</strong></span>
+      </div>
+      <div class="canvas-wrapper" style="overflow:auto;max-width:100%">
+        <canvas id="mines-canvas" class="game-canvas" role="img" aria-label="Minefield board — reveal cells, flag mines"></canvas>
+      </div>
+      <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
+        Chording: with the right number of flags around a revealed cell, click it to open the rest.
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== VECTOR STORM ===================== -->
   <section id="view-asteroids" class="view">
     <div class="game-container">
@@ -716,10 +887,11 @@
       </div>
       <canvas id="life-canvas" class="game-canvas" role="img" aria-label="Game of Life grid — click or tap to draw cells"></canvas>
       <div style="margin-top:8px; font-size:11px; color: var(--text-dim)">
-        Colors: <span style="color:#3FB950">stable</span> ·
-        <span style="color:#58A6FF">thriving</span> ·
-        <span style="color:#D29922">crowded</span> ·
-        <span style="color:#F85149">lonely</span>
+        Cell age: <span style="color:#eaffff">newborn</span> ·
+        <span style="color:#3FB950">young</span> ·
+        <span style="color:#58A6FF">mature</span> ·
+        <span style="color:#a06cff">ancient</span>
+        &nbsp;— the graph tracks population over time
       </div>
     </div>
   </section>
@@ -785,6 +957,9 @@
   <script src="js/breakout.js" defer></script>
   <script src="js/game2048.js" defer></script>
   <script src="js/asteroids.js" defer></script>
+  <script src="js/minesweeper.js" defer></script>
+  <script src="js/connect4.js" defer></script>
+  <script src="js/word5.js" defer></script>
   <script src="js/orgchart.js" defer></script>
   <script>
   // The scripts above are now `defer`red, so they run in order right before
@@ -811,6 +986,9 @@
       breakout: () => BreakoutGame.destroy(),
       2048:     () => Game2048.destroy(),
       asteroids: () => AsteroidsGame.destroy(),
+      minesweeper: () => MinesweeperGame.destroy(),
+      connect4: () => ConnectFourGame.destroy(),
+      word5: () => WordFiveGame.destroy(),
     };
 
     function switchView(name) {
@@ -837,6 +1015,9 @@
           case 'breakout':     BreakoutGame.init(); break;
           case '2048':         Game2048.init(); break;
           case 'asteroids':    AsteroidsGame.init(); break;
+          case 'minesweeper':  MinesweeperGame.init(); break;
+          case 'connect4':     ConnectFourGame.init(); break;
+          case 'word5':        WordFiveGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -857,6 +1038,8 @@
         best: () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : null; } },
       { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
         best: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
+      { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
+        best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
       { name: 'Snake',            accent: '#6C63FF', go: () => switchView('snake'),
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: 'Tetris',           accent: '#F778BA', go: () => switchView('tetris'),
@@ -867,8 +1050,14 @@
         best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
       { name: '2048',             accent: '#facc15', go: () => switchView('2048'),
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+      { name: 'Minefield',        accent: '#F0883E', go: () => switchView('minesweeper'),
+        best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
+      { name: 'Drop Four',        accent: '#f7c948', go: () => switchView('connect4'),
+        best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
+      { name: 'Word Five',        accent: '#3FB950', go: () => switchView('word5'),
+        best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -932,6 +1121,10 @@
         tycoon:   () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + Scores.fmtMoney(v) : ''; },
         growop:   () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : ''; },
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
+        voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
+        minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },
+        connect4: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : ''; },
+        word5: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' streak' : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
@@ -997,7 +1190,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {

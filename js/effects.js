@@ -183,6 +183,34 @@ const Effects = (() => {
     }
   }
 
+  // ---- CANVAS SHAKE (game juice helper) ----
+  // Screen-shake via a CSS transform on the canvas element. Self-contained
+  // rAF with decay; safe to call repeatedly — a new shake replaces any shake
+  // already running on that element, and the transform is reset at the end.
+  const activeShakes = new WeakMap(); // canvasEl → rAF id of its running shake
+  function shakeCanvas(canvasEl, magnitudePx = 6, durationMs = 250) {
+    if (!canvasEl) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const prev = activeShakes.get(canvasEl);
+    if (prev) cancelAnimationFrame(prev);
+    const start = performance.now();
+
+    function frame(now) {
+      const t = (now - start) / durationMs;
+      if (t >= 1) {
+        canvasEl.style.transform = '';
+        activeShakes.delete(canvasEl);
+        return;
+      }
+      const decay = 1 - t;
+      const dx = (Math.random() * 2 - 1) * magnitudePx * decay;
+      const dy = (Math.random() * 2 - 1) * magnitudePx * decay;
+      canvasEl.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+      activeShakes.set(canvasEl, requestAnimationFrame(frame));
+    }
+    activeShakes.set(canvasEl, requestAnimationFrame(frame));
+  }
+
   async function init() {
     initMouseGlow();
     initParticles();
@@ -191,5 +219,5 @@ const Effects = (() => {
     init3DTilt();
   }
 
-  return { init, init3DTilt };
+  return { init, init3DTilt, shakeCanvas };
 })();

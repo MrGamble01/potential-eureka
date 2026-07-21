@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Voxel Isle — Sky Garden</title>
+<meta name="description" content="A cozy voxel garden on a floating island. Till, plant, water, harvest — grow your sky isle.">
+<style>
+  :root{
+    --panel:#20262e; --panel2:#2a323c; --ink:#e8eef4; --dim:#9fb0bf;
+    --gold:#ffd166; --green:#7fd370; --blue:#7ec8ff; --accent:#7fd370;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:#0e1830;color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
+  canvas{display:block}
+  .hud{position:fixed;z-index:10}
+  .chip{background:rgba(18,24,32,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:8px 12px;font-size:14px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  #topbar{top:10px;left:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+  #coinChip{font-weight:700;color:var(--gold);font-size:16px;transition:transform .15s}
+  #coinChip.pulse{transform:scale(1.18)}
+  #lvlChip{min-width:150px}
+  #lvlChip .bar{height:6px;background:#141a22;border-radius:3px;margin-top:5px;overflow:hidden}
+  #lvlChip .bar i{display:block;height:100%;background:linear-gradient(90deg,#5cae53,#a5e28a);border-radius:3px;transition:width .4s}
+  #dayChip{color:var(--blue)}
+  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px}
+  #back a,#back button{color:var(--dim);text-decoration:none;font-size:13px;cursor:pointer;
+    background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px}
+  #back a:hover,#back button:hover{color:var(--ink)}
+  #quests{top:58px;right:10px;width:230px;font-size:13px}
+  #quests .q-title{font-weight:700;color:var(--green);margin-bottom:4px;font-size:12px;letter-spacing:.08em}
+  #quests .q-text{color:var(--ink)}
+  #quests .q-prog{color:var(--dim);font-size:12px;margin-top:3px}
+  #hotbar{bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+  .slot{width:56px;height:56px;border-radius:14px;background:rgba(18,24,32,.85);border:2px solid rgba(255,255,255,.1);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;
+    font-size:22px;transition:transform .12s,border-color .12s}
+  .slot small{font-size:9px;color:var(--dim);margin-top:1px;letter-spacing:.02em}
+  .slot.sel{border-color:var(--green);transform:translateY(-6px);background:rgba(30,44,32,.92)}
+  .slot .key{position:absolute;top:2px;left:6px;font-size:9px;color:var(--dim)}
+  .panel{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);display:none;grid-template-columns:repeat(4,1fr);
+    gap:6px;background:rgba(18,24,32,.94);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;z-index:12;
+    max-width:min(94vw,420px)}
+  .panel.open{display:grid}
+  .p-item{width:92px;border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--panel2)}
+  .p-item:hover{border-color:rgba(255,255,255,.25)}
+  .p-item.sel{border-color:var(--green)}
+  .p-item.locked{opacity:.42;cursor:default}
+  .p-item .ico{font-size:20px}
+  .p-item .nm{font-size:11px;margin-top:2px}
+  .p-item .pr{font-size:10px;color:var(--gold)}
+  .p-item .lk{font-size:10px;color:var(--dim)}
+  #toasts{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;
+    align-items:center;gap:6px;z-index:20;pointer-events:none}
+  .toast{background:rgba(18,24,32,.92);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;
+    font-size:13px;animation:toastIn .25s ease-out;white-space:nowrap}
+  @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .toast.out{opacity:0;transition:opacity .4s}
+  #banner{position:fixed;top:32%;left:50%;transform:translate(-50%,-50%) scale(.8);z-index:30;text-align:center;
+    opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.2,1.6,.4,1)}
+  #banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #banner h2{font-size:34px;color:var(--gold);text-shadow:0 3px 14px rgba(0,0,0,.6)}
+  #banner p{font-size:15px;color:var(--ink);text-shadow:0 2px 8px rgba(0,0,0,.7);margin-top:6px}
+  .fxText{position:fixed;z-index:25;font-weight:700;font-size:15px;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.55);
+    transition:transform 1.1s ease-out,opacity 1.1s ease-out}
+  #helpOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
+  #helpOv.open{display:flex}
+  #helpOv .card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:26px 30px;
+    max-width:480px;width:92vw;max-height:86vh;overflow:auto}
+  #helpOv h2{color:var(--green);margin-bottom:12px}
+  #helpOv p,#helpOv li{font-size:14px;color:var(--dim);line-height:1.55}
+  #helpOv b{color:var(--ink)}
+  #helpOv ul{margin:8px 0 14px 18px}
+  #helpOv button{margin-top:8px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
+    padding:10px 22px;font-size:14px;cursor:pointer}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
+    background:radial-gradient(ellipse at center,transparent 62%,rgba(6,10,18,.38) 100%)}
+  #achOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
+  #achOv.open{display:flex}
+  #achOv .card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px 26px;
+    max-width:560px;width:94vw;max-height:84vh;overflow:auto}
+  #achOv h2{color:var(--gold);margin-bottom:14px}
+  .ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ach{background:var(--panel2);border-radius:10px;padding:9px 11px;font-size:12px;border:1px solid transparent}
+  .ach.done{border-color:rgba(255,209,102,.5)}
+  .ach.locked{opacity:.45}
+  .ach b{display:block;font-size:13px;margin-bottom:2px}
+  .ach.done b{color:var(--gold)}
+  .ach small{color:var(--dim);line-height:1.3}
+  #achOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
+    padding:9px 20px;font-size:14px;cursor:pointer}
+  body.photo .hud,body.photo #back,body.photo .panel,body.photo #toasts{display:none!important}
+  @media (max-width:640px){
+    .ach-grid{grid-template-columns:1fr}
+    .slot{width:48px;height:48px;font-size:19px}
+    #quests{display:none}
+    #lvlChip{min-width:110px}
+  }
+</style>
+</head>
+<body>
+<div id="vignette"></div>
+<div class="hud" id="topbar">
+  <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
+  <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
+  <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
+</div>
+<div id="back">
+  <button id="achBtn" title="Achievements">🏆</button>
+  <button id="musicBtn" title="Music on/off">🎵</button>
+  <button id="muteBtn" title="Mute (M)">🔊</button>
+  <button id="helpBtn" title="Help (H)">?</button>
+  <a href="index.html">&larr; ARCADE</a>
+</div>
+<div class="hud chip" id="quests">
+  <div class="q-title">✦ GARDEN GOAL</div>
+  <div class="q-text" id="qText"></div>
+  <div class="q-prog" id="qProg"></div>
+</div>
+<div class="hud" id="hotbar">
+  <div class="slot" data-tool="hoe"><span class="key">1</span>⚒️<small>TILL</small></div>
+  <div class="slot" data-tool="water"><span class="key">2</span>💧<small>WATER</small></div>
+  <div class="slot" data-tool="seed"><span class="key">3</span><span id="seedIco">🌻</span><small>PLANT</small></div>
+  <div class="slot" data-tool="block"><span class="key">4</span><span id="blockIco">🧱</span><small>BUILD</small></div>
+  <div class="slot" data-tool="pick"><span class="key">5</span>⛏️<small>DIG</small></div>
+</div>
+<div class="panel" id="seedPanel"></div>
+<div class="panel" id="blockPanel"></div>
+<div id="toasts"></div>
+<div id="banner"><h2 id="bH"></h2><p id="bP"></p></div>
+<div id="achOv"><div class="card">
+  <h2>🏆 Achievements</h2>
+  <div class="ach-grid" id="achGrid"></div>
+  <button id="achClose">Back to the garden</button>
+</div></div>
+<div id="helpOv"><div class="card">
+  <h2>🏝️ Voxel Isle</h2>
+  <p>A tiny floating island, all yours. Grow a garden in the sky.</p>
+  <ul>
+    <li><b>Drag</b> to orbit &middot; <b>scroll / pinch</b> to zoom &middot; <b>Q / E</b> rotate</li>
+    <li><b>⚒️ Till</b> grass into soil, <b>🌱 plant</b> a seed, <b>💧 water</b> it (grows 2&times; faster)</li>
+    <li><b>Tap a ripe plant</b> (it sparkles) to harvest it for coins &amp; XP</li>
+    <li><b>🧱 Build</b> with blocks &amp; decorations &middot; <b>⛏️ Dig</b> to remove</li>
+    <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b></li>
+    <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
+    <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
+  </ul>
+  <button id="helpClose">Let's grow</button>
+</div></div>
+
+<script src="vendor/three-r128.min.js"></script>
+<script>
+'use strict';
+/* ============================== utils ============================== */
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const easeOutBack=t=>{const c=1.70158;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hash3(x,y,z,s){let h=(s|0)^Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(z|0,2147483647-1329);
+  h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
+const smoothT=t=>t*t*(3-2*t);
+function noise2(x,y,s){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const a=hash3(xi,0,yi,s),b=hash3(xi+1,0,yi,s),c=hash3(xi,0,yi+1,s),d=hash3(xi+1,0,yi+1,s);
+  const u=smoothT(xf),v=smoothT(yf);
+  return lerp(lerp(a,b,u),lerp(c,d,u),v);}
+function fbm(x,y,s){return noise2(x,y,s)*0.62+noise2(x*2.17+7.3,y*2.17+3.1,s^0x9e37)*0.26+noise2(x*4.9+13.7,y*4.9+11.2,s^0x51ab)*0.12;}
+function colScale(hex,f){const r=clamp(((hex>>16)&255)*f,0,255),g=clamp(((hex>>8)&255)*f,0,255),b=clamp((hex&255)*f,0,255);
+  return [r/255,g/255,b/255];}
+
+/* ============================== sfx ============================== */
+const SFX={ctx:null,
+  ensure(){if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+    if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();},
+  tone(f,dur,type,vol,slide,delay){if(state.muted)return;this.ensure();if(!this.ctx)return;
+    const t=this.ctx.currentTime+(delay||0);
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(slide,1),t+dur);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+dur+0.03);},
+  play(n){
+    const P={
+      till:()=>{this.tone(140,0.08,'square',0.10,80);this.tone(95,0.11,'square',0.08,55,0.06);},
+      dig:()=>{this.tone(180,0.07,'square',0.10,90);this.tone(120,0.09,'square',0.08,60,0.05);},
+      place:()=>{this.tone(220,0.08,'square',0.09,150);this.tone(330,0.05,'triangle',0.06,0,0.02);},
+      water:()=>{this.tone(900,0.10,'triangle',0.05,320);this.tone(1250,0.07,'sine',0.05,700,0.07);this.tone(1500,0.06,'sine',0.04,900,0.13);},
+      plant:()=>{this.tone(520,0.09,'triangle',0.08,640);},
+      grow:()=>{this.tone(660,0.10,'sine',0.05,880);},
+      harvest:()=>{const notes=[523,587,659,784,880];const i=Math.floor(Math.random()*3);
+        this.tone(notes[i],0.11,'triangle',0.09);this.tone(notes[i+1],0.11,'triangle',0.09,0,0.08);this.tone(notes[i+2],0.16,'triangle',0.09,0,0.16);},
+      coin:()=>{this.tone(1047,0.06,'square',0.06);this.tone(1568,0.10,'square',0.06,0,0.06);},
+      buy:()=>{this.tone(392,0.07,'triangle',0.08);this.tone(523,0.10,'triangle',0.08,0,0.07);},
+      error:()=>{this.tone(140,0.12,'square',0.08,100);},
+      click:()=>{this.tone(700,0.04,'triangle',0.05);},
+      level:()=>{[523,659,784,1047].forEach((f,i)=>this.tone(f,0.16,'triangle',0.09,0,i*0.09));},
+      islet:()=>{[262,330,392,523,659].forEach((f,i)=>this.tone(f,0.3,'sine',0.08,0,i*0.12));this.tone(80,1.2,'sine',0.10,50);},
+      chirp:()=>{this.tone(2300,0.05,'sine',0.03,2700);this.tone(2600,0.06,'sine',0.025,2200,0.09);},
+      ach:()=>{[659,784,1047].forEach((f,i)=>this.tone(f,0.14,'triangle',0.09,0,i*0.09));},
+      season:()=>{this.tone(392,0.25,'sine',0.06,440);this.tone(523,0.3,'sine',0.05,494,0.2);},
+    };
+    if(P[n])P[n]();
+  },
+  pluck(f,vol,delay){
+    if(state.muted||state.musicOff)return;this.ensure();if(!this.ctx)return;
+    const t=this.ctx.currentTime+(delay||0);
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(vol,t+0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+1.9);
+    o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+2);
+  },
+  rainNode:null,
+  rainStart(){
+    if(state.muted)return;this.ensure();if(!this.ctx||this.rainNode)return;
+    const len=this.ctx.sampleRate*2,buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const src=this.ctx.createBufferSource();src.buffer=buf;src.loop=true;
+    const lp=this.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;
+    const g=this.ctx.createGain();g.gain.setValueAtTime(0.0001,this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.045,this.ctx.currentTime+2);
+    src.connect(lp);lp.connect(g);g.connect(this.ctx.destination);src.start();
+    this.rainNode={src,g};
+  },
+  rainStop(){
+    if(!this.rainNode||!this.ctx)return;
+    const {src,g}=this.rainNode;this.rainNode=null;
+    g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+1.5);
+    setTimeout(()=>{try{src.stop();}catch(e){}},1700);
+  }
+};
+
+/* ============================== config ============================== */
+const CYCLE=240, NIGHT_AT=0.72;             // seconds per full day; night starts at 72%
+const SEASON_DAYS=3;                        // days per season, 12-day year
+const SEASONS=[
+  {key:'spring',name:'Spring',ico:'🌸',grass:0x6fc24e,growMult:1.15},
+  {key:'summer',name:'Summer',ico:'☀️',grass:0x82ca41,growMult:1.0},
+  {key:'autumn',name:'Autumn',ico:'🍂',grass:0xa8a03c,growMult:0.9},
+  {key:'winter',name:'Winter',ico:'❄️',grass:0xe6edf2,growMult:0.65},
+];
+const seasonOf=day=>SEASONS[Math.floor((day-1)/SEASON_DAYS)%4];
+const BLOCKS={
+  1:{name:'Grass', ico:'🟩', top:0x6fc24e, side:0x7a5b3c, sideTint:0x5aa042, bottom:0x6b4a30, cost:2},
+  2:{name:'Dirt',  ico:'🟫', top:0x8a6a42, side:0x82613c, bottom:0x6b4a30, cost:1},
+  3:{name:'Stone', ico:'⬜', top:0x9aa0a8, side:0x8b9199, bottom:0x757b83, cost:3},
+  4:{name:'Sand',  ico:'🟨', top:0xdcc687, side:0xcdb677, bottom:0xb7a065, cost:2},
+  5:{name:'Soil',  top:0x6e4f30, side:0x7a5b3c, bottom:0x6b4a30},          // tilled, dry
+  6:{name:'Wet soil', top:0x4a3420, side:0x64492e, bottom:0x6b4a30},       // tilled, wet
+  7:{name:'Planks',ico:'🪵', top:0xc09362, side:0xb08454, bottom:0x94693c, cost:4, lvl:2},
+  8:{name:'Path',  ico:'🪨', top:0xbcb49c, side:0xa8a08a, bottom:0x8f8874, cost:3, lvl:2},
+};
+const BUILDABLE=[2,1,4,3,7,8];
+const PLANTS={
+  sunflower:{name:'Sunflower', ico:'🌻', cost:5,  grow:45,  sell:12,  xp:5,  lvl:1},
+  carrot:   {name:'Carrot',    ico:'🥕', cost:8,  grow:70,  sell:22,  xp:8,  lvl:2},
+  lavender: {name:'Lavender',  ico:'💜', cost:16, grow:110, sell:42,  xp:13, lvl:3},
+  pumpkin:  {name:'Pumpkin',   ico:'🎃', cost:30, grow:180, sell:85,  xp:24, lvl:4},
+  berry:    {name:'Berry bush',ico:'🫐', cost:60, grow:150, sell:34,  xp:11, lvl:5, multi:true, regrow:60},
+  moonpetal:{name:'Moonpetal', ico:'🌙', cost:90, grow:100, sell:170, xp:45, lvl:6, night:true},
+  startree: {name:'Star tree', ico:'⭐', cost:220,grow:300, sell:65,  xp:20, lvl:7, multi:true, regrow:150, tall:true},
+  glowshroom:{name:'Glowshroom',ico:'🍄', cost:150,grow:130, sell:260, xp:55, lvl:8},
+  crystalberry:{name:'Crystalberry',ico:'💎', cost:400,grow:420, sell:150, xp:35, lvl:9, multi:true, regrow:120},
+};
+const DECOR={
+  fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
+  lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
+  gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
+  sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
+};
+const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
+const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
+  4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Berry bushes · Sprinklers',
+  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings',
+  8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
+  10:'A master gardener of the skies 🌈',11:'The isle hums with life',
+  12:'Nothing left to prove — everything left to grow 🌟'};
+const ISLETS=[
+  {id:0,x:27,z:6,r:7,lvl:4,seedOff:101,name:'East Islet'},
+  {id:1,x:-25,z:-17,r:8,lvl:6,seedOff:202,name:'West Islet'},
+  {id:2,x:3,z:-29,r:6,lvl:8,seedOff:303,name:'South Islet'},
+];
+
+/* ============================== state ============================== */
+const SAVE_KEY='voxel-garden-v1';
+let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
+  harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
+  muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
+  ach:{},achFlags:{}};
+const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
+  edits:new Map(), islets:[], chunkDirty:new Set(), chunkMeshes:new Map()};
+const k3=(x,y,z)=>x+','+y+','+z;
+const getB=(x,y,z)=>W.blocks.get(k3(x,y,z))||0;
+function setB(x,y,z,id,silent){const k=k3(x,y,z);
+  if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
+  if(!silent)W.edits.set(k,id);
+  markDirty(x,z);}
+
+/* ============================== worldgen ============================== */
+function genIsland(cx,cz,r,seedOff,out){
+  const s=W.seed+ (seedOff|0);
+  for(let x=cx-r;x<=cx+r;x++)for(let z=cz-r;z<=cz+r;z++){
+    const dx=(x-cx)/r,dz=(z-cz)/r,d=Math.sqrt(dx*dx+dz*dz);
+    const edge=1-d + (fbm(x*0.23,z*0.23,s^0xabc)-0.5)*0.25;
+    if(edge<=0.02)continue;
+    const e=clamp(edge,0,1);
+    const h=Math.max(1,Math.round(1+fbm(x*0.085,z*0.085,s)*7*Math.pow(e,0.6)));
+    const depth=Math.max(2,Math.round(2+fbm(x*0.11+31,z*0.11+17,s^0x77)*10*e));
+    const sandTop=h<=2&&fbm(x*0.3+5,z*0.3+9,s^0x321)<0.34;
+    for(let y=h-depth;y<=h;y++){
+      let id;
+      if(y===h)id=sandTop?4:1;
+      else if(y>h-3)id=2;
+      else id=3;
+      W.blocks.set(k3(x,y,z),id);
+    }
+    if(out)out.push([x,h,z]);
+  }
+}
+function genBridge(islet){
+  // straight plank bridge from main island toward islet center
+  const dirx=Math.sign(islet.x)||0,dirz=Math.sign(islet.z)||0;
+  // walk from islet edge toward origin until we hit terrain, placing planks over gaps
+  const steps=[];
+  const dx=-islet.x,dz=-islet.z,len=Math.sqrt(dx*dx+dz*dz);
+  const ux=dx/len,uz=dz/len;
+  // find islet edge surface height
+  let y0=surfaceY(islet.x,islet.z)||4;
+  for(let t=islet.r-1;t<len;t+=1){
+    const x=Math.round(islet.x+ux*t),z=Math.round(islet.z+uz*t);
+    if(surfaceY(x,z)!==null&&t>islet.r+2){break;}
+    steps.push([x,z]);
+  }
+  const y=Math.max(2,y0);
+  steps.forEach(([x,z])=>{
+    if(getB(x,y,z)===0)setB(x,y,z,7,true);
+    // simple side posts every 3 blocks
+  });
+}
+function surfaceY(x,z){for(let y=20;y>=-24;y--){if(getB(x,y,z)!==0)return y;}return null;}
+function topSolidBelow(x,y,z){for(let yy=y;yy>=-24;yy--){if(getB(x,yy,z)!==0)return yy;}return null;}
+
+/* ============================== meshing ============================== */
+const CH=12;
+const chunkKey=(cx,cz)=>cx+','+cz;
+function markDirty(x,z){
+  const cx=Math.floor(x/CH),cz=Math.floor(z/CH);
+  W.chunkDirty.add(chunkKey(cx,cz));
+  if(((x%CH)+CH)%CH===0)W.chunkDirty.add(chunkKey(cx-1,cz));
+  if(((x%CH)+CH)%CH===CH-1)W.chunkDirty.add(chunkKey(cx+1,cz));
+  if(((z%CH)+CH)%CH===0)W.chunkDirty.add(chunkKey(cx,cz-1));
+  if(((z%CH)+CH)%CH===CH-1)W.chunkDirty.add(chunkKey(cx,cz+1));
+}
+function markAllDirty(){
+  const seen=new Set();
+  for(const k of W.blocks.keys()){
+    const [x,,z]=k.split(',').map(Number);
+    seen.add(chunkKey(Math.floor(x/CH),Math.floor(z/CH)));
+  }
+  seen.forEach(c=>W.chunkDirty.add(c));
+}
+// face defs: [nx,ny,nz, 4 corner offsets]
+const FACES=[
+  {n:[0,1,0], c:[[0,1,0],[0,1,1],[1,1,1],[1,1,0]], shade:1.0, which:'top'},
+  {n:[0,-1,0],c:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]], shade:0.42,which:'bottom'},
+  {n:[1,0,0], c:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]], shade:0.74,which:'side'},
+  {n:[-1,0,0],c:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]], shade:0.70,which:'side'},
+  {n:[0,0,1], c:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]], shade:0.84,which:'side'},
+  {n:[0,0,-1],c:[[0,0,0],[0,1,0],[1,1,0],[1,0,0]], shade:0.80,which:'side'},
+];
+let chunkMat;
+function buildChunk(cx,cz){
+  const key=chunkKey(cx,cz);
+  const old=W.chunkMeshes.get(key);
+  if(old){scene.remove(old);old.geometry.dispose();W.chunkMeshes.delete(key);}
+  const pos=[],nor=[],col=[],idx=[];
+  const x0=cx*CH,z0=cz*CH;
+  for(let x=x0;x<x0+CH;x++)for(let z=z0;z<z0+CH;z++)for(let y=-24;y<=28;y++){
+    const id=getB(x,y,z);if(!id)continue;
+    const def=BLOCKS[id];
+    const jit=0.93+0.13*hash3(x,y,z,W.seed^0x5eed);
+    for(const f of FACES){
+      if(getB(x+f.n[0],y+f.n[1],z+f.n[2]))continue;
+      let hex=f.which==='top'?def.top:f.which==='bottom'?def.bottom:def.side;
+      if(id===1&&f.which==='top')hex=seasonOf(state.day).grass;   // the isle wears the season
+      if(id===1&&f.which==='side'&&!getB(x,y+1,z)){
+        // grass side: blend a green rim in by mixing colors
+        hex=def.sideTint&&hash3(x,y,z,7)<2?def.side:def.side;
+      }
+      const c=colScale(hex,f.shade*jit);
+      const vi=pos.length/3;
+      for(const o of f.c){pos.push(x+o[0],y+o[1],z+o[2]);nor.push(f.n[0],f.n[1],f.n[2]);col.push(c[0],c[1],c[2]);}
+      idx.push(vi,vi+1,vi+2,vi,vi+2,vi+3);
+    }
+  }
+  if(!idx.length)return;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);
+  const m=new THREE.Mesh(g,chunkMat);
+  m.castShadow=true;m.receiveShadow=true;
+  m.userData.isTerrain=true;
+  scene.add(m);
+  W.chunkMeshes.set(key,m);
+}
+function flushChunks(){
+  for(const key of W.chunkDirty){const [cx,cz]=key.split(',').map(Number);buildChunk(cx,cz);}
+  W.chunkDirty.clear();
+}
+
+/* ============================== plant models ============================== */
+// cube: [x,y,z, sx,sy,sz, colorHex]  (y measured up from soil top, plant centered at 0,0)
+function cubesFor(type,stage,vseed){
+  const R=mulberry32(vseed);
+  const c=[];
+  const add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  if(stage===0){ // universal sprout
+    add(0,0.07,0,0.07,0.14,0.07,0x4e9a44);
+    add(0.08,0.16,0,0.1,0.05,0.05,0x67b95a);
+    add(-0.07,0.12,0.02,0.09,0.05,0.05,0x67b95a);
+    return c;
+  }
+  switch(type){
+    case 'sunflower':
+      add(0,0.28,0,0.08,0.56,0.08,0x4e8a3c);
+      add(0.12,0.3,0,0.16,0.05,0.08,0x5faa4c);
+      add(-0.12,0.42,0,0.16,0.05,0.08,0x5faa4c);
+      if(stage>=2){
+        add(0,0.72,0,0.24,0.24,0.12,0x6b4423);
+        const pts=[[0.22,0.72],[-0.22,0.72],[0,0.94],[0,0.5],[0.17,0.89],[-0.17,0.89],[0.17,0.55],[-0.17,0.55]];
+        pts.forEach(p=>add(p[0],p[1],0,0.13,0.13,0.07,0xffd23e));
+      } else add(0,0.62,0,0.14,0.14,0.1,0x8fbf3e);
+      break;
+    case 'carrot':
+      for(let i=0;i<(stage>=2?5:3);i++){
+        const a=R()*6.28,r=0.08+R()*0.1;
+        add(Math.cos(a)*r,0.14+R()*0.12,Math.sin(a)*r,0.06,0.24+R()*0.14,0.06,0x4e9a44);
+      }
+      if(stage>=2)add(0,0.05,0,0.2,0.1,0.2,0xed7f1f);
+      break;
+    case 'lavender':
+      for(let i=0;i<3;i++){
+        const ox=(i-1)*0.14,oz=(R()-0.5)*0.12;
+        add(ox,0.22,oz,0.05,0.44,0.05,0x5a8a48);
+        if(stage>=2){add(ox,0.5,oz,0.11,0.2,0.11,0x9a6ad6);add(ox,0.63,oz,0.08,0.09,0.08,0xb68ae8);}
+        else add(ox,0.46,oz,0.08,0.08,0.08,0x7aa860);
+      }
+      break;
+    case 'pumpkin':
+      add(0.2,0.05,0.15,0.34,0.1,0.05,0x4e8a3c);
+      add(-0.15,0.05,-0.1,0.05,0.1,0.3,0x4e8a3c);
+      if(stage>=2){
+        add(0,0.26,0,0.52,0.44,0.52,0xe8720c);
+        add(0,0.26,0,0.56,0.36,0.34,0xd6650a);
+        add(0,0.26,0,0.34,0.36,0.56,0xd6650a);
+        add(0,0.53,0,0.09,0.12,0.09,0x5a7a34);
+      } else {
+        add(0,0.14,0,0.24,0.2,0.24,0x7aa33c);
+      }
+      break;
+    case 'berry':
+      add(0,0.2,0,0.4,0.36,0.4,0x3e7a38);
+      add(0,0.4,0,0.3,0.2,0.3,0x498a42);
+      add(0.16,0.3,0.14,0.18,0.18,0.14,0x448040);
+      if(stage>=2){
+        for(let i=0;i<6;i++)add((R()-0.5)*0.4,0.2+R()*0.3,(R()-0.5)*0.4,0.09,0.09,0.09,0x4a5adf);
+      }
+      break;
+    case 'moonpetal':
+      add(0,0.3,0,0.06,0.6,0.06,0x3a5a6a);
+      if(stage>=2){
+        add(0,0.68,0,0.2,0.1,0.2,0xbfeaff);
+        add(0.14,0.74,0,0.1,0.12,0.08,0x8fd8ff);
+        add(-0.14,0.74,0,0.1,0.12,0.08,0x8fd8ff);
+        add(0,0.74,0.14,0.08,0.12,0.1,0x8fd8ff);
+        add(0,0.74,-0.14,0.08,0.12,0.1,0x8fd8ff);
+        add(0,0.8,0,0.09,0.09,0.09,0xffffff);
+      } else add(0,0.58,0,0.11,0.11,0.11,0x6a9ab0);
+      break;
+    case 'startree':
+      add(0,0.5,0,0.22,1.0,0.22,0x6e4a2a);
+      if(stage>=1){
+        add(0,1.25,0,0.85,0.5,0.85,0x3f8a4c);
+        add(0,1.6,0,0.6,0.35,0.6,0x49994f);
+        add(0,1.85,0,0.35,0.25,0.35,0x54a858);
+      }
+      if(stage>=2){
+        for(let i=0;i<5;i++){const a=R()*6.28,r=0.28+R()*0.2;
+          add(Math.cos(a)*r,1.15+R()*0.6,Math.sin(a)*r,0.12,0.12,0.12,0xffd23e);}
+      }
+      break;
+    /* --- decor --- */
+    case 'fence':
+      add(0,0.3,0,0.1,0.6,0.1,0x9a7448);
+      add(0,0.42,0,0.95,0.08,0.07,0x8a6740);
+      add(0,0.2,0,0.95,0.08,0.07,0x8a6740);
+      add(0,0.42,0,0.07,0.08,0.95,0x8a6740);
+      add(0,0.2,0,0.07,0.08,0.95,0x8a6740);
+      break;
+    case 'lantern':
+      add(0,0.35,0,0.08,0.7,0.08,0x4a3a2a);
+      add(0,0.76,0,0.22,0.22,0.22,0xffcf7a);
+      add(0,0.9,0,0.26,0.06,0.26,0x4a3a2a);
+      break;
+    case 'gnome':
+      add(0,0.15,0,0.24,0.3,0.2,0x4a68c8);
+      add(0,0.36,0,0.18,0.14,0.16,0xf1bf95);
+      add(0,0.52,0,0.14,0.22,0.14,0xd64545);
+      add(0,0.3,0.11,0.16,0.1,0.05,0xe8e8e8);
+      break;
+    case 'sprinkler':
+      add(0,0.22,0,0.12,0.44,0.12,0x8b9199);
+      add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
+      add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
+      break;
+    case 'glowshroom':
+      add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
+      if(stage>=2){
+        add(0,0.42,0,0.44,0.18,0.44,0x35d0c0);
+        add(0,0.54,0,0.28,0.1,0.28,0x6ff0e0);
+        add(0.14,0.36,0.14,0.06,0.06,0.06,0xbfffF4);
+        add(-0.15,0.38,-0.1,0.05,0.05,0.05,0xbffff4);
+      } else add(0,0.34,0,0.2,0.1,0.2,0x4a9a8e);
+      break;
+    case 'crystalberry':
+      add(0,0.1,0,0.3,0.2,0.3,0x5a6a7a);
+      if(stage>=1)add(0,0.32,0,0.16,0.34,0.16,0x8fb8d8);
+      if(stage>=2){
+        add(0.14,0.4,0.08,0.1,0.3,0.1,0xa8d4f0);
+        add(-0.13,0.36,-0.06,0.09,0.24,0.09,0xc8e8ff);
+        add(0,0.56,0,0.11,0.22,0.11,0xe8f6ff);
+      }
+      break;
+  }
+  return c;
+}
+const plantMat=new THREE.MeshLambertMaterial({vertexColors:true});
+function buildPlantGeometry(cubes){
+  const pos=[],nor=[],col=[],idx=[];
+  for(const [x,y,z,sx,sy,sz,hex] of cubes){
+    const jit=1;
+    for(const f of FACES){
+      const c=colScale(hex,(f.which==='top'?1.0:f.which==='bottom'?0.5:0.78)*jit);
+      const vi=pos.length/3;
+      for(const o of f.c){
+        pos.push(x+(o[0]-0.5)*sx, y+(o[1]-0.5)*sy, z+(o[2]-0.5)*sz);
+        nor.push(f.n[0],f.n[1],f.n[2]);col.push(c[0],c[1],c[2]);
+      }
+      idx.push(vi,vi+1,vi+2,vi,vi+2,vi+3);
+    }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);
+  return g;
+}
+function refreshPlantMesh(p){
+  if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
+  const g=buildPlantGeometry(cubesFor(p.type,p.stage,p.vseed));
+  const m=new THREE.Mesh(g,plantMat);
+  m.position.set(p.x+0.5,p.y,p.z+0.5);
+  m.castShadow=true;
+  m.userData.plantKey=k3(p.x,p.y,p.z);
+  scene.add(m);
+  p.mesh=m;
+}
+
+/* ============================== scene ============================== */
+let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
+let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
+let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
+let leaves,leafMat,bird=null;
+const pickables=[];
+function initScene(){
+  scene=new THREE.Scene();
+  scene.fog=new THREE.Fog(0x8ec9ea,70,180);
+  camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,400);
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+  chunkMat=new THREE.MeshLambertMaterial({vertexColors:true});
+  hemiLight=new THREE.HemisphereLight(0xbfe3ff,0x6b5a42,0.75);scene.add(hemiLight);
+  ambLight=new THREE.AmbientLight(0x404860,0.4);scene.add(ambLight);
+  sunLight=new THREE.DirectionalLight(0xfff2d0,1.05);
+  sunLight.castShadow=true;
+  sunLight.shadow.mapSize.set(2048,2048);
+  const sc=sunLight.shadow.camera;
+  sc.left=-48;sc.right=48;sc.top=48;sc.bottom=-48;sc.near=10;sc.far=240;
+  scene.add(sunLight);scene.add(sunLight.target);
+  // sun & moon billboards
+  sunMesh=new THREE.Mesh(new THREE.SphereGeometry(4,12,12),new THREE.MeshBasicMaterial({color:0xffe9a8,fog:false}));
+  moonMesh=new THREE.Mesh(new THREE.SphereGeometry(3,12,12),new THREE.MeshBasicMaterial({color:0xdfe8ff,fog:false}));
+  scene.add(sunMesh);scene.add(moonMesh);
+  // stars
+  const sp=[];for(let i=0;i<420;i++){const a=Math.random()*Math.PI*2,b=Math.acos(Math.random()*0.9);
+    const r=200;sp.push(r*Math.sin(b)*Math.cos(a),r*Math.cos(b)+10,r*Math.sin(b)*Math.sin(a));}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+  starMat=new THREE.PointsMaterial({color:0xffffff,size:1.6,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false});
+  stars=new THREE.Points(sg,starMat);scene.add(stars);
+  // fireflies
+  const fp=[];for(let i=0;i<48;i++)fp.push(0,0,0);
+  const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(fp,3));
+  ffMat=new THREE.PointsMaterial({color:0xc8ff7a,size:0.28,transparent:true,opacity:0,
+    blending:THREE.AdditiveBlending,depthWrite:false});
+  fireflies=new THREE.Points(fg,ffMat);
+  fireflies.userData.seeds=Array.from({length:48},()=>({a:Math.random()*9,b:Math.random()*9,r:6+Math.random()*16,h:2+Math.random()*7}));
+  scene.add(fireflies);
+  // clouds
+  cloudGroup=new THREE.Group();
+  const cMat=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.85});
+  for(let i=0;i<9;i++){
+    const cl=new THREE.Group();
+    const n=2+((Math.random()*3)|0);
+    for(let j=0;j<n;j++){
+      const b=new THREE.Mesh(new THREE.BoxGeometry(4+Math.random()*7,1.4+Math.random(),3+Math.random()*4),cMat);
+      b.position.set((Math.random()-0.5)*7,(Math.random()-0.5)*1.2,(Math.random()-0.5)*4);
+      cl.add(b);
+    }
+    cl.position.set((Math.random()-0.5)*220,20+Math.random()*18,(Math.random()-0.5)*220);
+    cl.userData.spd=0.4+Math.random()*0.7;
+    cloudGroup.add(cl);
+  }
+  scene.add(cloudGroup);
+  // butterflies (day) — two-wing little critters
+  const wingG=new THREE.BoxGeometry(0.22,0.02,0.16);
+  for(let i=0;i<6;i++){
+    const g=new THREE.Group();
+    const colr=[0xffa4c4,0xffd166,0x9ad7ff,0xd7a4ff][i%4];
+    const wm=new THREE.MeshLambertMaterial({color:colr});
+    const w1=new THREE.Mesh(wingG,wm);w1.position.x=0.11;
+    const w2=new THREE.Mesh(wingG,wm);w2.position.x=-0.11;
+    g.add(w1);g.add(w2);g.userData={w1,w2,seed:Math.random()*9,r:5+Math.random()*12,h:6+Math.random()*5};
+    scene.add(g);butterflies.push(g);
+  }
+  // rain — a tall box of falling streaks above the isles
+  const rp=[];for(let i=0;i<420;i++)rp.push((Math.random()-0.5)*90,Math.random()*40-5,(Math.random()-0.5)*90);
+  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));
+  rainMat=new THREE.PointsMaterial({color:0xbfe0f5,size:0.24,transparent:true,opacity:0,depthWrite:false});
+  rain=new THREE.Points(rg,rainMat);rain.visible=false;scene.add(rain);
+  // autumn leaves — lazy drifting flecks over the main island
+  const lp=[];for(let i=0;i<70;i++)lp.push((Math.random()-0.5)*44,Math.random()*26-2,(Math.random()-0.5)*44);
+  const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  leafMat=new THREE.PointsMaterial({color:0xd8912e,size:0.26,transparent:true,opacity:0,depthWrite:false});
+  leaves=new THREE.Points(lg,leafMat);leaves.visible=false;scene.add(leaves);
+  initBird();
+  // highlight + ghost
+  highlightBox=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002,1.002,1.002)),
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85}));
+  highlightBox.visible=false;scene.add(highlightBox);
+  ghostCube=new THREE.Mesh(new THREE.BoxGeometry(0.98,0.98,0.98),
+    new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.35}));
+  ghostCube.visible=false;scene.add(ghostCube);
+  initParticles();
+}
+
+/* ============================== particles ============================== */
+let partMesh;const PART_MAX=240;const parts=[];
+function initParticles(){
+  partMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(0.14,0.14,0.14),
+    new THREE.MeshBasicMaterial({}),PART_MAX);
+  partMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  partMesh.frustumCulled=false;
+  const zero=new THREE.Matrix4().makeScale(0,0,0);
+  for(let i=0;i<PART_MAX;i++){partMesh.setMatrixAt(i,zero);partMesh.setColorAt(i,new THREE.Color(1,1,1));}
+  scene.add(partMesh);
+}
+function burst(x,y,z,hex,n,opts){
+  opts=opts||{};
+  for(let i=0;i<n;i++){
+    if(parts.length>=PART_MAX)parts.shift();
+    const a=Math.random()*Math.PI*2,up=opts.up!==undefined?opts.up:2.6;
+    parts.push({x:x+(Math.random()-0.5)*0.5,y:y+(Math.random()-0.3)*0.4,z:z+(Math.random()-0.5)*0.5,
+      vx:Math.cos(a)*(0.8+Math.random()*1.6)*(opts.spread||1),
+      vy:up*(0.5+Math.random()*0.9),
+      vz:Math.sin(a)*(0.8+Math.random()*1.6)*(opts.spread||1),
+      life:0.5+Math.random()*0.45,t:0,s:0.6+Math.random()*0.9,
+      col:new THREE.Color(hex).multiplyScalar(0.85+Math.random()*0.35),g:opts.g!==undefined?opts.g:7});
+  }
+}
+const _pm=new THREE.Matrix4(),_pq=new THREE.Quaternion(),_pv=new THREE.Vector3(),_ps=new THREE.Vector3();
+function updateParticles(dt){
+  let dirty=false;
+  const zero=new THREE.Matrix4().makeScale(0,0,0);
+  for(let i=0;i<PART_MAX;i++){
+    const p=parts[i];
+    if(!p||p.t>=p.life){partMesh.setMatrixAt(i,zero);continue;}
+    p.t+=dt;p.vy-=p.g*dt;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
+    const f=1-p.t/p.life,s=p.s*f;
+    _pv.set(p.x,p.y,p.z);_ps.set(s,s,s);_pq.set(0,0,0,1);
+    _pm.compose(_pv,_pq,_ps);
+    partMesh.setMatrixAt(i,_pm);
+    partMesh.setColorAt(i,p.col);
+    dirty=true;
+  }
+  // compact dead
+  for(let i=parts.length-1;i>=0;i--)if(parts[i].t>=parts[i].life)parts.splice(i,1);
+  partMesh.instanceMatrix.needsUpdate=true;
+  if(partMesh.instanceColor)partMesh.instanceColor.needsUpdate=true;
+}
+
+/* ============================== pop tweens ============================== */
+const pops=[];
+function popMesh(mesh,from){pops.push({mesh,t:0,from:from||0.05});mesh.scale.setScalar(from||0.05);}
+function updatePops(dt){
+  for(let i=pops.length-1;i>=0;i--){
+    const p=pops[i];p.t+=dt*2.6;
+    if(p.t>=1){p.mesh.scale.setScalar(1);pops.splice(i,1);continue;}
+    p.mesh.scale.setScalar(lerp(p.from,1,easeOutBack(p.t)));
+  }
+}
+
+/* ============================== camera ============================== */
+const cam={yaw:0.7,pitch:0.55,dist:42,tyaw:0.7,tpitch:0.55,tdist:42,cx:0,cy:5,cz:0};
+function updateCamera(dt){
+  const f=1-Math.pow(0.0001,dt);
+  cam.yaw+=(cam.tyaw-cam.yaw)*f;cam.pitch+=(cam.tpitch-cam.pitch)*f;cam.dist+=(cam.tdist-cam.dist)*f;
+  const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  camera.position.set(cam.cx+Math.cos(cam.yaw)*cp*cam.dist,cam.cy+sp*cam.dist,cam.cz+Math.sin(cam.yaw)*cp*cam.dist);
+  camera.lookAt(cam.cx,cam.cy,cam.cz);
+}
+
+/* ============================== day / night ============================== */
+const C_DAY=new THREE.Color(0x8ec9ea),C_NIGHT=new THREE.Color(0x0d1730),C_DUSK=new THREE.Color(0xf2996b);
+const _sky=new THREE.Color();
+function gaussish(f,c,w){let d=Math.abs(f-c);d=Math.min(d,1-d);return Math.max(0,1-d/w);}
+function updateDay(dt){
+  state.time+=dt;
+  if(state.time>=CYCLE){
+    const prevSeason=seasonOf(state.day);
+    state.time-=CYCLE;state.day++;el.day.textContent=state.day;
+    const s=seasonOf(state.day);
+    if(s!==prevSeason){
+      // repaint every grass top in the new season's colours
+      markAllDirty();flushChunks();
+      refreshSeasonHud();
+      SFX.play('season');
+      banner(s.ico+' '+s.name+' arrives',
+        s.key==='winter'?'The isle sleeps under frost — growth slows, snow falls.':
+        s.key==='spring'?'Everything grows a little faster. Plant boldly!':
+        s.key==='autumn'?'Leaves drift on the wind. Harvests feel golden.':
+        'Long bright days. The garden basks.');
+      checkAch();
+    } else toast('☀️ Day '+state.day+' begins');
+  }
+  const frac=state.time/CYCLE;
+  const daylight=frac<NIGHT_AT?Math.sin(Math.PI*frac/NIGHT_AT):0;
+  const night=1-clamp(daylight*2.2,0,1);
+  const duskAmt=Math.max(gaussish(frac,NIGHT_AT-0.02,0.05),gaussish(frac,0.985,0.04))*0.75;
+  _sky.copy(C_NIGHT).lerp(C_DAY,clamp(daylight*1.35,0,1)).lerp(C_DUSK,duskAmt);
+  _sky.multiplyScalar(1-rainAmt*0.22);           // showers grey the sky down
+  renderer.setClearColor(_sky);
+  scene.fog.color.copy(_sky);
+  // sun path
+  const sa=Math.PI*frac/NIGHT_AT;              // 0..pi across daytime
+  const sunX=Math.cos(sa)*110,sunY=Math.sin(sa)*95,sunZ=40;
+  sunMesh.position.set(sunX,sunY,sunZ);
+  sunMesh.visible=daylight>0.01;
+  const ma=Math.PI*((frac-NIGHT_AT)/(1-NIGHT_AT));
+  moonMesh.position.set(Math.cos(ma)*110,Math.sin(ma)*85,-50);
+  moonMesh.visible=night>0.4&&frac>=NIGHT_AT;
+  if(daylight>0.02){
+    sunLight.position.set(sunX*0.8,Math.max(sunY*0.8,8),sunZ*0.8);
+    sunLight.intensity=(0.25+daylight*0.95)*(1-rainAmt*0.45);
+    sunLight.color.setHex(duskAmt>0.3?0xffc890:0xfff2d0);
+  } else {
+    sunLight.position.set(Math.cos(ma)*80,Math.max(Math.sin(ma)*70,10),-40);
+    sunLight.intensity=0.18;
+    sunLight.color.setHex(0x9db8ff);
+  }
+  hemiLight.intensity=0.25+daylight*0.55;
+  ambLight.intensity=0.32+daylight*0.18;
+  starMat.opacity=night*0.9;
+  ffMat.opacity=night*0.95;
+  el.dayIco.textContent=frac<NIGHT_AT?'☀️':'🌙';
+  return {frac,daylight,night};
+}
+const isNight=()=>state.time/CYCLE>=NIGHT_AT;
+
+/* ============================== plants logic ============================== */
+function addPlant(x,y,z,type,fromLoad,prog,stage,harvested){
+  const p={x,y,z,type,prog:prog||0,stage:stage!==undefined?stage:0,
+    vseed:(hash3(x,y,z,W.seed)*1e9)|0,mesh:null,phase:Math.random()*9,harvested:harvested||0};
+  W.plants.set(k3(x,y,z),p);
+  refreshPlantMesh(p);
+  if(!fromLoad)popMesh(p.mesh);
+  return p;
+}
+function removePlant(p){
+  if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
+  W.plants.delete(k3(p.x,p.y,p.z));
+}
+function stageFor(p){
+  const def=PLANTS[p.type];
+  if(!def)return 2;                      // decor is always "grown"
+  if(p.prog>=def.grow)return 2;
+  return p.prog>=def.grow*0.45?1:0;
+}
+function updatePlants(dt,dn){
+  for(const p of W.plants.values()){
+    const def=PLANTS[p.type];
+    if(!def)continue;                    // decor
+    if(p.stage>=2){
+      // gentle ripe pulse
+      const s=1+Math.sin(perf*2.6+p.phase)*0.045;
+      if(!popsHas(p.mesh))p.mesh.scale.setScalar(s);
+      continue;
+    }
+    let rate=seasonOf(state.day).growMult;
+    if(def.night)rate*=dn.night>0.5?1.6:0.12;
+    const soilK=k3(p.x,p.y-1,p.z);
+    if(W.wet.has(soilK))rate*=2;
+    p.prog+=dt*rate;
+    const ns=stageFor(p);
+    if(ns!==p.stage){
+      p.stage=ns;refreshPlantMesh(p);popMesh(p.mesh,0.5);
+      if(ns===2){
+        burst(p.x+0.5,p.y+0.7,p.z+0.5,def.night?0x9adfff:0xfff2a8,10,{up:1.6,g:2});
+        SFX.play('grow');
+      }
+    }
+  }
+}
+function popsHas(mesh){return pops.some(p=>p.mesh===mesh);}
+function updateWet(dt){
+  for(const [k,t] of W.wet){
+    const nt=t-dt;
+    if(nt<=0){
+      W.wet.delete(k);
+      const [x,y,z]=k.split(',').map(Number);
+      if(getB(x,y,z)===6)setB(x,y,z,5);
+    } else W.wet.set(k,nt);
+  }
+}
+
+/* ============================== economy / progression ============================== */
+function grantCoins(n,wx,wy,wz){
+  state.coins+=n;state.totalEarned+=n;
+  el.coins.textContent=state.coins;
+  el.coinChip.classList.add('pulse');setTimeout(()=>el.coinChip.classList.remove('pulse'),160);
+  if(wx!==undefined)floatText(wx,wy,wz,'+'+n+' 🪙','#ffd166');
+}
+function spendCoins(n){
+  if(state.coins<n){toast('Not enough coins — harvest something! 🪙');SFX.play('error');return false;}
+  state.coins-=n;el.coins.textContent=state.coins;return true;
+}
+function grantXP(n){
+  state.xp+=n;
+  while(state.level<LVL_XP.length&&state.xp>=LVL_XP[state.level]){
+    state.level++;
+    onLevelUp();
+  }
+  refreshXpHud();
+}
+function refreshXpHud(){
+  el.lvl.textContent='LV '+state.level;
+  const cur=LVL_XP[state.level-1],next=LVL_XP[state.level]||null;
+  if(next){el.xpBar.style.width=Math.round((state.xp-cur)/(next-cur)*100)+'%';
+    el.xpTxt.textContent=(state.xp-cur)+'/'+(next-cur);}
+  else{el.xpBar.style.width='100%';el.xpTxt.textContent='MAX';}
+}
+function onLevelUp(){
+  SFX.play('level');
+  banner('🌿 Garden Level '+state.level+'!',UNLOCKS[state.level]||'Keep growing!');
+  buildSeedPanel();buildBlockPanel();
+  ISLETS.forEach(it=>{if(it.lvl===state.level)unlockIslet(it);});
+  questCheck();
+}
+function unlockIslet(it,fromLoad){
+  if(W.islets.includes(it.id))return;
+  W.islets.push(it.id);
+  genIsland(it.x,it.z,it.r,it.seedOff);
+  genBridge(it);
+  markAllDirty();flushChunks();
+  if(!fromLoad){
+    SFX.play('islet');
+    setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
+    for(let i=0;i<24;i++)setTimeout(()=>{
+      burst(it.x+(Math.random()-0.5)*it.r*2,surfaceY(it.x,it.z)+2||6,it.z+(Math.random()-0.5)*it.r*2,0xffffff,4,{up:2,g:3});
+    },i*80);
+  }
+}
+
+/* ============================== quests ============================== */
+const QUESTS=[
+  {text:'Till 3 patches of grass with the ⚒️ hoe',prog:()=>state.tills+'/3',done:()=>state.tills>=3,reward:5},
+  {text:'Plant 3 sunflower seeds 🌻 in tilled soil',prog:()=>state.planted+'/3',done:()=>state.planted>=3,reward:5},
+  {text:'Water 3 plots with the 💧 watering can',prog:()=>state.waters+'/3',done:()=>state.waters>=3,reward:5},
+  {text:'Harvest your first ripe crop ✨',prog:()=>state.harvests+'/1',done:()=>state.harvests>=1,reward:10},
+  {text:'Reach Garden Level 2',prog:()=>'LV '+state.level,done:()=>state.level>=2,reward:15},
+  {text:'Place a decoration or block 🧱',prog:()=>state.decor+'/1',done:()=>state.decor>=1,reward:10},
+  {text:'Harvest 10 crops',prog:()=>state.harvests+'/10',done:()=>state.harvests>=10,reward:25},
+  {text:'Reach Garden Level 4 — something will rise…',prog:()=>'LV '+state.level,done:()=>state.level>=4,reward:40},
+  {text:'Earn 1,000 coins total',prog:()=>state.totalEarned+'/1000',done:()=>state.totalEarned>=1000,reward:100},
+  {text:'Reach Garden Level 6',prog:()=>'LV '+state.level,done:()=>state.level>=6,reward:150},
+];
+function questCheck(){
+  checkAch();
+  const q=QUESTS[state.questIdx];
+  if(!q)return;
+  if(q.done()){
+    grantCoins(q.reward);
+    toast('✦ Goal complete! +'+q.reward+' 🪙');
+    SFX.play('coin');
+    state.questIdx++;
+    questCheck();
+  }
+  refreshQuestHud();
+}
+function refreshQuestHud(){
+  const q=QUESTS[state.questIdx];
+  if(!q){el.qText.textContent='Free play — grow the garden of your dreams ✨';el.qProg.textContent='';return;}
+  el.qText.textContent=q.text;
+  el.qProg.textContent=q.prog();
+}
+
+/* ============================== actions ============================== */
+function cellFromHit(hit,into){
+  const n=hit.face.normal;
+  const off=into?-0.5:0.5;
+  return [Math.floor(hit.point.x+n.x*off),Math.floor(hit.point.y+n.y*off),Math.floor(hit.point.z+n.z*off)];
+}
+function doAction(hit){
+  // plant hit?
+  if(hit.object.userData.plantKey){
+    const p=W.plants.get(hit.object.userData.plantKey);
+    if(p)return actOnPlant(p);
+    return;
+  }
+  const [x,y,z]=cellFromHit(hit,true);
+  const id=getB(x,y,z);
+  const tool=state.tool;
+  if(tool==='hoe'){
+    if((id===1||id===2)&&!getB(x,y+1,z)){
+      setB(x,y,z,5);flushChunks();
+      state.tills++;SFX.play('till');
+      burst(x+0.5,y+1.05,z+0.5,0x8a6a42,8,{up:1.8,g:6});
+      questCheck();
+    } else if(id===5||id===6){toast('Already tilled — plant a seed! 🌱');}
+    else{toast('Till grass or dirt (with nothing on top)');SFX.play('error');}
+  }
+  else if(tool==='water'){
+    waterSoil(x,y,z,id);
+  }
+  else if(tool==='seed'){
+    if(id===5||id===6){
+      if(W.plants.has(k3(x,y+1,z))){toast('Something is already growing here');return;}
+      const def=PLANTS[state.seedSel];
+      if(state.level<def.lvl){toast('Unlocks at level '+def.lvl);SFX.play('error');return;}
+      if(!spendCoins(def.cost))return;
+      addPlant(x,y+1,z,state.seedSel);
+      state.planted++;SFX.play('plant');
+      burst(x+0.5,y+1.2,z+0.5,0x7fd370,6,{up:1.4,g:4});
+      if(def.night&&!isNight())toast('🌙 Moonpetals only grow at night…');
+      questCheck();
+    } else {toast('Plant in tilled soil — use the ⚒️ hoe first');SFX.play('error');}
+  }
+  else if(tool==='pick'){
+    if(id){
+      const above=W.plants.get(k3(x,y+1,z));
+      if(above)removePlant(above);
+      const def=BLOCKS[id];
+      setB(x,y,z,0);
+      W.wet.delete(k3(x,y,z));
+      flushChunks();
+      SFX.play('dig');
+      burst(x+0.5,y+0.5,z+0.5,def.top,10,{up:2,g:7});
+    }
+  }
+  else if(tool==='block'){
+    const [px,py,pz]=cellFromHit(hit,false);
+    placeSelected(px,py,pz);
+  }
+}
+function waterSoil(x,y,z,id){
+  if(id===5||id===6){
+    if(id===5){setB(x,y,z,6);flushChunks();}
+    W.wet.set(k3(x,y,z),95);
+    state.waters++;SFX.play('water');
+    burst(x+0.5,y+1.15,z+0.5,0x6fc3ff,9,{up:1.2,g:5,spread:0.6});
+    questCheck();
+  } else if(id===1||id===2){toast('Till it first with the ⚒️ hoe');}
+  else toast('Water tilled soil to speed up growth 2×');
+}
+function actOnPlant(p){
+  const def=PLANTS[p.type];
+  if(!def){ // decor
+    if(state.tool==='pick'){
+      removePlant(p);SFX.play('dig');
+      burst(p.x+0.5,p.y+0.4,p.z+0.5,0xc09362,8,{up:1.6,g:6});
+    }
+    return;
+  }
+  if(p.stage>=2){
+    // harvest!
+    state.harvests++;
+    if(p.type==='moonpetal')state.achFlags.moon=true;
+    if(p.type==='startree')state.achFlags.tree=true;
+    if(isNight())state.achFlags.night=true;
+    grantCoins(def.sell,p.x+0.5,p.y+0.9,p.z+0.5);
+    grantXP(def.xp);
+    SFX.play('harvest');
+    setTimeout(()=>SFX.play('coin'),140);
+    burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,14,{up:2.4,g:6});
+    if(def.multi){
+      p.harvested++;p.prog=def.grow-def.regrow;p.stage=1;
+      refreshPlantMesh(p);popMesh(p.mesh,0.6);
+    } else {
+      removePlant(p);
+      // soil stays tilled for replanting
+    }
+    questCheck();
+    return;
+  }
+  if(state.tool==='pick'){removePlant(p);SFX.play('dig');
+    burst(p.x+0.5,p.y+0.3,p.z+0.5,0x4e9a44,6,{up:1.4,g:6});return;}
+  if(state.tool==='water'){const sy=p.y-1;waterSoil(p.x,sy,p.z,getB(p.x,sy,p.z));return;}
+  const pct=Math.round(p.prog/def.grow*100);
+  const wet=W.wet.has(k3(p.x,p.y-1,p.z));
+  toast(def.ico+' '+def.name+' — '+pct+'% grown'+(wet?' 💧2×':'')+(def.night&&!isNight()?' (waiting for night 🌙)':''));
+}
+function placeSelected(x,y,z){
+  if(Math.abs(x)>46||Math.abs(z)>46||y<-24||y>26){toast('Too far out into the sky…');return;}
+  if(getB(x,y,z)){return;}
+  if(W.plants.has(k3(x,y,z))){toast('Something is in the way');return;}
+  const sel=state.blockSel;
+  if(typeof sel==='string'){ // decor
+    const d=DECOR[sel];
+    if(state.level<d.lvl){toast('Unlocks at level '+d.lvl);SFX.play('error');return;}
+    if(!getB(x,y-1,z)){toast('Decor needs ground under it');return;}
+    if(!spendCoins(d.cost))return;
+    addPlant(x,y,z,sel);
+    state.decor++;SFX.play('place');
+    burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
+    questCheck();
+  } else {
+    const def=BLOCKS[sel];
+    if(def.lvl&&state.level<def.lvl){toast('Unlocks at level '+def.lvl);SFX.play('error');return;}
+    if(!spendCoins(def.cost))return;
+    setB(x,y,z,sel);flushChunks();
+    state.decor++;SFX.play('place');
+    burst(x+0.5,y+0.5,z+0.5,def.top,8,{up:1.6,g:5});
+    questCheck();
+  }
+}
+
+/* ============================== input ============================== */
+const ray=new THREE.Raycaster();
+const ptr=new THREE.Vector2();
+let pointerDown=false,dragDist=0,lastPX=0,lastPY=0,pinchD=0,twoFinger=false;
+let hoverHit=null;
+function getPickables(){
+  const arr=[];
+  for(const m of W.chunkMeshes.values())arr.push(m);
+  for(const p of W.plants.values())if(p.mesh)arr.push(p.mesh);
+  return arr;
+}
+function raycastAt(clientX,clientY){
+  ptr.x=(clientX/innerWidth)*2-1;ptr.y=-(clientY/innerHeight)*2+1;
+  ray.setFromCamera(ptr,camera);
+  const hits=ray.intersectObjects(getPickables(),false);
+  return hits.length?hits[0]:null;
+}
+function bindInput(){
+  const cv=renderer.domElement;
+  const pointers=new Map();
+  cv.addEventListener('pointerdown',e=>{
+    SFX.ensure();
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointers.size===2){
+      twoFinger=true;
+      const ps=[...pointers.values()];
+      pinchD=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
+    }
+    pointerDown=true;dragDist=0;lastPX=e.clientX;lastPY=e.clientY;
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointers.size===2){
+      const ps=[...pointers.values()];
+      const d=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
+      if(pinchD)cam.tdist=clamp(cam.tdist*(pinchD/d),16,90);
+      pinchD=d;
+      return;
+    }
+    if(pointerDown){
+      const dx=e.clientX-lastPX,dy=e.clientY-lastPY;
+      dragDist+=Math.abs(dx)+Math.abs(dy);
+      if(dragDist>6){
+        cam.tyaw+=dx*0.0075;
+        cam.tpitch=clamp(cam.tpitch+dy*0.005,0.12,1.35);
+      }
+      lastPX=e.clientX;lastPY=e.clientY;
+    }
+    lastPX=e.clientX;lastPY=e.clientY;
+    hoverHit={x:e.clientX,y:e.clientY};
+  });
+  const endPointer=e=>{
+    pointers.delete(e.pointerId);
+    if(pointers.size<2){twoFinger=false;pinchD=0;}
+    if(!pointerDown)return;
+    pointerDown=false;
+    if(dragDist<=6&&!twoFinger){
+      const hit=raycastAt(e.clientX,e.clientY);
+      if(hit)doAction(hit);
+    }
+  };
+  cv.addEventListener('pointerup',endPointer);
+  cv.addEventListener('pointercancel',endPointer);
+  cv.addEventListener('wheel',e=>{e.preventDefault();
+    cam.tdist=clamp(cam.tdist+Math.sign(e.deltaY)*3.2,16,90);},{passive:false});
+  addEventListener('keydown',e=>{
+    if(e.key==='q'||e.key==='Q')cam.tyaw-=Math.PI/4;
+    else if(e.key==='e'||e.key==='E')cam.tyaw+=Math.PI/4;
+    else if(e.key==='m'||e.key==='M')toggleMute();
+    else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
+    else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
+    else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');
+      document.body.classList.remove('photo');closePanels();}
+    else if(e.key>='1'&&e.key<='5'){
+      const tools=['hoe','water','seed','block','pick'];
+      selectTool(tools[+e.key-1]);
+    }
+    else if(e.key==='+'||e.key==='=')cam.tdist=clamp(cam.tdist-4,16,90);
+    else if(e.key==='-')cam.tdist=clamp(cam.tdist+4,16,90);
+  });
+  addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+}
+function updateHover(){
+  if(!hoverHit){highlightBox.visible=false;ghostCube.visible=false;return;}
+  const hit=raycastAt(hoverHit.x,hoverHit.y);
+  if(!hit){highlightBox.visible=false;ghostCube.visible=false;return;}
+  if(hit.object.userData.plantKey){
+    const p=W.plants.get(hit.object.userData.plantKey);
+    highlightBox.visible=false;ghostCube.visible=false;
+    document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
+    return;
+  }
+  document.body.style.cursor='default';
+  if(state.tool==='block'){
+    const [x,y,z]=cellFromHit(hit,false);
+    ghostCube.position.set(x+0.5,y+0.5,z+0.5);
+    ghostCube.visible=true;highlightBox.visible=false;
+    const sel=state.blockSel;
+    ghostCube.material.color.setHex(typeof sel==='string'?0xffe9b8:BLOCKS[sel].top);
+  } else {
+    const [x,y,z]=cellFromHit(hit,true);
+    highlightBox.position.set(x+0.5,y+0.5,z+0.5);
+    highlightBox.visible=true;ghostCube.visible=false;
+  }
+}
+
+/* ============================== HUD ============================== */
+const el={};
+function $(id){return document.getElementById(id);}
+function initHud(){
+  ['coins','lvl','xpBar','xpTxt','day','qText','qProg','toasts','banner','bH','bP','helpOv','seedIco','blockIco'].forEach(id=>el[id]=$(id));
+  el.coinChip=$('coinChip');el.dayIco=document.querySelector('#dayChip');
+  el.dayIco={set textContent(v){/* first char swap */const d=$('dayChip');d.firstChild.textContent=v+' Day ';}};
+  el.day=$('day');
+  document.querySelectorAll('.slot').forEach(s=>{
+    s.addEventListener('click',()=>selectTool(s.dataset.tool,true));
+  });
+  $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
+  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
+  $('muteBtn').addEventListener('click',toggleMute);
+  $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
+  $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
+  refreshSeasonHud();
+  $('musicBtn').addEventListener('click',()=>{
+    state.musicOff=!state.musicOff;
+    $('musicBtn').style.opacity=state.musicOff?0.4:1;
+    SFX.play('click');
+  });
+  $('musicBtn').style.opacity=state.musicOff?0.4:1;
+  buildSeedPanel();buildBlockPanel();
+  refreshXpHud();refreshQuestHud();
+  el.coins.textContent=state.coins;el.day.textContent=state.day;
+  selectTool(state.tool);
+  if(!state.helpSeen)el.helpOv.classList.add('open');
+}
+function toggleMute(){state.muted=!state.muted;$('muteBtn').textContent=state.muted?'🔇':'🔊';}
+function refreshSeasonHud(){const s=seasonOf(state.day);const t=$('seasonTag');if(t)t.textContent=s.ico+' '+s.name;}
+function selectTool(t,fromClick){
+  const wasSel=state.tool===t;
+  state.tool=t;
+  document.querySelectorAll('.slot').forEach(s=>s.classList.toggle('sel',s.dataset.tool===t));
+  if(fromClick)SFX.play('click');
+  if(t==='seed'){if(fromClick&&!wasSel||fromClick&&!$('seedPanel').classList.contains('open')){openPanel('seedPanel');}else if(fromClick)closePanels();}
+  else if(t==='block'){if(fromClick&&!wasSel||fromClick&&!$('blockPanel').classList.contains('open')){openPanel('blockPanel');}else if(fromClick)closePanels();}
+  else closePanels();
+}
+function openPanel(id){closePanels();$(id).classList.add('open');}
+function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));}
+function buildSeedPanel(){
+  const p=$('seedPanel');p.innerHTML='';
+  for(const [key,def] of Object.entries(PLANTS)){
+    const d=document.createElement('div');
+    const locked=state.level<def.lvl;
+    d.className='p-item'+(locked?' locked':'')+(state.seedSel===key?' sel':'');
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
+        :'<div class="pr">'+def.cost+' 🪙 → '+def.sell+' 🪙</div>');
+    if(!locked)d.addEventListener('click',()=>{
+      state.seedSel=key;el.seedIco.textContent=def.ico;SFX.play('click');
+      buildSeedPanel();closePanels();
+    });
+    p.appendChild(d);
+  }
+}
+function buildBlockPanel(){
+  const p=$('blockPanel');p.innerHTML='';
+  for(const id of BUILDABLE){
+    const def=BLOCKS[id];
+    const locked=def.lvl&&state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+(locked?' locked':'')+(state.blockSel===id?' sel':'');
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>':'<div class="pr">'+def.cost+' 🪙</div>');
+    if(!locked)d.addEventListener('click',()=>{
+      state.blockSel=id;el.blockIco.textContent=def.ico;SFX.play('click');
+      buildBlockPanel();closePanels();
+    });
+    p.appendChild(d);
+  }
+  for(const [key,def] of Object.entries(DECOR)){
+    const locked=state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+(locked?' locked':'')+(state.blockSel===key?' sel':'');
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>':'<div class="pr">'+def.cost+' 🪙</div>');
+    if(!locked)d.addEventListener('click',()=>{
+      state.blockSel=key;el.blockIco.textContent=def.ico;SFX.play('click');
+      buildBlockPanel();closePanels();
+    });
+    p.appendChild(d);
+  }
+}
+function toast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  el.toasts.appendChild(t);
+  while(el.toasts.children.length>3)el.toasts.removeChild(el.toasts.firstChild);
+  setTimeout(()=>t.classList.add('out'),1900);
+  setTimeout(()=>t.remove(),2400);
+}
+function banner(h,p){
+  el.bH.textContent=h;el.bP.textContent=p||'';
+  el.banner.classList.add('show');
+  setTimeout(()=>el.banner.classList.remove('show'),3400);
+}
+const _v3=new THREE.Vector3();
+function floatText(wx,wy,wz,str,color){
+  _v3.set(wx,wy,wz).project(camera);
+  const sx=(_v3.x*0.5+0.5)*innerWidth,sy=(-_v3.y*0.5+0.5)*innerHeight;
+  const d=document.createElement('div');
+  d.className='fxText';d.textContent=str;d.style.color=color||'#fff';
+  d.style.left=(sx-20)+'px';d.style.top=(sy-10)+'px';
+  document.body.appendChild(d);
+  requestAnimationFrame(()=>{d.style.transform='translateY(-64px)';d.style.opacity='0';});
+  setTimeout(()=>d.remove(),1150);
+}
+
+/* ============================== save / load ============================== */
+function save(){
+  try{
+    const data={v:1,seed:W.seed,savedAt:Date.now(),
+      state:{...state},
+      edits:[...W.edits.entries()],
+      wet:[...W.wet.entries()],
+      islets:W.islets,
+      plants:[...W.plants.values()].map(p=>({x:p.x,y:p.y,z:p.z,type:p.type,prog:p.prog,stage:p.stage,harvested:p.harvested})),
+    };
+    localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+  }catch(e){}
+}
+function load(){
+  let data=null;
+  try{data=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){}
+  if(!data||data.v!==1)return false;
+  W.seed=data.seed;
+  Object.assign(state,data.state);
+  genIsland(0,0,15,0);
+  const islets=data.islets||[];
+  islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});
+  (data.edits||[]).forEach(([k,id])=>{
+    W.edits.set(k,id);
+    if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
+  });
+  (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
+  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,p.stage,p.harvested));
+  // offline growth
+  const off=clamp((Date.now()-(data.savedAt||Date.now()))/1000,0,4*3600);
+  if(off>20){
+    let ripened=0;
+    for(const p of W.plants.values()){
+      const def=PLANTS[p.type];if(!def||p.stage>=2)continue;
+      const rate=def.night?0.3:1;
+      p.prog+=off*rate;
+      const ns=stageFor(p);
+      if(ns!==p.stage){p.stage=ns;refreshPlantMesh(p);if(ns===2)ripened++;}
+    }
+    state.time=(state.time+off)%CYCLE;
+    state.day+=Math.floor(off/CYCLE);
+    for(const [k,t] of W.wet){if(t-off<=0){W.wet.delete(k);const [x,y,z]=k.split(',').map(Number);
+      if(getB(x,y,z)===6){W.blocks.set(k,5);W.edits.set(k,5);}}}
+    if(ripened>0)setTimeout(()=>toast('While you were away, '+ripened+' crop'+(ripened>1?'s':'')+' ripened ✨'),1500);
+  }
+  return true;
+}
+
+/* ============================== ambient music ============================== */
+// A sparse generative kalimba: soft pentatonic plucks a few seconds apart,
+// sometimes with a fifth or an octave answering. Slower and quieter at night
+// and during rain, so it never crowds the weather or the fireflies.
+const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],
+  tick(dt,dn){
+    if(state.muted||state.musicOff)return;
+    if(!SFX.ctx)return;                      // waits for the first user gesture
+    this.t+=dt;
+    if(this.t<this.next)return;
+    this.t=0;
+    const calm=(dn.night>0.5?1.8:1)*(rainAmt>0.5?1.5:1);
+    this.next=(2.4+Math.random()*3.6)*calm;
+    const f=this.scale[(Math.random()*this.scale.length)|0];
+    const vol=dn.night>0.5?0.028:0.04;
+    SFX.pluck(f,vol);
+    const r=Math.random();
+    if(r<0.3)SFX.pluck(f*1.5,vol*0.7,0.35);
+    else if(r<0.45)SFX.pluck(f*2,vol*0.55,0.5);
+  }};
+
+/* ============================== weather ============================== */
+function updateRain(dt){
+  if(rainActive){
+    rainLeft-=dt;
+    if(rainLeft<=0){rainActive=false;rainT=100+Math.random()*160;SFX.rainStop();}
+  } else {
+    rainT-=dt;
+    if(rainT<=0){
+      rainActive=true;rainLeft=22+Math.random()*20;
+      const winter=seasonOf(state.day).key==='winter';
+      toast(winter?'❄️ Snow drifts across the isle — soft and slow':
+        '🌧️ A gentle shower rolls in — your garden drinks it up');
+      if(!state.achFlags.rain){state.achFlags.rain=true;checkAch();}
+      if(winter&&!state.achFlags.snow){state.achFlags.snow=true;checkAch();}
+      SFX.rainStart();
+    }
+  }
+  const snowy=seasonOf(state.day).key==='winter';
+  rainAmt+=(  (rainActive?1:0)-rainAmt)*Math.min(1,dt*1.6);
+  rain.visible=rainAmt>0.02;
+  rainMat.opacity=rainAmt*(snowy?0.85:0.55);
+  rainMat.color.setHex(snowy?0xffffff:0xbfe0f5);
+  rainMat.size=snowy?0.3:0.24;
+  if(rain.visible){
+    const pos=rain.geometry.attributes.position;
+    const fall=snowy?7:26;
+    for(let i=0;i<pos.count;i++){
+      let y=pos.getY(i)-dt*fall;
+      if(y<-8){y=32+Math.random()*4;pos.setX(i,(Math.random()-0.5)*90);pos.setZ(i,(Math.random()-0.5)*90);}
+      pos.setY(i,y);
+    }
+    pos.needsUpdate=true;
+  }
+  // rain waters every dry tilled plot for free, once a second while it falls
+  if(rainActive){
+    rainWaterT-=dt;
+    if(rainWaterT<=0){
+      rainWaterT=1;
+      let changed=false;
+      for(const [k,id] of W.blocks){
+        if(id===5){const [x,y,z]=k.split(',').map(Number);
+          if(!getB(x,y+1,z)||W.plants.has(k3(x,y+1,z))){setB(x,y,z,6);changed=true;}}
+        if(id===6)W.wet.set(k,Math.max(W.wet.get(k)||0,95));
+      }
+      if(changed)flushChunks();
+    }
+  }
+}
+
+/* ============================== the sparrow ============================== */
+// A tiny voxel sparrow lives on the isle: hops between perches, flies in a
+// long arc when its next perch is far, sits on fences and lanterns, chirps.
+// Pure ambience — it asks nothing of the player and gives a lot back.
+function initBird(){
+  const g=new THREE.Group();
+  const M=(sx,sy,sz,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),
+    new THREE.MeshLambertMaterial({color:c}));m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;};
+  M(0.26,0.2,0.2,0x8a6a4e,0,0.14,0);                 // body
+  M(0.16,0.15,0.15,0x9a7a5a,0.16,0.24,0);            // head
+  M(0.07,0.05,0.05,0xe8b23e,0.26,0.22,0);            // beak
+  M(0.16,0.05,0.12,0x6e5238,-0.17,0.18,0);           // tail
+  const w1=M(0.16,0.03,0.1,0x7a5c42,0.0,0.2,0.12);   // wings
+  const w2=M(0.16,0.03,0.1,0x7a5c42,0.0,0.2,-0.12);
+  scene.add(g);
+  bird={g,w1,w2,st:'idle',t:3+Math.random()*4,from:new THREE.Vector3(),to:new THREE.Vector3(),ft:0,dur:1,phase:Math.random()*9};
+  const p=birdPerch();g.position.copy(p);
+}
+function birdPerch(){
+  // 40% of the time aim for a decor top (fence/lantern) — peak cottagecore
+  const decor=[...W.plants.values()].filter(p=>p.type==='fence'||p.type==='lantern');
+  if(decor.length&&Math.random()<0.4){
+    const d=decor[(Math.random()*decor.length)|0];
+    return new THREE.Vector3(d.x+0.5,d.y+(d.type==='lantern'?0.96:0.5),d.z+0.5);
+  }
+  for(let i=0;i<40;i++){
+    const x=((Math.random()*28)|0)-14,z=((Math.random()*28)|0)-14;
+    const y=surfaceY(x,z);
+    if(y!==null&&!W.plants.has(k3(x,y+1,z)))return new THREE.Vector3(x+0.5,y+1.02,z+0.5);
+  }
+  return new THREE.Vector3(0.5,(surfaceY(0,0)||4)+1,0.5);
+}
+function updateBird(dt,dn){
+  if(!bird)return;
+  const b=bird;
+  if(b.st==='idle'){
+    b.g.position.y+=Math.sin(perf*3+b.phase)*0.0012;       // tiny breathing bob
+    b.w1.rotation.x=0;b.w2.rotation.x=0;
+    b.t-=dt;
+    if(b.t<=0){
+      b.from.copy(b.g.position);
+      b.to.copy(birdPerch());
+      const d=b.from.distanceTo(b.to);
+      b.st=d>6?'fly':'hop';b.ft=0;b.dur=b.st==='fly'?Math.max(1.6,d*0.14):0.45;
+      b.g.rotation.y=Math.atan2(-(b.to.z-b.from.z),b.to.x-b.from.x);
+      if(dn.daylight>0.2&&Math.random()<0.5)SFX.play('chirp');
+    }
+  } else {
+    b.ft+=dt/b.dur;
+    if(b.ft>=1){
+      b.g.position.copy(b.to);b.st='idle';
+      b.t=(dn.daylight>0.15?2.5:7)+Math.random()*6;        // sleepier at night
+    } else {
+      const t=b.ft,arc=b.st==='fly'?4+b.dur:0.7;
+      b.g.position.lerpVectors(b.from,b.to,t);
+      b.g.position.y+=Math.sin(t*Math.PI)*arc;
+      const flap=Math.sin(perf*26)*0.9;
+      b.w1.rotation.x=flap;b.w2.rotation.x=-flap;
+    }
+  }
+}
+
+/* ============================== sprinklers ============================== */
+function updateSprinklers(dt){
+  for(const p of W.plants.values()){
+    if(p.type!=='sprinkler')continue;
+    p.prog=(p.prog||0)+dt;
+    if(p.prog<18)continue;
+    p.prog=0;
+    let sprayed=false;
+    for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+      const x=p.x+dx,z=p.z+dz;
+      for(let y=p.y+1;y>=p.y-3;y--){
+        const id=getB(x,y,z);
+        if(id===5){setB(x,y,z,6);W.wet.set(k3(x,y,z),95);sprayed=true;break;}
+        if(id===6){W.wet.set(k3(x,y,z),Math.max(W.wet.get(k3(x,y,z))||0,95));break;}
+        if(id)break;
+      }
+    }
+    if(sprayed)flushChunks();
+    burst(p.x+0.5,p.y+0.7,p.z+0.5,0x7ec8ff,10,{up:1.8,g:4,spread:1.6});
+  }
+}
+
+/* ============================== achievements ============================== */
+const ACH=[
+  ['sprout','First Sprout','Plant your first seed',()=>state.planted>=1],
+  ['tiller','Breaking Ground','Till 20 plots',()=>state.tills>=20],
+  ['green25','Green Thumb','Harvest 25 crops',()=>state.harvests>=25],
+  ['green100','Master Gardener','Harvest 100 crops',()=>state.harvests>=100],
+  ['moon','Moonlit','Harvest a moonpetal',()=>!!state.achFlags.moon],
+  ['tree','Arborist','Pick fruit from a star tree',()=>!!state.achFlags.tree],
+  ['night','Night Owl','Harvest under the stars',()=>!!state.achFlags.night],
+  ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1],
+  ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3],
+  ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10],
+  ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
+  ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
+  ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
+  ['bloom','Full Bloom','Have 20 plants growing at once',
+    ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
+  ['year','A Year Aloft','Tend the garden through all four seasons',()=>state.day>=SEASON_DAYS*4+1],
+  ['maxlvl','Sky’s the Limit','Reach the final garden level',()=>state.level>=LVL_XP.length],
+];
+function checkAch(){
+  if(!state.ach)state.ach={};
+  for(const [id,name,desc,test] of ACH){
+    if(state.ach[id])continue;
+    let ok=false;try{ok=test();}catch(e){}
+    if(!ok)continue;
+    state.ach[id]=true;
+    SFX.play('ach');
+    toast('🏆 Achievement: '+name+'!');
+  }
+}
+function renderAchievements(){
+  const grid=$('achGrid');grid.innerHTML='';
+  for(const [id,name,desc] of ACH){
+    const done=!!(state.ach&&state.ach[id]);
+    const d=document.createElement('div');
+    d.className='ach '+(done?'done':'locked');
+    d.innerHTML='<b>'+(done?'🏆 ':'🔒 ')+name+'</b><small>'+desc+'</small>';
+    grid.appendChild(d);
+  }
+}
+
+/* ============================== ambient life ============================== */
+function updateAmbient(dt,dn){
+  // clouds drift
+  for(const cl of cloudGroup.children){
+    cl.position.x+=cl.userData.spd*dt;
+    if(cl.position.x>130)cl.position.x=-130;
+  }
+  // butterflies flutter in daytime near the island
+  for(const b of butterflies){
+    const u=b.userData;
+    const t=perf*0.4+u.seed*7;
+    b.visible=dn.daylight>0.15&&rainAmt<0.5;   // butterflies shelter from rain
+    b.position.set(Math.cos(t)*u.r+Math.sin(u.seed*3+perf*0.7)*3,
+      u.h+Math.sin(perf*1.3+u.seed)*1.6,
+      Math.sin(t)*u.r+Math.cos(u.seed*5+perf*0.5)*3);
+    b.rotation.y=-t+Math.PI/2;
+    const flap=Math.sin(perf*18+u.seed*9)*0.9;
+    u.w1.rotation.z=flap;u.w2.rotation.z=-flap;
+  }
+  // autumn leaves drift down over the isle
+  const autumn=seasonOf(state.day).key==='autumn';
+  leafMat.opacity=lerp(leafMat.opacity,autumn?0.85:0,Math.min(1,dt*1.5));
+  leaves.visible=leafMat.opacity>0.03;
+  if(leaves.visible){
+    const pos=leaves.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      let y=pos.getY(i)-dt*1.3;
+      let x=pos.getX(i)+Math.sin(perf*0.9+i)*dt*0.8;
+      if(y<-4){y=20+Math.random()*6;x=(Math.random()-0.5)*44;pos.setZ(i,(Math.random()-0.5)*44);}
+      pos.setY(i,y);pos.setX(i,x);
+    }
+    pos.needsUpdate=true;
+  }
+  // fireflies
+  if(dn.night>0.05){
+    const pos=fireflies.geometry.attributes.position;
+    const seeds=fireflies.userData.seeds;
+    for(let i=0;i<seeds.length;i++){
+      const s=seeds[i];
+      pos.setXYZ(i,
+        Math.cos(perf*0.22+s.a)*s.r*0.7+Math.sin(perf*0.4+s.b)*4,
+        s.h+Math.sin(perf*0.9+s.a*2)*1.4,
+        Math.sin(perf*0.22+s.b)*s.r*0.7+Math.cos(perf*0.33+s.a)*4);
+    }
+    pos.needsUpdate=true;
+  }
+}
+
+/* ============================== boot & main loop ============================== */
+let perf=0,saveTimer=0;
+function boot(){
+  initScene();
+  const loaded=load();
+  if(!loaded){
+    genIsland(0,0,15,0);
+    // starter: pre-till a few plots near spawn so first steps are obvious
+    const sy=surfaceY(1,1);
+    if(sy!==null){
+      [[0,0],[1,0],[0,1]].forEach(([ox,oz])=>{
+        const y=surfaceY(ox,oz);
+        if(y!==null&&(getB(ox,y,oz)===1||getB(ox,y,oz)===2))setB(ox,y,oz,5,true);
+      });
+    }
+  }
+  markAllDirty();flushChunks();
+  cam.cy=(surfaceY(0,0)||5)+1;
+  initHud();
+  bindInput();
+  $('muteBtn').textContent=state.muted?'🔇':'🔊';
+  addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+  addEventListener('beforeunload',save);
+  let last=performance.now();
+  function frame(now){
+    requestAnimationFrame(frame);
+    let dt=(now-last)/1000;last=now;
+    if(dt>0.1)dt=0.1;
+    perf+=dt;
+    const dn=updateDay(dt);
+    MUSIC.tick(dt,dn);
+    updateRain(dt);
+    updatePlants(dt,dn);
+    updateSprinklers(dt);
+    updateBird(dt,dn);
+    updateWet(dt);
+    updateParticles(dt);
+    updatePops(dt);
+    updateAmbient(dt,dn);
+    updateCamera(dt);
+    updateHover();
+    saveTimer+=dt;
+    if(saveTimer>12){saveTimer=0;save();refreshQuestHud();}
+    renderer.render(scene,camera);
+  }
+  requestAnimationFrame(frame);
+}
+boot();
+</script>
+</body>
+</html>

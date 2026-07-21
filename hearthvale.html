@@ -197,6 +197,8 @@
       font-weight: 600; cursor: pointer; text-align: left; white-space: nowrap;
     }
     #menu button:hover { border-color: var(--gold); }
+    #menu button:disabled { opacity: 0.45; cursor: default; }
+    #menu button:disabled:hover { border-color: var(--line); }
     #paused {
       position: fixed; top: 96px; left: 50%; transform: translateX(-50%); z-index: 385;
       display: none; background: rgba(24,20,14,0.9); border: 1px solid var(--line);
@@ -237,6 +239,7 @@
   <div id="menu">
     <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
+    <button id="m-festival">&#127914; Hold a Festival</button>
     <button id="m-new">New Game</button>
   </div>
   <div id="paused">&#9208; PAUSED &middot; press Space</div>
@@ -399,6 +402,7 @@
       case 'goal':    tone(523, 0.10, 'triangle', 0.12); tone(659, 0.10, 'triangle', 0.12, 0.10); tone(784, 0.20, 'triangle', 0.12, 0.20); break;
       case 'error':   tone(150, 0.16, 'sawtooth', 0.08); break;
       case 'trader':  tone(440, 0.10, 'sine', 0.10); tone(330, 0.16, 'sine', 0.09, 0.09); break;
+      case 'festival': tone(523, 0.09, 'triangle', 0.11); tone(659, 0.09, 'triangle', 0.11, 0.08); tone(784, 0.09, 'triangle', 0.11, 0.16); tone(1047, 0.22, 'triangle', 0.12, 0.24); break;
     }
   }
 
@@ -1022,6 +1026,10 @@
       raining: false,  // cosmetic weather for the current day
       achievements: [],
       townName: 'Hearthvale',
+      endless: null,    // endless goal tiers after GOALS run out: {tier, target, streak, harvest}
+      festivalDay: 0,   // day the town last held a festival (festive while day matches)
+      festivals: 0,     // lifetime festivals held
+      festHintDay: 0,   // last day we nudged the player toward a festival
     };
   }
   const ACHIEVEMENTS = [
@@ -1043,6 +1051,7 @@
     { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300 },
     { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20 },
     { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95 },
+    { id: 'festive', emoji: '🎪', name: 'Merrymaker', desc: 'Hold a town festival.', done: () => (state.festivals || 0) >= 1 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -1085,15 +1094,45 @@
     { text: 'Bank 400 gold', prog: () => [Math.floor(state.res.gold), 400], done: () => state.res.gold >= 400, reward: { wood: 60, stone: 40 } },
     { text: 'Grow to 18 villagers', prog: () => [state.villagers.length, 18], done: () => state.villagers.length >= 18, reward: { gold: 200 } },
   ];
+  // Once the story goals run out, rotating endless tiers keep giving direction.
+  // Targets are snapshotted when a tier starts (so they always sit ahead of the
+  // town) and persisted in state.endless with backward-compatible defaults.
+  function ensureEndless() {
+    if (!state.endless) state.endless = { tier: 0, target: 0, streak: 0, harvest: 0 };
+    if (!state.endless.target) rollEndlessTarget();
+    return state.endless;
+  }
+  function rollEndlessTarget() {
+    const e = state.endless, kind = e.tier % 4;
+    if (kind === 0) e.target = Math.max(20, state.villagers.length + 2);                          // grow the town
+    else if (kind === 1) e.target = Math.max(500, Math.ceil(state.res.gold * 1.5 / 50) * 50);    // bank gold
+    else if (kind === 2) e.target = Math.min(3 + Math.floor(e.tier / 8), 5);                     // happy-streak days
+    else e.target = Math.max(120, state.villagers.length * 18);                                  // harvest food
+    e.streak = 0; e.harvest = 0;
+  }
+  function endlessGoal() {
+    const e = ensureEndless(), kind = e.tier % 4, t = e.target;
+    const goldRew = Math.min(500, 120 + e.tier * 20); // rewards grow with each tier
+    switch (kind) {
+      case 0: return { text: 'Grow to ' + t + ' villagers', prog: () => [state.villagers.length, t], done: () => state.villagers.length >= t, reward: { gold: goldRew } };
+      case 1: return { text: 'Bank ' + t + ' gold', prog: () => [Math.floor(state.res.gold), t], done: () => state.res.gold >= t, reward: { wood: 40, stone: 40, food: 40 } };
+      case 2: return { text: 'Keep the town happy (80%+) for ' + t + ' days', prog: () => [e.streak || 0, t], done: () => (e.streak || 0) >= t, reward: { gold: goldRew } };
+      default: return { text: 'Harvest ' + t + ' food', prog: () => [Math.floor(e.harvest || 0), t], done: () => (e.harvest || 0) >= t, reward: { gold: goldRew, food: 20 } };
+    }
+  }
+  function currentGoal() {
+    return state.goalIndex < GOALS.length ? GOALS[state.goalIndex] : endlessGoal();
+  }
   function checkGoals() {
-    if (!state || state.goalIndex >= GOALS.length) return;
-    const g = GOALS[state.goalIndex];
+    if (!state) return;
+    const g = currentGoal();
     if (g.done()) {
       for (const k in g.reward) state.res[k] = (state.res[k] || 0) + g.reward[k];
       const rew = Object.keys(g.reward).map(k => '+' + g.reward[k] + ' ' + shortRes(k)).join(' ');
       toast('✦ Goal done: ' + g.text + '  ' + rew);
       SFX('goal');
-      state.goalIndex++;
+      if (state.goalIndex < GOALS.length) state.goalIndex++;
+      else { state.endless.tier++; rollEndlessTarget(); }
       state.happy = Math.min(100, state.happy + 5); // a win cheers the town
       renderGoal(); save();
     }
@@ -1103,9 +1142,8 @@
     if (!tEl || !fEl) return;
     const titleEl = document.querySelector('#goals .goals-title');
     if (titleEl) titleEl.innerHTML = '&#10022; ' + (state.townName || 'Hearthvale').toUpperCase();
-    if (state.goalIndex >= GOALS.length) { tEl.textContent = (state.townName || 'Hearthvale') + ' is thriving! 🎉'; fEl.style.width = '100%'; return; }
-    const g = GOALS[state.goalIndex], p = g.prog();
-    tEl.textContent = g.text;
+    const g = currentGoal(), p = g.prog();
+    tEl.textContent = (state.goalIndex >= GOALS.length ? '★ ' : '') + g.text;
     fEl.style.width = Math.max(0, Math.min(100, (p[0] / p[1]) * 100)) + '%';
   }
 
@@ -1481,6 +1519,15 @@
       if (hd && v.tx === hd.tx && v.ty === hd.ty) { v.sleeping = true; return; } // tucked in
       if (roll(41) < 0.3) setEmote(v, '💤', 2.4);
       dest = hd;
+    } else if (isFestival() && (v.id % 3 !== 0)) {
+      // festival day — the town crowds around its finest gathering spot to celebrate
+      const spot = state.buildings.find(b => b.type === 'fountain') || state.buildings.find(b => b.type === 'tavern') ||
+        state.buildings.find(b => b.type === 'market') || state.buildings.find(b => b.type === 'chapel');
+      if (spot) {
+        const gd = doorTile(spot);
+        dest = strollNear(gd.tx, gd.ty, 4);
+      }
+      if (roll(31) < 0.6) setEmote(v, roll(9) < 0.35 ? '🎉' : roll(13) < 0.5 ? '🎶' : '🥳', 2.6);
     } else if (evening && (v.id % 2 === 0) && (state.buildings.some(b => b.type === 'tavern' || b.type === 'chapel'))) {
       // the town gathers of an evening — at the tavern if there is one
       const gather = state.buildings.find(b => b.type === 'tavern') || state.buildings.find(b => b.type === 'chapel');
@@ -1555,6 +1602,8 @@
       }
     });
     if (floaters.length > 60) floaters.splice(0, floaters.length - 60);
+    // endless-goal bookkeeping: count food harvested toward the current tier
+    if (state.endless && gained.food) state.endless.harvest = (state.endless.harvest || 0) + gained.food;
     // villagers eat
     const eat = pop * FOOD_PER_VILLAGER;
     state.res.food -= eat;
@@ -1609,12 +1658,73 @@
       state.sadDays = 0;
     }
     rollWeather();
+    // endless-goal bookkeeping: track consecutive happy days
+    if (state.endless) state.endless.streak = state.happy >= 80 ? (state.endless.streak || 0) + 1 : 0;
+    // a gentle nudge toward festivals once the coffers overflow
+    if (!isFestival() && state.goalIndex >= 5 && state.res.gold >= Math.max(250, festivalCost() * 2) &&
+        state.day >= (state.festHintDay || 0) + 6) {
+      state.festHintDay = state.day;
+      toast('💰 The town coffers overflow — perhaps a festival? (⚙ menu)');
+    }
     // random village event every few days
     if (state.day >= (state.nextEventDay || 3)) {
       state.nextEventDay = state.day + 2 + Math.floor(rrand(state.day * 3 + 1) * 3);
       triggerEvent();
     }
     save();
+  }
+
+  // ---- Festivals: a repeatable gold sink that throws a day of celebration --
+  function festivalCost() { return 40 + state.villagers.length * 8; }
+  function isFestival() { return !!state && state.festivalDay === state.day; }
+  function holdFestival() {
+    const cost = festivalCost();
+    if (isFestival()) { toast('🎪 The festival is already in full swing!'); return; }
+    if (state.res.gold < cost) { toast('Need ' + cost + ' 💰 to hold a festival.'); SFX('error'); return; }
+    state.res.gold -= cost;
+    state.festivalDay = state.day;
+    state.festivals = (state.festivals || 0) + 1;
+    state.happy = Math.min(100, state.happy + 18);
+    SFX('festival');
+    toast('🎪 ' + (state.townName || 'Hearthvale') + ' holds a festival! The whole town celebrates.');
+    confettiBurst(14);
+    state.villagers.forEach(v => setEmote(v, '🎉', 2.5 + rrand(v.id * 3) * 2));
+    // festive crowds may charm a newcomer into staying — even a full town finds room for one more
+    if (state.villagers.length < popCap() + 1 && rrand(state.day * 61 + state.villagers.length * 7) < 0.35) {
+      const homes = state.buildings.filter(b => BUILDINGS[b.type].housing);
+      if (homes.length) {
+        spawnVillager(homes[Math.floor(rrand(state.day * 23) * homes.length)]);
+        assignJobs();
+        toast('🧳 Charmed by the festivities, a newcomer settles in!');
+      }
+    }
+    updateHUD(); refreshFestivalBtn(); save();
+  }
+  // colorful sparks over the rooftops — cheap celebration using the floater layer
+  const CONFETTI = [
+    { t: '🎉', c: '#f2c14e' }, { t: '✦', c: '#f2c14e' }, { t: '❀', c: '#e0708b' },
+    { t: '✿', c: '#c78be0' }, { t: '✧', c: '#8fbcd0' }, { t: '❁', c: '#7bbf63' }, { t: '✺', c: '#e06a5c' },
+  ];
+  let _confSeed = 0;
+  function confettiBurst(n) {
+    if (!state.buildings.length) return;
+    for (let i = 0; i < n; i++) {
+      const s = ++_confSeed;
+      const b = state.buildings[Math.floor(rrand(s * 13 + 5) * state.buildings.length)];
+      const def = BUILDINGS[b.type];
+      const conf = CONFETTI[Math.floor(rrand(s * 29 + 1) * CONFETTI.length)];
+      floaters.push({
+        wx: (b.tx + def.w / 2) * TILE + (rrand(s * 7) - 0.5) * def.w * TILE,
+        wy: b.ty * TILE - 2 - rrand(s * 3) * 10,
+        text: conf.t, color: conf.c, life: 1.4 + rrand(s * 11) * 0.8, maxLife: 2.2,
+      });
+    }
+    if (floaters.length > 60) floaters.splice(0, floaters.length - 60);
+  }
+  function refreshFestivalBtn() {
+    const btn = document.getElementById('m-festival'); if (!btn || !state) return;
+    btn.textContent = isFestival() ? '🎪 Festival underway!' : '🎪 Hold a Festival (' + festivalCost() + '💰)';
+    btn.disabled = isFestival() || state.res.gold < festivalCost();
   }
 
   // ---- Random village events ----------------------------------
@@ -2278,6 +2388,7 @@
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
     const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name; }
+    const menu = document.getElementById('menu'); if (menu && menu.classList.contains('show')) refreshFestivalBtn();
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
@@ -2527,6 +2638,8 @@
         goalIndex: state.goalIndex, sadDays: state.sadDays,
         roads: state.roads || [], muted: !!state.muted, nextEventDay: state.nextEventDay,
         achievements: state.achievements || [], townName: state.townName || 'Hearthvale',
+        endless: state.endless, festivalDay: state.festivalDay || 0,
+        festivals: state.festivals || 0, festHintDay: state.festHintDay || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -2554,6 +2667,10 @@
       state.nextEventDay = s.nextEventDay || (state.day + 2);
       state.achievements = s.achievements || [];
       state.townName = s.townName || 'Hearthvale';
+      state.endless = s.endless || null;
+      state.festivalDay = s.festivalDay || 0;
+      state.festivals = s.festivals || 0;
+      state.festHintDay = s.festHintDay || 0;
       // reapply player-painted roads over the regenerated terrain
       state.roads = s.roads || [];
       state.roads.forEach(r => { if (inMap(r.tx, r.ty) && tiles[idx(r.tx, r.ty)] !== T_WATER) { tiles[idx(r.tx, r.ty)] = T_DIRT; tileObj[idx(r.tx, r.ty)] = O_NONE; } });
@@ -2621,8 +2738,9 @@
     const menuBtn = document.getElementById('menu-btn'), menu = document.getElementById('menu');
     const soundBtn = document.getElementById('m-sound');
     const syncSound = () => { soundBtn.textContent = 'Sound: ' + (state.muted ? 'Off' : 'On'); };
-    menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); };
+    menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); refreshFestivalBtn(); };
     soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
+    document.getElementById('m-festival').onclick = () => holdFestival();
     const speedBtn = document.getElementById('m-speed');
     speedBtn.onclick = () => { gameSpeed = gameSpeed >= 3 ? 1 : (gameSpeed < 1 ? 1 : gameSpeed + 1); prevSpeed = gameSpeed; speedBtn.innerHTML = 'Speed: ' + gameSpeed + '&times;'; syncPaused(); };
     document.getElementById('m-new').onclick = () => {
@@ -2678,7 +2796,7 @@
 
     requestAnimationFrame(loop);
   }
-  let hudTick = 0, saveTick = 0;
+  let hudTick = 0, saveTick = 0, festFxTimer = 0;
 
   function stepSim(dt) {
     keyboardPan(dt);   // panning works even while paused
@@ -2686,6 +2804,8 @@
     if (sdt <= 0) return;
     if (_storageFullTimer > 0) _storageFullTimer -= sdt;
     if (floaters.length) { for (const f of floaters) { f.life -= sdt; f.wy -= 11 * sdt; } floaters = floaters.filter(f => f.life > 0); }
+    // festival day keeps sprinkling confetti over the rooftops
+    if (isFestival()) { festFxTimer -= sdt; if (festFxTimer <= 0) { festFxTimer = 2.2; confettiBurst(5); } }
     advanceTimeSafe(sdt);
     // villagers (obey game speed, capped so pathing stays stable at 3x)
     const vdt = Math.min(sdt, 0.12);

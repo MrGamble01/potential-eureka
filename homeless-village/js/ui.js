@@ -70,7 +70,30 @@ function canCraft(r){
   return Object.entries(r.cost).every(function(e){ return G[e[0]]>=e[1]; });
 }
 
+function currentGoal(){ return G.goalIndex<GOALS.length ? GOALS[G.goalIndex] : null; }
+
+function checkGoals(){
+  var g=currentGoal();
+  // while, not if: an old save (or a big day) can satisfy several
+  // goals at once, and each one should still pay out and be logged.
+  while(g && g.value()>=g.target){
+    G.goalIndex++; G.goodwill+=g.reward;
+    log('Goal complete: '+g.desc+'. +'+g.reward+' goodwill.');
+    floatText('+'+g.reward+'🩶');
+    sfx('goal');
+    saveGame();
+    g=currentGoal();
+  }
+}
+
+function updateGoalHUD(){
+  var g=currentGoal(), el=document.getElementById('goal-text');
+  if(!g){ el.textContent='All goals complete'; return; }
+  el.textContent=g.desc+' ('+Math.min(g.value(),g.target)+'/'+g.target+')';
+}
+
 function updateHUD(){
+  checkGoals(); updateGoalHUD();
   document.getElementById('stat-food').textContent    =Math.floor(G.food);
   document.getElementById('stat-scraps').textContent  =Math.floor(G.scraps);
   document.getElementById('stat-cans').textContent    =Math.floor(G.cans);
@@ -135,3 +158,31 @@ function showEvent(ev, isGood){
 }
 function closeEvent(){ document.getElementById('event-banner').style.display='none'; }
 function showSweepWarning(show){ document.getElementById('sweep-warning').style.display=show?'block':'none'; }
+
+// Small "+N" gain feedback that drifts up over the scene.
+function floatText(msg){
+  var d=document.createElement('div');
+  d.className='float-text'; d.textContent=msg;
+  d.style.left=(42+Math.random()*16)+'%';
+  document.getElementById('hud').appendChild(d);
+  setTimeout(function(){ d.remove(); },1600);
+}
+
+// Lose state — mirrors the hvFatal overlay in homeless-village.html,
+// but for the camp dying rather than the engine failing. The save is
+// kept until "Start over" so the hub still reads s.days meanwhile.
+var gameOverShown=false;
+function showGameOver(){
+  if(gameOverShown||document.getElementById('hv-gameover')) return;
+  gameOverShown=true;
+  saveGame();
+  sfx('gameover');
+  var d=document.createElement('div');
+  d.id='hv-gameover';
+  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,6,8,.94);color:#d8cbb0;font-family:monospace;text-align:center;padding:24px;';
+  d.innerHTML='<div style="font-size:34px">🕯️</div>'+
+    '<div style="font-size:17px;letter-spacing:2px;color:#e08060">THE CAMP DIDN\'T MAKE IT</div>'+
+    '<div style="max-width:420px;line-height:1.6">Your health gave out. You survived <b>'+G.days+'</b> day'+(G.days===1?'':'s')+' under the bridge, with a community of <b>'+G.peakPopulation+'</b> at its peak.</div>'+
+    '<button onclick="localStorage.removeItem(SAVE_KEY);location.reload()" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">START OVER</button>';
+  document.body.appendChild(d);
+}

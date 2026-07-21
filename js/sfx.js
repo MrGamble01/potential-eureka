@@ -49,6 +49,8 @@ const SFX = (() => {
     clear:  () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.1, { type: 'square', gain: 0.11, delay: i * 0.05 })); },
     over:   () => { [440, 349, 262].forEach((f, i) => tone(f, 0.22, { type: 'sawtooth', gain: 0.14, delay: i * 0.14 })); },
     start:  () => { tone(523, 0.08, { type: 'square' }); tone(784, 0.1, { type: 'square', delay: 0.08 }); },
+    bounce: () => tone(420, 0.05, { type: 'triangle', gain: 0.13, slideTo: 620 }),
+    thrust: () => tone(95, 0.06, { type: 'sawtooth', gain: 0.05, slideTo: 55 }),
   };
 
   function play(name) {

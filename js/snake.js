@@ -13,7 +13,9 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
+  let walls = [];                     // rock cells added as levels climb
   let gameLoop, running, gameOver;
+  let particles = [];
   const sfx = Utils.sfx;
 
   function init() {
@@ -98,10 +100,13 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    walls = [];
+    particles = [];
     gameOver = false;
     running = true;
     speed = 120;
     spawnFood();
+    sfx('start');
     updateInfo();
 
     const overlay = document.getElementById('snake-overlay');
@@ -117,7 +122,35 @@ const SnakeGame = (() => {
         x: Math.floor(Math.random() * COLS),
         y: Math.floor(Math.random() * ROWS),
       };
-    } while (snake.some(s => s.x === food.x && s.y === food.y));
+    } while (snake.some(s => s.x === food.x && s.y === food.y) ||
+             walls.some(w => w.x === food.x && w.y === food.y));
+  }
+
+  // Each level past the first drops a short rock wall onto the board — the
+  // real payoff for "levels" beyond a faster tick. Placement keeps clear of
+  // the head (so a wall can't materialize in your path), the snake, food,
+  // and other walls; the board stops gaining rocks once it's busy enough.
+  function addWallSegment() {
+    if (walls.length >= 36) return;
+    for (let tries = 0; tries < 60; tries++) {
+      const horiz = Math.random() < 0.5;
+      const len = 2 + Math.floor(Math.random() * 3);
+      const x0 = 2 + Math.floor(Math.random() * (COLS - len - 4));
+      const y0 = 2 + Math.floor(Math.random() * (ROWS - len - 4));
+      const cells = [];
+      for (let i = 0; i < len; i++) cells.push({ x: x0 + (horiz ? i : 0), y: y0 + (horiz ? 0 : i) });
+      const head = snake[0];
+      const bad = cells.some(c =>
+        Math.abs(c.x - head.x) + Math.abs(c.y - head.y) < 6 ||
+        snake.some(s => s.x === c.x && s.y === c.y) ||
+        walls.some(w => Math.abs(w.x - c.x) <= 1 && Math.abs(w.y - c.y) <= 1) ||
+        (food && c.x === food.x && c.y === food.y) ||
+        (bonusFood && c.x === bonusFood.x && c.y === bonusFood.y));
+      if (bad) continue;
+      const born = Date.now();
+      walls.push(...cells.map(c => ({ ...c, born })));
+      return;
+    }
   }
 
   function spawnBonusFood() {
@@ -130,6 +163,7 @@ const SnakeGame = (() => {
       attempts++;
     } while (attempts < 100 && (
       snake.some(s => s.x === pos.x && s.y === pos.y) ||
+      walls.some(w => w.x === pos.x && w.y === pos.y) ||
       (food && food.x === pos.x && food.y === pos.y)
     ));
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
@@ -163,8 +197,17 @@ const SnakeGame = (() => {
       return endGame();
     }
 
-    // Self collision
-    if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    // Rocks are solid even with wrap on.
+    if (walls.some(w => w.x === head.x && w.y === head.y)) return endGame();
+
+    // Self collision — the tail cell is excluded unless the snake is eating
+    // this tick, because a non-growing snake vacates its tail as the head
+    // moves; killing the player for entering that cell would be unfair.
+    const willEat = (head.x === food.x && head.y === food.y) ||
+      (bonusFood && Date.now() <= bonusFood.expireAt &&
+       head.x === bonusFood.x && head.y === bonusFood.y);
+    const tail = snake[snake.length - 1];
+    if (snake.some(s => s.x === head.x && s.y === head.y && (willEat || s !== tail))) {
       return endGame();
     }
 
@@ -181,8 +224,11 @@ const SnakeGame = (() => {
     if (head.x === food.x && head.y === food.y) {
       ate = true;
       score += 10;
+      const prevLevel = getLevel();
       foodCount++;
+      if (getLevel() > prevLevel && getLevel() >= 2) { addWallSegment(); sfx('lock'); }
       sfx('eat');
+      spawnBurst(head.x, head.y, '#F778BA');
       highScore = Utils.highScore.save('snake-high', score, highScore);
       spawnFood();
       // Spawn bonus food every 5 regular foods
@@ -199,13 +245,33 @@ const SnakeGame = (() => {
       score += 50;
       bonusFood = null;
       sfx('bonus');
+      spawnBurst(head.x, head.y, '#F7C948');
       highScore = Utils.highScore.save('snake-high', score, highScore);
     }
 
     if (!ate) snake.pop();
 
+    // Particles from eaten food (advance per tick, in-style with the loop)
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.life -= 1;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
     updateInfo();
     draw();
+  }
+
+  function spawnBurst(cx, cy, color) {
+    for (let i = 0; i < 12; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 2 + Math.random() * 4;
+      particles.push({
+        x: cx * GRID + GRID / 2, y: cy * GRID + GRID / 2,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        life: 4 + Math.random() * 4, color,
+      });
+    }
   }
 
   function endGame() {
@@ -213,6 +279,7 @@ const SnakeGame = (() => {
     gameOver = true;
     bonusFood = null;
     sfx('die');
+    Effects.shakeCanvas(canvas, 8, 300);
     clearInterval(gameLoop);
 
     Utils.showGameOver('snake-overlay', {
@@ -244,6 +311,17 @@ const SnakeGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * GRID); ctx.lineTo(WIDTH, y * GRID); ctx.stroke();
     }
 
+    // Rock walls (fade in when they appear so they never blindside you)
+    for (const w of walls) {
+      const a = Math.min(1, (Date.now() - w.born) / 500);
+      ctx.globalAlpha = 0.35 + 0.65 * a;
+      ctx.fillStyle = '#8B949E';
+      ctx.fillRect(w.x * GRID + 1, w.y * GRID + 1, GRID - 2, GRID - 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+      ctx.fillRect(w.x * GRID + 1, w.y * GRID + 1, GRID - 2, 3);
+    }
+    ctx.globalAlpha = 1;
+
     // Snake
     snake.forEach((seg, i) => {
       const brightness = 1 - (i / snake.length) * 0.5;
@@ -269,6 +347,14 @@ const SnakeGame = (() => {
       ctx.fill();
       ctx.shadowBlur = 0;
     }
+
+    // Food-burst particles
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 6));
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
 
     // Bonus food — gold, pulsing, fades out in last 1.5s
     if (bonusFood) {
