@@ -3591,6 +3591,14 @@ let prestigeLevel = 0;
 // rollback if the new season has already started.
 let sessionGen = 0;
 let prestigeMultiplier = 1; // 2^prestigeLevel, applied to dealValueMult at season start
+// Legacy bonus: a PERMANENT income multiplier that grows every IPO and
+// survives the season reset. dealValueMult doubles each season but so does
+// the goal, so they cancel and every season otherwise takes the same wall
+// time — this is the compounding reward that makes run N+1 genuinely
+// faster. Derived purely from prestigeLevel (already persisted) so it needs
+// no save-schema change and is automatically backward-compatible.
+const LEGACY_PER_SEASON = 0.2;   // +20% permanent income per completed season
+function legacyBonus() { return 1 + LEGACY_PER_SEASON * prestigeLevel; }
 // Product versioning — deal value bonus based on features shipped
 const PRODUCT_VERSIONS = [
   { ver:'v1.0', at:0,    mult:1 },
@@ -5167,7 +5175,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   return Math.round(
-    featurePrice * dealValueMult * productVersionMult * paperBoost * pingPongBoost
+    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost
   );
 }
 
@@ -5566,6 +5574,7 @@ function triggerWin(cumulative) {
     <div class="row"><span>Headcount</span><strong>${headcount}</strong></div>
     <div class="row"><span>Time to goal</span><strong>${formatTime(elapsed)}${pbBadge}</strong></div>
     <div class="row"><span>Season</span><strong>${prestigeLevel + 1}</strong></div>
+    <div class="row"><span>Legacy bonus</span><strong style="color:#3FB950">+${Math.round(LEGACY_PER_SEASON * (prestigeLevel + 1) * 100)}% income · permanent</strong></div>
     <div class="row"><span>Next season</span><strong>S${prestigeLevel + 2} · 🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
   `;
   winModalEl.classList.add('open');
@@ -5590,11 +5599,12 @@ function updateMetricsHUD() {
   // "Per ship" base deal value + live breakdown tooltip so the player
   // can see WHY a feature is worth $X — base × v × prestige × Ent × events.
   if (metricsPerShipEl) {
-    const per = Math.round(featurePrice * productVersionMult * dealValueMult);
+    const per = Math.round(featurePrice * productVersionMult * dealValueMult * legacyBonus());
     metricsPerShipEl.textContent = '$' + fmtCash(per);
     const parts = [`base $${featurePrice}`];
     if (productVersionMult !== 1) parts.push(`${currentProductVersion.ver} ×${productVersionMult}`);
     if (prestigeMultiplier > 1) parts.push(`S${prestigeLevel + 1} ×${prestigeMultiplier}`);
+    if (legacyBonus() > 1) parts.push(`Legacy ×${legacyBonus().toFixed(1)}`);
     const entLv = upgLevels.enterprise || 0;
     const entMult = [1,3,8,20][entLv];
     if (entMult > 1) parts.push(`Enterprise Lv${entLv} ×${entMult}`);
@@ -6721,7 +6731,7 @@ function drawStandupSlide() {
       break;
     case 3:
       label = currentProductVersion.ver;
-      value = '$' + fmtCash(Math.round(featurePrice * productVersionMult * dealValueMult)) + ' / ship';
+      value = '$' + fmtCash(Math.round(featurePrice * productVersionMult * dealValueMult * legacyBonus())) + ' / ship';
       sub = (typeof currentRatePerMin === 'function' ? '$' + fmtCash(currentRatePerMin()) + ' / min' : '');
       break;
   }
