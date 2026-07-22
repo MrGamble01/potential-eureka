@@ -24,9 +24,10 @@
   #lvlChip .bar{height:6px;background:#141a22;border-radius:3px;margin-top:5px;overflow:hidden}
   #lvlChip .bar i{display:block;height:100%;background:linear-gradient(90deg,#5cae53,#a5e28a);border-radius:3px;transition:width .4s}
   #dayChip{color:var(--blue)}
-  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px}
-  #back a,#back button{color:var(--dim);text-decoration:none;font-size:13px;cursor:pointer;
-    background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px}
+  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:52vw}
+  #back a,#back button{color:var(--dim);text-decoration:none;font-size:13px;cursor:pointer;line-height:1;
+    background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px;
+    min-width:38px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
   #back a:hover,#back button:hover{color:var(--ink)}
   #quests{top:58px;right:10px;width:230px;font-size:13px}
   #quests .q-title{font-weight:700;color:var(--green);margin-bottom:4px;font-size:12px;letter-spacing:.08em}
@@ -43,7 +44,7 @@
     gap:6px;background:rgba(18,24,32,.94);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;z-index:12;
     max-width:min(94vw,420px)}
   .panel.open{display:grid}
-  .p-item{width:92px;border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--panel2)}
+  .p-item{width:100%;min-width:74px;border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--panel2)}
   .p-item:hover{border-color:rgba(255,255,255,.25)}
   .p-item.sel{border-color:var(--green)}
   .p-item.locked{opacity:.42;cursor:default}
@@ -51,6 +52,7 @@
   .p-item .nm{font-size:11px;margin-top:2px}
   .p-item .pr{font-size:10px;color:var(--gold)}
   .p-item .lk{font-size:10px;color:var(--dim)}
+  .p-head{grid-column:1/-1;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--dim);padding:2px 2px 4px;text-align:center}
   #toasts{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;
     align-items:center;gap:6px;z-index:20;pointer-events:none}
   .toast{background:rgba(18,24,32,.92);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;
@@ -98,11 +100,36 @@
   body.fpmode #crosshair,body.fpmode #fpTool{display:block}
   body.fpmode #hotbar{bottom:8px}
   body.fpmode .arcade-card,body.fpmode #quests{opacity:.85}
+  /* tablets / iPad */
+  @media (max-width:1024px){
+    #quests{width:200px;font-size:12px}
+    #back{max-width:44vw}
+    .panel{max-width:min(96vw,460px)}
+  }
+  /* phones */
   @media (max-width:640px){
     .ach-grid{grid-template-columns:1fr}
-    .slot{width:48px;height:48px;font-size:19px}
+    .slot{width:52px;height:52px;font-size:20px;border-radius:12px}
+    .slot small{font-size:8px}
     #quests{display:none}
-    #lvlChip{min-width:110px}
+    #topbar{gap:6px}
+    #coinChip{font-size:15px}
+    #lvlChip{min-width:96px}
+    #dayChip{font-size:12px}
+    #back{max-width:58vw;gap:6px}
+    #back a,#back button{padding:7px 8px;font-size:15px;min-width:38px;min-height:38px}
+    #back a{font-size:11px}
+    .panel{grid-template-columns:repeat(3,1fr);bottom:78px;max-width:96vw}
+    .p-item .nm{font-size:10px}
+    #banner h2{font-size:26px}
+    #banner p{font-size:13px}
+    #fpTool{font-size:110px;left:82%}
+  }
+  /* short landscape (phones on their side) */
+  @media (max-height:480px){
+    #quests{display:none}
+    .slot{width:46px;height:46px}
+    #hotbar{bottom:8px}
   }
 </style>
 </head>
@@ -117,7 +144,9 @@
 </div>
 <div id="back">
   <button id="fpBtn" title="First person (F)">👁️</button>
-  <button id="farmerBtn" title="Hire a farmhand">🧑‍🌾</button>
+  <button id="farmerBtn" title="Hire villagers">🧑‍🌾</button>
+  <button id="animalBtn" title="Livestock">🐮</button>
+  <button id="townBtn" title="Town — land &amp; buildings">🏘️</button>
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
@@ -138,6 +167,8 @@
 </div>
 <div class="panel" id="seedPanel"></div>
 <div class="panel" id="blockPanel"></div>
+<div class="panel" id="animalPanel"></div>
+<div class="panel" id="townPanel"></div>
 <div id="toasts"></div>
 <div id="banner"><h2 id="bH"></h2><p id="bP"></p></div>
 <div id="achOv"><div class="card">
@@ -157,7 +188,9 @@
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
-    <li>At <b>LV 3</b>, hire a <b>🧑‍🌾 farmhand</b> &mdash; they roam the isle watering soil and harvesting ripe crops for you</li>
+    <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
+    <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect</li>
+    <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market (+25% sales), Barn (more animals), Farmhouse (faster crops)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -301,9 +334,10 @@ const SAVE_KEY='voxel-garden-v1';
 let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
   muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
-  ach:{},achFlags:{}};
+  buildings:{},ach:{},achFlags:{}};
 const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
-  edits:new Map(), islets:[], chunkDirty:new Set(), chunkMeshes:new Map()};
+  edits:new Map(), islets:[], animals:[], workers:[], drops:[], buildingMeshes:{},
+  chunkDirty:new Set(), chunkMeshes:new Map()};
 const k3=(x,y,z)=>x+','+y+','+z;
 const getB=(x,y,z)=>W.blocks.get(k3(x,y,z))||0;
 function setB(x,y,z,id,silent){const k=k3(x,y,z);
@@ -670,118 +704,458 @@ function buildTrees(){
   scene.add(treeMesh);
 }
 
-/* ============================== farmhand ============================== */
-// A hireable voxel farmhand who wanders the garden on their own and does the
-// chores for you: waters dry tilled soil and harvests ripe crops (real coins &
-// XP land in your pocket, quests tick). One-time hire, unlocks at level 3,
-// persists via state.farmerHired. Just a friendly little blocky person with a
-// straw hat, a waddle, and a hop when they work.
-let farmer=null;
-const FARMER_COST=200, FARMER_LVL=3, FARMER_SPEED=1.9;
-function farmerCubes(){
-  const c=[],add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
-  add(-0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);  // boots
-  add(0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);
-  add(-0.12,0.28,0,0.16,0.36,0.18,0x39507a);      // denim legs
-  add(0.12,0.28,0,0.16,0.36,0.18,0x39507a);
-  add(0,0.66,0,0.44,0.5,0.28,0x9c4b3b);           // plaid shirt
-  add(0,0.66,0.12,0.44,0.5,0.06,0x39507a);        // overall bib
-  add(-0.29,0.64,0,0.14,0.42,0.16,0x8a4234);      // arms
-  add(0.29,0.64,0,0.14,0.42,0.16,0x8a4234);
-  add(-0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);       // hands
-  add(0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);
-  add(0,1.02,0,0.3,0.3,0.3,0xe8bd94);             // head
-  add(0,1.14,0,0.52,0.07,0.52,0xd8b45a);          // hat brim
-  add(0,1.25,0,0.3,0.17,0.3,0xcaa24a);            // hat crown
+/* ============================== villagers (the crew) ============================== */
+// A little community of voxel villagers you hire to work the land. Each roams
+// on their own and does whatever needs doing — harvest ripe crops, collect the
+// goods your animals drop, water dry soil, and tend growing livestock. Build
+// the Tavern and you can assign each a role (Farmer / Rancher / Collector) that
+// focuses their work. Hire several; they share the chores. Persisted in
+// W.workers; the old single "farmhand" save migrates to worker #1.
+const WORKER_NAMES=['Rowan','Maple','Bramble','Poppy','Hazel','Fenn','Clover','Wren','Tansy','Sorrel','Pip','Juna','Elm','Fig','Ash','Bly'];
+const WORKER_SHIRTS=[0x9c4b3b,0x3f7a5c,0x4a5ea8,0x8a5a9c,0xb5762b,0x50908f,0xa8536b];
+const ROLES=['all','farmer','rancher','collector'];
+const ROLE_ICO={all:'🧑‍🌾',farmer:'🌾',rancher:'🐄',collector:'🧺'};
+const ROLE_NAME={all:'Do-it-all',farmer:'Farmer',rancher:'Rancher',collector:'Collector'};
+const WORKER_MAX=6;
+function workerCost(){return 200+W.workers.length*160;}
+function villagerCubes(shirt,hatCol){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(-0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c); a(0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);   // boots
+  a(-0.12,0.28,0,0.16,0.36,0.18,0x39507a); a(0.12,0.28,0,0.16,0.36,0.18,0x39507a);          // legs
+  a(0,0.66,0,0.44,0.5,0.28,shirt); a(0,0.66,0.12,0.44,0.5,0.06,0x39507a);                   // shirt + bib
+  a(-0.29,0.64,0,0.14,0.42,0.16,shirt); a(0.29,0.64,0,0.14,0.42,0.16,shirt);                // arms
+  a(-0.29,0.4,0,0.15,0.12,0.17,0xe8bd94); a(0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);            // hands
+  a(0,1.02,0,0.3,0.3,0.3,0xe8bd94);                                                          // head
+  a(0,1.14,0,0.52,0.07,0.52,hatCol); a(0,1.25,0,0.3,0.17,0.3,hatCol);                        // straw hat
   return c;
 }
-function spawnFarmer(){
-  if(farmer)return;
-  const mesh=new THREE.Mesh(buildPlantGeometry(farmerCubes()),plantMat);
+function spawnWorker(role,name,x,z){
+  const idx=W.workers.length;
+  const shirt=WORKER_SHIRTS[idx%WORKER_SHIRTS.length];
+  const hat=[0xd8b45a,0xcaa24a,0xe0c26a][idx%3];
+  const mesh=new THREE.Mesh(buildPlantGeometry(villagerCubes(shirt,hat)),plantMat);
   mesh.castShadow=true;
   scene.add(mesh);
-  farmer={mesh,x:2.5,z:2.5,face:0,step:0,hop:0,act:'idle',tx:null,tz:null,sy:0,workT:0,job:null,plant:null,rest:0};
-  positionFarmer();
+  const w={mesh,name:name||WORKER_NAMES[(hash3(idx,3,7,0x51)*WORKER_NAMES.length)|0],
+    role:role||'all',x:x!=null?x:2.5,z:z!=null?z:2.5,face:0,step:0,hop:0,
+    act:'idle',tx:null,tz:null,sy:0,workT:0,job:null,target:null};
+  mesh.userData.workerRef=w;
+  W.workers.push(w);positionWorker(w);
+  return w;
 }
-function positionFarmer(){
-  const f=farmer;if(!f)return;
-  const gy=surfaceY(Math.round(f.x),Math.round(f.z));
+function positionWorker(w){
+  const gy=surfaceY(Math.round(w.x),Math.round(w.z));
   const y=(gy==null?4:gy)+1;
-  const bob=f.act==='work'?f.hop:Math.abs(Math.sin(f.step))*0.06;
-  f.mesh.position.set(f.x,y+bob,f.z);
-  f.mesh.rotation.y=f.face;
-  f.mesh.rotation.z=f.act==='work'?0:Math.sin(f.step)*0.07;
+  if(w.dispY==null)w.dispY=y; else w.dispY+=(y-w.dispY)*0.2;   // smooth stepping, no pops
+  const bob=w.act==='work'?w.hop:Math.abs(Math.sin(w.step))*0.06;
+  w.mesh.position.set(w.x,w.dispY+bob,w.z);
+  w.mesh.rotation.y=w.face;
+  w.mesh.rotation.z=w.act==='work'?0:Math.sin(w.step)*0.07;
 }
-function pickFarmerTask(){
-  const f=farmer;let best=null,bd=1e9;
-  // 1) ripe crops
-  for(const p of W.plants.values()){
-    if(!PLANTS[p.type]||p.stage<2)continue;
-    const d=Math.hypot(p.x+0.5-f.x,p.z+0.5-f.z);
-    if(d<bd){bd=d;best={tx:p.x,tz:p.z,job:'harvest',plant:p};}
+const TILL_CAP=90;
+function tilledCount(){let n=0;for(const id of W.blocks.values())if(id===5||id===6)n++;return n;}
+function adjTilled(x,y,z){for(const [ox,oz] of [[1,0],[-1,0],[0,1],[0,-1]]){const g=getB(x+ox,y,z+oz);if(g===5||g===6)return true;}return false;}
+function workerSeed(){
+  const sel=state.seedSel;
+  if(PLANTS[sel]&&state.level>=PLANTS[sel].lvl)return sel;
+  return 'sunflower';
+}
+function workerPickTask(w){
+  const canFarm=w.role==='all'||w.role==='farmer';
+  const canRanch=w.role==='all'||w.role==='rancher';
+  const canCollect=w.role==='all'||w.role==='collector';
+  const curY=surfaceY(Math.round(w.x),Math.round(w.z));
+  let best=null,bd=1e9;
+  const reach=(x,z)=>{const y=surfaceY(x,z);return y!=null&&(curY==null||Math.abs(y-curY)<=2.5);};
+  const consider=(x,z,job,bias,extra)=>{if(!reach(x,z))return;
+    const d=Math.hypot(x+0.5-w.x,z+0.5-w.z)-bias;
+    if(d<bd){bd=d;best=Object.assign({tx:x,tz:z,job},extra);}};
+  if(canCollect)for(const dr of W.drops)consider(dr.x,dr.z,'collect',4,{drop:dr});
+  if(canFarm)for(const p of W.plants.values()){
+    if(PLANTS[p.type]&&p.stage>=2)consider(p.x,p.z,'harvest',3,{plant:p});
   }
-  // 2) dry tilled soil (prefer soil with a plant growing on it)
-  if(!best){
-    for(const [k,id] of W.blocks){
-      if(id!==5||W.wet.has(k))continue;
+  // plant empty tilled soil (uses your selected seed, keeps a coin reserve)
+  if(canFarm){
+    const seed=PLANTS[workerSeed()];
+    if(state.coins>=seed.cost+15)for(const [k,id] of W.blocks){
+      if(id!==5&&id!==6)continue;
       const [x,y,z]=k.split(',').map(Number);
-      const pr=W.plants.has(k3(x,y+1,z))?0:5;
-      const d=Math.hypot(x+0.5-f.x,z+0.5-f.z)+pr;
-      if(d<bd){bd=d;best={tx:x,tz:z,job:'water',sy:y};}
+      if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+      consider(x,z,'plant',2,{sy:y});
     }
   }
-  // 3) nothing to do — amble to a random nearby spot
+  if(canFarm)for(const [k,id] of W.blocks){
+    if(id!==5||W.wet.has(k))continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(!W.plants.has(k3(x,y+1,z)))continue;         // only water soil that has a crop
+    consider(x,z,'water',1,{sy:y});
+  }
+  if(canRanch)for(const a of W.animals){
+    if(a.stage===0&&(a.tendBoost||0)<2)consider(Math.round(a.x),Math.round(a.z),'tend',1,{animal:a});
+  }
+  // till new soil next to the existing farm so the plots grow outward
+  if(canFarm&&tilledCount()<TILL_CAP)for(const [k,id] of W.blocks){
+    if(id!==1&&id!==2)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    if(!adjTilled(x,y,z))continue;
+    consider(x,z,'till',0.5,{sy:y});
+  }
   if(!best){
     const ang=Math.random()*6.283,rad=3+Math.random()*7;
-    let wx=Math.round(f.x+Math.sin(ang)*rad),wz=Math.round(f.z+Math.cos(ang)*rad);
-    if(surfaceY(wx,wz)==null){wx=Math.round(Math.random()*6-3);wz=Math.round(Math.random()*6-3);}
+    let wx=Math.round(w.x+Math.sin(ang)*rad),wz=Math.round(w.z+Math.cos(ang)*rad);
+    if(!reach(wx,wz)){wx=Math.round(w.x+(Math.random()*4-2));wz=Math.round(w.z+(Math.random()*4-2));}
     best={tx:wx,tz:wz,job:'idle'};
   }
-  f.tx=best.tx;f.tz=best.tz;f.job=best.job;f.plant=best.plant||null;f.sy=best.sy||0;
+  w.tx=best.tx;w.tz=best.tz;w.job=best.job;w.target=best.drop||best.plant||best.animal||null;w.sy=best.sy||0;
 }
-function doFarmerWork(){
-  const f=farmer;
-  if(f.job==='harvest'){
-    const p=f.plant;
-    if(p&&W.plants.has(k3(p.x,p.y,p.z))&&p.stage>=2)actOnPlant(p);
-  } else if(f.job==='water'){
-    const id=getB(f.tx,f.sy,f.tz);
-    if(id===5)waterSoil(f.tx,f.sy,f.tz,id);
-  }
-  f.act='work';
-  f.workT=f.job==='idle'?(0.6+Math.random()*1.4):0.5;
-  f.tx=null;f.plant=null;
+function doWorkerJob(w){
+  if(w.job==='harvest'){const p=w.target;if(p&&W.plants.has(k3(p.x,p.y,p.z))&&p.stage>=2)actOnPlant(p);}
+  else if(w.job==='water'){const id=getB(w.tx,w.sy,w.tz);if(id===5)waterSoil(w.tx,w.sy,w.tz,id);}
+  else if(w.job==='collect'){const dr=w.target;if(dr&&W.drops.includes(dr))collectDrop(dr);}
+  else if(w.job==='till'){const id=getB(w.tx,w.sy,w.tz);
+    if((id===1||id===2)&&!getB(w.tx,w.sy+1,w.tz)){setB(w.tx,w.sy,w.tz,5);flushChunks();state.tills++;
+      burst(w.tx+0.5,w.sy+1.05,w.tz+0.5,0x8a6a42,6,{up:1.4,g:6});SFX.play('till');questCheck();}}
+  else if(w.job==='plant'){const id=getB(w.tx,w.sy,w.tz);
+    if((id===5||id===6)&&!getB(w.tx,w.sy+1,w.tz)&&!W.plants.has(k3(w.tx,w.sy+1,w.tz))){
+      const seed=workerSeed(),def=PLANTS[seed];
+      if(state.coins>=def.cost+15){spendCoins(def.cost);addPlant(w.tx,w.sy+1,w.tz,seed);state.planted++;
+        SFX.play('plant');burst(w.tx+0.5,w.sy+1.2,w.tz+0.5,0x7fd370,5,{up:1.2,g:4});questCheck();}}}
+  else if(w.job==='tend'){const a=w.target;if(a&&W.animals.includes(a)&&a.stage===0){a.tendBoost=9;
+    const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;burst(a.x,gy+0.6,a.z,0xff9ec4,5,{up:1.2,g:4});}}
+  w.act='work';w.workT=w.job==='idle'?(0.5+Math.random()*1.2):0.45;w.tx=null;w.target=null;
 }
-function updateFarmer(dt){
-  const f=farmer;if(!f)return;
-  if(f.act==='work'){
-    f.workT-=dt;
-    f.hop=f.job==='idle'?0:Math.max(0,Math.sin((0.5-Math.max(0,f.workT))*8))*0.14;
-    if(f.workT<=0){f.act='idle';f.hop=0;}
-    positionFarmer();return;
+function updateWorker(w,dt){
+  if(w.act==='work'){
+    w.workT-=dt;
+    w.hop=w.job==='idle'?0:Math.max(0,Math.sin((0.45-Math.max(0,w.workT))*9))*0.14;
+    if(w.workT<=0){w.act='idle';w.hop=0;}
+    positionWorker(w);return;
   }
-  if(f.tx==null)pickFarmerTask();
-  const dx=(f.tx+0.5)-f.x,dz=(f.tz+0.5)-f.z,d=Math.hypot(dx,dz);
-  if(d<0.4){doFarmerWork();}
+  if(w.tx==null)workerPickTask(w);
+  const dx=(w.tx+0.5)-w.x,dz=(w.tz+0.5)-w.z,d=Math.hypot(dx,dz);
+  if(d<0.5){doWorkerJob(w);}
   else{
-    const sp=Math.min(1,FARMER_SPEED*dt/d);
-    f.x+=dx*sp;f.z+=dz*sp;
-    f.face=Math.atan2(dx,dz);
-    f.step+=dt*9;
+    const sp=Math.min(1,WORKER_SPEED()*dt/d);
+    const nx=w.x+dx*sp,nz=w.z+dz*sp;
+    const cy=surfaceY(Math.round(w.x),Math.round(w.z));
+    const ny=surfaceY(Math.round(nx),Math.round(nz));
+    if(ny==null||(cy!=null&&Math.abs(ny-cy)>1.4)){   // cliff or gap — don't clip into it
+      w.tx=null;w.face+=1.7;                          // turn away and repath next tick
+    } else {
+      w.x=nx;w.z=nz;w.face=Math.atan2(dx,dz);w.step+=dt*9;
+    }
   }
-  positionFarmer();
+  positionWorker(w);
 }
-function toggleFarmerHire(){
-  if(state.farmerHired){toast('🧑‍🌾 Your farmhand is already tending the garden');return;}
-  if(state.level<FARMER_LVL){toast('🧑‍🌾 A farmhand joins your isle at level '+FARMER_LVL);SFX.play('error');return;}
-  if(!spendCoins(FARMER_COST))return;
-  state.farmerHired=true;
-  spawnFarmer();
+function updateWorkers(dt){for(const w of W.workers)updateWorker(w,dt);}
+function WORKER_SPEED(){return state.buildings&&state.buildings.tavern?2.1:1.9;}
+function rolesUnlocked(){return !!(state.buildings&&state.buildings.tavern);}
+function cycleWorkerRole(w){
+  if(!rolesUnlocked()){toast('🍺 Build the Tavern to assign villager roles');return;}
+  w.role=ROLES[(ROLES.indexOf(w.role)+1)%ROLES.length];
+  SFX.play('click');
+  toast(ROLE_ICO[w.role]+' '+w.name+' is now a '+ROLE_NAME[w.role]);
+}
+function hireWorker(){
+  if(W.workers.length>=WORKER_MAX){toast('🧑‍🌾 Your crew is full ('+WORKER_MAX+')');SFX.play('error');return;}
+  if(state.level<3){toast('🧑‍🌾 Villagers arrive at level 3');SFX.play('error');return;}
+  const cost=workerCost();
+  if(!spendCoins(cost))return;
+  const w=spawnWorker('all');
   const b=$('farmerBtn');if(b)b.style.opacity=1;
   SFX.play('grow');
-  banner('🧑‍🌾 Farmhand hired!','They water your soil and harvest ripe crops while you build.');
+  banner('🧑‍🌾 '+w.name+' joined the crew!',
+    rolesUnlocked()?'Tap a villager to set their role.':'They pitch in on whatever needs doing.');
+  if(typeof checkAch==='function')checkAch();
 }
 
+/* ============================== livestock ============================== */
+// Buy a baby animal and RAISE it: it matures through a growth stage on its own
+// (faster if a rancher tends it, or you own a Barn). Grown animals wander and,
+// every so often, drop a good (egg / truffle / wool / milk) that lands on the
+// grass for a villager to collect — or tap it yourself. Once grown you can also
+// tap the animal to CASH IT IN for a lump sum. Persisted in W.animals with
+// {type,x,z,stage,grow}.
+const ANIMALS={
+  chicken:{ico:'🐔',name:'Chicken',cost:40, lvl:1,product:'🥚',pcol:0xf3e9c0,yield:3, every:18,mature:36,sell:95, scale:0.55,speed:1.6,pitch:660},
+  pig:    {ico:'🐷',name:'Pig',    cost:120,lvl:2,product:'🍄',pcol:0x9c5a3c,yield:8, every:30,mature:60,sell:280,scale:0.72,speed:1.2,pitch:300},
+  sheep:  {ico:'🐑',name:'Sheep',  cost:170,lvl:3,product:'🧶',pcol:0xf0ece0,yield:11,every:36,mature:75,sell:380,scale:0.8, speed:1.1,pitch:420},
+  cow:    {ico:'🐄',name:'Cow',    cost:260,lvl:5,product:'🥛',pcol:0xffffff,yield:18,every:46,mature:100,sell:640,scale:1.0,speed:0.9,pitch:200},
+};
+function animalCap(){return 14+(state.buildings&&state.buildings.barn?6:0);}
+function animalGrowMult(){return state.buildings&&state.buildings.barn?1.4:1;}
+function sellMult(){return state.buildings&&state.buildings.market?1.25:1;}
+function chickenCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.34,0,0.4,0.34,0.5,0xf6f5f0); a(0,0.42,-0.28,0.3,0.26,0.2,0xf1efe8);
+  a(0,0.62,0.26,0.26,0.28,0.24,0xf9f8f4);
+  a(0,0.8,0.24,0.1,0.12,0.14,0xd23b2f); a(0,0.6,0.44,0.1,0.08,0.13,0xe8952f);
+  a(-0.09,0.11,0.05,0.06,0.22,0.06,0xe8952f); a(0.09,0.11,0.05,0.06,0.22,0.06,0xe8952f);
+  return c;}
+function pigCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.44,0,0.62,0.44,0.82,0xe58fa0);
+  a(0,0.5,0.5,0.4,0.36,0.24,0xe89caa); a(0,0.44,0.66,0.24,0.18,0.1,0xd9788c);
+  a(-0.1,0.68,0.44,0.09,0.1,0.05,0xd9788c); a(0.1,0.68,0.44,0.09,0.1,0.05,0xd9788c);
+  a(-0.2,0.12,-0.24,0.11,0.24,0.11,0xd9788c); a(0.2,0.12,-0.24,0.11,0.24,0.11,0xd9788c);
+  a(-0.2,0.12,0.24,0.11,0.24,0.11,0xd9788c); a(0.2,0.12,0.24,0.11,0.24,0.11,0xd9788c);
+  return c;}
+function sheepCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.52,0,0.66,0.52,0.82,0xeee7d8); a(0,0.72,0.02,0.54,0.3,0.6,0xf4efe3);
+  a(0,0.5,0.5,0.28,0.32,0.24,0x3a322e);
+  a(-0.1,0.66,0.5,0.07,0.1,0.06,0x2a2422); a(0.1,0.66,0.5,0.07,0.1,0.06,0x2a2422);
+  a(-0.22,0.12,-0.24,0.1,0.26,0.1,0x2a2422); a(0.22,0.12,-0.24,0.1,0.26,0.1,0x2a2422);
+  a(-0.22,0.12,0.24,0.1,0.26,0.1,0x2a2422); a(0.22,0.12,0.24,0.1,0.26,0.1,0x2a2422);
+  return c;}
+function cowCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.58,0,0.74,0.56,0.98,0xf3f1ed);
+  a(0.22,0.7,0.12,0.28,0.3,0.32,0x2c2c2c); a(-0.24,0.52,-0.28,0.26,0.3,0.32,0x2c2c2c);
+  a(0,0.62,0.58,0.44,0.4,0.28,0xf3f1ed); a(0,0.5,0.74,0.36,0.24,0.12,0xe6a6a6);
+  a(-0.15,0.86,0.54,0.08,0.12,0.08,0xd8cfc4); a(0.15,0.86,0.54,0.08,0.12,0.08,0xd8cfc4);
+  a(0,0.28,-0.3,0.22,0.16,0.16,0xe8b3bd);
+  a(-0.24,0.14,-0.3,0.12,0.28,0.12,0x2c2c2c); a(0.24,0.14,-0.3,0.12,0.28,0.12,0x2c2c2c);
+  a(-0.24,0.14,0.3,0.12,0.28,0.12,0x3a3a3a); a(0.24,0.14,0.3,0.12,0.28,0.12,0x3a3a3a);
+  return c;}
+const ANIMAL_MODELS={chicken:chickenCubes,pig:pigCubes,sheep:sheepCubes,cow:cowCubes};
+function spawnAnimal(type,x,z,stage,grow){
+  const def=ANIMALS[type];if(!def)return null;
+  const mesh=new THREE.Mesh(buildPlantGeometry(ANIMAL_MODELS[type]()),plantMat);
+  mesh.castShadow=true;
+  scene.add(mesh);
+  const a={type,mesh,x,z,face:Math.random()*6.283,step:Math.random()*6,
+    act:'graze',tx:null,tz:null,wait:1+Math.random()*2,
+    stage:stage!=null?stage:0,grow:grow!=null?grow:0,tendBoost:0,
+    prodT:Math.random()*def.every};
+  mesh.userData.animalRef=a;
+  W.animals.push(a);applyAnimalScale(a);positionAnimal(a);
+  return a;
+}
+function applyAnimalScale(a){
+  const def=ANIMALS[a.type];
+  const s=def.scale*(a.stage>=1?1:0.55+0.35*a.grow);
+  a.mesh.scale.setScalar(s);
+}
+function positionAnimal(a){
+  const gy=surfaceY(Math.round(a.x),Math.round(a.z));
+  const y=(gy==null?4:gy)+1;
+  if(a.dispY==null)a.dispY=y; else a.dispY+=(y-a.dispY)*0.2;    // smooth stepping
+  const bob=a.act==='walk'?Math.abs(Math.sin(a.step))*0.05:Math.sin(a.step*0.5)*0.02;
+  a.mesh.position.set(a.x,a.dispY+bob,a.z);
+  a.mesh.rotation.y=a.face;
+  a.mesh.rotation.z=a.act==='walk'?Math.sin(a.step)*0.06:0;
+}
+function animalNewTarget(a){
+  const ang=Math.random()*6.283,rad=2+Math.random()*6;
+  let wx=Math.round(a.x+Math.sin(ang)*rad),wz=Math.round(a.z+Math.cos(ang)*rad);
+  if(surfaceY(wx,wz)==null){wx=Math.round(Math.random()*10-5);wz=Math.round(Math.random()*10-5);}
+  a.tx=wx;a.tz=wz;a.act='walk';
+}
+function updateAnimal(a,dt){
+  const def=ANIMALS[a.type];
+  if(a.stage===0){
+    let g=animalGrowMult();
+    if(a.tendBoost>0){a.tendBoost-=dt;g*=1.6;}
+    a.grow+=dt/def.mature*g;
+    applyAnimalScale(a);
+    if(a.grow>=1){a.stage=1;a.grow=1;applyAnimalScale(a);
+      const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
+      burst(a.x,gy+0.6,a.z,0xfff2a8,10,{up:1.6,g:2});SFX.play('grow');}
+  } else {
+    a.prodT+=dt;
+    if(a.prodT>=def.every){a.prodT=0;animalDrop(a);}
+  }
+  if(a.act==='graze'){a.step+=dt*2;a.wait-=dt;if(a.wait<=0)animalNewTarget(a);positionAnimal(a);return;}
+  const dx=(a.tx+0.5)-a.x,dz=(a.tz+0.5)-a.z,d=Math.hypot(dx,dz);
+  if(d<0.35){a.act='graze';a.wait=2+Math.random()*4;}
+  else{
+    const sp=Math.min(1,def.speed*dt/d);
+    const nx=a.x+dx*sp,nz=a.z+dz*sp;
+    const cy=surfaceY(Math.round(a.x),Math.round(a.z));
+    const ny=surfaceY(Math.round(nx),Math.round(nz));
+    if(ny==null||(cy!=null&&Math.abs(ny-cy)>1.4)){a.act='graze';a.wait=0.5+Math.random();a.face+=1.7;} // don't clip cliffs
+    else{a.x=nx;a.z=nz;a.face=Math.atan2(dx,dz);a.step+=dt*8;}
+  }
+  positionAnimal(a);
+}
+function updateAnimals(dt){for(const a of W.animals)updateAnimal(a,dt);}
+function cashInAnimal(a){
+  const def=ANIMALS[a.type];
+  if(a.stage===0){toast(def.ico+' still growing — '+Math.round(a.grow*100)+'%');return;}
+  const pay=Math.round(def.sell*sellMult());
+  const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
+  grantCoins(pay,a.x,gy+0.9,a.z);
+  burst(a.x,gy+0.6,a.z,0xffd166,16,{up:2.4,g:6});
+  SFX.play('harvest');setTimeout(()=>SFX.play('coin'),140);
+  removeAnimal(a);
+  toast(def.ico+' sold for '+pay+' 🪙');
+  buildAnimalPanel();
+}
+function removeAnimal(a){
+  const i=W.animals.indexOf(a);if(i>=0)W.animals.splice(i,1);
+  if(a.mesh){scene.remove(a.mesh);a.mesh.geometry.dispose();}
+}
+function buyAnimal(type){
+  const def=ANIMALS[type];if(!def)return;
+  if(W.animals.length>=animalCap()){toast('🐾 No room — build a Barn for more animals!');SFX.play('error');return;}
+  if(state.level<def.lvl){toast(def.ico+' '+def.name+' unlocks at level '+def.lvl);SFX.play('error');return;}
+  if(!spendCoins(def.cost))return;
+  let x=Math.round(Math.random()*8-4),z=Math.round(3+Math.random()*5);
+  if(surfaceY(x,z)==null){x=0;z=2;}
+  spawnAnimal(type,x+0.5,z+0.5,0,0);
+  SFX.play('grow');
+  toast(def.ico+' baby '+def.name+' — raise it, then tap to sell or keep for '+def.product);
+  buildAnimalPanel();
+  if(typeof checkAch==='function')checkAch();
+}
+
+/* ============================== goods (dropped by animals) ============================== */
+let dropGeoCache=null;
+function dropGeo(){if(!dropGeoCache)dropGeoCache=buildPlantGeometry([[0,0.15,0,0.28,0.28,0.28,0xffffff]]);return dropGeoCache;}
+function animalDrop(a){
+  const def=ANIMALS[a.type];
+  if(W.drops.length>=40)collectDrop(W.drops[0]);       // clear the oldest so they never pile up
+  const mesh=new THREE.Mesh(dropGeo(),new THREE.MeshLambertMaterial({color:def.pcol,emissive:new THREE.Color(def.pcol).multiplyScalar(0.25)}));
+  mesh.castShadow=true;
+  const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
+  const d={type:a.type,x:a.x,z:a.z,y:gy,mesh,age:0,bob:Math.random()*6};
+  mesh.userData.dropRef=d;
+  mesh.position.set(a.x,gy+0.3,a.z);
+  scene.add(mesh);
+  W.drops.push(d);
+  floatText(a.x,gy+1.1,a.z,def.product,'#fff');
+  SFX.tone(def.pitch,0.08,'triangle',0.045,def.pitch*1.5);
+}
+function collectDrop(d){
+  const i=W.drops.indexOf(d);if(i<0)return;
+  W.drops.splice(i,1);
+  const def=ANIMALS[d.type];
+  const pay=Math.round(def.yield*sellMult());
+  grantCoins(pay,d.x,d.y+0.9,d.z);
+  floatText(d.x,d.y+1.2,d.z,def.product,'#ffe9a8');
+  SFX.play('coin');
+  if(d.mesh){scene.remove(d.mesh);d.mesh.material.dispose();}
+}
+function updateDrops(dt){
+  for(const d of W.drops.slice()){
+    d.age+=dt;d.bob+=dt*3;
+    if(d.mesh)d.mesh.position.y=d.y+0.3+Math.sin(d.bob)*0.07,d.mesh.rotation.y+=dt*1.4;
+    if(d.age>75)collectDrop(d);            // idle goods auto-sell so you always earn
+  }
+}
+
+/* ============================== town (land & buildings) ============================== */
+// Buy land expansions to raise new islets, then raise buildings that make the
+// isle feel like a growing settlement — a Tavern (unlocks villager roles), a
+// Trader's Market (+25% on every sale), a Barn (more animals, faster growth),
+// and a Farmhouse (crops grow faster). Buildings auto-place on clear ground and
+// persist by position in state.buildings.
+const BUILDINGS={
+  tavern:   {ico:'🍺',name:'Tavern',   cost:420,lvl:3,desc:'Unlocks villager roles',roof:0x8a4b2f,wall:0xcaa06a},
+  market:   {ico:'🏪',name:'Trader’s Market',cost:560,lvl:4,desc:'+25% on all sales',roof:0x3f7a5c,wall:0xd8c39a},
+  barn:     {ico:'🚜',name:'Barn',     cost:520,lvl:4,desc:'+6 animals · +40% growth',roof:0xa23b32,wall:0xb8875a},
+  farmhouse:{ico:'🏠',name:'Farmhouse',cost:680,lvl:5,desc:'+20% crop growth',roof:0x6a86b0,wall:0xd9caa6},
+};
+function buildingCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
+  a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
+  a(0,1.62,0,1.2,0.5,1.2,def.roof);              // roof peak
+  a(0,0.42,0.9,0.5,0.72,0.12,0x5a3a24);          // door
+  a(-0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); a(0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); // windows
+  a(0.55,1.7,-0.4,0.3,0.9,0.3,0x6b4a3a);         // chimney
+  return c;
+}
+function findBuildSpot(){
+  const ring=[[6,6],[-6,6],[6,-4],[-8,2],[9,3],[-4,9],[8,-6],[-9,-6],[4,10],[11,0],[0,11],[-11,4]];
+  for(const [ox,oz] of ring){
+    const y=surfaceY(ox,oz);
+    if(y==null)continue;
+    if((W.pondCells||[]).some(([px,pz])=>Math.abs(px-ox)<2&&Math.abs(pz-oz)<2))continue;
+    let clash=false;
+    for(const key in (state.buildings||{})){const b=state.buildings[key];if(b&&Math.hypot(b.x-ox,b.z-oz)<4){clash=true;break;}}
+    if(clash)continue;
+    return {x:ox,z:oz,y};
+  }
+  return {x:6,z:6,y:surfaceY(6,6)||4};
+}
+function placeBuildingMesh(key){
+  const def=BUILDINGS[key],b=state.buildings[key];if(!def||!b)return;
+  if(W.buildingMeshes[key]){scene.remove(W.buildingMeshes[key]);}
+  const mesh=new THREE.Mesh(buildPlantGeometry(buildingCubes(def)),plantMat);
+  mesh.castShadow=true;mesh.receiveShadow=true;
+  mesh.position.set(b.x+0.5,(surfaceY(b.x,b.z)||4)+1,b.z+0.5);
+  scene.add(mesh);W.buildingMeshes[key]=mesh;
+}
+function rebuildBuildings(){for(const key in (state.buildings||{}))if(state.buildings[key])placeBuildingMesh(key);}
+function buyBuilding(key){
+  const def=BUILDINGS[key];if(!def)return;
+  if(state.buildings[key]){toast(def.ico+' '+def.name+' already built');return;}
+  if(state.level<def.lvl){toast(def.ico+' unlocks at level '+def.lvl);SFX.play('error');return;}
+  if(!spendCoins(def.cost))return;
+  const spot=findBuildSpot();
+  state.buildings[key]={x:spot.x,z:spot.z};
+  placeBuildingMesh(key);
+  SFX.play('islet');
+  banner(def.ico+' '+def.name+' raised!',def.desc);
+  if(key==='tavern')setTimeout(()=>toast('🍺 Tap a villager to set their role'),1400);
+  buildTownPanel();
+  if(typeof checkAch==='function')checkAch();
+}
+function nextIslet(){return ISLETS.find(it=>!W.islets.includes(it.id));}
+function landCost(){return 300+W.islets.length*250;}
+function buyLand(){
+  const it=nextIslet();
+  if(!it){toast('🏝️ Every islet already floats in the sky');return;}
+  const cost=landCost();
+  if(!spendCoins(cost))return;
+  unlockIslet(it);
+}
+function buildTownPanel(){
+  const p=$('townPanel');if(!p)return;p.innerHTML='';
+  const head=document.createElement('div');head.className='p-head';head.textContent='🏘️ Town';p.appendChild(head);
+  const it=nextIslet();
+  if(it){
+    const cost=landCost();
+    const d=document.createElement('div');d.className='p-item'+(state.coins<cost?' locked':'');
+    d.innerHTML='<div class="ico">🏝️</div><div class="nm">Raise Land</div><div class="pr">'+cost+' 🪙</div>';
+    d.addEventListener('click',()=>buyLand());
+    p.appendChild(d);
+  }
+  for(const [key,def] of Object.entries(BUILDINGS)){
+    const built=!!state.buildings[key];
+    const locked=state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+((locked||built)?' locked':'');
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+      (built?'<div class="lk">✓ built</div>':locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
+        :'<div class="pr">'+def.cost+' 🪙</div>');
+    if(!locked&&!built)d.addEventListener('click',()=>buyBuilding(key));
+    p.appendChild(d);
+  }
+  const note=document.createElement('div');note.className='p-head';note.style.opacity=0.7;
+  note.textContent=it?BUILDINGS[Object.keys(BUILDINGS).find(k=>!state.buildings[k])||'tavern']?.desc||'':'A thriving little town ✨';
+  p.appendChild(note);
+}
+function buildAnimalPanel(){
+  const p=$('animalPanel');if(!p)return;p.innerHTML='';
+  const head=document.createElement('div');head.className='p-head';
+  head.textContent='🐾 Livestock  ('+W.animals.length+'/'+animalCap()+')';
+  p.appendChild(head);
+  for(const [key,def] of Object.entries(ANIMALS)){
+    const locked=state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+(locked?' locked':'');
+    const owned=W.animals.filter(a=>a.type===key).length;
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+
+      (owned?' ×'+owned:'')+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
+        :'<div class="pr">'+def.cost+'🪙 · sell '+def.sell+'</div>');
+    if(!locked)d.addEventListener('click',()=>{buyAnimal(key);});
+    p.appendChild(d);
+  }
+  const note=document.createElement('div');note.className='p-head';note.style.opacity=0.7;
+  note.textContent='Raise a baby → tap to sell, or keep it for goods';
+  p.appendChild(note);
+}
 /* ============================== plant models ============================== */
 // cube: [x,y,z, sx,sy,sz, colorHex]  (y measured up from soil top, plant centered at 0,0)
 function cubesFor(type,stage,vseed){
@@ -1245,6 +1619,7 @@ function updatePlants(dt,dn){
     }
     let rate=seasonOf(state.day).growMult;
     if(def.night)rate*=dn.night>0.5?1.6:0.12;
+    if(state.buildings&&state.buildings.farmhouse)rate*=1.2;   // Farmhouse boosts crops
     const soilK=k3(p.x,p.y-1,p.z);
     if(W.wet.has(soilK))rate*=2;
     p.prog+=dt*rate;
@@ -1358,12 +1733,16 @@ function cellFromHit(hit,into){
   return [Math.floor(hit.point.x+n.x*off),Math.floor(hit.point.y+n.y*off),Math.floor(hit.point.z+n.z*off)];
 }
 function doAction(hit){
+  const ud=hit.object.userData;
   // plant hit?
-  if(hit.object.userData.plantKey){
-    const p=W.plants.get(hit.object.userData.plantKey);
+  if(ud.plantKey){
+    const p=W.plants.get(ud.plantKey);
     if(p)return actOnPlant(p);
     return;
   }
+  if(ud.animalRef)return cashInAnimal(ud.animalRef);   // tap a grown animal to sell it
+  if(ud.dropRef)return collectDrop(ud.dropRef);         // tap a dropped good to collect it
+  if(ud.workerRef)return cycleWorkerRole(ud.workerRef); // tap a villager to set their role
   const [x,y,z]=cellFromHit(hit,true);
   const id=getB(x,y,z);
   const tool=state.tool;
@@ -1490,6 +1869,9 @@ function getPickables(){
   const arr=[];
   for(const m of W.chunkMeshes.values())arr.push(m);
   for(const p of W.plants.values())if(p.mesh)arr.push(p.mesh);
+  for(const a of W.animals)if(a.mesh)arr.push(a.mesh);
+  for(const d of W.drops)if(d.mesh)arr.push(d.mesh);
+  for(const w of W.workers)if(w.mesh)arr.push(w.mesh);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -1579,7 +1961,21 @@ function bindInput(){
   addEventListener('resize',()=>{
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
     renderer.setSize(innerWidth,innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    fitCamera();
   });
+}
+// Pull the camera back on narrow / portrait screens (phones, iPad portrait) so
+// the whole isle stays in frame, and sit a touch closer on wide desktop.
+function fitCamera(initial){
+  const ar=innerWidth/innerHeight;
+  let d;
+  if(ar<0.7)d=64;            // tall portrait phone
+  else if(ar<1.05)d=54;      // square-ish / iPad portrait
+  else if(ar<1.5)d=46;       // iPad landscape / small window
+  else d=42;                 // desktop
+  cam.tdist=clamp(d,16,90);
+  if(initial){cam.dist=cam.tdist;cam.tpitch=cam.pitch=ar<1.05?0.62:0.55;}
 }
 function updateHover(){
   const src=fp.on?{x:innerWidth/2,y:innerHeight/2}:hoverHit;
@@ -1591,6 +1987,10 @@ function updateHover(){
     highlightBox.visible=false;ghostCube.visible=false;
     document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
     return;
+  }
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef){
+    highlightBox.visible=false;ghostCube.visible=false;
+    document.body.style.cursor='pointer';return;
   }
   document.body.style.cursor='default';
   if(state.tool==='block'){
@@ -1622,8 +2022,20 @@ function initHud(){
   $('muteBtn').addEventListener('click',toggleMute);
   $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
   $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
-  $('farmerBtn').addEventListener('click',()=>{SFX.play('click');toggleFarmerHire();});
-  $('farmerBtn').style.opacity=state.farmerHired?1:0.5;
+  $('farmerBtn').addEventListener('click',()=>{SFX.play('click');hireWorker();});
+  $('farmerBtn').style.opacity=W.workers.length?1:0.5;
+  $('animalBtn').addEventListener('click',()=>{
+    SFX.play('click');
+    const p=$('animalPanel');
+    if(p.classList.contains('open')){closePanels();}
+    else{buildAnimalPanel();openPanel('animalPanel');}
+  });
+  $('townBtn').addEventListener('click',()=>{
+    SFX.play('click');
+    const p=$('townPanel');
+    if(p.classList.contains('open')){closePanels();}
+    else{buildTownPanel();openPanel('townPanel');}
+  });
   $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
@@ -1729,6 +2141,8 @@ function save(){
       wet:[...W.wet.entries()],
       islets:W.islets,
       plants:[...W.plants.values()].map(p=>({x:p.x,y:p.y,z:p.z,type:p.type,prog:p.prog,stage:p.stage,harvested:p.harvested})),
+      animals:W.animals.map(a=>({type:a.type,x:a.x,z:a.z,stage:a.stage,grow:a.grow})),
+      workers:W.workers.map(w=>({role:w.role,name:w.name,x:w.x,z:w.z})),
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
   }catch(e){}
@@ -1739,6 +2153,7 @@ function load(){
   if(!data||data.v!==1)return false;
   W.seed=data.seed;
   Object.assign(state,data.state);
+  if(!state.buildings)state.buildings={};
   genIsland(0,0,15,0);
   const islets=data.islets||[];
   islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});
@@ -1748,6 +2163,9 @@ function load(){
   });
   (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
   (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,p.stage,p.harvested));
+  (data.animals||[]).forEach(a=>{if(ANIMALS[a.type])spawnAnimal(a.type,a.x,a.z,a.stage,a.grow);});
+  (data.workers||[]).forEach(w=>spawnWorker(w.role,w.name,w.x,w.z));
+  if(state.farmerHired&&!W.workers.length){spawnWorker('all');delete state.farmerHired;}   // migrate old farmhand
   // offline growth
   const off=clamp((Date.now()-(data.savedAt||Date.now()))/1000,0,4*3600);
   if(off>20){
@@ -1763,6 +2181,18 @@ function load(){
     state.day+=Math.floor(off/CYCLE);
     for(const [k,t] of W.wet){if(t-off<=0){W.wet.delete(k);const [x,y,z]=k.split(',').map(Number);
       if(getB(x,y,z)===6){W.blocks.set(k,5);W.edits.set(k,5);}}}
+    // livestock mature and keep producing while you're gone (bounded by the offline cap)
+    let idle=0;const mult=sellMult();
+    for(const a of W.animals){
+      const def=ANIMALS[a.type];
+      if(a.stage===0){
+        a.grow+=off/def.mature*animalGrowMult();
+        if(a.grow>=1){a.stage=1;a.grow=1;applyAnimalScale(a);
+          const spare=(a.grow-1)*def.mature;idle+=Math.floor(spare/def.every)*Math.round(def.yield*mult);}
+      } else idle+=Math.floor(off/def.every)*Math.round(def.yield*mult);
+    }
+    if(idle>0){state.coins+=idle;state.totalEarned+=idle;
+      setTimeout(()=>toast('🐾 Your animals earned '+idle+' 🪙 while you were away'),2400);}
     if(ripened>0)setTimeout(()=>toast('While you were away, '+ripened+' crop'+(ripened>1?'s':'')+' ripened ✨'),1500);
   }
   return true;
@@ -1934,6 +2364,11 @@ const ACH=[
   ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1],
   ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3],
   ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10],
+  ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1],
+  ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
+  ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
+  ['town1','Founding','Raise your first town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=1],
+  ['town4','Boomtown','Raise every town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=4],
   ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
@@ -2029,8 +2464,9 @@ function boot(){
     }
   }
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
-  if(state.farmerHired)spawnFarmer();
+  rebuildBuildings();
   cam.cy=(surfaceY(0,0)||5)+1;
+  fitCamera(true);
   initHud();
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
@@ -2048,7 +2484,9 @@ function boot(){
     updatePlants(dt,dn);
     updateSprinklers(dt);
     updateBird(dt,dn);
-    updateFarmer(dt);
+    updateWorkers(dt);
+    updateAnimals(dt);
+    updateDrops(dt);
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
