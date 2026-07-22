@@ -117,6 +117,7 @@
 </div>
 <div id="back">
   <button id="fpBtn" title="First person (F)">👁️</button>
+  <button id="farmerBtn" title="Hire a farmhand">🧑‍🌾</button>
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
@@ -156,6 +157,7 @@
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
+    <li>At <b>LV 3</b>, hire a <b>🧑‍🌾 farmhand</b> &mdash; they roam the isle watering soil and harvesting ripe crops for you</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -460,16 +462,18 @@ function tuftGeometry(){
     const c=Math.cos(ang),s=Math.sin(ang);
     const bx=w*c,bz=w*s;
     const base=pos.length/3;
-    pos.push(-bx,0,-bz, bx,0,bz, bx*0.25,h,bz*0.25, -bx*0.25,h,-bz*0.25);
+    // short, rounded clumps (wide tip) so they read as ground grass, not
+    // spiky little trees.
+    pos.push(-bx,0,-bz, bx,0,bz, bx*0.5,h,bz*0.5, -bx*0.5,h,-bz*0.5);
     // Normals forced UP so the overhead sun lights the blades like grass
     // instead of leaving thin near-vertical faces in shadow.
     for(let i=0;i<4;i++)nor.push(0,1,0);
     // brightness gradient: shaded at the base, near-full at the tip
     // (the season tint rides on top via the per-instance colour)
-    col.push(0.66,0.66,0.66, 0.66,0.66,0.66, 0.92,0.92,0.92, 0.92,0.92,0.92);
+    col.push(0.72,0.72,0.72, 0.72,0.72,0.72, 0.98,0.98,0.98, 0.98,0.98,0.98);
     idx.push(base,base+1,base+2, base,base+2,base+3);
   };
-  blade(0,0.3,0.075); blade(1.05,0.26,0.075); blade(2.1,0.28,0.075);
+  blade(0,0.17,0.1); blade(1.05,0.14,0.1); blade(2.1,0.15,0.1);
   const g=new THREE.BufferGeometry();
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
@@ -591,6 +595,191 @@ function buildWater(){
 }
 function updateWater(){
   if(waterMesh)waterMesh.position.y=Math.sin(perf*1.1)*0.045;
+}
+
+/* ============================== trees ============================== */
+// Real, intentional voxel trees — a chunky trunk under a blocky rounded
+// canopy — so the island reads as lush instead of relying on grass tufts.
+// Season-tinted (spring/summer greens, autumn ambers, a frosted winter crown
+// with a snow cap) and shadow-casting. Placed deterministically on grass tops,
+// well clear of the starter plot and the pond, with min-spacing so they never
+// clump. One shared geometry across all trees (season is global), drawn with
+// an InstancedMesh, rebuilt on boot / season change / islet rise.
+let treeMesh=null;
+const TREE_MAX=30, TREE_SPACING=4;
+const TREE_PAL={
+  spring:{lo:0x5aa83e,hi:0x74c257,snow:0},
+  summer:{lo:0x468f37,hi:0x5eb04a,snow:0},
+  autumn:{lo:0xc9741f,hi:0xe0912f,snow:0},
+  winter:{lo:0x7f9e93,hi:0x9db8ad,snow:0xf2f7fa},
+};
+function treeCubes(pal){
+  const c=[],add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  add(0,0.5,0, 0.34,1.05,0.34, 0x6b4a2b);      // trunk
+  add(0,0.9,0, 0.22,0.4,0.22, 0x5a3d23);       // trunk fork shade
+  add(0,1.45,0, 1.28,0.98,1.28, pal.lo);       // main crown
+  add(0.6,1.32,0.16, 0.72,0.72,0.72, pal.lo);  // side puffs
+  add(-0.58,1.36,-0.14, 0.74,0.74,0.74, pal.lo);
+  add(0.12,1.3,0.6, 0.7,0.7,0.7, pal.lo);
+  add(-0.14,1.34,-0.6, 0.7,0.7,0.7, pal.lo);
+  add(0,2.02,0, 0.88,0.72,0.88, pal.hi);        // top puff
+  add(0.2,2.36,0.08, 0.5,0.46,0.5, pal.hi);
+  if(pal.snow){ add(0,2.62,0, 0.62,0.24,0.62, pal.snow); add(0.22,2.5,0.1,0.4,0.2,0.4,pal.snow); }
+  return c;
+}
+function buildTrees(){
+  if(treeMesh){scene.remove(treeMesh);treeMesh.geometry.dispose();treeMesh.material.dispose();treeMesh=null;}
+  const season=seasonOf(state.day);
+  const pal=TREE_PAL[season.key]||TREE_PAL.summer;
+  const pond=new Set((W.pondCells||[]).map(([x,z])=>x+','+z));
+  // candidate grass tops, clear of the pond, starter plot, and any planting
+  const cand=[];
+  for(const [k,id] of W.blocks){
+    if(id!==1)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    if(pond.has(x+','+z))continue;
+    if(Math.hypot(x,z)<6)continue;               // leave the spawn garden open
+    cand.push([x,y,z,hash3(x,y,z,W.seed^0x77ee)]);
+  }
+  cand.sort((a,b)=>a[3]-b[3]);                    // deterministic order
+  const occ=new Set(), inst=[];
+  for(const [x,y,z,h] of cand){
+    if(inst.length>=TREE_MAX)break;
+    if(h<0.55)continue;                            // thin them out
+    const gx=Math.round(x/TREE_SPACING),gz=Math.round(z/TREE_SPACING);
+    let clash=false;
+    for(let dx=-1;dx<=1&&!clash;dx++)for(let dz=-1;dz<=1;dz++)if(occ.has((gx+dx)+','+(gz+dz))){clash=true;break;}
+    if(clash)continue;
+    occ.add(gx+','+gz);
+    inst.push([x,y,z]);
+  }
+  if(!inst.length)return;
+  const g=buildPlantGeometry(treeCubes(pal));
+  treeMesh=new THREE.InstancedMesh(g,plantMat,inst.length);
+  treeMesh.castShadow=true;treeMesh.receiveShadow=true;
+  const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3();
+  inst.forEach(([x,y,z],ix)=>{
+    const jr=hash3(x,z,y,0x1234),js=0.82+hash3(x+1,z,y,0x5678)*0.5;
+    q.setFromAxisAngle(_up,jr*6.283);
+    v.set(x+0.5,y+1,z+0.5);
+    sc.set(js,js*(0.92+hash3(x,z+1,y,0x9abc)*0.28),js);
+    m.compose(v,q,sc);treeMesh.setMatrixAt(ix,m);
+  });
+  treeMesh.instanceMatrix.needsUpdate=true;
+  scene.add(treeMesh);
+}
+
+/* ============================== farmhand ============================== */
+// A hireable voxel farmhand who wanders the garden on their own and does the
+// chores for you: waters dry tilled soil and harvests ripe crops (real coins &
+// XP land in your pocket, quests tick). One-time hire, unlocks at level 3,
+// persists via state.farmerHired. Just a friendly little blocky person with a
+// straw hat, a waddle, and a hop when they work.
+let farmer=null;
+const FARMER_COST=200, FARMER_LVL=3, FARMER_SPEED=1.9;
+function farmerCubes(){
+  const c=[],add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  add(-0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);  // boots
+  add(0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);
+  add(-0.12,0.28,0,0.16,0.36,0.18,0x39507a);      // denim legs
+  add(0.12,0.28,0,0.16,0.36,0.18,0x39507a);
+  add(0,0.66,0,0.44,0.5,0.28,0x9c4b3b);           // plaid shirt
+  add(0,0.66,0.12,0.44,0.5,0.06,0x39507a);        // overall bib
+  add(-0.29,0.64,0,0.14,0.42,0.16,0x8a4234);      // arms
+  add(0.29,0.64,0,0.14,0.42,0.16,0x8a4234);
+  add(-0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);       // hands
+  add(0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);
+  add(0,1.02,0,0.3,0.3,0.3,0xe8bd94);             // head
+  add(0,1.14,0,0.52,0.07,0.52,0xd8b45a);          // hat brim
+  add(0,1.25,0,0.3,0.17,0.3,0xcaa24a);            // hat crown
+  return c;
+}
+function spawnFarmer(){
+  if(farmer)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(farmerCubes()),plantMat);
+  mesh.castShadow=true;
+  scene.add(mesh);
+  farmer={mesh,x:2.5,z:2.5,face:0,step:0,hop:0,act:'idle',tx:null,tz:null,sy:0,workT:0,job:null,plant:null,rest:0};
+  positionFarmer();
+}
+function positionFarmer(){
+  const f=farmer;if(!f)return;
+  const gy=surfaceY(Math.round(f.x),Math.round(f.z));
+  const y=(gy==null?4:gy)+1;
+  const bob=f.act==='work'?f.hop:Math.abs(Math.sin(f.step))*0.06;
+  f.mesh.position.set(f.x,y+bob,f.z);
+  f.mesh.rotation.y=f.face;
+  f.mesh.rotation.z=f.act==='work'?0:Math.sin(f.step)*0.07;
+}
+function pickFarmerTask(){
+  const f=farmer;let best=null,bd=1e9;
+  // 1) ripe crops
+  for(const p of W.plants.values()){
+    if(!PLANTS[p.type]||p.stage<2)continue;
+    const d=Math.hypot(p.x+0.5-f.x,p.z+0.5-f.z);
+    if(d<bd){bd=d;best={tx:p.x,tz:p.z,job:'harvest',plant:p};}
+  }
+  // 2) dry tilled soil (prefer soil with a plant growing on it)
+  if(!best){
+    for(const [k,id] of W.blocks){
+      if(id!==5||W.wet.has(k))continue;
+      const [x,y,z]=k.split(',').map(Number);
+      const pr=W.plants.has(k3(x,y+1,z))?0:5;
+      const d=Math.hypot(x+0.5-f.x,z+0.5-f.z)+pr;
+      if(d<bd){bd=d;best={tx:x,tz:z,job:'water',sy:y};}
+    }
+  }
+  // 3) nothing to do — amble to a random nearby spot
+  if(!best){
+    const ang=Math.random()*6.283,rad=3+Math.random()*7;
+    let wx=Math.round(f.x+Math.sin(ang)*rad),wz=Math.round(f.z+Math.cos(ang)*rad);
+    if(surfaceY(wx,wz)==null){wx=Math.round(Math.random()*6-3);wz=Math.round(Math.random()*6-3);}
+    best={tx:wx,tz:wz,job:'idle'};
+  }
+  f.tx=best.tx;f.tz=best.tz;f.job=best.job;f.plant=best.plant||null;f.sy=best.sy||0;
+}
+function doFarmerWork(){
+  const f=farmer;
+  if(f.job==='harvest'){
+    const p=f.plant;
+    if(p&&W.plants.has(k3(p.x,p.y,p.z))&&p.stage>=2)actOnPlant(p);
+  } else if(f.job==='water'){
+    const id=getB(f.tx,f.sy,f.tz);
+    if(id===5)waterSoil(f.tx,f.sy,f.tz,id);
+  }
+  f.act='work';
+  f.workT=f.job==='idle'?(0.6+Math.random()*1.4):0.5;
+  f.tx=null;f.plant=null;
+}
+function updateFarmer(dt){
+  const f=farmer;if(!f)return;
+  if(f.act==='work'){
+    f.workT-=dt;
+    f.hop=f.job==='idle'?0:Math.max(0,Math.sin((0.5-Math.max(0,f.workT))*8))*0.14;
+    if(f.workT<=0){f.act='idle';f.hop=0;}
+    positionFarmer();return;
+  }
+  if(f.tx==null)pickFarmerTask();
+  const dx=(f.tx+0.5)-f.x,dz=(f.tz+0.5)-f.z,d=Math.hypot(dx,dz);
+  if(d<0.4){doFarmerWork();}
+  else{
+    const sp=Math.min(1,FARMER_SPEED*dt/d);
+    f.x+=dx*sp;f.z+=dz*sp;
+    f.face=Math.atan2(dx,dz);
+    f.step+=dt*9;
+  }
+  positionFarmer();
+}
+function toggleFarmerHire(){
+  if(state.farmerHired){toast('🧑‍🌾 Your farmhand is already tending the garden');return;}
+  if(state.level<FARMER_LVL){toast('🧑‍🌾 A farmhand joins your isle at level '+FARMER_LVL);SFX.play('error');return;}
+  if(!spendCoins(FARMER_COST))return;
+  state.farmerHired=true;
+  spawnFarmer();
+  const b=$('farmerBtn');if(b)b.style.opacity=1;
+  SFX.play('grow');
+  banner('🧑‍🌾 Farmhand hired!','They water your soil and harvest ripe crops while you build.');
 }
 
 /* ============================== plant models ============================== */
@@ -980,7 +1169,7 @@ function updateDay(dt){
     const s=seasonOf(state.day);
     if(s!==prevSeason){
       // repaint every grass top in the new season's colours
-      markAllDirty();flushChunks();buildFoliage();buildWater();
+      markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
       refreshSeasonHud();
       SFX.play('season');
       banner(s.ico+' '+s.name+' arrives',
@@ -1119,7 +1308,7 @@ function unlockIslet(it,fromLoad){
   W.islets.push(it.id);
   genIsland(it.x,it.z,it.r,it.seedOff);
   genBridge(it);
-  markAllDirty();flushChunks();buildFoliage();buildWater();
+  markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   if(!fromLoad){
     SFX.play('islet');
     setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
@@ -1433,6 +1622,8 @@ function initHud(){
   $('muteBtn').addEventListener('click',toggleMute);
   $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
   $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
+  $('farmerBtn').addEventListener('click',()=>{SFX.play('click');toggleFarmerHire();});
+  $('farmerBtn').style.opacity=state.farmerHired?1:0.5;
   $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
@@ -1837,7 +2028,8 @@ function boot(){
       });
     }
   }
-  markAllDirty();flushChunks();buildFoliage();buildWater();
+  markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
+  if(state.farmerHired)spawnFarmer();
   cam.cy=(surfaceY(0,0)||5)+1;
   initHud();
   bindInput();
@@ -1856,10 +2048,11 @@ function boot(){
     updatePlants(dt,dn);
     updateSprinklers(dt);
     updateBird(dt,dn);
+    updateFarmer(dt);
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
-    if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();}}
+    if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();buildTrees();}}
     updateWater();
     updateAmbient(dt,dn);
     if(fp.on)updateFP(dt); else updateCamera(dt);
