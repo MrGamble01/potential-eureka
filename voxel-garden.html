@@ -91,6 +91,13 @@
   #achOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
     padding:9px 20px;font-size:14px;cursor:pointer}
   body.photo .hud,body.photo #back,body.photo .panel,body.photo #toasts{display:none!important}
+  #crosshair{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;display:none;
+    pointer-events:none;color:rgba(255,255,255,.82);font-size:22px;font-weight:400;text-shadow:0 0 5px rgba(0,0,0,.6)}
+  #fpTool{position:fixed;left:78%;bottom:-14px;z-index:8;display:none;pointer-events:none;font-size:150px;
+    transform:translateX(-50%) rotate(-8deg);filter:drop-shadow(0 6px 12px rgba(0,0,0,.45))}
+  body.fpmode #crosshair,body.fpmode #fpTool{display:block}
+  body.fpmode #hotbar{bottom:8px}
+  body.fpmode .arcade-card,body.fpmode #quests{opacity:.85}
   @media (max-width:640px){
     .ach-grid{grid-template-columns:1fr}
     .slot{width:48px;height:48px;font-size:19px}
@@ -101,12 +108,16 @@
 </head>
 <body>
 <div id="vignette"></div>
+<div id="crosshair">+</div>
+<div id="fpTool">⚒️</div>
 <div class="hud" id="topbar">
   <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
   <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
 </div>
 <div id="back">
+  <button id="fpBtn" title="First person (F)">👁️</button>
+  <button id="farmerBtn" title="Hire a farmhand">🧑‍🌾</button>
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
@@ -145,6 +156,8 @@
     <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b></li>
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
+    <li>At <b>LV 3</b>, hire a <b>🧑‍🌾 farmhand</b> &mdash; they roam the isle watering soil and harvesting ripe crops for you</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -295,7 +308,7 @@ const k3=(x,y,z)=>x+','+y+','+z;
 const getB=(x,y,z)=>W.blocks.get(k3(x,y,z))||0;
 function setB(x,y,z,id,silent){const k=k3(x,y,z);
   if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
-  if(!silent)W.edits.set(k,id);
+  if(!silent){W.edits.set(k,id);foliageDirty=true;}
   markDirty(x,z);}
 
 /* ============================== worldgen ============================== */
@@ -318,6 +331,27 @@ function genIsland(cx,cz,r,seedOff,out){
     }
     if(out)out.push([x,h,z]);
   }
+  if(seedOff===0)carvePond(cx,cz);   // the main island gets a pond
+}
+// Carve a shallow basin into the main island and remember its cells so
+// buildWater() can lay a translucent surface over them. Deterministic off
+// the world seed, so it regenerates identically on load (no save change).
+function carvePond(cx,cz){
+  W.pondCells=[];
+  const pcx=cx-6, pcz=cz+5, pr=4.3;
+  const h0=surfaceY(pcx,pcz); if(h0===null)return;
+  const waterY=h0-1, floorY=waterY-1;
+  for(let x=Math.floor(pcx-pr-1);x<=Math.ceil(pcx+pr+1);x++)
+  for(let z=Math.floor(pcz-pr-1);z<=Math.ceil(pcz+pr+1);z++){
+    const nd=Math.hypot(x-pcx,z-pcz)+(fbm(x*0.42,z*0.42,W.seed^0x9074)-0.5)*1.7;
+    if(nd>pr)continue;
+    if(surfaceY(x,z)===null)continue;
+    for(let y=floorY+1;y<=h0+3;y++){const k=k3(x,y,z);if(W.blocks.has(k))W.blocks.delete(k);}
+    W.blocks.set(k3(x,floorY,z),4);        // sandy pond bottom
+    if(nd>pr-1.1)W.blocks.set(k3(x,waterY,z),4); // sandy shallows at the rim
+    W.pondCells.push([x,z]);
+  }
+  W.waterY=waterY+0.86;                     // surface sits just under the rim
 }
 function genBridge(islet){
   // straight plank bridge from main island toward islet center
@@ -410,6 +444,342 @@ function buildChunk(cx,cz){
 function flushChunks(){
   for(const key of W.chunkDirty){const [cx,cz]=key.split(',').map(Number);buildChunk(cx,cz);}
   W.chunkDirty.clear();
+}
+
+/* ============================== foliage ============================== */
+// Instanced grass tufts + wildflowers scattered across every grass top —
+// the single biggest lift toward a lush, alive island. Vertex colours carry
+// a base→tip brightness gradient; the per-instance colour carries the season
+// tint (so gliders of grass shimmer green in summer, gold in autumn, and thin
+// to a pale frost in winter). Rebuilt on boot, season change, islet rise, and
+// (debounced) after edits.
+let tuftMesh=null, flowerMesh=null, foliageDirty=false, foliageT=0;
+const FOL_MAX_TUFTS=4200, FOL_MAX_FLOWERS=520;
+const _up=new THREE.Vector3(0,1,0);
+function tuftGeometry(){
+  const pos=[],col=[],nor=[],idx=[];
+  const blade=(ang,h,w)=>{
+    const c=Math.cos(ang),s=Math.sin(ang);
+    const bx=w*c,bz=w*s;
+    const base=pos.length/3;
+    // short, rounded clumps (wide tip) so they read as ground grass, not
+    // spiky little trees.
+    pos.push(-bx,0,-bz, bx,0,bz, bx*0.5,h,bz*0.5, -bx*0.5,h,-bz*0.5);
+    // Normals forced UP so the overhead sun lights the blades like grass
+    // instead of leaving thin near-vertical faces in shadow.
+    for(let i=0;i<4;i++)nor.push(0,1,0);
+    // brightness gradient: shaded at the base, near-full at the tip
+    // (the season tint rides on top via the per-instance colour)
+    col.push(0.72,0.72,0.72, 0.72,0.72,0.72, 0.98,0.98,0.98, 0.98,0.98,0.98);
+    idx.push(base,base+1,base+2, base,base+2,base+3);
+  };
+  blade(0,0.17,0.1); blade(1.05,0.14,0.1); blade(2.1,0.15,0.1);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setIndex(idx);
+  return g;
+}
+function flowerGeometry(){
+  // a small five-petal bloom (white verts; per-instance colour paints it)
+  const pos=[],col=[],idx=[];
+  for(let p=0;p<5;p++){
+    const a=p/5*6.28, c=Math.cos(a),s=Math.sin(a);
+    const base=pos.length/3;
+    pos.push(0,0,0, c*0.09,0.02,s*0.09, c*0.06+ -s*0.06,0.02,s*0.06+c*0.06);
+    col.push(1,1,1, 1,1,1, 1,1,1);
+    idx.push(base,base+1,base+2);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);g.computeVertexNormals();
+  return g;
+}
+const FLOWER_COLS=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0xff9a3e];
+function buildFoliage(){
+  if(tuftMesh){scene.remove(tuftMesh);tuftMesh.geometry.dispose();tuftMesh.material.dispose();tuftMesh=null;}
+  if(flowerMesh){scene.remove(flowerMesh);flowerMesh.geometry.dispose();flowerMesh.material.dispose();flowerMesh=null;}
+  const season=seasonOf(state.day);
+  const winter=season.key==='winter', autumn=season.key==='autumn';
+  const base=new THREE.Color(season.grass).multiplyScalar(winter?1.1:0.86);
+  const skip=winter?0.72:autumn?0.34:0.12;   // hash below this → bare cell
+  // gather grass tops (nothing above, no plant sitting on them)
+  const cells=[];
+  for(const [k,id] of W.blocks){
+    if(id!==1)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    cells.push([x,y,z]);
+  }
+  // ---- tufts ----
+  const tInst=[];
+  for(const [x,y,z] of cells){
+    const h=hash3(x,y,z,W.seed^0xf01);
+    if(h<skip)continue;
+    const n=h<0.62?1:2;
+    for(let i=0;i<n&&tInst.length<FOL_MAX_TUFTS;i++)tInst.push([x,y,z,i,h]);
+  }
+  if(tInst.length){
+    const tmat=new THREE.MeshLambertMaterial({vertexColors:true});
+    tmat.emissive=new THREE.Color(season.grass).multiplyScalar(0.05);
+    tuftMesh=new THREE.InstancedMesh(tuftGeometry(),tmat,tInst.length);
+    tuftMesh.castShadow=false;tuftMesh.receiveShadow=true;
+    const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3(),col=new THREE.Color();
+    tInst.forEach(([x,y,z,i,h],ix)=>{
+      const jx=hash3(x*3+i,y,z,0x11),jz=hash3(x,y,z*3+i,0x22),jr=hash3(x+i,y+i,z,0x33);
+      q.setFromAxisAngle(_up,jr*6.283);
+      v.set(x+0.18+jx*0.64,y+1,z+0.18+jz*0.64);
+      sc.set(0.75+jr*0.5,0.8+0.6*h,0.75+jr*0.5);
+      m.compose(v,q,sc);tuftMesh.setMatrixAt(ix,m);
+      col.copy(base).multiplyScalar(0.82+0.4*hash3(ix,7,3,0x55));
+      if(autumn&&hash3(ix,1,1,0x66)<0.45)col.lerp(_autumnTuft,0.55);
+      tuftMesh.setColorAt(ix,col);
+    });
+    tuftMesh.instanceMatrix.needsUpdate=true;if(tuftMesh.instanceColor)tuftMesh.instanceColor.needsUpdate=true;
+    scene.add(tuftMesh);
+  }
+  // ---- wildflowers (none in winter) ----
+  if(!winter){
+    const fInst=[];
+    for(const [x,y,z] of cells){
+      if(hash3(x,y,z,0xb102)<0.90)continue;   // ~10% of cells
+      if(fInst.length>=FOL_MAX_FLOWERS)break;
+      fInst.push([x,y,z]);
+    }
+    if(fInst.length){
+      flowerMesh=new THREE.InstancedMesh(flowerGeometry(),new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}),fInst.length);
+      flowerMesh.castShadow=false;
+      const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3(),col=new THREE.Color();
+      fInst.forEach(([x,y,z],ix)=>{
+        const jx=hash3(x*5,y,z,0x77),jz=hash3(x,y,z*5,0x88);
+        q.setFromAxisAngle(_up,hash3(x,y,z,0x99)*6.283);
+        v.set(x+0.2+jx*0.6,y+1.28,z+0.2+jz*0.6);sc.setScalar(0.9+jx*0.5);
+        m.compose(v,q,sc);flowerMesh.setMatrixAt(ix,m);
+        col.setHex(autumn?[0xffd23e,0xff9a3e,0xffffff][ix%3]:FLOWER_COLS[(hash3(x,z,y,0xaa)*FLOWER_COLS.length)|0]);
+        flowerMesh.setColorAt(ix,col);
+      });
+      flowerMesh.instanceMatrix.needsUpdate=true;if(flowerMesh.instanceColor)flowerMesh.instanceColor.needsUpdate=true;
+      scene.add(flowerMesh);
+    }
+  }
+}
+const _autumnTuft=new THREE.Color(0xc9862f);
+
+/* ============================== water ============================== */
+// A translucent turquoise surface laid over the carved pond cells — you see
+// the sandy bottom through it for a depth-tinted look. Freezes to pale ice
+// in winter.
+let waterMesh=null;
+function buildWater(){
+  if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();waterMesh.material.dispose();waterMesh=null;}
+  if(!W.pondCells||!W.pondCells.length)return;
+  const winter=seasonOf(state.day).key==='winter';
+  const y=W.waterY, pos=[],idx=[];
+  W.pondCells.forEach(([x,z])=>{
+    const b=pos.length/3;
+    pos.push(x,y,z, x+1,y,z, x+1,y,z+1, x,y,z+1);
+    idx.push(b,b+2,b+1, b,b+3,b+2);
+  });
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx);g.computeVertexNormals();
+  const mat=new THREE.MeshLambertMaterial({
+    color:winter?0xcfe8f2:0x2fb6c8,
+    emissive:winter?0x2a3f4a:0x0c4f5c,
+    transparent:!winter, opacity:winter?1:0.74,
+    side:THREE.DoubleSide, depthWrite:winter});
+  waterMesh=new THREE.Mesh(g,mat);
+  scene.add(waterMesh);
+}
+function updateWater(){
+  if(waterMesh)waterMesh.position.y=Math.sin(perf*1.1)*0.045;
+}
+
+/* ============================== trees ============================== */
+// Real, intentional voxel trees — a chunky trunk under a blocky rounded
+// canopy — so the island reads as lush instead of relying on grass tufts.
+// Season-tinted (spring/summer greens, autumn ambers, a frosted winter crown
+// with a snow cap) and shadow-casting. Placed deterministically on grass tops,
+// well clear of the starter plot and the pond, with min-spacing so they never
+// clump. One shared geometry across all trees (season is global), drawn with
+// an InstancedMesh, rebuilt on boot / season change / islet rise.
+let treeMesh=null;
+const TREE_MAX=30, TREE_SPACING=4;
+const TREE_PAL={
+  spring:{lo:0x5aa83e,hi:0x74c257,snow:0},
+  summer:{lo:0x468f37,hi:0x5eb04a,snow:0},
+  autumn:{lo:0xc9741f,hi:0xe0912f,snow:0},
+  winter:{lo:0x7f9e93,hi:0x9db8ad,snow:0xf2f7fa},
+};
+function treeCubes(pal){
+  const c=[],add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  add(0,0.5,0, 0.34,1.05,0.34, 0x6b4a2b);      // trunk
+  add(0,0.9,0, 0.22,0.4,0.22, 0x5a3d23);       // trunk fork shade
+  add(0,1.45,0, 1.28,0.98,1.28, pal.lo);       // main crown
+  add(0.6,1.32,0.16, 0.72,0.72,0.72, pal.lo);  // side puffs
+  add(-0.58,1.36,-0.14, 0.74,0.74,0.74, pal.lo);
+  add(0.12,1.3,0.6, 0.7,0.7,0.7, pal.lo);
+  add(-0.14,1.34,-0.6, 0.7,0.7,0.7, pal.lo);
+  add(0,2.02,0, 0.88,0.72,0.88, pal.hi);        // top puff
+  add(0.2,2.36,0.08, 0.5,0.46,0.5, pal.hi);
+  if(pal.snow){ add(0,2.62,0, 0.62,0.24,0.62, pal.snow); add(0.22,2.5,0.1,0.4,0.2,0.4,pal.snow); }
+  return c;
+}
+function buildTrees(){
+  if(treeMesh){scene.remove(treeMesh);treeMesh.geometry.dispose();treeMesh.material.dispose();treeMesh=null;}
+  const season=seasonOf(state.day);
+  const pal=TREE_PAL[season.key]||TREE_PAL.summer;
+  const pond=new Set((W.pondCells||[]).map(([x,z])=>x+','+z));
+  // candidate grass tops, clear of the pond, starter plot, and any planting
+  const cand=[];
+  for(const [k,id] of W.blocks){
+    if(id!==1)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    if(pond.has(x+','+z))continue;
+    if(Math.hypot(x,z)<6)continue;               // leave the spawn garden open
+    cand.push([x,y,z,hash3(x,y,z,W.seed^0x77ee)]);
+  }
+  cand.sort((a,b)=>a[3]-b[3]);                    // deterministic order
+  const occ=new Set(), inst=[];
+  for(const [x,y,z,h] of cand){
+    if(inst.length>=TREE_MAX)break;
+    if(h<0.55)continue;                            // thin them out
+    const gx=Math.round(x/TREE_SPACING),gz=Math.round(z/TREE_SPACING);
+    let clash=false;
+    for(let dx=-1;dx<=1&&!clash;dx++)for(let dz=-1;dz<=1;dz++)if(occ.has((gx+dx)+','+(gz+dz))){clash=true;break;}
+    if(clash)continue;
+    occ.add(gx+','+gz);
+    inst.push([x,y,z]);
+  }
+  if(!inst.length)return;
+  const g=buildPlantGeometry(treeCubes(pal));
+  treeMesh=new THREE.InstancedMesh(g,plantMat,inst.length);
+  treeMesh.castShadow=true;treeMesh.receiveShadow=true;
+  const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3();
+  inst.forEach(([x,y,z],ix)=>{
+    const jr=hash3(x,z,y,0x1234),js=0.82+hash3(x+1,z,y,0x5678)*0.5;
+    q.setFromAxisAngle(_up,jr*6.283);
+    v.set(x+0.5,y+1,z+0.5);
+    sc.set(js,js*(0.92+hash3(x,z+1,y,0x9abc)*0.28),js);
+    m.compose(v,q,sc);treeMesh.setMatrixAt(ix,m);
+  });
+  treeMesh.instanceMatrix.needsUpdate=true;
+  scene.add(treeMesh);
+}
+
+/* ============================== farmhand ============================== */
+// A hireable voxel farmhand who wanders the garden on their own and does the
+// chores for you: waters dry tilled soil and harvests ripe crops (real coins &
+// XP land in your pocket, quests tick). One-time hire, unlocks at level 3,
+// persists via state.farmerHired. Just a friendly little blocky person with a
+// straw hat, a waddle, and a hop when they work.
+let farmer=null;
+const FARMER_COST=200, FARMER_LVL=3, FARMER_SPEED=1.9;
+function farmerCubes(){
+  const c=[],add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  add(-0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);  // boots
+  add(0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);
+  add(-0.12,0.28,0,0.16,0.36,0.18,0x39507a);      // denim legs
+  add(0.12,0.28,0,0.16,0.36,0.18,0x39507a);
+  add(0,0.66,0,0.44,0.5,0.28,0x9c4b3b);           // plaid shirt
+  add(0,0.66,0.12,0.44,0.5,0.06,0x39507a);        // overall bib
+  add(-0.29,0.64,0,0.14,0.42,0.16,0x8a4234);      // arms
+  add(0.29,0.64,0,0.14,0.42,0.16,0x8a4234);
+  add(-0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);       // hands
+  add(0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);
+  add(0,1.02,0,0.3,0.3,0.3,0xe8bd94);             // head
+  add(0,1.14,0,0.52,0.07,0.52,0xd8b45a);          // hat brim
+  add(0,1.25,0,0.3,0.17,0.3,0xcaa24a);            // hat crown
+  return c;
+}
+function spawnFarmer(){
+  if(farmer)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(farmerCubes()),plantMat);
+  mesh.castShadow=true;
+  scene.add(mesh);
+  farmer={mesh,x:2.5,z:2.5,face:0,step:0,hop:0,act:'idle',tx:null,tz:null,sy:0,workT:0,job:null,plant:null,rest:0};
+  positionFarmer();
+}
+function positionFarmer(){
+  const f=farmer;if(!f)return;
+  const gy=surfaceY(Math.round(f.x),Math.round(f.z));
+  const y=(gy==null?4:gy)+1;
+  const bob=f.act==='work'?f.hop:Math.abs(Math.sin(f.step))*0.06;
+  f.mesh.position.set(f.x,y+bob,f.z);
+  f.mesh.rotation.y=f.face;
+  f.mesh.rotation.z=f.act==='work'?0:Math.sin(f.step)*0.07;
+}
+function pickFarmerTask(){
+  const f=farmer;let best=null,bd=1e9;
+  // 1) ripe crops
+  for(const p of W.plants.values()){
+    if(!PLANTS[p.type]||p.stage<2)continue;
+    const d=Math.hypot(p.x+0.5-f.x,p.z+0.5-f.z);
+    if(d<bd){bd=d;best={tx:p.x,tz:p.z,job:'harvest',plant:p};}
+  }
+  // 2) dry tilled soil (prefer soil with a plant growing on it)
+  if(!best){
+    for(const [k,id] of W.blocks){
+      if(id!==5||W.wet.has(k))continue;
+      const [x,y,z]=k.split(',').map(Number);
+      const pr=W.plants.has(k3(x,y+1,z))?0:5;
+      const d=Math.hypot(x+0.5-f.x,z+0.5-f.z)+pr;
+      if(d<bd){bd=d;best={tx:x,tz:z,job:'water',sy:y};}
+    }
+  }
+  // 3) nothing to do — amble to a random nearby spot
+  if(!best){
+    const ang=Math.random()*6.283,rad=3+Math.random()*7;
+    let wx=Math.round(f.x+Math.sin(ang)*rad),wz=Math.round(f.z+Math.cos(ang)*rad);
+    if(surfaceY(wx,wz)==null){wx=Math.round(Math.random()*6-3);wz=Math.round(Math.random()*6-3);}
+    best={tx:wx,tz:wz,job:'idle'};
+  }
+  f.tx=best.tx;f.tz=best.tz;f.job=best.job;f.plant=best.plant||null;f.sy=best.sy||0;
+}
+function doFarmerWork(){
+  const f=farmer;
+  if(f.job==='harvest'){
+    const p=f.plant;
+    if(p&&W.plants.has(k3(p.x,p.y,p.z))&&p.stage>=2)actOnPlant(p);
+  } else if(f.job==='water'){
+    const id=getB(f.tx,f.sy,f.tz);
+    if(id===5)waterSoil(f.tx,f.sy,f.tz,id);
+  }
+  f.act='work';
+  f.workT=f.job==='idle'?(0.6+Math.random()*1.4):0.5;
+  f.tx=null;f.plant=null;
+}
+function updateFarmer(dt){
+  const f=farmer;if(!f)return;
+  if(f.act==='work'){
+    f.workT-=dt;
+    f.hop=f.job==='idle'?0:Math.max(0,Math.sin((0.5-Math.max(0,f.workT))*8))*0.14;
+    if(f.workT<=0){f.act='idle';f.hop=0;}
+    positionFarmer();return;
+  }
+  if(f.tx==null)pickFarmerTask();
+  const dx=(f.tx+0.5)-f.x,dz=(f.tz+0.5)-f.z,d=Math.hypot(dx,dz);
+  if(d<0.4){doFarmerWork();}
+  else{
+    const sp=Math.min(1,FARMER_SPEED*dt/d);
+    f.x+=dx*sp;f.z+=dz*sp;
+    f.face=Math.atan2(dx,dz);
+    f.step+=dt*9;
+  }
+  positionFarmer();
+}
+function toggleFarmerHire(){
+  if(state.farmerHired){toast('🧑‍🌾 Your farmhand is already tending the garden');return;}
+  if(state.level<FARMER_LVL){toast('🧑‍🌾 A farmhand joins your isle at level '+FARMER_LVL);SFX.play('error');return;}
+  if(!spendCoins(FARMER_COST))return;
+  state.farmerHired=true;
+  spawnFarmer();
+  const b=$('farmerBtn');if(b)b.style.opacity=1;
+  SFX.play('grow');
+  banner('🧑‍🌾 Farmhand hired!','They water your soil and harvest ripe crops while you build.');
 }
 
 /* ============================== plant models ============================== */
@@ -729,6 +1099,64 @@ function updateCamera(dt){
   camera.lookAt(cam.cx,cam.cy,cam.cz);
 }
 
+/* ============================== first-person ============================== */
+// Walk the island in first person: pointer-lock mouse-look, WASD movement
+// that follows the terrain surface, a crosshair, and a held-tool viewmodel.
+// Look/move forward share the same yaw so it feels consistent; you can only
+// step onto cells that have ground (so you can't walk off into the sky).
+const fp={on:false,x:0.5,z:0.5,yaw:0,pitch:0,bob:0};
+const fpKeys={};
+const FP_TOOL_ICO={hoe:'⚒️',water:'💧',seed:'🌻',block:'🧱',pick:'⛏️'};
+function fpToolIco(){
+  if(state.tool==='seed')return (PLANTS[state.seedSel]||{}).ico||'🌻';
+  if(state.tool==='block')return typeof state.blockSel==='string'?(DECOR[state.blockSel]||{}).ico||'🧱':(BLOCKS[state.blockSel]||{}).ico||'🧱';
+  return FP_TOOL_ICO[state.tool]||'⚒️';
+}
+function refreshFpTool(){const el=$('fpTool');if(el)el.textContent=fpToolIco();}
+function toggleFP(on){
+  on = on===undefined ? !fp.on : !!on;
+  if(on===fp.on)return;
+  fp.on=on;
+  document.body.classList.toggle('fpmode',on);
+  if(on){
+    fp.x=cam.cx; fp.z=cam.cz;
+    if(surfaceY(Math.floor(fp.x),Math.floor(fp.z))===null){fp.x=0.5;fp.z=0.5;}
+    fp.yaw=cam.yaw+Math.PI; fp.pitch=0;
+    refreshFpTool();
+    const cv=renderer.domElement;
+    if(cv.requestPointerLock)try{cv.requestPointerLock();}catch(e){}
+    toast('👣 First person — WASD move · mouse look · click to use tool · F to exit');
+  } else {
+    if(document.pointerLockElement)document.exitPointerLock();
+    hoverHit=null;highlightBox.visible=false;ghostCube.visible=false;
+    document.body.style.cursor='default';
+  }
+}
+function updateFP(dt){
+  const spd=6.2;
+  let mx=0,mz=0;
+  if(fpKeys.w)mz+=1; if(fpKeys.s)mz-=1; if(fpKeys.d)mx+=1; if(fpKeys.a)mx-=1;
+  const moving=!!(mx||mz);
+  const sinY=Math.sin(fp.yaw),cosY=Math.cos(fp.yaw);
+  if(moving){
+    const l=Math.hypot(mx,mz);mx/=l;mz/=l;
+    const step=spd*dt;
+    const nx=fp.x+(sinY*mz+cosY*mx)*step;
+    const nz=fp.z+(cosY*mz-sinY*mx)*step;
+    if(surfaceY(Math.floor(nx),Math.floor(nz))!==null){fp.x=nx;fp.z=nz;}
+    else if(surfaceY(Math.floor(nx),Math.floor(fp.z))!==null)fp.x=nx;
+    else if(surfaceY(Math.floor(fp.x),Math.floor(nz))!==null)fp.z=nz;
+    fp.bob+=dt*11;
+  }
+  const gy=surfaceY(Math.floor(fp.x),Math.floor(fp.z));
+  const eye=(gy!==null?gy:4)+1.7+(moving?Math.sin(fp.bob)*0.06:0);
+  camera.position.set(fp.x,eye,fp.z);
+  const cp=Math.cos(fp.pitch);
+  camera.lookAt(fp.x+sinY*cp, eye+Math.sin(fp.pitch), fp.z+cosY*cp);
+  const tool=$('fpTool');
+  if(tool)tool.style.transform=`translateX(-50%) rotate(-8deg) translateY(${moving?Math.abs(Math.sin(fp.bob))*-10:0}px)`;
+}
+
 /* ============================== day / night ============================== */
 const C_DAY=new THREE.Color(0x8ec9ea),C_NIGHT=new THREE.Color(0x0d1730),C_DUSK=new THREE.Color(0xf2996b);
 const _sky=new THREE.Color();
@@ -741,7 +1169,7 @@ function updateDay(dt){
     const s=seasonOf(state.day);
     if(s!==prevSeason){
       // repaint every grass top in the new season's colours
-      markAllDirty();flushChunks();
+      markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
       refreshSeasonHud();
       SFX.play('season');
       banner(s.ico+' '+s.name+' arrives',
@@ -880,7 +1308,7 @@ function unlockIslet(it,fromLoad){
   W.islets.push(it.id);
   genIsland(it.x,it.z,it.r,it.seedOff);
   genBridge(it);
-  markAllDirty();flushChunks();
+  markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   if(!fromLoad){
     SFX.play('islet');
     setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
@@ -1075,6 +1503,7 @@ function bindInput(){
   const pointers=new Map();
   cv.addEventListener('pointerdown',e=>{
     SFX.ensure();
+    if(fp.on){const hit=raycastAt(innerWidth/2,innerHeight/2);if(hit)doAction(hit);return;}
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pointers.size===2){
       twoFinger=true;
@@ -1084,6 +1513,11 @@ function bindInput(){
     pointerDown=true;dragDist=0;lastPX=e.clientX;lastPY=e.clientY;
   });
   cv.addEventListener('pointermove',e=>{
+    if(fp.on){
+      fp.yaw-=(e.movementX||0)*0.0023;
+      fp.pitch=clamp(fp.pitch-(e.movementY||0)*0.0023,-1.3,1.3);
+      return;
+    }
     if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pointers.size===2){
       const ps=[...pointers.values()];
@@ -1119,8 +1553,12 @@ function bindInput(){
   cv.addEventListener('wheel',e=>{e.preventDefault();
     cam.tdist=clamp(cam.tdist+Math.sign(e.deltaY)*3.2,16,90);},{passive:false});
   addEventListener('keydown',e=>{
-    if(e.key==='q'||e.key==='Q')cam.tyaw-=Math.PI/4;
-    else if(e.key==='e'||e.key==='E')cam.tyaw+=Math.PI/4;
+    const k=e.key.toLowerCase();
+    if(fp.on&&(k==='w'||k==='a'||k==='s'||k==='d')){fpKeys[k]=true;e.preventDefault();return;}
+    if(k==='f'){toggleFP();return;}
+    if(fp.on&&!e.repeat&&k==='escape'){toggleFP(false);return;}
+    if(e.key==='q'||e.key==='Q'){if(!fp.on)cam.tyaw-=Math.PI/4;}
+    else if(e.key==='e'||e.key==='E'){if(!fp.on)cam.tyaw+=Math.PI/4;}
     else if(e.key==='m'||e.key==='M')toggleMute();
     else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
     else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
@@ -1130,8 +1568,13 @@ function bindInput(){
       const tools=['hoe','water','seed','block','pick'];
       selectTool(tools[+e.key-1]);
     }
-    else if(e.key==='+'||e.key==='=')cam.tdist=clamp(cam.tdist-4,16,90);
-    else if(e.key==='-')cam.tdist=clamp(cam.tdist+4,16,90);
+    else if((e.key==='+'||e.key==='=')&&!fp.on)cam.tdist=clamp(cam.tdist-4,16,90);
+    else if(e.key==='-'&&!fp.on)cam.tdist=clamp(cam.tdist+4,16,90);
+  });
+  addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='w'||k==='a'||k==='s'||k==='d')fpKeys[k]=false;});
+  document.addEventListener('pointerlockchange',()=>{
+    // Esc releasing the pointer lock should drop us back to orbit.
+    if(!document.pointerLockElement&&fp.on)toggleFP(false);
   });
   addEventListener('resize',()=>{
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
@@ -1139,8 +1582,9 @@ function bindInput(){
   });
 }
 function updateHover(){
-  if(!hoverHit){highlightBox.visible=false;ghostCube.visible=false;return;}
-  const hit=raycastAt(hoverHit.x,hoverHit.y);
+  const src=fp.on?{x:innerWidth/2,y:innerHeight/2}:hoverHit;
+  if(!src){highlightBox.visible=false;ghostCube.visible=false;return;}
+  const hit=raycastAt(src.x,src.y);
   if(!hit){highlightBox.visible=false;ghostCube.visible=false;return;}
   if(hit.object.userData.plantKey){
     const p=W.plants.get(hit.object.userData.plantKey);
@@ -1177,6 +1621,9 @@ function initHud(){
   $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
   $('muteBtn').addEventListener('click',toggleMute);
   $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
+  $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
+  $('farmerBtn').addEventListener('click',()=>{SFX.play('click');toggleFarmerHire();});
+  $('farmerBtn').style.opacity=state.farmerHired?1:0.5;
   $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
@@ -1201,6 +1648,7 @@ function selectTool(t,fromClick){
   if(t==='seed'){if(fromClick&&!wasSel||fromClick&&!$('seedPanel').classList.contains('open')){openPanel('seedPanel');}else if(fromClick)closePanels();}
   else if(t==='block'){if(fromClick&&!wasSel||fromClick&&!$('blockPanel').classList.contains('open')){openPanel('blockPanel');}else if(fromClick)closePanels();}
   else closePanels();
+  refreshFpTool();
 }
 function openPanel(id){closePanels();$(id).classList.add('open');}
 function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));}
@@ -1580,7 +2028,8 @@ function boot(){
       });
     }
   }
-  markAllDirty();flushChunks();
+  markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
+  if(state.farmerHired)spawnFarmer();
   cam.cy=(surfaceY(0,0)||5)+1;
   initHud();
   bindInput();
@@ -1599,11 +2048,14 @@ function boot(){
     updatePlants(dt,dn);
     updateSprinklers(dt);
     updateBird(dt,dn);
+    updateFarmer(dt);
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
+    if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();buildTrees();}}
+    updateWater();
     updateAmbient(dt,dn);
-    updateCamera(dt);
+    if(fp.on)updateFP(dt); else updateCamera(dt);
     updateHover();
     saveTimer+=dt;
     if(saveTimer>12){saveTimer=0;save();refreshQuestHud();}
