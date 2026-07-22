@@ -738,7 +738,7 @@ function spawnWorker(role,name,x,z){
   scene.add(mesh);
   const w={mesh,name:name||WORKER_NAMES[(hash3(idx,3,7,0x51)*WORKER_NAMES.length)|0],
     role:role||'all',x:x!=null?x:2.5,z:z!=null?z:2.5,face:0,step:0,hop:0,
-    act:'idle',tx:null,tz:null,sy:0,workT:0,job:null,target:null};
+    act:'idle',tx:null,tz:null,sy:0,workT:0,job:null,target:null,path:null,pathI:0};
   mesh.userData.workerRef=w;
   W.workers.push(w);positionWorker(w);
   return w;
@@ -753,6 +753,51 @@ function positionWorker(w){
   w.mesh.rotation.z=w.act==='work'?0:Math.sin(w.step)*0.07;
 }
 const TILL_CAP=90;
+// BFS over the walkable height-grid: two cells connect only if both have ground
+// and their surfaces differ by at most one block. Villagers follow the returned
+// waypoints, so they walk AROUND cliffs and gaps instead of clipping through
+// them (adjacent path cells are ≤1 apart, so every step is a clean little hop).
+function findPath(sx,sz,tx,tz){
+  const sh=surfaceY(sx,sz),th=surfaceY(tx,tz);
+  if(sh==null||th==null)return null;
+  if(sx===tx&&sz===tz)return [[sx,sz]];
+  const startK=sx+','+sz,prev=new Map([[startK,null]]);
+  const q=[[sx,sz]];let head=0,explored=0;const MAX=520;
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  while(head<q.length&&explored<MAX){
+    const [cx,cz]=q[head++];explored++;
+    const ch=surfaceY(cx,cz);
+    for(const [dx,dz] of dirs){
+      const nx=cx+dx,nz=cz+dz,nk=nx+','+nz;
+      if(prev.has(nk))continue;
+      const nh=surfaceY(nx,nz);
+      if(nh==null||Math.abs(nh-ch)>1)continue;
+      prev.set(nk,cx+','+cz);
+      if(nx===tx&&nz===tz){
+        const path=[];let k=nk;
+        while(k){const p=k.split(',');path.push([+p[0],+p[1]]);k=prev.get(k);}
+        return path.reverse();
+      }
+      q.push([nx,nz]);
+    }
+  }
+  return null;
+}
+function reachableWander(w){
+  for(let i=0;i<8;i++){
+    const ang=Math.random()*6.283,rad=2+Math.random()*6;
+    const wx=Math.round(w.x+Math.sin(ang)*rad),wz=Math.round(w.z+Math.cos(ang)*rad);
+    const p=findPath(Math.round(w.x),Math.round(w.z),wx,wz);
+    if(p)return p;
+  }
+  return [[Math.round(w.x),Math.round(w.z)]];   // stay put
+}
+function repath(w){
+  workerPickTask(w);
+  let p=findPath(Math.round(w.x),Math.round(w.z),w.tx,w.tz);
+  if(!p){w.job='idle';w.target=null;p=reachableWander(w);const last=p[p.length-1];w.tx=last[0];w.tz=last[1];}
+  w.path=p;w.pathI=0;
+}
 function tilledCount(){let n=0;for(const id of W.blocks.values())if(id===5||id===6)n++;return n;}
 function adjTilled(x,y,z){for(const [ox,oz] of [[1,0],[-1,0],[0,1],[0,-1]]){const g=getB(x+ox,y,z+oz);if(g===5||g===6)return true;}return false;}
 function workerSeed(){
@@ -832,19 +877,16 @@ function updateWorker(w,dt){
     if(w.workT<=0){w.act='idle';w.hop=0;}
     positionWorker(w);return;
   }
-  if(w.tx==null)workerPickTask(w);
-  const dx=(w.tx+0.5)-w.x,dz=(w.tz+0.5)-w.z,d=Math.hypot(dx,dz);
-  if(d<0.5){doWorkerJob(w);}
-  else{
+  if(!w.path||w.pathI>=w.path.length)repath(w);
+  const wp=w.path[w.pathI];
+  const dx=(wp[0]+0.5)-w.x,dz=(wp[1]+0.5)-w.z,d=Math.hypot(dx,dz);
+  const atFinal=w.pathI>=w.path.length-1;
+  if(d<(atFinal?0.5:0.22)){
+    if(atFinal){doWorkerJob(w);w.path=null;}
+    else w.pathI++;
+  } else {
     const sp=Math.min(1,WORKER_SPEED()*dt/d);
-    const nx=w.x+dx*sp,nz=w.z+dz*sp;
-    const cy=surfaceY(Math.round(w.x),Math.round(w.z));
-    const ny=surfaceY(Math.round(nx),Math.round(nz));
-    if(ny==null||(cy!=null&&Math.abs(ny-cy)>1.4)){   // cliff or gap — don't clip into it
-      w.tx=null;w.face+=1.7;                          // turn away and repath next tick
-    } else {
-      w.x=nx;w.z=nz;w.face=Math.atan2(dx,dz);w.step+=dt*9;
-    }
+    w.x+=dx*sp;w.z+=dz*sp;w.face=Math.atan2(dx,dz);w.step+=dt*9;
   }
   positionWorker(w);
 }
@@ -922,7 +964,7 @@ function spawnAnimal(type,x,z,stage,grow){
   mesh.castShadow=true;
   scene.add(mesh);
   const a={type,mesh,x,z,face:Math.random()*6.283,step:Math.random()*6,
-    act:'graze',tx:null,tz:null,wait:1+Math.random()*2,
+    act:'graze',tx:null,tz:null,wait:1+Math.random()*2,path:null,pathI:0,
     stage:stage!=null?stage:0,grow:grow!=null?grow:0,tendBoost:0,
     prodT:Math.random()*def.every};
   mesh.userData.animalRef=a;
@@ -944,10 +986,13 @@ function positionAnimal(a){
   a.mesh.rotation.z=a.act==='walk'?Math.sin(a.step)*0.06:0;
 }
 function animalNewTarget(a){
-  const ang=Math.random()*6.283,rad=2+Math.random()*6;
-  let wx=Math.round(a.x+Math.sin(ang)*rad),wz=Math.round(a.z+Math.cos(ang)*rad);
-  if(surfaceY(wx,wz)==null){wx=Math.round(Math.random()*10-5);wz=Math.round(Math.random()*10-5);}
-  a.tx=wx;a.tz=wz;a.act='walk';
+  for(let i=0;i<6;i++){
+    const ang=Math.random()*6.283,rad=2+Math.random()*5;
+    const wx=Math.round(a.x+Math.sin(ang)*rad),wz=Math.round(a.z+Math.cos(ang)*rad);
+    const p=findPath(Math.round(a.x),Math.round(a.z),wx,wz);
+    if(p){a.path=p;a.pathI=0;a.tx=wx;a.tz=wz;a.act='walk';return;}
+  }
+  a.wait=1+Math.random();   // boxed in this tick — graze a bit longer, try again
 }
 function updateAnimal(a,dt){
   const def=ANIMALS[a.type];
@@ -963,16 +1008,16 @@ function updateAnimal(a,dt){
     a.prodT+=dt;
     if(a.prodT>=def.every){a.prodT=0;animalDrop(a);}
   }
-  if(a.act==='graze'){a.step+=dt*2;a.wait-=dt;if(a.wait<=0)animalNewTarget(a);positionAnimal(a);return;}
-  const dx=(a.tx+0.5)-a.x,dz=(a.tz+0.5)-a.z,d=Math.hypot(dx,dz);
-  if(d<0.35){a.act='graze';a.wait=2+Math.random()*4;}
-  else{
+  if(a.act==='graze'||!a.path){a.step+=dt*2;a.wait-=dt;if(a.wait<=0){a.act='graze';animalNewTarget(a);}positionAnimal(a);return;}
+  const wp=a.path[a.pathI];
+  const dx=(wp[0]+0.5)-a.x,dz=(wp[1]+0.5)-a.z,d=Math.hypot(dx,dz);
+  const atFinal=a.pathI>=a.path.length-1;
+  if(d<(atFinal?0.35:0.22)){
+    if(atFinal){a.act='graze';a.wait=2+Math.random()*4;a.path=null;}
+    else a.pathI++;
+  } else {
     const sp=Math.min(1,def.speed*dt/d);
-    const nx=a.x+dx*sp,nz=a.z+dz*sp;
-    const cy=surfaceY(Math.round(a.x),Math.round(a.z));
-    const ny=surfaceY(Math.round(nx),Math.round(nz));
-    if(ny==null||(cy!=null&&Math.abs(ny-cy)>1.4)){a.act='graze';a.wait=0.5+Math.random();a.face+=1.7;} // don't clip cliffs
-    else{a.x=nx;a.z=nz;a.face=Math.atan2(dx,dz);a.step+=dt*8;}
+    a.x+=dx*sp;a.z+=dz*sp;a.face=Math.atan2(dx,dz);a.step+=dt*8;
   }
   positionAnimal(a);
 }
@@ -1970,12 +2015,13 @@ function bindInput(){
 function fitCamera(initial){
   const ar=innerWidth/innerHeight;
   let d;
-  if(ar<0.7)d=64;            // tall portrait phone
-  else if(ar<1.05)d=54;      // square-ish / iPad portrait
-  else if(ar<1.5)d=46;       // iPad landscape / small window
+  if(ar<0.7)d=58;            // tall portrait phone
+  else if(ar<1.05)d=50;      // square-ish / iPad portrait
+  else if(ar<1.5)d=45;       // iPad landscape / small window
   else d=42;                 // desktop
   cam.tdist=clamp(d,16,90);
-  if(initial){cam.dist=cam.tdist;cam.tpitch=cam.pitch=ar<1.05?0.62:0.55;}
+  cam.cy=(surfaceY(0,0)||5)+1;                      // aim at isle level so it centres
+  if(initial){cam.dist=cam.tdist;cam.tpitch=cam.pitch=ar<1.05?0.6:0.55;}
 }
 function updateHover(){
   const src=fp.on?{x:innerWidth/2,y:innerHeight/2}:hoverHit;
