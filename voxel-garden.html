@@ -91,6 +91,13 @@
   #achOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
     padding:9px 20px;font-size:14px;cursor:pointer}
   body.photo .hud,body.photo #back,body.photo .panel,body.photo #toasts{display:none!important}
+  #crosshair{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;display:none;
+    pointer-events:none;color:rgba(255,255,255,.82);font-size:22px;font-weight:400;text-shadow:0 0 5px rgba(0,0,0,.6)}
+  #fpTool{position:fixed;left:78%;bottom:-14px;z-index:8;display:none;pointer-events:none;font-size:150px;
+    transform:translateX(-50%) rotate(-8deg);filter:drop-shadow(0 6px 12px rgba(0,0,0,.45))}
+  body.fpmode #crosshair,body.fpmode #fpTool{display:block}
+  body.fpmode #hotbar{bottom:8px}
+  body.fpmode .arcade-card,body.fpmode #quests{opacity:.85}
   @media (max-width:640px){
     .ach-grid{grid-template-columns:1fr}
     .slot{width:48px;height:48px;font-size:19px}
@@ -101,12 +108,15 @@
 </head>
 <body>
 <div id="vignette"></div>
+<div id="crosshair">+</div>
+<div id="fpTool">⚒️</div>
 <div class="hud" id="topbar">
   <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
   <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
 </div>
 <div id="back">
+  <button id="fpBtn" title="First person (F)">👁️</button>
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
@@ -145,6 +155,7 @@
     <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b></li>
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -899,6 +910,64 @@ function updateCamera(dt){
   camera.lookAt(cam.cx,cam.cy,cam.cz);
 }
 
+/* ============================== first-person ============================== */
+// Walk the island in first person: pointer-lock mouse-look, WASD movement
+// that follows the terrain surface, a crosshair, and a held-tool viewmodel.
+// Look/move forward share the same yaw so it feels consistent; you can only
+// step onto cells that have ground (so you can't walk off into the sky).
+const fp={on:false,x:0.5,z:0.5,yaw:0,pitch:0,bob:0};
+const fpKeys={};
+const FP_TOOL_ICO={hoe:'⚒️',water:'💧',seed:'🌻',block:'🧱',pick:'⛏️'};
+function fpToolIco(){
+  if(state.tool==='seed')return (PLANTS[state.seedSel]||{}).ico||'🌻';
+  if(state.tool==='block')return typeof state.blockSel==='string'?(DECOR[state.blockSel]||{}).ico||'🧱':(BLOCKS[state.blockSel]||{}).ico||'🧱';
+  return FP_TOOL_ICO[state.tool]||'⚒️';
+}
+function refreshFpTool(){const el=$('fpTool');if(el)el.textContent=fpToolIco();}
+function toggleFP(on){
+  on = on===undefined ? !fp.on : !!on;
+  if(on===fp.on)return;
+  fp.on=on;
+  document.body.classList.toggle('fpmode',on);
+  if(on){
+    fp.x=cam.cx; fp.z=cam.cz;
+    if(surfaceY(Math.floor(fp.x),Math.floor(fp.z))===null){fp.x=0.5;fp.z=0.5;}
+    fp.yaw=cam.yaw+Math.PI; fp.pitch=0;
+    refreshFpTool();
+    const cv=renderer.domElement;
+    if(cv.requestPointerLock)try{cv.requestPointerLock();}catch(e){}
+    toast('👣 First person — WASD move · mouse look · click to use tool · F to exit');
+  } else {
+    if(document.pointerLockElement)document.exitPointerLock();
+    hoverHit=null;highlightBox.visible=false;ghostCube.visible=false;
+    document.body.style.cursor='default';
+  }
+}
+function updateFP(dt){
+  const spd=6.2;
+  let mx=0,mz=0;
+  if(fpKeys.w)mz+=1; if(fpKeys.s)mz-=1; if(fpKeys.d)mx+=1; if(fpKeys.a)mx-=1;
+  const moving=!!(mx||mz);
+  const sinY=Math.sin(fp.yaw),cosY=Math.cos(fp.yaw);
+  if(moving){
+    const l=Math.hypot(mx,mz);mx/=l;mz/=l;
+    const step=spd*dt;
+    const nx=fp.x+(sinY*mz+cosY*mx)*step;
+    const nz=fp.z+(cosY*mz-sinY*mx)*step;
+    if(surfaceY(Math.floor(nx),Math.floor(nz))!==null){fp.x=nx;fp.z=nz;}
+    else if(surfaceY(Math.floor(nx),Math.floor(fp.z))!==null)fp.x=nx;
+    else if(surfaceY(Math.floor(fp.x),Math.floor(nz))!==null)fp.z=nz;
+    fp.bob+=dt*11;
+  }
+  const gy=surfaceY(Math.floor(fp.x),Math.floor(fp.z));
+  const eye=(gy!==null?gy:4)+1.7+(moving?Math.sin(fp.bob)*0.06:0);
+  camera.position.set(fp.x,eye,fp.z);
+  const cp=Math.cos(fp.pitch);
+  camera.lookAt(fp.x+sinY*cp, eye+Math.sin(fp.pitch), fp.z+cosY*cp);
+  const tool=$('fpTool');
+  if(tool)tool.style.transform=`translateX(-50%) rotate(-8deg) translateY(${moving?Math.abs(Math.sin(fp.bob))*-10:0}px)`;
+}
+
 /* ============================== day / night ============================== */
 const C_DAY=new THREE.Color(0x8ec9ea),C_NIGHT=new THREE.Color(0x0d1730),C_DUSK=new THREE.Color(0xf2996b);
 const _sky=new THREE.Color();
@@ -1245,6 +1314,7 @@ function bindInput(){
   const pointers=new Map();
   cv.addEventListener('pointerdown',e=>{
     SFX.ensure();
+    if(fp.on){const hit=raycastAt(innerWidth/2,innerHeight/2);if(hit)doAction(hit);return;}
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pointers.size===2){
       twoFinger=true;
@@ -1254,6 +1324,11 @@ function bindInput(){
     pointerDown=true;dragDist=0;lastPX=e.clientX;lastPY=e.clientY;
   });
   cv.addEventListener('pointermove',e=>{
+    if(fp.on){
+      fp.yaw-=(e.movementX||0)*0.0023;
+      fp.pitch=clamp(fp.pitch-(e.movementY||0)*0.0023,-1.3,1.3);
+      return;
+    }
     if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pointers.size===2){
       const ps=[...pointers.values()];
@@ -1289,8 +1364,12 @@ function bindInput(){
   cv.addEventListener('wheel',e=>{e.preventDefault();
     cam.tdist=clamp(cam.tdist+Math.sign(e.deltaY)*3.2,16,90);},{passive:false});
   addEventListener('keydown',e=>{
-    if(e.key==='q'||e.key==='Q')cam.tyaw-=Math.PI/4;
-    else if(e.key==='e'||e.key==='E')cam.tyaw+=Math.PI/4;
+    const k=e.key.toLowerCase();
+    if(fp.on&&(k==='w'||k==='a'||k==='s'||k==='d')){fpKeys[k]=true;e.preventDefault();return;}
+    if(k==='f'){toggleFP();return;}
+    if(fp.on&&!e.repeat&&k==='escape'){toggleFP(false);return;}
+    if(e.key==='q'||e.key==='Q'){if(!fp.on)cam.tyaw-=Math.PI/4;}
+    else if(e.key==='e'||e.key==='E'){if(!fp.on)cam.tyaw+=Math.PI/4;}
     else if(e.key==='m'||e.key==='M')toggleMute();
     else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
     else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
@@ -1300,8 +1379,13 @@ function bindInput(){
       const tools=['hoe','water','seed','block','pick'];
       selectTool(tools[+e.key-1]);
     }
-    else if(e.key==='+'||e.key==='=')cam.tdist=clamp(cam.tdist-4,16,90);
-    else if(e.key==='-')cam.tdist=clamp(cam.tdist+4,16,90);
+    else if((e.key==='+'||e.key==='=')&&!fp.on)cam.tdist=clamp(cam.tdist-4,16,90);
+    else if(e.key==='-'&&!fp.on)cam.tdist=clamp(cam.tdist+4,16,90);
+  });
+  addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='w'||k==='a'||k==='s'||k==='d')fpKeys[k]=false;});
+  document.addEventListener('pointerlockchange',()=>{
+    // Esc releasing the pointer lock should drop us back to orbit.
+    if(!document.pointerLockElement&&fp.on)toggleFP(false);
   });
   addEventListener('resize',()=>{
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
@@ -1309,8 +1393,9 @@ function bindInput(){
   });
 }
 function updateHover(){
-  if(!hoverHit){highlightBox.visible=false;ghostCube.visible=false;return;}
-  const hit=raycastAt(hoverHit.x,hoverHit.y);
+  const src=fp.on?{x:innerWidth/2,y:innerHeight/2}:hoverHit;
+  if(!src){highlightBox.visible=false;ghostCube.visible=false;return;}
+  const hit=raycastAt(src.x,src.y);
   if(!hit){highlightBox.visible=false;ghostCube.visible=false;return;}
   if(hit.object.userData.plantKey){
     const p=W.plants.get(hit.object.userData.plantKey);
@@ -1347,6 +1432,7 @@ function initHud(){
   $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
   $('muteBtn').addEventListener('click',toggleMute);
   $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
+  $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
   $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
@@ -1371,6 +1457,7 @@ function selectTool(t,fromClick){
   if(t==='seed'){if(fromClick&&!wasSel||fromClick&&!$('seedPanel').classList.contains('open')){openPanel('seedPanel');}else if(fromClick)closePanels();}
   else if(t==='block'){if(fromClick&&!wasSel||fromClick&&!$('blockPanel').classList.contains('open')){openPanel('blockPanel');}else if(fromClick)closePanels();}
   else closePanels();
+  refreshFpTool();
 }
 function openPanel(id){closePanels();$(id).classList.add('open');}
 function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));}
@@ -1775,7 +1862,7 @@ function boot(){
     if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();}}
     updateWater();
     updateAmbient(dt,dn);
-    updateCamera(dt);
+    if(fp.on)updateFP(dt); else updateCamera(dt);
     updateHover();
     saveTimer+=dt;
     if(saveTimer>12){saveTimer=0;save();refreshQuestHud();}
