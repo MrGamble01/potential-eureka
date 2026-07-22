@@ -318,6 +318,27 @@ function genIsland(cx,cz,r,seedOff,out){
     }
     if(out)out.push([x,h,z]);
   }
+  if(seedOff===0)carvePond(cx,cz);   // the main island gets a pond
+}
+// Carve a shallow basin into the main island and remember its cells so
+// buildWater() can lay a translucent surface over them. Deterministic off
+// the world seed, so it regenerates identically on load (no save change).
+function carvePond(cx,cz){
+  W.pondCells=[];
+  const pcx=cx-6, pcz=cz+5, pr=4.3;
+  const h0=surfaceY(pcx,pcz); if(h0===null)return;
+  const waterY=h0-1, floorY=waterY-1;
+  for(let x=Math.floor(pcx-pr-1);x<=Math.ceil(pcx+pr+1);x++)
+  for(let z=Math.floor(pcz-pr-1);z<=Math.ceil(pcz+pr+1);z++){
+    const nd=Math.hypot(x-pcx,z-pcz)+(fbm(x*0.42,z*0.42,W.seed^0x9074)-0.5)*1.7;
+    if(nd>pr)continue;
+    if(surfaceY(x,z)===null)continue;
+    for(let y=floorY+1;y<=h0+3;y++){const k=k3(x,y,z);if(W.blocks.has(k))W.blocks.delete(k);}
+    W.blocks.set(k3(x,floorY,z),4);        // sandy pond bottom
+    if(nd>pr-1.1)W.blocks.set(k3(x,waterY,z),4); // sandy shallows at the rim
+    W.pondCells.push([x,z]);
+  }
+  W.waterY=waterY+0.86;                     // surface sits just under the rim
 }
 function genBridge(islet){
   // straight plank bridge from main island toward islet center
@@ -530,6 +551,36 @@ function buildFoliage(){
   }
 }
 const _autumnTuft=new THREE.Color(0xc9862f);
+
+/* ============================== water ============================== */
+// A translucent turquoise surface laid over the carved pond cells — you see
+// the sandy bottom through it for a depth-tinted look. Freezes to pale ice
+// in winter.
+let waterMesh=null;
+function buildWater(){
+  if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();waterMesh.material.dispose();waterMesh=null;}
+  if(!W.pondCells||!W.pondCells.length)return;
+  const winter=seasonOf(state.day).key==='winter';
+  const y=W.waterY, pos=[],idx=[];
+  W.pondCells.forEach(([x,z])=>{
+    const b=pos.length/3;
+    pos.push(x,y,z, x+1,y,z, x+1,y,z+1, x,y,z+1);
+    idx.push(b,b+2,b+1, b,b+3,b+2);
+  });
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx);g.computeVertexNormals();
+  const mat=new THREE.MeshLambertMaterial({
+    color:winter?0xcfe8f2:0x2fb6c8,
+    emissive:winter?0x2a3f4a:0x0c4f5c,
+    transparent:!winter, opacity:winter?1:0.74,
+    side:THREE.DoubleSide, depthWrite:winter});
+  waterMesh=new THREE.Mesh(g,mat);
+  scene.add(waterMesh);
+}
+function updateWater(){
+  if(waterMesh)waterMesh.position.y=Math.sin(perf*1.1)*0.045;
+}
 
 /* ============================== plant models ============================== */
 // cube: [x,y,z, sx,sy,sz, colorHex]  (y measured up from soil top, plant centered at 0,0)
@@ -860,7 +911,7 @@ function updateDay(dt){
     const s=seasonOf(state.day);
     if(s!==prevSeason){
       // repaint every grass top in the new season's colours
-      markAllDirty();flushChunks();buildFoliage();
+      markAllDirty();flushChunks();buildFoliage();buildWater();
       refreshSeasonHud();
       SFX.play('season');
       banner(s.ico+' '+s.name+' arrives',
@@ -999,7 +1050,7 @@ function unlockIslet(it,fromLoad){
   W.islets.push(it.id);
   genIsland(it.x,it.z,it.r,it.seedOff);
   genBridge(it);
-  markAllDirty();flushChunks();buildFoliage();
+  markAllDirty();flushChunks();buildFoliage();buildWater();
   if(!fromLoad){
     SFX.play('islet');
     setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
@@ -1699,7 +1750,7 @@ function boot(){
       });
     }
   }
-  markAllDirty();flushChunks();buildFoliage();
+  markAllDirty();flushChunks();buildFoliage();buildWater();
   cam.cy=(surfaceY(0,0)||5)+1;
   initHud();
   bindInput();
@@ -1722,6 +1773,7 @@ function boot(){
     updateParticles(dt);
     updatePops(dt);
     if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();}}
+    updateWater();
     updateAmbient(dt,dn);
     updateCamera(dt);
     updateHover();
