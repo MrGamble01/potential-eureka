@@ -295,7 +295,7 @@ const k3=(x,y,z)=>x+','+y+','+z;
 const getB=(x,y,z)=>W.blocks.get(k3(x,y,z))||0;
 function setB(x,y,z,id,silent){const k=k3(x,y,z);
   if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
-  if(!silent)W.edits.set(k,id);
+  if(!silent){W.edits.set(k,id);foliageDirty=true;}
   markDirty(x,z);}
 
 /* ============================== worldgen ============================== */
@@ -411,6 +411,125 @@ function flushChunks(){
   for(const key of W.chunkDirty){const [cx,cz]=key.split(',').map(Number);buildChunk(cx,cz);}
   W.chunkDirty.clear();
 }
+
+/* ============================== foliage ============================== */
+// Instanced grass tufts + wildflowers scattered across every grass top —
+// the single biggest lift toward a lush, alive island. Vertex colours carry
+// a base→tip brightness gradient; the per-instance colour carries the season
+// tint (so gliders of grass shimmer green in summer, gold in autumn, and thin
+// to a pale frost in winter). Rebuilt on boot, season change, islet rise, and
+// (debounced) after edits.
+let tuftMesh=null, flowerMesh=null, foliageDirty=false, foliageT=0;
+const FOL_MAX_TUFTS=4200, FOL_MAX_FLOWERS=520;
+const _up=new THREE.Vector3(0,1,0);
+function tuftGeometry(){
+  const pos=[],col=[],nor=[],idx=[];
+  const blade=(ang,h,w)=>{
+    const c=Math.cos(ang),s=Math.sin(ang);
+    const bx=w*c,bz=w*s;
+    const base=pos.length/3;
+    pos.push(-bx,0,-bz, bx,0,bz, bx*0.25,h,bz*0.25, -bx*0.25,h,-bz*0.25);
+    // Normals forced UP so the overhead sun lights the blades like grass
+    // instead of leaving thin near-vertical faces in shadow.
+    for(let i=0;i<4;i++)nor.push(0,1,0);
+    // brightness gradient: shaded at the base, near-full at the tip
+    // (the season tint rides on top via the per-instance colour)
+    col.push(0.66,0.66,0.66, 0.66,0.66,0.66, 0.92,0.92,0.92, 0.92,0.92,0.92);
+    idx.push(base,base+1,base+2, base,base+2,base+3);
+  };
+  blade(0,0.3,0.075); blade(1.05,0.26,0.075); blade(2.1,0.28,0.075);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setIndex(idx);
+  return g;
+}
+function flowerGeometry(){
+  // a small five-petal bloom (white verts; per-instance colour paints it)
+  const pos=[],col=[],idx=[];
+  for(let p=0;p<5;p++){
+    const a=p/5*6.28, c=Math.cos(a),s=Math.sin(a);
+    const base=pos.length/3;
+    pos.push(0,0,0, c*0.09,0.02,s*0.09, c*0.06+ -s*0.06,0.02,s*0.06+c*0.06);
+    col.push(1,1,1, 1,1,1, 1,1,1);
+    idx.push(base,base+1,base+2);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);g.computeVertexNormals();
+  return g;
+}
+const FLOWER_COLS=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0xff9a3e];
+function buildFoliage(){
+  if(tuftMesh){scene.remove(tuftMesh);tuftMesh.geometry.dispose();tuftMesh.material.dispose();tuftMesh=null;}
+  if(flowerMesh){scene.remove(flowerMesh);flowerMesh.geometry.dispose();flowerMesh.material.dispose();flowerMesh=null;}
+  const season=seasonOf(state.day);
+  const winter=season.key==='winter', autumn=season.key==='autumn';
+  const base=new THREE.Color(season.grass).multiplyScalar(winter?1.1:0.86);
+  const skip=winter?0.72:autumn?0.34:0.12;   // hash below this → bare cell
+  // gather grass tops (nothing above, no plant sitting on them)
+  const cells=[];
+  for(const [k,id] of W.blocks){
+    if(id!==1)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    cells.push([x,y,z]);
+  }
+  // ---- tufts ----
+  const tInst=[];
+  for(const [x,y,z] of cells){
+    const h=hash3(x,y,z,W.seed^0xf01);
+    if(h<skip)continue;
+    const n=h<0.62?1:2;
+    for(let i=0;i<n&&tInst.length<FOL_MAX_TUFTS;i++)tInst.push([x,y,z,i,h]);
+  }
+  if(tInst.length){
+    const tmat=new THREE.MeshLambertMaterial({vertexColors:true});
+    tmat.emissive=new THREE.Color(season.grass).multiplyScalar(0.05);
+    tuftMesh=new THREE.InstancedMesh(tuftGeometry(),tmat,tInst.length);
+    tuftMesh.castShadow=false;tuftMesh.receiveShadow=true;
+    const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3(),col=new THREE.Color();
+    tInst.forEach(([x,y,z,i,h],ix)=>{
+      const jx=hash3(x*3+i,y,z,0x11),jz=hash3(x,y,z*3+i,0x22),jr=hash3(x+i,y+i,z,0x33);
+      q.setFromAxisAngle(_up,jr*6.283);
+      v.set(x+0.18+jx*0.64,y+1,z+0.18+jz*0.64);
+      sc.set(0.75+jr*0.5,0.8+0.6*h,0.75+jr*0.5);
+      m.compose(v,q,sc);tuftMesh.setMatrixAt(ix,m);
+      col.copy(base).multiplyScalar(0.82+0.4*hash3(ix,7,3,0x55));
+      if(autumn&&hash3(ix,1,1,0x66)<0.45)col.lerp(_autumnTuft,0.55);
+      tuftMesh.setColorAt(ix,col);
+    });
+    tuftMesh.instanceMatrix.needsUpdate=true;if(tuftMesh.instanceColor)tuftMesh.instanceColor.needsUpdate=true;
+    scene.add(tuftMesh);
+  }
+  // ---- wildflowers (none in winter) ----
+  if(!winter){
+    const fInst=[];
+    for(const [x,y,z] of cells){
+      if(hash3(x,y,z,0xb102)<0.90)continue;   // ~10% of cells
+      if(fInst.length>=FOL_MAX_FLOWERS)break;
+      fInst.push([x,y,z]);
+    }
+    if(fInst.length){
+      flowerMesh=new THREE.InstancedMesh(flowerGeometry(),new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}),fInst.length);
+      flowerMesh.castShadow=false;
+      const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3(),col=new THREE.Color();
+      fInst.forEach(([x,y,z],ix)=>{
+        const jx=hash3(x*5,y,z,0x77),jz=hash3(x,y,z*5,0x88);
+        q.setFromAxisAngle(_up,hash3(x,y,z,0x99)*6.283);
+        v.set(x+0.2+jx*0.6,y+1.28,z+0.2+jz*0.6);sc.setScalar(0.9+jx*0.5);
+        m.compose(v,q,sc);flowerMesh.setMatrixAt(ix,m);
+        col.setHex(autumn?[0xffd23e,0xff9a3e,0xffffff][ix%3]:FLOWER_COLS[(hash3(x,z,y,0xaa)*FLOWER_COLS.length)|0]);
+        flowerMesh.setColorAt(ix,col);
+      });
+      flowerMesh.instanceMatrix.needsUpdate=true;if(flowerMesh.instanceColor)flowerMesh.instanceColor.needsUpdate=true;
+      scene.add(flowerMesh);
+    }
+  }
+}
+const _autumnTuft=new THREE.Color(0xc9862f);
 
 /* ============================== plant models ============================== */
 // cube: [x,y,z, sx,sy,sz, colorHex]  (y measured up from soil top, plant centered at 0,0)
@@ -741,7 +860,7 @@ function updateDay(dt){
     const s=seasonOf(state.day);
     if(s!==prevSeason){
       // repaint every grass top in the new season's colours
-      markAllDirty();flushChunks();
+      markAllDirty();flushChunks();buildFoliage();
       refreshSeasonHud();
       SFX.play('season');
       banner(s.ico+' '+s.name+' arrives',
@@ -880,7 +999,7 @@ function unlockIslet(it,fromLoad){
   W.islets.push(it.id);
   genIsland(it.x,it.z,it.r,it.seedOff);
   genBridge(it);
-  markAllDirty();flushChunks();
+  markAllDirty();flushChunks();buildFoliage();
   if(!fromLoad){
     SFX.play('islet');
     setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
@@ -1580,7 +1699,7 @@ function boot(){
       });
     }
   }
-  markAllDirty();flushChunks();
+  markAllDirty();flushChunks();buildFoliage();
   cam.cy=(surfaceY(0,0)||5)+1;
   initHud();
   bindInput();
@@ -1602,6 +1721,7 @@ function boot(){
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
+    if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();}}
     updateAmbient(dt,dn);
     updateCamera(dt);
     updateHover();
