@@ -1027,9 +1027,9 @@
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, tier: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
     warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
-    fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 14 }, prod: { food: 4 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'A worker nets fish. Much better built right beside water.' },
+    fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 8 }, prod: { food: 4 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Cheap food — a worker nets fish. Built beside water it lands 50% more.' },
     windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, tier: 3, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — and lifts nearby farms’ harvest by half again.' },
-    orchard:    { name: 'Orchard',     emoji: '🍎', w: 3, h: 2, tier: 2, cost: { wood: 16, gold: 10 }, prod: { food: 5 }, worker: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'A tended fruit grove — a worker harvests apples for the table.' },
+    orchard:    { name: 'Orchard',     emoji: '🍎', w: 3, h: 2, tier: 2, cost: { wood: 16, gold: 10 }, prod: { food: 5 }, charm: 4, roof: C.thatch, roofDk: C.thatchDk, desc: 'Fruit trees yield food on their own — no worker needed — and prettify the town.' },
     chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, tier: 3, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town.' },
     // --- placeable decorations: cheap cosmetic props that add town "charm" → happiness ---
     flowerbed:  { name: 'Flower Bed',  emoji: '🌷', w: 1, h: 1, tier: 1, cost: { gold: 4 },            decor: true, charm: 3,  desc: 'A cheerful bed of blossoms — a little beauty for the town.' },
@@ -1555,7 +1555,7 @@
     if (!(res in BASE_CAP)) return Infinity;
     return BASE_CAP[res] + state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].storage && b.done !== false ? BUILDINGS[b.type].storage * (b.level || 1) : 0), 0);
   }
-  let _storageFullTimer = 0, _coldTimer = 0;
+  let _storageFullTimer = 0, _coldTimer = 0, _crowdWarned = false;
   function clampRes() {
     let full = false;
     for (const k in BASE_CAP) { const cap = capOf(k); if (state.res[k] > cap) { state.res[k] = cap; full = true; } }
@@ -1780,6 +1780,13 @@
     // decorations add a gentle "charm" bonus (capped so it complements, not replaces, real amenities)
     const charm = townCharm();
     if (charm) state.happy = Math.min(100, state.happy + Math.min(3, Math.ceil(charm / 10)));
+    // crowding: bigger towns are harder to keep content, so amenities must keep
+    // pace as the colony grows (−1 per 8 villagers each cycle)
+    const crowd = Math.floor(pop / 8);
+    if (crowd) {
+      state.happy = Math.max(0, state.happy - crowd);
+      if (!_crowdWarned) { _crowdWarned = true; toast('🏘️ A bigger town is harder to please — build more wells & taverns to keep folk happy.'); }
+    }
     clampRes();
     Object.keys(gained).forEach(k => { prodFlashTimer[k] = 0.5; });
     updateHUD();
