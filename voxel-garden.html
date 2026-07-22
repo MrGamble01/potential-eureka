@@ -24,9 +24,10 @@
   #lvlChip .bar{height:6px;background:#141a22;border-radius:3px;margin-top:5px;overflow:hidden}
   #lvlChip .bar i{display:block;height:100%;background:linear-gradient(90deg,#5cae53,#a5e28a);border-radius:3px;transition:width .4s}
   #dayChip{color:var(--blue)}
-  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px}
-  #back a,#back button{color:var(--dim);text-decoration:none;font-size:13px;cursor:pointer;
-    background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px}
+  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:52vw}
+  #back a,#back button{color:var(--dim);text-decoration:none;font-size:13px;cursor:pointer;line-height:1;
+    background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px;
+    min-width:38px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
   #back a:hover,#back button:hover{color:var(--ink)}
   #quests{top:58px;right:10px;width:230px;font-size:13px}
   #quests .q-title{font-weight:700;color:var(--green);margin-bottom:4px;font-size:12px;letter-spacing:.08em}
@@ -43,7 +44,7 @@
     gap:6px;background:rgba(18,24,32,.94);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;z-index:12;
     max-width:min(94vw,420px)}
   .panel.open{display:grid}
-  .p-item{width:92px;border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--panel2)}
+  .p-item{width:100%;min-width:74px;border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--panel2)}
   .p-item:hover{border-color:rgba(255,255,255,.25)}
   .p-item.sel{border-color:var(--green)}
   .p-item.locked{opacity:.42;cursor:default}
@@ -99,11 +100,36 @@
   body.fpmode #crosshair,body.fpmode #fpTool{display:block}
   body.fpmode #hotbar{bottom:8px}
   body.fpmode .arcade-card,body.fpmode #quests{opacity:.85}
+  /* tablets / iPad */
+  @media (max-width:1024px){
+    #quests{width:200px;font-size:12px}
+    #back{max-width:44vw}
+    .panel{max-width:min(96vw,460px)}
+  }
+  /* phones */
   @media (max-width:640px){
     .ach-grid{grid-template-columns:1fr}
-    .slot{width:48px;height:48px;font-size:19px}
+    .slot{width:52px;height:52px;font-size:20px;border-radius:12px}
+    .slot small{font-size:8px}
     #quests{display:none}
-    #lvlChip{min-width:110px}
+    #topbar{gap:6px}
+    #coinChip{font-size:15px}
+    #lvlChip{min-width:96px}
+    #dayChip{font-size:12px}
+    #back{max-width:58vw;gap:6px}
+    #back a,#back button{padding:7px 8px;font-size:15px;min-width:38px;min-height:38px}
+    #back a{font-size:11px}
+    .panel{grid-template-columns:repeat(3,1fr);bottom:78px;max-width:96vw}
+    .p-item .nm{font-size:10px}
+    #banner h2{font-size:26px}
+    #banner p{font-size:13px}
+    #fpTool{font-size:110px;left:82%}
+  }
+  /* short landscape (phones on their side) */
+  @media (max-height:480px){
+    #quests{display:none}
+    .slot{width:46px;height:46px}
+    #hotbar{bottom:8px}
   }
 </style>
 </head>
@@ -720,21 +746,43 @@ function spawnWorker(role,name,x,z){
 function positionWorker(w){
   const gy=surfaceY(Math.round(w.x),Math.round(w.z));
   const y=(gy==null?4:gy)+1;
+  if(w.dispY==null)w.dispY=y; else w.dispY+=(y-w.dispY)*0.2;   // smooth stepping, no pops
   const bob=w.act==='work'?w.hop:Math.abs(Math.sin(w.step))*0.06;
-  w.mesh.position.set(w.x,y+bob,w.z);
+  w.mesh.position.set(w.x,w.dispY+bob,w.z);
   w.mesh.rotation.y=w.face;
   w.mesh.rotation.z=w.act==='work'?0:Math.sin(w.step)*0.07;
+}
+const TILL_CAP=90;
+function tilledCount(){let n=0;for(const id of W.blocks.values())if(id===5||id===6)n++;return n;}
+function adjTilled(x,y,z){for(const [ox,oz] of [[1,0],[-1,0],[0,1],[0,-1]]){const g=getB(x+ox,y,z+oz);if(g===5||g===6)return true;}return false;}
+function workerSeed(){
+  const sel=state.seedSel;
+  if(PLANTS[sel]&&state.level>=PLANTS[sel].lvl)return sel;
+  return 'sunflower';
 }
 function workerPickTask(w){
   const canFarm=w.role==='all'||w.role==='farmer';
   const canRanch=w.role==='all'||w.role==='rancher';
   const canCollect=w.role==='all'||w.role==='collector';
+  const curY=surfaceY(Math.round(w.x),Math.round(w.z));
   let best=null,bd=1e9;
-  const consider=(x,z,job,bias,extra)=>{const d=Math.hypot(x+0.5-w.x,z+0.5-w.z)-bias;
+  const reach=(x,z)=>{const y=surfaceY(x,z);return y!=null&&(curY==null||Math.abs(y-curY)<=2.5);};
+  const consider=(x,z,job,bias,extra)=>{if(!reach(x,z))return;
+    const d=Math.hypot(x+0.5-w.x,z+0.5-w.z)-bias;
     if(d<bd){bd=d;best=Object.assign({tx:x,tz:z,job},extra);}};
   if(canCollect)for(const dr of W.drops)consider(dr.x,dr.z,'collect',4,{drop:dr});
   if(canFarm)for(const p of W.plants.values()){
     if(PLANTS[p.type]&&p.stage>=2)consider(p.x,p.z,'harvest',3,{plant:p});
+  }
+  // plant empty tilled soil (uses your selected seed, keeps a coin reserve)
+  if(canFarm){
+    const seed=PLANTS[workerSeed()];
+    if(state.coins>=seed.cost+15)for(const [k,id] of W.blocks){
+      if(id!==5&&id!==6)continue;
+      const [x,y,z]=k.split(',').map(Number);
+      if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+      consider(x,z,'plant',2,{sy:y});
+    }
   }
   if(canFarm)for(const [k,id] of W.blocks){
     if(id!==5||W.wet.has(k))continue;
@@ -745,10 +793,18 @@ function workerPickTask(w){
   if(canRanch)for(const a of W.animals){
     if(a.stage===0&&(a.tendBoost||0)<2)consider(Math.round(a.x),Math.round(a.z),'tend',1,{animal:a});
   }
+  // till new soil next to the existing farm so the plots grow outward
+  if(canFarm&&tilledCount()<TILL_CAP)for(const [k,id] of W.blocks){
+    if(id!==1&&id!==2)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    if(!adjTilled(x,y,z))continue;
+    consider(x,z,'till',0.5,{sy:y});
+  }
   if(!best){
     const ang=Math.random()*6.283,rad=3+Math.random()*7;
     let wx=Math.round(w.x+Math.sin(ang)*rad),wz=Math.round(w.z+Math.cos(ang)*rad);
-    if(surfaceY(wx,wz)==null){wx=Math.round(Math.random()*6-3);wz=Math.round(Math.random()*6-3);}
+    if(!reach(wx,wz)){wx=Math.round(w.x+(Math.random()*4-2));wz=Math.round(w.z+(Math.random()*4-2));}
     best={tx:wx,tz:wz,job:'idle'};
   }
   w.tx=best.tx;w.tz=best.tz;w.job=best.job;w.target=best.drop||best.plant||best.animal||null;w.sy=best.sy||0;
@@ -757,6 +813,14 @@ function doWorkerJob(w){
   if(w.job==='harvest'){const p=w.target;if(p&&W.plants.has(k3(p.x,p.y,p.z))&&p.stage>=2)actOnPlant(p);}
   else if(w.job==='water'){const id=getB(w.tx,w.sy,w.tz);if(id===5)waterSoil(w.tx,w.sy,w.tz,id);}
   else if(w.job==='collect'){const dr=w.target;if(dr&&W.drops.includes(dr))collectDrop(dr);}
+  else if(w.job==='till'){const id=getB(w.tx,w.sy,w.tz);
+    if((id===1||id===2)&&!getB(w.tx,w.sy+1,w.tz)){setB(w.tx,w.sy,w.tz,5);flushChunks();state.tills++;
+      burst(w.tx+0.5,w.sy+1.05,w.tz+0.5,0x8a6a42,6,{up:1.4,g:6});SFX.play('till');questCheck();}}
+  else if(w.job==='plant'){const id=getB(w.tx,w.sy,w.tz);
+    if((id===5||id===6)&&!getB(w.tx,w.sy+1,w.tz)&&!W.plants.has(k3(w.tx,w.sy+1,w.tz))){
+      const seed=workerSeed(),def=PLANTS[seed];
+      if(state.coins>=def.cost+15){spendCoins(def.cost);addPlant(w.tx,w.sy+1,w.tz,seed);state.planted++;
+        SFX.play('plant');burst(w.tx+0.5,w.sy+1.2,w.tz+0.5,0x7fd370,5,{up:1.2,g:4});questCheck();}}}
   else if(w.job==='tend'){const a=w.target;if(a&&W.animals.includes(a)&&a.stage===0){a.tendBoost=9;
     const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;burst(a.x,gy+0.6,a.z,0xff9ec4,5,{up:1.2,g:4});}}
   w.act='work';w.workT=w.job==='idle'?(0.5+Math.random()*1.2):0.45;w.tx=null;w.target=null;
@@ -770,8 +834,18 @@ function updateWorker(w,dt){
   }
   if(w.tx==null)workerPickTask(w);
   const dx=(w.tx+0.5)-w.x,dz=(w.tz+0.5)-w.z,d=Math.hypot(dx,dz);
-  if(d<0.4){doWorkerJob(w);}
-  else{const sp=Math.min(1,WORKER_SPEED()*dt/d);w.x+=dx*sp;w.z+=dz*sp;w.face=Math.atan2(dx,dz);w.step+=dt*9;}
+  if(d<0.5){doWorkerJob(w);}
+  else{
+    const sp=Math.min(1,WORKER_SPEED()*dt/d);
+    const nx=w.x+dx*sp,nz=w.z+dz*sp;
+    const cy=surfaceY(Math.round(w.x),Math.round(w.z));
+    const ny=surfaceY(Math.round(nx),Math.round(nz));
+    if(ny==null||(cy!=null&&Math.abs(ny-cy)>1.4)){   // cliff or gap — don't clip into it
+      w.tx=null;w.face+=1.7;                          // turn away and repath next tick
+    } else {
+      w.x=nx;w.z=nz;w.face=Math.atan2(dx,dz);w.step+=dt*9;
+    }
+  }
   positionWorker(w);
 }
 function updateWorkers(dt){for(const w of W.workers)updateWorker(w,dt);}
@@ -863,8 +937,9 @@ function applyAnimalScale(a){
 function positionAnimal(a){
   const gy=surfaceY(Math.round(a.x),Math.round(a.z));
   const y=(gy==null?4:gy)+1;
+  if(a.dispY==null)a.dispY=y; else a.dispY+=(y-a.dispY)*0.2;    // smooth stepping
   const bob=a.act==='walk'?Math.abs(Math.sin(a.step))*0.05:Math.sin(a.step*0.5)*0.02;
-  a.mesh.position.set(a.x,y+bob,a.z);
+  a.mesh.position.set(a.x,a.dispY+bob,a.z);
   a.mesh.rotation.y=a.face;
   a.mesh.rotation.z=a.act==='walk'?Math.sin(a.step)*0.06:0;
 }
@@ -891,7 +966,14 @@ function updateAnimal(a,dt){
   if(a.act==='graze'){a.step+=dt*2;a.wait-=dt;if(a.wait<=0)animalNewTarget(a);positionAnimal(a);return;}
   const dx=(a.tx+0.5)-a.x,dz=(a.tz+0.5)-a.z,d=Math.hypot(dx,dz);
   if(d<0.35){a.act='graze';a.wait=2+Math.random()*4;}
-  else{const sp=Math.min(1,def.speed*dt/d);a.x+=dx*sp;a.z+=dz*sp;a.face=Math.atan2(dx,dz);a.step+=dt*8;}
+  else{
+    const sp=Math.min(1,def.speed*dt/d);
+    const nx=a.x+dx*sp,nz=a.z+dz*sp;
+    const cy=surfaceY(Math.round(a.x),Math.round(a.z));
+    const ny=surfaceY(Math.round(nx),Math.round(nz));
+    if(ny==null||(cy!=null&&Math.abs(ny-cy)>1.4)){a.act='graze';a.wait=0.5+Math.random();a.face+=1.7;} // don't clip cliffs
+    else{a.x=nx;a.z=nz;a.face=Math.atan2(dx,dz);a.step+=dt*8;}
+  }
   positionAnimal(a);
 }
 function updateAnimals(dt){for(const a of W.animals)updateAnimal(a,dt);}
@@ -1879,7 +1961,21 @@ function bindInput(){
   addEventListener('resize',()=>{
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
     renderer.setSize(innerWidth,innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    fitCamera();
   });
+}
+// Pull the camera back on narrow / portrait screens (phones, iPad portrait) so
+// the whole isle stays in frame, and sit a touch closer on wide desktop.
+function fitCamera(initial){
+  const ar=innerWidth/innerHeight;
+  let d;
+  if(ar<0.7)d=64;            // tall portrait phone
+  else if(ar<1.05)d=54;      // square-ish / iPad portrait
+  else if(ar<1.5)d=46;       // iPad landscape / small window
+  else d=42;                 // desktop
+  cam.tdist=clamp(d,16,90);
+  if(initial){cam.dist=cam.tdist;cam.tpitch=cam.pitch=ar<1.05?0.62:0.55;}
 }
 function updateHover(){
   const src=fp.on?{x:innerWidth/2,y:innerHeight/2}:hoverHit;
@@ -2370,6 +2466,7 @@ function boot(){
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   rebuildBuildings();
   cam.cy=(surfaceY(0,0)||5)+1;
+  fitCamera(true);
   initHud();
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
