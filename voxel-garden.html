@@ -51,6 +51,7 @@
   .p-item .nm{font-size:11px;margin-top:2px}
   .p-item .pr{font-size:10px;color:var(--gold)}
   .p-item .lk{font-size:10px;color:var(--dim)}
+  .p-head{grid-column:1/-1;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--dim);padding:2px 2px 4px;text-align:center}
   #toasts{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;
     align-items:center;gap:6px;z-index:20;pointer-events:none}
   .toast{background:rgba(18,24,32,.92);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;
@@ -118,6 +119,7 @@
 <div id="back">
   <button id="fpBtn" title="First person (F)">👁️</button>
   <button id="farmerBtn" title="Hire a farmhand">🧑‍🌾</button>
+  <button id="animalBtn" title="Buy farm animals">🐮</button>
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
@@ -138,6 +140,7 @@
 </div>
 <div class="panel" id="seedPanel"></div>
 <div class="panel" id="blockPanel"></div>
+<div class="panel" id="animalPanel"></div>
 <div id="toasts"></div>
 <div id="banner"><h2 id="bH"></h2><p id="bP"></p></div>
 <div id="achOv"><div class="card">
@@ -158,6 +161,7 @@
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>At <b>LV 3</b>, hire a <b>🧑‍🌾 farmhand</b> &mdash; they roam the isle watering soil and harvesting ripe crops for you</li>
+    <li>Buy <b>🐮 farm animals</b> &mdash; chickens, pigs, sheep &amp; cows graze the isle and drop 🥚🍄🧶🥛 for passive coins (even while you&rsquo;re away)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -303,7 +307,7 @@ let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
   ach:{},achFlags:{}};
 const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
-  edits:new Map(), islets:[], chunkDirty:new Set(), chunkMeshes:new Map()};
+  edits:new Map(), islets:[], animals:[], chunkDirty:new Set(), chunkMeshes:new Map()};
 const k3=(x,y,z)=>x+','+y+','+z;
 const getB=(x,y,z)=>W.blocks.get(k3(x,y,z))||0;
 function setB(x,y,z,id,silent){const k=k3(x,y,z);
@@ -780,6 +784,135 @@ function toggleFarmerHire(){
   const b=$('farmerBtn');if(b)b.style.opacity=1;
   SFX.play('grow');
   banner('🧑‍🌾 Farmhand hired!','They water your soil and harvest ripe crops while you build.');
+}
+
+/* ============================== livestock ============================== */
+// Buyable farm animals that roam the isle grazing and, every so often, drop a
+// product (egg / wool / milk / truffle) that pays out coins on its own — a
+// gentle stream of passive income and a lot of blocky charm. Each is a single
+// vertex-coloured mesh. Persisted in W.animals as {type,x,z}; while you're away
+// they keep producing (bounded), so you come back to a little pile of coins.
+const ANIMALS={
+  chicken:{ico:'🐔',name:'Chicken',cost:60, lvl:1,product:'🥚',yield:3, every:20,scale:0.55,speed:1.6,pitch:660},
+  pig:    {ico:'🐷',name:'Pig',    cost:170,lvl:2,product:'🍄',yield:9, every:34,scale:0.72,speed:1.2,pitch:300},
+  sheep:  {ico:'🐑',name:'Sheep',  cost:230,lvl:3,product:'🧶',yield:13,every:40,scale:0.8, speed:1.1,pitch:420},
+  cow:    {ico:'🐄',name:'Cow',    cost:360,lvl:5,product:'🥛',yield:22,every:52,scale:1.0, speed:0.9,pitch:200},
+};
+const ANIMAL_MAX=14;
+function chickenCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.34,0,0.4,0.34,0.5,0xf6f5f0); a(0,0.42,-0.28,0.3,0.26,0.2,0xf1efe8);   // body + tail
+  a(0,0.62,0.26,0.26,0.28,0.24,0xf9f8f4);                                       // head
+  a(0,0.8,0.24,0.1,0.12,0.14,0xd23b2f); a(0,0.6,0.44,0.1,0.08,0.13,0xe8952f);   // comb + beak
+  a(-0.09,0.11,0.05,0.06,0.22,0.06,0xe8952f); a(0.09,0.11,0.05,0.06,0.22,0.06,0xe8952f);
+  return c;}
+function pigCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.44,0,0.62,0.44,0.82,0xe58fa0);                                          // body
+  a(0,0.5,0.5,0.4,0.36,0.24,0xe89caa); a(0,0.44,0.66,0.24,0.18,0.1,0xd9788c);   // head + snout
+  a(-0.1,0.68,0.44,0.09,0.1,0.05,0xd9788c); a(0.1,0.68,0.44,0.09,0.1,0.05,0xd9788c);
+  a(-0.2,0.12,-0.24,0.11,0.24,0.11,0xd9788c); a(0.2,0.12,-0.24,0.11,0.24,0.11,0xd9788c);
+  a(-0.2,0.12,0.24,0.11,0.24,0.11,0xd9788c); a(0.2,0.12,0.24,0.11,0.24,0.11,0xd9788c);
+  return c;}
+function sheepCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.52,0,0.66,0.52,0.82,0xeee7d8); a(0,0.72,0.02,0.54,0.3,0.6,0xf4efe3);    // woolly body + fleece
+  a(0,0.5,0.5,0.28,0.32,0.24,0x3a322e);                                          // dark face
+  a(-0.1,0.66,0.5,0.07,0.1,0.06,0x2a2422); a(0.1,0.66,0.5,0.07,0.1,0.06,0x2a2422);
+  a(-0.22,0.12,-0.24,0.1,0.26,0.1,0x2a2422); a(0.22,0.12,-0.24,0.1,0.26,0.1,0x2a2422);
+  a(-0.22,0.12,0.24,0.1,0.26,0.1,0x2a2422); a(0.22,0.12,0.24,0.1,0.26,0.1,0x2a2422);
+  return c;}
+function cowCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.58,0,0.74,0.56,0.98,0xf3f1ed);                                          // body
+  a(0.22,0.7,0.12,0.28,0.3,0.32,0x2c2c2c); a(-0.24,0.52,-0.28,0.26,0.3,0.32,0x2c2c2c); // patches
+  a(0,0.62,0.58,0.44,0.4,0.28,0xf3f1ed); a(0,0.5,0.74,0.36,0.24,0.12,0xe6a6a6); // head + muzzle
+  a(-0.15,0.86,0.54,0.08,0.12,0.08,0xd8cfc4); a(0.15,0.86,0.54,0.08,0.12,0.08,0xd8cfc4); // horns
+  a(0,0.28,-0.3,0.22,0.16,0.16,0xe8b3bd);                                        // udder
+  a(-0.24,0.14,-0.3,0.12,0.28,0.12,0x2c2c2c); a(0.24,0.14,-0.3,0.12,0.28,0.12,0x2c2c2c);
+  a(-0.24,0.14,0.3,0.12,0.28,0.12,0x3a3a3a); a(0.24,0.14,0.3,0.12,0.28,0.12,0x3a3a3a);
+  return c;}
+const ANIMAL_MODELS={chicken:chickenCubes,pig:pigCubes,sheep:sheepCubes,cow:cowCubes};
+function spawnAnimal(type,x,z){
+  const def=ANIMALS[type];if(!def)return null;
+  const mesh=new THREE.Mesh(buildPlantGeometry(ANIMAL_MODELS[type]()),plantMat);
+  mesh.castShadow=true;mesh.scale.setScalar(def.scale);
+  scene.add(mesh);
+  const a={type,mesh,x,z,face:Math.random()*6.283,step:Math.random()*6,
+    act:'graze',tx:null,tz:null,wait:1+Math.random()*2,prodT:Math.random()*def.every};
+  W.animals.push(a);positionAnimal(a);
+  return a;
+}
+function positionAnimal(a){
+  const gy=surfaceY(Math.round(a.x),Math.round(a.z));
+  const y=(gy==null?4:gy)+1;
+  const bob=a.act==='walk'?Math.abs(Math.sin(a.step))*0.05:Math.sin(a.step*0.5)*0.02;
+  a.mesh.position.set(a.x,y+bob,a.z);
+  a.mesh.rotation.y=a.face;
+  a.mesh.rotation.z=a.act==='walk'?Math.sin(a.step)*0.06:0;
+}
+function animalNewTarget(a){
+  const ang=Math.random()*6.283,rad=2+Math.random()*6;
+  let wx=Math.round(a.x+Math.sin(ang)*rad),wz=Math.round(a.z+Math.cos(ang)*rad);
+  if(surfaceY(wx,wz)==null){wx=Math.round(Math.random()*10-5);wz=Math.round(Math.random()*10-5);}
+  a.tx=wx;a.tz=wz;a.act='walk';
+}
+function animalProduce(a){
+  const def=ANIMALS[a.type];
+  const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
+  grantCoins(def.yield,a.x,gy+0.9,a.z);
+  floatText(a.x,gy+1.2,a.z,def.product,'#fff');
+  SFX.tone(def.pitch,0.09,'triangle',0.05,def.pitch*1.5);
+  SFX.tone(1047,0.06,'square',0.045,0,0.09);
+}
+function updateAnimal(a,dt){
+  const def=ANIMALS[a.type];
+  a.prodT+=dt;
+  if(a.prodT>=def.every){a.prodT=0;animalProduce(a);}
+  if(a.act==='graze'){
+    a.step+=dt*2;
+    a.wait-=dt;
+    if(a.wait<=0)animalNewTarget(a);
+    positionAnimal(a);return;
+  }
+  const dx=(a.tx+0.5)-a.x,dz=(a.tz+0.5)-a.z,d=Math.hypot(dx,dz);
+  if(d<0.35){a.act='graze';a.wait=2+Math.random()*4;}
+  else{
+    const sp=Math.min(1,def.speed*dt/d);
+    a.x+=dx*sp;a.z+=dz*sp;
+    a.face=Math.atan2(dx,dz);
+    a.step+=dt*8;
+  }
+  positionAnimal(a);
+}
+function updateAnimals(dt){for(const a of W.animals)updateAnimal(a,dt);}
+function buyAnimal(type){
+  const def=ANIMALS[type];if(!def)return;
+  if(W.animals.length>=ANIMAL_MAX){toast('🐾 Your isle is full of animals!');SFX.play('error');return;}
+  if(state.level<def.lvl){toast(def.ico+' '+def.name+' unlocks at level '+def.lvl);SFX.play('error');return;}
+  if(!spendCoins(def.cost))return;
+  // drop it near the farmhouse/spawn on solid ground
+  let x=Math.round(Math.random()*8-4),z=Math.round(3+Math.random()*5);
+  if(surfaceY(x,z)==null){x=0;z=2;}
+  const a=spawnAnimal(type,x+0.5,z+0.5);
+  SFX.play('grow');
+  toast(def.ico+' '+def.name+' joined your isle! It drops '+def.product+' for coins.');
+  buildAnimalPanel();
+  if(typeof checkAch==='function')checkAch();
+}
+function buildAnimalPanel(){
+  const p=$('animalPanel');if(!p)return;p.innerHTML='';
+  const head=document.createElement('div');head.className='p-head';
+  head.textContent='🐾 Livestock  ('+W.animals.length+'/'+ANIMAL_MAX+')';
+  p.appendChild(head);
+  for(const [key,def] of Object.entries(ANIMALS)){
+    const locked=state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+(locked?' locked':'');
+    const owned=W.animals.filter(a=>a.type===key).length;
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+
+      (owned?' ×'+owned:'')+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
+        :'<div class="pr">'+def.cost+' 🪙 → '+def.product+def.yield+'</div>');
+    if(!locked)d.addEventListener('click',()=>{buyAnimal(key);});
+    p.appendChild(d);
+  }
 }
 
 /* ============================== plant models ============================== */
@@ -1624,6 +1757,12 @@ function initHud(){
   $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
   $('farmerBtn').addEventListener('click',()=>{SFX.play('click');toggleFarmerHire();});
   $('farmerBtn').style.opacity=state.farmerHired?1:0.5;
+  $('animalBtn').addEventListener('click',()=>{
+    SFX.play('click');
+    const p=$('animalPanel');
+    if(p.classList.contains('open')){closePanels();}
+    else{buildAnimalPanel();openPanel('animalPanel');}
+  });
   $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
@@ -1729,6 +1868,7 @@ function save(){
       wet:[...W.wet.entries()],
       islets:W.islets,
       plants:[...W.plants.values()].map(p=>({x:p.x,y:p.y,z:p.z,type:p.type,prog:p.prog,stage:p.stage,harvested:p.harvested})),
+      animals:W.animals.map(a=>({type:a.type,x:a.x,z:a.z})),
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
   }catch(e){}
@@ -1748,6 +1888,7 @@ function load(){
   });
   (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
   (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,p.stage,p.harvested));
+  (data.animals||[]).forEach(a=>{if(ANIMALS[a.type])spawnAnimal(a.type,a.x,a.z);});
   // offline growth
   const off=clamp((Date.now()-(data.savedAt||Date.now()))/1000,0,4*3600);
   if(off>20){
@@ -1763,6 +1904,11 @@ function load(){
     state.day+=Math.floor(off/CYCLE);
     for(const [k,t] of W.wet){if(t-off<=0){W.wet.delete(k);const [x,y,z]=k.split(',').map(Number);
       if(getB(x,y,z)===6){W.blocks.set(k,5);W.edits.set(k,5);}}}
+    // livestock keep producing while you're gone (bounded by the offline cap)
+    let idle=0;
+    for(const a of W.animals){const def=ANIMALS[a.type];idle+=Math.floor(off/def.every)*def.yield;}
+    if(idle>0){state.coins+=idle;state.totalEarned+=idle;
+      setTimeout(()=>toast('🐾 Your animals earned '+idle+' 🪙 while you were away'),2400);}
     if(ripened>0)setTimeout(()=>toast('While you were away, '+ripened+' crop'+(ripened>1?'s':'')+' ripened ✨'),1500);
   }
   return true;
@@ -1934,6 +2080,8 @@ const ACH=[
   ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1],
   ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3],
   ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10],
+  ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1],
+  ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
   ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
@@ -2049,6 +2197,7 @@ function boot(){
     updateSprinklers(dt);
     updateBird(dt,dn);
     updateFarmer(dt);
+    updateAnimals(dt);
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
