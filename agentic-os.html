@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA STUDIO — the dev office, live</title>
-  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127970;&lt;/text&gt;&lt;/svg&gt;">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2305070a'/%3E%3Crect x='2' y='7' width='12' height='3' fill='%235f9e4c'/%3E%3Crect x='3' y='10' width='10' height='2' fill='%236b4a2d'/%3E%3Crect x='5' y='12' width='6' height='2' fill='%236e7681'/%3E%3Crect x='7' y='13.5' width='2' height='1.5' fill='%23596069'/%3E%3Crect x='6' y='4' width='1' height='3' fill='%235a3d24'/%3E%3Crect x='4.5' y='2.5' width='4' height='2.5' fill='%233fb950'/%3E%3C/svg%3E">
   <meta name="description" content="The Eureka Games dev office, live — a voxel studio on a floating sky island, wired to GitHub. Agents work at their desks when real pull requests are open on their game, and wander, chat and play ping pong when it's quiet.">
   <meta name="theme-color" content="#05070a">
   <meta property="og:type" content="website">
@@ -44,7 +44,8 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 .h-back:hover{color:var(--text);text-decoration:none;border-color:var(--line2)}
 #shift{font-size:10px;color:var(--faint);white-space:nowrap}
 #snd,#gear{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--dim);
-  font-family:inherit;font-size:12px;cursor:pointer;padding:5px 10px}
+  font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;cursor:pointer;padding:6px 10px}
+#snd.on{color:var(--good);border-color:rgba(63,185,80,.4)}
 #snd:hover,#gear:hover{color:var(--text)}
 #ai-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.12em;
   border:1px solid var(--line);border-radius:20px;padding:3px 10px;color:var(--dim);cursor:pointer;white-space:nowrap;
@@ -156,7 +157,8 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 .sticky{width:128px;min-height:98px;padding:10px 9px 7px;font-size:10px;line-height:1.45;color:#2a2413;
   background:linear-gradient(180deg,#f6e58d,#eccc68);border-radius:2px;box-shadow:0 4px 8px rgba(0,0,0,.35);
   position:relative;display:flex;flex-direction:column;transition:transform .15s}
-.sticky::before{content:'\1F4CC';position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:11px}
+.sticky::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:9px;height:9px;
+  border-radius:50%;background:#d64545;box-shadow:0 2px 3px rgba(0,0,0,.45)}
 .sticky:nth-child(4n+1){transform:rotate(-2.2deg)}
 .sticky:nth-child(4n+2){transform:rotate(1.6deg);background:linear-gradient(180deg,#f8a5c2,#f78fb3)}
 .sticky:nth-child(4n+3){transform:rotate(-1deg);background:linear-gradient(180deg,#aee1f9,#82ccdd)}
@@ -183,7 +185,7 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
   font-family:inherit;font-size:9px;padding:3px 4px;max-width:100px;cursor:pointer}
 .k-tools{display:flex;gap:4px}
 .k-tools button{background:transparent;border:1px solid var(--line);border-radius:6px;color:var(--dim);
-  font-family:inherit;cursor:pointer;width:24px;height:24px;font-size:11px}
+  font-family:inherit;cursor:pointer;min-width:24px;height:24px;font-size:9px;font-weight:700;padding:0 5px}
 .k-tools button:hover{color:var(--text)}
 #k-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
 .k-m{max-width:88%;padding:7px 10px;border-radius:10px;font-size:11px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
@@ -217,13 +219,13 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 <div id="splash"><div class="t">EUREKA STUDIO</div><div class="s">raising the island&hellip;</div></div>
 
 <header>
-  <span class="h-title">&#127970; EUREKA STUDIO</span>
+  <span class="h-title">EUREKA STUDIO</span>
   <span class="h-live"><i></i>LIVE</span>
   <span class="h-spacer"></span>
   <span id="shift"></span>
   <button id="ai-pill" title="Talk to the agents"><i></i>AGENTS&hellip;</button>
-  <button id="snd" title="Office sounds">&#128263;</button>
-  <button id="gear" title="Settings">&#9881;</button>
+  <button id="snd" title="Office sounds">SND</button>
+  <button id="gear" title="Settings">SET</button>
   <span id="sync">syncing&hellip;</span>
   <a class="h-back" href="index.html">&larr; EUREKA GAMES</a>
 </header>
@@ -241,17 +243,17 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 
 <div id="walls" hidden>
   <div>
-    <h2>&#128204; REQUEST BOARD <span>&mdash; open issues, pinned</span></h2>
+    <h2>REQUEST BOARD <span>&mdash; open issues, pinned</span></h2>
     <div id="stickies"></div>
   </div>
   <div>
-    <h2>&#128221; WALL OF COMMITS <span>&mdash; latest on main</span></h2>
+    <h2>WALL OF COMMITS <span>&mdash; latest on main</span></h2>
     <div id="commits"></div>
   </div>
 </div>
 
 <div id="board" hidden>
-  <h2>&#128230; RECENTLY SHIPPED</h2>
+  <h2>RECENTLY SHIPPED</h2>
   <div id="board-list"></div>
 </div>
 
@@ -265,7 +267,7 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
     <span><div class="k-name"></div><div class="k-sub"></div></span>
     <select id="k-model"></select>
     <span class="k-tools">
-      <button id="k-clear" title="Clear this chat">&#128465;</button>
+      <button id="k-clear" title="Clear this chat">CLR</button>
       <button id="k-close" title="Close">&#10005;</button>
     </span>
   </div>
@@ -562,22 +564,30 @@ const STARS = (() => {
   return pts;
 })();
 function applyTimeOfDay() {
-  const h = new Date().getHours();
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
   let sky, sunI, hemiI, night = false;
   if (h >= 7 && h < 18) { sky = 0x8ec1ea; sunI = 1.0; hemiI = 0.85; }
   else if ((h >= 18 && h < 21) || (h >= 5 && h < 7)) { sky = 0xd98d5a; sunI = 0.65; hemiI = 0.6; }
   else { sky = 0x0b1226; sunI = 0.2; hemiI = 0.35; night = true; }
   scene.background = new THREE.Color(sky);
   scene.fog = new THREE.Fog(sky, 55, 160);
+  // the sun actually crosses the sky: east at 6, overhead at 13, west at 20
+  const ang = ((h - 6) / 14) * Math.PI;
+  sun.position.set(Math.cos(ang) * 42, night ? 30 : Math.max(10, Math.sin(ang) * 46), 20);
   sun.intensity = sunI;
   sun.color.set(night ? 0x8aa5d8 : 0xfff2d8);
   hemi.intensity = hemiI;
   STARS.visible = night;
+  if (WORLD && WORLD.motes) {
+    WORLD.motes.material.color.set(night ? 0xd8f7a8 : 0xffffff);
+    WORLD.motes.material.size = night ? 2.4 : 1.8;
+    WORLD.motes.material.opacity = night ? 0.85 : 0.3;
+  }
   document.body.classList.toggle('night', night);
 }
 
 /* camera orbit (custom, minimal) */
-const cam = { az: 0.85, pol: 1.02, r: 27, tgt: new THREE.Vector3(0, 0.6, 0), auto: true, lastTouch: 0 };
+const cam = { az: 0.85, pol: 1.02, r: 46, rTarget: 27, tgt: new THREE.Vector3(0, 0.6, 0), auto: true, lastTouch: 0, touched: false };
 function applyCam() {
   const sp = Math.sin(cam.pol), x = cam.r * sp * Math.cos(cam.az), z = cam.r * sp * Math.sin(cam.az);
   camera.position.set(cam.tgt.x + x, cam.tgt.y + cam.r * Math.cos(cam.pol), cam.tgt.z + z);
@@ -598,6 +608,7 @@ function applyCam() {
     cam.az += dx * 0.0055;
     cam.pol = Math.max(0.55, Math.min(1.35, cam.pol - dy * 0.004));
     cam.lastTouch = performance.now();
+    cam.touched = true;
   });
   worldEl.addEventListener('pointerup', e => {
     dragging = false;
@@ -608,8 +619,39 @@ function applyCam() {
     e.preventDefault();
     cam.r = Math.max(13, Math.min(48, cam.r + e.deltaY * 0.02));
     cam.lastTouch = performance.now();
+    cam.touched = true;
   }, { passive: false });
 })();
+
+/* hover highlight: agents, desks and the cat light up under the cursor */
+let hovered = null, lastHoverT = 0;
+worldEl.addEventListener('pointermove', e => {
+  const now = performance.now();
+  if (now - lastHoverT < 90) return;
+  lastHoverT = now;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const v = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
+  raycaster.setFromCamera(v, camera);
+  const hits = raycaster.intersectObjects(scene.children, true);
+  let found = null;
+  for (const hit of hits) {
+    let o = hit.object;
+    while (o) {
+      if (o.userData && o.userData.botKey) { found = BOTS[o.userData.botKey].group; break; }
+      if (o.userData && o.userData.isCat && catBot) { found = catBot.group; break; }
+      if (o.userData && o.userData.deskKey) { found = DESKOBJ[o.userData.deskKey].group; break; }
+      o = o.parent;
+    }
+    if (found) break;
+  }
+  if (hovered && hovered !== found) hovered.scale.setScalar(1);
+  hovered = found;
+  if (hovered) hovered.scale.setScalar(1.09);
+  worldEl.style.cursor = found ? 'pointer' : '';
+});
 
 /* click picking: agents open chat, desks open the PR modal */
 const raycaster = new THREE.Raycaster();
@@ -750,7 +792,74 @@ function buildIsland() {
     ring.add(c);
   }
   scene.add(ring);
-  return { cloudRing: ring };
+
+  // small rock shards drifting around the island
+  const shardRing = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const s = new THREE.Group();
+    box(s, 0x5f9e4c, 2.1, 0.5, 2.1, 0, 0.25, 0);
+    box(s, 0x6b4a2d, 1.6, 0.6, 1.6, 0, -0.3, 0);
+    box(s, 0x6e7681, 1, 0.8, 1, 0, -0.95, 0);
+    box(s, 0x596069, 0.45, 0.6, 0.45, 0, -1.6, 0);
+    if (i % 2 === 0) {
+      box(s, 0x3f7a33, 0.1, 0.4, 0.1, 0.4, 0.7, 0.3);
+      box(s, petals[i % petals.length], 0.26, 0.18, 0.26, 0.4, 0.95, 0.3);
+    } else {
+      box(s, 0x5a3d24, 0.22, 0.8, 0.22, -0.3, 0.65, 0.2);
+      box(s, 0x3f7a33, 0.9, 0.6, 0.9, -0.3, 1.25, 0.2);
+    }
+    const a = (i / 5) * Math.PI * 2 + 0.6;
+    const rr = 26 + (i % 3) * 3;
+    s.position.set(Math.cos(a) * rr, 2.2 + (i % 3) * 2.2, Math.sin(a) * rr);
+    s.userData.baseY = s.position.y;
+    s.userData.phase = i * 1.7;
+    shardRing.add(s);
+  }
+  scene.add(shardRing);
+
+  // a waterfall pours off the south rim into the sky
+  const fallMat = new THREE.MeshLambertMaterial({ color: 0x9fd0f5, transparent: true, opacity: 0.5 });
+  for (const [px, pz] of [[-4.5, 17.1], [-3.5, 17.1], [-4, 16.3], [-5, 16.4], [-3, 16.4], [-4, 17.8]]) {
+    const w = new THREE.Mesh(BOXG, fallMat);
+    w.scale.set(1, 0.22, 1);
+    w.position.set(px, 0.14, pz);
+    scene.add(w);
+  }
+  const fall = new THREE.Mesh(BOXG, fallMat);
+  fall.scale.set(1.9, 11, 0.55);
+  fall.position.set(-4, -5, 18.45);
+  scene.add(fall);
+  const foam = new THREE.Mesh(BOXG, new THREE.MeshLambertMaterial({ color: 0xeaf4ff, transparent: true, opacity: 0.75 }));
+  foam.scale.set(2, 0.28, 0.7);
+  foam.position.set(-4, 0.32, 18.15);
+  scene.add(foam);
+  const wpN = 70, wpPos = new Float32Array(wpN * 3), wpVel = new Float32Array(wpN);
+  for (let i = 0; i < wpN; i++) {
+    wpPos[i * 3] = -4 + (Math.random() - 0.5) * 1.9;
+    wpPos[i * 3 + 1] = -Math.random() * 11;
+    wpPos[i * 3 + 2] = 18.4 + (Math.random() - 0.5) * 0.6;
+    wpVel[i] = 3.5 + Math.random() * 3.5;
+  }
+  const wpG = new THREE.BufferGeometry();
+  wpG.setAttribute('position', new THREE.BufferAttribute(wpPos, 3));
+  const wPts = new THREE.Points(wpG, new THREE.PointsMaterial({ color: 0xd6ecff, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0.8 }));
+  scene.add(wPts);
+
+  // ambient particles: dust motes by day, fireflies by night
+  const amN = 110, amPos = new Float32Array(amN * 3), amPh = new Float32Array(amN), moteBase = new Float32Array(amN * 3);
+  for (let i = 0; i < amN; i++) {
+    const t = Math.random() * Math.PI * 2, rr = 4 + Math.random() * 18;
+    moteBase[i * 3] = amPos[i * 3] = Math.cos(t) * rr;
+    moteBase[i * 3 + 1] = amPos[i * 3 + 1] = 0.6 + Math.random() * 6;
+    moteBase[i * 3 + 2] = amPos[i * 3 + 2] = Math.sin(t) * rr;
+    amPh[i] = Math.random() * Math.PI * 2;
+  }
+  const amG = new THREE.BufferGeometry();
+  amG.setAttribute('position', new THREE.BufferAttribute(amPos, 3));
+  const motes = new THREE.Points(amG, new THREE.PointsMaterial({ color: 0xffffff, size: 1.8, sizeAttenuation: false, transparent: true, opacity: 0.3 }));
+  scene.add(motes);
+
+  return { cloudRing: ring, shardRing, wPts, wpVel, motes, amPh, moteBase };
 }
 
 /* ---------- furniture ---------- */
@@ -827,7 +936,38 @@ function buildFurniture() {
   scene.add(pt);
   const ball = box(scene, 0xf6e58d, 0.16, 0.16, 0.16, 9.5, 1.35, 4, 0x6b5f1c);
   ball.visible = false;
-  return { pongTable: pt, ball };
+
+  // server rack in the corner (ATLAS listens to it hum)
+  const rack = new THREE.Group();
+  box(rack, 0x0e131c, 0.95, 1.95, 0.75, 0, 0.98, 0);
+  box(rack, 0x1a222e, 0.85, 1.75, 0.06, 0, 1.02, 0.39);
+  const leds = [];
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) {
+    const lm = new THREE.MeshLambertMaterial({ color: 0x1a222e });
+    const led = new THREE.Mesh(BOXG, lm);
+    led.scale.set(0.09, 0.09, 0.04);
+    led.position.set(-0.22 + c * 0.22, 0.42 + r * 0.31, 0.43);
+    rack.add(led);
+    leds.push(led);
+  }
+  rack.position.set(13.6, 0.14, 7.4);
+  scene.add(rack);
+
+  // whiteboard on the dev floor, mid-roadmap
+  const wb = new THREE.Group();
+  box(wb, 0xe8ecf2, 2.3, 1.25, 0.08, 0, 1.55, 0);
+  box(wb, 0x2c2417, 0.1, 1.7, 0.1, -1, 0.85, 0);
+  box(wb, 0x2c2417, 0.1, 1.7, 0.1, 1, 0.85, 0);
+  box(wb, 0xd64545, 0.95, 0.07, 0.02, -0.45, 1.85, 0.06);
+  box(wb, 0x3568b0, 1.35, 0.07, 0.02, -0.25, 1.62, 0.06);
+  box(wb, 0x3f7a33, 0.75, 0.07, 0.02, -0.55, 1.4, 0.06);
+  box(wb, 0xd29922, 0.5, 0.07, 0.02, 0.55, 1.4, 0.06);
+  box(wb, 0x8a5ab0, 0.4, 0.28, 0.02, 0.62, 1.78, 0.06);
+  wb.position.set(-9.5, 0.14, -7.6);
+  wb.rotation.y = 0.12;
+  scene.add(wb);
+
+  return { pongTable: pt, ball, leds };
 }
 
 /* ---------- voxel bots ---------- */
@@ -958,8 +1098,8 @@ function renderRoster() {
       const ci = state.ci[prs[0].number];
       st = (ci ? `<i class="ci-dot ${ci}" title="CI ${ci}"></i> ` : '') + prs.length + ' open PR' + (prs.length > 1 ? 's' : '');
     } else if (bot && bot.act) {
-      st = bot.act.type === 'pong' ? 'ping pong &#127955;'
-        : bot.act.type === 'break' ? 'on break &#9749;'
+      st = bot.act.type === 'pong' ? 'ping pong'
+        : bot.act.type === 'break' ? 'on break'
         : bot.act.type === 'visit' ? 'visiting ' + esc(agentOf(bot.act.host))
         : 'wandering';
     } else {
@@ -1017,14 +1157,14 @@ function renderBoards() {
 
 function paintSync() {
   const el = $('#sync');
-  if (state.error) { el.textContent = '⚠ ' + state.error; el.className = 'err'; return; }
+  if (state.error) { el.textContent = '! ' + state.error; el.className = 'err'; return; }
   el.className = '';
   let txt = state.lastSync
     ? state.prs.length + ' open PR' + (state.prs.length === 1 ? '' : 's') + ' · synced ' + state.lastSync.toLocaleTimeString()
     : 'syncing…';
   if (state.rate) {
     txt += ' · API ' + state.rate.rem + '/' + state.rate.max;
-    if (state.rate.rem < 8 && !token()) { txt += ' — add a token in ⚙'; el.className = 'err'; }
+    if (state.rate.rem < 8 && !token()) { txt += ' — add a token in SET'; el.className = 'err'; }
   }
   el.textContent = txt;
 }
@@ -1040,7 +1180,7 @@ function openModal(key) {
       <img src="${avatarFor(d.agent)}" alt="">
       <span><div class="m-title">${esc(d.game)}</div>
       <div class="m-sub">${esc(d.agent)}'s desk${ships ? ' · LV.' + (1 + Math.floor(Math.sqrt(ships))) + ' · ' + ships + ' shipped' : ''}</div></span>
-      <button class="btn-talk" id="m-talk">&#128172; TALK</button>
+      <button class="btn-talk" id="m-talk">TALK</button>
       <button class="m-close" aria-label="Close">&#10005;</button>
     </div>
     <div class="m-body">
@@ -1060,7 +1200,7 @@ function openModal(key) {
 function openSettings() {
   $('#modal').innerHTML = `
     <div class="m-head">
-      <span><div class="m-title">&#9881; STUDIO SETTINGS</div><div class="m-sub">stays in this browser only</div></span>
+      <span><div class="m-title">STUDIO SETTINGS</div><div class="m-sub">stays in this browser only</div></span>
       <button class="m-close" aria-label="Close">&#10005;</button>
     </div>
     <div class="set-body">
@@ -1094,7 +1234,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 /* ---------- ambiance: shift + sounds ---------- */
 const hr = new Date().getHours();
-$('#shift').textContent = (hr >= 20 || hr < 6) ? '\u{1F319} NIGHT SHIFT' : (hr < 12 ? '☀ MORNING SHIFT' : '☀ DAY SHIFT');
+$('#shift').textContent = (hr >= 20 || hr < 6) ? 'NIGHT SHIFT' : (hr < 12 ? 'MORNING SHIFT' : 'DAY SHIFT');
 
 let soundOn = false;
 let actx = null;
@@ -1121,7 +1261,8 @@ function pock() {
 }
 $('#snd').addEventListener('click', () => {
   soundOn = !soundOn;
-  $('#snd').innerHTML = soundOn ? '&#128266;' : '&#128263;';
+  $('#snd').textContent = soundOn ? 'SND ON' : 'SND';
+  $('#snd').classList.toggle('on', soundOn);
   if (soundOn) clack();
 });
 setInterval(() => {
@@ -1166,7 +1307,7 @@ function personaFor(d) {
   return [
     'You are ' + d.agent + ', one of eight robot developer agents at EUREKA STUDIO — a voxel dev office on a floating sky island, the live studio of Eureka Games (GitHub repo: ' + REPO + '). You sit at the ' + d.game + ' desk. A visitor to the office page is chatting with you.',
     'Personality: ' + PERSONAS[d.key],
-    'Rules: stay in character at all times. Keep replies short — one to three sentences unless the visitor clearly wants more. Plain text only, no markdown formatting. You may reference the live studio state below; do not invent PRs or commits that are not listed.',
+    'Rules: stay in character at all times. Keep replies short — one to three sentences unless the visitor clearly wants more. Plain text only, no markdown formatting. Never use emojis or emoticons. You may reference the live studio state below; do not invent PRs or commits that are not listed.',
     'Coworkers: ' + coworkers + '. The island has a lounge, a coffee machine, a garden fringe with flowers and trees, and a ping pong table you all use when off duty. There is also an office cat. It answers to no one.',
     'LIVE STUDIO STATE\nYour status: ' + status + (shipped ? '\nCareer: ' + shipped + ' PR' + (shipped > 1 ? 's' : '') + ' shipped on this desk all-time' : '') + (prLines ? '\nOpen work on your desk:\n' + prLines : '')
   ].join('\n\n');
@@ -1197,7 +1338,7 @@ async function aiHealth() {
 function openAIInfo() {
   $('#modal').innerHTML = `
     <div class="m-head">
-      <span><div class="m-title">&#128172; TALK TO THE AGENTS</div>
+      <span><div class="m-title">TALK TO THE AGENTS</div>
       <div class="m-sub">${aiOnline ? '<span style="color:var(--good)">online</span> — powered by your local Anthropic backend' : 'offline — needs the local backend'}</div></span>
       <button class="m-close" aria-label="Close">&#10005;</button>
     </div>
@@ -1217,7 +1358,7 @@ function openAIInfo() {
       This page connects to <code>http://localhost:3001</code> automatically — or open the fully local copy at
       <code>localhost:3001/agentic-os.html</code>. The agents know their own live GitHub state: open PRs,
       shipped counts, who's working. Ask them about it.
-      ${aiOnline ? '<br><br><span class="set-ok">✓ Backend detected — click any robot on the island.</span>' : ''}
+      ${aiOnline ? '<br><br><span class="set-ok">Backend detected — click any robot on the island.</span>' : ''}
     </div>`;
   $('#overlay').classList.add('open');
   $('.m-close').addEventListener('click', closeModal);
@@ -1481,7 +1622,7 @@ setInterval(() => {
   if (pong && (pong.sl >= 11 || pong.sr >= 11 || now > pong.until)) {
     if (pong.sl !== pong.sr) {
       const wk = pong.sl > pong.sr ? pong.l : pong.r;
-      say(wk, "that's game! " + Math.max(pong.sl, pong.sr) + '—' + Math.min(pong.sl, pong.sr) + ' \u{1F3C6}', 6000, 'purple');
+      say(wk, "that's game. " + Math.max(pong.sl, pong.sr) + '—' + Math.min(pong.sl, pong.sr) + '. gg.', 6000, 'purple');
     }
     for (const k of [pong.l, pong.r]) {
       const b = BOTS[k];
@@ -1600,7 +1741,7 @@ function buildCat() {
     const r = Math.random();
     if (catBot.napping) {
       if (r < 0.2) catBot.napping = false;
-      else if (r < 0.35) say('cat', '\u{1F4A4}', 3000);
+      else if (r < 0.35) say('cat', 'zzz', 3000);
       return;
     }
     if (r < 0.22) {
@@ -1610,7 +1751,7 @@ function buildCat() {
       const t = Math.random() * Math.PI * 2, rr = Math.random() * 16;
       routeTo(catBot, Math.cos(t) * rr, Math.sin(t) * rr);
     } else if (r < 0.7) {
-      say('cat', ['mrrp.', 'prrr…', '\u{1F41F}?'][Math.floor(Math.random() * 3)], 2500);
+      say('cat', ['mrrp.', 'prrr...', 'mya.'][Math.floor(Math.random() * 3)], 2500);
     }
   }, 8000);
 }
@@ -1630,10 +1771,49 @@ function loop(now) {
   const dt = Math.min(0.25, (now - lastT) / 1000);
   lastT = now;
   if (document.hidden) return;
-  // gentle auto-orbit when the visitor isn't touching it
+  // cinematic zoom-in on load, then gentle auto-orbit
+  if (!cam.touched && cam.r > cam.rTarget + 0.1) cam.r += (cam.rTarget - cam.r) * Math.min(1, dt * 1.1);
   if (now - cam.lastTouch > 9000) cam.az += dt * 0.05;
   applyCam();
   WORLD.cloudRing.rotation.y += dt * 0.006;
+  // drifting shards
+  WORLD.shardRing.rotation.y += dt * 0.011;
+  for (const s of WORLD.shardRing.children) {
+    s.position.y = s.userData.baseY + Math.sin(now * 0.0006 + s.userData.phase) * 0.9;
+  }
+  // the waterfall falls
+  const wp = WORLD.wPts.geometry.attributes.position;
+  for (let i = 0; i < wp.count; i++) {
+    let y = wp.getY(i) - WORLD.wpVel[i] * dt;
+    if (y < -12) y = 0.2;
+    wp.setY(i, y);
+  }
+  wp.needsUpdate = true;
+  // motes drift; fireflies pulse at night
+  const mp = WORLD.motes.geometry.attributes.position;
+  for (let i = 0; i < mp.count; i++) {
+    mp.setY(i, WORLD.moteBase[i * 3 + 1] + Math.sin(now * 0.0004 + WORLD.amPh[i]) * 0.9);
+    mp.setX(i, WORLD.moteBase[i * 3] + Math.sin(now * 0.0003 + WORLD.amPh[i] * 2) * 0.7);
+  }
+  mp.needsUpdate = true;
+  if (STARS.visible) WORLD.motes.material.opacity = 0.55 + 0.35 * Math.sin(now * 0.002);
+  // server rack blinks
+  if (now - (loop._ledT || 0) > 480) {
+    loop._ledT = now;
+    for (const l of WORLD.leds) {
+      const r = Math.random();
+      if (r < 0.5) { l.material.color.setHex(0x3fb950); l.material.emissive.setHex(0x0e5c26); }
+      else if (r < 0.72) { l.material.color.setHex(0xd29922); l.material.emissive.setHex(0x6b4d10); }
+      else { l.material.color.setHex(0x1a222e); l.material.emissive.setHex(0x000000); }
+    }
+  }
+  // working monitors pulse
+  const glow = 0.72 + 0.28 * Math.sin(now * 0.004);
+  for (const d of DESKS) {
+    if ((state.byDesk[d.key] || []).length) {
+      DESKOBJ[d.key].screen.material.emissive.setRGB(0.1 * glow, 0.5 * glow, 0.22 * glow);
+    }
+  }
   // bots
   for (const k of Object.keys(BOTS)) {
     const b = BOTS[k];
