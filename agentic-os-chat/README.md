@@ -53,6 +53,24 @@ This starts both servers concurrently:
 Open **http://localhost:5173** in your browser. Press Enter to send,
 Shift+Enter for a newline.
 
+## Talk to the office agents
+
+The studio office page (`../agentic-os.html` — the EUREKA STUDIO pixel office)
+is wired to this backend. While `npm run dev` is running:
+
+- Open **http://localhost:3001/agentic-os.html** (the server also serves the
+  repo's static site), or the deployed office page — either connects to the
+  local backend automatically.
+- The header shows **AGENTS ONLINE** when the backend + key are working.
+- Click any robot (or the TALK button on a desk) to chat with that agent.
+  Each of the eight agents has a personality, and their system prompt is
+  rebuilt per message with their desk's live GitHub state — open PRs,
+  shipped counts, status — so they actually know what they're working on.
+- Chats are per-agent, stored in your browser's localStorage.
+
+The deployed office page works without the backend (agents just show as
+offline) — the API key is only ever read by the local server.
+
 ## How it works
 
 - `POST /api/chat` accepts `{ messages, model, systemPrompt }` and streams the

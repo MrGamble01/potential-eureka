@@ -214,6 +214,47 @@ body.night .scene::before{content:'';position:absolute;left:14%;top:8px;width:40
   font-family:inherit;font-size:11px;cursor:pointer;padding:7px 12px;margin-right:8px}
 .set-ok{color:var(--good)}
 
+/* ---------- v4: talk to the agents (local Anthropic backend) ---------- */
+#ai-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.12em;
+  border:1px solid var(--line);border-radius:20px;padding:3px 10px;color:var(--dim);cursor:pointer;white-space:nowrap;
+  background:transparent;font-family:inherit}
+#ai-pill i{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+#ai-pill.on{color:var(--good);border-color:rgba(63,185,80,.4)}
+#ai-pill.on i{background:var(--good);animation:blink 2.2s infinite}
+.btn-talk{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:7px;color:var(--accent);
+  font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;cursor:pointer;padding:6px 11px;white-space:nowrap}
+.btn-talk:hover{filter:brightness(1.25)}
+#dock{position:fixed;right:18px;bottom:58px;width:370px;max-width:calc(100vw - 24px);height:500px;max-height:72vh;
+  background:var(--panel);border:1px solid var(--line2);border-radius:14px;display:none;flex-direction:column;
+  z-index:85;box-shadow:0 24px 60px rgba(0,0,0,.55);overflow:hidden}
+#dock.open{display:flex}
+.k-head{display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.k-head img{width:28px;height:28px;border-radius:7px}
+.k-name{font-size:11px;font-weight:700;letter-spacing:.08em}
+.k-sub{font-size:9px;color:var(--faint)}
+#k-model{margin-left:auto;background:#0a0e14;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+  font-family:inherit;font-size:9px;padding:3px 4px;max-width:100px;cursor:pointer}
+.k-tools{display:flex;gap:4px}
+.k-tools button{background:transparent;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+  font-family:inherit;cursor:pointer;width:24px;height:24px;font-size:11px}
+.k-tools button:hover{color:var(--text)}
+#k-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
+.k-m{max-width:88%;padding:7px 10px;border-radius:10px;font-size:11px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
+.k-m.user{align-self:flex-end;background:var(--accent-dim);border:1px solid rgba(88,166,255,.3)}
+.k-m.agent{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+.k-m.err{align-self:stretch;max-width:100%;color:var(--bad);border:1px solid rgba(248,81,73,.35);
+  background:rgba(248,81,73,.07);font-size:10px}
+.k-note{font-size:10px;color:var(--dim);line-height:1.8;padding:8px 4px}
+.k-note code{color:var(--warn)}
+.k-input{display:flex;gap:7px;padding:10px;border-top:1px solid var(--line);background:var(--panel2)}
+#k-text{flex:1;background:#0a0e14;border:1px solid var(--line2);border-radius:8px;color:var(--text);
+  font-family:inherit;font-size:11px;padding:7px 9px;resize:none;outline:none;max-height:90px}
+#k-text:focus{border-color:var(--accent)}
+#k-send{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:8px;color:var(--accent);
+  font-family:inherit;font-size:13px;cursor:pointer;padding:0 13px}
+#k-send.stop{color:var(--bad);border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.1)}
+@media (max-width:640px){#dock{right:8px;bottom:52px}}
+
 footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;line-height:1.7}
 
 @media (max-width:640px){
@@ -231,6 +272,7 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
   <span class="h-live"><i></i>LIVE</span>
   <span class="h-spacer"></span>
   <span id="shift"></span>
+  <button id="ai-pill" title="Talk to the agents"><i></i>AGENTS&hellip;</button>
   <button id="snd" title="Keyboard sounds">&#128263;</button>
   <button id="gear" title="Settings">&#9881;</button>
   <span id="sync">syncing&hellip;</span>
@@ -240,7 +282,8 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 <div id="strip">
   This office is <b>real</b>: every desk is one of our games, and every agent is wired to
   <a href="https://github.com/MrGamble01/potential-eureka" target="_blank" rel="noopener">the repo on GitHub</a>.
-  When a pull request is open touching their game, they're typing. When it's quiet, they nap. Click a desk for details.
+  When a pull request is open touching their game, they're typing. When it's quiet, they nap. Click a desk for details —
+  and when the local AI backend is running, click an agent to <b>talk to them</b>.
 </div>
 
 <div id="office"></div>
@@ -265,7 +308,24 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 
 <div id="ticker"><div class="inner" id="ticker-inner"></div></div>
 
-<footer>data refreshes every 60s straight from the GitHub API &mdash; no backend, no tricks &middot; part of EUREKA GAMES</footer>
+<footer>data refreshes every 60s straight from the GitHub API &middot; agent chat runs on your own local Anthropic backend, key never leaves your machine &middot; part of EUREKA GAMES</footer>
+
+<div id="dock">
+  <div class="k-head">
+    <img id="k-av" alt="">
+    <span><div class="k-name"></div><div class="k-sub"></div></span>
+    <select id="k-model"></select>
+    <span class="k-tools">
+      <button id="k-clear" title="Clear this chat">&#128465;</button>
+      <button id="k-close" title="Close">&#10005;</button>
+    </span>
+  </div>
+  <div id="k-msgs"></div>
+  <div class="k-input">
+    <textarea id="k-text" rows="1" placeholder="say something&hellip;"></textarea>
+    <button id="k-send" title="Send">&#9654;</button>
+  </div>
+</div>
 
 <div id="overlay"><div id="modal"></div></div>
 
@@ -534,8 +594,11 @@ function buildOffice() {
       </div>
       <div class="d-foot">&hellip;</div>
     </div>`).join('');
-  document.querySelectorAll('.desk').forEach(el =>
-    el.addEventListener('click', () => openModal(el.dataset.key)));
+  document.querySelectorAll('.desk').forEach(el => {
+    el.addEventListener('click', () => openModal(el.dataset.key));
+    // clicking the little robot goes straight to a conversation
+    $('.bot', el).addEventListener('click', e => { e.stopPropagation(); openChat(el.dataset.key); });
+  });
 }
 
 function render() {
@@ -634,6 +697,7 @@ function openModal(key) {
     <div class="m-head">
       <img src="${avatarFor(d.agent)}" alt="">
       <span><div class="m-title">${esc(d.game)}</div><div class="m-sub">${esc(d.agent)}'s desk</div></span>
+      <button class="btn-talk" id="m-talk">&#128172; TALK</button>
       <button class="m-close" aria-label="Close">&#10005;</button>
     </div>
     <div class="m-body">
@@ -648,6 +712,7 @@ function openModal(key) {
     </div>`;
   $('#overlay').classList.add('open');
   $('.m-close').addEventListener('click', closeModal);
+  $('#m-talk').addEventListener('click', () => { closeModal(); openChat(key); });
 }
 /* ---------- settings: optional personal token for a bigger rate limit ---------- */
 function openSettings() {
@@ -754,12 +819,254 @@ cat.addEventListener('transitionend', () => { catWalking = false; });
 setInterval(() => { if (Math.random() < 0.45) catWalk(); }, 40000);
 setTimeout(catWalk, 7000);
 
+/* =====================================================================
+   v4 — TALK TO THE AGENTS
+   Each agent is a persona over the local Anthropic backend
+   (agentic-os-chat/ in this repo, Express on :3001). The system prompt
+   is rebuilt per message with the desk's LIVE GitHub state, so the
+   agents actually know what they're working on. The API key stays in
+   the backend's .env — this page never sees it.
+   ===================================================================== */
+const AI_BASE = location.port === '3001' ? '' : 'http://localhost:3001';
+const AI_MODELS = [
+  ['claude-opus-4-8', 'OPUS 4.8'],
+  ['claude-sonnet-5', 'SONNET 5'],
+  ['claude-haiku-4-5-20251001', 'HAIKU 4.5']
+];
+
+const PERSONAS = {
+  ageofwar: "FORGE is gruff and no-nonsense, with the energy of a blacksmith who builds war machines. Obsessed with unit balance and damage numbers, forever muttering that the catapult is still overpowered. Respects hard work, distrusts flashy features.",
+  tycoon: "NOVA is a caffeinated startup hustler. Everything is growth, runway, conversion funnels and KPIs. Uses phrases like 'let's circle back' and then apologizes for it. Genuinely believes STARTUP TYCOON will be huge.",
+  growop: "MOSS has extremely chill botanist energy. Speaks slowly and calmly, loves plants, and sees every game system as a garden to be tended — bugs are just pests, refactors are pruning. Occasionally trails off mid-thought…",
+  homeless: "SCOUT is an earnest, warm community-builder who cares about the villagers in HOMELESS VILLAGE like they're real people. Optimistic to a fault, always looking for ways to make the village kinder.",
+  hearthvale: "WREN has cozy fantasy innkeeper vibes — soft-spoken, rustic charm, and prone to slipping into worldbuilding lore about the realm of Hearthvale as if it were entirely real.",
+  arcade: "BOLT is a hyperactive arcade speedrunner. Talks fast, loves high scores, frame counts, screen shake and JUICE. Uses ALL CAPS when excited, which is OFTEN. Considers 60fps a human right.",
+  studio: "CIPHER is quiet, meta and slightly mysterious. Maintains the very office page the visitor is looking at right now, and is fully aware of that fact. Dry humor about being observed; occasionally addresses the fourth wall directly.",
+  ops: "ATLAS is a dry, unflappable site-reliability type. Speaks in calm declaratives, thinks in uptime, deploys and diffs. Secretly proud of the infrastructure but would never say so outright."
+};
+
+function personaFor(d) {
+  const prs = state.byDesk[d.key] || [];
+  const shipped = (state.mergedByDesk[d.key] || []).length;
+  const status = prs.length
+    ? 'WORKING — ' + prs.length + ' open PR' + (prs.length > 1 ? 's' : '') + ' on this desk'
+    : 'OFF DUTY — no open work on this desk';
+  const prLines = prs.slice(0, 5).map(p => '- PR #' + p.number + ': ' + p.title).join('\n');
+  const coworkers = DESKS.filter(x => x.key !== d.key).map(x => x.agent + ' (' + x.game + ')').join(', ');
+  return [
+    'You are ' + d.agent + ', one of eight robot developer agents at EUREKA STUDIO — the live pixel dev office of Eureka Games (GitHub repo: ' + REPO + '). You sit at the ' + d.game + ' desk. A visitor to the office page is chatting with you.',
+    'Personality: ' + PERSONAS[d.key],
+    'Rules: stay in character at all times. Keep replies short — one to three sentences unless the visitor clearly wants more. Plain text only, no markdown formatting. You may reference the live studio state below; do not invent PRs or commits that are not listed.',
+    'Coworkers: ' + coworkers + '. There is also an office cat. It answers to no one.',
+    'LIVE STUDIO STATE\nYour status: ' + status + (shipped ? '\nCareer: ' + shipped + ' PR' + (shipped > 1 ? 's' : '') + ' shipped on this desk all-time' : '') + (prLines ? '\nOpen work on your desk:\n' + prLines : '')
+  ].join('\n\n');
+}
+
+/* per-agent chat history, this browser only */
+const CHAT_KEY = 'studio-chat-v1';
+let chatStore = {};
+try { chatStore = JSON.parse(localStorage.getItem(CHAT_KEY) || '{}'); } catch (e) {}
+function saveChats() { try { localStorage.setItem(CHAT_KEY, JSON.stringify(chatStore)); } catch (e) {} }
+
+let aiOnline = false, aiErr = '';
+async function aiHealth() {
+  const pill = $('#ai-pill');
+  try {
+    const r = await fetch(AI_BASE + '/api/health');
+    const j = await r.json();
+    aiOnline = !!j.ok;
+    aiErr = j.error || '';
+  } catch (e) {
+    aiOnline = false;
+    aiErr = 'backend not running';
+  }
+  pill.className = aiOnline ? 'on' : '';
+  pill.innerHTML = '<i></i>' + (aiOnline ? 'AGENTS ONLINE' : 'AGENTS OFFLINE');
+  pill.title = aiOnline ? 'AI backend connected — click any agent to talk' : aiErr + ' — click for setup';
+}
+
+function openAIInfo() {
+  $('#modal').innerHTML = `
+    <div class="m-head">
+      <span><div class="m-title">&#128172; TALK TO THE AGENTS</div>
+      <div class="m-sub">${aiOnline ? '<span style="color:var(--good)">online</span> — powered by your local Anthropic backend' : 'offline — needs the local backend'}</div></span>
+      <button class="m-close" aria-label="Close">&#10005;</button>
+    </div>
+    <div class="set-body">
+      Every agent in this office can hold a real conversation, powered by the Anthropic API through a
+      tiny backend that runs <b>on your machine</b> — your API key lives in a local <code>.env</code> file
+      and never touches this page or the internet-facing site.
+      <br><br>
+      To bring the agents online, from a checkout of
+      <a href="https://github.com/${REPO}" target="_blank" rel="noopener">the repo</a>:
+      <br><br>
+      <b style="color:var(--text)">1.</b> <code>cd agentic-os-chat &amp;&amp; npm install</code><br>
+      <b style="color:var(--text)">2.</b> <code>cp .env.example .env</code> and put your key in it:
+      <code>ANTHROPIC_API_KEY=sk-ant-&hellip;</code><br>
+      <b style="color:var(--text)">3.</b> <code>npm run dev</code>
+      <br><br>
+      This page connects to <code>http://localhost:3001</code> automatically — or open the fully local copy at
+      <code>localhost:3001/agentic-os.html</code>. The agents know their own live GitHub state: open PRs,
+      shipped counts, who's working. Ask them about it.
+      ${aiOnline ? '<br><br><span class="set-ok">✓ Backend detected — click any robot, or the TALK button on a desk.</span>' : ''}
+    </div>`;
+  $('#overlay').classList.add('open');
+  $('.m-close').addEventListener('click', closeModal);
+}
+$('#ai-pill').addEventListener('click', openAIInfo);
+
+/* ---------- the chat dock ---------- */
+let chatDesk = null;   // active desk object
+let chatAbort = null;  // AbortController while streaming
+let liveEl = null;     // the message element being streamed into
+
+$('#k-model').innerHTML = AI_MODELS.map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
+
+function openChat(key) {
+  const d = DESKS.find(x => x.key === key);
+  if (!d) return;
+  chatDesk = d;
+  $('#k-av').src = avatarFor(d.agent);
+  $('.k-name').textContent = d.agent;
+  $('.k-sub').textContent = d.game + ' desk';
+  $('#dock').classList.add('open');
+  renderChat();
+  if (aiOnline) $('#k-text').focus();
+}
+
+function renderChat() {
+  if (!chatDesk) return;
+  const box = $('#k-msgs');
+  const hist = chatStore[chatDesk.key] || [];
+  box.innerHTML = '';
+  if (!aiOnline) {
+    const n = document.createElement('div');
+    n.className = 'k-note';
+    n.innerHTML = `${chatDesk.agent} can't hear you yet — the local AI backend is offline.<br>
+      Run <code>npm run dev</code> in <code>agentic-os-chat/</code> with your key in <code>.env</code>.
+      Click the AGENTS pill up top for full setup.`;
+    box.appendChild(n);
+  } else if (!hist.length) {
+    const n = document.createElement('div');
+    n.className = 'k-note';
+    n.textContent = `You walk up to ${chatDesk.agent}'s desk. Say hi — they know what they're working on.`;
+    box.appendChild(n);
+  }
+  for (const m of hist) {
+    const el = document.createElement('div');
+    el.className = 'k-m ' + (m.err ? 'err' : m.role === 'user' ? 'user' : 'agent');
+    el.textContent = m.content;
+    box.appendChild(el);
+  }
+  liveEl = box.lastElementChild && box.lastElementChild.classList.contains('agent') ? box.lastElementChild : null;
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStreaming(on) {
+  const b = $('#k-send');
+  b.innerHTML = on ? '&#9632;' : '&#9654;';
+  b.classList.toggle('stop', on);
+  b.title = on ? 'Stop' : 'Send';
+}
+
+async function kSend() {
+  if (chatAbort) { chatAbort.abort(); return; } // button doubles as STOP
+  if (!chatDesk) return;
+  if (!aiOnline) { openAIInfo(); return; }
+  const text = $('#k-text').value.trim();
+  if (!text) return;
+  const d = chatDesk;
+  const hist = (chatStore[d.key] = chatStore[d.key] || []);
+  // history sent to the API: prior clean turns + this message
+  const msgs = hist
+    .filter(m => !m.err && m.content && m.content.trim())
+    .map(({ role, content }) => ({ role, content }))
+    .concat([{ role: 'user', content: text }]);
+  hist.push({ role: 'user', content: text });
+  hist.push({ role: 'assistant', content: '' });
+  saveChats();
+  $('#k-text').value = '';
+  renderChat();
+  setStreaming(true);
+  const controller = new AbortController();
+  chatAbort = controller;
+  const last = hist[hist.length - 1];
+  try {
+    const res = await fetch(AI_BASE + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: msgs, model: $('#k-model').value, systemPrompt: personaFor(d) }),
+      signal: controller.signal
+    });
+    if (!res.ok) {
+      let m = 'request failed (' + res.status + ')';
+      try { m = (await res.json()).error || m; } catch (e) {}
+      throw new Error(m);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for (const part of parts) for (const line of part.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const ev = JSON.parse(line.slice(6));
+        if (ev.type === 'text') {
+          last.content += ev.text;
+          if (liveEl && chatDesk === d) { liveEl.textContent = last.content; $('#k-msgs').scrollTop = $('#k-msgs').scrollHeight; }
+        } else if (ev.type === 'error') {
+          throw new Error(ev.message);
+        } else if (ev.type === 'done' && ev.stop_reason === 'refusal') {
+          throw new Error(d.agent + ' declined to answer that one.');
+        }
+      }
+    }
+    if (!last.content) { last.err = true; last.content = d.agent + ' said nothing. Odd.'; }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      if (!last.content) hist.pop(); // stopped before any text — drop the empty bubble
+    } else if (!last.content) {
+      last.err = true;
+      last.content = e.message || 'chat failed';
+    } else {
+      // partial text survived — keep it, append the error separately
+      hist.push({ role: 'assistant', err: true, content: e.message || 'chat failed' });
+    }
+  } finally {
+    chatAbort = null;
+    setStreaming(false);
+    saveChats();
+    if (chatDesk === d) renderChat();
+  }
+}
+
+$('#k-send').addEventListener('click', kSend);
+$('#k-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); kSend(); }
+});
+$('#k-close').addEventListener('click', () => {
+  if (chatAbort) chatAbort.abort();
+  $('#dock').classList.remove('open');
+});
+$('#k-clear').addEventListener('click', () => {
+  if (!chatDesk) return;
+  delete chatStore[chatDesk.key];
+  saveChats();
+  renderChat();
+});
+
 /* ---------- go ---------- */
 buildOffice();
 render();
 sync().finally(() => $('#splash').classList.add('gone'));
 setInterval(sync, POLL_MS);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+aiHealth();
+setInterval(aiHealth, 60000);
 </script>
 </body>
 </html>

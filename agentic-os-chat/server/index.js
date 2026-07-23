@@ -22,6 +22,21 @@ const MAX_TOKENS = 64000;
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
+// CORS: the studio office page (agentic-os.html) may be served from another
+// origin (Vercel, file://) and talks to this local API. Local single-user
+// app, no credentials — permissive CORS is fine here.
+app.use("/api", (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
+// Serve the repo's static site so the office works fully local:
+// http://localhost:3001/agentic-os.html (dotfiles like .env are not served).
+app.use(express.static(path.join(__dirname, "..", ".."), { extensions: ["html"] }));
+
 let client = null;
 function getClient() {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -141,6 +156,7 @@ app.post("/api/chat", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`API server listening on http://localhost:${PORT}`);
+  console.log(`Studio office (live agents): http://localhost:${PORT}/agentic-os.html`);
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn(
       "⚠ ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key."
