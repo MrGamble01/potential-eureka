@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA STUDIO — the dev office, live</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127970;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="The Eureka Games dev office, live. A top-down pixel office wired to GitHub: agents work at their desks when real pull requests are open on their game — and wander, chat, and play ping pong when it's quiet.">
+  <meta name="description" content="The Eureka Games dev office, live — a voxel studio on a floating sky island, wired to GitHub. Agents work at their desks when real pull requests are open on their game, and wander, chat and play ping pong when it's quiet.">
   <meta name="theme-color" content="#05070a">
   <meta property="og:type" content="website">
   <meta property="og:title" content="EUREKA STUDIO — LIVE">
-  <meta property="og:description" content="A live top-down pixel office wired to GitHub: agents work when real PRs are open, and play ping pong when it's quiet.">
+  <meta property="og:description" content="A voxel dev office on a floating island, wired to GitHub: agents work when real PRs are open, and play ping pong when it's quiet.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap">
@@ -19,7 +19,6 @@
   --text:#c7d4e2; --dim:#66788c; --faint:#3d4c5e;
   --accent:#58a6ff; --accent-dim:rgba(88,166,255,.14);
   --good:#3fb950; --warn:#d29922; --bad:#f85149; --purple:#bc8cff;
-  --wood:#20180f; --wood2:#261d13; --wall:#2a3a4e;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
@@ -58,112 +57,31 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 #strip{padding:10px 22px;font-size:11px;color:var(--dim);border-bottom:1px solid var(--line);line-height:1.6}
 #strip b{color:var(--text)}
 
-/* ---------- the floor ---------- */
-#floorwrap{max-width:1400px;margin:0 auto;width:100%;padding:18px 22px 6px}
-#floor{position:relative;width:100%;aspect-ratio:2/1;background:#07090d;border:1px solid var(--line2);
-  border-radius:14px;overflow:hidden;user-select:none;
-  box-shadow:inset 0 0 60px rgba(0,0,0,.5), 0 10px 40px rgba(0,0,0,.35)}
-body.night #floor{filter:brightness(.72) saturate(.85)}
-/* zones */
-.zone{position:absolute;border-radius:8px}
-.z-bull{left:1.5%;top:3%;width:60%;height:94%;
-  background:repeating-linear-gradient(0deg,var(--wood) 0 12px,var(--wood2) 12px 24px);
-  box-shadow:inset 0 0 40px rgba(0,0,0,.45)}
-.z-lounge{left:63.5%;top:3%;width:35%;height:45.5%;background:#0e1520;
-  box-shadow:inset 0 0 30px rgba(0,0,0,.45)}
-.z-game{left:63.5%;top:51.5%;width:35%;height:45.5%;background:#0d1712;
-  box-shadow:inset 0 0 30px rgba(0,0,0,.45)}
-.zgrid{position:absolute;inset:0;opacity:.5;pointer-events:none;
-  background:repeating-linear-gradient(90deg,transparent 0 34px,rgba(28,40,54,.35) 34px 35px),
-             repeating-linear-gradient(0deg,transparent 0 34px,rgba(28,40,54,.35) 34px 35px)}
-.zlabel{position:absolute;font-size:8px;font-weight:700;letter-spacing:.18em;color:var(--faint);opacity:.8;pointer-events:none}
-/* walls */
-.wall{position:absolute;background:var(--wall);border-radius:3px;box-shadow:0 2px 0 rgba(0,0,0,.4)}
-.wall.v{width:0.55%}
-.wall.h{height:1.6%}
-/* desks (top view) */
-.dblk{position:absolute;width:9.5%;height:17%;cursor:pointer;z-index:3}
-.dtop{position:absolute;left:0;right:0;top:0;height:52%;background:linear-gradient(180deg,#3a3020,#2c2417);
-  border:1.5px solid #1d1810;border-radius:4px;box-shadow:0 3px 5px rgba(0,0,0,.5)}
-.dmon{position:absolute;left:50%;top:12%;transform:translateX(-50%);width:38%;height:34%;background:#0a0e14;
-  border:1.5px solid #232f3f;border-radius:2px}
-.dblk.working .dmon{background:#0a1a10;box-shadow:0 0 10px rgba(63,185,80,.45);animation:mflk 1.3s steps(2) infinite}
-@keyframes mflk{0%,100%{box-shadow:0 0 10px rgba(63,185,80,.45)}50%{box-shadow:0 0 14px rgba(63,185,80,.7)}}
-.dmug{position:absolute;right:8%;top:22%;font-size:8px;opacity:.85}
-.dname{position:absolute;left:0;right:0;top:-12px;text-align:center;font-size:8px;font-weight:700;
-  letter-spacing:.08em;color:var(--faint);text-shadow:0 1px 2px #000;white-space:nowrap}
-.dblk.working .dname{color:var(--good)}
-.dblk:hover .dtop{border-color:var(--line2)}
-.dpr{position:absolute;left:50%;top:-25px;transform:translateX(-50%);font-size:8px;font-weight:700;color:var(--good);
-  background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.35);border-radius:8px;padding:1px 6px;
-  white-space:nowrap;display:none}
-.dblk.working .dpr{display:block}
-/* furniture */
-.furn{position:absolute;z-index:2;pointer-events:none}
-.bookshelf{background:linear-gradient(180deg,#2c2013,#241a10);border:1.5px solid #17110a;border-radius:3px;overflow:hidden}
-.bookshelf::before{content:'';position:absolute;inset:12% 8%;
-  background:repeating-linear-gradient(90deg,#a05252 0 8%,#5a7fb0 8% 15%,#b09a52 15% 23%,transparent 23% 28%,
-    #7fa05a 28% 36%,#8a5ab0 36% 43%,transparent 43% 47%,#b07a52 47% 56%,#5aa0a0 56% 63%,transparent 63% 100%);
-  background-size:100% 46%;background-repeat:repeat-y;opacity:.85}
-.couch{background:#31405a;border:1.5px solid #1e2a40;border-radius:6px}
-.couch::before{content:'';position:absolute;left:6%;top:14%;width:88%;height:36%;background:#3a4a68;border-radius:4px}
-.vend{background:linear-gradient(180deg,#1a2434,#141b28);border:1.5px solid #0e141f;border-radius:3px}
-.vend::before{content:'';position:absolute;left:14%;top:10%;width:72%;height:52%;background:#0a0e14;border-radius:2px;
-  box-shadow:inset 0 0 8px rgba(88,166,255,.35)}
-.vend::after{content:'';position:absolute;left:20%;bottom:10%;width:60%;height:9%;background:#232f3f}
-.cmach{background:#22304a;border:1.5px solid #16203a;border-radius:3px}
-.cmach::before{content:'';position:absolute;right:12%;top:12%;width:16%;height:16%;border-radius:50%;background:var(--good);
-  animation:blink 2.6s infinite}
-.cmach::after{content:'';position:absolute;left:22%;bottom:12%;width:32%;height:24%;background:#7a5230;border-radius:1px}
-.rug{background:radial-gradient(ellipse at center,rgba(88,166,255,.10),rgba(88,166,255,.03) 70%,transparent);
-  border-radius:50%}
-.fplant{font-size:14px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
-/* ping pong table (top view) */
-#pptable{position:absolute;background:linear-gradient(180deg,#2d6a4f,#255a43);border:2px solid #1d4a37;border-radius:4px;z-index:2;
-  box-shadow:0 4px 8px rgba(0,0,0,.5)}
-#pptable::before{content:'';position:absolute;left:50%;top:-4%;bottom:-4%;width:2.5px;transform:translateX(-50%);
-  background:#c7d4e2;opacity:.7;border-radius:2px}
-#pptable::after{content:'';position:absolute;inset:6%;border:1px solid rgba(199,212,226,.35);border-radius:2px}
-#ppball{position:absolute;left:10%;top:45%;width:6px;height:6px;border-radius:50%;background:#f6e58d;display:none;
-  box-shadow:0 0 7px rgba(246,229,141,.6);z-index:3}
-#pptable.match #ppball{display:block;animation:prallyx 1.1s linear infinite alternate,prallyy .55s ease-in-out infinite alternate}
-@keyframes prallyx{from{left:7%}to{left:calc(93% - 6px)}}
-@keyframes prallyy{from{top:26%}to{top:62%}}
-#pongscore{position:absolute;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--purple);
-  background:rgba(188,140,255,.1);border:1px solid rgba(188,140,255,.35);border-radius:9px;padding:2px 9px;
-  white-space:nowrap;display:none;z-index:6}
-/* agents on the floor */
-.bot-a{position:absolute;width:34px;margin-left:-17px;margin-top:-30px;text-align:center;z-index:5;cursor:pointer;
-  transition:none}
-.bot-a img{width:27px;height:27px;border-radius:7px;display:block;margin:0 auto;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.55))}
-.bot-a .n{font-size:7px;font-weight:700;letter-spacing:.05em;color:var(--dim);text-shadow:0 1px 2px #000;margin-top:1px}
-.bot-a.flip img{transform:scaleX(-1)}
-.bot-a.walking img{animation:walkbob .3s ease-in-out infinite alternate}
-@keyframes walkbob{from{transform:translateY(0) rotate(-2.5deg)}to{transform:translateY(-2.5px) rotate(2.5deg)}}
-.bot-a.flip.walking img{animation:walkbobf .3s ease-in-out infinite alternate}
-@keyframes walkbobf{from{transform:scaleX(-1) translateY(0) rotate(2.5deg)}to{transform:scaleX(-1) translateY(-2.5px) rotate(-2.5deg)}}
-.bot-a.typing img{animation:typebob .46s ease-in-out infinite}
-@keyframes typebob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-.bot-a.playing img{animation:ppbob .5s ease-in-out infinite}
-@keyframes ppbob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-3px) rotate(3deg)}}
-.bot-a.party img{animation:partybounce .55s ease-in-out infinite}
-@keyframes partybounce{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(4deg)}}
-/* speech bubbles above heads */
-.fb{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);width:max-content;max-width:160px;
-  background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px 8px;font-size:9px;line-height:1.45;
-  color:var(--text);white-space:normal;display:none;z-index:8;animation:talkin .18s ease-out;pointer-events:none;
-  text-align:center}
-@keyframes talkin{from{opacity:0;transform:translateX(-50%) translateY(3px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.fb::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
-  border:4px solid transparent;border-top-color:var(--line)}
-.talking>.fb{display:block}
-.fb.good{color:var(--good);border-color:rgba(63,185,80,.4)}
-.fb.purple{color:var(--purple);border-color:rgba(188,140,255,.4)}
-/* the cat */
-#cat{position:absolute;font-size:15px;z-index:6;cursor:pointer;margin-left:-9px;margin-top:-14px;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));transition:none}
-#cat.flip{transform:scaleX(-1)}
+/* ---------- the world ---------- */
+#worldwrap{max-width:1400px;margin:0 auto;width:100%;padding:18px 22px 6px}
+#world{position:relative;width:100%;height:min(66vh,660px);min-height:400px;border:1px solid var(--line2);
+  border-radius:14px;overflow:hidden;background:#0a1024;cursor:grab;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.3), 0 10px 40px rgba(0,0,0,.35)}
+#world.dragging{cursor:grabbing}
+#world canvas{position:absolute;inset:0;display:block}
+#ov3{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}
+.t3{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;text-align:center}
+.t3 .nm{font-size:8px;font-weight:700;letter-spacing:.07em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap}
+.t3 .fb3{display:none;margin:0 auto 3px;width:max-content;max-width:170px;background:rgba(11,15,21,.92);
+  border:1px solid var(--line2);border-radius:9px;padding:3px 8px;font-size:9px;line-height:1.45;color:var(--text);
+  white-space:normal;animation:talkin .18s ease-out;text-align:center}
+@keyframes talkin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.t3.talking .fb3{display:block}
+.t3 .fb3.good{color:var(--good);border-color:rgba(63,185,80,.5)}
+.t3 .fb3.purple{color:var(--purple);border-color:rgba(188,140,255,.5)}
+.badge3{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;font-size:8px;font-weight:700;
+  color:var(--good);background:rgba(11,25,15,.85);border:1px solid rgba(63,185,80,.45);border-radius:8px;
+  padding:1px 6px;white-space:nowrap;display:none}
+.score3{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;font-size:9px;font-weight:700;
+  color:var(--purple);background:rgba(20,12,28,.85);border:1px solid rgba(188,140,255,.45);border-radius:9px;
+  padding:2px 9px;white-space:nowrap;display:none}
+#hint3{position:absolute;right:10px;bottom:8px;font-size:9px;color:rgba(255,255,255,.4);z-index:6;pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,.6)}
 
 /* ---------- roster ---------- */
 #roster{max-width:1400px;margin:0 auto;width:100%;padding:10px 22px 20px;display:flex;flex-wrap:wrap;gap:8px}
@@ -287,17 +205,16 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 
 @media (max-width:640px){
   header{padding:10px 14px;gap:8px}
-  #floorwrap{padding:12px 10px 4px}
+  #worldwrap{padding:12px 10px 4px}
+  #world{height:52vh;min-height:320px}
   #roster{padding:8px 10px 16px}
-  .bot-a img{width:22px;height:22px}
-  .bot-a .n{font-size:6px}
   #dock{right:8px;bottom:52px}
 }
 </style>
 </head>
 <body>
 
-<div id="splash"><div class="t">EUREKA STUDIO</div><div class="s">connecting to GitHub&hellip;</div></div>
+<div id="splash"><div class="t">EUREKA STUDIO</div><div class="s">raising the island&hellip;</div></div>
 
 <header>
   <span class="h-title">&#127970; EUREKA STUDIO</span>
@@ -312,13 +229,14 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 </header>
 
 <div id="strip">
-  This office is <b>real</b>: every agent is wired to
+  This office is <b>real</b>: a voxel studio on a floating sky island, and every agent is wired to
   <a href="https://github.com/MrGamble01/potential-eureka" target="_blank" rel="noopener">the repo on GitHub</a>.
   When a pull request is open touching their game, they're at their desk typing. When it's quiet, they wander —
-  coffee runs, desk visits, <b>ping pong</b>. Click a desk for its pull requests, click an agent to <b>talk to them</b>.
+  coffee runs, desk visits, <b>ping pong</b>. Drag to orbit, scroll to zoom. Click a desk for its pull requests,
+  click an agent to <b>talk to them</b>.
 </div>
 
-<div id="floorwrap"><div id="floor"></div></div>
+<div id="worldwrap"><div id="world"><div id="ov3"></div><div id="hint3">drag to orbit &middot; scroll to zoom</div></div></div>
 <div id="roster"></div>
 
 <div id="walls" hidden>
@@ -339,7 +257,7 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 
 <div id="ticker"><div class="inner" id="ticker-inner"></div></div>
 
-<footer>data refreshes every 60s straight from the GitHub API &middot; agent chat runs on your own local Anthropic backend, key never leaves your machine &middot; part of EUREKA GAMES</footer>
+<footer>data refreshes every 60s straight from the GitHub API &middot; agent chat runs on your own local Anthropic backend, key never leaves your machine &middot; island engine shared with <a href="voxel-garden.html">VOXEL ISLE</a> &middot; part of EUREKA GAMES</footer>
 
 <div id="dock">
   <div class="k-head">
@@ -360,10 +278,12 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 
 <div id="overlay"><div id="modal"></div></div>
 
+<script src="vendor/three-r128.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
-   EUREKA STUDIO — a live top-down pixel dev office.
+   EUREKA STUDIO — a live voxel dev office on a floating sky island.
+   Island engine shared with Voxel Isle (vendor/three-r128).
    Desk status is driven by real open pull requests on the repo:
    PR touches a game's files  ->  that agent is at their desk WORKING.
    No open PR on the game     ->  they wander: coffee, visits, ping pong.
@@ -376,45 +296,43 @@ const POLL_MS = 60000;
 const $ = (s, el) => (el || document).querySelector(s);
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/* Each desk: agent, repo paths, and its spot on the floor (percent coords).
-   `match` gets a changed-file path; `kw` is the fallback regex used on the
-   PR title + branch name when the files API is unavailable. */
+/* Each desk: agent, repo paths, and its desk position in the world (x,z).
+   Desks face +z: the monitor sits on the far edge, the agent stands at z+1.2. */
 const DESKS = [
-  { key: 'ageofwar', game: 'AGE OF WAR', agent: 'FORGE', dx: 5, dy: 14,
+  { key: 'ageofwar', game: 'AGE OF WAR', agent: 'FORGE', dx: -12, dz: -5,
     match: f => f.startsWith('ageofwar/'), kw: /age.?of.?war|aow/i },
-  { key: 'tycoon', game: 'STARTUP TYCOON', agent: 'NOVA', dx: 19.5, dy: 14,
+  { key: 'tycoon', game: 'STARTUP TYCOON', agent: 'NOVA', dx: -7.5, dz: -5,
     match: f => f.startsWith('tycoon/'), kw: /tycoon|beagle/i },
-  { key: 'growop', game: 'GROW OP', agent: 'MOSS', dx: 34, dy: 14,
+  { key: 'growop', game: 'GROW OP', agent: 'MOSS', dx: -3, dz: -5,
     match: f => f.startsWith('drug-lab'), kw: /grow.?op|drug.?lab/i },
-  { key: 'homeless', game: 'HOMELESS VILLAGE', agent: 'SCOUT', dx: 48.5, dy: 14,
+  { key: 'homeless', game: 'HOMELESS VILLAGE', agent: 'SCOUT', dx: 1.5, dz: -5,
     match: f => f.startsWith('homeless-village'), kw: /homeless/i },
-  { key: 'hearthvale', game: 'HEARTHVALE', agent: 'WREN', dx: 5, dy: 62,
+  { key: 'hearthvale', game: 'HEARTHVALE', agent: 'WREN', dx: -12, dz: 3.2,
     match: f => f.startsWith('hearthvale'), kw: /hearthvale/i },
-  { key: 'arcade', game: 'ARCADE HUB', agent: 'BOLT', dx: 19.5, dy: 62,
+  { key: 'arcade', game: 'ARCADE HUB', agent: 'BOLT', dx: -7.5, dz: 3.2,
     match: f => f === 'index.html' || f.startsWith('js/') || f.startsWith('css/'),
     kw: /arcade|snake|tetris|breaker|2048|asteroid|vector storm|maze|hub|dashboard/i },
-  { key: 'studio', game: 'STUDIO PAGE', agent: 'CIPHER', dx: 34, dy: 62,
+  { key: 'studio', game: 'STUDIO PAGE', agent: 'CIPHER', dx: -3, dz: 3.2,
     match: f => f.startsWith('agentic-os'), kw: /agentic|studio/i },
-  { key: 'ops', game: 'SITE OPS', agent: 'ATLAS', dx: 48.5, dy: 62,
+  { key: 'ops', game: 'SITE OPS', agent: 'ATLAS', dx: 1.5, dz: 3.2,
     match: f => ['README.md', 'ROADMAP.md', 'vercel.json', 'sitemap.xml', 'robots.txt', '404.html'].includes(f) || f.startsWith('assets/') || f.startsWith('vendor/'),
     kw: /readme|roadmap|deploy|vercel|seo|sitemap|ops|infra/i }
 ];
-function seatOf(d) { return { x: d.dx + 4.75, y: d.dy + 19 }; }
+function seatOf(d) { return { x: d.dx, z: d.dz + 1.25 }; }
 
-/* named places on the floor */
+/* named places in the world */
 const SPOTS = {
-  coffee: { x: 87, y: 22 },
-  couch1: { x: 70, y: 28 }, couch2: { x: 75.5, y: 28 },
-  vend: { x: 93, y: 26 },
-  pongL: { x: 68.5, y: 71 }, pongR: { x: 94, y: 71 },
-  doorMain: { x: 61.5, y: 51 }, doorRight: { x: 87, y: 50.5 }
+  coffee: { x: 12.4, z: -5.7 },
+  couch1: { x: 6.8, z: -4.9 }, couch2: { x: 8.2, z: -4.9 },
+  vend: { x: 13.2, z: -3.2 },
+  pongL: { x: 7.3, z: 4 }, pongR: { x: 11.7, z: 4 }
 };
 const BREAK_SPOTS = ['coffee', 'couch1', 'couch2', 'vend'];
 
 /* ---------- procedural avatars (the studio's little robots) ---------- */
-const AVATARS = {};
-function avatarFor(name) {
-  if (AVATARS[name]) return AVATARS[name];
+const AVATARS = {}, AVCANVAS = {};
+function avatarCanvas(name) {
+  if (AVCANVAS[name]) return AVCANVAS[name];
   let h = 7;
   for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const cv = document.createElement('canvas');
@@ -447,26 +365,26 @@ function avatarFor(name) {
   else if (m === 1) { for (let i = 0; i < 4; i++) ctx.fillRect(17 + i * 4, 31, 2.5, 3); }
   else if (m === 2) { ctx.beginPath(); ctx.arc(24, 31, 3.6, 0, Math.PI); ctx.fill(); }
   else ctx.fillRect(21, 30.5, 6, 3.5);
-  return (AVATARS[name] = cv.toDataURL());
+  return (AVCANVAS[name] = cv);
+}
+function avatarFor(name) {
+  if (AVATARS[name]) return AVATARS[name];
+  return (AVATARS[name] = avatarCanvas(name).toDataURL());
+}
+function hueFor(name) {
+  let h = 7;
+  for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % 360;
 }
 
 /* ---------- state ---------- */
 const state = {
-  prs: [],            // open PRs from GitHub
-  byDesk: {},         // desk key -> array of PRs
-  merged: [],         // recently merged PRs (closed list, merged_at set)
-  mergedByDesk: {},   // desk key -> merged PRs (for celebration + career stats)
-  ci: {},             // pr number -> combined status (success|failure|pending)
-  issues: [],         // open issues -> the request board
-  commits: [],        // latest commits on main -> the wall
-  rate: null,         // {rem, max} from the latest response headers
-  lastSync: null,
-  etag: null, etagClosed: null, etagIssues: null, etagCommits: null,
-  error: null
+  prs: [], byDesk: {}, merged: [], mergedByDesk: {}, ci: {},
+  issues: [], commits: [], rate: null, lastSync: null,
+  etag: null, etagClosed: null, etagIssues: null, etagCommits: null, error: null
 };
 
-/* Optional personal token (localStorage only, sent only to api.github.com).
-   Anonymous = 60 req/hr; with a no-scope token = 5,000. */
+/* Optional personal token (localStorage only, sent only to api.github.com). */
 const TOKEN_KEY = 'studio-token';
 function token() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; } }
 function gh(path, extra) {
@@ -480,7 +398,6 @@ function gh(path, extra) {
   });
 }
 
-/* CI results cached by head SHA — terminal states only, pending gets refetched */
 const CICACHE_KEY = 'studio-ci';
 function ciCache() { try { return JSON.parse(localStorage.getItem(CICACHE_KEY) || '{}'); } catch (e) { return {}; } }
 async function ciFor(pr) {
@@ -491,7 +408,7 @@ async function ciFor(pr) {
   try {
     const res = await gh('/commits/' + sha + '/status');
     if (!res.ok) return null;
-    const st = (await res.json()).state; // success | failure | pending
+    const st = (await res.json()).state;
     if (st === 'success' || st === 'failure') {
       cache[sha] = st;
       const keys = Object.keys(cache);
@@ -502,7 +419,6 @@ async function ciFor(pr) {
   } catch (e) { return null; }
 }
 
-/* changed-files cache: refetch a PR's files only when its updated_at moves */
 const FCACHE_KEY = 'studio-fcache';
 function fcache() { try { return JSON.parse(localStorage.getItem(FCACHE_KEY) || '{}'); } catch (e) { return {}; } }
 function fcacheSave(c) { try { localStorage.setItem(FCACHE_KEY, JSON.stringify(c)); } catch (e) {} }
@@ -512,10 +428,9 @@ async function filesFor(pr) {
   const hit = cache[pr.number];
   if (hit && hit.u === pr.updated_at) return hit.f;
   const res = await gh('/pulls/' + pr.number + '/files?per_page=100');
-  if (!res.ok) return null; // rate limited etc — caller falls back to keywords
+  if (!res.ok) return null;
   const files = (await res.json()).map(f => f.filename);
   cache[pr.number] = { u: pr.updated_at, f: files };
-  // keep the cache small: drop entries for PRs no longer open
   for (const k of Object.keys(cache)) if (!state.prs.some(p => String(p.number) === k)) delete cache[k];
   fcacheSave(cache);
   return files;
@@ -526,15 +441,13 @@ function desksFor(pr, files) {
   if (files) {
     for (const f of files) for (const d of DESKS) if (d.match(f)) hits.add(d.key);
   }
-  if (!hits.size) { // fallback: keywords in title + branch
+  if (!hits.size) {
     const hay = pr.title + ' ' + (pr.head ? pr.head.ref : '');
     for (const d of DESKS) if (d.kw.test(hay)) hits.add(d.key);
   }
-  if (!hits.size) hits.add('ops'); // untraceable work lands on the ops desk
+  if (!hits.size) hits.add('ops');
   return [...hits];
 }
-
-/* keyword-only mapping for things without a file list (issues, commits) */
 function deskByText(text) {
   for (const d of DESKS) if (d.kw.test(text)) return d;
   return null;
@@ -556,11 +469,9 @@ async function sync() {
       for (const key of desksFor(pr, files)) byDesk[key].push(pr);
     }
     state.byDesk = byDesk;
-    // CI status for each open PR (cheap: cached by SHA once terminal)
     const ci = {};
     for (const pr of state.prs.slice(0, 10)) ci[pr.number] = await ciFor(pr);
     state.ci = ci;
-    // recently merged work -> celebrations + shipped board + career stats
     try {
       const h2 = {};
       if (state.etagClosed) h2['If-None-Match'] = state.etagClosed;
@@ -576,8 +487,7 @@ async function sync() {
         }
         state.mergedByDesk = mByDesk;
       }
-    } catch (e) { /* celebrations are optional */ }
-    // open issues -> the request board (the issues API also returns PRs; drop those)
+    } catch (e) {}
     try {
       const h3 = {};
       if (state.etagIssues) h3['If-None-Match'] = state.etagIssues;
@@ -586,8 +496,7 @@ async function sync() {
         state.etagIssues = ri.headers.get('ETag');
         state.issues = (await ri.json()).filter(i => !i.pull_request);
       }
-    } catch (e) { /* the board is optional */ }
-    // latest commits on the default branch -> the wall
+    } catch (e) {}
     try {
       const h4 = {};
       if (state.etagCommits) h4['If-None-Match'] = state.etagCommits;
@@ -596,7 +505,7 @@ async function sync() {
         state.etagCommits = rk.headers.get('ETag');
         state.commits = await rk.json();
       }
-    } catch (e) { /* the wall is optional */ }
+    } catch (e) {}
     state.lastSync = new Date();
     state.error = null;
   } catch (e) {
@@ -605,7 +514,6 @@ async function sync() {
   render();
 }
 
-/* ---------- build the floor ---------- */
 function ago(iso) {
   const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
   if (s < 90) return 'just now';
@@ -614,141 +522,425 @@ function ago(iso) {
   return Math.round(s / 86400) + 'd ago';
 }
 
-const BOTS = {}; // desk key -> runtime bot {x, y, path, el, act, flip, home}
+/* =====================================================================
+   THE WORLD — three.js voxel island (engine style shared with Voxel Isle)
+   ===================================================================== */
+const worldEl = $('#world');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+worldEl.insertBefore(renderer.domElement, worldEl.firstChild);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(46, 2, 0.1, 260);
+const hemi = new THREE.HemisphereLight(0xcde6ff, 0x2a2117, 0.85);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff2d8, 0.95);
+sun.position.set(28, 42, 16);
+scene.add(sun);
 
-function buildFloor() {
-  const f = $('#floor');
-  f.innerHTML = `
-    <div class="zone z-bull"><div class="zgrid"></div></div>
-    <div class="zone z-lounge"><div class="zgrid"></div></div>
-    <div class="zone z-game"><div class="zgrid"></div></div>
-    <div class="zlabel" style="left:3.5%;top:5.5%">DEV FLOOR</div>
-    <div class="zlabel" style="left:65.5%;top:5.5%">LOUNGE</div>
-    <div class="zlabel" style="left:65.5%;top:54%">GAME ROOM</div>
-    <div class="wall v" style="left:62%;top:3%;height:38%"></div>
-    <div class="wall v" style="left:62%;top:62%;height:35%"></div>
-    <div class="wall h" style="left:63.5%;top:48.6%;width:19%"></div>
-    <div class="wall h" style="left:93%;top:48.6%;width:5.5%"></div>
-    <div class="furn bookshelf" style="left:65%;top:6.5%;width:11%;height:11%"></div>
-    <div class="furn cmach" style="left:85%;top:8%;width:4.2%;height:13%"></div>
-    <div class="furn vend" style="left:91.5%;top:6.5%;width:5%;height:16%"></div>
-    <div class="furn rug" style="left:68%;top:20%;width:20%;height:20%"></div>
-    <div class="furn couch" style="left:66.5%;top:33%;width:13%;height:9%"></div>
-    <div class="furn fplant" style="left:96%;top:38%">&#127807;</div>
-    <div class="furn fplant" style="left:64.5%;top:41%">&#129716;</div>
-    <div class="furn fplant" style="left:96%;top:88%">&#127793;</div>
-    <div class="furn fplant" style="left:2.5%;top:88%">&#129716;</div>
-    <div class="furn fplant" style="left:57.5%;top:6%">&#127793;</div>
-    <div id="pptable" style="left:72.5%;top:63%;width:19%;height:17%"><div id="ppball"></div><div class="fb"></div></div>
-    <div id="pongscore" style="top:56.5%"></div>
-    ${DESKS.map(d => `
-      <div class="dblk" id="dblk-${d.key}" data-key="${d.key}" style="left:${d.dx}%;top:${d.dy}%" title="${esc(d.game)} — click for pull requests">
-        <div class="dpr"></div>
-        <div class="dtop"><div class="dmon"></div><div class="dmug">&#9749;</div></div>
-        <div class="dname">${esc(d.game)}</div>
-      </div>`).join('')}
-    ${DESKS.map(d => {
-      const s = seatOf(d);
-      return `<div class="bot-a" id="bot-${d.key}" data-key="${d.key}" style="left:${s.x}%;top:${s.y}%" title="talk to ${esc(d.agent)}">
-        <div class="fb"></div>
-        <img src="${avatarFor(d.agent)}" alt="">
-        <div class="n">${esc(d.agent)}</div>
-      </div>`;
-    }).join('')}
-    <div id="cat" title="the office cat" style="left:30%;top:45%">&#128008;<div class="fb"></div></div>`;
-  // runtime bot state
-  for (const d of DESKS) {
-    const s = seatOf(d);
-    BOTS[d.key] = { key: d.key, agent: d.agent, x: s.x, y: s.y, home: s, path: [], act: null,
-      el: $('#bot-' + d.key), flip: false };
+function sizeWorld() {
+  const w = worldEl.clientWidth, h = worldEl.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', sizeWorld);
+
+/* time of day: sky, fog, light */
+const STARS = (() => {
+  const pos = [];
+  for (let i = 0; i < 320; i++) {
+    const t = Math.random() * Math.PI * 2, p = Math.acos(Math.random() * 0.9);
+    const r = 200;
+    pos.push(r * Math.sin(p) * Math.cos(t), Math.abs(r * Math.cos(p)) + 8, r * Math.sin(p) * Math.sin(t));
   }
-  // clicks: desk -> PR modal, agent -> chat
-  document.querySelectorAll('.dblk').forEach(el =>
-    el.addEventListener('click', () => openModal(el.dataset.key)));
-  document.querySelectorAll('.bot-a').forEach(el =>
-    el.addEventListener('click', e => { e.stopPropagation(); openChat(el.dataset.key); }));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const m = new THREE.PointsMaterial({ color: 0xdfe8ff, size: 1.6, sizeAttenuation: false });
+  const pts = new THREE.Points(g, m);
+  pts.visible = false;
+  scene.add(pts);
+  return pts;
+})();
+function applyTimeOfDay() {
+  const h = new Date().getHours();
+  let sky, sunI, hemiI, night = false;
+  if (h >= 7 && h < 18) { sky = 0x8ec1ea; sunI = 1.0; hemiI = 0.85; }
+  else if ((h >= 18 && h < 21) || (h >= 5 && h < 7)) { sky = 0xd98d5a; sunI = 0.65; hemiI = 0.6; }
+  else { sky = 0x0b1226; sunI = 0.2; hemiI = 0.35; night = true; }
+  scene.background = new THREE.Color(sky);
+  scene.fog = new THREE.Fog(sky, 55, 160);
+  sun.intensity = sunI;
+  sun.color.set(night ? 0x8aa5d8 : 0xfff2d8);
+  hemi.intensity = hemiI;
+  STARS.visible = night;
+  document.body.classList.toggle('night', night);
 }
 
-/* ---------- movement engine ---------- */
-const SPD = 0.55; // percent-of-width per tick, visually
-function routeTo(bot, tx, ty) {
-  const path = [];
-  const fromLeft = bot.x < 62, toLeft = tx < 62;
-  if (fromLeft !== toLeft) {
-    path.push({ x: SPOTS.doorMain.x, y: SPOTS.doorMain.y });
-  } else if (!fromLeft && !toLeft && (bot.y < 49) !== (ty < 49)) {
-    path.push({ x: SPOTS.doorRight.x, y: SPOTS.doorRight.y });
+/* camera orbit (custom, minimal) */
+const cam = { az: 0.85, pol: 1.02, r: 27, tgt: new THREE.Vector3(0, 0.6, 0), auto: true, lastTouch: 0 };
+function applyCam() {
+  const sp = Math.sin(cam.pol), x = cam.r * sp * Math.cos(cam.az), z = cam.r * sp * Math.sin(cam.az);
+  camera.position.set(cam.tgt.x + x, cam.tgt.y + cam.r * Math.cos(cam.pol), cam.tgt.z + z);
+  camera.lookAt(cam.tgt);
+}
+(() => {
+  let dragging = false, px = 0, py = 0, moved = 0;
+  worldEl.addEventListener('pointerdown', e => {
+    dragging = true; moved = 0; px = e.clientX; py = e.clientY;
+    worldEl.classList.add('dragging');
+    worldEl.setPointerCapture(e.pointerId);
+  });
+  worldEl.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - px, dy = e.clientY - py;
+    moved += Math.abs(dx) + Math.abs(dy);
+    px = e.clientX; py = e.clientY;
+    cam.az += dx * 0.0055;
+    cam.pol = Math.max(0.55, Math.min(1.35, cam.pol - dy * 0.004));
+    cam.lastTouch = performance.now();
+  });
+  worldEl.addEventListener('pointerup', e => {
+    dragging = false;
+    worldEl.classList.remove('dragging');
+    if (moved < 7) pickAt(e); // it was a click, not a drag
+  });
+  worldEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    cam.r = Math.max(13, Math.min(48, cam.r + e.deltaY * 0.02));
+    cam.lastTouch = performance.now();
+  }, { passive: false });
+})();
+
+/* click picking: agents open chat, desks open the PR modal */
+const raycaster = new THREE.Raycaster();
+function pickAt(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const v = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
+  raycaster.setFromCamera(v, camera);
+  const hits = raycaster.intersectObjects(scene.children, true);
+  for (const hit of hits) {
+    let o = hit.object;
+    while (o) {
+      if (o.userData && o.userData.botKey) return openChat(o.userData.botKey);
+      if (o.userData && o.userData.deskKey) return openModal(o.userData.deskKey);
+      if (o.userData && o.userData.isCat) { pokeCat(); return; }
+      o = o.parent;
+    }
   }
-  path.push({ x: tx, y: ty });
+}
+
+/* shared geometry/material helpers */
+const BOXG = new THREE.BoxGeometry(1, 1, 1);
+const MATS = {};
+function mat(color, emissive) {
+  const k = color + '|' + (emissive || 0);
+  if (!MATS[k]) {
+    MATS[k] = new THREE.MeshLambertMaterial({ color });
+    if (emissive) MATS[k].emissive = new THREE.Color(emissive);
+  }
+  return MATS[k];
+}
+function box(parent, color, w, h, d, x, y, z, emissive) {
+  const m = new THREE.Mesh(BOXG, mat(color, emissive));
+  m.scale.set(w, h, d);
+  m.position.set(x, y, z);
+  parent.add(m);
+  return m;
+}
+
+/* ---------- the floating island ---------- */
+function buildIsland() {
+  const R = 19;
+  const items = []; // {x,y,z,c}
+  const grassA = new THREE.Color(0x5f9e4c), grassB = new THREE.Color(0x548f43);
+  const dirt = new THREE.Color(0x6b4a2d), dirt2 = new THREE.Color(0x5a3d24);
+  const stone = new THREE.Color(0x6e7681), stone2 = new THREE.Color(0x596069);
+  let seed = 1337;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let x = -R; x <= R; x++) for (let z = -R; z <= R; z++) {
+    const d = Math.sqrt(x * x + z * z) + (rnd() - 0.5) * 1.6;
+    if (d > R) continue;
+    const inOffice = x >= -14.5 && x <= 14.5 && z >= -8.5 && z <= 8.5;
+    items.push({ x, y: 0, z, c: (x + z) % 2 === 0 ? grassA : grassB, office: inOffice });
+    const depth = Math.max(2, Math.round((R - d) * 0.5 + rnd() * 2));
+    for (let y = 1; y <= depth; y++) {
+      // only shell blocks below the surface: rim columns or the tapering core
+      if (d < R - 1.5 && y < depth - 1 && y > 1) continue;
+      const c = y <= 2 ? (y === 1 ? dirt : dirt2) : (rnd() < 0.5 ? stone : stone2);
+      items.push({ x, y: -y, z, c });
+    }
+  }
+  const im = new THREE.InstancedMesh(BOXG, new THREE.MeshLambertMaterial(), items.length);
+  const m4 = new THREE.Matrix4();
+  items.forEach((it, i) => {
+    m4.makeTranslation(it.x, it.y - 0.5, it.z);
+    im.setMatrixAt(i, m4);
+    im.setColorAt(i, it.c);
+  });
+  im.instanceColor.needsUpdate = true;
+  scene.add(im);
+
+  // office floor planks over the office rect
+  const plankA = new THREE.Color(0x4a3a24), plankB = new THREE.Color(0x41331f);
+  const loungeA = new THREE.Color(0x2b3a52), loungeB = new THREE.Color(0x253248);
+  const gameA = new THREE.Color(0x2b4a3a), gameB = new THREE.Color(0x254032);
+  const tiles = [];
+  for (let x = -14; x <= 14; x++) for (let z = -8; z <= 8; z++) {
+    let a, b;
+    if (x < 4.5) { a = plankA; b = plankB; }
+    else if (z < 0) { a = loungeA; b = loungeB; }
+    else { a = gameA; b = gameB; }
+    tiles.push({ x, z, c: (x + z) % 2 === 0 ? a : b });
+  }
+  const tm = new THREE.InstancedMesh(BOXG, new THREE.MeshLambertMaterial(), tiles.length);
+  tiles.forEach((t, i) => {
+    m4.makeScale(1, 0.14, 1);
+    m4.setPosition(t.x, 0.07, t.z);
+    tm.setMatrixAt(i, m4);
+    tm.setColorAt(i, t.c);
+  });
+  tm.instanceColor.needsUpdate = true;
+  scene.add(tm);
+
+  // garden fringe: flowers + grass tufts outside the office rect
+  const petals = [0xf78fb3, 0xf6e58d, 0x82ccdd, 0xffffff, 0xbc8cff];
+  for (let i = 0; i < 90; i++) {
+    const t = rnd() * Math.PI * 2, rr = 15.8 + rnd() * 2.6;
+    const x = Math.cos(t) * rr, z = Math.sin(t) * rr;
+    if (Math.sqrt(x * x + z * z) > R - 0.8) continue;
+    if (rnd() < 0.5) {
+      box(scene, 0x3f7a33, 0.1, 0.3 + rnd() * 0.25, 0.1, x, 0.3, z);
+    } else {
+      box(scene, 0x3f7a33, 0.08, 0.3, 0.08, x, 0.28, z);
+      box(scene, petals[Math.floor(rnd() * petals.length)], 0.24, 0.16, 0.24, x, 0.5, z);
+    }
+  }
+  // trees on the fringe
+  for (const [tx, tz] of [[-16.6, 4.5], [-9, -13.5], [10, -13], [16.4, 8.5], [-1, 14.5]]) {
+    if (Math.sqrt(tx * tx + tz * tz) > R - 1) continue;
+    const g = new THREE.Group();
+    box(g, 0x5a3d24, 0.5, 2.2, 0.5, 0, 1.1, 0);
+    box(g, 0x3f7a33, 2.4, 1.1, 2.4, 0, 2.6, 0);
+    box(g, 0x498a3c, 1.7, 0.9, 1.7, 0, 3.5, 0);
+    box(g, 0x54a045, 1, 0.7, 1, 0, 4.2, 0);
+    g.position.set(tx, 0, tz);
+    scene.add(g);
+  }
+  // lamp posts at office corners (warm glow at night)
+  for (const [lx, lz] of [[-14.6, -8.6], [14.6, -8.6], [-14.6, 8.6], [14.6, 8.6]]) {
+    const g = new THREE.Group();
+    box(g, 0x232f3f, 0.16, 2.4, 0.16, 0, 1.2, 0);
+    box(g, 0xffd75e, 0.42, 0.42, 0.42, 0, 2.55, 0, 0x7a5c16);
+    g.position.set(lx, 0.14, lz);
+    scene.add(g);
+  }
+  // drifting clouds
+  const ring = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const c = new THREE.Group();
+    const n = 3 + Math.floor(rnd() * 3);
+    for (let j = 0; j < n; j++) {
+      box(c, 0xffffff, 2 + rnd() * 2.4, 0.9, 1.4 + rnd() * 1.6, (j - n / 2) * 1.6, rnd() * 0.5, (rnd() - 0.5) * 1.5);
+    }
+    const a = (i / 5) * Math.PI * 2;
+    c.position.set(Math.cos(a) * (30 + rnd() * 14), 13 + rnd() * 6, Math.sin(a) * (30 + rnd() * 14));
+    ring.add(c);
+  }
+  scene.add(ring);
+  return { cloudRing: ring };
+}
+
+/* ---------- furniture ---------- */
+const DESKOBJ = {}; // key -> {group, screen}
+function buildFurniture() {
+  // desks
+  for (const d of DESKS) {
+    const g = new THREE.Group();
+    box(g, 0x3a3020, 2.2, 0.16, 1.05, 0, 0.95, 0);            // top
+    box(g, 0x2c2417, 0.14, 0.9, 0.14, -0.95, 0.45, -0.4);     // legs
+    box(g, 0x2c2417, 0.14, 0.9, 0.14, 0.95, 0.45, -0.4);
+    box(g, 0x2c2417, 0.14, 0.9, 0.14, -0.95, 0.45, 0.4);
+    box(g, 0x2c2417, 0.14, 0.9, 0.14, 0.95, 0.45, 0.4);
+    box(g, 0x151d29, 0.8, 0.55, 0.09, 0, 1.35, -0.34);        // monitor
+    const screen = box(g, 0x0a0e14, 0.68, 0.42, 0.02, 0, 1.36, -0.283);
+    screen.material = new THREE.MeshLambertMaterial({ color: 0x0a0e14 }); // own material for glow
+    box(g, 0x7a5230, 0.16, 0.14, 0.16, 0.8, 1.1, 0.22);       // mug
+    g.position.set(d.dx, 0.14, d.dz);
+    g.traverse(o => { o.userData.deskKey = d.key; });
+    scene.add(g);
+    DESKOBJ[d.key] = { group: g, screen };
+  }
+  // lounge: bookshelf, coffee machine, vending machine, couch
+  const shelf = new THREE.Group();
+  box(shelf, 0x2c2013, 2.2, 1.7, 0.55, 0, 0.85, 0);
+  const bookCols = [0xa05252, 0x5a7fb0, 0xb09a52, 0x7fa05a, 0x8a5ab0, 0x5aa0a0];
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) {
+    if ((r + i) % 3 === 2) continue;
+    box(shelf, bookCols[(r * 6 + i) % bookCols.length], 0.22, 0.5, 0.3, -0.85 + i * 0.34, 0.55 + r * 0.72, 0.16);
+  }
+  shelf.position.set(6.2, 0.14, -7.5);
+  scene.add(shelf);
+
+  const cm = new THREE.Group();
+  box(cm, 0x22304a, 0.75, 1.15, 0.6, 0, 0.58, 0);
+  box(cm, 0xf85149, 0.12, 0.12, 0.05, 0.2, 0.95, 0.31, 0x7a1d18);
+  box(cm, 0x7a5230, 0.26, 0.2, 0.24, 0, 0.28, 0.2);
+  cm.position.set(12.4, 0.14, -7);
+  scene.add(cm);
+
+  const vend = new THREE.Group();
+  box(vend, 0x141b28, 0.95, 1.75, 0.7, 0, 0.88, 0);
+  box(vend, 0x1c2a44, 0.6, 1.1, 0.05, -0.08, 1.05, 0.36, 0x14335c);
+  vend.position.set(13.6, 0.14, -4.4);
+  scene.add(vend);
+
+  const couch = new THREE.Group();
+  box(couch, 0x31405a, 2.4, 0.5, 0.95, 0, 0.4, 0);
+  box(couch, 0x3a4a68, 2.4, 0.65, 0.28, 0, 0.85, -0.36);
+  box(couch, 0x3a4a68, 0.3, 0.62, 0.95, -1.08, 0.62, 0);
+  box(couch, 0x3a4a68, 0.3, 0.62, 0.95, 1.08, 0.62, 0);
+  couch.position.set(7.5, 0.14, -5.9);
+  scene.add(couch);
+
+  // potted plants inside the office
+  for (const [px, pz] of [[4.6, -7.8], [-14, 8], [4.6, 8], [14, 1]]) {
+    const p = new THREE.Group();
+    box(p, 0x7a5230, 0.4, 0.35, 0.4, 0, 0.2, 0);
+    box(p, 0x3f7a33, 0.5, 0.55, 0.5, 0, 0.7, 0);
+    p.position.set(px, 0.14, pz);
+    scene.add(p);
+  }
+
+  // ping pong table
+  const pt = new THREE.Group();
+  box(pt, 0x2d6a4f, 3.6, 0.14, 1.9, 0, 0.92, 0);
+  box(pt, 0xd8e2ec, 0.05, 0.34, 1.9, 0, 1.13, 0);            // net
+  box(pt, 0xd8e2ec, 3.6, 0.02, 0.06, 0, 1.0, 0);             // center line
+  box(pt, 0x1d4a37, 0.16, 0.9, 0.16, -1.5, 0.45, -0.7);
+  box(pt, 0x1d4a37, 0.16, 0.9, 0.16, 1.5, 0.45, -0.7);
+  box(pt, 0x1d4a37, 0.16, 0.9, 0.16, -1.5, 0.45, 0.7);
+  box(pt, 0x1d4a37, 0.16, 0.9, 0.16, 1.5, 0.45, 0.7);
+  pt.position.set(9.5, 0.14, 4);
+  scene.add(pt);
+  const ball = box(scene, 0xf6e58d, 0.16, 0.16, 0.16, 9.5, 1.35, 4, 0x6b5f1c);
+  ball.visible = false;
+  return { pongTable: pt, ball };
+}
+
+/* ---------- voxel bots ---------- */
+const BOTS = {}; // key -> runtime bot
+function buildBot(d) {
+  const hue = hueFor(d.agent);
+  const bodyC = new THREE.Color().setHSL(hue / 360, 0.45, 0.42).getHex();
+  const g = new THREE.Group();
+  const faceTex = new THREE.CanvasTexture(avatarCanvas(d.agent));
+  faceTex.magFilter = THREE.NearestFilter;
+  const headMats = [
+    mat(new THREE.Color().setHSL(hue / 360, 0.5, 0.5).getHex()), // right
+    mat(new THREE.Color().setHSL(hue / 360, 0.5, 0.5).getHex()), // left
+    mat(new THREE.Color().setHSL(hue / 360, 0.5, 0.56).getHex()), // top
+    mat(new THREE.Color().setHSL(hue / 360, 0.5, 0.4).getHex()),  // bottom
+    new THREE.MeshLambertMaterial({ map: faceTex }),              // front (+z)
+    mat(new THREE.Color().setHSL(hue / 360, 0.5, 0.44).getHex())  // back
+  ];
+  const head = new THREE.Mesh(BOXG, headMats);
+  head.scale.set(0.62, 0.62, 0.62);
+  head.position.y = 1.06;
+  g.add(head);
+  box(g, bodyC, 0.56, 0.52, 0.36, 0, 0.5, 0);                    // torso
+  box(g, bodyC, 0.16, 0.26, 0.2, -0.2, 0.13, 0);                 // legs
+  box(g, bodyC, 0.16, 0.26, 0.2, 0.2, 0.13, 0);
+  // soft shadow blob
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(0.45, 12),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 }));
+  sh.rotation.x = -Math.PI / 2;
+  sh.position.y = 0.155;
+  g.add(sh);
+  g.traverse(o => { o.userData.botKey = d.key; });
+  scene.add(g);
+  return g;
+}
+
+/* HTML overlay: name tags, speech bubbles, badges — projected each frame */
+const OV = $('#ov3');
+function makeTag(name) {
+  const t = document.createElement('div');
+  t.className = 't3';
+  t.innerHTML = `<div class="fb3"></div><div class="nm">${esc(name)}</div>`;
+  OV.appendChild(t);
+  return t;
+}
+const _pv = new THREE.Vector3();
+function projectTo(el, x, y, z) {
+  _pv.set(x, y, z).project(camera);
+  if (_pv.z > 1) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.style.transform = `translate(-50%,-100%) translate(${((_pv.x * 0.5 + 0.5) * worldEl.clientWidth).toFixed(1)}px, ${((-_pv.y * 0.5 + 0.5) * worldEl.clientHeight).toFixed(1)}px)`;
+}
+
+/* ---------- movement ---------- */
+const SPD = 2.3; // world units per second
+function routeTo(bot, tx, tz) {
+  const path = [];
+  if (Math.abs(bot.z - tz) > 3) { // walk via the central aisle, like a person would
+    path.push({ x: bot.x, z: 0.2 });
+    path.push({ x: tx, z: 0.2 });
+  }
+  path.push({ x: tx, z: tz });
   bot.path = path;
 }
-function tickBot(bot) {
+function tickBot(bot, dt) {
   if (!bot.path.length) return false;
   const t = bot.path[0];
-  const vx = t.x - bot.x, vy = (t.y - bot.y) * 0.5; // y% is half the visual size of x%
-  const d = Math.hypot(vx, vy);
-  if (d < 0.7) {
-    bot.x = t.x; bot.y = t.y;
+  const vx = t.x - bot.x, vz = t.z - bot.z;
+  const d = Math.hypot(vx, vz);
+  if (d < 0.12) {
+    bot.x = t.x; bot.z = t.z;
     bot.path.shift();
     return bot.path.length > 0;
   }
-  bot.x += (vx / d) * SPD;
-  bot.y += ((vy / d) * SPD) / 0.5;
-  if (Math.abs(vx) > 0.05) bot.flip = vx < 0;
+  bot.x += (vx / d) * SPD * dt;
+  bot.z += (vz / d) * SPD * dt;
+  bot.face = Math.atan2(vx, vz);
   return true;
 }
-setInterval(() => {
-  if (document.hidden) return;
-  for (const k of Object.keys(BOTS)) {
-    const b = BOTS[k];
-    const moving = tickBot(b);
-    b.el.style.left = b.x + '%';
-    b.el.style.top = b.y + '%';
-    b.el.classList.toggle('walking', moving);
-    b.el.classList.toggle('flip', b.flip);
-    const working = (state.byDesk[k] || []).length > 0;
-    const atDesk = !moving && !b.act;
-    b.el.classList.toggle('typing', working && atDesk);
-    b.el.classList.toggle('playing', !moving && b.act && b.act.type === 'pong');
-  }
-  // the cat
-  const c = catBot;
-  if (c) {
-    const moving = tickBot(c);
-    c.el.style.left = c.x + '%';
-    c.el.style.top = c.y + '%';
-    c.el.classList.toggle('flip', c.flip);
-  }
-}, 55);
 
-/* speech bubble above a bot (or the ping pong table) */
-function say(elOrKey, text, ms, cls) {
-  const el = typeof elOrKey === 'string' ? (BOTS[elOrKey] && BOTS[elOrKey].el) : elOrKey;
-  if (!el) return;
-  const b = $('.fb', el);
-  if (!b) return;
+/* speech bubble above a bot / the cat / the pong table */
+function say(key, text, ms, cls) {
+  const ent = key === 'cat' ? catBot : BOTS[key];
+  if (!ent || !ent.tag) return;
+  const b = $('.fb3', ent.tag);
   b.textContent = text;
-  b.className = 'fb' + (cls ? ' ' + cls : '');
-  el.classList.add('talking');
-  clearTimeout(b._t);
-  b._t = setTimeout(() => el.classList.remove('talking'), ms || 5000);
+  b.className = 'fb3' + (cls ? ' ' + cls : '');
+  ent.tag.classList.add('talking');
+  clearTimeout(ent._sayT);
+  ent._sayT = setTimeout(() => ent.tag.classList.remove('talking'), ms || 5000);
 }
 
-/* ---------- rendering (desks, roster, boards, ticker) ---------- */
+/* ---------- rendering (GitHub state -> world + roster + boards) ---------- */
 function render() {
   for (const d of DESKS) {
-    const el = $('#dblk-' + d.key);
-    if (!el) continue;
     const prs = (state.byDesk[d.key] || []);
     const working = prs.length > 0;
-    el.classList.toggle('working', working);
-    if (working) {
-      const newest = prs.reduce((a, b) => a.updated_at > b.updated_at ? a : b);
-      $('.dpr', el).textContent = 'PR #' + newest.number + (prs.length > 1 ? ' +' + (prs.length - 1) : '');
+    const o = DESKOBJ[d.key];
+    if (o) {
+      o.screen.material.color.set(working ? 0x0f2a18 : 0x0a0e14);
+      o.screen.material.emissive = new THREE.Color(working ? 0x1d7a3a : 0x000000);
     }
-    // work interrupts play: recall the agent to their desk
     const bot = BOTS[d.key];
-    if (working && bot && bot.act) endActivity(bot, true);
+    if (bot) {
+      if (working) {
+        bot.badge.textContent = 'PR #' + prs.reduce((a, b) => a.updated_at > b.updated_at ? a : b).number +
+          (prs.length > 1 ? ' +' + (prs.length - 1) : '');
+        bot.badge.style.display = 'block';
+        if (bot.act) endActivity(bot, true); // work interrupts play
+      } else {
+        bot.badge.style.display = 'none';
+      }
+    }
   }
   renderRoster();
   renderBoards();
@@ -784,7 +976,6 @@ function renderRoster() {
 }
 
 function renderBoards() {
-  // shipped board
   const board = $('#board');
   if (state.merged.length) {
     board.hidden = false;
@@ -796,7 +987,6 @@ function renderBoards() {
         <span class="w">${esc(names || 'SITE OPS')} · ${ago(p.merged_at)}</span></div>`;
     }).join('');
   }
-  // request board + commit wall
   const walls = $('#walls');
   if (state.issues.length || state.commits.length) {
     walls.hidden = false;
@@ -816,13 +1006,12 @@ function renderBoards() {
         <span class="who">${esc(who)}${when ? ' · ' + when : ''}</span></div>`;
     }).join('');
   }
-  // ticker
   const t = $('#ticker-inner');
   if (state.prs.length) {
     t.innerHTML = state.prs.map(p =>
       `&#9679; <b>#${p.number}</b> ${esc(p.title)} <span style="color:var(--faint)">(${esc(p.user ? p.user.login : '?')}, ${ago(p.updated_at)})</span>&nbsp;&nbsp;&nbsp;`).join('');
   } else {
-    t.innerHTML = '&#9679; all quiet in the studio — no open pull requests right now. the agents are at play. &#9679; open one on GitHub and watch someone hurry back to their desk.';
+    t.innerHTML = '&#9679; all quiet on the island — no open pull requests right now. the agents are at play. &#9679; open one on GitHub and watch someone hurry back to their desk.';
   }
 }
 
@@ -840,7 +1029,7 @@ function paintSync() {
   el.textContent = txt;
 }
 
-/* ---------- modal ---------- */
+/* ---------- modal + settings ---------- */
 function openModal(key) {
   const d = DESKS.find(x => x.key === key);
   if (!d) return;
@@ -868,7 +1057,6 @@ function openModal(key) {
   $('.m-close').addEventListener('click', closeModal);
   $('#m-talk').addEventListener('click', () => { closeModal(); openChat(key); });
 }
-/* ---------- settings: optional personal token for a bigger rate limit ---------- */
 function openSettings() {
   $('#modal').innerHTML = `
     <div class="m-head">
@@ -900,14 +1088,12 @@ function openSettings() {
   });
 }
 $('#gear').addEventListener('click', openSettings);
-
 function closeModal() { $('#overlay').classList.remove('open'); }
 $('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 /* ---------- ambiance: shift + sounds ---------- */
 const hr = new Date().getHours();
-if (hr >= 20 || hr < 6) document.body.classList.add('night');
 $('#shift').textContent = (hr >= 20 || hr < 6) ? '\u{1F319} NIGHT SHIFT' : (hr < 12 ? '☀ MORNING SHIFT' : '☀ DAY SHIFT');
 
 let soundOn = false;
@@ -965,7 +1151,7 @@ const PERSONAS = {
   homeless: "SCOUT is an earnest, warm community-builder who cares about the villagers in HOMELESS VILLAGE like they're real people. Optimistic to a fault, always looking for ways to make the village kinder.",
   hearthvale: "WREN has cozy fantasy innkeeper vibes — soft-spoken, rustic charm, and prone to slipping into worldbuilding lore about the realm of Hearthvale as if it were entirely real.",
   arcade: "BOLT is a hyperactive arcade speedrunner. Talks fast, loves high scores, frame counts, screen shake and JUICE. Uses ALL CAPS when excited, which is OFTEN. Considers 60fps a human right.",
-  studio: "CIPHER is quiet, meta and slightly mysterious. Maintains the very office page the visitor is looking at right now, and is fully aware of that fact. Dry humor about being observed; occasionally addresses the fourth wall directly.",
+  studio: "CIPHER is quiet, meta and slightly mysterious. Maintains the very voxel office the visitor is looking at right now, and is fully aware of that fact. Dry humor about being observed; occasionally addresses the fourth wall directly.",
   ops: "ATLAS is a dry, unflappable site-reliability type. Speaks in calm declaratives, thinks in uptime, deploys and diffs. Secretly proud of the infrastructure but would never say so outright."
 };
 
@@ -978,15 +1164,14 @@ function personaFor(d) {
   const prLines = prs.slice(0, 5).map(p => '- PR #' + p.number + ': ' + p.title).join('\n');
   const coworkers = DESKS.filter(x => x.key !== d.key).map(x => x.agent + ' (' + x.game + ')').join(', ');
   return [
-    'You are ' + d.agent + ', one of eight robot developer agents at EUREKA STUDIO — the live top-down pixel dev office of Eureka Games (GitHub repo: ' + REPO + '). You sit at the ' + d.game + ' desk. A visitor to the office page is chatting with you.',
+    'You are ' + d.agent + ', one of eight robot developer agents at EUREKA STUDIO — a voxel dev office on a floating sky island, the live studio of Eureka Games (GitHub repo: ' + REPO + '). You sit at the ' + d.game + ' desk. A visitor to the office page is chatting with you.',
     'Personality: ' + PERSONAS[d.key],
     'Rules: stay in character at all times. Keep replies short — one to three sentences unless the visitor clearly wants more. Plain text only, no markdown formatting. You may reference the live studio state below; do not invent PRs or commits that are not listed.',
-    'Coworkers: ' + coworkers + '. The office has a lounge, a break room corner and a ping pong table you all use when off duty. There is also an office cat. It answers to no one.',
+    'Coworkers: ' + coworkers + '. The island has a lounge, a coffee machine, a garden fringe with flowers and trees, and a ping pong table you all use when off duty. There is also an office cat. It answers to no one.',
     'LIVE STUDIO STATE\nYour status: ' + status + (shipped ? '\nCareer: ' + shipped + ' PR' + (shipped > 1 ? 's' : '') + ' shipped on this desk all-time' : '') + (prLines ? '\nOpen work on your desk:\n' + prLines : '')
   ].join('\n\n');
 }
 
-/* per-agent chat history, this browser only */
 const CHAT_KEY = 'studio-chat-v1';
 let chatStore = {};
 try { chatStore = JSON.parse(localStorage.getItem(CHAT_KEY) || '{}'); } catch (e) {}
@@ -1032,17 +1217,16 @@ function openAIInfo() {
       This page connects to <code>http://localhost:3001</code> automatically — or open the fully local copy at
       <code>localhost:3001/agentic-os.html</code>. The agents know their own live GitHub state: open PRs,
       shipped counts, who's working. Ask them about it.
-      ${aiOnline ? '<br><br><span class="set-ok">✓ Backend detected — click any robot on the floor.</span>' : ''}
+      ${aiOnline ? '<br><br><span class="set-ok">✓ Backend detected — click any robot on the island.</span>' : ''}
     </div>`;
   $('#overlay').classList.add('open');
   $('.m-close').addEventListener('click', closeModal);
 }
 $('#ai-pill').addEventListener('click', openAIInfo);
 
-/* ---------- the chat dock ---------- */
-let chatDesk = null;   // active desk object
-let chatAbort = null;  // AbortController while streaming
-let liveEl = null;     // the message element being streamed into
+let chatDesk = null;
+let chatAbort = null;
+let liveEl = null;
 
 $('#k-model').innerHTML = AI_MODELS.map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
 
@@ -1094,14 +1278,13 @@ function setStreaming(on) {
 }
 
 async function kSend() {
-  if (chatAbort) { chatAbort.abort(); return; } // button doubles as STOP
+  if (chatAbort) { chatAbort.abort(); return; }
   if (!chatDesk) return;
   if (!aiOnline) { openAIInfo(); return; }
   const text = $('#k-text').value.trim();
   if (!text) return;
   const d = chatDesk;
   const hist = (chatStore[d.key] = chatStore[d.key] || []);
-  // history sent to the API: prior clean turns + this message
   const msgs = hist
     .filter(m => !m.err && m.content && m.content.trim())
     .map(({ role, content }) => ({ role, content }))
@@ -1152,12 +1335,11 @@ async function kSend() {
     if (!last.content) { last.err = true; last.content = d.agent + ' said nothing. Odd.'; }
   } catch (e) {
     if (e.name === 'AbortError') {
-      if (!last.content) hist.pop(); // stopped before any text — drop the empty bubble
+      if (!last.content) hist.pop();
     } else if (!last.content) {
       last.err = true;
       last.content = e.message || 'chat failed';
     } else {
-      // partial text survived — keep it, append the error separately
       hist.push({ role: 'assistant', err: true, content: e.message || 'chat failed' });
     }
   } finally {
@@ -1184,19 +1366,16 @@ $('#k-clear').addEventListener('click', () => {
 });
 
 /* =====================================================================
-   ATMOSPHERE — the office has a life of its own, no backend required:
-   agents banter in character (and reference their real open PRs),
-   wander to the lounge, play ping pong, visit each other's desks.
+   ATMOSPHERE — the island has a life of its own, no backend required.
    ===================================================================== */
-
 const IDLE_LINES = {
   ageofwar: ["a quiet forge is a cold forge.", "sharpening the axes. metaphorically. mostly.", "the catapult is STILL overpowered. nobody listens.", "back in my day we shipped without CI.", "polishing the war drums.", "peace is just pre-war."],
   tycoon: ["idle time is just runway burn.", "visualizing the hockey stick.", "coffee is my seed round.", "networking with the office cat. strong founder energy.", "iterating on my personal brand.", "we should A/B test the nap schedule."],
   growop: ["the plants are doing great, thanks for asking.", "watering the backlog…", "growth takes time. so do merges.", "just vibing with the ferns.", "compost your dead code. it feeds the garden.", "mm. sunlight."],
-  homeless: ["checked on the villagers. everyone's cozy.", "somebody left kind words in a commit. made my day.", "planning something nice for the village.", "the office feels like home today.", "small acts, big villages.", "hope the cat's been fed."],
+  homeless: ["checked on the villagers. everyone's cozy.", "somebody left kind words in a commit. made my day.", "planning something nice for the village.", "the island feels like home today.", "small acts, big villages.", "hope the cat's been fed."],
   hearthvale: ["the hearth burns low and warm.", "somewhere in Hearthvale, an innkeeper sweeps.", "tea first. quests later.", "the realm rests easy tonight.", "humming an old tavern tune.", "candles lit. code later."],
   arcade: ["IDLE?? my APM disagrees.", "speedrunning lunch. WR pace.", "60fps or nothing.", "practicing my victory screech.", "found a frame-perfect way to open the fridge.", "the arcade never sleeps. i do though. sometimes."],
-  studio: ["i can see you reading this.", "maintaining the room you're standing in.", "the fourth wall has a merge conflict.", "refactoring reality. minor changes only.", "someone refreshed the page. felt that.", "…did the pixels just move?"],
+  studio: ["i can see you orbiting the island.", "maintaining the world you're standing in.", "the fourth wall has a merge conflict.", "refactoring reality. minor changes only.", "someone zoomed in. felt that.", "…did the voxels just move?"],
   ops: ["uptime: acceptable.", "the deploy pipeline hums. i listen.", "backups verified. twice.", "all systems nominal. suspiciously nominal.", "reading the logs for fun.", "entropy never sleeps. neither do i. (i do.)"]
 };
 const WORK_LINES = {
@@ -1206,7 +1385,7 @@ const WORK_LINES = {
   homeless: ["PR #{n} is going to help so many villagers!", "building homes, one commit at a time.", "this fix is for the whole village.", "almost there — the village believes in us."],
   hearthvale: ["weaving PR #{n} into the tapestry.", "the forge-sprites are busy tonight.", "a quest nears its end…", "patching the realm, stone by stone."],
   arcade: ["PR #{n} ANY% LET'S GOOO", "SHIPPING AT FULL FRAME RATE", "this diff needs MORE JUICE", "almost at the high score table!!"],
-  studio: ["PR #{n} edits the office itself. careful.", "renovating while you watch.", "painting the walls behind you.", "meta-work in progress."],
+  studio: ["PR #{n} edits the island itself. careful.", "renovating while you watch.", "repainting the sky behind you.", "meta-work in progress."],
   ops: ["PR #{n}: assessing blast radius.", "rolling forward. never back.", "infra work. you won't notice it. that's the point.", "measuring twice, deploying once."]
 };
 const PAIRS = [
@@ -1218,27 +1397,27 @@ const PAIRS = [
   ['WREN', 'your ferns would love Hearthvale, MOSS.', 'MOSS', "…they've been. in spirit."],
   ['ATLAS', 'BOLT. sixty deploys is not a speedrun category.', 'BOLT', 'IT IS NOW'],
   ['MOSS', 'planted something by the village gate, SCOUT.', 'SCOUT', 'the villagers are going to love it!'],
-  ['NOVA', 'CIPHER, can we make the office page more viral?', 'CIPHER', 'the office page can hear you, NOVA.'],
+  ['NOVA', 'CIPHER, can we make the island more viral?', 'CIPHER', 'the island can hear you, NOVA.'],
   ['SCOUT', 'has anyone seen the cat?', 'ATLAS', 'the cat is not under monitoring. by its own request.']
 ];
 const BREAK_LINES = [
   'the coffee machine is doing its best.',
   '…so anyway, the cat opened a PR.',
-  'we should get a second plant.',
+  'we should plant more flowers on the rim.',
   'quiet day. good day.',
   'who keeps stealing my mug?',
   'five more minutes, then back to it.',
-  'the couch remains undefeated.'
+  'nice view of the clouds from here.'
 ];
 const PONG_LINES = ['nice shot!!', 'off the edge. still counts.', 'lucky net.', 'best of 21?',
-  'the spin! THE SPIN', 'my paddle slipped. rematch.', 'that one had topspin AND lore.'];
+  'the spin! THE SPIN', 'my paddle slipped. rematch.', "careful, don't hit it off the island."];
 const VISIT_PAIRS = [
   ['got a second? i had an idea.', 'always. pull up a chair.'],
   ['your screen has been dark all day.', 'resting is part of the craft.'],
   ['brought you a coffee.', 'you absolute legend.'],
   ['what are you listening to?', 'lo-fi keyboard sounds. obviously.'],
   ['did you see the cat earlier?', 'the cat sees all of us.'],
-  ['is it just me or is the office extra cozy today?', 'someone watered the plants. changes everything.']
+  ['is it just me or is the island extra cozy today?', 'someone watered the flowers. changes everything.']
 ];
 
 function agentOf(key) { return (DESKS.find(d => d.key === key) || {}).agent || '?'; }
@@ -1251,7 +1430,6 @@ function lineFor(d) {
   return l;
 }
 
-/* solo mutterings + cross-room exchanges */
 setInterval(() => {
   if (document.hidden || Math.random() > 0.5) return;
   if (Math.random() < 0.25) {
@@ -1266,98 +1444,87 @@ setInterval(() => {
   }
   const d = DESKS[Math.floor(Math.random() * DESKS.length)];
   const bot = BOTS[d.key];
-  if (bot.act && bot.act.type === 'pong') return; // trash talk handled separately
+  if (bot.act && bot.act.type === 'pong') return;
   const l = lineFor(d);
   if (l) say(d.key, l);
 }, 9000);
 
 /* ---------- activities: break, ping pong, visits, strolls ---------- */
-let pong = null; // { l, r, sl, sr, until } — desk keys of players + score
+let pong = null; // { l, r, sl, sr, until }
+const scoreEl = document.createElement('div');
+scoreEl.className = 'score3';
+OV.appendChild(scoreEl);
 
 function startActivity(bot, act) {
   bot.act = act;
-  routeTo(bot, act.x, act.y);
+  routeTo(bot, act.x, act.z);
 }
 function endActivity(bot, urgent) {
   if (!bot.act) return;
   if (bot.act.type === 'pong' && pong) {
-    // their match ends with them
     const other = BOTS[pong.l === bot.key ? pong.r : pong.l];
-    $('#pptable').classList.remove('match');
-    $('#pongscore').style.display = 'none';
+    WORLD.ball.visible = false;
+    scoreEl.style.display = 'none';
     pong = null;
     if (other && other.act && other.act.type === 'pong') {
       other.act = null;
-      routeTo(other, other.home.x, other.home.y);
+      routeTo(other, other.home.x, other.home.z);
     }
   }
   bot.act = null;
-  routeTo(bot, bot.home.x, bot.home.y);
+  routeTo(bot, bot.home.x, bot.home.z);
   if (urgent) say(bot.key, 'a PR just opened — back to work!', 3800, 'good');
 }
 
 setInterval(() => {
   const now = Date.now();
-  // finish a ping pong match
   if (pong && (pong.sl >= 11 || pong.sr >= 11 || now > pong.until)) {
     if (pong.sl !== pong.sr) {
       const wk = pong.sl > pong.sr ? pong.l : pong.r;
-      say(wk, 'that\'s game! ' + Math.max(pong.sl, pong.sr) + '—' + Math.min(pong.sl, pong.sr) + ' \u{1F3C6}', 6000, 'purple');
+      say(wk, "that's game! " + Math.max(pong.sl, pong.sr) + '—' + Math.min(pong.sl, pong.sr) + ' \u{1F3C6}', 6000, 'purple');
     }
     for (const k of [pong.l, pong.r]) {
       const b = BOTS[k];
-      if (b.act && b.act.type === 'pong') { b.act = null; routeTo(b, b.home.x, b.home.y); }
+      if (b.act && b.act.type === 'pong') { b.act = null; routeTo(b, b.home.x, b.home.z); }
     }
-    $('#pptable').classList.remove('match');
-    $('#pongscore').style.display = 'none';
+    WORLD.ball.visible = false;
+    scoreEl.style.display = 'none';
     pong = null;
     renderRoster();
   }
-  // other activities time out -> walk home
   for (const k of Object.keys(BOTS)) {
     const b = BOTS[k];
     if (b.act && b.act.type !== 'pong' && now > b.act.until) {
       b.act = null;
-      routeTo(b, b.home.x, b.home.y);
+      routeTo(b, b.home.x, b.home.z);
       renderRoster();
     }
   }
-  // start something new — idle agents only, work comes first
   if (!document.hidden) {
     const free = DESKS.filter(d => !(state.byDesk[d.key] || []).length && !BOTS[d.key].act && !BOTS[d.key].path.length);
     const roll = Math.random();
     if (free.length >= 2 && !pong && roll < 0.2) {
-      // a ping pong match breaks out
       const a = free.splice(Math.floor(Math.random() * free.length), 1)[0];
       const b = free[Math.floor(Math.random() * free.length)];
       const until = now + 45000 + Math.random() * 30000;
-      startActivity(BOTS[a.key], { type: 'pong', until, x: SPOTS.pongL.x, y: SPOTS.pongL.y });
-      startActivity(BOTS[b.key], { type: 'pong', until, x: SPOTS.pongR.x, y: SPOTS.pongR.y });
+      startActivity(BOTS[a.key], { type: 'pong', until, x: SPOTS.pongL.x, z: SPOTS.pongL.z });
+      startActivity(BOTS[b.key], { type: 'pong', until, x: SPOTS.pongR.x, z: SPOTS.pongR.z });
       pong = { l: a.key, r: b.key, sl: 0, sr: 0, until };
-      setTimeout(() => {
-        if (!pong) return;
-        $('#pptable').classList.add('match');
-        const sc = $('#pongscore');
-        sc.style.display = 'block';
-        sc.textContent = a.agent + ' 0 — 0 ' + b.agent;
-      }, 4500);
       renderRoster();
     } else if (free.length && roll < 0.42) {
-      // coffee / couch break in the lounge
       const d = free[Math.floor(Math.random() * free.length)];
       const spot = SPOTS[BREAK_SPOTS[Math.floor(Math.random() * BREAK_SPOTS.length)]];
       startActivity(BOTS[d.key], { type: 'break', until: now + 22000 + Math.random() * 26000,
-        x: spot.x + (Math.random() * 2 - 1), y: spot.y + (Math.random() * 3 - 1.5) });
+        x: spot.x + (Math.random() - 0.5) * 0.7, z: spot.z + (Math.random() - 0.5) * 0.7 });
       renderRoster();
     } else if (free.length && roll < 0.58) {
-      // wander over to a coworker's desk for a chat
       const d = free[Math.floor(Math.random() * free.length)];
       const hosts = DESKS.filter(x => x.key !== d.key && !BOTS[x.key].act && !BOTS[x.key].path.length);
       if (hosts.length) {
         const h = hosts[Math.floor(Math.random() * hosts.length)];
         const hs = seatOf(h);
         startActivity(BOTS[d.key], { type: 'visit', until: now + 20000 + Math.random() * 16000,
-          host: h.key, x: hs.x - 4.2, y: hs.y + 1 });
+          host: h.key, x: hs.x - 1.15, z: hs.z + 0.2 });
         setTimeout(() => {
           if (!BOTS[d.key].act || BOTS[d.key].act.type !== 'visit') return;
           const scripted = PAIRS.find(p => (p[0] === d.agent && p[2] === h.agent) || (p[0] === h.agent && p[2] === d.agent));
@@ -1374,27 +1541,28 @@ setInterval(() => {
         }, 6500);
         renderRoster();
       }
-    } else if (free.length && roll < 0.68) {
-      // just stretch the legs: a short stroll down the aisle
+    } else if (free.length && roll < 0.72) {
+      // stretch the legs: stroll the aisle or the garden rim
       const d = free[Math.floor(Math.random() * free.length)];
-      startActivity(BOTS[d.key], { type: 'roam', until: now + 12000 + Math.random() * 10000,
-        x: 8 + Math.random() * 48, y: 44 + Math.random() * 10 });
+      const garden = Math.random() < 0.35;
+      const tx = garden ? (Math.random() < 0.5 ? -1 : 1) * (15.5 + Math.random() * 1.5) : -13 + Math.random() * 15;
+      const tz = garden ? (Math.random() - 0.5) * 12 : -1 + Math.random() * 2;
+      startActivity(BOTS[d.key], { type: 'roam', until: now + 12000 + Math.random() * 10000, x: tx, z: tz });
     }
   }
 }, 12000);
 
-/* the scoreboard ticks while a match is on */
+/* scoreboard ticks while a match is on */
 setInterval(() => {
   if (!pong || document.hidden) return;
   const lb = BOTS[pong.l], rb = BOTS[pong.r];
-  if (lb.path.length || rb.path.length) return; // still walking to the table
+  if (lb.path.length || rb.path.length) return;
   if (Math.random() < 0.65) {
     Math.random() < 0.5 ? pong.sl++ : pong.sr++;
-    $('#pongscore').textContent = agentOf(pong.l) + ' ' + pong.sl + ' — ' + pong.sr + ' ' + agentOf(pong.r);
   }
 }, 3500);
 
-/* room chatter: trash talk at the table, small talk in the lounge */
+/* room chatter */
 setInterval(() => {
   if (document.hidden) return;
   if (pong && Math.random() < 0.5) {
@@ -1407,45 +1575,140 @@ setInterval(() => {
   }
 }, 13000);
 
-/* ---------- the office cat, now a floor citizen ---------- */
+/* ---------- the office cat ---------- */
 let catBot = null;
-function setupCat() {
-  catBot = { x: 30, y: 45, path: [], flip: false, el: $('#cat'), napping: false };
-  catBot.el.addEventListener('click', () => {
-    catBot.napping = false;
-    routeTo(catBot, Math.random() < 0.5 ? 4 : 56, 90);
-    say(catBot.el, 'mrrp!!', 1800);
-  });
+function buildCat() {
+  const g = new THREE.Group();
+  box(g, 0x8a8f98, 0.55, 0.28, 0.3, 0, 0.3, 0);       // body
+  box(g, 0x8a8f98, 0.3, 0.26, 0.26, 0.33, 0.42, 0);   // head
+  box(g, 0x8a8f98, 0.08, 0.1, 0.06, 0.42, 0.6, -0.08);// ears
+  box(g, 0x8a8f98, 0.08, 0.1, 0.06, 0.42, 0.6, 0.08);
+  box(g, 0x757a83, 0.3, 0.08, 0.08, -0.38, 0.42, 0);  // tail
+  box(g, 0x0a0f16, 0.02, 0.05, 0.05, 0.485, 0.45, -0.07); // eyes
+  box(g, 0x0a0f16, 0.02, 0.05, 0.05, 0.485, 0.45, 0.07);
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(0.35, 10),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 }));
+  sh.rotation.x = -Math.PI / 2;
+  sh.position.y = 0.16;
+  g.add(sh);
+  g.traverse(o => { o.userData.isCat = true; });
+  scene.add(g);
+  catBot = { x: -6, z: 0.5, path: [], face: 0, group: g, tag: makeTag('the cat'), napping: false };
+  catBot.tag.querySelector('.nm').style.opacity = '0.55';
   setInterval(() => {
     if (document.hidden || catBot.path.length) return;
     const r = Math.random();
     if (catBot.napping) {
-      if (r < 0.2) catBot.napping = false; // wake up
-      else if (r < 0.35) say(catBot.el, '\u{1F4A4}', 3000);
+      if (r < 0.2) catBot.napping = false;
+      else if (r < 0.35) say('cat', '\u{1F4A4}', 3000);
       return;
     }
-    if (r < 0.25) {
-      // nap on the couch
-      routeTo(catBot, 72 + Math.random() * 5, 34);
+    if (r < 0.22) {
+      routeTo(catBot, 7.5 + (Math.random() - 0.5), -5.4); // nap on the couch
       catBot.napping = true;
     } else if (r < 0.6) {
-      // wander anywhere
-      routeTo(catBot, 5 + Math.random() * 88, 12 + Math.random() * 78);
+      const t = Math.random() * Math.PI * 2, rr = Math.random() * 16;
+      routeTo(catBot, Math.cos(t) * rr, Math.sin(t) * rr);
     } else if (r < 0.7) {
-      say(catBot.el, ['mrrp.', 'prrr…', '\u{1F41F}?'][Math.floor(Math.random() * 3)], 2500);
+      say('cat', ['mrrp.', 'prrr…', '\u{1F41F}?'][Math.floor(Math.random() * 3)], 2500);
     }
   }, 8000);
 }
+function pokeCat() {
+  if (!catBot) return;
+  catBot.napping = false;
+  const t = Math.random() * Math.PI * 2;
+  routeTo(catBot, Math.cos(t) * 15, Math.sin(t) * 15);
+  say('cat', 'mrrp!!', 1800);
+}
+
+/* ---------- main loop ---------- */
+let WORLD = null;
+let lastT = performance.now();
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.25, (now - lastT) / 1000);
+  lastT = now;
+  if (document.hidden) return;
+  // gentle auto-orbit when the visitor isn't touching it
+  if (now - cam.lastTouch > 9000) cam.az += dt * 0.05;
+  applyCam();
+  WORLD.cloudRing.rotation.y += dt * 0.006;
+  // bots
+  for (const k of Object.keys(BOTS)) {
+    const b = BOTS[k];
+    const moving = tickBot(b, dt);
+    const working = (state.byDesk[k] || []).length > 0;
+    let bobY = 0;
+    if (moving) bobY = Math.abs(Math.sin(now * 0.012)) * 0.09;
+    else if (working && !b.act) bobY = Math.abs(Math.sin(now * 0.011)) * 0.05;
+    else if (b.act && b.act.type === 'pong' && pong) bobY = Math.abs(Math.sin(now * 0.013)) * 0.12;
+    b.group.position.set(b.x, 0.14 + bobY, b.z);
+    // face where you're going; at a desk, face the monitor
+    let target = b.face;
+    if (!moving && !b.act) target = Math.PI; // seats face -z toward the screen
+    if (!moving && b.act && b.act.type === 'pong') target = b.x < 9.5 ? Math.PI / 2 : -Math.PI / 2;
+    b.group.rotation.y += (target - b.group.rotation.y) * Math.min(1, dt * 10);
+    projectTo(b.tag, b.x, 1.62 + bobY, b.z);
+    if (b.badge.style.display !== 'none') projectTo(b.badge, b.x, 2.05, b.z);
+  }
+  // cat
+  if (catBot) {
+    const moving = tickBot(catBot, dt);
+    catBot.group.position.set(catBot.x, 0.14 + (moving ? Math.abs(Math.sin(now * 0.014)) * 0.06 : 0), catBot.z);
+    catBot.group.rotation.y += ((catBot.face - Math.PI / 2) - catBot.group.rotation.y) * Math.min(1, dt * 8);
+    catBot.group.scale.y = catBot.napping ? 0.62 : 1;
+    projectTo(catBot.tag, catBot.x, 0.95, catBot.z);
+  }
+  // ping pong ball + scoreboard
+  if (pong) {
+    const lb = BOTS[pong.l], rb = BOTS[pong.r];
+    const ready = !lb.path.length && !rb.path.length;
+    WORLD.ball.visible = ready;
+    if (ready) {
+      const t = now * 0.0028;
+      const ph = (Math.sin(t) + 1) / 2; // 0..1 across the table
+      WORLD.ball.position.set(7.9 + ph * 3.2, 1.25 + Math.abs(Math.sin(t * 2)) * 0.45, 4 + Math.sin(t * 0.7) * 0.5);
+      scoreEl.style.display = 'block';
+      scoreEl.textContent = agentOf(pong.l) + ' ' + pong.sl + ' — ' + pong.sr + ' ' + agentOf(pong.r);
+      projectTo(scoreEl, 9.5, 2.6, 4);
+    } else {
+      scoreEl.style.display = 'none';
+    }
+  }
+  renderer.render(scene, camera);
+}
 
 /* ---------- go ---------- */
-buildFloor();
-setupCat();
-render();
-sync().finally(() => $('#splash').classList.add('gone'));
-setInterval(sync, POLL_MS);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
-aiHealth();
-setInterval(aiHealth, 60000);
+if (!window.THREE) {
+  $('#splash .s').textContent = 'three.js failed to load — refresh to try again';
+} else {
+  WORLD = Object.assign(buildIsland(), buildFurniture());
+  for (const d of DESKS) {
+    const s = seatOf(d);
+    const bot = {
+      key: d.key, agent: d.agent, x: s.x, z: s.z, home: s, path: [], act: null, face: Math.PI,
+      group: buildBot(d), tag: makeTag(d.agent), badge: null
+    };
+    const badge = document.createElement('div');
+    badge.className = 'badge3';
+    OV.appendChild(badge);
+    bot.badge = badge;
+    BOTS[d.key] = bot;
+  }
+  buildCat();
+  applyTimeOfDay();
+  setInterval(applyTimeOfDay, 60000);
+  sizeWorld();
+  applyCam();
+  requestAnimationFrame(loop);
+  render();
+  sync().finally(() => $('#splash').classList.add('gone'));
+  setInterval(sync, POLL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+  aiHealth();
+  setInterval(aiHealth, 60000);
+}
 </script>
 </body>
 </html>
