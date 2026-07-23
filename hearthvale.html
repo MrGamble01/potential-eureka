@@ -1102,6 +1102,29 @@
   }
   function adjMult(b) { const def = BUILDINGS[b.type]; return (def.likes && adjSupplier(b)) ? 1 + def.likes.bonus : 1; }
 
+  // ---- Festivals: a player-called celebration at the tavern. Spend food &
+  // coin for a burst of happiness — villagers down tools and gather to dance,
+  // lanterns are strung, and the whole town's mood is buoyed for a few days. --
+  const FEST_DAYS = 2;       // how long a festival's glow lasts
+  const FEST_COOLDOWN = 3;   // days the town needs to recover before the next
+  function festivalCost() { const pop = state.villagers.length; return { food: 6 + pop * 2, gold: 8 + pop * 2 }; }
+  function festivalActive() { return !!(state.festival && state.day < state.festival.endDay); }
+  function festivalReady() { return (state.day - (state.lastFestivalDay != null ? state.lastFestivalDay : -99)) >= FEST_COOLDOWN; }
+  function holdFestival(tav) {
+    if (festivalActive()) { toast('🎪 A festival is already underway!'); SFX('error'); return; }
+    if (!festivalReady()) { toast('The town needs a few days to recover before the next festival.'); SFX('error'); return; }
+    const cost = festivalCost();
+    if (!Object.keys(cost).every(k => state.res[k] >= cost[k])) { toast("Not enough food & coin for a festival yet."); SFX('error'); return; }
+    Object.keys(cost).forEach(k => state.res[k] -= cost[k]);
+    const def = BUILDINGS[tav.type];
+    state.festival = { endDay: state.day + FEST_DAYS, x: (tav.tx + def.w / 2) * TILE, y: (tav.ty + def.h / 2) * TILE };
+    state.lastFestivalDay = state.day;
+    state.happy = Math.min(100, state.happy + 20);
+    SFX('goal');
+    toast('🎪 ' + (state.townName || 'Hearthvale') + ' throws a festival — spirits soar!');
+    updateHUD(); checkAchievements(); save();
+  }
+
   const BASE_CAP = { wood: 250, stone: 250, food: 200 };  // gold is uncapped currency
   const SEASONS = [
     { name: 'Spring', emoji: '🌱', tint: null },
@@ -1153,6 +1176,8 @@
       trades: 0,       // lifetime deals struck with the traveling merchant
       traderDay: 0,    // day the merchant's cart is (or was last) in town
       hunger: 0,       // consecutive production cycles with an empty pantry
+      festival: null,  // active town festival { endDay, x, y } — a morale burst
+      lastFestivalDay: -99, // cooldown anchor for the next festival
     };
   }
   const ACHIEVEMENTS = [
@@ -1177,6 +1202,7 @@
     { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300 },
     { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20 },
     { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95 },
+    { id: 'festival', emoji: '🎪', name: "Let's Celebrate", desc: 'Throw a town festival at the tavern.', done: () => state.lastFestivalDay != null && state.lastFestivalDay >= 0 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -1690,6 +1716,11 @@
       const d = doorTile(s);
       if (Math.max(Math.abs(v.tx - d.tx), Math.abs(v.ty - d.ty)) <= 1) { setEmote(v, '🔨', 2.0); v.wait = 1.1; return; }
       dest = findWalkableNear(d.tx, d.ty);
+    } else if (festivalActive() && roll(31) < 0.7) {
+      // festival! most folk drift to the square to dance and celebrate
+      const f = state.festival;
+      dest = strollNear(Math.floor(f.x / TILE), Math.floor(f.y / TILE), 3);
+      if (roll(19) < 0.6) { const r = roll(9); setEmote(v, r < 0.4 ? '🎉' : r < 0.7 ? '🎶' : '🍺', 2.6); }
     } else if (evening && (v.id % 2 === 0) && (state.buildings.some(b => (b.type === 'tavern' || b.type === 'chapel') && b.done !== false))) {
       // the town gathers of an evening — at the tavern if there is one
       const gather = state.buildings.find(b => b.type === 'tavern' && b.done !== false) || state.buildings.find(b => b.type === 'chapel' && b.done !== false);
@@ -1803,6 +1834,8 @@
     // amenities (well, tavern) add happiness passively, scaled by level
     const amenity = state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].happy && b.done !== false ? Math.ceil(BUILDINGS[b.type].happy / 6) * (b.level || 1) : 0), 0);
     if (amenity) state.happy = Math.min(100, state.happy + amenity);
+    // an ongoing festival keeps the town's spirits buoyed each cycle
+    if (festivalActive()) state.happy = Math.min(100, state.happy + 4);
     // decorations add a gentle "charm" bonus (capped so it complements, not replaces, real amenities)
     const charm = townCharm();
     if (charm) state.happy = Math.min(100, state.happy + Math.min(3, Math.ceil(charm / 10)));
@@ -1819,6 +1852,11 @@
   }
 
   function onNewDay() {
+    // a festival that has run its course winds down at daybreak
+    if (state.festival && state.day >= state.festival.endDay) {
+      state.festival = null;
+      toast('🎪 The festival winds down — a warm glow lingers over the town.');
+    }
     // trader visit — mark the merchant as due today; the wagon itself
     // rolls in at morning (see cartTick), not in the middle of the night
     if (state.day >= state.nextTraderDay && state.buildings.some(b => b.type === 'market')) {
@@ -2141,7 +2179,50 @@
     drawDayNight();
     // fireflies glow over the darkened night
     drawFireflies(sx, sy, z);
+    if (festivalActive()) drawFestival(sx, sy, z);
     if (state.raining) drawWeather();
+  }
+
+  // A festival: a warm glow, a ring of bobbing lanterns, and music notes
+  // drifting up from the square. All motion is continuous (never blinks).
+  function drawFestival(sx, sy, z) {
+    const f = state.festival; if (!f) return;
+    const cx = sx + f.x * z, cy = sy + f.y * z;
+    if (cx < -90 || cx > view.w + 90 || cy < -90 || cy > view.h + 90) return;
+    const t = ambientTime;
+    // warm ground glow
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const r = (36 + Math.sin(t * 1.5) * 3) * z;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, 'rgba(255,196,90,0.30)');
+    g.addColorStop(1, 'rgba(255,150,40,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // a ring of strung lanterns, gently bobbing (elliptical for a bit of depth)
+    const LANT = ['#ff6b5c', '#ffd166', '#8fd88a', '#7fb8f2', '#d59be6'];
+    const n = 8, lr = 28 * z;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + t * 0.15;
+      const bob = Math.sin(t * 2 + i) * 2 * z;
+      const lx = cx + Math.cos(ang) * lr, ly = cy + Math.sin(ang) * lr * 0.5 - 15 * z + bob;
+      const col = LANT[i % LANT.length];
+      ctx.globalAlpha = 0.35; ctx.fillStyle = col; ctx.fillRect(lx - 3 * z, ly + z, 6 * z, 2 * z); // soft halo
+      ctx.globalAlpha = 0.95; ctx.fillRect(lx - 1.5 * z, ly - 2 * z, 3 * z, 4 * z);                // lantern body
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#3a2a18'; ctx.fillRect(lx - 0.5 * z, ly - 4 * z, z, 2 * z); // string
+    }
+    ctx.globalAlpha = 1;
+    // music notes & sparkles rising from the square, each on its own smooth loop
+    ctx.textAlign = 'center'; ctx.font = Math.round(9 * z) + 'px sans-serif';
+    const notes = ['🎶', '🎉', '✨', '🎵'];
+    for (let i = 0; i < 6; i++) {
+      const ph = ((t / 3.4) + i / 6) % 1;                 // 0..1 loop
+      const nx = cx + Math.sin(i * 1.7 + t * 0.6) * 22 * z;
+      const ny = cy - 6 * z - ph * 36 * z;
+      ctx.globalAlpha = Math.sin(ph * Math.PI) * 0.9;     // fade in, then out — no blink
+      ctx.fillText(notes[i % notes.length], nx, ny);
+    }
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
 
   function drawWeather() {
@@ -3004,10 +3085,19 @@
       const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
       btns += '<button id="p-upgrade">⬆️ Upgrade <span style="opacity:.7;font-size:11px">' + costStr + '</span></button>';
     }
+    if (b.type === 'tavern' && b.done !== false) {
+      const fc = festivalCost();
+      const fcStr = Object.keys(fc).map(k => fc[k] + shortRes(k)).join(' ');
+      const on = festivalActive(), ready = festivalReady();
+      const lbl = on ? '🎪 Festival underway…' : !ready ? '🎪 Festival (town resting)' : '🎪 Hold a Festival <span style="opacity:.7;font-size:11px">' + fcStr + '</span>';
+      btns += '<button id="p-festival"' + (on || !ready ? ' disabled' : '') + '>' + lbl + '</button>';
+    }
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
     const upBtn = document.getElementById('p-upgrade');
     if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
+    const fBtn = document.getElementById('p-festival');
+    if (fBtn) fBtn.onclick = () => { holdFestival(b); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
@@ -3187,6 +3277,7 @@
         roads: state.roads || [], muted: !!state.muted, nextEventDay: state.nextEventDay,
         achievements: state.achievements || [], townName: state.townName || 'Hearthvale',
         trades: state.trades || 0, traderDay: state.traderDay || 0, hunger: state.hunger || 0,
+        festival: state.festival || null, lastFestivalDay: (state.lastFestivalDay != null ? state.lastFestivalDay : -99),
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -3239,6 +3330,8 @@
       state.trades = s.trades || 0;
       state.traderDay = s.traderDay || 0;
       state.hunger = s.hunger || 0;
+      state.festival = (s.festival && typeof s.festival.endDay === 'number') ? s.festival : null;
+      state.lastFestivalDay = (typeof s.lastFestivalDay === 'number') ? s.lastFestivalDay : -99;
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
         cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
