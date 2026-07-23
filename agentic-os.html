@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA STUDIO — the dev office, live</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127970;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="The Eureka Games dev office, live. Each agent has a desk and a game — when a real pull request is open on their game, they're at the keyboard. When it's quiet, they nap.">
+  <meta name="description" content="The Eureka Games dev office, live. A top-down pixel office wired to GitHub: agents work at their desks when real pull requests are open on their game — and wander, chat, and play ping pong when it's quiet.">
   <meta name="theme-color" content="#05070a">
   <meta property="og:type" content="website">
   <meta property="og:title" content="EUREKA STUDIO — LIVE">
-  <meta property="og:description" content="A live pixel office wired to GitHub: agents work when real PRs are open on their game.">
+  <meta property="og:description" content="A live top-down pixel office wired to GitHub: agents work when real PRs are open, and play ping pong when it's quiet.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap">
@@ -19,6 +19,7 @@
   --text:#c7d4e2; --dim:#66788c; --faint:#3d4c5e;
   --accent:#58a6ff; --accent-dim:rgba(88,166,255,.14);
   --good:#3fb950; --warn:#d29922; --bad:#f85149; --purple:#bc8cff;
+  --wood:#20180f; --wood2:#261d13; --wall:#2a3a4e;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
@@ -42,77 +43,143 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 #sync.err{color:var(--warn)}
 .h-back{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:7px;padding:6px 11px;white-space:nowrap}
 .h-back:hover{color:var(--text);text-decoration:none;border-color:var(--line2)}
+#shift{font-size:10px;color:var(--faint);white-space:nowrap}
+#snd,#gear{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--dim);
+  font-family:inherit;font-size:12px;cursor:pointer;padding:5px 10px}
+#snd:hover,#gear:hover{color:var(--text)}
+#ai-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.12em;
+  border:1px solid var(--line);border-radius:20px;padding:3px 10px;color:var(--dim);cursor:pointer;white-space:nowrap;
+  background:transparent;font-family:inherit}
+#ai-pill i{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+#ai-pill.on{color:var(--good);border-color:rgba(63,185,80,.4)}
+#ai-pill.on i{background:var(--good);animation:blink 2.2s infinite}
 
 /* ---------- intro strip ---------- */
 #strip{padding:10px 22px;font-size:11px;color:var(--dim);border-bottom:1px solid var(--line);line-height:1.6}
 #strip b{color:var(--text)}
 
-/* ---------- office ---------- */
-#office{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;
-  padding:22px;max-width:1400px;margin:0 auto;width:100%;align-content:start}
-.desk{background:linear-gradient(180deg,var(--panel) 0%,#090d13 100%);border:1px solid var(--line);
-  border-radius:14px;overflow:hidden;cursor:pointer;transition:border-color .2s, transform .15s;position:relative}
-.desk:hover{border-color:var(--line2);transform:translateY(-2px)}
-.desk.working{border-color:rgba(63,185,80,.5)}
-.desk.working:hover{border-color:var(--good)}
+/* ---------- the floor ---------- */
+#floorwrap{max-width:1400px;margin:0 auto;width:100%;padding:18px 22px 6px}
+#floor{position:relative;width:100%;aspect-ratio:2/1;background:#07090d;border:1px solid var(--line2);
+  border-radius:14px;overflow:hidden;user-select:none;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.5), 0 10px 40px rgba(0,0,0,.35)}
+body.night #floor{filter:brightness(.72) saturate(.85)}
+/* zones */
+.zone{position:absolute;border-radius:8px}
+.z-bull{left:1.5%;top:3%;width:60%;height:94%;
+  background:repeating-linear-gradient(0deg,var(--wood) 0 12px,var(--wood2) 12px 24px);
+  box-shadow:inset 0 0 40px rgba(0,0,0,.45)}
+.z-lounge{left:63.5%;top:3%;width:35%;height:45.5%;background:#0e1520;
+  box-shadow:inset 0 0 30px rgba(0,0,0,.45)}
+.z-game{left:63.5%;top:51.5%;width:35%;height:45.5%;background:#0d1712;
+  box-shadow:inset 0 0 30px rgba(0,0,0,.45)}
+.zgrid{position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 34px,rgba(28,40,54,.35) 34px 35px),
+             repeating-linear-gradient(0deg,transparent 0 34px,rgba(28,40,54,.35) 34px 35px)}
+.zlabel{position:absolute;font-size:8px;font-weight:700;letter-spacing:.18em;color:var(--faint);opacity:.8;pointer-events:none}
+/* walls */
+.wall{position:absolute;background:var(--wall);border-radius:3px;box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.wall.v{width:0.55%}
+.wall.h{height:1.6%}
+/* desks (top view) */
+.dblk{position:absolute;width:9.5%;height:17%;cursor:pointer;z-index:3}
+.dtop{position:absolute;left:0;right:0;top:0;height:52%;background:linear-gradient(180deg,#3a3020,#2c2417);
+  border:1.5px solid #1d1810;border-radius:4px;box-shadow:0 3px 5px rgba(0,0,0,.5)}
+.dmon{position:absolute;left:50%;top:12%;transform:translateX(-50%);width:38%;height:34%;background:#0a0e14;
+  border:1.5px solid #232f3f;border-radius:2px}
+.dblk.working .dmon{background:#0a1a10;box-shadow:0 0 10px rgba(63,185,80,.45);animation:mflk 1.3s steps(2) infinite}
+@keyframes mflk{0%,100%{box-shadow:0 0 10px rgba(63,185,80,.45)}50%{box-shadow:0 0 14px rgba(63,185,80,.7)}}
+.dmug{position:absolute;right:8%;top:22%;font-size:8px;opacity:.85}
+.dname{position:absolute;left:0;right:0;top:-12px;text-align:center;font-size:8px;font-weight:700;
+  letter-spacing:.08em;color:var(--faint);text-shadow:0 1px 2px #000;white-space:nowrap}
+.dblk.working .dname{color:var(--good)}
+.dblk:hover .dtop{border-color:var(--line2)}
+.dpr{position:absolute;left:50%;top:-25px;transform:translateX(-50%);font-size:8px;font-weight:700;color:var(--good);
+  background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.35);border-radius:8px;padding:1px 6px;
+  white-space:nowrap;display:none}
+.dblk.working .dpr{display:block}
+/* furniture */
+.furn{position:absolute;z-index:2;pointer-events:none}
+.bookshelf{background:linear-gradient(180deg,#2c2013,#241a10);border:1.5px solid #17110a;border-radius:3px;overflow:hidden}
+.bookshelf::before{content:'';position:absolute;inset:12% 8%;
+  background:repeating-linear-gradient(90deg,#a05252 0 8%,#5a7fb0 8% 15%,#b09a52 15% 23%,transparent 23% 28%,
+    #7fa05a 28% 36%,#8a5ab0 36% 43%,transparent 43% 47%,#b07a52 47% 56%,#5aa0a0 56% 63%,transparent 63% 100%);
+  background-size:100% 46%;background-repeat:repeat-y;opacity:.85}
+.couch{background:#31405a;border:1.5px solid #1e2a40;border-radius:6px}
+.couch::before{content:'';position:absolute;left:6%;top:14%;width:88%;height:36%;background:#3a4a68;border-radius:4px}
+.vend{background:linear-gradient(180deg,#1a2434,#141b28);border:1.5px solid #0e141f;border-radius:3px}
+.vend::before{content:'';position:absolute;left:14%;top:10%;width:72%;height:52%;background:#0a0e14;border-radius:2px;
+  box-shadow:inset 0 0 8px rgba(88,166,255,.35)}
+.vend::after{content:'';position:absolute;left:20%;bottom:10%;width:60%;height:9%;background:#232f3f}
+.cmach{background:#22304a;border:1.5px solid #16203a;border-radius:3px}
+.cmach::before{content:'';position:absolute;right:12%;top:12%;width:16%;height:16%;border-radius:50%;background:var(--good);
+  animation:blink 2.6s infinite}
+.cmach::after{content:'';position:absolute;left:22%;bottom:12%;width:32%;height:24%;background:#7a5230;border-radius:1px}
+.rug{background:radial-gradient(ellipse at center,rgba(88,166,255,.10),rgba(88,166,255,.03) 70%,transparent);
+  border-radius:50%}
+.fplant{font-size:14px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+/* ping pong table (top view) */
+#pptable{position:absolute;background:linear-gradient(180deg,#2d6a4f,#255a43);border:2px solid #1d4a37;border-radius:4px;z-index:2;
+  box-shadow:0 4px 8px rgba(0,0,0,.5)}
+#pptable::before{content:'';position:absolute;left:50%;top:-4%;bottom:-4%;width:2.5px;transform:translateX(-50%);
+  background:#c7d4e2;opacity:.7;border-radius:2px}
+#pptable::after{content:'';position:absolute;inset:6%;border:1px solid rgba(199,212,226,.35);border-radius:2px}
+#ppball{position:absolute;left:10%;top:45%;width:6px;height:6px;border-radius:50%;background:#f6e58d;display:none;
+  box-shadow:0 0 7px rgba(246,229,141,.6);z-index:3}
+#pptable.match #ppball{display:block;animation:prallyx 1.1s linear infinite alternate,prallyy .55s ease-in-out infinite alternate}
+@keyframes prallyx{from{left:7%}to{left:calc(93% - 6px)}}
+@keyframes prallyy{from{top:26%}to{top:62%}}
+#pongscore{position:absolute;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--purple);
+  background:rgba(188,140,255,.1);border:1px solid rgba(188,140,255,.35);border-radius:9px;padding:2px 9px;
+  white-space:nowrap;display:none;z-index:6}
+/* agents on the floor */
+.bot-a{position:absolute;width:34px;margin-left:-17px;margin-top:-30px;text-align:center;z-index:5;cursor:pointer;
+  transition:none}
+.bot-a img{width:27px;height:27px;border-radius:7px;display:block;margin:0 auto;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.55))}
+.bot-a .n{font-size:7px;font-weight:700;letter-spacing:.05em;color:var(--dim);text-shadow:0 1px 2px #000;margin-top:1px}
+.bot-a.flip img{transform:scaleX(-1)}
+.bot-a.walking img{animation:walkbob .3s ease-in-out infinite alternate}
+@keyframes walkbob{from{transform:translateY(0) rotate(-2.5deg)}to{transform:translateY(-2.5px) rotate(2.5deg)}}
+.bot-a.flip.walking img{animation:walkbobf .3s ease-in-out infinite alternate}
+@keyframes walkbobf{from{transform:scaleX(-1) translateY(0) rotate(2.5deg)}to{transform:scaleX(-1) translateY(-2.5px) rotate(-2.5deg)}}
+.bot-a.typing img{animation:typebob .46s ease-in-out infinite}
+@keyframes typebob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.bot-a.playing img{animation:ppbob .5s ease-in-out infinite}
+@keyframes ppbob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-3px) rotate(3deg)}}
+.bot-a.party img{animation:partybounce .55s ease-in-out infinite}
+@keyframes partybounce{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(4deg)}}
+/* speech bubbles above heads */
+.fb{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);width:max-content;max-width:160px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px 8px;font-size:9px;line-height:1.45;
+  color:var(--text);white-space:normal;display:none;z-index:8;animation:talkin .18s ease-out;pointer-events:none;
+  text-align:center}
+@keyframes talkin{from{opacity:0;transform:translateX(-50%) translateY(3px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.fb::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:4px solid transparent;border-top-color:var(--line)}
+.talking>.fb{display:block}
+.fb.good{color:var(--good);border-color:rgba(63,185,80,.4)}
+.fb.purple{color:var(--purple);border-color:rgba(188,140,255,.4)}
+/* the cat */
+#cat{position:absolute;font-size:15px;z-index:6;cursor:pointer;margin-left:-9px;margin-top:-14px;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));transition:none}
+#cat.flip{transform:scaleX(-1)}
 
-.d-head{display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid var(--line);background:var(--panel2)}
-.d-game{font-size:11px;font-weight:700;letter-spacing:.09em}
-.d-agent{font-size:10px;color:var(--faint)}
-.d-status{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.1em;padding:3px 9px;border-radius:20px}
-.working .d-status{background:rgba(63,185,80,.15);color:var(--good)}
-.idle .d-status{background:rgba(102,120,140,.13);color:var(--dim)}
-
-/* the scene */
-.scene{position:relative;height:150px;background:
-  radial-gradient(ellipse at 50% 120%, rgba(88,166,255,.05), transparent 60%),
-  repeating-linear-gradient(90deg, transparent 0 38px, rgba(28,40,54,.5) 38px 39px),
-  linear-gradient(180deg,#0a0f16 0%, #0b1018 78%, #131a26 78%, #101622 100%)}
-/* monitor */
-.mon{position:absolute;left:50%;top:26px;transform:translateX(-50%);width:104px;height:64px;
-  background:#151d29;border:3px solid #232f3f;border-radius:6px;overflow:visible}
-.mon::after{content:'';position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);
-  width:26px;height:10px;background:#232f3f;border-radius:0 0 4px 4px}
-.mscreen{position:absolute;inset:2px;background:#0a0e14;border-radius:2px;overflow:hidden}
-.working .mscreen{background:#07120b;box-shadow:0 0 18px rgba(63,185,80,.25)}
-.mscreen .code{position:absolute;inset:4px;opacity:0;
-  background:repeating-linear-gradient(180deg,rgba(63,185,80,.65) 0 2px,transparent 2px 6px,rgba(63,185,80,.4) 6px 8px,transparent 8px 12px,rgba(88,166,255,.5) 12px 14px,transparent 14px 20px);
-  background-size:70% 40px}
-.working .mscreen .code{opacity:1;animation:scroll 1.6s linear infinite}
-@keyframes scroll{from{background-position:0 0}to{background-position:0 -40px}}
-.idle .mscreen::after{content:'—';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  color:#1c2836;font-size:18px}
-/* the desk surface */
-.table{position:absolute;left:12%;right:12%;bottom:26px;height:8px;background:#2a3648;border-radius:3px;
-  box-shadow:0 3px 0 #1d2735}
-.table::before,.table::after{content:'';position:absolute;bottom:-22px;width:6px;height:22px;background:#1d2735}
-.table::before{left:8px}.table::after{right:8px}
-/* agent */
-.bot{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:44px;text-align:center;z-index:2}
-.bot img{width:34px;height:34px;border-radius:8px;display:block;margin:0 auto}
-.bot .torso{width:40px;height:16px;margin:-2px auto 0;background:#22304a;border-radius:6px 6px 0 0}
-.working .bot{animation:typebob .46s ease-in-out infinite}
-@keyframes typebob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-2.5px)}}
-/* hands tapping */
-.hands{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);width:36px;display:none;justify-content:space-between;z-index:3}
-.hands i{width:7px;height:7px;background:#22304a;border-radius:50%;animation:tap .46s infinite}
-.hands i:last-child{animation-delay:.23s}
-@keyframes tap{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-.working .hands{display:flex}
-/* bubbles */
-.bub{position:absolute;left:calc(50% + 30px);top:18px;font-size:12px;background:var(--panel2);
-  border:1px solid var(--line);border-radius:10px;padding:3px 8px;white-space:nowrap;display:none;z-index:4}
-.idle .bub.zzz{display:block;color:var(--faint);animation:floaty 3s ease-in-out infinite}
-@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-.working .bub.pr{display:block;color:var(--good);border-color:rgba(63,185,80,.4);font-size:10px;font-weight:700}
-/* coffee + plant */
-.mug{position:absolute;right:20%;bottom:36px;width:10px;height:9px;background:#7a5230;border-radius:1px 1px 3px 3px}
-.mug::after{content:'';position:absolute;right:-4px;top:2px;width:4px;height:5px;border:1.5px solid #7a5230;border-left:0;border-radius:0 3px 3px 0}
-.plant{position:absolute;left:16%;bottom:36px;font-size:13px}
-
-.d-foot{padding:9px 13px;font-size:10px;color:var(--faint);border-top:1px solid var(--line);min-height:34px;line-height:1.5}
-.d-foot b{color:var(--dim)}
-.working .d-foot b{color:var(--good)}
+/* ---------- roster ---------- */
+#roster{max-width:1400px;margin:0 auto;width:100%;padding:10px 22px 20px;display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+  border-radius:9px;padding:5px 10px;font-family:inherit;font-size:10px;color:var(--dim);cursor:pointer}
+.chip:hover{border-color:var(--line2);color:var(--text)}
+.chip img{width:18px;height:18px;border-radius:5px}
+.chip b{color:var(--text);letter-spacing:.05em}
+.chip .st{font-size:9px}
+.chip.working{border-color:rgba(63,185,80,.4)}
+.chip.working .st{color:var(--good);font-weight:700}
+.chip .lv{font-size:8px;color:var(--warn);font-weight:700}
+.ci-dot{width:7px;height:7px;border-radius:50%;display:inline-block;vertical-align:0}
+.ci-dot.success{background:var(--good)}
+.ci-dot.failure{background:var(--bad);animation:blink 1s infinite}
+.ci-dot.pending{background:var(--warn);animation:blink 1.6s infinite}
 
 /* ---------- ticker ---------- */
 #ticker{border-top:1px solid var(--line);background:var(--panel2);padding:9px 0;overflow:hidden;white-space:nowrap;font-size:11px;color:var(--dim)}
@@ -139,6 +206,15 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 .pr-m{font-size:10px;color:var(--faint)}
 .pr-m .draft{color:var(--warn)}
 .m-empty{padding:22px 18px;font-size:11px;color:var(--dim);line-height:1.7}
+.btn-talk{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:7px;color:var(--accent);
+  font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;cursor:pointer;padding:6px 11px;white-space:nowrap}
+.btn-talk:hover{filter:brightness(1.25)}
+.set-body{padding:16px 18px;font-size:11px;color:var(--dim);line-height:1.7}
+.set-body input{width:100%;background:#0a0e14;border:1px solid var(--line2);border-radius:7px;color:var(--text);
+  font-family:inherit;font-size:11px;padding:8px 10px;margin:10px 0}
+.set-body .btn{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:7px;color:var(--accent);
+  font-family:inherit;font-size:11px;cursor:pointer;padding:7px 12px;margin-right:8px}
+.set-ok{color:var(--good)}
 
 /* boot splash */
 #splash{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;gap:10px;
@@ -147,39 +223,13 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 #splash .t{font-weight:700;letter-spacing:.2em;color:var(--accent)}
 #splash .s{font-size:11px;color:var(--faint)}
 
-
-/* ---------- v2: ci, party, ships, board, cat, night, sound ---------- */
-.ci-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:0}
-.ci-dot.success{background:var(--good)}
-.ci-dot.failure{background:var(--bad);animation:blink 1s infinite}
-.ci-dot.pending{background:var(--warn);animation:blink 1.6s infinite}
-.party .d-status{background:rgba(188,140,255,.16);color:var(--purple)}
-.party .bot{animation:partybounce .55s ease-in-out infinite}
-@keyframes partybounce{0%,100%{transform:translateX(-50%) translateY(0) rotate(-4deg)}50%{transform:translateX(-50%) translateY(-6px) rotate(4deg)}}
-.party .mscreen{background:#120a18}
-.party .mscreen .code{opacity:1;animation:scroll 1s linear infinite;
-  background:repeating-linear-gradient(180deg,rgba(188,140,255,.7) 0 2px,transparent 2px 6px,rgba(210,153,34,.6) 6px 8px,transparent 8px 12px,rgba(63,185,80,.6) 12px 14px,transparent 14px 20px);background-size:70% 40px}
-.party .bub.party{display:block;color:var(--purple);border-color:rgba(188,140,255,.4);font-size:10px;font-weight:700}
-.party .mscreen::after{content:none}
-.d-lv{font-size:9px;color:var(--warn);font-weight:700;margin-left:5px}
+/* ---------- shipped board + walls ---------- */
 #board{max-width:1400px;margin:0 auto;width:100%;padding:0 22px 22px}
 #board h2{font-size:10px;letter-spacing:.16em;color:var(--faint);font-weight:700;margin-bottom:9px}
 .ship-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(28,40,54,.6);font-size:11px}
 .ship-row .n{color:var(--purple);font-weight:700;white-space:nowrap}
 .ship-row .t{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .ship-row .w{color:var(--faint);white-space:nowrap;font-size:10px}
-#cat{position:fixed;bottom:46px;left:-40px;font-size:22px;z-index:70;cursor:pointer;user-select:none;
-  transition:left 14s linear;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
-#cat.flip{transform:scaleX(-1)}
-#cat.dash{transition:left 1.2s ease-in}
-body.night .scene{filter:brightness(.68) saturate(.85)}
-body.night .scene::before{content:'';position:absolute;left:14%;top:8px;width:40px;height:40px;
-  background:radial-gradient(circle,rgba(255,215,120,.18),transparent 70%);pointer-events:none}
-#snd{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--dim);
-  font-family:inherit;font-size:12px;cursor:pointer;padding:5px 10px}
-#snd:hover{color:var(--text)}
-
-/* ---------- v3: request board, commit wall, settings, emotes, shift ---------- */
 #walls{max-width:1400px;margin:0 auto;width:100%;padding:0 22px 22px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
 @media (max-width:900px){#walls{grid-template-columns:1fr}}
 #walls h2{font-size:10px;letter-spacing:.16em;color:var(--faint);font-weight:700;margin-bottom:12px}
@@ -201,29 +251,8 @@ body.night .scene::before{content:'';position:absolute;left:14%;top:8px;width:40
 .com-row .sha{color:var(--warn);font-size:10px}
 .com-row .msg{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .com-row .who{color:var(--faint);font-size:10px;white-space:nowrap}
-.bub.emote{left:auto;right:calc(50% + 30px);color:var(--text)}
-.bub.emote.show{display:block;animation:floaty 3s ease-in-out infinite}
-#shift{font-size:10px;color:var(--faint);white-space:nowrap}
-#gear{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--dim);
-  font-family:inherit;font-size:12px;cursor:pointer;padding:5px 10px}
-#gear:hover{color:var(--text)}
-.set-body{padding:16px 18px;font-size:11px;color:var(--dim);line-height:1.7}
-.set-body input{width:100%;background:#0a0e14;border:1px solid var(--line2);border-radius:7px;color:var(--text);
-  font-family:inherit;font-size:11px;padding:8px 10px;margin:10px 0}
-.set-body .btn{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:7px;color:var(--accent);
-  font-family:inherit;font-size:11px;cursor:pointer;padding:7px 12px;margin-right:8px}
-.set-ok{color:var(--good)}
 
-/* ---------- v4: talk to the agents (local Anthropic backend) ---------- */
-#ai-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.12em;
-  border:1px solid var(--line);border-radius:20px;padding:3px 10px;color:var(--dim);cursor:pointer;white-space:nowrap;
-  background:transparent;font-family:inherit}
-#ai-pill i{width:7px;height:7px;border-radius:50%;background:var(--faint)}
-#ai-pill.on{color:var(--good);border-color:rgba(63,185,80,.4)}
-#ai-pill.on i{background:var(--good);animation:blink 2.2s infinite}
-.btn-talk{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:7px;color:var(--accent);
-  font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;cursor:pointer;padding:6px 11px;white-space:nowrap}
-.btn-talk:hover{filter:brightness(1.25)}
+/* ---------- chat dock ---------- */
 #dock{position:fixed;right:18px;bottom:58px;width:370px;max-width:calc(100vw - 24px);height:500px;max-height:72vh;
   background:var(--panel);border:1px solid var(--line2);border-radius:14px;display:none;flex-direction:column;
   z-index:85;box-shadow:0 24px 60px rgba(0,0,0,.55);overflow:hidden}
@@ -253,80 +282,16 @@ body.night .scene::before{content:'';position:absolute;left:14%;top:8px;width:40
 #k-send{background:var(--accent-dim);border:1px solid rgba(88,166,255,.4);border-radius:8px;color:var(--accent);
   font-family:inherit;font-size:13px;cursor:pointer;padding:0 13px}
 #k-send.stop{color:var(--bad);border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.1)}
-@media (max-width:640px){#dock{right:8px;bottom:52px}}
-
-/* ---------- v5: atmosphere — banter, break room, windows, cat naps ---------- */
-.win{position:absolute;left:10px;top:9px;width:27px;height:22px;display:flex;align-items:center;justify-content:center;
-  font-size:10px;background:linear-gradient(180deg,#12203a,#1b3050);border:2px solid #232f3f;border-radius:3px;
-  box-shadow:inset 0 0 6px rgba(88,166,255,.15)}
-.win::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#232f3f}
-body.night .win{background:linear-gradient(180deg,#060a14,#0b1226);box-shadow:inset 0 0 8px rgba(255,215,120,.1)}
-.bub.talk{left:42px;right:8px;top:7px;white-space:normal;line-height:1.5;font-size:10px;color:var(--text);
-  text-align:center;display:none;z-index:6;animation:talkin .18s ease-out}
-@keyframes talkin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-.desk.talking .bub.talk{display:block}
-.desk.talking .bub.zzz,.desk.talking .bub.pr,.desk.talking .bub.party,.desk.talking .bub.emote{display:none}
-.desk.away .bot,.desk.away .hands,.desk.away .bub.zzz{display:none}
-.catnap{position:absolute;right:15%;bottom:48px;font-size:15px;z-index:3;animation:floaty 4s ease-in-out infinite;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
-.catnap span{font-size:9px;opacity:.8}
-/* the break room */
-.breakroom .d-head{background:linear-gradient(90deg,var(--panel2),rgba(122,82,48,.12))}
-.couch{position:absolute;left:13%;bottom:30px;width:66px;height:16px;background:#31405a;border-radius:5px 5px 2px 2px}
-.couch::before{content:'';position:absolute;left:2px;top:-11px;width:62px;height:13px;background:#3a4a68;border-radius:6px 6px 0 0}
-.couch::after{content:'';position:absolute;left:-5px;top:-6px;width:8px;height:22px;background:#3a4a68;border-radius:4px;
-  box-shadow:68px 0 0 #3a4a68}
-.cmach{position:absolute;right:14%;bottom:32px;width:22px;height:32px;background:#22304a;border-radius:3px}
-.cmach::after{content:'';position:absolute;left:5px;bottom:3px;width:9px;height:7px;background:#7a5230;border-radius:1px 1px 2px 2px}
-.cmach::before{content:'';position:absolute;right:3px;top:4px;width:4px;height:4px;border-radius:50%;background:var(--good);
-  animation:blink 2.6s infinite}
-#br-slots{position:absolute;left:0;right:0;bottom:52px;display:flex;justify-content:center;gap:16px;z-index:2}
-#br-slots span{text-align:center}
-#br-slots img{width:30px;height:30px;border-radius:7px;display:block;margin:0 auto;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));animation:floaty 3.4s ease-in-out infinite}
-#br-slots .n{font-size:8px;color:var(--faint);margin-top:2px}
-
-/* ---------- v6: ping pong, walkers, desk visits ---------- */
-.gameroom .d-head{background:linear-gradient(90deg,var(--panel2),rgba(63,185,80,.09))}
-.gameroom.playing{border-color:rgba(188,140,255,.5)}
-.gameroom.playing .d-status{background:rgba(188,140,255,.16);color:var(--purple)}
-.pptable{position:absolute;left:50%;bottom:38px;transform:translateX(-50%);width:150px;height:9px;
-  background:linear-gradient(180deg,#2d6a4f,#245741);border:2px solid #1d4a37;border-radius:2px}
-.pptable::before{content:'';position:absolute;left:50%;top:-9px;width:2px;height:11px;background:#c7d4e2;opacity:.65}
-.pptable::after{content:'';position:absolute;bottom:-22px;left:14px;width:5px;height:22px;background:#1d3a2c;
-  box-shadow:118px 0 0 #1d3a2c}
-.ppball{position:absolute;left:30%;bottom:56px;width:6px;height:6px;border-radius:50%;background:#f6e58d;display:none;
-  box-shadow:0 0 6px rgba(246,229,141,.5)}
-.playing .ppball{display:block;animation:rally 1.1s linear infinite alternate,ppb .55s ease-in-out infinite alternate}
-@keyframes rally{from{left:27%}to{left:calc(73% - 6px)}}
-@keyframes ppb{from{bottom:62px}to{bottom:50px}}
-.pp-p{position:absolute;bottom:44px;width:44px;text-align:center;z-index:2}
-.pp-p.l{left:6%}
-.pp-p.r{right:6%}
-.pp-p img{width:30px;height:30px;border-radius:7px;display:block;margin:0 auto;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.4))}
-.pp-p .n{font-size:8px;color:var(--faint);margin-top:2px}
-.pp-p .pad{position:absolute;top:9px;font-size:11px}
-.pp-p.l .pad{right:-8px}
-.pp-p.r .pad{left:-8px;transform:scaleX(-1)}
-.playing .pp-p.l{animation:typebob .5s ease-in-out infinite}
-.playing .pp-p.r{animation:typebob .5s ease-in-out infinite;animation-delay:.25s}
-.walker{position:fixed;bottom:42px;z-index:69;transition:left 7s linear;text-align:center;pointer-events:none;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
-.walker img{width:26px;height:26px;border-radius:6px;display:block;margin:0 auto;
-  animation:walkbob .32s ease-in-out infinite alternate}
-.walker .n{font-size:8px;color:var(--faint)}
-@keyframes walkbob{from{transform:translateY(0) rotate(-2.5deg)}to{transform:translateY(-2.5px) rotate(2.5deg)}}
-.visitor{position:absolute;left:21%;bottom:33px;z-index:2;text-align:center}
-.visitor img{width:27px;height:27px;border-radius:7px;display:block;margin:0 auto;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));animation:floaty 3.2s ease-in-out infinite}
-.visitor .n{font-size:7px;color:var(--faint);margin-top:1px}
 
 footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;line-height:1.7}
 
 @media (max-width:640px){
   header{padding:10px 14px;gap:8px}
-  #office{padding:14px;gap:12px}
+  #floorwrap{padding:12px 10px 4px}
+  #roster{padding:8px 10px 16px}
+  .bot-a img{width:22px;height:22px}
+  .bot-a .n{font-size:6px}
+  #dock{right:8px;bottom:52px}
 }
 </style>
 </head>
@@ -340,20 +305,21 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
   <span class="h-spacer"></span>
   <span id="shift"></span>
   <button id="ai-pill" title="Talk to the agents"><i></i>AGENTS&hellip;</button>
-  <button id="snd" title="Keyboard sounds">&#128263;</button>
+  <button id="snd" title="Office sounds">&#128263;</button>
   <button id="gear" title="Settings">&#9881;</button>
   <span id="sync">syncing&hellip;</span>
   <a class="h-back" href="index.html">&larr; EUREKA GAMES</a>
 </header>
 
 <div id="strip">
-  This office is <b>real</b>: every desk is one of our games, and every agent is wired to
+  This office is <b>real</b>: every agent is wired to
   <a href="https://github.com/MrGamble01/potential-eureka" target="_blank" rel="noopener">the repo on GitHub</a>.
-  When a pull request is open touching their game, they're typing. When it's quiet, they nap. Click a desk for details —
-  and when the local AI backend is running, click an agent to <b>talk to them</b>.
+  When a pull request is open touching their game, they're at their desk typing. When it's quiet, they wander —
+  coffee runs, desk visits, <b>ping pong</b>. Click a desk for its pull requests, click an agent to <b>talk to them</b>.
 </div>
 
-<div id="office"></div>
+<div id="floorwrap"><div id="floor"></div></div>
+<div id="roster"></div>
 
 <div id="walls" hidden>
   <div>
@@ -370,8 +336,6 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
   <h2>&#128230; RECENTLY SHIPPED</h2>
   <div id="board-list"></div>
 </div>
-
-<div id="cat" title="the office cat">&#128008;</div>
 
 <div id="ticker"><div class="inner" id="ticker-inner"></div></div>
 
@@ -399,10 +363,10 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
 <script>
 'use strict';
 /* =====================================================================
-   EUREKA STUDIO — a live dev office.
+   EUREKA STUDIO — a live top-down pixel dev office.
    Desk status is driven by real open pull requests on the repo:
-   PR touches a game's files  ->  that game's agent is WORKING.
-   No open PR on the game     ->  the agent is IDLE.
+   PR touches a game's files  ->  that agent is at their desk WORKING.
+   No open PR on the game     ->  they wander: coffee, visits, ping pong.
    ===================================================================== */
 
 const REPO = 'MrGamble01/potential-eureka';
@@ -412,29 +376,40 @@ const POLL_MS = 60000;
 const $ = (s, el) => (el || document).querySelector(s);
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/* Each desk: which agent sits there, and which repo paths belong to it.
+/* Each desk: agent, repo paths, and its spot on the floor (percent coords).
    `match` gets a changed-file path; `kw` is the fallback regex used on the
    PR title + branch name when the files API is unavailable. */
 const DESKS = [
-  { key: 'ageofwar', game: 'AGE OF WAR', agent: 'FORGE',
+  { key: 'ageofwar', game: 'AGE OF WAR', agent: 'FORGE', dx: 5, dy: 14,
     match: f => f.startsWith('ageofwar/'), kw: /age.?of.?war|aow/i },
-  { key: 'tycoon', game: 'STARTUP TYCOON', agent: 'NOVA',
+  { key: 'tycoon', game: 'STARTUP TYCOON', agent: 'NOVA', dx: 19.5, dy: 14,
     match: f => f.startsWith('tycoon/'), kw: /tycoon|beagle/i },
-  { key: 'growop', game: 'GROW OP', agent: 'MOSS',
+  { key: 'growop', game: 'GROW OP', agent: 'MOSS', dx: 34, dy: 14,
     match: f => f.startsWith('drug-lab'), kw: /grow.?op|drug.?lab/i },
-  { key: 'homeless', game: 'HOMELESS VILLAGE', agent: 'SCOUT',
+  { key: 'homeless', game: 'HOMELESS VILLAGE', agent: 'SCOUT', dx: 48.5, dy: 14,
     match: f => f.startsWith('homeless-village'), kw: /homeless/i },
-  { key: 'hearthvale', game: 'HEARTHVALE', agent: 'WREN',
+  { key: 'hearthvale', game: 'HEARTHVALE', agent: 'WREN', dx: 5, dy: 62,
     match: f => f.startsWith('hearthvale'), kw: /hearthvale/i },
-  { key: 'arcade', game: 'ARCADE HUB', agent: 'BOLT',
+  { key: 'arcade', game: 'ARCADE HUB', agent: 'BOLT', dx: 19.5, dy: 62,
     match: f => f === 'index.html' || f.startsWith('js/') || f.startsWith('css/'),
     kw: /arcade|snake|tetris|breaker|2048|asteroid|vector storm|maze|hub|dashboard/i },
-  { key: 'studio', game: 'STUDIO PAGE', agent: 'CIPHER',
+  { key: 'studio', game: 'STUDIO PAGE', agent: 'CIPHER', dx: 34, dy: 62,
     match: f => f.startsWith('agentic-os'), kw: /agentic|studio/i },
-  { key: 'ops', game: 'SITE OPS', agent: 'ATLAS',
+  { key: 'ops', game: 'SITE OPS', agent: 'ATLAS', dx: 48.5, dy: 62,
     match: f => ['README.md', 'ROADMAP.md', 'vercel.json', 'sitemap.xml', 'robots.txt', '404.html'].includes(f) || f.startsWith('assets/') || f.startsWith('vendor/'),
     kw: /readme|roadmap|deploy|vercel|seo|sitemap|ops|infra/i }
 ];
+function seatOf(d) { return { x: d.dx + 4.75, y: d.dy + 19 }; }
+
+/* named places on the floor */
+const SPOTS = {
+  coffee: { x: 87, y: 22 },
+  couch1: { x: 70, y: 28 }, couch2: { x: 75.5, y: 28 },
+  vend: { x: 93, y: 26 },
+  pongL: { x: 68.5, y: 71 }, pongR: { x: 94, y: 71 },
+  doorMain: { x: 61.5, y: 51 }, doorRight: { x: 87, y: 50.5 }
+};
+const BREAK_SPOTS = ['coffee', 'couch1', 'couch2', 'vend'];
 
 /* ---------- procedural avatars (the studio's little robots) ---------- */
 const AVATARS = {};
@@ -630,7 +605,7 @@ async function sync() {
   render();
 }
 
-/* ---------- rendering ---------- */
+/* ---------- build the floor ---------- */
 function ago(iso) {
   const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
   if (s < 90) return 'just now';
@@ -639,109 +614,176 @@ function ago(iso) {
   return Math.round(s / 86400) + 'd ago';
 }
 
-function buildOffice() {
-  const night = (new Date().getHours() >= 20 || new Date().getHours() < 6);
-  $('#office').innerHTML = DESKS.map(d => `
-    <div class="desk idle" id="desk-${d.key}" data-key="${d.key}">
-      <div class="d-head">
-        <img src="${avatarFor(d.agent)}" width="26" height="26" style="border-radius:6px" alt="">
-        <span><div class="d-game">${esc(d.game)}</div><div class="d-agent">${esc(d.agent)}</div></span>
-        <span class="d-status">OFF DUTY</span>
-      </div>
-      <div class="scene">
-        <div class="win">${night ? '&#127769;' : '&#9728;&#65039;'}</div>
-        <div class="mon"><div class="mscreen"><div class="code"></div></div></div>
-        <div class="table"></div>
-        <div class="bot"><img src="${avatarFor(d.agent)}" alt=""><div class="torso"></div></div>
-        <div class="hands"><i></i><i></i></div>
-        <div class="bub zzz">&#128164;</div>
-        <div class="bub pr"></div>
-        <div class="bub party">SHIPPED &#127881;</div>
-        <div class="bub emote"></div>
-        <div class="bub talk"></div>
-        <div class="mug"></div>
-        <div class="plant">&#127793;</div>
-      </div>
-      <div class="d-foot">&hellip;</div>
-    </div>`).join('') + `
-    <div class="desk breakroom" id="breakroom">
-      <div class="d-head">
-        <span style="font-size:16px">&#9749;</span>
-        <span><div class="d-game">BREAK ROOM</div><div class="d-agent">open 24/7</div></span>
-        <span class="d-status">QUIET</span>
-      </div>
-      <div class="scene">
-        <div class="win">${night ? '&#127769;' : '&#9728;&#65039;'}</div>
-        <div class="couch"></div>
-        <div class="cmach"></div>
-        <div class="plant" style="left:auto;right:6%">&#127807;</div>
-        <div id="br-slots"></div>
-        <div class="bub talk"></div>
-      </div>
-      <div class="d-foot" id="br-foot">nobody here &mdash; the coffee machine gurgles to itself</div>
-    </div>
-    <div class="desk gameroom" id="gameroom">
-      <div class="d-head">
-        <span style="font-size:16px">&#127955;</span>
-        <span><div class="d-game">GAME ROOM</div><div class="d-agent">office ping pong championship</div></span>
-        <span class="d-status">TABLE FREE</span>
-      </div>
-      <div class="scene">
-        <div class="win">${night ? '&#127769;' : '&#9728;&#65039;'}</div>
-        <div class="pptable"></div>
-        <div class="ppball"></div>
-        <div class="pp-p l"></div>
-        <div class="pp-p r"></div>
-        <div class="plant" style="left:auto;right:5%;bottom:30px">&#127793;</div>
-        <div class="bub talk"></div>
-      </div>
-      <div class="d-foot" id="gr-foot">the table waits. chalk scoreboard reads 0 &mdash; 0.</div>
-    </div>`;
-  document.querySelectorAll('.desk[data-key]').forEach(el => {
-    el.addEventListener('click', () => openModal(el.dataset.key));
-    // clicking the little robot goes straight to a conversation
-    $('.bot', el).addEventListener('click', e => { e.stopPropagation(); openChat(el.dataset.key); });
-  });
+const BOTS = {}; // desk key -> runtime bot {x, y, path, el, act, flip, home}
+
+function buildFloor() {
+  const f = $('#floor');
+  f.innerHTML = `
+    <div class="zone z-bull"><div class="zgrid"></div></div>
+    <div class="zone z-lounge"><div class="zgrid"></div></div>
+    <div class="zone z-game"><div class="zgrid"></div></div>
+    <div class="zlabel" style="left:3.5%;top:5.5%">DEV FLOOR</div>
+    <div class="zlabel" style="left:65.5%;top:5.5%">LOUNGE</div>
+    <div class="zlabel" style="left:65.5%;top:54%">GAME ROOM</div>
+    <div class="wall v" style="left:62%;top:3%;height:38%"></div>
+    <div class="wall v" style="left:62%;top:62%;height:35%"></div>
+    <div class="wall h" style="left:63.5%;top:48.6%;width:19%"></div>
+    <div class="wall h" style="left:93%;top:48.6%;width:5.5%"></div>
+    <div class="furn bookshelf" style="left:65%;top:6.5%;width:11%;height:11%"></div>
+    <div class="furn cmach" style="left:85%;top:8%;width:4.2%;height:13%"></div>
+    <div class="furn vend" style="left:91.5%;top:6.5%;width:5%;height:16%"></div>
+    <div class="furn rug" style="left:68%;top:20%;width:20%;height:20%"></div>
+    <div class="furn couch" style="left:66.5%;top:33%;width:13%;height:9%"></div>
+    <div class="furn fplant" style="left:96%;top:38%">&#127807;</div>
+    <div class="furn fplant" style="left:64.5%;top:41%">&#129716;</div>
+    <div class="furn fplant" style="left:96%;top:88%">&#127793;</div>
+    <div class="furn fplant" style="left:2.5%;top:88%">&#129716;</div>
+    <div class="furn fplant" style="left:57.5%;top:6%">&#127793;</div>
+    <div id="pptable" style="left:72.5%;top:63%;width:19%;height:17%"><div id="ppball"></div><div class="fb"></div></div>
+    <div id="pongscore" style="top:56.5%"></div>
+    ${DESKS.map(d => `
+      <div class="dblk" id="dblk-${d.key}" data-key="${d.key}" style="left:${d.dx}%;top:${d.dy}%" title="${esc(d.game)} — click for pull requests">
+        <div class="dpr"></div>
+        <div class="dtop"><div class="dmon"></div><div class="dmug">&#9749;</div></div>
+        <div class="dname">${esc(d.game)}</div>
+      </div>`).join('')}
+    ${DESKS.map(d => {
+      const s = seatOf(d);
+      return `<div class="bot-a" id="bot-${d.key}" data-key="${d.key}" style="left:${s.x}%;top:${s.y}%" title="talk to ${esc(d.agent)}">
+        <div class="fb"></div>
+        <img src="${avatarFor(d.agent)}" alt="">
+        <div class="n">${esc(d.agent)}</div>
+      </div>`;
+    }).join('')}
+    <div id="cat" title="the office cat" style="left:30%;top:45%">&#128008;<div class="fb"></div></div>`;
+  // runtime bot state
+  for (const d of DESKS) {
+    const s = seatOf(d);
+    BOTS[d.key] = { key: d.key, agent: d.agent, x: s.x, y: s.y, home: s, path: [], act: null,
+      el: $('#bot-' + d.key), flip: false };
+  }
+  // clicks: desk -> PR modal, agent -> chat
+  document.querySelectorAll('.dblk').forEach(el =>
+    el.addEventListener('click', () => openModal(el.dataset.key)));
+  document.querySelectorAll('.bot-a').forEach(el =>
+    el.addEventListener('click', e => { e.stopPropagation(); openChat(el.dataset.key); }));
 }
 
+/* ---------- movement engine ---------- */
+const SPD = 0.55; // percent-of-width per tick, visually
+function routeTo(bot, tx, ty) {
+  const path = [];
+  const fromLeft = bot.x < 62, toLeft = tx < 62;
+  if (fromLeft !== toLeft) {
+    path.push({ x: SPOTS.doorMain.x, y: SPOTS.doorMain.y });
+  } else if (!fromLeft && !toLeft && (bot.y < 49) !== (ty < 49)) {
+    path.push({ x: SPOTS.doorRight.x, y: SPOTS.doorRight.y });
+  }
+  path.push({ x: tx, y: ty });
+  bot.path = path;
+}
+function tickBot(bot) {
+  if (!bot.path.length) return false;
+  const t = bot.path[0];
+  const vx = t.x - bot.x, vy = (t.y - bot.y) * 0.5; // y% is half the visual size of x%
+  const d = Math.hypot(vx, vy);
+  if (d < 0.7) {
+    bot.x = t.x; bot.y = t.y;
+    bot.path.shift();
+    return bot.path.length > 0;
+  }
+  bot.x += (vx / d) * SPD;
+  bot.y += ((vy / d) * SPD) / 0.5;
+  if (Math.abs(vx) > 0.05) bot.flip = vx < 0;
+  return true;
+}
+setInterval(() => {
+  if (document.hidden) return;
+  for (const k of Object.keys(BOTS)) {
+    const b = BOTS[k];
+    const moving = tickBot(b);
+    b.el.style.left = b.x + '%';
+    b.el.style.top = b.y + '%';
+    b.el.classList.toggle('walking', moving);
+    b.el.classList.toggle('flip', b.flip);
+    const working = (state.byDesk[k] || []).length > 0;
+    const atDesk = !moving && !b.act;
+    b.el.classList.toggle('typing', working && atDesk);
+    b.el.classList.toggle('playing', !moving && b.act && b.act.type === 'pong');
+  }
+  // the cat
+  const c = catBot;
+  if (c) {
+    const moving = tickBot(c);
+    c.el.style.left = c.x + '%';
+    c.el.style.top = c.y + '%';
+    c.el.classList.toggle('flip', c.flip);
+  }
+}, 55);
+
+/* speech bubble above a bot (or the ping pong table) */
+function say(elOrKey, text, ms, cls) {
+  const el = typeof elOrKey === 'string' ? (BOTS[elOrKey] && BOTS[elOrKey].el) : elOrKey;
+  if (!el) return;
+  const b = $('.fb', el);
+  if (!b) return;
+  b.textContent = text;
+  b.className = 'fb' + (cls ? ' ' + cls : '');
+  el.classList.add('talking');
+  clearTimeout(b._t);
+  b._t = setTimeout(() => el.classList.remove('talking'), ms || 5000);
+}
+
+/* ---------- rendering (desks, roster, boards, ticker) ---------- */
 function render() {
   for (const d of DESKS) {
-    const el = $('#desk-' + d.key);
+    const el = $('#dblk-' + d.key);
     if (!el) continue;
     const prs = (state.byDesk[d.key] || []);
     const working = prs.length > 0;
-    const mergedRecent = (state.mergedByDesk[d.key] || []).filter(p =>
-      Date.now() - new Date(p.merged_at) < 2 * 3600 * 1000);
-    const party = !working && mergedRecent.length > 0;
     el.classList.toggle('working', working);
-    el.classList.toggle('party', party);
-    el.classList.toggle('idle', !working && !party);
-    el.classList.toggle('away', !working && !party && !!away[d.key]);
-    // career level from real merged-PR count on this desk
-    const ships = (state.mergedByDesk[d.key] || []).length;
-    const lvEl = $('.d-agent', el);
-    lvEl.innerHTML = esc(d.agent) + (ships ? ` <span class="d-lv">LV.${1 + Math.floor(Math.sqrt(ships))} · ${ships} shipped</span>` : '');
-    const st = $('.d-status', el);
-    if (working) {
-      const ci = state.ci[prs[0].number];
-      st.innerHTML = (ci ? `<span class="ci-dot ${ci}" title="CI ${ci}"></span>` : '') + 'WORKING';
-    } else st.textContent = party ? 'SHIPPED!' : 'OFF DUTY';
     if (working) {
       const newest = prs.reduce((a, b) => a.updated_at > b.updated_at ? a : b);
-      $('.bub.pr', el).textContent = 'PR #' + newest.number + (prs.length > 1 ? ' +' + (prs.length - 1) : '');
-      $('.d-foot', el).innerHTML = `<b>${prs.length} open PR${prs.length > 1 ? 's' : ''}</b> · last activity ${ago(newest.updated_at)}`;
-    } else if (party) {
-      $('.d-foot', el).innerHTML = `<b>just shipped #${mergedRecent[0].number}</b> · ${ago(mergedRecent[0].merged_at)} — victory lap in progress`;
-    } else if (away[d.key]) {
-      const a = away[d.key];
-      const doing = a.where === 'pong' ? 'playing ping pong in the game room &#127955;'
-        : a.where === 'visit' ? `visiting ${esc(agentOf(a.host))}'s desk`
-        : 'in the break room &#9749;';
-      $('.d-foot', el).innerHTML = `stepped out — ${esc(d.agent)} is ${doing}`;
-    } else {
-      $('.d-foot', el).innerHTML = `no open work — ${esc(d.agent)} is ${['on break', 'napping', 'refilling coffee', 'contemplating the backlog'][(d.key.length * 7) % 4]}`;
+      $('.dpr', el).textContent = 'PR #' + newest.number + (prs.length > 1 ? ' +' + (prs.length - 1) : '');
     }
+    // work interrupts play: recall the agent to their desk
+    const bot = BOTS[d.key];
+    if (working && bot && bot.act) endActivity(bot, true);
   }
+  renderRoster();
+  renderBoards();
+  paintSync();
+}
+
+function renderRoster() {
+  $('#roster').innerHTML = DESKS.map(d => {
+    const prs = (state.byDesk[d.key] || []);
+    const working = prs.length > 0;
+    const ships = (state.mergedByDesk[d.key] || []).length;
+    const bot = BOTS[d.key];
+    let st;
+    if (working) {
+      const ci = state.ci[prs[0].number];
+      st = (ci ? `<i class="ci-dot ${ci}" title="CI ${ci}"></i> ` : '') + prs.length + ' open PR' + (prs.length > 1 ? 's' : '');
+    } else if (bot && bot.act) {
+      st = bot.act.type === 'pong' ? 'ping pong &#127955;'
+        : bot.act.type === 'break' ? 'on break &#9749;'
+        : bot.act.type === 'visit' ? 'visiting ' + esc(agentOf(bot.act.host))
+        : 'wandering';
+    } else {
+      st = 'at desk · idle';
+    }
+    return `<button class="chip ${working ? 'working' : ''}" data-key="${d.key}">
+      <img src="${avatarFor(d.agent)}" alt=""><b>${esc(d.agent)}</b>
+      <span class="st">${st}</span>
+      ${ships ? `<span class="lv">LV.${1 + Math.floor(Math.sqrt(ships))}</span>` : ''}
+    </button>`;
+  }).join('');
+  document.querySelectorAll('#roster .chip').forEach(el =>
+    el.addEventListener('click', () => openModal(el.dataset.key)));
+}
+
+function renderBoards() {
   // shipped board
   const board = $('#board');
   if (state.merged.length) {
@@ -780,9 +822,8 @@ function render() {
     t.innerHTML = state.prs.map(p =>
       `&#9679; <b>#${p.number}</b> ${esc(p.title)} <span style="color:var(--faint)">(${esc(p.user ? p.user.login : '?')}, ${ago(p.updated_at)})</span>&nbsp;&nbsp;&nbsp;`).join('');
   } else {
-    t.innerHTML = '&#9679; all quiet in the studio — no open pull requests right now. the agents are resting. &#9679; open one on GitHub and watch someone sit up.';
+    t.innerHTML = '&#9679; all quiet in the studio — no open pull requests right now. the agents are at play. &#9679; open one on GitHub and watch someone hurry back to their desk.';
   }
-  paintSync();
 }
 
 function paintSync() {
@@ -802,11 +843,14 @@ function paintSync() {
 /* ---------- modal ---------- */
 function openModal(key) {
   const d = DESKS.find(x => x.key === key);
+  if (!d) return;
   const prs = state.byDesk[key] || [];
+  const ships = (state.mergedByDesk[key] || []).length;
   $('#modal').innerHTML = `
     <div class="m-head">
       <img src="${avatarFor(d.agent)}" alt="">
-      <span><div class="m-title">${esc(d.game)}</div><div class="m-sub">${esc(d.agent)}'s desk</div></span>
+      <span><div class="m-title">${esc(d.game)}</div>
+      <div class="m-sub">${esc(d.agent)}'s desk${ships ? ' · LV.' + (1 + Math.floor(Math.sqrt(ships))) + ' · ' + ships + ' shipped' : ''}</div></span>
       <button class="btn-talk" id="m-talk">&#128172; TALK</button>
       <button class="m-close" aria-label="Close">&#10005;</button>
     </div>
@@ -817,7 +861,7 @@ function openModal(key) {
           <div class="pr-m">${p.draft ? '<span class="draft">DRAFT · </span>' : ''}by ${esc(p.user ? p.user.login : '?')} · updated ${ago(p.updated_at)} · ${esc((p.head && p.head.ref) || '')}</div>
         </a>`).join('')
       : `<div class="m-empty">No open pull requests touch ${esc(d.game)} right now.<br><br>
-         ${esc(d.agent)} clocks in the moment one opens on
+         ${esc(d.agent)} hurries back to their desk the moment one opens on
          <a href="https://github.com/${REPO}/pulls" target="_blank" rel="noopener">GitHub</a>.</div>`}
     </div>`;
   $('#overlay').classList.add('open');
@@ -861,22 +905,10 @@ function closeModal() { $('#overlay').classList.remove('open'); }
 $('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-/* ---------- ambiance: night shift, keyboard sounds, the office cat ---------- */
+/* ---------- ambiance: shift + sounds ---------- */
 const hr = new Date().getHours();
 if (hr >= 20 || hr < 6) document.body.classList.add('night');
 $('#shift').textContent = (hr >= 20 || hr < 6) ? '\u{1F319} NIGHT SHIFT' : (hr < 12 ? '☀ MORNING SHIFT' : '☀ DAY SHIFT');
-
-/* off-duty agents have a life: little emotes over idle desks */
-const EMOTES = ['☕', '\u{1F3A7}', '\u{1F35C}', '\u{1F4D6}', '\u{1F9D8}', '\u{1F4AD}', '\u{1F331}'];
-setInterval(() => {
-  if (document.hidden) return;
-  const idlers = document.querySelectorAll('.desk.idle');
-  if (!idlers.length || Math.random() > 0.6) return;
-  const el = $('.bub.emote', idlers[Math.floor(Math.random() * idlers.length)]);
-  el.textContent = EMOTES[Math.floor(Math.random() * EMOTES.length)];
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3200);
-}, 9000);
 
 let soundOn = false;
 let actx = null;
@@ -892,50 +924,32 @@ function clack() {
   const f = actx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1800;
   src.connect(f); f.connect(g); g.connect(actx.destination); src.start();
 }
+function pock() {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = 600 + Math.random() * 180;
+  g.gain.setValueAtTime(0.045, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.07);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime + 0.08);
+}
 $('#snd').addEventListener('click', () => {
   soundOn = !soundOn;
   $('#snd').innerHTML = soundOn ? '&#128266;' : '&#128263;';
   if (soundOn) clack();
 });
 setInterval(() => {
-  if (!soundOn) return;
-  const n = document.querySelectorAll('.desk.working').length;
+  if (!soundOn || document.hidden) return;
+  const n = DESKS.filter(d => (state.byDesk[d.key] || []).length).length;
   if (n && Math.random() < Math.min(0.85, 0.35 + n * 0.18)) clack();
 }, 140);
-
-const cat = $('#cat');
-let catWalking = false;
-function catWalk() {
-  if (catWalking || document.hidden) return;
-  catWalking = true;
-  const ltr = Math.random() < 0.5;
-  cat.classList.remove('dash');
-  cat.classList.toggle('flip', ltr);
-  cat.style.transition = 'none';
-  cat.style.left = ltr ? '-50px' : (innerWidth + 20) + 'px';
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    cat.style.transition = '';
-    cat.style.left = ltr ? (innerWidth + 20) + 'px' : '-50px';
-  }));
-  setTimeout(() => { catWalking = false; }, 15000);
-}
-cat.addEventListener('click', () => {
-  cat.classList.add('dash');
-  cat.style.left = cat.classList.contains('flip') ? (innerWidth + 40) + 'px' : '-60px';
-  if (soundOn) { clack(); setTimeout(clack, 90); }
-  setTimeout(() => { catWalking = false; }, 1400);
-});
-cat.addEventListener('transitionend', () => { catWalking = false; });
-setInterval(() => { if (Math.random() < 0.45) catWalk(); }, 40000);
-setTimeout(catWalk, 7000);
+setInterval(() => { if (soundOn && pong && !document.hidden) pock(); }, 550);
 
 /* =====================================================================
-   v4 — TALK TO THE AGENTS
-   Each agent is a persona over the local Anthropic backend
-   (agentic-os-chat/ in this repo, Express on :3001). The system prompt
-   is rebuilt per message with the desk's LIVE GitHub state, so the
-   agents actually know what they're working on. The API key stays in
-   the backend's .env — this page never sees it.
+   TALK TO THE AGENTS — each agent is a persona over the local Anthropic
+   backend (agentic-os-chat/ in this repo, Express on :3001). The system
+   prompt is rebuilt per message with the desk's LIVE GitHub state. The
+   API key stays in the backend's .env — this page never sees it.
    ===================================================================== */
 const AI_BASE = location.port === '3001' ? '' : 'http://localhost:3001';
 const AI_MODELS = [
@@ -964,10 +978,10 @@ function personaFor(d) {
   const prLines = prs.slice(0, 5).map(p => '- PR #' + p.number + ': ' + p.title).join('\n');
   const coworkers = DESKS.filter(x => x.key !== d.key).map(x => x.agent + ' (' + x.game + ')').join(', ');
   return [
-    'You are ' + d.agent + ', one of eight robot developer agents at EUREKA STUDIO — the live pixel dev office of Eureka Games (GitHub repo: ' + REPO + '). You sit at the ' + d.game + ' desk. A visitor to the office page is chatting with you.',
+    'You are ' + d.agent + ', one of eight robot developer agents at EUREKA STUDIO — the live top-down pixel dev office of Eureka Games (GitHub repo: ' + REPO + '). You sit at the ' + d.game + ' desk. A visitor to the office page is chatting with you.',
     'Personality: ' + PERSONAS[d.key],
     'Rules: stay in character at all times. Keep replies short — one to three sentences unless the visitor clearly wants more. Plain text only, no markdown formatting. You may reference the live studio state below; do not invent PRs or commits that are not listed.',
-    'Coworkers: ' + coworkers + '. There is also an office cat. It answers to no one.',
+    'Coworkers: ' + coworkers + '. The office has a lounge, a break room corner and a ping pong table you all use when off duty. There is also an office cat. It answers to no one.',
     'LIVE STUDIO STATE\nYour status: ' + status + (shipped ? '\nCareer: ' + shipped + ' PR' + (shipped > 1 ? 's' : '') + ' shipped on this desk all-time' : '') + (prLines ? '\nOpen work on your desk:\n' + prLines : '')
   ].join('\n\n');
 }
@@ -1018,7 +1032,7 @@ function openAIInfo() {
       This page connects to <code>http://localhost:3001</code> automatically — or open the fully local copy at
       <code>localhost:3001/agentic-os.html</code>. The agents know their own live GitHub state: open PRs,
       shipped counts, who's working. Ask them about it.
-      ${aiOnline ? '<br><br><span class="set-ok">✓ Backend detected — click any robot, or the TALK button on a desk.</span>' : ''}
+      ${aiOnline ? '<br><br><span class="set-ok">✓ Backend detected — click any robot on the floor.</span>' : ''}
     </div>`;
   $('#overlay').classList.add('open');
   $('.m-close').addEventListener('click', closeModal);
@@ -1059,7 +1073,7 @@ function renderChat() {
   } else if (!hist.length) {
     const n = document.createElement('div');
     n.className = 'k-note';
-    n.textContent = `You walk up to ${chatDesk.agent}'s desk. Say hi — they know what they're working on.`;
+    n.textContent = `You walk up to ${chatDesk.agent}. Say hi — they know what they're working on.`;
     box.appendChild(n);
   }
   for (const m of hist) {
@@ -1170,13 +1184,11 @@ $('#k-clear').addEventListener('click', () => {
 });
 
 /* =====================================================================
-   v5 — ATMOSPHERE
-   The office has a life of its own, no backend required: agents banter
-   in character (and reference their real open PRs), wander to the break
-   room, and the cat naps where it pleases.
+   ATMOSPHERE — the office has a life of its own, no backend required:
+   agents banter in character (and reference their real open PRs),
+   wander to the lounge, play ping pong, visit each other's desks.
    ===================================================================== */
 
-/* in-character one-liners. {n} becomes the desk's newest open PR number. */
 const IDLE_LINES = {
   ageofwar: ["a quiet forge is a cold forge.", "sharpening the axes. metaphorically. mostly.", "the catapult is STILL overpowered. nobody listens.", "back in my day we shipped without CI.", "polishing the war drums.", "peace is just pre-war."],
   tycoon: ["idle time is just runway burn.", "visualizing the hockey stick.", "coffee is my seed round.", "networking with the office cat. strong founder energy.", "iterating on my personal brand.", "we should A/B test the nap schedule."],
@@ -1197,7 +1209,6 @@ const WORK_LINES = {
   studio: ["PR #{n} edits the office itself. careful.", "renovating while you watch.", "painting the walls behind you.", "meta-work in progress."],
   ops: ["PR #{n}: assessing blast radius.", "rolling forward. never back.", "infra work. you won't notice it. that's the point.", "measuring twice, deploying once."]
 };
-/* scripted cross-desk exchanges: [speaker, line, replier, reply] */
 const PAIRS = [
   ['BOLT', 'FORGE! race you to green CI!!', 'FORGE', 'CI is not a race, BOLT. …i would win though.'],
   ['NOVA', "MOSS, what's your growth strategy?", 'MOSS', 'water. light. patience.'],
@@ -1219,51 +1230,6 @@ const BREAK_LINES = [
   'five more minutes, then back to it.',
   'the couch remains undefeated.'
 ];
-
-function say(deskEl, text, ms) {
-  if (!deskEl) return;
-  const b = $('.bub.talk', deskEl);
-  if (!b) return;
-  b.textContent = text;
-  deskEl.classList.add('talking');
-  clearTimeout(b._t);
-  b._t = setTimeout(() => deskEl.classList.remove('talking'), ms || 4800);
-}
-
-function lineFor(d) {
-  const prs = state.byDesk[d.key] || [];
-  const pool = prs.length ? (WORK_LINES[d.key] || []) : (IDLE_LINES[d.key] || []);
-  if (!pool.length) return null;
-  let l = pool[Math.floor(Math.random() * pool.length)];
-  if (prs.length) l = l.replace('{n}', prs[0].number);
-  return l;
-}
-
-/* office banter: solo mutterings + the occasional two-agent exchange */
-setInterval(() => {
-  if (document.hidden || Math.random() > 0.5) return;
-  if (Math.random() < 0.25) {
-    const p = PAIRS[Math.floor(Math.random() * PAIRS.length)];
-    const a = DESKS.find(d => d.agent === p[0]);
-    const b = DESKS.find(d => d.agent === p[2]);
-    if (a && b && !away[a.key] && !away[b.key]) {
-      say($('#desk-' + a.key), p[1]);
-      setTimeout(() => { if (!document.hidden && !away[b.key]) say($('#desk-' + b.key), p[3]); }, 2700);
-      return;
-    }
-  }
-  const cands = DESKS.filter(d => !away[d.key]);
-  const d = cands[Math.floor(Math.random() * cands.length)];
-  const l = lineFor(d);
-  if (l) say($('#desk-' + d.key), l);
-}, 9000);
-
-/* ---------- off-duty life: break room, ping pong, desk visits ---------- */
-const away = {}; // desk key -> { until, where: 'break' | 'pong' | 'visit', host? }
-let pong = null; // { l, r, sl, sr, until } — desk keys of players + score
-
-function agentOf(key) { return (DESKS.find(d => d.key === key) || {}).agent || '?'; }
-
 const PONG_LINES = ['nice shot!!', 'off the edge. still counts.', 'lucky net.', 'best of 21?',
   'the spin! THE SPIN', 'my paddle slipped. rematch.', 'that one had topspin AND lore.'];
 const VISIT_PAIRS = [
@@ -1275,177 +1241,205 @@ const VISIT_PAIRS = [
   ['is it just me or is the office extra cozy today?', 'someone watered the plants. changes everything.']
 ];
 
-/* somebody visibly crosses the office floor */
-function walkAcross(agent) {
-  if (document.hidden) return;
-  const w = document.createElement('div');
-  w.className = 'walker';
-  w.innerHTML = `<img src="${avatarFor(agent)}" alt=""><div class="n">${esc(agent)}</div>`;
-  const ltr = Math.random() < 0.5;
-  w.style.left = ltr ? '-40px' : (innerWidth + 20) + 'px';
-  document.body.appendChild(w);
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    w.style.left = ltr ? (innerWidth + 20) + 'px' : '-40px';
-  }));
-  setTimeout(() => w.remove(), 7500);
+function agentOf(key) { return (DESKS.find(d => d.key === key) || {}).agent || '?'; }
+function lineFor(d) {
+  const prs = state.byDesk[d.key] || [];
+  const pool = prs.length ? (WORK_LINES[d.key] || []) : (IDLE_LINES[d.key] || []);
+  if (!pool.length) return null;
+  let l = pool[Math.floor(Math.random() * pool.length)];
+  if (prs.length) l = l.replace('{n}', prs[0].number);
+  return l;
 }
 
-function renderRooms() {
-  // break room occupancy
-  const bk = Object.keys(away).filter(k => away[k].where === 'break');
-  $('#br-slots').innerHTML = bk.map(k =>
-    `<span><img src="${avatarFor(agentOf(k))}" alt=""><div class="n">${esc(agentOf(k))}</div></span>`).join('');
-  $('#breakroom .d-status').textContent = bk.length ? bk.length + ' ON BREAK' : 'QUIET';
-  $('#br-foot').innerHTML = bk.length
-    ? '<b>' + bk.map(k => esc(agentOf(k))).join(' + ') + '</b> ' + (bk.length > 1 ? 'are' : 'is') + ' getting coffee'
-    : 'nobody here &mdash; the coffee machine gurgles to itself';
-  // game room
-  const gr = $('#gameroom');
-  gr.classList.toggle('playing', !!pong);
-  if (pong) {
-    $('.pp-p.l', gr).innerHTML = `<span class="pad">&#127955;</span><img src="${avatarFor(agentOf(pong.l))}" alt=""><div class="n">${esc(agentOf(pong.l))}</div>`;
-    $('.pp-p.r', gr).innerHTML = `<span class="pad">&#127955;</span><img src="${avatarFor(agentOf(pong.r))}" alt=""><div class="n">${esc(agentOf(pong.r))}</div>`;
-    $('.d-status', gr).textContent = 'MATCH ON';
-    $('#gr-foot').innerHTML = `<b>${esc(agentOf(pong.l))} ${pong.sl} &mdash; ${pong.sr} ${esc(agentOf(pong.r))}</b> · first to 11`;
-  } else {
-    $('.pp-p.l', gr).innerHTML = '';
-    $('.pp-p.r', gr).innerHTML = '';
-    $('.d-status', gr).textContent = 'TABLE FREE';
+/* solo mutterings + cross-room exchanges */
+setInterval(() => {
+  if (document.hidden || Math.random() > 0.5) return;
+  if (Math.random() < 0.25) {
+    const p = PAIRS[Math.floor(Math.random() * PAIRS.length)];
+    const a = DESKS.find(d => d.agent === p[0]);
+    const b = DESKS.find(d => d.agent === p[2]);
+    if (a && b) {
+      say(a.key, p[1]);
+      setTimeout(() => { if (!document.hidden) say(b.key, p[3]); }, 2700);
+      return;
+    }
   }
-  // desk visitors
-  document.querySelectorAll('.visitor').forEach(v => v.remove());
-  for (const k of Object.keys(away)) {
-    if (away[k].where !== 'visit') continue;
-    const host = $('#desk-' + away[k].host);
-    if (!host || $('.visitor', host)) continue;
-    const div = document.createElement('div');
-    div.className = 'visitor';
-    div.innerHTML = `<img src="${avatarFor(agentOf(k))}" alt=""><div class="n">${esc(agentOf(k))}</div>`;
-    $('.scene', host).appendChild(div);
+  const d = DESKS[Math.floor(Math.random() * DESKS.length)];
+  const bot = BOTS[d.key];
+  if (bot.act && bot.act.type === 'pong') return; // trash talk handled separately
+  const l = lineFor(d);
+  if (l) say(d.key, l);
+}, 9000);
+
+/* ---------- activities: break, ping pong, visits, strolls ---------- */
+let pong = null; // { l, r, sl, sr, until } — desk keys of players + score
+
+function startActivity(bot, act) {
+  bot.act = act;
+  routeTo(bot, act.x, act.y);
+}
+function endActivity(bot, urgent) {
+  if (!bot.act) return;
+  if (bot.act.type === 'pong' && pong) {
+    // their match ends with them
+    const other = BOTS[pong.l === bot.key ? pong.r : pong.l];
+    $('#pptable').classList.remove('match');
+    $('#pongscore').style.display = 'none';
+    pong = null;
+    if (other && other.act && other.act.type === 'pong') {
+      other.act = null;
+      routeTo(other, other.home.x, other.home.y);
+    }
   }
+  bot.act = null;
+  routeTo(bot, bot.home.x, bot.home.y);
+  if (urgent) say(bot.key, 'a PR just opened — back to work!', 3800, 'good');
 }
 
-/* the life scheduler: end activities, start new ones */
 setInterval(() => {
   const now = Date.now();
-  let changed = false;
   // finish a ping pong match
   if (pong && (pong.sl >= 11 || pong.sr >= 11 || now > pong.until)) {
     if (pong.sl !== pong.sr) {
-      const w = pong.sl > pong.sr ? pong.l : pong.r;
-      say($('#gameroom'), agentOf(w) + ' takes it ' + Math.max(pong.sl, pong.sr) + '—' + Math.min(pong.sl, pong.sr) + '! \u{1F3C6}', 6000);
+      const wk = pong.sl > pong.sr ? pong.l : pong.r;
+      say(wk, 'that\'s game! ' + Math.max(pong.sl, pong.sr) + '—' + Math.min(pong.sl, pong.sr) + ' \u{1F3C6}', 6000, 'purple');
     }
-    walkAcross(agentOf(pong.l)); walkAcross(agentOf(pong.r));
-    delete away[pong.l]; delete away[pong.r];
-    pong = null; changed = true;
+    for (const k of [pong.l, pong.r]) {
+      const b = BOTS[k];
+      if (b.act && b.act.type === 'pong') { b.act = null; routeTo(b, b.home.x, b.home.y); }
+    }
+    $('#pptable').classList.remove('match');
+    $('#pongscore').style.display = 'none';
+    pong = null;
+    renderRoster();
   }
-  // everyone else heads back to their desk when their time is up
-  for (const k of Object.keys(away)) {
-    if (away[k].where !== 'pong' && now > away[k].until) {
-      walkAcross(agentOf(k));
-      delete away[k]; changed = true;
+  // other activities time out -> walk home
+  for (const k of Object.keys(BOTS)) {
+    const b = BOTS[k];
+    if (b.act && b.act.type !== 'pong' && now > b.act.until) {
+      b.act = null;
+      routeTo(b, b.home.x, b.home.y);
+      renderRoster();
     }
   }
-  // start something new (idle agents only — work comes first)
+  // start something new — idle agents only, work comes first
   if (!document.hidden) {
-    const free = DESKS.filter(d => !(state.byDesk[d.key] || []).length && !away[d.key]);
+    const free = DESKS.filter(d => !(state.byDesk[d.key] || []).length && !BOTS[d.key].act && !BOTS[d.key].path.length);
     const roll = Math.random();
-    if (free.length >= 2 && !pong && roll < 0.18) {
+    if (free.length >= 2 && !pong && roll < 0.2) {
       // a ping pong match breaks out
       const a = free.splice(Math.floor(Math.random() * free.length), 1)[0];
       const b = free[Math.floor(Math.random() * free.length)];
       const until = now + 45000 + Math.random() * 30000;
-      away[a.key] = { until, where: 'pong' };
-      away[b.key] = { until, where: 'pong' };
+      startActivity(BOTS[a.key], { type: 'pong', until, x: SPOTS.pongL.x, y: SPOTS.pongL.y });
+      startActivity(BOTS[b.key], { type: 'pong', until, x: SPOTS.pongR.x, y: SPOTS.pongR.y });
       pong = { l: a.key, r: b.key, sl: 0, sr: 0, until };
-      walkAcross(a.agent); walkAcross(b.agent);
-      setTimeout(() => { if (pong) say($('#gameroom'), a.agent + ' vs ' + b.agent + ' — match on!'); }, 1500);
-      changed = true;
-    } else if (free.length && roll < 0.38) {
-      // coffee run
+      setTimeout(() => {
+        if (!pong) return;
+        $('#pptable').classList.add('match');
+        const sc = $('#pongscore');
+        sc.style.display = 'block';
+        sc.textContent = a.agent + ' 0 — 0 ' + b.agent;
+      }, 4500);
+      renderRoster();
+    } else if (free.length && roll < 0.42) {
+      // coffee / couch break in the lounge
       const d = free[Math.floor(Math.random() * free.length)];
-      away[d.key] = { until: now + 22000 + Math.random() * 26000, where: 'break' };
-      walkAcross(d.agent);
-      changed = true;
-    } else if (free.length && roll < 0.52) {
+      const spot = SPOTS[BREAK_SPOTS[Math.floor(Math.random() * BREAK_SPOTS.length)]];
+      startActivity(BOTS[d.key], { type: 'break', until: now + 22000 + Math.random() * 26000,
+        x: spot.x + (Math.random() * 2 - 1), y: spot.y + (Math.random() * 3 - 1.5) });
+      renderRoster();
+    } else if (free.length && roll < 0.58) {
       // wander over to a coworker's desk for a chat
       const d = free[Math.floor(Math.random() * free.length)];
-      const hosts = DESKS.filter(x => x.key !== d.key && !away[x.key]);
+      const hosts = DESKS.filter(x => x.key !== d.key && !BOTS[x.key].act && !BOTS[x.key].path.length);
       if (hosts.length) {
         const h = hosts[Math.floor(Math.random() * hosts.length)];
-        away[d.key] = { until: now + 20000 + Math.random() * 16000, where: 'visit', host: h.key };
-        walkAcross(d.agent);
-        // they actually talk once the visitor arrives
+        const hs = seatOf(h);
+        startActivity(BOTS[d.key], { type: 'visit', until: now + 20000 + Math.random() * 16000,
+          host: h.key, x: hs.x - 4.2, y: hs.y + 1 });
         setTimeout(() => {
-          if (!away[d.key]) return;
+          if (!BOTS[d.key].act || BOTS[d.key].act.type !== 'visit') return;
           const scripted = PAIRS.find(p => (p[0] === d.agent && p[2] === h.agent) || (p[0] === h.agent && p[2] === d.agent));
-          const el = $('#desk-' + h.key);
           if (scripted) {
-            say(el, scripted[0] + ': ' + scripted[1]);
-            setTimeout(() => { if (away[d.key]) say(el, scripted[2] + ': ' + scripted[3]); }, 5200);
+            const first = DESKS.find(x => x.agent === scripted[0]);
+            const second = DESKS.find(x => x.agent === scripted[2]);
+            say(first.key, scripted[1]);
+            setTimeout(() => { if (BOTS[d.key].act) say(second.key, scripted[3]); }, 5200);
           } else {
             const v = VISIT_PAIRS[Math.floor(Math.random() * VISIT_PAIRS.length)];
-            say(el, d.agent + ': ' + v[0]);
-            setTimeout(() => { if (away[d.key]) say(el, h.agent + ': ' + v[1]); }, 5200);
+            say(d.key, v[0]);
+            setTimeout(() => { if (BOTS[d.key].act) say(h.key, v[1]); }, 5200);
           }
-        }, 4000);
-        changed = true;
+        }, 6500);
+        renderRoster();
       }
+    } else if (free.length && roll < 0.68) {
+      // just stretch the legs: a short stroll down the aisle
+      const d = free[Math.floor(Math.random() * free.length)];
+      startActivity(BOTS[d.key], { type: 'roam', until: now + 12000 + Math.random() * 10000,
+        x: 8 + Math.random() * 48, y: 44 + Math.random() * 10 });
     }
   }
-  if (changed) { render(); renderRooms(); }
 }, 12000);
 
 /* the scoreboard ticks while a match is on */
 setInterval(() => {
   if (!pong || document.hidden) return;
+  const lb = BOTS[pong.l], rb = BOTS[pong.r];
+  if (lb.path.length || rb.path.length) return; // still walking to the table
   if (Math.random() < 0.65) {
     Math.random() < 0.5 ? pong.sl++ : pong.sr++;
-    renderRooms();
+    $('#pongscore').textContent = agentOf(pong.l) + ' ' + pong.sl + ' — ' + pong.sr + ' ' + agentOf(pong.r);
   }
 }, 3500);
 
-/* room chatter: trash talk at the table, small talk at the coffee machine */
+/* room chatter: trash talk at the table, small talk in the lounge */
 setInterval(() => {
   if (document.hidden) return;
   if (pong && Math.random() < 0.5) {
-    say($('#gameroom'), PONG_LINES[Math.floor(Math.random() * PONG_LINES.length)]);
+    say(Math.random() < 0.5 ? pong.l : pong.r, PONG_LINES[Math.floor(Math.random() * PONG_LINES.length)]);
     return;
   }
-  const bk = Object.keys(away).filter(k => away[k].where === 'break');
-  if (bk.length && Math.random() < 0.45) {
-    say($('#breakroom'), BREAK_LINES[Math.floor(Math.random() * BREAK_LINES.length)]);
+  const breakers = Object.keys(BOTS).filter(k => BOTS[k].act && BOTS[k].act.type === 'break' && !BOTS[k].path.length);
+  if (breakers.length && Math.random() < 0.45) {
+    say(breakers[Math.floor(Math.random() * breakers.length)], BREAK_LINES[Math.floor(Math.random() * BREAK_LINES.length)]);
   }
 }, 13000);
 
-/* ping pong pock-pock when sound is on */
-function pock() {
-  if (!actx) return;
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.value = 600 + Math.random() * 180;
-  g.gain.setValueAtTime(0.045, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.07);
-  o.connect(g); g.connect(actx.destination);
-  o.start(); o.stop(actx.currentTime + 0.08);
+/* ---------- the office cat, now a floor citizen ---------- */
+let catBot = null;
+function setupCat() {
+  catBot = { x: 30, y: 45, path: [], flip: false, el: $('#cat'), napping: false };
+  catBot.el.addEventListener('click', () => {
+    catBot.napping = false;
+    routeTo(catBot, Math.random() < 0.5 ? 4 : 56, 90);
+    say(catBot.el, 'mrrp!!', 1800);
+  });
+  setInterval(() => {
+    if (document.hidden || catBot.path.length) return;
+    const r = Math.random();
+    if (catBot.napping) {
+      if (r < 0.2) catBot.napping = false; // wake up
+      else if (r < 0.35) say(catBot.el, '\u{1F4A4}', 3000);
+      return;
+    }
+    if (r < 0.25) {
+      // nap on the couch
+      routeTo(catBot, 72 + Math.random() * 5, 34);
+      catBot.napping = true;
+    } else if (r < 0.6) {
+      // wander anywhere
+      routeTo(catBot, 5 + Math.random() * 88, 12 + Math.random() * 78);
+    } else if (r < 0.7) {
+      say(catBot.el, ['mrrp.', 'prrr…', '\u{1F41F}?'][Math.floor(Math.random() * 3)], 2500);
+    }
+  }, 8000);
 }
-setInterval(() => { if (soundOn && pong && !document.hidden) pock(); }, 550);
-
-/* the cat naps wherever it wants */
-setInterval(() => {
-  if (document.hidden || Math.random() > 0.3) return;
-  const desks = document.querySelectorAll('#office .desk');
-  const el = desks[Math.floor(Math.random() * desks.length)];
-  if (!el || $('.catnap', el)) return;
-  const c = document.createElement('div');
-  c.className = 'catnap';
-  c.innerHTML = '&#128008;<span>&#128164;</span>';
-  c.title = 'the office cat, napping';
-  $('.scene', el).appendChild(c);
-  setTimeout(() => c.remove(), 45000 + Math.random() * 50000);
-}, 55000);
 
 /* ---------- go ---------- */
-buildOffice();
+buildFloor();
+setupCat();
 render();
 sync().finally(() => $('#splash').classList.add('gone'));
 setInterval(sync, POLL_MS);
