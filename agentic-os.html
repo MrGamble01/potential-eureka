@@ -84,6 +84,15 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
   padding:2px 9px;white-space:nowrap;display:none}
 #hint3{position:absolute;right:10px;bottom:8px;font-size:9px;color:rgba(255,255,255,.4);z-index:6;pointer-events:none;
   text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#viewbar{position:absolute;left:10px;top:10px;z-index:7;display:flex;gap:5px;flex-wrap:wrap;max-width:70%}
+#viewbar button{background:rgba(8,12,18,.74);border:1px solid var(--line2);border-radius:7px;color:var(--dim);
+  font-family:inherit;font-size:9px;font-weight:700;letter-spacing:.08em;padding:5px 9px;cursor:pointer;
+  backdrop-filter:blur(4px)}
+#viewbar button:hover{color:var(--text)}
+#viewbar button.on{color:var(--accent);border-color:rgba(88,166,255,.55);background:rgba(20,35,60,.8)}
+#focus3{position:absolute;left:10px;bottom:8px;z-index:7;font-size:9px;font-weight:700;letter-spacing:.08em;
+  color:var(--accent);background:rgba(8,12,18,.74);border:1px solid rgba(88,166,255,.4);border-radius:7px;
+  padding:4px 9px;display:none;backdrop-filter:blur(4px)}
 
 /* ---------- roster ---------- */
 #roster{max-width:1400px;margin:0 auto;width:100%;padding:10px 22px 20px;display:flex;flex-wrap:wrap;gap:8px}
@@ -239,7 +248,19 @@ footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;lin
   click an agent to <b>talk to them</b>.
 </div>
 
-<div id="worldwrap"><div id="world"><div id="ov3"></div><div id="hint3">drag to orbit &middot; scroll to zoom</div></div></div>
+<div id="worldwrap"><div id="world">
+  <div id="ov3"></div>
+  <div id="viewbar">
+    <button data-view="auto" class="on">AUTO</button>
+    <button data-view="overview">OVERVIEW</button>
+    <button data-view="dev">DEV FLOOR</button>
+    <button data-view="lounge">LOUNGE</button>
+    <button data-view="game">GAME ROOM</button>
+    <button data-view="cat">CAT</button>
+  </div>
+  <div id="focus3"></div>
+  <div id="hint3">drag to orbit &middot; scroll to zoom &middot; click agents and desks</div>
+</div></div>
 <div id="roster"></div>
 
 <div id="walls" hidden>
@@ -593,8 +614,60 @@ function applyTimeOfDay() {
   document.body.classList.toggle('night', night);
 }
 
-/* camera orbit (custom, minimal) */
-const cam = { az: 0.85, pol: 0.98, r: 44, rTarget: 24, tgt: new THREE.Vector3(0, 0.6, 0), auto: true, lastTouch: 0, touched: false };
+/* camera: orbit + a director that knows how to watch the office.
+   Modes: 'auto' (cuts to whatever is interesting), 'view' (a room preset),
+   'focus' (follow one agent or the cat), 'manual' (you drove — free orbit). */
+const cam = {
+  az: 0.85, pol: 0.98, r: 44,
+  tgt: new THREE.Vector3(0, 0.6, 0),
+  want: { tgt: new THREE.Vector3(0, 0.6, 0), r: 24 },
+  mode: 'auto', focusKey: null, autoSubject: null,
+  lastTouch: 0
+};
+const VIEWS = {
+  overview: { x: 0, y: 0.6, z: 0, r: 24 },
+  dev: { x: -5.5, y: 0.8, z: -0.8, r: 15 },
+  lounge: { x: 9.8, y: 0.8, z: -4.4, r: 11 },
+  game: { x: 9.5, y: 0.9, z: 4, r: 11.5 }
+};
+function paintViewbar() {
+  document.querySelectorAll('#viewbar button').forEach(b => {
+    const v = b.dataset.view;
+    b.classList.toggle('on',
+      (v === 'auto' && cam.mode === 'auto') ||
+      (v === 'cat' && cam.mode === 'focus' && cam.focusKey === 'cat') ||
+      (cam.mode === 'view' && cam.viewName === v));
+  });
+  const f = $('#focus3');
+  if (cam.mode === 'focus' && cam.focusKey && cam.focusKey !== 'cat') {
+    f.style.display = 'block';
+    f.textContent = 'FOLLOWING ' + agentOf(cam.focusKey);
+  } else if (cam.mode === 'focus' && cam.focusKey === 'cat') {
+    f.style.display = 'block';
+    f.textContent = 'FOLLOWING THE CAT';
+  } else {
+    f.style.display = 'none';
+  }
+}
+function setView(name) {
+  if (name === 'auto') { cam.mode = 'auto'; cam.focusKey = null; cam.autoSubject = null; }
+  else if (name === 'cat') { cam.mode = 'focus'; cam.focusKey = 'cat'; }
+  else {
+    cam.mode = 'view'; cam.viewName = name; cam.focusKey = null;
+    const v = VIEWS[name];
+    cam.want.tgt.set(v.x, v.y, v.z); cam.want.r = v.r;
+  }
+  paintViewbar();
+}
+function focusOn(key) {
+  cam.mode = 'focus'; cam.focusKey = key;
+  paintViewbar();
+}
+function goManual() {
+  if (cam.mode !== 'manual') { cam.mode = 'manual'; cam.focusKey = null; paintViewbar(); }
+}
+document.querySelectorAll('#viewbar button').forEach(b =>
+  b.addEventListener('click', () => setView(b.dataset.view)));
 function applyCam() {
   const sp = Math.sin(cam.pol), x = cam.r * sp * Math.cos(cam.az), z = cam.r * sp * Math.sin(cam.az);
   camera.position.set(cam.tgt.x + x, cam.tgt.y + cam.r * Math.cos(cam.pol), cam.tgt.z + z);
@@ -615,7 +688,7 @@ function applyCam() {
     cam.az += dx * 0.0055;
     cam.pol = Math.max(0.55, Math.min(1.35, cam.pol - dy * 0.004));
     cam.lastTouch = performance.now();
-    cam.touched = true;
+    if (moved > 12) goManual(); // a real drag takes the wheel
   });
   worldEl.addEventListener('pointerup', e => {
     dragging = false;
@@ -624,9 +697,9 @@ function applyCam() {
   });
   worldEl.addEventListener('wheel', e => {
     e.preventDefault();
-    cam.r = Math.max(13, Math.min(48, cam.r + e.deltaY * 0.02));
+    goManual();
+    cam.r = Math.max(9, Math.min(48, cam.r + e.deltaY * 0.02));
     cam.lastTouch = performance.now();
-    cam.touched = true;
   }, { passive: false });
 })();
 
@@ -673,9 +746,9 @@ function pickAt(e) {
   for (const hit of hits) {
     let o = hit.object;
     while (o) {
-      if (o.userData && o.userData.botKey) return openChat(o.userData.botKey);
+      if (o.userData && o.userData.botKey) { focusOn(o.userData.botKey); return openChat(o.userData.botKey); }
       if (o.userData && o.userData.deskKey) return openModal(o.userData.deskKey);
-      if (o.userData && o.userData.isCat) { pokeCat(); return; }
+      if (o.userData && o.userData.isCat) { focusOn('cat'); pokeCat(); return; }
       o = o.parent;
     }
   }
@@ -1141,7 +1214,7 @@ function renderRoster() {
     </button>`;
   }).join('');
   document.querySelectorAll('#roster .chip').forEach(el =>
-    el.addEventListener('click', () => openModal(el.dataset.key)));
+    el.addEventListener('click', () => { focusOn(el.dataset.key); openModal(el.dataset.key); }));
 }
 
 function renderBoards() {
@@ -1732,6 +1805,33 @@ setInterval(() => {
   }
 }, 3500);
 
+/* the auto director: every so often, cut to whatever is most interesting */
+setInterval(() => {
+  if (cam.mode !== 'auto' || document.hidden) return;
+  const roll = Math.random();
+  // a live match is always the show
+  if (pong && !BOTS[pong.l].path.length && !BOTS[pong.r].path.length && roll < 0.8) {
+    cam.autoSubject = { x: 9.5, y: 0.95, z: 4, r: 11.5 };
+    return;
+  }
+  // someone mid-conversation or out and about
+  const lively = DESKS.filter(d => BOTS[d.key].tag.classList.contains('talking') || BOTS[d.key].path.length || BOTS[d.key].act);
+  if (lively.length && roll < 0.62) {
+    cam.autoSubject = { key: lively[Math.floor(Math.random() * lively.length)].key, r: 11 };
+    return;
+  }
+  // a working desk, the cat, or the wide shot
+  const working = DESKS.filter(d => (state.byDesk[d.key] || []).length);
+  if (working.length && roll < 0.78) {
+    const d = working[Math.floor(Math.random() * working.length)];
+    cam.autoSubject = { x: d.dx, y: 0.95, z: d.dz + 1, r: 10.5 };
+  } else if (roll < 0.86 && catBot) {
+    cam.autoSubject = { key: 'cat', r: 9 };
+  } else {
+    cam.autoSubject = null; // the wide establishing shot
+  }
+}, 13000);
+
 /* room chatter */
 setInterval(() => {
   if (document.hidden) return;
@@ -1800,8 +1900,23 @@ function loop(now) {
   const dt = Math.min(0.25, (now - lastT) / 1000);
   lastT = now;
   if (document.hidden) return;
-  // cinematic zoom-in on load, then gentle auto-orbit
-  if (!cam.touched && cam.r > cam.rTarget + 0.1) cam.r += (cam.rTarget - cam.r) * Math.min(1, dt * 1.1);
+  // resolve where the camera wants to be
+  if (cam.mode === 'focus' && cam.focusKey) {
+    const e = cam.focusKey === 'cat' ? catBot : BOTS[cam.focusKey];
+    if (e) { cam.want.tgt.set(e.x, 0.95, e.z); cam.want.r = cam.focusKey === 'cat' ? 8 : 9.5; }
+  } else if (cam.mode === 'auto') {
+    const s = cam.autoSubject;
+    if (s) {
+      if (s.key) { const e = s.key === 'cat' ? catBot : BOTS[s.key]; if (e) cam.want.tgt.set(e.x, 0.95, e.z); }
+      else cam.want.tgt.set(s.x, s.y, s.z);
+      cam.want.r = s.r;
+    } else { cam.want.tgt.set(0, 0.6, 0); cam.want.r = 24; }
+  }
+  // glide there (manual mode flies free)
+  if (cam.mode !== 'manual') {
+    cam.tgt.lerp(cam.want.tgt, Math.min(1, dt * 2));
+    cam.r += (cam.want.r - cam.r) * Math.min(1, dt * 1.6);
+  }
   if (now - cam.lastTouch > 9000) cam.az += dt * 0.05;
   applyCam();
   WORLD.cloudRing.rotation.y += dt * 0.006;
