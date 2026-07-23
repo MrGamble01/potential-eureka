@@ -67,7 +67,8 @@ header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:
 #world canvas{position:absolute;inset:0;display:block}
 #ov3{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}
 .t3{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;text-align:center}
-.t3 .nm{font-size:8px;font-weight:700;letter-spacing:.07em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap}
+.t3 .nm{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.07em;color:#fff;
+  background:rgba(5,8,12,.55);border-radius:6px;padding:1px 6px;text-shadow:0 1px 3px rgba(0,0,0,.9);white-space:nowrap}
 .t3 .fb3{display:none;margin:0 auto 3px;width:max-content;max-width:170px;background:rgba(11,15,21,.92);
   border:1px solid var(--line2);border-radius:9px;padding:3px 8px;font-size:9px;line-height:1.45;color:var(--text);
   white-space:normal;animation:talkin .18s ease-out;text-align:center}
@@ -567,27 +568,33 @@ function applyTimeOfDay() {
   const h = new Date().getHours() + new Date().getMinutes() / 60;
   let sky, sunI, hemiI, night = false;
   if (h >= 7 && h < 18) { sky = 0x8ec1ea; sunI = 1.0; hemiI = 0.85; }
-  else if ((h >= 18 && h < 21) || (h >= 5 && h < 7)) { sky = 0xd98d5a; sunI = 0.65; hemiI = 0.6; }
-  else { sky = 0x0b1226; sunI = 0.2; hemiI = 0.35; night = true; }
+  else if ((h >= 18 && h < 21) || (h >= 5 && h < 7)) { sky = 0xd98d5a; sunI = 0.65; hemiI = 0.62; }
+  else { sky = 0x1b2547; sunI = 0.5; hemiI = 0.62; night = true; } // cozy blue night, not a void
   scene.background = new THREE.Color(sky);
   scene.fog = new THREE.Fog(sky, 55, 160);
   // the sun actually crosses the sky: east at 6, overhead at 13, west at 20
   const ang = ((h - 6) / 14) * Math.PI;
-  sun.position.set(Math.cos(ang) * 42, night ? 30 : Math.max(10, Math.sin(ang) * 46), 20);
+  sun.position.set(Math.cos(ang) * 42, night ? 34 : Math.max(10, Math.sin(ang) * 46), 20);
   sun.intensity = sunI;
-  sun.color.set(night ? 0x8aa5d8 : 0xfff2d8);
+  sun.color.set(night ? 0x9ab2e8 : 0xfff2d8);
   hemi.intensity = hemiI;
+  hemi.color.set(night ? 0x93a9dd : 0xcde6ff);
+  hemi.groundColor.set(night ? 0x54402a : 0x2a2117);
   STARS.visible = night;
-  if (WORLD && WORLD.motes) {
-    WORLD.motes.material.color.set(night ? 0xd8f7a8 : 0xffffff);
-    WORLD.motes.material.size = night ? 2.4 : 1.8;
-    WORLD.motes.material.opacity = night ? 0.85 : 0.3;
+  if (WORLD) {
+    if (WORLD.motes) {
+      WORLD.motes.material.color.set(night ? 0xd8f7a8 : 0xffffff);
+      WORLD.motes.material.size = night ? 2.4 : 1.8;
+      WORLD.motes.material.opacity = night ? 0.85 : 0.3;
+    }
+    if (WORLD.lampLights) for (const pl of WORLD.lampLights) pl.intensity = night ? 1.35 : 0;
+    if (WORLD.moon) WORLD.moon.visible = night;
   }
   document.body.classList.toggle('night', night);
 }
 
 /* camera orbit (custom, minimal) */
-const cam = { az: 0.85, pol: 1.02, r: 46, rTarget: 27, tgt: new THREE.Vector3(0, 0.6, 0), auto: true, lastTouch: 0, touched: false };
+const cam = { az: 0.85, pol: 0.98, r: 44, rTarget: 24, tgt: new THREE.Vector3(0, 0.6, 0), auto: true, lastTouch: 0, touched: false };
 function applyCam() {
   const sp = Math.sin(cam.pol), x = cam.r * sp * Math.cos(cam.az), z = cam.r * sp * Math.sin(cam.az);
   camera.position.set(cam.tgt.x + x, cam.tgt.y + cam.r * Math.cos(cam.pol), cam.tgt.z + z);
@@ -647,9 +654,9 @@ worldEl.addEventListener('pointermove', e => {
     }
     if (found) break;
   }
-  if (hovered && hovered !== found) hovered.scale.setScalar(1);
+  if (hovered && hovered !== found) hovered.scale.setScalar(hovered.userData.baseScale || 1);
   hovered = found;
-  if (hovered) hovered.scale.setScalar(1.09);
+  if (hovered) hovered.scale.setScalar((hovered.userData.baseScale || 1) * 1.09);
   worldEl.style.cursor = found ? 'pointer' : '';
 });
 
@@ -726,9 +733,9 @@ function buildIsland() {
   scene.add(im);
 
   // office floor planks over the office rect
-  const plankA = new THREE.Color(0x4a3a24), plankB = new THREE.Color(0x41331f);
-  const loungeA = new THREE.Color(0x2b3a52), loungeB = new THREE.Color(0x253248);
-  const gameA = new THREE.Color(0x2b4a3a), gameB = new THREE.Color(0x254032);
+  const plankA = new THREE.Color(0x5e4a2f), plankB = new THREE.Color(0x53412a);
+  const loungeA = new THREE.Color(0x374c70), loungeB = new THREE.Color(0x2f4260);
+  const gameA = new THREE.Color(0x355c4c), gameB = new THREE.Color(0x2d5142);
   const tiles = [];
   for (let x = -14; x <= 14; x++) for (let z = -8; z <= 8; z++) {
     let a, b;
@@ -771,14 +778,33 @@ function buildIsland() {
     g.position.set(tx, 0, tz);
     scene.add(g);
   }
-  // lamp posts at office corners (warm glow at night)
+  // lamp posts at office corners — they genuinely light the office at night
+  const lampLights = [];
   for (const [lx, lz] of [[-14.6, -8.6], [14.6, -8.6], [-14.6, 8.6], [14.6, 8.6]]) {
     const g = new THREE.Group();
-    box(g, 0x232f3f, 0.16, 2.4, 0.16, 0, 1.2, 0);
-    box(g, 0xffd75e, 0.42, 0.42, 0.42, 0, 2.55, 0, 0x7a5c16);
+    box(g, 0x2e3d52, 0.16, 2.4, 0.16, 0, 1.2, 0);
+    box(g, 0xffd75e, 0.42, 0.42, 0.42, 0, 2.55, 0, 0xa8811f);
     g.position.set(lx, 0.14, lz);
     scene.add(g);
+    const pl = new THREE.PointLight(0xffc46b, 0, 16, 2);
+    pl.position.set(lx, 2.8, lz);
+    scene.add(pl);
+    lampLights.push(pl);
   }
+  // string lights sag between the lamps along both long edges
+  const bulbCols = [[0xffd75e, 0x8a6d1a], [0xf78fb3, 0x7a3350], [0x82ccdd, 0x2a6470], [0xb8e994, 0x3f7a33]];
+  for (const bz of [-8.6, 8.6]) {
+    for (let i = 0; i <= 22; i++) {
+      const t = i / 22;
+      const bx = -14.6 + 29.2 * t;
+      const by = 2.5 - Math.sin(Math.PI * t) * 0.45;
+      const [bc, be] = bulbCols[i % bulbCols.length];
+      box(scene, bc, 0.11, 0.11, 0.11, bx, by, bz, be);
+    }
+  }
+  // the moon keeps watch at night
+  const moon = box(scene, 0xe8ecff, 2.4, 2.4, 2.4, -36, 30, -28, 0xaab8e8);
+  moon.visible = false;
   // drifting clouds
   const ring = new THREE.Group();
   for (let i = 0; i < 5; i++) {
@@ -859,7 +885,7 @@ function buildIsland() {
   const motes = new THREE.Points(amG, new THREE.PointsMaterial({ color: 0xffffff, size: 1.8, sizeAttenuation: false, transparent: true, opacity: 0.3 }));
   scene.add(motes);
 
-  return { cloudRing: ring, shardRing, wPts, wpVel, motes, amPh, moteBase };
+  return { cloudRing: ring, shardRing, wPts, wpVel, motes, amPh, moteBase, lampLights, moon };
 }
 
 /* ---------- furniture ---------- */
@@ -868,15 +894,15 @@ function buildFurniture() {
   // desks
   for (const d of DESKS) {
     const g = new THREE.Group();
-    box(g, 0x3a3020, 2.2, 0.16, 1.05, 0, 0.95, 0);            // top
-    box(g, 0x2c2417, 0.14, 0.9, 0.14, -0.95, 0.45, -0.4);     // legs
-    box(g, 0x2c2417, 0.14, 0.9, 0.14, 0.95, 0.45, -0.4);
-    box(g, 0x2c2417, 0.14, 0.9, 0.14, -0.95, 0.45, 0.4);
-    box(g, 0x2c2417, 0.14, 0.9, 0.14, 0.95, 0.45, 0.4);
-    box(g, 0x151d29, 0.8, 0.55, 0.09, 0, 1.35, -0.34);        // monitor
+    box(g, 0x6b563a, 2.2, 0.16, 1.05, 0, 0.95, 0);            // top
+    box(g, 0x4a3b26, 0.14, 0.9, 0.14, -0.95, 0.45, -0.4);     // legs
+    box(g, 0x4a3b26, 0.14, 0.9, 0.14, 0.95, 0.45, -0.4);
+    box(g, 0x4a3b26, 0.14, 0.9, 0.14, -0.95, 0.45, 0.4);
+    box(g, 0x4a3b26, 0.14, 0.9, 0.14, 0.95, 0.45, 0.4);
+    box(g, 0x2a3648, 0.8, 0.55, 0.09, 0, 1.35, -0.34);        // monitor
     const screen = box(g, 0x0a0e14, 0.68, 0.42, 0.02, 0, 1.36, -0.283);
-    screen.material = new THREE.MeshLambertMaterial({ color: 0x0a0e14 }); // own material for glow
-    box(g, 0x7a5230, 0.16, 0.14, 0.16, 0.8, 1.1, 0.22);       // mug
+    screen.material = new THREE.MeshLambertMaterial({ color: 0x101a28 }); // own material for glow
+    box(g, 0x9a6a40, 0.16, 0.14, 0.16, 0.8, 1.1, 0.22);       // mug
     g.position.set(d.dx, 0.14, d.dz);
     g.traverse(o => { o.userData.deskKey = d.key; });
     scene.add(g);
@@ -974,7 +1000,8 @@ function buildFurniture() {
 const BOTS = {}; // key -> runtime bot
 function buildBot(d) {
   const hue = hueFor(d.agent);
-  const bodyC = new THREE.Color().setHSL(hue / 360, 0.45, 0.42).getHex();
+  const bodyC = new THREE.Color().setHSL(hue / 360, 0.5, 0.5).getHex();
+  const bodyE = new THREE.Color().setHSL(hue / 360, 0.5, 0.13).getHex(); // faint self-glow so they read at night
   const g = new THREE.Group();
   const faceTex = new THREE.CanvasTexture(avatarCanvas(d.agent));
   faceTex.magFilter = THREE.NearestFilter;
@@ -990,9 +1017,9 @@ function buildBot(d) {
   head.scale.set(0.62, 0.62, 0.62);
   head.position.y = 1.06;
   g.add(head);
-  box(g, bodyC, 0.56, 0.52, 0.36, 0, 0.5, 0);                    // torso
-  box(g, bodyC, 0.16, 0.26, 0.2, -0.2, 0.13, 0);                 // legs
-  box(g, bodyC, 0.16, 0.26, 0.2, 0.2, 0.13, 0);
+  box(g, bodyC, 0.56, 0.52, 0.36, 0, 0.5, 0, bodyE);             // torso
+  box(g, bodyC, 0.16, 0.26, 0.2, -0.2, 0.13, 0, bodyE);          // legs
+  box(g, bodyC, 0.16, 0.26, 0.2, 0.2, 0.13, 0, bodyE);
   // soft shadow blob
   const sh = new THREE.Mesh(new THREE.CircleGeometry(0.45, 12),
     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 }));
@@ -1000,6 +1027,8 @@ function buildBot(d) {
   sh.position.y = 0.155;
   g.add(sh);
   g.traverse(o => { o.userData.botKey = d.key; });
+  g.userData.baseScale = 1.18;
+  g.scale.setScalar(1.18);
   scene.add(g);
   return g;
 }
@@ -1807,11 +1836,14 @@ function loop(now) {
       else { l.material.color.setHex(0x1a222e); l.material.emissive.setHex(0x000000); }
     }
   }
-  // working monitors pulse
+  // monitors: working screens pulse green; idle screens glow soft blue at night
   const glow = 0.72 + 0.28 * Math.sin(now * 0.004);
   for (const d of DESKS) {
+    const scr = DESKOBJ[d.key].screen.material;
     if ((state.byDesk[d.key] || []).length) {
-      DESKOBJ[d.key].screen.material.emissive.setRGB(0.1 * glow, 0.5 * glow, 0.22 * glow);
+      scr.emissive.setRGB(0.1 * glow, 0.5 * glow, 0.22 * glow);
+    } else {
+      scr.emissive.setHex(STARS.visible ? 0x1c3352 : 0x000000);
     }
   }
   // bots
