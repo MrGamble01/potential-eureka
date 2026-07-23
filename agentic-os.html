@@ -286,6 +286,42 @@ body.night .win{background:linear-gradient(180deg,#060a14,#0b1226);box-shadow:in
   filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));animation:floaty 3.4s ease-in-out infinite}
 #br-slots .n{font-size:8px;color:var(--faint);margin-top:2px}
 
+/* ---------- v6: ping pong, walkers, desk visits ---------- */
+.gameroom .d-head{background:linear-gradient(90deg,var(--panel2),rgba(63,185,80,.09))}
+.gameroom.playing{border-color:rgba(188,140,255,.5)}
+.gameroom.playing .d-status{background:rgba(188,140,255,.16);color:var(--purple)}
+.pptable{position:absolute;left:50%;bottom:38px;transform:translateX(-50%);width:150px;height:9px;
+  background:linear-gradient(180deg,#2d6a4f,#245741);border:2px solid #1d4a37;border-radius:2px}
+.pptable::before{content:'';position:absolute;left:50%;top:-9px;width:2px;height:11px;background:#c7d4e2;opacity:.65}
+.pptable::after{content:'';position:absolute;bottom:-22px;left:14px;width:5px;height:22px;background:#1d3a2c;
+  box-shadow:118px 0 0 #1d3a2c}
+.ppball{position:absolute;left:30%;bottom:56px;width:6px;height:6px;border-radius:50%;background:#f6e58d;display:none;
+  box-shadow:0 0 6px rgba(246,229,141,.5)}
+.playing .ppball{display:block;animation:rally 1.1s linear infinite alternate,ppb .55s ease-in-out infinite alternate}
+@keyframes rally{from{left:27%}to{left:calc(73% - 6px)}}
+@keyframes ppb{from{bottom:62px}to{bottom:50px}}
+.pp-p{position:absolute;bottom:44px;width:44px;text-align:center;z-index:2}
+.pp-p.l{left:6%}
+.pp-p.r{right:6%}
+.pp-p img{width:30px;height:30px;border-radius:7px;display:block;margin:0 auto;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.4))}
+.pp-p .n{font-size:8px;color:var(--faint);margin-top:2px}
+.pp-p .pad{position:absolute;top:9px;font-size:11px}
+.pp-p.l .pad{right:-8px}
+.pp-p.r .pad{left:-8px;transform:scaleX(-1)}
+.playing .pp-p.l{animation:typebob .5s ease-in-out infinite}
+.playing .pp-p.r{animation:typebob .5s ease-in-out infinite;animation-delay:.25s}
+.walker{position:fixed;bottom:42px;z-index:69;transition:left 7s linear;text-align:center;pointer-events:none;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.walker img{width:26px;height:26px;border-radius:6px;display:block;margin:0 auto;
+  animation:walkbob .32s ease-in-out infinite alternate}
+.walker .n{font-size:8px;color:var(--faint)}
+@keyframes walkbob{from{transform:translateY(0) rotate(-2.5deg)}to{transform:translateY(-2.5px) rotate(2.5deg)}}
+.visitor{position:absolute;left:21%;bottom:33px;z-index:2;text-align:center}
+.visitor img{width:27px;height:27px;border-radius:7px;display:block;margin:0 auto;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));animation:floaty 3.2s ease-in-out infinite}
+.visitor .n{font-size:7px;color:var(--faint);margin-top:1px}
+
 footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;line-height:1.7}
 
 @media (max-width:640px){
@@ -643,6 +679,23 @@ function buildOffice() {
         <div class="bub talk"></div>
       </div>
       <div class="d-foot" id="br-foot">nobody here &mdash; the coffee machine gurgles to itself</div>
+    </div>
+    <div class="desk gameroom" id="gameroom">
+      <div class="d-head">
+        <span style="font-size:16px">&#127955;</span>
+        <span><div class="d-game">GAME ROOM</div><div class="d-agent">office ping pong championship</div></span>
+        <span class="d-status">TABLE FREE</span>
+      </div>
+      <div class="scene">
+        <div class="win">${night ? '&#127769;' : '&#9728;&#65039;'}</div>
+        <div class="pptable"></div>
+        <div class="ppball"></div>
+        <div class="pp-p l"></div>
+        <div class="pp-p r"></div>
+        <div class="plant" style="left:auto;right:5%;bottom:30px">&#127793;</div>
+        <div class="bub talk"></div>
+      </div>
+      <div class="d-foot" id="gr-foot">the table waits. chalk scoreboard reads 0 &mdash; 0.</div>
     </div>`;
   document.querySelectorAll('.desk[data-key]').forEach(el => {
     el.addEventListener('click', () => openModal(el.dataset.key));
@@ -680,7 +733,11 @@ function render() {
     } else if (party) {
       $('.d-foot', el).innerHTML = `<b>just shipped #${mergedRecent[0].number}</b> · ${ago(mergedRecent[0].merged_at)} — victory lap in progress`;
     } else if (away[d.key]) {
-      $('.d-foot', el).innerHTML = `stepped out — ${esc(d.agent)} is in the break room &#9749;`;
+      const a = away[d.key];
+      const doing = a.where === 'pong' ? 'playing ping pong in the game room &#127955;'
+        : a.where === 'visit' ? `visiting ${esc(agentOf(a.host))}'s desk`
+        : 'in the break room &#9749;';
+      $('.d-foot', el).innerHTML = `stepped out — ${esc(d.agent)} is ${doing}`;
     } else {
       $('.d-foot', el).innerHTML = `no open work — ${esc(d.agent)} is ${['on break', 'napping', 'refilling coffee', 'contemplating the backlog'][(d.key.length * 7) % 4]}`;
     }
@@ -1201,40 +1258,177 @@ setInterval(() => {
   if (l) say($('#desk-' + d.key), l);
 }, 9000);
 
-/* wandering: idle agents step out to the break room and come back */
-const away = {}; // desk key -> { until }
-function renderBreakroom() {
-  const keys = Object.keys(away);
-  $('#br-slots').innerHTML = keys.map(k => {
-    const d = DESKS.find(x => x.key === k);
-    return `<span><img src="${avatarFor(d.agent)}" alt=""><div class="n">${esc(d.agent)}</div></span>`;
-  }).join('');
-  $('#breakroom .d-status').textContent = keys.length ? keys.length + ' ON BREAK' : 'QUIET';
-  $('#br-foot').innerHTML = keys.length
-    ? '<b>' + keys.map(k => esc(DESKS.find(x => x.key === k).agent)).join(' + ') + '</b> ' + (keys.length > 1 ? 'are' : 'is') + ' getting coffee'
-    : 'nobody here &mdash; the coffee machine gurgles to itself';
+/* ---------- off-duty life: break room, ping pong, desk visits ---------- */
+const away = {}; // desk key -> { until, where: 'break' | 'pong' | 'visit', host? }
+let pong = null; // { l, r, sl, sr, until } — desk keys of players + score
+
+function agentOf(key) { return (DESKS.find(d => d.key === key) || {}).agent || '?'; }
+
+const PONG_LINES = ['nice shot!!', 'off the edge. still counts.', 'lucky net.', 'best of 21?',
+  'the spin! THE SPIN', 'my paddle slipped. rematch.', 'that one had topspin AND lore.'];
+const VISIT_PAIRS = [
+  ['got a second? i had an idea.', 'always. pull up a chair.'],
+  ['your screen has been dark all day.', 'resting is part of the craft.'],
+  ['brought you a coffee.', 'you absolute legend.'],
+  ['what are you listening to?', 'lo-fi keyboard sounds. obviously.'],
+  ['did you see the cat earlier?', 'the cat sees all of us.'],
+  ['is it just me or is the office extra cozy today?', 'someone watered the plants. changes everything.']
+];
+
+/* somebody visibly crosses the office floor */
+function walkAcross(agent) {
+  if (document.hidden) return;
+  const w = document.createElement('div');
+  w.className = 'walker';
+  w.innerHTML = `<img src="${avatarFor(agent)}" alt=""><div class="n">${esc(agent)}</div>`;
+  const ltr = Math.random() < 0.5;
+  w.style.left = ltr ? '-40px' : (innerWidth + 20) + 'px';
+  document.body.appendChild(w);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    w.style.left = ltr ? (innerWidth + 20) + 'px' : '-40px';
+  }));
+  setTimeout(() => w.remove(), 7500);
 }
-setInterval(() => {
-  let changed = false;
-  for (const k of Object.keys(away)) {
-    if (Date.now() > away[k].until) { delete away[k]; changed = true; }
+
+function renderRooms() {
+  // break room occupancy
+  const bk = Object.keys(away).filter(k => away[k].where === 'break');
+  $('#br-slots').innerHTML = bk.map(k =>
+    `<span><img src="${avatarFor(agentOf(k))}" alt=""><div class="n">${esc(agentOf(k))}</div></span>`).join('');
+  $('#breakroom .d-status').textContent = bk.length ? bk.length + ' ON BREAK' : 'QUIET';
+  $('#br-foot').innerHTML = bk.length
+    ? '<b>' + bk.map(k => esc(agentOf(k))).join(' + ') + '</b> ' + (bk.length > 1 ? 'are' : 'is') + ' getting coffee'
+    : 'nobody here &mdash; the coffee machine gurgles to itself';
+  // game room
+  const gr = $('#gameroom');
+  gr.classList.toggle('playing', !!pong);
+  if (pong) {
+    $('.pp-p.l', gr).innerHTML = `<span class="pad">&#127955;</span><img src="${avatarFor(agentOf(pong.l))}" alt=""><div class="n">${esc(agentOf(pong.l))}</div>`;
+    $('.pp-p.r', gr).innerHTML = `<span class="pad">&#127955;</span><img src="${avatarFor(agentOf(pong.r))}" alt=""><div class="n">${esc(agentOf(pong.r))}</div>`;
+    $('.d-status', gr).textContent = 'MATCH ON';
+    $('#gr-foot').innerHTML = `<b>${esc(agentOf(pong.l))} ${pong.sl} &mdash; ${pong.sr} ${esc(agentOf(pong.r))}</b> · first to 11`;
+  } else {
+    $('.pp-p.l', gr).innerHTML = '';
+    $('.pp-p.r', gr).innerHTML = '';
+    $('.d-status', gr).textContent = 'TABLE FREE';
   }
-  if (!document.hidden) {
-    const idle = DESKS.filter(d => !(state.byDesk[d.key] || []).length && !away[d.key]);
-    if (idle.length && Object.keys(away).length < 3 && Math.random() < 0.4) {
-      const d = idle[Math.floor(Math.random() * idle.length)];
-      away[d.key] = { until: Date.now() + 22000 + Math.random() * 26000 };
-      changed = true;
+  // desk visitors
+  document.querySelectorAll('.visitor').forEach(v => v.remove());
+  for (const k of Object.keys(away)) {
+    if (away[k].where !== 'visit') continue;
+    const host = $('#desk-' + away[k].host);
+    if (!host || $('.visitor', host)) continue;
+    const div = document.createElement('div');
+    div.className = 'visitor';
+    div.innerHTML = `<img src="${avatarFor(agentOf(k))}" alt=""><div class="n">${esc(agentOf(k))}</div>`;
+    $('.scene', host).appendChild(div);
+  }
+}
+
+/* the life scheduler: end activities, start new ones */
+setInterval(() => {
+  const now = Date.now();
+  let changed = false;
+  // finish a ping pong match
+  if (pong && (pong.sl >= 11 || pong.sr >= 11 || now > pong.until)) {
+    if (pong.sl !== pong.sr) {
+      const w = pong.sl > pong.sr ? pong.l : pong.r;
+      say($('#gameroom'), agentOf(w) + ' takes it ' + Math.max(pong.sl, pong.sr) + '—' + Math.min(pong.sl, pong.sr) + '! \u{1F3C6}', 6000);
+    }
+    walkAcross(agentOf(pong.l)); walkAcross(agentOf(pong.r));
+    delete away[pong.l]; delete away[pong.r];
+    pong = null; changed = true;
+  }
+  // everyone else heads back to their desk when their time is up
+  for (const k of Object.keys(away)) {
+    if (away[k].where !== 'pong' && now > away[k].until) {
+      walkAcross(agentOf(k));
+      delete away[k]; changed = true;
     }
   }
-  if (changed) { render(); renderBreakroom(); }
-}, 15000);
+  // start something new (idle agents only — work comes first)
+  if (!document.hidden) {
+    const free = DESKS.filter(d => !(state.byDesk[d.key] || []).length && !away[d.key]);
+    const roll = Math.random();
+    if (free.length >= 2 && !pong && roll < 0.18) {
+      // a ping pong match breaks out
+      const a = free.splice(Math.floor(Math.random() * free.length), 1)[0];
+      const b = free[Math.floor(Math.random() * free.length)];
+      const until = now + 45000 + Math.random() * 30000;
+      away[a.key] = { until, where: 'pong' };
+      away[b.key] = { until, where: 'pong' };
+      pong = { l: a.key, r: b.key, sl: 0, sr: 0, until };
+      walkAcross(a.agent); walkAcross(b.agent);
+      setTimeout(() => { if (pong) say($('#gameroom'), a.agent + ' vs ' + b.agent + ' — match on!'); }, 1500);
+      changed = true;
+    } else if (free.length && roll < 0.38) {
+      // coffee run
+      const d = free[Math.floor(Math.random() * free.length)];
+      away[d.key] = { until: now + 22000 + Math.random() * 26000, where: 'break' };
+      walkAcross(d.agent);
+      changed = true;
+    } else if (free.length && roll < 0.52) {
+      // wander over to a coworker's desk for a chat
+      const d = free[Math.floor(Math.random() * free.length)];
+      const hosts = DESKS.filter(x => x.key !== d.key && !away[x.key]);
+      if (hosts.length) {
+        const h = hosts[Math.floor(Math.random() * hosts.length)];
+        away[d.key] = { until: now + 20000 + Math.random() * 16000, where: 'visit', host: h.key };
+        walkAcross(d.agent);
+        // they actually talk once the visitor arrives
+        setTimeout(() => {
+          if (!away[d.key]) return;
+          const scripted = PAIRS.find(p => (p[0] === d.agent && p[2] === h.agent) || (p[0] === h.agent && p[2] === d.agent));
+          const el = $('#desk-' + h.key);
+          if (scripted) {
+            say(el, scripted[0] + ': ' + scripted[1]);
+            setTimeout(() => { if (away[d.key]) say(el, scripted[2] + ': ' + scripted[3]); }, 5200);
+          } else {
+            const v = VISIT_PAIRS[Math.floor(Math.random() * VISIT_PAIRS.length)];
+            say(el, d.agent + ': ' + v[0]);
+            setTimeout(() => { if (away[d.key]) say(el, h.agent + ': ' + v[1]); }, 5200);
+          }
+        }, 4000);
+        changed = true;
+      }
+    }
+  }
+  if (changed) { render(); renderRooms(); }
+}, 12000);
 
-/* break room chatter while occupied */
+/* the scoreboard ticks while a match is on */
 setInterval(() => {
-  if (document.hidden || !Object.keys(away).length || Math.random() > 0.45) return;
-  say($('#breakroom'), BREAK_LINES[Math.floor(Math.random() * BREAK_LINES.length)]);
+  if (!pong || document.hidden) return;
+  if (Math.random() < 0.65) {
+    Math.random() < 0.5 ? pong.sl++ : pong.sr++;
+    renderRooms();
+  }
+}, 3500);
+
+/* room chatter: trash talk at the table, small talk at the coffee machine */
+setInterval(() => {
+  if (document.hidden) return;
+  if (pong && Math.random() < 0.5) {
+    say($('#gameroom'), PONG_LINES[Math.floor(Math.random() * PONG_LINES.length)]);
+    return;
+  }
+  const bk = Object.keys(away).filter(k => away[k].where === 'break');
+  if (bk.length && Math.random() < 0.45) {
+    say($('#breakroom'), BREAK_LINES[Math.floor(Math.random() * BREAK_LINES.length)]);
+  }
 }, 13000);
+
+/* ping pong pock-pock when sound is on */
+function pock() {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = 600 + Math.random() * 180;
+  g.gain.setValueAtTime(0.045, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.07);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime + 0.08);
+}
+setInterval(() => { if (soundOn && pong && !document.hidden) pock(); }, 550);
 
 /* the cat naps wherever it wants */
 setInterval(() => {
