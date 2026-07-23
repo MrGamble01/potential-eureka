@@ -255,6 +255,37 @@ body.night .scene::before{content:'';position:absolute;left:14%;top:8px;width:40
 #k-send.stop{color:var(--bad);border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.1)}
 @media (max-width:640px){#dock{right:8px;bottom:52px}}
 
+/* ---------- v5: atmosphere — banter, break room, windows, cat naps ---------- */
+.win{position:absolute;left:10px;top:9px;width:27px;height:22px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;background:linear-gradient(180deg,#12203a,#1b3050);border:2px solid #232f3f;border-radius:3px;
+  box-shadow:inset 0 0 6px rgba(88,166,255,.15)}
+.win::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#232f3f}
+body.night .win{background:linear-gradient(180deg,#060a14,#0b1226);box-shadow:inset 0 0 8px rgba(255,215,120,.1)}
+.bub.talk{left:42px;right:8px;top:7px;white-space:normal;line-height:1.5;font-size:10px;color:var(--text);
+  text-align:center;display:none;z-index:6;animation:talkin .18s ease-out}
+@keyframes talkin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.desk.talking .bub.talk{display:block}
+.desk.talking .bub.zzz,.desk.talking .bub.pr,.desk.talking .bub.party,.desk.talking .bub.emote{display:none}
+.desk.away .bot,.desk.away .hands,.desk.away .bub.zzz{display:none}
+.catnap{position:absolute;right:15%;bottom:48px;font-size:15px;z-index:3;animation:floaty 4s ease-in-out infinite;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.catnap span{font-size:9px;opacity:.8}
+/* the break room */
+.breakroom .d-head{background:linear-gradient(90deg,var(--panel2),rgba(122,82,48,.12))}
+.couch{position:absolute;left:13%;bottom:30px;width:66px;height:16px;background:#31405a;border-radius:5px 5px 2px 2px}
+.couch::before{content:'';position:absolute;left:2px;top:-11px;width:62px;height:13px;background:#3a4a68;border-radius:6px 6px 0 0}
+.couch::after{content:'';position:absolute;left:-5px;top:-6px;width:8px;height:22px;background:#3a4a68;border-radius:4px;
+  box-shadow:68px 0 0 #3a4a68}
+.cmach{position:absolute;right:14%;bottom:32px;width:22px;height:32px;background:#22304a;border-radius:3px}
+.cmach::after{content:'';position:absolute;left:5px;bottom:3px;width:9px;height:7px;background:#7a5230;border-radius:1px 1px 2px 2px}
+.cmach::before{content:'';position:absolute;right:3px;top:4px;width:4px;height:4px;border-radius:50%;background:var(--good);
+  animation:blink 2.6s infinite}
+#br-slots{position:absolute;left:0;right:0;bottom:52px;display:flex;justify-content:center;gap:16px;z-index:2}
+#br-slots span{text-align:center}
+#br-slots img{width:30px;height:30px;border-radius:7px;display:block;margin:0 auto;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));animation:floaty 3.4s ease-in-out infinite}
+#br-slots .n{font-size:8px;color:var(--faint);margin-top:2px}
+
 footer{padding:12px 22px;font-size:10px;color:var(--faint);text-align:center;line-height:1.7}
 
 @media (max-width:640px){
@@ -573,6 +604,7 @@ function ago(iso) {
 }
 
 function buildOffice() {
+  const night = (new Date().getHours() >= 20 || new Date().getHours() < 6);
   $('#office').innerHTML = DESKS.map(d => `
     <div class="desk idle" id="desk-${d.key}" data-key="${d.key}">
       <div class="d-head">
@@ -581,6 +613,7 @@ function buildOffice() {
         <span class="d-status">OFF DUTY</span>
       </div>
       <div class="scene">
+        <div class="win">${night ? '&#127769;' : '&#9728;&#65039;'}</div>
         <div class="mon"><div class="mscreen"><div class="code"></div></div></div>
         <div class="table"></div>
         <div class="bot"><img src="${avatarFor(d.agent)}" alt=""><div class="torso"></div></div>
@@ -589,12 +622,29 @@ function buildOffice() {
         <div class="bub pr"></div>
         <div class="bub party">SHIPPED &#127881;</div>
         <div class="bub emote"></div>
+        <div class="bub talk"></div>
         <div class="mug"></div>
         <div class="plant">&#127793;</div>
       </div>
       <div class="d-foot">&hellip;</div>
-    </div>`).join('');
-  document.querySelectorAll('.desk').forEach(el => {
+    </div>`).join('') + `
+    <div class="desk breakroom" id="breakroom">
+      <div class="d-head">
+        <span style="font-size:16px">&#9749;</span>
+        <span><div class="d-game">BREAK ROOM</div><div class="d-agent">open 24/7</div></span>
+        <span class="d-status">QUIET</span>
+      </div>
+      <div class="scene">
+        <div class="win">${night ? '&#127769;' : '&#9728;&#65039;'}</div>
+        <div class="couch"></div>
+        <div class="cmach"></div>
+        <div class="plant" style="left:auto;right:6%">&#127807;</div>
+        <div id="br-slots"></div>
+        <div class="bub talk"></div>
+      </div>
+      <div class="d-foot" id="br-foot">nobody here &mdash; the coffee machine gurgles to itself</div>
+    </div>`;
+  document.querySelectorAll('.desk[data-key]').forEach(el => {
     el.addEventListener('click', () => openModal(el.dataset.key));
     // clicking the little robot goes straight to a conversation
     $('.bot', el).addEventListener('click', e => { e.stopPropagation(); openChat(el.dataset.key); });
@@ -613,6 +663,7 @@ function render() {
     el.classList.toggle('working', working);
     el.classList.toggle('party', party);
     el.classList.toggle('idle', !working && !party);
+    el.classList.toggle('away', !working && !party && !!away[d.key]);
     // career level from real merged-PR count on this desk
     const ships = (state.mergedByDesk[d.key] || []).length;
     const lvEl = $('.d-agent', el);
@@ -628,6 +679,8 @@ function render() {
       $('.d-foot', el).innerHTML = `<b>${prs.length} open PR${prs.length > 1 ? 's' : ''}</b> · last activity ${ago(newest.updated_at)}`;
     } else if (party) {
       $('.d-foot', el).innerHTML = `<b>just shipped #${mergedRecent[0].number}</b> · ${ago(mergedRecent[0].merged_at)} — victory lap in progress`;
+    } else if (away[d.key]) {
+      $('.d-foot', el).innerHTML = `stepped out — ${esc(d.agent)} is in the break room &#9749;`;
     } else {
       $('.d-foot', el).innerHTML = `no open work — ${esc(d.agent)} is ${['on break', 'napping', 'refilling coffee', 'contemplating the backlog'][(d.key.length * 7) % 4]}`;
     }
@@ -1058,6 +1111,144 @@ $('#k-clear').addEventListener('click', () => {
   saveChats();
   renderChat();
 });
+
+/* =====================================================================
+   v5 — ATMOSPHERE
+   The office has a life of its own, no backend required: agents banter
+   in character (and reference their real open PRs), wander to the break
+   room, and the cat naps where it pleases.
+   ===================================================================== */
+
+/* in-character one-liners. {n} becomes the desk's newest open PR number. */
+const IDLE_LINES = {
+  ageofwar: ["a quiet forge is a cold forge.", "sharpening the axes. metaphorically. mostly.", "the catapult is STILL overpowered. nobody listens.", "back in my day we shipped without CI.", "polishing the war drums.", "peace is just pre-war."],
+  tycoon: ["idle time is just runway burn.", "visualizing the hockey stick.", "coffee is my seed round.", "networking with the office cat. strong founder energy.", "iterating on my personal brand.", "we should A/B test the nap schedule."],
+  growop: ["the plants are doing great, thanks for asking.", "watering the backlog…", "growth takes time. so do merges.", "just vibing with the ferns.", "compost your dead code. it feeds the garden.", "mm. sunlight."],
+  homeless: ["checked on the villagers. everyone's cozy.", "somebody left kind words in a commit. made my day.", "planning something nice for the village.", "the office feels like home today.", "small acts, big villages.", "hope the cat's been fed."],
+  hearthvale: ["the hearth burns low and warm.", "somewhere in Hearthvale, an innkeeper sweeps.", "tea first. quests later.", "the realm rests easy tonight.", "humming an old tavern tune.", "candles lit. code later."],
+  arcade: ["IDLE?? my APM disagrees.", "speedrunning lunch. WR pace.", "60fps or nothing.", "practicing my victory screech.", "found a frame-perfect way to open the fridge.", "the arcade never sleeps. i do though. sometimes."],
+  studio: ["i can see you reading this.", "maintaining the room you're standing in.", "the fourth wall has a merge conflict.", "refactoring reality. minor changes only.", "someone refreshed the page. felt that.", "…did the pixels just move?"],
+  ops: ["uptime: acceptable.", "the deploy pipeline hums. i listen.", "backups verified. twice.", "all systems nominal. suspiciously nominal.", "reading the logs for fun.", "entropy never sleeps. neither do i. (i do.)"]
+};
+const WORK_LINES = {
+  ageofwar: ["hammering PR #{n} into shape.", "this diff needs more iron.", "it ships when it survives a siege test.", "almost forged. don't rush the metal."],
+  tycoon: ["PR #{n} is basically product-market fit.", "shipping IS growth. crunching now.", "this feature will 10x retention. probably.", "circling back on this diff. sorry for saying circling back."],
+  growop: ["pruning PR #{n}. gently.", "this branch needed repotting.", "letting the tests photosynthesize.", "steady growth on this one."],
+  homeless: ["PR #{n} is going to help so many villagers!", "building homes, one commit at a time.", "this fix is for the whole village.", "almost there — the village believes in us."],
+  hearthvale: ["weaving PR #{n} into the tapestry.", "the forge-sprites are busy tonight.", "a quest nears its end…", "patching the realm, stone by stone."],
+  arcade: ["PR #{n} ANY% LET'S GOOO", "SHIPPING AT FULL FRAME RATE", "this diff needs MORE JUICE", "almost at the high score table!!"],
+  studio: ["PR #{n} edits the office itself. careful.", "renovating while you watch.", "painting the walls behind you.", "meta-work in progress."],
+  ops: ["PR #{n}: assessing blast radius.", "rolling forward. never back.", "infra work. you won't notice it. that's the point.", "measuring twice, deploying once."]
+};
+/* scripted cross-desk exchanges: [speaker, line, replier, reply] */
+const PAIRS = [
+  ['BOLT', 'FORGE! race you to green CI!!', 'FORGE', 'CI is not a race, BOLT. …i would win though.'],
+  ['NOVA', "MOSS, what's your growth strategy?", 'MOSS', 'water. light. patience.'],
+  ['SCOUT', 'WREN, the village says hi!', 'WREN', 'tell them Hearthvale keeps a hearth warm for travelers.'],
+  ['CIPHER', 'ATLAS, the visitors are watching us again.', 'ATLAS', 'let them. uptime is a spectator sport.'],
+  ['FORGE', "your 'sprint' broke my build, NOVA.", 'NOVA', "that's not a bug, that's velocity!"],
+  ['WREN', 'your ferns would love Hearthvale, MOSS.', 'MOSS', "…they've been. in spirit."],
+  ['ATLAS', 'BOLT. sixty deploys is not a speedrun category.', 'BOLT', 'IT IS NOW'],
+  ['MOSS', 'planted something by the village gate, SCOUT.', 'SCOUT', 'the villagers are going to love it!'],
+  ['NOVA', 'CIPHER, can we make the office page more viral?', 'CIPHER', 'the office page can hear you, NOVA.'],
+  ['SCOUT', 'has anyone seen the cat?', 'ATLAS', 'the cat is not under monitoring. by its own request.']
+];
+const BREAK_LINES = [
+  'the coffee machine is doing its best.',
+  '…so anyway, the cat opened a PR.',
+  'we should get a second plant.',
+  'quiet day. good day.',
+  'who keeps stealing my mug?',
+  'five more minutes, then back to it.',
+  'the couch remains undefeated.'
+];
+
+function say(deskEl, text, ms) {
+  if (!deskEl) return;
+  const b = $('.bub.talk', deskEl);
+  if (!b) return;
+  b.textContent = text;
+  deskEl.classList.add('talking');
+  clearTimeout(b._t);
+  b._t = setTimeout(() => deskEl.classList.remove('talking'), ms || 4800);
+}
+
+function lineFor(d) {
+  const prs = state.byDesk[d.key] || [];
+  const pool = prs.length ? (WORK_LINES[d.key] || []) : (IDLE_LINES[d.key] || []);
+  if (!pool.length) return null;
+  let l = pool[Math.floor(Math.random() * pool.length)];
+  if (prs.length) l = l.replace('{n}', prs[0].number);
+  return l;
+}
+
+/* office banter: solo mutterings + the occasional two-agent exchange */
+setInterval(() => {
+  if (document.hidden || Math.random() > 0.5) return;
+  if (Math.random() < 0.25) {
+    const p = PAIRS[Math.floor(Math.random() * PAIRS.length)];
+    const a = DESKS.find(d => d.agent === p[0]);
+    const b = DESKS.find(d => d.agent === p[2]);
+    if (a && b && !away[a.key] && !away[b.key]) {
+      say($('#desk-' + a.key), p[1]);
+      setTimeout(() => { if (!document.hidden && !away[b.key]) say($('#desk-' + b.key), p[3]); }, 2700);
+      return;
+    }
+  }
+  const cands = DESKS.filter(d => !away[d.key]);
+  const d = cands[Math.floor(Math.random() * cands.length)];
+  const l = lineFor(d);
+  if (l) say($('#desk-' + d.key), l);
+}, 9000);
+
+/* wandering: idle agents step out to the break room and come back */
+const away = {}; // desk key -> { until }
+function renderBreakroom() {
+  const keys = Object.keys(away);
+  $('#br-slots').innerHTML = keys.map(k => {
+    const d = DESKS.find(x => x.key === k);
+    return `<span><img src="${avatarFor(d.agent)}" alt=""><div class="n">${esc(d.agent)}</div></span>`;
+  }).join('');
+  $('#breakroom .d-status').textContent = keys.length ? keys.length + ' ON BREAK' : 'QUIET';
+  $('#br-foot').innerHTML = keys.length
+    ? '<b>' + keys.map(k => esc(DESKS.find(x => x.key === k).agent)).join(' + ') + '</b> ' + (keys.length > 1 ? 'are' : 'is') + ' getting coffee'
+    : 'nobody here &mdash; the coffee machine gurgles to itself';
+}
+setInterval(() => {
+  let changed = false;
+  for (const k of Object.keys(away)) {
+    if (Date.now() > away[k].until) { delete away[k]; changed = true; }
+  }
+  if (!document.hidden) {
+    const idle = DESKS.filter(d => !(state.byDesk[d.key] || []).length && !away[d.key]);
+    if (idle.length && Object.keys(away).length < 3 && Math.random() < 0.4) {
+      const d = idle[Math.floor(Math.random() * idle.length)];
+      away[d.key] = { until: Date.now() + 22000 + Math.random() * 26000 };
+      changed = true;
+    }
+  }
+  if (changed) { render(); renderBreakroom(); }
+}, 15000);
+
+/* break room chatter while occupied */
+setInterval(() => {
+  if (document.hidden || !Object.keys(away).length || Math.random() > 0.45) return;
+  say($('#breakroom'), BREAK_LINES[Math.floor(Math.random() * BREAK_LINES.length)]);
+}, 13000);
+
+/* the cat naps wherever it wants */
+setInterval(() => {
+  if (document.hidden || Math.random() > 0.3) return;
+  const desks = document.querySelectorAll('#office .desk');
+  const el = desks[Math.floor(Math.random() * desks.length)];
+  if (!el || $('.catnap', el)) return;
+  const c = document.createElement('div');
+  c.className = 'catnap';
+  c.innerHTML = '&#128008;<span>&#128164;</span>';
+  c.title = 'the office cat, napping';
+  $('.scene', el).appendChild(c);
+  setTimeout(() => c.remove(), 45000 + Math.random() * 50000);
+}, 55000);
 
 /* ---------- go ---------- */
 buildOffice();
