@@ -125,12 +125,17 @@
     #banner p{font-size:13px}
     #fpTool{font-size:110px;left:82%}
   }
+  #goodsHud{position:fixed;top:58px;left:10px;z-index:10;display:none;gap:8px;align-items:center;
+    background:rgba(18,24,32,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:6px 11px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  body.photo #goodsHud{display:none!important}
   /* short landscape (phones on their side) */
   @media (max-height:480px){
     #quests{display:none}
     .slot{width:46px;height:46px}
     #hotbar{bottom:8px}
   }
+  @media (max-width:640px){ #goodsHud{font-size:12px;padding:5px 8px;gap:5px} }
 </style>
 </head>
 <body>
@@ -142,6 +147,7 @@
   <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
 </div>
+<div id="goodsHud"></div>
 <div id="back">
   <button id="fpBtn" title="First person (F)">👁️</button>
   <button id="farmerBtn" title="Hire villagers">🧑‍🌾</button>
@@ -190,7 +196,8 @@
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect</li>
-    <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market (+25% sales), Barn (more animals), Farmhouse (faster crops)</li>
+    <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
+    <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods pile into a <b>stockpile</b> (shown top-left) that a roaming <b>Trader buys in bulk</b> at a premium; tap the Market to sell on the spot</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -334,7 +341,7 @@ const SAVE_KEY='voxel-garden-v1';
 let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
   muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
-  buildings:{},ach:{},achFlags:{}};
+  buildings:{},goods:{},ach:{},achFlags:{}};
 const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
   edits:new Map(), islets:[], animals:[], workers:[], drops:[], buildingMeshes:{},
   chunkDirty:new Set(), chunkMeshes:new Map()};
@@ -1069,22 +1076,67 @@ function animalDrop(a){
   floatText(a.x,gy+1.1,a.z,def.product,'#fff');
   SFX.tone(def.pitch,0.08,'triangle',0.045,def.pitch*1.5);
 }
+function hasMarket(){return !!(state.buildings&&state.buildings.market);}
 function collectDrop(d){
   const i=W.drops.indexOf(d);if(i<0)return;
   W.drops.splice(i,1);
   const def=ANIMALS[d.type];
-  const pay=Math.round(def.yield*sellMult());
-  grantCoins(pay,d.x,d.y+0.9,d.z);
-  floatText(d.x,d.y+1.2,d.z,def.product,'#ffe9a8');
-  SFX.play('coin');
+  if(hasMarket()){
+    // once you have a Trader's Market, goods pile into a stockpile the Trader
+    // buys in bulk at a premium — so collecting stashes it instead of selling
+    state.goods[d.type]=(state.goods[d.type]||0)+1;
+    floatText(d.x,d.y+1.2,d.z,'+'+def.product,'#ffe9a8');
+    SFX.tone(def.pitch,0.07,'triangle',0.045);
+    refreshGoodsHud();
+  } else {
+    const pay=Math.round(def.yield);
+    grantCoins(pay,d.x,d.y+0.9,d.z);
+    floatText(d.x,d.y+1.2,d.z,def.product,'#ffe9a8');
+    SFX.play('coin');
+  }
   if(d.mesh){scene.remove(d.mesh);d.mesh.material.dispose();}
 }
 function updateDrops(dt){
   for(const d of W.drops.slice()){
     d.age+=dt;d.bob+=dt*3;
     if(d.mesh)d.mesh.position.y=d.y+0.3+Math.sin(d.bob)*0.07,d.mesh.rotation.y+=dt*1.4;
-    if(d.age>75)collectDrop(d);            // idle goods auto-sell so you always earn
+    if(d.age>75)collectDrop(d);            // idle goods auto-collect so nothing is lost
   }
+}
+/* ---- the goods stockpile & the Trader ---- */
+function goodsTotal(){let n=0;for(const t in ANIMALS)n+=state.goods[t]||0;return n;}
+function goodsValue(){let v=0;for(const t in ANIMALS)v+=(state.goods[t]||0)*ANIMALS[t].yield;return v;}
+function sellStockpile(bulk){
+  const tot=goodsTotal();
+  if(tot<=0){if(!bulk)toast('🛒 No goods stockpiled yet — collect what your animals drop');return;}
+  const coins=Math.round(goodsValue()*(bulk?1.6:1.25));   // Trader pays a bulk premium
+  for(const t in ANIMALS)state.goods[t]=0;
+  const b=state.buildings.market,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
+  grantCoins(coins,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.6,gz+0.5,'🛒 +'+coins,'#ffd166');
+  burst(gx+0.5,gy,gz+0.5,0xffd166,18,{up:2.4,g:5});
+  SFX.play('harvest');setTimeout(()=>SFX.play('coin'),120);
+  toast((bulk?'🛒 The Trader bought ':'🛒 Sold ')+tot+' goods for '+coins+' 🪙');
+  state.achFlags.trade=true;
+  refreshGoodsHud();
+  if(typeof checkAch==='function')checkAch();
+}
+let traderT=0;
+function updateTrader(dt){
+  if(!hasMarket())return;
+  if(goodsTotal()<=0){traderT=0;return;}
+  traderT+=dt;
+  if(traderT>=48){traderT=0;sellStockpile(true);}   // the Trader rolls through periodically
+}
+function refreshGoodsHud(){
+  const el=$('goodsHud');if(!el)return;
+  const tot=goodsTotal();
+  if(!hasMarket()||tot<=0){el.style.display='none';return;}
+  el.style.display='flex';
+  let html='<span style="color:var(--dim);font-size:11px">🛒 STOCKPILE</span>';
+  for(const t in ANIMALS){const q=state.goods[t]||0;if(q>0)html+='<span>'+ANIMALS[t].product+q+'</span>';}
+  html+='<span style="color:var(--gold);font-size:11px">tap Market to sell</span>';
+  el.innerHTML=html;
 }
 
 /* ============================== town (land & buildings) ============================== */
@@ -1095,7 +1147,7 @@ function updateDrops(dt){
 // persist by position in state.buildings.
 const BUILDINGS={
   tavern:   {ico:'🍺',name:'Tavern',   cost:420,lvl:3,desc:'Unlocks villager roles',roof:0x8a4b2f,wall:0xcaa06a},
-  market:   {ico:'🏪',name:'Trader’s Market',cost:560,lvl:4,desc:'+25% on all sales',roof:0x3f7a5c,wall:0xd8c39a},
+  market:   {ico:'🏪',name:'Trader’s Market',cost:560,lvl:4,desc:'Stockpile goods; a Trader buys them in bulk',roof:0x3f7a5c,wall:0xd8c39a},
   barn:     {ico:'🚜',name:'Barn',     cost:520,lvl:4,desc:'+6 animals · +40% growth',roof:0xa23b32,wall:0xb8875a},
   farmhouse:{ico:'🏠',name:'Farmhouse',cost:680,lvl:5,desc:'+20% crop growth',roof:0x6a86b0,wall:0xd9caa6},
 };
@@ -1128,6 +1180,7 @@ function placeBuildingMesh(key){
   const mesh=new THREE.Mesh(buildPlantGeometry(buildingCubes(def)),plantMat);
   mesh.castShadow=true;mesh.receiveShadow=true;
   mesh.position.set(b.x+0.5,(surfaceY(b.x,b.z)||4)+1,b.z+0.5);
+  mesh.userData.buildingKey=key;
   scene.add(mesh);W.buildingMeshes[key]=mesh;
 }
 function rebuildBuildings(){for(const key in (state.buildings||{}))if(state.buildings[key])placeBuildingMesh(key);}
@@ -1788,6 +1841,10 @@ function doAction(hit){
   if(ud.animalRef)return cashInAnimal(ud.animalRef);   // tap a grown animal to sell it
   if(ud.dropRef)return collectDrop(ud.dropRef);         // tap a dropped good to collect it
   if(ud.workerRef)return cycleWorkerRole(ud.workerRef); // tap a villager to set their role
+  if(ud.buildingKey){                                   // tap a building
+    if(ud.buildingKey==='market')return sellStockpile(false);
+    const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
+  }
   const [x,y,z]=cellFromHit(hit,true);
   const id=getB(x,y,z);
   const tool=state.tool;
@@ -1917,6 +1974,7 @@ function getPickables(){
   for(const a of W.animals)if(a.mesh)arr.push(a.mesh);
   for(const d of W.drops)if(d.mesh)arr.push(d.mesh);
   for(const w of W.workers)if(w.mesh)arr.push(w.mesh);
+  for(const k in W.buildingMeshes)arr.push(W.buildingMeshes[k]);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -2034,7 +2092,7 @@ function updateHover(){
     document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
     return;
   }
-  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef){
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey){
     highlightBox.visible=false;ghostCube.visible=false;
     document.body.style.cursor='pointer';return;
   }
@@ -2091,7 +2149,7 @@ function initHud(){
   });
   $('musicBtn').style.opacity=state.musicOff?0.4:1;
   buildSeedPanel();buildBlockPanel();
-  refreshXpHud();refreshQuestHud();
+  refreshXpHud();refreshQuestHud();refreshGoodsHud();
   el.coins.textContent=state.coins;el.day.textContent=state.day;
   selectTool(state.tool);
   if(!state.helpSeen)el.helpOv.classList.add('open');
@@ -2200,6 +2258,7 @@ function load(){
   W.seed=data.seed;
   Object.assign(state,data.state);
   if(!state.buildings)state.buildings={};
+  if(!state.goods)state.goods={};
   genIsland(0,0,15,0);
   const islets=data.islets||[];
   islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});
@@ -2413,6 +2472,7 @@ const ACH=[
   ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1],
   ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
   ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
+  ['trade','Open for Business','Sell goods at the Trader’s Market',()=>!!state.achFlags.trade],
   ['town1','Founding','Raise your first town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=1],
   ['town4','Boomtown','Raise every town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=4],
   ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
@@ -2533,6 +2593,7 @@ function boot(){
     updateWorkers(dt);
     updateAnimals(dt);
     updateDrops(dt);
+    updateTrader(dt);
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
