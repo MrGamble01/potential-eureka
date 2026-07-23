@@ -275,6 +275,41 @@ const AgeOfWarGame = (() => {
   // ---- Run stats (shown on win/lose + drive achievements) ----
   const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
 
+  // ---- Best Run ----
+  // Persisted across runs (IDEA-AOW-1): the Reset button already promised
+  // to clear this key, but nothing ever wrote it. Ranked by era reached
+  // first, kills as the tiebreaker within the same era.
+  let bestRun = null;
+  function loadBestRun() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      bestRun = raw ? JSON.parse(raw) : null;
+    } catch { bestRun = null; }
+  }
+  function bestRunScore(r) { return r.era * 100000 + r.kills; }
+  function recordRunEnd() {
+    const candidate = {
+      era: runStats.agesReached,
+      kills: runStats.kills,
+      time: runStats.time,
+      difficulty,
+      won: outcome === 'win',
+    };
+    const isNewBest = !bestRun || bestRunScore(candidate) > bestRunScore(bestRun);
+    if (isNewBest) {
+      bestRun = candidate;
+      try { localStorage.setItem('aow-best-run', JSON.stringify(bestRun)); } catch {}
+    }
+    return isNewBest;
+  }
+  function bestRunSummary() {
+    if (!bestRun) return 'No runs yet';
+    const era = ERAS[Math.max(0, Math.min(bestRun.era || 0, ERAS.length - 1))];
+    const m = Math.floor(bestRun.time / 60);
+    const s = Math.floor(bestRun.time % 60).toString().padStart(2, '0');
+    return `${era.icon} ${era.name} · ${bestRun.kills} kills · ${m}:${s}${bestRun.won ? ' · 🏆' : ''}`;
+  }
+
   // ---- Achievements ----
   // Persisted in localStorage across runs. Earned during play, toast
   // pops in the corner. Full list lives in a modal.
@@ -595,6 +630,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -1060,6 +1096,9 @@ const AgeOfWarGame = (() => {
       // Sync mute toggle
       const mt = document.getElementById('aow-mute-toggle');
       if (mt) mt.setAttribute('aria-pressed', String(soundMuted));
+      // Sync best-run summary
+      const br = document.getElementById('aow-best-run-label');
+      if (br) br.textContent = bestRunSummary();
       settingsModal.style.display = 'flex';
       setModalPaused(true);
     }
@@ -1113,6 +1152,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRun = null;
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1779,14 +1819,14 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
-      showOverlay(false);
+      showOverlay(false, recordRunEnd());
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      showOverlay(true, recordRunEnd());
     }
 
     // Hero CD + achievement scans
@@ -6487,7 +6527,7 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
-  function showOverlay(won) {
+  function showOverlay(won, isNewBest) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
     const m = Math.floor(runStats.time / 60);
@@ -6504,7 +6544,10 @@ const AgeOfWarGame = (() => {
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
-      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
+      <p style="font-size:12px; color: var(--text-dim); margin-top:14px">
+        ${isNewBest ? '<span style="color:#fcd34d;font-weight:800">🌟 NEW BEST RUN!</span>' : `Best run: ${bestRunSummary()}`}
+      </p>
+      <p style="font-size:12px; color: var(--text-dim); margin-top:4px">Press SPACE or click Restart</p>
     `;
   }
 
