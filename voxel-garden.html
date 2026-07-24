@@ -197,7 +197,7 @@
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect</li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
-    <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods pile into a <b>stockpile</b> (shown top-left) that a roaming <b>Trader buys in bulk</b> at a premium; tap the Market to sell on the spot</li>
+    <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -1104,13 +1104,24 @@ function updateDrops(dt){
   }
 }
 /* ---- the goods stockpile & the Trader ---- */
-function goodsTotal(){let n=0;for(const t in ANIMALS)n+=state.goods[t]||0;return n;}
-function goodsValue(){let v=0;for(const t in ANIMALS)v+=(state.goods[t]||0)*ANIMALS[t].yield;return v;}
+// Goods are the animal products PLUS a "crop" produce, so both ranching and
+// farming feed the same stockpile the Trader buys.
+const CROP_GOOD={product:'🌾',yield:5,pitch:520};
+function goodDef(t){return t==='crop'?CROP_GOOD:ANIMALS[t];}
+function goodsKeys(){return Object.keys(ANIMALS).concat('crop');}
+function goodsTotal(){let n=0;for(const t of goodsKeys())n+=state.goods[t]||0;return n;}
+function goodsValue(){let v=0;for(const t of goodsKeys())v+=(state.goods[t]||0)*goodDef(t).yield;return v;}
+function stockCrop(x,y,z){        // a harvested crop adds produce to the stockpile (with a Market)
+  if(!hasMarket())return;
+  state.goods.crop=(state.goods.crop||0)+1;
+  if(x!=null)floatText(x,y,z,'+🌾','#d9e88a');
+  refreshGoodsHud();
+}
 function sellStockpile(bulk){
   const tot=goodsTotal();
-  if(tot<=0){if(!bulk)toast('🛒 No goods stockpiled yet — collect what your animals drop');return;}
+  if(tot<=0){if(!bulk)toast('🛒 No goods stockpiled yet — collect what your farm produces');return;}
   const coins=Math.round(goodsValue()*(bulk?1.6:1.25));   // Trader pays a bulk premium
-  for(const t in ANIMALS)state.goods[t]=0;
+  for(const t of goodsKeys())state.goods[t]=0;
   const b=state.buildings.market,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
   grantCoins(coins,gx+0.5,gy,gz+0.5);
   floatText(gx+0.5,gy+0.6,gz+0.5,'🛒 +'+coins,'#ffd166');
@@ -1121,22 +1132,74 @@ function sellStockpile(bulk){
   refreshGoodsHud();
   if(typeof checkAch==='function')checkAch();
 }
-let traderT=0;
-function updateTrader(dt){
-  if(!hasMarket())return;
-  if(goodsTotal()<=0){traderT=0;return;}
-  traderT+=dt;
-  if(traderT>=48){traderT=0;sellStockpile(true);}   // the Trader rolls through periodically
-}
 function refreshGoodsHud(){
   const el=$('goodsHud');if(!el)return;
   const tot=goodsTotal();
   if(!hasMarket()||tot<=0){el.style.display='none';return;}
   el.style.display='flex';
   let html='<span style="color:var(--dim);font-size:11px">🛒 STOCKPILE</span>';
-  for(const t in ANIMALS){const q=state.goods[t]||0;if(q>0)html+='<span>'+ANIMALS[t].product+q+'</span>';}
+  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>0)html+='<span>'+goodDef(t).product+q+'</span>';}
   html+='<span style="color:var(--gold);font-size:11px">tap Market to sell</span>';
   el.innerHTML=html;
+}
+/* ---- the Trader wagon (drives in to buy the stockpile) ---- */
+let traderT=0,trader=null;
+function wagonCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.42,0,0.72,0.4,1.02,0x8a5a34);          // cart bed
+  a(0,0.72,-0.08,0.66,0.3,0.72,0xcaa060);      // crate of goods
+  a(0,0.92,-0.08,0.5,0.14,0.52,0xe6d3a0);
+  a(-0.42,0.2,0.34,0.16,0.34,0.16,0x2a2a2a); a(0.42,0.2,0.34,0.16,0.34,0.16,0x2a2a2a);   // wheels
+  a(-0.42,0.2,-0.34,0.16,0.34,0.16,0x2a2a2a); a(0.42,0.2,-0.34,0.16,0.34,0.16,0x2a2a2a);
+  a(0,0.5,0.66,0.12,0.1,0.34,0x6b4a2b);         // shaft
+  a(0,0.66,0.86,0.34,0.42,0.24,0x8a6a4a);       // the trader
+  a(0,0.95,0.86,0.22,0.2,0.22,0xe8bd94);        // head
+  a(0,1.08,0.86,0.34,0.08,0.34,0x9c3b3b);       // hat
+  return c;}
+function positionTrader(){
+  const t=trader;if(!t)return;
+  const gy=surfaceY(Math.round(t.x),Math.round(t.z));
+  const y=(gy==null?4:gy)+1;
+  if(t.dispY==null)t.dispY=y; else t.dispY+=(y-t.dispY)*0.2;
+  t.mesh.position.set(t.x,t.dispY,t.z);
+  t.mesh.rotation.y=t.face;
+}
+function spawnTraderWagon(){
+  const m=state.buildings.market;if(!m||trader)return false;
+  for(let r=7;r>=3;r--){
+    for(const [dx,dz] of [[r,0],[-r,0],[0,r],[0,-r],[r,r],[-r,-r],[r,-r],[-r,r]]){
+      const sx=m.x+dx,sz=m.z+dz;
+      if(surfaceY(sx,sz)==null)continue;
+      const p=findPath(sx,sz,m.x,m.z);
+      if(p&&p.length>2){
+        const mesh=new THREE.Mesh(buildPlantGeometry(wagonCubes()),plantMat);
+        mesh.castShadow=true;mesh.scale.setScalar(0.9);scene.add(mesh);
+        trader={mesh,x:sx+0.5,z:sz+0.5,face:0,step:0,path:p,pathI:0,phase:'in',t:0,inPath:p};
+        positionTrader();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function despawnTrader(){if(trader){scene.remove(trader.mesh);trader.mesh.geometry.dispose();trader=null;}}
+function updateTraderWagon(dt){
+  const t=trader;
+  if(t.phase==='sell'){t.t+=dt;if(t.t>1.1){sellStockpile(true);t.phase='out';t.path=t.inPath.slice().reverse();t.pathI=0;}positionTrader();return;}
+  if(!t.path||t.pathI>=t.path.length){
+    if(t.phase==='in'){t.phase='sell';t.t=0;} else {despawnTrader();}
+    return;
+  }
+  const wp=t.path[t.pathI];
+  const dx=(wp[0]+0.5)-t.x,dz=(wp[1]+0.5)-t.z,d=Math.hypot(dx,dz);
+  if(d<0.22){t.pathI++;}
+  else{const sp=Math.min(1,2.4*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);}
+  positionTrader();
+}
+function updateTrader(dt){
+  if(trader){updateTraderWagon(dt);return;}
+  if(!hasMarket()||goodsTotal()<=0){traderT=0;return;}
+  traderT+=dt;
+  if(traderT>=40){traderT=0;if(!spawnTraderWagon())sellStockpile(true);}  // wagon rolls in (or instant if boxed in)
 }
 
 /* ============================== town (land & buildings) ============================== */
@@ -1917,6 +1980,7 @@ function actOnPlant(p){
     if(isNight())state.achFlags.night=true;
     grantCoins(def.sell,p.x+0.5,p.y+0.9,p.z+0.5);
     grantXP(def.xp);
+    stockCrop(p.x+0.5,p.y+1.3,p.z+0.5);      // Market turns produce into stockpile too
     SFX.play('harvest');
     setTimeout(()=>SFX.play('coin'),140);
     burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,14,{up:2.4,g:6});
