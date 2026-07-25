@@ -310,7 +310,7 @@
     <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span><span class="net" id="r-goldnet"></span></div>
     <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
     <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span></div>
-    <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span></div>
+    <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span><span id="r-wx"></span></div>
   </div>
 
   <div id="goals">
@@ -1227,12 +1227,22 @@
     }).join('');
     document.getElementById('achv').classList.add('show');
   }
+  // Rain waters the crops: on a rainy day outside winter, farms & orchards
+  // yield more — a reason to welcome the grey skies. And when the rain clears,
+  // a rainbow arcs over the valley for a little while.
+  const RAIN_CROP_BONUS = 0.25;
+  let rainbowT = 0;              // real-time seconds a rainbow lingers (ephemeral)
+  const RAINBOW_DUR = 14;
+  function rainBoostsCrops() { return state.raining && seasonOf(state.day).name !== 'Winter'; }
+  function cropRainMult(b) { return (rainBoostsCrops() && (b.type === 'farm' || b.type === 'orchard')) ? 1 + RAIN_CROP_BONUS : 1; }
   function rollWeather() {
     const s = seasonOf(state.day);
     const chance = s.name === 'Autumn' || s.name === 'Spring' ? 0.32 : 0.15;
     const was = state.raining;
     state.raining = rrand(state.day * 911 + 7) < chance;
-    if (state.raining && !was) toast(seasonOf(state.day).name === 'Winter' ? '❄️ Snow drifts over the valley.' : '🌧️ Rain moves over the valley.');
+    if (state.raining && !was) toast(s.name === 'Winter' ? '❄️ Snow drifts over the valley.' : '🌧️ Rain moves over the valley — the crops drink it up.');
+    // rain clearing on a growing day paints a rainbow across the sky
+    if (was && !state.raining && s.name !== 'Winter') rainbowT = RAINBOW_DUR;
   }
 
   // ---- Town goals: a soft progression curve that gives direction --
@@ -1787,11 +1797,13 @@
         if (def.cons) for (const k in def.cons) state.res[k] -= def.cons[k];
         const milled = b.type === 'farm' && windmillBoostsFarm(b);
         const chain = adjMult(b);
+        const rainM = cropRainMult(b);
         for (const k in def.prod) {
           let amt = def.prod[k] * (b.level || 1);   // higher tier → more output
           if (b.bonus) amt = Math.ceil(amt * 1.5);
           if (milled && k === 'food') amt = Math.ceil(amt * 1.5); // nearby windmill lifts the harvest
           if (chain > 1) amt = Math.ceil(amt * chain);            // supply-chain adjacency bonus
+          if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM); // rain waters the crops
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
@@ -2170,6 +2182,8 @@
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
     }
+    // a rainbow lingers in the sky after the rain clears
+    if (rainbowT > 0) drawRainbow();
     // cloud shadows drift over the whole scene; flying life renders above them
     drawClouds(sx, sy, z);
     drawButterflies(sx, sy, z);
@@ -2451,6 +2465,7 @@
   function rnd(a, b) { _rndc = (_rndc + 1) % 1000003; return a + rrand(_rndc * 2.7 + Math.floor(ambientTime * 60)) * (b - a); } // unique per call so spawns spread out
   function updateAmbient(rdt) {
     ambientTime += rdt;
+    if (rainbowT > 0) rainbowT = Math.max(0, rainbowT - rdt);
     updateClouds(rdt);
     const r = visRect(), seas = seasonIdx(), night = isNight();
     const margin = 40, vw = r.x1 - r.x0, vh = r.y1 - r.y0;
@@ -2835,6 +2850,26 @@
     }
     ctx.restore();
   }
+  // A soft multi-band arc across the upper sky; fades as its timer wanes.
+  // Screen-space so it reads as "in the sky"; continuous alpha, never blinks.
+  function drawRainbow() {
+    const a = Math.min(1, rainbowT / RAINBOW_DUR) * 0.5;
+    if (a <= 0.01) return;
+    const bands = ['#e86a6a', '#e8a24a', '#ecd24a', '#6fc46f', '#5aa0e6', '#9a6fd6'];
+    const cx = view.w * 0.5, cy = view.h * 1.08, R = Math.max(view.w, view.h) * 0.72;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineWidth = 6;
+    for (let i = 0; i < bands.length; i++) {
+      ctx.globalAlpha = a * (1 - i * 0.06);
+      ctx.strokeStyle = bands[i];
+      ctx.beginPath();
+      ctx.arc(cx, cy, R - i * 6, Math.PI * 1.16, Math.PI * 1.84);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
   function drawDayNight() {
     const { a, col } = nightTint();
     const season = seasonOf(state.day);
@@ -2860,11 +2895,13 @@
       if (b.done === false || !def.prod || (def.worker && !b.staffed)) return;
       const milled = b.type === 'farm' && windmillBoostsFarm(b);
       const chain = adjMult(b);
+      const rainM = cropRainMult(b);
       for (const k in def.prod) {
         let amt = def.prod[k] * (b.level || 1);
         if (b.bonus) amt = Math.ceil(amt * 1.5);
         if (milled && k === 'food') amt = Math.ceil(amt * 1.5);
         if (chain > 1) amt = Math.ceil(amt * chain);
+        if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM);
         net[k] += amt;
       }
       if (def.cons) for (const k in def.cons) net[k] -= def.cons[k];
@@ -2907,6 +2944,11 @@
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
     const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name; }
+    const wx = document.getElementById('r-wx');
+    if (wx) {
+      if (state.raining) { const snow = seasonOf(state.day).name === 'Winter'; wx.textContent = snow ? ' ❄️' : ' 🌧️'; wx.title = snow ? 'Snowing' : 'Rain — crops thrive (+25% food)'; }
+      else { wx.textContent = ''; wx.title = ''; }
+    }
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
@@ -3068,7 +3110,7 @@
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) { const wk = state.villagers.find(v => v.jobId === b.id); html += statRow('Worker', wk ? '👤 ' + wk.name : 'Needs a villager 💤'); }
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); html += statRow('Produces', base + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : '') + ' / cycle'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
@@ -3278,6 +3320,7 @@
         achievements: state.achievements || [], townName: state.townName || 'Hearthvale',
         trades: state.trades || 0, traderDay: state.traderDay || 0, hunger: state.hunger || 0,
         festival: state.festival || null, lastFestivalDay: (state.lastFestivalDay != null ? state.lastFestivalDay : -99),
+        raining: !!state.raining,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -3332,6 +3375,7 @@
       state.hunger = s.hunger || 0;
       state.festival = (s.festival && typeof s.festival.endDay === 'number') ? s.festival : null;
       state.lastFestivalDay = (typeof s.lastFestivalDay === 'number') ? s.lastFestivalDay : -99;
+      state.raining = !!s.raining;
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
         cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
