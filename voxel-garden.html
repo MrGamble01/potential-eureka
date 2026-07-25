@@ -198,6 +198,7 @@
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect</li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
+    <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -341,7 +342,7 @@ const SAVE_KEY='voxel-garden-v1';
 let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
   muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
-  buildings:{},goods:{},ach:{},achFlags:{}};
+  buildings:{},goods:{},meals:0,ach:{},achFlags:{}};
 const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
   edits:new Map(), islets:[], animals:[], workers:[], drops:[], buildingMeshes:{},
   chunkDirty:new Set(), chunkMeshes:new Map()};
@@ -1077,13 +1078,15 @@ function animalDrop(a){
   SFX.tone(def.pitch,0.08,'triangle',0.045,def.pitch*1.5);
 }
 function hasMarket(){return !!(state.buildings&&state.buildings.market);}
+function hasTavern(){return !!(state.buildings&&state.buildings.tavern);}
+function stockpiles(){return hasMarket()||hasTavern();}   // either building banks goods
 function collectDrop(d){
   const i=W.drops.indexOf(d);if(i<0)return;
   W.drops.splice(i,1);
   const def=ANIMALS[d.type];
-  if(hasMarket()){
-    // once you have a Trader's Market, goods pile into a stockpile the Trader
-    // buys in bulk at a premium — so collecting stashes it instead of selling
+  if(stockpiles()){
+    // with a Market or Tavern, goods pile into a stockpile — the Trader buys
+    // them in bulk and the Tavern serves them for steady income
     state.goods[d.type]=(state.goods[d.type]||0)+1;
     floatText(d.x,d.y+1.2,d.z,'+'+def.product,'#ffe9a8');
     SFX.tone(def.pitch,0.07,'triangle',0.045);
@@ -1111,8 +1114,8 @@ function goodDef(t){return t==='crop'?CROP_GOOD:ANIMALS[t];}
 function goodsKeys(){return Object.keys(ANIMALS).concat('crop');}
 function goodsTotal(){let n=0;for(const t of goodsKeys())n+=state.goods[t]||0;return n;}
 function goodsValue(){let v=0;for(const t of goodsKeys())v+=(state.goods[t]||0)*goodDef(t).yield;return v;}
-function stockCrop(x,y,z){        // a harvested crop adds produce to the stockpile (with a Market)
-  if(!hasMarket())return;
+function stockCrop(x,y,z){        // a harvested crop adds produce to the stockpile
+  if(!stockpiles())return;
   state.goods.crop=(state.goods.crop||0)+1;
   if(x!=null)floatText(x,y,z,'+🌾','#d9e88a');
   refreshGoodsHud();
@@ -1135,12 +1138,41 @@ function sellStockpile(bulk){
 function refreshGoodsHud(){
   const el=$('goodsHud');if(!el)return;
   const tot=goodsTotal();
-  if(!hasMarket()||tot<=0){el.style.display='none';return;}
+  if(!stockpiles()||tot<=0){el.style.display='none';return;}
   el.style.display='flex';
   let html='<span style="color:var(--dim);font-size:11px">🛒 STOCKPILE</span>';
   for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>0)html+='<span>'+goodDef(t).product+q+'</span>';}
-  html+='<span style="color:var(--gold);font-size:11px">tap Market to sell</span>';
+  const hint=hasMarket()?'tap Market to sell':'the Tavern is serving these';
+  html+='<span style="color:var(--gold);font-size:11px">'+hint+'</span>';
   el.innerHTML=html;
+}
+/* ---- the Tavern serves goods for steady town income ---- */
+// The Tavern turns your stockpile into a living settlement: it periodically
+// cooks & serves one good for a premium (×2 the raw value — value added), so a
+// busier town with more villagers serves faster. This is the "buildings consume
+// what you gather" loop, running alongside the Trader's bulk buys.
+let tavernT=0,mealMsgT=0;
+function updateTavern(dt){
+  if(!hasTavern()||goodsTotal()<=0){tavernT=0;return;}
+  const interval=14/(1+W.workers.length*0.12);   // more villagers → a livelier tavern
+  tavernT+=dt;
+  if(tavernT>=interval){tavernT=0;serveMeal();}
+}
+function serveMeal(){
+  // serve the good you have the most of
+  let bestT=null,bestQ=0;
+  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
+  if(!bestT)return;
+  state.goods[bestT]--;
+  const coins=Math.max(2,Math.round(goodDef(bestT).yield*2));
+  const b=state.buildings.tavern,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
+  grantCoins(coins,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+coins,'#ffcf6b');
+  SFX.tone(300,0.07,'triangle',0.05);
+  state.meals=(state.meals||0)+1;
+  if(mealMsgT<=0){toast('🍺 The Tavern served '+goodDef(bestT).product+' for '+coins+' 🪙');mealMsgT=22;}
+  refreshGoodsHud();
+  if(typeof checkAch==='function')checkAch();
 }
 /* ---- the Trader wagon (drives in to buy the stockpile) ---- */
 let traderT=0,trader=null;
@@ -1209,7 +1241,7 @@ function updateTrader(dt){
 // and a Farmhouse (crops grow faster). Buildings auto-place on clear ground and
 // persist by position in state.buildings.
 const BUILDINGS={
-  tavern:   {ico:'🍺',name:'Tavern',   cost:420,lvl:3,desc:'Unlocks villager roles',roof:0x8a4b2f,wall:0xcaa06a},
+  tavern:   {ico:'🍺',name:'Tavern',   cost:420,lvl:3,desc:'Villager roles · serves goods for steady income',roof:0x8a4b2f,wall:0xcaa06a},
   market:   {ico:'🏪',name:'Trader’s Market',cost:560,lvl:4,desc:'Stockpile goods; a Trader buys them in bulk',roof:0x3f7a5c,wall:0xd8c39a},
   barn:     {ico:'🚜',name:'Barn',     cost:520,lvl:4,desc:'+6 animals · +40% growth',roof:0xa23b32,wall:0xb8875a},
   farmhouse:{ico:'🏠',name:'Farmhouse',cost:680,lvl:5,desc:'+20% crop growth',roof:0x6a86b0,wall:0xd9caa6},
@@ -2537,6 +2569,7 @@ const ACH=[
   ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
   ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
   ['trade','Open for Business','Sell goods at the Trader’s Market',()=>!!state.achFlags.trade],
+  ['meals50','A Round for the House','Serve 50 meals at the Tavern',()=>(state.meals||0)>=50],
   ['town1','Founding','Raise your first town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=1],
   ['town4','Boomtown','Raise every town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=4],
   ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
@@ -2658,6 +2691,8 @@ function boot(){
     updateAnimals(dt);
     updateDrops(dt);
     updateTrader(dt);
+    updateTavern(dt);
+    if(mealMsgT>0)mealMsgT-=dt;
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
