@@ -2395,6 +2395,22 @@ function load(){
     if(idle>0){state.coins+=idle;state.totalEarned+=idle;
       setTimeout(()=>toast('🐾 Your animals earned '+idle+' 🪙 while you were away'),2400);}
     if(ripened>0)setTimeout(()=>toast('While you were away, '+ripened+' crop'+(ripened>1?'s':'')+' ripened ✨'),1500);
+    // the Tavern keeps cooking through whatever was stockpiled while you were gone
+    if(hasTavern()&&goodsTotal()>0){
+      const interval=14/(1+W.workers.length*0.12);
+      let meals=Math.floor(off/interval),served=0,tavernCoins=0;
+      while(meals-->0&&goodsTotal()>0){
+        let bestT=null,bestQ=0;
+        for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
+        if(!bestT)break;
+        state.goods[bestT]--;served++;
+        tavernCoins+=Math.max(2,Math.round(goodDef(bestT).yield*2));
+      }
+      if(tavernCoins>0){
+        state.coins+=tavernCoins;state.totalEarned+=tavernCoins;state.meals=(state.meals||0)+served;
+        setTimeout(()=>toast('🍺 The Tavern served '+served+' meal'+(served>1?'s':'')+' for '+tavernCoins+' 🪙 while you were away'),3200);
+      }
+    }
   }
   return true;
 }
