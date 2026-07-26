@@ -2010,9 +2010,12 @@ function actOnPlant(p){
     if(p.type==='moonpetal')state.achFlags.moon=true;
     if(p.type==='startree')state.achFlags.tree=true;
     if(isNight())state.achFlags.night=true;
-    grantCoins(def.sell,p.x+0.5,p.y+0.9,p.z+0.5);
+    if(stockpiles()){
+      stockCrop(p.x+0.5,p.y+1.3,p.z+0.5);    // Market/Tavern banks it instead of an instant sale
+    } else {
+      grantCoins(def.sell,p.x+0.5,p.y+0.9,p.z+0.5);
+    }
     grantXP(def.xp);
-    stockCrop(p.x+0.5,p.y+1.3,p.z+0.5);      // Market turns produce into stockpile too
     SFX.play('harvest');
     setTimeout(()=>SFX.play('coin'),140);
     burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,14,{up:2.4,g:6});
