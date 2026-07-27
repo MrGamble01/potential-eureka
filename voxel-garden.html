@@ -208,7 +208,7 @@
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
-    <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect</li>
+    <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
@@ -1132,7 +1132,26 @@ function updateAnimal(a,dt){
   }
   positionAnimal(a);
 }
-function updateAnimals(dt){for(const a of W.animals)updateAnimal(a,dt);}
+function updateAnimals(dt){for(const a of W.animals)updateAnimal(a,dt);updateBreeding(dt);}
+// Keep a pair of grown animals of the same kind and, now and then, they have a
+// baby (free, up to the animal cap) — a little herd that grows itself.
+let breedT=0;
+function updateBreeding(dt){
+  if(W.animals.length>=animalCap())return;
+  breedT+=dt;if(breedT<35)return;breedT=0;
+  if(Math.random()<0.5)return;
+  const grown={};
+  for(const a of W.animals)if(a.stage>=1)grown[a.type]=(grown[a.type]||0)+1;
+  const pairs=Object.keys(grown).filter(t=>grown[t]>=2);
+  if(!pairs.length)return;
+  const type=pairs[(Math.random()*pairs.length)|0];
+  const parent=W.animals.find(a=>a.type===type&&a.stage>=1);
+  const baby=spawnAnimal(type,parent.x+(Math.random()-0.5),parent.z+(Math.random()-0.5),0,0);
+  if(baby){const gy=(surfaceY(Math.round(baby.x),Math.round(baby.z))||4)+1;
+    burst(baby.x,gy+0.5,baby.z,0xff9ec4,8,{up:1.4,g:3});
+    toast(ANIMALS[type].ico+' A baby '+ANIMALS[type].name.toLowerCase()+' was born!');
+    state.achFlags.breed=true;checkAch();}
+}
 function cashInAnimal(a){
   const def=ANIMALS[a.type];
   if(a.stage===0){toast(def.ico+' still growing — '+Math.round(a.grow*100)+'%');return;}
@@ -2941,6 +2960,7 @@ const ACH=[
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
+  ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
