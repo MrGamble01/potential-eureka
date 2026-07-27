@@ -1455,6 +1455,57 @@ function placeBuildingMesh(key){
 }
 function updateMillSail(dt){if(millSail)millSail.rotation.z+=dt*0.8;}
 function rebuildBuildings(){for(const key in (state.buildings||{}))if(state.buildings[key])placeBuildingMesh(key);}
+// A town cat turns up once you build a Tavern — it ambles around the settlement
+// and you can tap it for a purr and a heart.
+let townCat=null;
+function catCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.24,0,0.34,0.26,0.6,0xe08a3a);            // body
+  a(0,0.4,0.32,0.26,0.26,0.24,0xe8965a);         // head
+  a(-0.09,0.57,0.34,0.07,0.1,0.05,0xd9782f); a(0.09,0.57,0.34,0.07,0.1,0.05,0xd9782f); // ears
+  a(0,0.36,0.46,0.1,0.08,0.06,0xf2c79a);         // muzzle
+  a(0,0.34,-0.34,0.08,0.08,0.32,0xe08a3a);       // tail
+  a(-0.11,0.08,0.18,0.08,0.16,0.08,0xd9782f); a(0.11,0.08,0.18,0.08,0.16,0.08,0xd9782f);
+  a(-0.11,0.08,-0.16,0.08,0.16,0.08,0xd9782f); a(0.11,0.08,-0.16,0.08,0.16,0.08,0xd9782f);
+  return c;}
+function spawnCat(){
+  if(townCat)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(catCubes()),plantMat);
+  mesh.castShadow=true;mesh.userData.cat=true;scene.add(mesh);
+  const b=state.buildings.tavern||{x:0,z:2};
+  townCat={mesh,x:b.x+1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3};
+  positionCat();
+}
+function positionCat(){
+  const t=townCat;if(!t)return;
+  const gy=surfaceY(Math.round(t.x),Math.round(t.z));const y=(gy==null?4:gy)+1;
+  if(t.dispY==null)t.dispY=y;else t.dispY+=(y-t.dispY)*0.2;
+  t.mesh.position.set(t.x,t.dispY,t.z);t.mesh.rotation.y=t.face;
+}
+function updateCat(dt){
+  const t=townCat;if(!t)return;
+  if(t.act==='sit'||!t.path){t.step+=dt;t.wait-=dt;
+    if(t.wait<=0){ // pick a nearby reachable amble target
+      for(let i=0;i<6;i++){const ang=Math.random()*6.283,rad=2+Math.random()*5;
+        const wx=Math.round(t.x+Math.sin(ang)*rad),wz=Math.round(t.z+Math.cos(ang)*rad);
+        const p=findPath(Math.round(t.x),Math.round(t.z),wx,wz);
+        if(p){t.path=p;t.pathI=0;t.act='walk';break;}}
+      if(t.act!=='walk')t.wait=1+Math.random()*2;
+    }
+    positionCat();return;
+  }
+  const wp=t.path[t.pathI],dx=(wp[0]+0.5)-t.x,dz=(wp[1]+0.5)-t.z,d=Math.hypot(dx,dz);
+  if(d<(t.pathI>=t.path.length-1?0.3:0.22)){
+    if(t.pathI>=t.path.length-1){t.act='sit';t.wait=2+Math.random()*4;t.path=null;}else t.pathI++;
+  } else {const sp=Math.min(1,1.3*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);t.step+=dt*7;}
+  positionCat();
+}
+function petCat(){
+  const t=townCat;if(!t)return;
+  const gy=(surfaceY(Math.round(t.x),Math.round(t.z))||4)+1;
+  floatText(t.x,gy+1.1,t.z,['❤️','🐾','😻'][(Math.random()*3)|0],'#ff9ec4');
+  SFX.tone(760,0.12,'sine',0.05,900);
+  state.achFlags.cat=true;checkAch();
+}
 function buyBuilding(key){
   const def=BUILDINGS[key];if(!def)return;
   if(state.buildings[key]){toast(def.ico+' '+def.name+' already built');return;}
@@ -1465,7 +1516,7 @@ function buyBuilding(key){
   placeBuildingMesh(key);
   SFX.play('islet');
   banner(def.ico+' '+def.name+' raised!',def.desc);
-  if(key==='tavern')setTimeout(()=>toast('🍺 Tap a villager to set their role'),1400);
+  if(key==='tavern'){setTimeout(()=>toast('🍺 Tap a villager to set their role'),1400);setTimeout(()=>{spawnCat();toast('🐈 A cat has adopted your town');},2200);}
   buildTownPanel();
   if(typeof checkAch==='function')checkAch();
   setTimeout(welcomeSettler,1600);        // a new building draws a resident to town
@@ -2194,6 +2245,7 @@ function doAction(hit){
   if(ud.dropRef)return collectDrop(ud.dropRef);         // tap a dropped good to collect it
   if(ud.workerRef)return cycleWorkerRole(ud.workerRef); // tap a villager to set their role
   if(ud.water)return goFishing(hit.point.x,hit.point.z); // tap the pond to fish
+  if(ud.cat)return petCat();                              // pet the town cat
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
@@ -2330,6 +2382,7 @@ function getPickables(){
   for(const w of W.workers)if(w.mesh)arr.push(w.mesh);
   for(const k in W.buildingMeshes)arr.push(W.buildingMeshes[k]);
   if(waterMesh)arr.push(waterMesh);
+  if(townCat)arr.push(townCat.mesh);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -2447,7 +2500,7 @@ function updateHover(){
     document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
     return;
   }
-  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water){
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat){
     highlightBox.visible=false;ghostCube.visible=false;
     document.body.style.cursor='pointer';return;
   }
@@ -2873,6 +2926,7 @@ const ACH=[
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
+  ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
@@ -2989,6 +3043,7 @@ function boot(){
   }
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   rebuildBuildings();
+  if(hasTavern())spawnCat();
   cam.cy=(surfaceY(0,0)||5)+1;
   fitCamera(true);
   initHud();
@@ -3025,6 +3080,7 @@ function boot(){
     if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();buildTrees();}}
     updateWater();
     updateMillSail(dt);
+    updateCat(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
