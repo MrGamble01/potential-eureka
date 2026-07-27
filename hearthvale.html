@@ -1235,6 +1235,10 @@
     { id: 'school', emoji: '📚', name: 'Three Rs', desc: 'Build a schoolhouse.', done: () => countType('school') >= 1 },
     { id: 'beekeeper', emoji: '🐝', name: 'Beekeeper', desc: 'Set up an apiary.', done: () => countType('apiary') >= 1 },
     { id: 'cityhall', emoji: '🏛️', name: 'Civic Pride', desc: 'Raise a Town Hall in a City.', done: () => countType('townhall') >= 1 },
+    { id: 'city', emoji: '🏙️', name: 'Metropolis', desc: 'Grow to 20 villagers — a true City.', done: () => state.villagers.length >= 20 },
+    { id: 'festivals5', emoji: '🎉', name: 'Life of the Party', desc: 'Hold five town festivals.', done: () => (state.festivalsHeld || 0) >= 5 },
+    { id: 'lamplighter', emoji: '🏮', name: 'Lamplighter', desc: 'Place a lamppost.', done: () => countType('lamppost') >= 1 },
+    { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
