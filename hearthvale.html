@@ -1323,6 +1323,10 @@
     { text: 'Upgrade a building to Level 3', prog: () => [state.buildings.some(b => (b.level || 1) >= 3) ? 1 : 0, 1], done: () => state.buildings.some(b => (b.level || 1) >= 3), reward: { gold: 100 } },
     { text: 'Bank 400 gold', prog: () => [Math.floor(state.res.gold), 400], done: () => state.res.gold >= 400, reward: { wood: 60, stone: 40 } },
     { text: 'Grow to 18 villagers', prog: () => [state.villagers.length, 18], done: () => state.villagers.length >= 18, reward: { gold: 200 } },
+    { text: 'Build a Schoolhouse to draw families', prog: () => [countType('school'), 1], done: () => countType('school') >= 1, reward: { gold: 120 } },
+    { text: 'Set up an Apiary by an orchard', prog: () => [countType('apiary'), 1], done: () => countType('apiary') >= 1, reward: { gold: 100 } },
+    { text: 'Grow into a City (20 villagers)', prog: () => [state.villagers.length, 20], done: () => state.villagers.length >= 20, reward: { gold: 250 } },
+    { text: 'Raise a Town Hall, the city’s pride', prog: () => [countType('townhall'), 1], done: () => countType('townhall') >= 1, reward: { gold: 300 } },
   ];
   function checkGoals() {
     if (!state || state.goalIndex >= GOALS.length) return;
