@@ -2114,7 +2114,7 @@
     // buildings + villagers
     state.buildings.forEach(b => { const def = BUILDINGS[b.type]; if (b.ty + def.h >= y0 - 2 && b.ty <= y1 + 2) drawables.push({ y: b.ty + def.h, kind: 'building', b }); });
     state.villagers.forEach(v => { const vty = v.y / TILE; if (vty >= y0 - 2 && vty <= y1 + 2) drawables.push({ y: vty, kind: 'villager', v }); });
-    for (const cr of critters) { const cty = cr.y / TILE; if (cty >= y0 - 2 && cty <= y1 + 2) drawables.push({ y: cty, kind: 'critter', cr }); }
+    for (const cr of critters) { const cty = cr.y / TILE; if (critterActive(cr) && cty >= y0 - 2 && cty <= y1 + 2) drawables.push({ y: cty, kind: 'critter', cr }); }
     if (cart) drawables.push({ y: cart.y / TILE + 0.55, kind: 'cart' });
     drawables.sort((a, b) => a.y - b.y);
 
@@ -2560,9 +2560,33 @@
     if (CRITTER_SPR[key]) return CRITTER_SPR[key];
     let W = 10, H = 9;
     if (kind === 'chicken') { W = 8; H = 9; }
+    else if (kind === 'deer') { W = 14; H = 13; }
+    else if (kind === 'rabbit') { W = 9; H = 8; }
     const { c, x } = makeCanvas(W, H);
     const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
-    if (kind === 'chicken') {
+    if (kind === 'deer') {
+      const bc = '#a9743f', dk = '#845126', hi = '#c49a68', ant = '#5e3f22';
+      const g = frame === 1 ? 0 : 1;                                   // subtle leg gait
+      P(4, 8, 1, 4, dk); P(6, 8 - g, 1, 4, dk);                        // back legs
+      P(9, 8 - g, 1, 4, dk); P(11, 8, 1, 4, dk);                       // front legs
+      P(2, 5, 1, 3, bc);                                                // rump
+      P(3, 4, 9, 5, bc); P(3, 4, 9, 1, hi);                            // torso
+      P(2, 4, 1, 1, dk);                                                // little tail
+      P(10, 1, 3, 4, bc); P(10, 1, 3, 1, hi);                          // neck
+      P(11, 0, 3, 2, bc);                                              // head
+      P(13, 1, 1, 1, dk);                                              // muzzle
+      P(12, 1, 1, 1, C.outline);                                       // eye
+      P(10, 0, 1, 1, ant); P(13, 0, 1, 1, ant);                        // antler tips
+    } else if (kind === 'rabbit') {
+      const bc = '#cfc7b8', hi = '#ece5d8', ear = '#d9a7b2', dk = '#9a9080';
+      const hop = frame === 1 ? 1 : 0;                                 // hop lift
+      P(5, 0 + hop, 1, 3, bc); P(6, 0 + hop, 1, 3, bc); P(6, 1 + hop, 1, 1, ear); // ears
+      P(4, 3 + hop, 3, 3, bc); P(4, 3 + hop, 3, 1, hi);                // head
+      P(1, 4 + hop, 4, 3, bc); P(1, 4 + hop, 4, 1, hi);                // body
+      P(0, 4 + hop, 1, 2, hi);                                         // fluffy tail
+      P(6, 4 + hop, 1, 1, C.outline);                                  // eye
+      P(2, 7, 2, 1, dk); P(4, 7, 1, 1, dk);                            // feet
+    } else if (kind === 'chicken') {
       const legY = frame === 1 ? 8 : 7;
       P(3, legY, 1, 1, '#e0a13f'); P(5, legY, 1, 1, '#e0a13f');
       P(2, 3, 5, 4, '#f4ede0'); P(2, 3, 5, 1, '#fff'); P(2, 6, 5, 1, '#d8cfc0'); // body
@@ -2604,14 +2628,68 @@
       const cy = Math.round(state.buildings.reduce((s, b) => s + b.ty, 0) / state.buildings.length);
       spawnAt('cat', cx, cy, 9); spawnAt('dog', cx + 1, cy, 10);
     }
+    // woodland wildlife: skittish deer at the forest edge (out at dawn & dusk),
+    // rabbits on the spring/summer meadow. Cosmetic, non-persistent, and they
+    // bolt when a villager wanders too close.
+    const spawnWild = (kind, atx, aty, roam) => {
+      const spot = findWalkableNear(atx, aty); if (!spot) return;
+      critters.push({ kind, wild: true, skittish: true, x: spot.tx * TILE + TILE / 2, y: spot.ty * TILE + TILE / 2, tx: spot.tx, ty: spot.ty, ax: spot.tx, ay: spot.ty, roam, wait: rrand(seedn++ * 7) * 2, ph: rrand(seedn++ * 3) * 6, path: null });
+    };
+    const edges = [];
+    for (let ty = 2; ty < MAP_H - 2 && edges.length < 60; ty++)
+      for (let tx = 2; tx < MAP_W - 2; tx++) {
+        if (!walkable(tx, ty)) continue;
+        if (tileObj[idx(tx + 1, ty)] === O_TREE || tileObj[idx(tx - 1, ty)] === O_TREE || tileObj[idx(tx, ty + 1)] === O_TREE || tileObj[idx(tx, ty - 1)] === O_TREE) edges.push({ tx, ty });
+      }
+    for (let i = 0; i < 2 && edges.length; i++) { const e = edges[Math.floor(rrand(seedn++ * 13) * edges.length)]; spawnWild('deer', e.tx, e.ty, 5); }
+    for (let i = 0; i < 3; i++) {
+      for (let tries = 0; tries < 12; tries++) {
+        const tx = 2 + Math.floor(rrand(seedn++ * 5) * (MAP_W - 4)), ty = 2 + Math.floor(rrand(seedn++ * 9) * (MAP_H - 4));
+        if (walkable(tx, ty)) { spawnWild('rabbit', tx, ty, 6); break; }
+      }
+    }
+  }
+  // Is this critter "out" right now? Wild ones keep to their hours/season.
+  function critterActive(cr) {
+    if (!cr.wild) return true;
+    const h = state.time;
+    if (cr.kind === 'deer') return (h >= 5 && h < 9) || (h >= 16 && h < 20.5);
+    if (cr.kind === 'rabbit') { const s = seasonOf(state.day).name; return h >= 7 && h < 18 && (s === 'Spring' || s === 'Summer'); }
+    return true;
+  }
+  function nearestVillager(tx, ty) {
+    let best = null, bd = Infinity;
+    for (const v of state.villagers) { const d = Math.abs(v.tx - tx) + Math.abs(v.ty - ty); if (d < bd) { bd = d; best = v; } }
+    return { v: best, d: bd };
+  }
+  // Bolt away from a villager: aim for a walkable tile in the opposite direction.
+  function fleeFrom(cr, v) {
+    const dx = Math.sign(cr.tx - v.tx) || 1, dy = Math.sign(cr.ty - v.ty) || 1;
+    const tries = [[dx * 4, dy * 4], [dx * 4, 0], [0, dy * 4], [dx * 3, dy * 2], [dx * 2, dy * 3]];
+    for (const [ox, oy] of tries) {
+      const nx = cr.tx + ox, ny = cr.ty + oy;
+      if (walkable(nx, ny)) { const p = pathfind(cr.tx, cr.ty, nx, ny); if (p && p.length) { cr.path = p; cr.fleeing = true; return true; } }
+    }
+    return false;
   }
   function critterTick(cr, dt) {
     cr.ph += dt;
+    // skittish wildlife periodically scans for nearby villagers and bolts
+    if (cr.skittish) {
+      cr._scan = (cr._scan || 0) - dt;
+      if (cr._scan <= 0) {
+        cr._scan = 0.4;
+        const nv = nearestVillager(cr.tx, cr.ty);
+        if (nv.v && nv.d <= 3) fleeFrom(cr, nv.v);
+        else if (!cr.path) cr.fleeing = false;
+      }
+    }
     if (cr.path && cr.path.length) {
       const t = cr.path[0], gx = t.tx * TILE + TILE / 2, gy = t.ty * TILE + TILE / 2;
       const dx = gx - cr.x, dy = gy - cr.y, dist = Math.hypot(dx, dy);
       if (Math.abs(dx) > 0.5) cr.face = dx < 0 ? -1 : 1;
-      const spd = (cr.kind === 'chicken' ? 16 : 30) * dt * TILE / 16;
+      const base = cr.fleeing ? 50 : cr.kind === 'chicken' ? 16 : cr.kind === 'deer' ? 15 : cr.kind === 'rabbit' ? 34 : 30;
+      const spd = base * dt * TILE / 16;
       if (dist < 1.5) { cr.x = gx; cr.y = gy; cr.tx = t.tx; cr.ty = t.ty; cr.path.shift(); }
       else { cr.x += dx / dist * Math.min(spd, dist); cr.y += dy / dist * Math.min(spd, dist); cr.moving = true; }
       return;
@@ -3560,7 +3638,7 @@
     // villagers (obey game speed, capped so pathing stays stable at 3x)
     const vdt = Math.min(sdt, 0.12);
     for (const v of state.villagers) villagerTick(v, vdt);
-    for (const cr of critters) critterTick(cr, vdt);
+    for (const cr of critters) if (critterActive(cr)) critterTick(cr, vdt);
     cartTick(sdt);
     siteProgressTick(sdt);
     // fade villager emotes
