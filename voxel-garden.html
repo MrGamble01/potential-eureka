@@ -2613,10 +2613,42 @@ const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],
   }};
 
 /* ============================== weather ============================== */
+// A rainbow arcs over the isle when a shower clears (not in winter).
+let rainbow=null,rainbowT=0;
+function spawnRainbow(){
+  if(rainbow){scene.remove(rainbow);rainbow.geometry.dispose();rainbow.material.dispose();rainbow=null;}
+  const bands=[0xff5b5b,0xff9a3e,0xffe14d,0x66d16b,0x4db6ff,0x6b6bff,0xb06ff0];
+  const pos=[],col=[],idx=[];const R=36,bw=1.15,cz=-14,cy=-2,seg=40,a0=0.16*Math.PI,a1=0.84*Math.PI;
+  for(let b=0;b<bands.length;b++){
+    const r0=R+b*bw,r1=r0+bw,c=new THREE.Color(bands[b]);
+    for(let s=0;s<=seg;s++){
+      const t=a0+(a1-a0)*s/seg,ct=Math.cos(t),st=Math.sin(t);
+      pos.push(ct*r0,cy+st*r0,cz, ct*r1,cy+st*r1,cz);
+      col.push(c.r,c.g,c.b, c.r,c.g,c.b);
+    }
+    const base=b*(seg+1)*2;
+    for(let s=0;s<seg;s++){const o=base+s*2;idx.push(o,o+1,o+2, o+1,o+3,o+2);}
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);
+  rainbow=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+  rainbow.renderOrder=-1;scene.add(rainbow);
+  rainbowT=24;
+}
+function updateRainbow(dt){
+  if(!rainbow)return;
+  rainbowT-=dt;
+  const o=rainbowT>20?(24-rainbowT)/4:rainbowT<4?rainbowT/4:1;   // ease in then out
+  rainbow.material.opacity=Math.max(0,Math.min(0.5,o*0.5));
+  if(rainbowT<=0){scene.remove(rainbow);rainbow.geometry.dispose();rainbow.material.dispose();rainbow=null;}
+}
 function updateRain(dt){
   if(rainActive){
     rainLeft-=dt;
-    if(rainLeft<=0){rainActive=false;rainT=100+Math.random()*160;SFX.rainStop();}
+    if(rainLeft<=0){rainActive=false;rainT=100+Math.random()*160;SFX.rainStop();
+      if(seasonOf(state.day).key!=='winter'&&!isNight()){spawnRainbow();state.achFlags.rainbow=true;checkAch();}}
   } else {
     rainT-=dt;
     if(rainT<=0){
@@ -2770,6 +2802,7 @@ const ACH=[
   ['town4','Boomtown','Raise every town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=Object.keys(BUILDINGS).length],
   ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
+  ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
@@ -2880,6 +2913,7 @@ function boot(){
     const dn=updateDay(dt);
     MUSIC.tick(dt,dn);
     updateRain(dt);
+    updateRainbow(dt);
     updatePlants(dt,dn);
     updateSprinklers(dt);
     updateBird(dt,dn);
