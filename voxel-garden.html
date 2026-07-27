@@ -2834,6 +2834,7 @@ const ACH=[
   ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
+  ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
@@ -2863,6 +2864,28 @@ function renderAchievements(){
 }
 
 /* ============================== ambient life ============================== */
+// The occasional shooting star streaks across the deep night sky.
+let shootStar=null,shootT=6+Math.random()*12;
+function updateShootingStars(dt,dn){
+  if(shootStar){
+    const s=shootStar;s.life-=dt;
+    s.mesh.position.x+=s.vx*dt;s.mesh.position.y+=s.vy*dt;s.mesh.position.z+=s.vz*dt;
+    s.mesh.material.opacity=Math.max(0,Math.min(0.95,s.life*1.4));
+    if(s.life<=0){scene.remove(s.mesh);s.mesh.geometry.dispose();s.mesh.material.dispose();shootStar=null;}
+    return;
+  }
+  if(dn.night<0.6)return;
+  shootT-=dt;
+  if(shootT>0)return;
+  shootT=14+Math.random()*26;
+  const dir=Math.random()<0.5?1:-1;
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(3.4,0.16,0.16),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,fog:false,depthWrite:false}));
+  mesh.position.set(dir*60,42+Math.random()*22,(Math.random()-0.5)*80);
+  mesh.rotation.z=dir>0?-0.5:0.5;mesh.renderOrder=-1;scene.add(mesh);
+  shootStar={mesh,vx:-dir*55,vy:-26,vz:(Math.random()-0.5)*12,life:1.4};
+  if(!state.achFlags.wish){state.achFlags.wish=true;checkAch();setTimeout(()=>toast('🌠 A shooting star! Make a wish…'),150);}
+}
 function updateAmbient(dt,dn){
   // clouds drift
   for(const cl of cloudGroup.children){
@@ -2964,6 +2987,7 @@ function boot(){
     if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();buildTrees();}}
     updateWater();
     updateAmbient(dt,dn);
+    updateShootingStars(dt,dn);
     if(fp.on)updateFP(dt); else updateCamera(dt);
     updateHover();
     saveTimer+=dt;
