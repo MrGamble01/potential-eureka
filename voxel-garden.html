@@ -214,6 +214,7 @@
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value; add a <b>🌬️ Windmill</b> to bake faster &amp; yield an extra loaf</li>
     <li><b>💧 Well</b> &mdash; keeps the tilled soil around it watered on its own, so nearby crops grow at the 2× rate hands-free</li>
+    <li><b>👒 Scarecrow</b> (LV 6) &mdash; a cheap decoration that speeds up crops growing nearby</li>
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings</li>
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
@@ -341,11 +342,12 @@ const DECOR={
   lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
   gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
+  scarecrow:{name:'Scarecrow',ico:'👒', cost:75, lvl:6},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
   4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Berry bushes · Sprinklers',
-  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings',
+  6:'Moonpetal seeds · Scarecrows · 🏝️ WEST ISLET appears!',7:'Star tree saplings',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
   10:'A master gardener of the skies 🌈',11:'The isle hums with life',
   12:'Nothing left to prove — everything left to grow 🌟'};
@@ -1715,6 +1717,14 @@ function cubesFor(type,stage,vseed){
       add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
       add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
       break;
+    case 'scarecrow':
+      add(0,0.32,0,0.1,0.64,0.1,0x8a6740);           // post
+      add(0,0.52,0,0.62,0.08,0.08,0x8a6740);          // crossarm
+      add(0,0.5,0,0.24,0.24,0.14,0xd9b45a);           // straw-stuffed torso
+      add(0,0.72,0,0.2,0.2,0.2,0xe8c896);             // head
+      add(0,0.84,0,0.34,0.06,0.34,0x5a3a24);          // hat brim
+      add(0,0.9,0,0.16,0.1,0.16,0x5a3a24);            // hat crown
+      break;
     case 'glowshroom':
       add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
       if(stage>=2){
@@ -2107,7 +2117,10 @@ function stageFor(p){
   if(p.prog>=def.grow)return 2;
   return p.prog>=def.grow*0.45?1:0;
 }
+const SCARECROW_R=4,SCARECROW_MULT=1.15;
 function updatePlants(dt,dn){
+  let scarecrows=null;
+  for(const p of W.plants.values())if(p.type==='scarecrow')(scarecrows||(scarecrows=[])).push(p);
   for(const p of W.plants.values()){
     const def=PLANTS[p.type];
     if(!def)continue;                    // decor
@@ -2122,6 +2135,8 @@ function updatePlants(dt,dn){
     if(state.buildings&&state.buildings.farmhouse)rate*=1.2;   // Farmhouse boosts crops
     const soilK=k3(p.x,p.y-1,p.z);
     if(W.wet.has(soilK))rate*=2;
+    // a nearby Scarecrow gives crops a modest growth boost
+    if(scarecrows&&scarecrows.some(s=>Math.hypot(s.x-p.x,s.z-p.z)<=SCARECROW_R))rate*=SCARECROW_MULT;
     p.prog+=dt*rate;
     const ns=stageFor(p);
     if(ns!==p.stage){
@@ -2961,6 +2976,7 @@ const ACH=[
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
+  ['scarecrow','Field Guardian','Place a Scarecrow to speed up nearby crops',()=>[...W.plants.values()].some(p=>p.type==='scarecrow')],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
