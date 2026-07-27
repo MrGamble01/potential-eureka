@@ -1678,7 +1678,7 @@
     if (!(res in BASE_CAP)) return Infinity;
     return BASE_CAP[res] + state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].storage && b.done !== false ? BUILDINGS[b.type].storage * (b.level || 1) : 0), 0);
   }
-  let _storageFullTimer = 0, _coldTimer = 0, _crowdWarned = false, _wasThriving = false;
+  let _storageFullTimer = 0, _coldTimer = 0, _crowdWarned = false, _wasThriving = false, _winterWarned = false;
   function clampRes() {
     let full = false;
     for (const k in BASE_CAP) { const cap = capOf(k); if (state.res[k] > cap) { state.res[k] = cap; full = true; } }
@@ -1991,6 +1991,14 @@
       }[sn];
       if (msg) toast(msg);
     }
+    // a word to the wise: warn before winter if the pantry looks thin, since
+    // the fields will soon lie fallow and cottages will burn firewood
+    if (seasonOf(state.day).name === 'Autumn' && seasonOf(state.day + 2).name === 'Winter'
+        && state.res.food < state.villagers.length * 4 && !_winterWarned) {
+      _winterWarned = true;
+      toast('❄️ Winter is near — stock up food and wood; the fields will lie fallow.');
+    }
+    if (seasonOf(state.day).name !== 'Autumn') _winterWarned = false;
     rollWeather();
     // random village event every few days
     if (state.day >= (state.nextEventDay || 3)) {
