@@ -192,6 +192,7 @@
     <li><b>🧱 Build</b> with blocks &amp; decorations &middot; <b>⛏️ Dig</b> to remove</li>
     <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b></li>
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
+    <li><b>🎣 Tap the pond</b> to fish &mdash; reel in 🐟🐠🦀 for coins (and goods for your stockpile); it freezes over in winter</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
@@ -638,10 +639,36 @@ function buildWater(){
     transparent:!winter, opacity:winter?1:0.74,
     side:THREE.DoubleSide, depthWrite:winter});
   waterMesh=new THREE.Mesh(g,mat);
+  waterMesh.userData.water=true;      // tap the pond to fish
   scene.add(waterMesh);
 }
 function updateWater(){
   if(waterMesh)waterMesh.position.y=Math.sin(perf*1.1)*0.045;
+}
+// Fishing: tap the pond to cast; after a beat you reel in a catch worth coins
+// (and, with a Market/Tavern, a 'fish' good for the stockpile). Frozen in winter.
+let fishingT=0;
+const FISH_CATCH=[
+  {ico:'🐟',coins:14,w:5},{ico:'🐠',coins:26,w:3},{ico:'🦀',coins:20,w:2},
+  {ico:'🐡',coins:40,w:1},{ico:'🥾',coins:0,w:2},{ico:'🌿',coins:4,w:2}];
+function goFishing(x,z){
+  if(seasonOf(state.day).key==='winter'){toast('❄️ The pond is frozen solid');return;}
+  if(fishingT>0){return;}
+  fishingT=1.4;
+  const y=(W.waterY||5)+0.4;
+  floatText(x,y+0.8,z,'🎣','#bfe0f5');
+  SFX.tone(680,0.08,'sine',0.05,420);
+  setTimeout(()=>{
+    let tot=0;for(const f of FISH_CATCH)tot+=f.w;let r=Math.random()*tot,pick=FISH_CATCH[0];
+    for(const f of FISH_CATCH){if((r-=f.w)<=0){pick=f;break;}}
+    if(pick.coins>0){grantCoins(pick.coins,x,y+1,z);SFX.play('coin');
+      if(stockpiles()&&pick.ico!=='🌿'){state.goods.fish=(state.goods.fish||0)+1;refreshGoodsHud();}}
+    else SFX.play('error');
+    floatText(x,y+1.2,z,pick.ico+(pick.coins?' +'+pick.coins:''),pick.coins?'#ffe9a8':'#9fb0bf');
+    burst(x,y+0.5,z,0x6fc3ff,7,{up:1.4,g:5,spread:1});
+    state.fishCount=(state.fishCount||0)+(pick.coins>0?1:0);
+    state.achFlags.fish=true;checkAch();
+  },700);
 }
 
 /* ============================== trees ============================== */
@@ -1176,7 +1203,8 @@ function updateDrops(dt){
 // farming feed the same stockpile the Trader buys.
 const CROP_GOOD={product:'🌾',yield:5,pitch:520};
 const BREAD_GOOD={product:'🍞',yield:16,pitch:440};   // the Bakery bakes crop → bread
-const EXTRA_GOODS={crop:CROP_GOOD,bread:BREAD_GOOD};
+const FISH_GOOD={product:'🐟',yield:10,pitch:600};
+const EXTRA_GOODS={crop:CROP_GOOD,bread:BREAD_GOOD,fish:FISH_GOOD};
 function goodDef(t){return EXTRA_GOODS[t]||ANIMALS[t];}
 function goodsKeys(){return Object.keys(ANIMALS).concat(Object.keys(EXTRA_GOODS));}
 function goodsTotal(){let n=0;for(const t of goodsKeys())n+=state.goods[t]||0;return n;}
@@ -2158,6 +2186,7 @@ function doAction(hit){
   if(ud.animalRef)return cashInAnimal(ud.animalRef);   // tap a grown animal to sell it
   if(ud.dropRef)return collectDrop(ud.dropRef);         // tap a dropped good to collect it
   if(ud.workerRef)return cycleWorkerRole(ud.workerRef); // tap a villager to set their role
+  if(ud.water)return goFishing(hit.point.x,hit.point.z); // tap the pond to fish
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
@@ -2293,6 +2322,7 @@ function getPickables(){
   for(const d of W.drops)if(d.mesh)arr.push(d.mesh);
   for(const w of W.workers)if(w.mesh)arr.push(w.mesh);
   for(const k in W.buildingMeshes)arr.push(W.buildingMeshes[k]);
+  if(waterMesh)arr.push(waterMesh);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -2410,7 +2440,7 @@ function updateHover(){
     document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
     return;
   }
-  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey){
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water){
     highlightBox.visible=false;ghostCube.visible=false;
     document.body.style.cursor='pointer';return;
   }
@@ -2835,6 +2865,7 @@ const ACH=[
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
+  ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
@@ -2986,6 +3017,7 @@ function boot(){
     updatePops(dt);
     if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();buildTrees();}}
     updateWater();
+    if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
     if(fp.on)updateFP(dt); else updateCamera(dt);
