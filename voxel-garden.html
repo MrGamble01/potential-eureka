@@ -78,11 +78,17 @@
     padding:10px 22px;font-size:14px;cursor:pointer}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(6,10,18,.38) 100%)}
-  #achOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
-  #achOv.open{display:flex}
-  #achOv .card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px 26px;
+  #achOv,#almanacOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
+  #achOv.open,#almanacOv.open{display:flex}
+  #achOv .card,#almanacOv .card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px 26px;
     max-width:560px;width:94vw;max-height:84vh;overflow:auto}
-  #achOv h2{color:var(--gold);margin-bottom:14px}
+  #achOv h2,#almanacOv h2{color:var(--gold);margin-bottom:14px}
+  #almanacOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;padding:9px 20px;font-size:14px;cursor:pointer}
+  .alm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .alm-stat{background:var(--panel2);border-radius:10px;padding:10px 12px}
+  .alm-stat .v{font-size:20px;font-weight:700;color:var(--gold)}
+  .alm-stat .l{font-size:11px;color:var(--dim);margin-top:2px;letter-spacing:.03em}
+  .alm-head{font-size:13px;color:var(--green);font-weight:700;margin:6px 0 8px;letter-spacing:.05em}
   .ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .ach{background:var(--panel2);border-radius:10px;padding:9px 11px;font-size:12px;border:1px solid transparent}
   .ach.done{border-color:rgba(255,209,102,.5)}
@@ -153,6 +159,7 @@
   <button id="farmerBtn" title="Hire villagers">🧑‍🌾</button>
   <button id="animalBtn" title="Livestock">🐮</button>
   <button id="townBtn" title="Town — land &amp; buildings">🏘️</button>
+  <button id="almanacBtn" title="Town Almanac">📊</button>
   <button id="achBtn" title="Achievements">🏆</button>
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
@@ -181,6 +188,11 @@
   <h2>🏆 Achievements</h2>
   <div class="ach-grid" id="achGrid"></div>
   <button id="achClose">Back to the garden</button>
+</div></div>
+<div id="almanacOv"><div class="card">
+  <h2 id="almTitle">📊 Town Almanac</h2>
+  <div id="almBody"></div>
+  <button id="almClose">Back to the garden</button>
 </div></div>
 <div id="helpOv"><div class="card">
   <h2>🏝️ Voxel Isle</h2>
@@ -2455,7 +2467,7 @@ function bindInput(){
     else if(e.key==='m'||e.key==='M')toggleMute();
     else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
     else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
-    else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');
+    else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
       document.body.classList.remove('photo');closePanels();}
     else if(e.key>='1'&&e.key<='5'){
       const tools=['hoe','water','seed','block','pick'];
@@ -2549,6 +2561,8 @@ function initHud(){
     else{buildTownPanel();openPanel('townPanel');}
   });
   $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
+  $('almanacBtn').addEventListener('click',()=>{renderAlmanac();$('almanacOv').classList.add('open');SFX.play('click');});
+  $('almClose').addEventListener('click',()=>{$('almanacOv').classList.remove('open');SFX.play('click');});
   refreshSeasonHud();
   $('musicBtn').addEventListener('click',()=>{
     state.musicOff=!state.musicOff;
@@ -2953,6 +2967,31 @@ function renderAchievements(){
     d.innerHTML='<b>'+(done?'🏆 ':'🔒 ')+name+'</b><small>'+desc+'</small>';
     grid.appendChild(d);
   }
+}
+function renderAlmanac(){
+  ensureTownName&&ensureTownName();
+  $('almTitle').textContent='📊 '+(state.townName?state.townName+' Almanac':'Town Almanac');
+  const nb=Object.values(state.buildings||{}).filter(Boolean).length;
+  const achDone=Object.keys(state.ach||{}).length;
+  const stats=[
+    ['🏛️',TOWN_RANKS[state.townRank||0].name,'Town rank'],
+    ['🧑‍🌾',W.workers.length,'Villagers'],
+    ['🐮',W.animals.length,'Animals'],
+    ['🏘️',nb+'/'+Object.keys(BUILDINGS).length,'Buildings'],
+    ['🏝️',(W.islets.length+1),'Islands'],
+    ['🪙',state.totalEarned||0,'Coins earned'],
+    ['🌾',state.harvests||0,'Crops harvested'],
+    ['🍞',state.loaves||0,'Loaves baked'],
+    ['🍺',state.meals||0,'Meals served'],
+    ['🎣',state.fishCount||0,'Fish caught'],
+    ['⭐',(state.level||1),'Garden level'],
+    ['🏆',achDone+'/'+ACH.length,'Achievements'],
+  ];
+  let html='<div class="alm-grid">';
+  for(const [ico,v,l] of stats)html+='<div class="alm-stat"><div class="v">'+ico+' '+v+'</div><div class="l">'+l+'</div></div>';
+  html+='</div>';
+  if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
+  $('almBody').innerHTML=html;
 }
 
 /* ============================== ambient life ============================== */
