@@ -2191,6 +2191,8 @@
     drawBirds(sx, sy, z);
     // day/night tint
     drawDayNight();
+    // warm lights punch back through the dark: lamps, braziers, lived-in windows
+    drawNightLights(sx, sy, z);
     // fireflies glow over the darkened night
     drawFireflies(sx, sy, z);
     if (festivalActive()) drawFestival(sx, sy, z);
@@ -2309,26 +2311,7 @@
     ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - rise) * z), def.w * TILE * z, (def.h * TILE + rise) * z);
     // drifting hearth-smoke from chimneys
     if (B_ART[b.type] && B_ART[b.type].chimney) drawSmoke(b, sx, sy, z);
-    // brazier flame casts a warm pool of light after dark
-    if (def.light && isNight()) {
-      const gx = sx + (b.tx * TILE + def.w * TILE / 2) * z, gy = sy + (b.ty * TILE - rise + 4) * z;
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55;
-      const rr = def.w * TILE * 0.9 * z;
-      const rg = ctx.createRadialGradient(gx, gy, 1, gx, gy, rr);
-      rg.addColorStop(0, 'rgba(255,180,90,0.85)'); rg.addColorStop(1, 'rgba(255,150,60,0)');
-      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, rr, 0, 7); ctx.fill(); ctx.restore();
-    }
-    // warm window glow at night — the town looks alive after dark (buildings only, not decor)
-    if (isNight() && !def.decor) {
-      const gx = sx + (b.tx * TILE + def.w * TILE / 2) * z;
-      const gy = sy + (b.ty * TILE + def.h * TILE * 0.42) * z;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5;
-      const rg = ctx.createRadialGradient(gx, gy, 1, gx, gy, def.w * TILE * 0.55 * z);
-      rg.addColorStop(0, 'rgba(255,210,120,0.9)'); rg.addColorStop(1, 'rgba(255,210,120,0)');
-      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, def.w * TILE * 0.55 * z, 0, 7); ctx.fill();
-      ctx.restore();
-    }
+    // (warm night lighting — braziers, windows — is drawn post-tint in drawNightLights)
     // level pips (gold dots) for upgraded buildings
     const lvl = b.level || 1;
     if (lvl > 1) {
@@ -2878,10 +2861,62 @@
       ctx.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
       ctx.fillRect(0, 0, view.w, view.h);
     }
-    // window glow at night
-    if (a > 0.25) {
-      // handled implicitly by tint; keep simple
+  }
+
+  // Is a building "alive" tonight? Lived-in homes and staffed workshops light
+  // their windows; public buildings (amenities, market, warehouse) always do.
+  // An idle, unstaffed building stays dark — pretty, and a readable signal.
+  function buildingLit(b) {
+    const d = BUILDINGS[b.type];
+    if (b.done === false || d.decor) return false;
+    if (d.housing) return state.villagers.some(v => v.homeId === b.id);
+    if (d.worker) return b.staffed;
+    return true;
+  }
+  // A warm radial pool, drawn additively so it reads as light, not paint.
+  function lightPool(cx, cy, r, inner) {
+    const g = ctx.createRadialGradient(cx, cy, 1, cx, cy, r);
+    g.addColorStop(0, inner); g.addColorStop(1, 'rgba(255,180,80,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+  // After the night tint, warm lights punch back through the dark: lampposts
+  // lining the paths, braziers, and the windows of lived-in buildings. Each
+  // pool breathes on a slow sine so the town feels alive but never blinks.
+  function drawNightLights(sx, sy, z) {
+    const { a } = nightTint();
+    const k = Math.min(1, a / 0.4);           // 0 by day → 1 deep night
+    if (k < 0.12) return;
+    const t = ambientTime;
+    const x0 = cam.x / TILE - 1, y0 = cam.y / TILE - 1;
+    const x1 = (cam.x + view.w / z) / TILE + 1, y1 = (cam.y + view.h / z) / TILE + 1;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // lampposts along the roads
+    for (const d of decos) {
+      if (d.kind !== 'lamp' || d.tx < x0 || d.tx > x1 || d.ty < y0 || d.ty > y1) continue;
+      const breathe = 1 + 0.06 * Math.sin(t * 1.3 + d.tx * 1.7 + d.ty);
+      const cx = sx + (d.tx + 0.5) * TILE * z, cy = sy + (d.ty * TILE - 2) * z;
+      ctx.globalAlpha = 0.6 * k;
+      lightPool(cx, cy, 22 * z * breathe, 'rgba(255,196,110,0.95)');
     }
+    // braziers and lived-in buildings
+    for (const b of state.buildings) {
+      const def = BUILDINGS[b.type];
+      if (b.tx > x1 || b.tx + def.w < x0 || b.ty > y1 || b.ty + def.h < y0) continue;
+      if (def.light && b.done !== false) {
+        const breathe = 1 + 0.08 * Math.sin(t * 1.7 + b.tx + b.ty);
+        const cx = sx + (b.tx + def.w / 2) * TILE * z, cy = sy + (b.ty * TILE + 2) * z;
+        ctx.globalAlpha = 0.7 * k;
+        lightPool(cx, cy, def.w * TILE * 1.0 * z * breathe, 'rgba(255,170,80,0.95)');
+      } else if (buildingLit(b)) {
+        const breathe = 1 + 0.04 * Math.sin(t * 0.9 + b.tx * 0.6 + b.ty);
+        const cx = sx + (b.tx + def.w / 2) * TILE * z, cy = sy + (b.ty + def.h * 0.42) * TILE * z;
+        ctx.globalAlpha = 0.55 * k;
+        lightPool(cx, cy, def.w * TILE * 0.6 * z * breathe, 'rgba(255,214,130,0.95)');
+      }
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   // ============================================================
