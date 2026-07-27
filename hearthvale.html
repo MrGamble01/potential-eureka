@@ -1990,6 +1990,26 @@
     { emoji: '🎶', title: 'Wandering Bard', text: 'A travelling bard plays through the night and lifts every heart.', good: true, auto: s => { s.happy = Math.min(100, s.happy + 10); }, note: '+10 happiness' },
     { emoji: '⛈️', title: 'Summer Storm', text: 'A sudden storm scatters woodpiles across the whole valley.', good: false, auto: s => { s.res.wood = Math.max(0, s.res.wood - 10); }, note: '-10 wood' },
     { emoji: '🐛', title: 'Crop Blight', text: 'A creeping blight spoils some of the stored grain.', good: false, auto: s => { s.res.food = Math.max(0, Math.floor(s.res.food * 0.75)); }, note: '-¼ food' },
+    { emoji: '🐝', title: 'Wild Honey', text: 'Children find a hive heavy with honey at the wood’s edge.', good: true, auto: s => { s.res.food += 12; s.happy = Math.min(100, s.happy + 4); }, note: '+12 food · +4 happiness' },
+    { emoji: '🪵', title: 'Timber Haul', text: 'A fallen giant of a tree gives the woodcutters an easy week.', good: true, auto: s => { s.res.wood += 20; }, note: '+20 wood' },
+    { emoji: '🌟', title: 'Clear Night', text: 'A sky full of stars draws the whole town out to wonder at it.', good: true, auto: s => { s.happy = Math.min(100, s.happy + 8); }, note: '+8 happiness' },
+    { emoji: '🧵', title: 'Fine Craftwork', text: 'The workshops turn out goods the merchants will pay well for.', good: true, auto: s => { s.res.gold += 22; }, note: '+22 gold' },
+    { emoji: '🦊', title: 'Fox in the Henhouse', text: 'A sly fox raids the coops in the night.', good: false, auto: s => { s.res.food = Math.max(0, s.res.food - 8); }, note: '-8 food' },
+    { emoji: '🌧️', title: 'Leaky Roofs', text: 'A cold downpour finds every gap in the thatch — spirits dip.', good: false, auto: s => { s.happy = Math.max(0, s.happy - 6); }, note: '-6 happiness' },
+    {
+      emoji: '🎪', title: 'Traveling Fair', text: 'A little fair rolls in and asks a small fee to set up in the square.',
+      choices: [
+        { label: '🎟️ Host the fair (15 💰)', enabled: s => s.res.gold >= 15, run: s => { s.res.gold -= 15; s.happy = Math.min(100, s.happy + 14); SFX('goal'); toast('🎪 The fair delights the whole town!'); } },
+        { label: 'Maybe next time', run: s => { } },
+      ]
+    },
+    {
+      emoji: '🧺', title: "Harvest Share", text: 'A neighbouring hamlet offers to trade grain for a little coin.',
+      choices: [
+        { label: '🌾 Buy grain (12 💰)', enabled: s => s.res.gold >= 12, run: s => { s.res.gold -= 12; s.res.food += 30; SFX('coin'); toast('🌾 The granary fills with fresh grain.'); } },
+        { label: 'Decline', run: s => { } },
+      ]
+    },
     {
       emoji: '🧳', title: 'Weary Travelers', text: 'A family of travelers asks to settle in Hearthvale. Take them in?',
       choices: [
