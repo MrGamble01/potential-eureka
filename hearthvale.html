@@ -173,13 +173,16 @@
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
 
     /* ---- Trader modal ---- */
-    #trader, #event, #welcome, #achv {
+    #trader, #event, #welcome, #achv, #chronicle {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show, #welcome.show, #achv.show { display: flex; }
+    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show { display: flex; }
     #achv-list { max-height: min(52vh, 420px); overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 4px; }
+    #chron-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 3px; padding-right: 4px; }
+    .chron-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 7px; font-size: 13px; }
+    .chron-row span:first-child { opacity: 0.82; } .chron-row b { color: #f2d9a0; }
     .achv-row {
       display: flex; align-items: center; gap: 10px; padding: 7px 10px;
       border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
@@ -296,6 +299,7 @@
   <div id="menu">
     <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
+    <button id="m-chronicle">Town Chronicle</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -366,6 +370,14 @@
       <div class="flavor" id="achv-count">&mdash;</div>
       <div id="achv-list"></div>
       <button class="closebtn" id="achv-close">Back to town</button>
+    </div>
+  </div>
+  <div id="chronicle">
+    <div class="trader-card">
+      <h2><span>&#128220;</span><span id="chron-title">Town Chronicle</span></h2>
+      <div class="flavor" id="chron-sub">&mdash;</div>
+      <div id="chron-list"></div>
+      <button class="closebtn" id="chron-close">Back to town</button>
     </div>
   </div>
 
@@ -1121,6 +1133,7 @@
     const def = BUILDINGS[tav.type];
     state.festival = { endDay: state.day + FEST_DAYS, x: (tav.tx + def.w / 2) * TILE, y: (tav.ty + def.h / 2) * TILE };
     state.lastFestivalDay = state.day;
+    state.festivalsHeld = (state.festivalsHeld || 0) + 1;
     state.happy = Math.min(100, state.happy + 20);
     SFX('goal');
     toast('🎪 ' + (state.townName || 'Hearthvale') + ' throws a festival — spirits soar!');
@@ -1181,6 +1194,8 @@
       hunger: 0,       // consecutive production cycles with an empty pantry
       festival: null,  // active town festival { endDay, x, y } — a morale burst
       lastFestivalDay: -99, // cooldown anchor for the next festival
+      peakPop: 0,      // high-water mark of population, for the chronicle
+      festivalsHeld: 0,// lifetime festivals thrown
     };
   }
   const ACHIEVEMENTS = [
@@ -1230,6 +1245,33 @@
       return '<div class="achv-row ' + (done ? 'done' : 'locked') + '"><span class="aemoji">' + a.emoji + '</span><span><div class="aname">' + a.name + '</div><div class="adesc">' + a.desc + '</div></span></div>';
     }).join('');
     document.getElementById('achv').classList.add('show');
+  }
+  // The Town Chronicle — a record of how the settlement has grown so far.
+  function openChronicle() {
+    const done = state.buildings.filter(b => b.done !== false);
+    const workshops = done.filter(b => BUILDINGS[b.type].prod).length;
+    const homes = done.filter(b => BUILDINGS[b.type].housing).length;
+    const decos = done.filter(b => BUILDINGS[b.type].decor).length;
+    const season = seasonOf(state.day);
+    const tierName = TIERS[townTier()].name;
+    const rows = [
+      ['🏘️ Standing as', tierName],
+      ['📅 Days settled', state.day + '  (' + season.emoji + ' ' + season.name + ')'],
+      ['👪 Population', state.villagers.length + '  ·  peak ' + Math.max(state.peakPop || 0, state.villagers.length)],
+      ['😊 Happiness', Math.round(state.happy) + '%' + (moraleMult() > 1 ? '  ⚡ thriving' : moraleMult() < 1 ? '  ⚠️ unsettled' : '')],
+      ['🏠 Homes', '' + homes],
+      ['⚒️ Workshops', '' + workshops],
+      ['🌷 Charm', townCharm() + '  (' + decos + ' decorations)'],
+      ['🏛️ Buildings raised', '' + done.length],
+      ['🤝 Trades struck', '' + (state.trades || 0)],
+      ['🎪 Festivals held', '' + (state.festivalsHeld || 0)],
+      ['💰 Coin in the coffers', Math.floor(state.res.gold)],
+      ['🏆 Achievements', (state.achievements || []).length + ' of ' + ACHIEVEMENTS.length],
+    ];
+    document.getElementById('chron-title').textContent = state.townName || 'Hearthvale';
+    document.getElementById('chron-sub').textContent = 'A chronicle of the settlement';
+    document.getElementById('chron-list').innerHTML = rows.map(r => '<div class="chron-row"><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+    document.getElementById('chronicle').classList.add('show');
   }
   // Rain waters the crops: on a rainy day outside winter, farms & orchards
   // yield more — a reason to welcome the grey skies. And when the rain clears,
@@ -3135,6 +3177,7 @@
     });
     document.getElementById('r-pop').textContent = state.villagers.length;
     document.getElementById('r-popcap').textContent = '/' + popCap();
+    if (state.villagers.length > (state.peakPop || 0)) state.peakPop = state.villagers.length;
     document.getElementById('r-day').textContent = state.day;
     const hp = Math.round(state.happy);
     document.getElementById('r-happy').textContent = hp;
@@ -3495,7 +3538,7 @@
   const keys = {};
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); }
+    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
@@ -3529,6 +3572,7 @@
         trades: state.trades || 0, traderDay: state.traderDay || 0, hunger: state.hunger || 0,
         festival: state.festival || null, lastFestivalDay: (state.lastFestivalDay != null ? state.lastFestivalDay : -99),
         raining: !!state.raining,
+        peakPop: state.peakPop || 0, festivalsHeld: state.festivalsHeld || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -3584,6 +3628,8 @@
       state.festival = (s.festival && typeof s.festival.endDay === 'number') ? s.festival : null;
       state.lastFestivalDay = (typeof s.lastFestivalDay === 'number') ? s.lastFestivalDay : -99;
       state.raining = !!s.raining;
+      state.peakPop = s.peakPop || state.villagers.length;
+      state.festivalsHeld = s.festivalsHeld || 0;
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
         cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
@@ -3638,6 +3684,8 @@
     soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
     document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
     document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
+    document.getElementById('m-chronicle').onclick = () => { menu.classList.remove('show'); openChronicle(); };
+    document.getElementById('chron-close').onclick = () => document.getElementById('chronicle').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
       if (sp === 0) { if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else gameSpeed = prevSpeed || 1; }
