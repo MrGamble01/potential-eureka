@@ -202,6 +202,7 @@
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value</li>
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings</li>
+    <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -345,7 +346,7 @@ const SAVE_KEY='voxel-garden-v1';
 let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
   muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
-  buildings:{},goods:{},meals:0,loaves:0,ach:{},achFlags:{}};
+  buildings:{},goods:{},meals:0,loaves:0,townRank:0,ach:{},achFlags:{}};
 const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
   edits:new Map(), islets:[], animals:[], workers:[], drops:[], buildingMeshes:{},
   chunkDirty:new Set(), chunkMeshes:new Map()};
@@ -738,6 +739,28 @@ function welcomeSettler(){
   const b=$('farmerBtn');if(b)b.style.opacity=1;
   setTimeout(()=>banner('🧑‍🌾 '+w.name+' settled in your town!','Your growing settlement drew a new resident.'),900);
   if(typeof checkAch==='function')checkAch();
+  checkTownRank();
+}
+// The settlement earns a rank as it grows (buildings + villagers + wealth +
+// islets). Ranking up is a milestone: a banner, a fanfare, and a coin gift.
+const TOWN_RANKS=[
+  {name:'Homestead',min:0},{name:'Hamlet',min:5},{name:'Village',min:11},
+  {name:'Township',min:19},{name:'Sky City',min:30}];
+function townScore(){
+  const nb=Object.values(state.buildings||{}).filter(Boolean).length;
+  return nb*2 + W.workers.length + W.islets.length + Math.floor((state.totalEarned||0)/700);
+}
+function townRankIdx(){const s=townScore();let i=0;for(let k=0;k<TOWN_RANKS.length;k++)if(s>=TOWN_RANKS[k].min)i=k;return i;}
+function checkTownRank(){
+  const idx=townRankIdx();
+  if(idx>(state.townRank||0)){
+    state.townRank=idx;
+    const r=TOWN_RANKS[idx],gift=idx*60;
+    grantCoins(gift);
+    SFX.play('level');
+    banner('🏛️ Your town is now a '+r.name+'!','A gift of '+gift+' 🪙 from a thriving settlement.');
+    if($('townPanel')&&$('townPanel').classList.contains('open'))buildTownPanel();
+  }
 }
 function workerCost(){return 200+W.workers.length*160;}
 function villagerCubes(shirt,hatCol){
@@ -945,6 +968,7 @@ function hireWorker(){
   banner('🧑‍🌾 '+w.name+' joined the crew!',
     rolesUnlocked()?'Tap a villager to set their role.':'They pitch in on whatever needs doing.');
   if(typeof checkAch==='function')checkAch();
+  checkTownRank();
 }
 
 /* ============================== livestock ============================== */
@@ -1347,6 +1371,7 @@ function buyBuilding(key){
   buildTownPanel();
   if(typeof checkAch==='function')checkAch();
   setTimeout(welcomeSettler,1600);        // a new building draws a resident to town
+  checkTownRank();
 }
 function nextIslet(){return ISLETS.find(it=>!W.islets.includes(it.id));}
 function landCost(){return 300+W.islets.length*250;}
@@ -1356,10 +1381,11 @@ function buyLand(){
   const cost=landCost();
   if(!spendCoins(cost))return;
   unlockIslet(it);
+  checkTownRank();
 }
 function buildTownPanel(){
   const p=$('townPanel');if(!p)return;p.innerHTML='';
-  const head=document.createElement('div');head.className='p-head';head.textContent='🏘️ Town';p.appendChild(head);
+  const head=document.createElement('div');head.className='p-head';head.textContent='🏛️ '+TOWN_RANKS[state.townRank||0].name;p.appendChild(head);
   const it=nextIslet();
   if(it){
     const cost=landCost();
@@ -2002,6 +2028,7 @@ const QUESTS=[
 ];
 function questCheck(){
   checkAch();
+  checkTownRank();
   const q=QUESTS[state.questIdx];
   if(!q)return;
   if(q.done()){
@@ -2497,6 +2524,7 @@ function load(){
       setTimeout(()=>toast('🐾 Your animals earned '+idle+' 🪙 while you were away'),2400);}
     if(ripened>0)setTimeout(()=>toast('While you were away, '+ripened+' crop'+(ripened>1?'s':'')+' ripened ✨'),1500);
   }
+  state.townRank=Math.max(state.townRank||0,townRankIdx());   // silent baseline; only fire on future growth
   return true;
 }
 
@@ -2671,6 +2699,7 @@ const ACH=[
   ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
   ['crew8','Bustling Town','Grow your town to 8 villagers',()=>W.workers.length>=8],
   ['festival','Festival Day','Celebrate a change of season with your town',()=>!!state.achFlags.festival],
+  ['skycity','Sky City','Grow your settlement to its highest rank',()=>(state.townRank||0)>=TOWN_RANKS.length-1],
   ['trade','Open for Business','Sell goods at the Trader’s Market',()=>!!state.achFlags.trade],
   ['meals50','A Round for the House','Serve 50 meals at the Tavern',()=>(state.meals||0)>=50],
   ['bake12','Baker’s Dozen','Bake 12 loaves at the Bakery',()=>(state.loaves||0)>=12],
