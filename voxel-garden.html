@@ -347,7 +347,7 @@ const SAVE_KEY='voxel-garden-v1';
 let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
   muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
-  buildings:{},goods:{},meals:0,loaves:0,townRank:0,townName:'',ach:{},achFlags:{}};
+  buildings:{},goods:{},meals:0,loaves:0,townRank:0,townName:'',request:null,ach:{},achFlags:{}};
 const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
   edits:new Map(), islets:[], animals:[], workers:[], drops:[], buildingMeshes:{},
   chunkDirty:new Set(), chunkMeshes:new Map()};
@@ -2089,25 +2089,56 @@ const QUESTS=[
   {text:'Earn 1,000 coins total',prog:()=>state.totalEarned+'/1000',done:()=>state.totalEarned>=1000,reward:100},
   {text:'Reach Garden Level 6',prog:()=>'LV '+state.level,done:()=>state.level>=6,reward:150},
 ];
+// After the starter quest chain, the town keeps sending rotating requests so
+// there's always a goal to chase — each rewards coins, then a fresh one rolls.
+const REQUESTS=[
+  {key:'meals',  verb:'Serve',  noun:'meals at the Tavern',metric:()=>state.meals||0,   step:()=>8+((Math.random()*8)|0),  rate:6,  gate:()=>hasTavern()},
+  {key:'loaves', verb:'Bake',   noun:'loaves at the Bakery',metric:()=>state.loaves||0,  step:()=>6+((Math.random()*6)|0),  rate:8,  gate:()=>hasBakery()},
+  {key:'harvest',verb:'Harvest',noun:'crops',              metric:()=>state.harvests||0,step:()=>10+((Math.random()*12)|0), rate:4},
+  {key:'plant',  verb:'Plant',  noun:'seeds',              metric:()=>state.planted||0, step:()=>8+((Math.random()*8)|0),  rate:4},
+  {key:'earn',   verb:'Earn',   noun:'coins',              metric:()=>state.totalEarned||0,step:()=>300+((Math.random()*500)|0),rate:0.15},
+];
+function reqDef(k){return REQUESTS.find(r=>r.key===k);}
+function newRequest(){
+  const avail=REQUESTS.filter(r=>!r.gate||r.gate());
+  const r=avail[(Math.random()*avail.length)|0];
+  const add=r.step(),goal=r.metric()+add;
+  state.request={key:r.key,goal,text:'🏘️ '+r.verb+' '+add+' '+r.noun,reward:Math.max(10,Math.round(add*r.rate))};
+}
 function questCheck(){
   checkAch();
   checkTownRank();
   const q=QUESTS[state.questIdx];
-  if(!q)return;
-  if(q.done()){
-    grantCoins(q.reward);
-    toast('✦ Goal complete! +'+q.reward+' 🪙');
-    SFX.play('coin');
-    state.questIdx++;
-    questCheck();
+  if(q){
+    if(q.done()){
+      grantCoins(q.reward);
+      toast('✦ Goal complete! +'+q.reward+' 🪙');
+      SFX.play('coin');
+      state.questIdx++;
+      questCheck();return;
+    }
+    refreshQuestHud();return;
+  }
+  // starter chain done → town requests
+  if(!state.request)newRequest();
+  else{
+    const rd=reqDef(state.request.key);
+    if(rd&&rd.metric()>=state.request.goal){
+      grantCoins(state.request.reward);
+      toast('🏘️ Town request fulfilled! +'+state.request.reward+' 🪙');
+      SFX.play('coin');
+      state.request=null;newRequest();
+    }
   }
   refreshQuestHud();
 }
 function refreshQuestHud(){
   const q=QUESTS[state.questIdx];
-  if(!q){el.qText.textContent='Free play — grow the garden of your dreams ✨';el.qProg.textContent='';return;}
-  el.qText.textContent=q.text;
-  el.qProg.textContent=q.prog();
+  if(q){el.qText.textContent=q.text;el.qProg.textContent=q.prog();return;}
+  if(!state.request){el.qText.textContent='Free play — grow the garden of your dreams ✨';el.qProg.textContent='';return;}
+  const rd=reqDef(state.request.key);
+  el.qText.textContent=state.request.text;
+  el.qProg.textContent=rd?Math.min(state.request.goal,rd.metric())+'/'+state.request.goal:'';
 }
 
 /* ============================== actions ============================== */
