@@ -1284,6 +1284,13 @@
   const RAINBOW_DUR = 14;
   function rainBoostsCrops() { return state.raining && seasonOf(state.day).name !== 'Winter'; }
   function cropRainMult(b) { return (rainBoostsCrops() && (b.type === 'farm' || b.type === 'orchard')) ? 1 + RAIN_CROP_BONUS : 1; }
+  // The seasons reach the fields too: autumn brings a harvest bounty, winter
+  // leaves them fallow — so a wise town stockpiles food before the cold.
+  function seasonCropMult(b) {
+    if (b.type !== 'farm' && b.type !== 'orchard') return 1;
+    const s = seasonOf(state.day).name;
+    return s === 'Autumn' ? 1.25 : s === 'Summer' ? 1.1 : s === 'Winter' ? 0.6 : 1;
+  }
   function rollWeather() {
     const s = seasonOf(state.day);
     const chance = s.name === 'Autumn' || s.name === 'Spring' ? 0.32 : 0.15;
@@ -1860,6 +1867,7 @@
           if (milled && k === 'food') amt = Math.ceil(amt * 1.5); // nearby windmill lifts the harvest
           if (chain > 1) amt = Math.ceil(amt * chain);            // supply-chain adjacency bonus
           if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM); // rain waters the crops
+          if (k === 'food') { const sm = seasonCropMult(b); if (sm !== 1) amt = Math.max(1, Math.round(amt * sm)); } // season
           if (morale !== 1) amt = Math.max(1, Math.round(amt * morale)); // town morale
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
@@ -3175,6 +3183,7 @@
         if (milled && k === 'food') amt = Math.ceil(amt * 1.5);
         if (chain > 1) amt = Math.ceil(amt * chain);
         if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM);
+        if (k === 'food') { const sm = seasonCropMult(b); if (sm !== 1) amt = Math.max(1, Math.round(amt * sm)); }
         if (morale !== 1) amt = Math.max(1, Math.round(amt * morale));
         net[k] += amt;
       }
@@ -3228,7 +3237,7 @@
     _wasThriving = thr;
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
-    const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name; }
+    const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name + (s.name === 'Autumn' ? ' — harvest bounty (+25% crops)' : s.name === 'Summer' ? ' — crops grow well (+10%)' : s.name === 'Winter' ? ' — fields lie fallow (−40% crops)' : ''); }
     const wx = document.getElementById('r-wx');
     if (wx) {
       if (state.raining) { const snow = seasonOf(state.day).name === 'Winter'; wx.textContent = snow ? ' ❄️' : ' 🌧️'; wx.title = snow ? 'Snowing' : 'Rain — crops thrive (+25% food)'; }
@@ -3395,7 +3404,7 @@
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) { const wk = state.villagers.find(v => v.jobId === b.id); html += statRow('Worker', wk ? '👤 ' + wk.name : 'Needs a villager 💤'); }
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? ' (fallow)' : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
