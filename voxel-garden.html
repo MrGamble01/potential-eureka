@@ -899,6 +899,9 @@ function doWorkerJob(w){
     const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;burst(a.x,gy+0.6,a.z,0xff9ec4,5,{up:1.2,g:4});}}
   else if(w.job==='visit'){const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
     floatText(w.x,gy+1.7,w.z,'🍺','#ffcf6b');SFX.tone(300,0.06,'triangle',0.035);}
+  else if(w.job==='idle'&&Math.random()<0.3){          // a little cozy life while pottering about
+    const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+    floatText(w.x,gy+1.7,w.z,['💤','🎵','😌','🌿','✨'][(Math.random()*5)|0],'#dbe6ef');}
   w.act='work';w.workT=w.job==='visit'?(2+Math.random()*2.5):w.job==='idle'?(0.5+Math.random()*1.2):0.45;
   w.tx=null;w.target=null;
 }
@@ -1783,6 +1786,8 @@ function gaussish(f,c,w){let d=Math.abs(f-c);d=Math.min(d,1-d);return Math.max(0
 // When a new season turns, a town that has grown up throws a festival: confetti
 // over the square (Tavern/Market) and a coin bonus that scales with how many
 // villagers and buildings you've gathered — the settlement celebrating itself.
+const FEST_COLS=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0x7fd370,0x7ec8ff];
+let festDecor=[];
 function townFestival(s){
   if(!(W.workers.length>0||hasTavern()))return;
   const nb=Object.values(state.buildings||{}).filter(Boolean).length;
@@ -1790,10 +1795,38 @@ function townFestival(s){
   const b=state.buildings.tavern||state.buildings.market;
   const cx=(b?b.x:0)+0.5,cz=(b?b.z:0)+0.5,cy=(surfaceY(b?b.x:0,b?b.z:0)||5)+2.4;
   grantCoins(bonus,cx,cy,cz);
-  const cols=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0x7fd370,0x7ec8ff];
-  for(let i=0;i<26;i++)setTimeout(()=>burst(cx+(Math.random()-0.5)*3.4,cy+Math.random()*1.6,cz+(Math.random()-0.5)*3.4,cols[i%cols.length],5,{up:2.6,g:3}),i*55);
+  for(let i=0;i<26;i++)setTimeout(()=>burst(cx+(Math.random()-0.5)*3.4,cy+Math.random()*1.6,cz+(Math.random()-0.5)*3.4,FEST_COLS[i%FEST_COLS.length],5,{up:2.6,g:3}),i*55);
+  raiseFestivalLanterns(cx,cy,cz);
   setTimeout(()=>toast('🎉 '+s.name+' Festival! The town celebrates (+'+bonus+' 🪙)'),500);
   state.achFlags.festival=true;
+}
+// A ring of glowing lanterns strung over the square for the festival, gently
+// bobbing, that fade away when the celebration winds down.
+function raiseFestivalLanterns(cx,cy,cz){
+  clearFestivalLanterns();
+  const N=10,rad=2.6;
+  for(let i=0;i<N;i++){
+    const a=i/N*6.283,col=FEST_COLS[i%FEST_COLS.length];
+    const g=buildPlantGeometry([[0,0,0,0.22,0.3,0.22,col]]);
+    const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:col,emissive:new THREE.Color(col).multiplyScalar(0.55)}));
+    m.position.set(cx+Math.cos(a)*rad,cy+0.6+Math.sin(a*2)*0.3,cz+Math.sin(a)*rad);
+    scene.add(m);
+    festDecor.push({mesh:m,phase:a,base:m.position.y});
+  }
+  festT=18;
+}
+function clearFestivalLanterns(){for(const d of festDecor){scene.remove(d.mesh);d.mesh.geometry.dispose();d.mesh.material.dispose();}festDecor=[];}
+let festT=0;
+function updateFestival(dt){
+  if(!festDecor.length)return;
+  festT-=dt;
+  const fade=festT<3?Math.max(0,festT/3):1;
+  for(const d of festDecor){
+    d.mesh.position.y=d.base+Math.sin(perf*1.6+d.phase)*0.14;
+    d.mesh.rotation.y+=dt*0.8;
+    d.mesh.scale.setScalar(fade);
+  }
+  if(festT<=0)clearFestivalLanterns();
 }
 function updateDay(dt){
   state.time+=dt;
@@ -2764,6 +2797,7 @@ function boot(){
     updateTrader(dt);
     updateTavern(dt);
     updateBakery(dt);
+    updateFestival(dt);
     if(mealMsgT>0)mealMsgT-=dt;
     if(bakeMsgT>0)bakeMsgT-=dt;
     updateWet(dt);
