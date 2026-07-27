@@ -2579,9 +2579,11 @@
       if (f.x < r.x0 - 20) f.x = r.x1 + 10; if (f.x > r.x1 + 20) f.x = r.x0 - 10;
       if (f.y < r.y0 - 20) f.y = r.y1 + 10; if (f.y > r.y1 + 20) f.y = r.y0 - 10;
     }
-    // --- falling leaves in autumn (daytime & dusk) ---
-    const wantLv = seas === 2 ? 26 : 0;
-    while (leaves.length < wantLv) leaves.push({ x: r.x0 + rnd(0, 1) * vw, y: r.y0 - rnd(0, 1) * vh, ph: rnd(0, 6), sp: 12 + rnd(0, 10), sway: 10 + rnd(0, 10), col: ['#d5893a', '#c9503f', '#ecc25a', '#b3652a'][Math.floor(rnd(0, 4))], sz: 2 + Math.floor(rnd(0, 2)) });
+    // --- drifting foliage: fiery leaves in autumn, pink blossom petals in spring ---
+    const spring = seas === 0;
+    const wantLv = seas === 2 ? 26 : spring ? 22 : 0;
+    const lvCols = spring ? ['#f6c2d6', '#f9d7e4', '#ffe6f0', '#efb0c9'] : ['#d5893a', '#c9503f', '#ecc25a', '#b3652a'];
+    while (leaves.length < wantLv) leaves.push({ x: r.x0 + rnd(0, 1) * vw, y: r.y0 - rnd(0, 1) * vh, ph: rnd(0, 6), sp: (spring ? 9 : 12) + rnd(0, spring ? 7 : 10), sway: 10 + rnd(0, 10), col: lvCols[Math.floor(rnd(0, 4))], sz: spring ? 2 : 2 + Math.floor(rnd(0, 2)) });
     if (leaves.length > wantLv) leaves.length = wantLv;
     for (const l of leaves) {
       l.ph += rdt * 2; l.y += l.sp * rdt; l.x += Math.sin(l.ph) * l.sway * rdt;
