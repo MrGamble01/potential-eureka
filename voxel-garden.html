@@ -2977,6 +2977,16 @@ function checkAch(){
     SFX.play('ach');
     toast('🏆 Achievement: '+name+'!');
   }
+  // completing every achievement earns a grand finale
+  if(!state.achFlags.allDone&&Object.keys(state.ach).length>=ACH.length){
+    state.achFlags.allDone=true;
+    grantCoins(2000);
+    SFX.play('level');
+    banner('🌈 A Perfect Isle!','Every achievement earned — a grand gift of 2,000 🪙. Thank you for playing! ✨');
+    const cols=[0xffd23e,0xff5c7a,0x7fd370,0x7ec8ff,0xb06ff0];
+    const cx=(surfaceY(0,0)||5)+1;
+    for(let i=0;i<40;i++)setTimeout(()=>burst((Math.random()-0.5)*20,cx+4+Math.random()*4,(Math.random()-0.5)*20,cols[i%cols.length],5,{up:2.6,g:3}),i*45);
+  }
 }
 function renderAchievements(){
   const grid=$('achGrid');grid.innerHTML='';
