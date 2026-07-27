@@ -309,7 +309,7 @@
     <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span><span class="net" id="r-foodnet"></span></div>
     <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span><span class="net" id="r-goldnet"></span></div>
     <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
-    <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span></div>
+    <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span><span class="net" id="r-moralemk"></span></div>
     <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span><span id="r-wx"></span></div>
   </div>
 
@@ -1615,7 +1615,7 @@
     if (!(res in BASE_CAP)) return Infinity;
     return BASE_CAP[res] + state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].storage && b.done !== false ? BUILDINGS[b.type].storage * (b.level || 1) : 0), 0);
   }
-  let _storageFullTimer = 0, _coldTimer = 0, _crowdWarned = false;
+  let _storageFullTimer = 0, _coldTimer = 0, _crowdWarned = false, _wasThriving = false;
   function clampRes() {
     let full = false;
     for (const k in BASE_CAP) { const cap = capOf(k); if (state.res[k] > cap) { state.res[k] = cap; full = true; } }
@@ -1783,8 +1783,15 @@
   // absolute hour counter (_prodAbs) so day-wrap can't drop or double a cycle.
   let _prodAbs = null;
 
+  // Morale drives output: a thriving town's workers put in more, a miserable
+  // one's slack off. Bounded at the extremes so the mid-game is unchanged —
+  // you earn the bonus by keeping folk genuinely happy.
+  function moraleMult() { const h = state.happy; return h >= 85 ? 1.12 : h < 30 ? 0.75 : 1; }
+  function moraleLabel() { const h = state.happy; return h >= 85 ? '⚡ Thriving · +12% output' : h < 30 ? '⚠️ Unhappy · −25% output' : ''; }
+
   function runProduction() {
     const pop = state.villagers.length;
+    const morale = moraleMult();
     let gained = {};
     state.buildings.forEach(b => {
       const def = BUILDINGS[b.type];
@@ -1804,6 +1811,7 @@
           if (milled && k === 'food') amt = Math.ceil(amt * 1.5); // nearby windmill lifts the harvest
           if (chain > 1) amt = Math.ceil(amt * chain);            // supply-chain adjacency bonus
           if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM); // rain waters the crops
+          if (morale !== 1) amt = Math.max(1, Math.round(amt * morale)); // town morale
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
@@ -2925,6 +2933,7 @@
   // Expected net resource change per production cycle for the HUD readout.
   function cycleNet() {
     const net = { wood: 0, stone: 0, food: 0, gold: 0 };
+    const morale = moraleMult();
     state.buildings.forEach(b => {
       const def = BUILDINGS[b.type];
       if (b.done === false || !def.prod || (def.worker && !b.staffed)) return;
@@ -2937,6 +2946,7 @@
         if (milled && k === 'food') amt = Math.ceil(amt * 1.5);
         if (chain > 1) amt = Math.ceil(amt * chain);
         if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM);
+        if (morale !== 1) amt = Math.max(1, Math.round(amt * morale));
         net[k] += amt;
       }
       if (def.cons) for (const k in def.cons) net[k] -= def.cons[k];
@@ -2976,6 +2986,16 @@
     const hp = Math.round(state.happy);
     document.getElementById('r-happy').textContent = hp;
     document.getElementById('r-happyface').textContent = hp >= 70 ? '😀' : hp >= 40 ? '🙂' : '😟';
+    const mk = document.getElementById('r-moralemk'), chip = document.getElementById('happy-chip');
+    if (mk) {
+      const m = moraleMult();
+      mk.textContent = m > 1 ? ' ⚡' : m < 1 ? ' ⚠️' : '';
+      mk.className = 'net ' + (m > 1 ? 'up' : m < 1 ? 'down' : '');
+      if (chip) chip.title = moraleLabel() || 'Keep folk happy (85%+) for a production bonus';
+    }
+    const thr = state.happy >= 85;
+    if (thr && !_wasThriving) toast('⚡ Your townsfolk are thriving — workshops produce +12%!');
+    _wasThriving = thr;
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
     const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name; }
@@ -3145,7 +3165,7 @@
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) { const wk = state.villagers.find(v => v.jobId === b.id); html += statRow('Worker', wk ? '👤 ' + wk.name : 'Needs a villager 💤'); }
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
