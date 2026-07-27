@@ -1410,10 +1410,13 @@ function millCubes(def){
   a(0,1.9,0,0.95,0.5,0.95,def.roof);             // cap
   a(0,0.45,0.66,0.42,0.66,0.12,0x5a3a24);        // door
   a(-0.4,1.05,0.64,0.26,0.26,0.06,0x9ad2e0); a(0.4,1.05,0.64,0.26,0.26,0.06,0x9ad2e0);  // windows
-  // sail cross on the front
-  a(0,1.55,0.72,0.16,1.9,0.06,0xefe7d2); a(0,1.55,0.72,1.9,0.16,0.06,0xefe7d2);
-  a(0,1.55,0.7,0.28,0.28,0.1,0x6b4a3a);          // hub
+  a(0,1.55,0.7,0.28,0.28,0.1,0x6b4a3a);          // sail hub (the blades are a separate spinning mesh)
   return c;
+}
+let millSail=null;
+function makeMillSail(){
+  const g=buildPlantGeometry([[0,0,0,0.16,1.9,0.06,0xefe7d2],[0,0,0,1.9,0.16,0.06,0xefe7d2]]);
+  return new THREE.Mesh(g,plantMat);
 }
 function wellCubes(def){
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
@@ -1446,7 +1449,11 @@ function placeBuildingMesh(key){
   mesh.position.set(b.x+0.5,(surfaceY(b.x,b.z)||4)+1,b.z+0.5);
   mesh.userData.buildingKey=key;
   scene.add(mesh);W.buildingMeshes[key]=mesh;
+  if(key==='windmill'){                 // attach the spinning sail cross at the hub
+    millSail=makeMillSail();millSail.position.set(0,1.55,0.74);mesh.add(millSail);
+  }
 }
+function updateMillSail(dt){if(millSail)millSail.rotation.z+=dt*0.8;}
 function rebuildBuildings(){for(const key in (state.buildings||{}))if(state.buildings[key])placeBuildingMesh(key);}
 function buyBuilding(key){
   const def=BUILDINGS[key];if(!def)return;
@@ -3017,6 +3024,7 @@ function boot(){
     updatePops(dt);
     if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();buildTrees();}}
     updateWater();
+    updateMillSail(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
