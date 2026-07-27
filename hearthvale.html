@@ -2131,6 +2131,7 @@
     const y1 = Math.min(MAP_H - 1, Math.ceil((cam.y + view.h / z) / TILE));
     const sx = -cam.x * z, sy = -cam.y * z;
     const seas = seasonIdx();
+    const winter = seasonOf(state.day).name === 'Winter';
 
     // sky/void behind
     ctx.fillStyle = '#3a5240'; ctx.fillRect(0, 0, view.w, view.h);
@@ -2146,6 +2147,14 @@
         else if (t === T_BRIDGE) spr = SPR.bridge;
         else spr = SPR['water' + waterFrame];
         ctx.drawImage(spr, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
+        if (winter && t !== T_WATER) {
+          // a snow blanket settles over the land in winter; roads stay a touch trodden
+          const hh = (tx * 7 + ty * 13) & 3;
+          ctx.globalAlpha = (t === T_DIRT || t === T_BRIDGE) ? 0.28 : 0.5 + hh * 0.03;
+          ctx.fillStyle = '#eef4fb';
+          ctx.fillRect(Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), Math.ceil(TILE * z), Math.ceil(TILE * z));
+          ctx.globalAlpha = 1;
+        }
         if (t === T_WATER) {
           // living water: two soft highlights per tile drifting on smooth sines (never snaps)
           const wt = ambientTime;
