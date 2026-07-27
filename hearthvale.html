@@ -1150,6 +1150,7 @@
   let floaters = [];       // floating "+N" production feedback {wx,wy,text,color,life,maxLife}
   // ambient life (cosmetic, non-persistent) — all move on continuous curves, never blink
   let birds = [], butters = [], fireflies = [], leaves = [], critters = [];
+  let waterlife = [], waterSpots = [];   // ducks drifting on the river + fish-jump spots
   let ambientTime = 0;     // seconds of real time, drives smooth ambient motion
   const RES_COLOR = { wood: '#e0bd8a', stone: '#c7cdd5', food: '#a2d982', gold: '#f2c14e' };
   let gameSpeed = 1, prevSpeed = 1;   // 0 = paused, 1/2/3 = time multiplier
@@ -2103,6 +2104,8 @@
       if (!FLAT_DECO[d.kind] || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
       const spr = SPR[d.kind]; if (spr) ctx.drawImage(spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + d.ty * TILE * z), TILE * z, TILE * z);
     }
+    // river life (ducks + the odd jumping fish) floats on the water surface
+    drawWaterlife(sx, sy, z);
     // object layer (flowers flat; trees/rocks/mountains/props sorted by baseline y)
     const drawables = [];
     for (let ty = y0; ty <= y1; ty++)
@@ -2656,6 +2659,69 @@
         const tx = 2 + Math.floor(rrand(seedn++ * 5) * (MAP_W - 4)), ty = 2 + Math.floor(rrand(seedn++ * 9) * (MAP_H - 4));
         if (walkable(tx, ty)) { spawnWild('rabbit', tx, ty, 6); break; }
       }
+    }
+  }
+  // ---- River life: ducks drift on the water, fish jump now and then. --
+  function rebuildWaterlife() {
+    waterlife = []; waterSpots = [];
+    if (!state) return;
+    for (let ty = 2; ty < MAP_H - 2 && waterSpots.length < 120; ty++)
+      for (let tx = 2; tx < MAP_W - 2; tx++)
+        if (tiles[idx(tx, ty)] === T_WATER && tiles[idx(tx + 1, ty)] === T_WATER && tiles[idx(tx - 1, ty)] === T_WATER) waterSpots.push({ tx, ty });
+    let sn = 1;
+    const n = Math.min(4, Math.floor(waterSpots.length / 8));
+    for (let i = 0; i < n && waterSpots.length; i++) {
+      const s = waterSpots[Math.floor(rrand(sn++ * 17) * waterSpots.length)];
+      waterlife.push({ x: (s.tx + 0.5) * TILE, y: (s.ty + 0.5) * TILE, ax: (s.tx + 0.5) * TILE, ay: (s.ty + 0.5) * TILE, ph: rrand(sn++ * 3) * 6, face: 1 });
+    }
+  }
+  function duckTick(d, dt) {
+    d.ph += dt;
+    const tx2 = d.ax + Math.sin(d.ph * 0.4 + 1) * 11, ty2 = d.ay + Math.sin(d.ph * 0.33) * 7;
+    const dx = tx2 - d.x, dy = ty2 - d.y;
+    const nx = d.x + dx * Math.min(1, dt * 0.8), ny = d.y + dy * Math.min(1, dt * 0.8);
+    const cx = Math.floor(nx / TILE), cy = Math.floor(ny / TILE);
+    if (inMap(cx, cy) && tiles[idx(cx, cy)] === T_WATER) { if (Math.abs(dx) > 0.3) d.face = dx < 0 ? -1 : 1; d.x = nx; d.y = ny; }
+  }
+  function drawWaterlife(sx, sy, z) {
+    const t = ambientTime;
+    // ducks
+    for (const d of waterlife) {
+      const px = sx + d.x * z, py = sy + d.y * z;
+      if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
+      const bob = Math.sin(t * 1.6 + d.ph) * 0.6 * z;
+      ctx.save();
+      ctx.globalAlpha = 0.28; ctx.fillStyle = '#1b3a48';   // wake
+      ctx.beginPath(); ctx.ellipse(px, py + 1.5 * z, 4 * z, 1.4 * z, 0, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+      const f = d.face;
+      ctx.fillStyle = '#f2ede2'; ctx.fillRect(px - 3 * z, py - 1 * z + bob, 6 * z, 3 * z);           // body
+      ctx.fillStyle = '#d8cfc0'; ctx.fillRect(px - 3 * z, py + 1 * z + bob, 6 * z, 1 * z);           // underside
+      ctx.fillStyle = '#3f7d54'; ctx.fillRect(px + f * 2 * z - (f < 0 ? z : 0), py - 3 * z + bob, 2 * z, 2 * z); // head
+      ctx.fillStyle = '#e0a13f'; ctx.fillRect(px + f * 3.5 * z - (f < 0 ? z : 0), py - 2 * z + bob, z, z);       // bill
+      ctx.restore();
+    }
+    // a fish jumps somewhere on the river on a slow loop — arc + spreading ripple
+    if (waterSpots.length) {
+      const cycle = 4.2, phase = t % cycle;
+      const s = waterSpots[Math.floor(t / cycle) % waterSpots.length];
+      const ox = sx + (s.tx + 0.5) * TILE * z, oy = sy + (s.ty + 0.6) * TILE * z;
+      if (!(ox < -20 || ox > view.w + 20 || oy < -20 || oy > view.h + 20)) {
+        if (phase < 1.0) {                         // the leap
+          const p = phase / 1.0, arc = Math.sin(p * Math.PI);
+          ctx.save(); ctx.globalAlpha = 0.85 * Math.sin(p * Math.PI);
+          ctx.fillStyle = '#a9c7d6';
+          const fx = ox + (p - 0.5) * 6 * z, fy = oy - arc * 9 * z;
+          ctx.fillRect(fx - z, fy - 1.5 * z, 2 * z, 3 * z);   // little fish body
+          ctx.restore();
+        } else if (phase < 2.0) {                  // the ripple where it splashed back
+          const p = (phase - 1.0) / 1.0;
+          ctx.save(); ctx.globalAlpha = (1 - p) * 0.5; ctx.strokeStyle = '#cfe9f5'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.ellipse(ox, oy, (2 + p * 6) * z, (1 + p * 2.5) * z, 0, 0, 7); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      ctx.globalAlpha = 1;
     }
   }
   // Is this critter "out" right now? Wild ones keep to their hours/season.
@@ -3561,6 +3627,7 @@
     buildBar();
     buildMiniTerrain();
     rebuildCritters();
+    rebuildWaterlife();
     updateHUD();
     renderGoal();
     drawMinimap();
@@ -3648,6 +3715,7 @@
     const vdt = Math.min(sdt, 0.12);
     for (const v of state.villagers) villagerTick(v, vdt);
     for (const cr of critters) if (critterActive(cr)) critterTick(cr, vdt);
+    for (const d of waterlife) duckTick(d, vdt);
     cartTick(sdt);
     siteProgressTick(sdt);
     // fade villager emotes
