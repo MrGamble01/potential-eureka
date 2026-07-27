@@ -199,7 +199,7 @@
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
-    <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value</li>
+    <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value; add a <b>🌬️ Windmill</b> to bake faster &amp; yield an extra loaf</li>
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings</li>
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
@@ -1233,16 +1233,18 @@ function serveMeal(){
 // the stockpile and bakes it into 🍞 bread worth ~3× as much, which the Trader
 // then buys / the Tavern serves at the higher value.
 let bakeT=0,bakeMsgT=0;
+function hasWindmill(){return !!(state.buildings&&state.buildings.windmill);}
 function updateBakery(dt){
   if(!hasBakery()||(state.goods.crop||0)<=0){bakeT=0;return;}
   bakeT+=dt;
-  if(bakeT>=9){bakeT=0;bake();}
+  if(bakeT>=(hasWindmill()?5.5:9)){bakeT=0;bake();}   // a Windmill speeds the grind
 }
 function bake(){
   if((state.goods.crop||0)<=0)return;
   state.goods.crop--;
-  state.goods.bread=(state.goods.bread||0)+1;
-  state.loaves=(state.loaves||0)+1;
+  const loaves=hasWindmill()?2:1;                      // a Windmill yields an extra loaf
+  state.goods.bread=(state.goods.bread||0)+loaves;
+  state.loaves=(state.loaves||0)+loaves;
   const b=state.buildings.bakery,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
   floatText(gx+0.5,gy+0.5,gz+0.5,'🌾→🍞','#ffe1a8');
   burst(gx+0.5,gy-0.6,gz+0.5,0xe8e8e8,4,{up:1.4,g:1});   // a little puff of flour/smoke
@@ -1323,8 +1325,10 @@ const BUILDINGS={
   barn:     {ico:'🚜',name:'Barn',     cost:520,lvl:4,desc:'+6 animals · +40% growth',roof:0xa23b32,wall:0xb8875a},
   farmhouse:{ico:'🏠',name:'Farmhouse',cost:680,lvl:5,desc:'+20% crop growth',roof:0x6a86b0,wall:0xd9caa6},
   bakery:   {ico:'🥖',name:'Bakery',   cost:720,lvl:6,desc:'Bakes 🌾 crops into 🍞 bread (worth 3×)',roof:0xb5763a,wall:0xe4d2ac},
+  windmill: {ico:'🌬️',name:'Windmill', cost:900,lvl:7,desc:'Bakery bakes faster & yields +1 🍞',roof:0x8a4b2f,wall:0xd8cbb0,kind:'mill'},
 };
 function buildingCubes(def){
+  if(def.kind==='mill')return millCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1332,6 +1336,18 @@ function buildingCubes(def){
   a(0,0.42,0.9,0.5,0.72,0.12,0x5a3a24);          // door
   a(-0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); a(0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); // windows
   a(0.55,1.7,-0.4,0.3,0.9,0.3,0x6b4a3a);         // chimney
+  return c;
+}
+function millCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.85,0,1.25,1.7,1.25,def.wall);            // tall tower
+  a(0,1.5,0,1.35,0.4,1.35,0xb8a888);             // stone band
+  a(0,1.9,0,0.95,0.5,0.95,def.roof);             // cap
+  a(0,0.45,0.66,0.42,0.66,0.12,0x5a3a24);        // door
+  a(-0.4,1.05,0.64,0.26,0.26,0.06,0x9ad2e0); a(0.4,1.05,0.64,0.26,0.26,0.06,0x9ad2e0);  // windows
+  // sail cross on the front
+  a(0,1.55,0.72,0.16,1.9,0.06,0xefe7d2); a(0,1.55,0.72,1.9,0.16,0.06,0xefe7d2);
+  a(0,1.55,0.7,0.28,0.28,0.1,0x6b4a3a);          // hub
   return c;
 }
 function findBuildSpot(){
