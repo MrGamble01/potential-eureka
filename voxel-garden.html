@@ -201,6 +201,7 @@
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value</li>
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
+    <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -1779,6 +1780,21 @@ function updateFP(dt){
 const C_DAY=new THREE.Color(0x8ec9ea),C_NIGHT=new THREE.Color(0x0d1730),C_DUSK=new THREE.Color(0xf2996b);
 const _sky=new THREE.Color();
 function gaussish(f,c,w){let d=Math.abs(f-c);d=Math.min(d,1-d);return Math.max(0,1-d/w);}
+// When a new season turns, a town that has grown up throws a festival: confetti
+// over the square (Tavern/Market) and a coin bonus that scales with how many
+// villagers and buildings you've gathered — the settlement celebrating itself.
+function townFestival(s){
+  if(!(W.workers.length>0||hasTavern()))return;
+  const nb=Object.values(state.buildings||{}).filter(Boolean).length;
+  const bonus=Math.round(20+12*W.workers.length+18*nb);
+  const b=state.buildings.tavern||state.buildings.market;
+  const cx=(b?b.x:0)+0.5,cz=(b?b.z:0)+0.5,cy=(surfaceY(b?b.x:0,b?b.z:0)||5)+2.4;
+  grantCoins(bonus,cx,cy,cz);
+  const cols=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0x7fd370,0x7ec8ff];
+  for(let i=0;i<26;i++)setTimeout(()=>burst(cx+(Math.random()-0.5)*3.4,cy+Math.random()*1.6,cz+(Math.random()-0.5)*3.4,cols[i%cols.length],5,{up:2.6,g:3}),i*55);
+  setTimeout(()=>toast('🎉 '+s.name+' Festival! The town celebrates (+'+bonus+' 🪙)'),500);
+  state.achFlags.festival=true;
+}
 function updateDay(dt){
   state.time+=dt;
   if(state.time>=CYCLE){
@@ -1795,6 +1811,7 @@ function updateDay(dt){
         s.key==='spring'?'Everything grows a little faster. Plant boldly!':
         s.key==='autumn'?'Leaves drift on the wind. Harvests feel golden.':
         'Long bright days. The garden basks.');
+      townFestival(s);
       checkAch();
     } else toast('☀️ Day '+state.day+' begins');
   }
@@ -2620,6 +2637,7 @@ const ACH=[
   ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
   ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
   ['crew8','Bustling Town','Grow your town to 8 villagers',()=>W.workers.length>=8],
+  ['festival','Festival Day','Celebrate a change of season with your town',()=>!!state.achFlags.festival],
   ['trade','Open for Business','Sell goods at the Trader’s Market',()=>!!state.achFlags.trade],
   ['meals50','A Round for the House','Serve 50 meals at the Tavern',()=>(state.meals||0)>=50],
   ['bake12','Baker’s Dozen','Bake 12 loaves at the Bakery',()=>(state.loaves||0)>=12],
