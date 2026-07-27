@@ -200,6 +200,7 @@
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value</li>
+    <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
   <button id="helpClose">Let's grow</button>
@@ -725,7 +726,18 @@ const WORKER_SHIRTS=[0x9c4b3b,0x3f7a5c,0x4a5ea8,0x8a5a9c,0xb5762b,0x50908f,0xa85
 const ROLES=['all','farmer','rancher','collector'];
 const ROLE_ICO={all:'🧑‍🌾',farmer:'🌾',rancher:'🐄',collector:'🧺'};
 const ROLE_NAME={all:'Do-it-all',farmer:'Farmer',rancher:'Rancher',collector:'Collector'};
-const WORKER_MAX=6;
+const WORKER_MAX=8;
+// A prospering town draws its own residents: each building you raise attracts a
+// free settler (up to the cap), so the population grows as the settlement does.
+function welcomeSettler(){
+  if(W.workers.length>=WORKER_MAX)return;
+  const w=spawnWorker('all');
+  const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+  for(let i=0;i<10;i++)setTimeout(()=>burst(w.x,gy+0.8,w.z,0xfff2a8,3,{up:1.6,g:2}),i*70);
+  const b=$('farmerBtn');if(b)b.style.opacity=1;
+  setTimeout(()=>banner('🧑‍🌾 '+w.name+' settled in your town!','Your growing settlement drew a new resident.'),900);
+  if(typeof checkAch==='function')checkAch();
+}
 function workerCost(){return 200+W.workers.length*160;}
 function villagerCubes(shirt,hatCol){
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
@@ -855,6 +867,13 @@ function workerPickTask(w){
     if(!adjTilled(x,y,z))continue;
     consider(x,z,'till',0.5,{sy:y});
   }
+  // nothing pressing to do — sometimes wander over to the Tavern for a break
+  if(!best&&hasTavern()&&Math.random()<0.45){
+    const b=state.buildings.tavern;   // let findPath (in repath) decide if it's reachable
+    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){
+      if(surfaceY(b.x+dx,b.z+dz)!=null){best={tx:b.x+dx,tz:b.z+dz,job:'visit'};break;}
+    }
+  }
   if(!best){
     const ang=Math.random()*6.283,rad=3+Math.random()*7;
     let wx=Math.round(w.x+Math.sin(ang)*rad),wz=Math.round(w.z+Math.cos(ang)*rad);
@@ -877,7 +896,10 @@ function doWorkerJob(w){
         SFX.play('plant');burst(w.tx+0.5,w.sy+1.2,w.tz+0.5,0x7fd370,5,{up:1.2,g:4});questCheck();}}}
   else if(w.job==='tend'){const a=w.target;if(a&&W.animals.includes(a)&&a.stage===0){a.tendBoost=9;
     const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;burst(a.x,gy+0.6,a.z,0xff9ec4,5,{up:1.2,g:4});}}
-  w.act='work';w.workT=w.job==='idle'?(0.5+Math.random()*1.2):0.45;w.tx=null;w.target=null;
+  else if(w.job==='visit'){const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+    floatText(w.x,gy+1.7,w.z,'🍺','#ffcf6b');SFX.tone(300,0.06,'triangle',0.035);}
+  w.act='work';w.workT=w.job==='visit'?(2+Math.random()*2.5):w.job==='idle'?(0.5+Math.random()*1.2):0.45;
+  w.tx=null;w.target=null;
 }
 function updateWorker(w,dt){
   if(w.act==='work'){
@@ -1320,6 +1342,7 @@ function buyBuilding(key){
   if(key==='tavern')setTimeout(()=>toast('🍺 Tap a villager to set their role'),1400);
   buildTownPanel();
   if(typeof checkAch==='function')checkAch();
+  setTimeout(welcomeSettler,1600);        // a new building draws a resident to town
 }
 function nextIslet(){return ISLETS.find(it=>!W.islets.includes(it.id));}
 function landCost(){return 300+W.islets.length*250;}
@@ -2596,6 +2619,7 @@ const ACH=[
   ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1],
   ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
   ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
+  ['crew8','Bustling Town','Grow your town to 8 villagers',()=>W.workers.length>=8],
   ['trade','Open for Business','Sell goods at the Trader’s Market',()=>!!state.achFlags.trade],
   ['meals50','A Round for the House','Serve 50 meals at the Tavern',()=>(state.meals||0)>=50],
   ['bake12','Baker’s Dozen','Bake 12 loaves at the Bakery',()=>(state.loaves||0)>=12],
