@@ -214,6 +214,7 @@
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value; add a <b>🌬️ Windmill</b> to bake faster &amp; yield an extra loaf</li>
     <li><b>💧 Well</b> &mdash; keeps the tilled soil around it watered on its own, so nearby crops grow at the 2× rate hands-free</li>
+    <li><b>🐝 Beehive</b> &mdash; tends itself too, dropping 🍯 honey into your stockpile every so often once you have a Market, Tavern or Bakery to hold it</li>
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings</li>
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
@@ -1235,7 +1236,8 @@ function updateDrops(dt){
 const CROP_GOOD={product:'🌾',yield:5,pitch:520};
 const BREAD_GOOD={product:'🍞',yield:16,pitch:440};   // the Bakery bakes crop → bread
 const FISH_GOOD={product:'🐟',yield:10,pitch:600};
-const EXTRA_GOODS={crop:CROP_GOOD,bread:BREAD_GOOD,fish:FISH_GOOD};
+const HONEY_GOOD={product:'🍯',yield:14,pitch:660};   // the Beehive produces honey on its own
+const EXTRA_GOODS={crop:CROP_GOOD,bread:BREAD_GOOD,fish:FISH_GOOD,honey:HONEY_GOOD};
 function goodDef(t){return EXTRA_GOODS[t]||ANIMALS[t];}
 function goodsKeys(){return Object.keys(ANIMALS).concat(Object.keys(EXTRA_GOODS));}
 function goodsTotal(){let n=0;for(const t of goodsKeys())n+=state.goods[t]||0;return n;}
@@ -1327,6 +1329,26 @@ function updateWell(dt){
     any=true;
   }
   if(any){flushChunks();const gy=(surfaceY(b.x,b.z)||4)+1.2;burst(b.x+0.5,gy,b.z+0.5,0x6fc3ff,6,{up:1.2,g:4,spread:1.4});}
+}
+// The Beehive tends itself, adding honey to the stockpile without any tending —
+// a second hands-free good alongside the Well's watering, once you have
+// somewhere (Market/Tavern/Bakery) for it to pile up.
+function hasHive(){return !!(state.buildings&&state.buildings.hive);}
+let hiveT=0,honeyMsgT=0;
+function updateHive(dt){
+  if(!hasHive()||!stockpiles()){hiveT=0;return;}
+  hiveT+=dt;
+  if(hiveT<20)return;
+  hiveT=0;
+  state.goods.honey=(state.goods.honey||0)+1;
+  state.honeyCount=(state.honeyCount||0)+1;
+  const b=state.buildings.hive,gx=b.x,gz=b.z,gy=(surfaceY(gx,gz)||4)+2;
+  floatText(gx+0.5,gy+0.5,gz+0.5,'+🍯','#ffd23e');
+  burst(gx+0.5,gy,gz+0.5,0xffd23e,5,{up:1.1,g:3,spread:0.9});
+  SFX.tone(700,0.05,'triangle',0.04,900);
+  if(honeyMsgT<=0){toast('🐝 The Beehive added honey to your stockpile');honeyMsgT=26;}
+  refreshGoodsHud();
+  if(typeof checkAch==='function')checkAch();
 }
 function updateBakery(dt){
   if(!hasBakery()||(state.goods.crop||0)<=0){bakeT=0;return;}
@@ -1421,10 +1443,12 @@ const BUILDINGS={
   bakery:   {ico:'🥖',name:'Bakery',   cost:720,lvl:6,desc:'Bakes 🌾 crops into 🍞 bread (worth 3×)',roof:0xb5763a,wall:0xe4d2ac},
   windmill: {ico:'🌬️',name:'Windmill', cost:900,lvl:7,desc:'Bakery bakes faster & yields +1 🍞',roof:0x8a4b2f,wall:0xd8cbb0,kind:'mill'},
   well:     {ico:'💧',name:'Well',     cost:480,lvl:4,desc:'Waters tilled soil nearby on its own',roof:0x7a5a3a,wall:0x9aa0a6,kind:'well'},
+  hive:     {ico:'🐝',name:'Beehive',  cost:600,lvl:5,desc:'Produces 🍯 honey for your stockpile on its own',roof:0xffd23e,wall:0xd9a441,kind:'hive'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
   if(def.kind==='well')return wellCubes(def);
+  if(def.kind==='hive')return hiveCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1457,6 +1481,17 @@ function wellCubes(def){
   a(0,1.75,0,1.35,0.24,0.8,def.roof);            // little roof
   a(0,1.05,0,0.5,0.16,0.16,0x5a3a24);            // crossbar
   a(0,0.9,0,0.22,0.26,0.22,0x8a6a4a);            // bucket
+  return c;
+}
+function hiveCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.28,0,0.9,0.5,0.9,def.wall);              // skep base ring
+  a(0,0.62,0,0.72,0.42,0.72,def.wall);           // middle ring
+  a(0,0.92,0,0.5,0.3,0.5,def.wall);              // top ring
+  a(0,1.14,0,0.22,0.16,0.22,def.roof);           // little cap
+  a(0,0.5,0.44,0.14,0.14,0.06,0x2a1e12);         // entrance hole
+  a(0.28,0.78,0.3,0.08,0.08,0.06,0xffd23e);      // a bee, at rest
+  a(-0.3,0.6,-0.34,0.08,0.08,0.06,0xffd23e);     // and another
   return c;
 }
 function findBuildSpot(){
@@ -2961,6 +2996,7 @@ const ACH=[
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
+  ['honey','Busy Bees','Collect honey from a Beehive',()=>(state.honeyCount||0)>=1],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
@@ -3014,6 +3050,7 @@ function renderAlmanac(){
     ['🍞',state.loaves||0,'Loaves baked'],
     ['🍺',state.meals||0,'Meals served'],
     ['🎣',state.fishCount||0,'Fish caught'],
+    ['🍯',state.honeyCount||0,'Honey collected'],
     ['⭐',(state.level||1),'Garden level'],
     ['🏆',achDone+'/'+ACH.length,'Achievements'],
   ];
@@ -3140,9 +3177,11 @@ function boot(){
     updateTavern(dt);
     updateBakery(dt);
     updateWell(dt);
+    updateHive(dt);
     updateFestival(dt);
     if(mealMsgT>0)mealMsgT-=dt;
     if(bakeMsgT>0)bakeMsgT-=dt;
+    if(honeyMsgT>0)honeyMsgT-=dt;
     updateWet(dt);
     updateParticles(dt);
     updatePops(dt);
