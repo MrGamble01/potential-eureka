@@ -341,13 +341,14 @@ const DECOR={
   lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
   gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
+  chime:  {name:'Wind Chime',ico:'🎐', cost:130,lvl:10},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
   4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Berry bushes · Sprinklers',
   6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
-  10:'A master gardener of the skies 🌈',11:'The isle hums with life',
+  10:'Wind Chimes · A master gardener of the skies 🌈',11:'The isle hums with life',
   12:'Nothing left to prove — everything left to grow 🌟'};
 const ISLETS=[
   {id:0,x:27,z:6,r:7,lvl:4,seedOff:101,name:'East Islet'},
@@ -1715,6 +1716,14 @@ function cubesFor(type,stage,vseed){
       add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
       add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
       break;
+    case 'chime':
+      add(0,0.3,0,0.08,0.6,0.08,0x6b4a2b);           // post
+      add(0,0.62,0,0.5,0.06,0.06,0x6b4a2b);          // crossbar
+      add(-0.16,0.42,0,0.05,0.36,0.05,0xd9b64a);     // hanging tube
+      add(-0.02,0.46,0,0.05,0.3,0.05,0xe8c968);      // hanging tube (shorter)
+      add(0.14,0.4,0,0.05,0.38,0.05,0xd9b64a);       // hanging tube
+      add(0,0.2,0,0.14,0.06,0.14,0x8a6740);          // wind catcher
+      break;
     case 'glowshroom':
       add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
       if(stage>=2){
@@ -2386,6 +2395,7 @@ function placeSelected(x,y,z){
     if(!spendCoins(d.cost))return;
     addPlant(x,y,z,sel);
     state.decor++;SFX.play('place');
+    if(sel==='chime')state.achFlags.chime=true;
     burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
     questCheck();
   } else {
@@ -2961,6 +2971,7 @@ const ACH=[
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
+  ['chime','Catching the Breeze','Place a Wind Chime',()=>!!state.achFlags.chime],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
