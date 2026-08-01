@@ -206,6 +206,7 @@
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li><b>🎣 Tap the pond</b> to fish &mdash; reel in 🐟🐠🦀 for coins (and goods for your stockpile); it freezes over in winter</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
@@ -329,17 +330,17 @@ const BLOCKS={
 };
 const BUILDABLE=[2,1,4,3,7,8];
 const PLANTS={
-  sunflower:{name:'Sunflower', ico:'🌻', cost:5,  grow:45,  sell:12,  xp:5,  lvl:1},
-  carrot:   {name:'Carrot',    ico:'🥕', cost:8,  grow:70,  sell:22,  xp:8,  lvl:2},
-  tomato:   {name:'Tomato',    ico:'🍅', cost:14, grow:95,  sell:40,  xp:12, lvl:3, multi:true, regrow:55},
-  lavender: {name:'Lavender',  ico:'💜', cost:16, grow:110, sell:42,  xp:13, lvl:3},
-  pumpkin:  {name:'Pumpkin',   ico:'🎃', cost:30, grow:180, sell:85,  xp:24, lvl:4},
-  berry:    {name:'Berry bush',ico:'🫐', cost:60, grow:150, sell:34,  xp:11, lvl:5, multi:true, regrow:60},
+  sunflower:{name:'Sunflower', ico:'🌻', cost:5,  grow:45,  sell:12,  xp:5,  lvl:1, season:'summer'},
+  carrot:   {name:'Carrot',    ico:'🥕', cost:8,  grow:70,  sell:22,  xp:8,  lvl:2, season:'autumn'},
+  tomato:   {name:'Tomato',    ico:'🍅', cost:14, grow:95,  sell:40,  xp:12, lvl:3, multi:true, regrow:55, season:'summer'},
+  lavender: {name:'Lavender',  ico:'💜', cost:16, grow:110, sell:42,  xp:13, lvl:3, season:'spring'},
+  pumpkin:  {name:'Pumpkin',   ico:'🎃', cost:30, grow:180, sell:85,  xp:24, lvl:4, season:'autumn'},
+  berry:    {name:'Berry bush',ico:'🫐', cost:60, grow:150, sell:34,  xp:11, lvl:5, multi:true, regrow:60, season:'summer'},
   moonpetal:{name:'Moonpetal', ico:'🌙', cost:90, grow:100, sell:170, xp:45, lvl:6, night:true},
-  startree: {name:'Star tree', ico:'⭐', cost:220,grow:300, sell:65,  xp:20, lvl:7, multi:true, regrow:150, tall:true},
-  glowshroom:{name:'Glowshroom',ico:'🍄', cost:150,grow:130, sell:260, xp:55, lvl:8},
-  crystalberry:{name:'Crystalberry',ico:'💎', cost:400,grow:420, sell:150, xp:35, lvl:9, multi:true, regrow:120},
-  dragonfruit:{name:'Dragonfruit',ico:'🐉', cost:280,grow:260, sell:230, xp:50, lvl:8, multi:true, regrow:130},
+  startree: {name:'Star tree', ico:'⭐', cost:220,grow:300, sell:65,  xp:20, lvl:7, multi:true, regrow:150, tall:true, season:'winter'},
+  glowshroom:{name:'Glowshroom',ico:'🍄', cost:150,grow:130, sell:260, xp:55, lvl:8, season:'autumn'},
+  crystalberry:{name:'Crystalberry',ico:'💎', cost:400,grow:420, sell:150, xp:35, lvl:9, multi:true, regrow:120, season:'winter'},
+  dragonfruit:{name:'Dragonfruit',ico:'🐉', cost:280,grow:260, sell:230, xp:50, lvl:8, multi:true, regrow:130, season:'spring'},
 };
 const DECOR={
   fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
@@ -2237,6 +2238,9 @@ function removePlant(p){
   if(p.goldGlow){scene.remove(p.goldGlow);p.goldGlow.geometry.dispose();p.goldGlow.material.dispose();p.goldGlow=null;}
   W.plants.delete(k3(p.x,p.y,p.z));
 }
+// A crop planted in its favoured season grows faster and sells for more —
+// rewarding seasonal planting on top of the global season growth curve.
+function inSeason(def){return !!(def&&def.season&&def.season===seasonOf(state.day).key);}
 function stageFor(p){
   const def=PLANTS[p.type];
   if(!def)return 2;                      // decor is always "grown"
@@ -2258,6 +2262,7 @@ function updatePlants(dt,dn){
     }
     let rate=seasonOf(state.day).growMult;
     if(seasonOf(state.day).key==='winter'&&hasGreenhouse())rate=1;   // a Greenhouse beats the winter chill
+    if(inSeason(def))rate*=1.5;                                       // its favoured season → faster growth
     if(def.night)rate*=dn.night>0.5?1.6:0.12;
     if(state.buildings&&state.buildings.farmhouse)rate*=1.2;   // Farmhouse boosts crops
     const soilK=k3(p.x,p.y-1,p.z);
@@ -2502,7 +2507,11 @@ function actOnPlant(p){
     const gold=!!p.golden;
     if(gold){p.golden=false;state.achFlags.golden=true;
       if(p.goldGlow){scene.remove(p.goldGlow);p.goldGlow.geometry.dispose();p.goldGlow.material.dispose();p.goldGlow=null;}}
-    grantCoins(gold?def.sell*2:def.sell,p.x+0.5,p.y+0.9,p.z+0.5);
+    let pay=gold?def.sell*2:def.sell;
+    const season=inSeason(def);
+    if(season)pay=Math.round(pay*1.4);                                // in-season harvest sells for +40%
+    grantCoins(pay,p.x+0.5,p.y+0.9,p.z+0.5);
+    if(season)floatText(p.x+0.5,p.y+1.5,p.z+0.5,seasonOf(state.day).ico+' in season!','#ffe08a');
     grantXP(def.xp);
     stockCrop(p.x+0.5,p.y+1.3,p.z+0.5,produceFromCrop(def));   // premium crops → more produce
     SFX.play('harvest');
@@ -2766,7 +2775,10 @@ function buildSeedPanel(){
     const d=document.createElement('div');
     const locked=state.level<def.lvl;
     d.className='p-item'+(locked?' locked':'')+(state.seedSel===key?' sel':'');
-    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+    const sIco=def.season?SEASONS.find(s=>s.key===def.season).ico:'';
+    const hot=inSeason(def);
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+
+      (sIco?' <span title="grows &amp; sells better in '+def.season+'" style="'+(hot?'':'opacity:.6')+'">'+sIco+(hot?'▲':'')+'</span>':'')+'</div>'+
       (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
         :'<div class="pr">'+def.cost+' 🪙 → '+def.sell+' 🪙</div>');
     if(!locked)d.addEventListener('click',()=>{
