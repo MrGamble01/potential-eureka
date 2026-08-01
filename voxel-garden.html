@@ -3350,6 +3350,11 @@ function renderAlmanac(){
     html+='<div class="alm-head" style="margin-top:14px">📈 MARKET DEMAND</div>';
     html+='<div class="alm-stat" style="text-align:left">Today <b style="color:var(--gold)">'+goodDef(dk).product+' '+dk+'</b> sells for +50% &nbsp;·&nbsp; Tomorrow the town wants '+goodDef(tk).product+' '+tk+'</div>';
   }
+  if(W.workers.length){
+    html+='<div class="alm-head" style="margin-top:14px">TOWNSFOLK</div>';
+    html+='<div class="alm-stat" style="text-align:left;line-height:1.7">'+
+      W.workers.map(w=>ROLE_ICO[w.role]+' '+w.name+(rolesUnlocked()?' <span style="color:var(--dim)">'+ROLE_NAME[w.role]+'</span>':'')).join(' &nbsp;·&nbsp; ')+'</div>';
+  }
   if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
   $('almBody').innerHTML=html;
 }
