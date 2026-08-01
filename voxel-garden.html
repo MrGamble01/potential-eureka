@@ -1325,6 +1325,10 @@ function refreshGoodsHud(){
   for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>0)html+='<span'+(t===dk?' style="color:var(--gold)"':'')+'>'+goodDef(t).product+q+(t===dk?'📈':'')+'</span>';}
   html+='<span style="color:var(--gold);font-size:11px">📈 '+goodDef(dk).product+' +50% today</span>';
   if(festivalActive())html+='<span style="color:#ff9ec4;font-size:11px">🎉 festival +35%</span>';
+  if(hasMarket()){
+    const worth=Math.round(goodsSellValue()*1.25*(festivalActive()?FESTIVAL_BONUS:1));   // what a Market tap-sale pays now
+    html+='<span style="color:#a8e6b0;font-size:11px">≈ '+worth+' 🪙</span>';
+  }
   const hint=hasMarket()?'tap Market to sell':'the Tavern is serving these';
   html+='<span style="color:var(--gold);font-size:11px">'+hint+'</span>';
   el.innerHTML=html;
