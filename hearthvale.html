@@ -2655,6 +2655,17 @@
         ctx.beginPath(); ctx.arc(px0 + i * 3.2 * z, py0, 1.4 * z, 0, 7); ctx.fill(); ctx.stroke();
       }
     }
+    // a fully-upgraded building flies a little pennant on its roof peak
+    if (lvl >= MAX_LEVEL && !def.decor) {
+      const fx = sx + (b.tx * TILE + def.w * TILE / 2) * z, fy = sy + (b.ty * TILE - rise - 1) * z;
+      ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.6);
+      ctx.beginPath(); ctx.moveTo(fx, fy + 2 * z); ctx.lineTo(fx, fy - 6 * z); ctx.stroke();   // pole
+      const wav = Math.sin(ambientTime * 4 + b.id) * 1.2 * z;                                   // gentle wave
+      ctx.fillStyle = '#e0503f';
+      ctx.beginPath();
+      ctx.moveTo(fx, fy - 6 * z); ctx.lineTo(fx + 6 * z, fy - 4.5 * z + wav); ctx.lineTo(fx, fy - 3 * z);
+      ctx.closePath(); ctx.fill();
+    }
     // unstaffed worker building: a STATIC amber "!" badge (no animation)
     if (def.worker && !b.staffed) {
       const bx = sx + (b.tx * TILE + def.w * TILE / 2) * z;
