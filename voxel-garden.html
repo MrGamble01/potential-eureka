@@ -352,6 +352,7 @@ const DECOR={
   flowerbed:{name:'Flower Bed',ico:'🌷', cost:35, lvl:3},
   scarecrow:{name:'Scarecrow',ico:'🎃', cost:45, lvl:4},
   snowman:{name:'Snowman', ico:'☃️', cost:30, lvl:3},
+  birdbath:{name:'Bird Bath',ico:'🐦', cost:50, lvl:4},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
@@ -2074,6 +2075,15 @@ function cubesFor(type,stage,vseed){
       add(0,0.66,0.2,0.04,0.04,0.04,0x2a2a2a); add(0,0.56,0.2,0.04,0.04,0.04,0x2a2a2a); // buttons
       add(-0.32,0.66,0,0.28,0.04,0.04,0x6b4a2b); add(0.32,0.66,0,0.28,0.04,0.04,0x6b4a2b); // twig arms
       add(0,1.08,0,0.32,0.05,0.32,0x3a3a44); add(0,1.16,0,0.2,0.14,0.2,0x3a3a44); // top hat
+      break;
+    case 'birdbath':
+      add(0,0.22,0,0.16,0.44,0.16,0xa8aeb4);           // stone pedestal
+      add(0,0.42,0,0.34,0.12,0.34,0xbcc2c8);           // basin rim
+      add(0,0.5,0,0.46,0.1,0.46,0xbcc2c8);
+      add(0,0.5,0,0.34,0.06,0.34,0x6fc3e8);            // water
+      add(0.16,0.62,0,0.09,0.12,0.13,0xe0a34a);        // a little bird perched
+      add(0.16,0.72,0.04,0.06,0.06,0.06,0xe8b45a);
+      add(0.16,0.68,0.1,0.04,0.03,0.04,0xd9782f);      // beak
       break;
     case 'sprinkler':
       add(0,0.22,0,0.12,0.44,0.12,0x8b9199);
