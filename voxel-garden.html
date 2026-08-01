@@ -212,6 +212,7 @@
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
+    <li><b>📈 Market demand</b> &mdash; each day the town wants a different good; sell or serve <b>that good while it&rsquo;s hot for +50%</b> (shown in the stockpile bar)</li>
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value; add a <b>🌬️ Windmill</b> to bake faster &amp; yield an extra loaf</li>
     <li><b>💧 Well</b> &mdash; keeps the tilled soil around it watered on its own, so nearby crops grow at the 2× rate hands-free</li>
     <li><b>🪴 Greenhouse</b> &mdash; crops keep growing at full speed <b>through winter</b> instead of slowing to a crawl</li>
@@ -1245,6 +1246,14 @@ function goodDef(t){return EXTRA_GOODS[t]||ANIMALS[t];}
 function goodsKeys(){return Object.keys(ANIMALS).concat(Object.keys(EXTRA_GOODS));}
 function goodsTotal(){let n=0;for(const t of goodsKeys())n+=state.goods[t]||0;return n;}
 function goodsValue(){let v=0;for(const t of goodsKeys())v+=(state.goods[t]||0)*goodDef(t).yield;return v;}
+/* ---- market demand: one good is hot each day, selling for a bonus ---- */
+// A cozy strategy layer: the town's Market wants a different good every day.
+// Sell (or serve) the "in demand" good while it's hot for +50%. Derived from
+// the day number, so it's stable across reloads with no extra state to save.
+const DEMAND_BONUS=1.5;
+function demandGoodKey(){const keys=goodsKeys();const h=(Math.floor(state.day||0)*2654435761)>>>0;return keys[h%keys.length];}
+function demandMult(t){return t===demandGoodKey()?DEMAND_BONUS:1;}
+function goodsSellValue(){let v=0;for(const t of goodsKeys())v+=(state.goods[t]||0)*goodDef(t).yield*demandMult(t);return v;}
 function produceFromCrop(def){   // premium crops yield more produce into the stockpile
   return Math.max(1,Math.min(5,1+Math.floor((def&&def.sell||0)/60)));
 }
@@ -1258,7 +1267,7 @@ function stockCrop(x,y,z,amt){    // a harvested crop adds produce to the stockp
 function sellStockpile(bulk){
   const tot=goodsTotal();
   if(tot<=0){if(!bulk)toast('🛒 No goods stockpiled yet — collect what your farm produces');return;}
-  const coins=Math.round(goodsValue()*(bulk?1.6:1.25));   // Trader pays a bulk premium
+  const coins=Math.round(goodsSellValue()*(bulk?1.6:1.25));   // Trader pays a bulk premium; hot good adds +50%
   for(const t of goodsKeys())state.goods[t]=0;
   const b=state.buildings.market,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
   grantCoins(coins,gx+0.5,gy,gz+0.5);
@@ -1275,8 +1284,10 @@ function refreshGoodsHud(){
   const tot=goodsTotal();
   if(!stockpiles()||tot<=0){el.style.display='none';return;}
   el.style.display='flex';
+  const dk=demandGoodKey();
   let html='<span style="color:var(--dim);font-size:11px">🛒 STOCKPILE</span>';
-  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>0)html+='<span>'+goodDef(t).product+q+'</span>';}
+  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>0)html+='<span'+(t===dk?' style="color:var(--gold)"':'')+'>'+goodDef(t).product+q+(t===dk?'📈':'')+'</span>';}
+  html+='<span style="color:var(--gold);font-size:11px">📈 '+goodDef(dk).product+' +50% today</span>';
   const hint=hasMarket()?'tap Market to sell':'the Tavern is serving these';
   html+='<span style="color:var(--gold);font-size:11px">'+hint+'</span>';
   el.innerHTML=html;
@@ -1299,7 +1310,7 @@ function serveMeal(){
   for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
   if(!bestT)return;
   state.goods[bestT]--;
-  const coins=Math.max(2,Math.round(goodDef(bestT).yield*2));
+  const coins=Math.max(2,Math.round(goodDef(bestT).yield*2*demandMult(bestT)));
   const b=state.buildings.tavern,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
   grantCoins(coins,gx+0.5,gy,gz+0.5);
   floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+coins,'#ffcf6b');
@@ -2108,7 +2119,8 @@ function updateDay(dt){
         'Long bright days. The garden basks.');
       townFestival(s);
       checkAch();
-    } else toast('☀️ Day '+state.day+' begins');
+    } else toast('☀️ Day '+state.day+' begins — 📈 '+goodDef(demandGoodKey()).product+' is in demand today');
+    if(stockpiles())refreshGoodsHud();
   }
   const frac=state.time/CYCLE;
   const daylight=frac<NIGHT_AT?Math.sin(Math.PI*frac/NIGHT_AT):0;
