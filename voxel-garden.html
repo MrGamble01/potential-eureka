@@ -2161,6 +2161,11 @@ function refreshPlantMesh(p){
       new THREE.MeshBasicMaterial({color:GLOW_CROPS[p.type],transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
     gm.position.set(p.x+0.5,p.y+(p.stage>=2?0.7:0.45),p.z+0.5);
     scene.add(gm);p.glow=gm;
+  } else if(p.type==='lantern'){                 // a placed lantern casts a warm halo after dark
+    const gm=new THREE.Mesh(new THREE.IcosahedronGeometry(0.5,1),
+      new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+    gm.position.set(p.x+0.5,p.y+0.75,p.z+0.5);
+    scene.add(gm);p.glow=gm;
   }
 }
 
@@ -2544,7 +2549,11 @@ function updatePlants(dt,dn){
   const api=state.buildings&&state.buildings.apiary;   // bees pollinate nearby crops
   for(const p of W.plants.values()){
     const def=PLANTS[p.type];
-    if(!def)continue;                    // decor
+    if(!def){                            // decor
+      if(p.type==='lantern'&&p.glow){const t=dn.night||0;p.glow.visible=t>0.05;
+        p.glow.material.opacity=t*(0.5+Math.sin(perf*1.6+p.phase)*0.12);}   // lantern warms up at night
+      continue;
+    }
     if(p.glow){const t=dn.night||0;p.glow.visible=t>0.03;
       p.glow.material.opacity=t*(0.45+Math.sin(perf*2+p.phase)*0.18);}   // pulse after dark
     if(p.goldGlow)p.goldGlow.material.opacity=0.35+Math.sin(perf*4+p.phase)*0.2;   // golden shimmer
