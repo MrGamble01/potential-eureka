@@ -1575,6 +1575,7 @@ function updateApiary(dt){
   }
   burst(b.x+0.5,gy-0.3,b.z+0.5,0xf2c94c,7,{up:1.4,g:4,spread:1.2});
   SFX.tone(520,0.05,'triangle',0.03);
+  if(!state.achFlags.honey){state.achFlags.honey=true;if(typeof checkAch==='function')checkAch();}
   if(honeyMsgT<=0){toast('🍯 The Apiary gathered honey');honeyMsgT=30;}
 }
 function rebuildBuildings(){for(const key in (state.buildings||{}))if(state.buildings[key])placeBuildingMesh(key);}
@@ -2514,7 +2515,7 @@ function actOnPlant(p){
     const season=inSeason(def);
     if(season)pay=Math.round(pay*1.4);                                // in-season harvest sells for +40%
     grantCoins(pay,p.x+0.5,p.y+0.9,p.z+0.5);
-    if(season)floatText(p.x+0.5,p.y+1.5,p.z+0.5,seasonOf(state.day).ico+' in season!','#ffe08a');
+    if(season){state.achFlags.inseason=true;floatText(p.x+0.5,p.y+1.5,p.z+0.5,seasonOf(state.day).ico+' in season!','#ffe08a');}
     grantXP(def.xp);
     stockCrop(p.x+0.5,p.y+1.3,p.z+0.5,produceFromCrop(def));   // premium crops → more produce
     SFX.play('harvest');
@@ -2528,6 +2529,7 @@ function actOnPlant(p){
       // soil stays tilled for replanting
     }
     questCheck();
+    if(typeof checkAch==='function')checkAch();
     return;
   }
   if(state.tool==='pick'){removePlant(p);SFX.play('dig');
@@ -3127,6 +3129,8 @@ const ACH=[
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['golden','Golden Harvest','Harvest a rare golden crop',()=>!!state.achFlags.golden],
+  ['honey','Sweet Harvest','Gather honey from your Apiary',()=>!!state.achFlags.honey],
+  ['inseason','Perfect Timing','Harvest a crop in its favoured season',()=>!!state.achFlags.inseason],
   ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
