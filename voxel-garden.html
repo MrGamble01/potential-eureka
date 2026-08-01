@@ -1996,7 +1996,7 @@ function updateFP(dt){
 
 /* ============================== day / night ============================== */
 const C_DAY=new THREE.Color(0x8ec9ea),C_NIGHT=new THREE.Color(0x0d1730),C_DUSK=new THREE.Color(0xf2996b);
-const _sky=new THREE.Color();
+const _sky=new THREE.Color(),_mist=new THREE.Color(0xdbe8f0);
 function gaussish(f,c,w){let d=Math.abs(f-c);d=Math.min(d,1-d);return Math.max(0,1-d/w);}
 // When a new season turns, a town that has grown up throws a festival: confetti
 // over the square (Tavern/Market) and a coin bonus that scales with how many
@@ -2071,6 +2071,12 @@ function updateDay(dt){
   _sky.multiplyScalar(1-rainAmt*0.22);           // showers grey the sky down
   renderer.setClearColor(_sky);
   scene.fog.color.copy(_sky);
+  // dawn mist — fog draws in tight at sunrise then burns off (thicker in spring/autumn)
+  const sk=seasonOf(state.day).key;
+  const mist=gaussish(frac,0.075,0.05)*(sk==='autumn'||sk==='spring'?1:sk==='winter'?0.85:0.65);
+  scene.fog.near=70-mist*46;
+  scene.fog.far=180-mist*84;
+  if(mist>0.02)scene.fog.color.lerp(_mist,mist*0.5);
   // sun path
   const sa=Math.PI*frac/NIGHT_AT;              // 0..pi across daytime
   const sunX=Math.cos(sa)*110,sunY=Math.sin(sa)*95,sunZ=40;
