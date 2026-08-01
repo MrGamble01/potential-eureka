@@ -3977,7 +3977,7 @@
     const menuBtn = document.getElementById('menu-btn'), menu = document.getElementById('menu');
     const soundBtn = document.getElementById('m-sound');
     const syncSound = () => { soundBtn.textContent = 'Sound: ' + (state.muted ? 'Off' : 'On'); };
-    menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); };
+    menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); const md = document.getElementById('m-decrees'); if (md) md.textContent = 'Town Decrees' + (decreesAvailable() > 0 ? ' ⭐' + decreesAvailable() : ''); };
     soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
     document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
     document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
