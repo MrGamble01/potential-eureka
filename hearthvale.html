@@ -1915,6 +1915,7 @@
       } else {
       dest = randomStroll(v);
       if (state.happy >= 65 && roll(53) < 0.12) setEmote(v, roll(11) < 0.5 ? traitOf(v).mote : '❤️', 2.2);
+      else if (state.happy < 55 && roll(43) < 0.22) { const n = townNeed(); if (n) setEmote(v, n, 2.4); }
       }
     }
     if (dest) { const p = pathfind(v.tx, v.ty, dest.tx, dest.ty); if (p && p.length) v.path = p; }
@@ -1926,6 +1927,18 @@
     const spots = state.buildings.filter(b => b.done !== false && LEISURE_TYPES.indexOf(b.type) >= 0);
     if (!spots.length) return null;
     return spots[Math.floor(rrand((v.id + Math.floor(state.time)) * 17) * spots.length)];
+  }
+  // When the town is unhappy, villagers hint at what's missing — a readable
+  // nudge toward the fix. Returns the most pressing need's emote, or null.
+  const _has = t => state.buildings.some(b => b.type === t && b.done !== false);
+  function townNeed() {
+    const pop = state.villagers.length;
+    if (state.res.food < pop) return '🍎';                       // hungry
+    if (pop >= 4 && !_has('well')) return '💧';                  // thirsty
+    if (pop >= 8 && !_has('tavern')) return '🍺';               // wants a tavern
+    if (pop >= 12 && !_has('chapel')) return '🔔';             // wants a chapel
+    if (Math.floor(pop / 8) >= 1 && townCharm() < 10) return '🥀'; // drab, crowded
+    return null;
   }
   function strollNear(atx, aty, radius) {
     for (let i = 0; i < 10; i++) {
