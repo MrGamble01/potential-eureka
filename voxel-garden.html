@@ -341,6 +341,7 @@ const DECOR={
   fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
   lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
   gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
+  flowerbed:{name:'Flower Bed',ico:'🌷', cost:35, lvl:3},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
@@ -1720,6 +1721,14 @@ function cubesFor(type,stage,vseed){
       add(0,0.52,0,0.14,0.22,0.14,0xd64545);
       add(0,0.3,0.11,0.16,0.1,0.05,0xe8e8e8);
       break;
+    case 'flowerbed':{
+      add(0,0.09,0,0.72,0.18,0.42,0x6b4a2b);          // planter box
+      add(0,0.16,0,0.62,0.06,0.34,0x4a3421);          // soil
+      const fc=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0xff9a3e,0x7ec8ff];
+      for(let i=0;i<6;i++){const fx=(i%3-1)*0.22,fz=(i<3?-0.09:0.09);
+        add(fx,0.26,fz,0.05,0.16,0.05,0x4e9a44);
+        add(fx,0.36,fz,0.1,0.09,0.1,fc[(R()*fc.length)|0]);}
+      break;}
     case 'sprinkler':
       add(0,0.22,0,0.12,0.44,0.12,0x8b9199);
       add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
