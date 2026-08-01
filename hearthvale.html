@@ -1673,7 +1673,15 @@
     assignJobs();
     if (b.type === 'farm' || state.buildings.length <= 3) rebuildCritters();
     SFX('upgrade');
-    toast(def.emoji + ' ' + def.name + ' finished!');
+    // the Town Hall is the crowning achievement — mark it with real fanfare
+    if (b.type === 'townhall') {
+      celebrateT = CELEBRATE_DUR + 3;
+      SFX('goal');
+      toast('🏛️ ' + (state.townName || 'Hearthvale') + ' is now a great City — the Town Hall stands proud! 🎉');
+      state.happy = Math.min(100, state.happy + 8);
+    } else {
+      toast(def.emoji + ' ' + def.name + ' finished!');
+    }
     save();
   }
   // Send a spare pair of hands to each site (one builder per site).
