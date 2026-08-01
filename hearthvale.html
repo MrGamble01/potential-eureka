@@ -1835,12 +1835,26 @@
       } else { v.jobId = null; }
     }
     if (!dest) {
+      // by day, folk sometimes wander to a bench, fountain or garden to relax
+      const leisure = !isNight() && !v.buildId && roll(37) < 0.28 ? leisureSpot(v) : null;
+      if (leisure) {
+        dest = strollNear(leisure.tx, leisure.ty, 1);
+        if (roll(11) < 0.6) setEmote(v, roll(5) < 0.5 ? '😌' : '🎶', 2.6);
+      } else {
       dest = randomStroll(v);
       if (state.happy >= 65 && roll(53) < 0.12) setEmote(v, roll(11) < 0.5 ? traitOf(v).mote : '❤️', 2.2);
+      }
     }
     if (dest) { const p = pathfind(v.tx, v.ty, dest.tx, dest.ty); if (p && p.length) v.path = p; }
   }
   const ROLE_EMOTE = { farm: '🌾', lumber: '🪵', quarry: '⛏️', bakery: '🍞', carpenter: '🪚', fishing: '🐟', windmill: '🌬️', market: '🪙', orchard: '🍎' };
+  // Pleasant spots villagers drift to and linger by day — gives decorations life.
+  const LEISURE_TYPES = ['bench', 'fountain', 'birdbath', 'garden', 'flowerbed'];
+  function leisureSpot(v) {
+    const spots = state.buildings.filter(b => b.done !== false && LEISURE_TYPES.indexOf(b.type) >= 0);
+    if (!spots.length) return null;
+    return spots[Math.floor(rrand((v.id + Math.floor(state.time)) * 17) * spots.length)];
+  }
   function strollNear(atx, aty, radius) {
     for (let i = 0; i < 10; i++) {
       const nx = atx + Math.floor((rrand((atx + i + Math.floor(state.time) * 3) * 5) - 0.5) * radius * 2);
