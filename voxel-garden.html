@@ -220,7 +220,7 @@
     <li><b>🐝 Apiary</b> &mdash; a beehive whose bees <b>make 🍯 honey on their own</b> into your stockpile (a valuable good the Trader buys &amp; the Tavern serves), and <b>pollinate nearby crops so they grow faster</b> &mdash; build it beside your fields</li>
     <li><b>🍶 Brewery</b> &mdash; ferments 🍯 honey from your stockpile into <b>🍶 mead worth ~2.5×</b> (the honey chain&rsquo;s answer to the Bakery), which the Trader buys &amp; the Tavern serves at the higher value</li>
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
-    <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings</li>
+    <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings, and for a little while afterward <b>all goods sell for +35%</b> &mdash; a great time to cash in your stockpile</li>
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
@@ -1284,7 +1284,7 @@ function stockCrop(x,y,z,amt){    // a harvested crop adds produce to the stockp
 function sellStockpile(bulk){
   const tot=goodsTotal();
   if(tot<=0){if(!bulk)toast('🛒 No goods stockpiled yet — collect what your farm produces');return;}
-  const coins=Math.round(goodsSellValue()*(bulk?1.6:1.25));   // Trader pays a bulk premium; hot good adds +50%
+  const coins=Math.round(goodsSellValue()*(bulk?1.6:1.25)*(festivalActive()?FESTIVAL_BONUS:1));   // bulk premium; hot good +50%; festival +35%
   for(const t of goodsKeys())state.goods[t]=0;
   const b=state.buildings.market,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
   grantCoins(coins,gx+0.5,gy,gz+0.5);
@@ -1305,6 +1305,7 @@ function refreshGoodsHud(){
   let html='<span style="color:var(--dim);font-size:11px">🛒 STOCKPILE</span>';
   for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>0)html+='<span'+(t===dk?' style="color:var(--gold)"':'')+'>'+goodDef(t).product+q+(t===dk?'📈':'')+'</span>';}
   html+='<span style="color:var(--gold);font-size:11px">📈 '+goodDef(dk).product+' +50% today</span>';
+  if(festivalActive())html+='<span style="color:#ff9ec4;font-size:11px">🎉 festival +35%</span>';
   const hint=hasMarket()?'tap Market to sell':'the Tavern is serving these';
   html+='<span style="color:var(--gold);font-size:11px">'+hint+'</span>';
   el.innerHTML=html;
@@ -1327,7 +1328,7 @@ function serveMeal(){
   for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
   if(!bestT)return;
   state.goods[bestT]--;
-  const coins=Math.max(2,Math.round(goodDef(bestT).yield*2*demandMult(bestT)));
+  const coins=Math.max(2,Math.round(goodDef(bestT).yield*2*demandMult(bestT)*(festivalActive()?FESTIVAL_BONUS:1)));
   const b=state.buildings.tavern,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
   grantCoins(coins,gx+0.5,gy,gz+0.5);
   floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+coins,'#ffcf6b');
@@ -2323,9 +2324,13 @@ function townFestival(s){
   grantCoins(bonus,cx,cy,cz);
   for(let i=0;i<26;i++)setTimeout(()=>burst(cx+(Math.random()-0.5)*3.4,cy+Math.random()*1.6,cz+(Math.random()-0.5)*3.4,FEST_COLS[i%FEST_COLS.length],5,{up:2.6,g:3}),i*55);
   raiseFestivalLanterns(cx,cy,cz);
-  setTimeout(()=>toast('🎉 '+s.name+' Festival! The town celebrates (+'+bonus+' 🪙)'),500);
+  festBonusT=48;   // goods sell for a premium for a little while during the celebration
+  setTimeout(()=>toast('🎉 '+s.name+' Festival! The town celebrates (+'+bonus+' 🪙 · goods sell +35%)'),500);
   state.achFlags.festival=true;
 }
+let festBonusT=0;
+function festivalActive(){return festBonusT>0;}
+const FESTIVAL_BONUS=1.35;
 // A ring of glowing lanterns strung over the square for the festival, gently
 // bobbing, that fade away when the celebration winds down.
 function raiseFestivalLanterns(cx,cy,cz){
@@ -2344,6 +2349,7 @@ function raiseFestivalLanterns(cx,cy,cz){
 function clearFestivalLanterns(){for(const d of festDecor){scene.remove(d.mesh);d.mesh.geometry.dispose();d.mesh.material.dispose();}festDecor=[];}
 let festT=0;
 function updateFestival(dt){
+  if(festBonusT>0)festBonusT-=dt;
   if(!festDecor.length)return;
   festT-=dt;
   const fade=festT<3?Math.max(0,festT/3):1;
