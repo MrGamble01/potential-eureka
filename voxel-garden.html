@@ -343,6 +343,7 @@ const PLANTS={
   glowshroom:{name:'Glowshroom',ico:'🍄', cost:150,grow:130, sell:260, xp:55, lvl:8, season:'autumn'},
   crystalberry:{name:'Crystalberry',ico:'💎', cost:400,grow:420, sell:150, xp:35, lvl:9, multi:true, regrow:120, season:'winter'},
   dragonfruit:{name:'Dragonfruit',ico:'🐉', cost:280,grow:260, sell:230, xp:50, lvl:8, multi:true, regrow:130, season:'spring'},
+  frostbloom:{name:'Frostbloom',ico:'❄️', cost:130,grow:150, sell:215, xp:42, lvl:7, season:'winter'},
 };
 const DECOR={
   fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
@@ -356,7 +357,7 @@ const DECOR={
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
   4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Sprinklers',
-  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings',
+  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
   10:'A master gardener of the skies 🌈',11:'The isle hums with life',
   12:'Nothing left to prove — everything left to grow 🌟'};
@@ -2104,6 +2105,16 @@ function cubesFor(type,stage,vseed){
         add(-0.13,0.6,-0.06,0.06,0.08,0.06,0x8fe06a);
       } else add(0,0.66,0,0.12,0.12,0.12,0x6fb884);
       break;
+    case 'frostbloom':
+      add(0,0.28,0,0.08,0.56,0.08,0x8fb8c8);                    // frosty stem
+      add(0.1,0.34,0,0.14,0.05,0.07,0xbfe4f0); add(-0.1,0.46,0,0.14,0.05,0.07,0xbfe4f0); // icy leaves
+      if(stage>=2){
+        add(0,0.72,0,0.16,0.16,0.16,0xdff4ff);                  // crystal core
+        add(0.16,0.72,0,0.1,0.24,0.1,0xa8e0f4); add(-0.16,0.72,0,0.1,0.24,0.1,0xa8e0f4); // petals
+        add(0,0.9,0,0.1,0.24,0.1,0xa8e0f4); add(0,0.72,0.16,0.1,0.1,0.24,0xa8e0f4); add(0,0.72,-0.16,0.1,0.1,0.24,0xa8e0f4);
+        add(0,0.72,0,0.26,0.06,0.26,0xeaffff);                  // frost glint
+      } else add(0,0.62,0,0.14,0.14,0.14,0xbfe4f0);
+      break;
   }
   return c;
 }
@@ -2130,7 +2141,7 @@ function buildPlantGeometry(cubes){
   return g;
 }
 // crops that give off a soft glow after dark
-const GLOW_CROPS={moonpetal:0x9adfff,glowshroom:0x7bffb0,crystalberry:0xbaa8ff,dragonfruit:0xff5c9e};
+const GLOW_CROPS={moonpetal:0x9adfff,glowshroom:0x7bffb0,crystalberry:0xbaa8ff,dragonfruit:0xff5c9e,frostbloom:0x9fe8ff};
 function refreshPlantMesh(p){
   if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
   if(p.glow){scene.remove(p.glow);p.glow.geometry.dispose();p.glow.material.dispose();p.glow=null;}
