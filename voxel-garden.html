@@ -1772,6 +1772,19 @@ function updateDuck(dt){
   } else {const sp=Math.min(1,0.7*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);t.paddle+=dt*6;}
   positionDuck();
 }
+// When the cat and dog wander near each other, they share a friendly hello.
+let petFriendT=0;
+function updatePetFriends(dt){
+  if(petFriendT>0){petFriendT-=dt;return;}
+  if(!townCat||!townDog)return;
+  if(Math.hypot(townCat.x-townDog.x,townCat.z-townDog.z)>1.8)return;
+  const cy=(surfaceY(Math.round(townCat.x),Math.round(townCat.z))||4)+1;
+  floatText(townCat.x,cy+1.2,townCat.z,'❤️','#ff9ec4');
+  floatText(townDog.x,cy+1.2,townDog.z,['🐾','🎵'][(Math.random()*2)|0],'#ffd08a');
+  SFX.tone(560,0.08,'sine',0.03,720);
+  if(townDog.wait!==undefined)townDog.wait=0;   // trot along after the hello
+  petFriendT=16+Math.random()*8;
+}
 function petDuck(){
   const t=pondDuck;if(!t)return;
   const y=(W.waterY||5)+1.2;
@@ -3542,6 +3555,7 @@ function boot(){
     updateCat(dt);
     updateDog(dt);
     updateDuck(dt);
+    updatePetFriends(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
