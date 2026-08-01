@@ -733,6 +733,7 @@
     tavern:    { roof: 'red',    wall: 'timber', chimney: true,  open: true },
     warehouse: { roof: 'slate',  wall: 'timber', chimney: false, open: true },
     fishing:   { roof: 'blue',   wall: 'timber', chimney: false, open: true },
+    dock:      { roof: 'blue',   wall: 'timber', chimney: false, open: true },
     school:    { roof: 'blue',   wall: 'stone',  chimney: true },
     apiary:    { roof: 'thatch', wall: 'timber', chimney: false, open: true },
     townhall:  { roof: 'slate',  wall: 'stone',  chimney: false, open: true },
@@ -1062,7 +1063,8 @@
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, tier: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
     warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
-    fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 8 }, prod: { food: 4 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Cheap food — a worker nets fish. Built beside water it lands 50% more.' },
+    fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 8 }, prod: { food: 4 }, worker: true, wantsNear: 'water', likes: { types: ['dock'], bonus: 0.5, label: 'a Dock' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Cheap food — a worker nets fish. Built beside water it lands 50% more, and 50% more again by a Dock.' },
+    dock:       { name: 'Dock',        emoji: '⚓', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 }, prod: { food: 3 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'A little dock — a worker lands fish, and nearby fishing huts haul in 50% more.' },
     windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, tier: 3, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, likes: { types: ['farm'], bonus: 0.5, label: 'a Farm' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — lifts nearby farms’ harvest, and earns more beside one.' },
     orchard:    { name: 'Orchard',     emoji: '🍎', w: 3, h: 2, tier: 2, cost: { wood: 16, gold: 10 }, prod: { food: 5 }, charm: 4, roof: C.thatch, roofDk: C.thatchDk, desc: 'Fruit trees yield food on their own — no worker needed — and prettify the town.' },
     chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, tier: 3, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town.' },
@@ -1080,7 +1082,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1254,6 +1256,7 @@
     { id: 'festivals5', emoji: '🎉', name: 'Life of the Party', desc: 'Hold five town festivals.', done: () => (state.festivalsHeld || 0) >= 5 },
     { id: 'lamplighter', emoji: '🏮', name: 'Lamplighter', desc: 'Place a lamppost.', done: () => countType('lamppost') >= 1 },
     { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19 },
+    { id: 'dockworker', emoji: '⚓', name: 'On the Waterfront', desc: 'Build a dock.', done: () => countType('dock') >= 1 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3333,7 +3336,7 @@
 
   // The build bar is organised into category tabs so it never overflows.
   const BUILD_TABS = [
-    { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing'] },
+    { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
     { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'warehouse'] },
     { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
