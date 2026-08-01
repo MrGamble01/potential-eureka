@@ -1758,8 +1758,11 @@ function buildPlantGeometry(cubes){
   g.setIndex(idx);
   return g;
 }
+// crops that give off a soft glow after dark
+const GLOW_CROPS={moonpetal:0x9adfff,glowshroom:0x7bffb0,crystalberry:0xbaa8ff};
 function refreshPlantMesh(p){
   if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
+  if(p.glow){scene.remove(p.glow);p.glow.geometry.dispose();p.glow.material.dispose();p.glow=null;}
   const g=buildPlantGeometry(cubesFor(p.type,p.stage,p.vseed));
   const m=new THREE.Mesh(g,plantMat);
   m.position.set(p.x+0.5,p.y,p.z+0.5);
@@ -1767,6 +1770,12 @@ function refreshPlantMesh(p){
   m.userData.plantKey=k3(p.x,p.y,p.z);
   scene.add(m);
   p.mesh=m;
+  if(GLOW_CROPS[p.type]&&p.stage>=1){
+    const gm=new THREE.Mesh(new THREE.IcosahedronGeometry(0.42,1),
+      new THREE.MeshBasicMaterial({color:GLOW_CROPS[p.type],transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+    gm.position.set(p.x+0.5,p.y+(p.stage>=2?0.7:0.45),p.z+0.5);
+    scene.add(gm);p.glow=gm;
+  }
 }
 
 /* ============================== scene ============================== */
@@ -2099,6 +2108,7 @@ function addPlant(x,y,z,type,fromLoad,prog,stage,harvested){
 }
 function removePlant(p){
   if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
+  if(p.glow){scene.remove(p.glow);p.glow.geometry.dispose();p.glow.material.dispose();p.glow=null;}
   W.plants.delete(k3(p.x,p.y,p.z));
 }
 function stageFor(p){
@@ -2111,6 +2121,8 @@ function updatePlants(dt,dn){
   for(const p of W.plants.values()){
     const def=PLANTS[p.type];
     if(!def)continue;                    // decor
+    if(p.glow){const t=dn.night||0;p.glow.visible=t>0.03;
+      p.glow.material.opacity=t*(0.45+Math.sin(perf*2+p.phase)*0.18);}   // pulse after dark
     if(p.stage>=2){
       // gentle ripe pulse
       const s=1+Math.sin(perf*2.6+p.phase)*0.045;
