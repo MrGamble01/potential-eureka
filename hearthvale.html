@@ -856,7 +856,7 @@
 
     // ---- Placeable decorations ----
     if (BUILDINGS[type].decor) {
-      const rises = { flowerbed: 4, garden: 4, hedge: 5, torch: 15, lamppost: 20, statue: 12, fountain: 9 };
+      const rises = { flowerbed: 4, garden: 4, hedge: 5, torch: 15, lamppost: 20, bench: 6, birdbath: 8, statue: 12, fountain: 9 };
       const RISE2 = rises[type] != null ? rises[type] : 6, H2 = gh + RISE2;
       const mk = makeCanvas(W, H2), c2 = mk.c, x2 = mk.x;
       const P2 = (px, py, pw, ph, col) => { x2.fillStyle = col; x2.fillRect(Math.round(px), Math.round(py), Math.round(pw), Math.round(ph)); };
@@ -887,6 +887,17 @@
         P2(cx - 3, gY - 1, 6, 1, C.lamp);                                          // base
         P2(cx - 2, gY - 20, 4, 5, C.lamp); P2(cx - 2, gY - 20, 4, 1, C.lamp);      // lantern housing
         P2(cx - 1, gY - 19, 2, 3, C.lampGlow);                                     // warm glass
+      } else if (type === 'bench') {
+        P2(2, gY - 4, 12, 2, C.woodDk); P2(2, gY - 5, 12, 1, C.wood);              // seat
+        P2(2, gY - 8, 12, 1, C.wood); P2(2, gY - 8, 12, 1, C.woodDk);              // backrest slat
+        P2(3, gY - 8, 1, 4, C.woodDk); P2(12, gY - 8, 1, 4, C.woodDk);             // back posts
+        P2(3, gY - 2, 1, 2, C.woodDk); P2(12, gY - 2, 1, 2, C.woodDk);             // legs
+      } else if (type === 'birdbath') {
+        const cx = W / 2;
+        P2(cx - 1, gY - 6, 2, 6, C.stoneWDk); P2(cx - 1, gY - 6, 1, 6, C.stoneW);  // pedestal
+        P2(cx - 4, gY - 8, 8, 3, C.stoneW); P2(cx - 4, gY - 8, 8, 1, C.stoneWHi);  // basin
+        P2(cx - 3, gY - 7, 6, 1, C.water); P2(cx - 3, gY - 7, 3, 1, C.waterHi);    // water
+        P2(cx - 5, gY - 1, 10, 1, C.stoneWDk);                                     // base
       } else if (type === 'fountain') {
         const cx = W / 2;
         P2(3, gY - 5, W - 6, 5, C.stoneW); P2(3, gY - 5, W - 6, 1, C.stoneWHi); P2(3, gY - 1, W - 6, 1, C.stoneWDk); // basin rim
@@ -1064,9 +1075,11 @@
     statue:     { name: 'Statue',      emoji: '🗿', w: 1, h: 1, tier: 3, cost: { stone: 12 },          decor: true, charm: 8,  desc: 'A proud stone monument — a fine centerpiece.' },
     fountain:   { name: 'Fountain',    emoji: '⛲', w: 2, h: 2, tier: 3, cost: { stone: 22, gold: 15 }, decor: true, charm: 16, desc: 'A grand fountain — the heart of a beautiful town square.' },
     lamppost:   { name: 'Lamppost',    emoji: '🏮', w: 1, h: 1, tier: 1, cost: { wood: 3, gold: 3 }, decor: true, charm: 2, light: true, desc: 'A roadside lamp that pools warm light over the paths after dark.' },
+    bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
+    birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'statue', 'fountain'];
-  const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
     { name: 'Camp',    at: 0 },
