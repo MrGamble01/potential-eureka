@@ -1687,7 +1687,7 @@ function spawnCat(){
   const mesh=new THREE.Mesh(buildPlantGeometry(catCubes()),plantMat);
   mesh.castShadow=true;mesh.userData.cat=true;scene.add(mesh);
   const b=state.buildings.tavern||{x:0,z:2};
-  townCat={mesh,x:b.x+1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3};
+  townCat={mesh,name:petName(1),x:b.x+1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3};
   positionCat();
 }
 function positionCat(){
@@ -1719,6 +1719,7 @@ function petCat(){
   const gy=(surfaceY(Math.round(t.x),Math.round(t.z))||4)+1;
   floatText(t.x,gy+1.1,t.z,['❤️','🐾','😻'][(Math.random()*3)|0],'#ff9ec4');
   SFX.tone(760,0.12,'sine',0.05,900);
+  if(t.name)toast('🐈 '+t.name+' purrs happily');
   state.achFlags.cat=true;checkAch();
 }
 // A loyal farm dog turns up with the Farmhouse — ambles the isle, tap for a happy bark.
@@ -1738,7 +1739,7 @@ function spawnDog(){
   const mesh=new THREE.Mesh(buildPlantGeometry(dogCubes()),plantMat);
   mesh.castShadow=true;mesh.userData.dog=true;scene.add(mesh);
   const b=state.buildings.farmhouse||{x:0,z:-2};
-  townDog={mesh,x:b.x-1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3,digT:30+Math.random()*25};
+  townDog={mesh,name:petName(2),x:b.x-1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3,digT:30+Math.random()*25};
   positionDog();
 }
 function positionDog(){
@@ -1784,9 +1785,14 @@ function petDog(){
   const gy=(surfaceY(Math.round(t.x),Math.round(t.z))||4)+1;
   floatText(t.x,gy+1.2,t.z,['❤️','🐾','🦴'][(Math.random()*3)|0],'#ffd08a');
   SFX.tone(300,0.08,'square',0.05);setTimeout(()=>SFX.tone(420,0.1,'square',0.045),90);   // woof-woof
+  if(t.name)toast('🐕 '+t.name+' wags happily');
   t.wait=0;   // perk up and trot off
   state.achFlags.dog=true;checkAch();
 }
+// Companion names, drawn deterministically from the world seed so they're
+// stable across reloads (the pets themselves respawn fresh each load).
+const PET_NAMES=['Biscuit','Pepper','Clover','Waffle','Pumpkin','Mochi','Ziggy','Noodle','Pip','Tumble','Marigold','Cinnamon'];
+function petName(off){return PET_NAMES[Math.abs(Math.floor(W.seed||0)+off*31)%PET_NAMES.length];}
 // A duck paddles about the pond — pure ambience on the water surface.
 let pondDuck=null;
 function duckCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
@@ -1802,7 +1808,7 @@ function spawnDuck(){
   const mesh=new THREE.Mesh(buildPlantGeometry(duckCubes()),plantMat);
   mesh.castShadow=true;mesh.userData.duck=true;scene.add(mesh);
   const s=pondCellCenter((Math.random()*W.pondCells.length)|0);
-  pondDuck={mesh,x:s.x,z:s.z,tx:s.x,tz:s.z,face:0,paddle:0,wait:1+Math.random()*3,quackT:6+Math.random()*8};
+  pondDuck={mesh,name:petName(3),x:s.x,z:s.z,tx:s.x,tz:s.z,face:0,paddle:0,wait:1+Math.random()*3,quackT:6+Math.random()*8};
   positionDuck();
 }
 function positionDuck(){
@@ -1840,6 +1846,7 @@ function petDuck(){
   const y=(W.waterY||5)+1.2;
   floatText(t.x,y,t.z,['🦆','💛','🎵'][(Math.random()*3)|0],'#f7d97a');
   SFX.tone(360,0.1,'sawtooth',0.04);setTimeout(()=>SFX.tone(300,0.1,'sawtooth',0.035),110);
+  if(t.name)toast('🦆 '+t.name+' gives a happy quack');
   state.achFlags.duck=true;checkAch();
 }
 function buyBuilding(key){
@@ -3478,6 +3485,14 @@ function renderAlmanac(){
     html+='<div class="alm-head" style="margin-top:14px">TOWNSFOLK</div>';
     html+='<div class="alm-stat" style="text-align:left;line-height:1.7">'+
       W.workers.map(w=>ROLE_ICO[w.role]+' '+w.name+(rolesUnlocked()?' <span style="color:var(--dim)">'+ROLE_NAME[w.role]+'</span>':'')).join(' &nbsp;·&nbsp; ')+'</div>';
+  }
+  const pets=[];
+  if(townCat)pets.push('🐈 '+townCat.name);
+  if(townDog)pets.push('🐕 '+townDog.name);
+  if(pondDuck)pets.push('🦆 '+pondDuck.name);
+  if(pets.length){
+    html+='<div class="alm-head" style="margin-top:14px">COMPANIONS</div>';
+    html+='<div class="alm-stat" style="text-align:left">'+pets.join(' &nbsp;·&nbsp; ')+'</div>';
   }
   if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
   $('almBody').innerHTML=html;
