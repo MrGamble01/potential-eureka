@@ -820,7 +820,11 @@ function checkTownRank(){
     const r=TOWN_RANKS[idx],gift=idx*60;
     grantCoins(gift);
     SFX.play('level');
-    banner('🏛️ '+(state.townName||'Your town')+' is now a '+r.name+'!','A gift of '+gift+' 🪙 from a thriving settlement.');
+    const top=idx>=TOWN_RANKS.length-1;
+    banner('🏛️ '+(state.townName||'Your town')+' is now a '+r.name+'!',
+      top?'A golden Monument rises in the square to honour your thriving Sky City. +'+gift+' 🪙'
+        :'A gift of '+gift+' 🪙 from a thriving settlement.');
+    if(top)raiseMonument();
     if($('townPanel')&&$('townPanel').classList.contains('open'))buildTownPanel();
   }
 }
@@ -1620,6 +1624,38 @@ function updateApiary(dt){
   if(honeyMsgT<=0){toast('🍯 The Apiary gathered honey');honeyMsgT=30;}
 }
 function rebuildBuildings(){for(const key in (state.buildings||{}))if(state.buildings[key])placeBuildingMesh(key);}
+// A golden Monument raised in the square when the town reaches its highest rank — a trophy.
+let monumentMesh=null;
+function monumentCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.3,0,1.2,0.6,1.2,0xcbb26a);               // stone base
+  a(0,0.72,0,0.82,0.3,0.82,0xd8c07a);            // plinth
+  a(-0.12,1.12,0,0.14,0.42,0.14,0xe6b800); a(0.12,1.12,0,0.14,0.42,0.14,0xe6b800); // golden legs
+  a(0,1.52,0,0.42,0.5,0.28,0xffd23e);            // body
+  a(-0.28,1.5,0,0.12,0.42,0.14,0xffd23e);        // left arm down
+  a(0.3,1.62,0,0.12,0.34,0.12,0xffd23e); a(0.34,1.92,0,0.12,0.28,0.12,0xffd23e);   // right arm raised
+  a(0.36,2.16,0,0.09,0.22,0.09,0xfff0a0);        // holding a golden sheaf aloft
+  a(0,1.94,0,0.28,0.28,0.28,0xffe066);           // head
+  a(0,2.12,0,0.4,0.07,0.4,0xe6b800); a(0,2.2,0,0.2,0.13,0.2,0xe6b800);             // hat
+  return c;}
+function placeMonument(){
+  const m=state.monument;if(!m)return;
+  if(monumentMesh){scene.remove(monumentMesh);monumentMesh.geometry.dispose();}
+  monumentMesh=new THREE.Mesh(buildPlantGeometry(monumentCubes()),plantMat);
+  monumentMesh.castShadow=true;monumentMesh.position.set(m.x+0.5,(surfaceY(m.x,m.z)||4)+1,m.z+0.5);
+  scene.add(monumentMesh);
+}
+function raiseMonument(){
+  if(state.monument){placeMonument();return;}
+  const b=state.buildings.tavern||state.buildings.market||{x:0,z:0};
+  let spot=null;
+  for(const [dx,dz] of [[3,0],[-3,0],[0,3],[0,-3],[3,3],[-3,-3],[4,0],[0,4],[2,3],[-2,-3]]){
+    if(surfaceY(b.x+dx,b.z+dz)!=null){spot={x:b.x+dx,z:b.z+dz};break;}
+  }
+  if(!spot)spot={x:0,z:0};
+  state.monument=spot;placeMonument();
+  const gy=(surfaceY(spot.x,spot.z)||4)+3.4;
+  for(let i=0;i<24;i++)setTimeout(()=>burst(spot.x+0.5,gy,spot.z+0.5,0xffd23e,5,{up:2.4,g:3}),i*50);
+}
 // A town cat turns up once you build a Tavern — it ambles around the settlement
 // and you can tap it for a purr and a heart.
 let townCat=null;
@@ -3513,6 +3549,7 @@ function boot(){
   rebuildBuildings();
   if(hasTavern())spawnCat();
   if(state.buildings&&state.buildings.farmhouse)spawnDog();
+  if(state.monument)placeMonument();
   cam.cy=(surfaceY(0,0)||5)+1;
   fitCamera(true);
   initHud();
