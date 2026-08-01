@@ -1668,6 +1668,59 @@ function petCat(){
   SFX.tone(760,0.12,'sine',0.05,900);
   state.achFlags.cat=true;checkAch();
 }
+// A loyal farm dog turns up with the Farmhouse — ambles the isle, tap for a happy bark.
+let townDog=null;
+function dogCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.28,0,0.4,0.32,0.68,0x9a6a3a);            // body
+  a(0,0.5,0.38,0.32,0.32,0.3,0xa9753f);          // head
+  a(0,0.44,0.56,0.16,0.13,0.14,0x8a5f34);        // snout
+  a(0,0.47,0.64,0.07,0.07,0.05,0x2a2a2a);        // nose
+  a(-0.15,0.54,0.36,0.09,0.18,0.06,0x7a4f2a); a(0.15,0.54,0.36,0.09,0.18,0.06,0x7a4f2a); // floppy ears
+  a(0,0.52,-0.36,0.09,0.24,0.11,0x9a6a3a);       // tail (up)
+  a(-0.14,0.1,0.22,0.1,0.2,0.1,0x8a5f34); a(0.14,0.1,0.22,0.1,0.2,0.1,0x8a5f34);
+  a(-0.14,0.1,-0.2,0.1,0.2,0.1,0x8a5f34); a(0.14,0.1,-0.2,0.1,0.2,0.1,0x8a5f34);
+  return c;}
+function spawnDog(){
+  if(townDog)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(dogCubes()),plantMat);
+  mesh.castShadow=true;mesh.userData.dog=true;scene.add(mesh);
+  const b=state.buildings.farmhouse||{x:0,z:-2};
+  townDog={mesh,x:b.x-1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3};
+  positionDog();
+}
+function positionDog(){
+  const t=townDog;if(!t)return;
+  const gy=surfaceY(Math.round(t.x),Math.round(t.z));const y=(gy==null?4:gy)+1;
+  if(t.dispY==null)t.dispY=y;else t.dispY+=(y-t.dispY)*0.35;   // track terrain quickly so it never dips into a step
+  const wag=Math.sin(t.step*6)*0.06;   // a happy tail-wag wiggle
+  t.mesh.position.set(t.x,t.dispY,t.z);t.mesh.rotation.y=t.face+wag;
+}
+function updateDog(dt){
+  const t=townDog;if(!t)return;
+  if(t.act==='sit'||!t.path){t.step+=dt;t.wait-=dt;
+    if(t.wait<=0){
+      for(let i=0;i<6;i++){const ang=Math.random()*6.283,rad=3+Math.random()*6;
+        const wx=Math.round(t.x+Math.sin(ang)*rad),wz=Math.round(t.z+Math.cos(ang)*rad);
+        const p=findPath(Math.round(t.x),Math.round(t.z),wx,wz);
+        if(p){t.path=p;t.pathI=0;t.act='walk';break;}}
+      if(t.act!=='walk')t.wait=1+Math.random()*2;
+    }
+    positionDog();return;
+  }
+  const wp=t.path[t.pathI],dx=(wp[0]+0.5)-t.x,dz=(wp[1]+0.5)-t.z,d=Math.hypot(dx,dz);
+  if(d<(t.pathI>=t.path.length-1?0.3:0.22)){
+    if(t.pathI>=t.path.length-1){t.act='sit';t.wait=1.5+Math.random()*3;t.path=null;}else t.pathI++;
+  } else {const sp=Math.min(1,1.7*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);t.step+=dt*9;}
+  positionDog();
+}
+function petDog(){
+  const t=townDog;if(!t)return;
+  const gy=(surfaceY(Math.round(t.x),Math.round(t.z))||4)+1;
+  floatText(t.x,gy+1.2,t.z,['❤️','🐾','🦴'][(Math.random()*3)|0],'#ffd08a');
+  SFX.tone(300,0.08,'square',0.05);setTimeout(()=>SFX.tone(420,0.1,'square',0.045),90);   // woof-woof
+  t.wait=0;   // perk up and trot off
+  state.achFlags.dog=true;checkAch();
+}
 function buyBuilding(key){
   const def=BUILDINGS[key];if(!def)return;
   if(state.buildings[key]){toast(def.ico+' '+def.name+' already built');return;}
@@ -1679,6 +1732,7 @@ function buyBuilding(key){
   SFX.play('islet');
   banner(def.ico+' '+def.name+' raised!',def.desc);
   if(key==='tavern'){setTimeout(()=>toast('🍺 Tap a villager to set their role'),1400);setTimeout(()=>{spawnCat();toast('🐈 A cat has adopted your town');},2200);}
+  if(key==='farmhouse'){setTimeout(()=>{spawnDog();toast('🐕 A farm dog has moved in — tap to say hi');},2200);}
   buildTownPanel();
   if(typeof checkAch==='function')checkAch();
   setTimeout(welcomeSettler,1600);        // a new building draws a resident to town
@@ -2493,6 +2547,7 @@ function doAction(hit){
   if(ud.workerRef)return cycleWorkerRole(ud.workerRef); // tap a villager to set their role
   if(ud.water)return goFishing(hit.point.x,hit.point.z); // tap the pond to fish
   if(ud.cat)return petCat();                              // pet the town cat
+  if(ud.dog)return petDog();                              // pet the farm dog
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
@@ -2638,6 +2693,7 @@ function getPickables(){
   for(const k in W.buildingMeshes)arr.push(W.buildingMeshes[k]);
   if(waterMesh)arr.push(waterMesh);
   if(townCat)arr.push(townCat.mesh);
+  if(townDog)arr.push(townDog.mesh);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -2755,7 +2811,7 @@ function updateHover(){
     document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
     return;
   }
-  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat){
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat||hit.object.userData.dog){
     highlightBox.visible=false;ghostCube.visible=false;
     document.body.style.cursor='pointer';return;
   }
@@ -3187,6 +3243,7 @@ const ACH=[
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
+  ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
   ['golden','Golden Harvest','Harvest a rare golden crop',()=>!!state.achFlags.golden],
   ['honey','Sweet Harvest','Gather honey from your Apiary',()=>!!state.achFlags.honey],
   ['inseason','Perfect Timing','Harvest a crop in its favoured season',()=>!!state.achFlags.inseason],
@@ -3351,6 +3408,7 @@ function boot(){
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   rebuildBuildings();
   if(hasTavern())spawnCat();
+  if(state.buildings&&state.buildings.farmhouse)spawnDog();
   cam.cy=(surfaceY(0,0)||5)+1;
   fitCamera(true);
   initHud();
@@ -3391,6 +3449,7 @@ function boot(){
     updateApiary(dt);
     updateSmoke(dt);
     updateCat(dt);
+    updateDog(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
