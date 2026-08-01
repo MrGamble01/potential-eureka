@@ -1117,6 +1117,7 @@
       toast('🎉 ' + (state.townName || 'Hearthvale') + ' has grown into a ' + TIERS[t].name + '! New buildings unlocked.');
       SFX('goal');
       state.happy = Math.min(100, state.happy + 4);
+      celebrateT = CELEBRATE_DUR;   // a confetti flourish
       buildBar(); renderGoal(); save();
     } else if (t < _lastTier) _lastTier = t;   // shrunk back down — no fanfare
   }
@@ -1332,6 +1333,8 @@
   const RAIN_CROP_BONUS = 0.25;
   let rainbowT = 0;              // real-time seconds a rainbow lingers (ephemeral)
   const RAINBOW_DUR = 14;
+  let celebrateT = 0;            // confetti flourish timer on a tier-up (ephemeral)
+  const CELEBRATE_DUR = 3;
   function rainBoostsCrops() { return state.raining && seasonOf(state.day).name !== 'Winter'; }
   function cropRainMult(b) { return (rainBoostsCrops() && (b.type === 'farm' || b.type === 'orchard')) ? 1 + RAIN_CROP_BONUS : 1; }
   // The seasons reach the fields too: autumn brings a harvest bounty, winter
@@ -2380,6 +2383,7 @@
     if (festivalActive()) drawFestival(sx, sy, z);
     if (state.raining) drawWeather();
     drawMist();
+    if (celebrateT > 0) drawCelebration();
   }
 
   // A festival: a warm glow, a ring of bobbing lanterns, and music notes
@@ -2424,6 +2428,28 @@
     ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
 
+  // A brief confetti flourish when the town grows into a new tier — bits of
+  // colour rising and fading over a few seconds. Screen-space, continuous.
+  function drawCelebration() {
+    const p = 1 - celebrateT / CELEBRATE_DUR;   // 0 at start → 1 at end
+    const cols = ['#ff6b5c', '#ffd166', '#8fd88a', '#7fb8f2', '#d59be6', '#f2c14e'];
+    ctx.save();
+    for (let i = 0; i < 46; i++) {
+      const r1 = Math.sin(i * 12.9898) * 0.5 + 0.5;   // deterministic 0..1
+      const r2 = Math.sin(i * 78.233) * 0.5 + 0.5;
+      const rise = 0.35 + r2 * 0.65;
+      const x = r1 * view.w + Math.sin(ambientTime * 2 + i) * 12;
+      const y = view.h + 10 - p * view.h * 1.2 * rise - r2 * 30;
+      const a = Math.sin(Math.min(1, p / rise) * Math.PI);   // fade in then out
+      if (a <= 0.01) continue;
+      ctx.globalAlpha = a * 0.9;
+      ctx.fillStyle = cols[i % cols.length];
+      const s = (3 + (i % 3)) ;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ambientTime * 3 + i); ctx.fillRect(-s / 2, -s / 2, s, s); ctx.restore();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
   // A gentle dawn mist that drifts low over the valley and lifts as the sun
   // climbs. Screen-space soft bands on continuous sines — thin enough to keep
   // the town readable, and it never blinks.
@@ -2657,6 +2683,7 @@
   function updateAmbient(rdt) {
     ambientTime += rdt;
     if (rainbowT > 0) rainbowT = Math.max(0, rainbowT - rdt);
+    if (celebrateT > 0) celebrateT = Math.max(0, celebrateT - rdt);
     updateClouds(rdt);
     const r = visRect(), seas = seasonIdx(), night = isNight();
     const margin = 40, vw = r.x1 - r.x0, vh = r.y1 - r.y0;
