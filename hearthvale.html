@@ -2341,6 +2341,7 @@
     drawFireflies(sx, sy, z);
     if (festivalActive()) drawFestival(sx, sy, z);
     if (state.raining) drawWeather();
+    drawMist();
   }
 
   // A festival: a warm glow, a ring of bobbing lanterns, and music notes
@@ -2385,6 +2386,31 @@
     ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
 
+  // A gentle dawn mist that drifts low over the valley and lifts as the sun
+  // climbs. Screen-space soft bands on continuous sines — thin enough to keep
+  // the town readable, and it never blinks.
+  function drawMist() {
+    const h = state.time;
+    if (h < 4.5 || h >= 8.5) return;
+    const a = Math.sin((h - 4.5) / 4 * Math.PI) * 0.15;   // rise then fall, peak ~6:30
+    if (a <= 0.005) return;
+    const t = ambientTime;
+    ctx.save();
+    ctx.fillStyle = '#e8eef2';
+    for (let i = 0; i < 4; i++) {
+      const by = view.h * (0.25 + i * 0.2) + Math.sin(t * 0.25 + i * 1.7) * 14;
+      const bx = ((t * (8 + i * 3) + i * 400) % (view.w + 400)) - 200;
+      ctx.globalAlpha = a * (0.7 + 0.3 * Math.sin(t * 0.4 + i));
+      ctx.beginPath();
+      ctx.ellipse(bx, by, view.w * 0.5, 34 + i * 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(bx - view.w * 0.55, by + 10, view.w * 0.45, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
   function drawWeather() {
     const winter = seasonOf(state.day).name === 'Winter';
     const t = perfNow;
