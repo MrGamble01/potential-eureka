@@ -2124,6 +2124,11 @@
     toast(ev.emoji + ' ' + ev.title + ' — ' + ev.note);
     updateHUD(); save();
   }
+  // Auto-pause while a decision modal (event / trader) is open, so there's no
+  // time pressure; restore the prior speed when it closes.
+  let _modalPrevSpeed = null;
+  function pauseForModal() { if (_modalPrevSpeed === null) { _modalPrevSpeed = gameSpeed; gameSpeed = 0; syncPaused(); } }
+  function resumeFromModal() { if (_modalPrevSpeed !== null) { gameSpeed = _modalPrevSpeed; _modalPrevSpeed = null; syncPaused(); } }
   function openEvent(ev) {
     document.getElementById('ev-emoji').textContent = ev.emoji;
     document.getElementById('ev-title').textContent = ev.title;
@@ -2135,11 +2140,12 @@
       btn.className = 'ev-choice' + (i === 0 ? ' primary' : '');
       btn.textContent = ch.label;
       if (ch.enabled && !ch.enabled(state)) btn.disabled = true;
-      btn.onclick = () => { ch.run(state); document.getElementById('event').classList.remove('show'); updateHUD(); save(); };
+      btn.onclick = () => { ch.run(state); document.getElementById('event').classList.remove('show'); resumeFromModal(); updateHUD(); save(); };
       wrap.appendChild(btn);
     });
     SFX('trader');
     document.getElementById('event').classList.add('show');
+    pauseForModal();
   }
 
   // ---- Trader --------------------------------------------------
@@ -2163,6 +2169,7 @@
     renderTrader();
     document.getElementById('trader').classList.add('show');
     SFX('trader');
+    pauseForModal();
   }
   function renderTrader() {
     const rows = document.getElementById('trade-rows');
@@ -2194,7 +2201,7 @@
     }));
   }
   document.getElementById('trader-close').addEventListener('click', () => {
-    document.getElementById('trader').classList.remove('show'); save();
+    document.getElementById('trader').classList.remove('show'); resumeFromModal(); save();
   });
 
   // ============================================================
