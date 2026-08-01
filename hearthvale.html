@@ -183,6 +183,8 @@
     #chron-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 3px; padding-right: 4px; }
     .chron-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 7px; font-size: 13px; }
     .chron-row span:first-child { opacity: 0.82; } .chron-row b { color: #f2d9a0; }
+    .diffbtn { flex: 1; padding: 8px 4px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-family: var(--font); font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .diffbtn.on { border-color: var(--gold); background: rgba(242,193,78,0.14); color: #f2d9a0; }
     .achv-row {
       display: flex; align-items: center; gap: 10px; padding: 7px 10px;
       border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
@@ -394,6 +396,13 @@
         &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
+      <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
+      <div id="diffsel" style="display:flex; gap:6px;">
+        <button type="button" class="diffbtn" data-diff="cozy">&#127804; Cozy</button>
+        <button type="button" class="diffbtn on" data-diff="normal">&#129517; Wayfarer</button>
+        <button type="button" class="diffbtn" data-diff="hard">&#9968;&#65039; Frontier</button>
+      </div>
+      <div id="diffdesc" style="font-size:11.5px; color:var(--ink-dim); min-height:15px; margin:5px 1px 0;">The intended balance &mdash; a fair start.</div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Name your town</label>
       <input id="townname-input" type="text" maxlength="20" placeholder="Hearthvale" autocomplete="off"
         style="width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-family:var(--font); font-size:14px; font-weight:600;">
@@ -1197,6 +1206,13 @@
   let gameSpeed = 1, prevSpeed = 1;   // 0 = paused, 1/2/3 = time multiplier
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
+  // Difficulty presets chosen at the start — a relaxed build vs. a lean frontier.
+  const DIFFICULTY = {
+    cozy:   { label: 'Cozy',     res: 1.6, famine: false, desc: 'A relaxed build &mdash; a generous start, and no one ever leaves.' },
+    normal: { label: 'Wayfarer', res: 1.0, famine: true,  desc: 'The intended balance &mdash; a fair start.' },
+    hard:   { label: 'Frontier', res: 0.55, famine: true, desc: 'A testing start &mdash; lean stores, no room for waste.' },
+  };
+  function diffCfg() { return DIFFICULTY[state && state.difficulty] || DIFFICULTY.normal; }
   function defaultState() {
     return {
       res: { wood: 40, stone: 20, food: 30, gold: 25 },
@@ -1224,6 +1240,7 @@
       lastFestivalDay: -99, // cooldown anchor for the next festival
       peakPop: 0,      // high-water mark of population, for the chronicle
       festivalsHeld: 0,// lifetime festivals thrown
+      difficulty: 'normal', // chosen pace: cozy | normal | hard
     };
   }
   const ACHIEVEMENTS = [
@@ -1291,6 +1308,7 @@
     const tierName = TIERS[townTier()].name;
     const rows = [
       ['🏘️ Standing as', tierName],
+      ['⚖️ Pace', diffCfg().label],
       ['📅 Days settled', state.day + '  (' + season.emoji + ' ' + season.name + ')'],
       ['👪 Population', state.villagers.length + '  ·  peak ' + Math.max(state.peakPop || 0, state.villagers.length)],
       ['😊 Happiness', Math.round(state.happy) + '%' + (moraleMult() > 1 ? '  ⚡ thriving' : moraleMult() < 1 ? '  ⚠️ unsettled' : '')],
@@ -2014,7 +2032,7 @@
       state.sadDays = 0;
     } else if (state.happy < 25) {
       state.sadDays = (state.sadDays || 0) + 1;
-      if (state.sadDays >= 2 && state.villagers.length > 0) {
+      if (diffCfg().famine !== false && state.sadDays >= 2 && state.villagers.length > 0) {
         const leaver = state.villagers[state.villagers.length - 1];
         state.villagers = state.villagers.filter(v => v !== leaver);
         assignJobs();
@@ -3704,6 +3722,7 @@
         festival: state.festival || null, lastFestivalDay: (state.lastFestivalDay != null ? state.lastFestivalDay : -99),
         raining: !!state.raining,
         peakPop: state.peakPop || 0, festivalsHeld: state.festivalsHeld || 0,
+        difficulty: state.difficulty || 'normal',
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -3761,6 +3780,7 @@
       state.raining = !!s.raining;
       state.peakPop = s.peakPop || state.villagers.length;
       state.festivalsHeld = s.festivalsHeld || 0;
+      state.difficulty = DIFFICULTY[s.difficulty] ? s.difficulty : 'normal';
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
         cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
@@ -3836,10 +3856,19 @@
       document.getElementById('welcome').classList.add('show');
       const nameInput = document.getElementById('townname-input');
       if (nameInput) setTimeout(() => nameInput.focus(), 60);
+      let pickedDiff = 'normal';
+      document.querySelectorAll('#diffsel .diffbtn').forEach(b => b.addEventListener('click', () => {
+        pickedDiff = b.dataset.diff;
+        document.querySelectorAll('#diffsel .diffbtn').forEach(x => x.classList.toggle('on', x === b));
+        const dd = document.getElementById('diffdesc'); if (dd) dd.innerHTML = DIFFICULTY[pickedDiff].desc;
+      }));
       const beginGame = () => {
         if (nameInput) { const nm = nameInput.value.trim().slice(0, 20); if (nm) state.townName = nm; }
+        state.difficulty = pickedDiff;
+        const mult = DIFFICULTY[pickedDiff].res;
+        if (mult !== 1) Object.keys(state.res).forEach(k => state.res[k] = Math.round(state.res[k] * mult));
         document.getElementById('welcome').classList.remove('show');
-        renderGoal(); hideHint(); save();
+        buildBar(); updateHUD(); renderGoal(); hideHint(); save();
       };
       document.getElementById('welcome-close').onclick = beginGame;
       if (nameInput) nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') beginGame(); });
