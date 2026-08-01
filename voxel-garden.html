@@ -336,6 +336,7 @@ const PLANTS={
   startree: {name:'Star tree', ico:'⭐', cost:220,grow:300, sell:65,  xp:20, lvl:7, multi:true, regrow:150, tall:true},
   glowshroom:{name:'Glowshroom',ico:'🍄', cost:150,grow:130, sell:260, xp:55, lvl:8},
   crystalberry:{name:'Crystalberry',ico:'💎', cost:400,grow:420, sell:150, xp:35, lvl:9, multi:true, regrow:120},
+  dragonfruit:{name:'Dragonfruit',ico:'🐉', cost:280,grow:260, sell:230, xp:50, lvl:8, multi:true, regrow:130},
 };
 const DECOR={
   fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
@@ -1752,6 +1753,17 @@ function cubesFor(type,stage,vseed){
         add(0,0.56,0,0.11,0.22,0.11,0xe8f6ff);
       }
       break;
+    case 'dragonfruit':
+      add(0,0.35,0,0.14,0.7,0.14,0x3f7a54);                   // thick cactus-like stalk
+      add(0.1,0.5,0.05,0.1,0.36,0.1,0x4e9a64);
+      add(-0.1,0.44,-0.05,0.1,0.3,0.1,0x4e9a64);
+      if(stage>=2){
+        add(0.13,0.62,0.06,0.16,0.2,0.16,0xe6407a);           // magenta fruit
+        add(-0.12,0.5,-0.05,0.14,0.18,0.14,0xe6407a);
+        add(0.14,0.72,0.07,0.06,0.08,0.06,0x8fe06a);          // green tips
+        add(-0.13,0.6,-0.06,0.06,0.08,0.06,0x8fe06a);
+      } else add(0,0.66,0,0.12,0.12,0.12,0x6fb884);
+      break;
   }
   return c;
 }
@@ -1778,7 +1790,7 @@ function buildPlantGeometry(cubes){
   return g;
 }
 // crops that give off a soft glow after dark
-const GLOW_CROPS={moonpetal:0x9adfff,glowshroom:0x7bffb0,crystalberry:0xbaa8ff};
+const GLOW_CROPS={moonpetal:0x9adfff,glowshroom:0x7bffb0,crystalberry:0xbaa8ff,dragonfruit:0xff5c9e};
 function refreshPlantMesh(p){
   if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
   if(p.glow){scene.remove(p.glow);p.glow.geometry.dispose();p.glow.material.dispose();p.glow=null;}
