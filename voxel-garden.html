@@ -3509,6 +3509,15 @@ function renderAlmanac(){
   let html='<div class="alm-grid">';
   for(const [ico,v,l] of stats)html+='<div class="alm-stat"><div class="v">'+ico+' '+v+'</div><div class="l">'+l+'</div></div>';
   html+='</div>';
+  // progress toward the next town rank
+  const ri=state.townRank||0;
+  if(ri<TOWN_RANKS.length-1){
+    const nx=TOWN_RANKS[ri+1],cur=TOWN_RANKS[ri],s=townScore();
+    const pct=Math.max(0,Math.min(100,Math.round((s-cur.min)/(nx.min-cur.min)*100)));
+    html+='<div class="alm-stat" style="margin-top:12px;text-align:left">🏛️ '+(nx.min-s)+' more to <b style="color:var(--gold)">'+nx.name+'</b>'+
+      '<div style="margin-top:5px;height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden">'+
+      '<div style="height:100%;width:'+pct+'%;background:var(--gold)"></div></div></div>';
+  }
   if(stockpiles()){
     const dk=demandGoodKey();
     const od=state.day;state.day=od+1;const tk=demandGoodKey();state.day=od;   // tomorrow is deterministic
