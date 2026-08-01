@@ -2107,13 +2107,16 @@
     { k: 'stone', ic: '🪨', name: 'Stone' },
     { k: 'food', ic: '🍎', name: 'Food' },
   ];
-  let traderPrices = null;
+  let traderPrices = null, traderDemand = null;
   function openTrader() {
     traderPrices = {};
+    // one good is "in demand" this visit — the merchant pays well over the odds for it
+    traderDemand = TRADE_GOODS[Math.floor(rrand(state.day * 13 + 5) * TRADE_GOODS.length)].k;
     TRADE_GOODS.forEach(g => {
       const base = { wood: 2, stone: 3, food: 2 }[g.k];
       const buy = base + Math.round(rrand((state.day + g.k.length) * 31) * base); // trader sells to you
-      const sell = Math.max(1, buy - 1 - Math.floor(rrand(state.day * 7 + g.k.length) * 2)); // trader buys from you
+      let sell = Math.max(1, buy - 1 - Math.floor(rrand(state.day * 7 + g.k.length) * 2)); // trader buys from you
+      if (g.k === traderDemand) sell = Math.round(sell * 1.8) + 2;   // deal of the day
       traderPrices[g.k] = { buy, sell };
     });
     renderTrader();
@@ -2128,7 +2131,7 @@
       const row = document.createElement('div');
       row.className = 'trade-row';
       row.innerHTML =
-        '<div class="good"><span>' + g.ic + '</span>' + g.name + ' <span style="color:var(--ink-dim)">(have ' + Math.floor(state.res[g.k]) + ')</span></div>' +
+        '<div class="good"><span>' + g.ic + '</span>' + g.name + ' <span style="color:var(--ink-dim)">(have ' + Math.floor(state.res[g.k]) + ')</span>' + (g.k === traderDemand ? ' <span style="color:#f2c14e">★ in demand!</span>' : '') + '</div>' +
         '<div class="price">buy ' + p.buy + ' / sell ' + p.sell + '</div>' +
         '<div class="tbtns">' +
         '<button data-act="buy" data-k="' + g.k + '" data-q="1"' + (state.res.gold < p.buy || Math.floor(state.res[g.k]) >= capOf(g.k) ? ' disabled' : '') + '>Buy</button>' +
