@@ -217,7 +217,7 @@
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value; add a <b>🌬️ Windmill</b> to bake faster &amp; yield an extra loaf</li>
     <li><b>💧 Well</b> &mdash; keeps the tilled soil around it watered on its own, so nearby crops grow at the 2× rate hands-free</li>
     <li><b>🪴 Greenhouse</b> &mdash; crops keep growing at full speed <b>through winter</b> instead of slowing to a crawl</li>
-    <li><b>🐝 Apiary</b> &mdash; a beehive whose bees <b>make 🍯 honey on their own</b> into your stockpile (a valuable good the Trader buys &amp; the Tavern serves) &mdash; passive income while you farm</li>
+    <li><b>🐝 Apiary</b> &mdash; a beehive whose bees <b>make 🍯 honey on their own</b> into your stockpile (a valuable good the Trader buys &amp; the Tavern serves), and <b>pollinate nearby crops so they grow faster</b> &mdash; build it beside your fields</li>
     <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
     <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings</li>
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
@@ -1342,6 +1342,7 @@ function hasWindmill(){return !!(state.buildings&&state.buildings.windmill);}
 // the 2× wet rate without anyone hauling water.
 let wellT=0;
 const WELL_R=5;
+const POLLEN_R=7;   // crops within this range of an Apiary grow faster (bees pollinate)
 function updateWell(dt){
   const b=state.buildings&&state.buildings.well;if(!b)return;
   wellT+=dt;if(wellT<6)return;wellT=0;
@@ -2248,6 +2249,7 @@ function stageFor(p){
   return p.prog>=def.grow*0.45?1:0;
 }
 function updatePlants(dt,dn){
+  const api=state.buildings&&state.buildings.apiary;   // bees pollinate nearby crops
   for(const p of W.plants.values()){
     const def=PLANTS[p.type];
     if(!def)continue;                    // decor
@@ -2265,6 +2267,7 @@ function updatePlants(dt,dn){
     if(inSeason(def))rate*=1.5;                                       // its favoured season → faster growth
     if(def.night)rate*=dn.night>0.5?1.6:0.12;
     if(state.buildings&&state.buildings.farmhouse)rate*=1.2;   // Farmhouse boosts crops
+    if(api&&Math.hypot(p.x-api.x,p.z-api.z)<=POLLEN_R)rate*=1.25;   // pollinated by the Apiary's bees
     const soilK=k3(p.x,p.y-1,p.z);
     if(W.wet.has(soilK))rate*=2;
     p.prog+=dt*rate;
