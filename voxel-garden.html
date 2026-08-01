@@ -997,9 +997,10 @@ function doWorkerJob(w){
     floatText(w.x,gy+1.7,w.z,'🍺','#ffcf6b');SFX.tone(300,0.06,'triangle',0.035);}
   else if(w.job==='shelter'){const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
     floatText(w.x,gy+1.7,w.z,['☔','🌂','🍵'][(Math.random()*3)|0],'#bcd4e6');}
-  else if(w.job==='idle'&&Math.random()<0.3){          // a little cozy life while pottering about
+  else if(w.job==='idle'&&(festivalActive()?Math.random()<0.55:Math.random()<0.3)){   // a little cozy life while pottering about
     const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
-    floatText(w.x,gy+1.7,w.z,['💤','🎵','😌','🌿','✨'][(Math.random()*5)|0],'#dbe6ef');}
+    const emotes=festivalActive()?['🎉','🎶','💃','🕺','✨']:['💤','🎵','😌','🌿','✨'];
+    floatText(w.x,gy+1.7,w.z,emotes[(Math.random()*emotes.length)|0],festivalActive()?'#ffd6ec':'#dbe6ef');}
   w.act='work';w.workT=w.job==='shelter'?(2.5+Math.random()*3):w.job==='visit'?(2+Math.random()*2.5):w.job==='idle'?(0.5+Math.random()*1.2):0.45;
   w.tx=null;w.target=null;
 }
