@@ -2052,6 +2052,27 @@ function burst(x,y,z,hex,n,opts){
       col:new THREE.Color(hex).multiplyScalar(0.85+Math.random()*0.35),g:opts.g!==undefined?opts.g:7});
   }
 }
+// slow, long-lived, buoyant grey puff for chimney smoke
+function puffSmoke(x,y,z){
+  if(parts.length>=PART_MAX)parts.shift();
+  parts.push({x:x+(Math.random()-0.5)*0.14,y,z:z+(Math.random()-0.5)*0.14,
+    vx:(Math.random()-0.5)*0.22,vy:0.5+Math.random()*0.3,vz:(Math.random()-0.5)*0.22,
+    life:1.9+Math.random()*1.3,t:0,s:1.0+Math.random()*0.7,
+    col:new THREE.Color(0xd7d7d7).multiplyScalar(0.78+Math.random()*0.2),g:-0.12});
+}
+// the cooking buildings keep a hearth going — [key, dx, chimney-top local Y, dz]
+let smokeT=0;
+const SMOKERS=[['bakery',0.55,2.15,-0.4],['tavern',0.55,2.15,-0.4],['brewery',-0.55,1.95,-0.3]];
+function updateSmoke(dt){
+  smokeT-=dt;
+  if(smokeT>0)return;
+  smokeT=0.55;
+  for(const [key,dx,ty,dz] of SMOKERS){
+    const b=state.buildings&&state.buildings[key];if(!b)continue;
+    const sy=surfaceY(b.x,b.z);if(sy==null)continue;
+    puffSmoke(b.x+0.5+dx,sy+1+ty,b.z+0.5+dz);
+  }
+}
 const _pm=new THREE.Matrix4(),_pq=new THREE.Quaternion(),_pv=new THREE.Vector3(),_ps=new THREE.Vector3();
 function updateParticles(dt){
   let dirty=false;
@@ -3368,6 +3389,7 @@ function boot(){
     updateWater();
     updateMillSail(dt);
     updateApiary(dt);
+    updateSmoke(dt);
     updateCat(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
