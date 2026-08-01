@@ -211,7 +211,7 @@
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
-    <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier)</li>
+    <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier); when it <b>rains ☔</b>, the villagers duck inside to wait out the shower</li>
     <li><b>📈 Market demand</b> &mdash; each day the town wants a different good; sell or serve <b>that good while it&rsquo;s hot for +50%</b> (shown in the stockpile bar)</li>
     <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value; add a <b>🌬️ Windmill</b> to bake faster &amp; yield an extra loaf</li>
     <li><b>💧 Well</b> &mdash; keeps the tilled soil around it watered on its own, so nearby crops grow at the 2× rate hands-free</li>
@@ -908,6 +908,13 @@ function workerSeed(){
   return 'sunflower';
 }
 function workerPickTask(w){
+  // when it rains, villagers duck into the Tavern to wait out the shower
+  if(rainActive&&hasTavern()){
+    const b=state.buildings.tavern;
+    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){
+      if(surfaceY(b.x+dx,b.z+dz)!=null){w.tx=b.x+dx;w.tz=b.z+dz;w.job='shelter';w.target=null;w.sy=0;return;}
+    }
+  }
   const canFarm=w.role==='all'||w.role==='farmer';
   const canRanch=w.role==='all'||w.role==='rancher';
   const canCollect=w.role==='all'||w.role==='collector';
@@ -979,10 +986,12 @@ function doWorkerJob(w){
     const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;burst(a.x,gy+0.6,a.z,0xff9ec4,5,{up:1.2,g:4});}}
   else if(w.job==='visit'){const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
     floatText(w.x,gy+1.7,w.z,'🍺','#ffcf6b');SFX.tone(300,0.06,'triangle',0.035);}
+  else if(w.job==='shelter'){const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+    floatText(w.x,gy+1.7,w.z,['☔','🌂','🍵'][(Math.random()*3)|0],'#bcd4e6');}
   else if(w.job==='idle'&&Math.random()<0.3){          // a little cozy life while pottering about
     const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
     floatText(w.x,gy+1.7,w.z,['💤','🎵','😌','🌿','✨'][(Math.random()*5)|0],'#dbe6ef');}
-  w.act='work';w.workT=w.job==='visit'?(2+Math.random()*2.5):w.job==='idle'?(0.5+Math.random()*1.2):0.45;
+  w.act='work';w.workT=w.job==='shelter'?(2.5+Math.random()*3):w.job==='visit'?(2+Math.random()*2.5):w.job==='idle'?(0.5+Math.random()*1.2):0.45;
   w.tx=null;w.target=null;
 }
 function updateWorker(w,dt){
