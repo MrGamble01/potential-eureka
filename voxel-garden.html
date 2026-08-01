@@ -1736,6 +1736,48 @@ function petDog(){
   t.wait=0;   // perk up and trot off
   state.achFlags.dog=true;checkAch();
 }
+// A duck paddles about the pond — pure ambience on the water surface.
+let pondDuck=null;
+function duckCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.14,0,0.34,0.22,0.5,0xf4f4ee);            // body (afloat)
+  a(0,0.16,-0.28,0.12,0.1,0.16,0xf4f4ee);        // tail
+  a(0,0.34,0.22,0.2,0.22,0.2,0xf7f2e6);          // head
+  a(0,0.32,0.4,0.12,0.07,0.1,0xf2a83a);          // beak
+  a(0.06,0.4,0.31,0.03,0.03,0.02,0x2a2a2a); a(-0.06,0.4,0.31,0.03,0.03,0.02,0x2a2a2a); // eyes
+  return c;}
+function pondCellCenter(i){const p=W.pondCells[i];return {x:p[0]+0.5,z:p[1]+0.5};}
+function spawnDuck(){
+  if(pondDuck||!W.pondCells||!W.pondCells.length)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(duckCubes()),plantMat);
+  mesh.castShadow=true;mesh.userData.duck=true;scene.add(mesh);
+  const s=pondCellCenter((Math.random()*W.pondCells.length)|0);
+  pondDuck={mesh,x:s.x,z:s.z,tx:s.x,tz:s.z,face:0,paddle:0,wait:1+Math.random()*3,quackT:6+Math.random()*8};
+  positionDuck();
+}
+function positionDuck(){
+  const t=pondDuck;if(!t)return;
+  const y=(W.waterY||5)+0.12+Math.sin(perf*1.6+t.paddle)*0.03;   // bob on the water
+  t.mesh.position.set(t.x,y,t.z);t.mesh.rotation.y=t.face+Math.sin(t.paddle*4)*0.05;
+}
+function updateDuck(dt){
+  const t=pondDuck;if(!t){if(W.pondCells&&W.pondCells.length)spawnDuck();return;}
+  t.quackT-=dt;
+  if(t.quackT<=0){t.quackT=8+Math.random()*10;
+    const y=(W.waterY||5)+1.1;floatText(t.x,y,t.z,'🦆','#f2e6c8');SFX.tone(360,0.09,'sawtooth',0.03);}
+  const dx=t.tx-t.x,dz=t.tz-t.z,d=Math.hypot(dx,dz);
+  if(d<0.12){
+    t.wait-=dt;
+    if(t.wait<=0){const s=pondCellCenter((Math.random()*W.pondCells.length)|0);t.tx=s.x;t.tz=s.z;t.wait=1.5+Math.random()*4;}
+  } else {const sp=Math.min(1,0.7*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);t.paddle+=dt*6;}
+  positionDuck();
+}
+function petDuck(){
+  const t=pondDuck;if(!t)return;
+  const y=(W.waterY||5)+1.2;
+  floatText(t.x,y,t.z,['🦆','💛','🎵'][(Math.random()*3)|0],'#f7d97a');
+  SFX.tone(360,0.1,'sawtooth',0.04);setTimeout(()=>SFX.tone(300,0.1,'sawtooth',0.035),110);
+  state.achFlags.duck=true;checkAch();
+}
 function buyBuilding(key){
   const def=BUILDINGS[key];if(!def)return;
   if(state.buildings[key]){toast(def.ico+' '+def.name+' already built');return;}
@@ -2583,6 +2625,7 @@ function doAction(hit){
   if(ud.water)return goFishing(hit.point.x,hit.point.z); // tap the pond to fish
   if(ud.cat)return petCat();                              // pet the town cat
   if(ud.dog)return petDog();                              // pet the farm dog
+  if(ud.duck)return petDuck();                            // greet the pond duck
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
@@ -2729,6 +2772,7 @@ function getPickables(){
   if(waterMesh)arr.push(waterMesh);
   if(townCat)arr.push(townCat.mesh);
   if(townDog)arr.push(townDog.mesh);
+  if(pondDuck)arr.push(pondDuck.mesh);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -2846,7 +2890,7 @@ function updateHover(){
     document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
     return;
   }
-  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat||hit.object.userData.dog){
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat||hit.object.userData.dog||hit.object.userData.duck){
     highlightBox.visible=false;ghostCube.visible=false;
     document.body.style.cursor='pointer';return;
   }
@@ -3279,6 +3323,7 @@ const ACH=[
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
+  ['duck','Duck, Duck…','Greet the duck on the pond',()=>!!state.achFlags.duck],
   ['golden','Golden Harvest','Harvest a rare golden crop',()=>!!state.achFlags.golden],
   ['honey','Sweet Harvest','Gather honey from your Apiary',()=>!!state.achFlags.honey],
   ['inseason','Perfect Timing','Harvest a crop in its favoured season',()=>!!state.achFlags.inseason],
@@ -3490,6 +3535,7 @@ function boot(){
     updateSmoke(dt);
     updateCat(dt);
     updateDog(dt);
+    updateDuck(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
