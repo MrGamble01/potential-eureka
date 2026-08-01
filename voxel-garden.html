@@ -328,6 +328,7 @@ const BUILDABLE=[2,1,4,3,7,8];
 const PLANTS={
   sunflower:{name:'Sunflower', ico:'🌻', cost:5,  grow:45,  sell:12,  xp:5,  lvl:1},
   carrot:   {name:'Carrot',    ico:'🥕', cost:8,  grow:70,  sell:22,  xp:8,  lvl:2},
+  tomato:   {name:'Tomato',    ico:'🍅', cost:14, grow:95,  sell:40,  xp:12, lvl:3, multi:true, regrow:55},
   lavender: {name:'Lavender',  ico:'💜', cost:16, grow:110, sell:42,  xp:13, lvl:3},
   pumpkin:  {name:'Pumpkin',   ico:'🎃', cost:30, grow:180, sell:85,  xp:24, lvl:4},
   berry:    {name:'Berry bush',ico:'🫐', cost:60, grow:150, sell:34,  xp:11, lvl:5, multi:true, regrow:60},
@@ -1639,6 +1640,15 @@ function cubesFor(type,stage,vseed){
         add(Math.cos(a)*r,0.14+R()*0.12,Math.sin(a)*r,0.06,0.24+R()*0.14,0.06,0x4e9a44);
       }
       if(stage>=2)add(0,0.05,0,0.2,0.1,0.2,0xed7f1f);
+      break;
+    case 'tomato':
+      add(0,0.24,0,0.1,0.48,0.1,0x4e8a3c);                       // stem
+      add(0.13,0.36,0.05,0.18,0.06,0.1,0x5faa4c);
+      add(-0.12,0.3,-0.05,0.16,0.06,0.1,0x5faa4c);               // leaves
+      if(stage>=2){
+        for(let i=0;i<4;i++){const a=R()*6.28,r=0.11+R()*0.09;
+          add(Math.cos(a)*r,0.22+R()*0.26,Math.sin(a)*r,0.12,0.12,0.12,0xe23b2f);}
+      } else add(0,0.52,0,0.12,0.12,0.1,0x8fbf3e);
       break;
     case 'lavender':
       for(let i=0;i<3;i++){
