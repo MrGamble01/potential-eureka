@@ -336,6 +336,7 @@ const PLANTS={
   tomato:   {name:'Tomato',    ico:'🍅', cost:14, grow:95,  sell:40,  xp:12, lvl:3, multi:true, regrow:55, season:'summer'},
   lavender: {name:'Lavender',  ico:'💜', cost:16, grow:110, sell:42,  xp:13, lvl:3, season:'spring'},
   pumpkin:  {name:'Pumpkin',   ico:'🎃', cost:30, grow:180, sell:85,  xp:24, lvl:4, season:'autumn'},
+  chili:    {name:'Chili Pepper',ico:'🌶️',cost:20, grow:120, sell:52, xp:15, lvl:5, multi:true, regrow:60, season:'summer'},
   berry:    {name:'Berry bush',ico:'🫐', cost:60, grow:150, sell:34,  xp:11, lvl:5, multi:true, regrow:60, season:'summer'},
   moonpetal:{name:'Moonpetal', ico:'🌙', cost:90, grow:100, sell:170, xp:45, lvl:6, night:true},
   startree: {name:'Star tree', ico:'⭐', cost:220,grow:300, sell:65,  xp:20, lvl:7, multi:true, regrow:150, tall:true, season:'winter'},
@@ -352,7 +353,7 @@ const DECOR={
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
-  4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Berry bushes · Sprinklers',
+  4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Sprinklers',
   6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
   10:'A master gardener of the skies 🌈',11:'The isle hums with life',
@@ -1866,6 +1867,15 @@ function cubesFor(type,stage,vseed){
       } else {
         add(0,0.14,0,0.24,0.2,0.24,0x7aa33c);
       }
+      break;
+    case 'chili':
+      add(0,0.24,0,0.34,0.42,0.34,0x3e7a38);                     // leafy bush
+      add(0.15,0.44,0.1,0.2,0.18,0.16,0x498a42);
+      add(-0.13,0.38,-0.08,0.18,0.16,0.14,0x448040);
+      if(stage>=2){
+        for(let i=0;i<5;i++){const a=R()*6.28,r=0.12+R()*0.1;
+          add(Math.cos(a)*r,0.15+R()*0.16,Math.sin(a)*r,0.07,0.2,0.07,0xe22f26);}  // hanging red peppers
+      } else add(0,0.52,0,0.12,0.12,0.1,0x8fbf3e);
       break;
     case 'berry':
       add(0,0.2,0,0.4,0.36,0.4,0x3e7a38);
