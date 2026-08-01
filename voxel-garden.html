@@ -349,6 +349,7 @@ const DECOR={
   lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
   gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
   flowerbed:{name:'Flower Bed',ico:'🌷', cost:35, lvl:3},
+  scarecrow:{name:'Scarecrow',ico:'🎃', cost:45, lvl:4},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
@@ -1935,6 +1936,17 @@ function cubesFor(type,stage,vseed){
         add(fx,0.26,fz,0.05,0.16,0.05,0x4e9a44);
         add(fx,0.36,fz,0.1,0.09,0.1,fc[(R()*fc.length)|0]);}
       break;}
+    case 'scarecrow':
+      add(0,0.4,0,0.1,0.82,0.1,0x8a6740);              // post
+      add(0,0.64,0,0.82,0.09,0.09,0x8a6740);           // cross arm
+      add(0,0.52,0,0.34,0.32,0.22,0x9a5a3a);           // shirt
+      add(-0.44,0.64,0,0.06,0.15,0.06,0xd9b24a); add(0.44,0.64,0,0.06,0.15,0.06,0xd9b24a); // straw hands
+      add(0,0.5,0,0.1,0.1,0.1,0xd9b24a);               // straw poking from shirt
+      add(0,0.8,0,0.22,0.22,0.2,0xe4d2a4);             // burlap head
+      add(-0.05,0.82,0.1,0.03,0.03,0.02,0x2a2a2a); add(0.05,0.82,0.1,0.03,0.03,0.02,0x2a2a2a); // stitched eyes
+      add(0,0.92,0,0.34,0.05,0.34,0x6b4a2b);           // hat brim
+      add(0,1.0,0,0.16,0.14,0.16,0x7a5533);            // hat crown
+      break;
     case 'sprinkler':
       add(0,0.22,0,0.12,0.44,0.12,0x8b9199);
       add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
