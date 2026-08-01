@@ -3222,6 +3222,7 @@ function renderAlmanac(){
     ['🪙',state.totalEarned||0,'Coins earned'],
     ['🌾',state.harvests||0,'Crops harvested'],
     ['🍞',state.loaves||0,'Loaves baked'],
+    ['🍶',state.meads||0,'Casks brewed'],
     ['🍺',state.meals||0,'Meals served'],
     ['🎣',state.fishCount||0,'Fish caught'],
     ['⭐',(state.level||1),'Garden level'],
@@ -3230,6 +3231,12 @@ function renderAlmanac(){
   let html='<div class="alm-grid">';
   for(const [ico,v,l] of stats)html+='<div class="alm-stat"><div class="v">'+ico+' '+v+'</div><div class="l">'+l+'</div></div>';
   html+='</div>';
+  if(stockpiles()){
+    const dk=demandGoodKey();
+    const od=state.day;state.day=od+1;const tk=demandGoodKey();state.day=od;   // tomorrow is deterministic
+    html+='<div class="alm-head" style="margin-top:14px">📈 MARKET DEMAND</div>';
+    html+='<div class="alm-stat" style="text-align:left">Today <b style="color:var(--gold)">'+goodDef(dk).product+' '+dk+'</b> sells for +50% &nbsp;·&nbsp; Tomorrow the town wants '+goodDef(tk).product+' '+tk+'</div>';
+  }
   if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
   $('almBody').innerHTML=html;
 }
