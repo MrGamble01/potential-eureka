@@ -3170,6 +3170,11 @@
       mx.fillStyle = def.housing ? '#e0b84e' : def.storage ? '#b98a54' : def.happy ? '#e0708b' : '#d86a52';
       mx.fillRect(b.tx, b.ty, def.w, def.h);
     });
+    // villagers as tiny pale dots — a glance at where everyone is
+    mx.fillStyle = 'rgba(255,246,224,0.85)';
+    state.villagers.forEach(v => mx.fillRect(Math.round(v.x / TILE), Math.round(v.y / TILE), 1, 1));
+    // the traveling merchant's wagon stands out in gold
+    if (cart) { mx.fillStyle = '#f2c14e'; mx.fillRect(Math.round(cart.x / TILE) - 1, Math.round(cart.y / TILE), 2, 1); }
     const vw = view.w / cam.z / TILE, vh = view.h / cam.z / TILE;
     mx.strokeStyle = 'rgba(255,255,255,0.9)'; mx.lineWidth = 1;
     mx.strokeRect(cam.x / TILE + 0.5, cam.y / TILE + 0.5, Math.max(1, vw - 1), Math.max(1, vh - 1));
