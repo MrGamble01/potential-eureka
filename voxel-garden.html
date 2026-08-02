@@ -348,6 +348,7 @@ const PLANTS={
 };
 const DECOR={
   fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
+  torch:  {name:'Torch',   ico:'🔥', cost:14, lvl:2},
   lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
   gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
   flowerbed:{name:'Flower Bed',ico:'🌷', cost:35, lvl:3},
@@ -2042,6 +2043,12 @@ function cubesFor(type,stage,vseed){
       add(0,0.76,0,0.22,0.22,0.22,0xffcf7a);
       add(0,0.9,0,0.26,0.06,0.26,0x4a3a2a);
       break;
+    case 'torch':
+      add(0,0.34,0,0.07,0.68,0.07,0x6b4a2b);           // post
+      add(0,0.7,0,0.18,0.08,0.18,0x8a6740);            // ledge
+      add(0,0.82,0,0.12,0.16,0.12,0xff8a3a);           // flame base
+      add(0,0.95,0,0.07,0.12,0.07,0xffd25a);           // flame tip
+      break;
     case 'gnome':
       add(0,0.15,0,0.24,0.3,0.2,0x4a68c8);
       add(0,0.36,0,0.18,0.14,0.16,0xf1bf95);
@@ -2176,6 +2183,11 @@ function refreshPlantMesh(p){
     const gm=new THREE.Mesh(new THREE.IcosahedronGeometry(0.5,1),
       new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
     gm.position.set(p.x+0.5,p.y+0.75,p.z+0.5);
+    scene.add(gm);p.glow=gm;
+  } else if(p.type==='torch'){                   // a lit torch flickers after dark
+    const gm=new THREE.Mesh(new THREE.IcosahedronGeometry(0.32,1),
+      new THREE.MeshBasicMaterial({color:0xff9a3e,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+    gm.position.set(p.x+0.5,p.y+0.88,p.z+0.5);
     scene.add(gm);p.glow=gm;
   }
 }
@@ -2563,6 +2575,8 @@ function updatePlants(dt,dn){
     if(!def){                            // decor
       if(p.type==='lantern'&&p.glow){const t=dn.night||0;p.glow.visible=t>0.05;
         p.glow.material.opacity=t*(0.5+Math.sin(perf*1.6+p.phase)*0.12);}   // lantern warms up at night
+      if(p.type==='torch'&&p.glow){const t=dn.night||0;p.glow.visible=t>0.05;
+        p.glow.material.opacity=t*(0.55+Math.sin(perf*5+p.phase)*0.2);}    // torch flickers brisker than a lantern
       continue;
     }
     if(p.glow){const t=dn.night||0;p.glow.visible=t>0.03;
@@ -3349,11 +3363,12 @@ function initBird(){
   const p=birdPerch();g.position.copy(p);
 }
 function birdPerch(){
-  // 40% of the time aim for a decor top (fence/lantern) — peak cottagecore
-  const decor=[...W.plants.values()].filter(p=>p.type==='fence'||p.type==='lantern');
+  // 40% of the time aim for a decor top (fence/lantern/torch) — peak cottagecore
+  const decor=[...W.plants.values()].filter(p=>p.type==='fence'||p.type==='lantern'||p.type==='torch');
   if(decor.length&&Math.random()<0.4){
     const d=decor[(Math.random()*decor.length)|0];
-    return new THREE.Vector3(d.x+0.5,d.y+(d.type==='lantern'?0.96:0.5),d.z+0.5);
+    const h=d.type==='lantern'?0.96:(d.type==='torch'?0.74:0.5);
+    return new THREE.Vector3(d.x+0.5,d.y+h,d.z+0.5);
   }
   for(let i=0;i<40;i++){
     const x=((Math.random()*28)|0)-14,z=((Math.random()*28)|0)-14;
