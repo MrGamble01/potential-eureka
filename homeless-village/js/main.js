@@ -57,6 +57,7 @@ function gameLoop(ts){
   });
 
   tickDay(dt);
+  tickRain(dt);
 
   autosaveTimer+=dt;
   if(autosaveTimer>30000){ autosaveTimer=0; saveGame(); }

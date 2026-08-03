@@ -192,6 +192,83 @@ function spawnFigure(x,z,type){
   return grp;
 }
 
+function buildStreetLamp(x, z) {
+  var grp = new THREE.Group();
+  var pole = new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,6,6), MAT.metal);
+  pole.position.y = 3; grp.add(pole);
+  var arm  = new THREE.Mesh(new THREE.BoxGeometry(.8,.06,.06), MAT.metal);
+  arm.position.set(.4,6.1,0); grp.add(arm);
+  var bulb = new THREE.Mesh(new THREE.SphereGeometry(.14,6,4),
+    new THREE.MeshLambertMaterial({color:0xffe88a, emissive:0xffe060, emissiveIntensity:2}));
+  bulb.position.set(.8,5.95,0); grp.add(bulb);
+  grp.position.set(x,0,z); scene.add(grp);
+  var pl = new THREE.PointLight(0xffe060, 1.6, 12);
+  pl.position.set(x+.8, 5.95, z); scene.add(pl);
+}
+
+function buildShoppingCart(x, z, rot) {
+  var grp = new THREE.Group();
+  var basket = new THREE.Mesh(new THREE.BoxGeometry(.9,.5,.55),
+    new THREE.MeshLambertMaterial({color:0x8888aa, wireframe:true}));
+  basket.position.y = 1.0; grp.add(basket);
+  var solid = new THREE.Mesh(new THREE.BoxGeometry(.9,.05,.55), MAT.metal);
+  solid.position.y = .78; grp.add(solid);
+  var handle = new THREE.Mesh(new THREE.BoxGeometry(.9,.06,.06), MAT.metal);
+  handle.position.set(0,1.3,-.28); grp.add(handle);
+  [-.35,.35].forEach(function(lx){
+    [-.2,.2].forEach(function(lz){
+      var w = new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.04,8), MAT.metal);
+      w.rotation.z = Math.PI/2; w.position.set(lx,.15,lz); grp.add(w);
+    });
+  });
+  var leg = new THREE.Mesh(new THREE.BoxGeometry(.8,.04,.46), MAT.metal);
+  leg.position.y = .26; grp.add(leg);
+  grp.position.set(x,0,z); grp.rotation.y = rot||0;
+  scene.add(grp);
+}
+
+function buildPuddle(x, z, sx, sz) {
+  var m = new THREE.Mesh(new THREE.PlaneGeometry(sx||1.4, sz||0.8),
+    new THREE.MeshLambertMaterial({color:0x2a3a40, transparent:true, opacity:.55}));
+  m.rotation.x = -Math.PI/2; m.position.set(x,.015,z); scene.add(m);
+}
+
+function buildSleepingArea(x, z) {
+  var mat = new THREE.MeshLambertMaterial({color:0x4a4232});
+  var bag = new THREE.Mesh(new THREE.BoxGeometry(1.6,.15,.55), mat);
+  bag.position.set(x,.08,z); bag.rotation.y = Math.random()*.6-.3; scene.add(bag);
+  var pillow = new THREE.Mesh(new THREE.BoxGeometry(.38,.1,.44),
+    new THREE.MeshLambertMaterial({color:0x6a5a48}));
+  pillow.position.set(x+.62,.14,z); pillow.rotation.y = bag.rotation.y; scene.add(pillow);
+}
+
+// ── Rain particles ──
+var RAIN_COUNT = 320;
+var rainGeo = new THREE.BufferGeometry();
+var rainPositions = new Float32Array(RAIN_COUNT * 3);
+for (var ri = 0; ri < RAIN_COUNT; ri++) {
+  rainPositions[ri*3]   = (Math.random()-.5)*50;
+  rainPositions[ri*3+1] = Math.random()*14;
+  rainPositions[ri*3+2] = (Math.random()-.5)*50;
+}
+rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+var rainMat = new THREE.PointsMaterial({color:0x5a7090, size:.08, transparent:true, opacity:.18});
+var rainSystem = new THREE.Points(rainGeo, rainMat);
+scene.add(rainSystem);
+
+function tickRain(dt) {
+  var rp = rainGeo.attributes.position.array;
+  for (var ri = 0; ri < RAIN_COUNT; ri++) {
+    rp[ri*3+1] -= dt * (4.5 + Math.random()*.5);
+    if (rp[ri*3+1] < 0) {
+      rp[ri*3]   = (Math.random()-.5)*50;
+      rp[ri*3+1] = 13 + Math.random()*2;
+      rp[ri*3+2] = (Math.random()-.5)*50;
+    }
+  }
+  rainGeo.attributes.position.needsUpdate = true;
+}
+
 // Build world
 buildGround();
 buildBridge();
@@ -203,6 +280,17 @@ buildDumpster(8,-5,.4);
 buildTrashPile(-5,-4);
 buildTrashPile(4,6);
 buildTrashPile(-10,2);
+
+buildStreetLamp(-12, 6);
+buildStreetLamp(11, -4);
+buildShoppingCart(5, 3, .4);
+buildShoppingCart(-7, -2, -.6);
+buildPuddle(3, 5, 1.6, 0.9);
+buildPuddle(-6, 1, 1.1, 0.7);
+buildPuddle(8, -3, 0.9, 0.6);
+buildSleepingArea(-2, 4);
+buildSleepingArea(1, 3.5);
+buildSleepingArea(-4, -3);
 
 var player=spawnFigure(0,0,'player');
 
