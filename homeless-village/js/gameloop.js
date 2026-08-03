@@ -185,6 +185,63 @@ var EVENTS_GOOD=[
      G.morale=Math.min(100,G.morale+rand(5,10));
      log('Volunteers dropped supplies. Food and scraps gained.');
    }},
+  {id:'library_warmth',title:'Library Day Pass',type:'good',weight:7,
+   desc:"The library let everyone in for the afternoon. Warm seats, clean bathrooms, a few hours of peace.",
+   effect:function(){
+     G.lastEventDay=G.days;
+     G.warmth=Math.min(100,G.warmth+rand(12,20));
+     G.morale=Math.min(100,G.morale+rand(10,16));
+     log('Spent the afternoon at the library. Warmth and morale up.');
+   }},
+  {id:'scrap_pile',title:'Abandoned Scrap Pile',type:'good',weight:9,
+   desc:'Someone dumped a load of construction scraps nearby. A rare windfall.',
+   effect:function(){
+     G.lastEventDay=G.days;
+     var s=rand(5,10); var c=rand(3,6); var w=rand(2,4);
+     G.scraps+=s; G.cardboard+=c; G.wood+=w;
+     log('Found a scrap pile. +'+s+' scraps, +'+c+' cardboard, +'+w+' wood.');
+   }},
+  {id:'new_resident',title:'New Arrival',type:'good',weight:5,
+   desc:"Someone found their way under the bridge. Down on their luck, same as everyone else.",
+   effect:function(){
+     G.lastEventDay=G.days;
+     if(G.population<8){
+       G.population++;
+       G.morale=Math.min(100,G.morale+rand(4,8));
+       log('A new face joined the community. +1 resident.');
+     } else {
+       G.goodwill=Math.min(100,G.goodwill+rand(3,6));
+       log('Too crowded. The newcomer moved on, but left some goodwill.');
+     }
+   }},
+  {id:'flood',title:'Flash Flood',type:'bad',weight:9,
+   desc:'Heavy rain overnight. Water crept under the bridge. Supplies ruined.',
+   effect:function(){
+     G.lastEventDay=G.days;
+     G.food   =Math.max(0,G.food   -rand(2,5));
+     G.scraps =Math.max(0,G.scraps -rand(3,7));
+     G.cardboard=Math.max(0,G.cardboard-rand(2,5));
+     G.warmth =Math.max(0,G.warmth -rand(10,20));
+     G.morale =Math.max(0,G.morale -rand(8,14));
+     if(G.structures.garden&&Math.random()<.6){ G.structures.garden=false; refreshStructures(); log('The garden was washed out.'); }
+     log('Flash flood hit the camp. Supplies lost, warmth down.');
+   }},
+  {id:'harassment',title:'Harassment',type:'bad',weight:8,
+   desc:'A group came by to make trouble. Nobody was hurt, but the fear lingers.',
+   effect:function(){
+     G.lastEventDay=G.days;
+     G.morale =Math.max(0,G.morale -rand(15,25));
+     G.goodwill=Math.max(0,G.goodwill-rand(2,5));
+     log('Harassment in the night. Morale took a hit.');
+   }},
+  {id:'rat_problem',title:'Rat Problem',type:'bad',weight:7,
+   desc:"Rats got into the food stores overnight. Gnawed through most of it.",
+   effect:function(){
+     G.lastEventDay=G.days;
+     var lost=rand(3,7); G.food=Math.max(0,G.food-lost);
+     G.morale=Math.max(0,G.morale-rand(6,12));
+     log('Rats raided the food supply. -'+lost+' food.');
+   }},
 ];
 
 function maybeEvent(){
