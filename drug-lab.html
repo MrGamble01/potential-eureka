@@ -293,6 +293,21 @@ canvas{display:block;touch-action:none;}
   position:absolute;bottom:0;left:0;right:0;height:4px;
   background:rgba(0,180,60,0.15);border-radius:2px;overflow:hidden;
 }
+
+/* ── Mobile layout ── */
+@media(max-width:600px){
+  #left-panel{max-width:150px;gap:5px;top:8px;left:8px;}
+  .panel{padding:7px 9px;}
+  .panel-title{font-size:8px;}
+  .act-btn{font-size:10px;padding:5px 8px;}
+  .upg-btn{font-size:10px;padding:5px 8px;}
+  #cash-hud{top:8px;right:8px;font-size:15px;padding:6px 10px;}
+  #heat-hud{top:50px;right:8px;min-width:130px;padding:6px 10px;}
+  #activity-feed{top:auto;bottom:50px;right:8px;width:150px;}
+  #back-btn{bottom:10px;left:10px;font-size:11px;padding:6px 10px;}
+  #act-badge{font-size:9px;padding:3px 10px;}
+  #status-bar{font-size:9px;padding:3px 8px;}
+}
 </style>
 </head>
 <body>
