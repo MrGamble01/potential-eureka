@@ -1935,14 +1935,6 @@ function updateLabels() {
   }
 }
 
-// Also handle click on chem station deposit if carrying bud
-renderer.domElement.addEventListener('click', e => {
-  if (!chemStation || !pCarrying) return;
-  // Already handled in updatePlayer proximity check below
-}, true);
-
-// Override player near-chem check: if carrying bud near chem, deposit there instead
-const _origUpdatePlayer = updatePlayer;
 // Extend proximity check in main update to include chem station
 const _chemDepositCheck = (dt) => {
   if(pCarrying==='bud' && chemStation) {
