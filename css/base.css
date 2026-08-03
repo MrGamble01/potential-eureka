@@ -542,18 +542,25 @@ nav a.nav-link-btn:hover {
     font-size: 28px;
   }
   nav {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
     height: auto;
-    padding: 8px 12px;
-    gap: 4px;
-  }
-  nav .logo {
-    width: 100%;
-    margin-bottom: 4px;
-  }
-  nav button {
-    font-size: 11px;
     padding: 6px 12px;
+    gap: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  nav .logo {
+    flex-shrink: 0;
+    margin-right: 8px;
+    margin-bottom: 0;
+  }
+  nav button, nav a.nav-link-btn {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 6px 10px;
+    white-space: nowrap;
   }
   #boot-terminal {
     font-size: 12px;
