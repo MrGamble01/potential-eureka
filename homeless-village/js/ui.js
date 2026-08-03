@@ -51,10 +51,12 @@ function canCraft(r){
 }
 
 function updateHUD(){
-  document.getElementById('stat-food').textContent    =Math.floor(G.food);
-  document.getElementById('stat-scraps').textContent  =Math.floor(G.scraps);
-  document.getElementById('stat-cans').textContent    =Math.floor(G.cans);
-  document.getElementById('stat-goodwill').textContent=Math.floor(G.goodwill);
+  document.getElementById('stat-food').textContent      =Math.floor(G.food);
+  document.getElementById('stat-scraps').textContent    =Math.floor(G.scraps);
+  document.getElementById('stat-cans').textContent      =Math.floor(G.cans);
+  document.getElementById('stat-cardboard').textContent =Math.floor(G.cardboard);
+  document.getElementById('stat-wood').textContent      =Math.floor(G.wood);
+  document.getElementById('stat-goodwill').textContent  =Math.floor(G.goodwill);
   document.getElementById('stat-health').textContent  =Math.floor(G.health);
   document.getElementById('stat-warmth').textContent  =Math.floor(G.warmth);
   document.getElementById('morale-val').textContent   =Math.floor(G.morale);
