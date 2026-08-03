@@ -1109,6 +1109,60 @@ const EVENTS = [
       {text:'Ignore it. Just pay the bill.', effect:()=>{ addHeat(15); return 'Paid the bill but now on a list somewhere.'; }, type:'risky'},
     ]
   },
+  {
+    id:'rival_crew', icon:'😤', title:'Rival Crew Moving In',
+    body:"Someone else is setting up shop two blocks over and undercutting your prices. Buyers are drifting. You need to react.",
+    choices:[
+      {text:'Drop prices. Volume over margin.', effect:()=>{
+        const gained=Math.floor(80+Math.random()*150); addCash(gained);
+        addHeat(8); return `Moved extra product at a discount. +$${gained}. Competition noticed.`;
+      }, type:'risky'},
+      {text:'Leave it alone. Quality speaks.', effect:()=>{
+        addHeat(-5); return 'Held your price. A few buyers stayed. Reputation intact.';
+      }, type:'safe'},
+    ]
+  },
+  {
+    id:'heat_tip', icon:'📞', title:'Tip-Off',
+    body:"Anonymous call to your burner: 'They know about the garage.' Might be a play. Might be real.",
+    choices:[
+      {text:'Stash everything offsite. Go dark.', effect:()=>{
+        const moved=Math.floor(stashCount*0.6); stashCount=Math.max(0,stashCount-moved);
+        setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+        addHeat(-30); return `Moved ${moved} units offsite. Significant heat drop.`;
+      }, type:'safe'},
+      {text:'It\'s nothing. Stay the course.', effect:()=>{
+        addHeat(25); return 'Heat spiked. Should have listened.';
+      }, type:'risky'},
+    ]
+  },
+  {
+    id:'equipment_fail', icon:'⚠️', title:'Equipment Failure',
+    body:"One of the grow lights shorted out. Smells like burning plastic. Plants won't hit full yield this cycle.",
+    choices:[
+      {text:'Replace it now. Pay whatever it costs.', cost:250, effect:()=>{
+        if(state.cash<250){showToast("Can't afford parts!",'bust');return null;}
+        state.cash-=250; return 'Swapped the light. Back to full capacity.';
+      }, type:'safe'},
+      {text:'Run on the remaining lights. Take the hit.', effect:()=>{
+        trimBags=Math.max(0,trimBags-Math.floor(trimBags*.25));
+        return 'Lost about 25% of this cycle\'s product. Could\'ve been worse.';
+      }, type:'risky'},
+    ]
+  },
+  {
+    id:'windfall', icon:'🎰', title:'Lucky Score',
+    body:"Buyer paid double asking, no questions. Maybe they're flush. Maybe they're testing you. Either way, the cash is real.",
+    choices:[
+      {text:'Pocket it. No questions asked.', effect:()=>{
+        const bonus=Math.floor(300+Math.random()*500); addCash(bonus); addHeat(12);
+        return `+$${bonus} unexpected. Heat up slightly — someone noticed.`;
+      }, type:'risky'},
+      {text:'Refund the extra. Stay low-profile.', effect:()=>{
+        addHeat(-8); return 'Returned the overpay. Buyer was impressed. Heat down.';
+      }, type:'safe'},
+    ]
+  },
 ];
 
 function triggerEvent() {
