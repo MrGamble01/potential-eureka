@@ -10,7 +10,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, rain_barrel:false },
 
   cooldowns: {},
   sweepWarned: false, sweepCountdown: 0,
@@ -28,6 +28,10 @@ var RECIPES = [
   {id:'fire_ration', icon:'🔥', name:'Firewood',       cost:{wood:3},                         gives:{warmth:10},              time:2000,  desc:'Keep the barrel burning.'},
   {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Feed more people, gain more goodwill.'},
   {id:'garden',      icon:'🌱', name:'Community Garden',cost:{wood:6,goodwill:8,food:3},      gives:{structure:'garden'},     time:12000, desc:'Slowly generates food each day. Gets destroyed in sweeps.'},
+  {id:'first_aid',   icon:'🩹', name:'First Aid Kit',  cost:{scraps:4,cans:2},                gives:{health:25},              time:5000,  desc:'Clean and bandage wounds. Recover health.'},
+  {id:'music_night', icon:'🎵', name:'Music Night',     cost:{goodwill:3,food:2},              gives:{morale:22},              time:6000,  desc:'Share songs around the fire. Lifts spirits.'},
+  {id:'rain_barrel', icon:'🛢️', name:'Rain Barrel',     cost:{wood:3,scraps:4,cans:4},        gives:{structure:'rain_barrel'},time:7000,  desc:'Collect rainwater. Generates cans each day.'},
+  {id:'layered_wrap',icon:'🧥', name:'Layered Wraps',   cost:{scraps:5,cardboard:4},           gives:{warmth:22},              time:4500,  desc:'Layer up against the cold. Better than a blanket.'},
 ];
 
 var ACTIONS = [

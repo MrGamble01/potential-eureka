@@ -52,8 +52,10 @@ function doCraft(r){
   setTimeout(function(){
     if(el){ el.style.opacity=''; el.style.pointerEvents=''; }
     if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
-    if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
-    if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
+    if(r.gives.warmth)   G.warmth  =Math.min(100,G.warmth  +r.gives.warmth);
+    if(r.gives.goodwill) G.goodwill=Math.min(100,G.goodwill+r.gives.goodwill);
+    if(r.gives.health)   G.health  =Math.min(100,G.health  +r.gives.health);
+    if(r.gives.morale)   G.morale  =Math.min(100,G.morale  +r.gives.morale);
     G.totalCrafted++;
     log('Crafted '+r.name+'.');
     updateHUD(); buildCraftUI();

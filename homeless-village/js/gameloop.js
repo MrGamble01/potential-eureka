@@ -46,6 +46,8 @@ function onNewDay(){
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
   if(G.structures.garden){ var y=rand(1,3); G.food+=y; log('Garden yielded '+y+' food.'); }
+  if(G.structures.rain_barrel){ var r=rand(1,3); G.cans+=r; log('Rain barrel collected water. +'+r+' cans.'); }
+  if(G.structures.soup_kitchen){ G.goodwill+=1; G.morale=Math.min(100,G.morale+2); }
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'.');
   buildCraftUI(); buildWorkersUI(); updateHUD();
