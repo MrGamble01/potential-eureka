@@ -92,6 +92,54 @@
     .btn.tool { width: 52px; }
     .bardiv { flex: 0 0 auto; width: 2px; align-self: stretch; margin: 2px 3px; border-radius: 2px; background: linear-gradient(180deg, transparent, rgba(242,193,78,0.5), transparent); }
 
+    /* ---- Build category tabs ---- */
+    #buildtabs {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 102px; z-index: 400; display: flex; gap: 5px;
+    }
+    .btab {
+      border: 2px solid #6b4e30; border-bottom-color: #4d3820; border-radius: 10px 10px 4px 4px;
+      background: linear-gradient(180deg, #43331f, #382a17); color: var(--ink-dim);
+      font-family: var(--font); font-size: 12px; font-weight: 700;
+      padding: 6px 13px; cursor: pointer; transition: background .12s, color .12s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+    .btab:hover { color: var(--ink); }
+    .btab.on { background: linear-gradient(180deg, #6b5335, #514027); color: var(--gold); border-color: rgba(242,193,78,0.65); }
+
+    /* ---- Build tooltip ---- */
+    #tip {
+      position: fixed; z-index: 700; display: none; width: 216px;
+      background: var(--panel-2); border: 1px solid rgba(242,193,78,0.35); border-radius: 11px;
+      padding: 10px 12px; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+      font-size: 12px; line-height: 1.45;
+    }
+    #tip.show { display: block; }
+    #tip .t-name { font-size: 13.5px; font-weight: 800; margin-bottom: 1px; }
+    #tip .t-lock { color: #f2c14e; font-weight: 700; font-size: 11.5px; }
+    #tip .t-desc { color: var(--ink-dim); margin: 3px 0 6px; }
+    #tip .t-line { font-family: var(--mono); font-size: 11.5px; padding: 1px 0; }
+    #tip .t-line b { color: var(--gold); font-weight: 600; }
+
+    /* ---- Speed controls ---- */
+    #speedctl {
+      position: fixed; top: 54px; right: 54px; z-index: 390; display: flex; gap: 4px;
+    }
+    #speedctl button {
+      width: 34px; height: 36px; border-radius: 9px;
+      border: 2px solid #6b4e30; border-top-color: #85643f;
+      background: linear-gradient(180deg, #4a3826, #362819); color: var(--ink-dim);
+      font-family: var(--mono); font-size: 12.5px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4); transition: color .12s, border-color .12s;
+    }
+    #speedctl button:hover { border-color: rgba(242,193,78,0.7); color: var(--ink); }
+    #speedctl button.on { color: var(--gold); border-color: rgba(242,193,78,0.8); background: linear-gradient(180deg, #5c4730, #453520); }
+    @media (max-width: 640px) { #speedctl { top: 96px; right: 8px; } }
+
+    .res .net { font-size: 10.5px; font-weight: 700; font-family: var(--mono); }
+    .res .net.up { color: #9fd487; }
+    .res .net.down { color: #e0705c; }
+
     /* ---- Building info panel ---- */
     #panel {
       position: fixed; right: 12px; top: 62px; width: 240px; z-index: 400;
@@ -125,12 +173,36 @@
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
 
     /* ---- Trader modal ---- */
-    #trader, #event, #welcome {
+    #trader, #event, #welcome, #achv, #chronicle, #decrees {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show, #welcome.show { display: flex; }
+    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show { display: flex; }
+    #decree-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+    .decree-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: rgba(255,255,255,0.05); border-radius: 9px; border: 1px solid transparent; }
+    .decree-row .demoji { font-size: 20px; }
+    .decree-row .dname { font-weight: 700; } .decree-row .ddesc { font-size: 12px; opacity: 0.72; }
+    .decree-row.enacted { border-color: rgba(140,194,107,0.6); background: rgba(140,194,107,0.12); }
+    .decree-row.pick { cursor: pointer; border-color: var(--gold); background: rgba(242,193,78,0.10); }
+    .decree-row.pick:hover { background: rgba(242,193,78,0.2); }
+    .decree-row .dtag { margin-left: auto; font-size: 12px; font-weight: 700; }
+    #achv-list { max-height: min(52vh, 420px); overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 4px; }
+    #chron-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 3px; padding-right: 4px; }
+    .chron-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 7px; font-size: 13px; }
+    .chron-row span:first-child { opacity: 0.82; } .chron-row b { color: #f2d9a0; }
+    .diffbtn { flex: 1; padding: 8px 4px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-family: var(--font); font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .diffbtn.on { border-color: var(--gold); background: rgba(242,193,78,0.14); color: #f2d9a0; }
+    .achv-row {
+      display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+      border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+    }
+    .achv-row .aemoji { font-size: 20px; width: 26px; text-align: center; }
+    .achv-row .aname { font-size: 13px; font-weight: 700; }
+    .achv-row .adesc { font-size: 11.5px; color: var(--ink-dim); }
+    .achv-row.locked { opacity: 0.45; }
+    .achv-row.locked .aemoji { filter: grayscale(1); }
+    .achv-row.done { border-color: rgba(242,193,78,0.45); }
     #ev-choices { display: flex; flex-direction: column; gap: 9px; }
     .ev-choice {
       width: 100%; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line);
@@ -197,8 +269,6 @@
       font-weight: 600; cursor: pointer; text-align: left; white-space: nowrap;
     }
     #menu button:hover { border-color: var(--gold); }
-    #menu button:disabled { opacity: 0.45; cursor: default; }
-    #menu button:disabled:hover { border-color: var(--line); }
     #paused {
       position: fixed; top: 96px; left: 50%; transform: translateX(-50%); z-index: 385;
       display: none; background: rgba(24,20,14,0.9); border: 1px solid var(--line);
@@ -239,7 +309,9 @@
   <div id="menu">
     <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
-    <button id="m-festival">&#127914; Hold a Festival</button>
+    <button id="m-decrees">Town Decrees</button>
+    <button id="m-chronicle">Town Chronicle</button>
+    <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
   <div id="paused">&#9208; PAUSED &middot; press Space</div>
@@ -247,13 +319,13 @@
   <canvas id="game"></canvas>
 
   <div id="hud">
-    <div class="res wood"><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span></div>
-    <div class="res stone"><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span><span class="rate" id="r-stonecap"></span></div>
-    <div class="res food"><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span></div>
-    <div class="res gold"><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span></div>
-    <div class="res"><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
-    <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span></div>
-    <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span></div>
+    <div class="res wood" title="Wood — from woodcutters. Builds almost everything."><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span><span class="net" id="r-woodnet"></span></div>
+    <div class="res stone" title="Stone — from quarries. For sturdier buildings."><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span><span class="rate" id="r-stonecap"></span><span class="net" id="r-stonenet"></span></div>
+    <div class="res food" title="Food — from farms, orchards & fishing. Villagers eat it each cycle."><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span><span class="net" id="r-foodnet"></span></div>
+    <div class="res gold" title="Coin — from workshops & the market. Spend it building & trading."><span class="ic">&#129689;</span><span class="val" id="r-gold">0</span><span class="net" id="r-goldnet"></span></div>
+    <div class="res" title="Population — grows when the town is happy, fed and housed."><span class="ic">&#128101;</span><span class="val" id="r-pop">0</span><span class="rate" id="r-popcap">/0</span></div>
+    <div class="res" id="happy-chip"><span class="ic" id="r-happyface">&#128578;</span><span class="val" id="r-happy">50</span><span class="rate">%</span><span class="net" id="r-moralemk"></span></div>
+    <div class="res" id="clock"><span id="r-season">&#127793;</span>&nbsp;<span class="day">Day <span id="r-day">1</span></span>&nbsp;<span id="r-tod">&#9728;</span><span id="r-wx"></span></div>
   </div>
 
   <div id="goals">
@@ -264,7 +336,16 @@
 
   <div id="hint">Drag to look around &middot; pick a building below &middot; click the ground to place it</div>
 
+  <div id="speedctl">
+    <button data-sp="0" title="Pause (Space)">&#9208;</button>
+    <button data-sp="1" title="Normal speed">1&times;</button>
+    <button data-sp="2" title="Double speed">2&times;</button>
+    <button data-sp="3" title="Triple speed">3&times;</button>
+  </div>
+
+  <div id="buildtabs"></div>
   <div id="buildbar"></div>
+  <div id="tip"></div>
 
   <div id="panel">
     <h3><span id="p-emoji">&#127968;</span><span id="p-name">Building</span></h3>
@@ -294,16 +375,51 @@
     </div>
   </div>
 
+  <div id="achv">
+    <div class="trader-card">
+      <h2><span>&#127942;</span><span>Achievements</span></h2>
+      <div class="flavor" id="achv-count">&mdash;</div>
+      <div id="achv-list"></div>
+      <button class="closebtn" id="achv-close">Back to town</button>
+    </div>
+  </div>
+  <div id="decrees">
+    <div class="trader-card">
+      <h2><span>&#128220;</span><span>Town Decrees</span></h2>
+      <div class="flavor" id="decree-sub">&mdash;</div>
+      <div id="decree-list"></div>
+      <button class="closebtn" id="decree-close">Back to town</button>
+    </div>
+  </div>
+  <div id="chronicle">
+    <div class="trader-card">
+      <h2><span>&#128220;</span><span id="chron-title">Town Chronicle</span></h2>
+      <div class="flavor" id="chron-sub">&mdash;</div>
+      <div id="chron-list"></div>
+      <button class="closebtn" id="chron-close">Back to town</button>
+    </div>
+  </div>
+
   <div id="welcome">
     <div class="trader-card">
       <h2><span>&#127794;</span><span>Welcome to Hearthvale</span></h2>
       <div class="flavor">Build a cozy riverside town and watch it come to life.</div>
       <div style="font-size:13.5px; line-height:1.7; margin-bottom:4px;">
-        &bull; Pick a building from the bar and click the ground to place it.<br>
+        &bull; Pick a building and click the ground &mdash; a villager will come <b>build it</b>.<br>
         &bull; <b>Cottages</b> bring villagers; <b>farms &amp; fishing</b> feed them; workshops earn coin.<br>
-        &bull; Keep folk <b>happy</b> and the town grows. Follow the <b>Town Goal</b> for direction.<br>
+        &bull; Growing the colony <b>unlocks new buildings</b> &mdash; and winter hearths burn wood!<br>
+        &bull; Place workshops beside their <b>supplier</b> (bakery by a windmill&hellip;) for a &#9889; bonus.<br>
+        &bull; The <b>seasons</b> matter &mdash; reap a big harvest in autumn, and stock food before winter.<br>
+        &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
+      <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
+      <div id="diffsel" style="display:flex; gap:6px;">
+        <button type="button" class="diffbtn" data-diff="cozy">&#127804; Cozy</button>
+        <button type="button" class="diffbtn on" data-diff="normal">&#129517; Wayfarer</button>
+        <button type="button" class="diffbtn" data-diff="hard">&#9968;&#65039; Frontier</button>
+      </div>
+      <div id="diffdesc" style="font-size:11.5px; color:var(--ink-dim); min-height:15px; margin:5px 1px 0;">The intended balance &mdash; a fair start.</div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Name your town</label>
       <input id="townname-input" type="text" maxlength="20" placeholder="Hearthvale" autocomplete="off"
         style="width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-family:var(--font); font-size:14px; font-weight:600;">
@@ -402,7 +518,6 @@
       case 'goal':    tone(523, 0.10, 'triangle', 0.12); tone(659, 0.10, 'triangle', 0.12, 0.10); tone(784, 0.20, 'triangle', 0.12, 0.20); break;
       case 'error':   tone(150, 0.16, 'sawtooth', 0.08); break;
       case 'trader':  tone(440, 0.10, 'sine', 0.10); tone(330, 0.16, 'sine', 0.09, 0.09); break;
-      case 'festival': tone(523, 0.09, 'triangle', 0.11); tone(659, 0.09, 'triangle', 0.11, 0.08); tone(784, 0.09, 'triangle', 0.11, 0.16); tone(1047, 0.22, 'triangle', 0.12, 0.24); break;
     }
   }
 
@@ -644,6 +759,10 @@
     tavern:    { roof: 'red',    wall: 'timber', chimney: true,  open: true },
     warehouse: { roof: 'slate',  wall: 'timber', chimney: false, open: true },
     fishing:   { roof: 'blue',   wall: 'timber', chimney: false, open: true },
+    dock:      { roof: 'blue',   wall: 'timber', chimney: false, open: true },
+    school:    { roof: 'blue',   wall: 'stone',  chimney: true },
+    apiary:    { roof: 'thatch', wall: 'timber', chimney: false, open: true },
+    townhall:  { roof: 'slate',  wall: 'stone',  chimney: false, open: true },
   };
   const B_ROOF = {
     red:   [C.roofRed, C.roofRedDk, C.roofRedHi],
@@ -766,7 +885,7 @@
 
     // ---- Placeable decorations ----
     if (BUILDINGS[type].decor) {
-      const rises = { flowerbed: 4, garden: 4, hedge: 5, torch: 15, statue: 12, fountain: 9 };
+      const rises = { flowerbed: 4, garden: 4, hedge: 5, torch: 15, lamppost: 20, bench: 6, birdbath: 8, statue: 12, fountain: 9 };
       const RISE2 = rises[type] != null ? rises[type] : 6, H2 = gh + RISE2;
       const mk = makeCanvas(W, H2), c2 = mk.c, x2 = mk.x;
       const P2 = (px, py, pw, ph, col) => { x2.fillStyle = col; x2.fillRect(Math.round(px), Math.round(py), Math.round(pw), Math.round(ph)); };
@@ -791,6 +910,23 @@
         P2(6, gY - 10, 4, 7, C.stoneW); P2(6, gY - 10, 1, 7, C.stoneWHi); // body/robe
         P2(5, gY - 6, 1, 3, C.stoneWDk); P2(10, gY - 6, 1, 3, C.stoneWDk); // arms
         P2(6, gY - 13, 4, 3, C.stoneW); P2(6, gY - 13, 4, 1, C.stoneWHi); // head
+      } else if (type === 'lamppost') {
+        const cx = W / 2;
+        P2(cx - 1, gY - 15, 2, 15, C.lamp); P2(cx - 1, gY - 15, 1, 15, '#4a4852'); // post
+        P2(cx - 3, gY - 1, 6, 1, C.lamp);                                          // base
+        P2(cx - 2, gY - 20, 4, 5, C.lamp); P2(cx - 2, gY - 20, 4, 1, C.lamp);      // lantern housing
+        P2(cx - 1, gY - 19, 2, 3, C.lampGlow);                                     // warm glass
+      } else if (type === 'bench') {
+        P2(2, gY - 4, 12, 2, C.woodDk); P2(2, gY - 5, 12, 1, C.wood);              // seat
+        P2(2, gY - 8, 12, 1, C.wood); P2(2, gY - 8, 12, 1, C.woodDk);              // backrest slat
+        P2(3, gY - 8, 1, 4, C.woodDk); P2(12, gY - 8, 1, 4, C.woodDk);             // back posts
+        P2(3, gY - 2, 1, 2, C.woodDk); P2(12, gY - 2, 1, 2, C.woodDk);             // legs
+      } else if (type === 'birdbath') {
+        const cx = W / 2;
+        P2(cx - 1, gY - 6, 2, 6, C.stoneWDk); P2(cx - 1, gY - 6, 1, 6, C.stoneW);  // pedestal
+        P2(cx - 4, gY - 8, 8, 3, C.stoneW); P2(cx - 4, gY - 8, 8, 1, C.stoneWHi);  // basin
+        P2(cx - 3, gY - 7, 6, 1, C.water); P2(cx - 3, gY - 7, 3, 1, C.waterHi);    // water
+        P2(cx - 5, gY - 1, 10, 1, C.stoneWDk);                                     // base
       } else if (type === 'fountain') {
         const cx = W / 2;
         P2(3, gY - 5, W - 6, 5, C.stoneW); P2(3, gY - 5, W - 6, 1, C.stoneWHi); P2(3, gY - 1, W - 6, 1, C.stoneWDk); // basin rim
@@ -946,38 +1082,120 @@
     house:      { name: 'Cottage',     emoji: '🏠', w: 2, h: 2, cost: { wood: 12 },            housing: 2, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Homes 2 villagers. More cottages, more hands.' },
     farm:       { name: 'Farm',        emoji: '🌾', w: 3, h: 2, cost: { wood: 10 },            prod: { food: 6 }, worker: true, roof: C.thatch, roofDk: C.thatchDk, wall: C.thatch, wallDk: C.thatchDk, desc: 'A worker grows food to feed the town.' },
     lumber:     { name: 'Woodcutter',  emoji: '🪓', w: 2, h: 2, cost: { wood: 6, gold: 8 },    prod: { wood: 5 }, worker: true, roof: C.roofBlue, roofDk: C.roofBlueDk, wantsNear: 'tree', desc: 'Fells nearby trees for lumber. Better beside a forest.' },
-    quarry:     { name: 'Quarry',      emoji: '⛏️', w: 2, h: 2, cost: { wood: 18 },           prod: { stone: 4 }, worker: true, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, wantsNear: 'rock', desc: 'Cuts stone from the earth. Best beside rocks.' },
-    bakery:     { name: 'Bakery',      emoji: '🍞', w: 2, h: 2, cost: { wood: 16, stone: 6 },  prod: { gold: 9 }, cons: { food: 3 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Turns food into coin. Needs food on hand.' },
-    carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods sold for gold.' },
-    market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the traveling merchant.' },
-    well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
-    tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
-    warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
-    fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, cost: { wood: 14 }, prod: { food: 4 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'A worker nets fish. Much better built right beside water.' },
-    windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — and lifts nearby farms’ harvest by half again.' },
-    orchard:    { name: 'Orchard',     emoji: '🍎', w: 3, h: 2, cost: { wood: 16, gold: 10 }, prod: { food: 5 }, worker: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'A tended fruit grove — a worker harvests apples for the table.' },
-    chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town.' },
+    quarry:     { name: 'Quarry',      emoji: '⛏️', w: 2, h: 2, tier: 1, cost: { wood: 18 },           prod: { stone: 4 }, worker: true, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, wantsNear: 'rock', desc: 'Cuts stone from the earth. Best beside rocks.' },
+    bakery:     { name: 'Bakery',      emoji: '🍞', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 },  prod: { gold: 9 }, cons: { food: 3 }, worker: true, chimney: true, likes: { types: ['windmill'], bonus: 0.5, label: 'a Windmill' }, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Turns food into coin. Bakes far more with flour from a nearby windmill.' },
+    carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, likes: { types: ['lumber'], bonus: 0.5, label: 'a Woodcutter' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods. Works faster with a woodcutter next door.' },
+    market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, tier: 1, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, likes: { types: ['bakery', 'carpenter'], bonus: 0.5, label: 'a workshop' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the merchant, and sells more beside a workshop.' },
+    well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
+    tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, tier: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
+    warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
+    fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 8 }, prod: { food: 4 }, worker: true, wantsNear: 'water', likes: { types: ['dock'], bonus: 0.5, label: 'a Dock' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Cheap food — a worker nets fish. Built beside water it lands 50% more, and 50% more again by a Dock.' },
+    dock:       { name: 'Dock',        emoji: '⚓', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 }, prod: { food: 3 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'A little dock — a worker lands fish, and nearby fishing huts haul in 50% more.' },
+    windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, tier: 3, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, likes: { types: ['farm'], bonus: 0.5, label: 'a Farm' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — lifts nearby farms’ harvest, and earns more beside one.' },
+    orchard:    { name: 'Orchard',     emoji: '🍎', w: 3, h: 2, tier: 2, cost: { wood: 16, gold: 10 }, prod: { food: 5 }, charm: 4, roof: C.thatch, roofDk: C.thatchDk, desc: 'Fruit trees yield food on their own — no worker needed — and prettify the town.' },
+    chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, tier: 3, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town.' },
+    school:     { name: 'Schoolhouse', emoji: '📚', w: 2, h: 2, tier: 2, cost: { wood: 22, stone: 14 }, happy: 6, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Families settle where there’s a school — a happy town grows twice as fast, and children lift spirits.' },
+    apiary:     { name: 'Apiary',      emoji: '🐝', w: 2, h: 2, tier: 2, cost: { wood: 14, gold: 6 }, prod: { gold: 4 }, charm: 3, likes: { types: ['orchard', 'garden'], bonus: 0.5, label: 'an orchard or garden' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'Beehives yield honey to sell — no worker needed — and prettify the town. Set beside an orchard or garden, the bees forage 50% more.' },
+    townhall:   { name: 'Town Hall',   emoji: '🏛️', w: 3, h: 3, tier: 4, cost: { wood: 40, stone: 40, gold: 30 }, happy: 20, prod: { gold: 8 }, unique: true, roof: C.slate, roofDk: C.slateDk, desc: 'The pride of a true city — a grand seat of governance that gladdens the whole town and gathers taxes into the coffers.' },
     // --- placeable decorations: cheap cosmetic props that add town "charm" → happiness ---
-    flowerbed:  { name: 'Flower Bed',  emoji: '🌷', w: 1, h: 1, cost: { gold: 4 },            decor: true, charm: 3,  desc: 'A cheerful bed of blossoms — a little beauty for the town.' },
-    garden:     { name: 'Garden',      emoji: '🥕', w: 1, h: 1, cost: { gold: 5 },            decor: true, charm: 3,  desc: 'A tidy vegetable garden, pleasant to stroll past.' },
-    hedge:      { name: 'Topiary',     emoji: '🌳', w: 1, h: 1, cost: { gold: 5 },            decor: true, charm: 3,  desc: 'A neatly trimmed hedge.' },
-    torch:      { name: 'Brazier',     emoji: '🔥', w: 1, h: 1, cost: { wood: 4, stone: 2 },  decor: true, charm: 4, light: true, desc: 'A warm brazier that glows through the night.' },
-    statue:     { name: 'Statue',      emoji: '🗿', w: 1, h: 1, cost: { stone: 12 },          decor: true, charm: 8,  desc: 'A proud stone monument — a fine centerpiece.' },
-    fountain:   { name: 'Fountain',    emoji: '⛲', w: 2, h: 2, cost: { stone: 22, gold: 15 }, decor: true, charm: 16, desc: 'A grand fountain — the heart of a beautiful town square.' },
+    flowerbed:  { name: 'Flower Bed',  emoji: '🌷', w: 1, h: 1, tier: 1, cost: { gold: 4 },            decor: true, charm: 3,  desc: 'A cheerful bed of blossoms — a little beauty for the town.' },
+    garden:     { name: 'Garden',      emoji: '🥕', w: 1, h: 1, tier: 1, cost: { gold: 5 },            decor: true, charm: 3,  desc: 'A tidy vegetable garden, pleasant to stroll past.' },
+    hedge:      { name: 'Topiary',     emoji: '🌳', w: 1, h: 1, tier: 2, cost: { gold: 5 },            decor: true, charm: 3,  desc: 'A neatly trimmed hedge.' },
+    torch:      { name: 'Brazier',     emoji: '🔥', w: 1, h: 1, tier: 2, cost: { wood: 4, stone: 2 },  decor: true, charm: 4, light: true, desc: 'A warm brazier that glows through the night.' },
+    statue:     { name: 'Statue',      emoji: '🗿', w: 1, h: 1, tier: 3, cost: { stone: 12 },          decor: true, charm: 8,  desc: 'A proud stone monument — a fine centerpiece.' },
+    fountain:   { name: 'Fountain',    emoji: '⛲', w: 2, h: 2, tier: 3, cost: { stone: 22, gold: 15 }, decor: true, charm: 16, desc: 'A grand fountain — the heart of a beautiful town square.' },
+    lamppost:   { name: 'Lamppost',    emoji: '🏮', w: 1, h: 1, tier: 1, cost: { wood: 3, gold: 3 }, decor: true, charm: 2, light: true, desc: 'A roadside lamp that pools warm light over the paths after dark.' },
+    bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
+    birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'lumber', 'quarry', 'fishing', 'windmill', 'bakery', 'carpenter', 'market', 'well', 'tavern', 'chapel', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'statue', 'fountain'];
-  const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'torch', 'statue', 'fountain'];
-  function townCharm() { return state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].charm ? BUILDINGS[b.type].charm * (b.level || 1) : 0), 0); }
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
+  // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
+  const TIERS = [
+    { name: 'Camp',    at: 0 },
+    { name: 'Hamlet',  at: 4 },
+    { name: 'Village', at: 8 },
+    { name: 'Town',    at: 12 },
+    { name: 'City',    at: 20 },
+  ];
+  function townTier() {
+    const pop = state.villagers.length;
+    let t = 0;
+    for (let i = 0; i < TIERS.length; i++) if (pop >= TIERS[i].at) t = i;
+    return t;
+  }
+  function tierLocked(type) { return (BUILDINGS[type].tier || 0) > townTier(); }
+  let _lastTier = -1;   // initialised after load so reloading doesn't re-celebrate
+  function checkTierUp() {
+    const t = townTier();
+    if (_lastTier === -1) { _lastTier = t; return; }
+    if (t > _lastTier) {
+      _lastTier = t;
+      toast('🎉 ' + (state.townName || 'Hearthvale') + ' has grown into a ' + TIERS[t].name + '! New buildings unlocked.');
+      SFX('goal');
+      state.happy = Math.min(100, state.happy + 4);
+      celebrateT = CELEBRATE_DUR;   // a confetti flourish
+      if (decreesAvailable() > 0) setTimeout(() => toast('📜 You may enact a new Town Decree — open the menu.'), 1400);
+      buildBar(); renderGoal(); save();
+    } else if (t < _lastTier) _lastTier = t;   // shrunk back down — no fanfare
+  }
+  function townCharm() { return state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].charm && b.done !== false ? BUILDINGS[b.type].charm * (b.level || 1) : 0), 0); }
   const WINDMILL_RANGE = 4.5;   // farms within this Chebyshev tile distance get a food boost
   function windmillBoostsFarm(b) {
-    if (b.type !== 'farm') return false;
+    if (b.type !== 'farm' || b.done === false) return false;
     const def = BUILDINGS.farm, cx = b.tx + def.w / 2, cy = b.ty + def.h / 2;
     return state.buildings.some(w => {
-      if (w.type !== 'windmill') return false;
+      if (w.type !== 'windmill' || w.done === false) return false;
       const wd = BUILDINGS.windmill, wx = w.tx + wd.w / 2, wy = w.ty + wd.h / 2;
       return Math.abs(wx - cx) <= WINDMILL_RANGE && Math.abs(wy - cy) <= WINDMILL_RANGE;
     });
   }
+  // ---- Supply chains: buildings earn a bonus when placed near a partner. --
+  // This turns layout into a puzzle — cluster a Farm + Windmill + Bakery into
+  // a "grain district", a Woodcutter + Carpenter into a "timber yard", etc.
+  const ADJ_RANGE = 4.5;   // Chebyshev tile distance between building centres
+  function bCentre(b) { const d = BUILDINGS[b.type]; return { x: b.tx + d.w / 2, y: b.ty + d.h / 2 }; }
+  function centresNear(cx, cy, b, range) { const c = bCentre(b); return Math.abs(c.x - cx) <= range && Math.abs(c.y - cy) <= range; }
+  // The nearest finished partner that boosts building `b` (null if none).
+  function adjSupplier(b) {
+    const def = BUILDINGS[b.type];
+    if (!def.likes || b.done === false) return null;
+    const c = bCentre(b);
+    let best = null, bestD = Infinity;
+    for (const o of state.buildings) {
+      if (o === b || o.done === false || def.likes.types.indexOf(o.type) < 0) continue;
+      if (!centresNear(c.x, c.y, o, ADJ_RANGE)) continue;
+      const oc = bCentre(o), d = Math.abs(oc.x - c.x) + Math.abs(oc.y - c.y);
+      if (d < bestD) { bestD = d; best = o; }
+    }
+    return best;
+  }
+  function adjMult(b) { const def = BUILDINGS[b.type]; return (def.likes && adjSupplier(b)) ? 1 + def.likes.bonus : 1; }
+
+  // ---- Festivals: a player-called celebration at the tavern. Spend food &
+  // coin for a burst of happiness — villagers down tools and gather to dance,
+  // lanterns are strung, and the whole town's mood is buoyed for a few days. --
+  const FEST_DAYS = 2;       // how long a festival's glow lasts
+  const FEST_COOLDOWN = 3;   // days the town needs to recover before the next
+  function festivalCost() { const pop = state.villagers.length; return { food: 6 + pop * 2, gold: 8 + pop * 2 }; }
+  function festivalActive() { return !!(state.festival && state.day < state.festival.endDay); }
+  function festivalReady() { return (state.day - (state.lastFestivalDay != null ? state.lastFestivalDay : -99)) >= FEST_COOLDOWN; }
+  function holdFestival(tav) {
+    if (festivalActive()) { toast('🎪 A festival is already underway!'); SFX('error'); return; }
+    if (!festivalReady()) { toast('The town needs a few days to recover before the next festival.'); SFX('error'); return; }
+    const cost = festivalCost();
+    if (!Object.keys(cost).every(k => state.res[k] >= cost[k])) { toast("Not enough food & coin for a festival yet."); SFX('error'); return; }
+    Object.keys(cost).forEach(k => state.res[k] -= cost[k]);
+    const def = BUILDINGS[tav.type];
+    state.festival = { endDay: state.day + FEST_DAYS, x: (tav.tx + def.w / 2) * TILE, y: (tav.ty + def.h / 2) * TILE };
+    state.lastFestivalDay = state.day;
+    state.festivalsHeld = (state.festivalsHeld || 0) + 1;
+    state.happy = Math.min(100, state.happy + 20);
+    SFX('goal');
+    toast('🎪 ' + (state.townName || 'Hearthvale') + ' throws a festival — spirits soar!');
+    updateHUD(); checkAchievements(); save();
+  }
+
   const BASE_CAP = { wood: 250, stone: 250, food: 200 };  // gold is uncapped currency
   const SEASONS = [
     { name: 'Spring', emoji: '🌱', tint: null },
@@ -1001,11 +1219,19 @@
   let floaters = [];       // floating "+N" production feedback {wx,wy,text,color,life,maxLife}
   // ambient life (cosmetic, non-persistent) — all move on continuous curves, never blink
   let birds = [], butters = [], fireflies = [], leaves = [], critters = [];
+  let waterlife = [], waterSpots = [];   // ducks drifting on the river + fish-jump spots
   let ambientTime = 0;     // seconds of real time, drives smooth ambient motion
   const RES_COLOR = { wood: '#e0bd8a', stone: '#c7cdd5', food: '#a2d982', gold: '#f2c14e' };
   let gameSpeed = 1, prevSpeed = 1;   // 0 = paused, 1/2/3 = time multiplier
   let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
+  // Difficulty presets chosen at the start — a relaxed build vs. a lean frontier.
+  const DIFFICULTY = {
+    cozy:   { label: 'Cozy',     res: 1.6, famine: false, desc: 'A relaxed build &mdash; a generous start, and no one ever leaves.' },
+    normal: { label: 'Wayfarer', res: 1.0, famine: true,  desc: 'The intended balance &mdash; a fair start.' },
+    hard:   { label: 'Frontier', res: 0.55, famine: true, desc: 'A testing start &mdash; lean stores, no room for waste.' },
+  };
+  function diffCfg() { return DIFFICULTY[state && state.difficulty] || DIFFICULTY.normal; }
   function defaultState() {
     return {
       res: { wood: 40, stone: 20, food: 30, gold: 25 },
@@ -1026,10 +1252,15 @@
       raining: false,  // cosmetic weather for the current day
       achievements: [],
       townName: 'Hearthvale',
-      endless: null,    // endless goal tiers after GOALS run out: {tier, target, streak, harvest}
-      festivalDay: 0,   // day the town last held a festival (festive while day matches)
-      festivals: 0,     // lifetime festivals held
-      festHintDay: 0,   // last day we nudged the player toward a festival
+      trades: 0,       // lifetime deals struck with the traveling merchant
+      traderDay: 0,    // day the merchant's cart is (or was last) in town
+      hunger: 0,       // consecutive production cycles with an empty pantry
+      festival: null,  // active town festival { endDay, x, y } — a morale burst
+      lastFestivalDay: -99, // cooldown anchor for the next festival
+      peakPop: 0,      // high-water mark of population, for the chronicle
+      festivalsHeld: 0,// lifetime festivals thrown
+      difficulty: 'normal', // chosen pace: cozy | normal | hard
+      decrees: [],     // enacted town perks (ids from DECREES)
     };
   }
   const ACHIEVEMENTS = [
@@ -1043,15 +1274,27 @@
     { id: 'miller', emoji: '🌬️', name: 'The Miller', desc: 'Raise a windmill.', done: () => countType('windmill') >= 1 },
     { id: 'chapel', emoji: '🔔', name: 'Bells of Hearthvale', desc: 'Build a chapel.', done: () => countType('chapel') >= 1 },
     { id: 'orchardist', emoji: '🍎', name: 'Orchardist', desc: 'Plant an orchard.', done: () => countType('orchard') >= 1 },
+    { id: 'supplychain', emoji: '⚡', name: 'Supply Chain', desc: 'Boost a building by placing it beside its supplier.', done: () => state.buildings.some(b => BUILDINGS[b.type].likes && b.done !== false && adjSupplier(b)) },
+    { id: 'first_trade', emoji: '🤝', name: 'Fair Deal', desc: 'Strike a deal with the traveling merchant.', done: () => (state.trades || 0) >= 1 },
+    { id: 'trade_baron', emoji: '🐴', name: 'Friend of the Road', desc: 'Make 25 trades with the merchant.', done: () => (state.trades || 0) >= 25 },
     { id: 'gardener', emoji: '🌷', name: 'Green Thumb', desc: 'Place your first decoration.', done: () => state.buildings.some(b => BUILDINGS[b.type].decor) },
     { id: 'square', emoji: '⛲', name: 'Town Square', desc: 'Build a fountain.', done: () => countType('fountain') >= 1 },
     { id: 'beautiful', emoji: '✨', name: 'A Beautiful Town', desc: 'Reach 40 town charm.', done: () => townCharm() >= 40 },
-    { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.length >= 10 },
+    { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.filter(b => b.done !== false).length >= 10 },
     { id: 'architect', emoji: '⬆️', name: 'Architect', desc: 'Upgrade a building to Level 3.', done: () => state.buildings.some(b => (b.level || 1) >= 3) },
     { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300 },
     { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20 },
     { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95 },
-    { id: 'festive', emoji: '🎪', name: 'Merrymaker', desc: 'Hold a town festival.', done: () => (state.festivals || 0) >= 1 },
+    { id: 'festival', emoji: '🎪', name: "Let's Celebrate", desc: 'Throw a town festival at the tavern.', done: () => state.lastFestivalDay != null && state.lastFestivalDay >= 0 },
+    { id: 'school', emoji: '📚', name: 'Three Rs', desc: 'Build a schoolhouse.', done: () => countType('school') >= 1 },
+    { id: 'beekeeper', emoji: '🐝', name: 'Beekeeper', desc: 'Set up an apiary.', done: () => countType('apiary') >= 1 },
+    { id: 'cityhall', emoji: '🏛️', name: 'Civic Pride', desc: 'Raise a Town Hall in a City.', done: () => countType('townhall') >= 1 },
+    { id: 'city', emoji: '🏙️', name: 'Metropolis', desc: 'Grow to 20 villagers — a true City.', done: () => state.villagers.length >= 20 },
+    { id: 'festivals5', emoji: '🎉', name: 'Life of the Party', desc: 'Hold five town festivals.', done: () => (state.festivalsHeld || 0) >= 5 },
+    { id: 'lamplighter', emoji: '🏮', name: 'Lamplighter', desc: 'Place a lamppost.', done: () => countType('lamppost') >= 1 },
+    { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19 },
+    { id: 'dockworker', emoji: '⚓', name: 'On the Waterfront', desc: 'Build a dock.', done: () => countType('dock') >= 1 },
+    { id: 'lawgiver', emoji: '📜', name: 'Lawgiver', desc: 'Enact your first Town Decree.', done: () => (state.decrees || []).length >= 1 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -1066,16 +1309,99 @@
     }
     if (unlocked) save();
   }
+  function openAchievements() {
+    const wrap = document.getElementById('achv-list');
+    const got = state.achievements || [];
+    document.getElementById('achv-count').textContent = got.length + ' of ' + ACHIEVEMENTS.length + ' earned';
+    wrap.innerHTML = ACHIEVEMENTS.map(a => {
+      const done = got.indexOf(a.id) >= 0;
+      return '<div class="achv-row ' + (done ? 'done' : 'locked') + '"><span class="aemoji">' + a.emoji + '</span><span><div class="aname">' + a.name + '</div><div class="adesc">' + a.desc + '</div></span></div>';
+    }).join('');
+    document.getElementById('achv').classList.add('show');
+  }
+  // Town Decrees — pick permanent perks as slots open with each new tier.
+  function openDecrees() {
+    const avail = decreesAvailable();
+    document.getElementById('decree-sub').textContent = avail > 0
+      ? avail + ' decree' + (avail > 1 ? 's' : '') + ' to enact — choose wisely, they’re permanent.'
+      : (decreeSlots() === 0 ? 'Grow into a Village to enact your first decree.' : 'All available decrees enacted — grow the town for more.');
+    const wrap = document.getElementById('decree-list');
+    wrap.innerHTML = '';
+    DECREES.forEach(d => {
+      const enacted = hasDecree(d.id);
+      const canPick = !enacted && avail > 0;
+      const row = document.createElement('div');
+      row.className = 'decree-row ' + (enacted ? 'enacted' : canPick ? 'pick' : '');
+      row.innerHTML = '<span class="demoji">' + d.emoji + '</span><span><div class="dname">' + d.name + '</div><div class="ddesc">' + d.desc + '</div></span>' +
+        '<span class="dtag" style="color:' + (enacted ? '#8ec26b' : canPick ? '#f2d9a0' : 'var(--ink-dim)') + '">' + (enacted ? '✓ enacted' : canPick ? 'Enact' : '') + '</span>';
+      if (canPick) row.onclick = () => {
+        if (decreesAvailable() <= 0 || hasDecree(d.id)) return;
+        state.decrees.push(d.id); SFX('goal'); toast(d.emoji + ' Decree enacted: ' + d.name);
+        checkAchievements(); updateHUD(); save(); openDecrees();
+      };
+      wrap.appendChild(row);
+    });
+    document.getElementById('decrees').classList.add('show');
+  }
+  // The Town Chronicle — a record of how the settlement has grown so far.
+  function openChronicle() {
+    const done = state.buildings.filter(b => b.done !== false);
+    const workshops = done.filter(b => BUILDINGS[b.type].prod).length;
+    const homes = done.filter(b => BUILDINGS[b.type].housing).length;
+    const decos = done.filter(b => BUILDINGS[b.type].decor).length;
+    const season = seasonOf(state.day);
+    const tierName = TIERS[townTier()].name;
+    const rows = [
+      ['🏘️ Standing as', tierName],
+      ['⚖️ Pace', diffCfg().label],
+      ['📜 Decrees', (state.decrees || []).length + ' enacted' + (decreesAvailable() > 0 ? '  (' + decreesAvailable() + ' available!)' : '')],
+      ['📅 Days settled', state.day + '  (' + season.emoji + ' ' + season.name + ')'],
+      ['👪 Population', state.villagers.length + '  ·  peak ' + Math.max(state.peakPop || 0, state.villagers.length)],
+      ['😊 Happiness', Math.round(state.happy) + '%' + (moraleMult() > 1 ? '  ⚡ thriving' : moraleMult() < 1 ? '  ⚠️ unsettled' : '')],
+      ['🏠 Homes', '' + homes],
+      ['⚒️ Workshops', '' + workshops],
+      ['🌷 Charm', townCharm() + '  (' + decos + ' decorations)'],
+      ['🏛️ Buildings raised', '' + done.length],
+      ['🤝 Trades struck', '' + (state.trades || 0)],
+      ['🎪 Festivals held', '' + (state.festivalsHeld || 0)],
+      ['💰 Coin in the coffers', Math.floor(state.res.gold)],
+      ['🏆 Achievements', (state.achievements || []).length + ' of ' + ACHIEVEMENTS.length],
+    ];
+    document.getElementById('chron-title').textContent = state.townName || 'Hearthvale';
+    document.getElementById('chron-sub').textContent = 'A chronicle of the settlement';
+    document.getElementById('chron-list').innerHTML = rows.map(r => '<div class="chron-row"><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+    document.getElementById('chronicle').classList.add('show');
+  }
+  // Rain waters the crops: on a rainy day outside winter, farms & orchards
+  // yield more — a reason to welcome the grey skies. And when the rain clears,
+  // a rainbow arcs over the valley for a little while.
+  const RAIN_CROP_BONUS = 0.25;
+  let rainbowT = 0;              // real-time seconds a rainbow lingers (ephemeral)
+  const RAINBOW_DUR = 14;
+  let celebrateT = 0;            // confetti flourish timer on a tier-up (ephemeral)
+  const CELEBRATE_DUR = 3;
+  function rainBoostsCrops() { return state.raining && seasonOf(state.day).name !== 'Winter'; }
+  function cropRainMult(b) { return (rainBoostsCrops() && (b.type === 'farm' || b.type === 'orchard')) ? 1 + RAIN_CROP_BONUS : 1; }
+  // The seasons reach the fields too: autumn brings a harvest bounty, winter
+  // leaves them fallow — so a wise town stockpiles food before the cold.
+  function seasonCropMult(b) {
+    const s = seasonOf(state.day).name;
+    if (b.type === 'farm' || b.type === 'orchard') return s === 'Autumn' ? 1.25 : s === 'Summer' ? 1.1 : s === 'Winter' ? 0.6 : 1;
+    if (b.type === 'fishing') return s === 'Summer' ? 1.2 : s === 'Winter' ? 0.6 : 1;  // fish bite in summer; the water ices over in winter
+    return 1;
+  }
   function rollWeather() {
     const s = seasonOf(state.day);
     const chance = s.name === 'Autumn' || s.name === 'Spring' ? 0.32 : 0.15;
     const was = state.raining;
     state.raining = rrand(state.day * 911 + 7) < chance;
-    if (state.raining && !was) toast(seasonOf(state.day).name === 'Winter' ? '❄️ Snow drifts over the valley.' : '🌧️ Rain moves over the valley.');
+    if (state.raining && !was) toast(s.name === 'Winter' ? '❄️ Snow drifts over the valley.' : '🌧️ Rain moves over the valley — the crops drink it up.');
+    // rain clearing on a growing day paints a rainbow across the sky
+    if (was && !state.raining && s.name !== 'Winter') rainbowT = RAINBOW_DUR;
   }
 
   // ---- Town goals: a soft progression curve that gives direction --
-  function countType(t) { return state.buildings.filter(b => b.type === t).length; }
+  function countType(t) { return state.buildings.filter(b => b.type === t && b.done !== false).length; }   // finished buildings only
   const GOALS = [
     { text: 'Build a second cottage', prog: () => [countType('house'), 2], done: () => countType('house') >= 2, reward: { gold: 20 } },
     { text: 'Build a farm to grow food', prog: () => [countType('farm'), 1], done: () => countType('farm') >= 1, reward: { wood: 15 } },
@@ -1093,46 +1419,20 @@
     { text: 'Upgrade a building to Level 3', prog: () => [state.buildings.some(b => (b.level || 1) >= 3) ? 1 : 0, 1], done: () => state.buildings.some(b => (b.level || 1) >= 3), reward: { gold: 100 } },
     { text: 'Bank 400 gold', prog: () => [Math.floor(state.res.gold), 400], done: () => state.res.gold >= 400, reward: { wood: 60, stone: 40 } },
     { text: 'Grow to 18 villagers', prog: () => [state.villagers.length, 18], done: () => state.villagers.length >= 18, reward: { gold: 200 } },
+    { text: 'Build a Schoolhouse to draw families', prog: () => [countType('school'), 1], done: () => countType('school') >= 1, reward: { gold: 120 } },
+    { text: 'Set up an Apiary by an orchard', prog: () => [countType('apiary'), 1], done: () => countType('apiary') >= 1, reward: { gold: 100 } },
+    { text: 'Grow into a City (20 villagers)', prog: () => [state.villagers.length, 20], done: () => state.villagers.length >= 20, reward: { gold: 250 } },
+    { text: 'Raise a Town Hall, the city’s pride', prog: () => [countType('townhall'), 1], done: () => countType('townhall') >= 1, reward: { gold: 300 } },
   ];
-  // Once the story goals run out, rotating endless tiers keep giving direction.
-  // Targets are snapshotted when a tier starts (so they always sit ahead of the
-  // town) and persisted in state.endless with backward-compatible defaults.
-  function ensureEndless() {
-    if (!state.endless) state.endless = { tier: 0, target: 0, streak: 0, harvest: 0 };
-    if (!state.endless.target) rollEndlessTarget();
-    return state.endless;
-  }
-  function rollEndlessTarget() {
-    const e = state.endless, kind = e.tier % 4;
-    if (kind === 0) e.target = Math.max(20, state.villagers.length + 2);                          // grow the town
-    else if (kind === 1) e.target = Math.max(500, Math.ceil(state.res.gold * 1.5 / 50) * 50);    // bank gold
-    else if (kind === 2) e.target = Math.min(3 + Math.floor(e.tier / 8), 5);                     // happy-streak days
-    else e.target = Math.max(120, state.villagers.length * 18);                                  // harvest food
-    e.streak = 0; e.harvest = 0;
-  }
-  function endlessGoal() {
-    const e = ensureEndless(), kind = e.tier % 4, t = e.target;
-    const goldRew = Math.min(500, 120 + e.tier * 20); // rewards grow with each tier
-    switch (kind) {
-      case 0: return { text: 'Grow to ' + t + ' villagers', prog: () => [state.villagers.length, t], done: () => state.villagers.length >= t, reward: { gold: goldRew } };
-      case 1: return { text: 'Bank ' + t + ' gold', prog: () => [Math.floor(state.res.gold), t], done: () => state.res.gold >= t, reward: { wood: 40, stone: 40, food: 40 } };
-      case 2: return { text: 'Keep the town happy (80%+) for ' + t + ' days', prog: () => [e.streak || 0, t], done: () => (e.streak || 0) >= t, reward: { gold: goldRew } };
-      default: return { text: 'Harvest ' + t + ' food', prog: () => [Math.floor(e.harvest || 0), t], done: () => (e.harvest || 0) >= t, reward: { gold: goldRew, food: 20 } };
-    }
-  }
-  function currentGoal() {
-    return state.goalIndex < GOALS.length ? GOALS[state.goalIndex] : endlessGoal();
-  }
   function checkGoals() {
-    if (!state) return;
-    const g = currentGoal();
+    if (!state || state.goalIndex >= GOALS.length) return;
+    const g = GOALS[state.goalIndex];
     if (g.done()) {
       for (const k in g.reward) state.res[k] = (state.res[k] || 0) + g.reward[k];
       const rew = Object.keys(g.reward).map(k => '+' + g.reward[k] + ' ' + shortRes(k)).join(' ');
       toast('✦ Goal done: ' + g.text + '  ' + rew);
       SFX('goal');
-      if (state.goalIndex < GOALS.length) state.goalIndex++;
-      else { state.endless.tier++; rollEndlessTarget(); }
+      state.goalIndex++;
       state.happy = Math.min(100, state.happy + 5); // a win cheers the town
       renderGoal(); save();
     }
@@ -1141,9 +1441,10 @@
     const tEl = document.getElementById('goal-text'), fEl = document.getElementById('goal-fill');
     if (!tEl || !fEl) return;
     const titleEl = document.querySelector('#goals .goals-title');
-    if (titleEl) titleEl.innerHTML = '&#10022; ' + (state.townName || 'Hearthvale').toUpperCase();
-    const g = currentGoal(), p = g.prog();
-    tEl.textContent = (state.goalIndex >= GOALS.length ? '★ ' : '') + g.text;
+    if (titleEl) titleEl.innerHTML = '&#10022; ' + (state.townName || 'Hearthvale').toUpperCase() + ' · ' + TIERS[townTier()].name.toUpperCase();
+    if (state.goalIndex >= GOALS.length) { tEl.textContent = (state.townName || 'Hearthvale') + ' is thriving! 🎉'; fEl.style.width = '100%'; return; }
+    const g = GOALS[state.goalIndex], p = g.prog();
+    tEl.textContent = g.text;
     fEl.style.width = Math.max(0, Math.min(100, (p[0] / p[1]) * 100)) + '%';
   }
 
@@ -1297,6 +1598,7 @@
 
   function canPlaceAt(type, tx, ty) {
     const def = BUILDINGS[type];
+    if (tierLocked(type)) return false;
     if (def.unique && state.buildings.some(b => b.type === type)) return false;
     for (let dy = 0; dy < def.h; dy++)
       for (let dx = 0; dx < def.w; dx++) {
@@ -1336,9 +1638,17 @@
     return false;
   }
 
+  // Placing a building starts a CONSTRUCTION SITE. A villager comes to
+  // hammer it up (sites also self-build slowly, so nothing can deadlock);
+  // the building only functions — houses folk, produces, adds charm —
+  // once it's finished.
+  function buildWorkOf(type) {
+    const cost = BUILDINGS[type].cost;
+    return 8 + Object.keys(cost).reduce((s, k) => s + cost[k], 0) * 0.5;   // "hammer-seconds"
+  }
   function placeBuilding(type, tx, ty) {
     const def = BUILDINGS[type];
-    const b = { id: state._nextId++, type, tx, ty, staffed: false, worker: null, level: 1 };
+    const b = { id: state._nextId++, type, tx, ty, staffed: false, worker: null, level: 1, done: false, buildTotal: buildWorkOf(type), buildLeft: buildWorkOf(type) };
     // clear flowers under footprint; mark occupancy
     for (let dy = 0; dy < def.h; dy++)
       for (let dx = 0; dx < def.w; dx++) {
@@ -1350,13 +1660,51 @@
     if (def.wantsNear) b.bonus = def.wantsNear === 'water' ? nearWater(tx, ty, def) : nearCount(tx, ty, def, def.wantsNear === 'tree' ? O_TREE : O_ROCK) > 0;
     state.buildings.push(b);
     payCost(type);
-    if (def.housing) { for (let k = 0; k < def.housing; k++) spawnVillager(b); }
-    assignJobs();
-    if (type === 'farm' || state.buildings.length <= 3) rebuildCritters();
+    assignBuilders();
     SFX('place');
-    toast(def.emoji + ' ' + def.name + ' built!');
+    toast('🏗️ ' + def.name + ' under construction…');
     save();
     return b;
+  }
+  function completeBuilding(b) {
+    const def = BUILDINGS[b.type];
+    b.done = true; b.buildLeft = 0;
+    if (def.housing) { for (let k = 0; k < def.housing; k++) spawnVillager(b); }
+    assignJobs();
+    if (b.type === 'farm' || state.buildings.length <= 3) rebuildCritters();
+    SFX('upgrade');
+    // the Town Hall is the crowning achievement — mark it with real fanfare
+    if (b.type === 'townhall') {
+      celebrateT = CELEBRATE_DUR + 3;
+      SFX('goal');
+      toast('🏛️ ' + (state.townName || 'Hearthvale') + ' is now a great City — the Town Hall stands proud! 🎉');
+      state.happy = Math.min(100, state.happy + 8);
+    } else {
+      toast(def.emoji + ' ' + def.name + ' finished!');
+    }
+    save();
+  }
+  // Send a spare pair of hands to each site (one builder per site).
+  function assignBuilders() {
+    const sites = state.buildings.filter(b => b.done === false);
+    state.villagers.forEach(v => { if (v.buildId && !sites.some(s => s.id === v.buildId)) v.buildId = null; });
+    for (const s of sites) {
+      if (state.villagers.some(v => v.buildId === s.id)) continue;
+      const cand = state.villagers.find(v => !v.buildId && !v.jobId) || state.villagers.find(v => !v.buildId);
+      if (cand) { cand.buildId = s.id; cand.path = null; cand.wait = 0; }
+    }
+  }
+  function siteProgressTick(sdt) {
+    for (const b of state.buildings) {
+      if (b.done !== false) continue;
+      // founders build fast when there's no one else; otherwise sites crawl
+      // along on their own and a villager on-site does the real work
+      let rate = state.villagers.length === 0 ? 2.5 : 0.5;
+      const d = doorTile(b);
+      if (state.villagers.some(v => v.buildId === b.id && Math.max(Math.abs(v.tx - d.tx), Math.abs(v.ty - d.ty)) <= 1)) rate += 2.5;
+      b.buildLeft -= rate * sdt;
+      if (b.buildLeft <= 0) completeBuilding(b);
+    }
   }
 
   function demolish(b) {
@@ -1367,10 +1715,16 @@
     state.villagers = state.villagers.filter(v => v.homeId !== b.id);
     state.villagers.forEach(v => { if (v.jobId === b.id) { v.jobId = null; v.state = 'idle'; } });
     state.buildings = state.buildings.filter(x => x.id !== b.id);
-    payCost(b.type, true);
+    state.villagers.forEach(v => { if (v.buildId === b.id) v.buildId = null; });
+    if (b.done === false) {   // cancelled site: nothing was built, full refund
+      for (const k in def.cost) state.res[k] += def.cost[k];
+      toast('Construction cancelled (materials returned)');
+    } else {
+      payCost(b.type, true);
+      toast('Removed ' + def.name + ' (half materials refunded)');
+    }
     assignJobs();
     rebuildCritters();
-    toast('Removed ' + def.name + ' (half materials refunded)');
     save();
   }
 
@@ -1382,6 +1736,18 @@
   // ---- Villagers ----------------------------------------------
   const V_COLORS = ['#e06a5c', '#5f83c8', '#e0a13f', '#7bbf63', '#c78be0', '#4fb0a8', '#e0708b'];
   const V_NAMES = ['Mira', 'Tobin', 'Elara', 'Finn', 'Rowan', 'Sable', 'Bram', 'Wren', 'Cassia', 'Odo', 'Hazel', 'Pippin', 'Fern', 'Garrick', 'Lila', 'Marn', 'Nessa', 'Corin', 'Dahlia', 'Emrys', 'Juniper', 'Alden', 'Petra', 'Wilan'];
+  // Each villager has a nature — pure flavor that colors their panel and emotes.
+  const V_TRAITS = [
+    { name: 'Cheerful',    emoji: '😊', mote: '🎶' },
+    { name: 'Dreamer',     emoji: '💭', mote: '💭' },
+    { name: 'Hardworking', emoji: '💪', mote: '🔨' },
+    { name: 'Sleepyhead',  emoji: '😴', mote: '💤' },
+    { name: 'Friendly',    emoji: '👋', mote: '❤️' },
+    { name: 'Curious',     emoji: '🔍', mote: '❓' },
+    { name: 'Gourmand',    emoji: '🍞', mote: '🍎' },
+    { name: 'Green thumb', emoji: '🌱', mote: '🌼' },
+  ];
+  function traitOf(v) { return V_TRAITS[Math.floor(rrand(v.id * 41 + 5) * V_TRAITS.length) % V_TRAITS.length]; }
   function spawnVillager(home) {
     const d = doorTile(home);
     const spot = findWalkableNear(d.tx, d.ty) || d;
@@ -1407,16 +1773,16 @@
   }
   function effHousing(b) { return (BUILDINGS[b.type].housing || 0) * (b.level || 1); }
   function popCap() {
-    return state.buildings.filter(b => BUILDINGS[b.type].housing)
+    return state.buildings.filter(b => BUILDINGS[b.type].housing && b.done !== false)
       .reduce((s, b) => s + effHousing(b), 0);
   }
   const MAX_LEVEL = 3;
-  function canUpgrade(b) { const d = BUILDINGS[b.type]; return (d.housing || d.prod || d.happy || d.storage) && (b.level || 1) < MAX_LEVEL; }
+  function canUpgrade(b) { const d = BUILDINGS[b.type]; return b.done !== false && (d.housing || d.prod || d.happy || d.storage) && (b.level || 1) < MAX_LEVEL; }
   function capOf(res) {
     if (!(res in BASE_CAP)) return Infinity;
-    return BASE_CAP[res] + state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].storage ? BUILDINGS[b.type].storage * (b.level || 1) : 0), 0);
+    return BASE_CAP[res] + state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].storage && b.done !== false ? BUILDINGS[b.type].storage * (b.level || 1) : 0), 0);
   }
-  let _storageFullTimer = 0;
+  let _storageFullTimer = 0, _coldTimer = 0, _crowdWarned = false, _wasThriving = false, _winterWarned = false;
   function clampRes() {
     let full = false;
     for (const k in BASE_CAP) { const cap = capOf(k); if (state.res[k] > cap) { state.res[k] = cap; full = true; } }
@@ -1443,7 +1809,7 @@
   }
   // Assign idle villagers to unstaffed worker-buildings.
   function assignJobs() {
-    const needy = state.buildings.filter(b => BUILDINGS[b.type].worker && !state.villagers.some(v => v.jobId === b.id));
+    const needy = state.buildings.filter(b => BUILDINGS[b.type].worker && b.done !== false && !state.villagers.some(v => v.jobId === b.id));
     const free = state.villagers.filter(v => !v.jobId);
     needy.forEach((b, i) => { if (free[i]) { free[i].jobId = b.id; free[i].state = 'toWork'; } });
     // recompute staffed flags
@@ -1500,6 +1866,7 @@
       const tgt = v.path[0];
       const gx = tgt.tx * TILE + TILE / 2, gy = tgt.ty * TILE + TILE / 2;
       const dx = gx - v.x, dy = gy - v.y, dist = Math.hypot(dx, dy);
+      if (Math.abs(dx) > 0.5) v.face = dx < 0 ? -1 : 1;
       const onRoad = inMap(v.tx, v.ty) && (tiles[idx(v.tx, v.ty)] === T_DIRT || tiles[idx(v.tx, v.ty)] === T_BRIDGE);
       const spd = (onRoad ? 34 : 22) * dt * TILE / 16;
       if (dist < 1.5) { v.x = gx; v.y = gy; v.tx = tgt.tx; v.ty = tgt.ty; v.path.shift(); }
@@ -1519,18 +1886,21 @@
       if (hd && v.tx === hd.tx && v.ty === hd.ty) { v.sleeping = true; return; } // tucked in
       if (roll(41) < 0.3) setEmote(v, '💤', 2.4);
       dest = hd;
-    } else if (isFestival() && (v.id % 3 !== 0)) {
-      // festival day — the town crowds around its finest gathering spot to celebrate
-      const spot = state.buildings.find(b => b.type === 'fountain') || state.buildings.find(b => b.type === 'tavern') ||
-        state.buildings.find(b => b.type === 'market') || state.buildings.find(b => b.type === 'chapel');
-      if (spot) {
-        const gd = doorTile(spot);
-        dest = strollNear(gd.tx, gd.ty, 4);
-      }
-      if (roll(31) < 0.6) setEmote(v, roll(9) < 0.35 ? '🎉' : roll(13) < 0.5 ? '🎶' : '🥳', 2.6);
-    } else if (evening && (v.id % 2 === 0) && (state.buildings.some(b => b.type === 'tavern' || b.type === 'chapel'))) {
+    } else if (v.buildId) {
+      // construction duty: get beside the site and hammer away
+      const s = buildingById(v.buildId);
+      if (!s || s.done !== false) { v.buildId = null; return; }
+      const d = doorTile(s);
+      if (Math.max(Math.abs(v.tx - d.tx), Math.abs(v.ty - d.ty)) <= 1) { setEmote(v, '🔨', 2.0); v.wait = 1.1; return; }
+      dest = findWalkableNear(d.tx, d.ty);
+    } else if (festivalActive() && roll(31) < 0.7) {
+      // festival! most folk drift to the square to dance and celebrate
+      const f = state.festival;
+      dest = strollNear(Math.floor(f.x / TILE), Math.floor(f.y / TILE), 3);
+      if (roll(19) < 0.6) { const r = roll(9); setEmote(v, r < 0.4 ? '🎉' : r < 0.7 ? '🎶' : '🍺', 2.6); }
+    } else if (evening && (v.id % 2 === 0) && (state.buildings.some(b => (b.type === 'tavern' || b.type === 'chapel') && b.done !== false))) {
       // the town gathers of an evening — at the tavern if there is one
-      const gather = state.buildings.find(b => b.type === 'tavern') || state.buildings.find(b => b.type === 'chapel');
+      const gather = state.buildings.find(b => b.type === 'tavern' && b.done !== false) || state.buildings.find(b => b.type === 'chapel' && b.done !== false);
       const gd = doorTile(gather);
       dest = strollNear(gd.tx, gd.ty, 3);
       if (roll(29) < 0.5) setEmote(v, gather.type === 'tavern' ? (roll(7) < 0.5 ? '🍺' : '🎶') : '🔔', 2.8);
@@ -1545,12 +1915,39 @@
       } else { v.jobId = null; }
     }
     if (!dest) {
+      // by day, folk sometimes wander to a bench, fountain or garden to relax
+      const leisure = !isNight() && !v.buildId && roll(37) < 0.28 ? leisureSpot(v) : null;
+      if (leisure) {
+        dest = strollNear(leisure.tx, leisure.ty, 1);
+        if (roll(11) < 0.6) setEmote(v, roll(5) < 0.5 ? '😌' : '🎶', 2.6);
+      } else {
       dest = randomStroll(v);
-      if (state.happy >= 65 && roll(53) < 0.12) setEmote(v, roll(11) < 0.5 ? '🎶' : '❤️', 2.2);
+      if (state.happy >= 65 && roll(53) < 0.12) setEmote(v, roll(11) < 0.5 ? traitOf(v).mote : '❤️', 2.2);
+      else if (state.happy < 55 && roll(43) < 0.22) { const n = townNeed(); if (n) setEmote(v, n, 2.4); }
+      }
     }
     if (dest) { const p = pathfind(v.tx, v.ty, dest.tx, dest.ty); if (p && p.length) v.path = p; }
   }
-  const ROLE_EMOTE = { farm: '🌾', lumber: '🪵', quarry: '⛏️', bakery: '🍞', carpenter: '🪚', fishing: '🐟', windmill: '🌬️', market: '🪙' };
+  const ROLE_EMOTE = { farm: '🌾', lumber: '🪵', quarry: '⛏️', bakery: '🍞', carpenter: '🪚', fishing: '🐟', windmill: '🌬️', market: '🪙', orchard: '🍎' };
+  // Pleasant spots villagers drift to and linger by day — gives decorations life.
+  const LEISURE_TYPES = ['bench', 'fountain', 'birdbath', 'garden', 'flowerbed'];
+  function leisureSpot(v) {
+    const spots = state.buildings.filter(b => b.done !== false && LEISURE_TYPES.indexOf(b.type) >= 0);
+    if (!spots.length) return null;
+    return spots[Math.floor(rrand((v.id + Math.floor(state.time)) * 17) * spots.length)];
+  }
+  // When the town is unhappy, villagers hint at what's missing — a readable
+  // nudge toward the fix. Returns the most pressing need's emote, or null.
+  const _has = t => state.buildings.some(b => b.type === t && b.done !== false);
+  function townNeed() {
+    const pop = state.villagers.length;
+    if (state.res.food < pop) return '🍎';                       // hungry
+    if (pop >= 4 && !_has('well')) return '💧';                  // thirsty
+    if (pop >= 8 && !_has('tavern')) return '🍺';               // wants a tavern
+    if (pop >= 12 && !_has('chapel')) return '🔔';             // wants a chapel
+    if (Math.floor(pop / 8) >= 1 && townCharm() < 10) return '🥀'; // drab, crowded
+    return null;
+  }
   function strollNear(atx, aty, radius) {
     for (let i = 0; i < 10; i++) {
       const nx = atx + Math.floor((rrand((atx + i + Math.floor(state.time) * 3) * 5) - 0.5) * radius * 2);
@@ -1580,11 +1977,40 @@
   // absolute hour counter (_prodAbs) so day-wrap can't drop or double a cycle.
   let _prodAbs = null;
 
+  // Morale drives output: a thriving town's workers put in more, a miserable
+  // one's slack off. Bounded at the extremes so the mid-game is unchanged —
+  // you earn the bonus by keeping folk genuinely happy.
+  function moraleMult() { const h = state.happy; return h >= 85 ? 1.12 : h < 30 ? 0.75 : 1; }
+  function moraleLabel() { const h = state.happy; return h >= 85 ? '⚡ Thriving · +12% output' : h < 30 ? '⚠️ Unhappy · −25% output' : ''; }
+
+  // ---- Town Decrees: permanent perks the player enacts as the town grows.
+  // One slot opens at each tier past Hamlet (Village, Town, City).
+  const DECREES = [
+    { id: 'fields',       emoji: '🌾', name: 'Bountiful Fields', desc: 'Farms & orchards yield +12% food.' },
+    { id: 'guild',        emoji: '⚒️', name: 'Master Guild',     desc: 'All coin income +12%.' },
+    { id: 'quarrywise',   emoji: '⛏️', name: 'Stonemasons',      desc: 'Woodcutters & quarries produce +12%.' },
+    { id: 'hearth',       emoji: '🔥', name: 'Warm Hearths',     desc: 'Winter cottages burn half the firewood.' },
+    { id: 'opentown',     emoji: '🎉', name: 'Open Town',        desc: 'A happy town draws newcomers twice as fast.' },
+    { id: 'greenfingers', emoji: '🌷', name: 'Green Fingers',    desc: 'Town charm counts for 50% more.' },
+  ];
+  function hasDecree(id) { return state && state.decrees && state.decrees.indexOf(id) >= 0; }
+  function decreeSlots() { return Math.max(0, Math.min(DECREES.length, townTier() - 1)); }   // Village→1, Town→2, City→3
+  function decreesAvailable() { return decreeSlots() - ((state && state.decrees) ? state.decrees.length : 0); }
+  function decreeProdMult(b, k) {
+    let m = 1;
+    if (k === 'food' && (b.type === 'farm' || b.type === 'orchard') && hasDecree('fields')) m *= 1.12;
+    if (k === 'gold' && hasDecree('guild')) m *= 1.12;
+    if ((k === 'wood' || k === 'stone') && (b.type === 'lumber' || b.type === 'quarry') && hasDecree('quarrywise')) m *= 1.12;
+    return m;
+  }
+
   function runProduction() {
     const pop = state.villagers.length;
+    const morale = moraleMult();
     let gained = {};
     state.buildings.forEach(b => {
       const def = BUILDINGS[b.type];
+      if (b.done === false) return;   // construction sites don't produce
       if (def.prod && (!def.worker || b.staffed)) {
         // consumption gate
         let ok = true;
@@ -1592,18 +2018,23 @@
         if (!ok) return;
         if (def.cons) for (const k in def.cons) state.res[k] -= def.cons[k];
         const milled = b.type === 'farm' && windmillBoostsFarm(b);
+        const chain = adjMult(b);
+        const rainM = cropRainMult(b);
         for (const k in def.prod) {
           let amt = def.prod[k] * (b.level || 1);   // higher tier → more output
           if (b.bonus) amt = Math.ceil(amt * 1.5);
           if (milled && k === 'food') amt = Math.ceil(amt * 1.5); // nearby windmill lifts the harvest
+          if (chain > 1) amt = Math.ceil(amt * chain);            // supply-chain adjacency bonus
+          if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM); // rain waters the crops
+          if (k === 'food') { const sm = seasonCropMult(b); if (sm !== 1) amt = Math.max(1, Math.round(amt * sm)); } // season
+          { const dm = decreeProdMult(b, k); if (dm !== 1) amt = Math.max(1, Math.round(amt * dm)); } // town decrees
+          if (morale !== 1) amt = Math.max(1, Math.round(amt * morale)); // town morale
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
       }
     });
     if (floaters.length > 60) floaters.splice(0, floaters.length - 60);
-    // endless-goal bookkeeping: count food harvested toward the current tier
-    if (state.endless && gained.food) state.endless.harvest = (state.endless.harvest || 0) + gained.food;
     // villagers eat
     const eat = pop * FOOD_PER_VILLAGER;
     state.res.food -= eat;
@@ -1611,25 +2042,65 @@
       state.res.food = 0;
       state.happy = Math.max(0, state.happy - 8);
       toast('⚠️ Not enough food — villagers are hungry!');
+      // sustained famine drives folk away
+      state.hunger = (state.hunger || 0) + 1;
+      if (state.hunger >= 3 && state.villagers.length > 0) {
+        const leaver = state.villagers[state.villagers.length - 1];
+        state.villagers = state.villagers.filter(v => v !== leaver);
+        assignJobs();
+        toast('😢 ' + leaver.name + ' left in search of food.');
+        state.hunger = 0;
+      }
     } else {
+      state.hunger = 0;
       state.happy = Math.min(100, state.happy + 1);
     }
+    // winter: cottages burn firewood to stay warm — run dry and the town shivers
+    if (seasonOf(state.day).name === 'Winter') {
+      const homes = state.buildings.filter(b => b.type === 'house' && b.done !== false).length;
+      let need = Math.ceil(homes / 2);
+      if (hasDecree('hearth')) need = Math.ceil(need / 2);   // Warm Hearths decree
+      if (need > 0) {
+        if (state.res.wood >= need) state.res.wood -= need;
+        else {
+          state.res.wood = 0;
+          state.happy = Math.max(0, state.happy - 4);
+          if (_coldTimer <= 0) { toast('🥶 Not enough firewood — the hearths have gone cold!'); _coldTimer = 20; }
+        }
+      }
+    }
     // amenities (well, tavern) add happiness passively, scaled by level
-    const amenity = state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].happy ? Math.ceil(BUILDINGS[b.type].happy / 6) * (b.level || 1) : 0), 0);
+    const amenity = state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].happy && b.done !== false ? Math.ceil(BUILDINGS[b.type].happy / 6) * (b.level || 1) : 0), 0);
     if (amenity) state.happy = Math.min(100, state.happy + amenity);
+    // an ongoing festival keeps the town's spirits buoyed each cycle
+    if (festivalActive()) state.happy = Math.min(100, state.happy + 4);
     // decorations add a gentle "charm" bonus (capped so it complements, not replaces, real amenities)
-    const charm = townCharm();
+    const charm = townCharm() * (hasDecree('greenfingers') ? 1.5 : 1);
     if (charm) state.happy = Math.min(100, state.happy + Math.min(3, Math.ceil(charm / 10)));
+    // crowding: bigger towns are harder to keep content, so amenities must keep
+    // pace as the colony grows (−1 per 8 villagers each cycle)
+    const crowd = Math.floor(pop / 8);
+    if (crowd) {
+      state.happy = Math.max(0, state.happy - crowd);
+      if (!_crowdWarned) { _crowdWarned = true; toast('🏘️ A bigger town is harder to please — build more wells & taverns to keep folk happy.'); }
+    }
     clampRes();
     Object.keys(gained).forEach(k => { prodFlashTimer[k] = 0.5; });
     updateHUD();
   }
 
   function onNewDay() {
-    // trader arrival
+    // a festival that has run its course winds down at daybreak
+    if (state.festival && state.day >= state.festival.endDay) {
+      state.festival = null;
+      toast('🎪 The festival winds down — a warm glow lingers over the town.');
+    }
+    // trader visit — mark the merchant as due today; the wagon itself
+    // rolls in at morning (see cartTick), not in the middle of the night
     if (state.day >= state.nextTraderDay && state.buildings.some(b => b.type === 'market')) {
-      openTrader();
+      state.traderDay = state.day;
       state.nextTraderDay = state.day + 3 + Math.floor(rrand(state.day * 17) * 3);
+      toast('🐴 Word is the traveling merchant will pass through today.');
     } else if (state.day >= state.nextTraderDay) {
       // no market yet — remind and push out
       state.nextTraderDay = state.day + 2;
@@ -1637,17 +2108,24 @@
     // happiness drives population: happy towns attract newcomers,
     // miserable ones drive people away.
     if (state.happy >= 55 && state.villagers.length < popCap() && state.res.food > state.villagers.length * 2) {
-      const homes = state.buildings.filter(b => BUILDINGS[b.type].housing &&
-        state.villagers.filter(v => v.homeId === b.id).length < BUILDINGS[b.type].housing);
-      if (homes.length) {
-        spawnVillager(homes[Math.floor(rrand(state.day * 5) * homes.length)]);
+      const trySpawn = () => {
+        if (state.villagers.length >= popCap() || state.res.food <= state.villagers.length * 2) return false;
+        const homes = state.buildings.filter(b => BUILDINGS[b.type].housing &&
+          state.villagers.filter(v => v.homeId === b.id).length < BUILDINGS[b.type].housing);
+        if (!homes.length) return false;
+        spawnVillager(homes[Math.floor(rrand(state.day * 5 + state.villagers.length) * homes.length)]);
         assignJobs();
-        toast('👶 A new villager joined Hearthvale!');
-      }
+        return true;
+      };
+      const joined = trySpawn();
+      // a schoolhouse (or the Open Town decree) draws families — a genuinely
+      // happy town then grows twice as fast
+      const extra = joined && state.happy >= 70 && (countType('school') >= 1 || hasDecree('opentown')) && trySpawn();
+      if (joined) toast(extra ? '👨‍👩‍👧 Two families settled in Hearthvale — the school is drawing folk!' : '👶 A new villager joined Hearthvale!');
       state.sadDays = 0;
     } else if (state.happy < 25) {
       state.sadDays = (state.sadDays || 0) + 1;
-      if (state.sadDays >= 2 && state.villagers.length > 0) {
+      if (diffCfg().famine !== false && state.sadDays >= 2 && state.villagers.length > 0) {
         const leaver = state.villagers[state.villagers.length - 1];
         state.villagers = state.villagers.filter(v => v !== leaver);
         assignJobs();
@@ -1657,74 +2135,32 @@
     } else {
       state.sadDays = 0;
     }
-    rollWeather();
-    // endless-goal bookkeeping: track consecutive happy days
-    if (state.endless) state.endless.streak = state.happy >= 80 ? (state.endless.streak || 0) + 1 : 0;
-    // a gentle nudge toward festivals once the coffers overflow
-    if (!isFestival() && state.goalIndex >= 5 && state.res.gold >= Math.max(250, festivalCost() * 2) &&
-        state.day >= (state.festHintDay || 0) + 6) {
-      state.festHintDay = state.day;
-      toast('💰 The town coffers overflow — perhaps a festival? (⚙ menu)');
+    // season turning — announce it, with fair warning before winter
+    if (state.day > 1 && seasonOf(state.day).name !== seasonOf(state.day - 1).name) {
+      const sn = seasonOf(state.day).name;
+      const msg = {
+        Spring: '🌱 Spring has come — the valley blooms again.',
+        Summer: '☀️ Summer is here — long, warm days ahead.',
+        Autumn: '🍂 Autumn arrives — stock up wood before the cold.',
+        Winter: '❄️ Winter is here — cottages burn firewood to stay warm!',
+      }[sn];
+      if (msg) toast(msg);
     }
+    // a word to the wise: warn before winter if the pantry looks thin, since
+    // the fields will soon lie fallow and cottages will burn firewood
+    if (seasonOf(state.day).name === 'Autumn' && seasonOf(state.day + 2).name === 'Winter'
+        && state.res.food < state.villagers.length * 4 && !_winterWarned) {
+      _winterWarned = true;
+      toast('❄️ Winter is near — stock up food and wood; the fields will lie fallow.');
+    }
+    if (seasonOf(state.day).name !== 'Autumn') _winterWarned = false;
+    rollWeather();
     // random village event every few days
     if (state.day >= (state.nextEventDay || 3)) {
       state.nextEventDay = state.day + 2 + Math.floor(rrand(state.day * 3 + 1) * 3);
       triggerEvent();
     }
     save();
-  }
-
-  // ---- Festivals: a repeatable gold sink that throws a day of celebration --
-  function festivalCost() { return 40 + state.villagers.length * 8; }
-  function isFestival() { return !!state && state.festivalDay === state.day; }
-  function holdFestival() {
-    const cost = festivalCost();
-    if (isFestival()) { toast('🎪 The festival is already in full swing!'); return; }
-    if (state.res.gold < cost) { toast('Need ' + cost + ' 💰 to hold a festival.'); SFX('error'); return; }
-    state.res.gold -= cost;
-    state.festivalDay = state.day;
-    state.festivals = (state.festivals || 0) + 1;
-    state.happy = Math.min(100, state.happy + 18);
-    SFX('festival');
-    toast('🎪 ' + (state.townName || 'Hearthvale') + ' holds a festival! The whole town celebrates.');
-    confettiBurst(14);
-    state.villagers.forEach(v => setEmote(v, '🎉', 2.5 + rrand(v.id * 3) * 2));
-    // festive crowds may charm a newcomer into staying — even a full town finds room for one more
-    if (state.villagers.length < popCap() + 1 && rrand(state.day * 61 + state.villagers.length * 7) < 0.35) {
-      const homes = state.buildings.filter(b => BUILDINGS[b.type].housing);
-      if (homes.length) {
-        spawnVillager(homes[Math.floor(rrand(state.day * 23) * homes.length)]);
-        assignJobs();
-        toast('🧳 Charmed by the festivities, a newcomer settles in!');
-      }
-    }
-    updateHUD(); refreshFestivalBtn(); save();
-  }
-  // colorful sparks over the rooftops — cheap celebration using the floater layer
-  const CONFETTI = [
-    { t: '🎉', c: '#f2c14e' }, { t: '✦', c: '#f2c14e' }, { t: '❀', c: '#e0708b' },
-    { t: '✿', c: '#c78be0' }, { t: '✧', c: '#8fbcd0' }, { t: '❁', c: '#7bbf63' }, { t: '✺', c: '#e06a5c' },
-  ];
-  let _confSeed = 0;
-  function confettiBurst(n) {
-    if (!state.buildings.length) return;
-    for (let i = 0; i < n; i++) {
-      const s = ++_confSeed;
-      const b = state.buildings[Math.floor(rrand(s * 13 + 5) * state.buildings.length)];
-      const def = BUILDINGS[b.type];
-      const conf = CONFETTI[Math.floor(rrand(s * 29 + 1) * CONFETTI.length)];
-      floaters.push({
-        wx: (b.tx + def.w / 2) * TILE + (rrand(s * 7) - 0.5) * def.w * TILE,
-        wy: b.ty * TILE - 2 - rrand(s * 3) * 10,
-        text: conf.t, color: conf.c, life: 1.4 + rrand(s * 11) * 0.8, maxLife: 2.2,
-      });
-    }
-    if (floaters.length > 60) floaters.splice(0, floaters.length - 60);
-  }
-  function refreshFestivalBtn() {
-    const btn = document.getElementById('m-festival'); if (!btn || !state) return;
-    btn.textContent = isFestival() ? '🎪 Festival underway!' : '🎪 Hold a Festival (' + festivalCost() + '💰)';
-    btn.disabled = isFestival() || state.res.gold < festivalCost();
   }
 
   // ---- Random village events ----------------------------------
@@ -1735,6 +2171,29 @@
     { emoji: '🎶', title: 'Wandering Bard', text: 'A travelling bard plays through the night and lifts every heart.', good: true, auto: s => { s.happy = Math.min(100, s.happy + 10); }, note: '+10 happiness' },
     { emoji: '⛈️', title: 'Summer Storm', text: 'A sudden storm scatters woodpiles across the whole valley.', good: false, auto: s => { s.res.wood = Math.max(0, s.res.wood - 10); }, note: '-10 wood' },
     { emoji: '🐛', title: 'Crop Blight', text: 'A creeping blight spoils some of the stored grain.', good: false, auto: s => { s.res.food = Math.max(0, Math.floor(s.res.food * 0.75)); }, note: '-¼ food' },
+    { emoji: '🐝', title: 'Wild Honey', text: 'Children find a hive heavy with honey at the wood’s edge.', good: true, auto: s => { s.res.food += 12; s.happy = Math.min(100, s.happy + 4); }, note: '+12 food · +4 happiness' },
+    { emoji: '🪵', title: 'Timber Haul', text: 'A fallen giant of a tree gives the woodcutters an easy week.', good: true, auto: s => { s.res.wood += 20; }, note: '+20 wood' },
+    { emoji: '🌟', title: 'Clear Night', text: 'A sky full of stars draws the whole town out to wonder at it.', good: true, auto: s => { s.happy = Math.min(100, s.happy + 8); }, note: '+8 happiness' },
+    { emoji: '🧵', title: 'Fine Craftwork', text: 'The workshops turn out goods the merchants will pay well for.', good: true, auto: s => { s.res.gold += 22; }, note: '+22 gold' },
+    { emoji: '🦊', title: 'Fox in the Henhouse', text: 'A sly fox raids the coops in the night.', good: false, auto: s => { s.res.food = Math.max(0, s.res.food - 8); }, note: '-8 food' },
+    { emoji: '🌧️', title: 'Leaky Roofs', text: 'A cold downpour finds every gap in the thatch — spirits dip.', good: false, auto: s => { s.happy = Math.max(0, s.happy - 6); }, note: '-6 happiness' },
+    { emoji: '🍂', title: 'Harvest Home', text: 'The last of the crop comes in and the whole town shares a feast.', good: true, auto: s => { s.res.food += 18; s.happy = Math.min(100, s.happy + 6); }, note: '+18 food · +6 happiness' },
+    { emoji: '🎇', title: 'Midwinter Lights', text: 'Lanterns and song push back the long dark — hearts are warmed.', good: true, auto: s => { s.happy = Math.min(100, s.happy + 12); }, note: '+12 happiness' },
+    { emoji: '🌰', title: "Foragers' Bounty", text: 'The children come home with baskets of nuts and berries.', good: true, auto: s => { s.res.food += 14; }, note: '+14 food' },
+    {
+      emoji: '🎪', title: 'Traveling Fair', text: 'A little fair rolls in and asks a small fee to set up in the square.',
+      choices: [
+        { label: '🎟️ Host the fair (15 💰)', enabled: s => s.res.gold >= 15, run: s => { s.res.gold -= 15; s.happy = Math.min(100, s.happy + 14); SFX('goal'); toast('🎪 The fair delights the whole town!'); } },
+        { label: 'Maybe next time', run: s => { } },
+      ]
+    },
+    {
+      emoji: '🧺', title: "Harvest Share", text: 'A neighbouring hamlet offers to trade grain for a little coin.',
+      choices: [
+        { label: '🌾 Buy grain (12 💰)', enabled: s => s.res.gold >= 12, run: s => { s.res.gold -= 12; s.res.food += 30; SFX('coin'); toast('🌾 The granary fills with fresh grain.'); } },
+        { label: 'Decline', run: s => { } },
+      ]
+    },
     {
       emoji: '🧳', title: 'Weary Travelers', text: 'A family of travelers asks to settle in Hearthvale. Take them in?',
       choices: [
@@ -1758,6 +2217,11 @@
     toast(ev.emoji + ' ' + ev.title + ' — ' + ev.note);
     updateHUD(); save();
   }
+  // Auto-pause while a decision modal (event / trader) is open, so there's no
+  // time pressure; restore the prior speed when it closes.
+  let _modalPrevSpeed = null;
+  function pauseForModal() { if (_modalPrevSpeed === null) { _modalPrevSpeed = gameSpeed; gameSpeed = 0; syncPaused(); } }
+  function resumeFromModal() { if (_modalPrevSpeed !== null) { gameSpeed = _modalPrevSpeed; _modalPrevSpeed = null; syncPaused(); } }
   function openEvent(ev) {
     document.getElementById('ev-emoji').textContent = ev.emoji;
     document.getElementById('ev-title').textContent = ev.title;
@@ -1769,11 +2233,12 @@
       btn.className = 'ev-choice' + (i === 0 ? ' primary' : '');
       btn.textContent = ch.label;
       if (ch.enabled && !ch.enabled(state)) btn.disabled = true;
-      btn.onclick = () => { ch.run(state); document.getElementById('event').classList.remove('show'); updateHUD(); save(); };
+      btn.onclick = () => { ch.run(state); document.getElementById('event').classList.remove('show'); resumeFromModal(); updateHUD(); save(); };
       wrap.appendChild(btn);
     });
     SFX('trader');
     document.getElementById('event').classList.add('show');
+    pauseForModal();
   }
 
   // ---- Trader --------------------------------------------------
@@ -1782,19 +2247,22 @@
     { k: 'stone', ic: '🪨', name: 'Stone' },
     { k: 'food', ic: '🍎', name: 'Food' },
   ];
-  let traderPrices = null;
+  let traderPrices = null, traderDemand = null;
   function openTrader() {
     traderPrices = {};
+    // one good is "in demand" this visit — the merchant pays well over the odds for it
+    traderDemand = TRADE_GOODS[Math.floor(rrand(state.day * 13 + 5) * TRADE_GOODS.length)].k;
     TRADE_GOODS.forEach(g => {
       const base = { wood: 2, stone: 3, food: 2 }[g.k];
       const buy = base + Math.round(rrand((state.day + g.k.length) * 31) * base); // trader sells to you
-      const sell = Math.max(1, buy - 1 - Math.floor(rrand(state.day * 7 + g.k.length) * 2)); // trader buys from you
+      let sell = Math.max(1, buy - 1 - Math.floor(rrand(state.day * 7 + g.k.length) * 2)); // trader buys from you
+      if (g.k === traderDemand) sell = Math.round(sell * 1.8) + 2;   // deal of the day
       traderPrices[g.k] = { buy, sell };
     });
     renderTrader();
     document.getElementById('trader').classList.add('show');
     SFX('trader');
-    toast('🚚 A traveling merchant has arrived at the market!');
+    pauseForModal();
   }
   function renderTrader() {
     const rows = document.getElementById('trade-rows');
@@ -1804,21 +2272,29 @@
       const row = document.createElement('div');
       row.className = 'trade-row';
       row.innerHTML =
-        '<div class="good"><span>' + g.ic + '</span>' + g.name + ' <span style="color:var(--ink-dim)">(have ' + Math.floor(state.res[g.k]) + ')</span></div>' +
+        '<div class="good"><span>' + g.ic + '</span>' + g.name + ' <span style="color:var(--ink-dim)">(have ' + Math.floor(state.res[g.k]) + ')</span>' + (g.k === traderDemand ? ' <span style="color:#f2c14e">★ in demand!</span>' : '') + '</div>' +
         '<div class="price">buy ' + p.buy + ' / sell ' + p.sell + '</div>' +
-        '<div class="tbtns"><button data-act="buy" data-k="' + g.k + '"' + (state.res.gold < p.buy ? ' disabled' : '') + '>Buy</button>' +
-        '<button data-act="sell" data-k="' + g.k + '"' + (state.res[g.k] < 1 ? ' disabled' : '') + '>Sell</button></div>';
+        '<div class="tbtns">' +
+        '<button data-act="buy" data-k="' + g.k + '" data-q="1"' + (state.res.gold < p.buy || Math.floor(state.res[g.k]) >= capOf(g.k) ? ' disabled' : '') + '>Buy</button>' +
+        '<button data-act="buy" data-k="' + g.k + '" data-q="10"' + (state.res.gold < p.buy || Math.floor(state.res[g.k]) >= capOf(g.k) ? ' disabled' : '') + '>×10</button>' +
+        '<button data-act="sell" data-k="' + g.k + '" data-q="1"' + (state.res[g.k] < 1 ? ' disabled' : '') + '>Sell</button>' +
+        '<button data-act="sell" data-k="' + g.k + '" data-q="10"' + (state.res[g.k] < 1 ? ' disabled' : '') + '>×10</button></div>';
       rows.appendChild(row);
     });
     rows.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
-      const k = btn.dataset.k, p = traderPrices[k];
-      if (btn.dataset.act === 'buy' && state.res.gold >= p.buy) { state.res.gold -= p.buy; state.res[k] += 1; SFX('coin'); }
-      else if (btn.dataset.act === 'sell' && state.res[k] >= 1) { state.res[k] -= 1; state.res.gold += p.sell; SFX('coin'); }
+      const k = btn.dataset.k, p = traderPrices[k], q = parseInt(btn.dataset.q, 10) || 1;
+      if (btn.dataset.act === 'buy') {
+        const n = Math.min(q, Math.floor(state.res.gold / p.buy), Math.max(0, capOf(k) - Math.floor(state.res[k])));
+        if (n > 0) { state.res.gold -= n * p.buy; state.res[k] += n; state.trades = (state.trades || 0) + 1; SFX('coin'); }
+      } else {
+        const n = Math.min(q, Math.floor(state.res[k]));
+        if (n > 0) { state.res[k] -= n; state.res.gold += n * p.sell; state.trades = (state.trades || 0) + 1; SFX('coin'); }
+      }
       renderTrader(); updateHUD(); save();
     }));
   }
   document.getElementById('trader-close').addEventListener('click', () => {
-    document.getElementById('trader').classList.remove('show'); save();
+    document.getElementById('trader').classList.remove('show'); resumeFromModal(); save();
   });
 
   // ============================================================
@@ -1849,6 +2325,7 @@
     const y1 = Math.min(MAP_H - 1, Math.ceil((cam.y + view.h / z) / TILE));
     const sx = -cam.x * z, sy = -cam.y * z;
     const seas = seasonIdx();
+    const winter = seasonOf(state.day).name === 'Winter';
 
     // sky/void behind
     ctx.fillStyle = '#3a5240'; ctx.fillRect(0, 0, view.w, view.h);
@@ -1864,6 +2341,27 @@
         else if (t === T_BRIDGE) spr = SPR.bridge;
         else spr = SPR['water' + waterFrame];
         ctx.drawImage(spr, Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), TILE * z, TILE * z);
+        if (winter && t !== T_WATER) {
+          // a snow blanket settles over the land in winter; roads stay a touch trodden
+          const hh = (tx * 7 + ty * 13) & 3;
+          ctx.globalAlpha = (t === T_DIRT || t === T_BRIDGE) ? 0.28 : 0.5 + hh * 0.03;
+          ctx.fillStyle = '#eef4fb';
+          ctx.fillRect(Math.round(sx + tx * TILE * z), Math.round(sy + ty * TILE * z), Math.ceil(TILE * z), Math.ceil(TILE * z));
+          ctx.globalAlpha = 1;
+        }
+        if (t === T_WATER) {
+          // living water: two soft highlights per tile drifting on smooth sines (never snaps)
+          const wt = ambientTime;
+          const hx = 8 + Math.sin(wt * 0.9 + tx * 1.7 + ty * 2.3) * 5;
+          const hy = 8 + Math.sin(wt * 0.7 + tx * 2.9 + ty * 1.3) * 4;
+          const hy2 = 9 + Math.sin(wt * 0.55 + tx * 1.1 + ty * 3.1) * 4;
+          ctx.fillStyle = '#bfe9f7';
+          ctx.globalAlpha = 0.20;
+          ctx.fillRect(sx + (tx * TILE + hx - 2) * z, sy + (ty * TILE + hy) * z, 4 * z, 1 * z);
+          ctx.globalAlpha = 0.12;
+          ctx.fillRect(sx + (tx * TILE + (15 - hx)) * z, sy + (ty * TILE + hy2) * z, 3 * z, 1 * z);
+          ctx.globalAlpha = 1;
+        }
       }
     }
     // flat decorations (crop patches, pebbles, mushrooms, tall grass, reeds)
@@ -1871,6 +2369,8 @@
       if (!FLAT_DECO[d.kind] || d.tx < x0 - 1 || d.tx > x1 + 1 || d.ty < y0 - 1 || d.ty > y1 + 1) continue;
       const spr = SPR[d.kind]; if (spr) ctx.drawImage(spr, Math.round(sx + d.tx * TILE * z), Math.round(sy + d.ty * TILE * z), TILE * z, TILE * z);
     }
+    // river life (ducks + the odd jumping fish) floats on the water surface
+    drawWaterlife(sx, sy, z);
     // object layer (flowers flat; trees/rocks/mountains/props sorted by baseline y)
     const drawables = [];
     for (let ty = y0; ty <= y1; ty++)
@@ -1891,13 +2391,15 @@
     // buildings + villagers
     state.buildings.forEach(b => { const def = BUILDINGS[b.type]; if (b.ty + def.h >= y0 - 2 && b.ty <= y1 + 2) drawables.push({ y: b.ty + def.h, kind: 'building', b }); });
     state.villagers.forEach(v => { const vty = v.y / TILE; if (vty >= y0 - 2 && vty <= y1 + 2) drawables.push({ y: vty, kind: 'villager', v }); });
-    for (const cr of critters) { const cty = cr.y / TILE; if (cty >= y0 - 2 && cty <= y1 + 2) drawables.push({ y: cty, kind: 'critter', cr }); }
+    for (const cr of critters) { const cty = cr.y / TILE; if (critterActive(cr) && cty >= y0 - 2 && cty <= y1 + 2) drawables.push({ y: cty, kind: 'critter', cr }); }
+    if (cart) drawables.push({ y: cart.y / TILE + 0.55, kind: 'cart' });
     drawables.sort((a, b) => a.y - b.y);
 
     for (const d of drawables) {
       if (d.kind === 'building') drawBuilding(d.b, sx, sy, z);
       else if (d.kind === 'villager') drawVillager(d.v, sx, sy, z);
       else if (d.kind === 'critter') drawCritter(d.cr, sx, sy, z);
+      else if (d.kind === 'cart') drawCart(sx, sy, z);
       else { // sprite prop: bottom-aligned to its tile so it "stands" on the ground
         const wpx = d.spr.width, hpx = d.spr.height;
         const drawY = (d.ty + 1) * TILE - hpx;
@@ -1917,6 +2419,18 @@
     if (buildMode && buildMode !== 'demolish' && buildMode !== 'road' && hoverTile) {
       const def = BUILDINGS[buildMode];
       const ok = canPlaceAt(buildMode, hoverTile.tx, hoverTile.ty) && canAfford(buildMode);
+      // preview supply-chain links this placement would create — layout as a puzzle
+      const gcx = hoverTile.tx + def.w / 2, gcy = hoverTile.ty + def.h / 2;
+      const ghostLikes = def.likes ? def.likes.types : [];
+      for (const o of state.buildings) {
+        if (o.done === false) continue;
+        const od = BUILDINGS[o.type];
+        const iLikeIt = ghostLikes.indexOf(o.type) >= 0;
+        const itLikesMe = od.likes && od.likes.types.indexOf(buildMode) >= 0;
+        if ((iLikeIt || itLikesMe) && centresNear(gcx, gcy, o, ADJ_RANGE)) {
+          const oc = bCentre(o); drawTether(gcx * TILE, gcy * TILE, oc.x * TILE, oc.y * TILE, sx, sy, z, 0.85);
+        }
+      }
       ctx.globalAlpha = 0.6;
       if (def._sprite) ctx.drawImage(def._sprite, Math.round(sx + hoverTile.tx * TILE * z), Math.round(sy + (hoverTile.ty * TILE - (def._rise || 6)) * z), def.w * TILE * z, (def.h * TILE + (def._rise || 6)) * z);
       ctx.globalAlpha = 1;
@@ -1932,9 +2446,10 @@
         ctx.strokeRect(Math.round(sx + b.tx * TILE * z) + 1, Math.round(sy + b.ty * TILE * z) + 1, def.w * TILE * z - 2, def.h * TILE * z - 2);
       }
     }
-    // selection highlight
+    // selection highlight + its live supply-chain tethers
     if (selected) {
       const b = selected, def = BUILDINGS[b.type];
+      for (const [dn, up] of tethersFor(b)) { const dc = bCentre(dn), uc = bCentre(up); drawTether(dc.x * TILE, dc.y * TILE, uc.x * TILE, uc.y * TILE, sx, sy, z, 1); }
       ctx.strokeStyle = '#f2c14e'; ctx.lineWidth = 2;
       ctx.strokeRect(Math.round(sx + b.tx * TILE * z) + 1, Math.round(sy + b.ty * TILE * z) + 1, def.w * TILE * z - 2, def.h * TILE * z - 2);
     }
@@ -1952,17 +2467,114 @@
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
     }
-    // ambient life that lives in the world layer
+    // a rainbow lingers in the sky after the rain clears
+    if (rainbowT > 0) drawRainbow();
+    // cloud shadows drift over the whole scene; flying life renders above them
+    drawClouds(sx, sy, z);
     drawButterflies(sx, sy, z);
     drawLeaves(sx, sy, z);
     drawBirds(sx, sy, z);
     // day/night tint
     drawDayNight();
+    // warm lights punch back through the dark: lamps, braziers, lived-in windows
+    drawNightLights(sx, sy, z);
     // fireflies glow over the darkened night
     drawFireflies(sx, sy, z);
+    if (festivalActive()) drawFestival(sx, sy, z);
     if (state.raining) drawWeather();
+    drawMist();
+    if (celebrateT > 0) drawCelebration();
   }
 
+  // A festival: a warm glow, a ring of bobbing lanterns, and music notes
+  // drifting up from the square. All motion is continuous (never blinks).
+  function drawFestival(sx, sy, z) {
+    const f = state.festival; if (!f) return;
+    const cx = sx + f.x * z, cy = sy + f.y * z;
+    if (cx < -90 || cx > view.w + 90 || cy < -90 || cy > view.h + 90) return;
+    const t = ambientTime;
+    // warm ground glow
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const r = (36 + Math.sin(t * 1.5) * 3) * z;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, 'rgba(255,196,90,0.30)');
+    g.addColorStop(1, 'rgba(255,150,40,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // a ring of strung lanterns, gently bobbing (elliptical for a bit of depth)
+    const LANT = ['#ff6b5c', '#ffd166', '#8fd88a', '#7fb8f2', '#d59be6'];
+    const n = 8, lr = 28 * z;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + t * 0.15;
+      const bob = Math.sin(t * 2 + i) * 2 * z;
+      const lx = cx + Math.cos(ang) * lr, ly = cy + Math.sin(ang) * lr * 0.5 - 15 * z + bob;
+      const col = LANT[i % LANT.length];
+      ctx.globalAlpha = 0.35; ctx.fillStyle = col; ctx.fillRect(lx - 3 * z, ly + z, 6 * z, 2 * z); // soft halo
+      ctx.globalAlpha = 0.95; ctx.fillRect(lx - 1.5 * z, ly - 2 * z, 3 * z, 4 * z);                // lantern body
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#3a2a18'; ctx.fillRect(lx - 0.5 * z, ly - 4 * z, z, 2 * z); // string
+    }
+    ctx.globalAlpha = 1;
+    // music notes & sparkles rising from the square, each on its own smooth loop
+    ctx.textAlign = 'center'; ctx.font = Math.round(9 * z) + 'px sans-serif';
+    const notes = ['🎶', '🎉', '✨', '🎵'];
+    for (let i = 0; i < 6; i++) {
+      const ph = ((t / 3.4) + i / 6) % 1;                 // 0..1 loop
+      const nx = cx + Math.sin(i * 1.7 + t * 0.6) * 22 * z;
+      const ny = cy - 6 * z - ph * 36 * z;
+      ctx.globalAlpha = Math.sin(ph * Math.PI) * 0.9;     // fade in, then out — no blink
+      ctx.fillText(notes[i % notes.length], nx, ny);
+    }
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  }
+
+  // A brief confetti flourish when the town grows into a new tier — bits of
+  // colour rising and fading over a few seconds. Screen-space, continuous.
+  function drawCelebration() {
+    const p = 1 - celebrateT / CELEBRATE_DUR;   // 0 at start → 1 at end
+    const cols = ['#ff6b5c', '#ffd166', '#8fd88a', '#7fb8f2', '#d59be6', '#f2c14e'];
+    ctx.save();
+    for (let i = 0; i < 46; i++) {
+      const r1 = Math.sin(i * 12.9898) * 0.5 + 0.5;   // deterministic 0..1
+      const r2 = Math.sin(i * 78.233) * 0.5 + 0.5;
+      const rise = 0.35 + r2 * 0.65;
+      const x = r1 * view.w + Math.sin(ambientTime * 2 + i) * 12;
+      const y = view.h + 10 - p * view.h * 1.2 * rise - r2 * 30;
+      const a = Math.sin(Math.min(1, p / rise) * Math.PI);   // fade in then out
+      if (a <= 0.01) continue;
+      ctx.globalAlpha = a * 0.9;
+      ctx.fillStyle = cols[i % cols.length];
+      const s = (3 + (i % 3)) ;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ambientTime * 3 + i); ctx.fillRect(-s / 2, -s / 2, s, s); ctx.restore();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  // A gentle dawn mist that drifts low over the valley and lifts as the sun
+  // climbs. Screen-space soft bands on continuous sines — thin enough to keep
+  // the town readable, and it never blinks.
+  function drawMist() {
+    const h = state.time;
+    if (h < 4.5 || h >= 8.5) return;
+    const a = Math.sin((h - 4.5) / 4 * Math.PI) * 0.15;   // rise then fall, peak ~6:30
+    if (a <= 0.005) return;
+    const t = ambientTime;
+    ctx.save();
+    ctx.fillStyle = '#e8eef2';
+    for (let i = 0; i < 4; i++) {
+      const by = view.h * (0.25 + i * 0.2) + Math.sin(t * 0.25 + i * 1.7) * 14;
+      const bx = ((t * (8 + i * 3) + i * 400) % (view.w + 400)) - 200;
+      ctx.globalAlpha = a * (0.7 + 0.3 * Math.sin(t * 0.4 + i));
+      ctx.beginPath();
+      ctx.ellipse(bx, by, view.w * 0.5, 34 + i * 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(bx - view.w * 0.55, by + 10, view.w * 0.45, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
   function drawWeather() {
     const winter = seasonOf(state.day).name === 'Winter';
     const t = perfNow;
@@ -1989,8 +2601,40 @@
     }
   }
 
+  // Construction site: staked-out dirt plot with corner posts, a half-raised
+  // timber frame, and a lumber pile. Cached per footprint size.
+  const SITE_SPR = {};
+  function siteSprite(w, h) {
+    const key = w + 'x' + h;
+    if (SITE_SPR[key]) return SITE_SPR[key];
+    const W = w * TILE, RISE = 10, H = h * TILE + RISE, { c, x } = makeCanvas(W, H);
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
+    P(0, RISE, W, H - RISE, C.dirt);                                     // cleared plot
+    for (let i = 0; i < w * h * 3; i++) { const rx = 1 + Math.floor(rrand(i * 7 + w) * (W - 3)), ry = RISE + 2 + Math.floor(rrand(i * 13 + h) * (H - RISE - 4)); P(rx, ry, 2, 1, (i % 2) ? C.dirtDk : C.dirtLt); }
+    const post = (px) => { P(px, 2, 2, H - 4, C.wood); P(px, 2, 2, 1, C.fenceHi); P(px + 1, 2, 1, H - 4, C.woodDk); };
+    post(1); post(W - 3);                                                // corner posts
+    P(1, 4, W - 2, 2, C.wood); P(1, 4, W - 2, 1, C.fenceHi);             // top frame beam
+    P(1, Math.round(H * 0.45), W - 2, 1, C.woodDk);                      // mid rail
+    if (W >= 32) { post(Math.round(W / 2) - 1); }                        // centre stud on wide plots
+    const ly = H - 6;                                                    // lumber pile
+    P(3, ly, 9, 2, C.trunk); P(3, ly - 2, 7, 2, '#8a5a2b'); P(4, ly - 4, 5, 2, C.trunk);
+    if (W >= 30) { P(W - 12, ly - 1, 7, 4, C.wood); P(W - 12, ly - 1, 7, 1, C.fenceHi); P(W - 9, ly - 1, 1, 4, C.woodDk); } // crate
+    addOutline(x, W, H);
+    SITE_SPR[key] = { c, rise: RISE };
+    return SITE_SPR[key];
+  }
+
   function drawBuilding(b, sx, sy, z) {
     const def = BUILDINGS[b.type];
+    if (b.done === false) {   // construction site + progress bar
+      const st = siteSprite(def.w, def.h);
+      ctx.drawImage(st.c, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - st.rise) * z), def.w * TILE * z, (def.h * TILE + st.rise) * z);
+      const ratio = Math.max(0, Math.min(1, 1 - b.buildLeft / (b.buildTotal || 1)));
+      const bx = sx + b.tx * TILE * z, by = sy + (b.ty * TILE - st.rise - 5) * z, bw = def.w * TILE * z;
+      ctx.fillStyle = 'rgba(20,16,10,0.75)'; ctx.fillRect(bx, by, bw, 3 * z);
+      ctx.fillStyle = '#f2c14e'; ctx.fillRect(bx + z * 0.5, by + z * 0.5, (bw - z) * ratio, 2 * z);
+      return;
+    }
     const spr = def._sprite || makeBuildingSprite(b.type);
     const rise = def._rise || 6;
     // soft ground shadow for depth
@@ -2001,26 +2645,7 @@
     ctx.drawImage(spr, Math.round(sx + b.tx * TILE * z), Math.round(sy + (b.ty * TILE - rise) * z), def.w * TILE * z, (def.h * TILE + rise) * z);
     // drifting hearth-smoke from chimneys
     if (B_ART[b.type] && B_ART[b.type].chimney) drawSmoke(b, sx, sy, z);
-    // brazier flame casts a warm pool of light after dark
-    if (def.light && isNight()) {
-      const gx = sx + (b.tx * TILE + def.w * TILE / 2) * z, gy = sy + (b.ty * TILE - rise + 4) * z;
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55;
-      const rr = def.w * TILE * 0.9 * z;
-      const rg = ctx.createRadialGradient(gx, gy, 1, gx, gy, rr);
-      rg.addColorStop(0, 'rgba(255,180,90,0.85)'); rg.addColorStop(1, 'rgba(255,150,60,0)');
-      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, rr, 0, 7); ctx.fill(); ctx.restore();
-    }
-    // warm window glow at night — the town looks alive after dark (buildings only, not decor)
-    if (isNight() && !def.decor) {
-      const gx = sx + (b.tx * TILE + def.w * TILE / 2) * z;
-      const gy = sy + (b.ty * TILE + def.h * TILE * 0.42) * z;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5;
-      const rg = ctx.createRadialGradient(gx, gy, 1, gx, gy, def.w * TILE * 0.55 * z);
-      rg.addColorStop(0, 'rgba(255,210,120,0.9)'); rg.addColorStop(1, 'rgba(255,210,120,0)');
-      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, def.w * TILE * 0.55 * z, 0, 7); ctx.fill();
-      ctx.restore();
-    }
+    // (warm night lighting — braziers, windows — is drawn post-tint in drawNightLights)
     // level pips (gold dots) for upgraded buildings
     const lvl = b.level || 1;
     if (lvl > 1) {
@@ -2029,6 +2654,17 @@
         ctx.fillStyle = '#f2c14e'; ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.5);
         ctx.beginPath(); ctx.arc(px0 + i * 3.2 * z, py0, 1.4 * z, 0, 7); ctx.fill(); ctx.stroke();
       }
+    }
+    // a fully-upgraded building flies a little pennant on its roof peak
+    if (lvl >= MAX_LEVEL && !def.decor) {
+      const fx = sx + (b.tx * TILE + def.w * TILE / 2) * z, fy = sy + (b.ty * TILE - rise - 1) * z;
+      ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.6);
+      ctx.beginPath(); ctx.moveTo(fx, fy + 2 * z); ctx.lineTo(fx, fy - 6 * z); ctx.stroke();   // pole
+      const wav = Math.sin(ambientTime * 4 + b.id) * 1.2 * z;                                   // gentle wave
+      ctx.fillStyle = '#e0503f';
+      ctx.beginPath();
+      ctx.moveTo(fx, fy - 6 * z); ctx.lineTo(fx + 6 * z, fy - 4.5 * z + wav); ctx.lineTo(fx, fy - 3 * z);
+      ctx.closePath(); ctx.fill();
     }
     // unstaffed worker building: a STATIC amber "!" badge (no animation)
     if (def.worker && !b.staffed) {
@@ -2039,6 +2675,43 @@
       ctx.fillStyle = C.outline;
       ctx.fillRect(bx - 0.5 * z, by - 2 * z, z, 2.4 * z); ctx.fillRect(bx - 0.5 * z, by + 1.4 * z, z, z);
     }
+    // supply-chain active: a small gold lightning badge on the upper-right
+    if (def.likes && b.done !== false && adjSupplier(b)) {
+      const bx = sx + (b.tx * TILE + def.w * TILE - 2) * z;
+      const by = sy + (b.ty * TILE - rise + 2) * z;
+      ctx.fillStyle = '#f2c14e'; ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(bx + 0.5 * z, by - 3 * z); ctx.lineTo(bx - 2 * z, by + 0.5 * z); ctx.lineTo(bx - 0.2 * z, by + 0.5 * z);
+      ctx.lineTo(bx - 1 * z, by + 3 * z); ctx.lineTo(bx + 2 * z, by - 1 * z); ctx.lineTo(bx + 0.3 * z, by - 1 * z);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  // A pulsing golden thread between two building centres — draws the supply link.
+  function drawTether(ax, ay, bx, by, sx, sy, z, alpha) {
+    const x1 = sx + ax * z, y1 = sy + ay * z, x2 = sx + bx * z, y2 = sy + by * z;
+    const pulse = 0.55 + 0.45 * Math.sin(ambientTime * 3);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(242,193,78,' + (alpha * pulse).toFixed(3) + ')';
+    ctx.lineWidth = Math.max(1.5, 1.6 * z); ctx.lineCap = 'round';
+    ctx.setLineDash([4 * z, 3 * z]); ctx.lineDashOffset = -ambientTime * 20;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(242,193,78,' + (alpha * pulse).toFixed(3) + ')';
+    for (const [px, py] of [[x1, y1], [x2, y2]]) { ctx.beginPath(); ctx.arc(px, py, 2.2 * z, 0, 7); ctx.fill(); }
+    ctx.restore();
+  }
+  // All active supply links touching building b (both directions).
+  function tethersFor(b) {
+    const links = [];
+    const def = BUILDINGS[b.type];
+    if (def.likes) { const s = adjSupplier(b); if (s) links.push([b, s]); }
+    for (const o of state.buildings) {   // buildings that b supplies
+      const od = BUILDINGS[o.type];
+      if (o === b || o.done === false || !od.likes || od.likes.types.indexOf(b.type) < 0) continue;
+      if (adjSupplier(o) === b) links.push([o, b]);
+    }
+    return links;
   }
 
   // Villager sprites: cached per (color, frame, role), outlined. Frame is
@@ -2081,7 +2754,13 @@
     const px = sx + v.x * z, py = sy + v.y * z;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath(); ctx.ellipse(px, py + 2 * z, 3.2 * z, 1.6 * z, 0, 0, 7); ctx.fill();
-    ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+    if (v.face === -1) {   // mirror when walking left
+      ctx.save(); ctx.scale(-1, 1);
+      ctx.drawImage(spr, Math.round(-px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+      ctx.restore();
+    } else {
+      ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 2) * z), W * z, H * z);
+    }
     // soft speech/thought bubble — fades in and out smoothly, never pops
     if (v.emote && v.emote.life > 0) {
       const e = v.emote, k = e.life / e.maxLife;
@@ -2114,6 +2793,9 @@
   function rnd(a, b) { _rndc = (_rndc + 1) % 1000003; return a + rrand(_rndc * 2.7 + Math.floor(ambientTime * 60)) * (b - a); } // unique per call so spawns spread out
   function updateAmbient(rdt) {
     ambientTime += rdt;
+    if (rainbowT > 0) rainbowT = Math.max(0, rainbowT - rdt);
+    if (celebrateT > 0) celebrateT = Math.max(0, celebrateT - rdt);
+    updateClouds(rdt);
     const r = visRect(), seas = seasonIdx(), night = isNight();
     const margin = 40, vw = r.x1 - r.x0, vh = r.y1 - r.y0;
     // --- birds: glide across the sky in gentle sine paths (all seasons, daytime) ---
@@ -2149,9 +2831,11 @@
       if (f.x < r.x0 - 20) f.x = r.x1 + 10; if (f.x > r.x1 + 20) f.x = r.x0 - 10;
       if (f.y < r.y0 - 20) f.y = r.y1 + 10; if (f.y > r.y1 + 20) f.y = r.y0 - 10;
     }
-    // --- falling leaves in autumn (daytime & dusk) ---
-    const wantLv = seas === 2 ? 26 : 0;
-    while (leaves.length < wantLv) leaves.push({ x: r.x0 + rnd(0, 1) * vw, y: r.y0 - rnd(0, 1) * vh, ph: rnd(0, 6), sp: 12 + rnd(0, 10), sway: 10 + rnd(0, 10), col: ['#d5893a', '#c9503f', '#ecc25a', '#b3652a'][Math.floor(rnd(0, 4))], sz: 2 + Math.floor(rnd(0, 2)) });
+    // --- drifting foliage: fiery leaves in autumn, pink blossom petals in spring ---
+    const spring = seas === 0;
+    const wantLv = seas === 2 ? 26 : spring ? 22 : 0;
+    const lvCols = spring ? ['#f6c2d6', '#f9d7e4', '#ffe6f0', '#efb0c9'] : ['#d5893a', '#c9503f', '#ecc25a', '#b3652a'];
+    while (leaves.length < wantLv) leaves.push({ x: r.x0 + rnd(0, 1) * vw, y: r.y0 - rnd(0, 1) * vh, ph: rnd(0, 6), sp: (spring ? 9 : 12) + rnd(0, spring ? 7 : 10), sway: 10 + rnd(0, 10), col: lvCols[Math.floor(rnd(0, 4))], sz: spring ? 2 : 2 + Math.floor(rnd(0, 2)) });
     if (leaves.length > wantLv) leaves.length = wantLv;
     for (const l of leaves) {
       l.ph += rdt * 2; l.y += l.sp * rdt; l.x += Math.sin(l.ph) * l.sway * rdt;
@@ -2216,9 +2900,33 @@
     if (CRITTER_SPR[key]) return CRITTER_SPR[key];
     let W = 10, H = 9;
     if (kind === 'chicken') { W = 8; H = 9; }
+    else if (kind === 'deer') { W = 14; H = 13; }
+    else if (kind === 'rabbit') { W = 9; H = 8; }
     const { c, x } = makeCanvas(W, H);
     const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
-    if (kind === 'chicken') {
+    if (kind === 'deer') {
+      const bc = '#a9743f', dk = '#845126', hi = '#c49a68', ant = '#5e3f22';
+      const g = frame === 1 ? 0 : 1;                                   // subtle leg gait
+      P(4, 8, 1, 4, dk); P(6, 8 - g, 1, 4, dk);                        // back legs
+      P(9, 8 - g, 1, 4, dk); P(11, 8, 1, 4, dk);                       // front legs
+      P(2, 5, 1, 3, bc);                                                // rump
+      P(3, 4, 9, 5, bc); P(3, 4, 9, 1, hi);                            // torso
+      P(2, 4, 1, 1, dk);                                                // little tail
+      P(10, 1, 3, 4, bc); P(10, 1, 3, 1, hi);                          // neck
+      P(11, 0, 3, 2, bc);                                              // head
+      P(13, 1, 1, 1, dk);                                              // muzzle
+      P(12, 1, 1, 1, C.outline);                                       // eye
+      P(10, 0, 1, 1, ant); P(13, 0, 1, 1, ant);                        // antler tips
+    } else if (kind === 'rabbit') {
+      const bc = '#cfc7b8', hi = '#ece5d8', ear = '#d9a7b2', dk = '#9a9080';
+      const hop = frame === 1 ? 1 : 0;                                 // hop lift
+      P(5, 0 + hop, 1, 3, bc); P(6, 0 + hop, 1, 3, bc); P(6, 1 + hop, 1, 1, ear); // ears
+      P(4, 3 + hop, 3, 3, bc); P(4, 3 + hop, 3, 1, hi);                // head
+      P(1, 4 + hop, 4, 3, bc); P(1, 4 + hop, 4, 1, hi);                // body
+      P(0, 4 + hop, 1, 2, hi);                                         // fluffy tail
+      P(6, 4 + hop, 1, 1, C.outline);                                  // eye
+      P(2, 7, 2, 1, dk); P(4, 7, 1, 1, dk);                            // feet
+    } else if (kind === 'chicken') {
       const legY = frame === 1 ? 8 : 7;
       P(3, legY, 1, 1, '#e0a13f'); P(5, legY, 1, 1, '#e0a13f');
       P(2, 3, 5, 4, '#f4ede0'); P(2, 3, 5, 1, '#fff'); P(2, 6, 5, 1, '#d8cfc0'); // body
@@ -2260,13 +2968,131 @@
       const cy = Math.round(state.buildings.reduce((s, b) => s + b.ty, 0) / state.buildings.length);
       spawnAt('cat', cx, cy, 9); spawnAt('dog', cx + 1, cy, 10);
     }
+    // woodland wildlife: skittish deer at the forest edge (out at dawn & dusk),
+    // rabbits on the spring/summer meadow. Cosmetic, non-persistent, and they
+    // bolt when a villager wanders too close.
+    const spawnWild = (kind, atx, aty, roam) => {
+      const spot = findWalkableNear(atx, aty); if (!spot) return;
+      critters.push({ kind, wild: true, skittish: true, x: spot.tx * TILE + TILE / 2, y: spot.ty * TILE + TILE / 2, tx: spot.tx, ty: spot.ty, ax: spot.tx, ay: spot.ty, roam, wait: rrand(seedn++ * 7) * 2, ph: rrand(seedn++ * 3) * 6, path: null });
+    };
+    const edges = [];
+    for (let ty = 2; ty < MAP_H - 2 && edges.length < 60; ty++)
+      for (let tx = 2; tx < MAP_W - 2; tx++) {
+        if (!walkable(tx, ty)) continue;
+        if (tileObj[idx(tx + 1, ty)] === O_TREE || tileObj[idx(tx - 1, ty)] === O_TREE || tileObj[idx(tx, ty + 1)] === O_TREE || tileObj[idx(tx, ty - 1)] === O_TREE) edges.push({ tx, ty });
+      }
+    for (let i = 0; i < 2 && edges.length; i++) { const e = edges[Math.floor(rrand(seedn++ * 13) * edges.length)]; spawnWild('deer', e.tx, e.ty, 5); }
+    for (let i = 0; i < 3; i++) {
+      for (let tries = 0; tries < 12; tries++) {
+        const tx = 2 + Math.floor(rrand(seedn++ * 5) * (MAP_W - 4)), ty = 2 + Math.floor(rrand(seedn++ * 9) * (MAP_H - 4));
+        if (walkable(tx, ty)) { spawnWild('rabbit', tx, ty, 6); break; }
+      }
+    }
+  }
+  // ---- River life: ducks drift on the water, fish jump now and then. --
+  function rebuildWaterlife() {
+    waterlife = []; waterSpots = [];
+    if (!state) return;
+    for (let ty = 2; ty < MAP_H - 2 && waterSpots.length < 120; ty++)
+      for (let tx = 2; tx < MAP_W - 2; tx++)
+        if (tiles[idx(tx, ty)] === T_WATER && tiles[idx(tx + 1, ty)] === T_WATER && tiles[idx(tx - 1, ty)] === T_WATER) waterSpots.push({ tx, ty });
+    let sn = 1;
+    const n = Math.min(4, Math.floor(waterSpots.length / 8));
+    for (let i = 0; i < n && waterSpots.length; i++) {
+      const s = waterSpots[Math.floor(rrand(sn++ * 17) * waterSpots.length)];
+      waterlife.push({ x: (s.tx + 0.5) * TILE, y: (s.ty + 0.5) * TILE, ax: (s.tx + 0.5) * TILE, ay: (s.ty + 0.5) * TILE, ph: rrand(sn++ * 3) * 6, face: 1 });
+    }
+  }
+  function duckTick(d, dt) {
+    d.ph += dt;
+    const tx2 = d.ax + Math.sin(d.ph * 0.4 + 1) * 11, ty2 = d.ay + Math.sin(d.ph * 0.33) * 7;
+    const dx = tx2 - d.x, dy = ty2 - d.y;
+    const nx = d.x + dx * Math.min(1, dt * 0.8), ny = d.y + dy * Math.min(1, dt * 0.8);
+    const cx = Math.floor(nx / TILE), cy = Math.floor(ny / TILE);
+    if (inMap(cx, cy) && tiles[idx(cx, cy)] === T_WATER) { if (Math.abs(dx) > 0.3) d.face = dx < 0 ? -1 : 1; d.x = nx; d.y = ny; }
+  }
+  function drawWaterlife(sx, sy, z) {
+    const t = ambientTime;
+    // ducks
+    for (const d of waterlife) {
+      const px = sx + d.x * z, py = sy + d.y * z;
+      if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
+      const bob = Math.sin(t * 1.6 + d.ph) * 0.6 * z;
+      ctx.save();
+      ctx.globalAlpha = 0.28; ctx.fillStyle = '#1b3a48';   // wake
+      ctx.beginPath(); ctx.ellipse(px, py + 1.5 * z, 4 * z, 1.4 * z, 0, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+      const f = d.face;
+      ctx.fillStyle = '#f2ede2'; ctx.fillRect(px - 3 * z, py - 1 * z + bob, 6 * z, 3 * z);           // body
+      ctx.fillStyle = '#d8cfc0'; ctx.fillRect(px - 3 * z, py + 1 * z + bob, 6 * z, 1 * z);           // underside
+      ctx.fillStyle = '#3f7d54'; ctx.fillRect(px + f * 2 * z - (f < 0 ? z : 0), py - 3 * z + bob, 2 * z, 2 * z); // head
+      ctx.fillStyle = '#e0a13f'; ctx.fillRect(px + f * 3.5 * z - (f < 0 ? z : 0), py - 2 * z + bob, z, z);       // bill
+      ctx.restore();
+    }
+    // a fish jumps somewhere on the river on a slow loop — arc + spreading ripple
+    if (waterSpots.length) {
+      const cycle = 4.2, phase = t % cycle;
+      const s = waterSpots[Math.floor(t / cycle) % waterSpots.length];
+      const ox = sx + (s.tx + 0.5) * TILE * z, oy = sy + (s.ty + 0.6) * TILE * z;
+      if (!(ox < -20 || ox > view.w + 20 || oy < -20 || oy > view.h + 20)) {
+        if (phase < 1.0) {                         // the leap
+          const p = phase / 1.0, arc = Math.sin(p * Math.PI);
+          ctx.save(); ctx.globalAlpha = 0.85 * Math.sin(p * Math.PI);
+          ctx.fillStyle = '#a9c7d6';
+          const fx = ox + (p - 0.5) * 6 * z, fy = oy - arc * 9 * z;
+          ctx.fillRect(fx - z, fy - 1.5 * z, 2 * z, 3 * z);   // little fish body
+          ctx.restore();
+        } else if (phase < 2.0) {                  // the ripple where it splashed back
+          const p = (phase - 1.0) / 1.0;
+          ctx.save(); ctx.globalAlpha = (1 - p) * 0.5; ctx.strokeStyle = '#cfe9f5'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.ellipse(ox, oy, (2 + p * 6) * z, (1 + p * 2.5) * z, 0, 0, 7); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  // Is this critter "out" right now? Wild ones keep to their hours/season.
+  function critterActive(cr) {
+    if (!cr.wild) return true;
+    const h = state.time;
+    if (cr.kind === 'deer') return (h >= 5 && h < 9) || (h >= 16 && h < 20.5);
+    if (cr.kind === 'rabbit') { const s = seasonOf(state.day).name; return h >= 7 && h < 18 && (s === 'Spring' || s === 'Summer'); }
+    return true;
+  }
+  function nearestVillager(tx, ty) {
+    let best = null, bd = Infinity;
+    for (const v of state.villagers) { const d = Math.abs(v.tx - tx) + Math.abs(v.ty - ty); if (d < bd) { bd = d; best = v; } }
+    return { v: best, d: bd };
+  }
+  // Bolt away from a villager: aim for a walkable tile in the opposite direction.
+  function fleeFrom(cr, v) {
+    const dx = Math.sign(cr.tx - v.tx) || 1, dy = Math.sign(cr.ty - v.ty) || 1;
+    const tries = [[dx * 4, dy * 4], [dx * 4, 0], [0, dy * 4], [dx * 3, dy * 2], [dx * 2, dy * 3]];
+    for (const [ox, oy] of tries) {
+      const nx = cr.tx + ox, ny = cr.ty + oy;
+      if (walkable(nx, ny)) { const p = pathfind(cr.tx, cr.ty, nx, ny); if (p && p.length) { cr.path = p; cr.fleeing = true; return true; } }
+    }
+    return false;
   }
   function critterTick(cr, dt) {
     cr.ph += dt;
+    // skittish wildlife periodically scans for nearby villagers and bolts
+    if (cr.skittish) {
+      cr._scan = (cr._scan || 0) - dt;
+      if (cr._scan <= 0) {
+        cr._scan = 0.4;
+        const nv = nearestVillager(cr.tx, cr.ty);
+        if (nv.v && nv.d <= 3) fleeFrom(cr, nv.v);
+        else if (!cr.path) cr.fleeing = false;
+      }
+    }
     if (cr.path && cr.path.length) {
       const t = cr.path[0], gx = t.tx * TILE + TILE / 2, gy = t.ty * TILE + TILE / 2;
       const dx = gx - cr.x, dy = gy - cr.y, dist = Math.hypot(dx, dy);
-      const spd = (cr.kind === 'chicken' ? 16 : 30) * dt * TILE / 16;
+      if (Math.abs(dx) > 0.5) cr.face = dx < 0 ? -1 : 1;
+      const base = cr.fleeing ? 50 : cr.kind === 'chicken' ? 16 : cr.kind === 'deer' ? 15 : cr.kind === 'rabbit' ? 34 : 30;
+      const spd = base * dt * TILE / 16;
       if (dist < 1.5) { cr.x = gx; cr.y = gy; cr.tx = t.tx; cr.ty = t.ty; cr.path.shift(); }
       else { cr.x += dx / dist * Math.min(spd, dist); cr.y += dy / dist * Math.min(spd, dist); cr.moving = true; }
       return;
@@ -2289,7 +3115,13 @@
     const W = spr.width, H = spr.height, px = sx + cr.x * z, py = sy + cr.y * z;
     ctx.fillStyle = 'rgba(0,0,0,0.16)';
     ctx.beginPath(); ctx.ellipse(px, py + 1 * z, 2.6 * z, 1.2 * z, 0, 0, 7); ctx.fill();
-    ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 1) * z), W * z, H * z);
+    if (cr.face === -1) {   // mirror when walking left
+      ctx.save(); ctx.scale(-1, 1);
+      ctx.drawImage(spr, Math.round(-px - (W / 2) * z), Math.round(py - (H - 1) * z), W * z, H * z);
+      ctx.restore();
+    } else {
+      ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 1) * z), W * z, H * z);
+    }
   }
 
   // Drifting chimney smoke — soft puffs rise and fade on a continuous loop.
@@ -2307,6 +3139,120 @@
       ctx.beginPath(); ctx.arc(sx + (ox + drift) * z, sy + py * z, rr, 0, 7); ctx.fill();
     }
     ctx.restore();
+  }
+
+  // ============================================================
+  //  The traveling merchant — a horse-drawn wagon that physically
+  //  rolls into town along the road, parks near the market, and
+  //  drives off at dusk. Click the wagon to trade.
+  // ============================================================
+  let cart = null;       // {x, y, phase:'arriving'|'parked'|'leaving', parkX, face} — not persisted; respawned from state.traderDay
+  let CART_SPR = null;
+  function cartSprite() {
+    if (CART_SPR) return CART_SPR;
+    const W = 40, H = 26, { c, x } = makeCanvas(W, H);
+    const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
+    // --- horse (facing left) ---
+    P(4, 11, 12, 6, '#8a5a34'); P(4, 11, 12, 1, '#a06b3f');      // body
+    P(4, 16, 12, 1, '#6b4426');                                   // belly shade
+    P(5, 17, 1, 6, '#5f3d22'); P(8, 17, 1, 6, '#5f3d22');         // front legs
+    P(12, 17, 1, 6, '#5f3d22'); P(15, 17, 1, 6, '#5f3d22');       // hind legs
+    P(3, 7, 3, 5, '#8a5a34');                                     // neck
+    P(0, 6, 5, 4, '#8a5a34'); P(0, 8, 3, 2, '#6b4426');           // head + muzzle
+    P(4, 4, 1, 2, '#8a5a34');                                     // ear
+    P(1, 7, 1, 1, C.outline);                                     // eye
+    P(3, 5, 3, 3, '#4a2f1a'); P(5, 7, 2, 4, '#4a2f1a');           // mane
+    P(16, 12, 1, 6, '#4a2f1a');                                   // tail
+    P(10, 11, 1, 6, '#3a2a18');                                   // harness strap
+    // --- hitch bar ---
+    P(14, 14, 6, 1, C.woodDk);
+    // --- wagon ---
+    P(18, 13, 21, 5, C.wood); P(18, 13, 21, 1, C.fenceHi); P(18, 17, 21, 1, C.woodDk); // bed
+    // canvas cover: rounded top, widest at the base
+    for (let r = 0; r < 10; r++) {
+      const inset = r < 2 ? 4 - r * 2 : 0;
+      P(19 + inset, 3 + r, 20 - inset * 2, 1, r % 4 === 3 ? '#cdbd97' : '#ece0c2');
+    }
+    P(23, 3, 1, 10, '#b3a37f'); P(29, 3, 1, 10, '#b3a37f'); P(35, 3, 1, 10, '#b3a37f'); // ribs
+    // wheels: dark ring + lighter hub
+    const wheel = (cx, cy) => {
+      x.fillStyle = '#4a3320'; x.beginPath(); x.arc(cx, cy, 4.6, 0, 7); x.fill();
+      x.fillStyle = '#2e1f12'; x.beginPath(); x.arc(cx, cy, 2.8, 0, 7); x.fill();
+      P(cx - 1, cy - 1, 2, 2, '#caa06c');
+    };
+    wheel(23, 20); wheel(35, 20);
+    addOutline(x, W, H);
+    CART_SPR = c; return c;
+  }
+  // Sparse ambient audio: a birdsong chirp by day, cricket pulses at night.
+  // Very quiet, respects mute, silent while paused.
+  let ambSndTimer = 6;
+  function ambientSoundTick(rdt) {
+    if (!state || state.muted || gameSpeed === 0) return;
+    ambSndTimer -= rdt;
+    if (ambSndTimer > 0) return;
+    ambSndTimer = 7 + rnd(0, 10);
+    if (isNight()) {
+      for (let i = 0; i < 3; i++) tone(3800 + rnd(0, 300), 0.03, 'square', 0.012, i * 0.09);
+    } else {
+      const f = 2100 + rnd(0, 700);
+      tone(f, 0.06, 'sine', 0.022);
+      tone(f * 0.85, 0.05, 'sine', 0.018, 0.09);
+      if (rnd(0, 1) < 0.5) tone(f * 1.12, 0.05, 'sine', 0.015, 0.18);
+    }
+  }
+
+  function cartRoadY() { return (Math.floor(MAP_H * 0.5) + 1) * TILE; }   // the horizontal road through town
+  function cartParkX() {
+    const startX = Math.floor(MAP_W * 0.30);
+    const m = state.buildings.find(b => b.type === 'market');
+    let tx = m ? (m.tx + BUILDINGS.market.w / 2) : startX + 7;
+    tx = Math.max(startX + 3, Math.min(MAP_W - 6, tx));
+    return tx * TILE;
+  }
+  function arriveCart() {
+    cart = { x: (MAP_W - 1) * TILE + 24, y: cartRoadY(), phase: 'arriving', parkX: cartParkX(), face: -1 };
+    state.traderDay = state.day;
+    SFX('trader');
+    toast('🐴 The traveling merchant is rolling into town!');
+  }
+  function cartTick(sdt) {
+    // due today and it's morning → the wagon rolls in from the east road
+    if (!cart && state.traderDay === state.day && state.time >= 8 && state.time < 17) arriveCart();
+    if (!cart) return;
+    if (cart.phase !== 'leaving' && (state.time >= 19 || isNight())) {
+      cart.phase = 'leaving'; cart.face = 1;
+      const tm = document.getElementById('trader');
+      if (tm.classList.contains('show')) { tm.classList.remove('show'); toast('🌆 The merchant packs up and heads down the road.'); }
+    }
+    if (cart.phase === 'arriving') {
+      cart.x -= 30 * sdt;
+      if (cart.x <= cart.parkX) { cart.x = cart.parkX; cart.phase = 'parked'; toast('🛒 The merchant has set up shop — click the wagon to trade.'); }
+    } else if (cart.phase === 'leaving') {
+      cart.x += 34 * sdt;
+      if (cart.x > MAP_W * TILE + 48) cart = null;
+    }
+  }
+  function drawCart(sx, sy, z) {
+    if (!cart) return;
+    const spr = cartSprite(), W = spr.width, H = spr.height;
+    const px = sx + cart.x * z, py = sy + cart.y * z;
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.beginPath(); ctx.ellipse(px, py + 1.5 * z, 16 * z, 3 * z, 0, 0, 7); ctx.fill();
+    if (cart.face === 1) {
+      ctx.save(); ctx.scale(-1, 1);
+      ctx.drawImage(spr, Math.round(-px - (W / 2) * z), Math.round(py - (H - 3) * z), W * z, H * z);
+      ctx.restore();
+    } else {
+      ctx.drawImage(spr, Math.round(px - (W / 2) * z), Math.round(py - (H - 3) * z), W * z, H * z);
+    }
+    if (cart.phase === 'parked') {   // static coin badge: "open for business"
+      const bx = px, by = py - (H + 3) * z;
+      ctx.fillStyle = '#f2c14e'; ctx.strokeStyle = C.outline; ctx.lineWidth = Math.max(1, z * 0.6);
+      ctx.beginPath(); ctx.arc(bx, by, 4 * z, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#a97b1e'; ctx.lineWidth = Math.max(1, z * 0.7);
+      ctx.beginPath(); ctx.arc(bx, by, 2 * z, 0, 7); ctx.stroke();
+    }
   }
 
   // ---- Minimap ------------------------------------------------
@@ -2335,13 +3281,18 @@
       mx.fillStyle = def.housing ? '#e0b84e' : def.storage ? '#b98a54' : def.happy ? '#e0708b' : '#d86a52';
       mx.fillRect(b.tx, b.ty, def.w, def.h);
     });
+    // villagers as tiny pale dots — a glance at where everyone is
+    mx.fillStyle = 'rgba(255,246,224,0.85)';
+    state.villagers.forEach(v => mx.fillRect(Math.round(v.x / TILE), Math.round(v.y / TILE), 1, 1));
+    // the traveling merchant's wagon stands out in gold
+    if (cart) { mx.fillStyle = '#f2c14e'; mx.fillRect(Math.round(cart.x / TILE) - 1, Math.round(cart.y / TILE), 2, 1); }
     const vw = view.w / cam.z / TILE, vh = view.h / cam.z / TILE;
     mx.strokeStyle = 'rgba(255,255,255,0.9)'; mx.lineWidth = 1;
     mx.strokeRect(cam.x / TILE + 0.5, cam.y / TILE + 0.5, Math.max(1, vw - 1), Math.max(1, vh - 1));
   }
 
-  function drawDayNight() {
-    // 0..24 → tint. Warm dawn/dusk, deep-blue night, clear day.
+  // 0..24 → tint strength/colour. Warm dawn/dusk, deep-blue night, clear day.
+  function nightTint() {
     const h = state.time;
     let a = 0, col = '24,32,64';
     if (h < 5) a = 0.4;
@@ -2350,24 +3301,154 @@
     else if (h < 20) { a = 0.28 * ((h - 17) / 3); col = '96,58,34'; }
     else if (h < 22) { a = 0.28 + 0.12 * ((h - 20) / 2); col = '40,36,66'; }
     else a = 0.4;
+    return { a, col };
+  }
+  // Soft cloud shadows drifting over the valley — daytime only, fading
+  // smoothly through dusk (alpha follows the tint, so nothing pops).
+  let clouds = [];
+  function updateClouds(rdt) {
+    if (!clouds.length)
+      for (let i = 0; i < 5; i++) clouds.push({ x: rnd(0, 1) * WORLD_PX_W, y: rnd(0, 1) * WORLD_PX_H, vx: 2.5 + rnd(0, 2.5), rx: 30 + rnd(0, 28), ry: 13 + rnd(0, 10) });
+    for (const cl of clouds) {
+      cl.x += cl.vx * rdt;
+      if (cl.x - cl.rx * 2 > WORLD_PX_W) { cl.x = -cl.rx * 2; cl.y = rnd(0, 1) * WORLD_PX_H; }
+    }
+  }
+  function drawClouds(sx, sy, z) {
+    const a = Math.max(0, 0.07 * (1 - nightTint().a * 3.2));
+    if (a <= 0.005) return;
+    ctx.save(); ctx.fillStyle = '#18221c'; ctx.globalAlpha = a;
+    for (const cl of clouds) {
+      const px = sx + cl.x * z, py = sy + cl.y * z;
+      ctx.beginPath();
+      ctx.ellipse(px, py, cl.rx * z, cl.ry * z, 0, 0, 7);
+      ctx.ellipse(px + cl.rx * 0.7 * z, py + 3 * z, cl.rx * 0.6 * z, cl.ry * 0.7 * z, 0, 0, 7);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  // A soft multi-band arc across the upper sky; fades as its timer wanes.
+  // Screen-space so it reads as "in the sky"; continuous alpha, never blinks.
+  function drawRainbow() {
+    const a = Math.min(1, rainbowT / RAINBOW_DUR) * 0.5;
+    if (a <= 0.01) return;
+    const bands = ['#e86a6a', '#e8a24a', '#ecd24a', '#6fc46f', '#5aa0e6', '#9a6fd6'];
+    const cx = view.w * 0.5, cy = view.h * 1.08, R = Math.max(view.w, view.h) * 0.72;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineWidth = 6;
+    for (let i = 0; i < bands.length; i++) {
+      ctx.globalAlpha = a * (1 - i * 0.06);
+      ctx.strokeStyle = bands[i];
+      ctx.beginPath();
+      ctx.arc(cx, cy, R - i * 6, Math.PI * 1.16, Math.PI * 1.84);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  function drawDayNight() {
+    const { a, col } = nightTint();
     const season = seasonOf(state.day);
     if (season.tint) { ctx.fillStyle = season.tint; ctx.fillRect(0, 0, view.w, view.h); }
     if (a > 0.001) {
       ctx.fillStyle = 'rgba(' + col + ',' + a.toFixed(3) + ')';
       ctx.fillRect(0, 0, view.w, view.h);
     }
-    // window glow at night
-    if (a > 0.25) {
-      // handled implicitly by tint; keep simple
+  }
+
+  // Is a building "alive" tonight? Lived-in homes and staffed workshops light
+  // their windows; public buildings (amenities, market, warehouse) always do.
+  // An idle, unstaffed building stays dark — pretty, and a readable signal.
+  function buildingLit(b) {
+    const d = BUILDINGS[b.type];
+    if (b.done === false || d.decor) return false;
+    if (d.housing) return state.villagers.some(v => v.homeId === b.id);
+    if (d.worker) return b.staffed;
+    return true;
+  }
+  // A warm radial pool, drawn additively so it reads as light, not paint.
+  function lightPool(cx, cy, r, inner) {
+    const g = ctx.createRadialGradient(cx, cy, 1, cx, cy, r);
+    g.addColorStop(0, inner); g.addColorStop(1, 'rgba(255,180,80,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+  // After the night tint, warm lights punch back through the dark: lampposts
+  // lining the paths, braziers, and the windows of lived-in buildings. Each
+  // pool breathes on a slow sine so the town feels alive but never blinks.
+  function drawNightLights(sx, sy, z) {
+    const { a } = nightTint();
+    const k = Math.min(1, a / 0.4);           // 0 by day → 1 deep night
+    if (k < 0.12) return;
+    const t = ambientTime;
+    const x0 = cam.x / TILE - 1, y0 = cam.y / TILE - 1;
+    const x1 = (cam.x + view.w / z) / TILE + 1, y1 = (cam.y + view.h / z) / TILE + 1;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // lampposts along the roads
+    for (const d of decos) {
+      if (d.kind !== 'lamp' || d.tx < x0 || d.tx > x1 || d.ty < y0 || d.ty > y1) continue;
+      const breathe = 1 + 0.06 * Math.sin(t * 1.3 + d.tx * 1.7 + d.ty);
+      const cx = sx + (d.tx + 0.5) * TILE * z, cy = sy + (d.ty * TILE - 2) * z;
+      ctx.globalAlpha = 0.6 * k;
+      lightPool(cx, cy, 22 * z * breathe, 'rgba(255,196,110,0.95)');
     }
+    // braziers and lived-in buildings
+    for (const b of state.buildings) {
+      const def = BUILDINGS[b.type];
+      if (b.tx > x1 || b.tx + def.w < x0 || b.ty > y1 || b.ty + def.h < y0) continue;
+      if (def.light && b.done !== false) {
+        const breathe = 1 + 0.08 * Math.sin(t * 1.7 + b.tx + b.ty);
+        const cx = sx + (b.tx + def.w / 2) * TILE * z, cy = sy + (b.ty * TILE + 2) * z;
+        ctx.globalAlpha = 0.7 * k;
+        lightPool(cx, cy, def.w * TILE * 1.0 * z * breathe, 'rgba(255,170,80,0.95)');
+      } else if (buildingLit(b)) {
+        const breathe = 1 + 0.04 * Math.sin(t * 0.9 + b.tx * 0.6 + b.ty);
+        const cx = sx + (b.tx + def.w / 2) * TILE * z, cy = sy + (b.ty + def.h * 0.42) * TILE * z;
+        ctx.globalAlpha = 0.55 * k;
+        lightPool(cx, cy, def.w * TILE * 0.6 * z * breathe, 'rgba(255,214,130,0.95)');
+      }
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   // ============================================================
   //  HUD / UI
   // ============================================================
+  // Expected net resource change per production cycle for the HUD readout.
+  function cycleNet() {
+    const net = { wood: 0, stone: 0, food: 0, gold: 0 };
+    const morale = moraleMult();
+    state.buildings.forEach(b => {
+      const def = BUILDINGS[b.type];
+      if (b.done === false || !def.prod || (def.worker && !b.staffed)) return;
+      const milled = b.type === 'farm' && windmillBoostsFarm(b);
+      const chain = adjMult(b);
+      const rainM = cropRainMult(b);
+      for (const k in def.prod) {
+        let amt = def.prod[k] * (b.level || 1);
+        if (b.bonus) amt = Math.ceil(amt * 1.5);
+        if (milled && k === 'food') amt = Math.ceil(amt * 1.5);
+        if (chain > 1) amt = Math.ceil(amt * chain);
+        if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM);
+        if (k === 'food') { const sm = seasonCropMult(b); if (sm !== 1) amt = Math.max(1, Math.round(amt * sm)); }
+        { const dm = decreeProdMult(b, k); if (dm !== 1) amt = Math.max(1, Math.round(amt * dm)); }
+        if (morale !== 1) amt = Math.max(1, Math.round(amt * morale));
+        net[k] += amt;
+      }
+      if (def.cons) for (const k in def.cons) net[k] -= def.cons[k];
+    });
+    net.food -= state.villagers.length * FOOD_PER_VILLAGER;
+    if (seasonOf(state.day).name === 'Winter')
+      net.wood -= Math.ceil(state.buildings.filter(b => b.type === 'house' && b.done !== false).length / 2);
+    return net;
+  }
+
   function syncPaused() {
     const pe = document.getElementById('paused'); if (pe) pe.classList.toggle('show', gameSpeed === 0);
     const sb = document.getElementById('m-speed'); if (sb && gameSpeed > 0) sb.innerHTML = 'Speed: ' + gameSpeed + '&times;';
+    document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
   function updateHUD() {
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
@@ -2379,41 +3460,122 @@
       const cap = capOf(k); el.textContent = '/' + cap;
       el.style.color = state.res[k] >= cap ? '#e0705c' : 'var(--ink-dim)';
     });
+    // net production per cycle, so the economy is legible at a glance
+    const net = cycleNet();
+    ['wood', 'stone', 'food', 'gold'].forEach(k => {
+      const el = document.getElementById('r-' + k + 'net'); if (!el) return;
+      const n = Math.round(net[k]);
+      el.textContent = n > 0 ? '+' + n : n < 0 ? String(n) : '';
+      el.className = 'net ' + (n > 0 ? 'up' : n < 0 ? 'down' : '');
+    });
     document.getElementById('r-pop').textContent = state.villagers.length;
     document.getElementById('r-popcap').textContent = '/' + popCap();
+    if (state.villagers.length > (state.peakPop || 0)) state.peakPop = state.villagers.length;
     document.getElementById('r-day').textContent = state.day;
     const hp = Math.round(state.happy);
     document.getElementById('r-happy').textContent = hp;
     document.getElementById('r-happyface').textContent = hp >= 70 ? '😀' : hp >= 40 ? '🙂' : '😟';
+    const mk = document.getElementById('r-moralemk'), chip = document.getElementById('happy-chip');
+    if (mk) {
+      const m = moraleMult();
+      mk.textContent = m > 1 ? ' ⚡' : m < 1 ? ' ⚠️' : '';
+      mk.className = 'net ' + (m > 1 ? 'up' : m < 1 ? 'down' : '');
+      if (chip) chip.title = moraleLabel() || 'Keep folk happy (85%+) for a production bonus';
+    }
+    const thr = state.happy >= 85;
+    if (thr && !_wasThriving) toast('⚡ Your townsfolk are thriving — workshops produce +12%!');
+    _wasThriving = thr;
     const h = state.time;
     document.getElementById('r-tod').innerHTML = (h >= 6 && h < 19) ? '☀️' : '🌙';
-    const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name; }
-    const menu = document.getElementById('menu'); if (menu && menu.classList.contains('show')) refreshFestivalBtn();
+    const se = document.getElementById('r-season'); if (se) { const s = seasonOf(state.day); se.textContent = s.emoji; se.title = s.name + (s.name === 'Autumn' ? ' — harvest bounty (+25% crops)' : s.name === 'Summer' ? ' — crops grow well (+10%)' : s.name === 'Winter' ? ' — fields lie fallow (−40% crops)' : ''); }
+    const wx = document.getElementById('r-wx');
+    if (wx) {
+      if (state.raining) { const snow = seasonOf(state.day).name === 'Winter'; wx.textContent = snow ? ' ❄️' : ' 🌧️'; wx.title = snow ? 'Snowing' : 'Rain — crops thrive (+25% food)'; }
+      else { wx.textContent = ''; wx.title = ''; }
+    }
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
+  // The build bar is organised into category tabs so it never overflows.
+  const BUILD_TABS = [
+    { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'warehouse'] },
+    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'tavern', 'chapel', 'school', 'townhall'] },
+    { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
+  ];
+  let buildTab = 'homes';
+  function activeTabTypes() {
+    const tab = BUILD_TABS.find(t => t.id === buildTab) || BUILD_TABS[0];
+    return tab.types.concat(['road', 'demolish']);   // tools answer the last hotkeys
+  }
+  function tipFor(type) {
+    const def = BUILDINGS[type];
+    let h = '<div class="t-name">' + def.emoji + ' ' + def.name + '</div>';
+    if (tierLocked(type)) { const t = TIERS[def.tier]; h += '<div class="t-lock">🔒 Unlocks at ' + t.name + ' (' + t.at + ' villagers)</div>'; }
+    h += '<div class="t-desc">' + def.desc + '</div>';
+    h += '<div class="t-line">Cost <b>' + Object.keys(def.cost).map(k => def.cost[k] + shortRes(k)).join(' ') + '</b></div>';
+    if (def.prod) { const k = Object.keys(def.prod)[0]; h += '<div class="t-line">Makes <b>' + def.prod[k] + shortRes(k) + '</b> / cycle</div>'; }
+    if (def.cons) { const k = Object.keys(def.cons)[0]; h += '<div class="t-line">Uses <b>' + def.cons[k] + shortRes(k) + '</b> / cycle</div>'; }
+    if (def.worker) h += '<div class="t-line">Needs <b>1 worker</b></div>';
+    if (def.housing) h += '<div class="t-line">Homes <b>' + def.housing + ' villagers</b></div>';
+    if (def.happy) h += '<div class="t-line">Happiness <b>+' + Math.ceil(def.happy / 6) + '</b> / cycle</div>';
+    if (def.charm) h += '<div class="t-line">Charm <b>+' + def.charm + '</b></div>';
+    if (def.storage) h += '<div class="t-line">Storage <b>+' + def.storage + '</b> cap</div>';
+    if (def.boostFarms) h += '<div class="t-line">Nearby farms <b>+50% food</b></div>';
+    if (def.likes) h += '<div class="t-line">⚡ <b>+' + Math.round(def.likes.bonus * 100) + '%</b> near ' + def.likes.label + '</div>';
+    if (def.wantsNear) h += '<div class="t-line">Best near <b>' + ({ tree: 'trees', rock: 'rocks', water: 'water' })[def.wantsNear] + '</b></div>';
+    return h;
+  }
+  const tipEl = () => document.getElementById('tip');
+  function showTip(btn, html) {
+    const tip = tipEl(); if (!tip) return;
+    tip.innerHTML = html;
+    const r = btn.getBoundingClientRect();
+    tip.classList.add('show');
+    const w = tip.offsetWidth;
+    let left = r.left + r.width / 2 - w / 2;
+    left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
+    tip.style.left = left + 'px';
+    tip.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    tip.style.top = 'auto';
+  }
+  function hideTip() { const tip = tipEl(); if (tip) tip.classList.remove('show'); }
+
   function buildBar() {
+    const tabs = document.getElementById('buildtabs');
+    tabs.innerHTML = '';
+    BUILD_TABS.forEach(t => {
+      const tb = document.createElement('button');
+      tb.className = 'btab' + (t.id === buildTab ? ' on' : '');
+      tb.textContent = t.label;
+      tb.addEventListener('click', () => { buildTab = t.id; buildBar(); });
+      tabs.appendChild(tb);
+    });
     const bar = document.getElementById('buildbar');
     bar.innerHTML = '';
-    BUILD_ORDER.forEach(type => {
+    const tab = BUILD_TABS.find(t => t.id === buildTab) || BUILD_TABS[0];
+    tab.types.forEach(type => {
       const def = BUILDINGS[type];
-      if (def.decor && !bar.querySelector('.bardiv')) {          // divider before the decoration group
-        const d = document.createElement('div'); d.className = 'bardiv'; bar.appendChild(d);
-      }
       const btn = document.createElement('button');
       btn.className = 'btn';
       const costStr = Object.keys(def.cost).map(k => Math.floor(def.cost[k]) + shortRes(k)).join(' ');
       btn.innerHTML = '<span class="emoji">' + def.emoji + '</span><span class="lbl">' + def.name + '</span><span class="cost">' + costStr + '</span>';
       btn.dataset.type = type;
+      btn.dataset.costhtml = costStr;
       btn.addEventListener('click', () => selectBuild(type));
+      btn.addEventListener('mouseenter', () => showTip(btn, tipFor(type)));
+      btn.addEventListener('mouseleave', hideTip);
       bar.appendChild(btn);
     });
+    const div = document.createElement('div'); div.className = 'bardiv'; bar.appendChild(div);
     // road tool — paves a tile so villagers walk it faster
     const road = document.createElement('button');
     road.className = 'btn tool';
     road.innerHTML = '<span class="emoji">🛤️</span><span class="lbl">Road</span><span class="cost">1🪵</span>';
     road.dataset.type = 'road';
     road.addEventListener('click', () => selectBuild('road'));
+    road.addEventListener('mouseenter', () => showTip(road, '<div class="t-name">🛤️ Road</div><div class="t-desc">Villagers walk much faster on roads. Hold and drag to pave a whole path.</div><div class="t-line">Cost <b>1🪵</b> per tile</div>'));
+    road.addEventListener('mouseleave', hideTip);
     bar.appendChild(road);
     // demolish tool
     const dem = document.createElement('button');
@@ -2421,6 +3583,8 @@
     dem.innerHTML = '<span class="emoji">⛏️</span><span class="lbl">Remove</span>';
     dem.dataset.type = 'demolish';
     dem.addEventListener('click', () => selectBuild('demolish'));
+    dem.addEventListener('mouseenter', () => showTip(dem, '<div class="t-name">⛏️ Remove</div><div class="t-desc">Tear a building down for half its materials back. Cancelling an unfinished site refunds everything.</div>'));
+    dem.addEventListener('mouseleave', hideTip);
     bar.appendChild(dem);
     refreshBarState();
   }
@@ -2433,7 +3597,15 @@
         const def = BUILDINGS[type];
         btn.classList.toggle('cantafford', !canAfford(type));
         const taken = def.unique && state.buildings.some(b => b.type === type);
-        btn.classList.toggle('locked', taken);
+        const locked = tierLocked(type);
+        btn.classList.toggle('locked', taken || locked);
+        const costEl = btn.querySelector('.cost');
+        if (costEl) {
+          const want = locked ? '🔒 ' + TIERS[def.tier].name : (btn.dataset.costhtml || '');
+          if (costEl.textContent !== want && !(want === btn.dataset.costhtml && costEl.dataset.orig === '1')) {
+            costEl.textContent = want; costEl.dataset.orig = locked ? '0' : '1';
+          }
+        }
       } else if (type === 'road') {
         btn.classList.toggle('cantafford', state.res.wood < 1);
       }
@@ -2441,6 +3613,12 @@
   }
 
   function selectBuild(type) {
+    if (type !== 'demolish' && type !== 'road' && tierLocked(type)) {
+      const t = TIERS[BUILDINGS[type].tier];
+      toast('🔒 ' + BUILDINGS[type].name + ' unlocks at ' + t.name + ' (' + t.at + ' villagers).');
+      SFX('error');
+      return;
+    }
     if (type !== 'demolish' && type !== 'road' && BUILDINGS[type].unique && state.buildings.some(b => b.type === type)) { toast('You already have a ' + BUILDINGS[type].name + '.'); return; }
     buildMode = (buildMode === type) ? null : type;
     selected = null; hidePanel();
@@ -2452,6 +3630,22 @@
   let selected = null;
   function showPanel(b) {
     selected = b; buildMode = null; canvas.classList.remove('building'); refreshBarState();
+    if (b.done === false) {   // construction site view
+      const sdef = BUILDINGS[b.type];
+      document.getElementById('p-emoji').textContent = '🏗️';
+      document.getElementById('p-name').textContent = sdef.name;
+      document.getElementById('p-sub').textContent = 'Under construction';
+      const pct = Math.round(Math.max(0, Math.min(1, 1 - b.buildLeft / (b.buildTotal || 1))) * 100);
+      const hasBuilder = state.villagers.some(v => v.buildId === b.id);
+      document.getElementById('p-stats').innerHTML =
+        statRow('Progress', pct + '%') +
+        statRow('Builder', hasBuilder ? 'On the job 🔨' : (state.villagers.length ? 'On their way…' : 'You pitch in yourself'));
+      const actions = document.getElementById('p-actions');
+      actions.innerHTML = '<button class="danger" id="p-demolish">Cancel</button>';
+      document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
+      document.getElementById('panel').classList.add('show');
+      return;
+    }
     const def = BUILDINGS[b.type], lvl = b.level || 1;
     document.getElementById('p-emoji').textContent = def.emoji;
     document.getElementById('p-name').textContent = def.name + (lvl > 1 ? ' · Lv' + lvl : '');
@@ -2459,8 +3653,9 @@
     const stats = document.getElementById('p-stats');
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
-    if (def.worker) html += statRow('Worker', b.staffed ? 'Assigned ✅' : 'Needs a villager 💤');
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); html += statRow('Produces', base + ' ' + shortRes(k) + (b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : '') + ' / cycle'); }
+    if (def.worker) { const wk = state.villagers.find(v => v.jobId === b.id); html += statRow('Worker', wk ? '👤 ' + wk.name : 'Needs a villager 💤'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
+    if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
     if (def.happy) html += statRow('Happiness', '+' + (Math.ceil(def.happy / 6) * lvl) + ' / cycle');
@@ -2476,10 +3671,19 @@
       const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
       btns += '<button id="p-upgrade">⬆️ Upgrade <span style="opacity:.7;font-size:11px">' + costStr + '</span></button>';
     }
+    if (b.type === 'tavern' && b.done !== false) {
+      const fc = festivalCost();
+      const fcStr = Object.keys(fc).map(k => fc[k] + shortRes(k)).join(' ');
+      const on = festivalActive(), ready = festivalReady();
+      const lbl = on ? '🎪 Festival underway…' : !ready ? '🎪 Festival (town resting)' : '🎪 Hold a Festival <span style="opacity:.7;font-size:11px">' + fcStr + '</span>';
+      btns += '<button id="p-festival"' + (on || !ready ? ' disabled' : '') + '>' + lbl + '</button>';
+    }
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
     const upBtn = document.getElementById('p-upgrade');
     if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
+    const fBtn = document.getElementById('p-festival');
+    if (fBtn) fBtn.onclick = () => { holdFestival(b); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
@@ -2496,8 +3700,9 @@
     document.getElementById('p-emoji').textContent = jobEmoji;
     document.getElementById('p-name').textContent = v.name;
     document.getElementById('p-sub').textContent = 'A villager of Hearthvale';
+    const tr = traitOf(v);
     document.getElementById('p-stats').innerHTML =
-      statRow('Trade', job) + statRow('Mood', mood) + statRow('Home', homeB ? BUILDINGS[homeB.type].name : '—');
+      statRow('Trade', job) + statRow('Nature', tr.emoji + ' ' + tr.name) + statRow('Mood', mood) + statRow('Home', homeB ? BUILDINGS[homeB.type].name : '—');
     const actions = document.getElementById('p-actions');
     actions.innerHTML = '<button id="p-close">Close</button>';
     document.getElementById('p-close').onclick = hidePanel;
@@ -2534,13 +3739,19 @@
   });
   canvas.addEventListener('pointermove', e => {
     hoverTile = screenToTile(e.clientX, e.clientY);
-    if (dragging) {
-      const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
-      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5) { dragMoved = true; canvas.classList.add('panning'); }
-      cam.x -= dx / cam.z; cam.y -= dy / cam.z;
-      clampCam();
+    if (!dragging) return;
+    if (buildMode === 'road') {
+      // in road mode, dragging paints a path instead of panning the camera
+      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5) dragMoved = true;
+      if (dragMoved) paintRoad(hoverTile.tx, hoverTile.ty, true);
       lastPX = e.clientX; lastPY = e.clientY;
+      return;
     }
+    const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
+    if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5) { dragMoved = true; canvas.classList.add('panning'); }
+    cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+    clampCam();
+    lastPX = e.clientX; lastPY = e.clientY;
   });
   canvas.addEventListener('pointerup', e => {
     canvas.classList.remove('panning');
@@ -2548,6 +3759,20 @@
     dragging = false;
   });
   canvas.addEventListener('pointercancel', () => { dragging = false; canvas.classList.remove('panning'); });
+
+  // Pave one road tile. silent=true (drag-painting) skips error feedback so
+  // sweeping across invalid tiles doesn't buzz; success always clicks.
+  function paintRoad(tx, ty, silent) {
+    if (!inMap(tx, ty)) return false;
+    const i = idx(tx, ty), tile = tiles[i], o = tileObj[i];
+    if (state.res.wood < 1) { if (!silent) { toast("Need 1 🪵 for a road."); SFX('error'); } return false; }
+    if (occ[i] >= 0 || tile === T_WATER || tile === T_DIRT || tile === T_BRIDGE || o === O_TREE || o === O_ROCK || o === O_MTN || o === O_BUSH) { if (!silent) SFX('error'); return false; }
+    state.res.wood -= 1; tiles[i] = T_DIRT; tileObj[i] = O_NONE;
+    (state.roads || (state.roads = [])).push({ tx, ty });
+    buildMiniTerrain();
+    SFX('place'); refreshBarState(); save();
+    return true;
+  }
 
   function handleClick(px, py) {
     const t = screenToTile(px, py);
@@ -2558,14 +3783,7 @@
       return;
     }
     if (buildMode === 'road') {
-      const i = idx(t.tx, t.ty), tile = tiles[i];
-      const o = tileObj[i];
-      if (state.res.wood < 1) { toast("Need 1 🪵 for a road."); SFX('error'); return; }
-      if (occ[i] >= 0 || tile === T_WATER || tile === T_DIRT || tile === T_BRIDGE || o === O_TREE || o === O_ROCK || o === O_MTN || o === O_BUSH) { SFX('error'); return; }
-      state.res.wood -= 1; tiles[i] = T_DIRT; tileObj[i] = O_NONE;
-      (state.roads || (state.roads = [])).push({ tx: t.tx, ty: t.ty });
-      buildMiniTerrain();
-      SFX('place'); refreshBarState(); save();
+      paintRoad(t.tx, t.ty, false);
       return;
     }
     if (buildMode) {
@@ -2576,8 +3794,13 @@
       if (!canAfford(buildMode)) { buildMode = null; canvas.classList.remove('building'); refreshBarState(); }
       return;
     }
-    // click a villager to inspect them (takes priority over the tile below)
+    // click the merchant's wagon to trade (top priority while it's in town)
     const wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;
+    if (cart && cart.phase !== 'leaving' && Math.abs(wx - cart.x) < 22 && wy > cart.y - 28 && wy < cart.y + 7) {
+      openTrader();
+      return;
+    }
+    // click a villager to inspect them (takes priority over the tile below)
     let hitV = null, best = 9;
     for (const v of state.villagers) {
       if (v.sleeping) continue;
@@ -2608,11 +3831,12 @@
   const keys = {};
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); }
+    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
-    if (n >= 1 && n <= BUILD_ORDER.length) selectBuild(BUILD_ORDER[n - 1]);
+    if (n >= 1) { const list = activeTabTypes(); if (n <= list.length) selectBuild(list[n - 1]); }
+    if (e.key === 'Tab') { e.preventDefault(); const i = BUILD_TABS.findIndex(t => t.id === buildTab); buildTab = BUILD_TABS[(i + 1) % BUILD_TABS.length].id; buildBar(); }
   });
   window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
   function keyboardPan(dt) {
@@ -2630,7 +3854,7 @@
   function save() {
     try {
       const s = {
-        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1 })),
+        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0 })),
         villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph, name: v.name })),
         day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
@@ -2638,8 +3862,12 @@
         goalIndex: state.goalIndex, sadDays: state.sadDays,
         roads: state.roads || [], muted: !!state.muted, nextEventDay: state.nextEventDay,
         achievements: state.achievements || [], townName: state.townName || 'Hearthvale',
-        endless: state.endless, festivalDay: state.festivalDay || 0,
-        festivals: state.festivals || 0, festHintDay: state.festHintDay || 0,
+        trades: state.trades || 0, traderDay: state.traderDay || 0, hunger: state.hunger || 0,
+        festival: state.festival || null, lastFestivalDay: (state.lastFestivalDay != null ? state.lastFestivalDay : -99),
+        raining: !!state.raining,
+        peakPop: state.peakPop || 0, festivalsHeld: state.festivalsHeld || 0,
+        difficulty: state.difficulty || 'normal',
+        decrees: state.decrees || [],
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -2667,10 +3895,6 @@
       state.nextEventDay = s.nextEventDay || (state.day + 2);
       state.achievements = s.achievements || [];
       state.townName = s.townName || 'Hearthvale';
-      state.endless = s.endless || null;
-      state.festivalDay = s.festivalDay || 0;
-      state.festivals = s.festivals || 0;
-      state.festHintDay = s.festHintDay || 0;
       // reapply player-painted roads over the regenerated terrain
       state.roads = s.roads || [];
       state.roads.forEach(r => { if (inMap(r.tx, r.ty) && tiles[idx(r.tx, r.ty)] !== T_WATER) { tiles[idx(r.tx, r.ty)] = T_DIRT; tileObj[idx(r.tx, r.ty)] = O_NONE; } });
@@ -2678,7 +3902,8 @@
       (s.buildings || []).forEach(sb => {
         if (!BUILDINGS[sb.type]) return;
         const def = BUILDINGS[sb.type];
-        const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, level: sb.level || 1, staffed: false, worker: null };
+        const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, level: sb.level || 1, staffed: false, worker: null, done: sb.done !== false, buildTotal: sb.buildTotal || 0, buildLeft: sb.buildLeft || 0 };
+        if (b.done === false && !b.buildTotal) { b.buildTotal = buildWorkOf(sb.type); b.buildLeft = b.buildTotal; }
         for (let dy = 0; dy < def.h; dy++) for (let dx = 0; dx < def.w; dx++) { const i = idx(sb.tx + dx, sb.ty + dy); if (inMap(sb.tx + dx, sb.ty + dy)) occ[i] = b.id; }
         state.buildings.push(b);
       });
@@ -2692,6 +3917,19 @@
         state.villagers.push(v);
       });
       state.buildings.forEach(b => { b.staffed = state.villagers.some(v => v.jobId === b.id); });
+      state.trades = s.trades || 0;
+      state.traderDay = s.traderDay || 0;
+      state.hunger = s.hunger || 0;
+      state.festival = (s.festival && typeof s.festival.endDay === 'number') ? s.festival : null;
+      state.lastFestivalDay = (typeof s.lastFestivalDay === 'number') ? s.lastFestivalDay : -99;
+      state.raining = !!s.raining;
+      state.peakPop = s.peakPop || state.villagers.length;
+      state.festivalsHeld = s.festivalsHeld || 0;
+      state.difficulty = DIFFICULTY[s.difficulty] ? s.difficulty : 'normal';
+      state.decrees = Array.isArray(s.decrees) ? s.decrees.filter(id => DECREES.some(d => d.id === id)) : [];
+      // if the save was made while the merchant was in town, respawn the parked wagon
+      if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
+        cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
       return true;
     } catch (e) { return false; }
   }
@@ -2732,15 +3970,28 @@
     buildBar();
     buildMiniTerrain();
     rebuildCritters();
+    rebuildWaterlife();
     updateHUD();
     renderGoal();
     drawMinimap();
     const menuBtn = document.getElementById('menu-btn'), menu = document.getElementById('menu');
     const soundBtn = document.getElementById('m-sound');
     const syncSound = () => { soundBtn.textContent = 'Sound: ' + (state.muted ? 'Off' : 'On'); };
-    menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); refreshFestivalBtn(); };
+    menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); const md = document.getElementById('m-decrees'); if (md) md.textContent = 'Town Decrees' + (decreesAvailable() > 0 ? ' ⭐' + decreesAvailable() : ''); };
     soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
-    document.getElementById('m-festival').onclick = () => holdFestival();
+    document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
+    document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
+    document.getElementById('m-chronicle').onclick = () => { menu.classList.remove('show'); openChronicle(); };
+    document.getElementById('chron-close').onclick = () => document.getElementById('chronicle').classList.remove('show');
+    document.getElementById('m-decrees').onclick = () => { menu.classList.remove('show'); openDecrees(); };
+    document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
+    document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
+      const sp = parseInt(b.dataset.sp, 10);
+      if (sp === 0) { if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else gameSpeed = prevSpeed || 1; }
+      else { gameSpeed = sp; prevSpeed = sp; }
+      syncPaused();
+    }));
+    syncPaused();
     const speedBtn = document.getElementById('m-speed');
     speedBtn.onclick = () => { gameSpeed = gameSpeed >= 3 ? 1 : (gameSpeed < 1 ? 1 : gameSpeed + 1); prevSpeed = gameSpeed; speedBtn.innerHTML = 'Speed: ' + gameSpeed + '&times;'; syncPaused(); };
     document.getElementById('m-new').onclick = () => {
@@ -2753,10 +4004,19 @@
       document.getElementById('welcome').classList.add('show');
       const nameInput = document.getElementById('townname-input');
       if (nameInput) setTimeout(() => nameInput.focus(), 60);
+      let pickedDiff = 'normal';
+      document.querySelectorAll('#diffsel .diffbtn').forEach(b => b.addEventListener('click', () => {
+        pickedDiff = b.dataset.diff;
+        document.querySelectorAll('#diffsel .diffbtn').forEach(x => x.classList.toggle('on', x === b));
+        const dd = document.getElementById('diffdesc'); if (dd) dd.innerHTML = DIFFICULTY[pickedDiff].desc;
+      }));
       const beginGame = () => {
         if (nameInput) { const nm = nameInput.value.trim().slice(0, 20); if (nm) state.townName = nm; }
+        state.difficulty = pickedDiff;
+        const mult = DIFFICULTY[pickedDiff].res;
+        if (mult !== 1) Object.keys(state.res).forEach(k => state.res[k] = Math.round(state.res[k] * mult));
         document.getElementById('welcome').classList.remove('show');
-        renderGoal(); hideHint(); save();
+        buildBar(); updateHUD(); renderGoal(); hideHint(); save();
       };
       document.getElementById('welcome-close').onclick = beginGame;
       if (nameInput) nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') beginGame(); });
@@ -2788,29 +4048,32 @@
     stepSim(dt);
     // ambient life runs on real time, so it keeps gently moving even when paused
     updateAmbient(dt);
+    ambientSoundTick(dt);
     // render
     draw();
     // hud light refresh
     hudTick += dt;
-    if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); checkAchievements(); drawMinimap(); hudTick = 0; }
+    if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); checkAchievements(); drawMinimap(); assignBuilders(); checkTierUp(); hudTick = 0; }
 
     requestAnimationFrame(loop);
   }
-  let hudTick = 0, saveTick = 0, festFxTimer = 0;
+  let hudTick = 0, saveTick = 0;
 
   function stepSim(dt) {
     keyboardPan(dt);   // panning works even while paused
     const sdt = dt * gameSpeed;   // time/production/villagers obey game speed
     if (sdt <= 0) return;
     if (_storageFullTimer > 0) _storageFullTimer -= sdt;
+    if (_coldTimer > 0) _coldTimer -= sdt;
     if (floaters.length) { for (const f of floaters) { f.life -= sdt; f.wy -= 11 * sdt; } floaters = floaters.filter(f => f.life > 0); }
-    // festival day keeps sprinkling confetti over the rooftops
-    if (isFestival()) { festFxTimer -= sdt; if (festFxTimer <= 0) { festFxTimer = 2.2; confettiBurst(5); } }
     advanceTimeSafe(sdt);
     // villagers (obey game speed, capped so pathing stays stable at 3x)
     const vdt = Math.min(sdt, 0.12);
     for (const v of state.villagers) villagerTick(v, vdt);
-    for (const cr of critters) critterTick(cr, vdt);
+    for (const cr of critters) if (critterActive(cr)) critterTick(cr, vdt);
+    for (const d of waterlife) duckTick(d, vdt);
+    cartTick(sdt);
+    siteProgressTick(sdt);
     // fade villager emotes
     for (const v of state.villagers) if (v.emote && v.emote.life > 0) v.emote.life -= sdt;
     // autosave
