@@ -45,14 +45,22 @@ function onNewDay(){
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
-  if(G.structures.garden){ var y=rand(1,3); G.food+=y; log('Garden yielded '+y+' food.'); }
+  if(G.structures.garden){ var y=rand(1,3); G.food+=y; floatText('+'+y+'🍞'); log('Garden yielded '+y+' food.'); }
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'.');
   buildCraftUI(); buildWorkersUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
+  checkGameOver(); // after maybeEvent so same-day event damage counts
+}
+
+// The warmth/food drain and events above clamp health at 0 but nothing
+// ever acted on it — the game literally could not be lost.
+function checkGameOver(){
+  if(G.health<=0) showGameOver();
 }
 
 function tickDay(dt){
+  if(gameOverShown) return; // time stops behind the game-over overlay
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
@@ -270,5 +278,29 @@ function startTraffic(){
   }
   tick();
 }
+// Short UI blips layered on top of the ambient loops. Same audioCtx —
+// before the first click/keydown initializes it this is a silent no-op.
+function sfx(kind){
+  if(!audioCtx) return;
+  var notes={
+    action:  [440,660],
+    craft:   [523,659,784],
+    hire:    [392,523,659],
+    goal:    [523,659,784,1047],
+    gameover:[330,262,196,131],
+  }[kind]||[440];
+  var spacing=kind==='gameover'?.22:.08, t=audioCtx.currentTime;
+  notes.forEach(function(f,i){
+    var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=kind==='gameover'?'sine':'triangle'; o.frequency.value=f;
+    var start=t+i*spacing;
+    g.gain.setValueAtTime(0,start);
+    g.gain.linearRampToValueAtTime(.09,start+.015);
+    g.gain.linearRampToValueAtTime(0,start+spacing+.06);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(start); o.stop(start+spacing+.08);
+  });
+}
+
 document.addEventListener('click',initAudio,{once:true});
 document.addEventListener('keydown',initAudio,{once:true});

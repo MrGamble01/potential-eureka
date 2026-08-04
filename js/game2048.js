@@ -18,8 +18,10 @@ const Game2048 = (() => {
   let canvas, ctx;
   let grid;          // N×N of values (0 empty)
   let score, best, won, over, running;
-  let anim = null;   // { t, dur, moves:[{val,fr,fc,tr,tc,merge}], spawn:{r,c} }
+  let anim = null;   // { t, dur, moves:[{val,fr,fc,tr,tc,merge}], spawn:{r,c}, merged:[{r,c}] }
   let raf, lastT;
+  let queuedDir = null;    // input buffered while the slide animation runs
+  let winBannerUntil = 0;  // one-time "you made 2048" banner deadline
 
   function init() {
     canvas = document.getElementById('g2048-canvas');
@@ -71,7 +73,8 @@ const Game2048 = (() => {
     clearTimeout(overTimer);
     grid = Array.from({ length: N }, () => Array(N).fill(0));
     score = 0; won = false; over = false;
-    anim = null;
+    anim = null; queuedDir = null; winBannerUntil = 0;
+    mergedCells = null;
     addRandom(); addRandom();
     running = run !== false;
     const ov = document.getElementById('g2048-overlay');
@@ -125,9 +128,12 @@ const Game2048 = (() => {
   }
 
   function move(dir) {
-    if (!running || over || anim) return;
+    if (!running || over) return;
+    // Mid-slide inputs aren't dropped — remember the last one and replay it
+    // as soon as the animation clears.
+    if (anim) { queuedDir = dir; return; }
     const wasWon = won;
-    const allMoves = []; let gained = 0; let changed = false;
+    const allMoves = []; const mergedTo = []; let gained = 0; let changed = false;
     const next = Array.from({ length: N }, () => Array(N).fill(0));
     for (let lineNo = 0; lineNo < N; lineNo++) {
       const line = readLine(dir, lineNo);
@@ -139,6 +145,7 @@ const Game2048 = (() => {
         const [tr, tc] = coord(dir, lineNo, m.to);
         if (fr !== tr || fc !== tc || m.merge) changed = true;
         allMoves.push({ val: m.val, fr, fc, tr, tc, merge: m.merge });
+        if (m.merge && !mergedTo.some(t => t.r === tr && t.c === tc)) mergedTo.push({ r: tr, c: tc });
       });
     }
     if (!changed) return;
@@ -146,12 +153,14 @@ const Game2048 = (() => {
     score += gained;
     // Victory jingle only on the move that first reaches 2048; merges otherwise.
     if (gained > 0) SFX_play((won && !wasWon) ? 'clear' : 'bonus'); else SFX_play('move');
+    // One-time win banner on the move that first makes 2048 — play continues.
+    if (won && !wasWon) winBannerUntil = performance.now() + 2600;
     best = Utils.highScore.save('g2048-best', score, best);
 
     // Commit the model, then animate the slide from old positions.
     grid = next;
     const spawn = addRandom();
-    anim = { t: 0, dur: 90, moves: allMoves, spawn, start: performance.now() };
+    anim = { t: 0, dur: 90, moves: allMoves, spawn, merged: mergedTo, start: performance.now() };
     updateInfo();
     ensureLoop();
 
@@ -194,6 +203,7 @@ const Game2048 = (() => {
   function ease(t) { return 1 - Math.pow(1 - t, 3); }
 
   let spawnCell = null, spawnAt = 0;
+  let mergedCells = null, mergedAt = 0;
 
   function ensureLoop() { if (!raf) { lastT = performance.now(); loop(); } }
   function loop() {
@@ -238,11 +248,16 @@ const Game2048 = (() => {
         const [tx, ty] = cellXY(m.tr, m.tc);
         drawTile(fx + (tx - fx) * e, fy + (ty - fy) * e, m.val, 1);
       }
-      if (!sliding) { spawnCell = anim.spawn; spawnAt = nowMs; anim = null; }
+      if (!sliding) {
+        spawnCell = anim.spawn; spawnAt = nowMs;
+        mergedCells = anim.merged && anim.merged.length ? anim.merged : null; mergedAt = nowMs;
+        anim = null;
+      }
     }
 
     if (!sliding) {
       const popActive = spawnCell && nowMs - spawnAt < 130;
+      const mergePop = mergedCells && nowMs - mergedAt < 160;
       for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
         const v = grid[r][c];
         if (!v) continue;
@@ -250,9 +265,27 @@ const Game2048 = (() => {
         let scale = 1;
         if (popActive && spawnCell.r === r && spawnCell.c === c) {
           scale = 0.3 + 0.7 * ease((nowMs - spawnAt) / 130);
+        } else if (mergePop && mergedCells.some(m => m.r === r && m.c === c)) {
+          // Scale-overshoot bounce on the tile the merge landed in.
+          scale = 1 + 0.22 * Math.sin(Math.PI * ((nowMs - mergedAt) / 160));
         }
         drawTile(x, y, v, scale);
       }
+    }
+
+    // One-time win banner — announces 2048 without ending the run.
+    if (winBannerUntil && nowMs < winBannerUntil) {
+      ctx.globalAlpha = Math.min(1, (winBannerUntil - nowMs) / 400);
+      ctx.fillStyle = 'rgba(13,17,23,0.85)';
+      roundRect(SIZE / 2 - 190, SIZE / 2 - 46, 380, 92, 12); ctx.fill();
+      ctx.fillStyle = '#ffd700'; ctx.font = "800 26px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('YOU MADE 2048!', SIZE / 2, SIZE / 2 - 12);
+      ctx.font = '14px Inter, sans-serif'; ctx.fillStyle = '#E6EDF3';
+      ctx.fillText('Keep going?', SIZE / 2, SIZE / 2 + 20);
+      ctx.globalAlpha = 1;
+    } else if (winBannerUntil && nowMs >= winBannerUntil) {
+      winBannerUntil = 0;
     }
 
     // idle prompt
@@ -267,9 +300,13 @@ const Game2048 = (() => {
     }
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
-    // Stop the loop when fully static (nothing sliding, no pop in flight).
+    // Replay an input that arrived mid-slide, now that the board is settled.
+    if (!anim && queuedDir) { const dir = queuedDir; queuedDir = null; move(dir); }
+
+    // Stop the loop when fully static (nothing sliding, no pop or banner in flight).
     const popActive = spawnCell && nowMs - spawnAt < 130;
-    if (!anim && !sliding && !popActive) { cancelAnimationFrame(raf); raf = null; }
+    const mergePop = mergedCells && nowMs - mergedAt < 160;
+    if (!anim && !sliding && !popActive && !mergePop && !winBannerUntil) { cancelAnimationFrame(raf); raf = null; }
   }
 
   function roundRect(x, y, w, h, r) {

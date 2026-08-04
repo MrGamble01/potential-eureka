@@ -11,12 +11,29 @@ const LifeGame = (() => {
 
   let canvas, ctx;
   let grid, nextGrid;
+  // Parallel age buffer: how many generations each live cell has survived.
+  // Kept separate from `grid` (which stays strictly 0/1) so neighbour
+  // counting is unaffected — the age only drives colour.
+  let age, nextAge;
   let running = false;
   let generation = 0;
   let population = 0;
   let intervalId = null;
   let speed = 100;
   let drawing = false;
+  let popHistory = [];   // recent population, for the sparkline
+
+  // Age → colour ramp: newborns burn bright cyan-white; survivors cool
+  // through green and blue; long-lived still-lifes settle into deep violet.
+  // So gliders (forever young) shimmer while stable structures glow old.
+  function ageColor(a) {
+    if (a <= 1) return '#eaffff';
+    if (a === 2) return '#7ef0d0';
+    if (a <= 4) return '#3FB950';
+    if (a <= 8) return '#58A6FF';
+    if (a <= 16) return '#7c7cff';
+    return '#a06cff';
+  }
 
   function init() {
     canvas = document.getElementById('life-canvas');
@@ -32,6 +49,8 @@ const LifeGame = (() => {
 
     grid = makeGrid();
     nextGrid = makeGrid();
+    age = makeGrid();
+    nextAge = makeGrid();
 
     canvas.addEventListener('mousedown', e => { drawing = true; toggleCell(e); });
     canvas.addEventListener('mousemove', e => { if (drawing) toggleCell(e); });
@@ -62,6 +81,7 @@ const LifeGame = (() => {
     const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
       grid[r][c] = 1;
+      if (!age[r][c]) age[r][c] = 1;
       draw();
       updateInfo();
     }
@@ -71,17 +91,21 @@ const LifeGame = (() => {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const neighbors = countNeighbors(r, c);
-        if (grid[r][c] === 1) {
-          nextGrid[r][c] = (neighbors === 2 || neighbors === 3) ? 1 : 0;
-        } else {
-          nextGrid[r][c] = neighbors === 3 ? 1 : 0;
-        }
+        const alive = grid[r][c] === 1
+          ? (neighbors === 2 || neighbors === 3)
+          : neighbors === 3;
+        nextGrid[r][c] = alive ? 1 : 0;
+        // Survivors age up (capped); newborns start at 1; dead cells reset.
+        nextAge[r][c] = alive ? (grid[r][c] === 1 ? Math.min(age[r][c] + 1, 99) : 1) : 0;
       }
     }
     [grid, nextGrid] = [nextGrid, grid];
+    [age, nextAge] = [nextAge, age];
     generation++;
     draw();
     updateInfo();
+    popHistory.push(population);
+    if (popHistory.length > 120) popHistory.shift();
   }
 
   function countNeighbors(r, c) {
@@ -122,10 +146,19 @@ const LifeGame = (() => {
     }
   }
 
+  // After any bulk board edit, seed each live cell's age to 1 so the colour
+  // ramp starts fresh, and reset the sparkline history.
+  function syncAge() {
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) age[r][c] = grid[r][c] ? 1 : 0;
+    popHistory = [];
+  }
+
   function clear() {
     pause();
     grid = makeGrid();
     generation = 0;
+    syncAge();
     draw();
     updateInfo();
   }
@@ -138,6 +171,7 @@ const LifeGame = (() => {
         grid[r][c] = Math.random() < 0.3 ? 1 : 0;
       }
     }
+    syncAge();
     draw();
     updateInfo();
   }
@@ -205,6 +239,7 @@ const LifeGame = (() => {
       }
     });
 
+    syncAge();
     draw();
     updateInfo();
   }
@@ -224,23 +259,24 @@ const LifeGame = (() => {
       ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(WIDTH, y * CELL); ctx.stroke();
     }
 
-    // Cells
+    // Cells — coloured by age, with newborns getting a soft glow so births
+    // and gliders visibly shimmer against long-lived structures.
     population = 0;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         if (grid[r][c] === 1) {
           population++;
-          // Color based on neighbor count for visual variety
-          const n = countNeighbors(r, c);
-          if (n <= 1) ctx.fillStyle = '#F85149';       // dying (underpopulation)
-          else if (n === 2) ctx.fillStyle = '#3FB950';  // stable
-          else if (n === 3) ctx.fillStyle = '#58A6FF';  // thriving
-          else ctx.fillStyle = '#D29922';               // dying (overpopulation)
-
+          const a = age[r][c] || 1;
+          ctx.fillStyle = ageColor(a);
+          if (a <= 1) { ctx.shadowColor = '#aaffff'; ctx.shadowBlur = 6; }
+          else ctx.shadowBlur = 0;
           ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
         }
       }
     }
+    ctx.shadowBlur = 0;
+
+    drawSparkline();
 
     // Idle prompt on an empty board, so a blank grid isn't a dead end.
     if (population === 0 && !running) {
@@ -253,6 +289,31 @@ const LifeGame = (() => {
       ctx.fillText('…or pick a pattern below, then press Play', WIDTH / 2, HEIGHT / 2 + 16);
       ctx.textAlign = 'left';
     }
+  }
+
+  // Tiny population-over-time graph tucked into the top-right corner — lets
+  // you watch a soup crash, stabilise, or oscillate at a glance.
+  function drawSparkline() {
+    if (popHistory.length < 2) return;
+    const w = 116, h = 34, pad = 8;
+    const x0 = WIDTH - w - pad, y0 = pad;
+    ctx.fillStyle = 'rgba(13,17,23,0.6)';
+    ctx.fillRect(x0, y0, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeRect(x0 + 0.5, y0 + 0.5, w, h);
+    const max = Math.max(1, ...popHistory);
+    ctx.beginPath();
+    ctx.strokeStyle = '#58A6FF';
+    ctx.lineWidth = 1.5;
+    popHistory.forEach((p, i) => {
+      const x = x0 + (i / (popHistory.length - 1)) * w;
+      const y = y0 + h - (p / max) * (h - 4) - 2;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(230,237,243,0.5)';
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.fillText('pop', x0 + 4, y0 + 11);
   }
 
   function updateInfo() {

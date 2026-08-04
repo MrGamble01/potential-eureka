@@ -1,0 +1,3693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Voxel Isle — Sky Garden</title>
+<meta name="description" content="A cozy voxel garden on a floating island. Till, plant, water, harvest — grow your sky isle.">
+<style>
+  :root{
+    --panel:#20262e; --panel2:#2a323c; --ink:#e8eef4; --dim:#9fb0bf;
+    --gold:#ffd166; --green:#7fd370; --blue:#7ec8ff; --accent:#7fd370;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:#0e1830;color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
+  canvas{display:block}
+  .hud{position:fixed;z-index:10}
+  .chip{background:rgba(18,24,32,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:8px 12px;font-size:14px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  #topbar{top:10px;left:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+  #coinChip{font-weight:700;color:var(--gold);font-size:16px;transition:transform .15s}
+  #coinChip.pulse{transform:scale(1.18)}
+  #lvlChip{min-width:150px}
+  #lvlChip .bar{height:6px;background:#141a22;border-radius:3px;margin-top:5px;overflow:hidden}
+  #lvlChip .bar i{display:block;height:100%;background:linear-gradient(90deg,#5cae53,#a5e28a);border-radius:3px;transition:width .4s}
+  #dayChip{color:var(--blue)}
+  #back{position:fixed;top:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:52vw}
+  #back a,#back button{color:var(--dim);text-decoration:none;font-size:13px;cursor:pointer;line-height:1;
+    background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px;
+    min-width:38px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
+  #back a:hover,#back button:hover{color:var(--ink)}
+  #quests{top:58px;right:10px;width:230px;font-size:13px}
+  #quests .q-title{font-weight:700;color:var(--green);margin-bottom:4px;font-size:12px;letter-spacing:.08em}
+  #quests .q-text{color:var(--ink)}
+  #quests .q-prog{color:var(--dim);font-size:12px;margin-top:3px}
+  #hotbar{bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+  .slot{width:56px;height:56px;border-radius:14px;background:rgba(18,24,32,.85);border:2px solid rgba(255,255,255,.1);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;
+    font-size:22px;transition:transform .12s,border-color .12s}
+  .slot small{font-size:9px;color:var(--dim);margin-top:1px;letter-spacing:.02em}
+  .slot.sel{border-color:var(--green);transform:translateY(-6px);background:rgba(30,44,32,.92)}
+  .slot .key{position:absolute;top:2px;left:6px;font-size:9px;color:var(--dim)}
+  .panel{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);display:none;grid-template-columns:repeat(4,1fr);
+    gap:6px;background:rgba(18,24,32,.94);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;z-index:12;
+    max-width:min(94vw,420px)}
+  .panel.open{display:grid}
+  .p-item{width:100%;min-width:74px;border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--panel2)}
+  .p-item:hover{border-color:rgba(255,255,255,.25)}
+  .p-item.sel{border-color:var(--green)}
+  .p-item.locked{opacity:.42;cursor:default}
+  .p-item .ico{font-size:20px}
+  .p-item .nm{font-size:11px;margin-top:2px}
+  .p-item .pr{font-size:10px;color:var(--gold)}
+  .p-item .lk{font-size:10px;color:var(--dim)}
+  .p-head{grid-column:1/-1;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--dim);padding:2px 2px 4px;text-align:center}
+  #toasts{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;
+    align-items:center;gap:6px;z-index:20;pointer-events:none}
+  .toast{background:rgba(18,24,32,.92);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;
+    font-size:13px;animation:toastIn .25s ease-out;white-space:nowrap}
+  @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .toast.out{opacity:0;transition:opacity .4s}
+  #banner{position:fixed;top:32%;left:50%;transform:translate(-50%,-50%) scale(.8);z-index:30;text-align:center;
+    opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.2,1.6,.4,1)}
+  #banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #banner h2{font-size:34px;color:var(--gold);text-shadow:0 3px 14px rgba(0,0,0,.6)}
+  #banner p{font-size:15px;color:var(--ink);text-shadow:0 2px 8px rgba(0,0,0,.7);margin-top:6px}
+  .fxText{position:fixed;z-index:25;font-weight:700;font-size:15px;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.55);
+    transition:transform 1.1s ease-out,opacity 1.1s ease-out}
+  #helpOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
+  #helpOv.open{display:flex}
+  #helpOv .card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:26px 30px;
+    max-width:480px;width:92vw;max-height:86vh;overflow:auto}
+  #helpOv h2{color:var(--green);margin-bottom:12px}
+  #helpOv p,#helpOv li{font-size:14px;color:var(--dim);line-height:1.55}
+  #helpOv b{color:var(--ink)}
+  #helpOv ul{margin:8px 0 14px 18px}
+  #helpOv button{margin-top:8px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
+    padding:10px 22px;font-size:14px;cursor:pointer}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
+    background:radial-gradient(ellipse at center,transparent 62%,rgba(6,10,18,.38) 100%)}
+  #achOv,#almanacOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
+  #achOv.open,#almanacOv.open{display:flex}
+  #achOv .card,#almanacOv .card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px 26px;
+    max-width:560px;width:94vw;max-height:84vh;overflow:auto}
+  #achOv h2,#almanacOv h2{color:var(--gold);margin-bottom:14px}
+  #almanacOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;padding:9px 20px;font-size:14px;cursor:pointer}
+  .alm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .alm-stat{background:var(--panel2);border-radius:10px;padding:10px 12px}
+  .alm-stat .v{font-size:20px;font-weight:700;color:var(--gold)}
+  .alm-stat .l{font-size:11px;color:var(--dim);margin-top:2px;letter-spacing:.03em}
+  .alm-head{font-size:13px;color:var(--green);font-weight:700;margin:6px 0 8px;letter-spacing:.05em}
+  .ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ach{background:var(--panel2);border-radius:10px;padding:9px 11px;font-size:12px;border:1px solid transparent}
+  .ach.done{border-color:rgba(255,209,102,.5)}
+  .ach.locked{opacity:.45}
+  .ach b{display:block;font-size:13px;margin-bottom:2px}
+  .ach.done b{color:var(--gold)}
+  .ach small{color:var(--dim);line-height:1.3}
+  #achOv button{margin-top:14px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
+    padding:9px 20px;font-size:14px;cursor:pointer}
+  body.photo .hud,body.photo #back,body.photo .panel,body.photo #toasts{display:none!important}
+  #crosshair{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;display:none;
+    pointer-events:none;color:rgba(255,255,255,.82);font-size:22px;font-weight:400;text-shadow:0 0 5px rgba(0,0,0,.6)}
+  #fpTool{position:fixed;left:78%;bottom:-14px;z-index:8;display:none;pointer-events:none;font-size:150px;
+    transform:translateX(-50%) rotate(-8deg);filter:drop-shadow(0 6px 12px rgba(0,0,0,.45))}
+  body.fpmode #crosshair,body.fpmode #fpTool{display:block}
+  body.fpmode #hotbar{bottom:8px}
+  body.fpmode .arcade-card,body.fpmode #quests{opacity:.85}
+  /* tablets / iPad */
+  @media (max-width:1024px){
+    #quests{width:200px;font-size:12px}
+    #back{max-width:44vw}
+    .panel{max-width:min(96vw,460px)}
+  }
+  /* phones */
+  @media (max-width:640px){
+    .ach-grid{grid-template-columns:1fr}
+    .slot{width:52px;height:52px;font-size:20px;border-radius:12px}
+    .slot small{font-size:8px}
+    #quests{display:none}
+    #topbar{gap:6px}
+    #coinChip{font-size:15px}
+    #lvlChip{min-width:96px}
+    #dayChip{font-size:12px}
+    #back{max-width:58vw;gap:6px}
+    #back a,#back button{padding:7px 8px;font-size:15px;min-width:38px;min-height:38px}
+    #back a{font-size:11px}
+    .panel{grid-template-columns:repeat(3,1fr);bottom:78px;max-width:96vw}
+    .p-item .nm{font-size:10px}
+    #banner h2{font-size:26px}
+    #banner p{font-size:13px}
+    #fpTool{font-size:110px;left:82%}
+  }
+  #goodsHud{position:fixed;top:58px;left:10px;z-index:10;display:none;gap:8px;align-items:center;
+    background:rgba(18,24,32,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:6px 11px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  body.photo #goodsHud{display:none!important}
+  /* short landscape (phones on their side) */
+  @media (max-height:480px){
+    #quests{display:none}
+    .slot{width:46px;height:46px}
+    #hotbar{bottom:8px}
+  }
+  @media (max-width:640px){ #goodsHud{font-size:12px;padding:5px 8px;gap:5px} }
+</style>
+</head>
+<body>
+<div id="vignette"></div>
+<div id="crosshair">+</div>
+<div id="fpTool">⚒️</div>
+<div class="hud" id="topbar">
+  <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
+  <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
+  <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
+</div>
+<div id="goodsHud"></div>
+<div id="back">
+  <button id="fpBtn" title="First person (F)">👁️</button>
+  <button id="farmerBtn" title="Hire villagers">🧑‍🌾</button>
+  <button id="animalBtn" title="Livestock">🐮</button>
+  <button id="townBtn" title="Town — land &amp; buildings">🏘️</button>
+  <button id="almanacBtn" title="Town Almanac">📊</button>
+  <button id="achBtn" title="Achievements">🏆</button>
+  <button id="musicBtn" title="Music on/off">🎵</button>
+  <button id="muteBtn" title="Mute (M)">🔊</button>
+  <button id="helpBtn" title="Help (H)">?</button>
+  <a href="index.html">&larr; ARCADE</a>
+</div>
+<div class="hud chip" id="quests">
+  <div class="q-title">✦ GARDEN GOAL</div>
+  <div class="q-text" id="qText"></div>
+  <div class="q-prog" id="qProg"></div>
+</div>
+<div class="hud" id="hotbar">
+  <div class="slot" data-tool="hoe"><span class="key">1</span>⚒️<small>TILL</small></div>
+  <div class="slot" data-tool="water"><span class="key">2</span>💧<small>WATER</small></div>
+  <div class="slot" data-tool="seed"><span class="key">3</span><span id="seedIco">🌻</span><small>PLANT</small></div>
+  <div class="slot" data-tool="block"><span class="key">4</span><span id="blockIco">🧱</span><small>BUILD</small></div>
+  <div class="slot" data-tool="pick"><span class="key">5</span>⛏️<small>DIG</small></div>
+</div>
+<div class="panel" id="seedPanel"></div>
+<div class="panel" id="blockPanel"></div>
+<div class="panel" id="animalPanel"></div>
+<div class="panel" id="townPanel"></div>
+<div id="toasts"></div>
+<div id="banner"><h2 id="bH"></h2><p id="bP"></p></div>
+<div id="achOv"><div class="card">
+  <h2>🏆 Achievements</h2>
+  <div class="ach-grid" id="achGrid"></div>
+  <button id="achClose">Back to the garden</button>
+</div></div>
+<div id="almanacOv"><div class="card">
+  <h2 id="almTitle">📊 Town Almanac</h2>
+  <div id="almBody"></div>
+  <button id="almClose">Back to the garden</button>
+</div></div>
+<div id="helpOv"><div class="card">
+  <h2>🏝️ Voxel Isle</h2>
+  <p>A tiny floating island, all yours. Grow a garden in the sky.</p>
+  <ul>
+    <li><b>Drag</b> to orbit &middot; <b>scroll / pinch</b> to zoom &middot; <b>Q / E</b> rotate</li>
+    <li><b>⚒️ Till</b> grass into soil, <b>🌱 plant</b> a seed, <b>💧 water</b> it (grows 2&times; faster)</li>
+    <li><b>Tap a ripe plant</b> (it sparkles) to harvest it for coins &amp; XP</li>
+    <li><b>🧱 Build</b> with blocks &amp; decorations &middot; <b>⛏️ Dig</b> to remove</li>
+    <li>Level up to unlock new seeds, decor &mdash; and <b>new floating islets</b></li>
+    <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
+    <li><b>🎣 Tap the pond</b> to fish &mdash; reel in 🐟🐠🦀 for coins (and goods for your stockpile); it freezes over in winter</li>
+    <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
+    <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
+    <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
+    <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛🧀 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
+    <li><b>🐈 Companions</b> &mdash; a <b>cat</b> (with the Tavern), a coin-digging <b>dog</b> (with the Farmhouse), and a <b>duck</b> on the pond come to live on your isle &mdash; each has a name; <b>tap</b> to say hello</li>
+    <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
+    <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
+    <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier); when it <b>rains ☔</b>, the villagers duck inside to wait out the shower</li>
+    <li><b>📈 Market demand</b> &mdash; each day the town wants a different good; sell or serve <b>that good while it&rsquo;s hot for +50%</b> (shown in the stockpile bar)</li>
+    <li><b>🥖 Bakery</b> &mdash; takes 🌾 crops from your stockpile and <b>bakes them into 🍞 bread worth ~3&times;</b>, which the Trader then buys / the Tavern serves at the higher value; add a <b>🌬️ Windmill</b> to bake faster &amp; yield an extra loaf</li>
+    <li><b>💧 Well</b> &mdash; keeps the tilled soil around it watered on its own, so nearby crops grow at the 2× rate hands-free</li>
+    <li><b>🪴 Greenhouse</b> &mdash; crops keep growing at full speed <b>through winter</b> instead of slowing to a crawl</li>
+    <li><b>🐝 Apiary</b> &mdash; a beehive whose bees <b>make 🍯 honey on their own</b> into your stockpile (a valuable good the Trader buys &amp; the Tavern serves), and <b>pollinate nearby crops so they grow faster</b> &mdash; build it beside your fields</li>
+    <li><b>🍶 Brewery</b> &mdash; ferments 🍯 honey from your stockpile into <b>🍶 mead worth ~2.5×</b> (the honey chain&rsquo;s answer to the Bakery), which the Trader buys &amp; the Tavern serves at the higher value</li>
+    <li><b>A growing town</b> &mdash; every building you raise <b>draws a free settler</b> to move in, and off-duty villagers wander over to the <b>Tavern</b> for a break 🍺</li>
+    <li><b>Seasonal festivals</b> &mdash; when the season turns, your town throws a 🎉 <b>festival</b> with a coin bonus that grows with your villagers &amp; buildings, and for a little while afterward <b>all goods sell for +35%</b> &mdash; a great time to cash in your stockpile</li>
+    <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
+    <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
+  </ul>
+  <button id="helpClose">Let's grow</button>
+</div></div>
+
+<script src="vendor/three-r128.min.js"></script>
+<script>
+'use strict';
+/* ============================== utils ============================== */
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const easeOutBack=t=>{const c=1.70158;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hash3(x,y,z,s){let h=(s|0)^Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(z|0,2147483647-1329);
+  h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
+const smoothT=t=>t*t*(3-2*t);
+function noise2(x,y,s){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const a=hash3(xi,0,yi,s),b=hash3(xi+1,0,yi,s),c=hash3(xi,0,yi+1,s),d=hash3(xi+1,0,yi+1,s);
+  const u=smoothT(xf),v=smoothT(yf);
+  return lerp(lerp(a,b,u),lerp(c,d,u),v);}
+function fbm(x,y,s){return noise2(x,y,s)*0.62+noise2(x*2.17+7.3,y*2.17+3.1,s^0x9e37)*0.26+noise2(x*4.9+13.7,y*4.9+11.2,s^0x51ab)*0.12;}
+function colScale(hex,f){const r=clamp(((hex>>16)&255)*f,0,255),g=clamp(((hex>>8)&255)*f,0,255),b=clamp((hex&255)*f,0,255);
+  return [r/255,g/255,b/255];}
+
+/* ============================== sfx ============================== */
+const SFX={ctx:null,
+  ensure(){if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+    if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();},
+  tone(f,dur,type,vol,slide,delay){if(state.muted)return;this.ensure();if(!this.ctx)return;
+    const t=this.ctx.currentTime+(delay||0);
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(slide,1),t+dur);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+dur+0.03);},
+  play(n){
+    const P={
+      till:()=>{this.tone(140,0.08,'square',0.10,80);this.tone(95,0.11,'square',0.08,55,0.06);},
+      dig:()=>{this.tone(180,0.07,'square',0.10,90);this.tone(120,0.09,'square',0.08,60,0.05);},
+      place:()=>{this.tone(220,0.08,'square',0.09,150);this.tone(330,0.05,'triangle',0.06,0,0.02);},
+      water:()=>{this.tone(900,0.10,'triangle',0.05,320);this.tone(1250,0.07,'sine',0.05,700,0.07);this.tone(1500,0.06,'sine',0.04,900,0.13);},
+      plant:()=>{this.tone(520,0.09,'triangle',0.08,640);},
+      grow:()=>{this.tone(660,0.10,'sine',0.05,880);},
+      harvest:()=>{const notes=[523,587,659,784,880];const i=Math.floor(Math.random()*3);
+        this.tone(notes[i],0.11,'triangle',0.09);this.tone(notes[i+1],0.11,'triangle',0.09,0,0.08);this.tone(notes[i+2],0.16,'triangle',0.09,0,0.16);},
+      coin:()=>{this.tone(1047,0.06,'square',0.06);this.tone(1568,0.10,'square',0.06,0,0.06);},
+      buy:()=>{this.tone(392,0.07,'triangle',0.08);this.tone(523,0.10,'triangle',0.08,0,0.07);},
+      error:()=>{this.tone(140,0.12,'square',0.08,100);},
+      click:()=>{this.tone(700,0.04,'triangle',0.05);},
+      level:()=>{[523,659,784,1047].forEach((f,i)=>this.tone(f,0.16,'triangle',0.09,0,i*0.09));},
+      islet:()=>{[262,330,392,523,659].forEach((f,i)=>this.tone(f,0.3,'sine',0.08,0,i*0.12));this.tone(80,1.2,'sine',0.10,50);},
+      chirp:()=>{this.tone(2300,0.05,'sine',0.03,2700);this.tone(2600,0.06,'sine',0.025,2200,0.09);},
+      ach:()=>{[659,784,1047].forEach((f,i)=>this.tone(f,0.14,'triangle',0.09,0,i*0.09));},
+      season:()=>{this.tone(392,0.25,'sine',0.06,440);this.tone(523,0.3,'sine',0.05,494,0.2);},
+    };
+    if(P[n])P[n]();
+  },
+  pluck(f,vol,delay){
+    if(state.muted||state.musicOff)return;this.ensure();if(!this.ctx)return;
+    const t=this.ctx.currentTime+(delay||0);
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(vol,t+0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+1.9);
+    o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+2);
+  },
+  rainNode:null,
+  rainStart(){
+    if(state.muted)return;this.ensure();if(!this.ctx||this.rainNode)return;
+    const len=this.ctx.sampleRate*2,buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const src=this.ctx.createBufferSource();src.buffer=buf;src.loop=true;
+    const lp=this.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;
+    const g=this.ctx.createGain();g.gain.setValueAtTime(0.0001,this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.045,this.ctx.currentTime+2);
+    src.connect(lp);lp.connect(g);g.connect(this.ctx.destination);src.start();
+    this.rainNode={src,g};
+  },
+  rainStop(){
+    if(!this.rainNode||!this.ctx)return;
+    const {src,g}=this.rainNode;this.rainNode=null;
+    g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+1.5);
+    setTimeout(()=>{try{src.stop();}catch(e){}},1700);
+  }
+};
+
+/* ============================== config ============================== */
+const CYCLE=240, NIGHT_AT=0.72;             // seconds per full day; night starts at 72%
+const SEASON_DAYS=3;                        // days per season, 12-day year
+const SEASONS=[
+  {key:'spring',name:'Spring',ico:'🌸',grass:0x6fc24e,growMult:1.15},
+  {key:'summer',name:'Summer',ico:'☀️',grass:0x82ca41,growMult:1.0},
+  {key:'autumn',name:'Autumn',ico:'🍂',grass:0xa8a03c,growMult:0.9},
+  {key:'winter',name:'Winter',ico:'❄️',grass:0xe6edf2,growMult:0.65},
+];
+const seasonOf=day=>SEASONS[Math.floor((day-1)/SEASON_DAYS)%4];
+const BLOCKS={
+  1:{name:'Grass', ico:'🟩', top:0x6fc24e, side:0x7a5b3c, sideTint:0x5aa042, bottom:0x6b4a30, cost:2},
+  2:{name:'Dirt',  ico:'🟫', top:0x8a6a42, side:0x82613c, bottom:0x6b4a30, cost:1},
+  3:{name:'Stone', ico:'⬜', top:0x9aa0a8, side:0x8b9199, bottom:0x757b83, cost:3},
+  4:{name:'Sand',  ico:'🟨', top:0xdcc687, side:0xcdb677, bottom:0xb7a065, cost:2},
+  5:{name:'Soil',  top:0x6e4f30, side:0x7a5b3c, bottom:0x6b4a30},          // tilled, dry
+  6:{name:'Wet soil', top:0x4a3420, side:0x64492e, bottom:0x6b4a30},       // tilled, wet
+  7:{name:'Planks',ico:'🪵', top:0xc09362, side:0xb08454, bottom:0x94693c, cost:4, lvl:2},
+  8:{name:'Path',  ico:'🪨', top:0xbcb49c, side:0xa8a08a, bottom:0x8f8874, cost:3, lvl:2},
+};
+const BUILDABLE=[2,1,4,3,7,8];
+const PLANTS={
+  sunflower:{name:'Sunflower', ico:'🌻', cost:5,  grow:45,  sell:12,  xp:5,  lvl:1, season:'summer'},
+  carrot:   {name:'Carrot',    ico:'🥕', cost:8,  grow:70,  sell:22,  xp:8,  lvl:2, season:'autumn'},
+  tomato:   {name:'Tomato',    ico:'🍅', cost:14, grow:95,  sell:40,  xp:12, lvl:3, multi:true, regrow:55, season:'summer'},
+  lavender: {name:'Lavender',  ico:'💜', cost:16, grow:110, sell:42,  xp:13, lvl:3, season:'spring'},
+  pumpkin:  {name:'Pumpkin',   ico:'🎃', cost:30, grow:180, sell:85,  xp:24, lvl:4, season:'autumn'},
+  chili:    {name:'Chili Pepper',ico:'🌶️',cost:20, grow:120, sell:52, xp:15, lvl:5, multi:true, regrow:60, season:'summer'},
+  berry:    {name:'Berry bush',ico:'🫐', cost:60, grow:150, sell:34,  xp:11, lvl:5, multi:true, regrow:60, season:'summer'},
+  moonpetal:{name:'Moonpetal', ico:'🌙', cost:90, grow:100, sell:170, xp:45, lvl:6, night:true},
+  startree: {name:'Star tree', ico:'⭐', cost:220,grow:300, sell:65,  xp:20, lvl:7, multi:true, regrow:150, tall:true, season:'winter'},
+  glowshroom:{name:'Glowshroom',ico:'🍄', cost:150,grow:130, sell:260, xp:55, lvl:8, season:'autumn'},
+  crystalberry:{name:'Crystalberry',ico:'💎', cost:400,grow:420, sell:150, xp:35, lvl:9, multi:true, regrow:120, season:'winter'},
+  dragonfruit:{name:'Dragonfruit',ico:'🐉', cost:280,grow:260, sell:230, xp:50, lvl:8, multi:true, regrow:130, season:'spring'},
+  frostbloom:{name:'Frostbloom',ico:'❄️', cost:130,grow:150, sell:215, xp:42, lvl:7, season:'winter'},
+};
+const DECOR={
+  fence:  {name:'Fence',   ico:'🚧', cost:6,  lvl:2},
+  lantern:{name:'Lantern', ico:'🏮', cost:25, lvl:3},
+  gnome:  {name:'Gnome',   ico:'🎩', cost:40, lvl:4},
+  flowerbed:{name:'Flower Bed',ico:'🌷', cost:35, lvl:3},
+  scarecrow:{name:'Scarecrow',ico:'🎃', cost:45, lvl:4},
+  snowman:{name:'Snowman', ico:'☃️', cost:30, lvl:3},
+  birdbath:{name:'Bird Bath',ico:'🐦', cost:50, lvl:4},
+  sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
+};
+const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
+const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
+  4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Sprinklers',
+  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
+  8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
+  10:'A master gardener of the skies 🌈',11:'The isle hums with life',
+  12:'Nothing left to prove — everything left to grow 🌟'};
+const ISLETS=[
+  {id:0,x:27,z:6,r:7,lvl:4,seedOff:101,name:'East Islet'},
+  {id:1,x:-25,z:-17,r:8,lvl:6,seedOff:202,name:'West Islet'},
+  {id:2,x:3,z:-29,r:6,lvl:8,seedOff:303,name:'South Islet'},
+];
+
+/* ============================== state ============================== */
+const SAVE_KEY='voxel-garden-v1';
+let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
+  harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
+  muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
+  buildings:{},goods:{},meals:0,loaves:0,townRank:0,townName:'',request:null,ach:{},achFlags:{}};
+const W={seed:(Math.random()*1e9)|0, blocks:new Map(), plants:new Map(), wet:new Map(),
+  edits:new Map(), islets:[], animals:[], workers:[], drops:[], buildingMeshes:{},
+  chunkDirty:new Set(), chunkMeshes:new Map()};
+const k3=(x,y,z)=>x+','+y+','+z;
+const getB=(x,y,z)=>W.blocks.get(k3(x,y,z))||0;
+function setB(x,y,z,id,silent){const k=k3(x,y,z);
+  if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
+  if(!silent){W.edits.set(k,id);foliageDirty=true;}
+  markDirty(x,z);}
+
+/* ============================== worldgen ============================== */
+function genIsland(cx,cz,r,seedOff,out){
+  const s=W.seed+ (seedOff|0);
+  for(let x=cx-r;x<=cx+r;x++)for(let z=cz-r;z<=cz+r;z++){
+    const dx=(x-cx)/r,dz=(z-cz)/r,d=Math.sqrt(dx*dx+dz*dz);
+    const edge=1-d + (fbm(x*0.23,z*0.23,s^0xabc)-0.5)*0.25;
+    if(edge<=0.02)continue;
+    const e=clamp(edge,0,1);
+    const h=Math.max(1,Math.round(1+fbm(x*0.085,z*0.085,s)*7*Math.pow(e,0.6)));
+    const depth=Math.max(2,Math.round(2+fbm(x*0.11+31,z*0.11+17,s^0x77)*10*e));
+    const sandTop=h<=2&&fbm(x*0.3+5,z*0.3+9,s^0x321)<0.34;
+    for(let y=h-depth;y<=h;y++){
+      let id;
+      if(y===h)id=sandTop?4:1;
+      else if(y>h-3)id=2;
+      else id=3;
+      W.blocks.set(k3(x,y,z),id);
+    }
+    if(out)out.push([x,h,z]);
+  }
+  if(seedOff===0)carvePond(cx,cz);   // the main island gets a pond
+}
+// Carve a shallow basin into the main island and remember its cells so
+// buildWater() can lay a translucent surface over them. Deterministic off
+// the world seed, so it regenerates identically on load (no save change).
+function carvePond(cx,cz){
+  W.pondCells=[];
+  const pcx=cx-6, pcz=cz+5, pr=4.3;
+  const h0=surfaceY(pcx,pcz); if(h0===null)return;
+  const waterY=h0-1, floorY=waterY-1;
+  for(let x=Math.floor(pcx-pr-1);x<=Math.ceil(pcx+pr+1);x++)
+  for(let z=Math.floor(pcz-pr-1);z<=Math.ceil(pcz+pr+1);z++){
+    const nd=Math.hypot(x-pcx,z-pcz)+(fbm(x*0.42,z*0.42,W.seed^0x9074)-0.5)*1.7;
+    if(nd>pr)continue;
+    if(surfaceY(x,z)===null)continue;
+    for(let y=floorY+1;y<=h0+3;y++){const k=k3(x,y,z);if(W.blocks.has(k))W.blocks.delete(k);}
+    W.blocks.set(k3(x,floorY,z),4);        // sandy pond bottom
+    if(nd>pr-1.1)W.blocks.set(k3(x,waterY,z),4); // sandy shallows at the rim
+    W.pondCells.push([x,z]);
+  }
+  W.waterY=waterY+0.86;                     // surface sits just under the rim
+}
+function genBridge(islet){
+  // straight plank bridge from main island toward islet center
+  const dirx=Math.sign(islet.x)||0,dirz=Math.sign(islet.z)||0;
+  // walk from islet edge toward origin until we hit terrain, placing planks over gaps
+  const steps=[];
+  const dx=-islet.x,dz=-islet.z,len=Math.sqrt(dx*dx+dz*dz);
+  const ux=dx/len,uz=dz/len;
+  // find islet edge surface height
+  let y0=surfaceY(islet.x,islet.z)||4;
+  for(let t=islet.r-1;t<len;t+=1){
+    const x=Math.round(islet.x+ux*t),z=Math.round(islet.z+uz*t);
+    if(surfaceY(x,z)!==null&&t>islet.r+2){break;}
+    steps.push([x,z]);
+  }
+  const y=Math.max(2,y0);
+  steps.forEach(([x,z])=>{
+    if(getB(x,y,z)===0)setB(x,y,z,7,true);
+    // simple side posts every 3 blocks
+  });
+}
+function surfaceY(x,z){for(let y=20;y>=-24;y--){if(getB(x,y,z)!==0)return y;}return null;}
+function topSolidBelow(x,y,z){for(let yy=y;yy>=-24;yy--){if(getB(x,yy,z)!==0)return yy;}return null;}
+
+/* ============================== meshing ============================== */
+const CH=12;
+const chunkKey=(cx,cz)=>cx+','+cz;
+function markDirty(x,z){
+  const cx=Math.floor(x/CH),cz=Math.floor(z/CH);
+  W.chunkDirty.add(chunkKey(cx,cz));
+  if(((x%CH)+CH)%CH===0)W.chunkDirty.add(chunkKey(cx-1,cz));
+  if(((x%CH)+CH)%CH===CH-1)W.chunkDirty.add(chunkKey(cx+1,cz));
+  if(((z%CH)+CH)%CH===0)W.chunkDirty.add(chunkKey(cx,cz-1));
+  if(((z%CH)+CH)%CH===CH-1)W.chunkDirty.add(chunkKey(cx,cz+1));
+}
+function markAllDirty(){
+  const seen=new Set();
+  for(const k of W.blocks.keys()){
+    const [x,,z]=k.split(',').map(Number);
+    seen.add(chunkKey(Math.floor(x/CH),Math.floor(z/CH)));
+  }
+  seen.forEach(c=>W.chunkDirty.add(c));
+}
+// face defs: [nx,ny,nz, 4 corner offsets]
+const FACES=[
+  {n:[0,1,0], c:[[0,1,0],[0,1,1],[1,1,1],[1,1,0]], shade:1.0, which:'top'},
+  {n:[0,-1,0],c:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]], shade:0.42,which:'bottom'},
+  {n:[1,0,0], c:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]], shade:0.74,which:'side'},
+  {n:[-1,0,0],c:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]], shade:0.70,which:'side'},
+  {n:[0,0,1], c:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]], shade:0.84,which:'side'},
+  {n:[0,0,-1],c:[[0,0,0],[0,1,0],[1,1,0],[1,0,0]], shade:0.80,which:'side'},
+];
+let chunkMat;
+function buildChunk(cx,cz){
+  const key=chunkKey(cx,cz);
+  const old=W.chunkMeshes.get(key);
+  if(old){scene.remove(old);old.geometry.dispose();W.chunkMeshes.delete(key);}
+  const pos=[],nor=[],col=[],idx=[];
+  const x0=cx*CH,z0=cz*CH;
+  for(let x=x0;x<x0+CH;x++)for(let z=z0;z<z0+CH;z++)for(let y=-24;y<=28;y++){
+    const id=getB(x,y,z);if(!id)continue;
+    const def=BLOCKS[id];
+    const jit=0.93+0.13*hash3(x,y,z,W.seed^0x5eed);
+    for(const f of FACES){
+      if(getB(x+f.n[0],y+f.n[1],z+f.n[2]))continue;
+      let hex=f.which==='top'?def.top:f.which==='bottom'?def.bottom:def.side;
+      if(id===1&&f.which==='top')hex=seasonOf(state.day).grass;   // the isle wears the season
+      if(id===1&&f.which==='side'&&!getB(x,y+1,z)){
+        // grass side: blend a green rim in by mixing colors
+        hex=def.sideTint&&hash3(x,y,z,7)<2?def.side:def.side;
+      }
+      const c=colScale(hex,f.shade*jit);
+      const vi=pos.length/3;
+      for(const o of f.c){pos.push(x+o[0],y+o[1],z+o[2]);nor.push(f.n[0],f.n[1],f.n[2]);col.push(c[0],c[1],c[2]);}
+      idx.push(vi,vi+1,vi+2,vi,vi+2,vi+3);
+    }
+  }
+  if(!idx.length)return;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);
+  const m=new THREE.Mesh(g,chunkMat);
+  m.castShadow=true;m.receiveShadow=true;
+  m.userData.isTerrain=true;
+  scene.add(m);
+  W.chunkMeshes.set(key,m);
+}
+function flushChunks(){
+  for(const key of W.chunkDirty){const [cx,cz]=key.split(',').map(Number);buildChunk(cx,cz);}
+  W.chunkDirty.clear();
+}
+
+/* ============================== foliage ============================== */
+// Instanced grass tufts + wildflowers scattered across every grass top —
+// the single biggest lift toward a lush, alive island. Vertex colours carry
+// a base→tip brightness gradient; the per-instance colour carries the season
+// tint (so gliders of grass shimmer green in summer, gold in autumn, and thin
+// to a pale frost in winter). Rebuilt on boot, season change, islet rise, and
+// (debounced) after edits.
+let tuftMesh=null, flowerMesh=null, foliageDirty=false, foliageT=0;
+const FOL_MAX_TUFTS=4200, FOL_MAX_FLOWERS=520;
+const _up=new THREE.Vector3(0,1,0);
+function tuftGeometry(){
+  const pos=[],col=[],nor=[],idx=[];
+  const blade=(ang,h,w)=>{
+    const c=Math.cos(ang),s=Math.sin(ang);
+    const bx=w*c,bz=w*s;
+    const base=pos.length/3;
+    // short, rounded clumps (wide tip) so they read as ground grass, not
+    // spiky little trees.
+    pos.push(-bx,0,-bz, bx,0,bz, bx*0.5,h,bz*0.5, -bx*0.5,h,-bz*0.5);
+    // Normals forced UP so the overhead sun lights the blades like grass
+    // instead of leaving thin near-vertical faces in shadow.
+    for(let i=0;i<4;i++)nor.push(0,1,0);
+    // brightness gradient: shaded at the base, near-full at the tip
+    // (the season tint rides on top via the per-instance colour)
+    col.push(0.72,0.72,0.72, 0.72,0.72,0.72, 0.98,0.98,0.98, 0.98,0.98,0.98);
+    idx.push(base,base+1,base+2, base,base+2,base+3);
+  };
+  blade(0,0.17,0.1); blade(1.05,0.14,0.1); blade(2.1,0.15,0.1);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setIndex(idx);
+  return g;
+}
+function flowerGeometry(){
+  // a small five-petal bloom (white verts; per-instance colour paints it)
+  const pos=[],col=[],idx=[];
+  for(let p=0;p<5;p++){
+    const a=p/5*6.28, c=Math.cos(a),s=Math.sin(a);
+    const base=pos.length/3;
+    pos.push(0,0,0, c*0.09,0.02,s*0.09, c*0.06+ -s*0.06,0.02,s*0.06+c*0.06);
+    col.push(1,1,1, 1,1,1, 1,1,1);
+    idx.push(base,base+1,base+2);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);g.computeVertexNormals();
+  return g;
+}
+const FLOWER_COLS=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0xff9a3e];
+function buildFoliage(){
+  if(tuftMesh){scene.remove(tuftMesh);tuftMesh.geometry.dispose();tuftMesh.material.dispose();tuftMesh=null;}
+  if(flowerMesh){scene.remove(flowerMesh);flowerMesh.geometry.dispose();flowerMesh.material.dispose();flowerMesh=null;}
+  const season=seasonOf(state.day);
+  const winter=season.key==='winter', autumn=season.key==='autumn';
+  const base=new THREE.Color(season.grass).multiplyScalar(winter?1.1:0.86);
+  const skip=winter?0.72:autumn?0.34:0.12;   // hash below this → bare cell
+  // gather grass tops (nothing above, no plant sitting on them)
+  const cells=[];
+  for(const [k,id] of W.blocks){
+    if(id!==1)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    cells.push([x,y,z]);
+  }
+  // ---- tufts ----
+  const tInst=[];
+  for(const [x,y,z] of cells){
+    const h=hash3(x,y,z,W.seed^0xf01);
+    if(h<skip)continue;
+    const n=h<0.62?1:2;
+    for(let i=0;i<n&&tInst.length<FOL_MAX_TUFTS;i++)tInst.push([x,y,z,i,h]);
+  }
+  if(tInst.length){
+    const tmat=new THREE.MeshLambertMaterial({vertexColors:true});
+    tmat.emissive=new THREE.Color(season.grass).multiplyScalar(0.05);
+    tuftMesh=new THREE.InstancedMesh(tuftGeometry(),tmat,tInst.length);
+    tuftMesh.castShadow=false;tuftMesh.receiveShadow=true;
+    const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3(),col=new THREE.Color();
+    tInst.forEach(([x,y,z,i,h],ix)=>{
+      const jx=hash3(x*3+i,y,z,0x11),jz=hash3(x,y,z*3+i,0x22),jr=hash3(x+i,y+i,z,0x33);
+      q.setFromAxisAngle(_up,jr*6.283);
+      v.set(x+0.18+jx*0.64,y+1,z+0.18+jz*0.64);
+      sc.set(0.75+jr*0.5,0.8+0.6*h,0.75+jr*0.5);
+      m.compose(v,q,sc);tuftMesh.setMatrixAt(ix,m);
+      col.copy(base).multiplyScalar(0.82+0.4*hash3(ix,7,3,0x55));
+      if(autumn&&hash3(ix,1,1,0x66)<0.45)col.lerp(_autumnTuft,0.55);
+      tuftMesh.setColorAt(ix,col);
+    });
+    tuftMesh.instanceMatrix.needsUpdate=true;if(tuftMesh.instanceColor)tuftMesh.instanceColor.needsUpdate=true;
+    scene.add(tuftMesh);
+  }
+  // ---- wildflowers (none in winter) ----
+  if(!winter){
+    const fInst=[];
+    for(const [x,y,z] of cells){
+      if(hash3(x,y,z,0xb102)<0.90)continue;   // ~10% of cells
+      if(fInst.length>=FOL_MAX_FLOWERS)break;
+      fInst.push([x,y,z]);
+    }
+    if(fInst.length){
+      flowerMesh=new THREE.InstancedMesh(flowerGeometry(),new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}),fInst.length);
+      flowerMesh.castShadow=false;
+      const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3(),col=new THREE.Color();
+      fInst.forEach(([x,y,z],ix)=>{
+        const jx=hash3(x*5,y,z,0x77),jz=hash3(x,y,z*5,0x88);
+        q.setFromAxisAngle(_up,hash3(x,y,z,0x99)*6.283);
+        v.set(x+0.2+jx*0.6,y+1.28,z+0.2+jz*0.6);sc.setScalar(0.9+jx*0.5);
+        m.compose(v,q,sc);flowerMesh.setMatrixAt(ix,m);
+        col.setHex(autumn?[0xffd23e,0xff9a3e,0xffffff][ix%3]:FLOWER_COLS[(hash3(x,z,y,0xaa)*FLOWER_COLS.length)|0]);
+        flowerMesh.setColorAt(ix,col);
+      });
+      flowerMesh.instanceMatrix.needsUpdate=true;if(flowerMesh.instanceColor)flowerMesh.instanceColor.needsUpdate=true;
+      scene.add(flowerMesh);
+    }
+  }
+}
+const _autumnTuft=new THREE.Color(0xc9862f);
+
+/* ============================== water ============================== */
+// A translucent turquoise surface laid over the carved pond cells — you see
+// the sandy bottom through it for a depth-tinted look. Freezes to pale ice
+// in winter.
+let waterMesh=null;
+function buildWater(){
+  if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();waterMesh.material.dispose();waterMesh=null;}
+  if(!W.pondCells||!W.pondCells.length)return;
+  const winter=seasonOf(state.day).key==='winter';
+  const y=W.waterY, pos=[],idx=[];
+  W.pondCells.forEach(([x,z])=>{
+    const b=pos.length/3;
+    pos.push(x,y,z, x+1,y,z, x+1,y,z+1, x,y,z+1);
+    idx.push(b,b+2,b+1, b,b+3,b+2);
+  });
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx);g.computeVertexNormals();
+  const mat=new THREE.MeshLambertMaterial({
+    color:winter?0xcfe8f2:0x2fb6c8,
+    emissive:winter?0x2a3f4a:0x0c4f5c,
+    transparent:!winter, opacity:winter?1:0.74,
+    side:THREE.DoubleSide, depthWrite:winter});
+  waterMesh=new THREE.Mesh(g,mat);
+  waterMesh.userData.water=true;      // tap the pond to fish
+  scene.add(waterMesh);
+}
+function updateWater(){
+  if(waterMesh)waterMesh.position.y=Math.sin(perf*1.1)*0.045;
+}
+// Fishing: tap the pond to cast; after a beat you reel in a catch worth coins
+// (and, with a Market/Tavern, a 'fish' good for the stockpile). Frozen in winter.
+let fishingT=0;
+const FISH_CATCH=[
+  {ico:'🐟',coins:14,w:5},{ico:'🐠',coins:26,w:3},{ico:'🦀',coins:20,w:2},
+  {ico:'🐡',coins:40,w:1},{ico:'🥾',coins:0,w:2},{ico:'🌿',coins:4,w:2}];
+function goFishing(x,z){
+  if(seasonOf(state.day).key==='winter'){toast('❄️ The pond is frozen solid');return;}
+  if(fishingT>0){return;}
+  fishingT=1.4;
+  const y=(W.waterY||5)+0.4;
+  floatText(x,y+0.8,z,'🎣','#bfe0f5');
+  SFX.tone(680,0.08,'sine',0.05,420);
+  setTimeout(()=>{
+    let tot=0;for(const f of FISH_CATCH)tot+=f.w;let r=Math.random()*tot,pick=FISH_CATCH[0];
+    for(const f of FISH_CATCH){if((r-=f.w)<=0){pick=f;break;}}
+    if(pick.coins>0){grantCoins(pick.coins,x,y+1,z);SFX.play('coin');
+      if(stockpiles()&&pick.ico!=='🌿'){state.goods.fish=(state.goods.fish||0)+1;refreshGoodsHud();}}
+    else SFX.play('error');
+    floatText(x,y+1.2,z,pick.ico+(pick.coins?' +'+pick.coins:''),pick.coins?'#ffe9a8':'#9fb0bf');
+    burst(x,y+0.5,z,0x6fc3ff,7,{up:1.4,g:5,spread:1});
+    state.fishCount=(state.fishCount||0)+(pick.coins>0?1:0);
+    state.achFlags.fish=true;checkAch();
+  },700);
+}
+
+/* ============================== trees ============================== */
+// Real, intentional voxel trees — a chunky trunk under a blocky rounded
+// canopy — so the island reads as lush instead of relying on grass tufts.
+// Season-tinted (spring/summer greens, autumn ambers, a frosted winter crown
+// with a snow cap) and shadow-casting. Placed deterministically on grass tops,
+// well clear of the starter plot and the pond, with min-spacing so they never
+// clump. One shared geometry across all trees (season is global), drawn with
+// an InstancedMesh, rebuilt on boot / season change / islet rise.
+let treeMesh=null;
+const TREE_MAX=30, TREE_SPACING=4;
+const TREE_PAL={
+  spring:{lo:0x5aa83e,hi:0x74c257,snow:0},
+  summer:{lo:0x468f37,hi:0x5eb04a,snow:0},
+  autumn:{lo:0xc9741f,hi:0xe0912f,snow:0},
+  winter:{lo:0x7f9e93,hi:0x9db8ad,snow:0xf2f7fa},
+};
+function treeCubes(pal){
+  const c=[],add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  add(0,0.5,0, 0.34,1.05,0.34, 0x6b4a2b);      // trunk
+  add(0,0.9,0, 0.22,0.4,0.22, 0x5a3d23);       // trunk fork shade
+  add(0,1.45,0, 1.28,0.98,1.28, pal.lo);       // main crown
+  add(0.6,1.32,0.16, 0.72,0.72,0.72, pal.lo);  // side puffs
+  add(-0.58,1.36,-0.14, 0.74,0.74,0.74, pal.lo);
+  add(0.12,1.3,0.6, 0.7,0.7,0.7, pal.lo);
+  add(-0.14,1.34,-0.6, 0.7,0.7,0.7, pal.lo);
+  add(0,2.02,0, 0.88,0.72,0.88, pal.hi);        // top puff
+  add(0.2,2.36,0.08, 0.5,0.46,0.5, pal.hi);
+  if(pal.snow){ add(0,2.62,0, 0.62,0.24,0.62, pal.snow); add(0.22,2.5,0.1,0.4,0.2,0.4,pal.snow); }
+  return c;
+}
+function buildTrees(){
+  if(treeMesh){scene.remove(treeMesh);treeMesh.geometry.dispose();treeMesh.material.dispose();treeMesh=null;}
+  const season=seasonOf(state.day);
+  const pal=TREE_PAL[season.key]||TREE_PAL.summer;
+  const pond=new Set((W.pondCells||[]).map(([x,z])=>x+','+z));
+  // candidate grass tops, clear of the pond, starter plot, and any planting
+  const cand=[];
+  for(const [k,id] of W.blocks){
+    if(id!==1)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    if(pond.has(x+','+z))continue;
+    if(Math.hypot(x,z)<6)continue;               // leave the spawn garden open
+    cand.push([x,y,z,hash3(x,y,z,W.seed^0x77ee)]);
+  }
+  cand.sort((a,b)=>a[3]-b[3]);                    // deterministic order
+  const occ=new Set(), inst=[];
+  for(const [x,y,z,h] of cand){
+    if(inst.length>=TREE_MAX)break;
+    if(h<0.55)continue;                            // thin them out
+    const gx=Math.round(x/TREE_SPACING),gz=Math.round(z/TREE_SPACING);
+    let clash=false;
+    for(let dx=-1;dx<=1&&!clash;dx++)for(let dz=-1;dz<=1;dz++)if(occ.has((gx+dx)+','+(gz+dz))){clash=true;break;}
+    if(clash)continue;
+    occ.add(gx+','+gz);
+    inst.push([x,y,z]);
+  }
+  if(!inst.length)return;
+  const g=buildPlantGeometry(treeCubes(pal));
+  treeMesh=new THREE.InstancedMesh(g,plantMat,inst.length);
+  treeMesh.castShadow=true;treeMesh.receiveShadow=true;
+  const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3();
+  inst.forEach(([x,y,z],ix)=>{
+    const jr=hash3(x,z,y,0x1234),js=0.82+hash3(x+1,z,y,0x5678)*0.5;
+    q.setFromAxisAngle(_up,jr*6.283);
+    v.set(x+0.5,y+1,z+0.5);
+    sc.set(js,js*(0.92+hash3(x,z+1,y,0x9abc)*0.28),js);
+    m.compose(v,q,sc);treeMesh.setMatrixAt(ix,m);
+  });
+  treeMesh.instanceMatrix.needsUpdate=true;
+  scene.add(treeMesh);
+}
+
+/* ============================== villagers (the crew) ============================== */
+// A little community of voxel villagers you hire to work the land. Each roams
+// on their own and does whatever needs doing — harvest ripe crops, collect the
+// goods your animals drop, water dry soil, and tend growing livestock. Build
+// the Tavern and you can assign each a role (Farmer / Rancher / Collector) that
+// focuses their work. Hire several; they share the chores. Persisted in
+// W.workers; the old single "farmhand" save migrates to worker #1.
+const WORKER_NAMES=['Rowan','Maple','Bramble','Poppy','Hazel','Fenn','Clover','Wren','Tansy','Sorrel','Pip','Juna','Elm','Fig','Ash','Bly'];
+const WORKER_SHIRTS=[0x9c4b3b,0x3f7a5c,0x4a5ea8,0x8a5a9c,0xb5762b,0x50908f,0xa8536b];
+const ROLES=['all','farmer','rancher','collector'];
+const ROLE_ICO={all:'🧑‍🌾',farmer:'🌾',rancher:'🐄',collector:'🧺'};
+const ROLE_NAME={all:'Do-it-all',farmer:'Farmer',rancher:'Rancher',collector:'Collector'};
+const WORKER_MAX=8;
+// A prospering town draws its own residents: each building you raise attracts a
+// free settler (up to the cap), so the population grows as the settlement does.
+function welcomeSettler(){
+  if(W.workers.length>=WORKER_MAX)return;
+  const w=spawnWorker('all');
+  const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+  for(let i=0;i<10;i++)setTimeout(()=>burst(w.x,gy+0.8,w.z,0xfff2a8,3,{up:1.6,g:2}),i*70);
+  const b=$('farmerBtn');if(b)b.style.opacity=1;
+  setTimeout(()=>banner('🧑‍🌾 '+w.name+' settled in your town!','Your growing settlement drew a new resident.'),900);
+  if(typeof checkAch==='function')checkAch();
+  checkTownRank();
+}
+// The settlement earns a rank as it grows (buildings + villagers + wealth +
+// islets). Ranking up is a milestone: a banner, a fanfare, and a coin gift.
+const TOWN_RANKS=[
+  {name:'Homestead',min:0},{name:'Hamlet',min:5},{name:'Village',min:11},
+  {name:'Township',min:19},{name:'Sky City',min:30}];
+function townScore(){
+  const nb=Object.values(state.buildings||{}).filter(Boolean).length;
+  return nb*2 + W.workers.length + W.islets.length + Math.floor((state.totalEarned||0)/700);
+}
+function townRankIdx(){const s=townScore();let i=0;for(let k=0;k<TOWN_RANKS.length;k++)if(s>=TOWN_RANKS[k].min)i=k;return i;}
+// Your settlement earns a name the first time it becomes a town, drawn
+// deterministically from the world seed so it's stable across reloads.
+const TOWN_PRE=['Willow','Frost','Bramble','Sun','Moon','Green','Stone','Ever','Maple','Hazel','Amber','Clover','Wind','Fern','Gold'];
+const TOWN_SUF=['brook','mere','vale','wood','field','haven','hollow','stead','reach','crest','glen','shire','fall','gate','bloom'];
+function ensureTownName(){
+  if(state.townName)return;
+  const a=Math.abs(Math.floor(W.seed))%TOWN_PRE.length;
+  const b=Math.abs(Math.floor(W.seed/97))%TOWN_SUF.length;
+  state.townName=TOWN_PRE[a]+TOWN_SUF[b];
+}
+function townLabel(){return (state.townName?state.townName+' · ':'')+TOWN_RANKS[state.townRank||0].name;}
+function checkTownRank(){
+  ensureTownName();
+  const idx=townRankIdx();
+  if(idx>(state.townRank||0)){
+    state.townRank=idx;
+    const r=TOWN_RANKS[idx],gift=idx*60;
+    grantCoins(gift);
+    SFX.play('level');
+    const top=idx>=TOWN_RANKS.length-1;
+    banner('🏛️ '+(state.townName||'Your town')+' is now a '+r.name+'!',
+      top?'A golden Monument rises in the square to honour your thriving Sky City. +'+gift+' 🪙'
+        :'A gift of '+gift+' 🪙 from a thriving settlement.');
+    if(top)raiseMonument();
+    if($('townPanel')&&$('townPanel').classList.contains('open'))buildTownPanel();
+  }
+}
+function workerCost(){return 200+W.workers.length*160;}
+function villagerCubes(shirt,hatCol){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(-0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c); a(0.12,0.06,0.03,0.18,0.12,0.24,0x4a2f1c);   // boots
+  a(-0.12,0.28,0,0.16,0.36,0.18,0x39507a); a(0.12,0.28,0,0.16,0.36,0.18,0x39507a);          // legs
+  a(0,0.66,0,0.44,0.5,0.28,shirt); a(0,0.66,0.12,0.44,0.5,0.06,0x39507a);                   // shirt + bib
+  a(-0.29,0.64,0,0.14,0.42,0.16,shirt); a(0.29,0.64,0,0.14,0.42,0.16,shirt);                // arms
+  a(-0.29,0.4,0,0.15,0.12,0.17,0xe8bd94); a(0.29,0.4,0,0.15,0.12,0.17,0xe8bd94);            // hands
+  a(0,1.02,0,0.3,0.3,0.3,0xe8bd94);                                                          // head
+  a(0,1.14,0,0.52,0.07,0.52,hatCol); a(0,1.25,0,0.3,0.17,0.3,hatCol);                        // straw hat
+  return c;
+}
+function spawnWorker(role,name,x,z){
+  const idx=W.workers.length;
+  const shirt=WORKER_SHIRTS[idx%WORKER_SHIRTS.length];
+  const hat=[0xd8b45a,0xcaa24a,0xe0c26a][idx%3];
+  const mesh=new THREE.Mesh(buildPlantGeometry(villagerCubes(shirt,hat)),plantMat);
+  mesh.castShadow=true;
+  scene.add(mesh);
+  const w={mesh,name:name||WORKER_NAMES[(hash3(idx,3,7,0x51)*WORKER_NAMES.length)|0],
+    role:role||'all',x:x!=null?x:2.5,z:z!=null?z:2.5,face:0,step:0,hop:0,
+    act:'idle',tx:null,tz:null,sy:0,workT:0,job:null,target:null,path:null,pathI:0};
+  mesh.userData.workerRef=w;
+  W.workers.push(w);positionWorker(w);
+  return w;
+}
+function positionWorker(w){
+  const gy=surfaceY(Math.round(w.x),Math.round(w.z));
+  const y=(gy==null?4:gy)+1;
+  if(w.dispY==null)w.dispY=y; else w.dispY+=(y-w.dispY)*0.2;   // smooth stepping, no pops
+  const bob=w.act==='work'?w.hop:Math.abs(Math.sin(w.step))*0.06;
+  w.mesh.position.set(w.x,w.dispY+bob,w.z);
+  w.mesh.rotation.y=w.face;
+  w.mesh.rotation.z=w.act==='work'?0:Math.sin(w.step)*0.07;
+}
+const TILL_CAP=90;
+// BFS over the walkable height-grid: two cells connect only if both have ground
+// and their surfaces differ by at most one block. Villagers follow the returned
+// waypoints, so they walk AROUND cliffs and gaps instead of clipping through
+// them (adjacent path cells are ≤1 apart, so every step is a clean little hop).
+function findPath(sx,sz,tx,tz){
+  const sh=surfaceY(sx,sz),th=surfaceY(tx,tz);
+  if(sh==null||th==null)return null;
+  if(sx===tx&&sz===tz)return [[sx,sz]];
+  const startK=sx+','+sz,prev=new Map([[startK,null]]);
+  const q=[[sx,sz]];let head=0,explored=0;const MAX=520;
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  while(head<q.length&&explored<MAX){
+    const [cx,cz]=q[head++];explored++;
+    const ch=surfaceY(cx,cz);
+    for(const [dx,dz] of dirs){
+      const nx=cx+dx,nz=cz+dz,nk=nx+','+nz;
+      if(prev.has(nk))continue;
+      const nh=surfaceY(nx,nz);
+      if(nh==null||Math.abs(nh-ch)>1)continue;
+      prev.set(nk,cx+','+cz);
+      if(nx===tx&&nz===tz){
+        const path=[];let k=nk;
+        while(k){const p=k.split(',');path.push([+p[0],+p[1]]);k=prev.get(k);}
+        return path.reverse();
+      }
+      q.push([nx,nz]);
+    }
+  }
+  return null;
+}
+function reachableWander(w){
+  for(let i=0;i<8;i++){
+    const ang=Math.random()*6.283,rad=2+Math.random()*6;
+    const wx=Math.round(w.x+Math.sin(ang)*rad),wz=Math.round(w.z+Math.cos(ang)*rad);
+    const p=findPath(Math.round(w.x),Math.round(w.z),wx,wz);
+    if(p)return p;
+  }
+  return [[Math.round(w.x),Math.round(w.z)]];   // stay put
+}
+function repath(w){
+  workerPickTask(w);
+  let p=findPath(Math.round(w.x),Math.round(w.z),w.tx,w.tz);
+  if(!p){w.job='idle';w.target=null;p=reachableWander(w);const last=p[p.length-1];w.tx=last[0];w.tz=last[1];}
+  w.path=p;w.pathI=0;
+}
+function tilledCount(){let n=0;for(const id of W.blocks.values())if(id===5||id===6)n++;return n;}
+function adjTilled(x,y,z){for(const [ox,oz] of [[1,0],[-1,0],[0,1],[0,-1]]){const g=getB(x+ox,y,z+oz);if(g===5||g===6)return true;}return false;}
+function workerSeed(){
+  const sel=state.seedSel;
+  if(PLANTS[sel]&&state.level>=PLANTS[sel].lvl)return sel;
+  return 'sunflower';
+}
+function workerPickTask(w){
+  // when it rains, villagers duck into the Tavern to wait out the shower
+  if(rainActive&&hasTavern()){
+    const b=state.buildings.tavern;
+    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){
+      if(surfaceY(b.x+dx,b.z+dz)!=null){w.tx=b.x+dx;w.tz=b.z+dz;w.job='shelter';w.target=null;w.sy=0;return;}
+    }
+  }
+  const canFarm=w.role==='all'||w.role==='farmer';
+  const canRanch=w.role==='all'||w.role==='rancher';
+  const canCollect=w.role==='all'||w.role==='collector';
+  const curY=surfaceY(Math.round(w.x),Math.round(w.z));
+  let best=null,bd=1e9;
+  const reach=(x,z)=>{const y=surfaceY(x,z);return y!=null&&(curY==null||Math.abs(y-curY)<=2.5);};
+  const consider=(x,z,job,bias,extra)=>{if(!reach(x,z))return;
+    const d=Math.hypot(x+0.5-w.x,z+0.5-w.z)-bias;
+    if(d<bd){bd=d;best=Object.assign({tx:x,tz:z,job},extra);}};
+  if(canCollect)for(const dr of W.drops)consider(dr.x,dr.z,'collect',4,{drop:dr});
+  if(canFarm)for(const p of W.plants.values()){
+    if(PLANTS[p.type]&&p.stage>=2)consider(p.x,p.z,'harvest',3,{plant:p});
+  }
+  // plant empty tilled soil (uses your selected seed, keeps a coin reserve)
+  if(canFarm){
+    const seed=PLANTS[workerSeed()];
+    if(state.coins>=seed.cost+15)for(const [k,id] of W.blocks){
+      if(id!==5&&id!==6)continue;
+      const [x,y,z]=k.split(',').map(Number);
+      if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+      consider(x,z,'plant',2,{sy:y});
+    }
+  }
+  if(canFarm)for(const [k,id] of W.blocks){
+    if(id!==5||W.wet.has(k))continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(!W.plants.has(k3(x,y+1,z)))continue;         // only water soil that has a crop
+    consider(x,z,'water',1,{sy:y});
+  }
+  if(canRanch)for(const a of W.animals){
+    if(a.stage===0&&(a.tendBoost||0)<2)consider(Math.round(a.x),Math.round(a.z),'tend',1,{animal:a});
+  }
+  // till new soil next to the existing farm so the plots grow outward
+  if(canFarm&&tilledCount()<TILL_CAP)for(const [k,id] of W.blocks){
+    if(id!==1&&id!==2)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(getB(x,y+1,z)||W.plants.has(k3(x,y+1,z)))continue;
+    if(!adjTilled(x,y,z))continue;
+    consider(x,z,'till',0.5,{sy:y});
+  }
+  // nothing pressing to do — sometimes wander over to the Tavern for a break
+  if(!best&&hasTavern()&&Math.random()<0.45){
+    const b=state.buildings.tavern;   // let findPath (in repath) decide if it's reachable
+    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){
+      if(surfaceY(b.x+dx,b.z+dz)!=null){best={tx:b.x+dx,tz:b.z+dz,job:'visit'};break;}
+    }
+  }
+  if(!best){
+    const ang=Math.random()*6.283,rad=3+Math.random()*7;
+    let wx=Math.round(w.x+Math.sin(ang)*rad),wz=Math.round(w.z+Math.cos(ang)*rad);
+    if(!reach(wx,wz)){wx=Math.round(w.x+(Math.random()*4-2));wz=Math.round(w.z+(Math.random()*4-2));}
+    best={tx:wx,tz:wz,job:'idle'};
+  }
+  w.tx=best.tx;w.tz=best.tz;w.job=best.job;w.target=best.drop||best.plant||best.animal||null;w.sy=best.sy||0;
+}
+function doWorkerJob(w){
+  if(w.job==='harvest'){const p=w.target;if(p&&W.plants.has(k3(p.x,p.y,p.z))&&p.stage>=2)actOnPlant(p);}
+  else if(w.job==='water'){const id=getB(w.tx,w.sy,w.tz);if(id===5)waterSoil(w.tx,w.sy,w.tz,id);}
+  else if(w.job==='collect'){const dr=w.target;if(dr&&W.drops.includes(dr))collectDrop(dr);}
+  else if(w.job==='till'){const id=getB(w.tx,w.sy,w.tz);
+    if((id===1||id===2)&&!getB(w.tx,w.sy+1,w.tz)){setB(w.tx,w.sy,w.tz,5);flushChunks();state.tills++;
+      burst(w.tx+0.5,w.sy+1.05,w.tz+0.5,0x8a6a42,6,{up:1.4,g:6});SFX.play('till');questCheck();}}
+  else if(w.job==='plant'){const id=getB(w.tx,w.sy,w.tz);
+    if((id===5||id===6)&&!getB(w.tx,w.sy+1,w.tz)&&!W.plants.has(k3(w.tx,w.sy+1,w.tz))){
+      const seed=workerSeed(),def=PLANTS[seed];
+      if(state.coins>=def.cost+15){spendCoins(def.cost);addPlant(w.tx,w.sy+1,w.tz,seed);state.planted++;
+        SFX.play('plant');burst(w.tx+0.5,w.sy+1.2,w.tz+0.5,0x7fd370,5,{up:1.2,g:4});questCheck();}}}
+  else if(w.job==='tend'){const a=w.target;if(a&&W.animals.includes(a)&&a.stage===0){a.tendBoost=9;
+    const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;burst(a.x,gy+0.6,a.z,0xff9ec4,5,{up:1.2,g:4});}}
+  else if(w.job==='visit'){const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+    floatText(w.x,gy+1.7,w.z,'🍺','#ffcf6b');SFX.tone(300,0.06,'triangle',0.035);}
+  else if(w.job==='shelter'){const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+    floatText(w.x,gy+1.7,w.z,['☔','🌂','🍵'][(Math.random()*3)|0],'#bcd4e6');}
+  else if(w.job==='idle'&&(festivalActive()?Math.random()<0.55:Math.random()<0.3)){   // a little cozy life while pottering about
+    const gy=(surfaceY(Math.round(w.x),Math.round(w.z))||4)+1;
+    const emotes=festivalActive()?['🎉','🎶','💃','🕺','✨']:['💤','🎵','😌','🌿','✨'];
+    floatText(w.x,gy+1.7,w.z,emotes[(Math.random()*emotes.length)|0],festivalActive()?'#ffd6ec':'#dbe6ef');}
+  w.act='work';w.workT=w.job==='shelter'?(2.5+Math.random()*3):w.job==='visit'?(2+Math.random()*2.5):w.job==='idle'?(0.5+Math.random()*1.2):0.45;
+  w.tx=null;w.target=null;
+}
+function updateWorker(w,dt){
+  if(w.act==='work'){
+    w.workT-=dt;
+    w.hop=w.job==='idle'?0:Math.max(0,Math.sin((0.45-Math.max(0,w.workT))*9))*0.14;
+    if(w.workT<=0){w.act='idle';w.hop=0;}
+    positionWorker(w);return;
+  }
+  if(!w.path||w.pathI>=w.path.length)repath(w);
+  const wp=w.path[w.pathI];
+  const dx=(wp[0]+0.5)-w.x,dz=(wp[1]+0.5)-w.z,d=Math.hypot(dx,dz);
+  const atFinal=w.pathI>=w.path.length-1;
+  if(d<(atFinal?0.5:0.22)){
+    if(atFinal){doWorkerJob(w);w.path=null;}
+    else w.pathI++;
+  } else {
+    const sp=Math.min(1,WORKER_SPEED()*dt/d);
+    w.x+=dx*sp;w.z+=dz*sp;w.face=Math.atan2(dx,dz);w.step+=dt*9;
+  }
+  positionWorker(w);
+}
+function updateWorkers(dt){for(const w of W.workers)updateWorker(w,dt);}
+function WORKER_SPEED(){return state.buildings&&state.buildings.tavern?2.1:1.9;}
+function rolesUnlocked(){return !!(state.buildings&&state.buildings.tavern);}
+function cycleWorkerRole(w){
+  if(!rolesUnlocked()){toast('🍺 Build the Tavern to assign villager roles');return;}
+  w.role=ROLES[(ROLES.indexOf(w.role)+1)%ROLES.length];
+  SFX.play('click');
+  toast(ROLE_ICO[w.role]+' '+w.name+' is now a '+ROLE_NAME[w.role]);
+}
+function hireWorker(){
+  if(W.workers.length>=WORKER_MAX){toast('🧑‍🌾 Your crew is full ('+WORKER_MAX+')');SFX.play('error');return;}
+  if(state.level<3){toast('🧑‍🌾 Villagers arrive at level 3');SFX.play('error');return;}
+  const cost=workerCost();
+  if(!spendCoins(cost))return;
+  const w=spawnWorker('all');
+  const b=$('farmerBtn');if(b)b.style.opacity=1;
+  SFX.play('grow');
+  banner('🧑‍🌾 '+w.name+' joined the crew!',
+    rolesUnlocked()?'Tap a villager to set their role.':'They pitch in on whatever needs doing.');
+  if(typeof checkAch==='function')checkAch();
+  checkTownRank();
+}
+
+/* ============================== livestock ============================== */
+// Buy a baby animal and RAISE it: it matures through a growth stage on its own
+// (faster if a rancher tends it, or you own a Barn). Grown animals wander and,
+// every so often, drop a good (egg / truffle / wool / milk) that lands on the
+// grass for a villager to collect — or tap it yourself. Once grown you can also
+// tap the animal to CASH IT IN for a lump sum. Persisted in W.animals with
+// {type,x,z,stage,grow}.
+const ANIMALS={
+  chicken:{ico:'🐔',name:'Chicken',cost:40, lvl:1,product:'🥚',pcol:0xf3e9c0,yield:3, every:18,mature:36,sell:95, scale:0.55,speed:1.6,pitch:660},
+  pig:    {ico:'🐷',name:'Pig',    cost:120,lvl:2,product:'🍄',pcol:0x9c5a3c,yield:8, every:30,mature:60,sell:280,scale:0.72,speed:1.2,pitch:300},
+  sheep:  {ico:'🐑',name:'Sheep',  cost:170,lvl:3,product:'🧶',pcol:0xf0ece0,yield:11,every:36,mature:75,sell:380,scale:0.8, speed:1.1,pitch:420},
+  goat:   {ico:'🐐',name:'Goat',   cost:210,lvl:4,product:'🧀',pcol:0xf0e2b8,yield:14,every:40,mature:85,sell:480,scale:0.82,speed:1.3,pitch:360},
+  cow:    {ico:'🐄',name:'Cow',    cost:260,lvl:5,product:'🥛',pcol:0xffffff,yield:18,every:46,mature:100,sell:640,scale:1.0,speed:0.9,pitch:200},
+};
+function animalCap(){return 14+(state.buildings&&state.buildings.barn?6:0);}
+function animalGrowMult(){return state.buildings&&state.buildings.barn?1.4:1;}
+function sellMult(){return state.buildings&&state.buildings.market?1.25:1;}
+function chickenCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.34,0,0.4,0.34,0.5,0xf6f5f0); a(0,0.42,-0.28,0.3,0.26,0.2,0xf1efe8);
+  a(0,0.62,0.26,0.26,0.28,0.24,0xf9f8f4);
+  a(0,0.8,0.24,0.1,0.12,0.14,0xd23b2f); a(0,0.6,0.44,0.1,0.08,0.13,0xe8952f);
+  a(-0.09,0.11,0.05,0.06,0.22,0.06,0xe8952f); a(0.09,0.11,0.05,0.06,0.22,0.06,0xe8952f);
+  return c;}
+function pigCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.44,0,0.62,0.44,0.82,0xe58fa0);
+  a(0,0.5,0.5,0.4,0.36,0.24,0xe89caa); a(0,0.44,0.66,0.24,0.18,0.1,0xd9788c);
+  a(-0.1,0.68,0.44,0.09,0.1,0.05,0xd9788c); a(0.1,0.68,0.44,0.09,0.1,0.05,0xd9788c);
+  a(-0.2,0.12,-0.24,0.11,0.24,0.11,0xd9788c); a(0.2,0.12,-0.24,0.11,0.24,0.11,0xd9788c);
+  a(-0.2,0.12,0.24,0.11,0.24,0.11,0xd9788c); a(0.2,0.12,0.24,0.11,0.24,0.11,0xd9788c);
+  return c;}
+function sheepCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.52,0,0.66,0.52,0.82,0xeee7d8); a(0,0.72,0.02,0.54,0.3,0.6,0xf4efe3);
+  a(0,0.5,0.5,0.28,0.32,0.24,0x3a322e);
+  a(-0.1,0.66,0.5,0.07,0.1,0.06,0x2a2422); a(0.1,0.66,0.5,0.07,0.1,0.06,0x2a2422);
+  a(-0.22,0.12,-0.24,0.1,0.26,0.1,0x2a2422); a(0.22,0.12,-0.24,0.1,0.26,0.1,0x2a2422);
+  a(-0.22,0.12,0.24,0.1,0.26,0.1,0x2a2422); a(0.22,0.12,0.24,0.1,0.26,0.1,0x2a2422);
+  return c;}
+function cowCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.58,0,0.74,0.56,0.98,0xf3f1ed);
+  a(0.22,0.7,0.12,0.28,0.3,0.32,0x2c2c2c); a(-0.24,0.52,-0.28,0.26,0.3,0.32,0x2c2c2c);
+  a(0,0.62,0.58,0.44,0.4,0.28,0xf3f1ed); a(0,0.5,0.74,0.36,0.24,0.12,0xe6a6a6);
+  a(-0.15,0.86,0.54,0.08,0.12,0.08,0xd8cfc4); a(0.15,0.86,0.54,0.08,0.12,0.08,0xd8cfc4);
+  a(0,0.28,-0.3,0.22,0.16,0.16,0xe8b3bd);
+  a(-0.24,0.14,-0.3,0.12,0.28,0.12,0x2c2c2c); a(0.24,0.14,-0.3,0.12,0.28,0.12,0x2c2c2c);
+  a(-0.24,0.14,0.3,0.12,0.28,0.12,0x3a3a3a); a(0.24,0.14,0.3,0.12,0.28,0.12,0x3a3a3a);
+  return c;}
+function goatCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.5,0,0.6,0.46,0.82,0xe8ddc4);                                  // body
+  a(0,0.64,0.5,0.28,0.3,0.26,0xeee3ca);                               // head
+  a(0,0.58,0.66,0.16,0.14,0.12,0xd8c8a4);                             // snout
+  a(-0.09,0.86,0.42,0.06,0.18,0.06,0x9a8666); a(0.09,0.86,0.42,0.06,0.18,0.06,0x9a8666); // horns
+  a(-0.19,0.68,0.46,0.09,0.06,0.11,0xd8c8a4); a(0.19,0.68,0.46,0.09,0.06,0.11,0xd8c8a4); // ears
+  a(0,0.46,0.62,0.06,0.13,0.05,0xf4ecd8);                             // beard
+  a(0,0.56,-0.44,0.08,0.12,0.08,0xe8ddc4);                            // tail
+  a(-0.2,0.14,-0.26,0.1,0.28,0.1,0xcbb98f); a(0.2,0.14,-0.26,0.1,0.28,0.1,0xcbb98f);
+  a(-0.2,0.14,0.26,0.1,0.28,0.1,0xcbb98f); a(0.2,0.14,0.26,0.1,0.28,0.1,0xcbb98f);
+  return c;}
+const ANIMAL_MODELS={chicken:chickenCubes,pig:pigCubes,sheep:sheepCubes,goat:goatCubes,cow:cowCubes};
+function spawnAnimal(type,x,z,stage,grow){
+  const def=ANIMALS[type];if(!def)return null;
+  const mesh=new THREE.Mesh(buildPlantGeometry(ANIMAL_MODELS[type]()),plantMat);
+  mesh.castShadow=true;
+  scene.add(mesh);
+  const a={type,mesh,x,z,face:Math.random()*6.283,step:Math.random()*6,
+    act:'graze',tx:null,tz:null,wait:1+Math.random()*2,path:null,pathI:0,
+    stage:stage!=null?stage:0,grow:grow!=null?grow:0,tendBoost:0,
+    prodT:Math.random()*def.every};
+  mesh.userData.animalRef=a;
+  W.animals.push(a);applyAnimalScale(a);positionAnimal(a);
+  return a;
+}
+function applyAnimalScale(a){
+  const def=ANIMALS[a.type];
+  const s=def.scale*(a.stage>=1?1:0.55+0.35*a.grow);
+  a.mesh.scale.setScalar(s);
+}
+function positionAnimal(a){
+  const gy=surfaceY(Math.round(a.x),Math.round(a.z));
+  const y=(gy==null?4:gy)+1;
+  if(a.dispY==null)a.dispY=y; else a.dispY+=(y-a.dispY)*0.2;    // smooth stepping
+  const bob=a.act==='walk'?Math.abs(Math.sin(a.step))*0.05:Math.sin(a.step*0.5)*0.02;
+  a.mesh.position.set(a.x,a.dispY+bob,a.z);
+  a.mesh.rotation.y=a.face;
+  a.mesh.rotation.z=a.act==='walk'?Math.sin(a.step)*0.06:0;
+}
+function animalNewTarget(a){
+  for(let i=0;i<6;i++){
+    const ang=Math.random()*6.283,rad=2+Math.random()*5;
+    const wx=Math.round(a.x+Math.sin(ang)*rad),wz=Math.round(a.z+Math.cos(ang)*rad);
+    const p=findPath(Math.round(a.x),Math.round(a.z),wx,wz);
+    if(p){a.path=p;a.pathI=0;a.tx=wx;a.tz=wz;a.act='walk';return;}
+  }
+  a.wait=1+Math.random();   // boxed in this tick — graze a bit longer, try again
+}
+function updateAnimal(a,dt){
+  const def=ANIMALS[a.type];
+  if(a.stage===0){
+    let g=animalGrowMult();
+    if(a.tendBoost>0){a.tendBoost-=dt;g*=1.6;}
+    a.grow+=dt/def.mature*g;
+    applyAnimalScale(a);
+    if(a.grow>=1){a.stage=1;a.grow=1;applyAnimalScale(a);
+      const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
+      burst(a.x,gy+0.6,a.z,0xfff2a8,10,{up:1.6,g:2});SFX.play('grow');}
+  } else {
+    a.prodT+=dt;
+    if(a.prodT>=def.every){a.prodT=0;animalDrop(a);}
+  }
+  if(a.act==='graze'||!a.path){a.step+=dt*2;a.wait-=dt;if(a.wait<=0){a.act='graze';animalNewTarget(a);}positionAnimal(a);return;}
+  const wp=a.path[a.pathI];
+  const dx=(wp[0]+0.5)-a.x,dz=(wp[1]+0.5)-a.z,d=Math.hypot(dx,dz);
+  const atFinal=a.pathI>=a.path.length-1;
+  if(d<(atFinal?0.35:0.22)){
+    if(atFinal){a.act='graze';a.wait=2+Math.random()*4;a.path=null;}
+    else a.pathI++;
+  } else {
+    const sp=Math.min(1,def.speed*dt/d);
+    a.x+=dx*sp;a.z+=dz*sp;a.face=Math.atan2(dx,dz);a.step+=dt*8;
+  }
+  positionAnimal(a);
+}
+function updateAnimals(dt){for(const a of W.animals)updateAnimal(a,dt);updateBreeding(dt);}
+// Keep a pair of grown animals of the same kind and, now and then, they have a
+// baby (free, up to the animal cap) — a little herd that grows itself.
+let breedT=0;
+function updateBreeding(dt){
+  if(W.animals.length>=animalCap())return;
+  breedT+=dt;if(breedT<35)return;breedT=0;
+  if(Math.random()<0.5)return;
+  const grown={};
+  for(const a of W.animals)if(a.stage>=1)grown[a.type]=(grown[a.type]||0)+1;
+  const pairs=Object.keys(grown).filter(t=>grown[t]>=2);
+  if(!pairs.length)return;
+  const type=pairs[(Math.random()*pairs.length)|0];
+  const parent=W.animals.find(a=>a.type===type&&a.stage>=1);
+  const baby=spawnAnimal(type,parent.x+(Math.random()-0.5),parent.z+(Math.random()-0.5),0,0);
+  if(baby){const gy=(surfaceY(Math.round(baby.x),Math.round(baby.z))||4)+1;
+    burst(baby.x,gy+0.5,baby.z,0xff9ec4,8,{up:1.4,g:3});
+    toast(ANIMALS[type].ico+' A baby '+ANIMALS[type].name.toLowerCase()+' was born!');
+    state.achFlags.breed=true;checkAch();}
+}
+function cashInAnimal(a){
+  const def=ANIMALS[a.type];
+  if(a.stage===0){toast(def.ico+' still growing — '+Math.round(a.grow*100)+'%');return;}
+  const pay=Math.round(def.sell*sellMult());
+  const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
+  grantCoins(pay,a.x,gy+0.9,a.z);
+  burst(a.x,gy+0.6,a.z,0xffd166,16,{up:2.4,g:6});
+  SFX.play('harvest');setTimeout(()=>SFX.play('coin'),140);
+  removeAnimal(a);
+  toast(def.ico+' sold for '+pay+' 🪙');
+  buildAnimalPanel();
+}
+function removeAnimal(a){
+  const i=W.animals.indexOf(a);if(i>=0)W.animals.splice(i,1);
+  if(a.mesh){scene.remove(a.mesh);a.mesh.geometry.dispose();}
+}
+function buyAnimal(type){
+  const def=ANIMALS[type];if(!def)return;
+  if(W.animals.length>=animalCap()){toast('🐾 No room — build a Barn for more animals!');SFX.play('error');return;}
+  if(state.level<def.lvl){toast(def.ico+' '+def.name+' unlocks at level '+def.lvl);SFX.play('error');return;}
+  if(!spendCoins(def.cost))return;
+  let x=Math.round(Math.random()*8-4),z=Math.round(3+Math.random()*5);
+  if(surfaceY(x,z)==null){x=0;z=2;}
+  spawnAnimal(type,x+0.5,z+0.5,0,0);
+  SFX.play('grow');
+  toast(def.ico+' baby '+def.name+' — raise it, then tap to sell or keep for '+def.product);
+  buildAnimalPanel();
+  if(typeof checkAch==='function')checkAch();
+}
+
+/* ============================== goods (dropped by animals) ============================== */
+let dropGeoCache=null;
+function dropGeo(){if(!dropGeoCache)dropGeoCache=buildPlantGeometry([[0,0.15,0,0.28,0.28,0.28,0xffffff]]);return dropGeoCache;}
+function animalDrop(a){
+  const def=ANIMALS[a.type];
+  if(W.drops.length>=40)collectDrop(W.drops[0]);       // clear the oldest so they never pile up
+  const mesh=new THREE.Mesh(dropGeo(),new THREE.MeshLambertMaterial({color:def.pcol,emissive:new THREE.Color(def.pcol).multiplyScalar(0.25)}));
+  mesh.castShadow=true;
+  const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
+  const d={type:a.type,x:a.x,z:a.z,y:gy,mesh,age:0,bob:Math.random()*6};
+  mesh.userData.dropRef=d;
+  mesh.position.set(a.x,gy+0.3,a.z);
+  scene.add(mesh);
+  W.drops.push(d);
+  floatText(a.x,gy+1.1,a.z,def.product,'#fff');
+  SFX.tone(def.pitch,0.08,'triangle',0.045,def.pitch*1.5);
+}
+function hasMarket(){return !!(state.buildings&&state.buildings.market);}
+function hasTavern(){return !!(state.buildings&&state.buildings.tavern);}
+function hasBakery(){return !!(state.buildings&&state.buildings.bakery);}
+function hasBrewery(){return !!(state.buildings&&state.buildings.brewery);}
+function hasGreenhouse(){return !!(state.buildings&&state.buildings.greenhouse);}
+function stockpiles(){return hasMarket()||hasTavern()||hasBakery();}   // any of these banks goods
+function collectDrop(d){
+  const i=W.drops.indexOf(d);if(i<0)return;
+  W.drops.splice(i,1);
+  const def=ANIMALS[d.type];
+  if(stockpiles()){
+    // with a Market or Tavern, goods pile into a stockpile — the Trader buys
+    // them in bulk and the Tavern serves them for steady income
+    state.goods[d.type]=(state.goods[d.type]||0)+1;
+    floatText(d.x,d.y+1.2,d.z,'+'+def.product,'#ffe9a8');
+    SFX.tone(def.pitch,0.07,'triangle',0.045);
+    refreshGoodsHud();
+  } else {
+    const pay=Math.round(def.yield);
+    grantCoins(pay,d.x,d.y+0.9,d.z);
+    floatText(d.x,d.y+1.2,d.z,def.product,'#ffe9a8');
+    SFX.play('coin');
+  }
+  if(d.mesh){scene.remove(d.mesh);d.mesh.material.dispose();}
+}
+function updateDrops(dt){
+  for(const d of W.drops.slice()){
+    d.age+=dt;d.bob+=dt*3;
+    if(d.mesh)d.mesh.position.y=d.y+0.3+Math.sin(d.bob)*0.07,d.mesh.rotation.y+=dt*1.4;
+    if(d.age>75)collectDrop(d);            // idle goods auto-collect so nothing is lost
+  }
+}
+/* ---- the goods stockpile & the Trader ---- */
+// Goods are the animal products PLUS a "crop" produce, so both ranching and
+// farming feed the same stockpile the Trader buys.
+const CROP_GOOD={product:'🌾',yield:5,pitch:520};
+const BREAD_GOOD={product:'🍞',yield:16,pitch:440};   // the Bakery bakes crop → bread
+const FISH_GOOD={product:'🐟',yield:10,pitch:600};
+const HONEY_GOOD={product:'🍯',yield:14,pitch:560};   // the Apiary's bees make honey over time
+const MEAD_GOOD={product:'🍶',yield:36,pitch:480};    // the Brewery ferments honey → mead (worth ~2.5×)
+const EXTRA_GOODS={crop:CROP_GOOD,bread:BREAD_GOOD,fish:FISH_GOOD,honey:HONEY_GOOD,mead:MEAD_GOOD};
+function goodDef(t){return EXTRA_GOODS[t]||ANIMALS[t];}
+function goodsKeys(){return Object.keys(ANIMALS).concat(Object.keys(EXTRA_GOODS));}
+function goodsTotal(){let n=0;for(const t of goodsKeys())n+=state.goods[t]||0;return n;}
+function goodsValue(){let v=0;for(const t of goodsKeys())v+=(state.goods[t]||0)*goodDef(t).yield;return v;}
+/* ---- market demand: one good is hot each day, selling for a bonus ---- */
+// A cozy strategy layer: the town's Market wants a different good every day.
+// Sell (or serve) the "in demand" good while it's hot for +50%. Derived from
+// the day number, so it's stable across reloads with no extra state to save.
+const DEMAND_BONUS=1.5;
+function demandGoodKey(){const keys=goodsKeys();const h=(Math.floor(state.day||0)*2654435761)>>>0;return keys[h%keys.length];}
+function demandMult(t){return t===demandGoodKey()?DEMAND_BONUS:1;}
+function goodsSellValue(){let v=0;for(const t of goodsKeys())v+=(state.goods[t]||0)*goodDef(t).yield*demandMult(t);return v;}
+function produceFromCrop(def){   // premium crops yield more produce into the stockpile
+  return Math.max(1,Math.min(5,1+Math.floor((def&&def.sell||0)/60)));
+}
+function stockCrop(x,y,z,amt){    // a harvested crop adds produce to the stockpile
+  if(!stockpiles())return;
+  const n=amt||1;
+  state.goods.crop=(state.goods.crop||0)+n;
+  if(x!=null)floatText(x,y,z,'+🌾'+(n>1?'×'+n:''),'#d9e88a');
+  refreshGoodsHud();
+}
+function sellStockpile(bulk){
+  const tot=goodsTotal();
+  if(tot<=0){if(!bulk)toast('🛒 No goods stockpiled yet — collect what your farm produces');return;}
+  const coins=Math.round(goodsSellValue()*(bulk?1.6:1.25)*(festivalActive()?FESTIVAL_BONUS:1));   // bulk premium; hot good +50%; festival +35%
+  for(const t of goodsKeys())state.goods[t]=0;
+  const b=state.buildings.market,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
+  grantCoins(coins,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.6,gz+0.5,'🛒 +'+coins,'#ffd166');
+  burst(gx+0.5,gy,gz+0.5,0xffd166,18,{up:2.4,g:5});
+  SFX.play('harvest');setTimeout(()=>SFX.play('coin'),120);
+  toast((bulk?'🛒 The Trader bought ':'🛒 Sold ')+tot+' goods for '+coins+' 🪙');
+  state.achFlags.trade=true;
+  refreshGoodsHud();
+  if(typeof checkAch==='function')checkAch();
+}
+function refreshGoodsHud(){
+  const el=$('goodsHud');if(!el)return;
+  const tot=goodsTotal();
+  if(!stockpiles()||tot<=0){el.style.display='none';return;}
+  el.style.display='flex';
+  const dk=demandGoodKey();
+  let html='<span style="color:var(--dim);font-size:11px">🛒 STOCKPILE</span>';
+  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>0)html+='<span'+(t===dk?' style="color:var(--gold)"':'')+'>'+goodDef(t).product+q+(t===dk?'📈':'')+'</span>';}
+  html+='<span style="color:var(--gold);font-size:11px">📈 '+goodDef(dk).product+' +50% today</span>';
+  if(festivalActive())html+='<span style="color:#ff9ec4;font-size:11px">🎉 festival +35%</span>';
+  if(hasMarket()){
+    const worth=Math.round(goodsSellValue()*1.25*(festivalActive()?FESTIVAL_BONUS:1));   // what a Market tap-sale pays now
+    html+='<span style="color:#a8e6b0;font-size:11px">≈ '+worth+' 🪙</span>';
+  }
+  const hint=hasMarket()?'tap Market to sell':'the Tavern is serving these';
+  html+='<span style="color:var(--gold);font-size:11px">'+hint+'</span>';
+  el.innerHTML=html;
+}
+/* ---- the Tavern serves goods for steady town income ---- */
+// The Tavern turns your stockpile into a living settlement: it periodically
+// cooks & serves one good for a premium (×2 the raw value — value added), so a
+// busier town with more villagers serves faster. This is the "buildings consume
+// what you gather" loop, running alongside the Trader's bulk buys.
+let tavernT=0,mealMsgT=0;
+function updateTavern(dt){
+  if(!hasTavern()||goodsTotal()<=0){tavernT=0;return;}
+  const interval=14/(1+W.workers.length*0.12);   // more villagers → a livelier tavern
+  tavernT+=dt;
+  if(tavernT>=interval){tavernT=0;serveMeal();}
+}
+function serveMeal(){
+  // serve the good you have the most of
+  let bestT=null,bestQ=0;
+  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
+  if(!bestT)return;
+  state.goods[bestT]--;
+  const coins=Math.max(2,Math.round(goodDef(bestT).yield*2*demandMult(bestT)*(festivalActive()?FESTIVAL_BONUS:1)));
+  const b=state.buildings.tavern,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
+  grantCoins(coins,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+coins,'#ffcf6b');
+  SFX.tone(300,0.07,'triangle',0.05);
+  state.meals=(state.meals||0)+1;
+  if(mealMsgT<=0){toast('🍺 The Tavern served '+goodDef(bestT).product+' for '+coins+' 🪙');mealMsgT=22;}
+  refreshGoodsHud();
+  if(typeof checkAch==='function')checkAch();
+}
+/* ---- the Bakery turns raw crops into bread (value-add) ---- */
+// A production step in the chain: the Bakery periodically takes one 🌾 crop from
+// the stockpile and bakes it into 🍞 bread worth ~3× as much, which the Trader
+// then buys / the Tavern serves at the higher value.
+let bakeT=0,bakeMsgT=0,brewT=0,brewMsgT=0;
+function hasWindmill(){return !!(state.buildings&&state.buildings.windmill);}
+function updateBrewery(dt){
+  if(brewMsgT>0)brewMsgT-=dt;
+  if(!hasBrewery()||(state.goods.honey||0)<=0){brewT=0;return;}
+  brewT+=dt;
+  if(brewT>=12){brewT=0;brew();}
+}
+function brew(){
+  if((state.goods.honey||0)<=0)return;
+  state.goods.honey--;
+  state.goods.mead=(state.goods.mead||0)+1;
+  state.meads=(state.meads||0)+1;
+  state.achFlags.mead=true;
+  const b=state.buildings.brewery,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
+  floatText(gx+0.5,gy+0.5,gz+0.5,'🍯→🍶','#ffcf6b');
+  burst(gx+0.5,gy-0.4,gz+0.5,0xd9a441,5,{up:1.3,g:2});
+  SFX.tone(400,0.07,'sine',0.04);
+  if(brewMsgT<=0){toast('🍶 The Brewery fermented a cask of mead');brewMsgT=28;}
+  refreshGoodsHud();
+  if(typeof checkAch==='function')checkAch();
+}
+// The Well keeps the nearby soil damp on its own, so crops in its reach grow at
+// the 2× wet rate without anyone hauling water.
+let wellT=0;
+const WELL_R=5;
+const POLLEN_R=7;   // crops within this range of an Apiary grow faster (bees pollinate)
+function updateWell(dt){
+  const b=state.buildings&&state.buildings.well;if(!b)return;
+  wellT+=dt;if(wellT<6)return;wellT=0;
+  let any=false;
+  for(const [k,id] of W.blocks){
+    if(id!==5&&id!==6)continue;
+    const [x,y,z]=k.split(',').map(Number);
+    if(Math.hypot(x-b.x,z-b.z)>WELL_R)continue;
+    if(id===5)setB(x,y,z,6);
+    W.wet.set(k,Math.max(W.wet.get(k)||0,95));
+    any=true;
+  }
+  if(any){flushChunks();const gy=(surfaceY(b.x,b.z)||4)+1.2;burst(b.x+0.5,gy,b.z+0.5,0x6fc3ff,6,{up:1.2,g:4,spread:1.4});}
+}
+function updateBakery(dt){
+  if(!hasBakery()||(state.goods.crop||0)<=0){bakeT=0;return;}
+  bakeT+=dt;
+  if(bakeT>=(hasWindmill()?5.5:9)){bakeT=0;bake();}   // a Windmill speeds the grind
+}
+function bake(){
+  if((state.goods.crop||0)<=0)return;
+  state.goods.crop--;
+  const loaves=hasWindmill()?2:1;                      // a Windmill yields an extra loaf
+  state.goods.bread=(state.goods.bread||0)+loaves;
+  state.loaves=(state.loaves||0)+loaves;
+  const b=state.buildings.bakery,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
+  floatText(gx+0.5,gy+0.5,gz+0.5,'🌾→🍞','#ffe1a8');
+  burst(gx+0.5,gy-0.6,gz+0.5,0xe8e8e8,4,{up:1.4,g:1});   // a little puff of flour/smoke
+  SFX.tone(520,0.06,'sine',0.04);
+  if(bakeMsgT<=0){toast('🥖 The Bakery baked a fresh loaf 🍞');bakeMsgT=26;}
+  refreshGoodsHud();
+  if(typeof checkAch==='function')checkAch();
+}
+/* ---- the Trader wagon (drives in to buy the stockpile) ---- */
+let traderT=0,trader=null;
+function wagonCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.42,0,0.72,0.4,1.02,0x8a5a34);          // cart bed
+  a(0,0.72,-0.08,0.66,0.3,0.72,0xcaa060);      // crate of goods
+  a(0,0.92,-0.08,0.5,0.14,0.52,0xe6d3a0);
+  a(-0.42,0.2,0.34,0.16,0.34,0.16,0x2a2a2a); a(0.42,0.2,0.34,0.16,0.34,0.16,0x2a2a2a);   // wheels
+  a(-0.42,0.2,-0.34,0.16,0.34,0.16,0x2a2a2a); a(0.42,0.2,-0.34,0.16,0.34,0.16,0x2a2a2a);
+  a(0,0.5,0.66,0.12,0.1,0.34,0x6b4a2b);         // shaft
+  a(0,0.66,0.86,0.34,0.42,0.24,0x8a6a4a);       // the trader
+  a(0,0.95,0.86,0.22,0.2,0.22,0xe8bd94);        // head
+  a(0,1.08,0.86,0.34,0.08,0.34,0x9c3b3b);       // hat
+  return c;}
+function positionTrader(){
+  const t=trader;if(!t)return;
+  const gy=surfaceY(Math.round(t.x),Math.round(t.z));
+  const y=(gy==null?4:gy)+1;
+  if(t.dispY==null)t.dispY=y; else t.dispY+=(y-t.dispY)*0.2;
+  t.mesh.position.set(t.x,t.dispY,t.z);
+  t.mesh.rotation.y=t.face;
+}
+function spawnTraderWagon(){
+  const m=state.buildings.market;if(!m||trader)return false;
+  for(let r=7;r>=3;r--){
+    for(const [dx,dz] of [[r,0],[-r,0],[0,r],[0,-r],[r,r],[-r,-r],[r,-r],[-r,r]]){
+      const sx=m.x+dx,sz=m.z+dz;
+      if(surfaceY(sx,sz)==null)continue;
+      const p=findPath(sx,sz,m.x,m.z);
+      if(p&&p.length>2){
+        const mesh=new THREE.Mesh(buildPlantGeometry(wagonCubes()),plantMat);
+        mesh.castShadow=true;mesh.scale.setScalar(0.9);scene.add(mesh);
+        trader={mesh,x:sx+0.5,z:sz+0.5,face:0,step:0,path:p,pathI:0,phase:'in',t:0,inPath:p};
+        positionTrader();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function despawnTrader(){if(trader){scene.remove(trader.mesh);trader.mesh.geometry.dispose();trader=null;}}
+function updateTraderWagon(dt){
+  const t=trader;
+  if(t.phase==='sell'){t.t+=dt;if(t.t>1.1){sellStockpile(true);t.phase='out';t.path=t.inPath.slice().reverse();t.pathI=0;}positionTrader();return;}
+  if(!t.path||t.pathI>=t.path.length){
+    if(t.phase==='in'){t.phase='sell';t.t=0;} else {despawnTrader();}
+    return;
+  }
+  const wp=t.path[t.pathI];
+  const dx=(wp[0]+0.5)-t.x,dz=(wp[1]+0.5)-t.z,d=Math.hypot(dx,dz);
+  if(d<0.22){t.pathI++;}
+  else{const sp=Math.min(1,2.4*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);}
+  positionTrader();
+}
+function updateTrader(dt){
+  if(trader){updateTraderWagon(dt);return;}
+  if(!hasMarket()||goodsTotal()<=0){traderT=0;return;}
+  traderT+=dt;
+  if(traderT>=40){traderT=0;if(!spawnTraderWagon())sellStockpile(true);}  // wagon rolls in (or instant if boxed in)
+}
+
+/* ============================== town (land & buildings) ============================== */
+// Buy land expansions to raise new islets, then raise buildings that make the
+// isle feel like a growing settlement — a Tavern (unlocks villager roles), a
+// Trader's Market (+25% on every sale), a Barn (more animals, faster growth),
+// and a Farmhouse (crops grow faster). Buildings auto-place on clear ground and
+// persist by position in state.buildings.
+const BUILDINGS={
+  tavern:   {ico:'🍺',name:'Tavern',   cost:420,lvl:3,desc:'Villager roles · serves goods for steady income',roof:0x8a4b2f,wall:0xcaa06a},
+  market:   {ico:'🏪',name:'Trader’s Market',cost:560,lvl:4,desc:'Stockpile goods; a Trader buys them in bulk',roof:0x3f7a5c,wall:0xd8c39a},
+  barn:     {ico:'🚜',name:'Barn',     cost:520,lvl:4,desc:'+6 animals · +40% growth',roof:0xa23b32,wall:0xb8875a},
+  farmhouse:{ico:'🏠',name:'Farmhouse',cost:680,lvl:5,desc:'+20% crop growth',roof:0x6a86b0,wall:0xd9caa6},
+  bakery:   {ico:'🥖',name:'Bakery',   cost:720,lvl:6,desc:'Bakes 🌾 crops into 🍞 bread (worth 3×)',roof:0xb5763a,wall:0xe4d2ac},
+  windmill: {ico:'🌬️',name:'Windmill', cost:900,lvl:7,desc:'Bakery bakes faster & yields +1 🍞',roof:0x8a4b2f,wall:0xd8cbb0,kind:'mill'},
+  well:     {ico:'💧',name:'Well',     cost:480,lvl:4,desc:'Waters tilled soil nearby on its own',roof:0x7a5a3a,wall:0x9aa0a6,kind:'well'},
+  greenhouse:{ico:'🪴',name:'Greenhouse',cost:820,lvl:6,desc:'Crops keep growing through winter',roof:0xbfe6d6,wall:0xcfeef0,kind:'glass'},
+  apiary:   {ico:'🐝',name:'Apiary',   cost:640,lvl:5,desc:'Bees make 🍯 honey over time',roof:0xe6b422,wall:0xd8a41e,kind:'hive'},
+  brewery:  {ico:'🍶',name:'Brewery',  cost:980,lvl:7,desc:'Ferments 🍯 honey into 🍶 mead (worth ~2.5×)',roof:0x6a4a2a,wall:0xb89a6a,kind:'brew'},
+};
+function buildingCubes(def){
+  if(def.kind==='mill')return millCubes(def);
+  if(def.kind==='well')return wellCubes(def);
+  if(def.kind==='glass')return glassCubes(def);
+  if(def.kind==='hive')return hiveCubes(def);
+  if(def.kind==='brew')return brewCubes(def);
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
+  a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
+  a(0,1.62,0,1.2,0.5,1.2,def.roof);              // roof peak
+  a(0,0.42,0.9,0.5,0.72,0.12,0x5a3a24);          // door
+  a(-0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); a(0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); // windows
+  a(0.55,1.7,-0.4,0.3,0.9,0.3,0x6b4a3a);         // chimney
+  return c;
+}
+function millCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.85,0,1.25,1.7,1.25,def.wall);            // tall tower
+  a(0,1.5,0,1.35,0.4,1.35,0xb8a888);             // stone band
+  a(0,1.9,0,0.95,0.5,0.95,def.roof);             // cap
+  a(0,0.45,0.66,0.42,0.66,0.12,0x5a3a24);        // door
+  a(-0.4,1.05,0.64,0.26,0.26,0.06,0x9ad2e0); a(0.4,1.05,0.64,0.26,0.26,0.06,0x9ad2e0);  // windows
+  a(0,1.55,0.7,0.28,0.28,0.1,0x6b4a3a);          // sail hub (the blades are a separate spinning mesh)
+  return c;
+}
+let millSail=null;
+function makeMillSail(){
+  const g=buildPlantGeometry([[0,0,0,0.16,1.9,0.06,0xefe7d2],[0,0,0,1.9,0.16,0.06,0xefe7d2]]);
+  return new THREE.Mesh(g,plantMat);
+}
+function wellCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.35,0,1.1,0.7,1.1,def.wall);              // stone ring
+  a(0,0.62,0,0.7,0.18,0.7,0x2f7f9c);             // water surface
+  a(-0.45,1.1,0,0.14,1.1,0.14,0x6b4a2b); a(0.45,1.1,0,0.14,1.1,0.14,0x6b4a2b);  // posts
+  a(0,1.75,0,1.35,0.24,0.8,def.roof);            // little roof
+  a(0,1.05,0,0.5,0.16,0.16,0x5a3a24);            // crossbar
+  a(0,0.9,0,0.22,0.26,0.22,0x8a6a4a);            // bucket
+  return c;
+}
+function glassCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.1,0,1.8,0.2,1.8,0x8a6a4a);               // wooden base
+  a(0,0.75,0,1.7,1.1,1.7,def.wall);              // pale glass walls
+  a(0,0.75,0.86,1.7,1.1,0.04,0xafd8dd);          // front pane
+  a(0,1.5,0,1.85,0.14,1.85,0x9ab8b0);            // frame ring
+  a(0,1.75,0,1.2,0.5,1.2,def.roof);              // glass roof peak
+  a(-0.6,0.75,0,0.06,1.1,1.7,0x9ab8b0); a(0.6,0.75,0,0.06,1.1,1.7,0x9ab8b0);  // frame mullions
+  a(0,0.42,0.9,0.44,0.6,0.1,0x6b4a2b);           // door
+  a(0.3,1.1,0.62,0.16,0.16,0.16,0x8fd06a); a(-0.3,0.9,0.6,0.14,0.14,0.14,0xe6407a); // plants inside
+  return c;
+}
+function brewCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.5,0,1.7,1.0,1.7,def.wall);               // timber-frame walls
+  a(0,1.15,0,1.9,0.35,1.9,def.roof);             // eaves
+  a(0,1.5,0,1.15,0.5,1.15,def.roof);             // roof peak
+  a(0,0.4,0.9,0.46,0.7,0.1,0x4a3018);            // door
+  a(0.55,0.62,0.9,0.28,0.28,0.06,0x9ad2e0);      // window
+  a(-0.55,1.5,-0.3,0.34,0.9,0.34,0x8a6a4a);      // brew chimney
+  a(-0.5,0.55,0.55,0.34,0.6,0.34,0x8a5a30);      // oak barrel out front
+  a(-0.5,0.86,0.55,0.36,0.08,0.36,0x6a3f1f);     // barrel lid
+  a(-0.5,0.55,0.55,0.36,0.12,0.36,0x5a3a1a);     // barrel hoop
+  return c;
+}
+function hiveCubes(def){
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.2,0,0.42,0.4,0.42,0x6b4a2b);             // wooden stand
+  a(0,0.62,0,1.05,0.5,1.05,def.roof);            // skep tier 1 (amber)
+  a(0,1.0,0,0.86,0.34,0.86,0xd8a41e);            // skep tier 2
+  a(0,1.3,0,0.62,0.3,0.62,0xc9971a);             // skep tier 3
+  a(0,1.55,0,0.3,0.22,0.3,0xb8860b);             // cap
+  a(0,0.56,0.5,0.22,0.12,0.06,0x5a3a24);         // entrance hole
+  a(-0.5,0.5,-0.4,0.14,0.14,0.14,0xe6407a); a(0.55,0.42,0.3,0.14,0.14,0.14,0xf2c94c); // little flowers
+  return c;
+}
+let apiaryBees=null,apiaryBuzz=0;
+function makeBees(){
+  const g=new THREE.Group();
+  for(let i=0;i<3;i++){
+    const m=new THREE.Mesh(buildPlantGeometry([[0,0,0,0.11,0.11,0.11,0xffd24a]]),plantMat);
+    m.userData.ph=i*2.1;g.add(m);
+  }
+  return g;
+}
+function findBuildSpot(){
+  const ring=[[6,6],[-6,6],[6,-4],[-8,2],[9,3],[-4,9],[8,-6],[-9,-6],[4,10],[11,0],[0,11],[-11,4]];
+  for(const [ox,oz] of ring){
+    const y=surfaceY(ox,oz);
+    if(y==null)continue;
+    if((W.pondCells||[]).some(([px,pz])=>Math.abs(px-ox)<2&&Math.abs(pz-oz)<2))continue;
+    let clash=false;
+    for(const key in (state.buildings||{})){const b=state.buildings[key];if(b&&Math.hypot(b.x-ox,b.z-oz)<4){clash=true;break;}}
+    if(clash)continue;
+    return {x:ox,z:oz,y};
+  }
+  return {x:6,z:6,y:surfaceY(6,6)||4};
+}
+function placeBuildingMesh(key){
+  const def=BUILDINGS[key],b=state.buildings[key];if(!def||!b)return;
+  if(W.buildingMeshes[key]){scene.remove(W.buildingMeshes[key]);}
+  const mesh=new THREE.Mesh(buildPlantGeometry(buildingCubes(def)),plantMat);
+  mesh.castShadow=true;mesh.receiveShadow=true;
+  mesh.position.set(b.x+0.5,(surfaceY(b.x,b.z)||4)+1,b.z+0.5);
+  mesh.userData.buildingKey=key;
+  scene.add(mesh);W.buildingMeshes[key]=mesh;
+  if(key==='windmill'){                 // attach the spinning sail cross at the hub
+    millSail=makeMillSail();millSail.position.set(0,1.55,0.74);mesh.add(millSail);
+  }
+  if(key==='apiary'){                   // a few bees buzz around the hive
+    apiaryBees=makeBees();mesh.add(apiaryBees);
+  }
+}
+function updateMillSail(dt){if(millSail)millSail.rotation.z+=dt*0.8;}
+function hasApiary(){return !!(state.buildings&&state.buildings.apiary);}
+let honeyT=0,honeyMsgT=0;
+function updateApiary(dt){
+  honeyMsgT-=dt;
+  if(apiaryBees){                       // bees loop around the hive
+    apiaryBuzz+=dt;
+    apiaryBees.children.forEach(m=>{const t=apiaryBuzz*2.2+m.userData.ph;
+      m.position.set(Math.sin(t)*0.75,1.0+Math.sin(t*1.7)*0.28,Math.cos(t)*0.75);});
+  }
+  if(!hasApiary()){honeyT=0;return;}
+  honeyT+=dt;
+  if(honeyT<16)return;honeyT=0;
+  const b=state.buildings.apiary,gy=(surfaceY(b.x,b.z)||4)+2.4;
+  if(stockpiles()){
+    state.goods.honey=(state.goods.honey||0)+1;
+    floatText(b.x+0.5,gy,b.z+0.5,'+🍯','#f2c94c');refreshGoodsHud();
+  } else {
+    grantCoins(HONEY_GOOD.yield,b.x+0.5,gy,b.z+0.5);
+    floatText(b.x+0.5,gy+0.4,b.z+0.5,'🍯 +'+HONEY_GOOD.yield,'#f2c94c');
+  }
+  burst(b.x+0.5,gy-0.3,b.z+0.5,0xf2c94c,7,{up:1.4,g:4,spread:1.2});
+  SFX.tone(520,0.05,'triangle',0.03);
+  if(!state.achFlags.honey){state.achFlags.honey=true;if(typeof checkAch==='function')checkAch();}
+  if(honeyMsgT<=0){toast('🍯 The Apiary gathered honey');honeyMsgT=30;}
+}
+function rebuildBuildings(){for(const key in (state.buildings||{}))if(state.buildings[key])placeBuildingMesh(key);}
+// A golden Monument raised in the square when the town reaches its highest rank — a trophy.
+let monumentMesh=null;
+function monumentCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.3,0,1.2,0.6,1.2,0xcbb26a);               // stone base
+  a(0,0.72,0,0.82,0.3,0.82,0xd8c07a);            // plinth
+  a(-0.12,1.12,0,0.14,0.42,0.14,0xe6b800); a(0.12,1.12,0,0.14,0.42,0.14,0xe6b800); // golden legs
+  a(0,1.52,0,0.42,0.5,0.28,0xffd23e);            // body
+  a(-0.28,1.5,0,0.12,0.42,0.14,0xffd23e);        // left arm down
+  a(0.3,1.62,0,0.12,0.34,0.12,0xffd23e); a(0.34,1.92,0,0.12,0.28,0.12,0xffd23e);   // right arm raised
+  a(0.36,2.16,0,0.09,0.22,0.09,0xfff0a0);        // holding a golden sheaf aloft
+  a(0,1.94,0,0.28,0.28,0.28,0xffe066);           // head
+  a(0,2.12,0,0.4,0.07,0.4,0xe6b800); a(0,2.2,0,0.2,0.13,0.2,0xe6b800);             // hat
+  return c;}
+function placeMonument(){
+  const m=state.monument;if(!m)return;
+  if(monumentMesh){scene.remove(monumentMesh);monumentMesh.geometry.dispose();}
+  monumentMesh=new THREE.Mesh(buildPlantGeometry(monumentCubes()),plantMat);
+  monumentMesh.castShadow=true;monumentMesh.position.set(m.x+0.5,(surfaceY(m.x,m.z)||4)+1,m.z+0.5);
+  scene.add(monumentMesh);
+}
+function raiseMonument(){
+  if(state.monument){placeMonument();return;}
+  const b=state.buildings.tavern||state.buildings.market||{x:0,z:0};
+  let spot=null;
+  for(const [dx,dz] of [[3,0],[-3,0],[0,3],[0,-3],[3,3],[-3,-3],[4,0],[0,4],[2,3],[-2,-3]]){
+    if(surfaceY(b.x+dx,b.z+dz)!=null){spot={x:b.x+dx,z:b.z+dz};break;}
+  }
+  if(!spot)spot={x:0,z:0};
+  state.monument=spot;placeMonument();
+  const gy=(surfaceY(spot.x,spot.z)||4)+3.4;
+  for(let i=0;i<24;i++)setTimeout(()=>burst(spot.x+0.5,gy,spot.z+0.5,0xffd23e,5,{up:2.4,g:3}),i*50);
+}
+// A town cat turns up once you build a Tavern — it ambles around the settlement
+// and you can tap it for a purr and a heart.
+let townCat=null;
+function catCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.24,0,0.34,0.26,0.6,0xe08a3a);            // body
+  a(0,0.4,0.32,0.26,0.26,0.24,0xe8965a);         // head
+  a(-0.09,0.57,0.34,0.07,0.1,0.05,0xd9782f); a(0.09,0.57,0.34,0.07,0.1,0.05,0xd9782f); // ears
+  a(0,0.36,0.46,0.1,0.08,0.06,0xf2c79a);         // muzzle
+  a(0,0.34,-0.34,0.08,0.08,0.32,0xe08a3a);       // tail
+  a(-0.11,0.08,0.18,0.08,0.16,0.08,0xd9782f); a(0.11,0.08,0.18,0.08,0.16,0.08,0xd9782f);
+  a(-0.11,0.08,-0.16,0.08,0.16,0.08,0xd9782f); a(0.11,0.08,-0.16,0.08,0.16,0.08,0xd9782f);
+  return c;}
+function spawnCat(){
+  if(townCat)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(catCubes()),plantMat);
+  mesh.castShadow=true;mesh.userData.cat=true;scene.add(mesh);
+  const b=state.buildings.tavern||{x:0,z:2};
+  townCat={mesh,name:petName(1),x:b.x+1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3};
+  positionCat();
+}
+function positionCat(){
+  const t=townCat;if(!t)return;
+  const gy=surfaceY(Math.round(t.x),Math.round(t.z));const y=(gy==null?4:gy)+1;
+  if(t.dispY==null)t.dispY=y;else t.dispY+=(y-t.dispY)*0.2;
+  t.mesh.position.set(t.x,t.dispY,t.z);t.mesh.rotation.y=t.face;
+}
+function updateCat(dt){
+  const t=townCat;if(!t)return;
+  if(t.act==='sit'||!t.path){t.step+=dt;t.wait-=dt;
+    if(t.wait<=0){ // pick a nearby reachable amble target
+      for(let i=0;i<6;i++){const ang=Math.random()*6.283,rad=2+Math.random()*5;
+        const wx=Math.round(t.x+Math.sin(ang)*rad),wz=Math.round(t.z+Math.cos(ang)*rad);
+        const p=findPath(Math.round(t.x),Math.round(t.z),wx,wz);
+        if(p){t.path=p;t.pathI=0;t.act='walk';break;}}
+      if(t.act!=='walk')t.wait=1+Math.random()*2;
+    }
+    positionCat();return;
+  }
+  const wp=t.path[t.pathI],dx=(wp[0]+0.5)-t.x,dz=(wp[1]+0.5)-t.z,d=Math.hypot(dx,dz);
+  if(d<(t.pathI>=t.path.length-1?0.3:0.22)){
+    if(t.pathI>=t.path.length-1){t.act='sit';t.wait=2+Math.random()*4;t.path=null;}else t.pathI++;
+  } else {const sp=Math.min(1,1.3*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);t.step+=dt*7;}
+  positionCat();
+}
+function petCat(){
+  const t=townCat;if(!t)return;
+  const gy=(surfaceY(Math.round(t.x),Math.round(t.z))||4)+1;
+  floatText(t.x,gy+1.1,t.z,['❤️','🐾','😻'][(Math.random()*3)|0],'#ff9ec4');
+  SFX.tone(760,0.12,'sine',0.05,900);
+  if(t.name)toast('🐈 '+t.name+' purrs happily');
+  state.achFlags.cat=true;checkAch();
+}
+// A loyal farm dog turns up with the Farmhouse — ambles the isle, tap for a happy bark.
+let townDog=null;
+function dogCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.28,0,0.4,0.32,0.68,0x9a6a3a);            // body
+  a(0,0.5,0.38,0.32,0.32,0.3,0xa9753f);          // head
+  a(0,0.44,0.56,0.16,0.13,0.14,0x8a5f34);        // snout
+  a(0,0.47,0.64,0.07,0.07,0.05,0x2a2a2a);        // nose
+  a(-0.15,0.54,0.36,0.09,0.18,0.06,0x7a4f2a); a(0.15,0.54,0.36,0.09,0.18,0.06,0x7a4f2a); // floppy ears
+  a(0,0.52,-0.36,0.09,0.24,0.11,0x9a6a3a);       // tail (up)
+  a(-0.14,0.1,0.22,0.1,0.2,0.1,0x8a5f34); a(0.14,0.1,0.22,0.1,0.2,0.1,0x8a5f34);
+  a(-0.14,0.1,-0.2,0.1,0.2,0.1,0x8a5f34); a(0.14,0.1,-0.2,0.1,0.2,0.1,0x8a5f34);
+  return c;}
+function spawnDog(){
+  if(townDog)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(dogCubes()),plantMat);
+  mesh.castShadow=true;mesh.userData.dog=true;scene.add(mesh);
+  const b=state.buildings.farmhouse||{x:0,z:-2};
+  townDog={mesh,name:petName(2),x:b.x-1.5,z:b.z+1.5,face:0,step:0,path:null,pathI:0,act:'sit',wait:2+Math.random()*3,digT:30+Math.random()*25};
+  positionDog();
+}
+function positionDog(){
+  const t=townDog;if(!t)return;
+  const gy=surfaceY(Math.round(t.x),Math.round(t.z));const y=(gy==null?4:gy)+1;
+  if(t.dispY==null)t.dispY=y;else t.dispY+=(y-t.dispY)*0.35;   // track terrain quickly so it never dips into a step
+  const wag=Math.sin(t.step*6)*0.06;   // a happy tail-wag wiggle
+  t.mesh.position.set(t.x,t.dispY,t.z);t.mesh.rotation.y=t.face+wag;
+}
+function dogDig(){
+  const t=townDog;if(!t)return;
+  const gy=(surfaceY(Math.round(t.x),Math.round(t.z))||4)+1;
+  const coins=6+((Math.random()*9)|0);   // a little buried treasure
+  grantCoins(coins,t.x,gy+0.9,t.z);
+  floatText(t.x,gy+1.5,t.z,['🦴','💰','🪙'][(Math.random()*3)|0],'#ffd166');
+  burst(t.x,gy+0.1,t.z,0x8a6a42,8,{up:1.5,g:6,spread:1.3});
+  SFX.play('dig');setTimeout(()=>SFX.play('coin'),120);
+  t.digT=32+Math.random()*26;
+}
+function updateDog(dt){
+  const t=townDog;if(!t)return;
+  if(t.digT>0)t.digT-=dt;
+  if(t.act==='sit'||!t.path){t.step+=dt;t.wait-=dt;
+    if(t.wait<=0){
+      for(let i=0;i<6;i++){const ang=Math.random()*6.283,rad=3+Math.random()*6;
+        const wx=Math.round(t.x+Math.sin(ang)*rad),wz=Math.round(t.z+Math.cos(ang)*rad);
+        const p=findPath(Math.round(t.x),Math.round(t.z),wx,wz);
+        if(p){t.path=p;t.pathI=0;t.act='walk';break;}}
+      if(t.act!=='walk')t.wait=1+Math.random()*2;
+    }
+    positionDog();return;
+  }
+  const wp=t.path[t.pathI],dx=(wp[0]+0.5)-t.x,dz=(wp[1]+0.5)-t.z,d=Math.hypot(dx,dz);
+  if(d<(t.pathI>=t.path.length-1?0.3:0.22)){
+    if(t.pathI>=t.path.length-1){t.act='sit';t.wait=1.5+Math.random()*3;t.path=null;
+      if(t.digT<=0)dogDig();}     // dig up buried coins when it settles somewhere new
+    else t.pathI++;
+  } else {const sp=Math.min(1,1.7*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);t.step+=dt*9;}
+  positionDog();
+}
+function petDog(){
+  const t=townDog;if(!t)return;
+  const gy=(surfaceY(Math.round(t.x),Math.round(t.z))||4)+1;
+  floatText(t.x,gy+1.2,t.z,['❤️','🐾','🦴'][(Math.random()*3)|0],'#ffd08a');
+  SFX.tone(300,0.08,'square',0.05);setTimeout(()=>SFX.tone(420,0.1,'square',0.045),90);   // woof-woof
+  if(t.name)toast('🐕 '+t.name+' wags happily');
+  t.wait=0;   // perk up and trot off
+  state.achFlags.dog=true;checkAch();
+}
+// Companion names, drawn deterministically from the world seed so they're
+// stable across reloads (the pets themselves respawn fresh each load).
+const PET_NAMES=['Biscuit','Pepper','Clover','Waffle','Pumpkin','Mochi','Ziggy','Noodle','Pip','Tumble','Marigold','Cinnamon'];
+function petName(off){return PET_NAMES[Math.abs(Math.floor(W.seed||0)+off*31)%PET_NAMES.length];}
+// A duck paddles about the pond — pure ambience on the water surface.
+let pondDuck=null;
+function duckCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.14,0,0.34,0.22,0.5,0xf4f4ee);            // body (afloat)
+  a(0,0.16,-0.28,0.12,0.1,0.16,0xf4f4ee);        // tail
+  a(0,0.34,0.22,0.2,0.22,0.2,0xf7f2e6);          // head
+  a(0,0.32,0.4,0.12,0.07,0.1,0xf2a83a);          // beak
+  a(0.06,0.4,0.31,0.03,0.03,0.02,0x2a2a2a); a(-0.06,0.4,0.31,0.03,0.03,0.02,0x2a2a2a); // eyes
+  return c;}
+function pondCellCenter(i){const p=W.pondCells[i];return {x:p[0]+0.5,z:p[1]+0.5};}
+function spawnDuck(){
+  if(pondDuck||!W.pondCells||!W.pondCells.length)return;
+  const mesh=new THREE.Mesh(buildPlantGeometry(duckCubes()),plantMat);
+  mesh.castShadow=true;mesh.userData.duck=true;scene.add(mesh);
+  const s=pondCellCenter((Math.random()*W.pondCells.length)|0);
+  pondDuck={mesh,name:petName(3),x:s.x,z:s.z,tx:s.x,tz:s.z,face:0,paddle:0,wait:1+Math.random()*3,quackT:6+Math.random()*8};
+  positionDuck();
+}
+function positionDuck(){
+  const t=pondDuck;if(!t)return;
+  const y=(W.waterY||5)+0.12+Math.sin(perf*1.6+t.paddle)*0.03;   // bob on the water
+  t.mesh.position.set(t.x,y,t.z);t.mesh.rotation.y=t.face+Math.sin(t.paddle*4)*0.05;
+}
+function updateDuck(dt){
+  const t=pondDuck;if(!t){if(W.pondCells&&W.pondCells.length)spawnDuck();return;}
+  t.quackT-=dt;
+  if(t.quackT<=0){t.quackT=8+Math.random()*10;
+    const y=(W.waterY||5)+1.1;floatText(t.x,y,t.z,'🦆','#f2e6c8');SFX.tone(360,0.09,'sawtooth',0.03);}
+  const dx=t.tx-t.x,dz=t.tz-t.z,d=Math.hypot(dx,dz);
+  if(d<0.12){
+    t.wait-=dt;
+    if(t.wait<=0){const s=pondCellCenter((Math.random()*W.pondCells.length)|0);t.tx=s.x;t.tz=s.z;t.wait=1.5+Math.random()*4;}
+  } else {const sp=Math.min(1,0.7*dt/d);t.x+=dx*sp;t.z+=dz*sp;t.face=Math.atan2(dx,dz);t.paddle+=dt*6;}
+  positionDuck();
+}
+// When the cat and dog wander near each other, they share a friendly hello.
+let petFriendT=0;
+function updatePetFriends(dt){
+  if(petFriendT>0){petFriendT-=dt;return;}
+  if(!townCat||!townDog)return;
+  if(Math.hypot(townCat.x-townDog.x,townCat.z-townDog.z)>1.8)return;
+  const cy=(surfaceY(Math.round(townCat.x),Math.round(townCat.z))||4)+1;
+  floatText(townCat.x,cy+1.2,townCat.z,'❤️','#ff9ec4');
+  floatText(townDog.x,cy+1.2,townDog.z,['🐾','🎵'][(Math.random()*2)|0],'#ffd08a');
+  SFX.tone(560,0.08,'sine',0.03,720);
+  if(townDog.wait!==undefined)townDog.wait=0;   // trot along after the hello
+  petFriendT=16+Math.random()*8;
+}
+function petDuck(){
+  const t=pondDuck;if(!t)return;
+  const y=(W.waterY||5)+1.2;
+  floatText(t.x,y,t.z,['🦆','💛','🎵'][(Math.random()*3)|0],'#f7d97a');
+  SFX.tone(360,0.1,'sawtooth',0.04);setTimeout(()=>SFX.tone(300,0.1,'sawtooth',0.035),110);
+  if(t.name)toast('🦆 '+t.name+' gives a happy quack');
+  state.achFlags.duck=true;checkAch();
+}
+function buyBuilding(key){
+  const def=BUILDINGS[key];if(!def)return;
+  if(state.buildings[key]){toast(def.ico+' '+def.name+' already built');return;}
+  if(state.level<def.lvl){toast(def.ico+' unlocks at level '+def.lvl);SFX.play('error');return;}
+  if(!spendCoins(def.cost))return;
+  const spot=findBuildSpot();
+  state.buildings[key]={x:spot.x,z:spot.z};
+  placeBuildingMesh(key);
+  SFX.play('islet');
+  banner(def.ico+' '+def.name+' raised!',def.desc);
+  if(key==='tavern'){setTimeout(()=>toast('🍺 Tap a villager to set their role'),1400);setTimeout(()=>{spawnCat();toast('🐈 A cat has adopted your town');},2200);}
+  if(key==='farmhouse'){setTimeout(()=>{spawnDog();toast('🐕 A farm dog has moved in — tap to say hi');},2200);}
+  buildTownPanel();
+  if(typeof checkAch==='function')checkAch();
+  setTimeout(welcomeSettler,1600);        // a new building draws a resident to town
+  checkTownRank();
+}
+function nextIslet(){return ISLETS.find(it=>!W.islets.includes(it.id));}
+function landCost(){return 300+W.islets.length*250;}
+function buyLand(){
+  const it=nextIslet();
+  if(!it){toast('🏝️ Every islet already floats in the sky');return;}
+  const cost=landCost();
+  if(!spendCoins(cost))return;
+  unlockIslet(it);
+  checkTownRank();
+}
+function buildTownPanel(){
+  const p=$('townPanel');if(!p)return;p.innerHTML='';
+  const head=document.createElement('div');head.className='p-head';head.textContent='🏛️ '+townLabel();p.appendChild(head);
+  const it=nextIslet();
+  if(it){
+    const cost=landCost();
+    const d=document.createElement('div');d.className='p-item'+(state.coins<cost?' locked':'');
+    d.innerHTML='<div class="ico">🏝️</div><div class="nm">Raise Land</div><div class="pr">'+cost+' 🪙</div>';
+    d.addEventListener('click',()=>buyLand());
+    p.appendChild(d);
+  }
+  for(const [key,def] of Object.entries(BUILDINGS)){
+    const built=!!state.buildings[key];
+    const locked=state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+((locked||built)?' locked':'');
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+      (built?'<div class="lk">✓ built</div>':locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
+        :'<div class="pr">'+def.cost+' 🪙</div>');
+    if(!locked&&!built)d.addEventListener('click',()=>buyBuilding(key));
+    p.appendChild(d);
+  }
+  const note=document.createElement('div');note.className='p-head';note.style.opacity=0.7;
+  note.textContent=it?BUILDINGS[Object.keys(BUILDINGS).find(k=>!state.buildings[k])||'tavern']?.desc||'':'A thriving little town ✨';
+  p.appendChild(note);
+}
+function buildAnimalPanel(){
+  const p=$('animalPanel');if(!p)return;p.innerHTML='';
+  const head=document.createElement('div');head.className='p-head';
+  head.textContent='🐾 Livestock  ('+W.animals.length+'/'+animalCap()+')';
+  p.appendChild(head);
+  for(const [key,def] of Object.entries(ANIMALS)){
+    const locked=state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+(locked?' locked':'');
+    const owned=W.animals.filter(a=>a.type===key).length;
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+
+      (owned?' ×'+owned:'')+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
+        :'<div class="pr">'+def.cost+'🪙 · sell '+def.sell+'</div>');
+    if(!locked)d.addEventListener('click',()=>{buyAnimal(key);});
+    p.appendChild(d);
+  }
+  const note=document.createElement('div');note.className='p-head';note.style.opacity=0.7;
+  note.textContent='Raise a baby → tap to sell, or keep it for goods';
+  p.appendChild(note);
+}
+/* ============================== plant models ============================== */
+// cube: [x,y,z, sx,sy,sz, colorHex]  (y measured up from soil top, plant centered at 0,0)
+function cubesFor(type,stage,vseed){
+  const R=mulberry32(vseed);
+  const c=[];
+  const add=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  if(stage===0){ // universal sprout
+    add(0,0.07,0,0.07,0.14,0.07,0x4e9a44);
+    add(0.08,0.16,0,0.1,0.05,0.05,0x67b95a);
+    add(-0.07,0.12,0.02,0.09,0.05,0.05,0x67b95a);
+    return c;
+  }
+  switch(type){
+    case 'sunflower':
+      add(0,0.28,0,0.08,0.56,0.08,0x4e8a3c);
+      add(0.12,0.3,0,0.16,0.05,0.08,0x5faa4c);
+      add(-0.12,0.42,0,0.16,0.05,0.08,0x5faa4c);
+      if(stage>=2){
+        add(0,0.72,0,0.24,0.24,0.12,0x6b4423);
+        const pts=[[0.22,0.72],[-0.22,0.72],[0,0.94],[0,0.5],[0.17,0.89],[-0.17,0.89],[0.17,0.55],[-0.17,0.55]];
+        pts.forEach(p=>add(p[0],p[1],0,0.13,0.13,0.07,0xffd23e));
+      } else add(0,0.62,0,0.14,0.14,0.1,0x8fbf3e);
+      break;
+    case 'carrot':
+      for(let i=0;i<(stage>=2?5:3);i++){
+        const a=R()*6.28,r=0.08+R()*0.1;
+        add(Math.cos(a)*r,0.14+R()*0.12,Math.sin(a)*r,0.06,0.24+R()*0.14,0.06,0x4e9a44);
+      }
+      if(stage>=2)add(0,0.05,0,0.2,0.1,0.2,0xed7f1f);
+      break;
+    case 'tomato':
+      add(0,0.24,0,0.1,0.48,0.1,0x4e8a3c);                       // stem
+      add(0.13,0.36,0.05,0.18,0.06,0.1,0x5faa4c);
+      add(-0.12,0.3,-0.05,0.16,0.06,0.1,0x5faa4c);               // leaves
+      if(stage>=2){
+        for(let i=0;i<4;i++){const a=R()*6.28,r=0.11+R()*0.09;
+          add(Math.cos(a)*r,0.22+R()*0.26,Math.sin(a)*r,0.12,0.12,0.12,0xe23b2f);}
+      } else add(0,0.52,0,0.12,0.12,0.1,0x8fbf3e);
+      break;
+    case 'lavender':
+      for(let i=0;i<3;i++){
+        const ox=(i-1)*0.14,oz=(R()-0.5)*0.12;
+        add(ox,0.22,oz,0.05,0.44,0.05,0x5a8a48);
+        if(stage>=2){add(ox,0.5,oz,0.11,0.2,0.11,0x9a6ad6);add(ox,0.63,oz,0.08,0.09,0.08,0xb68ae8);}
+        else add(ox,0.46,oz,0.08,0.08,0.08,0x7aa860);
+      }
+      break;
+    case 'pumpkin':
+      add(0.2,0.05,0.15,0.34,0.1,0.05,0x4e8a3c);
+      add(-0.15,0.05,-0.1,0.05,0.1,0.3,0x4e8a3c);
+      if(stage>=2){
+        add(0,0.26,0,0.52,0.44,0.52,0xe8720c);
+        add(0,0.26,0,0.56,0.36,0.34,0xd6650a);
+        add(0,0.26,0,0.34,0.36,0.56,0xd6650a);
+        add(0,0.53,0,0.09,0.12,0.09,0x5a7a34);
+      } else {
+        add(0,0.14,0,0.24,0.2,0.24,0x7aa33c);
+      }
+      break;
+    case 'chili':
+      add(0,0.24,0,0.34,0.42,0.34,0x3e7a38);                     // leafy bush
+      add(0.15,0.44,0.1,0.2,0.18,0.16,0x498a42);
+      add(-0.13,0.38,-0.08,0.18,0.16,0.14,0x448040);
+      if(stage>=2){
+        for(let i=0;i<5;i++){const a=R()*6.28,r=0.12+R()*0.1;
+          add(Math.cos(a)*r,0.15+R()*0.16,Math.sin(a)*r,0.07,0.2,0.07,0xe22f26);}  // hanging red peppers
+      } else add(0,0.52,0,0.12,0.12,0.1,0x8fbf3e);
+      break;
+    case 'berry':
+      add(0,0.2,0,0.4,0.36,0.4,0x3e7a38);
+      add(0,0.4,0,0.3,0.2,0.3,0x498a42);
+      add(0.16,0.3,0.14,0.18,0.18,0.14,0x448040);
+      if(stage>=2){
+        for(let i=0;i<6;i++)add((R()-0.5)*0.4,0.2+R()*0.3,(R()-0.5)*0.4,0.09,0.09,0.09,0x4a5adf);
+      }
+      break;
+    case 'moonpetal':
+      add(0,0.3,0,0.06,0.6,0.06,0x3a5a6a);
+      if(stage>=2){
+        add(0,0.68,0,0.2,0.1,0.2,0xbfeaff);
+        add(0.14,0.74,0,0.1,0.12,0.08,0x8fd8ff);
+        add(-0.14,0.74,0,0.1,0.12,0.08,0x8fd8ff);
+        add(0,0.74,0.14,0.08,0.12,0.1,0x8fd8ff);
+        add(0,0.74,-0.14,0.08,0.12,0.1,0x8fd8ff);
+        add(0,0.8,0,0.09,0.09,0.09,0xffffff);
+      } else add(0,0.58,0,0.11,0.11,0.11,0x6a9ab0);
+      break;
+    case 'startree':
+      add(0,0.5,0,0.22,1.0,0.22,0x6e4a2a);
+      if(stage>=1){
+        add(0,1.25,0,0.85,0.5,0.85,0x3f8a4c);
+        add(0,1.6,0,0.6,0.35,0.6,0x49994f);
+        add(0,1.85,0,0.35,0.25,0.35,0x54a858);
+      }
+      if(stage>=2){
+        for(let i=0;i<5;i++){const a=R()*6.28,r=0.28+R()*0.2;
+          add(Math.cos(a)*r,1.15+R()*0.6,Math.sin(a)*r,0.12,0.12,0.12,0xffd23e);}
+      }
+      break;
+    /* --- decor --- */
+    case 'fence':
+      add(0,0.3,0,0.1,0.6,0.1,0x9a7448);
+      add(0,0.42,0,0.95,0.08,0.07,0x8a6740);
+      add(0,0.2,0,0.95,0.08,0.07,0x8a6740);
+      add(0,0.42,0,0.07,0.08,0.95,0x8a6740);
+      add(0,0.2,0,0.07,0.08,0.95,0x8a6740);
+      break;
+    case 'lantern':
+      add(0,0.35,0,0.08,0.7,0.08,0x4a3a2a);
+      add(0,0.76,0,0.22,0.22,0.22,0xffcf7a);
+      add(0,0.9,0,0.26,0.06,0.26,0x4a3a2a);
+      break;
+    case 'gnome':
+      add(0,0.15,0,0.24,0.3,0.2,0x4a68c8);
+      add(0,0.36,0,0.18,0.14,0.16,0xf1bf95);
+      add(0,0.52,0,0.14,0.22,0.14,0xd64545);
+      add(0,0.3,0.11,0.16,0.1,0.05,0xe8e8e8);
+      break;
+    case 'flowerbed':{
+      add(0,0.09,0,0.72,0.18,0.42,0x6b4a2b);          // planter box
+      add(0,0.16,0,0.62,0.06,0.34,0x4a3421);          // soil
+      const fc=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0xff9a3e,0x7ec8ff];
+      for(let i=0;i<6;i++){const fx=(i%3-1)*0.22,fz=(i<3?-0.09:0.09);
+        add(fx,0.26,fz,0.05,0.16,0.05,0x4e9a44);
+        add(fx,0.36,fz,0.1,0.09,0.1,fc[(R()*fc.length)|0]);}
+      break;}
+    case 'scarecrow':
+      add(0,0.4,0,0.1,0.82,0.1,0x8a6740);              // post
+      add(0,0.64,0,0.82,0.09,0.09,0x8a6740);           // cross arm
+      add(0,0.52,0,0.34,0.32,0.22,0x9a5a3a);           // shirt
+      add(-0.44,0.64,0,0.06,0.15,0.06,0xd9b24a); add(0.44,0.64,0,0.06,0.15,0.06,0xd9b24a); // straw hands
+      add(0,0.5,0,0.1,0.1,0.1,0xd9b24a);               // straw poking from shirt
+      add(0,0.8,0,0.22,0.22,0.2,0xe4d2a4);             // burlap head
+      add(-0.05,0.82,0.1,0.03,0.03,0.02,0x2a2a2a); add(0.05,0.82,0.1,0.03,0.03,0.02,0x2a2a2a); // stitched eyes
+      add(0,0.92,0,0.34,0.05,0.34,0x6b4a2b);           // hat brim
+      add(0,1.0,0,0.16,0.14,0.16,0x7a5533);            // hat crown
+      break;
+    case 'snowman':
+      add(0,0.28,0,0.5,0.44,0.5,0xf4f8fc);             // bottom snowball
+      add(0,0.62,0,0.38,0.34,0.38,0xf8fbff);           // middle
+      add(0,0.9,0,0.28,0.28,0.28,0xffffff);            // head
+      add(0,0.92,0.15,0.05,0.05,0.12,0xe8952f);        // carrot nose
+      add(-0.06,0.97,0.13,0.03,0.03,0.02,0x2a2a2a); add(0.06,0.97,0.13,0.03,0.03,0.02,0x2a2a2a); // coal eyes
+      add(0,0.66,0.2,0.04,0.04,0.04,0x2a2a2a); add(0,0.56,0.2,0.04,0.04,0.04,0x2a2a2a); // buttons
+      add(-0.32,0.66,0,0.28,0.04,0.04,0x6b4a2b); add(0.32,0.66,0,0.28,0.04,0.04,0x6b4a2b); // twig arms
+      add(0,1.08,0,0.32,0.05,0.32,0x3a3a44); add(0,1.16,0,0.2,0.14,0.2,0x3a3a44); // top hat
+      break;
+    case 'birdbath':
+      add(0,0.22,0,0.16,0.44,0.16,0xa8aeb4);           // stone pedestal
+      add(0,0.42,0,0.34,0.12,0.34,0xbcc2c8);           // basin rim
+      add(0,0.5,0,0.46,0.1,0.46,0xbcc2c8);
+      add(0,0.5,0,0.34,0.06,0.34,0x6fc3e8);            // water
+      add(0.16,0.62,0,0.09,0.12,0.13,0xe0a34a);        // a little bird perched
+      add(0.16,0.72,0.04,0.06,0.06,0.06,0xe8b45a);
+      add(0.16,0.68,0.1,0.04,0.03,0.04,0xd9782f);      // beak
+      break;
+    case 'sprinkler':
+      add(0,0.22,0,0.12,0.44,0.12,0x8b9199);
+      add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
+      add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
+      break;
+    case 'glowshroom':
+      add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
+      if(stage>=2){
+        add(0,0.42,0,0.44,0.18,0.44,0x35d0c0);
+        add(0,0.54,0,0.28,0.1,0.28,0x6ff0e0);
+        add(0.14,0.36,0.14,0.06,0.06,0.06,0xbfffF4);
+        add(-0.15,0.38,-0.1,0.05,0.05,0.05,0xbffff4);
+      } else add(0,0.34,0,0.2,0.1,0.2,0x4a9a8e);
+      break;
+    case 'crystalberry':
+      add(0,0.1,0,0.3,0.2,0.3,0x5a6a7a);
+      if(stage>=1)add(0,0.32,0,0.16,0.34,0.16,0x8fb8d8);
+      if(stage>=2){
+        add(0.14,0.4,0.08,0.1,0.3,0.1,0xa8d4f0);
+        add(-0.13,0.36,-0.06,0.09,0.24,0.09,0xc8e8ff);
+        add(0,0.56,0,0.11,0.22,0.11,0xe8f6ff);
+      }
+      break;
+    case 'dragonfruit':
+      add(0,0.35,0,0.14,0.7,0.14,0x3f7a54);                   // thick cactus-like stalk
+      add(0.1,0.5,0.05,0.1,0.36,0.1,0x4e9a64);
+      add(-0.1,0.44,-0.05,0.1,0.3,0.1,0x4e9a64);
+      if(stage>=2){
+        add(0.13,0.62,0.06,0.16,0.2,0.16,0xe6407a);           // magenta fruit
+        add(-0.12,0.5,-0.05,0.14,0.18,0.14,0xe6407a);
+        add(0.14,0.72,0.07,0.06,0.08,0.06,0x8fe06a);          // green tips
+        add(-0.13,0.6,-0.06,0.06,0.08,0.06,0x8fe06a);
+      } else add(0,0.66,0,0.12,0.12,0.12,0x6fb884);
+      break;
+    case 'frostbloom':
+      add(0,0.28,0,0.08,0.56,0.08,0x8fb8c8);                    // frosty stem
+      add(0.1,0.34,0,0.14,0.05,0.07,0xbfe4f0); add(-0.1,0.46,0,0.14,0.05,0.07,0xbfe4f0); // icy leaves
+      if(stage>=2){
+        add(0,0.72,0,0.16,0.16,0.16,0xdff4ff);                  // crystal core
+        add(0.16,0.72,0,0.1,0.24,0.1,0xa8e0f4); add(-0.16,0.72,0,0.1,0.24,0.1,0xa8e0f4); // petals
+        add(0,0.9,0,0.1,0.24,0.1,0xa8e0f4); add(0,0.72,0.16,0.1,0.1,0.24,0xa8e0f4); add(0,0.72,-0.16,0.1,0.1,0.24,0xa8e0f4);
+        add(0,0.72,0,0.26,0.06,0.26,0xeaffff);                  // frost glint
+      } else add(0,0.62,0,0.14,0.14,0.14,0xbfe4f0);
+      break;
+  }
+  return c;
+}
+const plantMat=new THREE.MeshLambertMaterial({vertexColors:true});
+function buildPlantGeometry(cubes){
+  const pos=[],nor=[],col=[],idx=[];
+  for(const [x,y,z,sx,sy,sz,hex] of cubes){
+    const jit=1;
+    for(const f of FACES){
+      const c=colScale(hex,(f.which==='top'?1.0:f.which==='bottom'?0.5:0.78)*jit);
+      const vi=pos.length/3;
+      for(const o of f.c){
+        pos.push(x+(o[0]-0.5)*sx, y+(o[1]-0.5)*sy, z+(o[2]-0.5)*sz);
+        nor.push(f.n[0],f.n[1],f.n[2]);col.push(c[0],c[1],c[2]);
+      }
+      idx.push(vi,vi+1,vi+2,vi,vi+2,vi+3);
+    }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);
+  return g;
+}
+// crops that give off a soft glow after dark
+const GLOW_CROPS={moonpetal:0x9adfff,glowshroom:0x7bffb0,crystalberry:0xbaa8ff,dragonfruit:0xff5c9e,frostbloom:0x9fe8ff};
+function refreshPlantMesh(p){
+  if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
+  if(p.glow){scene.remove(p.glow);p.glow.geometry.dispose();p.glow.material.dispose();p.glow=null;}
+  const g=buildPlantGeometry(cubesFor(p.type,p.stage,p.vseed));
+  const m=new THREE.Mesh(g,plantMat);
+  m.position.set(p.x+0.5,p.y,p.z+0.5);
+  m.castShadow=true;
+  m.userData.plantKey=k3(p.x,p.y,p.z);
+  scene.add(m);
+  p.mesh=m;
+  if(GLOW_CROPS[p.type]&&p.stage>=1){
+    const gm=new THREE.Mesh(new THREE.IcosahedronGeometry(0.42,1),
+      new THREE.MeshBasicMaterial({color:GLOW_CROPS[p.type],transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+    gm.position.set(p.x+0.5,p.y+(p.stage>=2?0.7:0.45),p.z+0.5);
+    scene.add(gm);p.glow=gm;
+  } else if(p.type==='lantern'){                 // a placed lantern casts a warm halo after dark
+    const gm=new THREE.Mesh(new THREE.IcosahedronGeometry(0.5,1),
+      new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+    gm.position.set(p.x+0.5,p.y+0.75,p.z+0.5);
+    scene.add(gm);p.glow=gm;
+  }
+}
+
+/* ============================== scene ============================== */
+let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
+let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
+let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
+let leaves,leafMat,bird=null;
+const pickables=[];
+function initScene(){
+  scene=new THREE.Scene();
+  scene.fog=new THREE.Fog(0x8ec9ea,70,180);
+  camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,400);
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+  chunkMat=new THREE.MeshLambertMaterial({vertexColors:true});
+  hemiLight=new THREE.HemisphereLight(0xbfe3ff,0x6b5a42,0.75);scene.add(hemiLight);
+  ambLight=new THREE.AmbientLight(0x404860,0.4);scene.add(ambLight);
+  sunLight=new THREE.DirectionalLight(0xfff2d0,1.05);
+  sunLight.castShadow=true;
+  sunLight.shadow.mapSize.set(2048,2048);
+  const sc=sunLight.shadow.camera;
+  sc.left=-48;sc.right=48;sc.top=48;sc.bottom=-48;sc.near=10;sc.far=240;
+  scene.add(sunLight);scene.add(sunLight.target);
+  // sun & moon billboards
+  sunMesh=new THREE.Mesh(new THREE.SphereGeometry(4,12,12),new THREE.MeshBasicMaterial({color:0xffe9a8,fog:false}));
+  moonMesh=new THREE.Mesh(new THREE.SphereGeometry(3,12,12),new THREE.MeshBasicMaterial({color:0xdfe8ff,fog:false}));
+  scene.add(sunMesh);scene.add(moonMesh);
+  // stars
+  const sp=[];for(let i=0;i<420;i++){const a=Math.random()*Math.PI*2,b=Math.acos(Math.random()*0.9);
+    const r=200;sp.push(r*Math.sin(b)*Math.cos(a),r*Math.cos(b)+10,r*Math.sin(b)*Math.sin(a));}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+  starMat=new THREE.PointsMaterial({color:0xffffff,size:1.6,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false});
+  stars=new THREE.Points(sg,starMat);scene.add(stars);
+  // fireflies
+  const fp=[];for(let i=0;i<48;i++)fp.push(0,0,0);
+  const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(fp,3));
+  ffMat=new THREE.PointsMaterial({color:0xc8ff7a,size:0.28,transparent:true,opacity:0,
+    blending:THREE.AdditiveBlending,depthWrite:false});
+  fireflies=new THREE.Points(fg,ffMat);
+  fireflies.userData.seeds=Array.from({length:48},()=>({a:Math.random()*9,b:Math.random()*9,r:6+Math.random()*16,h:2+Math.random()*7}));
+  scene.add(fireflies);
+  // clouds
+  cloudGroup=new THREE.Group();
+  const cMat=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.85});
+  for(let i=0;i<9;i++){
+    const cl=new THREE.Group();
+    const n=2+((Math.random()*3)|0);
+    for(let j=0;j<n;j++){
+      const b=new THREE.Mesh(new THREE.BoxGeometry(4+Math.random()*7,1.4+Math.random(),3+Math.random()*4),cMat);
+      b.position.set((Math.random()-0.5)*7,(Math.random()-0.5)*1.2,(Math.random()-0.5)*4);
+      cl.add(b);
+    }
+    cl.position.set((Math.random()-0.5)*220,20+Math.random()*18,(Math.random()-0.5)*220);
+    cl.userData.spd=0.4+Math.random()*0.7;
+    cloudGroup.add(cl);
+  }
+  scene.add(cloudGroup);
+  // butterflies (day) — two-wing little critters
+  const wingG=new THREE.BoxGeometry(0.22,0.02,0.16);
+  for(let i=0;i<6;i++){
+    const g=new THREE.Group();
+    const colr=[0xffa4c4,0xffd166,0x9ad7ff,0xd7a4ff][i%4];
+    const wm=new THREE.MeshLambertMaterial({color:colr});
+    const w1=new THREE.Mesh(wingG,wm);w1.position.x=0.11;
+    const w2=new THREE.Mesh(wingG,wm);w2.position.x=-0.11;
+    g.add(w1);g.add(w2);g.userData={w1,w2,seed:Math.random()*9,r:5+Math.random()*12,h:6+Math.random()*5};
+    scene.add(g);butterflies.push(g);
+  }
+  // rain — a tall box of falling streaks above the isles
+  const rp=[];for(let i=0;i<420;i++)rp.push((Math.random()-0.5)*90,Math.random()*40-5,(Math.random()-0.5)*90);
+  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));
+  rainMat=new THREE.PointsMaterial({color:0xbfe0f5,size:0.24,transparent:true,opacity:0,depthWrite:false});
+  rain=new THREE.Points(rg,rainMat);rain.visible=false;scene.add(rain);
+  // autumn leaves — lazy drifting flecks over the main island
+  const lp=[];for(let i=0;i<70;i++)lp.push((Math.random()-0.5)*44,Math.random()*26-2,(Math.random()-0.5)*44);
+  const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  leafMat=new THREE.PointsMaterial({color:0xd8912e,size:0.26,transparent:true,opacity:0,depthWrite:false});
+  leaves=new THREE.Points(lg,leafMat);leaves.visible=false;scene.add(leaves);
+  initBird();
+  // highlight + ghost
+  highlightBox=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002,1.002,1.002)),
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85}));
+  highlightBox.visible=false;scene.add(highlightBox);
+  ghostCube=new THREE.Mesh(new THREE.BoxGeometry(0.98,0.98,0.98),
+    new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.35}));
+  ghostCube.visible=false;scene.add(ghostCube);
+  initParticles();
+}
+
+/* ============================== particles ============================== */
+let partMesh;const PART_MAX=240;const parts=[];
+function initParticles(){
+  partMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(0.14,0.14,0.14),
+    new THREE.MeshBasicMaterial({}),PART_MAX);
+  partMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  partMesh.frustumCulled=false;
+  const zero=new THREE.Matrix4().makeScale(0,0,0);
+  for(let i=0;i<PART_MAX;i++){partMesh.setMatrixAt(i,zero);partMesh.setColorAt(i,new THREE.Color(1,1,1));}
+  scene.add(partMesh);
+}
+function burst(x,y,z,hex,n,opts){
+  opts=opts||{};
+  for(let i=0;i<n;i++){
+    if(parts.length>=PART_MAX)parts.shift();
+    const a=Math.random()*Math.PI*2,up=opts.up!==undefined?opts.up:2.6;
+    parts.push({x:x+(Math.random()-0.5)*0.5,y:y+(Math.random()-0.3)*0.4,z:z+(Math.random()-0.5)*0.5,
+      vx:Math.cos(a)*(0.8+Math.random()*1.6)*(opts.spread||1),
+      vy:up*(0.5+Math.random()*0.9),
+      vz:Math.sin(a)*(0.8+Math.random()*1.6)*(opts.spread||1),
+      life:0.5+Math.random()*0.45,t:0,s:0.6+Math.random()*0.9,
+      col:new THREE.Color(hex).multiplyScalar(0.85+Math.random()*0.35),g:opts.g!==undefined?opts.g:7});
+  }
+}
+// slow, long-lived, buoyant grey puff for chimney smoke
+function puffSmoke(x,y,z){
+  if(parts.length>=PART_MAX)parts.shift();
+  parts.push({x:x+(Math.random()-0.5)*0.14,y,z:z+(Math.random()-0.5)*0.14,
+    vx:(Math.random()-0.5)*0.22,vy:0.5+Math.random()*0.3,vz:(Math.random()-0.5)*0.22,
+    life:1.9+Math.random()*1.3,t:0,s:1.0+Math.random()*0.7,
+    col:new THREE.Color(0xd7d7d7).multiplyScalar(0.78+Math.random()*0.2),g:-0.12});
+}
+// the cooking buildings keep a hearth going — [key, dx, chimney-top local Y, dz]
+let smokeT=0;
+const SMOKERS=[['bakery',0.55,2.15,-0.4],['tavern',0.55,2.15,-0.4],['brewery',-0.55,1.95,-0.3]];
+function updateSmoke(dt){
+  smokeT-=dt;
+  if(smokeT>0)return;
+  smokeT=0.55;
+  for(const [key,dx,ty,dz] of SMOKERS){
+    const b=state.buildings&&state.buildings[key];if(!b)continue;
+    const sy=surfaceY(b.x,b.z);if(sy==null)continue;
+    puffSmoke(b.x+0.5+dx,sy+1+ty,b.z+0.5+dz);
+  }
+}
+const _pm=new THREE.Matrix4(),_pq=new THREE.Quaternion(),_pv=new THREE.Vector3(),_ps=new THREE.Vector3();
+function updateParticles(dt){
+  let dirty=false;
+  const zero=new THREE.Matrix4().makeScale(0,0,0);
+  for(let i=0;i<PART_MAX;i++){
+    const p=parts[i];
+    if(!p||p.t>=p.life){partMesh.setMatrixAt(i,zero);continue;}
+    p.t+=dt;p.vy-=p.g*dt;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
+    const f=1-p.t/p.life,s=p.s*f;
+    _pv.set(p.x,p.y,p.z);_ps.set(s,s,s);_pq.set(0,0,0,1);
+    _pm.compose(_pv,_pq,_ps);
+    partMesh.setMatrixAt(i,_pm);
+    partMesh.setColorAt(i,p.col);
+    dirty=true;
+  }
+  // compact dead
+  for(let i=parts.length-1;i>=0;i--)if(parts[i].t>=parts[i].life)parts.splice(i,1);
+  partMesh.instanceMatrix.needsUpdate=true;
+  if(partMesh.instanceColor)partMesh.instanceColor.needsUpdate=true;
+}
+
+/* ============================== pop tweens ============================== */
+const pops=[];
+function popMesh(mesh,from){pops.push({mesh,t:0,from:from||0.05});mesh.scale.setScalar(from||0.05);}
+function updatePops(dt){
+  for(let i=pops.length-1;i>=0;i--){
+    const p=pops[i];p.t+=dt*2.6;
+    if(p.t>=1){p.mesh.scale.setScalar(1);pops.splice(i,1);continue;}
+    p.mesh.scale.setScalar(lerp(p.from,1,easeOutBack(p.t)));
+  }
+}
+
+/* ============================== camera ============================== */
+const cam={yaw:0.7,pitch:0.55,dist:42,tyaw:0.7,tpitch:0.55,tdist:42,cx:0,cy:5,cz:0};
+function updateCamera(dt){
+  const f=1-Math.pow(0.0001,dt);
+  cam.yaw+=(cam.tyaw-cam.yaw)*f;cam.pitch+=(cam.tpitch-cam.pitch)*f;cam.dist+=(cam.tdist-cam.dist)*f;
+  const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  camera.position.set(cam.cx+Math.cos(cam.yaw)*cp*cam.dist,cam.cy+sp*cam.dist,cam.cz+Math.sin(cam.yaw)*cp*cam.dist);
+  camera.lookAt(cam.cx,cam.cy,cam.cz);
+}
+
+/* ============================== first-person ============================== */
+// Walk the island in first person: pointer-lock mouse-look, WASD movement
+// that follows the terrain surface, a crosshair, and a held-tool viewmodel.
+// Look/move forward share the same yaw so it feels consistent; you can only
+// step onto cells that have ground (so you can't walk off into the sky).
+const fp={on:false,x:0.5,z:0.5,yaw:0,pitch:0,bob:0};
+const fpKeys={};
+const FP_TOOL_ICO={hoe:'⚒️',water:'💧',seed:'🌻',block:'🧱',pick:'⛏️'};
+function fpToolIco(){
+  if(state.tool==='seed')return (PLANTS[state.seedSel]||{}).ico||'🌻';
+  if(state.tool==='block')return typeof state.blockSel==='string'?(DECOR[state.blockSel]||{}).ico||'🧱':(BLOCKS[state.blockSel]||{}).ico||'🧱';
+  return FP_TOOL_ICO[state.tool]||'⚒️';
+}
+function refreshFpTool(){const el=$('fpTool');if(el)el.textContent=fpToolIco();}
+function toggleFP(on){
+  on = on===undefined ? !fp.on : !!on;
+  if(on===fp.on)return;
+  fp.on=on;
+  document.body.classList.toggle('fpmode',on);
+  if(on){
+    fp.x=cam.cx; fp.z=cam.cz;
+    if(surfaceY(Math.floor(fp.x),Math.floor(fp.z))===null){fp.x=0.5;fp.z=0.5;}
+    fp.yaw=cam.yaw+Math.PI; fp.pitch=0;
+    refreshFpTool();
+    const cv=renderer.domElement;
+    if(cv.requestPointerLock)try{cv.requestPointerLock();}catch(e){}
+    toast('👣 First person — WASD move · mouse look · click to use tool · F to exit');
+  } else {
+    if(document.pointerLockElement)document.exitPointerLock();
+    hoverHit=null;highlightBox.visible=false;ghostCube.visible=false;
+    document.body.style.cursor='default';
+  }
+}
+function updateFP(dt){
+  const spd=6.2;
+  let mx=0,mz=0;
+  if(fpKeys.w)mz+=1; if(fpKeys.s)mz-=1; if(fpKeys.d)mx+=1; if(fpKeys.a)mx-=1;
+  const moving=!!(mx||mz);
+  const sinY=Math.sin(fp.yaw),cosY=Math.cos(fp.yaw);
+  if(moving){
+    const l=Math.hypot(mx,mz);mx/=l;mz/=l;
+    const step=spd*dt;
+    const nx=fp.x+(sinY*mz+cosY*mx)*step;
+    const nz=fp.z+(cosY*mz-sinY*mx)*step;
+    if(surfaceY(Math.floor(nx),Math.floor(nz))!==null){fp.x=nx;fp.z=nz;}
+    else if(surfaceY(Math.floor(nx),Math.floor(fp.z))!==null)fp.x=nx;
+    else if(surfaceY(Math.floor(fp.x),Math.floor(nz))!==null)fp.z=nz;
+    fp.bob+=dt*11;
+  }
+  const gy=surfaceY(Math.floor(fp.x),Math.floor(fp.z));
+  const eye=(gy!==null?gy:4)+1.7+(moving?Math.sin(fp.bob)*0.06:0);
+  camera.position.set(fp.x,eye,fp.z);
+  const cp=Math.cos(fp.pitch);
+  camera.lookAt(fp.x+sinY*cp, eye+Math.sin(fp.pitch), fp.z+cosY*cp);
+  const tool=$('fpTool');
+  if(tool)tool.style.transform=`translateX(-50%) rotate(-8deg) translateY(${moving?Math.abs(Math.sin(fp.bob))*-10:0}px)`;
+}
+
+/* ============================== day / night ============================== */
+const C_DAY=new THREE.Color(0x8ec9ea),C_NIGHT=new THREE.Color(0x0d1730),C_DUSK=new THREE.Color(0xf2996b);
+const _sky=new THREE.Color(),_mist=new THREE.Color(0xdbe8f0);
+function gaussish(f,c,w){let d=Math.abs(f-c);d=Math.min(d,1-d);return Math.max(0,1-d/w);}
+// When a new season turns, a town that has grown up throws a festival: confetti
+// over the square (Tavern/Market) and a coin bonus that scales with how many
+// villagers and buildings you've gathered — the settlement celebrating itself.
+const FEST_COLS=[0xff5c7a,0xffd23e,0xffffff,0xb06ff0,0x7fd370,0x7ec8ff];
+let festDecor=[];
+function townFestival(s){
+  if(!(W.workers.length>0||hasTavern()))return;
+  const nb=Object.values(state.buildings||{}).filter(Boolean).length;
+  const bonus=Math.round(20+12*W.workers.length+18*nb);
+  const b=state.buildings.tavern||state.buildings.market;
+  const cx=(b?b.x:0)+0.5,cz=(b?b.z:0)+0.5,cy=(surfaceY(b?b.x:0,b?b.z:0)||5)+2.4;
+  grantCoins(bonus,cx,cy,cz);
+  for(let i=0;i<26;i++)setTimeout(()=>burst(cx+(Math.random()-0.5)*3.4,cy+Math.random()*1.6,cz+(Math.random()-0.5)*3.4,FEST_COLS[i%FEST_COLS.length],5,{up:2.6,g:3}),i*55);
+  raiseFestivalLanterns(cx,cy,cz);
+  festBonusT=48;   // goods sell for a premium for a little while during the celebration
+  setTimeout(()=>toast('🎉 '+s.name+' Festival! The town celebrates (+'+bonus+' 🪙 · goods sell +35%)'),500);
+  state.achFlags.festival=true;
+}
+let festBonusT=0;
+function festivalActive(){return festBonusT>0;}
+const FESTIVAL_BONUS=1.35;
+// A ring of glowing lanterns strung over the square for the festival, gently
+// bobbing, that fade away when the celebration winds down.
+function raiseFestivalLanterns(cx,cy,cz){
+  clearFestivalLanterns();
+  const N=10,rad=2.6;
+  for(let i=0;i<N;i++){
+    const a=i/N*6.283,col=FEST_COLS[i%FEST_COLS.length];
+    const g=buildPlantGeometry([[0,0,0,0.22,0.3,0.22,col]]);
+    const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:col,emissive:new THREE.Color(col).multiplyScalar(0.55)}));
+    m.position.set(cx+Math.cos(a)*rad,cy+0.6+Math.sin(a*2)*0.3,cz+Math.sin(a)*rad);
+    scene.add(m);
+    festDecor.push({mesh:m,phase:a,base:m.position.y});
+  }
+  festT=18;
+}
+function clearFestivalLanterns(){for(const d of festDecor){scene.remove(d.mesh);d.mesh.geometry.dispose();d.mesh.material.dispose();}festDecor=[];}
+let festT=0;
+function updateFestival(dt){
+  if(festBonusT>0)festBonusT-=dt;
+  if(!festDecor.length)return;
+  festT-=dt;
+  const fade=festT<3?Math.max(0,festT/3):1;
+  for(const d of festDecor){
+    d.mesh.position.y=d.base+Math.sin(perf*1.6+d.phase)*0.14;
+    d.mesh.rotation.y+=dt*0.8;
+    d.mesh.scale.setScalar(fade);
+  }
+  if(festT<=0)clearFestivalLanterns();
+}
+function updateDay(dt){
+  state.time+=dt;
+  if(state.time>=CYCLE){
+    const prevSeason=seasonOf(state.day);
+    state.time-=CYCLE;state.day++;el.day.textContent=state.day;
+    const s=seasonOf(state.day);
+    if(s!==prevSeason){
+      // repaint every grass top in the new season's colours
+      markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
+      refreshSeasonHud();
+      SFX.play('season');
+      banner(s.ico+' '+s.name+' arrives',
+        s.key==='winter'?'The isle sleeps under frost — growth slows, snow falls.':
+        s.key==='spring'?'Everything grows a little faster. Plant boldly!':
+        s.key==='autumn'?'Leaves drift on the wind. Harvests feel golden.':
+        'Long bright days. The garden basks.');
+      townFestival(s);
+      checkAch();
+    } else toast('☀️ Day '+state.day+' begins — 📈 '+goodDef(demandGoodKey()).product+' is in demand today');
+    if(stockpiles())refreshGoodsHud();
+  }
+  const frac=state.time/CYCLE;
+  const daylight=frac<NIGHT_AT?Math.sin(Math.PI*frac/NIGHT_AT):0;
+  const night=1-clamp(daylight*2.2,0,1);
+  const duskAmt=Math.max(gaussish(frac,NIGHT_AT-0.02,0.05),gaussish(frac,0.985,0.04))*0.75;
+  _sky.copy(C_NIGHT).lerp(C_DAY,clamp(daylight*1.35,0,1)).lerp(C_DUSK,duskAmt);
+  _sky.multiplyScalar(1-rainAmt*0.22);           // showers grey the sky down
+  renderer.setClearColor(_sky);
+  scene.fog.color.copy(_sky);
+  // dawn mist — fog draws in tight at sunrise then burns off (thicker in spring/autumn)
+  const sk=seasonOf(state.day).key;
+  const mist=gaussish(frac,0.075,0.05)*(sk==='autumn'||sk==='spring'?1:sk==='winter'?0.85:0.65);
+  scene.fog.near=70-mist*46;
+  scene.fog.far=180-mist*84;
+  if(mist>0.02)scene.fog.color.lerp(_mist,mist*0.5);
+  // sun path
+  const sa=Math.PI*frac/NIGHT_AT;              // 0..pi across daytime
+  const sunX=Math.cos(sa)*110,sunY=Math.sin(sa)*95,sunZ=40;
+  sunMesh.position.set(sunX,sunY,sunZ);
+  sunMesh.visible=daylight>0.01;
+  const ma=Math.PI*((frac-NIGHT_AT)/(1-NIGHT_AT));
+  moonMesh.position.set(Math.cos(ma)*110,Math.sin(ma)*85,-50);
+  moonMesh.visible=night>0.4&&frac>=NIGHT_AT;
+  if(daylight>0.02){
+    sunLight.position.set(sunX*0.8,Math.max(sunY*0.8,8),sunZ*0.8);
+    sunLight.intensity=(0.25+daylight*0.95)*(1-rainAmt*0.45);
+    sunLight.color.setHex(duskAmt>0.3?0xffc890:0xfff2d0);
+  } else {
+    sunLight.position.set(Math.cos(ma)*80,Math.max(Math.sin(ma)*70,10),-40);
+    sunLight.intensity=0.18;
+    sunLight.color.setHex(0x9db8ff);
+  }
+  hemiLight.intensity=0.25+daylight*0.55;
+  ambLight.intensity=0.32+daylight*0.18;
+  starMat.opacity=night*0.9;
+  ffMat.opacity=night*0.95;
+  el.dayIco.textContent=frac<NIGHT_AT?'☀️':'🌙';
+  return {frac,daylight,night};
+}
+const isNight=()=>state.time/CYCLE>=NIGHT_AT;
+
+/* ============================== plants logic ============================== */
+function addPlant(x,y,z,type,fromLoad,prog,stage,harvested){
+  const p={x,y,z,type,prog:prog||0,stage:stage!==undefined?stage:0,
+    vseed:(hash3(x,y,z,W.seed)*1e9)|0,mesh:null,phase:Math.random()*9,harvested:harvested||0};
+  W.plants.set(k3(x,y,z),p);
+  refreshPlantMesh(p);
+  if(!fromLoad)popMesh(p.mesh);
+  return p;
+}
+function removePlant(p){
+  if(p.mesh){scene.remove(p.mesh);p.mesh.geometry.dispose();}
+  if(p.glow){scene.remove(p.glow);p.glow.geometry.dispose();p.glow.material.dispose();p.glow=null;}
+  if(p.goldGlow){scene.remove(p.goldGlow);p.goldGlow.geometry.dispose();p.goldGlow.material.dispose();p.goldGlow=null;}
+  W.plants.delete(k3(p.x,p.y,p.z));
+}
+// A crop planted in its favoured season grows faster and sells for more —
+// rewarding seasonal planting on top of the global season growth curve.
+function inSeason(def){return !!(def&&def.season&&def.season===seasonOf(state.day).key);}
+function stageFor(p){
+  const def=PLANTS[p.type];
+  if(!def)return 2;                      // decor is always "grown"
+  if(p.prog>=def.grow)return 2;
+  return p.prog>=def.grow*0.45?1:0;
+}
+function updatePlants(dt,dn){
+  const api=state.buildings&&state.buildings.apiary;   // bees pollinate nearby crops
+  for(const p of W.plants.values()){
+    const def=PLANTS[p.type];
+    if(!def){                            // decor
+      if(p.type==='lantern'&&p.glow){const t=dn.night||0;p.glow.visible=t>0.05;
+        p.glow.material.opacity=t*(0.5+Math.sin(perf*1.6+p.phase)*0.12);}   // lantern warms up at night
+      continue;
+    }
+    if(p.glow){const t=dn.night||0;p.glow.visible=t>0.03;
+      p.glow.material.opacity=t*(0.45+Math.sin(perf*2+p.phase)*0.18);}   // pulse after dark
+    if(p.goldGlow)p.goldGlow.material.opacity=0.35+Math.sin(perf*4+p.phase)*0.2;   // golden shimmer
+    if(p.stage>=2){
+      // gentle ripe pulse
+      const s=1+Math.sin(perf*2.6+p.phase)*0.045;
+      if(!popsHas(p.mesh))p.mesh.scale.setScalar(s);
+      continue;
+    }
+    let rate=seasonOf(state.day).growMult;
+    if(seasonOf(state.day).key==='winter'&&hasGreenhouse())rate=1;   // a Greenhouse beats the winter chill
+    if(inSeason(def))rate*=1.5;                                       // its favoured season → faster growth
+    if(def.night)rate*=dn.night>0.5?1.6:0.12;
+    if(state.buildings&&state.buildings.farmhouse)rate*=1.2;   // Farmhouse boosts crops
+    if(api&&Math.hypot(p.x-api.x,p.z-api.z)<=POLLEN_R)rate*=1.25;   // pollinated by the Apiary's bees
+    const soilK=k3(p.x,p.y-1,p.z);
+    if(W.wet.has(soilK))rate*=2;
+    p.prog+=dt*rate;
+    const ns=stageFor(p);
+    if(ns!==p.stage){
+      p.stage=ns;refreshPlantMesh(p);popMesh(p.mesh,0.5);
+      if(ns===2){
+        burst(p.x+0.5,p.y+0.7,p.z+0.5,def.night?0x9adfff:0xfff2a8,10,{up:1.6,g:2});
+        SFX.play('grow');
+        // ~8% of crops ripen GOLDEN — worth double when harvested
+        if(Math.random()<0.08){p.golden=true;
+          burst(p.x+0.5,p.y+0.8,p.z+0.5,0xffd23e,16,{up:2.2,g:3});
+          floatText(p.x+0.5,p.y+1.2,p.z+0.5,'✨ Golden!','#ffd23e');
+          if(!p.goldGlow){p.goldGlow=new THREE.Mesh(new THREE.IcosahedronGeometry(0.4,1),
+            new THREE.MeshBasicMaterial({color:0xffe066,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+            p.goldGlow.position.set(p.x+0.5,p.y+0.7,p.z+0.5);scene.add(p.goldGlow);}
+        }
+      }
+    }
+  }
+}
+function popsHas(mesh){return pops.some(p=>p.mesh===mesh);}
+function updateWet(dt){
+  for(const [k,t] of W.wet){
+    const nt=t-dt;
+    if(nt<=0){
+      W.wet.delete(k);
+      const [x,y,z]=k.split(',').map(Number);
+      if(getB(x,y,z)===6)setB(x,y,z,5);
+    } else W.wet.set(k,nt);
+  }
+}
+
+/* ============================== economy / progression ============================== */
+function grantCoins(n,wx,wy,wz){
+  state.coins+=n;state.totalEarned+=n;
+  el.coins.textContent=state.coins;
+  el.coinChip.classList.add('pulse');setTimeout(()=>el.coinChip.classList.remove('pulse'),160);
+  if(wx!==undefined)floatText(wx,wy,wz,'+'+n+' 🪙','#ffd166');
+}
+function spendCoins(n){
+  if(state.coins<n){toast('Not enough coins — harvest something! 🪙');SFX.play('error');return false;}
+  state.coins-=n;el.coins.textContent=state.coins;return true;
+}
+function grantXP(n){
+  state.xp+=n;
+  while(state.level<LVL_XP.length&&state.xp>=LVL_XP[state.level]){
+    state.level++;
+    onLevelUp();
+  }
+  refreshXpHud();
+}
+function refreshXpHud(){
+  el.lvl.textContent='LV '+state.level;
+  const cur=LVL_XP[state.level-1],next=LVL_XP[state.level]||null;
+  if(next){el.xpBar.style.width=Math.round((state.xp-cur)/(next-cur)*100)+'%';
+    el.xpTxt.textContent=(state.xp-cur)+'/'+(next-cur);}
+  else{el.xpBar.style.width='100%';el.xpTxt.textContent='MAX';}
+}
+function onLevelUp(){
+  SFX.play('level');
+  banner('🌿 Garden Level '+state.level+'!',UNLOCKS[state.level]||'Keep growing!');
+  buildSeedPanel();buildBlockPanel();
+  ISLETS.forEach(it=>{if(it.lvl===state.level)unlockIslet(it);});
+  questCheck();
+}
+function unlockIslet(it,fromLoad){
+  if(W.islets.includes(it.id))return;
+  W.islets.push(it.id);
+  genIsland(it.x,it.z,it.r,it.seedOff);
+  genBridge(it);
+  markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
+  if(!fromLoad){
+    SFX.play('islet');
+    setTimeout(()=>banner('🏝️ '+it.name+' has risen!','A new island floats up beside yours — bridge included.'),1200);
+    for(let i=0;i<24;i++)setTimeout(()=>{
+      burst(it.x+(Math.random()-0.5)*it.r*2,surfaceY(it.x,it.z)+2||6,it.z+(Math.random()-0.5)*it.r*2,0xffffff,4,{up:2,g:3});
+    },i*80);
+  }
+}
+
+/* ============================== quests ============================== */
+const QUESTS=[
+  {text:'Till 3 patches of grass with the ⚒️ hoe',prog:()=>state.tills+'/3',done:()=>state.tills>=3,reward:5},
+  {text:'Plant 3 sunflower seeds 🌻 in tilled soil',prog:()=>state.planted+'/3',done:()=>state.planted>=3,reward:5},
+  {text:'Water 3 plots with the 💧 watering can',prog:()=>state.waters+'/3',done:()=>state.waters>=3,reward:5},
+  {text:'Harvest your first ripe crop ✨',prog:()=>state.harvests+'/1',done:()=>state.harvests>=1,reward:10},
+  {text:'Reach Garden Level 2',prog:()=>'LV '+state.level,done:()=>state.level>=2,reward:15},
+  {text:'Place a decoration or block 🧱',prog:()=>state.decor+'/1',done:()=>state.decor>=1,reward:10},
+  {text:'Harvest 10 crops',prog:()=>state.harvests+'/10',done:()=>state.harvests>=10,reward:25},
+  {text:'Reach Garden Level 4 — something will rise…',prog:()=>'LV '+state.level,done:()=>state.level>=4,reward:40},
+  {text:'Earn 1,000 coins total',prog:()=>state.totalEarned+'/1000',done:()=>state.totalEarned>=1000,reward:100},
+  {text:'Reach Garden Level 6',prog:()=>'LV '+state.level,done:()=>state.level>=6,reward:150},
+];
+// After the starter quest chain, the town keeps sending rotating requests so
+// there's always a goal to chase — each rewards coins, then a fresh one rolls.
+const REQUESTS=[
+  {key:'meals',  verb:'Serve',  noun:'meals at the Tavern',metric:()=>state.meals||0,   step:()=>8+((Math.random()*8)|0),  rate:6,  gate:()=>hasTavern()},
+  {key:'loaves', verb:'Bake',   noun:'loaves at the Bakery',metric:()=>state.loaves||0,  step:()=>6+((Math.random()*6)|0),  rate:8,  gate:()=>hasBakery()},
+  {key:'harvest',verb:'Harvest',noun:'crops',              metric:()=>state.harvests||0,step:()=>10+((Math.random()*12)|0), rate:4},
+  {key:'plant',  verb:'Plant',  noun:'seeds',              metric:()=>state.planted||0, step:()=>8+((Math.random()*8)|0),  rate:4},
+  {key:'earn',   verb:'Earn',   noun:'coins',              metric:()=>state.totalEarned||0,step:()=>300+((Math.random()*500)|0),rate:0.15},
+];
+function reqDef(k){return REQUESTS.find(r=>r.key===k);}
+function newRequest(){
+  const avail=REQUESTS.filter(r=>!r.gate||r.gate());
+  const r=avail[(Math.random()*avail.length)|0];
+  const add=r.step(),goal=r.metric()+add;
+  state.request={key:r.key,goal,text:'🏘️ '+r.verb+' '+add+' '+r.noun,reward:Math.max(10,Math.round(add*r.rate))};
+}
+function questCheck(){
+  checkAch();
+  checkTownRank();
+  const q=QUESTS[state.questIdx];
+  if(q){
+    if(q.done()){
+      grantCoins(q.reward);
+      toast('✦ Goal complete! +'+q.reward+' 🪙');
+      SFX.play('coin');
+      state.questIdx++;
+      questCheck();return;
+    }
+    refreshQuestHud();return;
+  }
+  // starter chain done → town requests
+  if(!state.request)newRequest();
+  else{
+    const rd=reqDef(state.request.key);
+    if(rd&&rd.metric()>=state.request.goal){
+      grantCoins(state.request.reward);
+      toast('🏘️ Town request fulfilled! +'+state.request.reward+' 🪙');
+      SFX.play('coin');
+      state.request=null;newRequest();
+    }
+  }
+  refreshQuestHud();
+}
+function refreshQuestHud(){
+  const q=QUESTS[state.questIdx];
+  if(q){el.qText.textContent=q.text;el.qProg.textContent=q.prog();return;}
+  if(!state.request){el.qText.textContent='Free play — grow the garden of your dreams ✨';el.qProg.textContent='';return;}
+  const rd=reqDef(state.request.key);
+  el.qText.textContent=state.request.text;
+  el.qProg.textContent=rd?Math.min(state.request.goal,rd.metric())+'/'+state.request.goal:'';
+}
+
+/* ============================== actions ============================== */
+function cellFromHit(hit,into){
+  const n=hit.face.normal;
+  const off=into?-0.5:0.5;
+  return [Math.floor(hit.point.x+n.x*off),Math.floor(hit.point.y+n.y*off),Math.floor(hit.point.z+n.z*off)];
+}
+function doAction(hit){
+  const ud=hit.object.userData;
+  // plant hit?
+  if(ud.plantKey){
+    const p=W.plants.get(ud.plantKey);
+    if(p)return actOnPlant(p);
+    return;
+  }
+  if(ud.animalRef)return cashInAnimal(ud.animalRef);   // tap a grown animal to sell it
+  if(ud.dropRef)return collectDrop(ud.dropRef);         // tap a dropped good to collect it
+  if(ud.workerRef)return cycleWorkerRole(ud.workerRef); // tap a villager to set their role
+  if(ud.water)return goFishing(hit.point.x,hit.point.z); // tap the pond to fish
+  if(ud.cat)return petCat();                              // pet the town cat
+  if(ud.dog)return petDog();                              // pet the farm dog
+  if(ud.duck)return petDuck();                            // greet the pond duck
+  if(ud.buildingKey){                                   // tap a building
+    if(ud.buildingKey==='market')return sellStockpile(false);
+    const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
+  }
+  const [x,y,z]=cellFromHit(hit,true);
+  const id=getB(x,y,z);
+  const tool=state.tool;
+  if(tool==='hoe'){
+    if((id===1||id===2)&&!getB(x,y+1,z)){
+      setB(x,y,z,5);flushChunks();
+      state.tills++;SFX.play('till');
+      burst(x+0.5,y+1.05,z+0.5,0x8a6a42,8,{up:1.8,g:6});
+      questCheck();
+    } else if(id===5||id===6){toast('Already tilled — plant a seed! 🌱');}
+    else{toast('Till grass or dirt (with nothing on top)');SFX.play('error');}
+  }
+  else if(tool==='water'){
+    waterSoil(x,y,z,id);
+  }
+  else if(tool==='seed'){
+    if(id===5||id===6){
+      if(W.plants.has(k3(x,y+1,z))){toast('Something is already growing here');return;}
+      const def=PLANTS[state.seedSel];
+      if(state.level<def.lvl){toast('Unlocks at level '+def.lvl);SFX.play('error');return;}
+      if(!spendCoins(def.cost))return;
+      addPlant(x,y+1,z,state.seedSel);
+      state.planted++;SFX.play('plant');
+      burst(x+0.5,y+1.2,z+0.5,0x7fd370,6,{up:1.4,g:4});
+      if(def.night&&!isNight())toast('🌙 Moonpetals only grow at night…');
+      questCheck();
+    } else {toast('Plant in tilled soil — use the ⚒️ hoe first');SFX.play('error');}
+  }
+  else if(tool==='pick'){
+    if(id){
+      const above=W.plants.get(k3(x,y+1,z));
+      if(above)removePlant(above);
+      const def=BLOCKS[id];
+      setB(x,y,z,0);
+      W.wet.delete(k3(x,y,z));
+      flushChunks();
+      SFX.play('dig');
+      burst(x+0.5,y+0.5,z+0.5,def.top,10,{up:2,g:7});
+    }
+  }
+  else if(tool==='block'){
+    const [px,py,pz]=cellFromHit(hit,false);
+    placeSelected(px,py,pz);
+  }
+}
+function waterSoil(x,y,z,id){
+  if(id===5||id===6){
+    if(id===5){setB(x,y,z,6);flushChunks();}
+    W.wet.set(k3(x,y,z),95);
+    state.waters++;SFX.play('water');
+    burst(x+0.5,y+1.15,z+0.5,0x6fc3ff,9,{up:1.2,g:5,spread:0.6});
+    questCheck();
+  } else if(id===1||id===2){toast('Till it first with the ⚒️ hoe');}
+  else toast('Water tilled soil to speed up growth 2×');
+}
+function actOnPlant(p){
+  const def=PLANTS[p.type];
+  if(!def){ // decor
+    if(state.tool==='pick'){
+      removePlant(p);SFX.play('dig');
+      burst(p.x+0.5,p.y+0.4,p.z+0.5,0xc09362,8,{up:1.6,g:6});
+    }
+    return;
+  }
+  if(p.stage>=2){
+    // harvest!
+    state.harvests++;
+    if(p.type==='moonpetal')state.achFlags.moon=true;
+    if(p.type==='startree')state.achFlags.tree=true;
+    if(isNight())state.achFlags.night=true;
+    const gold=!!p.golden;
+    if(gold){p.golden=false;state.achFlags.golden=true;
+      if(p.goldGlow){scene.remove(p.goldGlow);p.goldGlow.geometry.dispose();p.goldGlow.material.dispose();p.goldGlow=null;}}
+    let pay=gold?def.sell*2:def.sell;
+    const season=inSeason(def);
+    if(season)pay=Math.round(pay*1.4);                                // in-season harvest sells for +40%
+    grantCoins(pay,p.x+0.5,p.y+0.9,p.z+0.5);
+    if(season){state.achFlags.inseason=true;floatText(p.x+0.5,p.y+1.5,p.z+0.5,seasonOf(state.day).ico+' in season!','#ffe08a');}
+    grantXP(def.xp);
+    stockCrop(p.x+0.5,p.y+1.3,p.z+0.5,produceFromCrop(def));   // premium crops → more produce
+    SFX.play('harvest');
+    setTimeout(()=>SFX.play('coin'),140);
+    burst(p.x+0.5,p.y+0.6,p.z+0.5,0xffd166,14,{up:2.4,g:6});
+    if(def.multi){
+      p.harvested++;p.prog=def.grow-def.regrow;p.stage=1;
+      refreshPlantMesh(p);popMesh(p.mesh,0.6);
+    } else {
+      removePlant(p);
+      // soil stays tilled for replanting
+    }
+    questCheck();
+    if(typeof checkAch==='function')checkAch();
+    return;
+  }
+  if(state.tool==='pick'){removePlant(p);SFX.play('dig');
+    burst(p.x+0.5,p.y+0.3,p.z+0.5,0x4e9a44,6,{up:1.4,g:6});return;}
+  if(state.tool==='water'){const sy=p.y-1;waterSoil(p.x,sy,p.z,getB(p.x,sy,p.z));return;}
+  const pct=Math.round(p.prog/def.grow*100);
+  const wet=W.wet.has(k3(p.x,p.y-1,p.z));
+  toast(def.ico+' '+def.name+' — '+pct+'% grown'+(wet?' 💧2×':'')+(def.night&&!isNight()?' (waiting for night 🌙)':''));
+}
+function placeSelected(x,y,z){
+  if(Math.abs(x)>46||Math.abs(z)>46||y<-24||y>26){toast('Too far out into the sky…');return;}
+  if(getB(x,y,z)){return;}
+  if(W.plants.has(k3(x,y,z))){toast('Something is in the way');return;}
+  const sel=state.blockSel;
+  if(typeof sel==='string'){ // decor
+    const d=DECOR[sel];
+    if(state.level<d.lvl){toast('Unlocks at level '+d.lvl);SFX.play('error');return;}
+    if(!getB(x,y-1,z)){toast('Decor needs ground under it');return;}
+    if(!spendCoins(d.cost))return;
+    addPlant(x,y,z,sel);
+    state.decor++;SFX.play('place');
+    burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
+    questCheck();
+  } else {
+    const def=BLOCKS[sel];
+    if(def.lvl&&state.level<def.lvl){toast('Unlocks at level '+def.lvl);SFX.play('error');return;}
+    if(!spendCoins(def.cost))return;
+    setB(x,y,z,sel);flushChunks();
+    state.decor++;SFX.play('place');
+    burst(x+0.5,y+0.5,z+0.5,def.top,8,{up:1.6,g:5});
+    questCheck();
+  }
+}
+
+/* ============================== input ============================== */
+const ray=new THREE.Raycaster();
+const ptr=new THREE.Vector2();
+let pointerDown=false,dragDist=0,lastPX=0,lastPY=0,pinchD=0,twoFinger=false;
+let hoverHit=null;
+function getPickables(){
+  const arr=[];
+  for(const m of W.chunkMeshes.values())arr.push(m);
+  for(const p of W.plants.values())if(p.mesh)arr.push(p.mesh);
+  for(const a of W.animals)if(a.mesh)arr.push(a.mesh);
+  for(const d of W.drops)if(d.mesh)arr.push(d.mesh);
+  for(const w of W.workers)if(w.mesh)arr.push(w.mesh);
+  for(const k in W.buildingMeshes)arr.push(W.buildingMeshes[k]);
+  if(waterMesh)arr.push(waterMesh);
+  if(townCat)arr.push(townCat.mesh);
+  if(townDog)arr.push(townDog.mesh);
+  if(pondDuck)arr.push(pondDuck.mesh);
+  return arr;
+}
+function raycastAt(clientX,clientY){
+  ptr.x=(clientX/innerWidth)*2-1;ptr.y=-(clientY/innerHeight)*2+1;
+  ray.setFromCamera(ptr,camera);
+  const hits=ray.intersectObjects(getPickables(),false);
+  return hits.length?hits[0]:null;
+}
+function bindInput(){
+  const cv=renderer.domElement;
+  const pointers=new Map();
+  cv.addEventListener('pointerdown',e=>{
+    SFX.ensure();
+    if(fp.on){const hit=raycastAt(innerWidth/2,innerHeight/2);if(hit)doAction(hit);return;}
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointers.size===2){
+      twoFinger=true;
+      const ps=[...pointers.values()];
+      pinchD=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
+    }
+    pointerDown=true;dragDist=0;lastPX=e.clientX;lastPY=e.clientY;
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(fp.on){
+      fp.yaw-=(e.movementX||0)*0.0023;
+      fp.pitch=clamp(fp.pitch-(e.movementY||0)*0.0023,-1.3,1.3);
+      return;
+    }
+    if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointers.size===2){
+      const ps=[...pointers.values()];
+      const d=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
+      if(pinchD)cam.tdist=clamp(cam.tdist*(pinchD/d),16,90);
+      pinchD=d;
+      return;
+    }
+    if(pointerDown){
+      const dx=e.clientX-lastPX,dy=e.clientY-lastPY;
+      dragDist+=Math.abs(dx)+Math.abs(dy);
+      if(dragDist>6){
+        cam.tyaw+=dx*0.0075;
+        cam.tpitch=clamp(cam.tpitch+dy*0.005,0.12,1.35);
+      }
+      lastPX=e.clientX;lastPY=e.clientY;
+    }
+    lastPX=e.clientX;lastPY=e.clientY;
+    hoverHit={x:e.clientX,y:e.clientY};
+  });
+  const endPointer=e=>{
+    pointers.delete(e.pointerId);
+    if(pointers.size<2){twoFinger=false;pinchD=0;}
+    if(!pointerDown)return;
+    pointerDown=false;
+    if(dragDist<=6&&!twoFinger){
+      const hit=raycastAt(e.clientX,e.clientY);
+      if(hit)doAction(hit);
+    }
+  };
+  cv.addEventListener('pointerup',endPointer);
+  cv.addEventListener('pointercancel',endPointer);
+  cv.addEventListener('wheel',e=>{e.preventDefault();
+    cam.tdist=clamp(cam.tdist+Math.sign(e.deltaY)*3.2,16,90);},{passive:false});
+  addEventListener('keydown',e=>{
+    const k=e.key.toLowerCase();
+    if(fp.on&&(k==='w'||k==='a'||k==='s'||k==='d')){fpKeys[k]=true;e.preventDefault();return;}
+    if(k==='f'){toggleFP();return;}
+    if(fp.on&&!e.repeat&&k==='escape'){toggleFP(false);return;}
+    if(e.key==='q'||e.key==='Q'){if(!fp.on)cam.tyaw-=Math.PI/4;}
+    else if(e.key==='e'||e.key==='E'){if(!fp.on)cam.tyaw+=Math.PI/4;}
+    else if(e.key==='m'||e.key==='M')toggleMute();
+    else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
+    else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
+    else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
+      document.body.classList.remove('photo');closePanels();}
+    else if(e.key>='1'&&e.key<='5'){
+      const tools=['hoe','water','seed','block','pick'];
+      selectTool(tools[+e.key-1]);
+    }
+    else if((e.key==='+'||e.key==='=')&&!fp.on)cam.tdist=clamp(cam.tdist-4,16,90);
+    else if(e.key==='-'&&!fp.on)cam.tdist=clamp(cam.tdist+4,16,90);
+  });
+  addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='w'||k==='a'||k==='s'||k==='d')fpKeys[k]=false;});
+  document.addEventListener('pointerlockchange',()=>{
+    // Esc releasing the pointer lock should drop us back to orbit.
+    if(!document.pointerLockElement&&fp.on)toggleFP(false);
+  });
+  addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    fitCamera();
+  });
+}
+// Pull the camera back on narrow / portrait screens (phones, iPad portrait) so
+// the whole isle stays in frame, and sit a touch closer on wide desktop.
+function fitCamera(initial){
+  const ar=innerWidth/innerHeight;
+  let d;
+  if(ar<0.7)d=58;            // tall portrait phone
+  else if(ar<1.05)d=50;      // square-ish / iPad portrait
+  else if(ar<1.5)d=45;       // iPad landscape / small window
+  else d=42;                 // desktop
+  cam.tdist=clamp(d,16,90);
+  cam.cy=(surfaceY(0,0)||5)+1;                      // aim at isle level so it centres
+  if(initial){cam.dist=cam.tdist;cam.tpitch=cam.pitch=ar<1.05?0.6:0.55;}
+}
+function updateHover(){
+  const src=fp.on?{x:innerWidth/2,y:innerHeight/2}:hoverHit;
+  if(!src){highlightBox.visible=false;ghostCube.visible=false;return;}
+  const hit=raycastAt(src.x,src.y);
+  if(!hit){highlightBox.visible=false;ghostCube.visible=false;return;}
+  if(hit.object.userData.plantKey){
+    const p=W.plants.get(hit.object.userData.plantKey);
+    highlightBox.visible=false;ghostCube.visible=false;
+    document.body.style.cursor=p&&p.stage>=2?'pointer':'default';
+    return;
+  }
+  if(hit.object.userData.animalRef||hit.object.userData.dropRef||hit.object.userData.workerRef||hit.object.userData.buildingKey||hit.object.userData.water||hit.object.userData.cat||hit.object.userData.dog||hit.object.userData.duck){
+    highlightBox.visible=false;ghostCube.visible=false;
+    document.body.style.cursor='pointer';return;
+  }
+  document.body.style.cursor='default';
+  if(state.tool==='block'){
+    const [x,y,z]=cellFromHit(hit,false);
+    ghostCube.position.set(x+0.5,y+0.5,z+0.5);
+    ghostCube.visible=true;highlightBox.visible=false;
+    const sel=state.blockSel;
+    ghostCube.material.color.setHex(typeof sel==='string'?0xffe9b8:BLOCKS[sel].top);
+  } else {
+    const [x,y,z]=cellFromHit(hit,true);
+    highlightBox.position.set(x+0.5,y+0.5,z+0.5);
+    highlightBox.visible=true;ghostCube.visible=false;
+  }
+}
+
+/* ============================== HUD ============================== */
+const el={};
+function $(id){return document.getElementById(id);}
+function initHud(){
+  ['coins','lvl','xpBar','xpTxt','day','qText','qProg','toasts','banner','bH','bP','helpOv','seedIco','blockIco'].forEach(id=>el[id]=$(id));
+  el.coinChip=$('coinChip');el.dayIco=document.querySelector('#dayChip');
+  el.dayIco={set textContent(v){/* first char swap */const d=$('dayChip');d.firstChild.textContent=v+' Day ';}};
+  el.day=$('day');
+  document.querySelectorAll('.slot').forEach(s=>{
+    s.addEventListener('click',()=>selectTool(s.dataset.tool,true));
+  });
+  $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
+  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
+  $('muteBtn').addEventListener('click',toggleMute);
+  $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
+  $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
+  $('farmerBtn').addEventListener('click',()=>{SFX.play('click');hireWorker();});
+  $('farmerBtn').style.opacity=W.workers.length?1:0.5;
+  $('animalBtn').addEventListener('click',()=>{
+    SFX.play('click');
+    const p=$('animalPanel');
+    if(p.classList.contains('open')){closePanels();}
+    else{buildAnimalPanel();openPanel('animalPanel');}
+  });
+  $('townBtn').addEventListener('click',()=>{
+    SFX.play('click');
+    const p=$('townPanel');
+    if(p.classList.contains('open')){closePanels();}
+    else{buildTownPanel();openPanel('townPanel');}
+  });
+  $('achClose').addEventListener('click',()=>{$('achOv').classList.remove('open');SFX.play('click');});
+  $('almanacBtn').addEventListener('click',()=>{renderAlmanac();$('almanacOv').classList.add('open');SFX.play('click');});
+  $('almClose').addEventListener('click',()=>{$('almanacOv').classList.remove('open');SFX.play('click');});
+  refreshSeasonHud();
+  $('musicBtn').addEventListener('click',()=>{
+    state.musicOff=!state.musicOff;
+    $('musicBtn').style.opacity=state.musicOff?0.4:1;
+    SFX.play('click');
+  });
+  $('musicBtn').style.opacity=state.musicOff?0.4:1;
+  buildSeedPanel();buildBlockPanel();
+  refreshXpHud();refreshQuestHud();refreshGoodsHud();
+  el.coins.textContent=state.coins;el.day.textContent=state.day;
+  selectTool(state.tool);
+  if(!state.helpSeen)el.helpOv.classList.add('open');
+}
+function toggleMute(){state.muted=!state.muted;$('muteBtn').textContent=state.muted?'🔇':'🔊';}
+function refreshSeasonHud(){const s=seasonOf(state.day);const t=$('seasonTag');if(t)t.textContent=s.ico+' '+s.name;}
+function selectTool(t,fromClick){
+  const wasSel=state.tool===t;
+  state.tool=t;
+  document.querySelectorAll('.slot').forEach(s=>s.classList.toggle('sel',s.dataset.tool===t));
+  if(fromClick)SFX.play('click');
+  if(t==='seed'){if(fromClick&&!wasSel||fromClick&&!$('seedPanel').classList.contains('open')){openPanel('seedPanel');}else if(fromClick)closePanels();}
+  else if(t==='block'){if(fromClick&&!wasSel||fromClick&&!$('blockPanel').classList.contains('open')){openPanel('blockPanel');}else if(fromClick)closePanels();}
+  else closePanels();
+  refreshFpTool();
+}
+function openPanel(id){closePanels();$(id).classList.add('open');}
+function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));}
+function buildSeedPanel(){
+  const p=$('seedPanel');p.innerHTML='';
+  for(const [key,def] of Object.entries(PLANTS)){
+    const d=document.createElement('div');
+    const locked=state.level<def.lvl;
+    d.className='p-item'+(locked?' locked':'')+(state.seedSel===key?' sel':'');
+    const sIco=def.season?SEASONS.find(s=>s.key===def.season).ico:'';
+    const hot=inSeason(def);
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+
+      (sIco?' <span title="grows &amp; sells better in '+def.season+'" style="'+(hot?'':'opacity:.6')+'">'+sIco+(hot?'▲':'')+'</span>':'')+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>'
+        :'<div class="pr">'+def.cost+' 🪙 → '+def.sell+' 🪙</div>');
+    if(!locked)d.addEventListener('click',()=>{
+      state.seedSel=key;el.seedIco.textContent=def.ico;SFX.play('click');
+      buildSeedPanel();closePanels();
+    });
+    p.appendChild(d);
+  }
+}
+function buildBlockPanel(){
+  const p=$('blockPanel');p.innerHTML='';
+  for(const id of BUILDABLE){
+    const def=BLOCKS[id];
+    const locked=def.lvl&&state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+(locked?' locked':'')+(state.blockSel===id?' sel':'');
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>':'<div class="pr">'+def.cost+' 🪙</div>');
+    if(!locked)d.addEventListener('click',()=>{
+      state.blockSel=id;el.blockIco.textContent=def.ico;SFX.play('click');
+      buildBlockPanel();closePanels();
+    });
+    p.appendChild(d);
+  }
+  for(const [key,def] of Object.entries(DECOR)){
+    const locked=state.level<def.lvl;
+    const d=document.createElement('div');
+    d.className='p-item'+(locked?' locked':'')+(state.blockSel===key?' sel':'');
+    d.innerHTML='<div class="ico">'+def.ico+'</div><div class="nm">'+def.name+'</div>'+
+      (locked?'<div class="lk">🔒 LV '+def.lvl+'</div>':'<div class="pr">'+def.cost+' 🪙</div>');
+    if(!locked)d.addEventListener('click',()=>{
+      state.blockSel=key;el.blockIco.textContent=def.ico;SFX.play('click');
+      buildBlockPanel();closePanels();
+    });
+    p.appendChild(d);
+  }
+}
+function toast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  el.toasts.appendChild(t);
+  while(el.toasts.children.length>3)el.toasts.removeChild(el.toasts.firstChild);
+  setTimeout(()=>t.classList.add('out'),1900);
+  setTimeout(()=>t.remove(),2400);
+}
+function banner(h,p){
+  el.bH.textContent=h;el.bP.textContent=p||'';
+  el.banner.classList.add('show');
+  setTimeout(()=>el.banner.classList.remove('show'),3400);
+}
+const _v3=new THREE.Vector3();
+function floatText(wx,wy,wz,str,color){
+  _v3.set(wx,wy,wz).project(camera);
+  const sx=(_v3.x*0.5+0.5)*innerWidth,sy=(-_v3.y*0.5+0.5)*innerHeight;
+  const d=document.createElement('div');
+  d.className='fxText';d.textContent=str;d.style.color=color||'#fff';
+  d.style.left=(sx-20)+'px';d.style.top=(sy-10)+'px';
+  document.body.appendChild(d);
+  requestAnimationFrame(()=>{d.style.transform='translateY(-64px)';d.style.opacity='0';});
+  setTimeout(()=>d.remove(),1150);
+}
+
+/* ============================== save / load ============================== */
+function save(){
+  try{
+    const data={v:1,seed:W.seed,savedAt:Date.now(),
+      state:{...state},
+      edits:[...W.edits.entries()],
+      wet:[...W.wet.entries()],
+      islets:W.islets,
+      plants:[...W.plants.values()].map(p=>({x:p.x,y:p.y,z:p.z,type:p.type,prog:p.prog,stage:p.stage,harvested:p.harvested})),
+      animals:W.animals.map(a=>({type:a.type,x:a.x,z:a.z,stage:a.stage,grow:a.grow})),
+      workers:W.workers.map(w=>({role:w.role,name:w.name,x:w.x,z:w.z})),
+    };
+    localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+  }catch(e){}
+}
+function load(){
+  let data=null;
+  try{data=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){}
+  if(!data||data.v!==1)return false;
+  W.seed=data.seed;
+  Object.assign(state,data.state);
+  if(!state.buildings)state.buildings={};
+  if(!state.goods)state.goods={};
+  genIsland(0,0,15,0);
+  const islets=data.islets||[];
+  islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});
+  (data.edits||[]).forEach(([k,id])=>{
+    W.edits.set(k,id);
+    if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
+  });
+  (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
+  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,p.stage,p.harvested));
+  (data.animals||[]).forEach(a=>{if(ANIMALS[a.type])spawnAnimal(a.type,a.x,a.z,a.stage,a.grow);});
+  (data.workers||[]).forEach(w=>spawnWorker(w.role,w.name,w.x,w.z));
+  if(state.farmerHired&&!W.workers.length){spawnWorker('all');delete state.farmerHired;}   // migrate old farmhand
+  // offline growth
+  const off=clamp((Date.now()-(data.savedAt||Date.now()))/1000,0,4*3600);
+  if(off>20){
+    let ripened=0;
+    for(const p of W.plants.values()){
+      const def=PLANTS[p.type];if(!def||p.stage>=2)continue;
+      const rate=def.night?0.3:1;
+      p.prog+=off*rate;
+      const ns=stageFor(p);
+      if(ns!==p.stage){p.stage=ns;refreshPlantMesh(p);if(ns===2)ripened++;}
+    }
+    state.time=(state.time+off)%CYCLE;
+    state.day+=Math.floor(off/CYCLE);
+    for(const [k,t] of W.wet){if(t-off<=0){W.wet.delete(k);const [x,y,z]=k.split(',').map(Number);
+      if(getB(x,y,z)===6){W.blocks.set(k,5);W.edits.set(k,5);}}}
+    // livestock mature and keep producing while you're gone (bounded by the offline cap)
+    let idle=0;const mult=sellMult();
+    for(const a of W.animals){
+      const def=ANIMALS[a.type];
+      if(a.stage===0){
+        a.grow+=off/def.mature*animalGrowMult();
+        if(a.grow>=1){a.stage=1;a.grow=1;applyAnimalScale(a);
+          const spare=(a.grow-1)*def.mature;idle+=Math.floor(spare/def.every)*Math.round(def.yield*mult);}
+      } else idle+=Math.floor(off/def.every)*Math.round(def.yield*mult);
+    }
+    if(idle>0){state.coins+=idle;state.totalEarned+=idle;
+      setTimeout(()=>toast('🐾 Your animals earned '+idle+' 🪙 while you were away'),2400);}
+    if(ripened>0)setTimeout(()=>toast('While you were away, '+ripened+' crop'+(ripened>1?'s':'')+' ripened ✨'),1500);
+  }
+  state.townRank=Math.max(state.townRank||0,townRankIdx());   // silent baseline; only fire on future growth
+  return true;
+}
+
+/* ============================== ambient music ============================== */
+// A sparse generative kalimba: soft pentatonic plucks a few seconds apart,
+// sometimes with a fifth or an octave answering. Slower and quieter at night
+// and during rain, so it never crowds the weather or the fireflies.
+const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],
+  tick(dt,dn){
+    if(state.muted||state.musicOff)return;
+    if(!SFX.ctx)return;                      // waits for the first user gesture
+    this.t+=dt;
+    if(this.t<this.next)return;
+    this.t=0;
+    const calm=(dn.night>0.5?1.8:1)*(rainAmt>0.5?1.5:1);
+    this.next=(2.4+Math.random()*3.6)*calm;
+    const f=this.scale[(Math.random()*this.scale.length)|0];
+    const vol=dn.night>0.5?0.028:0.04;
+    SFX.pluck(f,vol);
+    const r=Math.random();
+    if(r<0.3)SFX.pluck(f*1.5,vol*0.7,0.35);
+    else if(r<0.45)SFX.pluck(f*2,vol*0.55,0.5);
+  }};
+
+/* ============================== weather ============================== */
+// A rainbow arcs over the isle when a shower clears (not in winter).
+let rainbow=null,rainbowT=0;
+function spawnRainbow(){
+  if(rainbow){scene.remove(rainbow);rainbow.geometry.dispose();rainbow.material.dispose();rainbow=null;}
+  const bands=[0xff5b5b,0xff9a3e,0xffe14d,0x66d16b,0x4db6ff,0x6b6bff,0xb06ff0];
+  const pos=[],col=[],idx=[];const R=36,bw=1.15,cz=-14,cy=-2,seg=40,a0=0.16*Math.PI,a1=0.84*Math.PI;
+  for(let b=0;b<bands.length;b++){
+    const r0=R+b*bw,r1=r0+bw,c=new THREE.Color(bands[b]);
+    for(let s=0;s<=seg;s++){
+      const t=a0+(a1-a0)*s/seg,ct=Math.cos(t),st=Math.sin(t);
+      pos.push(ct*r0,cy+st*r0,cz, ct*r1,cy+st*r1,cz);
+      col.push(c.r,c.g,c.b, c.r,c.g,c.b);
+    }
+    const base=b*(seg+1)*2;
+    for(let s=0;s<seg;s++){const o=base+s*2;idx.push(o,o+1,o+2, o+1,o+3,o+2);}
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);
+  rainbow=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+  rainbow.renderOrder=-1;scene.add(rainbow);
+  rainbowT=24;
+}
+function updateRainbow(dt){
+  if(!rainbow)return;
+  rainbowT-=dt;
+  const o=rainbowT>20?(24-rainbowT)/4:rainbowT<4?rainbowT/4:1;   // ease in then out
+  rainbow.material.opacity=Math.max(0,Math.min(0.5,o*0.5));
+  if(rainbowT<=0){scene.remove(rainbow);rainbow.geometry.dispose();rainbow.material.dispose();rainbow=null;}
+}
+function updateRain(dt){
+  if(rainActive){
+    rainLeft-=dt;
+    if(rainLeft<=0){rainActive=false;rainT=100+Math.random()*160;SFX.rainStop();
+      if(seasonOf(state.day).key!=='winter'&&!isNight()){spawnRainbow();state.achFlags.rainbow=true;checkAch();}}
+  } else {
+    rainT-=dt;
+    if(rainT<=0){
+      rainActive=true;rainLeft=22+Math.random()*20;
+      const winter=seasonOf(state.day).key==='winter';
+      toast(winter?'❄️ Snow drifts across the isle — soft and slow':
+        '🌧️ A gentle shower rolls in — your garden drinks it up');
+      if(!state.achFlags.rain){state.achFlags.rain=true;checkAch();}
+      if(winter&&!state.achFlags.snow){state.achFlags.snow=true;checkAch();}
+      SFX.rainStart();
+    }
+  }
+  const snowy=seasonOf(state.day).key==='winter';
+  rainAmt+=(  (rainActive?1:0)-rainAmt)*Math.min(1,dt*1.6);
+  rain.visible=rainAmt>0.02;
+  rainMat.opacity=rainAmt*(snowy?0.85:0.55);
+  rainMat.color.setHex(snowy?0xffffff:0xbfe0f5);
+  rainMat.size=snowy?0.3:0.24;
+  if(rain.visible){
+    const pos=rain.geometry.attributes.position;
+    const fall=snowy?7:26;
+    for(let i=0;i<pos.count;i++){
+      let y=pos.getY(i)-dt*fall;
+      if(y<-8){y=32+Math.random()*4;pos.setX(i,(Math.random()-0.5)*90);pos.setZ(i,(Math.random()-0.5)*90);}
+      pos.setY(i,y);
+    }
+    pos.needsUpdate=true;
+  }
+  // rain waters every dry tilled plot for free, once a second while it falls
+  if(rainActive){
+    rainWaterT-=dt;
+    if(rainWaterT<=0){
+      rainWaterT=1;
+      let changed=false;
+      for(const [k,id] of W.blocks){
+        if(id===5){const [x,y,z]=k.split(',').map(Number);
+          if(!getB(x,y+1,z)||W.plants.has(k3(x,y+1,z))){setB(x,y,z,6);changed=true;}}
+        if(id===6)W.wet.set(k,Math.max(W.wet.get(k)||0,95));
+      }
+      if(changed)flushChunks();
+    }
+  }
+}
+
+/* ============================== the sparrow ============================== */
+// A tiny voxel sparrow lives on the isle: hops between perches, flies in a
+// long arc when its next perch is far, sits on fences and lanterns, chirps.
+// Pure ambience — it asks nothing of the player and gives a lot back.
+function initBird(){
+  const g=new THREE.Group();
+  const M=(sx,sy,sz,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),
+    new THREE.MeshLambertMaterial({color:c}));m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;};
+  M(0.26,0.2,0.2,0x8a6a4e,0,0.14,0);                 // body
+  M(0.16,0.15,0.15,0x9a7a5a,0.16,0.24,0);            // head
+  M(0.07,0.05,0.05,0xe8b23e,0.26,0.22,0);            // beak
+  M(0.16,0.05,0.12,0x6e5238,-0.17,0.18,0);           // tail
+  const w1=M(0.16,0.03,0.1,0x7a5c42,0.0,0.2,0.12);   // wings
+  const w2=M(0.16,0.03,0.1,0x7a5c42,0.0,0.2,-0.12);
+  scene.add(g);
+  bird={g,w1,w2,st:'idle',t:3+Math.random()*4,from:new THREE.Vector3(),to:new THREE.Vector3(),ft:0,dur:1,phase:Math.random()*9};
+  const p=birdPerch();g.position.copy(p);
+}
+function birdPerch(){
+  // 40% of the time aim for a decor top (fence/lantern) — peak cottagecore
+  const decor=[...W.plants.values()].filter(p=>p.type==='fence'||p.type==='lantern');
+  if(decor.length&&Math.random()<0.4){
+    const d=decor[(Math.random()*decor.length)|0];
+    return new THREE.Vector3(d.x+0.5,d.y+(d.type==='lantern'?0.96:0.5),d.z+0.5);
+  }
+  for(let i=0;i<40;i++){
+    const x=((Math.random()*28)|0)-14,z=((Math.random()*28)|0)-14;
+    const y=surfaceY(x,z);
+    if(y!==null&&!W.plants.has(k3(x,y+1,z)))return new THREE.Vector3(x+0.5,y+1.02,z+0.5);
+  }
+  return new THREE.Vector3(0.5,(surfaceY(0,0)||4)+1,0.5);
+}
+function updateBird(dt,dn){
+  if(!bird)return;
+  const b=bird;
+  if(b.st==='idle'){
+    b.g.position.y+=Math.sin(perf*3+b.phase)*0.0012;       // tiny breathing bob
+    b.w1.rotation.x=0;b.w2.rotation.x=0;
+    b.t-=dt;
+    if(b.t<=0){
+      b.from.copy(b.g.position);
+      b.to.copy(birdPerch());
+      const d=b.from.distanceTo(b.to);
+      b.st=d>6?'fly':'hop';b.ft=0;b.dur=b.st==='fly'?Math.max(1.6,d*0.14):0.45;
+      b.g.rotation.y=Math.atan2(-(b.to.z-b.from.z),b.to.x-b.from.x);
+      if(dn.daylight>0.2&&Math.random()<0.5)SFX.play('chirp');
+    }
+  } else {
+    b.ft+=dt/b.dur;
+    if(b.ft>=1){
+      b.g.position.copy(b.to);b.st='idle';
+      b.t=(dn.daylight>0.15?2.5:7)+Math.random()*6;        // sleepier at night
+    } else {
+      const t=b.ft,arc=b.st==='fly'?4+b.dur:0.7;
+      b.g.position.lerpVectors(b.from,b.to,t);
+      b.g.position.y+=Math.sin(t*Math.PI)*arc;
+      const flap=Math.sin(perf*26)*0.9;
+      b.w1.rotation.x=flap;b.w2.rotation.x=-flap;
+    }
+  }
+}
+
+/* ============================== sprinklers ============================== */
+function updateSprinklers(dt){
+  for(const p of W.plants.values()){
+    if(p.type!=='sprinkler')continue;
+    p.prog=(p.prog||0)+dt;
+    if(p.prog<18)continue;
+    p.prog=0;
+    let sprayed=false;
+    for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+      const x=p.x+dx,z=p.z+dz;
+      for(let y=p.y+1;y>=p.y-3;y--){
+        const id=getB(x,y,z);
+        if(id===5){setB(x,y,z,6);W.wet.set(k3(x,y,z),95);sprayed=true;break;}
+        if(id===6){W.wet.set(k3(x,y,z),Math.max(W.wet.get(k3(x,y,z))||0,95));break;}
+        if(id)break;
+      }
+    }
+    if(sprayed)flushChunks();
+    burst(p.x+0.5,p.y+0.7,p.z+0.5,0x7ec8ff,10,{up:1.8,g:4,spread:1.6});
+  }
+}
+
+/* ============================== achievements ============================== */
+const ACH=[
+  ['sprout','First Sprout','Plant your first seed',()=>state.planted>=1],
+  ['tiller','Breaking Ground','Till 20 plots',()=>state.tills>=20],
+  ['green25','Green Thumb','Harvest 25 crops',()=>state.harvests>=25],
+  ['green100','Master Gardener','Harvest 100 crops',()=>state.harvests>=100],
+  ['moon','Moonlit','Harvest a moonpetal',()=>!!state.achFlags.moon],
+  ['tree','Arborist','Pick fruit from a star tree',()=>!!state.achFlags.tree],
+  ['night','Night Owl','Harvest under the stars',()=>!!state.achFlags.night],
+  ['islet1','Islander','See a new islet rise',()=>W.islets.length>=1],
+  ['islet3','Archipelago','Raise every islet in the sky',()=>W.islets.length>=3],
+  ['deco10','Decorator','Place 10 blocks or decorations',()=>state.decor>=10],
+  ['barn1','Barnyard','Welcome your first farm animal',()=>W.animals.length>=1],
+  ['barn8','Full Barn','Keep 8 animals on the isle',()=>W.animals.length>=8],
+  ['crew3','A Real Crew','Have 3 villagers working the land',()=>W.workers.length>=3],
+  ['crew8','Bustling Town','Grow your town to 8 villagers',()=>W.workers.length>=8],
+  ['festival','Festival Day','Celebrate a change of season with your town',()=>!!state.achFlags.festival],
+  ['skycity','Sky City','Grow your settlement to its highest rank',()=>(state.townRank||0)>=TOWN_RANKS.length-1],
+  ['trade','Open for Business','Sell goods at the Trader’s Market',()=>!!state.achFlags.trade],
+  ['meals50','A Round for the House','Serve 50 meals at the Tavern',()=>(state.meals||0)>=50],
+  ['bake12','Baker’s Dozen','Bake 12 loaves at the Bakery',()=>(state.loaves||0)>=12],
+  ['town1','Founding','Raise your first town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=1],
+  ['town4','Boomtown','Raise every town building',()=>Object.values(state.buildings||{}).filter(Boolean).length>=Object.keys(BUILDINGS).length],
+  ['rain','Singing in the Rain','Be gardening when a shower arrives',()=>!!state.achFlags.rain],
+  ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
+  ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
+  ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
+  ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
+  ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
+  ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
+  ['duck','Duck, Duck…','Greet the duck on the pond',()=>!!state.achFlags.duck],
+  ['golden','Golden Harvest','Harvest a rare golden crop',()=>!!state.achFlags.golden],
+  ['honey','Sweet Harvest','Gather honey from your Apiary',()=>!!state.achFlags.honey],
+  ['inseason','Perfect Timing','Harvest a crop in its favoured season',()=>!!state.achFlags.inseason],
+  ['mead','Meadery','Ferment a cask of mead at the Brewery',()=>!!state.achFlags.mead],
+  ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
+  ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
+  ['bloom','Full Bloom','Have 20 plants growing at once',
+    ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
+  ['year','A Year Aloft','Tend the garden through all four seasons',()=>state.day>=SEASON_DAYS*4+1],
+  ['maxlvl','Sky’s the Limit','Reach the final garden level',()=>state.level>=LVL_XP.length],
+];
+function checkAch(){
+  if(!state.ach)state.ach={};
+  for(const [id,name,desc,test] of ACH){
+    if(state.ach[id])continue;
+    let ok=false;try{ok=test();}catch(e){}
+    if(!ok)continue;
+    state.ach[id]=true;
+    SFX.play('ach');
+    toast('🏆 Achievement: '+name+'!');
+  }
+  // completing every achievement earns a grand finale
+  if(!state.achFlags.allDone&&Object.keys(state.ach).length>=ACH.length){
+    state.achFlags.allDone=true;
+    grantCoins(2000);
+    SFX.play('level');
+    banner('🌈 A Perfect Isle!','Every achievement earned — a grand gift of 2,000 🪙. Thank you for playing! ✨');
+    const cols=[0xffd23e,0xff5c7a,0x7fd370,0x7ec8ff,0xb06ff0];
+    const cx=(surfaceY(0,0)||5)+1;
+    for(let i=0;i<40;i++)setTimeout(()=>burst((Math.random()-0.5)*20,cx+4+Math.random()*4,(Math.random()-0.5)*20,cols[i%cols.length],5,{up:2.6,g:3}),i*45);
+  }
+}
+function renderAchievements(){
+  const grid=$('achGrid');grid.innerHTML='';
+  for(const [id,name,desc] of ACH){
+    const done=!!(state.ach&&state.ach[id]);
+    const d=document.createElement('div');
+    d.className='ach '+(done?'done':'locked');
+    d.innerHTML='<b>'+(done?'🏆 ':'🔒 ')+name+'</b><small>'+desc+'</small>';
+    grid.appendChild(d);
+  }
+}
+function renderAlmanac(){
+  ensureTownName&&ensureTownName();
+  $('almTitle').textContent='📊 '+(state.townName?state.townName+' Almanac':'Town Almanac');
+  const nb=Object.values(state.buildings||{}).filter(Boolean).length;
+  const achDone=Object.keys(state.ach||{}).length;
+  const stats=[
+    ['🏛️',TOWN_RANKS[state.townRank||0].name,'Town rank'],
+    ['🧑‍🌾',W.workers.length,'Villagers'],
+    ['🐮',W.animals.length,'Animals'],
+    ['🏘️',nb+'/'+Object.keys(BUILDINGS).length,'Buildings'],
+    ['🏝️',(W.islets.length+1),'Islands'],
+    ['🪙',state.totalEarned||0,'Coins earned'],
+    ['🌾',state.harvests||0,'Crops harvested'],
+    ['🍞',state.loaves||0,'Loaves baked'],
+    ['🍶',state.meads||0,'Casks brewed'],
+    ['🍺',state.meals||0,'Meals served'],
+    ['🎣',state.fishCount||0,'Fish caught'],
+    ['⭐',(state.level||1),'Garden level'],
+    ['🏆',achDone+'/'+ACH.length,'Achievements'],
+  ];
+  let html='<div class="alm-grid">';
+  for(const [ico,v,l] of stats)html+='<div class="alm-stat"><div class="v">'+ico+' '+v+'</div><div class="l">'+l+'</div></div>';
+  html+='</div>';
+  // progress toward the next town rank
+  const ri=state.townRank||0;
+  if(ri<TOWN_RANKS.length-1){
+    const nx=TOWN_RANKS[ri+1],cur=TOWN_RANKS[ri],s=townScore();
+    const pct=Math.max(0,Math.min(100,Math.round((s-cur.min)/(nx.min-cur.min)*100)));
+    html+='<div class="alm-stat" style="margin-top:12px;text-align:left">🏛️ '+(nx.min-s)+' more to <b style="color:var(--gold)">'+nx.name+'</b>'+
+      '<div style="margin-top:5px;height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden">'+
+      '<div style="height:100%;width:'+pct+'%;background:var(--gold)"></div></div></div>';
+  }
+  if(stockpiles()){
+    const dk=demandGoodKey();
+    const od=state.day;state.day=od+1;const tk=demandGoodKey();state.day=od;   // tomorrow is deterministic
+    html+='<div class="alm-head" style="margin-top:14px">📈 MARKET DEMAND</div>';
+    html+='<div class="alm-stat" style="text-align:left">Today <b style="color:var(--gold)">'+goodDef(dk).product+' '+dk+'</b> sells for +50% &nbsp;·&nbsp; Tomorrow the town wants '+goodDef(tk).product+' '+tk+'</div>';
+  }
+  if(W.workers.length){
+    html+='<div class="alm-head" style="margin-top:14px">TOWNSFOLK</div>';
+    html+='<div class="alm-stat" style="text-align:left;line-height:1.7">'+
+      W.workers.map(w=>ROLE_ICO[w.role]+' '+w.name+(rolesUnlocked()?' <span style="color:var(--dim)">'+ROLE_NAME[w.role]+'</span>':'')).join(' &nbsp;·&nbsp; ')+'</div>';
+  }
+  const pets=[];
+  if(townCat)pets.push('🐈 '+townCat.name);
+  if(townDog)pets.push('🐕 '+townDog.name);
+  if(pondDuck)pets.push('🦆 '+pondDuck.name);
+  if(pets.length){
+    html+='<div class="alm-head" style="margin-top:14px">COMPANIONS</div>';
+    html+='<div class="alm-stat" style="text-align:left">'+pets.join(' &nbsp;·&nbsp; ')+'</div>';
+  }
+  if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
+  $('almBody').innerHTML=html;
+}
+
+/* ============================== ambient life ============================== */
+// The occasional shooting star streaks across the deep night sky.
+let shootStar=null,shootT=6+Math.random()*12;
+function updateShootingStars(dt,dn){
+  if(shootStar){
+    const s=shootStar;s.life-=dt;
+    s.mesh.position.x+=s.vx*dt;s.mesh.position.y+=s.vy*dt;s.mesh.position.z+=s.vz*dt;
+    s.mesh.material.opacity=Math.max(0,Math.min(0.95,s.life*1.4));
+    if(s.life<=0){scene.remove(s.mesh);s.mesh.geometry.dispose();s.mesh.material.dispose();shootStar=null;}
+    return;
+  }
+  if(dn.night<0.6)return;
+  shootT-=dt;
+  if(shootT>0)return;
+  shootT=14+Math.random()*26;
+  const dir=Math.random()<0.5?1:-1;
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(3.4,0.16,0.16),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,fog:false,depthWrite:false}));
+  mesh.position.set(dir*60,42+Math.random()*22,(Math.random()-0.5)*80);
+  mesh.rotation.z=dir>0?-0.5:0.5;mesh.renderOrder=-1;scene.add(mesh);
+  shootStar={mesh,vx:-dir*55,vy:-26,vz:(Math.random()-0.5)*12,life:1.4};
+  if(!state.achFlags.wish){state.achFlags.wish=true;checkAch();setTimeout(()=>toast('🌠 A shooting star! Make a wish…'),150);}
+}
+function updateAmbient(dt,dn){
+  // clouds drift
+  for(const cl of cloudGroup.children){
+    cl.position.x+=cl.userData.spd*dt;
+    if(cl.position.x>130)cl.position.x=-130;
+  }
+  // butterflies flutter in daytime near the island
+  for(const b of butterflies){
+    const u=b.userData;
+    const t=perf*0.4+u.seed*7;
+    b.visible=dn.daylight>0.15&&rainAmt<0.5;   // butterflies shelter from rain
+    b.position.set(Math.cos(t)*u.r+Math.sin(u.seed*3+perf*0.7)*3,
+      u.h+Math.sin(perf*1.3+u.seed)*1.6,
+      Math.sin(t)*u.r+Math.cos(u.seed*5+perf*0.5)*3);
+    b.rotation.y=-t+Math.PI/2;
+    const flap=Math.sin(perf*18+u.seed*9)*0.9;
+    u.w1.rotation.z=flap;u.w2.rotation.z=-flap;
+  }
+  // autumn leaves drift down over the isle
+  const autumn=seasonOf(state.day).key==='autumn';
+  leafMat.opacity=lerp(leafMat.opacity,autumn?0.85:0,Math.min(1,dt*1.5));
+  leaves.visible=leafMat.opacity>0.03;
+  if(leaves.visible){
+    const pos=leaves.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      let y=pos.getY(i)-dt*1.3;
+      let x=pos.getX(i)+Math.sin(perf*0.9+i)*dt*0.8;
+      if(y<-4){y=20+Math.random()*6;x=(Math.random()-0.5)*44;pos.setZ(i,(Math.random()-0.5)*44);}
+      pos.setY(i,y);pos.setX(i,x);
+    }
+    pos.needsUpdate=true;
+  }
+  // fireflies
+  if(dn.night>0.05){
+    const pos=fireflies.geometry.attributes.position;
+    const seeds=fireflies.userData.seeds;
+    for(let i=0;i<seeds.length;i++){
+      const s=seeds[i];
+      pos.setXYZ(i,
+        Math.cos(perf*0.22+s.a)*s.r*0.7+Math.sin(perf*0.4+s.b)*4,
+        s.h+Math.sin(perf*0.9+s.a*2)*1.4,
+        Math.sin(perf*0.22+s.b)*s.r*0.7+Math.cos(perf*0.33+s.a)*4);
+    }
+    pos.needsUpdate=true;
+  }
+}
+
+/* ============================== boot & main loop ============================== */
+let perf=0,saveTimer=0;
+function boot(){
+  initScene();
+  const loaded=load();
+  if(!loaded){
+    genIsland(0,0,15,0);
+    // starter: pre-till a few plots near spawn so first steps are obvious
+    const sy=surfaceY(1,1);
+    if(sy!==null){
+      [[0,0],[1,0],[0,1]].forEach(([ox,oz])=>{
+        const y=surfaceY(ox,oz);
+        if(y!==null&&(getB(ox,y,oz)===1||getB(ox,y,oz)===2))setB(ox,y,oz,5,true);
+      });
+    }
+  }
+  markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
+  rebuildBuildings();
+  if(hasTavern())spawnCat();
+  if(state.buildings&&state.buildings.farmhouse)spawnDog();
+  if(state.monument)placeMonument();
+  cam.cy=(surfaceY(0,0)||5)+1;
+  fitCamera(true);
+  initHud();
+  bindInput();
+  $('muteBtn').textContent=state.muted?'🔇':'🔊';
+  addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+  addEventListener('beforeunload',save);
+  let last=performance.now();
+  function frame(now){
+    requestAnimationFrame(frame);
+    let dt=(now-last)/1000;last=now;
+    if(dt>0.1)dt=0.1;
+    perf+=dt;
+    const dn=updateDay(dt);
+    MUSIC.tick(dt,dn);
+    updateRain(dt);
+    updateRainbow(dt);
+    updatePlants(dt,dn);
+    updateSprinklers(dt);
+    updateBird(dt,dn);
+    updateWorkers(dt);
+    updateAnimals(dt);
+    updateDrops(dt);
+    updateTrader(dt);
+    updateTavern(dt);
+    updateBakery(dt);
+    updateBrewery(dt);
+    updateWell(dt);
+    updateFestival(dt);
+    if(mealMsgT>0)mealMsgT-=dt;
+    if(bakeMsgT>0)bakeMsgT-=dt;
+    updateWet(dt);
+    updateParticles(dt);
+    updatePops(dt);
+    if(foliageDirty){foliageT+=dt;if(foliageT>0.45){foliageDirty=false;foliageT=0;buildFoliage();buildTrees();}}
+    updateWater();
+    updateMillSail(dt);
+    updateApiary(dt);
+    updateSmoke(dt);
+    updateCat(dt);
+    updateDog(dt);
+    updateDuck(dt);
+    updatePetFriends(dt);
+    if(fishingT>0)fishingT-=dt;
+    updateAmbient(dt,dn);
+    updateShootingStars(dt,dn);
+    if(fp.on)updateFP(dt); else updateCamera(dt);
+    updateHover();
+    saveTimer+=dt;
+    if(saveTimer>12){saveTimer=0;save();refreshQuestHud();}
+    renderer.render(scene,camera);
+  }
+  requestAnimationFrame(frame);
+}
+boot();
+</script>
+</body>
+</html>

@@ -59,6 +59,19 @@ canvas{display:block;touch-action:none;}
   box-shadow:0 0 6px rgba(239,68,68,0.4);}
 .heat-val{font-size:11px;font-weight:800;color:#cc4422;margin-top:4px;text-align:right;}
 
+/* ── Goal tracker ── */
+#goal-hud{
+  position:fixed;top:126px;right:16px;
+  background:rgba(4,10,4,0.92);
+  border:1px solid rgba(200,160,0,0.3);
+  border-radius:6px;padding:8px 14px;min-width:160px;
+  pointer-events:none;user-select:none;
+}
+.goal-label{font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:1.5px;color:#887722;margin-bottom:4px;}
+#goal-text{font-size:11px;font-weight:800;color:#ddbb44;}
+#goal-prog{font-size:10px;font-weight:700;color:#665522;margin-top:2px;}
+
 /* ── Act badge ── */
 #act-badge{
   position:fixed;top:14px;left:50%;transform:translateX(-50%);
@@ -266,7 +279,7 @@ canvas{display:block;touch-action:none;}
 
 /* ── Activity feed ── */
 #activity-feed{
-  position:fixed;top:185px;right:16px;
+  position:fixed;top:196px;right:16px;
   background:rgba(4,10,4,0.92);
   border:1px solid rgba(0,180,60,0.12);
   border-radius:6px;padding:9px 12px;
@@ -335,6 +348,7 @@ canvas{display:block;touch-action:none;}
   #status-bar{top:34px;font-size:10px;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #cash-hud{top:8px;right:8px;font-size:15px;padding:6px 10px;}
   #heat-hud{top:44px;right:8px;min-width:120px;padding:6px 10px;}
+  #goal-hud{top:94px;right:8px;min-width:120px;padding:6px 10px;}
   #back-btn{bottom:14px;left:14px;z-index:70;}
 }
 </style>
@@ -350,6 +364,11 @@ canvas{display:block;touch-action:none;}
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
   <div class="heat-val"><span id="heat-val">0</span>%</div>
 </div>
+<div id="goal-hud">
+  <div class="goal-label">🎯 Next Goal</div>
+  <div id="goal-text">—</div>
+  <div id="goal-prog"></div>
+</div>
 <div id="activity-feed">
   <div class="feed-title">⚡ Dispatch</div>
   <div id="feed-list"></div>
@@ -364,7 +383,7 @@ canvas{display:block;touch-action:none;}
     <button class="act-btn" id="hire-lookout-btn">Hire Lookout<span class="cost" id="lookout-cost">$300</span></button>
     <div id="runner-row" style="display:none">
       <div class="stat-line" style="margin-top:6px"><span>Runners</span><span id="runner-count">0/3</span></div>
-      <button class="act-btn" id="hire-runner-btn">Hire Runner<span class="cost" id="runner-cost">$400</span></button>
+      <button class="act-btn" id="hire-runner-btn" title="Runners auto-haul finished product to the stash and close deals with waiting buyers">Hire Runner<span class="cost" id="runner-cost">$400</span></button>
     </div>
     <div id="cook-row" style="display:none">
       <div class="stat-line" style="margin-top:6px"><span>Cooks</span><span id="cook-count">0/3</span></div>
@@ -430,6 +449,8 @@ let state = {
   cooks: 0,
   batches: 0,
   sessionStart: Date.now(),
+  goalIndex: 0,
+  won: false,
 };
 
 // ── Upgrade definitions ──
@@ -1030,6 +1051,50 @@ function buildLookoutNPC() {
   return g;
 }
 
+// ── Runner NPCs ──
+const runnerNPCs = [];
+function buildRunnerNPC() {
+  const g = new THREE.Group();
+  // Tracksuit + backpack — built for speed
+  const sm = new THREE.MeshLambertMaterial({color:0x111111});
+  for (const sx of [-0.13,0.13]) {
+    const sh = new THREE.Mesh(new THREE.BoxGeometry(0.19,0.1,0.3), sm);
+    sh.position.set(sx,0.05,0.02); g.add(sh);
+  }
+  const tm = new THREE.MeshLambertMaterial({color:0x772222});
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.5,4,10), tm);
+  body.position.y=0.98; body.castShadow=true; g.add(body);
+  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.42,0.58,0.3),
+    new THREE.MeshLambertMaterial({color:0x1a1e28}));
+  legs.position.y=0.39; g.add(legs);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24,10,8),
+    new THREE.MeshLambertMaterial({color:0xd9a56a}));
+  head.position.y=1.74; g.add(head);
+  // Backpack
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.42,0.18),
+    new THREE.MeshLambertMaterial({color:0x222218}));
+  pack.position.set(0,1.05,-0.3); g.add(pack);
+  for (const sx of [-0.42,0.42]) {
+    const ag = new THREE.Group(); ag.position.set(sx,1.28,0);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09,0.44,4,8), tm);
+    arm.position.y=-0.27; ag.add(arm);
+    g.add(ag);
+  }
+  // Carry mesh (bags over head while hauling)
+  const carry = new THREE.Mesh(new THREE.SphereGeometry(0.18,8,6),
+    new THREE.MeshLambertMaterial({color:0x88cc22,emissive:0x224400,emissiveIntensity:0.5}));
+  carry.position.y=2.1; carry.visible=false;
+  g.add(carry); g.userData.carryMesh=carry;
+  return g;
+}
+
+function spawnRunnerNPC() {
+  const g = buildRunnerNPC();
+  g.position.set(stashNode.x+(Math.random()-0.5)*3, 0, stashNode.z+2+(Math.random()-0.5)*2);
+  scene.add(g);
+  runnerNPCs.push({group:g, state:'idle', carry:0, dealer:null, idleAngle:Math.random()*Math.PI*2});
+}
+
 // ── Steam particles ──
 const steamParticles = [];
 const steamPool = [];
@@ -1221,10 +1286,20 @@ function triggerRaid() {
   // Lose 30% of stash
   const lost = Math.floor(stashCount * 0.3);
   stashCount = Math.max(0, stashCount - lost);
+  // Late-game raids hit the books too: in Act III the DEA seizes a cut
+  // of your cash on top of the product, so a raid on a rich empire
+  // actually hurts.
+  let cashSeized = 0;
+  if (currentAct() >= 3 && state.cash > 0) {
+    cashSeized = Math.floor(state.cash * 0.15);
+    state.cash -= cashSeized;
+  }
   setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
-  showToast(`🚔 RAID! Lost ${lost} bags. Lie low for 15s.`, 'bust');
-  addFeed('🚔 DEA RAID — product seized');
-  addHeat(-40); // fear makes you careful after
+  showToast(cashSeized>0
+    ? `🚔 RAID! Lost ${lost} bags + $${fmtCash(cashSeized)} seized. Lie low for 15s.`
+    : `🚔 RAID! Lost ${lost} bags. Lie low for 15s.`, 'bust');
+  addFeed(cashSeized>0 ? `🚔 DEA RAID — product + $${fmtCash(cashSeized)} seized` : '🚔 DEA RAID — product seized');
+  addHeat(-40); // fear makes you careful after (also refreshes the HUD)
 }
 
 // ── Heat system ──
@@ -1236,7 +1311,21 @@ function addHeat(amount) {
 // qty scales the heat hit so selling more units in one sale isn't
 // strictly better than making the same number of smaller sales.
 function heatGainPerSale(qty = 1) {
-  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty;
+  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure();
+}
+// Big operations attract big attention: past the Act III threshold
+// ($15k lifetime) every sale runs hotter, up to 2.5x — otherwise maxed
+// security drain (2.1/s) outpaces the floor sale gain (1.5/unit) and
+// busts become mathematically impossible.
+function heatPressure() {
+  return 1 + Math.min(1.5, Math.max(0, state.totalEarned - 15000) / 60000);
+}
+// ...and an Act III empire radiates ambient heat on its own — the DEA
+// doesn't need to catch a sale to notice a block-wide operation.
+// Zero before Act III so the early game is untouched.
+function ambientHeatPerSec() {
+  if (currentAct() < 3) return 0;
+  return Math.min(1.6, (state.totalEarned / 50000) * 0.6);
 }
 function heatDrainPerSec() {
   return 0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5;
@@ -1289,6 +1378,63 @@ function currentAct() {
   return 1;
 }
 const ACT_LABELS = {1:'ACT I — THE GARAGE', 2:'ACT II — THE RISE', 3:'ACT III — THE EMPIRE'};
+
+// ── Goal ladder ──
+// Sequential objectives keyed off existing counters; the current one is
+// surfaced in #goal-hud and progress persists via state.goalIndex.
+const GOALS = [
+  {id:'earn500',  label:'Earn your first $500',  reward:100,
+    prog:()=>`$${fmtCash(Math.min(state.totalEarned,500))} / $500`,
+    check:()=>state.totalEarned>=500},
+  {id:'sell25',   label:'Move 25 units',          reward:250,
+    prog:()=>`${Math.min(state.totalSold,25)} / 25 units`,
+    check:()=>state.totalSold>=25},
+  {id:'rooms3',   label:'Own 3 rooms',            reward:500,
+    prog:()=>`${ownedRoomSet.size} / 3 rooms`,
+    check:()=>ownedRoomSet.size>=3},
+  {id:'sell100',  label:'Move 100 units',         reward:1000,
+    prog:()=>`${Math.min(state.totalSold,100)} / 100 units`,
+    check:()=>state.totalSold>=100},
+  {id:'penthouse',label:'Own the Penthouse',      reward:2500,
+    prog:()=>ownedRoomSet.has('penthouse')?'owned':'$50k buy-in',
+    check:()=>ownedRoomSet.has('penthouse')},
+  {id:'bank100k', label:'Bank $100k lifetime',    reward:0,
+    prog:()=>`$${fmtCash(Math.min(state.totalEarned,100000))} / $100k`,
+    check:()=>state.totalEarned>=100000},
+];
+
+function refreshGoalHud() {
+  const textEl=document.getElementById('goal-text');
+  const progEl=document.getElementById('goal-prog');
+  if(state.goalIndex>=GOALS.length){
+    textEl.textContent='👑 Empire complete';
+    progEl.textContent='You built the whole thing.';
+    return;
+  }
+  const g=GOALS[state.goalIndex];
+  textEl.textContent=g.label;
+  progEl.textContent=g.prog();
+}
+
+function updateGoals() {
+  if(state.goalIndex<GOALS.length){
+    const g=GOALS[state.goalIndex];
+    if(g.check()){
+      state.goalIndex++;
+      if(g.reward>0) addCash(g.reward);
+      showToast(`🎯 Goal complete: ${g.label}${g.reward?` (+$${fmtCash(g.reward)})`:''}`,'good');
+      addFeed(`🎯 ${g.label} ✓`);
+      if(state.goalIndex>=GOALS.length && !state.won){
+        state.won=true;
+        showToast('👑 EMPIRE COMPLETE — from a garage to the whole city. Keep it running... or walk away clean.','good');
+        addFeed('👑 EMPIRE COMPLETE');
+        setStatus('👑 Empire complete. The city is yours.', 12);
+      }
+      saveGame();
+    }
+  }
+  refreshGoalHud();
+}
 
 // ── Input ──
 const keys = {};
@@ -1346,11 +1492,9 @@ function refreshHud() {
     document.getElementById('hire-cook-btn').disabled = state.cash<cCost || (state.cooks||0)>=3;
   }
 
-  // Show cook/runner rows in act 2+
+  // Show cook/runner rows once relevant
   const act = currentAct();
-  // Runners have no gameplay effect yet, so keep the hire option hidden
-  // rather than let players waste cash on a no-op.
-  document.getElementById('runner-row').style.display = 'none';
+  document.getElementById('runner-row').style.display = act>=2?'':'none';
   document.getElementById('cook-row').style.display   = chemStation?'':'none';
 
   // Stash label
@@ -1516,8 +1660,9 @@ document.getElementById('hire-runner-btn').onclick = () => {
   const cost=400*(1+(state.runners||0));
   if(state.cash<cost||(state.runners||0)>=3) return;
   state.cash-=cost; state.runners=(state.runners||0)+1;
-  showToast('🏃 Runner hired.','good');
-  addFeed('👤 Runner hired');
+  spawnRunnerNPC();
+  showToast('🏃 Runner hired — hauls product & closes deals.','good');
+  addFeed('👤 Runner joined crew');
   refreshHud(); saveGame();
 };
 document.getElementById('hire-cook-btn').onclick = () => {
@@ -1607,6 +1752,7 @@ function saveGame() {
     trimmers:state.trimmers, lookouts:state.lookouts,
     runners:state.runners||0, cooks:state.cooks||0,
     batches:state.batches, sessionStart:state.sessionStart,
+    goalIndex:state.goalIndex||0, won:!!state.won,
     stashCount, trimQueue, trimBags,
     // Chem pipeline + per-plot growth + in-hand item (all previously
     // dropped on reload — the core loop's progress silently reset).
@@ -1631,6 +1777,8 @@ function loadGame() {
     state.cooks=sv.cooks||0;
     state.batches=sv.batches||0;
     state.sessionStart=sv.sessionStart||Date.now();
+    state.goalIndex=sv.goalIndex||0;
+    state.won=!!sv.won;
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
@@ -1659,6 +1807,14 @@ function loadGame() {
       const g=buildLookoutNPC();
       g.position.set(6+(Math.random()-0.5)*3,0,7+(Math.random()-0.5)*3);
       scene.add(g); lookoutNPCs.push({group:g,patrolAngle:Math.random()*Math.PI*2,patrolRadius:4+Math.random()*2});
+    }
+    for(let i=0;i<(state.runners||0);i++) spawnRunnerNPC();
+    // Saves from before the goal ladder existed: silently skip goals
+    // that are already satisfied so a loaded empire doesn't toast-spam
+    // completions (no retroactive rewards — they're a nudge, not income).
+    if(sv.goalIndex===undefined){
+      while(state.goalIndex<GOALS.length && GOALS[state.goalIndex].check()) state.goalIndex++;
+      if(state.goalIndex>=GOALS.length) state.won=true;
     }
     // Restore the chem pipeline (queued + cooked product + progress)
     chemQueue=sv.chemQueue||0; chemProduct=sv.chemProduct||0; chemProgress=sv.chemProgress||0;
@@ -1969,11 +2125,77 @@ function updateLookoutNPCs(dt) {
   }
 }
 
+// ── Runner NPCs ──
+// Each runner automates a leg of the loop: haul finished product from
+// the trim/cook stations to the stash, then close deals with waiting
+// buyers so the player doesn't have to walk every sale themselves.
+function updateRunnerNPCs(dt) {
+  for(const r of runnerNPCs) {
+    if(r.state==='idle') {
+      // Haul jobs first (one runner per station), then deals.
+      if(trimBags>0 && !runnerNPCs.some(o=>o!==r && o.state==='toTrim')) r.state='toTrim';
+      else if(chemProduct>0 && chemStation && !runnerNPCs.some(o=>o!==r && o.state==='toChem')) r.state='toChem';
+      else if(state.heat<85) {
+        // Runners lie low at high heat — an auto-sale should never be
+        // the thing that pushes the bar over 100.
+        const d = dealers.find(d=>d.state==='waiting' && !d.paid && !d.runnerClaim);
+        if(d && stashCount>0) { d.runnerClaim=true; r.dealer=d; r.state='toDealer'; }
+      }
+      if(r.state==='idle') {
+        // Loiter near the stash between jobs
+        r.idleAngle+=dt*0.4;
+        stepToward(r.group, stashNode.x+Math.cos(r.idleAngle)*2.2, stashNode.z+2.5+Math.sin(r.idleAngle)*1.2, 1.0, dt);
+      }
+    } else if(r.state==='toTrim') {
+      if(stepToward(r.group, trimStation.x, trimStation.z+1.1, 3.0, dt)) {
+        // Grab whatever's still on the table (the player may have beaten us here)
+        if(trimBags>0) { r.carry=trimBags; trimBags=0; r.group.userData.carryMesh.visible=true; r.state='toStash'; }
+        else r.state='idle';
+      }
+    } else if(r.state==='toChem') {
+      if(!chemStation || chemProduct<=0) { r.state='idle'; continue; }
+      if(stepToward(r.group, chemStation.x, chemStation.z+1.2, 3.0, dt)) {
+        if(chemProduct>0) {
+          r.carry=chemProduct; chemProduct=0;
+          setLabel('chem','⚗️ Cook Station', chemStation.x, 2.2, chemStation.z);
+          r.group.userData.carryMesh.visible=true; r.state='toStash';
+        } else r.state='idle';
+      }
+    } else if(r.state==='toStash') {
+      if(stepToward(r.group, stashNode.x, stashNode.z+1.5, 3.0, dt)) {
+        const room=Math.max(0, STASH_MAX_BASE-stashCount);
+        const added=Math.min(r.carry, room);
+        stashCount+=added;
+        // No room? Leave the overflow back on the trim table instead of losing it.
+        if(added<r.carry) trimBags+=r.carry-added;
+        r.carry=0; r.group.userData.carryMesh.visible=false;
+        if(added>0) addFeed(`🏃 Runner stashed ${added} bags`);
+        setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+        r.state='idle';
+      }
+    } else if(r.state==='toDealer') {
+      const d=r.dealer;
+      if(!d || d.paid || d.state!=='waiting' || stashCount<=0 || state.heat>=85) {
+        if(d) d.runnerClaim=false;
+        r.dealer=null; r.state='idle'; continue;
+      }
+      if(stepToward(r.group, d.group.position.x+0.8, d.group.position.z, 3.0, dt)) {
+        sellToDealer(d, dealers.indexOf(d));
+        addFeed('🏃 Runner closed a deal');
+        d.runnerClaim=false; r.dealer=null; r.state='idle';
+      }
+    }
+  }
+}
+
 // ── Heat drain ──
 function updateHeatDrain(dt) {
-  if(state.heat<=0) return;
-  const drain=heatDrainPerSec();
-  state.heat=Math.max(0, state.heat-drain*dt);
+  // Net of passive drain vs the late-game ambient generation; the 95%
+  // raid check in updateEvents catches a creeping bar before it can
+  // hit 100 from ambient alone.
+  const net=ambientHeatPerSec()-heatDrainPerSec();
+  if(state.heat<=0 && net<=0) return;
+  state.heat=Math.min(100, Math.max(0, state.heat+net*dt));
   document.getElementById('heat-fill').style.width=state.heat+'%';
   document.getElementById('heat-val').textContent=Math.floor(state.heat);
 }
@@ -2027,6 +2249,7 @@ const _chemDepositCheck = (dt) => {
 refreshHud();
 renderUpgradesPanel();
 renderExpandPanel();
+refreshGoalHud();
 addFeed('🌿 Operation started');
 addFeed('💡 Plants need ~18s to grow');
 addFeed('🏃 Walk to ready plants to harvest');
@@ -2068,10 +2291,12 @@ function animate(now_ms) {
     updateDealers(dt);
     updateTrimmerNPCs(dt);
     updateLookoutNPCs(dt);
+    updateRunnerNPCs(dt);
     updateSteam(dt);
     updateHeatDrain(dt);
     updateEvents(dt);
     updateDealerSpawn(dt);
+    updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
     if(raidTimer<=0) {

@@ -54,6 +54,9 @@ buildWorkersUI();
 resumeCrafts();
 updateHUD();
 log('Another day under the bridge. Same as always.');
+// A save whose health already hit 0 (lost, then tab closed without
+// pressing Start Over) must not resume as a playable camp.
+if(G.health<=0) showGameOver();
 
 // The next frame used to be scheduled BEFORE the body ran, so any
 // per-frame exception (e.g. the three.js CDN failing → camera

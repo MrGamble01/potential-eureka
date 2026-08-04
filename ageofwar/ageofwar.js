@@ -110,7 +110,7 @@ const AgeOfWarGame = (() => {
                // call below must reapply this factor (see draw()'s shake).
   let rafId = null;
   let lastFrame = 0;
-  let running = false, gameOver = false, modalPaused = false;
+  let running = false, gameOver = false, modalPaused = false, userPaused = false;
   let outcome = null;
   // Any modal opening calls setModalPaused(true), closing calls (false).
   // Centralised so the sim/render code only checks one flag.
@@ -119,6 +119,40 @@ const AgeOfWarGame = (() => {
     // Show a small "PAUSED" hint via the existing banner when paused.
     if (modalPaused) { ageBannerText = '⏸ PAUSED'; ageBannerT = 999; }
     else if (ageBannerText === '⏸ PAUSED') { ageBannerT = 0; }
+  }
+  // Player-facing pause (⏸ action-bar button / P key). Kept as a SEPARATE
+  // flag from modalPaused so the two compose safely: closing a modal can
+  // never silently resume a game the player paused on purpose, and vice
+  // versa. reset() always clears it, so the game can't wedge paused.
+  function setUserPaused(p) {
+    p = !!p;
+    if (p && gameOver) return;        // nothing to pause post-game
+    if (p === userPaused) return;
+    userPaused = p;
+    const btn = document.getElementById('aow-pause-btn');
+    if (btn) {
+      const ico = btn.querySelector('.aow-action-ico');
+      const lbl = btn.querySelector('.aow-action-lbl');
+      if (ico) ico.textContent = userPaused ? '▶️' : '⏸️';
+      if (lbl) lbl.textContent = userPaused ? 'Resume' : 'Pause';
+    }
+    const ov = document.getElementById('aow-overlay');
+    if (!ov) return;
+    if (userPaused) {
+      ov.innerHTML = `
+        <h2 style="color:#fcd34d">⏸ PAUSED</h2>
+        <p>Press <strong>P</strong>, click here, or hit Resume to continue</p>
+      `;
+      ov.style.cursor = 'pointer';
+      ov.onclick = () => setUserPaused(false);
+      ov.style.display = 'flex';
+    } else {
+      // Solid resume path: drop the click handler + cursor we added so the
+      // shared overlay is pristine for the win/lose screens.
+      ov.onclick = null;
+      ov.style.cursor = '';
+      ov.style.display = 'none';
+    }
   }
   function anyModalOpen() {
     for (const id of ['aow-welcome-modal','aow-ach-modal','aow-settings-modal']) {
@@ -165,6 +199,10 @@ const AgeOfWarGame = (() => {
   let goldTrickleT = 0;
   let specialReadyT = 6;
   const specialCooldownMax = 20;
+  // Enemy tech + specials (see enemyTechTick / enemySpecialTick)
+  let enemyXP = 0;              // enemy's internal economy toward its next era
+  let enemySpecialT = 45;       // seconds until the enemy may fire its special
+  let enemySpecialWarnT = 0;    // >0: telegraph running; fires when it hits 0
   let goldFloaters = [];
   let dmgFloaters = [];
   let muzzleFlashes = [];
@@ -190,11 +228,17 @@ const AgeOfWarGame = (() => {
   // faster, tankier, harder-hitting waves left the player unable to afford
   // upkeep. Scale trickle up with difficulty so it's never worse off; kept
   // modest so it doesn't outrun the intended challenge curve.
+  // techMult / techLead / specialCd (GAME-2): the enemy's independent tech
+  // economy + special-ability AI. techMult scales its passive XP income
+  // (see enemyTechTick), techLead caps how many eras it may passively tech
+  // AHEAD of the player (0 = never passes you, so turtling on Easy is
+  // safe; Hard/Insane will happily out-tech a turtler), and specialCd is
+  // the base cooldown between enemy special barrages (enemySpecialTick).
   const DIFFICULTIES = {
-    easy:   { label: 'Easy',   spawnMult: 1.8, dmgMult: 0.65, hpMult: 0.75, goldMult: 1.00, color: '#3FB950' },
-    normal: { label: 'Normal', spawnMult: 1.2, dmgMult: 0.90, hpMult: 0.95, goldMult: 1.00, color: '#58A6FF' },
-    hard:   { label: 'Hard',   spawnMult: 0.8, dmgMult: 1.20, hpMult: 1.15, goldMult: 1.15, color: '#fcd34d' },
-    insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, goldMult: 1.35, color: '#F85149' },
+    easy:   { label: 'Easy',   spawnMult: 1.8, dmgMult: 0.65, hpMult: 0.75, goldMult: 1.00, techMult: 0.5, techLead: 0, specialCd: 80, color: '#3FB950' },
+    normal: { label: 'Normal', spawnMult: 1.2, dmgMult: 0.90, hpMult: 0.95, goldMult: 1.00, techMult: 1.0, techLead: 1, specialCd: 55, color: '#58A6FF' },
+    hard:   { label: 'Hard',   spawnMult: 0.8, dmgMult: 1.20, hpMult: 1.15, goldMult: 1.15, techMult: 1.4, techLead: 2, specialCd: 40, color: '#fcd34d' },
+    insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, goldMult: 1.35, techMult: 1.8, techLead: 4, specialCd: 28, color: '#F85149' },
   };
   let difficulty = 'normal';
 
@@ -388,7 +432,7 @@ const AgeOfWarGame = (() => {
 
   function heroForEra(era) { return HEROES[era]; }
   function trySummonHero() {
-    if (gameOver) return;
+    if (gameOver || userPaused) return;
     const h = heroForEra(playerEra);
     if (!h) return;
     if (heroReadyT > 0) return;
@@ -501,6 +545,17 @@ const AgeOfWarGame = (() => {
       ageUp() {
         [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(
           () => tone({ freq: f, dur: 0.18, type: 'triangle', vol: 0.28 }), i * 70));
+      },
+      enemyAgeUp() {
+        // Ominous minor rise — the enemy's tech drum, deliberately darker
+        // than the player's bright ageUp arpeggio.
+        [196, 233, 311].forEach((f, i) => setTimeout(
+          () => tone({ freq: f, dur: 0.22, type: 'sawtooth', vol: 0.22 }), i * 90));
+      },
+      warn() {
+        // Two-pulse klaxon telegraphing an incoming enemy special.
+        tone({ freq: 170, dur: 0.16, type: 'square', vol: 0.22 });
+        setTimeout(() => tone({ freq: 170, dur: 0.16, type: 'square', vol: 0.22 }), 220);
       },
       special()     { noise({ dur: 0.45, vol: 0.32 }); tone({ freq: 90, slideTo: 40, dur: 0.45, type: 'sawtooth', vol: 0.18 }); },
       victory() {
@@ -683,6 +738,9 @@ const AgeOfWarGame = (() => {
     enemySpawnT = 1.0;
     goldTrickleT = 0;
     specialReadyT = 6;
+    enemyXP = 0;
+    enemySpecialT = 45;       // opening grace: no enemy special in the first minute
+    enemySpecialWarnT = 0;
     goldFloaters = [];
     dmgFloaters = [];
     muzzleFlashes = [];
@@ -711,6 +769,7 @@ const AgeOfWarGame = (() => {
     bossKilledThisWave = false;
     killFeed = [];
     shakeT = 0; shakeMag = 0;
+    setUserPaused(false);      // never carry a pause into a fresh run
     // Initial units so the battlefield isn't empty when you arrive.
     spawnUnit('player', 'club');
     spawnUnit('player', 'club');
@@ -765,7 +824,7 @@ const AgeOfWarGame = (() => {
   }
 
   function tryPlayerSpawn(key) {
-    if (gameOver) return;
+    if (gameOver || userPaused) return;
     const def = UNITS[key];
     if (!def) return;
     if (def.era > playerEra) return;
@@ -808,7 +867,7 @@ const AgeOfWarGame = (() => {
   }
 
   function ageUp() {
-    if (gameOver) return;
+    if (gameOver || userPaused) return;
     if (playerEra >= ERAS.length - 1) return;
     const need = ERAS[playerEra].upXP;
     if (xp < need) return;
@@ -869,14 +928,16 @@ const AgeOfWarGame = (() => {
     renderTurretPanel();
   }
 
-  function fireSpecial() {
-    if (gameOver) return;
-    if (specialReadyT > 0) return;
-    const spec = ERAS[playerEra].special;
-    // Visual: meteor/arrows/bombs sweeping across the right half.
-    const startX = WIDTH * 0.55;
-    const endX = ENEMY_BASE_X;
-    const drops = 6 + playerEra * 2;
+  // Shared special-barrage spawner, used by BOTH the player's fireSpecial()
+  // and the enemy AI (enemySpecialTick). The strikes sweep the half of the
+  // field in front of `side`'s target base; damage is the era special's,
+  // optionally scaled (the enemy passes the difficulty dmgMult).
+  function launchSpecial(side, eraIdx, dmgScale = 1) {
+    const spec = ERAS[eraIdx].special;
+    // Visual: meteor/arrows/bombs sweeping across the target half.
+    const startX = side === 'player' ? WIDTH * 0.55 : WIDTH * 0.45;
+    const endX   = side === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X + BASE_W;
+    const drops = 6 + eraIdx * 2;
     for (let i = 0; i < drops; i++) {
       const dx = startX + (endX - startX) * (i / (drops - 1));
       strikes.push({
@@ -888,21 +949,27 @@ const AgeOfWarGame = (() => {
         icon: spec.icon,
         color: spec.color,
         dmgRadius: 60,
-        dmgEach: spec.dmg / drops,
-        side: 'player',
+        dmgEach: (spec.dmg * dmgScale) / drops,
+        side,
       });
     }
     SFX.special();
     // Screen-flash for impact + heavy shake
     ageFlash = Math.max(ageFlash, 0.7);
     shake(12, 0.35);
+  }
+
+  function fireSpecial() {
+    if (gameOver || userPaused) return;
+    if (specialReadyT > 0) return;
+    launchSpecial('player', playerEra);
     runStats.specialsFired++;
     specialReadyT = specialCooldownMax;
     renderHud();
   }
 
   function tryBuyTurret(slot, era) {
-    if (gameOver) return;
+    if (gameOver || userPaused) return;
     if (slot >= playerSlotsOwned) return;             // can't build on locked slots
     const tdef = TURRETS[era];
     if (!tdef) return;
@@ -919,7 +986,7 @@ const AgeOfWarGame = (() => {
     renderTurretPanel();
   }
   function trySellTurret(slot) {
-    if (gameOver) return;
+    if (gameOver || userPaused) return;
     const t = playerTurrets[slot];
     if (!t) return;
     // Refund based on the turret's original cost (sum of upgrade path
@@ -937,7 +1004,7 @@ const AgeOfWarGame = (() => {
     renderTurretPanel();
   }
   function tryBuyTurretSlot() {
-    if (gameOver) return;
+    if (gameOver || userPaused) return;
     if (playerSlotsOwned >= TURRET_SLOTS_MAX) return;
     const cost = SLOT_PURCHASE_COSTS[playerSlotsOwned] || 0;
     if (gold < cost) return;
@@ -958,6 +1025,8 @@ const AgeOfWarGame = (() => {
     if (specialBtn) specialBtn.onclick = fireSpecial;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
+    const pauseBtn = document.getElementById('aow-pause-btn');
+    if (pauseBtn) pauseBtn.onclick = () => setUserPaused(!userPaused);
     const achBtn = document.getElementById('aow-ach-btn');
     if (achBtn) achBtn.onclick = () => {
       renderAchievementsModal();
@@ -1106,6 +1175,12 @@ const AgeOfWarGame = (() => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
       if (modalPaused) return; // ignore game keys while a modal has the sim paused
+      if (e.key === 'p' || e.key === 'P') {
+        setUserPaused(!userPaused);
+        e.preventDefault();
+        return;
+      }
+      if (userPaused) return;  // only P (above) is live while user-paused
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 9) {
         const keys = visibleUnitKeys();
@@ -1133,6 +1208,75 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Enemy AI ----
+  // Enemy age-up: mirrors the player's ageUp() announcement so the tech
+  // race stays legible. Called by both the independent-tech path
+  // (enemyTechTick) and the legacy catch-up floor in enemyTick.
+  function enemyAgeUpNow() {
+    if (enemyEra >= ERAS.length - 1) return;
+    enemyEra++;
+    const e = ERAS[enemyEra];
+    ageBannerText = `⚠ The enemy has entered the ${e.name}!`;
+    ageBannerT = 2.4;
+    SFX.enemyAgeUp();
+    shake(5, 0.3);
+    renderHud();
+  }
+
+  // Independent enemy tech (GAME-2): the enemy runs its own XP economy —
+  // a passive trickle scaled by the difficulty's techMult.
+  // So a turtling player no longer caps the enemy in the Stone Age: it
+  // ages up on its own schedule. techLead caps how far AHEAD of the
+  // player it may passively tech (0 on Easy = never passes you; Hard/
+  // Insane will out-tech a turtler). The reactive catch-up in enemyTick
+  // remains as a floor so the enemy never lags absurdly either.
+  function enemyTechTick(dt) {
+    if (enemyEra >= ERAS.length - 1) return;
+    const D = DIFFICULTIES[difficulty];
+    if (enemyEra - playerEra >= D.techLead) {
+      // At the lead cap: hold just under the threshold so the next player
+      // age-up releases the stored progress immediately.
+      enemyXP = Math.min(enemyXP, ERAS[enemyEra].upXP - 1);
+      return;
+    }
+    // Passive income tuned so Normal roughly paces a decent player
+    // (~50-60s to Castle Age passive-only, slowing each era after).
+    enemyXP += (1.2 + enemyEra * 3) * D.techMult * dt;
+    if (enemyXP >= ERAS[enemyEra].upXP) {
+      enemyXP -= ERAS[enemyEra].upXP;
+      enemyAgeUpNow();
+    }
+  }
+
+  // Enemy special AI (GAME-2): when the enemy base is under real pressure
+  // (player units past midfield, or its HP dropping), it answers with its
+  // era's special via the shared launchSpecial() spawner — telegraphed
+  // with a warning banner + klaxon ~1.5s ahead so it reads as dramatic
+  // rather than cheap. Cooldown scales with difficulty (specialCd) and is
+  // committed at telegraph time, so it can't re-warn every frame.
+  function enemySpecialTick(dt) {
+    if (enemySpecialWarnT > 0) {
+      enemySpecialWarnT -= dt;
+      if (enemySpecialWarnT <= 0) {
+        launchSpecial('enemy', enemyEra, DIFFICULTIES[difficulty].dmgMult);
+      }
+      return;
+    }
+    if (enemySpecialT > 0) { enemySpecialT -= dt; return; }
+    let pushed = false;
+    for (const u of units) {
+      if (u.side === 'player' && u.hp > 0 && u.x > WIDTH * 0.55) { pushed = true; break; }
+    }
+    const hurting = enemyBaseHp < enemyBaseMax * 0.7;
+    if (!pushed && !hurting) return;
+    const spec = ERAS[enemyEra].special;
+    enemySpecialWarnT = 1.5;
+    enemySpecialT = DIFFICULTIES[difficulty].specialCd * (0.85 + Math.random() * 0.3);
+    ageBannerText = `⚠ Enemy ${spec.name} inbound!`;
+    ageBannerT = 1.6;
+    SFX.warn();
+    shake(3, 0.25);
+  }
+
   function enemyTick(dt) {
     // Wave breather (gap between waves)
     if (waveBreatherT > 0) {
@@ -1254,7 +1398,7 @@ const AgeOfWarGame = (() => {
     if (!running) return;
     // Pause sim while a modal is open so the player isn't punished for
     // reading the tutorial / tweaking settings / browsing achievements.
-    if (modalPaused) return;
+    if (modalPaused || userPaused) return;
 
     if (ageFlash > 0) ageFlash = Math.max(0, ageFlash - dt * 1.6);
 
@@ -1283,6 +1427,8 @@ const AgeOfWarGame = (() => {
     }
 
     enemyTick(dt);
+    enemyTechTick(dt);
+    enemySpecialTick(dt);
 
     // Combo timer + run timer
     // GAME-1b: freeze the combo countdown during the between-wave breather

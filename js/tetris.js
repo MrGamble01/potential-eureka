@@ -25,6 +25,9 @@ const TetrisGame = (() => {
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
+  let clearingRows = null;   // rows flashing white before they collapse
+  let clearTimer = null;
+  let sparks = [], sparkRaf = null;
   const sfx = Utils.sfx;
 
   // 7-bag randomiser for fair piece distribution
@@ -139,6 +142,7 @@ const TetrisGame = (() => {
     if (!collides(current.shape, current.x + dx, current.y + dy)) {
       current.x += dx;
       current.y += dy;
+      if (dx !== 0) sfx('move'); // horizontal only — gravity would spam it
       return true;
     }
     return false;
@@ -151,6 +155,7 @@ const TetrisGame = (() => {
       if (!collides(rotated, current.x + k, current.y)) {
         current.shape = rotated;
         current.x += k;
+        sfx('rotate');
         return;
       }
     }
@@ -178,6 +183,7 @@ const TetrisGame = (() => {
 
   function lock() {
     if (!current) return;
+    cancelLock(); lockResets = 0;
     for (let r = 0; r < current.shape.length; r++) {
       for (let c = 0; c < current.shape[r].length; c++) {
         if (!current.shape[r][c]) continue;
@@ -188,6 +194,10 @@ const TetrisGame = (() => {
     }
     sfx('lock');
     clearLines();
+  }
+
+  function spawnNext() {
+    cancelLock(); lockResets = 0;
     canHold = true;
     current = next;
     next = drawFromBag();
@@ -196,23 +206,69 @@ const TetrisGame = (() => {
   }
 
   function clearLines() {
-    let cleared = 0;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(cell => cell !== null)) {
-        board.splice(r, 1);
-        board.unshift(Array(COLS).fill(null));
-        cleared++; r++;
-      }
+    const full = [];
+    for (let r = 0; r < ROWS; r++) {
+      if (board[r].every(cell => cell !== null)) full.push(r);
     }
-    if (!cleared) return;
+    if (!full.length) { spawnNext(); return; }
     sfx('clear');
+    // Flash the rows white for a beat before collapsing them. The piece is
+    // parked at null so the gravity interval no-ops until the collapse; the
+    // one-shot timer then splices the rows and spawns the next piece.
+    clearingRows = full;
+    current = null;
+    spawnClearSparks(full);
+    Effects.shakeCanvas(canvas, 2 + full.length * 2, 140 + full.length * 60);
+    draw();
+    clearTimeout(clearTimer);
+    clearTimer = setTimeout(collapseRows, 90);
+  }
+
+  function collapseRows() {
+    if (!clearingRows) return;
+    const cleared = clearingRows.length;
+    // Ascending order: splice+unshift leaves rows below the removed row at
+    // the same index, so the remaining (lower) full rows stay valid.
+    for (const r of clearingRows) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(null));
+    }
+    clearingRows = null;
     const pts = [0, 100, 300, 500, 800];
     score += (pts[Math.min(cleared, 4)]) * level;
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
     highScore = Utils.highScore.save('tetris-high', score, highScore);
+    spawnNext();
     updateInfo();
+    draw();
+  }
+
+  function spawnClearSparks(rows) {
+    for (const r of rows) {
+      for (let c = 0; c < COLS; c++) {
+        if (Math.random() < 0.65) {
+          sparks.push({
+            x: c * CELL + CELL / 2, y: r * CELL + CELL / 2,
+            vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 3,
+            life: 18 + Math.random() * 16, color: board[r][c] || '#E6EDF3',
+          });
+        }
+      }
+    }
+    if (!sparkRaf) tickSparks();
+  }
+
+  function tickSparks() {
+    sparkRaf = requestAnimationFrame(tickSparks);
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.x += s.vx; s.y += s.vy; s.vy += 0.15; s.life -= 1;
+      if (s.life <= 0) sparks.splice(i, 1);
+    }
+    draw();
+    if (!sparks.length) { cancelAnimationFrame(sparkRaf); sparkRaf = null; }
   }
 
   function dropMs() { return Math.max(50, 1000 - (level - 1) * 90); }
@@ -223,14 +279,44 @@ const TetrisGame = (() => {
     gameLoop = setInterval(autoDown, dropMs());
   }
 
+  // ── Lock delay ────────────────────────────────────────────
+  // A grounded piece gets a ~half-second grace window before locking, and a
+  // successful move/rotate while grounded restarts it (capped, so you can't
+  // stall forever). This is what makes tucks and slides possible.
+  const LOCK_DELAY_MS = 480, LOCK_RESET_MAX = 8;
+  let lockTimer = null, lockResets = 0;
+
+  function grounded() { return !!current && collides(current.shape, current.x, current.y + 1); }
+
+  function scheduleLock() {
+    if (lockTimer !== null) return;
+    lockTimer = setTimeout(() => {
+      lockTimer = null;
+      if (running && grounded()) { lock(); draw(); updateInfo(); }
+    }, LOCK_DELAY_MS);
+  }
+  function cancelLock() {
+    if (lockTimer !== null) { clearTimeout(lockTimer); lockTimer = null; }
+  }
+  // Called after a player move/rotate: while grounded, each successful input
+  // buys the lock window back — up to LOCK_RESET_MAX times per touchdown.
+  function touchLockDelay() {
+    if (!grounded()) { cancelLock(); lockResets = 0; return; }
+    if (lockTimer !== null && lockResets < LOCK_RESET_MAX) {
+      cancelLock(); lockResets++; scheduleLock();
+    } else if (lockTimer === null) scheduleLock();
+  }
+
   function autoDown() {
-    if (!move(0, 1)) lock();
+    if (move(0, 1)) { cancelLock(); lockResets = 0; }
+    else scheduleLock();
     draw(); updateInfo();
   }
 
   function holdPiece() {
     if (!canHold || !current) return;
     canHold = false;
+    cancelLock(); lockResets = 0;
     const swapOut = freshPiece(current.type);
     if (held) {
       const swapIn = held;
@@ -253,6 +339,11 @@ const TetrisGame = (() => {
     score = 0; level = 1; linesCleared = 0;
     held = null; canHold = true;
     gameOver = false; running = true;
+    cancelLock(); lockResets = 0;
+    clearTimeout(clearTimer);
+    clearingRows = null;
+    sparks = [];
+    sfx('start');
     current = drawFromBag();
     next    = drawFromBag();
     drawPreview(nextCtx, next);
@@ -270,6 +361,7 @@ const TetrisGame = (() => {
     running = false; gameOver = true;
     sfx('over');
     clearInterval(gameLoop);
+    cancelLock();
     // Persist the high score here too — drops (not just line clears) add points,
     // so a run's best score can land outside clearLines().
     const prevHigh = highScore;
@@ -292,14 +384,17 @@ const TetrisGame = (() => {
     // repeat — that's how left/right/soft-drop are meant to work.
     if (e.repeat && !['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.key)) return;
     switch (e.key) {
-      case 'ArrowLeft':  move(-1, 0); break;
-      case 'ArrowRight': move(1, 0);  break;
+      case 'ArrowLeft':  if (move(-1, 0)) touchLockDelay(); break;
+      case 'ArrowRight': if (move(1, 0))  touchLockDelay(); break;
       case 'ArrowDown':
-        if (!move(0, 1)) lock();
+        // Soft drop rides the lock delay too — landing softly no longer
+        // slams the piece in place before you can slide it.
+        if (move(0, 1)) { cancelLock(); lockResets = 0; }
+        else scheduleLock();
         score += 1;
         break;
-      case 'ArrowUp': case 'x': case 'X': rotateCW();  break;
-      case 'z': case 'Z':                 rotateCCW(); break;
+      case 'ArrowUp': case 'x': case 'X': rotateCW();  touchLockDelay(); break;
+      case 'z': case 'Z':                 rotateCCW(); touchLockDelay(); break;
       case ' ':  hardDrop(); e.preventDefault(); return;
       case 'c': case 'C':   holdPiece(); break;
       default: return;
@@ -337,6 +432,20 @@ const TetrisGame = (() => {
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
         if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+
+    // White flash over rows about to collapse
+    if (clearingRows) {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const r of clearingRows) ctx.fillRect(0, r * CELL, WIDTH, CELL);
+    }
+
+    // Line-clear sparks
+    for (const s of sparks) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, s.life / 20));
+      ctx.fillStyle = s.color;
+      ctx.fillRect(s.x - 2, s.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
 
     if (current && running) {
       // Ghost
@@ -426,6 +535,9 @@ const TetrisGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    clearTimeout(clearTimer);
+    if (sparkRaf) { cancelAnimationFrame(sparkRaf); sparkRaf = null; }
+    clearingRows = null; sparks = [];
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;

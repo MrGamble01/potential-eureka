@@ -25,6 +25,7 @@ var G = {
   injuredUntil: 0, lastEventDay: -2,
 
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
+  goalIndex: 0,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
@@ -55,6 +56,21 @@ var WORKER_DEFS = [
   {id:'builder',  icon:'🔨', name:'Builder',  cost:12, desc:'Speeds up crafting x2'},
   {id:'cook',     icon:'👨‍🍳', name:'Cook',     cost:10, desc:'Makes meals from food automatically'},
   {id:'lookout',  icon:'👁️', name:'Lookout',  cost:15, desc:'Warns before police sweeps'},
+];
+
+// Sequential goal ladder surfaced in the HUD (checkGoals in ui.js).
+// Each goal reads counters G already tracks, so progress accrues even
+// before a goal becomes current; only goalIndex is new state, and it
+// lives in G so it persists with the rest of the save automatically.
+var GOALS = [
+  {id:'survive3',   desc:'Survive 3 days',            target:3,  reward:3,  value:function(){ return G.days; }},
+  {id:'craft5',     desc:'Craft 5 items',             target:5,  reward:3,  value:function(){ return G.totalCrafted; }},
+  {id:'residents3', desc:'Reach 3 residents',         target:3,  reward:4,  value:function(){ return G.population; }},
+  {id:'workbench',  desc:'Build the Workbench',       target:1,  reward:4,  value:function(){ return G.structures.workbench?1:0; }},
+  {id:'survive14',  desc:'Survive 14 days',           target:14, reward:6,  value:function(){ return G.days; }},
+  {id:'village5',   desc:'Full village: 5 residents', target:5,  reward:6,  value:function(){ return G.population; }},
+  {id:'kitchen',    desc:'Build the Soup Kitchen',    target:1,  reward:8,  value:function(){ return G.structures.soup_kitchen?1:0; }},
+  {id:'survive30',  desc:'Survive 30 days',           target:30, reward:10, value:function(){ return G.days; }},
 ];
 
 var activeJobs = {};

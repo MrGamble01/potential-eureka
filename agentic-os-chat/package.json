@@ -1,0 +1,13 @@
+{
+  "name": "agentic-os-chat",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local single-user chat app for the Anthropic API",
+  "scripts": {
+    "postinstall": "npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm --prefix server run dev\" \"npm --prefix client run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
