@@ -780,6 +780,7 @@
 .aow-setting-toggle .aow-toggle-on  { display: inline; }
 .aow-setting-toggle[aria-pressed="true"] .aow-toggle-on  { display: none; }
 .aow-setting-toggle[aria-pressed="true"] .aow-toggle-off { display: inline; color: #ff8a8a; }
+#aow-mode-toggle[aria-pressed="true"] .aow-toggle-off { color: #fcd34d; }
 .aow-setting-action {
   background: rgba(108,99,255,0.14);
   border: 1px solid rgba(108,99,255,0.4);
