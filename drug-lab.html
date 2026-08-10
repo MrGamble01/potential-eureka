@@ -1759,6 +1759,7 @@ function saveGame() {
     chemQueue, chemProduct, chemProgress,
     pCarrying,
     plots: growPlots.map(p=>({r:p.roomId, g:+p.progress.toFixed(4)})),
+    lastSaveAt: Date.now(),
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1835,10 +1836,76 @@ function loadGame() {
     // exactly what delivering it would do. (A carried 'bag' needs
     // nothing: its count lives in trimBags/chemProduct, saved above.)
     if(sv.pCarrying==='bud') trimQueue++;
+    if(sv.lastSaveAt) offlineGapSec=Math.max(0,(Date.now()-sv.lastSaveAt)/1000);
   }catch(e){console.warn('Load failed',e);}
 }
 
+// ── Offline catch-up ──
+// Away time isn't just an idle no-op: grow plots keep growing, a queued
+// cook/trim keeps running, and heat keeps draining, capped so a week-long
+// absence doesn't hand out a week of progress in one jump.
+let offlineGapSec = 0;
+const OFFLINE_CATCHUP_CAP_SEC = 4*3600;
+function applyOfflineCatchup(elapsedSec) {
+  if (elapsedSec < 60) return;
+  const t = Math.min(elapsedSec, OFFLINE_CATCHUP_CAP_SEC);
+
+  let grown = 0;
+  const gSpeed = 1/growTime();
+  for (const p of growPlots) {
+    if (p.ready) continue;
+    p.progress = Math.min(1, p.progress + gSpeed*t);
+    if (p.progress >= 1) { p.ready = true; grown++; setLabel('plot_'+growPlots.indexOf(p),'🌿 Ready!', p.x, 1.8, p.z, 'ready'); }
+    updatePlantMesh(p);
+  }
+
+  let cooked = 0;
+  if (chemQueue > 0) {
+    const speedMult = 1 + (state.cooks||0)*0.5;
+    const total = chemProgress + (t/CHEM_TIME)*speedMult;
+    cooked = Math.min(chemQueue, Math.floor(total));
+    chemQueue -= cooked;
+    chemProduct += cooked*2;
+    state.batches += cooked;
+    chemProgress = chemQueue > 0 ? total-cooked : 0;
+  }
+
+  let trimmed = 0;
+  if (trimQueue > 0) {
+    const speedMult = 1 + upgLv('trim')*0.25 + trimmerNPCs.length*0.4;
+    const total = trimProgress + (t/TRIM_TIME)*speedMult;
+    trimmed = Math.min(trimQueue, Math.floor(total));
+    trimQueue -= trimmed;
+    trimBags += trimmed*(1+upgLv('yield1'));
+    state.batches += trimmed;
+    trimProgress = trimQueue > 0 ? total-trimmed : 0;
+  }
+
+  if (chemStation && cooked > 0) {
+    setLabel('chem', chemQueue>0?`⚗️ Cooking... [${chemQueue} queued]`:`⚗️ Cook Station [${chemProduct} units]`,
+      chemStation.x, 2.2, chemStation.z);
+  }
+
+  // Heat only ever cools down while away — an offline bust would just
+  // feel unfair, and the raid/event flow assumes a player is present.
+  const net = ambientHeatPerSec()-heatDrainPerSec();
+  const heatBefore = state.heat;
+  if (net < 0) state.heat = Math.max(0, state.heat + net*t);
+
+  if (!grown && !cooked && !trimmed && heatBefore-state.heat < 1) return;
+  const mins = Math.round(elapsedSec/60);
+  const away = mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h ${mins%60}m`;
+  const parts = [];
+  if (grown) parts.push(`${grown} plant${grown>1?'s':''} matured`);
+  if (cooked) parts.push(`${cooked} batch${cooked>1?'es':''} cooked`);
+  if (trimmed) parts.push(`${trimmed} batch${trimmed>1?'es':''} trimmed`);
+  if (heatBefore-state.heat >= 1) parts.push(`heat cooled to ${Math.floor(state.heat)}%`);
+  showToast(`🕒 While you were away (${away}): ${parts.join(', ')}`, 'good');
+  addFeed(`🕒 Away ${away}: ${parts.join(', ')}`);
+}
+
 loadGame();
+applyOfflineCatchup(offlineGapSec);
 
 // ── Main game loop ──
 let lastTime = performance.now();
