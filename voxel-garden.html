@@ -76,6 +76,9 @@
   #helpOv ul{margin:8px 0 14px 18px}
   #helpOv button{margin-top:8px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
     padding:10px 22px;font-size:14px;cursor:pointer}
+  #helpOv .saveRow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+  #helpOv .saveRow button.btn-sec{margin-top:0;background:rgba(255,255,255,.12);color:var(--ink);font-weight:600;
+    padding:8px 16px;font-size:13px}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(6,10,18,.38) 100%)}
   #achOv,#almanacOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
@@ -225,6 +228,11 @@
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
+  <div class="saveRow">
+    <button id="backupBtn" class="btn-sec" type="button">💾 Backup save</button>
+    <button id="restoreBtn" class="btn-sec" type="button">📂 Restore save</button>
+    <input type="file" id="restoreInput" accept="application/json" style="display:none">
+  </div>
   <button id="helpClose">Let's grow</button>
 </div></div>
 
@@ -3042,6 +3050,13 @@ function initHud(){
   });
   $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
   $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
+  $('backupBtn').addEventListener('click',()=>{SFX.play('click');exportSave();});
+  $('restoreBtn').addEventListener('click',()=>{SFX.play('click');$('restoreInput').click();});
+  $('restoreInput').addEventListener('change',e=>{
+    const f=e.target.files&&e.target.files[0];
+    if(f)importSave(f);
+    e.target.value='';
+  });
   $('muteBtn').addEventListener('click',toggleMute);
   $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
   $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
@@ -3161,19 +3176,51 @@ function floatText(wx,wy,wz,str,color){
 }
 
 /* ============================== save / load ============================== */
+function buildSaveData(){
+  return {v:1,seed:W.seed,savedAt:Date.now(),
+    state:{...state},
+    edits:[...W.edits.entries()],
+    wet:[...W.wet.entries()],
+    islets:W.islets,
+    plants:[...W.plants.values()].map(p=>({x:p.x,y:p.y,z:p.z,type:p.type,prog:p.prog,stage:p.stage,harvested:p.harvested})),
+    animals:W.animals.map(a=>({type:a.type,x:a.x,z:a.z,stage:a.stage,grow:a.grow})),
+    workers:W.workers.map(w=>({role:w.role,name:w.name,x:w.x,z:w.z})),
+  };
+}
+let restoringSave=false;   // true while a restored save is queued for reload — blocks autosave/beforeunload from clobbering it
 function save(){
-  try{
-    const data={v:1,seed:W.seed,savedAt:Date.now(),
-      state:{...state},
-      edits:[...W.edits.entries()],
-      wet:[...W.wet.entries()],
-      islets:W.islets,
-      plants:[...W.plants.values()].map(p=>({x:p.x,y:p.y,z:p.z,type:p.type,prog:p.prog,stage:p.stage,harvested:p.harvested})),
-      animals:W.animals.map(a=>({type:a.type,x:a.x,z:a.z,stage:a.stage,grow:a.grow})),
-      workers:W.workers.map(w=>({role:w.role,name:w.name,x:w.x,z:w.z})),
-    };
-    localStorage.setItem(SAVE_KEY,JSON.stringify(data));
-  }catch(e){}
+  if(restoringSave)return;
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(buildSaveData()));}catch(e){}
+}
+// manual backup/restore, in case autosave/localStorage isn't enough (new device, cleared storage, etc.)
+function exportSave(){
+  save();
+  let json;try{json=localStorage.getItem(SAVE_KEY)||JSON.stringify(buildSaveData());}catch(e){json=JSON.stringify(buildSaveData());}
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const slug=(state.townName||'voxel-isle').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  a.href=url;a.download=(slug||'voxel-isle')+'-day'+state.day+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('💾 Save file downloaded');
+}
+function importSave(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data||data.v!==1||!data.state)throw new Error('not a Voxel Isle save');
+      restoringSave=true;
+      localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+      toast('📂 Save restored — reloading…');
+      setTimeout(()=>location.reload(),700);
+    }catch(e){
+      SFX.play('error');
+      toast('⚠️ That file doesn’t look like a Voxel Isle save');
+    }
+  };
+  reader.readAsText(file);
 }
 function load(){
   let data=null;
