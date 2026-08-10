@@ -763,6 +763,13 @@
   display: flex;
   gap: 4px;
 }
+.aow-setting-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fcd34d;
+  text-align: right;
+}
 .aow-setting-toggle {
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--border);
@@ -894,6 +901,7 @@
   }
   .aow-wave-num { font-size: 11px; letter-spacing: 0.8px; }
   .aow-wave-sub { font-size: 9px; }
+  .aow-wave-best { display: none !important; } /* HUD is already one compressed row on phones */
   .aow-combo { padding: 2px 8px; }
   .aow-combo-x { font-size: 14px; }
   .aow-combo-label { font-size: 8px; }
@@ -1319,6 +1327,10 @@
 .aow-wave-sub {
   font-size: 10px; color: var(--text-dim); letter-spacing: 0.8px;
   text-transform: uppercase; margin-top: 1px;
+}
+.aow-wave-best {
+  font-size: 9px; color: #fcd34d; letter-spacing: 0.6px;
+  text-transform: uppercase; margin-top: 2px;
 }
 .aow-wave.aow-wave-boss {
   background: linear-gradient(135deg, rgba(160,32,160,0.22), rgba(248,81,73,0.18));
