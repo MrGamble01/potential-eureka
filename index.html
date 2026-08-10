@@ -940,6 +940,7 @@
   <script src="js/utils.js" defer></script>
   <script src="js/scores.js" defer></script>
   <script src="js/effects.js" defer></script>
+  <script src="js/gamepad.js" defer></script>
   <script src="js/dashboard.js" defer></script>
   <script src="js/calendar.js" defer></script>
   <script src="js/pomodoro.js" defer></script>
@@ -1199,6 +1200,7 @@
     });
 
     Effects.init().then(() => switchView(viewFromHash() || 'arcade'));
+    Gamepad.init();
   });
   </script>
 
