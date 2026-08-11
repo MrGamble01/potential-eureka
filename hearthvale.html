@@ -3868,6 +3868,7 @@
         peakPop: state.peakPop || 0, festivalsHeld: state.festivalsHeld || 0,
         difficulty: state.difficulty || 'normal',
         decrees: state.decrees || [],
+        cam: cam ? { x: cam.x, y: cam.y, z: cam.z } : null,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -3930,6 +3931,11 @@
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
         cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
+      // restore the camera where the player left it; older saves have no cam,
+      // so frame the starter clearing instead of falling back to the map corner
+      cam = (s.cam && typeof s.cam.x === 'number' && typeof s.cam.y === 'number')
+        ? { x: s.cam.x, y: s.cam.y, z: (typeof s.cam.z === 'number' && s.cam.z > 0) ? s.cam.z : 3 }
+        : { x: start.startX * TILE - 200, y: start.startY * TILE - 150, z: 3 };
       return true;
     } catch (e) { return false; }
   }
