@@ -3831,7 +3831,7 @@
   const keys = {};
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); }
+    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); const trEl = document.getElementById('trader'); if (trEl.classList.contains('show')) { trEl.classList.remove('show'); resumeFromModal(); save(); } }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
