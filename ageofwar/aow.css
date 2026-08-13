@@ -671,6 +671,28 @@
 }
 .aow-turret-buy:active { transform: scale(0.96); }
 
+/* Targeting-mode badge: click to cycle nearest/weakest/strongest */
+.aow-turret-mode {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+  align-self: flex-start;
+}
+.aow-turret-mode:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.3);
+  color: var(--text);
+}
+.aow-turret-mode:active { transform: scale(0.96); }
+
 /* Side-by-side upgrade + sell on occupied turret slots */
 .aow-turret-actions {
   display: flex;

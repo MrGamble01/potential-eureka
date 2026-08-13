@@ -91,6 +91,14 @@ const AgeOfWarGame = (() => {
     { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 240, range: 300, atkSpd: 0.8, color: '#5a7a45' },
     { era: 4, name: 'Plasma Turret', icon: '✨', cost: 12000, dmg: 700, range: 340, atkSpd: 0.9, color: '#6ec4ff' },
   ];
+  // Player turrets can be cycled through these targeting priorities (click
+  // the mode badge on a built turret). Enemy turrets always use 'nearest'.
+  const TURRET_MODES = ['nearest', 'lowest', 'highest'];
+  const TURRET_MODE_INFO = {
+    nearest: { icon: '🎯', label: 'Nearest' },
+    lowest:  { icon: '💢', label: 'Weakest' },
+    highest: { icon: '🛡️', label: 'Strongest' },
+  };
   // Player starts with 2 turret slots and can purchase up to 2 more (max 4).
   // Enemy keeps all 4 unlocked so the AI ramps as it would in canon.
   // The underlying arrays are always sized to TURRET_SLOTS_MAX so positions
@@ -979,10 +987,20 @@ const AgeOfWarGame = (() => {
     if (existing && existing.era >= era) return;
     if (gold < tdef.cost) return;
     gold -= tdef.cost;
-    playerTurrets[slot] = { ...tdef, atkT: 0 };
+    // Upgrading an existing turret keeps its targeting mode; a fresh build
+    // defaults to nearest.
+    playerTurrets[slot] = { ...tdef, atkT: 0, mode: existing?.mode || 'nearest' };
     runStats.turretsBuilt++;
     SFX.turret();
     renderHud();
+    renderTurretPanel();
+  }
+  function cycleTurretMode(slot) {
+    if (gameOver || userPaused) return;
+    const t = playerTurrets[slot];
+    if (!t) return;
+    const idx = TURRET_MODES.indexOf(t.mode || 'nearest');
+    t.mode = TURRET_MODES[(idx + 1) % TURRET_MODES.length];
     renderTurretPanel();
   }
   function trySellTurret(slot) {
@@ -1804,13 +1822,23 @@ const AgeOfWarGame = (() => {
       if (!t) continue;
       t.atkT = Math.max(0, t.atkT - dt);
       if (t.atkT > 0) continue;
-      // Find nearest opposing unit in range
+      // Pick the in-range opposing unit per the turret's targeting mode
+      // ('nearest' by default; player turrets can cycle to 'lowest'/'highest'
+      // HP to either finish off runts or focus-fire the biggest threat).
       const turretX = side === 'player' ? PLAYER_BASE_X + BASE_W * 0.85 : ENEMY_BASE_X + BASE_W * 0.15;
-      let target = null, bestDist = Infinity;
+      const mode = t.mode || 'nearest';
+      let target = null, bestDist = Infinity, bestScore = null;
       for (const u of enemies) {
         if (u.hp <= 0) continue;
         const d = Math.abs(u.x - turretX);
-        if (d <= t.range && d < bestDist) { bestDist = d; target = u; }
+        if (d > t.range) continue;
+        if (mode === 'lowest') {
+          if (bestScore === null || u.hp < bestScore) { bestScore = u.hp; bestDist = d; target = u; }
+        } else if (mode === 'highest') {
+          if (bestScore === null || u.hp > bestScore) { bestScore = u.hp; bestDist = d; target = u; }
+        } else if (d < bestDist) {
+          bestDist = d; target = u;
+        }
       }
       if (target) {
         const tKind = TURRET_PROJECTILE_KINDS[t.era] || null;
@@ -6455,8 +6483,10 @@ const AgeOfWarGame = (() => {
       const nextDef = (!current || current.era < playerEra) ? TURRETS[next] : null;
       if (current) {
         const refund = Math.round(current.cost * SELL_REFUND);
+        const modeInfo = TURRET_MODE_INFO[current.mode || 'nearest'];
         slot.innerHTML = `
           <span class="aow-turret-current">${current.icon}<small>${current.name}</small></span>
+          <button class="aow-turret-mode" data-mode-slot="${i}" title="Targeting: ${modeInfo.label} (click to cycle)">${modeInfo.icon} ${modeInfo.label}</button>
           <div class="aow-turret-actions">
             ${nextDef ? `<button class="aow-turret-buy" data-slot="${i}" data-era="${next}">⬆️ ${nextDef.icon} $${nextDef.cost}</button>` : '<span class="aow-turret-maxed">MAX</span>'}
             <button class="aow-turret-sell" data-sell="${i}" title="Sell turret for $${refund}">Sell $${refund}</button>
@@ -6479,6 +6509,9 @@ const AgeOfWarGame = (() => {
     });
     list.querySelectorAll('.aow-turret-sell').forEach(b => {
       b.addEventListener('click', () => trySellTurret(+b.dataset.sell));
+    });
+    list.querySelectorAll('.aow-turret-mode').forEach(b => {
+      b.addEventListener('click', () => cycleTurretMode(+b.dataset.modeSlot));
     });
   }
 
