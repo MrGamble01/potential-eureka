@@ -2563,6 +2563,17 @@ function updatePlants(dt,dn){
     if(!def){                            // decor
       if(p.type==='lantern'&&p.glow){const t=dn.night||0;p.glow.visible=t>0.05;
         p.glow.material.opacity=t*(0.5+Math.sin(perf*1.6+p.phase)*0.12);}   // lantern warms up at night
+      if(p.type==='birdbath'){
+        if(p.splashT===undefined)p.splashT=4+Math.random()*10;
+        p.splashT-=dt;
+        if(p.splashT<=0){
+          p.splashT=15+Math.random()*15;
+          burst(p.x+0.5,p.y+0.58,p.z+0.5,0x9adfff,7,{up:1.3,g:5,spread:0.5});
+          SFX.tone(920,0.07,'sine',0.03,1200);
+          popMesh(p.mesh,0.85);
+          state.achFlags.birdbath=true;checkAch();
+        }
+      }
       continue;
     }
     if(p.glow){const t=dn.night||0;p.glow.visible=t>0.03;
@@ -3441,6 +3452,7 @@ const ACH=[
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
+  ['birdwatcher','Birdwatcher','Have a bird visit your Bird Bath',()=>!!state.achFlags.birdbath],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
