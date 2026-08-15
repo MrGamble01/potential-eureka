@@ -201,8 +201,12 @@
     .achv-row .aname { font-size: 13px; font-weight: 700; }
     .achv-row .adesc { font-size: 11.5px; color: var(--ink-dim); }
     .achv-row.locked { opacity: 0.45; }
+    .achv-row.locked.has-progress { opacity: 0.7; }
     .achv-row.locked .aemoji { filter: grayscale(1); }
     .achv-row.done { border-color: rgba(242,193,78,0.45); }
+    .achv-row .aprog-bar { height: 4px; margin-top: 4px; border-radius: 3px; background: rgba(0,0,0,0.35); overflow: hidden; }
+    .achv-row .aprog-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #8ec26b, #f2c14e); }
+    .achv-row .aprog-text { font-size: 10px; color: var(--ink-dim); margin-top: 2px; font-family: var(--mono); }
     #ev-choices { display: flex; flex-direction: column; gap: 9px; }
     .ev-choice {
       width: 100%; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line);
@@ -1265,9 +1269,9 @@
   }
   const ACHIEVEMENTS = [
     { id: 'first_home', emoji: '🏠', name: 'Homestead', desc: 'Build your first cottage.', done: () => countType('house') >= 1 },
-    { id: 'hamlet', emoji: '👪', name: 'Hamlet', desc: 'Reach 5 villagers.', done: () => state.villagers.length >= 5 },
-    { id: 'village', emoji: '🏘️', name: 'Village', desc: 'Reach 10 villagers.', done: () => state.villagers.length >= 10 },
-    { id: 'township', emoji: '🏙️', name: 'Township', desc: 'Reach 18 villagers.', done: () => state.villagers.length >= 18 },
+    { id: 'hamlet', emoji: '👪', name: 'Hamlet', desc: 'Reach 5 villagers.', done: () => state.villagers.length >= 5, prog: () => [state.villagers.length, 5] },
+    { id: 'village', emoji: '🏘️', name: 'Village', desc: 'Reach 10 villagers.', done: () => state.villagers.length >= 10, prog: () => [state.villagers.length, 10] },
+    { id: 'township', emoji: '🏙️', name: 'Township', desc: 'Reach 18 villagers.', done: () => state.villagers.length >= 18, prog: () => [state.villagers.length, 18] },
     { id: 'harvest', emoji: '🌾', name: 'Breadbasket', desc: 'Build a farm.', done: () => countType('farm') >= 1 },
     { id: 'riverfolk', emoji: '🎣', name: 'Riverfolk', desc: 'Build a fishing hut.', done: () => countType('fishing') >= 1 },
     { id: 'market', emoji: '🏪', name: 'Open for Business', desc: 'Open a market.', done: () => countType('market') >= 1 },
@@ -1276,23 +1280,23 @@
     { id: 'orchardist', emoji: '🍎', name: 'Orchardist', desc: 'Plant an orchard.', done: () => countType('orchard') >= 1 },
     { id: 'supplychain', emoji: '⚡', name: 'Supply Chain', desc: 'Boost a building by placing it beside its supplier.', done: () => state.buildings.some(b => BUILDINGS[b.type].likes && b.done !== false && adjSupplier(b)) },
     { id: 'first_trade', emoji: '🤝', name: 'Fair Deal', desc: 'Strike a deal with the traveling merchant.', done: () => (state.trades || 0) >= 1 },
-    { id: 'trade_baron', emoji: '🐴', name: 'Friend of the Road', desc: 'Make 25 trades with the merchant.', done: () => (state.trades || 0) >= 25 },
+    { id: 'trade_baron', emoji: '🐴', name: 'Friend of the Road', desc: 'Make 25 trades with the merchant.', done: () => (state.trades || 0) >= 25, prog: () => [state.trades || 0, 25] },
     { id: 'gardener', emoji: '🌷', name: 'Green Thumb', desc: 'Place your first decoration.', done: () => state.buildings.some(b => BUILDINGS[b.type].decor) },
     { id: 'square', emoji: '⛲', name: 'Town Square', desc: 'Build a fountain.', done: () => countType('fountain') >= 1 },
-    { id: 'beautiful', emoji: '✨', name: 'A Beautiful Town', desc: 'Reach 40 town charm.', done: () => townCharm() >= 40 },
-    { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.filter(b => b.done !== false).length >= 10 },
+    { id: 'beautiful', emoji: '✨', name: 'A Beautiful Town', desc: 'Reach 40 town charm.', done: () => townCharm() >= 40, prog: () => [townCharm(), 40] },
+    { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.filter(b => b.done !== false).length >= 10, prog: () => [state.buildings.filter(b => b.done !== false).length, 10] },
     { id: 'architect', emoji: '⬆️', name: 'Architect', desc: 'Upgrade a building to Level 3.', done: () => state.buildings.some(b => (b.level || 1) >= 3) },
-    { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300 },
-    { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20 },
-    { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95 },
+    { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300, prog: () => [Math.floor(state.res.gold), 300] },
+    { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20, prog: () => [state.day, 20] },
+    { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95, prog: () => [Math.floor(state.happy), 95] },
     { id: 'festival', emoji: '🎪', name: "Let's Celebrate", desc: 'Throw a town festival at the tavern.', done: () => state.lastFestivalDay != null && state.lastFestivalDay >= 0 },
     { id: 'school', emoji: '📚', name: 'Three Rs', desc: 'Build a schoolhouse.', done: () => countType('school') >= 1 },
     { id: 'beekeeper', emoji: '🐝', name: 'Beekeeper', desc: 'Set up an apiary.', done: () => countType('apiary') >= 1 },
     { id: 'cityhall', emoji: '🏛️', name: 'Civic Pride', desc: 'Raise a Town Hall in a City.', done: () => countType('townhall') >= 1 },
-    { id: 'city', emoji: '🏙️', name: 'Metropolis', desc: 'Grow to 20 villagers — a true City.', done: () => state.villagers.length >= 20 },
-    { id: 'festivals5', emoji: '🎉', name: 'Life of the Party', desc: 'Hold five town festivals.', done: () => (state.festivalsHeld || 0) >= 5 },
+    { id: 'city', emoji: '🏙️', name: 'Metropolis', desc: 'Grow to 20 villagers — a true City.', done: () => state.villagers.length >= 20, prog: () => [state.villagers.length, 20] },
+    { id: 'festivals5', emoji: '🎉', name: 'Life of the Party', desc: 'Hold five town festivals.', done: () => (state.festivalsHeld || 0) >= 5, prog: () => [state.festivalsHeld || 0, 5] },
     { id: 'lamplighter', emoji: '🏮', name: 'Lamplighter', desc: 'Place a lamppost.', done: () => countType('lamppost') >= 1 },
-    { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19 },
+    { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19, prog: () => [state.day, 19] },
     { id: 'dockworker', emoji: '⚓', name: 'On the Waterfront', desc: 'Build a dock.', done: () => countType('dock') >= 1 },
     { id: 'lawgiver', emoji: '📜', name: 'Lawgiver', desc: 'Enact your first Town Decree.', done: () => (state.decrees || []).length >= 1 },
   ];
@@ -1315,7 +1319,16 @@
     document.getElementById('achv-count').textContent = got.length + ' of ' + ACHIEVEMENTS.length + ' earned';
     wrap.innerHTML = ACHIEVEMENTS.map(a => {
       const done = got.indexOf(a.id) >= 0;
-      return '<div class="achv-row ' + (done ? 'done' : 'locked') + '"><span class="aemoji">' + a.emoji + '</span><span><div class="aname">' + a.name + '</div><div class="adesc">' + a.desc + '</div></span></div>';
+      let progHtml = '';
+      if (!done && a.prog) {
+        const p = a.prog();
+        const cur = Math.max(0, Math.min(p[1], p[0]));
+        const pct = Math.max(0, Math.min(100, (cur / p[1]) * 100));
+        progHtml = '<div class="aprog-bar"><div class="aprog-fill" style="width:' + pct + '%"></div></div>'
+          + '<div class="aprog-text">' + cur + ' / ' + p[1] + '</div>';
+      }
+      const rowClass = 'achv-row ' + (done ? 'done' : 'locked') + (progHtml ? ' has-progress' : '');
+      return '<div class="' + rowClass + '"><span class="aemoji">' + a.emoji + '</span><span><div class="aname">' + a.name + '</div><div class="adesc">' + a.desc + '</div>' + progHtml + '</span></div>';
     }).join('');
     document.getElementById('achv').classList.add('show');
   }
