@@ -180,16 +180,35 @@ gesture handling rather than load-bearing. Confirm on a real touch device before
 removing.
 *Accept:* pinch-zoom works on the page, or a comment records why it can't.
 
-### A11Y-1 · The rest of the accessibility batch
-Still open as originally written (contrast, `aria-live`, `role="dialog"`,
-keyboard-reachable tooltips, `:focus-visible`, `prefers-reduced-motion`,
-`focusin` video previews). The `user-scalable=no` half is now A11Y-2.
+### ~~A11Y-1 · The rest of the accessibility batch~~ ✅ *(verified closed Aug 2026)*
+Every sub-item was checked in the live DOM rather than by grep, and all pass:
 
-### PERF-3 · Home-page loading
-Unchanged and still accurate: `css/style.css:1-8` is a render-blocking
-`@import` chain, and **0 of 25** local `<script>` tags in `index.html` are
-deferred. The poster JPGs now have `loading="lazy"` and dimensions, so that
-third of the ticket is done.
+| Sub-item | Result |
+|---|---|
+| `--text-muted` contrast | already lifted `#484F58` → `#8b949e`; **6.15:1** against the darkest surface (`#0d1117`), 6.74:1 against `#020203` — passes AA. The old value was 2.28–2.50:1. |
+| `aria-live` on status/score readouts | 15 regions |
+| `role="dialog"` on tycoon modals | 10/10 |
+| `aria-modal` on tycoon modals | 10/10 |
+| `:focus-visible` on `.arcade-card` / `.game-controls` | present; cards are real `<a>` elements |
+| `prefers-reduced-motion` | 2 CSS blocks, plus `js/effects.js` and `ageofwar.js` |
+| card previews on `focusin`, not hover-only | wired |
+
+The `user-scalable=no` half is tracked separately as A11Y-2 and is still open.
+
+### ~~PERF-3 · Home-page loading~~ ✅ *(closed Aug 2026)*
+All three parts are now done:
+- **Fonts** — already moved out of `base.css` to a `<link>` + `preconnect`.
+- **Scripts** — already done, and an earlier draft of this document got it
+  wrong. All **25 of 25** local `<script>` tags in `index.html` carry `defer`;
+  `grep -c '<script defer'` returns 0 only because the attribute follows `src`.
+  The single inline block that calls into their globals is correctly wrapped in
+  a `DOMContentLoaded` listener.
+- **`@import` chain** — closed. `css/style.css` was eight `@import`s and
+  nothing else, costing a second serial round trip before any styled paint;
+  `index.html` and `404.html` now link the eight sheets directly in the same
+  order and the aggregator is deleted. Measured with 120ms emulated latency:
+  2 serial waves → 1, CSS complete 954ms → 748ms (−22%), one request fewer.
+- **Posters** — already carry `loading="lazy"` and intrinsic dimensions.
 
 ### THUMB-1 · Hearthvale's arcade card still uses its placeholder SVG
 `index.html:126` renders an inline-SVG illustration while every other card uses
@@ -203,11 +222,10 @@ Unchanged: `tycoon/beagle.html` remains a near-copy of `play.html`. LOOP-1 had
 to be applied to both files, which is precisely the double-maintenance this
 ticket exists to end.
 
-### SITE-3 (remainder) · Document the localStorage key registry in the README
-The namespacing half is done. Appendix A below is still the only place the key
-registry lives; the ticket asked for it in the README too. Three unrelated
-mute keys (`arcade-muted`, `aow-muted`, `tycoon:sfxEnabled`) remain by design —
-each game owns its own mute.
+### ~~SITE-3 (remainder) · Document the localStorage key registry in the README~~ ✅ *(closed Aug 2026)*
+The README now carries the key registry under "Stack", with a note to add and
+namespace a key when adding a game. Three separate mute keys (`arcade-muted`,
+`aow-muted`, `tycoon:sfxEnabled`) remain by design — each game owns its mute.
 
 ---
 
@@ -232,14 +250,17 @@ of War scale their backing store by `devicePixelRatio`.
 **DEBT-1 · Delete `beagle.html` as a fork; make it a theme.** Still open — see
 "Still open" above.
 
-**PERF-2 · Age of War hot loop.** `ageofwar.js:1201-1266` — every unit runs
-`units.filter(...)` + `.find(...)` per frame (O(n²) + GC churn), `fireTurrets`
-(`:1511`) repeats it per turret, and there's no population cap. Bucket units per
-side once per frame; add a soft cap. Also: `UNITS` leaks a new boss entry every
-7 waves (`:1089-1106` keys by `waveNum`; `reset()` never clears) — key by era
-and put scaling on the instance.
+**~~PERF-2 · Age of War hot loop~~** ✅ **done** — the unit loop and
+`fireTurrets` were bucketed per side once per frame by earlier work, `reset()`
+now drops `boss_*` entries so the `UNITS` catalog stops growing across runs,
+and `MAX_UNITS_PER_SIDE` (150) caps population. The August re-audit found the
+projectile collision scan had been missed — it still rebuilt a filtered array
+per projectile per frame — and converted it to the same buckets: 40.2µs →
+6.6µs per frame at 300 units / 40 projectiles (6.1×), verified equivalent and
+exercised with 60s of live combat.
 
-**PERF-3 · Home-page loading.** See "Still open" above.
+**~~PERF-3 · Home-page loading~~** ✅ **done** — see "Still open" above for the
+breakdown.
 
 **GAME-1 · Age of War feel/fairness batch.** (a) Base hits are silent/invisible
 — the `isBase` branch (`ageofwar.js:1240-1245`) applies damage with no
@@ -264,8 +285,9 @@ never touch it (`config.js:30` vs `gameloop.js:74-85`); the one-shot
 `matchMedia` fold-in (`homeless-village.html:96-109`, add a `change` listener);
 and mobile still hides the only narrative log (`game.css:236`).
 
-**A11Y-1 · Site-wide accessibility batch.** See "Still open" above; the
-`user-scalable=no` half is now tracked as A11Y-2.
+**~~A11Y-1 · Site-wide accessibility batch~~** ✅ **done** — all sub-items
+verified in the live DOM; see the table above. The `user-scalable=no` half is
+tracked separately as A11Y-2 and remains open.
 
 **BAL-1 · Small verified balance/UX fixes (batchable).** Tycoon: promotion
 discards in-flight deal value (`play.html:5386,5155` — flush before `shift()`);
