@@ -8331,7 +8331,46 @@ let last = performance.now();
 const HUD_UPDATE_INTERVAL = 0.1;
 let _hudAcc = HUD_UPDATE_INTERVAL;
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
+
+// The next frame is scheduled BEFORE the body runs. TYC-1 fixed the one
+// ReferenceError that was known to escape this loop, but left the shape
+// that made it fatal: the re-arm used to be the body's last statement, so
+// ANY exception in it stopped the game dead — no error banner, no motion,
+// just a still office and a save that keeps ticking. Now a bad frame is
+// logged and skipped; only a persistent fault stops the loop, and it says
+// so. Mirrors homeless-village/js/main.js's gameLoop.
+let frameErrors = 0, loopStopped = false;
 function loop(now) {
+  if (loopStopped) return;
+  requestAnimationFrame(loop);
+  try {
+    frameBody(now);
+    if (frameErrors) frameErrors--; // recovered — don't hold blips against it
+  } catch (e) {
+    console.error('Tycoon frame error:', e);
+    if (++frameErrors > 10) fatalFrame('Startup Tycoon hit a problem and stopped updating.');
+  }
+}
+
+function fatalFrame(msg) {
+  loopStopped = true; // stop re-arming — no 60fps error storm
+  if (document.getElementById('tyc-fatal')) return;
+  saveGame(); // the run so far is still worth keeping
+  const d = document.createElement('div');
+  d.id = 'tyc-fatal';
+  d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;' +
+    'align-items:center;justify-content:center;gap:14px;background:rgba(13,17,23,.94);' +
+    'color:#e6edf3;font-family:inherit;text-align:center;padding:24px;';
+  d.innerHTML = '<div style="font-size:34px">🏢</div>' +
+    '<div style="max-width:430px;line-height:1.6">' + msg +
+    '<br><br>Your progress has been saved — reloading picks the season back up.</div>' +
+    '<button id="tyc-fatal-reload" style="background:#21262d;color:#e6edf3;border:1px solid #30363d;' +
+    'padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:6px">RELOAD</button>';
+  document.body.appendChild(d);
+  d.querySelector('#tyc-fatal-reload').addEventListener('click', () => location.reload());
+}
+
+function frameBody(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
 
@@ -8405,7 +8444,6 @@ function loop(now) {
   tickCashHud(dt);
   tickIdleBreathing(now);
   renderer.render(scene, activeCamera());
-  requestAnimationFrame(loop);
 }
 
 // Subtle "alive" head sway on every character so standing still

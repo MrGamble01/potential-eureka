@@ -7571,7 +7571,43 @@ let last = performance.now();
 const HUD_UPDATE_INTERVAL = 0.1;
 let _hudAcc = HUD_UPDATE_INTERVAL;
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
+
+// Schedule the next frame BEFORE running the body, so one bad frame can't
+// stop the sim forever (the re-arm used to be the body's last statement).
+// Kept identical to play.html's copy on purpose — this fork drifting away
+// from play.html is exactly how BGL-1/BGL-2 happened.
+let frameErrors = 0, loopStopped = false;
 function loop(now) {
+  if (loopStopped) return;
+  requestAnimationFrame(loop);
+  try {
+    frameBody(now);
+    if (frameErrors) frameErrors--;
+  } catch (e) {
+    console.error('Beagle frame error:', e);
+    if (++frameErrors > 10) fatalFrame('Beagle Sim hit a problem and stopped updating.');
+  }
+}
+
+function fatalFrame(msg) {
+  loopStopped = true;
+  if (document.getElementById('tyc-fatal')) return;
+  saveGame();
+  const d = document.createElement('div');
+  d.id = 'tyc-fatal';
+  d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;' +
+    'align-items:center;justify-content:center;gap:14px;background:rgba(13,17,23,.94);' +
+    'color:#e6edf3;font-family:inherit;text-align:center;padding:24px;';
+  d.innerHTML = '<div style="font-size:34px">🐶</div>' +
+    '<div style="max-width:430px;line-height:1.6">' + msg +
+    '<br><br>Your progress has been saved — reloading picks the season back up.</div>' +
+    '<button id="tyc-fatal-reload" style="background:#21262d;color:#e6edf3;border:1px solid #30363d;' +
+    'padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:6px">RELOAD</button>';
+  document.body.appendChild(d);
+  d.querySelector('#tyc-fatal-reload').addEventListener('click', () => location.reload());
+}
+
+function frameBody(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
 
@@ -7636,7 +7672,6 @@ function loop(now) {
   tickCashHud(dt);
   tickIdleBreathing(now);
   renderer.render(scene, camera);
-  requestAnimationFrame(loop);
 }
 
 // Subtle "alive" head sway on every character so standing still
