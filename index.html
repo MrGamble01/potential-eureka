@@ -989,6 +989,11 @@
       minesweeper: () => MinesweeperGame.destroy(),
       connect4: () => ConnectFourGame.destroy(),
       word5: () => WordFiveGame.destroy(),
+      // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
+      // dashboard six timers, both for the life of the session regardless of
+      // which view was on screen.
+      orgchart: () => OrgChart.destroy(),
+      dashboard: () => { Dashboard.destroy(); CalendarWidget.destroy(); },
     };
 
     function switchView(name) {
@@ -1021,6 +1026,12 @@
           case 'orgchart':     OrgChart.init(); break;
         }
       }
+      // init() only ever runs once per view, so the views we now tear down on
+      // exit need their loop/timers restarted when the visitor comes back.
+      // Both resume() calls are no-ops if already running, so this is safe on
+      // the first visit too.
+      if (name === 'orgchart') OrgChart.resume();
+      if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
       if (name === 'halloffame') renderHallOfFame();
       if (name === 'arcade') refreshArcadeBadges();
       currentView = name;
