@@ -5677,7 +5677,12 @@ hireExtEngBtnEl.addEventListener('click', () => {
   const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   if (!hasDesk) return;
   state.cash -= cost; showSpendPop(cost);
-  spawnIdeaWorker({ external: true });
+  // Same refund guard the in-house hire above uses. Both callers already
+  // check for a free desk with the identical predicate spawnIdeaWorker uses,
+  // so this shouldn't fire — but the two adjacent handlers spending the same
+  // way should also fail the same way, and an unguarded spend is exactly the
+  // shape BAL-1 flagged.
+  if (!spawnIdeaWorker({ external: true })) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
   addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);

@@ -37,8 +37,15 @@ afterwards.
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
-| **Still open** | 6 tickets, listed below |
-| **P2 / P3** | mostly untouched backlog; stale entries corrected below |
+| **Still open** | 3 tickets, listed below |
+| **P2** | ✅ all closed except DEBT-1 — far more had shipped than the July doc showed |
+| **P3** | untouched backlog; entries that shipped are marked inline |
+
+> The July document listed 31 P0/P1 and most of P2 as open. Re-checking found
+> nearly all of it already fixed. **Verify before working any ticket here** —
+> and prefer checking behaviour in a browser over grepping for a marker, which
+> produced two false readings during this pass (`<script defer>` and
+> `--text-muted`).
 
 ---
 
@@ -262,45 +269,44 @@ exercised with 60s of live combat.
 **~~PERF-3 · Home-page loading~~** ✅ **done** — see "Still open" above for the
 breakdown.
 
-**GAME-1 · Age of War feel/fairness batch.** (a) Base hits are silent/invisible
-— the `isBase` branch (`ageofwar.js:1240-1245`) applies damage with no
-projectile/flash/sound even for 360-range snipers; reuse the unit-vs-unit
-projectile path. (b) Combo streaks are mathematically always wiped at wave
-boundaries (`COMBO_WINDOW 3.0` `:167` ≤ breather 3-4s `:653/:1069`; `comboT`
-never pauses `:1191`) — pause the timer during breathers. (c) Settings-modal
-difficulty switch (`:936-945`) silently changes mid-run without the reset the
-HUD switch does (`:1002-1013`), making `win_hard`/`win_insane` (`:1493`)
-gameable — unify, and gate achievements on the run's lowest difficulty. (d) Gold
-trickle (`:1174`) doesn't scale with difficulty while enemy stats do — Insane
-starves the player. (e) Coin flooring loses 0.3-0.8% of every kill
-(`:1604-1605`) — give the remainder to the last coin. (f) `ageUp` clamps hero
-cooldown to ≤10s (`:756-758`) — an unintended exploit.
+**~~GAME-1 · Age of War feel/fairness batch~~** ✅ **done — all six** (verified
+Aug 2026, each marked in-source with its `GAME-1x` tag):
+(a) base hits reuse the unit-vs-unit projectile path, so ranged attackers fire a
+visible projectile and melee hits get sparks + sound + shake;
+(b) `comboT` pauses during the wave breather, so a streak survives the boundary;
+(c) the settings-modal difficulty switch calls `reset()` like the HUD switch,
+closing the `win_hard`/`win_insane` exploit;
+(d) the passive trickle scales with the difficulty's `goldMult`;
+(e) `dropCoins` gives the flooring remainder to the last coin, so the coins sum
+to the kill's reward exactly;
+(f) `ageUp` no longer clamps hero cooldown.
 
-**GAME-2 · Homeless Village completeness pass.** *Partly overtaken:* the "no
-player input at all" complaint is **fixed** — `homeless-village/js/main.js` now
-has WASD/arrow movement with the player branched out of the NPC wander loop
-(IDEA-HV-1). Still open: the Workbench does nothing despite "Enables crafting
-upgrades" (`config.js:26`); the Garden claims "destroyed in sweeps" but sweeps
-never touch it (`config.js:30` vs `gameloop.js:74-85`); the one-shot
-`matchMedia` fold-in (`homeless-village.html:96-109`, add a `change` listener);
-and mobile still hides the only narrative log (`game.css:236`).
+**~~GAME-2 · Homeless Village completeness pass~~** ✅ **done** — the whole
+ticket has been overtaken. Player input landed (IDEA-HV-1: WASD/arrows, player
+branched out of the NPC wander array, bounds clamp, blur handler). The Workbench
+is now a real gate (`requires:'workbench'` on tent, soup kitchen and garden).
+Sweeps destroy the garden outright, matching its own description. The
+`matchMedia` fold-in has a `change` listener so rotating a phone re-lays-out.
+Mobile no longer hides the log — it's shrunk and repositioned instead.
+*Still missing:* a touch joystick, so mobile remains input-less.
 
 **~~A11Y-1 · Site-wide accessibility batch~~** ✅ **done** — all sub-items
 verified in the live DOM; see the table above. The `user-scalable=no` half is
 tracked separately as A11Y-2 and remains open.
 
-**BAL-1 · Small verified balance/UX fixes (batchable).** Tycoon: promotion
-discards in-flight deal value (`play.html:5386,5155` — flush before `shift()`);
-Hire Engineer is the only unguarded spend (`:5551` vs `hireBDR`'s refund pattern
-`:4599`); joystick second-finger hijack (`:8027`, add pointer-id guard like
-`:7810`); investor banner covers goal HUD on desktop (`:1050` vs `:736`;
-mobile-only fix at `:1079`); floating `wallR` after Open Plan purchase
-(`:2575`); door mesh 2.5 vs collision 3.0 (`:2565` vs `:4690`); 860/900px
-breakpoint overlap (`:1425` vs `:1260`). Drug Lab: heat is flat per *sale* not
-per unit (`:1213`) making bulk dealers strictly better; enforce the
-declared-but-dead `STASH_MAX_BASE` (`:814`). Arcade: Breakout speed cap
-(`breakout.js:90`, tunneling risk), paddle `mousemove` on `document` not canvas
-(`:34`), dt-scale paddle easing (`:129`).
+**~~BAL-1 · Small verified balance/UX fixes~~** ✅ **done** — spot-checked Aug
+2026: the Breakout ball speed is capped (`BALL_SPEED_MAX`) and its paddle
+`mousemove` is bound to the canvas, not `document`; Grow Op's heat scales with
+quantity (`addHeat(heatGainPerSale(qty))`) and `STASH_MAX_BASE` is enforced on
+load and on pickup; Tycoon's joystick has pointer-id guards and Hire Engineer
+refunds on a failed spawn.
+
+One straggler was fixed during the re-audit: the **external** engineer hire
+spent the cash and then ignored `spawnIdeaWorker()`'s return, unlike the
+in-house hire immediately above it. Both callers pre-check for a free desk with
+the same predicate `spawnIdeaWorker` uses, so it isn't a reproducible money
+loss — but two adjacent handlers spending the same way should fail the same
+way, and an unguarded spend is the exact shape this ticket flagged.
 
 ---
 
