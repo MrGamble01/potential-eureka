@@ -18,7 +18,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Linked individually, in the order css/style.css used to @import them.
+       As @imports the browser couldn't discover these until style.css had been
+       fetched AND parsed, so they cost a second serial round trip before any
+       styled paint. As <link>s they're all found in the initial HTML scan and
+       fetch in parallel. Order still decides the cascade, so keep it. -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/effects.css">
+  <link rel="stylesheet" href="css/arcade.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/games.css">
+  <link rel="stylesheet" href="css/productivity.css">
+  <link rel="stylesheet" href="css/personal.css">
+  <link rel="stylesheet" href="css/orgchart.css">
 </head>
 <body>
 
