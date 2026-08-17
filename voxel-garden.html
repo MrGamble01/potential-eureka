@@ -355,11 +355,12 @@ const DECOR={
   snowman:{name:'Snowman', ico:'☃️', cost:30, lvl:3},
   birdbath:{name:'Bird Bath',ico:'🐦', cost:50, lvl:4},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
+  windchime:{name:'Wind Chime',ico:'🎐', cost:70, lvl:6},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
   4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Sprinklers',
-  6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
+  6:'Moonpetal seeds · Wind Chime · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
   10:'A master gardener of the skies 🌈',11:'The isle hums with life',
   12:'Nothing left to prove — everything left to grow 🌟'};
@@ -2090,6 +2091,15 @@ function cubesFor(type,stage,vseed){
       add(0,0.22,0,0.12,0.44,0.12,0x8b9199);
       add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
       add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
+      break;
+    case 'windchime':
+      add(0,0.5,0,0.06,1.0,0.06,0x6b6b6b);              // shepherd's hook post
+      add(0,0.98,0,0.16,0.04,0.16,0x9a9a9a);            // top ring
+      add(0,0.6,0,0.08,0.08,0.02,0xf0d9a0);             // wind catcher sail
+      add(0.1,0.72,0,0.04,0.28,0.04,0xc98a4b);          // hanging chime tubes
+      add(-0.1,0.68,0,0.04,0.24,0.04,0xd9a25e);
+      add(0,0.74,0.1,0.04,0.3,0.04,0xc98a4b);
+      add(0,0.7,-0.1,0.04,0.22,0.04,0xd9a25e);
       break;
     case 'glowshroom':
       add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
