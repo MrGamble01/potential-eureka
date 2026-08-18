@@ -355,9 +355,10 @@ const DECOR={
   snowman:{name:'Snowman', ico:'☃️', cost:30, lvl:3},
   birdbath:{name:'Bird Bath',ico:'🐦', cost:50, lvl:4},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
+  windchime:{name:'Wind Chime',ico:'🎐', cost:20, lvl:2},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
-const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
+const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences · Wind Chime',3:'Lavender seeds · Lanterns',
   4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Sprinklers',
   6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
@@ -2091,6 +2092,13 @@ function cubesFor(type,stage,vseed){
       add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
       add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
       break;
+    case 'windchime':
+      add(0,0.44,0,0.08,0.9,0.08,0x8a6740);             // post
+      add(0,0.86,0,0.5,0.06,0.06,0x9a7448);              // hanger arm
+      add(0,0.78,0,0.16,0.02,0.16,0xd9b24a);             // top ring
+      for(let i=0;i<5;i++){const cx=(i-2)*0.09;          // dangling tubes, uneven lengths
+        add(cx,0.72-Math.abs(i-2)*0.05,0,0.03,0.22+Math.abs(i-2)*0.04,0.03,0xcfa15a);}
+      break;
     case 'glowshroom':
       add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
       if(stage>=2){
@@ -2563,6 +2571,7 @@ function updatePlants(dt,dn){
     if(!def){                            // decor
       if(p.type==='lantern'&&p.glow){const t=dn.night||0;p.glow.visible=t>0.05;
         p.glow.material.opacity=t*(0.5+Math.sin(perf*1.6+p.phase)*0.12);}   // lantern warms up at night
+      if(p.type==='windchime'&&p.mesh)p.mesh.rotation.z=Math.sin(perf*1.1+p.phase)*0.08;   // gentle sway
       continue;
     }
     if(p.glow){const t=dn.night||0;p.glow.visible=t>0.03;
