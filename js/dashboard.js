@@ -246,12 +246,32 @@ const Dashboard = (() => {
     if (textEl) textEl.textContent = `"${q.text}"`;
     if (authorEl) authorEl.textContent = `— ${q.author}`;
 
-    setInterval(updateClock, 1000);
-    setInterval(updateStats, 2000);
-    setInterval(updateActivity, 3000);
-    setInterval(rotateQuote, 8000);
-    setInterval(refreshWeather, 300000); // refresh weather every 5 min
+    resume();
   }
 
-  return { init };
+  // These five timers used to be started and never cleared, so the dashboard
+  // kept ticking (clock, fake stats, activity graph, quote rotation, weather
+  // refetch) for the rest of the session no matter which view you were on.
+  // The shell calls init() once per view, so start/stop live in their own
+  // idempotent pair and the teardown map in index.html drives them.
+  const TIMERS = [
+    [updateClock, 1000],
+    [updateStats, 2000],
+    [updateActivity, 3000],
+    [rotateQuote, 8000],
+    [refreshWeather, 300000], // refresh weather every 5 min
+  ];
+  let timerIds = [];
+
+  function resume() {
+    if (timerIds.length) return; // already running
+    timerIds = TIMERS.map(([fn, ms]) => setInterval(fn, ms));
+  }
+
+  function destroy() {
+    timerIds.forEach(clearInterval);
+    timerIds = [];
+  }
+
+  return { init, destroy, resume };
 })();

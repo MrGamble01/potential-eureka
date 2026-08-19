@@ -226,11 +226,23 @@ const CalendarWidget = (() => {
     }
   }
 
+  // The 5-minute refresh used to run for the life of the page even when the
+  // dashboard wasn't on screen — a background refetch of calendar data
+  // nobody was looking at. Started and stopped with the dashboard view.
+  let refreshId = null;
+
   function init() {
     loadEvents();
-    // Refresh every 5 minutes
-    setInterval(loadEvents, 300000);
+    resume();
   }
 
-  return { init, openSettings, closeSettings, addCalendarRow, saveSettings };
+  function resume() {
+    if (refreshId === null) refreshId = setInterval(loadEvents, 300000);
+  }
+
+  function destroy() {
+    if (refreshId !== null) { clearInterval(refreshId); refreshId = null; }
+  }
+
+  return { init, destroy, resume, openSettings, closeSettings, addCalendarRow, saveSettings };
 })();

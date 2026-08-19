@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Hearthvale — Cozy Town Builder</title>
   <meta name="description" content="A cozy top-down colony builder. Grow a riverside village, place homes and workshops, let villagers wander and work, and trade with a traveling merchant. Retro pixel art, runs in your browser, no install.">
   <meta property="og:title" content="Hearthvale">
   <meta property="og:description" content="Build a cozy riverside town. Place homes and workshops, watch villagers work, trade with a traveling merchant.">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/hearthvale.jpg">
+  <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/hearthvale">
+  <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/hearthvale">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#3a5f43">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%233a5f43'/><path d='M14 34 L32 18 L50 34 L50 50 L14 50 Z' fill='%23c8574f'/><rect x='22' y='38' width='8' height='12' fill='%236e4a2c'/><rect x='36' y='38' width='8' height='8' fill='%23bfe4f2'/></svg>">
   <link rel="stylesheet" href="css/arcade-chrome.css">
@@ -32,9 +36,15 @@
       color: var(--ink);
       font-family: var(--font);
       user-select: none;
-      touch-action: none;
     }
-    #game { position: fixed; inset: 0; display: block; image-rendering: pixelated; cursor: grab; }
+    /* touch-action is scoped to the map canvas, not the whole body, and the
+       viewport no longer carries user-scalable=no (A11Y-2 / WCAG 1.4.4).
+       The canvas still needs `none` — it reads raw drags to pan and pinches
+       to zoom the camera, and the browser would otherwise steal them — but
+       everything outside it (HUD panels, modals, the build bar) is ordinary
+       DOM again, so a reader can pinch-zoom the interface text. */
+    #game { position: fixed; inset: 0; display: block; image-rendering: pixelated; cursor: grab;
+      touch-action: none; }
     #game.building { cursor: crosshair; }
     #game.panning { cursor: grabbing; }
 
@@ -4037,8 +4047,47 @@
     requestAnimationFrame(loop);
   }
 
-  // fixed-ish timestep for sim, render every frame
+  // The next frame is scheduled by loop() BEFORE frameBody() runs. When the
+  // re-arm was the body's last statement instead, any exception anywhere in
+  // stepSim/draw/the HUD tick skipped it and the town froze for good, with
+  // no way back but a reload the player had no reason to try. Now a frame
+  // that throws is logged and skipped, the town keeps running, and only a
+  // genuinely persistent fault (10 bad frames) stops the loop and says so.
+  // Same shape as homeless-village/js/main.js's gameLoop.
+  let frameErrors = 0, loopStopped = false;
   function loop(ts) {
+    if (loopStopped) return;
+    requestAnimationFrame(loop);
+    try {
+      frameBody(ts);
+      if (frameErrors) frameErrors--; // recovered — don't count old blips forever
+    } catch (e) {
+      console.error('Hearthvale frame error:', e);
+      if (++frameErrors > 10) { fatal('Hearthvale hit a problem and stopped updating.'); }
+    }
+  }
+
+  // Stops the loop and tells the player, instead of leaving them staring at
+  // a still frame wondering whether the game is loading.
+  function fatal(msg) {
+    loopStopped = true; // no 60fps error storm behind the message
+    if (document.getElementById('hv-fatal')) return;
+    const d = document.createElement('div');
+    d.id = 'hv-fatal';
+    d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;' +
+      'align-items:center;justify-content:center;gap:14px;background:rgba(24,18,12,.94);' +
+      'color:#f2e3c8;font-family:inherit;text-align:center;padding:24px;';
+    d.innerHTML = '<div style="font-size:34px">🏘️</div>' +
+      '<div style="max-width:420px;line-height:1.6">' + msg +
+      '<br><br>Your town is saved — reloading picks up where you left off.</div>' +
+      '<button id="hv-fatal-reload" style="background:#3a2b1b;color:#f2e3c8;border:1px solid #7a5c34;' +
+      'padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">RELOAD</button>';
+    document.body.appendChild(d);
+    d.querySelector('#hv-fatal-reload').addEventListener('click', () => location.reload());
+  }
+
+  // fixed-ish timestep for sim, render every frame
+  function frameBody(ts) {
     perfNow = ts;
     if (!lastT) lastT = ts;
     let dt = (ts - lastT) / 1000; lastT = ts;
@@ -4054,8 +4103,6 @@
     // hud light refresh
     hudTick += dt;
     if (hudTick > 0.25) { updateHUD(); refreshBarState(); checkGoals(); renderGoal(); checkAchievements(); drawMinimap(); assignBuilders(); checkTierUp(); hudTick = 0; }
-
-    requestAnimationFrame(loop);
   }
   let hudTick = 0, saveTick = 0;
 

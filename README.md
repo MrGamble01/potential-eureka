@@ -20,7 +20,7 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 
 **Standalone pages:**
 - **Age of War** (`ageofwar/`) — side-scrolling strategy game: march your army through the ages and crush the enemy base
-- **Startup Tycoon** (`tycoon/`) — idle/story tycoon game with a 3D scene (`play.html`, `beagle.html`)
+- **Startup Tycoon** (`tycoon/`) — idle/story tycoon game with a 3D scene (`play.html`; the 🐶 Beagle Sim reskin is the same build at `play.html?theme=beagle`)
 - **Grow Op** (`drug-lab.html`) — 3D room-builder with risk/heat mechanics
 - **Homeless Village** (`homeless-village.html`) — 3D survival/village-building game
 - **Hearthvale** (`hearthvale.html`) — cozy top-down town builder with procedural pixel-art, villagers, seasons, and a warm settlement to grow
@@ -33,8 +33,34 @@ The hub also has a few non-game utilities: a productivity view (notes, todos, po
 
 - Plain HTML5 Canvas for 2D games; the 3D games (Startup Tycoon, Grow Op, Homeless Village) use a vendored copy of three.js in `vendor/` (no CDN, no npm) so they work fully offline
 - Art is mostly procedural — drawn with Canvas 2D / WebGL at runtime rather than loaded from image assets
-- Scores, saves, and preferences persist via `localStorage` (per game — see `js/*.js` and `homeless-village/js/save.js`)
+- Scores, saves, and preferences persist via `localStorage` (per game — see the key registry below)
 - Shared arcade chrome (nav, cards, view-switching) lives in `css/arcade.css`, `css/arcade-chrome.css`, and the `data-view` routing in `index.html`; each game otherwise owns its own CSS/JS
+- `index.html` links each stylesheet directly rather than through an `@import` chain, and every game script is `defer`red — the one inline block runs inside `DOMContentLoaded`
+
+### localStorage keys
+
+Every game owns its own keys. Add a new game's key here when you add the game,
+and namespace it — two builds sharing one key is what caused the Startup
+Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
+
+| Key(s) | Owner |
+|---|---|
+| `snake-high`, `tetris-high`, `breakout-high`, `asteroids-high`, `g2048-best` | arcade canvas games |
+| `mines-best-beginner` / `-intermediate` / `-expert`, `mines-diff` | Minefield |
+| `connect4-streak`, `c4-diff` | Drop Four |
+| `word5-streak` | Word Five |
+| `arcade-muted` | `js/sfx.js` (arcade hub) |
+| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War |
+| `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |
+| `beagle-sim-v1`, `beagle:*` | Beagle Sim (the `?theme=beagle` variant of Startup Tycoon) |
+| `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | shared by both tycoon variants (cosmetic only) |
+| `drug-lab-v1` | Grow Op |
+| `homeless_village_v1` | Homeless Village |
+| `hearthvale-v1` | Hearthvale |
+| `voxel-garden-v1` | Voxel Isle |
+| `studio-token`, `studio-chat-v1` | Eureka Studio (token stays in the browser, sent only to api.github.com) |
+| `eureka-notes`, `eureka-todos`, `eureka-bookmarks`, `eureka-pomo-sessions`, `eureka-calendar-config`, `eureka-gt-clientid`, `eureka-gt-lists` | productivity view |
+| `eureka-personal-pin`, `eureka-personal-*` | personal view — **stored unencrypted**; the PIN is a casual screen lock, not security, and the UI says so |
 
 ## Running locally
 

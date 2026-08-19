@@ -1571,8 +1571,17 @@ const AgeOfWarGame = (() => {
         if (p.y > GROUND_Y - 8) { p.y = GROUND_Y - 8; p.vy = 0; p.grav = 0; }
       }
       p.life -= dt;
-      const targets = units.filter(u => u.side !== p.side && u.hp > 0);
-      for (const u of targets) {
+      // Reuse this frame's per-side buckets, the same way the unit loop and
+      // fireTurrets above already do. This was the one collision scan still
+      // rebuilding a filtered array per projectile per frame — with the
+      // 150-per-side cap that's up to 300 units re-scanned and a fresh
+      // garbage array allocated for every projectile in flight, every frame.
+      // Kill resolution doesn't run until well below, so bucket membership
+      // is still exact here; liveness is checked at scan time because hp
+      // mutates as projectiles resolve within this very loop.
+      const foes = p.side === 'player' ? enemyBucket : playerBucket;
+      for (const u of foes) {
+        if (u.hp <= 0) continue;
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
           u.hp -= p.dmg; u.hitFlash = 0.2;
           spawnDmgFloater(p.dmg, u.x, GROUND_Y - u.h - 6, '#ffd2c0');

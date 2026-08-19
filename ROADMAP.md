@@ -1,143 +1,344 @@
 # EUREKA GAMES — Master Audit & Build Roadmap
 
-*Audit date: July 2026. Every bug below was verified against source (line numbers cited); the highest-severity items were additionally reproduced in Node or headless Chromium. Line numbers drift as files change — treat them as starting anchors, and re-locate by the quoted identifiers.*
+*Original audit: July 2026. **Re-audited August 2026** — every P0 and P1 ticket
+was re-checked against current source, and the site was exercised in headless
+Chromium (11 standalone pages + all 14 arcade views). The P0/P1 backlog below
+had been worked to completion in the intervening PRs. A second pass then closed
+P2 and the last three stragglers, so **every ticket in this document is now
+closed** — what remains is the P3 ideas backlog.*
+
+*Line numbers drift as files change — treat them as starting anchors and
+re-locate by the quoted identifiers.*
 
 ## How to use this document
 
-Each ticket is self-contained and sized for **one PR**. Work top-down by priority. For every ticket:
+Each ticket is self-contained and sized for **one PR**. Work top-down by
+priority. For every ticket:
 
 1. Read the cited file/lines and confirm the problem still exists (a quoted identifier is the anchor, not the line number).
 2. Make the minimal fix described. Don't refactor beyond the ticket's scope.
 3. Verify using the ticket's acceptance criteria before opening the PR.
 4. One ticket per PR, ticket ID in the PR title (e.g. `TYC-1: fix triggerWin ReferenceError`).
 
-Conventions to preserve: zero dependencies (no build step, no frameworks), vanilla HTML/CSS/JS, games follow the `init()/start()/destroy()` module contract used by the arcade shell in `index.html`.
+Conventions to preserve: zero dependencies (no build step, no frameworks),
+vanilla HTML/CSS/JS, games follow the `init()/start()/destroy()` module
+contract used by the arcade shell in `index.html`.
+
+**Before working a closed ticket below, re-verify.** The August re-audit found
+that closed tickets can regress when new code lands — see A11Y-2, where a fix
+was applied to the four cited pages and then reintroduced by two pages written
+afterwards.
 
 ---
 
-## P0 — Incident-level (fix before anything else)
+## Status at a glance
 
-### SEC-1 · Remove real personal/employer data from `js/orgchart.js`
-**Files:** `js/orgchart.js:10-149` (`PEOPLE` array), `index.html:40` (nav entry)
-The org chart ships **real names, job titles, reporting lines, and candid internal notes about ~14 real coworkers** (plus vendor/product names). It is reachable by any visitor via "⋯ more → My Org Chart" with **no authentication**, and readable by anyone in this public repo. Unlike the "Personal" view it has no lock at all.
-**Fix:** Replace `PEOPLE` with an obviously fictional cast (or delete the feature). Then scrub git history (`git filter-repo` or BFG) — the data exists in prior commits (e.g. `beb580e`), so a new commit alone does not remove it — and force-push. Consider making the physics-canvas viz a fictional "Studio Crew" page later (see IDEA-SITE-9).
-**Accept:** No real names/roles anywhere in repo or history; page either removed from nav or shows fictional data.
+| Band | State |
+|---|---|
+| **P0** (3 tickets) | ✅ all closed |
+| **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
+| **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
+| **Still open** | ✅ none — all closed Aug 2026 |
+| **P2** | ✅ all closed, DEBT-1 included |
+| **P3** | untouched backlog; entries that shipped are marked inline |
 
-### SEC-2 · Stop presenting the Personal PIN as security
-**Files:** `js/personal-auth.js:9-13, 70-77`, `js/personal-content.js:7-8, 84-86, 209`
-The PIN "lock" is a 32-bit rolling hash and a `display:none` toggle; journal/mood/habit data is stored in **plaintext** localStorage (`eureka-personal-*`) and `PersonalAuth.unlock()` is a callable global. Users are told "PRIVATE TERMINAL — AUTHORIZED" and may journal sensitive things believing it's protected.
-**Fix (pick one):** (a) Reword the lock UI to "casual screen lock — data is not encrypted", or (b) actually encrypt payloads with WebCrypto (PBKDF2 from PIN → AES-GCM) before writing to storage.
-**Accept:** Either honest copy or ciphertext in localStorage; `unlock()` no longer bypassable without the PIN if (b).
-
-### SEC-3 · Escape calendar event titles (XSS)
-**Files:** `js/calendar.js:143-144` (render), `js/calendar.js:181-182` (settings inputs)
-`ev.title`/`ev.cal` from the Google Calendar API go into `innerHTML` unescaped — calendar-invite spam is a real injection vector, and the payload would run with access to the plaintext journal (SEC-2) and Google tokens. Settings inputs interpolate `value="${name}"` unescaped (persistent self-XSS).
-**Fix:** `Utils.escHtml()` on all four interpolations (every other module already escapes — `js/todo.js` is the reference pattern).
-**Accept:** `<img src=x onerror=...>` as an event title renders as text.
+> The July document listed 31 P0/P1 and most of P2 as open. Re-checking found
+> nearly all of it already fixed. **Verify before working any ticket here** —
+> and prefer checking behaviour in a browser over grepping for a marker, which
+> produced two false readings during this pass (`<script defer>` and
+> `--text-muted`).
 
 ---
 
-## P1 — Game-breaking bugs
+## P0 — Incident-level · ✅ ALL CLOSED
 
-### Startup Tycoon (`tycoon/play.html`, ~8,900 lines)
+| ID | Ticket | Verified closed by |
+|---|---|---|
+| SEC-1 | Real personal/employer data in `js/orgchart.js` | `PEOPLE` is now an explicitly fictional cast (Vex Pixelheart, Glitch Ramirez, …); page reframed as "Studio Crew". |
+| SEC-2 | Personal PIN presented as security | Lock UI now carries an honest disclosure ("Casual screen lock only — entries are stored unencrypted in this browser"), and `unlock()` is no longer exported from `PersonalAuth`, so it can't be called to bypass the gate. |
+| SEC-3 | Unescaped calendar event titles (XSS) | `js/calendar.js:143-144` runs `Utils.escHtml()` on both interpolations; the settings rows now assign `.value` instead of interpolating into `value="…"`. |
 
-**TYC-1 · Winning a season freezes the game.** `play.html:6167` — `triggerWin()` interpolates `${m}:${s.toString()...}` but `m`/`s` are never declared → `ReferenceError` thrown from inside the render loop (`loop()` only re-arms rAF on its last line, `:8283`, no try/catch), so the game hard-freezes at the moment the player hits the season goal. **Fix:** use the existing `formatTime(elapsed)` helper (`:5697`). **Same bug in `tycoon/beagle.html:5519`** — fix both. *Accept:* reaching the goal opens the win modal; game keeps rendering.
+---
 
-**TYC-2 · Storage-blocked browsers get a blank game.** `play.html:7843` (also `7837-7840, 7913-7931, 7987-8000`) — top-level `localStorage` reads for joystick/morale/investor/tips/toastDensity settings have no try/catch (the SFX/Haptics IIFEs at `1927-1995` show the correct pattern); the loop doesn't start until `:8889`, so the first throw aborts the module → permanent blank canvas in Safari private mode / storage-blocked contexts. **Fix:** `safeGet`/`safeSet` helpers wrapping every access. *Accept:* game boots with localStorage stubbed to throw.
+## P1 — Game-breaking bugs · ✅ ALL CLOSED
 
-**TYC-3 · Beagle Sim and Tycoon share the save key and clobber each other.** `play.html:1909` and `beagle.html:1715` both use `startup-tycoon-v7` (plus shared `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`); both autosave every 5s; schemas have diverged since the fork. Playing one silently corrupts/overwrites the other; Restart in either wipes both. **Fix:** move beagle to `beagle-sim-v1` (+ its own version-sweep prefix and theme/panel keys). *Accept:* playing beagle leaves the tycoon save byte-identical.
+Re-verified against current source in August 2026. Kept for provenance — each
+ID is still the anchor for its fix in git history.
 
-**TYC-4 · Corrupted save NaN-poisons the economy permanently.** `play.html:8644-8649` — `loadGame` replays saved upgrade levels with no clamp against `u.max`; `computeDealValue()` (`:5612`) indexes fixed arrays (`[5,8,12,18,26][lv]`), so `pricing > 4` → `undefined` → every deal `NaN` → `addCash` (`:7072`, no `isFinite`) poisons cash forever, and the bad value re-saves every 5s. (`vpTier` at `:8726` IS clamped — this is an oversight.) **Fix:** clamp `lv = Math.min(lv, u.max)` + `Number.isFinite` guards in `computeDealValue`/`addCash`. Also guard the landing pill: `tycoon/index.html:446-457` can render "$NaN". *Accept:* loading a save with `pricing: 7` yields a playable game with sane prices.
+**Startup Tycoon** — TYC-1 (`triggerWin` uses `formatTime`, no ReferenceError) ·
+TYC-2 (`lsGet`/`lsSet`/`lsRemove` wrappers; every settings access guarded) ·
+TYC-3 (beagle moved to `beagle-sim-v1` + its own version-sweep prefix) ·
+TYC-4 (`computeDealValue` returns a finite fallback; `addCash` rejects
+non-finite input) · TYC-5 (`clampToWalls` door predicate requires
+`isOwnedGrid`) · TYC-6 (`state.lifetimeCash` never resets; achievements and
+the landing pill read it) · TYC-7 (welcome modal gates on a pre-bonus
+`_isFreshStart` snapshot) · TYC-8 (`bdr-corner` has `nextMode: 'ae-office'`).
 
-**TYC-5 · Players can walk through walls of unpurchased rooms.** `play.html:4687-4695` (dup `4706-4709`) — the door predicate in `clampToWalls()` checks only grid-cell identity, never `ownedRooms.has('front')`, and fires exactly when the neighbor is unowned. A new player walks north through the "solid" starter wall into the $1200 Open Plan room. **Fix:** require ownership in the door predicate; don't reuse it for the front room's exterior wall. *Accept:* wall blocks until the room is bought; door works after.
+**Beagle Sim** — BGL-1 (delivery target `ceoDeskPos.z + 1.0`) · BGL-2
+(win-freeze fixed with the play.html change) · BGL-3 (`themeModalEl` closes on
+Esc) · BGL-4 (favicon, OG tags and `.ea-back` chrome all present).
 
-**TYC-6 · `allTimeCash` resets on IPO but is consumed as a lifetime stat.** `play.html:8396` zeroes it, yet achievements `hit_50k`/`hit_1m_total` (`:5829-5830`, "across seasons") and the landing pill (`tycoon/index.html:446`) treat it as lifetime; dashboard calls it "Earned (season)" (`:5985`) while the win recap says "All-time cash" (`:6163`). **Fix:** add a never-reset `lifetimeCash` accumulator, persist it, point achievements + pill at it. *Accept:* $600k → IPO → $500k unlocks the $1M achievement; pill never decreases after IPO.
+**Grow Op** — LAB-1 (`saveGame()` returns early when `busted`) · LAB-2 (chem
+pipeline, per-plot growth and the carried item are all in the save schema) ·
+LAB-3 (unaffordable paid choices are `disabled`; a failed `effect()` returns
+`null` and keeps the event open) · LAB-4 (sim gated on `!activeEvent`) · LAB-5
+(a redundant chemistry purchase is refused, not charged; the station relocates
+into the Lab).
 
-**TYC-7 · The welcome/onboarding modal can never appear.** `play.html:8842-8843` grants `addCash(400)` before the gate `state.allTimeCash <= 100` (`:8857`) — always false. This also blocks the Web-Audio-unlock gesture and the hire-button pulse it provides. (Stale "$200" comment at `:8839`; same class of bug in `beagle.html:8035/8050`.) **Fix:** snapshot freshness before `addCash`, or gate on `ideaWorkers.length === 0 && trophiesWon === 0`. *Accept:* fresh profile sees the welcome modal exactly once.
+**Homeless Village** — HV-1 (`DAY_LENGTH_MS = 600000`, defined outside `G` so a
+stale save can't shrink the day) · HV-2 (`sweep` excluded from the general
+weighted pool) · HV-3/HV-4 (`G.activeCrafts` is both mutex and persisted state)
+· HV-5 (three.js vendored, `onerror` fatal message, frame body wrapped in
+try/catch with an error budget).
 
-**TYC-8 · "AE Office" room conversion is unreachable dead content.** `play.html:3230-3233` — `ROOM_MODES.right.modes['bdr-corner']` lacks `nextMode: 'ae-office'`, so both `convertRoom()`'s guard (`:3278`) and the panel button loop (`:3432-3448`) bail forever; the auto-promote `onEnter` (`:3214-3219`) is a guaranteed no-op. **Fix:** add `nextMode: 'ae-office'` to `bdr-corner`. *Accept:* unlocking the Sales Floor converts the Sales Corner as designed.
+**Arcade** — ARC-1 (`e.repeat` guard) · ARC-2 (Snake/Tetris `destroy()` resets
+and repaints the idle screen) · ARC-3 (`over || !running` on tap) · ARC-4
+(`refreshArcadeBadges()` runs on boot, on `switchView('arcade')` and after
+reset) · ARC-5 (monotonic `solveRun` token) · ARC-6 (hold runs the same
+`collides() → endGame()` check as `lock()`).
 
-### Beagle Sim (`tycoon/beagle.html`, ~8,100 lines) — *see also DEBT-1: consider deleting this file entirely*
+**Site-wide** — SITE-1 (three.js vendored; all four 3D games run offline) ·
+SITE-3 (tycoon/beagle settings keys namespaced with a one-time migration) ·
+SITE-4 (links and redirects resolve without 308s or 404s) · SITE-5 (themed
+`404.html`, cache headers, `robots.txt`, `sitemap.xml`, `X-Content-Type-Options`)
+· SITE-6 (README rewritten) · **SITE-2 — closed August 2026**, see below.
 
-**BGL-1 · Engineers (beagles) never deliver → dead revenue loop.** `beagle.html:3914` — delivery target `ceoDeskPos.z + 2.0` sits dead-center inside the desk's collision exclusion zone (z ∈ [1.8, 4.2], `clampToWalls` `:4468-4475`), so workers get shoved out before the arrival check (`stopDist 0.35`, `:4491`) can pass and sit in `TO_DELIVER` forever. `play.html` fixed this exact line in commit `9204454` (`+ 1.0`); the fork predates it. **Fix:** `+ 2.0` → `+ 1.0`. *Accept:* a lone beagle with no VP ships revenue.
+### SITE-2 · Broken social share cards ✅ *(closed Aug 2026 — was the last open P1)*
+`og:image` and `og:url` were root-relative on every page; the OG spec requires
+absolute URLs and most scrapers reject relative ones. Fixed alongside three
+gaps the original ticket predated: `hearthvale.html`, `voxel-garden.html` and
+`agentic-os.html` had **no** `og:image`/`og:url`/`canonical` at all; canonicals
+carried trailing slashes that `trailingSlash: false` 308-redirects away; and
+`sitemap.xml` was missing `/hearthvale`. Hearthvale and Eureka Studio had only
+inline-SVG placeholder posters (a `data:` URI can't be a share card), so both
+got real 1200×630 captures in `assets/thumbs/`.
+*Accept:* a share-card debugger shows the image on every page. ✅
 
-**BGL-2 · Win-freeze (same as TYC-1)** at `beagle.html:5519`. **BGL-3 · Esc doesn't close the Theme modal** — `beagle.html:6981-6987` omits `themeModalEl` (play fixed in `cd46bfe`). **BGL-4 · No favicon/OG/back-link** — only page on the site with a 404'ing favicon, no meta, and no `.ea-back` chrome; copy the head + chrome block from `play.html:1421,1431`.
+---
 
-### Drug Lab (`drug-lab.html`)
+## P1 — New, found by the August 2026 re-audit
 
-**LAB-1 · Getting busted is undone by refreshing the page.** `triggerBust()` (`:1221-1238`) removes the save (`:1225`), but `sellToDealer()` (`:1829-1849`) calls `addHeat` (`:1838`) which can bust synchronously, then hits an unconditional `saveGame()` at `:1846` re-writing the busted state; `beforeunload → saveGame` (`:1963`) is also unguarded, and `loadGame` clamps heat to 99 (`:1580`). The game's only lose condition is cosmetic. **Fix:** `function saveGame() { if (busted) return; ... }`. *Accept:* bust → refresh → still busted / fresh start.
+### LOOP-1 · One bad frame froze Hearthvale and Startup Tycoon for good ✅ *(fixed)*
+**Files:** `hearthvale.html` (`loop`, was `:4058`), `tycoon/play.html` (`loop`,
+was `:8408`), and the since-retired `tycoon/beagle.html` (`loop`, was `:7639`)
+— having to patch that third copy by hand is what finally motivated DEBT-1.
 
-**LAB-2 · Core progress silently vanishes on reload.** `saveGame` (`:1561-1572`) omits `chemQueue`/`chemProduct`/`chemProgress` (declared `:1064-1066`) **and** all grow-plot progress (`buildGrowPlot` `:687-727` re-randomizes 0-30% on every load); a carried bud (`pCarrying`, `:899`, set at `:1770`) has no backing counter at all. **Fix:** add all of these to the save schema; restore plot progress in `loadGame`; credit carried bud to a counter at harvest or persist it. *Accept:* 90%-grown plant + queued chem + carried bud all survive a reload.
+All three re-armed `requestAnimationFrame` as the **last statement of the frame
+body**, with no `try/catch`. Any exception anywhere in the body therefore
+skipped the re-arm and stopped the game permanently — no error, no motion, just
+a still frame the player has no reason to think is broken.
 
-**LAB-3 · Broke players dismiss paid events for free (exploit).** `triggerEvent` (`:1162-1189`) never disables unaffordable choices; paid options (`:1117`, `:1153`) just toast "Can't afford it!" and close the event with zero consequence — the risky branch is always dodgeable. **Fix:** disable unaffordable buttons, or fall through to the risky consequence. *Accept:* with $0, the safe-paid option is unavailable.
+This is the shape that made TYC-1 *fatal* rather than merely wrong: that ticket
+fixed the one ReferenceError known to escape the loop but left the structure
+that turned it into a hard freeze.
 
-**LAB-4 · World keeps simulating behind event modals.** Click-input is blocked during events (`:1277`) but `updatePlayer` runs whenever `!raidActive` (`:1985`) — WASD selling during a modal can push heat past the 95% raid check (skipped because `updateEvents` early-returns while `activeEvent`, `:1911`) straight to a bust stacked on top of the open event modal. **Fix:** gate the sim on `!activeEvent` too. *Accept:* no state changes while an event modal is open.
+**Reproduced** in headless Chromium by poisoning a single mid-frame drawing
+primitive (`CanvasRenderingContext2D.fillRect` / `WebGLRenderingContext.drawElements`)
+once the game was running:
 
-**LAB-5 · Chemistry Equipment can be a pure money sink.** `salePrice()` (`:1253-1258`) keys the 1.8× bonus on station *existence*, which the Lab room also grants (`:1390-1397`); `buyUpgrade()` (`:1429-1453`) deducts unconditionally before checking. Buying the upgrade after the room = 2,500 for nothing (with a success toast). Related: buying the Lab room *after* the upgrade leaves the 12k room decoratively empty (`:1394` guard skips relocation). **Fix:** refuse/refund the redundant purchase or scale the bonus with `upgLv('chemistry')`; relocate the station into the Lab on purchase. *Accept:* both purchase orders yield distinct, visible value.
+| Game | Loop structure | Before | After |
+|---|---|---|---|
+| Hearthvale | rAF last, no try/catch | 33 → **0 fps** | 31 → 31 |
+| Startup Tycoon | rAF last, no try/catch | 18 → **0 fps** | 17 → 43 |
+| Beagle Sim | rAF last, no try/catch | 19 → **0 fps** | 19 → 60 |
+| Voxel Isle / Grow Op / Eureka Studio | rAF first | survived | survived |
+| Homeless Village | try/catch + rAF last (HV-5) | survived | survived |
 
-### Homeless Village (`homeless-village.html` + `homeless-village/`)
+**Fix:** schedule the next frame first, run the body in `try/catch`, log and
+skip a bad frame, and stop only on a persistent fault (10 bad frames) — with a
+visible message and a reload button rather than a dead canvas. Tycoon and
+Beagle save first. Same pattern as `homeless-village/js/main.js`'s `gameLoop`.
+*Accept:* a thrown exception mid-frame leaves the game running. ✅
 
-**HV-1 · An in-game day lasts 4 real seconds.** `config.js:6` `daySpeed: 0.00025` × dt(ms) (`gameloop.js:56`) → full day ≈ 4s, while action cooldowns are real-time (Rest = 20s = **5 days**); `onNewDay()` (food aging, warmth drop, decay, events) fires ~15×/minute. Units bug, not design. **Fix:** define day length in ms (e.g. ~8-12 min) and derive the increment. Re-tune event frequency to the new day length. *Accept:* day/night visibly cycles over minutes; decay/events feel paced.
+### LEAK-1 · Studio Crew and the dashboard ran forever in the background ✅ *(fixed)*
+**Files:** `js/orgchart.js`, `js/dashboard.js:249-253`, `js/calendar.js:232`,
+`index.html` (teardown map)
 
-**HV-2 · The Lookout is bypassed by 38% of sweeps.** `gameloop.js:189-208` — the lookout-warning branch (`:191-202`) exists, but the general weighted pool (`:203-207`) still contains the `sweep` event (`:74-85`), which then fires instantly via `triggerEvent` (`:211`) with no warning. **Fix:** build the pool from `EVENTS_BAD.filter(e => e.id !== 'sweep')`. *Accept:* with a Lookout, every sweep is preceded by the warning.
+Neither view had a teardown entry, so leaving them stopped nothing they
+started. `orgchart.js` tracked `rafId` but never cancelled it, leaving the
+force-directed physics sim running at ~60fps for the rest of the session;
+`dashboard.js` started five `setInterval`s (clock, stats, activity graph, quote
+rotation, weather refetch) and `calendar.js` a sixth (a 5-minute calendar
+refetch), none ever cleared.
 
-**HV-3 · Craft double-spend race.** `player.js:45-61` — `doCraft` has no mutex (unlike `doAction`'s `activeJobs`), and any craft's completion rebuilds the whole panel (`buildCraftUI`, `ui.js:17-33`), discarding the busy-state styling on still-running crafts; re-clicking deducts costs twice (reproduced live). Also **HV-4:** costs are deducted at start but in-flight crafts aren't persisted — close the tab mid-craft and the resources are gone (`config.js:48` module var, autosave `main.js:64`). **Fix (one PR):** move active jobs/crafts into `G` (persisted), use it as mutex, re-apply busy state after any rebuild, and fast-forward/re-arm timers on load. *Accept:* double-click can't double-spend; reload mid-craft completes or resumes it.
+**Measured:** leaving Studio Crew for the arcade left rAF running at roughly
+double the arcade's own rate (34 → 64/sec); the six timers stayed live
+indefinitely.
 
-**HV-5 · CDN failure = infinite 60fps exception storm.** `homeless-village.html:87` loads Three.js r128 from cdnjs with no fallback/onerror; `main.js:13` re-arms rAF *before* the code that throws (`camera.position`, `:19`), so a failed CDN produces hundreds of errors/sec over a black canvas forever. **Fix:** vendor Three.js (see SITE-1), try/catch the frame body, show a visible "failed to load" message. *Accept:* blocking the CDN yields one friendly error, not a storm.
+**Fix:** the shell calls a view's `init()` exactly once, so a plain `destroy()`
+would have left a dead canvas and a frozen clock on return. Each module now
+exposes an idempotent `destroy()`/`resume()` pair, and `switchView` tears down
+on exit and resumes on re-entry.
+*Accept:* rAF returns to baseline on exit and revives on re-entry (38 → 32 →
+38/sec); dashboard live intervals go 7 → 1 → 7. ✅
 
-### Arcade (`js/*.js`, wired in `index.html`)
+---
 
-**ARC-1 · Tetris: holding Space chain-drops pieces into a top-out.** `tetris.js:306` — no `e.repeat` guard anywhere in `handleKey` (`:288-311`); OS key-repeat delivers multiple hard-drops (5 locks reproduced). **Fix:** `if (e.repeat) return;` for Space/rotate/hold. *Accept:* holding Space drops exactly one piece.
+## Still open
 
-**ARC-2 · Snake & Tetris show a frozen mid-game frame when you leave and return.** `snake.js:316-319`, `tetris.js:430-433` — `destroy()` lacks the repaint fix PR #137 gave Breakout/Asteroids/2048 (reset state + redraw idle screen). Reproduced: byte-identical canvas after leave/return. **Fix:** mirror the fixed pattern. *Accept:* returning to either game shows the "tap to start" idle screen.
+**Nothing.** Every ticket in this document is closed as of August 2026 — P0,
+P1, P2, and the three that were still open at the start of that pass (A11Y-2,
+THUMB-1, DEBT-1). What remains is the P3 ideas backlog, which is optional
+feature work rather than outstanding defects.
 
-**ARC-3 · 2048 can't be started by tap on touch devices.** `game2048.js:51` — the tap branch checks only `over`, not `!running`, while the canvas itself says "Click or tap to start" (mouse path handles it, `:47`). **Fix:** `if (over || !running) newGame(true)`. *Accept:* first tap starts the game on a touch device.
+### ~~A11Y-2 · `user-scalable=no` came back on the two newest game pages~~ ✅ *(closed Aug 2026)*
+`hearthvale.html` and `voxel-garden.html` both carried `user-scalable=no`
+(Voxel Isle also `maximum-scale=1.0`) — the WCAG 1.4.4 violation A11Y-1 had
+already removed from the four pages it cited, reintroduced by two pages written
+afterwards.
 
-**ARC-4 · Arcade-card "HI ####" badges never refresh.** `index.html:883-905` — badge IIFE runs once at boot; `switchView` (`:775-806`) re-renders the Hall of Fame (`:802`) but never the badges; "Reset my scores" (`:855`) leaves stale badges. **Fix:** extract to a named function; call at boot, on `switchView('arcade')`, and after reset. *Accept:* new high score shows on the card without a reload.
+Dropping the viewport flag alone would have been cosmetic compliance: both
+games also set `touch-action: none` on **body**, which suppresses browser zoom
+page-wide on its own, so the flag would clear while nothing changed for a
+reader. The fix was therefore scoping, not deleting — `touch-action: none`
+moved from `body` to the game canvas, where it is genuinely load-bearing
+(Hearthvale reads raw drags to pan, Voxel Isle two-finger pinches to zoom the
+camera). Everything outside the canvas is ordinary DOM again.
+*Accept:* pinch-zoom works on the page ✅ — verified on an emulated touch
+device: body and HUD compute `touch-action: auto`, both canvases keep `none`,
+and a drag across each canvas still moves the view, so neither game lost input.
 
-**ARC-5 · Maze solver race leaves the status stuck forever.** `maze.js:13` — shared `solving` boolean; generate-then-solve-again lets a stale coroutine corrupt the canvas and its final `solving = false` kills the *new* run (reproduced: status frozen at "Solving with ASTAR..."). **Fix:** monotonic run token (`const myRun = ++solveRun;` check at each yield). *Accept:* rapid generate/solve cycles always end in "Solved"/"No solution".
+### ~~THUMB-1 · Hearthvale's arcade card used a placeholder SVG~~ ✅ *(closed Aug 2026)*
+Swapped to the real `assets/thumbs/hearthvale.jpg` added by SITE-2, picking up
+`loading="lazy"` and intrinsic dimensions like every other card. Eureka Studio
+was the only other card still on a `data:` URI and `studio.jpg` already existed
+for its share card, so it got the same treatment. No inline-SVG posters remain,
+and `index.html` shed 4.3KB of markup that used to parse on every visit.
 
-**ARC-6 · Tetris hold can place a piece into occupied cells.** `holdPiece()` (`:228-244`) skips the `collides() → endGame()` check that `lock()` (`:173-190`) performs — near-ceiling holds corrupt the board. **Fix:** run the same check after the swap.
+### ~~DEBT-1 · `beagle.html` was still a fork~~ ✅ *(closed Aug 2026)*
+`tycoon/beagle.html` is gone. Beagle Sim is now a **build variant** of
+`play.html`, resolved once at boot from `?theme=beagle`.
 
-### Site-wide
+The fork had drifted much further than this document recorded: play.html was
+9,280 lines to beagle's 8,244, so Beagle was missing ~1,550 lines of
+improvements (the Dashboard, first-person mode, the valuation chip, the season
+card). Its one apparent extra — the active "Treats" dosing panel — was the
+superseded design play.html deliberately replaced with the passive Adderall
+Cabinet amenity, so collapsing the fork lost nothing and brought Beagle forward.
 
-**SITE-1 · Vendor Three.js (kills 3 CDN origins + version skew).** `homeless-village.html:87` (r128!), `drug-lab.html:406-407`, `play.html:1738-1739`, `beagle.html:1544-1545` (0.160.0). All four 3D games are dead (some with exception storms, HV-5) if unpkg/cdnjs is unreachable. `.gitignore:1` even excludes a once-vendored `tycoon/three.module.js`. **Fix:** commit `/vendor/three.module.js` (one file, no build step — still "zero-dependency" in spirit), point all four pages at it, remove the `.gitignore` line, delete the r128 skew. *Accept:* all 3D games run with external network blocked.
+Measured, the real divergence was small: 3 room numbers, 2 balance constants,
+one starting-cash value, and a copy layer.
 
-**SITE-2 · Broken social share cards on every page.** `og:image` is a relative path everywhere (`index.html:13`, `ageofwar/index.html:12`, `tycoon/index.html:11`, `drug-lab.html:13`, `homeless-village.html:13`, `play.html`) — scrapers require absolute URLs. **Fix:** absolute production URLs + add `og:url` + `<link rel="canonical">`. *Accept:* a share-card debugger shows the image.
+**A variant is not a THEME.** Themes are a runtime re-skin the player toggles
+from settings; a variant is chosen at boot, owns its own save key, and never
+appears in the picker — switching mid-run would swap the save out from under
+the player. `default` overrides nothing, so the base build is unchanged.
 
-**SITE-3 · localStorage key hygiene.** Un-namespaced tycoon settings shared by both builds (`joystickEnabled`, `sfxEnabled`, `welcomeSeen-v1`, `hapticsEnabled`, `tipsEnabled`, `moraleEnabled`, `investorEnabled`, `toastDensity`, `tip-seen-*`) — muting one game mutes the other, one's welcome suppresses the other's. Three unrelated mute keys site-wide (`arcade-muted`, `aow-muted`, `sfxEnabled`). **Fix:** prefix (`tycoon:`/`beagle:`) with one-time migration; document the full key registry (see appendix) in the README. *Accept:* settings in one game don't affect another.
+One bug was found doing it: the save-version sweep was hard-coded to
+`startup-tycoon-v`, so with a variant save key **Beagle's first boot would have
+deleted the player's Startup Tycoon save.** The prefix is now derived from the
+active key, and both saves are proven to coexist.
+*Accept:* playing Beagle leaves the tycoon save byte-identical ✅ (16/16 variant
+assertions, 6/6 save-safety assertions).
 
-**SITE-4 · Routing/link problems.** (a) `/tycoon/play` + `/tycoon/beagle` links (`tycoon/index.html:362,366`) 404 on any non-Vercel host incl. the README's own `python3 -m http.server` — link `.html` (Vercel `cleanUrls` still normalizes). (b) `trailingSlash: false` vs `href="ageofwar/"`/`"tycoon/"` (`index.html:57,72`; HOF `go()` `:810,812`) = a 308 on the two most-clicked links. (c) Replace the `startup-tycoon.html` stub with a `vercel.json` redirect. *Accept:* no 308s or 404s from any nav path, on Vercel and on http.server.
+### ~~A11Y-1 · The rest of the accessibility batch~~ ✅ *(verified closed Aug 2026)*
+Every sub-item was checked in the live DOM rather than by grep, and all pass:
 
-**SITE-5 · Missing deploy basics.** No themed `404.html` ("GAME OVER — 404" fits the brand), no `Cache-Control` headers (`assets/thumbs/*` → `public, max-age=31536000, immutable`; `ageofwar.webm` is 712KB re-validated per hover — also re-encode it, it's 4-16× the other clips), no `robots.txt`/`sitemap.xml`, no `X-Content-Type-Options`.
+| Sub-item | Result |
+|---|---|
+| `--text-muted` contrast | already lifted `#484F58` → `#8b949e`; **6.15:1** against the darkest surface (`#0d1117`), 6.74:1 against `#020203` — passes AA. The old value was 2.28–2.50:1. |
+| `aria-live` on status/score readouts | 15 regions |
+| `role="dialog"` on tycoon modals | 10/10 |
+| `aria-modal` on tycoon modals | 10/10 |
+| `:focus-visible` on `.arcade-card` / `.game-controls` | present; cards are real `<a>` elements |
+| `prefers-reduced-motion` | 2 CSS blocks, plus `js/effects.js` and `ageofwar.js` |
+| card previews on `focusin`, not hover-only | wired |
 
-**SITE-6 · Rewrite the README.** It still describes the pre-rebrand "retro terminal dashboard with 3 games." New outline: title + live URL; 9-game table with paths; extras (Hall of Fame, hidden utils behind "⋯"); architecture (no build; hash-routed SPA home + standalone game pages; vendored Three.js; localStorage key registry); local dev (`http.server` + clean-URL caveat until SITE-4); deploy (`vercel.json` explained); "adding a game" checklist (card, thumbs, `HOF_GAMES` entry, teardown entry, namespaced key).
+The `user-scalable=no` half is tracked separately as A11Y-2 and is still open.
+
+### ~~PERF-3 · Home-page loading~~ ✅ *(closed Aug 2026)*
+All three parts are now done:
+- **Fonts** — already moved out of `base.css` to a `<link>` + `preconnect`.
+- **Scripts** — already done, and an earlier draft of this document got it
+  wrong. All **25 of 25** local `<script>` tags in `index.html` carry `defer`;
+  `grep -c '<script defer'` returns 0 only because the attribute follows `src`.
+  The single inline block that calls into their globals is correctly wrapped in
+  a `DOMContentLoaded` listener.
+- **`@import` chain** — closed. `css/style.css` was eight `@import`s and
+  nothing else, costing a second serial round trip before any styled paint;
+  `index.html` and `404.html` now link the eight sheets directly in the same
+  order and the aggregator is deleted. Measured with 120ms emulated latency:
+  2 serial waves → 1, CSS complete 954ms → 748ms (−22%), one request fewer.
+- **Posters** — already carry `loading="lazy"` and intrinsic dimensions.
+
+### ~~SITE-3 (remainder) · Document the localStorage key registry in the README~~ ✅ *(closed Aug 2026)*
+The README now carries the key registry under "Stack", with a note to add and
+namespace a key when adding a game. Three separate mute keys (`arcade-muted`,
+`aow-muted`, `tycoon:sfxEnabled`) remain by design — each game owns its mute.
 
 ---
 
 ## P2 — High-value improvements
 
-**DEBT-1 · Delete `beagle.html` as a fork; make it a theme.** It's 92% byte-identical to `play.html` (7,826 of 8,085 lines), frozen at commit `a5b7817` while play.html took 13 commits of fixes (this fork is *why* BGL-1/2 exist). `play.html` already has the exact mechanism: the `THEMES` table (`:2137`-area) that swaps room labels/palettes/goal text. **Do:** add a `beagle` THEMES entry (~40 lines: 🐶 labels, "Adopt Beagle" copy, "$X in Bones" goals), delete the file, make `/tycoon/beagle` redirect to `play.html?theme=beagle` reading the param at boot. This permanently ends the double-maintenance. (If keeping the file instead: apply BGL-1..4 + TYC-3 minimum.)
+*Corrections from the August re-audit are marked inline.*
 
-**DEBT-2 · Schema-driven save/load for Tycoon.** `play.html:8572-8791` is ~220 lines of hand-matched fields — the direct cause of TYC-4/TYC-6 and the dead `morale` field (`:8598`, written every 5s, never read). Replace with a declarative `{key, default, validate, migrate}` array driving both save and load; make the written-but-never-checked `v: 7` (`:8576`) a real version gate; surface a "save failed" toast instead of bare `catch {}`.
+**~~DEBT-2 · Schema-driven save/load for Tycoon~~** ✅ **done** — `play.html`
+now has a declarative `SAVE_SCHEMA` driving both save and load, a real `v`
+version gate, and a "save failed" toast in place of a bare `catch {}`.
 
-**DEBT-3 · Shared arcade plumbing (`js/utils.js`).** Each game reimplements: the view-active keydown guard (×5), `roundRect` (breakout `:410` = 2048 `:274` verbatim), the rAF+dt-clamp loop (breakout `:118`, asteroids `:140`), high-score persist idiom (~9 copies, 3 styles), `typeof SFX !== 'undefined'` guards (dozens), and hand-built game-over overlays. Extract `Utils.whenViewActive`, `Utils.gameLoop`, `Utils.highScore`, `Utils.showGameOver`; move the guard into `SFX.play`. This is why the destroy() fix missed Snake/Tetris (ARC-2) — one shared loop would have fixed all seven at once. Also dedupe `readJSON`/`fmtMoney`/best-stat logic defined twice in `index.html` (`:830` vs `:885`) into `js/scores.js`.
+**~~DEBT-3 · Shared arcade plumbing (`js/utils.js`)~~** ✅ **done** —
+`Utils.whenViewActive`, `Utils.gameLoop`, `Utils.highScore` and
+`Utils.showGameOver` all exist.
 
-**DEBT-4 · Save-on-hide everywhere.** Tycoon (`play.html:8848-8849`) and Drug Lab rely on `setInterval` + `beforeunload`; iOS Safari kills backgrounded tabs without firing it. Add `visibilitychange`(hidden)/`pagehide` saves to Tycoon, Beagle (if kept), and Drug Lab.
+**~~DEBT-4 · Save-on-hide everywhere~~** ✅ **done** — Tycoon, Beagle and Grow
+Op all register `visibilitychange`(hidden) and `pagehide` saves.
 
-**PERF-1 · HiDPI canvases.** All 7 arcade canvases (`snake.js:21`, `tetris.js:66`, `breakout.js:29`, `asteroids.js:26`, `game2048.js:27`, `maze.js:18`, `life.js:24`) and Age of War (`ageofwar.js:480`) render at CSS-pixel resolution → blurry on every modern phone/retina display (AoW's input mapping already does the DPR math — output doesn't). Backing store × `devicePixelRatio` + `ctx.scale(dpr,dpr)`; drop `image-rendering: pixelated` (`games.css:116`) for the anti-aliased games (Tetris/2048).
+**~~PERF-1 · HiDPI canvases~~** ✅ **done** — all seven arcade canvases and Age
+of War scale their backing store by `devicePixelRatio`.
 
-**PERF-2 · Age of War hot loop.** `ageofwar.js:1201-1266` — every unit runs `units.filter(...)` + `.find(...)` per frame (O(n²) + GC churn), `fireTurrets` (`:1511`) repeats it per turret, and there's no population cap. Bucket units per side once per frame; add a soft cap. Also: `UNITS` leaks a new boss entry every 7 waves (`:1089-1106` keys by `waveNum`; `reset()` never clears) — key by era and put scaling on the instance.
+**DEBT-1 · Delete `beagle.html` as a fork; make it a theme.** Still open — see
+"Still open" above.
 
-**PERF-3 · Home-page loading.** Kill the render-blocking `@import` chain (`css/style.css:1-8` → `base.css:8` → Google Fonts = 3 serial hops; use `<link>`s or concat + self-host the two woff2s); `defer` the 21 script tags (`index.html:734-754`); `loading="lazy"` + dimensions on the 9 poster JPGs.
+**~~PERF-2 · Age of War hot loop~~** ✅ **done** — the unit loop and
+`fireTurrets` were bucketed per side once per frame by earlier work, `reset()`
+now drops `boss_*` entries so the `UNITS` catalog stops growing across runs,
+and `MAX_UNITS_PER_SIDE` (150) caps population. The August re-audit found the
+projectile collision scan had been missed — it still rebuilt a filtered array
+per projectile per frame — and converted it to the same buckets: 40.2µs →
+6.6µs per frame at 300 units / 40 projectiles (6.1×), verified equivalent and
+exercised with 60s of live combat.
 
-**GAME-1 · Age of War feel/fairness batch.** (a) Base hits are silent/invisible — the `isBase` branch (`ageofwar.js:1240-1245`) applies damage with no projectile/flash/sound even for 360-range snipers; reuse the unit-vs-unit projectile path. (b) Combo streaks are mathematically always wiped at wave boundaries (`COMBO_WINDOW 3.0` `:167` ≤ breather 3-4s `:653/:1069`; `comboT` never pauses `:1191`) — pause the timer during breathers. (c) Settings-modal difficulty switch (`:936-945`) silently changes mid-run without the reset the HUD switch does (`:1002-1013`), making `win_hard`/`win_insane` (`:1493`) gameable — unify, and gate achievements on the run's lowest difficulty. (d) Gold trickle (`:1174`) doesn't scale with difficulty while enemy stats do — Insane starves the player. (e) Coin flooring loses 0.3-0.8% of every kill (`:1604-1605`) — give the remainder to the last coin. (f) `ageUp` clamps hero cooldown to ≤10s (`:756-758`) — an unintended exploit.
+**~~PERF-3 · Home-page loading~~** ✅ **done** — see "Still open" above for the
+breakdown.
 
-**GAME-2 · Homeless Village completeness pass.** The 3D scene is pure decoration — there is **no player input at all** (only a WebAudio-unlock keydown, `gameloop.js:266`); the "player" is in the same NPC wander array as workers (`main.js:32-51`). See IDEA-HV-1/2. Also: Workbench does nothing despite "Enables crafting upgrades" (`config.js:26`); Garden claims "destroyed in sweeps" but sweeps never touch it (`config.js:30` vs `gameloop.js:74-85`) — make both real. Fix the one-shot `matchMedia` fold-in (`homeless-village.html:96-109`, add a `change` listener) and restore *some* narrative feedback on mobile (`game.css:236` hides the only log).
+**~~GAME-1 · Age of War feel/fairness batch~~** ✅ **done — all six** (verified
+Aug 2026, each marked in-source with its `GAME-1x` tag):
+(a) base hits reuse the unit-vs-unit projectile path, so ranged attackers fire a
+visible projectile and melee hits get sparks + sound + shake;
+(b) `comboT` pauses during the wave breather, so a streak survives the boundary;
+(c) the settings-modal difficulty switch calls `reset()` like the HUD switch,
+closing the `win_hard`/`win_insane` exploit;
+(d) the passive trickle scales with the difficulty's `goldMult`;
+(e) `dropCoins` gives the flooring remainder to the last coin, so the coins sum
+to the kill's reward exactly;
+(f) `ageUp` no longer clamps hero cooldown.
 
-**A11Y-1 · Site-wide accessibility batch.** Remove `user-scalable=no` (drug-lab `:5`, play/beagle `:40` — WCAG 1.4.4); lift `--text-muted #484F58` ≈2.4:1 (`base.css:60`) to ≥ 4.5:1; add `aria-live` to game-over overlays and score readouts (copy `#maze-status`'s pattern, `index.html:484`); `role="dialog"`+`aria-modal` on tycoon modals (`play.html:1466,1685`); keyboard-reachable tooltips (play `:2113` is mouse-only and strips `title`); real `<button>`s for Homeless Village craft items (`ui.js:17-33`) and event-close; `:focus-visible` on `.arcade-card`/`.game-controls` (copy `.ea-back`'s, `arcade-chrome.css:53`); respect `prefers-reduced-motion` in game shake/flash (only `effects.js:19` and AoW haptics do today); trigger home-card video previews on `focusin` not just `mouseenter` (`index.html:935`).
+**~~GAME-2 · Homeless Village completeness pass~~** ✅ **done** — the whole
+ticket has been overtaken. Player input landed (IDEA-HV-1: WASD/arrows, player
+branched out of the NPC wander array, bounds clamp, blur handler). The Workbench
+is now a real gate (`requires:'workbench'` on tent, soup kitchen and garden).
+Sweeps destroy the garden outright, matching its own description. The
+`matchMedia` fold-in has a `change` listener so rotating a phone re-lays-out.
+Mobile no longer hides the log — it's shrunk and repositioned instead.
+*Still missing:* a touch joystick, so mobile remains input-less.
 
-**BAL-1 · Small verified balance/UX fixes (batchable).** Tycoon: promotion discards in-flight deal value (`play.html:5386,5155` — flush before `shift()`); Hire Engineer is the only unguarded spend (`:5551` vs `hireBDR`'s refund pattern `:4599`); joystick second-finger hijack (`:8027`, add pointer-id guard like `:7810`); investor banner covers goal HUD on desktop (`:1050` vs `:736`; mobile-only fix at `:1079`); floating `wallR` after Open Plan purchase (`:2575`); door mesh 2.5 vs collision 3.0 (`:2565` vs `:4690`); 860/900px breakpoint overlap (`:1425` vs `:1260`). Drug Lab: heat is flat per *sale* not per unit (`:1213`) making bulk dealers strictly better; enforce the declared-but-dead `STASH_MAX_BASE` (`:814`). Arcade: Breakout speed cap (`breakout.js:90`, tunneling risk), paddle `mousemove` on `document` not canvas (`:34`), dt-scale paddle easing (`:129`).
+**~~A11Y-1 · Site-wide accessibility batch~~** ✅ **done** — all sub-items
+verified in the live DOM; see the table above. The `user-scalable=no` half is
+tracked separately as A11Y-2 and remains open.
+
+**~~BAL-1 · Small verified balance/UX fixes~~** ✅ **done** — spot-checked Aug
+2026: the Breakout ball speed is capped (`BALL_SPEED_MAX`) and its paddle
+`mousemove` is bound to the canvas, not `document`; Grow Op's heat scales with
+quantity (`addHeat(heatGainPerSale(qty))`) and `STASH_MAX_BASE` is enforced on
+load and on pickup; Tycoon's joystick has pointer-id guards and Hire Engineer
+refunds on a failed spawn.
+
+One straggler was fixed during the re-audit: the **external** engineer hire
+spent the cash and then ignored `spawnIdeaWorker()`'s return, unlike the
+in-house hire immediately above it. Both callers pre-check for a free desk with
+the same predicate `spawnIdeaWorker` uses, so it isn't a reproducible money
+loss — but two adjacent handlers spending the same way should fail the same
+way, and an unguarded spend is the exact shape this ticket flagged.
 
 ---
 
@@ -152,10 +353,16 @@ The PIN "lock" is a 32-bit rolling hash and a `display:none` toggle; journal/moo
 - **IDEA-SITE-6 · Theme system** — `:root[data-theme=crt|synthwave|daylight]`, picker by the SFX toggle, `prefers-color-scheme` aware.
 - **IDEA-SITE-7 · Gamepad support** — `js/gamepad.js` polls `getGamepads()` and dispatches the same synthetic `KeyboardEvent`s the Tetris touch pad already uses (`index.html:911`).
 - **IDEA-SITE-8 · Local-only "Insights"** — `js/telemetry.js` records launches/minutes to `eureka-stats`; "Your arcade year" panel in the HOF. No network.
-- **IDEA-SITE-9 · "Studio Crew" page** — after SEC-1, reuse the org-chart physics/canvas viz (~90% of `orgchart.js`) with a fictional dev-team cast as an About page.
+- **~~IDEA-SITE-9 · "Studio Crew" page~~** ✅ **shipped** — the org-chart viz was
+  rebuilt around a fictional dev-team cast and now ships as Studio Crew.
 
 ### New arcade games (follow the `init/start/destroy` + `#view-<name>` + `HOF_GAMES`/teardown contract)
-- **IDEA-ARC-1 · Minesweeper: Neon** (best-time HOF entry) · **IDEA-ARC-2 · Memory Matrix** (Simon; natural daily-challenge seed) · **IDEA-ARC-3 · Stacker** · **IDEA-ARC-4 · Pong++** (reuse Breakout paddle/ball + power-ups) · **IDEA-ARC-5 · Light Cycles** (reuse Snake grid/direction-queue; optional local 2P) · **IDEA-ARC-6 · Word Cascade** (letters on the Tetris gravity/lock loop) · **IDEA-ARC-7 · Vector Defense** (tower defense in Asteroids' vector style; cap scope: 2 turrets, fixed path, ~8-10 waves).
+- **~~IDEA-ARC-1 · Minesweeper: Neon~~** ✅ **shipped** as **Minefield**
+  (`js/minesweeper.js`) — first-click-safe, chording, three difficulties,
+  per-difficulty best times in the HOF.
+- Also shipped since this list was written, though never on it: **Drop Four**
+  (`js/connect4.js`, minimax + alpha-beta) and **Word Five** (`js/word5.js`).
+- Still open: **IDEA-ARC-2 · Memory Matrix** (Simon; natural daily-challenge seed) · **IDEA-ARC-3 · Stacker** · **IDEA-ARC-4 · Pong++** (reuse Breakout paddle/ball + power-ups) · **IDEA-ARC-5 · Light Cycles** (reuse Snake grid/direction-queue; optional local 2P) · **IDEA-ARC-6 · Word Cascade** (letters on the Tetris gravity/lock loop) · **IDEA-ARC-7 · Vector Defense** (tower defense in Asteroids' vector style; cap scope: 2 turrets, fixed path, ~8-10 waves).
 
 ### Startup Tycoon
 - **IDEA-TYC-1 · Second floor "R&D Lab"** — the code ships explicit extension points (`Floor`/`FLOOR_CLASSES`, elevator modal `play.html:422-455`); researchers generate patents = permanent % on `computeDealValue()`.
@@ -184,31 +391,64 @@ The PIN "lock" is a 32-bit rolling hash and a `display:none` toggle; journal/moo
 - *Tone note:* the in-game copy ("10 to 15, no deal", "harder product") is markedly darker than its all-ages home-page framing ("GROW OP · Builder/3D/Risk"). Either soften toward the site's satirical register or add a small content note on the card.
 
 ### Homeless Village
-- **IDEA-HV-1 · Real player movement** — WASD + camera follow; branch the player out of the NPC wander loop (`main.js:32-51`); touch joystick. The single biggest "is this a game?" fix.
+- **~~IDEA-HV-1 · Real player movement~~** ✅ **shipped** — `main.js` now has
+  WASD/arrow control with the player branched out of the NPC wander array, plus
+  bounds clamping and a blur handler so keys can't stick. A touch joystick is
+  still missing, so mobile remains input-less.
 - **IDEA-HV-2 · Proximity-gated scavenging** — require standing near the already-rendered dumpsters (`scene.js:112-119`) to scavenge; turns the diorama into playspace.
 - **IDEA-HV-3 · A resolvable arc** — milestone check in `onNewDay()` on stats already tracked (`config.js:19`) → "Case Worker" event chain → housing/graduation ending (with sandbox continue). Also answers the tone concern that an endless grind with no exit reads as nihilistic; consider a one-line framing intro. Related copy fix: drop the editorializing "Degrading, but sometimes necessary" from the Panhandle tooltip (`config.js:36`).
 - **IDEA-HV-4 · "Pack Up Camp" action** — usable during a Lookout warning to save a % of goods (pairs with HV-2's fix); live countdown on `#sweep-warning`.
 
 ### Dashboard leftovers (all still reachable via "⋯ more" — decide their fate)
-- Repurpose `dashboard.js`'s widget grid as **Studio Stats** (real cross-game localStorage telemetry instead of fake CPU/MEM numbers); rebrand todo/pomodoro as a public **Dev Log**; retarget bookmarks as a **Dev Toolbox**; **cut or truly hide** the personal journal (see SEC-2). Fix if kept: pomodoro is tick-based (drifts when backgrounded; persist `{startedAt, duration}` instead — `pomodoro.js:18-45`), org-chart rAF + dashboard's six intervals never stop (add `destroy()` hooks to the `teardown` map, `index.html:765`), geolocation should be opt-in with disclosure (`dashboard.js:209`).
+- Repurpose `dashboard.js`'s widget grid as **Studio Stats** (real cross-game localStorage telemetry instead of fake CPU/MEM numbers); rebrand todo/pomodoro as a public **Dev Log**; retarget bookmarks as a **Dev Toolbox**; **cut or truly hide** the personal journal (see SEC-2). Fix if kept: pomodoro is tick-based (drifts when backgrounded; persist `{startedAt, duration}` instead — `pomodoro.js:18-45`), ~~org-chart rAF + dashboard's six intervals never stop~~ ✅ **fixed — see LEAK-1**, geolocation should be opt-in with disclosure (`dashboard.js:209`).
 
 ---
 
 ## Appendix A — localStorage key registry
 
+*Refreshed August 2026. SITE-3 asked for this table to live in the README too —
+that half is still open.*
+
 | Key(s) | Owner | Status |
 |---|---|---|
 | `snake-high`, `tetris-high`, `breakout-high`, `asteroids-high`, `g2048-best` | arcade games | ✓ read by HOF + badges |
-| `arcade-muted` | `js/sfx.js` | one of THREE mute keys (SITE-3) |
-| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War | ✓ (`aow-best-run` referenced by reset but never written) |
-| `drug-lab-v1` | Drug Lab | ✓ |
+| `mines-best-beginner` / `-intermediate` / `-expert`, `mines-diff` | Minefield | ✓ read by HOF + badges |
+| `connect4-streak`, `c4-diff` | Drop Four | ✓ |
+| `word5-streak` | Word Five | ✓ |
+| `arcade-muted` | `js/sfx.js` | one of three mute keys — by design, each game owns its mute |
+| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War | ✓ (`aow-best-run` referenced by reset but never written → IDEA-AOW-1) |
+| `drug-lab-v1` | Grow Op | ✓ |
 | `homeless_village_v1` | Homeless Village | snake_case outlier |
-| `startup-tycoon-v7` | **BOTH tycoon builds** | ⚠ collision → TYC-3 |
-| `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | both tycoon builds | shared |
-| `joystickEnabled`, `moraleEnabled`, `investorEnabled`, `tipsEnabled`, `toastDensity`, `sfxEnabled`, `welcomeSeen-v1`, `hapticsEnabled`, `tip-seen-*` | both tycoon builds | ⚠ un-namespaced → SITE-3 |
+| `hearthvale-v1` | Hearthvale | ✓ |
+| `voxel-garden-v1` | Voxel Isle | ✓ read by HOF |
+| `studio-token`, `studio-chat-v1` | Eureka Studio | ✓ token is browser-only, sent only to api.github.com |
+| `startup-tycoon-v7` | Startup Tycoon | ✓ collision resolved (TYC-3) |
+| `beagle-sim-v1` | Beagle Sim | ✓ its own key + version-sweep prefix |
+| `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | both tycoon builds | still shared — cosmetic only |
+| `tycoon:*` (`joystickEnabled`, `moraleEnabled`, `investorEnabled`, `tipsEnabled`, `toastDensity`, `sfxEnabled`, `welcomeSeen-v1`, `hapticsEnabled`, `tip-seen-*`) | Startup Tycoon | ✓ namespaced, with one-time migration from the bare keys (SITE-3) |
 | `eureka-notes/todos/bookmarks/pomo-sessions/calendar-config/gt-clientid/gt-lists` | productivity | ✓ |
-| `eureka-personal-pin`, `eureka-personal-*` | personal | plaintext → SEC-2 |
+| `eureka-personal-pin`, `eureka-personal-*` | personal | plaintext, and the UI now says so (SEC-2) |
 
 ## Appendix B — verified-clean list (don't re-investigate)
 
-Tycoon: dt clamp (`play.html:8214`), version-sweep matching, purchase double-click races, save↔pill field names (defect is semantic, TYC-6), zero-alloc render hot path. Arcade: SFX mute persistence, AudioContext unlock, Asteroids FIRE double-bind (throttled correctly), HOF key wiring, hash-router re-entrancy. Site: home-page grid keyboard nav (real anchors + `:focus-visible`), video `preload="none"` + `(hover:hover)` gating, zero first-party console errors on all 8 pages / 13 views.
+Tycoon: dt clamp (`play.html:8214`), version-sweep matching, purchase double-click races, save↔pill field names (defect is semantic, TYC-6), zero-alloc render hot path. Arcade: SFX mute persistence, AudioContext unlock, Asteroids FIRE double-bind (throttled correctly), HOF key wiring, hash-router re-entrancy. Site: home-page grid keyboard nav (real anchors + `:focus-visible`), video `preload="none"` + `(hover:hover)` gating.
+
+**Added by the August 2026 re-audit** (checked, found clean — don't re-investigate):
+
+- **Zero first-party console errors** across 11 standalone pages and all 14
+  arcade views, exercised in headless Chromium. The only failures observed were
+  environmental (Google Fonts and `api.github.com` blocked in the sandbox).
+- **Hearthvale and Voxel Isle save/load**: storage access is guarded on every
+  path, `load()` is wrapped and returns `false` on corrupt data, and villager
+  `jobId`/`homeId` dereferences are null-checked (`buildingById` misses are
+  handled, not thrown on).
+- **Eureka Studio XSS**: every GitHub-data sink (PR/issue titles, commit
+  messages, branch names, author logins) goes through `esc()` into a text
+  position; the only attribute sinks take GitHub-generated URLs. `esc()` has
+  since been hardened to escape quotes as well, so an attribute sink would be
+  safe too.
+- **Minefield / Drop Four / Word Five teardown**: all three are in the teardown
+  map with deliberate, documented `destroy()` bodies.
+- **Frame-loop structure** in Voxel Isle, Grow Op, Eureka Studio and Homeless
+  Village — all four survive a mid-frame exception (see LOOP-1 for the three
+  that didn't).

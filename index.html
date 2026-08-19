@@ -11,14 +11,26 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
   <meta property="og:description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Snake, Tetris and more. No install, no sign-up.">
-  <meta property="og:image" content="/assets/thumbs/ageofwar.jpg">
-  <meta property="og:url" content="/">
-  <link rel="canonical" href="/">
+  <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/ageofwar.jpg">
+  <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/">
+  <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Linked individually, in the order css/style.css used to @import them.
+       As @imports the browser couldn't discover these until style.css had been
+       fetched AND parsed, so they cost a second serial round trip before any
+       styled paint. As <link>s they're all found in the initial HTML scan and
+       fetch in parallel. Order still decides the cascade, so keep it. -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/effects.css">
+  <link rel="stylesheet" href="css/arcade.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/games.css">
+  <link rel="stylesheet" href="css/productivity.css">
+  <link rel="stylesheet" href="css/personal.css">
+  <link rel="stylesheet" href="css/orgchart.css">
 </head>
 <body>
 
@@ -123,7 +135,7 @@
 
       <a class="arcade-card arcade-card-dim" href="hearthvale.html" style="--accent:#7fbf63">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" alt="Hearthvale gameplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'><rect width='320' height='200' fill='%237cba5f'/><g fill='%235f9a4c' opacity='0.5'><rect x='30' y='40' width='3' height='3'/><rect x='90' y='150' width='3' height='3'/><rect x='150' y='60' width='3' height='3'/><rect x='210' y='120' width='3' height='3'/><rect x='60' y='100' width='3' height='3'/><rect x='250' y='40' width='3' height='3'/></g><rect x='286' y='0' width='34' height='200' fill='%2357abdd'/><rect x='276' y='0' width='10' height='200' fill='%23e4d29e'/><rect x='128' y='120' width='28' height='80' fill='%23c49a63'/><rect x='128' y='120' width='158' height='22' fill='%23c49a63'/><g fill='%233f8a4c'><polygon points='120,44 133,74 107,74'/><polygon points='120,58 135,86 105,86'/><rect x='117' y='86' width='6' height='8' fill='%237a5232'/><polygon points='240,64 251,90 229,90'/><polygon points='240,76 253,100 227,100'/><rect x='237' y='100' width='6' height='7' fill='%237a5232'/><polygon points='40,150 51,176 29,176'/><rect x='37' y='176' width='6' height='7' fill='%237a5232'/></g><g><rect x='42' y='100' width='54' height='32' fill='%23ecdcb4'/><rect x='42' y='128' width='54' height='6' fill='%238f97a3'/><path d='M36 101 L69 70 L102 101 Z' fill='%23c1564d'/><rect x='40' y='96' width='6' height='5' fill='%236a4830'/><rect x='62' y='110' width='14' height='22' fill='%237a5230'/><rect x='48' y='106' width='9' height='9' fill='%23ffdf9e'/><rect x='82' y='106' width='9' height='9' fill='%23ffdf9e'/></g><g><rect x='172' y='104' width='46' height='28' fill='%23ecdcb4'/><rect x='172' y='128' width='46' height='6' fill='%238f97a3'/><path d='M166 105 L195 78 L224 105 Z' fill='%235a7ec2'/><rect x='188' y='114' width='12' height='18' fill='%237a5230'/><rect x='176' y='110' width='8' height='8' fill='%23ffdf9e'/></g><rect x='140' y='150' width='6' height='9' fill='%23e06a5c'/><rect x='139' y='146' width='4' height='4' fill='%23f1bf95'/><rect x='205' y='158' width='6' height='9' fill='%237bbf63'/><rect x='204' y='154' width='4' height='4' fill='%23f1bf95'/></svg>">
+          <img class="arcade-card-poster" src="assets/thumbs/hearthvale.jpg" alt="Hearthvale gameplay" width="640" height="400" loading="lazy">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="hearthvale"></div>
         </div>
@@ -152,7 +164,7 @@
 
       <a class="arcade-card arcade-card-dim" href="agentic-os.html" style="--accent:#BC8CFF">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" alt="Agentic OS desktop" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'><rect width='320' height='200' fill='%23070b12'/><g stroke='%23121c2a' stroke-width='1'><line x1='0' y1='50' x2='320' y2='50'/><line x1='0' y1='100' x2='320' y2='100'/><line x1='0' y1='150' x2='320' y2='150'/><line x1='64' y1='0' x2='64' y2='200'/><line x1='128' y1='0' x2='128' y2='200'/><line x1='192' y1='0' x2='192' y2='200'/><line x1='256' y1='0' x2='256' y2='200'/></g><g><rect x='22' y='26' width='150' height='104' rx='6' fill='%230b0f15' stroke='%2358a6ff'/><rect x='22' y='26' width='150' height='16' rx='6' fill='%230e141c'/><circle cx='160' cy='34' r='3' fill='%23f85149'/><circle cx='150' cy='34' r='3' fill='%23d29922'/><rect x='32' y='52' width='90' height='5' rx='2' fill='%23223349'/><rect x='32' y='64' width='128' height='6' rx='3' fill='%23101822'/><rect x='32' y='64' width='96' height='6' rx='3' fill='%233fb950'/><rect x='32' y='78' width='70' height='5' rx='2' fill='%23223349'/><rect x='32' y='90' width='128' height='6' rx='3' fill='%23101822'/><rect x='32' y='90' width='58' height='6' rx='3' fill='%2358a6ff'/><rect x='32' y='104' width='104' height='5' rx='2' fill='%23223349'/><rect x='32' y='116' width='128' height='6' rx='3' fill='%23101822'/><rect x='32' y='116' width='24' height='6' rx='3' fill='%23bc8cff'/></g><g><rect x='140' y='58' width='158' height='110' rx='6' fill='%23090d13' stroke='%23bc8cff'/><rect x='140' y='58' width='158' height='16' rx='6' fill='%230e141c'/><circle cx='288' cy='66' r='3' fill='%23f85149'/><rect x='150' y='84' width='96' height='5' rx='2' fill='%233fb950'/><rect x='150' y='96' width='120' height='5' rx='2' fill='%23295c38'/><rect x='150' y='108' width='72' height='5' rx='2' fill='%233fb950'/><rect x='150' y='120' width='108' height='5' rx='2' fill='%23295c38'/><rect x='150' y='132' width='40' height='5' rx='2' fill='%233fb950'/><rect x='150' y='144' width='10' height='8' fill='%233fb950'/></g><rect x='0' y='182' width='320' height='18' fill='%23080c12'/><line x1='0' y1='182' x2='320' y2='182' stroke='%231c2836'/><rect x='8' y='187' width='34' height='9' rx='3' fill='%23bc8cff' opacity='0.5'/><rect x='48' y='187' width='26' height='9' rx='3' fill='%23223349'/><rect x='80' y='187' width='26' height='9' rx='3' fill='%23223349'/><rect x='282' y='188' width='28' height='7' rx='2' fill='%23223349'/></svg>">
+          <img class="arcade-card-poster" src="assets/thumbs/studio.jpg" alt="Eureka Studio dev office" width="640" height="400" loading="lazy">
           <div class="arcade-card-shine"></div>
         </div>
         <div class="arcade-card-body">
@@ -989,6 +1001,11 @@
       minesweeper: () => MinesweeperGame.destroy(),
       connect4: () => ConnectFourGame.destroy(),
       word5: () => WordFiveGame.destroy(),
+      // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
+      // dashboard six timers, both for the life of the session regardless of
+      // which view was on screen.
+      orgchart: () => OrgChart.destroy(),
+      dashboard: () => { Dashboard.destroy(); CalendarWidget.destroy(); },
     };
 
     function switchView(name) {
@@ -1021,6 +1038,12 @@
           case 'orgchart':     OrgChart.init(); break;
         }
       }
+      // init() only ever runs once per view, so the views we now tear down on
+      // exit need their loop/timers restarted when the visitor comes back.
+      // Both resume() calls are no-ops if already running, so this is safe on
+      // the first visit too.
+      if (name === 'orgchart') OrgChart.resume();
+      if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
       if (name === 'halloffame') renderHallOfFame();
       if (name === 'arcade') refreshArcadeBadges();
       currentView = name;

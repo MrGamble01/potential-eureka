@@ -187,7 +187,7 @@ const OrgChart = (() => {
     window.addEventListener('hashchange', applyHashSelection);
 
     window.addEventListener('resize', resize);
-    loop();
+    resume();
   }
 
   function applyHashSelection() {
@@ -603,6 +603,23 @@ const OrgChart = (() => {
     rafId = requestAnimationFrame(loop);
   }
 
+  // The physics sim used to keep running at ~60fps after you navigated away
+  // from Studio Crew — `rafId` was tracked but never cancelled, and the view
+  // had no entry in index.html's teardown map. Leaving the page open on any
+  // other view still burned a full animation frame budget (and battery).
+  //
+  // The shell only ever calls init() once per view, so stopping the loop
+  // needs a matching resume() for when the visitor comes back. Both are
+  // idempotent: resume() while already running is a no-op, so the init()
+  // path and the re-entry path can share it safely.
+  function destroy() {
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  function resume() {
+    if (rafId === null && ctx) loop();
+  }
+
   // ---- Side panel ----
   function renderPanel(id) {
     if (!id) {
@@ -722,5 +739,5 @@ const OrgChart = (() => {
     })[c]);
   }
 
-  return { init };
+  return { init, destroy, resume };
 })();

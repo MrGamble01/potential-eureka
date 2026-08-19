@@ -47,9 +47,9 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Startup Tycoon — Eureka Games">
   <meta property="og:description" content="Hire engineers, ship features, and grind your startup to IPO.">
-  <meta property="og:image" content="/assets/thumbs/tycoon.jpg">
-  <meta property="og:url" content="/tycoon/play">
-  <link rel="canonical" href="/tycoon/play">
+  <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/tycoon.jpg">
+  <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/tycoon/play">
+  <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/tycoon/play">
   <meta name="twitter:card" content="summary_large_image">
   <style>
     html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden;
@@ -1749,8 +1749,127 @@
 <script type="module">
 import * as THREE from 'three';
 
+// ── BUILD VARIANTS ─────────────────────────────────────────────────
+// Beagle Sim used to be a second file, tycoon/beagle.html: a hard fork
+// that froze while this one kept taking fixes. That is why BGL-1..BGL-4
+// existed, and why the LOOP-1 frame-loop fix had to be written twice. It
+// is now a boot-time variant of this file — same engine, different skin,
+// copy and tuning — so a fix can never again land in one and miss the
+// other.
+//
+// A variant is NOT one of the cosmetic THEMES below. A theme is a runtime
+// re-skin the player toggles from the settings modal; a variant is chosen
+// once at boot from ?theme=, owns its own save key, and deliberately never
+// appears in the theme picker (switching mid-run would swap the save out
+// from under the player).
+//
+// Everything a variant changes is expressed as an override. `default`
+// overrides nothing, so the base build behaves exactly as it did when this
+// was the only file.
+const VARIANTS = {
+  default: { id: 'default', tuning: {}, rooms: {}, copy: {} },
+
+  beagle: {
+    id: 'beagle',
+    saveKey:  'beagle-sim-v1',   // must stay distinct — see TYC-3
+    lsPrefix: 'beagle:',         // settings namespace it already shipped on
+    docTitle: 'Beagle Sim',
+    docDesc:  'Adopt beagles, dig up bones, and grow the goodest startup. A 3D idle sim from Eureka Games.',
+    favicon:  '🐶',
+    themeId:  'default',
+    freshCash: 200,              // base build grants 400 on a fresh start
+    // The only two balance numbers the fork actually diverged on.
+    tuning: { engCostScale: 1.6, featurePriceBase: 5 },
+    // …plus three room numbers: a smaller starter kennel and pricier
+    // expansions, so the early game is tighter.
+    rooms: { starterDesks: 2, left: 250, right: 600 },
+    // Copy layer. `text` replaces an element's text, `html` its markup,
+    // `title` its tooltip. Applied once, after the DOM is ready.
+    copy: {
+      'hire-btn':          { html: '🐶 Adopt Beagle<span class="cost" id="hire-cost">$75</span>' },
+      'hire-ext-eng-btn':  { html: '🦮 Adopt Pedigree Beagle<span class="cost" id="hire-ext-eng-cost">$225</span>' },
+      'hire-ea-btn':       { html: '🧑‍🌾 Hire Dog Walker<span class="cost" id="hire-ea-cost">$400</span>' },
+      'sprint-btn':        { html: '🐾 Frenzy<span id="sprint-status" style="font-size:11px;opacity:0.8">Ready</span>',
+                             title: '30s of 2× dig speed for the whole pack' },
+    },
+    // Text swaps applied by scanning for an exact string — for labels that
+    // have no id of their own (panel titles, help tips, welcome steps).
+    phrases: [
+      ['👥 Team',                    '🐾 The Pack'],
+      ['🛠️ Office Managers',         '🦴 Kennel Staff'],
+      ['Engineers',                  'Beagles'],
+      ['Hire an engineer',           'Adopt a beagle'],
+      ['Welcome to Startup Tycoon',  'Welcome to Beagle Sim'],
+    ],
+    // Nouns the game re-renders every HUD tick, so a one-shot DOM patch
+    // can't hold them — these are read at the render site instead.
+    headSuffix: '🐶',
+    workerPlural: 'beagles',
+    // Suffix used by the headcount HUD ("0 ppl" → "0 🐶").
+    teamSuffix: '🐶',
+    goalNoun:   'Earned',
+  },
+};
+
+// Resolved once, before anything reads CONFIG or the save key. Only ids
+// that actually exist are honoured, and `default` can't be selected into
+// (it is the fallback), so a junk query string is inert.
+const VARIANT = (() => {
+  try {
+    const id = new URLSearchParams(location.search).get('theme');
+    if (id && id !== 'default' && VARIANTS[id]) return VARIANTS[id];
+  } catch {}
+  return VARIANTS.default;
+})();
+
+// Identity + copy. Both are no-ops for the base build, which declares
+// neither, so nothing here can change how Startup Tycoon looks.
+(() => {
+  if (VARIANT.id === 'default') return;
+  if (VARIANT.docTitle) document.title = VARIANT.docTitle;
+  if (VARIANT.docDesc) {
+    const d = document.querySelector('meta[name="description"]');
+    if (d) d.setAttribute('content', VARIANT.docDesc);
+  }
+  if (VARIANT.favicon) {
+    const link = document.querySelector('link[rel="icon"]') || document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>"
+      + "<rect width='64' height='64' rx='14' fill='%230d1117'/>"
+      + "<text x='50%25' y='58%25' font-size='38' text-anchor='middle' dominant-baseline='middle'>"
+      + VARIANT.favicon + "</text></svg>";
+    if (!link.parentNode) document.head.appendChild(link);
+  }
+
+  const applyCopy = () => {
+    for (const [id, spec] of Object.entries(VARIANT.copy || {})) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if (spec.html != null) el.innerHTML = spec.html;
+      else if (spec.text != null) el.textContent = spec.text;
+      if (spec.title != null) el.title = spec.title;
+    }
+    // Phrase swaps for labels with no id of their own. Text nodes only, so
+    // this can never disturb markup or event handlers.
+    const phrases = VARIANT.phrases || [];
+    if (phrases.length) {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const hits = [];
+      while (walker.nextNode()) hits.push(walker.currentNode);
+      for (const node of hits) {
+        let t = node.nodeValue;
+        for (const [from, to] of phrases) if (t.includes(from)) t = t.split(from).join(to);
+        if (t !== node.nodeValue) node.nodeValue = t;
+      }
+    }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyCopy);
+  else applyCopy();
+})();
+
 // ── CONFIG (data-driven tunables — one place to balance the game) ──
-const CONFIG = Object.freeze({
+const CONFIG = Object.freeze(Object.assign({
   // Player
   playerBaseSpeed:      6,
   playerSpeedPerLevel:  0.5,
@@ -1874,7 +1993,7 @@ const CONFIG = Object.freeze({
 
   // Save interval
   saveIntervalMs: 5000,
-});
+}, VARIANT.tuning));
 
 // ── NPC States (enum — avoids typo bugs, enables switch optimization) ──
 const S = Object.freeze({
@@ -1913,17 +2032,22 @@ const _v3B = new THREE.Vector3();
 // Every key we read/write lives in this map so typos can't silently
 // fork names, a grep lands on every call site, and Restart's
 // preserve-list stays explicit.
+// Settings keys are namespaced per build so muting one doesn't mute the
+// other and one build's welcome dismissal doesn't suppress the other's
+// (SITE-3). Beagle Sim shipped on 'beagle:' when it was a separate file;
+// keeping that prefix means existing Beagle players keep their settings.
+const LS_PREFIX = VARIANT.lsPrefix || 'tycoon:';
 const LS = {
-  save:          'startup-tycoon-v7',
-  joystick:      'tycoon:joystickEnabled',
-  morale:        'tycoon:moraleEnabled',
-  investor:      'tycoon:investorEnabled',
-  tips:          'tycoon:tipsEnabled',
-  toastDensity:  'tycoon:toastDensity',
-  tipSeenPrefix: 'tycoon:tip-seen-',
-  sfx:           'tycoon:sfxEnabled',
-  welcome:       'tycoon:welcomeSeen-v1',
-  haptics:       'tycoon:hapticsEnabled',
+  save:          VARIANT.saveKey || 'startup-tycoon-v7',
+  joystick:      LS_PREFIX + 'joystickEnabled',
+  morale:        LS_PREFIX + 'moraleEnabled',
+  investor:      LS_PREFIX + 'investorEnabled',
+  tips:          LS_PREFIX + 'tipsEnabled',
+  toastDensity:  LS_PREFIX + 'toastDensity',
+  tipSeenPrefix: LS_PREFIX + 'tip-seen-',
+  sfx:           LS_PREFIX + 'sfxEnabled',
+  welcome:       LS_PREFIX + 'welcomeSeen-v1',
+  haptics:       LS_PREFIX + 'hapticsEnabled',
 };
 
 // SITE-3: these settings keys used to be bare (`joystickEnabled`,
@@ -2431,6 +2555,21 @@ const ROOM_DEFS = [
     desks: [ {x:20,z:13, role:'vp'}, {x:20,z:19, role:'vp'} ],
   },
 ];
+
+// Variant room overrides: a smaller starter kennel and pricier expansions
+// for Beagle Sim. No-op for the base build (empty `rooms`).
+(() => {
+  const r = VARIANT.rooms || {};
+  if (r.starterDesks != null) {
+    const starter = ROOM_DEFS.find(d => d.id === 'starter');
+    if (starter) starter.desks = starter.desks.slice(0, r.starterDesks);
+  }
+  for (const id of Object.keys(r)) {
+    if (id === 'starterDesks') continue;
+    const def = ROOM_DEFS.find(d => d.id === id);
+    if (def) def.cost = r[id];
+  }
+})();
 
 const PLOT_DEFS = [];
 for (const r of ROOM_DEFS) {
@@ -5677,7 +5816,12 @@ hireExtEngBtnEl.addEventListener('click', () => {
   const hasDesk = plots.some(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   if (!hasDesk) return;
   state.cash -= cost; showSpendPop(cost);
-  spawnIdeaWorker({ external: true });
+  // Same refund guard the in-house hire above uses. Both callers already
+  // check for a free desk with the identical predicate spawnIdeaWorker uses,
+  // so this shouldn't fire — but the two adjacent handlers spending the same
+  // way should also fail the same way, and an unguarded spend is exactly the
+  // shape BAL-1 flagged.
+  if (!spawnIdeaWorker({ external: true })) { state.cash += cost; return; }
   refreshHud();
   renderHirePanel();
   addFeedEntry(`👔 Hired external engineer (+${Math.round((EXTERNAL_ENG_RATE_BONUS - 1) * 100)}% rate)`);
@@ -6301,7 +6445,7 @@ function updateMetricsHUD() {
   const cafCount = ideaWorkers.filter(w => w.caffeinated).length;
   const dosedCount = ideaWorkers.filter(w => w.dosed).length;
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
-  metricsTeamEl.textContent  = `${headcount} ppl${cafCount ? ' ⚡' + cafCount : ''}${dosedCount ? ' 💊' + dosedCount : ''}`;
+  metricsTeamEl.textContent  = `${headcount} ${VARIANT.headSuffix || 'ppl'}${cafCount ? ' ⚡' + cafCount : ''}${dosedCount ? ' 💊' + dosedCount : ''}`;
   if (metricsVersionEl) metricsVersionEl.textContent = currentProductVersion.ver;
   // "Per ship" base deal value + live breakdown tooltip so the player
   // can see WHY a feature is worth $X — base × v × prestige × Ent × events.
@@ -8010,7 +8154,7 @@ function updateSprintButton() {
     sprintBtnEl.classList.remove('active');
     sprintBtnEl.classList.remove('ringing');
     sprintBtnEl.disabled = ideaWorkers.length === 0;
-    sprintStatusEl.textContent = ideaWorkers.length === 0 ? 'Hire engineers' : 'Ready';
+    sprintStatusEl.textContent = ideaWorkers.length === 0 ? `Hire ${VARIANT.workerPlural || 'engineers'}` : 'Ready';
   }
 }
 // Single shared UI tick for lightweight DOM refreshes that don't
@@ -8331,7 +8475,46 @@ let last = performance.now();
 const HUD_UPDATE_INTERVAL = 0.1;
 let _hudAcc = HUD_UPDATE_INTERVAL;
 const ISO = -Math.PI / 4, COS = Math.cos(ISO), SIN = Math.sin(ISO);
+
+// The next frame is scheduled BEFORE the body runs. TYC-1 fixed the one
+// ReferenceError that was known to escape this loop, but left the shape
+// that made it fatal: the re-arm used to be the body's last statement, so
+// ANY exception in it stopped the game dead — no error banner, no motion,
+// just a still office and a save that keeps ticking. Now a bad frame is
+// logged and skipped; only a persistent fault stops the loop, and it says
+// so. Mirrors homeless-village/js/main.js's gameLoop.
+let frameErrors = 0, loopStopped = false;
 function loop(now) {
+  if (loopStopped) return;
+  requestAnimationFrame(loop);
+  try {
+    frameBody(now);
+    if (frameErrors) frameErrors--; // recovered — don't hold blips against it
+  } catch (e) {
+    console.error('Tycoon frame error:', e);
+    if (++frameErrors > 10) fatalFrame('Startup Tycoon hit a problem and stopped updating.');
+  }
+}
+
+function fatalFrame(msg) {
+  loopStopped = true; // stop re-arming — no 60fps error storm
+  if (document.getElementById('tyc-fatal')) return;
+  saveGame(); // the run so far is still worth keeping
+  const d = document.createElement('div');
+  d.id = 'tyc-fatal';
+  d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;' +
+    'align-items:center;justify-content:center;gap:14px;background:rgba(13,17,23,.94);' +
+    'color:#e6edf3;font-family:inherit;text-align:center;padding:24px;';
+  d.innerHTML = '<div style="font-size:34px">🏢</div>' +
+    '<div style="max-width:430px;line-height:1.6">' + msg +
+    '<br><br>Your progress has been saved — reloading picks the season back up.</div>' +
+    '<button id="tyc-fatal-reload" style="background:#21262d;color:#e6edf3;border:1px solid #30363d;' +
+    'padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:6px">RELOAD</button>';
+  document.body.appendChild(d);
+  d.querySelector('#tyc-fatal-reload').addEventListener('click', () => location.reload());
+}
+
+function frameBody(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
 
@@ -8405,7 +8588,6 @@ function loop(now) {
   tickCashHud(dt);
   tickIdleBreathing(now);
   renderer.render(scene, activeCamera());
-  requestAnimationFrame(loop);
 }
 
 // Subtle "alive" head sway on every character so standing still
@@ -8671,10 +8853,14 @@ ipoModal.addEventListener('click', e => { if (e.target === ipoModal) ipoModal.cl
 // ── Save + load ──
 const SAVE_KEY = LS.save;
 // Sweep older versions out of localStorage so they don't sit there
-// forever after a schema bump.
+// forever after a schema bump. The prefix is derived from the active
+// save key rather than hard-coded: a variant (Beagle Sim) has its own
+// key, and a hard-coded 'startup-tycoon-v' would have had Beagle's boot
+// delete the base build's save outright the first time anyone opened it.
+const SAVE_PREFIX = SAVE_KEY.replace(/\d+$/, '');
 try {
   for (const k of Object.keys(localStorage)) {
-    if (k.startsWith('startup-tycoon-v') && k !== SAVE_KEY) localStorage.removeItem(k);
+    if (k !== SAVE_KEY && k.startsWith(SAVE_PREFIX)) localStorage.removeItem(k);
   }
 } catch (_) {}
 let _restarting = false; // set true by the Restart button so beforeunload / setInterval don't re-save wiped state
@@ -9177,7 +9363,7 @@ loadGame();
 // change toward #2, so the loop catches fire fast). Returning players
 // keep the existing +$100 welcome-back bonus.
 const _isFreshStart = state.allTimeCash === 0;
-addCash(_isFreshStart ? 400 : 100);
+addCash(_isFreshStart ? (VARIANT.freshCash != null ? VARIANT.freshCash : 400) : 100);
 renderFunding();
 updateStarterWallDecor();
 refreshGoalLabels();
