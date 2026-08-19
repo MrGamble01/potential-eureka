@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Hearthvale — Cozy Town Builder</title>
   <meta name="description" content="A cozy top-down colony builder. Grow a riverside village, place homes and workshops, let villagers wander and work, and trade with a traveling merchant. Retro pixel art, runs in your browser, no install.">
   <meta property="og:title" content="Hearthvale">
@@ -36,9 +36,15 @@
       color: var(--ink);
       font-family: var(--font);
       user-select: none;
-      touch-action: none;
     }
-    #game { position: fixed; inset: 0; display: block; image-rendering: pixelated; cursor: grab; }
+    /* touch-action is scoped to the map canvas, not the whole body, and the
+       viewport no longer carries user-scalable=no (A11Y-2 / WCAG 1.4.4).
+       The canvas still needs `none` — it reads raw drags to pan and pinches
+       to zoom the camera, and the browser would otherwise steal them — but
+       everything outside it (HUD panels, modals, the build bar) is ordinary
+       DOM again, so a reader can pinch-zoom the interface text. */
+    #game { position: fixed; inset: 0; display: block; image-rendering: pixelated; cursor: grab;
+      touch-action: none; }
     #game.building { cursor: crosshair; }
     #game.panning { cursor: grabbing; }
 
