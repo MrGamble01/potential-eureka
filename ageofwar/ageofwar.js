@@ -275,6 +275,36 @@ const AgeOfWarGame = (() => {
   // ---- Run stats (shown on win/lose + drive achievements) ----
   const runStats = { kills: 0, gold: 0, time: 0, specialsFired: 0, coinsCollected: 0, biggestCombo: 0, agesReached: 0, turretsBuilt: 0, heroesSummoned: 0 };
 
+  // ---- Best run (persisted across runs; the reset button already offered
+  // to clear this key, but nothing ever read or wrote it) ----
+  const bestRun = { time: 0, kills: 0, combo: 0, era: 0 };
+  function loadBestRun() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      const saved = raw ? JSON.parse(raw) : null;
+      if (saved && typeof saved === 'object') {
+        bestRun.time  = Number(saved.time)  || 0;
+        bestRun.kills = Number(saved.kills) || 0;
+        bestRun.combo = Number(saved.combo) || 0;
+        bestRun.era   = Number(saved.era)   || 0;
+      }
+    } catch {}
+  }
+  function saveBestRun() {
+    try { localStorage.setItem('aow-best-run', JSON.stringify(bestRun)); } catch {}
+  }
+  // Called once per run at game-over. Returns which stats improved, so the
+  // overlay can call out a new personal best.
+  function updateBestRun() {
+    const candidate = { time: runStats.time, kills: runStats.kills, combo: comboBest, era: playerEra };
+    const improved = {};
+    for (const k of Object.keys(candidate)) {
+      if (candidate[k] > bestRun[k]) { bestRun[k] = candidate[k]; improved[k] = true; }
+    }
+    saveBestRun();
+    return improved;
+  }
+
   // ---- Achievements ----
   // Persisted in localStorage across runs. Earned during play, toast
   // pops in the corner. Full list lives in a modal.
@@ -595,6 +625,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -1113,6 +1144,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRun.time = 0; bestRun.kills = 0; bestRun.combo = 0; bestRun.era = 0;
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1788,14 +1820,14 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
-      showOverlay(false);
+      showOverlay(false, updateBestRun());
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
       SFX.victory();
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      showOverlay(true, updateBestRun());
     }
 
     // Hero CD + achievement scans
@@ -6496,11 +6528,19 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
-  function showOverlay(won) {
+  function showOverlay(won, newBests) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
+    newBests = newBests || {};
+    const badge = key => newBests[key]
+      ? ' <span style="color:#3FB950">★ Best</span>' : '';
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
+    const bm = Math.floor(bestRun.time / 60);
+    const bs = Math.floor(bestRun.time % 60).toString().padStart(2, '0');
+    const comboMult = Math.min(3, 1 + comboBest * 0.04).toFixed(1);
+    const bestComboMult = Math.min(3, 1 + bestRun.combo * 0.04).toFixed(1);
+    const bestEraName = ERAS[Math.min(bestRun.era, ERAS.length - 1)].name;
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
@@ -6508,10 +6548,13 @@ const AgeOfWarGame = (() => {
       </h2>
       <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time${badge('time')}</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills${badge('kills')}</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo${badge('combo')}</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${comboMult}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached${badge('era')}</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-dim);font-family:var(--font-mono)">
+        Personal best &mdash; Time ${bm}:${bs} &middot; Kills ${bestRun.kills} &middot; Combo ×${bestComboMult} &middot; Reached ${bestEraName}
       </div>
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
