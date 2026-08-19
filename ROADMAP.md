@@ -3,8 +3,9 @@
 *Original audit: July 2026. **Re-audited August 2026** — every P0 and P1 ticket
 was re-checked against current source, and the site was exercised in headless
 Chromium (11 standalone pages + all 14 arcade views). The P0/P1 backlog below
-had been worked to completion in the intervening PRs; what remains open is
-recorded in "Still open" and P2/P3.*
+had been worked to completion in the intervening PRs. A second pass then closed
+P2 and the last three stragglers, so **every ticket in this document is now
+closed** — what remains is the P3 ideas backlog.*
 
 *Line numbers drift as files change — treat them as starting anchors and
 re-locate by the quoted identifiers.*
@@ -37,8 +38,8 @@ afterwards.
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
-| **Still open** | 3 tickets, listed below |
-| **P2** | ✅ all closed except DEBT-1 — far more had shipped than the July doc showed |
+| **Still open** | ✅ none — all closed Aug 2026 |
+| **P2** | ✅ all closed, DEBT-1 included |
 | **P3** | untouched backlog; entries that shipped are marked inline |
 
 > The July document listed 31 P0/P1 and most of P2 as open. Re-checking found
@@ -119,7 +120,8 @@ got real 1200×630 captures in `assets/thumbs/`.
 
 ### LOOP-1 · One bad frame froze Hearthvale and Startup Tycoon for good ✅ *(fixed)*
 **Files:** `hearthvale.html` (`loop`, was `:4058`), `tycoon/play.html` (`loop`,
-was `:8408`), `tycoon/beagle.html` (`loop`, was `:7639`)
+was `:8408`), and the since-retired `tycoon/beagle.html` (`loop`, was `:7639`)
+— having to patch that third copy by hand is what finally motivated DEBT-1.
 
 All three re-armed `requestAnimationFrame` as the **last statement of the frame
 body**, with no `try/catch`. Any exception anywhere in the body therefore
@@ -174,18 +176,60 @@ on exit and resumes on re-entry.
 
 ## Still open
 
-### A11Y-2 · `user-scalable=no` came back on the two newest game pages
-**Files:** `hearthvale.html:5`, `voxel-garden.html:5`
-A11Y-1 called out `user-scalable=no` as a WCAG 1.4.4 violation and it was
-removed from the pages it cited (`drug-lab.html`, `play.html`, `beagle.html`) —
-then reintroduced verbatim by two pages written afterwards. Voxel Isle adds
-`maximum-scale=1.0` on top.
-**Tension worth resolving deliberately, not by reflex:** both are touch games
-that use pinch to zoom the *camera*, and the canvases already set
-`touch-action: none`, so page-level zoom suppression may be redundant with the
-gesture handling rather than load-bearing. Confirm on a real touch device before
-removing.
-*Accept:* pinch-zoom works on the page, or a comment records why it can't.
+**Nothing.** Every ticket in this document is closed as of August 2026 — P0,
+P1, P2, and the three that were still open at the start of that pass (A11Y-2,
+THUMB-1, DEBT-1). What remains is the P3 ideas backlog, which is optional
+feature work rather than outstanding defects.
+
+### ~~A11Y-2 · `user-scalable=no` came back on the two newest game pages~~ ✅ *(closed Aug 2026)*
+`hearthvale.html` and `voxel-garden.html` both carried `user-scalable=no`
+(Voxel Isle also `maximum-scale=1.0`) — the WCAG 1.4.4 violation A11Y-1 had
+already removed from the four pages it cited, reintroduced by two pages written
+afterwards.
+
+Dropping the viewport flag alone would have been cosmetic compliance: both
+games also set `touch-action: none` on **body**, which suppresses browser zoom
+page-wide on its own, so the flag would clear while nothing changed for a
+reader. The fix was therefore scoping, not deleting — `touch-action: none`
+moved from `body` to the game canvas, where it is genuinely load-bearing
+(Hearthvale reads raw drags to pan, Voxel Isle two-finger pinches to zoom the
+camera). Everything outside the canvas is ordinary DOM again.
+*Accept:* pinch-zoom works on the page ✅ — verified on an emulated touch
+device: body and HUD compute `touch-action: auto`, both canvases keep `none`,
+and a drag across each canvas still moves the view, so neither game lost input.
+
+### ~~THUMB-1 · Hearthvale's arcade card used a placeholder SVG~~ ✅ *(closed Aug 2026)*
+Swapped to the real `assets/thumbs/hearthvale.jpg` added by SITE-2, picking up
+`loading="lazy"` and intrinsic dimensions like every other card. Eureka Studio
+was the only other card still on a `data:` URI and `studio.jpg` already existed
+for its share card, so it got the same treatment. No inline-SVG posters remain,
+and `index.html` shed 4.3KB of markup that used to parse on every visit.
+
+### ~~DEBT-1 · `beagle.html` was still a fork~~ ✅ *(closed Aug 2026)*
+`tycoon/beagle.html` is gone. Beagle Sim is now a **build variant** of
+`play.html`, resolved once at boot from `?theme=beagle`.
+
+The fork had drifted much further than this document recorded: play.html was
+9,280 lines to beagle's 8,244, so Beagle was missing ~1,550 lines of
+improvements (the Dashboard, first-person mode, the valuation chip, the season
+card). Its one apparent extra — the active "Treats" dosing panel — was the
+superseded design play.html deliberately replaced with the passive Adderall
+Cabinet amenity, so collapsing the fork lost nothing and brought Beagle forward.
+
+Measured, the real divergence was small: 3 room numbers, 2 balance constants,
+one starting-cash value, and a copy layer.
+
+**A variant is not a THEME.** Themes are a runtime re-skin the player toggles
+from settings; a variant is chosen at boot, owns its own save key, and never
+appears in the picker — switching mid-run would swap the save out from under
+the player. `default` overrides nothing, so the base build is unchanged.
+
+One bug was found doing it: the save-version sweep was hard-coded to
+`startup-tycoon-v`, so with a variant save key **Beagle's first boot would have
+deleted the player's Startup Tycoon save.** The prefix is now derived from the
+active key, and both saves are proven to coexist.
+*Accept:* playing Beagle leaves the tycoon save byte-identical ✅ (16/16 variant
+assertions, 6/6 save-safety assertions).
 
 ### ~~A11Y-1 · The rest of the accessibility batch~~ ✅ *(verified closed Aug 2026)*
 Every sub-item was checked in the live DOM rather than by grep, and all pass:
@@ -216,18 +260,6 @@ All three parts are now done:
   order and the aggregator is deleted. Measured with 120ms emulated latency:
   2 serial waves → 1, CSS complete 954ms → 748ms (−22%), one request fewer.
 - **Posters** — already carry `loading="lazy"` and intrinsic dimensions.
-
-### THUMB-1 · Hearthvale's arcade card still uses its placeholder SVG
-`index.html:126` renders an inline-SVG illustration while every other card uses
-`assets/thumbs/*.jpg`. A real `hearthvale.jpg` now exists (added by SITE-2), so
-the card could use it for consistency and to pick up `loading="lazy"` +
-intrinsic dimensions. Cosmetic — the SVG is deliberate art, so this is a
-judgement call, not a defect.
-
-### DEBT-1 · `beagle.html` is still a fork
-Unchanged: `tycoon/beagle.html` remains a near-copy of `play.html`. LOOP-1 had
-to be applied to both files, which is precisely the double-maintenance this
-ticket exists to end.
 
 ### ~~SITE-3 (remainder) · Document the localStorage key registry in the README~~ ✅ *(closed Aug 2026)*
 The README now carries the key registry under "Stack", with a note to add and
