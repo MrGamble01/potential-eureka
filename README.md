@@ -20,7 +20,7 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 
 **Standalone pages:**
 - **Age of War** (`ageofwar/`) — side-scrolling strategy game: march your army through the ages and crush the enemy base
-- **Startup Tycoon** (`tycoon/`) — idle/story tycoon game with a 3D scene (`play.html`, `beagle.html`)
+- **Startup Tycoon** (`tycoon/`) — idle/story tycoon game with a 3D scene (`play.html`; the 🐶 Beagle Sim reskin is the same build at `play.html?theme=beagle`)
 - **Grow Op** (`drug-lab.html`) — 3D room-builder with risk/heat mechanics
 - **Homeless Village** (`homeless-village.html`) — 3D survival/village-building game
 - **Hearthvale** (`hearthvale.html`) — cozy top-down town builder with procedural pixel-art, villagers, seasons, and a warm settlement to grow
@@ -52,8 +52,8 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `arcade-muted` | `js/sfx.js` (arcade hub) |
 | `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War |
 | `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |
-| `beagle-sim-v1` | Beagle Sim |
-| `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | shared by both tycoon builds (cosmetic only) |
+| `beagle-sim-v1`, `beagle:*` | Beagle Sim (the `?theme=beagle` variant of Startup Tycoon) |
+| `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | shared by both tycoon variants (cosmetic only) |
 | `drug-lab-v1` | Grow Op |
 | `homeless_village_v1` | Homeless Village |
 | `hearthvale-v1` | Hearthvale |

@@ -4,7 +4,9 @@
     "trailingSlash": false,
     "redirects": [
         { "source": "/startup-tycoon.html", "destination": "/tycoon", "permanent": true },
-        { "source": "/startup-tycoon", "destination": "/tycoon", "permanent": true }
+        { "source": "/startup-tycoon", "destination": "/tycoon", "permanent": true },
+        { "source": "/tycoon/beagle", "destination": "/tycoon/play?theme=beagle", "permanent": true },
+        { "source": "/tycoon/beagle.html", "destination": "/tycoon/play?theme=beagle", "permanent": true }
     ],
     "headers": [
         {
