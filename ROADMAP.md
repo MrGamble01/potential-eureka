@@ -376,7 +376,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - **IDEA-TYC-9 · Win share-card** — canvas image (season/time/headcount) from `triggerWin()` stats, after TYC-1.
 
 ### Age of War
-- **IDEA-AOW-1 · Endless/Survival mode** — gate the win check (`:1489`) behind a flag; score = waves survived; finally implement the `aow-best-run` key the Reset button already references (`:961-969`) but nothing writes.
+- **IDEA-AOW-1 · Endless/Survival mode** — gate the win check (`:1489`) behind a flag; score = waves survived. The other half of this ticket — ~~the `aow-best-run` key the Reset button already referenced but nothing wrote~~ ✅ **shipped**: `updateBestRun()` now persists best time/kills/combo/era across runs, the game-over overlay badges any stat just beaten, and the Reset button's in-memory clear matches the storage clear it already had.
 - **IDEA-AOW-2 · Prestige "Relics"** — persistent currency from `runStats` at game-over (also surface the tracked-but-never-shown `runStats.gold`, `:191/:1384`); spend on starting bonuses in `reset()`.
 - **IDEA-AOW-3 · 6th era "Singularity+"** — gated behind the `max_age` achievement; `ERAS`/`unitsForEra` iterate generically so the pipeline mostly just works.
 - **IDEA-AOW-4 · Wall/Barricade unit** (`role:'wall'`, skip attack branch) · **IDEA-AOW-5 · Unit veterancy** (`u.aliveT` → +10% dmg + gold outline) · **IDEA-AOW-6 · Turret targeting modes** (nearest/lowest-HP/highest-HP cycle button in `renderTurretPanel` `:6124`) · **IDEA-AOW-7 · Overtime sudden-death** (escalating base chip damage after ~6 min).
