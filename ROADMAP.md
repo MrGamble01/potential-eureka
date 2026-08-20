@@ -376,7 +376,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - **IDEA-TYC-9 · Win share-card** — canvas image (season/time/headcount) from `triggerWin()` stats, after TYC-1.
 
 ### Age of War
-- **IDEA-AOW-1 · Endless/Survival mode** — gate the win check (`:1489`) behind a flag; score = waves survived; finally implement the `aow-best-run` key the Reset button already references (`:961-969`) but nothing writes.
+- **IDEA-AOW-1 · Endless/Survival mode** — gate the win check (`:1489`) behind a flag; score = waves survived. The `aow-best-run` half **shipped**: every win/loss now writes `{kills, time, era, difficulty}` to that key (ranked by kills), the Reset button's `removeItem` call finally has a matching writer, and the overlay shows the standing best or a "New best" callout. The endless-mode gate itself is still open.
 - **IDEA-AOW-2 · Prestige "Relics"** — persistent currency from `runStats` at game-over (also surface the tracked-but-never-shown `runStats.gold`, `:191/:1384`); spend on starting bonuses in `reset()`.
 - **IDEA-AOW-3 · 6th era "Singularity+"** — gated behind the `max_age` achievement; `ERAS`/`unitsForEra` iterate generically so the pipeline mostly just works.
 - **IDEA-AOW-4 · Wall/Barricade unit** (`role:'wall'`, skip attack branch) · **IDEA-AOW-5 · Unit veterancy** (`u.aliveT` → +10% dmg + gold outline) · **IDEA-AOW-6 · Turret targeting modes** (nearest/lowest-HP/highest-HP cycle button in `renderTurretPanel` `:6124`) · **IDEA-AOW-7 · Overtime sudden-death** (escalating base chip damage after ~6 min).
@@ -416,7 +416,7 @@ that half is still open.*
 | `connect4-streak`, `c4-diff` | Drop Four | ✓ |
 | `word5-streak` | Word Five | ✓ |
 | `arcade-muted` | `js/sfx.js` | one of three mute keys — by design, each game owns its mute |
-| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War | ✓ (`aow-best-run` referenced by reset but never written → IDEA-AOW-1) |
+| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-best-run` | Age of War | ✓ `aow-best-run` now written on every win/loss (IDEA-AOW-1) |
 | `drug-lab-v1` | Grow Op | ✓ |
 | `homeless_village_v1` | Homeless Village | snake_case outlier |
 | `hearthvale-v1` | Hearthvale | ✓ |

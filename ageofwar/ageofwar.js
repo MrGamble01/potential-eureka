@@ -112,6 +112,8 @@ const AgeOfWarGame = (() => {
   let lastFrame = 0;
   let running = false, gameOver = false, modalPaused = false, userPaused = false;
   let outcome = null;
+  let bestRun = null;        // { kills, time, era, difficulty } persisted best across runs
+  let isNewBestRun = false;  // true when the just-ended run set a new best
   // Any modal opening calls setModalPaused(true), closing calls (false).
   // Centralised so the sim/render code only checks one flag.
   function setModalPaused(p) {
@@ -341,6 +343,25 @@ const AgeOfWarGame = (() => {
   }
   function saveAchievements() {
     try { localStorage.setItem('aow-achievements', JSON.stringify(earnedAchievements)); } catch {}
+  }
+
+  // ---- Best run (IDEA-AOW-1: the Reset button already offered to clear
+  // this key; nothing ever wrote it) ----
+  // Ranked by kills — the stat already shown most prominently on the
+  // overlay and the one every achievement/HOF-style number here tracks.
+  function loadBestRun() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      bestRun = raw ? JSON.parse(raw) : null;
+    } catch { bestRun = null; }
+  }
+  function updateBestRun() {
+    const isNew = !bestRun || runStats.kills > bestRun.kills;
+    if (isNew) {
+      bestRun = { kills: runStats.kills, time: runStats.time, era: playerEra, difficulty };
+      try { localStorage.setItem('aow-best-run', JSON.stringify(bestRun)); } catch {}
+    }
+    return isNew;
   }
   function unlock(id) {
     if (earnedAchievements[id]) return;
@@ -595,6 +616,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -725,6 +747,7 @@ const AgeOfWarGame = (() => {
     running = true;
     gameOver = false;
     outcome = null;
+    isNewBestRun = false;
     playerEra = 0;
     enemyEra = 0;
     gold = 140;
@@ -1113,6 +1136,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRun = null;
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1788,6 +1812,7 @@ const AgeOfWarGame = (() => {
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
       SFX.defeat();
+      isNewBestRun = updateBestRun();
       showOverlay(false);
     } else if (enemyBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'win';
@@ -1795,6 +1820,7 @@ const AgeOfWarGame = (() => {
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
+      isNewBestRun = updateBestRun();
       showOverlay(true);
     }
 
@@ -6501,6 +6527,11 @@ const AgeOfWarGame = (() => {
     if (!ov) return;
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
+    const bestLine = bestRun
+      ? (isNewBestRun
+          ? `<p style="font-size:12px;color:#fcd34d;font-weight:700;margin-top:10px">🌟 New best — ${bestRun.kills} kills!</p>`
+          : `<p style="font-size:12px;color:var(--text-dim);margin-top:10px">Best: ${bestRun.kills} kills (${Math.floor(bestRun.time / 60)}:${Math.floor(bestRun.time % 60).toString().padStart(2, '0')})</p>`)
+      : '';
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
@@ -6513,6 +6544,7 @@ const AgeOfWarGame = (() => {
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
+      ${bestLine}
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
   }
