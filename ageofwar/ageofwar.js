@@ -303,6 +303,27 @@ const AgeOfWarGame = (() => {
       earnedAchievements = raw ? JSON.parse(raw) : {};
     } catch { earnedAchievements = {}; }
   }
+
+  // ---- Best run (fastest win per difficulty) ----
+  // `aow-best-run` was already read by the Reset Progress button but nothing
+  // ever wrote it. Tracks the fastest victory time per difficulty so the
+  // overlay can show a "New Best!" callout.
+  let bestRuns = {};
+  function loadBestRuns() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      bestRuns = raw ? JSON.parse(raw) : {};
+    } catch { bestRuns = {}; }
+  }
+  function recordBestRun() {
+    const prev = bestRuns[difficulty];
+    const isNew = !prev || runStats.time < prev.time;
+    if (isNew) {
+      bestRuns[difficulty] = { time: runStats.time, kills: runStats.kills };
+      try { localStorage.setItem('aow-best-run', JSON.stringify(bestRuns)); } catch {}
+    }
+    return isNew;
+  }
   function maybeShowWelcome() {
     let seen = false;
     try { seen = localStorage.getItem('aow-welcome-seen') === '1'; } catch {}
@@ -595,6 +616,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRuns();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -1113,6 +1135,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRuns = {};
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -1795,7 +1818,8 @@ const AgeOfWarGame = (() => {
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      const isNewBest = recordBestRun();
+      showOverlay(true, isNewBest);
     }
 
     // Hero CD + achievement scans
@@ -6496,23 +6520,32 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
-  function showOverlay(won) {
+  function fmtTime(t) {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+  function showOverlay(won, isNewBest) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
-    const m = Math.floor(runStats.time / 60);
-    const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
     ov.style.display = 'flex';
+    const best = bestRuns[difficulty];
+    const bestRow = won && best ? `
+      <p style="font-size:12px; color:${isNewBest ? '#fcd34d' : 'var(--text-dim)'}; margin-top:10px">
+        ${isNewBest ? '🌟 New best time for ' + DIFFICULTIES[difficulty].label + '!' : 'Best (' + DIFFICULTIES[difficulty].label + '): ' + fmtTime(best.time)}
+      </p>` : '';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
         ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
       </h2>
       <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${fmtTime(runStats.time)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
+      ${bestRow}
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
   }
