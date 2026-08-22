@@ -227,6 +227,29 @@
   transition: all 0.15s;
 }
 .aow-diff button:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+/* Endless-mode toggle: styled like a difficulty chip but standalone, since
+   the difficulty container binds a difficulty-setting click to every button
+   inside it. */
+.aow-endless-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.aow-endless-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.aow-endless-btn.active {
+  color: #0d1117;
+  background: linear-gradient(135deg, #fcd34d, #f0883e);
+  border-color: transparent;
+}
 .aow-diff button.active {
   background: rgba(88,166,255,0.18);
   color: #cce5ff;
