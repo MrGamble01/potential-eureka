@@ -241,6 +241,13 @@ const AgeOfWarGame = (() => {
     insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, goldMult: 1.35, techMult: 1.8, techLead: 4, specialCd: 28, color: '#F85149' },
   };
   let difficulty = 'normal';
+  // Endless survival (IDEA-AOW-1): razing the enemy stronghold rebuilds it
+  // tougher instead of ending the run; the score is waves survived, and the
+  // best run persists in 'aow-best-run' — the key the Reset button has
+  // cleared since day one while nothing ever wrote it.
+  let endlessMode = false;
+  try { endlessMode = localStorage.getItem('aow-mode') === 'endless'; } catch {}
+  let strongholdsRazed = 0;
 
   // ---- Combo / streak ----
   let combo = 0;
@@ -725,6 +732,7 @@ const AgeOfWarGame = (() => {
     running = true;
     gameOver = false;
     outcome = null;
+    strongholdsRazed = 0;
     playerEra = 0;
     enemyEra = 0;
     gold = 140;
@@ -1160,6 +1168,19 @@ const AgeOfWarGame = (() => {
           diffEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
           reset();
         });
+      });
+    }
+    // Endless-mode toggle. Like the difficulty switch it resets the run —
+    // flipping the win condition mid-run would be the same class of exploit
+    // GAME-1c closed for difficulty.
+    const endlessBtn = document.getElementById('aow-endless-btn');
+    if (endlessBtn) {
+      endlessBtn.classList.toggle('active', endlessMode);
+      endlessBtn.addEventListener('click', () => {
+        endlessMode = !endlessMode;
+        try { localStorage.setItem('aow-mode', endlessMode ? 'endless' : 'classic'); } catch {}
+        endlessBtn.classList.toggle('active', endlessMode);
+        reset();
       });
     }
     // Tab switching (Units / Turrets)
@@ -1787,15 +1808,34 @@ const AgeOfWarGame = (() => {
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
+      if (endlessMode) recordBestRun();
       SFX.defeat();
       showOverlay(false);
     } else if (enemyBaseHp <= 0 && !gameOver) {
-      gameOver = true; running = false; outcome = 'win';
-      SFX.victory();
+      // Razing the stronghold is the same feat either way, so the win
+      // achievements unlock in both modes; only what happens NEXT differs.
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      if (!endlessMode) {
+        gameOver = true; running = false; outcome = 'win';
+        SFX.victory();
+        showOverlay(true);
+      } else {
+        // Endless: the enemy rebuilds tougher, pays out a razing bounty,
+        // and the waves keep coming.
+        strongholdsRazed++;
+        const bounty = Math.round(300 * Math.pow(1.5, strongholdsRazed - 1));
+        gold += bounty;
+        runStats.gold += bounty;
+        enemyBaseMax = Math.round(enemyBaseMax * 1.5);
+        enemyBaseHp = enemyBaseMax;
+        if (enemyEra < ERAS.length - 1) enemyEra++;
+        ageBannerText = `STRONGHOLD REBUILT · +$${bounty}`;
+        ageBannerT = 2.4;
+        SFX.victory();
+        shake(8, 0.4);
+      }
     }
 
     // Hero CD + achievement scans
@@ -6327,7 +6367,7 @@ const AgeOfWarGame = (() => {
     const waveSubEl = document.getElementById('aow-wave-sub');
     if (waveEl) {
       waveEl.classList.toggle('aow-wave-boss', bossWaveActive);
-      if (waveNumEl) waveNumEl.textContent = (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum;
+      if (waveNumEl) waveNumEl.textContent = (endlessMode ? '∞ ' : '') + (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum;
       if (waveSubEl) {
         if (waveBreatherT > 0) waveSubEl.textContent = `next in ${Math.ceil(waveBreatherT)}s`;
         else if (bossWaveActive && !bossKilledThisWave) waveSubEl.textContent = 'kill the boss';
@@ -6496,6 +6536,21 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
+  // Endless best run: waves survived is the score (dying during wave N
+  // means N-1 survived). Kept as small JSON under the 'aow-best-run' key the
+  // Reset button already clears.
+  let lastRunSummary = null;
+  function recordBestRun() {
+    const waves = Math.max(0, waveNum - 1);
+    let prev = null;
+    try { prev = JSON.parse(localStorage.getItem('aow-best-run') || 'null'); } catch {}
+    const isBest = !prev || waves > (prev.waves || 0);
+    const run = { waves, kills: runStats.kills, time: Math.round(runStats.time),
+                  strongholds: strongholdsRazed, difficulty };
+    if (isBest) { try { localStorage.setItem('aow-best-run', JSON.stringify(run)); } catch {} }
+    lastRunSummary = { run, prev, isBest };
+  }
+
   function showOverlay(won) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
@@ -6504,9 +6559,14 @@ const AgeOfWarGame = (() => {
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
-        ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
+        ${won ? '🏆 VICTORY' : (endlessMode ? '☠️ RUN OVER' : '💀 DEFEAT')}
       </h2>
-      <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
+      <p>${won ? 'You wiped the enemy base.' : (endlessMode && lastRunSummary
+        ? `You survived <b style="color:#fcd34d">${lastRunSummary.run.waves}</b> wave${lastRunSummary.run.waves === 1 ? '' : 's'}`
+          + (lastRunSummary.run.strongholds ? ` and razed <b style="color:#fcd34d">${lastRunSummary.run.strongholds}</b> stronghold${lastRunSummary.run.strongholds === 1 ? '' : 's'}` : '')
+          + (lastRunSummary.isBest ? ' — <b style="color:#3FB950">NEW BEST!</b>'
+             : ` <span style="color:var(--text-dim)">(best: ${lastRunSummary.prev ? lastRunSummary.prev.waves : 0})</span>`)
+        : 'Your base has fallen.')}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>

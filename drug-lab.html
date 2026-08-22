@@ -1759,6 +1759,7 @@ function saveGame() {
     chemQueue, chemProduct, chemProgress,
     pCarrying,
     plots: growPlots.map(p=>({r:p.roomId, g:+p.progress.toFixed(4)})),
+    savedAt: Date.now(),
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1829,6 +1830,44 @@ function loadGame() {
         const e=pool.splice(i,1)[0];
         p.progress=Math.max(0,Math.min(1,Number(e.g)||0));
         updatePlantMesh(p);
+      }
+    }
+    // Offline catch-up (IDEA-LAB-1): the operation doesn't stop when the
+    // tab closes. Plants keep growing (self-capping at ripe — they don't
+    // harvest themselves, so there's nothing to compound or exploit) and
+    // heat keeps draining (lying low overnight SHOULD cool you off). Only
+    // the passive drain applies while away — ambient late-game heat comes
+    // from running the operation, which you weren't; being busted in
+    // absentia by a timer would be hostile, so heat can only fall here.
+    if (sv.savedAt) {
+      const away = (Date.now() - sv.savedAt) / 1000;
+      if (away >= 60 && isFinite(away)) {
+        let ripened = 0;
+        const gt = growTime();
+        for (const p of growPlots) {
+          if (p.ready || p.progress >= 1) continue;
+          // progress 0 is a freshly-harvested plot, not a dormant one —
+          // every plot regrows automatically, so all of them get credit.
+          p.progress = Math.min(1, p.progress + away / gt);
+          if (p.progress >= 1) ripened++;
+          updatePlantMesh(p);
+        }
+        const heatBefore = state.heat;
+        state.heat = Math.max(0, state.heat - heatDrainPerSec() * away);
+        const cooled = Math.round(heatBefore - state.heat);
+        const mins = Math.round(away / 60);
+        const label = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+        const bits = [];
+        if (ripened) bits.push(`${ripened} plant${ripened > 1 ? 's' : ''} ripened`);
+        if (cooled >= 1) bits.push(`heat −${cooled}`);
+        if (bits.length) {
+          // Deferred a beat so the toast lands after the boot sequence's
+          // own messages instead of being instantly replaced by them.
+          setTimeout(() => {
+            showToast(`🌙 While you were away (${label}): ${bits.join(' · ')}`, 'good');
+            addFeed(`🌙 Away ${label} — ${bits.join(' · ')}`);
+          }, 900);
+        }
       }
     }
     // A bud that was in-hand at save time becomes a queued trim job —

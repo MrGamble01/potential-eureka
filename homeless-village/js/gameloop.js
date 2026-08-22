@@ -90,9 +90,17 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
-     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.3+Math.random()*.4)));
-     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.2+Math.random()*.3)));
+     // A packed camp keeps 75% of what the sweep would have taken —
+     // the payoff for spending the Lookout's warning window on the
+     // scramble instead of ignoring it (IDEA-HV-4).
+     var keep=G.packedUp?0.25:1;
+     var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
+     var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
+     G.scraps=Math.max(0,G.scraps-lostScraps);
+     G.food  =Math.max(0,G.food  -lostFood);
      G.morale=Math.max(0,G.morale-rand(15,25));
+     if(G.packedUp) log('Packing up paid off — most supplies were saved.');
+     G.packedUp=false;
      refreshStructures(); showSweepWarning(false);
    }},
   {id:'cold_snap',title:'Cold Snap',type:'bad',weight:14,
@@ -202,7 +210,8 @@ function maybeEvent(){
   if(G.days<2||Math.random()>.55) return;
   if(Math.random()<.18&&!G.sweepWarned){
     if(G.workers.lookout){
-      G.sweepWarned=true; showSweepWarning(true);
+      G.sweepWarned=true; G.packedUp=false;
+      showSweepWarning(true, Date.now()+30000);
       log('LOOKOUT: Police activity nearby. Sweep in ~30 seconds!');
       setTimeout(function(){
         if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
