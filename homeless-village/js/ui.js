@@ -157,7 +157,39 @@ function showEvent(ev, isGood){
   eventTimer=setTimeout(function(){ banner.style.display='none'; },7000);
 }
 function closeEvent(){ document.getElementById('event-banner').style.display='none'; }
-function showSweepWarning(show){ document.getElementById('sweep-warning').style.display=show?'block':'none'; }
+var sweepEtaTimer=null;
+function showSweepWarning(show, etaAt){
+  var el=document.getElementById('sweep-warning');
+  el.style.display=show?'block':'none';
+  var eta=document.getElementById('sweep-eta');
+  var btn=document.getElementById('pack-up-btn');
+  if(sweepEtaTimer){ clearInterval(sweepEtaTimer); sweepEtaTimer=null; }
+  if(show){
+    if(btn){ btn.disabled=false; btn.textContent='📦 PACK UP CAMP'; }
+    if(etaAt && eta){
+      var tick=function(){
+        var s=Math.max(0, Math.ceil((etaAt-Date.now())/1000));
+        eta.textContent='~'+s+'s';
+        if(s<=0 && sweepEtaTimer){ clearInterval(sweepEtaTimer); sweepEtaTimer=null; }
+      };
+      tick(); sweepEtaTimer=setInterval(tick,250);
+    } else if(eta){ eta.textContent=''; }
+  }
+}
+// Pack Up Camp (IDEA-HV-4): during a Lookout warning, spend 5 morale on a
+// scramble that stashes most of the goods before the sweep lands. Only
+// meaningful because HV-2 made every sweep warned when a Lookout exists —
+// the warning window is the payoff for hiring one.
+function packUpCamp(){
+  if(!G.sweepWarned || G.packedUp) return;
+  G.packedUp=true;
+  G.morale=Math.max(0, G.morale-5);
+  log('Everyone scrambles to stash what they can. Camp packed.');
+  var b=document.getElementById('pack-up-btn');
+  if(b){ b.disabled=true; b.textContent='PACKED ✓'; }
+  updateHUD(); saveGame();
+}
+document.getElementById('pack-up-btn').addEventListener('click', packUpCamp);
 
 // Small "+N" gain feedback that drifts up over the scene.
 function floatText(msg){

@@ -21,7 +21,7 @@ var G = {
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
-  sweepWarned: false, sweepCountdown: 0,
+  sweepWarned: false, sweepCountdown: 0, packedUp: false,
   injuredUntil: 0, lastEventDay: -2,
 
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
