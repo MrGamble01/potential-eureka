@@ -303,6 +303,27 @@ const AgeOfWarGame = (() => {
       earnedAchievements = raw ? JSON.parse(raw) : {};
     } catch { earnedAchievements = {}; }
   }
+  // Best run so far, ranked by kills (ties broken by longer survival time).
+  // Reset progress and the settings modal already reference this key
+  // (aow-reset-progress clears it) -- this is what actually writes it.
+  let bestRun = null;
+  function loadBestRun() {
+    try {
+      const raw = localStorage.getItem('aow-best-run');
+      bestRun = raw ? JSON.parse(raw) : null;
+    } catch { bestRun = null; }
+  }
+  function isNewBestRun() {
+    if (!bestRun) return true;
+    if (runStats.kills !== bestRun.kills) return runStats.kills > bestRun.kills;
+    return runStats.time > bestRun.time;
+  }
+  function saveBestRunIfNeeded(won) {
+    if (!isNewBestRun()) return false;
+    bestRun = { kills: runStats.kills, time: runStats.time, era: playerEra, difficulty, won };
+    try { localStorage.setItem('aow-best-run', JSON.stringify(bestRun)); } catch {}
+    return true;
+  }
   function maybeShowWelcome() {
     let seen = false;
     try { seen = localStorage.getItem('aow-welcome-seen') === '1'; } catch {}
@@ -595,6 +616,7 @@ const AgeOfWarGame = (() => {
     seedAmbient(0);
     preloadSprites();
     loadAchievements();
+    loadBestRun();
     reset();
     bindControls();
     maybeShowWelcome();
@@ -1113,6 +1135,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-best-run');
       } catch {}
       earnedAchievements = {};
+      bestRun = null;
       closeSettings();
     };
     // Click-to-collect coins. Map pointer event to canvas-internal
@@ -6496,11 +6519,16 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
+  function fmtTime(t) {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
   function showOverlay(won) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
-    const m = Math.floor(runStats.time / 60);
-    const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
+    const isNewBest = saveBestRunIfNeeded(won);
+    const best = bestRun;
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
@@ -6508,11 +6536,17 @@ const AgeOfWarGame = (() => {
       </h2>
       <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
-        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${fmtTime(runStats.time)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
+      ${best ? `
+      <div style="margin-top:14px;font-family:var(--font-mono);font-size:12px;color:var(--text-dim)">
+        ${isNewBest
+          ? '🌟 New best run!'
+          : `Best run: ${best.kills} kills · ${fmtTime(best.time)} · ${ERAS[best.era] ? ERAS[best.era].name : best.era}`}
+      </div>` : ''}
       <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
     `;
   }
