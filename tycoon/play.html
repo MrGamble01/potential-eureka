@@ -1675,6 +1675,8 @@
     <button class="hire-btn" id="open-dash-btn" style="margin-top:4px;background:rgba(63,185,80,0.12);border-color:rgba(63,185,80,0.3);color:#3FB950">📊 Dashboard</button>
     <button class="hire-btn" id="open-ach-btn" style="margin-top:4px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
+    <button class="hire-btn" id="export-save-btn" style="margin-top:8px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)" title="Copy this run as a save code you can paste on another device">💾 Copy save code</button>
+    <button class="hire-btn" id="import-save-btn" style="margin-top:4px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)" title="Paste a save code to continue that run here">📥 Import save code</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
   </div>
 </div>
@@ -8259,6 +8261,61 @@ function setToastDensity(v) {
 }
 setToastDensity(lsGet(LS.toastDensity) || 'all');
 toastDensityEl.addEventListener('change', () => setToastDensity(toastDensityEl.value));
+
+// ── Save export / import (IDEA-TYC-2) ─────────────────────────
+// A save code is base64url of {k: 'eureka-tycoon-save', variant, data}.
+// Import writes the payload to localStorage and reloads, so the code goes
+// through the exact same hardened loadGame path a normal boot uses (the
+// TYC-4 clamps and Number.isFinite guards all live there) — no second,
+// weaker parser to drift out of sync.
+const SAVE_CODE_KIND = 'eureka-tycoon-save';
+function encodeSaveCode(json) {
+  // unicode-safe base64url
+  const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(json)));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function decodeSaveCode(code) {
+  const b64 = code.trim().replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b64 + '='.repeat((4 - b64.length % 4) % 4));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+document.getElementById('export-save-btn').addEventListener('click', async () => {
+  saveGame(); // export what the player sees, not the last autosave tick
+  const raw = lsGet(SAVE_KEY);
+  if (!raw) { showToast('Nothing to export yet — play a little first', 'save-fail'); return; }
+  const code = encodeSaveCode(JSON.stringify({ k: SAVE_CODE_KIND, variant: VARIANT.id, data: JSON.parse(raw) }));
+  let copied = false;
+  try { await navigator.clipboard.writeText(code); copied = true; } catch (_) {}
+  if (!copied) {
+    // Clipboard API can be unavailable (permissions, http) — hand the code
+    // over in a prompt the player can copy from manually.
+    prompt('Copy your save code:', code);
+  }
+  showToast(copied ? '💾 Save code copied to clipboard' : '💾 Save code ready', 'milestone');
+  SFX.click();
+});
+document.getElementById('import-save-btn').addEventListener('click', () => {
+  const code = prompt('Paste a save code:');
+  if (!code || !code.trim()) return;
+  let payload = null;
+  try { payload = JSON.parse(decodeSaveCode(code)); } catch (_) {}
+  if (!payload || payload.k !== SAVE_CODE_KIND || typeof payload.data !== 'object' || payload.data === null) {
+    showToast("That doesn't look like a save code", 'save-fail'); return;
+  }
+  if ((payload.variant || 'default') !== VARIANT.id) {
+    // A Beagle Sim save into Startup Tycoon (or vice versa) would load —
+    // the schema matches — but silently swap the player's other game out
+    // from under them. Refuse with directions instead.
+    const wants = payload.variant === 'beagle' ? 'Beagle Sim (play.html?theme=beagle)' : 'Startup Tycoon (play.html)';
+    showToast(`That code is for ${wants} — import it there`, 'save-fail'); return;
+  }
+  if (!confirm('Importing replaces your current run here. Continue?')) return;
+  _restarting = true; // stop the autosave tick from re-writing the old run
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(payload.data)); } catch (_) {
+    showToast('Could not write the save (storage blocked)', 'save-fail'); _restarting = false; return;
+  }
+  location.reload();
+});
 
 // Restart game: wipe save + reload. Setting _restarting stops the periodic
 // saveGame + beforeunload handler from re-saving the in-memory state over
