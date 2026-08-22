@@ -366,7 +366,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 
 ### Startup Tycoon
 - **IDEA-TYC-1 · Second floor "R&D Lab"** — the code ships explicit extension points (`Floor`/`FLOOR_CLASSES`, elevator modal `play.html:422-455`); researchers generate patents = permanent % on `computeDealValue()`.
-- **IDEA-TYC-2 · Save export/import** — "Copy/Paste save code" in settings (base64 of the save JSON through the TYC-4-hardened loader).
+- **~~IDEA-TYC-2 · Save export/import~~** ✅ **shipped Aug 2026** — settings buttons produce/accept base64url save codes tagged with the build variant (a Beagle code is refused by Startup Tycoon with directions, and vice versa); import reloads through the TYC-4-hardened loadGame path rather than a second parser.
 - **IDEA-TYC-3 · Rival startup race** — ghost competitor as a second fill on `#goal-hud`; beat them for a bonus, lose one engineer if they win.
 - **IDEA-TYC-4 · Board meeting events** — timed choice cards ("Pivot: +50% deals, −20% morale") reusing investor plumbing (`:6739`) + tip-modal UI (`:657`).
 - **IDEA-TYC-5 · Employee XP/levels** — shipped-feature XP → title badges (style exists `:376`) + work-rate.
@@ -376,14 +376,14 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - **IDEA-TYC-9 · Win share-card** — canvas image (season/time/headcount) from `triggerWin()` stats, after TYC-1.
 
 ### Age of War
-- **IDEA-AOW-1 · Endless/Survival mode** — gate the win check (`:1489`) behind a flag; score = waves survived; finally implement the `aow-best-run` key the Reset button already references (`:961-969`) but nothing writes.
+- **~~IDEA-AOW-1 · Endless/Survival mode~~** ✅ **shipped Aug 2026** — ∞ Endless toggle by the difficulty chips; razing the stronghold rebuilds it at 1.5× with a scaling bounty and advances an era; score is waves survived; `aow-best-run` finally has a writer and the run-over screen shows the record.
 - **IDEA-AOW-2 · Prestige "Relics"** — persistent currency from `runStats` at game-over (also surface the tracked-but-never-shown `runStats.gold`, `:191/:1384`); spend on starting bonuses in `reset()`.
 - **IDEA-AOW-3 · 6th era "Singularity+"** — gated behind the `max_age` achievement; `ERAS`/`unitsForEra` iterate generically so the pipeline mostly just works.
 - **IDEA-AOW-4 · Wall/Barricade unit** (`role:'wall'`, skip attack branch) · **IDEA-AOW-5 · Unit veterancy** (`u.aliveT` → +10% dmg + gold outline) · **IDEA-AOW-6 · Turret targeting modes** (nearest/lowest-HP/highest-HP cycle button in `renderTurretPanel` `:6124`) · **IDEA-AOW-7 · Overtime sudden-death** (escalating base chip damage after ~6 min).
 
 ### Drug Lab
-- **IDEA-LAB-1 · Offline catch-up** — `lastSaveAt` in the schema; simulate passive growth + heat drain on load; "While you were away" toast.
-- **IDEA-LAB-2 · Give Runners a purpose** — they're hired, costed, and persisted but fully inert (row force-hidden `:1328`); make them passive stash-ferry NPCs modeled on `updateTrimmerNPCs` (`:1880`).
+- **~~IDEA-LAB-1 · Offline catch-up~~** ✅ **shipped Aug 2026** — saves carry `savedAt`; absences of 60s+ grow plants (self-capping at ripe) and drain heat (passive drain only — never a bust in absentia), summarized by a 🌙 toast + feed entry.
+- **~~IDEA-LAB-2 · Give Runners a purpose~~** ✅ **was already shipped** — this entry was stale: runners hire, respawn from saves, ferry trim/chem product to the stash, and close deals with a heat-85 guard. Confirmed live ("Runner stashed 5 bags").
 - **IDEA-LAB-3 · Prestige "New Identity"** — bust/Act-III grants a permanent meta-bonus in a separate LS key surviving `resetGame()` (`:1245`).
 - **IDEA-LAB-4 · Pre-raid bribe window** — costed choice before the 95%-heat raid (`:1913`); adds agency + a cash sink.
 - **IDEA-LAB-5 · Difficulty pick** ("Careful"/"Kingpin") scaling the heat functions (`:1213-1218`) + starting cash.
@@ -397,7 +397,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
   still missing, so mobile remains input-less.
 - **IDEA-HV-2 · Proximity-gated scavenging** — require standing near the already-rendered dumpsters (`scene.js:112-119`) to scavenge; turns the diorama into playspace.
 - **IDEA-HV-3 · A resolvable arc** — milestone check in `onNewDay()` on stats already tracked (`config.js:19`) → "Case Worker" event chain → housing/graduation ending (with sandbox continue). Also answers the tone concern that an endless grind with no exit reads as nihilistic; consider a one-line framing intro. Related copy fix: drop the editorializing "Degrading, but sometimes necessary" from the Panhandle tooltip (`config.js:36`).
-- **IDEA-HV-4 · "Pack Up Camp" action** — usable during a Lookout warning to save a % of goods (pairs with HV-2's fix); live countdown on `#sweep-warning`.
+- **~~IDEA-HV-4 · "Pack Up Camp" action~~** ✅ **shipped Aug 2026** — the warning banner has a live countdown and a PACK UP CAMP button: 5 morale to keep 75% of what the sweep would take. Also fixed in passing: a save written mid-warning used to restore `sweepWarned:true` forever, silently blocking all future lookout warnings.
 
 ### Dashboard leftovers (all still reachable via "⋯ more" — decide their fate)
 - Repurpose `dashboard.js`'s widget grid as **Studio Stats** (real cross-game localStorage telemetry instead of fake CPU/MEM numbers); rebrand todo/pomodoro as a public **Dev Log**; retarget bookmarks as a **Dev Toolbox**; **cut or truly hide** the personal journal (see SEC-2). Fix if kept: pomodoro is tick-based (drifts when backgrounded; persist `{startedAt, duration}` instead — `pomodoro.js:18-45`), ~~org-chart rAF + dashboard's six intervals never stop~~ ✅ **fixed — see LEAK-1**, geolocation should be opt-in with disclosure (`dashboard.js:209`).
@@ -416,7 +416,7 @@ that half is still open.*
 | `connect4-streak`, `c4-diff` | Drop Four | ✓ |
 | `word5-streak` | Word Five | ✓ |
 | `arcade-muted` | `js/sfx.js` | one of three mute keys — by design, each game owns its mute |
-| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War | ✓ (`aow-best-run` referenced by reset but never written → IDEA-AOW-1) |
+| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-mode`, `aow-best-run` | Age of War | ✓ (`aow-best-run` written by Endless mode since Aug 2026) |
 | `drug-lab-v1` | Grow Op | ✓ |
 | `homeless_village_v1` | Homeless Village | snake_case outlier |
 | `hearthvale-v1` | Hearthvale | ✓ |
