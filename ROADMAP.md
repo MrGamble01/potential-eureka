@@ -453,6 +453,9 @@ when new play-testing surfaces friction.
 - **~~P8-ACH-1 · Trophies for the newest games~~** ✅ — 🏗️ High Rise, 🛰️ Perimeter Held, 🔤 Rainmaker, 🥇 Pathfinder; their keys join SCORE_KEYS so Completionist means all 15 tracked games (20 trophies total).
 - **~~P8-DAILY-2 · Word Cascade joins the daily~~** ✅ — seeded letter draws (the game's only randomness), 7th banner chip, 📅 line on the game-over card.
 - **~~P8-SNAKE-2 · Pace settings~~** ✅ — Chill/Classic/Blitz base tick persisted in `snake-pace`, live mid-run retiming, daily runs locked to Classic.
+- **~~P8-SW-1 · eureka-v4 cache bump~~** ✅ — the cache-first shell only refreshes on a version change, so installed PWAs were still serving the pre-P4 arcade; v4 rolls out everything since. Full offline suite green on the new cache.
+- **~~P8-TET-1 · Combo + B2B scoring~~** ✅ — consecutive clears chain (+50·(n−1)·level), back-to-back Tetrises pay ×1.5, gold callout above the well, non-clearing locks reset the chain.
+- **~~P8-DOC-1 · README refresh~~** ✅ — meta-layer paragraph (daily/achievements/coins/rivals/backup/PWA) + registry rows for `snake-pace`, `maze-best`, `maze-golds`.
 
 ## Appendix A — localStorage key registry
 

@@ -24,6 +24,8 @@ const TetrisGame = (() => {
   let nextQ = [];   // 3-piece preview queue (P4) — bag order untouched
   let board, current, held;
   let score, highScore, level, linesCleared;
+  // P8: consecutive-clear combo + back-to-back Tetris bonus.
+  let combo = 0, lastWasTetris = false, bonusFlash = null;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
   let clearingRows = null;   // rows flashing white before they collapse
@@ -233,7 +235,7 @@ const TetrisGame = (() => {
     for (let r = 0; r < ROWS; r++) {
       if (board[r].every(cell => cell !== null)) full.push(r);
     }
-    if (!full.length) { spawnNext(); return; }
+    if (!full.length) { combo = 0; spawnNext(); return; }
     sfx('clear');
     // Flash the rows white for a beat before collapsing them. The piece is
     // parked at null so the gravity interval no-ops until the collapse; the
@@ -257,8 +259,14 @@ const TetrisGame = (() => {
       board.unshift(Array(COLS).fill(null));
     }
     clearingRows = null;
-    const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
+    combo++;
+    let pts = [0, 100, 300, 500, 800][Math.min(cleared, 4)] * level;
+    const tags = [];
+    if (cleared === 4 && lastWasTetris) { pts = Math.round(pts * 1.5); tags.push('B2B TETRIS ×1.5'); }
+    lastWasTetris = cleared === 4;
+    if (combo > 1) { pts += 50 * (combo - 1) * level; tags.push('COMBO ×' + combo); }
+    score += pts;
+    if (tags.length) bonusFlash = { text: tags.join(' · ') + '  +' + pts, until: performance.now() + 1600 };
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
@@ -360,6 +368,7 @@ const TetrisGame = (() => {
     bag = [];
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
+    combo = 0; lastWasTetris = false; bonusFlash = null;
     held = null; canHold = true;
     gameOver = false; running = true;
     cancelLock(); lockResets = 0;
@@ -463,6 +472,21 @@ const TetrisGame = (() => {
     if (clearingRows) {
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       for (const r of clearingRows) ctx.fillRect(0, r * CELL, WIDTH, CELL);
+    }
+
+    // Combo / back-to-back callout, fading out
+    if (bonusFlash) {
+      const left = bonusFlash.until - performance.now();
+      if (left <= 0) bonusFlash = null;
+      else {
+        ctx.globalAlpha = Math.min(1, left / 500);
+        ctx.fillStyle = '#F7C948';
+        ctx.font = 'bold 15px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(bonusFlash.text, WIDTH / 2, 30);
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+      }
     }
 
     // Line-clear sparks
