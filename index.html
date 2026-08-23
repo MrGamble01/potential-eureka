@@ -882,6 +882,7 @@
       </div>
       <div id="hof-board" class="hof-board"></div>
       <div id="hof-achievements"></div>
+      <div id="hof-insights"></div>
       <div class="hof-footer">
         <button id="hof-reset" class="hof-reset">Reset my scores</button>
         <span class="hof-coin arcade-blink">&#9646;</span> PICK A GAME AND BEAT THEM
@@ -1147,6 +1148,7 @@
   <script src="js/daily.js" defer></script>
   <script src="js/rivals.js" defer></script>
   <script src="js/achievements.js" defer></script>
+  <script src="js/telemetry.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
   // service worker precaches the shell — including vendored three.js, which
@@ -1237,6 +1239,7 @@
       if (name === 'orgchart') OrgChart.resume();
       if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
       if (typeof Achievements !== 'undefined') Achievements.check();
+      if (typeof Telemetry !== 'undefined') Telemetry.enter(name);
       if (name === 'halloffame') renderHallOfFame();
       if (name === 'arcade') refreshArcadeBadges();
       currentView = name;
@@ -1329,6 +1332,7 @@
       });
       renderRivalsBar();
       if (typeof Achievements !== 'undefined') Achievements.renderInto('hof-achievements');
+      if (typeof Telemetry !== 'undefined') Telemetry.renderInto('hof-insights');
     }
 
     // ---- Rivals bar (SITE-2) ----
@@ -1550,6 +1554,7 @@
     });
 
     Daily.init();
+    if (typeof Telemetry !== 'undefined') Telemetry.init();
     if (typeof Achievements !== 'undefined') Achievements.check();
     Effects.init().then(() => { if (!handleRivalHash()) switchView(viewFromHash() || 'arcade'); });
   });
