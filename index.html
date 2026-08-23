@@ -1169,6 +1169,28 @@
   </section>
 
   <!-- GOOGLE TASKS SETTINGS MODAL -->
+  <!-- Keyboard shortcuts cheat-sheet (P7) — press ? anywhere on the hub -->
+  <div id="shortcuts-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <div class="modal-content" style="max-width:560px">
+      <h3 style="margin-bottom:12px">&#9000; Keyboard shortcuts</h3>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:13px;line-height:1.5">
+        <strong>?</strong><span>Open or close this cheat-sheet</span>
+        <strong>Space / Enter</strong><span>Start, serve, restart in every arcade game</span>
+        <strong>&larr; &uarr; &rarr; &darr; / WASD</strong><span>Steer, rotate, thrust, slide</span>
+        <strong>Z</strong><span>2048 — undo the last move (not in daily runs)</span>
+        <strong>H</strong><span>Vector Storm — hyperspace jump</span>
+        <strong>1&ndash;9</strong><span>Memory Matrix — press the pads</span>
+        <strong>P</strong><span>Age of War — pause &amp; open the Relic Vault</span>
+        <strong>W/S + arrows</strong><span>Pong++ &amp; Light Cycles — two players, one keyboard</span>
+        <strong>Esc</strong><span>Clear the game search &middot; close dialogs</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:12px">Gamepads work across the arcade too — press any button on the pad.</div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="primary" onclick="Utils.closeModal('shortcuts-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="gt-modal" class="modal-overlay">
     <div class="modal-content">
       <h3>Google Tasks</h3>
@@ -1775,6 +1797,24 @@
         e.stopPropagation();   // typing must not trigger game hotkeys
       });
     }
+
+    // P7: ? toggles the shortcuts cheat-sheet; Esc closes it. Ignored while
+    // typing in an input so "?" in the journal/search stays a character.
+    document.addEventListener('keydown', e => {
+      const t = e.target;
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      const modal = document.getElementById('shortcuts-modal');
+      if (e.key === '?' && !typing) {
+        e.preventDefault();
+        if (modal.style.display === 'flex') Utils.closeModal('shortcuts-modal');
+        else Utils.openModal('shortcuts-modal');
+      } else if (e.key === 'Escape' && modal.style.display === 'flex') {
+        Utils.closeModal('shortcuts-modal');
+      }
+    });
+    document.getElementById('shortcuts-modal').addEventListener('click', e => {
+      if (e.target.id === 'shortcuts-modal') Utils.closeModal('shortcuts-modal');
+    });
 
     Daily.init();
     if (typeof Coins !== 'undefined') Coins.init();
