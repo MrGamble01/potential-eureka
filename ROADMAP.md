@@ -435,6 +435,12 @@ when new play-testing surfaces friction.
 - **~~P5-LC-1 · Third AI rider~~** ✅ — Riders: 2/3 toggle adds a gold AI cycle; N-rider collision judge, round runs until ≤1 alive, survivor-based verdicts.
 - *(scoped and dropped: Pong 2P, Minesweeper chording, Breakout power-ups, Asteroids UFO, Tetris hold — all already shipped in earlier passes.)*
 
+## P6 — Resilience & mercy pass (opened Aug 2026)
+
+- **~~P6-SITE-1 · Whole-arcade backup/restore~~** ✅ — ⬇ Backup dumps every localStorage key to `eureka-backup-<date>.json`; ⬆ Restore validates, confirms with count + date, writes and reloads. Full-origin dump means new games are covered with no key registry to forget.
+- **~~P6-AST-1 · Hyperspace~~** ✅ — H / ↯ WARP teleports with zeroed velocity, 40-frame blink, ~5s cooldown; 40 rolls for a 70px-clear landing then takes the risk, READY/RECHARGING indicator. Math.random by design in daily runs (wall-clock-triggered, seeding would desync the rocks).
+- **~~P6-MM-1 · Three lives~~** ✅ — a wrong pad burns a heart and replays the same pattern; the third miss ends the run. Hearts in the HUD, matrix-best semantics unchanged.
+
 ## Appendix A — localStorage key registry
 
 *Refreshed August 2026. SITE-3 asked for this table to live in the README too —
