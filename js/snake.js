@@ -13,6 +13,11 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
+  // P8: base tick pace, persisted. Classic is the original 120ms feel.
+  const PACES = { chill: 150, classic: 120, blitz: 92 };
+  const PACE_ORDER = ['chill', 'classic', 'blitz'];
+  let pace = 'classic';
+  try { if (PACES[localStorage.getItem('snake-pace')]) pace = localStorage.getItem('snake-pace'); } catch {}
   let walls = [];                     // rock cells added as levels climb
   let gameLoop, running, gameOver;
   let particles = [];
@@ -56,6 +61,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
+    paceBtn();
     updateInfo();
     draw();
 
@@ -124,8 +130,10 @@ const SnakeGame = (() => {
     particles = [];
     gameOver = false;
     running = true;
-    speed = 120;
     dailyRun = (typeof Daily !== 'undefined') && Daily.begin('snake');
+    // Daily runs always play Classic pace: a shared-fate board isn't
+    // comparable if one player crawled it on Chill.
+    speed = dailyRun ? PACES.classic : PACES[pace];
     spawnFood();
     sfx('start');
     updateInfo();
@@ -495,5 +503,26 @@ const SnakeGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  function paceBtn() {
+    const btn = document.getElementById('snake-pace-btn');
+    if (!btn) return;
+    btn.textContent = 'Pace: ' + pace.toUpperCase();
+    const col = pace === 'blitz' ? '#F85149' : pace === 'chill' ? '#58A6FF' : '';
+    btn.style.borderColor = col;
+    btn.style.color = col;
+  }
+  function cyclePace() {
+    pace = PACE_ORDER[(PACE_ORDER.indexOf(pace) + 1) % PACE_ORDER.length];
+    try { localStorage.setItem('snake-pace', pace); } catch {}
+    paceBtn();
+    // Mid-run (non-daily), retime the loop in place so the pick is felt
+    // immediately; power-up slow relief still layers on top next spawn.
+    if (running && !gameOver && !dailyRun) {
+      speed = PACES[pace];
+      clearInterval(gameLoop);
+      gameLoop = setInterval(tick, speed);
+    }
+  }
+
+  return { init, start, destroy, toggleWallWrap, cyclePace };
 })();
