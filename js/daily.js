@@ -23,6 +23,7 @@ const Daily = (() => {
     { id: 'game2048',  hash: '2048',      name: '2048' },
     { id: 'maze',      hash: 'maze',      name: 'Maze' },
     { id: 'asteroids', hash: 'asteroids', name: 'Asteroids' },
+    { id: 'minesweeper', hash: 'minesweeper', name: 'Minefield', dir: 'min' },
   ];
 
   // mulberry32: tiny, solid-enough 32-bit PRNG. Seeded from a string
@@ -79,11 +80,21 @@ const Daily = (() => {
   const isActive = game => active === game;
 
   // Record a finished daily run; returns a line for the game-over overlay.
-  function result(game, score) {
-    const prev = Utils.highScore.load(bestKey(game));
-    const best = Utils.highScore.save(bestKey(game), score, prev);
+  // dir 'min' = lower is better (Minefield clear times).
+  function result(game, score, dir) {
+    const key = bestKey(game);
+    const prev = Utils.highScore.load(key);
+    let best, improved;
+    if (dir === 'min') {
+      improved = prev === 0 || score < prev;   // 0 = no time set yet
+      best = improved ? score : prev;
+      if (improved) localStorage.setItem(key, String(score));
+    } else {
+      improved = score > prev;
+      best = Utils.highScore.save(key, score, prev);
+    }
     refreshBanner();
-    return score > prev
+    return improved
       ? `📅 Daily: ${score} — new best for today!`
       : `📅 Daily: ${score} · today's best ${best}`;
   }
