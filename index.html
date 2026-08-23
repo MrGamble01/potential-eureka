@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    // Theme boot (SITE-6): applied before first paint so there's no flash.
+    // Stored pick wins; otherwise light-preferring systems get daylight.
+    try {
+      var t = localStorage.getItem('eureka-theme');
+      if (t === null && matchMedia('(prefers-color-scheme: light)').matches) t = 'daylight';
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA GAMES</title>
@@ -48,6 +57,7 @@
   <nav>
     <button class="logo logo-btn glitch" data-text=">_ EUREKA GAMES" data-view="arcade">&gt;_ EUREKA GAMES</button>
     <div class="nav-spacer"></div>
+    <button class="nav-sfx-toggle" id="nav-theme-toggle" title="Theme" aria-label="Cycle color theme">&#127912;</button>
     <button class="nav-sfx-toggle" id="nav-sfx-toggle" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
     <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
   </nav>
@@ -66,7 +76,7 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; SEVENTEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
+      <div class="arcade-hero-kicker">&#9679; EIGHTEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
 
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
@@ -294,6 +304,20 @@
           <div class="arcade-card-title">PONG++</div>
           <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Power-ups</span></div>
           <div class="arcade-card-desc">The old table, new tricks &mdash; split the ball, grow your paddle, first to 7.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="stacker" style="--accent:#F7C948">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/stacker.jpg" alt="Stacker gameplay" width="640" height="853" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="stacker"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">STACKER</div>
+          <div class="arcade-card-tags"><span>Timing</span><span>Zen</span></div>
+          <div class="arcade-card-desc">Drop the slider, keep what lands, watch the tower climb. Perfects snap flush.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -657,6 +681,25 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button id="pong-mode-btn" onclick="PongGame.toggleMode()">Mode: VS AI</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-stacker" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">STACKER</div>
+        <div class="game-subtitle">Drop the slider on the tower &middot; overhangs get sliced &middot; perfects snap flush</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Height: <strong id="stacker-height">0</strong></span>
+        <span>Block: <strong id="stacker-width">180</strong>px</span>
+        <span>Best: <strong id="stacker-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="stacker-canvas" class="game-canvas" role="img" aria-label="Stacker tower"></canvas>
+        <div id="stacker-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
     </div>
   </section>
@@ -1098,6 +1141,7 @@
   <script src="js/word5.js" defer></script>
   <script src="js/lightcycles.js" defer></script>
   <script src="js/pong.js" defer></script>
+  <script src="js/stacker.js" defer></script>
   <script src="js/memorymatrix.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script src="js/daily.js" defer></script>
@@ -1143,6 +1187,7 @@
       word5: () => WordFiveGame.destroy(),
       lightcycles: () => LightCyclesGame.destroy(),
       pong: () => PongGame.destroy(),
+      stacker: () => StackerGame.destroy(),
       memorymatrix: () => MemoryMatrixGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
@@ -1180,6 +1225,7 @@
           case 'word5':        WordFiveGame.init(); break;
           case 'lightcycles':  LightCyclesGame.init(); break;
           case 'pong':         PongGame.init(); break;
+          case 'stacker':      StackerGame.init(); break;
           case 'memorymatrix': MemoryMatrixGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
@@ -1205,7 +1251,15 @@
       { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
       { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
-        best: () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : null; } },
+        best: () => {
+          const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
+          const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
+          if (v <= 0 && n <= 0) return null;
+          const parts = [];
+          if (v > 0) parts.push(Scores.fmtMoney(v) + ' earned');
+          if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
+          return parts.join(' · ');
+        } },
       { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
         best: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
       { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
@@ -1230,10 +1284,12 @@
         best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
       { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => switchView('pong'),
         best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
+      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => switchView('stacker'),
+        best: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : null; } },
       { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => switchView('memorymatrix'),
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'growop-achievements'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1337,6 +1393,28 @@
       navUtilsToggle.setAttribute('aria-expanded', navUtils.classList.contains('open') ? 'true' : 'false');
     }
     // Global sound toggle (SFX from js/sfx.js persists mute in localStorage).
+    // Theme cycler (SITE-6): default → CRT → synthwave → daylight → …
+    const THEMES = [
+      { id: '',          label: 'Midnight (default)' },
+      { id: 'crt',       label: 'CRT' },
+      { id: 'synthwave', label: 'Synthwave' },
+      { id: 'daylight',  label: 'Daylight' },
+    ];
+    const themeToggle = document.getElementById('nav-theme-toggle');
+    function applyTheme(id, persist) {
+      if (id) document.documentElement.dataset.theme = id;
+      else delete document.documentElement.dataset.theme;
+      if (persist) { try { localStorage.setItem('eureka-theme', id); } catch {} }
+      const cur = THEMES.find(t => t.id === id) || THEMES[0];
+      themeToggle.title = 'Theme: ' + cur.label;
+    }
+    applyTheme(document.documentElement.dataset.theme || '', false);
+    themeToggle.addEventListener('click', () => {
+      const cur = document.documentElement.dataset.theme || '';
+      const idx = THEMES.findIndex(t => t.id === cur);
+      applyTheme(THEMES[(idx + 1) % THEMES.length].id, true);
+    });
+
     const sfxToggle = document.getElementById('nav-sfx-toggle');
     const syncSfxIcon = () => {
       const m = SFX.isMuted();
@@ -1361,7 +1439,12 @@
         asteroids: () => { const v = Scores.num('asteroids-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         ageofwar: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' ★' : ''; },
         tycoon:   () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + Scores.fmtMoney(v) : ''; },
-        growop:   () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : ''; },
+        growop:   () => {
+          const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
+          if (v > 0) return Scores.fmtMoney(v) + ' earned';
+          const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
+          return n > 0 ? n + ' 🏅' : '';
+        },
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
         voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
         minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },
@@ -1369,6 +1452,7 @@
         word5: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' streak' : ''; },
         lightcycles: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : ''; },
         pong: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : ''; },
+        stacker: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : ''; },
         memorymatrix: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'ROUND ' + v : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
@@ -1435,7 +1519,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'memorymatrix', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker', 'memorymatrix', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     // A '#hof=<code>' link is an import, not a view: store the rival,

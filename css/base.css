@@ -558,3 +558,66 @@ nav button.active {
     grid-column: span 1;
   }
 }
+
+/* ---- THEMES (IDEA-SITE-6) ----
+   Themes override the primitive tokens, so every component built on the
+   token layer follows automatically. No data-theme = the classic indigo
+   dark. Game canvases keep their own palettes by design — they read as
+   the "screen" inside each theme's cabinet. */
+
+:root[data-theme="crt"] {
+  --color-black-deep: #010401;
+  --color-black-base: #020803;
+  --color-black-elevated: #041007;
+  --color-black-surface: #06140a;
+  --color-indigo-500: #3FB950;
+  --color-indigo-400: #56d364;
+  --color-indigo-600: #2ea043;
+  --color-blue-400: #7ee787;
+  --color-pink-400: #d2ff72;
+  --glow-primary: 0 0 16px rgba(63, 185, 80, 0.35);
+  --glow-secondary: 0 0 16px rgba(126, 231, 135, 0.25);
+  --glow-tertiary: 0 0 16px rgba(210, 255, 114, 0.2);
+  --text: #c8f5cd;
+  --text-dim: #5f9c68;
+  --text-muted: #4e8757;
+}
+
+:root[data-theme="synthwave"] {
+  --color-black-deep: #0b0217;
+  --color-black-base: #12031f;
+  --color-black-elevated: #1a0630;
+  --color-black-surface: #1d0a33;
+  --color-indigo-500: #f72585;
+  --color-indigo-400: #ff5ca8;
+  --color-indigo-600: #b5179e;
+  --color-blue-400: #4cc9f0;
+  --color-pink-400: #f7c948;
+  --glow-primary: 0 0 18px rgba(247, 37, 133, 0.4);
+  --glow-secondary: 0 0 16px rgba(76, 201, 240, 0.3);
+  --glow-tertiary: 0 0 16px rgba(247, 201, 72, 0.25);
+  --text: #f5e6ff;
+  --text-dim: #9d86b8;
+  --text-muted: #8a74a6;
+}
+
+:root[data-theme="daylight"] {
+  --color-black-deep: #e8ebf2;
+  --color-black-base: #eef1f6;
+  --color-black-elevated: #ffffff;
+  --color-black-surface: #f6f8fa;
+  --color-white-05: rgba(15, 23, 42, 0.03);
+  --color-white-08: rgba(15, 23, 42, 0.05);
+  --color-white-12: rgba(15, 23, 42, 0.1);
+  --color-white-16: rgba(15, 23, 42, 0.14);
+  --color-white-24: rgba(15, 23, 42, 0.22);
+  --color-indigo-500: #5A52E0;
+  --color-indigo-400: #6C63FF;
+  --color-indigo-600: #4a43c4;
+  --glow-primary: 0 0 16px rgba(90, 82, 224, 0.2);
+  --text: #1c2128;
+  --text-dim: #57606a;
+  --text-muted: #6e7781;
+  --widget-shadow: 0 4px 24px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--border-subtle);
+  --widget-shadow-hover: 0 8px 32px rgba(15, 23, 42, 0.12), 0 0 0 1px var(--border);
+}

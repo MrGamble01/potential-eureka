@@ -525,7 +525,7 @@ nav .logo-btn {
 .daily-chip {
   background: rgba(247, 201, 72, 0.1);
   border: 1px solid rgba(247, 201, 72, 0.35);
-  color: #E6EDF3; font-family: inherit; font-size: 12px; font-weight: 700;
+  color: var(--text); font-family: inherit; font-size: 12px; font-weight: 700;
   border-radius: 16px; padding: 5px 14px; cursor: pointer;
   transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px;
 }
@@ -537,14 +537,14 @@ nav .logo-btn {
 .hof-rivals-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .hof-share {
   background: rgba(108, 99, 255, 0.12); border: 1px solid rgba(108, 99, 255, 0.45);
-  color: #E6EDF3; font-family: inherit; font-size: 12px; font-weight: 700;
+  color: var(--text); font-family: inherit; font-size: 12px; font-weight: 700;
   border-radius: 6px; padding: 7px 14px; cursor: pointer; transition: all 0.15s;
 }
 .hof-share:hover { background: rgba(108, 99, 255, 0.28); }
 .hof-rival-input {
   flex: 1; min-width: 180px; max-width: 320px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14);
-  color: #E6EDF3; font-family: inherit; font-size: 12px;
+  color: var(--text); font-family: inherit; font-size: 12px;
   border-radius: 6px; padding: 7px 10px;
 }
 .hof-share-out {
@@ -556,7 +556,7 @@ nav .logo-btn {
 .hof-rival-chip {
   display: inline-flex; align-items: center; gap: 6px;
   background: rgba(247, 120, 186, 0.08); border: 1px solid rgba(247, 120, 186, 0.35);
-  color: #E6EDF3; font-size: 12px; font-weight: 700;
+  color: var(--text); font-size: 12px; font-weight: 700;
   border-radius: 14px; padding: 4px 10px;
 }
 .hof-rival-n { color: #7D8590; font-weight: 600; }
@@ -587,7 +587,7 @@ nav .logo-btn {
   background: rgba(247, 201, 72, 0.06);
 }
 .ach-icon { font-size: 20px; }
-.ach-name { font-size: 12px; font-weight: 800; color: #E6EDF3; }
+.ach-name { font-size: 12px; font-weight: 800; color: var(--text); }
 .ach-desc { font-size: 10px; color: #7D8590; line-height: 1.4; }
 .ach-toast {
   position: fixed; bottom: 18px; right: 18px; z-index: 9999;

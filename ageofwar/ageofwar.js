@@ -63,6 +63,16 @@ const AgeOfWarGame = (() => {
     laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 800,  silhouette: 'humanoid' },
     mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 3600, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 1450, silhouette: 'vehicle' },
     flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 250, atkSpd: 1.3,  speed: 56, color: '#ff90ee', xp: 1600,gold: 2150, silhouette: 'flier' },
+
+    // Walls (IDEA-AOW-4): role:'wall' — no attack, no movement, pure HP
+    // planted at your gate. Cheap lane-stall so a rush can be absorbed
+    // while the real army trains; kill rewards are deliberately meager
+    // so feeding one to the enemy never pays for itself.
+    wall0: { era: 0, role: 'wall', name: 'Rock Pile',      icon: '🪨', cost: 45,   hp: 340,  dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#8a8a80', xp: 8,   gold: 8,   silhouette: 'humanoid' },
+    wall1: { era: 1, role: 'wall', name: 'Palisade',       icon: '🪵', cost: 160,  hp: 1000, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#8a6a40', xp: 20,  gold: 22,  silhouette: 'humanoid' },
+    wall2: { era: 2, role: 'wall', name: 'Sandbag Wall',   icon: '🧱', cost: 480,  hp: 2600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#9a8a60', xp: 60,  gold: 65,  silhouette: 'humanoid' },
+    wall3: { era: 3, role: 'wall', name: 'Barricade',      icon: '🚧', cost: 950,  hp: 4600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#7a7a7a', xp: 120, gold: 130, silhouette: 'humanoid' },
+    wall4: { era: 4, role: 'wall', name: 'Energy Barrier', icon: '🛡️', cost: 1800, hp: 7800, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#4cc9f0', xp: 240, gold: 260, silhouette: 'humanoid' },
   };
 
   function unitsForEra(era) {
@@ -819,6 +829,7 @@ const AgeOfWarGame = (() => {
     const u = {
       id: nextSpawnId++,
       side, key,
+      role: def.role || null,
       name: def.name, icon: def.icon, color: def.color,
       silhouette: def.silhouette,
       x: side === 'player' ? PLAYER_BASE_X + BASE_W + 14 : ENEMY_BASE_X - 14,
@@ -1343,7 +1354,7 @@ const AgeOfWarGame = (() => {
     // Enemy era catch-up: faster so player isn't always fighting much
     // weaker enemies (which made the mid-game trivial).
     if (enemyEra < playerEra && Math.random() < 0.45) enemyEra++;
-    const choices = unitsForEra(enemyEra);
+    const choices = unitsForEra(enemyEra).filter(k => !UNITS[k].role);
     if (bossWaveActive && waveEnemiesRemaining === 1) {
       // Spawn a single beefy boss instead of normal unit.
       // Boss strength now scales with wave# rather than a flat 5x, so
@@ -1528,6 +1539,7 @@ const AgeOfWarGame = (() => {
       if (u.hp <= 0) continue;
       u.hitFlash = Math.max(0, u.hitFlash - dt);
       u.aliveT += dt;
+      if (u.role === 'wall') continue;   // walls just stand there and take it
       const ownBucket = u.side === 'player' ? playerBucket : enemyBucket;
       const foeBucket  = u.side === 'player' ? enemyBucket  : playerBucket;
       let target = null, bestDist = Infinity;
@@ -3843,6 +3855,41 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Unit-specific drawers ----
+  // Walls: a squat stack of blocks in the unit colour; the era-4 energy
+  // barrier renders as a glowing translucent panel instead.
+  function drawWall(u, x, y, facing, walk, bodyColor) {
+    const w = u.w * 0.78, h = u.h * 0.6;
+    const baseY = y + u.h;                 // feet line
+    if (u.key === 'wall4') {
+      ctx.fillStyle = 'rgba(76,201,240,0.28)';
+      ctx.strokeStyle = bodyColor;
+      ctx.lineWidth = 2.5;
+      ctx.fillRect(x - w / 2, baseY - h, w, h);
+      ctx.strokeRect(x - w / 2, baseY - h, w, h);
+      ctx.strokeStyle = 'rgba(76,201,240,0.5)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2, baseY - (h / 4) * i);
+        ctx.lineTo(x + w / 2, baseY - (h / 4) * i);
+        ctx.stroke();
+      }
+      return;
+    }
+    const rows = 4, cols = 3;
+    const bw = w / cols, bh = h / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const off = (r % 2) * (bw / 2);
+        const bx = x - w / 2 + c * bw + off - bw / 4;
+        ctx.fillStyle = (r + c) % 2 ? bodyColor : shadeColor(bodyColor, -18);
+        ctx.fillRect(bx, baseY - (r + 1) * bh, bw - 2, bh - 2);
+      }
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(x - w / 2 - bw / 4, baseY - h, w, 3);
+  }
+
   function drawGenericHumanoid(u, x, y, facing, walk, bodyColor) {
     const swing = walk * 3;
     const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: '#e8b48a' });
@@ -6052,6 +6099,7 @@ const AgeOfWarGame = (() => {
     laser:        drawLaserTrooper,
     mech:         drawMech,
     flier:        drawHover,
+    wall0: drawWall, wall1: drawWall, wall2: drawWall, wall3: drawWall, wall4: drawWall,
     hero_grog:    drawHeroGrog,
     hero_paladin: drawHeroPaladin,
     hero_general: drawHeroGeneral,
