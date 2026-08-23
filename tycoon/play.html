@@ -6448,6 +6448,48 @@ function rebuildAllRoomMaterials() {
     if (def) w.material.color.setHex(paletteFor(def.id).wall);
   }
 }
+// ── Modal focus management (P4-A11Y-1) ──
+// Every class-toggled modal: focus the first control on open, trap Tab
+// inside, hand focus back to the opener on close. Engaged by a class
+// observer so it covers modals opened from anywhere (board meetings
+// open themselves on a timer).
+function trapModalFocus(el) {
+  const opener = document.activeElement;
+  const focusables = () => [...el.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )].filter(x => !x.disabled && x.offsetParent !== null);
+  const first = focusables()[0];
+  if (first) first.focus();
+  const onKey = e => {
+    if (e.key !== 'Tab') return;
+    const els = focusables();
+    if (!els.length) return;
+    const i = els.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); els[els.length - 1].focus(); }
+    else if (!e.shiftKey && (i === els.length - 1 || i === -1)) { e.preventDefault(); els[0].focus(); }
+  };
+  el.addEventListener('keydown', onKey);
+  const mo = new MutationObserver(() => {
+    if (el.classList.contains('open')) return;
+    el.removeEventListener('keydown', onKey);
+    el.__trapped = false;
+    mo.disconnect();
+    if (opener && document.contains(opener) && opener !== document.body) opener.focus();
+  });
+  mo.observe(el, { attributes: true, attributeFilter: ['class'] });
+}
+for (const mid of ['tip-modal', 'ipo-modal', 'elevator-modal', 'achievements-modal', 'win-modal',
+  'theme-modal', 'founder-modal', 'board-modal', 'help-modal', 'dash-modal', 'welcome-modal']) {
+  const el = document.getElementById(mid);
+  if (!el) continue;
+  new MutationObserver(() => {
+    if (el.classList.contains('open') && !el.__trapped) {
+      el.__trapped = true;
+      trapModalFocus(el);
+    }
+  }).observe(el, { attributes: true, attributeFilter: ['class'] });
+}
+
 document.getElementById('board-yes').addEventListener('click', () => closeBoardMeeting('yes'));
 document.getElementById('board-no').addEventListener('click', () => closeBoardMeeting('no'));
 
