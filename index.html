@@ -279,6 +279,20 @@
         </div>
       </button>
 
+      <button class="arcade-card" data-view="memorymatrix" style="--accent:#a78bfa">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/memorymatrix.jpg" alt="Memory Matrix gameplay" width="640" height="640" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="memorymatrix"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">MEMORY MATRIX</div>
+          <div class="arcade-card-tags"><span>Memory</span><span>Simon</span><span>Zen</span></div>
+          <div class="arcade-card-desc">Watch the lights, echo the melody &mdash; how long a pattern can you hold?</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
       <button class="arcade-card" data-view="connect4" style="--accent:#f7c948">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/dropfour.jpg" alt="Drop Four gameplay" width="434" height="372" loading="lazy">
@@ -601,6 +615,25 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button id="cycles-mode-btn" onclick="LightCyclesGame.toggleMode()">Mode: VS AI</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-memorymatrix" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">MEMORY MATRIX</div>
+        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; one wrong pad ends the run</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Round: <strong id="mm-round">1</strong></span>
+        <span>Pattern: <strong id="mm-len">0</strong> steps</span>
+        <span>Best: <strong id="mm-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="mm-canvas" class="game-canvas" role="img" aria-label="Memory Matrix pad grid"></canvas>
+        <div id="mm-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
     </div>
   </section>
@@ -1011,6 +1044,7 @@
   <script src="js/connect4.js" defer></script>
   <script src="js/word5.js" defer></script>
   <script src="js/lightcycles.js" defer></script>
+  <script src="js/memorymatrix.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
@@ -1051,6 +1085,7 @@
       connect4: () => ConnectFourGame.destroy(),
       word5: () => WordFiveGame.destroy(),
       lightcycles: () => LightCyclesGame.destroy(),
+      memorymatrix: () => MemoryMatrixGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
       // which view was on screen.
@@ -1086,6 +1121,7 @@
           case 'connect4':     ConnectFourGame.init(); break;
           case 'word5':        WordFiveGame.init(); break;
           case 'lightcycles':  LightCyclesGame.init(); break;
+          case 'memorymatrix': MemoryMatrixGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
@@ -1132,8 +1168,10 @@
         best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
       { name: 'Light Cycles',     accent: '#22d3ee', go: () => switchView('lightcycles'),
         best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
+      { name: 'Memory Matrix',    accent: '#a78bfa', go: () => switchView('memorymatrix'),
+        best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1202,6 +1240,7 @@
         connect4: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : ''; },
         word5: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' streak' : ''; },
         lightcycles: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : ''; },
+        memorymatrix: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'ROUND ' + v : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
@@ -1267,7 +1306,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'memorymatrix', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {

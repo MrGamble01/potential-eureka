@@ -17,6 +17,7 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 - **Word Five** — a Wordle-style word guesser: six tries, on-screen + physical keyboard, correct duplicate-letter shading, and a win-streak record
 - **Maze Runner** — a playable timed maze: run to the exit, grab the gems, dodge fog-of-war at higher levels, with a BFS/DFS/A* visualizer kept as a "Watch AI Solve" mode
 - **Light Cycles** — Tron-style trail duel: trap the AI rider in your light trail (it flood-fills to dodge dead-end pockets), or duel a friend in local 2-player on one keyboard, with a persistent vs-AI win streak
+- **Memory Matrix** — Simon on a 3×3 light grid: watch the pattern, play it back by pad or keys 1-9; each pad owns a pitch so the melody is the memory aid, one more step per round, faster every time
 - **Game of Life** — Conway's cellular automaton with click-to-draw, preset patterns, age-based cell coloring, and a live population sparkline
 
 **Standalone pages:**
@@ -51,6 +52,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `connect4-streak`, `c4-diff` | Drop Four |
 | `word5-streak` | Word Five |
 | `cycles-streak` | Light Cycles |
+| `matrix-best` | Memory Matrix |
 | `arcade-muted` | `js/sfx.js` (arcade hub) |
 | `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War |
 | `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |
