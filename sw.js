@@ -78,6 +78,7 @@ const SHELL = [
   '/js/scores.js',
   '/js/sfx.js',
   '/js/snake.js',
+  '/js/stacker.js',
   '/js/tetris.js',
   '/js/todo.js',
   '/js/utils.js',
