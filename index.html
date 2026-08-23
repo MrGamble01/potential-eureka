@@ -23,6 +23,7 @@
        fetched AND parsed, so they cost a second serial round trip before any
        styled paint. As <link>s they're all found in the initial HTML scan and
        fetch in parallel. Order still decides the cascade, so keep it. -->
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/effects.css">
   <link rel="stylesheet" href="css/arcade.css">
@@ -1010,6 +1011,15 @@
   <script src="js/connect4.js" defer></script>
   <script src="js/word5.js" defer></script>
   <script src="js/lightcycles.js" defer></script>
+  <script>
+  // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
+  // service worker precaches the shell — including vendored three.js, which
+  // is what SITE-1's vendoring bought us. Registered from the hub only; its
+  // scope ('/') covers every game page once a visitor has been here once.
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
+  </script>
   <script src="js/orgchart.js" defer></script>
   <script>
   // The scripts above are now `defer`red, so they run in order right before
