@@ -160,12 +160,53 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
     if (userPaused) {
+      // P4-AOW-1: the pause screen doubles as the Relic Vault, so perks
+      // aren't locked behind dying first. Perks arm for the NEXT run —
+      // the Restart button right there makes pre-run arming one click.
       ov.innerHTML = `
         <h2 style="color:#fcd34d">⏸ PAUSED</h2>
         <p>Press <strong>P</strong>, click here, or hit Resume to continue</p>
+        <div id="relic-vault-pause" style="margin-top:16px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
+          <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
+            🏺 Relic Vault &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
+            <span style="color:var(--text-dim);font-weight:600;text-transform:none;letter-spacing:0"> — bonuses apply to your next run</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center">
+            ${RELIC_PERKS.map(pk => `
+              <button class="relic-perk" data-perk="${pk.id}" title="${pk.desc}"
+                style="background:rgba(252,211,77,${pendingPerks[pk.id] ? 0.25 : 0.08});border:1px solid ${pendingPerks[pk.id] ? '#3FB950' : 'rgba(252,211,77,0.35)'};color:var(--text,#E6EDF3);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+                ${pk.icon} ${pk.name} <span style="color:#fcd34d">${pendingPerks[pk.id] ? 'ARMED' : pk.cost + '🏺'}</span>
+              </button>`).join('')}
+          </div>
+          <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Arm a perk, then restart to cash it in.</div>
+          <button id="relic-restart" style="margin-top:10px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.45);color:#3FB950;border-radius:8px;padding:7px 16px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">↻ Restart with perks</button>
+        </div>
       `;
       ov.style.cursor = 'pointer';
       ov.onclick = () => setUserPaused(false);
+      const vault = document.getElementById('relic-vault-pause');
+      if (vault) vault.onclick = e => e.stopPropagation();   // buying must not resume
+      ov.querySelectorAll('.relic-perk').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const pk = RELIC_PERKS.find(x => x.id === btn.dataset.perk);
+          const msg = document.getElementById('relic-msg');
+          if (pendingPerks[pk.id]) { msg.textContent = `${pk.name} already armed.`; return; }
+          if (relics < pk.cost) { msg.textContent = `Not enough relics for ${pk.name} (need ${pk.cost}).`; return; }
+          relics -= pk.cost;
+          saveRelics();
+          pendingPerks[pk.id] = true;
+          document.getElementById('relic-count').textContent = relics;
+          btn.style.background = 'rgba(63,185,80,0.2)';
+          btn.style.borderColor = '#3FB950';
+          const tag = btn.querySelector('span');
+          if (tag) tag.textContent = 'ARMED';
+          msg.textContent = `${pk.name} armed — restart to cash it in.`;
+          SFX.gold && SFX.gold();
+        });
+      });
+      const rbtn = document.getElementById('relic-restart');
+      if (rbtn) rbtn.addEventListener('click', e => { e.stopPropagation(); reset(); });
       ov.style.display = 'flex';
     } else {
       // Solid resume path: drop the click handler + cursor we added so the
@@ -1241,6 +1282,8 @@ const AgeOfWarGame = (() => {
     // Endless-mode toggle. Like the difficulty switch it resets the run —
     // flipping the win condition mid-run would be the same class of exploit
     // GAME-1c closed for difficulty.
+    const relicBtn = document.getElementById('aow-relic-btn');
+    if (relicBtn) relicBtn.addEventListener('click', () => setUserPaused(true));
     const endlessBtn = document.getElementById('aow-endless-btn');
     if (endlessBtn) {
       endlessBtn.classList.toggle('active', endlessMode);
