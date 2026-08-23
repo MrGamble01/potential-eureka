@@ -16,7 +16,8 @@ const Achievements = (() => {
 
   const SCORE_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high',
     'g2048-best', 'mines-best-beginner', 'connect4-streak', 'word5-streak',
-    'cycles-streak', 'pong-streak', 'matrix-best'];
+    'cycles-streak', 'pong-streak', 'matrix-best',
+    'maze-best', 'stacker-best', 'vector-best', 'cascade-best'];
   const played = () => SCORE_KEYS.filter(k => num(k) > 0).length;
 
   const DEFS = [
@@ -48,6 +49,14 @@ const Achievements = (() => {
       desc: '3-match streak in Pong++', test: () => num('pong-streak') >= 3 },
     { id: 'matrix-8',     icon: '🧠', name: 'Photographic',
       desc: 'Reach round 8 in Memory Matrix', test: () => num('matrix-best') >= 8 },
+    { id: 'stacker-12',   icon: '🏗️', name: 'High Rise',
+      desc: 'Stack 12+ floors in Stacker', test: () => num('stacker-best') >= 12 },
+    { id: 'vector-8',     icon: '🛰️', name: 'Perimeter Held',
+      desc: 'Reach wave 8 in Vector Defense', test: () => num('vector-best') >= 8 },
+    { id: 'cascade-300',  icon: '🔤', name: 'Rainmaker',
+      desc: 'Score 300+ in Word Cascade', test: () => num('cascade-best') >= 300 },
+    { id: 'maze-gold',    icon: '🥇', name: 'Pathfinder',
+      desc: 'Beat par in the Gem Labyrinth for a gold medal', test: () => num('maze-golds') >= 1 },
     { id: 'daily-run',    icon: '📅', name: 'Creature of Habit',
       desc: "Set a score on today's Daily Challenge",
       test: () => {
