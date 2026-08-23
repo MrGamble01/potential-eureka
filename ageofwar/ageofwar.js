@@ -987,7 +987,9 @@ const AgeOfWarGame = (() => {
     if (existing && existing.era >= era) return;
     if (gold < tdef.cost) return;
     gold -= tdef.cost;
-    playerTurrets[slot] = { ...tdef, atkT: 0 };
+    // An upgraded turret keeps its targeting mode — re-picking it after
+    // every era bump would punish using the feature.
+    playerTurrets[slot] = { ...tdef, atkT: 0, mode: existing ? existing.mode : undefined };
     runStats.turretsBuilt++;
     SFX.turret();
     renderHud();
@@ -1853,13 +1855,21 @@ const AgeOfWarGame = (() => {
       if (!t) continue;
       t.atkT = Math.max(0, t.atkT - dt);
       if (t.atkT > 0) continue;
-      // Find nearest opposing unit in range
+      // Targeting mode (IDEA-AOW-6): 'near' picks the closest threat (the
+      // default and the enemy AI's behavior), 'weak' snipes the lowest-HP
+      // unit to finish kills and pop coins, 'strong' focuses the beefiest
+      // target so tanks and bosses don't arrive at the base intact.
       const turretX = side === 'player' ? PLAYER_BASE_X + BASE_W * 0.85 : ENEMY_BASE_X + BASE_W * 0.15;
-      let target = null, bestDist = Infinity;
+      const mode = t.mode || 'near';
+      let target = null, bestScore = Infinity, bestDist = Infinity;
       for (const u of enemies) {
         if (u.hp <= 0) continue;
         const d = Math.abs(u.x - turretX);
-        if (d <= t.range && d < bestDist) { bestDist = d; target = u; }
+        if (d > t.range) continue;
+        const score = mode === 'weak' ? u.hp : mode === 'strong' ? -u.hp : d;
+        if (score < bestScore || (score === bestScore && d < bestDist)) {
+          bestScore = score; bestDist = d; target = u;
+        }
       }
       if (target) {
         const tKind = TURRET_PROJECTILE_KINDS[t.era] || null;
@@ -6508,6 +6518,7 @@ const AgeOfWarGame = (() => {
           <span class="aow-turret-current">${current.icon}<small>${current.name}</small></span>
           <div class="aow-turret-actions">
             ${nextDef ? `<button class="aow-turret-buy" data-slot="${i}" data-era="${next}">⬆️ ${nextDef.icon} $${nextDef.cost}</button>` : '<span class="aow-turret-maxed">MAX</span>'}
+            <button class="aow-turret-mode" data-mode-slot="${i}" title="Targeting: ${TURRET_MODE_LABELS[current.mode || 'near'].title} — click to cycle">${TURRET_MODE_LABELS[current.mode || 'near'].label}</button>
             <button class="aow-turret-sell" data-sell="${i}" title="Sell turret for $${refund}">Sell $${refund}</button>
           </div>
         `;
@@ -6529,7 +6540,23 @@ const AgeOfWarGame = (() => {
     list.querySelectorAll('.aow-turret-sell').forEach(b => {
       b.addEventListener('click', () => trySellTurret(+b.dataset.sell));
     });
+    list.querySelectorAll('.aow-turret-mode').forEach(b => {
+      b.addEventListener('click', () => {
+        const t = playerTurrets[+b.dataset.modeSlot];
+        if (!t) return;
+        t.mode = TURRET_MODE_ORDER[(TURRET_MODE_ORDER.indexOf(t.mode || 'near') + 1) % TURRET_MODE_ORDER.length];
+        SFX.click ? SFX.click() : 0;
+        renderTurretPanel();
+      });
+    });
   }
+
+  const TURRET_MODE_ORDER = ['near', 'weak', 'strong'];
+  const TURRET_MODE_LABELS = {
+    near:   { label: '🎯 Near',   title: 'nearest enemy' },
+    weak:   { label: '🎯 Weak',   title: 'lowest-HP enemy (finish kills)' },
+    strong: { label: '🎯 Strong', title: 'highest-HP enemy (focus tanks/bosses)' },
+  };
 
   // ---- Overlay ----
   function hideOverlay() {
