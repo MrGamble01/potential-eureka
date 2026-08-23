@@ -85,12 +85,21 @@ const AsteroidsGame = (() => {
     }
   }
 
+  // Daily-challenge plumbing (SITE-3): rock spawns, kinematics and shapes
+  // draw from the seeded daily stream — same opening field and same split
+  // behaviour for everyone. UFO timing/aim and particles deliberately stay
+  // on Math.random: their consumption count depends on wall-clock play,
+  // and pulling them from the seeded stream would desync the rocks.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('asteroids') : Math.random(); }
+
   function resetGame(startRun) {
     ship = { x: WIDTH / 2, y: HEIGHT / 2, a: -Math.PI / 2, vx: 0, vy: 0 };
     bullets = []; particles = [];
     score = 0; lives = 3; wave = 1; fireTimer = 0; invuln = 90;
     nextLifeAt = 10000; lifeFlashUntil = 0;
     ufo = null; ufoShots = []; ufoTimer = 1100 + Math.random() * 500;
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('asteroids');
     spawnWave();
     running = !!startRun; gameOver = false;
     updateInfo();
@@ -102,7 +111,7 @@ const AsteroidsGame = (() => {
     for (let i = 0; i < n; i++) {
       // Spawn away from the ship's center so you aren't hit instantly.
       let x, y;
-      do { x = Math.random() * WIDTH; y = Math.random() * HEIGHT; }
+      do { x = drand() * WIDTH; y = drand() * HEIGHT; }
       while (Math.hypot(x - WIDTH / 2, y - HEIGHT / 2) < 140);
       rocks.push(makeRock(x, y, 3));
     }
@@ -112,15 +121,15 @@ const AsteroidsGame = (() => {
     const r = SIZES[tier];
     // Rocks drift a little faster on later waves (capped so it stays fair).
     const waveBoost = 1 + Math.min(wave - 1, 10) * 0.06;
-    const speed = (0.6 + Math.random() * 1.1) * (4 - tier) * 0.6 * waveBoost;
-    const ang = Math.random() * Math.PI * 2;
-    const verts = 8 + Math.floor(Math.random() * 5);
+    const speed = (0.6 + drand() * 1.1) * (4 - tier) * 0.6 * waveBoost;
+    const ang = drand() * Math.PI * 2;
+    const verts = 8 + Math.floor(drand() * 5);
     const shape = [];
-    for (let i = 0; i < verts; i++) shape.push(0.7 + Math.random() * 0.5);
+    for (let i = 0; i < verts; i++) shape.push(0.7 + drand() * 0.5);
     return {
       x, y, tier, r,
       vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
-      rot: (Math.random() - 0.5) * 0.04, a: 0, shape,
+      rot: (drand() - 0.5) * 0.04, a: 0, shape,
       hue: [190, 265, 330][tier - 1] || 200,
     };
   }
@@ -312,8 +321,10 @@ const AsteroidsGame = (() => {
     running = false; gameOver = true;
     sfx('over');
     high = Utils.highScore.save('asteroids-high', score, high);
+    const lines = ['Score: ' + score + ' &nbsp;·&nbsp; Wave: ' + wave];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('asteroids', score));
     Utils.showGameOver('asteroids-overlay', {
-      lines: ['Score: ' + score + ' &nbsp;·&nbsp; Wave: ' + wave],
+      lines,
       hint: 'Press Space or tap to play again',
     });
     updateInfo();
@@ -420,6 +431,8 @@ const AsteroidsGame = (() => {
   function destroy() {
     loop.stop();
     keys.left = keys.right = keys.thrust = false;
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('asteroids');
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;

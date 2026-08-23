@@ -30,12 +30,18 @@ const TetrisGame = (() => {
   let sparks = [], sparkRaf = null;
   const sfx = Utils.sfx;
 
+  // Daily-challenge plumbing (SITE-3): the bag shuffle is the ONLY layout
+  // randomness Tetris has, so a seeded stream gives everyone the same
+  // piece sequence. Line-clear sparks stay on Math.random.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('tetris') : Math.random(); }
+
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
     if (bag.length === 0) {
       bag = [...PIECE_KEYS];
       for (let i = bag.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(drand() * (i + 1));
         [bag[i], bag[j]] = [bag[j], bag[i]];
       }
     }
@@ -343,6 +349,7 @@ const TetrisGame = (() => {
     clearTimeout(clearTimer);
     clearingRows = null;
     sparks = [];
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('tetris');
     sfx('start');
     current = drawFromBag();
     next    = drawFromBag();
@@ -367,8 +374,10 @@ const TetrisGame = (() => {
     const prevHigh = highScore;
     highScore = Utils.highScore.save('tetris-high', score, highScore);
     if (highScore !== prevHigh) updateInfo();
+    const lines = [`Score: ${score}`, `Level ${level} &middot; ${linesCleared} lines`];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('tetris', score));
     Utils.showGameOver('tetris-overlay', {
-      lines: [`Score: ${score}`, `Level ${level} &middot; ${linesCleared} lines`],
+      lines,
       hint: 'Press SPACE to restart',
     });
   }
@@ -536,6 +545,8 @@ const TetrisGame = (() => {
   function destroy() {
     clearInterval(gameLoop);
     clearTimeout(clearTimer);
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('tetris');
     if (sparkRaf) { cancelAnimationFrame(sparkRaf); sparkRaf = null; }
     clearingRows = null; sparks = [];
     // Shell re-inits a view only once and won't redraw on return — paint the

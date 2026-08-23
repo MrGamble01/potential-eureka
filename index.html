@@ -72,6 +72,11 @@
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
     </div>
+    <div id="daily-banner" role="region" aria-label="Today's challenge">
+      <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
+      <span class="daily-sub">One shared seed — same pieces, same food, same rocks for everyone. Set today's mark:</span>
+      <span id="daily-games"></span>
+    </div>
     <div class="arcade-grid">
 
       <a class="arcade-card" href="ageofwar" style="--accent:#D29922">
@@ -1046,6 +1051,7 @@
   <script src="js/lightcycles.js" defer></script>
   <script src="js/memorymatrix.js" defer></script>
   <script src="js/gamepad.js" defer></script>
+  <script src="js/daily.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
   // service worker precaches the shell — including vendored three.js, which
@@ -1314,6 +1320,7 @@
       if (v && v !== currentView) switchView(v);
     });
 
+    Daily.init();
     Effects.init().then(() => switchView(viewFromHash() || 'arcade'));
   });
   </script>
