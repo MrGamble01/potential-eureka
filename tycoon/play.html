@@ -4324,7 +4324,10 @@ function updateIdeaWorkers(dt) {
       const dxw = player.position.x - w.desk.group.position.x;
       const dzw = player.position.z - w.desk.group.position.z;
       w.bossBoost = Math.hypot(dxw, dzw) < CONFIG.proxRange ? CONFIG.bossBoost : 1.0;
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura;
+      // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
+      // fix is running the engineer does no feature work at all.
+      const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult;
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -4420,6 +4423,7 @@ function updateIdeaWorkers(dt) {
       } else if (w.state === S.TO_DELIVER) {
         addRevenue(w.productValue);
         totalFeaturesShipped++;
+        maybeShipBug(w);
         checkProductVersion();
         totalUsers += Math.max(1, Math.floor(w.productValue / 4));
         checkUserMilestones();
@@ -4432,6 +4436,7 @@ function updateIdeaWorkers(dt) {
           w.targetVP.queue.push({ worker: w, value: w.productValue, processTime: vpTierOf(w.targetVP).reviewTime });
           w.pendingWithVP = true;
           totalFeaturesShipped++;
+          maybeShipBug(w);
           checkProductVersion();
           totalUsers += Math.max(1, Math.floor(w.productValue / 4));
           checkUserMilestones();
@@ -7766,6 +7771,48 @@ function updateCoffeeSteam(dt) {
 // whichever paddle the ball reaches swings on contact. Ball + paddle
 // movement is fully idle when no one is playing — table just sits there.
 const PP_BOUNCE_PERIOD = 0.52; // seconds per ball leg (left → right)
+// ── Bug outbreaks (IDEA-TYC-7) ──
+// Shipping fast sometimes ships a bug: the engineer's desk gets a 🐛
+// and they work at HALF speed until you click that desk, which starts
+// an 8-second fix (no feature work at all while it runs). An active-
+// play counterweight to idle income — ignoring bugs quietly costs you.
+const BUG_CHANCE = 0.07;
+const BUG_FIX_SECS = 8;
+function maybeShipBug(w) {
+  if (w.bugged || Math.random() >= BUG_CHANCE) return;
+  w.bugged = true;
+  w.fixingT = 0;
+  showToast(`🐛 ${w.name || 'An engineer'} shipped a bug — click their desk to hotfix it`, 'event', 'critical');
+  addFeedEntry('🐛 Bug in production — a desk needs a hotfix');
+  SFX.error && SFX.error();
+}
+function updateBugs(dt) {
+  for (const w of ideaWorkers) {
+    if (w.fixingT > 0) {
+      w.fixingT -= dt;
+      if (w.fixingT <= 0) {
+        w.fixingT = 0;
+        w.bugged = false;
+        showToast('✅ Hotfix deployed', 'good', 'standard');
+        addFeedEntry('✅ Hotfix deployed — back to full speed');
+      }
+    }
+  }
+}
+// Click-to-fix: consumed by the canvas pointerdown before tap-to-move.
+function tryFixBugAt(ray) {
+  for (const w of ideaWorkers) {
+    if (!w.bugged || w.fixingT > 0 || !w.desk) continue;
+    const hits = ray.intersectObject(w.desk.group, true);
+    if (hits.length) {
+      w.fixingT = BUG_FIX_SECS;
+      showToast(`🔧 Hotfix in progress (${BUG_FIX_SECS}s)…`, '', 'standard');
+      return true;
+    }
+  }
+  return false;
+}
+
 // ── Office pet (TYC-6): wanders desk to desk, tops up team morale ──
 const PET_MORALE_EVERY = 45;   // seconds between morale rounds
 let petWanderT = 0, petPauseT = 0, petMoraleT = 0, petTarget = null;
@@ -8125,6 +8172,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
   pointer.x = (e.clientX / innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
+  if (tryFixBugAt(raycaster)) return;   // clicking a bugged desk hotfixes instead of walking
   if (raycaster.ray.intersectPlane(groundPlane, _v3B)) target = { x: _v3B.x, z: _v3B.z };
 });
 
@@ -8675,6 +8723,14 @@ function updateLabels() {
       }
     }
   }
+  // Bugged desks (TYC-7): 🐛 begs for the click, 🔧 counts the fix down.
+  for (const w of ideaWorkers) {
+    if (!w.desk || (!w.bugged && !(w.fixingT > 0))) continue;
+    const p = worldToScreen(w.desk.group.position.x, 2.6, w.desk.group.position.z);
+    wants.push(w.fixingT > 0
+      ? { text: `🔧 ${Math.ceil(w.fixingT)}s`, cls: 'stock', x: p.x, y: p.y }
+      : { text: '🐛 click to fix', cls: 'max', x: p.x, y: p.y });
+  }
   // (Legacy support-staff carry bubbles removed with the role.)
   // Amenity stock labels
   for (const am of amenities) {
@@ -8819,6 +8875,7 @@ function frameBody(now) {
   updateEvents(dt);
   updatePingPong(dt);
   updatePet(dt);
+  updateBugs(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;

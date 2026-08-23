@@ -50,7 +50,35 @@ function onNewDay(){
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'.');
   buildCraftUI(); buildWorkersUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
+  checkArc();
   checkGameOver(); // after maybeEvent so same-day event damage counts
+}
+
+// ── The Case Worker arc (IDEA-HV-3) ──
+// The one storyline with an exit. Three staged milestones checked each
+// new day — not random-pool events, so the chain can't be missed — and
+// the finale is an actual ending: keys to transitional housing, with a
+// sandbox continue for players who want to keep building the camp.
+var ARC_EVENTS={
+  card:{id:'arc_card',title:'The Case Worker',type:'good',
+    desc:'A county case worker named Dena stops by. She looks around — people fed, fire going, something like order. "This isn\u2019t nothing," she says, and leaves her card.',
+    effect:function(){ G.lastEventDay=G.days; G.morale=Math.min(100,G.morale+8);
+      log('Dena the case worker left her card. Keep the camp strong — build the Soup Kitchen, grow to 4 people.'); }},
+  paperwork:{id:'arc_paperwork',title:'Paperwork, Hope',type:'good',
+    desc:'Dena is back with forms. A transitional-housing pilot wants people who can hold a community together. "Keep morale up and put some goodwill aside — I\u2019ll file it."',
+    effect:function(){ G.lastEventDay=G.days; G.morale=Math.min(100,G.morale+10);
+      log('Housing paperwork started. Dena needs: 25 goodwill saved and morale above 60.'); }},
+};
+function checkArc(){
+  if(G.arcDone) return;
+  if(G.arcStage===0 && G.days>=10 && G.goodwill>=15){
+    G.arcStage=1; triggerEvent(ARC_EVENTS.card,true); saveGame();
+  } else if(G.arcStage===1 && G.structures.soup_kitchen && G.population>=4){
+    G.arcStage=2; triggerEvent(ARC_EVENTS.paperwork,true); saveGame();
+  } else if(G.arcStage===2 && G.goodwill>=25 && G.morale>60){
+    G.arcStage=3; saveGame();
+    showGraduation();
+  }
 }
 
 // The warmth/food drain and events above clamp health at 0 but nothing

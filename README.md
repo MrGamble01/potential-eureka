@@ -60,8 +60,9 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `arcade-daily-<game>-<date>` | Daily challenge bests (today's only — stale dates are swept on boot) |
 | `arcade-rivals`, `rival-name` | Shared-leaderboard rivals + your share-code name |
 | `arcade-achievements` | Unlocked achievements with timestamps (never re-lock) |
+| `eureka-stats` | Local-only play insights (launches/minutes per hub game — never sent anywhere) |
 | `arcade-muted` | `js/sfx.js` (arcade hub) |
-| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War |
+| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-mode`, `aow-best-run`, `aow-relics` | Age of War |
 | `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |
 | `beagle-sim-v1`, `beagle:*` | Beagle Sim (the `?theme=beagle` variant of Startup Tycoon) |
 | `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | shared by both tycoon variants (cosmetic only) |

@@ -26,6 +26,9 @@ var G = {
 
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
+  // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
+  // started, 3 = housed. arcDone marks the post-ending sandbox.
+  arcStage: 0, arcDone: false,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
@@ -46,7 +49,7 @@ var RECIPES = [
 var ACTIONS = [
   {id:'scavenge',  icon:'🗑️', label:'Scavenge Dumpster', time:5000, cooldown:8000,  tooltip:'Dig through dumpsters for scraps, cans, or food.'},
   {id:'forage',    icon:'🌿', label:'Forage Area',        time:4000, cooldown:12000, tooltip:'Search the surroundings for cardboard and wood.'},
-  {id:'panhandle', icon:'🪙', label:'Panhandle',          time:6000, cooldown:15000, tooltip:'Ask strangers for change. Degrading, but sometimes necessary.'},
+  {id:'panhandle', icon:'🪙', label:'Panhandle',          time:6000, cooldown:15000, tooltip:'Ask strangers for change.'},
   {id:'rest',      icon:'💤', label:'Rest',               time:3000, cooldown:20000, tooltip:'Recover health and morale slightly.'},
   {id:'trade',     icon:'🤝', label:'Trade Goods',        time:2000, cooldown:18000, tooltip:'Trade cans for food (3 cans → 2 food).'},
 ];

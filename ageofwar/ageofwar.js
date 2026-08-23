@@ -225,6 +225,24 @@ const AgeOfWarGame = (() => {
   // Overtime sudden-death (IDEA-AOW-7): classic-mode stalemates resolve.
   const OVERTIME_AT = 360;         // seconds before chip damage starts
   let overtimeWarned = false, overtimeOn = false;
+
+  // Relics (IDEA-AOW-2): persistent prestige currency. Earned at every
+  // game-over from the run's totals (gold looted, kills, a win bonus),
+  // spent on next-run starting bonuses from the run-over screen. This
+  // finally surfaces runStats.gold, which was tracked but never shown.
+  const RELIC_KEY = 'aow-relics';
+  const RELIC_PERKS = [
+    { id: 'chest', icon: '💰', name: 'War Chest',       cost: 3, desc: '+150 starting gold' },
+    { id: 'gate',  icon: '🛡️', name: 'Reinforced Gate', cost: 5, desc: '+20% base HP' },
+    { id: 'cadre', icon: '⚔️', name: 'Veteran Cadre',   cost: 4, desc: 'Your opening units spawn as Veterans' },
+  ];
+  let relics = 0;
+  try { relics = Math.max(0, parseInt(localStorage.getItem(RELIC_KEY) || '0', 10) || 0); } catch {}
+  let pendingPerks = {};           // id → true, applied + consumed by reset()
+  function saveRelics() { try { localStorage.setItem(RELIC_KEY, String(relics)); } catch {} }
+  function relicsEarned(won) {
+    return Math.floor(runStats.gold / 800) + Math.floor(runStats.kills / 25) + (won ? 3 : 0);
+  }
   let bgClouds = [];               // parallax cloud x positions
   let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
   let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
@@ -748,9 +766,9 @@ const AgeOfWarGame = (() => {
     strongholdsRazed = 0;
     playerEra = 0;
     enemyEra = 0;
-    gold = 140;
+    gold = 140 + (pendingPerks.chest ? 150 : 0);
     xp = 0;
-    playerBaseHp = playerBaseMax = 1500;
+    playerBaseHp = playerBaseMax = Math.round(1500 * (pendingPerks.gate ? 1.2 : 1));
     enemyBaseHp  = enemyBaseMax  = 1500;
     units = [];
     projectiles = [];
@@ -793,8 +811,10 @@ const AgeOfWarGame = (() => {
     shakeT = 0; shakeMag = 0;
     setUserPaused(false);      // never carry a pause into a fresh run
     // Initial units so the battlefield isn't empty when you arrive.
-    spawnUnit('player', 'club');
-    spawnUnit('player', 'club');
+    const u1 = spawnUnit('player', 'club');
+    const u2 = spawnUnit('player', 'club');
+    if (pendingPerks.cadre) { if (u1) u1.aliveT = 25; if (u2) u2.aliveT = 25; }
+    pendingPerks = {};   // perks are one-shot: consumed by this run
     spawnUnit('enemy',  'club');
     renderHud();
     renderSpawnPanel();
@@ -6688,6 +6708,10 @@ const AgeOfWarGame = (() => {
   function showOverlay(won) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
+    const earned = relicsEarned(won);
+    relics += earned;
+    saveRelics();
+    pendingPerks = {};
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
     ov.style.display = 'flex';
@@ -6707,8 +6731,39 @@ const AgeOfWarGame = (() => {
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
-      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
+      <div id="relic-vault" style="margin-top:18px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
+        <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
+          🏺 Relics &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
+          <span style="color:var(--text-dim);font-weight:600;text-transform:none;letter-spacing:0"> — +${earned} this run (${runStats.gold}g looted · ${runStats.kills} kills${won ? ' · victory' : ''})</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center">
+          ${RELIC_PERKS.map(pk => `
+            <button class="relic-perk" data-perk="${pk.id}" title="${pk.desc}"
+              style="background:rgba(252,211,77,0.08);border:1px solid rgba(252,211,77,0.35);color:var(--text,#E6EDF3);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+              ${pk.icon} ${pk.name} <span style="color:#fcd34d">${pk.cost}🏺</span>
+            </button>`).join('')}
+        </div>
+        <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Buy a bonus for your NEXT run, then restart.</div>
+      </div>
+      <p style="font-size:12px; color: var(--text-dim); margin-top:14px">Press SPACE or click Restart</p>
     `;
+    ov.querySelectorAll('.relic-perk').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const pk = RELIC_PERKS.find(x => x.id === btn.dataset.perk);
+        const msg = document.getElementById('relic-msg');
+        if (pendingPerks[pk.id]) { msg.textContent = `${pk.name} already armed for the next run.`; return; }
+        if (relics < pk.cost) { msg.textContent = `Not enough relics for ${pk.name} (need ${pk.cost}).`; return; }
+        relics -= pk.cost;
+        saveRelics();
+        pendingPerks[pk.id] = true;
+        document.getElementById('relic-count').textContent = relics;
+        btn.style.background = 'rgba(63,185,80,0.2)';
+        btn.style.borderColor = '#3FB950';
+        msg.textContent = `${pk.name} armed — it applies when you restart.`;
+        SFX.gold && SFX.gold();
+      });
+    });
   }
 
   function destroy() {
