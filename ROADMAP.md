@@ -40,7 +40,8 @@ afterwards.
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
 | **Still open** | ✅ none — all closed Aug 2026 |
 | **P2** | ✅ all closed, DEBT-1 included |
-| **P3** | untouched backlog; entries that shipped are marked inline |
+| **P3** | ✅ **complete** — every concrete ticket shipped (Aug 2026); only the dashboard repurpose/rebrand product calls remain open |
+| **P4** | self-directed polish backlog, opened Aug 2026 — see the P4 section |
 
 > The July document listed 31 P0/P1 and most of P2 as open. Re-checking found
 > nearly all of it already fixed. **Verify before working any ticket here** —
@@ -408,6 +409,22 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - Repurpose `dashboard.js`'s widget grid as **Studio Stats** (real cross-game localStorage telemetry instead of fake CPU/MEM numbers); rebrand todo/pomodoro as a public **Dev Log**; retarget bookmarks as a **Dev Toolbox**; **cut or truly hide** the personal journal (see SEC-2). ~~Pomodoro tick-drift~~ ✅ **fixed Aug 2026** (wall-clock deadline + visibility resync), ~~org-chart rAF + dashboard's six intervals never stop~~ ✅ **fixed — see LEAK-1**, ~~geolocation opt-in~~ ✅ **fixed Aug 2026** (asked only on click, consent remembered in `eureka-weather-optin`). The repurpose/rebrand decisions (Studio Stats, Dev Log, Dev Toolbox, the journal's fate) remain open product calls.
 
 ---
+
+## P4 — Self-directed polish backlog (opened Aug 2026)
+
+With P0-P3 closed, work continues on quality-of-life and depth. Shipped so far:
+
+- **~~P4-HUB-1 · "Jump back in" row~~** ✅ — telemetry-powered quick-resume chips on the hub (last played + top games), hidden until there's history.
+- **~~P4-SNAKE-1 · Power-ups~~** ✅ — 🟨 gold (2× for 15s), 👻 ghost (tail-phasing 8s), 🐌 slow (+30ms tick relief); deterministic cadence (every 7th food) so daily runs stay shared-fate.
+- **~~P4-DAILY-1 · Minefield joins the daily~~** ✅ — seeded mine shuffle (identical first clicks → identical boards), min-direction daily best (fastest clear), sixth banner chip.
+
+Open ideas, roughly ordered:
+- **P4-A11Y-1 · Modal focus management** — focus first control on open, trap Tab inside, restore focus on close (hub + tycoon modals).
+- **P4-HUB-2 · Card search/filter** — a filter box over the twenty cards; match name + tags.
+- **P4-TETRIS-1 · Next-piece queue (3)** — the single-piece preview is below modern baseline.
+- **P4-AOW-1 · Relic vault on the start screen** — perks are only buyable at game-over today.
+- **P4-VD-1 · Turret sell/upgrade** — pads are one-shot purchases today.
+- **P4-WC-1 · Bigger dictionary tier** — plurals + -ed/-ing forms behind a size check.
 
 ## Appendix A — localStorage key registry
 

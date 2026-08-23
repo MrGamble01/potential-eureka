@@ -82,6 +82,7 @@
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
     </div>
+    <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
     <div id="daily-banner" role="region" aria-label="Today's challenge">
       <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
       <span class="daily-sub">One shared seed — same pieces, same food, same rocks for everyone. Set today's mark:</span>
@@ -1063,6 +1064,7 @@
         <span><button id="mines-face" onclick="MinesweeperGame.newGame()" title="New game" style="background:none;border:0;cursor:pointer;font-size:20px;line-height:1">🙂</button></span>
         <span>⏱ <strong id="mines-time">0</strong>s</span>
         <span>Best: <strong id="mines-best">—</strong></span>
+        <span id="mines-status" style="color:#F7C948"></span>
       </div>
       <div class="canvas-wrapper" style="overflow:auto;max-width:100%">
         <canvas id="mines-canvas" class="game-canvas" role="img" aria-label="Minefield board — reveal cells, flag mines"></canvas>
@@ -1322,7 +1324,10 @@
       if (typeof Coins !== 'undefined') Coins.credit();
       if (typeof Telemetry !== 'undefined') Telemetry.enter(name);
       if (name === 'halloffame') renderHallOfFame();
-      if (name === 'arcade') refreshArcadeBadges();
+      if (name === 'arcade') {
+        refreshArcadeBadges();
+        if (typeof Telemetry !== 'undefined') Telemetry.renderResume('jump-back-in', switchView);
+      }
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
       setTimeout(() => Effects.init3DTilt(), 50);
