@@ -29,6 +29,7 @@ const Rivals = (() => {
     'pong-streak':         { label: 'Pong++',        fmt: v => v + ' streak',                dir: 'max' },
     'matrix-best':         { label: 'Memory Matrix', fmt: v => 'round ' + v,                 dir: 'max' },
     'stacker-best':        { label: 'Stacker',       fmt: v => v + ' floors',                dir: 'max' },
+    'vector-best':         { label: 'Vector Defense', fmt: v => v + ' waves',                dir: 'max' },
   };
 
   // djb2 over the payload keeps casual link-mangling from producing

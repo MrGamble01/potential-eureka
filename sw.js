@@ -82,6 +82,7 @@ const SHELL = [
   '/js/telemetry.js',
   '/js/tetris.js',
   '/js/todo.js',
+  '/js/vectordefense.js',
   '/js/utils.js',
   '/js/word5.js',
 ];

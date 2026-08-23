@@ -76,7 +76,7 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; EIGHTEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
+      <div class="arcade-hero-kicker">&#9679; NINETEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
 
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
@@ -318,6 +318,20 @@
           <div class="arcade-card-title">STACKER</div>
           <div class="arcade-card-tags"><span>Timing</span><span>Zen</span></div>
           <div class="arcade-card-desc">Drop the slider, keep what lands, watch the tower climb. Perfects snap flush.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="vectordefense" style="--accent:#8B83FF">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/vectordefense.jpg" alt="Vector Defense gameplay" width="640" height="480" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="vectordefense"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">VECTOR DEFENSE</div>
+          <div class="arcade-card-tags"><span>Tower Defense</span><span>Waves</span></div>
+          <div class="arcade-card-desc">Raiders crawl the neon path &mdash; pulse and rail turrets, ten waves, ten lives.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -700,6 +714,30 @@
       <div class="canvas-wrapper">
         <canvas id="stacker-canvas" class="game-canvas" role="img" aria-label="Stacker tower"></canvas>
         <div id="stacker-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-vectordefense" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">VECTOR DEFENSE</div>
+        <div class="game-subtitle">Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Cash: <strong id="vd-cash">$120</strong></span>
+        <span>Lives: <strong id="vd-lives">10</strong></span>
+        <span>Wave: <strong id="vd-wave">0 / 10</strong></span>
+        <span>Best: <strong id="vd-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="vd-canvas" class="game-canvas" role="img" aria-label="Vector Defense battlefield"></canvas>
+        <div id="vd-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button id="vd-pulse-btn" class="active">⚡ Pulse $50</button>
+        <button id="vd-rail-btn">▭ Rail $120</button>
       </div>
     </div>
   </section>
@@ -1143,6 +1181,7 @@
   <script src="js/lightcycles.js" defer></script>
   <script src="js/pong.js" defer></script>
   <script src="js/stacker.js" defer></script>
+  <script src="js/vectordefense.js" defer></script>
   <script src="js/memorymatrix.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script src="js/daily.js" defer></script>
@@ -1190,6 +1229,7 @@
       lightcycles: () => LightCyclesGame.destroy(),
       pong: () => PongGame.destroy(),
       stacker: () => StackerGame.destroy(),
+      vectordefense: () => VectorDefenseGame.destroy(),
       memorymatrix: () => MemoryMatrixGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
@@ -1228,6 +1268,7 @@
           case 'lightcycles':  LightCyclesGame.init(); break;
           case 'pong':         PongGame.init(); break;
           case 'stacker':      StackerGame.init(); break;
+          case 'vectordefense': VectorDefenseGame.init(); break;
           case 'memorymatrix': MemoryMatrixGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
@@ -1293,10 +1334,12 @@
         best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
       { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => switchView('stacker'),
         best: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : null; } },
+      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', go: () => switchView('vectordefense'),
+        best: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves held' : null; } },
       { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => switchView('memorymatrix'),
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'growop-achievements'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'vector-best', 'growop-achievements'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1461,6 +1504,7 @@
         lightcycles: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : ''; },
         pong: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : ''; },
         stacker: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : ''; },
+        vectordefense: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves' : ''; },
         memorymatrix: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'ROUND ' + v : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
@@ -1527,7 +1571,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker', 'memorymatrix', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker', 'vectordefense', 'memorymatrix', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     // A '#hof=<code>' link is an import, not a view: store the rival,

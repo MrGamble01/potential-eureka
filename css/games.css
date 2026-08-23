@@ -398,3 +398,10 @@ canvas.game-canvas {
   }
 }
 
+
+/* Vector Defense turret picker (ARC-7) */
+.game-controls button.active {
+  border-color: var(--primary, #6C63FF);
+  color: var(--primary-light, #8B83FF);
+  box-shadow: var(--glow-primary, 0 0 16px rgba(108, 99, 255, 0.25));
+}
