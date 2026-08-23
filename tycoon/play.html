@@ -1581,6 +1581,7 @@
     <div class="win-stats" id="win-stats"></div>
     <div class="ipo-actions">
       <button class="ipo-confirm" id="win-continue-btn">Keep building →</button>
+      <button class="ipo-cancel" id="win-share-btn" title="Download a share-card image of this run">📸 Share card</button>
     </div>
   </div>
 </div>
@@ -6399,6 +6400,106 @@ document.getElementById('open-theme-btn').addEventListener('click', () => {
 document.getElementById('theme-close').addEventListener('click', () => themeModalEl.classList.remove('open'));
 themeModalEl.addEventListener('click', e => { if (e.target === themeModalEl) themeModalEl.classList.remove('open'); });
 
+// ── Win share-card (IDEA-TYC-9) ────────────────────────────────────
+// A 1200×630 (OG-image ratio) PNG of the run, drawn on an offscreen
+// canvas and downloaded. Variant-aware: Beagle Sim gets its own name,
+// mascot and accent so a shared card advertises the build it came from.
+let lastWin = null;
+
+function drawShareCard(w) {
+  const brand = VARIANT.id === 'beagle'
+    ? { name: 'BEAGLE SIM', mark: '🐶', accent: '#F0883E', accent2: '#fcd34d' }
+    : { name: 'STARTUP TYCOON', mark: '>_', accent: '#6C63FF', accent2: '#3FB950' };
+  const W = 1200, H = 630;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+
+  const bg = x.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#0d1117'); bg.addColorStop(1, '#161b30');
+  x.fillStyle = bg; x.fillRect(0, 0, W, H);
+
+  // Confetti scatter, seeded so the card is deterministic per season.
+  let seed = w.season * 9973 + Math.floor(w.elapsed);
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const confColors = [brand.accent, brand.accent2, '#F778BA', '#58A6FF', '#F7C948'];
+  for (let i = 0; i < 70; i++) {
+    x.save();
+    x.translate(rnd() * W, rnd() * H);
+    x.rotate(rnd() * Math.PI);
+    x.globalAlpha = 0.10 + rnd() * 0.14;
+    x.fillStyle = confColors[i % confColors.length];
+    x.fillRect(-5, -2, 10, 4);
+    x.restore();
+  }
+  x.globalAlpha = 1;
+
+  // Accent frame
+  x.strokeStyle = brand.accent; x.lineWidth = 6;
+  x.strokeRect(16, 16, W - 32, H - 32);
+
+  // Header: brand mark + name
+  x.fillStyle = brand.accent;
+  x.font = 'bold 34px "JetBrains Mono", monospace';
+  x.textAlign = 'left';
+  x.fillText(brand.mark, 60, 92);
+  x.fillStyle = '#E6EDF3';
+  x.font = '800 34px Inter, sans-serif';
+  x.fillText(brand.name, VARIANT.id === 'beagle' ? 112 : 122, 92);
+
+  x.fillStyle = '#7D8590';
+  x.font = '600 22px Inter, sans-serif';
+  x.textAlign = 'right';
+  x.fillText('eureka games', W - 60, 92);
+  x.textAlign = 'left';
+
+  // Headline
+  x.fillStyle = brand.accent2;
+  x.font = '800 26px Inter, sans-serif';
+  x.fillText(`SEASON ${w.season} · ${w.seasonName.toUpperCase()}`, 60, 176);
+  x.fillStyle = '#E6EDF3';
+  x.font = '900 64px Inter, sans-serif';
+  x.fillText('🏆 ' + w.goalText, 60, 250);
+
+  // Stat grid: 3 × 2
+  const stats = [
+    ['SEASON REVENUE', '$' + fmtCash(w.cumulative)],
+    ['PEAK RATE', '$' + fmtCash(w.rate) + '/min'],
+    ['TIME TO GOAL', formatTime(w.elapsed) + (w.isPB ? ' ★ PB' : '')],
+    ['ALL-TIME CASH', '$' + fmtCash(w.lifetime)],
+    ['FEATURES SHIPPED', fmtCash(w.features)],
+    [VARIANT.id === 'beagle' ? 'PACK SIZE' : 'HEADCOUNT', String(w.headcount)],
+  ];
+  const gx = 60, gy = 300, cw = (W - 120) / 3, ch = 116;
+  stats.forEach(([label, value], i) => {
+    const sx = gx + (i % 3) * cw, sy = gy + Math.floor(i / 3) * ch;
+    x.fillStyle = 'rgba(255,255,255,0.04)';
+    x.fillRect(sx, sy, cw - 16, ch - 16);
+    x.fillStyle = '#7D8590';
+    x.font = '700 17px Inter, sans-serif';
+    x.fillText(label, sx + 20, sy + 34);
+    x.fillStyle = (label === 'TIME TO GOAL' && w.isPB) ? '#fcd34d' : '#E6EDF3';
+    x.font = '800 36px Inter, sans-serif';
+    x.fillText(value, sx + 20, sy + 78);
+  });
+
+  // Footer: where to play
+  x.fillStyle = '#7D8590';
+  x.font = '600 21px Inter, sans-serif';
+  x.fillText('Play it: potential-eureka-gilt.vercel.app' + (VARIANT.id === 'beagle' ? '/tycoon/play?theme=beagle' : '/tycoon/play'), 60, H - 52);
+  return c;
+}
+
+document.getElementById('win-share-btn').addEventListener('click', () => {
+  if (!lastWin) return;
+  const a = document.createElement('a');
+  a.download = (VARIANT.id === 'beagle' ? 'beagle-sim' : 'startup-tycoon') +
+    `-season-${lastWin.season}.png`;
+  a.href = drawShareCard(lastWin).toDataURL('image/png');
+  a.click();
+  showToast('📸 Share card downloaded', 'milestone', 'standard');
+});
+
 function triggerWin(cumulative) {
   SFX.win(); Haptics.win();
   launchConfetti({ pieces: 100, duration: 3400 });
@@ -6429,6 +6530,19 @@ function triggerWin(cumulative) {
     <div class="row"><span>The deal</span><strong style="color:#7D8590;font-weight:600">🎯 $${fmtCash(nextTarget)} · ${nextMult}× revenue</strong></div>
     <div class="row"><span>Coming up</span><strong style="color:#fcd34d">${seasonTeaser(prestigeLevel + 2)}</strong></div>
   `;
+  // Freeze this run's numbers for the share card (TYC-9) — the modal can
+  // stay open while income keeps ticking, and the card should show the
+  // moment of the win, not whenever the button gets clicked.
+  lastWin = {
+    cumulative, headcount, elapsed, isPB,
+    rate: currentRatePerMin(),
+    lifetime: state.lifetimeCash,
+    features: totalFeaturesShipped,
+    users: totalUsers,
+    season: prestigeLevel + 1,
+    seasonName: seasonTitle(prestigeLevel),
+    goalText: currentTheme().goalAchievedFor(fmtCash(currentGoalTarget())),
+  };
   winModalEl.classList.add('open');
   const t = currentGoalTarget();
   const goalText = currentTheme().goalAchievedFor(fmtCash(t));
