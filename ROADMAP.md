@@ -441,6 +441,13 @@ when new play-testing surfaces friction.
 - **~~P6-AST-1 · Hyperspace~~** ✅ — H / ↯ WARP teleports with zeroed velocity, 40-frame blink, ~5s cooldown; 40 rolls for a 70px-clear landing then takes the risk, READY/RECHARGING indicator. Math.random by design in daily runs (wall-clock-triggered, seeding would desync the rocks).
 - **~~P6-MM-1 · Three lives~~** ✅ — a wrong pad burns a heart and replays the same pattern; the third miss ends the run. Hearts in the HUD, matrix-best semantics unchanged.
 
+## P7 — Variety & discoverability pass (opened Aug 2026)
+
+- **~~P7-BRK-1 · Shaped wall layouts~~** ✅ — WALL/CHECKER/DIAMOND/PILLARS/ARCH/RUBBLE cycle with the level (per-cell predicates over the 11-col grid), layout name flashes at each build.
+- **~~P7-HUB-3 · ? shortcuts cheat-sheet~~** ✅ — focus-trapped dialog listing every arcade hotkey; ?, Esc, backdrop and Close all dismiss; ignored while typing in inputs.
+- **~~P7-MAZE-1 · Par-time medals~~** ✅ — par = rows·cols/20+3s; 🥇 +200 under par (lifetime tally in `maze-golds`), 🥈 +80 under 1.6×; par + tally live in the status bar.
+- *(scoped and dropped: Tetris ghost piece, Connect-4 2P/difficulty, SFX mute, Stacker perfect-streak, Voxel Isle offline growth — all already shipped.)*
+
 ## Appendix A — localStorage key registry
 
 *Refreshed August 2026. SITE-3 asked for this table to live in the README too —

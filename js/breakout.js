@@ -81,13 +81,28 @@ const BreakoutGame = (() => {
     updateInfo();
   }
 
+  // P6: shaped wall layouts, cycling with the level so each stage reads
+  // differently at a glance. Each entry answers "does cell (r,c) hold a
+  // brick?" for a wall of `rows` rows × 11 cols (center col 5).
+  const LAYOUTS = [
+    { name: 'WALL',     keep: () => true },
+    { name: 'CHECKER',  keep: (r, c) => (r + c) % 2 === 0 },
+    { name: 'DIAMOND',  keep: (r, c, rows) => {
+        const cr = (rows - 1) / 2;
+        return Math.abs(c - 5) / 5 + Math.abs(r - cr) / Math.max(cr, 1) <= 1.001;
+      } },
+    { name: 'PILLARS',  keep: (r, c) => r === 0 || c % 2 === 0 },
+    { name: 'ARCH',     keep: (r, c, rows) => !(r >= 2 && r < rows && Math.abs(c - 5) <= 2) },
+    { name: 'RUBBLE',   keep: () => Math.random() >= 0.2 },
+  ];
+
   function buildLevel() {
     bricks = [];
     const rows = Math.min(ROWS, 3 + level);
+    const layout = LAYOUTS[(level - 1) % LAYOUTS.length];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < COLS; c++) {
-        // Sparser, tougher bricks as levels climb; some gaps for variety.
-        if (level > 1 && Math.random() < 0.08) continue;
+        if (!layout.keep(r, c, rows)) continue;
         const hp = r < 2 && level >= 2 ? 2 : (Math.random() < 0.12 + level * 0.03 ? 2 : 1);
         bricks.push({
           x: GRID_LEFT + c * (BRICK_W + BRICK_GAP),
@@ -97,7 +112,10 @@ const BreakoutGame = (() => {
         });
       }
     }
+    layoutName = layout.name;
+    layoutFlashUntil = performance.now() + 2200;
   }
+  let layoutName = '', layoutFlashUntil = 0;
 
   function resetBall() {
     launched = false;
@@ -424,6 +442,17 @@ const BreakoutGame = (() => {
       ctx.font = 'bold 20px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
       ctx.fillText('COMBO ×' + combo, WIDTH / 2, 40);
+    }
+
+    // Level-start layout callout, fading out
+    if (layoutFlashUntil > performance.now() && running && !gameOver) {
+      ctx.globalAlpha = Math.min(1, (layoutFlashUntil - performance.now()) / 600);
+      ctx.fillStyle = '#7D8590';
+      ctx.font = 'bold 13px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('LEVEL ' + level + ' · ' + layoutName, WIDTH / 2, GRID_TOP - 14);
+      ctx.textAlign = 'left';
+      ctx.globalAlpha = 1;
     }
 
     // idle / launch prompt
