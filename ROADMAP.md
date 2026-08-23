@@ -427,6 +427,14 @@ With P0-P3 closed, work continues on quality-of-life and depth. Shipped so far:
 The P4 idea list is fully burned down; the next backlog gets authored
 when new play-testing surfaces friction.
 
+## P5 — Second polish pass (opened Aug 2026)
+
+- **~~P5-2048-1 · One-step undo~~** ✅ — Z / ↩ button restores the pre-move board+score (works as a post-game-over mercy too); daily runs never get a snapshot, keeping seeded scores honest.
+- **~~P5-W5-1 · Emoji share grid~~** ✅ — 📋 Share copies a spoiler-free "Word Five n/6" 🟩🟨⬛ grid, clipboard API with an execCommand fallback.
+- **~~P5-HOF-1 · PNG score card~~** ✅ — 🖼 Score card renders the board (accent dots, bests, achievements+coins footer) to a 2× canvas and offers the PNG inline + as a download; zero-dependency data URLs.
+- **~~P5-LC-1 · Third AI rider~~** ✅ — Riders: 2/3 toggle adds a gold AI cycle; N-rider collision judge, round runs until ≤1 alive, survivor-based verdicts.
+- *(scoped and dropped: Pong 2P, Minesweeper chording, Breakout power-ups, Asteroids UFO, Tetris hold — all already shipped in earlier passes.)*
+
 ## Appendix A — localStorage key registry
 
 *Refreshed August 2026. SITE-3 asked for this table to live in the README too —
