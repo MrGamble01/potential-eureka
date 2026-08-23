@@ -8,7 +8,7 @@
 
 // Bump on any precache-list or caching-strategy change: activate() drops
 // every cache that doesn't match, which is how updates roll out.
-const SW_VERSION = 'eureka-v1';
+const SW_VERSION = 'eureka-v2';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -58,6 +58,7 @@ const SHELL = [
   '/js/dashboard.js',
   '/js/effects.js',
   '/js/game2048.js',
+  '/js/gamepad.js',
   '/js/life.js',
   '/js/lightcycles.js',
   '/js/maze.js',
