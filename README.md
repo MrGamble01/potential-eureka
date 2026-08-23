@@ -77,6 +77,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `voxel-garden-v1` | Voxel Isle |
 | `studio-token`, `studio-chat-v1` | Eureka Studio (token stays in the browser, sent only to api.github.com) |
 | `eureka-notes`, `eureka-todos`, `eureka-bookmarks`, `eureka-pomo-sessions`, `eureka-calendar-config`, `eureka-gt-clientid`, `eureka-gt-lists` | productivity view |
+| `eureka-weather-optin` | dashboard weather consent (geolocation is asked only after a click) |
 | `eureka-personal-pin`, `eureka-personal-*` | personal view — **stored unencrypted**; the PIN is a casual screen lock, not security, and the UI says so |
 
 ## Running locally

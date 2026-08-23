@@ -206,14 +206,19 @@ const Dashboard = (() => {
     }
   }
 
-  function initWeather() {
+  // Geolocation is opt-in (P3 dashboard cleanup): the widget never asks
+  // for the browser permission until the user clicks it, and the consent
+  // is remembered so later visits can fetch weather without re-clicking.
+  const WEATHER_OPTIN_KEY = 'eureka-weather-optin';
+  function requestWeather() {
     if (!navigator.geolocation) {
       setWeatherDisplay('📍', '--°F', 'Geolocation not supported', '');
       return;
     }
-
+    setWeatherDisplay('📍', '--°F', 'Locating…', '');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        try { localStorage.setItem(WEATHER_OPTIN_KEY, '1'); } catch (_) {}
         weatherLat = pos.coords.latitude;
         weatherLon = pos.coords.longitude;
         fetchWeather(weatherLat, weatherLon);
@@ -223,6 +228,21 @@ const Dashboard = (() => {
       },
       { timeout: 10000 }
     );
+  }
+  function initWeather() {
+    let opted = null;
+    try { opted = localStorage.getItem(WEATHER_OPTIN_KEY); } catch (_) {}
+    if (opted === '1') { requestWeather(); return; }
+    setWeatherDisplay('📍', '--°F', 'Local weather is off', 'Click to enable — uses your location, never stored');
+    const card = document.querySelector('.weather-display');
+    if (card) {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function onOpt() {
+        card.removeEventListener('click', onOpt);
+        card.style.cursor = '';
+        requestWeather();
+      });
+    }
   }
 
   function refreshWeather() {
