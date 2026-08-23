@@ -11,7 +11,7 @@
 // v4: rolls out the P4-P8 waves (relic vault, undo, share cards, backup,
 // hyperspace, layouts, medals, pace, Cascade daily) to installed PWAs —
 // cache-first shells only refresh when this version changes.
-const SW_VERSION = 'eureka-v4';
+const SW_VERSION = 'eureka-v5';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -83,6 +83,7 @@ const SHELL = [
   '/js/sfx.js',
   '/js/snake.js',
   '/js/stacker.js',
+  '/js/crateescape.js',
   '/js/telemetry.js',
   '/js/tetris.js',
   '/js/todo.js',

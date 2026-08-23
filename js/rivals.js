@@ -32,6 +32,7 @@ const Rivals = (() => {
     'vector-best':         { label: 'Vector Defense', fmt: v => v + ' waves',                dir: 'max' },
     'cascade-best':        { label: 'Word Cascade',  fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
     'maze-best':           { label: 'Gem Labyrinth', fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
+    'crate-best':          { label: 'Crate Escape',  fmt: v => v + ' puzzles',               dir: 'max' },
   };
 
   // djb2 over the payload keeps casual link-mangling from producing

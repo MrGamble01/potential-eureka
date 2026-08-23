@@ -17,7 +17,7 @@ const Achievements = (() => {
   const SCORE_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high',
     'g2048-best', 'mines-best-beginner', 'connect4-streak', 'word5-streak',
     'cycles-streak', 'pong-streak', 'matrix-best',
-    'maze-best', 'stacker-best', 'vector-best', 'cascade-best'];
+    'maze-best', 'stacker-best', 'vector-best', 'cascade-best', 'crate-best'];
   const played = () => SCORE_KEYS.filter(k => num(k) > 0).length;
 
   const DEFS = [
@@ -55,6 +55,8 @@ const Achievements = (() => {
       desc: 'Reach wave 8 in Vector Defense', test: () => num('vector-best') >= 8 },
     { id: 'cascade-300',  icon: '🔤', name: 'Rainmaker',
       desc: 'Score 300+ in Word Cascade', test: () => num('cascade-best') >= 300 },
+    { id: 'crate-8',      icon: '📦', name: 'Warehouse Manager',
+      desc: 'Solve 8 Crate Escape puzzles', test: () => num('crate-best') >= 8 },
     { id: 'maze-gold',    icon: '🥇', name: 'Pathfinder',
       desc: 'Beat par in the Gem Labyrinth for a gold medal', test: () => num('maze-golds') >= 1 },
     { id: 'daily-run',    icon: '📅', name: 'Creature of Habit',
