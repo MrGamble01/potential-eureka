@@ -1251,7 +1251,15 @@
       { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
       { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
-        best: () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : null; } },
+        best: () => {
+          const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
+          const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
+          if (v <= 0 && n <= 0) return null;
+          const parts = [];
+          if (v > 0) parts.push(Scores.fmtMoney(v) + ' earned');
+          if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
+          return parts.join(' · ');
+        } },
       { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
         best: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
       { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
@@ -1281,7 +1289,7 @@
       { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => switchView('memorymatrix'),
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'growop-achievements'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1431,7 +1439,12 @@
         asteroids: () => { const v = Scores.num('asteroids-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         ageofwar: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' ★' : ''; },
         tycoon:   () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + Scores.fmtMoney(v) : ''; },
-        growop:   () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : ''; },
+        growop:   () => {
+          const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
+          if (v > 0) return Scores.fmtMoney(v) + ' earned';
+          const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
+          return n > 0 ? n + ' 🏅' : '';
+        },
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
         voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
         minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },

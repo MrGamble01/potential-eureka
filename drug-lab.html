@@ -1463,6 +1463,42 @@ function refreshGoalHud() {
   progEl.textContent=g.prog();
 }
 
+// ── Achievements → Hall of Fame (IDEA-LAB-6) ──
+// Milestones written to their own key (like aow-achievements) so the
+// arcade hub can badge the Grow Op card and HOF row without parsing
+// the whole save. Unlocks never re-lock; a bust wipes the run's save
+// but the trophies live in this separate key and survive.
+const GROW_ACH = [
+  { id: 'first_deal',   name: 'First Deal',      test: () => state.totalSold >= 1 },
+  { id: 'the_rise',     name: 'The Rise',        test: () => state.totalEarned >= 2000 },
+  { id: 'the_empire',   name: 'The Empire',      test: () => state.totalEarned >= 15000 },
+  { id: 'landlord',     name: 'Landlord',        test: () => ownedRoomSet.size >= 4 },
+  { id: 'staffed_up',   name: 'Staffed Up',      test: () => (state.trimmers + state.lookouts + state.runners + state.cooks) >= 5 },
+  { id: 'chemist',      name: 'Chemist',         test: () => !!chemStation },
+  { id: 'quarter_kilo', name: 'Quarter Kilo',    test: () => state.totalSold >= 250 },
+  { id: 'high_roller',  name: 'High Roller',     test: () => state.cash >= 25000 },
+];
+const GROW_ACH_KEY = 'growop-achievements';
+function growAchUnlocked() {
+  try { return JSON.parse(localStorage.getItem(GROW_ACH_KEY) || '{}'); } catch(e){ return {}; }
+}
+function checkGrowAchievements() {
+  const have = growAchUnlocked();
+  let changed = false;
+  for (const a of GROW_ACH) {
+    if (have[a.id]) continue;
+    let hit = false;
+    try { hit = !!a.test(); } catch(e){}
+    if (hit) {
+      have[a.id] = Date.now();
+      changed = true;
+      showToast(`🏅 Achievement: ${a.name}`, 'good');
+      addFeed(`🏅 ${a.name}`);
+    }
+  }
+  if (changed) { try { localStorage.setItem(GROW_ACH_KEY, JSON.stringify(have)); } catch(e){} }
+}
+
 function updateGoals() {
   if(state.goalIndex<GOALS.length){
     const g=GOALS[state.goalIndex];
@@ -1480,6 +1516,7 @@ function updateGoals() {
       saveGame();
     }
   }
+  checkGrowAchievements();
   refreshGoalHud();
 }
 
