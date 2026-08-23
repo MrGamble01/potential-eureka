@@ -71,6 +71,7 @@ const SHELL = [
   '/js/personal-content.js',
   '/js/personal.js',
   '/js/pomodoro.js',
+  '/js/pong.js',
   '/js/productivity.js',
   '/js/scores.js',
   '/js/sfx.js',
