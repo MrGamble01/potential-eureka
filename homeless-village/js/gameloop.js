@@ -293,6 +293,7 @@ function sfx(kind){
   if(!audioCtx) return;
   var notes={
     action:  [440,660],
+    error:   [220,175],
     craft:   [523,659,784],
     hire:    [392,523,659],
     goal:    [523,659,784,1047],
