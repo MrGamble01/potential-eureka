@@ -34,6 +34,7 @@ const VectorDefenseGame = (() => {
   let towers, enemies, shots, sparks;
   let cash, lives, wave, waveT, spawnQueue, spawnT, betweenWaves;
   let running, over, won, best, selectedKind, railBeams;
+  let selectedTower = null;   // P4: owned pad selected for upgrade/sell
   const sfx = Utils.sfx;
 
   // Path bookkeeping: total length + point at distance d.
@@ -93,6 +94,7 @@ const VectorDefenseGame = (() => {
       for (const pad of PADS) {
         if (Math.hypot(x - pad.x, y - pad.y) < 22) { buyAt(pad); return; }
       }
+      selectTower(null);
       if (betweenWaves) launchWave();
     });
     const ov = document.getElementById('vd-overlay');
@@ -102,6 +104,10 @@ const VectorDefenseGame = (() => {
     const railBtn = document.getElementById('vd-rail-btn');
     if (pulseBtn) pulseBtn.addEventListener('click', () => selectKind('pulse'));
     if (railBtn) railBtn.addEventListener('click', () => selectKind('rail'));
+    const upgBtn = document.getElementById('vd-upg-btn');
+    const sellBtn = document.getElementById('vd-sell-btn');
+    if (upgBtn) upgBtn.addEventListener('click', upgradeSelected);
+    if (sellBtn) sellBtn.addEventListener('click', sellSelected);
 
     loop = Utils.gameLoop(tick);
     draw();
@@ -129,6 +135,7 @@ const VectorDefenseGame = (() => {
     over = false; won = false;
     running = !!run;
     selectKind('pulse');
+    selectTower(null);
   }
 
   function start() {
@@ -140,12 +147,58 @@ const VectorDefenseGame = (() => {
     loop.start();
   }
 
+  // P4 turret management: tiers 1-3 (+40% damage each, pulse also +12%
+  // range), sell refunds 70% of everything spent on the pad.
+  const MAX_TIER = 3;
+  function tierDmg(t) { return TURRETS[t.kind].dmg * Math.pow(1.4, t.tier - 1); }
+  function tierRange(t) {
+    const r = TURRETS[t.kind].range;
+    return t.kind === 'pulse' ? r * Math.pow(1.12, t.tier - 1) : r;
+  }
+  function upgradeCost(t) { return Math.round(TURRETS[t.kind].cost * 0.8 * Math.pow(1.8, t.tier - 1)); }
+  function sellValue(t) { return Math.round(t.spent * 0.7); }
+
   function buyAt(pad) {
-    if (towers.some(t => t.pad === pad)) return;   // occupied
+    const existing = towers.find(t => t.pad === pad);
+    if (existing) { selectTower(existing); return; }   // owned pad → manage it
     const def = TURRETS[selectedKind];
     if (cash < def.cost) { blip(180); return; }
     cash -= def.cost;
-    towers.push({ pad, kind: selectedKind, cd: 0 });
+    towers.push({ pad, kind: selectedKind, cd: 0, tier: 1, spent: def.cost });
+    selectTower(null);
+    sfx('lock');
+    updateInfo();
+  }
+
+  function selectTower(t) {
+    selectedTower = t;
+    const upg = document.getElementById('vd-upg-btn');
+    const sell = document.getElementById('vd-sell-btn');
+    if (!upg || !sell) return;
+    if (!t) { upg.hidden = true; sell.hidden = true; return; }
+    upg.hidden = false; sell.hidden = false;
+    upg.textContent = t.tier >= MAX_TIER ? '★ Max tier' : `⬆ Upgrade $${upgradeCost(t)}`;
+    upg.disabled = t.tier >= MAX_TIER || cash < upgradeCost(t);
+    sell.textContent = `♻ Sell +$${sellValue(t)}`;
+  }
+  function upgradeSelected() {
+    const t = selectedTower;
+    if (!t || t.tier >= MAX_TIER) return;
+    const cost = upgradeCost(t);
+    if (cash < cost) { blip(180); return; }
+    cash -= cost;
+    t.spent += cost;
+    t.tier++;
+    sfx('bonus');
+    selectTower(t);
+    updateInfo();
+  }
+  function sellSelected() {
+    const t = selectedTower;
+    if (!t) return;
+    cash += sellValue(t);
+    towers.splice(towers.indexOf(t), 1);
+    selectTower(null);
     sfx('lock');
     updateInfo();
   }
@@ -212,13 +265,13 @@ const VectorDefenseGame = (() => {
         for (const en of enemies) {
           const p = pointAt(en.d);
           const dist = Math.hypot(p.x - t.pad.x, p.y - t.pad.y);
-          if (dist <= def.range && pathLen - en.d < bestD) { bestD = pathLen - en.d; target = en; }
+          if (dist <= tierRange(t) && pathLen - en.d < bestD) { bestD = pathLen - en.d; target = en; }
         }
         if (target) {
           t.cd = def.cd;
           const p = pointAt(target.d);
           shots.push({ x: t.pad.x, y: t.pad.y, tx: p.x, ty: p.y, target, life: 0.09 });
-          hit(target, def.dmg, p);
+          hit(target, tierDmg(t), p);
           blip(700);
         }
       } else {
@@ -234,7 +287,7 @@ const VectorDefenseGame = (() => {
           for (let i = enemies.length - 1; i >= 0; i--) {
             const en = enemies[i];
             const p = pointAt(en.d);
-            if (Math.abs(p.y - t.pad.y) < 26 || Math.abs(p.x - t.pad.x) < 26) hit(en, def.dmg, p);
+            if (Math.abs(p.y - t.pad.y) < 26 || Math.abs(p.x - t.pad.x) < 26) hit(en, tierDmg(t), p);
           }
           blip(220);
         }
@@ -338,10 +391,20 @@ const VectorDefenseGame = (() => {
         ctx.fillText(def.glyph, pad.x, pad.y + 5);
         ctx.textAlign = 'left';
         if (t.kind === 'pulse') {
-          ctx.globalAlpha = 0.07;
-          ctx.beginPath(); ctx.arc(pad.x, pad.y, def.range, 0, Math.PI * 2);
+          ctx.globalAlpha = t === selectedTower ? 0.22 : 0.07;
+          ctx.beginPath(); ctx.arc(pad.x, pad.y, tierRange(t), 0, Math.PI * 2);
           ctx.strokeStyle = def.color; ctx.stroke();
           ctx.globalAlpha = 1;
+        }
+        // Tier pips under the pad
+        for (let i = 0; i < t.tier - 1; i++) {
+          ctx.fillStyle = '#F7C948';
+          ctx.fillRect(pad.x - 8 + i * 8, pad.y + 17, 5, 3);
+        }
+        if (t === selectedTower) {
+          ctx.strokeStyle = '#F7C948';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(pad.x - 17, pad.y - 17, 34, 34);
         }
       } else {
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
