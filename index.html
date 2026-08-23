@@ -827,7 +827,18 @@
       <button class="game-back-btn" data-view="arcade">&larr; Games</button>
       <div class="hof-title">&#9733; HALL OF FAME &#9733;</div>
       <div class="hof-sub">YOUR PERSONAL BESTS</div>
+      <div id="hof-rivals" class="hof-rivals">
+        <div class="hof-rivals-row">
+          <button id="hof-share" class="hof-share">⚔ Share my scores</button>
+          <input id="hof-rival-code" class="hof-rival-input" type="text"
+                 placeholder="paste a rival's code…" aria-label="Paste a rival's share code">
+          <button id="hof-rival-add" class="hof-share">Add rival</button>
+        </div>
+        <div id="hof-share-out" class="hof-share-out" hidden></div>
+        <div id="hof-rival-list" class="hof-rival-list"></div>
+      </div>
       <div id="hof-board" class="hof-board"></div>
+      <div id="hof-achievements"></div>
       <div class="hof-footer">
         <button id="hof-reset" class="hof-reset">Reset my scores</button>
         <span class="hof-coin arcade-blink">&#9646;</span> PICK A GAME AND BEAT THEM
@@ -1090,6 +1101,8 @@
   <script src="js/memorymatrix.js" defer></script>
   <script src="js/gamepad.js" defer></script>
   <script src="js/daily.js" defer></script>
+  <script src="js/rivals.js" defer></script>
+  <script src="js/achievements.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
   // service worker precaches the shell — including vendored three.js, which
@@ -1177,6 +1190,7 @@
       // the first visit too.
       if (name === 'orgchart') OrgChart.resume();
       if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
+      if (typeof Achievements !== 'undefined') Achievements.check();
       if (name === 'halloffame') renderHallOfFame();
       if (name === 'arcade') refreshArcadeBadges();
       currentView = name;
@@ -1196,27 +1210,27 @@
         best: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
       { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
         best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
-      { name: 'Snake',            accent: '#6C63FF', go: () => switchView('snake'),
+      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => switchView('snake'),
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Tetris',           accent: '#F778BA', go: () => switchView('tetris'),
+      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', go: () => switchView('tetris'),
         best: () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Neon Breaker',     accent: '#22d3ee', go: () => switchView('breakout'),
+      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', go: () => switchView('breakout'),
         best: () => { const v = Scores.num('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Vector Storm',     accent: '#a78bfa', go: () => switchView('asteroids'),
+      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', go: () => switchView('asteroids'),
         best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: '2048',             accent: '#facc15', go: () => switchView('2048'),
+      { name: '2048',             accent: '#facc15', rid: 'g2048-best', go: () => switchView('2048'),
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Minefield',        accent: '#F0883E', go: () => switchView('minesweeper'),
+      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', go: () => switchView('minesweeper'),
         best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
-      { name: 'Drop Four',        accent: '#f7c948', go: () => switchView('connect4'),
+      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', go: () => switchView('connect4'),
         best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Word Five',        accent: '#3FB950', go: () => switchView('word5'),
+      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', go: () => switchView('word5'),
         best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Light Cycles',     accent: '#22d3ee', go: () => switchView('lightcycles'),
+      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', go: () => switchView('lightcycles'),
         best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Pong++',           accent: '#58A6FF', go: () => switchView('pong'),
+      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => switchView('pong'),
         best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Memory Matrix',    accent: '#a78bfa', go: () => switchView('memorymatrix'),
+      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => switchView('memorymatrix'),
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
     const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak'];
@@ -1229,18 +1243,84 @@
         const best = g.best();
         if (best) played++;
         const rank = String(i + 1).padStart(2, '0');
+        // Rivals (SITE-2): show the best imported mark beside your own,
+        // lit up when the rival currently holds the lead.
+        let rivalHtml = '';
+        if (g.rid && typeof Rivals !== 'undefined') {
+          const r = Rivals.bestFor(g.rid);
+          if (r) {
+            const leads = Rivals.rivalLeads(g.rid);
+            rivalHtml = '<span class="hof-rival' + (leads ? ' hof-rival-leads' : '') + '" title="' +
+              (leads ? 'They hold the lead' : 'You hold the lead') + '">⚔ ' +
+              r.name + ' · ' + Rivals.fmt(g.rid, r.value) + '</span>';
+          }
+        }
         return '<button class="hof-row' + (best ? '' : ' hof-row-empty') + '" data-hof="' + i + '" style="--accent:' + g.accent + '">' +
                  '<span class="hof-rank">' + rank + '</span>' +
                  '<span class="hof-dot"></span>' +
                  '<span class="hof-name">' + g.name + '</span>' +
                  '<span class="hof-dots"></span>' +
+                 rivalHtml +
                  '<span class="hof-score">' + (best || '— not played —') + '</span>' +
                '</button>';
       }).join('');
       board.querySelectorAll('.hof-row').forEach(row => {
         row.addEventListener('click', () => HOF_GAMES[+row.dataset.hof].go());
       });
+      renderRivalsBar();
+      if (typeof Achievements !== 'undefined') Achievements.renderInto('hof-achievements');
     }
+
+    // ---- Rivals bar (SITE-2) ----
+    function renderRivalsBar() {
+      const listEl = document.getElementById('hof-rival-list');
+      if (!listEl || typeof Rivals === 'undefined') return;
+      const rivals = Object.entries(Rivals.list());
+      listEl.innerHTML = rivals.length
+        ? rivals.map(([name, r]) =>
+            '<span class="hof-rival-chip">⚔ ' + name +
+            ' <span class="hof-rival-n">(' + Object.keys(r.s).length + ' games)</span>' +
+            '<button class="hof-rival-x" data-rname="' + name.replace(/"/g, '') + '" title="Remove ' + name + '">✕</button></span>').join('')
+        : '<span class="hof-rival-none">No rivals yet — trade codes with a friend and race the board.</span>';
+      listEl.querySelectorAll('.hof-rival-x').forEach(btn => {
+        btn.addEventListener('click', () => { Rivals.remove(btn.dataset.rname); renderHallOfFame(); });
+      });
+    }
+
+    document.getElementById('hof-share').addEventListener('click', () => {
+      if (typeof Rivals === 'undefined') return;
+      if (!Rivals.myName()) {
+        const n = prompt('Name to put on your share code (shown to your rivals):', 'PLAYER 1');
+        if (n === null) return;
+        Rivals.setMyName(n.trim() || 'PLAYER 1');
+      }
+      const url = Rivals.shareUrl();
+      const out = document.getElementById('hof-share-out');
+      out.hidden = false;
+      out.textContent = url;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(
+          () => { out.textContent = '✓ Copied to clipboard: ' + url; },
+          () => {});
+      }
+    });
+    document.getElementById('hof-rival-add').addEventListener('click', () => {
+      if (typeof Rivals === 'undefined') return;
+      const input = document.getElementById('hof-rival-code');
+      const raw = input.value.trim().replace(/^.*#hof=/, '');
+      const rival = raw && Rivals.decode(decodeURIComponent(raw));
+      const out = document.getElementById('hof-share-out');
+      out.hidden = false;
+      if (!rival || !Object.keys(rival.s).length) {
+        out.textContent = '✗ That code didn\'t decode — check it was pasted whole.';
+        return;
+      }
+      out.textContent = Rivals.add(rival)
+        ? '✓ Rival added: ' + rival.name
+        : '✗ Rival list is full — remove one first.';
+      input.value = '';
+      renderHallOfFame();
+    });
 
     document.getElementById('hof-reset').addEventListener('click', () => {
       if (!confirm('Clear all your high scores and game saves? This can’t be undone.')) return;
@@ -1358,13 +1438,32 @@
       const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'memorymatrix', 'halloffame'];
       return known.includes(h) ? h : null;
     }
+    // A '#hof=<code>' link is an import, not a view: store the rival,
+    // clean the hash, land on the Hall of Fame with the result showing.
+    function handleRivalHash() {
+      if (typeof Rivals === 'undefined' || !/^#hof=/.test(location.hash || '')) return false;
+      const res = Rivals.tryImportFromHash();
+      switchView('halloffame');
+      const out = document.getElementById('hof-share-out');
+      if (out && res) {
+        out.hidden = false;
+        out.textContent = res.ok ? '✓ Rival added: ' + res.name
+          : res.full ? '✗ Rival list is full — remove one first.'
+          : '✗ That share code didn\'t decode.';
+      }
+      renderHallOfFame();
+      return true;
+    }
+
     window.addEventListener('hashchange', () => {
+      if (handleRivalHash()) return;
       const v = viewFromHash();
       if (v && v !== currentView) switchView(v);
     });
 
     Daily.init();
-    Effects.init().then(() => switchView(viewFromHash() || 'arcade'));
+    if (typeof Achievements !== 'undefined') Achievements.check();
+    Effects.init().then(() => { if (!handleRivalHash()) switchView(viewFromHash() || 'arcade'); });
   });
   </script>
 

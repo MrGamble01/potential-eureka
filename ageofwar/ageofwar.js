@@ -212,6 +212,9 @@ const AgeOfWarGame = (() => {
   let ageFlash = 0;                // 1 → 0 right after aging up
   let ageBannerT = 0;              // seconds banner stays visible
   let ageBannerText = '';
+  // Overtime sudden-death (IDEA-AOW-7): classic-mode stalemates resolve.
+  const OVERTIME_AT = 360;         // seconds before chip damage starts
+  let overtimeWarned = false, overtimeOn = false;
   let bgClouds = [];               // parallax cloud x positions
   let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
   let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
@@ -764,6 +767,7 @@ const AgeOfWarGame = (() => {
     enemyTurrets  = [null, null, null, null];
     playerSlotsOwned = 2;
     combo = 0; comboT = 0; comboBest = 0;
+    overtimeWarned = false; overtimeOn = false;
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
     runStats.specialsFired = 0; runStats.coinsCollected = 0;
     runStats.biggestCombo = 0; runStats.agesReached = 0;
@@ -1474,6 +1478,30 @@ const AgeOfWarGame = (() => {
       if (comboT <= 0) { combo = 0; }
     }
     runStats.time += dt;
+
+    // Overtime (AOW-7): after 6 minutes in classic mode, both bases take
+    // escalating chip damage — whoever built the bigger HP lead (or ends
+    // the game first) wins, so a turtled stalemate can't run forever.
+    // Endless mode is exempt: its economy already forces engagement.
+    if (!endlessMode && !gameOver) {
+      if (!overtimeWarned && runStats.time >= OVERTIME_AT - 30) {
+        overtimeWarned = true;
+        ageBannerText = '⚡ OVERTIME IN 30s — BASES WILL TAKE CHIP DAMAGE';
+        ageBannerT = 2.4;
+      }
+      if (runStats.time >= OVERTIME_AT) {
+        if (!overtimeOn) {
+          overtimeOn = true;
+          ageBannerText = '⚡ OVERTIME — FINISH IT';
+          ageBannerT = 2.4;
+          SFX.hit();
+        }
+        // 2 hp/s at the whistle, +2 every 30s of overtime.
+        const rate = 2 + Math.floor((runStats.time - OVERTIME_AT) / 30) * 2;
+        playerBaseHp -= rate * dt;
+        enemyBaseHp -= rate * dt;
+      }
+    }
     // Screen shake decay
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
     else            shakeMag *= 0.85;
