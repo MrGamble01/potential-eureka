@@ -351,7 +351,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - **IDEA-SITE-4 · Achievements** — declarative `js/achievements.js` table checked from existing hooks (`updateInfo`/`clearLines`/`destroyRock`/`endGame`); toasts + a Hall of Fame section reusing `.hof-row`.
 - **IDEA-SITE-5 · Arcade coins + cosmetics** — earn from achievements; spend on `--accent` palette swaps (already CSS-custom-property-driven).
 - **IDEA-SITE-6 · Theme system** — `:root[data-theme=crt|synthwave|daylight]`, picker by the SFX toggle, `prefers-color-scheme` aware.
-- **IDEA-SITE-7 · Gamepad support** — `js/gamepad.js` polls `getGamepads()` and dispatches the same synthetic `KeyboardEvent`s the Tetris touch pad already uses (`index.html:911`).
+- **~~IDEA-SITE-7 · Gamepad support~~** ✅ **shipped Aug 2026** — `js/gamepad.js` polls `getGamepads()` per frame and dispatches the same synthetic `KeyboardEvent`s the Tetris touch pad already uses (dpad/left stick → arrows, A → Space, B → Escape, Start → Enter), with keyboard-style auto-repeat on held directions (`repeat:true`, so games' own `e.repeat` guards keep working) and a full key-release sweep when the pad unplugs mid-hold.
 - **IDEA-SITE-8 · Local-only "Insights"** — `js/telemetry.js` records launches/minutes to `eureka-stats`; "Your arcade year" panel in the HOF. No network.
 - **~~IDEA-SITE-9 · "Studio Crew" page~~** ✅ **shipped** — the org-chart viz was
   rebuilt around a fictional dev-team cast and now ships as Studio Crew.
@@ -363,7 +363,8 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - Also shipped since this list was written, though never on it: **Drop Four**
   (`js/connect4.js`, minimax + alpha-beta) and **Word Five** (`js/word5.js`).
 - **~~IDEA-ARC-5 · Light Cycles~~** ✅ **shipped Aug 2026** — vs a flood-fill-dodging AI or local 2P on one keyboard; simultaneous claim-then-judge movement (head-ons kill both); `cycles-streak` in the HOF. New views must ALSO be added to `viewFromHash`'s whitelist in index.html — the router rejects unknown hashes.
-- Still open: **IDEA-ARC-2 · Memory Matrix** (Simon; natural daily-challenge seed) · **IDEA-ARC-3 · Stacker** · **IDEA-ARC-4 · Pong++** (reuse Breakout paddle/ball + power-ups) · **IDEA-ARC-6 · Word Cascade** (letters on the Tetris gravity/lock loop) · **IDEA-ARC-7 · Vector Defense** (tower defense in Asteroids' vector style; cap scope: 2 turrets, fixed path, ~8-10 waves).
+- **~~IDEA-ARC-2 · Memory Matrix~~** ✅ **shipped Aug 2026** — Simon on a 3×3 grid (`js/memorymatrix.js`): pentatonic pad tones via the new `SFX.note()`, playback that tightens with the round, keys 1-9 or tap, `matrix-best` in the HOF. **Lesson for new games:** the hub already contains a hidden legacy `<canvas id="matrix-canvas">` (effects.js's Matrix rain, `index.html:45`) — the game originally drew into that invisible canvas and its tests "passed" against the same wrong element; game DOM ids are namespaced `mm-*` now. Check for id collisions against the whole hub, not just your own view.
+- Still open: **IDEA-ARC-3 · Stacker** · **IDEA-ARC-4 · Pong++** (reuse Breakout paddle/ball + power-ups) · **IDEA-ARC-6 · Word Cascade** (letters on the Tetris gravity/lock loop) · **IDEA-ARC-7 · Vector Defense** (tower defense in Asteroids' vector style; cap scope: 2 turrets, fixed path, ~8-10 waves).
 
 ### Startup Tycoon
 - **IDEA-TYC-1 · Second floor "R&D Lab"** — the code ships explicit extension points (`Floor`/`FLOOR_CLASSES`, elevator modal `play.html:422-455`); researchers generate patents = permanent % on `computeDealValue()`.
@@ -374,7 +375,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - **IDEA-TYC-6 · Office pets** — amenity NPC on `stepToward` (`:4750`) with a morale aura (beagle tie-in).
 - **IDEA-TYC-7 · Bug outbreaks** — shipped features occasionally spawn a bug debuff; click desk → engineer enters new `S.FIXING` state. Active-play counterweight to idle income.
 - **IDEA-TYC-8 · Prestige shop** — spend 1 founder point/IPO on permanent meta-perks; gives `prestigeLevel` a decision layer.
-- **IDEA-TYC-9 · Win share-card** — canvas image (season/time/headcount) from `triggerWin()` stats, after TYC-1.
+- **~~IDEA-TYC-9 · Win share-card~~** ✅ **shipped Aug 2026** — 📸 button in the win modal downloads a 1200×630 PNG (season/title, goal headline, 3×2 stat grid with ★ PB flag, seeded confetti) drawn on an offscreen canvas from stats frozen in `triggerWin()`. Variant-aware: Beagle Sim cards carry its name, 🐶 mark, orange accent and `?theme=beagle` URL. Shipped without waiting on TYC-1 — nothing in it depended on the R&D floor.
 
 ### Age of War
 - **~~IDEA-AOW-1 · Endless/Survival mode~~** ✅ **shipped Aug 2026** — ∞ Endless toggle by the difficulty chips; razing the stronghold rebuilds it at 1.5× with a scaling bounty and advances an era; score is waves survived; `aow-best-run` finally has a writer and the run-over screen shows the record.
@@ -394,9 +395,9 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 ### Homeless Village
 - **~~IDEA-HV-1 · Real player movement~~** ✅ **shipped** — `main.js` now has
   WASD/arrow control with the player branched out of the NPC wander array, plus
-  bounds clamping and a blur handler so keys can't stick. A touch joystick is
-  still missing, so mobile remains input-less.
-- **IDEA-HV-2 · Proximity-gated scavenging** — require standing near the already-rendered dumpsters (`scene.js:112-119`) to scavenge; turns the diorama into playspace.
+  bounds clamping and a blur handler so keys can't stick. Mobile got its input
+  with HV-2's tap-to-walk (Aug 2026).
+- **~~IDEA-HV-2 · Proximity-gated scavenging~~** ✅ **shipped Aug 2026** — scavenging requires standing within 3.2 units of a dumpster; the button dims with a 🚶 hint out of range and refusals explain themselves in the log. Ships with tap-to-walk (ground-plane raycast → walk target, keys always win), which finally gives mobile an input method and makes the diorama actual playspace. The Scrapper's daily auto-scavenge is deliberately not gated.
 - **IDEA-HV-3 · A resolvable arc** — milestone check in `onNewDay()` on stats already tracked (`config.js:19`) → "Case Worker" event chain → housing/graduation ending (with sandbox continue). Also answers the tone concern that an endless grind with no exit reads as nihilistic; consider a one-line framing intro. Related copy fix: drop the editorializing "Degrading, but sometimes necessary" from the Panhandle tooltip (`config.js:36`).
 - **~~IDEA-HV-4 · "Pack Up Camp" action~~** ✅ **shipped Aug 2026** — the warning banner has a live countdown and a PACK UP CAMP button: 5 morale to keep 75% of what the sweep would take. Also fixed in passing: a save written mid-warning used to restore `sweepWarned:true` forever, silently blocking all future lookout warnings.
 
@@ -416,6 +417,8 @@ that half is still open.*
 | `mines-best-beginner` / `-intermediate` / `-expert`, `mines-diff` | Minefield | ✓ read by HOF + badges |
 | `connect4-streak`, `c4-diff` | Drop Four | ✓ |
 | `word5-streak` | Word Five | ✓ |
+| `cycles-streak` | Light Cycles | ✓ |
+| `matrix-best` | Memory Matrix | ✓ (predates the `mm-*` DOM-id rename — key name is stable) |
 | `arcade-muted` | `js/sfx.js` | one of three mute keys — by design, each game owns its mute |
 | `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-mode`, `aow-best-run` | Age of War | ✓ (`aow-best-run` written by Endless mode since Aug 2026) |
 | `drug-lab-v1` | Grow Op | ✓ |
