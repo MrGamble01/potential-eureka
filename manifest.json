@@ -11,5 +11,13 @@
   "icons": [
     { "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Daily Challenge", "short_name": "Daily", "url": "/#arcade",
+      "description": "Today's seeded runs — everyone races the same board" },
+    { "name": "Hall of Fame", "short_name": "Scores", "url": "/#halloffame",
+      "description": "Personal bests, trophies, rivals and the coin shop" },
+    { "name": "Age of War", "short_name": "AoW", "url": "/ageofwar/",
+      "description": "Jump straight into the battlefield" }
   ]
 }
