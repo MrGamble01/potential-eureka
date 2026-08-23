@@ -82,6 +82,11 @@
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
     </div>
+    <div class="card-search-wrap">
+      <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
+             aria-label="Filter games" autocomplete="off">
+      <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
+    </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
     <div id="daily-banner" role="region" aria-label="Today's challenge">
       <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
@@ -1645,6 +1650,30 @@
       const v = viewFromHash();
       if (v && v !== currentView) switchView(v);
     });
+
+    // Card search (P4): filters the arcade grid by title or tag text.
+    const searchEl = document.getElementById('card-search');
+    const searchCountEl = document.getElementById('card-search-count');
+    if (searchEl) {
+      const applyFilter = () => {
+        const q = searchEl.value.trim().toLowerCase();
+        const cards = document.querySelectorAll('.arcade-grid .arcade-card');
+        let shown = 0;
+        cards.forEach(card => {
+          const title = (card.querySelector('.arcade-card-title') || {}).textContent || '';
+          const tags = (card.querySelector('.arcade-card-tags') || {}).textContent || '';
+          const hit = !q || (title + ' ' + tags).toLowerCase().includes(q);
+          card.style.display = hit ? '' : 'none';
+          if (hit) shown++;
+        });
+        searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
+      };
+      searchEl.addEventListener('input', applyFilter);
+      searchEl.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { searchEl.value = ''; applyFilter(); searchEl.blur(); }
+        e.stopPropagation();   // typing must not trigger game hotkeys
+      });
+    }
 
     Daily.init();
     if (typeof Coins !== 'undefined') Coins.init();
