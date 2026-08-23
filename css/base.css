@@ -621,3 +621,32 @@ nav button.active {
   --widget-shadow: 0 4px 24px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--border-subtle);
   --widget-shadow-hover: 0 8px 32px rgba(15, 23, 42, 0.12), 0 0 0 1px var(--border);
 }
+
+/* ---- ACCENT PALETTES (SITE-5 cosmetics) ----
+   Bought with arcade coins; swap only the primary token family so they
+   compose with any theme. Declared after the theme blocks on purpose:
+   the accent wins --primary, the theme keeps everything else. */
+:root[data-accent="ember"] {
+  --color-indigo-500: #F0883E;
+  --color-indigo-400: #ffa257;
+  --color-indigo-600: #d9731f;
+  --glow-primary: 0 0 16px rgba(240, 136, 62, 0.3);
+}
+:root[data-accent="jade"] {
+  --color-indigo-500: #3FB950;
+  --color-indigo-400: #56d364;
+  --color-indigo-600: #2ea043;
+  --glow-primary: 0 0 16px rgba(63, 185, 80, 0.3);
+}
+:root[data-accent="rose"] {
+  --color-indigo-500: #F778BA;
+  --color-indigo-400: #ff9ccb;
+  --color-indigo-600: #d9569c;
+  --glow-primary: 0 0 16px rgba(247, 120, 186, 0.3);
+}
+:root[data-accent="gold"] {
+  --color-indigo-500: #F7C948;
+  --color-indigo-400: #ffd970;
+  --color-indigo-600: #d9ab2a;
+  --glow-primary: 0 0 16px rgba(247, 201, 72, 0.32);
+}

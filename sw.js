@@ -55,6 +55,7 @@ const SHELL = [
   '/js/bookmarks.js',
   '/js/breakout.js',
   '/js/calendar.js',
+  '/js/coins.js',
   '/js/connect4.js',
   '/js/daily.js',
   '/js/dashboard.js',
@@ -85,6 +86,7 @@ const SHELL = [
   '/js/vectordefense.js',
   '/js/utils.js',
   '/js/word5.js',
+  '/js/wordcascade.js',
 ];
 
 self.addEventListener('install', event => {

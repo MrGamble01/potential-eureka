@@ -19,6 +19,7 @@ Open `index.html` and you land in a retro terminal-style hub (clock, system moni
 - **Light Cycles** — Tron-style trail duel: trap the AI rider in your light trail (it flood-fills to dodge dead-end pockets), or duel a friend in local 2-player on one keyboard, with a persistent vs-AI win streak
 - **Memory Matrix** — Simon on a 3×3 light grid: watch the pattern, play it back by pad or keys 1-9; each pad owns a pitch so the melody is the memory aid, one more step per round, faster every time
 - **Stacker** — the arcade-cabinet timing tower: drop the slider on the stack, overhangs get sliced off, perfects snap flush with a streak bonus, and the slide speeds up as your tower climbs
+- **Word Cascade** — Wordtris on the Tetris loop: steer falling letters into the stack, spell words (3+ letters) across or down to clear them, columns collapse and chains multiply the score; Scrabble-ish letter values, speeds up as you clear
 - **Vector Defense** — tower defense in Vector Storm's wireframe idiom: raiders crawl a neon S-path, you buy pulse and rail turrets on the pads beside it, ten waves, ten lives, tight and fast
 - **Pong++** — the old table, new tricks: power-ups drift onto the field (grow your paddle, turbo ball, three-ball split), a rubber-banding AI keeps blowouts honest, or duel a friend on one keyboard; first to 7
 - **Game of Life** — Conway's cellular automaton with click-to-draw, preset patterns, age-based cell coloring, and a live population sparkline
@@ -59,9 +60,11 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `pong-streak` | Pong++ |
 | `stacker-best` | Stacker |
 | `vector-best` | Vector Defense |
+| `cascade-best` | Word Cascade |
 | `arcade-daily-<game>-<date>` | Daily challenge bests (today's only — stale dates are swept on boot) |
 | `arcade-rivals`, `rival-name` | Shared-leaderboard rivals + your share-code name |
 | `arcade-achievements` | Unlocked achievements with timestamps (never re-lock) |
+| `arcade-coins` | Coin balance + owned/equipped accent palettes (achievements mint 10 each) |
 | `eureka-stats` | Local-only play insights (launches/minutes per hub game — never sent anywhere) |
 | `arcade-muted` | `js/sfx.js` (arcade hub) |
 | `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-mode`, `aow-best-run`, `aow-relics` | Age of War |
@@ -74,6 +77,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `voxel-garden-v1` | Voxel Isle |
 | `studio-token`, `studio-chat-v1` | Eureka Studio (token stays in the browser, sent only to api.github.com) |
 | `eureka-notes`, `eureka-todos`, `eureka-bookmarks`, `eureka-pomo-sessions`, `eureka-calendar-config`, `eureka-gt-clientid`, `eureka-gt-lists` | productivity view |
+| `eureka-weather-optin` | dashboard weather consent (geolocation is asked only after a click) |
 | `eureka-personal-pin`, `eureka-personal-*` | personal view — **stored unencrypted**; the PIN is a casual screen lock, not security, and the UI says so |
 
 ## Running locally

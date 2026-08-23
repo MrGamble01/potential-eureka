@@ -771,6 +771,14 @@
       transition: width 0.35s ease-out;
       box-shadow: 0 0 10px rgba(245,158,11,0.35);
     }
+    .goal-track--rival { height: 5px; margin-top: 3px; opacity: 0.9; }
+    .goal-fill--rival {
+      background: linear-gradient(90deg, #F85149, #ff8a82);
+      box-shadow: 0 0 8px rgba(248,81,73,0.3);
+      transition: width 0.35s ease-out;
+    }
+    #goal-rival-label { font-size: 9px; color: #7D8590; margin-top: 2px; letter-spacing: 0.5px; }
+    #goal-rival-label strong { color: #ff8a82; }
     #goal-hud.complete {
       border-color: rgba(252,211,77,0.7);
       box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 18px rgba(252,211,77,0.35);
@@ -1469,6 +1477,8 @@
 <div id="goal-hud" aria-label="Season goal progress">
   <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
+  <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
+  <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
   <canvas id="goal-spark" width="240" height="18"></canvas>
 </div>
 <div id="achievements-modal" role="dialog" aria-modal="true" aria-label="Achievements">
@@ -6507,8 +6517,54 @@ document.getElementById('win-share-btn').addEventListener('click', () => {
   showToast('📸 Share card downloaded', 'milestone', 'standard');
 });
 
+// ── Rival startup race (IDEA-TYC-3) ──
+// A ghost competitor chases the same season goal. It paces itself to a
+// ~22-minute season and rubber-bands gently around YOUR progress, so
+// the race stays a race. Beat it to the goal for a cash bonus; lose
+// and the team takes the morale hit of watching a rival IPO first.
+const RIVAL_NAMES = ['Yodel', 'Grubber', 'Snackly', 'Fizzle', 'Blorbo Labs', 'Hyprr', 'Quibblr'];
+let rivalRev = 0, rivalDone = false, rivalName = null;
+function rivalTarget() { return currentGoalTarget(); }
+function initRival(fresh) {
+  if (fresh || !rivalName) {
+    rivalName = (VARIANT.id === 'beagle' ? 'Pug Ventures' : RIVAL_NAMES[Math.floor(Math.random() * RIVAL_NAMES.length)]);
+    rivalRev = 0;
+    rivalDone = false;
+  }
+  const nameEl = document.getElementById('goal-rival-name');
+  if (nameEl) nameEl.textContent = rivalName;
+}
+function updateRival(dt) {
+  if (rivalDone || seasonGoalHit) return;
+  const target = rivalTarget();
+  // Base pace: goal in ~22 min. Rubber band: up to ±35% based on the gap.
+  const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
+  const gap = (mine - rivalRev) / Math.max(1, target);   // + = we lead
+  const band = 1 + Math.max(-0.35, Math.min(0.35, gap * 1.2));
+  rivalRev += (target / (22 * 60)) * band * dt;
+  const fill = document.getElementById('goal-rival-fill');
+  const pctEl = document.getElementById('goal-rival-pct');
+  const pct = Math.min(100, rivalRev / target * 100);
+  if (fill) fill.style.width = pct.toFixed(1) + '%';
+  if (pctEl) pctEl.textContent = Math.floor(pct) + '%';
+  if (rivalRev >= target) {
+    rivalDone = true;
+    changeMorale(-10, `${rivalName} IPO'd first — the office is gutted`);
+    showToast(`🏁 ${rivalName} beat you to the goal. The team felt that one.`, 'event', 'critical');
+    addFeedEntry(`🏁 ${rivalName} rang the bell first`);
+  }
+}
+
 function triggerWin(cumulative) {
   SFX.win(); Haptics.win();
+  if (!rivalDone) {
+    // Beat the ghost to the bell: 5% of the goal as a victory bonus.
+    rivalDone = true;
+    const bonus = Math.round(currentGoalTarget() * 0.05);
+    addCash(bonus);
+    showToast(`🏁 You beat ${rivalName} to the goal — +$${fmtCash(bonus)} victory bonus!`, 'good', 'critical');
+    addFeedEntry(`🏁 Left ${rivalName} in the dust (+$${fmtCash(bonus)})`);
+  }
   launchConfetti({ pieces: 100, duration: 3400 });
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
@@ -8908,6 +8964,7 @@ function frameBody(now) {
   updatePingPong(dt);
   updatePet(dt);
   updateBugs(dt);
+  updateRival(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -9049,6 +9106,7 @@ function doIPO() {
   nextMilestoneIdx = 0;
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   dashHistory.length = 0; _dashT0 = Date.now(); // restart the season revenue chart
+  initRival(true);   // a new season brings a new rival
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
@@ -9464,6 +9522,16 @@ const SAVE_SCHEMA = [
     read: p => { if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit; },
   },
   {
+    key: 'rivalRace', // TYC-3: the ghost competitor persists mid-season
+    write: p => { p.rivalRace = { rev: rivalRev, done: rivalDone, name: rivalName }; },
+    read: p => {
+      if (!p.rivalRace || typeof p.rivalRace !== 'object') return;
+      rivalRev = typeof p.rivalRace.rev === 'number' ? p.rivalRace.rev : 0;
+      rivalDone = !!p.rivalRace.done;
+      if (typeof p.rivalRace.name === 'string' && p.rivalRace.name) rivalName = p.rivalRace.name;
+    },
+  },
+  {
     key: 'seasonRecurringRevenue',
     write: p => { p.seasonRecurringRevenue = seasonRecurringRevenue; },
     read: p => { if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue; },
@@ -9698,6 +9766,7 @@ tickTimer();
 setInterval(tickTimer, 1000);
 
 loadGame();
+initRival(false);   // TYC-3: name the rival (kept from the save when mid-season)
 // Fresh-start players get $400 (enough to hire engineer #1 with
 // change toward #2, so the loop catches fire fast). Returning players
 // keep the existing +$100 welcome-back bonus.
