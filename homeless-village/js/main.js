@@ -29,13 +29,41 @@ window.addEventListener('keyup', function(e){
 // Alt-tabbing away mid-press must not leave a key "stuck" down forever.
 window.addEventListener('blur', function(){ keysDown = {}; });
 
+// Tap/click-to-walk: the touch-input HV never had (IDEA-HV-2's gate would
+// otherwise brick scavenging on phones, which have no WASD). A tap on the
+// ground raycasts to the y=0 plane and the player walks there; any key
+// press cancels the walk and takes over.
+var walkTarget=null;
+var _ray=new THREE.Raycaster();
+var _groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+var _hit=new THREE.Vector3();
+renderer.domElement.addEventListener('pointerdown', function(e){
+  // Don't hijack taps meant for HUD buttons layered over the canvas.
+  if(e.target!==renderer.domElement) return;
+  var r=renderer.domElement.getBoundingClientRect();
+  var ndc={ x:((e.clientX-r.left)/r.width)*2-1, y:-((e.clientY-r.top)/r.height)*2+1 };
+  _ray.setFromCamera(ndc, camera);
+  if(_ray.ray.intersectPlane(_groundPlane,_hit)){
+    walkTarget={
+      x:Math.max(-PLAYER_BOUNDS.x,Math.min(PLAYER_BOUNDS.x,_hit.x)),
+      z:Math.max(PLAYER_BOUNDS.zMin,Math.min(PLAYER_BOUNDS.zMax,_hit.z)),
+    };
+  }
+});
+
 function movePlayer(dt){
   var dx=0, dz=0;
   if(keysDown.up)    dz-=1;
   if(keysDown.down)  dz+=1;
   if(keysDown.left)  dx-=1;
   if(keysDown.right) dx+=1;
-  if(dx===0 && dz===0) return;
+  if(dx!==0||dz!==0){
+    walkTarget=null;             // keys always win over a queued tap-walk
+  } else if(walkTarget){
+    dx=walkTarget.x-player.position.x;
+    dz=walkTarget.z-player.position.z;
+    if(Math.sqrt(dx*dx+dz*dz)<0.15){ walkTarget=null; return; }
+  } else return;
   var len=Math.sqrt(dx*dx+dz*dz);
   dx/=len; dz/=len;
   var dist=PLAYER_SPEED*(dt/1000);
@@ -117,6 +145,7 @@ function frame(ts){
     }
   });
   movePlayer(dt);
+  updateScavengeGate();
 
   // Action progress bars + cooldown disable
   ACTIONS.forEach(function(a){

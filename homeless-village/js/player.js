@@ -1,9 +1,46 @@
 function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 
+// ── Proximity gate (IDEA-HV-2) ──
+// Scavenging only works standing at a dumpster: walk (WASD or tap the
+// ground) up to one of the three bins. Range is generous — the bins are
+// 1.6 units wide and the player capsule has its own radius.
+var SCAVENGE_RANGE=3.2;
+function nearestDumpsterDist(){
+  if(typeof dumpsters==='undefined' || !dumpsters.length || typeof player==='undefined') return 0;
+  var best=Infinity;
+  for(var i=0;i<dumpsters.length;i++){
+    var dx=dumpsters[i].position.x-player.position.x;
+    var dz=dumpsters[i].position.z-player.position.z;
+    var d=Math.sqrt(dx*dx+dz*dz);
+    if(d<best) best=d;
+  }
+  return best;
+}
+function scavengeInRange(){ return nearestDumpsterDist()<=SCAVENGE_RANGE; }
+
+// Called every frame from main.js so the button reads as walk-up-able
+// rather than mysteriously dead. Only touches the DOM on state changes.
+var _scavGateOut=null;
+function updateScavengeGate(){
+  var out=!scavengeInRange();
+  if(out===_scavGateOut) return;
+  _scavGateOut=out;
+  var btn=document.getElementById('action-scavenge');
+  if(!btn) return;
+  btn.classList.toggle('out-of-range',out);
+  btn.title=out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
+                : 'Dig through dumpsters for scraps, cans, or food.';
+}
+
 function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
+  if(a.id==='scavenge' && !scavengeInRange()){
+    log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
+    sfx('error');
+    return;
+  }
   var duration=now<G.injuredUntil ? a.time*1.8 : a.time;
   activeJobs[a.id]={startTime:now,duration:duration};
   var btn=document.getElementById('action-'+a.id);
