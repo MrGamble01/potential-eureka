@@ -85,6 +85,7 @@ const SHELL = [
   '/js/vectordefense.js',
   '/js/utils.js',
   '/js/word5.js',
+  '/js/wordcascade.js',
 ];
 
 self.addEventListener('install', event => {

@@ -12,13 +12,13 @@ const Telemetry = (() => {
   // Hub game views worth counting (utility views are not "plays").
   const GAME_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
     'minesweeper', 'connect4', 'word5', 'maze', 'life', 'lightcycles', 'pong',
-    'stacker', 'vectordefense', 'memorymatrix']);
+    'stacker', 'vectordefense', 'wordcascade', 'memorymatrix']);
   const NAMES = {
     snake: 'Snake', tetris: 'Tetris', breakout: 'Neon Breaker',
     asteroids: 'Vector Storm', 2048: '2048', minesweeper: 'Minefield',
     connect4: 'Drop Four', word5: 'Word Five', maze: 'Maze Runner',
     life: 'Game of Life', lightcycles: 'Light Cycles', pong: 'Pong++',
-    stacker: 'Stacker', vectordefense: 'Vector Defense', memorymatrix: 'Memory Matrix',
+    stacker: 'Stacker', vectordefense: 'Vector Defense', wordcascade: 'Word Cascade', memorymatrix: 'Memory Matrix',
   };
 
   let current = null;    // { view, startedAt }
