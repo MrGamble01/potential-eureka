@@ -1261,7 +1261,11 @@
           return parts.join(' · ');
         } },
       { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
-        best: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
+        best: () => {
+          const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0;
+          if (d <= 0) return null;
+          return d + ' days survived' + (s.arcStage >= 3 ? ' · 🔑 housed' : '');
+        } },
       { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
         best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
       { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => switchView('snake'),

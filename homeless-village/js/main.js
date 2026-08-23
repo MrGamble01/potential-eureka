@@ -82,6 +82,9 @@ buildWorkersUI();
 resumeCrafts();
 updateHUD();
 log('Another day under the bridge. Same as always.');
+if(G.days===0 && G.arcStage===0){
+  log('Word around the camps: a county case worker visits the ones that hold together. Build something worth seeing.');
+}
 // A save whose health already hit 0 (lost, then tab closed without
 // pressing Start Over) must not resume as a playable camp.
 if(G.health<=0) showGameOver();

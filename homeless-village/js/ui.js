@@ -200,6 +200,34 @@ function floatText(msg){
   setTimeout(function(){ d.remove(); },1600);
 }
 
+// Win state (IDEA-HV-3): the arc's ending. Not a reset by default —
+// "keep building" turns the run into an acknowledged sandbox.
+function showGraduation(){
+  if(document.getElementById('hv-graduation')) return;
+  sfx('goal');
+  var d=document.createElement('div');
+  d.id='hv-graduation';
+  d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,8,6,.94);color:#d8e0c8;font-family:monospace;text-align:center;padding:24px;';
+  d.innerHTML='<div style="font-size:34px">🔑</div>'+
+    '<div style="font-size:17px;letter-spacing:2px;color:#8fce6a">KEYS IN HAND</div>'+
+    '<div style="max-width:440px;line-height:1.7">Dena came through. Transitional housing — a door that locks, a radiator that clanks. '+
+    'It took <b>'+G.days+'</b> days under the bridge, a community of <b>'+G.peakPopulation+'</b> at its peak, '+
+    '<b>'+G.totalScavenged+'</b> dumpsters dug through and <b>'+G.totalCrafted+'</b> things built from nothing.'+
+    '<br><br>The camp doesn\u2019t disappear because you did it. Someone else moves into your tent tonight.</div>'+
+    '<div style="display:flex;gap:10px">'+
+    '<button id="hv-grad-new" style="background:#1c2a18;color:#d8e0c8;border:1px solid #4a7030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">START A NEW CAMP</button>'+
+    '<button id="hv-grad-stay" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">KEEP BUILDING</button>'+
+    '</div>';
+  document.body.appendChild(d);
+  document.getElementById('hv-grad-new').addEventListener('click',function(){
+    localStorage.removeItem(SAVE_KEY); location.reload();
+  });
+  document.getElementById('hv-grad-stay').addEventListener('click',function(){
+    G.arcDone=true; saveGame(); d.remove();
+    log('You stayed. The keys sit in your pocket; the camp still needs hands.');
+  });
+}
+
 // Lose state — mirrors the hvFatal overlay in homeless-village.html,
 // but for the camp dying rather than the engine failing. The save is
 // kept until "Start over" so the hub still reads s.days meanwhile.
