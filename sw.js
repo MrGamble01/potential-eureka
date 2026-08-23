@@ -8,7 +8,10 @@
 
 // Bump on any precache-list or caching-strategy change: activate() drops
 // every cache that doesn't match, which is how updates roll out.
-const SW_VERSION = 'eureka-v3';
+// v4: rolls out the P4-P8 waves (relic vault, undo, share cards, backup,
+// hyperspace, layouts, medals, pace, Cascade daily) to installed PWAs —
+// cache-first shells only refresh when this version changes.
+const SW_VERSION = 'eureka-v4';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
