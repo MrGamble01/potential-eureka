@@ -4327,7 +4327,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult;
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w);
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -4423,6 +4423,7 @@ function updateIdeaWorkers(dt) {
       } else if (w.state === S.TO_DELIVER) {
         addRevenue(w.productValue);
         totalFeaturesShipped++;
+        grantShipXP(w);
         maybeShipBug(w);
         checkProductVersion();
         totalUsers += Math.max(1, Math.floor(w.productValue / 4));
@@ -4436,6 +4437,7 @@ function updateIdeaWorkers(dt) {
           w.targetVP.queue.push({ worker: w, value: w.productValue, processTime: vpTierOf(w.targetVP).reviewTime });
           w.pendingWithVP = true;
           totalFeaturesShipped++;
+          grantShipXP(w);
           maybeShipBug(w);
           checkProductVersion();
           totalUsers += Math.max(1, Math.floor(w.productValue / 4));
@@ -7771,6 +7773,34 @@ function updateCoffeeSteam(dt) {
 // whichever paddle the ball reaches swings on contact. Ball + paddle
 // movement is fully idle when no one is playing — table just sits there.
 const PP_BOUNCE_PERIOD = 0.52; // seconds per ball leg (left → right)
+// ── Employee XP / levels (IDEA-TYC-5) ──
+// Every feature an engineer ships is XP. Levels carry a title and a
+// compounding work-rate bonus (+4% per level past Junior), so a
+// long-tenured engineer visibly out-ships a fresh hire. XP persists
+// with the worker roster.
+const XP_LEVELS = [0, 5, 15, 35, 75];          // ships needed per level
+const XP_TITLES = () => VARIANT.id === 'beagle'
+  ? ['Pup', 'Good Dog', 'Very Good Dog', 'Goodest Dog', 'Legend']
+  : ['Junior', 'Mid', 'Senior', 'Staff', 'Principal'];
+function xpLevel(w) {
+  const xp = w.xp || 0;
+  let lv = 1;
+  for (let i = XP_LEVELS.length - 1; i >= 0; i--) if (xp >= XP_LEVELS[i]) { lv = i + 1; break; }
+  return lv;
+}
+function xpWorkMult(w) { return 1 + (xpLevel(w) - 1) * 0.04; }
+function grantShipXP(w) {
+  const before = xpLevel(w);
+  w.xp = (w.xp || 0) + 1;
+  const after = xpLevel(w);
+  if (after > before) {
+    const title = XP_TITLES()[after - 1];
+    showToast(`🎖️ ${title}! An engineer levelled up (+4% work rate)`, 'good', 'standard');
+    addFeedEntry(`🎖️ Promotion on the floor — ${title} (L${after})`);
+    SFX.milestone && SFX.milestone();
+  }
+}
+
 // ── Bug outbreaks (IDEA-TYC-7) ──
 // Shipping fast sometimes ships a bug: the engineer's desk gets a 🐛
 // and they work at HALF speed until you click that desk, which starts
@@ -8671,7 +8701,9 @@ function updateLabels() {
         if ((playerNear || mouseNear) && paper > 3) {
           const fpm = ((w.currentRate || 0) * 60).toFixed(1);
           const prefix = w.dosed ? '💊' : (w.comedown ? '😵' : (w.caffeinated ? '⚡' : (w.bossBoost > 1 ? '👀' : '⚙️')));
-          wants.push({ text: `${prefix} ${fpm}/min`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
+          const lv = xpLevel(w);
+          const badge = lv > 1 ? ` · ${XP_TITLES()[lv - 1]}` : '';
+          wants.push({ text: `${prefix} ${fpm}/min${badge}`, cls: boosted ? 'workrate boosted' : 'workrate', x: p.x, y: p.y - 14 });
         }
       }
     }
@@ -9347,13 +9379,20 @@ const SAVE_SCHEMA = [
     write: p => {
       p.ideaWorkers = ideaWorkers.length;
       p.ideaWorkerExternals = ideaWorkers.map(w => !!w.external);
+      p.ideaWorkerXP = ideaWorkers.map(w => w.xp || 0);   // TYC-5
     },
     // Re-spawn idea workers silently (free on load).
     // (p.supportStaff — legacy barista + runner roles; ignored.)
     read: p => {
       if (!p.ideaWorkers) return;
       const flags = Array.isArray(p.ideaWorkerExternals) ? p.ideaWorkerExternals : [];
-      for (let i = 0; i < p.ideaWorkers; i++) spawnIdeaWorker({ external: !!flags[i] });
+      const xps = Array.isArray(p.ideaWorkerXP) ? p.ideaWorkerXP : [];
+      for (let i = 0; i < p.ideaWorkers; i++) {
+        // spawnIdeaWorker returns a boolean — grab the roster tail for XP.
+        if (spawnIdeaWorker({ external: !!flags[i] }) && typeof xps[i] === 'number') {
+          ideaWorkers[ideaWorkers.length - 1].xp = xps[i];
+        }
+      }
     },
   },
   {
