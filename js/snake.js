@@ -18,6 +18,12 @@ const SnakeGame = (() => {
   let particles = [];
   const sfx = Utils.sfx;
 
+  // Daily-challenge plumbing (SITE-3): layout randomness (food, walls,
+  // bonus food) draws from the seeded daily stream during a daily run and
+  // from Math.random otherwise. Cosmetic particles never touch it.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('snake') : Math.random(); }
+
   function init() {
     canvas = document.getElementById('snake-canvas');
     if (!canvas) return;
@@ -105,6 +111,7 @@ const SnakeGame = (() => {
     gameOver = false;
     running = true;
     speed = 120;
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('snake');
     spawnFood();
     sfx('start');
     updateInfo();
@@ -119,8 +126,8 @@ const SnakeGame = (() => {
   function spawnFood() {
     do {
       food = {
-        x: Math.floor(Math.random() * COLS),
-        y: Math.floor(Math.random() * ROWS),
+        x: Math.floor(drand() * COLS),
+        y: Math.floor(drand() * ROWS),
       };
     } while (snake.some(s => s.x === food.x && s.y === food.y) ||
              walls.some(w => w.x === food.x && w.y === food.y));
@@ -133,10 +140,10 @@ const SnakeGame = (() => {
   function addWallSegment() {
     if (walls.length >= 36) return;
     for (let tries = 0; tries < 60; tries++) {
-      const horiz = Math.random() < 0.5;
-      const len = 2 + Math.floor(Math.random() * 3);
-      const x0 = 2 + Math.floor(Math.random() * (COLS - len - 4));
-      const y0 = 2 + Math.floor(Math.random() * (ROWS - len - 4));
+      const horiz = drand() < 0.5;
+      const len = 2 + Math.floor(drand() * 3);
+      const x0 = 2 + Math.floor(drand() * (COLS - len - 4));
+      const y0 = 2 + Math.floor(drand() * (ROWS - len - 4));
       const cells = [];
       for (let i = 0; i < len; i++) cells.push({ x: x0 + (horiz ? i : 0), y: y0 + (horiz ? 0 : i) });
       const head = snake[0];
@@ -157,8 +164,8 @@ const SnakeGame = (() => {
     let pos, attempts = 0;
     do {
       pos = {
-        x: Math.floor(Math.random() * COLS),
-        y: Math.floor(Math.random() * ROWS),
+        x: Math.floor(drand() * COLS),
+        y: Math.floor(drand() * ROWS),
       };
       attempts++;
     } while (attempts < 100 && (
@@ -282,8 +289,10 @@ const SnakeGame = (() => {
     Effects.shakeCanvas(canvas, 8, 300);
     clearInterval(gameLoop);
 
+    const lines = [`Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}`];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('snake', score));
     Utils.showGameOver('snake-overlay', {
-      lines: [`Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}`],
+      lines,
       hint: 'Press SPACE or tap to restart',
     });
   }
@@ -300,6 +309,13 @@ const SnakeGame = (() => {
   function draw() {
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    if (dailyRun) {
+      ctx.fillStyle = '#F7C948';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('📅 DAILY', WIDTH - 8, 16);
+      ctx.textAlign = 'left';
+    }
 
     // Grid lines (subtle)
     ctx.strokeStyle = 'rgba(255,255,255,0.03)';
@@ -392,6 +408,8 @@ const SnakeGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('snake');
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;

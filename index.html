@@ -66,11 +66,16 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; FOURTEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
+      <div class="arcade-hero-kicker">&#9679; SEVENTEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
 
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
+    </div>
+    <div id="daily-banner" role="region" aria-label="Today's challenge">
+      <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
+      <span class="daily-sub">One shared seed — same pieces, same food, same rocks for everyone. Set today's mark:</span>
+      <span id="daily-games"></span>
     </div>
     <div class="arcade-grid">
 
@@ -275,6 +280,20 @@
           <div class="arcade-card-title">LIGHT CYCLES</div>
           <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Arcade</span></div>
           <div class="arcade-card-desc">Trap the AI in your light trail &mdash; or duel a friend on one keyboard.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="pong" style="--accent:#58A6FF">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/pong.jpg" alt="Pong++ gameplay" width="640" height="405" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="pong"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">PONG++</div>
+          <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Power-ups</span></div>
+          <div class="arcade-card-desc">The old table, new tricks &mdash; split the ball, grow your paddle, first to 7.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -615,6 +634,29 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button id="cycles-mode-btn" onclick="LightCyclesGame.toggleMode()">Mode: VS AI</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-pong" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">PONG++</div>
+        <div class="game-subtitle">First to 7 &middot; catch the power-ups with the ball</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>You: <strong id="pong-p1">0</strong></span>
+        <span>Rival: <strong id="pong-p2">0</strong></span>
+        <span>Streak: <strong id="pong-streak">0</strong></span>
+        <span>Best Streak: <strong id="pong-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="pong-canvas" class="game-canvas" role="img" aria-label="Pong table"></canvas>
+        <div id="pong-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button id="pong-mode-btn" onclick="PongGame.toggleMode()">Mode: VS AI</button>
       </div>
     </div>
   </section>
@@ -1044,8 +1086,10 @@
   <script src="js/connect4.js" defer></script>
   <script src="js/word5.js" defer></script>
   <script src="js/lightcycles.js" defer></script>
+  <script src="js/pong.js" defer></script>
   <script src="js/memorymatrix.js" defer></script>
   <script src="js/gamepad.js" defer></script>
+  <script src="js/daily.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
   // service worker precaches the shell — including vendored three.js, which
@@ -1085,6 +1129,7 @@
       connect4: () => ConnectFourGame.destroy(),
       word5: () => WordFiveGame.destroy(),
       lightcycles: () => LightCyclesGame.destroy(),
+      pong: () => PongGame.destroy(),
       memorymatrix: () => MemoryMatrixGame.destroy(),
       // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
       // dashboard six timers, both for the life of the session regardless of
@@ -1121,6 +1166,7 @@
           case 'connect4':     ConnectFourGame.init(); break;
           case 'word5':        WordFiveGame.init(); break;
           case 'lightcycles':  LightCyclesGame.init(); break;
+          case 'pong':         PongGame.init(); break;
           case 'memorymatrix': MemoryMatrixGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
@@ -1168,10 +1214,12 @@
         best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
       { name: 'Light Cycles',     accent: '#22d3ee', go: () => switchView('lightcycles'),
         best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
+      { name: 'Pong++',           accent: '#58A6FF', go: () => switchView('pong'),
+        best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
       { name: 'Memory Matrix',    accent: '#a78bfa', go: () => switchView('memorymatrix'),
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1240,6 +1288,7 @@
         connect4: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : ''; },
         word5: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' streak' : ''; },
         lightcycles: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : ''; },
+        pong: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : ''; },
         memorymatrix: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'ROUND ' + v : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
@@ -1306,7 +1355,7 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'memorymatrix', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'memorymatrix', 'halloffame'];
       return known.includes(h) ? h : null;
     }
     window.addEventListener('hashchange', () => {
@@ -1314,6 +1363,7 @@
       if (v && v !== currentView) switchView(v);
     });
 
+    Daily.init();
     Effects.init().then(() => switchView(viewFromHash() || 'arcade'));
   });
   </script>

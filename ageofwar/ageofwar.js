@@ -824,11 +824,22 @@ const AgeOfWarGame = (() => {
       speed: def.speed, xp: def.xp, gold: def.gold,
       w, h,
       hitFlash: 0,
+      aliveT: 0,                           // veterancy clock (AOW-5)
       walkPhase: Math.random() * Math.PI * 2,
       attackPose: 0,                       // seconds remaining in strike pose
     };
     units.push(u);
     return u;
+  }
+
+  // ── Veterancy (IDEA-AOW-5) ──
+  // Units that stay alive get better: 25s = Veteran (+10% damage, gold
+  // chevron), 60s = Elite (+20%, double chevron). Time only counts while
+  // the sim runs, so pausing doesn't farm stripes.
+  function vetTier(u) { return u.aliveT >= 60 ? 2 : u.aliveT >= 25 ? 1 : 0; }
+  function vetDmg(u) {
+    const t = vetTier(u);
+    return t ? Math.round(u.dmg * (1 + 0.1 * t)) : u.dmg;
   }
 
   function tryPlayerSpawn(key) {
@@ -1488,6 +1499,7 @@ const AgeOfWarGame = (() => {
     for (const u of units) {
       if (u.hp <= 0) continue;
       u.hitFlash = Math.max(0, u.hitFlash - dt);
+      u.aliveT += dt;
       const ownBucket = u.side === 'player' ? playerBucket : enemyBucket;
       const foeBucket  = u.side === 'player' ? enemyBucket  : playerBucket;
       let target = null, bestDist = Infinity;
@@ -1537,19 +1549,20 @@ const AgeOfWarGame = (() => {
               const arc = projectileArc(kind, dist, 360);
               projectiles.push({
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
-                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                vx: dirX * 360, dmg: vetDmg(u), life: 1.5, color: u.color,
                 kind, vy: arc.vy, grav: arc.grav,
                 trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
-              if (u.side === 'player') enemyBaseHp -= u.dmg;
-              else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
-              spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
+              const dd = vetDmg(u);
+              if (u.side === 'player') enemyBaseHp -= dd;
+              else                   { playerBaseHp -= dd; vibrateBaseHit(); }
+              spawnDmgFloater(dd, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
               spawnHitSparks(baseTargetX, GROUND_Y - 90, u.color);
               SFX.hit();
               // Heavy hit = noticeable shake; small hit = light shake.
-              shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+              shake(Math.min(8, 1 + vetDmg(u) / 80), 0.18);
             }
           } else if (target) {
             if (u.range > 60) {
@@ -1557,14 +1570,15 @@ const AgeOfWarGame = (() => {
               const arc = projectileArc(kind, dist, 360);
               projectiles.push({
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
-                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                vx: dirX * 360, dmg: vetDmg(u), life: 1.5, color: u.color,
                 kind, vy: arc.vy, grav: arc.grav,
                 trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
-              target.hp -= u.dmg; target.hitFlash = 0.2;
-              spawnDmgFloater(u.dmg, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
+              const dd = vetDmg(u);
+              target.hp -= dd; target.hitFlash = 0.2;
+              spawnDmgFloater(dd, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
               spawnHitSparks(target.x, GROUND_Y - target.h * 0.5);
               SFX.hit();
             }
@@ -6143,6 +6157,23 @@ const AgeOfWarGame = (() => {
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(255,80,255,0.6)'; ctx.shadowBlur = 8;
       ctx.fillText('👑 BOSS', u.x, feetY - drawH - 4);
+      ctx.shadowBlur = 0;
+    }
+
+    // Veterancy chevrons (AOW-5): gold stripes above the HP bar.
+    const _vt = (typeof vetTier === 'function') ? vetTier(u) : 0;
+    if (_vt > 0) {
+      ctx.strokeStyle = '#fcd34d';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'rgba(252,211,77,0.7)'; ctx.shadowBlur = 6;
+      for (let i = 0; i < _vt; i++) {
+        const yy = feetY - drawH - (isHero || isBoss ? 26 : 12) - i * 6;
+        ctx.beginPath();
+        ctx.moveTo(u.x - 6, yy);
+        ctx.lineTo(u.x, yy - 5);
+        ctx.lineTo(u.x + 6, yy);
+        ctx.stroke();
+      }
       ctx.shadowBlur = 0;
     }
 

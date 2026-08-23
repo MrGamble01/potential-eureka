@@ -75,6 +75,7 @@ const Game2048 = (() => {
     score = 0; won = false; over = false;
     anim = null; queuedDir = null; winBannerUntil = 0;
     mergedCells = null;
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('game2048');
     addRandom(); addRandom();
     running = run !== false;
     const ov = document.getElementById('g2048-overlay');
@@ -85,12 +86,17 @@ const Game2048 = (() => {
   }
   function start() { newGame(true); }
 
+  // Daily-challenge plumbing (SITE-3): tile spawns are 2048's only
+  // randomness, so the seeded stream makes the whole run shared-fate.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('game2048') : Math.random(); }
+
   function addRandom() {
     const empty = [];
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!grid[r][c]) empty.push([r, c]);
     if (!empty.length) return null;
-    const [r, c] = empty[Math.floor(Math.random() * empty.length)];
-    grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+    const [r, c] = empty[Math.floor(drand() * empty.length)];
+    grid[r][c] = drand() < 0.9 ? 2 : 4;
     return { r, c };
   }
 
@@ -184,8 +190,10 @@ const Game2048 = (() => {
     over = true; running = false;
     SFX_play('over');
     best = Utils.highScore.save('g2048-best', score, best);
+    const lines = ['Score: ' + score];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('game2048', score));
     Utils.showGameOver('g2048-overlay', {
-      lines: ['Score: ' + score],
+      lines,
       hint: 'Press SPACE or tap to play again',
     });
   }
@@ -321,6 +329,8 @@ const Game2048 = (() => {
 
   function destroy() {
     cancelAnimationFrame(raf); raf = null; clearTimeout(overTimer);
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('game2048');
     // The shell re-inits a view only once, and won't redraw on return — so
     // paint the idle "tap to start" state now, else a frozen frame shows.
     running = false; over = false;

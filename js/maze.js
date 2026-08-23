@@ -69,7 +69,7 @@ const MazeGame = (() => {
       }
       if (neighbors.length === 0) { stack.pop(); }
       else {
-        const [nr, nc, wr, wc] = neighbors[Math.floor(Math.random() * neighbors.length)];
+        const [nr, nc, wr, wc] = neighbors[Math.floor(drand() * neighbors.length)];
         grid[wr][wc] = 0;
         grid[nr][nc] = 0;
         stack.push([nr, nc]);
@@ -79,11 +79,19 @@ const MazeGame = (() => {
     grid[rows - 2][cols - 1] = 0; // exit
   }
 
+  // Daily-challenge plumbing (SITE-3): maze layout + gem scatter draw from
+  // the seeded daily stream, so everyone runs the same labyrinth sequence.
+  // The run is endless — the daily best records the cumulative score at
+  // every level clear. Sparks stay on Math.random.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('maze') : Math.random(); }
+
   // Called by the "Generate New" / regenerate button — starts a fresh run.
   function generate() { newGame(); }
 
   function newGame() {
     level = 1; score = 0;
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('maze');
     buildLevel();
     updateStatus();
   }
@@ -105,7 +113,7 @@ const MazeGame = (() => {
         if (grid[r][c] === 0 && !(r === player.r && Math.abs(c - player.c) < 3)) open.push([r, c]);
     const nGems = Math.min(open.length, 4 + level);
     for (let i = 0; i < nGems && open.length; i++) {
-      const idx = Math.floor(Math.random() * open.length);
+      const idx = Math.floor(drand() * open.length);
       const [r, c] = open.splice(idx, 1)[0];
       gems.push({ r, c });
     }
@@ -158,7 +166,9 @@ const MazeGame = (() => {
     Effects.shakeCanvas(canvas, 6, 300);
     winFlash = 40;
     spark(goal.c, goal.r, '#3FB950', 24);
-    updateStatus('🎉 Level ' + level + ' cleared! +' + (timeBonus + gemBonus + level * 30 + allGems));
+    let clearMsg = '🎉 Level ' + level + ' cleared! +' + (timeBonus + gemBonus + level * 30 + allGems);
+    if (dailyRun && typeof Daily !== 'undefined') clearMsg += ' &nbsp;·&nbsp; ' + Daily.result('maze', score);
+    updateStatus(clearMsg);
     level++;
     setTimeout(() => buildLevel(), 900);
   }
@@ -425,6 +435,10 @@ const MazeGame = (() => {
     // no-ops while hidden via viewActive()). The runner resumes right where
     // you left it when you come back.
     cancelSolve();
+    // A daily maze run DOES end on leaving the view — the next visit's
+    // newGame() would re-seed from the top anyway, so a stale flag would lie.
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('maze');
   }
 
   return { init, generate, newGame, solve, destroy };

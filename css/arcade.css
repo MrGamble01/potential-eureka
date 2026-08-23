@@ -507,3 +507,27 @@ nav .logo-btn {
     margin: 0;
   }
 }
+
+/* ── Daily challenge banner (SITE-3) ── */
+#daily-banner {
+  max-width: 1100px;
+  margin: 0 auto 26px;
+  padding: 12px 18px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  background: rgba(247, 201, 72, 0.06);
+  border: 1px solid rgba(247, 201, 72, 0.25);
+  border-radius: 10px;
+}
+.daily-title { font-weight: 800; font-size: 13px; letter-spacing: 1px; color: #F7C948; white-space: nowrap; }
+#daily-date { color: var(--text-muted, #7D8590); font-weight: 600; margin-left: 4px; }
+.daily-sub { font-size: 12px; color: var(--text-muted, #7D8590); }
+#daily-games { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.daily-chip {
+  background: rgba(247, 201, 72, 0.1);
+  border: 1px solid rgba(247, 201, 72, 0.35);
+  color: #E6EDF3; font-family: inherit; font-size: 12px; font-weight: 700;
+  border-radius: 16px; padding: 5px 14px; cursor: pointer;
+  transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px;
+}
+.daily-chip:hover { background: rgba(247, 201, 72, 0.22); border-color: #F7C948; }
+.daily-best { color: #F7C948; font-weight: 800; }
