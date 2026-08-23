@@ -37,6 +37,7 @@ const Telemetry = (() => {
     if (!GAME_VIEWS.has(view)) { current = null; return; }
     const s = load();
     s.launches[view] = (s.launches[view] || 0) + 1;
+    s.lastPlayed = view;
     save(s);
     current = { view, startedAt: Date.now() };
   }
@@ -107,10 +108,35 @@ const Telemetry = (() => {
       `<div class="ins-note">Stored only in this browser. Never sent anywhere.</div>`;
   }
 
+  // "Jump back in" (P4): quick-resume chips on the hub — the last game
+  // you played plus your top games by time. Hidden until there's history.
+  function renderResume(id, go) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const s = load();
+    const games = Object.keys(s.seconds).sort((a, b) => s.seconds[b] - s.seconds[a]);
+    if (!games.length) { el.innerHTML = ''; el.hidden = true; return; }
+    const last = s.lastPlayed && games.includes(s.lastPlayed) ? s.lastPlayed : null;
+    const picks = [];
+    if (last) picks.push({ id: last, tag: 'last played' });
+    for (const g of games) {
+      if (picks.length >= 4) break;
+      if (!picks.some(p => p.id === g)) picks.push({ id: g, tag: fmtMins(s.seconds[g]) });
+    }
+    el.hidden = false;
+    el.innerHTML = `<span class="resume-label">⏵ JUMP BACK IN</span>` +
+      picks.map(p =>
+        `<button class="resume-chip" data-view="${p.id}">${NAMES[p.id] || p.id}` +
+        `<span class="resume-tag">${p.tag}</span></button>`).join('');
+    el.querySelectorAll('.resume-chip').forEach(btn => {
+      btn.addEventListener('click', () => go(btn.dataset.view));
+    });
+  }
+
   function init() {
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
     window.addEventListener('pagehide', flush);
   }
 
-  return { init, enter, flush, renderInto };
+  return { init, enter, flush, renderInto, renderResume };
 })();
