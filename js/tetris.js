@@ -21,7 +21,8 @@ const TetrisGame = (() => {
   const PIECE_KEYS = Object.keys(PIECES);
 
   let canvas, ctx, nextCanvas, nextCtx, holdCanvas, holdCtx;
-  let board, current, next, held;
+  let nextQ = [];   // 3-piece preview queue (P4) — bag order untouched
+  let board, current, held;
   let score, highScore, level, linesCleared;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
@@ -88,7 +89,7 @@ const TetrisGame = (() => {
     board = createBoard();
     running = gameOver = false;
     score = level = 0; linesCleared = 0;
-    current = next = held = null;
+    current = held = null; nextQ = [];
     bag = [];
 
     updateInfo();
@@ -202,12 +203,28 @@ const TetrisGame = (() => {
     clearLines();
   }
 
+  // Render the 3-piece queue stacked in the next canvas; the on-deck
+  // piece full-strength, the two behind it dimmed.
+  function drawNextQueue() {
+    if (!nextCtx) return;
+    const W = nextCanvas.width, H = nextCanvas.height;
+    nextCtx.fillStyle = '#0d1117';
+    nextCtx.fillRect(0, 0, W, H);
+    const slotH = Math.floor(H / 3);
+    for (let i = 0; i < 3; i++) {
+      if (!nextQ[i]) continue;
+      nextCtx.globalAlpha = i === 0 ? 1 : 0.55;
+      drawPreview(nextCtx, nextQ[i], { x: 0, y: i * slotH, w: W, h: slotH });
+    }
+    nextCtx.globalAlpha = 1;
+  }
+
   function spawnNext() {
     cancelLock(); lockResets = 0;
     canHold = true;
-    current = next;
-    next = drawFromBag();
-    drawPreview(nextCtx, next);
+    current = nextQ.shift();
+    nextQ.push(drawFromBag());
+    drawNextQueue();
     if (collides(current.shape, current.x, current.y)) endGame();
   }
 
@@ -330,9 +347,9 @@ const TetrisGame = (() => {
       current = swapIn;
     } else {
       held = swapOut;
-      current = next;
-      next = drawFromBag();
-      drawPreview(nextCtx, next);
+      current = nextQ.shift();
+      nextQ.push(drawFromBag());
+      drawNextQueue();
     }
     drawPreview(holdCtx, held);
     if (collides(current.shape, current.x, current.y)) endGame();
@@ -352,8 +369,8 @@ const TetrisGame = (() => {
     dailyRun = (typeof Daily !== 'undefined') && Daily.begin('tetris');
     sfx('start');
     current = drawFromBag();
-    next    = drawFromBag();
-    drawPreview(nextCtx, next);
+    nextQ = [drawFromBag(), drawFromBag(), drawFromBag()];
+    drawNextQueue();
     drawPreview(holdCtx, null);
 
     const ov = document.getElementById('tetris-overlay');
@@ -495,11 +512,16 @@ const TetrisGame = (() => {
     }
   }
 
-  function drawPreview(c, piece) {
+  function drawPreview(c, piece, region) {
     if (!c) return;
-    const W = c.canvas.width, H = c.canvas.height;
-    c.fillStyle = '#0d1117';
-    c.fillRect(0, 0, W, H);
+    const full = !region;
+    const W = full ? c.canvas.width : region.w;
+    const H = full ? c.canvas.height : region.h;
+    const ox = full ? 0 : region.x, oy = full ? 0 : region.y;
+    if (full) {
+      c.fillStyle = '#0d1117';
+      c.fillRect(0, 0, W, H);
+    }
     if (!piece) return;
 
     const shape = piece.shape;
@@ -512,8 +534,8 @@ const TetrisGame = (() => {
         }
     const bR = maxR - minR + 1, bC = maxC - minC + 1;
     const cell = Math.min(Math.floor((W - 16) / bC), Math.floor((H - 16) / bR), 28);
-    const sx = Math.floor((W - bC * cell) / 2);
-    const sy = Math.floor((H - bR * cell) / 2);
+    const sx = ox + Math.floor((W - bC * cell) / 2);
+    const sy = oy + Math.floor((H - bR * cell) / 2);
 
     for (let r = minR; r <= maxR; r++) {
       for (let col = minC; col <= maxC; col++) {
