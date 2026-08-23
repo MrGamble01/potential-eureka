@@ -21,6 +21,33 @@ const WordCascadeGame = (() => {
     'about above adult after again alarm alone amber angle apple arena badge beach board brain bread break brick bring brown build cabin candy chair charm chart chase check chess chest child claim class clean clear clock cloud coast count court cover craft crane crash cream crown dance depth diary dozen dream dress drink drive eagle early earth eight elbow ember empty enjoy enter entry equal event every exact fable faith fancy feast fence field fifty fight final first flame flash float flood floor flour focus force forge forty found frame fresh front frost fruit ghost giant glass globe glory glove grace grade grain grand grant grape graph grass great green greet group guard guess guest guide habit heart heavy hedge honey honor horse hotel house human humor ideal image index inner input issue jelly jewel joint judge juice knife knock label large laser latch laugh layer learn lease least leave ledge legal lemon level light limit linen liver lobby local lodge logic loose loyal lucky lunar lunch magic major maker mango maple march match mayor medal media melon mercy merge merit merry metal meter might minor mixer model money month moral motor mound mount mouse mouth movie music never night noble noise north notch noted novel nurse ocean offer often olive onion opera orbit organ other otter ounce outer owner paper party paste patch pause peace peach pearl pedal penny perch petal phase phone photo piano piece pilot pinch pitch pivot pixel pizza place plain plane plank plant plate plaza point polar porch pound power press price pride prime print prize proof proud prove pulse punch pupil purse queen quest quick quiet quilt quote radar radio rally ranch range rapid ratio reach react ready realm rebel refer reign relax relay reply reset rider ridge rifle right rinse risen rival river roast robot rocky rogue rough round route royal ruler rural saint salad salsa salty sauce scale scene scent scoop scope score scout seize sense serve seven shade shaft shake shame shape share shark sharp shave sheep sheet shelf shell shine shiny shirt shock shore short shout shown siege sight silky silly since siren sixty skate skill skirt skull slate sleep slice slide slope small smart smell smile smoke snack snail snake sneak solar solid solve sonic sound south space spade spare spark speak spear speed spell spend spice spike spill spine spoke spoon sport spout spray spree squad stack staff stage stair stake stale stalk stall stamp stand stare start state steak steal steam steel steep steer stern stick stiff still sting stock stone stood stool store stork storm story stout stove strap straw strip stuck study stuff stump sugar suite sunny super surge sweet swift swing sword table taken tally tango taste teach tease tempo tenor tense tenth theme there thick thing think third thorn three throw thumb tiger tight timer toast today token tonic tooth topic torch total touch tough towel tower toxic trace track trade trail train trait treat trend trial tribe trick troop trout truce truck trunk trust truth tulip tutor twice twist under union unite unity until upper urban usage usher usual value vapor vault venue verse video vigor villa vinyl viola visit vital vivid vocal voice vowel wafer wager wagon waist waltz waste watch water weary weave wedge weigh whale wheat wheel where which while white whole width witch woman world worry worth would wound woven wrist write wrong yacht yeast yield young youth zebra'
   ).split(/\s+/).filter(Boolean));
 
+  // P4-WC-1: regular inflections of dictionary words also count — plurals
+  // (+s/+es), past tense (+ed, bake→baked, beg→begged) and gerunds (+ing,
+  // bake→baking, dig→digging), capped at 7 letters (rows are 8 wide).
+  // Function words never inflect (no "thes"/"ands").
+  const NO_INFLECT = new Set(('the and was has his its who why how you are but for nor she him her ' +
+    'had did were they them this that then than thus with from your also very into onto upon only ' +
+    'such been each much most some when what were where which while would could should').split(' '));
+  function isWord(w) {
+    if (DICT.has(w)) return true;
+    if (w.length < 4 || w.length > 7) return false;
+    const stemOk = s => s.length >= 3 && DICT.has(s) && !NO_INFLECT.has(s);
+    const dbl = w.length >= 5 && w[w.length - 4] === w[w.length - 5];
+    if (w.endsWith('s') && !w.endsWith('ss')) {
+      if (stemOk(w.slice(0, -1))) return true;
+      if (w.endsWith('es') && stemOk(w.slice(0, -2))) return true;
+    }
+    if (w.endsWith('ed')) {
+      if (stemOk(w.slice(0, -2)) || stemOk(w.slice(0, -1))) return true;   // acted / baked
+      if (w[w.length - 3] === w[w.length - 4] && stemOk(w.slice(0, -3))) return true; // begged
+    }
+    if (w.endsWith('ing')) {
+      if (stemOk(w.slice(0, -3)) || stemOk(w.slice(0, -3) + 'e')) return true; // acting / baking
+      if (dbl && stemOk(w.slice(0, -4))) return true;                          // digging
+    }
+    return false;
+  }
+
   // Scrabble-ish letter values + a frequency-weighted draw bag.
   const VALS = { a:1,b:3,c:3,d:2,e:1,f:4,g:2,h:4,i:1,j:8,k:5,l:1,m:3,n:1,o:1,p:3,q:10,r:1,s:1,t:1,u:1,v:4,w:4,x:8,y:4,z:10 };
   const BAG = 'eeeeeeeeeeaaaaaaaaiiiiiiiioooooonnnnnnrrrrrrttttttllllssssuuuuddddgggbbccmmppffhhvvwwyykjxqz';
@@ -141,7 +168,7 @@ const WordCascadeGame = (() => {
     let found = null;
     const consider = (cells) => {
       const word = cells.map(c => grid[c.r][c.c]).join('');
-      if (!DICT.has(word)) return;
+      if (!isWord(word)) return;
       const val = cells.reduce((t, c) => t + (VALS[grid[c.r][c.c]] || 1), 0);
       if (!found || word.length > found.word.length ||
           (word.length === found.word.length && val > found.val)) {
