@@ -14,12 +14,15 @@ const LightCyclesGame = (() => {
 
   const P1_COLOR = '#22d3ee';
   const P2_COLOR = '#F778BA';
+  const P3_COLOR = '#F7C948';   // P5: optional third rider, always AI
+  const TRAIL_COLORS = [null, 'rgba(34,211,238,0.55)', 'rgba(247,120,186,0.55)', 'rgba(247,201,72,0.55)'];
   const DIRS = [{ x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }]; // U R D L
 
   let canvas, ctx;
   let board;                 // COLS*ROWS ints: 0 empty, 1 p1 trail, 2 p2 trail
   let riders;                // [{x,y,dir,nextDir,alive,color}, ...] index 0 = P1, 1 = P2/AI
   let twoPlayer = false;
+  let thirdAI = false;       // P5: three-cycle free-for-all
   let running, gameOver, roundMsg;
   let gameLoop, speed;
   let survivedTicks;
@@ -92,8 +95,10 @@ const LightCyclesGame = (() => {
       { x: 6, y: Math.floor(ROWS / 2), dir: 1, nextDir: 1, alive: true, color: P1_COLOR },
       { x: COLS - 7, y: Math.floor(ROWS / 2), dir: 3, nextDir: 3, alive: true, color: P2_COLOR },
     ];
-    board[idx(riders[0].x, riders[0].y)] = 1;
-    board[idx(riders[1].x, riders[1].y)] = 2;
+    if (thirdAI) {
+      riders.push({ x: Math.floor(COLS / 2), y: 3, dir: 2, nextDir: 2, alive: true, color: P3_COLOR });
+    }
+    riders.forEach((r, i) => { board[idx(r.x, r.y)] = i + 1; });
     particles = [];
     survivedTicks = 0;
     speed = 95;
@@ -166,8 +171,8 @@ const LightCyclesGame = (() => {
     return count;
   }
 
-  function aiSteer() {
-    const ai = riders[1];
+  function aiSteer(who) {
+    const ai = riders[who];
     const options = [ai.dir, (ai.dir + 3) % 4, (ai.dir + 1) % 4]; // straight, left, right
     const rays = options.map(d => rayLen(ai.x, ai.y, d));
 
@@ -188,26 +193,34 @@ const LightCyclesGame = (() => {
   }
 
   function tick() {
-    if (!twoPlayer) aiSteer();
+    if (!twoPlayer && riders[1].alive) aiSteer(1);
+    if (riders[2] && riders[2].alive) aiSteer(2);
     survivedTicks++;
 
-    // Move both riders simultaneously: claim first, then judge, so
+    // Move all live riders simultaneously: claim first, then judge, so
     // head-to-head collisions kill both instead of whoever moved second.
     const targets = riders.map(r => {
+      if (!r.alive) return null;
       r.dir = r.nextDir;
       return { x: r.x + DIRS[r.dir].x, y: r.y + DIRS[r.dir].y };
     });
 
-    const crashed = [false, false];
-    for (let i = 0; i < 2; i++) {
+    const crashed = riders.map(() => false);
+    for (let i = 0; i < riders.length; i++) {
       const t = targets[i];
-      if (!inBounds(t.x, t.y) || board[idx(t.x, t.y)] !== 0) crashed[i] = true;
+      if (t && (!inBounds(t.x, t.y) || board[idx(t.x, t.y)] !== 0)) crashed[i] = true;
     }
-    if (targets[0].x === targets[1].x && targets[0].y === targets[1].y) {
-      crashed[0] = crashed[1] = true;   // head-on into the same cell
+    for (let i = 0; i < riders.length; i++) {
+      for (let j = i + 1; j < riders.length; j++) {
+        if (targets[i] && targets[j] &&
+            targets[i].x === targets[j].x && targets[i].y === targets[j].y) {
+          crashed[i] = crashed[j] = true;   // head-on into the same cell
+        }
+      }
     }
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < riders.length; i++) {
+      if (!targets[i]) continue;
       if (crashed[i]) {
         riders[i].alive = false;
         spawnBurst(riders[i].x, riders[i].y, riders[i].color);
@@ -231,25 +244,26 @@ const LightCyclesGame = (() => {
       if (p.life <= 0) particles.splice(i, 1);
     }
 
-    if (crashed[0] || crashed[1]) return endRound(crashed);
+    // Round runs until at most one rider is left standing — with a third
+    // rider on the grid the first crash just thins the field.
+    if (riders.filter(r => r.alive).length <= 1) return endRound();
     draw();
   }
 
-  function endRound(crashed) {
+  function endRound() {
     running = false;
     gameOver = true;
     clearInterval(gameLoop);
     Effects.shakeCanvas(canvas, 8, 300);
 
-    const p1Name = twoPlayer ? 'PLAYER 1' : 'You';
-    const p2Name = twoPlayer ? 'PLAYER 2' : 'The AI';
+    const survivor = riders.findIndex(r => r.alive);
     let title;
-    if (crashed[0] && crashed[1]) {
-      title = 'DOUBLE CRASH — draw';
+    if (survivor === -1) {
+      title = riders.length > 2 ? 'EVERYBODY CRASHED — draw' : 'DOUBLE CRASH — draw';
       sfx('die');
-    } else if (crashed[1]) {
+    } else if (survivor === 0) {
       wins++;
-      title = `${p2Name} crashed — ${twoPlayer ? 'Player 1 takes the round!' : 'you take the round!'}`;
+      title = twoPlayer ? 'Player 1 takes the round!' : 'You take the round!';
       sfx('bonus');
       if (!twoPlayer) {
         streak++;
@@ -257,7 +271,8 @@ const LightCyclesGame = (() => {
       }
     } else {
       losses++;
-      title = `${p1Name} crashed — ${twoPlayer ? 'Player 2 takes the round!' : 'the AI takes the round.'}`;
+      title = survivor === 2 ? 'The gold rival takes the round.'
+        : (twoPlayer ? 'Player 2 takes the round!' : 'The AI takes the round.');
       sfx('die');
       if (!twoPlayer) streak = 0;
     }
@@ -316,7 +331,7 @@ const LightCyclesGame = (() => {
         for (let x = 0; x < COLS; x++) {
           const v = board[idx(x, y)];
           if (!v) continue;
-          ctx.fillStyle = v === 1 ? 'rgba(34,211,238,0.55)' : 'rgba(247,120,186,0.55)';
+          ctx.fillStyle = TRAIL_COLORS[v] || TRAIL_COLORS[2];
           ctx.fillRect(x * GRID + 1, y * GRID + 1, GRID - 2, GRID - 2);
         }
       }
@@ -366,5 +381,23 @@ const LightCyclesGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, toggleMode };
+  // P5: third-rider toggle. A mode change mid-round resets tallies for the
+  // same reason toggleMode does — the streak only means something if every
+  // round in it was played on the same grid.
+  function toggleThird() {
+    thirdAI = !thirdAI;
+    const btn = document.getElementById('cycles-third-btn');
+    if (btn) {
+      btn.textContent = thirdAI ? 'Riders: 3' : 'Riders: 2';
+      btn.style.borderColor = thirdAI ? P3_COLOR : '';
+      btn.style.color = thirdAI ? P3_COLOR : '';
+    }
+    clearInterval(gameLoop);
+    running = false; gameOver = false; roundMsg = null;
+    wins = 0; losses = 0; streak = 0;
+    updateInfo();
+    draw();
+  }
+
+  return { init, start, destroy, toggleMode, toggleThird };
 })();

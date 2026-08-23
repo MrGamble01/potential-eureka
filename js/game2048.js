@@ -22,6 +22,7 @@ const Game2048 = (() => {
   let raf, lastT;
   let queuedDir = null;    // input buffered while the slide animation runs
   let winBannerUntil = 0;  // one-time "you made 2048" banner deadline
+  let undoState = null;    // P5: pre-move snapshot, one step deep
 
   function init() {
     canvas = document.getElementById('g2048-canvas');
@@ -65,6 +66,7 @@ const Game2048 = (() => {
     if ((e.key === ' ' || e.key === 'Enter') && (over || !running)) { newGame(true); e.preventDefault(); return; }
     const map = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D',
       a: 'L', d: 'R', w: 'U', s: 'D', A: 'L', D: 'R', W: 'U', S: 'D' };
+    if (e.key === 'z' || e.key === 'Z') { undo(); e.preventDefault(); return; }
     const dir = map[e.key];
     if (dir) { move(dir); e.preventDefault(); }
   }
@@ -74,7 +76,7 @@ const Game2048 = (() => {
     grid = Array.from({ length: N }, () => Array(N).fill(0));
     score = 0; won = false; over = false;
     anim = null; queuedDir = null; winBannerUntil = 0;
-    mergedCells = null;
+    mergedCells = null; undoState = null;
     dailyRun = (typeof Daily !== 'undefined') && Daily.begin('game2048');
     addRandom(); addRandom();
     running = run !== false;
@@ -156,6 +158,10 @@ const Game2048 = (() => {
     }
     if (!changed) return;
 
+    // One-step undo: remember the board we're leaving. Daily runs never
+    // get a snapshot — a shared-fate score with take-backs isn't one.
+    undoState = dailyRun ? null : { grid: grid.map(row => row.slice()), score, won };
+
     score += gained;
     // Victory jingle only on the move that first reaches 2048; merges otherwise.
     if (gained > 0) SFX_play((won && !wasWon) ? 'clear' : 'bonus'); else SFX_play('move');
@@ -200,10 +206,30 @@ const Game2048 = (() => {
 
   const SFX_play = Utils.sfx;
 
+  // Take back the last move — one step only, and a lifesaver AFTER a
+  // game-over too (un-losing is the whole point of a mercy feature).
+  function undo() {
+    if (!undoState || anim || dailyRun) return;
+    clearTimeout(overTimer);
+    grid = undoState.grid.map(row => row.slice());
+    score = undoState.score;
+    won = undoState.won;
+    undoState = null;
+    over = false; running = true;
+    queuedDir = null; spawnCell = null; mergedCells = null; winBannerUntil = 0;
+    const ov = document.getElementById('g2048-overlay');
+    if (ov) ov.style.display = 'none';
+    SFX_play('move');
+    updateInfo();
+    draw();
+  }
+
   function updateInfo() {
     const s = document.getElementById('g2048-score'), b = document.getElementById('g2048-best');
     if (s) s.textContent = score;
     if (b) b.textContent = best;
+    const u = document.getElementById('g2048-undo-btn');
+    if (u) u.disabled = !undoState || dailyRun;
   }
 
   function cellXY(r, c) { return [PAD + c * (CELL + GAP), PAD + r * (CELL + GAP)]; }
@@ -338,5 +364,5 @@ const Game2048 = (() => {
     draw();
   }
 
-  return { init, start, destroy };
+  return { init, start, destroy, undo };
 })();

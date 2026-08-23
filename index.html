@@ -692,6 +692,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button id="cycles-mode-btn" onclick="LightCyclesGame.toggleMode()">Mode: VS AI</button>
+        <button id="cycles-third-btn" onclick="LightCyclesGame.toggleThird()" title="Add a third, gold AI rider to the grid">Riders: 2</button>
       </div>
     </div>
   </section>
@@ -910,6 +911,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="Game2048.start()">New Game</button>
+        <button id="g2048-undo-btn" onclick="Game2048.undo()" title="Take back the last move (Z). Not available on daily runs." disabled>&#8630; Undo</button>
       </div>
     </div>
   </section>
@@ -956,8 +958,10 @@
           <input id="hof-rival-code" class="hof-rival-input" type="text"
                  placeholder="paste a rival's code…" aria-label="Paste a rival's share code">
           <button id="hof-rival-add" class="hof-share">Add rival</button>
+          <button id="hof-card-btn" class="hof-share" title="Render your bests as a PNG score card">🖼 Score card</button>
         </div>
         <div id="hof-share-out" class="hof-share-out" hidden></div>
+        <div id="hof-card-out" class="hof-share-out" hidden style="text-align:center"></div>
         <div id="hof-rival-list" class="hof-rival-list"></div>
       </div>
       <div id="hof-board" class="hof-board"></div>
@@ -1012,6 +1016,7 @@
         <span>Streak: <strong id="word5-streak">0</strong></span>
         <span>Best: <strong id="word5-best">0</strong></span>
         <button class="primary" onclick="WordFiveGame.newGame()" style="padding:4px 12px">New Word</button>
+        <button id="w5-share-btn" onclick="WordFiveGame.share()" style="padding:4px 12px;display:none">📋 Share</button>
       </div>
       <div class="w5-wrap">
         <div id="word5-msg" class="w5-msg" role="status" aria-live="polite"></div>
@@ -1483,6 +1488,56 @@
       input.value = '';
       renderHallOfFame();
     });
+
+    // P5: render the board as a downloadable PNG score card. Canvas-drawn
+    // (no html2canvas dep), 2× backing store so it stays crisp when saved.
+    function renderHofCard() {
+      const out = document.getElementById('hof-card-out');
+      if (!out) return;
+      if (!out.hidden) { out.hidden = true; out.innerHTML = ''; return; }   // toggle off
+      const rows = HOF_GAMES.map(g => ({ name: g.name, accent: g.accent, best: g.best() }))
+        .filter(r => r.best);
+      const W = 640, rowH = 30, headH = 92, footH = 54;
+      const H = headH + Math.max(1, rows.length) * rowH + footH;
+      const c = document.createElement('canvas');
+      const dpr = 2;
+      c.width = W * dpr; c.height = H * dpr;
+      const x = c.getContext('2d');
+      x.scale(dpr, dpr);
+      x.fillStyle = '#0d1117'; x.fillRect(0, 0, W, H);
+      x.strokeStyle = 'rgba(108,99,255,0.55)'; x.lineWidth = 2; x.strokeRect(6, 6, W - 12, H - 12);
+      x.fillStyle = '#F7C948'; x.font = "800 21px 'JetBrains Mono', monospace"; x.textAlign = 'center';
+      x.fillText('★ EUREKA GAMES · HALL OF FAME ★', W / 2, 40);
+      x.fillStyle = '#7D8590'; x.font = '12px Inter, sans-serif';
+      x.fillText(Utils.todayKey() + ' · ' + rows.length + ' of ' + HOF_GAMES.length + ' games on the board', W / 2, 62);
+      x.textAlign = 'left';
+      rows.forEach((r, i) => {
+        const y = headH + i * rowH;
+        if (i % 2 === 0) { x.fillStyle = 'rgba(255,255,255,0.035)'; x.fillRect(14, y - 19, W - 28, rowH - 4); }
+        x.fillStyle = r.accent; x.beginPath(); x.arc(30, y - 5, 5, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#E6EDF3'; x.font = '600 14px Inter, sans-serif';
+        x.fillText(r.name, 46, y);
+        x.textAlign = 'right';
+        x.fillStyle = '#F7C948'; x.font = "700 14px 'JetBrains Mono', monospace";
+        x.fillText(String(r.best), W - 30, y);
+        x.textAlign = 'left';
+      });
+      if (!rows.length) {
+        x.fillStyle = '#7D8590'; x.font = '13px Inter, sans-serif';
+        x.fillText('No scores on the board yet — go play something!', 46, headH);
+      }
+      const achN = (typeof Achievements !== 'undefined') ? Object.keys(Achievements.unlocked()).length : 0;
+      const coinN = (typeof Coins !== 'undefined') ? Coins.load().balance : 0;
+      x.fillStyle = '#7D8590'; x.font = '12px Inter, sans-serif'; x.textAlign = 'center';
+      x.fillText('🏆 ' + achN + ' achievements · 🪙 ' + coinN + ' coins · ' + (location.hostname || 'eureka games'), W / 2, H - 26);
+      const url = c.toDataURL('image/png');
+      out.innerHTML =
+        '<img id="hof-card-img" src="' + url + '" alt="Your Hall of Fame score card" style="max-width:100%;border-radius:10px">' +
+        '<div><a id="hof-card-dl" class="hof-share" download="eureka-hall-of-fame.png" href="' + url + '"' +
+        ' style="display:inline-block;margin-top:8px;text-decoration:none">⬇ Download PNG</a></div>';
+      out.hidden = false;
+    }
+    document.getElementById('hof-card-btn').addEventListener('click', renderHofCard);
 
     document.getElementById('hof-reset').addEventListener('click', () => {
       if (!confirm('Clear all your high scores and game saves? This can’t be undone.')) return;
