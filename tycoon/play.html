@@ -1007,6 +1007,11 @@
     #season-card .sc-note { margin-top: 18px; font-size: 15px; color: #9aa3ad; font-style: italic; }
     @media (prefers-reduced-motion: reduce) { #season-card.show, #season-card.show .sc-inner { animation: none; opacity: 1; } }
 
+    #founder-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center; z-index: 320;
+    }
+    #founder-modal.open { display: flex; animation: winFade 0.3s ease; }
     #win-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.78);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
@@ -1595,6 +1600,16 @@
     </div>
   </div>
 </div>
+<div id="founder-modal" role="dialog" aria-modal="true" aria-label="Founder Shop">
+  <div class="win-panel">
+    <div class="win-title">🏛 Founder Shop</div>
+    <div class="win-sub">Founder Points: <strong id="founder-points">0</strong> — one minted per IPO. Perks are permanent, across every season and save.</div>
+    <div id="founder-list" style="display:flex;flex-direction:column;gap:8px;margin:14px 0"></div>
+    <div class="ipo-actions">
+      <button class="ipo-cancel" id="founder-close">Close</button>
+    </div>
+  </div>
+</div>
 <div id="investor-banner" hidden role="status" aria-live="polite">
   <span class="ib-icon" id="ib-icon">💰</span>
   <span class="ib-body"><strong id="ib-title">Investor on the floor</strong><span id="ib-sub">Walk up to shake their hand</span></span>
@@ -1686,6 +1701,7 @@
     <button class="hire-btn" id="open-dash-btn" style="margin-top:4px;background:rgba(63,185,80,0.12);border-color:rgba(63,185,80,0.3);color:#3FB950">📊 Dashboard</button>
     <button class="hire-btn" id="open-ach-btn" style="margin-top:4px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
+    <button class="hire-btn" id="open-founder-btn" style="margin-top:4px;background:rgba(252,211,77,0.08);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏛 Founder Shop</button>
     <button class="hire-btn" id="export-save-btn" style="margin-top:8px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)" title="Copy this run as a save code you can paste on another device">💾 Copy save code</button>
     <button class="hire-btn" id="import-save-btn" style="margin-top:4px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)" title="Paste a save code to continue that run here">📥 Import save code</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
@@ -2061,6 +2077,7 @@ const LS = {
   sfx:           LS_PREFIX + 'sfxEnabled',
   welcome:       LS_PREFIX + 'welcomeSeen-v1',
   haptics:       LS_PREFIX + 'hapticsEnabled',
+  founder:       LS_PREFIX + 'founderShop',   // TYC-8: points + owned perks, cross-run
 };
 
 // SITE-3: these settings keys used to be bare (`joystickEnabled`,
@@ -4257,6 +4274,7 @@ const EXTERNAL_ENG_RATE_BONUS = CONFIG.externalEngRateBonus;
 const EXTERNAL_BDR_DEAL_BONUS = CONFIG.externalBdrDealBonus;
 
 function spawnIdeaWorker(opts = {}) {
+  // (TYC-8 Founder U applies after the spawn succeeds — see the return.)
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   if (!desk) return false;
   desk.occupied = true;
@@ -4294,6 +4312,10 @@ function spawnIdeaWorker(opts = {}) {
     externalMult: opts.external ? EXTERNAL_ENG_RATE_BONUS : 1.0,
     morale: CONFIG.moraleDefault,
     paperIdleT: 0,
+    // Founder U (TYC-8): alumni hires arrive at L2. The roster save may
+    // overwrite this with the worker's real XP right after — good: saved
+    // XP is the source of truth, the perk only floors FRESH hires.
+    xp: (typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0,
   });
   return true;
 }
@@ -6410,6 +6432,14 @@ function rebuildAllRoomMaterials() {
     if (def) w.material.color.setHex(paletteFor(def.id).wall);
   }
 }
+const founderModalEl = document.getElementById('founder-modal');
+document.getElementById('open-founder-btn').addEventListener('click', () => {
+  renderFounderModal();
+  founderModalEl.classList.add('open');
+});
+document.getElementById('founder-close').addEventListener('click', () => founderModalEl.classList.remove('open'));
+founderModalEl.addEventListener('click', e => { if (e.target === founderModalEl) founderModalEl.classList.remove('open'); });
+
 document.getElementById('open-theme-btn').addEventListener('click', () => {
   renderThemeModal();
   themeModalEl.classList.add('open');
@@ -6516,6 +6546,62 @@ document.getElementById('win-share-btn').addEventListener('click', () => {
   a.click();
   showToast('📸 Share card downloaded', 'milestone', 'standard');
 });
+
+// ── Founder Shop (IDEA-TYC-8) ──
+// Every IPO mints one Founder Point. Points buy PERMANENT meta-perks
+// that survive seasons and even fresh saves (they live in the settings
+// namespace, so each build variant keeps its own shop). This is the
+// decision layer prestigeLevel never had: bank points or spend them.
+const FOUNDER_PERKS = [
+  { id: 'serial', icon: '💼', name: 'Serial Founder', cost: 1,
+    desc: '+$500 starting cash every season' },
+  { id: 'angel',  icon: '👼', name: 'Angel Network', cost: 2,
+    desc: 'Funding rounds pay +25%' },
+  { id: 'campus', icon: '🎓', name: 'Founder U', cost: 2,
+    desc: 'New engineers start at L2 (5 XP)' },
+];
+function founderLoad() {
+  try {
+    const s = JSON.parse(lsGet(LS.founder) || 'null');
+    if (s && typeof s === 'object') return { points: s.points | 0, perks: s.perks || {} };
+  } catch {}
+  return { points: 0, perks: {} };
+}
+function founderSave(s) { lsSet(LS.founder, JSON.stringify(s)); }
+function founderHas(id) { return !!founderLoad().perks[id]; }
+function founderEarn() {
+  const s = founderLoad();
+  s.points++;
+  founderSave(s);
+  showToast(`🏛 +1 Founder Point (${s.points} banked) — spend it in the Founder Shop`, 'milestone', 'critical');
+  addFeedEntry('🏛 Founder Point earned');
+}
+function founderBuy(id) {
+  const s = founderLoad();
+  const p = FOUNDER_PERKS.find(x => x.id === id);
+  if (!p || s.perks[id] || s.points < p.cost) return false;
+  s.points -= p.cost;
+  s.perks[id] = true;
+  founderSave(s);
+  SFX.purchase(); Haptics.purchase();
+  addFeedEntry(`🏛 Perk unlocked: ${p.name}`);
+  return true;
+}
+function renderFounderModal() {
+  const s = founderLoad();
+  const list = document.getElementById('founder-list');
+  document.getElementById('founder-points').textContent = s.points;
+  list.innerHTML = FOUNDER_PERKS.map(p => {
+    const owned = !!s.perks[p.id];
+    return `<button class="hire-btn founder-perk" data-perk="${p.id}" ${owned || s.points < p.cost ? 'disabled' : ''}` +
+      ` style="${owned ? 'border-color:rgba(63,185,80,0.5);color:#3FB950;' : ''}text-align:left">` +
+      `${p.icon} <strong>${p.name}</strong> — ${p.desc}` +
+      `<span class="tag">${owned ? 'OWNED' : p.cost + ' pt' + (p.cost > 1 ? 's' : '')}</span></button>`;
+  }).join('');
+  list.querySelectorAll('.founder-perk').forEach(btn => {
+    btn.addEventListener('click', () => { if (founderBuy(btn.dataset.perk)) renderFounderModal(); });
+  });
+}
 
 // ── Rival startup race (IDEA-TYC-3) ──
 // A ghost competitor chases the same season goal. It paces itself to a
@@ -7031,9 +7117,10 @@ function raiseFunding() {
   const r = FUNDING_ROUNDS[fundingRoundIdx];
   if (!r.req()) return;
   fundingRoundIdx++;
-  addCash(r.amount, 'funding');
-  showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
-  addFeedEntry(`💼 ${r.label} raised +$${r.amount.toLocaleString()}`);
+  const amt = Math.round(r.amount * (founderHas('angel') ? 1.25 : 1));
+  addCash(amt, 'funding');
+  showToast(`🎉 ${r.label} closed! +$${amt.toLocaleString()}${founderHas('angel') ? ' (👼 +25%)' : ''}`, 'milestone');
+  addFeedEntry(`💼 ${r.label} raised +$${amt.toLocaleString()}`);
   // Funding rounds are big moments — celebrate them.
   SFX.milestone(); Haptics.milestone();
   launchConfetti({ pieces: 50, duration: 2400,
@@ -9090,6 +9177,7 @@ function showSeasonCard(level) {
 }
 
 function doIPO() {
+  founderEarn();   // TYC-8: every IPO mints a Founder Point
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
   waltAdvanceSeason(); // Walt levels up one role each season
@@ -9100,7 +9188,7 @@ function doIPO() {
     palette: ['#3FB950', '#fcd34d', '#22d3ee', '#fff'] });
 
   // Reset progress
-  state.cash = 200 * prestigeLevel;
+  state.cash = 200 * prestigeLevel + (founderHas('serial') ? 500 : 0);
   state.allTimeCash = 0;
   snapCashHud();  // skip the animated dip from old cash to new
   nextMilestoneIdx = 0;
