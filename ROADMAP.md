@@ -345,7 +345,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 ## P3 — Ideas backlog (each = one PR, pitched for mid-tier builders)
 
 ### Site-wide
-- **IDEA-SITE-1 · PWA/offline arcade** — `manifest.json` + ~60-line vanilla service worker (precache shell, runtime-cache thumbs/pages). Requires SITE-1 first. Installable, fully offline.
+- **~~IDEA-SITE-1 · PWA/offline arcade~~** ✅ **shipped Aug 2026** — manifest + icons + dependency-free `/sw.js` precaching the whole shell (incl. vendored three.js). Verified with the HTTP server killed outright: hub reloads, arcade plays, both 3D pages boot, clean URLs fall back to cached .html. (Testing note: Playwright's `setOffline` does not gate SW-originated fetches — kill the server to test offline for real.)
 - **IDEA-SITE-2 · Zero-backend shared leaderboards** — base64url `{game, score, name, ts}`+checksum share codes in `/#hof=<code>`; HOF decodes into a "Rivals" column. ~150 lines in existing HOF code.
 - **IDEA-SITE-3 · Daily challenge** — seeded PRNG (mulberry32 from `Utils.todayKey()`, `utils.js:29`) swapped into layout-determining `Math.random` call sites (Tetris bag, 2048 spawns, Snake food, Maze gen, Asteroids rocks); `arcade-daily-<game>-<date>` bests; "Today's Challenge" banner. Pairs with SITE-2 codes.
 - **IDEA-SITE-4 · Achievements** — declarative `js/achievements.js` table checked from existing hooks (`updateInfo`/`clearLines`/`destroyRock`/`endGame`); toasts + a Hall of Fame section reusing `.hof-row`.
@@ -362,7 +362,8 @@ way, and an unguarded spend is the exact shape this ticket flagged.
   per-difficulty best times in the HOF.
 - Also shipped since this list was written, though never on it: **Drop Four**
   (`js/connect4.js`, minimax + alpha-beta) and **Word Five** (`js/word5.js`).
-- Still open: **IDEA-ARC-2 · Memory Matrix** (Simon; natural daily-challenge seed) · **IDEA-ARC-3 · Stacker** · **IDEA-ARC-4 · Pong++** (reuse Breakout paddle/ball + power-ups) · **IDEA-ARC-5 · Light Cycles** (reuse Snake grid/direction-queue; optional local 2P) · **IDEA-ARC-6 · Word Cascade** (letters on the Tetris gravity/lock loop) · **IDEA-ARC-7 · Vector Defense** (tower defense in Asteroids' vector style; cap scope: 2 turrets, fixed path, ~8-10 waves).
+- **~~IDEA-ARC-5 · Light Cycles~~** ✅ **shipped Aug 2026** — vs a flood-fill-dodging AI or local 2P on one keyboard; simultaneous claim-then-judge movement (head-ons kill both); `cycles-streak` in the HOF. New views must ALSO be added to `viewFromHash`'s whitelist in index.html — the router rejects unknown hashes.
+- Still open: **IDEA-ARC-2 · Memory Matrix** (Simon; natural daily-challenge seed) · **IDEA-ARC-3 · Stacker** · **IDEA-ARC-4 · Pong++** (reuse Breakout paddle/ball + power-ups) · **IDEA-ARC-6 · Word Cascade** (letters on the Tetris gravity/lock loop) · **IDEA-ARC-7 · Vector Defense** (tower defense in Asteroids' vector style; cap scope: 2 turrets, fixed path, ~8-10 waves).
 
 ### Startup Tycoon
 - **IDEA-TYC-1 · Second floor "R&D Lab"** — the code ships explicit extension points (`Floor`/`FLOOR_CLASSES`, elevator modal `play.html:422-455`); researchers generate patents = permanent % on `computeDealValue()`.
@@ -379,13 +380,13 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - **~~IDEA-AOW-1 · Endless/Survival mode~~** ✅ **shipped Aug 2026** — ∞ Endless toggle by the difficulty chips; razing the stronghold rebuilds it at 1.5× with a scaling bounty and advances an era; score is waves survived; `aow-best-run` finally has a writer and the run-over screen shows the record.
 - **IDEA-AOW-2 · Prestige "Relics"** — persistent currency from `runStats` at game-over (also surface the tracked-but-never-shown `runStats.gold`, `:191/:1384`); spend on starting bonuses in `reset()`.
 - **IDEA-AOW-3 · 6th era "Singularity+"** — gated behind the `max_age` achievement; `ERAS`/`unitsForEra` iterate generically so the pipeline mostly just works.
-- **IDEA-AOW-4 · Wall/Barricade unit** (`role:'wall'`, skip attack branch) · **IDEA-AOW-5 · Unit veterancy** (`u.aliveT` → +10% dmg + gold outline) · **IDEA-AOW-6 · Turret targeting modes** (nearest/lowest-HP/highest-HP cycle button in `renderTurretPanel` `:6124`) · **IDEA-AOW-7 · Overtime sudden-death** (escalating base chip damage after ~6 min).
+- **IDEA-AOW-4 · Wall/Barricade unit** (`role:'wall'`, skip attack branch) · **IDEA-AOW-5 · Unit veterancy** (`u.aliveT` → +10% dmg + gold outline) · **~~IDEA-AOW-6 · Turret targeting modes~~** ✅ shipped Aug 2026 (Near/Weak/Strong cycle per turret, mode survives upgrades) · **IDEA-AOW-7 · Overtime sudden-death** (escalating base chip damage after ~6 min).
 
 ### Drug Lab
 - **~~IDEA-LAB-1 · Offline catch-up~~** ✅ **shipped Aug 2026** — saves carry `savedAt`; absences of 60s+ grow plants (self-capping at ripe) and drain heat (passive drain only — never a bust in absentia), summarized by a 🌙 toast + feed entry.
 - **~~IDEA-LAB-2 · Give Runners a purpose~~** ✅ **was already shipped** — this entry was stale: runners hire, respawn from saves, ferry trim/chem product to the stash, and close deals with a heat-85 guard. Confirmed live ("Runner stashed 5 bags").
 - **IDEA-LAB-3 · Prestige "New Identity"** — bust/Act-III grants a permanent meta-bonus in a separate LS key surviving `resetGame()` (`:1245`).
-- **IDEA-LAB-4 · Pre-raid bribe window** — costed choice before the 95%-heat raid (`:1913`); adds agency + a cash sink.
+- **~~IDEA-LAB-4 · Pre-raid bribe window~~** ✅ **shipped Aug 2026** — one bribe offer per heat approach (12% of totalEarned, $400–$25k), re-arming only under heat 90; broke players find the exit disabled (LAB-3 rules) and refusing fires the raid.
 - **IDEA-LAB-5 · Difficulty pick** ("Careful"/"Kingpin") scaling the heat functions (`:1213-1218`) + starting cash.
 - **IDEA-LAB-6 · Achievements → Hall of Fame** via the existing `growop` hook (`index.html:815,896`), like `aow-achievements`.
 - *Tone note:* the in-game copy ("10 to 15, no deal", "harder product") is markedly darker than its all-ages home-page framing ("GROW OP · Builder/3D/Risk"). Either soften toward the site's satirical register or add a small content note on the card.

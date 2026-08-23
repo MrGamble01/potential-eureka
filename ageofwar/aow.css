@@ -701,6 +701,20 @@
   align-items: stretch;
 }
 .aow-turret-actions > * { flex: 1; min-width: 0; }
+.aow-turret-mode {
+  background: rgba(34,211,238,0.10);
+  border: 1px solid rgba(34,211,238,0.35);
+  color: #7dd3fc;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.aow-turret-mode:hover { background: rgba(34,211,238,0.22); }
+
 .aow-turret-sell {
   background: rgba(248,81,73,0.10);
   border: 1px solid rgba(248,81,73,0.4);

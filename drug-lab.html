@@ -1239,9 +1239,9 @@ const EVENTS = [
   },
 ];
 
-function triggerEvent() {
+function triggerEvent(forced) {
   if (activeEvent || raidActive) return;
-  const ev = EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  const ev = forced || EVENTS[Math.floor(Math.random()*EVENTS.length)];
   activeEvent = ev;
   document.getElementById('ev-icon').textContent = ev.icon;
   document.getElementById('ev-title').textContent = ev.title;
@@ -2240,11 +2240,42 @@ function updateHeatDrain(dt) {
 }
 
 // ── Events ──
+// Pre-raid bribe (IDEA-LAB-4): the first time heat crosses the raid line,
+// a captain on the take offers a way out — pay a cut that scales with the
+// size of the operation, or let the raid come. One offer per approach:
+// refusing (or being too broke to pay — the button disables, LAB-3 rules)
+// means the raid fires, and the offer only re-arms after heat has fallen
+// back below 90 so it can't be used as a repeating raid-snooze.
+let bribeOffered = false;
+function makeBribeEvent() {
+  const cost = Math.min(25000, Math.max(400, Math.floor(state.totalEarned * 0.12)));
+  return {
+    id:'bribe', icon:'🚔', title:'Blue Lights Outside',
+    body:'A captain you\'ve seen before leans on the fence. "Warrant\'s being typed up right now. Shame if the paperwork got lost — for a price."',
+    choices:[
+      {text:'Pay him off. Lose the paperwork.', cost, type:'safe', effect:()=>{
+        if(state.cash<cost){showToast("Can't afford it!",'bust');return null;}
+        state.cash-=cost; addHeat(-35);
+        return 'The cruisers roll past. Heat way down — but he knows your name now.';
+      }},
+      {text:'Refuse. Let them come.', type:'risky', effect:()=>{
+        triggerRaid();
+        return 'You put the lights out and wait. Here they come.';
+      }},
+    ]
+  };
+}
+
 function updateEvents(dt) {
   if(activeEvent) return;
   eventCooldown -= dt;
-  // Trigger DEA raid at 95+ heat
-  if(state.heat>=95 && !raidActive) { triggerRaid(); eventCooldown=90; return; }
+  // Re-arm the bribe once the operation has genuinely cooled off.
+  if(bribeOffered && state.heat<90 && !raidActive) bribeOffered=false;
+  // At the raid line: one bribe window per approach, then the raid.
+  if(state.heat>=95 && !raidActive) {
+    if(!bribeOffered) { bribeOffered=true; triggerEvent(makeBribeEvent()); eventCooldown=90; return; }
+    triggerRaid(); eventCooldown=90; return;
+  }
   if(eventCooldown<=0 && state.totalEarned>100) {
     eventCooldown=50+Math.random()*50;
     if(Math.random()<0.4) triggerEvent();
