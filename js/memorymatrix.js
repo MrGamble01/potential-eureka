@@ -23,6 +23,7 @@ const MemoryMatrixGame = (() => {
 
   let canvas, ctx;
   let seq, inputIdx, round, best;
+  let lives;               // P6: 3 hearts — a miss replays the round instead of ending it
   let phase;               // 'idle' | 'showing' | 'input' | 'over'
   let litPad = -1;         // pad currently flashed (-1 none)
   let runToken = 0;        // invalidates stale playback timers (the ARC-5 lesson)
@@ -86,6 +87,7 @@ const MemoryMatrixGame = (() => {
     clearTimers();
     seq = [];
     round = 0;
+    lives = 3;
     phase = 'idle';
     sfx('start');
     const overlay = document.getElementById('mm-overlay');
@@ -130,7 +132,18 @@ const MemoryMatrixGame = (() => {
         phase = 'showing';           // lock input during the inter-round beat
         later(() => nextRound(), 650);
       }
+    } else if (lives > 1) {
+      // Miss with hearts to spare: burn one, replay the SAME pattern.
+      lives--;
+      phase = 'showing';        // lock input during the red flash + replay
+      sfx('die');
+      Effects.shakeCanvas(canvas, 6, 220);
+      inputIdx = 0;
+      updateInfo();
+      draw(pad);
+      later(() => playback(), 900);
     } else {
+      lives = 0;
       endGame(pad);
     }
   }
@@ -172,6 +185,8 @@ const MemoryMatrixGame = (() => {
     if (roundEl) roundEl.textContent = Math.max(1, round);
     if (bestEl) bestEl.textContent = best;
     if (lenEl) lenEl.textContent = seq ? seq.length : 0;
+    const livesEl = document.getElementById('mm-lives');
+    if (livesEl) livesEl.textContent = '♥'.repeat(Math.max(0, lives ?? 3)) || '—';
   }
 
   function draw(wrongPad) {

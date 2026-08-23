@@ -795,6 +795,7 @@
       <div class="game-info" role="status" aria-live="polite">
         <span>Round: <strong id="mm-round">1</strong></span>
         <span>Pattern: <strong id="mm-len">0</strong> steps</span>
+        <span>Lives: <strong id="mm-lives">&hearts;&hearts;&hearts;</strong></span>
         <span>Best: <strong id="mm-best">0</strong></span>
       </div>
       <div class="canvas-wrapper">
@@ -970,6 +971,9 @@
       <div id="hof-insights"></div>
       <div class="hof-footer">
         <button id="hof-reset" class="hof-reset">Reset my scores</button>
+        <button id="hof-backup" class="hof-reset" title="Download every score, save and unlock as a JSON file">&#11015; Backup</button>
+        <button id="hof-restore" class="hof-reset" title="Restore progress from a backup file">&#11014; Restore</button>
+        <input id="hof-restore-file" type="file" accept="application/json,.json" hidden aria-label="Choose a backup file to restore">
         <span class="hof-coin arcade-blink">&#9646;</span> PICK A GAME AND BEAT THEM
       </div>
     </div>
@@ -1093,7 +1097,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR STORM</div>
-        <div class="game-subtitle">Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; buttons on touch</div>
+        <div class="game-subtitle">Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="asteroids-score">0</strong></span>
@@ -1111,6 +1115,7 @@
         <button id="ast-thrust" aria-label="Thrust">&#9650;</button>
         <button id="ast-right" aria-label="Rotate right">&#8635;</button>
         <button id="ast-fire" aria-label="Fire">&#9679; FIRE</button>
+        <button id="ast-hyper" aria-label="Hyperspace jump">&#10530; WARP</button>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="AsteroidsGame.start()">New Game</button>
@@ -1538,6 +1543,45 @@
       out.hidden = false;
     }
     document.getElementById('hof-card-btn').addEventListener('click', renderHofCard);
+
+    // P6: whole-arcade backup/restore. Everything the arcade owns lives in
+    // same-origin localStorage, so the backup is simply all of it — new
+    // games' keys are covered automatically without a registry to forget.
+    document.getElementById('hof-backup').addEventListener('click', () => {
+      const data = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        data[k] = localStorage.getItem(k);
+      }
+      const payload = JSON.stringify({ v: 1, when: new Date().toISOString(), data }, null, 1);
+      const a = document.createElement('a');
+      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(payload);
+      a.download = 'eureka-backup-' + Utils.todayKey() + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+    document.getElementById('hof-restore').addEventListener('click', () => {
+      document.getElementById('hof-restore-file').click();
+    });
+    document.getElementById('hof-restore-file').addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        let obj = null;
+        try { obj = JSON.parse(reader.result); } catch {}
+        const data = obj && obj.data;
+        const keys = data && typeof data === 'object' ? Object.keys(data).filter(k => typeof data[k] === 'string') : [];
+        if (!keys.length) { alert('That file didn’t look like a Eureka backup.'); return; }
+        if (!confirm('Restore ' + keys.length + ' saved entries from ' +
+          (obj.when ? obj.when.slice(0, 10) : 'this backup') + '? Matching progress here will be overwritten.')) return;
+        keys.forEach(k => { try { localStorage.setItem(k, data[k]); } catch {} });
+        location.reload();   // every module re-reads its keys on boot
+      };
+      reader.readAsText(file);
+    });
 
     document.getElementById('hof-reset').addEventListener('click', () => {
       if (!confirm('Clear all your high scores and game saves? This can’t be undone.')) return;
