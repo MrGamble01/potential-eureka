@@ -83,6 +83,27 @@ canvas{display:block;touch-action:none;}
   pointer-events:none;user-select:none;
 }
 
+/* ── Difficulty pick (LAB-5) ── */
+#diff-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
+  display:none;align-items:center;justify-content:center;z-index:280;}
+#diff-modal.open{display:flex;animation:bustIn 0.3s ease;}
+.diff-panel{background:rgba(4,12,4,0.98);border:1px solid rgba(0,180,60,0.35);
+  border-radius:12px;padding:26px;max-width:420px;width:92vw;text-align:center;
+  font-family:"Courier New",monospace;box-shadow:0 0 60px rgba(0,180,60,0.15);}
+.diff-title{font-size:18px;font-weight:900;color:#44cc66;letter-spacing:1.5px;margin-bottom:6px;}
+.diff-sub{font-size:11px;color:#557755;margin-bottom:18px;}
+.diff-opt{display:block;width:100%;text-align:left;cursor:pointer;
+  background:rgba(0,120,40,0.08);border:1px solid rgba(0,180,60,0.3);
+  border-radius:8px;padding:12px 16px;margin-bottom:10px;
+  font-family:inherit;transition:all 0.15s;}
+.diff-opt:hover{background:rgba(0,120,40,0.2);border-color:#44cc66;}
+.diff-opt--king{background:rgba(140,110,0,0.08);border-color:rgba(220,180,40,0.35);}
+.diff-opt--king:hover{background:rgba(140,110,0,0.2);border-color:#ddbb44;}
+.diff-opt-name{display:block;font-size:15px;font-weight:900;color:#ddffdd;letter-spacing:1px;}
+.diff-opt--king .diff-opt-name{color:#ffeeaa;}
+.diff-opt-desc{display:block;font-size:11px;color:#668866;margin-top:4px;line-height:1.5;}
+.diff-opt--king .diff-opt-desc{color:#998855;}
+
 /* ── Status bar ── */
 #status-bar{
   position:fixed;top:48px;left:50%;transform:translateX(-50%);
@@ -417,6 +438,20 @@ canvas{display:block;touch-action:none;}
     <button class="bust-restart" id="bust-restart-btn">Start Over</button>
   </div>
 </div>
+<div id="diff-modal">
+  <div class="diff-panel">
+    <div class="diff-title">HOW DO YOU WANT TO RUN THIS?</div>
+    <div class="diff-sub">Picked once per run — a bust starts you over.</div>
+    <button class="diff-opt" id="diff-careful">
+      <span class="diff-opt-name">🐢 CAREFUL</span>
+      <span class="diff-opt-desc">The classic balance. $50 seed money, heat you can manage.</span>
+    </button>
+    <button class="diff-opt diff-opt--king" id="diff-kingpin">
+      <span class="diff-opt-name">👑 KINGPIN</span>
+      <span class="diff-opt-desc">$150 up front and +25% on every sale — but heat climbs 1.5× and drains slow. Empires burn fast.</span>
+    </button>
+  </div>
+</div>
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="manage-btn">🔧 Manage</button>
 <script>
@@ -438,6 +473,7 @@ const LS_KEY = 'drug-lab-v1';
 // ── Game state ──
 let state = {
   cash: 50,
+  difficulty: 'careful',
   totalEarned: 0,
   totalSold: 0,
   heat: 0,
@@ -1302,6 +1338,17 @@ function triggerRaid() {
   addHeat(-40); // fear makes you careful after (also refreshes the HUD)
 }
 
+// ── Difficulty (IDEA-LAB-5) ──
+// Picked once on a fresh save. Careful is the balance the game always
+// had; Kingpin pays ~25% more per sale and starts richer, but heat
+// climbs half again as fast and drains slower — the bust math that Act
+// III's pressure curve enforces arrives a whole act earlier.
+const DIFFS = {
+  careful: { label: '🐢 CAREFUL', startCash: 50,  price: 1,    heatGain: 1,   drain: 1,    ambient: 1 },
+  kingpin: { label: '👑 KINGPIN', startCash: 150, price: 1.25, heatGain: 1.5, drain: 0.75, ambient: 1.3 },
+};
+function DIFF() { return DIFFS[state.difficulty] || DIFFS.careful; }
+
 // ── Heat system ──
 function addHeat(amount) {
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
@@ -1311,7 +1358,7 @@ function addHeat(amount) {
 // qty scales the heat hit so selling more units in one sale isn't
 // strictly better than making the same number of smaller sales.
 function heatGainPerSale(qty = 1) {
-  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure();
+  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure() * DIFF().heatGain;
 }
 // Big operations attract big attention: past the Act III threshold
 // ($15k lifetime) every sale runs hotter, up to 2.5x — otherwise maxed
@@ -1325,10 +1372,10 @@ function heatPressure() {
 // Zero before Act III so the early game is untouched.
 function ambientHeatPerSec() {
   if (currentAct() < 3) return 0;
-  return Math.min(1.6, (state.totalEarned / 50000) * 0.6);
+  return Math.min(1.6, (state.totalEarned / 50000) * 0.6) * DIFF().ambient;
 }
 function heatDrainPerSec() {
-  return 0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5;
+  return (0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5) * DIFF().drain;
 }
 
 // ── Bust ──
@@ -1368,7 +1415,7 @@ function salePrice() {
   const base = 25;
   const purity = 1 + upgLv('bags')*0.15 + upgLv('price')*0.4;
   const chemiBonus = chemStation ? 1.8 : 1;
-  return Math.floor(base * purity * chemiBonus);
+  return Math.floor(base * purity * chemiBonus * DIFF().price);
 }
 
 // ── Act system ──
@@ -1466,7 +1513,8 @@ function refreshHud() {
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
-  document.getElementById('act-badge').textContent = ACT_LABELS[currentAct()];
+  document.getElementById('act-badge').textContent =
+    ACT_LABELS[currentAct()] + (state.difficulty === 'kingpin' ? ' · 👑' : '');
 
   // Employee counts
   document.getElementById('trimmer-count').textContent = state.trimmers+'/3';
@@ -1760,6 +1808,7 @@ function saveGame() {
     pCarrying,
     plots: growPlots.map(p=>({r:p.roomId, g:+p.progress.toFixed(4)})),
     savedAt: Date.now(),
+    difficulty: state.difficulty,
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1768,6 +1817,7 @@ function loadGame() {
     const sv = JSON.parse(localStorage.getItem(LS_KEY)||'null');
     if(!sv) return;
     state.cash=sv.cash||50;
+    state.difficulty = sv.difficulty === 'kingpin' ? 'kingpin' : 'careful';
     state.totalEarned=sv.totalEarned||0;
     state.totalSold=sv.totalSold||0;
     state.heat=Math.min(99,sv.heat||0); // don't load at 100
@@ -1877,7 +1927,27 @@ function loadGame() {
   }catch(e){console.warn('Load failed',e);}
 }
 
+const hadSave = !!localStorage.getItem(LS_KEY);
 loadGame();
+
+// Fresh run: pick a difficulty before the first plant goes in. An
+// existing save keeps whatever it was started on (old saves = careful).
+if (!hadSave) {
+  const dm = document.getElementById('diff-modal');
+  dm.classList.add('open');
+  const pick = d => {
+    state.difficulty = d;
+    state.cash = DIFFS[d].startCash;
+    dm.classList.remove('open');
+    saveGame();
+    refreshHud();
+    setStatus(d === 'kingpin'
+      ? '👑 Kingpin run — big margins, bigger heat. Watch the meter.'
+      : '🐢 Careful run — slow and steady. Good luck.', 6);
+  };
+  document.getElementById('diff-careful').addEventListener('click', () => pick('careful'));
+  document.getElementById('diff-kingpin').addEventListener('click', () => pick('kingpin'));
+}
 
 // ── Main game loop ──
 let lastTime = performance.now();
