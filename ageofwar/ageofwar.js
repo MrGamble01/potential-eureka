@@ -27,8 +27,12 @@ const AgeOfWarGame = (() => {
       special: { name: 'Artillery', icon: '💣', dmg: 560, color: '#888' } },
     { id: 'modern',   name: 'Modern',      icon: '🪖', sky: ['#1d3a45', '#356575'], baseColor: '#5a7a85', upXP:   4500,
       special: { name: 'Air Strike', icon: '✈️', dmg: 900, color: '#ddd' } },
-    { id: 'future',   name: 'Future',      icon: '🚀', sky: ['#0e1438', '#243460'], baseColor: '#88a8ff', upXP:  10000,
+    { id: 'future',   name: 'Future',      icon: '🚀', sky: ['#0e1438', '#243460'], baseColor: '#88a8ff', upXP:  25000,
       special: { name: 'Orbital Laser', icon: '🛰️', dmg: 1500, color: '#6ec4ff' } },
+    // Era 6 (IDEA-AOW-3): gated behind the max_age achievement — you must
+    // have SEEN the Future in some past run before you can transcend it.
+    { id: 'singularity', name: 'Singularity', icon: '🌌', sky: ['#170a2e', '#3a1560'], baseColor: '#c86bff', upXP: 99999,
+      special: { name: 'Reality Tear', icon: '🌀', dmg: 2400, color: '#c86bff' } },
   ];
 
   // ---- Unit catalog ----
@@ -64,6 +68,11 @@ const AgeOfWarGame = (() => {
     mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 3600, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 1450, silhouette: 'vehicle' },
     flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 250, atkSpd: 1.3,  speed: 56, color: '#ff90ee', xp: 1600,gold: 2150, silhouette: 'flier' },
 
+    // Singularity (IDEA-AOW-3)
+    nano:     { era: 5, name: 'Nanite Swarm',  icon: '🦠', sprite: '🦠', cost: 3200, hp: 1300, dmg: 650,  range: 290, atkSpd: 0.5,  speed: 52, color: '#c86bff', xp: 900,  gold: 1400, silhouette: 'humanoid' },
+    construct:{ era: 5, name: 'War Construct', icon: '🗿', sprite: '🗿', cost: 5600, hp: 6500, dmg: 950,  range: 120, atkSpd: 0.9,  speed: 36, color: '#8f6bff', xp: 1900, gold: 2600, silhouette: 'vehicle' },
+    seraph:   { era: 5, name: 'Void Seraph',   icon: '🪽', sprite: '🪽', cost: 8200, hp: 2600, dmg: 1500, range: 270, atkSpd: 1.2,  speed: 58, color: '#ff6bd8', xp: 2800, gold: 3900, silhouette: 'flier' },
+
     // Walls (IDEA-AOW-4): role:'wall' — no attack, no movement, pure HP
     // planted at your gate. Cheap lane-stall so a rush can be absorbed
     // while the real army trains; kill rewards are deliberately meager
@@ -73,6 +82,7 @@ const AgeOfWarGame = (() => {
     wall2: { era: 2, role: 'wall', name: 'Sandbag Wall',   icon: '🧱', cost: 480,  hp: 2600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#9a8a60', xp: 60,  gold: 65,  silhouette: 'humanoid' },
     wall3: { era: 3, role: 'wall', name: 'Barricade',      icon: '🚧', cost: 950,  hp: 4600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#7a7a7a', xp: 120, gold: 130, silhouette: 'humanoid' },
     wall4: { era: 4, role: 'wall', name: 'Energy Barrier', icon: '🛡️', cost: 1800, hp: 7800, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#4cc9f0', xp: 240, gold: 260, silhouette: 'humanoid' },
+    wall5: { era: 5, role: 'wall', name: 'Phase Wall',     icon: '🌀', cost: 3400, hp: 14000, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#c86bff', xp: 480, gold: 520, silhouette: 'humanoid' },
   };
 
   function unitsForEra(era) {
@@ -100,6 +110,7 @@ const AgeOfWarGame = (() => {
     { era: 2, name: 'Cannon Turret', icon: '💣', cost: 2000, dmg: 130, range: 260, atkSpd: 1.4, color: '#555' },
     { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 240, range: 300, atkSpd: 0.8, color: '#5a7a45' },
     { era: 4, name: 'Plasma Turret', icon: '✨', cost: 12000, dmg: 700, range: 340, atkSpd: 0.9, color: '#6ec4ff' },
+    { era: 5, name: 'Singularity Beam', icon: '🌌', cost: 30000, dmg: 1600, range: 380, atkSpd: 1.0, color: '#c86bff' },
   ];
   // Player starts with 2 turret slots and can purchase up to 2 more (max 4).
   // Enemy keeps all 4 unlocked so the AI ramps as it would in canon.
@@ -450,6 +461,7 @@ const AgeOfWarGame = (() => {
     { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', sprite: '🎖️',  cost: 3200, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 60 },
     { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 7000, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 65 },
     { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 15000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 70 },
+    { era: 5, key: 'hero_avatar',  name: 'The Avatar',       icon: '🌌', sprite: '🌌',  cost: 32000, hp: 15000, dmg: 1700, range: 260, atkSpd: 0.8, speed: 42, color: '#c86bff', xp: 5600, gold: 11000, silhouette: 'humanoid', cd: 80 },
   ];
   let heroReadyT = 0;   // seconds until current era's hero is available
   let currentHeroCd = 0;
@@ -683,8 +695,8 @@ const AgeOfWarGame = (() => {
         type: 'jet', x: -120 - Math.random() * 200, y: 40 + Math.random() * 50,
         vx: 80 + Math.random() * 40,
       });
-    } else if (eraIdx === 4) {
-      // Future: floating neon hex particles
+    } else if (eraIdx >= 4) {
+      // Future/Singularity: floating neon hex particles
       for (let i = 0; i < 16; i++) ambient.push({
         type: 'hex', x: Math.random() * WIDTH, y: 30 + Math.random() * (GROUND_Y - 60),
         vx: 6 + Math.random() * 10, vy: -3 + Math.random() * 6,
@@ -923,6 +935,13 @@ const AgeOfWarGame = (() => {
   function ageUp() {
     if (gameOver || userPaused) return;
     if (playerEra >= ERAS.length - 1) return;
+    // Singularity gate (AOW-3): the sixth era needs the max_age
+    // achievement from a PAST run — reach the Future once, then ascend.
+    if (playerEra === 4 && !earnedAchievements.max_age) {
+      ageBannerText = '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era';
+      ageBannerT = 2.4;
+      return;
+    }
     const need = ERAS[playerEra].upXP;
     if (xp < need) return;
     xp -= need;
@@ -932,6 +951,7 @@ const AgeOfWarGame = (() => {
     if (playerEra === 2) unlock('industrial');
     if (playerEra === 3) unlock('modern');
     if (playerEra === 4) unlock('max_age');
+    if (playerEra === 5) { ageBannerText = '🌌 SINGULARITY — beyond the Future'; ageBannerT = 3.0; }
     // New era → new hero costs/CD baseline. GAME-1f: don't touch the
     // player's actual remaining cooldown here -- clamping it to <=10s let
     // repeated age-ups (whenever XP allowed) shortcut a long hero cooldown
@@ -2420,9 +2440,10 @@ const AgeOfWarGame = (() => {
     ['#a9a0b8', '#dcc498'],  // industrial — smoggy sunset
     ['#5d8fb4', '#c2d0d8'],  // modern — overcast
     ['#2c3d80', '#7c92d2'],  // future — twilight
+    ['#170a2e', '#5a2a92'],  // singularity — violet void
   ];
-  const OG_SUN = ['#ffe488', '#fffaca', '#ff9c4a', null, '#a8e0ff'];
-  const OG_HILL = ['#d28a3a', '#3a8a3a', '#5a4a3a', '#3a4a48', '#2a3a68'];
+  const OG_SUN = ['#ffe488', '#fffaca', '#ff9c4a', null, '#a8e0ff', '#e0a8ff'];
+  const OG_HILL = ['#d28a3a', '#3a8a3a', '#5a4a3a', '#3a4a48', '#2a3a68', '#2a1548'];
   const OG_GROUND = ['#a9824e', '#88aa50', '#7a6648', '#6a7060', '#4a5a90'];
   // Grass/decor tint per era
   const GROUND_COLORS = OG_GROUND;
@@ -2443,6 +2464,7 @@ const AgeOfWarGame = (() => {
     { color: '#ffcc77', glow: 'rgba(255,180,100,0.30)', r: 16, x: 0.84, y: 70, halo: false },  // industrial — smoky sun
     { color: '#dde0e6', glow: 'rgba(220,225,235,0.25)', r: 13, x: 0.18, y: 56, halo: false },  // modern — overcast moon
     { color: '#7ec8ff', glow: 'rgba(120,200,255,0.55)', r: 20, x: 0.80, y: 64, halo: true },   // future — neon sun
+    { color: '#d88bff', glow: 'rgba(200,107,255,0.6)',  r: 22, x: 0.50, y: 56, halo: true },   // singularity — the tear itself
   ];
 
   function drawSunOrMoon(eraIdx) {
@@ -2733,7 +2755,7 @@ const AgeOfWarGame = (() => {
       ctx.save();
       ctx.globalAlpha = 0.7;
       if (eraIdx === 2) drawConifer(s.x, scale, '#1f4520');
-      else if (eraIdx === 4) drawNeonPylon(s.x, scale);
+      else if (eraIdx >= 4) drawNeonPylon(s.x, scale);
       else drawTree(s.x, scale, '#1f5a25', '#3b8a3b');
       ctx.restore();
     }
@@ -2794,8 +2816,8 @@ const AgeOfWarGame = (() => {
         ctx.beginPath();
         ctx.moveTo(xi - 5, yi + 5); ctx.lineTo(xi + 5, yi + 5);
         ctx.stroke();
-      } else if (eraIdx === 4) {
-        // Future: glowing hex chips
+      } else if (eraIdx >= 4) {
+        // Future/Singularity: glowing hex chips
         ctx.fillStyle = 'rgba(110,196,255,0.45)';
         ctx.beginPath();
         ctx.arc(xi, yi + 4, 1.6, 0, Math.PI * 2);
@@ -3880,7 +3902,7 @@ const AgeOfWarGame = (() => {
   function drawWall(u, x, y, facing, walk, bodyColor) {
     const w = u.w * 0.78, h = u.h * 0.6;
     const baseY = y + u.h;                 // feet line
-    if (u.key === 'wall4') {
+    if (u.key === 'wall4' || u.key === 'wall5') {
       ctx.fillStyle = 'rgba(76,201,240,0.28)';
       ctx.strokeStyle = bodyColor;
       ctx.lineWidth = 2.5;
@@ -6119,7 +6141,7 @@ const AgeOfWarGame = (() => {
     laser:        drawLaserTrooper,
     mech:         drawMech,
     flier:        drawHover,
-    wall0: drawWall, wall1: drawWall, wall2: drawWall, wall3: drawWall, wall4: drawWall,
+    wall0: drawWall, wall1: drawWall, wall2: drawWall, wall3: drawWall, wall4: drawWall, wall5: drawWall,
     hero_grog:    drawHeroGrog,
     hero_paladin: drawHeroPaladin,
     hero_general: drawHeroGeneral,
