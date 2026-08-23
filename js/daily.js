@@ -24,6 +24,7 @@ const Daily = (() => {
     { id: 'maze',      hash: 'maze',      name: 'Maze' },
     { id: 'asteroids', hash: 'asteroids', name: 'Asteroids' },
     { id: 'minesweeper', hash: 'minesweeper', name: 'Minefield', dir: 'min' },
+    { id: 'wordcascade', hash: 'wordcascade', name: 'Cascade' },
   ];
 
   // mulberry32: tiny, solid-enough 32-bit PRNG. Seeded from a string

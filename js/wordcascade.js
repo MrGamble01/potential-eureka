@@ -57,7 +57,12 @@ const WordCascadeGame = (() => {
   let dropT, dropEvery, flashCells, flashT, lastWords, chainPeak;
   const sfx = Utils.sfx;
 
-  const randLetter = () => BAG[Math.floor(Math.random() * BAG.length)];
+  // Daily-challenge plumbing (SITE-3): the letter draw is the game's only
+  // randomness (the spawn column is fixed), so seeding it makes the whole
+  // run shared-fate.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('wordcascade') : Math.random(); }
+  const randLetter = () => BAG[Math.floor(drand() * BAG.length)];
 
   function init() {
     canvas = document.getElementById('wc-canvas');
@@ -122,6 +127,7 @@ const WordCascadeGame = (() => {
 
   function start() {
     reset(true);
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('wordcascade');
     sfx('start');
     const ov = document.getElementById('wc-overlay');
     if (ov) ov.style.display = 'none';
@@ -244,9 +250,11 @@ const WordCascadeGame = (() => {
     best = Utils.highScore.save('cascade-best', score, best);
     updateInfo();
     draw();
+    const lines = [`Score: ${score.toLocaleString()} &nbsp;·&nbsp; Words: ${wordsCleared}`,
+      `Best chain: ×${Math.max(1, chainPeak)} &nbsp;·&nbsp; Best: ${best.toLocaleString()}`];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('wordcascade', score));
     Utils.showGameOver('wc-overlay', {
-      lines: [`Score: ${score.toLocaleString()} &nbsp;·&nbsp; Words: ${wordsCleared}`,
-              `Best chain: ×${Math.max(1, chainPeak)} &nbsp;·&nbsp; Best: ${best.toLocaleString()}`],
+      lines,
       hint: 'Press SPACE or tap to play again',
     });
   }
@@ -314,6 +322,8 @@ const WordCascadeGame = (() => {
 
   function destroy() {
     if (loop) loop.stop();
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('wordcascade');
     running = false; over = false;
     const ov = document.getElementById('wc-overlay'); if (ov) ov.style.display = 'none';
     reset(false);
