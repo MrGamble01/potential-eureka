@@ -613,3 +613,21 @@ nav .logo-btn {
 .ins-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--primary, #6C63FF), var(--secondary, #58A6FF)); border-radius: 4px; }
 .ins-val { width: 90px; color: var(--text-dim, #7D8590); font-variant-numeric: tabular-nums; }
 .ins-note { margin-top: 10px; text-align: center; font-size: 10px; color: var(--text-muted, #8b949e); }
+
+/* ── Coin shop (SITE-5) ── */
+#hof-shop { max-width: 720px; margin: 26px auto 0; text-align: center; }
+.shop-head { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: var(--primary, #6C63FF); margin-bottom: 6px; }
+.shop-balance { color: var(--text, #E6EDF3); margin-left: 8px; }
+.shop-sub { font-size: 11px; color: var(--text-dim, #7D8590); margin-bottom: 12px; }
+.shop-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.shop-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(127,127,127,0.08); border: 1px solid rgba(127,127,127,0.3);
+  color: var(--text, #E6EDF3); font-family: inherit; font-size: 12px; font-weight: 700;
+  border-radius: 18px; padding: 6px 14px; cursor: pointer; transition: all 0.15s;
+}
+.shop-chip:hover:not(:disabled) { border-color: var(--primary, #6C63FF); }
+.shop-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.shop-chip.equipped { border-color: var(--primary, #6C63FF); box-shadow: var(--glow-primary); }
+.shop-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.shop-tag { color: var(--text-dim, #7D8590); font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }

@@ -55,6 +55,7 @@ const SHELL = [
   '/js/bookmarks.js',
   '/js/breakout.js',
   '/js/calendar.js',
+  '/js/coins.js',
   '/js/connect4.js',
   '/js/daily.js',
   '/js/dashboard.js',
