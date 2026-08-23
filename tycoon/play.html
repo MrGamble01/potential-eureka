@@ -1007,6 +1007,16 @@
     #season-card .sc-note { margin-top: 18px; font-size: 15px; color: #9aa3ad; font-style: italic; }
     @media (prefers-reduced-motion: reduce) { #season-card.show, #season-card.show .sc-inner { animation: none; opacity: 1; } }
 
+    #board-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center; z-index: 330;
+    }
+    #board-modal.open { display: flex; animation: winFade 0.3s ease; }
+    #founder-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center; z-index: 320;
+    }
+    #founder-modal.open { display: flex; animation: winFade 0.3s ease; }
     #win-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.78);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
@@ -1595,6 +1605,27 @@
     </div>
   </div>
 </div>
+<div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
+  <div class="win-panel">
+    <div class="win-title" id="board-title">📋 Board Meeting</div>
+    <div class="win-sub" id="board-body"></div>
+    <div class="win-sub" style="color:#F85149;font-weight:800">Decide in <span id="board-timer">20s</span> — or the board tables it.</div>
+    <div class="ipo-actions" style="flex-direction:column;gap:8px">
+      <button class="ipo-confirm" id="board-yes"></button>
+      <button class="ipo-cancel" id="board-no"></button>
+    </div>
+  </div>
+</div>
+<div id="founder-modal" role="dialog" aria-modal="true" aria-label="Founder Shop">
+  <div class="win-panel">
+    <div class="win-title">🏛 Founder Shop</div>
+    <div class="win-sub">Founder Points: <strong id="founder-points">0</strong> — one minted per IPO. Perks are permanent, across every season and save.</div>
+    <div id="founder-list" style="display:flex;flex-direction:column;gap:8px;margin:14px 0"></div>
+    <div class="ipo-actions">
+      <button class="ipo-cancel" id="founder-close">Close</button>
+    </div>
+  </div>
+</div>
 <div id="investor-banner" hidden role="status" aria-live="polite">
   <span class="ib-icon" id="ib-icon">💰</span>
   <span class="ib-body"><strong id="ib-title">Investor on the floor</strong><span id="ib-sub">Walk up to shake their hand</span></span>
@@ -1686,6 +1717,7 @@
     <button class="hire-btn" id="open-dash-btn" style="margin-top:4px;background:rgba(63,185,80,0.12);border-color:rgba(63,185,80,0.3);color:#3FB950">📊 Dashboard</button>
     <button class="hire-btn" id="open-ach-btn" style="margin-top:4px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
     <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
+    <button class="hire-btn" id="open-founder-btn" style="margin-top:4px;background:rgba(252,211,77,0.08);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏛 Founder Shop</button>
     <button class="hire-btn" id="export-save-btn" style="margin-top:8px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)" title="Copy this run as a save code you can paste on another device">💾 Copy save code</button>
     <button class="hire-btn" id="import-save-btn" style="margin-top:4px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)" title="Paste a save code to continue that run here">📥 Import save code</button>
     <button class="hire-btn role-danger" id="restart-btn" style="margin-top:8px">🗑️ Restart game</button>
@@ -2061,6 +2093,7 @@ const LS = {
   sfx:           LS_PREFIX + 'sfxEnabled',
   welcome:       LS_PREFIX + 'welcomeSeen-v1',
   haptics:       LS_PREFIX + 'hapticsEnabled',
+  founder:       LS_PREFIX + 'founderShop',   // TYC-8: points + owned perks, cross-run
 };
 
 // SITE-3: these settings keys used to be bare (`joystickEnabled`,
@@ -4257,6 +4290,7 @@ const EXTERNAL_ENG_RATE_BONUS = CONFIG.externalEngRateBonus;
 const EXTERNAL_BDR_DEAL_BONUS = CONFIG.externalBdrDealBonus;
 
 function spawnIdeaWorker(opts = {}) {
+  // (TYC-8 Founder U applies after the spawn succeeds — see the return.)
   const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
   if (!desk) return false;
   desk.occupied = true;
@@ -4294,6 +4328,10 @@ function spawnIdeaWorker(opts = {}) {
     externalMult: opts.external ? EXTERNAL_ENG_RATE_BONUS : 1.0,
     morale: CONFIG.moraleDefault,
     paperIdleT: 0,
+    // Founder U (TYC-8): alumni hires arrive at L2. The roster save may
+    // overwrite this with the worker's real XP right after — good: saved
+    // XP is the source of truth, the perk only floors FRESH hires.
+    xp: (typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0,
   });
   return true;
 }
@@ -4337,7 +4375,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w);
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult;
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -5884,7 +5922,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost
+    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -6410,6 +6448,17 @@ function rebuildAllRoomMaterials() {
     if (def) w.material.color.setHex(paletteFor(def.id).wall);
   }
 }
+document.getElementById('board-yes').addEventListener('click', () => closeBoardMeeting('yes'));
+document.getElementById('board-no').addEventListener('click', () => closeBoardMeeting('no'));
+
+const founderModalEl = document.getElementById('founder-modal');
+document.getElementById('open-founder-btn').addEventListener('click', () => {
+  renderFounderModal();
+  founderModalEl.classList.add('open');
+});
+document.getElementById('founder-close').addEventListener('click', () => founderModalEl.classList.remove('open'));
+founderModalEl.addEventListener('click', e => { if (e.target === founderModalEl) founderModalEl.classList.remove('open'); });
+
 document.getElementById('open-theme-btn').addEventListener('click', () => {
   renderThemeModal();
   themeModalEl.classList.add('open');
@@ -6516,6 +6565,145 @@ document.getElementById('win-share-btn').addEventListener('click', () => {
   a.click();
   showToast('📸 Share card downloaded', 'milestone', 'standard');
 });
+
+// ── Founder Shop (IDEA-TYC-8) ──
+// Every IPO mints one Founder Point. Points buy PERMANENT meta-perks
+// that survive seasons and even fresh saves (they live in the settings
+// namespace, so each build variant keeps its own shop). This is the
+// decision layer prestigeLevel never had: bank points or spend them.
+const FOUNDER_PERKS = [
+  { id: 'serial', icon: '💼', name: 'Serial Founder', cost: 1,
+    desc: '+$500 starting cash every season' },
+  { id: 'angel',  icon: '👼', name: 'Angel Network', cost: 2,
+    desc: 'Funding rounds pay +25%' },
+  { id: 'campus', icon: '🎓', name: 'Founder U', cost: 2,
+    desc: 'New engineers start at L2 (5 XP)' },
+];
+function founderLoad() {
+  try {
+    const s = JSON.parse(lsGet(LS.founder) || 'null');
+    if (s && typeof s === 'object') return { points: s.points | 0, perks: s.perks || {} };
+  } catch {}
+  return { points: 0, perks: {} };
+}
+function founderSave(s) { lsSet(LS.founder, JSON.stringify(s)); }
+function founderHas(id) { return !!founderLoad().perks[id]; }
+function founderEarn() {
+  const s = founderLoad();
+  s.points++;
+  founderSave(s);
+  showToast(`🏛 +1 Founder Point (${s.points} banked) — spend it in the Founder Shop`, 'milestone', 'critical');
+  addFeedEntry('🏛 Founder Point earned');
+}
+function founderBuy(id) {
+  const s = founderLoad();
+  const p = FOUNDER_PERKS.find(x => x.id === id);
+  if (!p || s.perks[id] || s.points < p.cost) return false;
+  s.points -= p.cost;
+  s.perks[id] = true;
+  founderSave(s);
+  SFX.purchase(); Haptics.purchase();
+  addFeedEntry(`🏛 Perk unlocked: ${p.name}`);
+  return true;
+}
+function renderFounderModal() {
+  const s = founderLoad();
+  const list = document.getElementById('founder-list');
+  document.getElementById('founder-points').textContent = s.points;
+  list.innerHTML = FOUNDER_PERKS.map(p => {
+    const owned = !!s.perks[p.id];
+    return `<button class="hire-btn founder-perk" data-perk="${p.id}" ${owned || s.points < p.cost ? 'disabled' : ''}` +
+      ` style="${owned ? 'border-color:rgba(63,185,80,0.5);color:#3FB950;' : ''}text-align:left">` +
+      `${p.icon} <strong>${p.name}</strong> — ${p.desc}` +
+      `<span class="tag">${owned ? 'OWNED' : p.cost + ' pt' + (p.cost > 1 ? 's' : '')}</span></button>`;
+  }).join('');
+  list.querySelectorAll('.founder-perk').forEach(btn => {
+    btn.addEventListener('click', () => { if (founderBuy(btn.dataset.perk)) renderFounderModal(); });
+  });
+}
+
+// ── Board meetings (IDEA-TYC-4) ──
+// Every ~4 minutes the board convenes: a timed choice card with real
+// trade-offs. 20 seconds to decide or the board tables it themselves;
+// "Table it" is always a legitimate answer. Effects run on their own
+// multipliers (boardDealMult / boardSpeedMult) with visible timers.
+const BOARD_MEETINGS = [
+  { id: 'pivot', title: '📋 Board: "Pivot the roadmap"',
+    body: 'The board wants a hard pivot toward enterprise. Sales would soar; the team hates rewrites.',
+    yes: { label: 'Pivot (+50% deals · 90s, team −8 morale)',
+      apply: () => { boardDealMult = 1.5; boardDealT = 90; changeMorale(-8, 'The pivot stings'); } },
+    no: { label: 'Hold course' } },
+  { id: 'crunch', title: '📋 Board: "Ship it faster"',
+    body: 'An investor wants the next release pulled in. Crunch would do it — at a price.',
+    yes: { label: 'Crunch (+30% work rate · 60s, team −10 morale)',
+      apply: () => { boardSpeedMult = 1.3; boardSpeedT = 60; changeMorale(-10, 'Crunch mode'); } },
+    no: { label: 'Protect the team' } },
+  { id: 'wellness', title: '📋 Board: "Morale problem"',
+    body: 'HR flagged burnout. A wellness week would help people — and slow revenue while it runs.',
+    yes: { label: 'Wellness week (+15 morale, −25% deals · 60s)',
+      apply: () => { changeMorale(+15, 'Wellness week!'); boardDealMult = 0.75; boardDealT = 60; } },
+    no: { label: 'Skip it' } },
+  { id: 'buyback', title: '📋 Board: "Share the upside"',
+    body: 'Employee stock buyback: spend 25% of cash on the team\u2019s shares.',
+    yes: { label: 'Buy back (−25% cash, team +12 morale)',
+      apply: () => { const cost = Math.round(state.cash * 0.25); state.cash -= cost; showSpendPop(cost);
+        changeMorale(+12, 'The buyback landed'); } },
+    no: { label: 'Not this quarter' } },
+];
+let boardDealMult = 1, boardDealT = 0;
+let boardSpeedMult = 1, boardSpeedT = 0;
+let boardNextT = 180;          // first meeting ~3 minutes in
+let boardTimerT = 0, boardActive = null, boardInterval = null;
+const boardModalEl = () => document.getElementById('board-modal');
+
+function updateBoard(dt) {
+  if (boardDealT > 0) { boardDealT -= dt; if (boardDealT <= 0) { boardDealMult = 1; addFeedEntry('📋 Board effect on deals expired'); } }
+  if (boardSpeedT > 0) { boardSpeedT -= dt; if (boardSpeedT <= 0) { boardSpeedMult = 1; addFeedEntry('📋 Crunch is over'); } }
+  if (boardActive) return;
+  boardNextT -= dt;
+  if (boardNextT > 0) return;
+  // Don't convene over another modal.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open')) {
+    boardNextT = 20;
+    return;
+  }
+  openBoardMeeting(BOARD_MEETINGS[Math.floor(Math.random() * BOARD_MEETINGS.length)]);
+}
+function openBoardMeeting(m) {
+  boardActive = m;
+  boardTimerT = 20;
+  document.getElementById('board-title').textContent = m.title;
+  document.getElementById('board-body').textContent = m.body;
+  document.getElementById('board-yes').textContent = m.yes.label;
+  document.getElementById('board-no').textContent = m.no.label;
+  boardModalEl().classList.add('open');
+  SFX.milestone && SFX.milestone();
+  boardInterval = setInterval(() => {
+    boardTimerT--;
+    const t = document.getElementById('board-timer');
+    if (t) t.textContent = boardTimerT + 's';
+    if (boardTimerT <= 0) closeBoardMeeting('timeout');
+  }, 1000);
+  const t = document.getElementById('board-timer');
+  if (t) t.textContent = '20s';
+}
+function closeBoardMeeting(choice) {
+  clearInterval(boardInterval);
+  boardModalEl().classList.remove('open');
+  const m = boardActive;
+  boardActive = null;
+  boardNextT = 240;            // next meeting in ~4 minutes
+  if (!m) return;
+  if (choice === 'yes') {
+    m.yes.apply();
+    addFeedEntry(`📋 Board decision: ${m.yes.label}`);
+  } else if (choice === 'timeout') {
+    showToast('📋 You let the clock run — the board tabled it.', '', 'standard');
+  } else {
+    addFeedEntry('📋 Board proposal tabled');
+  }
+  refreshHud();
+}
 
 // ── Rival startup race (IDEA-TYC-3) ──
 // A ghost competitor chases the same season goal. It paces itself to a
@@ -7031,9 +7219,10 @@ function raiseFunding() {
   const r = FUNDING_ROUNDS[fundingRoundIdx];
   if (!r.req()) return;
   fundingRoundIdx++;
-  addCash(r.amount, 'funding');
-  showToast(`🎉 ${r.label} closed! +$${r.amount.toLocaleString()}`, 'milestone');
-  addFeedEntry(`💼 ${r.label} raised +$${r.amount.toLocaleString()}`);
+  const amt = Math.round(r.amount * (founderHas('angel') ? 1.25 : 1));
+  addCash(amt, 'funding');
+  showToast(`🎉 ${r.label} closed! +$${amt.toLocaleString()}${founderHas('angel') ? ' (👼 +25%)' : ''}`, 'milestone');
+  addFeedEntry(`💼 ${r.label} raised +$${amt.toLocaleString()}`);
   // Funding rounds are big moments — celebrate them.
   SFX.milestone(); Haptics.milestone();
   launchConfetti({ pieces: 50, duration: 2400,
@@ -8079,11 +8268,12 @@ refreshHud();
 // Floor subclass is dropped in (see README at top of file).
 const FLOORS = [
   { id: 'office',  name: 'Office — Floor 1', icon: '💻', cost: 0 },
+  { id: 'lab',     name: 'R&D Lab — Floor 2', icon: '🔬', cost: 15000 },
   { id: 'cafe',    name: 'Café',             icon: '☕', cost: 1000 },
   { id: 'gym',     name: 'Gym',              icon: '💪', cost: 5000 },
   { id: 'rooftop', name: 'Rooftop',          icon: '🌇', cost: 25000 },
 ];
-const unlocked = { office: true, cafe: false, gym: false, rooftop: false };
+const unlocked = { office: true, lab: false, cafe: false, gym: false, rooftop: false };
 let currentFloor = 'office';
 const elevModal = document.getElementById('elevator-modal');
 const floorListEl = document.getElementById('floor-list');
@@ -8133,6 +8323,42 @@ function syncNextActionPlacement() {
 syncNextActionPlacement();
 window.addEventListener('resize', syncNextActionPlacement);
 
+// ── R&D Lab (IDEA-TYC-1) ──
+// The second floor the scaffolding always promised. Researchers work
+// upstairs (the elevator card is their window — the office camera never
+// leaves Floor 1) and file patents: each one is a PERMANENT +2% on
+// computeDealValue, capped at +30%, persisted in the save. LabFloor
+// registers in FLOOR_CLASSES per the extension point; its update ticks
+// from the main loop since the lab runs whether or not you're watching.
+const LAB_MAX_RESEARCHERS = 3;
+const LAB_PATENT_SECS = 90;          // researcher-seconds per patent
+const LAB_PATENT_CAP = 15;           // +30% at 2% each
+let labResearchers = 0, labPatents = 0, labResearchT = 0;
+function researcherCost() { return 2000 * (labResearchers + 1) * (labResearchers + 1); }
+function patentBonus() { return 1 + Math.min(labPatents, LAB_PATENT_CAP) * 0.02; }
+function updateLab(dt) {
+  if (!unlocked.lab || labResearchers === 0 || labPatents >= LAB_PATENT_CAP) return;
+  labResearchT += dt * labResearchers;
+  if (labResearchT >= LAB_PATENT_SECS) {
+    labResearchT -= LAB_PATENT_SECS;
+    labPatents++;
+    showToast(`🔬 Patent filed! Deals now +${Math.min(labPatents, LAB_PATENT_CAP) * 2}% — permanently`, 'milestone', 'standard');
+    addFeedEntry(`🔬 Patent #${labPatents} granted (+2% deal value forever)`);
+    SFX.milestone && SFX.milestone();
+    refreshHud();
+  }
+}
+function hireResearcher() {
+  if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
+  const cost = researcherCost();
+  if (state.cash < cost) return false;
+  state.cash -= cost; showSpendPop(cost);
+  labResearchers++;
+  addFeedEntry(`🥼 Researcher #${labResearchers} took the elevator up`);
+  SFX.hire(); refreshHud();
+  return true;
+}
+
 function renderFloors() {
   floorListEl.innerHTML = '';
   elevMsgEl.textContent = '';
@@ -8160,12 +8386,30 @@ function renderFloors() {
         } else {
           elevMsgEl.textContent = `Need $${(f.cost - state.cash).toLocaleString()} more`;
         }
+      } else if (f.id === 'lab') {
+        if (hireResearcher()) {
+          elevMsgEl.textContent = `Researcher hired — ${labResearchers}/${LAB_MAX_RESEARCHERS} upstairs.`;
+        } else {
+          elevMsgEl.textContent = labResearchers >= LAB_MAX_RESEARCHERS
+            ? 'The lab is fully staffed.'
+            : `Need $${(researcherCost() - state.cash).toLocaleString()} more for the next researcher`;
+        }
+        renderFloors();
       } else if (f.id === currentFloor) {
         elevMsgEl.textContent = "You're already here.";
       } else {
         elevMsgEl.textContent = `${f.name} is a placeholder — drop in a Floor subclass to activate.`;
       }
     };
+    // The lab card doubles as its status readout once unlocked.
+    if (f.id === 'lab' && unlocked.lab) {
+      const status = document.createElement('div');
+      status.style.cssText = 'font-size:11px;color:#7D8590;margin-top:4px';
+      status.id = 'lab-status';
+      status.textContent = `🥼 ${labResearchers}/${LAB_MAX_RESEARCHERS} researchers · 📜 ${labPatents} patents · deals +${Math.min(labPatents, LAB_PATENT_CAP) * 2}%` +
+        (labResearchers < LAB_MAX_RESEARCHERS ? ` · click to hire ($${researcherCost().toLocaleString()})` : '');
+      card.appendChild(status);
+    }
     floorListEl.appendChild(card);
   }
 }
@@ -8712,8 +8956,16 @@ class OfficeFloor extends Floor {
     checkDecorUpgrades(dt);
   }
 }
+class LabFloor extends Floor {
+  // The lab has no camera of its own (yet) — its simulation ticks from
+  // the main loop via updateLab() so research never pauses. This class
+  // exists so the FLOOR_CLASSES extension point finally has a second
+  // registrant, ready for a real scene when someone builds one.
+  update(dt) { /* research ticks globally in updateLab */ }
+}
 const FLOOR_CLASSES = {
   office: OfficeFloor,
+  lab:    LabFloor,
   // cafe:    CafeFloor,    // TODO: boosts idea growth on neighboring floors
   // gym:     GymFloor,     // TODO: boosts move speed
   // rooftop: RooftopFloor, // TODO: attracts investor NPCs
@@ -8965,6 +9217,8 @@ function frameBody(now) {
   updatePet(dt);
   updateBugs(dt);
   updateRival(dt);
+  updateBoard(dt);
+  updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -9090,6 +9344,7 @@ function showSeasonCard(level) {
 }
 
 function doIPO() {
+  founderEarn();   // TYC-8: every IPO mints a Founder Point
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
   waltAdvanceSeason(); // Walt levels up one role each season
@@ -9100,7 +9355,7 @@ function doIPO() {
     palette: ['#3FB950', '#fcd34d', '#22d3ee', '#fff'] });
 
   // Reset progress
-  state.cash = 200 * prestigeLevel;
+  state.cash = 200 * prestigeLevel + (founderHas('serial') ? 500 : 0);
   state.allTimeCash = 0;
   snapCashHud();  // skip the animated dip from old cash to new
   nextMilestoneIdx = 0;
@@ -9520,6 +9775,17 @@ const SAVE_SCHEMA = [
     key: 'seasonGoalHit',
     write: p => { p.seasonGoalHit = seasonGoalHit; },
     read: p => { if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit; },
+  },
+  {
+    key: 'rdLab', // TYC-1: unlock + staff + patents (patents survive IPOs by design)
+    write: p => { p.rdLab = { u: !!unlocked.lab, r: labResearchers, pt: labPatents, t: labResearchT }; },
+    read: p => {
+      if (!p.rdLab || typeof p.rdLab !== 'object') return;
+      unlocked.lab = !!p.rdLab.u;
+      labResearchers = Math.max(0, Math.min(LAB_MAX_RESEARCHERS, p.rdLab.r | 0));
+      labPatents = Math.max(0, p.rdLab.pt | 0);
+      labResearchT = typeof p.rdLab.t === 'number' ? p.rdLab.t : 0;
+    },
   },
   {
     key: 'rivalRace', // TYC-3: the ghost competitor persists mid-season
