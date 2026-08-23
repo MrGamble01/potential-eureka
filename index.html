@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    // Theme boot (SITE-6): applied before first paint so there's no flash.
+    // Stored pick wins; otherwise light-preferring systems get daylight.
+    try {
+      var t = localStorage.getItem('eureka-theme');
+      if (t === null && matchMedia('(prefers-color-scheme: light)').matches) t = 'daylight';
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA GAMES</title>
@@ -48,6 +57,7 @@
   <nav>
     <button class="logo logo-btn glitch" data-text=">_ EUREKA GAMES" data-view="arcade">&gt;_ EUREKA GAMES</button>
     <div class="nav-spacer"></div>
+    <button class="nav-sfx-toggle" id="nav-theme-toggle" title="Theme" aria-label="Cycle color theme">&#127912;</button>
     <button class="nav-sfx-toggle" id="nav-sfx-toggle" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
     <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
   </nav>
@@ -1375,6 +1385,28 @@
       navUtilsToggle.setAttribute('aria-expanded', navUtils.classList.contains('open') ? 'true' : 'false');
     }
     // Global sound toggle (SFX from js/sfx.js persists mute in localStorage).
+    // Theme cycler (SITE-6): default → CRT → synthwave → daylight → …
+    const THEMES = [
+      { id: '',          label: 'Midnight (default)' },
+      { id: 'crt',       label: 'CRT' },
+      { id: 'synthwave', label: 'Synthwave' },
+      { id: 'daylight',  label: 'Daylight' },
+    ];
+    const themeToggle = document.getElementById('nav-theme-toggle');
+    function applyTheme(id, persist) {
+      if (id) document.documentElement.dataset.theme = id;
+      else delete document.documentElement.dataset.theme;
+      if (persist) { try { localStorage.setItem('eureka-theme', id); } catch {} }
+      const cur = THEMES.find(t => t.id === id) || THEMES[0];
+      themeToggle.title = 'Theme: ' + cur.label;
+    }
+    applyTheme(document.documentElement.dataset.theme || '', false);
+    themeToggle.addEventListener('click', () => {
+      const cur = document.documentElement.dataset.theme || '';
+      const idx = THEMES.findIndex(t => t.id === cur);
+      applyTheme(THEMES[(idx + 1) % THEMES.length].id, true);
+    });
+
     const sfxToggle = document.getElementById('nav-sfx-toggle');
     const syncSfxIcon = () => {
       const m = SFX.isMuted();
