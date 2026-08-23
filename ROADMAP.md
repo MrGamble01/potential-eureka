@@ -448,6 +448,12 @@ when new play-testing surfaces friction.
 - **~~P7-MAZE-1 · Par-time medals~~** ✅ — par = rows·cols/20+3s; 🥇 +200 under par (lifetime tally in `maze-golds`), 🥈 +80 under 1.6×; par + tally live in the status bar.
 - *(scoped and dropped: Tetris ghost piece, Connect-4 2P/difficulty, SFX mute, Stacker perfect-streak, Voxel Isle offline growth — all already shipped.)*
 
+## P8 — Coverage pass (opened Aug 2026)
+
+- **~~P8-ACH-1 · Trophies for the newest games~~** ✅ — 🏗️ High Rise, 🛰️ Perimeter Held, 🔤 Rainmaker, 🥇 Pathfinder; their keys join SCORE_KEYS so Completionist means all 15 tracked games (20 trophies total).
+- **~~P8-DAILY-2 · Word Cascade joins the daily~~** ✅ — seeded letter draws (the game's only randomness), 7th banner chip, 📅 line on the game-over card.
+- **~~P8-SNAKE-2 · Pace settings~~** ✅ — Chill/Classic/Blitz base tick persisted in `snake-pace`, live mid-run retiming, daily runs locked to Classic.
+
 ## Appendix A — localStorage key registry
 
 *Refreshed August 2026. SITE-3 asked for this table to live in the README too —
