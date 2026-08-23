@@ -1349,6 +1349,26 @@ const DIFFS = {
 };
 function DIFF() { return DIFFS[state.difficulty] || DIFFS.careful; }
 
+// ── Prestige: New Identity (IDEA-LAB-3) ──
+// Lives in its own key so it survives resetGame()'s save wipe — that's
+// the whole point: the run dies, the reputation doesn't. A bust that
+// earned real money ($2k+) forges one identity (+4% street prices,
+// permanently); completing the empire forges two. Capped at six.
+const LEGACY_KEY = 'growop-legacy';
+function loadLegacy() {
+  try { const l = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
+    if (l && typeof l === 'object') return { points: l.points|0, runs: l.runs|0 }; } catch(e){}
+  return { points: 0, runs: 0 };
+}
+function addLegacy(pts) {
+  const l = loadLegacy();
+  l.points = Math.min(6, l.points + pts);
+  l.runs++;
+  try { localStorage.setItem(LEGACY_KEY, JSON.stringify(l)); } catch(e){}
+  return l;
+}
+function legacyMult() { return 1 + Math.min(6, loadLegacy().points) * 0.04; }
+
 // ── Heat system ──
 function addHeat(amount) {
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
@@ -1394,6 +1414,10 @@ function triggerBust() {
     <div class="row"><span>Batches Cooked</span><strong>${state.batches}</strong></div>
     <div class="row"><span>Time Running</span><strong>${Math.floor((Date.now()-state.sessionStart)/60000)}m</strong></div>
   `;
+  if (state.totalEarned >= 2000) {
+    const l = addLegacy(1);
+    stats.innerHTML += `<div class="row"><span>🪪 New identity forged</span><strong>+4% prices forever (${Math.min(6,l.points)*4}% total)</strong></div>`;
+  }
   document.getElementById('bust-modal').classList.add('open');
   addFeed('💀 BUSTED — Game Over');
 }
@@ -1415,7 +1439,7 @@ function salePrice() {
   const base = 25;
   const purity = 1 + upgLv('bags')*0.15 + upgLv('price')*0.4;
   const chemiBonus = chemStation ? 1.8 : 1;
-  return Math.floor(base * purity * chemiBonus * DIFF().price);
+  return Math.floor(base * purity * chemiBonus * DIFF().price * legacyMult());
 }
 
 // ── Act system ──
@@ -1511,6 +1535,9 @@ function updateGoals() {
         state.won=true;
         showToast('👑 EMPIRE COMPLETE — from a garage to the whole city. Keep it running... or walk away clean.','good');
         addFeed('👑 EMPIRE COMPLETE');
+        const l = addLegacy(2);
+        showToast(`🪪 The name retires a legend — legacy +8% street prices (now +${Math.min(6,l.points)*4}%).`,'good');
+        addFeed('🪪 Legacy secured');
         setStatus('👑 Empire complete. The city is yours.', 12);
       }
       saveGame();
@@ -1966,11 +1993,19 @@ function loadGame() {
 
 const hadSave = !!localStorage.getItem(LS_KEY);
 loadGame();
+if (hadSave && loadLegacy().points > 0) {
+  setTimeout(function(){ setStatus(`🪪 Legacy: +${Math.min(6,loadLegacy().points)*4}% street prices carried over`, 6); }, 2500);
+}
 
 // Fresh run: pick a difficulty before the first plant goes in. An
 // existing save keeps whatever it was started on (old saves = careful).
 if (!hadSave) {
   const dm = document.getElementById('diff-modal');
+  const lg = loadLegacy();
+  if (lg.points > 0) {
+    document.querySelector('.diff-sub').textContent =
+      `Picked once per run — a bust starts you over. 🪪 Legacy: +${Math.min(6,lg.points)*4}% street prices from ${lg.runs} past li${lg.runs===1?'fe':'ves'}.`;
+  }
   dm.classList.add('open');
   const pick = d => {
     state.difficulty = d;

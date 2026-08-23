@@ -68,7 +68,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |
 | `beagle-sim-v1`, `beagle:*` | Beagle Sim (the `?theme=beagle` variant of Startup Tycoon) |
 | `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | shared by both tycoon variants (cosmetic only) |
-| `drug-lab-v1`, `growop-achievements` | Grow Op (achievements survive busts by design) |
+| `drug-lab-v1`, `growop-achievements`, `growop-legacy` | Grow Op (achievements + legacy survive busts by design) |
 | `homeless_village_v1` | Homeless Village |
 | `hearthvale-v1` | Hearthvale |
 | `voxel-garden-v1` | Voxel Isle |
