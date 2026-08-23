@@ -5922,7 +5922,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult
+    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -8268,11 +8268,12 @@ refreshHud();
 // Floor subclass is dropped in (see README at top of file).
 const FLOORS = [
   { id: 'office',  name: 'Office — Floor 1', icon: '💻', cost: 0 },
+  { id: 'lab',     name: 'R&D Lab — Floor 2', icon: '🔬', cost: 15000 },
   { id: 'cafe',    name: 'Café',             icon: '☕', cost: 1000 },
   { id: 'gym',     name: 'Gym',              icon: '💪', cost: 5000 },
   { id: 'rooftop', name: 'Rooftop',          icon: '🌇', cost: 25000 },
 ];
-const unlocked = { office: true, cafe: false, gym: false, rooftop: false };
+const unlocked = { office: true, lab: false, cafe: false, gym: false, rooftop: false };
 let currentFloor = 'office';
 const elevModal = document.getElementById('elevator-modal');
 const floorListEl = document.getElementById('floor-list');
@@ -8322,6 +8323,42 @@ function syncNextActionPlacement() {
 syncNextActionPlacement();
 window.addEventListener('resize', syncNextActionPlacement);
 
+// ── R&D Lab (IDEA-TYC-1) ──
+// The second floor the scaffolding always promised. Researchers work
+// upstairs (the elevator card is their window — the office camera never
+// leaves Floor 1) and file patents: each one is a PERMANENT +2% on
+// computeDealValue, capped at +30%, persisted in the save. LabFloor
+// registers in FLOOR_CLASSES per the extension point; its update ticks
+// from the main loop since the lab runs whether or not you're watching.
+const LAB_MAX_RESEARCHERS = 3;
+const LAB_PATENT_SECS = 90;          // researcher-seconds per patent
+const LAB_PATENT_CAP = 15;           // +30% at 2% each
+let labResearchers = 0, labPatents = 0, labResearchT = 0;
+function researcherCost() { return 2000 * (labResearchers + 1) * (labResearchers + 1); }
+function patentBonus() { return 1 + Math.min(labPatents, LAB_PATENT_CAP) * 0.02; }
+function updateLab(dt) {
+  if (!unlocked.lab || labResearchers === 0 || labPatents >= LAB_PATENT_CAP) return;
+  labResearchT += dt * labResearchers;
+  if (labResearchT >= LAB_PATENT_SECS) {
+    labResearchT -= LAB_PATENT_SECS;
+    labPatents++;
+    showToast(`🔬 Patent filed! Deals now +${Math.min(labPatents, LAB_PATENT_CAP) * 2}% — permanently`, 'milestone', 'standard');
+    addFeedEntry(`🔬 Patent #${labPatents} granted (+2% deal value forever)`);
+    SFX.milestone && SFX.milestone();
+    refreshHud();
+  }
+}
+function hireResearcher() {
+  if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
+  const cost = researcherCost();
+  if (state.cash < cost) return false;
+  state.cash -= cost; showSpendPop(cost);
+  labResearchers++;
+  addFeedEntry(`🥼 Researcher #${labResearchers} took the elevator up`);
+  SFX.hire(); refreshHud();
+  return true;
+}
+
 function renderFloors() {
   floorListEl.innerHTML = '';
   elevMsgEl.textContent = '';
@@ -8349,12 +8386,30 @@ function renderFloors() {
         } else {
           elevMsgEl.textContent = `Need $${(f.cost - state.cash).toLocaleString()} more`;
         }
+      } else if (f.id === 'lab') {
+        if (hireResearcher()) {
+          elevMsgEl.textContent = `Researcher hired — ${labResearchers}/${LAB_MAX_RESEARCHERS} upstairs.`;
+        } else {
+          elevMsgEl.textContent = labResearchers >= LAB_MAX_RESEARCHERS
+            ? 'The lab is fully staffed.'
+            : `Need $${(researcherCost() - state.cash).toLocaleString()} more for the next researcher`;
+        }
+        renderFloors();
       } else if (f.id === currentFloor) {
         elevMsgEl.textContent = "You're already here.";
       } else {
         elevMsgEl.textContent = `${f.name} is a placeholder — drop in a Floor subclass to activate.`;
       }
     };
+    // The lab card doubles as its status readout once unlocked.
+    if (f.id === 'lab' && unlocked.lab) {
+      const status = document.createElement('div');
+      status.style.cssText = 'font-size:11px;color:#7D8590;margin-top:4px';
+      status.id = 'lab-status';
+      status.textContent = `🥼 ${labResearchers}/${LAB_MAX_RESEARCHERS} researchers · 📜 ${labPatents} patents · deals +${Math.min(labPatents, LAB_PATENT_CAP) * 2}%` +
+        (labResearchers < LAB_MAX_RESEARCHERS ? ` · click to hire ($${researcherCost().toLocaleString()})` : '');
+      card.appendChild(status);
+    }
     floorListEl.appendChild(card);
   }
 }
@@ -8901,8 +8956,16 @@ class OfficeFloor extends Floor {
     checkDecorUpgrades(dt);
   }
 }
+class LabFloor extends Floor {
+  // The lab has no camera of its own (yet) — its simulation ticks from
+  // the main loop via updateLab() so research never pauses. This class
+  // exists so the FLOOR_CLASSES extension point finally has a second
+  // registrant, ready for a real scene when someone builds one.
+  update(dt) { /* research ticks globally in updateLab */ }
+}
 const FLOOR_CLASSES = {
   office: OfficeFloor,
+  lab:    LabFloor,
   // cafe:    CafeFloor,    // TODO: boosts idea growth on neighboring floors
   // gym:     GymFloor,     // TODO: boosts move speed
   // rooftop: RooftopFloor, // TODO: attracts investor NPCs
@@ -9155,6 +9218,7 @@ function frameBody(now) {
   updateBugs(dt);
   updateRival(dt);
   updateBoard(dt);
+  updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -9711,6 +9775,17 @@ const SAVE_SCHEMA = [
     key: 'seasonGoalHit',
     write: p => { p.seasonGoalHit = seasonGoalHit; },
     read: p => { if (typeof p.seasonGoalHit === 'boolean') seasonGoalHit = p.seasonGoalHit; },
+  },
+  {
+    key: 'rdLab', // TYC-1: unlock + staff + patents (patents survive IPOs by design)
+    write: p => { p.rdLab = { u: !!unlocked.lab, r: labResearchers, pt: labPatents, t: labResearchT }; },
+    read: p => {
+      if (!p.rdLab || typeof p.rdLab !== 'object') return;
+      unlocked.lab = !!p.rdLab.u;
+      labResearchers = Math.max(0, Math.min(LAB_MAX_RESEARCHERS, p.rdLab.r | 0));
+      labPatents = Math.max(0, p.rdLab.pt | 0);
+      labResearchT = typeof p.rdLab.t === 'number' ? p.rdLab.t : 0;
+    },
   },
   {
     key: 'rivalRace', // TYC-3: the ghost competitor persists mid-season
