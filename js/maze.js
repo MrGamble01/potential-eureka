@@ -20,6 +20,8 @@ const MazeGame = (() => {
   // --- game state ---
   let player, goal, gems, level, score, best, collected;
   let elapsed, playing, won, fog, visionR;
+  let golds = 0;   // P7: lifetime gold medals (beat par), persisted
+  try { golds = Math.max(0, parseInt(localStorage.getItem('maze-golds') || '0', 10) || 0); } catch {}
   const viewActive = () => {
     const v = document.getElementById('view-maze');
     return v && v.classList.contains('active');
@@ -154,19 +156,33 @@ const MazeGame = (() => {
     if (nr === goal.r && nc === goal.c) winLevel();
   }
 
+  // P7: par time scales with the maze's cell count, so bigger labyrinths
+  // get a fair clock. Beat par for gold (+200), 1.6× par for silver (+80).
+  function parSecs() { return Math.round((rows * cols) / 20) + 3; }
+
   function winLevel() {
     playing = false; won = true;
     const secs = elapsed / 1000;
     const timeBonus = Math.max(40, Math.round(600 - secs * 12));
     const gemBonus = collected * 25;
     const allGems = gems.length === 0 ? 150 : 0;   // clean sweep bonus
-    score += timeBonus + gemBonus + level * 30 + allGems;
+    const par = parSecs();
+    let medal = '', medalPts = 0;
+    if (secs <= par) {
+      medal = '🥇 GOLD'; medalPts = 200;
+      golds++;
+      try { localStorage.setItem('maze-golds', String(golds)); } catch {}
+    } else if (secs <= par * 1.6) {
+      medal = '🥈 SILVER'; medalPts = 80;
+    }
+    score += timeBonus + gemBonus + level * 30 + allGems + medalPts;
     best = Utils.highScore.save('maze-best', score, best);
     sfx('bonus');
     Effects.shakeCanvas(canvas, 6, 300);
     winFlash = 40;
     spark(goal.c, goal.r, '#3FB950', 24);
-    let clearMsg = '🎉 Level ' + level + ' cleared! +' + (timeBonus + gemBonus + level * 30 + allGems);
+    let clearMsg = '🎉 Level ' + level + ' cleared! +' + (timeBonus + gemBonus + level * 30 + allGems + medalPts);
+    if (medal) clearMsg += ' &nbsp;·&nbsp; ' + medal + ' (' + secs.toFixed(1) + 's vs par ' + par + 's)';
     if (dailyRun && typeof Daily !== 'undefined') clearMsg += ' &nbsp;·&nbsp; ' + Daily.result('maze', score);
     updateStatus(clearMsg);
     level++;
@@ -412,6 +428,8 @@ const MazeGame = (() => {
       'Score <b>' + score + '</b> &nbsp;·&nbsp; ' +
       'Best <b style="color:#F7C948">' + best + '</b> &nbsp;·&nbsp; ' +
       '💎 ' + collected + '/' + (collected + gems.length) +
+      ' &nbsp;·&nbsp; ⏱ par ' + parSecs() + 's' +
+      (golds > 0 ? ' &nbsp;·&nbsp; 🥇 ' + golds : '') +
       (fog ? ' &nbsp;·&nbsp; <span style="color:#F778BA">🔦 dark</span>' : '');
   }
 
