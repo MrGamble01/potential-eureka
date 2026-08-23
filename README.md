@@ -56,6 +56,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `matrix-best` | Memory Matrix |
 | `pong-streak` | Pong++ |
 | `arcade-daily-<game>-<date>` | Daily challenge bests (today's only — stale dates are swept on boot) |
+| `arcade-rivals`, `rival-name` | Shared-leaderboard rivals + your share-code name |
 | `arcade-muted` | `js/sfx.js` (arcade hub) |
 | `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen` | Age of War |
 | `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |

@@ -73,6 +73,7 @@ const SHELL = [
   '/js/pomodoro.js',
   '/js/pong.js',
   '/js/productivity.js',
+  '/js/rivals.js',
   '/js/scores.js',
   '/js/sfx.js',
   '/js/snake.js',
