@@ -8,7 +8,7 @@
 
 // Bump on any precache-list or caching-strategy change: activate() drops
 // every cache that doesn't match, which is how updates roll out.
-const SW_VERSION = 'eureka-v3';
+const SW_VERSION = 'eureka-v4';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
@@ -79,6 +79,7 @@ const SHELL = [
   '/js/sfx.js',
   '/js/snake.js',
   '/js/stacker.js',
+  '/js/telemetry.js',
   '/js/tetris.js',
   '/js/todo.js',
   '/js/utils.js',

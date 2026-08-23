@@ -352,7 +352,7 @@ way, and an unguarded spend is the exact shape this ticket flagged.
 - **IDEA-SITE-5 · Arcade coins + cosmetics** — earn from achievements; spend on `--accent` palette swaps (already CSS-custom-property-driven).
 - **~~IDEA-SITE-6 · Theme system~~** ✅ **shipped Aug 2026** — `:root[data-theme=crt|synthwave|daylight]` overriding the primitive tokens in base.css; 🎨 cycler by the SFX toggle; pick persisted with a FOUC-free head script; light-preferring systems default to Daylight. Game canvases keep their own palettes by design.
 - **~~IDEA-SITE-7 · Gamepad support~~** ✅ **shipped Aug 2026** — `js/gamepad.js` polls `getGamepads()` per frame and dispatches the same synthetic `KeyboardEvent`s the Tetris touch pad already uses (dpad/left stick → arrows, A → Space, B → Escape, Start → Enter), with keyboard-style auto-repeat on held directions (`repeat:true`, so games' own `e.repeat` guards keep working) and a full key-release sweep when the pad unplugs mid-hold.
-- **IDEA-SITE-8 · Local-only "Insights"** — `js/telemetry.js` records launches/minutes to `eureka-stats`; "Your arcade year" panel in the HOF. No network.
+- **~~IDEA-SITE-8 · Local-only "Insights"~~** ✅ **shipped Aug 2026** — `js/telemetry.js` tracks the 14 in-page arcade/toy views (the five standalone games live on their own pages and aren't covered): one `eureka-stats` localStorage key holds per-view launch counts and playtime, a single active-view timer flushes on navigation, tab-hide and `pagehide`, and resumes without double-counting a launch when the tab comes back. "Your arcade year" panel renders under Achievements in the HOF (time played, sessions, games tried, favorite); empty state before any launch. No network calls.
 - **~~IDEA-SITE-9 · "Studio Crew" page~~** ✅ **shipped** — the org-chart viz was
   rebuilt around a fictional dev-team cast and now ships as Studio Crew.
 
@@ -433,6 +433,7 @@ that half is still open.*
 | `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | both tycoon builds | still shared — cosmetic only |
 | `tycoon:*` (`joystickEnabled`, `moraleEnabled`, `investorEnabled`, `tipsEnabled`, `toastDensity`, `sfxEnabled`, `welcomeSeen-v1`, `hapticsEnabled`, `tip-seen-*`) | Startup Tycoon | ✓ namespaced, with one-time migration from the bare keys (SITE-3) |
 | `eureka-notes/todos/bookmarks/pomo-sessions/calendar-config/gt-clientid/gt-lists` | productivity | ✓ |
+| `eureka-stats` | `js/telemetry.js` (IDEA-SITE-8) | ✓ per-view launches + minutes for the 14 in-page arcade/toy views |
 | `eureka-personal-pin`, `eureka-personal-*` | personal | plaintext, and the UI now says so (SEC-2) |
 
 ## Appendix B — verified-clean list (don't re-investigate)

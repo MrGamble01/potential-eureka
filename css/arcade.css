@@ -601,3 +601,16 @@ nav .logo-btn {
 .ach-toast-icon { font-size: 22px; }
 .ach-toast-out { opacity: 0; transform: translateY(8px); }
 @keyframes achIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ── Insights (SITE-8) ── */
+#hof-insights { max-width: 720px; margin: 26px auto 0; }
+.ins-head { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #7EC8FF; margin-bottom: 12px; text-align: center; }
+.ins-since { color: #7D8590; font-weight: 600; letter-spacing: 0; margin-left: 6px; text-transform: none; }
+.ins-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.ins-tile {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px; padding: 12px; text-align: center;
+}
+.ins-tile-value { font-size: 20px; font-weight: 800; color: #7EC8FF; }
+.ins-tile-label { font-size: 10px; color: #7D8590; margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+.ins-empty { text-align: center; font-size: 12px; color: #7D8590; }

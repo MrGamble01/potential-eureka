@@ -882,6 +882,7 @@
       </div>
       <div id="hof-board" class="hof-board"></div>
       <div id="hof-achievements"></div>
+      <div id="hof-insights"></div>
       <div class="hof-footer">
         <button id="hof-reset" class="hof-reset">Reset my scores</button>
         <span class="hof-coin arcade-blink">&#9646;</span> PICK A GAME AND BEAT THEM
@@ -1147,6 +1148,7 @@
   <script src="js/daily.js" defer></script>
   <script src="js/rivals.js" defer></script>
   <script src="js/achievements.js" defer></script>
+  <script src="js/telemetry.js" defer></script>
   <script>
   // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
   // service worker precaches the shell — including vendored three.js, which
@@ -1200,6 +1202,7 @@
       if (currentView && currentView !== name && teardown[currentView]) {
         try { teardown[currentView](); } catch (e) {}
       }
+      if (currentView !== name && typeof Telemetry !== 'undefined') Telemetry.enter(name);
       navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
       views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
       navUtils.classList.remove('open');
@@ -1325,6 +1328,7 @@
       });
       renderRivalsBar();
       if (typeof Achievements !== 'undefined') Achievements.renderInto('hof-achievements');
+      if (typeof Telemetry !== 'undefined') Telemetry.renderInto('hof-insights');
     }
 
     // ---- Rivals bar (SITE-2) ----
