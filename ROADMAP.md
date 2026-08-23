@@ -417,13 +417,13 @@ With P0-P3 closed, work continues on quality-of-life and depth. Shipped so far:
 - **~~P4-HUB-1 · "Jump back in" row~~** ✅ — telemetry-powered quick-resume chips on the hub (last played + top games), hidden until there's history.
 - **~~P4-SNAKE-1 · Power-ups~~** ✅ — 🟨 gold (2× for 15s), 👻 ghost (tail-phasing 8s), 🐌 slow (+30ms tick relief); deterministic cadence (every 7th food) so daily runs stay shared-fate.
 - **~~P4-DAILY-1 · Minefield joins the daily~~** ✅ — seeded mine shuffle (identical first clicks → identical boards), min-direction daily best (fastest clear), sixth banner chip.
+- **~~P4-HUB-2 · Card search/filter~~** ✅ — filter box over the grid matching titles + tags, live count, Esc clears, keydown isolated from game hotkeys.
+- **~~P4-TETRIS-1 · Next-piece queue~~** ✅ — 3-piece preview (on-deck bright, two dimmed) with the bag untouched, so daily sequences are unchanged.
+- **~~P4-VD-1 · Turret sell/upgrade~~** ✅ — owned-pad selection, 3 damage tiers (0.8×base×1.8^tier pricing), 70%-of-spend sell, tier pips.
 
 Open ideas, roughly ordered:
 - **P4-A11Y-1 · Modal focus management** — focus first control on open, trap Tab inside, restore focus on close (hub + tycoon modals).
-- **P4-HUB-2 · Card search/filter** — a filter box over the twenty cards; match name + tags.
-- **P4-TETRIS-1 · Next-piece queue (3)** — the single-piece preview is below modern baseline.
 - **P4-AOW-1 · Relic vault on the start screen** — perks are only buyable at game-over today.
-- **P4-VD-1 · Turret sell/upgrade** — pads are one-shot purchases today.
 - **P4-WC-1 · Bigger dictionary tier** — plurals + -ed/-ing forms behind a size check.
 
 ## Appendix A — localStorage key registry
