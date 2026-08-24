@@ -97,6 +97,18 @@ python3 -m http.server 8000
 
 Opening `index.html` directly as a `file://` URL also mostly works, but some games/assets prefer being served over HTTP.
 
+## Testing
+
+The repo carries a headless QA battery in [`tests/headless/`](tests/README.md) — Playwright + Chromium scripts that drive the real pages (clicks, seeded saves, exact payout math) and fail on any console error. With a static server on port 8099:
+
+```bash
+npm i -g playwright && npx playwright install chromium   # once
+python3 -m http.server 8099 --bind 127.0.0.1 &
+./tests/headless/run.sh
+```
+
+See [`tests/README.md`](tests/README.md) for coverage and conventions.
+
 ## Deployment
 
 Deployed as a static site on Vercel. `vercel.json` sets `cleanUrls` (so `/tycoon` serves `tycoon/index.html`), a couple of legacy redirects, and long-lived cache headers for `vendor/`, `css/`, `js/`, and `assets/`. There's a custom `404.html`, plus `robots.txt` and `sitemap.xml` for crawlers.
