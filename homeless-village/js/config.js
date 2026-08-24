@@ -43,6 +43,9 @@ var G = {
   // a point each dawn. repGiftDay caps Beloved gifts at one per day.
   rep: 0, repGiftDay: -1,
 
+  // HV-10: nights the Soup Kitchen fed the whole camp
+  soupNights: 0,
+
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
@@ -61,7 +64,7 @@ var RECIPES = [
   {id:'workbench',   icon:'🔧', name:'Workbench',      cost:{wood:5,scraps:4},                gives:{structure:'workbench'},  time:8000,  desc:'Enables crafting upgrades.'},
   {id:'tent',        icon:'🏕️', name:'Tent',           cost:{cardboard:8,scraps:6,wood:3},   gives:{structure:'tent',warmth:20}, time:10000, desc:'A roof of sorts.', requires:'workbench'},
   {id:'fire_ration', icon:'🔥', name:'Firewood',       cost:{wood:3},                         gives:{warmth:10},              time:2000,  desc:'Keep the barrel burning.'},
-  {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Feed more people, gain more goodwill.', requires:'workbench'},
+  {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Soup night: feeds everyone at dusk (1 food each) for +4 morale, +2 health — and neighbors sometimes chip in.', requires:'workbench'},
   {id:'garden',      icon:'🌱', name:'Community Garden',cost:{wood:6,goodwill:8,food:3},      gives:{structure:'garden'},     time:12000, desc:'Slowly generates food each day. Gets destroyed in sweeps.', requires:'workbench'},
   {id:'radio',       icon:'📻', name:'Radio',           cost:{scraps:5,cans:3},                gives:{structure:'radio'},      time:6000,  desc:'A crackly weather band — see tomorrow\u2019s sky coming.', requires:'workbench'},
 ];
@@ -172,6 +175,7 @@ var GOALS = [
   {id:'survive30',  desc:'Survive 30 days',           target:30, reward:10, value:function(){ return G.days; }},
   {id:'dog',        desc:'Befriend the stray dog',    target:1,  reward:5,  value:function(){ return G.dog===2?1:0; }},
   {id:'respected',  desc:'Become Respected (50 rep)', target:50, reward:8,  value:function(){ return Math.floor(G.rep||0); }},
+  {id:'soup7',      desc:'Serve 7 soup nights',       target:7,  reward:6,  value:function(){ return G.soupNights||0; }},
 ];
 
 var activeJobs = {};

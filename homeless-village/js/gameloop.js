@@ -95,6 +95,7 @@ function onNewDay(){
   }
   regularFavorsAtDawn();
   repAtDawn();
+  soupNightAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -136,6 +137,23 @@ function regularFavorsAtDawn(){
     G.lastDeeDay=G.days;
     log('🩺 Dee spotted you looking rough and patched you up. +10 health.');
   }
+}
+
+// ── HV-10: Soup Night — the Soup Kitchen finally does its promised job.
+// If the pot could feed everyone last night (1 food per resident), the
+// camp wakes fed: morale and health up, and sometimes a neighbor who
+// smelled the cooking leaves a little goodwill on the counter. A short
+// pantry just means the pot stayed cold — no punishment for being broke.
+function soupNightAtDawn(){
+  if(!G.structures.soup_kitchen||G.population<1) return;
+  if(G.food<G.population){ log('🍲 The pot stayed cold last night — not enough food to serve everyone.'); return; }
+  G.food-=G.population;
+  G.morale=Math.min(100,G.morale+4);
+  G.health=Math.min(100,G.health+2);
+  G.soupNights=(G.soupNights||0)+1;
+  var extra='';
+  if(Math.random()<.25){ var gg=rand(1,2); G.goodwill+=gg; addRep(1); extra=' A neighbor smelled the cooking and left +'+gg+' goodwill.'; }
+  log('🍲 Soup night — everyone ate hot. +4 morale, +2 health.'+extra);
 }
 
 // ── HV-9: reputation at dawn — word fades, and Beloved camps wake to
