@@ -27,5 +27,6 @@ function loadGame(){
     if(typeof G.oddJobDay!=='number') G.oddJobDay=-1;              // saves from before HV-8
     if(typeof G.rep!=='number'||G.rep<0||G.rep>100) G.rep=0;       // saves from before HV-9
     if(typeof G.repGiftDay!=='number') G.repGiftDay=-1;
+    if(typeof G.soupNights!=='number') G.soupNights=0;             // saves from before HV-10
   }catch(e){}
 }
