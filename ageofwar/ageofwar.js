@@ -571,6 +571,7 @@ const AgeOfWarGame = (() => {
     { id: 'skewer',       icon: '🏹',  title: 'Shish Kebab',      desc: 'Skewer three enemies with a single ballista bolt.' },
     { id: 'field_hosp',   icon: '⛑️',  title: 'Field Hospital',   desc: 'Heal 300 hp at the triage tent in one run.' },
     { id: 'headhunter',   icon: '🏷️',  title: 'Headhunter',       desc: 'Fill five bounties in one run.' },
+    { id: 'quartermaster', icon: '🛡️', title: 'Quartermaster',    desc: 'March 30 plated recruits in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -676,6 +677,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.repairs || 0) >= 3) unlock('patchwork');
     if ((runStats.triaged || 0) >= 300) unlock('field_hosp');
     if ((runStats.bounties || 0) >= 5) unlock('headhunter');
+    if ((runStats.plated || 0) >= 30) unlock('quartermaster');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1088,6 +1090,7 @@ const AgeOfWarGame = (() => {
     runStats.bolts = 0; boltCd = 0;
     runStats.triaged = 0; tentBought = false;
     runStats.bounties = 0; bounty = null;
+    runStats.plated = 0; armorerBought = false;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1160,6 +1163,12 @@ const AgeOfWarGame = (() => {
       const b = bannerDef();
       if (b.speed) u.speed = Math.round(u.speed * b.speed);
       if (b.hp) { u.hp = Math.round(u.hp * b.hp); u.hpMax = u.hp; }
+      // AOW-26: issued plate — recruits trained after the buy march thicker
+      if (armorerBought) {
+        u.hp = Math.round(u.hp * ARMORER_HP); u.hpMax = u.hp;
+        u.plated = true;
+        runStats.plated = (runStats.plated || 0) + 1;
+      }
     }
     units.push(u);
     return u;
@@ -1611,6 +1620,34 @@ const AgeOfWarGame = (() => {
     }
   }
 
+  // ── The Armorer (AOW-26) ──────────────────────────────────
+  // Issued plate for the training line. From Age II, 300 gold stands
+  // an armorer by the barracks — once per run, permanent for the run:
+  // every friendly soldier trained AFTER the buy marches out with
+  // +15% hp. The troops already fielded keep the kit they left with;
+  // walls and the enemy line get nothing.
+  const ARMORER_COST = 300;
+  const ARMORER_HP = 1.15;
+  let armorerBought = false;
+  function buyArmorer() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F6E1}\uFE0F The armorer signs on in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (armorerBought) return;
+    if (gold < ARMORER_COST) {
+      goldFloaters.push({ text: `\u{1F6E1}\uFE0F The armorer costs ${ARMORER_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= ARMORER_COST;
+    armorerBought = true;
+    goldFloaters.push({ text: '\u{1F6E1}\uFE0F ARMORER — new recruits march out in plate (+15% hp)', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1931,6 +1968,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'v' || e.key === 'V') {
         buyTent();
+        e.preventDefault();
+      } else if (e.key === 'n' || e.key === 'N') {
+        buyArmorer();
         e.preventDefault();
       }
     });
@@ -7331,6 +7371,17 @@ const AgeOfWarGame = (() => {
         btyEl.textContent = `🏷️ ${UNITS[bounty.key].icon} ${bounty.got}/${bounty.need} · ${bounty.reward}g`;
         btyEl.title = `The bounty board: fell ${bounty.need} of the ${UNITS[bounty.key].name} line this wave for +${bounty.reward} gold. Re-posts each wave; lapses cost nothing.`;
       } else btyEl.style.display = 'none';
+    }
+
+    // Armorer button (AOW-26)
+    const arEl = document.getElementById('aow-armor-btn');
+    const arCdEl = document.getElementById('aow-armor-cd');
+    if (arEl) {
+      if (arCdEl) arCdEl.textContent = playerEra < 1 ? 'Age II' : armorerBought ? 'issued' : `${ARMORER_COST}g`;
+      arEl.disabled = playerEra < 1 || armorerBought;
+      arEl.title = armorerBought
+        ? `The armorer works the barracks — every new recruit marches out at +15% hp. ${runStats.plated || 0} plated this run.`
+        : `Stand the Armorer (N) — ${ARMORER_COST} gold, once per run: every friendly trained after the buy marches out with +15% hp.`;
     }
 
     // Wave indicator
