@@ -106,6 +106,8 @@ const Telemetry = (() => {
       if (launches) c.push(chip(String(launches), 'launches shipped'));
       const fought = tyc.poach ? nz(tyc.poach.fought) : 0;
       if (fought) c.push(chip(String(fought), 'poaches fought off'));
+      const retreats = tyc.retreats ? nz(tyc.retreats.held) : 0;
+      if (retreats) c.push(chip(String(retreats), retreats === 1 ? 'retreat held' : 'retreats held'));
       if (nz(tyc.prestigeLevel)) c.push(chip('S' + (tyc.prestigeLevel + 1), 'season'));
       cards.push({ emoji: '🚀', name: 'Startup Tycoon', chips: c });
     }
@@ -115,6 +117,8 @@ const Telemetry = (() => {
       const c = [chip('$' + fmtBig(nz(lab.totalEarned)), 'earned')];
       if (nz(lab.contractsDone)) c.push(chip(String(lab.contractsDone), 'contracts filled'));
       if (nz(lab.rivalRunIns)) c.push(chip(String(lab.rivalRunIns), 'rival run-ins'));
+      if (Array.isArray(lab.ownedRooms) && lab.ownedRooms.length > 1)
+        c.push(chip(String(lab.ownedRooms.length), 'rooms owned'));
       cards.push({ emoji: '🌿', name: 'Grow Op', chips: c });
     }
 
@@ -123,6 +127,7 @@ const Telemetry = (() => {
       const c = [chip(String(nz(hv.days)), 'days survived')];
       if (nz(hv.soupNights)) c.push(chip(String(hv.soupNights), 'soup nights'));
       if (nz(hv.rep)) c.push(chip(hv.rep + '/100', 'street rep'));
+      if (nz(hv.mural) >= 4) c.push(chip('🎨', 'mural finished'));
       cards.push({ emoji: '⛺', name: 'Homeless Village', chips: c });
     }
 
@@ -133,6 +138,8 @@ const Telemetry = (() => {
       if (Array.isArray(hva.chronicle) && hva.chronicle.length)
         c.push(chip(String(hva.chronicle.length), 'chronicle pages'));
       if (nz(hva.raidsRepelled)) c.push(chip(String(hva.raidsRepelled), 'raids repelled'));
+      if (nz(hva.caravansReturned)) c.push(chip(String(hva.caravansReturned), 'caravans home'));
+      if (nz(hva.bellSaves)) c.push(chip(String(hva.bellSaves), 'bell saves'));
       cards.push({ emoji: '🏡', name: 'Hearthvale', chips: c });
     }
 
@@ -143,6 +150,7 @@ const Telemetry = (() => {
       if (nz(vs.level)) c.push(chip('Lv ' + vs.level, 'gardener'));
       if (nz(vs.flotsamOpened)) c.push(chip(String(vs.flotsamOpened), 'flotsam cracked'));
       if (nz(vs.wishes)) c.push(chip(String(vs.wishes), vs.wishes === 1 ? 'wish granted' : 'wishes granted'));
+      if (nz(vs.catGifts)) c.push(chip(String(vs.catGifts), 'cat gifts'));
       cards.push({ emoji: '🏝️', name: 'Voxel Isle', chips: c });
     }
     return cards;
