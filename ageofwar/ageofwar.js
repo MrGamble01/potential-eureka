@@ -258,7 +258,8 @@ const AgeOfWarGame = (() => {
   function trainingTimeFor(def) {
     // Cost / 500 (s) but always between 0.6s and 7s so cheap units cycle
     // fast while expensive units feel weighty without locking up the lane.
-    return Math.max(0.6, Math.min(7, def.cost / 500));
+    const t = Math.max(0.6, Math.min(7, def.cost / 500));
+    return runPerks.drums ? t * 0.85 : t;   // AOW-11: March Drums
   }
   let spawnCooldowns = {};                   // kept for legacy refs (always empty now)
   let enemySpawnT = 1.6;
@@ -291,10 +292,16 @@ const AgeOfWarGame = (() => {
     { id: 'chest', icon: '💰', name: 'War Chest',       cost: 3, desc: '+150 starting gold' },
     { id: 'gate',  icon: '🛡️', name: 'Reinforced Gate', cost: 5, desc: '+20% base HP' },
     { id: 'cadre', icon: '⚔️', name: 'Veteran Cadre',   cost: 4, desc: 'Your opening units spawn as Veterans' },
+    // AOW-11: two perks whose effect lives DURING the run rather than at
+    // the starting line — carried by runPerks, armed from pendingPerks in
+    // reset() before the one-shot consume.
+    { id: 'drums', icon: '🥁', name: 'March Drums',  cost: 5, desc: 'Units train 15% faster this run' },
+    { id: 'forge', icon: '🔥', name: 'Forge Credit', cost: 6, desc: 'Your first turret this run is free' },
   ];
   let relics = 0;
   try { relics = Math.max(0, parseInt(localStorage.getItem(RELIC_KEY) || '0', 10) || 0); } catch {}
   let pendingPerks = {};           // id → true, applied + consumed by reset()
+  let runPerks = { forge: false, drums: false };   // AOW-11: perks that act mid-run
   function saveRelics() { try { localStorage.setItem(RELIC_KEY, String(relics)); } catch {} }
 
   // ---- War Trials (AOW-9) ----------------------------------
@@ -997,6 +1004,7 @@ const AgeOfWarGame = (() => {
     const u1 = spawnUnit('player', 'club');
     const u2 = spawnUnit('player', 'club');
     if (pendingPerks.cadre) { if (u1) u1.aliveT = 25; if (u2) u2.aliveT = 25; }
+    runPerks = { forge: !!pendingPerks.forge, drums: !!pendingPerks.drums };   // AOW-11
     pendingPerks = {};   // perks are one-shot: consumed by this run
     spawnUnit('enemy',  'club');
     renderHud();
@@ -1223,8 +1231,14 @@ const AgeOfWarGame = (() => {
     // If slot already has same-or-higher era, can't replace.
     const existing = playerTurrets[slot];
     if (existing && existing.era >= era) return;
-    if (gold < tdef.cost) return;
-    gold -= tdef.cost;
+    // AOW-11: Forge Credit covers the first turret bought this run.
+    const cost = runPerks.forge ? 0 : tdef.cost;
+    if (gold < cost) return;
+    gold -= cost;
+    if (runPerks.forge) {
+      runPerks.forge = false;
+      goldFloaters.push({ text: '🔥 Forge credit!', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 130, color: '#fcd34d', t: 1.4 });
+    }
     // An upgraded turret keeps its targeting mode — re-picking it after
     // every era bump would punish using the feature.
     playerTurrets[slot] = { ...tdef, atkT: 0, mode: existing ? existing.mode : undefined };
