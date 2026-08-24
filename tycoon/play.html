@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6193,6 +6193,7 @@ const ACHIEVEMENTS = [
   { id: 'kaizen',        icon: '📋', title: 'Kaizen',               desc: 'Bank ten retro learnings.', check: () => retroLearnings >= 10, progress: () => [Math.min(retroLearnings, 10), 10] },
   { id: 'rentier',       icon: '💼', title: 'Passive Income',       desc: 'Bank \$1,000 in patent royalties.', check: () => royaltiesLife >= 1000, progress: () => [Math.min(Math.round(royaltiesLife), 1000), 1000] },
   { id: 'blue_chip',     icon: '💵', title: 'Blue Chip',            desc: 'Bank \$2,000 in dividends.', check: () => dividendsLife >= 2000, progress: () => [Math.min(Math.round(dividendsLife), 2000), 2000] },
+  { id: 'all_in',        icon: '🎲', title: 'Bet the House',        desc: 'Win five moonshots on the race.', check: () => moonshotsWon >= 5, progress: () => [Math.min(moonshotsWon, 5), 5] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10043,6 +10044,76 @@ function updateDividends(dt) {
   checkAchievements();
   saveGame();
 }
+// ── The Moonshot (TYC-32) ─────────────────────────────────
+// Round Twenty-One opens the wager round. The race against the
+// rival has always been the season's pulse — now you can bet on it:
+// post-IPO, while the race is live, stake 30 seconds of revenue
+// (never under $500) on being AHEAD in 20 seconds. Ahead pays 2.2×;
+// behind pays nothing at all. One bet in the air at a time.
+const MOONSHOT_SECS = 20, MOONSHOT_MULT = 2.2, MOONSHOT_MIN = 500;
+let moonshot = null;   // { stake, timeLeft }
+let moonshotsWon = 0, moonshotsLost = 0, moonshotProfit = 0;
+function moonshotStake() {
+  return Math.max(MOONSHOT_MIN, Math.round(currentRatePerMin() * 0.5));
+}
+function refreshMoonshotChip() {
+  const el = document.getElementById('moonshot-chip');
+  if (!el) return;
+  el.onclick = placeMoonshot;
+  if (prestigeLevel < 1) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  if (moonshot) {
+    el.textContent = '🎲 ' + Math.ceil(moonshot.timeLeft) + 's…';
+    el.title = 'The moonshot — $' + fmtCash(moonshot.stake) + ' staked on being ahead of ' + (rivalName || 'the rival') + ' when the clock runs out.';
+  } else {
+    el.textContent = '🎲 $' + fmtCash(moonshotStake());
+    el.title = 'The moonshot — stake $' + fmtCash(moonshotStake()) + ' (30s of revenue) on being AHEAD of the rival in ' + MOONSHOT_SECS + 's. Ahead pays 2.2×; behind pays nothing. (' + moonshotsWon + ' won, ' + moonshotsLost + ' lost, $' + fmtCash(moonshotProfit) + ' lifetime profit)';
+  }
+}
+function placeMoonshot() {
+  if (prestigeLevel < 1 || moonshot) return;
+  if (rivalDone || seasonGoalHit) {
+    showToast('🎲 The race is already decided — no book will take that bet.', '', 'standard');
+    return;
+  }
+  const stake = moonshotStake();
+  if (state.cash < stake) {
+    showToast('🎲 The moonshot runs $' + fmtCash(stake) + ' — the wallet says no.', '', 'standard');
+    return;
+  }
+  state.cash -= stake; showSpendPop(stake);
+  moonshot = { stake, timeLeft: MOONSHOT_SECS };
+  refreshMoonshotChip();
+  showToast('🎲 Moonshot placed — $' + fmtCash(stake) + ' says you\u2019re ahead of ' + (rivalName || 'the rival') + ' in ' + MOONSHOT_SECS + ' seconds.', 'event', 'standard');
+  addFeedEntry('🎲 Moonshot: $' + fmtCash(stake) + ' on the race');
+  saveGame(); refreshHud();
+}
+function updateMoonshot(dt) {
+  if (!moonshot) return;
+  moonshot.timeLeft -= dt;
+  refreshMoonshotChip();
+  if (moonshot.timeLeft > 0) return;
+  const stake = moonshot.stake;
+  moonshot = null;
+  const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
+  const won = seasonGoalHit || (!rivalDone && mine > rivalRev);
+  if (won) {
+    const payout = Math.round(stake * MOONSHOT_MULT);
+    addCash(payout, 'moonshot');
+    moonshotsWon++;
+    moonshotProfit += payout - stake;
+    showToast('🎲 The moonshot lands — ahead at the bell: +$' + fmtCash(payout) + '.', 'good', 'critical');
+    addFeedEntry('🎲 Moonshot WON — +$' + fmtCash(payout) + ' (' + moonshotsWon + ' lifetime)');
+  } else {
+    moonshotsLost++;
+    showToast('🎲 The moonshot dies — behind when it counted. $' + fmtCash(stake) + ' gone.', 'event', 'critical');
+    addFeedEntry('🎲 Moonshot lost — $' + fmtCash(stake) + ' burned');
+  }
+  refreshMoonshotChip();
+  checkAchievements();
+  saveGame();
+  refreshHud();
+}
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
@@ -10931,6 +11002,7 @@ function frameBody(now) {
   updateLab(dt);
   updateRoyalties(dt);
   updateDividends(dt);
+  updateMoonshot(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -11785,6 +11857,18 @@ const SAVE_SCHEMA = [
     read: p => {
       migrated = !!(p.migrate && p.migrate.done);
       refreshMigrateChip();
+    },
+  },
+  {
+    key: 'moonshot', // TYC-32: the wager book
+    write: p => { p.moonshot = { won: moonshotsWon, lost: moonshotsLost, profit: moonshotProfit }; },
+    read: p => {
+      if (p.moonshot) {
+        moonshotsWon = Math.max(0, Math.floor(p.moonshot.won || 0));
+        moonshotsLost = Math.max(0, Math.floor(p.moonshot.lost || 0));
+        moonshotProfit = Math.floor(p.moonshot.profit || 0);
+      }
+      refreshMoonshotChip();
     },
   },
   {
