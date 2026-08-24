@@ -101,6 +101,22 @@ function ticketAtDawn(){
   }
 }
 
+// HV-22: the pantry lives at dawn — some mornings the neighborhood
+// leaves a little something in the box, and a kept box gets the camp
+// remembered.
+function pantryAtDawn(){
+  if(!G.structures.pantry) return;
+  if(Math.random()>=PANTRY_CHANCE) return;
+  G.food=(G.food||0)+PANTRY_FOOD;
+  G.pantryFills=(G.pantryFills||0)+1;
+  if(G.pantryFills%PANTRY_REP_EVERY===0){
+    addRep(1);
+    log('🥣 The pantry box was full at dawn again \u2014 the block knows who keeps it up. +'+PANTRY_FOOD+' 🍞, +1 rep.');
+  } else {
+    log('🥣 Someone left a little something in the pantry box overnight. +'+PANTRY_FOOD+' 🍞.');
+  }
+}
+
 // HV-21: the newcomer stands at the edge of the light at dawn —
 // the ask opens, holds three days, and moves on if the fire never
 // decides.
@@ -190,6 +206,7 @@ function onNewDay(){
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
+  pantryAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
