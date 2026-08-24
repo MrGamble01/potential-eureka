@@ -42,6 +42,17 @@ canvas{display:block;touch-action:none;}
   display:flex;align-items:center;justify-content:center;
   color:#22dd55;font-size:8px;font-weight:900;}
 
+#market-hud{
+  position:fixed;top:60px;right:16px;
+  background:rgba(4,10,4,0.92);
+  border:1px solid rgba(0,180,60,0.35);
+  color:#8fd9a0;font-weight:800;font-size:13px;
+  padding:5px 12px;border-radius:6px;
+  pointer-events:none;user-select:none;letter-spacing:0.5px;
+}
+#market-hud.hot{color:#ffd166;border-color:rgba(255,209,102,0.55);text-shadow:0 0 8px rgba(255,209,102,0.4);}
+#market-hud.cold{color:#7fb4ff;border-color:rgba(127,180,255,0.45);}
+
 /* ── Heat meter ── */
 #heat-hud{
   position:fixed;top:62px;right:16px;
@@ -380,6 +391,7 @@ canvas{display:block;touch-action:none;}
 <div id="status-bar">Tending the plants...</div>
 <div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
+<div id="market-hud" title="Street demand — prices drift, surge and crash. Sell high.">📊 <span id="market-val">1.00×</span></div>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
@@ -1435,11 +1447,61 @@ function resetGame() {
 }
 
 // ── Sale value ──
+// ── Street market (LAB-7) ──────────────────────────────────
+// Demand drifts on a slow cycle and occasionally surges or crashes, so
+// WHEN you sell finally matters: a surge sale earns the same heat for
+// half again the cash. Long-run average stays ~1.0× — the market adds a
+// decision, not inflation.
+let market = { mult: 1.0, target: 1.0, shiftIn: 25, surge: null, surgeIn: 150 };
+function marketMult(){ return +(market.mult * (market.surge ? market.surge.mult : 1)).toFixed(2); }
+function updateMarket(dt) {
+  // slow drift toward a wandering target
+  market.shiftIn -= dt;
+  if (market.shiftIn <= 0) {
+    market.target = 0.75 + Math.random() * 0.6;      // 0.75×–1.35×
+    market.shiftIn = 30 + Math.random() * 30;
+  }
+  const d = market.target - market.mult;
+  market.mult += Math.sign(d) * Math.min(Math.abs(d), 0.012 * dt * 10);
+  // surges & crashes
+  if (market.surge) {
+    market.surge.left -= dt;
+    if (market.surge.left <= 0) {
+      addFeed(market.surge.mult > 1 ? '📉 The surge cools off — prices settle.' : '📈 The block clears — prices recover.');
+      market.surge = null;
+      market.surgeIn = 140 + Math.random() * 120;
+    }
+  } else {
+    market.surgeIn -= dt;
+    if (market.surgeIn <= 0) {
+      const hot = Math.random() < 0.5;
+      market.surge = hot
+        ? { mult: 1.5 + Math.random() * 0.3, left: 60 + Math.random() * 30 }
+        : { mult: 0.6 + Math.random() * 0.15, left: 60 + Math.random() * 30 };
+      if (hot) { showToast('🔥 Drought uptown — buyers pay premium. SELL NOW.','good'); addFeed('🔥 Demand surge — street prices spike.'); }
+      else { showToast('🚔 Rivals flooding the block — prices tank.','bad'); addFeed('🧊 Market crash — hold your stash if you can.'); }
+    }
+  }
+  updateMarketHUD();
+}
+let _lastMktShown = 0;
+function updateMarketHUD() {
+  const eff = marketMult();
+  if (Math.abs(eff - _lastMktShown) < 0.01) return;
+  _lastMktShown = eff;
+  const el = document.getElementById('market-val');
+  const hud = document.getElementById('market-hud');
+  if (!el || !hud) return;
+  el.textContent = (eff >= 1.05 ? '📈 ' : eff <= 0.95 ? '📉 ' : '') + eff.toFixed(2) + '×';
+  hud.classList.toggle('hot', eff >= 1.3);
+  hud.classList.toggle('cold', eff <= 0.75);
+}
+
 function salePrice() {
   const base = 25;
   const purity = 1 + upgLv('bags')*0.15 + upgLv('price')*0.4;
   const chemiBonus = chemStation ? 1.8 : 1;
-  return Math.floor(base * purity * chemiBonus * DIFF().price * legacyMult());
+  return Math.floor(base * purity * chemiBonus * DIFF().price * legacyMult() * marketMult());
 }
 
 // ── Act system ──
@@ -1873,6 +1935,8 @@ function saveGame() {
     plots: growPlots.map(p=>({r:p.roomId, g:+p.progress.toFixed(4)})),
     savedAt: Date.now(),
     difficulty: state.difficulty,
+    market: { mult: market.mult, target: market.target, shiftIn: market.shiftIn,
+              surge: market.surge, surgeIn: market.surgeIn },
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1894,6 +1958,14 @@ function loadGame() {
     state.sessionStart=sv.sessionStart||Date.now();
     state.goalIndex=sv.goalIndex||0;
     state.won=!!sv.won;
+    if (sv.market && typeof sv.market.mult === 'number') {
+      market.mult = Math.max(0.5, Math.min(2, sv.market.mult));
+      market.target = sv.market.target || 1;
+      market.shiftIn = sv.market.shiftIn || 25;
+      market.surge = sv.market.surge || null;
+      market.surgeIn = sv.market.surgeIn || 150;
+      updateMarketHUD();
+    }
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
@@ -2508,6 +2580,7 @@ function animate(now_ms) {
     updateHeatDrain(dt);
     updateEvents(dt);
     updateDealerSpawn(dt);
+    updateMarket(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
