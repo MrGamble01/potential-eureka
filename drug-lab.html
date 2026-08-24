@@ -479,6 +479,14 @@ canvas{display:block;touch-action:none;}
 }
 #vault-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 @media (max-width:640px){ #vault-toggle{bottom:214px;right:8px;font-size:11px;padding:5px 9px;} }
+#dice-toggle{
+  position:fixed;bottom:14px;right:1356px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#dice-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #dice-toggle{bottom:239px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -563,6 +571,7 @@ canvas{display:block;touch-action:none;}
 <button id="mother-toggle" style="display:none" title="The Mother Plant: $1,500 of prize genetics rooted in the corner — the cuttings run true, and every batch off the trim table bags one extra, forever">🌱 MOTHER $1,500</button>
 <button id="zoning-toggle" style="display:none" title="The Variance: a friend at City Hall reclassifies the block mixed-use commercial — $12,000 once, and an empire’s ambient heat radiates 40% lighter, forever">🏛️ VARIANCE $12k</button>
 <button id="vault-toggle" style="display:none" title="The Floor Safe: bank $1,000 under the laundry floor (the launderer keeps 10%) — the safe survives a bust, and the balance lands in your next run’s pocket">🔒 VAULT $0</button>
+<button id="dice-toggle" style="display:none" title="The Hot Hand: stake $600 on moving three clean street sales in the next 45 seconds — make it and the stake doubles, run dry and it’s gone">🎲 HOT HAND $600</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1155,6 +1164,62 @@ function buyVariance() {
   showToast('🏛️ The variance clears — the block reads mixed-use commercial and the empire radiates 40% lighter, forever.', 'good');
   addFeed('🏛️ A friend at City Hall rezones the block');
   checkGrowAchievements();
+  saveGame();
+}
+// LAB-30: the Hot Hand. The wager round hits the corner: $600 says
+// you move THREE clean street sales in the next 45 seconds. Make it
+// and the stake doubles on the spot; run dry and it's gone. The
+// clock only counts real sales — stings, sweeps and empty shelves
+// are your problem.
+const DICE_SECS = 45, DICE_TARGET = 3, DICE_MULT = 2, DICE_STAKE = 600;
+let diceBet = null;   // { stake, timeLeft, sales }
+function refreshDiceBtn() {
+  const b = document.getElementById('dice-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', !!diceBet);
+  b.textContent = diceBet
+    ? '🎲 ' + diceBet.sales + '/' + DICE_TARGET + ' · ' + Math.ceil(diceBet.timeLeft) + 's'
+    : '🎲 HOT HAND $' + fmtCash(DICE_STAKE);
+}
+function placeDice() {
+  if (diceBet) { showToast('🎲 The dice are already rolling — ' + diceBet.sales + '/' + DICE_TARGET + ' with ' + Math.ceil(diceBet.timeLeft) + 's left.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < DICE_STAKE) { showToast("Can't cover the hot hand yet ($" + fmtCash(DICE_STAKE) + ').', 'bust'); return; }
+  state.cash -= DICE_STAKE;
+  diceBet = { stake: DICE_STAKE, timeLeft: DICE_SECS, sales: 0 };
+  refreshDiceBtn();
+  showToast('🎲 $' + fmtCash(DICE_STAKE) + ' on the table — ' + DICE_TARGET + ' clean sales in ' + DICE_SECS + ' seconds. Move.', 'good');
+  addFeed('🎲 Hot hand: $' + fmtCash(DICE_STAKE) + ' riding on the next ' + DICE_SECS + 's');
+  saveGame();
+}
+function diceSaleTick() {
+  if (!diceBet) return;
+  diceBet.sales++;
+  if (diceBet.sales >= DICE_TARGET) {
+    const payout = diceBet.stake * DICE_MULT;
+    diceBet = null;
+    state.cash += payout;
+    state.diceWon = (state.diceWon || 0) + 1;
+    refreshDiceBtn();
+    showToast('🎲 HOT HAND — three moved with time on the clock: +$' + fmtCash(payout) + '.', 'good');
+    addFeed('🎲 Hot hand WON — +$' + fmtCash(payout) + ' (' + state.diceWon + ' lifetime)');
+    checkGrowAchievements();
+    saveGame();
+  } else {
+    refreshDiceBtn();
+  }
+}
+function updateDice(dt) {
+  if (!diceBet) return;
+  diceBet.timeLeft -= dt;
+  if (diceBet.timeLeft > 0) { refreshDiceBtn(); return; }
+  const stake = diceBet.stake;
+  diceBet = null;
+  state.diceLost = (state.diceLost || 0) + 1;
+  refreshDiceBtn();
+  showToast('🎲 The clock beats the corner — $' + fmtCash(stake) + ' swept off the table.', 'bust');
+  addFeed('🎲 Hot hand lost — $' + fmtCash(stake) + ' gone');
   saveGame();
 }
 function stashMax() { return STASH_MAX_BASE + (state.unitRented ? UNIT_CAP_BONUS : 0); }
@@ -2119,6 +2184,7 @@ function refreshRouteBtn() {
   refreshMotherBtn(); // LAB-26: the mother too
   refreshZoningBtn(); // LAB-28: and the variance
   refreshVaultBtn(); // LAB-29: and the floor safe
+  refreshDiceBtn(); // LAB-30: and the hot hand
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2293,6 +2359,7 @@ function updateRoute(dt) {
 { const mb = document.getElementById('mother-toggle'); if (mb) mb.onclick = rootMother; }
 { const zb = document.getElementById('zoning-toggle'); if (zb) zb.onclick = buyVariance; }
 { const vb = document.getElementById('vault-toggle'); if (vb) vb.onclick = depositVault; }
+{ const db = document.getElementById('dice-toggle'); if (db) db.onclick = placeDice; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2549,6 +2616,7 @@ const GROW_ACH = [
   { id: 'client5', name: 'Repeat Business', test: () => (state.clientele || 0) >= 5 },   // LAB-27
   { id: 'zoned', name: 'Friends Downtown', test: () => !!state.zoned && (state.totalEarned || 0) >= 50000 },   // LAB-28
   { id: 'squirrel', name: 'Rainy-Day Fund', test: () => (loadVault().life || 0) >= 5000 },   // LAB-29
+  { id: 'hot_hand', name: 'The Hot Hand', test: () => (state.diceWon || 0) >= 5 },   // LAB-30
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -2954,6 +3022,7 @@ function saveGame() {
     burnerLeft: Math.max(0, Math.min(10, Math.floor(state.burnerLeft || 0))), burnersBought: state.burnersBought || 0,   // LAB-24
     motherRooted: !!state.motherRooted, motherBags: state.motherBags || 0,   // LAB-26
     zoned: !!state.zoned,   // LAB-28
+    diceWon: state.diceWon || 0, diceLost: state.diceLost || 0,   // LAB-30
     clientele: Math.max(0, Math.min(5, Math.floor(state.clientele || 0))), clientMeter: state.clientMeter || 0,   // LAB-27
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
@@ -3046,6 +3115,8 @@ function loadGame() {
     state.burnerLeft = Math.max(0, Math.min(BURNER_SALES, Math.floor(sv.burnerLeft || 0)));   // LAB-24
     state.motherRooted = !!sv.motherRooted;   // LAB-26
     state.zoned = !!sv.zoned;   // LAB-28
+    state.diceWon = Math.max(0, Math.floor(sv.diceWon || 0));   // LAB-30
+    state.diceLost = Math.max(0, Math.floor(sv.diceLost || 0));
     state.motherBags = Math.max(0, Math.floor(sv.motherBags || 0));
     state.clientele = Math.max(0, Math.min(CLIENT_CAP, Math.floor(sv.clientele || 0)));   // LAB-27
     state.clientMeter = Math.max(0, Math.floor(sv.clientMeter || 0));
@@ -3469,6 +3540,7 @@ function sellToDealer(d, idx) {
   stashCount-=qty; state.totalSold+=qty;
   state.whaleMeter = (state.whaleMeter || 0) + 1;   // LAB-25: the corner talks — word reaches the Whale
   clientTick();   // LAB-27: and a face becomes familiar
+  diceSaleTick();   // LAB-30: and the hot hand counts it
   addCash(price);
   addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
   burnStreetSale();   // LAB-24: the corner burns the number
@@ -3744,6 +3816,7 @@ function animate(now_ms) {
   if(!raidActive && !activeEvent) {
     updateGrowPlots(dt);
     updateTrimStation(dt);
+  updateDice(dt);
     updateChemStation_tick(dt);
     _chemDepositCheck(dt);
     updatePlayer(dt);
