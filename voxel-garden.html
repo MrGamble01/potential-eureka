@@ -218,6 +218,7 @@
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li><b>🎣 Tap the pond</b> to fish &mdash; reel in 🐟🐠🦀 for coins (and goods for your stockpile); it freezes over in winter</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li><b>🐦‍⬛ Crows</b> land on growing crops and peck growth away &mdash; <b>tap to shoo</b> them, or post a <b>🎃 scarecrow</b> to guard the plots around it</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
@@ -2625,6 +2626,92 @@ function updateWet(dt){
   }
 }
 
+/* ============================== crows & the scarecrow (VOX-1) ============================== */
+// The 🎃 scarecrow was pure decor — now it has a job. Every so often (never
+// in winter) a crow lands on a growing, unguarded crop; left alone for ~18s
+// it pecks a chunk of growth away and flies off. Tap it to shoo it, or post
+// a scarecrow within CROW_GUARD_R blocks to keep that patch crow-free.
+const CROW_GUARD_R=6, CROW_SIT=18;
+let crow=null, crowNextT=55+Math.random()*65;
+function scarecrowGuards(p){
+  for(const s of W.plants.values())
+    if(s.type==='scarecrow'&&Math.hypot(s.x-p.x,s.z-p.z)<=CROW_GUARD_R)return true;
+  return false;
+}
+function buildCrowMesh(){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshLambertMaterial({color:0x23242c});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.24,0.22),mat);
+  body.position.y=0.14;g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.16),mat);
+  head.position.set(0.2,0.3,0);g.add(head);
+  const beak=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.05,0.06),new THREE.MeshLambertMaterial({color:0xe0a13a}));
+  beak.position.set(0.32,0.28,0);g.add(beak);
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.05,0.12),mat);
+  tail.position.set(-0.22,0.2,0);tail.rotation.z=0.35;g.add(tail);
+  g.traverse(o=>{if(o.isMesh)o.userData.crow=true;});
+  return g;
+}
+function spawnCrow(){
+  const targets=[...W.plants.values()].filter(p=>PLANTS[p.type]&&p.stage<2&&!scarecrowGuards(p));
+  if(!targets.length)return;
+  const p=targets[(Math.random()*targets.length)|0];
+  crow={p,mesh:buildCrowMesh(),t:0,state:'sit',vx:0,vz:0};
+  crow.mesh.position.set(p.x+0.5,p.y+0.5,p.z+0.5);
+  scene.add(crow.mesh);
+  if(!state.achFlags.crowSeen){state.achFlags.crowSeen=1;
+    toast('🐦‍⬛ A crow is eyeing your crops — tap it to shoo it, or post a 🎃 scarecrow nearby!');}
+  else toast('🐦‍⬛ A crow lands in the field!');
+}
+function shooCrow(byTap){
+  if(!crow||crow.state==='flee')return;
+  crow.state='flee';crow.t=0;
+  crow.vx=(Math.random()<0.5?-1:1)*(4+Math.random()*3);
+  crow.vz=(Math.random()<0.5?-1:1)*(4+Math.random()*3);
+  if(byTap){
+    state.crowsShooed=(state.crowsShooed||0)+1;
+    const m=crow.mesh.position;
+    burst(m.x,m.y+0.3,m.z,0x23242c,10,{up:2,g:3});
+    floatText(m.x,m.y+0.8,m.z,'Shoo! 🐦‍⬛','#c9d4df');
+    SFX.play('place');
+    checkAch();
+  }
+}
+function updateCrow(dt){
+  if(!crow){
+    if(seasonOf(state.day).key==='winter')return;   // crows sit out the snow
+    crowNextT-=dt;
+    if(crowNextT<=0){crowNextT=55+Math.random()*65;spawnCrow();}
+    return;
+  }
+  const m=crow.mesh;
+  if(crow.state==='sit'){
+    crow.t+=dt;
+    m.position.y=crow.p.y+0.5+Math.abs(Math.sin(perf*6+1))*0.06;   // pecking hop
+    // crop harvested or dug out from under it → nothing left to steal
+    if(W.plants.get(k3(crow.p.x,crow.p.y,crow.p.z))!==crow.p||crow.p.stage>=2){shooCrow(false);return;}
+    if(crow.t>=CROW_SIT){
+      const def=PLANTS[crow.p.type];
+      if(def){
+        crow.p.prog=Math.max(0,crow.p.prog-def.grow*0.35);
+        const ns=stageFor(crow.p);
+        if(ns!==crow.p.stage){crow.p.stage=ns;refreshPlantMesh(crow.p);}
+        floatText(crow.p.x+0.5,crow.p.y+1.2,crow.p.z+0.5,'🐦‍⬛ pecked!','#e0705c');
+        toast('🐦‍⬛ A crow pecked your '+def.name+' — it lost some growth.');
+      }
+      shooCrow(false);
+    }
+  } else {
+    crow.t+=dt;
+    m.position.x+=crow.vx*dt;m.position.z+=crow.vz*dt;m.position.y+=3.2*dt;
+    m.rotation.y+=dt*4;
+    if(crow.t>2.2){
+      m.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
+      scene.remove(m);crow=null;
+    }
+  }
+}
+
 /* ============================== economy / progression ============================== */
 function grantCoins(n,wx,wy,wz){
   state.coins+=n;state.totalEarned+=n;
@@ -2759,6 +2846,7 @@ function doAction(hit){
   if(ud.cat)return petCat();                              // pet the town cat
   if(ud.dog)return petDog();                              // pet the farm dog
   if(ud.duck)return petDuck();                            // greet the pond duck
+  if(ud.crow)return shooCrow(true);                       // shoo a crop-raiding crow
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
@@ -2906,6 +2994,7 @@ function getPickables(){
   if(townCat)arr.push(townCat.mesh);
   if(townDog)arr.push(townDog.mesh);
   if(pondDuck)arr.push(pondDuck.mesh);
+  if(crow&&crow.mesh)crow.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -3454,6 +3543,7 @@ const ACH=[
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
+  ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
   ['duck','Duck, Duck…','Greet the duck on the pond',()=>!!state.achFlags.duck],
@@ -3665,6 +3755,7 @@ function boot(){
     updatePlants(dt,dn);
     updateSprinklers(dt);
     updateBird(dt,dn);
+    updateCrow(dt);
     updateWorkers(dt);
     updateAnimals(dt);
     updateDrops(dt);
