@@ -578,6 +578,7 @@ const AgeOfWarGame = (() => {
     { id: 'bursar',       icon: '💰',  title: 'The Bursar',       desc: 'Mint 400 extra gold from one Paymaster.' },
     { id: 'high_walls',   icon: '🏰',  title: 'Keep and Castle',  desc: 'Mortar 350 fresh stone onto the walls in one run.' },
     { id: 'war_banker',   icon: '🧰',  title: 'War Banker',       desc: 'Earn 300 gold of war-chest interest in one run.' },
+    { id: 'iron_nerve',   icon: '🎲',  title: 'Iron Nerve',       desc: 'Win three Ironside wagers in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -689,6 +690,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.minted || 0) >= 400) unlock('bursar');
     if ((runStats.mortared || 0) >= 350) unlock('high_walls');
     if ((runStats.chested || 0) >= 300) unlock('war_banker');
+    if ((runStats.ironWon || 0) >= 3) unlock('iron_nerve');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1107,6 +1109,7 @@ const AgeOfWarGame = (() => {
     runStats.minted = 0; paymasterBought = false;
     runStats.mortared = 0; masonsBought = false;
     runStats.chested = 0; chestGold = 0;
+    runStats.ironWon = 0; runStats.ironLost = 0; ironBet = null;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1822,6 +1825,47 @@ const AgeOfWarGame = (() => {
     return opened;
   }
 
+  // The Ironside Wager (AOW-32) — the wager round reaches the wall.
+  // From Age II, 200 gold says the base ends the CURRENT wave no
+  // worse than the moment you shook on it — healing counts, hits
+  // don't wash out. Held pays 2× at the wave's turn; one wager a
+  // wave; the stake is spent either way.
+  const IRON_STAKE = 200, IRON_MULT = 2;
+  let ironBet = null;   // { stake, hpAtBet }
+  function placeIronWager() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F3B2} The herald takes wagers from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (ironBet) return;
+    if (gold < IRON_STAKE) {
+      goldFloaters.push({ text: `\u{1F3B2} The wager is ${IRON_STAKE} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= IRON_STAKE;
+    ironBet = { stake: IRON_STAKE, hpAtBet: playerBaseHp };
+    goldFloaters.push({ text: `\u{1F3B2} ${IRON_STAKE} gold says the walls hold this wave`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    SFX.spawn();
+    renderHud();
+  }
+  function resolveIronWager() {
+    if (!ironBet) return;
+    const held = playerBaseHp >= ironBet.hpAtBet;
+    const stake = ironBet.stake;
+    ironBet = null;
+    if (held) {
+      gold += stake * IRON_MULT;
+      runStats.ironWon = (runStats.ironWon || 0) + 1;
+      goldFloaters.push({ text: `\u{1F3B2} The walls held \u2014 the herald pays ${stake * IRON_MULT} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.0 });
+      checkAchievementsDuringRun();
+    } else {
+      runStats.ironLost = (runStats.ironLost || 0) + 1;
+      goldFloaters.push({ text: '\u{1F3B2} The walls bled \u2014 the wager is forfeit', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#f85149', t: 2.0 });
+    }
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1922,6 +1966,8 @@ const AgeOfWarGame = (() => {
     if (masonBtn) masonBtn.onclick = buyMasons;
     const chestBtn = document.getElementById('aow-chest-btn');
     if (chestBtn) chestBtn.onclick = depositChest;
+    const ironBtn = document.getElementById('aow-iron-btn');
+    if (ironBtn) ironBtn.onclick = placeIronWager;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2171,6 +2217,9 @@ const AgeOfWarGame = (() => {
       } else if (e.key === 'j' || e.key === 'J') {
         depositChest();
         e.preventDefault();
+      } else if (e.key === 'u' || e.key === 'U') {
+        placeIronWager();
+        e.preventDefault();
       }
     });
   }
@@ -2263,6 +2312,7 @@ const AgeOfWarGame = (() => {
     if (waveEnemiesRemaining <= 0) {
       // Boss wave check: ended via boss death — credit + advance.
       if (bossWaveActive && !bossKilledThisWave) return;  // wait for boss
+      resolveIronWager();   // AOW-32: the herald settles at the wave's turn
       waveNum++;
       bossWaveActive = isBossWave(waveNum);
       bossKilledThisWave = false;
@@ -7637,6 +7687,17 @@ const AgeOfWarGame = (() => {
       chEl.title = chestGold > 0
         ? `The war chest holds ${chestGold} gold — it opens at 150% when a boss falls. A run that dies first loses it all. ${runStats.chested || 0} interest earned this run.`
         : `The War Chest (J) — lock ${CHEST_DEPOSIT} gold per press; a fallen boss opens it at 150%. Die first and it's gone.`;
+    }
+
+    // Ironside Wager button (AOW-32)
+    const irEl = document.getElementById('aow-iron-btn');
+    const irCdEl = document.getElementById('aow-iron-cd');
+    if (irEl) {
+      if (irCdEl) irCdEl.textContent = playerEra < 1 ? 'Age II' : ironBet ? 'riding' : `${IRON_STAKE}g`;
+      irEl.disabled = playerEra < 1 || !!ironBet;
+      irEl.title = ironBet
+        ? `The wager rides — the walls must end this wave at or above ${Math.round(ironBet.hpAtBet)} hp. ${runStats.ironWon || 0} won, ${runStats.ironLost || 0} lost this run.`
+        : `The Ironside Wager (U) — ${IRON_STAKE} gold says the walls end this wave no worse than they stand right now. Held pays 2× at the wave's turn.`;
     }
 
     // Wave indicator
