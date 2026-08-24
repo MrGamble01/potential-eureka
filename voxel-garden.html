@@ -222,6 +222,7 @@
     <li><b>🧺 Flotsam</b> crates bob up in the pond &mdash; <b>tap to crack them open</b> (coins, sometimes a good) before they sink; a <b>⚓ Pier</b> doubles the traffic and the haul</li>
     <li>A <b>🗼 Lighthouse</b> (level 8) shows the isle to the shipping lanes: passing freighters heave <b>📦 cargo crates</b> overboard &mdash; triple the coin and always carrying a good</li>
     <li>The <b>🔭 Observatory</b> (level 9) charts the night sky: <b>✨ stardust falls twice as often</b> and every wish surges the crops <b>twice as hard</b></li>
+    <li>A <b>🌦️ Weather Vane</b> (level 6) reads the sky: every shower is <b>called half a minute out</b>, and rain <b>lingers 25% longer</b> over the isle</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -1544,6 +1545,7 @@ const BUILDINGS={
   pier:     {ico:'⚓',name:'Pier',      cost:560,lvl:5,desc:'Flotsam crates drift up twice as often and carry richer salvage',roof:0x8a5a34,wall:0x9a7a52,kind:'pier'},
   lighthouse:{ico:'🗼',name:'Lighthouse',cost:1200,lvl:8,desc:'A beam over the water: freighters pass the isle and heave 📦 cargo crates overboard — triple the coin, always a good',roof:0xd94f30,wall:0xe8e0d0,kind:'light'},
   observatory:{ico:'🔭',name:'Observatory',cost:1500,lvl:9,desc:'Charts the night sky: ✨ stardust falls twice as often, and every wish surges crops twice as hard',roof:0x6a5acd,wall:0xd8d8e8,kind:'obs'},
+  vane:      {ico:'🌦️',name:'Weather Vane',cost:450,lvl:6,desc:'Reads the sky: calls each shower half a minute before it lands, and showers linger 25% longer over the isle',roof:0x8a8fb0,wall:0xd0d4e0,kind:'vane'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1555,6 +1557,7 @@ function buildingCubes(def){
   if(def.kind==='pier')return pierCubes(def);
   if(def.kind==='light')return lightCubes(def);
   if(def.kind==='obs')return obsCubes(def);
+  if(def.kind==='vane')return vaneCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1598,6 +1601,18 @@ function lightCubes(def){
   a(0,2.78,0,0.6,0.45,0.6,0xffd166);             // the lamp
   a(0,3.1,0,0.8,0.18,0.8,def.roof);              // cap
   a(0,0.45,0.78,0.4,0.6,0.1,0x5a3a24);           // door
+  return c;
+}
+function vaneCubes(def){
+  // VOX-11: a slender post with a swinging arrow and a strutting rooster
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.2,0,0.9,0.4,0.9,0x9aa0a6);               // stone foot
+  a(0,1.2,0,0.18,1.8,0.18,0x5a4028);             // the post
+  a(0,2.2,0,1.1,0.12,0.16,def.roof);             // the arrow shaft
+  a(0.62,2.2,0,0.22,0.26,0.2,def.roof);          // arrow head
+  a(-0.5,2.2,0,0.16,0.4,0.18,def.roof);          // tail feathers
+  a(0,2.5,0,0.26,0.3,0.18,0xd97a29);             // the rooster
+  a(0,2.72,0,0.1,0.14,0.1,0xc0392b);             // his comb
   return c;
 }
 function obsCubes(def){
@@ -2366,6 +2381,9 @@ function refreshPlantMesh(p){
 let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
 let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
 let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
+// VOX-11: the Weather Vane calls the shower before it lands
+let vaneCalled=false;
+function vaneBuilt(){return !!(state.buildings&&state.buildings.vane);}
 let leaves,leafMat,bird=null;
 const pickables=[];
 function initScene(){
@@ -3794,8 +3812,16 @@ function updateRain(dt){
       if(seasonOf(state.day).key!=='winter'&&!isNight()){spawnRainbow();state.achFlags.rainbow=true;checkAch();}}
   } else {
     rainT-=dt;
+    // VOX-11: the vane swings before the sky breaks
+    if(vaneBuilt()&&!vaneCalled&&rainT<=30&&rainT>0){
+      vaneCalled=true;
+      state.vaneCalls=(state.vaneCalls||0)+1;
+      toast(seasonOf(state.day).key==='winter'?'🌦️ The vane swings north — snow inside half a minute.':'🌦️ The vane swings west — a shower inside half a minute.');
+      checkAch();
+    }
     if(rainT<=0){
-      rainActive=true;rainLeft=22+Math.random()*20;
+      rainActive=true;rainLeft=(22+Math.random()*20)*(vaneBuilt()?1.25:1);   // VOX-11: showers linger over a read sky
+      vaneCalled=false;
       const winter=seasonOf(state.day).key==='winter';
       toast(winter?'❄️ Snow drifts across the isle — soft and slow':
         '🌧️ A gentle shower rolls in — your garden drinks it up');
@@ -3955,6 +3981,7 @@ const ACH=[
   ['flotsam5','Beachcomber','Crack open five flotsam crates',()=>(state.flotsamOpened||0)>=5],
   ['cargo3','Harbormaster','Pry open three freighter cargo crates',()=>(state.cargoOpened||0)>=3],
   ['charted','Star Charts','Make a wish under the Observatory\'s dome',()=>!!state.achFlags.obsWish],
+  ['stormcaller','Stormcaller','The vane calls five showers before they land',()=>(state.vaneCalls||0)>=5],
   ['wish1','Upon a Star','Collect three stardust shards and make a wish',()=>(state.wishes||0)>=1],
   ['catgift5','Little Hunter','Unwrap five of the cat’s gifts',()=>(state.catGifts||0)>=5],
   ['potofgold','Pot of Gold','Make a sale while a rainbow arcs',()=>!!state.achFlags.rainbowSale],
