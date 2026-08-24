@@ -570,6 +570,7 @@ const AgeOfWarGame = (() => {
     { id: 'patchwork',    icon: '🛠️',  title: 'Patchwork',        desc: 'Call the sappers three times in one run.' },
     { id: 'skewer',       icon: '🏹',  title: 'Shish Kebab',      desc: 'Skewer three enemies with a single ballista bolt.' },
     { id: 'field_hosp',   icon: '⛑️',  title: 'Field Hospital',   desc: 'Heal 300 hp at the triage tent in one run.' },
+    { id: 'headhunter',   icon: '🏷️',  title: 'Headhunter',       desc: 'Fill five bounties in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -674,6 +675,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.duelsWon || 0) >= 2) unlock('giantslayer');
     if ((runStats.repairs || 0) >= 3) unlock('patchwork');
     if ((runStats.triaged || 0) >= 300) unlock('field_hosp');
+    if ((runStats.bounties || 0) >= 5) unlock('headhunter');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1085,6 +1087,7 @@ const AgeOfWarGame = (() => {
     runStats.repairs = 0; sapperCd = 0;
     runStats.bolts = 0; boltCd = 0;
     runStats.triaged = 0; tentBought = false;
+    runStats.bounties = 0; bounty = null;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1581,6 +1584,33 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Bounty Board (AOW-25) ─────────────────────────────
+  // Every non-boss wave posts a named bounty: fell THREE of one enemy
+  // line before the wave turns and the board pays triple that unit's
+  // gold. The board wipes and re-posts with each new wave — fill it
+  // or let it lapse, no penalty. Boss waves post nothing: the boss IS
+  // the bounty.
+  const BOUNTY_NEED = 3;
+  let bounty = null;   // { key, need, got, reward }
+  function postBounty() {
+    const pool = unitsForEra(enemyEra).filter(k => !UNITS[k].role);
+    if (!pool.length) { bounty = null; return; }
+    const key = pool[Math.floor(Math.random() * pool.length)];
+    bounty = { key, need: BOUNTY_NEED, got: 0, reward: Math.round(UNITS[key].gold * 3) };
+  }
+  function bountyKill(u) {
+    if (!bounty || u.side !== 'enemy' || u.key !== bounty.key) return;
+    bounty.got++;
+    if (bounty.got >= bounty.need) {
+      gold += bounty.reward;
+      runStats.gold += bounty.reward;
+      runStats.bounties = (runStats.bounties || 0) + 1;
+      goldFloaters.push({ text: `🏷️ BOUNTY FILLED +${bounty.reward}g`, x: u.x, y: GROUND_Y - u.h - 46, color: '#fcd34d', t: 2.0 });
+      bounty = null;
+      renderHud();
+    }
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -2003,6 +2033,7 @@ const AgeOfWarGame = (() => {
       waveEnemiesRemaining = bossWaveActive ? 1 : (2 + Math.floor(waveNum * 0.35));
       waveBreatherT = bossWaveActive ? 4.0 : 3.0;
       // Announce
+      if (!bossWaveActive) postBounty(); else bounty = null;   // AOW-25: the board re-posts each wave
       const txt = bossWaveActive ? `BOSS WAVE ${waveNum}` : `WAVE ${waveNum}`;
       ageBannerText = txt;
       ageBannerT = 1.8;
@@ -2463,6 +2494,7 @@ const AgeOfWarGame = (() => {
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
           runStats.gold += u.gold * mult * boonGoldMult() * bannerGoldMult();
           dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult() * bannerGoldMult()));
+          bountyKill(u);   // AOW-25: the board keeps count
           if (u.isBoss) {
             bossKilledThisWave = true;
             if (u.warlord) {
@@ -7289,6 +7321,16 @@ const AgeOfWarGame = (() => {
       ttEl.title = tentBought
         ? `The triage tent stands — friendlies within ${TENT_RANGE}px of the base heal ${TENT_HEAL} hp/s. ${Math.round(runStats.triaged || 0)} hp patched this run.`
         : `Raise the Triage Tent (V) — ${TENT_COST} gold, once per run: friendlies within ${TENT_RANGE}px of the base heal ${TENT_HEAL} hp/s.`;
+    }
+
+    // Bounty board (AOW-25)
+    const btyEl = document.getElementById('aow-bounty');
+    if (btyEl) {
+      if (bounty) {
+        btyEl.style.display = '';
+        btyEl.textContent = `🏷️ ${UNITS[bounty.key].icon} ${bounty.got}/${bounty.need} · ${bounty.reward}g`;
+        btyEl.title = `The bounty board: fell ${bounty.need} of the ${UNITS[bounty.key].name} line this wave for +${bounty.reward} gold. Re-posts each wave; lapses cost nothing.`;
+      } else btyEl.style.display = 'none';
     }
 
     // Wave indicator
