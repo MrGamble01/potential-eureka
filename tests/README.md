@@ -31,8 +31,8 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
-| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural), `hvstash` (the Hidden Stash), `hvfire` (The Fire Held), `hvmeeting` (the Camp Meeting), `hvpetition` (City Petitions) |
-| Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier), `voxstardust` (stardust wishes), `voxcat` (cat gifts), `voxrainbow` (Rainbow's End), `voxduck` (the Duck's Dabble), `voxlight` (the Lighthouse), `voxobs` (the Observatory) |
+| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural), `hvstash` (the Hidden Stash), `hvfire` (The Fire Held), `hvmeeting` (the Camp Meeting), `hvpetition` (City Petitions), `hvticket` (the Bus Ticket), `hvsnap` (the Cold Snap) |
+| Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier), `voxstardust` (stardust wishes), `voxcat` (cat gifts), `voxrainbow` (Rainbow's End), `voxduck` (the Duck's Dabble), `voxlight` (the Lighthouse), `voxobs` (the Observatory), `voxballoon` (Balloon Tours), `voxdove` (the Dovecote) |
 
 Suites that need a temporary `window.__*` test hook in a game file
 (the hook is added for the test and stripped before commit) are
@@ -40,6 +40,17 @@ Suites that need a temporary `window.__*` test hook in a game file
 recorded in the merge commits that shipped each feature.
 
 ## Last full run
+
+2026-08-24 (QA-5, post-Round-Eleven) — **48 suites registered, 47
+green on the first pass**. The one failure was real signal: HV-18's
+new 25%-per-winter-dawn cold snap fired inside `hvweather`'s unpinned
+matched-dawn legs (−10 warmth and a thinned panhandle roll), a
+cross-feature interaction the battery caught exactly as designed. The
+suite now pins the snap out (`SNAP_CHANCE = 0` — snaps have their own
+suite, `hvsnap`) and re-ran green three times; the audit row held its
+12/32 environment baseline throughout. First battery carrying the
+four promoted Round-10/11 suites (`hvticket`, `hvsnap`, `voxballoon`,
+`voxdove`).
 
 2026-08-24 (QA-4, post-Round-Eight) — all **43 suites green**
 end-to-end on the first pass, zero failures and zero stale

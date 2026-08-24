@@ -28,6 +28,11 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
   await page.waitForTimeout(2500);
 
+  // HV-18 landed a 25%-per-winter-dawn cold snap that stacks −10 warmth
+  // and thins panhandling — orthogonal noise for these matched-dawn
+  // legs (the snap has its own suite, hvsnap). Pin it out entirely.
+  await page.evaluate(() => { SNAP_CHANCE = 0; G.snapUntil = null; });
+
   // A + B. cold snap dawn
   const cold = await page.evaluate(() => {
     G.season = 2; G.days = 20;          // day 21 → season recomputes to 3 - 1? (days/7)%4: 21/7=3 → winter
