@@ -1256,10 +1256,16 @@ function spawnDealer() {
   // Stable id so labels don't shift when a middle dealer is spliced out.
   // LAB-9: past the garage act, ~1 in 8 "buyers" is an undercover cop.
   // The feed gives no tell — only a hired Lookout flags them on sight.
-  const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2),
-             undercover: currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1) * (typeof burnerStingMult === 'function' ? burnerStingMult() : 1), waitT: 0};   // LAB-23/24: the crowd hides badges; a fresh burner reads them out
+  const whale = typeof whaleDue === 'function' && whaleDue();   // LAB-25: the meter is due and the street is quiet
+  const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: whale ? WHALE_BAGS : 1 + Math.floor(Math.random()*2),
+             whale,
+             undercover: !whale && currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1) * (typeof burnerStingMult === 'function' ? burnerStingMult() : 1), waitT: 0};   // LAB-23/24: the crowd hides badges; a fresh burner reads them out
   dealers.push(d);
-  addFeed(`👤 Buyer incoming`);
+  if (whale) {
+    state.whaleMeter = 0;
+    g.scale.set(1.35, 1.35, 1.35);   // a big fish reads big from across the lot
+    addFeed('🐋 The Whale is coming down the block');
+  } else addFeed(`👤 Buyer incoming`);
 }
 
 // ── Trimmer NPCs ──
@@ -2064,6 +2070,17 @@ let partyT = 420, partyLeft = 0, partySalesNow = 0;
 function partyActive() { return partyLeft > 0; }
 function partyPriceMult() { return partyActive() ? 1.25 : 1; }
 function partyHeatMult() { return partyActive() ? 1.5 : 1; }
+// ── The Whale (LAB-25) ───────────────────────────────────────────────
+// The corner talks. Every 12th clean street sale, word reaches a big
+// fish: the next buyer down the block is the 🐋 Whale — 3 bags at
+// TRIPLE list, never a badge. But he's skittish: he won't show during
+// a crackdown or a block party (the meter just holds), and if the
+// shelf can't stock him he walks and the word has to spread again.
+const WHALE_EVERY = 12, WHALE_BAGS = 3, WHALE_MULT = 3;
+function whaleDue() {
+  return currentAct() >= 2 && (state.whaleMeter || 0) >= WHALE_EVERY
+    && !waveActive() && !partyActive();
+}
 function refreshPartyHud() {
   const el = document.getElementById('party-hud');
   if (!el) return;
@@ -2389,6 +2406,7 @@ const GROW_ACH = [
   { id: 'signature',    name: 'Signature Blend', test: () => (state.batches || 0) >= 150 },     // LAB-19
   { id: 'cold_streets', name: 'Cold Streets',    test: () => (state.cleanWaves || 0) >= 3 },    // LAB-20
   { id: 'block_famous', name: 'The Block Knows', test: () => (state.partySales || 0) >= 12 },   // LAB-23
+  { id: 'whale_club', name: 'The Whale Club', test: () => (state.whalesServed || 0) >= 5 },   // LAB-25
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -2787,6 +2805,7 @@ function saveGame() {
     nbPure,   // LAB-19: the pending eureka page
     waveT: Math.round(waveT), waveLeft: Math.round(waveLeft),  // LAB-20
     partyT: Math.round(partyT), partyLeft: Math.round(partyLeft), partySales: state.partySales || 0,  // LAB-23
+    whaleMeter: state.whaleMeter || 0, whalesServed: state.whalesServed || 0,  // LAB-25
     waveSales, cleanWaves: state.cleanWaves || 0,
     bagPacked: !!state.bagPacked, skips: state.skips || 0,   // LAB-21
     unitRented: !!state.unitRented,   // LAB-22
@@ -2870,6 +2889,8 @@ function loadGame() {
     if (typeof sv.partyT === 'number') partyT = Math.min(600, Math.max(5, sv.partyT));   // LAB-23
     if (typeof sv.partyLeft === 'number') partyLeft = Math.min(PARTY_SECS, Math.max(0, sv.partyLeft));
     state.partySales = Math.max(0, Math.floor(sv.partySales || 0));
+    state.whaleMeter = Math.min(WHALE_EVERY, Math.max(0, Math.floor(sv.whaleMeter || 0)));   // LAB-25
+    state.whalesServed = Math.max(0, Math.floor(sv.whalesServed || 0));
     refreshPartyHud();
     if (typeof sv.waveLeft === 'number') waveLeft = Math.min(WAVE_SECS, Math.max(0, sv.waveLeft));
     waveSales = Math.max(0, Math.floor(sv.waveSales || 0));
@@ -3247,6 +3268,37 @@ function sellToDealer(d, idx) {
     saveGame();
     return;
   }
+  if (d.whale) {
+    // LAB-25: 3 bags at triple list — or a walk if the shelf is short
+    if (stashCount < WHALE_BAGS) {
+      d.paid=true; d.state='leaving';
+      state.whaleMeter = Math.floor(WHALE_EVERY / 2);   // he'll hear you're stocked again, eventually
+      showToast('🐋 The Whale wanted ' + WHALE_BAGS + ' bags — the shelf is short. He walks.', 'bad');
+      addFeed('🐋 The Whale walked — not enough stock');
+      saveGame();
+      return;
+    }
+    d.paid=true;
+    const price = salePrice() * WHALE_MULT * WHALE_BAGS;
+    stashCount -= WHALE_BAGS; state.totalSold += WHALE_BAGS;
+    pureBags = Math.min(pureBags, stashCount);   // the ✨ ledger can't exceed what's left
+    addCash(price);
+    addHeat(heatGainPerSale(WHALE_BAGS) * waveHeatMult() * partyHeatMult());
+    burnStreetSale();   // a sale is a sale — the burner burns
+    if (waveActive()) waveSales++;
+    state.whalesServed = (state.whalesServed || 0) + 1;
+    checkGrowAchievements();
+    const sw=worldToScreen(d.group.position.x,2,d.group.position.z);
+    cashPop(sw.x,sw.y,price);
+    addFeed('🐋 The Whale took ' + WHALE_BAGS + ' bags at triple list → +$' + fmtCash(price) + ' (' + state.whalesServed + ' landed)');
+    showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list.', 'good');
+    d.state='leaving';
+    setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
+    saveGame();
+    renderUpgradesPanel();
+    renderExpandPanel();
+    return;
+  }
   d.paid=true;
   const qty=Math.min(stashCount, d.buyCount);
   // LAB-10: pure bags move first and fetch 1.6× list
@@ -3254,6 +3306,7 @@ function sellToDealer(d, idx) {
   const price=salePrice()*(qty-pureUsed)+Math.round(salePrice()*1.6)*pureUsed;
   pureBags-=pureUsed;
   stashCount-=qty; state.totalSold+=qty;
+  state.whaleMeter = (state.whaleMeter || 0) + 1;   // LAB-25: the corner talks — word reaches the Whale
   addCash(price);
   addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
   burnStreetSale();   // LAB-24: the corner burns the number
@@ -3282,7 +3335,7 @@ function updateDealers(dt) {
     const d=dealers[i];
     if(d.state==='walking') {
       const arrived=stepToward(d.group, stashNode.x+(Math.random()-0.5)*2, stashNode.z+3, 2.2, dt);
-      if(arrived) { d.state='waiting'; setLabel('deal_'+d.id,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
+      if(arrived) { d.state='waiting'; setLabel('deal_'+d.id, d.whale ? '🐋 The Whale' : '💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
     } else if(d.state==='leaving') {
       removeLabel('deal_'+d.id);
       const gone=stepToward(d.group,d.group.position.x+(Math.random()-0.5)*4,10,2.5,dt);
@@ -3468,7 +3521,7 @@ function updateLabels() {
     const d=dealers[i];
     if(d.state==='waiting') {
       // LAB-9: a Lookout on the payroll makes the wire, and the label warns
-      setLabel('deal_'+d.id, d.undercover && wireActive() ? '🚨 Something\'s off…' : '💰 Buyer',
+      setLabel('deal_'+d.id, d.undercover && wireActive() ? '🚨 Something\'s off…' : d.whale ? '🐋 The Whale' : '💰 Buyer',
         d.group.position.x,2.2,d.group.position.z,'prompt');
     }
   }
