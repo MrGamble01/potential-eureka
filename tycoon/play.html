@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -1615,6 +1615,7 @@
 <div id="war-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="outage-banner" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="bridge-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="keynote-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
@@ -4396,7 +4397,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult();
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult() * stageWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -5943,7 +5944,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult()
+    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -6184,6 +6185,7 @@ const ACHIEVEMENTS = [
   { id: 'code_red',      icon: '🚨', title: 'Code Red',             desc: 'Convene the war room in three separate races.', check: () => warRoomsHeld >= 3, progress: () => [Math.min(warRoomsHeld, 3), 3] },
   { id: 'pager_duty',    icon: '📟', title: 'Pager Duty',           desc: 'Page the on-call through three outages.', check: () => outagesPaged >= 3, progress: () => [Math.min(outagesPaged, 3), 3] },
   { id: 'lifeline',      icon: '💸', title: 'Lifeline',             desc: 'Take the board\u2019s bridge in two separate seasons.', check: () => bridgesTaken >= 2, progress: () => [Math.min(bridgesTaken, 2), 2] },
+  { id: 'roadshow',      icon: '🎤', title: 'Roadshow',             desc: 'Take the keynote stage three times.', check: () => keynotesGiven >= 3, progress: () => [Math.min(keynotesGiven, 3), 3] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6802,7 +6804,7 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     acqNextT = 25;
     return;
   }
@@ -6904,7 +6906,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -7001,7 +7003,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     launchNextT = 25;
     return;
   }
@@ -7087,7 +7089,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     poachNextT = 25;
     return;
   }
@@ -7206,7 +7208,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7373,7 +7375,7 @@ function updateRfp(dt) {
   if (rivalDone || seasonGoalHit) return;
   rfpNextT -= dt;
   if (rfpNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     rfpNextT = 25;
     return;
   }
@@ -7489,7 +7491,7 @@ function updateHackathon(dt) {
   }
   hackNextT -= dt;
   if (hackNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     hackNextT = 25;
     return;
   }
@@ -7567,7 +7569,7 @@ function updateTroll(dt) {
   if (prestigeLevel < 1) return;   // trolls only sue companies worth suing
   trollNextT -= dt;
   if (trollNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
     trollNextT = 25;
     return;
   }
@@ -7673,7 +7675,7 @@ function updateMentor(dt) {
   if (mentorOn()) return;   // one mentor at a time — the pitch waits for a vacancy
   mentorNextT -= dt;
   if (mentorNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer || keynoteOffer) {
     mentorNextT = 25;
     return;
   }
@@ -7788,7 +7790,7 @@ function updateWar(dt) {
   if (warUsedSeason || rivalDone || seasonGoalHit) return;
   const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
   if (rivalRev < rivalTarget() * 0.75 || mine >= rivalRev) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer || keynoteOffer) {
     warNextT = 25;
     return;
   }
@@ -7968,7 +7970,7 @@ function updateBridge(dt) {
   bridgeNextT = 20;
   if (prestigeLevel < 1 || bridgeTakenSeason) return;
   if (state.cash >= BRIDGE_FLOOR) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || keynoteOffer) {
     return;
   }
   makeBridgeOffer();
@@ -8011,6 +8013,120 @@ function closeBridgeOffer(signed, expired) {
   } else {
     addFeedEntry(expired ? '💸 The sheet expired unsigned — pride intact' : '💸 Waved the term sheet off — scraping by');
     bridgeNextT = 120;
+  }
+}
+
+// ── The Keynote (TYC-25) ──────────────────────────────────
+// Round Fourteen opens on a stage. Once a season post-IPO, when the
+// quarter is a quarter of the way to the bell, a conference offers
+// the founder a keynote slot: pay the fee, spend 20 seconds on stage
+// (the office runs at 85% with the boss away), and the talk sends the
+// hall to the signup table — every deal closes 20% richer for the
+// 90-second glow. Wave the slot off and the organisers move on.
+const KEYNOTE_PREP = 20;
+const KEYNOTE_GLOW = 90;
+const KEYNOTE_STAGE_MULT = 0.85;
+const KEYNOTE_DEAL_MULT = 1.2;
+let keynoteOffer = null;     // { cost, expire }
+let keynote = null;          // { phase: 'stage' | 'glow', timeLeft }
+let keynoteDoneSeason = false;
+let keynotesGiven = 0;       // lifetime talks
+let keynoteNextT = 45;
+function stageWorkMult() { return keynote && keynote.phase === 'stage' ? KEYNOTE_STAGE_MULT : 1; }
+function keynoteLeadMult() { return keynote && keynote.phase === 'glow' ? KEYNOTE_DEAL_MULT : 1; }
+function refreshKeynoteChip() {
+  const el = document.getElementById('keynote-chip');
+  if (!el) return;
+  if (keynote) {
+    el.style.display = '';
+    el.textContent = keynote.phase === 'stage'
+      ? '\u{1F3A4} ' + Math.max(0, Math.ceil(keynote.timeLeft)) + 's'
+      : '\u{1F3A4} +20% ' + Math.max(0, Math.ceil(keynote.timeLeft)) + 's';
+    el.title = keynote.phase === 'stage'
+      ? 'On stage \u2014 the office runs at 85% while the founder gives the keynote.'
+      : 'The keynote glow \u2014 every deal closes 20% richer until the hall empties.';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function updateKeynote(dt) {
+  if (keynote) {
+    keynote.timeLeft -= dt;
+    if (keynote.timeLeft <= 0) {
+      if (keynote.phase === 'stage') {
+        keynote = { phase: 'glow', timeLeft: KEYNOTE_GLOW };
+        showToast('\u{1F3A4} The talk lands \u2014 the hall empties toward the signup table. Deals close 20% richer for 90s.', 'good', 'critical');
+        addFeedEntry('\u{1F3A4} Keynote delivered \u2014 the leads pour in');
+      } else {
+        keynote = null;
+        addFeedEntry('\u{1F3A4} The conference glow fades');
+        saveGame();
+      }
+    }
+    refreshKeynoteChip();
+  }
+  if (keynoteOffer) {
+    keynoteOffer.expire -= dt;
+    const cd = document.getElementById('keynote-expire');
+    if (cd) cd.textContent = 'The slot holds for ' + Math.max(0, Math.ceil(keynoteOffer.expire)) + 's';
+    if (keynoteOffer.expire <= 0) closeKeynoteOffer(false, true);
+    return;
+  }
+  keynoteNextT -= dt;
+  if (keynoteNextT > 0) return;
+  keynoteNextT = 25;
+  if (prestigeLevel < 1 || keynoteDoneSeason || keynote) return;
+  if (seasonRecurringRevenue < currentGoalTarget() * 0.25) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer) {
+    return;
+  }
+  makeKeynoteOffer();
+}
+function makeKeynoteOffer() {
+  const cost = Math.max(2000, Math.round(currentRatePerMin() * 1.5));
+  keynoteOffer = { cost, expire: 45 };
+  const el = document.getElementById('keynote-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#d2a8ff;margin-bottom:4px">\u{1F3A4} DevWorld wants the founder on the main stage</div>
+      <div>A keynote slot just opened. <b style="color:#F85149">$${fmtCash(cost)}</b> covers the fee \u2014 the office runs at
+      <b>85%</b> for the 20 seconds you're on stage, then the hall heads for the signup table:
+      <b style="color:#3FB950">every deal closes 20% richer for 90 seconds</b>. One stage a season.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="keynote-take" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(210,168,255,.12);border:1px solid rgba(210,168,255,.5);color:#d2a8ff">\u{1F3A4} Take the stage \u2014 $${fmtCash(cost)}</button>
+        <button id="keynote-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Send regrets</button>
+      </div>
+      <div id="keynote-expire" style="color:#7D8590;font-size:11px;margin-top:6px">The slot holds for 45s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('keynote-take').onclick = () => closeKeynoteOffer(true, false);
+  document.getElementById('keynote-pass').onclick = () => closeKeynoteOffer(false, false);
+  addFeedEntry('\u{1F3A4} DevWorld offers the founder a keynote slot');
+  SFX.milestone && SFX.milestone();
+}
+function closeKeynoteOffer(taken, expired) {
+  const o = keynoteOffer;
+  keynoteOffer = null;
+  document.getElementById('keynote-offer').style.display = 'none';
+  if (!o) return;
+  if (taken) {
+    if (state.cash < o.cost) {
+      showToast(`\u{1F3A4} The slot fee is $${fmtCash(o.cost)} \u2014 the wallet says no.`, '', 'standard');
+      keynoteNextT = 60;
+      return;
+    }
+    state.cash -= o.cost;
+    keynoteDoneSeason = true;
+    keynotesGiven++;
+    keynote = { phase: 'stage', timeLeft: KEYNOTE_PREP };
+    refreshKeynoteChip();
+    showToast('\u{1F3A4} The founder takes the stage \u2014 the office holds its breath (85% for 20s).', 'good', 'critical');
+    addFeedEntry(`\u{1F3A4} Keynote fee paid ($${fmtCash(o.cost)}) \u2014 the founder is on in five`);
+    checkAchievements(); saveGame(); refreshHud();
+  } else {
+    addFeedEntry(expired ? '\u{1F3A4} The slot lapsed \u2014 the organisers moved on' : '\u{1F3A4} Sent regrets to DevWorld');
+    keynoteNextT = 150;
   }
 }
 
@@ -10504,6 +10620,7 @@ function frameBody(now) {
   updateWar(dt);
   updateOutage(dt);
   updateBridge(dt);
+  updateKeynote(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -10649,6 +10766,7 @@ function doIPO() {
   dashHistory.length = 0; _dashT0 = Date.now(); // restart the season revenue chart
   initRival(true);   // a new season brings a new rival
   warUsedSeason = false; warRoom = null; warOffer = null; refreshWarChip();   // TYC-22: a new race re-arms the war room
+  keynoteDoneSeason = false; keynote = null; keynoteOffer = null; refreshKeynoteChip();   // TYC-25: a fresh conference season
   bridgeTakenSeason = false; bridgeOffer = null; refreshBridgeChip();   // TYC-24: the IPO washes the dilution out
   rollClimate();     // ...and its own market climate (TYC-10)
   fundingRoundIdx = 0;
@@ -11295,6 +11413,21 @@ const SAVE_SCHEMA = [
         bridgeTakenSeason = !!p.bridge.taken;
         bridgesTaken = Math.max(0, Math.floor(p.bridge.count || 0));
         refreshBridgeChip();
+      }
+    },
+  },
+  {
+    key: 'keynote', // TYC-25: the stage ledger + one in flight
+    write: p => { p.keynote = { given: keynotesGiven, done: keynoteDoneSeason, active: keynote ? { phase: keynote.phase, timeLeft: Math.max(1, Math.round(keynote.timeLeft)) } : null }; },
+    read: p => {
+      if (p.keynote) {
+        keynotesGiven = Math.max(0, Math.floor(p.keynote.given || 0));
+        keynoteDoneSeason = !!p.keynote.done;
+        keynote = (p.keynote.active && (p.keynote.active.phase === 'stage' || p.keynote.active.phase === 'glow'))
+          ? { phase: p.keynote.active.phase,
+              timeLeft: Math.min(p.keynote.active.phase === 'stage' ? KEYNOTE_PREP : KEYNOTE_GLOW, Math.max(1, Math.round(p.keynote.active.timeLeft))) }
+          : null;
+        refreshKeynoteChip();
       }
     },
   },
