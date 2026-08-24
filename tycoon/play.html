@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -1605,6 +1605,7 @@
     </div>
   </div>
 </div>
+<div id="acq-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
   <div class="win-panel">
     <div class="win-title" id="board-title">📋 Board Meeting</div>
@@ -4375,7 +4376,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult();
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -6730,6 +6731,96 @@ function rollClimate() {
   refreshClimateChip();
   showToast(`${seasonClimate.icon} Season climate: ${seasonClimate.name} — ${seasonClimate.desc}`, 'milestone', 'critical');
   addFeedEntry(`${seasonClimate.icon} Climate: ${seasonClimate.name}`);
+}
+// ── Acqui-hires (TYC-11) ─────────────────────────────────────
+// Post-IPO, a struggling startup occasionally comes up for sale: spend a
+// slice of this season's goal to fold its team in. Every acquisition is
+// a permanent +3% work-speed multiplier (their stack, your roadmap),
+// capped at five so the mechanic seasons the run instead of replacing it.
+const ACQ_NAMES = ['Wobbly', 'Fax.ly', 'Yeet Robotics', 'Grindstone AI', 'Mood.ring', 'Kombucha OS', 'Parrot.js', 'Blockchain BBQ'];
+const ACQ_NAMES_BEAGLE = ['Sniff & Co', 'Waggr', 'Fetch.ly', 'Chewbernetes', 'Barkchain Labs', 'Zoomies Inc'];
+const ACQ_CAP = 5, ACQ_BOOST = 0.03;
+let acquisitions = [];      // names of folded-in startups, purchase order
+let acqOffer = null;        // { name, cost, expire }
+let acqNextT = 300;         // first offer ~5 minutes into a post-IPO season
+function acqWorkMult() { return 1 + ACQ_BOOST * Math.min(ACQ_CAP, acquisitions.length); }
+function acqPool() { return VARIANT.id === 'beagle' ? ACQ_NAMES_BEAGLE : ACQ_NAMES; }
+function refreshAcqChip() {
+  const el = document.getElementById('acq-chip');
+  if (!el) return;
+  if (!acquisitions.length) { el.textContent = ''; el.title = ''; return; }
+  el.textContent = '🏷️ ×' + acquisitions.length;
+  el.title = 'Acquisitions, +' + Math.round(ACQ_BOOST * 100) + '% work speed each: ' + acquisitions.join(', ');
+}
+function updateAcq(dt) {
+  if (acqOffer) {
+    acqOffer.expire -= dt;
+    const cd = document.getElementById('acq-expire');
+    if (cd) cd.textContent = 'Offer expires in ' + Math.max(0, Math.ceil(acqOffer.expire)) + 's';
+    if (acqOffer.expire <= 0) closeAcqOffer(false, true);
+    return;
+  }
+  if (prestigeLevel < 1 || acquisitions.length >= ACQ_CAP) return;
+  acqNextT -= dt;
+  if (acqNextT > 0) return;
+  // Don't pitch an acquisition over another modal.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open')) {
+    acqNextT = 25;
+    return;
+  }
+  makeAcqOffer();
+}
+function makeAcqOffer() {
+  const pool = acqPool().filter(n => !acquisitions.includes(n));
+  if (!pool.length) { acqNextT = 600; return; }
+  const name = pool[Math.floor(Math.random() * pool.length)];
+  const cost = Math.round(currentGoalTarget() * 0.08);
+  acqOffer = { name, cost, expire: 30 };
+  const el = document.getElementById('acq-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:370px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#fcd34d;margin-bottom:4px">🏷️ Acquisition target</div>
+      <div><b>${name}</b> is winding down and shopping its team around.
+      Fold them in for <b>$${fmtCash(cost)}</b> — every acquisition is a permanent
+      <b style="color:#3FB950">+${Math.round(ACQ_BOOST * 100)}% work speed</b> (${acquisitions.length}/${ACQ_CAP} owned).</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="acq-buy" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.5);color:#3FB950">🤝 Acquire</button>
+        <button id="acq-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Pass</button>
+      </div>
+      <div id="acq-expire" style="color:#7D8590;font-size:11px;margin-top:6px">Offer expires in 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('acq-buy').onclick = () => {
+    if (!acqOffer) return;
+    if (state.cash < acqOffer.cost) {
+      const cd = document.getElementById('acq-expire');
+      if (cd) cd.textContent = `Need $${fmtCash(acqOffer.cost - state.cash)} more`;
+      return;
+    }
+    closeAcqOffer(true, false);
+  };
+  document.getElementById('acq-pass').onclick = () => closeAcqOffer(false, false);
+  addFeedEntry(`🏷️ ${name} is looking for a buyer`);
+  SFX.milestone && SFX.milestone();
+}
+function closeAcqOffer(bought, expired) {
+  const o = acqOffer;
+  acqOffer = null;
+  document.getElementById('acq-offer').style.display = 'none';
+  if (!o) return;
+  if (bought) {
+    state.cash -= o.cost; showSpendPop(o.cost);
+    acquisitions.push(o.name);
+    refreshAcqChip();
+    showToast(`🤝 Acquired ${o.name} — their team joins the roadmap. +${Math.round(ACQ_BOOST * 100)}% work speed, permanently.`, 'good', 'critical');
+    addFeedEntry(`🤝 Acquired ${o.name} (+${Math.round(ACQ_BOOST * 100)}% work, ${acquisitions.length}/${ACQ_CAP})`);
+    acqNextT = 420 + Math.random() * 240;
+    saveGame();
+  } else {
+    addFeedEntry(expired ? `🏷️ ${o.name} found another buyer` : `🏷️ Passed on ${o.name}`);
+    acqNextT = 300 + Math.random() * 180;
+  }
+  refreshHud();
 }
 let boardNextT = 180;          // first meeting ~3 minutes in
 let boardTimerT = 0, boardActive = null, boardInterval = null;
@@ -9297,6 +9388,7 @@ function frameBody(now) {
   updateBugs(dt);
   updateRival(dt);
   updateBoard(dt);
+  updateAcq(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -9883,6 +9975,14 @@ const SAVE_SCHEMA = [
     read: p => {
       seasonClimate = SEASON_CLIMATES.find(c => c.id === p.climate) || null;
       refreshClimateChip();
+    },
+  },
+  {
+    key: 'acqs', // TYC-11: folded-in startups (permanent work-speed stack)
+    write: p => { p.acqs = acquisitions; },
+    read: p => {
+      if (Array.isArray(p.acqs)) acquisitions = p.acqs.filter(x => typeof x === 'string').slice(0, ACQ_CAP);
+      refreshAcqChip();
     },
   },
   {
