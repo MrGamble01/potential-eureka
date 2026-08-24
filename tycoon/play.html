@@ -1608,6 +1608,7 @@
 <div id="acq-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="onsite-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="retreat-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="rfp-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
@@ -6170,6 +6171,7 @@ const ACHIEVEMENTS = [
   { id: 'retreat_3',     icon: '⛺', title: 'Team Building',        desc: 'Hold three company retreats.',           check: () => retreatsHeld >= 3, progress: () => [Math.min(retreatsHeld, 3), 3] },
   { id: 'dynasty',       icon: '🏆', title: 'Dynasty',              desc: 'Win three seasons.',                     check: () => trophiesWon >= 3, progress: () => [Math.min(trophiesWon, 3), 3] },
   { id: 'alumni_5',      icon: '🎓', title: 'Old Friends',          desc: 'Five engineers out there wearing your alumni hoodie.', check: () => poachesLost >= 5, progress: () => [Math.min(poachesLost, 5), 5] },
+  { id: 'closer',        icon: '📑', title: 'The Closer',           desc: 'Win three RFPs head-to-head against your rival.', check: () => rfpsWon >= 3, progress: () => [Math.min(rfpsWon, 3), 3] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6788,7 +6790,7 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer) {
     acqNextT = 25;
     return;
   }
@@ -6890,7 +6892,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -6987,7 +6989,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer) {
     launchNextT = 25;
     return;
   }
@@ -7073,7 +7075,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer) {
     poachNextT = 25;
     return;
   }
@@ -7192,7 +7194,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7336,6 +7338,88 @@ function updateRival(dt) {
     showToast(`🏁 ${rivalName} beat you to the goal. The team felt that one.`, 'event', 'critical');
     addFeedEntry(`🏁 ${rivalName} rang the bell first`);
   }
+}
+
+// ── The RFP (TYC-18) ─────────────────────────────────────
+// Mid-race, a fat enterprise contract hits the street and the ghost
+// rival bids on it too. Put up the bid bond and the account is yours —
+// double the bond back, and the rival loses the client they were
+// counting on (−4% off their revenue bar). Pass, or let the tender
+// expire, and the rival books it instead (+5% on theirs). Only exists
+// while there is a race to win: no offers after either side rings the bell.
+let rfpOffer = null;        // { cost, expire }
+let rfpsWon = 0;            // lifetime accounts closed head-to-head
+let rfpNextT = 360;         // the first tender lands ~6 minutes into a race
+function updateRfp(dt) {
+  if (rfpOffer) {
+    rfpOffer.expire -= dt;
+    const cd = document.getElementById('rfp-expire');
+    if (cd) cd.textContent = 'Bids close in ' + Math.max(0, Math.ceil(rfpOffer.expire)) + 's';
+    if (rfpOffer.expire <= 0) closeRfpOffer(false, true);
+    return;
+  }
+  if (rivalDone || seasonGoalHit) return;
+  rfpNextT -= dt;
+  if (rfpNextT > 0) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer) {
+    rfpNextT = 25;
+    return;
+  }
+  makeRfpOffer();
+}
+function makeRfpOffer() {
+  const cost = Math.max(1000, Math.round(currentRatePerMin() * 1.2));
+  const rival = (typeof rivalName === 'string' && rivalName) ? rivalName : 'Your rival';
+  rfpOffer = { cost, expire: 30 };
+  const el = document.getElementById('rfp-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#79c0ff;margin-bottom:4px">📑 An enterprise RFP hits the street</div>
+      <div><b>${rival}</b> is bidding on the same account. Put up a
+      <b style="color:#F85149">$${fmtCash(cost)}</b> bid bond and the contract is yours —
+      <b style="color:#3FB950">$${fmtCash(cost * 2)}</b> booked, and they lose the client
+      they were counting on. Pass, and <b>they</b> book the revenue.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="rfp-bid" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(121,192,255,.12);border:1px solid rgba(121,192,255,.5);color:#79c0ff">📑 Bid $${fmtCash(cost)}</button>
+        <button id="rfp-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Sit this one out</button>
+      </div>
+      <div id="rfp-expire" style="color:#7D8590;font-size:11px;margin-top:6px">Bids close in 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('rfp-bid').onclick = () => {
+    if (!rfpOffer) return;
+    if (state.cash < rfpOffer.cost) {
+      const cd = document.getElementById('rfp-expire');
+      if (cd) cd.textContent = `Need $${fmtCash(rfpOffer.cost - state.cash)} more`;
+      return;
+    }
+    closeRfpOffer(true, false);
+  };
+  document.getElementById('rfp-pass').onclick = () => closeRfpOffer(false, false);
+  addFeedEntry(`📑 An RFP hits the street — ${rival} is bidding too`);
+  SFX.milestone && SFX.milestone();
+}
+function closeRfpOffer(won, expired) {
+  const o = rfpOffer;
+  rfpOffer = null;
+  document.getElementById('rfp-offer').style.display = 'none';
+  if (!o) return;
+  const rival = (typeof rivalName === 'string' && rivalName) ? rivalName : 'The rival';
+  if (won) {
+    state.cash -= o.cost; showSpendPop(o.cost);
+    addCash(o.cost * 2);
+    rivalRev = Math.max(0, rivalRev - rivalTarget() * 0.04);
+    rfpsWon++;
+    showToast(`📑 Contract signed — $${fmtCash(o.cost * 2)} booked, and ${rival} just lost the account they were counting on.`, 'good', 'critical');
+    addFeedEntry(`📑 RFP #${rfpsWon} won head-to-head (+$${fmtCash(o.cost * 2)})`);
+    rfpNextT = 480 + Math.random() * 240;
+  } else {
+    rivalRev += rivalTarget() * 0.05;
+    showToast(`📑 ${rival} ${expired ? 'out-waited you and ' : ''}took the contract — their revenue line just jumped.`, 'event', 'critical');
+    addFeedEntry(`📑 ${rival} booked the RFP — the race tightens`);
+    rfpNextT = 420 + Math.random() * 240;
+  }
+  checkAchievements(); saveGame(); refreshHud();
 }
 
 function triggerWin(cumulative) {
@@ -9818,6 +9902,7 @@ function frameBody(now) {
   updateLaunch(dt);
   updatePoach(dt);
   updateRetreat(dt);
+  updateRfp(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -10460,6 +10545,13 @@ const SAVE_SCHEMA = [
     },
   },
   {
+    key: 'rfp', // TYC-18: head-to-head contract scoreboard
+    write: p => { p.rfp = { won: rfpsWon }; },
+    read: p => {
+      if (p.rfp) rfpsWon = Math.max(0, Math.floor(p.rfp.won || 0));
+    },
+  },
+  {
     key: 'seasonRecurringRevenue',
     write: p => { p.seasonRecurringRevenue = seasonRecurringRevenue; },
     read: p => { if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue; },
@@ -10754,6 +10846,7 @@ if (_pendingOfflineEarnings && _pendingOfflineEarnings.amount > 0) {
 }
 
 requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>
