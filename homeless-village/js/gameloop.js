@@ -201,6 +201,11 @@ function onNewDay(){
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
+  // HV-27: every rainy dawn tops the barrel up, garden or not.
+  if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
+    G.barrelWater=(G.barrelWater||0)+1;
+    log('\ud83d\udee2\ufe0f The rain barrel catches the day \u2014 '+G.barrelWater+'/'+BARREL_CAP+' stored.');
+  }
   if(G.structures.garden){
     if(G.weather==='cold'){
       if(G.structures.compost){
@@ -215,6 +220,7 @@ function onNewDay(){
     else {
       var y=rand(1,3);
       if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
+      if(G.weather!=='rain'&&(G.barrelWater||0)>0){ G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.'); }   // HV-27
       G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
     }
   }
