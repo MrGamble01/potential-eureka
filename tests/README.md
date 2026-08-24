@@ -41,6 +41,17 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-08-24 (QA-6, post-Round-Thirteen) — **all 51 suites green
+end-to-end on the first pass**, zero failures and zero stale
+assertions, with the audit row holding its 12/32 environment baseline.
+First battery carrying the four promoted Round-12/13 suites (`hvbusk`,
+`hvdeposit`, `voxwinter`, `voxice`), and the first run after the
+Round-Thirteen features landed — notably the three cross-feature
+seams QA-5 taught us to watch (HV-20's cans against the older
+homeless-village suites, HVALE-17's fever against the hearthvale
+weather legs, VOX-15's ice mode against `voxangler`'s casts) all held
+clean without pinning.
+
 2026-08-24 (QA-5, post-Round-Eleven) — **48 suites registered, 47
 green on the first pass**. The one failure was real signal: HV-18's
 new 25%-per-winter-dawn cold snap fired inside `hvweather`'s unpinned
