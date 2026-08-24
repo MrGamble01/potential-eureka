@@ -89,7 +89,9 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   const dawn = await t(() => {
     const real = Math.random; Math.random = () => 0.99;   // no tears, gifts, events or mural log
     G.lastEventDay = G.days + 5; G.forecast = 'clear';
-    G.morale = 50; G.warmth = 80; G.food = 20; G.population = 1; G.rep = 40;
+    // warmth 40 keeps HV-13's warm-dawn bonus out of this leg — the
+    // mural's +2 is what's under test here
+    G.morale = 50; G.warmth = 40; G.food = 20; G.population = 1; G.rep = 40;
     onNewDay();
     Math.random = real;
     return { morale: G.morale };

@@ -86,6 +86,9 @@ function onNewDay(){
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
   G.warmth=Math.max(0,Math.min(100,G.warmth-(G.season===3?18:8)-weatherDef().warmth));
+  // HV-13: a fire kept fed pays for itself — a camp that wakes warm
+  // (50+ after the night's drain) starts the day with its chin up.
+  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
