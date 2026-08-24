@@ -398,6 +398,20 @@ canvas{display:block;touch-action:none;}
   background:rgba(154,210,224,0.12);border:1px solid rgba(154,210,224,0.5);color:#9ad2e0;
   font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
 }
+/* ── Going Once (LAB-17) ── */
+#bw-hud{
+  position:fixed;top:186px;left:50%;transform:translateX(-50%);
+  background:rgba(12,8,4,0.92);
+  border:1px solid rgba(240,180,41,0.5);
+  color:#f0b429;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+  display:flex;gap:10px;align-items:center;
+}
+#bw-hammer,#bw-wait{
+  background:rgba(240,180,41,0.12);border:1px solid rgba(240,180,41,0.5);color:#f0b429;
+  font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
+}
+#bw-wait{background:rgba(255,255,255,0.05);border-color:#444;color:#999}
 /* ── Crunch Mode (LAB-12) ── */
 #crunch-toggle{
   position:fixed;bottom:14px;right:16px;z-index:30;
@@ -464,6 +478,7 @@ canvas{display:block;touch-action:none;}
 <div id="contract-offer" style="display:none"></div>
 <div id="rival-hud" style="display:none" title="A rival crew is poaching your buyers — Lookouts thin the poaching; pay them off to clear the corner">🕶️ <span id="rival-val"></span><button id="rival-pay"></button></div>
 <div id="tip-hud" style="display:none" title="The informant sells the street wire: for 90 seconds every undercover buyer is made on sight — no Lookout needed">ℹ️ <span id="tip-val"></span><button id="tip-buy"></button></div>
+<div id="bw-hud" style="display:none" title="Two buyers want the same 5-bag lot. Hammer to sell at the standing bid, or let them bid each other up — they might spook and walk">🔨 <span id="bw-val"></span><button id="bw-hammer"></button><button id="bw-wait"></button></div>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
@@ -1844,6 +1859,78 @@ function updateTip(dt) {
   if (tipIn <= 0) tipArrives();
 }
 
+/* ── Going Once (LAB-17) ── */
+// Past the garage, two buyers occasionally want the same batch and an
+// impromptu auction breaks out over a 5-bag lot. Hammer at the standing
+// bid for instant cash (+2 heat — a crowd draws eyes), or let them bid
+// each other up: each raise climbs the ladder (1.2× → 1.5× → 2.0× list)
+// with a 30% chance the pair spooks and walks. The final bid hammers
+// itself — nobody outbids 2× list.
+const BW_STEPS = [1.2, 1.5, 2.0];
+const BW_LOT = 5;
+let bw = null, bwIn = 240 + Math.random() * 200;
+function bwPrice() { return Math.round(BW_LOT * salePrice() * BW_STEPS[bw ? bw.step : 0]); }
+function bwArrives() {
+  bw = { step: 0, left: 12 };
+  showToast('🔨 Two buyers want the same batch — an auction breaks out!','');
+  addFeed('🔨 Bidding war — two buyers, one 5-bag lot');
+  const h = document.getElementById('bw-hammer'), w = document.getElementById('bw-wait');
+  if (h) h.onclick = bwHammer;
+  if (w) w.onclick = bwRaise;
+  updateBwHUD();
+}
+function bwHammer() {
+  if (!bw) return;
+  const mult = BW_STEPS[bw.step], pay = bwPrice();
+  addCash(pay);
+  addHeat(2);
+  state.bidWars = (state.bidWars||0) + 1;
+  showToast('🔨 SOLD — the lot goes for $' + fmtCash(pay) + ' at ' + mult + '× list.','good');
+  addFeed('🔨 Hammered the lot at ' + mult + '× list (+$' + fmtCash(pay) + ')');
+  bw = null; bwIn = 300 + Math.random() * 240;
+  updateBwHUD(); refreshHud(); saveGame(); checkGrowAchievements();
+}
+function bwRaise() {
+  if (!bw) return;
+  if (Math.random() < 0.3) {
+    showToast('🔨 The pair spooks — both buyers melt into the block. No sale.','bad');
+    addFeed('🔨 The auction collapsed — greed has a price');
+    bw = null; bwIn = 280 + Math.random() * 200;
+    updateBwHUD(); return;
+  }
+  bw.step++;
+  bw.left = 12;
+  if (bw.step >= BW_STEPS.length - 1) {
+    addFeed('🔨 Final bid — the hammer falls at 2× list');
+    bwHammer();
+    return;
+  }
+  addFeed('🔨 The bid climbs — ' + BW_STEPS[bw.step] + '× list on the table');
+  updateBwHUD();
+}
+function updateBwHUD() {
+  const hud = document.getElementById('bw-hud');
+  if (!hud) return;
+  const v = document.getElementById('bw-val'), h = document.getElementById('bw-hammer'), w = document.getElementById('bw-wait');
+  if (bw) {
+    hud.style.display = 'flex';
+    if (v) v.textContent = 'Auction · ' + BW_STEPS[bw.step] + '× · ' + Math.max(0, Math.ceil(bw.left)) + 's';
+    if (h) h.textContent = 'Hammer $' + fmtCash(bwPrice());
+    if (w) w.textContent = 'Let them bid';
+  } else hud.style.display = 'none';
+}
+function updateBw(dt) {
+  if (bw) {
+    bw.left -= dt;
+    updateBwHUD();
+    if (bw.left <= 0) { bw = null; bwIn = 240 + Math.random() * 200; addFeed('🔨 Nobody closed — the buyers wandered off'); updateBwHUD(); }
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody fights over garage product
+  bwIn -= dt;
+  if (bwIn <= 0) bwArrives();
+}
+
 function currentAct() {
   if (state.totalEarned >= 15000) return 3;
   if (state.totalEarned >= 2000) return 2;
@@ -1906,6 +1993,7 @@ const GROW_ACH = [
   { id: 'top_floor',    name: 'The View From the Top', test: () => ownedRoomSet.has('penthouse') },   // LAB-14
   { id: 'eyes_up',      name: 'Eyes Everywhere', test: () => ownedRoomSet.has('security') && state.lookouts >= 2 },   // LAB-15
   { id: 'wired_in',     name: 'Wired In',        test: () => (state.tipsBought || 0) >= 3 },   // LAB-16
+  { id: 'going_once',   name: 'Going Once',      test: () => (state.bidWars || 0) >= 3 },      // LAB-17
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -2303,6 +2391,7 @@ function saveGame() {
     crunch: !!state.crunch,
     tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
     tipsBought: state.tipsBought || 0,
+    bwIn: Math.round(bwIn), bidWars: state.bidWars || 0,        // LAB-17
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -2357,6 +2446,9 @@ function loadGame() {
     if (typeof sv.wireLeft === 'number') wireLeft = Math.min(90, Math.max(0, sv.wireLeft));
     state.tipsBought = sv.tipsBought || 0;
     updateTipHUD();
+    // LAB-17: the auction clock and the hammer tally survive a reload
+    if (typeof sv.bwIn === 'number') bwIn = Math.min(600, Math.max(5, sv.bwIn));
+    state.bidWars = sv.bidWars || 0;
     pureBags = Math.max(0, Math.min(sv.pureBags || 0, sv.stashCount || 0));   // LAB-10
     chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
@@ -3017,6 +3109,7 @@ function animate(now_ms) {
     updateContract(dt);
     updateRival(dt);
     updateTip(dt);
+    updateBw(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
