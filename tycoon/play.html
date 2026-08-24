@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -4398,7 +4398,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult() * stageWorkMult();
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult() * stageWorkMult() * retroWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -6189,6 +6189,7 @@ const ACHIEVEMENTS = [
   { id: 'roadshow',      icon: '🎤', title: 'Roadshow',             desc: 'Take the keynote stage three times.', check: () => keynotesGiven >= 3, progress: () => [Math.min(keynotesGiven, 3), 3] },
   { id: 'street_darling', icon: '📊', title: 'Street Darling',      desc: 'Carry three straight Buy ratings into the bell.', check: () => analystStreak >= 3, progress: () => [Math.min(analystStreak, 3), 3] },
   { id: 'five_nines',    icon: '🧑‍🚒', title: 'Five Nines',           desc: 'Have the runbook hold through three outages.', check: () => srePrevented >= 3, progress: () => [Math.min(srePrevented, 3), 3] },
+  { id: 'kaizen',        icon: '📋', title: 'Kaizen',               desc: 'Bank ten retro learnings.', check: () => retroLearnings >= 10, progress: () => [Math.min(retroLearnings, 10), 10] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -8231,6 +8232,35 @@ function closeSreOffer(signed, expired) {
     addFeedEntry(expired ? '\u{1F9D1}\u200D\u{1F692} The retainer offer lapsed \u2014 the SRE shrugs' : '\u{1F9D1}\u200D\u{1F692} Declined the retainer \u2014 carrying the pager alone');
     sreNextT = 180;
   }
+}
+
+// ── The Retro (TYC-28) ────────────────────────────────────
+// Every bell, the office sits down and writes up the season. A clean
+// season — the Street rates BUY — banks TWO learnings; anything else
+// banks one. Each learning is a permanent +1% on every desk, capped
+// at 12: the company that keeps shipping keeps compounding.
+const RETRO_CAP = 12;
+const RETRO_PER = 0.01;
+let retroLearnings = 0;   // lifetime learnings banked (capped in the mult)
+function retroWorkMult() { return 1 + Math.min(RETRO_CAP, retroLearnings) * RETRO_PER; }
+function refreshRetroChip() {
+  const el = document.getElementById('retro-chip');
+  if (!el) return;
+  if (retroLearnings > 0) {
+    el.style.display = '';
+    el.textContent = '\u{1F4CB} +' + Math.min(RETRO_CAP, retroLearnings) + '%';
+    el.title = 'The retro ledger \u2014 ' + retroLearnings + ' learning' + (retroLearnings === 1 ? '' : 's') + ' banked: every desk runs +' + Math.min(RETRO_CAP, retroLearnings) + '% for good.';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function bankRetro() {
+  const gained = analystRating === 'buy' ? 2 : 1;
+  retroLearnings += gained;
+  refreshRetroChip();
+  addFeedEntry('\u{1F4CB} Season retro \u2014 ' + gained + ' learning' + (gained === 1 ? '' : 's') + ' banked (' + retroLearnings + ' lifetime, +' + Math.min(RETRO_CAP, retroLearnings) + '% desks)');
+  checkAchievements();
 }
 
 function triggerWin(cumulative) {
@@ -10920,6 +10950,7 @@ function doIPO() {
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   dashHistory.length = 0; _dashT0 = Date.now(); // restart the season revenue chart
   rollAnalyst();     // TYC-26: coverage updates off the season just closed
+  bankRetro();       // TYC-28: the office writes the season up while it's fresh
   initRival(true);   // a new season brings a new rival
   warUsedSeason = false; warRoom = null; warOffer = null; refreshWarChip();   // TYC-22: a new race re-arms the war room
   keynoteDoneSeason = false; keynote = null; keynoteOffer = null; refreshKeynoteChip();   // TYC-25: a fresh conference season
@@ -11570,6 +11601,16 @@ const SAVE_SCHEMA = [
         bridgeTakenSeason = !!p.bridge.taken;
         bridgesTaken = Math.max(0, Math.floor(p.bridge.count || 0));
         refreshBridgeChip();
+      }
+    },
+  },
+  {
+    key: 'retro', // TYC-28: the learnings ledger
+    write: p => { p.retro = { learn: retroLearnings }; },
+    read: p => {
+      if (p.retro) {
+        retroLearnings = Math.max(0, Math.floor(p.retro.learn || 0));
+        refreshRetroChip();
       }
     },
   },
