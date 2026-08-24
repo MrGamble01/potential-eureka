@@ -1110,7 +1110,7 @@
     dock:       { name: 'Dock',        emoji: '⚓', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 }, prod: { food: 3 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'A little dock — a worker lands fish, and nearby fishing huts haul in 50% more.' },
     windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, tier: 3, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, likes: { types: ['farm'], bonus: 0.5, label: 'a Farm' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — lifts nearby farms’ harvest, and earns more beside one.' },
     orchard:    { name: 'Orchard',     emoji: '🍎', w: 3, h: 2, tier: 2, cost: { wood: 16, gold: 10 }, prod: { food: 5 }, charm: 4, roof: C.thatch, roofDk: C.thatchDk, desc: 'Fruit trees yield food on their own — no worker needed — and prettify the town.' },
-    chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, tier: 3, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town.' },
+    chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, tier: 3, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town. On raid nights the bell rings the alarm: half the losses are barred away in time, and it peals over every festival.' },
     school:     { name: 'Schoolhouse', emoji: '📚', w: 2, h: 2, tier: 2, cost: { wood: 22, stone: 14 }, happy: 6, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Families settle where there’s a school — a happy town grows twice as fast, and children lift spirits.' },
     apiary:     { name: 'Apiary',      emoji: '🐝', w: 2, h: 2, tier: 2, cost: { wood: 14, gold: 6 }, prod: { gold: 4 }, charm: 3, likes: { types: ['orchard', 'garden'], bonus: 0.5, label: 'an orchard or garden' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'Beehives yield honey to sell — no worker needed — and prettify the town. Set beside an orchard or garden, the bees forage 50% more.' },
     townhall:   { name: 'Town Hall',   emoji: '🏛️', w: 3, h: 3, tier: 4, cost: { wood: 40, stone: 40, gold: 30 }, happy: 20, prod: { gold: 8 }, unique: true, roof: C.slate, roofDk: C.slateDk, desc: 'The pride of a true city — a grand seat of governance that gladdens the whole town and gathers taxes into the coffers.' },
@@ -1249,6 +1249,8 @@
     state.lastFestivalDay = state.day;
     state.festivalsHeld = (state.festivalsHeld || 0) + 1;
     state.happy = Math.min(100, state.happy + 20);
+    // HVALE-8: the chapel bell peals over the fair
+    if (chapelBuilt()) { state.happy = Math.min(100, state.happy + 4); toast('🔔 The chapel bell peals over the fair.'); }
     SFX('goal');
     toast('🎪 ' + (state.townName || 'Hearthvale') + ' throws a festival — spirits soar!');
     chron('🎪', 'The town throws its ' + ordinal(state.festivalsHeld) + ' festival');
@@ -1328,6 +1330,7 @@
       pelts: 0,            // HVALE-4: wolf pelts from repelled raids
       peltsWorked: 0,      // lifetime pelts the Furrier turned into coats
       chronicle: [],       // HVALE-5: the town's dated history — {d, e, t}
+      bellSaves: 0,        // HVALE-8: breaches the chapel bell softened
     };
   }
   const ACHIEVEMENTS = [
@@ -1369,6 +1372,7 @@
     { id: 'storied', emoji: '📖', name: 'A Storied Town', desc: 'The Town Chronicle fills 25 pages.', done: () => (state.chronicle || []).length >= 25 },
     { id: 'cobbled', emoji: '🛤️', name: 'The Cobbled Way', desc: 'Road-link three workshops to the Market.', done: () => state.buildings.filter(b => b.done !== false && BUILDINGS[b.type].prod && onCobbledWay(b)).length >= 3 },
     { id: 'preserved', emoji: '🫙', name: 'Waste Not', desc: 'Fill a Root Cellar with 12 preserves.', done: () => state.buildings.some(b => b.type === 'cellar' && (b.preserves || 0) >= 12) },
+    { id: 'bellsaved', emoji: '🔔', name: 'Saved by the Bell', desc: 'The chapel bell softens a raid that broke through.', done: () => (state.bellSaves || 0) >= 1 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2276,6 +2280,11 @@
       .filter(b => BUILDINGS[b.type].guard && b.done !== false && b.staffed)
       .reduce((s, b) => s + (b.level || 1), 0);
   }
+  // HVALE-8: a finished Chapel rings the alarm on a bad night — the bell
+  // can't fight, but it buys everyone time to bar the larders.
+  function chapelBuilt() {
+    return state.buildings.some(b => b.type === 'chapel' && b.done !== false);
+  }
   function packSize() {
     return 1 + Math.floor(state.villagers.length / 6) + (diffCfg().raidBonus || 0);
   }
@@ -2304,22 +2313,30 @@
       chron('🛡️', 'The watch drove off a pack of ' + pack + ' wolves without loss');
       SFX('goal');
     } else if (def > 0) {
-      const lost = Math.min(state.res.food, 6 * (pack - def));
+      const bell = chapelBuilt();
+      let lost = Math.min(state.res.food, 6 * (pack - def));
+      if (bell) lost = Math.floor(lost / 2);
       state.res.food -= lost;
-      state.happy = Math.max(0, state.happy - 4);
+      state.happy = Math.max(0, state.happy - (bell ? 2 : 4));
       state.raidsSuffered = (state.raidsSuffered || 0) + 1;
+      if (bell) state.bellSaves = (state.bellSaves || 0) + 1;
       emoji = '🐺'; title = 'A Hard Night';
-      text = `The pack of ${pack} was too many for the watch. They were turned back before worse, but the larders are lighter — ${lost} food lost.`;
-      chron('🐺', 'A pack of ' + pack + ' broke past the watch — ' + lost + ' food lost');
+      text = `The pack of ${pack} was too many for the watch. They were turned back before worse, but the larders are lighter — ${lost} food lost.`
+        + (bell ? ' The chapel bell rang the town awake in time to bar half the stores.' : '');
+      chron('🐺', 'A pack of ' + pack + ' broke past the watch — ' + lost + ' food lost' + (bell ? ' (the bell saved the rest)' : ''));
       SFX('error');
     } else {
-      const lost = Math.min(state.res.food, 10 * pack);
+      const bell = chapelBuilt();
+      let lost = Math.min(state.res.food, 10 * pack);
+      if (bell) lost = Math.floor(lost / 2);
       state.res.food -= lost;
-      state.happy = Math.max(0, state.happy - 10);
+      state.happy = Math.max(0, state.happy - (bell ? 6 : 10));
       state.raidsSuffered = (state.raidsSuffered || 0) + 1;
+      if (bell) state.bellSaves = (state.bellSaves || 0) + 1;
       emoji = '💔'; title = 'Wolves in the Lanes';
-      text = `With no watch standing, the pack of ${pack} ran the lanes till dawn. ${lost} food gone and the town badly shaken. A Watchtower with a keeper would stop this.`;
-      chron('💔', 'Wolves ran the lanes unopposed all night — ' + lost + ' food lost');
+      text = `With no watch standing, the pack of ${pack} ran the lanes till dawn. ${lost} food gone and the town badly shaken. A Watchtower with a keeper would stop this.`
+        + (bell ? ' Only the chapel bell, rung till first light, kept it from being worse.' : '');
+      chron('💔', 'Wolves ran the lanes unopposed all night — ' + lost + ' food lost' + (bell ? ' (the bell saved the rest)' : ''));
       SFX('error');
     }
     // Keep the morning report from colliding with the same-dawn random event.
@@ -3955,6 +3972,7 @@
     if (def.charm) html += statRow('Charm', '+' + def.charm + ' town beauty');
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
+    if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
     if (def.guard) {
       html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
       html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT' : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
@@ -4174,6 +4192,7 @@
         raidsRepelled: state.raidsRepelled || 0, raidsSuffered: state.raidsSuffered || 0,
         pelts: state.pelts || 0, peltsWorked: state.peltsWorked || 0,
         chronicle: state.chronicle || [],
+        bellSaves: state.bellSaves || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4244,6 +4263,7 @@
       // HVALE-5: older saves have no history — the record opens today
       state.chronicle = Array.isArray(s.chronicle) ? s.chronicle.slice(-CHRON_CAP)
         : [{ d: s.day || 1, e: '📜', t: 'The chronicle opens — earlier days went unrecorded' }];
+      state.bellSaves = s.bellSaves || 0;         // HVALE-8 (older saves migrate to 0)
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
