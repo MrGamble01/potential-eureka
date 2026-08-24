@@ -281,6 +281,11 @@ const AgeOfWarGame = (() => {
   // AOW-15: mercenary contracts — gold for instant boots on the ground.
   const MERC_CD = 60, MERC_COUNT = 2, MERC_COST_MULT = 2.5;
   let mercCd = 0;
+  // AOW-16: the Last Stand — once per run, when the base first drops
+  // below a quarter, the garrison rallies on its own: every friendly
+  // heals half its max and earns the Veteran stripe on the spot.
+  const LAST_STAND_AT = 0.25;
+  let lastStandUsed = false;
   // Enemy tech + specials (see enemyTechTick / enemySpecialTick)
   let enemyXP = 0;              // enemy's internal economy toward its next era
   let enemySpecialT = 45;       // seconds until the enemy may fire its special
@@ -532,6 +537,7 @@ const AgeOfWarGame = (() => {
     { id: 'special_5',    icon: '💥',  title: 'Pyromaniac',       desc: 'Cast 5 specials in one run.' },
     { id: 'warcry_3',     icon: '🎺',  title: 'Hear the Horns',   desc: 'Sound 3 warcries in one run.' },
     { id: 'mercs_3',      icon: '🪖',  title: 'Soldiers of Fortune', desc: 'Hire the mercenary company 3 times in one run.' },
+    { id: 'last_stand',   icon: '🚩',  title: 'Hold the Line',    desc: 'See the garrison rally at the brink.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -1012,6 +1018,7 @@ const AgeOfWarGame = (() => {
     runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
     runStats.warcries = 0;
     runStats.mercs = 0; mercCd = 0;
+    lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
     waveNum = 1;
@@ -2222,6 +2229,24 @@ const AgeOfWarGame = (() => {
       }
     }
     coinDrops = coinDrops.filter(c => c.t > 0);
+
+    // AOW-16: the brink. Checked before the end conditions so the rally
+    // fires the moment the line breaks, not after.
+    if (!lastStandUsed && !gameOver && playerBaseHp > 0 && playerBaseMax > 0
+        && playerBaseHp / playerBaseMax < LAST_STAND_AT) {
+      lastStandUsed = true;
+      let rallied = 0;
+      for (const u of units) {
+        if (u.side !== 'player') continue;
+        u.hp = Math.min(u.hpMax, u.hp + u.hpMax * 0.5);
+        if (u.aliveT < 25) u.aliveT = 25;   // the stripe is earned tonight
+        rallied++;
+      }
+      goldFloaters.push({ text: `🚩 LAST STAND! The garrison rallies${rallied ? ` — ${rallied} defender${rallied === 1 ? '' : 's'} healed` : ''}`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#f87171', t: 2.0 });
+      shake(8, 0.3);
+      ageFlash = Math.max(ageFlash, 0.5);
+      unlock('last_stand');
+    }
 
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
