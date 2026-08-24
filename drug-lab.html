@@ -385,6 +385,19 @@ canvas{display:block;touch-action:none;}
   background:rgba(34,221,85,0.12);border:1px solid rgba(34,221,85,0.5);color:#22dd55;
   font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
 }
+/* ── The Informant (LAB-16) ── */
+#tip-hud{
+  position:fixed;top:150px;left:50%;transform:translateX(-50%);
+  background:rgba(4,8,12,0.92);
+  border:1px solid rgba(154,210,224,0.5);
+  color:#9ad2e0;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+  display:flex;gap:10px;align-items:center;
+}
+#tip-buy{
+  background:rgba(154,210,224,0.12);border:1px solid rgba(154,210,224,0.5);color:#9ad2e0;
+  font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
+}
 /* ── Crunch Mode (LAB-12) ── */
 #crunch-toggle{
   position:fixed;bottom:14px;right:16px;z-index:30;
@@ -450,6 +463,7 @@ canvas{display:block;touch-action:none;}
 <div id="contract-hud" style="display:none" title="Active contract — units delivered / needed, time left">📦 <span id="contract-val"></span></div>
 <div id="contract-offer" style="display:none"></div>
 <div id="rival-hud" style="display:none" title="A rival crew is poaching your buyers — Lookouts thin the poaching; pay them off to clear the corner">🕶️ <span id="rival-val"></span><button id="rival-pay"></button></div>
+<div id="tip-hud" style="display:none" title="The informant sells the street wire: for 90 seconds every undercover buyer is made on sight — no Lookout needed">ℹ️ <span id="tip-val"></span><button id="tip-buy"></button></div>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
@@ -1774,6 +1788,62 @@ function updateRival(dt) {
   if (rivalIn <= 0) rivalArrives();
 }
 
+/* ── The Informant (LAB-16) ── */
+// Past the garage, a voice on the corner occasionally has word for
+// sale: pay 3× list and every undercover buyer is made on sight for
+// 90 seconds — the Lookout's wire, rented. Money for information.
+let tip = null, tipIn = 200 + Math.random() * 160, wireLeft = 0;
+function wireActive() { return (state.lookouts||0) > 0 || wireLeft > 0; }
+function tipArrives() {
+  tip = { left: 45, cost: 3 * salePrice() };
+  showToast('ℹ️ A voice on the corner has word about the next badge — $'+fmtCash(tip.cost)+' buys the wire.','');
+  addFeed('ℹ️ The informant surfaced — word for sale');
+  const b = document.getElementById('tip-buy');
+  if (b) b.onclick = buyTip;
+  updateTipHUD();
+}
+function buyTip() {
+  if (!tip) return;
+  if (state.cash < tip.cost) { showToast('ℹ️ Not enough cash — the informant shrugs and melts away.','bad'); return; }
+  state.cash -= tip.cost;
+  wireLeft = 90;
+  state.tipsBought = (state.tipsBought||0) + 1;
+  showToast('ℹ️ Wired in — every badge on the block is made for 90 seconds.','good');
+  addFeed('ℹ️ Bought the wire — badges glow for 90s');
+  tip = null; tipIn = 260 + Math.random() * 200;
+  updateTipHUD(); refreshHud(); saveGame();
+}
+function updateTipHUD() {
+  const hud = document.getElementById('tip-hud');
+  if (!hud) return;
+  const v = document.getElementById('tip-val'), b = document.getElementById('tip-buy');
+  if (tip) {
+    hud.style.display = 'flex';
+    if (v) v.textContent = 'Informant · ' + Math.max(0, Math.ceil(tip.left)) + 's';
+    if (b) { b.style.display = ''; b.textContent = 'Buy wire $' + fmtCash(tip.cost); }
+  } else if (wireLeft > 0) {
+    hud.style.display = 'flex';
+    if (v) v.textContent = '🚨 Wired in · ' + Math.ceil(wireLeft) + 's';
+    if (b) b.style.display = 'none';
+  } else hud.style.display = 'none';
+}
+function updateTip(dt) {
+  if (wireLeft > 0) {
+    wireLeft = Math.max(0, wireLeft - dt);
+    updateTipHUD();
+    if (wireLeft === 0) addFeed('ℹ️ The wire went quiet');
+  }
+  if (tip) {
+    tip.left -= dt;
+    updateTipHUD();
+    if (tip.left <= 0) { tip = null; tipIn = 200 + Math.random() * 160; addFeed('ℹ️ The informant drifted off'); updateTipHUD(); }
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody sells word on a garage
+  tipIn -= dt;
+  if (tipIn <= 0) tipArrives();
+}
+
 function currentAct() {
   if (state.totalEarned >= 15000) return 3;
   if (state.totalEarned >= 2000) return 2;
@@ -1835,6 +1905,7 @@ const GROW_ACH = [
   { id: 'fresh_linen',  name: 'Fresh Linen',     test: () => ownedRoomSet.has('front') },   // LAB-13
   { id: 'top_floor',    name: 'The View From the Top', test: () => ownedRoomSet.has('penthouse') },   // LAB-14
   { id: 'eyes_up',      name: 'Eyes Everywhere', test: () => ownedRoomSet.has('security') && state.lookouts >= 2 },   // LAB-15
+  { id: 'wired_in',     name: 'Wired In',        test: () => (state.tipsBought || 0) >= 3 },   // LAB-16
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -2230,6 +2301,8 @@ function saveGame() {
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
+    tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
+    tipsBought: state.tipsBought || 0,
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -2279,6 +2352,11 @@ function loadGame() {
     state.buyersPoached = sv.buyersPoached || 0;
     state.crunch = !!sv.crunch;   // LAB-12
     refreshCrunchBtn();
+    // LAB-16: the wire and the informant's clock survive a reload
+    if (typeof sv.tipIn === 'number') tipIn = Math.min(600, Math.max(5, sv.tipIn));
+    if (typeof sv.wireLeft === 'number') wireLeft = Math.min(90, Math.max(0, sv.wireLeft));
+    state.tipsBought = sv.tipsBought || 0;
+    updateTipHUD();
     pureBags = Math.max(0, Math.min(sv.pureBags || 0, sv.stashCount || 0));   // LAB-10
     chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
@@ -2742,7 +2820,7 @@ function updateRunnerNPCs(dt) {
         // LAB-9: runners heed the Lookout's warning and skip flagged cops;
         // without a Lookout on the payroll they can walk into the sting.
         const d = dealers.find(d=>d.state==='waiting' && !d.paid && !d.runnerClaim
-          && !(d.undercover && (state.lookouts||0)>0));
+          && !(d.undercover && wireActive()));   // LAB-16: the rented wire counts too
         if(d && stashCount>0) { d.runnerClaim=true; r.dealer=d; r.state='toDealer'; }
       }
       if(r.state==='idle') {
@@ -2863,7 +2941,7 @@ function updateLabels() {
     const d=dealers[i];
     if(d.state==='waiting') {
       // LAB-9: a Lookout on the payroll makes the wire, and the label warns
-      setLabel('deal_'+d.id, d.undercover && (state.lookouts||0) > 0 ? '🚨 Something\'s off…' : '💰 Buyer',
+      setLabel('deal_'+d.id, d.undercover && wireActive() ? '🚨 Something\'s off…' : '💰 Buyer',
         d.group.position.x,2.2,d.group.position.z,'prompt');
     }
   }
@@ -2938,6 +3016,7 @@ function animate(now_ms) {
     updateMarket(dt);
     updateContract(dt);
     updateRival(dt);
+    updateTip(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
