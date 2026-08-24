@@ -84,6 +84,21 @@ function buildActionUI(){
     bb.addEventListener('mouseleave',hideTip);
     el.appendChild(bb);
   }
+  // HV-21: the newcomer's ask appears only while someone waits at the edge of the light.
+  if(newcomerAvailable()){
+    var nca=newcomerAction();
+    var ncb=document.createElement('button');
+    ncb.className='action-btn'; ncb.id='action-newcomer';
+    var ncShort=G.food<NEWCOMER_COST_FOOD||G.wood<NEWCOMER_COST_WOOD;
+    ncb.setAttribute('data-tip', ncShort ? 'A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood.' : nca.tooltip);
+    ncb.innerHTML='<span class="btn-progress" id="progress-newcomer" style="width:0%"></span>'+nca.icon+' '+nca.label;
+    ncb.disabled=ncShort;
+    if(ncShort) ncb.style.opacity='.5';
+    ncb.onclick=function(){ doAction(newcomerAction()); };
+    ncb.addEventListener('mouseenter',showTip);
+    ncb.addEventListener('mouseleave',hideTip);
+    el.appendChild(ncb);
+  }
   // HV-17: the bus ticket appears only while a resident's ask is open.
   if(ticketAvailable()){
     var tka=ticketAction();

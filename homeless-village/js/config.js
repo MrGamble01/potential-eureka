@@ -276,6 +276,22 @@ function ticketAction(){
     tooltip:'One of the residents has family a bus ride away. '+TICKET_COST_GW+' goodwill and '+TICKET_COST_SCRAPS+' scraps put them on the morning bus — a smaller camp, and a friend in the city.' };
 }
 
+// ── HV-21: the Newcomer ──────────────────────────────────────
+// The mirror of the bus ticket. Once the camp is Respected and warm
+// enough to share (a tent up, room by the fire), word gets around:
+// every so often a newcomer stands at the edge of the light asking to
+// stay. Six food and four wood make a bed and a first meal. The ask
+// holds three days; the fire decides.
+var NEWCOMER_COST_FOOD = 6, NEWCOMER_COST_WOOD = 4;
+var NEWCOMER_ASK_DAYS = 3;
+var NEWCOMER_EVERY = 9;
+var NEWCOMER_POP_MAX = 6;
+function newcomerAvailable(){ return !!G.newcomerAsk; }
+function newcomerAction(){
+  return { id:'newcomer', icon:'🫂', label:'Make room ('+NEWCOMER_COST_FOOD+'🍞 + '+NEWCOMER_COST_WOOD+'🪵)', time:6000, cooldown:0,
+    tooltip:'Someone stands at the edge of the light asking to stay. '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood make a bed and a first meal — a bigger camp, another pair of hands.' };
+}
+
 // ── HV-15: City Petitions ────────────────────────────────────
 // Once the neighborhood counts the camp as Respected, goodwill can be
 // spent at the notice board on petitions to the city — civic
@@ -326,6 +342,7 @@ var GOALS = [
   {id:'snap2',      desc:'Weather 2 cold snaps',      target:2,  reward:8,  value:function(){ return G.snapsSurvived||0; }},
   {id:'busk5',      desc:'Play 5 sets on the corner', target:5,  reward:6,  value:function(){ return G.busks||0; }},
   {id:'deposit3',   desc:'Make 3 deposit runs',       target:3,  reward:5,  value:function(){ return G.deposits||0; }},
+  {id:'welcome2',   desc:'Welcome 2 newcomers',       target:2,  reward:5,  value:function(){ return G.welcomes||0; }},
 ];
 
 var activeJobs = {};

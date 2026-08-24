@@ -49,5 +49,8 @@ function loadGame(){
     if(typeof G.structures.cart!=='boolean') G.structures.cart=false; // saves from before HV-20
     if(typeof G.deposits!=='number') G.deposits=0;
     if(typeof G.depositDay!=='number') G.depositDay=-9;
+    if(typeof G.welcomes!=='number') G.welcomes=0; // saves from before HV-21
+    if(typeof G.newcomerLastDay!=='number') G.newcomerLastDay=-9;
+    if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
   }catch(e){}
 }
