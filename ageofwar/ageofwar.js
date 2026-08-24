@@ -568,6 +568,7 @@ const AgeOfWarGame = (() => {
     { id: 'dig_in',       icon: '⛏️',  title: 'Dig In',           desc: 'Bog down 15 enemies in one run with the Trenchworks.' },
     { id: 'giantslayer',  icon: '🗡️',  title: 'Giantslayer',      desc: 'Win two single-combat duels against named warlords in one run.' },
     { id: 'patchwork',    icon: '🛠️',  title: 'Patchwork',        desc: 'Call the sappers three times in one run.' },
+    { id: 'skewer',       icon: '🏹',  title: 'Shish Kebab',      desc: 'Skewer three enemies with a single ballista bolt.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -1080,6 +1081,7 @@ const AgeOfWarGame = (() => {
     runStats.trenches = 0; runStats.trenchSlowed = 0; trenchT = 0; trenchCd = 0;
     runStats.duels = 0; runStats.duelsWon = 0;
     runStats.repairs = 0; sapperCd = 0;
+    runStats.bolts = 0; boltCd = 0;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1491,6 +1493,55 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Ballista (AOW-23) ─────────────────────────────────
+  // Siege artillery for the line itself. From Age III, a 200-gold
+  // bolt on a 45-second winch: it skewers the FOREMOST enemy and
+  // everyone marching within 60px behind them, for 40 × (era + 1)
+  // damage each. Kills pay the normal bounty through the ordinary
+  // kill resolution — the bolt just does the opening argument.
+  const BOLT_CD = 45;
+  const BOLT_COST = 200;
+  const BOLT_BAND = 60;
+  let boltCd = 0;
+  function boltDmg() { return 40 * (playerEra + 1); }
+  function fireBallista() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 2) {
+      goldFloaters.push({ text: '🏹 The ballista is winched in Age III', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (boltCd > 0) return;
+    let fore = null;
+    for (const u of units) {
+      if (u.side === 'enemy' && !u._dead && u.hp > 0 && (!fore || u.x < fore.x)) fore = u;
+    }
+    if (!fore) {
+      goldFloaters.push({ text: '🏹 No line to skewer', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (gold < BOLT_COST) {
+      goldFloaters.push({ text: `🏹 The bolt costs ${BOLT_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= BOLT_COST;
+    boltCd = BOLT_CD;
+    const dmg = boltDmg();
+    let hit = 0;
+    for (const u of units) {
+      if (u.side === 'enemy' && !u._dead && u.hp > 0 && u.x - fore.x <= BOLT_BAND && u.x >= fore.x) {
+        u.hp -= dmg;
+        hit++;
+      }
+    }
+    runStats.bolts = (runStats.bolts || 0) + 1;
+    if (hit >= 3) unlock('skewer');
+    goldFloaters.push({ text: `🏹 BALLISTA — ${hit} skewered for ${dmg}`, x: fore.x, y: GROUND_Y - 140, color: '#fcd34d', t: 1.8 });
+    shake(4, 0.25);
+    SFX.special();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1806,6 +1857,9 @@ const AgeOfWarGame = (() => {
       } else if (e.key === 'r' || e.key === 'R') {
         repairBase();
         e.preventDefault();
+      } else if (e.key === 'b' || e.key === 'B') {
+        fireBallista();
+        e.preventDefault();
       }
     });
   }
@@ -2061,6 +2115,7 @@ const AgeOfWarGame = (() => {
     }
     mercCd = Math.max(0, mercCd - dt);   // AOW-15 — the rearm never stalls
     sapperCd = Math.max(0, sapperCd - dt);   // AOW-22 — same clock
+    boltCd = Math.max(0, boltCd - dt);   // AOW-23 — and the winch
     trenchT = Math.max(0, trenchT - dt); trenchCd = Math.max(0, trenchCd - dt);   // AOW-20
 
     enemyTick(dt);
@@ -7171,6 +7226,15 @@ const AgeOfWarGame = (() => {
       rpEl.title = heal > 0
         ? `Call the Sappers (R) — patch +${heal} onto the walls for ${sapperCost()} gold. ${SAPPER_CD}s rearm.`
         : 'Call the Sappers (R) — repairs a quarter of the base per call. The walls stand whole.';
+    }
+
+    // Ballista button (AOW-23)
+    const boEl = document.getElementById('aow-bolt-btn');
+    const boCdEl = document.getElementById('aow-bolt-cd');
+    if (boEl) {
+      if (boCdEl) boCdEl.textContent = playerEra < 2 ? 'Age III' : boltCd > 0 ? `${Math.ceil(boltCd)}s` : `${BOLT_COST}g`;
+      boEl.disabled = playerEra < 2 || boltCd > 0;
+      boEl.title = `Fire the Ballista (B) — skewer the foremost enemy and everyone within ${BOLT_BAND}px behind them for ${boltDmg()} damage. ${BOLT_CD}s winch. From Age III.`;
     }
 
     // Wave indicator
