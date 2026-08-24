@@ -41,6 +41,19 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-08-24 (QA-9, post-Round-Nineteen) — **all 63 suites green
+end-to-end on the first pass**, zero failures and zero stale
+assertions, with the audit row holding its 12/32 environment
+baseline. First battery carrying the two promoted Round-19
+suites (`hvawning`, `voxcrib`) and the first run after the
+architecture round landed whole (Depths 136–141) — the round's
+cross-feature seams (the Awning's rain-day odds against
+`hvweather`'s unpinned forecasts, the Corn Crib's softened peck
+against `voxcrow`'s full-bite assertions, the Palisade's flat +1
+against `hvaleraid`-era guard math, and the Migration's
+`outageRearm()` under `tycoutage`'s pager timings) all held clean
+without pinning.
+
 2026-08-24 (QA-8, post-Round-Seventeen) — **all 59 suites green
 end-to-end on the first pass**, zero failures and zero stale
 assertions, with the audit row holding its 12/32 environment
