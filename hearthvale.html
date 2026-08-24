@@ -1258,6 +1258,48 @@
     updateHUD(); checkAchievements(); save();
   }
 
+  // ── Twin Festivals (HVALE-15) ──────────────────────────────
+  // Two feast days the town keeps on its own, every 24-day year:
+  // 🌞 MIDSUMMER on the long light (year-day 10) — a free fair, +10
+  // cheer and a +12 food harvest table; and 🧊 FROSTFIRE NIGHT in the
+  // deep cold (year-day 22) — +14 cheer around the bonfires, and the
+  // wolves keep to the treeline: any raid set for that night is
+  // called off. The chapel bell peals over both. No cost, no player
+  // action — traditions are what a town does for itself.
+  const MIDSUMMER_YD = 10, FROSTFIRE_YD = 22;
+  function yearDay(d) { return ((d - 1) % (DAYS_PER_SEASON * 4)) + 1; }
+  function feastAtDawn() {
+    if (state.day <= 1 || state.lastFeastDay === state.day) return;
+    const yd = yearDay(state.day);
+    if (yd !== MIDSUMMER_YD && yd !== FROSTFIRE_YD) return;
+    state.lastFeastDay = state.day;
+    state.feastsHeld = (state.feastsHeld || 0) + 1;
+    const tav = state.buildings.find(b => b.type === 'tavern' && b.done !== false);
+    if (tav) {
+      const td = BUILDINGS[tav.type];
+      state.festival = { endDay: state.day + 1, x: (tav.tx + td.w / 2) * TILE, y: (tav.ty + td.h / 2) * TILE };
+    }
+    if (yd === MIDSUMMER_YD) {
+      state.happy = Math.min(100, state.happy + 10);
+      state.res.food = Math.min(capOf('food'), state.res.food + 12);
+      toast('🌞 Midsummer! The town lays the long tables — +10 cheer, +12 food.');
+      chron('🌞', 'Midsummer — the town kept the feast of the long light');
+    } else {
+      state.happy = Math.min(100, state.happy + 14);
+      if (state.raidTonight) {
+        state.raidTonight = false;
+        chron('🧊', 'The Frostfire bonfires burned high — the wolves kept to the treeline');
+        toast('🧊 The bonfires burn high — no wolf comes near Frostfire Night.');
+      } else {
+        toast('🧊 Frostfire Night! The town circles the bonfires — +14 cheer.');
+      }
+      chron('🧊', 'Frostfire Night — the town fed the fires against the dark');
+    }
+    if (chapelBuilt()) { state.happy = Math.min(100, state.happy + 4); toast('🔔 The chapel bell peals over the feast.'); }
+    checkAchievements();
+    save();
+  }
+
   // ── The Wishing Well (HVALE-14) ────────────────────────────
   // A coin in a built well, once a day. The water decides — small
   // boons of bread, timber, stone or coin, and on a rare bright roll
@@ -1351,6 +1393,8 @@
       wishDay: -1,     // HVALE-14: the well hears one wish a day
       wishes: 0,       // lifetime coins dropped in the well
       goldenDay: -1,   // day the well last granted a Golden Day
+      feastsHeld: 0,   // HVALE-15: feast days the town has kept
+      lastFeastDay: -1,// guards a dawn from feasting twice
       difficulty: 'normal', // chosen pace: cozy | normal | hard
       decrees: [],     // enacted town perks (ids from DECREES)
       // ---- Wolves at the Door (HVALE-1) ----
@@ -1416,6 +1460,7 @@
     { id: 'elder', emoji: '🪶', name: 'A Voice for the Valley', desc: 'See a Town Elder named.', done: () => !!state.elderId },
     { id: 'watchfire', emoji: '🕯️', name: 'Watchfire', desc: 'See the beacon call three packs a night early.', done: () => (state.beaconWarns || 0) >= 3 },
     { id: 'wellwisher', emoji: '🪙', name: 'Penny for Luck', desc: 'Drop ten coins in the wishing well.', done: () => (state.wishes || 0) >= 10 },
+    { id: 'traditions', emoji: '🌞', name: 'Keeper of Traditions', desc: 'See the town keep four feast days.', done: () => (state.feastsHeld || 0) >= 4 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2494,6 +2539,7 @@
     maybeScheduleRaid();
     caravanAtDawn();
     electElder();   // HVALE-12: the dawn light finds the town's most seasoned hands
+    feastAtDawn();  // HVALE-15: the town keeps its own calendar
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4401,6 +4447,8 @@
         wishDay: typeof state.wishDay === 'number' ? state.wishDay : -1,
         wishes: state.wishes || 0,
         goldenDay: typeof state.goldenDay === 'number' ? state.goldenDay : -1,
+        feastsHeld: state.feastsHeld || 0,
+        lastFeastDay: typeof state.lastFeastDay === 'number' ? state.lastFeastDay : -1,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4484,6 +4532,8 @@
       state.wishDay = typeof s.wishDay === 'number' ? s.wishDay : -1;   // HVALE-14
       state.wishes = s.wishes || 0;
       state.goldenDay = typeof s.goldenDay === 'number' ? s.goldenDay : -1;
+      state.feastsHeld = s.feastsHeld || 0;   // HVALE-15
+      state.lastFeastDay = typeof s.lastFeastDay === 'number' ? s.lastFeastDay : -1;
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
