@@ -233,6 +233,7 @@
     <li>The <b>🦉 Owl Roost</b> (level 8) works the night shift &mdash; <b>after dark the owl hunts every couple of minutes</b> for 9 🪙, and a <b>wet night pays double</b>: the balloon has the day, the owl has the dark</li>
     <li>The <b>🐖 Truffle Pig</b> (level 9) works the after-rain &mdash; <b>every shower that passes</b>, she roots the wet ground for a <b>20 🪙 truffle</b>: the weather itself now pays out</li>
     <li>The <b>🌽 Corn Crib</b> (level 8) buys peace with the crows &mdash; a raider that fills up at the crib <b>pecks less than half as hard</b> (0.15× a crop's growth instead of 0.35×), everywhere on the isle, forever</li>
+    <li>The <b>🫙 Preserve Shed</b> (level 8) jars the quiet days &mdash; <b>one preserve a day, four on the shelf</b>, and every seasonal <b>festival the crowd buys the whole shelf</b> at 12 🪙 a jar: patience, sold at a premium</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -758,6 +759,22 @@ function pigBuilt(){return !!(state.buildings&&state.buildings.trufflepig);}
 // finds a free meal on the way in pecks the crops half-heartedly.
 const CRIB_BITE=0.15, CROW_BITE=0.35;
 function cribBuilt(){return !!(state.buildings&&state.buildings.corncrib);}
+// VOX-22: the Preserve Shed — the stored-value round on the isle's
+// own clock. Quiet days go into jars; festivals empty the shelf.
+const JAM_CAP=4, JAM_PAY=12;
+function jamBuilt(){return !!(state.buildings&&state.buildings.preserves);}
+function sellPreserves(){
+  if(!jamBuilt()||!(state.jars>0))return 0;
+  const jars=state.jars, pay=jars*JAM_PAY;
+  state.jars=0;
+  state.jamsSold=(state.jamsSold||0)+jars;
+  const b=state.buildings.preserves;
+  grantCoins(pay,(b.x||0)+0.5,2.6,(b.z||0)+0.5);
+  toast('🫙 The festival crowd clears the preserve shelf — '+jars+' jar'+(jars===1?'':'s')+' for '+pay+' 🪙!');
+  SFX.play('coin');
+  checkAch();
+  return pay;
+}
 let pigWasRaining=false;
 function updateTrufflePig(dt){
   if(!pigBuilt()){pigWasRaining=rainActive;return;}
@@ -1634,6 +1651,7 @@ const BUILDINGS={
   owlroost: {ico:'🦉',name:'Owl Roost',cost:720,lvl:8,desc:'A high pole-box for a resident owl — she hunts the fields every couple of minutes after dark, and a wet night drives the voles out of their burrows: the hunt pays double in the rain',roof:0x5a4a3a,wall:0x7a6a52,kind:'owl'},
   trufflepig:{ico:'🐖',name:'Truffle Pig',cost:760,lvl:9,desc:'A snuffling companion with a sty by the fence — every shower that passes over the isle, she roots the wet ground and comes up with a truffle: 20 🪙, right where the rain was',roof:0x8a5a6a,wall:0xd8a0a8,kind:'pig'},
   corncrib: {ico:'🌽',name:'Corn Crib',cost:680,lvl:8,desc:'An open-slat crib of last season’s corn set out by the fields — a crow with a full belly pecks the crops half-heartedly: peck damage drops from 0.35× to 0.15× a crop’s growth, forever',roof:0x8a6a3a,wall:0xd8b86a,kind:'crib'},
+  preserves:{ico:'🫙',name:'Preserve Shed',cost:700,lvl:8,desc:'A cool little shed of shelves and wax seals — every day it puts one jar of preserves up (holds 4), and every seasonal festival the whole shelf sells into the crowd at 12 🪙 a jar',roof:0x7a5a6a,wall:0xe8d8c8,kind:'jam'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1656,6 +1674,7 @@ function buildingCubes(def){
   if(def.kind==='owl')return owlCubes(def);
   if(def.kind==='pig')return pigCubes(def);
   if(def.kind==='crib')return cribCubes(def);
+  if(def.kind==='jam')return jamCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1778,6 +1797,20 @@ function ferryCubes(def){
   a(0.7,0.72,0.25,0.2,0.3,0.2,0x2a3a4a);         // the mooring bollard
   a(-0.05,1.15,0.3,0.06,1.2,0.06,0x5a4028);      // the flagpole
   a(0.16,1.6,0.3,0.4,0.24,0.04,0xd94f30);        // the flag
+  return c;
+}
+function jamCubes(def){
+  // VOX-22: a snug shed, a window full of shelves, and amber jars
+  // glowing on every one of them
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.6,0,1.5,1.2,1.2,def.wall);               // the shed
+  a(0,1.35,0,1.8,0.3,1.5,def.roof);              // the roof
+  a(0,0.5,0.62,0.44,0.8,0.1,0x5a3a24);           // the door
+  a(-0.45,0.75,0.62,0.44,0.5,0.06,0x9ad2e0);     // the shelf window
+  a(-0.55,0.62,0.66,0.12,0.16,0.06,0xe8a23e);    // amber jars in the glass
+  a(-0.35,0.62,0.66,0.12,0.16,0.06,0xd88a3e);
+  a(-0.45,0.92,0.66,0.12,0.16,0.06,0xe8b25e);
+  a(0.55,1.55,-0.3,0.24,0.5,0.24,0x6b4a3a);      // the chimney
   return c;
 }
 function cribCubes(def){
@@ -2914,6 +2947,7 @@ function updateDay(dt){
   if(state.time>=CYCLE){
     const prevSeason=seasonOf(state.day);
     state.time-=CYCLE;state.day++;el.day.textContent=state.day;
+    if(jamBuilt()&&(state.jars||0)<JAM_CAP){state.jars=(state.jars||0)+1;}   // VOX-22: another day on the shelf
     const s=seasonOf(state.day);
     if(s!==prevSeason){
       // repaint every grass top in the new season's colours
@@ -2926,6 +2960,7 @@ function updateDay(dt){
         s.key==='autumn'?'Leaves drift on the wind. Harvests feel golden.':
         'Long bright days. The garden basks.');
       townFestival(s);
+      sellPreserves();   // VOX-22: the crowd buys out the shelf
       checkAch();
     } else toast('☀️ Day '+state.day+' begins — 📈 '+goodDef(demandGoodKey()).product+' is in demand today');
     if(stockpiles())refreshGoodsHud();
@@ -4370,6 +4405,7 @@ const ACH=[
   ['owl10','Night Watch','See the owl home from ten hunts',()=>(state.owlCatches||0)>=10],
   ['truffle5','Snout of Gold','Root up five truffles',()=>(state.truffles||0)>=5],
   ['crib10','Corn Diplomacy','Blunt ten crow raids with the Corn Crib',()=>(state.cribMeals||0)>=10],
+  ['jam12','Shelf of Summers','Sell twelve festival jars from the Preserve Shed',()=>(state.jamsSold||0)>=12],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
