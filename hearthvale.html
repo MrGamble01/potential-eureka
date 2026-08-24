@@ -1757,18 +1757,31 @@
   // ---- Villagers ----------------------------------------------
   const V_COLORS = ['#e06a5c', '#5f83c8', '#e0a13f', '#7bbf63', '#c78be0', '#4fb0a8', '#e0708b'];
   const V_NAMES = ['Mira', 'Tobin', 'Elara', 'Finn', 'Rowan', 'Sable', 'Bram', 'Wren', 'Cassia', 'Odo', 'Hazel', 'Pippin', 'Fern', 'Garrick', 'Lila', 'Marn', 'Nessa', 'Corin', 'Dahlia', 'Emrys', 'Juniper', 'Alden', 'Petra', 'Wilan'];
-  // Each villager has a nature — pure flavor that colors their panel and emotes.
+  // Each villager has a nature — HVALE-3 gave the old flavor traits real
+  // hands: every nature carries a small mechanical gift, so who works
+  // where becomes a matching puzzle on top of mastery. mult applies to
+  // output (types-limited when set), chain only where a supply-chain
+  // bonus is live, consHalf halves the workshop's consumption, xp is the
+  // mastery XP earned per worked cycle, happy is a per-cycle town bonus.
   const V_TRAITS = [
-    { name: 'Cheerful',    emoji: '😊', mote: '🎶' },
-    { name: 'Dreamer',     emoji: '💭', mote: '💭' },
-    { name: 'Hardworking', emoji: '💪', mote: '🔨' },
-    { name: 'Sleepyhead',  emoji: '😴', mote: '💤' },
-    { name: 'Friendly',    emoji: '👋', mote: '❤️' },
-    { name: 'Curious',     emoji: '🔍', mote: '❓' },
-    { name: 'Gourmand',    emoji: '🍞', mote: '🍎' },
-    { name: 'Green thumb', emoji: '🌱', mote: '🌼' },
+    { name: 'Cheerful',    emoji: '😊', mote: '🎶', happy: 1,               gift: '+1 town happiness every cycle they work' },
+    { name: 'Dreamer',     emoji: '💭', mote: '💭', xp: 2,                  gift: 'learns their craft twice as fast' },
+    { name: 'Hardworking', emoji: '💪', mote: '🔨', mult: 1.1,              gift: '+10% output at any trade' },
+    { name: 'Sleepyhead',  emoji: '😴', mote: '💤', mult: 0.9, happy: 1,    gift: '−10% output, but their unhurried pace adds +1 happiness' },
+    { name: 'Friendly',    emoji: '👋', mote: '❤️', chain: 1.1,             gift: '+10% output where a supply-chain bonus is active' },
+    { name: 'Curious',     emoji: '🔍', mote: '❓', consHalf: true,         gift: 'finds shortcuts — their workshop consumes half as much' },
+    { name: 'Gourmand',    emoji: '🍞', mote: '🍎', mult: 1.15, types: ['bakery', 'fishing', 'dock'], gift: '+15% at the food trades' },
+    { name: 'Green thumb', emoji: '🌱', mote: '🌼', mult: 1.15, types: ['farm', 'windmill'],          gift: '+15% in the fields' },
   ];
   function traitOf(v) { return V_TRAITS[Math.floor(rrand(v.id * 41 + 5) * V_TRAITS.length) % V_TRAITS.length]; }
+  function traitMult(v, b) {
+    const t = v && traitOf(v);
+    if (!t) return 1;
+    let m = 1;
+    if (t.mult && (!t.types || t.types.includes(b.type))) m *= t.mult;
+    if (t.chain && adjMult(b) > 1) m *= t.chain;
+    return m;
+  }
   // ── Villager mastery (HVALE-2) ──
   // Every production cycle actually worked earns the worker 1 craft XP;
   // rank thresholds multiply their building's output. XP belongs to the
@@ -2051,15 +2064,17 @@
       const def = BUILDINGS[b.type];
       if (b.done === false) return;   // construction sites don't produce
       if (def.prod && (!def.worker || b.staffed)) {
-        // consumption gate
+        const wk = def.worker ? workerOf(b) : null;
+        const wtrait = wk ? traitOf(wk) : null;
+        // consumption gate (HVALE-3: a Curious worker halves the intake)
+        const consM = wtrait && wtrait.consHalf ? 0.5 : 1;
         let ok = true;
-        if (def.cons) for (const k in def.cons) if (state.res[k] < def.cons[k]) ok = false;
+        if (def.cons) for (const k in def.cons) if (state.res[k] < Math.ceil(def.cons[k] * consM)) ok = false;
         if (!ok) return;
-        if (def.cons) for (const k in def.cons) state.res[k] -= def.cons[k];
+        if (def.cons) for (const k in def.cons) state.res[k] -= Math.ceil(def.cons[k] * consM);
         const milled = b.type === 'farm' && windmillBoostsFarm(b);
         const chain = adjMult(b);
         const rainM = cropRainMult(b);
-        const wk = def.worker ? workerOf(b) : null;
         const mastery = wk ? masteryOf(wk) : MASTERY[0];
         for (const k in def.prod) {
           let amt = def.prod[k] * (b.level || 1);   // higher tier → more output
@@ -2071,15 +2086,17 @@
           { const dm = decreeProdMult(b, k); if (dm !== 1) amt = Math.max(1, Math.round(amt * dm)); } // town decrees
           if (morale !== 1) amt = Math.max(1, Math.round(amt * morale)); // town morale
           if (mastery.mult !== 1) amt = Math.max(1, Math.round(amt * mastery.mult)); // seasoned hands (HVALE-2)
+          { const tm = wk ? traitMult(wk, b) : 1; if (tm !== 1) amt = Math.max(1, Math.round(amt * tm)); } // natures (HVALE-3)
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
         if (wk) {   // a cycle actually worked is a cycle learned
           const before = mastery.name;
-          wk.xp = (wk.xp || 0) + 1;
+          wk.xp = (wk.xp || 0) + ((wtrait && wtrait.xp) || 1);   // Dreamers learn double (HVALE-3)
           const after = masteryOf(wk);
           if (after.name !== before)
             toast(after.star + ' ' + wk.name + ' is now a ' + after.name + ' — their output is +' + Math.round((after.mult - 1) * 100) + '%!');
+          if (wtrait && wtrait.happy) state.happy = Math.min(100, state.happy + wtrait.happy);   // pleasant company (HVALE-3)
         }
       }
     });
@@ -3565,7 +3582,10 @@
       const milled = b.type === 'farm' && windmillBoostsFarm(b);
       const chain = adjMult(b);
       const rainM = cropRainMult(b);
-      const mm = def.worker ? masteryOf(workerOf(b)).mult : 1;
+      const wkn = def.worker ? workerOf(b) : null;
+      const mm = wkn ? masteryOf(wkn).mult : 1;
+      const tm = wkn ? traitMult(wkn, b) : 1;
+      const consM = wkn && traitOf(wkn).consHalf ? 0.5 : 1;
       for (const k in def.prod) {
         let amt = def.prod[k] * (b.level || 1);
         if (b.bonus) amt = Math.ceil(amt * 1.5);
@@ -3576,9 +3596,10 @@
         { const dm = decreeProdMult(b, k); if (dm !== 1) amt = Math.max(1, Math.round(amt * dm)); }
         if (morale !== 1) amt = Math.max(1, Math.round(amt * morale));
         if (mm !== 1) amt = Math.max(1, Math.round(amt * mm));
+        if (tm !== 1) amt = Math.max(1, Math.round(amt * tm));
         net[k] += amt;
       }
-      if (def.cons) for (const k in def.cons) net[k] -= def.cons[k];
+      if (def.cons) for (const k in def.cons) net[k] -= Math.ceil(def.cons[k] * consM);
     });
     net.food -= state.villagers.length * FOOD_PER_VILLAGER;
     if (seasonOf(state.day).name === 'Winter')
@@ -3794,8 +3815,8 @@
     const stats = document.getElementById('p-stats');
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
-    if (def.worker) { const wk = workerOf(b); const wm = wk && masteryOf(wk); html += statRow('Worker', wk ? '👤 ' + wk.name + (wm.star ? ' ' + wm.star : '') + (wm.mult > 1 ? ' (' + wm.name + ' +' + Math.round((wm.mult - 1) * 100) + '%)' : '') : 'Needs a villager 💤'); }
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const mmv = def.worker ? masteryOf(workerOf(b)).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
+    if (def.worker) { const wk = workerOf(b); const wm = wk && masteryOf(wk); const wt = wk && traitOf(wk); html += statRow('Worker', wk ? '👤 ' + wk.name + ' ' + wt.emoji + (wm.star ? ' ' + wm.star : '') + (wm.mult > 1 ? ' (' + wm.name + ' +' + Math.round((wm.mult - 1) * 100) + '%)' : '') : 'Needs a villager 💤'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
@@ -3849,6 +3870,7 @@
     const ms = masteryOf(v), nextRank = MASTERY.find(r => r.at > ((v.xp || 0)));
     document.getElementById('p-stats').innerHTML =
       statRow('Trade', job) + statRow('Nature', tr.emoji + ' ' + tr.name) +
+      statRow('Gift', tr.gift) +
       statRow('Mastery', (ms.star ? ms.star + ' ' : '') + ms.name + (nextRank ? ' · ' + (v.xp || 0) + '/' + nextRank.at + ' to ' + nextRank.name : ' · peak of the craft')) +
       statRow('Mood', mood) + statRow('Home', homeB ? BUILDINGS[homeB.type].name : '—');
     const actions = document.getElementById('p-actions');
