@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="onsite-chip" tabindex="0"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -1607,6 +1607,7 @@
 </div>
 <div id="acq-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="onsite-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
   <div class="win-panel">
     <div class="win-title" id="board-title">📋 Board Meeting</div>
@@ -6147,6 +6148,7 @@ const ACHIEVEMENTS = [
   { id: 'hit_goal',      icon: '🏆', title: 'Unicorn',              desc: 'Fill the season goal bar and win a season.', check: () => trophiesWon >= 1, progress: () => [Math.min(trophiesWon, 1), 1] },
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
+  { id: 'launch_5',      icon: '🚀', title: 'Launch Day Veteran',   desc: 'Ship five product launches.',            check: () => launchesShipped >= 5, progress: () => [Math.min(launchesShipped, 5), 5] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6764,8 +6766,8 @@ function updateAcq(dt) {
   if (prestigeLevel < 1 || acquisitions.length >= ACQ_CAP) return;
   acqNextT -= dt;
   if (acqNextT > 0) return;
-  // Don't pitch an acquisition over another modal.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open')) {
+  // Don't pitch an acquisition over another modal or an open launch window.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer) {
     acqNextT = 25;
     return;
   }
@@ -6867,7 +6869,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -6909,6 +6911,121 @@ function closeOnsiteOffer(accepted, expired) {
   } else {
     addFeedEntry(expired ? '🧳 The client gave up waiting' : '🧳 Declined the on-site ask');
     onsiteNextT = 300 + Math.random() * 240;
+  }
+}
+// ── Product launches (TYC-13) ────────────────────────────────
+// Post-IPO, a launch window opens every so often: the next point release
+// is ready to go out. SHIP NOW pays a premium on the spot, but every
+// engineer risks shipping a TYC-7 bug (desk at half speed until the
+// hotfix); POLISH FIRST hands it to QA for 45 seconds and then the safe
+// base lands, guaranteed clean. Greed vs patience, riding the systems
+// the office already has.
+const LAUNCH_POLISH_SECS = 45;
+const LAUNCH_SHIP_MULT = 1.3;     // ship-now premium over the safe base
+const LAUNCH_BUG_CHANCE = 0.45;   // per unbugged engineer, on a rushed launch
+let launchOffer = null;     // { payout, expire }
+let launchPolish = null;    // { timeLeft, payout }
+let launchesShipped = 0;    // lifetime, rushed and polished alike
+let launchNextT = 360;      // first window ~6 minutes into a post-IPO season
+function refreshLaunchChip() {
+  const el = document.getElementById('launch-chip');
+  if (!el) return;
+  if (launchPolish) {
+    el.textContent = '🧪 ' + Math.max(0, Math.ceil(launchPolish.timeLeft)) + 's';
+    el.title = 'QA is polishing the release — it ships clean for $' + fmtCash(launchPolish.payout) + ' when the timer runs out';
+  } else if (launchesShipped > 0) {
+    el.textContent = '🚀 ×' + launchesShipped;
+    el.title = launchesShipped + ' product launch' + (launchesShipped === 1 ? '' : 'es') + ' shipped';
+  } else { el.textContent = ''; el.title = ''; }
+}
+function updateLaunch(dt) {
+  if (launchOffer) {
+    launchOffer.expire -= dt;
+    const cd = document.getElementById('launch-expire');
+    if (cd) cd.textContent = 'Window closes in ' + Math.max(0, Math.ceil(launchOffer.expire)) + 's';
+    if (launchOffer.expire <= 0) closeLaunchOffer('pass', true);
+    return;
+  }
+  if (launchPolish) {
+    launchPolish.timeLeft -= dt;
+    refreshLaunchChip();
+    if (launchPolish.timeLeft <= 0) {
+      const payout = launchPolish.payout;
+      launchPolish = null;
+      launchesShipped++;
+      refreshLaunchChip();
+      addCash(payout);
+      showToast(`🚀 Polished release out the door — $${fmtCash(payout)}, zero bugs.`, 'good', 'critical');
+      addFeedEntry(`🚀 Launch shipped clean for $${fmtCash(payout)}`);
+      launchNextT = 360 + Math.random() * 240;
+      checkAchievements(); saveGame(); refreshHud();
+    }
+    return;
+  }
+  if (prestigeLevel < 1) return;
+  launchNextT -= dt;
+  if (launchNextT > 0) return;
+  // A launch window never opens over another modal or pitch.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer) {
+    launchNextT = 25;
+    return;
+  }
+  makeLaunchOffer();
+}
+function makeLaunchOffer() {
+  const payout = Math.max(2500, Math.round(currentRatePerMin() * 2.5));
+  const rushed = Math.round(payout * LAUNCH_SHIP_MULT);
+  launchOffer = { payout, expire: 30 };
+  const el = document.getElementById('launch-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:400px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#d2a8ff;margin-bottom:4px">🚀 Launch window — ${currentProductVersion.ver} point release</div>
+      <div>The release candidate is ready. <b>Ship it hot</b> for
+      <b style="color:#3FB950">$${fmtCash(rushed)}</b> now — but every engineer risks
+      putting a <b style="color:#F85149">🐛 bug in production</b> — or hand it to QA for
+      ${LAUNCH_POLISH_SECS}s and ship clean for <b style="color:#3FB950">$${fmtCash(payout)}</b>.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="launch-ship" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;background:rgba(210,168,255,.12);border:1px solid rgba(210,168,255,.5);color:#d2a8ff">🚀 Ship now</button>
+        <button id="launch-polish" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.5);color:#3FB950">🧪 Polish first</button>
+        <button id="launch-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Shelve</button>
+      </div>
+      <div id="launch-expire" style="color:#7D8590;font-size:11px;margin-top:6px">Window closes in 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('launch-ship').onclick = () => closeLaunchOffer('ship', false);
+  document.getElementById('launch-polish').onclick = () => closeLaunchOffer('polish', false);
+  document.getElementById('launch-pass').onclick = () => closeLaunchOffer('pass', false);
+  addFeedEntry('🚀 A launch window is open — ship hot or polish first?');
+  SFX.milestone && SFX.milestone();
+}
+function closeLaunchOffer(choice, expired) {
+  const o = launchOffer;
+  launchOffer = null;
+  document.getElementById('launch-offer').style.display = 'none';
+  if (!o) return;
+  if (choice === 'ship') {
+    const payout = Math.round(o.payout * LAUNCH_SHIP_MULT);
+    launchesShipped++;
+    refreshLaunchChip();
+    addCash(payout);
+    let bugs = 0;
+    for (const w of ideaWorkers) if (!w.bugged && Math.random() < LAUNCH_BUG_CHANCE) { w.bugged = true; w.fixingT = 0; bugs++; }
+    showToast(bugs
+      ? `🚀 Shipped hot for $${fmtCash(payout)} — and ${bugs} bug${bugs === 1 ? '' : 's'} went out with it. Desks need hotfixes!`
+      : `🚀 Shipped hot for $${fmtCash(payout)} — and somehow nothing broke.`, bugs ? 'event' : 'good', 'critical');
+    addFeedEntry(`🚀 Rushed launch: $${fmtCash(payout)}, ${bugs} bug${bugs === 1 ? '' : 's'} in production`);
+    if (bugs) SFX.error && SFX.error();
+    launchNextT = 360 + Math.random() * 240;
+    checkAchievements(); saveGame(); refreshHud();
+  } else if (choice === 'polish') {
+    launchPolish = { timeLeft: LAUNCH_POLISH_SECS, payout: o.payout };
+    refreshLaunchChip();
+    showToast(`🧪 QA gets ${LAUNCH_POLISH_SECS} seconds with it — then it ships clean.`, 'event', 'standard');
+    addFeedEntry('🧪 Launch in polish — shipping clean shortly');
+    saveGame();
+  } else {
+    addFeedEntry(expired ? '🚀 The launch window closed' : '🚀 Launch shelved for now');
+    launchNextT = 300 + Math.random() * 180;
   }
 }
 let boardNextT = 180;          // first meeting ~3 minutes in
@@ -9479,6 +9596,7 @@ function frameBody(now) {
   updateBoard(dt);
   updateAcq(dt);
   updateOnsite(dt);
+  updateLaunch(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -10083,6 +10201,19 @@ const SAVE_SCHEMA = [
         onsite = { timeLeft: Math.min(60, Math.max(1, p.onsite.timeLeft || 30)), payout: Math.round(p.onsite.payout) };
       }
       refreshOnsiteChip();
+    },
+  },
+  {
+    key: 'launches', // TYC-13: launch count + an in-flight polish pass
+    write: p => { p.launches = { n: launchesShipped, polish: launchPolish ? { timeLeft: Math.round(launchPolish.timeLeft), payout: launchPolish.payout } : null }; },
+    read: p => {
+      if (p.launches) {
+        launchesShipped = Math.max(0, Math.floor(p.launches.n || 0));
+        const pol = p.launches.polish;
+        if (pol && typeof pol.payout === 'number' && pol.payout > 0)
+          launchPolish = { timeLeft: Math.min(LAUNCH_POLISH_SECS, Math.max(1, pol.timeLeft || 10)), payout: Math.round(pol.payout) };
+      }
+      refreshLaunchChip();
     },
   },
   {
