@@ -5927,7 +5927,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult()
+    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -6122,11 +6122,17 @@ function refreshGoalLabels() {
 }
 const trophyBadgeEl = document.getElementById('trophy-badge');
 const trophySepEl   = document.getElementById('trophy-sep');
+// TYC-16: the shelf isn't just for show — investors pay a premium for
+// a proven operator. +2% deal value per season trophy, capped at +20%.
+function trophyBonus() { return 1 + 0.02 * Math.min(trophiesWon, 10); }
 function refreshTrophyBadge() {
   const show = trophiesWon > 0;
   trophyBadgeEl.style.display = show ? '' : 'none';
   trophySepEl.style.display   = show ? '' : 'none';
-  if (show) trophyBadgeEl.textContent = `🏆 ${trophiesWon}`;
+  if (show) {
+    trophyBadgeEl.textContent = `🏆 ${trophiesWon}`;
+    trophyBadgeEl.title = `${trophiesWon} season${trophiesWon === 1 ? '' : 's'} won — the shelf pays: +${Math.round((trophyBonus() - 1) * 100)}% deal value (2% each, caps at +20%)`;
+  }
 }
 
 // ── Achievements ─────────────────────────────────────────
@@ -6153,6 +6159,7 @@ const ACHIEVEMENTS = [
   { id: 'launch_5',      icon: '🚀', title: 'Launch Day Veteran',   desc: 'Ship five product launches.',            check: () => launchesShipped >= 5, progress: () => [Math.min(launchesShipped, 5), 5] },
   { id: 'loyalty',       icon: '🛡️', title: 'Golden Handcuffs',     desc: 'Win three retention battles.',           check: () => poachesFought >= 3, progress: () => [Math.min(poachesFought, 3), 3] },
   { id: 'retreat_3',     icon: '⛺', title: 'Team Building',        desc: 'Hold three company retreats.',           check: () => retreatsHeld >= 3, progress: () => [Math.min(retreatsHeld, 3), 3] },
+  { id: 'dynasty',       icon: '🏆', title: 'Dynasty',              desc: 'Win three seasons.',                     check: () => trophiesWon >= 3, progress: () => [Math.min(trophiesWon, 3), 3] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
