@@ -278,6 +278,9 @@ const AgeOfWarGame = (() => {
   // faster for a short window, on its own long cooldown.
   const WARCRY_DUR = 6, WARCRY_CD = 45, WARCRY_HASTE = 1.5;
   let warcryT = 0, warcryCd = 0;
+  // AOW-15: mercenary contracts — gold for instant boots on the ground.
+  const MERC_CD = 60, MERC_COUNT = 2, MERC_COST_MULT = 2.5;
+  let mercCd = 0;
   // Enemy tech + specials (see enemyTechTick / enemySpecialTick)
   let enemyXP = 0;              // enemy's internal economy toward its next era
   let enemySpecialT = 45;       // seconds until the enemy may fire its special
@@ -528,6 +531,7 @@ const AgeOfWarGame = (() => {
     { id: 'hero_summon',  icon: '🦸',  title: 'A Legend Arrives', desc: 'Summon your first Hero.' },
     { id: 'special_5',    icon: '💥',  title: 'Pyromaniac',       desc: 'Cast 5 specials in one run.' },
     { id: 'warcry_3',     icon: '🎺',  title: 'Hear the Horns',   desc: 'Sound 3 warcries in one run.' },
+    { id: 'mercs_3',      icon: '🪖',  title: 'Soldiers of Fortune', desc: 'Hire the mercenary company 3 times in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -619,6 +623,7 @@ const AgeOfWarGame = (() => {
     if (runStats.coinsCollected >= 50) unlock('collect_50');
     if (runStats.specialsFired >= 5) unlock('special_5');
     if ((runStats.warcries || 0) >= 3) unlock('warcry_3');
+    if ((runStats.mercs || 0) >= 3) unlock('mercs_3');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1006,6 +1011,7 @@ const AgeOfWarGame = (() => {
     runStats.biggestCombo = 0; runStats.agesReached = 0;
     runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
     runStats.warcries = 0;
+    runStats.mercs = 0; mercCd = 0;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
     waveNum = 1;
@@ -1246,6 +1252,53 @@ const AgeOfWarGame = (() => {
     goldFloaters.push({ text: '🎺 WARCRY! +50% attack speed', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.6 });
     shake(3, 0.2);
     checkAchievementsDuringRun();
+  }
+
+  // AOW-15: the mercenary company. No drills, no training queue — two
+  // veterans of your best line walk on the moment the coin lands, at a
+  // 2.5× premium and a long rearm. An emergency valve for banked gold,
+  // distinct from the Warcry (tempo) and Bastion Plating (defense).
+  function mercUnitKey() {
+    let best = null;
+    for (const k in UNITS) {
+      const d = UNITS[k];
+      if (d.era > playerEra) continue;
+      if (d.role) continue;                    // fighters only — no walls
+      if (!best || d.cost > UNITS[best].cost) best = k;
+    }
+    return best;
+  }
+  function mercCost() { const k = mercUnitKey(); return k ? Math.round(UNITS[k].cost * MERC_COST_MULT) : 0; }
+  function hireMercs() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (mercCd > 0) return;
+    const key = mercUnitKey();
+    if (!key) return;
+    const cost = mercCost();
+    if (gold < cost) {
+      goldFloaters.push({ text: `🪖 The mercs want ${cost} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    const hired = [];
+    for (let i = 0; i < MERC_COUNT; i++) {
+      const u = spawnUnit('player', key);
+      if (!u) break;
+      u.aliveT = 25;                           // they arrive as Veterans
+      u.x += i * 26;
+      hired.push(u);
+    }
+    if (!hired.length) {
+      goldFloaters.push({ text: '🪖 The ranks are full', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= cost;
+    mercCd = MERC_CD;
+    runStats.mercs = (runStats.mercs || 0) + 1;
+    goldFloaters.push({ text: `🪖 MERCENARIES! ${hired.length}× veteran ${UNITS[key].name}`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.6 });
+    shake(3, 0.2);
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
   }
 
   function fireSpecial() {
@@ -1537,6 +1590,9 @@ const AgeOfWarGame = (() => {
       } else if (e.key === 'w' || e.key === 'W') {
         soundWarcry();
         e.preventDefault();
+      } else if (e.key === 'm' || e.key === 'M') {
+        hireMercs();
+        e.preventDefault();
       }
     });
   }
@@ -1771,6 +1827,7 @@ const AgeOfWarGame = (() => {
       warcryCd = Math.max(0, warcryCd - dt);
       renderHud();
     }
+    mercCd = Math.max(0, mercCd - dt);   // AOW-15 — the rearm never stalls
 
     enemyTick(dt);
     enemyTechTick(dt);
@@ -6792,6 +6849,16 @@ const AgeOfWarGame = (() => {
       if (wcCdEl) wcCdEl.textContent = warcryT > 0 ? `⚔️ ${Math.ceil(warcryT)}s`
         : playerEra < 1 ? 'AGE II' : warcryCd > 0 ? `${Math.ceil(warcryCd)}s` : 'READY';
       wcEl.disabled = playerEra < 1 || warcryCd > 0 || warcryT > 0;
+    }
+
+    // Mercenary button (AOW-15)
+    const mcEl = document.getElementById('aow-merc-btn');
+    const mcCdEl = document.getElementById('aow-merc-cd');
+    if (mcEl) {
+      const mk = mercUnitKey();
+      if (mcCdEl) mcCdEl.textContent = mercCd > 0 ? `${Math.ceil(mercCd)}s` : mk ? `${mercCost()}g` : '—';
+      mcEl.disabled = mercCd > 0 || !mk;
+      if (mk) mcEl.title = `Hire mercenaries (M) — ${MERC_COUNT}× veteran ${UNITS[mk].name} walk on instantly for ${mercCost()} gold. ${MERC_CD}s rearm.`;
     }
 
     // Wave indicator
