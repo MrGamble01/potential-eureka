@@ -1610,6 +1610,7 @@
 <div id="retreat-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="rfp-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="hack-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="troll-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
@@ -6174,6 +6175,7 @@ const ACHIEVEMENTS = [
   { id: 'alumni_5',      icon: '🎓', title: 'Old Friends',          desc: 'Five engineers out there wearing your alumni hoodie.', check: () => poachesLost >= 5, progress: () => [Math.min(poachesLost, 5), 5] },
   { id: 'closer',        icon: '📑', title: 'The Closer',           desc: 'Win three RFPs head-to-head against your rival.', check: () => rfpsWon >= 3, progress: () => [Math.min(rfpsWon, 3), 3] },
   { id: 'allnighter',    icon: '⚡', title: 'Ship It or Sleep',     desc: 'Throw three hackathons.', check: () => hackathonsHeld >= 3, progress: () => [Math.min(hackathonsHeld, 3), 3] },
+  { id: 'prior_art',     icon: '⚖️', title: 'Prior Art',            desc: 'Beat two patent trolls in court.', check: () => trollsBeaten >= 2, progress: () => [Math.min(trollsBeaten, 2), 2] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6792,7 +6794,7 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
     acqNextT = 25;
     return;
   }
@@ -6894,7 +6896,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -6991,7 +6993,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
     launchNextT = 25;
     return;
   }
@@ -7077,7 +7079,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
     poachNextT = 25;
     return;
   }
@@ -7196,7 +7198,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7363,7 +7365,7 @@ function updateRfp(dt) {
   if (rivalDone || seasonGoalHit) return;
   rfpNextT -= dt;
   if (rfpNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer) {
     rfpNextT = 25;
     return;
   }
@@ -7479,7 +7481,7 @@ function updateHackathon(dt) {
   }
   hackNextT -= dt;
   if (hackNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer) {
     hackNextT = 25;
     return;
   }
@@ -7533,6 +7535,97 @@ function closeHackOffer(accepted, expired) {
     addFeedEntry(expired ? '⚡ The flyer came down — sign-ups closed' : '⚡ Passed on the hackathon');
     hackNextT = 420 + Math.random() * 240;
   }
+}
+
+// ── The Patent Troll (TYC-20) ─────────────────────────────────
+// Success draws parasites. Post-IPO, a patent troll occasionally sends
+// a demand letter on the offer chassis: pay the license and it goes
+// away, or FIGHT it in court — where the R&D lab's patent wall is your
+// prior art. Win chance = 30% + 15% per patent filed (cap 90%): win and
+// the case is thrown out for free; lose and the judgment costs double.
+// Ignoring the letter is worst of all — a default judgment lands at 1.5×.
+let trollOffer = null;      // { demand, expire }
+let trollsFought = 0, trollsBeaten = 0;
+let trollNextT = 660;       // the first letter ~11 minutes into a season
+function trollWinChance() { return Math.min(0.9, 0.3 + 0.15 * labPatents); }
+function updateTroll(dt) {
+  if (trollOffer) {
+    trollOffer.expire -= dt;
+    const cd = document.getElementById('troll-expire');
+    if (cd) cd.textContent = 'Reply deadline in ' + Math.max(0, Math.ceil(trollOffer.expire)) + 's';
+    if (trollOffer.expire <= 0) closeTrollOffer('expire');
+    return;
+  }
+  if (prestigeLevel < 1) return;   // trolls only sue companies worth suing
+  trollNextT -= dt;
+  if (trollNextT > 0) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer) {
+    trollNextT = 25;
+    return;
+  }
+  makeTrollOffer();
+}
+function makeTrollOffer() {
+  const demand = Math.max(2500, Math.round(currentRatePerMin() * 2));
+  trollOffer = { demand, expire: 30 };
+  const pct = Math.round(trollWinChance() * 100);
+  const el = document.getElementById('troll-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#F85149;margin-bottom:4px">📨 A patent troll sends a demand letter</div>
+      <div>License their "one-click synergy" patent for <b style="color:#F85149">$${fmtCash(demand)}</b>,
+      or <b>fight it in court</b> — your patent wall is prior art
+      (<b style="color:#3FB950">${pct}% odds</b>${labPatents ? ', ' + labPatents + ' patent' + (labPatents === 1 ? '' : 's') + ' filed' : ' — the lab has filed nothing'}).
+      Lose and the judgment runs <b style="color:#F85149">double</b>. Ignore it and a default judgment runs 1.5×.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="troll-fight" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.5);color:#3FB950">⚖️ Fight it (${pct}%)</button>
+        <button id="troll-pay" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Pay $${fmtCash(demand)}</button>
+      </div>
+      <div id="troll-expire" style="color:#7D8590;font-size:11px;margin-top:6px">Reply deadline in 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('troll-fight').onclick = () => closeTrollOffer('fight');
+  document.getElementById('troll-pay').onclick = () => {
+    if (!trollOffer) return;
+    if (state.cash < trollOffer.demand) {
+      const cd = document.getElementById('troll-expire');
+      if (cd) cd.textContent = `Need $${fmtCash(trollOffer.demand - state.cash)} more — or fight it`;
+      return;
+    }
+    closeTrollOffer('pay');
+  };
+  addFeedEntry('📨 A demand letter from a patent troll is on your desk');
+  SFX.milestone && SFX.milestone();
+}
+function closeTrollOffer(how) {
+  const o = trollOffer;
+  trollOffer = null;
+  document.getElementById('troll-offer').style.display = 'none';
+  if (!o) return;
+  if (how === 'pay') {
+    state.cash -= o.demand; showSpendPop(o.demand);
+    showToast('📨 License paid. The troll moves on to easier prey.', 'event', 'standard');
+    addFeedEntry(`📨 Paid the troll's license ($${fmtCash(o.demand)})`);
+  } else if (how === 'fight') {
+    trollsFought++;
+    if (Math.random() < trollWinChance()) {
+      trollsBeaten++;
+      showToast('⚖️ Case DISMISSED — your patent wall was prior art. The troll slinks off unpaid.', 'good', 'critical');
+      addFeedEntry(`⚖️ Beat the patent troll in court (${labPatents} patent${labPatents === 1 ? '' : 's'} as prior art)`);
+    } else {
+      const judgment = Math.min(state.cash, o.demand * 2);
+      state.cash -= judgment; showSpendPop(judgment);
+      showToast(`⚖️ Lost in court — the judgment runs $${fmtCash(judgment)}. File more patents.`, 'event', 'critical');
+      addFeedEntry(`⚖️ Lost to the patent troll ($${fmtCash(judgment)} judgment)`);
+    }
+  } else {
+    const judgment = Math.min(state.cash, Math.round(o.demand * 1.5));
+    state.cash -= judgment; showSpendPop(judgment);
+    showToast(`📨 The reply deadline passed — default judgment for $${fmtCash(judgment)}.`, 'event', 'critical');
+    addFeedEntry(`📨 Ignored the demand letter — default judgment ($${fmtCash(judgment)})`);
+  }
+  trollNextT = 660 + Math.random() * 300;
+  checkAchievements(); saveGame(); refreshHud();
 }
 
 function triggerWin(cumulative) {
@@ -10017,6 +10110,7 @@ function frameBody(now) {
   updateRetreat(dt);
   updateRfp(dt);
   updateHackathon(dt);
+  updateTroll(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -10663,6 +10757,16 @@ const SAVE_SCHEMA = [
     write: p => { p.rfp = { won: rfpsWon }; },
     read: p => {
       if (p.rfp) rfpsWon = Math.max(0, Math.floor(p.rfp.won || 0));
+    },
+  },
+  {
+    key: 'trolls', // TYC-20: courtroom scoreboard vs the patent trolls
+    write: p => { p.trolls = { fought: trollsFought, beaten: trollsBeaten }; },
+    read: p => {
+      if (p.trolls) {
+        trollsFought = Math.max(0, Math.floor(p.trolls.fought || 0));
+        trollsBeaten = Math.max(0, Math.floor(p.trolls.beaten || 0));
+      }
     },
   },
   {
