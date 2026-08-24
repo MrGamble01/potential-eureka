@@ -1333,6 +1333,8 @@
       bellSaves: 0,        // HVALE-8: breaches the chapel bell softened
       caravan: null,       // HVALE-9: { returnDay } while one is on the road
       caravansReturned: 0, // lifetime caravans seen home (safe or robbed)
+      order: null,         // HVALE-11: { k, qty, pay, byDay } standing order
+      ordersFilled: 0,     // lifetime standing orders delivered
     };
   }
   const ACHIEVEMENTS = [
@@ -1376,6 +1378,7 @@
     { id: 'preserved', emoji: '🫙', name: 'Waste Not', desc: 'Fill a Root Cellar with 12 preserves.', done: () => state.buildings.some(b => b.type === 'cellar' && (b.preserves || 0) >= 12) },
     { id: 'bellsaved', emoji: '🔔', name: 'Saved by the Bell', desc: 'The chapel bell softens a raid that broke through.', done: () => (state.bellSaves || 0) >= 1 },
     { id: 'far_roads', emoji: '🐴', name: 'Friend of Far Roads', desc: 'See three caravans home from the far towns.', done: () => (state.caravansReturned || 0) >= 3 },
+    { id: 'purveyor', emoji: '📜', name: 'Purveyor by Appointment', desc: "Fill three of the merchant's standing orders.", done: () => (state.ordersFilled || 0) >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2415,6 +2418,12 @@
     if (state.raidTonight) resolveRaid();
     maybeScheduleRaid();
     caravanAtDawn();
+    // HVALE-11: a standing order left past its deadline lapses quietly
+    if (state.order && state.day > state.order.byDay) {
+      chron('📜', "The merchant's standing order lapsed — another town filled it");
+      toast('📜 The standing order lapsed — the merchant found another supplier.');
+      state.order = null;
+    }
     // a festival that has run its course winds down at daybreak
     if (state.festival && state.day >= state.festival.endDay) {
       state.festival = null;
@@ -2589,14 +2598,56 @@
       if (g.k === traderDemand) sell = Math.round(sell * 1.8) + 2;   // deal of the day
       traderPrices[g.k] = { buy, sell };
     });
+    // HVALE-11: alongside the day's prices, the merchant posts a standing
+    // order if none is open — bring the goods before the deadline and the
+    // premium (well over any spot price) is yours on the spot.
+    if (!state.order) {
+      const g = TRADE_GOODS[Math.floor(rrand(state.day * 23 + 11) * TRADE_GOODS.length)];
+      const qty = 15 + Math.floor(rrand(state.day * 29 + 3) * 3) * 5;   // 15 / 20 / 25
+      const pay = qty * (({ wood: 2, stone: 3, food: 2 })[g.k] + 2);
+      state.order = { k: g.k, qty, pay, byDay: state.day + 6 };
+      chron('📜', 'The merchant posted a standing order: ' + qty + ' ' + g.name.toLowerCase() + ' by day ' + state.order.byDay);
+    }
     renderTrader();
     document.getElementById('trader').classList.add('show');
     SFX('trader');
     pauseForModal();
   }
+  // HVALE-11: deliver the standing order — goods out, premium in.
+  function fillOrder() {
+    const o = state.order;
+    if (!o || state.res[o.k] < o.qty) return;
+    state.res[o.k] -= o.qty;
+    state.res.gold += o.pay;
+    state.ordersFilled = (state.ordersFilled || 0) + 1;
+    state.order = null;
+    SFX('goal');
+    toast('📜 Standing order delivered — the merchant pays ' + o.pay + ' gold on the spot.');
+    chron('📜', "Delivered the merchant's standing order for " + o.pay + ' gold');
+    checkAchievements();
+    renderTrader(); updateHUD(); save();
+  }
   function renderTrader() {
     const rows = document.getElementById('trade-rows');
     rows.innerHTML = '';
+    // HVALE-11: the standing-order strip rides above the price rows
+    let strip = document.getElementById('trade-order');
+    if (!strip) {
+      strip = document.createElement('div');
+      strip.id = 'trade-order';
+      strip.style.cssText = 'display:none;margin:0 0 10px;padding:8px 10px;background:rgba(242,193,78,.08);border:1px solid rgba(242,193,78,.35);border-radius:8px;font-size:13px;line-height:1.5';
+      rows.parentNode.insertBefore(strip, rows);
+    }
+    if (state.order) {
+      const og = TRADE_GOODS.find(x => x.k === state.order.k);
+      const can = Math.floor(state.res[state.order.k]) >= state.order.qty;
+      strip.style.display = '';
+      strip.innerHTML = '📜 <b>Standing order:</b> ' + state.order.qty + ' ' + og.ic + ' ' + og.name.toLowerCase() +
+        ' by day ' + state.order.byDay + ' → <b style="color:#f2c14e">' + state.order.pay + '🪙</b> ' +
+        '<button id="order-fill"' + (can ? '' : ' disabled') + ' style="margin-left:8px">Deliver</button>';
+      const fb = document.getElementById('order-fill');
+      if (fb) fb.onclick = fillOrder;
+    } else { strip.style.display = 'none'; strip.innerHTML = ''; }
     TRADE_GOODS.forEach(g => {
       const p = traderPrices[g.k];
       const row = document.createElement('div');
@@ -4253,6 +4304,8 @@
         bellSaves: state.bellSaves || 0,
         caravan: state.caravan || null,
         caravansReturned: state.caravansReturned || 0,
+        order: state.order || null,
+        ordersFilled: state.ordersFilled || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4327,6 +4380,9 @@
       // HVALE-9 (older saves have nothing on the road)
       state.caravan = (s.caravan && typeof s.caravan.returnDay === 'number') ? { returnDay: s.caravan.returnDay } : null;
       state.caravansReturned = s.caravansReturned || 0;
+      // HVALE-11 (older saves have no order on the books)
+      state.order = (s.order && typeof s.order.qty === 'number' && typeof s.order.byDay === 'number') ? s.order : null;
+      state.ordersFilled = s.ordersFilled || 0;
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
