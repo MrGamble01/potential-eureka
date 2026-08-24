@@ -38,6 +38,11 @@ var G = {
   // HV-8: the day the posted odd job was last completed (-1 = never)
   oddJobDay: -1,
 
+  // HV-9: Word on the Street — 0–100 neighborhood reputation. Earned by
+  // odd jobs, trades, panhandle successes and regular friendships; fades
+  // a point each dawn. repGiftDay caps Beloved gifts at one per day.
+  rep: 0, repGiftDay: -1,
+
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
@@ -117,6 +122,26 @@ function oddJobAction(){
     tooltip:'Today’s posting on the bulletin board. ' + j.desc + ' Once per day.' };
 }
 
+// ── HV-9: Word on the Street ──
+// The neighborhood notices how you carry yourself. Tiers gate real
+// effects: Known lifts panhandle odds, Respected halves the complaint
+// calls that bring sweeps, Beloved means some mornings a neighbor
+// leaves something at the fence.
+var REP_TIERS = [
+  {at:0,  name:'A Stranger', icon:'💬'},
+  {at:25, name:'Known',      icon:'💬'},
+  {at:50, name:'Respected',  icon:'🤝'},
+  {at:75, name:'Beloved',    icon:'💛'},
+];
+function repTier(){ var r=G.rep||0, t=0; for(var i=0;i<REP_TIERS.length;i++) if(r>=REP_TIERS[i].at) t=i; return t; }
+function addRep(n){
+  var before=repTier();
+  G.rep=Math.max(0,Math.min(100,(G.rep||0)+n));
+  var after=repTier();
+  if(after>before) log(REP_TIERS[after].icon+' Word gets around — the neighborhood counts you as '+REP_TIERS[after].name+' now.');
+  else if(after<before) log('💬 Word fades — around here you are '+REP_TIERS[after].name+' again.');
+}
+
 var ACTIONS = [
   {id:'scavenge',  icon:'🗑️', label:'Scavenge Dumpster', time:5000, cooldown:8000,  tooltip:'Dig through dumpsters for scraps, cans, or food.'},
   {id:'forage',    icon:'🌿', label:'Forage Area',        time:4000, cooldown:12000, tooltip:'Search the surroundings for cardboard and wood.'},
@@ -146,6 +171,7 @@ var GOALS = [
   {id:'kitchen',    desc:'Build the Soup Kitchen',    target:1,  reward:8,  value:function(){ return G.structures.soup_kitchen?1:0; }},
   {id:'survive30',  desc:'Survive 30 days',           target:30, reward:10, value:function(){ return G.days; }},
   {id:'dog',        desc:'Befriend the stray dog',    target:1,  reward:5,  value:function(){ return G.dog===2?1:0; }},
+  {id:'respected',  desc:'Become Respected (50 rep)', target:50, reward:8,  value:function(){ return Math.floor(G.rep||0); }},
 ];
 
 var activeJobs = {};

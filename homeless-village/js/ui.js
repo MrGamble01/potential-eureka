@@ -152,6 +152,11 @@ function updateHUD(){
   var nf=Math.max(0,Math.sin(G.timeOfDay*Math.PI*2-Math.PI*1.2));
   document.getElementById('night-overlay').style.background='rgba(5,10,20,'+(nf*.55)+')';
   document.querySelector('#morale-pill .icon').textContent=G.morale>70?'😐':G.morale>40?'😔':'😞';
+  // HV-9: the neighborhood's read on you
+  var rt=REP_TIERS[repTier()];
+  var ri=document.getElementById('rep-icon'), rn=document.getElementById('rep-name');
+  if(ri) ri.textContent=rt.icon;
+  if(rn) rn.textContent=rt.name+' · '+Math.floor(G.rep||0);
 }
 
 var logFeed=document.getElementById('log-feed');

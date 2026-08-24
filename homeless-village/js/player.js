@@ -76,8 +76,10 @@ function finishAction(a){
     // HV-6: people stop for the dog — a fed Biscuit at your side makes
     // strangers noticeably more generous.
     var dogBoost=G.dog===2&&!G.dogHungry?1.25:1;
-    if(Math.random()<.55*weatherDef().pan*dogBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
-      bumpRegular('dee'); }
+    // HV-9: once the neighborhood knows you, strangers stop less warily
+    var repBoost=repTier()>=1?1.15:1;
+    if(Math.random()<.55*weatherDef().pan*dogBoost*repBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+      bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
     var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
@@ -86,7 +88,7 @@ function finishAction(a){
     bumpRegular('ray');
   } else if(a.id==='trade'){
     if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
-      bumpRegular('marisol'); }
+      bumpRegular('marisol'); addRep(1); }
     else log('Not enough cans to trade.');
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
@@ -97,6 +99,7 @@ function finishAction(a){
       parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
     }
     G.oddJobDay=G.days;
+    addRep(3);   // HV-9: honest work is how the neighborhood learns your name
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
     saveGame();
