@@ -1335,6 +1335,8 @@
       caravansReturned: 0, // lifetime caravans seen home (safe or robbed)
       order: null,         // HVALE-11: { k, qty, pay, byDay } standing order
       ordersFilled: 0,     // lifetime standing orders delivered
+      elderId: null,       // HVALE-12: who speaks for the town
+      elderTrade: null,    // …and which trade stands taller for it
     };
   }
   const ACHIEVEMENTS = [
@@ -1379,6 +1381,7 @@
     { id: 'bellsaved', emoji: '🔔', name: 'Saved by the Bell', desc: 'The chapel bell softens a raid that broke through.', done: () => (state.bellSaves || 0) >= 1 },
     { id: 'far_roads', emoji: '🐴', name: 'Friend of Far Roads', desc: 'See three caravans home from the far towns.', done: () => (state.caravansReturned || 0) >= 3 },
     { id: 'purveyor', emoji: '📜', name: 'Purveyor by Appointment', desc: "Fill three of the merchant's standing orders.", done: () => (state.ordersFilled || 0) >= 3 },
+    { id: 'elder', emoji: '🪶', name: 'A Voice for the Valley', desc: 'See a Town Elder named.', done: () => !!state.elderId },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -1889,6 +1892,38 @@
   }
   function workerOf(b) { return state.villagers.find(v => v.jobId === b.id) || null; }
 
+  // HVALE-12: the Town Elder — the most seasoned working villager
+  // speaks for the town. Elected at dawn from workers with Journeyman
+  // hands or better; every building of the Elder's own trade works 15%
+  // harder while they hold the title, and a new voice makes the
+  // Chronicle. No qualified hands, no elder — young towns go without.
+  const ELDER_MULT = 1.15;
+  function electElder() {
+    let best = null;
+    for (const v of state.villagers) {
+      if (!v.jobId) continue;
+      if ((v.xp || 0) < MASTERY[1].at) continue;   // Novices don't speak for towns
+      if (!best || (v.xp || 0) > (best.xp || 0)) best = v;
+    }
+    const wb = best ? state.buildings.find(x => x.id === best.jobId) : null;
+    const trade = wb ? wb.type : null;
+    if ((best ? best.id : null) !== (state.elderId || null)) {
+      state.elderId = best ? best.id : null;
+      state.elderTrade = trade;
+      if (best) {
+        const def = BUILDINGS[trade];
+        toast('🪶 ' + best.name + ' now speaks for the town as Elder — every ' + (def ? def.name : 'workshop') + ' works +15%.');
+        chron('🪶', best.name + ' was named Town Elder — the ' + (def ? def.name.toLowerCase() : 'trade') + ' trade stands taller');
+        checkAchievements();
+      }
+    } else {
+      state.elderTrade = trade;   // same elder, maybe a new bench
+    }
+  }
+  function elderTradeMult(b) {
+    return state.elderId && state.elderTrade && b.type === state.elderTrade ? ELDER_MULT : 1;
+  }
+
   function spawnVillager(home) {
     const d = doorTile(home);
     const spot = findWalkableNear(d.tx, d.ty) || d;
@@ -2207,6 +2242,7 @@
           if (mastery.mult !== 1) amt = Math.max(1, Math.round(amt * mastery.mult)); // seasoned hands (HVALE-2)
           { const tm = wk ? traitMult(wk, b) : 1; if (tm !== 1) amt = Math.max(1, Math.round(amt * tm)); } // natures (HVALE-3)
           { const cw = cobbledMult(b); if (cw !== 1) amt = Math.max(1, Math.round(amt * cw)); } // the Cobbled Way (HVALE-6)
+          { const em = elderTradeMult(b); if (em !== 1) amt = Math.max(1, Math.round(amt * em)); } // the Elder's trade (HVALE-12)
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
@@ -2418,6 +2454,7 @@
     if (state.raidTonight) resolveRaid();
     maybeScheduleRaid();
     caravanAtDawn();
+    electElder();   // HVALE-12: the dawn light finds the town's most seasoned hands
     // HVALE-11: a standing order left past its deadline lapses quietly
     if (state.order && state.day > state.order.byDay) {
       chron('📜', "The merchant's standing order lapsed — another town filled it");
@@ -4306,6 +4343,7 @@
         caravansReturned: state.caravansReturned || 0,
         order: state.order || null,
         ordersFilled: state.ordersFilled || 0,
+        elderId: state.elderId || null, elderTrade: state.elderTrade || null,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4383,6 +4421,8 @@
       // HVALE-11 (older saves have no order on the books)
       state.order = (s.order && typeof s.order.qty === 'number' && typeof s.order.byDay === 'number') ? s.order : null;
       state.ordersFilled = s.ordersFilled || 0;
+      state.elderId = s.elderId || null;        // HVALE-12
+      state.elderTrade = s.elderTrade || null;
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
@@ -4594,6 +4634,7 @@
   // kick off
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
+
 })();
 </script>
 </body>
