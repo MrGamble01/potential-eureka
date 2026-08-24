@@ -70,7 +70,10 @@ function finishAction(a){
     floatText('+'+w+'🪵 +'+cb+'📦');
     log('Found '+w+' wood and '+cb+' cardboard.');
   } else if(a.id==='panhandle'){
-    if(Math.random()<.55*weatherDef().pan){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.'); }
+    // HV-6: people stop for the dog — a fed Biscuit at your side makes
+    // strangers noticeably more generous.
+    var dogBoost=G.dog===2&&!G.dogHungry?1.25:1;
+    if(Math.random()<.55*weatherDef().pan*dogBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.'); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
     var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));

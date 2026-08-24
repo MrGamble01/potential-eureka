@@ -14,8 +14,38 @@ function buildGarden(x,z){
   grp.position.set(x,0,z); scene.add(grp); gardenMesh=grp;
 }
 
+// ── The stray dog (HV-6) ──
+var dogMesh=null;
+function buildDog(){
+  var grp=new THREE.Group();
+  var fur=new THREE.MeshLambertMaterial({color:0x8a6a42});
+  var body=new THREE.Mesh(new THREE.BoxGeometry(.7,.35,.3),fur);
+  body.position.y=.45; grp.add(body);
+  var head=new THREE.Mesh(new THREE.BoxGeometry(.28,.26,.26),fur);
+  head.position.set(.42,.62,0); grp.add(head);
+  var snout=new THREE.Mesh(new THREE.BoxGeometry(.14,.12,.14),new THREE.MeshLambertMaterial({color:0x6a4e2e}));
+  snout.position.set(.58,.56,0); grp.add(snout);
+  var tail=new THREE.Mesh(new THREE.BoxGeometry(.22,.06,.06),fur);
+  tail.position.set(-.42,.58,0); tail.rotation.z=.5; grp.add(tail);
+  for(var i=0;i<4;i++){
+    var leg=new THREE.Mesh(new THREE.BoxGeometry(.07,.3,.07),fur);
+    leg.position.set(i<2?.24:-.24,.15,i%2?.1:-.1); grp.add(leg);
+  }
+  return grp;
+}
+function refreshDog(){
+  if(G.dog>0&&!dogMesh){ dogMesh=buildDog(); scene.add(dogMesh); }
+  if(G.dog===0&&dogMesh){ scene.remove(dogMesh); dogMesh=null; }
+  // wary: watches from the fence line. Friend: curled up by the barrel fire.
+  if(dogMesh){
+    if(G.dog===2){ dogMesh.position.set(2.2,0,1.6); dogMesh.rotation.y=-.6; }
+    else { dogMesh.position.set(9,0,8); dogMesh.rotation.y=Math.PI*.8; }
+  }
+}
+
 // ── Structures (authoritative version) ──
 function refreshStructures(){
+  refreshDog();
   if(G.structures.workbench&&!workbenchMesh)    buildWorkbench(3,2);
   if(!G.structures.workbench&&workbenchMesh){   scene.remove(workbenchMesh); workbenchMesh=null; }
   if(G.structures.tent&&!tentMesh)              buildTent(-4,-2);
@@ -52,6 +82,17 @@ function onNewDay(){
     if(G.weather==='cold'){ log('Frost on the beds — the garden gave nothing today.'); }
     else { var y=rand(1,3); G.food+=y; floatText('+'+y+'🍞'); log('Garden yielded '+y+' food.'); }
   }
+  if(G.dog===2){
+    // Biscuit's keep: one food a day. Fed, he's warmth against your back
+    // and a reason to get up; hungry, he's a guilt that wears on everyone.
+    if(G.food>=1){
+      G.food-=1; G.dogHungry=false;
+      G.morale=Math.min(100,G.morale+2); G.warmth=Math.min(100,G.warmth+3);
+    } else {
+      G.dogHungry=true; G.morale=Math.max(0,G.morale-2);
+      log('No scraps left for Biscuit. He curls up hungry.');
+    }
+  }
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -60,7 +101,33 @@ function onNewDay(){
   buildCraftUI(); buildWorkersUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
   checkArc();
+  checkDog();
   checkGameOver(); // after maybeEvent so same-day event damage counts
+}
+
+// ── The stray dog arc (HV-6) ──
+// Staged deterministically like the Case Worker: a thin dog appears at
+// the fence on day 4, and two days later — if the camp can spare food —
+// he decides you're worth trusting. From then on he eats one food a day,
+// buys morale and night warmth, makes panhandling land more often, chases
+// off thieves, and barks a 15-second warning before unwatched sweeps.
+var DOG_EVENTS={
+  stray:{id:'dog_stray',title:'A Stray Dog',type:'good',
+    desc:'A thin dog with one torn ear watches the camp from the fence line. He keeps his distance, but he doesn’t leave. Someone starts calling him Biscuit.',
+    effect:function(){ G.lastEventDay=G.days; G.morale=Math.min(100,G.morale+4);
+      log('A stray dog is hanging around the fence. Keep some food on hand and he may come closer.'); }},
+  joins:{id:'dog_joins',title:'Biscuit Comes Closer',type:'good',
+    desc:'The dog walks into camp like he’s always lived here, eats what’s offered, and falls asleep against the barrel fire. That’s that, then.',
+    effect:function(){ G.lastEventDay=G.days; G.food=Math.max(0,G.food-2);
+      G.morale=Math.min(100,G.morale+10); refreshDog();
+      log('Biscuit joined the camp. One food a day keeps him fed — he earns it.'); }},
+};
+function checkDog(){
+  if(G.dog===0&&G.days>=4){
+    G.dog=1; G.dogMetDay=G.days; refreshDog(); triggerEvent(DOG_EVENTS.stray,true); saveGame();
+  } else if(G.dog===1&&G.days>=G.dogMetDay+2&&G.food>=3){
+    G.dog=2; triggerEvent(DOG_EVENTS.joins,true); saveGame();
+  }
 }
 
 // ── The Case Worker arc (IDEA-HV-3) ──
@@ -153,10 +220,12 @@ var EVENTS_BAD=[
    desc:'Someone raided your stash in the night. Trust no one.',
    effect:function(){
      G.lastEventDay=G.days;
-     G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)));
-     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)));
-     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)));
-     G.morale=Math.max(0,G.morale-rand(12,20)); log('Stash raided in the night.');
+     var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
+     G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm));
+     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm));
+     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm));
+     G.morale=Math.max(0,G.morale-rand(12,20));
+     log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
@@ -253,6 +322,15 @@ function maybeEvent(){
       setTimeout(function(){
         if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
       },30000);
+    } else if(G.dog===2){
+      // HV-6: no Lookout, but Biscuit hears the trucks — half the warning
+      // window a paid Lookout gives, still enough to hit PACK UP.
+      G.sweepWarned=true; G.packedUp=false;
+      showSweepWarning(true, Date.now()+15000);
+      log('Biscuit will not stop barking at the road. Something is coming — ~15 seconds!');
+      setTimeout(function(){
+        if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
+      },15000);
     } else {
       triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
     }

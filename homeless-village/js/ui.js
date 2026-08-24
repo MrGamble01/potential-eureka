@@ -101,7 +101,7 @@ function updateHUD(){
   document.getElementById('stat-health').textContent  =Math.floor(G.health);
   document.getElementById('stat-warmth').textContent  =Math.floor(G.warmth);
   document.getElementById('morale-val').textContent   =Math.floor(G.morale);
-  document.getElementById('pop-val').textContent      =G.population;
+  document.getElementById('pop-val').textContent      =G.population+(G.dog===2?(G.dogHungry?' 🐕💢':' 🐕'):'');
   document.getElementById('days-counter').textContent ='Days Survived: '+G.days;
   document.getElementById('season-badge').textContent =['SPRING','SUMMER','AUTUMN','WINTER'][G.season]
     + ' ' + weatherDef().icon
