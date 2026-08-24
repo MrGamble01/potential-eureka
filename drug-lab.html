@@ -419,6 +419,14 @@ canvas{display:block;touch-action:none;}
   color:#f85149;font-weight:800;font-size:13px;
   padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
 }
+/* ── The Block Party (LAB-23) ── */
+#party-hud{
+  position:fixed;top:258px;left:50%;transform:translateX(-50%);
+  background:rgba(14,4,20,0.92);
+  border:1px solid rgba(210,168,255,0.6);
+  color:#d2a8ff;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+}
 /* ── Crunch Mode (LAB-12) ── */
 #crunch-toggle{
   position:fixed;bottom:14px;right:16px;z-index:30;
@@ -515,6 +523,7 @@ canvas{display:block;touch-action:none;}
 <div id="tip-hud" style="display:none" title="The informant sells the street wire: for 90 seconds every undercover buyer is made on sight — no Lookout needed">ℹ️ <span id="tip-val"></span><button id="tip-buy"></button></div>
 <div id="bw-hud" style="display:none" title="Two buyers want the same 5-bag lot. Hammer to sell at the standing bid, or let them bid each other up — they might spook and walk">🔨 <span id="bw-val"></span><button id="bw-hammer"></button><button id="bw-wait"></button></div>
 <div id="wave-hud" style="display:none" title="A crackdown sweep: every sale runs 2× hotter and street buyers come half as often. Sell nothing until it lifts and the clean streets pay −10 heat">🚨 <span id="wave-val"></span></div>
+<div id="party-hud" style="display:none" title="A block party: buyers pay +25% and come twice as fast — but every sale runs 1.5× hotter and the crowd hides badges (2× sting odds). Sell hard or sit it out">🎉 <span id="party-val"></span></div>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
 <button id="unit-toggle" style="display:none" title="The Storage Unit: a $1,500 rental across town under a clean name. Stash cap 15 → 45, and if you ever skip town, the unit isn’t on the warrant — up to 15 bags survive">📦 RENT A UNIT $1,500</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
@@ -1134,7 +1143,7 @@ const DEALER_COLORS = [0x1a1a1a, 0x2a1a1a, 0x1a2a22, 0x221a2a, 0x1a1a2a];
 let dealerSpawnTimer = 0;
 function dealerArrivalTime() {
   // LAB-20: buyers come half as often while a crackdown sweep runs
-  return 25 / (1 + upgLv('network')*0.3) * (typeof waveActive === 'function' && waveActive() ? 2 : 1);
+  return 25 / (1 + upgLv('network')*0.3) * (typeof waveActive === 'function' && waveActive() ? 2 : 1) * (typeof partyActive === 'function' && partyActive() ? 0.5 : 1);
 }
 
 function buildDealer() {
@@ -1198,7 +1207,7 @@ function spawnDealer() {
   // LAB-9: past the garage act, ~1 in 8 "buyers" is an undercover cop.
   // The feed gives no tell — only a hired Lookout flags them on sight.
   const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2),
-             undercover: currentAct() >= 2 && Math.random() < 0.12, waitT: 0};
+             undercover: currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1), waitT: 0};   // LAB-23: the crowd hides badges
   dealers.push(d);
   addFeed(`👤 Buyer incoming`);
 }
@@ -1775,7 +1784,7 @@ function salePrice() {
   const chemiBonus = chemStation ? 1.8 : 1;
   // LAB-14: the Penthouse brand — nobody haggles with the man upstairs.
   const brand = ownedRoomSet.has('penthouse') ? 1.1 : 1;
-  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult());
+  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult());
 }
 
 // ── Big buyers (LAB-8) ─────────────────────────────────────
@@ -1992,6 +2001,57 @@ function updateWave(dt) {
     addFeed('🚨 A crackdown sweep rolls onto the block');
   }
 }
+// ── The Block Party (LAB-23) ────────────────────────────
+// The mirror of the crackdown. Every so often past the garage, the
+// block throws a party for 60 seconds: buyers pay +25% and come twice
+// as fast — but every sale runs 1.5× hotter and the crowd hides
+// badges (2× undercover odds). The Heat Wave says lie low; the party
+// says sell hard. A party never starts during a sweep — but a sweep
+// can absolutely crash a party.
+const PARTY_SECS = 60;
+let partyT = 420, partyLeft = 0, partySalesNow = 0;
+function partyActive() { return partyLeft > 0; }
+function partyPriceMult() { return partyActive() ? 1.25 : 1; }
+function partyHeatMult() { return partyActive() ? 1.5 : 1; }
+function refreshPartyHud() {
+  const el = document.getElementById('party-hud');
+  if (!el) return;
+  if (partyActive()) {
+    el.style.display = '';
+    document.getElementById('party-val').textContent = 'BLOCK PARTY ' + Math.ceil(partyLeft) + 's';
+  } else el.style.display = 'none';
+}
+function updateParty(dt) {
+  if (currentAct() < 2) return;   // nobody parties outside a garage
+  if (partyActive()) {
+    partyLeft -= dt;
+    refreshPartyHud();
+    if (partyLeft <= 0) {
+      partyLeft = 0;
+      refreshPartyHud();
+      if (partySalesNow > 0) {
+        showToast('🎉 The party winds down — ' + partySalesNow + ' sale' + (partySalesNow === 1 ? '' : 's') + ' in the crowd.', 'cash');
+        addFeed('🎉 The block party wound down (' + partySalesNow + ' party sale' + (partySalesNow === 1 ? '' : 's') + ')');
+      } else {
+        showToast('🎉 The party winds down — you sat this one out.', '');
+        addFeed('🎉 The block party wound down (sat out)');
+      }
+      partyT = 360 + Math.random() * 180;
+      saveGame();
+    }
+    return;
+  }
+  partyT -= dt;
+  if (partyT <= 0) {
+    if (waveActive()) { partyT = 30; return; }   // nobody parties through a sweep
+    partyLeft = PARTY_SECS;
+    partySalesNow = 0;
+    refreshPartyHud();
+    showToast('🎉 BLOCK PARTY — 60s of packed corners: +25% prices, twice the buyers… and badges in the crowd.', 'cash');
+    addFeed('🎉 The block threw a party — the corner is packed');
+  }
+}
+
 function updateRoute(dt) {
   if (routeCold > 0) {
     routeCold = Math.max(0, routeCold - dt);
@@ -2010,8 +2070,9 @@ function updateRoute(dt) {
   const pay = Math.floor(ROUTE_BAGS * salePrice() * ROUTE_CUT);
   addCash(pay);
   state.totalSold = (state.totalSold||0) + ROUTE_BAGS;
-  addHeat(1 * waveHeatMult());   // LAB-20: the van isn't invisible in a sweep
+  addHeat(Math.round(1 * waveHeatMult() * partyHeatMult()));   // LAB-20/23: the van isn't invisible in a sweep — or a crowd
   if (waveActive()) waveSales++;
+  if (partyActive()) { partySalesNow++; state.partySales = (state.partySales || 0) + 1; checkGrowAchievements(); }
   state.routeShipped = (state.routeShipped||0) + ROUTE_BAGS;
   addFeed('📦 The van moved ' + ROUTE_BAGS + ' bags wholesale (+$' + fmtCash(pay) + ')');
   checkGrowAchievements();
@@ -2275,6 +2336,7 @@ const GROW_ACH = [
   { id: 'wholesale',    name: 'Wholesale',       test: () => (state.routeShipped || 0) >= 30 }, // LAB-18
   { id: 'signature',    name: 'Signature Blend', test: () => (state.batches || 0) >= 150 },     // LAB-19
   { id: 'cold_streets', name: 'Cold Streets',    test: () => (state.cleanWaves || 0) >= 3 },    // LAB-20
+  { id: 'block_famous', name: 'The Block Knows', test: () => (state.partySales || 0) >= 12 },   // LAB-23
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
 ];
@@ -2671,6 +2733,7 @@ function saveGame() {
     pureBags, chemPure,
     nbPure,   // LAB-19: the pending eureka page
     waveT: Math.round(waveT), waveLeft: Math.round(waveLeft),  // LAB-20
+    partyT: Math.round(partyT), partyLeft: Math.round(partyLeft), partySales: state.partySales || 0,  // LAB-23
     waveSales, cleanWaves: state.cleanWaves || 0,
     bagPacked: !!state.bagPacked, skips: state.skips || 0,   // LAB-21
     unitRented: !!state.unitRented,   // LAB-22
@@ -2750,6 +2813,10 @@ function loadGame() {
     chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
     nbPure = !!sv.nbPure;   // LAB-19
     if (typeof sv.waveT === 'number') waveT = Math.min(400, Math.max(5, sv.waveT));   // LAB-20
+    if (typeof sv.partyT === 'number') partyT = Math.min(600, Math.max(5, sv.partyT));   // LAB-23
+    if (typeof sv.partyLeft === 'number') partyLeft = Math.min(PARTY_SECS, Math.max(0, sv.partyLeft));
+    state.partySales = Math.max(0, Math.floor(sv.partySales || 0));
+    refreshPartyHud();
     if (typeof sv.waveLeft === 'number') waveLeft = Math.min(WAVE_SECS, Math.max(0, sv.waveLeft));
     waveSales = Math.max(0, Math.floor(sv.waveSales || 0));
     state.cleanWaves = Math.max(0, Math.floor(sv.cleanWaves || 0));
@@ -3131,8 +3198,9 @@ function sellToDealer(d, idx) {
   pureBags-=pureUsed;
   stashCount-=qty; state.totalSold+=qty;
   addCash(price);
-  addHeat(heatGainPerSale(qty) * waveHeatMult());   // LAB-20: sweeps make every sale expensive
+  addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
   if (waveActive()) waveSales++;
+  if (partyActive()) { partySalesNow++; state.partySales = (state.partySales || 0) + 1; checkGrowAchievements(); }
   if (contract) {   // LAB-8: every street sale fills the open order
     contract.filled += qty;
     if (contract.filled >= contract.need) completeContract();
@@ -3421,6 +3489,7 @@ function animate(now_ms) {
     updateBw(dt);
     updateRoute(dt);
     updateWave(dt);
+    updateParty(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
