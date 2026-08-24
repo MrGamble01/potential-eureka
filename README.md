@@ -4,7 +4,7 @@ A browser arcade of small, self-contained games. Zero dependencies — vanilla H
 
 Open `index.html` and you land in a retro terminal-style hub (clock, system monitor, activity graph) that doubles as the arcade's front door. From there you can jump into a mix of in-page canvas games and standalone game pages.
 
-The hub carries a shared meta-layer across the whole arcade: a **daily challenge** (seven games share one seed per day, so everyone races the same board), **21 achievements** that mint **coins** for accent-color cosmetics, hub **themes**, zero-backend **rival leaderboards** via copy-paste share codes, a Hall of Fame with a downloadable **PNG score card**, one-click **backup/restore** of every save, a `?` **shortcuts cheat-sheet**, gamepad support, and a service worker that makes the whole thing an installable, fully-offline **PWA**.
+The hub carries a shared meta-layer across the whole arcade: a **daily challenge** (seven games share one seed per day, so everyone races the same board), **21 achievements** that mint **coins** for accent-color cosmetics, hub **themes**, zero-backend **rival leaderboards** via copy-paste share codes (covering the hub games *and* every flagship's headline record), a Hall of Fame with a downloadable **PNG score card**, one-click **backup/restore** of every save, a `?` **shortcuts cheat-sheet**, gamepad support, and a service worker that makes the whole thing an installable, fully-offline **PWA**.
 
 ## Games
 
