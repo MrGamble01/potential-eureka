@@ -229,6 +229,7 @@
     <li>The <b>🛖 Ice Hut</b> (level 8) sits out on the hard water &mdash; <b>ice fishing</b> opens the frozen pond: Arctic Char, Burbot and the pale 🌙 Moon Koi at a premium, all logged in the Angler&rsquo;s Log</li>
     <li>The <b>⛴️ Ferry Landing</b> (level 6) brings day-trippers in the green seasons &mdash; the ferry docks every couple of minutes and the visitors <b>tip 8 🪙 +2 per decor piece</b> (capped at 40): the prettier the isle, the fatter the tips</li>
     <li>The <b>🍁 Sugar Shack</b> (level 7) taps the maples &mdash; <b>spring boils every couple of minutes</b> pay 12 🪙, and a <b>boil in the rain runs double</b>: every season now has its own earner</li>
+    <li>The <b>🏛️ Isle Museum</b> (level 9) keeps a curator&rsquo;s cabinet &mdash; the <b>first of every species</b> you land is mounted for a <b>30 🪙 finder&rsquo;s bounty</b>, and the winter table counts: eight mounts fill the cabinet</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -717,6 +718,11 @@ const ICE_CATCH=[
   {id:'icekoi',name:'Moon Koi',   ico:'🌙',coins:200,w:0.3, min:3.0,max:9.0},
   {ico:'🧊',coins:6,w:2}];
 function icehutBuilt(){return !!(state.buildings&&state.buildings.icehut);}
+// VOX-18: the Isle Museum — a collection the whole pond feeds. The
+// FIRST of every species landed (either table) is mounted in the
+// curator's cabinet and pays a finder's bounty on the spot.
+const MUSEUM_BOUNTY=30;
+function museumBuilt(){return !!(state.buildings&&state.buildings.museum);}
 function goFishing(x,z){
   const iceMode=seasonOf(state.day).key==='winter';   // VOX-15
   if(iceMode&&!icehutBuilt()){toast('❄️ The pond is frozen solid');return;}
@@ -743,6 +749,12 @@ function goFishing(x,z){
       if(size>l.best){
         l.best=size;
         if(l.n>1)floatText(x,y+1.8,z,'⚖️ '+size+'kg — record!','#ffd23e');
+      }
+      if(museumBuilt()&&!(state.mounted&&state.mounted[pick.id])){   // VOX-18: first of its kind
+        if(!state.mounted)state.mounted={};
+        state.mounted[pick.id]=1;
+        grantCoins(MUSEUM_BOUNTY,x,y+2,z);
+        toast('🏛️ '+pick.name+' mounted in the Isle Museum — +'+MUSEUM_BOUNTY+' 🪙 finder\u2019s bounty!');
       }
     }
     burst(x,y+0.5,z,0x6fc3ff,7,{up:1.4,g:5,spread:1});
@@ -1571,6 +1583,7 @@ const BUILDINGS={
   icehut:   {ico:'🛖',name:'Ice Hut',cost:750,lvl:8,desc:'A hut out on the hard water — the frozen pond opens for ice fishing: hardy cold-water catches at a premium, logged in the Angler’s Log',roof:0x4a6a8a,wall:0xa8c4d8,kind:'icehut'},
   ferry:    {ico:'⛴️',name:'Ferry Landing',cost:650,lvl:6,desc:'A jetty for the mainland ferry — day-trippers visit in the green seasons, tipping more the prettier the isle (every fence, lantern, gnome and bloom counts)',roof:0x4a6a8a,wall:0x9a7a52,kind:'ferry'},
   sugarshack:{ico:'🍁',name:'Sugar Shack',cost:700,lvl:7,desc:'Taps the maples when the sap rises — the pans boil every couple of minutes through spring, and a boil in the rain runs double',roof:0x8a4b2f,wall:0xb8875a,kind:'sugar'},
+  museum:   {ico:'🏛️',name:'Isle Museum',cost:800,lvl:9,desc:'A curator\u2019s cabinet by the shore — the first of every species you land is mounted and pays a 30 🪙 finder\u2019s bounty (the winter table counts)',roof:0x8a8f96,wall:0xe8e2d4,kind:'museum'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1589,6 +1602,7 @@ function buildingCubes(def){
   if(def.kind==='icehut')return icehutCubes(def);
   if(def.kind==='ferry')return ferryCubes(def);
   if(def.kind==='sugar')return sugarCubes(def);
+  if(def.kind==='museum')return museumCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1711,6 +1725,19 @@ function ferryCubes(def){
   a(0.7,0.72,0.25,0.2,0.3,0.2,0x2a3a4a);         // the mooring bollard
   a(-0.05,1.15,0.3,0.06,1.2,0.06,0x5a4028);      // the flagpole
   a(0.16,1.6,0.3,0.4,0.24,0.04,0xd94f30);        // the flag
+  return c;
+}
+function museumCubes(def){
+  // VOX-18: a stately little hall — pale stone walls, a low pediment,
+  // twin columns flanking the door, a gull-grey roof
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.6,0,2.0,1.2,1.4,def.wall);               // the hall
+  a(0,1.35,0,2.2,0.3,1.6,def.roof);              // roof slab
+  a(0,1.6,0,1.4,0.24,1.0,def.roof);              // pediment cap
+  a(-0.6,0.55,0.76,0.18,1.1,0.14,0xd8d2c4);      // column
+  a(0.6,0.55,0.76,0.18,1.1,0.14,0xd8d2c4);       // column
+  a(0,0.5,0.74,0.5,0.9,0.08,0x4a4038);           // tall door
+  a(0,1.05,0.78,0.9,0.18,0.06,0x8a8f96);         // lintel plaque
   return c;
 }
 function sugarCubes(def){
@@ -4236,6 +4263,7 @@ const ACH=[
   ['ice5','Hard Water','Land five catches through the winter ice',()=>(state.iceCatches||0)>=5],
   ['ferry5','Day-Trippers','Welcome five ferry crossings',()=>(state.ferryVisits||0)>=5],
   ['sap5','Sugar Rush','Boil five batches of syrup',()=>(state.sapBoils||0)>=5],
+  ['mount5','Curator','Mount five species in the Isle Museum',()=>Object.keys(state.mounted||{}).length>=5],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
