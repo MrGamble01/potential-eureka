@@ -36,6 +36,10 @@ function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
   if(a.id==='oddjob' && oddJobDone()){ log('Today’s odd job is done — check the board tomorrow.'); return; }
+  if(a.id==='mural'){
+    if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
+    if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
@@ -78,7 +82,9 @@ function finishAction(a){
     var dogBoost=G.dog===2&&!G.dogHungry?1.25:1;
     // HV-9: once the neighborhood knows you, strangers stop less warily
     var repBoost=repTier()>=1?1.15:1;
-    if(Math.random()<.55*weatherDef().pan*dogBoost*repBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+    // HV-11: people slow down for the finished mural — and stay a moment
+    var muralBoost=(G.mural||0)>=MURAL_PANELS?1.1:1;
+    if(Math.random()<.55*weatherDef().pan*dogBoost*repBoost*muralBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
       bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
@@ -104,6 +110,26 @@ function finishAction(a){
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
     saveGame();
     buildActionUI();
+  } else if(a.id==='mural'){
+    // HV-11: one painting session. doAction gates cost and cadence, but
+    // re-check here so a queued double-fire can't paint two panels a day.
+    if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
+      G.scraps-=2; G.mural=(G.mural||0)+1; G.muralDay=G.days;
+      G.morale=Math.min(100,G.morale+3);
+      addRep(2);
+      floatText('🎨 +3😊');
+      log('🎨 '+MURAL_LINES[G.mural-1]);
+      var painters=REGULARS.filter(function(r){ return regularStage(r.id)===2; });
+      if(painters.length) log(painters[0].icon+' '+painters[0].name+' came by to paint a while.');
+      if(G.mural>=MURAL_PANELS){
+        G.goodwill+=5;
+        addRep(5);
+        log('🎨 The mural is finished. People slow down to look now. +5 goodwill.');
+      }
+      refreshStructures();
+      saveGame();
+      buildActionUI();
+    }
   }
   sfx('action');
   updateHUD();

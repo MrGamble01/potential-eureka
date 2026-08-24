@@ -14,6 +14,25 @@ function buildGarden(x,z){
   grp.position.set(x,0,z); scene.add(grp); gardenMesh=grp;
 }
 
+// ── The Underpass Mural (HV-11) ──
+// One bright panel per bridge pillar on the camp side, revealed as
+// painting sessions land. Meshes sync to G.mural, so load, paint and
+// (never) sweeps all route through the same refresh.
+var muralMeshes=[];
+var MURAL_COLORS=[0xd4682a,0x2a9d8f,0xe9c46a,0x9b5de5];
+function refreshMural(){
+  var want=Math.min(G.mural||0,MURAL_PANELS);
+  while(muralMeshes.length>want){ scene.remove(muralMeshes.pop()); }
+  var px=[-14,-6,2,10];
+  while(muralMeshes.length<want){
+    var i=muralMeshes.length;
+    var m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.6),
+      new THREE.MeshLambertMaterial({color:MURAL_COLORS[i],transparent:true,opacity:.92}));
+    m.position.set(px[i],1.7,5.62);
+    scene.add(m); muralMeshes.push(m);
+  }
+}
+
 // ── The stray dog (HV-6) ──
 var dogMesh=null;
 function buildDog(){
@@ -46,6 +65,7 @@ function refreshDog(){
 // ── Structures (authoritative version) ──
 function refreshStructures(){
   refreshDog();
+  refreshMural();
   if(G.structures.workbench&&!workbenchMesh)    buildWorkbench(3,2);
   if(!G.structures.workbench&&workbenchMesh){   scene.remove(workbenchMesh); workbenchMesh=null; }
   if(G.structures.tent&&!tentMesh)              buildTent(-4,-2);
@@ -96,6 +116,7 @@ function onNewDay(){
   regularFavorsAtDawn();
   repAtDawn();
   soupNightAtDawn();
+  muralAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -154,6 +175,14 @@ function soupNightAtDawn(){
   var extra='';
   if(Math.random()<.25){ var gg=rand(1,2); G.goodwill+=gg; addRep(1); extra=' A neighbor smelled the cooking and left +'+gg+' goodwill.'; }
   log('🍲 Soup night — everyone ate hot. +4 morale, +2 health.'+extra);
+}
+
+// ── HV-11: the finished mural greets every morning — a fixed +2 morale
+// at dawn, the permanent payoff for the four-session project.
+function muralAtDawn(){
+  if((G.mural||0)<MURAL_PANELS) return;
+  G.morale=Math.min(100,G.morale+2);
+  if(Math.random()<.15) log('🎨 Morning light on the mural. It helps more than it should.');
 }
 
 // ── HV-9: reputation at dawn — word fades, and Beloved camps wake to
@@ -265,6 +294,12 @@ var EVENTS_BAD=[
      G.scraps=Math.max(0,G.scraps-lostScraps);
      G.food  =Math.max(0,G.food  -lostFood);
      G.morale=Math.max(0,G.morale-rand(15,25));
+     // HV-11: they can tear down tents, not paint — a finished mural
+     // blunts the demoralizing part of watching the camp get cleared.
+     if((G.mural||0)>=MURAL_PANELS){
+       G.morale=Math.min(100,G.morale+5);
+       log('The mural still stands over the wreckage. It helps.');
+     }
      if(G.packedUp) log('Packing up paid off — most supplies were saved.');
      G.packedUp=false;
      refreshStructures(); showSweepWarning(false);

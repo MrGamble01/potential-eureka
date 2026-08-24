@@ -24,6 +24,21 @@ function buildActionUI(){
   jb.addEventListener('mouseenter',showTip);
   jb.addEventListener('mouseleave',hideTip);
   el.appendChild(jb);
+  // HV-11: the mural session appears once the neighborhood knows you,
+  // and retires from the list when the fourth panel is up.
+  if(muralAvailable()){
+    var ma=muralAction();
+    var mb=document.createElement('button');
+    mb.className='action-btn'; mb.id='action-mural';
+    mb.setAttribute('data-tip', muralDone() ? 'Today’s panel is drying — back at it tomorrow.' : ma.tooltip);
+    mb.innerHTML='<span class="btn-progress" id="progress-mural" style="width:0%"></span>'+ma.icon+' '+ma.label+(muralDone()?' ✓':'');
+    mb.disabled=muralDone();
+    if(muralDone()) mb.style.opacity='.5';
+    mb.onclick=function(){ doAction(muralAction()); };
+    mb.addEventListener('mouseenter',showTip);
+    mb.addEventListener('mouseleave',hideTip);
+    el.appendChild(mb);
+  }
 }
 
 function buildCraftUI(){
