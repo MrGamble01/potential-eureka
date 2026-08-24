@@ -1104,6 +1104,7 @@
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier — and a coin a day buys a wish.' },
     physic:     { name: 'Physic Garden', emoji: '🌿', w: 2, h: 2, tier: 2, cost: { wood: 10, stone: 6 }, happy: 4, charm: 2, roof: C.leaf, roofDk: C.leafDk, desc: 'Rows of feverfew and willowbark tended for the sick season. An autumn fever that would smoulder three days breaks in one, and the outbreak stings half as hard.' },
     watchtower: { name: 'Watchtower',  emoji: '🗼', w: 2, h: 2, tier: 1, cost: { wood: 18, stone: 10 }, worker: true, guard: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchman keeps wolves and worse at bay through the night. Each level holds off a bigger pack.' },
+    icehouse:   { name: 'Icehouse',    emoji: '🧊', w: 2, h: 2, tier: 2, cost: { stone: 18, wood: 8 }, icehouse: true, unique: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Thick stone walls and sawdust — every winter dawn packs a block of ice (up to 4), and every summer dawn sells one back: 6 gold and a cooler, happier town.' },
     palisade:   { name: 'Palisade',    emoji: '🪵', w: 2, h: 2, tier: 2, cost: { wood: 22, stone: 10 }, palisade: true, unique: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A ring of sharpened timber around the heart of town — the wall stands its own watch: +1 guard that never sleeps and needs no keeper.' },
     beacon:     { name: 'Beacon Tower', emoji: '🕯️', w: 2, h: 2, tier: 3, cost: { wood: 25, stone: 30 }, beacon: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchfire over the valley: caravans are waylaid half as often, and the flame spots wolf packs a day out.' },
     furrier:    { name: 'Furrier',     emoji: '🧥', w: 2, h: 2, tier: 3, cost: { wood: 20, stone: 8, gold: 14 }, prod: { gold: 12 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Works wolf pelts from repelled raids into fine winter coats — 1 pelt a cycle becomes 12 gold and a warmer, happier town.' },
@@ -1130,7 +1131,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'palisade', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'palisade', 'icehouse', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1666,6 +1667,7 @@
     { id: 'winter_larder', emoji: '🏹', name: 'Winter Larder', desc: 'Bring in six winter hunts.', done: () => (state.hunts || 0) >= 6 },
     { id: 'cidermaker', emoji: '🍎', name: 'Cidermaker', desc: 'Run five press days.', done: () => (state.presses || 0) >= 5 },
     { id: 'stockade', emoji: '🪵', name: 'The Stockade', desc: 'Repel three raids with the palisade standing.', done: () => (state.wallRaids || 0) >= 3 },
+    { id: 'coldgold', emoji: '🧊', name: 'Cold Gold', desc: 'Sell eight blocks of winter ice.', done: () => (state.iceSold || 0) >= 8 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2756,6 +2758,35 @@
   }
   function clearWolves() { critters = critters.filter(c => c.kind !== 'wolf'); }
 
+  // ---- The Icehouse (HVALE-24) --------------------------------
+  // The stored-value round on the town's own calendar: winter is the
+  // deposit season, summer is the withdrawal. Every winter dawn the
+  // house packs a block (cap 4); every summer dawn it sells one back
+  // — 6 gold, +1 cheer, and the Chronicle keeps the receipt.
+  const ICE_CAP = 4, ICE_PAY = 6;
+  function icehouseBuilt() {
+    return state.buildings.some(b => BUILDINGS[b.type].icehouse && b.done !== false);
+  }
+  function iceAtDawn() {
+    if (!icehouseBuilt()) return;
+    if (state.lastIceDay === state.day) return;
+    state.lastIceDay = state.day;
+    const sn = seasonOf(state.day).name;
+    if (sn === 'Winter' && (state.iceBlocks || 0) < ICE_CAP) {
+      state.iceBlocks = (state.iceBlocks || 0) + 1;
+      if (state.iceBlocks === ICE_CAP) chron('🧊', 'The icehouse stands full — ' + ICE_CAP + ' blocks packed in sawdust for summer');
+    } else if (sn === 'Summer' && (state.iceBlocks || 0) > 0) {
+      state.iceBlocks--;
+      state.iceSold = (state.iceSold || 0) + 1;
+      state.res.gold += ICE_PAY;
+      state.happy = Math.min(100, state.happy + 1);
+      toast('🧊 Winter, sold back: a block of ice went for ' + ICE_PAY + ' gold.');
+      chron('🧊', 'A block of winter ice sold in the summer heat — +' + ICE_PAY + ' gold');
+      SFX('coin');
+      checkAchievements();
+    }
+  }
+
   function onNewDay() {
     // last night's raid resolves in the grey light of dawn
     if (state.raidTonight) resolveRaid();
@@ -2769,6 +2800,7 @@
     swarmAtDawn();  // HVALE-20: and summer opens with wings
     huntAtDawn();   // HVALE-21: and winter answers back
     pressAtDawn();  // HVALE-22: and autumn pours
+    iceAtDawn();    // HVALE-24: winter banked, summer withdrawn
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4265,7 +4297,7 @@
   // The build bar is organised into category tabs so it never overflows.
   const BUILD_TABS = [
     { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
-    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'warehouse', 'cellar'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'icehouse', 'warehouse', 'cellar'] },
     { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'palisade', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
   ];
@@ -4684,6 +4716,9 @@
         hunts: state.hunts || 0,   // HVALE-21
         presses: state.presses || 0,   // HVALE-22
         wallRaids: state.wallRaids || 0,   // HVALE-23
+        iceBlocks: state.iceBlocks || 0,   // HVALE-24
+        iceSold: state.iceSold || 0,
+        lastIceDay: typeof state.lastIceDay === 'number' ? state.lastIceDay : -1,
         lastPressDay: typeof state.lastPressDay === 'number' ? state.lastPressDay : -1,
         lastHuntDay: typeof state.lastHuntDay === 'number' ? state.lastHuntDay : -1,
         lastSwarmYear: typeof state.lastSwarmYear === 'number' ? state.lastSwarmYear : -1,
@@ -4784,6 +4819,9 @@
       state.hunts = s.hunts || 0;   // HVALE-21 (older winters went unhunted)
       state.presses = s.presses || 0;   // HVALE-22 (older autumns went unpressed)
       state.wallRaids = s.wallRaids || 0;   // HVALE-23 (older walls were only ever men)
+      state.iceBlocks = Math.max(0, Math.min(4, Math.floor(s.iceBlocks || 0)));   // HVALE-24 (older winters just melted)
+      state.iceSold = s.iceSold || 0;
+      state.lastIceDay = typeof s.lastIceDay === 'number' ? s.lastIceDay : -1;
       state.lastPressDay = typeof s.lastPressDay === 'number' ? s.lastPressDay : -1;
       state.lastHuntDay = typeof s.lastHuntDay === 'number' ? s.lastHuntDay : -1;
       state.lastSwarmYear = typeof s.lastSwarmYear === 'number' ? s.lastSwarmYear : -1;
