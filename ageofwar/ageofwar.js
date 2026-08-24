@@ -576,6 +576,7 @@ const AgeOfWarGame = (() => {
     { id: 'true_flight',  icon: '🪶',  title: 'True Flight',      desc: 'Loose 40 fletched turret shots in one run.' },
     { id: 'drill_sergeant', icon: '🥁', title: 'Drill Sergeant',   desc: 'Train 25 drilled recruits in one run.' },
     { id: 'bursar',       icon: '💰',  title: 'The Bursar',       desc: 'Mint 400 extra gold from one Paymaster.' },
+    { id: 'high_walls',   icon: '🏰',  title: 'Keep and Castle',  desc: 'Mortar 350 fresh stone onto the walls in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -685,6 +686,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.fletched || 0) >= 40) unlock('true_flight');
     if ((runStats.drilled || 0) >= 25) unlock('drill_sergeant');
     if ((runStats.minted || 0) >= 400) unlock('bursar');
+    if ((runStats.mortared || 0) >= 350) unlock('high_walls');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1101,6 +1103,7 @@ const AgeOfWarGame = (() => {
     runStats.fletched = 0; fletcherBought = false;
     runStats.drilled = 0; drillBought = false;
     runStats.minted = 0; paymasterBought = false;
+    runStats.mortared = 0; masonsBought = false;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1748,6 +1751,38 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // The Masons (AOW-30) — the fifth and last workshop hire, and the
+  // only one who works the base itself. 350 gold from Age III, once
+  // per run: the crew mortars the walls 25% thicker on the spot —
+  // max hp rises and the fresh stone lands already healed. The
+  // ledger keeps the tonnage.
+  const MASONS_COST = 350;
+  const MASONS_HP = 1.25;
+  let masonsBought = false;
+  function buyMasons() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 2) {
+      goldFloaters.push({ text: '\u{1F3F0} The masons sign on in Age III', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (masonsBought) return;
+    if (gold < MASONS_COST) {
+      goldFloaters.push({ text: `\u{1F3F0} The masons cost ${MASONS_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= MASONS_COST;
+    masonsBought = true;
+    const added = Math.round(playerBaseMax * (MASONS_HP - 1));
+    playerBaseMax += added;
+    playerBaseHp = Math.min(playerBaseMax, playerBaseHp + added);
+    runStats.mortared = added;
+    checkAchievementsDuringRun();
+    goldFloaters.push({ text: `\u{1F3F0} MASONS \u2014 the walls rise ${added} stone thicker`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1844,6 +1879,8 @@ const AgeOfWarGame = (() => {
     if (drillBtn) drillBtn.onclick = buyDrillmaster;
     const payBtn = document.getElementById('aow-pay-btn');
     if (payBtn) payBtn.onclick = buyPaymaster;
+    const masonBtn = document.getElementById('aow-mason-btn');
+    if (masonBtn) masonBtn.onclick = buyMasons;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2086,6 +2123,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'g' || e.key === 'G') {
         buyPaymaster();
+        e.preventDefault();
+      } else if (e.key === 'k' || e.key === 'K') {
+        buyMasons();
         e.preventDefault();
       }
     });
@@ -7530,6 +7570,17 @@ const AgeOfWarGame = (() => {
       pmEl.title = paymasterBought
         ? `The paymaster works the treasury — the trickle runs 25% richer. ${runStats.minted || 0} extra gold minted this run.`
         : `Seat the Paymaster (G) — ${PAYMASTER_COST} gold, once per run: the every-second gold trickle runs 25% richer.`;
+    }
+
+    // Masons button (AOW-30)
+    const msEl = document.getElementById('aow-mason-btn');
+    const msCdEl = document.getElementById('aow-mason-cd');
+    if (msEl) {
+      if (msCdEl) msCdEl.textContent = playerEra < 2 ? 'Age III' : masonsBought ? 'mortared' : `${MASONS_COST}g`;
+      msEl.disabled = playerEra < 2 || masonsBought;
+      msEl.title = masonsBought
+        ? `The masons have been through — the walls stand ${runStats.mortared || 0} stone thicker, already healed.`
+        : `Call the Masons (K) — ${MASONS_COST} gold, once per run: the walls go up 25% thicker on the spot and the fresh stone lands healed.`;
     }
 
     // Wave indicator
