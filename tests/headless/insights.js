@@ -56,11 +56,11 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.evaluate(() => {
     localStorage.setItem('aow-best-run', JSON.stringify({ waves: 18, kills: 230, time: 900, strongholds: 2, difficulty: 'normal' }));
     localStorage.setItem('aow-relics', '7');
-    localStorage.setItem('startup-tycoon-v7', JSON.stringify({ lifetimeCash: 1250000, launches: { n: 4, polish: null }, poach: { fought: 2, lost: 0 }, prestigeLevel: 1 }));
-    localStorage.setItem('drug-lab-v1', JSON.stringify({ totalEarned: 5600, contractsDone: 3, rivalRunIns: 2 }));
-    localStorage.setItem('homeless_village_v1', JSON.stringify({ days: 12, soupNights: 5, rep: 40 }));
-    localStorage.setItem('hearthvale-v1', JSON.stringify({ day: 30, peakPop: 14, chronicle: [{}, {}, {}], raidsRepelled: 2 }));
-    localStorage.setItem('voxel-garden-v1', JSON.stringify({ v: 1, state: { totalEarned: 2400, level: 6, flotsamOpened: 5, wishes: 1 } }));
+    localStorage.setItem('startup-tycoon-v7', JSON.stringify({ lifetimeCash: 1250000, launches: { n: 4, polish: null }, poach: { fought: 2, lost: 0 }, retreats: { held: 2, active: null }, prestigeLevel: 1 }));
+    localStorage.setItem('drug-lab-v1', JSON.stringify({ totalEarned: 5600, contractsDone: 3, rivalRunIns: 2, ownedRooms: ['garage', 'growroom', 'front'] }));
+    localStorage.setItem('homeless_village_v1', JSON.stringify({ days: 12, soupNights: 5, rep: 40, mural: 4 }));
+    localStorage.setItem('hearthvale-v1', JSON.stringify({ day: 30, peakPop: 14, chronicle: [{}, {}, {}], raidsRepelled: 2, caravansReturned: 4, bellSaves: 1 }));
+    localStorage.setItem('voxel-garden-v1', JSON.stringify({ v: 1, state: { totalEarned: 2400, level: 6, flotsamOpened: 5, wishes: 1, catGifts: 7 } }));
     Telemetry.renderInto('hof-insights');
   });
   const saga = await page.evaluate(() => ({
@@ -73,6 +73,12 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
      'chips carry the exact numbers from the saves (waves, tycoon $, lab $)');
   ok(/5 soup nights/.test(saga.text) && /3 chronicle pages/.test(saga.text) && /1 wish granted/.test(saga.text),
      'village, hearthvale and voxel chips render');
+  // Depth 45 — the saga knows the round-4/5 counters too
+  ok(/2 retreats held/.test(saga.text) && /3 rooms owned/.test(saga.text),
+     'tycoon retreats and grow-op rooms render');
+  ok(/mural finished/.test(saga.text) && /4 caravans home/.test(saga.text)
+     && /1 bell saves?/.test(saga.text) && /7 cat gifts/.test(saga.text),
+     'mural, caravans, bell saves and cat gifts render');
   ok(saga.rows === 2 && /YOUR ARCADE/.test(saga.text), 'the arcade bars are untouched by the saga block');
 
   // Saga-only: a fresh profile with one flagship save but zero telemetry
