@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6192,6 +6192,7 @@ const ACHIEVEMENTS = [
   { id: 'five_nines',    icon: '🧑‍🚒', title: 'Five Nines',           desc: 'Have the runbook hold through three outages.', check: () => srePrevented >= 3, progress: () => [Math.min(srePrevented, 3), 3] },
   { id: 'kaizen',        icon: '📋', title: 'Kaizen',               desc: 'Bank ten retro learnings.', check: () => retroLearnings >= 10, progress: () => [Math.min(retroLearnings, 10), 10] },
   { id: 'rentier',       icon: '💼', title: 'Passive Income',       desc: 'Bank \$1,000 in patent royalties.', check: () => royaltiesLife >= 1000, progress: () => [Math.min(Math.round(royaltiesLife), 1000), 1000] },
+  { id: 'blue_chip',     icon: '💵', title: 'Blue Chip',            desc: 'Bank \$2,000 in dividends.', check: () => dividendsLife >= 2000, progress: () => [Math.min(Math.round(dividendsLife), 2000), 2000] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10004,6 +10005,44 @@ function updateRoyalties(dt) {
   checkAchievements();
   saveGame();
 }
+// ── The Dividend (TYC-31) ─────────────────────────────────
+// Round Twenty opens the stored-value round. The analyst's BUY
+// streak has always been a mood — now it's a payout: post-IPO,
+// while coverage holds at TWO or more consecutive BUYs, the board
+// declares a dividend. A check clears every 60 seconds at 10% of a
+// minute of revenue (never under $50) — performance, banked.
+const DIVIDEND_SECS = 60, DIVIDEND_CUT = 0.10, DIVIDEND_MIN = 50, DIVIDEND_STREAK = 2;
+let dividendT = 0, dividendsLife = 0;
+function dividendRate() {
+  return prestigeLevel >= 1 && analystStreak >= DIVIDEND_STREAK
+    ? Math.max(DIVIDEND_MIN, Math.round(currentRatePerMin() * DIVIDEND_CUT)) : 0;
+}
+function refreshDividendChip() {
+  const el = document.getElementById('dividend-chip');
+  if (!el) return;
+  const rate = dividendRate();
+  if (rate > 0) {
+    el.style.display = '';
+    el.textContent = '💵 $' + rate + '/min';
+    el.title = 'The dividend — a ' + analystStreak + '-quarter BUY streak clears $' + rate + ' every ' + DIVIDEND_SECS + 's ($' + fmtCash(dividendsLife) + ' lifetime). Lose the streak, lose the check.';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function updateDividends(dt) {
+  const rate = dividendRate();
+  if (rate <= 0) return;
+  dividendT += dt;
+  if (dividendT < DIVIDEND_SECS) return;
+  dividendT -= DIVIDEND_SECS;
+  addCash(rate, 'dividend');
+  dividendsLife += rate;
+  addFeedEntry('💵 The board declares a dividend — +$' + fmtCash(rate) + ' (BUY streak ' + analystStreak + ')');
+  refreshDividendChip();
+  checkAchievements();
+  saveGame();
+}
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
@@ -10891,6 +10930,7 @@ function frameBody(now) {
   updateMigrate(dt);
   updateLab(dt);
   updateRoyalties(dt);
+  updateDividends(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -11052,6 +11092,7 @@ function rollAnalyst() {
   if (analystRating === 'buy') { analystBuys++; analystStreak++; }
   else analystStreak = 0;
   refreshAnalystChip();
+  refreshDividendChip();   // TYC-31: the check lives and dies with the streak
   if (analystRating === 'buy') {
     showToast('\u{1F4CA} Coverage updated: BUY \u2014 the Street liked that quarter. Deals close 5% richer this season.', 'good', 'critical');
     addFeedEntry('\u{1F4CA} Analyst rating: BUY (streak ' + analystStreak + ')');
@@ -11744,6 +11785,16 @@ const SAVE_SCHEMA = [
     read: p => {
       migrated = !!(p.migrate && p.migrate.done);
       refreshMigrateChip();
+    },
+  },
+  {
+    key: 'dividend', // TYC-31: the streak's lifetime payout
+    write: p => { p.dividend = { life: dividendsLife }; },
+    read: p => {
+      if (p.dividend) {
+        dividendsLife = Math.max(0, Math.floor(p.dividend.life || 0));
+      }
+      refreshDividendChip();
     },
   },
   {
