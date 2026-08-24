@@ -280,6 +280,11 @@ const AgeOfWarGame = (() => {
   let warcryT = 0, warcryCd = 0;
   // AOW-15: mercenary contracts — gold for instant boots on the ground.
   const MERC_CD = 60, MERC_COUNT = 2, MERC_COST_MULT = 2.5;
+  // AOW-20: the Trenchworks — dig once, slow everything that wades it.
+  // A midfield trench lasts 25s on a 90s rearm; enemies crossing the
+  // 120px band move at half speed. From Age II — you need shovels.
+  const TRENCH_LAST = 25, TRENCH_CD = 90, TRENCH_SLOW = 0.5, TRENCH_W = 60;
+  let trenchT = 0, trenchCd = 0, trenchX = 0;
   let mercCd = 0;
   // AOW-16: the Last Stand — once per run, when the base first drops
   // below a quarter, the garrison rallies on its own: every friendly
@@ -560,6 +565,7 @@ const AgeOfWarGame = (() => {
     { id: 'warlord_1',    icon: '⚔️',  title: 'Headhunter',       desc: 'Fell a named warlord in an endless run.' },
     { id: 'warlord_all',  icon: '🏴',  title: 'Wastes Pacified',  desc: 'Fell all five named warlords across your runs.' },
     { id: 'standard_bearer', icon: '🚩', title: 'Standard Bearer', desc: 'Take 50 kills in one run under a war banner.' },
+    { id: 'dig_in',       icon: '⛏️',  title: 'Dig In',           desc: 'Bog down 15 enemies in one run with the Trenchworks.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -660,6 +666,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.warcries || 0) >= 3) unlock('warcry_3');
     if ((runStats.mercs || 0) >= 3) unlock('mercs_3');
     if (warBanner !== 'none' && runStats.kills >= 50) unlock('standard_bearer');
+    if ((runStats.trenchSlowed || 0) >= 15) unlock('dig_in');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1066,6 +1073,7 @@ const AgeOfWarGame = (() => {
     runStats.warcries = 0;
     runStats.mercs = 0; mercCd = 0;
     runStats.warlordsSlain = 0;
+    runStats.trenches = 0; runStats.trenchSlowed = 0; trenchT = 0; trenchCd = 0;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1330,6 +1338,18 @@ const AgeOfWarGame = (() => {
     return best;
   }
   function mercCost() { const k = mercUnitKey(); return k ? Math.round(UNITS[k].cost * MERC_COST_MULT) : 0; }
+  function digTrench() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) { goldFloaters.push({ text: '⛏️ Trenchworks come with Age II', x: WIDTH / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 }); return; }
+    if (trenchCd > 0) return;
+    trenchX = (PLAYER_BASE_X + ENEMY_BASE_X) / 2;
+    trenchT = TRENCH_LAST;
+    trenchCd = TRENCH_CD;
+    runStats.trenches = (runStats.trenches || 0) + 1;
+    goldFloaters.push({ text: '⛏️ TRENCH DUG — the line bogs down', x: trenchX, y: GROUND_Y - 140, color: '#d9b98a', t: 1.8 });
+    shake(4, 0.25);
+    SFX.warn && SFX.warn();
+  }
   function hireMercs() {
     if (gameOver || modalPaused || userPaused) return;
     if (mercCd > 0) return;
@@ -1668,6 +1688,9 @@ const AgeOfWarGame = (() => {
       } else if (e.key === 'm' || e.key === 'M') {
         hireMercs();
         e.preventDefault();
+      } else if (e.key === 't' || e.key === 'T') {
+        digTrench();
+        e.preventDefault();
       }
     });
   }
@@ -1922,6 +1945,7 @@ const AgeOfWarGame = (() => {
       renderHud();
     }
     mercCd = Math.max(0, mercCd - dt);   // AOW-15 — the rearm never stalls
+    trenchT = Math.max(0, trenchT - dt); trenchCd = Math.max(0, trenchCd - dt);   // AOW-20
 
     enemyTick(dt);
     enemyTechTick(dt);
@@ -2021,7 +2045,13 @@ const AgeOfWarGame = (() => {
       u.attackPose = Math.max(0, u.attackPose - dt);
       if (dist > u.range) {
         if (!ahead) {
-          u.x += dirX * u.speed * dt;
+          let step = u.speed;
+          // AOW-20: enemies wading the trench move at half speed
+          if (u.side === 'enemy' && trenchT > 0 && Math.abs(u.x - trenchX) < TRENCH_W) {
+            step *= TRENCH_SLOW;
+            if (!u._trenchHit) { u._trenchHit = true; runStats.trenchSlowed = (runStats.trenchSlowed || 0) + 1; }
+          }
+          u.x += dirX * step * dt;
           u.walkPhase += dt * 7;
         }
         u.atkT = Math.max(0, u.atkT - dt);
@@ -2957,6 +2987,16 @@ const AgeOfWarGame = (() => {
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
+
+    // AOW-20: the dug trench — a dark churned band across midfield
+    if (trenchT > 0) {
+      const fadeT = Math.min(1, trenchT / 3);
+      ctx.fillStyle = `rgba(60, 40, 22, ${0.55 * fadeT})`;
+      ctx.fillRect(trenchX - TRENCH_W, GROUND_Y, TRENCH_W * 2, 26);
+      ctx.strokeStyle = `rgba(30, 20, 10, ${0.8 * fadeT})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(trenchX - TRENCH_W, GROUND_Y, TRENCH_W * 2, 26);
+    }
 
     // Deeper-front vertical vignette (the foreground recedes into shadow)
     const fade = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
@@ -6983,6 +7023,14 @@ const AgeOfWarGame = (() => {
       if (mcCdEl) mcCdEl.textContent = mercCd > 0 ? `${Math.ceil(mercCd)}s` : mk ? `${mercCost()}g` : '—';
       mcEl.disabled = mercCd > 0 || !mk;
       if (mk) mcEl.title = `Hire mercenaries (M) — ${MERC_COUNT}× veteran ${UNITS[mk].name} walk on instantly for ${mercCost()} gold. ${MERC_CD}s rearm.`;
+    }
+
+    // Trench button (AOW-20)
+    const trEl = document.getElementById('aow-trench-btn');
+    const trCdEl = document.getElementById('aow-trench-cd');
+    if (trEl) {
+      if (trCdEl) trCdEl.textContent = trenchT > 0 ? `${Math.ceil(trenchT)}s ⛏️` : trenchCd > 0 ? `${Math.ceil(trenchCd)}s` : playerEra < 1 ? 'Age II' : 'ready';
+      trEl.disabled = trenchCd > 0 || playerEra < 1;
     }
 
     // Wave indicator
