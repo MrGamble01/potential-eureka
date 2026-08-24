@@ -55,7 +55,7 @@ canvas{display:block;touch-action:none;}
 
 /* ── Heat meter ── */
 #heat-hud{
-  position:fixed;top:62px;right:16px;
+  position:fixed;top:96px;right:16px;
   background:rgba(4,10,4,0.92);
   border:1px solid rgba(180,30,0,0.35);
   border-radius:6px;padding:8px 14px;min-width:160px;
@@ -72,7 +72,7 @@ canvas{display:block;touch-action:none;}
 
 /* ── Goal tracker ── */
 #goal-hud{
-  position:fixed;top:126px;right:16px;
+  position:fixed;top:160px;right:16px;
   background:rgba(4,10,4,0.92);
   border:1px solid rgba(200,160,0,0.3);
   border-radius:6px;padding:8px 14px;min-width:160px;
@@ -311,7 +311,7 @@ canvas{display:block;touch-action:none;}
 
 /* ── Activity feed ── */
 #activity-feed{
-  position:fixed;top:196px;right:16px;
+  position:fixed;top:230px;right:16px;
   background:rgba(4,10,4,0.92);
   border:1px solid rgba(0,180,60,0.12);
   border-radius:6px;padding:9px 12px;
@@ -362,6 +362,35 @@ canvas{display:block;touch-action:none;}
   box-shadow:0 4px 16px rgba(0,0,0,0.5);
 }
 
+/* ── Big buyer contracts (LAB-8) ── */
+#contract-hud{
+  position:fixed;top:82px;left:50%;transform:translateX(-50%);
+  background:rgba(4,10,4,0.92);
+  border:1px solid rgba(255,209,102,0.45);
+  color:#ffd166;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;
+  pointer-events:none;user-select:none;letter-spacing:0.5px;z-index:30;
+}
+#contract-hud.late{color:#ff6b5c;border-color:rgba(255,107,92,0.55);text-shadow:0 0 8px rgba(255,107,92,0.4);}
+#contract-offer{
+  position:fixed;top:82px;left:50%;transform:translateX(-50%);
+  background:rgba(4,10,4,0.96);
+  border:1px solid rgba(255,209,102,0.5);
+  color:#e8f0e8;font-size:13px;line-height:1.5;
+  padding:12px 16px;border-radius:10px;
+  max-width:340px;text-align:center;z-index:80;
+  box-shadow:0 8px 30px rgba(0,0,0,0.6);
+}
+#contract-offer .co-title{color:#ffd166;font-weight:800;margin-bottom:4px;}
+#contract-offer .co-btns{display:flex;gap:10px;justify-content:center;margin-top:10px;}
+#contract-offer button{
+  font-family:inherit;font-weight:800;font-size:12px;
+  padding:7px 18px;border-radius:7px;cursor:pointer;
+}
+#contract-offer .co-accept{background:rgba(34,221,85,0.12);border:1px solid rgba(34,221,85,0.5);color:#22dd55;}
+#contract-offer .co-decline{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.2);color:#9ab09a;}
+#contract-offer .co-timer{color:#7a8a7a;font-size:11px;margin-top:6px;}
+
 /* ── Mobile layout: HUD compacts, side panels become a bottom sheet ── */
 @media (max-width:700px){
   #manage-btn{display:block;}
@@ -379,6 +408,9 @@ canvas{display:block;touch-action:none;}
   #act-badge{top:8px;font-size:11px;padding:4px 10px;}
   #status-bar{top:34px;font-size:10px;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #cash-hud{top:8px;right:8px;font-size:15px;padding:6px 10px;}
+  #market-hud{top:8px;left:8px;right:auto;font-size:11px;padding:4px 9px;}
+  #contract-hud{top:60px;font-size:11px;padding:4px 10px;}
+  #contract-offer{top:60px;max-width:88vw;font-size:12px;}
   #heat-hud{top:44px;right:8px;min-width:120px;padding:6px 10px;}
   #goal-hud{top:94px;right:8px;min-width:120px;padding:6px 10px;}
   #back-btn{bottom:14px;left:14px;z-index:70;}
@@ -392,6 +424,8 @@ canvas{display:block;touch-action:none;}
 <div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
 <div id="market-hud" title="Street demand — prices drift, surge and crash. Sell high.">📊 <span id="market-val">1.00×</span></div>
+<div id="contract-hud" style="display:none" title="Active contract — units delivered / needed, time left">📦 <span id="contract-val"></span></div>
+<div id="contract-offer" style="display:none"></div>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
@@ -1504,6 +1538,104 @@ function salePrice() {
   return Math.floor(base * purity * chemiBonus * DIFF().price * legacyMult() * marketMult());
 }
 
+// ── Big buyers (LAB-8) ─────────────────────────────────────
+// Once the operation is past the garage phase, a big buyer occasionally
+// calls: move N units inside a window and the whole lot pays a clean
+// completion bonus on top of the street price — no extra heat. Walking
+// away costs nothing; accepting and blowing the deadline costs +6 heat,
+// because word gets around. Regular sales fill the order, so a contract
+// is really a bet that your pipeline can keep up.
+let contract = null;        // {need, filled, timeLeft, bonusMult}
+let contractIn = 120;       // seconds until the next cold call
+let contractOffer = null;   // {need, window, bonusMult, expire}
+function updateContract(dt) {
+  if (contractOffer) {
+    contractOffer.expire -= dt;
+    const t = document.getElementById('co-expire');
+    if (t) t.textContent = `Offer expires in ${Math.max(0, Math.ceil(contractOffer.expire))}s`;
+    if (contractOffer.expire <= 0) declineContract(true);
+    return;
+  }
+  if (contract) {
+    contract.timeLeft -= dt;
+    updateContractHUD();
+    if (contract.timeLeft <= 0) failContract();
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody big calls a garage
+  contractIn -= dt;
+  if (contractIn <= 0) makeContractOffer();
+}
+function makeContractOffer() {
+  const big = currentAct() >= 3;
+  const need = big ? 18 + Math.floor(Math.random() * 10) : 8 + Math.floor(Math.random() * 6);
+  const windowS = 90 + Math.floor(Math.random() * 45);
+  const bonusMult = +(0.6 + Math.random() * 0.4).toFixed(2);
+  contractOffer = { need, window: windowS, bonusMult, expire: 25 };
+  const est = Math.floor(need * salePrice() * bonusMult);
+  const el = document.getElementById('contract-offer');
+  el.innerHTML = `
+    <div class="co-title">📟 Big buyer on the line</div>
+    <div>Wants <b>${need} units</b> inside <b>${windowS}s</b>.
+    Fill it and the lot pays <b style="color:#22dd55">≈ +$${fmtCash(est)}</b> on top — clean money, no heat.
+    Blow the deadline: <b style="color:#ff6b5c">+6 heat</b>.</div>
+    <div class="co-btns">
+      <button class="co-accept" id="co-accept">✅ Take the deal</button>
+      <button class="co-decline" id="co-decline">Pass</button>
+    </div>
+    <div class="co-timer" id="co-expire">Offer expires in 25s</div>`;
+  el.style.display = 'block';
+  document.getElementById('co-accept').onclick = acceptContract;
+  document.getElementById('co-decline').onclick = () => declineContract(false);
+  addFeed('📟 A big buyer is calling…');
+}
+function acceptContract() {
+  if (!contractOffer) return;
+  contract = { need: contractOffer.need, filled: 0,
+               timeLeft: contractOffer.window, bonusMult: contractOffer.bonusMult };
+  contractOffer = null;
+  document.getElementById('contract-offer').style.display = 'none';
+  showToast(`📦 Contract on: ${contract.need} units, clock is running`, 'good');
+  addFeed(`📦 Contract accepted — ${contract.need} units on the clock`);
+  updateContractHUD();
+  saveGame();
+}
+function declineContract(expired) {
+  contractOffer = null;
+  document.getElementById('contract-offer').style.display = 'none';
+  addFeed(expired ? '📵 The call went unanswered — buyer moved on.' : '📵 You passed on the deal.');
+  contractIn = 150 + Math.random() * 120;
+  saveGame();
+}
+function failContract() {
+  contract = null;
+  document.getElementById('contract-hud').style.display = 'none';
+  addHeat(6);
+  showToast('📦 Contract blown — the buyer is furious. +6 heat', 'bad');
+  addFeed('❌ Contract failed — word gets around.');
+  contractIn = 200 + Math.random() * 150;
+  saveGame();
+}
+function completeContract() {
+  const bonus = Math.floor(contract.need * salePrice() * contract.bonusMult);
+  contract = null;
+  document.getElementById('contract-hud').style.display = 'none';
+  addCash(bonus);
+  state.contractsDone = (state.contractsDone || 0) + 1;
+  showToast(`📦 Contract filled — +$${fmtCash(bonus)} bonus, clean money`, 'good');
+  addFeed(`💼 Contract filled — +$${fmtCash(bonus)} clean bonus`);
+  contractIn = 220 + Math.random() * 160;
+  saveGame();
+}
+function updateContractHUD() {
+  if (!contract) return;
+  const hud = document.getElementById('contract-hud');
+  hud.style.display = 'block';
+  hud.classList.toggle('late', contract.timeLeft < 20);
+  document.getElementById('contract-val').textContent =
+    `${contract.filled}/${contract.need} · ${Math.max(0, Math.ceil(contract.timeLeft))}s`;
+}
+
 // ── Act system ──
 function currentAct() {
   if (state.totalEarned >= 15000) return 3;
@@ -1937,6 +2069,8 @@ function saveGame() {
     difficulty: state.difficulty,
     market: { mult: market.mult, target: market.target, shiftIn: market.shiftIn,
               surge: market.surge, surgeIn: market.surgeIn },
+    contract, contractIn: Math.round(contractIn),
+    contractsDone: state.contractsDone || 0,
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1966,6 +2100,14 @@ function loadGame() {
       market.surgeIn = sv.market.surgeIn || 150;
       updateMarketHUD();
     }
+    if (sv.contract && typeof sv.contract.need === 'number' && sv.contract.need > 0) {
+      contract = { need: Math.floor(sv.contract.need), filled: Math.max(0, Math.floor(sv.contract.filled || 0)),
+                   timeLeft: Math.min(300, Math.max(1, sv.contract.timeLeft || 30)),
+                   bonusMult: Math.min(1.2, Math.max(0.3, sv.contract.bonusMult || 0.8)) };
+      updateContractHUD();
+    }
+    if (typeof sv.contractIn === 'number') contractIn = Math.min(600, Math.max(5, sv.contractIn));
+    state.contractsDone = sv.contractsDone || 0;
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
@@ -2317,6 +2459,11 @@ function sellToDealer(d, idx) {
   stashCount-=qty; state.totalSold+=qty;
   addCash(price);
   addHeat(heatGainPerSale(qty));
+  if (contract) {   // LAB-8: every street sale fills the open order
+    contract.filled += qty;
+    if (contract.filled >= contract.need) completeContract();
+    else updateContractHUD();
+  }
   const s=worldToScreen(d.group.position.x,2,d.group.position.z);
   cashPop(s.x,s.y,price);
   if(state.heat<85) heatPop(s.x,s.y+20);
@@ -2581,6 +2728,7 @@ function animate(now_ms) {
     updateEvents(dt);
     updateDealerSpawn(dt);
     updateMarket(dt);
+    updateContract(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
