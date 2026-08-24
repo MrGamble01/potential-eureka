@@ -772,6 +772,7 @@
     dock:      { roof: 'blue',   wall: 'timber', chimney: false, open: true },
     school:    { roof: 'blue',   wall: 'stone',  chimney: true },
     apiary:    { roof: 'thatch', wall: 'timber', chimney: false, open: true },
+    furrier:   { roof: 'red',    wall: 'timber', chimney: true,  open: true },
     townhall:  { roof: 'slate',  wall: 'stone',  chimney: false, open: true },
   };
   const B_ROOF = {
@@ -1098,6 +1099,7 @@
     market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, tier: 1, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, likes: { types: ['bakery', 'carpenter'], bonus: 0.5, label: 'a workshop' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the merchant, and sells more beside a workshop.' },
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
     watchtower: { name: 'Watchtower',  emoji: '🗼', w: 2, h: 2, tier: 1, cost: { wood: 18, stone: 10 }, worker: true, guard: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchman keeps wolves and worse at bay through the night. Each level holds off a bigger pack.' },
+    furrier:    { name: 'Furrier',     emoji: '🧥', w: 2, h: 2, tier: 3, cost: { wood: 20, stone: 8, gold: 14 }, prod: { gold: 12 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Works wolf pelts from repelled raids into fine winter coats — 1 pelt a cycle becomes 12 gold and a warmer, happier town.' },
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, tier: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
     warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
     fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 8 }, prod: { food: 4 }, worker: true, wantsNear: 'water', likes: { types: ['dock'], bonus: 0.5, label: 'a Dock' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Cheap food — a worker nets fish. Built beside water it lands 50% more, and 50% more again by a Dock.' },
@@ -1119,7 +1121,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'watchtower', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'watchtower', 'furrier', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1277,6 +1279,8 @@
       raidTonight: false,  // set at dawn; resolved at the NEXT dawn
       raidsRepelled: 0,    // lifetime raids the watch drove off
       raidsSuffered: 0,    // lifetime raids that got through
+      pelts: 0,            // HVALE-4: wolf pelts from repelled raids
+      peltsWorked: 0,      // lifetime pelts the Furrier turned into coats
     };
   }
   const ACHIEVEMENTS = [
@@ -1314,6 +1318,7 @@
     { id: 'nightwatch', emoji: '🗼', name: 'The Night Watch', desc: 'Raise a Watchtower and post a keeper.', done: () => state.buildings.some(b => BUILDINGS[b.type].guard && b.done !== false && b.staffed) },
     { id: 'wolfproof', emoji: '🐺', name: 'Wolves at the Door', desc: 'Repel a night raid without loss.', done: () => (state.raidsRepelled || 0) >= 1 },
     { id: 'mastercraft', emoji: '🌟', name: 'Master of the Craft', desc: 'A villager reaches Master rank at their trade.', done: () => state.villagers.some(v => (v.xp || 0) >= 36) },
+    { id: 'warmcoats', emoji: '🧥', name: 'Warm Coats', desc: 'Turn a wolf pelt into gold at the Furrier.', done: () => (state.peltsWorked || 0) >= 1 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2071,6 +2076,13 @@
         let ok = true;
         if (def.cons) for (const k in def.cons) if (state.res[k] < Math.ceil(def.cons[k] * consM)) ok = false;
         if (!ok) return;
+        // HVALE-4: the Furrier only works when there's a pelt on the bench.
+        if (b.type === 'furrier') {
+          if ((state.pelts || 0) < 1) return;
+          state.pelts--;
+          state.peltsWorked = (state.peltsWorked || 0) + 1;
+          state.happy = Math.min(100, state.happy + 1);   // warm coats around town
+        }
         if (def.cons) for (const k in def.cons) state.res[k] -= Math.ceil(def.cons[k] * consM);
         const milled = b.type === 'farm' && windmillBoostsFarm(b);
         const chain = adjMult(b);
@@ -2185,9 +2197,10 @@
     let title, text, emoji;
     if (def >= pack) {
       state.raidsRepelled = (state.raidsRepelled || 0) + 1;
+      state.pelts = (state.pelts || 0) + pack;   // HVALE-4: the spoils of the watch
       state.happy = Math.min(100, state.happy + 4);
       emoji = '🛡️'; title = 'The Watch Held';
-      text = `Wolves came down from the hills in the night — a pack of ${pack}. The watch stood firm at the tower and drove them off without a scratch. The town wakes proud.`;
+      text = `Wolves came down from the hills in the night — a pack of ${pack}. The watch stood firm at the tower and drove them off without a scratch. The town wakes proud — and ${pack} pelt${pack === 1 ? '' : 's'} hang by the gate for the Furrier.`;
       SFX('goal');
     } else if (def > 0) {
       const lost = Math.min(state.res.food, 6 * (pack - def));
@@ -3579,6 +3592,7 @@
     state.buildings.forEach(b => {
       const def = BUILDINGS[b.type];
       if (b.done === false || !def.prod || (def.worker && !b.staffed)) return;
+      if (b.type === 'furrier' && (state.pelts || 0) < 1) return;   // HVALE-4: no pelts, no coats
       const milled = b.type === 'farm' && windmillBoostsFarm(b);
       const chain = adjMult(b);
       const rainM = cropRainMult(b);
@@ -3661,7 +3675,7 @@
   // The build bar is organised into category tabs so it never overflows.
   const BUILD_TABS = [
     { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
-    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'warehouse'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'furrier', 'warehouse'] },
     { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
   ];
@@ -3824,6 +3838,7 @@
     if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
     if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
     if (def.charm) html += statRow('Charm', '+' + def.charm + ' town beauty');
+    if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (def.guard) {
       html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
       html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT' : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
@@ -4040,6 +4055,7 @@
         decrees: state.decrees || [],
         nextRaidDay: state.nextRaidDay || 9, raidTonight: !!state.raidTonight,
         raidsRepelled: state.raidsRepelled || 0, raidsSuffered: state.raidsSuffered || 0,
+        pelts: state.pelts || 0, peltsWorked: state.peltsWorked || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4104,6 +4120,8 @@
       state.raidTonight = !!s.raidTonight;
       state.raidsRepelled = s.raidsRepelled || 0;
       state.raidsSuffered = s.raidsSuffered || 0;
+      state.pelts = s.pelts || 0;                 // HVALE-4 (pre-Furrier saves migrate to 0)
+      state.peltsWorked = s.peltsWorked || 0;
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
