@@ -230,6 +230,7 @@
     <li>The <b>⛴️ Ferry Landing</b> (level 6) brings day-trippers in the green seasons &mdash; the ferry docks every couple of minutes and the visitors <b>tip 8 🪙 +2 per decor piece</b> (capped at 40): the prettier the isle, the fatter the tips</li>
     <li>The <b>🍁 Sugar Shack</b> (level 7) taps the maples &mdash; <b>spring boils every couple of minutes</b> pay 12 🪙, and a <b>boil in the rain runs double</b>: every season now has its own earner</li>
     <li>The <b>🏛️ Isle Museum</b> (level 9) keeps a curator&rsquo;s cabinet &mdash; the <b>first of every species</b> you land is mounted for a <b>30 🪙 finder&rsquo;s bounty</b>, and the winter table counts: eight mounts fill the cabinet</li>
+    <li>The <b>🦉 Owl Roost</b> (level 8) works the night shift &mdash; <b>after dark the owl hunts every couple of minutes</b> for 9 🪙, and a <b>wet night pays double</b>: the balloon has the day, the owl has the dark</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -723,6 +724,27 @@ function icehutBuilt(){return !!(state.buildings&&state.buildings.icehut);}
 // curator's cabinet and pays a finder's bounty on the spot.
 const MUSEUM_BOUNTY=30;
 function museumBuilt(){return !!(state.buildings&&state.buildings.museum);}
+
+// VOX-19: the Owl Roost — night's own earner, the way the balloon
+// works the day, the market the snow and the ferry the green. After
+// dark the owl hunts every couple of minutes; a WET night drives the
+// voles from their burrows and the hunt pays double.
+function owlBuilt(){return !!(state.buildings&&state.buildings.owlroost);}
+function owlPay(){return rainActive?18:9;}
+let owlNextT=140+Math.random()*120;
+function updateOwlRoost(dt){
+  if(!owlBuilt())return;
+  if(!isNight())return;                    // she sleeps through the daylight
+  owlNextT-=dt;
+  if(owlNextT>0)return;
+  owlNextT=140+Math.random()*120;
+  const pay=owlPay();
+  const b=state.buildings.owlroost;
+  grantCoins(pay,b.x,2.8,b.z);
+  state.owlCatches=(state.owlCatches||0)+1;
+  toast(rainActive?'🦉 A wet-night hunt — the voles are out and the owl eats well: '+pay+' 🪙':'🦉 The owl ghosts over the beds and comes back heavy — '+pay+' 🪙');
+  checkAch();
+}
 function goFishing(x,z){
   const iceMode=seasonOf(state.day).key==='winter';   // VOX-15
   if(iceMode&&!icehutBuilt()){toast('❄️ The pond is frozen solid');return;}
@@ -1584,6 +1606,7 @@ const BUILDINGS={
   ferry:    {ico:'⛴️',name:'Ferry Landing',cost:650,lvl:6,desc:'A jetty for the mainland ferry — day-trippers visit in the green seasons, tipping more the prettier the isle (every fence, lantern, gnome and bloom counts)',roof:0x4a6a8a,wall:0x9a7a52,kind:'ferry'},
   sugarshack:{ico:'🍁',name:'Sugar Shack',cost:700,lvl:7,desc:'Taps the maples when the sap rises — the pans boil every couple of minutes through spring, and a boil in the rain runs double',roof:0x8a4b2f,wall:0xb8875a,kind:'sugar'},
   museum:   {ico:'🏛️',name:'Isle Museum',cost:800,lvl:9,desc:'A curator\u2019s cabinet by the shore — the first of every species you land is mounted and pays a 30 🪙 finder\u2019s bounty (the winter table counts)',roof:0x8a8f96,wall:0xe8e2d4,kind:'museum'},
+  owlroost: {ico:'🦉',name:'Owl Roost',cost:720,lvl:8,desc:'A high pole-box for a resident owl — she hunts the fields every couple of minutes after dark, and a wet night drives the voles out of their burrows: the hunt pays double in the rain',roof:0x5a4a3a,wall:0x7a6a52,kind:'owl'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1603,6 +1626,7 @@ function buildingCubes(def){
   if(def.kind==='ferry')return ferryCubes(def);
   if(def.kind==='sugar')return sugarCubes(def);
   if(def.kind==='museum')return museumCubes(def);
+  if(def.kind==='owl')return owlCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1725,6 +1749,19 @@ function ferryCubes(def){
   a(0.7,0.72,0.25,0.2,0.3,0.2,0x2a3a4a);         // the mooring bollard
   a(-0.05,1.15,0.3,0.06,1.2,0.06,0x5a4028);      // the flagpole
   a(0.16,1.6,0.3,0.4,0.24,0.04,0xd94f30);        // the flag
+  return c;
+}
+function owlCubes(def){
+  // VOX-19: a tall pole, a snug box under a little shake roof, and the
+  // owl herself on the perch — two amber eyes for the night shift
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.9,0,0.22,1.8,0.22,0x6a5a44);             // the pole
+  a(0,1.95,0,0.9,0.7,0.8,def.wall);              // the box
+  a(0,2.42,0,1.1,0.24,1.0,def.roof);             // shake roof
+  a(0,1.85,0.42,0.3,0.3,0.06,0x241c14);          // the round door
+  a(0.42,1.62,0.2,0.5,0.1,0.14,0x8a7a5e);        // the perch
+  a(0.42,1.85,0.2,0.3,0.36,0.26,0x9a8a6e);       // the owl
+  a(0.42,2.0,0.32,0.24,0.1,0.06,0xffd23e);       // amber eyes
   return c;
 }
 function museumCubes(def){
@@ -4264,6 +4301,7 @@ const ACH=[
   ['ferry5','Day-Trippers','Welcome five ferry crossings',()=>(state.ferryVisits||0)>=5],
   ['sap5','Sugar Rush','Boil five batches of syrup',()=>(state.sapBoils||0)>=5],
   ['mount5','Curator','Mount five species in the Isle Museum',()=>Object.keys(state.mounted||{}).length>=5],
+  ['owl10','Night Watch','See the owl home from ten hunts',()=>(state.owlCatches||0)>=10],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4507,6 +4545,7 @@ function boot(){
     updateWinterMarket(dt);
     updateFerry(dt);
     updateSugarShack(dt);
+    updateOwlRoost(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
