@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -1611,6 +1611,7 @@
 <div id="rfp-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="hack-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="troll-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="mentor-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
@@ -4392,7 +4393,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult();
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w);
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -6176,6 +6177,7 @@ const ACHIEVEMENTS = [
   { id: 'closer',        icon: '📑', title: 'The Closer',           desc: 'Win three RFPs head-to-head against your rival.', check: () => rfpsWon >= 3, progress: () => [Math.min(rfpsWon, 3), 3] },
   { id: 'allnighter',    icon: '⚡', title: 'Ship It or Sleep',     desc: 'Throw three hackathons.', check: () => hackathonsHeld >= 3, progress: () => [Math.min(hackathonsHeld, 3), 3] },
   { id: 'prior_art',     icon: '⚖️', title: 'Prior Art',            desc: 'Beat two patent trolls in court.', check: () => trollsBeaten >= 2, progress: () => [Math.min(trollsBeaten, 2), 2] },
+  { id: 'sensei',        icon: '🎓', title: 'Wax On, Ship On',      desc: 'A mentor teaches 25 bonus XP to the floor.', check: () => mentorTaught >= 25, progress: () => [Math.min(mentorTaught, 25), 25] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6794,7 +6796,7 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
     acqNextT = 25;
     return;
   }
@@ -6896,7 +6898,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -6993,7 +6995,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
     launchNextT = 25;
     return;
   }
@@ -7079,7 +7081,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
     poachNextT = 25;
     return;
   }
@@ -7198,7 +7200,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7365,7 +7367,7 @@ function updateRfp(dt) {
   if (rivalDone || seasonGoalHit) return;
   rfpNextT -= dt;
   if (rfpNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer) {
     rfpNextT = 25;
     return;
   }
@@ -7481,7 +7483,7 @@ function updateHackathon(dt) {
   }
   hackNextT -= dt;
   if (hackNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer) {
     hackNextT = 25;
     return;
   }
@@ -7559,7 +7561,7 @@ function updateTroll(dt) {
   if (prestigeLevel < 1) return;   // trolls only sue companies worth suing
   trollNextT -= dt;
   if (trollNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer) {
     trollNextT = 25;
     return;
   }
@@ -7626,6 +7628,106 @@ function closeTrollOffer(how) {
   }
   trollNextT = 660 + Math.random() * 300;
   checkAchievements(); saveGame(); refreshHud();
+}
+
+// ── The Mentor (TYC-21) ─────────────────────────────────────
+// Once the roster is deep enough — three engineers, one of them
+// Senior or better — a coaching pitch lands on the offer chassis:
+// pay the stipend and your most-shipped engineer starts running
+// office hours. They slow to 90% themselves, but every OTHER desk
+// logs DOUBLE XP per shipped feature for as long as they're on
+// staff. Lose them (a poach, a season reset) and the program ends
+// with them. One mentor at a time; the taught tally is lifetime.
+const MENTOR_SELF_MULT = 0.9;
+let mentorOffer = null;     // { cost, expire }
+let mentorTaught = 0;       // lifetime bonus XP handed down
+let mentorNextT = 540;      // the pitch lands ~9 minutes into a roster
+function mentorOn() { return ideaWorkers.some(w => w.mentor); }
+function mentorSelfMult(w) { return w.mentor ? MENTOR_SELF_MULT : 1; }
+function refreshMentorChip() {
+  const el = document.getElementById('mentor-chip');
+  if (!el) return;
+  if (mentorOn()) {
+    el.style.display = '';
+    el.textContent = '🎓 Mentor on staff';
+    el.title = `Office hours are running: every other engineer logs double XP per ship (their own rate 90%). ${mentorTaught} bonus XP taught so far.`;
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function updateMentor(dt) {
+  if (mentorOffer) {
+    mentorOffer.expire -= dt;
+    const cd = document.getElementById('mentor-expire');
+    if (cd) cd.textContent = 'The offer stands for ' + Math.max(0, Math.ceil(mentorOffer.expire)) + 's';
+    if (mentorOffer.expire <= 0) closeMentorOffer(false, true);
+    return;
+  }
+  if (mentorOn()) return;   // one mentor at a time — the pitch waits for a vacancy
+  mentorNextT -= dt;
+  if (mentorNextT > 0) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
+    mentorNextT = 25;
+    return;
+  }
+  if (ideaWorkers.length < 3 || !ideaWorkers.some(w => xpLevel(w) >= 3)) { mentorNextT = 120; return; }
+  makeMentorOffer();
+}
+function bestMentorCandidate() {
+  let best = null;
+  for (const w of ideaWorkers) if (xpLevel(w) >= 3 && (!best || (w.xp || 0) > (best.xp || 0))) best = w;
+  return best;
+}
+function makeMentorOffer() {
+  const cost = Math.max(2000, Math.round(currentRatePerMin() * 1.5));
+  mentorOffer = { cost, expire: 30 };
+  const el = document.getElementById('mentor-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#d2a8ff;margin-bottom:4px">🎓 Your senior engineer wants to run office hours</div>
+      <div>Put up a <b style="color:#F85149">$${fmtCash(cost)}</b> mentorship stipend and your
+      most-shipped engineer starts teaching: they slow to <b>90%</b> themselves, but every
+      <b style="color:#3FB950">other desk logs DOUBLE XP</b> per shipped feature for as long
+      as they're on staff.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="mentor-go" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(210,168,255,.12);border:1px solid rgba(210,168,255,.5);color:#d2a8ff">🎓 Fund it $${fmtCash(cost)}</button>
+        <button id="mentor-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Keep them shipping</button>
+      </div>
+      <div id="mentor-expire" style="color:#7D8590;font-size:11px;margin-top:6px">The offer stands for 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('mentor-go').onclick = () => {
+    if (!mentorOffer) return;
+    if (state.cash < mentorOffer.cost) {
+      const cd = document.getElementById('mentor-expire');
+      if (cd) cd.textContent = `Need $${fmtCash(mentorOffer.cost - state.cash)} more`;
+      return;
+    }
+    closeMentorOffer(true, false);
+  };
+  document.getElementById('mentor-pass').onclick = () => closeMentorOffer(false, false);
+  addFeedEntry('🎓 A mentorship pitch is on your desk');
+  SFX.milestone && SFX.milestone();
+}
+function closeMentorOffer(accepted, expired) {
+  const o = mentorOffer;
+  mentorOffer = null;
+  document.getElementById('mentor-offer').style.display = 'none';
+  if (!o) return;
+  if (accepted) {
+    const w = bestMentorCandidate();
+    if (!w) { mentorNextT = 120; return; }   // roster changed while the offer stood
+    state.cash -= o.cost; showSpendPop(o.cost);
+    w.mentor = true;
+    refreshMentorChip();
+    showToast('🎓 Office hours begin — every other engineer now logs double XP per ship.', 'good', 'critical');
+    addFeedEntry(`🎓 The mentor program starts ($${fmtCash(o.cost)} stipend)`);
+    checkAchievements(); saveGame(); refreshHud();
+  } else {
+    addFeedEntry(expired ? '🎓 The pitch went unanswered — they went back to shipping' : '🎓 Passed on the mentorship program');
+    mentorNextT = 480 + Math.random() * 240;
+  }
 }
 
 function triggerWin(cumulative) {
@@ -8921,7 +9023,10 @@ function xpLevel(w) {
 function xpWorkMult(w) { return 1 + (xpLevel(w) - 1) * 0.04; }
 function grantShipXP(w) {
   const before = xpLevel(w);
-  w.xp = (w.xp || 0) + 1;
+  // TYC-21: a mentor on the floor doubles everyone ELSE's ship XP.
+  const gain = (!w.mentor && mentorOn()) ? 2 : 1;
+  w.xp = (w.xp || 0) + gain;
+  if (gain === 2) mentorTaught++;
   const after = xpLevel(w);
   if (after > before) {
     const title = XP_TITLES()[after - 1];
@@ -10111,6 +10216,7 @@ function frameBody(now) {
   updateRfp(dt);
   updateHackathon(dt);
   updateTroll(dt);
+  updateMentor(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -10862,6 +10968,19 @@ const SAVE_SCHEMA = [
       if (typeof p.totalFeaturesShipped === 'number') totalFeaturesShipped = p.totalFeaturesShipped;
       // Re-derive product version from saved features shipped
       for (const pv of PRODUCT_VERSIONS) { if (totalFeaturesShipped >= pv.at) { currentProductVersion = pv; productVersionMult = pv.mult; } }
+    },
+  },
+  {
+    key: 'mentor', // TYC-21: who runs office hours + the lifetime taught tally
+    // Appended last on purpose: the read must run after the roster
+    // respawns above so the index lands on a live worker.
+    write: p => { p.mentor = { idx: ideaWorkers.findIndex(w => w.mentor), taught: mentorTaught }; },
+    read: p => {
+      if (!p.mentor) return;
+      mentorTaught = Math.max(0, Math.floor(p.mentor.taught || 0));
+      const i = p.mentor.idx;
+      if (Number.isInteger(i) && i >= 0 && i < ideaWorkers.length) ideaWorkers[i].mentor = true;
+      refreshMentorChip();
     },
   },
   // (morale intentionally not persisted: it was written every ~5s but
