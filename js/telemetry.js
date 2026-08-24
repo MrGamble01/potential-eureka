@@ -71,6 +71,99 @@ const Telemetry = (() => {
     return n;
   }
 
+  // ── Flagship Saga (Depth 30) ────────────────────────────────
+  // One card per flagship save found in this browser: lifetime stats
+  // read straight from each game's own localStorage key. Read-only —
+  // a flagship never played contributes nothing, and with no saves at
+  // all the whole block renders ''.
+  function readSave(key) {
+    try {
+      const v = JSON.parse(localStorage.getItem(key) || 'null');
+      return v && typeof v === 'object' ? v : null;
+    } catch { return null; }
+  }
+  const nz = v => (typeof v === 'number' && isFinite(v) && v > 0) ? v : 0;
+  const fmtBig = n => n >= 1e6 ? +(n / 1e6).toFixed(1) + 'M'
+    : n >= 1000 ? +(n / 1000).toFixed(1) + 'k' : String(Math.round(n));
+
+  function sagaCards() {
+    const cards = [];
+    const chip = (val, label) => ({ val, label });
+
+    const aow = readSave('aow-best-run');
+    if (aow) {
+      let relics = 0;
+      try { relics = Math.max(0, parseInt(localStorage.getItem('aow-relics') || '0', 10) || 0); } catch {}
+      const c = [chip(nz(aow.waves) + ' waves', 'best run'), chip(fmtBig(nz(aow.kills)), 'kills')];
+      if (relics) c.push(chip(String(relics), 'relics banked'));
+      cards.push({ emoji: '⚔️', name: 'Age of War', chips: c });
+    }
+
+    const tyc = readSave('startup-tycoon-v7');
+    if (tyc) {
+      const c = [chip('$' + fmtBig(nz(tyc.lifetimeCash)), 'earned')];
+      const launches = tyc.launches ? nz(tyc.launches.n) : 0;
+      if (launches) c.push(chip(String(launches), 'launches shipped'));
+      const fought = tyc.poach ? nz(tyc.poach.fought) : 0;
+      if (fought) c.push(chip(String(fought), 'poaches fought off'));
+      if (nz(tyc.prestigeLevel)) c.push(chip('S' + (tyc.prestigeLevel + 1), 'season'));
+      cards.push({ emoji: '🚀', name: 'Startup Tycoon', chips: c });
+    }
+
+    const lab = readSave('drug-lab-v1');
+    if (lab) {
+      const c = [chip('$' + fmtBig(nz(lab.totalEarned)), 'earned')];
+      if (nz(lab.contractsDone)) c.push(chip(String(lab.contractsDone), 'contracts filled'));
+      if (nz(lab.rivalRunIns)) c.push(chip(String(lab.rivalRunIns), 'rival run-ins'));
+      cards.push({ emoji: '🌿', name: 'Grow Op', chips: c });
+    }
+
+    const hv = readSave('homeless_village_v1');
+    if (hv) {
+      const c = [chip(String(nz(hv.days)), 'days survived')];
+      if (nz(hv.soupNights)) c.push(chip(String(hv.soupNights), 'soup nights'));
+      if (nz(hv.rep)) c.push(chip(hv.rep + '/100', 'street rep'));
+      cards.push({ emoji: '⛺', name: 'Homeless Village', chips: c });
+    }
+
+    const hva = readSave('hearthvale-v1');
+    if (hva) {
+      const c = [chip(String(nz(hva.day)), 'days old')];
+      if (nz(hva.peakPop)) c.push(chip(String(hva.peakPop), 'peak villagers'));
+      if (Array.isArray(hva.chronicle) && hva.chronicle.length)
+        c.push(chip(String(hva.chronicle.length), 'chronicle pages'));
+      if (nz(hva.raidsRepelled)) c.push(chip(String(hva.raidsRepelled), 'raids repelled'));
+      cards.push({ emoji: '🏡', name: 'Hearthvale', chips: c });
+    }
+
+    const vox = readSave('voxel-garden-v1');
+    if (vox && vox.state && typeof vox.state === 'object') {
+      const vs = vox.state;
+      const c = [chip(fmtBig(nz(vs.totalEarned)), 'coins earned')];
+      if (nz(vs.level)) c.push(chip('Lv ' + vs.level, 'gardener'));
+      if (nz(vs.flotsamOpened)) c.push(chip(String(vs.flotsamOpened), 'flotsam cracked'));
+      if (nz(vs.wishes)) c.push(chip(String(vs.wishes), vs.wishes === 1 ? 'wish granted' : 'wishes granted'));
+      cards.push({ emoji: '🏝️', name: 'Voxel Isle', chips: c });
+    }
+    return cards;
+  }
+
+  function sagaHtml() {
+    const cards = sagaCards();
+    if (!cards.length) return '';
+    return `<div class="saga">` +
+      `<div class="ins-head saga-head">🏰 FLAGSHIP SAGA</div>` +
+      `<div class="saga-cards">` +
+      cards.map(c =>
+        `<div class="saga-card">` +
+          `<span class="saga-game">${c.emoji} ${c.name}</span>` +
+          c.chips.map(ch => `<span class="saga-chip"><strong>${ch.val}</strong> ${ch.label}</span>`).join('') +
+        `</div>`).join('') +
+      `</div>` +
+      `<div class="ins-note">Read from each flagship's own save in this browser. Play one to add its card.</div>` +
+    `</div>`;
+  }
+
   function renderInto(id) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -79,33 +172,33 @@ const Telemetry = (() => {
     const games = Object.keys(s.seconds).sort((a, b) => s.seconds[b] - s.seconds[a]);
     const totalSecs = games.reduce((t, g) => t + s.seconds[g], 0);
     const totalLaunches = Object.values(s.launches).reduce((t, n) => t + n, 0);
-    if (!totalLaunches) {
-      el.innerHTML = '';
-      return;
+    let arcade = '';
+    if (totalLaunches) {
+      const fav = games[0];
+      const maxSecs = fav ? s.seconds[fav] : 1;
+      const dayKeys = Object.keys(s.days);
+      const busiest = dayKeys.sort((a, b) => s.days[b] - s.days[a])[0];
+      const st = streak(s.days);
+      arcade =
+        `<div class="ins-head">📊 YOUR ARCADE</div>` +
+        `<div class="ins-stats">` +
+          `<span><strong>${totalLaunches}</strong> plays</span>` +
+          `<span><strong>${fmtMins(totalSecs)}</strong> played</span>` +
+          (fav ? `<span>favourite <strong>${NAMES[fav] || fav}</strong></span>` : '') +
+          (st > 1 ? `<span><strong>${st}</strong>-day streak</span>` : '') +
+          (busiest ? `<span>busiest day <strong>${busiest}</strong> (${fmtMins(s.days[busiest])})</span>` : '') +
+        `</div>` +
+        `<div class="ins-bars">` +
+        games.slice(0, 8).map(g =>
+          `<div class="ins-row">` +
+            `<span class="ins-name">${NAMES[g] || g}</span>` +
+            `<span class="ins-track"><span class="ins-fill" style="width:${Math.max(3, Math.round(s.seconds[g] / maxSecs * 100))}%"></span></span>` +
+            `<span class="ins-val">${fmtMins(s.seconds[g])} · ${s.launches[g] || 0}×</span>` +
+          `</div>`).join('') +
+        `</div>` +
+        `<div class="ins-note">Stored only in this browser. Never sent anywhere.</div>`;
     }
-    const fav = games[0];
-    const maxSecs = fav ? s.seconds[fav] : 1;
-    const dayKeys = Object.keys(s.days);
-    const busiest = dayKeys.sort((a, b) => s.days[b] - s.days[a])[0];
-    const st = streak(s.days);
-    el.innerHTML =
-      `<div class="ins-head">📊 YOUR ARCADE</div>` +
-      `<div class="ins-stats">` +
-        `<span><strong>${totalLaunches}</strong> plays</span>` +
-        `<span><strong>${fmtMins(totalSecs)}</strong> played</span>` +
-        (fav ? `<span>favourite <strong>${NAMES[fav] || fav}</strong></span>` : '') +
-        (st > 1 ? `<span><strong>${st}</strong>-day streak</span>` : '') +
-        (busiest ? `<span>busiest day <strong>${busiest}</strong> (${fmtMins(s.days[busiest])})</span>` : '') +
-      `</div>` +
-      `<div class="ins-bars">` +
-      games.slice(0, 8).map(g =>
-        `<div class="ins-row">` +
-          `<span class="ins-name">${NAMES[g] || g}</span>` +
-          `<span class="ins-track"><span class="ins-fill" style="width:${Math.max(3, Math.round(s.seconds[g] / maxSecs * 100))}%"></span></span>` +
-          `<span class="ins-val">${fmtMins(s.seconds[g])} · ${s.launches[g] || 0}×</span>` +
-        `</div>`).join('') +
-      `</div>` +
-      `<div class="ins-note">Stored only in this browser. Never sent anywhere.</div>`;
+    el.innerHTML = arcade + sagaHtml();
   }
 
   // "Jump back in" (P4): quick-resume chips on the hub — the last game
