@@ -317,11 +317,14 @@ const AgeOfWarGame = (() => {
     // reset() before the one-shot consume.
     { id: 'drums', icon: '🥁', name: 'March Drums',  cost: 5, desc: 'Units train 15% faster this run' },
     { id: 'forge', icon: '🔥', name: 'Forge Credit', cost: 6, desc: 'Your first turret this run is free' },
+    // AOW-17: latency is money in a tempo game — and the lodestone's
+    // pickups still count toward the Collector tallies, hands-free.
+    { id: 'magnet', icon: '🧲', name: 'Lodestone', cost: 4, desc: 'Coins leap to your purse the moment they land this run' },
   ];
   let relics = 0;
   try { relics = Math.max(0, parseInt(localStorage.getItem(RELIC_KEY) || '0', 10) || 0); } catch {}
   let pendingPerks = {};           // id → true, applied + consumed by reset()
-  let runPerks = { forge: false, drums: false };   // AOW-11: perks that act mid-run
+  let runPerks = { forge: false, drums: false, magnet: false };   // AOW-11/17: perks that act mid-run
   function saveRelics() { try { localStorage.setItem(RELIC_KEY, String(relics)); } catch {} }
 
   // ---- War Trials (AOW-9) ----------------------------------
@@ -1035,7 +1038,7 @@ const AgeOfWarGame = (() => {
     const u1 = spawnUnit('player', 'club');
     const u2 = spawnUnit('player', 'club');
     if (pendingPerks.cadre) { if (u1) u1.aliveT = 25; if (u2) u2.aliveT = 25; }
-    runPerks = { forge: !!pendingPerks.forge, drums: !!pendingPerks.drums };   // AOW-11
+    runPerks = { forge: !!pendingPerks.forge, drums: !!pendingPerks.drums, magnet: !!pendingPerks.magnet };   // AOW-11/17
     pendingPerks = {};   // perks are one-shot: consumed by this run
     spawnUnit('enemy',  'club');
     renderHud();
@@ -2216,13 +2219,17 @@ const AgeOfWarGame = (() => {
         }
       } else if (!c.autoCollected) {
         c.landedT = (c.landedT || 0) + dt;
-        if (c.landedT >= 3.0) {
+        // AOW-17: with the Lodestone armed, coins leap to the purse the
+        // moment they settle — and they count as COLLECTED, so the
+        // Collector tallies fill hands-free.
+        if (c.landedT >= (runPerks.magnet ? 0.25 : 3.0)) {
           // Silent auto-collect: full value, no combo bonus, no toast spam.
           c.autoCollected = true;
           gold += c.gold;
+          if (runPerks.magnet) runStats.coinsCollected++;
           goldFloaters.push({
             text: '+$' + c.gold, x: c.x, y: c.y - 14,
-            color: '#9ad48a', t: 0.9,
+            color: runPerks.magnet ? '#fcd34d' : '#9ad48a', t: 0.9,
           });
           c.t = 0;
         }
