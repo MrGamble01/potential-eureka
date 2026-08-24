@@ -541,6 +541,8 @@ const AgeOfWarGame = (() => {
     { id: 'warcry_3',     icon: '🎺',  title: 'Hear the Horns',   desc: 'Sound 3 warcries in one run.' },
     { id: 'mercs_3',      icon: '🪖',  title: 'Soldiers of Fortune', desc: 'Hire the mercenary company 3 times in one run.' },
     { id: 'last_stand',   icon: '🚩',  title: 'Hold the Line',    desc: 'See the garrison rally at the brink.' },
+    { id: 'warlord_1',    icon: '⚔️',  title: 'Headhunter',       desc: 'Fell a named warlord in an endless run.' },
+    { id: 'warlord_all',  icon: '🏴',  title: 'Wastes Pacified',  desc: 'Fell all five named warlords across your runs.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -593,6 +595,13 @@ const AgeOfWarGame = (() => {
   }
   function saveAchievements() {
     try { localStorage.setItem('aow-achievements', JSON.stringify(earnedAchievements)); } catch {}
+  }
+  // AOW-18: lifetime tally of named warlords felled, by name — survives
+  // across runs so the full roster can be hunted down over many sittings.
+  let slainWarlords = {};
+  try { slainWarlords = JSON.parse(localStorage.getItem('aow-warlords') || '{}') || {}; } catch { slainWarlords = {}; }
+  function saveWarlords() {
+    try { localStorage.setItem('aow-warlords', JSON.stringify(slainWarlords)); } catch {}
   }
   function unlock(id) {
     if (earnedAchievements[id]) return;
@@ -684,6 +693,23 @@ const AgeOfWarGame = (() => {
   // first boss hit before players could even age up, which felt like an
   // early-game wall. Wave 7 gives ~2 min of room to push to Medieval first.
   function isBossWave(n) { return n > 0 && n % 7 === 0; }
+
+  // AOW-18: from wave 14 on, every endless boss wave is led by a NAMED
+  // warlord — the same boss body with a face, a quirk and a fatter
+  // legend. The name is derived from the wave number, so wave 21 is
+  // always the same warlord in every run, and the roster cycles.
+  const WARLORDS = [
+    { name: 'Gorlok the Brute',  icon: '🪓', trait: 'brute',    blurb: 'hits 40% harder' },
+    { name: 'Vasha Ironhide',    icon: '🛡️', trait: 'ironhide', blurb: '40% thicker hide' },
+    { name: 'Skix the Swift',    icon: '💨', trait: 'swift',    blurb: 'a third faster' },
+    { name: 'Mool the Hoarder',  icon: '💰', trait: 'hoarder',  blurb: 'double bounty' },
+    { name: 'Old King Rust',     icon: '👑', trait: 'butcher',  blurb: 'harder and thicker' },
+  ];
+  const WARLORD_FROM_WAVE = 14;
+  function warlordForWave(n) {
+    if (!endlessMode || !isBossWave(n) || n < WARLORD_FROM_WAVE) return null;
+    return WARLORDS[(n / 7 - 2) % WARLORDS.length];
+  }
 
   function heroForEra(era) { return HEROES[era]; }
   function trySummonHero() {
@@ -1021,6 +1047,7 @@ const AgeOfWarGame = (() => {
     runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
     runStats.warcries = 0;
     runStats.mercs = 0; mercCd = 0;
+    runStats.warlordsSlain = 0;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1734,6 +1761,15 @@ const AgeOfWarGame = (() => {
       // wave 5 -> ~2.4x HP, wave 10 -> ~3.2x, wave 15 -> ~3.9x, cap ~5x.
       const hpScale  = Math.min(5.0, 2.4 + (waveNum - 5) * 0.15);
       const dmgScale = Math.min(2.4, 1.3 + (waveNum - 5) * 0.08);
+      // AOW-18: a named warlord's quirk rides the spawn overrides so the
+      // shared UNITS entry stays generic, same as the wave scaling.
+      const wl = warlordForWave(waveNum);
+      let hpS = hpScale, dmgS = dmgScale;
+      if (wl) {
+        if (wl.trait === 'brute')    dmgS *= 1.4;
+        if (wl.trait === 'ironhide') hpS *= 1.4;
+        if (wl.trait === 'butcher')  { dmgS *= 1.25; hpS *= 1.15; }
+      }
       if (!UNITS[bossKey]) {
         UNITS[bossKey] = {
           ...baseDef,
@@ -1747,14 +1783,24 @@ const AgeOfWarGame = (() => {
       // UNITS[bossKey] entry stays generic (era-scaling lives on the
       // instance, matching the old per-wave-key numbers exactly).
       const bossUnit = spawnUnit('enemy', bossKey, {
-        hp:  Math.round(baseDef.hp  * hpScale),
-        dmg: Math.round(baseDef.dmg * dmgScale),
+        hp:  Math.round(baseDef.hp  * hpS),
+        dmg: Math.round(baseDef.dmg * dmgS),
       });
       if (bossUnit) {
         bossUnit.w = Math.round(bossUnit.w * 1.7);
         bossUnit.h = Math.round(bossUnit.h * 1.5);
         bossUnit.isBoss = true;
         bossUnit.icon = '👑';
+        if (wl) {
+          bossUnit.warlord = wl;
+          bossUnit.name = wl.name;
+          bossUnit.icon = wl.icon;
+          if (wl.trait === 'swift')   bossUnit.speed = Math.round(bossUnit.speed * 1.33);
+          if (wl.trait === 'hoarder') bossUnit.gold  = bossUnit.gold * 2;
+          ageBannerText = `⚔ ${wl.name} leads the horde — ${wl.blurb}!`;
+          ageBannerT = 2.2;
+          SFX.warn && SFX.warn();
+        }
       }
       waveEnemiesRemaining = 0;  // breather waits for boss death
     } else {
@@ -2137,6 +2183,14 @@ const AgeOfWarGame = (() => {
           dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult()));
           if (u.isBoss) {
             bossKilledThisWave = true;
+            if (u.warlord) {
+              runStats.warlordsSlain = (runStats.warlordsSlain || 0) + 1;
+              slainWarlords[u.warlord.name] = (slainWarlords[u.warlord.name] || 0) + 1;
+              saveWarlords();
+              unlock('warlord_1');
+              if (WARLORDS.every(w => slainWarlords[w.name])) unlock('warlord_all');
+              goldFloaters.push({ text: `⚔ ${u.warlord.name} has fallen!`, x: u.x, y: GROUND_Y - u.h - 30, color: '#fcd34d', t: 2.2 });
+            }
             shake(10, 0.5);
             ageFlash = Math.max(ageFlash, 0.4);
             // Boss explosion
@@ -7111,7 +7165,8 @@ const AgeOfWarGame = (() => {
     try { prev = JSON.parse(localStorage.getItem('aow-best-run') || 'null'); } catch {}
     const isBest = !prev || waves > (prev.waves || 0);
     const run = { waves, kills: runStats.kills, time: Math.round(runStats.time),
-                  strongholds: strongholdsRazed, difficulty };
+                  strongholds: strongholdsRazed, difficulty,
+                  warlords: runStats.warlordsSlain || 0 };
     if (isBest) { try { localStorage.setItem('aow-best-run', JSON.stringify(run)); } catch {} }
     lastRunSummary = { run, prev, isBest };
   }
