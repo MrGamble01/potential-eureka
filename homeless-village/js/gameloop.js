@@ -94,6 +94,7 @@ function onNewDay(){
     }
   }
   regularFavorsAtDawn();
+  repAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -118,7 +119,8 @@ function bumpRegular(id){
   var after=regularStage(id), d=regularDef(id);
   if(d&&after!==before){
     if(after===1) log(d.icon+' You learn the name of the one who '+d.who+': '+d.name+'.');
-    else log(d.icon+' '+d.name+' counts you as a friend now — '+d.name.split(' ')[0]+' '+d.perk+'.');
+    else { log(d.icon+' '+d.name+' counts you as a friend now — '+d.name.split(' ')[0]+' '+d.perk+'.');
+      addRep(5); }   // HV-9: a friend who vouches for you carries real weight
   }
   buildRegularsUI();
 }
@@ -133,6 +135,17 @@ function regularFavorsAtDawn(){
     G.health=Math.min(100,G.health+10);
     G.lastDeeDay=G.days;
     log('🩺 Dee spotted you looking rough and patched you up. +10 health.');
+  }
+}
+
+// ── HV-9: reputation at dawn — word fades, and Beloved camps wake to
+// the occasional gift on the fence post (once a day at most).
+function repAtDawn(){
+  if(G.days>1&&(G.rep||0)>0) addRep(-1);
+  if(repTier()>=3&&G.repGiftDay!==G.days&&Math.random()<.2){
+    G.repGiftDay=G.days;
+    if(Math.random()<.5){ var gf=rand(1,3); G.food+=gf; log('💛 A neighbor left a covered plate on the fence post. +'+gf+' food.'); }
+    else { var gg=rand(2,4); G.goodwill+=gg; log('💛 An envelope on the fence post — a neighbor saying thanks. +'+gg+' goodwill.'); }
   }
 }
 
@@ -345,7 +358,9 @@ var EVENTS_GOOD=[
 
 function maybeEvent(){
   if(G.days<2||Math.random()>.55) return;
-  if(Math.random()<.18&&!G.sweepWarned){
+  // HV-9: a Respected camp draws fewer complaint calls — sweeps come
+  // a third less often once the neighborhood vouches for you.
+  if(Math.random()<.18*(repTier()>=2?.67:1)&&!G.sweepWarned){
     if(G.workers.lookout){
       G.sweepWarned=true; G.packedUp=false;
       showSweepWarning(true, Date.now()+30000);
