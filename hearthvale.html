@@ -770,6 +770,7 @@
     well:      { well: true },
     tavern:    { roof: 'red',    wall: 'timber', chimney: true,  open: true },
     warehouse: { roof: 'slate',  wall: 'timber', chimney: false, open: true },
+    cellar:    { roof: 'slate',  wall: 'timber', chimney: false, open: true },
     fishing:   { roof: 'blue',   wall: 'timber', chimney: false, open: true },
     dock:      { roof: 'blue',   wall: 'timber', chimney: false, open: true },
     school:    { roof: 'blue',   wall: 'stone',  chimney: true },
@@ -1104,6 +1105,7 @@
     furrier:    { name: 'Furrier',     emoji: '🧥', w: 2, h: 2, tier: 3, cost: { wood: 20, stone: 8, gold: 14 }, prod: { gold: 12 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Works wolf pelts from repelled raids into fine winter coats — 1 pelt a cycle becomes 12 gold and a warmer, happier town.' },
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, tier: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
     warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
+    cellar:     { name: 'Root Cellar', emoji: '🫙', w: 2, h: 2, tier: 2, cost: { wood: 14, stone: 10 }, cellar: true, roof: C.stoneW, roofDk: C.stoneWDk, desc: 'Works itself: pickles autumn surplus into preserves (2 a cycle, 12 jars per level) and opens the pantry each winter cycle — 3 jars back as food.' },
     fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 8 }, prod: { food: 4 }, worker: true, wantsNear: 'water', likes: { types: ['dock'], bonus: 0.5, label: 'a Dock' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Cheap food — a worker nets fish. Built beside water it lands 50% more, and 50% more again by a Dock.' },
     dock:       { name: 'Dock',        emoji: '⚓', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 }, prod: { food: 3 }, worker: true, wantsNear: 'water', roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'A little dock — a worker lands fish, and nearby fishing huts haul in 50% more.' },
     windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, tier: 3, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, likes: { types: ['farm'], bonus: 0.5, label: 'a Farm' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — lifts nearby farms’ harvest, and earns more beside one.' },
@@ -1123,7 +1125,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'watchtower', 'furrier', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'watchtower', 'furrier', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1366,6 +1368,7 @@
     { id: 'warmcoats', emoji: '🧥', name: 'Warm Coats', desc: 'Turn a wolf pelt into gold at the Furrier.', done: () => (state.peltsWorked || 0) >= 1 },
     { id: 'storied', emoji: '📖', name: 'A Storied Town', desc: 'The Town Chronicle fills 25 pages.', done: () => (state.chronicle || []).length >= 25 },
     { id: 'cobbled', emoji: '🛤️', name: 'The Cobbled Way', desc: 'Road-link three workshops to the Market.', done: () => state.buildings.filter(b => b.done !== false && BUILDINGS[b.type].prod && onCobbledWay(b)).length >= 3 },
+    { id: 'preserved', emoji: '🫙', name: 'Waste Not', desc: 'Fill a Root Cellar with 12 preserves.', done: () => state.buildings.some(b => b.type === 'cellar' && (b.preserves || 0) >= 12) },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2139,6 +2142,29 @@
     state.buildings.forEach(b => {
       const def = BUILDINGS[b.type];
       if (b.done === false) return;   // construction sites don't produce
+      // HVALE-7: the Root Cellar works itself. In autumn it pickles the
+      // surplus above a 3-food-per-head buffer (2 a cycle, 12 jars per
+      // level); in winter it opens 3 jars a cycle back into the pantry.
+      if (def.cellar) {
+        const sn = seasonOf(state.day).name;
+        const cap = 12 * (b.level || 1);
+        b.preserves = b.preserves || 0;
+        if (sn === 'Autumn' && b.preserves < cap) {
+          const buffer = state.villagers.length * 3;
+          const surplus = Math.floor(state.res.food - buffer);
+          const take = Math.min(2, cap - b.preserves, Math.max(0, surplus));
+          if (take > 0) {
+            state.res.food -= take; b.preserves += take;
+            floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + take + '🫙', color: '#d9b98a', life: 1.5, maxLife: 1.5 });
+          }
+        } else if (sn === 'Winter' && b.preserves > 0) {
+          const out = Math.min(3, b.preserves);
+          b.preserves -= out; state.res.food += out;
+          gained.food = (gained.food || 0) + out;
+          floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + out, color: RES_COLOR.food, life: 1.5, maxLife: 1.5 });
+        }
+        return;
+      }
       if (def.prod && (!def.worker || b.staffed)) {
         const wk = def.worker ? workerOf(b) : null;
         const wtrait = wk ? traitOf(wk) : null;
@@ -3764,7 +3790,7 @@
   // The build bar is organised into category tabs so it never overflows.
   const BUILD_TABS = [
     { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
-    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'furrier', 'warehouse'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'furrier', 'warehouse', 'cellar'] },
     { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
   ];
@@ -3928,6 +3954,7 @@
     if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
     if (def.charm) html += statRow('Charm', '+' + def.charm + ' town beauty');
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
+    if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (def.guard) {
       html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
       html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT' : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
@@ -4129,7 +4156,7 @@
   function save() {
     try {
       const s = {
-        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0 })),
+        res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 })),
         villagers: state.villagers.map(v => ({ id: v.id, homeId: v.homeId, jobId: v.jobId, tx: v.tx, ty: v.ty, color: v.color, ph: v.ph, name: v.name, xp: v.xp || 0 })),
         day: state.day, time: state.time, nextTraderDay: state.nextTraderDay,
         _nextId: state._nextId, _lastProdHour: state._lastProdHour, _prodAbs: _prodAbs,
@@ -4182,7 +4209,7 @@
       (s.buildings || []).forEach(sb => {
         if (!BUILDINGS[sb.type]) return;
         const def = BUILDINGS[sb.type];
-        const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, level: sb.level || 1, staffed: false, worker: null, done: sb.done !== false, buildTotal: sb.buildTotal || 0, buildLeft: sb.buildLeft || 0 };
+        const b = { id: sb.id, type: sb.type, tx: sb.tx, ty: sb.ty, bonus: sb.bonus, level: sb.level || 1, staffed: false, worker: null, done: sb.done !== false, buildTotal: sb.buildTotal || 0, buildLeft: sb.buildLeft || 0, preserves: sb.preserves || 0 };
         if (b.done === false && !b.buildTotal) { b.buildTotal = buildWorkOf(sb.type); b.buildLeft = b.buildTotal; }
         for (let dy = 0; dy < def.h; dy++) for (let dx = 0; dx < def.w; dx++) { const i = idx(sb.tx + dx, sb.ty + dy); if (inMap(sb.tx + dx, sb.ty + dy)) occ[i] = b.id; }
         state.buildings.push(b);

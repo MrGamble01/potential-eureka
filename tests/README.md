@@ -39,6 +39,15 @@ Suites that need a temporary `window.__*` test hook in a game file
 **one-shot by design** and are not in this battery — their results are
 recorded in the merge commits that shipped each feature.
 
+## Last full run
+
+2026-08-24 — all **34 suites green** end-to-end (~46 minutes on one
+core, audit-first). The run caught exactly one stale assertion:
+`hvdog` had pinned the befriend goal as the *last* ladder rung, which
+HV-9/HV-10 outgrew — fixed to be position-agnostic. Prefer
+"contains"-style assertions over position-pinning for anything later
+features can append to.
+
 ## Conventions
 
 - Each suite is self-contained: it seeds `localStorage` in
