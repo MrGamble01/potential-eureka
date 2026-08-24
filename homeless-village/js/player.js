@@ -56,7 +56,7 @@ function finishAction(a){
   if(btn){ btn.classList.remove('active-job'); btn.disabled=false; }
 
   if(a.id==='scavenge'){
-    var wm=G.season===3?.5:1;
+    var wm=(G.season===3?.5:1)*weatherDef().scav;
     if(Math.random()<.2*wm){
       log('The dumpster is empty. Nothing today.');
     } else {
@@ -70,7 +70,7 @@ function finishAction(a){
     floatText('+'+w+'🪵 +'+cb+'📦');
     log('Found '+w+' wood and '+cb+' cardboard.');
   } else if(a.id==='panhandle'){
-    if(Math.random()<.55){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.'); }
+    if(Math.random()<.55*weatherDef().pan){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.'); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
     var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));

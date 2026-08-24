@@ -30,9 +30,12 @@ function refreshStructures(){
 function onNewDay(){
   G.days++; saveGame();
   G.season=Math.floor(G.days/7)%4;
+  // yesterday's forecast becomes today's sky; tomorrow gets its own roll
+  G.weather=G.forecast||rollWeather();
+  G.forecast=rollWeather();
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
-  G.warmth=Math.max(0,G.warmth-(G.season===3?18:8));
+  G.warmth=Math.max(0,Math.min(100,G.warmth-(G.season===3?18:8)-weatherDef().warmth));
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
@@ -45,9 +48,15 @@ function onNewDay(){
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
-  if(G.structures.garden){ var y=rand(1,3); G.food+=y; floatText('+'+y+'🍞'); log('Garden yielded '+y+' food.'); }
+  if(G.structures.garden){
+    if(G.weather==='cold'){ log('Frost on the beds — the garden gave nothing today.'); }
+    else { var y=rand(1,3); G.food+=y; floatText('+'+y+'🍞'); log('Garden yielded '+y+' food.'); }
+  }
 
-  log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'.');
+  log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
+  if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
+  if(G.weather==='heat') log('\ud83e\udd75 A scorcher. Foot traffic is up — a good day to panhandle.');
+  if(forecastVisible()&&G.forecast&&WEATHERS[G.forecast]) log('\ud83d\udcfb Tomorrow: '+WEATHERS[G.forecast].icon+' '+WEATHERS[G.forecast].name+'.');
   buildCraftUI(); buildWorkersUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
   checkArc();
