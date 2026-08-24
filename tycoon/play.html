@@ -1613,6 +1613,7 @@
 <div id="troll-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="mentor-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="war-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="outage-banner" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
@@ -4394,7 +4395,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult();
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult() * outageWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -6180,6 +6181,7 @@ const ACHIEVEMENTS = [
   { id: 'prior_art',     icon: '⚖️', title: 'Prior Art',            desc: 'Beat two patent trolls in court.', check: () => trollsBeaten >= 2, progress: () => [Math.min(trollsBeaten, 2), 2] },
   { id: 'sensei',        icon: '🎓', title: 'Wax On, Ship On',      desc: 'A mentor teaches 25 bonus XP to the floor.', check: () => mentorTaught >= 25, progress: () => [Math.min(mentorTaught, 25), 25] },
   { id: 'code_red',      icon: '🚨', title: 'Code Red',             desc: 'Convene the war room in three separate races.', check: () => warRoomsHeld >= 3, progress: () => [Math.min(warRoomsHeld, 3), 3] },
+  { id: 'pager_duty',    icon: '📟', title: 'Pager Duty',           desc: 'Page the on-call through three outages.', check: () => outagesPaged >= 3, progress: () => [Math.min(outagesPaged, 3), 3] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -7839,6 +7841,90 @@ function closeWarOffer(accepted, expired) {
     addFeedEntry(expired ? '🚨 Leadership stopped waiting — the moment passed' : '🚨 Held the line without the war room');
     warNextT = 90;
   }
+}
+
+// ── The Outage (TYC-23) ───────────────────────────────────
+// Success means pagers. Post-IPO, every so often the servers melt:
+// the whole floor drops to ×0.25 while the dashboard burns. PAGE THE
+// ON-CALL — max($1,000, half a minute of revenue) — and it's fixed on
+// the spot (inside 15 seconds counts as a heroic save: +2 morale).
+// Ignore it and it burns for 60 seconds before dying down on its own,
+// leaving −6 morale ash. Not an offer — a crisis. No etiquette.
+const OUTAGE_SECS = 60;
+const OUTAGE_HERO_SECS = 15;
+const OUTAGE_WORK_MULT = 0.25;
+let outage = null;          // { timeLeft }
+let outagesPaged = 0;       // lifetime pages answered
+let outagesSeen = 0;        // lifetime outages, paged or burned
+let outageNextT = 420;      // the first pager ~7 minutes into a season
+function outageWorkMult() { return outage ? OUTAGE_WORK_MULT : 1; }
+function outageCost() { return Math.max(1000, Math.round(currentRatePerMin() * 0.5)); }
+function showOutageBanner() {
+  const el = document.getElementById('outage-banner');
+  el.innerHTML = `
+    <div style="background:#1a0808;border:1px solid rgba(248,81,73,.6);border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#f85149;margin-bottom:4px">🔥 SEV-1 — the servers are melting</div>
+      <div>The dashboard is a wall of red and the floor is rubbernecking at
+      <b>×0.25 speed</b>. Page the on-call for <b style="color:#F85149">$${fmtCash(outageCost())}</b>
+      and it's fixed on the spot — or let it burn out on its own and eat the morale.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="outage-page" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.5);color:#f85149">📟 Page the on-call $${fmtCash(outageCost())}</button>
+      </div>
+      <div id="outage-clock" style="color:#7D8590;font-size:11px;margin-top:6px">Burning for ${OUTAGE_SECS}s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('outage-page').onclick = pageOnCall;
+}
+function pageOnCall() {
+  if (!outage) return;
+  const cost = outageCost();
+  if (state.cash < cost) {
+    const cd = document.getElementById('outage-clock');
+    if (cd) cd.textContent = `Need $${fmtCash(cost - state.cash)} more`;
+    return;
+  }
+  state.cash -= cost; showSpendPop(cost);
+  const heroic = (OUTAGE_SECS - outage.timeLeft) <= OUTAGE_HERO_SECS;
+  outage = null;
+  document.getElementById('outage-banner').style.display = 'none';
+  outagesPaged++;
+  if (heroic) {
+    changeMorale(+2, 'Heroic save — the on-call was a legend');
+    showToast('📟 Rolled back in minutes — the floor barely looked up. Heroic save (+2 morale).', 'good', 'critical');
+    addFeedEntry('📟 SEV-1 paged and squashed inside 15s — heroic save');
+  } else {
+    showToast('📟 The on-call rolls it back — the dashboard cools off.', 'good', 'critical');
+    addFeedEntry('📟 SEV-1 paged out (' + outagesPaged + ' answered)');
+  }
+  outageNextT = 540 + Math.random() * 240;
+  checkAchievements(); saveGame(); refreshHud();
+}
+function updateOutage(dt) {
+  if (outage) {
+    outage.timeLeft -= dt;
+    const cd = document.getElementById('outage-clock');
+    if (cd && outage.timeLeft > 0) cd.textContent = 'Burning for ' + Math.max(0, Math.ceil(outage.timeLeft)) + 's';
+    if (outage.timeLeft <= 0) {
+      outage = null;
+      document.getElementById('outage-banner').style.display = 'none';
+      changeMorale(-6, 'The outage burned itself out');
+      showToast('🔥 The outage burns out on its own — an hour of ugly graphs and a bruised floor (−6 morale).', 'event', 'critical');
+      addFeedEntry('🔥 SEV-1 burned out unpaged (−6 morale)');
+      outageNextT = 540 + Math.random() * 240;
+      saveGame(); refreshHud();
+    }
+    return;
+  }
+  if (prestigeLevel < 1) return;   // garage servers can melt in peace
+  outageNextT -= dt;
+  if (outageNextT > 0) return;
+  if (document.querySelector('#win-modal.open, #ipo-modal.open')) { outageNextT = 25; return; }
+  outage = { timeLeft: OUTAGE_SECS };
+  outagesSeen++;
+  showOutageBanner();
+  showToast('🔥 SEV-1 — the servers are melting. The floor drops to ×0.25 until it clears.', 'event', 'critical');
+  addFeedEntry('🔥 SEV-1 — the dashboard is a wall of red');
+  SFX.milestone && SFX.milestone();
 }
 
 function triggerWin(cumulative) {
@@ -10329,6 +10415,7 @@ function frameBody(now) {
   updateTroll(dt);
   updateMentor(dt);
   updateWar(dt);
+  updateOutage(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -11094,6 +11181,21 @@ const SAVE_SCHEMA = [
       const i = p.mentor.idx;
       if (Number.isInteger(i) && i >= 0 && i < ideaWorkers.length) ideaWorkers[i].mentor = true;
       refreshMentorChip();
+    },
+  },
+  {
+    key: 'outages', // TYC-23: the pager ledger + one on fire
+    write: p => { p.outages = { paged: outagesPaged, seen: outagesSeen, active: outage ? { timeLeft: Math.min(OUTAGE_SECS, Math.max(1, Math.round(outage.timeLeft))) } : null }; },
+    read: p => {
+      if (p.outages) {
+        outagesPaged = Math.max(0, Math.floor(p.outages.paged || 0));
+        outagesSeen = Math.max(0, Math.floor(p.outages.seen || 0));
+        const act = p.outages.active;
+        if (act && Number.isFinite(act.timeLeft)) {
+          outage = { timeLeft: Math.min(OUTAGE_SECS, Math.max(1, act.timeLeft)) };
+          showOutageBanner();
+        }
+      }
     },
   },
   {
