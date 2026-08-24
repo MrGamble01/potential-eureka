@@ -31,8 +31,8 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
-| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural), `hvstash` (the Hidden Stash), `hvfire` (The Fire Held), `hvmeeting` (the Camp Meeting), `hvpetition` (City Petitions) |
-| Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier), `voxstardust` (stardust wishes), `voxcat` (cat gifts), `voxrainbow` (Rainbow's End), `voxduck` (the Duck's Dabble), `voxlight` (the Lighthouse), `voxobs` (the Observatory) |
+| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural), `hvstash` (the Hidden Stash), `hvfire` (The Fire Held), `hvmeeting` (the Camp Meeting), `hvpetition` (City Petitions), `hvticket` (the Bus Ticket), `hvsnap` (the Cold Snap) |
+| Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier), `voxstardust` (stardust wishes), `voxcat` (cat gifts), `voxrainbow` (Rainbow's End), `voxduck` (the Duck's Dabble), `voxlight` (the Lighthouse), `voxobs` (the Observatory), `voxballoon` (Balloon Tours), `voxdove` (the Dovecote) |
 
 Suites that need a temporary `window.__*` test hook in a game file
 (the hook is added for the test and stripped before commit) are
