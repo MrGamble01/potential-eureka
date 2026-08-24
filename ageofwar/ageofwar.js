@@ -575,6 +575,7 @@ const AgeOfWarGame = (() => {
     { id: 'quartermaster', icon: '🛡️', title: 'Quartermaster',    desc: 'March 30 plated recruits in one run.' },
     { id: 'true_flight',  icon: '🪶',  title: 'True Flight',      desc: 'Loose 40 fletched turret shots in one run.' },
     { id: 'drill_sergeant', icon: '🥁', title: 'Drill Sergeant',   desc: 'Train 25 drilled recruits in one run.' },
+    { id: 'bursar',       icon: '💰',  title: 'The Bursar',       desc: 'Mint 400 extra gold from one Paymaster.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -683,6 +684,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.plated || 0) >= 30) unlock('quartermaster');
     if ((runStats.fletched || 0) >= 40) unlock('true_flight');
     if ((runStats.drilled || 0) >= 25) unlock('drill_sergeant');
+    if ((runStats.minted || 0) >= 400) unlock('bursar');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1098,6 +1100,7 @@ const AgeOfWarGame = (() => {
     runStats.plated = 0; armorerBought = false;
     runStats.fletched = 0; fletcherBought = false;
     runStats.drilled = 0; drillBought = false;
+    runStats.minted = 0; paymasterBought = false;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1711,6 +1714,40 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // The Paymaster (AOW-29) — fourth of the workshop staff, and the
+  // only one who works the treasury: 400 gold once per run from Age
+  // III, and the every-second gold trickle runs 25% richer for the
+  // rest of the run. The ledger counts every extra coin he mints.
+  const PAYMASTER_COST = 400;
+  const PAYMASTER_RATE = 1.25;
+  let paymasterBought = false;
+  function payTrickle() {
+    const base = Math.round((9 + playerEra * 4) * DIFFICULTIES[difficulty].goldMult);
+    const paid = paymasterBought ? Math.round(base * PAYMASTER_RATE) : base;
+    if (paymasterBought) runStats.minted = (runStats.minted || 0) + (paid - base);
+    gold += paid;
+    renderHud();
+    return paid;
+  }
+  function buyPaymaster() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 2) {
+      goldFloaters.push({ text: '\u{1F4B0} The paymaster signs on in Age III', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (paymasterBought) return;
+    if (gold < PAYMASTER_COST) {
+      goldFloaters.push({ text: `\u{1F4B0} The paymaster costs ${PAYMASTER_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= PAYMASTER_COST;
+    paymasterBought = true;
+    goldFloaters.push({ text: '\u{1F4B0} PAYMASTER — the trickle runs 25% richer', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1805,6 +1842,8 @@ const AgeOfWarGame = (() => {
     if (fletchBtn) fletchBtn.onclick = buyFletcher;
     const drillBtn = document.getElementById('aow-drill-btn');
     if (drillBtn) drillBtn.onclick = buyDrillmaster;
+    const payBtn = document.getElementById('aow-pay-btn');
+    if (payBtn) payBtn.onclick = buyPaymaster;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2044,6 +2083,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'd' || e.key === 'D') {
         buyDrillmaster();
+        e.preventDefault();
+      } else if (e.key === 'g' || e.key === 'G') {
+        buyPaymaster();
         e.preventDefault();
       }
     });
@@ -2286,9 +2328,8 @@ const AgeOfWarGame = (() => {
     // waves don't also starve the player economically.
     goldTrickleT -= dt;
     if (goldTrickleT <= 0) {
-      gold += Math.round((9 + playerEra * 4) * DIFFICULTIES[difficulty].goldMult);
+      payTrickle();   // AOW-29: the paymaster's ledger runs the treasury
       goldTrickleT = 1.0;
-      renderHud();
     }
 
     // Tick the training queue: front entry trains down, spawns when done.
@@ -7478,6 +7519,17 @@ const AgeOfWarGame = (() => {
       drEl.title = drillBought
         ? `The drillmaster runs the parade ground — every recruit trains 20% faster. ${runStats.drilled || 0} drilled this run.`
         : `Hire the Drillmaster (D) — ${DRILL_COST} gold, once per run: every recruit trains 20% faster.`;
+    }
+
+    // Paymaster button (AOW-29)
+    const pmEl = document.getElementById('aow-pay-btn');
+    const pmCdEl = document.getElementById('aow-pay-cd');
+    if (pmEl) {
+      if (pmCdEl) pmCdEl.textContent = playerEra < 2 ? 'Age III' : paymasterBought ? 'seated' : `${PAYMASTER_COST}g`;
+      pmEl.disabled = playerEra < 2 || paymasterBought;
+      pmEl.title = paymasterBought
+        ? `The paymaster works the treasury — the trickle runs 25% richer. ${runStats.minted || 0} extra gold minted this run.`
+        : `Seat the Paymaster (G) — ${PAYMASTER_COST} gold, once per run: the every-second gold trickle runs 25% richer.`;
     }
 
     // Wave indicator
