@@ -231,6 +231,13 @@ const AgeOfWarGame = (() => {
   let gold = 0, xp = 0;
   let playerBaseHp = 1000, playerBaseMax = 1000;
   let enemyBaseHp  = 1000, enemyBaseMax  = 1000;
+  // AOW-14: Bastion Plating — purchasable base armor, bought in the
+  // Turrets tab. Each tier shaves 10% off damage the player base takes
+  // (melee and projectiles alike; the overtime whistle ignores armor by
+  // design — it's the fairness clock). Resets with the run.
+  const ARMOR_MAX = 3, ARMOR_COSTS = [150, 350, 700];
+  let armorTier = 0;
+  function armorMult() { return 1 - 0.1 * armorTier; }
   let units = [];
   let projectiles = [];
   let nextSpawnId = 1;
@@ -521,6 +528,7 @@ const AgeOfWarGame = (() => {
     { id: 'hero_summon',  icon: '🦸',  title: 'A Legend Arrives', desc: 'Summon your first Hero.' },
     { id: 'special_5',    icon: '💥',  title: 'Pyromaniac',       desc: 'Cast 5 specials in one run.' },
     { id: 'warcry_3',     icon: '🎺',  title: 'Hear the Horns',   desc: 'Sound 3 warcries in one run.' },
+    { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
     { id: 'win_insane',   icon: '👑',  title: 'Unstoppable',      desc: 'Win on Insane.' },
@@ -973,6 +981,7 @@ const AgeOfWarGame = (() => {
     goldTrickleT = 0;
     specialReadyT = 6;
     warcryT = 0; warcryCd = 0;
+    armorTier = 0;
     enemyXP = 0;
     enemySpecialT = 45;       // opening grace: no enemy special in the first minute
     enemySpecialWarnT = 0;
@@ -1291,6 +1300,22 @@ const AgeOfWarGame = (() => {
     renderHud();
     renderTurretPanel();
   }
+  // AOW-14: reinforce the walls. Instant, run-scoped, three tiers.
+  function tryBuyArmor() {
+    if (gameOver || armorTier >= ARMOR_MAX) return;
+    const cost = ARMOR_COSTS[armorTier];
+    if (gold < cost) {
+      goldFloaters.push({ text: 'Need $' + cost, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 140, color: '#8b949e', t: 1.2 });
+      return;
+    }
+    gold -= cost;
+    armorTier++;
+    goldFloaters.push({ text: '🧱 Plating T' + armorTier + ' — base takes ' + armorTier * 10 + '% less', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 140, color: '#9ad2e0', t: 1.6 });
+    SFX.ageUp();
+    if (armorTier >= ARMOR_MAX) unlock('bastion');
+    renderTurretPanel();
+  }
+
   function tryBuyTurretSlot() {
     if (gameOver || userPaused) return;
     if (playerSlotsOwned >= TURRET_SLOTS_MAX) return;
@@ -1872,7 +1897,9 @@ const AgeOfWarGame = (() => {
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
-              const dd = vetDmg(u);
+              const dd0 = vetDmg(u);
+              // AOW-14: plating blunts hits on the player base only
+              const dd = u.side === 'player' ? dd0 : Math.max(1, Math.round(dd0 * armorMult()));
               if (u.side === 'player') enemyBaseHp -= dd;
               else                   { playerBaseHp -= dd; vibrateBaseHit(); }
               spawnDmgFloater(dd, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
@@ -1954,9 +1981,10 @@ const AgeOfWarGame = (() => {
           shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
-          playerBaseHp -= p.dmg;
+          const pd = Math.max(1, Math.round(p.dmg * armorMult()));   // AOW-14
+          playerBaseHp -= pd;
           vibrateBaseHit();
-          spawnDmgFloater(p.dmg, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
+          spawnDmgFloater(pd, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
           spawnHitSparks(PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, p.color);
           SFX.hit();
           shake(Math.min(8, 1 + p.dmg / 80), 0.18);
@@ -6927,6 +6955,21 @@ const AgeOfWarGame = (() => {
       }
       list.appendChild(slot);
     }
+    // AOW-14: the plating card rides at the end of the turret rack
+    const armor = document.createElement('div');
+    armor.className = 'aow-turret-slot';
+    if (armorTier >= ARMOR_MAX) {
+      armor.innerHTML = `<span class="aow-turret-current">🧱<small>Plating T${armorTier}</small></span><span class="aow-turret-maxed">MAX · −30% dmg</span>`;
+    } else {
+      armor.innerHTML = `
+        <span class="${armorTier ? 'aow-turret-current' : 'aow-turret-empty'}">${armorTier ? `🧱<small>Plating T${armorTier}</small>` : '🧱 base plating'}</span>
+        <button class="aow-turret-buy" id="aow-armor-buy" title="Each tier: the base takes 10% less damage this run">Reinforce · $${ARMOR_COSTS[armorTier]} (−${(armorTier + 1) * 10}%)</button>
+      `;
+    }
+    list.appendChild(armor);
+    const ab = document.getElementById('aow-armor-buy');
+    if (ab) ab.addEventListener('click', tryBuyArmor);
+
     list.querySelectorAll('.aow-turret-buy:not(.aow-turret-slot-buy)').forEach(b => {
       b.addEventListener('click', () => tryBuyTurret(+b.dataset.slot, +b.dataset.era));
     });
