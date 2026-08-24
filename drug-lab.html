@@ -471,6 +471,14 @@ canvas{display:block;touch-action:none;}
 }
 #zoning-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 @media (max-width:640px){ #zoning-toggle{bottom:189px;right:8px;font-size:11px;padding:5px 9px;} }
+#vault-toggle{
+  position:fixed;bottom:14px;right:1216px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#vault-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #vault-toggle{bottom:214px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -554,6 +562,7 @@ canvas{display:block;touch-action:none;}
 <button id="unit-toggle" style="display:none" title="The Storage Unit: a $1,500 rental across town under a clean name. Stash cap 15 → 45, and if you ever skip town, the unit isn’t on the warrant — up to 15 bags survive">📦 RENT A UNIT $1,500</button>
 <button id="mother-toggle" style="display:none" title="The Mother Plant: $1,500 of prize genetics rooted in the corner — the cuttings run true, and every batch off the trim table bags one extra, forever">🌱 MOTHER $1,500</button>
 <button id="zoning-toggle" style="display:none" title="The Variance: a friend at City Hall reclassifies the block mixed-use commercial — $12,000 once, and an empire’s ambient heat radiates 40% lighter, forever">🏛️ VARIANCE $12k</button>
+<button id="vault-toggle" style="display:none" title="The Floor Safe: bank $1,000 under the laundry floor (the launderer keeps 10%) — the safe survives a bust, and the balance lands in your next run’s pocket">🔒 VAULT $0</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1748,6 +1757,41 @@ function addLegacy(pts) {
 }
 function legacyMult() { return 1 + Math.min(6, loadLegacy().points) * 0.04; }
 
+// LAB-29: the Floor Safe. A second thing the DEA never finds — like
+// the legacy record, it lives outside the run's save. $1,000 chunks
+// go under the laundry floor at a 10% fee; the balance survives any
+// bust and lands in the next run's starting pocket.
+const VAULT_KEY = 'growop-vault';
+const VAULT_CHUNK = 1000, VAULT_FEE = 0.10;
+function loadVault() {
+  try { const v = JSON.parse(localStorage.getItem(VAULT_KEY) || 'null');
+    if (v && typeof v === 'object') return { bal: Math.max(0, Math.floor(v.bal || 0)), life: Math.max(0, Math.floor(v.life || 0)) }; } catch(e){}
+  return { bal: 0, life: 0 };
+}
+function saveVault(v) { try { localStorage.setItem(VAULT_KEY, JSON.stringify(v)); } catch(e){} }
+function refreshVaultBtn() {
+  const b = document.getElementById('vault-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  const v = loadVault();
+  b.classList.toggle('on', v.bal > 0);
+  b.textContent = '🔒 VAULT $' + fmtCash(v.bal) + ' · +$' + fmtCash(VAULT_CHUNK);
+}
+function depositVault() {
+  if (currentAct() < 2) return;
+  if (state.cash < VAULT_CHUNK) { showToast("Can't spare $" + fmtCash(VAULT_CHUNK) + ' for the floor safe yet.', 'bust'); return; }
+  state.cash -= VAULT_CHUNK;
+  const kept = Math.round(VAULT_CHUNK * (1 - VAULT_FEE));
+  const v = loadVault();
+  v.bal += kept; v.life += kept;
+  saveVault(v);
+  refreshVaultBtn();
+  showToast('🔒 $' + fmtCash(kept) + ' goes under the floor — the launderer keeps $' + fmtCash(VAULT_CHUNK - kept) + '. The safe survives anything.', 'good');
+  addFeed('🔒 Banked $' + fmtCash(kept) + ' in the floor safe ($' + fmtCash(v.bal) + ' vaulted)');
+  checkGrowAchievements();
+  saveGame();
+}
+
 // ── Heat system ──
 function addHeat(amount) {
   // LAB-12: a crew on night shifts is louder, brighter, sloppier — every
@@ -2074,6 +2118,7 @@ function refreshRouteBtn() {
   refreshBurnerBtn(); // LAB-24: and the burner rides the same gate
   refreshMotherBtn(); // LAB-26: the mother too
   refreshZoningBtn(); // LAB-28: and the variance
+  refreshVaultBtn(); // LAB-29: and the floor safe
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2247,6 +2292,7 @@ function updateRoute(dt) {
 { const bb = document.getElementById('burner-toggle'); if (bb) bb.onclick = buyBurner; }
 { const mb = document.getElementById('mother-toggle'); if (mb) mb.onclick = rootMother; }
 { const zb = document.getElementById('zoning-toggle'); if (zb) zb.onclick = buyVariance; }
+{ const vb = document.getElementById('vault-toggle'); if (vb) vb.onclick = depositVault; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2502,6 +2548,7 @@ const GROW_ACH = [
   { id: 'mother50', name: 'Prize Genetics', test: () => (state.motherBags || 0) >= 50 },   // LAB-26
   { id: 'client5', name: 'Repeat Business', test: () => (state.clientele || 0) >= 5 },   // LAB-27
   { id: 'zoned', name: 'Friends Downtown', test: () => !!state.zoned && (state.totalEarned || 0) >= 50000 },   // LAB-28
+  { id: 'squirrel', name: 'Rainy-Day Fund', test: () => (loadVault().life || 0) >= 5000 },   // LAB-29
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -3125,6 +3172,14 @@ if (!hadSave) {
   const pick = d => {
     state.difficulty = d;
     state.cash = DIFFS[d].startCash;
+    // LAB-29: the floor safe made it through the last fall.
+    const vv = loadVault();
+    if (vv.bal > 0) {
+      state.cash += vv.bal;
+      addFeed('🔒 Recovered $' + fmtCash(vv.bal) + ' from the old floor safe');
+      setTimeout(() => showToast('🔒 The floor safe made it through — $' + fmtCash(vv.bal) + ' waits under the new floor.', 'good'), 1200);
+      vv.bal = 0; saveVault(vv);
+    }
     dm.classList.remove('open');
     saveGame();
     refreshHud();
