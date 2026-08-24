@@ -372,6 +372,19 @@ canvas{display:block;touch-action:none;}
   pointer-events:none;user-select:none;letter-spacing:0.5px;z-index:30;
 }
 #contract-hud.late{color:#ff6b5c;border-color:rgba(255,107,92,0.55);text-shadow:0 0 8px rgba(255,107,92,0.4);}
+/* ── Corner Wars (LAB-11) ── */
+#rival-hud{
+  position:fixed;top:118px;left:50%;transform:translateX(-50%);
+  background:rgba(10,4,4,0.92);
+  border:1px solid rgba(255,107,92,0.5);
+  color:#ff8f80;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+  display:flex;gap:10px;align-items:center;
+}
+#rival-pay{
+  background:rgba(34,221,85,0.12);border:1px solid rgba(34,221,85,0.5);color:#22dd55;
+  font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
+}
 #contract-offer{
   position:fixed;top:82px;left:50%;transform:translateX(-50%);
   background:rgba(4,10,4,0.96);
@@ -411,6 +424,7 @@ canvas{display:block;touch-action:none;}
   #market-hud{top:8px;left:8px;right:auto;font-size:11px;padding:4px 9px;}
   #contract-hud{top:60px;font-size:11px;padding:4px 10px;}
   #contract-offer{top:60px;max-width:88vw;font-size:12px;}
+  #rival-hud{top:96px;font-size:11px;padding:4px 9px;gap:6px;}
   #heat-hud{top:44px;right:8px;min-width:120px;padding:6px 10px;}
   #goal-hud{top:94px;right:8px;min-width:120px;padding:6px 10px;}
   #back-btn{bottom:14px;left:14px;z-index:70;}
@@ -426,6 +440,7 @@ canvas{display:block;touch-action:none;}
 <div id="market-hud" title="Street demand — prices drift, surge and crash. Sell high.">📊 <span id="market-val">1.00×</span></div>
 <div id="contract-hud" style="display:none" title="Active contract — units delivered / needed, time left">📦 <span id="contract-val"></span></div>
 <div id="contract-offer" style="display:none"></div>
+<div id="rival-hud" style="display:none" title="A rival crew is poaching your buyers — Lookouts thin the poaching; pay them off to clear the corner">🕶️ <span id="rival-val"></span><button id="rival-pay"></button></div>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
@@ -1061,6 +1076,12 @@ function buildDealer() {
 let dealerSeq = 0;
 function spawnDealer() {
   if (stashCount < 1) return;
+  // LAB-11: a posted rival crew peels buyers off before they reach you
+  if (rival && Math.random() < rivalPoachChance()) {
+    state.buyersPoached = (state.buyersPoached || 0) + 1;
+    addFeed('🕶️ A buyer peeled off to the rival corner.');
+    return;
+  }
   // Spawn at edge, walk to stash
   const spawnX = (Math.random()-0.5)*12;
   const g = buildDealer();
@@ -1649,6 +1670,61 @@ function updateContractHUD() {
 }
 
 // ── Act system ──
+// ── Corner Wars (LAB-11) ──────────────────────────────────
+// Past the garage act, a rival crew occasionally posts up on the block
+// for ~90 seconds and poaches buyers before they ever reach you — lost
+// volume, not lower prices. Lookouts thin the poaching (−10pp each);
+// cash clears the corner instantly (payoff locked at 6× list when they
+// arrive); or you grit your teeth and wait them out.
+let rival = null, rivalIn = 200 + Math.random() * 140;
+function rivalPoachChance() { return Math.max(0.05, 0.35 - 0.10 * (state.lookouts || 0)); }
+function rivalArrives() {
+  rival = { left: 90, payoff: 6 * salePrice() };
+  state.rivalRunIns = (state.rivalRunIns || 0) + 1;
+  showToast("🕶️ A rival crew posts up on the corner — they're taking your buyers.", 'bad');
+  addFeed('🕶️ Rival crew on the block — buyers are peeling off.');
+  const btn = document.getElementById('rival-pay');
+  if (btn) btn.onclick = payOffRival;
+  updateRivalHUD();
+}
+function payOffRival() {
+  if (!rival) return;
+  if (state.cash < rival.payoff) { showToast("Can't cover the payoff!", 'bust'); return; }
+  state.cash -= rival.payoff;
+  addFeed(`🤝 Paid the rival crew $${rival.payoff} to move along.`);
+  showToast('🤝 The corner clears — buyers come back to you.', 'good');
+  rivalLeaves(false);
+}
+function rivalLeaves(expired) {
+  rival = null;
+  rivalIn = 260 + Math.random() * 180;
+  if (expired) addFeed('🕶️ The rival crew packed up and drifted off.');
+  updateRivalHUD();
+  refreshHud();
+  saveGame();
+}
+function updateRivalHUD() {
+  const hud = document.getElementById('rival-hud');
+  if (!hud) return;
+  if (!rival) { hud.style.display = 'none'; return; }
+  hud.style.display = 'flex';
+  const v = document.getElementById('rival-val');
+  if (v) v.textContent = `Rival crew · ${Math.max(0, Math.ceil(rival.left))}s · poaching ${Math.round(rivalPoachChance() * 100)}%`;
+  const btn = document.getElementById('rival-pay');
+  if (btn) btn.textContent = `Pay off $${rival.payoff}`;
+}
+function updateRival(dt) {
+  if (rival) {
+    rival.left -= dt;
+    updateRivalHUD();
+    if (rival.left <= 0) rivalLeaves(true);
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody contests a garage
+  rivalIn -= dt;
+  if (rivalIn <= 0) rivalArrives();
+}
+
 function currentAct() {
   if (state.totalEarned >= 15000) return 3;
   if (state.totalEarned >= 2000) return 2;
@@ -2084,6 +2160,8 @@ function saveGame() {
     contract, contractIn: Math.round(contractIn),
     contractsDone: state.contractsDone || 0,
     pureBags, chemPure,
+    rival, rivalIn: Math.round(rivalIn),
+    rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -2121,6 +2199,16 @@ function loadGame() {
     }
     if (typeof sv.contractIn === 'number') contractIn = Math.min(600, Math.max(5, sv.contractIn));
     state.contractsDone = sv.contractsDone || 0;
+    // LAB-11: a posted rival survives a reload with clamped countdown/payoff
+    if (sv.rival && typeof sv.rival.payoff === 'number' && sv.rival.payoff > 0) {
+      rival = { left: Math.min(90, Math.max(1, sv.rival.left || 30)), payoff: Math.round(sv.rival.payoff) };
+      const rb = document.getElementById('rival-pay');
+      if (rb) rb.onclick = payOffRival;
+      updateRivalHUD();
+    }
+    if (typeof sv.rivalIn === 'number') rivalIn = Math.min(600, Math.max(5, sv.rivalIn));
+    state.rivalRunIns = sv.rivalRunIns || 0;
+    state.buyersPoached = sv.buyersPoached || 0;
     pureBags = Math.max(0, Math.min(sv.pureBags || 0, sv.stashCount || 0));   // LAB-10
     chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
@@ -2779,6 +2867,7 @@ function animate(now_ms) {
     updateDealerSpawn(dt);
     updateMarket(dt);
     updateContract(dt);
+    updateRival(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
