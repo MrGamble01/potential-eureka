@@ -1279,6 +1279,30 @@
   }
   function monumentHappy() { return 2 * monumentStage(); }
 
+  // ── The Reeve's Reckoning (HVALE-18) ───────────────────
+  // On the first dawn of every year from the second on, the reeve
+  // walks the town and reckons the annals: every finished roof pays a
+  // 2-gold dividend into the coffers (capped at 30), the town takes
+  // +4 cheer from a year survived, and the Chronicle gets the year's
+  // headline — roofs standing, wolves turned, souls fed.
+  const RECKON_PER_ROOF = 2, RECKON_CAP = 30, RECKON_CHEER = 4;
+  function reckonAtDawn() {
+    if (state.day <= 1) return;
+    if (yearDay(state.day) !== 1) return;
+    const yr = yearOf(state.day);
+    if (yr < 2 || state.lastReckonYear === yr) return;
+    state.lastReckonYear = yr;
+    state.reckonings = (state.reckonings || 0) + 1;
+    const roofs = state.buildings.filter(b => b.done !== false).length;
+    const dividend = Math.min(RECKON_CAP, roofs * RECKON_PER_ROOF);
+    state.res.gold += dividend;
+    state.happy = Math.min(100, state.happy + RECKON_CHEER);
+    toast('📯 Year ' + yr + ' — the reeve reckons the annals: ' + roofs + ' roofs standing. +' + dividend + ' gold, +' + RECKON_CHEER + ' cheer.');
+    chron('📯', 'Year ' + yr + ' reckoned — ' + roofs + ' roofs, ' + (state.raidsRepelled || 0) + ' raids turned, ' + state.villagers.length + ' souls at the hearth (+' + dividend + ' gold)');
+    checkAchievements();
+    save();
+  }
+
   // ── The Fever & the Physic Garden (HVALE-17) ───────────
   // From the second year, autumn carries the sick season: each autumn
   // dawn (once a year at most) can break a FEVER over the town — the
@@ -1528,6 +1552,7 @@
     { id: 'traditions', emoji: '🌞', name: 'Keeper of Traditions', desc: 'See the town keep four feast days.', done: () => (state.feastsHeld || 0) >= 4 },
     { id: 'unveiled', emoji: '🗿', name: 'Set in Stone', desc: 'See the Monument unveiled in the square.', done: () => monumentStage() >= 4 },
     { id: 'physician', emoji: '🌿', name: 'Through the Sick Season', desc: 'Weather two fevers.', done: () => (state.feversWeathered || 0) >= 2 },
+    { id: 'annals', emoji: '📯', name: 'The Annals', desc: 'See the reeve reckon three years.', done: () => (state.reckonings || 0) >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2620,6 +2645,7 @@
     electElder();   // HVALE-12: the dawn light finds the town's most seasoned hands
     feastAtDawn();  // HVALE-15: the town keeps its own calendar
     feverAtDawn();  // HVALE-17: so does the sick season
+    reckonAtDawn(); // HVALE-18: and the reeve keeps the annals
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4530,6 +4556,8 @@
         feastsHeld: state.feastsHeld || 0,
         lastFeastDay: typeof state.lastFeastDay === 'number' ? state.lastFeastDay : -1,
         masonCycles: state.masonCycles || 0,
+        reckonings: state.reckonings || 0,   // HVALE-18
+        lastReckonYear: typeof state.lastReckonYear === 'number' ? state.lastReckonYear : -1,
         fevers: state.fevers || 0, feversWeathered: state.feversWeathered || 0,   // HVALE-17
         feverUntil: typeof state.feverUntil === 'number' ? state.feverUntil : -1,
         lastFeverYear: typeof state.lastFeverYear === 'number' ? state.lastFeverYear : -1,
@@ -4619,6 +4647,8 @@
       state.feastsHeld = s.feastsHeld || 0;   // HVALE-15
       state.lastFeastDay = typeof s.lastFeastDay === 'number' ? s.lastFeastDay : -1;
       state.masonCycles = Math.max(0, Math.floor(s.masonCycles || 0));   // HVALE-16
+      state.reckonings = s.reckonings || 0;   // HVALE-18 (older saves start their annals now)
+      state.lastReckonYear = typeof s.lastReckonYear === 'number' ? s.lastReckonYear : -1;
       state.fevers = s.fevers || 0;   // HVALE-17 (older saves never met the sick season)
       state.feversWeathered = s.feversWeathered || 0;
       state.feverUntil = typeof s.feverUntil === 'number' ? s.feverUntil : -1;
