@@ -1226,9 +1226,26 @@ let pTargetDealer = null;
 const dealers = [];
 const DEALER_COLORS = [0x1a1a1a, 0x2a1a1a, 0x1a2a22, 0x221a2a, 0x1a1a2a];
 let dealerSpawnTimer = 0;
+// LAB-27: the Clientele. Every 25th clean street sale, a face on the
+// corner becomes a regular customer — each locked-in regular brings
+// the whole street back 5% sooner, capped at five (a fifth of the
+// foot traffic is repeat business). Slow, permanent, and earned one
+// sale at a time — the corner's answer to the office's retro board.
+const CLIENT_EVERY = 25, CLIENT_CAP = 5, CLIENT_SPEED = 0.05;
+function clienteleMult() { return 1 / (1 + Math.min(CLIENT_CAP, state.clientele || 0) * CLIENT_SPEED); }
+function clientTick() {
+  state.clientMeter = (state.clientMeter || 0) + 1;
+  if (state.clientMeter >= CLIENT_EVERY && (state.clientele || 0) < CLIENT_CAP) {
+    state.clientMeter = 0;
+    state.clientele = (state.clientele || 0) + 1;
+    showToast('🤝 A face on the corner becomes a REGULAR — buyers come ' + Math.round(Math.min(CLIENT_CAP, state.clientele) * CLIENT_SPEED * 100) + '% sooner now (' + state.clientele + '/' + CLIENT_CAP + ').', 'good');
+    addFeed('🤝 Locked in regular #' + state.clientele + ' — the street comes back sooner');
+    checkGrowAchievements();
+  }
+}
 function dealerArrivalTime() {
   // LAB-20: buyers come half as often while a crackdown sweep runs
-  return 25 / (1 + upgLv('network')*0.3) * (typeof waveActive === 'function' && waveActive() ? 2 : 1) * (typeof partyActive === 'function' && partyActive() ? 0.5 : 1);
+  return 25 / (1 + upgLv('network')*0.3) * (typeof waveActive === 'function' && waveActive() ? 2 : 1) * (typeof partyActive === 'function' && partyActive() ? 0.5 : 1) * clienteleMult();   // LAB-27: repeat business
 }
 
 function buildDealer() {
@@ -2445,6 +2462,7 @@ const GROW_ACH = [
   { id: 'block_famous', name: 'The Block Knows', test: () => (state.partySales || 0) >= 12 },   // LAB-23
   { id: 'whale_club', name: 'The Whale Club', test: () => (state.whalesServed || 0) >= 5 },   // LAB-25
   { id: 'mother50', name: 'Prize Genetics', test: () => (state.motherBags || 0) >= 50 },   // LAB-26
+  { id: 'client5', name: 'Repeat Business', test: () => (state.clientele || 0) >= 5 },   // LAB-27
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -2849,6 +2867,7 @@ function saveGame() {
     unitRented: !!state.unitRented,   // LAB-22
     burnerLeft: Math.max(0, Math.min(10, Math.floor(state.burnerLeft || 0))), burnersBought: state.burnersBought || 0,   // LAB-24
     motherRooted: !!state.motherRooted, motherBags: state.motherBags || 0,   // LAB-26
+    clientele: Math.max(0, Math.min(5, Math.floor(state.clientele || 0))), clientMeter: state.clientMeter || 0,   // LAB-27
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
@@ -2940,6 +2959,8 @@ function loadGame() {
     state.burnerLeft = Math.max(0, Math.min(BURNER_SALES, Math.floor(sv.burnerLeft || 0)));   // LAB-24
     state.motherRooted = !!sv.motherRooted;   // LAB-26
     state.motherBags = Math.max(0, Math.floor(sv.motherBags || 0));
+    state.clientele = Math.max(0, Math.min(CLIENT_CAP, Math.floor(sv.clientele || 0)));   // LAB-27
+    state.clientMeter = Math.max(0, Math.floor(sv.clientMeter || 0));
     refreshMotherBtn();
     state.burnersBought = Math.max(0, Math.floor(sv.burnersBought || 0));
     refreshBurnerBtn();
@@ -3350,6 +3371,7 @@ function sellToDealer(d, idx) {
   pureBags-=pureUsed;
   stashCount-=qty; state.totalSold+=qty;
   state.whaleMeter = (state.whaleMeter || 0) + 1;   // LAB-25: the corner talks — word reaches the Whale
+  clientTick();   // LAB-27: and a face becomes familiar
   addCash(price);
   addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
   burnStreetSale();   // LAB-24: the corner burns the number
