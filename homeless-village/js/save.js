@@ -59,6 +59,8 @@ function loadGame(){
     if(typeof G.benchSaves!=='number') G.benchSaves=0;
     if(typeof G.structures.compost!=='boolean') G.structures.compost=false; // saves from before HV-25
     if(typeof G.compostDays!=='number') G.compostDays=0;
+    if(typeof G.structures.awning!=='boolean') G.structures.awning=false; // saves from before HV-26
+    if(typeof G.awningSaves!=='number') G.awningSaves=0;
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
   }catch(e){}
 }

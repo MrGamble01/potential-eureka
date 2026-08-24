@@ -101,7 +101,11 @@ function finishAction(a){
     var muralBoost=(G.mural||0)>=MURAL_PANELS?1.1:1;
     // HV-18: nobody lingers outside in a cold snap
     var snapCut=snapActive()?0.75:1;
-    if(Math.random()<.55*weatherDef().pan*dogBoost*repBoost*muralBoost*snapCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+    // HV-26: a salvaged awning keeps the corner open in the rain ---
+    // the weather's pan cut is undone (0.5 x 2), clear-day odds.
+    var awningDry=(G.structures.awning&&G.weather==='rain')?AWNING_DRY:1;
+    if(Math.random()<.55*weatherDef().pan*awningDry*dogBoost*repBoost*muralBoost*snapCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+      if(awningDry>1){ G.awningSaves=(G.awningSaves||0)+1; log('\u26F1\uFE0F Dry under the awning \u2014 the corner stayed open.'); }
       bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
