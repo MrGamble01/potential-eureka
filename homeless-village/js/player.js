@@ -43,6 +43,12 @@ function doAction(a){
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
+  if(a.id==='newcomer'){
+    if(!G.newcomerAsk) return;
+    if(G.food<NEWCOMER_COST_FOOD || G.wood<NEWCOMER_COST_WOOD){
+      log('🫂 A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood — the camp comes up short.'); sfx('error'); return;
+    }
+  }
   if(a.id==='ticket'){
     if(!G.ticketAsk) return;
     if(G.goodwill<TICKET_COST_GW || G.scraps<TICKET_COST_SCRAPS){
@@ -186,6 +192,23 @@ function finishAction(a){
       G.busks=(G.busks||0)+1; G.buskDay=G.days;
       floatText('🎸 +'+take+'🩶 +2😊');
       log('🎸 Played a set on the corner — '+(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen')+'. +'+take+' goodwill, +1 rep.');
+      saveGame();
+      buildActionUI();
+    }
+  } else if(a.id==='newcomer'){
+    // HV-21: re-check — the ask can lapse mid-action, and a queued
+    // double-fire must not seat two people on one bed.
+    if(G.newcomerAsk && G.food>=NEWCOMER_COST_FOOD && G.wood>=NEWCOMER_COST_WOOD && (G.population||1)<NEWCOMER_POP_MAX){
+      G.food-=NEWCOMER_COST_FOOD; G.wood-=NEWCOMER_COST_WOOD;
+      G.newcomerAsk=null;
+      G.population+=1;
+      G.peakPopulation=Math.max(G.peakPopulation||0,G.population);
+      G.welcomes=(G.welcomes||0)+1;
+      G.morale=Math.min(100,G.morale+6);
+      addRep(2);
+      spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
+      floatText('🫂 +6😊');
+      log('🫂 A bed by the fire and a bowl of something hot — the camp is one bigger tonight. +6 morale, +2 rep.');
       saveGame();
       buildActionUI();
     }

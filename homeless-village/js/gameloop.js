@@ -101,6 +101,25 @@ function ticketAtDawn(){
   }
 }
 
+// HV-21: the newcomer stands at the edge of the light at dawn —
+// the ask opens, holds three days, and moves on if the fire never
+// decides.
+function newcomerAtDawn(){
+  if(G.newcomerAsk && G.days - G.newcomerAsk.day >= NEWCOMER_ASK_DAYS){
+    G.newcomerAsk=null;
+    log('🫂 The stranger moved on before the camp decided.');
+    buildActionUI();
+  }
+  if(!G.newcomerAsk && repTier()>=2 && !!G.structures.tent
+     && (G.population||1) < NEWCOMER_POP_MAX
+     && G.days - (typeof G.newcomerLastDay==='number'?G.newcomerLastDay:-9) >= NEWCOMER_EVERY){
+    G.newcomerAsk={day:G.days};
+    G.newcomerLastDay=G.days;
+    log('🫂 Someone new stands at the edge of the firelight — heard this camp treats people right. They ask to stay.');
+    buildActionUI();
+  }
+}
+
 // HV-18: the cold snap lives at dawn — it breaks, it rallies the
 // block, or it rolls in fresh off a hard winter sky.
 function snapAtDawn(){
@@ -170,6 +189,7 @@ function onNewDay(){
   soupNightAtDawn();
   muralAtDawn();
   ticketAtDawn();
+  newcomerAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
