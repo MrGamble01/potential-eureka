@@ -228,6 +228,7 @@
     <li>The <b>🏮 Winter Market</b> (level 8) only opens in the snow — skaters cross the ice every couple of minutes, <b>paying 12 🪙 +3 per villager</b>, turning the dead season into a working one</li>
     <li>The <b>🛖 Ice Hut</b> (level 8) sits out on the hard water &mdash; <b>ice fishing</b> opens the frozen pond: Arctic Char, Burbot and the pale 🌙 Moon Koi at a premium, all logged in the Angler&rsquo;s Log</li>
     <li>The <b>⛴️ Ferry Landing</b> (level 6) brings day-trippers in the green seasons &mdash; the ferry docks every couple of minutes and the visitors <b>tip 8 🪙 +2 per decor piece</b> (capped at 40): the prettier the isle, the fatter the tips</li>
+    <li>The <b>🍁 Sugar Shack</b> (level 7) taps the maples &mdash; <b>spring boils every couple of minutes</b> pay 12 🪙, and a <b>boil in the rain runs double</b>: every season now has its own earner</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -1569,6 +1570,7 @@ const BUILDINGS={
   wintermarket:{ico:'🏮',name:'Winter Market',cost:900,lvl:8,desc:'Lantern stalls that only open in the snow — skaters cross the ice for mulled mead, paying more the bigger your crew',roof:0xc0392b,wall:0x8a6a52,kind:'wmarket'},
   icehut:   {ico:'🛖',name:'Ice Hut',cost:750,lvl:8,desc:'A hut out on the hard water — the frozen pond opens for ice fishing: hardy cold-water catches at a premium, logged in the Angler’s Log',roof:0x4a6a8a,wall:0xa8c4d8,kind:'icehut'},
   ferry:    {ico:'⛴️',name:'Ferry Landing',cost:650,lvl:6,desc:'A jetty for the mainland ferry — day-trippers visit in the green seasons, tipping more the prettier the isle (every fence, lantern, gnome and bloom counts)',roof:0x4a6a8a,wall:0x9a7a52,kind:'ferry'},
+  sugarshack:{ico:'🍁',name:'Sugar Shack',cost:700,lvl:7,desc:'Taps the maples when the sap rises — the pans boil every couple of minutes through spring, and a boil in the rain runs double',roof:0x8a4b2f,wall:0xb8875a,kind:'sugar'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1586,6 +1588,7 @@ function buildingCubes(def){
   if(def.kind==='wmarket')return wmarketCubes(def);
   if(def.kind==='icehut')return icehutCubes(def);
   if(def.kind==='ferry')return ferryCubes(def);
+  if(def.kind==='sugar')return sugarCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1708,6 +1711,20 @@ function ferryCubes(def){
   a(0.7,0.72,0.25,0.2,0.3,0.2,0x2a3a4a);         // the mooring bollard
   a(-0.05,1.15,0.3,0.06,1.2,0.06,0x5a4028);      // the flagpole
   a(0.16,1.6,0.3,0.4,0.24,0.04,0xd94f30);        // the flag
+  return c;
+}
+function sugarCubes(def){
+  // VOX-17: a boil-shack in the maples — steep roof, a fat chimney
+  // trailing steam-white, a stack of sap pails at the door
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.55,0,1.6,1.1,1.2,def.wall);              // the shack
+  a(0,1.35,0,1.8,0.5,1.4,def.roof);              // steep roof
+  a(0,1.75,0,1.2,0.3,1.0,def.roof);              // roof ridge
+  a(0.5,1.9,0.2,0.3,0.7,0.3,0x6a5a4a);           // the fat chimney
+  a(0.5,2.4,0.2,0.42,0.24,0.42,0xf2f7fa);        // steam-white puff
+  a(0,0.4,0.66,0.4,0.7,0.08,0x5a3a24);           // door
+  a(-0.7,0.2,0.5,0.24,0.4,0.24,0x9aa0a6);        // sap pails
+  a(-0.7,0.5,0.5,0.2,0.2,0.2,0x9aa0a6);
   return c;
 }
 function obsCubes(def){
@@ -3251,6 +3268,27 @@ function updateFerry(dt){
   checkAch();
 }
 
+// VOX-17: the Sugar Shack — spring's signature. When the sap rises,
+// the pans boil every couple of minutes; a boil in the rain runs
+// DOUBLE (wet springs run the sap hard). The other three seasons the
+// shack just smells faintly of last year's syrup.
+function sugarBuilt(){return !!(state.buildings&&state.buildings.sugarshack);}
+function sugarPay(){return rainActive?24:12;}
+let sugarNextT=130+Math.random()*110;
+function updateSugarShack(dt){
+  if(!sugarBuilt())return;
+  if(seasonOf(state.day).key!=='spring')return;   // the sap only rises in spring
+  sugarNextT-=dt;
+  if(sugarNextT>0)return;
+  sugarNextT=130+Math.random()*110;
+  const pay=sugarPay();
+  const b=state.buildings.sugarshack;
+  grantCoins(pay,b.x,2.6,b.z);
+  state.sapBoils=(state.sapBoils||0)+1;
+  toast(rainActive?'🍁 A boil in the rain — the sap runs double: '+pay+' 🪙':'🍁 The pans boil down a batch of syrup — '+pay+' 🪙');
+  checkAch();
+}
+
 /* ============================== stardust & wishes (VOX-5) ============================== */
 // The how-to always said the stars were good for something. At night a
 // shooting star occasionally sheds a glowing shard over the garden —
@@ -4197,6 +4235,7 @@ const ACH=[
   ['wm5','Lantern-Lit','Host five winter-market nights',()=>(state.wmSales||0)>=5],
   ['ice5','Hard Water','Land five catches through the winter ice',()=>(state.iceCatches||0)>=5],
   ['ferry5','Day-Trippers','Welcome five ferry crossings',()=>(state.ferryVisits||0)>=5],
+  ['sap5','Sugar Rush','Boil five batches of syrup',()=>(state.sapBoils||0)>=5],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4439,6 +4478,7 @@ function boot(){
     updateDoves(dt);
     updateWinterMarket(dt);
     updateFerry(dt);
+    updateSugarShack(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
