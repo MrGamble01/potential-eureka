@@ -385,6 +385,15 @@ canvas{display:block;touch-action:none;}
   background:rgba(34,221,85,0.12);border:1px solid rgba(34,221,85,0.5);color:#22dd55;
   font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
 }
+/* ── Crunch Mode (LAB-12) ── */
+#crunch-toggle{
+  position:fixed;bottom:14px;right:16px;z-index:30;
+  background:rgba(4,10,4,0.92);border:1px solid rgba(154,210,224,0.4);
+  color:#9ad2e0;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#crunch-toggle.on{color:#ffd166;border-color:rgba(255,209,102,0.6);text-shadow:0 0 8px rgba(255,209,102,0.35);}
+@media (max-width:640px){ #crunch-toggle{bottom:64px;right:8px;font-size:11px;padding:5px 9px;} }
 #contract-offer{
   position:fixed;top:82px;left:50%;transform:translateX(-50%);
   background:rgba(4,10,4,0.96);
@@ -441,6 +450,7 @@ canvas{display:block;touch-action:none;}
 <div id="contract-hud" style="display:none" title="Active contract — units delivered / needed, time left">📦 <span id="contract-val"></span></div>
 <div id="contract-offer" style="display:none"></div>
 <div id="rival-hud" style="display:none" title="A rival crew is poaching your buyers — Lookouts thin the poaching; pay them off to clear the corner">🕶️ <span id="rival-val"></span><button id="rival-pay"></button></div>
+<button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
@@ -538,6 +548,7 @@ let state = {
   totalEarned: 0,
   totalSold: 0,
   heat: 0,
+  crunch: false,   // LAB-12: night shifts — faster production, hotter heat
   upgrades: {},
   ownedRooms: ['garage'],
   trimmers: 0,
@@ -804,7 +815,7 @@ const growPlots = [];
 const GROW_TIME_BASE = 18; // seconds
 
 function upgLv(id) { return state.upgrades[id] || 0; }
-function growTime() { return GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3); }
+function growTime() { return GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3) / (state.crunch ? 1.3 : 1); }   // LAB-12
 
 function buildGrowPlot(x, z, roomId) {
   const g = new THREE.Group();
@@ -1450,6 +1461,9 @@ function legacyMult() { return 1 + Math.min(6, loadLegacy().points) * 0.04; }
 
 // ── Heat system ──
 function addHeat(amount) {
+  // LAB-12: a crew on night shifts is louder, brighter, sloppier — every
+  // heat GAIN lands half again as hard. Reductions are untouched.
+  if (amount > 0 && state.crunch) amount *= 1.5;
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
   if (state.heat >= 100) triggerBust();
   refreshHud();
@@ -1670,6 +1684,31 @@ function updateContractHUD() {
 }
 
 // ── Act system ──
+// ── Crunch Mode (LAB-12) ──────────────────────────────────
+// One lever, two edges: with night shifts on, grow plots and the chem
+// station run 30% faster — and every heat GAIN lands 1.5× harder.
+// Reductions (bribes, lawyers, lying low) are untouched, so crunching
+// is a bet that you can outrun the attention you're attracting.
+function refreshCrunchBtn() {
+  const b = document.getElementById('crunch-toggle');
+  if (!b) return;
+  b.textContent = state.crunch ? '🌙 NIGHT SHIFTS: ON' : '🌙 NIGHT SHIFTS: OFF';
+  b.classList.toggle('on', !!state.crunch);
+}
+function toggleCrunch() {
+  state.crunch = !state.crunch;
+  refreshCrunchBtn();
+  if (state.crunch) {
+    showToast('🌙 Night shifts — everything runs faster, and hotter.', 'bad');
+    addFeed('🌙 The crew starts pulling night shifts — +30% output, heat spikes ×1.5.');
+  } else {
+    showToast('😮‍💨 Back to day work. The block cools off.', 'good');
+    addFeed('😮‍💨 Night shifts called off — the operation breathes again.');
+  }
+  saveGame();
+}
+{ const cb = document.getElementById('crunch-toggle'); if (cb) cb.onclick = toggleCrunch; }
+
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
 // for ~90 seconds and poaches buyers before they ever reach you — lost
@@ -2162,6 +2201,7 @@ function saveGame() {
     pureBags, chemPure,
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
+    crunch: !!state.crunch,
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -2209,6 +2249,8 @@ function loadGame() {
     if (typeof sv.rivalIn === 'number') rivalIn = Math.min(600, Math.max(5, sv.rivalIn));
     state.rivalRunIns = sv.rivalRunIns || 0;
     state.buyersPoached = sv.buyersPoached || 0;
+    state.crunch = !!sv.crunch;   // LAB-12
+    refreshCrunchBtn();
     pureBags = Math.max(0, Math.min(sv.pureBags || 0, sv.stashCount || 0));   // LAB-10
     chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
@@ -2386,7 +2428,7 @@ function updateTrimStation(dt) {
 function updateChemStation_tick(dt) {
   if (!chemStation) return;
   if (chemQueue<=0) return;
-  const speedMult = 1 + (state.cooks||0)*0.5;
+  const speedMult = (1 + (state.cooks||0)*0.5) * (state.crunch ? 1.3 : 1);   // LAB-12
   chemProgress += (dt/CHEM_TIME)*speedMult;
   if (chemProgress>=1) {
     chemProgress=0; chemQueue--;
