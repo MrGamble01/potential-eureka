@@ -577,6 +577,7 @@ const AgeOfWarGame = (() => {
     { id: 'drill_sergeant', icon: '🥁', title: 'Drill Sergeant',   desc: 'Train 25 drilled recruits in one run.' },
     { id: 'bursar',       icon: '💰',  title: 'The Bursar',       desc: 'Mint 400 extra gold from one Paymaster.' },
     { id: 'high_walls',   icon: '🏰',  title: 'Keep and Castle',  desc: 'Mortar 350 fresh stone onto the walls in one run.' },
+    { id: 'war_banker',   icon: '🧰',  title: 'War Banker',       desc: 'Earn 300 gold of war-chest interest in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -687,6 +688,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.drilled || 0) >= 25) unlock('drill_sergeant');
     if ((runStats.minted || 0) >= 400) unlock('bursar');
     if ((runStats.mortared || 0) >= 350) unlock('high_walls');
+    if ((runStats.chested || 0) >= 300) unlock('war_banker');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1104,6 +1106,7 @@ const AgeOfWarGame = (() => {
     runStats.drilled = 0; drillBought = false;
     runStats.minted = 0; paymasterBought = false;
     runStats.mortared = 0; masonsBought = false;
+    runStats.chested = 0; chestGold = 0;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1783,6 +1786,42 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // The War Chest (AOW-31) — the stored-value round reaches the
+  // front. From Age II, 150-gold deposits lock in the chest; when a
+  // BOSS falls it opens at 150%. But the lid only lifts for a boss —
+  // a run that dies with gold locked loses every coin of it.
+  const CHEST_DEPOSIT = 150;
+  const CHEST_RATE = 1.5;
+  let chestGold = 0;
+  function depositChest() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F9F0} The war chest unlocks in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (gold < CHEST_DEPOSIT) {
+      goldFloaters.push({ text: `\u{1F9F0} A chest deposit is ${CHEST_DEPOSIT} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= CHEST_DEPOSIT;
+    chestGold += CHEST_DEPOSIT;
+    goldFloaters.push({ text: `\u{1F9F0} ${CHEST_DEPOSIT} gold into the war chest \u2014 ${chestGold} locked till a boss falls`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    SFX.spawn();
+    renderHud();
+  }
+  function openWarChest(x, y) {
+    if (chestGold <= 0) return 0;
+    const opened = Math.round(chestGold * CHEST_RATE);
+    const interest = opened - chestGold;
+    gold += opened;
+    runStats.chested = (runStats.chested || 0) + interest;
+    goldFloaters.push({ text: `\u{1F9F0} The war chest opens \u2014 ${opened} gold (+${interest} interest)`, x, y, color: '#fcd34d', t: 2.2 });
+    chestGold = 0;
+    checkAchievementsDuringRun();
+    renderHud();
+    return opened;
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1881,6 +1920,8 @@ const AgeOfWarGame = (() => {
     if (payBtn) payBtn.onclick = buyPaymaster;
     const masonBtn = document.getElementById('aow-mason-btn');
     if (masonBtn) masonBtn.onclick = buyMasons;
+    const chestBtn = document.getElementById('aow-chest-btn');
+    if (chestBtn) chestBtn.onclick = depositChest;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2126,6 +2167,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'k' || e.key === 'K') {
         buyMasons();
+        e.preventDefault();
+      } else if (e.key === 'j' || e.key === 'J') {
+        depositChest();
         e.preventDefault();
       }
     });
@@ -2691,6 +2735,7 @@ const AgeOfWarGame = (() => {
           bountyKill(u);   // AOW-25: the board keeps count
           if (u.isBoss) {
             bossKilledThisWave = true;
+            openWarChest(u.x, GROUND_Y - u.h - 56);   // AOW-31: the lid only lifts for a boss
             if (u.warlord) {
               runStats.warlordsSlain = (runStats.warlordsSlain || 0) + 1;
               slainWarlords[u.warlord.name] = (slainWarlords[u.warlord.name] || 0) + 1;
@@ -7581,6 +7626,17 @@ const AgeOfWarGame = (() => {
       msEl.title = masonsBought
         ? `The masons have been through — the walls stand ${runStats.mortared || 0} stone thicker, already healed.`
         : `Call the Masons (K) — ${MASONS_COST} gold, once per run: the walls go up 25% thicker on the spot and the fresh stone lands healed.`;
+    }
+
+    // War Chest button (AOW-31)
+    const chEl = document.getElementById('aow-chest-btn');
+    const chCdEl = document.getElementById('aow-chest-cd');
+    if (chEl) {
+      if (chCdEl) chCdEl.textContent = playerEra < 1 ? 'Age II' : chestGold > 0 ? `${chestGold}g in` : `+${CHEST_DEPOSIT}g`;
+      chEl.disabled = playerEra < 1;
+      chEl.title = chestGold > 0
+        ? `The war chest holds ${chestGold} gold — it opens at 150% when a boss falls. A run that dies first loses it all. ${runStats.chested || 0} interest earned this run.`
+        : `The War Chest (J) — lock ${CHEST_DEPOSIT} gold per press; a fallen boss opens it at 150%. Die first and it's gone.`;
     }
 
     // Wave indicator
