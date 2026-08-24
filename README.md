@@ -73,7 +73,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `arcade-coins` | Coin balance + owned/equipped accent palettes (achievements mint 10 each) |
 | `eureka-stats` | Local-only play insights (launches/minutes per hub game — never sent anywhere) |
 | `arcade-muted` | `js/sfx.js` (arcade hub) |
-| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-mode`, `aow-best-run`, `aow-relics` | Age of War |
+| `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-mode`, `aow-best-run`, `aow-relics`, `aow-trials` | Age of War |
 | `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |
 | `beagle-sim-v1`, `beagle:*` | Beagle Sim (the `?theme=beagle` variant of Startup Tycoon) |
 | `startup_tycoon_theme`, `startup_tycoon_panels_collapsed`, `startup_tycoon_feed_open` | shared by both tycoon variants (cosmetic only) |

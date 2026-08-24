@@ -180,6 +180,10 @@ const AgeOfWarGame = (() => {
           </div>
           <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Arm a perk, then restart to cash it in.</div>
           <button id="relic-restart" style="margin-top:10px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.45);color:#3FB950;border-radius:8px;padding:7px 16px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">↻ Restart with perks</button>
+          <div style="margin-top:12px;border-top:1px solid rgba(252,211,77,0.2);padding-top:10px;text-align:left">
+            <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">🏆 War Trials <span style="color:var(--text-dim);font-weight:600;text-transform:none;letter-spacing:0">— one-time relic bounties</span></div>
+            ${trialsListHtml()}
+          </div>
         </div>
       `;
       ov.style.cursor = 'pointer';
@@ -292,6 +296,53 @@ const AgeOfWarGame = (() => {
   try { relics = Math.max(0, parseInt(localStorage.getItem(RELIC_KEY) || '0', 10) || 0); } catch {}
   let pendingPerks = {};           // id → true, applied + consumed by reset()
   function saveRelics() { try { localStorage.setItem(RELIC_KEY, String(relics)); } catch {} }
+
+  // ---- War Trials (AOW-9) ----------------------------------
+  // A passive challenge ladder over stats every run already tracks: no
+  // pre-selection, no mid-run enforcement — finish a run and whichever
+  // feats it happened to achieve are honoured, once each, in relics.
+  const TRIALS = [
+    { id: 'purist', icon: '🏛️', name: 'Antiquity Purist', reward: 5,
+      desc: 'Win a classic match without ever aging up.',
+      check: won => won && !endlessMode && runStats.agesReached === 0 },
+    { id: 'open',   icon: '🏹', name: 'Open Field',       reward: 4,
+      desc: 'Win without building a single turret.',
+      check: won => won && runStats.turretsBuilt === 0 },
+    { id: 'nohero', icon: '🚷', name: 'No Chosen One',    reward: 3,
+      desc: 'Win without summoning a hero.',
+      check: won => won && runStats.heroesSummoned === 0 },
+    { id: 'blitz',  icon: '⚡', name: 'Blitzkrieg',       reward: 4,
+      desc: 'Win in under 8 minutes.',
+      check: won => won && runStats.time < 480 },
+    { id: 'watch',  icon: '🌙', name: 'The Long Watch',   reward: 5,
+      desc: 'Survive 10 endless waves in one run.',
+      check: () => endlessMode && Math.max(0, waveNum - 1) >= 10 },
+  ];
+  let trialsDone = {};
+  try { trialsDone = JSON.parse(localStorage.getItem('aow-trials') || '{}') || {}; } catch {}
+  function checkTrials(won) {
+    const newly = [];
+    for (const t of TRIALS) {
+      if (trialsDone[t.id]) continue;
+      let hit = false;
+      try { hit = !!t.check(won); } catch {}
+      if (hit) { trialsDone[t.id] = Date.now(); relics += t.reward; newly.push(t); }
+    }
+    if (newly.length) {
+      saveRelics();
+      try { localStorage.setItem('aow-trials', JSON.stringify(trialsDone)); } catch {}
+    }
+    return newly;
+  }
+  function trialsListHtml(compact) {
+    return TRIALS.map(t => {
+      const done = !!trialsDone[t.id];
+      return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;` +
+        `color:${done ? '#3FB950' : 'var(--text-dim)'};padding:2px 0" title="${t.desc}">` +
+        `<span>${done ? '✅' : t.icon}</span><span style="font-weight:700">${t.name}</span>` +
+        `<span style="margin-left:auto">${done ? 'done' : '+' + t.reward + '🏺'}</span></div>`;
+    }).join('');
+  }
   function relicsEarned(won) {
     return Math.floor(runStats.gold / 800) + Math.floor(runStats.kills / 25) + (won ? 3 : 0);
   }
@@ -6776,6 +6827,7 @@ const AgeOfWarGame = (() => {
     const earned = relicsEarned(won);
     relics += earned;
     saveRelics();
+    const newTrials = checkTrials(won);   // AOW-9: feats this run achieved
     pendingPerks = {};
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
@@ -6796,6 +6848,8 @@ const AgeOfWarGame = (() => {
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
+      ${newTrials.length ? `<div style="margin-top:14px">${newTrials.map(t =>
+        `<div style="color:#3FB950;font-weight:800;font-size:14px">🏆 War Trial complete: ${t.icon} ${t.name} — +${t.reward}🏺</div>`).join('')}</div>` : ''}
       <div id="relic-vault" style="margin-top:18px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
         <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
           🏺 Relics &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
