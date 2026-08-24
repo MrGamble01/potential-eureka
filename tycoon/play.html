@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -1612,6 +1612,7 @@
 <div id="hack-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="troll-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="mentor-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="war-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
@@ -4393,7 +4394,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w);
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult() * retreatWorkMult() * hackWorkMult() * mentorSelfMult(w) * warWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -6178,6 +6179,7 @@ const ACHIEVEMENTS = [
   { id: 'allnighter',    icon: '⚡', title: 'Ship It or Sleep',     desc: 'Throw three hackathons.', check: () => hackathonsHeld >= 3, progress: () => [Math.min(hackathonsHeld, 3), 3] },
   { id: 'prior_art',     icon: '⚖️', title: 'Prior Art',            desc: 'Beat two patent trolls in court.', check: () => trollsBeaten >= 2, progress: () => [Math.min(trollsBeaten, 2), 2] },
   { id: 'sensei',        icon: '🎓', title: 'Wax On, Ship On',      desc: 'A mentor teaches 25 bonus XP to the floor.', check: () => mentorTaught >= 25, progress: () => [Math.min(mentorTaught, 25), 25] },
+  { id: 'code_red',      icon: '🚨', title: 'Code Red',             desc: 'Convene the war room in three separate races.', check: () => warRoomsHeld >= 3, progress: () => [Math.min(warRoomsHeld, 3), 3] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6796,7 +6798,7 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer) {
     acqNextT = 25;
     return;
   }
@@ -6898,7 +6900,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -6995,7 +6997,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer) {
     launchNextT = 25;
     return;
   }
@@ -7081,7 +7083,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer) {
     poachNextT = 25;
     return;
   }
@@ -7200,7 +7202,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7367,7 +7369,7 @@ function updateRfp(dt) {
   if (rivalDone || seasonGoalHit) return;
   rfpNextT -= dt;
   if (rfpNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer) {
     rfpNextT = 25;
     return;
   }
@@ -7483,7 +7485,7 @@ function updateHackathon(dt) {
   }
   hackNextT -= dt;
   if (hackNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer) {
     hackNextT = 25;
     return;
   }
@@ -7561,7 +7563,7 @@ function updateTroll(dt) {
   if (prestigeLevel < 1) return;   // trolls only sue companies worth suing
   trollNextT -= dt;
   if (trollNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer) {
     trollNextT = 25;
     return;
   }
@@ -7667,7 +7669,7 @@ function updateMentor(dt) {
   if (mentorOn()) return;   // one mentor at a time — the pitch waits for a vacancy
   mentorNextT -= dt;
   if (mentorNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer) {
     mentorNextT = 25;
     return;
   }
@@ -7727,6 +7729,115 @@ function closeMentorOffer(accepted, expired) {
   } else {
     addFeedEntry(expired ? '🎓 The pitch went unanswered — they went back to shipping' : '🎓 Passed on the mentorship program');
     mentorNextT = 480 + Math.random() * 240;
+  }
+}
+
+// ── The War Room (TYC-22) ─────────────────────────────────
+// When the ghost rival crosses three quarters of the bar AND leads
+// you, leadership can convene the war room — once per race. Fund the
+// takeout-and-whiteboards budget and the whole floor runs at ×1.5 for
+// 90 seconds; when the door opens again, the crash hits: −8 morale
+// across the team. Winning ugly is still winning.
+const WAR_SECS = 90;
+const WAR_WORK_MULT = 1.5;
+let warRoom = null;         // { timeLeft }
+let warOffer = null;        // { cost, expire }
+let warRoomsHeld = 0;       // lifetime convenings
+let warUsedSeason = false;  // once per race
+let warNextT = 0;           // gentle retry pacing
+function warWorkMult() { return warRoom ? WAR_WORK_MULT : 1; }
+function refreshWarChip() {
+  const el = document.getElementById('war-chip');
+  if (!el) return;
+  if (warRoom) {
+    el.style.display = '';
+    el.textContent = '🚨 ' + Math.ceil(warRoom.timeLeft) + 's';
+    el.title = 'The war room is convened: the whole floor runs at ×1.5 until the clock runs out — then the crash hits.';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function updateWar(dt) {
+  if (warOffer) {
+    warOffer.expire -= dt;
+    const cd = document.getElementById('war-expire');
+    if (cd) cd.textContent = 'Leadership waits ' + Math.max(0, Math.ceil(warOffer.expire)) + 's';
+    if (warOffer.expire <= 0) closeWarOffer(false, true);
+    return;
+  }
+  if (warRoom) {
+    warRoom.timeLeft -= dt;
+    refreshWarChip();
+    if (warRoom.timeLeft <= 0) {
+      warRoom = null;
+      refreshWarChip();
+      changeMorale(-8, 'War-room burnout');
+      showToast('🚨 The war room empties — the sprint is over, and the crash hits the floor.', 'event', 'critical');
+      addFeedEntry('🚨 The war room stood down (−8 morale)');
+      saveGame(); refreshHud();
+    }
+    return;
+  }
+  warNextT -= dt;
+  if (warNextT > 0) return;
+  if (warUsedSeason || rivalDone || seasonGoalHit) return;
+  const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
+  if (rivalRev < rivalTarget() * 0.75 || mine >= rivalRev) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer) {
+    warNextT = 25;
+    return;
+  }
+  makeWarOffer();
+}
+function makeWarOffer() {
+  const cost = Math.max(2500, Math.round(currentRatePerMin() * 1.5));
+  const rival = (typeof rivalName === 'string' && rivalName) ? rivalName : 'The rival';
+  warOffer = { cost, expire: 30 };
+  const el = document.getElementById('war-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#f85149;margin-bottom:4px">🚨 ${rival} is at three quarters — and ahead</div>
+      <div>Leadership wants the <b>war room</b>. Put up <b style="color:#F85149">$${fmtCash(cost)}</b> for
+      takeout and whiteboards and the whole floor runs at <b>×1.5 for ${WAR_SECS} seconds</b> —
+      then the <b style="color:#F85149">crash</b> hits (−8 morale). Once per race.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="war-go" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.5);color:#f85149">🚨 Convene it $${fmtCash(cost)}</button>
+        <button id="war-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Hold the line</button>
+      </div>
+      <div id="war-expire" style="color:#7D8590;font-size:11px;margin-top:6px">Leadership waits 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('war-go').onclick = () => {
+    if (!warOffer) return;
+    if (state.cash < warOffer.cost) {
+      const cd = document.getElementById('war-expire');
+      if (cd) cd.textContent = `Need $${fmtCash(warOffer.cost - state.cash)} more`;
+      return;
+    }
+    closeWarOffer(true, false);
+  };
+  document.getElementById('war-pass').onclick = () => closeWarOffer(false, false);
+  addFeedEntry(`🚨 Leadership wants the war room — ${rival} is pulling ahead`);
+  SFX.milestone && SFX.milestone();
+}
+function closeWarOffer(accepted, expired) {
+  const o = warOffer;
+  warOffer = null;
+  document.getElementById('war-offer').style.display = 'none';
+  if (!o) return;
+  if (accepted) {
+    state.cash -= o.cost; showSpendPop(o.cost);
+    warRoom = { timeLeft: WAR_SECS };
+    warUsedSeason = true;
+    warRoomsHeld++;
+    refreshWarChip();
+    showToast('🚨 The war room is convened — ' + WAR_SECS + ' seconds at ×1.5. Win ugly.', 'event', 'critical');
+    addFeedEntry(`🚨 War room convened ($${fmtCash(o.cost)} in takeout and whiteboards)`);
+    checkAchievements(); saveGame(); refreshHud();
+  } else {
+    addFeedEntry(expired ? '🚨 Leadership stopped waiting — the moment passed' : '🚨 Held the line without the war room');
+    warNextT = 90;
   }
 }
 
@@ -10217,6 +10328,7 @@ function frameBody(now) {
   updateHackathon(dt);
   updateTroll(dt);
   updateMentor(dt);
+  updateWar(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -10361,6 +10473,7 @@ function doIPO() {
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   dashHistory.length = 0; _dashT0 = Date.now(); // restart the season revenue chart
   initRival(true);   // a new season brings a new rival
+  warUsedSeason = false; warRoom = null; warOffer = null; refreshWarChip();   // TYC-22: a new race re-arms the war room
   rollClimate();     // ...and its own market climate (TYC-10)
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
@@ -10981,6 +11094,19 @@ const SAVE_SCHEMA = [
       const i = p.mentor.idx;
       if (Number.isInteger(i) && i >= 0 && i < ideaWorkers.length) ideaWorkers[i].mentor = true;
       refreshMentorChip();
+    },
+  },
+  {
+    key: 'warroom', // TYC-22: the war-room ledger + one in flight
+    write: p => { p.warroom = { held: warRoomsHeld, used: warUsedSeason, active: warRoom ? { timeLeft: Math.min(WAR_SECS, Math.max(1, Math.round(warRoom.timeLeft))) } : null }; },
+    read: p => {
+      if (p.warroom) {
+        warRoomsHeld = Math.max(0, Math.floor(p.warroom.held || 0));
+        warUsedSeason = !!p.warroom.used;
+        const act = p.warroom.active;
+        if (act && Number.isFinite(act.timeLeft)) warRoom = { timeLeft: Math.min(WAR_SECS, Math.max(1, act.timeLeft)) };
+        refreshWarChip();
+      }
     },
   },
   // (morale intentionally not persisted: it was written every ~5s but
