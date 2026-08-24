@@ -567,6 +567,7 @@ const AgeOfWarGame = (() => {
     { id: 'standard_bearer', icon: '🚩', title: 'Standard Bearer', desc: 'Take 50 kills in one run under a war banner.' },
     { id: 'dig_in',       icon: '⛏️',  title: 'Dig In',           desc: 'Bog down 15 enemies in one run with the Trenchworks.' },
     { id: 'giantslayer',  icon: '🗡️',  title: 'Giantslayer',      desc: 'Win two single-combat duels against named warlords in one run.' },
+    { id: 'patchwork',    icon: '🛠️',  title: 'Patchwork',        desc: 'Call the sappers three times in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -669,6 +670,7 @@ const AgeOfWarGame = (() => {
     if (warBanner !== 'none' && runStats.kills >= 50) unlock('standard_bearer');
     if ((runStats.trenchSlowed || 0) >= 15) unlock('dig_in');
     if ((runStats.duelsWon || 0) >= 2) unlock('giantslayer');
+    if ((runStats.repairs || 0) >= 3) unlock('patchwork');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1077,6 +1079,7 @@ const AgeOfWarGame = (() => {
     runStats.warlordsSlain = 0;
     runStats.trenches = 0; runStats.trenchSlowed = 0; trenchT = 0; trenchCd = 0;
     runStats.duels = 0; runStats.duelsWon = 0;
+    runStats.repairs = 0; sapperCd = 0;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1446,6 +1449,48 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Sappers (AOW-22) ──────────────────────────────────
+  // The base finally has a repair corps. From Age II, pay the crew and
+  // they patch a quarter of the walls' full strength back (never past
+  // full) — one gold per point of stone, 150 minimum, on a two-minute
+  // rearm. The Bastion Plating keeps damage OUT; the sappers put walls
+  // BACK; a run needs both late.
+  const SAPPER_CD = 120;
+  const SAPPER_HEAL = 0.25;
+  let sapperCd = 0;
+  function sapperHeal() {
+    const missing = Math.max(0, playerBaseMax - playerBaseHp);
+    return Math.min(missing, Math.round(playerBaseMax * SAPPER_HEAL));
+  }
+  function sapperCost() { return Math.max(150, Math.round(sapperHeal())); }
+  function repairBase() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '🛠️ The sapper corps musters in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (sapperCd > 0) return;
+    const heal = sapperHeal();
+    if (heal <= 0) {
+      goldFloaters.push({ text: '🛠️ The walls stand whole', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    const cost = sapperCost();
+    if (gold < cost) {
+      goldFloaters.push({ text: `🛠️ The sappers want ${cost} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= cost;
+    playerBaseHp = Math.min(playerBaseMax, playerBaseHp + heal);
+    sapperCd = SAPPER_CD;
+    runStats.repairs = (runStats.repairs || 0) + 1;
+    goldFloaters.push({ text: `🛠️ SAPPERS — +${heal} to the walls`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(3, 0.2);
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1758,6 +1803,9 @@ const AgeOfWarGame = (() => {
       } else if (e.key === 'c' || e.key === 'C') {
         challengeDuel();
         e.preventDefault();
+      } else if (e.key === 'r' || e.key === 'R') {
+        repairBase();
+        e.preventDefault();
       }
     });
   }
@@ -2012,6 +2060,7 @@ const AgeOfWarGame = (() => {
       renderHud();
     }
     mercCd = Math.max(0, mercCd - dt);   // AOW-15 — the rearm never stalls
+    sapperCd = Math.max(0, sapperCd - dt);   // AOW-22 — same clock
     trenchT = Math.max(0, trenchT - dt); trenchCd = Math.max(0, trenchCd - dt);   // AOW-20
 
     enemyTick(dt);
@@ -7110,6 +7159,18 @@ const AgeOfWarGame = (() => {
       duEl.title = w
         ? `Challenge ${w.name} to single combat (C) — ${DUEL_COST} gold. Your foremost soldier steps out; odds ride raw stats. One challenge per warlord.`
         : "Champion's Duel (C) — answers only while a named warlord leads an endless boss wave.";
+    }
+
+    // Repair button (AOW-22)
+    const rpEl = document.getElementById('aow-repair-btn');
+    const rpCdEl = document.getElementById('aow-repair-cd');
+    if (rpEl) {
+      const heal = sapperHeal();
+      if (rpCdEl) rpCdEl.textContent = playerEra < 1 ? 'Age II' : sapperCd > 0 ? `${Math.ceil(sapperCd)}s` : heal > 0 ? `${sapperCost()}g` : 'whole';
+      rpEl.disabled = playerEra < 1 || sapperCd > 0 || heal <= 0;
+      rpEl.title = heal > 0
+        ? `Call the Sappers (R) — patch +${heal} onto the walls for ${sapperCost()} gold. ${SAPPER_CD}s rearm.`
+        : 'Call the Sappers (R) — repairs a quarter of the base per call. The walls stand whole.';
     }
 
     // Wave indicator
