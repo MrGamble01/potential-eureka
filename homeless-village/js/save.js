@@ -37,5 +37,9 @@ function loadGame(){
     if(G.favor&&(typeof G.favor.who!=='string'||!FAVORS[G.favor.who])) G.favor=null; // saves from before HV-16
     if(typeof G.favorsDone!=='number') G.favorsDone=0;
     if(typeof G.lastFavorDay!=='number') G.lastFavorDay=-9;
+    if(typeof G.ticketsSent!=='number') G.ticketsSent=0;           // saves from before HV-17
+    if(typeof G.ticketLastDay!=='number') G.ticketLastDay=-9;
+    if(typeof G.lastLetterDay!=='number') G.lastLetterDay=-9;
+    if(G.ticketAsk&&typeof G.ticketAsk.day!=='number') G.ticketAsk=null;
   }catch(e){}
 }

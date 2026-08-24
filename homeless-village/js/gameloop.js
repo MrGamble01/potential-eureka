@@ -77,6 +77,30 @@ function refreshStructures(){
 }
 
 // ── Day / New Day ──
+// HV-17: the bus-ticket arc lives at dawn — the ask opens, the ask
+// expires, and once someone has gone home, letters come back.
+function ticketAtDawn(){
+  if(G.ticketAsk && G.days - G.ticketAsk.day >= TICKET_ASK_DAYS){
+    G.ticketAsk=null;
+    log('🚌 The talk of home fades — the moment passed.');
+    buildActionUI();
+  }
+  if(!G.ticketAsk && G.population>=3 && repTier()>=2
+     && G.days - (typeof G.ticketLastDay==='number'?G.ticketLastDay:-9) >= TICKET_EVERY){
+    G.ticketAsk={day:G.days};
+    G.ticketLastDay=G.days;
+    log('🚌 Around the fire, one of the residents talks about a sister two towns over. A bus ticket would do it.');
+    buildActionUI();
+  }
+  if((G.ticketsSent||0)>0 && G.days - (typeof G.lastLetterDay==='number'?G.lastLetterDay:-9) >= LETTER_EVERY){
+    G.lastLetterDay=G.days;
+    var lk=['food','scraps','cans'][rand(0,2)];
+    G[lk]=(G[lk]||0)+2;
+    G.morale=Math.min(100,G.morale+2);
+    log('✉️ A letter from the city — doing okay, misses the fire. Tucked inside, a little something: +2 '+({food:'🍞',scraps:'🧱',cans:'🫙'}[lk])+'.');
+  }
+}
+
 function onNewDay(){
   G.days++; saveGame();
   G.season=Math.floor(G.days/7)%4;
@@ -124,6 +148,7 @@ function onNewDay(){
   repAtDawn();
   soupNightAtDawn();
   muralAtDawn();
+  ticketAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
