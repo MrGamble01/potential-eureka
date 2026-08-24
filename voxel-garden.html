@@ -227,6 +227,7 @@
     <li>A <b>🕊️ Dovecote</b> (level 7) receives mainland letters — <b>small goods orders at a 75% premium</b>; tap the banner to send the dove home heavy (90s window)</li>
     <li>The <b>🏮 Winter Market</b> (level 8) only opens in the snow — skaters cross the ice every couple of minutes, <b>paying 12 🪙 +3 per villager</b>, turning the dead season into a working one</li>
     <li>The <b>🛖 Ice Hut</b> (level 8) sits out on the hard water &mdash; <b>ice fishing</b> opens the frozen pond: Arctic Char, Burbot and the pale 🌙 Moon Koi at a premium, all logged in the Angler&rsquo;s Log</li>
+    <li>The <b>⛴️ Ferry Landing</b> (level 6) brings day-trippers in the green seasons &mdash; the ferry docks every couple of minutes and the visitors <b>tip 8 🪙 +2 per decor piece</b> (capped at 40): the prettier the isle, the fatter the tips</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -1567,6 +1568,7 @@ const BUILDINGS={
   dovecote:  {ico:'🕊️',name:'Dovecote',cost:700,lvl:7,desc:'Carrier doves bring letters from the mainland — small standing orders that pay a 75% premium over base value',roof:0xe8e0d0,wall:0xc9b8a0,kind:'dove'},
   wintermarket:{ico:'🏮',name:'Winter Market',cost:900,lvl:8,desc:'Lantern stalls that only open in the snow — skaters cross the ice for mulled mead, paying more the bigger your crew',roof:0xc0392b,wall:0x8a6a52,kind:'wmarket'},
   icehut:   {ico:'🛖',name:'Ice Hut',cost:750,lvl:8,desc:'A hut out on the hard water — the frozen pond opens for ice fishing: hardy cold-water catches at a premium, logged in the Angler’s Log',roof:0x4a6a8a,wall:0xa8c4d8,kind:'icehut'},
+  ferry:    {ico:'⛴️',name:'Ferry Landing',cost:650,lvl:6,desc:'A jetty for the mainland ferry — day-trippers visit in the green seasons, tipping more the prettier the isle (every fence, lantern, gnome and bloom counts)',roof:0x4a6a8a,wall:0x9a7a52,kind:'ferry'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1583,6 +1585,7 @@ function buildingCubes(def){
   if(def.kind==='dove')return doveCubes(def);
   if(def.kind==='wmarket')return wmarketCubes(def);
   if(def.kind==='icehut')return icehutCubes(def);
+  if(def.kind==='ferry')return ferryCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1690,6 +1693,21 @@ function icehutCubes(def){
   a(0.55,1.05,0.5,0.2,0.2,0.06,0x9ad2e0);        // little window
   a(0.85,0.35,0.35,0.26,0.1,0.26,0x1a2630);      // the jig hole
   a(0.95,0.9,0.1,0.08,1.1,0.08,0x5a4028);        // the rod at the door
+  return c;
+}
+function ferryCubes(def){
+  // VOX-16: a jetty for the mainland ferry — planks on posts, a bench,
+  // a mooring bollard and a little flag
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.5,0,1.9,0.14,1.0,def.wall);              // the deck
+  a(-0.7,0.2,-0.3,0.16,0.5,0.16,0x5a4028);       // posts
+  a(0.7,0.2,-0.3,0.16,0.5,0.16,0x5a4028);
+  a(-0.7,0.2,0.3,0.16,0.5,0.16,0x5a4028);
+  a(0.7,0.2,0.3,0.16,0.5,0.16,0x5a4028);
+  a(-0.45,0.78,-0.25,0.8,0.3,0.3,0x8a6a42);      // the bench
+  a(0.7,0.72,0.25,0.2,0.3,0.2,0x2a3a4a);         // the mooring bollard
+  a(-0.05,1.15,0.3,0.06,1.2,0.06,0x5a4028);      // the flagpole
+  a(0.16,1.6,0.3,0.4,0.24,0.04,0xd94f30);        // the flag
   return c;
 }
 function obsCubes(def){
@@ -3210,6 +3228,29 @@ function updateWinterMarket(dt){
   checkAch();
 }
 
+// VOX-16: the Ferry Landing — day-trippers in the green seasons. A
+// jetty on the shore: every couple of minutes outside winter a ferry
+// docks and the visitors tip by how pretty the isle is — 8 coins base
+// +2 per decor piece placed (fences, lanterns, gnomes, blooms…),
+// capped at 40. Winter freezes the crossing solid.
+function ferryBuilt(){return !!(state.buildings&&state.buildings.ferry);}
+function decorCount(){let n=0;for(const p of W.plants.values())if(DECOR[p.type])n++;return n;}
+function ferryPay(){return Math.min(40, 8 + 2*decorCount());}
+let ferryNextT=120+Math.random()*120;
+function updateFerry(dt){
+  if(!ferryBuilt())return;
+  if(seasonOf(state.day).key==='winter')return;   // the crossing is frozen solid
+  ferryNextT-=dt;
+  if(ferryNextT>0)return;
+  ferryNextT=120+Math.random()*120;
+  const pay=ferryPay();
+  const b=state.buildings.ferry;
+  grantCoins(pay,b.x,2.6,b.z);
+  state.ferryVisits=(state.ferryVisits||0)+1;
+  toast('⛴️ The ferry docks — day-trippers wander the isle and tip '+pay+' 🪙');
+  checkAch();
+}
+
 /* ============================== stardust & wishes (VOX-5) ============================== */
 // The how-to always said the stars were good for something. At night a
 // shooting star occasionally sheds a glowing shard over the garden —
@@ -4155,6 +4196,7 @@ const ACH=[
   ['dove5','Par Avion','Fill five carrier-dove orders',()=>(state.doveFilled||0)>=5],
   ['wm5','Lantern-Lit','Host five winter-market nights',()=>(state.wmSales||0)>=5],
   ['ice5','Hard Water','Land five catches through the winter ice',()=>(state.iceCatches||0)>=5],
+  ['ferry5','Day-Trippers','Welcome five ferry crossings',()=>(state.ferryVisits||0)>=5],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4396,6 +4438,7 @@ function boot(){
     updateTours(dt);
     updateDoves(dt);
     updateWinterMarket(dt);
+    updateFerry(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
