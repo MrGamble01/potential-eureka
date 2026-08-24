@@ -421,6 +421,16 @@ canvas{display:block;touch-action:none;}
 }
 #crunch-toggle.on{color:#ffd166;border-color:rgba(255,209,102,0.6);text-shadow:0 0 8px rgba(255,209,102,0.35);}
 @media (max-width:640px){ #crunch-toggle{bottom:64px;right:8px;font-size:11px;padding:5px 9px;} }
+/* ── The Distributor (LAB-18) ── */
+#route-toggle{
+  position:fixed;bottom:14px;right:190px;z-index:30;
+  background:rgba(10,6,2,0.92);border:1px solid rgba(240,180,41,0.4);
+  color:#f0b429;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#route-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+#route-toggle.cold{color:#ff6a5a;border-color:rgba(255,106,90,0.6);}
+@media (max-width:640px){ #route-toggle{bottom:64px;right:120px;font-size:11px;padding:5px 9px;} }
 #contract-offer{
   position:fixed;top:82px;left:50%;transform:translateX(-50%);
   background:rgba(4,10,4,0.96);
@@ -480,6 +490,7 @@ canvas{display:block;touch-action:none;}
 <div id="tip-hud" style="display:none" title="The informant sells the street wire: for 90 seconds every undercover buyer is made on sight — no Lookout needed">ℹ️ <span id="tip-val"></span><button id="tip-buy"></button></div>
 <div id="bw-hud" style="display:none" title="Two buyers want the same 5-bag lot. Hammer to sell at the standing bid, or let them bid each other up — they might spook and walk">🔨 <span id="bw-val"></span><button id="bw-hammer"></button><button id="bw-wait"></button></div>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
+<button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
@@ -1748,6 +1759,69 @@ function toggleCrunch() {
 }
 { const cb = document.getElementById('crunch-toggle'); if (cb) cb.onclick = toggleCrunch; }
 
+// ── The Distributor (LAB-18) ──────────────────────────────
+// Act III unlocks wholesale: flip the route on and every 45 seconds a
+// van takes 3 bags straight from the stash at 0.85× list — no buyer on
+// the corner, no sting to walk into. The catch: every shipment adds a
+// point of heat, and a route run hot has a 5% chance per run of being
+// BURNED — two minutes cold before the van dares roll again. An empty
+// stash just means the van waits.
+const ROUTE_EVERY = 45, ROUTE_BAGS = 3, ROUTE_CUT = 0.85, ROUTE_COLD = 120;
+let routeT = ROUTE_EVERY, routeCold = 0;
+function refreshRouteBtn() {
+  const b = document.getElementById('route-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 3 ? '' : 'none';
+  b.classList.toggle('on', !!state.route && routeCold <= 0);
+  b.classList.toggle('cold', routeCold > 0);
+  b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
+    : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
+}
+function toggleRoute() {
+  if (currentAct() < 3) return;
+  state.route = !state.route;
+  routeT = ROUTE_EVERY;
+  refreshRouteBtn();
+  if (state.route) {
+    showToast('📦 The route is live — a van rolls every 45 seconds.', 'good');
+    addFeed('📦 Opened the wholesale route — 3 bags a run at 0.85× list.');
+  } else {
+    showToast('📦 Route closed. The van goes home.', '');
+    addFeed('📦 Closed the wholesale route.');
+  }
+  saveGame();
+}
+function updateRoute(dt) {
+  if (routeCold > 0) {
+    routeCold = Math.max(0, routeCold - dt);
+    refreshRouteBtn();
+    if (routeCold === 0) addFeed('📦 The route cooled off — the van rolls again.');
+    return;
+  }
+  if (!state.route || currentAct() < 3) return;
+  routeT -= dt;
+  if (routeT > 0) return;
+  routeT = ROUTE_EVERY;
+  if (stashCount < ROUTE_BAGS) { addFeed('📦 The van waited on an empty stash.'); return; }
+  stashCount -= ROUTE_BAGS;
+  pureBags = Math.min(pureBags, stashCount);
+  setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+  const pay = Math.floor(ROUTE_BAGS * salePrice() * ROUTE_CUT);
+  addCash(pay);
+  state.totalSold = (state.totalSold||0) + ROUTE_BAGS;
+  addHeat(1);
+  state.routeShipped = (state.routeShipped||0) + ROUTE_BAGS;
+  addFeed('📦 The van moved ' + ROUTE_BAGS + ' bags wholesale (+$' + fmtCash(pay) + ')');
+  checkGrowAchievements();
+  if (Math.random() < 0.05) {
+    routeCold = ROUTE_COLD;
+    showToast('🔥 The route got BURNED — somebody talked. Two minutes cold.', 'bad');
+    addFeed('🔥 Route burned — the van lies low.');
+  }
+  refreshRouteBtn();
+}
+{ const rb = document.getElementById('route-toggle'); if (rb) rb.onclick = toggleRoute; }
+
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
 // for ~90 seconds and poaches buyers before they ever reach you — lost
@@ -1994,6 +2068,7 @@ const GROW_ACH = [
   { id: 'eyes_up',      name: 'Eyes Everywhere', test: () => ownedRoomSet.has('security') && state.lookouts >= 2 },   // LAB-15
   { id: 'wired_in',     name: 'Wired In',        test: () => (state.tipsBought || 0) >= 3 },   // LAB-16
   { id: 'going_once',   name: 'Going Once',      test: () => (state.bidWars || 0) >= 3 },      // LAB-17
+  { id: 'wholesale',    name: 'Wholesale',       test: () => (state.routeShipped || 0) >= 30 }, // LAB-18
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -2392,6 +2467,8 @@ function saveGame() {
     tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
     tipsBought: state.tipsBought || 0,
     bwIn: Math.round(bwIn), bidWars: state.bidWars || 0,        // LAB-17
+    route: !!state.route, routeShipped: state.routeShipped || 0, // LAB-18
+    routeT: Math.round(routeT), routeCold: Math.round(routeCold),
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -2441,6 +2518,7 @@ function loadGame() {
     state.buyersPoached = sv.buyersPoached || 0;
     state.crunch = !!sv.crunch;   // LAB-12
     refreshCrunchBtn();
+    refreshRouteBtn();
     // LAB-16: the wire and the informant's clock survive a reload
     if (typeof sv.tipIn === 'number') tipIn = Math.min(600, Math.max(5, sv.tipIn));
     if (typeof sv.wireLeft === 'number') wireLeft = Math.min(90, Math.max(0, sv.wireLeft));
@@ -2449,6 +2527,12 @@ function loadGame() {
     // LAB-17: the auction clock and the hammer tally survive a reload
     if (typeof sv.bwIn === 'number') bwIn = Math.min(600, Math.max(5, sv.bwIn));
     state.bidWars = sv.bidWars || 0;
+    // LAB-18: the route, its clock and the cold spell survive a reload
+    state.route = !!sv.route;
+    state.routeShipped = sv.routeShipped || 0;
+    if (typeof sv.routeT === 'number') routeT = Math.min(ROUTE_EVERY, Math.max(1, sv.routeT));
+    if (typeof sv.routeCold === 'number') routeCold = Math.min(ROUTE_COLD, Math.max(0, sv.routeCold));
+    refreshRouteBtn();
     pureBags = Math.max(0, Math.min(sv.pureBags || 0, sv.stashCount || 0));   // LAB-10
     chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
@@ -3110,6 +3194,7 @@ function animate(now_ms) {
     updateRival(dt);
     updateTip(dt);
     updateBw(dt);
+    updateRoute(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
