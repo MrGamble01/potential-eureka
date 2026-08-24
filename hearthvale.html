@@ -1100,7 +1100,7 @@
     bakery:     { name: 'Bakery',      emoji: '🍞', w: 2, h: 2, tier: 2, cost: { wood: 16, stone: 6 },  prod: { gold: 9 }, cons: { food: 3 }, worker: true, chimney: true, likes: { types: ['windmill'], bonus: 0.5, label: 'a Windmill' }, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Turns food into coin. Bakes far more with flour from a nearby windmill.' },
     carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, likes: { types: ['lumber'], bonus: 0.5, label: 'a Woodcutter' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods. Works faster with a woodcutter next door.' },
     market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, tier: 1, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, likes: { types: ['bakery', 'carpenter'], bonus: 0.5, label: 'a workshop' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the merchant, and sells more beside a workshop.' },
-    well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
+    well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier — and a coin a day buys a wish.' },
     watchtower: { name: 'Watchtower',  emoji: '🗼', w: 2, h: 2, tier: 1, cost: { wood: 18, stone: 10 }, worker: true, guard: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchman keeps wolves and worse at bay through the night. Each level holds off a bigger pack.' },
     beacon:     { name: 'Beacon Tower', emoji: '🕯️', w: 2, h: 2, tier: 3, cost: { wood: 25, stone: 30 }, beacon: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchfire over the valley: caravans are waylaid half as often, and the flame spots wolf packs a day out.' },
     furrier:    { name: 'Furrier',     emoji: '🧥', w: 2, h: 2, tier: 3, cost: { wood: 20, stone: 8, gold: 14 }, prod: { gold: 12 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Works wolf pelts from repelled raids into fine winter coats — 1 pelt a cycle becomes 12 gold and a warmer, happier town.' },
@@ -1258,6 +1258,33 @@
     updateHUD(); checkAchievements(); save();
   }
 
+  // ── The Wishing Well (HVALE-14) ────────────────────────────
+  // A coin in a built well, once a day. The water decides — small
+  // boons of bread, timber, stone or coin, and on a rare bright roll
+  // a GOLDEN DAY: every workshop runs half again as hard until dawn.
+  // The roll is seeded by day and tally, so a wish is fate, not luck.
+  const WISH_COST = 3;
+  function wellBuilt() { return state.buildings.some(b => b.type === 'well' && b.done !== false); }
+  function wishedToday() { return state.wishDay === state.day; }
+  function wishRoll() { return rrand(state.day * 31 + (state.wishes || 0) * 7); }
+  function goldenMult() { return state.goldenDay === state.day ? 1.5 : 1; }
+  function wishGain(res, n) { state.res[res] = Math.min(capOf(res), state.res[res] + n); }
+  function makeWish() {
+    if (wishedToday()) { toast('💧 The well has heard today’s wish already.'); SFX('error'); return; }
+    if (state.res.gold < WISH_COST) { toast('A wish takes ' + WISH_COST + ' gold.'); SFX('error'); return; }
+    const r = wishRoll();
+    state.res.gold -= WISH_COST;
+    state.wishDay = state.day;
+    state.wishes = (state.wishes || 0) + 1;
+    if (r < 0.30)      { wishGain('food', 6);  toast('🍞 The water ripples — bread on the water. +6 food.'); chron('💧', 'A wish came back as bread (+6 food)'); }
+    else if (r < 0.55) { wishGain('wood', 6);  toast('🪵 The water knocks — driftwood against the stones. +6 wood.'); chron('💧', 'A wish came back as timber (+6 wood)'); }
+    else if (r < 0.75) { wishGain('stone', 6); toast('🪨 The water stills — a solid omen. +6 stone.'); chron('💧', 'A wish came back as stone (+6 stone)'); }
+    else if (r < 0.92) { state.res.gold += 8;  toast('🪙 Coins glint back up at you. +8 gold.'); chron('💧', 'The well returned the coin with interest (+8 gold)'); }
+    else { state.goldenDay = state.day; toast('🌟 A GOLDEN DAY — the whole town works half again as hard until dawn!'); chron('🌟', 'The well granted a Golden Day'); }
+    checkAchievements();
+    save();
+  }
+
   const BASE_CAP = { wood: 250, stone: 250, food: 200 };  // gold is uncapped currency
   const SEASONS = [
     { name: 'Spring', emoji: '🌱', tint: null },
@@ -1321,6 +1348,9 @@
       lastFestivalDay: -99, // cooldown anchor for the next festival
       peakPop: 0,      // high-water mark of population, for the chronicle
       festivalsHeld: 0,// lifetime festivals thrown
+      wishDay: -1,     // HVALE-14: the well hears one wish a day
+      wishes: 0,       // lifetime coins dropped in the well
+      goldenDay: -1,   // day the well last granted a Golden Day
       difficulty: 'normal', // chosen pace: cozy | normal | hard
       decrees: [],     // enacted town perks (ids from DECREES)
       // ---- Wolves at the Door (HVALE-1) ----
@@ -1385,6 +1415,7 @@
     { id: 'purveyor', emoji: '📜', name: 'Purveyor by Appointment', desc: "Fill three of the merchant's standing orders.", done: () => (state.ordersFilled || 0) >= 3 },
     { id: 'elder', emoji: '🪶', name: 'A Voice for the Valley', desc: 'See a Town Elder named.', done: () => !!state.elderId },
     { id: 'watchfire', emoji: '🕯️', name: 'Watchfire', desc: 'See the beacon call three packs a night early.', done: () => (state.beaconWarns || 0) >= 3 },
+    { id: 'wellwisher', emoji: '🪙', name: 'Penny for Luck', desc: 'Drop ten coins in the wishing well.', done: () => (state.wishes || 0) >= 10 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2246,6 +2277,7 @@
           { const tm = wk ? traitMult(wk, b) : 1; if (tm !== 1) amt = Math.max(1, Math.round(amt * tm)); } // natures (HVALE-3)
           { const cw = cobbledMult(b); if (cw !== 1) amt = Math.max(1, Math.round(amt * cw)); } // the Cobbled Way (HVALE-6)
           { const em = elderTradeMult(b); if (em !== 1) amt = Math.max(1, Math.round(amt * em)); } // the Elder's trade (HVALE-12)
+          { const gm = goldenMult(); if (gm !== 1) amt = Math.max(1, Math.round(amt * gm)); } // a Golden Day (HVALE-14)
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
@@ -4151,6 +4183,11 @@
         : '🐴 Send a Caravan <span style="opacity:.7;font-size:11px">15🍞 15🪵 → ' + CARAVAN_PAY + '🪙 in ' + CARAVAN_DAYS + ' days</span>';
       btns += '<button id="p-caravan"' + (out ? ' disabled' : '') + '>' + clbl + '</button>';
     }
+    if (b.type === 'well' && b.done !== false) {
+      const wlbl = wishedToday() ? '💧 The well has heard today’s wish'
+        : '🪙 Make a wish <span style="opacity:.7;font-size:11px">' + WISH_COST + '🪙</span>';
+      btns += '<button id="p-wish"' + (wishedToday() ? ' disabled' : '') + '>' + wlbl + '</button>';
+    }
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
     const upBtn = document.getElementById('p-upgrade');
@@ -4159,6 +4196,8 @@
     if (fBtn) fBtn.onclick = () => { holdFestival(b); if (selected === b) showPanel(b); };
     const cvBtn = document.getElementById('p-caravan');
     if (cvBtn) cvBtn.onclick = () => { sendCaravan(); if (selected === b) showPanel(b); };
+    const wBtn = document.getElementById('p-wish');
+    if (wBtn) wBtn.onclick = () => { makeWish(); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
@@ -4359,6 +4398,9 @@
         ordersFilled: state.ordersFilled || 0,
         elderId: state.elderId || null, elderTrade: state.elderTrade || null,
         beaconWarns: state.beaconWarns || 0,
+        wishDay: typeof state.wishDay === 'number' ? state.wishDay : -1,
+        wishes: state.wishes || 0,
+        goldenDay: typeof state.goldenDay === 'number' ? state.goldenDay : -1,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4439,6 +4481,9 @@
       state.elderId = s.elderId || null;        // HVALE-12
       state.elderTrade = s.elderTrade || null;
       state.beaconWarns = s.beaconWarns || 0;   // HVALE-13
+      state.wishDay = typeof s.wishDay === 'number' ? s.wishDay : -1;   // HVALE-14
+      state.wishes = s.wishes || 0;
+      state.goldenDay = typeof s.goldenDay === 'number' ? s.goldenDay : -1;
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
