@@ -162,9 +162,9 @@
     #panel .sub { font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; }
     #panel .stat { display: flex; justify-content: space-between; font-size: 12.5px; font-family: var(--mono); padding: 3px 0; }
     #panel .stat b { color: var(--gold); }
-    #panel .row { display: flex; gap: 8px; margin-top: 11px; }
+    #panel .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
     #panel button {
-      flex: 1; padding: 8px; border-radius: 9px; border: 1px solid var(--line);
+      flex: 1 1 42%; padding: 8px; border-radius: 9px; border: 1px solid var(--line);
       background: var(--panel-2); color: var(--ink); font-family: var(--font);
       font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s, border-color .12s;
     }
@@ -183,12 +183,21 @@
     @keyframes toastout { to { transform: translateX(-16px); opacity: 0; } }
 
     /* ---- Trader modal ---- */
-    #trader, #event, #welcome, #achv, #chronicle, #decrees {
+    #trader, #event, #welcome, #achv, #chronicle, #decrees, #roster {
       position: fixed; inset: 0; z-index: 600; display: none;
       align-items: center; justify-content: center; background: rgba(6,10,7,0.6);
       backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     }
-    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show { display: flex; }
+    #trader.show, #event.show, #welcome.show, #achv.show, #chronicle.show, #decrees.show, #roster.show { display: flex; }
+    #roster-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+    .roster-row { display: flex; align-items: center; gap: 10px; padding: 8px 11px; background: rgba(255,255,255,0.05); border-radius: 9px; border: 1px solid transparent; cursor: pointer; }
+    .roster-row:hover { background: rgba(242,193,78,0.16); border-color: var(--gold); }
+    .roster-row .remoji { font-size: 19px; }
+    .roster-row .rname { font-weight: 700; } .roster-row .rdesc { font-size: 12px; opacity: 0.72; }
+    .roster-row .rtag { margin-left: auto; font-size: 12.5px; font-weight: 700; white-space: nowrap; text-align: right; }
+    .roster-row.here { border-color: rgba(140,194,107,0.6); background: rgba(140,194,107,0.12); cursor: default; }
+    .roster-row.here:hover { background: rgba(140,194,107,0.12); border-color: rgba(140,194,107,0.6); }
+    .rdelta { color: #8ec26b; } .rdelta.down { color: #d98b7a; }
     #decree-list { max-height: min(56vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
     .decree-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: rgba(255,255,255,0.05); border-radius: 9px; border: 1px solid transparent; }
     .decree-row .demoji { font-size: 20px; }
@@ -403,6 +412,14 @@
       <button class="closebtn" id="decree-close">Back to town</button>
     </div>
   </div>
+  <div id="roster">
+    <div class="trader-card">
+      <h2><span>&#128100;</span><span id="roster-title">Who works here?</span></h2>
+      <div class="flavor" id="roster-sub">&mdash;</div>
+      <div id="roster-list"></div>
+      <button class="closebtn" id="roster-close">Back to town</button>
+    </div>
+  </div>
   <div id="chronicle">
     <div class="trader-card">
       <h2><span>&#128220;</span><span id="chron-title">Town Chronicle</span></h2>
@@ -423,6 +440,7 @@
         &bull; Place workshops beside their <b>supplier</b> (bakery by a windmill&hellip;) for a &#9889; bonus.<br>
         &bull; The <b>seasons</b> matter &mdash; reap a big harvest in autumn, and stock food before winter.<br>
         &bull; Keep folk <b>happy</b> (wells, taverns, a festival) &mdash; a merry town works harder &amp; grows faster.<br>
+        &bull; Every villager has a <b>nature</b> and grows in <b>mastery</b> &mdash; click a workshop to <b>post the right hands</b>.<br>
         &bull; Drag to look around &middot; scroll to zoom &middot; click a villager to meet them.
       </div>
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Choose your pace</label>
@@ -1285,6 +1303,7 @@
       pelts: 0,            // HVALE-4: wolf pelts from repelled raids
       peltsWorked: 0,      // lifetime pelts the Furrier turned into coats
       chronicle: [],       // HVALE-5: the town's dated history — {d, e, t}
+      postings: 0,         // HVALE-6: villagers the player has posted to a trade
     };
   }
   const ACHIEVEMENTS = [
@@ -1324,6 +1343,7 @@
     { id: 'mastercraft', emoji: '🌟', name: 'Master of the Craft', desc: 'A villager reaches Master rank at their trade.', done: () => state.villagers.some(v => (v.xp || 0) >= 36) },
     { id: 'warmcoats', emoji: '🧥', name: 'Warm Coats', desc: 'Turn a wolf pelt into gold at the Furrier.', done: () => (state.peltsWorked || 0) >= 1 },
     { id: 'storied', emoji: '📖', name: 'A Storied Town', desc: 'The Town Chronicle fills 25 pages.', done: () => (state.chronicle || []).length >= 25 },
+    { id: 'foreman', emoji: '🧭', name: 'The Right Hands', desc: 'Post villagers to their trades five times.', done: () => (state.postings || 0) >= 5 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -1373,6 +1393,41 @@
     });
     document.getElementById('decrees').classList.add('show');
   }
+  // The work roster (HVALE-6) — every villager, ranked by what they'd actually
+  // produce at this bench, so the nature/mastery matching puzzle is legible.
+  function openRoster(b) {
+    if (!b || b.done === false || !BUILDINGS[b.type].worker) return;
+    const def = BUILDINGS[b.type], k = def.prod ? Object.keys(def.prod)[0] : null;
+    const cur = workerOf(b);
+    document.getElementById('roster-title').textContent = def.name + ' — the post';
+    document.getElementById('roster-sub').textContent = !state.villagers.length
+      ? 'No one lives here yet — raise a cottage first.'
+      : k ? 'Nature and mastery travel with the villager, not the building. Pick the right hands. A villager who already holds a post trades places, so no bench is left empty.'
+          : 'Pick who keeps this watch. A villager who already holds a post trades places, so no bench is left empty.';
+    const curOut = (k && cur) ? projectedProd(b, k, cur) : null;
+    const rows = state.villagers.map(v => ({ v: v, out: k ? projectedProd(b, k, v) : 0 }));
+    rows.sort((p, q) => (q.out - p.out) || (p.v.name < q.v.name ? -1 : 1));
+    const wrap = document.getElementById('roster-list');
+    wrap.innerHTML = '';
+    rows.forEach(r => {
+      const v = r.v, tr = traitOf(v), ms = masteryOf(v), here = v === cur;
+      const post = v.jobId ? (buildingById(v.jobId) ? 'at the ' + BUILDINGS[buildingById(v.jobId).type].name : 'idle') : 'no trade yet';
+      let tag;
+      if (k) {
+        const d = curOut == null ? 0 : r.out - curOut;
+        tag = r.out + ' ' + shortRes(k) + (here ? ' · here now' : d ? ' <span class="rdelta' + (d < 0 ? ' down' : '') + '">' + (d > 0 ? '+' : '') + d + '</span>' : '');
+      } else tag = here ? 'keeps the watch' : 'post';
+      const row = document.createElement('div');
+      row.className = 'roster-row' + (here ? ' here' : '');
+      row.innerHTML = '<span class="remoji">' + tr.emoji + '</span><span><div class="rname">' + v.name +
+        (ms.star ? ' ' + ms.star : '') + '</div><div class="rdesc">' + tr.name + ' · ' + ms.name + ' · ' + post +
+        '</div></span><span class="rtag">' + tag + '</span>';
+      if (!here) row.onclick = () => { assignWorker(b, v); closeRoster(); if (selected === b) showPanel(b); };
+      wrap.appendChild(row);
+    });
+    document.getElementById('roster').classList.add('show');
+  }
+  function closeRoster() { document.getElementById('roster').classList.remove('show'); }
   // ── The Town Chronicle (HVALE-5) ──
   // Notable moments are written down as they happen — dated by day and
   // year (a year is four seasons) — and kept to the last CHRON_CAP pages.
@@ -1897,8 +1952,30 @@
     const needy = state.buildings.filter(b => BUILDINGS[b.type].worker && b.done !== false && !state.villagers.some(v => v.jobId === b.id));
     const free = state.villagers.filter(v => !v.jobId);
     needy.forEach((b, i) => { if (free[i]) { free[i].jobId = b.id; free[i].state = 'toWork'; } });
-    // recompute staffed flags
+    refreshStaffed();
+  }
+  function refreshStaffed() {
     state.buildings.forEach(b => { b.staffed = state.villagers.some(v => v.jobId === b.id); });
+  }
+  // ── The work roster (HVALE-6) ──
+  // Mastery (HVALE-2) and natures (HVALE-3) made *who* works *where* matter,
+  // but posts were only ever handed out first-come by assignJobs(), so the
+  // matching puzzle had no move. Posting a villager is now a decision — and
+  // because a pick trades posts rather than taking one, no bench is emptied
+  // by filling another.
+  function postTo(v, b) { v.jobId = b.id; v.state = 'toWork'; v.path = null; v.wait = 0; }
+  function assignWorker(b, v) {
+    const cur = workerOf(b);
+    if (!v || cur === v || b.done === false || !BUILDINGS[b.type].worker) return;
+    const oldPost = v.jobId ? buildingById(v.jobId) : null;
+    postTo(v, b);
+    if (cur) { if (oldPost) postTo(cur, oldPost); else { cur.jobId = null; cur.state = 'idle'; } }
+    refreshStaffed();
+    state.postings = (state.postings || 0) + 1;
+    SFX('place');
+    toast('👤 ' + v.name + ' takes up work at the ' + BUILDINGS[b.type].name +
+      (cur ? ' — ' + cur.name + (oldPost ? ' moves to the ' + BUILDINGS[oldPost.type].name : ' is between trades') : '') + '.');
+    checkAchievements(); updateHUD(); save();
   }
 
   function buildingById(id) { return state.buildings.find(b => b.id === id); }
@@ -2089,9 +2166,26 @@
     return m;
   }
 
+  // Per-cycle output of `b` for resource `k` with `wk` at the bench — the same
+  // multiplier chain runProduction() runs, so the inspect panel and the work
+  // roster can never quote a number the town doesn't actually bank.
+  function projectedProd(b, k, wk) {
+    const def = BUILDINGS[b.type];
+    let amt = def.prod[k] * (b.level || 1);
+    if (b.bonus) amt = Math.ceil(amt * 1.5);
+    if (k === 'food' && windmillBoostsFarm(b)) amt = Math.ceil(amt * 1.5);
+    const chain = adjMult(b); if (chain > 1) amt = Math.ceil(amt * chain);
+    const rain = cropRainMult(b); if (rain > 1 && k === 'food') amt = Math.ceil(amt * rain);
+    if (k === 'food') { const sm = seasonCropMult(b); if (sm !== 1) amt = Math.max(1, Math.round(amt * sm)); }
+    const dm = decreeProdMult(b, k); if (dm !== 1) amt = Math.max(1, Math.round(amt * dm));
+    const mo = moraleMult(); if (mo !== 1) amt = Math.max(1, Math.round(amt * mo));
+    const mm = wk ? masteryOf(wk).mult : 1; if (mm !== 1) amt = Math.max(1, Math.round(amt * mm));
+    const tm = wk ? traitMult(wk, b) : 1; if (tm !== 1) amt = Math.max(1, Math.round(amt * tm));
+    return amt;
+  }
+
   function runProduction() {
     const pop = state.villagers.length;
-    const morale = moraleMult();
     let gained = {};
     state.buildings.forEach(b => {
       const def = BUILDINGS[b.type];
@@ -2112,21 +2206,9 @@
           state.happy = Math.min(100, state.happy + 1);   // warm coats around town
         }
         if (def.cons) for (const k in def.cons) state.res[k] -= Math.ceil(def.cons[k] * consM);
-        const milled = b.type === 'farm' && windmillBoostsFarm(b);
-        const chain = adjMult(b);
-        const rainM = cropRainMult(b);
         const mastery = wk ? masteryOf(wk) : MASTERY[0];
         for (const k in def.prod) {
-          let amt = def.prod[k] * (b.level || 1);   // higher tier → more output
-          if (b.bonus) amt = Math.ceil(amt * 1.5);
-          if (milled && k === 'food') amt = Math.ceil(amt * 1.5); // nearby windmill lifts the harvest
-          if (chain > 1) amt = Math.ceil(amt * chain);            // supply-chain adjacency bonus
-          if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM); // rain waters the crops
-          if (k === 'food') { const sm = seasonCropMult(b); if (sm !== 1) amt = Math.max(1, Math.round(amt * sm)); } // season
-          { const dm = decreeProdMult(b, k); if (dm !== 1) amt = Math.max(1, Math.round(amt * dm)); } // town decrees
-          if (morale !== 1) amt = Math.max(1, Math.round(amt * morale)); // town morale
-          if (mastery.mult !== 1) amt = Math.max(1, Math.round(amt * mastery.mult)); // seasoned hands (HVALE-2)
-          { const tm = wk ? traitMult(wk, b) : 1; if (tm !== 1) amt = Math.max(1, Math.round(amt * tm)); } // natures (HVALE-3)
+          const amt = projectedProd(b, k, wk);
           state.res[k] += amt; gained[k] = (gained[k] || 0) + amt;
           floaters.push({ wx: (b.tx + def.w / 2) * TILE, wy: b.ty * TILE - 2, text: '+' + amt, color: RES_COLOR[k] || '#fff', life: 1.5, maxLife: 1.5 });
         }
@@ -3626,31 +3708,13 @@
   // Expected net resource change per production cycle for the HUD readout.
   function cycleNet() {
     const net = { wood: 0, stone: 0, food: 0, gold: 0 };
-    const morale = moraleMult();
     state.buildings.forEach(b => {
       const def = BUILDINGS[b.type];
       if (b.done === false || !def.prod || (def.worker && !b.staffed)) return;
       if (b.type === 'furrier' && (state.pelts || 0) < 1) return;   // HVALE-4: no pelts, no coats
-      const milled = b.type === 'farm' && windmillBoostsFarm(b);
-      const chain = adjMult(b);
-      const rainM = cropRainMult(b);
       const wkn = def.worker ? workerOf(b) : null;
-      const mm = wkn ? masteryOf(wkn).mult : 1;
-      const tm = wkn ? traitMult(wkn, b) : 1;
       const consM = wkn && traitOf(wkn).consHalf ? 0.5 : 1;
-      for (const k in def.prod) {
-        let amt = def.prod[k] * (b.level || 1);
-        if (b.bonus) amt = Math.ceil(amt * 1.5);
-        if (milled && k === 'food') amt = Math.ceil(amt * 1.5);
-        if (chain > 1) amt = Math.ceil(amt * chain);
-        if (rainM > 1 && k === 'food') amt = Math.ceil(amt * rainM);
-        if (k === 'food') { const sm = seasonCropMult(b); if (sm !== 1) amt = Math.max(1, Math.round(amt * sm)); }
-        { const dm = decreeProdMult(b, k); if (dm !== 1) amt = Math.max(1, Math.round(amt * dm)); }
-        if (morale !== 1) amt = Math.max(1, Math.round(amt * morale));
-        if (mm !== 1) amt = Math.max(1, Math.round(amt * mm));
-        if (tm !== 1) amt = Math.max(1, Math.round(amt * tm));
-        net[k] += amt;
-      }
+      for (const k in def.prod) net[k] += projectedProd(b, k, wkn);
       if (def.cons) for (const k in def.cons) net[k] -= Math.ceil(def.cons[k] * consM);
     });
     net.food -= state.villagers.length * FOOD_PER_VILLAGER;
@@ -3874,7 +3938,7 @@
     let html = '';
     if (def.housing) html += statRow('Houses', state.villagers.filter(v => v.homeId === b.id).length + ' / ' + effHousing(b) + ' villagers');
     if (def.worker) { const wk = workerOf(b); const wm = wk && masteryOf(wk); const wt = wk && traitOf(wk); html += statRow('Worker', wk ? '👤 ' + wk.name + ' ' + wt.emoji + (wm.star ? ' ' + wm.star : '') + (wm.mult > 1 ? ' (' + wm.name + ' +' + Math.round((wm.mult - 1) * 100) + '%)' : '') : 'Needs a villager 💤'); }
-    if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
+    if (def.prod) { const k = Object.keys(def.prod)[0]; const base = projectedProd(b, k, def.worker ? workerOf(b) : null); const milled = windmillBoostsFarm(b); const rn = cropRainMult(b); const sm = k === 'food' ? seasonCropMult(b) : 1; const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
     if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
@@ -3896,6 +3960,10 @@
       const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
       btns += '<button id="p-upgrade">⬆️ Upgrade <span style="opacity:.7;font-size:11px">' + costStr + '</span></button>';
     }
+    if (def.worker && b.done !== false) {
+      const wk = workerOf(b), none = state.villagers.length === 0;
+      btns += '<button id="p-roster"' + (none ? ' disabled' : '') + '>👤 ' + (wk ? 'Reassign' : 'Post a worker') + '</button>';
+    }
     if (b.type === 'tavern' && b.done !== false) {
       const fc = festivalCost();
       const fcStr = Object.keys(fc).map(k => fc[k] + shortRes(k)).join(' ');
@@ -3907,6 +3975,8 @@
     actions.innerHTML = btns;
     const upBtn = document.getElementById('p-upgrade');
     if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
+    const rBtn = document.getElementById('p-roster');
+    if (rBtn) rBtn.onclick = () => openRoster(b);
     const fBtn = document.getElementById('p-festival');
     if (fBtn) fBtn.onclick = () => { holdFestival(b); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
@@ -4060,7 +4130,7 @@
   const keys = {};
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); }
+    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); closeRoster(); }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
@@ -4101,6 +4171,7 @@
         raidsRepelled: state.raidsRepelled || 0, raidsSuffered: state.raidsSuffered || 0,
         pelts: state.pelts || 0, peltsWorked: state.peltsWorked || 0,
         chronicle: state.chronicle || [],
+        postings: state.postings || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4170,6 +4241,7 @@
       // HVALE-5: older saves have no history — the record opens today
       state.chronicle = Array.isArray(s.chronicle) ? s.chronicle.slice(-CHRON_CAP)
         : [{ d: s.day || 1, e: '📜', t: 'The chronicle opens — earlier days went unrecorded' }];
+      state.postings = s.postings || 0;           // HVALE-6 (pre-roster saves start at none)
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
@@ -4230,6 +4302,7 @@
     document.getElementById('chron-close').onclick = () => document.getElementById('chronicle').classList.remove('show');
     document.getElementById('m-decrees').onclick = () => { menu.classList.remove('show'); openDecrees(); };
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
+    document.getElementById('roster-close').onclick = closeRoster;
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
       if (sp === 0) { if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else gameSpeed = prevSpeed || 1; }

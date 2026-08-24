@@ -32,6 +32,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
 | Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street) |
+| Hearthvale | `hvroster` (the work roster — posting & swapping villagers) |
 | Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier) |
 
 Suites that need a temporary `window.__*` test hook in a game file
@@ -49,6 +50,10 @@ recorded in the merge commits that shipped each feature.
 - Randomness is pinned by swapping `Math.random` for one constant
   inside a single evaluate, chosen so the weighted branch under test is
   taken and the derived value is computable in the assertion.
+- Hearthvale is a closed IIFE — nothing is on `window` — so `hvroster`
+  drives it entirely through the UI: a seeded save puts buildings on
+  known tiles, a minimap click centres the camera on one, a click at
+  screen centre selects it, and every assertion reads rendered DOM.
 - Every suite ends with a zero-page-errors check; `chromium.launch`
   uses `--no-sandbox --use-gl=swiftshader` so WebGL games run in CI
   containers.
