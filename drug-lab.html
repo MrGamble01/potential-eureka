@@ -455,6 +455,14 @@ canvas{display:block;touch-action:none;}
 }
 #burner-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 @media (max-width:640px){ #burner-toggle{bottom:114px;right:8px;font-size:11px;padding:5px 9px;} }
+#mother-toggle{
+  position:fixed;bottom:14px;right:876px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#mother-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #mother-toggle{bottom:164px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -536,6 +544,7 @@ canvas{display:block;touch-action:none;}
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
 <button id="burner-toggle" style="display:none" title="The Burner Phone: $800 for a clean number. While it holds charge (10 street sales), undercover buyers make the corner half as often — then the number’s burned and you buy another">📱 BURNER $800</button>
 <button id="unit-toggle" style="display:none" title="The Storage Unit: a $1,500 rental across town under a clean name. Stash cap 15 → 45, and if you ever skip town, the unit isn’t on the warrant — up to 15 bags survive">📦 RENT A UNIT $1,500</button>
+<button id="mother-toggle" style="display:none" title="The Mother Plant: $1,500 of prize genetics rooted in the corner — the cuttings run true, and every batch off the trim table bags one extra, forever">🌱 MOTHER $1,500</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1077,6 +1086,32 @@ function burnStreetSale() {
     addFeed('📱 The burner burned out');
   }
   refreshBurnerBtn();
+}
+
+// LAB-26: the Mother Plant. $1,500 of prize genetics rooted ONCE in
+// the corner of the grow room — the cuttings run true, and every
+// batch off the trim table bags one extra, forever. The ledger
+// remembers exactly how much of the stash owes her.
+const MOTHER_COST = 1500;
+function motherRooted() { return !!state.motherRooted; }
+function refreshMotherBtn() {
+  const b = document.getElementById('mother-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', motherRooted());
+  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')' : '🌱 MOTHER $' + fmtCash(MOTHER_COST);
+}
+function rootMother() {
+  if (motherRooted()) { showToast('🌱 The mother is already rooted — every batch bags one extra.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < MOTHER_COST) { showToast("Can't afford the prize genetics yet ($" + fmtCash(MOTHER_COST) + ').', 'bust'); return; }
+  state.cash -= MOTHER_COST;
+  state.motherRooted = true;
+  refreshMotherBtn();
+  showToast('🌱 Prize genetics rooted in the corner — every trimmed batch bags one extra, forever.', 'good');
+  addFeed('🌱 The Mother Plant is rooted');
+  checkGrowAchievements();
+  saveGame();
 }
 function stashMax() { return STASH_MAX_BASE + (state.unitRented ? UNIT_CAP_BONUS : 0); }
 function refreshUnitBtn() {
@@ -1984,6 +2019,7 @@ function refreshRouteBtn() {
   refreshBagBtn();   // LAB-21: the bag rides the same act gate
   refreshUnitBtn();  // LAB-22: so does the unit (one act earlier inside)
   refreshBurnerBtn(); // LAB-24: and the burner rides the same gate
+  refreshMotherBtn(); // LAB-26: the mother too
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2155,6 +2191,7 @@ function updateRoute(dt) {
 { const gb = document.getElementById('bag-toggle'); if (gb) gb.onclick = packBag; }
 { const ub = document.getElementById('unit-toggle'); if (ub) ub.onclick = rentUnit; }
 { const bb = document.getElementById('burner-toggle'); if (bb) bb.onclick = buyBurner; }
+{ const mb = document.getElementById('mother-toggle'); if (mb) mb.onclick = rootMother; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2407,6 +2444,7 @@ const GROW_ACH = [
   { id: 'cold_streets', name: 'Cold Streets',    test: () => (state.cleanWaves || 0) >= 3 },    // LAB-20
   { id: 'block_famous', name: 'The Block Knows', test: () => (state.partySales || 0) >= 12 },   // LAB-23
   { id: 'whale_club', name: 'The Whale Club', test: () => (state.whalesServed || 0) >= 5 },   // LAB-25
+  { id: 'mother50', name: 'Prize Genetics', test: () => (state.motherBags || 0) >= 50 },   // LAB-26
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -2810,6 +2848,7 @@ function saveGame() {
     bagPacked: !!state.bagPacked, skips: state.skips || 0,   // LAB-21
     unitRented: !!state.unitRented,   // LAB-22
     burnerLeft: Math.max(0, Math.min(10, Math.floor(state.burnerLeft || 0))), burnersBought: state.burnersBought || 0,   // LAB-24
+    motherRooted: !!state.motherRooted, motherBags: state.motherBags || 0,   // LAB-26
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
@@ -2899,6 +2938,9 @@ function loadGame() {
     state.skips = Math.max(0, Math.floor(sv.skips || 0));
     state.unitRented = !!sv.unitRented;   // LAB-22
     state.burnerLeft = Math.max(0, Math.min(BURNER_SALES, Math.floor(sv.burnerLeft || 0)));   // LAB-24
+    state.motherRooted = !!sv.motherRooted;   // LAB-26
+    state.motherBags = Math.max(0, Math.floor(sv.motherBags || 0));
+    refreshMotherBtn();
     state.burnersBought = Math.max(0, Math.floor(sv.burnersBought || 0));
     refreshBurnerBtn();
     refreshUnitBtn();
@@ -3068,7 +3110,8 @@ function updateTrimStation(dt) {
   trimProgress += (dt/TRIM_TIME)*speedMult;
   if (trimProgress>=1) {
     trimProgress=0; trimQueue--;
-    const bags = 1 + upgLv('yield1');
+    let bags = 1 + upgLv('yield1');
+    if (motherRooted()) { bags += 1; state.motherBags = (state.motherBags || 0) + 1; refreshMotherBtn(); }   // LAB-26: her cutting in every batch
     trimBags += bags; bumpBatches();
     addFeed(`✂️ Trimmed batch → ${bags} bags`);
   }
