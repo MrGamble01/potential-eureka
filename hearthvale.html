@@ -1111,7 +1111,7 @@
     windmill:   { name: 'Windmill',    emoji: '🌬️', w: 2, h: 2, tier: 3, cost: { wood: 24, stone: 12 }, prod: { gold: 6 }, cons: { food: 2 }, worker: true, boostFarms: true, likes: { types: ['farm'], bonus: 0.5, label: 'a Farm' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Grinds grain into coin — lifts nearby farms’ harvest, and earns more beside one.' },
     orchard:    { name: 'Orchard',     emoji: '🍎', w: 3, h: 2, tier: 2, cost: { wood: 16, gold: 10 }, prod: { food: 5 }, charm: 4, roof: C.thatch, roofDk: C.thatchDk, desc: 'Fruit trees yield food on their own — no worker needed — and prettify the town.' },
     chapel:     { name: 'Chapel',      emoji: '🔔', w: 2, h: 2, tier: 3, cost: { wood: 22, stone: 28 }, happy: 22, roof: C.slate, roofDk: C.slateDk, desc: 'A quiet chapel and its bell — a large, steady comfort for the whole town. On raid nights the bell rings the alarm: half the losses are barred away in time, and it peals over every festival.' },
-    school:     { name: 'Schoolhouse', emoji: '📚', w: 2, h: 2, tier: 2, cost: { wood: 22, stone: 14 }, happy: 6, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Families settle where there’s a school — a happy town grows twice as fast, and children lift spirits.' },
+    school:     { name: 'Schoolhouse', emoji: '📚', w: 2, h: 2, tier: 2, cost: { wood: 22, stone: 14 }, happy: 6, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Families settle where there’s a school — a happy town grows twice as fast, and children lift spirits. Night classes teach every worker +1 mastery XP per cycle.' },
     apiary:     { name: 'Apiary',      emoji: '🐝', w: 2, h: 2, tier: 2, cost: { wood: 14, gold: 6 }, prod: { gold: 4 }, charm: 3, likes: { types: ['orchard', 'garden'], bonus: 0.5, label: 'an orchard or garden' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'Beehives yield honey to sell — no worker needed — and prettify the town. Set beside an orchard or garden, the bees forage 50% more.' },
     townhall:   { name: 'Town Hall',   emoji: '🏛️', w: 3, h: 3, tier: 4, cost: { wood: 40, stone: 40, gold: 30 }, happy: 20, prod: { gold: 8 }, unique: true, roof: C.slate, roofDk: C.slateDk, desc: 'The pride of a true city — a grand seat of governance that gladdens the whole town and gathers taxes into the coffers.' },
     // --- placeable decorations: cheap cosmetic props that add town "charm" → happiness ---
@@ -2209,7 +2209,7 @@
         }
         if (wk) {   // a cycle actually worked is a cycle learned
           const before = mastery.name;
-          wk.xp = (wk.xp || 0) + ((wtrait && wtrait.xp) || 1);   // Dreamers learn double (HVALE-3)
+          wk.xp = (wk.xp || 0) + ((wtrait && wtrait.xp) || 1) + (schoolBuilt() ? 1 : 0);   // Dreamers learn double (HVALE-3); the school teaches everyone (HVALE-10)
           const after = masteryOf(wk);
           if (after.name !== before) {
             toast(after.star + ' ' + wk.name + ' is now a ' + after.name + ' — their output is +' + Math.round((after.mult - 1) * 100) + '%!');
@@ -2287,6 +2287,11 @@
   // can't fight, but it buys everyone time to bar the larders.
   function chapelBuilt() {
     return state.buildings.some(b => b.type === 'chapel' && b.done !== false);
+  }
+  // HVALE-10: a standing Schoolhouse runs night classes — every worked
+  // cycle teaches one extra mastery XP on top of a worker's own pace.
+  function schoolBuilt() {
+    return state.buildings.some(b => b.type === 'school' && b.done !== false);
   }
 
   // ---- The Caravan (HVALE-9) ----------------------------------
@@ -4017,6 +4022,7 @@
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
+    if (b.type === 'school') html += statRow('Night classes', '📚 every worker learns +1 XP / cycle');
     if (def.guard) {
       html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
       html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT' : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
