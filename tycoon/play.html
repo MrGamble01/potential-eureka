@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6190,6 +6190,7 @@ const ACHIEVEMENTS = [
   { id: 'street_darling', icon: '📊', title: 'Street Darling',      desc: 'Carry three straight Buy ratings into the bell.', check: () => analystStreak >= 3, progress: () => [Math.min(analystStreak, 3), 3] },
   { id: 'five_nines',    icon: '🧑‍🚒', title: 'Five Nines',           desc: 'Have the runbook hold through three outages.', check: () => srePrevented >= 3, progress: () => [Math.min(srePrevented, 3), 3] },
   { id: 'kaizen',        icon: '📋', title: 'Kaizen',               desc: 'Bank ten retro learnings.', check: () => retroLearnings >= 10, progress: () => [Math.min(retroLearnings, 10), 10] },
+  { id: 'rentier',       icon: '💼', title: 'Passive Income',       desc: 'Bank \$1,000 in patent royalties.', check: () => royaltiesLife >= 1000, progress: () => [Math.min(Math.round(royaltiesLife), 1000), 1000] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -9869,8 +9870,48 @@ function updateLab(dt) {
     showToast(`🔬 Patent filed! Deals now +${Math.min(labPatents, LAB_PATENT_CAP) * 2}% — permanently`, 'milestone', 'standard');
     addFeedEntry(`🔬 Patent #${labPatents} granted (+2% deal value forever)`);
     SFX.milestone && SFX.milestone();
+    refreshRoyaltyChip();   // TYC-29: a bigger portfolio licenses harder
     refreshHud();
   }
+}
+
+// ── The Licensing Desk (TYC-29) ───────────────────────────
+// The patent wall already sweetens deals and beats trolls in court —
+// now it licenses itself. Post-IPO, once THREE patents are filed,
+// royalty checks clear every 45 seconds: $6 per patent (the deal-cap
+// 15 applies), compounding quietly while the floor does everything
+// else. The lab finally pays its own rent.
+const ROYALTY_SECS = 45, ROYALTY_PER_PATENT = 6, ROYALTY_MIN_PATENTS = 3;
+let royaltyT = 0, royaltiesLife = 0;
+function royaltyRate() {
+  return prestigeLevel >= 1 && labPatents >= ROYALTY_MIN_PATENTS
+    ? Math.min(labPatents, LAB_PATENT_CAP) * ROYALTY_PER_PATENT : 0;
+}
+function refreshRoyaltyChip() {
+  const el = document.getElementById('royalty-chip');
+  if (!el) return;
+  const rate = royaltyRate();
+  if (rate > 0) {
+    el.style.display = '';
+    el.textContent = '💼 $' + Math.round(rate * 60 / ROYALTY_SECS) + '/min';
+    el.title = 'The licensing desk \u2014 ' + Math.min(labPatents, LAB_PATENT_CAP) + ' patents clearing $' + rate + ' every ' + ROYALTY_SECS + 's ($' + fmtCash(royaltiesLife) + ' lifetime).';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function updateRoyalties(dt) {
+  const rate = royaltyRate();
+  if (rate <= 0) return;
+  royaltyT += dt;
+  if (royaltyT < ROYALTY_SECS) return;
+  royaltyT -= ROYALTY_SECS;
+  addCash(rate, 'royalty');
+  royaltiesLife += rate;
+  addFeedEntry('💼 The licensing desk clears a royalty check — +$' + fmtCash(rate) + ' (' + Math.min(labPatents, LAB_PATENT_CAP) + ' patents)');
+  refreshRoyaltyChip();
+  checkAchievements();
+  saveGame();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
@@ -10757,6 +10798,7 @@ function frameBody(now) {
   updateKeynote(dt);
   updateSre(dt);
   updateLab(dt);
+  updateRoyalties(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -11602,6 +11644,16 @@ const SAVE_SCHEMA = [
         bridgesTaken = Math.max(0, Math.floor(p.bridge.count || 0));
         refreshBridgeChip();
       }
+    },
+  },
+  {
+    key: 'royalty', // TYC-29: the licensing desk's lifetime take
+    write: p => { p.royalty = { life: royaltiesLife }; },
+    read: p => {
+      if (p.royalty) {
+        royaltiesLife = Math.max(0, Math.floor(p.royalty.life || 0));
+      }
+      refreshRoyaltyChip();
     },
   },
   {
