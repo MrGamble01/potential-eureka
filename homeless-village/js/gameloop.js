@@ -101,15 +101,36 @@ function ticketAtDawn(){
   }
 }
 
+// HV-18: the cold snap lives at dawn — it breaks, it rallies the
+// block, or it rolls in fresh off a hard winter sky.
+function snapAtDawn(){
+  if(typeof G.snapUntil==='number'&&G.snapUntil!==null&&!snapActive()&&G.days>=G.snapUntil){
+    G.snapUntil=null;
+    G.snapsSurvived=(G.snapsSurvived||0)+1;
+    G.morale=Math.min(100,G.morale+4);
+    log('❄️ The cold snap breaks — the camp came through it. +4 morale.');
+  }
+  if(snapActive()){
+    var rt=repTier();
+    if(rt>=1){ G.goodwill+=rt; log('❄️ Neighbors check in on the camp with hand-warmers and change. +'+rt+' goodwill.'); }
+    return;
+  }
+  if(G.season===3&&Math.random()<SNAP_CHANCE){
+    G.snapUntil=G.days+SNAP_DAYS;
+    log('❄️ A cold snap grips the block — two brutal days. Keep the fire fed and the pot full.');
+  }
+}
+
 function onNewDay(){
   G.days++; saveGame();
   G.season=Math.floor(G.days/7)%4;
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll
   G.weather=G.forecast||rollWeather();
   G.forecast=rollWeather();
+  snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
-  G.warmth=Math.max(0,Math.min(100,G.warmth-(G.season===3?18:8)-weatherDef().warmth));
+  G.warmth=Math.max(0,Math.min(100,G.warmth-(G.season===3?18:8)-weatherDef().warmth-(snapActive()?SNAP_WARMTH:0)));
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }

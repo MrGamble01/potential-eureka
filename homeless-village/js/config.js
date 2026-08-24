@@ -221,6 +221,16 @@ function meetingAction(){
     tooltip:'Gather everyone around the fire. +2 morale a head, a little something for the pot from each resident — and the block hears a village, not a camp.' };
 }
 
+// ── HV-18: the Cold Snap ─────────────────────────────────────
+// Winter already bites; some winters bite harder. A quarter of winter
+// dawns open a two-day cold snap — the fire drains faster and foot
+// traffic thins — but the block shows up for a camp it respects, and
+// a camp that weathers it comes out prouder.
+var SNAP_DAYS = 2;          // a snap grips the block for two days
+var SNAP_WARMTH = 10;       // extra warmth lost at each snap dawn
+var SNAP_CHANCE = 0.25;     // rolled at every quiet winter dawn
+function snapActive(){ return typeof G.snapUntil==='number' && G.snapUntil!==null && G.days < G.snapUntil; }
+
 // ── HV-17: the Bus Ticket ────────────────────────────────────
 // The village's best ending isn't a bigger camp — it's someone going
 // home. Once the camp is three strong and the block calls it
@@ -284,6 +294,7 @@ var GOALS = [
   {id:'petition1',  desc:'Win a city petition',       target:1,  reward:6,  value:function(){ return Object.keys(G.petitions||{}).length; }},
   {id:'favor3',     desc:'Do 3 favors for friends',   target:3,  reward:5,  value:function(){ return G.favorsDone||0; }},
   {id:'ticket1',    desc:'Send someone home',         target:1,  reward:10, value:function(){ return G.ticketsSent||0; }},
+  {id:'snap2',      desc:'Weather 2 cold snaps',      target:2,  reward:8,  value:function(){ return G.snapsSurvived||0; }},
 ];
 
 var activeJobs = {};
