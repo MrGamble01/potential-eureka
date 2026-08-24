@@ -1106,6 +1106,7 @@
     watchtower: { name: 'Watchtower',  emoji: '🗼', w: 2, h: 2, tier: 1, cost: { wood: 18, stone: 10 }, worker: true, guard: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchman keeps wolves and worse at bay through the night. Each level holds off a bigger pack.' },
     beacon:     { name: 'Beacon Tower', emoji: '🕯️', w: 2, h: 2, tier: 3, cost: { wood: 25, stone: 30 }, beacon: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchfire over the valley: caravans are waylaid half as often, and the flame spots wolf packs a day out.' },
     furrier:    { name: 'Furrier',     emoji: '🧥', w: 2, h: 2, tier: 3, cost: { wood: 20, stone: 8, gold: 14 }, prod: { gold: 12 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Works wolf pelts from repelled raids into fine winter coats — 1 pelt a cycle becomes 12 gold and a warmer, happier town.' },
+    lodge:      { name: 'Hunter\u2019s Lodge', emoji: '🏹', w: 2, h: 2, tier: 2, cost: { wood: 12, gold: 5 }, happy: 2, charm: 1, chimney: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'A snow-line cabin for the winter hunt — every third day of the cold season the party comes in with venison, and every second hunt hangs a pelt by the Furrier\u2019s gate.' },
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, tier: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
     warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
     cellar:     { name: 'Root Cellar', emoji: '🫙', w: 2, h: 2, tier: 2, cost: { wood: 14, stone: 10 }, cellar: true, roof: C.stoneW, roofDk: C.stoneWDk, desc: 'Works itself: pickles autumn surplus into preserves (2 a cycle, 12 jars per level) and opens the pantry each winter cycle — 3 jars back as food.' },
@@ -1128,7 +1129,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'beacon', 'furrier', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1357,6 +1358,30 @@
       ? '🐝 Swarm Day — the wild bees settle among the blossom! +' + take + ' gold, +' + SWARM_CHEER + ' cheer.'
       : '🐝 Swarm Day — the hives hum full! +' + take + ' gold, +' + SWARM_CHEER + ' cheer.');
     chron('🐝', 'A summer swarm rolled over the valley — ' + hives + ' hive' + (hives === 1 ? '' : 's') + (settled ? ' and the blossom held them' : '') + ' (+' + take + ' gold)');
+    checkAchievements();
+    save();
+  }
+
+  // ── The Hunter's Lodge (HVALE-21) ──────────────────────
+  // Winter has always been the taking season — wolves at the door,
+  // the farms asleep. The lodge answers back: every THIRD day of the
+  // cold season the hunting party comes in off the snow with venison,
+  // and every SECOND hunt hangs a wolf pelt by the Furrier's gate —
+  // the first pelt supply that doesn't need a raid survived first.
+  const HUNT_FOOD = 5, HUNT_EVERY = 3;
+  function lodgeBuilt() { return countType('lodge') >= 1; }
+  function huntAtDawn() {
+    if (!lodgeBuilt()) return;
+    if (seasonIdx() !== 3) return;                       // the cold season only
+    if (yearDay(state.day) % HUNT_EVERY !== 0) return;   // every third day
+    if (state.lastHuntDay === state.day) return;
+    state.lastHuntDay = state.day;
+    state.hunts = (state.hunts || 0) + 1;
+    state.res.food = Math.min(capOf('food'), state.res.food + HUNT_FOOD);
+    const pelt = state.hunts % 2 === 0;
+    if (pelt) state.pelts = (state.pelts || 0) + 1;
+    toast('🏹 The hunting party comes in off the snow — +' + HUNT_FOOD + ' food' + (pelt ? ', and a pelt for the Furrier' : '') + '.');
+    chron('🏹', 'The lodge\u2019s party came in off the snow' + (pelt ? ' with a pelt' : '') + ' (+' + HUNT_FOOD + ' food)');
     checkAchievements();
     save();
   }
@@ -1613,6 +1638,7 @@
     { id: 'annals', emoji: '📯', name: 'The Annals', desc: 'See the reeve reckon three years.', done: () => (state.reckonings || 0) >= 3 },
     { id: 'balladry', emoji: '🎻', name: 'Three Songs Deep', desc: 'Host the minstrel three evenings.', done: () => (state.versesSung || 0) >= 3 },
     { id: 'swarmward', emoji: '🐝', name: 'Swarm Season', desc: 'Catch three summer swarms.', done: () => (state.swarmsSeen || 0) >= 3 },
+    { id: 'winter_larder', emoji: '🏹', name: 'Winter Larder', desc: 'Bring in six winter hunts.', done: () => (state.hunts || 0) >= 6 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2708,6 +2734,7 @@
     reckonAtDawn(); // HVALE-18: and the reeve keeps the annals
     minstrelAtDawn(); // HVALE-19: and the road brings music
     swarmAtDawn();  // HVALE-20: and summer opens with wings
+    huntAtDawn();   // HVALE-21: and winter answers back
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4204,7 +4231,7 @@
   // The build bar is organised into category tabs so it never overflows.
   const BUILD_TABS = [
     { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
-    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'furrier', 'warehouse', 'cellar'] },
+    { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'warehouse', 'cellar'] },
     { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
   ];
@@ -4620,6 +4647,8 @@
         masonCycles: state.masonCycles || 0,
         versesSung: state.versesSung || 0,   // HVALE-19
         swarmsSeen: state.swarmsSeen || 0,   // HVALE-20
+        hunts: state.hunts || 0,   // HVALE-21
+        lastHuntDay: typeof state.lastHuntDay === 'number' ? state.lastHuntDay : -1,
         lastSwarmYear: typeof state.lastSwarmYear === 'number' ? state.lastSwarmYear : -1,
         lastMinstrelDay: typeof state.lastMinstrelDay === 'number' ? state.lastMinstrelDay : -1,
         reckonings: state.reckonings || 0,   // HVALE-18
@@ -4715,6 +4744,8 @@
       state.masonCycles = Math.max(0, Math.floor(s.masonCycles || 0));   // HVALE-16
       state.versesSung = s.versesSung || 0;   // HVALE-19 (older taverns never had the stage)
       state.swarmsSeen = s.swarmsSeen || 0;   // HVALE-20 (older valleys never watched the sky)
+      state.hunts = s.hunts || 0;   // HVALE-21 (older winters went unhunted)
+      state.lastHuntDay = typeof s.lastHuntDay === 'number' ? s.lastHuntDay : -1;
       state.lastSwarmYear = typeof s.lastSwarmYear === 'number' ? s.lastSwarmYear : -1;
       state.lastMinstrelDay = typeof s.lastMinstrelDay === 'number' ? s.lastMinstrelDay : -1;
       state.reckonings = s.reckonings || 0;   // HVALE-18 (older saves start their annals now)
