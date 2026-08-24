@@ -33,6 +33,10 @@ const Rivals = (() => {
     'cascade-best':        { label: 'Word Cascade',  fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
     'maze-best':           { label: 'Gem Labyrinth', fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
     'crate-best':          { label: 'Crate Escape',  fmt: v => v + ' puzzles',               dir: 'max' },
+    // Age of War's endless best-run lives as JSON ({waves, kills, ...}),
+    // so it carries its own reader instead of the default parseInt.
+    'aow-best-run':        { label: 'Age of War ∞',  fmt: v => v + ' waves',                 dir: 'max',
+      read: () => { try { return Math.floor((JSON.parse(localStorage.getItem('aow-best-run') || 'null') || {}).waves || 0); } catch { return 0; } } },
   };
 
   // djb2 over the payload keeps casual link-mangling from producing
@@ -51,7 +55,8 @@ const Rivals = (() => {
   function myScores() {
     const s = {};
     for (const key of Object.keys(GAMES)) {
-      const v = parseInt(localStorage.getItem(key) || '0', 10);
+      const g = GAMES[key];
+      const v = g.read ? g.read() : parseInt(localStorage.getItem(key) || '0', 10);
       if (v > 0) s[key] = v;
     }
     return s;
