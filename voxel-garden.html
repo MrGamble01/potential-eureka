@@ -223,6 +223,7 @@
     <li>A <b>🗼 Lighthouse</b> (level 8) shows the isle to the shipping lanes: passing freighters heave <b>📦 cargo crates</b> overboard &mdash; triple the coin and always carrying a good</li>
     <li>The <b>🔭 Observatory</b> (level 9) charts the night sky: <b>✨ stardust falls twice as often</b> and every wish surges the crops <b>twice as hard</b></li>
     <li>A <b>🌦️ Weather Vane</b> (level 6) reads the sky: every shower is <b>called half a minute out</b>, and rain <b>lingers 25% longer</b> over the isle</li>
+    <li><b>🎈 Balloon Tours</b> (level 10) lift sightseers over the isle every few minutes — <b>tips scale with every building standing</b> (grounded in rain and winter)</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -1546,6 +1547,7 @@ const BUILDINGS={
   lighthouse:{ico:'🗼',name:'Lighthouse',cost:1200,lvl:8,desc:'A beam over the water: freighters pass the isle and heave 📦 cargo crates overboard — triple the coin, always a good',roof:0xd94f30,wall:0xe8e0d0,kind:'light'},
   observatory:{ico:'🔭',name:'Observatory',cost:1500,lvl:9,desc:'Charts the night sky: ✨ stardust falls twice as often, and every wish surges crops twice as hard',roof:0x6a5acd,wall:0xd8d8e8,kind:'obs'},
   vane:      {ico:'🌦️',name:'Weather Vane',cost:450,lvl:6,desc:'Reads the sky: calls each shower half a minute before it lands, and showers linger 25% longer over the isle',roof:0x8a8fb0,wall:0xd0d4e0,kind:'vane'},
+  balloon:   {ico:'🎈',name:'Balloon Tours',cost:1800,lvl:10,desc:'A moored balloon lifts sightseers over the isle — every tour tips coins by how much there is to see',roof:0xd94f6a,wall:0xc9a06a,kind:'balloon'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1558,6 +1560,7 @@ function buildingCubes(def){
   if(def.kind==='light')return lightCubes(def);
   if(def.kind==='obs')return obsCubes(def);
   if(def.kind==='vane')return vaneCubes(def);
+  if(def.kind==='balloon')return balloonCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1613,6 +1616,18 @@ function vaneCubes(def){
   a(-0.5,2.2,0,0.16,0.4,0.18,def.roof);          // tail feathers
   a(0,2.5,0,0.26,0.3,0.18,0xd97a29);             // the rooster
   a(0,2.72,0,0.1,0.14,0.1,0xc0392b);             // his comb
+  return c;
+}
+function balloonCubes(def){
+  // VOX-12: a wicker basket moored to a post, big striped canopy overhead
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0.7,0.5,0.7,0.16,1.0,0.16,0x5a4028);         // mooring post
+  a(0,0.35,0,0.9,0.5,0.9,def.wall);              // the wicker basket
+  a(0,0.62,0,1.0,0.1,1.0,0x8a5a34);              // basket rim
+  a(0,1.5,0,0.2,1.3,0.2,0x9a8a6a);               // rigging
+  a(0,2.5,0,1.5,0.9,1.5,def.roof);               // canopy, lower bulge
+  a(0,3.15,0,1.2,0.5,1.2,0xe8e0d0);              // canopy, white band
+  a(0,3.6,0,0.8,0.4,0.8,def.roof);               // canopy crown
   return c;
 }
 function obsCubes(def){
@@ -3032,6 +3047,28 @@ function updateShips(dt){
   if(flotsam)toast('🚢 A freighter follows the beam past the isle — cargo overboard!');
 }
 
+/* ============================== balloon tours (VOX-12) ============================== */
+// The isle finally has something to show off. With the balloon moored,
+// sightseers drift in every few minutes (the basket stays lashed down
+// through rain and winter storms) and tip by how much there is to see:
+// 10 coins plus 3 for every town building standing.
+let tourNextT=180+Math.random()*120;
+function balloonBuilt(){return !!(state.buildings&&state.buildings.balloon);}
+function tourPay(){return 10+3*Object.values(state.buildings||{}).filter(Boolean).length;}
+function updateTours(dt){
+  if(!balloonBuilt())return;
+  if(rainActive||seasonOf(state.day).key==='winter')return;   // lashed down
+  tourNextT-=dt;
+  if(tourNextT>0)return;
+  tourNextT=180+Math.random()*120;
+  const pay=tourPay();
+  const b=state.buildings.balloon;
+  grantCoins(pay,b.x,3.8,b.z);
+  state.tours=(state.tours||0)+1;
+  toast('🎈 A tour lifts off over the isle — the sightseers tip '+pay+' 🪙');
+  checkAch();
+}
+
 /* ============================== stardust & wishes (VOX-5) ============================== */
 // The how-to always said the stars were good for something. At night a
 // shooting star occasionally sheds a glowing shard over the garden —
@@ -3973,6 +4010,7 @@ const ACH=[
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
+  ['tours5','Head in the Clouds','Send five balloon tours over the isle',()=>(state.tours||0)>=5],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4211,6 +4249,7 @@ function boot(){
     updateCrow(dt);
     updateFlotsam(dt);
     updateShips(dt);
+    updateTours(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
