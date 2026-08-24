@@ -18,7 +18,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -78,6 +78,7 @@ var RECIPES = [
   {id:'garden',      icon:'🌱', name:'Community Garden',cost:{wood:6,goodwill:8,food:3},      gives:{structure:'garden'},     time:12000, desc:'Slowly generates food each day. Gets destroyed in sweeps.', requires:'workbench'},
   {id:'radio',       icon:'📻', name:'Radio',           cost:{scraps:5,cans:3},                gives:{structure:'radio'},      time:6000,  desc:'A crackly weather band — see tomorrow\u2019s sky coming.', requires:'workbench'},
   {id:'stash',       icon:'🕳️', name:'Hidden Stash',    cost:{wood:4,scraps:3,cardboard:2},    gives:{structure:'stash'},      time:7000,  desc:'A buried cache under the fence line. Thieves and sweeps take half as much — and nobody ever finds the hole itself.', requires:'workbench'},
+  {id:'guitar',      icon:'🎸', name:'Scrap Guitar',    cost:{scraps:8,wood:4},                gives:{structure:'guitar'},     time:9000,  desc:'Strings from a fence, a body from a pallet. One set a day on the corner — the take rides the camp\u2019s spirits.', requires:'workbench'},
 ];
 
 // ── Weather (HV-5) ────────────────────────────────────────────
@@ -221,6 +222,20 @@ function meetingAction(){
     tooltip:'Gather everyone around the fire. +2 morale a head, a little something for the pot from each resident — and the block hears a village, not a camp.' };
 }
 
+// ── HV-19: the Busker's Guitar ───────────────────────────────
+// A second street verb, earned not begged: a scrap guitar built at
+// the workbench buys one set a day on the corner. The take rides the
+// camp's spirits — +1 goodwill per 25 morale — doubles on a scorcher
+// (foot traffic), and a good set is remembered (+1 rep) and lifts
+// the player too (+2 morale).
+function buskAvailable(){ return !!G.structures.guitar; }
+function buskDone(){ return G.buskDay===G.days; }
+function buskPay(){ var base=1+Math.floor((G.morale||0)/25); return G.weather==='heat'?base*2:base; }
+function buskAction(){
+  return { id:'busk', icon:'🎸', label:'Busk a set', time:6000, cooldown:0,
+    tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (+1 goodwill per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
+}
+
 // ── HV-18: the Cold Snap ─────────────────────────────────────
 // Winter already bites; some winters bite harder. A quarter of winter
 // dawns open a two-day cold snap — the fire drains faster and foot
@@ -295,6 +310,7 @@ var GOALS = [
   {id:'favor3',     desc:'Do 3 favors for friends',   target:3,  reward:5,  value:function(){ return G.favorsDone||0; }},
   {id:'ticket1',    desc:'Send someone home',         target:1,  reward:10, value:function(){ return G.ticketsSent||0; }},
   {id:'snap2',      desc:'Weather 2 cold snaps',      target:2,  reward:8,  value:function(){ return G.snapsSurvived||0; }},
+  {id:'busk5',      desc:'Play 5 sets on the corner', target:5,  reward:6,  value:function(){ return G.busks||0; }},
 ];
 
 var activeJobs = {};
