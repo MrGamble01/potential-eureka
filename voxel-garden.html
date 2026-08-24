@@ -1228,7 +1228,8 @@ function updateBreeding(dt){
 function cashInAnimal(a){
   const def=ANIMALS[a.type];
   if(a.stage===0){toast(def.ico+' still growing — '+Math.round(a.grow*100)+'%');return;}
-  const pay=Math.round(def.sell*sellMult());
+  const pay=Math.round(def.sell*sellMult()*rainbowMult());
+  if(rainbow)state.achFlags.rainbowSale=true;   // VOX-7
   const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
   grantCoins(pay,a.x,gy+0.9,a.z);
   burst(a.x,gy+0.6,a.z,0xffd166,16,{up:2.4,g:6});
@@ -3234,6 +3235,7 @@ function actOnPlant(p){
     let pay=gold?def.sell*2:def.sell;
     const season=inSeason(def);
     if(season)pay=Math.round(pay*1.4);                                // in-season harvest sells for +40%
+    if(rainbow){pay=Math.round(pay*rainbowMult());state.achFlags.rainbowSale=true;}   // VOX-7
     grantCoins(pay,p.x+0.5,p.y+0.9,p.z+0.5);
     if(season){state.achFlags.inseason=true;floatText(p.x+0.5,p.y+1.5,p.z+0.5,seasonOf(state.day).ico+' in season!','#ffe08a');}
     grantXP(def.xp);
@@ -3662,7 +3664,9 @@ const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],
 
 /* ============================== weather ============================== */
 // A rainbow arcs over the isle when a shower clears (not in winter).
+// VOX-7: Rainbow's End — while the arc holds, everything sells +25%.
 let rainbow=null,rainbowT=0;
+function rainbowMult(){return rainbow?1.25:1;}
 function spawnRainbow(){
   if(rainbow){scene.remove(rainbow);rainbow.geometry.dispose();rainbow.material.dispose();rainbow=null;}
   const bands=[0xff5b5b,0xff9a3e,0xffe14d,0x66d16b,0x4db6ff,0x6b6bff,0xb06ff0];
@@ -3684,6 +3688,7 @@ function spawnRainbow(){
   rainbow=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
   rainbow.renderOrder=-1;scene.add(rainbow);
   rainbowT=24;
+  toast('🌈 Rainbow’s End — everything sells +25% while it arcs!');
 }
 function updateRainbow(dt){
   if(!rainbow)return;
@@ -3860,6 +3865,7 @@ const ACH=[
   ['flotsam5','Beachcomber','Crack open five flotsam crates',()=>(state.flotsamOpened||0)>=5],
   ['wish1','Upon a Star','Collect three stardust shards and make a wish',()=>(state.wishes||0)>=1],
   ['catgift5','Little Hunter','Unwrap five of the cat’s gifts',()=>(state.catGifts||0)>=5],
+  ['potofgold','Pot of Gold','Make a sale while a rainbow arcs',()=>!!state.achFlags.rainbowSale],
   ['koi','The Golden One','Catch the elusive Golden Koi',()=>!!state.achFlags.koi],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
