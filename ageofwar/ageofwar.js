@@ -266,6 +266,11 @@ const AgeOfWarGame = (() => {
   let goldTrickleT = 0;
   let specialReadyT = 6;
   const specialCooldownMax = 20;
+  // AOW-13: the Warcry — an active rally independent of the era Special.
+  // From Age II on, sound the horns and every friendly unit attacks 50%
+  // faster for a short window, on its own long cooldown.
+  const WARCRY_DUR = 6, WARCRY_CD = 45, WARCRY_HASTE = 1.5;
+  let warcryT = 0, warcryCd = 0;
   // Enemy tech + specials (see enemyTechTick / enemySpecialTick)
   let enemyXP = 0;              // enemy's internal economy toward its next era
   let enemySpecialT = 45;       // seconds until the enemy may fire its special
@@ -515,6 +520,7 @@ const AgeOfWarGame = (() => {
     { id: 'turret_full',  icon: '🛡️',  title: 'Fortified',        desc: 'Fill all 4 turret slots.' },
     { id: 'hero_summon',  icon: '🦸',  title: 'A Legend Arrives', desc: 'Summon your first Hero.' },
     { id: 'special_5',    icon: '💥',  title: 'Pyromaniac',       desc: 'Cast 5 specials in one run.' },
+    { id: 'warcry_3',     icon: '🎺',  title: 'Hear the Horns',   desc: 'Sound 3 warcries in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
     { id: 'win_insane',   icon: '👑',  title: 'Unstoppable',      desc: 'Win on Insane.' },
@@ -604,6 +610,7 @@ const AgeOfWarGame = (() => {
     if (runStats.kills >= 100) unlock('kill_100');
     if (runStats.coinsCollected >= 50) unlock('collect_50');
     if (runStats.specialsFired >= 5) unlock('special_5');
+    if ((runStats.warcries || 0) >= 3) unlock('warcry_3');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -965,6 +972,7 @@ const AgeOfWarGame = (() => {
     enemySpawnT = 1.0;
     goldTrickleT = 0;
     specialReadyT = 6;
+    warcryT = 0; warcryCd = 0;
     enemyXP = 0;
     enemySpecialT = 45;       // opening grace: no enemy special in the first minute
     enemySpecialWarnT = 0;
@@ -988,6 +996,7 @@ const AgeOfWarGame = (() => {
     runStats.specialsFired = 0; runStats.coinsCollected = 0;
     runStats.biggestCombo = 0; runStats.agesReached = 0;
     runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
+    runStats.warcries = 0;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
     waveNum = 1;
@@ -1213,6 +1222,23 @@ const AgeOfWarGame = (() => {
     shake(12, 0.35);
   }
 
+  // AOW-13: sound the horns. Gated behind Age II so the opening minute
+  // stays about unit reads, not button rotations.
+  function soundWarcry() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '🎺 The horns are forged in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (warcryCd > 0 || warcryT > 0) return;
+    warcryT = WARCRY_DUR;
+    warcryCd = WARCRY_CD;
+    runStats.warcries = (runStats.warcries || 0) + 1;
+    goldFloaters.push({ text: '🎺 WARCRY! +50% attack speed', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.6 });
+    shake(3, 0.2);
+    checkAchievementsDuringRun();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1285,6 +1311,8 @@ const AgeOfWarGame = (() => {
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
     if (specialBtn) specialBtn.onclick = fireSpecial;
+    const warcryBtn = document.getElementById('aow-warcry-btn');
+    if (warcryBtn) warcryBtn.onclick = soundWarcry;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -1480,6 +1508,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'h' || e.key === 'H') {
         trySummonHero();
+        e.preventDefault();
+      } else if (e.key === 'w' || e.key === 'W') {
+        soundWarcry();
         e.preventDefault();
       }
     });
@@ -1711,6 +1742,8 @@ const AgeOfWarGame = (() => {
     tickTraining(dt);
     if (specialReadyT > 0) {
       specialReadyT = Math.max(0, specialReadyT - dt);
+      warcryT = Math.max(0, warcryT - dt);
+      warcryCd = Math.max(0, warcryCd - dt);
       renderHud();
     }
 
@@ -1819,7 +1852,8 @@ const AgeOfWarGame = (() => {
       } else {
         u.atkT -= dt;
         if (u.atkT <= 0) {
-          u.atkT = u.atkSpd;
+          // AOW-13: rallied friendlies swing 50% faster while the horns sound
+          u.atkT = u.atkSpd / (u.side === 'player' && warcryT > 0 ? WARCRY_HASTE : 1);
           u.attackPose = 0.22;  // hold strike pose ~220ms
           if (isBase) {
             // GAME-1a: reuse the same projectile/impact path unit-vs-unit
@@ -6721,6 +6755,15 @@ const AgeOfWarGame = (() => {
       if (lbl) lbl.textContent = spec.name;
       if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
       specEl.disabled = specialReadyT > 0;
+    }
+
+    // Warcry button (AOW-13)
+    const wcEl = document.getElementById('aow-warcry-btn');
+    const wcCdEl = document.getElementById('aow-warcry-cd');
+    if (wcEl) {
+      if (wcCdEl) wcCdEl.textContent = warcryT > 0 ? `⚔️ ${Math.ceil(warcryT)}s`
+        : playerEra < 1 ? 'AGE II' : warcryCd > 0 ? `${Math.ceil(warcryCd)}s` : 'READY';
+      wcEl.disabled = playerEra < 1 || warcryCd > 0 || warcryT > 0;
     }
 
     // Wave indicator
