@@ -191,7 +191,13 @@ function onNewDay(){
     G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
   }
   if(G.structures.workbench&&Math.random()<.04){
-    G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
+    if(G.structures.toolbox){
+      // HV-24: the wobble gets tightened instead of collapsing
+      G.benchSaves=(G.benchSaves||0)+1;
+      log('🧰 The workbench wobbled \u2014 the tool box tightened it back up.');
+    } else {
+      G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
+    }
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
