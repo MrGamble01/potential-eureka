@@ -220,6 +220,7 @@
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
     <li><b>🐦‍⬛ Crows</b> land on growing crops and peck growth away &mdash; <b>tap to shoo</b> them, or post a <b>🎃 scarecrow</b> to guard the plots around it</li>
     <li><b>🧺 Flotsam</b> crates bob up in the pond &mdash; <b>tap to crack them open</b> (coins, sometimes a good) before they sink; a <b>⚓ Pier</b> doubles the traffic and the haul</li>
+    <li>A <b>🗼 Lighthouse</b> (level 8) shows the isle to the shipping lanes: passing freighters heave <b>📦 cargo crates</b> overboard &mdash; triple the coin and always carrying a good</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -1540,6 +1541,7 @@ const BUILDINGS={
   brewery:  {ico:'🍶',name:'Brewery',  cost:980,lvl:7,desc:'Ferments 🍯 honey into 🍶 mead (worth ~2.5×)',roof:0x6a4a2a,wall:0xb89a6a,kind:'brew'},
   compost:  {ico:'♻️',name:'Compost Heap',cost:380,lvl:5,desc:'Tap: feed it 5 stockpiled goods → every growing crop surges +15% (60s cooldown)',roof:0x5a7a3a,wall:0x7a5a34,kind:'heap'},
   pier:     {ico:'⚓',name:'Pier',      cost:560,lvl:5,desc:'Flotsam crates drift up twice as often and carry richer salvage',roof:0x8a5a34,wall:0x9a7a52,kind:'pier'},
+  lighthouse:{ico:'🗼',name:'Lighthouse',cost:1200,lvl:8,desc:'A beam over the water: freighters pass the isle and heave 📦 cargo crates overboard — triple the coin, always a good',roof:0xd94f30,wall:0xe8e0d0,kind:'light'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1549,6 +1551,7 @@ function buildingCubes(def){
   if(def.kind==='brew')return brewCubes(def);
   if(def.kind==='heap')return heapCubes(def);
   if(def.kind==='pier')return pierCubes(def);
+  if(def.kind==='light')return lightCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1579,6 +1582,19 @@ function pierCubes(def){
   a(0.6,0.95,1.2,0.12,0.7,0.12,0x5a4028);        // lantern post
   a(0.6,1.38,1.2,0.26,0.26,0.26,0xffd166);       // the lantern
   a(-0.55,0.72,1.3,0.3,0.2,0.4,0x8a6a4a);        // moored bait box
+  return c;
+}
+function lightCubes(def){
+  // VOX-9: a banded tower tapering to the lamp room, gallery rail and all
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.3,0,1.5,0.6,1.5,0x9aa0a6);               // stone footing
+  a(0,0.95,0,1.15,0.8,1.15,def.wall);            // lower band (white)
+  a(0,1.6,0,1.0,0.5,1.0,def.roof);               // red band
+  a(0,2.1,0,0.85,0.5,0.85,def.wall);             // upper band
+  a(0,2.5,0,1.1,0.12,1.1,0x5a4028);              // gallery deck
+  a(0,2.78,0,0.6,0.45,0.6,0xffd166);             // the lamp
+  a(0,3.1,0,0.8,0.18,0.8,def.roof);              // cap
+  a(0,0.45,0.78,0.4,0.6,0.1,0x5a3a24);           // door
   return c;
 }
 function millCubes(def){
@@ -2890,27 +2906,30 @@ function updateCrow(dt){
 const FLOTSAM_DRIFT=60;
 let flotsam=null, flotsamNextT=140+Math.random()*100;
 function pierBuilt(){return !!(state.buildings&&state.buildings.pier);}
-function buildFlotsamMesh(){
-  const g=new THREE.Group();
-  const wood=new THREE.MeshLambertMaterial({color:0x9a6f42});
-  const strap=new THREE.MeshLambertMaterial({color:0x5a4028});
-  const box=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.44,0.6),wood);
-  box.position.y=0.2;g.add(box);
-  const b1=new THREE.Mesh(new THREE.BoxGeometry(0.64,0.1,0.64),strap);
-  b1.position.y=0.3;g.add(b1);
-  const b2=new THREE.Mesh(new THREE.BoxGeometry(0.64,0.1,0.64),strap);
-  b2.position.y=0.1;g.add(b2);
+function buildFlotsamMesh(cargo){
+  // VOX-9: a freighter's cargo crate is the same silhouette, bigger and
+  // red-strapped, so the tap target and pickable plumbing stay shared.
+  const g=new THREE.Group(), s=cargo?1.25:1;
+  const wood=new THREE.MeshLambertMaterial({color:cargo?0x8a6236:0x9a6f42});
+  const strap=new THREE.MeshLambertMaterial({color:cargo?0xb03a2a:0x5a4028});
+  const box=new THREE.Mesh(new THREE.BoxGeometry(0.6*s,0.44*s,0.6*s),wood);
+  box.position.y=0.2*s;g.add(box);
+  const b1=new THREE.Mesh(new THREE.BoxGeometry(0.64*s,0.1*s,0.64*s),strap);
+  b1.position.y=0.3*s;g.add(b1);
+  const b2=new THREE.Mesh(new THREE.BoxGeometry(0.64*s,0.1*s,0.64*s),strap);
+  b2.position.y=0.1*s;g.add(b2);
   const knot=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.14,0.14),new THREE.MeshLambertMaterial({color:0xd8c9a0}));
-  knot.position.set(0.2,0.48,0.1);g.add(knot);   // rope knot on the lid
+  knot.position.set(0.2*s,0.48*s,0.1*s);g.add(knot);   // rope knot on the lid
   g.traverse(o=>{if(o.isMesh)o.userData.flotsam=true;});
   return g;
 }
-function spawnFlotsam(){
+function spawnFlotsam(cargo){
   if(!W.pondCells||!W.pondCells.length)return;
   const [x,z]=W.pondCells[(Math.random()*W.pondCells.length)|0];
-  flotsam={x,z,t:0,mesh:buildFlotsamMesh()};
+  flotsam={x,z,t:0,cargo:!!cargo,mesh:buildFlotsamMesh(cargo)};
   flotsam.mesh.position.set(x+0.5,(W.waterY||5)+0.16,z+0.5);
   scene.add(flotsam.mesh);
+  if(cargo)return;   // VOX-9: the freighter toast already announced it
   if(!state.achFlags.flotsamSeen){state.achFlags.flotsamSeen=1;
     toast('🧺 A crate drifts up in the pond — tap it before it sinks! (A ⚓ Pier brings more.)');}
   else toast('🧺 Flotsam bumps against the bank!');
@@ -2922,21 +2941,23 @@ function removeFlotsam(){
 }
 function openFlotsam(){
   if(!flotsam)return;
-  const m=flotsam.mesh.position, pier=pierBuilt();
+  const m=flotsam.mesh.position, pier=pierBuilt(), cargo=flotsam.cargo;
   let coins=25+((Math.random()*36)|0);
   if(pier)coins=Math.round(coins*1.6);
+  if(cargo)coins=coins*3;   // VOX-9: freight pays like freight
   grantCoins(coins,m.x,m.y+0.9,m.z);
   let extra='';
-  if(Math.random()<(pier?0.5:0.3)){
+  if(cargo||Math.random()<(pier?0.5:0.3)){   // cargo always carries a good
     const ks=goodsKeys(), k=ks[(Math.random()*ks.length)|0];
     state.goods[k]=(state.goods[k]||0)+1;
     extra=' + '+goodDef(k).product+' for the stockpile';
     refreshGoodsHud();
   }
   state.flotsamOpened=(state.flotsamOpened||0)+1;
-  burst(m.x,m.y+0.3,m.z,0x9a6f42,12,{up:2.2,g:4});
+  if(cargo)state.cargoOpened=(state.cargoOpened||0)+1;
+  burst(m.x,m.y+0.3,m.z,cargo?0xb03a2a:0x9a6f42,cargo?16:12,{up:2.2,g:4});
   SFX.play('coin');
-  toast('🧺 Cracked the crate open — +'+coins+' 🪙'+extra);
+  toast((cargo?'📦 Pried the cargo crate open — +':'🧺 Cracked the crate open — +')+coins+' 🪙'+extra);
   removeFlotsam();
   checkAch();
 }
@@ -2953,9 +2974,28 @@ function updateFlotsam(dt){
   if(flotsam.t>=FLOTSAM_DRIFT||seasonOf(state.day).key==='winter'){
     const m=flotsam.mesh.position;
     burst(m.x,m.y,m.z,0x9ad2e0,8,{up:1.5,g:4});
-    toast('🧺 The crate took on water and sank.');
+    toast(flotsam.cargo?'📦 The cargo crate took on water and sank.':'🧺 The crate took on water and sank.');
     removeFlotsam();
   }
+}
+
+/* ============================== the Lighthouse (VOX-9) ============================== */
+// The isle finally shows a light to the shipping lanes. With the 🗼
+// Lighthouse built, freighters follow the beam past the isle every few
+// minutes (never through winter ice) and heave a cargo crate overboard —
+// flotsam's big sibling: triple the coin and always carrying a good.
+// One crate bobs at a time, so a passing ship waits for a clear pond.
+let shipNextT=200+Math.random()*160;
+function lighthouseBuilt(){return !!(state.buildings&&state.buildings.lighthouse);}
+function updateShips(dt){
+  if(!lighthouseBuilt())return;
+  if(seasonOf(state.day).key==='winter')return;      // the lanes ice shut
+  shipNextT-=dt;
+  if(shipNextT>0)return;
+  if(flotsam){shipNextT=30;return;}                  // the pond already has a crate
+  shipNextT=200+Math.random()*160;
+  spawnFlotsam(true);
+  if(flotsam)toast('🚢 A freighter follows the beam past the isle — cargo overboard!');
 }
 
 /* ============================== stardust & wishes (VOX-5) ============================== */
@@ -3892,6 +3932,7 @@ const ACH=[
     ()=>['perch','tropic','crab','puffer','koi'].every(id=>state.fishLog&&state.fishLog[id])],
   ['compost5','Black Gold','Spread compost five times',()=>(state.composted||0)>=5],
   ['flotsam5','Beachcomber','Crack open five flotsam crates',()=>(state.flotsamOpened||0)>=5],
+  ['cargo3','Harbormaster','Pry open three freighter cargo crates',()=>(state.cargoOpened||0)>=3],
   ['wish1','Upon a Star','Collect three stardust shards and make a wish',()=>(state.wishes||0)>=1],
   ['catgift5','Little Hunter','Unwrap five of the cat’s gifts',()=>(state.catGifts||0)>=5],
   ['potofgold','Pot of Gold','Make a sale while a rainbow arcs',()=>!!state.achFlags.rainbowSale],
@@ -4120,6 +4161,7 @@ function boot(){
     updateBird(dt,dn);
     updateCrow(dt);
     updateFlotsam(dt);
+    updateShips(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
