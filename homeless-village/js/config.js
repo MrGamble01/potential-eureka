@@ -49,6 +49,8 @@ var G = {
   // HV-11: the Underpass Mural — panels painted (0..4) and the day of
   // the last painting session (one per day).
   mural: 0, muralDay: -1,
+  // HV-14: camp meetings held, and the day the circle last convened
+  meetings: 0, meetingDay: -9,
 
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
@@ -173,6 +175,18 @@ function muralAction(){
     tooltip:'One session a day on the underpass wall. Costs 2 scraps of salvaged paint. +3 morale, and the block takes notice.' };
 }
 
+// ── HV-14: the Camp Meeting ──────────────────────────────────
+// Once the fire draws more people than just you, an evening circle
+// every few days keeps the camp a village instead of strangers: every
+// voice raised is morale, and everyone tosses something in the pot.
+var MEETING_EVERY = 3;
+function meetingAvailable(){ return (G.population||1) >= 2; }
+function meetingDone(){ return G.days - (typeof G.meetingDay==='number'?G.meetingDay:-9) < MEETING_EVERY; }
+function meetingAction(){
+  return { id:'meeting', icon:'🗣️', label:'Hold a camp meeting', time:6000, cooldown:0,
+    tooltip:'Gather everyone around the fire. +2 morale a head, a little something for the pot from each resident — and the block hears a village, not a camp.' };
+}
+
 var ACTIONS = [
   {id:'scavenge',  icon:'🗑️', label:'Scavenge Dumpster', time:5000, cooldown:8000,  tooltip:'Dig through dumpsters for scraps, cans, or food.'},
   {id:'forage',    icon:'🌿', label:'Forage Area',        time:4000, cooldown:12000, tooltip:'Search the surroundings for cardboard and wood.'},
@@ -205,6 +219,7 @@ var GOALS = [
   {id:'respected',  desc:'Become Respected (50 rep)', target:50, reward:8,  value:function(){ return Math.floor(G.rep||0); }},
   {id:'soup7',      desc:'Serve 7 soup nights',       target:7,  reward:6,  value:function(){ return G.soupNights||0; }},
   {id:'mural',      desc:'Finish the community mural',target:4,  reward:8,  value:function(){ return G.mural||0; }},
+  {id:'meet3',      desc:'Hold 3 camp meetings',      target:3,  reward:5,  value:function(){ return G.meetings||0; }},
 ];
 
 var activeJobs = {};
