@@ -24,8 +24,8 @@ SUITES=(
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
-  hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural hvstash hvfire
-  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat voxrainbow voxduck
+  hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural hvstash hvfire hvmeeting hvpetition
+  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat voxrainbow voxduck voxlight voxobs
   pwa
 )
 
