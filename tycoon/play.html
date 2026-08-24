@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -1617,6 +1617,7 @@
 <div id="bridge-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="keynote-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="sre-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="migrate-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
@@ -6191,6 +6192,7 @@ const ACHIEVEMENTS = [
   { id: 'five_nines',    icon: '🧑‍🚒', title: 'Five Nines',           desc: 'Have the runbook hold through three outages.', check: () => srePrevented >= 3, progress: () => [Math.min(srePrevented, 3), 3] },
   { id: 'kaizen',        icon: '📋', title: 'Kaizen',               desc: 'Bank ten retro learnings.', check: () => retroLearnings >= 10, progress: () => [Math.min(retroLearnings, 10), 10] },
   { id: 'rentier',       icon: '💼', title: 'Passive Income',       desc: 'Bank \$1,000 in patent royalties.', check: () => royaltiesLife >= 1000, progress: () => [Math.min(Math.round(royaltiesLife), 1000), 1000] },
+  { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6809,7 +6811,7 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     acqNextT = 25;
     return;
   }
@@ -6911,7 +6913,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -7008,7 +7010,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     launchNextT = 25;
     return;
   }
@@ -7094,7 +7096,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     poachNextT = 25;
     return;
   }
@@ -7213,7 +7215,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7380,7 +7382,7 @@ function updateRfp(dt) {
   if (rivalDone || seasonGoalHit) return;
   rfpNextT -= dt;
   if (rfpNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     rfpNextT = 25;
     return;
   }
@@ -7496,7 +7498,7 @@ function updateHackathon(dt) {
   }
   hackNextT -= dt;
   if (hackNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     hackNextT = 25;
     return;
   }
@@ -7574,7 +7576,7 @@ function updateTroll(dt) {
   if (prestigeLevel < 1) return;   // trolls only sue companies worth suing
   trollNextT -= dt;
   if (trollNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     trollNextT = 25;
     return;
   }
@@ -7680,7 +7682,7 @@ function updateMentor(dt) {
   if (mentorOn()) return;   // one mentor at a time — the pitch waits for a vacancy
   mentorNextT -= dt;
   if (mentorNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     mentorNextT = 25;
     return;
   }
@@ -7795,7 +7797,7 @@ function updateWar(dt) {
   if (warUsedSeason || rivalDone || seasonGoalHit) return;
   const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
   if (rivalRev < rivalTarget() * 0.75 || mine >= rivalRev) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     warNextT = 25;
     return;
   }
@@ -7905,7 +7907,7 @@ function pageOnCall() {
     showToast('📟 The on-call rolls it back — the dashboard cools off.', 'good', 'critical');
     addFeedEntry('📟 SEV-1 paged out (' + outagesPaged + ' answered)');
   }
-  outageNextT = 540 + Math.random() * 240;
+  outageNextT = outageRearm();
   checkAchievements(); saveGame(); refreshHud();
 }
 function updateOutage(dt) {
@@ -7919,7 +7921,7 @@ function updateOutage(dt) {
       changeMorale(-6, 'The outage burned itself out');
       showToast('🔥 The outage burns out on its own — an hour of ugly graphs and a bruised floor (−6 morale).', 'event', 'critical');
       addFeedEntry('🔥 SEV-1 burned out unpaged (−6 morale)');
-      outageNextT = 540 + Math.random() * 240;
+      outageNextT = outageRearm();
       saveGame(); refreshHud();
     }
     return;
@@ -7932,7 +7934,7 @@ function updateOutage(dt) {
     // TYC-27: the retainer eats the SEV-1 before it ever pages
     sreShield = false;
     srePrevented++;
-    outageNextT = 540 + Math.random() * 240;
+    outageNextT = outageRearm();
     refreshSreChip();
     showToast('\u{1F9D1}\u200D\u{1F692} The pager twitches \u2014 and goes quiet. The runbook holds; the SEV-1 never fires.', 'good', 'critical');
     addFeedEntry('\u{1F9D1}\u200D\u{1F692} The retainer eats a SEV-1 (' + srePrevented + ' prevented)');
@@ -7986,7 +7988,7 @@ function updateBridge(dt) {
   bridgeNextT = 20;
   if (prestigeLevel < 1 || bridgeTakenSeason) return;
   if (state.cash >= BRIDGE_FLOOR) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || keynoteOffer || sreOffer || migrateOffer) {
     return;
   }
   makeBridgeOffer();
@@ -8094,7 +8096,7 @@ function updateKeynote(dt) {
   keynoteNextT = 25;
   if (prestigeLevel < 1 || keynoteDoneSeason || keynote) return;
   if (seasonRecurringRevenue < currentGoalTarget() * 0.25) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || sreOffer || migrateOffer) {
     return;
   }
   makeKeynoteOffer();
@@ -8183,7 +8185,7 @@ function updateSre(dt) {
   if (sreNextT > 0) return;
   sreNextT = 25;
   if (prestigeLevel < 1 || outagesSeen < 1 || sreHeldSeason || sreShield || outage) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || migrateOffer) {
     return;
   }
   makeSreOffer();
@@ -8232,6 +8234,95 @@ function closeSreOffer(signed, expired) {
   } else {
     addFeedEntry(expired ? '\u{1F9D1}\u200D\u{1F692} The retainer offer lapsed \u2014 the SRE shrugs' : '\u{1F9D1}\u200D\u{1F692} Declined the retainer \u2014 carrying the pager alone');
     sreNextT = 180;
+  }
+}
+
+// ── The Migration (TYC-30) ────────────────────────────────
+// Round Nineteen opens in the machine room. Once the founder has
+// carried the pager twice, a platform architect pitches THE deck:
+// $8,000, once ever — the whole stack moves to managed infra, and
+// every pager window stretches 25% longer for the rest of the
+// company's life. No shield, no season reset: architecture.
+const MIGRATE_COST = 8000;
+const MIGRATE_OFFER_SECS = 45;
+const MIGRATE_REARM_MULT = 1.25;
+let migrateOffer = null;    // { expire }
+let migrated = false;       // one-time-ever: the stack has moved
+let migrateNextT = 150;
+function outageRearm() {
+  return (540 + Math.random() * 240) * (migrated ? MIGRATE_REARM_MULT : 1);
+}
+function refreshMigrateChip() {
+  const el = document.getElementById('migrate-chip');
+  if (!el) return;
+  if (migrated) {
+    el.style.display = '';
+    el.textContent = '\u2601\uFE0F migrated';
+    el.title = 'The stack lives on managed infra \u2014 every pager window runs 25% longer, forever.';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function updateMigrate(dt) {
+  if (migrateOffer) {
+    migrateOffer.expire -= dt;
+    const cd = document.getElementById('migrate-expire');
+    if (cd) cd.textContent = 'The deck stands for ' + Math.max(0, Math.ceil(migrateOffer.expire)) + 's';
+    if (migrateOffer.expire <= 0) closeMigrateOffer(false, true);
+    return;
+  }
+  if (migrated) return;
+  migrateNextT -= dt;
+  if (migrateNextT > 0) return;
+  migrateNextT = 25;
+  if (prestigeLevel < 1 || outagesSeen < 2 || outage) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+    return;
+  }
+  makeMigrateOffer();
+}
+function makeMigrateOffer() {
+  migrateOffer = { expire: MIGRATE_OFFER_SECS };
+  const el = document.getElementById('migrate-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#58A6FF;margin-bottom:4px">\u2601\uFE0F A platform architect has a deck</div>
+      <div>"Your stack is a museum." The migration is on the table: <b style="color:#F85149">$${fmtCash(MIGRATE_COST)}</b>,
+      <b>once ever</b> \u2014 the whole company moves to managed infra and <b style="color:#3FB950">every pager
+      window runs 25% longer</b>, for good. Not a shield. Architecture.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="migrate-take" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(88,166,255,.12);border:1px solid rgba(88,166,255,.5);color:#58A6FF">\u2601\uFE0F Migrate the stack \u2014 $${fmtCash(MIGRATE_COST)}</button>
+        <button id="migrate-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Keep the museum</button>
+      </div>
+      <div id="migrate-expire" style="color:#7D8590;font-size:11px;margin-top:6px">The deck stands for 45s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('migrate-take').onclick = () => closeMigrateOffer(true, false);
+  document.getElementById('migrate-pass').onclick = () => closeMigrateOffer(false, false);
+  addFeedEntry('\u2601\uFE0F A platform architect pitches THE migration \u2014 "once ever"');
+  SFX.milestone && SFX.milestone();
+}
+function closeMigrateOffer(taken, expired) {
+  const o = migrateOffer;
+  migrateOffer = null;
+  document.getElementById('migrate-offer').style.display = 'none';
+  if (!o) return;
+  if (taken) {
+    if (state.cash < MIGRATE_COST) {
+      showToast(`\u2601\uFE0F The migration runs $${fmtCash(MIGRATE_COST)} \u2014 the wallet says no.`, '', 'standard');
+      migrateNextT = 60;
+      return;
+    }
+    state.cash -= MIGRATE_COST; showSpendPop(MIGRATE_COST);
+    migrated = true;
+    refreshMigrateChip();
+    showToast('\u2601\uFE0F The stack has moved \u2014 every pager window now runs 25% longer, forever.', 'good', 'critical');
+    addFeedEntry('\u2601\uFE0F Migrated to managed infra \u2014 the pager breathes easier for good');
+    checkAchievements(); saveGame(); refreshHud();
+  } else {
+    addFeedEntry(expired ? '\u2601\uFE0F The architect\u2019s deck lapsed \u2014 the museum stands' : '\u2601\uFE0F Declined the migration \u2014 the museum stands');
+    migrateNextT = 240;
   }
 }
 
@@ -10797,6 +10888,7 @@ function frameBody(now) {
   updateBridge(dt);
   updateKeynote(dt);
   updateSre(dt);
+  updateMigrate(dt);
   updateLab(dt);
   updateRoyalties(dt);
   updateCoffeeSteam(dt);
@@ -11644,6 +11736,14 @@ const SAVE_SCHEMA = [
         bridgesTaken = Math.max(0, Math.floor(p.bridge.count || 0));
         refreshBridgeChip();
       }
+    },
+  },
+  {
+    key: 'migrate', // TYC-30: the stack has moved — once, forever
+    write: p => { p.migrate = { done: migrated }; },
+    read: p => {
+      migrated = !!(p.migrate && p.migrate.done);
+      refreshMigrateChip();
     },
   },
   {
