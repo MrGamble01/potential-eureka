@@ -1608,6 +1608,7 @@
 <div id="acq-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="onsite-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="launch-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="poach-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
   <div class="win-panel">
     <div class="win-title" id="board-title">📋 Board Meeting</div>
@@ -6149,6 +6150,7 @@ const ACHIEVEMENTS = [
   { id: 'two_seasons',   icon: '🎉', title: 'Prestige',             desc: 'IPO and start Season 2.',                check: () => prestigeLevel >= 1, progress: () => [Math.min(prestigeLevel, 1), 1] },
   { id: 'ship_100',      icon: '📦', title: 'Shipped 100',          desc: 'Ship 100 features in a season.',         check: () => totalFeaturesShipped >= 100, progress: () => [Math.min(totalFeaturesShipped, 100), 100] },
   { id: 'launch_5',      icon: '🚀', title: 'Launch Day Veteran',   desc: 'Ship five product launches.',            check: () => launchesShipped >= 5, progress: () => [Math.min(launchesShipped, 5), 5] },
+  { id: 'loyalty',       icon: '🛡️', title: 'Golden Handcuffs',     desc: 'Win three retention battles.',           check: () => poachesFought >= 3, progress: () => [Math.min(poachesFought, 3), 3] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -6766,8 +6768,8 @@ function updateAcq(dt) {
   if (prestigeLevel < 1 || acquisitions.length >= ACQ_CAP) return;
   acqNextT -= dt;
   if (acqNextT > 0) return;
-  // Don't pitch an acquisition over another modal or an open launch window.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer) {
+  // Don't pitch an acquisition over another modal or an open pitch.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer) {
     acqNextT = 25;
     return;
   }
@@ -6869,7 +6871,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -6966,7 +6968,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer) {
     launchNextT = 25;
     return;
   }
@@ -7027,6 +7029,94 @@ function closeLaunchOffer(choice, expired) {
     addFeedEntry(expired ? '🚀 The launch window closed' : '🚀 Launch shelved for now');
     launchNextT = 300 + Math.random() * 180;
   }
+}
+// ── The Poach (TYC-14) ───────────────────────────────────────
+// Post-IPO, a rival occasionally makes a run at your most senior
+// engineer. Counter-offer with cash — they stay, re-energised (+2 XP) —
+// or let them walk: the desk refills with a fresh hire the same
+// afternoon, and the seniority walks out the door with them.
+let poachOffer = null;     // { w, lv, cost, expire }
+let poachNextT = 480;      // first approach ~8 minutes into a post-IPO season
+let poachesFought = 0, poachesLost = 0;
+function poachTarget() {
+  let best = null;
+  for (const w of ideaWorkers) if (xpLevel(w) >= 2 && (!best || xpLevel(w) > xpLevel(best))) best = w;
+  return best;
+}
+function updatePoach(dt) {
+  if (poachOffer) {
+    poachOffer.expire -= dt;
+    const cd = document.getElementById('poach-expire');
+    if (cd) cd.textContent = 'They decide in ' + Math.max(0, Math.ceil(poachOffer.expire)) + 's';
+    if (poachOffer.expire <= 0) closePoachOffer(false, true);
+    return;
+  }
+  if (prestigeLevel < 1) return;
+  poachNextT -= dt;
+  if (poachNextT > 0) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer) {
+    poachNextT = 25;
+    return;
+  }
+  const w = poachTarget();
+  if (!w) { poachNextT = 120; return; }   // no senior staff worth a rival's while yet
+  makePoachOffer(w);
+}
+function makePoachOffer(w) {
+  const lv = xpLevel(w);
+  const cost = Math.max(1500, Math.round(currentRatePerMin() * lv));
+  const rival = (typeof rivalName === 'string' && rivalName) ? rivalName : 'A rival startup';
+  const title = XP_TITLES()[lv - 1] || 'engineer';
+  poachOffer = { w, lv, cost, expire: 30 };
+  const el = document.getElementById('poach-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:390px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#ff8a82;margin-bottom:4px">🎯 ${rival} is poaching your team</div>
+      <div>They've made your <b>L${lv} ${title}</b> an offer. A retention bonus of
+      <b style="color:#3FB950">$${fmtCash(cost)}</b> keeps them — re-energised — or you let them walk
+      and their <b style="color:#F85149">seniority leaves with them</b> (a fresh hire fills the desk).</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="poach-counter" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 16px;border-radius:8px;cursor:pointer;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.5);color:#3FB950">💰 Counter $${fmtCash(cost)}</button>
+        <button id="poach-walk" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 16px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Let them walk</button>
+      </div>
+      <div id="poach-expire" style="color:#7D8590;font-size:11px;margin-top:6px">They decide in 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('poach-counter').onclick = () => {
+    if (!poachOffer) return;
+    if (state.cash < poachOffer.cost) {
+      const cd = document.getElementById('poach-expire');
+      if (cd) cd.textContent = `Need $${fmtCash(poachOffer.cost - state.cash)} more`;
+      return;
+    }
+    closePoachOffer(true, false);
+  };
+  document.getElementById('poach-walk').onclick = () => closePoachOffer(false, false);
+  addFeedEntry(`🎯 ${rival} is circling your L${lv} ${title}`);
+  SFX.milestone && SFX.milestone();
+}
+function closePoachOffer(countered, expired) {
+  const o = poachOffer;
+  poachOffer = null;
+  document.getElementById('poach-offer').style.display = 'none';
+  if (!o) return;
+  if (countered) {
+    state.cash -= o.cost; showSpendPop(o.cost);
+    o.w.xp = (o.w.xp || 0) + 2;   // loyalty runs deep — they come back energised
+    poachesFought++;
+    showToast(`🛡️ Counter-offer accepted — your L${o.lv} engineer stays, re-energised.`, 'good', 'critical');
+    addFeedEntry(`🛡️ Retention battle won ($${fmtCash(o.cost)}) — the team holds`);
+    poachNextT = 540 + Math.random() * 300;
+  } else {
+    poachesLost++;
+    // the seniority walks; the desk refills the same afternoon (campus
+    // alumni still arrive at L2, same as any fresh hire)
+    o.w.xp = (typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0;
+    showToast(`😤 Your L${o.lv} engineer ${expired ? 'stopped waiting and ' : ''}took the offer — a fresh face is at their desk by evening.`, 'event', 'critical');
+    addFeedEntry(`😤 Poached — the L${o.lv} seniority walked out the door`);
+    poachNextT = 420 + Math.random() * 240;
+  }
+  checkAchievements(); saveGame(); refreshHud();
 }
 let boardNextT = 180;          // first meeting ~3 minutes in
 let boardTimerT = 0, boardActive = null, boardInterval = null;
@@ -9597,6 +9687,7 @@ function frameBody(now) {
   updateAcq(dt);
   updateOnsite(dt);
   updateLaunch(dt);
+  updatePoach(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -10214,6 +10305,16 @@ const SAVE_SCHEMA = [
           launchPolish = { timeLeft: Math.min(LAUNCH_POLISH_SECS, Math.max(1, pol.timeLeft || 10)), payout: Math.round(pol.payout) };
       }
       refreshLaunchChip();
+    },
+  },
+  {
+    key: 'poach', // TYC-14: retention-battle scoreboard
+    write: p => { p.poach = { fought: poachesFought, lost: poachesLost }; },
+    read: p => {
+      if (p.poach) {
+        poachesFought = Math.max(0, Math.floor(p.poach.fought || 0));
+        poachesLost = Math.max(0, Math.floor(p.poach.lost || 0));
+      }
     },
   },
   {
