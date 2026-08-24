@@ -36,10 +36,11 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   await page.waitForTimeout(2500);
   const t = fn => page.evaluate(fn);
 
-  // A. fresh state + goal ladder tail
-  const fresh = await t(() => ({ dog: G.dog, lastGoal: GOALS[GOALS.length - 1].id, mesh: !!dogMesh }));
+  // A. fresh state + the befriend goal on the ladder (position-agnostic:
+  // later features append their own rungs after it)
+  const fresh = await t(() => ({ dog: G.dog, hasGoal: GOALS.some(g => g.id === 'dog'), mesh: !!dogMesh }));
   ok(fresh.dog === 0 && !fresh.mesh, 'fresh camp has no dog');
-  ok(fresh.lastGoal === 'dog', 'goal ladder ends with the befriend goal');
+  ok(fresh.hasGoal, 'the befriend goal is on the ladder');
 
   // B. day 4: the stray appears
   const stray = await t(() => {
