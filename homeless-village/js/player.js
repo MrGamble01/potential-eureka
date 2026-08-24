@@ -42,6 +42,7 @@ function doAction(a){
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
+  if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='ticket'){
     if(!G.ticketAsk) return;
     if(G.goodwill<TICKET_COST_GW || G.scraps<TICKET_COST_SCRAPS){
@@ -158,6 +159,20 @@ function finishAction(a){
       floatText('🗣️ +'+gain+'😊'+(potParts.length?' '+potParts.join(' '):''));
       log('🗣️ The camp circles the fire — every voice counts. +'+gain+' morale'+(potParts.length?', the pot takes '+potParts.join(' '):'')+'.');
       if(heads>=5){ G.goodwill+=2; log('🩶 Five voices speak as one village. +2 goodwill.'); }
+      saveGame();
+      buildActionUI();
+    }
+  } else if(a.id==='deposit'){
+    // HV-20: re-check — a queued double-fire must not haul twice.
+    if(depositAvailable() && !depositDone()){
+      var hauled=G.cans||0;
+      var gw=Math.floor(hauled/2), rp=Math.floor(hauled/10);
+      G.cans=0;
+      G.goodwill+=gw;
+      if(rp>0) addRep(rp);
+      G.deposits=(G.deposits||0)+1; G.depositDay=G.days;
+      floatText('🛒 +'+gw+'🩶'+(rp>0?' +'+rp+'⭐':''));
+      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.');
       saveGame();
       buildActionUI();
     }
