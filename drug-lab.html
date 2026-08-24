@@ -1490,10 +1490,13 @@ function ambientHeatPerSec() {
   if (currentAct() < 3) return 0;
   return Math.min(1.6, (state.totalEarned / 50000) * 0.6) * DIFF().ambient;
 }
+// LAB-15: a proper Security Post gives the Lookouts monitors, radios and
+// sightlines — every hired Lookout counts half again wherever they matter.
+function lookoutPower() { return (state.lookouts || 0) * (ownedRoomSet.has('security') ? 1.5 : 1); }
 function heatDrainPerSec() {
   // LAB-13: an open laundromat out front cools things off on its own —
   // customers coming and going are the best cover there is.
-  return (0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
+  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
 }
 
 // ── Bust ──
@@ -1723,7 +1726,7 @@ function toggleCrunch() {
 // cash clears the corner instantly (payoff locked at 6× list when they
 // arrive); or you grit your teeth and wait them out.
 let rival = null, rivalIn = 200 + Math.random() * 140;
-function rivalPoachChance() { return Math.max(0.05, 0.35 - 0.10 * (state.lookouts || 0)); }
+function rivalPoachChance() { return Math.max(0.05, 0.35 - 0.10 * lookoutPower()); }   // LAB-15: the Post sharpens them
 function rivalArrives() {
   rival = { left: 90, payoff: 6 * salePrice() };
   state.rivalRunIns = (state.rivalRunIns || 0) + 1;
@@ -1831,6 +1834,7 @@ const GROW_ACH = [
   { id: 'high_roller',  name: 'High Roller',     test: () => state.cash >= 25000 },
   { id: 'fresh_linen',  name: 'Fresh Linen',     test: () => ownedRoomSet.has('front') },   // LAB-13
   { id: 'top_floor',    name: 'The View From the Top', test: () => ownedRoomSet.has('penthouse') },   // LAB-14
+  { id: 'eyes_up',      name: 'Eyes Everywhere', test: () => ownedRoomSet.has('security') && state.lookouts >= 2 },   // LAB-15
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -1989,6 +1993,11 @@ function buyRoom(id) {
   if (id === 'front') {
     showToast('💈 The laundromat opens — heat builds 25% lighter and drains faster. Every cop on the block has a reason you’re here.', 'good');
     addFeed('💈 Spin cycle running — the block finally has a clean story');
+  }
+  // LAB-15: the Post puts eyes on every corner
+  if (id === 'security') {
+    showToast('👁️ Security Post online — every Lookout counts half again: heat drains harder, rivals poach less.', 'good');
+    addFeed('👁️ Monitors up — the Lookouts finally have sightlines');
   }
   // LAB-14: the view from the top sells itself
   if (id === 'penthouse') {
