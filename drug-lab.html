@@ -1067,7 +1067,10 @@ function spawnDealer() {
   g.position.set(spawnX, 0, 9);
   scene.add(g);
   // Stable id so labels don't shift when a middle dealer is spliced out.
-  const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2)};
+  // LAB-9: past the garage act, ~1 in 8 "buyers" is an undercover cop.
+  // The feed gives no tell — only a hired Lookout flags them on sight.
+  const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2),
+             undercover: currentAct() >= 2 && Math.random() < 0.12, waitT: 0};
   dealers.push(d);
   addFeed(`👤 Buyer incoming`);
 }
@@ -2453,6 +2456,18 @@ function sellToDealer(d, idx) {
   if (stashCount<=0) {
     setStatus('Stash empty!'); return;
   }
+  if (d.undercover) {
+    // LAB-9: the sting. Product seized, no cash, heat spikes hard.
+    d.paid=true; d.state='leaving';
+    const seized=Math.min(stashCount, d.buyCount);
+    stashCount-=seized;
+    setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+    addHeat(15);
+    showToast('🚔 The buyer flashed a badge — '+seized+' bag'+(seized>1?'s':'')+' seized. Heat is spiking.','bad');
+    addFeed('🚔 Sting! An undercover cop seized '+seized+' bags');
+    saveGame();
+    return;
+  }
   d.paid=true;
   const qty=Math.min(stashCount, d.buyCount);
   const price=salePrice()*qty;
@@ -2490,6 +2505,12 @@ function updateDealers(dt) {
     } else if(d.state==='waiting') {
       // If no stash, leave
       if(stashCount<=0){ d.state='leaving'; removeLabel('deal_'+d.id); }
+      // LAB-9: an undercover cop won't loiter forever waiting for a deal
+      // that never comes — 25s unserved and they drift off.
+      else if(d.undercover){
+        d.waitT+=dt;
+        if(d.waitT>25){ d.state='leaving'; removeLabel('deal_'+d.id); addFeed('👀 The odd buyer drifts off empty-handed'); }
+      }
     }
   }
 }
@@ -2538,7 +2559,10 @@ function updateRunnerNPCs(dt) {
       else if(state.heat<85) {
         // Runners lie low at high heat — an auto-sale should never be
         // the thing that pushes the bar over 100.
-        const d = dealers.find(d=>d.state==='waiting' && !d.paid && !d.runnerClaim);
+        // LAB-9: runners heed the Lookout's warning and skip flagged cops;
+        // without a Lookout on the payroll they can walk into the sting.
+        const d = dealers.find(d=>d.state==='waiting' && !d.paid && !d.runnerClaim
+          && !(d.undercover && (state.lookouts||0)>0));
         if(d && stashCount>0) { d.runnerClaim=true; r.dealer=d; r.state='toDealer'; }
       }
       if(r.state==='idle') {
@@ -2656,7 +2680,9 @@ function updateLabels() {
   for(let i=0;i<dealers.length;i++) {
     const d=dealers[i];
     if(d.state==='waiting') {
-      setLabel('deal_'+d.id,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt');
+      // LAB-9: a Lookout on the payroll makes the wire, and the label warns
+      setLabel('deal_'+d.id, d.undercover && (state.lookouts||0) > 0 ? '🚨 Something\'s off…' : '💰 Buyer',
+        d.group.position.x,2.2,d.group.position.z,'prompt');
     }
   }
   // Trim station label

@@ -59,6 +59,30 @@ function buildWorkersUI(){
     }
     el.appendChild(row);
   });
+  buildRegularsUI();   // HV-7: the roster shares the Community panel
+}
+
+// HV-7: the regulars roster under the Community panel. Hearts fill with
+// affinity; the row's tooltip explains how to earn it and what a friend
+// does for the camp.
+function buildRegularsUI(){
+  var el=document.getElementById('regulars-list');
+  if(!el) return;
+  el.innerHTML='';
+  REGULARS.forEach(function(r){
+    var a=(G.regulars&&G.regulars[r.id])||0, st=regularStage(r.id);
+    var row=document.createElement('div');
+    row.className='worker-row'+(st===2?' hired':'');
+    var hearts='';
+    for(var i=0;i<5;i++) hearts+=a>=(i+1)*2?'♥':'♡';
+    row.innerHTML='<span class="w-icon">'+r.icon+'</span>'+
+      '<span class="w-name">'+(st===0?'???':r.name)+'</span>'+
+      '<span class="w-status" style="letter-spacing:2px">'+hearts+'</span>';
+    row.setAttribute('data-tip',(st===0?'Someone '+r.who+'. ':r.name+' '+r.who+'. ')+r.how+'. Friends: '+r.perk+'.');
+    row.addEventListener('mouseenter',showTip);
+    row.addEventListener('mouseleave',hideTip);
+    el.appendChild(row);
+  });
 }
 
 function canCraft(r){

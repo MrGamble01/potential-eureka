@@ -93,6 +93,7 @@ function onNewDay(){
       log('No scraps left for Biscuit. He curls up hungry.');
     }
   }
+  regularFavorsAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -103,6 +104,36 @@ function onNewDay(){
   checkArc();
   checkDog();
   checkGameOver(); // after maybeEvent so same-day event damage counts
+}
+
+// ── The regulars (HV-7) ──
+// Affinity bumps arrive from finishAction (trade → Marisol, rest → Ray,
+// panhandle success → Dee). Knowing someone (1+) puts a name to a face;
+// friendship (5+) unlocks their standing favor, applied here and in
+// scavenge's empty-roll.
+function bumpRegular(id){
+  if(!G.regulars) G.regulars={marisol:0,ray:0,dee:0};
+  var before=regularStage(id);
+  G.regulars[id]=Math.min(10,(G.regulars[id]||0)+1);
+  var after=regularStage(id), d=regularDef(id);
+  if(d&&after!==before){
+    if(after===1) log(d.icon+' You learn the name of the one who '+d.who+': '+d.name+'.');
+    else log(d.icon+' '+d.name+' counts you as a friend now — '+d.name.split(' ')[0]+' '+d.perk+'.');
+  }
+  buildRegularsUI();
+}
+function regularFavorsAtDawn(){
+  // Marisol: some mornings there's a bag of leftovers on the fence post.
+  if(regularStage('marisol')===2&&Math.random()<.3){
+    var f=rand(2,4); G.food+=f;
+    log('🌮 Marisol left a bag of tamales on the fence post. +'+f+' food.');
+  }
+  // Dee: finds you in bad shape on her way home, once every few days.
+  if(regularStage('dee')===2&&G.health<30&&G.days-(G.lastDeeDay||-9)>=3){
+    G.health=Math.min(100,G.health+10);
+    G.lastDeeDay=G.days;
+    log('🩺 Dee spotted you looking rough and patched you up. +10 health.');
+  }
 }
 
 // ── The stray dog arc (HV-6) ──

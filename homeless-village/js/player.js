@@ -57,7 +57,9 @@ function finishAction(a){
 
   if(a.id==='scavenge'){
     var wm=(G.season===3?.5:1)*weatherDef().scav;
-    if(Math.random()<.2*wm){
+    // HV-7: Old Ray knows which dumpsters are worth the walk — empty
+    // hauls happen half as often once he's a friend.
+    if(Math.random()<.2*wm*(regularStage('ray')===2?.5:1)){
       log('The dumpster is empty. Nothing today.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
@@ -73,14 +75,17 @@ function finishAction(a){
     // HV-6: people stop for the dog — a fed Biscuit at your side makes
     // strangers noticeably more generous.
     var dogBoost=G.dog===2&&!G.dogHungry?1.25:1;
-    if(Math.random()<.55*weatherDef().pan*dogBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.'); }
+    if(Math.random()<.55*weatherDef().pan*dogBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+      bumpRegular('dee'); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
     var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
     floatText('+'+h+'❤️');
     log('You rest. Health +'+h+'.');
+    bumpRegular('ray');
   } else if(a.id==='trade'){
-    if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.'); }
+    if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
+      bumpRegular('marisol'); }
     else log('Not enough cans to trade.');
   }
   sfx('action');
