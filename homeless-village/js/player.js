@@ -41,6 +41,7 @@ function doAction(a){
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
+  if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
   if(a.id==='ticket'){
     if(!G.ticketAsk) return;
     if(G.goodwill<TICKET_COST_GW || G.scraps<TICKET_COST_SCRAPS){
@@ -157,6 +158,19 @@ function finishAction(a){
       floatText('🗣️ +'+gain+'😊'+(potParts.length?' '+potParts.join(' '):''));
       log('🗣️ The camp circles the fire — every voice counts. +'+gain+' morale'+(potParts.length?', the pot takes '+potParts.join(' '):'')+'.');
       if(heads>=5){ G.goodwill+=2; log('🩶 Five voices speak as one village. +2 goodwill.'); }
+      saveGame();
+      buildActionUI();
+    }
+  } else if(a.id==='busk'){
+    // HV-19: re-check — a queued double-fire must not play two sets.
+    if(buskAvailable() && !buskDone()){
+      var take=buskPay();
+      G.goodwill+=take;
+      G.morale=Math.min(100,G.morale+2);
+      addRep(1);
+      G.busks=(G.busks||0)+1; G.buskDay=G.days;
+      floatText('🎸 +'+take+'🩶 +2😊');
+      log('🎸 Played a set on the corner — '+(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen')+'. +'+take+' goodwill, +1 rep.');
       saveGame();
       buildActionUI();
     }

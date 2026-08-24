@@ -54,6 +54,20 @@ function buildActionUI(){
     eb.addEventListener('mouseleave',hideTip);
     el.appendChild(eb);
   }
+  // HV-19: the guitar earns a daily set once it's built.
+  if(buskAvailable()){
+    var ba=buskAction();
+    var bb=document.createElement('button');
+    bb.className='action-btn'; bb.id='action-busk';
+    bb.setAttribute('data-tip', buskDone() ? 'One set a day — the corner reopens at dawn.' : ba.tooltip);
+    bb.innerHTML='<span class="btn-progress" id="progress-busk" style="width:0%"></span>'+ba.icon+' '+ba.label+(buskDone()?' ✓':'');
+    bb.disabled=buskDone();
+    if(buskDone()) bb.style.opacity='.5';
+    bb.onclick=function(){ doAction(buskAction()); };
+    bb.addEventListener('mouseenter',showTip);
+    bb.addEventListener('mouseleave',hideTip);
+    el.appendChild(bb);
+  }
   // HV-17: the bus ticket appears only while a resident's ask is open.
   if(ticketAvailable()){
     var tka=ticketAction();
