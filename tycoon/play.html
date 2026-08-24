@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -4375,7 +4375,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult;
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -5922,7 +5922,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus()
+    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -6694,6 +6694,43 @@ const BOARD_MEETINGS = [
 ];
 let boardDealMult = 1, boardDealT = 0;
 let boardSpeedMult = 1, boardSpeedT = 0;
+
+// ── Season climates (TYC-10) ─────────────────────────────────
+// Post-IPO seasons used to be identical apart from the multiplier. Each
+// new season now opens under a market climate — a season-long modifier
+// pair (work speed / deal value) in the same product-of-factors pattern
+// as the board-meeting multipliers, so nothing else needs to know.
+// Season 1 is always neutral: learn the ropes on calm seas.
+const SEASON_CLIMATES = [
+  { id: 'boom',     icon: '🤖', name: 'AI Boom',          work: 1.15, deal: 1,
+    desc: 'Engineers ride the wave — features ship 15% faster.' },
+  { id: 'winter',   icon: '🧊', name: 'Funding Winter',   work: 1,    deal: 1.12,
+    desc: 'Capital is scarce and customers respect it — deals close 12% richer.' },
+  { id: 'talent',   icon: '🎯', name: 'Talent War',       work: 1.08, deal: 1.08,
+    desc: 'Everyone is hiring; your team digs in — +8% work and deals.' },
+  { id: 'hype',     icon: '📣', name: 'Hype Cycle',       work: 0.95, deal: 1.18,
+    desc: 'The press loves you — deals +18%, but the spotlight distracts (−5% work).' },
+  { id: 'headwind', icon: '🌬️', name: 'Market Headwinds', work: 1.12, deal: 0.92,
+    desc: 'Budgets tighten (−8% deals) but adversity sharpens the team (+12% work).' },
+  { id: 'calm',     icon: '⛅', name: 'Steady Quarter',   work: 1,    deal: 1,
+    desc: 'No surprises this season. Sometimes that is the blessing.' },
+];
+let seasonClimate = null;
+function climateWorkMult() { return seasonClimate ? seasonClimate.work : 1; }
+function climateDealMult() { return seasonClimate ? seasonClimate.deal : 1; }
+function refreshClimateChip() {
+  const el = document.getElementById('climate-chip');
+  if (!el) return;
+  if (!seasonClimate) { el.textContent = ''; el.title = ''; return; }
+  el.textContent = seasonClimate.icon + ' ' + seasonClimate.name;
+  el.title = 'Season climate: ' + seasonClimate.desc;
+}
+function rollClimate() {
+  seasonClimate = SEASON_CLIMATES[Math.floor(Math.random() * SEASON_CLIMATES.length)];
+  refreshClimateChip();
+  showToast(`${seasonClimate.icon} Season climate: ${seasonClimate.name} — ${seasonClimate.desc}`, 'milestone', 'critical');
+  addFeedEntry(`${seasonClimate.icon} Climate: ${seasonClimate.name}`);
+}
 let boardNextT = 180;          // first meeting ~3 minutes in
 let boardTimerT = 0, boardActive = null, boardInterval = null;
 const boardModalEl = () => document.getElementById('board-modal');
@@ -9404,6 +9441,7 @@ function doIPO() {
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   dashHistory.length = 0; _dashT0 = Date.now(); // restart the season revenue chart
   initRival(true);   // a new season brings a new rival
+  rollClimate();     // ...and its own market climate (TYC-10)
   fundingRoundIdx = 0;
   dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
@@ -9837,6 +9875,14 @@ const SAVE_SCHEMA = [
       rivalRev = typeof p.rivalRace.rev === 'number' ? p.rivalRace.rev : 0;
       rivalDone = !!p.rivalRace.done;
       if (typeof p.rivalRace.name === 'string' && p.rivalRace.name) rivalName = p.rivalRace.name;
+    },
+  },
+  {
+    key: 'climate', // TYC-10: this season's market climate
+    write: p => { p.climate = seasonClimate ? seasonClimate.id : null; },
+    read: p => {
+      seasonClimate = SEASON_CLIMATES.find(c => c.id === p.climate) || null;
+      refreshClimateChip();
     },
   },
   {
