@@ -572,6 +572,7 @@ const AgeOfWarGame = (() => {
     { id: 'field_hosp',   icon: '⛑️',  title: 'Field Hospital',   desc: 'Heal 300 hp at the triage tent in one run.' },
     { id: 'headhunter',   icon: '🏷️',  title: 'Headhunter',       desc: 'Fill five bounties in one run.' },
     { id: 'quartermaster', icon: '🛡️', title: 'Quartermaster',    desc: 'March 30 plated recruits in one run.' },
+    { id: 'true_flight',  icon: '🪶',  title: 'True Flight',      desc: 'Loose 40 fletched turret shots in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -678,6 +679,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.triaged || 0) >= 300) unlock('field_hosp');
     if ((runStats.bounties || 0) >= 5) unlock('headhunter');
     if ((runStats.plated || 0) >= 30) unlock('quartermaster');
+    if ((runStats.fletched || 0) >= 40) unlock('true_flight');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1091,6 +1093,7 @@ const AgeOfWarGame = (() => {
     runStats.triaged = 0; tentBought = false;
     runStats.bounties = 0; bounty = null;
     runStats.plated = 0; armorerBought = false;
+    runStats.fletched = 0; fletcherBought = false;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1648,6 +1651,33 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // The Fletcher (AOW-27) — the Armorer's opposite number. He works
+  // the towers, not the barracks: 250 gold once per run from Age II,
+  // and every player turret reloads 15% faster for the rest of the
+  // run. The enemy's towers never see him.
+  const FLETCHER_COST = 250;
+  const FLETCHER_RATE = 0.85;
+  let fletcherBought = false;
+  function fletcherRateMult() { return fletcherBought ? FLETCHER_RATE : 1; }
+  function buyFletcher() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1FAB6} The fletcher signs on in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (fletcherBought) return;
+    if (gold < FLETCHER_COST) {
+      goldFloaters.push({ text: `\u{1FAB6} The fletcher costs ${FLETCHER_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= FLETCHER_COST;
+    fletcherBought = true;
+    goldFloaters.push({ text: '\u{1FAB6} FLETCHER — every tower reloads 15% faster', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1738,6 +1768,8 @@ const AgeOfWarGame = (() => {
     if (specialBtn) specialBtn.onclick = fireSpecial;
     const warcryBtn = document.getElementById('aow-warcry-btn');
     if (warcryBtn) warcryBtn.onclick = soundWarcry;
+    const fletchBtn = document.getElementById('aow-fletch-btn');
+    if (fletchBtn) fletchBtn.onclick = buyFletcher;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -1971,6 +2003,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'n' || e.key === 'N') {
         buyArmorer();
+        e.preventDefault();
+      } else if (e.key === 'f' || e.key === 'F') {
+        buyFletcher();
         e.preventDefault();
       }
     });
@@ -2738,7 +2773,8 @@ const AgeOfWarGame = (() => {
           kind: tKind, vy: tArc.vy, grav: tArc.grav,
         });
         muzzleFlashes.push({ x: turretX, y: GROUND_Y - 90, t: 0.12, color: t.color });
-        t.atkT = t.atkSpd;
+        t.atkT = t.atkSpd * (side === 'player' ? fletcherRateMult() : 1);   // AOW-27: fletched bolts nock faster
+        if (side === 'player' && fletcherBought) runStats.fletched = (runStats.fletched || 0) + 1;
       }
     }
   }
@@ -7384,6 +7420,17 @@ const AgeOfWarGame = (() => {
         : `Stand the Armorer (N) — ${ARMORER_COST} gold, once per run: every friendly trained after the buy marches out with +15% hp.`;
     }
 
+    // Fletcher button (AOW-27)
+    const flEl = document.getElementById('aow-fletch-btn');
+    const flCdEl = document.getElementById('aow-fletch-cd');
+    if (flEl) {
+      if (flCdEl) flCdEl.textContent = playerEra < 1 ? 'Age II' : fletcherBought ? 'signed' : `${FLETCHER_COST}g`;
+      flEl.disabled = playerEra < 1 || fletcherBought;
+      flEl.title = fletcherBought
+        ? `The fletcher works the towers — every turret reloads 15% faster. ${runStats.fletched || 0} fletched shots this run.`
+        : `Sign the Fletcher (F) — ${FLETCHER_COST} gold, once per run: every turret reloads 15% faster.`;
+    }
+
     // Wave indicator
     const waveEl = document.getElementById('aow-wave');
     const waveNumEl = document.getElementById('aow-wave-num');
@@ -7677,6 +7724,5 @@ const AgeOfWarGame = (() => {
     running = false;
     closeCouncil();
   }
-
 return { init, start: reset, destroy };
 })();
