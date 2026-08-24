@@ -54,6 +54,18 @@ function buildActionUI(){
     eb.addEventListener('mouseleave',hideTip);
     el.appendChild(eb);
   }
+  // HV-17: the bus ticket appears only while a resident's ask is open.
+  if(ticketAvailable()){
+    var tka=ticketAction();
+    var tkb=document.createElement('button');
+    tkb.className='action-btn'; tkb.id='action-ticket';
+    tkb.setAttribute('data-tip', tka.tooltip);
+    tkb.innerHTML='<span class="btn-progress" id="progress-ticket" style="width:0%"></span>'+tka.icon+' '+tka.label;
+    tkb.onclick=function(){ doAction(ticketAction()); };
+    tkb.addEventListener('mouseenter',showTip);
+    tkb.addEventListener('mouseleave',hideTip);
+    el.appendChild(tkb);
+  }
 }
 
 function buildCraftUI(){

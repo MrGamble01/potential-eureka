@@ -41,6 +41,12 @@ function doAction(a){
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
+  if(a.id==='ticket'){
+    if(!G.ticketAsk) return;
+    if(G.goodwill<TICKET_COST_GW || G.scraps<TICKET_COST_SCRAPS){
+      log('🚌 The fare is short — it takes '+TICKET_COST_GW+'🩶 and '+TICKET_COST_SCRAPS+' scraps.'); sfx('error'); return;
+    }
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
@@ -149,6 +155,27 @@ function finishAction(a){
       floatText('🗣️ +'+gain+'😊'+(potParts.length?' '+potParts.join(' '):''));
       log('🗣️ The camp circles the fire — every voice counts. +'+gain+' morale'+(potParts.length?', the pot takes '+potParts.join(' '):'')+'.');
       if(heads>=5){ G.goodwill+=2; log('🩶 Five voices speak as one village. +2 goodwill.'); }
+      saveGame();
+      buildActionUI();
+    }
+  } else if(a.id==='ticket'){
+    // HV-17: re-check — the ask can expire mid-action, and a queued
+    // double-fire must not send two people on one fare.
+    if(G.ticketAsk && G.goodwill>=TICKET_COST_GW && G.scraps>=TICKET_COST_SCRAPS && G.population>=2){
+      G.goodwill-=TICKET_COST_GW; G.scraps-=TICKET_COST_SCRAPS;
+      G.ticketAsk=null;
+      G.population-=1;
+      G.ticketsSent=(G.ticketsSent||0)+1;
+      G.morale=Math.min(100,G.morale+8);
+      addRep(3);
+      // one community figure boards the bus
+      for(var fi=figures.length-1; fi>=0; fi--){
+        if(figures[fi].userData && figures[fi].userData.type==='community'){
+          scene.remove(figures[fi]); figures.splice(fi,1); break;
+        }
+      }
+      floatText('🚌 +8😊');
+      log('🚌 The morning bus pulls away with one less resident and one more person going home. The whole camp waves it out of sight. +8 morale, +3 rep.');
       saveGame();
       buildActionUI();
     }

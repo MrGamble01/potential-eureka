@@ -221,6 +221,22 @@ function meetingAction(){
     tooltip:'Gather everyone around the fire. +2 morale a head, a little something for the pot from each resident — and the block hears a village, not a camp.' };
 }
 
+// ── HV-17: the Bus Ticket ────────────────────────────────────
+// The village's best ending isn't a bigger camp — it's someone going
+// home. Once the camp is three strong and the block calls it
+// Respected, a resident opens up about family a bus ride away. The
+// moment holds for a few days: buy the ticket and they go — and
+// letters with a little something inside come back from the city.
+var TICKET_COST_GW = 12, TICKET_COST_SCRAPS = 8;
+var TICKET_ASK_DAYS = 4;    // the moment passes if the fare never comes
+var TICKET_EVERY = 10;      // days before someone else opens up
+var LETTER_EVERY = 6;       // a letter from the city every few days
+function ticketAvailable(){ return !!G.ticketAsk; }
+function ticketAction(){
+  return { id:'ticket', icon:'🚌', label:'Buy the bus ticket ('+TICKET_COST_GW+'🩶 + '+TICKET_COST_SCRAPS+'🧱)', time:6000, cooldown:0,
+    tooltip:'One of the residents has family a bus ride away. '+TICKET_COST_GW+' goodwill and '+TICKET_COST_SCRAPS+' scraps put them on the morning bus — a smaller camp, and a friend in the city.' };
+}
+
 // ── HV-15: City Petitions ────────────────────────────────────
 // Once the neighborhood counts the camp as Respected, goodwill can be
 // spent at the notice board on petitions to the city — civic
@@ -267,6 +283,7 @@ var GOALS = [
   {id:'meet3',      desc:'Hold 3 camp meetings',      target:3,  reward:5,  value:function(){ return G.meetings||0; }},
   {id:'petition1',  desc:'Win a city petition',       target:1,  reward:6,  value:function(){ return Object.keys(G.petitions||{}).length; }},
   {id:'favor3',     desc:'Do 3 favors for friends',   target:3,  reward:5,  value:function(){ return G.favorsDone||0; }},
+  {id:'ticket1',    desc:'Send someone home',         target:1,  reward:10, value:function(){ return G.ticketsSent||0; }},
 ];
 
 var activeJobs = {};
