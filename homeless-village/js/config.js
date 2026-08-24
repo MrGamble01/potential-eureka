@@ -12,12 +12,13 @@ var G = {
   days: 0,
   timeOfDay: 0,
   season: 0,
+  weather: 'clear', forecast: null,   // HV-5: today's sky + tomorrow's roll
 
   food: 0, scraps: 0, cans: 0, cardboard: 0, wood: 0, goodwill: 0,
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -44,7 +45,30 @@ var RECIPES = [
   {id:'fire_ration', icon:'🔥', name:'Firewood',       cost:{wood:3},                         gives:{warmth:10},              time:2000,  desc:'Keep the barrel burning.'},
   {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Feed more people, gain more goodwill.', requires:'workbench'},
   {id:'garden',      icon:'🌱', name:'Community Garden',cost:{wood:6,goodwill:8,food:3},      gives:{structure:'garden'},     time:12000, desc:'Slowly generates food each day. Gets destroyed in sweeps.', requires:'workbench'},
+  {id:'radio',       icon:'📻', name:'Radio',           cost:{scraps:5,cans:3},                gives:{structure:'radio'},      time:6000,  desc:'A crackly weather band — see tomorrow\u2019s sky coming.', requires:'workbench'},
 ];
+
+// ── Weather (HV-5) ────────────────────────────────────────────
+// One sky per day, rolled a day AHEAD so preparation is possible: the
+// Lookout (or a crafted Radio) reveals tomorrow's weather, turning
+// "craft firewood or panhandle?" into an informed call instead of luck.
+// warmth: extra drain at dawn (negative = a warm day gives some back).
+// pan: multiplier on panhandle success. scav: multiplier on dumpster yield.
+var WEATHERS = {
+  clear: {icon:'\u2600\ufe0f',  name:'Clear',     warmth:0,   pan:1,    scav:1},
+  rain:  {icon:'\ud83c\udf27\ufe0f', name:'Rain',      warmth:5,   pan:0.5,  scav:1.25},
+  cold:  {icon:'\u2744\ufe0f',  name:'Cold Snap', warmth:12,  pan:0.75, scav:0.75},
+  heat:  {icon:'\ud83e\udd75',  name:'Heat Wave', warmth:-8,  pan:1.5,  scav:1},
+};
+function rollWeather(){
+  var r=Math.random();
+  if(G.season===3){ return r<.35?'cold':(r<.65?'clear':(r<.9?'rain':'cold')); }   // winter bites
+  if(G.season===1){ return r<.3?'heat':(r<.75?'clear':'rain'); }                  // summer swelters
+  if(G.season===2){ return r<.55?'clear':(r<.8?'rain':(r<.92?'cold':'clear')); }  // autumn turns
+  return r<.6?'clear':(r<.9?'rain':'clear');                                      // spring showers
+}
+function weatherDef(){ return WEATHERS[G.weather]||WEATHERS.clear; }
+function forecastVisible(){ return G.workers.lookout || G.structures.radio; }
 
 var ACTIONS = [
   {id:'scavenge',  icon:'🗑️', label:'Scavenge Dumpster', time:5000, cooldown:8000,  tooltip:'Dig through dumpsters for scraps, cans, or food.'},

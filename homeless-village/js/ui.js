@@ -103,7 +103,9 @@ function updateHUD(){
   document.getElementById('morale-val').textContent   =Math.floor(G.morale);
   document.getElementById('pop-val').textContent      =G.population;
   document.getElementById('days-counter').textContent ='Days Survived: '+G.days;
-  document.getElementById('season-badge').textContent =['SPRING','SUMMER','AUTUMN','WINTER'][G.season];
+  document.getElementById('season-badge').textContent =['SPRING','SUMMER','AUTUMN','WINTER'][G.season]
+    + ' ' + weatherDef().icon
+    + (forecastVisible()&&G.forecast&&WEATHERS[G.forecast] ? ' \u2192 '+WEATHERS[G.forecast].icon : '');
   document.getElementById('day-progress').style.width =(G.timeOfDay*100)+'%';
   var labels=['Dawn','Morning','Midday','Afternoon','Dusk','Night'];
   document.getElementById('time-label').textContent=labels[Math.floor(G.timeOfDay*labels.length)%labels.length];

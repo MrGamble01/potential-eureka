@@ -14,5 +14,8 @@ function loadGame(){
     // that would fire the sweep died with the old tab — leaving it set
     // blocks every future lookout warning for the rest of the save.
     G.sweepWarned=false; G.packedUp=false;
+    if(!WEATHERS[G.weather]) G.weather='clear';                    // saves from before HV-5
+    if(G.forecast!==null&&!WEATHERS[G.forecast]) G.forecast=null;
+    if(typeof G.structures.radio==='undefined') G.structures.radio=false;
   }catch(e){}
 }
