@@ -40,6 +40,7 @@ function doAction(a){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
   }
+  if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
@@ -127,6 +128,27 @@ function finishAction(a){
         log('🎨 The mural is finished. People slow down to look now. +5 goodwill.');
       }
       refreshStructures();
+      saveGame();
+      buildActionUI();
+    }
+  } else if(a.id==='meeting'){
+    // HV-14: re-check so a queued double-fire can't hold two circles.
+    if(!meetingDone() && (G.population||1)>=2){
+      var heads=G.population;
+      var gain=Math.min(10, 2*heads);
+      G.morale=Math.min(100, G.morale+gain);
+      // everyone but you tosses something in the pot
+      var pot={}, potKeys=['food','cans','scraps','wood','cardboard'];
+      for(var mi=1; mi<heads; mi++){
+        var rk=potKeys[rand(0,potKeys.length-1)];
+        G[rk]=(G[rk]||0)+1; pot[rk]=(pot[rk]||0)+1;
+      }
+      G.meetings=(G.meetings||0)+1; G.meetingDay=G.days;
+      addRep(2);
+      var potParts=Object.keys(pot).map(function(k){ return '+'+pot[k]+({food:'🍞',cans:'🫙',scraps:'🧱',wood:'🪵',cardboard:'📦'}[k]); });
+      floatText('🗣️ +'+gain+'😊'+(potParts.length?' '+potParts.join(' '):''));
+      log('🗣️ The camp circles the fire — every voice counts. +'+gain+' morale'+(potParts.length?', the pot takes '+potParts.join(' '):'')+'.');
+      if(heads>=5){ G.goodwill+=2; log('🩶 Five voices speak as one village. +2 goodwill.'); }
       saveGame();
       buildActionUI();
     }

@@ -39,6 +39,21 @@ function buildActionUI(){
     mb.addEventListener('mouseleave',hideTip);
     el.appendChild(mb);
   }
+  // HV-14: the meeting appears once the camp is more than one person,
+  // and the circle rests a couple of days between sittings.
+  if(meetingAvailable()){
+    var ea=meetingAction();
+    var eb=document.createElement('button');
+    eb.className='action-btn'; eb.id='action-meeting';
+    eb.setAttribute('data-tip', meetingDone() ? 'The camp met recently — the circle reconvenes in a day or two.' : ea.tooltip);
+    eb.innerHTML='<span class="btn-progress" id="progress-meeting" style="width:0%"></span>'+ea.icon+' '+ea.label+(meetingDone()?' ✓':'');
+    eb.disabled=meetingDone();
+    if(meetingDone()) eb.style.opacity='.5';
+    eb.onclick=function(){ doAction(meetingAction()); };
+    eb.addEventListener('mouseenter',showTip);
+    eb.addEventListener('mouseleave',hideTip);
+    el.appendChild(eb);
+  }
 }
 
 function buildCraftUI(){
