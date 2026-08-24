@@ -266,7 +266,8 @@ const AgeOfWarGame = (() => {
     // Cost / 500 (s) but always between 0.6s and 7s so cheap units cycle
     // fast while expensive units feel weighty without locking up the lane.
     const t = Math.max(0.6, Math.min(7, def.cost / 500));
-    return runPerks.drums ? t * 0.85 : t;   // AOW-11: March Drums
+    const drummed = runPerks.drums ? t * 0.85 : t;   // AOW-11: March Drums
+    return drummed * (typeof drillTimeMult === 'function' ? drillTimeMult() : 1);   // AOW-28: the drillmaster keeps the beat
   }
   let spawnCooldowns = {};                   // kept for legacy refs (always empty now)
   let enemySpawnT = 1.6;
@@ -573,6 +574,7 @@ const AgeOfWarGame = (() => {
     { id: 'headhunter',   icon: '🏷️',  title: 'Headhunter',       desc: 'Fill five bounties in one run.' },
     { id: 'quartermaster', icon: '🛡️', title: 'Quartermaster',    desc: 'March 30 plated recruits in one run.' },
     { id: 'true_flight',  icon: '🪶',  title: 'True Flight',      desc: 'Loose 40 fletched turret shots in one run.' },
+    { id: 'drill_sergeant', icon: '🥁', title: 'Drill Sergeant',   desc: 'Train 25 drilled recruits in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -680,6 +682,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.bounties || 0) >= 5) unlock('headhunter');
     if ((runStats.plated || 0) >= 30) unlock('quartermaster');
     if ((runStats.fletched || 0) >= 40) unlock('true_flight');
+    if ((runStats.drilled || 0) >= 25) unlock('drill_sergeant');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1094,6 +1097,7 @@ const AgeOfWarGame = (() => {
     runStats.bounties = 0; bounty = null;
     runStats.plated = 0; armorerBought = false;
     runStats.fletched = 0; fletcherBought = false;
+    runStats.drilled = 0; drillBought = false;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1197,6 +1201,7 @@ const AgeOfWarGame = (() => {
     if (trainingQueue.length >= TRAINING_MAX) return;
     gold -= def.cost;
     const total = trainingTimeFor(def);
+    if (drillBought) runStats.drilled = (runStats.drilled || 0) + 1;   // AOW-28
     trainingQueue.push({ key, total, remaining: total });
     SFX.spawn();
     renderHud();
@@ -1678,6 +1683,34 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // The Drillmaster (AOW-28) — third of the workshop staff. The
+  // Armorer plates the line and the Fletcher speeds the towers; the
+  // Drillmaster runs the parade ground: 275 gold once per run from
+  // Age II, and every recruit trains 20% faster. Stacks with the
+  // March Drums relic — drums set the beat, the drillmaster keeps it.
+  const DRILL_COST = 275;
+  const DRILL_RATE = 0.8;
+  let drillBought = false;
+  function drillTimeMult() { return drillBought ? DRILL_RATE : 1; }
+  function buyDrillmaster() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F941} The drillmaster signs on in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (drillBought) return;
+    if (gold < DRILL_COST) {
+      goldFloaters.push({ text: `\u{1F941} The drillmaster costs ${DRILL_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= DRILL_COST;
+    drillBought = true;
+    goldFloaters.push({ text: '\u{1F941} DRILLMASTER — every recruit trains 20% faster', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1770,6 +1803,8 @@ const AgeOfWarGame = (() => {
     if (warcryBtn) warcryBtn.onclick = soundWarcry;
     const fletchBtn = document.getElementById('aow-fletch-btn');
     if (fletchBtn) fletchBtn.onclick = buyFletcher;
+    const drillBtn = document.getElementById('aow-drill-btn');
+    if (drillBtn) drillBtn.onclick = buyDrillmaster;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2006,6 +2041,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'f' || e.key === 'F') {
         buyFletcher();
+        e.preventDefault();
+      } else if (e.key === 'd' || e.key === 'D') {
+        buyDrillmaster();
         e.preventDefault();
       }
     });
@@ -7429,6 +7467,17 @@ const AgeOfWarGame = (() => {
       flEl.title = fletcherBought
         ? `The fletcher works the towers — every turret reloads 15% faster. ${runStats.fletched || 0} fletched shots this run.`
         : `Sign the Fletcher (F) — ${FLETCHER_COST} gold, once per run: every turret reloads 15% faster.`;
+    }
+
+    // Drillmaster button (AOW-28)
+    const drEl = document.getElementById('aow-drill-btn');
+    const drCdEl = document.getElementById('aow-drill-cd');
+    if (drEl) {
+      if (drCdEl) drCdEl.textContent = playerEra < 1 ? 'Age II' : drillBought ? 'hired' : `${DRILL_COST}g`;
+      drEl.disabled = playerEra < 1 || drillBought;
+      drEl.title = drillBought
+        ? `The drillmaster runs the parade ground — every recruit trains 20% faster. ${runStats.drilled || 0} drilled this run.`
+        : `Hire the Drillmaster (D) — ${DRILL_COST} gold, once per run: every recruit trains 20% faster.`;
     }
 
     // Wave indicator
