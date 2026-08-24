@@ -25,7 +25,7 @@ SUITES=(
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
   hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural
-  voxcrow voxangler voxcompost voxflotsam voxstardust
+  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat
   pwa
 )
 

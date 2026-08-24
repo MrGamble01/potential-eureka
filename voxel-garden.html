@@ -225,7 +225,7 @@
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛🧀 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
-    <li><b>🐈 Companions</b> &mdash; a <b>cat</b> (with the Tavern), a coin-digging <b>dog</b> (with the Farmhouse), and a <b>duck</b> on the pond come to live on your isle &mdash; each has a name; <b>tap</b> to say hello</li>
+    <li><b>🐈 Companions</b> &mdash; a <b>cat</b> (with the Tavern), a coin-digging <b>dog</b> (with the Farmhouse), and a <b>duck</b> on the pond come to live on your isle &mdash; each has a name; <b>tap</b> to say hello. Greet the cat five times and it starts bringing you <b>little gifts</b></li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier); when it <b>rains ☔</b>, the villagers duck inside to wait out the shower</li>
@@ -1787,7 +1787,67 @@ function petCat(){
   floatText(t.x,gy+1.1,t.z,['❤️','🐾','😻'][(Math.random()*3)|0],'#ff9ec4');
   SFX.tone(760,0.12,'sine',0.05,900);
   if(t.name)toast('🐈 '+t.name+' purrs happily');
+  // VOX-6: every hello builds trust; at five the gift loop opens
+  state.catPets=(state.catPets||0)+1;
+  if(state.catPets===5)toast('🐈 '+(t.name||'The cat')+' trusts you now — keep an eye out for little presents');
   state.achFlags.cat=true;checkAch();
+}
+
+/* ============================== cat gifts (VOX-6) ============================== */
+// A trusted cat (five hellos) brings little bundles: dropped mid-amble
+// wherever it happens to be, sitting patiently until tapped. Mostly
+// pocket change and string; sometimes a good for the stockpile; rarely
+// something it dug out of somewhere it shouldn't have been.
+let catGift=null,catGiftT=60+Math.random()*90;
+function catTrusts(){return (state.catPets||0)>=5;}
+function giftCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.13,0,0.34,0.22,0.3,0x8a6a48);            // cloth bundle
+  a(0,0.26,0,0.12,0.1,0.12,0xc9a86a);            // knot on top
+  a(0,0.2,0.14,0.3,0.05,0.05,0xb04a5a);          // ribbon
+  a(0,0.2,-0.14,0.3,0.05,0.05,0xb04a5a);
+  return c;}
+function spawnCatGift(){
+  if(catGift||!townCat)return;
+  const x=Math.round(townCat.x),z=Math.round(townCat.z);
+  const gy=surfaceY(x,z);
+  if(gy==null){catGiftT=6;return;}
+  const mesh=new THREE.Mesh(buildPlantGeometry(giftCubes()),plantMat);
+  mesh.userData.catgift=true;
+  mesh.position.set(x+0.5,gy+1,z+0.5);
+  scene.add(mesh);
+  catGift={mesh,x:x+0.5,y:gy+1,z:z+0.5,t:0};
+  if(!state.achFlags.catGiftSeen){state.achFlags.catGiftSeen=1;
+    toast('🐈 '+(townCat.name||'The cat')+' trots up and drops a little bundle — tap it to see!');}
+  else toast('🐈 '+(townCat.name||'The cat')+' left a little something');
+}
+function openCatGift(){
+  const g=catGift;if(!g)return;
+  const m=g.mesh.position;
+  g.mesh.geometry.dispose();scene.remove(g.mesh);catGift=null;
+  state.catGifts=(state.catGifts||0)+1;
+  const r=Math.random();
+  if(r<0.12){
+    grantCoins(45,m.x,m.y+0.9,m.z);
+    toast('🐈 A ring lost long ago — the cat looks very pleased with itself. +45 🪙');
+  } else if(r<0.45){
+    const ks=goodsKeys(),k=ks[(r*ks.length)|0];
+    state.goods[k]=(state.goods[k]||0)+1;
+    refreshGoodsHud();
+    toast('🐈 The bundle held '+goodDef(k).product+' for the stockpile');
+  } else {
+    const coins=8+((r*10)|0);
+    grantCoins(coins,m.x,m.y+0.9,m.z);
+    toast('🐈 Feathers, string… and +'+coins+' 🪙');
+  }
+  burst(m.x,m.y+0.3,m.z,0xd9782f,10,{up:2,g:4});
+  SFX.play('coin');
+  checkAch();
+}
+function updateCatGift(dt){
+  if(catGift){catGift.t+=dt;catGift.mesh.position.y=catGift.y+Math.sin(catGift.t*2)*0.05;return;}
+  if(!townCat||!catTrusts())return;
+  catGiftT-=dt;
+  if(catGiftT<=0){catGiftT=150+Math.random()*120;spawnCatGift();}
 }
 // A loyal farm dog turns up with the Farmhouse — ambles the isle, tap for a happy bark.
 let townDog=null;
@@ -3092,6 +3152,7 @@ function doAction(hit){
   if(ud.crow)return shooCrow(true);                       // shoo a crop-raiding crow
   if(ud.flotsam)return openFlotsam();                     // crack a drifting crate (VOX-4)
   if(ud.shard)return collectShard();                      // catch fallen stardust (VOX-5)
+  if(ud.catgift)return openCatGift();                     // unwrap the cat's bundle (VOX-6)
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
@@ -3243,6 +3304,7 @@ function getPickables(){
   if(crow&&crow.mesh)crow.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   if(flotsam&&flotsam.mesh)flotsam.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   if(shard&&shard.mesh)shard.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
+  if(catGift&&catGift.mesh)arr.push(catGift.mesh);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -3797,6 +3859,7 @@ const ACH=[
   ['compost5','Black Gold','Spread compost five times',()=>(state.composted||0)>=5],
   ['flotsam5','Beachcomber','Crack open five flotsam crates',()=>(state.flotsamOpened||0)>=5],
   ['wish1','Upon a Star','Collect three stardust shards and make a wish',()=>(state.wishes||0)>=1],
+  ['catgift5','Little Hunter','Unwrap five of the cat’s gifts',()=>(state.catGifts||0)>=5],
   ['koi','The Golden One','Catch the elusive Golden Koi',()=>!!state.achFlags.koi],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
@@ -4046,6 +4109,7 @@ function boot(){
     updateDog(dt);
     updateDuck(dt);
     updatePetFriends(dt);
+    updateCatGift(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
