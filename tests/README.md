@@ -41,6 +41,17 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-08-24 (QA-7, post-Round-Fifteen) — **all 55 suites green
+end-to-end on the first pass**, zero failures and zero stale
+assertions, with the audit row holding its 12/32 environment
+baseline. First battery carrying the four promoted Round-14/15
+suites (`hvnewcomer`, `voxferry`, `hvpantry`, `voxsugar`), and the
+first run after two full rounds of features landed (Depths 101–113) —
+the newest cross-feature seams (HV-22's pantry drip against the
+older dawn suites, VOX-17's spring boils against `voxferry`'s
+green-season dockings, LAB-24's halved sting odds against the party
+suite's doubled ones) all held clean without pinning.
+
 2026-08-24 (QA-6, post-Round-Thirteen) — **all 51 suites green
 end-to-end on the first pass**, zero failures and zero stale
 assertions, with the audit row holding its 12/32 environment baseline.
