@@ -33,5 +33,6 @@ function loadGame(){
     if(typeof G.muralDay!=='number') G.muralDay=-1;
     if(typeof G.meetings!=='number') G.meetings=0;                 // saves from before HV-14
     if(typeof G.meetingDay!=='number') G.meetingDay=-9;
+    if(!G.petitions||typeof G.petitions!=='object') G.petitions={}; // saves from before HV-15
   }catch(e){}
 }

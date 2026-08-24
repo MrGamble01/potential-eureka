@@ -89,6 +89,8 @@ function onNewDay(){
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
+  // HV-15: the sanitation unit keeps everyone a little healthier
+  if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
@@ -323,7 +325,7 @@ var EVENTS_BAD=[
    effect:function(){
      G.lastEventDay=G.days;
      var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
-     var sm=G.structures.stash?.5:1; // HV-12: half of everything is underground
+     var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));

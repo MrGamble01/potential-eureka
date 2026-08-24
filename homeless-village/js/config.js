@@ -51,6 +51,8 @@ var G = {
   mural: 0, muralDay: -1,
   // HV-14: camp meetings held, and the day the circle last convened
   meetings: 0, meetingDay: -9,
+  // HV-15: city petitions won at the notice board
+  petitions: {},
 
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
@@ -187,6 +189,17 @@ function meetingAction(){
     tooltip:'Gather everyone around the fire. +2 morale a head, a little something for the pot from each resident — and the block hears a village, not a camp.' };
 }
 
+// ── HV-15: City Petitions ────────────────────────────────────
+// Once the neighborhood counts the camp as Respected, goodwill can be
+// spent at the notice board on petitions to the city — civic
+// infrastructure no sweep can take and no thief can carry off.
+var PETITIONS = [
+  {id:'sanitation',  icon:'🚻', name:'Sanitation unit', cost:15, desc:'The city drops a portable unit by the underpass. Everyone wakes +1 health at dawn.'},
+  {id:'streetlight', icon:'💡', name:'Street light',    cost:20, desc:'A working light over the camp. Thieves take half as much at night.'},
+  {id:'grant',       icon:'📋', name:'Community grant', cost:30, desc:'A one-time neighborhood grant: +8 food, +8 wood, +8 scraps delivered.'},
+];
+function petitionsAvailable(){ return repTier()>=2; }   // Respected (50 rep)
+
 var ACTIONS = [
   {id:'scavenge',  icon:'🗑️', label:'Scavenge Dumpster', time:5000, cooldown:8000,  tooltip:'Dig through dumpsters for scraps, cans, or food.'},
   {id:'forage',    icon:'🌿', label:'Forage Area',        time:4000, cooldown:12000, tooltip:'Search the surroundings for cardboard and wood.'},
@@ -220,6 +233,7 @@ var GOALS = [
   {id:'soup7',      desc:'Serve 7 soup nights',       target:7,  reward:6,  value:function(){ return G.soupNights||0; }},
   {id:'mural',      desc:'Finish the community mural',target:4,  reward:8,  value:function(){ return G.mural||0; }},
   {id:'meet3',      desc:'Hold 3 camp meetings',      target:3,  reward:5,  value:function(){ return G.meetings||0; }},
+  {id:'petition1',  desc:'Win a city petition',       target:1,  reward:6,  value:function(){ return Object.keys(G.petitions||{}).length; }},
 ];
 
 var activeJobs = {};
