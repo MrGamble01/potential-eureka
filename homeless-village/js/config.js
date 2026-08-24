@@ -18,7 +18,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -80,6 +80,7 @@ var RECIPES = [
   {id:'stash',       icon:'🕳️', name:'Hidden Stash',    cost:{wood:4,scraps:3,cardboard:2},    gives:{structure:'stash'},      time:7000,  desc:'A buried cache under the fence line. Thieves and sweeps take half as much — and nobody ever finds the hole itself.', requires:'workbench'},
   {id:'guitar',      icon:'🎸', name:'Scrap Guitar',    cost:{scraps:8,wood:4},                gives:{structure:'guitar'},     time:9000,  desc:'Strings from a fence, a body from a pallet. One set a day on the corner — the take rides the camp\u2019s spirits.', requires:'workbench'},
   {id:'cart',        icon:'🛒', name:'Shopping Cart',   cost:{scraps:6,wood:2},                gives:{structure:'cart'},       time:7000,  desc:'A liberated cart with a true wheel. Makes the deposit run possible: haul every can to the redemption center in one trip.', requires:'workbench'},
+  {id:'pantry',      icon:'🥣', name:'Free Pantry',     cost:{wood:6,scraps:2},                gives:{structure:'pantry'},     time:8000,  desc:'A little box on a post: take what you need, leave what you can. Some dawns the neighborhood leaves something \u2014 and a stocked pantry gets the camp remembered.', requires:'workbench'},
 ];
 
 // ── Weather (HV-5) ────────────────────────────────────────────
@@ -276,6 +277,15 @@ function ticketAction(){
     tooltip:'One of the residents has family a bus ride away. '+TICKET_COST_GW+' goodwill and '+TICKET_COST_SCRAPS+' scraps put them on the morning bus — a smaller camp, and a friend in the city.' };
 }
 
+// ── HV-22: the Little Free Pantry ────────────────────────────
+// A box on a post by the sidewalk: take what you need, leave what
+// you can. Once it's built, some dawns (half of them) a neighbor
+// leaves a couple of food \u2014 and every fifth fill, the block
+// remembers who keeps the box up (+1 rep).
+var PANTRY_CHANCE = 0.5;
+var PANTRY_FOOD = 2;
+var PANTRY_REP_EVERY = 5;
+
 // ── HV-21: the Newcomer ──────────────────────────────────────
 // The mirror of the bus ticket. Once the camp is Respected and warm
 // enough to share (a tent up, room by the fire), word gets around:
@@ -343,6 +353,7 @@ var GOALS = [
   {id:'busk5',      desc:'Play 5 sets on the corner', target:5,  reward:6,  value:function(){ return G.busks||0; }},
   {id:'deposit3',   desc:'Make 3 deposit runs',       target:3,  reward:5,  value:function(){ return G.deposits||0; }},
   {id:'welcome2',   desc:'Welcome 2 newcomers',       target:2,  reward:5,  value:function(){ return G.welcomes||0; }},
+  {id:'pantry10',   desc:'See the pantry filled 10 times', target:10, reward:5, value:function(){ return G.pantryFills||0; }},
 ];
 
 var activeJobs = {};
