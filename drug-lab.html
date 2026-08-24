@@ -438,6 +438,15 @@ canvas{display:block;touch-action:none;}
 #route-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 #route-toggle.cold{color:#ff6a5a;border-color:rgba(255,106,90,0.6);}
 @media (max-width:640px){ #route-toggle{bottom:64px;right:120px;font-size:11px;padding:5px 9px;} }
+/* ── The Getaway Bag (LAB-21) ── */
+#bag-toggle{
+  position:fixed;bottom:14px;right:364px;z-index:30;
+  background:rgba(8,4,10,0.92);border:1px solid rgba(190,140,255,0.4);
+  color:#be8cff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#bag-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #bag-toggle{bottom:64px;right:232px;font-size:11px;padding:5px 9px;} }
 #contract-offer{
   position:fixed;top:82px;left:50%;transform:translateX(-50%);
   background:rgba(4,10,4,0.96);
@@ -498,6 +507,7 @@ canvas{display:block;touch-action:none;}
 <div id="bw-hud" style="display:none" title="Two buyers want the same 5-bag lot. Hammer to sell at the standing bid, or let them bid each other up — they might spook and walk">🔨 <span id="bw-val"></span><button id="bw-hammer"></button><button id="bw-wait"></button></div>
 <div id="wave-hud" style="display:none" title="A crackdown sweep: every sale runs 2× hotter and street buyers come half as often. Sell nothing until it lifts and the clean streets pay −10 heat">🚨 <span id="wave-val"></span></div>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
+<button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
@@ -1589,8 +1599,50 @@ function heatDrainPerSec() {
   return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
 }
 
+// ── The Getaway Bag (LAB-21) ──────────────────────────────
+// Insurance for people who can't buy insurance. Past the Lab, $2,500
+// packs a bag by the back door: cash, keys, a clean phone. If the
+// DEA ever kicks the door in while it's packed, you simply weren't
+// home — the bag is spent, HALF the cash walks out the back with
+// you, the stash is lost, heat resets to 40, and the run survives.
+// One bag at a time; skips tally toward Gone Before Dawn.
+const BAG_COST = 2500;
+function refreshBagBtn() {
+  const b = document.getElementById('bag-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 3 ? '' : 'none';
+  b.classList.toggle('on', !!state.bagPacked);
+  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+}
+function packBag() {
+  if (state.bagPacked) { showToast('🎒 The bag is already by the back door.', ''); return; }
+  if (currentAct() < 3) return;
+  if (state.cash < BAG_COST) { showToast("Can't afford the bag yet ($" + fmtCash(BAG_COST) + ').', 'bust'); return; }
+  state.cash -= BAG_COST;
+  state.bagPacked = true;
+  refreshBagBtn();
+  showToast('🎒 A bag by the back door — cash, keys, a clean phone. Just in case.', 'good');
+  addFeed('🎒 Packed a getaway bag. Sleep comes easier.');
+  saveGame();
+}
+function skipTown() {
+  state.bagPacked = false;
+  state.cash = Math.floor(state.cash / 2);
+  stashCount = 0; pureBags = 0; trimBags = 0;
+  setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+  state.heat = 40;
+  state.skips = (state.skips || 0) + 1;
+  refreshBagBtn();
+  showToast('🚪 The door came down — but you weren\'t home. Half the cash walks out the back. (' + state.skips + ' clean exits)', 'bust');
+  addFeed('🚪 Skipped town ahead of the raid — the bag paid for itself');
+  checkGrowAchievements();
+  saveGame();
+  refreshHud();
+}
+
 // ── Bust ──
 function triggerBust() {
+  if (state.bagPacked) { skipTown(); return; }   // LAB-21: you weren't home
   busted = true;
   // Make the loss stick: stop the sim/autosave and wipe the save so a reload
   // can't resume the busted run.
@@ -1824,6 +1876,7 @@ function refreshRouteBtn() {
   if (!b) return;
   b.style.display = currentAct() >= 3 ? '' : 'none';
   b.classList.toggle('on', !!state.route && routeCold <= 0);
+  refreshBagBtn();   // LAB-21: the bag rides the same act gate
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -1929,6 +1982,7 @@ function updateRoute(dt) {
   refreshRouteBtn();
 }
 { const rb = document.getElementById('route-toggle'); if (rb) rb.onclick = toggleRoute; }
+{ const gb = document.getElementById('bag-toggle'); if (gb) gb.onclick = packBag; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2179,6 +2233,7 @@ const GROW_ACH = [
   { id: 'wholesale',    name: 'Wholesale',       test: () => (state.routeShipped || 0) >= 30 }, // LAB-18
   { id: 'signature',    name: 'Signature Blend', test: () => (state.batches || 0) >= 150 },     // LAB-19
   { id: 'cold_streets', name: 'Cold Streets',    test: () => (state.cleanWaves || 0) >= 3 },    // LAB-20
+  { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -2574,6 +2629,7 @@ function saveGame() {
     nbPure,   // LAB-19: the pending eureka page
     waveT: Math.round(waveT), waveLeft: Math.round(waveLeft),  // LAB-20
     waveSales, cleanWaves: state.cleanWaves || 0,
+    bagPacked: !!state.bagPacked, skips: state.skips || 0,   // LAB-21
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
@@ -2653,6 +2709,9 @@ function loadGame() {
     if (typeof sv.waveLeft === 'number') waveLeft = Math.min(WAVE_SECS, Math.max(0, sv.waveLeft));
     waveSales = Math.max(0, Math.floor(sv.waveSales || 0));
     state.cleanWaves = Math.max(0, Math.floor(sv.cleanWaves || 0));
+    state.bagPacked = !!sv.bagPacked;   // LAB-21
+    state.skips = Math.max(0, Math.floor(sv.skips || 0));
+    refreshBagBtn();
     refreshWaveHud();
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
     trimQueue=sv.trimQueue||0;
