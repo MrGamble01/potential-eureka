@@ -346,6 +346,83 @@ const AgeOfWarGame = (() => {
   function relicsEarned(won) {
     return Math.floor(runStats.gold / 800) + Math.floor(runStats.kills / 25) + (won ? 3 : 0);
   }
+
+  // ---- War Councils (AOW-10) --------------------------------
+  // Endless roguelite layer: every 5 waves survived, the council convenes
+  // and offers a pick of two run-long boons. Enemies hold their charge
+  // while the choice is open (the breather is pinned), so a council is a
+  // breath, not a distraction. Boons reset with the run.
+  const COUNCIL_BOONS = [
+    { id: 'warchest', icon: '💰', name: 'War Chest',       desc: '+25% gold from kills' },
+    { id: 'steel',    icon: '⚔️', name: 'Sharpened Steel', desc: 'Your units deal +10% damage' },
+    { id: 'medics',   icon: '⛑️', name: 'Field Medics',    desc: 'Your units regenerate 2 HP/s' },
+    { id: 'masons',   icon: '🧱', name: 'Masons',          desc: 'Your base repairs itself 3 HP/s' },
+  ];
+  let councilBoons = {};       // id → true, run-scoped
+  let councilPending = null;   // the two options while a council is open
+  function boonGoldMult() { return councilBoons.warchest ? 1.25 : 1; }
+  function councilIcons() { return COUNCIL_BOONS.filter(b => councilBoons[b.id]).map(b => b.icon).join(''); }
+  function councilEl() {
+    let el = document.getElementById('aow-council');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'aow-council';
+      el.style.cssText = 'position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:60;display:none;' +
+        'background:rgba(8,12,20,0.96);border:1px solid rgba(252,211,77,0.5);border-radius:12px;padding:14px 18px;' +
+        'max-width:420px;text-align:center;color:var(--text,#E6EDF3);box-shadow:0 12px 40px rgba(0,0,0,0.6)';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function openCouncil() {
+    const pool = COUNCIL_BOONS.filter(b => !councilBoons[b.id]);
+    if (pool.length === 0) {
+      // Every boon already sits at the table — the council sends relics.
+      relics += 5; saveRelics();
+      ageBannerText = '🏛️ The council sends tribute: +5🏺';
+      ageBannerT = 2.2;
+      return;
+    }
+    const picks = [];
+    while (picks.length < Math.min(2, pool.length)) {
+      const b = pool[Math.floor(Math.random() * pool.length)];
+      if (!picks.includes(b)) picks.push(b);
+    }
+    councilPending = picks;
+    const el = councilEl();
+    el.innerHTML = '<div style="font-size:12px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">' +
+      '🏛️ War Council — wave ' + (waveNum - 1) + ' held</div>' +
+      '<div style="font-size:12px;color:var(--text-dim);margin:4px 0 10px">Choose a boon for the rest of the run. The enemy holds while you decide.</div>' +
+      '<div style="display:flex;gap:10px;justify-content:center">' +
+      picks.map((b, i) =>
+        '<button class="council-boon" data-boon="' + b.id + '" style="flex:1;background:rgba(252,211,77,0.08);' +
+        'border:1px solid rgba(252,211,77,0.4);color:var(--text,#E6EDF3);border-radius:10px;padding:10px 12px;' +
+        'font-family:inherit;cursor:pointer;text-align:center">' +
+        '<div style="font-size:20px">' + b.icon + '</div>' +
+        '<div style="font-weight:800;font-size:13px;margin:2px 0">' + b.name + '</div>' +
+        '<div style="font-size:11px;color:var(--text-dim)">' + b.desc + '</div>' +
+        '<div style="font-size:10px;color:#fcd34d;margin-top:4px">[' + (i + 1) + ']</div></button>').join('') +
+      '</div>';
+    el.style.display = 'block';
+    el.querySelectorAll('.council-boon').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); chooseBoon(btn.dataset.boon); });
+    });
+    SFX.warn && SFX.warn();
+  }
+  function chooseBoon(id) {
+    if (!councilPending || !councilPending.some(b => b.id === id)) return;
+    const b = COUNCIL_BOONS.find(x => x.id === id);
+    councilBoons[id] = true;
+    councilPending = null;
+    councilEl().style.display = 'none';
+    ageBannerText = b.icon + ' ' + b.name + ' — ' + b.desc;
+    ageBannerT = 2.2;
+  }
+  function closeCouncil() {
+    councilPending = null;
+    const el = document.getElementById('aow-council');
+    if (el) el.style.display = 'none';
+  }
   let bgClouds = [];               // parallax cloud x positions
   let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
   let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
@@ -911,6 +988,8 @@ const AgeOfWarGame = (() => {
     waveBreatherT = 4.0;          // give the player ~4s to orient before enemies surge
     bossWaveActive = false;
     bossKilledThisWave = false;
+    councilBoons = {};            // AOW-10: boons are run-scoped
+    closeCouncil();
     killFeed = [];
     shakeT = 0; shakeMag = 0;
     setUserPaused(false);      // never carry a pause into a fresh run
@@ -978,7 +1057,8 @@ const AgeOfWarGame = (() => {
   function vetTier(u) { return u.aliveT >= 60 ? 2 : u.aliveT >= 25 ? 1 : 0; }
   function vetDmg(u) {
     const t = vetTier(u);
-    return t ? Math.round(u.dmg * (1 + 0.1 * t)) : u.dmg;
+    const steel = u.side === 'player' && councilBoons.steel ? 1.1 : 1;   // AOW-10
+    return Math.round(u.dmg * (1 + 0.1 * t) * steel);
   }
 
   function tryPlayerSpawn(key) {
@@ -1364,6 +1444,13 @@ const AgeOfWarGame = (() => {
         return;
       }
       if (userPaused) return;  // only P (above) is live while user-paused
+      // AOW-10: while a War Council is open, 1/2 pick the boon instead of
+      // training units.
+      if (councilPending) {
+        const c = parseInt(e.key, 10);
+        if (c >= 1 && c <= councilPending.length) { chooseBoon(councilPending[c - 1].id); e.preventDefault(); }
+        return;
+      }
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 9) {
         const keys = visibleUnitKeys();
@@ -1461,6 +1548,8 @@ const AgeOfWarGame = (() => {
   }
 
   function enemyTick(dt) {
+    // AOW-10: the enemy holds while a War Council decision is open.
+    if (councilPending) { waveBreatherT = Math.max(waveBreatherT, 0.5); }
     // Wave breather (gap between waves)
     if (waveBreatherT > 0) {
       waveBreatherT -= dt;
@@ -1473,6 +1562,8 @@ const AgeOfWarGame = (() => {
       waveNum++;
       bossWaveActive = isBossWave(waveNum);
       bossKilledThisWave = false;
+      // AOW-10: every 5 waves survived, the council convenes.
+      if (endlessMode && waveNum > 1 && (waveNum - 1) % 5 === 0) openCouncil();
       // Smaller first few waves, gentler growth.
       waveEnemiesRemaining = bossWaveActive ? 1 : (2 + Math.floor(waveNum * 0.35));
       waveBreatherT = bossWaveActive ? 4.0 : 3.0;
@@ -1622,6 +1713,8 @@ const AgeOfWarGame = (() => {
       comboT -= dt;
       if (comboT <= 0) { combo = 0; }
     }
+    if (councilBoons.masons && !gameOver && playerBaseHp > 0)   // AOW-10
+      playerBaseHp = Math.min(playerBaseMax, playerBaseHp + 3 * dt);
     runStats.time += dt;
 
     // Overtime (AOW-7): after 6 minutes in classic mode, both bases take
@@ -1673,6 +1766,8 @@ const AgeOfWarGame = (() => {
       if (u.hp <= 0) continue;
       u.hitFlash = Math.max(0, u.hitFlash - dt);
       u.aliveT += dt;
+      if (u.side === 'player' && councilBoons.medics && u.hp < u.hpMax)   // AOW-10
+        u.hp = Math.min(u.hpMax, u.hp + 2 * dt);
       if (u.role === 'wall') continue;   // walls just stand there and take it
       const ownBucket = u.side === 'player' ? playerBucket : enemyBucket;
       const foeBucket  = u.side === 'player' ? enemyBucket  : playerBucket;
@@ -1895,8 +1990,8 @@ const AgeOfWarGame = (() => {
           runStats.kills++;
           if (runStats.kills === 1) unlock('first_blood');
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
-          runStats.gold += u.gold * mult;
-          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
+          runStats.gold += u.gold * mult * boonGoldMult();
+          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult()));
           if (u.isBoss) {
             bossKilledThisWave = true;
             shake(10, 0.5);
@@ -6620,7 +6715,8 @@ const AgeOfWarGame = (() => {
     const waveSubEl = document.getElementById('aow-wave-sub');
     if (waveEl) {
       waveEl.classList.toggle('aow-wave-boss', bossWaveActive);
-      if (waveNumEl) waveNumEl.textContent = (endlessMode ? '∞ ' : '') + (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum;
+      if (waveNumEl) waveNumEl.textContent = (endlessMode ? '∞ ' : '') + (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum
+        + (councilIcons() ? ' ' + councilIcons() : '');
       if (waveSubEl) {
         if (waveBreatherT > 0) waveSubEl.textContent = `next in ${Math.ceil(waveBreatherT)}s`;
         else if (bossWaveActive && !bossKilledThisWave) waveSubEl.textContent = 'kill the boss';
@@ -6888,6 +6984,7 @@ const AgeOfWarGame = (() => {
   function destroy() {
     cancelAnimationFrame(rafId);
     running = false;
+    closeCouncil();
   }
 
   return { init, start: reset, destroy };

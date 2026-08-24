@@ -687,9 +687,16 @@ function updateWater(){
 // Fishing: tap the pond to cast; after a beat you reel in a catch worth coins
 // (and, with a Market/Tavern, a 'fish' good for the stockpile). Frozen in winter.
 let fishingT=0;
+// VOX-2: real species carry an id + a size range (kg) for the Angler's
+// Log — per-species counts and record weights, kept in state.fishLog and
+// shown in the Almanac. The 🎏 Golden Koi is the pond's rare prize.
 const FISH_CATCH=[
-  {ico:'🐟',coins:14,w:5},{ico:'🐠',coins:26,w:3},{ico:'🦀',coins:20,w:2},
-  {ico:'🐡',coins:40,w:1},{ico:'🥾',coins:0,w:2},{ico:'🌿',coins:4,w:2}];
+  {id:'perch', name:'Perch',      ico:'🐟',coins:14, w:5,   min:0.4,max:2.5},
+  {id:'tropic',name:'Sunfin',     ico:'🐠',coins:26, w:3,   min:0.3,max:1.8},
+  {id:'crab',  name:'Crab',       ico:'🦀',coins:20, w:2,   min:0.5,max:3.0},
+  {id:'puffer',name:'Puffer',     ico:'🐡',coins:40, w:1,   min:0.8,max:4.0},
+  {id:'koi',   name:'Golden Koi', ico:'🎏',coins:120,w:0.35,min:2.0,max:8.0},
+  {ico:'🥾',coins:0,w:2},{ico:'🌿',coins:4,w:2}];
 function goFishing(x,z){
   if(seasonOf(state.day).key==='winter'){toast('❄️ The pond is frozen solid');return;}
   if(fishingT>0){return;}
@@ -704,6 +711,17 @@ function goFishing(x,z){
       if(stockpiles()&&pick.ico!=='🌿'){state.goods.fish=(state.goods.fish||0)+1;refreshGoodsHud();}}
     else SFX.play('error');
     floatText(x,y+1.2,z,pick.ico+(pick.coins?' +'+pick.coins:''),pick.coins?'#ffe9a8':'#9fb0bf');
+    if(pick.id){   // VOX-2: weigh the catch and keep the log
+      if(!state.fishLog)state.fishLog={};
+      const l=state.fishLog[pick.id]||(state.fishLog[pick.id]={n:0,best:0});
+      const size=+(pick.min+Math.random()*(pick.max-pick.min)).toFixed(1);
+      l.n++;
+      if(pick.id==='koi'&&l.n===1){toast('🎏 A GOLDEN KOI! The pond’s rarest prize is yours.');state.achFlags.koi=true;}
+      if(size>l.best){
+        l.best=size;
+        if(l.n>1)floatText(x,y+1.8,z,'⚖️ '+size+'kg — record!','#ffd23e');
+      }
+    }
     burst(x,y+0.5,z,0x6fc3ff,7,{up:1.4,g:5,spread:1});
     state.fishCount=(state.fishCount||0)+(pick.coins>0?1:0);
     state.achFlags.fish=true;checkAch();
@@ -3544,6 +3562,9 @@ const ACH=[
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
+  ['angler','Compleat Angler','Land every species in the pond',
+    ()=>['perch','tropic','crab','puffer','koi'].every(id=>state.fishLog&&state.fishLog[id])],
+  ['koi','The Golden One','Catch the elusive Golden Koi',()=>!!state.achFlags.koi],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
   ['duck','Duck, Duck…','Greet the duck on the pond',()=>!!state.achFlags.duck],
@@ -3639,6 +3660,16 @@ function renderAlmanac(){
   if(pets.length){
     html+='<div class="alm-head" style="margin-top:14px">COMPANIONS</div>';
     html+='<div class="alm-stat" style="text-align:left">'+pets.join(' &nbsp;·&nbsp; ')+'</div>';
+  }
+  if((state.fishCount||0)>0){   // VOX-2: the Angler's Log
+    const log=state.fishLog||{};
+    html+='<div class="alm-head" style="margin-top:14px">🎣 ANGLER’S LOG</div>';
+    html+='<div class="alm-stat" style="text-align:left;line-height:1.8">'+
+      FISH_CATCH.filter(f=>f.id).map(f=>{
+        const l=log[f.id];
+        return l?f.ico+' '+f.name+' ×'+l.n+' <span style="color:var(--dim)">best '+l.best+'kg</span>'
+                :'<span style="color:var(--dim)">'+f.ico+' ???</span>';
+      }).join(' &nbsp;·&nbsp; ')+'</div>';
   }
   if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
   $('almBody').innerHTML=html;
