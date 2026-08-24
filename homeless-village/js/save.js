@@ -46,5 +46,8 @@ function loadGame(){
     if(typeof G.structures.guitar!=='boolean') G.structures.guitar=false; // saves from before HV-19
     if(typeof G.busks!=='number') G.busks=0;
     if(typeof G.buskDay!=='number') G.buskDay=-9;
+    if(typeof G.structures.cart!=='boolean') G.structures.cart=false; // saves from before HV-20
+    if(typeof G.deposits!=='number') G.deposits=0;
+    if(typeof G.depositDay!=='number') G.depositDay=-9;
   }catch(e){}
 }

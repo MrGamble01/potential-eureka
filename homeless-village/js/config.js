@@ -18,7 +18,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -79,6 +79,7 @@ var RECIPES = [
   {id:'radio',       icon:'📻', name:'Radio',           cost:{scraps:5,cans:3},                gives:{structure:'radio'},      time:6000,  desc:'A crackly weather band — see tomorrow\u2019s sky coming.', requires:'workbench'},
   {id:'stash',       icon:'🕳️', name:'Hidden Stash',    cost:{wood:4,scraps:3,cardboard:2},    gives:{structure:'stash'},      time:7000,  desc:'A buried cache under the fence line. Thieves and sweeps take half as much — and nobody ever finds the hole itself.', requires:'workbench'},
   {id:'guitar',      icon:'🎸', name:'Scrap Guitar',    cost:{scraps:8,wood:4},                gives:{structure:'guitar'},     time:9000,  desc:'Strings from a fence, a body from a pallet. One set a day on the corner — the take rides the camp\u2019s spirits.', requires:'workbench'},
+  {id:'cart',        icon:'🛒', name:'Shopping Cart',   cost:{scraps:6,wood:2},                gives:{structure:'cart'},       time:7000,  desc:'A liberated cart with a true wheel. Makes the deposit run possible: haul every can to the redemption center in one trip.', requires:'workbench'},
 ];
 
 // ── Weather (HV-5) ────────────────────────────────────────────
@@ -236,6 +237,19 @@ function buskAction(){
     tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (+1 goodwill per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
 }
 
+// ── HV-20: the Cart & the Deposit Run ────────────────────────
+// Cans finally have a bulk market. With a liberated cart, one run a
+// day hauls EVERY can to the redemption center: 1 goodwill per 2
+// cans, and the block notices industry — +1 rep per 10 cans hauled.
+// Five cans minimum to be worth the walk.
+var DEPOSIT_MIN = 5;
+function depositAvailable(){ return !!G.structures.cart && (G.cans||0) >= DEPOSIT_MIN; }
+function depositDone(){ return G.depositDay===G.days; }
+function depositAction(){
+  return { id:'deposit', icon:'🛒', label:'Deposit run ('+(G.cans||0)+'🫙)', time:7000, cooldown:0,
+    tooltip:'Haul every can to the redemption center — 1 goodwill per 2 cans, +1 rep per 10 hauled. One run a day; '+DEPOSIT_MIN+' cans minimum.' };
+}
+
 // ── HV-18: the Cold Snap ─────────────────────────────────────
 // Winter already bites; some winters bite harder. A quarter of winter
 // dawns open a two-day cold snap — the fire drains faster and foot
@@ -311,6 +325,7 @@ var GOALS = [
   {id:'ticket1',    desc:'Send someone home',         target:1,  reward:10, value:function(){ return G.ticketsSent||0; }},
   {id:'snap2',      desc:'Weather 2 cold snaps',      target:2,  reward:8,  value:function(){ return G.snapsSurvived||0; }},
   {id:'busk5',      desc:'Play 5 sets on the corner', target:5,  reward:6,  value:function(){ return G.busks||0; }},
+  {id:'deposit3',   desc:'Make 3 deposit runs',       target:3,  reward:5,  value:function(){ return G.deposits||0; }},
 ];
 
 var activeJobs = {};

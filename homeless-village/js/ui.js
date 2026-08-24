@@ -54,6 +54,22 @@ function buildActionUI(){
     eb.addEventListener('mouseleave',hideTip);
     el.appendChild(eb);
   }
+  // HV-20: the cart makes the daily deposit run possible.
+  if(!!G.structures.cart){
+    var dpa=depositAction();
+    var dpb=document.createElement('button');
+    dpb.className='action-btn'; dpb.id='action-deposit';
+    var dpShort=(G.cans||0)<DEPOSIT_MIN;
+    dpb.setAttribute('data-tip', depositDone() ? 'One load a day — the cart rests till dawn.'
+      : dpShort ? 'Not worth the walk under '+DEPOSIT_MIN+' cans.' : dpa.tooltip);
+    dpb.innerHTML='<span class="btn-progress" id="progress-deposit" style="width:0%"></span>'+dpa.icon+' '+dpa.label+(depositDone()?' ✓':'');
+    dpb.disabled=depositDone()||dpShort;
+    if(depositDone()||dpShort) dpb.style.opacity='.5';
+    dpb.onclick=function(){ doAction(depositAction()); };
+    dpb.addEventListener('mouseenter',showTip);
+    dpb.addEventListener('mouseleave',hideTip);
+    el.appendChild(dpb);
+  }
   // HV-19: the guitar earns a daily set once it's built.
   if(buskAvailable()){
     var ba=buskAction();
