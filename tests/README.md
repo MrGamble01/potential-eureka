@@ -41,6 +41,18 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-08-24 (QA-8, post-Round-Seventeen) — **all 59 suites green
+end-to-end on the first pass**, zero failures and zero stale
+assertions, with the audit row holding its 12/32 environment
+baseline. First battery carrying the four promoted Round-16/17
+suites (`hvcoats`, `voxmuseum`, `hvtoolbox`, `voxowl`), and the
+first run after two full rounds of features landed (Depths 115–127)
+— the newest cross-feature seams (HV-24's tool box against
+`hvweather`'s unpinned wobble rolls, VOX-19's night hunts against
+`voxstardust`'s after-dark legs, HV-23's coat cut against the
+matched-dawn drains in `hvweather` and `hvsnap`) all held clean
+without pinning.
+
 2026-08-24 (QA-7, post-Round-Fifteen) — **all 55 suites green
 end-to-end on the first pass**, zero failures and zero stale
 assertions, with the audit row holding its 12/32 environment
