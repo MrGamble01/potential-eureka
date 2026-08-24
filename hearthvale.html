@@ -1097,6 +1097,7 @@
     carpenter:  { name: 'Carpenter',   emoji: '🪚', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 8 },  prod: { gold: 7 }, cons: { wood: 2 }, worker: true, chimney: true, likes: { types: ['lumber'], bonus: 0.5, label: 'a Woodcutter' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Crafts wood into goods. Works faster with a woodcutter next door.' },
     market:     { name: 'Market',      emoji: '🏪', w: 3, h: 3, tier: 1, cost: { wood: 30, stone: 12 }, prod: { gold: 3 }, unique: true, likes: { types: ['bakery', 'carpenter'], bonus: 0.5, label: 'a workshop' }, roof: C.thatch, roofDk: C.thatchDk, desc: 'The heart of trade. Draws the merchant, and sells more beside a workshop.' },
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier.' },
+    watchtower: { name: 'Watchtower',  emoji: '🗼', w: 2, h: 2, tier: 1, cost: { wood: 18, stone: 10 }, worker: true, guard: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchman keeps wolves and worse at bay through the night. Each level holds off a bigger pack.' },
     tavern:     { name: 'Tavern',      emoji: '🍺', w: 3, h: 2, tier: 2, cost: { wood: 24, stone: 10 }, happy: 16, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'A lively hearth for the whole town — a big, steady happiness boost.' },
     warehouse:  { name: 'Warehouse',   emoji: '📦', w: 2, h: 2, tier: 2, cost: { wood: 20, stone: 15 }, storage: 200, desc: 'Raises the town’s storage cap for wood, stone, and food.' },
     fishing:    { name: 'Fishing Hut',  emoji: '🎣', w: 2, h: 2, tier: 1, cost: { wood: 8 }, prod: { food: 4 }, worker: true, wantsNear: 'water', likes: { types: ['dock'], bonus: 0.5, label: 'a Dock' }, roof: C.roofBlue, roofDk: C.roofBlueDk, desc: 'Cheap food — a worker nets fish. Built beside water it lands 50% more, and 50% more again by a Dock.' },
@@ -1118,7 +1119,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'apiary', 'market', 'well', 'watchtower', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1237,9 +1238,9 @@
 
   // Difficulty presets chosen at the start — a relaxed build vs. a lean frontier.
   const DIFFICULTY = {
-    cozy:   { label: 'Cozy',     res: 1.6, famine: false, desc: 'A relaxed build &mdash; a generous start, and no one ever leaves.' },
-    normal: { label: 'Wayfarer', res: 1.0, famine: true,  desc: 'The intended balance &mdash; a fair start.' },
-    hard:   { label: 'Frontier', res: 0.55, famine: true, desc: 'A testing start &mdash; lean stores, no room for waste.' },
+    cozy:   { label: 'Cozy',     res: 1.6, famine: false, raids: false, desc: 'A relaxed build &mdash; a generous start, no one ever leaves, and the wolves keep to the hills.' },
+    normal: { label: 'Wayfarer', res: 1.0, famine: true,  desc: 'The intended balance &mdash; a fair start, and wolves prowl the cold seasons.' },
+    hard:   { label: 'Frontier', res: 0.55, famine: true, raidsAllYear: true, raidBonus: 1, desc: 'A testing start &mdash; lean stores, no room for waste, and the packs hunt year-round.' },
   };
   function diffCfg() { return DIFFICULTY[state && state.difficulty] || DIFFICULTY.normal; }
   function defaultState() {
@@ -1271,6 +1272,11 @@
       festivalsHeld: 0,// lifetime festivals thrown
       difficulty: 'normal', // chosen pace: cozy | normal | hard
       decrees: [],     // enacted town perks (ids from DECREES)
+      // ---- Wolves at the Door (HVALE-1) ----
+      nextRaidDay: 9,      // first night the pack can come
+      raidTonight: false,  // set at dawn; resolved at the NEXT dawn
+      raidsRepelled: 0,    // lifetime raids the watch drove off
+      raidsSuffered: 0,    // lifetime raids that got through
     };
   }
   const ACHIEVEMENTS = [
@@ -1305,6 +1311,8 @@
     { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19 },
     { id: 'dockworker', emoji: '⚓', name: 'On the Waterfront', desc: 'Build a dock.', done: () => countType('dock') >= 1 },
     { id: 'lawgiver', emoji: '📜', name: 'Lawgiver', desc: 'Enact your first Town Decree.', done: () => (state.decrees || []).length >= 1 },
+    { id: 'nightwatch', emoji: '🗼', name: 'The Night Watch', desc: 'Raise a Watchtower and post a keeper.', done: () => state.buildings.some(b => BUILDINGS[b.type].guard && b.done !== false && b.staffed) },
+    { id: 'wolfproof', emoji: '🐺', name: 'Wolves at the Door', desc: 'Repel a night raid without loss.', done: () => (state.raidsRepelled || 0) >= 1 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -1433,6 +1441,7 @@
     { text: 'Set up an Apiary by an orchard', prog: () => [countType('apiary'), 1], done: () => countType('apiary') >= 1, reward: { gold: 100 } },
     { text: 'Grow into a City (20 villagers)', prog: () => [state.villagers.length, 20], done: () => state.villagers.length >= 20, reward: { gold: 250 } },
     { text: 'Raise a Town Hall, the city’s pride', prog: () => [countType('townhall'), 1], done: () => countType('townhall') >= 1, reward: { gold: 300 } },
+    { text: 'Stand the night watch — repel a wolf raid', prog: () => [state.raidsRepelled || 0, 1], done: () => (state.raidsRepelled || 0) >= 1, reward: { gold: 150 } },
   ];
   function checkGoals() {
     if (!state || state.goalIndex >= GOALS.length) return;
@@ -1787,7 +1796,7 @@
       .reduce((s, b) => s + effHousing(b), 0);
   }
   const MAX_LEVEL = 3;
-  function canUpgrade(b) { const d = BUILDINGS[b.type]; return b.done !== false && (d.housing || d.prod || d.happy || d.storage) && (b.level || 1) < MAX_LEVEL; }
+  function canUpgrade(b) { const d = BUILDINGS[b.type]; return b.done !== false && (d.housing || d.prod || d.happy || d.storage || d.guard) && (b.level || 1) < MAX_LEVEL; }
   function capOf(res) {
     if (!(res in BASE_CAP)) return Infinity;
     return BASE_CAP[res] + state.buildings.reduce((s, b) => s + (BUILDINGS[b.type].storage && b.done !== false ? BUILDINGS[b.type].storage * (b.level || 1) : 0), 0);
@@ -2099,7 +2108,84 @@
     updateHUD();
   }
 
+  // ---- Wolves at the Door (HVALE-1) ---------------------------
+  // Cadence: at dawn the pack is sighted (raidTonight set + warning toast +
+  // wolves lurking at the wood's edge, visible after dark); at the NEXT dawn
+  // the raid resolves against the watch. One full day to build a tower.
+  function guardStrength() {
+    return state.buildings
+      .filter(b => BUILDINGS[b.type].guard && b.done !== false && b.staffed)
+      .reduce((s, b) => s + (b.level || 1), 0);
+  }
+  function packSize() {
+    return 1 + Math.floor(state.villagers.length / 6) + (diffCfg().raidBonus || 0);
+  }
+  function maybeScheduleRaid() {
+    if (diffCfg().raids === false || state.raidTonight) return;
+    if (state.day < 8 || state.day < (state.nextRaidDay || 9)) return;
+    const sn = seasonOf(state.day).name;
+    if (!diffCfg().raidsAllYear && sn !== 'Autumn' && sn !== 'Winter') return;
+    state.raidTonight = true;
+    state.nextRaidDay = state.day + 4 + Math.floor(rrand(state.day * 31 + 7) * 4);
+    spawnWolves(packSize());
+    SFX('error');
+    toast('🐺 Wolf sign on the hill paths — the pack will come tonight. The watch had best be ready.');
+  }
+  function resolveRaid() {
+    state.raidTonight = false;
+    clearWolves();
+    const def = guardStrength(), pack = packSize();
+    let title, text, emoji;
+    if (def >= pack) {
+      state.raidsRepelled = (state.raidsRepelled || 0) + 1;
+      state.happy = Math.min(100, state.happy + 4);
+      emoji = '🛡️'; title = 'The Watch Held';
+      text = `Wolves came down from the hills in the night — a pack of ${pack}. The watch stood firm at the tower and drove them off without a scratch. The town wakes proud.`;
+      SFX('goal');
+    } else if (def > 0) {
+      const lost = Math.min(state.res.food, 6 * (pack - def));
+      state.res.food -= lost;
+      state.happy = Math.max(0, state.happy - 4);
+      state.raidsSuffered = (state.raidsSuffered || 0) + 1;
+      emoji = '🐺'; title = 'A Hard Night';
+      text = `The pack of ${pack} was too many for the watch. They were turned back before worse, but the larders are lighter — ${lost} food lost.`;
+      SFX('error');
+    } else {
+      const lost = Math.min(state.res.food, 10 * pack);
+      state.res.food -= lost;
+      state.happy = Math.max(0, state.happy - 10);
+      state.raidsSuffered = (state.raidsSuffered || 0) + 1;
+      emoji = '💔'; title = 'Wolves in the Lanes';
+      text = `With no watch standing, the pack of ${pack} ran the lanes till dawn. ${lost} food gone and the town badly shaken. A Watchtower with a keeper would stop this.`;
+      SFX('error');
+    }
+    // Keep the morning report from colliding with the same-dawn random event.
+    if (state.day >= (state.nextEventDay || 0)) state.nextEventDay = state.day + 1;
+    openEvent({
+      emoji, title, text,
+      choices: [{ label: def >= pack ? '🍻 Well done, the watch!' : 'We rebuild', run: () => { } }],
+    });
+    checkAchievements();
+  }
+  function spawnWolves(n) {
+    clearWolves();
+    for (let i = 0; i < Math.min(n, 5); i++) {
+      for (let tries = 0; tries < 14; tries++) {
+        const edge = Math.floor(rrand(state.day * 41 + i * 13 + tries) * 4);
+        const tx = edge < 2 ? (edge === 0 ? 2 : MAP_W - 3) : 2 + Math.floor(rrand(state.day * 7 + i + tries) * (MAP_W - 4));
+        const ty = edge < 2 ? 2 + Math.floor(rrand(state.day * 11 + i + tries) * (MAP_H - 4)) : (edge === 2 ? 2 : MAP_H - 3);
+        if (!walkable(tx, ty)) continue;
+        critters.push({ kind: 'wolf', wild: true, x: tx * TILE + TILE / 2, y: ty * TILE + TILE / 2, tx, ty, ax: tx, ay: ty, roam: 4, wait: 0, ph: i * 1.7, path: null });
+        break;
+      }
+    }
+  }
+  function clearWolves() { critters = critters.filter(c => c.kind !== 'wolf'); }
+
   function onNewDay() {
+    // last night's raid resolves in the grey light of dawn
+    if (state.raidTonight) resolveRaid();
+    maybeScheduleRaid();
     // a festival that has run its course winds down at daybreak
     if (state.festival && state.day >= state.festival.endDay) {
       state.festival = null;
@@ -2912,6 +2998,7 @@
     if (kind === 'chicken') { W = 8; H = 9; }
     else if (kind === 'deer') { W = 14; H = 13; }
     else if (kind === 'rabbit') { W = 9; H = 8; }
+    else if (kind === 'wolf') { W = 13; H = 10; }
     const { c, x } = makeCanvas(W, H);
     const P = (px, py, pw, ph, col) => { x.fillStyle = col; x.fillRect(px, py, pw, ph); };
     if (kind === 'deer') {
@@ -2927,6 +3014,17 @@
       P(13, 1, 1, 1, dk);                                              // muzzle
       P(12, 1, 1, 1, C.outline);                                       // eye
       P(10, 0, 1, 1, ant); P(13, 0, 1, 1, ant);                        // antler tips
+    } else if (kind === 'wolf') {
+      const bc = '#6d7076', dk = '#4b4e54', hi = '#8b8f96', eye = '#e0b34a';
+      const g = frame === 1 ? 0 : 1;                                   // prowling gait
+      P(3, 6, 1, 4, dk); P(5, 6 - g, 1, 4, dk);                        // back legs
+      P(8, 6 - g, 1, 4, dk); P(10, 6, 1, 4, dk);                       // front legs
+      P(0, 2, 2, 2, dk); P(0, 3, 3, 1, bc);                            // low-swept tail
+      P(2, 3, 8, 4, bc); P(2, 3, 8, 1, hi);                            // torso
+      P(9, 1, 3, 3, bc); P(9, 1, 3, 1, hi);                            // head, low and forward
+      P(12, 2, 1, 1, dk);                                              // muzzle
+      P(10, 0, 1, 1, dk); P(11, 0, 1, 1, dk);                          // pricked ears
+      P(11, 2, 1, 1, eye);                                             // amber eye
     } else if (kind === 'rabbit') {
       const bc = '#cfc7b8', hi = '#ece5d8', ear = '#d9a7b2', dk = '#9a9080';
       const hop = frame === 1 ? 1 : 0;                                 // hop lift
@@ -3066,6 +3164,7 @@
   function critterActive(cr) {
     if (!cr.wild) return true;
     const h = state.time;
+    if (cr.kind === 'wolf') return isNight();   // the pack shows only after dark
     if (cr.kind === 'deer') return (h >= 5 && h < 9) || (h >= 16 && h < 20.5);
     if (cr.kind === 'rabbit') { const s = seasonOf(state.day).name; return h >= 7 && h < 18 && (s === 'Spring' || s === 'Summer'); }
     return true;
@@ -3672,6 +3771,10 @@
     if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
     if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
     if (def.charm) html += statRow('Charm', '+' + def.charm + ' town beauty');
+    if (def.guard) {
+      html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
+      html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT' : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
+    }
     if (!def.decor) html += statRow('Level', lvl + ' / ' + MAX_LEVEL);
     stats.innerHTML = html;
     const actions = document.getElementById('p-actions');
@@ -3878,6 +3981,8 @@
         peakPop: state.peakPop || 0, festivalsHeld: state.festivalsHeld || 0,
         difficulty: state.difficulty || 'normal',
         decrees: state.decrees || [],
+        nextRaidDay: state.nextRaidDay || 9, raidTonight: !!state.raidTonight,
+        raidsRepelled: state.raidsRepelled || 0, raidsSuffered: state.raidsSuffered || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -3937,6 +4042,11 @@
       state.festivalsHeld = s.festivalsHeld || 0;
       state.difficulty = DIFFICULTY[s.difficulty] ? s.difficulty : 'normal';
       state.decrees = Array.isArray(s.decrees) ? s.decrees.filter(id => DECREES.some(d => d.id === id)) : [];
+      state.nextRaidDay = s.nextRaidDay || 9;
+      state.raidTonight = !!s.raidTonight;
+      state.raidsRepelled = s.raidsRepelled || 0;
+      state.raidsSuffered = s.raidsSuffered || 0;
+      if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
         cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };

@@ -448,6 +448,15 @@ when new play-testing surfaces friction.
 - **~~P7-MAZE-1 · Par-time medals~~** ✅ — par = rows·cols/20+3s; 🥇 +200 under par (lifetime tally in `maze-golds`), 🥈 +80 under 1.6×; par + tally live in the status bar.
 - *(scoped and dropped: Tetris ghost piece, Connect-4 2P/difficulty, SFX mute, Stacker perfect-streak, Voxel Isle offline growth — all already shipped.)*
 
+## Flagship depth — studio focus (opened Aug 2026)
+
+*Directive: no new games — deepen the main titles. Each entry is a full
+gameplay system for one flagship, verified headless before merge.*
+
+- **~~HVALE-1 · Hearthvale: Wolves at the Door~~** ✅ — the cozy builder's first stakes: wolf packs prowl the cold seasons from day 8 (year-round on Frontier, never on Cozy). Dawn sighting → full day to prepare → next-dawn resolution against the watch. New Watchtower building (tier 1, worker = keeper, level = pack it can hold), packs scale with population, three outcomes with a morning-report event card, wolf pixel-sprites lurking at the wood's edge after dark, 2 achievements + a goal, watch/next-raid rows in the inspect panel, full save/load.
+- **~~LAB-7 · Grow Op: the street market~~** ✅ — sale price was a constant, so *when* to sell was never a decision. Street demand now drifts (0.75×–1.35×) and periodically breaks into 🔥 surges (1.5×–1.8×) or 🚔 crashes (0.6×–0.75×) with toast + Dispatch announcements, all shown on a live HUD demand chip. Same heat, very different money — timing matters. Neutral long-run average; persisted.
+- *(scoped and dropped: AoW commander abilities — the era Special + relic perks already own that niche; AoW build queue, battle report, unit stats all verified already present.)*
+
 ## P8 — Coverage pass (opened Aug 2026)
 
 - **~~P8-ACH-1 · Trophies for the newest games~~** ✅ — 🏗️ High Rise, 🛰️ Perimeter Held, 🔤 Rainmaker, 🥇 Pathfinder; their keys join SCORE_KEYS so Completionist means all 15 tracked games (20 trophies total).
