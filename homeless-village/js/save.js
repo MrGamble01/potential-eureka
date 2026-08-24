@@ -28,5 +28,7 @@ function loadGame(){
     if(typeof G.rep!=='number'||G.rep<0||G.rep>100) G.rep=0;       // saves from before HV-9
     if(typeof G.repGiftDay!=='number') G.repGiftDay=-1;
     if(typeof G.soupNights!=='number') G.soupNights=0;             // saves from before HV-10
+    if(typeof G.mural!=='number'||G.mural<0||G.mural>4) G.mural=0; // saves from before HV-11
+    if(typeof G.muralDay!=='number') G.muralDay=-1;
   }catch(e){}
 }

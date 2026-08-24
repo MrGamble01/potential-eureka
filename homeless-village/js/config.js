@@ -46,6 +46,10 @@ var G = {
   // HV-10: nights the Soup Kitchen fed the whole camp
   soupNights: 0,
 
+  // HV-11: the Underpass Mural — panels painted (0..4) and the day of
+  // the last painting session (one per day).
+  mural: 0, muralDay: -1,
+
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
@@ -143,6 +147,29 @@ function addRep(n){
   var after=repTier();
   if(after>before) log(REP_TIERS[after].icon+' Word gets around — the neighborhood counts you as '+REP_TIERS[after].name+' now.');
   else if(after<before) log('💬 Word fades — around here you are '+REP_TIERS[after].name+' again.');
+  // HV-11: crossing into (or out of) Known changes whether the mural
+  // session is offered — rebuild the action list on tier changes only.
+  if(after!==before && typeof buildActionUI==='function') buildActionUI();
+}
+
+// ── HV-11: the Underpass Mural ────────────────────────────────
+// A multi-day community art project on the bridge pillars. Once the
+// neighborhood knows you (Known+), one painting session a day — 2
+// scraps of salvaged paint each — fills one of four panels. The
+// finished wall is permanent (sweeps take tents, not paint): it greets
+// every morning with a little morale, and passers-by slow down for it.
+var MURAL_PANELS = 4;
+var MURAL_LINES = [
+  'The first panel goes up: a sunrise over the bridge, in traffic-cone orange.',
+  'Second panel: the camp’s barrel fire, painted bigger than life.',
+  'Third panel: every regular on the block gets a face on the wall.',
+  'The last panel: a door standing open. Everyone paints a piece of it.',
+];
+function muralAvailable(){ return repTier()>=1 && (G.mural||0)<MURAL_PANELS; }
+function muralDone(){ return G.muralDay===G.days; }
+function muralAction(){
+  return { id:'mural', icon:'🎨', label:'Paint the mural ('+(G.mural||0)+'/'+MURAL_PANELS+')', time:7000, cooldown:0,
+    tooltip:'One session a day on the underpass wall. Costs 2 scraps of salvaged paint. +3 morale, and the block takes notice.' };
 }
 
 var ACTIONS = [
@@ -176,6 +203,7 @@ var GOALS = [
   {id:'dog',        desc:'Befriend the stray dog',    target:1,  reward:5,  value:function(){ return G.dog===2?1:0; }},
   {id:'respected',  desc:'Become Respected (50 rep)', target:50, reward:8,  value:function(){ return Math.floor(G.rep||0); }},
   {id:'soup7',      desc:'Serve 7 soup nights',       target:7,  reward:6,  value:function(){ return G.soupNights||0; }},
+  {id:'mural',      desc:'Finish the community mural',target:4,  reward:8,  value:function(){ return G.mural||0; }},
 ];
 
 var activeJobs = {};
