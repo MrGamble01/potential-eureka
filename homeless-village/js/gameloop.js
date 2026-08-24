@@ -202,8 +202,21 @@ function onNewDay(){
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
   if(G.structures.garden){
-    if(G.weather==='cold'){ log('Frost on the beds — the garden gave nothing today.'); }
-    else { var y=rand(1,3); G.food+=y; floatText('+'+y+'🍞'); log('Garden yielded '+y+' food.'); }
+    if(G.weather==='cold'){
+      if(G.structures.compost){
+        // HV-25: the bin's heat keeps one bed alive through frost
+        G.food+=1; G.compostDays=(G.compostDays||0)+1;
+        floatText('+1\ud83c\udf5e');
+        log('\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
+      } else {
+        log('Frost on the beds — the garden gave nothing today.');
+      }
+    }
+    else {
+      var y=rand(1,3);
+      if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
+      G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
+    }
   }
   if(G.dog===2){
     // Biscuit's keep: one food a day. Fed, he's warmth against your back
