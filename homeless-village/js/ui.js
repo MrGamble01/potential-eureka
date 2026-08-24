@@ -101,7 +101,33 @@ function buildWorkersUI(){
     }
     el.appendChild(row);
   });
+  buildPetitionsUI();  // HV-15: the notice board rides the same panel
   buildRegularsUI();   // HV-7: the roster shares the Community panel
+}
+
+// HV-15: the petitions board appears once the city will read them
+// (Respected+). Won petitions collapse into a checked row.
+function buildPetitionsUI(){
+  var el=document.getElementById('workers-list');
+  if(!el||!petitionsAvailable()) return;
+  var head=document.createElement('div');
+  head.className='worker-row';
+  head.innerHTML='<span class="w-icon">📋</span><span class="w-name"><b>City petitions</b></span>';
+  el.appendChild(head);
+  PETITIONS.forEach(function(p){
+    var won=G.petitions[p.id];
+    var row=document.createElement('div');
+    row.className='worker-row'+(won?' hired':'');
+    if(won){
+      row.innerHTML='<span class="w-icon">'+p.icon+'</span><span class="w-name">'+p.name+'</span><span class="w-status">won ✓</span>';
+    } else {
+      row.innerHTML='<span class="w-icon">'+p.icon+'</span><span class="w-name">'+p.name+'</span><button class="w-hire" onclick="doPetition(\''+p.id+'\')" title="'+p.desc+'">'+p.cost+'🩶</button>';
+    }
+    row.setAttribute('data-tip',p.desc);
+    row.addEventListener('mouseenter',showTip);
+    row.addEventListener('mouseleave',hideTip);
+    el.appendChild(row);
+  });
 }
 
 // HV-7: the regulars roster under the Community panel. Hearts fill with

@@ -212,3 +212,21 @@ function hireWorker(id){
   log(def.name+' joined the community.');
   buildWorkersUI(); updateHUD();
 }
+
+// HV-15: goodwill spent at the notice board becomes civic
+// infrastructure — nothing a sweep can take or a thief can carry off.
+function doPetition(id){
+  var def=PETITIONS.find(function(p){ return p.id===id; });
+  if(!def) return;
+  if(!petitionsAvailable()){ log('The city only reads petitions from respected camps (50 rep).'); return; }
+  if(G.petitions[id]) return;
+  if(G.goodwill<def.cost){ log('Not enough goodwill to back the petition (need '+def.cost+'🩶).'); sfx('error'); return; }
+  G.goodwill-=def.cost;
+  G.petitions[id]=true;
+  if(id==='grant'){ G.food+=8; G.wood+=8; G.scraps+=8; floatText('+8🍞 +8🪵 +8🧱'); }
+  addRep(2);
+  sfx('craft');
+  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+def.desc);
+  saveGame();
+  buildWorkersUI(); updateHUD();
+}
