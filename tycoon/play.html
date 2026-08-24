@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -5944,7 +5944,7 @@ let featurePrice = CONFIG.featurePriceBase;
 // paperBoost + pingPongBoost are per-delivery amenity bonuses.
 function computeDealValue({ paperBoost = 1, pingPongBoost = 1 } = {}) {
   const v = Math.round(
-    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult()
+    featurePrice * dealValueMult * productVersionMult * legacyBonus() * paperBoost * pingPongBoost * boardDealMult * patentBonus() * climateDealMult() * trophyBonus() * bridgeDealMult() * keynoteLeadMult() * analystDealMult()
   );
   // Never let a bad multiplier (e.g. from a corrupted save) emit NaN —
   // one NaN deal would poison state.cash permanently via addCash.
@@ -6186,6 +6186,7 @@ const ACHIEVEMENTS = [
   { id: 'pager_duty',    icon: '📟', title: 'Pager Duty',           desc: 'Page the on-call through three outages.', check: () => outagesPaged >= 3, progress: () => [Math.min(outagesPaged, 3), 3] },
   { id: 'lifeline',      icon: '💸', title: 'Lifeline',             desc: 'Take the board\u2019s bridge in two separate seasons.', check: () => bridgesTaken >= 2, progress: () => [Math.min(bridgesTaken, 2), 2] },
   { id: 'roadshow',      icon: '🎤', title: 'Roadshow',             desc: 'Take the keynote stage three times.', check: () => keynotesGiven >= 3, progress: () => [Math.min(keynotesGiven, 3), 3] },
+  { id: 'street_darling', icon: '📊', title: 'Street Darling',      desc: 'Carry three straight Buy ratings into the bell.', check: () => analystStreak >= 3, progress: () => [Math.min(analystStreak, 3), 3] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -8135,6 +8136,7 @@ function triggerWin(cumulative) {
   if (!rivalDone) {
     // Beat the ghost to the bell: 5% of the goal as a victory bonus.
     rivalDone = true;
+    raceWonSeason = true;   // TYC-26: the Street watched you ring first
     const bonus = Math.round(currentGoalTarget() * 0.05);
     addCash(bonus);
     showToast(`🏁 You beat ${rivalName} to the goal — +$${fmtCash(bonus)} victory bonus!`, 'good', 'critical');
@@ -10746,6 +10748,56 @@ function showSeasonCard(level) {
   _seasonCardTimer = setTimeout(() => card.classList.remove('show'), 4400);
 }
 
+// ── The Analyst (TYC-26) ──────────────────────────────────
+// The Street starts watching. At every IPO an analyst updates
+// coverage from the season just closed: ring the bell ahead of the
+// rival with no bridge round on the books and the rating is BUY —
+// every deal next season closes 5% richer. Win diluted and it's a
+// HOLD. Let the rival ring first and it's a SELL — 5% off every deal
+// until you prove them wrong at the next bell.
+const ANALYST_BUY_MULT = 1.05, ANALYST_SELL_MULT = 0.95;
+let analystRating = 'none';   // 'none' | 'buy' | 'hold' | 'sell'
+let analystBuys = 0;          // lifetime Buy ratings
+let analystStreak = 0;        // consecutive Buys
+let raceWonSeason = false;    // set when YOU ring the bell first
+function analystDealMult() {
+  return analystRating === 'buy' ? ANALYST_BUY_MULT : analystRating === 'sell' ? ANALYST_SELL_MULT : 1;
+}
+function refreshAnalystChip() {
+  const el = document.getElementById('analyst-chip');
+  if (!el) return;
+  if (analystRating === 'buy' || analystRating === 'sell') {
+    el.style.display = '';
+    el.textContent = analystRating === 'buy' ? '\u{1F4CA} BUY +5%' : '\u{1F4CA} SELL \u22125%';
+    el.title = analystRating === 'buy'
+      ? 'Analyst coverage: BUY \u2014 the Street liked last season. Every deal closes 5% richer until the next bell.'
+      : 'Analyst coverage: SELL \u2014 the rival rang first. Every deal closes 5% lighter until you prove them wrong.';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function rollAnalyst() {
+  const won = raceWonSeason;
+  const clean = !bridgeTakenSeason;
+  raceWonSeason = false;
+  analystRating = won ? (clean ? 'buy' : 'hold') : 'sell';
+  if (analystRating === 'buy') { analystBuys++; analystStreak++; }
+  else analystStreak = 0;
+  refreshAnalystChip();
+  if (analystRating === 'buy') {
+    showToast('\u{1F4CA} Coverage updated: BUY \u2014 the Street liked that quarter. Deals close 5% richer this season.', 'good', 'critical');
+    addFeedEntry('\u{1F4CA} Analyst rating: BUY (streak ' + analystStreak + ')');
+  } else if (analystRating === 'hold') {
+    showToast('\u{1F4CA} Coverage updated: HOLD \u2014 a win, but the bridge round is on the books.', '', 'standard');
+    addFeedEntry('\u{1F4CA} Analyst rating: HOLD (the dilution showed)');
+  } else {
+    showToast('\u{1F4CA} Coverage updated: SELL \u2014 the rival rang first. Deals close 5% lighter this season.', 'bad', 'critical');
+    addFeedEntry('\u{1F4CA} Analyst rating: SELL');
+  }
+  checkAchievements();
+}
+
 function doIPO() {
   founderEarn();   // TYC-8: every IPO mints a Founder Point
   prestigeLevel++;
@@ -10764,6 +10816,7 @@ function doIPO() {
   nextMilestoneIdx = 0;
   totalUsers = 0; totalFeaturesShipped = 0; nextUserMilestone = 0;
   dashHistory.length = 0; _dashT0 = Date.now(); // restart the season revenue chart
+  rollAnalyst();     // TYC-26: coverage updates off the season just closed
   initRival(true);   // a new season brings a new rival
   warUsedSeason = false; warRoom = null; warOffer = null; refreshWarChip();   // TYC-22: a new race re-arms the war room
   keynoteDoneSeason = false; keynote = null; keynoteOffer = null; refreshKeynoteChip();   // TYC-25: a fresh conference season
@@ -11413,6 +11466,18 @@ const SAVE_SCHEMA = [
         bridgeTakenSeason = !!p.bridge.taken;
         bridgesTaken = Math.max(0, Math.floor(p.bridge.count || 0));
         refreshBridgeChip();
+      }
+    },
+  },
+  {
+    key: 'analyst', // TYC-26: the coverage on the books
+    write: p => { p.analyst = { rating: analystRating, buys: analystBuys, streak: analystStreak }; },
+    read: p => {
+      if (p.analyst) {
+        analystRating = ['buy', 'hold', 'sell'].includes(p.analyst.rating) ? p.analyst.rating : 'none';
+        analystBuys = Math.max(0, Math.floor(p.analyst.buys || 0));
+        analystStreak = Math.max(0, Math.floor(p.analyst.streak || 0));
+        refreshAnalystChip();
       }
     },
   },
