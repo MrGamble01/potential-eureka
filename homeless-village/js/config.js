@@ -18,7 +18,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -83,6 +83,7 @@ var RECIPES = [
   {id:'pantry',      icon:'🥣', name:'Free Pantry',     cost:{wood:6,scraps:2},                gives:{structure:'pantry'},     time:8000,  desc:'A little box on a post: take what you need, leave what you can. Some dawns the neighborhood leaves something \u2014 and a stocked pantry gets the camp remembered.', requires:'workbench'},
   {id:'coats',       icon:'🧥', name:'Coat Rack',       cost:{scraps:5,goodwill:6},            gives:{structure:'coats'},      time:9000,  desc:'Donated coats on a rail by the fire \u2014 on bitter dawns the cold cuts half as deep.', requires:'workbench'},
   {id:'toolbox',     icon:'🧰', name:'Tool Box',        cost:{scraps:6,cans:2},                gives:{structure:'toolbox'},    time:7000,  desc:'Good tools, oiled and kept \u2014 the workbench never falls apart again, and an odd job done with the right tools earns +2 goodwill on top.', requires:'workbench'},
+  {id:'compost',     icon:'\u267B\uFE0F', name:'Compost Bin',     cost:{scraps:3,food:2},                gives:{structure:'compost'},    time:6000,  desc:'Scraps in, black gold out \u2014 the garden yields +1 every day it gives, and the bin\u2019s heat keeps one bed alive through frost.', requires:'workbench'},
 ];
 
 // ── Weather (HV-5) ────────────────────────────────────────────
@@ -369,6 +370,7 @@ var GOALS = [
   {id:'pantry10',   desc:'See the pantry filled 10 times', target:10, reward:5, value:function(){ return G.pantryFills||0; }},
   {id:'coldcut6',   desc:'Blunt 6 cold dawns with the coat rack', target:6, reward:5, value:function(){ return G.coldCut||0; }},
   {id:'bench5',     desc:'Tighten the workbench back up 5 times', target:5, reward:5, value:function(){ return G.benchSaves||0; }},
+  {id:'compost8',   desc:'Feed the beds through 8 garden days', target:8, reward:5, value:function(){ return G.compostDays||0; }},
 ];
 
 var activeJobs = {};

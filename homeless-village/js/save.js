@@ -57,6 +57,8 @@ function loadGame(){
     if(typeof G.coldCut!=='number') G.coldCut=0;
     if(typeof G.structures.toolbox!=='boolean') G.structures.toolbox=false; // saves from before HV-24
     if(typeof G.benchSaves!=='number') G.benchSaves=0;
+    if(typeof G.structures.compost!=='boolean') G.structures.compost=false; // saves from before HV-25
+    if(typeof G.compostDays!=='number') G.compostDays=0;
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
   }catch(e){}
 }
