@@ -446,6 +446,15 @@ canvas{display:block;touch-action:none;}
 #route-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 #route-toggle.cold{color:#ff6a5a;border-color:rgba(255,106,90,0.6);}
 @media (max-width:640px){ #route-toggle{bottom:64px;right:120px;font-size:11px;padding:5px 9px;} }
+/* ── The Burner Phone (LAB-24) ── */
+#burner-toggle{
+  position:fixed;bottom:14px;right:716px;z-index:30;
+  background:rgba(10,8,4,0.92);border:1px solid rgba(255,209,102,0.4);
+  color:#ffd166;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#burner-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #burner-toggle{bottom:114px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -525,6 +534,7 @@ canvas{display:block;touch-action:none;}
 <div id="wave-hud" style="display:none" title="A crackdown sweep: every sale runs 2× hotter and street buyers come half as often. Sell nothing until it lifts and the clean streets pay −10 heat">🚨 <span id="wave-val"></span></div>
 <div id="party-hud" style="display:none" title="A block party: buyers pay +25% and come twice as fast — but every sale runs 1.5× hotter and the crowd hides badges (2× sting odds). Sell hard or sit it out">🎉 <span id="party-val"></span></div>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
+<button id="burner-toggle" style="display:none" title="The Burner Phone: $800 for a clean number. While it holds charge (10 street sales), undercover buyers make the corner half as often — then the number’s burned and you buy another">📱 BURNER $800</button>
 <button id="unit-toggle" style="display:none" title="The Storage Unit: a $1,500 rental across town under a clean name. Stash cap 15 → 45, and if you ever skip town, the unit isn’t on the warrant — up to 15 bags survive">📦 RENT A UNIT $1,500</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
@@ -1028,6 +1038,46 @@ const STASH_MAX_BASE = 15;
 // the warrant, a getaway-bag skip keeps up to 15 bags instead of
 // losing the lot. One rental, permanent.
 const UNIT_COST = 1500, UNIT_CAP_BONUS = 30, UNIT_KEEP = 15;
+// ── The Burner Phone (LAB-24) ──────────────────────────────
+// $800 for a clean number (Act II+). While the burner holds charge —
+// its first 10 street sales — the corner reads safer: undercover
+// buyers spawn at HALF the odds. Then the number's burned, the odds
+// snap back, and the counter goes dark until you buy another.
+// Interlocks with the Block Party: a fresh burner halves even the
+// party's doubled badge odds.
+const BURNER_COST = 800, BURNER_SALES = 10;
+function burnerFresh() { return (state.burnerLeft || 0) > 0; }
+function burnerStingMult() { return burnerFresh() ? 0.5 : 1; }
+function refreshBurnerBtn() {
+  const b = document.getElementById('burner-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', burnerFresh());
+  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : '📱 BURNER $' + fmtCash(BURNER_COST);
+}
+function buyBurner() {
+  if (burnerFresh()) { showToast('📱 The number still holds — ' + state.burnerLeft + ' sales of charge left.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < BURNER_COST) { showToast("Can't afford a clean number yet ($" + fmtCash(BURNER_COST) + ').', 'bust'); return; }
+  state.cash -= BURNER_COST;
+  state.burnerLeft = BURNER_SALES;
+  state.burnersBought = (state.burnersBought || 0) + 1;
+  refreshBurnerBtn();
+  showToast('📱 A clean number — undercover buyers make the corner half as often for ' + BURNER_SALES + ' sales.', 'good');
+  addFeed('📱 Bought a burner — the corner reads safer');
+  checkGrowAchievements();
+  saveGame();
+}
+function burnStreetSale() {
+  if (!burnerFresh()) return;
+  state.burnerLeft--;
+  if (state.burnerLeft <= 0) {
+    state.burnerLeft = 0;
+    showToast('📱 The burner’s burned — toss it. The corner reads normal again.', 'bust');
+    addFeed('📱 The burner burned out');
+  }
+  refreshBurnerBtn();
+}
 function stashMax() { return STASH_MAX_BASE + (state.unitRented ? UNIT_CAP_BONUS : 0); }
 function refreshUnitBtn() {
   const b = document.getElementById('unit-toggle');
@@ -1207,7 +1257,7 @@ function spawnDealer() {
   // LAB-9: past the garage act, ~1 in 8 "buyers" is an undercover cop.
   // The feed gives no tell — only a hired Lookout flags them on sight.
   const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2),
-             undercover: currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1), waitT: 0};   // LAB-23: the crowd hides badges
+             undercover: currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1) * (typeof burnerStingMult === 'function' ? burnerStingMult() : 1), waitT: 0};   // LAB-23/24: the crowd hides badges; a fresh burner reads them out
   dealers.push(d);
   addFeed(`👤 Buyer incoming`);
 }
@@ -1927,6 +1977,7 @@ function refreshRouteBtn() {
   b.classList.toggle('on', !!state.route && routeCold <= 0);
   refreshBagBtn();   // LAB-21: the bag rides the same act gate
   refreshUnitBtn();  // LAB-22: so does the unit (one act earlier inside)
+  refreshBurnerBtn(); // LAB-24: and the burner rides the same gate
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2086,6 +2137,7 @@ function updateRoute(dt) {
 { const rb = document.getElementById('route-toggle'); if (rb) rb.onclick = toggleRoute; }
 { const gb = document.getElementById('bag-toggle'); if (gb) gb.onclick = packBag; }
 { const ub = document.getElementById('unit-toggle'); if (ub) ub.onclick = rentUnit; }
+{ const bb = document.getElementById('burner-toggle'); if (bb) bb.onclick = buyBurner; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2339,6 +2391,7 @@ const GROW_ACH = [
   { id: 'block_famous', name: 'The Block Knows', test: () => (state.partySales || 0) >= 12 },   // LAB-23
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
+  { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -2737,6 +2790,7 @@ function saveGame() {
     waveSales, cleanWaves: state.cleanWaves || 0,
     bagPacked: !!state.bagPacked, skips: state.skips || 0,   // LAB-21
     unitRented: !!state.unitRented,   // LAB-22
+    burnerLeft: Math.max(0, Math.min(10, Math.floor(state.burnerLeft || 0))), burnersBought: state.burnersBought || 0,   // LAB-24
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
@@ -2823,6 +2877,9 @@ function loadGame() {
     state.bagPacked = !!sv.bagPacked;   // LAB-21
     state.skips = Math.max(0, Math.floor(sv.skips || 0));
     state.unitRented = !!sv.unitRented;   // LAB-22
+    state.burnerLeft = Math.max(0, Math.min(BURNER_SALES, Math.floor(sv.burnerLeft || 0)));   // LAB-24
+    state.burnersBought = Math.max(0, Math.floor(sv.burnersBought || 0));
+    refreshBurnerBtn();
     refreshUnitBtn();
     refreshBagBtn();
     refreshWaveHud();
@@ -3199,6 +3256,7 @@ function sellToDealer(d, idx) {
   stashCount-=qty; state.totalSold+=qty;
   addCash(price);
   addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
+  burnStreetSale();   // LAB-24: the corner burns the number
   if (waveActive()) waveSales++;
   if (partyActive()) { partySalesNow++; state.partySales = (state.partySales || 0) + 1; checkGrowAchievements(); }
   if (contract) {   // LAB-8: every street sale fills the open order
