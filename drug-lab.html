@@ -1587,7 +1587,9 @@ function salePrice() {
   const base = 25;
   const purity = 1 + upgLv('bags')*0.15 + upgLv('price')*0.4;
   const chemiBonus = chemStation ? 1.8 : 1;
-  return Math.floor(base * purity * chemiBonus * DIFF().price * legacyMult() * marketMult());
+  // LAB-14: the Penthouse brand — nobody haggles with the man upstairs.
+  const brand = ownedRoomSet.has('penthouse') ? 1.1 : 1;
+  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult());
 }
 
 // ── Big buyers (LAB-8) ─────────────────────────────────────
@@ -1828,6 +1830,7 @@ const GROW_ACH = [
   { id: 'quarter_kilo', name: 'Quarter Kilo',    test: () => state.totalSold >= 250 },
   { id: 'high_roller',  name: 'High Roller',     test: () => state.cash >= 25000 },
   { id: 'fresh_linen',  name: 'Fresh Linen',     test: () => ownedRoomSet.has('front') },   // LAB-13
+  { id: 'top_floor',    name: 'The View From the Top', test: () => ownedRoomSet.has('penthouse') },   // LAB-14
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -1986,6 +1989,11 @@ function buyRoom(id) {
   if (id === 'front') {
     showToast('💈 The laundromat opens — heat builds 25% lighter and drains faster. Every cop on the block has a reason you’re here.', 'good');
     addFeed('💈 Spin cycle running — the block finally has a clean story');
+  }
+  // LAB-14: the view from the top sells itself
+  if (id === 'penthouse') {
+    showToast('👑 The Penthouse. The brand commands respect now — every sale pays 10% more.', 'good');
+    addFeed('👑 Moved upstairs — nobody haggles with the man in the penthouse');
   }
   saveGame();
 }
