@@ -224,6 +224,7 @@
     <li>The <b>🔭 Observatory</b> (level 9) charts the night sky: <b>✨ stardust falls twice as often</b> and every wish surges the crops <b>twice as hard</b></li>
     <li>A <b>🌦️ Weather Vane</b> (level 6) reads the sky: every shower is <b>called half a minute out</b>, and rain <b>lingers 25% longer</b> over the isle</li>
     <li><b>🎈 Balloon Tours</b> (level 10) lift sightseers over the isle every few minutes — <b>tips scale with every building standing</b> (grounded in rain and winter)</li>
+    <li>A <b>🕊️ Dovecote</b> (level 7) receives mainland letters — <b>small goods orders at a 75% premium</b>; tap the banner to send the dove home heavy (90s window)</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -1548,6 +1549,7 @@ const BUILDINGS={
   observatory:{ico:'🔭',name:'Observatory',cost:1500,lvl:9,desc:'Charts the night sky: ✨ stardust falls twice as often, and every wish surges crops twice as hard',roof:0x6a5acd,wall:0xd8d8e8,kind:'obs'},
   vane:      {ico:'🌦️',name:'Weather Vane',cost:450,lvl:6,desc:'Reads the sky: calls each shower half a minute before it lands, and showers linger 25% longer over the isle',roof:0x8a8fb0,wall:0xd0d4e0,kind:'vane'},
   balloon:   {ico:'🎈',name:'Balloon Tours',cost:1800,lvl:10,desc:'A moored balloon lifts sightseers over the isle — every tour tips coins by how much there is to see',roof:0xd94f6a,wall:0xc9a06a,kind:'balloon'},
+  dovecote:  {ico:'🕊️',name:'Dovecote',cost:700,lvl:7,desc:'Carrier doves bring letters from the mainland — small standing orders that pay a 75% premium over base value',roof:0xe8e0d0,wall:0xc9b8a0,kind:'dove'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1561,6 +1563,7 @@ function buildingCubes(def){
   if(def.kind==='obs')return obsCubes(def);
   if(def.kind==='vane')return vaneCubes(def);
   if(def.kind==='balloon')return balloonCubes(def);
+  if(def.kind==='dove')return doveCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1628,6 +1631,19 @@ function balloonCubes(def){
   a(0,2.5,0,1.5,0.9,1.5,def.roof);               // canopy, lower bulge
   a(0,3.15,0,1.2,0.5,1.2,0xe8e0d0);              // canopy, white band
   a(0,3.6,0,0.8,0.4,0.8,def.roof);               // canopy crown
+  return c;
+}
+function doveCubes(def){
+  // VOX-13: a little dove-house on a post, perch rail and a resident bird
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.2,0,0.9,0.4,0.9,0x9aa0a6);               // stone foot
+  a(0,1.0,0,0.2,1.4,0.2,0x5a4028);               // the post
+  a(0,1.9,0,1.1,0.7,1.1,def.wall);               // the house
+  a(0,2.35,0,1.25,0.24,1.25,def.roof);           // the roof
+  a(0,1.75,0.58,0.24,0.24,0.06,0x2a2a2a);        // a round door
+  a(0.7,1.55,0,0.5,0.08,0.14,0x5a4028);          // the perch rail
+  a(0.82,1.75,0,0.2,0.2,0.16,0xe8e0d0);          // the resident dove
+  a(0.9,1.9,0,0.1,0.1,0.1,0xd94f30);             // her beak
   return c;
 }
 function obsCubes(def){
@@ -3069,6 +3085,62 @@ function updateTours(dt){
   checkAch();
 }
 
+/* ============================== carrier doves (VOX-13) ============================== */
+// Letters from the mainland. With the dovecote up and a stockpile
+// running, a dove lands every few minutes with a small standing order:
+// a good you actually hold, 2–4 of it, at a 75% premium over base
+// value. Fill it before the dove flies home (90s) or the letter goes
+// unanswered. Filled orders tally toward Par Avion.
+const DOVE_PREMIUM = 1.75, DOVE_WINDOW = 90;
+let doveOrder = null, doveNextT = 240 + Math.random() * 120;
+function dovecoteBuilt(){return !!(state.buildings&&state.buildings.dovecote);}
+function doveOrderPay(t, qty){return Math.round(qty * goodDef(t).yield * DOVE_PREMIUM);}
+function refreshDoveHud(){
+  const el = document.getElementById('doveHud');
+  if (!el) return;
+  if (doveOrder) {
+    el.style.display = 'flex';
+    document.getElementById('doveTxt').textContent =
+      '🕊️ ' + doveOrder.qty + '× ' + goodDef(doveOrder.good).product + ' → ' + doveOrder.pay + ' 🪙 (' + Math.ceil(doveOrder.expire) + 's)';
+  } else el.style.display = 'none';
+}
+function fillDoveOrder(){
+  if (!doveOrder) return;
+  const { good, qty, pay } = doveOrder;
+  if ((state.goods[good] || 0) < qty) { toast('🕊️ The letter asks for ' + qty + '× ' + goodDef(good).product + ' — the stockpile is short'); return; }
+  state.goods[good] -= qty;
+  doveOrder = null;
+  const b = state.buildings.dovecote;
+  grantCoins(pay, b.x, 3, b.z);
+  state.doveFilled = (state.doveFilled || 0) + 1;
+  toast('🕊️ The dove flies home heavy — ' + qty + ' goods for ' + pay + ' 🪙 (' + state.doveFilled + ' filled)');
+  doveNextT = 240 + Math.random() * 120;
+  refreshDoveHud(); refreshGoodsHud();
+  checkAch();
+}
+function updateDoves(dt){
+  if (!dovecoteBuilt() || !stockpiles()) return;
+  if (doveOrder) {
+    doveOrder.expire -= dt;
+    refreshDoveHud();
+    if (doveOrder.expire <= 0) {
+      doveOrder = null;
+      refreshDoveHud();
+      toast('🕊️ The dove flew home with the letter unanswered.');
+      doveNextT = 240 + Math.random() * 120;
+    }
+    return;
+  }
+  doveNextT -= dt;
+  if (doveNextT > 0) return;
+  const held = goodsKeys().filter(t => (state.goods[t] || 0) > 0);
+  const good = held.length ? held[(Math.random() * held.length) | 0] : 'crop';
+  const qty = 2 + ((Math.random() * 3) | 0);
+  doveOrder = { good, qty, pay: doveOrderPay(good, qty), expire: DOVE_WINDOW };
+  refreshDoveHud();
+  toast('🕊️ A dove lands with a letter — the mainland wants ' + qty + '× ' + goodDef(good).product + ' at a premium.');
+}
+
 /* ============================== stardust & wishes (VOX-5) ============================== */
 // The how-to always said the stars were good for something. At night a
 // shooting star occasionally sheds a glowing shard over the garden —
@@ -4011,6 +4083,7 @@ const ACH=[
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
   ['tours5','Head in the Clouds','Send five balloon tours over the isle',()=>(state.tours||0)>=5],
+  ['dove5','Par Avion','Fill five carrier-dove orders',()=>(state.doveFilled||0)>=5],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4250,6 +4323,7 @@ function boot(){
     updateFlotsam(dt);
     updateShips(dt);
     updateTours(dt);
+    updateDoves(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
@@ -4290,5 +4364,6 @@ function boot(){
 }
 boot();
 </script>
+<div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
 </body>
 </html>
