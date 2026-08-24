@@ -566,6 +566,7 @@ const AgeOfWarGame = (() => {
     { id: 'warlord_all',  icon: '🏴',  title: 'Wastes Pacified',  desc: 'Fell all five named warlords across your runs.' },
     { id: 'standard_bearer', icon: '🚩', title: 'Standard Bearer', desc: 'Take 50 kills in one run under a war banner.' },
     { id: 'dig_in',       icon: '⛏️',  title: 'Dig In',           desc: 'Bog down 15 enemies in one run with the Trenchworks.' },
+    { id: 'giantslayer',  icon: '🗡️',  title: 'Giantslayer',      desc: 'Win two single-combat duels against named warlords in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -667,6 +668,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.mercs || 0) >= 3) unlock('mercs_3');
     if (warBanner !== 'none' && runStats.kills >= 50) unlock('standard_bearer');
     if ((runStats.trenchSlowed || 0) >= 15) unlock('dig_in');
+    if ((runStats.duelsWon || 0) >= 2) unlock('giantslayer');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1074,6 +1076,7 @@ const AgeOfWarGame = (() => {
     runStats.mercs = 0; mercCd = 0;
     runStats.warlordsSlain = 0;
     runStats.trenches = 0; runStats.trenchSlowed = 0; trenchT = 0; trenchCd = 0;
+    runStats.duels = 0; runStats.duelsWon = 0;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1378,6 +1381,67 @@ const AgeOfWarGame = (() => {
     goldFloaters.push({ text: `🪖 MERCENARIES! ${hired.length}× veteran ${UNITS[key].name}`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.6 });
     shake(3, 0.2);
     SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Champion's Duel (AOW-21) ──────────────────────────
+  // The named warlords answer a challenge. While one leads the field,
+  // pay the purse and your foremost soldier steps out for single
+  // combat, resolved on the spot from raw stats: win odds are the
+  // champion's dmg×hp share of the pair, clamped 15–85%. Win and the
+  // warlord falls where they stand (full kill credit and bounty flow
+  // through the normal kill resolution) with the champion bloodied to
+  // 70%; lose and the champion dies, but the warlord limps on at 75%.
+  // One challenge per warlord — they don't answer twice.
+  const DUEL_COST = 250;
+  function fieldWarlord() {
+    for (const u of units) {
+      if (u.side === 'enemy' && u.warlord && !u._dead && u.hp > 0 && !u.dueled) return u;
+    }
+    return null;
+  }
+  function duelChampion() {
+    let best = null;
+    for (const u of units) {
+      if (u.side === 'player' && !u._dead && u.hp > 0 && (!best || u.x > best.x)) best = u;
+    }
+    return best;
+  }
+  function duelChance(c, w) {
+    const cp = c.dmg * c.hp, wp = w.dmg * w.hp;
+    return Math.min(0.85, Math.max(0.15, cp / (cp + wp)));
+  }
+  function challengeDuel() {
+    if (gameOver || modalPaused || userPaused) return;
+    const w = fieldWarlord();
+    if (!w) return;
+    const c = duelChampion();
+    if (!c) {
+      goldFloaters.push({ text: '⚔ No champion stands to answer', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (gold < DUEL_COST) {
+      goldFloaters.push({ text: `⚔ The duel purse is ${DUEL_COST} gold`, x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= DUEL_COST;
+    w.dueled = true;
+    runStats.duels = (runStats.duels || 0) + 1;
+    const won = Math.random() < duelChance(c, w);
+    if (won) {
+      w.hp = 0;   // falls where they stand — kill resolution pays full credit
+      c.hp = Math.max(1, Math.round(c.hp * 0.7));
+      runStats.duelsWon = (runStats.duelsWon || 0) + 1;
+      goldFloaters.push({ text: `⚔ ${w.name} FALLS IN SINGLE COMBAT!`, x: w.x, y: GROUND_Y - w.h - 40, color: '#fcd34d', t: 2.2 });
+      shake(8, 0.4);
+    } else {
+      c.hp = 0;
+      w.hp = Math.max(1, Math.round(w.hp * 0.75));
+      goldFloaters.push({ text: `⚔ The champion falls — ${w.name} is bloodied`, x: w.x, y: GROUND_Y - w.h - 40, color: '#f85149', t: 2.0 });
+      shake(4, 0.3);
+    }
+    SFX.special();
     checkAchievementsDuringRun();
     renderHud();
   }
@@ -1690,6 +1754,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 't' || e.key === 'T') {
         digTrench();
+        e.preventDefault();
+      } else if (e.key === 'c' || e.key === 'C') {
+        challengeDuel();
         e.preventDefault();
       }
     });
@@ -7033,6 +7100,18 @@ const AgeOfWarGame = (() => {
       trEl.disabled = trenchCd > 0 || playerEra < 1;
     }
 
+    // Duel button (AOW-21)
+    const duEl = document.getElementById('aow-duel-btn');
+    const duCdEl = document.getElementById('aow-duel-cd');
+    if (duEl) {
+      const w = fieldWarlord();
+      if (duCdEl) duCdEl.textContent = w ? `${DUEL_COST}g` : '—';
+      duEl.disabled = !w;
+      duEl.title = w
+        ? `Challenge ${w.name} to single combat (C) — ${DUEL_COST} gold. Your foremost soldier steps out; odds ride raw stats. One challenge per warlord.`
+        : "Champion's Duel (C) — answers only while a named warlord leads an endless boss wave.";
+    }
+
     // Wave indicator
     const waveEl = document.getElementById('aow-wave');
     const waveNumEl = document.getElementById('aow-wave-num');
@@ -7327,5 +7406,5 @@ const AgeOfWarGame = (() => {
     closeCouncil();
   }
 
-  return { init, start: reset, destroy };
+return { init, start: reset, destroy };
 })();
