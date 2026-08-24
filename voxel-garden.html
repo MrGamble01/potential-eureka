@@ -231,6 +231,7 @@
     <li>The <b>🍁 Sugar Shack</b> (level 7) taps the maples &mdash; <b>spring boils every couple of minutes</b> pay 12 🪙, and a <b>boil in the rain runs double</b>: every season now has its own earner</li>
     <li>The <b>🏛️ Isle Museum</b> (level 9) keeps a curator&rsquo;s cabinet &mdash; the <b>first of every species</b> you land is mounted for a <b>30 🪙 finder&rsquo;s bounty</b>, and the winter table counts: eight mounts fill the cabinet</li>
     <li>The <b>🦉 Owl Roost</b> (level 8) works the night shift &mdash; <b>after dark the owl hunts every couple of minutes</b> for 9 🪙, and a <b>wet night pays double</b>: the balloon has the day, the owl has the dark</li>
+    <li>The <b>🐖 Truffle Pig</b> (level 9) works the after-rain &mdash; <b>every shower that passes</b>, she roots the wet ground for a <b>20 🪙 truffle</b>: the weather itself now pays out</li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -743,6 +744,25 @@ function updateOwlRoost(dt){
   grantCoins(pay,b.x,2.8,b.z);
   state.owlCatches=(state.owlCatches||0)+1;
   toast(rainActive?'🦉 A wet-night hunt — the voles are out and the owl eats well: '+pay+' 🪙':'🦉 The owl ghosts over the beds and comes back heavy — '+pay+' 🪙');
+  checkAch();
+}
+
+// VOX-20: the Truffle Pig — the rain's own payoff. The owl works the
+// dark and the shack works the spring wet; the pig works the AFTER:
+// every shower that passes over the isle, she roots the soft ground
+// where it fell and comes up with a truffle.
+const TRUFFLE_PAY=20;
+function pigBuilt(){return !!(state.buildings&&state.buildings.trufflepig);}
+let pigWasRaining=false;
+function updateTrufflePig(dt){
+  if(!pigBuilt()){pigWasRaining=rainActive;return;}
+  if(rainActive){pigWasRaining=true;return;}
+  if(!pigWasRaining)return;
+  pigWasRaining=false;                     // the shower just lifted — she's off
+  const b=state.buildings.trufflepig;
+  grantCoins(TRUFFLE_PAY,b.x,2.4,b.z);
+  state.truffles=(state.truffles||0)+1;
+  toast('🐖 The rain lifts and the pig gets to work — a truffle! +'+TRUFFLE_PAY+' 🪙');
   checkAch();
 }
 function goFishing(x,z){
@@ -1607,6 +1627,7 @@ const BUILDINGS={
   sugarshack:{ico:'🍁',name:'Sugar Shack',cost:700,lvl:7,desc:'Taps the maples when the sap rises — the pans boil every couple of minutes through spring, and a boil in the rain runs double',roof:0x8a4b2f,wall:0xb8875a,kind:'sugar'},
   museum:   {ico:'🏛️',name:'Isle Museum',cost:800,lvl:9,desc:'A curator\u2019s cabinet by the shore — the first of every species you land is mounted and pays a 30 🪙 finder\u2019s bounty (the winter table counts)',roof:0x8a8f96,wall:0xe8e2d4,kind:'museum'},
   owlroost: {ico:'🦉',name:'Owl Roost',cost:720,lvl:8,desc:'A high pole-box for a resident owl — she hunts the fields every couple of minutes after dark, and a wet night drives the voles out of their burrows: the hunt pays double in the rain',roof:0x5a4a3a,wall:0x7a6a52,kind:'owl'},
+  trufflepig:{ico:'🐖',name:'Truffle Pig',cost:760,lvl:9,desc:'A snuffling companion with a sty by the fence — every shower that passes over the isle, she roots the wet ground and comes up with a truffle: 20 🪙, right where the rain was',roof:0x8a5a6a,wall:0xd8a0a8,kind:'pig'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1627,6 +1648,7 @@ function buildingCubes(def){
   if(def.kind==='sugar')return sugarCubes(def);
   if(def.kind==='museum')return museumCubes(def);
   if(def.kind==='owl')return owlCubes(def);
+  if(def.kind==='pig')return pigCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1749,6 +1771,20 @@ function ferryCubes(def){
   a(0.7,0.72,0.25,0.2,0.3,0.2,0x2a3a4a);         // the mooring bollard
   a(-0.05,1.15,0.3,0.06,1.2,0.06,0x5a4028);      // the flagpole
   a(0.16,1.6,0.3,0.4,0.24,0.04,0xd94f30);        // the flag
+  return c;
+}
+function pigCubes(def){
+  // VOX-20: a low sty with an open rail — and the pig herself, round
+  // and pink, snout down in the mud
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.35,-0.4,1.6,0.7,0.8,def.wall);           // the sty
+  a(0,0.85,-0.4,1.8,0.2,1.0,def.roof);           // low roof
+  a(-0.7,0.2,0.45,0.1,0.4,0.7,0x8a6a4a);         // rail posts
+  a(0.7,0.2,0.45,0.1,0.4,0.7,0x8a6a4a);
+  a(0,0.34,0.78,1.5,0.08,0.08,0x8a6a4a);         // the rail
+  a(0.1,0.3,0.3,0.7,0.5,0.5,0xf0a8b8);           // the pig
+  a(0.5,0.26,0.3,0.24,0.24,0.24,0xf0a8b8);       // snout down
+  a(0.62,0.2,0.3,0.1,0.1,0.12,0xd88a9a);         // in the mud
   return c;
 }
 function owlCubes(def){
@@ -4302,6 +4338,7 @@ const ACH=[
   ['sap5','Sugar Rush','Boil five batches of syrup',()=>(state.sapBoils||0)>=5],
   ['mount5','Curator','Mount five species in the Isle Museum',()=>Object.keys(state.mounted||{}).length>=5],
   ['owl10','Night Watch','See the owl home from ten hunts',()=>(state.owlCatches||0)>=10],
+  ['truffle5','Snout of Gold','Root up five truffles',()=>(state.truffles||0)>=5],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4546,6 +4583,7 @@ function boot(){
     updateFerry(dt);
     updateSugarShack(dt);
     updateOwlRoost(dt);
+    updateTrufflePig(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
