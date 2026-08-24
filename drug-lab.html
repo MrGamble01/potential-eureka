@@ -1300,6 +1300,47 @@ let pureBags = 0;    // pure units banked in the stash
 function stashLabel() { return `📦 Stash [${stashCount}${pureBags > 0 ? ` · ${pureBags}✨` : ''}]`; }
 function pureChance() { return 0.10 + 0.15 * (state.cooks || 0); }
 
+// ── The Chemist's Notebook (LAB-19) ────────────────────────
+// Every batch — trimmed or cooked — writes a page. Fill enough pages
+// and the recipe itself improves: a permanent sale-price edge, and
+// each new tier tears out a "eureka page" that guarantees the NEXT
+// chem batch comes out pure. The tier is derived from state.batches
+// (already persisted); only the pending eureka page rides its own
+// save key.
+const NOTEBOOK = [
+  { at: 10,  name: 'Margin Notes',    mult: 1.05 },
+  { at: 30,  name: 'Dog-Eared Pages', mult: 1.10 },
+  { at: 75,  name: 'The Good Recipe', mult: 1.15 },
+  { at: 150, name: 'Signature Blend', mult: 1.20 },
+];
+let nbPure = false;   // a torn-out eureka page: the next cook is pure
+function notebookTier() {
+  let t = 0;
+  for (let i = 0; i < NOTEBOOK.length; i++) if ((state.batches || 0) >= NOTEBOOK[i].at) t = i + 1;
+  return t;
+}
+function notebookMult() { const t = notebookTier(); return t ? NOTEBOOK[t - 1].mult : 1; }
+function bumpBatches() {
+  const before = notebookTier();
+  state.batches++;
+  const after = notebookTier();
+  if (after > before) {
+    const pg = NOTEBOOK[after - 1];
+    nbPure = true;
+    showToast(`📓 ${pg.name} — the recipe improves: prices ×${pg.mult} for good. A eureka page guarantees the next cook comes out PURE.`, 'cash');
+    addFeed(`📓 The notebook fills — ${pg.name} (prices ×${pg.mult})`);
+    saveGame();
+  }
+}
+function rollPure() {
+  if (nbPure) {
+    nbPure = false;
+    addFeed('📓 The eureka page pays off — a guaranteed PURE cook');
+    return true;
+  }
+  return Math.random() < pureChance();
+}
+
 function buildChemStation(x, z) {
   const parts = []; // every mesh/light, so the station can relocate
   const tableMat = new THREE.MeshLambertMaterial({color:0x1a2418});
@@ -1553,6 +1594,7 @@ function triggerBust() {
     <div class="row"><span>Total Earned</span><strong>$${fmtCash(state.totalEarned)}</strong></div>
     <div class="row"><span>Units Sold</span><strong>${state.totalSold}</strong></div>
     <div class="row"><span>Batches Cooked</span><strong>${state.batches}</strong></div>
+    <div class="row"><span>Notebook</span><strong>${notebookTier() ? NOTEBOOK[notebookTier()-1].name : 'Blank pages'}</strong></div>
     <div class="row"><span>Time Running</span><strong>${Math.floor((Date.now()-state.sessionStart)/60000)}m</strong></div>
   `;
   if (state.totalEarned >= 2000) {
@@ -1632,7 +1674,7 @@ function salePrice() {
   const chemiBonus = chemStation ? 1.8 : 1;
   // LAB-14: the Penthouse brand — nobody haggles with the man upstairs.
   const brand = ownedRoomSet.has('penthouse') ? 1.1 : 1;
-  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult());
+  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult());
 }
 
 // ── Big buyers (LAB-8) ─────────────────────────────────────
@@ -2069,6 +2111,7 @@ const GROW_ACH = [
   { id: 'wired_in',     name: 'Wired In',        test: () => (state.tipsBought || 0) >= 3 },   // LAB-16
   { id: 'going_once',   name: 'Going Once',      test: () => (state.bidWars || 0) >= 3 },      // LAB-17
   { id: 'wholesale',    name: 'Wholesale',       test: () => (state.routeShipped || 0) >= 30 }, // LAB-18
+  { id: 'signature',    name: 'Signature Blend', test: () => (state.batches || 0) >= 150 },     // LAB-19
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -2461,6 +2504,7 @@ function saveGame() {
     contract, contractIn: Math.round(contractIn),
     contractsDone: state.contractsDone || 0,
     pureBags, chemPure,
+    nbPure,   // LAB-19: the pending eureka page
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
@@ -2535,6 +2579,7 @@ function loadGame() {
     refreshRouteBtn();
     pureBags = Math.max(0, Math.min(sv.pureBags || 0, sv.stashCount || 0));   // LAB-10
     chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
+    nbPure = !!sv.nbPure;   // LAB-19
     stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
@@ -2700,7 +2745,7 @@ function updateTrimStation(dt) {
   if (trimProgress>=1) {
     trimProgress=0; trimQueue--;
     const bags = 1 + upgLv('yield1');
-    trimBags += bags; state.batches++;
+    trimBags += bags; bumpBatches();
     addFeed(`✂️ Trimmed batch → ${bags} bags`);
   }
   // Trimmer NPC movement is handled once per frame in updateTrimmerNPCs().
@@ -2714,8 +2759,8 @@ function updateChemStation_tick(dt) {
   chemProgress += (dt/CHEM_TIME)*speedMult;
   if (chemProgress>=1) {
     chemProgress=0; chemQueue--;
-    chemProduct+=2; state.batches++;
-    if (Math.random() < pureChance()) {   // LAB-10: a pure batch
+    chemProduct+=2; bumpBatches();
+    if (rollPure()) {   // LAB-10 roll, LAB-19 eureka page
       chemPure += 2;
       addFeed('✨ PURE batch cooked → 2 units at premium');
     } else {
