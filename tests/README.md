@@ -41,6 +41,17 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-08-24 (QA-5, post-Round-Eleven) — **48 suites registered, 47
+green on the first pass**. The one failure was real signal: HV-18's
+new 25%-per-winter-dawn cold snap fired inside `hvweather`'s unpinned
+matched-dawn legs (−10 warmth and a thinned panhandle roll), a
+cross-feature interaction the battery caught exactly as designed. The
+suite now pins the snap out (`SNAP_CHANCE = 0` — snaps have their own
+suite, `hvsnap`) and re-ran green three times; the audit row held its
+12/32 environment baseline throughout. First battery carrying the
+four promoted Round-10/11 suites (`hvticket`, `hvsnap`, `voxballoon`,
+`voxdove`).
+
 2026-08-24 (QA-4, post-Round-Eight) — all **43 suites green**
 end-to-end on the first pass, zero failures and zero stale
 assertions, with the audit row holding its 12/32 environment baseline
