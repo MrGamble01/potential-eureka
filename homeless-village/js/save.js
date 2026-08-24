@@ -53,6 +53,8 @@ function loadGame(){
     if(typeof G.newcomerLastDay!=='number') G.newcomerLastDay=-9;
     if(typeof G.structures.pantry!=='boolean') G.structures.pantry=false; // saves from before HV-22
     if(typeof G.pantryFills!=='number') G.pantryFills=0;
+    if(typeof G.structures.coats!=='boolean') G.structures.coats=false; // saves from before HV-23
+    if(typeof G.coldCut!=='number') G.coldCut=0;
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
   }catch(e){}
 }

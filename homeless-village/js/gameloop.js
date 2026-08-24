@@ -165,7 +165,17 @@ function onNewDay(){
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
-  G.warmth=Math.max(0,Math.min(100,G.warmth-(G.season===3?18:8)-weatherDef().warmth-(snapActive()?SNAP_WARMTH:0)));
+  // HV-23: coats off the rack blunt the cold's edge — the weather's
+  // bite (only when it IS a bite) and the snap's extra — but never
+  // the season's base drain, and never a heat wave's gift.
+  var wBite=weatherDef().warmth, snapBite=snapActive()?SNAP_WARMTH:0;
+  if(G.structures.coats&&(wBite>0||snapBite>0)){
+    if(wBite>0) wBite*=COATS_CUT;
+    snapBite*=COATS_CUT;
+    G.coldCut=(G.coldCut||0)+1;
+    log('🧥 Coats off the rack at dawn — the cold cuts half as deep.');
+  }
+  G.warmth=Math.max(0,Math.min(100,G.warmth-(G.season===3?18:8)-wBite-snapBite));
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
