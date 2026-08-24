@@ -35,6 +35,9 @@ var G = {
   // and unlocks their standing favor.
   regulars: { marisol: 0, ray: 0, dee: 0 }, lastDeeDay: -9,
 
+  // HV-8: the day the posted odd job was last completed (-1 = never)
+  oddJobDay: -1,
+
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
@@ -94,6 +97,25 @@ var REGULARS = [
 ];
 function regularDef(id){ for(var i=0;i<REGULARS.length;i++) if(REGULARS[i].id===id) return REGULARS[i]; return null; }
 function regularStage(id){ var a=(G.regulars&&G.regulars[id])||0; return a>=5?2:(a>=1?1:0); } // 0 stranger, 1 known, 2 friend
+
+// ── The bulletin board (HV-8) ─────────────────────────────────
+// One posted odd job a day, rotating deterministically with the date —
+// bigger, themed payouts than the grind actions, done once and gone
+// until tomorrow. Rendered as an extra action button by buildActionUI.
+var ODD_JOBS = [
+  {id:'depot',   icon:'📦', label:'Unload at the depot',      time:8000, gives:{goodwill:5},           desc:'A morning of honest lifting. +5 goodwill.'},
+  {id:'flyers',  icon:'📄', label:'Hand out flyers',          time:6000, gives:{goodwill:3, morale:4}, desc:'A local shop pays a little, and the owner is kind. +3 goodwill, +4 morale.'},
+  {id:'gardenh', icon:'🌿', label:'Weed the community lot',   time:7000, gives:{food:4},               desc:'The garden co-op shares the harvest. +4 food.'},
+  {id:'scrapyd', icon:'🔩', label:'Sort at the scrapyard',    time:8000, gives:{scraps:5, cans:2},     desc:'Dirty work, decent haul. +5 scraps, +2 cans.'},
+  {id:'dogwalk', icon:'🐕', label:'Walk the neighbor’s dogs', time:5000, gives:{goodwill:2, morale:6}, desc:'Fresh air, wagging tails. +2 goodwill, +6 morale.'},
+];
+function todaysJob(){ return ODD_JOBS[((G.days % ODD_JOBS.length) + ODD_JOBS.length) % ODD_JOBS.length]; }
+function oddJobDone(){ return G.oddJobDay === G.days; }
+function oddJobAction(){
+  var j = todaysJob();
+  return { id:'oddjob', icon:'📋', label:'Odd job: ' + j.icon + ' ' + j.label, time:j.time, cooldown:0,
+    tooltip:'Today’s posting on the bulletin board. ' + j.desc + ' Once per day.' };
+}
 
 var ACTIONS = [
   {id:'scavenge',  icon:'🗑️', label:'Scavenge Dumpster', time:5000, cooldown:8000,  tooltip:'Dig through dumpsters for scraps, cans, or food.'},

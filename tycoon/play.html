@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="onsite-chip" tabindex="0"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -1606,6 +1606,7 @@
   </div>
 </div>
 <div id="acq-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
+<div id="onsite-offer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:300"></div>
 <div id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
   <div class="win-panel">
     <div class="win-title" id="board-title">📋 Board Meeting</div>
@@ -4376,7 +4377,7 @@ function updateIdeaWorkers(dt) {
       // Bug outbreak (TYC-7): a bugged desk works at half speed; while the
       // fix is running the engineer does no feature work at all.
       const bugMult = w.fixingT > 0 ? 0 : (w.bugged ? 0.5 : 1);
-      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult();
+      const rate = CONFIG.workRateBase * ideaSpeedMult * engTeamMultiplier * moraleWorkMult(w) * sprintRateMult() * (w.externalMult || 1) * (w.caffeinated ? CONFIG.caffeineBoost : 1.0) * stimWorkMult(w) * (rushActive ? CONFIG.rushBoost : 1.0) * w.bossBoost * waltAura * bugMult * xpWorkMult(w) * boardSpeedMult * climateWorkMult() * acqWorkMult() * onsiteWorkMult();
       // Tweaking jitter: a dosed engineer visibly buzzes at their desk.
       // Seated workers never set rotation otherwise, so this is safe to
       // drive directly and reset to 0 once the high wears off.
@@ -6821,6 +6822,94 @@ function closeAcqOffer(bought, expired) {
     acqNextT = 300 + Math.random() * 180;
   }
   refreshHud();
+}
+// ── On-site engagements (TYC-12) ─────────────────────────────
+// Post-IPO, an enterprise client occasionally asks for the team on-site:
+// accept and engineering runs at HALF SPEED for 60 seconds, then a
+// guaranteed lump payment lands — current revenue rate × 2 minutes × 1.3,
+// locked in at accept time. The opposite trade from acqui-hires: there
+// you spend cash for speed; here you spend speed for cash.
+let onsite = null;          // { timeLeft, payout }
+let onsiteOffer = null;     // { payout, expire }
+let onsiteNextT = 420;      // first knock ~7 minutes into a post-IPO season
+function onsiteWorkMult() { return onsite ? 0.5 : 1; }
+function refreshOnsiteChip() {
+  const el = document.getElementById('onsite-chip');
+  if (!el) return;
+  if (!onsite) { el.textContent = ''; el.title = ''; return; }
+  el.textContent = '🧳 ' + Math.max(0, Math.ceil(onsite.timeLeft)) + 's';
+  el.title = 'Team on-site: work at half speed until the engagement pays $' + fmtCash(onsite.payout);
+}
+function updateOnsite(dt) {
+  if (onsiteOffer) {
+    onsiteOffer.expire -= dt;
+    const cd = document.getElementById('onsite-expire');
+    if (cd) cd.textContent = 'Offer expires in ' + Math.max(0, Math.ceil(onsiteOffer.expire)) + 's';
+    if (onsiteOffer.expire <= 0) closeOnsiteOffer(false, true);
+    return;
+  }
+  if (onsite) {
+    onsite.timeLeft -= dt;
+    refreshOnsiteChip();
+    if (onsite.timeLeft <= 0) {
+      const payout = onsite.payout;
+      onsite = null;
+      refreshOnsiteChip();
+      addCash(payout);
+      showToast(`🧳 Engagement delivered — $${fmtCash(payout)} wired. The team is back at their desks.`, 'good', 'critical');
+      addFeedEntry(`🧳 On-site engagement paid $${fmtCash(payout)}`);
+      onsiteNextT = 420 + Math.random() * 300;
+      saveGame();
+      refreshHud();
+    }
+    return;
+  }
+  if (prestigeLevel < 1) return;
+  onsiteNextT -= dt;
+  if (onsiteNextT > 0) return;
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer) {
+    onsiteNextT = 25;
+    return;
+  }
+  makeOnsiteOffer();
+}
+function makeOnsiteOffer() {
+  const payout = Math.max(2000, Math.round(currentRatePerMin() * 2 * 1.3));
+  onsiteOffer = { payout, expire: 30 };
+  const el = document.getElementById('onsite-offer');
+  el.innerHTML = `
+    <div style="background:#0D1117;border:1px solid #30363D;border-radius:12px;padding:14px 18px;max-width:380px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55);color:#E6EDF3;font-size:13px;line-height:1.55">
+      <div style="font-weight:800;color:#79c0ff;margin-bottom:4px">🧳 Enterprise client on the line</div>
+      <div>They want the team <b>on-site for 60 seconds</b> — engineering runs at
+      <b style="color:#F85149">half speed</b> while they're out, then a guaranteed
+      <b style="color:#3FB950">$${fmtCash(payout)}</b> lands.</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="onsite-go" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(121,192,255,.12);border:1px solid rgba(121,192,255,.5);color:#79c0ff">🧳 Send the team</button>
+        <button id="onsite-pass" style="font-family:inherit;font-weight:800;font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid #30363D;color:#7D8590">Pass</button>
+      </div>
+      <div id="onsite-expire" style="color:#7D8590;font-size:11px;margin-top:6px">Offer expires in 30s</div>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('onsite-go').onclick = () => closeOnsiteOffer(true, false);
+  document.getElementById('onsite-pass').onclick = () => closeOnsiteOffer(false, false);
+  addFeedEntry('🧳 An enterprise client wants the team on-site');
+  SFX.milestone && SFX.milestone();
+}
+function closeOnsiteOffer(accepted, expired) {
+  const o = onsiteOffer;
+  onsiteOffer = null;
+  document.getElementById('onsite-offer').style.display = 'none';
+  if (!o) return;
+  if (accepted) {
+    onsite = { timeLeft: 60, payout: o.payout };
+    refreshOnsiteChip();
+    showToast('🧳 The team heads out — half speed for 60s, then the check clears.', 'event', 'standard');
+    addFeedEntry('🧳 Team on-site — engineering at half speed');
+    saveGame();
+  } else {
+    addFeedEntry(expired ? '🧳 The client gave up waiting' : '🧳 Declined the on-site ask');
+    onsiteNextT = 300 + Math.random() * 240;
+  }
 }
 let boardNextT = 180;          // first meeting ~3 minutes in
 let boardTimerT = 0, boardActive = null, boardInterval = null;
@@ -9389,6 +9478,7 @@ function frameBody(now) {
   updateRival(dt);
   updateBoard(dt);
   updateAcq(dt);
+  updateOnsite(dt);
   updateLab(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
@@ -9983,6 +10073,16 @@ const SAVE_SCHEMA = [
     read: p => {
       if (Array.isArray(p.acqs)) acquisitions = p.acqs.filter(x => typeof x === 'string').slice(0, ACQ_CAP);
       refreshAcqChip();
+    },
+  },
+  {
+    key: 'onsite', // TYC-12: an in-flight engagement survives a reload
+    write: p => { p.onsite = onsite ? { timeLeft: Math.round(onsite.timeLeft), payout: onsite.payout } : null; },
+    read: p => {
+      if (p.onsite && typeof p.onsite.payout === 'number' && p.onsite.payout > 0) {
+        onsite = { timeLeft: Math.min(60, Math.max(1, p.onsite.timeLeft || 30)), payout: Math.round(p.onsite.payout) };
+      }
+      refreshOnsiteChip();
     },
   },
   {

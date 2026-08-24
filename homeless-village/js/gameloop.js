@@ -99,7 +99,7 @@ function onNewDay(){
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
   if(G.weather==='heat') log('\ud83e\udd75 A scorcher. Foot traffic is up — a good day to panhandle.');
   if(forecastVisible()&&G.forecast&&WEATHERS[G.forecast]) log('\ud83d\udcfb Tomorrow: '+WEATHERS[G.forecast].icon+' '+WEATHERS[G.forecast].name+'.');
-  buildCraftUI(); buildWorkersUI(); updateHUD();
+  buildCraftUI(); buildWorkersUI(); buildActionUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
   checkArc();
   checkDog();

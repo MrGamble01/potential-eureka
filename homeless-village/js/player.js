@@ -35,6 +35,7 @@ function updateScavengeGate(){
 function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
+  if(a.id==='oddjob' && oddJobDone()){ log('Today’s odd job is done — check the board tomorrow.'); return; }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
@@ -87,6 +88,19 @@ function finishAction(a){
     if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
       bumpRegular('marisol'); }
     else log('Not enough cans to trade.');
+  } else if(a.id==='oddjob'){
+    // HV-8: today's bulletin-board posting pays out and closes for the day
+    var j=todaysJob(), parts=[];
+    for(var k in j.gives){
+      if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
+      else G[k]=(G[k]||0)+j.gives[k];
+      parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+    }
+    G.oddJobDay=G.days;
+    floatText(parts.join(' '));
+    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+    saveGame();
+    buildActionUI();
   }
   sfx('action');
   updateHUD();
