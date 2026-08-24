@@ -488,6 +488,22 @@ const AgeOfWarGame = (() => {
   // cleared since day one while nothing ever wrote it.
   let endlessMode = false;
   try { endlessMode = localStorage.getItem('aow-mode') === 'endless'; } catch {}
+
+  // AOW-19: War Banners — pick a standard before the horns sound. A
+  // banner is a small permanent lean, not a power spike: the Charge
+  // moves your line 10% faster, the Shieldwall thickens it 10%, and
+  // the Golden Toll pays 10% more gold on every kill. Sticky across
+  // runs like difficulty; switching mid-run resets, same rule.
+  const BANNERS = {
+    none:       { name: 'No banner',                 icon: '🏳️' },
+    charge:     { name: 'Banner of the Charge',      icon: '🚩', speed: 1.1 },
+    shieldwall: { name: 'Banner of the Shieldwall',  icon: '🛡️', hp: 1.1 },
+    toll:       { name: 'Banner of the Golden Toll', icon: '🪙', gold: 1.1 },
+  };
+  let warBanner = 'none';
+  try { const b = localStorage.getItem('aow-banner'); if (b && BANNERS[b]) warBanner = b; } catch {}
+  function bannerDef() { return BANNERS[warBanner] || BANNERS.none; }
+  function bannerGoldMult() { return bannerDef().gold || 1; }
   let strongholdsRazed = 0;
 
   // ---- Combo / streak ----
@@ -543,6 +559,7 @@ const AgeOfWarGame = (() => {
     { id: 'last_stand',   icon: '🚩',  title: 'Hold the Line',    desc: 'See the garrison rally at the brink.' },
     { id: 'warlord_1',    icon: '⚔️',  title: 'Headhunter',       desc: 'Fell a named warlord in an endless run.' },
     { id: 'warlord_all',  icon: '🏴',  title: 'Wastes Pacified',  desc: 'Fell all five named warlords across your runs.' },
+    { id: 'standard_bearer', icon: '🚩', title: 'Standard Bearer', desc: 'Take 50 kills in one run under a war banner.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -642,6 +659,7 @@ const AgeOfWarGame = (() => {
     if (runStats.specialsFired >= 5) unlock('special_5');
     if ((runStats.warcries || 0) >= 3) unlock('warcry_3');
     if ((runStats.mercs || 0) >= 3) unlock('mercs_3');
+    if (warBanner !== 'none' && runStats.kills >= 50) unlock('standard_bearer');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1115,6 +1133,12 @@ const AgeOfWarGame = (() => {
       walkPhase: Math.random() * Math.PI * 2,
       attackPose: 0,                       // seconds remaining in strike pose
     };
+    // AOW-19: the war banner leans player units — never walls or enemies
+    if (side === 'player' && !def.role) {
+      const b = bannerDef();
+      if (b.speed) u.speed = Math.round(u.speed * b.speed);
+      if (b.hp) { u.hp = Math.round(u.hp * b.hp); u.hpMax = u.hp; }
+    }
     units.push(u);
     return u;
   }
@@ -1563,6 +1587,20 @@ const AgeOfWarGame = (() => {
           difficulty = btn.dataset.diff;
           try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
           diffEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+          reset();
+        });
+      });
+    }
+    // AOW-19: banner selector — same reset rule as difficulty, since a
+    // mid-run banner swap would be the same class of exploit.
+    const banEl = document.getElementById('aow-banner');
+    if (banEl) {
+      banEl.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.banner === warBanner);
+        btn.addEventListener('click', () => {
+          warBanner = BANNERS[btn.dataset.banner] ? btn.dataset.banner : 'none';
+          try { localStorage.setItem('aow-banner', warBanner); } catch {}
+          banEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
           reset();
         });
       });
@@ -2179,8 +2217,8 @@ const AgeOfWarGame = (() => {
           runStats.kills++;
           if (runStats.kills === 1) unlock('first_blood');
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
-          runStats.gold += u.gold * mult * boonGoldMult();
-          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult()));
+          runStats.gold += u.gold * mult * boonGoldMult() * bannerGoldMult();
+          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult() * bannerGoldMult()));
           if (u.isBoss) {
             bossKilledThisWave = true;
             if (u.warlord) {
