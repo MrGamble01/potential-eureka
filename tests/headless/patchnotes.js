@@ -38,7 +38,7 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   });
   ok(modal.open, 'the modal opens');
   ok(modal.n >= 10, `${modal.n} release entries listed`);
-  ok(modal.firstTitle.includes('Round Four'), 'newest release leads');
+  ok(modal.firstTitle.includes('Round Five'), 'newest release leads');
   ok(modal.bullets >= 20, `${modal.bullets} bullet items across the log`);
 
   // D. Esc closes; reopen; backdrop closes
