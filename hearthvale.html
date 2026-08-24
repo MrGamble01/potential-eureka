@@ -1331,6 +1331,8 @@
       peltsWorked: 0,      // lifetime pelts the Furrier turned into coats
       chronicle: [],       // HVALE-5: the town's dated history — {d, e, t}
       bellSaves: 0,        // HVALE-8: breaches the chapel bell softened
+      caravan: null,       // HVALE-9: { returnDay } while one is on the road
+      caravansReturned: 0, // lifetime caravans seen home (safe or robbed)
     };
   }
   const ACHIEVEMENTS = [
@@ -1373,6 +1375,7 @@
     { id: 'cobbled', emoji: '🛤️', name: 'The Cobbled Way', desc: 'Road-link three workshops to the Market.', done: () => state.buildings.filter(b => b.done !== false && BUILDINGS[b.type].prod && onCobbledWay(b)).length >= 3 },
     { id: 'preserved', emoji: '🫙', name: 'Waste Not', desc: 'Fill a Root Cellar with 12 preserves.', done: () => state.buildings.some(b => b.type === 'cellar' && (b.preserves || 0) >= 12) },
     { id: 'bellsaved', emoji: '🔔', name: 'Saved by the Bell', desc: 'The chapel bell softens a raid that broke through.', done: () => (state.bellSaves || 0) >= 1 },
+    { id: 'far_roads', emoji: '🐴', name: 'Friend of Far Roads', desc: 'See three caravans home from the far towns.', done: () => (state.caravansReturned || 0) >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2285,6 +2288,46 @@
   function chapelBuilt() {
     return state.buildings.some(b => b.type === 'chapel' && b.done !== false);
   }
+
+  // ---- The Caravan (HVALE-9) ----------------------------------
+  // The Market's invest-and-wait verb: load goods now, gold in three
+  // days — if the road is kind. A staffed watch lends outriders, so the
+  // watchtower earns its keep between raids too.
+  const CARAVAN_DAYS = 3, CARAVAN_COST = { food: 15, wood: 15 };
+  const CARAVAN_PAY = 70, CARAVAN_ROBBED = 25;
+  function caravanOut() { return !!state.caravan; }
+  function sendCaravan() {
+    if (caravanOut()) { toast('🐴 The caravan is already on the road.'); return; }
+    if (!Object.keys(CARAVAN_COST).every(k => state.res[k] >= CARAVAN_COST[k])) {
+      toast('Not enough goods to load a caravan (15 food, 15 wood).'); SFX('error'); return;
+    }
+    Object.keys(CARAVAN_COST).forEach(k => state.res[k] -= CARAVAN_COST[k]);
+    state.caravan = { returnDay: state.day + CARAVAN_DAYS };
+    SFX('coin');
+    toast('🐴 The caravan rolls out for the far towns — back on day ' + state.caravan.returnDay + '.');
+    chron('🐴', 'A caravan set out for the far towns');
+    updateHUD(); save();
+  }
+  function caravanAtDawn() {
+    if (!state.caravan || state.day < state.caravan.returnDay) return;
+    state.caravan = null;
+    state.caravansReturned = (state.caravansReturned || 0) + 1;
+    const waylay = guardStrength() > 0 ? 0.08 : 0.2;   // outriders from the watch
+    if (Math.random() < waylay) {
+      state.res.gold += CARAVAN_ROBBED;
+      state.happy = Math.max(0, state.happy - 3);
+      toast('💔 The caravan was waylaid on the high road — only ' + CARAVAN_ROBBED + ' gold limped home.');
+      chron('💔', 'The caravan was waylaid on the high road — only ' + CARAVAN_ROBBED + ' gold came home');
+      SFX('error');
+    } else {
+      state.res.gold += CARAVAN_PAY;
+      state.happy = Math.min(100, state.happy + 3);
+      toast('🐴 The caravan returned from the far towns — +' + CARAVAN_PAY + ' gold!');
+      chron('🐴', 'The caravan returned from the far towns — +' + CARAVAN_PAY + ' gold');
+      SFX('goal');
+    }
+    checkAchievements();
+  }
   function packSize() {
     return 1 + Math.floor(state.villagers.length / 6) + (diffCfg().raidBonus || 0);
   }
@@ -2366,6 +2409,7 @@
     // last night's raid resolves in the grey light of dawn
     if (state.raidTonight) resolveRaid();
     maybeScheduleRaid();
+    caravanAtDawn();
     // a festival that has run its course winds down at daybreak
     if (state.festival && state.day >= state.festival.endDay) {
       state.festival = null;
@@ -3993,12 +4037,20 @@
       const lbl = on ? '🎪 Festival underway…' : !ready ? '🎪 Festival (town resting)' : '🎪 Hold a Festival <span style="opacity:.7;font-size:11px">' + fcStr + '</span>';
       btns += '<button id="p-festival"' + (on || !ready ? ' disabled' : '') + '>' + lbl + '</button>';
     }
+    if (b.type === 'market' && b.done !== false) {
+      const out = caravanOut();
+      const clbl = out ? '🐴 Caravan on the road — back day ' + state.caravan.returnDay
+        : '🐴 Send a Caravan <span style="opacity:.7;font-size:11px">15🍞 15🪵 → ' + CARAVAN_PAY + '🪙 in ' + CARAVAN_DAYS + ' days</span>';
+      btns += '<button id="p-caravan"' + (out ? ' disabled' : '') + '>' + clbl + '</button>';
+    }
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
     const upBtn = document.getElementById('p-upgrade');
     if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
     const fBtn = document.getElementById('p-festival');
     if (fBtn) fBtn.onclick = () => { holdFestival(b); if (selected === b) showPanel(b); };
+    const cvBtn = document.getElementById('p-caravan');
+    if (cvBtn) cvBtn.onclick = () => { sendCaravan(); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
@@ -4193,6 +4245,8 @@
         pelts: state.pelts || 0, peltsWorked: state.peltsWorked || 0,
         chronicle: state.chronicle || [],
         bellSaves: state.bellSaves || 0,
+        caravan: state.caravan || null,
+        caravansReturned: state.caravansReturned || 0,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
@@ -4264,6 +4318,9 @@
       state.chronicle = Array.isArray(s.chronicle) ? s.chronicle.slice(-CHRON_CAP)
         : [{ d: s.day || 1, e: '📜', t: 'The chronicle opens — earlier days went unrecorded' }];
       state.bellSaves = s.bellSaves || 0;         // HVALE-8 (older saves migrate to 0)
+      // HVALE-9 (older saves have nothing on the road)
+      state.caravan = (s.caravan && typeof s.caravan.returnDay === 'number') ? { returnDay: s.caravan.returnDay } : null;
+      state.caravansReturned = s.caravansReturned || 0;
       if (state.raidTonight) spawnWolves(packSize());   // the pack is still out there
       // if the save was made while the merchant was in town, respawn the parked wagon
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
