@@ -12,6 +12,18 @@ function buildActionUI(){
     btn.addEventListener('mouseleave',hideTip);
     el.appendChild(btn);
   });
+  // HV-8: today's bulletin-board posting rides at the bottom of the list
+  var job=oddJobAction();
+  var jb=document.createElement('button');
+  jb.className='action-btn'; jb.id='action-oddjob';
+  jb.setAttribute('data-tip', oddJobDone() ? 'Done for today — a new job is posted each morning.' : job.tooltip);
+  jb.innerHTML='<span class="btn-progress" id="progress-oddjob" style="width:0%"></span>'+job.icon+' '+job.label+(oddJobDone()?' ✓':'');
+  jb.disabled=oddJobDone();
+  if(oddJobDone()) jb.style.opacity='.5';
+  jb.onclick=function(){ doAction(oddJobAction()); };
+  jb.addEventListener('mouseenter',showTip);
+  jb.addEventListener('mouseleave',hideTip);
+  el.appendChild(jb);
 }
 
 function buildCraftUI(){

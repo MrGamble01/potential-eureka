@@ -24,5 +24,6 @@ function loadGame(){
       G.regulars={marisol:0,ray:0,dee:0};
     }
     if(typeof G.lastDeeDay!=='number') G.lastDeeDay=-9;
+    if(typeof G.oddJobDay!=='number') G.oddJobDay=-1;              // saves from before HV-8
   }catch(e){}
 }
