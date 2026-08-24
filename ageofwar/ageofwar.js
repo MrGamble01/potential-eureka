@@ -569,6 +569,7 @@ const AgeOfWarGame = (() => {
     { id: 'giantslayer',  icon: '🗡️',  title: 'Giantslayer',      desc: 'Win two single-combat duels against named warlords in one run.' },
     { id: 'patchwork',    icon: '🛠️',  title: 'Patchwork',        desc: 'Call the sappers three times in one run.' },
     { id: 'skewer',       icon: '🏹',  title: 'Shish Kebab',      desc: 'Skewer three enemies with a single ballista bolt.' },
+    { id: 'field_hosp',   icon: '⛑️',  title: 'Field Hospital',   desc: 'Heal 300 hp at the triage tent in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -672,6 +673,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.trenchSlowed || 0) >= 15) unlock('dig_in');
     if ((runStats.duelsWon || 0) >= 2) unlock('giantslayer');
     if ((runStats.repairs || 0) >= 3) unlock('patchwork');
+    if ((runStats.triaged || 0) >= 300) unlock('field_hosp');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1082,6 +1084,7 @@ const AgeOfWarGame = (() => {
     runStats.duels = 0; runStats.duelsWon = 0;
     runStats.repairs = 0; sapperCd = 0;
     runStats.bolts = 0; boltCd = 0;
+    runStats.triaged = 0; tentBought = false;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1542,6 +1545,42 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Triage Tent (AOW-24) ──────────────────────────────
+  // The rear line finally matters. From Age II, 400 gold raises a
+  // triage tent by the base — once per run, permanent for the run:
+  // every friendly soldier within 220px of the base wall heals 4 hp a
+  // second while they hold there. Fall back, patch up, push again.
+  const TENT_COST = 400;
+  const TENT_RANGE = 220;
+  const TENT_HEAL = 4;
+  let tentBought = false;
+  function triageTick(u, dt) {
+    if (!tentBought || u.side !== 'player' || u.hp <= 0 || u.hp >= u.hpMax) return 0;
+    if (u.x > PLAYER_BASE_X + TENT_RANGE) return 0;
+    const th = Math.min(u.hpMax - u.hp, TENT_HEAL * dt);
+    u.hp += th;
+    runStats.triaged = (runStats.triaged || 0) + th;
+    return th;
+  }
+  function buyTent() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '⛑️ The tent goes up in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (tentBought) return;
+    if (gold < TENT_COST) {
+      goldFloaters.push({ text: `⛑️ The tent costs ${TENT_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= TENT_COST;
+    tentBought = true;
+    goldFloaters.push({ text: '⛑️ TRIAGE TENT — the rear line heals 4 hp/s', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1859,6 +1898,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'b' || e.key === 'B') {
         fireBallista();
+        e.preventDefault();
+      } else if (e.key === 'v' || e.key === 'V') {
+        buyTent();
         e.preventDefault();
       }
     });
@@ -2186,6 +2228,7 @@ const AgeOfWarGame = (() => {
       u.aliveT += dt;
       if (u.side === 'player' && councilBoons.medics && u.hp < u.hpMax)   // AOW-10
         u.hp = Math.min(u.hpMax, u.hp + 2 * dt);
+      triageTick(u, dt);   // AOW-24 — the tent works the rear line
       if (u.role === 'wall') continue;   // walls just stand there and take it
       const ownBucket = u.side === 'player' ? playerBucket : enemyBucket;
       const foeBucket  = u.side === 'player' ? enemyBucket  : playerBucket;
@@ -7235,6 +7278,17 @@ const AgeOfWarGame = (() => {
       if (boCdEl) boCdEl.textContent = playerEra < 2 ? 'Age III' : boltCd > 0 ? `${Math.ceil(boltCd)}s` : `${BOLT_COST}g`;
       boEl.disabled = playerEra < 2 || boltCd > 0;
       boEl.title = `Fire the Ballista (B) — skewer the foremost enemy and everyone within ${BOLT_BAND}px behind them for ${boltDmg()} damage. ${BOLT_CD}s winch. From Age III.`;
+    }
+
+    // Triage tent button (AOW-24)
+    const ttEl = document.getElementById('aow-tent-btn');
+    const ttCdEl = document.getElementById('aow-tent-cd');
+    if (ttEl) {
+      if (ttCdEl) ttCdEl.textContent = playerEra < 1 ? 'Age II' : tentBought ? 'up' : `${TENT_COST}g`;
+      ttEl.disabled = playerEra < 1 || tentBought;
+      ttEl.title = tentBought
+        ? `The triage tent stands — friendlies within ${TENT_RANGE}px of the base heal ${TENT_HEAL} hp/s. ${Math.round(runStats.triaged || 0)} hp patched this run.`
+        : `Raise the Triage Tent (V) — ${TENT_COST} gold, once per run: friendlies within ${TENT_RANGE}px of the base heal ${TENT_HEAL} hp/s.`;
     }
 
     // Wave indicator
