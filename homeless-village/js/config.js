@@ -18,7 +18,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -71,6 +71,7 @@ var RECIPES = [
   {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Soup night: feeds everyone at dusk (1 food each) for +4 morale, +2 health — and neighbors sometimes chip in.', requires:'workbench'},
   {id:'garden',      icon:'🌱', name:'Community Garden',cost:{wood:6,goodwill:8,food:3},      gives:{structure:'garden'},     time:12000, desc:'Slowly generates food each day. Gets destroyed in sweeps.', requires:'workbench'},
   {id:'radio',       icon:'📻', name:'Radio',           cost:{scraps:5,cans:3},                gives:{structure:'radio'},      time:6000,  desc:'A crackly weather band — see tomorrow\u2019s sky coming.', requires:'workbench'},
+  {id:'stash',       icon:'🕳️', name:'Hidden Stash',    cost:{wood:4,scraps:3,cardboard:2},    gives:{structure:'stash'},      time:7000,  desc:'A buried cache under the fence line. Thieves and sweeps take half as much — and nobody ever finds the hole itself.', requires:'workbench'},
 ];
 
 // ── Weather (HV-5) ────────────────────────────────────────────

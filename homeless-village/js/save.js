@@ -17,6 +17,7 @@ function loadGame(){
     if(!WEATHERS[G.weather]) G.weather='clear';                    // saves from before HV-5
     if(G.forecast!==null&&!WEATHERS[G.forecast]) G.forecast=null;
     if(typeof G.structures.radio==='undefined') G.structures.radio=false;
+    if(typeof G.structures.stash==='undefined') G.structures.stash=false;    // saves from before HV-12
     if(typeof G.dog!=='number'||G.dog<0||G.dog>2){ G.dog=0; }      // saves from before HV-6
     if(typeof G.dogMetDay!=='number') G.dogMetDay=0;
     G.dogHungry=!!G.dogHungry;
