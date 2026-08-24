@@ -220,6 +220,7 @@
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
     <li><b>🐦‍⬛ Crows</b> land on growing crops and peck growth away &mdash; <b>tap to shoo</b> them, or post a <b>🎃 scarecrow</b> to guard the plots around it</li>
     <li><b>🧺 Flotsam</b> crates bob up in the pond &mdash; <b>tap to crack them open</b> (coins, sometimes a good) before they sink; a <b>⚓ Pier</b> doubles the traffic and the haul</li>
+    <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
@@ -2867,6 +2868,93 @@ function updateFlotsam(dt){
   }
 }
 
+/* ============================== stardust & wishes (VOX-5) ============================== */
+// The how-to always said the stars were good for something. At night a
+// shooting star occasionally sheds a glowing shard over the garden —
+// tap it before it fades with the morning light. Three shards make a
+// wish, and the whole garden surges.
+let shard=null, shardNextT=100+Math.random()*80;
+function buildShardMesh(){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshLambertMaterial({color:0xffe98a,emissive:0xd9a520});
+  const a=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.34,0.34),mat);
+  a.rotation.set(0.6,0.4,0.5);g.add(a);
+  const b=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.5,0.22),mat);
+  b.rotation.set(-0.3,0.7,0.2);g.add(b);
+  g.traverse(o=>{if(o.isMesh)o.userData.shard=true;});
+  return g;
+}
+function spawnShard(){
+  // land anywhere on the island's surface (never on the pond); fall back
+  // to hovering over a plant if the dice keep missing solid ground
+  let x=null,y=null,z=null;
+  const anchor=(W.pondCells&&W.pondCells[0])||[8,8];
+  for(let i=0;i<14&&x===null;i++){
+    const tx=anchor[0]+((Math.random()*21)|0)-10, tz=anchor[1]+((Math.random()*21)|0)-10;
+    if(W.pondCells&&W.pondCells.some(c=>c[0]===tx&&c[1]===tz))continue;
+    const sy=surfaceY(tx,tz);
+    if(sy===null)continue;
+    x=tx;y=sy;z=tz;
+  }
+  if(x===null){
+    const hosts=[...W.plants.values()];
+    if(!hosts.length)return;
+    const p=hosts[(Math.random()*hosts.length)|0];
+    x=p.x;y=p.y;z=p.z;
+  }
+  shard={x,y,z,t:0,mesh:buildShardMesh()};
+  shard.mesh.position.set(x+0.5,y+1.6,z+0.5);
+  scene.add(shard.mesh);
+  if(!state.achFlags.shardSeen){state.achFlags.shardSeen=1;
+    toast('✨ A shooting star shed stardust over the garden — tap it before dawn! Three shards make a wish.');}
+  else toast('✨ Stardust glitters in the garden!');
+}
+function removeShard(){
+  if(!shard)return;
+  shard.mesh.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
+  scene.remove(shard.mesh);shard=null;
+}
+function wishGranted(){
+  state.stardust-=3;
+  state.wishes=(state.wishes||0)+1;
+  let touched=0;
+  for(const p of W.plants.values()){
+    const def=PLANTS[p.type];
+    if(!def||!def.grow||p.stage>=2)continue;
+    p.prog+=def.grow*0.20;   // ripening runs through the normal stage roll
+    touched++;
+  }
+  toast('🌠 A wish comes true — '+touched+' growing crop'+(touched===1?'':'s')+' surge with starlight!');
+  SFX.play('level');
+  checkAch();
+}
+function collectShard(){
+  if(!shard)return;
+  const m=shard.mesh.position;
+  state.stardust=(state.stardust||0)+1;
+  burst(m.x,m.y,m.z,0xffe98a,14,{up:2.6,g:3});
+  SFX.play('ach');
+  removeShard();
+  if(state.stardust>=3)wishGranted();
+  else toast('✨ Stardust collected — '+state.stardust+'/3 toward a wish.');
+  checkAch();
+}
+function updateShard(dt){
+  if(!shard){
+    if(!isNight())return;               // shards only fall under the stars
+    shardNextT-=dt;
+    if(shardNextT<=0){shardNextT=100+Math.random()*80;spawnShard();}
+    return;
+  }
+  shard.t+=dt;
+  shard.mesh.position.y=shard.y+1.6+Math.sin(perf*2.2)*0.08;
+  shard.mesh.rotation.y+=dt*1.4;
+  if(!isNight()){
+    toast('✨ The stardust faded with the morning light.');
+    removeShard();
+  }
+}
+
 /* ============================== economy / progression ============================== */
 function grantCoins(n,wx,wy,wz){
   state.coins+=n;state.totalEarned+=n;
@@ -3003,6 +3091,7 @@ function doAction(hit){
   if(ud.duck)return petDuck();                            // greet the pond duck
   if(ud.crow)return shooCrow(true);                       // shoo a crop-raiding crow
   if(ud.flotsam)return openFlotsam();                     // crack a drifting crate (VOX-4)
+  if(ud.shard)return collectShard();                      // catch fallen stardust (VOX-5)
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
@@ -3153,6 +3242,7 @@ function getPickables(){
   if(pondDuck)arr.push(pondDuck.mesh);
   if(crow&&crow.mesh)crow.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   if(flotsam&&flotsam.mesh)flotsam.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
+  if(shard&&shard.mesh)shard.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -3706,6 +3796,7 @@ const ACH=[
     ()=>['perch','tropic','crab','puffer','koi'].every(id=>state.fishLog&&state.fishLog[id])],
   ['compost5','Black Gold','Spread compost five times',()=>(state.composted||0)>=5],
   ['flotsam5','Beachcomber','Crack open five flotsam crates',()=>(state.flotsamOpened||0)>=5],
+  ['wish1','Upon a Star','Collect three stardust shards and make a wish',()=>(state.wishes||0)>=1],
   ['koi','The Golden One','Catch the elusive Golden Koi',()=>!!state.achFlags.koi],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
@@ -3930,6 +4021,7 @@ function boot(){
     updateBird(dt,dn);
     updateCrow(dt);
     updateFlotsam(dt);
+    updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
     updateAnimals(dt);
