@@ -81,6 +81,7 @@
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
+      <button class="hof-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; PATCH NOTES</button>
     </div>
     <div class="card-search-wrap">
       <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
@@ -1232,6 +1233,17 @@
     </div>
   </div>
 
+  <div id="patch-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Patch notes">
+    <div class="modal-content" style="max-width:640px">
+      <h3 style="margin-bottom:4px">&#128240; Patch notes</h3>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px">What the studio shipped lately — every update is live for everyone, saves always migrate.</div>
+      <div id="patch-list" style="max-height:56vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px"></div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="primary" onclick="Utils.closeModal('patch-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="gt-modal" class="modal-overlay">
     <div class="modal-content">
       <h3>Google Tasks</h3>
@@ -1861,6 +1873,64 @@
     });
     document.getElementById('shortcuts-modal').addEventListener('click', e => {
       if (e.target.id === 'shortcuts-modal') Utils.closeModal('shortcuts-modal');
+    });
+
+    // Patch notes: the studio changelog, newest first. Hand-curated —
+    // every entry here shipped, verified headless, and is live for
+    // everyone (installed PWAs pick waves up on service-worker bumps).
+    const PATCH_NOTES = [
+      { date: '2026-08-24', title: 'The Flagship Leaderboard', items: [
+        'Rival share codes now carry every flagship\'s headline record — AoW ∞ waves, Tycoon lifetime cash, Hearthvale peak villagers, Homeless Village days survived, Grow Op earnings, Voxel Isle coins.',
+        'Patch notes! You\'re reading them.' ] },
+      { date: '2026-08-24', title: 'Hearthvale: the Furrier · Age of War: vault restock', items: [
+        '🧥 Repelled raids bank wolf pelts; the new Furrier works them into gold and warm coats.',
+        '🥁 March Drums and 🔥 Forge Credit join the Relic Vault with mid-run effects.' ] },
+      { date: '2026-08-24', title: 'Grow Op: pure batches · Voxel Isle: compost', items: [
+        '✨ Every cook rolls purity (better odds per Cook) — pure bags sell at 1.6× and travel the ✨ ledger from station to sale.',
+        '♻️ The Compost Heap turns 5 surplus goods into a +15% growth surge for every crop.' ] },
+      { date: '2026-08-24', title: 'Tycoon: on-site · Homeless Village: odd jobs', items: [
+        '🧳 Enterprise clients buy 60 seconds of half-speed engineering for a guaranteed lump payment.',
+        '📋 One odd job a day on the bulletin board — chunky, themed payouts, done and gone till dawn.' ] },
+      { date: '2026-08-24', title: 'Hearthvale: natural talents · AoW: War Councils', items: [
+        'Every villager nature now has real hands — Green thumbs farm harder, Dreamers learn double, Curious workers halve their workshop\'s intake.',
+        '🏛️ Endless mode: every 5 waves the council offers a pick of two run-long boons.' ] },
+      { date: '2026-08-24', title: 'Voxel Isle: the Angler\'s Log · crows!', items: [
+        '🎣 Catches have weights and records now; the 🎏 Golden Koi headlines the pond.',
+        '🐦‍⬛ Crows raid growing crops — shoo them, or finally give that 🎃 scarecrow a job.' ] },
+      { date: '2026-08-24', title: 'Homeless Village: the regulars · Grow Op: stings', items: [
+        '🌮 Marisol, 🎖️ Old Ray and 🩺 Dee learn your name and return favors.',
+        '🚔 ~1 in 8 buyers is an undercover cop — a hired Lookout makes the wire.' ] },
+      { date: '2026-08-24', title: 'AoW: War Trials · Village: Biscuit the dog', items: [
+        '🏆 Five one-time relic bounties over feats your runs already track.',
+        '🐕 A stray at the fence line becomes the camp\'s best morale, warmth and theft insurance.' ] },
+      { date: '2026-08-24', title: 'Tycoon: acqui-hires & season climates · Grow Op: the street market', items: [
+        '🏷️ Fold struggling startups in for permanent work speed; every post-IPO season opens under a market climate.',
+        '📊 Street demand drifts, surges and crashes — when you sell finally matters.' ] },
+      { date: '2026-08-24', title: 'Hearthvale: wolves at the door · Village: weather', items: [
+        '🐺 Cold-season night raids, watchtowers and keepers standing between the pack and the larders.',
+        '☀️🌧️❄️🥵 One sky per day touching warmth, panhandling and the garden — the Lookout or a 📻 Radio reads tomorrow\'s.' ] },
+    ];
+    function renderPatchNotes() {
+      const list = document.getElementById('patch-list');
+      list.innerHTML = PATCH_NOTES.map(r =>
+        `<div style="border-left:3px solid var(--accent,#3FB950);padding-left:12px">
+          <div style="font-size:11px;color:var(--text-dim);letter-spacing:1px">${r.date}</div>
+          <div style="font-weight:800;font-size:14px;margin:2px 0 6px">${r.title}</div>
+          <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.55;color:var(--text,inherit)">
+            ${r.items.map(i => `<li>${i}</li>`).join('')}
+          </ul>
+        </div>`).join('');
+    }
+    document.getElementById('patch-notes-btn').addEventListener('click', () => {
+      renderPatchNotes();
+      Utils.openModal('patch-modal');
+    });
+    document.getElementById('patch-modal').addEventListener('click', e => {
+      if (e.target.id === 'patch-modal') Utils.closeModal('patch-modal');
+    });
+    document.addEventListener('keydown', e => {
+      const pm = document.getElementById('patch-modal');
+      if (e.key === 'Escape' && pm.style.display === 'flex') Utils.closeModal('patch-modal');
     });
 
     Daily.init();

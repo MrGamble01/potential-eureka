@@ -14,7 +14,8 @@
 // Tycoon climates/acqui-hires/on-site, Voxel crows/angler/compost, and
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
-const SW_VERSION = 'eureka-v6';
+// v7: patch notes land on the hub (index.html inline module + hero button).
+const SW_VERSION = 'eureka-v7';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
