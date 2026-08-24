@@ -1104,6 +1104,7 @@
     well:       { name: 'Well',        emoji: '💧', w: 1, h: 1, tier: 1, cost: { stone: 8 },            happy: 6, roof: C.stoneW, roofDk: C.stoneWDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'Fresh water. Villagers nearby are happier — and a coin a day buys a wish.' },
     physic:     { name: 'Physic Garden', emoji: '🌿', w: 2, h: 2, tier: 2, cost: { wood: 10, stone: 6 }, happy: 4, charm: 2, roof: C.leaf, roofDk: C.leafDk, desc: 'Rows of feverfew and willowbark tended for the sick season. An autumn fever that would smoulder three days breaks in one, and the outbreak stings half as hard.' },
     watchtower: { name: 'Watchtower',  emoji: '🗼', w: 2, h: 2, tier: 1, cost: { wood: 18, stone: 10 }, worker: true, guard: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchman keeps wolves and worse at bay through the night. Each level holds off a bigger pack.' },
+    palisade:   { name: 'Palisade',    emoji: '🪵', w: 2, h: 2, tier: 2, cost: { wood: 22, stone: 10 }, palisade: true, unique: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A ring of sharpened timber around the heart of town — the wall stands its own watch: +1 guard that never sleeps and needs no keeper.' },
     beacon:     { name: 'Beacon Tower', emoji: '🕯️', w: 2, h: 2, tier: 3, cost: { wood: 25, stone: 30 }, beacon: true, roof: C.slate, roofDk: C.slateDk, wall: C.stoneW, wallDk: C.stoneWDk, desc: 'A watchfire over the valley: caravans are waylaid half as often, and the flame spots wolf packs a day out.' },
     furrier:    { name: 'Furrier',     emoji: '🧥', w: 2, h: 2, tier: 3, cost: { wood: 20, stone: 8, gold: 14 }, prod: { gold: 12 }, worker: true, chimney: true, roof: C.roofRed, roofDk: C.roofRedDk, desc: 'Works wolf pelts from repelled raids into fine winter coats — 1 pelt a cycle becomes 12 gold and a warmer, happier town.' },
     lodge:      { name: 'Hunter\u2019s Lodge', emoji: '🏹', w: 2, h: 2, tier: 2, cost: { wood: 12, gold: 5 }, happy: 2, charm: 1, chimney: true, roof: C.thatch, roofDk: C.thatchDk, desc: 'A snow-line cabin for the winter hunt — every third day of the cold season the party comes in with venison, and every second hunt hangs a pelt by the Furrier\u2019s gate.' },
@@ -1129,7 +1130,7 @@
     bench:      { name: 'Bench',       emoji: '🪑', w: 1, h: 1, tier: 1, cost: { wood: 4 },            decor: true, charm: 2,  desc: 'A wooden bench — a pleasant place to sit a while.' },
     birdbath:   { name: 'Birdbath',    emoji: '🐦', w: 1, h: 1, tier: 2, cost: { stone: 8 },           decor: true, charm: 5,  desc: 'A stone birdbath the songbirds love — a gentle beauty.' },
   };
-  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
+  const BUILD_ORDER = ['house', 'farm', 'orchard', 'fishing', 'dock', 'lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'market', 'well', 'physic', 'watchtower', 'palisade', 'beacon', 'furrier', 'lodge', 'tavern', 'chapel', 'school', 'townhall', 'warehouse', 'cellar', 'flowerbed', 'garden', 'hedge', 'torch', 'lamppost', 'bench', 'birdbath', 'statue', 'fountain'];
   const DECOR_ORDER = ['flowerbed', 'garden', 'hedge', 'bench', 'lamppost', 'torch', 'birdbath', 'statue', 'fountain'];
   // ---- Town tiers: the colony's growth arc. Population unlocks buildings. --
   const TIERS = [
@@ -1598,6 +1599,7 @@
       raidsRepelled: 0,    // lifetime raids the watch drove off
       raidsSuffered: 0,    // lifetime raids that got through
       pelts: 0,            // HVALE-4: wolf pelts from repelled raids
+      wallRaids: 0,        // HVALE-23: raids repelled with the palisade standing
       peltsWorked: 0,      // lifetime pelts the Furrier turned into coats
       chronicle: [],       // HVALE-5: the town's dated history — {d, e, t}
       bellSaves: 0,        // HVALE-8: breaches the chapel bell softened
@@ -1663,6 +1665,7 @@
     { id: 'swarmward', emoji: '🐝', name: 'Swarm Season', desc: 'Catch three summer swarms.', done: () => (state.swarmsSeen || 0) >= 3 },
     { id: 'winter_larder', emoji: '🏹', name: 'Winter Larder', desc: 'Bring in six winter hunts.', done: () => (state.hunts || 0) >= 6 },
     { id: 'cidermaker', emoji: '🍎', name: 'Cidermaker', desc: 'Run five press days.', done: () => (state.presses || 0) >= 5 },
+    { id: 'stockade', emoji: '🪵', name: 'The Stockade', desc: 'Repel three raids with the palisade standing.', done: () => (state.wallRaids || 0) >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2611,10 +2614,15 @@
   // Cadence: at dawn the pack is sighted (raidTonight set + warning toast +
   // wolves lurking at the wood's edge, visible after dark); at the NEXT dawn
   // the raid resolves against the watch. One full day to build a tower.
+  // HVALE-23: a finished palisade counts as one steady guard —
+  // always awake, never staffed, never leveled. Architecture.
+  function palisadeBuilt() {
+    return state.buildings.some(b => BUILDINGS[b.type].palisade && b.done !== false);
+  }
   function guardStrength() {
     return state.buildings
       .filter(b => BUILDINGS[b.type].guard && b.done !== false && b.staffed)
-      .reduce((s, b) => s + (b.level || 1), 0);
+      .reduce((s, b) => s + (b.level || 1), 0) + (palisadeBuilt() ? 1 : 0);
   }
   // HVALE-8: a finished Chapel rings the alarm on a bad night — the bell
   // can't fight, but it buys everyone time to bar the larders.
@@ -2695,6 +2703,7 @@
       state.happy = Math.min(100, state.happy + 4);
       emoji = '🛡️'; title = 'The Watch Held';
       text = `Wolves came down from the hills in the night — a pack of ${pack}. The watch stood firm at the tower and drove them off without a scratch. The town wakes proud — and ${pack} pelt${pack === 1 ? '' : 's'} hang by the gate for the Furrier.`;
+      if (palisadeBuilt()) state.wallRaids = (state.wallRaids || 0) + 1;   // HVALE-23: the wall was part of the line
       chron('🛡️', 'The watch drove off a pack of ' + pack + ' wolves without loss');
       SFX('goal');
     } else if (def > 0) {
@@ -4257,7 +4266,7 @@
   const BUILD_TABS = [
     { id: 'homes',    label: '🏠 Homes & Food', types: ['house', 'farm', 'orchard', 'fishing', 'dock'] },
     { id: 'industry', label: '⚒️ Industry',     types: ['lumber', 'quarry', 'windmill', 'bakery', 'carpenter', 'mason', 'apiary', 'furrier', 'lodge', 'warehouse', 'cellar'] },
-    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'tavern', 'chapel', 'school', 'townhall'] },
+    { id: 'townb',    label: '🏛️ Town',         types: ['market', 'well', 'physic', 'palisade', 'tavern', 'chapel', 'school', 'townhall'] },
     { id: 'decor',    label: '🌷 Decor',        types: DECOR_ORDER },
   ];
   let buildTab = 'homes';
@@ -4674,6 +4683,7 @@
         swarmsSeen: state.swarmsSeen || 0,   // HVALE-20
         hunts: state.hunts || 0,   // HVALE-21
         presses: state.presses || 0,   // HVALE-22
+        wallRaids: state.wallRaids || 0,   // HVALE-23
         lastPressDay: typeof state.lastPressDay === 'number' ? state.lastPressDay : -1,
         lastHuntDay: typeof state.lastHuntDay === 'number' ? state.lastHuntDay : -1,
         lastSwarmYear: typeof state.lastSwarmYear === 'number' ? state.lastSwarmYear : -1,
@@ -4773,6 +4783,7 @@
       state.swarmsSeen = s.swarmsSeen || 0;   // HVALE-20 (older valleys never watched the sky)
       state.hunts = s.hunts || 0;   // HVALE-21 (older winters went unhunted)
       state.presses = s.presses || 0;   // HVALE-22 (older autumns went unpressed)
+      state.wallRaids = s.wallRaids || 0;   // HVALE-23 (older walls were only ever men)
       state.lastPressDay = typeof s.lastPressDay === 'number' ? s.lastPressDay : -1;
       state.lastHuntDay = typeof s.lastHuntDay === 'number' ? s.lastHuntDay : -1;
       state.lastSwarmYear = typeof s.lastSwarmYear === 'number' ? s.lastSwarmYear : -1;
