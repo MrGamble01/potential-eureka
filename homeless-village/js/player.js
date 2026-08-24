@@ -91,7 +91,9 @@ function finishAction(a){
     var repBoost=repTier()>=1?1.15:1;
     // HV-11: people slow down for the finished mural — and stay a moment
     var muralBoost=(G.mural||0)>=MURAL_PANELS?1.1:1;
-    if(Math.random()<.55*weatherDef().pan*dogBoost*repBoost*muralBoost){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+    // HV-18: nobody lingers outside in a cold snap
+    var snapCut=snapActive()?0.75:1;
+    if(Math.random()<.55*weatherDef().pan*dogBoost*repBoost*muralBoost*snapCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
       bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){

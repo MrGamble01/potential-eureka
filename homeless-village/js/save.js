@@ -41,5 +41,7 @@ function loadGame(){
     if(typeof G.ticketLastDay!=='number') G.ticketLastDay=-9;
     if(typeof G.lastLetterDay!=='number') G.lastLetterDay=-9;
     if(G.ticketAsk&&typeof G.ticketAsk.day!=='number') G.ticketAsk=null;
+    if(typeof G.snapUntil!=='number') G.snapUntil=null;             // saves from before HV-18
+    if(typeof G.snapsSurvived!=='number') G.snapsSurvived=0;
   }catch(e){}
 }
