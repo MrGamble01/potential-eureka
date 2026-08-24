@@ -1944,6 +1944,35 @@ function positionDuck(){
   const y=(W.waterY||5)+0.12+Math.sin(perf*1.6+t.paddle)*0.03;   // bob on the water
   t.mesh.position.set(t.x,y,t.z);t.mesh.rotation.y=t.face+Math.sin(t.paddle*4)*0.05;
 }
+/* ============================== the Duck's Dabble (VOX-8) ============================== */
+// Every few minutes the duck up-ends and comes up with something lost
+// in the pond — usually pocket change, rarely an old locket. Granted
+// on the spot with a floater (no tap loop; the duck keeps what it
+// wants and shares the rest). The pond ices over in winter.
+let duckDabbleT=90+Math.random()*90;
+function duckDabble(){
+  const t=pondDuck;if(!t)return;
+  const y=(W.waterY||5)+1.1;
+  const r=Math.random();
+  state.duckFinds=(state.duckFinds||0)+1;
+  if(r<0.12){
+    grantCoins(30,t.x,y,t.z);
+    toast('🦆 '+(t.name||'The duck')+' surfaced an old locket from the pond bottom! +30 🪙');
+  } else {
+    const coins=5+((r*8)|0);
+    grantCoins(coins,t.x,y,t.z);
+    toast('🦆 '+(t.name||'The duck')+' dabbled up something shiny — +'+coins+' 🪙');
+  }
+  burst(t.x,y-0.5,t.z,0x9ad2e0,10,{up:1.8,g:4});
+  SFX.play('coin');
+  checkAch();
+}
+function updateDuckDabble(dt){
+  if(!pondDuck)return;
+  if(seasonOf(state.day).key==='winter')return;   // the pond is iced over
+  duckDabbleT-=dt;
+  if(duckDabbleT<=0){duckDabbleT=150+Math.random()*120;duckDabble();}
+}
 function updateDuck(dt){
   const t=pondDuck;if(!t){if(W.pondCells&&W.pondCells.length)spawnDuck();return;}
   t.quackT-=dt;
@@ -3866,6 +3895,7 @@ const ACH=[
   ['wish1','Upon a Star','Collect three stardust shards and make a wish',()=>(state.wishes||0)>=1],
   ['catgift5','Little Hunter','Unwrap five of the cat’s gifts',()=>(state.catGifts||0)>=5],
   ['potofgold','Pot of Gold','Make a sale while a rainbow arcs',()=>!!state.achFlags.rainbowSale],
+  ['duckfinds5','Duck’s Hoard','The duck shares five pond finds',()=>(state.duckFinds||0)>=5],
   ['koi','The Golden One','Catch the elusive Golden Koi',()=>!!state.achFlags.koi],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
@@ -4114,6 +4144,7 @@ function boot(){
     updateCat(dt);
     updateDog(dt);
     updateDuck(dt);
+    updateDuckDabble(dt);
     updatePetFriends(dt);
     updateCatGift(dt);
     if(fishingT>0)fishingT-=dt;
