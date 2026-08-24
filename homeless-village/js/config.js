@@ -30,6 +30,11 @@ var G = {
   // like the Case Worker arc, so the companion can't be missed by RNG.
   dog: 0, dogMetDay: 0, dogHungry: false,
 
+  // HV-7: the regulars — named neighborhood figures whose affinity grows
+  // through the actions you already take. 0-10 each; 5+ is friendship
+  // and unlocks their standing favor.
+  regulars: { marisol: 0, ray: 0, dee: 0 }, lastDeeDay: -9,
+
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
@@ -74,6 +79,21 @@ function rollWeather(){
 }
 function weatherDef(){ return WEATHERS[G.weather]||WEATHERS.clear; }
 function forecastVisible(){ return G.workers.lookout || G.structures.radio; }
+
+// ── The regulars (HV-7) ───────────────────────────────────────
+// Everyone on this block has a name if you're around long enough to learn
+// it. Affinity grows through actions you already take (no new buttons):
+// how counts, so each regular watches a different part of your routine.
+var REGULARS = [
+  {id:'marisol', icon:'🌮', name:'Marisol', who:'runs the taquería on the corner',
+   how:'Trade goods — she respects honest dealing', perk:'sends leftovers to the camp some mornings'},
+  {id:'ray',     icon:'🎖️', name:'Old Ray', who:'holds the bench by the bridge',
+   how:'Rest nearby — he likes the company', perk:'points out which dumpsters are worth the walk'},
+  {id:'dee',     icon:'🩺', name:'Dee',     who:'walks home from night shifts at County',
+   how:'Panhandle her route — she always stops', perk:'patches you up when you’re in bad shape'},
+];
+function regularDef(id){ for(var i=0;i<REGULARS.length;i++) if(REGULARS[i].id===id) return REGULARS[i]; return null; }
+function regularStage(id){ var a=(G.regulars&&G.regulars[id])||0; return a>=5?2:(a>=1?1:0); } // 0 stranger, 1 known, 2 friend
 
 var ACTIONS = [
   {id:'scavenge',  icon:'🗑️', label:'Scavenge Dumpster', time:5000, cooldown:8000,  tooltip:'Dig through dumpsters for scraps, cans, or food.'},

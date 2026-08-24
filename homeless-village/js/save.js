@@ -20,5 +20,9 @@ function loadGame(){
     if(typeof G.dog!=='number'||G.dog<0||G.dog>2){ G.dog=0; }      // saves from before HV-6
     if(typeof G.dogMetDay!=='number') G.dogMetDay=0;
     G.dogHungry=!!G.dogHungry;
+    if(!G.regulars||typeof G.regulars.marisol!=='number'){          // saves from before HV-7
+      G.regulars={marisol:0,ray:0,dee:0};
+    }
+    if(typeof G.lastDeeDay!=='number') G.lastDeeDay=-9;
   }catch(e){}
 }
