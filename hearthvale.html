@@ -1386,6 +1386,29 @@
     save();
   }
 
+  // ── The Cider Press (HVALE-22) ─────────────────────────
+  // Autumn completes the calendar: summer has its swarm, winter its
+  // hunt — now every THIRD day of the turning season the press runs:
+  // 4 gold a finished orchard (capped at 16), +2 cheer, and the
+  // orchards that spend three seasons feeding the bees and the
+  // kitchens finally pour a harvest you can hear.
+  const PRESS_GOLD_PER_ORCHARD = 4, PRESS_CAP = 16, PRESS_CHEER = 2;
+  function pressAtDawn() {
+    if (countType('orchard') < 1) return;
+    if (seasonIdx() !== 2) return;                       // the turning season only
+    if (yearDay(state.day) % 3 !== 0) return;            // every third day
+    if (state.lastPressDay === state.day) return;
+    state.lastPressDay = state.day;
+    state.presses = (state.presses || 0) + 1;
+    const take = Math.min(PRESS_CAP, countType('orchard') * PRESS_GOLD_PER_ORCHARD);
+    state.res.gold += take;
+    state.happy = Math.min(100, state.happy + PRESS_CHEER);
+    toast('🍎 Press day — the orchards pour! +' + take + ' gold, +' + PRESS_CHEER + ' cheer.');
+    chron('🍎', 'The cider press ran till dusk — ' + countType('orchard') + ' orchard' + (countType('orchard') === 1 ? '' : 's') + ' poured (+' + take + ' gold)');
+    checkAchievements();
+    save();
+  }
+
   // ── The Fever & the Physic Garden (HVALE-17) ───────────
   // From the second year, autumn carries the sick season: each autumn
   // dawn (once a year at most) can break a FEVER over the town — the
@@ -1639,6 +1662,7 @@
     { id: 'balladry', emoji: '🎻', name: 'Three Songs Deep', desc: 'Host the minstrel three evenings.', done: () => (state.versesSung || 0) >= 3 },
     { id: 'swarmward', emoji: '🐝', name: 'Swarm Season', desc: 'Catch three summer swarms.', done: () => (state.swarmsSeen || 0) >= 3 },
     { id: 'winter_larder', emoji: '🏹', name: 'Winter Larder', desc: 'Bring in six winter hunts.', done: () => (state.hunts || 0) >= 6 },
+    { id: 'cidermaker', emoji: '🍎', name: 'Cidermaker', desc: 'Run five press days.', done: () => (state.presses || 0) >= 5 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2735,6 +2759,7 @@
     minstrelAtDawn(); // HVALE-19: and the road brings music
     swarmAtDawn();  // HVALE-20: and summer opens with wings
     huntAtDawn();   // HVALE-21: and winter answers back
+    pressAtDawn();  // HVALE-22: and autumn pours
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4648,6 +4673,8 @@
         versesSung: state.versesSung || 0,   // HVALE-19
         swarmsSeen: state.swarmsSeen || 0,   // HVALE-20
         hunts: state.hunts || 0,   // HVALE-21
+        presses: state.presses || 0,   // HVALE-22
+        lastPressDay: typeof state.lastPressDay === 'number' ? state.lastPressDay : -1,
         lastHuntDay: typeof state.lastHuntDay === 'number' ? state.lastHuntDay : -1,
         lastSwarmYear: typeof state.lastSwarmYear === 'number' ? state.lastSwarmYear : -1,
         lastMinstrelDay: typeof state.lastMinstrelDay === 'number' ? state.lastMinstrelDay : -1,
@@ -4745,6 +4772,8 @@
       state.versesSung = s.versesSung || 0;   // HVALE-19 (older taverns never had the stage)
       state.swarmsSeen = s.swarmsSeen || 0;   // HVALE-20 (older valleys never watched the sky)
       state.hunts = s.hunts || 0;   // HVALE-21 (older winters went unhunted)
+      state.presses = s.presses || 0;   // HVALE-22 (older autumns went unpressed)
+      state.lastPressDay = typeof s.lastPressDay === 'number' ? s.lastPressDay : -1;
       state.lastHuntDay = typeof s.lastHuntDay === 'number' ? s.lastHuntDay : -1;
       state.lastSwarmYear = typeof s.lastSwarmYear === 'number' ? s.lastSwarmYear : -1;
       state.lastMinstrelDay = typeof s.lastMinstrelDay === 'number' ? s.lastMinstrelDay : -1;
