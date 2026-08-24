@@ -438,6 +438,15 @@ canvas{display:block;touch-action:none;}
 #route-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 #route-toggle.cold{color:#ff6a5a;border-color:rgba(255,106,90,0.6);}
 @media (max-width:640px){ #route-toggle{bottom:64px;right:120px;font-size:11px;padding:5px 9px;} }
+/* ── The Storage Unit (LAB-22) ── */
+#unit-toggle{
+  position:fixed;bottom:14px;right:540px;z-index:30;
+  background:rgba(4,8,10,0.92);border:1px solid rgba(122,178,255,0.4);
+  color:#7ab2ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#unit-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #unit-toggle{bottom:64px;right:344px;font-size:11px;padding:5px 9px;} }
 /* ── The Getaway Bag (LAB-21) ── */
 #bag-toggle{
   position:fixed;bottom:14px;right:364px;z-index:30;
@@ -507,6 +516,7 @@ canvas{display:block;touch-action:none;}
 <div id="bw-hud" style="display:none" title="Two buyers want the same 5-bag lot. Hammer to sell at the standing bid, or let them bid each other up — they might spook and walk">🔨 <span id="bw-val"></span><button id="bw-hammer"></button><button id="bw-wait"></button></div>
 <div id="wave-hud" style="display:none" title="A crackdown sweep: every sale runs 2× hotter and street buyers come half as often. Sell nothing until it lifts and the clean streets pay −10 heat">🚨 <span id="wave-val"></span></div>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
+<button id="unit-toggle" style="display:none" title="The Storage Unit: a $1,500 rental across town under a clean name. Stash cap 15 → 45, and if you ever skip town, the unit isn’t on the warrant — up to 15 bags survive">📦 RENT A UNIT $1,500</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1003,6 +1013,33 @@ buildTrimStation(0, 2, 'garage');
 // ── Stash spot ──
 let stashCount = 0;
 const STASH_MAX_BASE = 15;
+// ── The Storage Unit (LAB-22) ──────────────────────────────
+// A rental across town under a clean name. $1,500 once (Act II+):
+// the stash cap grows 15 → 45 — and because the unit is never on
+// the warrant, a getaway-bag skip keeps up to 15 bags instead of
+// losing the lot. One rental, permanent.
+const UNIT_COST = 1500, UNIT_CAP_BONUS = 30, UNIT_KEEP = 15;
+function stashMax() { return STASH_MAX_BASE + (state.unitRented ? UNIT_CAP_BONUS : 0); }
+function refreshUnitBtn() {
+  const b = document.getElementById('unit-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', !!state.unitRented);
+  b.textContent = state.unitRented ? '📦 UNIT RENTED · CAP 45' : '📦 RENT A UNIT $' + fmtCash(UNIT_COST);
+}
+function rentUnit() {
+  if (state.unitRented) { showToast('📦 The unit across town is already yours.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < UNIT_COST) { showToast("Can't afford the deposit yet ($" + fmtCash(UNIT_COST) + ').', 'bust'); return; }
+  state.cash -= UNIT_COST;
+  state.unitRented = true;
+  refreshUnitBtn();
+  setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+  showToast('📦 A unit across town, rented under a clean name. Stash cap 45.', 'good');
+  addFeed('📦 Rented a storage unit — the operation has depth now.');
+  checkGrowAchievements();
+  saveGame();
+}
 let stashNode = null;
 
 function buildStash(x, z) {
@@ -1628,7 +1665,10 @@ function packBag() {
 function skipTown() {
   state.bagPacked = false;
   state.cash = Math.floor(state.cash / 2);
-  stashCount = 0; pureBags = 0; trimBags = 0;
+  // LAB-22: the storage unit was never on the warrant.
+  const kept = state.unitRented ? Math.min(stashCount, UNIT_KEEP) : 0;
+  stashCount = kept; pureBags = Math.min(pureBags, kept); trimBags = 0;
+  if (kept > 0) addFeed('📦 ' + kept + ' bags ride out the raid in the unit across town');
   setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
   state.heat = 40;
   state.skips = (state.skips || 0) + 1;
@@ -1877,6 +1917,7 @@ function refreshRouteBtn() {
   b.style.display = currentAct() >= 3 ? '' : 'none';
   b.classList.toggle('on', !!state.route && routeCold <= 0);
   refreshBagBtn();   // LAB-21: the bag rides the same act gate
+  refreshUnitBtn();  // LAB-22: so does the unit (one act earlier inside)
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -1983,6 +2024,7 @@ function updateRoute(dt) {
 }
 { const rb = document.getElementById('route-toggle'); if (rb) rb.onclick = toggleRoute; }
 { const gb = document.getElementById('bag-toggle'); if (gb) gb.onclick = packBag; }
+{ const ub = document.getElementById('unit-toggle'); if (ub) ub.onclick = rentUnit; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2234,6 +2276,7 @@ const GROW_ACH = [
   { id: 'signature',    name: 'Signature Blend', test: () => (state.batches || 0) >= 150 },     // LAB-19
   { id: 'cold_streets', name: 'Cold Streets',    test: () => (state.cleanWaves || 0) >= 3 },    // LAB-20
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
+  { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -2630,6 +2673,7 @@ function saveGame() {
     waveT: Math.round(waveT), waveLeft: Math.round(waveLeft),  // LAB-20
     waveSales, cleanWaves: state.cleanWaves || 0,
     bagPacked: !!state.bagPacked, skips: state.skips || 0,   // LAB-21
+    unitRented: !!state.unitRented,   // LAB-22
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
     crunch: !!state.crunch,
@@ -2711,9 +2755,11 @@ function loadGame() {
     state.cleanWaves = Math.max(0, Math.floor(sv.cleanWaves || 0));
     state.bagPacked = !!sv.bagPacked;   // LAB-21
     state.skips = Math.max(0, Math.floor(sv.skips || 0));
+    state.unitRented = !!sv.unitRented;   // LAB-22
+    refreshUnitBtn();
     refreshBagBtn();
     refreshWaveHud();
-    stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
+    stashCount=Math.min(sv.unitRented?45:STASH_MAX_BASE, sv.stashCount||0);   // LAB-22: the rented ceiling travels with the flag
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
     // Restore rooms
@@ -3011,7 +3057,7 @@ function depositAtTrim() {
 function depositAtStash() {
   if(trimBags>0) {
     const b=trimBags; trimBags=0;
-    const room=Math.max(0, STASH_MAX_BASE-stashCount);
+    const room=Math.max(0, stashMax()-stashCount);
     const added=Math.min(b, room);
     stashCount+=added;
     setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
@@ -3019,7 +3065,7 @@ function depositAtStash() {
     if(added<b) showToast(`📦 Stash full! Lost ${b-added} bags.`,'event');
   }
   if(chemProduct>0) {
-    const room=Math.max(0, STASH_MAX_BASE-stashCount);
+    const room=Math.max(0, stashMax()-stashCount);
     const added=Math.min(chemProduct, room);
     const lost=chemProduct-added;
     stashCount+=added; chemProduct=0;
@@ -3201,7 +3247,7 @@ function updateRunnerNPCs(dt) {
       }
     } else if(r.state==='toStash') {
       if(stepToward(r.group, stashNode.x, stashNode.z+1.5, 3.0, dt)) {
-        const room=Math.max(0, STASH_MAX_BASE-stashCount);
+        const room=Math.max(0, stashMax()-stashCount);
         const added=Math.min(r.carry, room);
         stashCount+=added;
         pureBags+=Math.min(r.carryPure||0, added); r.carryPure=0;   // LAB-10
