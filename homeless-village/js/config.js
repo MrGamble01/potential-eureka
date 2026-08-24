@@ -53,6 +53,8 @@ var G = {
   meetings: 0, meetingDay: -9,
   // HV-15: city petitions won at the notice board
   petitions: {},
+  // HV-16: a friend's favor on the books, and the running tally
+  favor: null, favorsDone: 0, lastFavorDay: -9,
 
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
@@ -114,6 +116,36 @@ var REGULARS = [
 ];
 function regularDef(id){ for(var i=0;i<REGULARS.length;i++) if(REGULARS[i].id===id) return REGULARS[i]; return null; }
 function regularStage(id){ var a=(G.regulars&&G.regulars[id])||0; return a>=5?2:(a>=1?1:0); } // 0 stranger, 1 known, 2 friend
+
+// ── HV-16: Regulars' Favors ──────────────────────────────────
+// Friendship runs both ways. Once a regular counts you as a friend,
+// every few days one of them asks a small favor at dawn — cans for the
+// taquería, food for Ray's bench, a scrap for Dee's bike rack. Filling
+// it pays goodwill and rep; a favor left two days goes quietly unasked
+// again. Only one favor sits on the books at a time.
+var FAVORS = {
+  marisol: { need:{cans:3},   give:{goodwill:4}, ask:'Marisol could use 3 cans for the taquería\u2019s recycling run.' },
+  ray:     { need:{food:2},   give:{goodwill:3}, ask:'Old Ray hasn\u2019t eaten right in days \u2014 2 food would fix that.' },
+  dee:     { need:{scraps:2}, give:{goodwill:3}, ask:'Dee\u2019s bike rack needs 2 scraps of steel.' },
+};
+function maybePostFavor(){
+  if(G.favor || G.days - (G.lastFavorDay||-9) < 3) return;
+  var friends=REGULARS.filter(function(r){ return regularStage(r.id)===2 && FAVORS[r.id]; });
+  if(!friends.length) return;
+  var r=friends[Math.floor(Math.random()*friends.length)];
+  G.favor={who:r.id, day:G.days};
+  G.lastFavorDay=G.days;
+  log(r.icon+' '+FAVORS[r.id].ask);
+  if(typeof buildWorkersUI==='function') buildWorkersUI();
+}
+function favorLapsed(){
+  if(G.favor && G.days - G.favor.day >= 2){
+    var r=regularDef(G.favor.who);
+    log((r?r.icon+' ':'')+'The favor went quietly unasked again.');
+    G.favor=null;
+    if(typeof buildWorkersUI==='function') buildWorkersUI();
+  }
+}
 
 // ── The bulletin board (HV-8) ─────────────────────────────────
 // One posted odd job a day, rotating deterministically with the date —
@@ -234,6 +266,7 @@ var GOALS = [
   {id:'mural',      desc:'Finish the community mural',target:4,  reward:8,  value:function(){ return G.mural||0; }},
   {id:'meet3',      desc:'Hold 3 camp meetings',      target:3,  reward:5,  value:function(){ return G.meetings||0; }},
   {id:'petition1',  desc:'Win a city petition',       target:1,  reward:6,  value:function(){ return Object.keys(G.petitions||{}).length; }},
+  {id:'favor3',     desc:'Do 3 favors for friends',   target:3,  reward:5,  value:function(){ return G.favorsDone||0; }},
 ];
 
 var activeJobs = {};

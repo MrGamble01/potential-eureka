@@ -34,5 +34,8 @@ function loadGame(){
     if(typeof G.meetings!=='number') G.meetings=0;                 // saves from before HV-14
     if(typeof G.meetingDay!=='number') G.meetingDay=-9;
     if(!G.petitions||typeof G.petitions!=='object') G.petitions={}; // saves from before HV-15
+    if(G.favor&&(typeof G.favor.who!=='string'||!FAVORS[G.favor.who])) G.favor=null; // saves from before HV-16
+    if(typeof G.favorsDone!=='number') G.favorsDone=0;
+    if(typeof G.lastFavorDay!=='number') G.lastFavorDay=-9;
   }catch(e){}
 }

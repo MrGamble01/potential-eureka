@@ -230,3 +230,22 @@ function doPetition(id){
   saveGame();
   buildWorkersUI(); updateHUD();
 }
+
+// HV-16: filling a friend's favor — goods across, goodwill back.
+function doFavor(){
+  if(!G.favor) return;
+  var f=FAVORS[G.favor.who], r=regularDef(G.favor.who);
+  if(!f) { G.favor=null; return; }
+  var can=Object.entries(f.need).every(function(e){ return (G[e[0]]||0)>=e[1]; });
+  if(!can){ log('Not enough to spare for '+(r?r.name:'the favor')+' yet.'); sfx('error'); return; }
+  Object.entries(f.need).forEach(function(e){ G[e[0]]-=e[1]; });
+  Object.entries(f.give).forEach(function(e){ G[e[0]]=(G[e[0]]||0)+e[1]; });
+  G.favorsDone=(G.favorsDone||0)+1;
+  G.favor=null;
+  addRep(2);
+  sfx('hire');
+  log((r?r.icon+' ':'')+(r?r.name:'A friend')+' won\u2019t forget this. +'+Object.values(f.give)[0]+'\ud83e\ude76');
+  floatText('+'+Object.values(f.give)[0]+'\ud83e\ude76');
+  saveGame();
+  buildWorkersUI(); updateHUD();
+}

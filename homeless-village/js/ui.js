@@ -103,6 +103,25 @@ function buildWorkersUI(){
   });
   buildPetitionsUI();  // HV-15: the notice board rides the same panel
   buildRegularsUI();   // HV-7: the roster shares the Community panel
+  buildFavorUI();      // HV-16: a friend's ask rides under the roster
+}
+
+// HV-16: the open favor renders as one row with a Give button that
+// stays disabled until the goods are actually to spare.
+function buildFavorUI(){
+  var el=document.getElementById('regulars-list');
+  if(!el||!G.favor) return;
+  var f=FAVORS[G.favor.who], r=regularDef(G.favor.who);
+  if(!f||!r) return;
+  var can=Object.entries(f.need).every(function(e){ return (G[e[0]]||0)>=e[1]; });
+  var needStr=Object.entries(f.need).map(function(e){ return e[1]+({cans:'\ud83e\udee9',food:'\ud83c\udf5e',scraps:'\ud83e\uddf1'}[e[0]]||(' '+e[0])); }).join(' ');
+  var row=document.createElement('div');
+  row.className='worker-row';
+  row.innerHTML='<span class="w-icon">'+r.icon+'</span><span class="w-name">'+r.name+' asks: '+needStr+'</span><button class="w-hire" onclick="doFavor()"'+(can?'':' disabled')+'>Give</button>';
+  row.setAttribute('data-tip',f.ask+' Friends pay it back in goodwill.');
+  row.addEventListener('mouseenter',showTip);
+  row.addEventListener('mouseleave',hideTip);
+  el.appendChild(row);
 }
 
 // HV-15: the petitions board appears once the city will read them
