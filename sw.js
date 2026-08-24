@@ -8,10 +8,13 @@
 
 // Bump on any precache-list or caching-strategy change: activate() drops
 // every cache that doesn't match, which is how updates roll out.
-// v4: rolls out the P4-P8 waves (relic vault, undo, share cards, backup,
-// hyperspace, layouts, medals, pace, Cascade daily) to installed PWAs —
-// cache-first shells only refresh when this version changes.
-const SW_VERSION = 'eureka-v5';
+// v6: rolls out the Flagship Depth campaign (AoW trials/councils/vault,
+// Hearthvale raids/mastery/talents/Furrier, Grow Op market/contracts/
+// stings/pure batches, Homeless Village weather/dog/regulars/board,
+// Tycoon climates/acqui-hires/on-site, Voxel crows/angler/compost, and
+// the flagship rival leaderboard) to installed PWAs — cache-first
+// shells only refresh when this version changes.
+const SW_VERSION = 'eureka-v6';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

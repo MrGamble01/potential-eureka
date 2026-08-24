@@ -33,11 +33,26 @@ const Rivals = (() => {
     'cascade-best':        { label: 'Word Cascade',  fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
     'maze-best':           { label: 'Gem Labyrinth', fmt: v => v.toLocaleString() + ' pts',  dir: 'max' },
     'crate-best':          { label: 'Crate Escape',  fmt: v => v + ' puzzles',               dir: 'max' },
-    // Age of War's endless best-run lives as JSON ({waves, kills, ...}),
-    // so it carries its own reader instead of the default parseInt.
+    // The flagships' saves are JSON blobs, so each carries its own reader
+    // instead of the default parseInt (AOW-12 pattern). A corrupt blob
+    // reads as 0 and simply drops out of the payload.
     'aow-best-run':        { label: 'Age of War ∞',  fmt: v => v + ' waves',                 dir: 'max',
-      read: () => { try { return Math.floor((JSON.parse(localStorage.getItem('aow-best-run') || 'null') || {}).waves || 0); } catch { return 0; } } },
+      read: () => jsonField('aow-best-run', o => o.waves) },
+    'startup-tycoon-v7':   { label: 'Startup Tycoon', fmt: v => '$' + v.toLocaleString() + ' lifetime', dir: 'max',
+      read: () => jsonField('startup-tycoon-v7', o => o.lifetimeCash) },
+    'hearthvale-v1':       { label: 'Hearthvale',    fmt: v => v + ' villagers at peak',     dir: 'max',
+      read: () => jsonField('hearthvale-v1', o => o.peakPop) },
+    'homeless_village_v1': { label: 'Homeless Village', fmt: v => v + ' days survived',      dir: 'max',
+      read: () => jsonField('homeless_village_v1', o => o.days) },
+    'drug-lab-v1':         { label: 'Grow Op',       fmt: v => '$' + v.toLocaleString() + ' earned', dir: 'max',
+      read: () => jsonField('drug-lab-v1', o => o.totalEarned) },
+    'voxel-garden-v1':     { label: 'Voxel Isle',    fmt: v => v.toLocaleString() + ' coins earned', dir: 'max',
+      read: () => jsonField('voxel-garden-v1', o => (o.state || {}).totalEarned) },
   };
+  function jsonField(key, pick) {
+    try { return Math.max(0, Math.floor(pick(JSON.parse(localStorage.getItem(key) || 'null') || {}) || 0)); }
+    catch { return 0; }
+  }
 
   // djb2 over the payload keeps casual link-mangling from producing
   // silently-wrong scores. Not tamper-proof — nothing client-side is —
