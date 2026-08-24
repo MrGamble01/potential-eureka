@@ -4336,10 +4336,19 @@ function spawnIdeaWorker(opts = {}) {
     // Founder U (TYC-8): alumni hires arrive at L2. The roster save may
     // overwrite this with the worker's real XP right after — good: saved
     // XP is the source of truth, the perk only floors FRESH hires.
-    xp: (typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0,
+    // TYC-17: every engineer who was ever poached away vouches for you
+    // from their new desk — fresh hires arrive a little seasoned.
+    xp: ((typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0) + alumniXp(),
   });
   return true;
 }
+// ── The Alumni Network (TYC-17) ──────────────────────────────
+// Losing a retention battle stops being pure loss: the seniors who
+// walked wear your hoodie at their new gigs and send talent your way.
+// +1 starting XP per alum, capped at +5 (one full seniority level).
+// try/catch: boot-time spawns can run before the `let poachesLost`
+// binding initializes (same reason the campus check guards founderHas).
+function alumniXp() { try { return Math.min(poachesLost || 0, 5); } catch (e) { return 0; } }
 
 function updateIdeaWorkers(dt) {
   const coffeeAm  = amenities.find(a => a.id === 'coffee'   && a.isOwned);
@@ -6160,6 +6169,7 @@ const ACHIEVEMENTS = [
   { id: 'loyalty',       icon: '🛡️', title: 'Golden Handcuffs',     desc: 'Win three retention battles.',           check: () => poachesFought >= 3, progress: () => [Math.min(poachesFought, 3), 3] },
   { id: 'retreat_3',     icon: '⛺', title: 'Team Building',        desc: 'Hold three company retreats.',           check: () => retreatsHeld >= 3, progress: () => [Math.min(retreatsHeld, 3), 3] },
   { id: 'dynasty',       icon: '🏆', title: 'Dynasty',              desc: 'Win three seasons.',                     check: () => trophiesWon >= 3, progress: () => [Math.min(trophiesWon, 3), 3] },
+  { id: 'alumni_5',      icon: '🎓', title: 'Old Friends',          desc: 'Five engineers out there wearing your alumni hoodie.', check: () => poachesLost >= 5, progress: () => [Math.min(poachesLost, 5), 5] },
 ];
 const earnedAchievements = {}; // id → true
 function checkAchievements() {
@@ -7120,9 +7130,10 @@ function closePoachOffer(countered, expired) {
     poachesLost++;
     // the seniority walks; the desk refills the same afternoon (campus
     // alumni still arrive at L2, same as any fresh hire)
-    o.w.xp = (typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0;
+    o.w.xp = ((typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0) + alumniXp();   // TYC-17: alumni vouch for the backfill
     showToast(`😤 Your L${o.lv} engineer ${expired ? 'stopped waiting and ' : ''}took the offer — a fresh face is at their desk by evening.`, 'event', 'critical');
     addFeedEntry(`😤 Poached — the L${o.lv} seniority walked out the door`);
+    if (alumniXp() > 0) addFeedEntry(`🎓 The alumni network vouches for you — new hires start with +${alumniXp()} XP`);
     poachNextT = 420 + Math.random() * 240;
   }
   checkAchievements(); saveGame(); refreshHud();
