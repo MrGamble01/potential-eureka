@@ -18,7 +18,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -82,6 +82,7 @@ var RECIPES = [
   {id:'cart',        icon:'🛒', name:'Shopping Cart',   cost:{scraps:6,wood:2},                gives:{structure:'cart'},       time:7000,  desc:'A liberated cart with a true wheel. Makes the deposit run possible: haul every can to the redemption center in one trip.', requires:'workbench'},
   {id:'pantry',      icon:'🥣', name:'Free Pantry',     cost:{wood:6,scraps:2},                gives:{structure:'pantry'},     time:8000,  desc:'A little box on a post: take what you need, leave what you can. Some dawns the neighborhood leaves something \u2014 and a stocked pantry gets the camp remembered.', requires:'workbench'},
   {id:'coats',       icon:'🧥', name:'Coat Rack',       cost:{scraps:5,goodwill:6},            gives:{structure:'coats'},      time:9000,  desc:'Donated coats on a rail by the fire \u2014 on bitter dawns the cold cuts half as deep.', requires:'workbench'},
+  {id:'toolbox',     icon:'🧰', name:'Tool Box',        cost:{scraps:6,cans:2},                gives:{structure:'toolbox'},    time:7000,  desc:'Good tools, oiled and kept \u2014 the workbench never falls apart again, and an odd job done with the right tools earns +2 goodwill on top.', requires:'workbench'},
 ];
 
 // ── Weather (HV-5) ────────────────────────────────────────────
@@ -293,6 +294,11 @@ var PANTRY_REP_EVERY = 5;
 // wave's warmth is never touched.
 var COATS_CUT = 0.5;
 
+// HV-24: the tool box. Good tools change two small things that add
+// up: the workbench never falls apart again (the daily wobble gets
+// tightened instead), and the daily odd job pays a little extra.
+var TOOLBOX_JOB_BONUS = 2;
+
 // ── HV-21: the Newcomer ──────────────────────────────────────
 // The mirror of the bus ticket. Once the camp is Respected and warm
 // enough to share (a tent up, room by the fire), word gets around:
@@ -362,6 +368,7 @@ var GOALS = [
   {id:'welcome2',   desc:'Welcome 2 newcomers',       target:2,  reward:5,  value:function(){ return G.welcomes||0; }},
   {id:'pantry10',   desc:'See the pantry filled 10 times', target:10, reward:5, value:function(){ return G.pantryFills||0; }},
   {id:'coldcut6',   desc:'Blunt 6 cold dawns with the coat rack', target:6, reward:5, value:function(){ return G.coldCut||0; }},
+  {id:'bench5',     desc:'Tighten the workbench back up 5 times', target:5, reward:5, value:function(){ return G.benchSaves||0; }},
 ];
 
 var activeJobs = {};
