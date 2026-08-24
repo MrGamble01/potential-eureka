@@ -287,8 +287,10 @@ var EVENTS_BAD=[
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
-     // scramble instead of ignoring it (IDEA-HV-4).
-     var keep=G.packedUp?0.25:1;
+     // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
+     // stash halves the take again — they can't confiscate what they
+     // can't find, and the hole itself is never discovered.
+     var keep=(G.packedUp?0.25:1)*(G.structures.stash?0.5:1);
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
      G.scraps=Math.max(0,G.scraps-lostScraps);
@@ -318,9 +320,10 @@ var EVENTS_BAD=[
    effect:function(){
      G.lastEventDay=G.days;
      var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
-     G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm));
-     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm));
-     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm));
+     var sm=G.structures.stash?.5:1; // HV-12: half of everything is underground
+     G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
+     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
+     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
      log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
    }},

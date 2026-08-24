@@ -31,7 +31,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
-| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural) |
+| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural), `hvstash` (the Hidden Stash) |
 | Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier), `voxstardust` (stardust wishes), `voxcat` (cat gifts) |
 
 Suites that need a temporary `window.__*` test hook in a game file
@@ -41,10 +41,12 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
-2026-08-24 — all **34 suites green** end-to-end (~46 minutes on one
-core, audit-first). The run caught exactly one stale assertion:
-`hvdog` had pinned the befriend goal as the *last* ladder rung, which
-HV-9/HV-10 outgrew — fixed to be position-agnostic. Prefer
+2026-08-24 (QA-3, post-Round-Four) — all **35 suites green**
+end-to-end, zero stale assertions this time; the whole-site audit held
+its environment baseline mid-run while flagship tranches merged around
+it. The previous full run (QA-2, Depth 29) caught exactly one stale
+assertion: `hvdog` had pinned the befriend goal as the *last* ladder
+rung, which HV-9/HV-10 outgrew — fixed to be position-agnostic. Prefer
 "contains"-style assertions over position-pinning for anything later
 features can append to.
 
