@@ -1333,6 +1333,34 @@
     save();
   }
 
+  // ── Swarm Day (HVALE-20) ───────────────────────────────
+  // On the first day of every summer, a wild swarm rolls over the
+  // valley. A town that keeps 🐝 apiaries catches it: each hive
+  // draws 8 gold of comb (capped at 24), and if an orchard or garden
+  // stands the swarm SETTLES — the forage is rich and the take runs
+  // +6 deeper. No hives, and the bees pass over without a sound.
+  const SWARM_GOLD_PER_HIVE = 8, SWARM_CAP = 24, SWARM_SETTLE = 6, SWARM_CHEER = 4;
+  function swarmAtDawn() {
+    if (state.day <= 1) return;
+    if (yearDay(state.day) !== DAYS_PER_SEASON + 1) return;   // the first summer morning
+    const yr = yearOf(state.day);
+    if (state.lastSwarmYear === yr) return;
+    state.lastSwarmYear = yr;
+    const hives = countType('apiary');
+    if (hives < 1) return;   // the swarm passes over
+    const settled = countType('orchard') + countType('garden') > 0;
+    const take = Math.min(SWARM_CAP, hives * SWARM_GOLD_PER_HIVE) + (settled ? SWARM_SETTLE : 0);
+    state.res.gold += take;
+    state.happy = Math.min(100, state.happy + SWARM_CHEER);
+    state.swarmsSeen = (state.swarmsSeen || 0) + 1;
+    toast(settled
+      ? '🐝 Swarm Day — the wild bees settle among the blossom! +' + take + ' gold, +' + SWARM_CHEER + ' cheer.'
+      : '🐝 Swarm Day — the hives hum full! +' + take + ' gold, +' + SWARM_CHEER + ' cheer.');
+    chron('🐝', 'A summer swarm rolled over the valley — ' + hives + ' hive' + (hives === 1 ? '' : 's') + (settled ? ' and the blossom held them' : '') + ' (+' + take + ' gold)');
+    checkAchievements();
+    save();
+  }
+
   // ── The Fever & the Physic Garden (HVALE-17) ───────────
   // From the second year, autumn carries the sick season: each autumn
   // dawn (once a year at most) can break a FEVER over the town — the
@@ -1584,6 +1612,7 @@
     { id: 'physician', emoji: '🌿', name: 'Through the Sick Season', desc: 'Weather two fevers.', done: () => (state.feversWeathered || 0) >= 2 },
     { id: 'annals', emoji: '📯', name: 'The Annals', desc: 'See the reeve reckon three years.', done: () => (state.reckonings || 0) >= 3 },
     { id: 'balladry', emoji: '🎻', name: 'Three Songs Deep', desc: 'Host the minstrel three evenings.', done: () => (state.versesSung || 0) >= 3 },
+    { id: 'swarmward', emoji: '🐝', name: 'Swarm Season', desc: 'Catch three summer swarms.', done: () => (state.swarmsSeen || 0) >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2678,6 +2707,7 @@
     feverAtDawn();  // HVALE-17: so does the sick season
     reckonAtDawn(); // HVALE-18: and the reeve keeps the annals
     minstrelAtDawn(); // HVALE-19: and the road brings music
+    swarmAtDawn();  // HVALE-20: and summer opens with wings
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4589,6 +4619,8 @@
         lastFeastDay: typeof state.lastFeastDay === 'number' ? state.lastFeastDay : -1,
         masonCycles: state.masonCycles || 0,
         versesSung: state.versesSung || 0,   // HVALE-19
+        swarmsSeen: state.swarmsSeen || 0,   // HVALE-20
+        lastSwarmYear: typeof state.lastSwarmYear === 'number' ? state.lastSwarmYear : -1,
         lastMinstrelDay: typeof state.lastMinstrelDay === 'number' ? state.lastMinstrelDay : -1,
         reckonings: state.reckonings || 0,   // HVALE-18
         lastReckonYear: typeof state.lastReckonYear === 'number' ? state.lastReckonYear : -1,
@@ -4682,6 +4714,8 @@
       state.lastFeastDay = typeof s.lastFeastDay === 'number' ? s.lastFeastDay : -1;
       state.masonCycles = Math.max(0, Math.floor(s.masonCycles || 0));   // HVALE-16
       state.versesSung = s.versesSung || 0;   // HVALE-19 (older taverns never had the stage)
+      state.swarmsSeen = s.swarmsSeen || 0;   // HVALE-20 (older valleys never watched the sky)
+      state.lastSwarmYear = typeof s.lastSwarmYear === 'number' ? s.lastSwarmYear : -1;
       state.lastMinstrelDay = typeof s.lastMinstrelDay === 'number' ? s.lastMinstrelDay : -1;
       state.reckonings = s.reckonings || 0;   // HVALE-18 (older saves start their annals now)
       state.lastReckonYear = typeof s.lastReckonYear === 'number' ? s.lastReckonYear : -1;
