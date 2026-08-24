@@ -1464,6 +1464,9 @@ function addHeat(amount) {
   // LAB-12: a crew on night shifts is louder, brighter, sloppier — every
   // heat GAIN lands half again as hard. Reductions are untouched.
   if (amount > 0 && state.crunch) amount *= 1.5;
+  // LAB-13: the Laundry Front gives the whole block a clean story —
+  // every heat GAIN lands a quarter lighter (stacks with the crunch tax).
+  if (amount > 0 && ownedRoomSet.has('front')) amount *= 0.75;
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
   if (state.heat >= 100) triggerBust();
   refreshHud();
@@ -1488,7 +1491,9 @@ function ambientHeatPerSec() {
   return Math.min(1.6, (state.totalEarned / 50000) * 0.6) * DIFF().ambient;
 }
 function heatDrainPerSec() {
-  return (0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5) * DIFF().drain;
+  // LAB-13: an open laundromat out front cools things off on its own —
+  // customers coming and going are the best cover there is.
+  return (0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
 }
 
 // ── Bust ──
@@ -1822,6 +1827,7 @@ const GROW_ACH = [
   { id: 'chemist',      name: 'Chemist',         test: () => !!chemStation },
   { id: 'quarter_kilo', name: 'Quarter Kilo',    test: () => state.totalSold >= 250 },
   { id: 'high_roller',  name: 'High Roller',     test: () => state.cash >= 25000 },
+  { id: 'fresh_linen',  name: 'Fresh Linen',     test: () => ownedRoomSet.has('front') },   // LAB-13
 ];
 const GROW_ACH_KEY = 'growop-achievements';
 function growAchUnlocked() {
@@ -1976,6 +1982,11 @@ function buyRoom(id) {
   renderExpandPanel();
   showToast(`${def.label} unlocked!`, 'good');
   addFeed(`🏗️ ${def.label} opened`);
+  // LAB-13: the front is the one room the neighbors are glad to see
+  if (id === 'front') {
+    showToast('💈 The laundromat opens — heat builds 25% lighter and drains faster. Every cop on the block has a reason you’re here.', 'good');
+    addFeed('💈 Spin cycle running — the block finally has a clean story');
+  }
   saveGame();
 }
 
