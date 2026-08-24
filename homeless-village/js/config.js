@@ -18,7 +18,7 @@ var G = {
   health: 100, warmth: 80, morale: 50, population: 1,
 
   workers: { scrapper:false, builder:false, cook:false, lookout:false },
-  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false, awning:false },
+  structures: { barrel_fire:true, workbench:false, tent:false, soup_kitchen:false, garden:false, radio:false, stash:false, guitar:false, cart:false, pantry:false, coats:false, toolbox:false, compost:false, awning:false, barrel:false },
 
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
@@ -85,6 +85,7 @@ var RECIPES = [
   {id:'toolbox',     icon:'🧰', name:'Tool Box',        cost:{scraps:6,cans:2},                gives:{structure:'toolbox'},    time:7000,  desc:'Good tools, oiled and kept \u2014 the workbench never falls apart again, and an odd job done with the right tools earns +2 goodwill on top.', requires:'workbench'},
   {id:'compost',     icon:'\u267B\uFE0F', name:'Compost Bin',     cost:{scraps:3,food:2},                gives:{structure:'compost'},    time:6000,  desc:'Scraps in, black gold out \u2014 the garden yields +1 every day it gives, and the bin\u2019s heat keeps one bed alive through frost.', requires:'workbench'},
   {id:'awning',      icon:'\u26F1\uFE0F', name:'Awning',          cost:{scraps:4,cans:2},                gives:{structure:'awning'},     time:8000,  desc:'A salvaged shop awning rigged over the corner \u2014 rain doesn\u2019t close the panhandling spot anymore.', requires:'workbench'},
+  {id:'barrel',      icon:'\ud83d\udee2\ufe0f', name:'Rain Barrel',     cost:{scraps:5,cans:1},                gives:{structure:'barrel'},     time:7000,  desc:'A salvaged drum under the downspout \u2014 every rainy dawn stores a day of water (up to 3), and a stored rainfall waters the beds +1 on dry garden days.', requires:'workbench'},
 ];
 
 // ── Weather (HV-5) ────────────────────────────────────────────
@@ -301,6 +302,11 @@ var COATS_CUT = 0.5;
 // odds. Rain only: cold keeps its bite, heat keeps its gift.
 var AWNING_DRY = 2;
 
+// HV-27: the rain barrel. Rain was pure weather — now it stores.
+// Every rainy dawn banks a day of water (cap 3); a dry garden day
+// spends one for +1 food. Frost is still the compost's fight.
+var BARREL_CAP = 3;
+
 // HV-24: the tool box. Good tools change two small things that add
 // up: the workbench never falls apart again (the daily wobble gets
 // tightened instead), and the daily odd job pays a little extra.
@@ -378,6 +384,7 @@ var GOALS = [
   {id:'bench5',     desc:'Tighten the workbench back up 5 times', target:5, reward:5, value:function(){ return G.benchSaves||0; }},
   {id:'compost8',   desc:'Feed the beds through 8 garden days', target:8, reward:5, value:function(){ return G.compostDays||0; }},
   {id:'awning5',    desc:'Earn 5 rainy-day coins under the awning', target:5, reward:5, value:function(){ return G.awningSaves||0; }},
+  {id:'barrel6',    desc:'Water the beds from the barrel 6 times', target:6, reward:5, value:function(){ return G.barrelDays||0; }},
 ];
 
 var activeJobs = {};
