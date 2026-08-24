@@ -41,7 +41,14 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
-2026-08-24 (QA-3, post-Round-Four) — all **35 suites green**
+2026-08-24 (QA-4, post-Round-Eight) — all **43 suites green**
+end-to-end on the first pass, zero failures and zero stale
+assertions, with the audit row holding its 12/32 environment baseline
+while three Round-Nine flagship tranches merged around the run. This
+was the first battery carrying the four promoted Round-7/8 suites
+(`hvmeeting`, `hvpetition`, `voxlight`, `voxobs`).
+
+The previous full run: 2026-08-24 (QA-3, post-Round-Four) — all **35 suites green**
 end-to-end, zero stale assertions this time; the whole-site audit held
 its environment baseline mid-run while flagship tranches merged around
 it. The previous full run (QA-2, Depth 29) caught exactly one stale
