@@ -25,6 +25,11 @@ var G = {
   sweepWarned: false, sweepCountdown: 0, packedUp: false,
   injuredUntil: 0, lastEventDay: -2,
 
+  // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
+  // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),
+  // like the Case Worker arc, so the companion can't be missed by RNG.
+  dog: 0, dogMetDay: 0, dogHungry: false,
+
   totalScavenged: 0, totalCrafted: 0, peakPopulation: 1, timesSwept: 0,
   goalIndex: 0,
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
@@ -98,6 +103,7 @@ var GOALS = [
   {id:'village5',   desc:'Full village: 5 residents', target:5,  reward:6,  value:function(){ return G.population; }},
   {id:'kitchen',    desc:'Build the Soup Kitchen',    target:1,  reward:8,  value:function(){ return G.structures.soup_kitchen?1:0; }},
   {id:'survive30',  desc:'Survive 30 days',           target:30, reward:10, value:function(){ return G.days; }},
+  {id:'dog',        desc:'Befriend the stray dog',    target:1,  reward:5,  value:function(){ return G.dog===2?1:0; }},
 ];
 
 var activeJobs = {};
