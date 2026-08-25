@@ -1680,6 +1680,7 @@
     { id: 'hearthstone', emoji: '\u{1FAA8}', name: 'The First Fire', desc: 'Warm the founders\u2019 hearthstone on three days.', done: () => loadHearth().uses >= 3 },
     { id: 'rope_swing', emoji: '\u{1FAA2}', name: 'The Rope Swing', desc: 'See the oak shade three towns and earn its swing.', done: () => oakHasSwing() },
     { id: 'green_fair', emoji: '\u{1F3AA}', name: 'The Green Fair', desc: 'Open three foundings with the fair under the oak.', done: () => loadFair().days >= 3 },
+    { id: 'gilded_page', emoji: '\u2728', name: 'The Gilded Page', desc: 'Turn three pages under the gilded ledger.', done: () => loadGilt().cheers >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2695,6 +2696,21 @@
     return { gold: 0, beats: 0 };
   }
   function saveLedger(l) { try { localStorage.setItem(LEDGER_KEY, JSON.stringify(l)); } catch (e) { } }
+  // ---- the Gilded Page (HVALE-35) -----------------------------
+  // The plaque round in the valley: the records round comes back
+  // around. Three pages turned in the Valley Ledger gild its cover
+  // \u2014 and every page turned under the gilt brings the merchants to
+  // toast the town: +15 gold on the spot, because a valley this
+  // storied trades on its name. Cheers tallied across foundings.
+  const GILT_KEY = 'hvale-plaque', GILT_AT = 3, GILT_GOLD = 15;
+  function loadGilt() {
+    try { const g = JSON.parse(localStorage.getItem(GILT_KEY) || 'null');
+      if (g && typeof g === 'object') return { cheers: Math.max(0, Math.floor(g.cheers || 0)) };
+    } catch (e) { }
+    return { cheers: 0 };
+  }
+  function saveGilt(g) { try { localStorage.setItem(GILT_KEY, JSON.stringify(g)); } catch (e) { } }
+  function ledgerIsGilded() { return (loadLedger().beats || 0) >= GILT_AT; }
   // ---- The Letter under the Oak (HVALE-30) --------------------
   // The letters round in the valley: every town founded with a
   // history to cite finds a letter buried at the oak's roots — it
@@ -2795,10 +2811,19 @@
     if (!ledgerRung && ledgerMark > 0 && g > ledgerMark) {
       ledgerRung = true;
       const l2 = loadLedger();
+      const giltStood = (l2.beats || 0) >= GILT_AT;
       saveLedger({ gold: l2.gold, beats: l2.beats + 1 });
       state.happy = Math.min(100, state.happy + LEDGER_CHEER);
       toast('📖 The reeve counts ' + g + ' gold at dawn \u2014 no town this valley has held richer. The whole town glows.');
       chron('📖', 'The Valley Ledger turns a page \u2014 ' + g + ' gold at dawn beats the old mark of ' + ledgerMark);
+      // HVALE-35: under the gilt, the turned page pays.
+      if (giltStood) {
+        const gl = loadGilt();
+        saveGilt({ cheers: gl.cheers + 1 });
+        state.res.gold += GILT_GOLD;
+        chron('\u2728', 'THE GILDED PAGE \u2014 the merchants toast a valley this storied: +' + GILT_GOLD + ' gold');
+        toast('\u2728 The gilded ledger gleams \u2014 the merchants toast the new mark: +' + GILT_GOLD + ' gold.');
+      }
       checkAchievements();
     }
   }
