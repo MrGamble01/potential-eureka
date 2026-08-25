@@ -1672,6 +1672,7 @@
     { id: 'made_whole', emoji: '🛡️', name: 'Made Whole', desc: 'Collect three guild sureties.', done: () => (state.suretyClaims || 0) >= 3 },
     { id: 'good_word', emoji: '📜', name: 'Good for It', desc: 'Honour three merchant advances in full.', done: () => (state.advancesFilled || 0) >= 3 },
     { id: 'deep_roots', emoji: '🌳', name: 'Deep Roots', desc: 'Plant the Founders\u2019 Oak and found two towns in its shade.', done: () => { const o = loadOak(); return o.planted && o.towns >= 2; } },
+    { id: 'valley_rich', emoji: '📖', name: 'Talk of the Valley', desc: 'Turn three new pages in the Valley Ledger.', done: () => loadLedger().beats >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -1748,6 +1749,7 @@
       ['📅 Days settled', state.day + '  (' + season.emoji + ' ' + season.name + ')'],
       ['👪 Population', state.villagers.length + '  ·  peak ' + Math.max(state.peakPop || 0, state.villagers.length)],
       ['😊 Happiness', Math.round(state.happy) + '%' + (moraleMult() > 1 ? '  ⚡ thriving' : moraleMult() < 1 ? '  ⚠️ unsettled' : '')],
+      ['📖 Richest dawn', loadLedger().gold + ' 🪙' + ((loadLedger().beats || 0) > 0 ? '  ·  beaten ' + loadLedger().beats + '×' : '')],
       ['🏠 Homes', '' + homes],
       ['⚒️ Workshops', '' + workshops],
       ['🌷 Charm', townCharm() + '  (' + decos + ' decorations)'],
@@ -2672,6 +2674,35 @@
   // fells it. Every town founded in its shade starts 8 happiness
   // glad, and the deed counts the towns: the valley remembers who
   // planted it.
+  // ---- The Valley Ledger (HVALE-29) ---------------------------
+  // The record round in the valley: the richest coffer any town here
+  // has ever counted at dawn lives in its own key, across every
+  // founding. The reeve counts at first light — beat the mark that
+  // stood when the session opened and the whole town glows.
+  const LEDGER_KEY = 'hvale-record', LEDGER_CHEER = 3;
+  let ledgerMark = null, ledgerRung = false;
+  function loadLedger() {
+    try { const l = JSON.parse(localStorage.getItem(LEDGER_KEY) || 'null');
+      if (l && typeof l === 'object') return { gold: Math.max(0, Math.floor(l.gold || 0)), beats: Math.max(0, Math.floor(l.beats || 0)) };
+    } catch (e) { }
+    return { gold: 0, beats: 0 };
+  }
+  function saveLedger(l) { try { localStorage.setItem(LEDGER_KEY, JSON.stringify(l)); } catch (e) { } }
+  function ledgerAtDawn() {
+    const g = Math.floor(state.res.gold);
+    const l = loadLedger();
+    if (ledgerMark === null) ledgerMark = l.gold;
+    if (g > l.gold) { l.gold = g; saveLedger(l); }
+    if (!ledgerRung && ledgerMark > 0 && g > ledgerMark) {
+      ledgerRung = true;
+      const l2 = loadLedger();
+      saveLedger({ gold: l2.gold, beats: l2.beats + 1 });
+      state.happy = Math.min(100, state.happy + LEDGER_CHEER);
+      toast('📖 The reeve counts ' + g + ' gold at dawn \u2014 no town this valley has held richer. The whole town glows.');
+      chron('📖', 'The Valley Ledger turns a page \u2014 ' + g + ' gold at dawn beats the old mark of ' + ledgerMark);
+      checkAchievements();
+    }
+  }
   const OAK_KEY = 'hvale-oak', OAK_COST = 40, OAK_CHEER = 8;
   function loadOak() {
     try { const o = JSON.parse(localStorage.getItem(OAK_KEY) || 'null');
@@ -2923,6 +2954,7 @@
     pressAtDawn();  // HVALE-22: and autumn pours
     iceAtDawn();    // HVALE-24: winter banked, summer withdrawn
     advanceAtDawn(); // HVALE-27: and the merchant's wagon calls its debt
+    ledgerAtDawn(); // HVALE-29: and the reeve counts the coffers
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
