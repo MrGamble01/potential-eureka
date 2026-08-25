@@ -338,6 +338,18 @@ var FRIDGE_KEY = 'hv-fridge', FRIDGE_COST = 15, FRIDGE_SEED = 3;
 // of 3. Nobody bought it. The corner earned it.
 var FRIDGE_BOARD_AT = 3, FRIDGE_SEED2 = 5;
 function fridgeHasBoard(){ var f=loadFridge(); return f.built && (f.camps||0) >= FRIDGE_BOARD_AT; }
+// HV-37: the potluck — the festival round. When the bulletin board
+// stands, every fresh camp opens with a potluck: folding tables by
+// the fridge, everyone brings a dish. +4 food and +5 morale before
+// the first scavenge. Potlucks tallied across camps.
+var POTLUCK_KEY='hv-festival', POTLUCK_FOOD=4, POTLUCK_MORALE=5;
+function loadPotluck(){
+  try{ var p=JSON.parse(localStorage.getItem(POTLUCK_KEY)||'null');
+    if(p&&typeof p==='object') return {days:Math.max(0,Math.floor(p.days||0))};
+  }catch(e){}
+  return {days:0};
+}
+function savePotluck(p){ try{ localStorage.setItem(POTLUCK_KEY, JSON.stringify(p)); }catch(e){} }
 function fridgeSeedNow(){ return fridgeHasBoard() ? FRIDGE_SEED2 : FRIDGE_SEED; }
 function loadFridge(){
   try{ var f=JSON.parse(localStorage.getItem(FRIDGE_KEY)||'null');
@@ -537,6 +549,7 @@ var GOALS = [
   {id:'wall2',      desc:'Read the writing on the wall out loud twice', target:2, reward:5, value:function(){ return loadHvWall().opens; }},
   {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
+  {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
 ];
 
 var activeJobs = {};

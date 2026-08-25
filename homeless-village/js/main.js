@@ -98,6 +98,13 @@ if(!G.fridgeSeeded){
     G.goodwill=(G.goodwill||0)+_seed;
     if(fridgeHasBoard()){
       log('\uD83E\uDDCA The corner fridge still hums, its bulletin board full \u2014 the block already knows this camp well. +'+_seed+'\ud83e\ude76');
+      // HV-37: the board means the potluck — the block throws one
+      // for every fresh camp now.
+      var _pl=loadPotluck();
+      savePotluck({days:_pl.days+1});
+      G.food=(G.food||0)+POTLUCK_FOOD;
+      G.morale=Math.min(100,(G.morale||0)+POTLUCK_MORALE);
+      log('\ud83c\udf72 POTLUCK \u2014 folding tables by the fridge, everyone brings a dish. +'+POTLUCK_FOOD+'\ud83e\udd63, +'+POTLUCK_MORALE+'\ud83d\ude0a');
     } else {
       log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+_seed+'\ud83e\ude76');
     }
