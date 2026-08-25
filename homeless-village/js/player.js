@@ -186,6 +186,20 @@ function finishAction(a){
       floatText('+'+tp+'\ud83d\ude0a');
       saveGame();
     }
+  } else if(a.id==='marisol'){
+    // HV-40: the visitor pays out of the bridge's story, once a session.
+    if(!marisolHasStory()){ log('\ud83d\ude97 Marisol\u2019s tow truck rolls past without slowing \u2014 this bridge has no story she\u2019d know yet.'); }
+    else if(marisolCame){ log('\ud83d\ude97 Marisol already came by today \u2014 she has a garage to run.'); }
+    else {
+      marisolCame=true;
+      var md=marisolDish();
+      var mm=loadMarisol();
+      saveMarisol({visits:(mm.visits||0)+1});
+      G.food=(G.food||0)+md;
+      log('\ud83d\ude97 MARISOL DROPS BY \u2014 she leaves a casserole still warm from the garage hotplate. +'+md+'\ud83c\udf5e');
+      floatText('+'+md+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
