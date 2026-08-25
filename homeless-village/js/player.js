@@ -208,6 +208,20 @@ function finishAction(a){
       floatText('+'+md+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='reunion'){
+    // HV-42: the whole story shows up at once, once a session.
+    if(!hvReunionStands()){ log('\ud83c\udf82 The reunion needs the whole story \u2014 the chalk star\u2019s holds and Marisol\u2019s visits both. Not yet.'); }
+    else if(bridgeReunionHeld){ log('\ud83c\udf82 The reunion already went off today \u2014 people have places to be.'); }
+    else {
+      bridgeReunionHeld=true;
+      var rd=hvReunionDish();
+      var rr=loadHvReunion();
+      saveHvReunion({held:(rr.held||0)+1});
+      G.food=(G.food||0)+rd;
+      log('\ud83c\udf82 THE BRIDGE REUNION \u2014 everyone who ever slept here comes back through, and everyone brings something for the pot. +'+rd+'\ud83c\udf5e');
+      floatText('+'+rd+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
