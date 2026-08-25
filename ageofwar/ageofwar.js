@@ -594,6 +594,7 @@ const AgeOfWarGame = (() => {
     { id: 'field_glasses', icon: '\u{1F52D}', title: 'The Field Glasses', desc: 'Raise the standard beside the glasses on three sessions.' },
     { id: 'vets_reunion', icon: '\u{1F397}\u{FE0F}', title: 'The Veterans\u2019 Reunion', desc: 'Muster the whole story on three sessions.' },
     { id: 'painting3', icon: '\u{1F5BC}\u{FE0F}', title: 'The Campaign Painting', desc: 'Unveil the painting on three sessions.' },
+    { id: 'salute3', icon: '\u{1F387}', title: 'The Founding Salute', desc: 'Fire the salute on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -718,6 +719,7 @@ const AgeOfWarGame = (() => {
     if (loadGlasses().pays >= 3) unlock('field_glasses');
     if (loadVReunion().held >= 3) unlock('vets_reunion');
     if (loadPainting().looks >= 3) unlock('painting3');
+    if (loadSalute().toasts >= 3) unlock('salute3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2280,6 +2282,37 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Founding Salute (AOW-48) ──
+  // The anniversary round on the battlefield: after three
+  // unveilings of the Campaign Painting, the regiment marks the day
+  // it first mustered. Once a session a salute fires: 50 gold base
+  // + 25 per unveiling (cap 5). Salutes tallied in
+  // 'aow-anniversary'.
+  const SAL_KEY = 'aow-anniversary', SAL_BASE = 50, SAL_PER = 25;
+  let saluteFired = false;
+  function loadSalute() {
+    try { const s = JSON.parse(localStorage.getItem(SAL_KEY) || 'null');
+      if (s && typeof s === 'object') return { toasts: Math.max(0, Math.floor(s.toasts || 0)) };
+    } catch {}
+    return { toasts: 0 };
+  }
+  function saveSalute(s) { try { localStorage.setItem(SAL_KEY, JSON.stringify(s)); } catch {} }
+  function saluteStands() { return loadPainting().looks >= 3; }
+  function salutePurse() { return SAL_BASE + SAL_PER * Math.min(loadPainting().looks || 0, 5); }
+  function fireFoundingSalute() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!saluteStands() || saluteFired) return;
+    saluteFired = true;
+    const p = salutePurse();
+    const s = loadSalute();
+    saveSalute({ toasts: s.toasts + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F387} THE FOUNDING SALUTE \u2014 the day the regiment first mustered, marked with powder and brass. The patrons stand a round: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2461,6 +2494,8 @@ const AgeOfWarGame = (() => {
     if (reuBtn) reuBtn.onclick = holdVetsReunion;
     const pntBtn = document.getElementById('aow-painting-btn');
     if (pntBtn) pntBtn.onclick = unveilPainting;
+    const salBtn = document.getElementById('aow-salute-btn');
+    if (salBtn) salBtn.onclick = fireFoundingSalute;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8320,6 +8355,21 @@ const AgeOfWarGame = (() => {
         pntEl.title = paintingUnveiled
           ? 'The Campaign Painting has been unveiled this session \u2014 the canvas keeps.'
           : `The Campaign Painting \u2014 the muster on canvas, hung in the hall. Unveil it and the patrons pay: +${paintingPurse()} gold. Unveiled ${loadPainting().looks} time${loadPainting().looks === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Founding Salute (AOW-48)
+    const salEl = document.getElementById('aow-salute-btn');
+    const salCdEl = document.getElementById('aow-salute-cd');
+    if (salEl) {
+      if (!saluteStands()) { salEl.style.display = 'none'; }
+      else {
+        salEl.style.display = '';
+        salEl.style.opacity = saluteFired ? '0.45' : '';
+        if (salCdEl) salCdEl.textContent = saluteFired ? 'fired' : `+${salutePurse()}g`;
+        salEl.title = saluteFired
+          ? 'The Founding Salute has fired this session \u2014 the powder is spent.'
+          : `The Founding Salute \u2014 three unveilings and the founding day gets its due. Fire it and the patrons stand a round: +${salutePurse()} gold. Fired ${loadSalute().toasts} time${loadSalute().toasts === 1 ? '' : 's'}.`;
       }
     }
 
