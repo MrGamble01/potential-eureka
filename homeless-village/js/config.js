@@ -312,6 +312,12 @@ var BARREL_CAP = 3;
 // blind; the crafted radio (or the Lookout) turns it into a read.
 var RAINBET_STAKE = 2, RAINBET_PAY = 5;
 
+// HV-29: Marisol's garage. The insurance round's answer to the sweep:
+// 2 goodwill stows the camp's loose goods across the street until the
+// next sweep — the confiscation finds nothing. The stash halves
+// losses forever; the garage zeroes one. Tents still fall.
+var GARAGE_COST = 2;
+
 // HV-24: the tool box. Good tools change two small things that add
 // up: the workbench never falls apart again (the daily wobble gets
 // tightened instead), and the daily odd job pays a little extra.
@@ -351,6 +357,7 @@ var ACTIONS = [
   {id:'rest',      icon:'💤', label:'Rest',               time:3000, cooldown:20000, tooltip:'Recover health and morale slightly.'},
   {id:'trade',     icon:'🤝', label:'Trade Goods',        time:2000, cooldown:18000, tooltip:'Trade cans for food (3 cans → 2 food).'},
   {id:'rainbet',   icon:'🎲', label:'Rain Bet',           time:2000, cooldown:30000, tooltip:'Dee’s 5 goodwill against your 2 that tomorrow stays dry. You take the rain side — one bet a day. A radio is the whole edge.'},
+  {id:'garage',    icon:'🚙', label:'Garage Favor',       time:2000, cooldown:30000, tooltip:'2 goodwill stows the camp’s loose goods in Marisol’s garage till the next sweep — when it comes, the confiscation finds nothing. Tents still fall.'},
 ];
 
 var WORKER_DEFS = [
@@ -392,6 +399,7 @@ var GOALS = [
   {id:'awning5',    desc:'Earn 5 rainy-day coins under the awning', target:5, reward:5, value:function(){ return G.awningSaves||0; }},
   {id:'barrel6',    desc:'Water the beds from the barrel 6 times', target:6, reward:5, value:function(){ return G.barrelDays||0; }},
   {id:'rainbet3',   desc:'Win 3 rain bets against Dee', target:3, reward:6, value:function(){ return G.rainBetsWon||0; }},
+  {id:'garage2',    desc:'Ride out 2 sweeps covered by Marisol\u2019s garage', target:2, reward:6, value:function(){ return G.garageSaves||0; }},
 ];
 
 var activeJobs = {};

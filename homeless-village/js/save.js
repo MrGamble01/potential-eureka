@@ -67,6 +67,8 @@ function loadGame(){
     if(typeof G.rainBetOn!=='boolean') G.rainBetOn=false; // saves from before HV-28
     if(typeof G.rainBetDay!=='number') G.rainBetDay=-9;
     if(typeof G.rainBetsWon!=='number') G.rainBetsWon=0;
+    if(typeof G.garageCover!=='boolean') G.garageCover=false; // saves from before HV-29
+    if(typeof G.garageSaves!=='number') G.garageSaves=0;
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
   }catch(e){}
 }

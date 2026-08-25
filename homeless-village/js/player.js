@@ -127,6 +127,17 @@ function finishAction(a){
       log('\ud83c\udfb2 Bet placed — '+RAINBET_STAKE+' goodwill says rain by morning.');
       bumpRegular('dee');
     }
+  } else if(a.id==='garage'){
+    // HV-29: sweep insurance through a friend. One cover at a time,
+    // spent the night the sweep actually comes.
+    if(G.garageCover){ log('\uD83D\uDE99 Everything loose is already in Marisol\u2019s garage.'); }
+    else if(G.goodwill<GARAGE_COST){ log('\uD83D\uDE99 Not enough goodwill to ask the favor.'); }
+    else {
+      G.goodwill-=GARAGE_COST; G.garageCover=true;
+      floatText('-'+GARAGE_COST+'\ud83e\ude76');
+      log('\uD83D\uDE99 The loose goods spend their nights in Marisol\u2019s garage \u2014 the next sweep takes nothing.');
+      bumpRegular('marisol');
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];

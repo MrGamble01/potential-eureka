@@ -426,6 +426,12 @@ var EVENTS_BAD=[
      // stash halves the take again — they can't confiscate what they
      // can't find, and the hole itself is never discovered.
      var keep=(G.packedUp?0.25:1)*(G.structures.stash?0.5:1);
+     // HV-29: a camp covered by Marisol's garage has nothing out to
+     // take — the confiscation comes up empty and the cover is spent.
+     if(G.garageCover){
+       keep=0; G.garageCover=false; G.garageSaves=(G.garageSaves||0)+1;
+       log('\uD83D\uDE99 The sweep found nothing loose \u2014 it all spent the night in Marisol\u2019s garage.');
+     }
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
      G.scraps=Math.max(0,G.scraps-lostScraps);
