@@ -581,6 +581,7 @@ const AgeOfWarGame = (() => {
     { id: 'iron_nerve',   icon: '🎲',  title: 'Iron Nerve',       desc: 'Win three Ironside wagers in one run.' },
     { id: 'underwritten', icon: '\u{1F6DF}', title: 'Underwritten',     desc: 'Collect three bond payouts in one run.' },
     { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
+    { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -695,6 +696,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.ironWon || 0) >= 3) unlock('iron_nerve');
     if ((runStats.bondsPaid || 0) >= 3) unlock('underwritten');
     if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
+    if (hallStanding && hallRuns >= 3) unlock('old_guard');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1116,6 +1118,12 @@ const AgeOfWarGame = (() => {
     runStats.ironWon = 0; runStats.ironLost = 0; ironBet = null;
     runStats.bondsPaid = 0; runStats.bondsExpired = 0; runStats.bondHealed = 0; bond = null;
     runStats.loansTaken = 0; runStats.loansCleared = 0; runStats.loanRepaid = 0; loan = null;
+    // AOW-35: the hall outlives every defeat — each fresh muster
+    // forms under its roof and its first recruits arrive striped.
+    { const hh = loadHall();
+      hallStanding = hh.built; hallTrained = 0; runStats.hallVets = 0;
+      if (hh.built) { hh.runs = (hh.runs || 0) + 1; saveHall(hh); hallRuns = hh.runs; }
+      else hallRuns = 0; }
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1193,6 +1201,13 @@ const AgeOfWarGame = (() => {
         u.hp = Math.round(u.hp * ARMORER_HP); u.hpMax = u.hp;
         u.plated = true;
         runStats.plated = (runStats.plated || 0) + 1;
+      }
+      // AOW-35: the hall drills the first recruits of every muster —
+      // they march out already wearing the stripe
+      if (hallStanding && hallTrained < HALL_FIRST) {
+        u.aliveT = Math.max(u.aliveT || 0, 25);
+        hallTrained++;
+        runStats.hallVets = (runStats.hallVets || 0) + 1;
       }
     }
     units.push(u);
@@ -1957,6 +1972,45 @@ const AgeOfWarGame = (() => {
     return n - take;
   }
 
+  // ── The Veterans' Hall (AOW-35) ──
+  // The legacy round on the battlefield: 500 gold, once ever, raises
+  // a hall OUTSIDE the run — like the relics, no defeat tears it
+  // down. Every muster that forms in its shadow sends its first three
+  // recruits out already striped: the hall drills them before they
+  // ever see the field. The war chest's first purchase that outlives
+  // the war.
+  const HALL_KEY = 'aow-hall', HALL_COST = 500, HALL_FIRST = 3;
+  let hallStanding = false, hallRuns = 0, hallTrained = 0;
+  function loadHall() {
+    try { const h = JSON.parse(localStorage.getItem(HALL_KEY) || 'null');
+      if (h && typeof h === 'object') return { built: !!h.built, runs: Math.max(0, Math.floor(h.runs || 0)) };
+    } catch {}
+    return { built: false, runs: 0 };
+  }
+  function saveHall(h) { try { localStorage.setItem(HALL_KEY, JSON.stringify(h)); } catch {} }
+  function buyHall() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (hallStanding) {
+      goldFloaters.push({ text: '\u{1F396}\u{FE0F} The Veterans\u2019 Hall already stands \u2014 its doors never close', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F396}\u{FE0F} The masons take commissions from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (gold < HALL_COST) {
+      goldFloaters.push({ text: `\u{1F396}\u{FE0F} The hall runs ${HALL_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= HALL_COST;
+    hallStanding = true; hallRuns = 0;
+    saveHall({ built: true, runs: 0 });
+    goldFloaters.push({ text: '\u{1F396}\u{FE0F} The Veterans\u2019 Hall rises \u2014 the first stone this war laid for the men who fight it', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.2 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -2063,6 +2117,8 @@ const AgeOfWarGame = (() => {
     if (bondBtn) bondBtn.onclick = buyBond;
     const loanBtn = document.getElementById('aow-loan-btn');
     if (loanBtn) loanBtn.onclick = takeLoan;
+    const hallBtn = document.getElementById('aow-hall-btn');
+    if (hallBtn) hallBtn.onclick = buyHall;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2320,6 +2376,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'l' || e.key === 'L') {
         takeLoan();
+        e.preventDefault();
+      } else if (e.key === 'e' || e.key === 'E') {
+        buyHall();
         e.preventDefault();
       }
     });
@@ -7824,6 +7883,17 @@ const AgeOfWarGame = (() => {
       lnEl.title = loan
         ? `The ledger reads ${loan.owed} gold \u2014 the lender takes every second coin off the field until it clears. ${runStats.loansCleared || 0} cleared this run.`
         : `The War Loan (L) \u2014 ${LOAN_PRINCIPAL} gold now against ${LOAN_OWED} of the field's future coins, every second coin to the ledger. Borrowed tempo pays for its own vig.`;
+    }
+
+    // Veterans' Hall button (AOW-35)
+    const hlEl = document.getElementById('aow-hall-btn');
+    const hlCdEl = document.getElementById('aow-hall-cd');
+    if (hlEl) {
+      if (hlCdEl) hlCdEl.textContent = hallStanding ? 'stands' : playerEra < 1 ? 'Age II' : `${HALL_COST}g`;
+      hlEl.disabled = playerEra < 1 || hallStanding;
+      hlEl.title = hallStanding
+        ? `The Veterans\u2019 Hall stands \u2014 the first ${HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.`
+        : `The Veterans\u2019 Hall (E) \u2014 ${HALL_COST} gold raises it once, forever: no defeat tears it down, and the first ${HALL_FIRST} recruits of every future muster march out already Veterans.`;
     }
 
     // Wave indicator
