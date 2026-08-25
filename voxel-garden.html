@@ -1078,6 +1078,39 @@ function lookAtDFrame(){
   if(typeof checkAch==='function')checkAch();
   refreshDFrameHud();
 }
+// VOX-39: the anniversary round on the shore. After three looks at
+// the Driftwood Frame, the isle counts back to the day the first
+// boat moored. Once a session the bell rings it in: 20 coins base
+// + 5 per look (cap 5). Ringings tallied in 'vox-anniversary'.
+const MOOR_KEY='vox-anniversary',MOOR_BASE=20,MOOR_PER=5;
+let mooringRung=false;
+function loadMooring(){
+  try{const m=JSON.parse(localStorage.getItem(MOOR_KEY)||'null');
+    if(m&&typeof m==='object')return{toasts:Math.max(0,Math.floor(m.toasts||0))};
+  }catch(e){}
+  return{toasts:0};
+}
+function saveMooring(m){try{localStorage.setItem(MOOR_KEY,JSON.stringify(m));}catch(e){}}
+function mooringCounts(){ return loadDFrame().looks>=3; }
+function mooringPurse(){ return MOOR_BASE + MOOR_PER*Math.min(loadDFrame().looks||0,5); }
+function refreshMooringHud(){
+  const h=document.getElementById('mooringHud'),tx=document.getElementById('mooringTxt');
+  if(!h)return;
+  h.style.display=mooringCounts()?'flex':'none';
+  h.style.opacity=mooringRung?'0.45':'';
+  if(tx)tx.textContent=mooringRung?'⚓ rung':'⚓ mooring day for +'+mooringPurse()+' 🪙';
+}
+function ringFirstMooring(){
+  if(!mooringCounts()||mooringRung)return;
+  mooringRung=true;
+  const p=mooringPurse();
+  const m=loadMooring();
+  saveMooring({toasts:m.toasts+1});
+  state.coins=(state.coins||0)+p;
+  toast('⚓ THE FIRST MOORING \u2014 the day the first boat tied up here, rung in on the harvest bell. The fleet answers with a round: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshMooringHud();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -4873,6 +4906,7 @@ const ACH=[
   ['oar3','The Spare Oar','Sound the conch beneath the spare oar on three sessions',()=>loadOar().pays>=3],
   ['sreunion3','The Shore Reunion','Throw the whole story a reunion on three sessions',()=>loadSReunion().held>=3],
   ['dframe3','The Driftwood Frame','Look at the reunion photo on three sessions',()=>loadDFrame().looks>=3],
+  ['mooring3','The First Mooring','Ring in the mooring day on three sessions',()=>loadMooring().toasts>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -5127,7 +5161,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -5203,6 +5237,7 @@ boot();
 <div id="keeperHud" style="display:none;position:fixed;bottom:324px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(180,255,200,0.5);color:#d2ffe0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="greetKeeper()" title="The Old Keeper: he kept this light before anyone, and he rows past once a session — any shore with a story gets a greeting, and the greeting pays. The gift grows with the shell wreath."><span id="keeperTxt">🛶 —</span></div>
 <div id="sreunionHud" style="display:none;position:fixed;bottom:358px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,190,220,0.5);color:#ffd6ea;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="throwShoreReunion()" title="The Shore Reunion: when the whole story stands — the wreath’s rings and the keeper’s greetings — the isle throws it once a session, and every boat that ever moored here rows back in."><span id="sreunionTxt">🎏 —</span></div>
 <div id="dframeHud" style="display:none;position:fixed;bottom:392px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(210,190,150,0.5);color:#eaddc0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lookAtDFrame()" title="The Driftwood Frame: a photo of the reunion fleet, framed in driftwood by the harvest bell. Look at it once a session — somebody in the shot always rows by with a tip."><span id="dframeTxt">🖼️ —</span></div>
+<div id="mooringHud" style="display:none;position:fixed;bottom:426px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(150,200,230,0.5);color:#cfe8f5;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="ringFirstMooring()" title="The First Mooring: three looks at the driftwood frame and the isle counts back to the day the first boat tied up here. Ring it in on the bell once a session — the fleet answers with a round."><span id="mooringTxt">⚓ —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
