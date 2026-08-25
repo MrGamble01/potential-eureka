@@ -264,6 +264,20 @@ function finishAction(a){
       floatText('+'+gd+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='bench'){
+    // HV-46: the seat with every name at its back, once a session.
+    if(!hvBenchBuilt()){ log('\ud83e\ude91 No bench by the fridge yet \u2014 three leafs through the notebook and somebody starts building.'); }
+    else if(benchSat){ log('\ud83e\ude91 The bench got its sit today \u2014 the seat keeps.'); }
+    else {
+      benchSat=true;
+      var bd=hvBenchDish();
+      var bb=loadHvBench();
+      saveHvBench({sits:(bb.sits||0)+1});
+      G.food=(G.food||0)+bd;
+      log('\ud83e\ude91 A sit on the bench by the fridge \u2014 scrap wood, good intentions, every name at its back. Somebody sits down with something warm: +'+bd+'\ud83c\udf5e');
+      floatText('+'+bd+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
