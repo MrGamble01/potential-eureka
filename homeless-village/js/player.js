@@ -184,6 +184,14 @@ function finishAction(a){
       G.morale=Math.min(100,(G.morale||0)+tp);
       log('\ud83e\uded6 The old thermos goes around the fire \u2014 +'+tp+'\ud83d\ude0a, carried by everything the bridge remembers.');
       floatText('+'+tp+'\ud83d\ude0a');
+      // HV-41: with Marisol's spare mugs on the shelf, the round stretches.
+      if(thermosHasMugs()){
+        var km=loadHvKeep();
+        saveHvKeep({pays:(km.pays||0)+1});
+        G.food=(G.food||0)+HVKEEP_FOOD;
+        log('\u2615 Marisol\u2019s spare mugs come off the shelf \u2014 the coffee stretches to breakfast. +'+HVKEEP_FOOD+'\ud83c\udf5e');
+        floatText('+'+HVKEEP_FOOD+'\ud83c\udf5e');
+      }
       saveGame();
     }
   } else if(a.id==='marisol'){

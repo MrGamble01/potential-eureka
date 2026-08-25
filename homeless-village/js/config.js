@@ -475,6 +475,19 @@ function loadMarisol(){
 function saveMarisol(m){ try{ localStorage.setItem(MARISOL_KEY, JSON.stringify(m)); }catch(e){} }
 function marisolHasStory(){ return loadHvRec().days>0 || loadHvNote().read>0; }
 function marisolDish(){ return MARISOL_BASE + Math.min(loadHvStar().cheers||0,3); }
+// HV-41: the keepsake round under the bridge — after three visits,
+// Marisol leaves a set of spare mugs from the garage on the shelf.
+// Every thermos round with the mugs out stretches to breakfast:
+// +2 food on the spot. Pays tallied in 'hv-keepsake'.
+var HVKEEP_KEY='hv-keepsake', HVKEEP_FOOD=2;
+function loadHvKeep(){
+  try{ var k=JSON.parse(localStorage.getItem(HVKEEP_KEY)||'null');
+    if(k&&typeof k==='object') return {pays:Math.max(0,Math.floor(k.pays||0))};
+  }catch(e){}
+  return {pays:0};
+}
+function saveHvKeep(k){ try{ localStorage.setItem(HVKEEP_KEY, JSON.stringify(k)); }catch(e){} }
+function thermosHasMugs(){ return loadMarisol().visits>=3; }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -594,6 +607,7 @@ var GOALS = [
   {id:'wall2',      desc:'Read the writing on the wall out loud twice', target:2, reward:5, value:function(){ return loadHvWall().opens; }},
   {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
   {id:'marisol2',   desc:'Wave Marisol down on 2 sessions', target:2, reward:5, value:function(){ return loadMarisol().visits; }},
+  {id:'mugs2',      desc:'Pour from Marisol’s spare mugs on 2 sessions', target:2, reward:5, value:function(){ return loadHvKeep().pays; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
