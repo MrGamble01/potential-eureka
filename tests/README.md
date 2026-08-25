@@ -41,6 +41,20 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-08-25 (QA-10, post-Round-Twenty-One) — **all 67 suites green
+end-to-end on the first pass**, zero failures and zero stale
+assertions, with the audit row holding its 12/32 environment
+baseline. First battery carrying the two promoted Round-21
+suites (`hvrainbet`, `voxcloud`) and the first run after the
+wager round landed whole (Depths 150–155) — the round's
+in-battery cross-feature seams (the Rain Bet's dawn settlement
+against `hvweather`'s unpinned forecast promotion, with the
+one-time survive-goal payouts primed so its exact goodwill
+deltas stay exact, and the Cloud Wager's rain gates beside
+`voxpig`'s shower-keyed truffle roots) held clean without
+pinning; the Hearthvale and Tycoon legs were verified by their
+own one-shot suites at merge time, as always.
+
 2026-08-24 (QA-9, post-Round-Nineteen) — **all 63 suites green
 end-to-end on the first pass**, zero failures and zero stale
 assertions, with the audit row holding its 12/32 environment
