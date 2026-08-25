@@ -579,6 +579,7 @@ const AgeOfWarGame = (() => {
     { id: 'high_walls',   icon: '🏰',  title: 'Keep and Castle',  desc: 'Mortar 350 fresh stone onto the walls in one run.' },
     { id: 'war_banker',   icon: '🧰',  title: 'War Banker',       desc: 'Earn 300 gold of war-chest interest in one run.' },
     { id: 'iron_nerve',   icon: '🎲',  title: 'Iron Nerve',       desc: 'Win three Ironside wagers in one run.' },
+    { id: 'underwritten', icon: '\u{1F6DF}', title: 'Underwritten',     desc: 'Collect three bond payouts in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -691,6 +692,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.mortared || 0) >= 350) unlock('high_walls');
     if ((runStats.chested || 0) >= 300) unlock('war_banker');
     if ((runStats.ironWon || 0) >= 3) unlock('iron_nerve');
+    if ((runStats.bondsPaid || 0) >= 3) unlock('underwritten');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1110,6 +1112,7 @@ const AgeOfWarGame = (() => {
     runStats.mortared = 0; masonsBought = false;
     runStats.chested = 0; chestGold = 0;
     runStats.ironWon = 0; runStats.ironLost = 0; ironBet = null;
+    runStats.bondsPaid = 0; runStats.bondsExpired = 0; runStats.bondHealed = 0; bond = null;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1866,6 +1869,49 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // The Rebuilder's Bond (AOW-33) — the insurance round reaches the
+  // wall, and it is the Ironside Wager's mirror. From Age II, 250
+  // gold insures the base for the CURRENT wave: end it below where
+  // it stood at the signing and the underwriter rebuilds half the
+  // loss on the spot; end at-or-above and the premium expires
+  // worthless — the outcome you were paying for. One bond a wave.
+  const BOND_COST = 250, BOND_HEAL = 0.5;
+  let bond = null;   // { hpAtBond }
+  function buyBond() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F6DF} The underwriter signs bonds from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (bond) return;
+    if (gold < BOND_COST) {
+      goldFloaters.push({ text: `\u{1F6DF} The bond runs ${BOND_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= BOND_COST;
+    bond = { hpAtBond: playerBaseHp };
+    goldFloaters.push({ text: `\u{1F6DF} ${BOND_COST} gold bonds the walls at ${Math.round(playerBaseHp)} hp this wave`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    SFX.spawn();
+    renderHud();
+  }
+  function resolveBond() {
+    if (!bond) return;
+    const mark = bond.hpAtBond;
+    bond = null;
+    if (playerBaseHp < mark) {
+      const heal = Math.round((mark - playerBaseHp) * BOND_HEAL);
+      playerBaseHp = Math.min(playerBaseMax, playerBaseHp + heal);
+      runStats.bondsPaid = (runStats.bondsPaid || 0) + 1;
+      runStats.bondHealed = (runStats.bondHealed || 0) + heal;
+      goldFloaters.push({ text: `\u{1F6DF} The bond pays \u2014 masons rebuild ${heal} hp of the wave's damage`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.2 });
+      checkAchievementsDuringRun();
+    } else {
+      runStats.bondsExpired = (runStats.bondsExpired || 0) + 1;
+      goldFloaters.push({ text: '\u{1F6DF} The walls stood \u2014 the bond expires worthless', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#9aa0a6', t: 1.8 });
+    }
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -1968,6 +2014,8 @@ const AgeOfWarGame = (() => {
     if (chestBtn) chestBtn.onclick = depositChest;
     const ironBtn = document.getElementById('aow-iron-btn');
     if (ironBtn) ironBtn.onclick = placeIronWager;
+    const bondBtn = document.getElementById('aow-bond-btn');
+    if (bondBtn) bondBtn.onclick = buyBond;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2220,6 +2268,9 @@ const AgeOfWarGame = (() => {
       } else if (e.key === 'u' || e.key === 'U') {
         placeIronWager();
         e.preventDefault();
+      } else if (e.key === 'i' || e.key === 'I') {
+        buyBond();
+        e.preventDefault();
       }
     });
   }
@@ -2313,6 +2364,7 @@ const AgeOfWarGame = (() => {
       // Boss wave check: ended via boss death — credit + advance.
       if (bossWaveActive && !bossKilledThisWave) return;  // wait for boss
       resolveIronWager();   // AOW-32: the herald settles at the wave's turn
+      resolveBond();   // AOW-33: and the underwriter squares the ledger
       waveNum++;
       bossWaveActive = isBossWave(waveNum);
       bossKilledThisWave = false;
@@ -7698,6 +7750,17 @@ const AgeOfWarGame = (() => {
       irEl.title = ironBet
         ? `The wager rides — the walls must end this wave at or above ${Math.round(ironBet.hpAtBet)} hp. ${runStats.ironWon || 0} won, ${runStats.ironLost || 0} lost this run.`
         : `The Ironside Wager (U) — ${IRON_STAKE} gold says the walls end this wave no worse than they stand right now. Held pays 2× at the wave's turn.`;
+    }
+
+    // Rebuilder's Bond button (AOW-33)
+    const bdEl = document.getElementById('aow-bond-btn');
+    const bdCdEl = document.getElementById('aow-bond-cd');
+    if (bdEl) {
+      if (bdCdEl) bdCdEl.textContent = playerEra < 1 ? 'Age II' : bond ? 'bonded' : `${BOND_COST}g`;
+      bdEl.disabled = playerEra < 1 || !!bond;
+      bdEl.title = bond
+        ? `The bond rides \u2014 end the wave below ${Math.round(bond.hpAtBond)} hp and the underwriter rebuilds half the loss. ${runStats.bondsPaid || 0} claimed, ${runStats.bondsExpired || 0} expired this run.`
+        : `The Rebuilder's Bond (I) \u2014 ${BOND_COST} gold insures the walls for this wave: end it below the signing mark and half the loss is rebuilt on the spot.`;
     }
 
     // Wave indicator
