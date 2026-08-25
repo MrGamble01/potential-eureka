@@ -1958,6 +1958,18 @@ const CENTER_KEY = 'growop-center', CENTER_COST = 20000;
 // fresh start from then on locks TWO regulars. The building earned it.
 const CENTER_ANNEX_AT = 3;
 function centerHasAnnex() { const c = loadCenter(); return c.built && (c.runs || 0) >= CENTER_ANNEX_AT; }
+// LAB-39: the block cookout — the festival round. When the gym
+// annex stands, every fresh start opens with the cookout: grills
+// out on the sidewalk, the whole block eating. +$300 and heat −5
+// before the first bag is bagged. Cookouts tallied across runs.
+const COOKOUT_KEY = 'growop-festival', COOKOUT_CASH = 300, COOKOUT_COOL = 5;
+function loadCookout() {
+  try { const c = JSON.parse(localStorage.getItem(COOKOUT_KEY) || 'null');
+    if (c && typeof c === 'object') return { days: Math.max(0, Math.floor(c.days || 0)) };
+  } catch(e){}
+  return { days: 0 };
+}
+function saveCookout(c) { try { localStorage.setItem(COOKOUT_KEY, JSON.stringify(c)); } catch(e){} }
 function loadCenter() {
   try { const c = JSON.parse(localStorage.getItem(CENTER_KEY) || 'null');
     if (c && typeof c === 'object') return { built: !!c.built, runs: Math.max(0, Math.floor(c.runs || 0)) };
@@ -2943,6 +2955,7 @@ const GROW_ACH = [
   { id: 'sold_forward', name: 'Sold Forward', test: () => (state.preSales || 0) >= 4 },   // LAB-32
   { id: 'cornerstone', name: 'Cornerstone', test: () => loadCenter().built && (loadCenter().runs || 0) >= 2 },   // LAB-33
   { id: 'gym_annex', name: 'The Gym Annex', test: () => centerHasAnnex() },   // LAB-38
+  { id: 'block_cookout', name: 'Block Cookout', test: () => (loadCookout().days || 0) >= 3 },   // LAB-39
   { id: 'high_water', name: 'High-Water Mark', test: () => (loadHwm().beats || 0) >= 3 },   // LAB-34
   { id: 'pen_pals', name: 'Pen Pals', test: () => (loadKite().read || 0) >= 3 },   // LAB-35
   { id: 'corner_ledger', name: 'Corner Ledger', test: () => (loadCLedger().opens || 0) >= 3 },   // LAB-36
@@ -3595,6 +3608,15 @@ if (!hadSave) {
         state.clientele = Math.max(state.clientele || 0, 2);
         addFeed('🏀 The Youth Center and its gym annex still stand — the block knows you twice over');
         setTimeout(() => showToast('🏀 The gym annex made this corner home — two regulars are already yours.', 'good'), 1800);
+        // LAB-39: the annex means the cookout — the block throws one
+        // for every fresh start now.
+        const ck = loadCookout();
+        saveCookout({ days: ck.days + 1 });
+        state.cash += COOKOUT_CASH;
+        state.heat = Math.max(0, state.heat - COOKOUT_COOL);
+        addFeed('🍖 BLOCK COOKOUT — grills out on the sidewalk, the whole block eating. +$' + COOKOUT_CASH + ', heat −' + COOKOUT_COOL);
+        setTimeout(() => showToast('🍖 The block throws a cookout for the fresh start — +$' + COOKOUT_CASH + ' and heat cools ' + COOKOUT_COOL + '.', 'good'), 2400);
+        checkGrowAchievements();
       } else {
         state.clientele = Math.max(state.clientele || 0, 1);
         addFeed('🏀 The Youth Center still stands — the block already knows you');
