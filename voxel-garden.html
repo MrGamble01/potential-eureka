@@ -802,6 +802,39 @@ function refreshNoteHud(){
     ? '📝 '+state.traderNote+' 🪙 owed'
     : '📝 '+NOTE_ADV+' 🪙 advance';
 }
+// VOX-26: the legacy round on the shore. The Stone Lantern lives in
+// its own localStorage key OUTSIDE the save — a lost or cleared isle
+// never puts it out. 150 🪙 lights it once, and every fresh isle that
+// rises after it starts with the three starter plots already grown:
+// the lantern kept the first seeds warm.
+const LANTERN_KEY='vox-lantern',LANTERN_COST=150;
+function loadLantern(){
+  try{const l=JSON.parse(localStorage.getItem(LANTERN_KEY)||'null');
+    if(l&&typeof l==='object')return{lit:!!l.lit,isles:Math.max(0,Math.floor(l.isles||0))};
+  }catch(e){}
+  return{lit:false,isles:0};
+}
+function saveLantern(l){try{localStorage.setItem(LANTERN_KEY,JSON.stringify(l));}catch(e){}}
+function lightLantern(){
+  const l=loadLantern();
+  if(l.lit){toast('🏮 The Stone Lantern already burns on the shore \u2014 nothing puts it out.');return;}
+  if(!spendCoins(LANTERN_COST))return;
+  saveLantern({lit:true,isles:0});
+  toast('🏮 The Stone Lantern is lit \u2014 whatever happens to this isle, the light stays. New isles rise ready.');
+  SFX.play('coin');
+  checkAch();
+  refreshLanternHud();
+  save();
+}
+function refreshLanternHud(){
+  const h=document.getElementById('lanternHud'),tx=document.getElementById('lanternTxt');
+  if(!h)return;
+  const l=loadLantern();
+  h.style.display=(l.lit||state.totalEarned>=LANTERN_COST)?'flex':'none';
+  if(tx)tx.textContent=l.lit
+    ? '🏮 lit \u2014 '+l.isles+' isle'+(l.isles===1?'':'s')+' greeted'
+    : '🏮 light for '+LANTERN_COST+' 🪙';
+}
 function garnishTrade(n){
   // Half of every trade coin to the note until it clears.
   if(!((state.traderNote||0)>0)||n<=0)return n;
@@ -4528,6 +4561,7 @@ const ACH=[
   ['cloud6','Cloud Reader','Win six cloud wagers',()=>(state.cloudWins||0)>=6],
   ['policy4','Acts of Crow','Collect four crop-policy payouts',()=>(state.policyClaims||0)>=4],
   ['notes3','Square with the Trader','Clear three of the Trader\u2019s notes',()=>(state.notesCleared||0)>=3],
+  ['lantern2','Keeper of the Shore','See the lantern greet two new isles',()=>{const l=loadLantern();return l.lit&&l.isles>=2;}],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4737,6 +4771,17 @@ function boot(){
         if(y!==null&&(getB(ox,y,oz)===1||getB(ox,y,oz)===2))setB(ox,y,oz,5,true);
       });
     }
+    // VOX-26: the Stone Lantern greets every isle that rises after it
+    const lan=loadLantern();
+    if(lan.lit){
+      lan.isles=(lan.isles||0)+1;saveLantern(lan);
+      [[0,0],[1,0],[0,1]].forEach(([ox,oz])=>{
+        const y=surfaceY(ox,oz);
+        if(y!==null&&getB(ox,y,oz)===5)addPlant(ox,y+1,oz,'sunflower',true,999,2,false);
+      });
+      setTimeout(()=>toast('🏮 The Stone Lantern kept the first seeds warm \u2014 the new isle rises already grown.'),2000);
+      save();
+    }
   }
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   rebuildBuildings();
@@ -4746,6 +4791,7 @@ function boot(){
   cam.cy=(surfaceY(0,0)||5)+1;
   fitCamera(true);
   initHud();
+  refreshLanternHud();   // VOX-26: the shore light
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -4815,6 +4861,7 @@ function boot(){
 boot();
 </script>
 <div id="noteHud" style="display:none;position:fixed;bottom:188px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(200,170,240,0.5);color:#e2d4f4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="takeTraderNote()" title="The Trader's Note: 60 🪙 now against 75 of future trade — half of every Market sale and Tavern meal rides the note till it clears"><span id="noteTxt">📝 60 🪙 advance</span></div>
+<div id="lanternHud" style="display:none;position:fixed;bottom:222px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,200,140,0.5);color:#ffe4c0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lightLantern()" title="The Stone Lantern: 150 🪙 lights it once, forever — it lives outside the isle's save, and every new isle that rises after it starts with the three starter plots already grown"><span id="lanternTxt">🏮 light for 150 🪙</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
