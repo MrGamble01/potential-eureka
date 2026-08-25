@@ -869,6 +869,34 @@ function recordHarvestDay(gained){
   }
   refreshBellHud();
 }
+// VOX-28: the letters round on the shore. Every fresh isle that
+// rises with a history to cite finds a bottle washed up by the
+// starter plots — the message quotes the lantern's greeted isles and
+// the Harvest Bell's best day by their real numbers.
+const BOTTLE_KEY='vox-letter', BOTTLE_XP=15;
+function loadBottle(){
+  try{const b=JSON.parse(localStorage.getItem(BOTTLE_KEY)||'null');
+    if(b&&typeof b==='object')return{read:Math.max(0,Math.floor(b.read||0))};
+  }catch(e){}
+  return{read:0};
+}
+function saveBottle(b){try{localStorage.setItem(BOTTLE_KEY,JSON.stringify(b));}catch(e){}}
+function composeBottle(){
+  const l=loadLantern(),r=loadVrec();
+  let s='🍾 A bottle washes ashore: "';
+  if(l.isles>0)s+='Isle #'+l.isles+' under the lantern\u2019s light. ';
+  if(r.coins>0)s+='Our best day weighed '+r.coins+' 🪙. ';
+  s+='The sea remembers."';
+  return s;
+}
+function deliverBottle(){
+  if(!(loadLantern().isles>0||loadVrec().coins>0))return;
+  const b=loadBottle();
+  saveBottle({read:(b.read||0)+1});
+  grantXP(BOTTLE_XP);
+  const s=composeBottle();
+  setTimeout(()=>toast(s+' (+'+BOTTLE_XP+' xp)'),3000);
+}
 function garnishTrade(n){
   // Half of every trade coin to the note until it clears.
   if(!((state.traderNote||0)>0)||n<=0)return n;
@@ -4601,6 +4629,7 @@ const ACH=[
   ['notes3','Square with the Trader','Clear three of the Trader\u2019s notes',()=>(state.notesCleared||0)>=3],
   ['lantern2','Keeper of the Shore','See the lantern greet two new isles',()=>{const l=loadLantern();return l.lit&&l.isles>=2;}],
   ['bell3','Harvest Bell','Ring the harvest bell on three sessions',()=>loadVrec().beats>=3],
+  ['bottles3','The Sea Remembers','Read three messages in bottles',()=>loadBottle().read>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4821,6 +4850,7 @@ function boot(){
       setTimeout(()=>toast('🏮 The Stone Lantern kept the first seeds warm \u2014 the new isle rises already grown.'),2000);
       save();
     }
+    setTimeout(deliverBottle,600);   // VOX-28: the tide brings word once the shore is set (after initHud)
   }
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   rebuildBuildings();
