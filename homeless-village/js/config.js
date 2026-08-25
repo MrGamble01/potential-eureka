@@ -372,6 +372,20 @@ function loadHvRec(){
   return {days:0, beats:0};
 }
 function saveHvRec(r){ try{ localStorage.setItem(HVREC_KEY, JSON.stringify(r)); }catch(e){} }
+// HV-38: the plaque round under the bridge — the records round comes
+// back around. Three beaten holds earn the underpass wall a chalk
+// star over its numbers, and every hold beaten under it spreads the
+// story: neighbors leave groceries at the fence, +3 food on the
+// spot. The bridge's score starts feeding the camp.
+var HVSTAR_KEY='hv-plaque', HVSTAR_AT=3, HVSTAR_FOOD=3;
+function loadHvStar(){
+  try{ var s=JSON.parse(localStorage.getItem(HVSTAR_KEY)||'null');
+    if(s&&typeof s==='object') return {cheers:Math.max(0,Math.floor(s.cheers||0))};
+  }catch(e){}
+  return {cheers:0};
+}
+function saveHvStar(s){ try{ localStorage.setItem(HVSTAR_KEY, JSON.stringify(s)); }catch(e){} }
+function wallHasStar(){ return (loadHvRec().beats||0)>=HVSTAR_AT; }
 // HV-33: the letters round under the bridge. Every genuinely fresh
 // camp with a history to cite finds a note taped inside the corner
 // fridge's door — it quotes the fridge's welcomed camps and the
@@ -449,10 +463,19 @@ function recordDays(d){
   if(d>r.days){ r.days=d; saveHvRec(r); }
   if(!hvRecRung && hvRecMark>0 && d>hvRecMark){
     hvRecRung=true;
-    r=loadHvRec(); r.beats=(r.beats||0)+1; saveHvRec(r);
+    r=loadHvRec();
+    var starStood=(r.beats||0)>=HVSTAR_AT;
+    r.beats=(r.beats||0)+1; saveHvRec(r);
     G.morale=Math.min(100,(G.morale||0)+HVREC_MORALE);
     floatText('+'+HVREC_MORALE+'\ud83d\ude0a');
     log('\ud83d\udcc8 Day '+d+' \u2014 no camp under this bridge has ever held longer. The fire feels it.');
+    // HV-38: under the chalk star, the story feeds the camp.
+    if(starStood){
+      var st=loadHvStar(); saveHvStar({cheers:st.cheers+1});
+      G.food=(G.food||0)+HVSTAR_FOOD;
+      floatText('+'+HVSTAR_FOOD+'\ud83c\udf5e');
+      log('\u2b50 A hold like that under the chalk star \u2014 word gets around, and neighbors leave groceries at the fence. +'+HVSTAR_FOOD+'\ud83c\udf5e');
+    }
   }
 }
 
@@ -550,6 +573,7 @@ var GOALS = [
   {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
+  {id:'star3',      desc:'Beat the longest hold three times under the chalk star', target:3, reward:5, value:function(){ return loadHvStar().cheers; }},
 ];
 
 var activeJobs = {};
