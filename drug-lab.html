@@ -487,6 +487,14 @@ canvas{display:block;touch-action:none;}
 }
 #dice-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 @media (max-width:640px){ #dice-toggle{bottom:239px;right:8px;font-size:11px;padding:5px 9px;} }
+#lawyer-toggle{
+  position:fixed;bottom:14px;right:1526px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#lawyer-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #lawyer-toggle{bottom:264px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -572,6 +580,7 @@ canvas{display:block;touch-action:none;}
 <button id="zoning-toggle" style="display:none" title="The Variance: a friend at City Hall reclassifies the block mixed-use commercial — $12,000 once, and an empire’s ambient heat radiates 40% lighter, forever">🏛️ VARIANCE $12k</button>
 <button id="vault-toggle" style="display:none" title="The Floor Safe: bank $1,000 under the laundry floor (the launderer keeps 10%) — the safe survives a bust, and the balance lands in your next run’s pocket">🔒 VAULT $0</button>
 <button id="dice-toggle" style="display:none" title="The Hot Hand: stake $600 on moving three clean street sales in the next 45 seconds — make it and the stake doubles, run dry and it’s gone">🎲 HOT HAND $600</button>
+<button id="lawyer-toggle" style="display:none" title="The Lawyer: a $1,500 retainer buys one case — the next sting’s bags still walk, but their full list value comes back as damages and the heat spike is argued down to 8">⚖️ LAWYER $1,500</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1220,6 +1229,30 @@ function updateDice(dt) {
   refreshDiceBtn();
   showToast('🎲 The clock beats the corner — $' + fmtCash(stake) + ' swept off the table.', 'bust');
   addFeed('🎲 Hot hand lost — $' + fmtCash(stake) + ' gone');
+  saveGame();
+}
+// LAB-31: the insurance round reaches the corner. The Lookout and
+// the burner shorten the odds of a sting; the Lawyer is for when the
+// odds miss anyway. $1,500 retains one case: the next badge still
+// takes the bags, but their full list value comes back as damages
+// and the heat spike is argued down to 8. Then the retainer's spent.
+const LAWYER_COST = 1500, LAWYER_HEAT = 8;
+function refreshLawyerBtn() {
+  const b = document.getElementById('lawyer-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', !!state.lawyer);
+  b.textContent = state.lawyer ? '⚖️ RETAINED' : '⚖️ LAWYER $' + fmtCash(LAWYER_COST);
+}
+function retainLawyer() {
+  if (state.lawyer) { showToast('⚖️ Counsel is already on retainer — one case, whenever it comes.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < LAWYER_COST) { showToast("Can't cover the retainer yet ($" + fmtCash(LAWYER_COST) + ').', 'bust'); return; }
+  state.cash -= LAWYER_COST;
+  state.lawyer = true;
+  refreshLawyerBtn();
+  showToast('⚖️ Retainer paid — the next sting gets argued down. One case.', 'good');
+  addFeed('⚖️ Lawyer retained — $' + fmtCash(LAWYER_COST) + ' against the next badge');
   saveGame();
 }
 function stashMax() { return STASH_MAX_BASE + (state.unitRented ? UNIT_CAP_BONUS : 0); }
@@ -2185,6 +2218,7 @@ function refreshRouteBtn() {
   refreshZoningBtn(); // LAB-28: and the variance
   refreshVaultBtn(); // LAB-29: and the floor safe
   refreshDiceBtn(); // LAB-30: and the hot hand
+  refreshLawyerBtn(); // LAB-31: and the retainer
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2360,6 +2394,7 @@ function updateRoute(dt) {
 { const zb = document.getElementById('zoning-toggle'); if (zb) zb.onclick = buyVariance; }
 { const vb = document.getElementById('vault-toggle'); if (vb) vb.onclick = depositVault; }
 { const db = document.getElementById('dice-toggle'); if (db) db.onclick = placeDice; }
+{ const lb = document.getElementById('lawyer-toggle'); if (lb) lb.onclick = retainLawyer; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2617,6 +2652,7 @@ const GROW_ACH = [
   { id: 'zoned', name: 'Friends Downtown', test: () => !!state.zoned && (state.totalEarned || 0) >= 50000 },   // LAB-28
   { id: 'squirrel', name: 'Rainy-Day Fund', test: () => (loadVault().life || 0) >= 5000 },   // LAB-29
   { id: 'hot_hand', name: 'The Hot Hand', test: () => (state.diceWon || 0) >= 5 },   // LAB-30
+  { id: 'retained', name: 'Habeas Corpus', test: () => (state.casesWon || 0) >= 3 },   // LAB-31
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -3023,6 +3059,7 @@ function saveGame() {
     motherRooted: !!state.motherRooted, motherBags: state.motherBags || 0,   // LAB-26
     zoned: !!state.zoned,   // LAB-28
     diceWon: state.diceWon || 0, diceLost: state.diceLost || 0,   // LAB-30
+    lawyer: !!state.lawyer, casesWon: state.casesWon || 0,   // LAB-31
     clientele: Math.max(0, Math.min(5, Math.floor(state.clientele || 0))), clientMeter: state.clientMeter || 0,   // LAB-27
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
@@ -3117,6 +3154,8 @@ function loadGame() {
     state.zoned = !!sv.zoned;   // LAB-28
     state.diceWon = Math.max(0, Math.floor(sv.diceWon || 0));   // LAB-30
     state.diceLost = Math.max(0, Math.floor(sv.diceLost || 0));
+    state.lawyer = !!sv.lawyer;   // LAB-31 (older corners had no counsel)
+    state.casesWon = Math.max(0, Math.floor(sv.casesWon || 0));
     state.motherBags = Math.max(0, Math.floor(sv.motherBags || 0));
     state.clientele = Math.max(0, Math.min(CLIENT_CAP, Math.floor(sv.clientele || 0)));   // LAB-27
     state.clientMeter = Math.max(0, Math.floor(sv.clientMeter || 0));
@@ -3494,9 +3533,23 @@ function sellToDealer(d, idx) {
     stashCount-=seized;
     pureBags=Math.min(pureBags, stashCount);   // LAB-10: the ✨ ledger can't exceed what's left
     setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
-    addHeat(15);
-    showToast('🚔 The buyer flashed a badge — '+seized+' bag'+(seized>1?'s':'')+' seized. Heat is spiking.','bad');
-    addFeed('🚔 Sting! An undercover cop seized '+seized+' bags');
+    if (state.lawyer) {
+      // LAB-31: one case on retainer — the bags still walk, but their
+      // list value comes back as damages and the spike is argued down.
+      const damages = salePrice() * seized;
+      state.lawyer = false;
+      state.casesWon = (state.casesWon || 0) + 1;
+      addCash(damages);
+      addHeat(LAWYER_HEAT);
+      refreshLawyerBtn();
+      showToast('⚖️ The badge took ' + seized + ' bag' + (seized > 1 ? 's' : '') + ' — and the lawyer took the department for $' + fmtCash(damages) + '.', 'good');
+      addFeed('⚖️ Sting argued down — +$' + fmtCash(damages) + ' damages (' + state.casesWon + ' case' + (state.casesWon > 1 ? 's' : '') + ' won)');
+      checkGrowAchievements();
+    } else {
+      addHeat(15);
+      showToast('🚔 The buyer flashed a badge — '+seized+' bag'+(seized>1?'s':'')+' seized. Heat is spiking.','bad');
+      addFeed('🚔 Sting! An undercover cop seized '+seized+' bags');
+    }
     saveGame();
     return;
   }
