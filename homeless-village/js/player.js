@@ -162,6 +162,16 @@ function finishAction(a){
       addRep(5);
       saveGame();
     }
+  } else if(a.id==='wall'){
+    // HV-34: the bridge's memory, chalked where everyone can see it.
+    if(!bridgeHasWall()){ log('\ud83e\uddf1 The wall is bare \u2014 this bridge has no story yet.'); }
+    else {
+      var ww=loadHvWall();
+      saveHvWall({opens:(ww.opens||0)+1});
+      log('\ud83e\uddf1 THE WRITING ON THE WALL \u2014 read out to whoever\u2019s around:');
+      composeHvWall().forEach(function(s){ log('\ud83e\uddf1 '+s); });
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
