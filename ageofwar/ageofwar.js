@@ -590,6 +590,7 @@ const AgeOfWarGame = (() => {
     { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
     { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
     { id: 'old_standard', icon: '\u{1F6A9}', title: 'Colors That Held', desc: 'Raise the Old Standard on three separate sessions.' },
+    { id: 'old_general', icon: '\u{1F396}\u{FE0F}', title: 'The General\u2019s Review', desc: 'Welcome the Old General on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -710,6 +711,7 @@ const AgeOfWarGame = (() => {
     if (loadTriumph().days >= 3) unlock('triumph');
     if (chronBeats >= 3) unlock('chronicled');
     if (loadLaurel().cheers >= 3) unlock('laureled');
+    if (loadGen().visits >= 3) unlock('old_general');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2155,6 +2157,36 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Old General (AOW-44) ──
+  // The visitor round on the battlefield: once a session, the Old
+  // General rides out to review the troops of any army with a
+  // memory. His purse opens for a storied army: 20 gold base, +10
+  // per page written beneath the laurel (cap 3).
+  const GEN_KEY = 'aow-visitor', GEN_BASE = 20;
+  let generalCame = false;
+  function loadGen() {
+    try { const g = JSON.parse(localStorage.getItem(GEN_KEY) || 'null');
+      if (g && typeof g === 'object') return { visits: Math.max(0, Math.floor(g.visits || 0)) };
+    } catch {}
+    return { visits: 0 };
+  }
+  function saveGen(g) { try { localStorage.setItem(GEN_KEY, JSON.stringify(g)); } catch {} }
+  function genHasStory() { return loadChron().wave > 0 || loadDispatch().read > 0; }
+  function genPurse() { return GEN_BASE + 10 * Math.min(loadLaurel().cheers || 0, 3); }
+  function welcomeGeneral() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!genHasStory() || generalCame) return;
+    generalCame = true;
+    const p = genPurse();
+    const g = loadGen();
+    saveGen({ visits: g.visits + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F396}\u{FE0F} THE OLD GENERAL REVIEWS THE TROOPS \u2014 he salutes the laurel and opens his purse. +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2330,6 +2362,8 @@ const AgeOfWarGame = (() => {
     if (annalsBtn) annalsBtn.onclick = openAnnals;
     const stdBtn = document.getElementById('aow-standard-btn');
     if (stdBtn) stdBtn.onclick = raiseStandard;
+    const genBtn = document.getElementById('aow-general-btn');
+    if (genBtn) genBtn.onclick = welcomeGeneral;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8144,6 +8178,21 @@ const AgeOfWarGame = (() => {
         stEl.title = standardRaised
           ? 'The Old Standard already flies \u2014 it rises once a session.'
           : `The Old Standard \u2014 the colors every fallen war marched under. Raise them and the men dig in: +${stdPower()} gold, carried by the Chronicle\u2019s pages and the dispatches taken. Raised ${loadStd().uses} time${loadStd().uses === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Old General (AOW-44)
+    const genEl = document.getElementById('aow-general-btn');
+    const genCdEl = document.getElementById('aow-general-cd');
+    if (genEl) {
+      if (!genHasStory()) { genEl.style.display = 'none'; }
+      else {
+        genEl.style.display = '';
+        genEl.style.opacity = generalCame ? '0.45' : '';
+        if (genCdEl) genCdEl.textContent = generalCame ? 'reviewed' : `+${genPurse()}g`;
+        genEl.title = generalCame
+          ? 'The Old General has already reviewed the troops \u2014 he rides once a session.'
+          : `The Old General \u2014 he rides out for any army with a story. Welcome him and his purse opens: +${genPurse()} gold, deepened by every page beneath the laurel. He has reviewed the troops ${loadGen().visits} time${loadGen().visits === 1 ? '' : 's'}.`;
       }
     }
 
