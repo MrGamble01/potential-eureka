@@ -6226,6 +6226,7 @@ const ACHIEVEMENTS = [
   { id: 'second_chair', icon: '\u{1FA91}', title: 'The Second Chair',     desc: 'Let the second chair steady three more hard days.', check: () => endowed && endowCatches >= 8, progress: () => [Math.min(endowCatches, 8), 8] },
   { id: 'founders_day', icon: '\u{1F389}', title: 'Founders\u2019 Day',      desc: 'Open three new companies to the parade.', check: () => loadFest().days >= 3, progress: () => [Math.min(loadFest().days, 3), 3] },
   { id: 'house_record', icon: '\u{1F4C8}', title: 'House Record',        desc: 'Ring the record bell on three different sessions.', check: () => loadRecord().beats >= 3, progress: () => [Math.min(loadRecord().beats, 3), 3] },
+  { id: 'brass_plaque', icon: '\u{1F37E}', title: 'Champagne Days',      desc: 'Toast three records under the brass plaque.', check: () => loadPlaque().cheers >= 3, progress: () => [Math.min(loadPlaque().cheers, 3), 3] },
   { id: 'three_letters', icon: '\u{2709}\u{FE0F}', title: 'Kept Correspondence', desc: 'Read the founder\u2019s letter at three new companies.', check: () => loadLetter().read >= 3, progress: () => [Math.min(loadLetter().read, 3), 3] },
   { id: 'bound_history', icon: '\u{1F4D4}', title: 'Bound History',       desc: 'Read the Company History aloud three times.', check: () => loadHist().opens >= 3, progress: () => [Math.min(loadHist().opens, 3), 3] },
   { id: 'founders_ring', icon: '\u{1F48D}', title: 'The Weight of It',    desc: 'Rally the floor with the Founder\u2019s Ring on three sessions.', check: () => loadRing().uses >= 3, progress: () => [Math.min(loadRing().uses, 3), 3] },
@@ -10346,6 +10347,21 @@ function loadRecord() {
   return { cash: 0, beats: 0 };
 }
 function saveRecord(r) { try { localStorage.setItem(RECORD_KEY, JSON.stringify(r)); } catch (e) { } }
+// ---- The Brass Plaque (TYC-42) --------------------------------
+// Round Thirty-One opens the plaque round: the records round comes
+// back around. Three record bells earn the studio a brass plaque
+// over the floor \u2014 and every bell rung under it means champagne:
+// +$250 on the spot, because a house this decorated celebrates
+// properly. Cheers tallied across sessions in their own key.
+const PLAQUE_KEY = 'tyc-plaque', PLAQUE_AT = 3, PLAQUE_CASH = 250;
+function loadPlaque() {
+  try { const p = JSON.parse(localStorage.getItem(PLAQUE_KEY) || 'null');
+    if (p && typeof p === 'object') return { cheers: Math.max(0, Math.floor(p.cheers || 0)) };
+  } catch (e) { }
+  return { cheers: 0 };
+}
+function savePlaque(p) { try { localStorage.setItem(PLAQUE_KEY, JSON.stringify(p)); } catch (e) { } }
+function plaqueStands() { return loadRecord().beats >= PLAQUE_AT; }
 function refreshRecordChip() {
   const el = document.getElementById('record-chip');
   if (!el) return;
@@ -10353,7 +10369,7 @@ function refreshRecordChip() {
   if (r.cash <= 0) { el.style.display = 'none'; el.textContent = ''; return; }
   el.style.display = '';
   el.textContent = '\u{1F4C8} best $' + fmtCash(Math.floor(r.cash));
-  el.title = 'The House Record \u2014 the most cash this studio has ever held, across every run and prestige. Beat the mark that stood when you sat down and the record bell rings: +' + RECORD_MORALE + ' morale to the whole floor, once a session. Beaten on ' + r.beats + ' session' + (r.beats === 1 ? '' : 's') + '.';
+  el.title = 'The House Record \u2014 the most cash this studio has ever held, across every run and prestige. Beat the mark that stood when you sat down and the record bell rings: +' + RECORD_MORALE + ' morale to the whole floor, once a session. Beaten on ' + r.beats + ' session' + (r.beats === 1 ? '' : 's') + '.' + (plaqueStands() ? ' A brass plaque hangs over the floor \u2014 champagne (+$' + PLAQUE_CASH + ') every time the bell rings again.' : '');
 }
 function updateRecord(dt) {
   updateRecord._acc = (updateRecord._acc || 0) + dt;
@@ -10368,6 +10384,14 @@ function updateRecord(dt) {
     saveRecord({ cash: r2.cash, beats: r2.beats + 1 });
     changeMorale(RECORD_MORALE, 'The record bell rings \u2014 no office of ours ever held this much');
     addFeedEntry('\u{1F4C8} NEW HOUSE RECORD \u2014 past $' + fmtCash(Math.floor(recordMark)) + ', the whole floor on its feet');
+    // TYC-42: under the brass plaque, the bell means champagne.
+    if (r2.beats >= PLAQUE_AT) {
+      const p = loadPlaque();
+      savePlaque({ cheers: p.cheers + 1 });
+      state.cash += PLAQUE_CASH;
+      addFeedEntry('\u{1F37E} CHAMPAGNE UNDER THE PLAQUE \u2014 the floor toasts the new mark: +$' + PLAQUE_CASH + '.');
+      showToast('\u{1F37E} The brass plaque gleams \u2014 champagne on the house: +$' + PLAQUE_CASH + '.', 'good', 'critical');
+    }
     checkAchievements();
   }
   refreshRecordChip();
