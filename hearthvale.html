@@ -1673,6 +1673,7 @@
     { id: 'good_word', emoji: '📜', name: 'Good for It', desc: 'Honour three merchant advances in full.', done: () => (state.advancesFilled || 0) >= 3 },
     { id: 'deep_roots', emoji: '🌳', name: 'Deep Roots', desc: 'Plant the Founders\u2019 Oak and found two towns in its shade.', done: () => { const o = loadOak(); return o.planted && o.towns >= 2; } },
     { id: 'valley_rich', emoji: '📖', name: 'Talk of the Valley', desc: 'Turn three new pages in the Valley Ledger.', done: () => loadLedger().beats >= 3 },
+    { id: 'oak_letters', emoji: '\u2709\uFE0F', name: 'Letters under the Oak', desc: 'Found three towns that each dug up the letter.', done: () => loadOakLetter().read >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2688,6 +2689,35 @@
     return { gold: 0, beats: 0 };
   }
   function saveLedger(l) { try { localStorage.setItem(LEDGER_KEY, JSON.stringify(l)); } catch (e) { } }
+  // ---- The Letter under the Oak (HVALE-30) --------------------
+  // The letters round in the valley: every town founded with a
+  // history to cite finds a letter buried at the oak's roots — it
+  // quotes the towns the oak has shaded and the ledger's richest
+  // dawn by their real numbers, and reading it starts the town glad.
+  const OAKLETTER_KEY = 'hvale-letter', OAKLETTER_CHEER = 2;
+  function loadOakLetter() {
+    try { const l = JSON.parse(localStorage.getItem(OAKLETTER_KEY) || 'null');
+      if (l && typeof l === 'object') return { read: Math.max(0, Math.floor(l.read || 0)) };
+    } catch (e) { }
+    return { read: 0 };
+  }
+  function saveOakLetter(l) { try { localStorage.setItem(OAKLETTER_KEY, JSON.stringify(l)); } catch (e) { } }
+  function composeOakLetter() {
+    const o = loadOak(), lg = loadLedger();
+    let s = '\u2709\uFE0F A letter under the oak: "';
+    if (o.towns > 0) s += 'You are the ' + o.towns + (o.towns === 1 ? 'st' : o.towns === 2 ? 'nd' : o.towns === 3 ? 'rd' : 'th') + ' town this oak has shaded. ';
+    if (lg.gold > 0) s += 'Our richest dawn counted ' + lg.gold + ' gold. ';
+    s += 'Plant something before you go."';
+    return s;
+  }
+  function deliverOakLetter() {
+    if (!(loadOak().towns > 0 || loadLedger().gold > 0)) return;
+    const l = loadOakLetter();
+    saveOakLetter({ read: (l.read || 0) + 1 });
+    state.happy = Math.min(100, state.happy + OAKLETTER_CHEER);
+    chron('\u2709\uFE0F', composeOakLetter() + ' (+' + OAKLETTER_CHEER + ' happiness)');
+    checkAchievements();
+  }
   function ledgerAtDawn() {
     const g = Math.floor(state.res.gold);
     const l = loadLedger();
@@ -5041,6 +5071,7 @@
       state.happy = Math.min(100, state.happy + OAK_CHEER);
       chron('🌳', 'The Founders\u2019 Oak already shades the green \u2014 the new town starts ' + OAK_CHEER + ' happiness glad');
     }
+    deliverOakLetter(); // HVALE-30: and a letter waits at the roots
     // center camera on the starter clearing
     cam = { x: start.startX * TILE - 200, y: start.startY * TILE - 150, z: 3 };
   }
