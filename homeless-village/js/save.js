@@ -71,6 +71,7 @@ function loadGame(){
     if(typeof G.garageSaves!=='number') G.garageSaves=0;
     if(typeof G.rayDebt!=='number') G.rayDebt=0; // saves from before HV-30
     if(typeof G.rayLoans!=='number') G.rayLoans=0;
+    if(typeof G.fridgeSeeded!=='boolean') G.fridgeSeeded=true;     // saves from before HV-31 were never fresh camps to count
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
   }catch(e){}
 }

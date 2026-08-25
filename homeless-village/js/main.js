@@ -85,6 +85,19 @@ log('Another day under the bridge. Same as always.');
 if(G.days===0 && G.arcStage===0){
   log('Word around the camps: a county case worker visits the ones that hold together. Build something worth seeing.');
 }
+// HV-31: the corner fridge counts every camp that forms beside it —
+// once per camp, and Start Over can't unplug it.
+if(!G.fridgeSeeded){
+  G.fridgeSeeded=true;
+  var _fr=loadFridge();
+  if(_fr.built){
+    _fr.camps=(_fr.camps||0)+1; saveFridge(_fr);
+    G.goodwill=(G.goodwill||0)+FRIDGE_SEED;
+    log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+FRIDGE_SEED+'\ud83e\ude76');
+    updateHUD();
+  }
+  saveGame();
+}
 // A save whose health already hit 0 (lost, then tab closed without
 // pressing Start Over) must not resume as a playable camp.
 if(G.health<=0) showGameOver();
