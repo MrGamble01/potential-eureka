@@ -582,6 +582,7 @@ const AgeOfWarGame = (() => {
     { id: 'underwritten', icon: '\u{1F6DF}', title: 'Underwritten',     desc: 'Collect three bond payouts in one run.' },
     { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
     { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
+    { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -697,6 +698,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.bondsPaid || 0) >= 3) unlock('underwritten');
     if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
     if (hallStanding && hallRuns >= 3) unlock('old_guard');
+    if (chronBeats >= 3) unlock('chronicled');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1972,6 +1974,34 @@ const AgeOfWarGame = (() => {
     return n - take;
   }
 
+  // ── The Chronicle of Wars (AOW-36) ──
+  // The record round on the battlefield: the deepest wave any war
+  // has ever reached lives in its own key, across every defeat. The
+  // mark standing when the session opened is the bar — push past it
+  // once a session and the scribes write a new page and pay a relic.
+  const CHRON_KEY = 'aow-chronicle';
+  function loadChron() {
+    try { const c = JSON.parse(localStorage.getItem(CHRON_KEY) || 'null');
+      if (c && typeof c === 'object') return { wave: Math.max(0, Math.floor(c.wave || 0)), beats: Math.max(0, Math.floor(c.beats || 0)) };
+    } catch {}
+    return { wave: 0, beats: 0 };
+  }
+  function saveChron(c) { try { localStorage.setItem(CHRON_KEY, JSON.stringify(c)); } catch {} }
+  let chronBest = loadChron().wave, chronBeats = loadChron().beats;
+  let chronMark = null, chronRung = false;
+  function recordWave(w) {
+    if (chronMark === null) chronMark = chronBest;
+    if (w > chronBest) { chronBest = w; saveChron({ wave: chronBest, beats: chronBeats }); }
+    if (!chronRung && chronMark > 0 && w > chronMark) {
+      chronRung = true;
+      chronBeats += 1;
+      saveChron({ wave: chronBest, beats: chronBeats });
+      relics += 1; saveRelics();
+      goldFloaters.push({ text: `\u{1F4DC} A new page in the Chronicle \u2014 wave ${w} beats the old mark of ${chronMark}. The scribes pay a relic`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.4 });
+      checkAchievementsDuringRun();
+    }
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2475,6 +2505,7 @@ const AgeOfWarGame = (() => {
       resolveIronWager();   // AOW-32: the herald settles at the wave's turn
       resolveBond();   // AOW-33: and the underwriter squares the ledger
       waveNum++;
+      recordWave(waveNum);   // AOW-36: the Chronicle sees every wave reached
       bossWaveActive = isBossWave(waveNum);
       bossKilledThisWave = false;
       // AOW-10: every 5 waves survived, the council convenes.
@@ -7894,6 +7925,18 @@ const AgeOfWarGame = (() => {
       hlEl.title = hallStanding
         ? `The Veterans\u2019 Hall stands \u2014 the first ${HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.`
         : `The Veterans\u2019 Hall (E) \u2014 ${HALL_COST} gold raises it once, forever: no defeat tears it down, and the first ${HALL_FIRST} recruits of every future muster march out already Veterans.`;
+    }
+
+    // Chronicle slate (AOW-36)
+    const crEl = document.getElementById('aow-chron-btn');
+    const crCdEl = document.getElementById('aow-chron-cd');
+    if (crEl) {
+      if (chronBest <= 0) { crEl.style.display = 'none'; }
+      else {
+        crEl.style.display = '';
+        if (crCdEl) crCdEl.textContent = `wave ${chronBest}`;
+        crEl.title = `The Chronicle of Wars \u2014 the deepest wave any war of yours has ever reached, kept across every defeat. Push past the mark that stood when you sat down and the scribes pay a relic, once a session. ${chronBeats} page${chronBeats === 1 ? '' : 's'} written.`;
+      }
     }
 
     // Wave indicator
