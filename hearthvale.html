@@ -332,6 +332,7 @@
     <button id="m-register">Leaf the Hall Register</button>
     <button id="m-bench">Sit on the Green Bench</button>
     <button id="m-tale">Hear the Hearth Tale</button>
+    <button id="m-ballad">Hear the Minstrel's Ballad</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1697,6 +1698,7 @@
     { id: 'hall_register', emoji: '\u{1F4D6}', name: 'The Hall Register', desc: 'Leaf through the register on three sessions.', done: () => loadRegister().leafs >= 3 },
     { id: 'green_bench', emoji: '\u{1FA91}', name: 'The Green Bench', desc: 'Sit on the bench on three sessions.', done: () => loadGBench().sits >= 3 },
     { id: 'hearth_tale', emoji: '\u{1F525}', name: 'The Hearth Tale', desc: 'Hear the tale on three sessions.', done: () => loadHTale().tellings >= 3 },
+    { id: 'minstrels_ballad', emoji: '\u{1FA95}', name: 'The Minstrel\u2019s Ballad', desc: 'Hear the ballad on three sessions.', done: () => loadBallad().hearings >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3046,6 +3048,35 @@
     state.res.gold += p;
     chron('\u{1F525}', 'THE HEARTH TALE \u2014 the ledger, the letters, the reunions, every name in the register, told by the fire. A listener leaves a purse for the next chapter: +' + p + ' gold');
     toast('\u{1F525} The Hearth Tale \u2014 +' + p + ' gold. The tale pays.');
+    checkAchievements();
+  }
+  // ---- the Minstrel's Ballad (HVALE-45) -----------------------
+  // The song round in the valley: after three hearings of the
+  // Hearth Tale, the wandering minstrel sets it to song \u2014 the
+  // whole valley story, verse by verse, and the hall sings the
+  // chorus. Once a session a hearing pays: 40 gold base + 5 per
+  // telling (cap 5). Hearings tallied in 'hvale-song'.
+  const BALLAD_KEY = 'hvale-song', BALLAD_BASE = 40, BALLAD_PER = 5;
+  let balladHeard = false;
+  function loadBallad() {
+    try { const b = JSON.parse(localStorage.getItem(BALLAD_KEY) || 'null');
+      if (b && typeof b === 'object') return { hearings: Math.max(0, Math.floor(b.hearings || 0)) };
+    } catch (e) { }
+    return { hearings: 0 };
+  }
+  function saveBallad(b) { try { localStorage.setItem(BALLAD_KEY, JSON.stringify(b)); } catch (e) { } }
+  function balladReady() { return loadHTale().tellings >= 3; }
+  function balladPurse() { return BALLAD_BASE + BALLAD_PER * Math.min(loadHTale().tellings || 0, 5); }
+  function hearMinstrelsBallad() {
+    if (!balladReady()) { toast('\u{1FA95} No ballad yet \u2014 three hearings of the tale and the minstrel finds the tune.'); return; }
+    if (balladHeard) { toast('\u{1FA95} The Minstrel\u2019s Ballad got its hearing tonight \u2014 the chorus keeps.'); return; }
+    balladHeard = true;
+    const p = balladPurse();
+    const b = loadBallad();
+    saveBallad({ hearings: b.hearings + 1 });
+    state.res.gold += p;
+    chron('\u{1FA95}', 'THE MINSTREL\u2019S BALLAD \u2014 the whole valley story set to song, verse by verse, and the hall sings the chorus. A cap passed down the benches comes back heavy: +' + p + ' gold');
+    toast('\u{1FA95} The Minstrel\u2019s Ballad \u2014 +' + p + ' gold. The chorus pays.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5494,6 +5525,7 @@
     { const mr = document.getElementById('m-register'); if (mr) mr.onclick = () => { menu.classList.remove('show'); leafHallRegister(); }; }
     { const mb = document.getElementById('m-bench'); if (mb) mb.onclick = () => { menu.classList.remove('show'); sitGreenBench(); }; }
     { const mt = document.getElementById('m-tale'); if (mt) mt.onclick = () => { menu.classList.remove('show'); hearHearthTale(); }; }
+    { const mbd = document.getElementById('m-ballad'); if (mbd) mbd.onclick = () => { menu.classList.remove('show'); hearMinstrelsBallad(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
