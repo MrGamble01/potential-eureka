@@ -583,6 +583,7 @@ const AgeOfWarGame = (() => {
     { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
     { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
     { id: 'officers_mess', icon: '\u{1F37D}\u{FE0F}', title: 'Officers\u2019 Mess',   desc: 'See the hall open its officers\u2019 mess after three musters.' },
+    { id: 'triumph',      icon: '\u{1F3BA}', title: 'Triumph',          desc: 'Open three fresh musters to the veterans\u2019 parade.' },
     { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
     { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
     { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
@@ -703,6 +704,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
     if (hallStanding && hallRuns >= 3) unlock('old_guard');
     if (hallHasMess()) unlock('officers_mess');
+    if (loadTriumph().days >= 3) unlock('triumph');
     if (chronBeats >= 3) unlock('chronicled');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
@@ -1133,7 +1135,16 @@ const AgeOfWarGame = (() => {
     { const hh = loadHall();
       hallStanding = hh.built; hallTrained = 0; runStats.hallVets = 0;
       if (hh.built) { hh.runs = (hh.runs || 0) + 1; saveHall(hh); hallRuns = hh.runs; }
-      else hallRuns = 0; }
+      else hallRuns = 0;
+      // AOW-41: with the mess open, the fresh muster opens to a
+      // Triumph — colors down the field, gold and xp to the new war.
+      if (hallHasMess()) {
+        const tr = loadTriumph();
+        saveTriumph({ days: tr.days + 1 });
+        gold += TRIUMPH_GOLD; xp += TRIUMPH_XP;
+        setTimeout(() => goldFloaters.push({ text: `\u{1F3BA} TRIUMPH \u2014 the veterans march the colors down the field. +${TRIUMPH_GOLD} gold, +${TRIUMPH_XP} xp`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.6 }), 800);
+        checkAchievementsDuringRun();
+      } }
     setTimeout(deliverDispatch, 1200);   // AOW-37: the mail rides in once the muster forms
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
@@ -2131,6 +2142,18 @@ const AgeOfWarGame = (() => {
   const HALL_MESS_AT = 3;
   let hallStanding = false, hallRuns = 0, hallTrained = 0;
   function hallHasMess() { return hallStanding && hallRuns >= HALL_MESS_AT; }
+  // AOW-41: the Triumph — the festival round. When the officers'
+  // mess stands, every fresh muster opens with a Triumph: the
+  // veterans march the colors down the field before the first enemy
+  // shows. +50 gold and +25 xp to the new war, tallied across runs.
+  const TRIUMPH_KEY = 'aow-festival', TRIUMPH_GOLD = 50, TRIUMPH_XP = 25;
+  function loadTriumph() {
+    try { const t = JSON.parse(localStorage.getItem(TRIUMPH_KEY) || 'null');
+      if (t && typeof t === 'object') return { days: Math.max(0, Math.floor(t.days || 0)) };
+    } catch {}
+    return { days: 0 };
+  }
+  function saveTriumph(t) { try { localStorage.setItem(TRIUMPH_KEY, JSON.stringify(t)); } catch {} }
   function loadHall() {
     try { const h = JSON.parse(localStorage.getItem(HALL_KEY) || 'null');
       if (h && typeof h === 'object') return { built: !!h.built, runs: Math.max(0, Math.floor(h.runs || 0)) };
