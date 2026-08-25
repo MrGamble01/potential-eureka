@@ -585,6 +585,22 @@ function loadHvStory(){
 function saveHvStory(s){ try{ localStorage.setItem(HVSTORY_KEY, JSON.stringify(s)); }catch(e){} }
 function hvStoryByHeart(){ return loadHvBench().sits>=3; }
 function hvStoryDish(){ return HVSTORY_BASE + HVSTORY_PER*Math.min(loadHvBench().sits||0,5); }
+// HV-48: the song round under the bridge \u2014 after three
+// tellings of the Fire Story, the busker sets it to a tune: the
+// whole bridge story, three chords, everybody hums along. Once a
+// session a playing pays: 7 food base + 1 per telling (cap 5).
+// Playings tallied in 'hv-song'.
+var HVSONG_KEY='hv-song', HVSONG_BASE=7, HVSONG_PER=1;
+var balladPlayed=false;
+function loadHvSong(){
+  try{ var s=JSON.parse(localStorage.getItem(HVSONG_KEY)||'null');
+    if(s&&typeof s==='object') return {plays:Math.max(0,Math.floor(s.plays||0))};
+  }catch(e){}
+  return {plays:0};
+}
+function saveHvSong(s){ try{ localStorage.setItem(HVSONG_KEY, JSON.stringify(s)); }catch(e){} }
+function balladSet(){ return loadHvStory().tellings>=3; }
+function balladDish(){ return HVSONG_BASE + HVSONG_PER*Math.min(loadHvStory().tellings||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -661,6 +677,7 @@ var ACTIONS = [
   {id:'guestbook', icon:'📓', label:'Leaf the Notebook', time:2000, cooldown:30000, tooltip:'Three candles and a spiral notebook sits by the fridge — everyone who ever slept here signs it on the way through. Leaf through it once a session, and one of the names always left something behind.'},
   {id:'bench',     icon:'🪑', label:'Sit on the Bench', time:2000, cooldown:30000, tooltip:'Three leafs through the notebook and folks build a bench by the fridge — scrap wood and good intentions, a seat with every name at its back. Sit once a session, and somebody always sits down with something warm.'},
   {id:'story',     icon:'🔥', label:'Tell the Fire Story', time:2000, cooldown:30000, tooltip:'Three sits on the bench and somebody has the whole bridge story by heart — the wall, the notebook, the reunions, every name in the spiral. Tell it around the fire once a session, and somebody always shows up with dinner before it\u2019s done.'},
+  {id:'ballad',    icon:'🎸', label:'Play the Bridge Ballad', time:2000, cooldown:30000, tooltip:'Three tellings of the fire story and the busker sets it to a tune — the whole bridge story, three chords, everybody hums along. Play it once a session, and the hat by the fire always fills before the last verse.'},
 ];
 
 var WORKER_DEFS = [
@@ -717,6 +734,7 @@ var GOALS = [
   {id:'guest2',     desc:'Leaf through the spiral notebook on 2 sessions', target:2, reward:5, value:function(){ return loadHvGb().leafs; }},
   {id:'bench2',     desc:'Sit on the bench by the fridge on 2 sessions', target:2, reward:5, value:function(){ return loadHvBench().sits; }},
   {id:'story2',     desc:'Tell the fire story on 2 sessions', target:2, reward:5, value:function(){ return loadHvStory().tellings; }},
+  {id:'ballad2',    desc:'Play the bridge ballad on 2 sessions', target:2, reward:5, value:function(){ return loadHvSong().plays; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},

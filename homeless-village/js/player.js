@@ -292,6 +292,20 @@ function finishAction(a){
       floatText('+'+fd+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='ballad'){
+    // HV-48: the story set to a tune, played once a session.
+    if(!balladSet()){ log('\ud83c\udfb8 No ballad yet \u2014 three tellings of the fire story and the busker finds the tune.'); }
+    else if(balladPlayed){ log('\ud83c\udfb8 The ballad got its playing tonight \u2014 the tune keeps.'); }
+    else {
+      balladPlayed=true;
+      var bd2=balladDish();
+      var bs2=loadHvSong();
+      saveHvSong({plays:(bs2.plays||0)+1});
+      G.food=(G.food||0)+bd2;
+      log('\ud83c\udfb8 THE BRIDGE BALLAD \u2014 the whole story set to three chords, and everybody hums along. The hat by the fire fills before the last verse: +'+bd2+'\ud83c\udf5e');
+      floatText('+'+bd2+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
