@@ -250,6 +250,20 @@ function finishAction(a){
       floatText('+'+ad+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='guestbook'){
+    // HV-45: the names by the fridge, leafed once a session.
+    if(!notebookOut()){ log('\ud83d\udcd3 No notebook by the fridge yet \u2014 three candles and somebody leaves one out.'); }
+    else if(notebookLeafed){ log('\ud83d\udcd3 The notebook got its leaf-through today \u2014 the names keep.'); }
+    else {
+      notebookLeafed=true;
+      var gd=notebookDish();
+      var gb=loadHvGb();
+      saveHvGb({leafs:(gb.leafs||0)+1});
+      G.food=(G.food||0)+gd;
+      log('\ud83d\udcd3 A leaf through the spiral notebook \u2014 everyone who ever slept here, signed on the way through. One of the names left something behind: +'+gd+'\ud83c\udf5e');
+      floatText('+'+gd+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
