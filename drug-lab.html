@@ -1958,6 +1958,36 @@ function loadHwm() {
   return { sale: 0, beats: 0 };
 }
 function saveHwm(h) { try { localStorage.setItem(HWM_KEY, JSON.stringify(h)); } catch(e){} }
+// LAB-35: the letters round on the corner — someone upstate writes
+// every fresh start that has a history to cite. The kite quotes the
+// Youth Center's survived runs and the High-Water Mark's best hand
+// by their real numbers, and word from upstate calms the block.
+const KITE_KEY = 'growop-letter', KITE_COOL = 3;
+function loadKite() {
+  try { const k = JSON.parse(localStorage.getItem(KITE_KEY) || 'null');
+    if (k && typeof k === 'object') return { read: Math.max(0, Math.floor(k.read || 0)) };
+  } catch(e){}
+  return { read: 0 };
+}
+function saveKite(k) { try { localStorage.setItem(KITE_KEY, JSON.stringify(k)); } catch(e){} }
+function composeKite() {
+  const cc = loadCenter(), hw = loadHwm();
+  let s = '\u2709\uFE0F A kite from upstate: "';
+  if (cc.built) s += 'Heard the center\u2019s seen ' + (cc.runs || 0) + ' fresh start' + ((cc.runs || 0) === 1 ? '' : 's') + '. ';
+  if (hw.sale > 0) s += 'Best hand I ever saw on that corner was $' + fmtCash(Math.floor(hw.sale)) + '. ';
+  s += 'Keep your head down, kid."';
+  return s;
+}
+function deliverKite() {
+  if (!(loadCenter().built || loadHwm().sale > 0)) return;
+  const k = loadKite();
+  saveKite({ read: (k.read || 0) + 1 });
+  addHeat(-KITE_COOL);
+  const s = composeKite();
+  addFeed(s);
+  setTimeout(() => showToast(s + ' (heat \u2212' + KITE_COOL + ')', 'good'), 2600);
+  checkGrowAchievements();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2805,6 +2835,7 @@ const GROW_ACH = [
   { id: 'sold_forward', name: 'Sold Forward', test: () => (state.preSales || 0) >= 4 },   // LAB-32
   { id: 'cornerstone', name: 'Cornerstone', test: () => loadCenter().built && (loadCenter().runs || 0) >= 2 },   // LAB-33
   { id: 'high_water', name: 'High-Water Mark', test: () => (loadHwm().beats || 0) >= 3 },   // LAB-34
+  { id: 'pen_pals', name: 'Pen Pals', test: () => (loadKite().read || 0) >= 3 },   // LAB-35
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -3453,6 +3484,7 @@ if (!hadSave) {
       addFeed('🏀 The Youth Center still stands — the block already knows you');
       setTimeout(() => showToast('🏀 The Youth Center made this corner home — one regular is already yours.', 'good'), 1800);
     }
+    deliverKite();   // LAB-35: and the mail finds the new corner
     dm.classList.remove('open');
     saveGame();
     refreshHud();
