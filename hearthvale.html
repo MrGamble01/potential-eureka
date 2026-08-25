@@ -328,6 +328,7 @@
     <button id="m-firstreeve">Greet the First Reeve</button>
     <button id="m-reunion">Throw the Founders’ Reunion</button>
     <button id="m-portrait">View the Green Portrait</button>
+    <button id="m-anniv">Keep Founding Day</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1689,6 +1690,7 @@
     { id: 'reeve_seal', emoji: '\u{1F4EF}', name: 'The Reeve\u2019s Seal', desc: 'Warm the hearthstone beside the seal on three sessions.', done: () => loadSeal().pays >= 3 },
     { id: 'founders_reunion', emoji: '\u{1F37B}', name: 'The Founders\u2019 Reunion', desc: 'Throw the whole story a reunion on three sessions.', done: () => loadFReunion().held >= 3 },
     { id: 'green_portrait', emoji: '\u{1F5BC}\u{FE0F}', name: 'The Green Portrait', desc: 'View the portrait on three sessions.', done: () => loadVPortrait().looks >= 3 },
+    { id: 'founding_day', emoji: '\u{1F38A}', name: 'Founding Day', desc: 'Keep the founding day on three sessions.', done: () => loadFDay().toasts >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2923,6 +2925,34 @@
     state.res.gold += p;
     chron('\u{1F5BC}\u{FE0F}', 'A viewing of the Green Portrait \u2014 every founding family on one canvas. A patron leaves a purse under the frame: +' + p + ' gold');
     toast('\u{1F5BC}\u{FE0F} The Green Portrait \u2014 +' + p + ' gold. The canvas pays.');
+    checkAchievements();
+  }
+  // ---- Founding Day (HVALE-41) --------------------------------
+  // The anniversary round in the valley: after three viewings of
+  // the Green Portrait, the town counts back and finds its founding
+  // day. Once a session the town keeps it: 20 gold base + 5 per
+  // viewing (cap 5). Keepings tallied in 'hvale-anniversary'.
+  const FDAY_KEY = 'hvale-anniversary', FDAY_BASE = 20, FDAY_PER = 5;
+  let foundingKept = false;
+  function loadFDay() {
+    try { const f = JSON.parse(localStorage.getItem(FDAY_KEY) || 'null');
+      if (f && typeof f === 'object') return { toasts: Math.max(0, Math.floor(f.toasts || 0)) };
+    } catch (e) { }
+    return { toasts: 0 };
+  }
+  function saveFDay(f) { try { localStorage.setItem(FDAY_KEY, JSON.stringify(f)); } catch (e) { } }
+  function foundingCounts() { return loadVPortrait().looks >= 3; }
+  function fdayPurse() { return FDAY_BASE + FDAY_PER * Math.min(loadVPortrait().looks || 0, 5); }
+  function keepFoundingDay() {
+    if (!foundingCounts()) { toast('\u{1F38A} Nobody has counted back yet \u2014 three viewings of the portrait and the founding day adds up.'); return; }
+    if (foundingKept) { toast('\u{1F38A} Founding Day has been kept today \u2014 the year keeps itself now.'); return; }
+    foundingKept = true;
+    const p = fdayPurse();
+    const f = loadFDay();
+    saveFDay({ toasts: f.toasts + 1 });
+    state.res.gold += p;
+    chron('\u{1F38A}', 'Founding Day kept on the green \u2014 the portrait told the town its own age. The families pass the hat: +' + p + ' gold');
+    toast('\u{1F38A} Founding Day \u2014 +' + p + ' gold. The valley keeps its own day now.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5367,6 +5397,7 @@
     { const mr = document.getElementById('m-firstreeve'); if (mr) mr.onclick = () => { menu.classList.remove('show'); greetFirstReeve(); }; }
     { const mu = document.getElementById('m-reunion'); if (mu) mu.onclick = () => { menu.classList.remove('show'); throwFoundersReunion(); }; }
     { const mp = document.getElementById('m-portrait'); if (mp) mp.onclick = () => { menu.classList.remove('show'); viewGreenPortrait(); }; }
+    { const ma = document.getElementById('m-anniv'); if (ma) ma.onclick = () => { menu.classList.remove('show'); keepFoundingDay(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
