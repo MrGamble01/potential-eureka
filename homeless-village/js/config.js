@@ -307,6 +307,11 @@ var AWNING_DRY = 2;
 // spends one for +1 food. Frost is still the compost's fight.
 var BARREL_CAP = 3;
 
+// HV-28: the rain bet. Dee lays 5 goodwill against your 2 that
+// tomorrow stays dry — you always hold the rain side. Fair-ish odds
+// blind; the crafted radio (or the Lookout) turns it into a read.
+var RAINBET_STAKE = 2, RAINBET_PAY = 5;
+
 // HV-24: the tool box. Good tools change two small things that add
 // up: the workbench never falls apart again (the daily wobble gets
 // tightened instead), and the daily odd job pays a little extra.
@@ -345,6 +350,7 @@ var ACTIONS = [
   {id:'panhandle', icon:'🪙', label:'Panhandle',          time:6000, cooldown:15000, tooltip:'Ask strangers for change.'},
   {id:'rest',      icon:'💤', label:'Rest',               time:3000, cooldown:20000, tooltip:'Recover health and morale slightly.'},
   {id:'trade',     icon:'🤝', label:'Trade Goods',        time:2000, cooldown:18000, tooltip:'Trade cans for food (3 cans → 2 food).'},
+  {id:'rainbet',   icon:'🎲', label:'Rain Bet',           time:2000, cooldown:30000, tooltip:'Dee’s 5 goodwill against your 2 that tomorrow stays dry. You take the rain side — one bet a day. A radio is the whole edge.'},
 ];
 
 var WORKER_DEFS = [
@@ -385,6 +391,7 @@ var GOALS = [
   {id:'compost8',   desc:'Feed the beds through 8 garden days', target:8, reward:5, value:function(){ return G.compostDays||0; }},
   {id:'awning5',    desc:'Earn 5 rainy-day coins under the awning', target:5, reward:5, value:function(){ return G.awningSaves||0; }},
   {id:'barrel6',    desc:'Water the beds from the barrel 6 times', target:6, reward:5, value:function(){ return G.barrelDays||0; }},
+  {id:'rainbet3',   desc:'Win 3 rain bets against Dee', target:3, reward:6, value:function(){ return G.rainBetsWon||0; }},
 ];
 
 var activeJobs = {};
