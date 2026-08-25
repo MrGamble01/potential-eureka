@@ -814,6 +814,18 @@ const LANTERN_KEY='vox-lantern',LANTERN_COST=150;
 // of 40 coins beside its grown plots. The light earned it.
 const LANTERN_WICK_AT=3,WICK_COINS=40;
 function lanternHasWick(){const l=loadLantern();return l.lit&&(l.isles||0)>=LANTERN_WICK_AT;}
+// VOX-32: the Lantern Festival — the festival round. When the
+// second wick burns, every new isle rises to a festival: paper
+// lanterns strung over the water to welcome it. +30 xp once the
+// shore is set. Festivals tallied across isles.
+const VFEST_KEY='vox-festival',VFEST_XP=30;
+function loadVfest(){
+  try{const f=JSON.parse(localStorage.getItem(VFEST_KEY)||'null');
+    if(f&&typeof f==='object')return{days:Math.max(0,Math.floor(f.days||0))};
+  }catch(e){}
+  return{days:0};
+}
+function saveVfest(f){try{localStorage.setItem(VFEST_KEY,JSON.stringify(f));}catch(e){}}
 function loadLantern(){
   try{const l=JSON.parse(localStorage.getItem(LANTERN_KEY)||'null');
     if(l&&typeof l==='object')return{lit:!!l.lit,isles:Math.max(0,Math.floor(l.isles||0))};
@@ -4699,6 +4711,7 @@ const ACH=[
   ['tablet3','Written in Tide','Consult the tide tablet three times',()=>loadVtab().opens>=3],
   ['conch3','Heard Across the Water','Sound the keeper\u2019s conch on three sessions',()=>loadConch().uses>=3],
   ['wick2','The Second Wick','See the lantern greet three isles and earn its second wick',()=>lanternHasWick()],
+  ['lanternfest3','Lantern Festival','See three new isles rise to the festival',()=>loadVfest().days>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4928,6 +4941,11 @@ function boot(){
         // VOX-31: the second wick sends every new isle off funded.
         state.coins=(state.coins||0)+WICK_COINS;
         setTimeout(()=>toast('🏮 The lantern burns on its second wick \u2014 a kindling purse of '+WICK_COINS+' 🪙 waits by the plots.'),2600);
+        // VOX-32: and the shore strings a festival for the new isle.
+        const vf=loadVfest();
+        saveVfest({days:vf.days+1});
+        setTimeout(()=>{grantXP(VFEST_XP);toast('\u{1F3EE} LANTERN FESTIVAL \u2014 paper lanterns over the water to welcome the new isle. +'+VFEST_XP+' xp');},1000);
+        if(typeof checkAch==='function')setTimeout(checkAch,1200);
       }
       setTimeout(()=>toast('🏮 The Stone Lantern kept the first seeds warm \u2014 the new isle rises already grown.'),2000);
       save();
