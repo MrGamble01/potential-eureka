@@ -325,6 +325,7 @@
     <button id="m-chronicle">Town Chronicle</button>
     <button id="m-recital">The Elder’s Recital</button>
     <button id="m-hearthstone">Warm the Hearthstone</button>
+    <button id="m-firstreeve">Greet the First Reeve</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1682,6 +1683,7 @@
     { id: 'treehouse', emoji: '\u{1F6D6}', name: 'The Treehouse', desc: 'See the oak shade six towns and carry a treehouse.', done: () => oakHasHouse() },
     { id: 'green_fair', emoji: '\u{1F3AA}', name: 'The Green Fair', desc: 'Open three foundings with the fair under the oak.', done: () => loadFair().days >= 3 },
     { id: 'gilded_page', emoji: '\u2728', name: 'The Gilded Page', desc: 'Turn three pages under the gilded ledger.', done: () => loadGilt().cheers >= 3 },
+    { id: 'first_reeve', emoji: '\u{1F9D3}', name: 'The First Reeve', desc: 'Greet the First Reeve on three sessions.', done: () => loadReeve().visits >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2802,6 +2804,34 @@
     state.happy = Math.min(100, state.happy + p);
     chron('\u{1FAA8}', 'The first town\u2019s hearthstone glows at the fire \u2014 +' + p + ' happiness, carried by everything the valley keeps');
     toast('\u{1FAA8} The Hearthstone warms the green \u2014 +' + p + ' happiness. The memory has weight.');
+    checkAchievements();
+  }
+  // ---- the First Reeve Returns (HVALE-37) ---------------------
+  // The visitor round in the valley: once a session, the first
+  // reeve ever to keep the ledger walks the green of any valley
+  // with a story \u2014 and leaves a purse from the old counting days:
+  // 10 gold base, +5 per page turned under the gilt (cap 3).
+  const REEVE_KEY = 'hvale-visitor', REEVE_BASE = 10;
+  let reeveCame = false;
+  function loadReeve() {
+    try { const r = JSON.parse(localStorage.getItem(REEVE_KEY) || 'null');
+      if (r && typeof r === 'object') return { visits: Math.max(0, Math.floor(r.visits || 0)) };
+    } catch (e) { }
+    return { visits: 0 };
+  }
+  function saveReeve(r) { try { localStorage.setItem(REEVE_KEY, JSON.stringify(r)); } catch (e) { } }
+  function reeveHasStory() { return loadLedger().gold > 0 || loadOakLetter().read > 0; }
+  function reevePurse() { return REEVE_BASE + 5 * Math.min(loadGilt().cheers || 0, 3); }
+  function greetFirstReeve() {
+    if (!reeveHasStory()) { toast('\u{1F9D3} A stranger pauses at the green, finds nothing he remembers, and walks on. This valley has no story yet.'); return; }
+    if (reeveCame) { toast('\u{1F9D3} The First Reeve has already been by \u2014 he walks the green once a day.'); return; }
+    reeveCame = true;
+    const p = reevePurse();
+    const r = loadReeve();
+    saveReeve({ visits: r.visits + 1 });
+    state.res.gold += p;
+    chron('\u{1F9D3}', 'THE FIRST REEVE RETURNS \u2014 he reads the gilded ledger a long while, then leaves a purse from the old counting days: +' + p + ' gold');
+    toast('\u{1F9D3} The First Reeve walked the green \u2014 +' + p + ' gold. Old friends remember.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5243,6 +5273,7 @@
     document.getElementById('m-decrees').onclick = () => { menu.classList.remove('show'); openDecrees(); };
     { const mr = document.getElementById('m-recital'); if (mr) mr.onclick = () => { menu.classList.remove('show'); openRecital(); }; }
     { const mh = document.getElementById('m-hearthstone'); if (mh) mh.onclick = () => { menu.classList.remove('show'); warmHearthstone(); }; }
+    { const mr = document.getElementById('m-firstreeve'); if (mr) mr.onclick = () => { menu.classList.remove('show'); greetFirstReeve(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
