@@ -138,6 +138,16 @@ function finishAction(a){
       log('\uD83D\uDE99 The loose goods spend their nights in Marisol\u2019s garage \u2014 the next sweep takes nothing.');
       bumpRegular('marisol');
     }
+  } else if(a.id==='borrow'){
+    // HV-30: Ray's front. One standing loan at a time — the ledger
+    // remembers even when the mornings are broke.
+    if((G.rayDebt||0)>0){ log('\uD83E\uDD1D Ray taps his ledger \u2014 '+G.rayDebt+' still owed. One at a time.'); }
+    else {
+      G.goodwill=(G.goodwill||0)+BORROW_AMT; G.rayDebt=BORROW_OWED;
+      floatText('+'+BORROW_AMT+'\ud83e\ude76');
+      log('\uD83E\uDD1D Ray counts '+BORROW_AMT+' goodwill into your hand \u2014 the ledger reads '+BORROW_OWED+', one a morning.');
+      bumpRegular('ray');
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];

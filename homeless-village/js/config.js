@@ -318,6 +318,12 @@ var RAINBET_STAKE = 2, RAINBET_PAY = 5;
 // losses forever; the garage zeroes one. Tents still fall.
 var GARAGE_COST = 2;
 
+// HV-30: the borrowed favor. Old Ray fronts 4 goodwill on the spot;
+// his ledger takes one back every dawn until 5 is repaid — the extra
+// one is for the trouble. He never presses on a broke morning; he
+// just remembers. No new loan while one stands.
+var BORROW_AMT = 4, BORROW_OWED = 5;
+
 // HV-24: the tool box. Good tools change two small things that add
 // up: the workbench never falls apart again (the daily wobble gets
 // tightened instead), and the daily odd job pays a little extra.
@@ -358,6 +364,7 @@ var ACTIONS = [
   {id:'trade',     icon:'🤝', label:'Trade Goods',        time:2000, cooldown:18000, tooltip:'Trade cans for food (3 cans → 2 food).'},
   {id:'rainbet',   icon:'🎲', label:'Rain Bet',           time:2000, cooldown:30000, tooltip:'Dee’s 5 goodwill against your 2 that tomorrow stays dry. You take the rain side — one bet a day. A radio is the whole edge.'},
   {id:'garage',    icon:'🚙', label:'Garage Favor',       time:2000, cooldown:30000, tooltip:'2 goodwill stows the camp’s loose goods in Marisol’s garage till the next sweep — when it comes, the confiscation finds nothing. Tents still fall.'},
+  {id:'borrow',    icon:'🤲', label:'Borrow from Ray',    time:2000, cooldown:30000, tooltip:'Old Ray fronts 4 goodwill on the spot; his ledger takes one back every dawn until 5 is repaid. He never presses — he remembers.'},
 ];
 
 var WORKER_DEFS = [
@@ -400,6 +407,7 @@ var GOALS = [
   {id:'barrel6',    desc:'Water the beds from the barrel 6 times', target:6, reward:5, value:function(){ return G.barrelDays||0; }},
   {id:'rainbet3',   desc:'Win 3 rain bets against Dee', target:3, reward:6, value:function(){ return G.rainBetsWon||0; }},
   {id:'garage2',    desc:'Ride out 2 sweeps covered by Marisol\u2019s garage', target:2, reward:6, value:function(){ return G.garageSaves||0; }},
+  {id:'borrow2',    desc:'Repay 2 of Ray\u2019s loans in full', target:2, reward:6, value:function(){ return G.rayLoans||0; }},
 ];
 
 var activeJobs = {};

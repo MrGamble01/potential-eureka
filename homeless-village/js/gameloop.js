@@ -172,6 +172,13 @@ function onNewDay(){
       log('\ud83c\udfb2 Dry morning — Dee pockets the stake.');
     }
   }
+  // HV-30: Ray's ledger — one goodwill a morning until the debt
+  // clears. He never presses a broke morning; he just remembers.
+  if((G.rayDebt||0)>0 && (G.goodwill||0)>0){
+    G.goodwill--; G.rayDebt--;
+    if(G.rayDebt<=0){ G.rayLoans=(G.rayLoans||0)+1; log('\uD83E\uDD1D Ray\u2019s ledger clears \u2014 paid in full, the extra for the trouble.'); }
+    else log('\uD83E\uDD1D One goodwill to Ray\u2019s ledger \u2014 '+G.rayDebt+' to go.');
+  }
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
