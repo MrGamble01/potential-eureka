@@ -1671,6 +1671,7 @@
     { id: 'road_gambler', emoji: '🎲', name: 'Road Gambler', desc: 'Win four of the teamster\u2019s stakes.', done: () => (state.stakesWon || 0) >= 4 },
     { id: 'made_whole', emoji: '🛡️', name: 'Made Whole', desc: 'Collect three guild sureties.', done: () => (state.suretyClaims || 0) >= 3 },
     { id: 'good_word', emoji: '📜', name: 'Good for It', desc: 'Honour three merchant advances in full.', done: () => (state.advancesFilled || 0) >= 3 },
+    { id: 'deep_roots', emoji: '🌳', name: 'Deep Roots', desc: 'Plant the Founders\u2019 Oak and found two towns in its shade.', done: () => { const o = loadOak(); return o.planted && o.towns >= 2; } },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2665,6 +2666,32 @@
   // takes what's there, the rest at 3 gold a measure, and the town
   // feels the shame. One advance at a time.
   const ADV_GOLD = 30, ADV_FOOD = 12, ADV_DAYS = 4, ADV_PENALTY = 3;
+  // ---- The Founders' Oak (HVALE-28) ---------------------------
+  // The legacy round on the green: 40 gold plants an oak in its own
+  // localStorage key, OUTSIDE the save — starting a new town never
+  // fells it. Every town founded in its shade starts 8 happiness
+  // glad, and the deed counts the towns: the valley remembers who
+  // planted it.
+  const OAK_KEY = 'hvale-oak', OAK_COST = 40, OAK_CHEER = 8;
+  function loadOak() {
+    try { const o = JSON.parse(localStorage.getItem(OAK_KEY) || 'null');
+      if (o && typeof o === 'object') return { planted: !!o.planted, towns: Math.max(0, Math.floor(o.towns || 0)) };
+    } catch (e) { }
+    return { planted: false, towns: 0 };
+  }
+  function saveOak(o) { try { localStorage.setItem(OAK_KEY, JSON.stringify(o)); } catch (e) { } }
+  function plantOak() {
+    const oak = loadOak();
+    if (oak.planted) { toast('🌳 The Founders\u2019 Oak already shades the green \u2014 it will outlive us all.'); return; }
+    if (state.res.gold < OAK_COST) { toast('🌳 The sapling and the ceremony run ' + OAK_COST + ' gold \u2014 not yet.'); return; }
+    state.res.gold -= OAK_COST;
+    saveOak({ planted: true, towns: 0 });
+    toast('🌳 The Founders\u2019 Oak is planted on the green \u2014 no town this valley holds will ever start a stranger.');
+    chron('🌳', 'The Founders\u2019 Oak went into the green \u2014 planted for every town this valley will ever hold');
+    SFX('coin');
+    checkAchievements();
+    updateHUD(); save();
+  }
   function caravanOut() { return !!state.caravan; }
   function sendCaravan() {
     if (caravanOut()) { toast('🐴 The caravan is already on the road.'); return; }
@@ -4587,6 +4614,10 @@
       const albl = state.merchantAdvance ? '📜 Advance standing — due day ' + state.merchantAdvance.due
         : '📜 Merchant\u2019s Advance <span style="opacity:.7;font-size:11px">+' + ADV_GOLD + '🪙 now → ' + ADV_FOOD + '🍞 in ' + ADV_DAYS + ' days</span>';
       btns += '<button id="p-advance"' + (state.merchantAdvance ? ' disabled' : '') + '>' + albl + '</button>';
+      const oaked = loadOak().planted;
+      const olbl = oaked ? '🌳 The Founders\u2019 Oak shades the green'
+        : '🌳 Plant the Founders\u2019 Oak <span style="opacity:.7;font-size:11px">' + OAK_COST + '🪙 · once, forever</span>';
+      btns += '<button id="p-oak"' + (oaked ? ' disabled' : '') + '>' + olbl + '</button>';
     }
     if (b.type === 'well' && b.done !== false) {
       const wlbl = wishedToday() ? '💧 The well has heard today’s wish'
@@ -4603,6 +4634,8 @@
     if (cvBtn) cvBtn.onclick = () => { sendCaravan(); if (selected === b) showPanel(b); };
     const adBtn = document.getElementById('p-advance');
     if (adBtn) adBtn.onclick = () => { takeAdvance(); if (selected === b) showPanel(b); };
+    const oakBtn = document.getElementById('p-oak');
+    if (oakBtn) oakBtn.onclick = () => { plantOak(); if (selected === b) showPanel(b); };
     const wBtn = document.getElementById('p-wish');
     if (wBtn) wBtn.onclick = () => { makeWish(); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
@@ -4969,6 +5002,13 @@
     const start = generateWorld(state.seed);
     _prodAbs = state.day * HOURS_PER_DAY + state.time;
     chron('🏡', (state.townName || 'Hearthvale') + ' is founded in the valley');
+    // HVALE-28: the oak on the green outlives every town founded after it
+    const oakLegacy = loadOak();
+    if (oakLegacy.planted) {
+      oakLegacy.towns = (oakLegacy.towns || 0) + 1; saveOak(oakLegacy);
+      state.happy = Math.min(100, state.happy + OAK_CHEER);
+      chron('🌳', 'The Founders\u2019 Oak already shades the green \u2014 the new town starts ' + OAK_CHEER + ' happiness glad');
+    }
     // center camera on the starter clearing
     cam = { x: start.startX * TILE - 200, y: start.startY * TILE - 150, z: 3 };
   }
