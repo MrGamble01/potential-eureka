@@ -539,6 +539,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #og-toggle{bottom:414px;right:8px;font-size:11px;padding:5px 9px;} }
+/* ── The Block Reunion (LAB-44) ── */
+#reunion-toggle{
+  position:fixed;bottom:14px;right:2624px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(230,180,90,0.45);
+  color:#f0c060;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #reunion-toggle{bottom:452px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -631,6 +639,7 @@ canvas{display:block;touch-action:none;}
 <button id="ledger-toggle" style="display:none" title="The Corner Ledger: everything the block remembers across every bust, bound in one book. Click to read it into the feed.">📔 LEDGER</button>
 <button id="zippo-toggle" style="display:none" title="The Zippo from the Block: the OG’s lighter, passed down. Flick it once a session and the corner settles — the deeper the block’s memory, the more heat it burns off.">🔥 ZIPPO</button>
 <button id="og-toggle" style="display:none" title="The OG from the Block: once a session the man himself drops by — he vouches for you on the corner, and the block settles.">🧢 THE OG</button>
+<button id="reunion-toggle" style="display:none" title="The Block Reunion: when the whole story stands — the gold record’s marks and the OG’s visits — the corner throws it once a session, and everyone who ever copped comes back through.">🎪 REUNION</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2196,6 +2205,49 @@ function loadGKeep() {
 }
 function saveGKeep(k) { try { localStorage.setItem(GKEEP_KEY, JSON.stringify(k)); } catch(e){} }
 function zippoHasTin() { return loadOg().visits >= 3; }
+// LAB-44: the reunion round on the corner \u2014 when the whole story
+// stands (three gold-record marks AND three of the OG's visits),
+// the corner throws the block reunion once a session. Everyone who
+// ever copped comes back through: $100 base + $50 per mark + $50
+// per visit (caps 3). Held tallied in 'growop-reunion'.
+const BRE_KEY = 'growop-reunion', BRE_BASE = 100, BRE_PER = 50;
+let blockReunionHeld = false;
+function loadBReunion() {
+  try { const r = JSON.parse(localStorage.getItem(BRE_KEY) || 'null');
+    if (r && typeof r === 'object') return { held: Math.max(0, Math.floor(r.held || 0)) };
+  } catch(e){}
+  return { held: 0 };
+}
+function saveBReunion(r) { try { localStorage.setItem(BRE_KEY, JSON.stringify(r)); } catch(e){} }
+function breunionStands() { return (loadGPlaque().cheers || 0) >= 3 && loadOg().visits >= 3; }
+function breunionPurse() {
+  return BRE_BASE + BRE_PER * Math.min(loadGPlaque().cheers || 0, 3)
+    + BRE_PER * Math.min(loadOg().visits || 0, 3);
+}
+function refreshReunionBtn() {
+  const b = document.getElementById('reunion-toggle');
+  if (!b) return;
+  b.onclick = holdBlockReunion;
+  if (!breunionStands()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = blockReunionHeld ? '0.45' : '';
+  b.title = blockReunionHeld
+    ? 'The Block Reunion already went off this session. Once a day \u2014 the block has business.'
+    : 'The Block Reunion \u2014 the whole story stands: the gold record\u2019s marks and the OG\u2019s visits. Throw it and everyone who ever copped comes back through: +$' + breunionPurse()
+      + '. Held ' + loadBReunion().held + ' time' + (loadBReunion().held === 1 ? '' : 's') + '.';
+}
+function holdBlockReunion() {
+  if (!breunionStands() || blockReunionHeld) return;
+  blockReunionHeld = true;
+  const p = breunionPurse();
+  const r = loadBReunion();
+  saveBReunion({ held: r.held + 1 });
+  state.cash += p;
+  addFeed('🎪 THE BLOCK REUNION \u2014 grills out, gold record down off the wall, the OG holding court. Everyone who ever copped comes back through: +$' + p);
+  showToast('🎪 The Block Reunion \u2014 +$' + p + '. The whole story showed up.', 'good');
+  checkGrowAchievements();
+  refreshReunionBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2615,6 +2667,7 @@ function refreshRouteBtn() {
   refreshCLedgerBtn(); // LAB-36: and the book that binds it all
   refreshZippoBtn(); // LAB-37: and the flame that draws on it
   refreshOgBtn(); // LAB-42: and the man the flame came from
+  refreshReunionBtn(); // LAB-44: and the day the whole story shows up
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3064,6 +3117,7 @@ const GROW_ACH = [
   { id: 'old_flame', name: 'Old Flame', test: () => (loadZippo().uses || 0) >= 3 },   // LAB-37
   { id: 'og_visit', name: 'The OG Came Through', test: () => (loadOg().visits || 0) >= 3 },   // LAB-42
   { id: 'tin_fluid', name: 'The Tin of Fluid', test: () => (loadGKeep().pays || 0) >= 3 },   // LAB-43
+  { id: 'block_reunion', name: 'The Block Reunion', test: () => (loadBReunion().held || 0) >= 3 },   // LAB-44
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
