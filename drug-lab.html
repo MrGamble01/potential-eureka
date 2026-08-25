@@ -563,6 +563,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #anniv-toggle{bottom:528px;right:8px;font-size:11px;padding:5px 9px;} }
+/* ── The Wall of Names (LAB-47) ── */
+#wall-toggle{
+  position:fixed;bottom:14px;right:3008px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(180,230,180,0.45);
+  color:#b4e6b4;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #wall-toggle{bottom:566px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -658,6 +666,7 @@ canvas{display:block;touch-action:none;}
 <button id="reunion-toggle" style="display:none" title="The Block Reunion: when the whole story stands — the gold record’s marks and the OG’s visits — the corner throws it once a session, and everyone who ever copped comes back through.">🎪 REUNION</button>
 <button id="polaroid-toggle" style="display:none" title="The Cookout Polaroid: a shot from the block reunion, taped up behind the counter next to the gold record. Look at it once a session — the memory still moves product.">📸 POLAROID</button>
 <button id="anniv-toggle" style="display:none" title="The Corner Anniversary: three looks at the polaroid and somebody does the math — the shop's been open a whole year. Toast it once a session and the block buys a round.">🎂 ANNIVERSARY</button>
+<button id="wall-toggle" style="display:none" title="The Wall of Names: three anniversaries and everyone who ever copped starts signing the shop wall. Read it once a session — one of the names always calls in an order.">🖊️ THE WALL</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2346,6 +2355,46 @@ function toastCornerAnniv() {
   checkGrowAchievements();
   refreshAnnivBtn();
 }
+// LAB-47: the guest-book round on the corner \u2014 after three
+// Corner Anniversary toasts, everyone who ever copped starts
+// signing the shop wall. Once a session the crew reads it: $70
+// base + $35 per toast (cap 5). Reads tallied in
+// 'growop-guestbook'.
+const WALL_KEY = 'growop-guestbook', WALL_BASE = 70, WALL_PER = 35;
+let wallRead = false;
+function loadWall() {
+  try { const w = JSON.parse(localStorage.getItem(WALL_KEY) || 'null');
+    if (w && typeof w === 'object') return { leafs: Math.max(0, Math.floor(w.leafs || 0)) };
+  } catch(e){}
+  return { leafs: 0 };
+}
+function saveWall(w) { try { localStorage.setItem(WALL_KEY, JSON.stringify(w)); } catch(e){} }
+function wallUp() { return loadCAnniv().toasts >= 3; }
+function wallPurse() { return WALL_BASE + WALL_PER * Math.min(loadCAnniv().toasts || 0, 5); }
+function refreshWallBtn() {
+  const b = document.getElementById('wall-toggle');
+  if (!b) return;
+  b.onclick = readWallOfNames;
+  if (!wallUp()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = wallRead ? '0.45' : '';
+  b.title = wallRead
+    ? 'The Wall of Names got its read this session. Once a day \u2014 the ink keeps.'
+    : 'The Wall of Names \u2014 three anniversaries and everyone who ever copped signs the shop wall. Read it and one of the names calls in an order: +$' + wallPurse()
+      + '. Read ' + loadWall().leafs + ' time' + (loadWall().leafs === 1 ? '' : 's') + '.';
+}
+function readWallOfNames() {
+  if (!wallUp() || wallRead) return;
+  wallRead = true;
+  const p = wallPurse();
+  const w = loadWall();
+  saveWall({ leafs: w.leafs + 1 });
+  state.cash += p;
+  addFeed('🖊️ The crew reads the Wall of Names \u2014 every tag, every signature, everyone who ever came through. One of the names calls in an order: +$' + p);
+  showToast('🖊️ The Wall of Names \u2014 +$' + p + '. The names pay.', 'good');
+  checkGrowAchievements();
+  refreshWallBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2768,6 +2817,7 @@ function refreshRouteBtn() {
   refreshReunionBtn(); // LAB-44: and the day the whole story shows up
   refreshPolaroidBtn(); // LAB-45: and the picture that proves it happened
   refreshAnnivBtn(); // LAB-46: and the year it all added up to
+  refreshWallBtn(); // LAB-47: and every name the year collected
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3220,6 +3270,7 @@ const GROW_ACH = [
   { id: 'block_reunion', name: 'The Block Reunion', test: () => (loadBReunion().held || 0) >= 3 },   // LAB-44
   { id: 'polaroid3', name: 'The Cookout Polaroid', test: () => (loadPolaroid().looks || 0) >= 3 },   // LAB-45
   { id: 'corner_anniv', name: 'The Corner Anniversary', test: () => (loadCAnniv().toasts || 0) >= 3 },   // LAB-46
+  { id: 'wall_names', name: 'The Wall of Names', test: () => (loadWall().leafs || 0) >= 3 },   // LAB-47
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
