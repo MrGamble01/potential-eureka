@@ -96,6 +96,7 @@ if(!G.fridgeSeeded){
     log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+FRIDGE_SEED+'\ud83e\ude76');
     updateHUD();
   }
+  deliverHvNote();   // HV-33: and the door holds a note for whoever comes next
   saveGame();
 }
 // A save whose health already hit 0 (lost, then tab closed without
