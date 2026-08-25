@@ -488,6 +488,25 @@ function loadHvKeep(){
 }
 function saveHvKeep(k){ try{ localStorage.setItem(HVKEEP_KEY, JSON.stringify(k)); }catch(e){} }
 function thermosHasMugs(){ return loadMarisol().visits>=3; }
+// HV-42: the reunion round under the bridge — when the whole story
+// stands (three chalk-star holds AND three of Marisol's visits),
+// the camp throws the bridge reunion once a session. Everyone who
+// ever slept here comes back through: 2 food base + 1 per hold + 1
+// per visit (caps 3). Held tallied in 'hv-reunion'.
+var HVREU_KEY='hv-reunion', HVREU_BASE=2, HVREU_PER=1;
+var bridgeReunionHeld=false;
+function loadHvReunion(){
+  try{ var r=JSON.parse(localStorage.getItem(HVREU_KEY)||'null');
+    if(r&&typeof r==='object') return {held:Math.max(0,Math.floor(r.held||0))};
+  }catch(e){}
+  return {held:0};
+}
+function saveHvReunion(r){ try{ localStorage.setItem(HVREU_KEY, JSON.stringify(r)); }catch(e){} }
+function hvReunionStands(){ return (loadHvStar().cheers||0)>=3 && loadMarisol().visits>=3; }
+function hvReunionDish(){
+  return HVREU_BASE + HVREU_PER*Math.min(loadHvStar().cheers||0,3)
+    + HVREU_PER*Math.min(loadMarisol().visits||0,3);
+}
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -558,6 +577,7 @@ var ACTIONS = [
   {id:'wall',      icon:'🧱', label:'Read the Wall',      time:2000, cooldown:30000, tooltip:'Somebody chalked the bridge’s numbers on the underpass wall — the fridge’s camps, the longest hold, the notes found. Read them out to whoever’s around.'},
   {id:'thermos',   icon:'🫖', label:'Pass the Thermos',   time:2000, cooldown:30000, tooltip:'Somebody’s grandfather’s thermos, left at the fridge years ago and never claimed. Pass it around once a session — the deeper the bridge’s memory, the further the coffee goes.'},
   {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a session — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
+  {id:'reunion',   icon:'🎂', label:'Throw the Reunion',  time:2000, cooldown:30000, tooltip:'When the whole story stands — the chalk star’s holds and Marisol’s visits — the camp throws the bridge reunion once a session, and everyone who ever slept here comes back through with something for the pot.'},
 ];
 
 var WORKER_DEFS = [
@@ -608,6 +628,7 @@ var GOALS = [
   {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
   {id:'marisol2',   desc:'Wave Marisol down on 2 sessions', target:2, reward:5, value:function(){ return loadMarisol().visits; }},
   {id:'mugs2',      desc:'Pour from Marisol’s spare mugs on 2 sessions', target:2, reward:5, value:function(){ return loadHvKeep().pays; }},
+  {id:'reunion2',   desc:'Throw the bridge reunion on 2 sessions', target:2, reward:5, value:function(){ return loadHvReunion().held; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
