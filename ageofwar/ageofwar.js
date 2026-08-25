@@ -583,6 +583,7 @@ const AgeOfWarGame = (() => {
     { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
     { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
     { id: 'officers_mess', icon: '\u{1F37D}\u{FE0F}', title: 'Officers\u2019 Mess',   desc: 'See the hall open its officers\u2019 mess after three musters.' },
+    { id: 'war_college', icon: '\u{1F3EB}', title: 'War College',      desc: 'See the hall open its war college after six musters.' },
     { id: 'triumph',      icon: '\u{1F3BA}', title: 'Triumph',          desc: 'Open three fresh musters to the veterans\u2019 parade.' },
     { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
     { id: 'laureled',     icon: '\u{1F3F5}\u{FE0F}', title: 'Laureled',         desc: 'Write three pages beneath the laurel.' },
@@ -705,6 +706,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
     if (hallStanding && hallRuns >= 3) unlock('old_guard');
     if (hallHasMess()) unlock('officers_mess');
+    if (hallHasCollege()) unlock('war_college');
     if (loadTriumph().days >= 3) unlock('triumph');
     if (chronBeats >= 3) unlock('chronicled');
     if (loadLaurel().cheers >= 3) unlock('laureled');
@@ -1228,10 +1230,11 @@ const AgeOfWarGame = (() => {
       }
       // AOW-35: the hall drills the first recruits of every muster —
       // they march out already wearing the stripe
-      if (hallStanding && hallTrained < (hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST)) {
+      if (hallStanding && hallTrained < (hallHasCollege() ? HALL_FIRST + 2 : hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST)) {
         // AOW-40: with the officers' mess open, the first recruit
         // marches out Elite and a fourth takes the stripe.
-        const messElite = hallHasMess() && hallTrained === 0;
+        // AOW-43: the war college drills a second Elite and a fifth stripe.
+        const messElite = hallHasMess() && (hallTrained === 0 || (hallHasCollege() && hallTrained === 1));
         u.aliveT = Math.max(u.aliveT || 0, messElite ? 60 : 25);
         hallTrained++;
         runStats.hallVets = (runStats.hallVets || 0) + 1;
@@ -2167,6 +2170,12 @@ const AgeOfWarGame = (() => {
   const HALL_MESS_AT = 3;
   let hallStanding = false, hallRuns = 0, hallTrained = 0;
   function hallHasMess() { return hallStanding && hallRuns >= HALL_MESS_AT; }
+  // AOW-43: the third-story round — at six musters the hall opens a
+  // WAR COLLEGE: the first two recruits of every muster march out
+  // Elite, and a fifth takes the stripe. The hall keeps building on
+  // what it already built.
+  const HALL_COLLEGE_AT = 6;
+  function hallHasCollege() { return hallStanding && hallRuns >= HALL_COLLEGE_AT; }
   // AOW-41: the Triumph — the festival round. When the officers'
   // mess stands, every fresh muster opens with a Triumph: the
   // veterans march the colors down the field before the first enemy
@@ -8095,7 +8104,7 @@ const AgeOfWarGame = (() => {
       if (hlCdEl) hlCdEl.textContent = hallStanding ? 'stands' : playerEra < 1 ? 'Age II' : `${HALL_COST}g`;
       hlEl.disabled = playerEra < 1 || hallStanding;
       hlEl.title = hallStanding
-        ? `The Veterans\u2019 Hall stands \u2014 the first ${hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.` + (hallHasMess() ? ' The officers\u2019 mess is open \u2014 the first recruit arrives Elite.' : '')
+        ? `The Veterans\u2019 Hall stands \u2014 the first ${hallHasCollege() ? HALL_FIRST + 2 : hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.` + (hallHasCollege() ? ' The war college is open \u2014 the first two recruits arrive Elite.' : hallHasMess() ? ' The officers\u2019 mess is open \u2014 the first recruit arrives Elite.' : '')
         : `The Veterans\u2019 Hall (E) \u2014 ${HALL_COST} gold raises it once, forever: no defeat tears it down, and the first ${HALL_FIRST} recruits of every future muster march out already Veterans.`;
     }
 
