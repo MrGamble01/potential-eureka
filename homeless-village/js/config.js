@@ -332,6 +332,13 @@ var BORROW_AMT = 4, BORROW_OWED = 5;
 // fresh camp that forms beside it starts 3 goodwill known: anyone can
 // give, anyone can take. The camp's first gift that outlives the camp.
 var FRIDGE_KEY = 'hv-fridge', FRIDGE_COST = 15, FRIDGE_SEED = 3;
+// HV-36: the bulletin board — the second-story round. Once the
+// fridge has welcomed three camps, somebody bolts a bulletin board
+// to its side, and every fresh camp starts 5 goodwill known instead
+// of 3. Nobody bought it. The corner earned it.
+var FRIDGE_BOARD_AT = 3, FRIDGE_SEED2 = 5;
+function fridgeHasBoard(){ var f=loadFridge(); return f.built && (f.camps||0) >= FRIDGE_BOARD_AT; }
+function fridgeSeedNow(){ return fridgeHasBoard() ? FRIDGE_SEED2 : FRIDGE_SEED; }
 function loadFridge(){
   try{ var f=JSON.parse(localStorage.getItem(FRIDGE_KEY)||'null');
     if(f&&typeof f==='object') return {built:!!f.built, camps:Math.max(0,Math.floor(f.camps||0))};
@@ -529,6 +536,7 @@ var GOALS = [
   {id:'letters2',   desc:'Find the fridge-door note at 2 fresh camps', target:2, reward:5, value:function(){ return loadHvNote().read; }},
   {id:'wall2',      desc:'Read the writing on the wall out loud twice', target:2, reward:5, value:function(){ return loadHvWall().opens; }},
   {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
+  {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
 ];
 
 var activeJobs = {};
