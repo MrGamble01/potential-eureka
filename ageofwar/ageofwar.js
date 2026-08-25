@@ -584,6 +584,7 @@ const AgeOfWarGame = (() => {
     { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
     { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
     { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
+    { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -701,6 +702,7 @@ const AgeOfWarGame = (() => {
     if (hallStanding && hallRuns >= 3) unlock('old_guard');
     if (chronBeats >= 3) unlock('chronicled');
     if (dispatchRead >= 3) unlock('war_mail');
+    if (loadAnnals().opens >= 3) unlock('annalist');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -2038,6 +2040,42 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Regimental Annals (AOW-38) ──
+  // The almanac round on the battlefield: one slate binds everything
+  // the war remembers — the hall's musters, the Chronicle's deepest
+  // wave, the dispatches taken, the relics in the vault. The tooltip
+  // is the whole annals; a click reads them out as floaters.
+  const ANNALS_KEY = 'aow-annals';
+  function loadAnnals() {
+    try { const a = JSON.parse(localStorage.getItem(ANNALS_KEY) || 'null');
+      if (a && typeof a === 'object') return { opens: Math.max(0, Math.floor(a.opens || 0)) };
+    } catch {}
+    return { opens: 0 };
+  }
+  function saveAnnals(a) { try { localStorage.setItem(ANNALS_KEY, JSON.stringify(a)); } catch {} }
+  function warHasAnnals() {
+    return loadHall().built || loadChron().wave > 0 || loadDispatch().read > 0 || relics > 0;
+  }
+  function composeAnnals() {
+    const hh = loadHall(), cc = loadChron(), dd = loadDispatch();
+    const lines = [];
+    lines.push(hh.built ? `\u{1F396}\u{FE0F} ${hh.runs} muster${hh.runs === 1 ? '' : 's'} under the Veterans\u2019 Hall` : '\u{1F396}\u{FE0F} No hall raised yet');
+    lines.push(cc.wave > 0 ? `\u{1F4DC} Deepest war: wave ${cc.wave} (${cc.beats} page${cc.beats === 1 ? '' : 's'} written)` : '\u{1F4DC} The Chronicle is blank');
+    lines.push(`\u2709\uFE0F ${dd.read} dispatch${dd.read === 1 ? '' : 'es'} taken`);
+    lines.push(`\u{1F3FA} ${relics} relic${relics === 1 ? '' : 's'} in the vault`);
+    return lines;
+  }
+  function openAnnals() {
+    if (!warHasAnnals()) return;
+    const a = loadAnnals();
+    saveAnnals({ opens: a.opens + 1 });
+    composeAnnals().forEach((s, i) => {
+      setTimeout(() => goldFloaters.push({ text: s, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170 - i * 26, color: '#fcd34d', t: 2.4 }), i * 500);
+    });
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2185,6 +2223,8 @@ const AgeOfWarGame = (() => {
     if (loanBtn) loanBtn.onclick = takeLoan;
     const hallBtn = document.getElementById('aow-hall-btn');
     if (hallBtn) hallBtn.onclick = buyHall;
+    const annalsBtn = document.getElementById('aow-annals-btn');
+    if (annalsBtn) annalsBtn.onclick = openAnnals;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -7972,6 +8012,18 @@ const AgeOfWarGame = (() => {
         crEl.style.display = '';
         if (crCdEl) crCdEl.textContent = `wave ${chronBest}`;
         crEl.title = `The Chronicle of Wars \u2014 the deepest wave any war of yours has ever reached, kept across every defeat. Push past the mark that stood when you sat down and the scribes pay a relic, once a session. ${chronBeats} page${chronBeats === 1 ? '' : 's'} written.`;
+      }
+    }
+
+    // Regimental Annals slate (AOW-38)
+    const anEl = document.getElementById('aow-annals-btn');
+    const anCdEl = document.getElementById('aow-annals-cd');
+    if (anEl) {
+      if (!warHasAnnals()) { anEl.style.display = 'none'; }
+      else {
+        anEl.style.display = '';
+        if (anCdEl) anCdEl.textContent = `${loadAnnals().opens} read`;
+        anEl.title = `The Regimental Annals \u2014 everything this war remembers:\n` + composeAnnals().join('\n') + `\nClick to read them out over the field.`;
       }
     }
 
