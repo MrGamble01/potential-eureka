@@ -569,6 +569,22 @@ function loadHvBench(){
 function saveHvBench(b){ try{ localStorage.setItem(HVBEN_KEY, JSON.stringify(b)); }catch(e){} }
 function hvBenchBuilt(){ return loadHvGb().leafs>=3; }
 function hvBenchDish(){ return HVBEN_BASE + HVBEN_PER*Math.min(loadHvGb().leafs||0,5); }
+// HV-47: the story-hour round under the bridge \u2014 after three
+// sits on the bench, somebody has the whole bridge story by heart:
+// the wall, the notebook, the reunions, every name in the spiral.
+// Once a session a telling pays: 6 food base + 1 per sit (cap 5).
+// Tellings tallied in 'hv-storyhour'.
+var HVSTORY_KEY='hv-storyhour', HVSTORY_BASE=6, HVSTORY_PER=1;
+var hvStoryTold=false;
+function loadHvStory(){
+  try{ var s=JSON.parse(localStorage.getItem(HVSTORY_KEY)||'null');
+    if(s&&typeof s==='object') return {tellings:Math.max(0,Math.floor(s.tellings||0))};
+  }catch(e){}
+  return {tellings:0};
+}
+function saveHvStory(s){ try{ localStorage.setItem(HVSTORY_KEY, JSON.stringify(s)); }catch(e){} }
+function hvStoryByHeart(){ return loadHvBench().sits>=3; }
+function hvStoryDish(){ return HVSTORY_BASE + HVSTORY_PER*Math.min(loadHvBench().sits||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -644,6 +660,7 @@ var ACTIONS = [
   {id:'anniv',     icon:'🕯️', label:'Mark the Anniversary', time:2000, cooldown:30000, tooltip:'Three looks at the snapshot and somebody counts the winters — the camp has held a whole year under this bridge. Light a candle for it once a session, and the bridge remembers who kept it lit.'},
   {id:'guestbook', icon:'📓', label:'Leaf the Notebook', time:2000, cooldown:30000, tooltip:'Three candles and a spiral notebook sits by the fridge — everyone who ever slept here signs it on the way through. Leaf through it once a session, and one of the names always left something behind.'},
   {id:'bench',     icon:'🪑', label:'Sit on the Bench', time:2000, cooldown:30000, tooltip:'Three leafs through the notebook and folks build a bench by the fridge — scrap wood and good intentions, a seat with every name at its back. Sit once a session, and somebody always sits down with something warm.'},
+  {id:'story',     icon:'🔥', label:'Tell the Fire Story', time:2000, cooldown:30000, tooltip:'Three sits on the bench and somebody has the whole bridge story by heart — the wall, the notebook, the reunions, every name in the spiral. Tell it around the fire once a session, and somebody always shows up with dinner before it\u2019s done.'},
 ];
 
 var WORKER_DEFS = [
@@ -699,6 +716,7 @@ var GOALS = [
   {id:'anniv2',     desc:'Mark the bridge anniversary on 2 sessions', target:2, reward:5, value:function(){ return loadHvAnniv().toasts; }},
   {id:'guest2',     desc:'Leaf through the spiral notebook on 2 sessions', target:2, reward:5, value:function(){ return loadHvGb().leafs; }},
   {id:'bench2',     desc:'Sit on the bench by the fridge on 2 sessions', target:2, reward:5, value:function(){ return loadHvBench().sits; }},
+  {id:'story2',     desc:'Tell the fire story on 2 sessions', target:2, reward:5, value:function(){ return loadHvStory().tellings; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},

@@ -278,6 +278,20 @@ function finishAction(a){
       floatText('+'+bd+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='story'){
+    // HV-47: the whole bridge by heart, told once a session.
+    if(!hvStoryByHeart()){ log('\ud83d\udd25 Nobody has the whole story yet \u2014 three sits on the bench and it comes together.'); }
+    else if(hvStoryTold){ log('\ud83d\udd25 The story got its telling tonight \u2014 the fire remembers.'); }
+    else {
+      hvStoryTold=true;
+      var fd=hvStoryDish();
+      var fs=loadHvStory();
+      saveHvStory({tellings:(fs.tellings||0)+1});
+      G.food=(G.food||0)+fd;
+      log('\ud83d\udd25 THE FIRE STORY \u2014 the wall, the notebook, the reunions, every name in the spiral, told around the fire. Somebody shows up with dinner before it\u2019s done: +'+fd+'\ud83c\udf5e');
+      floatText('+'+fd+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
