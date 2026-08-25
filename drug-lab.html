@@ -2119,7 +2119,8 @@ function refreshZippoBtn() {
     ? 'The Zippo from the Block — already flicked this session. Once a day, that\u2019s the deal.'
     : 'The Zippo from the Block — the OG\u2019s lighter, passed down. Flick it and the corner settles: heat \u2212' + zippoPower()
       + '. The weight comes from the memory: the mark\u2019s sessions and the kites read. Flicked '
-      + loadZippo().uses + ' time' + (loadZippo().uses === 1 ? '' : 's') + '.';
+      + loadZippo().uses + ' time' + (loadZippo().uses === 1 ? '' : 's') + '.'
+      + (zippoHasTin() ? ' The OG\u2019s tin of fluid sits behind the counter \u2014 heat \u2212' + GKEEP_COOL + ' extra when it flicks.' : '');
 }
 function flickZippo() {
   if (!zippoHasWeight() || zippoUsed) return;
@@ -2130,6 +2131,14 @@ function flickZippo() {
   addHeat(-p);
   addFeed('🔥 The OG\u2019s Zippo clicks open \u2014 the corner settles. Heat \u2212' + p + ', carried by everything the block remembers');
   showToast('🔥 The Zippo from the Block \u2014 heat cools ' + p + '. The memory has weight.', 'good');
+  // LAB-43: with the tin on the shelf, the flick burns deeper.
+  if (zippoHasTin()) {
+    const gk = loadGKeep();
+    saveGKeep({ pays: gk.pays + 1 });
+    addHeat(-GKEEP_COOL);
+    addFeed('🫙 The OG\u2019s tin of fluid tops the lighter off \u2014 the corner settles deeper. Heat \u2212' + GKEEP_COOL + ' extra');
+    showToast('🫙 The tin of fluid \u2014 heat cools ' + GKEEP_COOL + ' more. Keepsakes pay.', 'good');
+  }
   checkGrowAchievements();
   refreshZippoBtn();
 }
@@ -2174,6 +2183,19 @@ function welcomeOg() {
   checkGrowAchievements();
   refreshOgBtn();
 }
+// LAB-43: the keepsake round on the corner \u2014 after three visits,
+// the OG leaves a tin of lighter fluid behind the counter. Every
+// Zippo flick with the tin on the shelf burns deeper: heat \u22123
+// extra on the spot. Pays tallied in 'growop-keepsake'.
+const GKEEP_KEY = 'growop-keepsake', GKEEP_COOL = 3;
+function loadGKeep() {
+  try { const k = JSON.parse(localStorage.getItem(GKEEP_KEY) || 'null');
+    if (k && typeof k === 'object') return { pays: Math.max(0, Math.floor(k.pays || 0)) };
+  } catch(e){}
+  return { pays: 0 };
+}
+function saveGKeep(k) { try { localStorage.setItem(GKEEP_KEY, JSON.stringify(k)); } catch(e){} }
+function zippoHasTin() { return loadOg().visits >= 3; }
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -3041,6 +3063,7 @@ const GROW_ACH = [
   { id: 'corner_ledger', name: 'Corner Ledger', test: () => (loadCLedger().opens || 0) >= 3 },   // LAB-36
   { id: 'old_flame', name: 'Old Flame', test: () => (loadZippo().uses || 0) >= 3 },   // LAB-37
   { id: 'og_visit', name: 'The OG Came Through', test: () => (loadOg().visits || 0) >= 3 },   // LAB-42
+  { id: 'tin_fluid', name: 'The Tin of Fluid', test: () => (loadGKeep().pays || 0) >= 3 },   // LAB-43
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
