@@ -950,6 +950,13 @@ function soundConch(){
   saveConch({uses:c.uses+1});
   grantXP(p);
   toast('🐚 The keeper\u2019s conch sounds over the water \u2014 +'+p+' xp, carried by everything the shore remembers.');
+  // VOX-36: beneath the spare oar, the sounding carries a tip in.
+  if(conchHasOar()){
+    const ko=loadOar();
+    saveOar({pays:ko.pays+1});
+    state.coins=(state.coins||0)+OAR_COINS;
+    setTimeout(()=>toast('🛶 The keeper\u2019s spare oar rattles above the tide line \u2014 a trader rows in on the wake: +'+OAR_COINS+' 🪙'),1200);
+  }
   if(typeof checkAch==='function')checkAch();
   refreshConchHud();
 }
@@ -986,6 +993,19 @@ function greetKeeper(){
   if(typeof checkAch==='function')checkAch();
   refreshKeeperHud();
 }
+// VOX-36: the keepsake round on the shore. After three greetings,
+// the old keeper leaves his spare oar hung above the tide line.
+// Every conch sounded beneath it carries a trader's tip in on the
+// wake: +5 coins on the spot. Pays tallied in 'vox-keepsake'.
+const OAR_KEY='vox-keepsake',OAR_COINS=5;
+function loadOar(){
+  try{const k=JSON.parse(localStorage.getItem(OAR_KEY)||'null');
+    if(k&&typeof k==='object')return{pays:Math.max(0,Math.floor(k.pays||0))};
+  }catch(e){}
+  return{pays:0};
+}
+function saveOar(k){try{localStorage.setItem(OAR_KEY,JSON.stringify(k));}catch(e){}}
+function conchHasOar(){ return loadKeeper().visits>=3; }
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -4778,6 +4798,7 @@ const ACH=[
   ['lanternfest3','Lantern Festival','See three new isles rise to the festival',()=>loadVfest().days>=3],
   ['wreath3','The Shell Wreath','Ring the harvest bell three times beneath the wreath',()=>loadWreath().cheers>=3],
   ['keeper3','The Old Keeper','Greet the old keeper rowing past on three sessions',()=>loadKeeper().visits>=3],
+  ['oar3','The Spare Oar','Sound the conch beneath the spare oar on three sessions',()=>loadOar().pays>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
