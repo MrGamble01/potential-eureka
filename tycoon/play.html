@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6125,6 +6125,12 @@ function updateGoalHud(cumulative) {
   if (!seasonGoalHit && cumulative >= target) {
     seasonGoalHit = true;
     trophiesWon++;
+    if (hedge) {
+      hedge = null;
+      hedgesBurned++;
+      addFeedEntry('\u{1F6DF} The hedge expires worthless — the best kind of insurance');
+      refreshHedgeChip();
+    }
     triggerWin(cumulative);
   }
   goalHudEl.classList.toggle('complete', seasonGoalHit);
@@ -6194,6 +6200,7 @@ const ACHIEVEMENTS = [
   { id: 'rentier',       icon: '💼', title: 'Passive Income',       desc: 'Bank \$1,000 in patent royalties.', check: () => royaltiesLife >= 1000, progress: () => [Math.min(Math.round(royaltiesLife), 1000), 1000] },
   { id: 'blue_chip',     icon: '💵', title: 'Blue Chip',            desc: 'Bank \$2,000 in dividends.', check: () => dividendsLife >= 2000, progress: () => [Math.min(Math.round(dividendsLife), 2000), 2000] },
   { id: 'all_in',        icon: '🎲', title: 'Bet the House',        desc: 'Win five moonshots on the race.', check: () => moonshotsWon >= 5, progress: () => [Math.min(moonshotsWon, 5), 5] },
+  { id: 'safety_net',    icon: '\u{1F6DF}', title: 'The Safety Net',       desc: 'Collect three hedge payouts.', check: () => hedgesPaid >= 3, progress: () => [Math.min(hedgesPaid, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -7360,6 +7367,17 @@ function updateRival(dt) {
     changeMorale(-10, `${rivalName} IPO'd first — the office is gutted`);
     showToast(`🏁 ${rivalName} beat you to the goal. The team felt that one.`, 'event', 'critical');
     addFeedEntry(`🏁 ${rivalName} rang the bell first`);
+    if (hedge) {
+      const claim = hedge.premium * HEDGE_MULT;
+      hedge = null;
+      hedgesPaid++;
+      addCash(claim, 'hedge');
+      showToast('\u{1F6DF} The hedge pays — the underwriter wires $' + fmtCash(claim) + ' on the lost race.', 'good', 'critical');
+      addFeedEntry('\u{1F6DF} Hedge CLAIMED — +$' + fmtCash(claim) + ' (' + hedgesPaid + ' lifetime)');
+      refreshHedgeChip();
+      checkAchievements();
+      saveGame();
+    }
   }
 }
 
@@ -10114,6 +10132,58 @@ function updateMoonshot(dt) {
   saveGame();
   refreshHud();
 }
+// Round Twenty-Two opens the insurance round — the mirror of the
+// wager round. The Moonshot bets ON the race; the Hedge insures it:
+// post-IPO, while the race is live, pay a premium of 15 seconds of
+// revenue (never under $400) and if the rival rings the bell first
+// the underwriter pays 3×. Win the season yourself and the premium
+// expires worthless — which is the outcome you were paying for.
+const HEDGE_MULT = 3, HEDGE_MIN = 400;
+let hedge = null;   // { premium } — rides until the race resolves
+let hedgesPaid = 0, hedgesBurned = 0;
+function hedgePremium() {
+  return Math.max(HEDGE_MIN, Math.round(currentRatePerMin() * 0.25));
+}
+function refreshHedgeChip() {
+  const el = document.getElementById('hedge-chip');
+  if (!el) return;
+  el.onclick = placeHedge;
+  if (prestigeLevel < 1) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  if (hedge) {
+    el.textContent = '\u{1F6DF} covered';
+    el.title = 'The hedge — $' + fmtCash(hedge.premium) + ' of coverage rides the race: a rival win pays $' + fmtCash(hedge.premium * HEDGE_MULT) + '; your own bell burns the premium.';
+  } else {
+    el.textContent = '\u{1F6DF} $' + fmtCash(hedgePremium());
+    el.title = 'The hedge — insure the season for $' + fmtCash(hedgePremium()) + ' (15s of revenue): if ' + (rivalName || 'the rival') + ' rings the bell first, the underwriter pays 3\u00D7. (' + hedgesPaid + ' claimed, ' + hedgesBurned + ' expired worthless)';
+  }
+}
+function placeHedge() {
+  if (prestigeLevel < 1 || hedge) return;
+  if (rivalDone || seasonGoalHit) {
+    showToast('\u{1F6DF} The race is already decided — no underwriter will write that policy.', '', 'standard');
+    return;
+  }
+  const premium = hedgePremium();
+  if (state.cash < premium) {
+    showToast('\u{1F6DF} The premium runs $' + fmtCash(premium) + ' — the wallet says no.', '', 'standard');
+    return;
+  }
+  state.cash -= premium; showSpendPop(premium);
+  hedge = { premium };
+  refreshHedgeChip();
+  showToast('\u{1F6DF} Hedge written — $' + fmtCash(premium) + ' of coverage on losing to ' + (rivalName || 'the rival') + '. Pays 3\u00D7 if they ring the bell first.', 'event', 'standard');
+  addFeedEntry('\u{1F6DF} Hedge: $' + fmtCash(premium) + ' of race insurance');
+  saveGame(); refreshHud();
+}
+function updateHedge(dt) {
+  // No timer — a policy rides until the race resolves. Just keep the
+  // premium quote on the chip fresh against the drifting revenue rate.
+  updateHedge._acc = (updateHedge._acc || 0) + dt;
+  if (updateHedge._acc < 2) return;
+  updateHedge._acc = 0;
+  refreshHedgeChip();
+}
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
@@ -11003,6 +11073,7 @@ function frameBody(now) {
   updateRoyalties(dt);
   updateDividends(dt);
   updateMoonshot(dt);
+  updateHedge(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -11869,6 +11940,19 @@ const SAVE_SCHEMA = [
         moonshotProfit = Math.floor(p.moonshot.profit || 0);
       }
       refreshMoonshotChip();
+    },
+  },
+  {
+    key: 'hedge', // TYC-33: the policy book (an active policy rides the save)
+    write: p => { p.hedge = { active: hedge ? hedge.premium : 0, paid: hedgesPaid, burned: hedgesBurned }; },
+    read: p => {
+      if (p.hedge) {
+        const prem = Math.max(0, Math.floor(p.hedge.active || 0));
+        hedge = prem > 0 ? { premium: prem } : null;
+        hedgesPaid = Math.max(0, Math.floor(p.hedge.paid || 0));
+        hedgesBurned = Math.max(0, Math.floor(p.hedge.burned || 0));
+      }
+      refreshHedgeChip();
     },
   },
   {
