@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6241,6 +6241,7 @@ const ACHIEVEMENTS = [
   { id: 'badge_drawer', icon: '\u{1FAAA}', title: 'The Badge in the Drawer', desc: 'Rally the ring beside the badge on three sessions.', check: () => loadKeepsake().pays >= 3, progress: () => [Math.min(loadKeepsake().pays, 3), 3] },
   { id: 'reunion3', icon: '\u{1F942}', title: 'The Company Reunion', desc: 'Call the whole story back on three sessions.', check: () => loadReunion().held >= 3, progress: () => [Math.min(loadReunion().held, 3), 3] },
   { id: 'portrait3', icon: '\u{1F4F8}', title: 'The Reunion Photo', desc: 'Straighten the photo on three sessions.', check: () => loadPhoto().looks >= 3, progress: () => [Math.min(loadPhoto().looks, 3), 3] },
+  { id: 'anniv3', icon: '\u{1F942}', title: 'The Founding Toast', desc: 'Raise the toast on three sessions.', check: () => loadToastTally().toasts >= 3, progress: () => [Math.min(loadToastTally().toasts, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10533,6 +10534,7 @@ function updateHist(dt) {
   refreshVisitorChip();
   refreshReunionChip();
   refreshPhotoChip();
+  refreshToastChip();
 }
 // ---- the Founder's Ring (TYC-39) ------------------------------
 // The heirloom round: the memory starts paying. Once a session the
@@ -10730,6 +10732,48 @@ function straightenPhoto() {
   showToast('\u{1F4F8} The Reunion Photo \u2014 +$' + p + '. The memory pays.', 'good', 'standard');
   checkAchievements();
   refreshPhotoChip();
+}
+// ---- the Founding Toast (TYC-48) ------------------------------
+// Round Thirty-Seven opens the anniversary round: after three
+// straightenings of the Reunion Photo, the company marks its
+// founding anniversary. Once a session the founder raises a toast
+// \u2014 and the room answers: $60 base + $30 per photo look
+// (cap 5). Toasts tallied in 'tyc-anniversary'.
+const TOAST_KEY = 'tyc-anniversary', TOAST_BASE = 60, TOAST_PER = 30;
+let toastRaised = false;
+function loadToastTally() {
+  try { const t = JSON.parse(localStorage.getItem(TOAST_KEY) || 'null');
+    if (t && typeof t === 'object') return { toasts: Math.max(0, Math.floor(t.toasts || 0)) };
+  } catch (e) { }
+  return { toasts: 0 };
+}
+function saveToastTally(t) { try { localStorage.setItem(TOAST_KEY, JSON.stringify(t)); } catch (e) { } }
+function anniversaryStands() { return loadPhoto().looks >= 3; }
+function toastPurse() { return TOAST_BASE + TOAST_PER * Math.min(loadPhoto().looks || 0, 5); }
+function refreshToastChip() {
+  const el = document.getElementById('toast-chip');
+  if (!el) return;
+  el.onclick = raiseFoundingToast;
+  if (!anniversaryStands()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.style.opacity = toastRaised ? '0.45' : '';
+  el.textContent = '\u{1F942} toast';
+  el.title = toastRaised
+    ? 'The Founding Toast has been raised this session. Once a day \u2014 the glasses are down.'
+    : 'The Founding Toast \u2014 three looks at the photo and the founding day gets its due. Raise it and the room answers: $' + toastPurse()
+      + '. Raised ' + loadToastTally().toasts + ' time' + (loadToastTally().toasts === 1 ? '' : 's') + '.';
+}
+function raiseFoundingToast() {
+  if (!anniversaryStands() || toastRaised) return;
+  toastRaised = true;
+  const p = toastPurse();
+  const t = loadToastTally();
+  saveToastTally({ toasts: t.toasts + 1 });
+  state.cash += p;
+  addFeedEntry('\u{1F942} The founder raises the Founding Toast \u2014 to the photo, the plaque, and everybody in the frame. The room answers with a round: +$' + p + '.');
+  showToast('\u{1F942} The Founding Toast \u2014 +$' + p + '. To the founding day.', 'good', 'standard');
+  checkAchievements();
+  refreshToastChip();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
