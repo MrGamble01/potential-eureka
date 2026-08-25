@@ -547,6 +547,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #reunion-toggle{bottom:452px;right:8px;font-size:11px;padding:5px 9px;} }
+/* ── The Cookout Polaroid (LAB-45) ── */
+#polaroid-toggle{
+  position:fixed;bottom:14px;right:2752px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(200,200,255,0.45);
+  color:#c8c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #polaroid-toggle{bottom:490px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -640,6 +648,7 @@ canvas{display:block;touch-action:none;}
 <button id="zippo-toggle" style="display:none" title="The Zippo from the Block: the OG’s lighter, passed down. Flick it once a session and the corner settles — the deeper the block’s memory, the more heat it burns off.">🔥 ZIPPO</button>
 <button id="og-toggle" style="display:none" title="The OG from the Block: once a session the man himself drops by — he vouches for you on the corner, and the block settles.">🧢 THE OG</button>
 <button id="reunion-toggle" style="display:none" title="The Block Reunion: when the whole story stands — the gold record’s marks and the OG’s visits — the corner throws it once a session, and everyone who ever copped comes back through.">🎪 REUNION</button>
+<button id="polaroid-toggle" style="display:none" title="The Cookout Polaroid: a shot from the block reunion, taped up behind the counter next to the gold record. Look at it once a session — the memory still moves product.">📸 POLAROID</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2248,6 +2257,46 @@ function holdBlockReunion() {
   checkGrowAchievements();
   refreshReunionBtn();
 }
+// LAB-45: the portrait round on the corner \u2014 after three Block
+// Reunions, a polaroid from the reunion is taped up behind the
+// counter next to the gold record. Once a session a look pays:
+// $50 base + $25 per reunion held (cap 5). Looks tallied in
+// 'growop-portrait'.
+const POLA_KEY = 'growop-portrait', POLA_BASE = 50, POLA_PER = 25;
+let polaroidLooked = false;
+function loadPolaroid() {
+  try { const p = JSON.parse(localStorage.getItem(POLA_KEY) || 'null');
+    if (p && typeof p === 'object') return { looks: Math.max(0, Math.floor(p.looks || 0)) };
+  } catch(e){}
+  return { looks: 0 };
+}
+function savePolaroid(p) { try { localStorage.setItem(POLA_KEY, JSON.stringify(p)); } catch(e){} }
+function polaroidHangs() { return loadBReunion().held >= 3; }
+function polaroidPurse() { return POLA_BASE + POLA_PER * Math.min(loadBReunion().held || 0, 5); }
+function refreshPolaroidBtn() {
+  const b = document.getElementById('polaroid-toggle');
+  if (!b) return;
+  b.onclick = lookAtPolaroid;
+  if (!polaroidHangs()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = polaroidLooked ? '0.45' : '';
+  b.title = polaroidLooked
+    ? 'The Cookout Polaroid got its look this session. Once a day \u2014 it fades if you stare.'
+    : 'The Cookout Polaroid \u2014 the whole block, mid-cookout, taped next to the gold record. Look and the memory still moves product: +$' + polaroidPurse()
+      + '. Looked at ' + loadPolaroid().looks + ' time' + (loadPolaroid().looks === 1 ? '' : 's') + '.';
+}
+function lookAtPolaroid() {
+  if (!polaroidHangs() || polaroidLooked) return;
+  polaroidLooked = true;
+  const p = polaroidPurse();
+  const pl = loadPolaroid();
+  savePolaroid({ looks: pl.looks + 1 });
+  state.cash += p;
+  addFeed('📸 A long look at the cookout polaroid \u2014 the whole block in one frame. Somebody in the shot still calls in an order: +$' + p);
+  showToast('📸 The Cookout Polaroid \u2014 +$' + p + '. The memory moves product.', 'good');
+  checkGrowAchievements();
+  refreshPolaroidBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2668,6 +2717,7 @@ function refreshRouteBtn() {
   refreshZippoBtn(); // LAB-37: and the flame that draws on it
   refreshOgBtn(); // LAB-42: and the man the flame came from
   refreshReunionBtn(); // LAB-44: and the day the whole story shows up
+  refreshPolaroidBtn(); // LAB-45: and the picture that proves it happened
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3118,6 +3168,7 @@ const GROW_ACH = [
   { id: 'og_visit', name: 'The OG Came Through', test: () => (loadOg().visits || 0) >= 3 },   // LAB-42
   { id: 'tin_fluid', name: 'The Tin of Fluid', test: () => (loadGKeep().pays || 0) >= 3 },   // LAB-43
   { id: 'block_reunion', name: 'The Block Reunion', test: () => (loadBReunion().held || 0) >= 3 },   // LAB-44
+  { id: 'polaroid3', name: 'The Cookout Polaroid', test: () => (loadPolaroid().looks || 0) >= 3 },   // LAB-45
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
