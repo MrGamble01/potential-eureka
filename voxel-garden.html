@@ -953,6 +953,39 @@ function soundConch(){
   if(typeof checkAch==='function')checkAch();
   refreshConchHud();
 }
+// VOX-35: the visitor round on the shore. Once a session, the old
+// keeper rows past any shore with a story \u2014 he kept this light
+// before anyone, and he pays the memory forward: 10 xp base, +5 per
+// ring beneath the shell wreath (cap 3). Visits tallied across isles.
+const KEEPER_KEY='vox-visitor',KEEPER_BASE=10;
+let keeperCame=false;
+function loadKeeper(){
+  try{const k=JSON.parse(localStorage.getItem(KEEPER_KEY)||'null');
+    if(k&&typeof k==='object')return{visits:Math.max(0,Math.floor(k.visits||0))};
+  }catch(e){}
+  return{visits:0};
+}
+function saveKeeper(k){try{localStorage.setItem(KEEPER_KEY,JSON.stringify(k));}catch(e){}}
+function keeperHasStory(){ return loadVrec().coins>0||loadBottle().read>0; }
+function keeperGift(){ return KEEPER_BASE+5*Math.min(loadWreath().cheers||0,3); }
+function refreshKeeperHud(){
+  const h=document.getElementById('keeperHud'),tx=document.getElementById('keeperTxt');
+  if(!h)return;
+  h.style.display=keeperHasStory()?'flex':'none';
+  h.style.opacity=keeperCame?'0.45':'';
+  if(tx)tx.textContent=keeperCame?'🛶 greeted':'🛶 greet for +'+keeperGift()+' xp';
+}
+function greetKeeper(){
+  if(!keeperHasStory()||keeperCame)return;
+  keeperCame=true;
+  const g=keeperGift();
+  const k=loadKeeper();
+  saveKeeper({visits:k.visits+1});
+  grantXP(g);
+  toast('🛶 THE OLD KEEPER ROWS PAST \u2014 he reads the shore a long while, tips his hat, and leaves +'+g+' xp. He kept this light before anyone.');
+  if(typeof checkAch==='function')checkAch();
+  refreshKeeperHud();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -4744,6 +4777,7 @@ const ACH=[
   ['beacon6','The Beacon Flame','See the lantern greet six isles and braid its beacon flame',()=>lanternHasBeacon()],
   ['lanternfest3','Lantern Festival','See three new isles rise to the festival',()=>loadVfest().days>=3],
   ['wreath3','The Shell Wreath','Ring the harvest bell three times beneath the wreath',()=>loadWreath().cheers>=3],
+  ['keeper3','The Old Keeper','Greet the old keeper rowing past on three sessions',()=>loadKeeper().visits>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4998,7 +5032,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -5071,6 +5105,7 @@ boot();
 <div id="lanternHud" style="display:none;position:fixed;bottom:222px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,200,140,0.5);color:#ffe4c0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lightLantern()" title="The Stone Lantern: 150 🪙 lights it once, forever — it lives outside the isle's save, and every new isle that rises after it starts with the three starter plots already grown"><span id="lanternTxt">🏮 light for 150 🪙</span></div>
 <div id="bellHud" style="display:none;position:fixed;bottom:256px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,225,130,0.5);color:#ffefb8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:default;gap:8px;align-items:center" title="The Harvest Bell: the richest single day this shore has ever earned, weighed dawn to dawn. Beat the mark that stood when you sat down and the bell rings — +25 xp, once a session."><span id="bellTxt">🔔 —</span></div>
 <div id="conchHud" style="display:none;position:fixed;bottom:290px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(160,220,255,0.5);color:#cfeaff;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="soundConch()" title="The Keeper’s Conch: the old keeper’s shell, kept dry above the tide line. Sound it once a session — the deeper the shore’s memory, the further it carries."><span id="conchTxt">🐚 —</span></div>
+<div id="keeperHud" style="display:none;position:fixed;bottom:324px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(180,255,200,0.5);color:#d2ffe0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="greetKeeper()" title="The Old Keeper: he kept this light before anyone, and he rows past once a session — any shore with a story gets a greeting, and the greeting pays. The gift grows with the shell wreath."><span id="keeperTxt">🛶 —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
