@@ -6219,6 +6219,7 @@ const ACHIEVEMENTS = [
   { id: 'beat_the_desk', icon: '\u{1F3E6}', title: 'Beat the Desk',        desc: 'Come out ahead on three factoring windows.', check: () => factorWins >= 3, progress: () => [Math.min(factorWins, 3), 3] },
   { id: 'in_perpetuity', icon: '\u{1F393}', title: 'In Perpetuity',        desc: 'Endow the scholarship and let it steady five hard days.', check: () => endowed && endowCatches >= 5, progress: () => [Math.min(endowCatches, 5), 5] },
   { id: 'house_record', icon: '\u{1F4C8}', title: 'House Record',        desc: 'Ring the record bell on three different sessions.', check: () => loadRecord().beats >= 3, progress: () => [Math.min(loadRecord().beats, 3), 3] },
+  { id: 'three_letters', icon: '\u{2709}\u{FE0F}', title: 'Kept Correspondence', desc: 'Read the founder\u2019s letter at three new companies.', check: () => loadLetter().read >= 3, progress: () => [Math.min(loadLetter().read, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10356,6 +10357,41 @@ function updateRecord(dt) {
   }
   refreshRecordChip();
 }
+// Round Twenty-Six opens the letters round: the games write back.
+// When a newly prestiged company opens its doors, a letter from the
+// old shop is waiting — it cites the House Record and the
+// scholarship by their real numbers, and reading it steadies the
+// new floor. One letter per IPO, tracked in its own key, so no
+// company is ever written twice.
+const LETTER_KEY = 'tyc-letter', LETTER_MORALE = 3;
+function loadLetter() {
+  try { const l = JSON.parse(localStorage.getItem(LETTER_KEY) || 'null');
+    if (l && typeof l === 'object') return { last: Math.max(0, Math.floor(l.last || 0)), read: Math.max(0, Math.floor(l.read || 0)) };
+  } catch (e) { }
+  return { last: 0, read: 0 };
+}
+function saveLetter(l) { try { localStorage.setItem(LETTER_KEY, JSON.stringify(l)); } catch (e) { } }
+function composeFounderLetter() {
+  const r = loadRecord();
+  let s = '\u{2709}\u{FE0F} A letter from the old shop: ';
+  s += r.cash > 0 ? '"We held $' + fmtCash(Math.floor(r.cash)) + ' at our best.' : '"We never counted what we held.';
+  if (typeof endowed !== 'undefined' && endowed) s += ' The scholarship still stands \u2014 no floor of yours will ever despair.';
+  s += ' Make it further than we did."';
+  return s;
+}
+function updateLetter(dt) {
+  updateLetter._acc = (updateLetter._acc || 0) + dt;
+  if (updateLetter._acc < 3) return;
+  updateLetter._acc = 0;
+  const l = loadLetter();
+  if (prestigeLevel <= l.last) return;
+  saveLetter({ last: prestigeLevel, read: l.read + 1 });
+  const s = composeFounderLetter();
+  addFeedEntry(s);
+  showToast(s + ' (+' + LETTER_MORALE + ' morale)', 'good', 'critical');
+  changeMorale(LETTER_MORALE, 'The founder\u2019s letter steadies the new floor');
+  checkAchievements();
+}
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
@@ -11249,6 +11285,7 @@ function frameBody(now) {
   updateFactor(dt);
   updateEndow(dt);
   updateRecord(dt);
+  updateLetter(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
