@@ -596,6 +596,7 @@ const AgeOfWarGame = (() => {
     { id: 'painting3', icon: '\u{1F5BC}\u{FE0F}', title: 'The Campaign Painting', desc: 'Unveil the painting on three sessions.' },
     { id: 'salute3', icon: '\u{1F387}', title: 'The Founding Salute', desc: 'Fire the salute on three sessions.' },
     { id: 'roll3', icon: '\u{1F4DC}', title: 'The Muster Roll', desc: 'Read the roll on three sessions.' },
+    { id: 'vbench3', icon: '\u{1FA91}', title: 'The Veterans\u2019 Bench', desc: 'Sit on the bench on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -722,6 +723,7 @@ const AgeOfWarGame = (() => {
     if (loadPainting().looks >= 3) unlock('painting3');
     if (loadSalute().toasts >= 3) unlock('salute3');
     if (loadRoll().leafs >= 3) unlock('roll3');
+    if (loadVBench().sits >= 3) unlock('vbench3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2346,6 +2348,37 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Veterans' Bench (AOW-50) ──
+  // The bench round on the battlefield: after three readings of
+  // the Muster Roll, the veterans build a bench outside the hall
+  // \u2014 a seat with every name at its back. Once a session a
+  // sit pays: 70 gold base + 35 per reading (cap 5). Sits tallied
+  // in 'aow-bench'.
+  const VBENCH_KEY = 'aow-bench', VBENCH_BASE = 70, VBENCH_PER = 35;
+  let vbenchSat = false;
+  function loadVBench() {
+    try { const b = JSON.parse(localStorage.getItem(VBENCH_KEY) || 'null');
+      if (b && typeof b === 'object') return { sits: Math.max(0, Math.floor(b.sits || 0)) };
+    } catch {}
+    return { sits: 0 };
+  }
+  function saveVBench(b) { try { localStorage.setItem(VBENCH_KEY, JSON.stringify(b)); } catch {} }
+  function vbenchBuilt() { return loadRoll().leafs >= 3; }
+  function vbenchPurse() { return VBENCH_BASE + VBENCH_PER * Math.min(loadRoll().leafs || 0, 5); }
+  function sitVeteransBench() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!vbenchBuilt() || vbenchSat) return;
+    vbenchSat = true;
+    const p = vbenchPurse();
+    const b = loadVBench();
+    saveVBench({ sits: b.sits + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1FA91} THE VETERANS' BENCH \u2014 a seat outside the hall with every name at its back. An old campaigner sits down with a purse: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2531,6 +2564,8 @@ const AgeOfWarGame = (() => {
     if (salBtn) salBtn.onclick = fireFoundingSalute;
     const rollBtn = document.getElementById('aow-roll-btn');
     if (rollBtn) rollBtn.onclick = readMusterRoll;
+    const vbBtn = document.getElementById('aow-bench-btn');
+    if (vbBtn) vbBtn.onclick = sitVeteransBench;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8420,6 +8455,21 @@ const AgeOfWarGame = (() => {
         rollEl.title = rollRead
           ? 'The Muster Roll has been read this session \u2014 the names keep.'
           : `The Muster Roll \u2014 three salutes and every campaigner who ever answered the horns signs in by the hall door. Read it and one of the names sends gold: +${rollPurse()} gold. Read ${loadRoll().leafs} time${loadRoll().leafs === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Veterans' Bench (AOW-50)
+    const vbEl = document.getElementById('aow-bench-btn');
+    const vbCdEl = document.getElementById('aow-bench-cd');
+    if (vbEl) {
+      if (!vbenchBuilt()) { vbEl.style.display = 'none'; }
+      else {
+        vbEl.style.display = '';
+        vbEl.style.opacity = vbenchSat ? '0.45' : '';
+        if (vbCdEl) vbCdEl.textContent = vbenchSat ? 'sat' : `+${vbenchPurse()}g`;
+        vbEl.title = vbenchSat
+          ? 'The Veterans\u2019 Bench has had its sit this session \u2014 the seat keeps.'
+          : `The Veterans' Bench \u2014 three readings of the roll and the veterans built a seat outside the hall. Sit, and an old campaigner sits down with a purse: +${vbenchPurse()} gold. Sat ${loadVBench().sits} time${loadVBench().sits === 1 ? '' : 's'}.`;
       }
     }
 
