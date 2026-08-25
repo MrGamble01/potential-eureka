@@ -518,6 +518,13 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:default;font-family:inherit;
 }
 @media (max-width:640px){ #hwm-toggle{bottom:339px;right:8px;font-size:11px;padding:5px 9px;} }
+#ledger-toggle{
+  position:fixed;bottom:14px;right:2206px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #ledger-toggle{bottom:364px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -607,6 +614,7 @@ canvas{display:block;touch-action:none;}
 <button id="presale-toggle" style="display:none" title="The Pre-Sale: the Distributor pays now for the next five bags off the line at 0.85× today’s list — the van intercepts them before they ever touch the shelf">📤 PRE-SELL 5</button>
 <button id="center-toggle" style="display:none" title="The Youth Center: $20,000 builds the block something no bust can touch — it stands across every run, and every fresh start begins with one regular already locked. The block remembers.">🏀 CENTER $20,000</button>
 <button id="hwm-toggle" style="display:none" title="The High-Water Mark: the biggest single hand this corner has ever sold, kept across every bust and fresh identity. Smash the mark that stood when you sat down and the story does the corner’s talking — heat cools 5, once a session.">📈 —</button>
+<button id="ledger-toggle" style="display:none" title="The Corner Ledger: everything the block remembers across every bust, bound in one book. Click to read it into the feed.">📔 LEDGER</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1988,6 +1996,47 @@ function deliverKite() {
   setTimeout(() => showToast(s + ' (heat \u2212' + KITE_COOL + ')', 'good'), 2600);
   checkGrowAchievements();
 }
+// LAB-36: the almanac round on the corner — one book binds everything
+// the block remembers: the center's runs, the best hand, the kites,
+// the floor safe. The tooltip is the whole ledger; a click reads it
+// into the feed.
+const CLEDGER_KEY = 'growop-history';
+function loadCLedger() {
+  try { const h = JSON.parse(localStorage.getItem(CLEDGER_KEY) || 'null');
+    if (h && typeof h === 'object') return { opens: Math.max(0, Math.floor(h.opens || 0)) };
+  } catch(e){}
+  return { opens: 0 };
+}
+function saveCLedger(h) { try { localStorage.setItem(CLEDGER_KEY, JSON.stringify(h)); } catch(e){} }
+function cornerHasHistory() {
+  return loadCenter().built || loadHwm().sale > 0 || loadKite().read > 0 || (loadVault().bal || 0) > 0;
+}
+function composeCLedger() {
+  const cc = loadCenter(), hw = loadHwm(), kk = loadKite(), vv = loadVault();
+  const lines = [];
+  lines.push(cc.built ? '🏀 The Youth Center stands — ' + (cc.runs || 0) + ' fresh start' + ((cc.runs || 0) === 1 ? '' : 's') + ' in its shadow' : '🏀 No center on the corner yet');
+  lines.push(hw.sale > 0 ? '📈 Best hand ever: $' + fmtCash(Math.floor(hw.sale)) + ', smashed on ' + hw.beats + ' session' + (hw.beats === 1 ? '' : 's') : '📈 No high-water mark yet');
+  lines.push('\u2709\uFE0F ' + (kk.read || 0) + ' kite' + ((kk.read || 0) === 1 ? '' : 's') + ' from upstate');
+  lines.push('🔒 $' + fmtCash(Math.floor(vv.bal || 0)) + ' in the floor safe');
+  return lines;
+}
+function refreshCLedgerBtn() {
+  const b = document.getElementById('ledger-toggle');
+  if (!b) return;
+  if (!cornerHasHistory()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.title = 'The Corner Ledger — everything the block remembers across every bust:\n' + composeCLedger().join('\n') + '\nClick to read it into the feed. Read ' + loadCLedger().opens + ' time' + (loadCLedger().opens === 1 ? '' : 's') + '.';
+}
+function openCLedger() {
+  if (!cornerHasHistory()) return;
+  const h = loadCLedger();
+  saveCLedger({ opens: h.opens + 1 });
+  addFeed('📔 THE CORNER LEDGER — read out on the stoop');
+  composeCLedger().forEach(s => addFeed('📔 ' + s));
+  showToast('📔 The Corner Ledger, read out loud — every number the block keeps.', 'good');
+  checkGrowAchievements();
+  refreshCLedgerBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2396,6 +2445,7 @@ function refreshRouteBtn() {
   refreshPreSaleBtn(); // LAB-32: and the van's ledger
   refreshCenterBtn(); // LAB-33: and the block's own building
   refreshHwmChip(); // LAB-34: and the corner's record book
+  refreshCLedgerBtn(); // LAB-36: and the book that binds it all
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2574,6 +2624,7 @@ function updateRoute(dt) {
 { const lb = document.getElementById('lawyer-toggle'); if (lb) lb.onclick = retainLawyer; }
 { const pb = document.getElementById('presale-toggle'); if (pb) pb.onclick = takePreSale; }
 { const cb = document.getElementById('center-toggle'); if (cb) cb.onclick = buildCenter; }
+{ const lb = document.getElementById('ledger-toggle'); if (lb) lb.onclick = openCLedger; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2836,6 +2887,7 @@ const GROW_ACH = [
   { id: 'cornerstone', name: 'Cornerstone', test: () => loadCenter().built && (loadCenter().runs || 0) >= 2 },   // LAB-33
   { id: 'high_water', name: 'High-Water Mark', test: () => (loadHwm().beats || 0) >= 3 },   // LAB-34
   { id: 'pen_pals', name: 'Pen Pals', test: () => (loadKite().read || 0) >= 3 },   // LAB-35
+  { id: 'corner_ledger', name: 'Corner Ledger', test: () => (loadCLedger().opens || 0) >= 3 },   // LAB-36
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
