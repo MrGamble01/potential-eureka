@@ -327,6 +327,7 @@
     <button id="m-hearthstone">Warm the Hearthstone</button>
     <button id="m-firstreeve">Greet the First Reeve</button>
     <button id="m-reunion">Throw the Founders’ Reunion</button>
+    <button id="m-portrait">View the Green Portrait</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1687,6 +1688,7 @@
     { id: 'first_reeve', emoji: '\u{1F9D3}', name: 'The First Reeve', desc: 'Greet the First Reeve on three sessions.', done: () => loadReeve().visits >= 3 },
     { id: 'reeve_seal', emoji: '\u{1F4EF}', name: 'The Reeve\u2019s Seal', desc: 'Warm the hearthstone beside the seal on three sessions.', done: () => loadSeal().pays >= 3 },
     { id: 'founders_reunion', emoji: '\u{1F37B}', name: 'The Founders\u2019 Reunion', desc: 'Throw the whole story a reunion on three sessions.', done: () => loadFReunion().held >= 3 },
+    { id: 'green_portrait', emoji: '\u{1F5BC}\u{FE0F}', name: 'The Green Portrait', desc: 'View the portrait on three sessions.', done: () => loadVPortrait().looks >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2892,6 +2894,35 @@
     state.happy = Math.min(100, state.happy + FREU_HAPPY);
     chron('\u{1F37B}', 'THE FOUNDERS\u2019 REUNION \u2014 every family that ever founded here comes back up the green, and every one brings a purse: +' + p + ' gold, +' + FREU_HAPPY + ' happiness');
     toast('\u{1F37B} The Founders\u2019 Reunion \u2014 +' + p + ' gold, +' + FREU_HAPPY + ' happiness. The whole story showed up.');
+    checkAchievements();
+  }
+  // ---- the Green Portrait (HVALE-40) --------------------------
+  // The portrait round in the valley: after three Founders'
+  // Reunions, a painted portrait of the families on the green
+  // hangs in the town hall. Once a session a viewing pays: 15 gold
+  // base + 5 per reunion held (cap 5). Viewings tallied in
+  // 'hvale-portrait'.
+  const VPORT_KEY = 'hvale-portrait', VPORT_BASE = 15, VPORT_PER = 5;
+  let portraitViewed = false;
+  function loadVPortrait() {
+    try { const p = JSON.parse(localStorage.getItem(VPORT_KEY) || 'null');
+      if (p && typeof p === 'object') return { looks: Math.max(0, Math.floor(p.looks || 0)) };
+    } catch (e) { }
+    return { looks: 0 };
+  }
+  function saveVPortrait(p) { try { localStorage.setItem(VPORT_KEY, JSON.stringify(p)); } catch (e) { } }
+  function portraitHangs() { return loadFReunion().held >= 3; }
+  function portraitPurse() { return VPORT_BASE + VPORT_PER * Math.min(loadFReunion().held || 0, 5); }
+  function viewGreenPortrait() {
+    if (!portraitHangs()) { toast('\u{1F5BC}\u{FE0F} No portrait hangs in the hall yet \u2014 three reunions put the families on canvas.'); return; }
+    if (portraitViewed) { toast('\u{1F5BC}\u{FE0F} The Green Portrait got its viewing today \u2014 the canvas keeps.'); return; }
+    portraitViewed = true;
+    const p = portraitPurse();
+    const pt = loadVPortrait();
+    saveVPortrait({ looks: pt.looks + 1 });
+    state.res.gold += p;
+    chron('\u{1F5BC}\u{FE0F}', 'A viewing of the Green Portrait \u2014 every founding family on one canvas. A patron leaves a purse under the frame: +' + p + ' gold');
+    toast('\u{1F5BC}\u{FE0F} The Green Portrait \u2014 +' + p + ' gold. The canvas pays.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5335,6 +5366,7 @@
     { const mh = document.getElementById('m-hearthstone'); if (mh) mh.onclick = () => { menu.classList.remove('show'); warmHearthstone(); }; }
     { const mr = document.getElementById('m-firstreeve'); if (mr) mr.onclick = () => { menu.classList.remove('show'); greetFirstReeve(); }; }
     { const mu = document.getElementById('m-reunion'); if (mu) mu.onclick = () => { menu.classList.remove('show'); throwFoundersReunion(); }; }
+    { const mp = document.getElementById('m-portrait'); if (mp) mp.onclick = () => { menu.classList.remove('show'); viewGreenPortrait(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
