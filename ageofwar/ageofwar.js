@@ -585,6 +585,7 @@ const AgeOfWarGame = (() => {
     { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
     { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
     { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
+    { id: 'old_standard', icon: '\u{1F6A9}', title: 'Colors That Held', desc: 'Raise the Old Standard on three separate sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -703,6 +704,7 @@ const AgeOfWarGame = (() => {
     if (chronBeats >= 3) unlock('chronicled');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
+    if (loadStd().uses >= 3) unlock('old_standard');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -2076,6 +2078,39 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Old Standard (AOW-39) ──
+  // The heirloom round: the memory starts paying. The colors every
+  // fallen war marched under, kept in the vault. Once a session,
+  // raise them over the field and the men dig in — a gold grant that
+  // scales with the memory itself: 25 base, +10 per Chronicle page
+  // (to 5), +10 per dispatch taken (to 3).
+  const STD_KEY = 'aow-standard', STD_BASE = 25;
+  let standardRaised = false;
+  function loadStd() {
+    try { const s = JSON.parse(localStorage.getItem(STD_KEY) || 'null');
+      if (s && typeof s === 'object') return { uses: Math.max(0, Math.floor(s.uses || 0)) };
+    } catch {}
+    return { uses: 0 };
+  }
+  function saveStd(s) { try { localStorage.setItem(STD_KEY, JSON.stringify(s)); } catch {} }
+  function stdHasColors() { return loadChron().wave > 0 || loadDispatch().read > 0; }
+  function stdPower() {
+    return STD_BASE + 10 * Math.min(loadChron().beats || 0, 5) + 10 * Math.min(loadDispatch().read || 0, 3);
+  }
+  function raiseStandard() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!stdHasColors() || standardRaised) return;
+    standardRaised = true;
+    const p = stdPower();
+    const s = loadStd();
+    saveStd({ uses: s.uses + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F6A9} The Old Standard rises over the field \u2014 the men dig in. +${p} gold, carried by every war before this one`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2225,6 +2260,8 @@ const AgeOfWarGame = (() => {
     if (hallBtn) hallBtn.onclick = buyHall;
     const annalsBtn = document.getElementById('aow-annals-btn');
     if (annalsBtn) annalsBtn.onclick = openAnnals;
+    const stdBtn = document.getElementById('aow-standard-btn');
+    if (stdBtn) stdBtn.onclick = raiseStandard;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8024,6 +8061,21 @@ const AgeOfWarGame = (() => {
         anEl.style.display = '';
         if (anCdEl) anCdEl.textContent = `${loadAnnals().opens} read`;
         anEl.title = `The Regimental Annals \u2014 everything this war remembers:\n` + composeAnnals().join('\n') + `\nClick to read them out over the field.`;
+      }
+    }
+
+    // The Old Standard (AOW-39)
+    const stEl = document.getElementById('aow-standard-btn');
+    const stCdEl = document.getElementById('aow-standard-cd');
+    if (stEl) {
+      if (!stdHasColors()) { stEl.style.display = 'none'; }
+      else {
+        stEl.style.display = '';
+        stEl.style.opacity = standardRaised ? '0.45' : '';
+        if (stCdEl) stCdEl.textContent = standardRaised ? 'raised' : `+${stdPower()}g`;
+        stEl.title = standardRaised
+          ? 'The Old Standard already flies \u2014 it rises once a session.'
+          : `The Old Standard \u2014 the colors every fallen war marched under. Raise them and the men dig in: +${stdPower()} gold, carried by the Chronicle\u2019s pages and the dispatches taken. Raised ${loadStd().uses} time${loadStd().uses === 1 ? '' : 's'}.`;
       }
     }
 
