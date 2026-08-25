@@ -1669,6 +1669,7 @@
     { id: 'stockade', emoji: '🪵', name: 'The Stockade', desc: 'Repel three raids with the palisade standing.', done: () => (state.wallRaids || 0) >= 3 },
     { id: 'coldgold', emoji: '🧊', name: 'Cold Gold', desc: 'Sell eight blocks of winter ice.', done: () => (state.iceSold || 0) >= 8 },
     { id: 'road_gambler', emoji: '🎲', name: 'Road Gambler', desc: 'Win four of the teamster\u2019s stakes.', done: () => (state.stakesWon || 0) >= 4 },
+    { id: 'made_whole', emoji: '🛡️', name: 'Made Whole', desc: 'Collect three guild sureties.', done: () => (state.suretyClaims || 0) >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2652,6 +2653,11 @@
   // 28 back on a safe return. The watch's outriders and the beacon's
   // lit high road are the whole edge; a waylaying eats the stake.
   const STAKE_COST = 20, STAKE_PAY = 28;
+  // HVALE-26: the guild surety — the stake's mirror. 10 gold insures
+  // the load: a waylaying pays out exactly the gap between the robbed
+  // purse and a clean one (45), so an insured caravan comes home
+  // whole either way. A clean road expires the premium unclaimed.
+  const SURETY_COST = 10, SURETY_PAY = CARAVAN_PAY - CARAVAN_ROBBED;
   function caravanOut() { return !!state.caravan; }
   function sendCaravan() {
     if (caravanOut()) { toast('🐴 The caravan is already on the road.'); return; }
@@ -2667,12 +2673,18 @@
     if (state.res.gold >= STAKE_COST) {
       openEvent({
         emoji: '🎲', title: 'The Teamster\u2019s Odds',
-        text: 'The teamster leans down from the box seat: \u201C' + STAKE_COST + ' gold says we make the far towns clean \u2014 ' + STAKE_PAY + ' back if the road behaves. Your watch, your beacon, your call.\u201D',
+        text: 'The teamster leans down from the box seat: \u201C' + STAKE_COST + ' gold says we make the far towns clean \u2014 ' + STAKE_PAY + ' back if the road behaves. Your watch, your beacon, your call.\u201D Beside him the guild clerk offers the other side of the ledger: ' + SURETY_COST + ' gold of surety pays ' + SURETY_PAY + ' if the road turns ugly.',
         choices: [
           { label: '🎲 Stake ' + STAKE_COST + ' gold', run: () => {
               state.res.gold -= STAKE_COST;
               state.caravanStake = true;
               chron('🎲', 'Staked ' + STAKE_COST + ' gold on the caravan\u2019s clean run');
+              updateHUD(); save();
+            } },
+          { label: '🛡️ Surety ' + SURETY_COST + ' gold', run: () => {
+              state.res.gold -= SURETY_COST;
+              state.caravanSurety = true;
+              chron('🛡️', 'Bought ' + SURETY_COST + ' gold of guild surety on the caravan');
               updateHUD(); save();
             } },
           { label: 'Keep the purse', run: () => { } },
@@ -2695,6 +2707,13 @@
         state.caravanStake = false;
         chron('🎲', 'The teamster\u2019s odds died on the high road — the stake is gone');
       }
+      if (state.caravanSurety) {
+        state.caravanSurety = false;
+        state.suretyClaims = (state.suretyClaims || 0) + 1;
+        state.res.gold += SURETY_PAY;
+        toast('🛡️ The guild makes the town whole — ' + SURETY_PAY + ' gold on the surety.');
+        chron('🛡️', 'The guild paid ' + SURETY_PAY + ' gold on the waylaid caravan (' + state.suretyClaims + ' claimed)');
+      }
       SFX('error');
     } else {
       state.res.gold += CARAVAN_PAY;
@@ -2707,6 +2726,10 @@
         state.res.gold += STAKE_PAY;
         toast('🎲 Clean road — the teamster pays ' + STAKE_PAY + ' gold on the stake.');
         chron('🎲', 'The teamster paid ' + STAKE_PAY + ' gold on a clean run (' + state.stakesWon + ' won)');
+      }
+      if (state.caravanSurety) {
+        state.caravanSurety = false;
+        chron('🛡️', 'The surety expired unclaimed — the road was kind');
       }
       SFX('goal');
     }
@@ -4752,6 +4775,8 @@
         iceSold: state.iceSold || 0,
         caravanStake: !!state.caravanStake,   // HVALE-25
         stakesWon: state.stakesWon || 0,
+        caravanSurety: !!state.caravanSurety,   // HVALE-26
+        suretyClaims: state.suretyClaims || 0,
         lastIceDay: typeof state.lastIceDay === 'number' ? state.lastIceDay : -1,
         lastPressDay: typeof state.lastPressDay === 'number' ? state.lastPressDay : -1,
         lastHuntDay: typeof state.lastHuntDay === 'number' ? state.lastHuntDay : -1,
@@ -4857,6 +4882,8 @@
       state.iceSold = s.iceSold || 0;
       state.caravanStake = !!s.caravanStake;   // HVALE-25 (older roads carried no odds)
       state.stakesWon = s.stakesWon || 0;
+      state.caravanSurety = !!s.caravanSurety;   // HVALE-26 (older loads rode bare)
+      state.suretyClaims = s.suretyClaims || 0;
       state.lastIceDay = typeof s.lastIceDay === 'number' ? s.lastIceDay : -1;
       state.lastPressDay = typeof s.lastPressDay === 'number' ? s.lastPressDay : -1;
       state.lastHuntDay = typeof s.lastHuntDay === 'number' ? s.lastHuntDay : -1;
