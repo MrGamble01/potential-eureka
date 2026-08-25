@@ -592,6 +592,7 @@ const AgeOfWarGame = (() => {
     { id: 'old_standard', icon: '\u{1F6A9}', title: 'Colors That Held', desc: 'Raise the Old Standard on three separate sessions.' },
     { id: 'old_general', icon: '\u{1F396}\u{FE0F}', title: 'The General\u2019s Review', desc: 'Welcome the Old General on three sessions.' },
     { id: 'field_glasses', icon: '\u{1F52D}', title: 'The Field Glasses', desc: 'Raise the standard beside the glasses on three sessions.' },
+    { id: 'vets_reunion', icon: '\u{1F397}\u{FE0F}', title: 'The Veterans\u2019 Reunion', desc: 'Muster the whole story on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -714,6 +715,7 @@ const AgeOfWarGame = (() => {
     if (loadLaurel().cheers >= 3) unlock('laureled');
     if (loadGen().visits >= 3) unlock('old_general');
     if (loadGlasses().pays >= 3) unlock('field_glasses');
+    if (loadVReunion().held >= 3) unlock('vets_reunion');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2211,6 +2213,41 @@ const AgeOfWarGame = (() => {
   function saveGlasses(k) { try { localStorage.setItem(GLASS_KEY, JSON.stringify(k)); } catch {} }
   function stdHasGlasses() { return loadGen().visits >= 3; }
 
+  // \u2500\u2500 The Veterans' Reunion (AOW-46) \u2500\u2500
+  // The reunion round on the battlefield: when the whole story
+  // stands \u2014 three pages beneath the laurel AND three of the Old
+  // General's reviews \u2014 the army musters the veterans' reunion
+  // once a session. Every old campaigner brings a purse: 50 gold
+  // base + 15 per page + 15 per review (caps 3). Held tallied in
+  // 'aow-reunion'.
+  const VREU_KEY = 'aow-reunion', VREU_BASE = 50, VREU_PER = 15;
+  let vetsReunionHeld = false;
+  function loadVReunion() {
+    try { const r = JSON.parse(localStorage.getItem(VREU_KEY) || 'null');
+      if (r && typeof r === 'object') return { held: Math.max(0, Math.floor(r.held || 0)) };
+    } catch {}
+    return { held: 0 };
+  }
+  function saveVReunion(r) { try { localStorage.setItem(VREU_KEY, JSON.stringify(r)); } catch {} }
+  function vreunionStands() { return (loadLaurel().cheers || 0) >= 3 && loadGen().visits >= 3; }
+  function vreunionPurse() {
+    return VREU_BASE + VREU_PER * Math.min(loadLaurel().cheers || 0, 3)
+      + VREU_PER * Math.min(loadGen().visits || 0, 3);
+  }
+  function holdVetsReunion() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!vreunionStands() || vetsReunionHeld) return;
+    vetsReunionHeld = true;
+    const p = vreunionPurse();
+    const r = loadVReunion();
+    saveVReunion({ held: r.held + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F397}\u{FE0F} THE VETERANS' REUNION \u2014 the old campaigners muster, laurels and field glasses and all. Every one brings a purse: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2388,6 +2425,8 @@ const AgeOfWarGame = (() => {
     if (stdBtn) stdBtn.onclick = raiseStandard;
     const genBtn = document.getElementById('aow-general-btn');
     if (genBtn) genBtn.onclick = welcomeGeneral;
+    const reuBtn = document.getElementById('aow-reunion-btn');
+    if (reuBtn) reuBtn.onclick = holdVetsReunion;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8217,6 +8256,21 @@ const AgeOfWarGame = (() => {
         genEl.title = generalCame
           ? 'The Old General has already reviewed the troops \u2014 he rides once a session.'
           : `The Old General \u2014 he rides out for any army with a story. Welcome him and his purse opens: +${genPurse()} gold, deepened by every page beneath the laurel. He has reviewed the troops ${loadGen().visits} time${loadGen().visits === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Veterans' Reunion (AOW-46)
+    const reuEl = document.getElementById('aow-reunion-btn');
+    const reuCdEl = document.getElementById('aow-reunion-cd');
+    if (reuEl) {
+      if (!vreunionStands()) { reuEl.style.display = 'none'; }
+      else {
+        reuEl.style.display = '';
+        reuEl.style.opacity = vetsReunionHeld ? '0.45' : '';
+        if (reuCdEl) reuCdEl.textContent = vetsReunionHeld ? 'mustered' : `+${vreunionPurse()}g`;
+        reuEl.title = vetsReunionHeld
+          ? 'The Veterans\u2019 Reunion has already mustered \u2014 once a session, the men have wars to rest from.'
+          : `The Veterans' Reunion \u2014 the whole story stands: the laurel's pages and the general's reviews. Muster them and every old campaigner brings a purse: +${vreunionPurse()} gold. Held ${loadVReunion().held} time${loadVReunion().held === 1 ? '' : 's'}.`;
       }
     }
 
