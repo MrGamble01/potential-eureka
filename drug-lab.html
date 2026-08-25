@@ -511,6 +511,13 @@ canvas{display:block;touch-action:none;}
 }
 #center-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 @media (max-width:640px){ #center-toggle{bottom:314px;right:8px;font-size:11px;padding:5px 9px;} }
+#hwm-toggle{
+  position:fixed;bottom:14px;right:2036px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:default;font-family:inherit;
+}
+@media (max-width:640px){ #hwm-toggle{bottom:339px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -599,6 +606,7 @@ canvas{display:block;touch-action:none;}
 <button id="lawyer-toggle" style="display:none" title="The Lawyer: a $1,500 retainer buys one case — the next sting’s bags still walk, but their full list value comes back as damages and the heat spike is argued down to 8">⚖️ LAWYER $1,500</button>
 <button id="presale-toggle" style="display:none" title="The Pre-Sale: the Distributor pays now for the next five bags off the line at 0.85× today’s list — the van intercepts them before they ever touch the shelf">📤 PRE-SELL 5</button>
 <button id="center-toggle" style="display:none" title="The Youth Center: $20,000 builds the block something no bust can touch — it stands across every run, and every fresh start begins with one regular already locked. The block remembers.">🏀 CENTER $20,000</button>
+<button id="hwm-toggle" style="display:none" title="The High-Water Mark: the biggest single hand this corner has ever sold, kept across every bust and fresh identity. Smash the mark that stood when you sat down and the story does the corner’s talking — heat cools 5, once a session.">📈 —</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1936,6 +1944,44 @@ function loadCenter() {
   return { built: false, runs: 0 };
 }
 function saveCenter(c) { try { localStorage.setItem(CENTER_KEY, JSON.stringify(c)); } catch(e){} }
+// LAB-34: the record round on the corner. The biggest single hand
+// ever sold lives in its own key, OUTSIDE the run — busts and fresh
+// identities can't erase it. The mark standing when the session
+// opened is the bar: smash it once a session and the story does the
+// corner's talking — heat cools 5. The block keeps score.
+const HWM_KEY = 'growop-record', HWM_RELIEF = 5;
+let hwmMark = null, hwmRung = false;
+function loadHwm() {
+  try { const h = JSON.parse(localStorage.getItem(HWM_KEY) || 'null');
+    if (h && typeof h === 'object') return { sale: Math.max(0, h.sale || 0), beats: Math.max(0, Math.floor(h.beats || 0)) };
+  } catch(e){}
+  return { sale: 0, beats: 0 };
+}
+function saveHwm(h) { try { localStorage.setItem(HWM_KEY, JSON.stringify(h)); } catch(e){} }
+function refreshHwmChip() {
+  const b = document.getElementById('hwm-toggle');
+  if (!b) return;
+  const h = loadHwm();
+  if (h.sale <= 0) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.textContent = '📈 best $' + fmtCash(Math.floor(h.sale));
+  b.title = 'The High-Water Mark: $' + fmtCash(Math.floor(h.sale)) + ' in one hand — the biggest sale this corner has ever seen, kept across every bust. Smashed on ' + h.beats + ' session' + (h.beats === 1 ? '' : 's') + '. Beat the mark that stood when you sat down and heat cools ' + HWM_RELIEF + ', once a session.';
+}
+function recordSale(amount) {
+  const h = loadHwm();
+  if (hwmMark === null) hwmMark = h.sale;
+  if (amount > h.sale) saveHwm({ sale: amount, beats: h.beats });
+  if (!hwmRung && hwmMark > 0 && amount > hwmMark) {
+    hwmRung = true;
+    const h2 = loadHwm();
+    saveHwm({ sale: h2.sale, beats: h2.beats + 1 });
+    addHeat(-HWM_RELIEF);
+    showToast('📈 A record hand — $' + fmtCash(amount) + ' in one sale. The story does the corner\u2019s talking; heat cools ' + HWM_RELIEF + '.', 'good');
+    addFeed('📈 HIGH-WATER MARK — $' + fmtCash(amount) + ' in one hand. The block will tell it for years');
+    checkGrowAchievements();
+  }
+  refreshHwmChip();
+}
 function refreshCenterBtn() {
   const b = document.getElementById('center-toggle');
   if (!b) return;
@@ -2319,6 +2365,7 @@ function refreshRouteBtn() {
   refreshLawyerBtn(); // LAB-31: and the retainer
   refreshPreSaleBtn(); // LAB-32: and the van's ledger
   refreshCenterBtn(); // LAB-33: and the block's own building
+  refreshHwmChip(); // LAB-34: and the corner's record book
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2757,6 +2804,7 @@ const GROW_ACH = [
   { id: 'retained', name: 'Habeas Corpus', test: () => (state.casesWon || 0) >= 3 },   // LAB-31
   { id: 'sold_forward', name: 'Sold Forward', test: () => (state.preSales || 0) >= 4 },   // LAB-32
   { id: 'cornerstone', name: 'Cornerstone', test: () => loadCenter().built && (loadCenter().runs || 0) >= 2 },   // LAB-33
+  { id: 'high_water', name: 'High-Water Mark', test: () => (loadHwm().beats || 0) >= 3 },   // LAB-34
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -3684,6 +3732,7 @@ function sellToDealer(d, idx) {
     stashCount -= WHALE_BAGS; state.totalSold += WHALE_BAGS;
     pureBags = Math.min(pureBags, stashCount);   // the ✨ ledger can't exceed what's left
     addCash(price);
+    recordSale(price);   // LAB-34: the book sees every hand — whales included
     addHeat(heatGainPerSale(WHALE_BAGS) * waveHeatMult() * partyHeatMult());
     burnStreetSale();   // a sale is a sale — the burner burns
     if (waveActive()) waveSales++;
@@ -3711,6 +3760,7 @@ function sellToDealer(d, idx) {
   clientTick();   // LAB-27: and a face becomes familiar
   diceSaleTick();   // LAB-30: and the hot hand counts it
   addCash(price);
+  recordSale(price);   // LAB-34: the corner's record book sees the hand
   addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
   burnStreetSale();   // LAB-24: the corner burns the number
   if (waveActive()) waveSales++;
