@@ -353,6 +353,36 @@ function loadHvRec(){
   return {days:0, beats:0};
 }
 function saveHvRec(r){ try{ localStorage.setItem(HVREC_KEY, JSON.stringify(r)); }catch(e){} }
+// HV-33: the letters round under the bridge. Every genuinely fresh
+// camp with a history to cite finds a note taped inside the corner
+// fridge's door — it quotes the fridge's welcomed camps and the
+// bridge's longest hold by their real numbers, and reading it lifts
+// the fire.
+var HVNOTE_KEY='hv-letter', HVNOTE_MORALE=2;
+function loadHvNote(){
+  try{ var n=JSON.parse(localStorage.getItem(HVNOTE_KEY)||'null');
+    if(n&&typeof n==='object') return {read:Math.max(0,Math.floor(n.read||0))};
+  }catch(e){}
+  return {read:0};
+}
+function saveHvNote(n){ try{ localStorage.setItem(HVNOTE_KEY, JSON.stringify(n)); }catch(e){} }
+function composeHvNote(){
+  var fr=loadFridge(), rec=loadHvRec();
+  var s='\ud83d\udcdd A note taped in the fridge door: "';
+  if(fr.camps>0) s+='Camp #'+fr.camps+' to find this. ';
+  if(rec.days>0) s+='Longest any of us held was '+rec.days+' dawns. ';
+  s+='Take the milk, leave a story."';
+  return s;
+}
+function deliverHvNote(){
+  if(!(loadFridge().camps>0 || loadHvRec().days>0)) return;
+  var n=loadHvNote();
+  saveHvNote({read:(n.read||0)+1});
+  G.morale=Math.min(100,(G.morale||0)+HVNOTE_MORALE);
+  var s=composeHvNote();
+  log(s+' (+'+HVNOTE_MORALE+'\ud83d\ude0a)');
+  floatText('+'+HVNOTE_MORALE+'\ud83d\ude0a');
+}
 function recordDays(d){
   var r=loadHvRec();
   if(hvRecMark===null) hvRecMark=r.days;
@@ -453,6 +483,7 @@ var GOALS = [
   {id:'borrow2',    desc:'Repay 2 of Ray\u2019s loans in full', target:2, reward:6, value:function(){ return G.rayLoans||0; }},
   {id:'fridge2',    desc:'See the corner fridge welcome 2 fresh camps', target:2, reward:8, value:function(){ return fridgeCamps(); }},
   {id:'record2',    desc:'Outlast the bridge\u2019s old mark on 2 different mornings', target:2, reward:6, value:function(){ return loadHvRec().beats; }},
+  {id:'letters2',   desc:'Find the fridge-door note at 2 fresh camps', target:2, reward:5, value:function(){ return loadHvNote().read; }},
 ];
 
 var activeJobs = {};
