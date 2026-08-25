@@ -41,6 +41,21 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-08-25 (QA-11, post-Round-Twenty-Three) — **all 71 suites green
+end-to-end on the first pass**, zero failures and zero stale
+assertions, with the audit row holding its 12/32 environment
+baseline. First battery carrying the two promoted Round-23
+suites (`hvborrow`, `voxnote`) and the first run after both the
+insurance round (Depths 157–162) and the credit round (Depths
+164–169) landed whole — the rounds' in-battery cross-feature
+seams (the Borrowed Favor's dawn collection beside `hvgarage`'s
+covered-sweep dawn and `hvrainbet`'s settlement, all three
+priming the one-time survive-goal payouts so exact goodwill
+deltas hold, and the Trader's Note's half-garnish beside
+`voxpolicy`'s claim payouts on the same coin ledger) held clean
+without pinning; the Hearthvale and Tycoon legs were verified by
+their own one-shot suites at merge time, as always.
+
 2026-08-25 (QA-10, post-Round-Twenty-One) — **all 67 suites green
 end-to-end on the first pass**, zero failures and zero stale
 assertions, with the audit row holding its 12/32 environment
