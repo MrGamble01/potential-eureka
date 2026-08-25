@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6240,6 +6240,7 @@ const ACHIEVEMENTS = [
   { id: 'first_employee', icon: '\u{1F9F3}', title: 'Badge Number One',    desc: 'Welcome Employee #1 back on three sessions.', check: () => loadVisitor().visits >= 3, progress: () => [Math.min(loadVisitor().visits, 3), 3] },
   { id: 'badge_drawer', icon: '\u{1FAAA}', title: 'The Badge in the Drawer', desc: 'Rally the ring beside the badge on three sessions.', check: () => loadKeepsake().pays >= 3, progress: () => [Math.min(loadKeepsake().pays, 3), 3] },
   { id: 'reunion3', icon: '\u{1F942}', title: 'The Company Reunion', desc: 'Call the whole story back on three sessions.', check: () => loadReunion().held >= 3, progress: () => [Math.min(loadReunion().held, 3), 3] },
+  { id: 'portrait3', icon: '\u{1F4F8}', title: 'The Reunion Photo', desc: 'Straighten the photo on three sessions.', check: () => loadPhoto().looks >= 3, progress: () => [Math.min(loadPhoto().looks, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10531,6 +10532,7 @@ function updateHist(dt) {
   refreshRingChip();
   refreshVisitorChip();
   refreshReunionChip();
+  refreshPhotoChip();
 }
 // ---- the Founder's Ring (TYC-39) ------------------------------
 // The heirloom round: the memory starts paying. Once a session the
@@ -10686,6 +10688,48 @@ function holdReunion() {
   showToast('\u{1F942} The Company Reunion \u2014 +$' + p + '. The whole story showed up.', 'good', 'standard');
   checkAchievements();
   refreshReunionChip();
+}
+// ---- the Reunion Photo (TYC-47) -------------------------------
+// Round Thirty-Six opens the portrait round: after three Company
+// Reunions, a framed photo of the whole crowd hangs by the brass
+// plaque. Once a session the founder straightens it \u2014 and the
+// memory pays: $50 base + $25 per reunion held (cap 5). Looks
+// tallied in 'tyc-portrait'.
+const PHOTO_KEY = 'tyc-portrait', PHOTO_BASE = 50, PHOTO_PER = 25;
+let photoLooked = false;
+function loadPhoto() {
+  try { const p = JSON.parse(localStorage.getItem(PHOTO_KEY) || 'null');
+    if (p && typeof p === 'object') return { looks: Math.max(0, Math.floor(p.looks || 0)) };
+  } catch (e) { }
+  return { looks: 0 };
+}
+function savePhoto(p) { try { localStorage.setItem(PHOTO_KEY, JSON.stringify(p)); } catch (e) { } }
+function photoHangs() { return loadReunion().held >= 3; }
+function photoPurse() { return PHOTO_BASE + PHOTO_PER * Math.min(loadReunion().held || 0, 5); }
+function refreshPhotoChip() {
+  const el = document.getElementById('photo-chip');
+  if (!el) return;
+  el.onclick = straightenPhoto;
+  if (!photoHangs()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.style.opacity = photoLooked ? '0.45' : '';
+  el.textContent = '\u{1F4F8} photo';
+  el.title = photoLooked
+    ? 'The Reunion Photo has been straightened this session. Once a day \u2014 it hangs just fine.'
+    : 'The Reunion Photo \u2014 the whole crowd, framed by the plaque. Straighten it and the memory pays: $' + photoPurse()
+      + '. Straightened ' + loadPhoto().looks + ' time' + (loadPhoto().looks === 1 ? '' : 's') + '.';
+}
+function straightenPhoto() {
+  if (!photoHangs() || photoLooked) return;
+  photoLooked = true;
+  const p = photoPurse();
+  const ph = loadPhoto();
+  savePhoto({ looks: ph.looks + 1 });
+  state.cash += p;
+  addFeedEntry('\u{1F4F8} The founder straightens the reunion photo by the plaque \u2014 the whole crowd, mid-toast. Somebody in the frame still invests: +$' + p + '.');
+  showToast('\u{1F4F8} The Reunion Photo \u2014 +$' + p + '. The memory pays.', 'good', 'standard');
+  checkAchievements();
+  refreshPhotoChip();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
