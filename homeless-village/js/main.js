@@ -92,8 +92,15 @@ if(!G.fridgeSeeded){
   var _fr=loadFridge();
   if(_fr.built){
     _fr.camps=(_fr.camps||0)+1; saveFridge(_fr);
-    G.goodwill=(G.goodwill||0)+FRIDGE_SEED;
-    log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+FRIDGE_SEED+'\ud83e\ude76');
+    // HV-36: with the bulletin board up, the block knows the new
+    // camp better — 5 goodwill instead of 3.
+    var _seed=fridgeSeedNow();
+    G.goodwill=(G.goodwill||0)+_seed;
+    if(fridgeHasBoard()){
+      log('\uD83E\uDDCA The corner fridge still hums, its bulletin board full \u2014 the block already knows this camp well. +'+_seed+'\ud83e\ude76');
+    } else {
+      log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+_seed+'\ud83e\ude76');
+    }
     updateHUD();
   }
   deliverHvNote();   // HV-33: and the door holds a note for whoever comes next
