@@ -598,6 +598,7 @@ const AgeOfWarGame = (() => {
     { id: 'roll3', icon: '\u{1F4DC}', title: 'The Muster Roll', desc: 'Read the roll on three sessions.' },
     { id: 'vbench3', icon: '\u{1FA91}', title: 'The Veterans\u2019 Bench', desc: 'Sit on the bench on three sessions.' },
     { id: 'tale3', icon: '\u{1F525}', title: 'The Campfire Tale', desc: 'Hear the tale on three sessions.' },
+    { id: 'march3', icon: '\u{1F3BA}', title: 'The Marching Song', desc: 'Sing the song on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -726,6 +727,7 @@ const AgeOfWarGame = (() => {
     if (loadRoll().leafs >= 3) unlock('roll3');
     if (loadVBench().sits >= 3) unlock('vbench3');
     if (loadTale().tellings >= 3) unlock('tale3');
+    if (loadMSong().sings >= 3) unlock('march3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2412,6 +2414,37 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Marching Song (AOW-52) ──
+  // The song round on the battlefield: after three hearings of the
+  // Campfire Tale, the drummers set it to a cadence \u2014 the
+  // whole war, one song, every rank knows the words. Once a
+  // session a singing pays: 90 gold base + 45 per telling (cap 5).
+  // Sings tallied in 'aow-song'.
+  const MSONG_KEY = 'aow-song', MSONG_BASE = 90, MSONG_PER = 45;
+  let msongSung = false;
+  function loadMSong() {
+    try { const s = JSON.parse(localStorage.getItem(MSONG_KEY) || 'null');
+      if (s && typeof s === 'object') return { sings: Math.max(0, Math.floor(s.sings || 0)) };
+    } catch {}
+    return { sings: 0 };
+  }
+  function saveMSong(s) { try { localStorage.setItem(MSONG_KEY, JSON.stringify(s)); } catch {} }
+  function msongReady() { return loadTale().tellings >= 3; }
+  function msongPurse() { return MSONG_BASE + MSONG_PER * Math.min(loadTale().tellings || 0, 5); }
+  function singMarchingSong() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!msongReady() || msongSung) return;
+    msongSung = true;
+    const p = msongPurse();
+    const s = loadMSong();
+    saveMSong({ sings: s.sings + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F3BA} THE MARCHING SONG \u2014 the whole war set to a cadence, and every rank knows the words. The quartermaster finds a purse in the chorus: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2601,6 +2634,8 @@ const AgeOfWarGame = (() => {
     if (vbBtn) vbBtn.onclick = sitVeteransBench;
     const taleBtn = document.getElementById('aow-tale-btn');
     if (taleBtn) taleBtn.onclick = hearCampfireTale;
+    const msongBtn = document.getElementById('aow-song-btn');
+    if (msongBtn) msongBtn.onclick = singMarchingSong;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8520,6 +8555,21 @@ const AgeOfWarGame = (() => {
         taleEl.title = taleTold
           ? 'The Campfire Tale has been told this session \u2014 the fire burns low.'
           : `The Campfire Tale \u2014 three sits on the bench and the oldest campaigner has the whole war by heart. Hear it, and somebody around the fire pays for the next chapter: +${talePurse()} gold. Told ${loadTale().tellings} time${loadTale().tellings === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Marching Song (AOW-52)
+    const msongEl = document.getElementById('aow-song-btn');
+    const msongCdEl = document.getElementById('aow-song-cd');
+    if (msongEl) {
+      if (!msongReady()) { msongEl.style.display = 'none'; }
+      else {
+        msongEl.style.display = '';
+        msongEl.style.opacity = msongSung ? '0.45' : '';
+        if (msongCdEl) msongCdEl.textContent = msongSung ? 'sung' : `+${msongPurse()}g`;
+        msongEl.title = msongSung
+          ? 'The Marching Song has had its singing this session \u2014 the cadence keeps.'
+          : `The Marching Song \u2014 three hearings of the tale and the drummers set it to a cadence: the whole war, one song, every rank knows the words. Sing it, and the quartermaster finds a purse in the chorus: +${msongPurse()} gold. Sung ${loadMSong().sings} time${loadMSong().sings === 1 ? '' : 's'}.`;
       }
     }
 
