@@ -1679,6 +1679,7 @@
     { id: 'elder_recital', emoji: '\u{1F4D4}', name: 'The Elder Remembers', desc: 'Hear the Elder\u2019s recital three times.', done: () => loadRecital().opens >= 3 },
     { id: 'hearthstone', emoji: '\u{1FAA8}', name: 'The First Fire', desc: 'Warm the founders\u2019 hearthstone on three days.', done: () => loadHearth().uses >= 3 },
     { id: 'rope_swing', emoji: '\u{1FAA2}', name: 'The Rope Swing', desc: 'See the oak shade three towns and earn its swing.', done: () => oakHasSwing() },
+    { id: 'green_fair', emoji: '\u{1F3AA}', name: 'The Green Fair', desc: 'Open three foundings with the fair under the oak.', done: () => loadFair().days >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2809,6 +2810,18 @@
   const OAK_SWING_AT = 3, OAK_CHEER2 = 12;
   function oakHasSwing() { const o = loadOak(); return o.planted && (o.towns || 0) >= OAK_SWING_AT; }
   function oakCheerNow() { return oakHasSwing() ? OAK_CHEER2 : OAK_CHEER; }
+  // HVALE-34: the Green Fair — the festival round. When the rope
+  // swing hangs, every founding opens with the fair: stalls under
+  // the oak, the whole valley come to see the new town raised.
+  // +20 gold and +5 happiness on top of the swing's shade.
+  const FAIR_KEY = 'hvale-festival', FAIR_GOLD = 20, FAIR_CHEER = 5;
+  function loadFair() {
+    try { const f = JSON.parse(localStorage.getItem(FAIR_KEY) || 'null');
+      if (f && typeof f === 'object') return { days: Math.max(0, Math.floor(f.days || 0)) };
+    } catch (e) { }
+    return { days: 0 };
+  }
+  function saveFair(f) { try { localStorage.setItem(FAIR_KEY, JSON.stringify(f)); } catch (e) { } }
   function loadOak() {
     try { const o = JSON.parse(localStorage.getItem(OAK_KEY) || 'null');
       if (o && typeof o === 'object') return { planted: !!o.planted, towns: Math.max(0, Math.floor(o.towns || 0)) };
@@ -5149,6 +5162,15 @@
       chron('🌳', oakHasSwing()
         ? 'The Founders\u2019 Oak shades the green, a rope swing turning under its branch \u2014 the new town starts ' + cheer + ' happiness glad'
         : 'The Founders\u2019 Oak already shades the green \u2014 the new town starts ' + cheer + ' happiness glad');
+      // HVALE-34: the swing means the fair — the valley throws one
+      // for every founding now.
+      if (oakHasSwing()) {
+        const fr = loadFair();
+        saveFair({ days: fr.days + 1 });
+        state.res.gold += FAIR_GOLD;
+        state.happy = Math.min(100, state.happy + FAIR_CHEER);
+        chron('\u{1F3AA}', 'THE GREEN FAIR \u2014 stalls under the oak, the whole valley come to see the new town raised. +' + FAIR_GOLD + '\u{1FA99}, +' + FAIR_CHEER + ' happiness');
+      }
     }
     deliverOakLetter(); // HVALE-30: and a letter waits at the roots
     // center camera on the starter clearing
