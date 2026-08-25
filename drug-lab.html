@@ -555,6 +555,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #polaroid-toggle{bottom:490px;right:8px;font-size:11px;padding:5px 9px;} }
+/* ── The Corner Anniversary (LAB-46) ── */
+#anniv-toggle{
+  position:fixed;bottom:14px;right:2880px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(255,215,120,0.45);
+  color:#ffd778;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #anniv-toggle{bottom:528px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -649,6 +657,7 @@ canvas{display:block;touch-action:none;}
 <button id="og-toggle" style="display:none" title="The OG from the Block: once a session the man himself drops by — he vouches for you on the corner, and the block settles.">🧢 THE OG</button>
 <button id="reunion-toggle" style="display:none" title="The Block Reunion: when the whole story stands — the gold record’s marks and the OG’s visits — the corner throws it once a session, and everyone who ever copped comes back through.">🎪 REUNION</button>
 <button id="polaroid-toggle" style="display:none" title="The Cookout Polaroid: a shot from the block reunion, taped up behind the counter next to the gold record. Look at it once a session — the memory still moves product.">📸 POLAROID</button>
+<button id="anniv-toggle" style="display:none" title="The Corner Anniversary: three looks at the polaroid and somebody does the math — the shop's been open a whole year. Toast it once a session and the block buys a round.">🎂 ANNIVERSARY</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2297,6 +2306,46 @@ function lookAtPolaroid() {
   checkGrowAchievements();
   refreshPolaroidBtn();
 }
+// LAB-46: the anniversary round on the corner \u2014 after three
+// looks at the Cookout Polaroid, somebody does the math: the shop's
+// been open a whole year. Once a session the crew toasts it: $60
+// base + $30 per polaroid look (cap 5). Toasts tallied in
+// 'growop-anniversary'.
+const CANNIV_KEY = 'growop-anniversary', CANNIV_BASE = 60, CANNIV_PER = 30;
+let annivToasted = false;
+function loadCAnniv() {
+  try { const a = JSON.parse(localStorage.getItem(CANNIV_KEY) || 'null');
+    if (a && typeof a === 'object') return { toasts: Math.max(0, Math.floor(a.toasts || 0)) };
+  } catch(e){}
+  return { toasts: 0 };
+}
+function saveCAnniv(a) { try { localStorage.setItem(CANNIV_KEY, JSON.stringify(a)); } catch(e){} }
+function annivStands() { return loadPolaroid().looks >= 3; }
+function annivPurse() { return CANNIV_BASE + CANNIV_PER * Math.min(loadPolaroid().looks || 0, 5); }
+function refreshAnnivBtn() {
+  const b = document.getElementById('anniv-toggle');
+  if (!b) return;
+  b.onclick = toastCornerAnniv;
+  if (!annivStands()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = annivToasted ? '0.45' : '';
+  b.title = annivToasted
+    ? 'The Corner Anniversary got its toast this session. Once a day \u2014 the block went home.'
+    : 'The Corner Anniversary \u2014 the shop\u2019s been open a whole year and the polaroid proves it. Toast it and the block buys a round: +$' + annivPurse()
+      + '. Toasted ' + loadCAnniv().toasts + ' time' + (loadCAnniv().toasts === 1 ? '' : 's') + '.';
+}
+function toastCornerAnniv() {
+  if (!annivStands() || annivToasted) return;
+  annivToasted = true;
+  const p = annivPurse();
+  const a = loadCAnniv();
+  saveCAnniv({ toasts: a.toasts + 1 });
+  state.cash += p;
+  addFeed('🎂 The Corner Anniversary \u2014 a whole year on the block, and the polaroid to prove it. The block buys a round: +$' + p);
+  showToast('🎂 The Corner Anniversary \u2014 +$' + p + '. A whole year.', 'good');
+  checkGrowAchievements();
+  refreshAnnivBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2718,6 +2767,7 @@ function refreshRouteBtn() {
   refreshOgBtn(); // LAB-42: and the man the flame came from
   refreshReunionBtn(); // LAB-44: and the day the whole story shows up
   refreshPolaroidBtn(); // LAB-45: and the picture that proves it happened
+  refreshAnnivBtn(); // LAB-46: and the year it all added up to
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3169,6 +3219,7 @@ const GROW_ACH = [
   { id: 'tin_fluid', name: 'The Tin of Fluid', test: () => (loadGKeep().pays || 0) >= 3 },   // LAB-43
   { id: 'block_reunion', name: 'The Block Reunion', test: () => (loadBReunion().held || 0) >= 3 },   // LAB-44
   { id: 'polaroid3', name: 'The Cookout Polaroid', test: () => (loadPolaroid().looks || 0) >= 3 },   // LAB-45
+  { id: 'corner_anniv', name: 'The Corner Anniversary', test: () => (loadCAnniv().toasts || 0) >= 3 },   // LAB-46
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
