@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -5638,13 +5638,28 @@ function moraleWorkMult(worker) {
 // for every engineer (default). reason is an optional feed entry.
 function changeMorale(delta, reason = '', target = 'team') {
   if (!moraleEnabled) return;
+  // TYC-35: the endowed office never despairs — a blow cannot land
+  // morale below the scholarship's floor. (The floor also steadies
+  // anyone a pre-endowment save left beneath it: the fund's point.)
+  const floorV = (typeof endowed !== 'undefined' && endowed && delta < 0)
+    ? Math.max(CONFIG.moraleMin, ENDOW_FLOOR) : CONFIG.moraleMin;
+  let caught = false;
+  const clampM = w => {
+    const raw = (w.morale ?? CONFIG.moraleDefault) + delta;
+    const next = Math.max(floorV, Math.min(CONFIG.moraleMax, raw));
+    if (floorV > CONFIG.moraleMin && raw < floorV) caught = true;
+    w.morale = next;
+  };
   if (target === 'team') {
     if (ideaWorkers.length === 0) return;
-    for (const w of ideaWorkers) {
-      w.morale = Math.max(CONFIG.moraleMin, Math.min(CONFIG.moraleMax, (w.morale ?? CONFIG.moraleDefault) + delta));
-    }
+    for (const w of ideaWorkers) clampM(w);
   } else if (target && typeof target === 'object') {
-    target.morale = Math.max(CONFIG.moraleMin, Math.min(CONFIG.moraleMax, (target.morale ?? CONFIG.moraleDefault) + delta));
+    clampM(target);
+  }
+  if (caught) {
+    endowCatches++;
+    addFeedEntry('\u{1F393} The scholarship steadied the office — the blow could not land below ' + ENDOW_FLOOR);
+    checkAchievements();
   }
   if (reason) addFeedEntry(`${delta > 0 ? '😊' : '😕'} ${reason} (${delta > 0 ? '+' : ''}${delta})`);
 }
@@ -6202,6 +6217,7 @@ const ACHIEVEMENTS = [
   { id: 'all_in',        icon: '🎲', title: 'Bet the House',        desc: 'Win five moonshots on the race.', check: () => moonshotsWon >= 5, progress: () => [Math.min(moonshotsWon, 5), 5] },
   { id: 'safety_net',    icon: '\u{1F6DF}', title: 'The Safety Net',       desc: 'Collect three hedge payouts.', check: () => hedgesPaid >= 3, progress: () => [Math.min(hedgesPaid, 3), 3] },
   { id: 'beat_the_desk', icon: '\u{1F3E6}', title: 'Beat the Desk',        desc: 'Come out ahead on three factoring windows.', check: () => factorWins >= 3, progress: () => [Math.min(factorWins, 3), 3] },
+  { id: 'in_perpetuity', icon: '\u{1F393}', title: 'In Perpetuity',        desc: 'Endow the scholarship and let it steady five hard days.', check: () => endowed && endowCatches >= 5, progress: () => [Math.min(endowCatches, 5), 5] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10255,6 +10271,48 @@ function updateFactor(dt) {
   saveGame();
   refreshHud();
 }
+// Round Twenty-Four opens the legacy round: wealth converted into
+// permanent public goods in each game's SOFT currency. The Tycoon
+// leg endows the Founders' Scholarship — $25,000, once ever, and the
+// endowed office never despairs: no blow lands morale below 50,
+// forever. The arc closes where it started — the money finally buys
+// something the balance sheet can't hold.
+const ENDOW_COST = 25000, ENDOW_FLOOR = 50;
+let endowed = false, endowCatches = 0;
+function refreshEndowChip() {
+  const el = document.getElementById('endow-chip');
+  if (!el) return;
+  el.onclick = buyEndowment;
+  if (prestigeLevel < 1) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  if (endowed) {
+    el.textContent = '\u{1F393} endowed';
+    el.title = 'The Founders\u2019 Scholarship stands — no blow lands the office below ' + ENDOW_FLOOR + ' morale, ever. It has steadied ' + endowCatches + ' hard day' + (endowCatches === 1 ? '' : 's') + '.';
+  } else {
+    el.textContent = '\u{1F393} $' + fmtCash(ENDOW_COST);
+    el.title = 'The Endowment — $' + fmtCash(ENDOW_COST) + ', once ever, endows the Founders\u2019 Scholarship: the office never falls below ' + ENDOW_FLOOR + ' morale again. Money the balance sheet can\u2019t hold.';
+  }
+}
+function buyEndowment() {
+  if (prestigeLevel < 1 || endowed) return;
+  if (state.cash < ENDOW_COST) {
+    showToast('\u{1F393} The endowment runs $' + fmtCash(ENDOW_COST) + ' — the wallet says no.', '', 'standard');
+    return;
+  }
+  state.cash -= ENDOW_COST; showSpendPop(ENDOW_COST);
+  endowed = true;
+  refreshEndowChip();
+  showToast('\u{1F393} The Founders\u2019 Scholarship is endowed — this office never despairs again.', 'good', 'critical');
+  addFeedEntry('\u{1F393} Endowed the Founders\u2019 Scholarship — a floor under every hard day, in perpetuity');
+  checkAchievements();
+  saveGame(); refreshHud();
+}
+function updateEndow(dt) {
+  updateEndow._acc = (updateEndow._acc || 0) + dt;
+  if (updateEndow._acc < 2) return;
+  updateEndow._acc = 0;
+  refreshEndowChip();
+}
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
@@ -11146,6 +11204,7 @@ function frameBody(now) {
   updateMoonshot(dt);
   updateHedge(dt);
   updateFactor(dt);
+  updateEndow(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -12040,6 +12099,17 @@ const SAVE_SCHEMA = [
         factorProfit = Math.floor(p.factor.profit || 0);
       }
       refreshFactorChip();
+    },
+  },
+  {
+    key: 'endow', // TYC-35: the scholarship stands forever
+    write: p => { p.endow = { done: endowed, catches: endowCatches }; },
+    read: p => {
+      if (p.endow) {
+        endowed = !!p.endow.done;
+        endowCatches = Math.max(0, Math.floor(p.endow.catches || 0));
+      }
+      refreshEndowChip();
     },
   },
   {
