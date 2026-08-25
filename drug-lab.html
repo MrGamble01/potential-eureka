@@ -1958,6 +1958,12 @@ const CENTER_KEY = 'growop-center', CENTER_COST = 20000;
 // fresh start from then on locks TWO regulars. The building earned it.
 const CENTER_ANNEX_AT = 3;
 function centerHasAnnex() { const c = loadCenter(); return c.built && (c.runs || 0) >= CENTER_ANNEX_AT; }
+// LAB-41: the third-story round on the corner — at six fresh starts
+// the annex fields a year-round REC LEAGUE, and every fresh start
+// under it locks three regulars instead of two. The center keeps
+// growing on what it already grew.
+const CENTER_LEAGUE_AT = 6;
+function centerHasLeague() { const c = loadCenter(); return c.built && (c.runs || 0) >= CENTER_LEAGUE_AT; }
 // LAB-39: the block cookout — the festival round. When the gym
 // annex stands, every fresh start opens with the cookout: grills
 // out on the sidewalk, the whole block eating. +$300 and heat −5
@@ -2157,7 +2163,7 @@ function refreshCenterBtn() {
   const c = loadCenter();
   b.style.display = (currentAct() >= 2 || c.built) ? '' : 'none';
   b.classList.toggle('on', c.built);
-  b.textContent = c.built ? (centerHasAnnex() ? '🏀 CENTER + ANNEX' : '🏀 CENTER STANDS') : '🏀 CENTER $' + fmtCash(CENTER_COST);
+  b.textContent = c.built ? (centerHasLeague() ? '🏀 CENTER + LEAGUE' : centerHasAnnex() ? '🏀 CENTER + ANNEX' : '🏀 CENTER STANDS') : '🏀 CENTER $' + fmtCash(CENTER_COST);
 }
 function buildCenter() {
   const c = loadCenter();
@@ -2977,6 +2983,7 @@ const GROW_ACH = [
   { id: 'sold_forward', name: 'Sold Forward', test: () => (state.preSales || 0) >= 4 },   // LAB-32
   { id: 'cornerstone', name: 'Cornerstone', test: () => loadCenter().built && (loadCenter().runs || 0) >= 2 },   // LAB-33
   { id: 'gym_annex', name: 'The Gym Annex', test: () => centerHasAnnex() },   // LAB-38
+  { id: 'rec_league', name: 'The Rec League', test: () => centerHasLeague() },   // LAB-41
   { id: 'block_cookout', name: 'Block Cookout', test: () => (loadCookout().days || 0) >= 3 },   // LAB-39
   { id: 'high_water', name: 'High-Water Mark', test: () => (loadHwm().beats || 0) >= 3 },   // LAB-34
   { id: 'gold_record', name: 'The Gold Record', test: () => (loadGPlaque().cheers || 0) >= 3 },   // LAB-40
@@ -3628,9 +3635,15 @@ if (!hadSave) {
     if (cc.built) {
       cc.runs = (cc.runs || 0) + 1; saveCenter(cc);
       if (centerHasAnnex()) {
-        state.clientele = Math.max(state.clientele || 0, 2);
-        addFeed('🏀 The Youth Center and its gym annex still stand — the block knows you twice over');
-        setTimeout(() => showToast('🏀 The gym annex made this corner home — two regulars are already yours.', 'good'), 1800);
+        // LAB-41: the rec league locks a third regular once it runs.
+        state.clientele = Math.max(state.clientele || 0, centerHasLeague() ? 3 : 2);
+        if (centerHasLeague()) {
+          addFeed('🏀 The Youth Center, the annex and the REC LEAGUE all stand — three regulars are already yours');
+          setTimeout(() => showToast('🏀 The rec league runs year-round now — three regulars walk over from the court.', 'good'), 1800);
+        } else {
+          addFeed('🏀 The Youth Center and its gym annex still stand — the block knows you twice over');
+          setTimeout(() => showToast('🏀 The gym annex made this corner home — two regulars are already yours.', 'good'), 1800);
+        }
         // LAB-39: the annex means the cookout — the block throws one
         // for every fresh start now.
         const ck = loadCookout();
