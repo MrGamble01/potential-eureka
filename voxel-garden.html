@@ -236,6 +236,7 @@
     <li>The <b>🫙 Preserve Shed</b> (level 8) jars the quiet days &mdash; <b>one preserve a day, four on the shelf</b>, and every seasonal <b>festival the crowd buys the whole shelf</b> at 12 🪙 a jar: patience, sold at a premium</li>
     <li>The <b>🎲 Cloud Wager</b> (needs the 🌦️ vane) &mdash; tap the chip to stake <b>30 🪙 on rain inside 90 seconds</b>, paying 60: the vane calls showers half a minute early, so <b>a called sky is the whole edge</b></li>
     <li>The <b>🛟 Assessor's Policy</b> &mdash; 25 🪙 insures the fields till dawn: <b>a landed crow peck pays 50 in damages</b>, a quiet day lapses the premium &mdash; the scarecrow and the crib are for prevention, <b>the policy is for the day they miss</b></li>
+    <li>The <b>📝 Trader's Note</b> (needs the Market) &mdash; <b>60 🪙 now against 75 of future trade</b>: half of every Market sale and Tavern meal rides the note till it clears &mdash; farm income and tips stay whole, <b>the debt is a lien on trade alone</b></li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -778,6 +779,42 @@ function sellPreserves(){
   return pay;
 }
 let pigWasRaining=false;
+// VOX-25: the Trader's Note — the credit round closes on the isle.
+// The Trader advances 60 🪙 NOW against 75 of the isle's future
+// trade: half of every Market sale and Tavern meal goes to the note
+// until it clears. Farm income, tips and truffles stay whole — the
+// debt is a lien on TRADE, the Trader's own lane.
+const NOTE_ADV=60, NOTE_OWED=75;
+function takeTraderNote(){
+  if(!hasMarket()){toast('📝 The note needs a 🛒 Trader\u2019s Market to sign at.');return;}
+  if((state.traderNote||0)>0){toast('📝 The Trader taps the standing note — '+state.traderNote+' 🪙 still owed.');return;}
+  state.traderNote=NOTE_OWED;
+  grantCoins(NOTE_ADV,undefined,undefined,undefined);
+  toast('📝 The Trader counts out '+NOTE_ADV+' 🪙 — half of every sale and meal rides the note till '+NOTE_OWED+' clears.');
+  SFX.play('coin');
+  refreshNoteHud();
+}
+function refreshNoteHud(){
+  const h=document.getElementById('noteHud'),tx=document.getElementById('noteTxt');
+  if(!h)return;
+  h.style.display=hasMarket()?'flex':'none';
+  if(tx)tx.textContent=(state.traderNote||0)>0
+    ? '📝 '+state.traderNote+' 🪙 owed'
+    : '📝 '+NOTE_ADV+' 🪙 advance';
+}
+function garnishTrade(n){
+  // Half of every trade coin to the note until it clears.
+  if(!((state.traderNote||0)>0)||n<=0)return n;
+  const take=Math.min(Math.ceil(n/2),state.traderNote);
+  state.traderNote-=take;
+  if(state.traderNote<=0){
+    state.notesCleared=(state.notesCleared||0)+1;
+    toast('📝 The Trader\u2019s note clears — square again. ('+state.notesCleared+' settled)');
+    checkAch();
+  }
+  refreshNoteHud();
+  return n-take;
+}
 // VOX-24: the Assessor's Policy — the insurance round on the isle.
 // 25 🪙 insures the fields for the day: a crow peck that actually
 // lands pays 50 in damages; a quiet day lapses the policy at dawn.
@@ -1518,8 +1555,9 @@ function sellStockpile(bulk){
   const coins=Math.round(goodsSellValue()*(bulk?1.6:1.25)*(festivalActive()?FESTIVAL_BONUS:1));   // bulk premium; hot good +50%; festival +35%
   for(const t of goodsKeys())state.goods[t]=0;
   const b=state.buildings.market,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
-  grantCoins(coins,gx+0.5,gy,gz+0.5);
-  floatText(gx+0.5,gy+0.6,gz+0.5,'🛒 +'+coins,'#ffd166');
+  const kept=garnishTrade(coins);   // VOX-25: the note settles out of trade
+  grantCoins(kept,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.6,gz+0.5,'🛒 +'+kept,'#ffd166');
   burst(gx+0.5,gy,gz+0.5,0xffd166,18,{up:2.4,g:5});
   SFX.play('harvest');setTimeout(()=>SFX.play('coin'),120);
   toast((bulk?'🛒 The Trader bought ':'🛒 Sold ')+tot+' goods for '+coins+' 🪙');
@@ -1565,8 +1603,9 @@ function serveMeal(){
   state.goods[bestT]--;
   const coins=Math.max(2,Math.round(goodDef(bestT).yield*2*demandMult(bestT)*(festivalActive()?FESTIVAL_BONUS:1)));
   const b=state.buildings.tavern,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
-  grantCoins(coins,gx+0.5,gy,gz+0.5);
-  floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+coins,'#ffcf6b');
+  const kept=garnishTrade(coins);   // VOX-25: the tavern pays the note too
+  grantCoins(kept,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+kept,'#ffcf6b');
   SFX.tone(300,0.07,'triangle',0.05);
   state.meals=(state.meals||0)+1;
   if(mealMsgT<=0){toast('🍺 The Tavern served '+goodDef(bestT).product+' for '+coins+' 🪙');mealMsgT=22;}
@@ -4488,6 +4527,7 @@ const ACH=[
   ['jam12','Shelf of Summers','Sell twelve festival jars from the Preserve Shed',()=>(state.jamsSold||0)>=12],
   ['cloud6','Cloud Reader','Win six cloud wagers',()=>(state.cloudWins||0)>=6],
   ['policy4','Acts of Crow','Collect four crop-policy payouts',()=>(state.policyClaims||0)>=4],
+  ['notes3','Square with the Trader','Clear three of the Trader\u2019s notes',()=>(state.notesCleared||0)>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4774,6 +4814,7 @@ function boot(){
 }
 boot();
 </script>
+<div id="noteHud" style="display:none;position:fixed;bottom:188px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(200,170,240,0.5);color:#e2d4f4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="takeTraderNote()" title="The Trader's Note: 60 🪙 now against 75 of future trade — half of every Market sale and Tavern meal rides the note till it clears"><span id="noteTxt">📝 60 🪙 advance</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
