@@ -1145,6 +1145,40 @@ function leafHarborLog(){
   if(typeof checkAch==='function')checkAch();
   refreshHLogHud();
 }
+// VOX-41: the bench round on the shore. After three leafs through
+// the harbor log, the fleet builds a bench by the bell from
+// driftwood and old oars \u2014 a seat with every boat at its
+// back. Once a session a sit pays: 30 coins base + 5 per leaf
+// (cap 5). Sits tallied in 'vox-bench'.
+const HBEN_KEY='vox-bench',HBEN_BASE=30,HBEN_PER=5;
+let hbenchSat=false;
+function loadHBench(){
+  try{const b=JSON.parse(localStorage.getItem(HBEN_KEY)||'null');
+    if(b&&typeof b==='object')return{sits:Math.max(0,Math.floor(b.sits||0))};
+  }catch(e){}
+  return{sits:0};
+}
+function saveHBench(b){try{localStorage.setItem(HBEN_KEY,JSON.stringify(b));}catch(e){}}
+function hbenchBuilt(){ return loadHLog().leafs>=3; }
+function hbenchPurse(){ return HBEN_BASE + HBEN_PER*Math.min(loadHLog().leafs||0,5); }
+function refreshHBenchHud(){
+  const h=document.getElementById('hbenchHud'),tx=document.getElementById('hbenchTxt');
+  if(!h)return;
+  h.style.display=hbenchBuilt()?'flex':'none';
+  h.style.opacity=hbenchSat?'0.45':'';
+  if(tx)tx.textContent=hbenchSat?'🪑 sat':'🪑 bench for +'+hbenchPurse()+' 🪙';
+}
+function sitHarborBench(){
+  if(!hbenchBuilt()||hbenchSat)return;
+  hbenchSat=true;
+  const p=hbenchPurse();
+  const b=loadHBench();
+  saveHBench({sits:b.sits+1});
+  state.coins=(state.coins||0)+p;
+  toast('🪑 A sit on the harbor bench \u2014 driftwood, old oars, every boat at its back. A trader ties up and sits down with a purse: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshHBenchHud();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -4942,6 +4976,7 @@ const ACH=[
   ['dframe3','The Driftwood Frame','Look at the reunion photo on three sessions',()=>loadDFrame().looks>=3],
   ['mooring3','The First Mooring','Ring in the mooring day on three sessions',()=>loadMooring().toasts>=3],
   ['hlog3','The Harbor Log','Leaf through the log on three sessions',()=>loadHLog().leafs>=3],
+  ['hbench3','The Harbor Bench','Sit on the bench on three sessions',()=>loadHBench().sits>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -5196,7 +5231,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -5274,6 +5309,7 @@ boot();
 <div id="dframeHud" style="display:none;position:fixed;bottom:392px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(210,190,150,0.5);color:#eaddc0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lookAtDFrame()" title="The Driftwood Frame: a photo of the reunion fleet, framed in driftwood by the harvest bell. Look at it once a session — somebody in the shot always rows by with a tip."><span id="dframeTxt">🖼️ —</span></div>
 <div id="mooringHud" style="display:none;position:fixed;bottom:426px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(150,200,230,0.5);color:#cfe8f5;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="ringFirstMooring()" title="The First Mooring: three looks at the driftwood frame and the isle counts back to the day the first boat tied up here. Ring it in on the bell once a session — the fleet answers with a round."><span id="mooringTxt">⚓ —</span></div>
 <div id="hlogHud" style="display:none;position:fixed;bottom:460px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(220,200,160,0.5);color:#f0e4c8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="leafHarborLog()" title="The Harbor Log: three mooring days and a log sits open by the bell — every boat that ever tied up, signed in. Leaf through it once a session, and one of the names always sails by with a purse."><span id="hlogTxt">📒 —</span></div>
+<div id="hbenchHud" style="display:none;position:fixed;bottom:494px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="sitHarborBench()" title="The Harbor Bench: three leafs through the log and the fleet builds a bench by the bell — driftwood, old oars, every boat at its back. Sit once a session, and a trader always ties up and sits down with a purse."><span id="hbenchTxt">🪑 —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
