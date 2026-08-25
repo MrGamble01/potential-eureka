@@ -503,6 +503,14 @@ canvas{display:block;touch-action:none;}
 }
 #presale-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 @media (max-width:640px){ #presale-toggle{bottom:289px;right:8px;font-size:11px;padding:5px 9px;} }
+#center-toggle{
+  position:fixed;bottom:14px;right:1866px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#center-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #center-toggle{bottom:314px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -590,6 +598,7 @@ canvas{display:block;touch-action:none;}
 <button id="dice-toggle" style="display:none" title="The Hot Hand: stake $600 on moving three clean street sales in the next 45 seconds — make it and the stake doubles, run dry and it’s gone">🎲 HOT HAND $600</button>
 <button id="lawyer-toggle" style="display:none" title="The Lawyer: a $1,500 retainer buys one case — the next sting’s bags still walk, but their full list value comes back as damages and the heat spike is argued down to 8">⚖️ LAWYER $1,500</button>
 <button id="presale-toggle" style="display:none" title="The Pre-Sale: the Distributor pays now for the next five bags off the line at 0.85× today’s list — the van intercepts them before they ever touch the shelf">📤 PRE-SELL 5</button>
+<button id="center-toggle" style="display:none" title="The Youth Center: $20,000 builds the block something no bust can touch — it stands across every run, and every fresh start begins with one regular already locked. The block remembers.">🏀 CENTER $20,000</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1914,6 +1923,41 @@ function legacyMult() { return 1 + Math.min(6, loadLegacy().points) * 0.04; }
 // go under the laundry floor at a 10% fee; the balance survives any
 // bust and lands in the next run's starting pocket.
 const VAULT_KEY = 'growop-vault';
+// LAB-33: the legacy round on the corner. The Youth Center lives in
+// its own key, OUTSIDE the run — like the floor safe, busts can't
+// touch it. $20,000 once, and every run that starts in its shadow
+// starts with one regular already locked: the block remembers who
+// built it. The empire's first purchase that isn't for the empire.
+const CENTER_KEY = 'growop-center', CENTER_COST = 20000;
+function loadCenter() {
+  try { const c = JSON.parse(localStorage.getItem(CENTER_KEY) || 'null');
+    if (c && typeof c === 'object') return { built: !!c.built, runs: Math.max(0, Math.floor(c.runs || 0)) };
+  } catch(e){}
+  return { built: false, runs: 0 };
+}
+function saveCenter(c) { try { localStorage.setItem(CENTER_KEY, JSON.stringify(c)); } catch(e){} }
+function refreshCenterBtn() {
+  const b = document.getElementById('center-toggle');
+  if (!b) return;
+  const c = loadCenter();
+  b.style.display = (currentAct() >= 2 || c.built) ? '' : 'none';
+  b.classList.toggle('on', c.built);
+  b.textContent = c.built ? '🏀 CENTER STANDS' : '🏀 CENTER $' + fmtCash(CENTER_COST);
+}
+function buildCenter() {
+  const c = loadCenter();
+  if (c.built) { showToast('🏀 The Youth Center already stands — the block runs its own leagues now.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < CENTER_COST) { showToast("Can't cover the build yet ($" + fmtCash(CENTER_COST) + ').', 'bust'); return; }
+  state.cash -= CENTER_COST;
+  saveCenter({ built: true, runs: 0 });
+  state.clientele = Math.max(state.clientele || 0, 1);
+  refreshCenterBtn();
+  showToast('🏀 The Youth Center opens its doors — the first thing this money ever built that wasn\u2019t for the empire. The block will remember.', 'good');
+  addFeed('🏀 Built the Youth Center — $' + fmtCash(CENTER_COST) + ', and it outlives every run');
+  checkGrowAchievements();
+  saveGame();
+}
 const VAULT_CHUNK = 1000, VAULT_FEE = 0.10;
 function loadVault() {
   try { const v = JSON.parse(localStorage.getItem(VAULT_KEY) || 'null');
@@ -2274,6 +2318,7 @@ function refreshRouteBtn() {
   refreshDiceBtn(); // LAB-30: and the hot hand
   refreshLawyerBtn(); // LAB-31: and the retainer
   refreshPreSaleBtn(); // LAB-32: and the van's ledger
+  refreshCenterBtn(); // LAB-33: and the block's own building
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2451,6 +2496,7 @@ function updateRoute(dt) {
 { const db = document.getElementById('dice-toggle'); if (db) db.onclick = placeDice; }
 { const lb = document.getElementById('lawyer-toggle'); if (lb) lb.onclick = retainLawyer; }
 { const pb = document.getElementById('presale-toggle'); if (pb) pb.onclick = takePreSale; }
+{ const cb = document.getElementById('center-toggle'); if (cb) cb.onclick = buildCenter; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2710,6 +2756,7 @@ const GROW_ACH = [
   { id: 'hot_hand', name: 'The Hot Hand', test: () => (state.diceWon || 0) >= 5 },   // LAB-30
   { id: 'retained', name: 'Habeas Corpus', test: () => (state.casesWon || 0) >= 3 },   // LAB-31
   { id: 'sold_forward', name: 'Sold Forward', test: () => (state.preSales || 0) >= 4 },   // LAB-32
+  { id: 'cornerstone', name: 'Cornerstone', test: () => loadCenter().built && (loadCenter().runs || 0) >= 2 },   // LAB-33
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -3349,6 +3396,14 @@ if (!hadSave) {
       addFeed('🔒 Recovered $' + fmtCash(vv.bal) + ' from the old floor safe');
       setTimeout(() => showToast('🔒 The floor safe made it through — $' + fmtCash(vv.bal) + ' waits under the new floor.', 'good'), 1200);
       vv.bal = 0; saveVault(vv);
+    }
+    // LAB-33: the Youth Center still stands on the corner.
+    const cc = loadCenter();
+    if (cc.built) {
+      cc.runs = (cc.runs || 0) + 1; saveCenter(cc);
+      state.clientele = Math.max(state.clientele || 0, 1);
+      addFeed('🏀 The Youth Center still stands — the block already knows you');
+      setTimeout(() => showToast('🏀 The Youth Center made this corner home — one regular is already yours.', 'good'), 1800);
     }
     dm.classList.remove('open');
     saveGame();
