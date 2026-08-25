@@ -595,6 +595,7 @@ const AgeOfWarGame = (() => {
     { id: 'vets_reunion', icon: '\u{1F397}\u{FE0F}', title: 'The Veterans\u2019 Reunion', desc: 'Muster the whole story on three sessions.' },
     { id: 'painting3', icon: '\u{1F5BC}\u{FE0F}', title: 'The Campaign Painting', desc: 'Unveil the painting on three sessions.' },
     { id: 'salute3', icon: '\u{1F387}', title: 'The Founding Salute', desc: 'Fire the salute on three sessions.' },
+    { id: 'roll3', icon: '\u{1F4DC}', title: 'The Muster Roll', desc: 'Read the roll on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -720,6 +721,7 @@ const AgeOfWarGame = (() => {
     if (loadVReunion().held >= 3) unlock('vets_reunion');
     if (loadPainting().looks >= 3) unlock('painting3');
     if (loadSalute().toasts >= 3) unlock('salute3');
+    if (loadRoll().leafs >= 3) unlock('roll3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2313,6 +2315,37 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Muster Roll (AOW-49) ──
+  // The guest-book round on the battlefield: after three Founding
+  // Salutes, a muster roll hangs by the hall door \u2014 every
+  // campaigner who ever answered the horns, signed in. Once a
+  // session a reading pays: 60 gold base + 30 per salute (cap 5).
+  // Readings tallied in 'aow-guestbook'.
+  const ROLL_KEY = 'aow-guestbook', ROLL_BASE = 60, ROLL_PER = 30;
+  let rollRead = false;
+  function loadRoll() {
+    try { const r = JSON.parse(localStorage.getItem(ROLL_KEY) || 'null');
+      if (r && typeof r === 'object') return { leafs: Math.max(0, Math.floor(r.leafs || 0)) };
+    } catch {}
+    return { leafs: 0 };
+  }
+  function saveRoll(r) { try { localStorage.setItem(ROLL_KEY, JSON.stringify(r)); } catch {} }
+  function rollHangs() { return loadSalute().toasts >= 3; }
+  function rollPurse() { return ROLL_BASE + ROLL_PER * Math.min(loadSalute().toasts || 0, 5); }
+  function readMusterRoll() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!rollHangs() || rollRead) return;
+    rollRead = true;
+    const p = rollPurse();
+    const r = loadRoll();
+    saveRoll({ leafs: r.leafs + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F4DC} THE MUSTER ROLL \u2014 every campaigner who ever answered the horns, read out by the hall door. One of the names sends gold: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2496,6 +2529,8 @@ const AgeOfWarGame = (() => {
     if (pntBtn) pntBtn.onclick = unveilPainting;
     const salBtn = document.getElementById('aow-salute-btn');
     if (salBtn) salBtn.onclick = fireFoundingSalute;
+    const rollBtn = document.getElementById('aow-roll-btn');
+    if (rollBtn) rollBtn.onclick = readMusterRoll;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8370,6 +8405,21 @@ const AgeOfWarGame = (() => {
         salEl.title = saluteFired
           ? 'The Founding Salute has fired this session \u2014 the powder is spent.'
           : `The Founding Salute \u2014 three unveilings and the founding day gets its due. Fire it and the patrons stand a round: +${salutePurse()} gold. Fired ${loadSalute().toasts} time${loadSalute().toasts === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Muster Roll (AOW-49)
+    const rollEl = document.getElementById('aow-roll-btn');
+    const rollCdEl = document.getElementById('aow-roll-cd');
+    if (rollEl) {
+      if (!rollHangs()) { rollEl.style.display = 'none'; }
+      else {
+        rollEl.style.display = '';
+        rollEl.style.opacity = rollRead ? '0.45' : '';
+        if (rollCdEl) rollCdEl.textContent = rollRead ? 'read' : `+${rollPurse()}g`;
+        rollEl.title = rollRead
+          ? 'The Muster Roll has been read this session \u2014 the names keep.'
+          : `The Muster Roll \u2014 three salutes and every campaigner who ever answered the horns signs in by the hall door. Read it and one of the names sends gold: +${rollPurse()} gold. Read ${loadRoll().leafs} time${loadRoll().leafs === 1 ? '' : 's'}.`;
       }
     }
 
