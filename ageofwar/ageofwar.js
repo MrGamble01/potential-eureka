@@ -580,6 +580,7 @@ const AgeOfWarGame = (() => {
     { id: 'war_banker',   icon: '🧰',  title: 'War Banker',       desc: 'Earn 300 gold of war-chest interest in one run.' },
     { id: 'iron_nerve',   icon: '🎲',  title: 'Iron Nerve',       desc: 'Win three Ironside wagers in one run.' },
     { id: 'underwritten', icon: '\u{1F6DF}', title: 'Underwritten',     desc: 'Collect three bond payouts in one run.' },
+    { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -693,6 +694,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.chested || 0) >= 300) unlock('war_banker');
     if ((runStats.ironWon || 0) >= 3) unlock('iron_nerve');
     if ((runStats.bondsPaid || 0) >= 3) unlock('underwritten');
+    if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1113,6 +1115,7 @@ const AgeOfWarGame = (() => {
     runStats.chested = 0; chestGold = 0;
     runStats.ironWon = 0; runStats.ironLost = 0; ironBet = null;
     runStats.bondsPaid = 0; runStats.bondsExpired = 0; runStats.bondHealed = 0; bond = null;
+    runStats.loansTaken = 0; runStats.loansCleared = 0; runStats.loanRepaid = 0; loan = null;
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -1912,6 +1915,48 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // The War Loan (AOW-34) — the credit round marches on the wall.
+  // From Age II, 400 gold NOW against the field's future coins: the
+  // lender's men stand at the coin pile and take every second coin
+  // until 500 is repaid (principal + a 25% vig). One loan at a time;
+  // a run that ends mid-debt takes the ledger down with it. Borrowed
+  // tempo is the whole point — a turret bought a wave early pays for
+  // its own vig.
+  const LOAN_PRINCIPAL = 400, LOAN_OWED = 500;
+  let loan = null;   // { owed }
+  function takeLoan() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F3E6} The lender signs from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (loan) {
+      goldFloaters.push({ text: `\u{1F3E6} The ledger still reads ${loan.owed} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold += LOAN_PRINCIPAL;
+    loan = { owed: LOAN_OWED };
+    runStats.loansTaken = (runStats.loansTaken || 0) + 1;
+    goldFloaters.push({ text: `\u{1F3E6} ${LOAN_PRINCIPAL} gold wired \u2014 the field owes ${LOAN_OWED} back, every second coin`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 2.0 });
+    SFX.spawn();
+    renderHud();
+  }
+  function garnishCoins(n) {
+    // Every second coin to the ledger until the debt clears.
+    if (!loan || n <= 0) return n;
+    const take = Math.min(Math.ceil(n / 2), loan.owed);
+    loan.owed -= take;
+    runStats.loanRepaid = (runStats.loanRepaid || 0) + take;
+    if (loan.owed <= 0) {
+      loan = null;
+      runStats.loansCleared = (runStats.loansCleared || 0) + 1;
+      goldFloaters.push({ text: '\u{1F3E6} The ledger clears \u2014 the lender tips his hat', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.0 });
+      checkAchievementsDuringRun();
+    }
+    renderHud();
+    return n - take;
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -2016,6 +2061,8 @@ const AgeOfWarGame = (() => {
     if (ironBtn) ironBtn.onclick = placeIronWager;
     const bondBtn = document.getElementById('aow-bond-btn');
     if (bondBtn) bondBtn.onclick = buyBond;
+    const loanBtn = document.getElementById('aow-loan-btn');
+    if (loanBtn) loanBtn.onclick = takeLoan;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -2270,6 +2317,9 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'i' || e.key === 'I') {
         buyBond();
+        e.preventDefault();
+      } else if (e.key === 'l' || e.key === 'L') {
+        takeLoan();
         e.preventDefault();
       }
     });
@@ -2934,10 +2984,11 @@ const AgeOfWarGame = (() => {
         if (c.landedT >= (runPerks.magnet ? 0.25 : 3.0)) {
           // Silent auto-collect: full value, no combo bonus, no toast spam.
           c.autoCollected = true;
-          gold += c.gold;
+          const kept = garnishCoins(c.gold);   // AOW-34: the lender reads the lodestone too
+          gold += kept;
           if (runPerks.magnet) runStats.coinsCollected++;
           goldFloaters.push({
-            text: '+$' + c.gold, x: c.x, y: c.y - 14,
+            text: '+$' + kept, x: c.x, y: c.y - 14,
             color: runPerks.magnet ? '#fcd34d' : '#9ad48a', t: 0.9,
           });
           c.t = 0;
@@ -3100,6 +3151,7 @@ const AgeOfWarGame = (() => {
       }
     }
     if (collected > 0) {
+      collected = garnishCoins(collected);   // AOW-34: the lender's men stand at the pile
       gold += collected;
       runStats.coinsCollected += coinsHit;
       goldFloaters.push({
@@ -7761,6 +7813,17 @@ const AgeOfWarGame = (() => {
       bdEl.title = bond
         ? `The bond rides \u2014 end the wave below ${Math.round(bond.hpAtBond)} hp and the underwriter rebuilds half the loss. ${runStats.bondsPaid || 0} claimed, ${runStats.bondsExpired || 0} expired this run.`
         : `The Rebuilder's Bond (I) \u2014 ${BOND_COST} gold insures the walls for this wave: end it below the signing mark and half the loss is rebuilt on the spot.`;
+    }
+
+    // War Loan button (AOW-34)
+    const lnEl = document.getElementById('aow-loan-btn');
+    const lnCdEl = document.getElementById('aow-loan-cd');
+    if (lnEl) {
+      if (lnCdEl) lnCdEl.textContent = playerEra < 1 ? 'Age II' : loan ? `${loan.owed}g owed` : `+${LOAN_PRINCIPAL}g`;
+      lnEl.disabled = playerEra < 1 || !!loan;
+      lnEl.title = loan
+        ? `The ledger reads ${loan.owed} gold \u2014 the lender takes every second coin off the field until it clears. ${runStats.loansCleared || 0} cleared this run.`
+        : `The War Loan (L) \u2014 ${LOAN_PRINCIPAL} gold now against ${LOAN_OWED} of the field's future coins, every second coin to the ledger. Borrowed tempo pays for its own vig.`;
     }
 
     // Wave indicator
