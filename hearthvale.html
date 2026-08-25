@@ -324,6 +324,7 @@
     <button id="m-decrees">Town Decrees</button>
     <button id="m-chronicle">Town Chronicle</button>
     <button id="m-recital">The Elder’s Recital</button>
+    <button id="m-hearthstone">Warm the Hearthstone</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1676,6 +1677,7 @@
     { id: 'valley_rich', emoji: '📖', name: 'Talk of the Valley', desc: 'Turn three new pages in the Valley Ledger.', done: () => loadLedger().beats >= 3 },
     { id: 'oak_letters', emoji: '\u2709\uFE0F', name: 'Letters under the Oak', desc: 'Found three towns that each dug up the letter.', done: () => loadOakLetter().read >= 3 },
     { id: 'elder_recital', emoji: '\u{1F4D4}', name: 'The Elder Remembers', desc: 'Hear the Elder\u2019s recital three times.', done: () => loadRecital().opens >= 3 },
+    { id: 'hearthstone', emoji: '\u{1FAA8}', name: 'The First Fire', desc: 'Warm the founders\u2019 hearthstone on three days.', done: () => loadHearth().uses >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2750,6 +2752,37 @@
     chron('\u{1F4D4}', 'THE ELDER\u2019S RECITAL \u2014 the valley\u2019s whole memory, spoken by the fire');
     composeRecital().forEach(s => chron('\u{1F4D4}', s));
     toast('\u{1F4D4} The Elder recites \u2014 every number the valley keeps, spoken into the chronicle.');
+    checkAchievements();
+  }
+  // ---- the Hearthstone (HVALE-32) -----------------------------
+  // The heirloom round: the memory starts paying. The original
+  // hearthstone from the first town ever founded, carried to every
+  // new green. Once a session, warm it at the fire — happiness lifts
+  // by 2 base, +1 per ledger page (to 5), +1 per letter dug up
+  // (to 3). A valley with no memory leaves the stone cold.
+  const HEARTH_KEY = 'hvale-hearth', HEARTH_BASE = 2;
+  let hearthWarmed = false;
+  function loadHearth() {
+    try { const h = JSON.parse(localStorage.getItem(HEARTH_KEY) || 'null');
+      if (h && typeof h === 'object') return { uses: Math.max(0, Math.floor(h.uses || 0)) };
+    } catch (e) { }
+    return { uses: 0 };
+  }
+  function saveHearth(h) { try { localStorage.setItem(HEARTH_KEY, JSON.stringify(h)); } catch (e) { } }
+  function hearthHasWarmth() { return loadLedger().gold > 0 || loadOakLetter().read > 0; }
+  function hearthPower() {
+    return HEARTH_BASE + Math.min(loadLedger().beats || 0, 5) + Math.min(loadOakLetter().read || 0, 3);
+  }
+  function warmHearthstone() {
+    if (!hearthHasWarmth()) { toast('\u{1FAA8} The hearthstone sits cold \u2014 this valley has no memory to warm it yet.'); return; }
+    if (hearthWarmed) { toast('\u{1FAA8} The hearthstone already glows \u2014 it warms once a day.'); return; }
+    hearthWarmed = true;
+    const p = hearthPower();
+    const h = loadHearth();
+    saveHearth({ uses: h.uses + 1 });
+    state.happy = Math.min(100, state.happy + p);
+    chron('\u{1FAA8}', 'The first town\u2019s hearthstone glows at the fire \u2014 +' + p + ' happiness, carried by everything the valley keeps');
+    toast('\u{1FAA8} The Hearthstone warms the green \u2014 +' + p + ' happiness. The memory has weight.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5141,6 +5174,7 @@
     document.getElementById('chron-close').onclick = () => document.getElementById('chronicle').classList.remove('show');
     document.getElementById('m-decrees').onclick = () => { menu.classList.remove('show'); openDecrees(); };
     { const mr = document.getElementById('m-recital'); if (mr) mr.onclick = () => { menu.classList.remove('show'); openRecital(); }; }
+    { const mh = document.getElementById('m-hearthstone'); if (mh) mh.onclick = () => { menu.classList.remove('show'); warmHearthstone(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
