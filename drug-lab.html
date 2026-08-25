@@ -579,6 +579,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #stoop-toggle{bottom:604px;right:8px;font-size:11px;padding:5px 9px;} }
+/* ── The Stoop Story (LAB-49) ── */
+#sstory-toggle{
+  position:fixed;bottom:14px;right:3264px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #sstory-toggle{bottom:642px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -676,6 +684,7 @@ canvas{display:block;touch-action:none;}
 <button id="anniv-toggle" style="display:none" title="The Corner Anniversary: three looks at the polaroid and somebody does the math — the shop's been open a whole year. Toast it once a session and the block buys a round.">🎂 ANNIVERSARY</button>
 <button id="wall-toggle" style="display:none" title="The Wall of Names: three anniversaries and everyone who ever copped starts signing the shop wall. Read it once a session — one of the names always calls in an order.">🖊️ THE WALL</button>
 <button id="stoop-toggle" style="display:none" title="The Stoop: three reads of the wall and the crew builds a bench out front — a seat with the whole story at its back. Sit once a session, and somebody always sits down with a proposition.">🪑 THE STOOP</button>
+<button id="sstory-toggle" style="display:none" title="The Stoop Story: three sits and the crew has the whole block story by heart. Tell it once a session — somebody at the edge of the stoop always calls in an order before it's done.">🎙️ THE STORY</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2444,6 +2453,46 @@ function sitTheStoop() {
   checkGrowAchievements();
   refreshStoopBtn();
 }
+// LAB-49: the story-hour round on the corner \u2014 after three
+// sits on the stoop, the crew has the whole block story by heart:
+// the record, the kites, the reunions, every name on the wall.
+// Once a session a telling pays: $90 base + $45 per sit (cap 5).
+// Tellings tallied in 'growop-storyhour'.
+const SSTORY_KEY = 'growop-storyhour', SSTORY_BASE = 90, SSTORY_PER = 45;
+let sstoryTold = false;
+function loadSStory() {
+  try { const s = JSON.parse(localStorage.getItem(SSTORY_KEY) || 'null');
+    if (s && typeof s === 'object') return { tellings: Math.max(0, Math.floor(s.tellings || 0)) };
+  } catch(e){}
+  return { tellings: 0 };
+}
+function saveSStory(s) { try { localStorage.setItem(SSTORY_KEY, JSON.stringify(s)); } catch(e){} }
+function sstoryReady() { return loadStoop().sits >= 3; }
+function sstoryPurse() { return SSTORY_BASE + SSTORY_PER * Math.min(loadStoop().sits || 0, 5); }
+function refreshSStoryBtn() {
+  const b = document.getElementById('sstory-toggle');
+  if (!b) return;
+  b.onclick = tellStoopStory;
+  if (!sstoryReady()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = sstoryTold ? '0.45' : '';
+  b.title = sstoryTold
+    ? 'The Stoop Story got its telling this session. Once a day \u2014 the block remembers.'
+    : 'The Stoop Story \u2014 three sits and the crew has the whole thing by heart. Tell it, and somebody at the edge of the stoop calls in an order: +$' + sstoryPurse()
+      + '. Told ' + loadSStory().tellings + ' time' + (loadSStory().tellings === 1 ? '' : 's') + '.';
+}
+function tellStoopStory() {
+  if (!sstoryReady() || sstoryTold) return;
+  sstoryTold = true;
+  const p = sstoryPurse();
+  const s = loadSStory();
+  saveSStory({ tellings: s.tellings + 1 });
+  state.cash += p;
+  addFeed('🎙️ The crew tells the Stoop Story \u2014 the record, the kites, the reunions, every name on the wall. Somebody at the edge calls in an order before it\u2019s done: +$' + p);
+  showToast('🎙️ The Stoop Story \u2014 +$' + p + '. The story pays.', 'good');
+  checkGrowAchievements();
+  refreshSStoryBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2868,6 +2917,7 @@ function refreshRouteBtn() {
   refreshAnnivBtn(); // LAB-46: and the year it all added up to
   refreshWallBtn(); // LAB-47: and every name the year collected
   refreshStoopBtn(); // LAB-48: and the seat built to sit with them
+  refreshSStoryBtn(); // LAB-49: and the story told from that seat
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3322,6 +3372,7 @@ const GROW_ACH = [
   { id: 'corner_anniv', name: 'The Corner Anniversary', test: () => (loadCAnniv().toasts || 0) >= 3 },   // LAB-46
   { id: 'wall_names', name: 'The Wall of Names', test: () => (loadWall().leafs || 0) >= 3 },   // LAB-47
   { id: 'the_stoop', name: 'The Stoop', test: () => (loadStoop().sits || 0) >= 3 },   // LAB-48
+  { id: 'stoop_story', name: 'The Stoop Story', test: () => (loadSStory().tellings || 0) >= 3 },   // LAB-49
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
