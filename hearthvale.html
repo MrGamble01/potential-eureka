@@ -331,6 +331,7 @@
     <button id="m-anniv">Keep Founding Day</button>
     <button id="m-register">Leaf the Hall Register</button>
     <button id="m-bench">Sit on the Green Bench</button>
+    <button id="m-tale">Hear the Hearth Tale</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1695,6 +1696,7 @@
     { id: 'founding_day', emoji: '\u{1F38A}', name: 'Founding Day', desc: 'Keep the founding day on three sessions.', done: () => loadFDay().toasts >= 3 },
     { id: 'hall_register', emoji: '\u{1F4D6}', name: 'The Hall Register', desc: 'Leaf through the register on three sessions.', done: () => loadRegister().leafs >= 3 },
     { id: 'green_bench', emoji: '\u{1FA91}', name: 'The Green Bench', desc: 'Sit on the bench on three sessions.', done: () => loadGBench().sits >= 3 },
+    { id: 'hearth_tale', emoji: '\u{1F525}', name: 'The Hearth Tale', desc: 'Hear the tale on three sessions.', done: () => loadHTale().tellings >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3015,6 +3017,35 @@
     state.res.gold += p;
     chron('\u{1FA91}', 'A sit on the Green Bench \u2014 every name in the register at its back. An elder sits down alongside with a purse: +' + p + ' gold');
     toast('\u{1FA91} The Green Bench \u2014 +' + p + ' gold. The seat pays.');
+    checkAchievements();
+  }
+  // ---- the Hearth Tale (HVALE-44) -----------------------------
+  // The story-hour round in the valley: after three sits on the
+  // Green Bench, the elder has the whole valley story by heart
+  // \u2014 the ledger, the letters, the reunions, every name in
+  // the register. Once a session a telling pays: 35 gold base + 5
+  // per sit (cap 5). Tellings tallied in 'hvale-storyhour'.
+  const HTALE_KEY = 'hvale-storyhour', HTALE_BASE = 35, HTALE_PER = 5;
+  let htaleHeard = false;
+  function loadHTale() {
+    try { const t = JSON.parse(localStorage.getItem(HTALE_KEY) || 'null');
+      if (t && typeof t === 'object') return { tellings: Math.max(0, Math.floor(t.tellings || 0)) };
+    } catch (e) { }
+    return { tellings: 0 };
+  }
+  function saveHTale(t) { try { localStorage.setItem(HTALE_KEY, JSON.stringify(t)); } catch (e) { } }
+  function htaleReady() { return loadGBench().sits >= 3; }
+  function htalePurse() { return HTALE_BASE + HTALE_PER * Math.min(loadGBench().sits || 0, 5); }
+  function hearHearthTale() {
+    if (!htaleReady()) { toast('\u{1F525} Nobody has the whole tale yet \u2014 three sits on the bench and the elder pieces it together.'); return; }
+    if (htaleHeard) { toast('\u{1F525} The Hearth Tale got its telling tonight \u2014 the fire burns low.'); return; }
+    htaleHeard = true;
+    const p = htalePurse();
+    const t = loadHTale();
+    saveHTale({ tellings: t.tellings + 1 });
+    state.res.gold += p;
+    chron('\u{1F525}', 'THE HEARTH TALE \u2014 the ledger, the letters, the reunions, every name in the register, told by the fire. A listener leaves a purse for the next chapter: +' + p + ' gold');
+    toast('\u{1F525} The Hearth Tale \u2014 +' + p + ' gold. The tale pays.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5462,6 +5493,7 @@
     { const ma = document.getElementById('m-anniv'); if (ma) ma.onclick = () => { menu.classList.remove('show'); keepFoundingDay(); }; }
     { const mr = document.getElementById('m-register'); if (mr) mr.onclick = () => { menu.classList.remove('show'); leafHallRegister(); }; }
     { const mb = document.getElementById('m-bench'); if (mb) mb.onclick = () => { menu.classList.remove('show'); sitGreenBench(); }; }
+    { const mt = document.getElementById('m-tale'); if (mt) mt.onclick = () => { menu.classList.remove('show'); hearHearthTale(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
