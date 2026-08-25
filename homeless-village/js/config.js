@@ -460,6 +460,21 @@ function loadThermos(){
 }
 function saveThermos(t){ try{ localStorage.setItem(THERMOS_KEY, JSON.stringify(t)); }catch(e){} }
 function thermosHasWarmth(){ return loadHvRec().days>0 || loadHvNote().read>0; }
+// HV-40: the visitor round under the bridge — once a session,
+// Marisol from the garage swings past any bridge with a story. She
+// brings a casserole: 2 food base, +1 per hold beaten under the
+// chalk star (cap 3). Old friends check on the camp.
+var MARISOL_KEY='hv-visitor', MARISOL_BASE=2;
+var marisolCame=false;
+function loadMarisol(){
+  try{ var m=JSON.parse(localStorage.getItem(MARISOL_KEY)||'null');
+    if(m&&typeof m==='object') return {visits:Math.max(0,Math.floor(m.visits||0))};
+  }catch(e){}
+  return {visits:0};
+}
+function saveMarisol(m){ try{ localStorage.setItem(MARISOL_KEY, JSON.stringify(m)); }catch(e){} }
+function marisolHasStory(){ return loadHvRec().days>0 || loadHvNote().read>0; }
+function marisolDish(){ return MARISOL_BASE + Math.min(loadHvStar().cheers||0,3); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -529,6 +544,7 @@ var ACTIONS = [
   {id:'fridge',    icon:'🧊', label:'Corner Fridge',      time:4000, cooldown:30000, tooltip:'15 goodwill sets a donated fridge humming on the corner — anyone can give, anyone can take. It isn’t the camp’s: Start Over can’t unplug it, and every fresh camp that forms beside it starts 3 goodwill known.'},
   {id:'wall',      icon:'🧱', label:'Read the Wall',      time:2000, cooldown:30000, tooltip:'Somebody chalked the bridge’s numbers on the underpass wall — the fridge’s camps, the longest hold, the notes found. Read them out to whoever’s around.'},
   {id:'thermos',   icon:'🫖', label:'Pass the Thermos',   time:2000, cooldown:30000, tooltip:'Somebody’s grandfather’s thermos, left at the fridge years ago and never claimed. Pass it around once a session — the deeper the bridge’s memory, the further the coffee goes.'},
+  {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a session — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
 ];
 
 var WORKER_DEFS = [
@@ -577,6 +593,7 @@ var GOALS = [
   {id:'letters2',   desc:'Find the fridge-door note at 2 fresh camps', target:2, reward:5, value:function(){ return loadHvNote().read; }},
   {id:'wall2',      desc:'Read the writing on the wall out loud twice', target:2, reward:5, value:function(){ return loadHvWall().opens; }},
   {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
+  {id:'marisol2',   desc:'Wave Marisol down on 2 sessions', target:2, reward:5, value:function(){ return loadMarisol().visits; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
