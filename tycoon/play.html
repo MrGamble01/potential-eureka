@@ -6238,6 +6238,7 @@ const ACHIEVEMENTS = [
   { id: 'bound_history', icon: '\u{1F4D4}', title: 'Bound History',       desc: 'Read the Company History aloud three times.', check: () => loadHist().opens >= 3, progress: () => [Math.min(loadHist().opens, 3), 3] },
   { id: 'founders_ring', icon: '\u{1F48D}', title: 'The Weight of It',    desc: 'Rally the floor with the Founder\u2019s Ring on three sessions.', check: () => loadRing().uses >= 3, progress: () => [Math.min(loadRing().uses, 3), 3] },
   { id: 'first_employee', icon: '\u{1F9F3}', title: 'Badge Number One',    desc: 'Welcome Employee #1 back on three sessions.', check: () => loadVisitor().visits >= 3, progress: () => [Math.min(loadVisitor().visits, 3), 3] },
+  { id: 'badge_drawer', icon: '\u{1FAAA}', title: 'The Badge in the Drawer', desc: 'Rally the ring beside the badge on three sessions.', check: () => loadKeepsake().pays >= 3, progress: () => [Math.min(loadKeepsake().pays, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10559,7 +10560,8 @@ function refreshRingChip() {
     ? 'The Founder’s Ring — already tapped this session. It rallies once a day.'
     : 'The Founder’s Ring — tap it on the desk and rally the floor: +' + ringPower()
       + ' morale. The weight comes from the memory: the record’s bells and the letters read. Worn '
-      + loadRing().uses + ' time' + (loadRing().uses === 1 ? '' : 's') + '.';
+      + loadRing().uses + ' time' + (loadRing().uses === 1 ? '' : 's') + '.'
+      + (ringHasBadge() ? ' Employee #1\u2019s badge sits beside it \u2014 +$' + KEEPSAKE_CASH + ' when it rallies.' : '');
 }
 function useRing() {
   if (!ringHasWeight() || ringUsed) return;
@@ -10570,6 +10572,14 @@ function useRing() {
   changeMorale(p, 'the Founder’s Ring');
   addFeedEntry('\u{1F48D} The founder taps the ring on the desk — the whole floor looks up. +' + p + ' morale, carried by everything the studio remembers.');
   showToast('\u{1F48D} The Founder’s Ring — +' + p + ' morale. The memory has weight.', 'good', 'standard');
+  // TYC-45: with the badge in the drawer, the rally pays an angel bonus.
+  if (ringHasBadge()) {
+    const kk = loadKeepsake();
+    saveKeepsake({ pays: kk.pays + 1 });
+    state.cash += KEEPSAKE_CASH;
+    addFeedEntry('\u{1FAAA} Beside the ring in the drawer: Employee #1\u2019s first badge. The floor rallies harder for the old days \u2014 +$' + KEEPSAKE_CASH + '.');
+    showToast('\u{1FAAA} The badge in the drawer \u2014 +$' + KEEPSAKE_CASH + '. Keepsakes pay.', 'good', 'standard');
+  }
   checkAchievements();
   refreshRingChip();
 }
@@ -10616,6 +10626,20 @@ function welcomeVisitor() {
   checkAchievements();
   refreshVisitorChip();
 }
+// ---- the Badge in the Drawer (TYC-45) -------------------------
+// Round Thirty-Four opens the keepsake round: after three visits,
+// Employee #1 leaves her first badge in the founder's desk drawer,
+// and every Founder's Ring rally with the badge beside it pays an
+// angel bonus: +$100 on the spot. Pays tallied in 'tyc-keepsake'.
+const KEEPSAKE_KEY = 'tyc-keepsake', KEEPSAKE_CASH = 100;
+function loadKeepsake() {
+  try { const k = JSON.parse(localStorage.getItem(KEEPSAKE_KEY) || 'null');
+    if (k && typeof k === 'object') return { pays: Math.max(0, Math.floor(k.pays || 0)) };
+  } catch (e) { }
+  return { pays: 0 };
+}
+function saveKeepsake(k) { try { localStorage.setItem(KEEPSAKE_KEY, JSON.stringify(k)); } catch (e) { } }
+function ringHasBadge() { return loadVisitor().visits >= 3; }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
