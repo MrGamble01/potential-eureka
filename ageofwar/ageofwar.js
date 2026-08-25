@@ -582,6 +582,7 @@ const AgeOfWarGame = (() => {
     { id: 'underwritten', icon: '\u{1F6DF}', title: 'Underwritten',     desc: 'Collect three bond payouts in one run.' },
     { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
     { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
+    { id: 'officers_mess', icon: '\u{1F37D}\u{FE0F}', title: 'Officers\u2019 Mess',   desc: 'See the hall open its officers\u2019 mess after three musters.' },
     { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
     { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
     { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
@@ -701,6 +702,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.bondsPaid || 0) >= 3) unlock('underwritten');
     if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
     if (hallStanding && hallRuns >= 3) unlock('old_guard');
+    if (hallHasMess()) unlock('officers_mess');
     if (chronBeats >= 3) unlock('chronicled');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
@@ -1213,8 +1215,11 @@ const AgeOfWarGame = (() => {
       }
       // AOW-35: the hall drills the first recruits of every muster —
       // they march out already wearing the stripe
-      if (hallStanding && hallTrained < HALL_FIRST) {
-        u.aliveT = Math.max(u.aliveT || 0, 25);
+      if (hallStanding && hallTrained < (hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST)) {
+        // AOW-40: with the officers' mess open, the first recruit
+        // marches out Elite and a fourth takes the stripe.
+        const messElite = hallHasMess() && hallTrained === 0;
+        u.aliveT = Math.max(u.aliveT || 0, messElite ? 60 : 25);
         hallTrained++;
         runStats.hallVets = (runStats.hallVets || 0) + 1;
       }
@@ -2119,7 +2124,13 @@ const AgeOfWarGame = (() => {
   // ever see the field. The war chest's first purchase that outlives
   // the war.
   const HALL_KEY = 'aow-hall', HALL_COST = 500, HALL_FIRST = 3;
+  // AOW-40: the officers' mess — the second-story round. Once the
+  // hall has seen three musters, it opens an officers' mess: the
+  // first recruit of every muster marches out Elite, and a fourth
+  // recruit takes the stripe. The building earned it.
+  const HALL_MESS_AT = 3;
   let hallStanding = false, hallRuns = 0, hallTrained = 0;
+  function hallHasMess() { return hallStanding && hallRuns >= HALL_MESS_AT; }
   function loadHall() {
     try { const h = JSON.parse(localStorage.getItem(HALL_KEY) || 'null');
       if (h && typeof h === 'object') return { built: !!h.built, runs: Math.max(0, Math.floor(h.runs || 0)) };
@@ -8036,7 +8047,7 @@ const AgeOfWarGame = (() => {
       if (hlCdEl) hlCdEl.textContent = hallStanding ? 'stands' : playerEra < 1 ? 'Age II' : `${HALL_COST}g`;
       hlEl.disabled = playerEra < 1 || hallStanding;
       hlEl.title = hallStanding
-        ? `The Veterans\u2019 Hall stands \u2014 the first ${HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.`
+        ? `The Veterans\u2019 Hall stands \u2014 the first ${hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.` + (hallHasMess() ? ' The officers\u2019 mess is open \u2014 the first recruit arrives Elite.' : '')
         : `The Veterans\u2019 Hall (E) \u2014 ${HALL_COST} gold raises it once, forever: no defeat tears it down, and the first ${HALL_FIRST} recruits of every future muster march out already Veterans.`;
     }
 
