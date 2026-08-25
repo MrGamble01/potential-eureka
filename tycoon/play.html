@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6201,6 +6201,7 @@ const ACHIEVEMENTS = [
   { id: 'blue_chip',     icon: '💵', title: 'Blue Chip',            desc: 'Bank \$2,000 in dividends.', check: () => dividendsLife >= 2000, progress: () => [Math.min(Math.round(dividendsLife), 2000), 2000] },
   { id: 'all_in',        icon: '🎲', title: 'Bet the House',        desc: 'Win five moonshots on the race.', check: () => moonshotsWon >= 5, progress: () => [Math.min(moonshotsWon, 5), 5] },
   { id: 'safety_net',    icon: '\u{1F6DF}', title: 'The Safety Net',       desc: 'Collect three hedge payouts.', check: () => hedgesPaid >= 3, progress: () => [Math.min(hedgesPaid, 3), 3] },
+  { id: 'beat_the_desk', icon: '\u{1F3E6}', title: 'Beat the Desk',        desc: 'Come out ahead on three factoring windows.', check: () => factorWins >= 3, progress: () => [Math.min(factorWins, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -9384,6 +9385,18 @@ function addCash(n, source = 'eng') {
 // gifts, events, offline, seed, cheats) stay on addCash so they move
 // cash without moving the goal bar.
 function addRevenue(n, source = 'eng') {
+  // TYC-34: while the factoring window is open, the receivables
+  // belong to the desk — the books still book (the goal bar and the
+  // race read revenue, not cash), but the cash lands in the factor's
+  // pocket instead of yours.
+  if (factor && n > 0) {
+    factor.diverted += n;
+    recordRevenue(n);
+    seasonRecurringRevenue += n;
+    refreshFactorChip();
+    refreshHud();
+    return;
+  }
   addCash(n, source);
   if (n > 0) {
     recordRevenue(n);
@@ -10183,6 +10196,64 @@ function updateHedge(dt) {
   if (updateHedge._acc < 2) return;
   updateHedge._acc = 0;
   refreshHedgeChip();
+}
+// Round Twenty-Three opens the credit round: advances against your
+// own future. The Factoring Desk buys the NEXT 60 SECONDS of
+// receivables for cash now at 0.9× the current run rate — the
+// advance locks at signing, so the desk eats an outage minute and
+// pockets a keynote glow. Sign before a quiet minute (a retreat, a
+// planned outage window) and you beat the desk at its own trade.
+const FACTOR_SECS = 60, FACTOR_RATE = 0.9, FACTOR_MIN = 300;
+let factor = null;   // { advance, timeLeft, diverted }
+let factorsTaken = 0, factorWins = 0, factorProfit = 0;
+function factorAdvance() {
+  return Math.max(FACTOR_MIN, Math.round(currentRatePerMin() * FACTOR_RATE));
+}
+function refreshFactorChip() {
+  const el = document.getElementById('factor-chip');
+  if (!el) return;
+  el.onclick = takeFactoring;
+  if (prestigeLevel < 1) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  if (factor) {
+    el.textContent = '\u{1F3E6} ' + Math.ceil(factor.timeLeft) + 's…';
+    el.title = 'The desk holds the book — $' + fmtCash(factor.diverted) + ' of the $' + fmtCash(factor.advance) + ' advance recouped with ' + Math.ceil(factor.timeLeft) + 's on the window.';
+  } else {
+    el.textContent = '\u{1F3E6} $' + fmtCash(factorAdvance());
+    el.title = 'The Factoring Desk — sell the next ' + FACTOR_SECS + ' seconds of receivables for $' + fmtCash(factorAdvance()) + ' now (90% of a minute at the current rate, locked at signing). (' + factorsTaken + ' taken, ' + factorWins + ' beat the desk, $' + fmtCash(factorProfit) + ' lifetime edge)';
+  }
+}
+function takeFactoring() {
+  if (prestigeLevel < 1 || factor) return;
+  const advance = factorAdvance();
+  addCash(advance, 'factor');
+  factor = { advance, timeLeft: FACTOR_SECS, diverted: 0 };
+  refreshFactorChip();
+  showToast('\u{1F3E6} Advance wired — $' + fmtCash(advance) + ' now, and the desk owns the next ' + FACTOR_SECS + ' seconds of receivables.', 'event', 'standard');
+  addFeedEntry('\u{1F3E6} Factored: $' + fmtCash(advance) + ' against the next minute');
+  saveGame(); refreshHud();
+}
+function updateFactor(dt) {
+  if (!factor) { updateFactor._acc = (updateFactor._acc || 0) + dt; if (updateFactor._acc >= 2) { updateFactor._acc = 0; refreshFactorChip(); } return; }
+  factor.timeLeft -= dt;
+  refreshFactorChip();
+  if (factor.timeLeft > 0) return;
+  const edge = factor.advance - factor.diverted;
+  factorsTaken++;
+  factorProfit += edge;
+  if (edge > 0) {
+    factorWins++;
+    showToast('\u{1F3E6} The window closes — the desk recouped $' + fmtCash(factor.diverted) + ' on a $' + fmtCash(factor.advance) + ' advance. You beat the desk by $' + fmtCash(edge) + '.', 'good', 'critical');
+    addFeedEntry('\u{1F3E6} Beat the desk — +$' + fmtCash(edge) + ' edge (' + factorWins + ' lifetime)');
+  } else {
+    showToast('\u{1F3E6} The window closes — the desk recouped $' + fmtCash(factor.diverted) + ' on a $' + fmtCash(factor.advance) + ' advance. Their trade this time.', 'event', 'critical');
+    addFeedEntry('\u{1F3E6} The desk won the window — $' + fmtCash(-edge) + ' their way');
+  }
+  factor = null;
+  refreshFactorChip();
+  checkAchievements();
+  saveGame();
+  refreshHud();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
@@ -11074,6 +11145,7 @@ function frameBody(now) {
   updateDividends(dt);
   updateMoonshot(dt);
   updateHedge(dt);
+  updateFactor(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
@@ -11953,6 +12025,21 @@ const SAVE_SCHEMA = [
         hedgesBurned = Math.max(0, Math.floor(p.hedge.burned || 0));
       }
       refreshHedgeChip();
+    },
+  },
+  {
+    key: 'factor', // TYC-34: the credit book (an open window rides the save)
+    write: p => { p.factor = { open: factor ? { advance: factor.advance, timeLeft: factor.timeLeft, diverted: factor.diverted } : null, taken: factorsTaken, wins: factorWins, profit: factorProfit }; },
+    read: p => {
+      if (p.factor) {
+        factor = p.factor.open && p.factor.open.advance > 0
+          ? { advance: Math.floor(p.factor.open.advance), timeLeft: Math.max(1, p.factor.open.timeLeft || 1), diverted: Math.max(0, p.factor.open.diverted || 0) }
+          : null;
+        factorsTaken = Math.max(0, Math.floor(p.factor.taken || 0));
+        factorWins = Math.max(0, Math.floor(p.factor.wins || 0));
+        factorProfit = Math.floor(p.factor.profit || 0);
+      }
+      refreshFactorChip();
     },
   },
   {
