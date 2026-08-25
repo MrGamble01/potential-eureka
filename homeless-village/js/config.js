@@ -406,6 +406,24 @@ function composeHvWall(){
   lines.push('\ud83d\udcdd '+(nt.read||0)+' note'+((nt.read||0)===1?'':'s')+' found in the door');
   return lines;
 }
+// HV-35: the heirloom round under the bridge. Somebody's
+// grandfather's thermos, left at the fridge years ago and never
+// claimed. Once a session, pass it around — morale lifts by 2 base,
+// +1 per longest-hold morning (to 5), +1 per note found (to 3). The
+// deeper the bridge's memory, the further the coffee goes.
+var THERMOS_KEY='hv-thermos', THERMOS_BASE=2;
+var thermosUsed=false;
+function loadThermos(){
+  try{ var t=JSON.parse(localStorage.getItem(THERMOS_KEY)||'null');
+    if(t&&typeof t==='object') return {uses:Math.max(0,Math.floor(t.uses||0))};
+  }catch(e){}
+  return {uses:0};
+}
+function saveThermos(t){ try{ localStorage.setItem(THERMOS_KEY, JSON.stringify(t)); }catch(e){} }
+function thermosHasWarmth(){ return loadHvRec().days>0 || loadHvNote().read>0; }
+function thermosPower(){
+  return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
+}
 function recordDays(d){
   var r=loadHvRec();
   if(hvRecMark===null) hvRecMark=r.days;
@@ -462,6 +480,7 @@ var ACTIONS = [
   {id:'borrow',    icon:'🤲', label:'Borrow from Ray',    time:2000, cooldown:30000, tooltip:'Old Ray fronts 4 goodwill on the spot; his ledger takes one back every dawn until 5 is repaid. He never presses — he remembers.'},
   {id:'fridge',    icon:'🧊', label:'Corner Fridge',      time:4000, cooldown:30000, tooltip:'15 goodwill sets a donated fridge humming on the corner — anyone can give, anyone can take. It isn’t the camp’s: Start Over can’t unplug it, and every fresh camp that forms beside it starts 3 goodwill known.'},
   {id:'wall',      icon:'🧱', label:'Read the Wall',      time:2000, cooldown:30000, tooltip:'Somebody chalked the bridge’s numbers on the underpass wall — the fridge’s camps, the longest hold, the notes found. Read them out to whoever’s around.'},
+  {id:'thermos',   icon:'🫖', label:'Pass the Thermos',   time:2000, cooldown:30000, tooltip:'Somebody’s grandfather’s thermos, left at the fridge years ago and never claimed. Pass it around once a session — the deeper the bridge’s memory, the further the coffee goes.'},
 ];
 
 var WORKER_DEFS = [
@@ -509,6 +528,7 @@ var GOALS = [
   {id:'record2',    desc:'Outlast the bridge\u2019s old mark on 2 different mornings', target:2, reward:6, value:function(){ return loadHvRec().beats; }},
   {id:'letters2',   desc:'Find the fridge-door note at 2 fresh camps', target:2, reward:5, value:function(){ return loadHvNote().read; }},
   {id:'wall2',      desc:'Read the writing on the wall out loud twice', target:2, reward:5, value:function(){ return loadHvWall().opens; }},
+  {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
 ];
 
 var activeJobs = {};

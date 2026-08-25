@@ -172,6 +172,20 @@ function finishAction(a){
       composeHvWall().forEach(function(s){ log('\ud83e\uddf1 '+s); });
       saveGame();
     }
+  } else if(a.id==='thermos'){
+    // HV-35: the heirloom pays out of the bridge's memory, once a session.
+    if(!thermosHasWarmth()){ log('\ud83e\uded6 The thermos is cold \u2014 this bridge has no story to warm it yet.'); }
+    else if(thermosUsed){ log('\ud83e\uded6 The thermos made its round already \u2014 it refills tomorrow.'); }
+    else {
+      thermosUsed=true;
+      var tp=thermosPower();
+      var tt=loadThermos();
+      saveThermos({uses:(tt.uses||0)+1});
+      G.morale=Math.min(100,(G.morale||0)+tp);
+      log('\ud83e\uded6 The old thermos goes around the fire \u2014 +'+tp+'\ud83d\ude0a, carried by everything the bridge remembers.');
+      floatText('+'+tp+'\ud83d\ude0a');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
