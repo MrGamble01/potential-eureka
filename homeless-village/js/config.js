@@ -37,6 +37,9 @@ var G = {
 
   // HV-8: the day the posted odd job was last completed (-1 = never)
   oddJobDay: -1,
+  // HV-37: consecutive days the board's job has been worked, the
+  // lifetime count, and whether the foreman has started holding a spot.
+  jobStreak: 0, jobsDone: 0, steadyHand: false,
 
   // HV-9: Word on the Street — 0–100 neighborhood reputation. Earned by
   // odd jobs, trades, panhandle successes and regular friendships; fades
@@ -171,10 +174,20 @@ var ODD_JOBS = [
 ];
 function todaysJob(){ return ODD_JOBS[((G.days % ODD_JOBS.length) + ODD_JOBS.length) % ODD_JOBS.length]; }
 function oddJobDone(){ return G.oddJobDay === G.days; }
+
+// ── HV-37: the Steady Hand ────────────────────────────────────
+// Show up three days running and the foreman notices: every job
+// worked after that pays one extra goodwill, on top of whatever the
+// posting or the toolbox already add. A gap in the streak just means
+// showing up three days running again — the bonus, once earned, stays.
+var STEADY_STREAK_AT = 3, STEADY_BONUS = 1;
+function hasSteadyHand(){ return !!G.steadyHand; }
 function oddJobAction(){
   var j = todaysJob();
+  var note = hasSteadyHand() ? ' The foreman holds you a spot (+' + STEADY_BONUS + '🩶 steady-hand bonus).'
+    : (G.jobStreak>0 ? ' ' + G.jobStreak + ' day' + (G.jobStreak===1?'':'s') + ' running so far.' : '');
   return { id:'oddjob', icon:'📋', label:'Odd job: ' + j.icon + ' ' + j.label, time:j.time, cooldown:0,
-    tooltip:'Today’s posting on the bulletin board. ' + j.desc + ' Once per day.' };
+    tooltip:'Today’s posting on the bulletin board. ' + j.desc + ' Once per day.' + note };
 }
 
 // ── HV-9: Word on the Street ──
@@ -537,6 +550,7 @@ var GOALS = [
   {id:'wall2',      desc:'Read the writing on the wall out loud twice', target:2, reward:5, value:function(){ return loadHvWall().opens; }},
   {id:'thermos2',   desc:'Pass the old thermos around on 2 sessions', target:2, reward:5, value:function(){ return loadThermos().uses; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
+  {id:'jobs10',     desc:'Work 10 odd jobs off the board', target:10, reward:5, value:function(){ return G.jobsDone||0; }},
 ];
 
 var activeJobs = {};

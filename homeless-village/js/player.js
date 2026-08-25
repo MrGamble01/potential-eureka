@@ -194,11 +194,20 @@ function finishAction(a){
       else G[k]=(G[k]||0)+j.gives[k];
       parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
     }
+    // HV-37: the streak counts consecutive days, a gap resets it; the
+    // lifetime count and the steady-hand bonus, once earned, never do.
+    G.jobStreak=(G.oddJobDay===G.days-1)?(G.jobStreak||0)+1:1;
     G.oddJobDay=G.days;
+    G.jobsDone=(G.jobsDone||0)+1;
     if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
+    if(hasSteadyHand()){ G.goodwill=(G.goodwill||0)+STEADY_BONUS; parts.push('+'+STEADY_BONUS+'🩶'); }
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+    if(!G.steadyHand && G.jobStreak>=STEADY_STREAK_AT){
+      G.steadyHand=true;
+      log('📋 Three days running on the board — the foreman starts holding you a spot. Steady work pays a little extra from now on.');
+    }
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){

@@ -73,5 +73,8 @@ function loadGame(){
     if(typeof G.rayLoans!=='number') G.rayLoans=0;
     if(typeof G.fridgeSeeded!=='boolean') G.fridgeSeeded=true;     // saves from before HV-31 were never fresh camps to count
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
+    if(typeof G.jobStreak!=='number'||G.jobStreak<0) G.jobStreak=0; // saves from before HV-37
+    if(typeof G.jobsDone!=='number'||G.jobsDone<0) G.jobsDone=0;
+    G.steadyHand=!!G.steadyHand;
   }catch(e){}
 }
