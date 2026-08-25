@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v48';  // rolls Flagship Depth 283–289 (the six story hours: all-hands, stoop, campfire, fire, hearth, harbor yarn + these notes) to installed PWAs
+const SW_VERSION = 'eureka-v49';  // rolls Flagship Depth 290–296 (the six songs: anthem, block track, marching song, bridge ballad, minstrel's ballad, sea shanty + these notes) to installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
