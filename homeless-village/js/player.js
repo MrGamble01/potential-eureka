@@ -117,6 +117,16 @@ function finishAction(a){
     if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
       bumpRegular('marisol'); addRep(1); }
     else log('Not enough cans to trade.');
+  } else if(a.id==='rainbet'){
+    // HV-28: Dee's standing wager — one bet a day, rain side only.
+    if(G.rainBetDay===G.days){ log('\ud83c\udfb2 Dee laughs — one bet a day.'); }
+    else if(G.goodwill<RAINBET_STAKE){ log('\ud83c\udfb2 Not enough goodwill to cover the stake.'); }
+    else {
+      G.goodwill-=RAINBET_STAKE; G.rainBetDay=G.days; G.rainBetOn=true;
+      floatText('-'+RAINBET_STAKE+'\ud83e\ude76');
+      log('\ud83c\udfb2 Bet placed — '+RAINBET_STAKE+' goodwill says rain by morning.');
+      bumpRegular('dee');
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];

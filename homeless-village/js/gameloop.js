@@ -162,6 +162,16 @@ function onNewDay(){
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll
   G.weather=G.forecast||rollWeather();
   G.forecast=rollWeather();
+  // HV-28: Dee settles the rain bet against the morning sky.
+  if(G.rainBetOn){
+    G.rainBetOn=false;
+    if(G.weather==='rain'){
+      G.goodwill+=RAINBET_PAY; G.rainBetsWon=(G.rainBetsWon||0)+1;
+      log('\ud83c\udfb2 Rain on the tarps — Dee pays up. +'+RAINBET_PAY+' goodwill.');
+    } else {
+      log('\ud83c\udfb2 Dry morning — Dee pockets the stake.');
+    }
+  }
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
