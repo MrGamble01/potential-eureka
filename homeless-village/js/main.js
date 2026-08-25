@@ -97,7 +97,12 @@ if(!G.fridgeSeeded){
     var _seed=fridgeSeedNow();
     G.goodwill=(G.goodwill||0)+_seed;
     if(fridgeHasBoard()){
-      log('\uD83E\uDDCA The corner fridge still hums, its bulletin board full \u2014 the block already knows this camp well. +'+_seed+'\ud83e\ude76');
+      // HV-39: the shelf tells the deeper welcome.
+      if(fridgeHasShelf()){
+        log('\uD83E\uDDCA The corner fridge hums under its community shelf \u2014 blankets, socks, a working can opener. The block knows this camp like family. +'+_seed+'\ud83e\ude76');
+      } else {
+        log('\uD83E\uDDCA The corner fridge still hums, its bulletin board full \u2014 the block already knows this camp well. +'+_seed+'\ud83e\ude76');
+      }
       // HV-37: the board means the potluck — the block throws one
       // for every fresh camp now.
       var _pl=loadPotluck();
