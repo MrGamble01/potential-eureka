@@ -383,6 +383,29 @@ function deliverHvNote(){
   log(s+' (+'+HVNOTE_MORALE+'\ud83d\ude0a)');
   floatText('+'+HVNOTE_MORALE+'\ud83d\ude0a');
 }
+// HV-34: the almanac round under the bridge. Somebody chalked the
+// numbers on the underpass wall — the fridge's camps, the longest
+// hold, the notes found — and reading them out is an action like any
+// other. The wall is the bridge's whole memory in one place.
+var HVWALL_KEY='hv-history';
+function loadHvWall(){
+  try{ var w=JSON.parse(localStorage.getItem(HVWALL_KEY)||'null');
+    if(w&&typeof w==='object') return {opens:Math.max(0,Math.floor(w.opens||0))};
+  }catch(e){}
+  return {opens:0};
+}
+function saveHvWall(w){ try{ localStorage.setItem(HVWALL_KEY, JSON.stringify(w)); }catch(e){} }
+function bridgeHasWall(){
+  return loadFridge().camps>0 || loadFridge().built || loadHvRec().days>0 || loadHvNote().read>0;
+}
+function composeHvWall(){
+  var fr=loadFridge(), rec=loadHvRec(), nt=loadHvNote();
+  var lines=[];
+  lines.push(fr.built ? '\ud83e\uddca The fridge hums \u2014 '+(fr.camps||0)+' camp'+((fr.camps||0)===1?'':'s')+' welcomed' : '\ud83e\uddca No fridge on the corner yet');
+  lines.push(rec.days>0 ? '\ud83d\udcc8 Longest hold: '+rec.days+' dawns (beaten '+(rec.beats||0)+' morning'+((rec.beats||0)===1?'':'s')+')' : '\ud83d\udcc8 No hold marked yet');
+  lines.push('\ud83d\udcdd '+(nt.read||0)+' note'+((nt.read||0)===1?'':'s')+' found in the door');
+  return lines;
+}
 function recordDays(d){
   var r=loadHvRec();
   if(hvRecMark===null) hvRecMark=r.days;
@@ -438,6 +461,7 @@ var ACTIONS = [
   {id:'garage',    icon:'🚙', label:'Garage Favor',       time:2000, cooldown:30000, tooltip:'2 goodwill stows the camp’s loose goods in Marisol’s garage till the next sweep — when it comes, the confiscation finds nothing. Tents still fall.'},
   {id:'borrow',    icon:'🤲', label:'Borrow from Ray',    time:2000, cooldown:30000, tooltip:'Old Ray fronts 4 goodwill on the spot; his ledger takes one back every dawn until 5 is repaid. He never presses — he remembers.'},
   {id:'fridge',    icon:'🧊', label:'Corner Fridge',      time:4000, cooldown:30000, tooltip:'15 goodwill sets a donated fridge humming on the corner — anyone can give, anyone can take. It isn’t the camp’s: Start Over can’t unplug it, and every fresh camp that forms beside it starts 3 goodwill known.'},
+  {id:'wall',      icon:'🧱', label:'Read the Wall',      time:2000, cooldown:30000, tooltip:'Somebody chalked the bridge’s numbers on the underpass wall — the fridge’s camps, the longest hold, the notes found. Read them out to whoever’s around.'},
 ];
 
 var WORKER_DEFS = [
@@ -484,6 +508,7 @@ var GOALS = [
   {id:'fridge2',    desc:'See the corner fridge welcome 2 fresh camps', target:2, reward:8, value:function(){ return fridgeCamps(); }},
   {id:'record2',    desc:'Outlast the bridge\u2019s old mark on 2 different mornings', target:2, reward:6, value:function(){ return loadHvRec().beats; }},
   {id:'letters2',   desc:'Find the fridge-door note at 2 fresh camps', target:2, reward:5, value:function(){ return loadHvNote().read; }},
+  {id:'wall2',      desc:'Read the writing on the wall out loud twice', target:2, reward:5, value:function(){ return loadHvWall().opens; }},
 ];
 
 var activeJobs = {};
