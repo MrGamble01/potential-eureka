@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v44';  // rolls Flagship Depth 255–260 (the six portraits: reunion photo, cookout polaroid, campaign painting, snapshot, green portrait, driftwood frame + these notes) to installed PWAs
+const SW_VERSION = 'eureka-v45';  // rolls Flagship Depth 262–267 (the six anniversaries: founding toast, corner anniversary, founding salute, bridge candle, founding day, first mooring + these notes) to installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
