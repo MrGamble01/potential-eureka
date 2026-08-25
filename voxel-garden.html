@@ -234,6 +234,7 @@
     <li>The <b>🐖 Truffle Pig</b> (level 9) works the after-rain &mdash; <b>every shower that passes</b>, she roots the wet ground for a <b>20 🪙 truffle</b>: the weather itself now pays out</li>
     <li>The <b>🌽 Corn Crib</b> (level 8) buys peace with the crows &mdash; a raider that fills up at the crib <b>pecks less than half as hard</b> (0.15× a crop's growth instead of 0.35×), everywhere on the isle, forever</li>
     <li>The <b>🫙 Preserve Shed</b> (level 8) jars the quiet days &mdash; <b>one preserve a day, four on the shelf</b>, and every seasonal <b>festival the crowd buys the whole shelf</b> at 12 🪙 a jar: patience, sold at a premium</li>
+    <li>The <b>🎲 Cloud Wager</b> (needs the 🌦️ vane) &mdash; tap the chip to stake <b>30 🪙 on rain inside 90 seconds</b>, paying 60: the vane calls showers half a minute early, so <b>a called sky is the whole edge</b></li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -776,6 +777,53 @@ function sellPreserves(){
   return pay;
 }
 let pigWasRaining=false;
+// VOX-23: the Cloud Wager — the wager round on the isle's own sky.
+// 30 🪙 say rain falls within 90 seconds; rain already falling takes
+// no bet. Blind it's a gamble on the season — but the 🌦️ vane calls
+// showers half a minute early, so a called sky is nearly a sure
+// thing: the wager is the vane's second payoff.
+const CLOUD_STAKE=30, CLOUD_PAY=60, CLOUD_SECS=90;
+let cloudBet=null;   // { timeLeft }
+function placeCloudBet(){
+  if(!vaneBuilt()){toast('🎲 The wager needs a 🌦️ Weather Vane to read the sky.');return;}
+  if(cloudBet){toast('🎲 A wager is already riding — '+Math.ceil(cloudBet.timeLeft)+'s on the clock.');return;}
+  if(rainActive){toast('🎲 No book takes a bet on rain already falling.');return;}
+  if(!spendCoins(CLOUD_STAKE))return;
+  cloudBet={timeLeft:CLOUD_SECS};
+  toast('🎲 '+CLOUD_STAKE+' 🪙 on the clouds — rain inside '+CLOUD_SECS+' seconds pays '+CLOUD_PAY+'.');
+  SFX.play('place');
+  refreshCloudHud();
+}
+function refreshCloudHud(){
+  const h=document.getElementById('cloudHud'),tx=document.getElementById('cloudTxt');
+  if(!h)return;
+  h.style.display=vaneBuilt()?'flex':'none';
+  if(tx)tx.textContent=cloudBet
+    ? '🎲 rain in '+Math.ceil(cloudBet.timeLeft)+'s…'
+    : '🎲 '+CLOUD_STAKE+' 🪙 on rain';
+}
+function updateCloudBet(dt){
+  refreshCloudHud();
+  if(!cloudBet)return;
+  if(rainActive){
+    cloudBet=null;
+    state.cloudWins=(state.cloudWins||0)+1;
+    grantCoins(CLOUD_PAY,undefined,undefined,undefined);
+    toast('🎲 The sky opens in time — the wager pays '+CLOUD_PAY+' 🪙! ('+state.cloudWins+' won)');
+    SFX.play('coin');
+    checkAch();
+    refreshCloudHud();
+    return;
+  }
+  cloudBet.timeLeft-=dt;
+  if(cloudBet.timeLeft<=0){
+    cloudBet=null;
+    state.cloudLosses=(state.cloudLosses||0)+1;
+    toast('🎲 The clouds never came — the stake blows away.');
+    SFX.play('error');
+    refreshCloudHud();
+  }
+}
 function updateTrufflePig(dt){
   if(!pigBuilt()){pigWasRaining=rainActive;return;}
   if(rainActive){pigWasRaining=true;return;}
@@ -4406,6 +4454,7 @@ const ACH=[
   ['truffle5','Snout of Gold','Root up five truffles',()=>(state.truffles||0)>=5],
   ['crib10','Corn Diplomacy','Blunt ten crow raids with the Corn Crib',()=>(state.cribMeals||0)>=10],
   ['jam12','Shelf of Summers','Sell twelve festival jars from the Preserve Shed',()=>(state.jamsSold||0)>=12],
+  ['cloud6','Cloud Reader','Win six cloud wagers',()=>(state.cloudWins||0)>=6],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4651,6 +4700,7 @@ function boot(){
     updateSugarShack(dt);
     updateOwlRoost(dt);
     updateTrufflePig(dt);
+    updateCloudBet(dt);
     updateShard(dt);
     if(compostT>0)compostT-=dt;
     updateWorkers(dt);
@@ -4691,6 +4741,7 @@ function boot(){
 }
 boot();
 </script>
+<div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
 </body>
 </html>
