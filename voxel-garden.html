@@ -814,6 +814,13 @@ const LANTERN_KEY='vox-lantern',LANTERN_COST=150;
 // of 40 coins beside its grown plots. The light earned it.
 const LANTERN_WICK_AT=3,WICK_COINS=40;
 function lanternHasWick(){const l=loadLantern();return l.lit&&(l.isles||0)>=LANTERN_WICK_AT;}
+// VOX-34: the third-story round on the shore — at six isles the
+// lantern's wicks braid into a BEACON FLAME, and every new isle
+// rises with a 60-coin kindling purse instead of 40. The light
+// keeps growing on what it already grew.
+const LANTERN_BEACON_AT=6,BEACON_COINS=60;
+function lanternHasBeacon(){const l=loadLantern();return l.lit&&(l.isles||0)>=LANTERN_BEACON_AT;}
+function kindlingPurse(){return lanternHasBeacon()?BEACON_COINS:WICK_COINS;}
 // VOX-32: the Lantern Festival — the festival round. When the
 // second wick burns, every new isle rises to a festival: paper
 // lanterns strung over the water to welcome it. +30 xp once the
@@ -850,7 +857,7 @@ function refreshLanternHud(){
   const l=loadLantern();
   h.style.display=(l.lit||state.totalEarned>=LANTERN_COST)?'flex':'none';
   if(tx)tx.textContent=l.lit
-    ? '🏮 lit \u2014 '+l.isles+' isle'+(l.isles===1?'':'s')+' greeted'+(lanternHasWick()?' \u00b7 second wick':'')
+    ? '🏮 lit \u2014 '+l.isles+' isle'+(l.isles===1?'':'s')+' greeted'+(lanternHasBeacon()?' \u00b7 beacon flame':lanternHasWick()?' \u00b7 second wick':'')
     : '🏮 light for '+LANTERN_COST+' 🪙';
 }
 // VOX-27: the record round on the isle. The richest single day this
@@ -4734,6 +4741,7 @@ const ACH=[
   ['tablet3','Written in Tide','Consult the tide tablet three times',()=>loadVtab().opens>=3],
   ['conch3','Heard Across the Water','Sound the keeper\u2019s conch on three sessions',()=>loadConch().uses>=3],
   ['wick2','The Second Wick','See the lantern greet three isles and earn its second wick',()=>lanternHasWick()],
+  ['beacon6','The Beacon Flame','See the lantern greet six isles and braid its beacon flame',()=>lanternHasBeacon()],
   ['lanternfest3','Lantern Festival','See three new isles rise to the festival',()=>loadVfest().days>=3],
   ['wreath3','The Shell Wreath','Ring the harvest bell three times beneath the wreath',()=>loadWreath().cheers>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
@@ -4963,8 +4971,12 @@ function boot(){
       });
       if(lanternHasWick()){
         // VOX-31: the second wick sends every new isle off funded.
-        state.coins=(state.coins||0)+WICK_COINS;
-        setTimeout(()=>toast('🏮 The lantern burns on its second wick \u2014 a kindling purse of '+WICK_COINS+' 🪙 waits by the plots.'),2600);
+        // VOX-34: and the beacon flame deepens the purse to 60.
+        const purse=kindlingPurse();
+        state.coins=(state.coins||0)+purse;
+        setTimeout(()=>toast(lanternHasBeacon()
+          ? '\u{1F525} The lantern burns as a beacon now \u2014 a kindling purse of '+purse+' 🪙 waits by the plots.'
+          : '🏮 The lantern burns on its second wick \u2014 a kindling purse of '+purse+' 🪙 waits by the plots.'),2600);
         // VOX-32: and the shore strings a festival for the new isle.
         const vf=loadVfest();
         saveVfest({days:vf.days+1});
