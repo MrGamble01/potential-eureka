@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6237,6 +6237,7 @@ const ACHIEVEMENTS = [
   { id: 'three_letters', icon: '\u{2709}\u{FE0F}', title: 'Kept Correspondence', desc: 'Read the founder\u2019s letter at three new companies.', check: () => loadLetter().read >= 3, progress: () => [Math.min(loadLetter().read, 3), 3] },
   { id: 'bound_history', icon: '\u{1F4D4}', title: 'Bound History',       desc: 'Read the Company History aloud three times.', check: () => loadHist().opens >= 3, progress: () => [Math.min(loadHist().opens, 3), 3] },
   { id: 'founders_ring', icon: '\u{1F48D}', title: 'The Weight of It',    desc: 'Rally the floor with the Founder\u2019s Ring on three sessions.', check: () => loadRing().uses >= 3, progress: () => [Math.min(loadRing().uses, 3), 3] },
+  { id: 'first_employee', icon: '\u{1F9F3}', title: 'Badge Number One',    desc: 'Welcome Employee #1 back on three sessions.', check: () => loadVisitor().visits >= 3, progress: () => [Math.min(loadVisitor().visits, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10526,6 +10527,7 @@ function updateHist(dt) {
   updateHist._acc = 0;
   refreshHistChip();
   refreshRingChip();
+  refreshVisitorChip();
 }
 // ---- the Founder's Ring (TYC-39) ------------------------------
 // The heirloom round: the memory starts paying. Once a session the
@@ -10570,6 +10572,49 @@ function useRing() {
   showToast('\u{1F48D} The Founder’s Ring — +' + p + ' morale. The memory has weight.', 'good', 'standard');
   checkAchievements();
   refreshRingChip();
+}
+// ---- the First Employee (TYC-44) ------------------------------
+// Round Thirty-Three opens the visitor round: once a session,
+// someone from the old days drops by. Employee #1 — the first name
+// ever on the payroll — visits any studio with a memory, and leaves
+// an angel check that scales with the plaque round's champagne:
+// $150 base + $50 per toast under the brass plaque (cap 3).
+const VISITOR_KEY = 'tyc-visitor', VISITOR_BASE = 150, VISITOR_PER = 50;
+let visitorCame = false;
+function loadVisitor() {
+  try { const v = JSON.parse(localStorage.getItem(VISITOR_KEY) || 'null');
+    if (v && typeof v === 'object') return { visits: Math.max(0, Math.floor(v.visits || 0)) };
+  } catch (e) { }
+  return { visits: 0 };
+}
+function saveVisitor(v) { try { localStorage.setItem(VISITOR_KEY, JSON.stringify(v)); } catch (e) { } }
+function visitorHasStory() { return loadRecord().cash > 0 || loadLetter().read > 0; }
+function visitorGift() { return VISITOR_BASE + VISITOR_PER * Math.min(loadPlaque().cheers || 0, 3); }
+function refreshVisitorChip() {
+  const el = document.getElementById('visitor-chip');
+  if (!el) return;
+  el.onclick = welcomeVisitor;
+  if (!visitorHasStory()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.style.opacity = visitorCame ? '0.45' : '';
+  el.textContent = '\u{1F9F3} emp #1';
+  el.title = visitorCame
+    ? 'Employee #1 already came by this session. Old friends visit once a day.'
+    : 'Employee #1 \u2014 the first name ever on the payroll. Welcome her in and she leaves an angel check: $' + visitorGift()
+      + '. The check grows with the plaque\u2019s champagne toasts. She has visited '
+      + loadVisitor().visits + ' time' + (loadVisitor().visits === 1 ? '' : 's') + '.';
+}
+function welcomeVisitor() {
+  if (!visitorHasStory() || visitorCame) return;
+  visitorCame = true;
+  const g = visitorGift();
+  const v = loadVisitor();
+  saveVisitor({ visits: v.visits + 1 });
+  state.cash += g;
+  addFeedEntry('\u{1F9F3} EMPLOYEE #1 DROPS BY \u2014 she still has her badge. She looks at the plaque a long time, then leaves an angel check: +$' + g + '.');
+  showToast('\u{1F9F3} Employee #1 came by \u2014 an angel check for $' + g + '. Old friends remember.', 'good', 'standard');
+  checkAchievements();
+  refreshVisitorChip();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
