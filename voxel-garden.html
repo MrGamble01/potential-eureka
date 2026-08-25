@@ -235,6 +235,7 @@
     <li>The <b>🌽 Corn Crib</b> (level 8) buys peace with the crows &mdash; a raider that fills up at the crib <b>pecks less than half as hard</b> (0.15× a crop's growth instead of 0.35×), everywhere on the isle, forever</li>
     <li>The <b>🫙 Preserve Shed</b> (level 8) jars the quiet days &mdash; <b>one preserve a day, four on the shelf</b>, and every seasonal <b>festival the crowd buys the whole shelf</b> at 12 🪙 a jar: patience, sold at a premium</li>
     <li>The <b>🎲 Cloud Wager</b> (needs the 🌦️ vane) &mdash; tap the chip to stake <b>30 🪙 on rain inside 90 seconds</b>, paying 60: the vane calls showers half a minute early, so <b>a called sky is the whole edge</b></li>
+    <li>The <b>🛟 Assessor's Policy</b> &mdash; 25 🪙 insures the fields till dawn: <b>a landed crow peck pays 50 in damages</b>, a quiet day lapses the premium &mdash; the scarecrow and the crib are for prevention, <b>the policy is for the day they miss</b></li>
     <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
@@ -777,6 +778,35 @@ function sellPreserves(){
   return pay;
 }
 let pigWasRaining=false;
+// VOX-24: the Assessor's Policy — the insurance round on the isle.
+// 25 🪙 insures the fields for the day: a crow peck that actually
+// lands pays 50 in damages; a quiet day lapses the policy at dawn.
+// The scarecrow guards and the crib blunts — the policy is for the
+// day the defenses miss anyway.
+const POLICY_COST=25, POLICY_PAY=50;
+function buyCropPolicy(){
+  if(state.cropPolicy){toast('🛟 The fields are already covered till dawn.');return;}
+  if(!spendCoins(POLICY_COST))return;
+  state.cropPolicy=true;
+  toast('🛟 '+POLICY_COST+' 🪙 covers the fields till dawn — a landed peck pays '+POLICY_PAY+'.');
+  SFX.play('place');
+  refreshPolicyHud();
+}
+function refreshPolicyHud(){
+  const tx=document.getElementById('polTxt');
+  if(tx)tx.textContent=state.cropPolicy
+    ? '🛟 covered till dawn'
+    : '🛟 '+POLICY_COST+' 🪙 crop policy';
+}
+function settleCropPolicy(x,y,z){
+  if(!state.cropPolicy)return;
+  state.cropPolicy=false;
+  state.policyClaims=(state.policyClaims||0)+1;
+  grantCoins(POLICY_PAY,x,y,z);
+  toast('🛟 The assessor pays '+POLICY_PAY+' 🪙 on the pecked field. ('+state.policyClaims+' claimed)');
+  checkAch();
+  refreshPolicyHud();
+}
 // VOX-23: the Cloud Wager — the wager round on the isle's own sky.
 // 30 🪙 say rain falls within 90 seconds; rain already falling takes
 // no bet. Blind it's a gamble on the season — but the 🌦️ vane calls
@@ -2995,6 +3025,7 @@ function updateDay(dt){
   if(state.time>=CYCLE){
     const prevSeason=seasonOf(state.day);
     state.time-=CYCLE;state.day++;el.day.textContent=state.day;
+    if(state.cropPolicy){state.cropPolicy=false;state.policyLapsed=(state.policyLapsed||0)+1;toast('🛟 The crop policy lapsed at dawn — no crow came.');refreshPolicyHud();}   // VOX-24
     if(jamBuilt()&&(state.jars||0)<JAM_CAP){state.jars=(state.jars||0)+1;}   // VOX-22: another day on the shelf
     const s=seasonOf(state.day);
     if(s!==prevSeason){
@@ -3240,6 +3271,7 @@ function updateCrow(dt){
         const ns=stageFor(crow.p);
         if(ns!==crow.p.stage){crow.p.stage=ns;refreshPlantMesh(crow.p);}
         floatText(crow.p.x+0.5,crow.p.y+1.2,crow.p.z+0.5,'🐦‍⬛ pecked!','#e0705c');
+        settleCropPolicy(crow.p.x,crow.p.y+1,crow.p.z);   // VOX-24: the assessor pays on a landed peck
         toast(cribBuilt()
           ?'🐦‍⬛ A crow pecked your '+def.name+' — but it filled up at the crib first: barely a scratch.'
           :'🐦‍⬛ A crow pecked your '+def.name+' — it lost some growth.');
@@ -4455,6 +4487,7 @@ const ACH=[
   ['crib10','Corn Diplomacy','Blunt ten crow raids with the Corn Crib',()=>(state.cribMeals||0)>=10],
   ['jam12','Shelf of Summers','Sell twelve festival jars from the Preserve Shed',()=>(state.jamsSold||0)>=12],
   ['cloud6','Cloud Reader','Win six cloud wagers',()=>(state.cloudWins||0)>=6],
+  ['policy4','Acts of Crow','Collect four crop-policy payouts',()=>(state.policyClaims||0)>=4],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4741,6 +4774,7 @@ function boot(){
 }
 boot();
 </script>
+<div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
 </body>
