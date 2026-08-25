@@ -532,6 +532,13 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #zippo-toggle{bottom:389px;right:8px;font-size:11px;padding:5px 9px;} }
+#og-toggle{
+  position:fixed;bottom:14px;right:2496px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #og-toggle{bottom:414px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -623,6 +630,7 @@ canvas{display:block;touch-action:none;}
 <button id="hwm-toggle" style="display:none" title="The High-Water Mark: the biggest single hand this corner has ever sold, kept across every bust and fresh identity. Smash the mark that stood when you sat down and the story does the corner’s talking — heat cools 5, once a session.">📈 —</button>
 <button id="ledger-toggle" style="display:none" title="The Corner Ledger: everything the block remembers across every bust, bound in one book. Click to read it into the feed.">📔 LEDGER</button>
 <button id="zippo-toggle" style="display:none" title="The Zippo from the Block: the OG’s lighter, passed down. Flick it once a session and the corner settles — the deeper the block’s memory, the more heat it burns off.">🔥 ZIPPO</button>
+<button id="og-toggle" style="display:none" title="The OG from the Block: once a session the man himself drops by — he vouches for you on the corner, and the block settles.">🧢 THE OG</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2125,6 +2133,47 @@ function flickZippo() {
   checkGrowAchievements();
   refreshZippoBtn();
 }
+// LAB-42: the visitor round on the corner — once a session, the OG
+// himself drops by any corner with a memory. He vouches: one
+// regular locks in, and the block settles — heat drops 2 base + 1
+// per gold-record cheer (cap 3). The man the lighter came from.
+const OG_KEY = 'growop-visitor', OG_COOL_BASE = 2;
+let ogCame = false;
+function loadOg() {
+  try { const o = JSON.parse(localStorage.getItem(OG_KEY) || 'null');
+    if (o && typeof o === 'object') return { visits: Math.max(0, Math.floor(o.visits || 0)) };
+  } catch(e){}
+  return { visits: 0 };
+}
+function saveOg(o) { try { localStorage.setItem(OG_KEY, JSON.stringify(o)); } catch(e){} }
+function ogHasStory() { return loadHwm().sale > 0 || loadKite().read > 0; }
+function ogCool() { return OG_COOL_BASE + Math.min(loadGPlaque().cheers || 0, 3); }
+function refreshOgBtn() {
+  const b = document.getElementById('og-toggle');
+  if (!b) return;
+  b.onclick = welcomeOg;
+  if (!ogHasStory()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = ogCame ? '0.45' : '';
+  b.title = ogCame
+    ? 'The OG already came through this session. He keeps his own schedule.'
+    : 'The OG from the Block — the man the lighter came from. Welcome him and he vouches: one regular locks in, heat −' + ogCool()
+      + '. The cool grows with the gold record’s cheers. He has come by '
+      + loadOg().visits + ' time' + (loadOg().visits === 1 ? '' : 's') + '.';
+}
+function welcomeOg() {
+  if (!ogHasStory() || ogCame) return;
+  ogCame = true;
+  const c = ogCool();
+  const o = loadOg();
+  saveOg({ visits: o.visits + 1 });
+  state.clientele = Math.min(CLIENT_CAP, (state.clientele || 0) + 1);
+  addHeat(-c);
+  addFeed('🧢 THE OG COMES THROUGH — he vouches for you loud enough for the block to hear. A regular locks in, heat −' + c);
+  showToast('🧢 The OG from the Block — a regular locks in and heat cools ' + c + '. Old friends remember.', 'good');
+  checkGrowAchievements();
+  refreshOgBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2543,6 +2592,7 @@ function refreshRouteBtn() {
   refreshHwmChip(); // LAB-34: and the corner's record book
   refreshCLedgerBtn(); // LAB-36: and the book that binds it all
   refreshZippoBtn(); // LAB-37: and the flame that draws on it
+  refreshOgBtn(); // LAB-42: and the man the flame came from
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2990,6 +3040,7 @@ const GROW_ACH = [
   { id: 'pen_pals', name: 'Pen Pals', test: () => (loadKite().read || 0) >= 3 },   // LAB-35
   { id: 'corner_ledger', name: 'Corner Ledger', test: () => (loadCLedger().opens || 0) >= 3 },   // LAB-36
   { id: 'old_flame', name: 'Old Flame', test: () => (loadZippo().uses || 0) >= 3 },   // LAB-37
+  { id: 'og_visit', name: 'The OG Came Through', test: () => (loadOg().visits || 0) >= 3 },   // LAB-42
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
