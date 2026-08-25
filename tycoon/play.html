@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6220,6 +6220,7 @@ const ACHIEVEMENTS = [
   { id: 'in_perpetuity', icon: '\u{1F393}', title: 'In Perpetuity',        desc: 'Endow the scholarship and let it steady five hard days.', check: () => endowed && endowCatches >= 5, progress: () => [Math.min(endowCatches, 5), 5] },
   { id: 'house_record', icon: '\u{1F4C8}', title: 'House Record',        desc: 'Ring the record bell on three different sessions.', check: () => loadRecord().beats >= 3, progress: () => [Math.min(loadRecord().beats, 3), 3] },
   { id: 'three_letters', icon: '\u{2709}\u{FE0F}', title: 'Kept Correspondence', desc: 'Read the founder\u2019s letter at three new companies.', check: () => loadLetter().read >= 3, progress: () => [Math.min(loadLetter().read, 3), 3] },
+  { id: 'bound_history', icon: '\u{1F4D4}', title: 'Bound History',       desc: 'Read the Company History aloud three times.', check: () => loadHist().opens >= 3, progress: () => [Math.min(loadHist().opens, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10392,6 +10393,60 @@ function updateLetter(dt) {
   changeMorale(LETTER_MORALE, 'The founder\u2019s letter steadies the new floor');
   checkAchievements();
 }
+// Round Twenty-Seven opens the almanac round: each flagship binds
+// its cross-run memory into a book you can open. The Tycoon leg
+// gathers the House Record, the scholarship and the founder's
+// letters into one chip — the tooltip is the whole almanac, and a
+// click reads the history into the feed, one line at a time.
+const HIST_KEY = 'tyc-history';
+function loadHist() {
+  try { const h = JSON.parse(localStorage.getItem(HIST_KEY) || 'null');
+    if (h && typeof h === 'object') return { opens: Math.max(0, Math.floor(h.opens || 0)) };
+  } catch (e) { }
+  return { opens: 0 };
+}
+function saveHist(h) { try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch (e) { } }
+function histHasAnything() {
+  return loadRecord().cash > 0 || (typeof endowed !== 'undefined' && endowed) || loadLetter().read > 0 || prestigeLevel > 0;
+}
+function composeHistory() {
+  const r = loadRecord(), l = loadLetter();
+  const lines = [];
+  lines.push(r.cash > 0
+    ? '\u{1F4C8} House record: $' + fmtCash(Math.floor(r.cash)) + ', the bell rung on ' + r.beats + ' session' + (r.beats === 1 ? '' : 's')
+    : '\u{1F4C8} No house record yet \u2014 the book is waiting');
+  lines.push((typeof endowed !== 'undefined' && endowed)
+    ? '\u{1F393} The scholarship stands \u2014 ' + endowCatches + ' hard day' + (endowCatches === 1 ? '' : 's') + ' steadied'
+    : '\u{1F393} No endowment yet');
+  lines.push('\u2709\uFE0F ' + l.read + ' founder\u2019s letter' + (l.read === 1 ? '' : 's') + ' read');
+  lines.push('\u{1F680} ' + prestigeLevel + ' IPO' + (prestigeLevel === 1 ? '' : 's'));
+  return lines;
+}
+function refreshHistChip() {
+  const el = document.getElementById('history-chip');
+  if (!el) return;
+  el.onclick = openHistory;
+  if (!histHasAnything()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.textContent = '\u{1F4D4} history';
+  el.title = 'The Company History \u2014 everything this studio remembers across every run:\n' + composeHistory().join('\n') + '\nClick to read it into the feed. Read ' + loadHist().opens + ' time' + (loadHist().opens === 1 ? '' : 's') + '.';
+}
+function openHistory() {
+  if (!histHasAnything()) return;
+  const h = loadHist();
+  saveHist({ opens: h.opens + 1 });
+  addFeedEntry('\u{1F4D4} THE COMPANY HISTORY \u2014 read aloud in the all-hands');
+  composeHistory().forEach(s => addFeedEntry('\u{1F4D4} ' + s));
+  showToast('\u{1F4D4} The Company History, read aloud \u2014 every number the studio remembers.', 'good', 'standard');
+  checkAchievements();
+  refreshHistChip();
+}
+function updateHist(dt) {
+  updateHist._acc = (updateHist._acc || 0) + dt;
+  if (updateHist._acc < 5) return;
+  updateHist._acc = 0;
+  refreshHistChip();
+}
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
@@ -11286,6 +11341,7 @@ function frameBody(now) {
   updateEndow(dt);
   updateRecord(dt);
   updateLetter(dt);
+  updateHist(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
