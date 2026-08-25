@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6218,6 +6218,7 @@ const ACHIEVEMENTS = [
   { id: 'safety_net',    icon: '\u{1F6DF}', title: 'The Safety Net',       desc: 'Collect three hedge payouts.', check: () => hedgesPaid >= 3, progress: () => [Math.min(hedgesPaid, 3), 3] },
   { id: 'beat_the_desk', icon: '\u{1F3E6}', title: 'Beat the Desk',        desc: 'Come out ahead on three factoring windows.', check: () => factorWins >= 3, progress: () => [Math.min(factorWins, 3), 3] },
   { id: 'in_perpetuity', icon: '\u{1F393}', title: 'In Perpetuity',        desc: 'Endow the scholarship and let it steady five hard days.', check: () => endowed && endowCatches >= 5, progress: () => [Math.min(endowCatches, 5), 5] },
+  { id: 'house_record', icon: '\u{1F4C8}', title: 'House Record',        desc: 'Ring the record bell on three different sessions.', check: () => loadRecord().beats >= 3, progress: () => [Math.min(loadRecord().beats, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10313,6 +10314,48 @@ function updateEndow(dt) {
   updateEndow._acc = 0;
   refreshEndowChip();
 }
+// Round Twenty-Five opens the record round: the games start keeping
+// score of themselves. The House Record — the all-time cash
+// high-water mark — lives in its own key OUTSIDE the save, riding
+// across prestiges, wipes and imports. The mark standing when the
+// session opened is the bar: sail past it once and the record bell
+// rings — the whole floor takes +5 morale. Once a boot; the bar
+// re-arms next session at wherever the record now stands.
+const RECORD_KEY = 'tyc-record', RECORD_MORALE = 5;
+let recordMark = null, recordRung = false;
+function loadRecord() {
+  try { const r = JSON.parse(localStorage.getItem(RECORD_KEY) || 'null');
+    if (r && typeof r === 'object') return { cash: Math.max(0, r.cash || 0), beats: Math.max(0, Math.floor(r.beats || 0)) };
+  } catch (e) { }
+  return { cash: 0, beats: 0 };
+}
+function saveRecord(r) { try { localStorage.setItem(RECORD_KEY, JSON.stringify(r)); } catch (e) { } }
+function refreshRecordChip() {
+  const el = document.getElementById('record-chip');
+  if (!el) return;
+  const r = loadRecord();
+  if (r.cash <= 0) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.textContent = '\u{1F4C8} best $' + fmtCash(Math.floor(r.cash));
+  el.title = 'The House Record \u2014 the most cash this studio has ever held, across every run and prestige. Beat the mark that stood when you sat down and the record bell rings: +' + RECORD_MORALE + ' morale to the whole floor, once a session. Beaten on ' + r.beats + ' session' + (r.beats === 1 ? '' : 's') + '.';
+}
+function updateRecord(dt) {
+  updateRecord._acc = (updateRecord._acc || 0) + dt;
+  if (updateRecord._acc < 2) return;
+  updateRecord._acc = 0;
+  const r = loadRecord();
+  if (recordMark === null) recordMark = r.cash;
+  if (state.cash > r.cash) saveRecord({ cash: state.cash, beats: r.beats });
+  if (!recordRung && recordMark > 0 && state.cash > recordMark) {
+    recordRung = true;
+    const r2 = loadRecord();
+    saveRecord({ cash: r2.cash, beats: r2.beats + 1 });
+    changeMorale(RECORD_MORALE, 'The record bell rings \u2014 no office of ours ever held this much');
+    addFeedEntry('\u{1F4C8} NEW HOUSE RECORD \u2014 past $' + fmtCash(Math.floor(recordMark)) + ', the whole floor on its feet');
+    checkAchievements();
+  }
+  refreshRecordChip();
+}
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
   const cost = researcherCost();
@@ -11205,6 +11248,7 @@ function frameBody(now) {
   updateHedge(dt);
   updateFactor(dt);
   updateEndow(dt);
+  updateRecord(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
   _hudAcc += dt;
