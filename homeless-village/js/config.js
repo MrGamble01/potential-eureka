@@ -507,6 +507,21 @@ function hvReunionDish(){
   return HVREU_BASE + HVREU_PER*Math.min(loadHvStar().cheers||0,3)
     + HVREU_PER*Math.min(loadMarisol().visits||0,3);
 }
+// HV-43: the portrait round under the bridge — after three Bridge
+// Reunions, a snapshot from the reunion is tucked into the corner
+// fridge door. Once a session a look pays: 2 food base + 1 per
+// reunion held (cap 5). Looks tallied in 'hv-portrait'.
+var HVSNAP_KEY='hv-portrait', HVSNAP_BASE=2, HVSNAP_PER=1;
+var snapshotLooked=false;
+function loadHvSnap(){
+  try{ var s=JSON.parse(localStorage.getItem(HVSNAP_KEY)||'null');
+    if(s&&typeof s==='object') return {looks:Math.max(0,Math.floor(s.looks||0))};
+  }catch(e){}
+  return {looks:0};
+}
+function saveHvSnap(s){ try{ localStorage.setItem(HVSNAP_KEY, JSON.stringify(s)); }catch(e){} }
+function snapshotHangs(){ return loadHvReunion().held>=3; }
+function snapshotDish(){ return HVSNAP_BASE + HVSNAP_PER*Math.min(loadHvReunion().held||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -578,6 +593,7 @@ var ACTIONS = [
   {id:'thermos',   icon:'🫖', label:'Pass the Thermos',   time:2000, cooldown:30000, tooltip:'Somebody’s grandfather’s thermos, left at the fridge years ago and never claimed. Pass it around once a session — the deeper the bridge’s memory, the further the coffee goes.'},
   {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a session — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
   {id:'reunion',   icon:'🎂', label:'Throw the Reunion',  time:2000, cooldown:30000, tooltip:'When the whole story stands — the chalk star’s holds and Marisol’s visits — the camp throws the bridge reunion once a session, and everyone who ever slept here comes back through with something for the pot.'},
+  {id:'snapshot',  icon:'📷', label:'Look at the Snapshot', time:2000, cooldown:30000, tooltip:'A snapshot from the bridge reunion, tucked into the fridge door. Look at it once a session — somebody in the frame always swings by with a little something after.'},
 ];
 
 var WORKER_DEFS = [
@@ -629,6 +645,7 @@ var GOALS = [
   {id:'marisol2',   desc:'Wave Marisol down on 2 sessions', target:2, reward:5, value:function(){ return loadMarisol().visits; }},
   {id:'mugs2',      desc:'Pour from Marisol’s spare mugs on 2 sessions', target:2, reward:5, value:function(){ return loadHvKeep().pays; }},
   {id:'reunion2',   desc:'Throw the bridge reunion on 2 sessions', target:2, reward:5, value:function(){ return loadHvReunion().held; }},
+  {id:'snapshot2',  desc:'Look at the reunion snapshot on 2 sessions', target:2, reward:5, value:function(){ return loadHvSnap().looks; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
