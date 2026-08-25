@@ -1670,6 +1670,7 @@
     { id: 'coldgold', emoji: '🧊', name: 'Cold Gold', desc: 'Sell eight blocks of winter ice.', done: () => (state.iceSold || 0) >= 8 },
     { id: 'road_gambler', emoji: '🎲', name: 'Road Gambler', desc: 'Win four of the teamster\u2019s stakes.', done: () => (state.stakesWon || 0) >= 4 },
     { id: 'made_whole', emoji: '🛡️', name: 'Made Whole', desc: 'Collect three guild sureties.', done: () => (state.suretyClaims || 0) >= 3 },
+    { id: 'good_word', emoji: '📜', name: 'Good for It', desc: 'Honour three merchant advances in full.', done: () => (state.advancesFilled || 0) >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2658,6 +2659,12 @@
   // purse and a clean one (45), so an insured caravan comes home
   // whole either way. A clean road expires the premium unclaimed.
   const SURETY_COST = 10, SURETY_PAY = CARAVAN_PAY - CARAVAN_ROBBED;
+  // HVALE-27: the merchant's advance — the credit round at the market
+  // stall. 30 gold NOW for 12 food due in four days: honour it and
+  // the town's word is worth +2 cheer; come up short and the wagon
+  // takes what's there, the rest at 3 gold a measure, and the town
+  // feels the shame. One advance at a time.
+  const ADV_GOLD = 30, ADV_FOOD = 12, ADV_DAYS = 4, ADV_PENALTY = 3;
   function caravanOut() { return !!state.caravan; }
   function sendCaravan() {
     if (caravanOut()) { toast('🐴 The caravan is already on the road.'); return; }
@@ -2842,6 +2849,38 @@
     }
   }
 
+  // ---- The Merchant's Advance (HVALE-27) ----------------------
+  function takeAdvance() {
+    if (state.merchantAdvance) { toast('📜 The merchant taps the standing note — due day ' + state.merchantAdvance.due + '. One at a time.'); return; }
+    state.res.gold += ADV_GOLD;
+    state.merchantAdvance = { due: state.day + ADV_DAYS };
+    toast('📜 The merchant counts out ' + ADV_GOLD + ' gold — ' + ADV_FOOD + ' food due at his wagon on day ' + state.merchantAdvance.due + '.');
+    chron('📜', 'Took the merchant\u2019s advance — ' + ADV_GOLD + ' gold against ' + ADV_FOOD + ' food, due day ' + state.merchantAdvance.due);
+    SFX('coin');
+    updateHUD(); save();
+  }
+  function advanceAtDawn() {
+    const adv = state.merchantAdvance;
+    if (!adv || state.day < adv.due) return;
+    state.merchantAdvance = null;
+    const have = Math.min(ADV_FOOD, Math.floor(state.res.food));
+    state.res.food -= have;
+    const short = ADV_FOOD - have;
+    if (short <= 0) {
+      state.advancesFilled = (state.advancesFilled || 0) + 1;
+      state.happy = Math.min(100, state.happy + 2);
+      toast('📜 The wagon takes its ' + ADV_FOOD + ' food — the advance is honoured, and the town\u2019s word holds.');
+      chron('📜', 'The merchant\u2019s advance was honoured in full (' + state.advancesFilled + ' kept)');
+      checkAchievements();
+    } else {
+      state.res.gold = Math.max(0, state.res.gold - short * ADV_PENALTY);
+      state.happy = Math.max(0, state.happy - 3);
+      toast('💔 The larder came up ' + short + ' short — the merchant takes ' + (short * ADV_PENALTY) + ' gold for the difference.');
+      chron('💔', 'The advance came up ' + short + ' food short — ' + (short * ADV_PENALTY) + ' gold made up the difference');
+    }
+    updateHUD(); save();
+  }
+
   function onNewDay() {
     // last night's raid resolves in the grey light of dawn
     if (state.raidTonight) resolveRaid();
@@ -2856,6 +2895,7 @@
     huntAtDawn();   // HVALE-21: and winter answers back
     pressAtDawn();  // HVALE-22: and autumn pours
     iceAtDawn();    // HVALE-24: winter banked, summer withdrawn
+    advanceAtDawn(); // HVALE-27: and the merchant's wagon calls its debt
     // HVALE-13: the beacon flame spots wolf packs a day out
     if (beaconBuilt() && !state.raidTonight && state.nextRaidDay === state.day + 1) {
       state.beaconWarns = (state.beaconWarns || 0) + 1;
@@ -4544,6 +4584,9 @@
       const clbl = out ? '🐴 Caravan on the road — back day ' + state.caravan.returnDay
         : '🐴 Send a Caravan <span style="opacity:.7;font-size:11px">15🍞 15🪵 → ' + CARAVAN_PAY + '🪙 in ' + CARAVAN_DAYS + ' days</span>';
       btns += '<button id="p-caravan"' + (out ? ' disabled' : '') + '>' + clbl + '</button>';
+      const albl = state.merchantAdvance ? '📜 Advance standing — due day ' + state.merchantAdvance.due
+        : '📜 Merchant\u2019s Advance <span style="opacity:.7;font-size:11px">+' + ADV_GOLD + '🪙 now → ' + ADV_FOOD + '🍞 in ' + ADV_DAYS + ' days</span>';
+      btns += '<button id="p-advance"' + (state.merchantAdvance ? ' disabled' : '') + '>' + albl + '</button>';
     }
     if (b.type === 'well' && b.done !== false) {
       const wlbl = wishedToday() ? '💧 The well has heard today’s wish'
@@ -4558,6 +4601,8 @@
     if (fBtn) fBtn.onclick = () => { holdFestival(b); if (selected === b) showPanel(b); };
     const cvBtn = document.getElementById('p-caravan');
     if (cvBtn) cvBtn.onclick = () => { sendCaravan(); if (selected === b) showPanel(b); };
+    const adBtn = document.getElementById('p-advance');
+    if (adBtn) adBtn.onclick = () => { takeAdvance(); if (selected === b) showPanel(b); };
     const wBtn = document.getElementById('p-wish');
     if (wBtn) wBtn.onclick = () => { makeWish(); if (selected === b) showPanel(b); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
@@ -4777,6 +4822,8 @@
         stakesWon: state.stakesWon || 0,
         caravanSurety: !!state.caravanSurety,   // HVALE-26
         suretyClaims: state.suretyClaims || 0,
+        merchantAdvance: state.merchantAdvance || null,   // HVALE-27
+        advancesFilled: state.advancesFilled || 0,
         lastIceDay: typeof state.lastIceDay === 'number' ? state.lastIceDay : -1,
         lastPressDay: typeof state.lastPressDay === 'number' ? state.lastPressDay : -1,
         lastHuntDay: typeof state.lastHuntDay === 'number' ? state.lastHuntDay : -1,
@@ -4884,6 +4931,8 @@
       state.stakesWon = s.stakesWon || 0;
       state.caravanSurety = !!s.caravanSurety;   // HVALE-26 (older loads rode bare)
       state.suretyClaims = s.suretyClaims || 0;
+      state.merchantAdvance = s.merchantAdvance || null;   // HVALE-27 (older stalls paid on delivery)
+      state.advancesFilled = s.advancesFilled || 0;
       state.lastIceDay = typeof s.lastIceDay === 'number' ? s.lastIceDay : -1;
       state.lastPressDay = typeof s.lastPressDay === 'number' ? s.lastPressDay : -1;
       state.lastHuntDay = typeof s.lastHuntDay === 'number' ? s.lastHuntDay : -1;
