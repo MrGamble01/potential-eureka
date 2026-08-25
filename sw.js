@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v29';  // rolls Flagship Depth 150–155 (moonshot, hot hand, ironside wager, rain bet, teamster's odds, cloud wager + these notes) to installed PWAs
+const SW_VERSION = 'eureka-v30';  // rolls Flagship Depth 157–162 (hedge, lawyer, rebuilder's bond, garage favor, guild surety, assessor's policy + these notes) to installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
