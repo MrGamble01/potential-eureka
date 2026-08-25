@@ -869,6 +869,42 @@ function recordHarvestDay(gained){
   }
   refreshBellHud();
 }
+// VOX-30: the heirloom round on the shore. The old keeper's conch
+// shell, kept dry above the tide line. Once a session, sound it
+// over the water — an xp grant that scales with the shore's memory:
+// 10 base, +5 per bell ring (to 5), +5 per bottle read (to 3). A
+// shore with no memory has no voice to carry.
+const CONCH_KEY='vox-conch', CONCH_BASE=10;
+let conchSounded=false;
+function loadConch(){
+  try{const c=JSON.parse(localStorage.getItem(CONCH_KEY)||'null');
+    if(c&&typeof c==='object')return{uses:Math.max(0,Math.floor(c.uses||0))};
+  }catch(e){}
+  return{uses:0};
+}
+function saveConch(c){try{localStorage.setItem(CONCH_KEY,JSON.stringify(c));}catch(e){}}
+function conchHasVoice(){ return loadVrec().coins>0||loadBottle().read>0; }
+function conchPower(){
+  return CONCH_BASE+5*Math.min(loadVrec().beats||0,5)+5*Math.min(loadBottle().read||0,3);
+}
+function refreshConchHud(){
+  const h=document.getElementById('conchHud'),tx=document.getElementById('conchTxt');
+  if(!h)return;
+  h.style.display=conchHasVoice()?'flex':'none';
+  h.style.opacity=conchSounded?'0.45':'';
+  if(tx)tx.textContent=conchSounded?'🐚 sounded':'🐚 sound for +'+conchPower()+' xp';
+}
+function soundConch(){
+  if(!conchHasVoice()||conchSounded)return;
+  conchSounded=true;
+  const p=conchPower();
+  const c=loadConch();
+  saveConch({uses:c.uses+1});
+  grantXP(p);
+  toast('🐚 The keeper\u2019s conch sounds over the water \u2014 +'+p+' xp, carried by everything the shore remembers.');
+  if(typeof checkAch==='function')checkAch();
+  refreshConchHud();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -4655,6 +4691,7 @@ const ACH=[
   ['bell3','Harvest Bell','Ring the harvest bell on three sessions',()=>loadVrec().beats>=3],
   ['bottles3','The Sea Remembers','Read three messages in bottles',()=>loadBottle().read>=3],
   ['tablet3','Written in Tide','Consult the tide tablet three times',()=>loadVtab().opens>=3],
+  ['conch3','Heard Across the Water','Sound the keeper\u2019s conch on three sessions',()=>loadConch().uses>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4895,7 +4932,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -4967,6 +5004,7 @@ boot();
 <div id="noteHud" style="display:none;position:fixed;bottom:188px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(200,170,240,0.5);color:#e2d4f4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="takeTraderNote()" title="The Trader's Note: 60 🪙 now against 75 of future trade — half of every Market sale and Tavern meal rides the note till it clears"><span id="noteTxt">📝 60 🪙 advance</span></div>
 <div id="lanternHud" style="display:none;position:fixed;bottom:222px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,200,140,0.5);color:#ffe4c0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lightLantern()" title="The Stone Lantern: 150 🪙 lights it once, forever — it lives outside the isle's save, and every new isle that rises after it starts with the three starter plots already grown"><span id="lanternTxt">🏮 light for 150 🪙</span></div>
 <div id="bellHud" style="display:none;position:fixed;bottom:256px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,225,130,0.5);color:#ffefb8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:default;gap:8px;align-items:center" title="The Harvest Bell: the richest single day this shore has ever earned, weighed dawn to dawn. Beat the mark that stood when you sat down and the bell rings — +25 xp, once a session."><span id="bellTxt">🔔 —</span></div>
+<div id="conchHud" style="display:none;position:fixed;bottom:290px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(160,220,255,0.5);color:#cfeaff;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="soundConch()" title="The Keeper’s Conch: the old keeper’s shell, kept dry above the tide line. Sound it once a session — the deeper the shore’s memory, the further it carries."><span id="conchTxt">🐚 —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
