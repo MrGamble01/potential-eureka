@@ -867,12 +867,26 @@ function loadVrec(){
   return{coins:0,beats:0};
 }
 function saveVrec(r){try{localStorage.setItem(VREC_KEY,JSON.stringify(r));}catch(e){}}
+// VOX-33: the plaque round on the shore — the records round comes
+// back around. Three harvest-bell rings earn the bell a wreath of
+// shells, and every ring beneath it draws the traders in early:
+// +10 coins on the spot, because a shore this storied sells the
+// story with the harvest. Cheers tallied across isles.
+const WREATH_KEY='vox-plaque',WREATH_AT=3,WREATH_COINS=10;
+function loadWreath(){
+  try{const w=JSON.parse(localStorage.getItem(WREATH_KEY)||'null');
+    if(w&&typeof w==='object')return{cheers:Math.max(0,Math.floor(w.cheers||0))};
+  }catch(e){}
+  return{cheers:0};
+}
+function saveWreath(w){try{localStorage.setItem(WREATH_KEY,JSON.stringify(w));}catch(e){}}
+function bellHasWreath(){return(loadVrec().beats||0)>=WREATH_AT;}
 function refreshBellHud(){
   const h=document.getElementById('bellHud'),tx=document.getElementById('bellTxt');
   if(!h)return;
   const r=loadVrec();
   h.style.display=r.coins>0?'flex':'none';
-  if(tx)tx.textContent='🔔 best day '+r.coins+' 🪙'+((r.beats||0)>0?' · rung '+r.beats+'×':'');
+  if(tx)tx.textContent='🔔 best day '+r.coins+' 🪙'+((r.beats||0)>0?' · rung '+r.beats+'×':'')+(bellHasWreath()?' · 🐚 wreath':'');
 }
 function recordHarvestDay(gained){
   const r=loadVrec();
@@ -881,9 +895,18 @@ function recordHarvestDay(gained){
   if(!vrecRung&&vrecMark>0&&gained>vrecMark){
     vrecRung=true;
     const r2=loadVrec();
+    const wreathStood=(r2.beats||0)>=WREATH_AT;
     saveVrec({coins:r2.coins,beats:r2.beats+1});
     grantXP(VREC_XP);
     toast('🔔 The harvest bell rings \u2014 '+gained+' 🪙 in one day, the richest this shore has ever seen. +'+VREC_XP+' xp');
+    // VOX-33: under the shell wreath, the ring draws the traders in.
+    if(wreathStood){
+      const w=loadWreath();
+      saveWreath({cheers:w.cheers+1});
+      state.coins=(state.coins||0)+WREATH_COINS;
+      setTimeout(()=>toast('\u{1F41A} The shell wreath rattles on the bell \u2014 traders row in early for a story like that: +'+WREATH_COINS+' 🪙'),1400);
+      if(typeof checkAch==='function')setTimeout(checkAch,1600);
+    }
   }
   refreshBellHud();
 }
@@ -4712,6 +4735,7 @@ const ACH=[
   ['conch3','Heard Across the Water','Sound the keeper\u2019s conch on three sessions',()=>loadConch().uses>=3],
   ['wick2','The Second Wick','See the lantern greet three isles and earn its second wick',()=>lanternHasWick()],
   ['lanternfest3','Lantern Festival','See three new isles rise to the festival',()=>loadVfest().days>=3],
+  ['wreath3','The Shell Wreath','Ring the harvest bell three times beneath the wreath',()=>loadWreath().cheers>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
