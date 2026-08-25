@@ -593,6 +593,7 @@ const AgeOfWarGame = (() => {
     { id: 'old_general', icon: '\u{1F396}\u{FE0F}', title: 'The General\u2019s Review', desc: 'Welcome the Old General on three sessions.' },
     { id: 'field_glasses', icon: '\u{1F52D}', title: 'The Field Glasses', desc: 'Raise the standard beside the glasses on three sessions.' },
     { id: 'vets_reunion', icon: '\u{1F397}\u{FE0F}', title: 'The Veterans\u2019 Reunion', desc: 'Muster the whole story on three sessions.' },
+    { id: 'painting3', icon: '\u{1F5BC}\u{FE0F}', title: 'The Campaign Painting', desc: 'Unveil the painting on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -716,6 +717,7 @@ const AgeOfWarGame = (() => {
     if (loadGen().visits >= 3) unlock('old_general');
     if (loadGlasses().pays >= 3) unlock('field_glasses');
     if (loadVReunion().held >= 3) unlock('vets_reunion');
+    if (loadPainting().looks >= 3) unlock('painting3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2248,6 +2250,36 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // \u2500\u2500 The Campaign Painting (AOW-47) \u2500\u2500
+  // The portrait round on the battlefield: after three Veterans'
+  // Reunions, a regimental painting of the muster hangs in the
+  // hall. Once a session an unveiling pays: 40 gold base + 20 per
+  // reunion held (cap 5). Unveilings tallied in 'aow-portrait'.
+  const PAINT_KEY = 'aow-portrait', PAINT_BASE = 40, PAINT_PER = 20;
+  let paintingUnveiled = false;
+  function loadPainting() {
+    try { const p = JSON.parse(localStorage.getItem(PAINT_KEY) || 'null');
+      if (p && typeof p === 'object') return { looks: Math.max(0, Math.floor(p.looks || 0)) };
+    } catch {}
+    return { looks: 0 };
+  }
+  function savePainting(p) { try { localStorage.setItem(PAINT_KEY, JSON.stringify(p)); } catch {} }
+  function paintingHangs() { return loadVReunion().held >= 3; }
+  function paintingPurse() { return PAINT_BASE + PAINT_PER * Math.min(loadVReunion().held || 0, 5); }
+  function unveilPainting() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!paintingHangs() || paintingUnveiled) return;
+    paintingUnveiled = true;
+    const p = paintingPurse();
+    const pt = loadPainting();
+    savePainting({ looks: pt.looks + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F5BC}\u{FE0F} THE CAMPAIGN PAINTING \u2014 the muster on canvas, unveiled in the hall. The patrons pay: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2427,6 +2459,8 @@ const AgeOfWarGame = (() => {
     if (genBtn) genBtn.onclick = welcomeGeneral;
     const reuBtn = document.getElementById('aow-reunion-btn');
     if (reuBtn) reuBtn.onclick = holdVetsReunion;
+    const pntBtn = document.getElementById('aow-painting-btn');
+    if (pntBtn) pntBtn.onclick = unveilPainting;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8271,6 +8305,21 @@ const AgeOfWarGame = (() => {
         reuEl.title = vetsReunionHeld
           ? 'The Veterans\u2019 Reunion has already mustered \u2014 once a session, the men have wars to rest from.'
           : `The Veterans' Reunion \u2014 the whole story stands: the laurel's pages and the general's reviews. Muster them and every old campaigner brings a purse: +${vreunionPurse()} gold. Held ${loadVReunion().held} time${loadVReunion().held === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Campaign Painting (AOW-47)
+    const pntEl = document.getElementById('aow-painting-btn');
+    const pntCdEl = document.getElementById('aow-painting-cd');
+    if (pntEl) {
+      if (!paintingHangs()) { pntEl.style.display = 'none'; }
+      else {
+        pntEl.style.display = '';
+        pntEl.style.opacity = paintingUnveiled ? '0.45' : '';
+        if (pntCdEl) pntCdEl.textContent = paintingUnveiled ? 'unveiled' : `+${paintingPurse()}g`;
+        pntEl.title = paintingUnveiled
+          ? 'The Campaign Painting has been unveiled this session \u2014 the canvas keeps.'
+          : `The Campaign Painting \u2014 the muster on canvas, hung in the hall. Unveil it and the patrons pay: +${paintingPurse()} gold. Unveiled ${loadPainting().looks} time${loadPainting().looks === 1 ? '' : 's'}.`;
       }
     }
 
