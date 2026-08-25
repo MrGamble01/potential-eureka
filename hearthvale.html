@@ -330,6 +330,7 @@
     <button id="m-portrait">View the Green Portrait</button>
     <button id="m-anniv">Keep Founding Day</button>
     <button id="m-register">Leaf the Hall Register</button>
+    <button id="m-bench">Sit on the Green Bench</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1693,6 +1694,7 @@
     { id: 'green_portrait', emoji: '\u{1F5BC}\u{FE0F}', name: 'The Green Portrait', desc: 'View the portrait on three sessions.', done: () => loadVPortrait().looks >= 3 },
     { id: 'founding_day', emoji: '\u{1F38A}', name: 'Founding Day', desc: 'Keep the founding day on three sessions.', done: () => loadFDay().toasts >= 3 },
     { id: 'hall_register', emoji: '\u{1F4D6}', name: 'The Hall Register', desc: 'Leaf through the register on three sessions.', done: () => loadRegister().leafs >= 3 },
+    { id: 'green_bench', emoji: '\u{1FA91}', name: 'The Green Bench', desc: 'Sit on the bench on three sessions.', done: () => loadGBench().sits >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2984,6 +2986,35 @@
     state.res.gold += p;
     chron('\u{1F4D6}', 'A leaf through the Hall Register \u2014 every family and traveler who ever passed through the valley, signed in. One of the names sends a purse: +' + p + ' gold');
     toast('\u{1F4D6} The Hall Register \u2014 +' + p + ' gold. The names pay.');
+    checkAchievements();
+  }
+  // ---- the Green Bench (HVALE-43) -----------------------------
+  // The bench round in the valley: after three leafs through the
+  // Hall Register, the families build a bench on the green \u2014
+  // a seat with every name at its back. Once a session a sit pays:
+  // 30 gold base + 5 per leaf (cap 5). Sits tallied in
+  // 'hvale-bench'.
+  const GBENCH_KEY = 'hvale-bench', GBENCH_BASE = 30, GBENCH_PER = 5;
+  let gbenchSat = false;
+  function loadGBench() {
+    try { const b = JSON.parse(localStorage.getItem(GBENCH_KEY) || 'null');
+      if (b && typeof b === 'object') return { sits: Math.max(0, Math.floor(b.sits || 0)) };
+    } catch (e) { }
+    return { sits: 0 };
+  }
+  function saveGBench(b) { try { localStorage.setItem(GBENCH_KEY, JSON.stringify(b)); } catch (e) { } }
+  function gbenchBuilt() { return loadRegister().leafs >= 3; }
+  function gbenchPurse() { return GBENCH_BASE + GBENCH_PER * Math.min(loadRegister().leafs || 0, 5); }
+  function sitGreenBench() {
+    if (!gbenchBuilt()) { toast('\u{1FA91} No bench stands on the green yet \u2014 three leafs through the register and the families start building.'); return; }
+    if (gbenchSat) { toast('\u{1FA91} The Green Bench got its sit today \u2014 the seat keeps.'); return; }
+    gbenchSat = true;
+    const p = gbenchPurse();
+    const b = loadGBench();
+    saveGBench({ sits: b.sits + 1 });
+    state.res.gold += p;
+    chron('\u{1FA91}', 'A sit on the Green Bench \u2014 every name in the register at its back. An elder sits down alongside with a purse: +' + p + ' gold');
+    toast('\u{1FA91} The Green Bench \u2014 +' + p + ' gold. The seat pays.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5430,6 +5461,7 @@
     { const mp = document.getElementById('m-portrait'); if (mp) mp.onclick = () => { menu.classList.remove('show'); viewGreenPortrait(); }; }
     { const ma = document.getElementById('m-anniv'); if (ma) ma.onclick = () => { menu.classList.remove('show'); keepFoundingDay(); }; }
     { const mr = document.getElementById('m-register'); if (mr) mr.onclick = () => { menu.classList.remove('show'); leafHallRegister(); }; }
+    { const mb = document.getElementById('m-bench'); if (mb) mb.onclick = () => { menu.classList.remove('show'); sitGreenBench(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
