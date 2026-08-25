@@ -61,6 +61,9 @@ var G = {
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
   // started, 3 = housed. arcDone marks the post-ending sandbox.
   arcStage: 0, arcDone: false,
+  // HV-31: true once the corner fridge's ledger has counted (and
+  // seeded) this camp — a genuinely fresh camp starts false.
+  fridgeSeeded: false,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
@@ -323,6 +326,20 @@ var GARAGE_COST = 2;
 // one is for the trouble. He never presses on a broke morning; he
 // just remembers. No new loan while one stands.
 var BORROW_AMT = 4, BORROW_OWED = 5;
+// HV-31: the legacy round under the bridge. The Corner Fridge lives
+// in its own localStorage key OUTSIDE the save — Start Over wipes the
+// camp, never the corner. 15 goodwill sets it humming, and every
+// fresh camp that forms beside it starts 3 goodwill known: anyone can
+// give, anyone can take. The camp's first gift that outlives the camp.
+var FRIDGE_KEY = 'hv-fridge', FRIDGE_COST = 15, FRIDGE_SEED = 3;
+function loadFridge(){
+  try{ var f=JSON.parse(localStorage.getItem(FRIDGE_KEY)||'null');
+    if(f&&typeof f==='object') return {built:!!f.built, camps:Math.max(0,Math.floor(f.camps||0))};
+  }catch(e){}
+  return {built:false, camps:0};
+}
+function saveFridge(f){ try{ localStorage.setItem(FRIDGE_KEY, JSON.stringify(f)); }catch(e){} }
+function fridgeCamps(){ return loadFridge().camps; }
 
 // HV-24: the tool box. Good tools change two small things that add
 // up: the workbench never falls apart again (the daily wobble gets
@@ -365,6 +382,7 @@ var ACTIONS = [
   {id:'rainbet',   icon:'🎲', label:'Rain Bet',           time:2000, cooldown:30000, tooltip:'Dee’s 5 goodwill against your 2 that tomorrow stays dry. You take the rain side — one bet a day. A radio is the whole edge.'},
   {id:'garage',    icon:'🚙', label:'Garage Favor',       time:2000, cooldown:30000, tooltip:'2 goodwill stows the camp’s loose goods in Marisol’s garage till the next sweep — when it comes, the confiscation finds nothing. Tents still fall.'},
   {id:'borrow',    icon:'🤲', label:'Borrow from Ray',    time:2000, cooldown:30000, tooltip:'Old Ray fronts 4 goodwill on the spot; his ledger takes one back every dawn until 5 is repaid. He never presses — he remembers.'},
+  {id:'fridge',    icon:'🧊', label:'Corner Fridge',      time:4000, cooldown:30000, tooltip:'15 goodwill sets a donated fridge humming on the corner — anyone can give, anyone can take. It isn’t the camp’s: Start Over can’t unplug it, and every fresh camp that forms beside it starts 3 goodwill known.'},
 ];
 
 var WORKER_DEFS = [
@@ -408,6 +426,7 @@ var GOALS = [
   {id:'rainbet3',   desc:'Win 3 rain bets against Dee', target:3, reward:6, value:function(){ return G.rainBetsWon||0; }},
   {id:'garage2',    desc:'Ride out 2 sweeps covered by Marisol\u2019s garage', target:2, reward:6, value:function(){ return G.garageSaves||0; }},
   {id:'borrow2',    desc:'Repay 2 of Ray\u2019s loans in full', target:2, reward:6, value:function(){ return G.rayLoans||0; }},
+  {id:'fridge2',    desc:'See the corner fridge welcome 2 fresh camps', target:2, reward:8, value:function(){ return fridgeCamps(); }},
 ];
 
 var activeJobs = {};

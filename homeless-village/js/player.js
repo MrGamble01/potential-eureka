@@ -148,6 +148,20 @@ function finishAction(a){
       log('\uD83E\uDD1D Ray counts '+BORROW_AMT+' goodwill into your hand \u2014 the ledger reads '+BORROW_OWED+', one a morning.');
       bumpRegular('ray');
     }
+  } else if(a.id==='fridge'){
+    // HV-31: the legacy build. The fridge lives outside the save —
+    // built once, for the corner, not the camp.
+    var fr=loadFridge();
+    if(fr.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); }
+    else if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); }
+    else {
+      G.goodwill-=FRIDGE_COST;
+      saveFridge({built:true, camps:0});
+      floatText('-'+FRIDGE_COST+'\ud83e\ude76');
+      log('\uD83E\uDDCA The corner fridge hums to life \u2014 anyone can give, anyone can take. It isn\u2019t the camp\u2019s. It\u2019s the corner\u2019s, and it outlives every camp.');
+      addRep(5);
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
