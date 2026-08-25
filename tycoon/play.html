@@ -6224,6 +6224,7 @@ const ACHIEVEMENTS = [
   { id: 'beat_the_desk', icon: '\u{1F3E6}', title: 'Beat the Desk',        desc: 'Come out ahead on three factoring windows.', check: () => factorWins >= 3, progress: () => [Math.min(factorWins, 3), 3] },
   { id: 'in_perpetuity', icon: '\u{1F393}', title: 'In Perpetuity',        desc: 'Endow the scholarship and let it steady five hard days.', check: () => endowed && endowCatches >= 5, progress: () => [Math.min(endowCatches, 5), 5] },
   { id: 'second_chair', icon: '\u{1FA91}', title: 'The Second Chair',     desc: 'Let the second chair steady three more hard days.', check: () => endowed && endowCatches >= 8, progress: () => [Math.min(endowCatches, 8), 8] },
+  { id: 'founders_day', icon: '\u{1F389}', title: 'Founders\u2019 Day',      desc: 'Open three new companies to the parade.', check: () => loadFest().days >= 3, progress: () => [Math.min(loadFest().days, 3), 3] },
   { id: 'house_record', icon: '\u{1F4C8}', title: 'House Record',        desc: 'Ring the record bell on three different sessions.', check: () => loadRecord().beats >= 3, progress: () => [Math.min(loadRecord().beats, 3), 3] },
   { id: 'three_letters', icon: '\u{2709}\u{FE0F}', title: 'Kept Correspondence', desc: 'Read the founder\u2019s letter at three new companies.', check: () => loadLetter().read >= 3, progress: () => [Math.min(loadLetter().read, 3), 3] },
   { id: 'bound_history', icon: '\u{1F4D4}', title: 'Bound History',       desc: 'Read the Company History aloud three times.', check: () => loadHist().opens >= 3, progress: () => [Math.min(loadHist().opens, 3), 3] },
@@ -10406,6 +10407,36 @@ function updateLetter(dt) {
   changeMorale(LETTER_MORALE, 'The founder\u2019s letter steadies the new floor');
   checkAchievements();
 }
+// ---- Founders' Day (TYC-41) -----------------------------------
+// The festival round: when the second chair stands, every newly
+// prestiged company opens with Founders' Day — the whole lineage
+// paraded through the lobby: +$500 seed and +5 morale on top of
+// everything the memory already pays. A studio still earning its
+// chair just files the prestige and waits for its first parade.
+const FEST_KEY = 'tyc-festival', FEST_CASH = 500, FEST_MORALE = 5;
+function loadFest() {
+  try { const f = JSON.parse(localStorage.getItem(FEST_KEY) || 'null');
+    if (f && typeof f === 'object') return { last: Math.max(0, Math.floor(f.last || 0)), days: Math.max(0, Math.floor(f.days || 0)) };
+  } catch (e) { }
+  return { last: 0, days: 0 };
+}
+function saveFest(f) { try { localStorage.setItem(FEST_KEY, JSON.stringify(f)); } catch (e) { } }
+function festivalStands() { return typeof endowed !== 'undefined' && endowed && endowCatches >= ENDOW_TIER2_AT; }
+function updateFestival(dt) {
+  updateFestival._acc = (updateFestival._acc || 0) + dt;
+  if (updateFestival._acc < 3) return;
+  updateFestival._acc = 0;
+  const f = loadFest();
+  if (prestigeLevel <= f.last) return;
+  if (!festivalStands()) { saveFest({ last: prestigeLevel, days: f.days }); return; }
+  saveFest({ last: prestigeLevel, days: f.days + 1 });
+  state.cash += FEST_CASH;
+  addFeedEntry('\u{1F389} FOUNDERS\u2019 DAY \u2014 the second chair stands and the new company opens to a parade.');
+  addFeedEntry('\u{1F389} The lineage pays it forward: +$' + FEST_CASH + ' seed and +' + FEST_MORALE + ' morale.');
+  showToast('\u{1F389} Founders\u2019 Day \u2014 +$' + FEST_CASH + ' and +' + FEST_MORALE + ' morale. The memory throws a party.', 'good', 'critical');
+  changeMorale(FEST_MORALE, 'Founders\u2019 Day');
+  checkAchievements();
+}
 // Round Twenty-Seven opens the almanac round: each flagship binds
 // its cross-run memory into a book you can open. The Tycoon leg
 // gathers the House Record, the scholarship and the founder's
@@ -11399,6 +11430,7 @@ function frameBody(now) {
   updateEndow(dt);
   updateRecord(dt);
   updateLetter(dt);
+  updateFestival(dt);
   updateHist(dt);
   updateCoffeeSteam(dt);
   if (thirdPerson) updateThirdPersonCamera(); // pose pcam before labels project through it
