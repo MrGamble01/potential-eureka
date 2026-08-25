@@ -329,6 +329,7 @@
     <button id="m-reunion">Throw the Founders’ Reunion</button>
     <button id="m-portrait">View the Green Portrait</button>
     <button id="m-anniv">Keep Founding Day</button>
+    <button id="m-register">Leaf the Hall Register</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1691,6 +1692,7 @@
     { id: 'founders_reunion', emoji: '\u{1F37B}', name: 'The Founders\u2019 Reunion', desc: 'Throw the whole story a reunion on three sessions.', done: () => loadFReunion().held >= 3 },
     { id: 'green_portrait', emoji: '\u{1F5BC}\u{FE0F}', name: 'The Green Portrait', desc: 'View the portrait on three sessions.', done: () => loadVPortrait().looks >= 3 },
     { id: 'founding_day', emoji: '\u{1F38A}', name: 'Founding Day', desc: 'Keep the founding day on three sessions.', done: () => loadFDay().toasts >= 3 },
+    { id: 'hall_register', emoji: '\u{1F4D6}', name: 'The Hall Register', desc: 'Leaf through the register on three sessions.', done: () => loadRegister().leafs >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2953,6 +2955,35 @@
     state.res.gold += p;
     chron('\u{1F38A}', 'Founding Day kept on the green \u2014 the portrait told the town its own age. The families pass the hat: +' + p + ' gold');
     toast('\u{1F38A} Founding Day \u2014 +' + p + ' gold. The valley keeps its own day now.');
+    checkAchievements();
+  }
+  // ---- the Hall Register (HVALE-42) ---------------------------
+  // The guest-book round in the valley: after three Founding Day
+  // keepings, a register sits open by the hall door \u2014 every
+  // family and traveler who ever passed through, signed in. Once a
+  // session a leaf-through pays: 25 gold base + 5 per keeping
+  // (cap 5). Leafs tallied in 'hvale-guestbook'.
+  const REG_KEY = 'hvale-guestbook', REG_BASE = 25, REG_PER = 5;
+  let registerLeafed = false;
+  function loadRegister() {
+    try { const r = JSON.parse(localStorage.getItem(REG_KEY) || 'null');
+      if (r && typeof r === 'object') return { leafs: Math.max(0, Math.floor(r.leafs || 0)) };
+    } catch (e) { }
+    return { leafs: 0 };
+  }
+  function saveRegister(r) { try { localStorage.setItem(REG_KEY, JSON.stringify(r)); } catch (e) { } }
+  function registerOut() { return loadFDay().toasts >= 3; }
+  function registerPurse() { return REG_BASE + REG_PER * Math.min(loadFDay().toasts || 0, 5); }
+  function leafHallRegister() {
+    if (!registerOut()) { toast('\u{1F4D6} No register sits by the hall door yet \u2014 three founding days and the town starts keeping names.'); return; }
+    if (registerLeafed) { toast('\u{1F4D6} The Hall Register got its leaf-through today \u2014 the names keep.'); return; }
+    registerLeafed = true;
+    const p = registerPurse();
+    const r = loadRegister();
+    saveRegister({ leafs: r.leafs + 1 });
+    state.res.gold += p;
+    chron('\u{1F4D6}', 'A leaf through the Hall Register \u2014 every family and traveler who ever passed through the valley, signed in. One of the names sends a purse: +' + p + ' gold');
+    toast('\u{1F4D6} The Hall Register \u2014 +' + p + ' gold. The names pay.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5398,6 +5429,7 @@
     { const mu = document.getElementById('m-reunion'); if (mu) mu.onclick = () => { menu.classList.remove('show'); throwFoundersReunion(); }; }
     { const mp = document.getElementById('m-portrait'); if (mp) mp.onclick = () => { menu.classList.remove('show'); viewGreenPortrait(); }; }
     { const ma = document.getElementById('m-anniv'); if (ma) ma.onclick = () => { menu.classList.remove('show'); keepFoundingDay(); }; }
+    { const mr = document.getElementById('m-register'); if (mr) mr.onclick = () => { menu.classList.remove('show'); leafHallRegister(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
