@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="bench-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="bench-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="story-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6244,6 +6244,7 @@ const ACHIEVEMENTS = [
   { id: 'anniv3', icon: '\u{1F942}', title: 'The Founding Toast', desc: 'Raise the toast on three sessions.', check: () => loadToastTally().toasts >= 3, progress: () => [Math.min(loadToastTally().toasts, 3), 3] },
   { id: 'guest3', icon: '\u{1F4D4}', title: 'The Guest Book', desc: 'Leaf through the book on three sessions.', check: () => loadGuestBook().leafs >= 3, progress: () => [Math.min(loadGuestBook().leafs, 3), 3] },
   { id: 'bench3', icon: '\u{1FA91}', title: 'The Lobby Bench', desc: 'Sit on the bench on three sessions.', check: () => loadBench().sits >= 3, progress: () => [Math.min(loadBench().sits, 3), 3] },
+  { id: 'story3', icon: '\u{1F399}\u{FE0F}', title: 'The All-Hands Story', desc: 'Tell the story on three sessions.', check: () => loadStoryHour().tellings >= 3, progress: () => [Math.min(loadStoryHour().tellings, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10539,6 +10540,7 @@ function updateHist(dt) {
   refreshToastChip();
   refreshGuestChip();
   refreshBenchChip();
+  refreshStoryChip();
 }
 // ---- the Founder's Ring (TYC-39) ------------------------------
 // The heirloom round: the memory starts paying. Once a session the
@@ -10862,6 +10864,48 @@ function sitLobbyBench() {
   showToast('\u{1FA91} The Lobby Bench \u2014 +$' + p + '. The seat pays.', 'good', 'standard');
   checkAchievements();
   refreshBenchChip();
+}
+// ---- the All-Hands Story (TYC-51) -----------------------------
+// Round Forty opens the story-hour round: after three sits on the
+// Lobby Bench, the founder stands up at all-hands and tells the
+// whole story \u2014 the record, the letters, the reunions, every
+// name in the book. Once a session a telling pays: $90 base + $45
+// per sit (cap 5). Tellings tallied in 'tyc-storyhour'.
+const STORY_KEY = 'tyc-storyhour', STORY_BASE = 90, STORY_PER = 45;
+let storyTold = false;
+function loadStoryHour() {
+  try { const s = JSON.parse(localStorage.getItem(STORY_KEY) || 'null');
+    if (s && typeof s === 'object') return { tellings: Math.max(0, Math.floor(s.tellings || 0)) };
+  } catch (e) { }
+  return { tellings: 0 };
+}
+function saveStoryHour(s) { try { localStorage.setItem(STORY_KEY, JSON.stringify(s)); } catch (e) { } }
+function storyReady() { return loadBench().sits >= 3; }
+function storyPurse() { return STORY_BASE + STORY_PER * Math.min(loadBench().sits || 0, 5); }
+function refreshStoryChip() {
+  const el = document.getElementById('story-chip');
+  if (!el) return;
+  el.onclick = tellAllHandsStory;
+  if (!storyReady()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.style.opacity = storyTold ? '0.45' : '';
+  el.textContent = '\u{1F399}\u{FE0F} story';
+  el.title = storyTold
+    ? 'The All-Hands Story has been told this session. Once a day \u2014 the room remembers.'
+    : 'The All-Hands Story \u2014 three sits on the bench and the founder has the whole thing by heart. Tell it, and somebody in the back row wires money before the applause dies: $' + storyPurse()
+      + '. Told ' + loadStoryHour().tellings + ' time' + (loadStoryHour().tellings === 1 ? '' : 's') + '.';
+}
+function tellAllHandsStory() {
+  if (!storyReady() || storyTold) return;
+  storyTold = true;
+  const p = storyPurse();
+  const s = loadStoryHour();
+  saveStoryHour({ tellings: s.tellings + 1 });
+  state.cash += p;
+  addFeedEntry('\u{1F399}\u{FE0F} The founder tells the All-Hands Story \u2014 the record, the letters, the reunions, every name in the book. Somebody in the back row wires money before the applause dies: +$' + p + '.');
+  showToast('\u{1F399}\u{FE0F} The All-Hands Story \u2014 +$' + p + '. The story pays.', 'good', 'standard');
+  checkAchievements();
+  refreshStoryChip();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
