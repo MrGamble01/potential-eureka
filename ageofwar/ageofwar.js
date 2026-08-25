@@ -597,6 +597,7 @@ const AgeOfWarGame = (() => {
     { id: 'salute3', icon: '\u{1F387}', title: 'The Founding Salute', desc: 'Fire the salute on three sessions.' },
     { id: 'roll3', icon: '\u{1F4DC}', title: 'The Muster Roll', desc: 'Read the roll on three sessions.' },
     { id: 'vbench3', icon: '\u{1FA91}', title: 'The Veterans\u2019 Bench', desc: 'Sit on the bench on three sessions.' },
+    { id: 'tale3', icon: '\u{1F525}', title: 'The Campfire Tale', desc: 'Hear the tale on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -724,6 +725,7 @@ const AgeOfWarGame = (() => {
     if (loadSalute().toasts >= 3) unlock('salute3');
     if (loadRoll().leafs >= 3) unlock('roll3');
     if (loadVBench().sits >= 3) unlock('vbench3');
+    if (loadTale().tellings >= 3) unlock('tale3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2379,6 +2381,37 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // ── The Campfire Tale (AOW-51) ──
+  // The story-hour round on the battlefield: after three sits on
+  // the Veterans' Bench, the oldest campaigner has the whole war
+  // by heart \u2014 the chronicle, the dispatches, the reunions,
+  // every name on the roll. Once a session a telling pays: 80 gold
+  // base + 40 per sit (cap 5). Tellings tallied in 'aow-storyhour'.
+  const TALE_KEY = 'aow-storyhour', TALE_BASE = 80, TALE_PER = 40;
+  let taleTold = false;
+  function loadTale() {
+    try { const t = JSON.parse(localStorage.getItem(TALE_KEY) || 'null');
+      if (t && typeof t === 'object') return { tellings: Math.max(0, Math.floor(t.tellings || 0)) };
+    } catch {}
+    return { tellings: 0 };
+  }
+  function saveTale(t) { try { localStorage.setItem(TALE_KEY, JSON.stringify(t)); } catch {} }
+  function taleReady() { return loadVBench().sits >= 3; }
+  function talePurse() { return TALE_BASE + TALE_PER * Math.min(loadVBench().sits || 0, 5); }
+  function hearCampfireTale() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!taleReady() || taleTold) return;
+    taleTold = true;
+    const p = talePurse();
+    const t = loadTale();
+    saveTale({ tellings: t.tellings + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F525} THE CAMPFIRE TALE \u2014 the whole war by heart, told around the fire. Somebody pays for the next chapter: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2566,6 +2599,8 @@ const AgeOfWarGame = (() => {
     if (rollBtn) rollBtn.onclick = readMusterRoll;
     const vbBtn = document.getElementById('aow-bench-btn');
     if (vbBtn) vbBtn.onclick = sitVeteransBench;
+    const taleBtn = document.getElementById('aow-tale-btn');
+    if (taleBtn) taleBtn.onclick = hearCampfireTale;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8470,6 +8505,21 @@ const AgeOfWarGame = (() => {
         vbEl.title = vbenchSat
           ? 'The Veterans\u2019 Bench has had its sit this session \u2014 the seat keeps.'
           : `The Veterans' Bench \u2014 three readings of the roll and the veterans built a seat outside the hall. Sit, and an old campaigner sits down with a purse: +${vbenchPurse()} gold. Sat ${loadVBench().sits} time${loadVBench().sits === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Campfire Tale (AOW-51)
+    const taleEl = document.getElementById('aow-tale-btn');
+    const taleCdEl = document.getElementById('aow-tale-cd');
+    if (taleEl) {
+      if (!taleReady()) { taleEl.style.display = 'none'; }
+      else {
+        taleEl.style.display = '';
+        taleEl.style.opacity = taleTold ? '0.45' : '';
+        if (taleCdEl) taleCdEl.textContent = taleTold ? 'told' : `+${talePurse()}g`;
+        taleEl.title = taleTold
+          ? 'The Campfire Tale has been told this session \u2014 the fire burns low.'
+          : `The Campfire Tale \u2014 three sits on the bench and the oldest campaigner has the whole war by heart. Hear it, and somebody around the fire pays for the next chapter: +${talePurse()} gold. Told ${loadTale().tellings} time${loadTale().tellings === 1 ? '' : 's'}.`;
       }
     }
 
