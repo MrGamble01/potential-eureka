@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v36';  // rolls Flagship Depth 199–204 (ring, zippo, standard, thermos, hearthstone, conch + these notes) to installed PWAs
+const SW_VERSION = 'eureka-v37';  // rolls Flagship Depth 206–211 (second chair, gym annex, officers' mess, bulletin board, rope swing, second wick + these notes) to installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

@@ -24,8 +24,8 @@ SUITES=(
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
-  hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural hvstash hvfire hvmeeting hvpetition hvticket hvsnap hvbusk hvdeposit hvnewcomer hvpantry hvcoats hvtoolbox hvcompost hvawning hvbarrel hvrainbet hvgarage hvborrow hvfridge hvrecord hvnote hvwall hvthermos
-  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat voxrainbow voxduck voxlight voxobs voxballoon voxdove voxwinter voxice voxferry voxsugar voxmuseum voxowl voxpig voxcrib voxjam voxcloud voxpolicy voxnote voxlantern voxbell voxbottle voxtablet voxconch
+  hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural hvstash hvfire hvmeeting hvpetition hvticket hvsnap hvbusk hvdeposit hvnewcomer hvpantry hvcoats hvtoolbox hvcompost hvawning hvbarrel hvrainbet hvgarage hvborrow hvfridge hvrecord hvnote hvwall hvthermos hvboard
+  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat voxrainbow voxduck voxlight voxobs voxballoon voxdove voxwinter voxice voxferry voxsugar voxmuseum voxowl voxpig voxcrib voxjam voxcloud voxpolicy voxnote voxlantern voxbell voxbottle voxtablet voxconch voxwick
   pwa
 )
 

@@ -31,8 +31,8 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
-| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural), `hvstash` (the Hidden Stash), `hvfire` (The Fire Held), `hvmeeting` (the Camp Meeting), `hvpetition` (City Petitions), `hvticket` (the Bus Ticket), `hvsnap` (the Cold Snap), `hvbusk` (the Busker's Guitar), `hvdeposit` (the Cart & the Deposit Run), `hvnewcomer` (the Newcomer), `hvpantry` (the Little Free Pantry), `hvcoats` (the Coat Rack), `hvtoolbox` (the Tool Box), `hvcompost` (the Compost Bin), `hvawning` (the Awning), `hvbarrel` (the Rain Barrel), `hvrainbet` (the Rain Bet), `hvgarage` (Marisol's Garage), `hvborrow` (the Borrowed Favor), `hvfridge` (the Corner Fridge), `hvrecord` (the Long Memory), `hvnote` (the Note in the Fridge Door), `hvwall` (the Writing on the Wall), `hvthermos` (the Old Thermos) |
-| Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier), `voxstardust` (stardust wishes), `voxcat` (cat gifts), `voxrainbow` (Rainbow's End), `voxduck` (the Duck's Dabble), `voxlight` (the Lighthouse), `voxobs` (the Observatory), `voxballoon` (Balloon Tours), `voxdove` (the Dovecote), `voxwinter` (the Winter Market), `voxice` (the Ice Hut & ice fishing), `voxferry` (the Ferry Landing), `voxsugar` (the Sugar Shack), `voxmuseum` (the Isle Museum), `voxowl` (the Owl Roost), `voxpig` (the Truffle Pig), `voxcrib` (the Corn Crib), `voxjam` (the Preserve Shed), `voxcloud` (the Cloud Wager), `voxpolicy` (the Assessor's Policy), `voxnote` (the Trader's Note), `voxlantern` (the Stone Lantern), `voxbell` (the Harvest Bell), `voxbottle` (the Message in a Bottle), `voxtablet` (the Tide Tablet), `voxconch` (the Keeper's Conch) |
+| Homeless Village | `hvweather`, `hvdog` (Biscuit), `hvregulars`, `hvoddjobs`, `hvrep` (Word on the Street), `hvsoup` (Soup Night), `hvmural` (the Underpass Mural), `hvstash` (the Hidden Stash), `hvfire` (The Fire Held), `hvmeeting` (the Camp Meeting), `hvpetition` (City Petitions), `hvticket` (the Bus Ticket), `hvsnap` (the Cold Snap), `hvbusk` (the Busker's Guitar), `hvdeposit` (the Cart & the Deposit Run), `hvnewcomer` (the Newcomer), `hvpantry` (the Little Free Pantry), `hvcoats` (the Coat Rack), `hvtoolbox` (the Tool Box), `hvcompost` (the Compost Bin), `hvawning` (the Awning), `hvbarrel` (the Rain Barrel), `hvrainbet` (the Rain Bet), `hvgarage` (Marisol's Garage), `hvborrow` (the Borrowed Favor), `hvfridge` (the Corner Fridge), `hvrecord` (the Long Memory), `hvnote` (the Note in the Fridge Door), `hvwall` (the Writing on the Wall), `hvthermos` (the Old Thermos), `hvboard` (the Bulletin Board) |
+| Voxel Isle | `voxcrow` (crows & scarecrow), `voxangler` (Angler's Log), `voxcompost`, `voxflotsam` (flotsam & the Pier), `voxstardust` (stardust wishes), `voxcat` (cat gifts), `voxrainbow` (Rainbow's End), `voxduck` (the Duck's Dabble), `voxlight` (the Lighthouse), `voxobs` (the Observatory), `voxballoon` (Balloon Tours), `voxdove` (the Dovecote), `voxwinter` (the Winter Market), `voxice` (the Ice Hut & ice fishing), `voxferry` (the Ferry Landing), `voxsugar` (the Sugar Shack), `voxmuseum` (the Isle Museum), `voxowl` (the Owl Roost), `voxpig` (the Truffle Pig), `voxcrib` (the Corn Crib), `voxjam` (the Preserve Shed), `voxcloud` (the Cloud Wager), `voxpolicy` (the Assessor's Policy), `voxnote` (the Trader's Note), `voxlantern` (the Stone Lantern), `voxbell` (the Harvest Bell), `voxbottle` (the Message in a Bottle), `voxtablet` (the Tide Tablet), `voxconch` (the Keeper's Conch), `voxwick` (the Second Wick) |
 
 Suites that need a temporary `window.__*` test hook in a game file
 (the hook is added for the test and stripped before commit) are
@@ -40,6 +40,26 @@ Suites that need a temporary `window.__*` test hook in a game file
 recorded in the merge commits that shipped each feature.
 
 ## Last full run
+
+2026-08-25 (QA-14, post-Round-Twenty-Nine) — **all 83 suites green
+end-to-end**, zero stale assertions, with the audit row holding its
+12/32 environment baseline. One flake on the first pass: the
+`daily` suite's free-play-vs-daily maze-layout control tripped
+under battery load (three slow free-play loads read back the same
+lattice); the suite ran 13/13 green standalone immediately after,
+and the full 83-suite battery was re-run end-to-end green — no code
+fault, nothing changed. First battery carrying the two promoted second-story
+suites (`hvboard`, `voxwick`) and the first run after the heirloom
+round (Depths 199–204) and the second-story round (Depths 206–211)
+landed whole — the six new cross-run keys (`tyc-ring`,
+`growop-lighter`, `aow-standard`, `hv-thermos`, `hvale-hearth`,
+`vox-conch`) proved fully isolated from the run saves the other
+suites wipe at will, and the tier-2 thresholds (the second chair,
+the gym annex, the officers' mess, the bulletin board, the rope
+swing, the second wick) held their gates under the battery's
+fresh-profile loads. The Tycoon, Grow Op, Age of War and Hearthvale
+legs were verified by their own one-shot suites at merge time, as
+always.
 
 2026-08-25 (QA-13, post-Round-Twenty-Seven) — **all 79 suites green
 end-to-end on the first pass**, zero failures and zero stale
