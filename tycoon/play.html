@@ -5642,7 +5642,7 @@ function changeMorale(delta, reason = '', target = 'team') {
   // morale below the scholarship's floor. (The floor also steadies
   // anyone a pre-endowment save left beneath it: the fund's point.)
   const floorV = (typeof endowed !== 'undefined' && endowed && delta < 0)
-    ? Math.max(CONFIG.moraleMin, ENDOW_FLOOR) : CONFIG.moraleMin;
+    ? Math.max(CONFIG.moraleMin, endowFloor()) : CONFIG.moraleMin;
   let caught = false;
   const clampM = w => {
     const raw = (w.morale ?? CONFIG.moraleDefault) + delta;
@@ -5658,7 +5658,12 @@ function changeMorale(delta, reason = '', target = 'team') {
   }
   if (caught) {
     endowCatches++;
-    addFeedEntry('\u{1F393} The scholarship steadied the office — the blow could not land below ' + ENDOW_FLOOR);
+    addFeedEntry('\u{1F393} The scholarship steadied the office — the blow could not land below ' + floorV);
+    if (endowCatches === ENDOW_TIER2_AT && !secondChairAnnounced) {
+      secondChairAnnounced = true;
+      addFeedEntry('\u{1FA91} Five hard days steadied — the fund endows a SECOND CHAIR. The floor rises to ' + ENDOW_FLOOR2 + ', forever.');
+      showToast('\u{1FA91} The scholarship endows a second chair — no blow lands below ' + ENDOW_FLOOR2 + ' again.', 'good', 'standard');
+    }
     checkAchievements();
   }
   if (reason) addFeedEntry(`${delta > 0 ? '😊' : '😕'} ${reason} (${delta > 0 ? '+' : ''}${delta})`);
@@ -6218,6 +6223,7 @@ const ACHIEVEMENTS = [
   { id: 'safety_net',    icon: '\u{1F6DF}', title: 'The Safety Net',       desc: 'Collect three hedge payouts.', check: () => hedgesPaid >= 3, progress: () => [Math.min(hedgesPaid, 3), 3] },
   { id: 'beat_the_desk', icon: '\u{1F3E6}', title: 'Beat the Desk',        desc: 'Come out ahead on three factoring windows.', check: () => factorWins >= 3, progress: () => [Math.min(factorWins, 3), 3] },
   { id: 'in_perpetuity', icon: '\u{1F393}', title: 'In Perpetuity',        desc: 'Endow the scholarship and let it steady five hard days.', check: () => endowed && endowCatches >= 5, progress: () => [Math.min(endowCatches, 5), 5] },
+  { id: 'second_chair', icon: '\u{1FA91}', title: 'The Second Chair',     desc: 'Let the second chair steady three more hard days.', check: () => endowed && endowCatches >= 8, progress: () => [Math.min(endowCatches, 8), 8] },
   { id: 'house_record', icon: '\u{1F4C8}', title: 'House Record',        desc: 'Ring the record bell on three different sessions.', check: () => loadRecord().beats >= 3, progress: () => [Math.min(loadRecord().beats, 3), 3] },
   { id: 'three_letters', icon: '\u{2709}\u{FE0F}', title: 'Kept Correspondence', desc: 'Read the founder\u2019s letter at three new companies.', check: () => loadLetter().read >= 3, progress: () => [Math.min(loadLetter().read, 3), 3] },
   { id: 'bound_history', icon: '\u{1F4D4}', title: 'Bound History',       desc: 'Read the Company History aloud three times.', check: () => loadHist().opens >= 3, progress: () => [Math.min(loadHist().opens, 3), 3] },
@@ -10282,7 +10288,13 @@ function updateFactor(dt) {
 // forever. The arc closes where it started — the money finally buys
 // something the balance sheet can't hold.
 const ENDOW_COST = 25000, ENDOW_FLOOR = 50;
+// TYC-40: the second chair — the second-story round. Once the
+// scholarship has steadied five hard days, the fund endows a second
+// chair and the floor rises to 55, automatically, forever.
+const ENDOW_FLOOR2 = 55, ENDOW_TIER2_AT = 5;
 let endowed = false, endowCatches = 0;
+let secondChairAnnounced = false;
+function endowFloor() { return (endowed && endowCatches >= ENDOW_TIER2_AT) ? ENDOW_FLOOR2 : ENDOW_FLOOR; }
 function refreshEndowChip() {
   const el = document.getElementById('endow-chip');
   if (!el) return;
@@ -10291,7 +10303,7 @@ function refreshEndowChip() {
   el.style.display = '';
   if (endowed) {
     el.textContent = '\u{1F393} endowed';
-    el.title = 'The Founders\u2019 Scholarship stands — no blow lands the office below ' + ENDOW_FLOOR + ' morale, ever. It has steadied ' + endowCatches + ' hard day' + (endowCatches === 1 ? '' : 's') + '.';
+    el.title = 'The Founders\u2019 Scholarship stands — no blow lands the office below ' + endowFloor() + ' morale, ever. It has steadied ' + endowCatches + ' hard day' + (endowCatches === 1 ? '' : 's') + '.' + (endowCatches >= ENDOW_TIER2_AT ? ' The second chair stands.' : '');
   } else {
     el.textContent = '\u{1F393} $' + fmtCash(ENDOW_COST);
     el.title = 'The Endowment — $' + fmtCash(ENDOW_COST) + ', once ever, endows the Founders\u2019 Scholarship: the office never falls below ' + ENDOW_FLOOR + ' morale again. Money the balance sheet can\u2019t hold.';
