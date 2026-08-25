@@ -835,6 +835,40 @@ function refreshLanternHud(){
     ? '🏮 lit \u2014 '+l.isles+' isle'+(l.isles===1?'':'s')+' greeted'
     : '🏮 light for '+LANTERN_COST+' 🪙';
 }
+// VOX-27: the record round on the isle. The richest single day this
+// shore has ever earned lives in its own key. The day's take is the
+// honest measure — the totalEarned delta between one dawn and the
+// next — and beating the mark that stood when the session opened
+// rings the harvest bell: +25 xp, once a session.
+const VREC_KEY='vox-record', VREC_XP=25;
+let vrecMark=null, vrecRung=false;
+function loadVrec(){
+  try{const r=JSON.parse(localStorage.getItem(VREC_KEY)||'null');
+    if(r&&typeof r==='object')return{coins:Math.max(0,Math.floor(r.coins||0)),beats:Math.max(0,Math.floor(r.beats||0))};
+  }catch(e){}
+  return{coins:0,beats:0};
+}
+function saveVrec(r){try{localStorage.setItem(VREC_KEY,JSON.stringify(r));}catch(e){}}
+function refreshBellHud(){
+  const h=document.getElementById('bellHud'),tx=document.getElementById('bellTxt');
+  if(!h)return;
+  const r=loadVrec();
+  h.style.display=r.coins>0?'flex':'none';
+  if(tx)tx.textContent='🔔 best day '+r.coins+' 🪙'+((r.beats||0)>0?' · rung '+r.beats+'×':'');
+}
+function recordHarvestDay(gained){
+  const r=loadVrec();
+  if(vrecMark===null)vrecMark=r.coins;
+  if(gained>r.coins){r.coins=gained;saveVrec(r);}
+  if(!vrecRung&&vrecMark>0&&gained>vrecMark){
+    vrecRung=true;
+    const r2=loadVrec();
+    saveVrec({coins:r2.coins,beats:r2.beats+1});
+    grantXP(VREC_XP);
+    toast('🔔 The harvest bell rings \u2014 '+gained+' 🪙 in one day, the richest this shore has ever seen. +'+VREC_XP+' xp');
+  }
+  refreshBellHud();
+}
 function garnishTrade(n){
   // Half of every trade coin to the note until it clears.
   if(!((state.traderNote||0)>0)||n<=0)return n;
@@ -3097,6 +3131,10 @@ function updateDay(dt){
   if(state.time>=CYCLE){
     const prevSeason=seasonOf(state.day);
     state.time-=CYCLE;state.day++;el.day.textContent=state.day;
+    // VOX-27: the harvest bell weighs the day just ended
+    { const base=state.dayEarnBase||0, gained=Math.max(0,Math.floor((state.totalEarned||0)-base));
+      state.dayEarnBase=state.totalEarned||0;
+      recordHarvestDay(gained); }
     if(state.cropPolicy){state.cropPolicy=false;state.policyLapsed=(state.policyLapsed||0)+1;toast('🛟 The crop policy lapsed at dawn — no crow came.');refreshPolicyHud();}   // VOX-24
     if(jamBuilt()&&(state.jars||0)<JAM_CAP){state.jars=(state.jars||0)+1;}   // VOX-22: another day on the shelf
     const s=seasonOf(state.day);
@@ -4562,6 +4600,7 @@ const ACH=[
   ['policy4','Acts of Crow','Collect four crop-policy payouts',()=>(state.policyClaims||0)>=4],
   ['notes3','Square with the Trader','Clear three of the Trader\u2019s notes',()=>(state.notesCleared||0)>=3],
   ['lantern2','Keeper of the Shore','See the lantern greet two new isles',()=>{const l=loadLantern();return l.lit&&l.isles>=2;}],
+  ['bell3','Harvest Bell','Ring the harvest bell on three sessions',()=>loadVrec().beats>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4791,7 +4830,9 @@ function boot(){
   cam.cy=(surfaceY(0,0)||5)+1;
   fitCamera(true);
   initHud();
-  refreshLanternHud();   // VOX-26: the shore light
+  // VOX-26/27: the chips live at the foot of the document — defer the
+  // first paint until the parser has built them
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -4862,6 +4903,7 @@ boot();
 </script>
 <div id="noteHud" style="display:none;position:fixed;bottom:188px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(200,170,240,0.5);color:#e2d4f4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="takeTraderNote()" title="The Trader's Note: 60 🪙 now against 75 of future trade — half of every Market sale and Tavern meal rides the note till it clears"><span id="noteTxt">📝 60 🪙 advance</span></div>
 <div id="lanternHud" style="display:none;position:fixed;bottom:222px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,200,140,0.5);color:#ffe4c0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lightLantern()" title="The Stone Lantern: 150 🪙 lights it once, forever — it lives outside the isle's save, and every new isle that rises after it starts with the three starter plots already grown"><span id="lanternTxt">🏮 light for 150 🪙</span></div>
+<div id="bellHud" style="display:none;position:fixed;bottom:256px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(255,225,130,0.5);color:#ffefb8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:default;gap:8px;align-items:center" title="The Harvest Bell: the richest single day this shore has ever earned, weighed dawn to dawn. Beat the mark that stood when you sat down and the bell rings — +25 xp, once a session."><span id="bellTxt">🔔 —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
