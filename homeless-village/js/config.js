@@ -538,6 +538,22 @@ function loadHvAnniv(){
 function saveHvAnniv(a){ try{ localStorage.setItem(HVANN_KEY, JSON.stringify(a)); }catch(e){} }
 function annivCounts(){ return loadHvSnap().looks>=3; }
 function annivDish(){ return HVANN_BASE + HVANN_PER*Math.min(loadHvSnap().looks||0,5); }
+// HV-45: the guest-book round under the bridge \u2014 after three
+// anniversary candles, a spiral notebook sits by the fridge:
+// everyone who ever slept here signs it. Once a session a
+// leaf-through pays: 4 food base + 1 per candle (cap 5). Leafs
+// tallied in 'hv-guestbook'.
+var HVGB_KEY='hv-guestbook', HVGB_BASE=4, HVGB_PER=1;
+var notebookLeafed=false;
+function loadHvGb(){
+  try{ var g=JSON.parse(localStorage.getItem(HVGB_KEY)||'null');
+    if(g&&typeof g==='object') return {leafs:Math.max(0,Math.floor(g.leafs||0))};
+  }catch(e){}
+  return {leafs:0};
+}
+function saveHvGb(g){ try{ localStorage.setItem(HVGB_KEY, JSON.stringify(g)); }catch(e){} }
+function notebookOut(){ return loadHvAnniv().toasts>=3; }
+function notebookDish(){ return HVGB_BASE + HVGB_PER*Math.min(loadHvAnniv().toasts||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -611,6 +627,7 @@ var ACTIONS = [
   {id:'reunion',   icon:'🎂', label:'Throw the Reunion',  time:2000, cooldown:30000, tooltip:'When the whole story stands — the chalk star’s holds and Marisol’s visits — the camp throws the bridge reunion once a session, and everyone who ever slept here comes back through with something for the pot.'},
   {id:'snapshot',  icon:'📷', label:'Look at the Snapshot', time:2000, cooldown:30000, tooltip:'A snapshot from the bridge reunion, tucked into the fridge door. Look at it once a session — somebody in the frame always swings by with a little something after.'},
   {id:'anniv',     icon:'🕯️', label:'Mark the Anniversary', time:2000, cooldown:30000, tooltip:'Three looks at the snapshot and somebody counts the winters — the camp has held a whole year under this bridge. Light a candle for it once a session, and the bridge remembers who kept it lit.'},
+  {id:'guestbook', icon:'📓', label:'Leaf the Notebook', time:2000, cooldown:30000, tooltip:'Three candles and a spiral notebook sits by the fridge — everyone who ever slept here signs it on the way through. Leaf through it once a session, and one of the names always left something behind.'},
 ];
 
 var WORKER_DEFS = [
@@ -664,6 +681,7 @@ var GOALS = [
   {id:'reunion2',   desc:'Throw the bridge reunion on 2 sessions', target:2, reward:5, value:function(){ return loadHvReunion().held; }},
   {id:'snapshot2',  desc:'Look at the reunion snapshot on 2 sessions', target:2, reward:5, value:function(){ return loadHvSnap().looks; }},
   {id:'anniv2',     desc:'Mark the bridge anniversary on 2 sessions', target:2, reward:5, value:function(){ return loadHvAnniv().toasts; }},
+  {id:'guest2',     desc:'Leaf through the spiral notebook on 2 sessions', target:2, reward:5, value:function(){ return loadHvGb().leafs; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
