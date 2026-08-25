@@ -583,6 +583,7 @@ const AgeOfWarGame = (() => {
     { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
     { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
     { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
+    { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -699,6 +700,7 @@ const AgeOfWarGame = (() => {
     if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
     if (hallStanding && hallRuns >= 3) unlock('old_guard');
     if (chronBeats >= 3) unlock('chronicled');
+    if (dispatchRead >= 3) unlock('war_mail');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -1126,6 +1128,7 @@ const AgeOfWarGame = (() => {
       hallStanding = hh.built; hallTrained = 0; runStats.hallVets = 0;
       if (hh.built) { hh.runs = (hh.runs || 0) + 1; saveHall(hh); hallRuns = hh.runs; }
       else hallRuns = 0; }
+    setTimeout(deliverDispatch, 1200);   // AOW-37: the mail rides in once the muster forms
     lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
@@ -2000,6 +2003,39 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: `\u{1F4DC} A new page in the Chronicle \u2014 wave ${w} beats the old mark of ${chronMark}. The scribes pay a relic`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.4 });
       checkAchievementsDuringRun();
     }
+  }
+
+  // ── The Dispatch from the Old Guard (AOW-37) ──
+  // The letters round on the battlefield: every fresh muster with a
+  // history to cite gets a dispatch — it quotes the hall's musters
+  // and the Chronicle's deepest wave by their real numbers, and
+  // encloses a little of the old guard's coin.
+  const DISPATCH_KEY = 'aow-letter', DISPATCH_GOLD = 25;
+  function loadDispatch() {
+    try { const d = JSON.parse(localStorage.getItem(DISPATCH_KEY) || 'null');
+      if (d && typeof d === 'object') return { read: Math.max(0, Math.floor(d.read || 0)) };
+    } catch {}
+    return { read: 0 };
+  }
+  function saveDispatch(d) { try { localStorage.setItem(DISPATCH_KEY, JSON.stringify(d)); } catch {} }
+  let dispatchRead = loadDispatch().read;
+  function composeDispatch() {
+    const hh = loadHall(), cc = loadChron();
+    let s = '\u2709\uFE0F Dispatch from the Old Guard: ';
+    if (hh.built) s += `${hh.runs} muster${hh.runs === 1 ? '' : 's'} under the hall. `;
+    if (cc.wave > 0) s += `Our deepest war reached wave ${cc.wave}. `;
+    s += `${DISPATCH_GOLD} gold enclosed \u2014 spend it like it matters`;
+    return s;
+  }
+  function deliverDispatch() {
+    if (gameOver) return;
+    if (!(loadHall().built || loadChron().wave > 0)) return;
+    dispatchRead = (loadDispatch().read || 0) + 1;
+    saveDispatch({ read: dispatchRead });
+    gold += DISPATCH_GOLD;
+    goldFloaters.push({ text: composeDispatch(), x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.6 });
+    checkAchievementsDuringRun();
+    renderHud();
   }
 
   // ── The Veterans' Hall (AOW-35) ──
