@@ -585,6 +585,7 @@ const AgeOfWarGame = (() => {
     { id: 'officers_mess', icon: '\u{1F37D}\u{FE0F}', title: 'Officers\u2019 Mess',   desc: 'See the hall open its officers\u2019 mess after three musters.' },
     { id: 'triumph',      icon: '\u{1F3BA}', title: 'Triumph',          desc: 'Open three fresh musters to the veterans\u2019 parade.' },
     { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
+    { id: 'laureled',     icon: '\u{1F3F5}\u{FE0F}', title: 'Laureled',         desc: 'Write three pages beneath the laurel.' },
     { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
     { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
     { id: 'old_standard', icon: '\u{1F6A9}', title: 'Colors That Held', desc: 'Raise the Old Standard on three separate sessions.' },
@@ -706,6 +707,7 @@ const AgeOfWarGame = (() => {
     if (hallHasMess()) unlock('officers_mess');
     if (loadTriumph().days >= 3) unlock('triumph');
     if (chronBeats >= 3) unlock('chronicled');
+    if (loadLaurel().cheers >= 3) unlock('laureled');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2010,6 +2012,21 @@ const AgeOfWarGame = (() => {
     return { wave: 0, beats: 0 };
   }
   function saveChron(c) { try { localStorage.setItem(CHRON_KEY, JSON.stringify(c)); } catch {} }
+  // \u2500\u2500 The Laurel (AOW-42) \u2500\u2500
+  // The plaque round on the battlefield: the records round comes
+  // back around. Three pages in the Chronicle earn the army a
+  // laurel over the gate \u2014 and every new page written under it
+  // marches the purse out with the scribes: +30 gold on the spot,
+  // because an army this storied fights on its name.
+  const LAUREL_KEY = 'aow-plaque', LAUREL_AT = 3, LAUREL_GOLD = 30;
+  function loadLaurel() {
+    try { const l = JSON.parse(localStorage.getItem(LAUREL_KEY) || 'null');
+      if (l && typeof l === 'object') return { cheers: Math.max(0, Math.floor(l.cheers || 0)) };
+    } catch {}
+    return { cheers: 0 };
+  }
+  function saveLaurel(l) { try { localStorage.setItem(LAUREL_KEY, JSON.stringify(l)); } catch {} }
+  function laurelStands() { return (loadChron().beats || 0) >= LAUREL_AT; }
   let chronBest = loadChron().wave, chronBeats = loadChron().beats;
   let chronMark = null, chronRung = false;
   function recordWave(w) {
@@ -2017,10 +2034,18 @@ const AgeOfWarGame = (() => {
     if (w > chronBest) { chronBest = w; saveChron({ wave: chronBest, beats: chronBeats }); }
     if (!chronRung && chronMark > 0 && w > chronMark) {
       chronRung = true;
+      const laurelStood = chronBeats >= LAUREL_AT;
       chronBeats += 1;
       saveChron({ wave: chronBest, beats: chronBeats });
       relics += 1; saveRelics();
       goldFloaters.push({ text: `\u{1F4DC} A new page in the Chronicle \u2014 wave ${w} beats the old mark of ${chronMark}. The scribes pay a relic`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.4 });
+      // AOW-42: under the laurel, the new page pays gold too.
+      if (laurelStood) {
+        const ll = loadLaurel();
+        saveLaurel({ cheers: ll.cheers + 1 });
+        gold += LAUREL_GOLD;
+        goldFloaters.push({ text: `\u{1F3F5}\u{FE0F} THE LAUREL \u2014 the army fights on its name: +${LAUREL_GOLD} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 230, color: '#fbbf24', t: 2.4 });
+      }
       checkAchievementsDuringRun();
     }
   }
