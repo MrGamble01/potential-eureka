@@ -326,6 +326,7 @@
     <button id="m-recital">The Elder’s Recital</button>
     <button id="m-hearthstone">Warm the Hearthstone</button>
     <button id="m-firstreeve">Greet the First Reeve</button>
+    <button id="m-reunion">Throw the Founders’ Reunion</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1685,6 +1686,7 @@
     { id: 'gilded_page', emoji: '\u2728', name: 'The Gilded Page', desc: 'Turn three pages under the gilded ledger.', done: () => loadGilt().cheers >= 3 },
     { id: 'first_reeve', emoji: '\u{1F9D3}', name: 'The First Reeve', desc: 'Greet the First Reeve on three sessions.', done: () => loadReeve().visits >= 3 },
     { id: 'reeve_seal', emoji: '\u{1F4EF}', name: 'The Reeve\u2019s Seal', desc: 'Warm the hearthstone beside the seal on three sessions.', done: () => loadSeal().pays >= 3 },
+    { id: 'founders_reunion', emoji: '\u{1F37B}', name: 'The Founders\u2019 Reunion', desc: 'Throw the whole story a reunion on three sessions.', done: () => loadFReunion().held >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2858,6 +2860,40 @@
   }
   function saveSeal(k) { try { localStorage.setItem(SEAL_KEY, JSON.stringify(k)); } catch (e) { } }
   function hearthHasSeal() { return loadReeve().visits >= 3; }
+  // ---- the Founders' Reunion (HVALE-39) -----------------------
+  // The reunion round in the valley: when the whole story stands
+  // \u2014 three pages under the gilded ledger AND three of the First
+  // Reeve's greetings \u2014 the town throws the founders' reunion
+  // once a session. Every family that ever founded here comes back
+  // up the green: 20 gold base + 5 per page + 5 per greeting (caps
+  // 3), and +5 happiness besides. Held tallied in 'hvale-reunion'.
+  const FREU_KEY = 'hvale-reunion', FREU_BASE = 20, FREU_PER = 5, FREU_HAPPY = 5;
+  let foundersReunionHeld = false;
+  function loadFReunion() {
+    try { const r = JSON.parse(localStorage.getItem(FREU_KEY) || 'null');
+      if (r && typeof r === 'object') return { held: Math.max(0, Math.floor(r.held || 0)) };
+    } catch (e) { }
+    return { held: 0 };
+  }
+  function saveFReunion(r) { try { localStorage.setItem(FREU_KEY, JSON.stringify(r)); } catch (e) { } }
+  function freunionStands() { return (loadGilt().cheers || 0) >= 3 && loadReeve().visits >= 3; }
+  function freunionPurse() {
+    return FREU_BASE + FREU_PER * Math.min(loadGilt().cheers || 0, 3)
+      + FREU_PER * Math.min(loadReeve().visits || 0, 3);
+  }
+  function throwFoundersReunion() {
+    if (!freunionStands()) { toast('\u{1F37B} The reunion needs the whole story \u2014 the gilded pages and the reeve\u2019s greetings both. Not yet.'); return; }
+    if (foundersReunionHeld) { toast('\u{1F37B} The reunion already filled the green today \u2014 the families have farms to keep.'); return; }
+    foundersReunionHeld = true;
+    const p = freunionPurse();
+    const r = loadFReunion();
+    saveFReunion({ held: r.held + 1 });
+    state.res.gold += p;
+    state.happy = Math.min(100, state.happy + FREU_HAPPY);
+    chron('\u{1F37B}', 'THE FOUNDERS\u2019 REUNION \u2014 every family that ever founded here comes back up the green, and every one brings a purse: +' + p + ' gold, +' + FREU_HAPPY + ' happiness');
+    toast('\u{1F37B} The Founders\u2019 Reunion \u2014 +' + p + ' gold, +' + FREU_HAPPY + ' happiness. The whole story showed up.');
+    checkAchievements();
+  }
   function ledgerAtDawn() {
     const g = Math.floor(state.res.gold);
     const l = loadLedger();
@@ -5298,6 +5334,7 @@
     { const mr = document.getElementById('m-recital'); if (mr) mr.onclick = () => { menu.classList.remove('show'); openRecital(); }; }
     { const mh = document.getElementById('m-hearthstone'); if (mh) mh.onclick = () => { menu.classList.remove('show'); warmHearthstone(); }; }
     { const mr = document.getElementById('m-firstreeve'); if (mr) mr.onclick = () => { menu.classList.remove('show'); greetFirstReeve(); }; }
+    { const mu = document.getElementById('m-reunion'); if (mu) mu.onclick = () => { menu.classList.remove('show'); throwFoundersReunion(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
