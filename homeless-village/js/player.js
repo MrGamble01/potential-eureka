@@ -236,6 +236,20 @@ function finishAction(a){
       floatText('+'+sd+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='anniv'){
+    // HV-44: a candle for the year the camp held, once a session.
+    if(!annivCounts()){ log('\ud83d\udd6f\ufe0f Nobody has counted the winters yet \u2014 three looks at the snapshot and the year adds up.'); }
+    else if(annivMarked){ log('\ud83d\udd6f\ufe0f The candle already burned today \u2014 the year keeps.'); }
+    else {
+      annivMarked=true;
+      var ad=annivDish();
+      var av=loadHvAnniv();
+      saveHvAnniv({toasts:(av.toasts||0)+1});
+      G.food=(G.food||0)+ad;
+      log('\ud83d\udd6f\ufe0f THE BRIDGE ANNIVERSARY \u2014 a whole year held under this bridge, and a candle lit to prove it. Folks come by the flame with something for the pot: +'+ad+'\ud83c\udf5e');
+      floatText('+'+ad+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];

@@ -522,6 +522,22 @@ function loadHvSnap(){
 function saveHvSnap(s){ try{ localStorage.setItem(HVSNAP_KEY, JSON.stringify(s)); }catch(e){} }
 function snapshotHangs(){ return loadHvReunion().held>=3; }
 function snapshotDish(){ return HVSNAP_BASE + HVSNAP_PER*Math.min(loadHvReunion().held||0,5); }
+// HV-44: the anniversary round under the bridge \u2014 after three
+// looks at the snapshot, somebody counts the winters: the camp has
+// held a whole year. Once a session a candle is lit for it: 3 food
+// base + 1 per snapshot look (cap 5). Markings tallied in
+// 'hv-anniversary'.
+var HVANN_KEY='hv-anniversary', HVANN_BASE=3, HVANN_PER=1;
+var annivMarked=false;
+function loadHvAnniv(){
+  try{ var a=JSON.parse(localStorage.getItem(HVANN_KEY)||'null');
+    if(a&&typeof a==='object') return {toasts:Math.max(0,Math.floor(a.toasts||0))};
+  }catch(e){}
+  return {toasts:0};
+}
+function saveHvAnniv(a){ try{ localStorage.setItem(HVANN_KEY, JSON.stringify(a)); }catch(e){} }
+function annivCounts(){ return loadHvSnap().looks>=3; }
+function annivDish(){ return HVANN_BASE + HVANN_PER*Math.min(loadHvSnap().looks||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -594,6 +610,7 @@ var ACTIONS = [
   {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a session — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
   {id:'reunion',   icon:'🎂', label:'Throw the Reunion',  time:2000, cooldown:30000, tooltip:'When the whole story stands — the chalk star’s holds and Marisol’s visits — the camp throws the bridge reunion once a session, and everyone who ever slept here comes back through with something for the pot.'},
   {id:'snapshot',  icon:'📷', label:'Look at the Snapshot', time:2000, cooldown:30000, tooltip:'A snapshot from the bridge reunion, tucked into the fridge door. Look at it once a session — somebody in the frame always swings by with a little something after.'},
+  {id:'anniv',     icon:'🕯️', label:'Mark the Anniversary', time:2000, cooldown:30000, tooltip:'Three looks at the snapshot and somebody counts the winters — the camp has held a whole year under this bridge. Light a candle for it once a session, and the bridge remembers who kept it lit.'},
 ];
 
 var WORKER_DEFS = [
@@ -646,6 +663,7 @@ var GOALS = [
   {id:'mugs2',      desc:'Pour from Marisol’s spare mugs on 2 sessions', target:2, reward:5, value:function(){ return loadHvKeep().pays; }},
   {id:'reunion2',   desc:'Throw the bridge reunion on 2 sessions', target:2, reward:5, value:function(){ return loadHvReunion().held; }},
   {id:'snapshot2',  desc:'Look at the reunion snapshot on 2 sessions', target:2, reward:5, value:function(){ return loadHvSnap().looks; }},
+  {id:'anniv2',     desc:'Mark the bridge anniversary on 2 sessions', target:2, reward:5, value:function(){ return loadHvAnniv().toasts; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
