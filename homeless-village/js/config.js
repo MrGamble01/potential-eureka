@@ -340,6 +340,31 @@ function loadFridge(){
 }
 function saveFridge(f){ try{ localStorage.setItem(FRIDGE_KEY, JSON.stringify(f)); }catch(e){} }
 function fridgeCamps(){ return loadFridge().camps; }
+// HV-32: the record round under the bridge. The most dawns any camp
+// here has ever seen lives in its own key, across every Start Over.
+// The mark standing when the session opened is the bar — outlast it
+// once a session and the fire feels it. The bridge keeps score.
+var HVREC_KEY='hv-record', HVREC_MORALE=3;
+var hvRecMark=null, hvRecRung=false;
+function loadHvRec(){
+  try{ var r=JSON.parse(localStorage.getItem(HVREC_KEY)||'null');
+    if(r&&typeof r==='object') return {days:Math.max(0,Math.floor(r.days||0)), beats:Math.max(0,Math.floor(r.beats||0))};
+  }catch(e){}
+  return {days:0, beats:0};
+}
+function saveHvRec(r){ try{ localStorage.setItem(HVREC_KEY, JSON.stringify(r)); }catch(e){} }
+function recordDays(d){
+  var r=loadHvRec();
+  if(hvRecMark===null) hvRecMark=r.days;
+  if(d>r.days){ r.days=d; saveHvRec(r); }
+  if(!hvRecRung && hvRecMark>0 && d>hvRecMark){
+    hvRecRung=true;
+    r=loadHvRec(); r.beats=(r.beats||0)+1; saveHvRec(r);
+    G.morale=Math.min(100,(G.morale||0)+HVREC_MORALE);
+    floatText('+'+HVREC_MORALE+'\ud83d\ude0a');
+    log('\ud83d\udcc8 Day '+d+' \u2014 no camp under this bridge has ever held longer. The fire feels it.');
+  }
+}
 
 // HV-24: the tool box. Good tools change two small things that add
 // up: the workbench never falls apart again (the daily wobble gets
@@ -427,6 +452,7 @@ var GOALS = [
   {id:'garage2',    desc:'Ride out 2 sweeps covered by Marisol\u2019s garage', target:2, reward:6, value:function(){ return G.garageSaves||0; }},
   {id:'borrow2',    desc:'Repay 2 of Ray\u2019s loans in full', target:2, reward:6, value:function(){ return G.rayLoans||0; }},
   {id:'fridge2',    desc:'See the corner fridge welcome 2 fresh camps', target:2, reward:8, value:function(){ return fridgeCamps(); }},
+  {id:'record2',    desc:'Outlast the bridge\u2019s old mark on 2 different mornings', target:2, reward:6, value:function(){ return loadHvRec().beats; }},
 ];
 
 var activeJobs = {};
