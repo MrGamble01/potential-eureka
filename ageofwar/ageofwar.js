@@ -591,6 +591,7 @@ const AgeOfWarGame = (() => {
     { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
     { id: 'old_standard', icon: '\u{1F6A9}', title: 'Colors That Held', desc: 'Raise the Old Standard on three separate sessions.' },
     { id: 'old_general', icon: '\u{1F396}\u{FE0F}', title: 'The General\u2019s Review', desc: 'Welcome the Old General on three sessions.' },
+    { id: 'field_glasses', icon: '\u{1F52D}', title: 'The Field Glasses', desc: 'Raise the standard beside the glasses on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -712,6 +713,7 @@ const AgeOfWarGame = (() => {
     if (chronBeats >= 3) unlock('chronicled');
     if (loadLaurel().cheers >= 3) unlock('laureled');
     if (loadGen().visits >= 3) unlock('old_general');
+    if (loadGlasses().pays >= 3) unlock('field_glasses');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2152,6 +2154,13 @@ const AgeOfWarGame = (() => {
     saveStd({ uses: s.uses + 1 });
     gold += p;
     goldFloaters.push({ text: `\u{1F6A9} The Old Standard rises over the field \u2014 the men dig in. +${p} gold, carried by every war before this one`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.4 });
+    // AOW-45: with the field glasses beside the colors, the raise reads deeper.
+    if (stdHasGlasses()) {
+      const fg = loadGlasses();
+      saveGlasses({ pays: fg.pays + 1 });
+      gold += GLASS_GOLD;
+      goldFloaters.push({ text: `\u{1F52D} The general\u2019s field glasses sweep the line \u2014 +${GLASS_GOLD} gold more. Keepsakes pay`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 200, color: '#fcd34d', t: 2.4 });
+    }
     SFX.spawn();
     checkAchievementsDuringRun();
     renderHud();
@@ -2186,6 +2195,21 @@ const AgeOfWarGame = (() => {
     checkAchievementsDuringRun();
     renderHud();
   }
+
+  // \u2500\u2500 The General's Field Glasses (AOW-45) \u2500\u2500
+  // The keepsake round on the battlefield: after three reviews, the
+  // Old General leaves his field glasses with the standard-bearer.
+  // Every Old Standard raised beside them reads the field better:
+  // +15 gold extra on the spot. Pays tallied in 'aow-keepsake'.
+  const GLASS_KEY = 'aow-keepsake', GLASS_GOLD = 15;
+  function loadGlasses() {
+    try { const k = JSON.parse(localStorage.getItem(GLASS_KEY) || 'null');
+      if (k && typeof k === 'object') return { pays: Math.max(0, Math.floor(k.pays || 0)) };
+    } catch {}
+    return { pays: 0 };
+  }
+  function saveGlasses(k) { try { localStorage.setItem(GLASS_KEY, JSON.stringify(k)); } catch {} }
+  function stdHasGlasses() { return loadGen().visits >= 3; }
 
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
