@@ -1991,6 +1991,20 @@ function loadHwm() {
   return { sale: 0, beats: 0 };
 }
 function saveHwm(h) { try { localStorage.setItem(HWM_KEY, JSON.stringify(h)); } catch(e){} }
+// LAB-40: the plaque round on the corner — the records round comes
+// back around. Three smashed marks earn the corner a gold record
+// over the stash, and every mark smashed under it sells the legend
+// with the hand: +$200 on the spot, because a corner this storied
+// charges for the story. Cheers tallied across sessions.
+const GPLAQUE_KEY='growop-plaque',GPLAQUE_AT=3,GPLAQUE_CASH=200;
+function loadGPlaque(){
+  try{const p=JSON.parse(localStorage.getItem(GPLAQUE_KEY)||'null');
+    if(p&&typeof p==='object')return{cheers:Math.max(0,Math.floor(p.cheers||0))};
+  }catch(e){}
+  return{cheers:0};
+}
+function saveGPlaque(p){try{localStorage.setItem(GPLAQUE_KEY,JSON.stringify(p));}catch(e){}}
+function gplaqueStands(){return(loadHwm().beats||0)>=GPLAQUE_AT;}
 // LAB-35: the letters round on the corner — someone upstate writes
 // every fresh start that has a history to cite. The kite quotes the
 // Youth Center's survived runs and the High-Water Mark's best hand
@@ -2112,7 +2126,7 @@ function refreshHwmChip() {
   if (h.sale <= 0) { b.style.display = 'none'; return; }
   b.style.display = '';
   b.textContent = '📈 best $' + fmtCash(Math.floor(h.sale));
-  b.title = 'The High-Water Mark: $' + fmtCash(Math.floor(h.sale)) + ' in one hand — the biggest sale this corner has ever seen, kept across every bust. Smashed on ' + h.beats + ' session' + (h.beats === 1 ? '' : 's') + '. Beat the mark that stood when you sat down and heat cools ' + HWM_RELIEF + ', once a session.';
+  b.title = 'The High-Water Mark: $' + fmtCash(Math.floor(h.sale)) + ' in one hand — the biggest sale this corner has ever seen, kept across every bust. Smashed on ' + h.beats + ' session' + (h.beats === 1 ? '' : 's') + '. Beat the mark that stood when you sat down and heat cools ' + HWM_RELIEF + ', once a session.' + (gplaqueStands() ? ' A gold record hangs over the stash \u2014 the legend sells with every new mark: +$' + GPLAQUE_CASH + '.' : '');
 }
 function recordSale(amount) {
   const h = loadHwm();
@@ -2125,6 +2139,14 @@ function recordSale(amount) {
     addHeat(-HWM_RELIEF);
     showToast('📈 A record hand — $' + fmtCash(amount) + ' in one sale. The story does the corner\u2019s talking; heat cools ' + HWM_RELIEF + '.', 'good');
     addFeed('📈 HIGH-WATER MARK — $' + fmtCash(amount) + ' in one hand. The block will tell it for years');
+    // LAB-40: under the gold record, the legend sells with the hand.
+    if (h2.beats >= GPLAQUE_AT) {
+      const gp = loadGPlaque();
+      saveGPlaque({ cheers: gp.cheers + 1 });
+      state.cash += GPLAQUE_CASH;
+      addFeed('\u{1F4BF} THE GOLD RECORD \u2014 the legend sells with the hand: +$' + GPLAQUE_CASH + '.');
+      setTimeout(() => showToast('\u{1F4BF} The gold record gleams over the stash \u2014 the story is worth +$' + GPLAQUE_CASH + ' by itself.', 'good'), 1200);
+    }
     checkGrowAchievements();
   }
   refreshHwmChip();
@@ -2957,6 +2979,7 @@ const GROW_ACH = [
   { id: 'gym_annex', name: 'The Gym Annex', test: () => centerHasAnnex() },   // LAB-38
   { id: 'block_cookout', name: 'Block Cookout', test: () => (loadCookout().days || 0) >= 3 },   // LAB-39
   { id: 'high_water', name: 'High-Water Mark', test: () => (loadHwm().beats || 0) >= 3 },   // LAB-34
+  { id: 'gold_record', name: 'The Gold Record', test: () => (loadGPlaque().cheers || 0) >= 3 },   // LAB-40
   { id: 'pen_pals', name: 'Pen Pals', test: () => (loadKite().read || 0) >= 3 },   // LAB-35
   { id: 'corner_ledger', name: 'Corner Ledger', test: () => (loadCLedger().opens || 0) >= 3 },   // LAB-36
   { id: 'old_flame', name: 'Old Flame', test: () => (loadZippo().uses || 0) >= 3 },   // LAB-37
