@@ -897,6 +897,30 @@ function deliverBottle(){
   const s=composeBottle();
   setTimeout(()=>toast(s+' (+'+BOTTLE_XP+' xp)'),3000);
 }
+// VOX-29: the almanac round on the shore. The Town Almanac's last
+// page is a stone tablet carved with everything the sea keeps across
+// isles — the lantern's greetings, the Harvest Bell's best day, the
+// bottles read. Consultations are tallied in 'vox-history'.
+const VTAB_KEY='vox-history';
+function loadVtab(){
+  try{const t=JSON.parse(localStorage.getItem(VTAB_KEY)||'null');
+    if(t&&typeof t==='object')return{opens:Math.max(0,Math.floor(t.opens||0))};
+  }catch(e){}
+  return{opens:0};
+}
+function saveVtab(t){try{localStorage.setItem(VTAB_KEY,JSON.stringify(t));}catch(e){}}
+function isleHasTablet(){
+  const l=loadLantern();
+  return l.lit||l.isles>0||loadVrec().coins>0||loadBottle().read>0;
+}
+function composeTablet(){
+  const l=loadLantern(),r=loadVrec(),b=loadBottle();
+  const lines=[];
+  lines.push(l.lit?'🏮 The lantern has greeted '+l.isles+' isle'+(l.isles===1?'':'s'):'🏮 No lantern on the shore yet');
+  lines.push(r.coins>0?'🔔 Best day the sea remembers: '+r.coins+' 🪙 (rung '+(r.beats||0)+'×)':'🔔 The bell has never rung');
+  lines.push('🍾 '+b.read+' message'+(b.read===1?'':'s')+' read from bottles');
+  return lines;
+}
 function garnishTrade(n){
   // Half of every trade coin to the note until it clears.
   if(!((state.traderNote||0)>0)||n<=0)return n;
@@ -4630,6 +4654,7 @@ const ACH=[
   ['lantern2','Keeper of the Shore','See the lantern greet two new isles',()=>{const l=loadLantern();return l.lit&&l.isles>=2;}],
   ['bell3','Harvest Bell','Ring the harvest bell on three sessions',()=>loadVrec().beats>=3],
   ['bottles3','The Sea Remembers','Read three messages in bottles',()=>loadBottle().read>=3],
+  ['tablet3','Written in Tide','Consult the tide tablet three times',()=>loadVtab().opens>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -4751,6 +4776,14 @@ function renderAlmanac(){
       }).join(' &nbsp;·&nbsp; ')+'</div>';
   }
   if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
+  if(isleHasTablet()){
+    // VOX-29: the tide tablet — the shore's cross-isle memory, carved
+    // where the almanac ends. Every consultation is counted.
+    html+='<div class="alm-head" style="margin-top:14px">THE TIDE TABLET</div>';
+    composeTablet().forEach(s=>{html+='<div class="alm-stat">'+s+'</div>';});
+    saveVtab({opens:loadVtab().opens+1});
+    if(typeof checkAch==='function')checkAch();
+  }
   $('almBody').innerHTML=html;
 }
 
