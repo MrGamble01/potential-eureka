@@ -222,6 +222,20 @@ function finishAction(a){
       floatText('+'+rd+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='snapshot'){
+    // HV-43: the picture that proves the reunion happened, once a session.
+    if(!snapshotHangs()){ log('\ud83d\udcf7 No snapshot in the fridge door yet \u2014 three reunions put one there.'); }
+    else if(snapshotLooked){ log('\ud83d\udcf7 The snapshot got its look today \u2014 it fades if you stare.'); }
+    else {
+      snapshotLooked=true;
+      var sd=snapshotDish();
+      var ss=loadHvSnap();
+      saveHvSnap({looks:(ss.looks||0)+1});
+      G.food=(G.food||0)+sd;
+      log('\ud83d\udcf7 A long look at the reunion snapshot \u2014 the whole bridge in one frame. Somebody in the shot swings by after with a little something: +'+sd+'\ud83c\udf5e');
+      floatText('+'+sd+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
