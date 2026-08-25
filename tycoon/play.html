@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6242,6 +6242,7 @@ const ACHIEVEMENTS = [
   { id: 'reunion3', icon: '\u{1F942}', title: 'The Company Reunion', desc: 'Call the whole story back on three sessions.', check: () => loadReunion().held >= 3, progress: () => [Math.min(loadReunion().held, 3), 3] },
   { id: 'portrait3', icon: '\u{1F4F8}', title: 'The Reunion Photo', desc: 'Straighten the photo on three sessions.', check: () => loadPhoto().looks >= 3, progress: () => [Math.min(loadPhoto().looks, 3), 3] },
   { id: 'anniv3', icon: '\u{1F942}', title: 'The Founding Toast', desc: 'Raise the toast on three sessions.', check: () => loadToastTally().toasts >= 3, progress: () => [Math.min(loadToastTally().toasts, 3), 3] },
+  { id: 'guest3', icon: '\u{1F4D4}', title: 'The Guest Book', desc: 'Leaf through the book on three sessions.', check: () => loadGuestBook().leafs >= 3, progress: () => [Math.min(loadGuestBook().leafs, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10535,6 +10536,7 @@ function updateHist(dt) {
   refreshReunionChip();
   refreshPhotoChip();
   refreshToastChip();
+  refreshGuestChip();
 }
 // ---- the Founder's Ring (TYC-39) ------------------------------
 // The heirloom round: the memory starts paying. Once a session the
@@ -10774,6 +10776,48 @@ function raiseFoundingToast() {
   showToast('\u{1F942} The Founding Toast \u2014 +$' + p + '. To the founding day.', 'good', 'standard');
   checkAchievements();
   refreshToastChip();
+}
+// ---- the Guest Book (TYC-49) ----------------------------------
+// Round Thirty-Eight opens the guest-book round: after three
+// Founding Toasts, a guest book sits open in the lobby \u2014
+// everyone who ever came through signs it. Once a session the
+// founder leafs through it: $70 base + $35 per toast (cap 5).
+// Leafs tallied in 'tyc-guestbook'.
+const GUEST_KEY = 'tyc-guestbook', GUEST_BASE = 70, GUEST_PER = 35;
+let guestLeafed = false;
+function loadGuestBook() {
+  try { const g = JSON.parse(localStorage.getItem(GUEST_KEY) || 'null');
+    if (g && typeof g === 'object') return { leafs: Math.max(0, Math.floor(g.leafs || 0)) };
+  } catch (e) { }
+  return { leafs: 0 };
+}
+function saveGuestBook(g) { try { localStorage.setItem(GUEST_KEY, JSON.stringify(g)); } catch (e) { } }
+function guestBookOut() { return loadToastTally().toasts >= 3; }
+function guestPurse() { return GUEST_BASE + GUEST_PER * Math.min(loadToastTally().toasts || 0, 5); }
+function refreshGuestChip() {
+  const el = document.getElementById('guest-chip');
+  if (!el) return;
+  el.onclick = leafGuestBook;
+  if (!guestBookOut()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.style.opacity = guestLeafed ? '0.45' : '';
+  el.textContent = '\u{1F4D4} guests';
+  el.title = guestLeafed
+    ? 'The Guest Book has had its leaf-through this session. Once a day \u2014 the ink dries.'
+    : 'The Guest Book \u2014 three founding toasts and a book sits open in the lobby, every visitor signed in. Leaf through it and somebody in the margins invests: $' + guestPurse()
+      + '. Leafed ' + loadGuestBook().leafs + ' time' + (loadGuestBook().leafs === 1 ? '' : 's') + '.';
+}
+function leafGuestBook() {
+  if (!guestBookOut() || guestLeafed) return;
+  guestLeafed = true;
+  const p = guestPurse();
+  const g = loadGuestBook();
+  saveGuestBook({ leafs: g.leafs + 1 });
+  state.cash += p;
+  addFeedEntry('\u{1F4D4} The founder leafs through the lobby guest book \u2014 every name that ever came through the door. One of them calls back with a check: +$' + p + '.');
+  showToast('\u{1F4D4} The Guest Book \u2014 +$' + p + '. The names pay.', 'good', 'standard');
+  checkAchievements();
+  refreshGuestChip();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
