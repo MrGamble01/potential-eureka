@@ -495,6 +495,14 @@ canvas{display:block;touch-action:none;}
 }
 #lawyer-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
 @media (max-width:640px){ #lawyer-toggle{bottom:264px;right:8px;font-size:11px;padding:5px 9px;} }
+#presale-toggle{
+  position:fixed;bottom:14px;right:1696px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#presale-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #presale-toggle{bottom:289px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -581,6 +589,7 @@ canvas{display:block;touch-action:none;}
 <button id="vault-toggle" style="display:none" title="The Floor Safe: bank $1,000 under the laundry floor (the launderer keeps 10%) — the safe survives a bust, and the balance lands in your next run’s pocket">🔒 VAULT $0</button>
 <button id="dice-toggle" style="display:none" title="The Hot Hand: stake $600 on moving three clean street sales in the next 45 seconds — make it and the stake doubles, run dry and it’s gone">🎲 HOT HAND $600</button>
 <button id="lawyer-toggle" style="display:none" title="The Lawyer: a $1,500 retainer buys one case — the next sting’s bags still walk, but their full list value comes back as damages and the heat spike is argued down to 8">⚖️ LAWYER $1,500</button>
+<button id="presale-toggle" style="display:none" title="The Pre-Sale: the Distributor pays now for the next five bags off the line at 0.85× today’s list — the van intercepts them before they ever touch the shelf">📤 PRE-SELL 5</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -1254,6 +1263,51 @@ function retainLawyer() {
   showToast('⚖️ Retainer paid — the next sting gets argued down. One case.', 'good');
   addFeed('⚖️ Lawyer retained — $' + fmtCash(LAWYER_COST) + ' against the next badge');
   saveGame();
+}
+// LAB-32: the credit round reaches the corner. The Distributor pays
+// NOW for the next five bags off the line at 0.85× today's list,
+// locked at signing — future production, not shelf stock. The van
+// intercepts bags as they come off the line, before they touch the
+// stash. Sign at a demand peak and you banked it; sign before a
+// surge and you sold the upside for cash in hand.
+const PRESALE_BAGS = 5, PRESALE_RATE = 0.85;
+function refreshPreSaleBtn() {
+  const b = document.getElementById('presale-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', (state.preSaleOwed || 0) > 0);
+  b.textContent = (state.preSaleOwed || 0) > 0
+    ? '📤 OWED ' + state.preSaleOwed
+    : '📤 PRE-SELL ' + PRESALE_BAGS + ' @ $' + fmtCash(Math.round(salePrice() * PRESALE_RATE));
+}
+function takePreSale() {
+  if ((state.preSaleOwed || 0) > 0) { showToast('📤 The van is still owed ' + state.preSaleOwed + ' bags — finish the order first.', ''); return; }
+  if (currentAct() < 2) return;
+  const perBag = Math.round(salePrice() * PRESALE_RATE);
+  const advance = perBag * PRESALE_BAGS;
+  addCash(advance);
+  state.preSaleOwed = PRESALE_BAGS;
+  refreshPreSaleBtn();
+  showToast('📤 Advance in hand — $' + fmtCash(advance) + ' now, and the next ' + PRESALE_BAGS + ' bags off the line ride the van.', 'good');
+  addFeed('📤 Pre-sold ' + PRESALE_BAGS + ' bags forward at $' + fmtCash(perBag) + ' each');
+  saveGame();
+}
+function preSaleIntercept(n) {
+  // The van takes owed bags off the line before they reach the shelf.
+  if (!(state.preSaleOwed > 0) || n <= 0) return n;
+  const take = Math.min(n, state.preSaleOwed);
+  state.preSaleOwed -= take;
+  if (state.preSaleOwed <= 0) {
+    state.preSales = (state.preSales || 0) + 1;
+    showToast('📤 The pre-sale is filled — the van pulls out. (' + state.preSales + ' completed)', 'good');
+    addFeed('📤 Pre-sale filled — the van took the last ' + take);
+    checkGrowAchievements();
+  } else {
+    addFeed('📤 The van took ' + take + ' off the line — ' + state.preSaleOwed + ' still owed');
+  }
+  refreshPreSaleBtn();
+  saveGame();
+  return n - take;
 }
 function stashMax() { return STASH_MAX_BASE + (state.unitRented ? UNIT_CAP_BONUS : 0); }
 function refreshUnitBtn() {
@@ -2219,6 +2273,7 @@ function refreshRouteBtn() {
   refreshVaultBtn(); // LAB-29: and the floor safe
   refreshDiceBtn(); // LAB-30: and the hot hand
   refreshLawyerBtn(); // LAB-31: and the retainer
+  refreshPreSaleBtn(); // LAB-32: and the van's ledger
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -2395,6 +2450,7 @@ function updateRoute(dt) {
 { const vb = document.getElementById('vault-toggle'); if (vb) vb.onclick = depositVault; }
 { const db = document.getElementById('dice-toggle'); if (db) db.onclick = placeDice; }
 { const lb = document.getElementById('lawyer-toggle'); if (lb) lb.onclick = retainLawyer; }
+{ const pb = document.getElementById('presale-toggle'); if (pb) pb.onclick = takePreSale; }
 
 // ── Corner Wars (LAB-11) ──────────────────────────────────
 // Past the garage act, a rival crew occasionally posts up on the block
@@ -2653,6 +2709,7 @@ const GROW_ACH = [
   { id: 'squirrel', name: 'Rainy-Day Fund', test: () => (loadVault().life || 0) >= 5000 },   // LAB-29
   { id: 'hot_hand', name: 'The Hot Hand', test: () => (state.diceWon || 0) >= 5 },   // LAB-30
   { id: 'retained', name: 'Habeas Corpus', test: () => (state.casesWon || 0) >= 3 },   // LAB-31
+  { id: 'sold_forward', name: 'Sold Forward', test: () => (state.preSales || 0) >= 4 },   // LAB-32
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -3060,6 +3117,7 @@ function saveGame() {
     zoned: !!state.zoned,   // LAB-28
     diceWon: state.diceWon || 0, diceLost: state.diceLost || 0,   // LAB-30
     lawyer: !!state.lawyer, casesWon: state.casesWon || 0,   // LAB-31
+    preSaleOwed: state.preSaleOwed || 0, preSales: state.preSales || 0,   // LAB-32
     clientele: Math.max(0, Math.min(5, Math.floor(state.clientele || 0))), clientMeter: state.clientMeter || 0,   // LAB-27
     rival, rivalIn: Math.round(rivalIn),
     rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
@@ -3156,6 +3214,8 @@ function loadGame() {
     state.diceLost = Math.max(0, Math.floor(sv.diceLost || 0));
     state.lawyer = !!sv.lawyer;   // LAB-31 (older corners had no counsel)
     state.casesWon = Math.max(0, Math.floor(sv.casesWon || 0));
+    state.preSaleOwed = Math.max(0, Math.floor(sv.preSaleOwed || 0));   // LAB-32 (older lines sold nothing forward)
+    state.preSales = Math.max(0, Math.floor(sv.preSales || 0));
     state.motherBags = Math.max(0, Math.floor(sv.motherBags || 0));
     state.clientele = Math.max(0, Math.min(CLIENT_CAP, Math.floor(sv.clientele || 0)));   // LAB-27
     state.clientMeter = Math.max(0, Math.floor(sv.clientMeter || 0));
@@ -3472,7 +3532,7 @@ function depositAtTrim() {
 
 function depositAtStash() {
   if(trimBags>0) {
-    const b=trimBags; trimBags=0;
+    const b=preSaleIntercept(trimBags); trimBags=0;   // LAB-32: the van feeds first
     const room=Math.max(0, stashMax()-stashCount);
     const added=Math.min(b, room);
     stashCount+=added;
@@ -3481,6 +3541,7 @@ function depositAtStash() {
     if(added<b) showToast(`📦 Stash full! Lost ${b-added} bags.`,'event');
   }
   if(chemProduct>0) {
+    chemProduct=preSaleIntercept(chemProduct);   // LAB-32: the van feeds first
     const room=Math.max(0, stashMax()-stashCount);
     const added=Math.min(chemProduct, room);
     const lost=chemProduct-added;
@@ -3713,6 +3774,7 @@ function updateRunnerNPCs(dt) {
       }
     } else if(r.state==='toStash') {
       if(stepToward(r.group, stashNode.x, stashNode.z+1.5, 3.0, dt)) {
+        r.carry=preSaleIntercept(r.carry);   // LAB-32: the van feeds first
         const room=Math.max(0, stashMax()-stashCount);
         const added=Math.min(r.carry, room);
         stashCount+=added;
