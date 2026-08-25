@@ -1684,6 +1684,7 @@
     { id: 'green_fair', emoji: '\u{1F3AA}', name: 'The Green Fair', desc: 'Open three foundings with the fair under the oak.', done: () => loadFair().days >= 3 },
     { id: 'gilded_page', emoji: '\u2728', name: 'The Gilded Page', desc: 'Turn three pages under the gilded ledger.', done: () => loadGilt().cheers >= 3 },
     { id: 'first_reeve', emoji: '\u{1F9D3}', name: 'The First Reeve', desc: 'Greet the First Reeve on three sessions.', done: () => loadReeve().visits >= 3 },
+    { id: 'reeve_seal', emoji: '\u{1F4EF}', name: 'The Reeve\u2019s Seal', desc: 'Warm the hearthstone beside the seal on three sessions.', done: () => loadSeal().pays >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2804,6 +2805,14 @@
     state.happy = Math.min(100, state.happy + p);
     chron('\u{1FAA8}', 'The first town\u2019s hearthstone glows at the fire \u2014 +' + p + ' happiness, carried by everything the valley keeps');
     toast('\u{1FAA8} The Hearthstone warms the green \u2014 +' + p + ' happiness. The memory has weight.');
+    // HVALE-38: with the reeve's seal on the mantel, the warming pays.
+    if (hearthHasSeal()) {
+      const sk = loadSeal();
+      saveSeal({ pays: (sk.pays || 0) + 1 });
+      state.res.gold += SEAL_GOLD;
+      chron('\u{1F4EF}', 'The First Reeve\u2019s brass seal stamps the day by the hearth \u2014 the old office still pays: +' + SEAL_GOLD + ' gold');
+      toast('\u{1F4EF} The reeve\u2019s seal \u2014 +' + SEAL_GOLD + ' gold. Keepsakes pay.');
+    }
     checkAchievements();
   }
   // ---- the First Reeve Returns (HVALE-37) ---------------------
@@ -2834,6 +2843,21 @@
     toast('\u{1F9D3} The First Reeve walked the green \u2014 +' + p + ' gold. Old friends remember.');
     checkAchievements();
   }
+  // ---- the Reeve's Seal (HVALE-38) ----------------------------
+  // The keepsake round in the valley: after three greetings, the
+  // First Reeve leaves his old brass seal on the hearthstone's
+  // mantel. Every warming beside it stamps the day like the old
+  // counting days: +5 gold on the spot. Pays tallied in
+  // 'hvale-keepsake'.
+  const SEAL_KEY = 'hvale-keepsake', SEAL_GOLD = 5;
+  function loadSeal() {
+    try { const k = JSON.parse(localStorage.getItem(SEAL_KEY) || 'null');
+      if (k && typeof k === 'object') return { pays: Math.max(0, Math.floor(k.pays || 0)) };
+    } catch (e) { }
+    return { pays: 0 };
+  }
+  function saveSeal(k) { try { localStorage.setItem(SEAL_KEY, JSON.stringify(k)); } catch (e) { } }
+  function hearthHasSeal() { return loadReeve().visits >= 3; }
   function ledgerAtDawn() {
     const g = Math.floor(state.res.gold);
     const l = loadLedger();
