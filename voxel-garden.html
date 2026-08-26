@@ -1353,6 +1353,43 @@ function walkTheGreenhand(){
   if(typeof checkAch==='function')checkAch();
   refreshPilotHud();
 }
+// VOX-47: the mark round on the shore, and the beat the whole arc
+// was walking toward. After three walks, the green hand the pilot
+// took down the boarding asks for a length of line and ties their
+// own knot into the boarding at the end of the marked line \u2014
+// their first season, their hand. The boarding stops being
+// something the harbor keeps and starts being something it grows.
+// Once a session a knot pays: 60 coins base + 5 per walk (cap 5).
+// Knots tallied in 'vox-mark'.
+const MARK_KEY='vox-mark',MARK_BASE=60,MARK_PER=5;
+let markAdded=false;
+function loadMark(){
+  try{const m=JSON.parse(localStorage.getItem(MARK_KEY)||'null');
+    if(m&&typeof m==='object')return{knots:Math.max(0,Math.floor(m.knots||0))};
+  }catch(e){}
+  return{knots:0};
+}
+function saveMark(m){try{localStorage.setItem(MARK_KEY,JSON.stringify(m));}catch(e){}}
+function markEarned(){ return loadPilot().walks>=3; }
+function markPurse(){ return MARK_BASE + MARK_PER*Math.min(loadPilot().walks||0,5); }
+function refreshMarkHud(){
+  const h=document.getElementById('markHud'),tx=document.getElementById('markTxt');
+  if(!h)return;
+  h.style.display=markEarned()?'flex':'none';
+  h.style.opacity=markAdded?'0.45':'';
+  if(tx)tx.textContent=markAdded?'\u270D\uFE0F tied':'\u270D\uFE0F their knot for +'+markPurse()+' \u{1FA99}';
+}
+function tieTheirKnot(){
+  if(!markEarned()||markAdded)return;
+  markAdded=true;
+  const p=markPurse();
+  const m=loadMark();
+  saveMark({knots:m.knots+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u270D\uFE0F THEIR OWN KNOT \u2014 the green hand the pilot walked down the boarding asks for a length of line and ties their own into it, right at the end of the marked line: their first season, their hand. The whole harbor stops to watch a knot get tied, and nobody who stopped left without buying something: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshMarkHud();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -5156,6 +5193,7 @@ const ACH=[
   ['chest3','The Sunken Chest','Haul the chest on three sessions',()=>loadChest().hauls>=3],
   ['mural3','The Harbor Mural','Walk the mural on three sessions',()=>loadMural().walks>=3],
   ['pilot3','The Pilot\u2019s Walk','Walk a green hand down the boarding on three sessions',()=>loadPilot().walks>=3],
+  ['mark3','Their Own Knot','Tie a green hand\u2019s knot into the boarding on three sessions',()=>loadMark().knots>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -5410,7 +5448,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -5494,6 +5532,7 @@ boot();
 <div id="chestHud" style="display:none;position:fixed;bottom:596px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="haulSunkenChest()" title="The Sunken Chest: three sings of the shanty and the fleet sinks a chest off the pier on a marked line — a log page, the bottle's letter, a shell off the wreath, the shanty on a card. Haul it once a session, and there's always coin wedged in the lid."><span id="chestTxt">🗝️ —</span></div>
 <div id="muralHud" style="display:none;position:fixed;bottom:630px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="walkHarborMural()" title="The Harbor Mural: three hauls of the chest and a painter takes the long boarding of the harbor wall — the first mooring, the log’s best haul, the bench, the yarn’s ships, the shanty’s verses, the marked line. Walk it once a session, and there’s always coin left at the end of the boarding."><span id="muralTxt">🎨 —</span></div>
 <div id="pilotHud" style="display:none;position:fixed;bottom:664px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="walkTheGreenhand()" title="The Pilot’s Walk: three walks of the mural and the oldest pilot on the water takes every green hand down the boarding on their first morning — the first mooring, the best haul, the bench, the ships, the verses, the marked line. Do it once a session, and they row like they were born to it by dusk."><span id="pilotTxt">🧭 —</span></div>
+<div id="markHud" style="display:none;position:fixed;bottom:698px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="tieTheirKnot()" title="Their Own Knot: three walks and the green hand the pilot took down the boarding asks for a length of line and ties their own knot in at the end of the marked line — their first season, their hand. Do it once a session; the whole harbor stops to watch."><span id="markTxt">✍️ —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>

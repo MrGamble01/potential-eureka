@@ -336,6 +336,7 @@
     <button id="m-casket">Open the Founders' Casket</button>
     <button id="m-fresco">Walk the Hall Fresco</button>
     <button id="m-warden">Walk a Newcomer Down the Hall</button>
+    <button id="m-mark">Let a Newcomer Paint Their Panel</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1705,6 +1706,7 @@
     { id: 'founders_casket', emoji: '\u{1F5DD}\u{FE0F}', name: 'The Founders\u2019 Casket', desc: 'Open the casket on three sessions.', done: () => loadCasket().opens >= 3 },
     { id: 'hall_fresco', emoji: '\u{1F3A8}', name: 'The Hall Fresco', desc: 'Walk the fresco on three sessions.', done: () => loadFresco().walks >= 3 },
     { id: 'hall_warden', emoji: '\u{1F9ED}', name: 'The Hall Warden', desc: 'Walk a newcomer down the hall on three sessions.', done: () => loadWarden().walks >= 3 },
+    { id: 'newcomers_panel', emoji: '\u{270D}\u{FE0F}', name: 'The Newcomer\u2019s Panel', desc: 'Let a newcomer paint their panel on three sessions.', done: () => loadMark().panels >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3174,6 +3176,37 @@
     state.res.gold += p;
     chron('\u{1F9ED}', 'THE HALL WARDEN \u2014 the oldest hand takes a newcomer down the fresco on the night they arrive: the first hearth, the oak, the best year, the names, the verses, the casket under the roots. They are of the valley by morning, and they came with something: +' + p + ' gold');
     toast('\u{1F9ED} The Hall Warden \u2014 +' + p + ' gold. Somebody else carries it now.');
+    checkAchievements();
+  }
+  // ---- the Newcomer's Panel (HVALE-49) ------------------------
+  // The mark round in the valley, and the beat the whole arc was
+  // walking toward: after three walks, the newcomer the warden took
+  // down the fresco asks for the brush and paints the panel after
+  // the casket \u2014 their own first winter, in their own hand.
+  // The hall wall stops being something the valley keeps and starts
+  // being something it grows. Once a session a panel pays: 60 gold
+  // base + 5 per walk (cap 5). Panels tallied in 'hvale-mark'.
+  const MARK_KEY = 'hvale-mark', MARK_BASE = 60, MARK_PER = 5;
+  let markAdded = false;
+  function loadMark() {
+    try { const m = JSON.parse(localStorage.getItem(MARK_KEY) || 'null');
+      if (m && typeof m === 'object') return { panels: Math.max(0, Math.floor(m.panels || 0)) };
+    } catch (e) { }
+    return { panels: 0 };
+  }
+  function saveMark(m) { try { localStorage.setItem(MARK_KEY, JSON.stringify(m)); } catch (e) { } }
+  function markEarned() { return loadWarden().walks >= 3; }
+  function markPurse() { return MARK_BASE + MARK_PER * Math.min(loadWarden().walks || 0, 5); }
+  function addTheirPanel() {
+    if (!markEarned()) { toast('\u270D\uFE0F No newcomer has been taken down the whole wall yet \u2014 three walks and one asks for the brush.'); return; }
+    if (markAdded) { toast('\u270D\uFE0F A panel went up today \u2014 the wall grows at the pace people stay.'); return; }
+    markAdded = true;
+    const p = markPurse();
+    const m = loadMark();
+    saveMark({ panels: m.panels + 1 });
+    state.res.gold += p;
+    chron('\u270D\uFE0F', 'THE NEWCOMER\u2019S PANEL \u2014 the one the warden walked down the fresco asks for the brush and paints what comes after the casket: their own first winter, their own hand. The whole valley comes in out of the cold to look at it, and nobody comes empty: +' + p + ' gold');
+    toast('\u270D\uFE0F The Newcomer\u2019s Panel \u2014 +' + p + ' gold. The wall grows now.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5626,6 +5659,7 @@
     { const mck = document.getElementById('m-casket'); if (mck) mck.onclick = () => { menu.classList.remove('show'); openFoundersCasket(); }; }
     { const mfr = document.getElementById('m-fresco'); if (mfr) mfr.onclick = () => { menu.classList.remove('show'); walkTheHallFresco(); }; }
     { const mwd = document.getElementById('m-warden'); if (mwd) mwd.onclick = () => { menu.classList.remove('show'); walkTheNewcomer(); }; }
+    { const mmk = document.getElementById('m-mark'); if (mmk) mmk.onclick = () => { menu.classList.remove('show'); addTheirPanel(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
