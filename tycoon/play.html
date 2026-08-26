@@ -634,7 +634,14 @@
     @media (max-width: 900px) {
       #sprint-btn {
         right: calc(14px + env(safe-area-inset-right, 0px));
-        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        /* UI-5: the phone's bottom-right corner is crowded, and it was
+           stacked by eye rather than by arithmetic. #next-action-card is
+           full-width at bottom:78px and 56px tall, so it owns 78..134 and
+           carries z-index 95 against sprint's auto — sprint sat at 72..106,
+           inside the card's band and underneath it, so its own centre was
+           never clickable. The column is laid out by measurement now:
+           card 78..134, sprint 142..176, #tp-toggle 184..219. */
+        bottom: calc(142px + env(safe-area-inset-bottom, 0px));
         padding: 9px 14px; font-size: 12px;
       }
     }
@@ -1270,7 +1277,13 @@
       opacity: 0; transition: opacity 0.25s ease;
     }
     @media (max-width: 900px) {
-      #tp-toggle { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+      /* UI-5: #sprint-btn sits at bottom:72px and stands 34px tall, so it
+         occupies 72..106 from the bottom edge. At bottom:88px this toggle
+         (35px tall, 88..123) overlapped it by 18px — and with z-index 120
+         against sprint's auto, the toggle won the hit test and the Sprint
+         button was not clickable at its own centre on a phone. Cleared to
+         116px, which leaves a 10px gap above sprint's top edge. */
+      #tp-toggle { bottom: calc(184px + env(safe-area-inset-bottom, 0px)); }
     }
     #drawer-backdrop {
       display: none; position: fixed; inset: 0;

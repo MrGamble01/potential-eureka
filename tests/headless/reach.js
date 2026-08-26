@@ -151,6 +151,60 @@ const PROBE = (sel) => {
     await ctx.close();
   }
 
+  // F — no visible control may be covered by another at its own centre.
+  // Tycoon's phone corner was stacked by eye: #next-action-card is full-width
+  // at bottom:78px and 56px tall with z-index 95, and #sprint-btn sat at
+  // bottom:72px underneath it, so Sprint's centre was never clickable — with
+  // #tp-toggle (z 120) over the top of both. Voxel Isle pinned #topbar and
+  // #back at top:10px each, and at phone width the chips covered five nav
+  // buttons. Zero-sized elements are skipped: buttons inside a collapsed
+  // sidebar section report 0x0 and elementFromPoint then names the canvas,
+  // which is an artifact of probing, not a covered control.
+  for (const [pg, wait] of [['tycoon/play.html', 3200], ['voxel-garden.html', 3500]]) {
+    for (const vp of [{ width: 390, height: 844, m: true }, { width: 1400, height: 900, m: false }]) {
+      const ctx = await browser.newContext({
+        viewport: { width: vp.width, height: vp.height },
+        isMobile: vp.m, hasTouch: vp.m, deviceScaleFactor: vp.m ? 2 : 1,
+      });
+      const page = await ctx.newPage();
+      page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+      await page.goto(BASE + '/' + pg, { waitUntil: 'load' });
+      await page.waitForTimeout(wait);
+      // stand the intro overlay down, as a player would
+      await page.evaluate(() => {
+        document.querySelectorAll('body *').forEach(el => {
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.position !== 'fixed') return;
+          const b = el.getBoundingClientRect();
+          if (b.width >= innerWidth * 0.9 && b.height >= innerHeight * 0.9) el.style.display = 'none';
+        });
+      });
+      await page.waitForTimeout(300);
+      const covered = await page.evaluate(() => {
+        const out = [];
+        document.querySelectorAll('button,[onclick],[role="button"]').forEach(el => {
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden'
+              || parseFloat(cs.opacity) === 0 || cs.pointerEvents === 'none') return;
+          const b = el.getBoundingClientRect();
+          if (b.width < 2 || b.height < 2) return;                 // collapsed section
+          if (b.right < 1 || b.left > innerWidth - 1
+              || b.bottom < 1 || b.top > innerHeight - 1) return;  // scrolled out of a panel
+          const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+          const hit = document.elementFromPoint(cx, cy);
+          if (hit && hit !== el && !el.contains(hit)) {
+            out.push(`${el.id || el.className} <- ${hit.id || hit.className || hit.tagName}`);
+          }
+        });
+        return out;
+      });
+      ok(covered.length === 0,
+        `${pg} ${vp.width}x${vp.height}: no visible control covered at its centre`
+        + (covered.length ? ` — ${covered.join(', ')}` : ''));
+      await ctx.close();
+    }
+  }
+
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
