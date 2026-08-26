@@ -74,8 +74,13 @@ const Achievements = (() => {
       test: () => { try { return Object.keys(JSON.parse(localStorage.getItem('arcade-rivals') || '{}')).length > 0; } catch { return false; } } },
   ];
 
+  // A stored `null` parses cleanly and then Object.keys(null) throws in
+  // renderInto — the hub's front page, from one bad localStorage write.
+  // The try/catch caught the parse; nothing caught the shape.
   function unlocked() {
-    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
+    let raw;
+    try { raw = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
+    return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
   }
 
   // Re-evaluate the table; toast anything newly true. Never re-locks:

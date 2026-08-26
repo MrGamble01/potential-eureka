@@ -28,6 +28,7 @@ SUITES=(
   reach
   storagekeys
   saves
+  hubstore
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3

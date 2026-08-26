@@ -101,8 +101,29 @@ const Rivals = (() => {
     return { name: name || 'RIVAL', t: +obj.t || Date.now(), s };
   }
 
+  // The stored list is untrusted: it is localStorage, so a crashed write, a
+  // quota eviction or a stray hand-edit can leave anything there — and this
+  // is the ONLY read path, so every consumer inherits whatever it returns.
+  // A try/catch around JSON.parse is not enough: `null` parses fine and then
+  // Object.entries(null) throws; `[1,2,3]` and `"hi"` parse fine and hand
+  // back entries whose `.s` is undefined, which Object.keys() then throws on.
+  // Both took the whole Hall of Fame down with an empty page.
+  // So filter to well-shaped entries here rather than guarding at each caller.
+  const plain = o => !!o && typeof o === 'object' && !Array.isArray(o);
   function list() {
-    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
+    let raw;
+    try { raw = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
+    if (!plain(raw)) return {};
+    const out = {};
+    for (const [name, r] of Object.entries(raw)) {
+      if (!plain(r) || !plain(r.s)) continue;
+      const s = {};
+      for (const [k, v] of Object.entries(r.s)) {
+        if (GAMES[k] && typeof v === 'number' && isFinite(v) && v > 0) s[k] = Math.floor(v);
+      }
+      out[String(name).slice(0, MAX_NAME)] = { t: +r.t || 0, s };
+    }
+    return out;
   }
   function saveList(l) { localStorage.setItem(STORE_KEY, JSON.stringify(l)); }
 
