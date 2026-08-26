@@ -205,6 +205,55 @@ const PROBE = (sel) => {
     }
   }
 
+  // G — Startup Tycoon's IPO button must actually be revealable.
+  // #ipo-btn is hidden by its stylesheet rule, and checkIPOAvailable() used
+  // to "show" it with `style.display = ''` — which clears the *inline*
+  // property and lets the stylesheet's `none` apply again. The button never
+  // appeared at any cash level, and since its click handler is the only
+  // caller of openIPOModal, prestige was unreachable. It also has to survive
+  // being revealed: #ipo-btn sits at bottom:18/right:18 and #tp-toggle was in
+  // the same corner with z-index 120 over it.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+    await page.goto(BASE + '/tycoon/play.html', { waitUntil: 'load' });
+    await page.waitForTimeout(3200);
+    await page.evaluate(() => {
+      document.querySelectorAll('body *').forEach(el => {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.position !== 'fixed') return;
+        const b = el.getBoundingClientRect();
+        if (b.width >= innerWidth * 0.9 && b.height >= innerHeight * 0.9) el.style.display = 'none';
+      });
+    });
+    const r = await page.evaluate(() => {
+      const el = document.getElementById('ipo-btn');
+      if (!el) return { missing: true };
+      // the old, broken reveal
+      el.style.display = '';
+      const clearedStillHidden = getComputedStyle(el).display === 'none';
+      // the reveal the game performs now
+      el.style.display = 'block';
+      const b = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      const shown = getComputedStyle(el).display !== 'none' && b.width > 2 && b.height > 2;
+      const owns = !!hit && (hit === el || el.contains(hit));
+      const tp = document.getElementById('tp-toggle');
+      const bt = tp.getBoundingClientRect();
+      const ix = Math.min(b.right, bt.right) - Math.max(b.left, bt.left);
+      const iy = Math.min(b.bottom, bt.bottom) - Math.max(b.top, bt.top);
+      return { clearedStillHidden, shown, owns, overlaps: ix > 0 && iy > 0 };
+    });
+    ok(!r.missing && r.clearedStillHidden,
+      'the IPO button is stylesheet-hidden, so clearing the inline style cannot reveal it');
+    ok(!r.missing && r.shown && r.owns,
+      'revealed with a real display value, the IPO button is visible and owns its own centre');
+    ok(!r.missing && !r.overlaps,
+      'the revealed IPO button does not collide with the camera toggle');
+    await ctx.close();
+  }
+
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
