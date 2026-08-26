@@ -306,6 +306,20 @@ function finishAction(a){
       floatText('+'+bd2+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='can'){
+    // HV-49: the can buried by the piling, dug up once a session.
+    if(!canBuried()){ log('\ud83d\udce6 Nothing buried by the piling yet \u2014 three playings of the ballad and somebody puts a can down.'); }
+    else if(canDug){ log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.'); }
+    else {
+      canDug=true;
+      var cd2=canDish();
+      var cn2=loadHvCan();
+      saveHvCan({digs:(cn2.digs||0)+1});
+      G.food=(G.food||0)+cd2;
+      log('\ud83d\udce6 THE COFFEE CAN \u2014 a notebook page, a snapshot, a guitar pick, the wall\u2019s numbers copied out. Something\u2019s tucked in with it, like always: +'+cd2+'\ud83c\udf5e');
+      floatText('+'+cd2+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
