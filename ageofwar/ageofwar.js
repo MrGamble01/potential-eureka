@@ -221,7 +221,10 @@ const AgeOfWarGame = (() => {
     }
   }
   function anyModalOpen() {
-    for (const id of ['aow-welcome-modal','aow-ach-modal','aow-settings-modal']) {
+    // AOW-59: the Line pauses the run like every other modal, so it
+    // has to count here too — otherwise closing a different modal
+    // while it is open unpauses the game behind a full-screen panel.
+    for (const id of ['aow-welcome-modal','aow-ach-modal','aow-settings-modal','aow-chain-modal']) {
       const m = document.getElementById(id);
       if (m && m.style.display && m.style.display !== 'none') return true;
     }
@@ -2706,6 +2709,87 @@ const AgeOfWarGame = (() => {
     sitInLongRoom();
   }
 
+  // -- The Line (AOW-59) --
+  // Sixteen links deep on this field and no way to see they are one
+  // thing: each control only appears once the one before it is done,
+  // so nobody halfway along knows there is a halfway.
+  //
+  // NOTE ON PLACEMENT: this table must sit AFTER every block whose
+  // threshold constant it cites (LAUREL_AT, PANELS_AT). Declared
+  // above them it evaluates in their temporal dead zone and takes the
+  // page down on load -- which is what happened to the Tycoon wall
+  // and then, one tranche later, to the Grow Op one.
+  //
+  // Every row calls the SAME function the game calls, and states the
+  // gate that opens it as its predecessor(s) plus a threshold, which
+  // `tests/headless/wall.js` cross-checks against the game's own
+  // predicate. A wrong number here fails the battery instead of
+  // quietly lying to a player.
+  const AOW_CHAIN = [
+    { id: 'chron',     icon: '\u{1F4DC}', name: 'The Chronicle of Wars',  tally: () => loadChron().beats,      gate: null,                    prev: null,                need: 0 },
+    { id: 'laurel',    icon: '\u{1F3F5}', name: 'The Laurel',             tally: () => loadLaurel().cheers,    gate: () => laurelStands(),    prev: 'chron',             need: LAUREL_AT },
+    { id: 'gen',       icon: '\u{1F396}', name: 'The Old General',        tally: () => loadGen().visits,       gate: null,                    prev: null,                need: 0 },
+    { id: 'vreunion',  icon: '\u{1F397}', name: 'The Veterans\u2019 Reunion', tally: () => loadVReunion().held, gate: () => vreunionStands(), prev: ['laurel', 'gen'],  need: 3 },
+    { id: 'painting',  icon: '\u{1F5BC}', name: 'The Campaign Painting',  tally: () => loadPainting().looks,   gate: () => paintingHangs(),   prev: 'vreunion',          need: 3 },
+    { id: 'salute',    icon: '\u{1F387}', name: 'The Founding Salute',    tally: () => loadSalute().toasts,    gate: () => saluteStands(),    prev: 'painting',          need: 3 },
+    { id: 'roll',      icon: '\u{1F4DC}', name: 'The Muster Roll',        tally: () => loadRoll().leafs,       gate: () => rollHangs(),       prev: 'salute',            need: 3 },
+    { id: 'vbench',    icon: '\u{1FA91}', name: 'The Veterans\u2019 Bench', tally: () => loadVBench().sits,   gate: () => vbenchBuilt(),     prev: 'roll',              need: 3 },
+    { id: 'tale',      icon: '\u{1F525}', name: 'The Campfire Tale',      tally: () => loadTale().tellings,    gate: () => taleReady(),       prev: 'vbench',            need: 3 },
+    { id: 'msong',     icon: '\u{1F3BA}', name: 'The Marching Song',      tally: () => loadMSong().sings,      gate: () => msongReady(),      prev: 'tale',              need: 3 },
+    { id: 'cache',     icon: '\u{1F9F1}', name: 'The Cornerstone Cache',  tally: () => loadCache().opens,      gate: () => cacheSealed(),     prev: 'msong',             need: 3 },
+    { id: 'fresco',    icon: '\u{1F3A8}', name: 'The Long Fresco',        tally: () => loadFresco().walks,     gate: () => frescoPainted(),   prev: 'cache',             need: 3 },
+    { id: 'guide',     icon: '\u{1F9ED}', name: 'The Recruit\u2019s Walk', tally: () => loadGuide().walks,    gate: () => guidePosted(),     prev: 'fresco',            need: 3 },
+    { id: 'mark',      icon: '\u{270D}',  name: 'The Recruit\u2019s Panel', tally: () => loadMark().panels,   gate: () => markEarned(),      prev: 'guide',             need: 3 },
+    { id: 'lroom',     icon: '\u{1F3DB}', name: 'The Long Room',          tally: () => loadLroom().sits,       gate: () => lroomOffered(),    prev: 'mark',              need: 3 },
+    { id: 'blank',     icon: '\u{1F5BC}', name: 'The Blank Panels',       tally: () => (loadPanels().up ? 1 : 0), gate: () => panelsEarned(), prev: 'lroom',             need: PANELS_AT },
+  ];
+  function chainState() {
+    const rows = AOW_CHAIN.map(r => {
+      const open = !r.gate || !!r.gate();
+      const n = Math.max(0, Math.floor(r.tally() || 0));
+      const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+      return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+    });
+    const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+    return { rows, nextIdx, doneCount: rows.filter(r => r.tally > 0).length, total: rows.length };
+  }
+  function renderChain() {
+    const listEl = document.getElementById('aow-chain-list');
+    const progEl = document.getElementById('aow-chain-progress');
+    if (!listEl) return;
+    const st = chainState();
+    if (progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+    const byId = {}; st.rows.forEach(r => { byId[r.id] = r; });
+    listEl.innerHTML = st.rows.map((r, i) => {
+      const started = r.tally > 0;
+      const isNext = i === st.nextIdx;
+      // Past the one you're on, rows stay unnamed: the line should say
+      // it keeps going, not hand over the list.
+      const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+      const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+      let note;
+      if (started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+      else if (isNext) note = 'yours to do next';
+      else if (r.open) note = 'open';
+      else if (r.prev.length) {
+        // Name the predecessor furthest behind: that is the one
+        // actually holding this row up.
+        const behind = r.prev.map(p => byId[p]).filter(Boolean)
+          .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+        note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+      }
+      else note = 'not yet';
+      const cls = started ? 'aow-chain-done' : isNext ? 'aow-chain-next' : r.open ? 'aow-chain-open' : 'aow-chain-locked';
+      return '<div class="aow-chain-row ' + cls + '"><span class="aow-chain-name">' + label
+        + '</span><span class="aow-chain-note">' + note + '</span></div>';
+    }).join('');
+  }
+  function openChain() {
+    renderChain();
+    const m = document.getElementById('aow-chain-modal');
+    if (m) { m.style.display = 'flex'; setModalPaused(true); }
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2911,6 +2995,20 @@ const AgeOfWarGame = (() => {
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
     if (pauseBtn) pauseBtn.onclick = () => setUserPaused(!userPaused);
+    const chainBtn = document.getElementById('aow-chain-btn');
+    if (chainBtn) chainBtn.onclick = openChain;
+    const chainClose = document.getElementById('aow-chain-close');
+    if (chainClose) chainClose.onclick = () => {
+      const m = document.getElementById('aow-chain-modal');
+      if (m) m.style.display = 'none';
+      setModalPaused(anyModalOpen());
+    };
+    const chainModal = document.getElementById('aow-chain-modal');
+    if (chainModal) chainModal.addEventListener('click', e => {
+      if (e.target !== chainModal) return;
+      chainModal.style.display = 'none';
+      setModalPaused(anyModalOpen());
+    });
     const achBtn = document.getElementById('aow-ach-btn');
     if (achBtn) achBtn.onclick = () => {
       renderAchievementsModal();

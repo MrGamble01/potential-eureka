@@ -184,7 +184,7 @@
         <button id="aow-guide-btn" class="aow-action aow-action-special" style="display:none" title="The Recruit's Walk — three walks of the fresco and the oldest sergeant in the muster takes every new recruit down it on their first morning: the first muster, the bench, the fire, the cadence, the cornerstone seam, panel by panel. Do it once a session, and the recruit fights like they were there for all of it."><span class="aow-action-ico">🧭</span><span class="aow-action-lbl">Walk</span><span class="aow-action-cd" id="aow-guide-cd"></span></button>
         <button id="aow-mark-btn" class="aow-action aow-action-special" style="display:none" title="The Recruit's Panel — three walks and the recruit who was taken down the fresco on their first morning asks for the brush: the panel after the cornerstone seam, their own first muster, in their own hand. Do it once a session; the whole line falls out to watch."><span class="aow-action-ico">✍️</span><span class="aow-action-lbl">Panel</span><span class="aow-action-cd" id="aow-mark-cd"></span></button>
         <button id="aow-lroom-btn" class="aow-action aow-action-special" style="display:none" title="The Long Room — the fresco has run out of wall. 900 gold, once ever, takes the armoury wall out and runs the whole line through it; then sit in it once a session."><span class="aow-action-ico">🏛️</span><span class="aow-action-lbl">Long Room</span><span class="aow-action-cd" id="aow-lroom-cd"></span></button>
-        <button id="aow-ach-btn" class="aow-action aow-action-ach"><span class="aow-action-ico">🏅</span><span class="aow-action-lbl">Awards</span></button>
+        <button id="aow-chain-btn" class="aow-action aow-action-ach" title="The Line — everything this army remembers, in the order it happened, and what the next one is waiting on."><span class="aow-action-ico">🧱</span><span class="aow-action-lbl">The Line</span></button><button id="aow-ach-btn" class="aow-action aow-action-ach"><span class="aow-action-ico">🏅</span><span class="aow-action-lbl">Awards</span></button>
         <button id="aow-pause-btn" class="aow-action"><span class="aow-action-ico">⏸️</span><span class="aow-action-lbl">Pause</span></button>
         <button id="aow-restart-btn" class="aow-action aow-action-restart"><span class="aow-action-ico">🔄</span><span class="aow-action-lbl">Restart</span></button>
       </div>
@@ -228,6 +228,16 @@
   </div>
 
   <!-- Achievements modal -->
+  <div id="aow-chain-modal" class="aow-modal" role="dialog" aria-modal="true" aria-label="The Line" style="display:none">
+    <div class="aow-modal-card">
+      <div class="aow-modal-header">
+        <span class="aow-modal-title">🧱 The Line</span>
+        <span class="aow-modal-prog" id="aow-chain-progress">0 of 0 begun</span>
+        <button class="aow-modal-close" id="aow-chain-close" aria-label="Close">×</button>
+      </div>
+      <div class="aow-ach-list" id="aow-chain-list"></div>
+    </div>
+  </div>
   <div id="aow-ach-modal" class="aow-modal" style="display:none">
     <div class="aow-modal-card">
       <div class="aow-modal-header">
