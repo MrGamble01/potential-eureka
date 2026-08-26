@@ -12363,8 +12363,10 @@ function doIPO() {
 
   // (Old supply closet + free runner removed — new office ops are handled by the EA role.)
 
-  // Update season badge
-  seasonBadge.style.display = '';
+  // Update season badge. #season-badge is hidden by its stylesheet rule, so
+  // assigning '' clears the inline property and lets that `none` reapply —
+  // the same defect that kept the IPO button off the screen. Needs a value.
+  seasonBadge.style.display = 'inline-block';
   seasonBadge.textContent = `S${prestigeLevel + 1}`;
 
   ipoBtnEl.style.display = 'none';
@@ -12502,7 +12504,7 @@ const SAVE_SCHEMA = [
       // Apply prestige multiplier to deal value
       if (prestigeLevel > 0) {
         dealValueMult = prestigeMultiplier;
-        seasonBadge.style.display = '';
+        seasonBadge.style.display = 'inline-block';
         seasonBadge.textContent   = `S${prestigeLevel + 1}`;
       }
     },

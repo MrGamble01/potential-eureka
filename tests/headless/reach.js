@@ -254,6 +254,63 @@ const PROBE = (sel) => {
     await ctx.close();
   }
 
+  // H — the general form of the IPO bug: no code may "reveal" an element with
+  // `style.display = ''` when that element is hidden by a stylesheet rule
+  // rather than an inline style. Clearing the inline property just lets the
+  // rule reapply, so the reveal is a no-op and the feature is unreachable.
+  // Two shipped instances were found this way: #ipo-btn (prestige) and
+  // #season-badge. This checks the pattern itself, so a new instance anywhere
+  // in a flagship fails here instead of hiding until someone plays that far.
+  for (const [pg, src] of [
+    ['tycoon/play.html', 'tycoon/play.html'],
+    ['ageofwar/index.html', 'ageofwar/ageofwar.js'],
+    ['homeless-village.html', 'homeless-village/js/main.js'],
+    ['hearthvale.html', 'hearthvale.html'],
+    ['drug-lab.html', 'drug-lab.html'],
+    ['voxel-garden.html', 'voxel-garden.html'],
+  ]) {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+    await page.goto(BASE + '/' + pg, { waitUntil: 'load' });
+    await page.waitForTimeout(3000);
+    const text = await page.evaluate(u => fetch(u).then(r => r.text()), BASE + '/' + src);
+    // variable -> element id
+    const var2id = new Map();
+    for (const m of text.matchAll(/(?:const|let|var)\s+(\w+)\s*=\s*document\.getElementById\(\s*['"]([\w-]+)['"]/g)) {
+      var2id.set(m[1], m[2]);
+    }
+    const targets = new Set();
+    for (const m of text.matchAll(/document\.getElementById\(\s*['"]([\w-]+)['"]\s*\)\.style\.display\s*=\s*''/g)) targets.add(m[1]);
+    for (const m of text.matchAll(/(\w+)\.style\.display\s*=\s*''/g)) {
+      const id = var2id.get(m[1]);
+      if (id) targets.add(id);
+    }
+    const dead = await page.evaluate(ids => ids.filter(id => {
+      const el = document.getElementById(id);
+      if (!el) return false;
+      const prev = el.getAttribute('style');
+      el.style.display = '';                       // the reveal as written
+      const stillHidden = getComputedStyle(el).display === 'none';
+      if (prev === null) el.removeAttribute('style'); else el.setAttribute('style', prev);
+      if (!stillHidden) return false;
+      // hidden *by an ancestor* (a collapsed panel) is correct behaviour, not
+      // a dead reveal — only count it when a rule targets the element itself.
+      for (const sheet of document.styleSheets) {
+        let list; try { list = sheet.cssRules; } catch (e) { continue; }
+        for (const rule of list) {
+          if (!rule.selectorText || !rule.style || rule.style.display !== 'none') continue;
+          try { if (el.matches(rule.selectorText) && !/[>\s]/.test(rule.selectorText.trim())) return true; } catch (e) {}
+        }
+      }
+      return false;
+    }), [...targets]);
+    ok(dead.length === 0,
+      `${pg}: no element is "revealed" with style.display='' while its own stylesheet rule hides it`
+      + (dead.length ? ` — ${dead.join(', ')}` : ''));
+    await ctx.close();
+  }
+
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
