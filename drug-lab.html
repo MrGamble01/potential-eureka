@@ -4291,7 +4291,12 @@ function loadGame() {
     state.cooks=sv.cooks||0;
     state.batches=sv.batches||0;
     state.sessionStart=sv.sessionStart||Date.now();
-    state.goalIndex=sv.goalIndex||0;
+    // `goalIndex>=GOALS.length` guards the top of this index at both read
+    // sites, but nothing guarded the bottom: a save carrying -1 reached
+    // GOALS[-1], and the undefined `.label` read threw before the lab drew.
+    // A save is untrusted input, so clamp here rather than at each reader.
+    { const gi=Math.floor(Number(sv.goalIndex));
+      state.goalIndex=Number.isFinite(gi)?Math.min(GOALS.length,Math.max(0,gi)):0; }
     state.won=!!sv.won;
     if (sv.market && typeof sv.market.mult === 'number') {
       market.mult = Math.max(0.5, Math.min(2, sv.market.mult));

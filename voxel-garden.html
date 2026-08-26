@@ -392,7 +392,17 @@ const SEASONS=[
   {key:'autumn',name:'Autumn',ico:'🍂',grass:0xa8a03c,growMult:0.9},
   {key:'winter',name:'Winter',ico:'❄️',grass:0xe6edf2,growMult:0.65},
 ];
-const seasonOf=day=>SEASONS[Math.floor((day-1)/SEASON_DAYS)%4];
+// JS keeps the sign through %, so a save carrying day:0 or day:-1 made this
+// return SEASONS[-1] — undefined — and the very first `.grass` read threw
+// before a single frame drew. seasonIndexOf is total: negative, non-finite
+// and non-numeric days all land in 0..3. load() repairs state.day as well,
+// so the isle doesn't merely stop crashing while showing "Day -999".
+const seasonIndexOf=day=>{
+  const d=Math.floor(Number(day));
+  if(!Number.isFinite(d))return 0;
+  return ((Math.floor((d-1)/SEASON_DAYS)%4)+4)%4;
+};
+const seasonOf=day=>SEASONS[seasonIndexOf(day)];
 const BLOCKS={
   1:{name:'Grass', ico:'🟩', top:0x6fc24e, side:0x7a5b3c, sideTint:0x5aa042, bottom:0x6b4a30, cost:2},
   2:{name:'Dirt',  ico:'🟫', top:0x8a6a42, side:0x82613c, bottom:0x6b4a30, cost:1},
@@ -1844,7 +1854,7 @@ function ensureTownName(){
   const b=Math.abs(Math.floor(W.seed/97))%TOWN_SUF.length;
   state.townName=TOWN_PRE[a]+TOWN_SUF[b];
 }
-function townLabel(){return (state.townName?state.townName+' · ':'')+TOWN_RANKS[state.townRank||0].name;}
+function townLabel(){return (state.townName?state.townName+' · ':'')+(TOWN_RANKS[state.townRank]||TOWN_RANKS[0]).name;}
 function checkTownRank(){
   ensureTownName();
   const idx=townRankIdx();
@@ -5033,6 +5043,18 @@ function load(){
   Object.assign(state,data.state);
   if(!state.buildings)state.buildings={};
   if(!state.goods)state.goods={};
+  // A save is untrusted input and this is a blanket merge, so every number in
+  // it arrives unchecked. Clamp the ones the game turns into array indices or
+  // renders directly — day reached SEASONS[-1] and bricked the isle at boot.
+  const sNum=(v,d,lo,hi)=>{const n=Number(v);return Number.isFinite(n)?Math.min(hi,Math.max(lo,n)):d;};
+  const sInt=(v,d,lo,hi)=>Math.floor(sNum(v,d,lo,hi));
+  state.day=sInt(state.day,1,1,1e7);
+  state.time=sNum(state.time,CYCLE*0.2,0,CYCLE);
+  state.coins=sInt(state.coins,20,0,1e12);
+  state.xp=sInt(state.xp,0,0,1e12);
+  state.level=sInt(state.level,1,1,999);
+  state.questIdx=sInt(state.questIdx,0,0,QUESTS.length);
+  state.townRank=sInt(state.townRank,0,0,TOWN_RANKS.length-1);
   genIsland(0,0,15,0);
   const islets=data.islets||[];
   islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});

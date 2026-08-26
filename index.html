@@ -1879,6 +1879,9 @@
     // every entry here shipped, verified headless, and is live for
     // everyone (installed PWAs pick waves up on service-worker bumps).
     const PATCH_NOTES = [
+      { date: '2026-08-26', title: 'Round Forty-Nine', items: [
+        '\u{1F6E0}\u{FE0F} A save can go bad on you \u2014 a browser crash mid-write, an extension, a tab killed at the wrong moment. Your save is read before any of the game exists, so when it goes wrong there is nothing on screen to say so: Hearthvale, Voxel Isle and Grow Op would each hand you a blank page, every time, with no way back in. That is fixed. All six games now start from a broken save instead of refusing to start, and keep whatever of it was still readable.',
+        '\u{1F50E} Found by finally testing the one thing every player supplies and nobody checks. The battery now boots every game from a deliberately wrecked save before each release \u2014 so this class of thing gets caught here, not on your town.' ] },
       { date: '2026-08-26', title: 'Round Forty-Eight', items: [
         '\u{1F9F1} Eighteen rounds of memory links have gone into these games, and until now there was no way to see that they are one thing \u2014 every link only appeared once the one before it was done. Each flagship now has one screen that shows the whole chain: what you have begun and how many times, what is yours to do next, and how far off the one after that is. What comes later stays unnamed \u2014 it should say there is more, not hand over the list.',
         '\u{1F9F1} Startup Tycoon: <b>The Wall</b>, beside Achievements. Grow Op: <b>The Corner</b>, in the tray. Age of War: <b>The Line</b>, beside Awards. Homeless Village: <b>The Bridge</b>, in the top bar. Hearthvale: <b>The Hall</b>, on the pause menu. Voxel Isle: <b>The Shore</b>, in the tray.',

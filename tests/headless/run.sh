@@ -18,6 +18,7 @@ export BASE
 export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 
 # Order: the whole-site audit first (it catches page errors everywhere),
+# then the cross-game guards (geometry, storage keys, corrupt saves),
 # then the hub meta-layer, then the per-game suites.
 SUITES=(
   nohooks
@@ -26,6 +27,7 @@ SUITES=(
   pacing
   reach
   storagekeys
+  saves
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3

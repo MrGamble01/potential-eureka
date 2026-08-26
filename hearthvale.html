@@ -1578,8 +1578,22 @@
     { name: 'Winter', emoji: '❄️', tint: 'rgba(180,200,230,0.13)' },
   ];
   const DAYS_PER_SEASON = 6;
-  function seasonOf(day) { return SEASONS[Math.floor((day - 1) / DAYS_PER_SEASON) % 4]; }
-  function seasonIdx() { return Math.floor((state.day - 1) / DAYS_PER_SEASON) % 4; }
+  // A save is untrusted input, and JS keeps the sign through %: a save
+  // carrying day:-1 made this Math.floor((-1-1)/6) % 4 === -1, so SEASONS[-1]
+  // was undefined and the first `.name` read threw before the first frame —
+  // a corrupt save bricked the town with no way back in. Both helpers now go
+  // through seasonIndexOf, which is total: it always lands in 0..3, for a
+  // negative day, a non-finite one, or a string. load() separately repairs
+  // state.day so the HUD doesn't sit there reading "Day -999".
+  // There are 26 seasonOf/seasonIdx call sites; fixing the index, rather
+  // than each caller, is what makes that count stop mattering.
+  function seasonIndexOf(day) {
+    const d = Math.floor(Number(day));
+    if (!Number.isFinite(d)) return 0;
+    return ((Math.floor((d - 1) / DAYS_PER_SEASON) % 4) + 4) % 4;
+  }
+  function seasonOf(day) { return SEASONS[seasonIndexOf(day)]; }
+  function seasonIdx() { return seasonIndexOf(state.day); }
   const PROD_INTERVAL = 6;   // production every 6 in-game hours
   const HOURS_PER_DAY = 24;
   const DAY_SECONDS = 90;    // real seconds per in-game day
@@ -5685,6 +5699,15 @@
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
   }
+  // Every number in a save is attacker- (or bit-rot-) controlled. `x || dflt`
+  // only catches 0/NaN/undefined — it waves through -1, Infinity and "lots",
+  // which is how a bad day reached the season lookup. These two clamp instead.
+  function saveNum(v, dflt, min, max) {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
+  }
+  function saveInt(v, dflt, min, max) { return Math.floor(saveNum(v, dflt, min, max)); }
+
   function load() {
     let raw = null;
     try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { }
@@ -5695,13 +5718,17 @@
       state.seed = s.seed || 12345;
       const start = generateWorld(state.seed);
       Object.assign(state.res, s.res || {});
-      state.day = s.day || 1; state.time = s.time || 8;
-      state.nextTraderDay = s.nextTraderDay || 3;
-      state._nextId = s._nextId || 1;
+      state.day = saveInt(s.day, 1, 1, 1e7); state.time = saveNum(s.time, 8, 0, HOURS_PER_DAY);
+      state.nextTraderDay = saveInt(s.nextTraderDay, 3, 0, 1e7);
+      // Infinity here would make every later building share one id, because
+      // `state._nextId++` on Infinity is still Infinity.
+      state._nextId = saveInt(s._nextId, 1, 1, 1e9);
       state._lastProdHour = s._lastProdHour || 8;
       _prodAbs = (typeof s._prodAbs === 'number') ? s._prodAbs : (state.day * HOURS_PER_DAY + state.time);
-      state.happy = s.happy != null ? s.happy : 50;
-      state.goalIndex = s.goalIndex || 0;
+      state.happy = saveNum(s.happy, 50, 0, 100);
+      // `>= GOALS.length` guards the top of this index but nothing guarded the
+      // bottom, so a saved -1 reached GOALS[-1] and threw in the goal HUD.
+      state.goalIndex = saveInt(s.goalIndex, 0, 0, GOALS.length);
       state.sadDays = s.sadDays || 0;
       state.seenIntro = !!s.seenIntro;
       state.muted = !!s.muted;

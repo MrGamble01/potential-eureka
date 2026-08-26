@@ -99,7 +99,7 @@ Opening `index.html` directly as a `file://` URL also mostly works, but some gam
 
 ## Testing
 
-The repo carries a headless QA battery in [`tests/headless/`](tests/README.md) — Playwright + Chromium scripts that drive the real pages (clicks, seeded saves, exact payout math) and fail on any console error. With a static server on port 8099:
+The repo carries a headless QA battery in [`tests/headless/`](tests/README.md) — Playwright + Chromium scripts that drive the real pages (clicks, seeded saves, exact payout math) and fail on any console error. Alongside the per-feature suites there are cross-game guards that no single game's tests would catch: leaked debug hooks, panel geometry, storage-key collisions, memory-chain integrity and pacing, and **`saves.js`, which boots every flagship from a deliberately damaged save** — a save is untrusted input, it is read before any UI exists to report a problem, and a throw there takes the game away for good. With a static server on port 8099:
 
 ```bash
 npm i -g playwright && npx playwright install chromium   # once
