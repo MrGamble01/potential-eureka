@@ -23,6 +23,7 @@ SUITES=(
   nohooks
   audit
   wall
+  pacing
   reach
   storagekeys
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
