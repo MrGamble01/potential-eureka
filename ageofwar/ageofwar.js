@@ -599,6 +599,7 @@ const AgeOfWarGame = (() => {
     { id: 'vbench3', icon: '\u{1FA91}', title: 'The Veterans\u2019 Bench', desc: 'Sit on the bench on three sessions.' },
     { id: 'tale3', icon: '\u{1F525}', title: 'The Campfire Tale', desc: 'Hear the tale on three sessions.' },
     { id: 'march3', icon: '\u{1F3BA}', title: 'The Marching Song', desc: 'Sing the song on three sessions.' },
+    { id: 'cache3', icon: '\u{1F9F1}', title: 'The Cornerstone Cache', desc: 'Open the cache on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -728,6 +729,7 @@ const AgeOfWarGame = (() => {
     if (loadVBench().sits >= 3) unlock('vbench3');
     if (loadTale().tellings >= 3) unlock('tale3');
     if (loadMSong().sings >= 3) unlock('march3');
+    if (loadCache().opens >= 3) unlock('cache3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2445,6 +2447,38 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // -- The Cornerstone Cache (AOW-53) --
+  // The capsule round on the battlefield: after three sings of the
+  // Marching Song, the masons seal a cache in the base's
+  // cornerstone \u2014 a chronicle page, a thread of the old
+  // standard, a scrap of drum skin. Once a session an opening
+  // pays: 100 gold base + 50 per sing (cap 5). Openings tallied
+  // in 'aow-capsule'.
+  const CACHE_KEY = 'aow-capsule', CACHE_BASE = 100, CACHE_PER = 50;
+  let cacheOpened = false;
+  function loadCache() {
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (c && typeof c === 'object') return { opens: Math.max(0, Math.floor(c.opens || 0)) };
+    } catch {}
+    return { opens: 0 };
+  }
+  function saveCache(c) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch {} }
+  function cacheSealed() { return loadMSong().sings >= 3; }
+  function cachePurse() { return CACHE_BASE + CACHE_PER * Math.min(loadMSong().sings || 0, 5); }
+  function openCornerstoneCache() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!cacheSealed() || cacheOpened) return;
+    cacheOpened = true;
+    const p = cachePurse();
+    const c = loadCache();
+    saveCache({ opens: c.opens + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F9F1} THE CORNERSTONE CACHE \u2014 a chronicle page, a thread of the standard, a scrap of drum skin. A purse is tucked in with the memories, like always: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2636,6 +2670,8 @@ const AgeOfWarGame = (() => {
     if (taleBtn) taleBtn.onclick = hearCampfireTale;
     const msongBtn = document.getElementById('aow-song-btn');
     if (msongBtn) msongBtn.onclick = singMarchingSong;
+    const cacheBtn = document.getElementById('aow-cache-btn');
+    if (cacheBtn) cacheBtn.onclick = openCornerstoneCache;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8570,6 +8606,21 @@ const AgeOfWarGame = (() => {
         msongEl.title = msongSung
           ? 'The Marching Song has had its singing this session \u2014 the cadence keeps.'
           : `The Marching Song \u2014 three hearings of the tale and the drummers set it to a cadence: the whole war, one song, every rank knows the words. Sing it, and the quartermaster finds a purse in the chorus: +${msongPurse()} gold. Sung ${loadMSong().sings} time${loadMSong().sings === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Cornerstone Cache (AOW-53)
+    const cacheEl = document.getElementById('aow-cache-btn');
+    const cacheCdEl = document.getElementById('aow-cache-cd');
+    if (cacheEl) {
+      if (!cacheSealed()) { cacheEl.style.display = 'none'; }
+      else {
+        cacheEl.style.display = '';
+        cacheEl.style.opacity = cacheOpened ? '0.45' : '';
+        if (cacheCdEl) cacheCdEl.textContent = cacheOpened ? 'opened' : `+${cachePurse()}g`;
+        cacheEl.title = cacheOpened
+          ? 'The Cornerstone Cache has had its opening this session \u2014 the stone keeps.'
+          : `The Cornerstone Cache \u2014 three sings of the song and the masons sealed one in the base's cornerstone. Open it, and there's a purse tucked in with the memories: +${cachePurse()} gold. Opened ${loadCache().opens} time${loadCache().opens === 1 ? '' : 's'}.`;
       }
     }
 
