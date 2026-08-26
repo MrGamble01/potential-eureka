@@ -600,6 +600,7 @@ const AgeOfWarGame = (() => {
     { id: 'tale3', icon: '\u{1F525}', title: 'The Campfire Tale', desc: 'Hear the tale on three sessions.' },
     { id: 'march3', icon: '\u{1F3BA}', title: 'The Marching Song', desc: 'Sing the song on three sessions.' },
     { id: 'cache3', icon: '\u{1F9F1}', title: 'The Cornerstone Cache', desc: 'Open the cache on three sessions.' },
+    { id: 'fresco3', icon: '\u{1F3A8}', title: 'The Long Fresco', desc: 'Walk the fresco on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -730,6 +731,7 @@ const AgeOfWarGame = (() => {
     if (loadTale().tellings >= 3) unlock('tale3');
     if (loadMSong().sings >= 3) unlock('march3');
     if (loadCache().opens >= 3) unlock('cache3');
+    if (loadFresco().walks >= 3) unlock('fresco3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2479,7 +2481,39 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
-  // ── The Veterans' Hall (AOW-35) ──
+  // -- The Long Fresco (AOW-54) --
+  // The mural round on the battlefield: after three openings of the
+  // Cornerstone Cache, the painters take the base's long inner wall
+  // and lay the whole war along it \u2014 the first muster, the
+  // bench under the tower, the tale's fire, the song's cadence, the
+  // seam where the cache went in. Once a session a walk pays: 110
+  // gold base + 55 per opening (cap 5). Walks tallied in 'aow-mural'.
+  const FRESCO_KEY = 'aow-mural', FRESCO_BASE = 110, FRESCO_PER = 55;
+  let frescoWalked = false;
+  function loadFresco() {
+    try { const f = JSON.parse(localStorage.getItem(FRESCO_KEY) || 'null');
+      if (f && typeof f === 'object') return { walks: Math.max(0, Math.floor(f.walks || 0)) };
+    } catch {}
+    return { walks: 0 };
+  }
+  function saveFresco(f) { try { localStorage.setItem(FRESCO_KEY, JSON.stringify(f)); } catch {} }
+  function frescoPainted() { return loadCache().opens >= 3; }
+  function frescoPurse() { return FRESCO_BASE + FRESCO_PER * Math.min(loadCache().opens || 0, 5); }
+  function walkTheFresco() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!frescoPainted() || frescoWalked) return;
+    frescoWalked = true;
+    const p = frescoPurse();
+    const f = loadFresco();
+    saveFresco({ walks: f.walks + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F3A8} THE LONG FRESCO \u2014 the first muster, the bench under the tower, the fire, the cadence, the cornerstone seam. The ranks walk it and the quartermaster's purse walks with them: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // \u2500\u2500 The Veterans' Hall (AOW-35) \u2500\u2500
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
   // down. Every muster that forms in its shadow sends its first three
@@ -2672,6 +2706,8 @@ const AgeOfWarGame = (() => {
     if (msongBtn) msongBtn.onclick = singMarchingSong;
     const cacheBtn = document.getElementById('aow-cache-btn');
     if (cacheBtn) cacheBtn.onclick = openCornerstoneCache;
+    const frescoBtn = document.getElementById('aow-fresco-btn');
+    if (frescoBtn) frescoBtn.onclick = walkTheFresco;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8621,6 +8657,21 @@ const AgeOfWarGame = (() => {
         cacheEl.title = cacheOpened
           ? 'The Cornerstone Cache has had its opening this session \u2014 the stone keeps.'
           : `The Cornerstone Cache \u2014 three sings of the song and the masons sealed one in the base's cornerstone. Open it, and there's a purse tucked in with the memories: +${cachePurse()} gold. Opened ${loadCache().opens} time${loadCache().opens === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Long Fresco (AOW-54)
+    const frescoEl = document.getElementById('aow-fresco-btn');
+    const frescoCdEl = document.getElementById('aow-fresco-cd');
+    if (frescoEl) {
+      if (!frescoPainted()) { frescoEl.style.display = 'none'; }
+      else {
+        frescoEl.style.display = '';
+        frescoEl.style.opacity = frescoWalked ? '0.45' : '';
+        if (frescoCdEl) frescoCdEl.textContent = frescoWalked ? 'walked' : `+${frescoPurse()}g`;
+        frescoEl.title = frescoWalked
+          ? 'The Long Fresco has had its walk this session \u2014 the wall keeps.'
+          : `The Long Fresco \u2014 three openings of the cache and the painters took the base's inner wall: the first muster, the bench, the fire, the cadence, the cornerstone seam. Walk it, and the purse walks with the ranks: +${frescoPurse()} gold. Walked ${loadFresco().walks} time${loadFresco().walks === 1 ? '' : 's'}.`;
       }
     }
 
