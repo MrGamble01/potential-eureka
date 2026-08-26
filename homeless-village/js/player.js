@@ -320,6 +320,20 @@ function finishAction(a){
       floatText('+'+cd2+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='panel'){
+    // HV-50: the fifth panel beside the finished mural, stood with once a session.
+    if(!panelPainted()){ log('\ud83c\udfa8 The fifth panel is still bare block \u2014 three digs of the can and somebody primes it.'); }
+    else if(panelStood){ log('\ud83c\udfa8 The panel got its stand today \u2014 the paint is still going on.'); }
+    else {
+      panelStood=true;
+      var pd2=panelDish();
+      var pn2=loadHvPanel();
+      saveHvPanel({stands:(pn2.stands||0)+1});
+      G.food=(G.food||0)+pd2;
+      log('\ud83c\udfa8 THE FIFTH PANEL \u2014 the wall of names, the fridge, the bench, the fire, the ballad, the can by the piling, the length of the underpass. Somebody slowed down to read the whole thing and left something: +'+pd2+'\ud83c\udf5e');
+      floatText('+'+pd2+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
