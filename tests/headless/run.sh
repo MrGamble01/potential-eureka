@@ -20,6 +20,7 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 # Order: the whole-site audit first (it catches page errors everywhere),
 # then the hub meta-layer, then the per-game suites.
 SUITES=(
+  nohooks
   audit
   reach
   storagekeys

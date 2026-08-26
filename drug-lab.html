@@ -1654,7 +1654,7 @@ function spawnDealer() {
   const whale = typeof whaleDue === 'function' && whaleDue();   // LAB-25: the meter is due and the street is quiet
   const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: whale ? WHALE_BAGS : 1 + Math.floor(Math.random()*2),
              whale,
-             undercover: !whale && currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1) * (typeof burnerStingMult === 'function' ? burnerStingMult() : 1), waitT: 0};   // LAB-23/24: the crowd hides badges; a fresh burner reads them out
+             undercover: !whale && currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1) * (typeof burnerStingMult === 'function' ? burnerStingMult() : 1) * (typeof frameStingMult === 'function' ? frameStingMult() : 1), waitT: 0};   // LAB-23/24: the crowd hides badges; a fresh burner reads them out. LAB-56: under a hung frame the block reads them for you
   dealers.push(d);
   if (whale) {
     state.whaleMeter = 0;
@@ -2808,7 +2808,47 @@ function sitInBackRoom() {
   addFeed('\u{1F6CB}\uFE0F A sit in the Back Room \u2014 the polaroid, the wall of names, the shoebox, the panel the new kid put up last month, all of it on the walls and nobody outside any the wiser. Business gets done in there: +$' + p);
   showToast('\u{1F6CB}\uFE0F The Back Room \u2014 +$' + p + '. It keeps.', 'good');
   checkGrowAchievements();
+  maybeHangTheFrame();   // LAB-56: the third sit hangs the empty frame
   refreshRoomBtn();
+}
+// -- The Empty Frame (LAB-56) ----------------------------------
+// The Back Room went up with one thing deliberately unfinished: an
+// empty frame on the wall past the new kid's panel, glass in it,
+// nothing behind the glass. Three sits in, somebody hangs it
+// properly and dates it -- still empty, still for whoever's next.
+// Everybody who comes through that room sees a space with their
+// name not in it yet.
+//
+// Thirteen links deep on this corner and this is the first that does
+// not pay. What it does instead is put the block on your side for
+// good: every face out there has been on that wall or knows somebody
+// who is, and nobody sells to a stranger any more without somebody
+// saying something first. Undercover buyers come at 0.7x from the
+// day it hangs, on every run, forever. It hangs once, costs nothing,
+// and survives New Identity like the room it hangs in.
+const FRAME_KEY = 'growop-frame', FRAME_AT = 3, FRAME_STING = 0.7;
+function loadFrame() {
+  try { const f = JSON.parse(localStorage.getItem(FRAME_KEY) || 'null');
+    if (f && typeof f === 'object') return { up: !!f.up };
+  } catch(e){}
+  return { up: false };
+}
+function saveFrame(f) { try { localStorage.setItem(FRAME_KEY, JSON.stringify(f)); } catch(e){} }
+function frameEarned() { return (loadRoom().sits || 0) >= FRAME_AT; }
+function frameUp() { return loadFrame().up; }
+// Multiplies into the same undercover roll the burner already rides,
+// so the two stack: a fresh burner under a hung frame reads the
+// corner twice over.
+function frameStingMult() { return frameUp() ? FRAME_STING : 1; }
+// Hung automatically on the third sit -- there is nothing to buy and
+// nothing to choose, so there is no control for it.
+function maybeHangTheFrame() {
+  if (!frameEarned() || frameUp()) return false;
+  saveFrame({ up: true });
+  addFeed('\u{1F5BC}\uFE0F THE EMPTY FRAME \u2014 somebody hangs the spare frame past the new kid\u2019s panel and dates the back of it. Glass in, nothing behind the glass. Everybody who comes through that room from now on sees a space with their name not in it yet.');
+  showToast('\u{1F5BC}\uFE0F The Empty Frame \u2014 the block watches the corner for you now. Badges come thinner.', 'good');
+  checkGrowAchievements();
+  return true;
 }
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
@@ -3702,6 +3742,7 @@ const GROW_ACH = [
   { id: 'the_walkdown', name: 'The Walk-Down', test: () => (loadDocent().walks || 0) >= 3 },  // LAB-53
   { id: 'the_tag', name: 'The New Kid\u2019s Tag', test: () => (loadMark().tags || 0) >= 3 },  // LAB-54
   { id: 'the_backroom', name: 'The Back Room', test: () => (loadRoom().sits || 0) >= 3 },  // LAB-55
+  { id: 'the_empty_frame', name: 'The Empty Frame', test: () => frameUp() },  // LAB-56
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
@@ -4996,16 +5037,7 @@ function animate(now_ms) {
   renderer.render(scene,camera);
 }
 
-window.__ldT = {
-  DOCENT_KEY, DOCENT_BASE, DOCENT_PER,
-  loadDocent, saveDocent, docentUp, docentPurse, walkThemDown, refreshDocentBtn,
-  loadMural, saveMural,
-  arm: () => { docentWalked = false; },
-  walked: () => docentWalked,
-  cash: () => state.cash,
-  setCash: v => { state.cash = v; },
-  ach: () => GROW_ACH.find(a => a.id === 'the_walkdown'),
-};
+
 </script>
 </body>
 </html>
