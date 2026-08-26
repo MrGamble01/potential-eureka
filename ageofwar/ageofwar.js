@@ -604,6 +604,7 @@ const AgeOfWarGame = (() => {
     { id: 'guide3', icon: '\u{1F9ED}', title: 'The Recruit\u2019s Walk', desc: 'Walk a recruit down the fresco on three sessions.' },
     { id: 'mark3', icon: '\u{270D}\u{FE0F}', title: 'The Recruit\u2019s Panel', desc: 'Add a recruit\u2019s panel on three sessions.' },
     { id: 'the_long_room', icon: '\u{1F3DB}\u{FE0F}', title: 'The Long Room', desc: 'Sit in the Long Room on three sessions.' },  // AOW-57
+    { id: 'blank_panels', icon: '\u{1F5BC}\u{FE0F}', title: 'The Blank Panels', desc: 'Prime the far end of the Long Room.' },  // AOW-58
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -738,6 +739,7 @@ const AgeOfWarGame = (() => {
     if (loadGuide().walks >= 3) unlock('guide3');
     if (loadMark().panels >= 3) unlock('mark3');
     if (loadLroom().sits >= 3) unlock('the_long_room');
+    if (panelsUp()) unlock('blank_panels');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -1272,11 +1274,69 @@ const AgeOfWarGame = (() => {
     return u;
   }
 
-  // ── Veterancy (IDEA-AOW-5) ──
+  // -- The Blank Panels (AOW-58) --
+  // The Long Room went up with the far end deliberately unpainted --
+  // "room left at the end". Three sittings in, the painters come back
+  // and prime it: not a panel of anything that happened, but the
+  // frames for the musters that have not marched yet, squared off,
+  // primed and dated forward. Blank canvas with next year's date on
+  // it, hung where every recruit files past.
+  //
+  // Fourteen links deep on this field and this is the first that does
+  // not pay a purse. What it does instead is shorten the road to the
+  // stripe for EVERY soldier in EVERY war from here: a line that can
+  // see its own frames already hanging fights like it intends to fill
+  // them. Veteran at 22s instead of 25, Elite at 54 instead of 60.
+  // Primed once, costs nothing, and lives outside the run like the
+  // room it hangs in -- no defeat takes it down.
+  //
+  // The shortened bars are stated outright rather than derived from a
+  // multiplier. A 0.9 factor reads tidier and puts the Veteran bar at
+  // 22.5s -- a threshold no player can see, count or reason about, and
+  // one that quietly makes "22 seconds" in the copy above a lie. Two
+  // integers say what the game actually does.
+  const PANELS_KEY = 'aow-blankpanels', PANELS_AT = 3;
+  const PANELS_VETERAN = 22, PANELS_ELITE = 54;
+  function loadPanels() {
+    try { const p = JSON.parse(localStorage.getItem(PANELS_KEY) || 'null');
+      if (p && typeof p === 'object') return { up: !!p.up };
+    } catch {}
+    return { up: false };
+  }
+  function savePanels(p) { try { localStorage.setItem(PANELS_KEY, JSON.stringify(p)); } catch {} }
+  function panelsEarned() { return loadPanels && loadLroom().sits >= PANELS_AT; }
+  function panelsUp() { return loadPanels().up; }
+  // The pair of bars in force right now, primed or not.
+  function vetBars() {
+    return panelsUp() ? { veteran: PANELS_VETERAN, elite: PANELS_ELITE }
+                      : { veteran: VET_VETERAN, elite: VET_ELITE };
+  }
+  // Primed automatically on the third sitting -- nothing to buy, no
+  // decision to make, so there is no control for it.
+  function maybePrimeThePanels() {
+    if (!panelsEarned() || panelsUp()) return false;
+    savePanels({ up: true });
+    goldFloaters.push({ text: '\u{1F5BC}\u{FE0F} THE BLANK PANELS \u2014 the painters square off the far end of the Long Room and prime it: not a panel of anything that happened, but the frames for the musters that have not marched yet, dated forward. Every recruit files past next year already hanging', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 230, color: '#fcd34d', t: 3.0 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+    return true;
+  }
+
+  // -- Veterancy (IDEA-AOW-5) --
   // Units that stay alive get better: 25s = Veteran (+10% damage, gold
   // chevron), 60s = Elite (+20%, double chevron). Time only counts while
   // the sim runs, so pausing doesn't farm stripes.
-  function vetTier(u) { return u.aliveT >= 60 ? 2 : u.aliveT >= 25 ? 1 : 0; }
+  // AOW-58: with the blank panels primed, both thresholds come down
+  // 10%. The hall still SEEDS aliveT at the un-shortened 25/60 (see
+  // spawnUnit), which stays correct either way -- 60 clears a 54-second
+  // Elite bar and 25 clears a 22-second Veteran bar. Seeding above the
+  // bar is the point; the panels only move the bar.
+  const VET_ELITE = 60, VET_VETERAN = 25;
+  function vetTier(u) {
+    const b = vetBars();
+    return u.aliveT >= b.elite ? 2 : u.aliveT >= b.veteran ? 1 : 0;
+  }
   function vetDmg(u) {
     const t = vetTier(u);
     const steel = u.side === 'player' && councilBoons.steel ? 1.1 : 1;   // AOW-10
@@ -2632,6 +2692,7 @@ const AgeOfWarGame = (() => {
     goldFloaters.push({ text: `\u{1F3DB}\u{FE0F} THE LONG ROOM \u2014 an hour in the room where the whole line hangs: the roll, the stone, every panel to the newest hand. The muster comes out of it walking taller and the quartermaster pays for the hour: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
     SFX.spawn();
     checkAchievementsDuringRun();
+    maybePrimeThePanels();   // AOW-58: the third sitting primes the far end
     renderHud();
     return true;
   }

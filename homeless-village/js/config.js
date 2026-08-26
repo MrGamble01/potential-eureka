@@ -706,6 +706,45 @@ function dryAction(){
   return { id:'dry', icon:'\u26F1\uFE0F', label:'Sit in the Dry Corner', time:2000, cooldown:30000,
     tooltip:'The corner is roofed and sheeted and the whole bridge is under it, dry. Sit in it once a session \u2014 people come in out of the rain to read, and nobody comes in empty-handed.' };
 }
+
+// HV-54: the Dry Corner went up with one thing left bare on purpose --
+// a hook by the door with nothing on it. Three sits in, somebody puts
+// a spare blanket on it and leaves it there. No name on it. It is for
+// whoever comes in next, and it stays for whoever comes in after them.
+//
+// Fourteen links under this bridge and this is the first that does not
+// pay anything. What it does instead is take the edge off every dawn
+// there is: the season's own base drain comes down 2, for good.
+// That is deliberately the ONE part of the cold the coat rack was
+// written never to touch -- HV-23 blunts the weather's bite and the
+// snap's extra and explicitly leaves the base alone. The rack covers
+// the bad mornings; the hook covers all of them, a little.
+var HVHOOK_KEY='hv-emptyhook', HVHOOK_AT=3, HVHOOK_EASE=2;
+function loadHvHook(){
+  try{ var h=JSON.parse(localStorage.getItem(HVHOOK_KEY)||'null');
+    if(h&&typeof h==='object') return {up:!!h.up};
+  }catch(e){}
+  return {up:false};
+}
+function saveHvHook(h){ try{ localStorage.setItem(HVHOOK_KEY, JSON.stringify(h)); }catch(e){} }
+function hookEarned(){ return (loadHvDry().sits||0)>=HVHOOK_AT; }
+function hookUp(){ return loadHvHook().up; }
+// The season's base warmth drain, after the hook. Winter is the hard
+// one; the hook eases every season the same 2.
+function seasonDrain(){
+  var base = (G.season===3 ? 18 : 8);
+  return Math.max(0, base - (hookUp() ? HVHOOK_EASE : 0));
+}
+// Hung automatically on the third sit -- nothing to buy, nothing to
+// choose, so there is no button for it.
+function maybeHangTheHook(){
+  if(!hookEarned()||hookUp()) return false;
+  saveHvHook({up:true});
+  log('\ud83e\udde3 THE EMPTY HOOK \u2014 somebody screws a hook into the piling by the dry corner\u2019s door and hangs a spare blanket on it. No name on it. It is for whoever comes in next, and it stays there for whoever comes in after them. Every dawn from here bites a little less.');
+  floatText('\ud83e\udde3');
+  saveGame();
+  return true;
+}
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -849,6 +888,7 @@ var GOALS = [
   {id:'walk2',      desc:'Walk a newcomer down the underpass on 2 sessions', target:2, reward:5, value:function(){ return loadHvWalk().walks; }},
   {id:'mark2',      desc:'Add a newcomer’s name to the wall on 2 sessions', target:2, reward:5, value:function(){ return loadHvMark().names; }},
   {id:'dry2',       desc:'Sit in the dry corner on 2 sessions', target:2, reward:5, value:function(){ return loadHvDry().sits; }},
+  {id:'hook1',      desc:'Hang the empty hook in the dry corner', target:1, reward:5, value:function(){ return hookUp()?1:0; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},

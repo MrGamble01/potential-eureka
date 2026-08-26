@@ -388,6 +388,7 @@ function finishAction(a){
       G.food=(G.food||0)+dd2;
       log('\u26f1\ufe0f THE DRY CORNER \u2014 an hour under the sheeting with the whole bridge on the walls, dry. People come in out of the rain to read it, and nobody comes in empty-handed: +'+dd2+'\ud83c\udf5e');
       floatText('+'+dd2+'\ud83c\udf5e');
+      maybeHangTheHook();   // HV-54: the third sit hangs the empty hook
       saveGame();
     }
   } else if(a.id==='oddjob'){
