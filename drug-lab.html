@@ -603,6 +603,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #shoebox-toggle{bottom:718px;right:8px;font-size:11px;padding:5px 9px;} }
+/* -- The Alley Mural (LAB-52) -- */
+#mural-toggle{
+  position:fixed;bottom:14px;right:3648px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #mural-toggle{bottom:756px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -703,6 +711,7 @@ canvas{display:block;touch-action:none;}
 <button id="sstory-toggle" style="display:none" title="The Stoop Story: three sits and the crew has the whole block story by heart. Tell it once a session — somebody at the edge of the stoop always calls in an order before it's done.">🎙️ THE STORY</button>
 <button id="song-toggle" style="display:none" title="The Block Track: three tellings and somebody cuts the story to a beat — one track, everybody knows the hook. Play it once a session, and an order comes in before the hook comes back around.">🎧 THE TRACK</button>
 <button id="shoebox-toggle" style="display:none" title="The Shoebox: three plays of the track and the crew buries a shoebox under the stoop — the polaroid, a rubbing of the wall, a burned CD. Dig it up once a session, and there's always a little extra folded inside.">📦 THE SHOEBOX</button>
+<button id="mural-toggle" style="display:none" title="The Alley Mural: three digs of the shoebox and somebody paints the whole block down the alley wall — the stoop, the zippo, the polaroid, the shoebox seam. Stand at it once a session; the block always leaves something at the base.">🎨 THE MURAL</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2591,6 +2600,46 @@ function digUpShoebox() {
   checkGrowAchievements();
   refreshShoeboxBtn();
 }
+// LAB-52: the mural round on the corner \u2014 after three digs
+// of the shoebox, somebody paints the whole block down the long
+// alley wall: the stoop, the zippo, the polaroid, the seam where
+// the box goes back under. Once a session standing at it pays:
+// $120 base + $60 per dig (cap 5). Stands tallied in 'growop-mural'.
+const MURAL_KEY = 'growop-mural', MURAL_BASE = 120, MURAL_PER = 60;
+let muralSeen = false;
+function loadMural() {
+  try { const m = JSON.parse(localStorage.getItem(MURAL_KEY) || 'null');
+    if (m && typeof m === 'object') return { stands: Math.max(0, Math.floor(m.stands || 0)) };
+  } catch(e){}
+  return { stands: 0 };
+}
+function saveMural(m) { try { localStorage.setItem(MURAL_KEY, JSON.stringify(m)); } catch(e){} }
+function muralUp() { return loadShoebox().digs >= 3; }
+function muralPurse() { return MURAL_BASE + MURAL_PER * Math.min(loadShoebox().digs || 0, 5); }
+function refreshMuralBtn() {
+  const b = document.getElementById('mural-toggle');
+  if (!b) return;
+  b.onclick = standAtMural;
+  if (!muralUp()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = muralSeen ? '0.45' : '';
+  b.title = muralSeen
+    ? 'The Alley Mural got its stand this session. It\u2019s not going anywhere.'
+    : 'The Alley Mural \u2014 three digs and somebody painted the whole block down the alley wall: the stoop, the zippo, the polaroid, the seam. Stand at it, and the block leaves something at the base: +$' + muralPurse()
+      + '. Stood ' + loadMural().stands + ' time' + (loadMural().stands === 1 ? '' : 's') + '.';
+}
+function standAtMural() {
+  if (!muralUp() || muralSeen) return;
+  muralSeen = true;
+  const p = muralPurse();
+  const m = loadMural();
+  saveMural({ stands: m.stands + 1 });
+  state.cash += p;
+  addFeed('\u{1F3A8} The crew stands at the alley mural \u2014 the stoop, the zippo, the polaroid, the seam where the box goes back under. Somebody\u2019s left an envelope at the base again: +$' + p);
+  showToast('\u{1F3A8} The Alley Mural \u2014 +$' + p + '. The block sees itself.', 'good');
+  checkGrowAchievements();
+  refreshMuralBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -3018,6 +3067,7 @@ function refreshRouteBtn() {
   refreshSStoryBtn(); // LAB-49: and the story told from that seat
   refreshTrackBtn(); // LAB-50: and the beat it got cut to
   refreshShoeboxBtn(); // LAB-51: and the box buried under it all
+  refreshMuralBtn();   // LAB-52: and the wall it all ends up on
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3475,6 +3525,7 @@ const GROW_ACH = [
   { id: 'stoop_story', name: 'The Stoop Story', test: () => (loadSStory().tellings || 0) >= 3 },   // LAB-49
   { id: 'block_track', name: 'The Block Track', test: () => (loadTrack().plays || 0) >= 3 },   // LAB-50
   { id: 'the_shoebox', name: 'The Shoebox', test: () => (loadShoebox().digs || 0) >= 3 },   // LAB-51
+  { id: 'the_mural', name: 'The Alley Mural', test: () => (loadMural().stands || 0) >= 3 },  // LAB-52
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
