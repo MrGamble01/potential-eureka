@@ -1247,6 +1247,41 @@ function singSeaShanty(){
   if(typeof checkAch==='function')checkAch();
   refreshShantyHud();
 }
+// VOX-44: the capsule round on the shore. After three sings of
+// the Sea Shanty, the fleet sinks a chest off the pier on a
+// marked line \u2014 a log page, the bottle's letter, a shell off
+// the wreath, the shanty on a card. Once a session a haul pays:
+// 45 coins base + 5 per sing (cap 5). Hauls tallied in
+// 'vox-capsule'.
+const CHEST_KEY='vox-capsule',CHEST_BASE=45,CHEST_PER=5;
+let chestHauled=false;
+function loadChest(){
+  try{const c=JSON.parse(localStorage.getItem(CHEST_KEY)||'null');
+    if(c&&typeof c==='object')return{hauls:Math.max(0,Math.floor(c.hauls||0))};
+  }catch(e){}
+  return{hauls:0};
+}
+function saveChest(c){try{localStorage.setItem(CHEST_KEY,JSON.stringify(c));}catch(e){}}
+function chestSunk(){ return loadShanty().sings>=3; }
+function chestPurse(){ return CHEST_BASE + CHEST_PER*Math.min(loadShanty().sings||0,5); }
+function refreshChestHud(){
+  const h=document.getElementById('chestHud'),tx=document.getElementById('chestTxt');
+  if(!h)return;
+  h.style.display=chestSunk()?'flex':'none';
+  h.style.opacity=chestHauled?'0.45':'';
+  if(tx)tx.textContent=chestHauled?'\u{1F5DD}\u{FE0F} hauled':'\u{1F5DD}\u{FE0F} chest for +'+chestPurse()+' \u{1FA99}';
+}
+function haulSunkenChest(){
+  if(!chestSunk()||chestHauled)return;
+  chestHauled=true;
+  const p=chestPurse();
+  const c=loadChest();
+  saveChest({hauls:c.hauls+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u{1F5DD}\u{FE0F} THE SUNKEN CHEST \u2014 up on the marked line: a log page, the bottle\u2019s letter, a shell off the wreath, the shanty on a card. Coin is wedged in the lid, like always: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshChestHud();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -5047,6 +5082,7 @@ const ACH=[
   ['hbench3','The Harbor Bench','Sit on the bench on three sessions',()=>loadHBench().sits>=3],
   ['yarn3','The Harbor Yarn','Hear the yarn on three sessions',()=>loadYarn().tellings>=3],
   ['shanty3','The Sea Shanty','Sing the shanty on three sessions',()=>loadShanty().sings>=3],
+  ['chest3','The Sunken Chest','Haul the chest on three sessions',()=>loadChest().hauls>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -5301,7 +5337,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -5382,6 +5418,7 @@ boot();
 <div id="hbenchHud" style="display:none;position:fixed;bottom:494px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="sitHarborBench()" title="The Harbor Bench: three leafs through the log and the fleet builds a bench by the bell — driftwood, old oars, every boat at its back. Sit once a session, and a trader always ties up and sits down with a purse."><span id="hbenchTxt">🪑 —</span></div>
 <div id="yarnHud" style="display:none;position:fixed;bottom:528px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="tellHarborYarn()" title="The Harbor Yarn: three sits on the bench and the oldest trader has the whole shore story by heart — the log, the letters, the reunions, every boat by the bell. Hear it once a session, and a listener always drops a purse for the next telling."><span id="yarnTxt">🧶 —</span></div>
 <div id="shantyHud" style="display:none;position:fixed;bottom:562px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="singSeaShanty()" title="The Sea Shanty: three tellings of the yarn and the fleet sets it to call and response — every deck knows the chorus. Sing it once a session, and a cap comes round the harbor and comes back heavy."><span id="shantyTxt">🪗 —</span></div>
+<div id="chestHud" style="display:none;position:fixed;bottom:596px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="haulSunkenChest()" title="The Sunken Chest: three sings of the shanty and the fleet sinks a chest off the pier on a marked line — a log page, the bottle's letter, a shell off the wreath, the shanty on a card. Haul it once a session, and there's always coin wedged in the lid."><span id="chestTxt">🗝️ —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
