@@ -21,6 +21,7 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 # then the hub meta-layer, then the per-game suites.
 SUITES=(
   audit
+  reach
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
