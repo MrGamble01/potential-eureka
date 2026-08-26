@@ -802,12 +802,20 @@
     }
 
     /* ── Achievements + Theme modals ─────────────────── */
-    #achievements-modal, #theme-modal, #welcome-modal, #offline-modal, #help-modal, #dash-modal {
+    #achievements-modal, #theme-modal, #welcome-modal, #offline-modal, #help-modal, #dash-modal, #wall-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.7);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       display: none; align-items: center; justify-content: center; z-index: 210;
     }
-    #achievements-modal.open, #theme-modal.open, #welcome-modal.open, #offline-modal.open, #help-modal.open, #dash-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    #achievements-modal.open, #theme-modal.open, #welcome-modal.open, #offline-modal.open, #help-modal.open, #dash-modal.open, #wall-modal.open { display: flex; animation: tipFade 0.2s ease; }
+    /* TYC-59: the wall's own rows. */
+    .wall-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+    .wall-row .wall-name { font-weight: 600; }
+    .wall-row .wall-note { opacity: 0.7; font-size: 12px; white-space: nowrap; }
+    .wall-done   { background: rgba(63,185,80,0.13); }
+    .wall-next   { background: rgba(252,211,77,0.16); outline: 1px solid rgba(252,211,77,0.4); }
+    .wall-open   { background: rgba(255,255,255,0.05); }
+    .wall-locked { opacity: 0.5; }
 
     /* ── Company Dashboard modal ─────────────────────── */
     .dash-panel {
@@ -1516,6 +1524,14 @@
     <button class="tip-ok" id="ach-close">Close</button>
   </div>
 </div>
+<div id="wall-modal" role="dialog" aria-modal="true" aria-label="The Wall">
+  <div class="ach-panel">
+    <div class="ach-title">🧱 The Wall</div>
+    <div class="ach-progress" id="wall-progress">0 of 0 begun</div>
+    <div class="ach-list" id="wall-list"></div>
+    <button class="tip-ok" id="wall-close">Close</button>
+  </div>
+</div>
 <div id="dash-modal" role="dialog" aria-modal="true" aria-label="Company Dashboard">
   <div class="dash-panel">
     <div class="dash-title">📊 Company Dashboard</div>
@@ -1748,6 +1764,7 @@
     <button class="hire-btn" id="open-help-btn" style="margin-top:8px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)">❓ How to Play</button>
     <button class="hire-btn" id="open-dash-btn" style="margin-top:4px;background:rgba(63,185,80,0.12);border-color:rgba(63,185,80,0.3);color:#3FB950">📊 Dashboard</button>
     <button class="hire-btn" id="open-ach-btn" style="margin-top:4px;background:rgba(252,211,77,0.12);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏅 Achievements</button>
+    <button class="hire-btn" id="open-wall-btn" style="margin-top:4px;background:rgba(190,170,140,0.12);border-color:rgba(190,170,140,0.3);color:#e8dcc4" title="The Wall — everything this company remembers, in the order it happened, and what the next one is waiting on.">🧱 The Wall</button>
     <button class="hire-btn" id="open-theme-btn" style="margin-top:4px;background:rgba(120,180,255,0.10);border-color:rgba(120,180,255,0.3);color:#9ec5fe">🎨 Theme</button>
     <button class="hire-btn" id="open-founder-btn" style="margin-top:4px;background:rgba(252,211,77,0.08);border-color:rgba(252,211,77,0.3);color:#fcd34d">🏛 Founder Shop</button>
     <button class="hire-btn" id="export-save-btn" style="margin-top:8px;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18)" title="Copy this run as a save code you can paste on another device">💾 Copy save code</button>
@@ -6326,6 +6343,18 @@ document.getElementById('open-ach-btn').addEventListener('click', () => {
   achModalEl.classList.add('open');
 });
 document.getElementById('ach-close').addEventListener('click', () => achModalEl.classList.remove('open'));
+// TYC-59: the Wall. Opened from the same place the achievements are,
+// because it is the same question asked a different way: not what
+// have I won, but what is this company remembering, and what is next.
+const wallModalEl = document.getElementById('wall-modal');
+function openWall() { renderWall(); wallModalEl.classList.add('open'); }
+{
+  const wb = document.getElementById('open-wall-btn');
+  if (wb) wb.addEventListener('click', openWall);
+  const wc = document.getElementById('wall-close');
+  if (wc) wc.addEventListener('click', () => wallModalEl.classList.remove('open'));
+  wallModalEl.addEventListener('click', e => { if (e.target === wallModalEl) wallModalEl.classList.remove('open'); });
+}
 achModalEl.addEventListener('click', e => { if (e.target === achModalEl) achModalEl.classList.remove('open'); });
 
 // ── Company Dashboard ───────────────────────────────────────────
@@ -6604,7 +6633,7 @@ function trapModalFocus(el) {
   mo.observe(el, { attributes: true, attributeFilter: ['class'] });
 }
 for (const mid of ['tip-modal', 'ipo-modal', 'elevator-modal', 'achievements-modal', 'win-modal',
-  'theme-modal', 'founder-modal', 'board-modal', 'help-modal', 'dash-modal', 'welcome-modal']) {
+  'theme-modal', 'founder-modal', 'board-modal', 'help-modal', 'dash-modal', 'welcome-modal', 'wall-modal']) {
   const el = document.getElementById(mid);
   if (!el) continue;
   new MutationObserver(() => {
@@ -11220,6 +11249,96 @@ function maybeRaiseTheYears() {
   checkAchievements();
   return true;
 }
+// -- The Wall (TYC-59) -----------------------------------------
+// Seventeen rounds of memory links have gone into this company, and
+// until now there has been no way to see that they are one thing.
+// Each link appears as a chip only once the link before it is done,
+// so a player eight deep has no idea there are nine more, what the
+// next one is, or how close they are to it. The chain was legible
+// only from the source.
+//
+// TYC_WALL is that chain, declared once, in order. Every row calls
+// the SAME function the game calls -- no row can drift into claiming
+// a tally the game does not keep -- and every row states the gate
+// that opens it as a reference to the row before plus a threshold.
+// That last part is the important one: `tests/headless/wall.js`
+// walks the table and, for each row, drives the previous link's
+// tally to need-1 and to need and asserts the game's OWN predicate
+// flips exactly there. A wrong number in this table fails the
+// battery rather than quietly lying to a player.
+//
+// It earned that on its first run: the Company Reunion waits on the
+// plaque AND on Employee #1, and the row shipped naming only one of
+// them. `prev` therefore takes a list, and a row with more than one
+// predecessor reports the one that is furthest behind -- the thing
+// actually holding it up, which is the only useful answer.
+const TYC_WALL = [
+  { id: 'record',  icon: '\u{1F4C8}', name: 'The House Record',      tally: () => loadRecord().beats,        gate: null,                    prev: null,       need: 0 },
+  { id: 'plaque',  icon: '\u{1F37E}', name: 'The Brass Plaque',      tally: () => loadPlaque().cheers,       gate: () => plaqueStands(),    prev: 'record',   need: PLAQUE_AT },
+  { id: 'visitor', icon: '\u{1FAAA}', name: 'Employee #1',           tally: () => loadVisitor().visits,      gate: null,                    prev: null,       need: 0 },
+  { id: 'reunion', icon: '\u{1F942}', name: 'The Company Reunion',   tally: () => loadReunion().held,        gate: () => reunionStands(),   prev: ['plaque', 'visitor'], need: 3 },
+  { id: 'photo',   icon: '\u{1F4F8}', name: 'The Reunion Photo',     tally: () => loadPhoto().looks,         gate: () => photoHangs(),      prev: 'reunion',  need: 3 },
+  { id: 'toast',   icon: '\u{1F942}', name: 'The Founding Toast',    tally: () => loadToastTally().toasts,   gate: () => anniversaryStands(), prev: 'photo',  need: 3 },
+  { id: 'guest',   icon: '\u{1F4D4}', name: 'The Guest Book',        tally: () => loadGuestBook().leafs,     gate: () => guestBookOut(),    prev: 'toast',    need: 3 },
+  { id: 'bench',   icon: '\u{1FA91}', name: 'The Lobby Bench',       tally: () => loadBench().sits,          gate: () => benchBuilt(),      prev: 'guest',    need: 3 },
+  { id: 'story',   icon: '\u{1F399}', name: 'The All-Hands Story',   tally: () => loadStoryHour().tellings,  gate: () => storyReady(),      prev: 'bench',    need: 3 },
+  { id: 'song',    icon: '\u{1F3BA}', name: 'The Company Anthem',    tally: () => loadSong().sings,          gate: () => anthemReady(),     prev: 'story',    need: 3 },
+  { id: 'capsule', icon: '\u{1F4E6}', name: 'The Time Capsule',      tally: () => loadCapsule().visits,      gate: () => capsuleSealed(),   prev: 'song',     need: 3 },
+  { id: 'mural',   icon: '\u{1F3A8}', name: 'The Lobby Mural',       tally: () => loadMural().sittings,      gate: () => muralPainted(),    prev: 'capsule',  need: 3 },
+  { id: 'docent',  icon: '\u{1F9ED}', name: 'The Lobby Docent',      tally: () => loadDocent().tours,        gate: () => docentStands(),    prev: 'mural',    need: 3 },
+  { id: 'mark',    icon: '\u{270D}',  name: 'The New Hire\u2019s Panel', tally: () => loadMark().panels,    gate: () => markEarned(),      prev: 'docent',   need: 3 },
+  { id: 'archive', icon: '\u{1F5C4}', name: 'The Archive Wing',      tally: () => loadArchive().visits,      gate: () => archiveOffered(),  prev: 'mark',     need: 3 },
+  { id: 'years',   icon: '\u{1F5D3}', name: 'The Next Five Years',   tally: () => (loadYears().up ? 1 : 0),       gate: () => yearsEarned(),     prev: 'archive',  need: YEARS_AT },
+];
+// A row is OPEN once its gate says so (or it has no gate at all), and
+// STARTED once its own tally has moved. The first row that is open
+// but not started is the one to go and do; everything past it is
+// still to come, and is shown without a name so the wall reads as a
+// wall rather than a spoiler list.
+function wallState() {
+  const rows = TYC_WALL.map(r => {
+    const open = !r.gate || !!r.gate();
+    const n = Math.max(0, Math.floor(r.tally() || 0));
+    const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+    return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+  });
+  const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+  const doneCount = rows.filter(r => r.tally > 0).length;
+  return { rows, nextIdx, doneCount, total: rows.length };
+}
+function renderWall() {
+  const listEl = document.getElementById('wall-list');
+  const progEl = document.getElementById('wall-progress');
+  if (!listEl) return;
+  const st = wallState();
+  if (progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+  const byId = {};
+  st.rows.forEach(r => { byId[r.id] = r; });
+  listEl.innerHTML = st.rows.map((r, i) => {
+    const started = r.tally > 0;
+    const isNext = i === st.nextIdx;
+    // Everything past the one you're on stays unnamed. Knowing the
+    // wall keeps going is the point; being handed the list is not.
+    const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+    const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+    let note;
+    if (started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+    else if (isNext) note = 'yours to do next';
+    else if (r.open) note = 'open';
+    else if (r.prev.length) {
+      // With more than one thing in the way, name the one furthest
+      // behind: that is what a player has to go and do.
+      const behind = r.prev.map(p => byId[p]).filter(Boolean)
+        .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+      note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+    }
+    else note = 'not yet';
+    const cls = started ? 'wall-done' : isNext ? 'wall-next' : r.open ? 'wall-open' : 'wall-locked';
+    return '<div class="wall-row ' + cls + '"><span class="wall-name">' + label
+      + '</span><span class="wall-note">' + note + '</span></div>';
+  }).join('');
+}
+
 function refreshArchiveChip() {
   const el = document.getElementById('archive-chip');
   if (!el) return;

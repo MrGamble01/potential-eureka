@@ -22,6 +22,7 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 SUITES=(
   nohooks
   audit
+  wall
   reach
   storagekeys
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
