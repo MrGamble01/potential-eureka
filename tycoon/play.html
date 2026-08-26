@@ -4365,7 +4365,7 @@ function spawnIdeaWorker(opts = {}) {
     // XP is the source of truth, the perk only floors FRESH hires.
     // TYC-17: every engineer who was ever poached away vouches for you
     // from their new desk — fresh hires arrive a little seasoned.
-    xp: ((typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0) + alumniXp(),
+    xp: ((typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0) + alumniXp() + wallXp(),
   });
   return true;
 }
@@ -6268,6 +6268,7 @@ const ACHIEVEMENTS = [
   { id: 'docent3', icon: '\u{1F9ED}', title: 'The Lobby Docent', desc: 'Give the tour on three sessions.', check: () => loadDocent().tours >= 3, progress: () => [Math.min(loadDocent().tours, 3), 3] },
   { id: 'mark3', icon: '\u{270D}\u{FE0F}', title: 'The New Hire\u2019s Panel', desc: 'Add a panel on three sessions.', check: () => loadMark().panels >= 3, progress: () => [Math.min(loadMark().panels, 3), 3] },
   { id: 'archive3', icon: '\u{1F5C4}\u{FE0F}', title: 'The Archive Wing', desc: 'Visit the archive on three sessions.', check: () => loadArchive().visits >= 3, progress: () => [Math.min(loadArchive().visits, 3), 3] },
+  { id: 'next_five_years', icon: '\u{1F5D3}\u{FE0F}', title: 'The Next Five Years', desc: 'Fill the blank end of the Archive Wing.', check: () => yearsUp(), progress: () => [Math.min(loadArchive().visits, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -7229,7 +7230,7 @@ function closePoachOffer(countered, expired) {
     poachesLost++;
     // the seniority walks; the desk refills the same afternoon (campus
     // alumni still arrive at L2, same as any fresh hire)
-    o.w.xp = ((typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0) + alumniXp();   // TYC-17: alumni vouch for the backfill
+    o.w.xp = ((typeof founderHas === 'function' && founderHas('campus')) ? 5 : 0) + alumniXp() + wallXp();   // TYC-17 alumni + TYC-58 the wall
     showToast(`😤 Your L${o.lv} engineer ${expired ? 'stopped waiting and ' : ''}took the offer — a fresh face is at their desk by evening.`, 'event', 'critical');
     addFeedEntry(`😤 Poached — the L${o.lv} seniority walked out the door`);
     if (alumniXp() > 0) addFeedEntry(`🎓 The alumni network vouches for you — new hires start with +${alumniXp()} XP`);
@@ -11182,6 +11183,43 @@ function buyArchive() {
   refreshArchiveChip();
   return true;
 }
+// -- The Next Five Years (TYC-58) ------------------------------
+// The Archive Wing went up with one wall deliberately empty: the far
+// end, past the mural panels, left blank. Three visits in, somebody
+// fills it -- not with anything that happened, but with what the
+// company means to do next: the next five years pinned up in the
+// same hand as the last five, dated, initialled, and hung where every
+// interview walks past it.
+//
+// Thirteen links deep and this is the first one that does not pay.
+// It changes the office instead: from the day the years go up, every
+// hire arrives having already read where this is going, and starts
+// +3 XP in. It goes up once, it costs nothing, and it survives IPO
+// like the wing it hangs in -- the whole arc's first standing effect
+// on a live system rather than a purse.
+const YEARS_KEY = 'tyc-nextyears', YEARS_AT = 3, YEARS_XP = 3;
+function loadYears() {
+  try { const y = JSON.parse(localStorage.getItem(YEARS_KEY) || 'null');
+    if (y && typeof y === 'object') return { up: !!y.up };
+  } catch (e) { }
+  return { up: false };
+}
+function saveYears(y) { try { localStorage.setItem(YEARS_KEY, JSON.stringify(y)); } catch (e) { } }
+function yearsEarned() { return loadArchive().visits >= YEARS_AT; }
+function yearsUp() { return loadYears().up; }
+// The starting-XP grant, alongside alumniXp(). try/catch for the same
+// reason: boot-time spawns can run before the bindings settle.
+function wallXp() { try { return yearsUp() ? YEARS_XP : 0; } catch (e) { return 0; } }
+// Raised automatically the moment the third visit lands -- there is
+// nothing to buy and nothing to decide, so there is no control for it.
+function maybeRaiseTheYears() {
+  if (!yearsEarned() || yearsUp()) return false;
+  saveYears({ up: true });
+  addFeedEntry('\u{1F5D3}\u{FE0F} THE NEXT FIVE YEARS \u2014 somebody finally fills the blank end of the Archive Wing, and not with anything that happened: the next five years, pinned up in the same hand as the last five, dated and initialled. Every interview from here walks past it on the way in.');
+  showToast('\u{1F5D3}\u{FE0F} The Next Five Years \u2014 every hire from here starts +' + YEARS_XP + ' XP.', 'milestone', 'critical');
+  checkAchievements();
+  return true;
+}
 function refreshArchiveChip() {
   const el = document.getElementById('archive-chip');
   if (!el) return;
@@ -11212,6 +11250,7 @@ function visitArchive() {
   state.cash += p;
   addFeedEntry('\u{1F5C4}\u{FE0F} A visit to the Archive Wing \u2014 the letter, the photo, the guest book, the recording, the capsule, the mural panel the newest hire painted last month. Somebody signs in the visitors\u2019 book and writes a cheque on the way out: +$' + p + '.');
   showToast('\u{1F5C4}\u{FE0F} The Archive Wing \u2014 +$' + p + '. It keeps.', 'good', 'standard');
+  maybeRaiseTheYears();   // TYC-58: the third visit fills the blank end
   checkAchievements();
   refreshArchiveChip();
 }
