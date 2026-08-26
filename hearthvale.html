@@ -337,6 +337,7 @@
     <button id="m-fresco">Walk the Hall Fresco</button>
     <button id="m-warden">Walk a Newcomer Down the Hall</button>
     <button id="m-mark">Let a Newcomer Paint Their Panel</button>
+    <button id="m-gallery">The Long Gallery</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1707,6 +1708,7 @@
     { id: 'hall_fresco', emoji: '\u{1F3A8}', name: 'The Hall Fresco', desc: 'Walk the fresco on three sessions.', done: () => loadFresco().walks >= 3 },
     { id: 'hall_warden', emoji: '\u{1F9ED}', name: 'The Hall Warden', desc: 'Walk a newcomer down the hall on three sessions.', done: () => loadWarden().walks >= 3 },
     { id: 'newcomers_panel', emoji: '\u{270D}\u{FE0F}', name: 'The Newcomer\u2019s Panel', desc: 'Let a newcomer paint their panel on three sessions.', done: () => loadMark().panels >= 3 },
+    { id: 'long_gallery', emoji: '\u{1F3DB}\u{FE0F}', name: 'The Long Gallery', desc: 'Sit in the Long Gallery on three sessions.', done: () => loadGall().sits >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3208,6 +3210,64 @@
     chron('\u270D\uFE0F', 'THE NEWCOMER\u2019S PANEL \u2014 the one the warden walked down the fresco asks for the brush and paints what comes after the casket: their own first winter, their own hand. The whole valley comes in out of the cold to look at it, and nobody comes empty: +' + p + ' gold');
     toast('\u270D\uFE0F The Newcomer\u2019s Panel \u2014 +' + p + ' gold. The wall grows now.');
     checkAchievements();
+  }
+  // ---- the Long Gallery (HVALE-50) -----------------------------
+  // Twelve links in this valley and not one of them has asked for a
+  // coin. The wall behind the hearth has run out of hall: the panels
+  // reach the buttress and stop, and the newest hand has nowhere to
+  // paint. The Long Gallery is the first thing the town has to buy
+  // \u2014 400 gold, once ever, for a roofed run off the hall that
+  // produces nothing, houses nobody and feeds no one. What it does is
+  // give the wall somewhere to keep going: the casket on its stand,
+  // the ledger under glass, every panel from the first winter to last
+  // week, and bare lime plaster at the far end. Sit in it once a
+  // session and the whole valley finds a reason to walk through:
+  // 70 gold base + 5 per panel (cap 5). Built flag and sittings both
+  // live in 'hvale-gallery', so the room and the habit keep apart.
+  const GALL_KEY = 'hvale-gallery', GALL_COST = 400, GALL_BASE = 70, GALL_PER = 5;
+  let gallSat = false;
+  function loadGall() {
+    try { const g = JSON.parse(localStorage.getItem(GALL_KEY) || 'null');
+      if (g && typeof g === 'object') return { built: !!g.built, sits: Math.max(0, Math.floor(g.sits || 0)) };
+    } catch (e) { }
+    return { built: false, sits: 0 };
+  }
+  function saveGall(g) { try { localStorage.setItem(GALL_KEY, JSON.stringify(g)); } catch (e) { } }
+  function gallOffered() { return loadMark().panels >= 3; }
+  function gallBuilt() { return loadGall().built; }
+  function gallPurse() { return GALL_BASE + GALL_PER * Math.min(loadMark().panels || 0, 5); }
+  function buyGallery() {
+    if (!gallOffered() || gallBuilt()) return false;
+    if (state.res.gold < GALL_COST) {
+      toast('\u{1F3DB}\uFE0F The Long Gallery runs ' + GALL_COST + ' gold \u2014 the masons will not start short.');
+      return false;
+    }
+    state.res.gold -= GALL_COST;
+    saveGall({ built: true, sits: loadGall().sits });
+    chron('\u{1F3DB}\uFE0F', 'THE LONG GALLERY \u2014 the masons take out the buttress and run a roofed gallery off the hall. The casket goes on a stand, the ledger under glass, every panel since the first winter down one wall in order, and the far end left bare lime for whoever comes next');
+    toast('\u{1F3DB}\uFE0F The Long Gallery \u2014 the wall has somewhere to go now.');
+    checkAchievements();
+    return true;
+  }
+  function sitInGallery() {
+    if (!gallBuilt() || gallSat) return false;
+    gallSat = true;
+    const p = gallPurse();
+    const g = loadGall();
+    saveGall({ built: true, sits: g.sits + 1 });
+    state.res.gold += p;
+    chron('\u{1F3DB}\uFE0F', 'THE LONG GALLERY \u2014 an hour walking the whole valley down one wall: the casket, the ledger, every panel to the newest hand, and bare plaster waiting at the end. Half the town finds a reason to come through, and nobody comes through empty: +' + p + ' gold');
+    toast('\u{1F3DB}\uFE0F The Long Gallery \u2014 +' + p + ' gold.');
+    checkAchievements();
+    return true;
+  }
+  // One control at two stages of its life: the building while there is
+  // no gallery, the sitting the moment there is.
+  function useGallery() {
+    if (!gallOffered()) { toast('\u{1F3DB}\uFE0F The wall is still one hand\u2019s work \u2014 three newcomers\u2019 panels before anyone talks about taking out a buttress.'); return; }
+    if (!gallBuilt()) { buyGallery(); return; }
+    if (gallSat) { toast('\u{1F3DB}\uFE0F The valley has had its hour in the gallery today \u2014 the room keeps, and so does the habit.'); return; }
+    sitInGallery();
   }
   function ledgerAtDawn() {
     const g = Math.floor(state.res.gold);
@@ -5660,6 +5720,7 @@
     { const mfr = document.getElementById('m-fresco'); if (mfr) mfr.onclick = () => { menu.classList.remove('show'); walkTheHallFresco(); }; }
     { const mwd = document.getElementById('m-warden'); if (mwd) mwd.onclick = () => { menu.classList.remove('show'); walkTheNewcomer(); }; }
     { const mmk = document.getElementById('m-mark'); if (mmk) mmk.onclick = () => { menu.classList.remove('show'); addTheirPanel(); }; }
+    { const mgl = document.getElementById('m-gallery'); if (mgl) mgl.onclick = () => { menu.classList.remove('show'); useGallery(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);

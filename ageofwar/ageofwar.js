@@ -603,6 +603,7 @@ const AgeOfWarGame = (() => {
     { id: 'fresco3', icon: '\u{1F3A8}', title: 'The Long Fresco', desc: 'Walk the fresco on three sessions.' },
     { id: 'guide3', icon: '\u{1F9ED}', title: 'The Recruit\u2019s Walk', desc: 'Walk a recruit down the fresco on three sessions.' },
     { id: 'mark3', icon: '\u{270D}\u{FE0F}', title: 'The Recruit\u2019s Panel', desc: 'Add a recruit\u2019s panel on three sessions.' },
+    { id: 'the_long_room', icon: '\u{1F3DB}\u{FE0F}', title: 'The Long Room', desc: 'Sit in the Long Room on three sessions.' },  // AOW-57
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -736,6 +737,7 @@ const AgeOfWarGame = (() => {
     if (loadFresco().walks >= 3) unlock('fresco3');
     if (loadGuide().walks >= 3) unlock('guide3');
     if (loadMark().panels >= 3) unlock('mark3');
+    if (loadLroom().sits >= 3) unlock('the_long_room');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2581,6 +2583,68 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // -- The Long Room (AOW-57) --
+  // Eleven links of pure upside, and then this one. Three recruits
+  // have painted their own panel now, and the fresco has run out of
+  // wall: the panels turn the corner and stop at the armoury door.
+  // The Long Room is the wall you buy so the line can keep going --
+  // 900 gold out of the war chest, once ever, for a room that fires
+  // no shot and raises no rampart. What it does is hold the whole
+  // thing: the roll by the door, the cache stone, every panel from
+  // the first muster to the recruit who painted last week. Sit in it
+  // once a session and the quartermaster pays for the hour, because
+  // a line that can see where it came from fights like it intends to
+  // be remembered. Built flag and sittings both live in 'aow-longroom'.
+  const LROOM_KEY = 'aow-longroom', LROOM_COST = 900, LROOM_BASE = 140, LROOM_PER = 70;
+  let lroomSat = false;
+  function loadLroom() {
+    try { const r = JSON.parse(localStorage.getItem(LROOM_KEY) || 'null');
+      if (r && typeof r === 'object') return { built: !!r.built, sits: Math.max(0, Math.floor(r.sits || 0)) };
+    } catch {}
+    return { built: false, sits: 0 };
+  }
+  function saveLroom(r) { try { localStorage.setItem(LROOM_KEY, JSON.stringify(r)); } catch {} }
+  function lroomOffered() { return loadMark().panels >= 3; }
+  function lroomBuilt() { return loadLroom().built; }
+  function lroomPurse() { return LROOM_BASE + LROOM_PER * Math.min(loadMark().panels || 0, 5); }
+  function buyLongRoom() {
+    if (!lroomOffered() || lroomBuilt()) return false;
+    if (gold < LROOM_COST) {
+      goldFloaters.push({ text: `\u{1F3DB}\u{FE0F} The Long Room runs ${LROOM_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return false;
+    }
+    gold -= LROOM_COST;
+    const r = loadLroom();
+    saveLroom({ built: true, sits: r.sits });
+    goldFloaters.push({ text: '\u{1F3DB}\u{FE0F} THE LONG ROOM \u2014 the masons take the armoury wall out and run the fresco through it. The roll comes off the door, the cache stone comes up out of the yard, and every panel since the first muster goes up in one line with room left at the end', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.6 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+    return true;
+  }
+  function sitInLongRoom() {
+    if (!lroomBuilt() || lroomSat) return false;
+    lroomSat = true;
+    const p = lroomPurse();
+    const r = loadLroom();
+    saveLroom({ built: true, sits: r.sits + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F3DB}\u{FE0F} THE LONG ROOM \u2014 an hour in the room where the whole line hangs: the roll, the stone, every panel to the newest hand. The muster comes out of it walking taller and the quartermaster pays for the hour: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+    return true;
+  }
+  // The control does double duty: while the room is unbuilt it is the
+  // purchase, and the moment it stands it is the sitting. One button,
+  // because it is one thing at two stages of its life.
+  function useLongRoom() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!lroomOffered()) return;
+    if (!lroomBuilt()) { buyLongRoom(); return; }
+    sitInLongRoom();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2780,6 +2844,8 @@ const AgeOfWarGame = (() => {
     if (guideBtn) guideBtn.onclick = walkTheRecruit;
     const markBtn = document.getElementById('aow-mark-btn');
     if (markBtn) markBtn.onclick = addTheirPanel;
+    const lroomBtn = document.getElementById('aow-lroom-btn');
+    if (lroomBtn) lroomBtn.onclick = useLongRoom;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8777,6 +8843,27 @@ const AgeOfWarGame = (() => {
       }
     }
 
+    // The Long Room (AOW-57) -- one control, two stages: the purchase
+    // while it is unbuilt, the sitting once it stands.
+    const lroomEl = document.getElementById('aow-lroom-btn');
+    const lroomCdEl = document.getElementById('aow-lroom-cd');
+    if (lroomEl) {
+      if (!lroomOffered()) { lroomEl.style.display = 'none'; }
+      else if (!lroomBuilt()) {
+        lroomEl.style.display = 'inline-flex';
+        lroomEl.style.opacity = gold >= LROOM_COST ? '' : '0.45';
+        if (lroomCdEl) lroomCdEl.textContent = `${LROOM_COST}g`;
+        lroomEl.title = `The Long Room \u2014 the fresco has run out of wall. ${LROOM_COST} gold, once ever, takes the armoury wall out and runs the whole line through it: the roll, the cache stone, every panel to the newest hand, with room left at the end. Then sit in it once a session for +${lroomPurse()} gold.`;
+      } else {
+        lroomEl.style.display = 'inline-flex';
+        lroomEl.style.opacity = lroomSat ? '0.45' : '';
+        if (lroomCdEl) lroomCdEl.textContent = lroomSat ? 'sat' : `+${lroomPurse()}g`;
+        lroomEl.title = lroomSat
+          ? 'The muster has had its hour in the Long Room this session \u2014 the room keeps, and so does the line.'
+          : `The Long Room \u2014 an hour among the whole line: the roll, the stone, every panel since the first muster. The quartermaster pays for it: +${lroomPurse()} gold. Sat ${loadLroom().sits} time${loadLroom().sits === 1 ? '' : 's'}.`;
+      }
+    }
+
     // Wave indicator
     const waveEl = document.getElementById('aow-wave');
     const waveNumEl = document.getElementById('aow-wave-num');
@@ -9070,5 +9157,6 @@ const AgeOfWarGame = (() => {
     running = false;
     closeCouncil();
   }
+
 return { init, start: reset, destroy };
 })();

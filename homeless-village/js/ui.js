@@ -111,6 +111,20 @@ function buildActionUI(){
     tkb.addEventListener('mouseleave',hideTip);
     el.appendChild(tkb);
   }
+  // HV-53: the dry corner opens once three names are up, and the one
+  // button changes what it is the moment the roof goes on.
+  if(dryAvailable()){
+    var dya=dryAction();
+    var dyb=document.createElement('button');
+    dyb.className='action-btn'; dyb.id='action-dry';
+    dyb.setAttribute('data-tip', dya.tooltip);
+    dyb.innerHTML='<span class="btn-progress" id="progress-dry" style="width:0%"></span>'+dya.icon+' '+dya.label+(drySat&&dryBuilt()?' \u2713':'');
+    if(drySat&&dryBuilt()){ dyb.disabled=true; dyb.style.opacity='.5'; }
+    dyb.onclick=function(){ doAction(dryAction()); };
+    dyb.addEventListener('mouseenter',showTip);
+    dyb.addEventListener('mouseleave',hideTip);
+    el.appendChild(dyb);
+  }
 }
 
 function buildCraftUI(){
