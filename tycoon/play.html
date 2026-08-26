@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="bench-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="story-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="song-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="capsule-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="bench-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="story-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="song-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="capsule-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="mural-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6247,6 +6247,7 @@ const ACHIEVEMENTS = [
   { id: 'story3', icon: '\u{1F399}\u{FE0F}', title: 'The All-Hands Story', desc: 'Tell the story on three sessions.', check: () => loadStoryHour().tellings >= 3, progress: () => [Math.min(loadStoryHour().tellings, 3), 3] },
   { id: 'anthem3', icon: '\u{1F3BA}', title: 'The Company Anthem', desc: 'Sing the anthem on three sessions.', check: () => loadSong().sings >= 3, progress: () => [Math.min(loadSong().sings, 3), 3] },
   { id: 'capsule3', icon: '\u{1F4E6}', title: 'The Time Capsule', desc: 'Visit the capsule on three sessions.', check: () => loadCapsule().visits >= 3, progress: () => [Math.min(loadCapsule().visits, 3), 3] },
+  { id: 'mural3', icon: '\u{1F3A8}', title: 'The Lobby Mural', desc: 'Sit with the mural on three sessions.', check: () => loadMural().sittings >= 3, progress: () => [Math.min(loadMural().sittings, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10545,6 +10546,7 @@ function updateHist(dt) {
   refreshStoryChip();
   refreshSongChip();
   refreshCapsuleChip();
+  refreshMuralChip();
 }
 // ---- the Founder's Ring (TYC-39) ------------------------------
 // The heirloom round: the memory starts paying. Once a session the
@@ -10994,6 +10996,49 @@ function visitTimeCapsule() {
   showToast('\u{1F4E6} The Time Capsule \u2014 +$' + p + '. The wall remembers.', 'good', 'standard');
   checkAchievements();
   refreshCapsuleChip();
+}
+// ---- the Lobby Mural (TYC-54) ---------------------------------
+// Round Forty-Three opens the mural round: after three visits to
+// the Time Capsule, a designer takes the long lobby wall beside it
+// and paints the whole saga along it \u2014 the garage, the first
+// desk, the bench, the anthem's four chords, the capsule's seam.
+// Once a session someone sits with it: $120 base + $60 per visit
+// (cap 5). Sittings tallied in 'tyc-mural'.
+const MURAL_KEY = 'tyc-mural', MURAL_BASE = 120, MURAL_PER = 60;
+let muralSat = false;
+function loadMural() {
+  try { const m = JSON.parse(localStorage.getItem(MURAL_KEY) || 'null');
+    if (m && typeof m === 'object') return { sittings: Math.max(0, Math.floor(m.sittings || 0)) };
+  } catch (e) { }
+  return { sittings: 0 };
+}
+function saveMural(m) { try { localStorage.setItem(MURAL_KEY, JSON.stringify(m)); } catch (e) { } }
+function muralPainted() { return loadCapsule().visits >= 3; }
+function muralPurse() { return MURAL_BASE + MURAL_PER * Math.min(loadCapsule().visits || 0, 5); }
+function refreshMuralChip() {
+  const el = document.getElementById('mural-chip');
+  if (!el) return;
+  el.onclick = sitWithMural;
+  if (!muralPainted()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.style.opacity = muralSat ? '0.45' : '';
+  el.textContent = '\u{1F3A8} mural';
+  el.title = muralSat
+    ? 'The Lobby Mural has had its sitting this session. The wall keeps painting itself.'
+    : 'The Lobby Mural \u2014 three visits to the capsule and a designer took the long wall beside it: the garage, the first desk, the bench, four chords, the capsule seam. Sit with it, and a recruit signs the same day: $' + muralPurse()
+      + '. Sat with ' + loadMural().sittings + ' time' + (loadMural().sittings === 1 ? '' : 's') + '.';
+}
+function sitWithMural() {
+  if (!muralPainted() || muralSat) return;
+  muralSat = true;
+  const p = muralPurse();
+  const m = loadMural();
+  saveMural({ sittings: m.sittings + 1 });
+  state.cash += p;
+  addFeedEntry('\u{1F3A8} A sitting with the Lobby Mural \u2014 the garage, the first desk, the bench under the window, four chords, the seam where the capsule went in. A recruit reads the whole wall and signs the same day: +$' + p + '.');
+  showToast('\u{1F3A8} The Lobby Mural \u2014 +$' + p + '. The wall tells it.', 'good', 'standard');
+  checkAchievements();
+  refreshMuralChip();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;
