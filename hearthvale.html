@@ -1709,6 +1709,7 @@
     { id: 'hall_warden', emoji: '\u{1F9ED}', name: 'The Hall Warden', desc: 'Walk a newcomer down the hall on three sessions.', done: () => loadWarden().walks >= 3 },
     { id: 'newcomers_panel', emoji: '\u{270D}\u{FE0F}', name: 'The Newcomer\u2019s Panel', desc: 'Let a newcomer paint their panel on three sessions.', done: () => loadMark().panels >= 3 },
     { id: 'long_gallery', emoji: '\u{1F3DB}\u{FE0F}', name: 'The Long Gallery', desc: 'Sit in the Long Gallery on three sessions.', done: () => loadGall().sits >= 3 },
+    { id: 'fresh_plaster', emoji: '\u{1F9F1}', name: 'The Fresh Plaster', desc: 'Prime the bare end of the Long Gallery.', done: () => plasterUp() },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -2263,6 +2264,10 @@
       color: V_COLORS[Math.floor(rrand(id * 7) * V_COLORS.length)],
       name: V_NAMES[Math.floor(rrand(id * 17 + 3) * V_NAMES.length)],
       ph: rrand(id * 3) * 6, wait: 0,
+      // HVALE-51: born under a primed gallery, they arrive already
+      // part-taught. A loaded save overwrites this with the villager's
+      // real xp, which is right -- the plaster only floors NEW hands.
+      xp: plasterXp(),
     };
     state.villagers.push(v);
     return v;
@@ -3259,8 +3264,47 @@
     chron('\u{1F3DB}\uFE0F', 'THE LONG GALLERY \u2014 an hour walking the whole valley down one wall: the casket, the ledger, every panel to the newest hand, and bare plaster waiting at the end. Half the town finds a reason to come through, and nobody comes through empty: +' + p + ' gold');
     toast('\u{1F3DB}\uFE0F The Long Gallery \u2014 +' + p + ' gold.');
     checkAchievements();
+    maybePrimeThePlaster();   // HVALE-51: the third sitting primes the bare end
     return true;
   }
+  // ---- the Fresh Plaster (HVALE-51) ---------------------------
+  // The Long Gallery went up with the far end left bare on purpose --
+  // "bare lime plaster", waiting. Three sittings in, the plasterers
+  // come back and float it properly, and the painter primes it and
+  // dates it FORWARD: panels for the winters that have not been
+  // survived yet, squared off and ready, hung where every child in
+  // the valley walks past them.
+  //
+  // Fourteen links deep in this valley and this is the first that
+  // does not pay a coin. What it does instead is raise everyone who
+  // comes after: every villager born into the town from here grows up
+  // walking that wall and arrives with 4 mastery XP already in hand --
+  // a third of the way to Journeyman before they pick up a tool. It
+  // primes once, costs nothing, and lives outside the save like the
+  // gallery it hangs in, so it carries across every founding.
+  const PLASTER_KEY = 'hvale-plaster', PLASTER_AT = 3, PLASTER_XP = 4;
+  function loadPlaster() {
+    try { const p = JSON.parse(localStorage.getItem(PLASTER_KEY) || 'null');
+      if (p && typeof p === 'object') return { up: !!p.up };
+    } catch (e) { }
+    return { up: false };
+  }
+  function savePlaster(p) { try { localStorage.setItem(PLASTER_KEY, JSON.stringify(p)); } catch (e) { } }
+  function plasterEarned() { return loadGall().sits >= PLASTER_AT; }
+  function plasterUp() { return loadPlaster().up; }
+  // The head start every new villager is born with.
+  function plasterXp() { return plasterUp() ? PLASTER_XP : 0; }
+  // Primed automatically on the third sitting -- nothing to buy and
+  // nothing to choose, so there is no menu row for it.
+  function maybePrimeThePlaster() {
+    if (!plasterEarned() || plasterUp()) return false;
+    savePlaster({ up: true });
+    chron('\u{1F9F1}', 'THE FRESH PLASTER \u2014 the plasterers float the bare end of the Long Gallery and the painter primes it and dates it forward: panels for the winters nobody has survived yet, squared off and waiting. Every child in the valley grows up walking past them');
+    toast('\u{1F9F1} The Fresh Plaster \u2014 every villager born here now starts +' + PLASTER_XP + ' mastery XP.');
+    checkAchievements();
+    return true;
+  }
+
   // One control at two stages of its life: the building while there is
   // no gallery, the sitting the moment there is.
   function useGallery() {

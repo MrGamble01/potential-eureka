@@ -193,7 +193,9 @@ function onNewDay(){
     G.coldCut=(G.coldCut||0)+1;
     log('🧥 Coats off the rack at dawn — the cold cuts half as deep.');
   }
-  G.warmth=Math.max(0,Math.min(100,G.warmth-(G.season===3?18:8)-wBite-snapBite));
+  // HV-54: the empty hook eases the season's own base drain, which is
+  // the one part of the cold the coat rack above never touches.
+  G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }

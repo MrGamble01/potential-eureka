@@ -1471,6 +1471,7 @@ function sitInLongShed(){
   state.coins=(state.coins||0)+p;
   toast('\u{1F6D6} THE LONG SHED \u2014 an hour out at the end of the boarding with the whole shore along one wall, dry: the chest, the log, the wreath, every knot to the newest hand. Half the harbor finds a reason to walk out, and nobody walks out and back empty: +'+p+' \u{1FA99}');
   if(typeof checkAch==='function')checkAch();
+  maybeHangTheLine();   // VOX-49: the third sitting hangs the bare line
   refreshShedHud();
   return true;
 }
@@ -1480,6 +1481,39 @@ function useLongShed(){
   if(!shedOffered())return;
   if(!shedBuilt()){ buyLongShed(); return; }
   sitInLongShed();
+}
+// VOX-49: the Long Shed was roofed with the far end left bare on
+// purpose -- "bare boarding at the far end". Three hours in the shed
+// and somebody drives a cleat into it and hangs a fresh coil of line:
+// unknotted, uncut, nobody's hand in it yet. It is for whoever ships
+// out next season, and it stays there for whoever ships out after.
+//
+// Fourteen links deep on this shore and this is the first that does
+// not pay a coin. What it does instead is quicken every hand on the
+// isle for good: a crew that never has to go looking for line never
+// stands about waiting for it. +0.2 to the walking speed, the same
+// step the Tavern gives, and it stacks with it. Hung once, costs
+// nothing, and lives outside the isle's save like the shed it hangs
+// in, so it carries to every isle that rises after.
+const LINE_KEY='vox-bareline', LINE_AT=3, LINE_SPEED=0.2;
+function loadLine(){
+  try{const l=JSON.parse(localStorage.getItem(LINE_KEY)||'null');
+    if(l&&typeof l==='object')return{up:!!l.up};
+  }catch(e){}
+  return{up:false};
+}
+function saveLine(l){try{localStorage.setItem(LINE_KEY,JSON.stringify(l));}catch(e){}}
+function lineEarned(){ return (loadShed().sits||0)>=LINE_AT; }
+function lineUp(){ return loadLine().up; }
+function lineSpeedBonus(){ return lineUp() ? LINE_SPEED : 0; }
+// Hung automatically on the third sitting -- nothing to buy and
+// nothing to choose, so there is no chip for it.
+function maybeHangTheLine(){
+  if(!lineEarned()||lineUp())return false;
+  saveLine({up:true});
+  toast('\u{1FAA2} THE BARE LINE \u2014 somebody drives a cleat into the far end of the shed boarding and hangs a fresh coil on it: unknotted, uncut, nobody\u2019s hand in it yet. It is for whoever ships out next season. Nobody on this isle stands about waiting for line again.');
+  if(typeof checkAch==='function')checkAch();
+  return true;
 }
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
@@ -2006,7 +2040,8 @@ function updateWorker(w,dt){
   positionWorker(w);
 }
 function updateWorkers(dt){for(const w of W.workers)updateWorker(w,dt);}
-function WORKER_SPEED(){return state.buildings&&state.buildings.tavern?2.1:1.9;}
+// VOX-49: the bare line adds its own step on top of the Tavern's.
+function WORKER_SPEED(){return (state.buildings&&state.buildings.tavern?2.1:1.9)+lineSpeedBonus();}
 function rolesUnlocked(){return !!(state.buildings&&state.buildings.tavern);}
 function cycleWorkerRole(w){
   if(!rolesUnlocked()){toast('🍺 Build the Tavern to assign villager roles');return;}
@@ -5286,6 +5321,7 @@ const ACH=[
   ['pilot3','The Pilot\u2019s Walk','Walk a green hand down the boarding on three sessions',()=>loadPilot().walks>=3],
   ['mark3','Their Own Knot','Tie a green hand\u2019s knot into the boarding on three sessions',()=>loadMark().knots>=3],
   ['longshed','The Long Shed','Sit in the Long Shed on three sessions',()=>loadShed().sits>=3],
+  ['bare_line','The Bare Line','Hang the bare line at the far end of the Long Shed',()=>lineUp()],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
