@@ -1282,6 +1282,42 @@ function haulSunkenChest(){
   if(typeof checkAch==='function')checkAch();
   refreshChestHud();
 }
+// VOX-45: the mural round on the shore. After three hauls of the
+// Sunken Chest, a painter takes the long boarding of the harbor
+// wall and lays the whole isle along it \u2014 the first mooring,
+// the log's best haul, the bench, the yarn's ships, the shanty's
+// verses, the marked line the chest goes back down on. Once a
+// session a walk pays: 50 coins base + 5 per haul (cap 5). Walks
+// tallied in 'vox-mural'.
+const MURAL_KEY='vox-mural',MURAL_BASE=50,MURAL_PER=5;
+let muralWalked=false;
+function loadMural(){
+  try{const m=JSON.parse(localStorage.getItem(MURAL_KEY)||'null');
+    if(m&&typeof m==='object')return{walks:Math.max(0,Math.floor(m.walks||0))};
+  }catch(e){}
+  return{walks:0};
+}
+function saveMural(m){try{localStorage.setItem(MURAL_KEY,JSON.stringify(m));}catch(e){}}
+function muralPainted(){ return loadChest().hauls>=3; }
+function muralPurse(){ return MURAL_BASE + MURAL_PER*Math.min(loadChest().hauls||0,5); }
+function refreshMuralHud(){
+  const h=document.getElementById('muralHud'),tx=document.getElementById('muralTxt');
+  if(!h)return;
+  h.style.display=muralPainted()?'flex':'none';
+  h.style.opacity=muralWalked?'0.45':'';
+  if(tx)tx.textContent=muralWalked?'\u{1F3A8} walked':'\u{1F3A8} mural for +'+muralPurse()+' \u{1FA99}';
+}
+function walkHarborMural(){
+  if(!muralPainted()||muralWalked)return;
+  muralWalked=true;
+  const p=muralPurse();
+  const m=loadMural();
+  saveMural({walks:m.walks+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u{1F3A8} THE HARBOR MURAL \u2014 the first mooring, the log\u2019s best haul, the bench, the yarn\u2019s ships, the shanty\u2019s verses, the marked line the chest goes back down on. Somebody walks the whole boarding and leaves coin at the end: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshMuralHud();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -5083,6 +5119,7 @@ const ACH=[
   ['yarn3','The Harbor Yarn','Hear the yarn on three sessions',()=>loadYarn().tellings>=3],
   ['shanty3','The Sea Shanty','Sing the shanty on three sessions',()=>loadShanty().sings>=3],
   ['chest3','The Sunken Chest','Haul the chest on three sessions',()=>loadChest().hauls>=3],
+  ['mural3','The Harbor Mural','Walk the mural on three sessions',()=>loadMural().walks>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -5337,7 +5374,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -5419,6 +5456,7 @@ boot();
 <div id="yarnHud" style="display:none;position:fixed;bottom:528px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="tellHarborYarn()" title="The Harbor Yarn: three sits on the bench and the oldest trader has the whole shore story by heart — the log, the letters, the reunions, every boat by the bell. Hear it once a session, and a listener always drops a purse for the next telling."><span id="yarnTxt">🧶 —</span></div>
 <div id="shantyHud" style="display:none;position:fixed;bottom:562px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="singSeaShanty()" title="The Sea Shanty: three tellings of the yarn and the fleet sets it to call and response — every deck knows the chorus. Sing it once a session, and a cap comes round the harbor and comes back heavy."><span id="shantyTxt">🪗 —</span></div>
 <div id="chestHud" style="display:none;position:fixed;bottom:596px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="haulSunkenChest()" title="The Sunken Chest: three sings of the shanty and the fleet sinks a chest off the pier on a marked line — a log page, the bottle's letter, a shell off the wreath, the shanty on a card. Haul it once a session, and there's always coin wedged in the lid."><span id="chestTxt">🗝️ —</span></div>
+<div id="muralHud" style="display:none;position:fixed;bottom:630px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="walkHarborMural()" title="The Harbor Mural: three hauls of the chest and a painter takes the long boarding of the harbor wall — the first mooring, the log’s best haul, the bench, the yarn’s ships, the shanty’s verses, the marked line. Walk it once a session, and there’s always coin left at the end of the boarding."><span id="muralTxt">🎨 —</span></div>
 <div id="polHud" style="display:flex;position:fixed;bottom:154px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
 <div id="cloudHud" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="doveHud" style="display:none;position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
