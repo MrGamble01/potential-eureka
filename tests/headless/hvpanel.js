@@ -39,9 +39,9 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const painted2 = panelPainted();
     panelStood = false;
     G.food = 10;
-    finishAction({ id: 'panel' });
+    finishAction({ id: 'fifth' });
     return { key: HVPAN_KEY, base: HVPAN_BASE, per: HVPAN_PER,
-      row: ACTIONS.some(a => a.id === 'panel'),
+      row: ACTIONS.some(a => a.id === 'fifth'),
       goal: GOALS.some(g => g.id === 'panel2'),
       painted2, food: G.food, stands: loadHvPanel().stands };
   });
@@ -66,9 +66,9 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const seam = await t(() => {
     panelStood = false;
     G.food = 10;
-    finishAction({ id: 'panel' });
+    finishAction({ id: 'fifth' });
     const food1 = G.food, s1 = loadHvPanel().stands;
-    finishAction({ id: 'panel' });
+    finishAction({ id: 'fifth' });
     return { food1, s1, food2: G.food, s2: loadHvPanel().stands };
   });
   ok(seam.food1 === 22 && seam.s1 === 1,
@@ -79,7 +79,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const goal = await t(() => {
     panelStood = false;
     G.food = 0;
-    finishAction({ id: 'panel' });
+    finishAction({ id: 'fifth' });
     const g = GOALS.find(x => x.id === 'panel2');
     return { food: G.food, stands: loadHvPanel().stands, done: g.value() >= g.target };
   });

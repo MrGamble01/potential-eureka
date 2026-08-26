@@ -612,6 +612,13 @@ canvas{display:block;touch-action:none;}
   pointer-events:none;
 }
 #lab-tray > *{ pointer-events:auto;flex:0 0 auto; }
+/* #manage-btn is fixed at bottom:14px;right:14px and only appears at
+   <=700px. The tray's own bottom-right corner used to be hand-cleared of it
+   by each button's per-button mobile offset; those offsets are gone, so the
+   tray lifts above the button instead. */
+@media (max-width:700px){
+  #lab-tray{ bottom:62px;max-height:calc(100vh - 76px); }
+}
 /* -- The New Kid's Tag (LAB-54) -- */
 #mark-toggle{
   background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);

@@ -225,6 +225,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
    Side panels don't fit a phone: actions become a horizontal
    strip above the bottom bar, craft + community become a
    toggleable bottom sheet, top bar scrolls horizontally. */
+/* ── UI-3: the side panels learn to scroll ──
+   Both columns were laid out as "vertically centred, height whatever the
+   content is". That was fine when the lists were short. Seven rounds of new
+   ACTIONS rows later, #action-list measured 1035px tall in a 900px viewport:
+   the last two actions sat underneath #bottom-bar and could not be clicked,
+   and #craft-panel had grown down over #workers-panel far enough to bury five
+   craft buttons. Nothing scrolled, because nothing was ever bounded.
+
+   Desktop only — the <=700px block below already solves this its own way
+   (horizontal strip for actions, bottom sheet for crafting), so these rules
+   are scoped above that breakpoint and cannot reach it. */
+@media (min-width:701px){
+  /* Pinned between the top HUD and the community panel instead of centred,
+     so it can never grow down into it. */
+  #craft-panel{
+    top:64px;bottom:230px;transform:none;
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+  #workers-panel{
+    max-height:140px;
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+  /* Still centred, but bounded clear of the bottom bar. */
+  #action-panel{
+    max-height:calc(100vh - 150px);
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+}
+
 @media (max-width:700px){
   #craft-toggle{display:block}
 
