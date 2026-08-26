@@ -1485,7 +1485,7 @@
   <div class="m-row" data-priority="low" tabindex="0" id="m-morale-row" style="display:none" title="Average team morale. High morale speeds up engineers; low morale slows them. Bumped by Advisor visits, promotions, and events."><span class="m-lbl">Morale</span><span class="m-val" id="m-morale">😊 70</span></div>
 </div>
 <div id="goal-hud" aria-label="Season goal progress">
-  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="bench-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="story-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="song-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="capsule-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="mural-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="docent-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
+  <div class="goal-header"><span id="goal-label">🎯 $1M ARR</span><span class="goal-meta"><span id="launch-chip" tabindex="0"></span><span id="onsite-chip" tabindex="0"></span><span id="retreat-chip" tabindex="0"></span><span id="hack-chip" tabindex="0"></span><span id="mentor-chip" tabindex="0" style="display:none"></span><span id="war-chip" tabindex="0" style="display:none"></span><span id="bridge-chip" tabindex="0" style="display:none"></span><span id="keynote-chip" tabindex="0" style="display:none"></span><span id="analyst-chip" tabindex="0" style="display:none"></span><span id="sre-chip" tabindex="0" style="display:none"></span><span id="retro-chip" tabindex="0" style="display:none"></span><span id="royalty-chip" tabindex="0" style="display:none"></span><span id="migrate-chip" tabindex="0" style="display:none"></span><span id="dividend-chip" tabindex="0" style="display:none"></span><span id="moonshot-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="hedge-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="factor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="endow-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="record-chip" tabindex="0" style="display:none"></span><span id="history-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="ring-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="visitor-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="reunion-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="photo-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="toast-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="guest-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="bench-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="story-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="song-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="capsule-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="mural-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="docent-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="mark-chip" tabindex="0" style="display:none;cursor:pointer"></span><span id="acq-chip" tabindex="0"></span><span id="climate-chip" tabindex="0"></span><span id="goal-pb" tabindex="0" title="Your personal best time for this season's goal. Beat it!"></span><span id="goal-eta" tabindex="0" title="Estimated time to fill the goal at current revenue rate"></span><span id="goal-pct">0%</span></span></div>
   <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
   <div class="goal-track goal-track--rival"><div class="goal-fill goal-fill--rival" id="goal-rival-fill"></div></div>
   <div id="goal-rival-label">🏁 <span id="goal-rival-name">Rival Co.</span> <span id="goal-rival-pct">0%</span></div>
@@ -6249,6 +6249,7 @@ const ACHIEVEMENTS = [
   { id: 'capsule3', icon: '\u{1F4E6}', title: 'The Time Capsule', desc: 'Visit the capsule on three sessions.', check: () => loadCapsule().visits >= 3, progress: () => [Math.min(loadCapsule().visits, 3), 3] },
   { id: 'mural3', icon: '\u{1F3A8}', title: 'The Lobby Mural', desc: 'Sit with the mural on three sessions.', check: () => loadMural().sittings >= 3, progress: () => [Math.min(loadMural().sittings, 3), 3] },
   { id: 'docent3', icon: '\u{1F9ED}', title: 'The Lobby Docent', desc: 'Give the tour on three sessions.', check: () => loadDocent().tours >= 3, progress: () => [Math.min(loadDocent().tours, 3), 3] },
+  { id: 'mark3', icon: '\u{270D}\u{FE0F}', title: 'The New Hire\u2019s Panel', desc: 'Add a panel on three sessions.', check: () => loadMark().panels >= 3, progress: () => [Math.min(loadMark().panels, 3), 3] },
   { id: 'managed_infra', icon: '☁️', title: 'Managed Infra',        desc: 'Migrate the stack, then weather six lifetime outages.', check: () => migrated && outagesSeen >= 6, progress: () => [migrated ? Math.min(outagesSeen, 6) : 0, 6] },
 ];
 const earnedAchievements = {}; // id → true
@@ -10549,6 +10550,7 @@ function updateHist(dt) {
   refreshCapsuleChip();
   refreshMuralChip();
   refreshDocentChip();
+  refreshMarkChip();
 }
 // ---- the Founder's Ring (TYC-39) ------------------------------
 // The heirloom round: the memory starts paying. Once a session the
@@ -11084,6 +11086,50 @@ function giveTheTour() {
   showToast('\u{1F9ED} The Lobby Docent \u2014 +$' + p + '. Somebody else knows it now.', 'good', 'standard');
   checkAchievements();
   refreshDocentChip();
+}
+// ---- the New Hire's Panel (TYC-56) ----------------------------
+// Round Forty-Five closes the memory arc: after three tours, the
+// hire who got walked down the wall on their first morning asks
+// for a brush and adds the panel that comes after the capsule seam
+// \u2014 their own first week, painted by them. The wall stops
+// being a thing the company keeps and becomes a thing it grows.
+// Once a session a panel pays: $140 base + $70 per tour (cap 5).
+// Panels tallied in 'tyc-mark'.
+const MARK_KEY = 'tyc-mark', MARK_BASE = 140, MARK_PER = 70;
+let markAdded = false;
+function loadMark() {
+  try { const m = JSON.parse(localStorage.getItem(MARK_KEY) || 'null');
+    if (m && typeof m === 'object') return { panels: Math.max(0, Math.floor(m.panels || 0)) };
+  } catch (e) { }
+  return { panels: 0 };
+}
+function saveMark(m) { try { localStorage.setItem(MARK_KEY, JSON.stringify(m)); } catch (e) { } }
+function markEarned() { return loadDocent().tours >= 3; }
+function markPurse() { return MARK_BASE + MARK_PER * Math.min(loadDocent().tours || 0, 5); }
+function refreshMarkChip() {
+  const el = document.getElementById('mark-chip');
+  if (!el) return;
+  el.onclick = addTheirPanel;
+  if (!markEarned()) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.style.opacity = markAdded ? '0.45' : '';
+  el.textContent = '\u{270D}\u{FE0F} panel';
+  el.title = markAdded
+    ? 'A panel went up this session. The wall grows at the pace people join it.'
+    : 'The New Hire\u2019s Panel \u2014 three tours and the hire who got walked down the wall asks for a brush: their own first week, painted by them, right after the capsule seam. The room turns out for it: $' + markPurse()
+      + '. Added ' + loadMark().panels + ' time' + (loadMark().panels === 1 ? '' : 's') + '.';
+}
+function addTheirPanel() {
+  if (!markEarned() || markAdded) return;
+  markAdded = true;
+  const p = markPurse();
+  const m = loadMark();
+  saveMark({ panels: m.panels + 1 });
+  state.cash += p;
+  addFeedEntry('\u{270D}\u{FE0F} The hire the docent walked down the wall asks for a brush and paints the panel after the capsule seam \u2014 their own first week, in their own hand. The whole floor turns out for it, and two of them bring somebody: +$' + p + '.');
+  showToast('\u{270D}\u{FE0F} The New Hire\u2019s Panel \u2014 +$' + p + '. The wall grows now.', 'good', 'standard');
+  checkAchievements();
+  refreshMarkChip();
 }
 function hireResearcher() {
   if (!unlocked.lab || labResearchers >= LAB_MAX_RESEARCHERS) return false;

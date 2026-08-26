@@ -619,6 +619,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #docent-toggle{bottom:794px;right:8px;font-size:11px;padding:5px 9px;} }
+/* -- The New Kid's Tag (LAB-54) -- */
+#mark-toggle{
+  position:fixed;bottom:14px;right:3904px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #mark-toggle{bottom:832px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -721,6 +729,7 @@ canvas{display:block;touch-action:none;}
 <button id="shoebox-toggle" style="display:none" title="The Shoebox: three plays of the track and the crew buries a shoebox under the stoop — the polaroid, a rubbing of the wall, a burned CD. Dig it up once a session, and there's always a little extra folded inside.">📦 THE SHOEBOX</button>
 <button id="mural-toggle" style="display:none" title="The Alley Mural: three digs of the shoebox and somebody paints the whole block down the alley wall — the stoop, the zippo, the polaroid, the shoebox seam. Stand at it once a session; the block always leaves something at the base.">🎨 THE MURAL</button>
 <button id="docent-toggle" style="display:none" title="The Walk-Down: three stands at the mural and the oldest head on the block starts walking every new kid down the alley wall — the stoop, the zippo, the polaroid, the shoebox seam, panel by panel. Do it once a session; the block always squares up after.">🧭 THE WALK-DOWN</button>
+<button id="mark-toggle" style="display:none" title="The New Kid's Tag: three walk-downs and the kid who got walked down the alley wall comes back with their own can — their piece goes up after the shoebox seam, in their hand. Do it once a session; the whole block comes out for it.">✍️ THE TAG</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2690,6 +2699,48 @@ function walkThemDown() {
   checkGrowAchievements();
   refreshDocentBtn();
 }
+// LAB-54: the round that closes the arc on the corner \u2014 after
+// three walk-downs, the kid who got walked down the alley wall
+// comes back with their own can and puts their piece up after the
+// shoebox seam, in their hand. The wall stops being something the
+// block keeps and starts being something it grows. Once a session
+// a tag pays: $140 base + $70 per walk-down (cap 5). Tags tallied
+// in 'growop-mark'.
+const MARK_KEY = 'growop-mark', MARK_BASE = 140, MARK_PER = 70;
+let tagAdded = false;
+function loadMark() {
+  try { const m = JSON.parse(localStorage.getItem(MARK_KEY) || 'null');
+    if (m && typeof m === 'object') return { tags: Math.max(0, Math.floor(m.tags || 0)) };
+  } catch(e){}
+  return { tags: 0 };
+}
+function saveMark(m) { try { localStorage.setItem(MARK_KEY, JSON.stringify(m)); } catch(e){} }
+function markUp() { return loadDocent().walks >= 3; }
+function markPurse() { return MARK_BASE + MARK_PER * Math.min(loadDocent().walks || 0, 5); }
+function refreshMarkBtn() {
+  const b = document.getElementById('mark-toggle');
+  if (!b) return;
+  b.onclick = tagTheWall;
+  if (!markUp()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = tagAdded ? '0.45' : '';
+  b.title = tagAdded
+    ? 'A piece went up this session. The wall grows at the pace people come back.'
+    : 'The New Kid\u2019s Tag \u2014 three walk-downs and the kid who got shown the wall comes back with their own can: their piece, after the shoebox seam, in their hand. The whole block comes out: +$' + markPurse()
+      + '. Up ' + loadMark().tags + ' time' + (loadMark().tags === 1 ? '' : 's') + '.';
+}
+function tagTheWall() {
+  if (!markUp() || tagAdded) return;
+  tagAdded = true;
+  const p = markPurse();
+  const m = loadMark();
+  saveMark({ tags: m.tags + 1 });
+  state.cash += p;
+  addFeed('\u270D\ufe0f The kid who got walked down the wall comes back with their own can and puts their piece up after the shoebox seam \u2014 their hand, their block, their turn. The whole corner comes out for it, and everybody who came out spent something: +$' + p);
+  showToast('\u270D\ufe0f The New Kid\u2019s Tag \u2014 +$' + p + '. The wall grows now.', 'good');
+  checkGrowAchievements();
+  refreshMarkBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -3119,6 +3170,7 @@ function refreshRouteBtn() {
   refreshShoeboxBtn(); // LAB-51: and the box buried under it all
   refreshMuralBtn();   // LAB-52: and the wall it all ends up on
   refreshDocentBtn();  // LAB-53: and the one who walks you down it
+  refreshMarkBtn();    // LAB-54: and the piece the walked-down kid adds
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3578,6 +3630,7 @@ const GROW_ACH = [
   { id: 'the_shoebox', name: 'The Shoebox', test: () => (loadShoebox().digs || 0) >= 3 },   // LAB-51
   { id: 'the_mural', name: 'The Alley Mural', test: () => (loadMural().stands || 0) >= 3 },  // LAB-52
   { id: 'the_walkdown', name: 'The Walk-Down', test: () => (loadDocent().walks || 0) >= 3 },  // LAB-53
+  { id: 'the_tag', name: 'The New Kid\u2019s Tag', test: () => (loadMark().tags || 0) >= 3 },  // LAB-54
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
