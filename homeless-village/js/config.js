@@ -652,6 +652,24 @@ function loadHvWalk(){
 function saveHvWalk(w){ try{ localStorage.setItem(HVWALK_KEY, JSON.stringify(w)); }catch(e){} }
 function walkUp(){ return loadHvPanel().stands>=3; }
 function walkDish(){ return HVWALK_BASE + HVWALK_PER*Math.min(loadHvPanel().stands||0,5); }
+// HV-52: the mark round under the bridge, and the beat the whole
+// arc was walking toward. After three walks, the newcomer who got
+// shown the whole underpass on their first night takes the chalk
+// and puts their own name on the wall of names, in their hand.
+// The wall stops being something the bridge keeps and starts being
+// something it grows. Once a session a name pays: 11 food base +
+// 1 per walk (cap 5). Names tallied in 'hv-mark'.
+var HVMARK_KEY='hv-mark', HVMARK_BASE=11, HVMARK_PER=1;
+var markAdded=false;
+function loadHvMark(){
+  try{ var m=JSON.parse(localStorage.getItem(HVMARK_KEY)||'null');
+    if(m&&typeof m==='object') return {names:Math.max(0,Math.floor(m.names||0))};
+  }catch(e){}
+  return {names:0};
+}
+function saveHvMark(m){ try{ localStorage.setItem(HVMARK_KEY, JSON.stringify(m)); }catch(e){} }
+function markUp(){ return loadHvWalk().walks>=3; }
+function markDish(){ return HVMARK_BASE + HVMARK_PER*Math.min(loadHvWalk().walks||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -732,6 +750,7 @@ var ACTIONS = [
   {id:'can',       icon:'📦', label:'Dig Up the Coffee Can', time:2000, cooldown:30000, tooltip:'Three playings of the ballad and somebody buries a coffee can by the piling — a notebook page, a snapshot, a guitar pick, the wall\u2019s numbers copied out. Dig it up once a session, and there\u2019s always something tucked in with it.'},
   {id:'panel',     icon:'🎨', label:'Stand at the Fifth Panel', time:2000, cooldown:30000, tooltip:'Three digs of the coffee can and somebody primes a fifth panel beside the finished mural — the wall of names, the fridge, the bench, the fire, the ballad, the can by the piling, all of it painted the length of the underpass. Stand with it once a session, and somebody who slowed down to read it always leaves something.'},
   {id:'walk',      icon:'🧭', label:'Walk a Newcomer Down', time:2000, cooldown:30000, tooltip:'Three stands at the fifth panel and whoever has been here longest starts walking every newcomer down the whole underpass on their first night — the four panels, the fifth, the wall of names, the fridge, the bench, the can by the piling. Do it once a session, and they stop being a stranger by morning.'},
+  {id:'mark',      icon:'✍️', label:'Add a Name to the Wall', time:2000, cooldown:30000, tooltip:'Three walks down the underpass and the newcomer who got shown all of it takes the chalk and puts their own name up on the wall of names, in their hand. Do it once a session, and the fire is fuller that night than it has any right to be.'},
 ];
 
 var WORKER_DEFS = [
@@ -792,6 +811,7 @@ var GOALS = [
   {id:'can2',       desc:'Dig up the coffee can on 2 sessions', target:2, reward:5, value:function(){ return loadHvCan().digs; }},
   {id:'panel2',     desc:'Stand at the fifth panel on 2 sessions', target:2, reward:5, value:function(){ return loadHvPanel().stands; }},
   {id:'walk2',      desc:'Walk a newcomer down the underpass on 2 sessions', target:2, reward:5, value:function(){ return loadHvWalk().walks; }},
+  {id:'mark2',      desc:'Add a newcomer’s name to the wall on 2 sessions', target:2, reward:5, value:function(){ return loadHvMark().names; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},

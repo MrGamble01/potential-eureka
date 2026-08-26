@@ -602,6 +602,7 @@ const AgeOfWarGame = (() => {
     { id: 'cache3', icon: '\u{1F9F1}', title: 'The Cornerstone Cache', desc: 'Open the cache on three sessions.' },
     { id: 'fresco3', icon: '\u{1F3A8}', title: 'The Long Fresco', desc: 'Walk the fresco on three sessions.' },
     { id: 'guide3', icon: '\u{1F9ED}', title: 'The Recruit\u2019s Walk', desc: 'Walk a recruit down the fresco on three sessions.' },
+    { id: 'mark3', icon: '\u{270D}\u{FE0F}', title: 'The Recruit\u2019s Panel', desc: 'Add a recruit\u2019s panel on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -734,6 +735,7 @@ const AgeOfWarGame = (() => {
     if (loadCache().opens >= 3) unlock('cache3');
     if (loadFresco().walks >= 3) unlock('fresco3');
     if (loadGuide().walks >= 3) unlock('guide3');
+    if (loadMark().panels >= 3) unlock('mark3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2547,6 +2549,38 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
+  // -- The Recruit's Panel (AOW-56) --
+  // The mark round on the battlefield, and the beat the whole arc
+  // was walking toward: after three walks, the recruit who was taken
+  // down the fresco on their first morning asks for the brush and
+  // paints the panel after the cornerstone seam \u2014 their own
+  // first muster, in their own hand. Once a session a panel pays:
+  // 130 gold base + 65 per walk (cap 5). Panels tallied in 'aow-mark'.
+  const MARK_KEY = 'aow-mark', MARK_BASE = 130, MARK_PER = 65;
+  let markAdded = false;
+  function loadMark() {
+    try { const m = JSON.parse(localStorage.getItem(MARK_KEY) || 'null');
+      if (m && typeof m === 'object') return { panels: Math.max(0, Math.floor(m.panels || 0)) };
+    } catch {}
+    return { panels: 0 };
+  }
+  function saveMark(m) { try { localStorage.setItem(MARK_KEY, JSON.stringify(m)); } catch {} }
+  function markEarned() { return loadGuide().walks >= 3; }
+  function markPurse() { return MARK_BASE + MARK_PER * Math.min(loadGuide().walks || 0, 5); }
+  function addTheirPanel() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!markEarned() || markAdded) return;
+    markAdded = true;
+    const p = markPurse();
+    const m = loadMark();
+    saveMark({ panels: m.panels + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{270D}\u{FE0F} THE RECRUIT'S PANEL \u2014 the recruit who was walked down the fresco asks for the brush and paints the panel after the cornerstone seam: their own first muster, their own hand. The whole line falls out to watch, and the quartermaster opens the purse for it: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
@@ -2744,6 +2778,8 @@ const AgeOfWarGame = (() => {
     if (frescoBtn) frescoBtn.onclick = walkTheFresco;
     const guideBtn = document.getElementById('aow-guide-btn');
     if (guideBtn) guideBtn.onclick = walkTheRecruit;
+    const markBtn = document.getElementById('aow-mark-btn');
+    if (markBtn) markBtn.onclick = addTheirPanel;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8723,6 +8759,21 @@ const AgeOfWarGame = (() => {
         guideEl.title = guideWalked
           ? 'A recruit has had their walk down the fresco this session \u2014 the next one musters tomorrow.'
           : `The Recruit's Walk \u2014 three walks of the fresco and the oldest sergeant takes every new recruit down it on their first morning, panel by panel. They fight like they were there for all of it: +${guidePurse()} gold. Walked ${loadGuide().walks} time${loadGuide().walks === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Recruit's Panel (AOW-56)
+    const markEl = document.getElementById('aow-mark-btn');
+    const markCdEl = document.getElementById('aow-mark-cd');
+    if (markEl) {
+      if (!markEarned()) { markEl.style.display = 'none'; }
+      else {
+        markEl.style.display = '';
+        markEl.style.opacity = markAdded ? '0.45' : '';
+        if (markCdEl) markCdEl.textContent = markAdded ? 'painted' : `+${markPurse()}g`;
+        markEl.title = markAdded
+          ? 'A panel went up this session \u2014 the wall grows at the pace recruits muster.'
+          : `The Recruit's Panel \u2014 three walks and the recruit taken down the fresco asks for the brush: the panel after the cornerstone seam, their own first muster, their own hand. The whole line falls out to watch: +${markPurse()} gold. Painted ${loadMark().panels} time${loadMark().panels === 1 ? '' : 's'}.`;
       }
     }
 
