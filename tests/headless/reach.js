@@ -95,6 +95,62 @@ const PROBE = (sel) => {
     await ctx.close();
   }
 
+  // D — no duplicate element ids anywhere. HV-50 named its action `panel`,
+  // and action buttons get id="action-"+id, so it collided with the
+  // #action-panel container div: invalid HTML, and the button silently
+  // inherited the panel's absolute-positioned CSS from the day it shipped.
+  for (const pg of ['homeless-village.html', 'drug-lab.html', 'voxel-garden.html',
+                    'tycoon/play.html', 'hearthvale.html', 'ageofwar/index.html', 'index.html']) {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+    await page.goto(BASE + '/' + pg, { waitUntil: 'load' });
+    await page.waitForTimeout(3000);
+    const dups = await page.evaluate(() => {
+      const seen = new Map();
+      document.querySelectorAll('[id]').forEach(el => seen.set(el.id, (seen.get(el.id) || 0) + 1));
+      return [...seen.entries()].filter(([, c]) => c > 1).map(([id, c]) => `${id} x${c}`);
+    });
+    ok(dups.length === 0, `${pg}: no duplicate element ids${dups.length ? ' — ' + dups.join(', ') : ''}`);
+    await ctx.close();
+  }
+
+  // E — Homeless Village: every action and craft button reachable on desktop.
+  // Both side columns were "centred, height = content"; seven rounds of new
+  // ACTIONS rows later the list stood 1035px tall in a 900px viewport and the
+  // last rows sat under #bottom-bar. A control counts as reachable if it is
+  // hittable, or becomes hittable once scrolled into its own container.
+  for (const vp of [{ width: 1400, height: 900 }, { width: 1280, height: 720 }]) {
+    const ctx = await browser.newContext({ viewport: vp });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+    await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
+    await page.waitForTimeout(3000);
+    const stuck = await page.evaluate(() => {
+      const hittable = el => {
+        const b = el.getBoundingClientRect();
+        if (b.width < 2 || b.height < 2) return false;
+        const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+        if (cx < 1 || cx > innerWidth - 1 || cy < 1 || cy > innerHeight - 1) return false;
+        const hit = document.elementFromPoint(cx, cy);
+        return !!hit && (hit === el || el.contains(hit));
+      };
+      const out = [];
+      document.querySelectorAll('#action-list button, #craft-list button, .craft-item').forEach(el => {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || cs.pointerEvents === 'none') return;
+        if (hittable(el)) return;
+        try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
+        if (!hittable(el)) out.push(el.id || el.className);
+      });
+      return out;
+    });
+    ok(stuck.length === 0,
+      `Homeless Village ${vp.width}x${vp.height}: every action and craft button reachable`
+      + (stuck.length ? ` — stuck: ${stuck.join(', ')}` : ''));
+    await ctx.close();
+  }
+
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);

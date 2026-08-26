@@ -320,7 +320,7 @@ function finishAction(a){
       floatText('+'+cd2+'\ud83c\udf5e');
       saveGame();
     }
-  } else if(a.id==='panel'){
+  } else if(a.id==='fifth'){
     // HV-50: the fifth panel beside the finished mural, stood with once a session.
     if(!panelPainted()){ log('\ud83c\udfa8 The fifth panel is still bare block \u2014 three digs of the can and somebody primes it.'); }
     else if(panelStood){ log('\ud83c\udfa8 The panel got its stand today \u2014 the paint is still going on.'); }
