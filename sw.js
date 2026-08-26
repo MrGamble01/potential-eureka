@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v50';  // rolls Flagship Depth 297–303 (the six capsules: time capsule, shoebox, cornerstone cache, coffee can, founders' casket, sunken chest + these notes) to installed PWAs
+const SW_VERSION = 'eureka-v51';  // rolls Flagship Depth 304–310 (the six murals: lobby mural, alley mural, long fresco, fifth panel, hall fresco, harbor mural + these notes) to installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
