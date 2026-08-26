@@ -167,6 +167,24 @@
    They stack inside one scrollable column now, so the ladder reflows to the
    viewport instead of climbing past it. Ordered by the bottom offset each
    chip used to carry, so the visible order is unchanged. */
+#chain-modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.82);
+  display:none;align-items:center;justify-content:center}
+#chain-modal.open{display:flex}
+#chain-panel{background:rgba(10,8,14,.97);border:1px solid rgba(190,170,140,.5);
+  border-radius:8px;padding:16px 18px;width:min(470px,92vw);max-height:78vh;overflow-y:auto}
+#chain-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+#chain-title{font-size:14px;font-weight:800;color:#e8dcc4;letter-spacing:1px;flex:1}
+#chain-progress{font-size:11px;color:#9a8a70}
+#chain-close{background:none;border:none;color:#9a8a70;font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
+#chain-close:hover{color:#e8dcc4}
+.chain-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:6px 9px;border-radius:5px;margin-bottom:3px;font-size:12px}
+.chain-row .chain-name{font-weight:700;color:#e8dcc4}
+.chain-row .chain-note{opacity:.68;font-size:11px;white-space:nowrap;color:#9a8a70}
+.chain-done{background:rgba(90,190,110,.13)}
+.chain-next{background:rgba(240,210,140,.16);outline:1px solid rgba(240,210,140,.4)}
+.chain-open{background:rgba(255,255,255,.05)}
+.chain-locked{opacity:.45}
 #vox-tray{
   position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:40;
   display:flex;flex-direction:column-reverse;align-items:center;
@@ -5644,8 +5662,110 @@ function boot(){
   requestAnimationFrame(frame);
 }
 boot();
+// VOX-50: the Shore -- the memory chain, in order, with live state.
+// Sixteen links along this water and no way to see they are one thing:
+// each chip only appears once the one before it is done, so nobody
+// halfway along knows there is a halfway.
+//
+// NOTE ON PLACEMENT: this table lives at the END of the script, and
+// that is the rule rather than a preference. It cites WREATH_AT and
+// LINE_AT, and anywhere above either of them it evaluates in their
+// temporal dead zone and takes the page down on load. I made exactly
+// that mistake four times across six houses by anchoring "after the
+// block I was thinking of" instead of "after all of them" -- so the
+// rule is the end of the file, where it cannot be got wrong.
+//
+// Every row calls the SAME function the game calls, and states the
+// gate that opens it as its predecessor(s) plus a threshold, which
+// tests/headless/wall.js cross-checks against the game's own
+// predicate. A wrong number here fails the battery rather than
+// quietly lying to a player.
+const VOX_CHAIN = [
+  { id: 'vrec',     icon: '\u{1F514}', name: 'The Harvest Bell',     tally: () => loadVrec().beats,       gate: null,                    prev: null,                need: 0 },
+  { id: 'wreath',   icon: '\u{1F41A}', name: 'The Shell Wreath',     tally: () => loadWreath().cheers,    gate: () => bellHasWreath(),   prev: 'vrec',              need: WREATH_AT },
+  { id: 'keeper',   icon: '\u{1F6F6}', name: 'The Old Keeper',       tally: () => loadKeeper().visits,    gate: null,                    prev: null,                need: 0 },
+  { id: 'sreunion', icon: '\u{1F38F}', name: 'The Shore Reunion',    tally: () => loadSReunion().held,    gate: () => sreunionStands(),  prev: ['wreath', 'keeper'], need: 3 },
+  { id: 'dframe',   icon: '\u{1F5BC}', name: 'The Driftwood Frame',  tally: () => loadDFrame().looks,     gate: () => dframeHangs(),     prev: 'sreunion',          need: 3 },
+  { id: 'mooring',  icon: '\u{2693}',  name: 'The First Mooring',    tally: () => loadMooring().toasts,   gate: () => mooringCounts(),   prev: 'dframe',            need: 3 },
+  { id: 'hlog',     icon: '\u{1F4D2}', name: 'The Harbor Log',       tally: () => loadHLog().leafs,       gate: () => hlogOut(),         prev: 'mooring',           need: 3 },
+  { id: 'hbench',   icon: '\u{1FA91}', name: 'The Harbor Bench',     tally: () => loadHBench().sits,      gate: () => hbenchBuilt(),     prev: 'hlog',              need: 3 },
+  { id: 'yarn',     icon: '\u{1F9F6}', name: 'The Harbor Yarn',      tally: () => loadYarn().tellings,    gate: () => yarnReady(),       prev: 'hbench',            need: 3 },
+  { id: 'shanty',   icon: '\u{1FA97}', name: 'The Sea Shanty',       tally: () => loadShanty().sings,     gate: () => shantyReady(),     prev: 'yarn',              need: 3 },
+  { id: 'chest',    icon: '\u{1F5DD}', name: 'The Sunken Chest',     tally: () => loadChest().hauls,      gate: () => chestSunk(),       prev: 'shanty',            need: 3 },
+  { id: 'mural',    icon: '\u{1F3A8}', name: 'The Harbor Mural',     tally: () => loadMural().walks,      gate: () => muralPainted(),    prev: 'chest',             need: 3 },
+  { id: 'pilot',    icon: '\u{1F9ED}', name: 'The Pilot\u2019s Walk', tally: () => loadPilot().walks,    gate: () => pilotPosted(),     prev: 'mural',             need: 3 },
+  { id: 'mark',     icon: '\u{270D}',  name: 'Their Own Knot',       tally: () => loadMark().knots,       gate: () => markEarned(),      prev: 'pilot',             need: 3 },
+  { id: 'shed',     icon: '\u{1F6D6}', name: 'The Long Shed',        tally: () => loadShed().sits,        gate: () => shedOffered(),     prev: 'mark',              need: 3 },
+  { id: 'line',     icon: '\u{1FAA2}', name: 'The Bare Line',        tally: () => (loadLine().up ? 1 : 0), gate: () => lineEarned(),     prev: 'shed',              need: LINE_AT },
+];
+function chainState() {
+  const rows = VOX_CHAIN.map(r => {
+    const open = !r.gate || !!r.gate();
+    const n = Math.max(0, Math.floor(r.tally() || 0));
+    const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+    return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+  });
+  const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+  return { rows, nextIdx, doneCount: rows.filter(r => r.tally > 0).length, total: rows.length };
+}
+function renderChain() {
+  const listEl = document.getElementById('chain-list');
+  const progEl = document.getElementById('chain-progress');
+  if (!listEl) return;
+  const st = chainState();
+  if (progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+  const byId = {}; st.rows.forEach(r => { byId[r.id] = r; });
+  listEl.innerHTML = st.rows.map((r, i) => {
+    const started = r.tally > 0;
+    const isNext = i === st.nextIdx;
+    // Past the one you are on, rows stay unnamed: it should say the
+    // shore keeps going, not hand over the list.
+    const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+    const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+    let note;
+    if (started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+    else if (isNext) note = 'yours to do next';
+    else if (r.open) note = 'open';
+    else if (r.prev.length) {
+      // Name the predecessor furthest behind: the one actually
+      // holding this row up.
+      const behind = r.prev.map(p => byId[p]).filter(Boolean)
+        .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+      note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+    }
+    else note = 'not yet';
+    const cls = started ? 'chain-done' : isNext ? 'chain-next' : r.open ? 'chain-open' : 'chain-locked';
+    return '<div class="chain-row ' + cls + '"><span class="chain-name">' + label
+      + '</span><span class="chain-note">' + note + '</span></div>';
+  }).join('');
+}
+function openChain() {
+  renderChain();
+  const m = document.getElementById('chain-modal');
+  if (m) m.classList.add('open');
+}
+addEventListener('DOMContentLoaded', () => {
+  const cb = document.getElementById('chain-btn');
+  if (cb) cb.onclick = openChain;
+  const cc = document.getElementById('chain-close');
+  if (cc) cc.onclick = () => document.getElementById('chain-modal').classList.remove('open');
+  const cm = document.getElementById('chain-modal');
+  if (cm) cm.addEventListener('click', e => { if (e.target === cm) cm.classList.remove('open'); });
+});
+
 </script>
+<div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Shore">
+  <div id="chain-panel">
+    <div id="chain-head">
+      <span id="chain-title">🧱 THE SHORE</span>
+      <span id="chain-progress">0 of 0 begun</span>
+      <button id="chain-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="chain-list"></div>
+  </div>
+</div>
 <div id="vox-tray">
+<div id="chain-btn" style="background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;display:flex;gap:8px;align-items:center" title="The Shore — everything this isle remembers, in the order it happened, and what the next one is waiting on.">🧱 the shore</div>
 <div id="doveHud" style="display:none;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
 <div id="cloudHud" style="display:none;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
 <div id="polHud" style="display:flex;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>

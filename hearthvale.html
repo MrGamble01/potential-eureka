@@ -313,6 +313,27 @@
       #hint { display: none; }
     }
   </style>
+<style>
+/* The chain panel — shared shape across the last two houses. */
+#chain-modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.82);
+  display:none;align-items:center;justify-content:center}
+#chain-modal.open{display:flex}
+#chain-panel{background:rgba(10,8,14,.97);border:1px solid rgba(190,170,140,.5);
+  border-radius:8px;padding:16px 18px;width:min(470px,92vw);max-height:78vh;overflow-y:auto}
+#chain-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+#chain-title{font-size:14px;font-weight:800;color:#e8dcc4;letter-spacing:1px;flex:1}
+#chain-progress{font-size:11px;color:#9a8a70}
+#chain-close{background:none;border:none;color:#9a8a70;font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
+#chain-close:hover{color:#e8dcc4}
+.chain-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:6px 9px;border-radius:5px;margin-bottom:3px;font-size:12px}
+.chain-row .chain-name{font-weight:700;color:#e8dcc4}
+.chain-row .chain-note{opacity:.68;font-size:11px;white-space:nowrap;color:#9a8a70}
+.chain-done{background:rgba(90,190,110,.13)}
+.chain-next{background:rgba(240,210,140,.16);outline:1px solid rgba(240,210,140,.4)}
+.chain-open{background:rgba(255,255,255,.05)}
+.chain-locked{opacity:.45}
+</style>
 </head>
 <body>
   <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">ARCADE</span></a>
@@ -338,10 +359,21 @@
     <button id="m-warden">Walk a Newcomer Down the Hall</button>
     <button id="m-mark">Let a Newcomer Paint Their Panel</button>
     <button id="m-gallery">The Long Gallery</button>
+    <button id="chain-btn" title="The Hall — everything this valley remembers, in the order it happened, and what the next one is waiting on.">🧱 The Hall</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
-  <div id="paused">&#9208; PAUSED &middot; press Space</div>
+  <div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Hall">
+  <div id="chain-panel">
+    <div id="chain-head">
+      <span id="chain-title">🧱 THE HALL</span>
+      <span id="chain-progress">0 of 0 begun</span>
+      <button id="chain-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="chain-list"></div>
+  </div>
+</div>
+<div id="paused">&#9208; PAUSED &middot; press Space</div>
 
   <canvas id="game"></canvas>
 
@@ -3303,6 +3335,97 @@
     toast('\u{1F9F1} The Fresh Plaster \u2014 every villager born here now starts +' + PLASTER_XP + ' mastery XP.');
     checkAchievements();
     return true;
+  }
+
+
+  // ---- the Hall (HVALE-52) ------------------------------------
+  // Sixteen links in this valley and no way to see they are one
+  // thing: each menu row only appears once the one before it is done,
+  // so nobody halfway along knows there is a halfway.
+  //
+  // NOTE ON PLACEMENT: this table must sit AFTER every block whose
+  // threshold constant it cites (GILT_AT, PLASTER_AT). Declared above
+  // them it evaluates in their temporal dead zone and takes the page
+  // down on load -- which happened to the Tycoon wall and then, one
+  // tranche later, to the Grow Op one.
+  //
+  // Every row calls the SAME function the game calls, and states the
+  // gate that opens it as its predecessor(s) plus a threshold, which
+  // tests/headless/wall.js cross-checks against the game's own
+  // predicate. A wrong number here fails the battery rather than
+  // quietly lying to a player.
+  const HVALE_CHAIN = [
+    { id: 'ledger',   icon: '\u{1F4D6}', name: 'The Valley Ledger',    tally: () => loadLedger().beats,      gate: null,                      prev: null,                 need: 0 },
+    { id: 'gilt',     icon: '\u{2728}',  name: 'The Gilded Ledger',    tally: () => loadGilt().cheers,       gate: () => ledgerIsGilded(),    prev: 'ledger',             need: GILT_AT },
+    { id: 'reeve',    icon: '\u{1F9D3}', name: 'The First Reeve',      tally: () => loadReeve().visits,      gate: null,                      prev: null,                 need: 0 },
+    { id: 'freunion', icon: '\u{1F37B}', name: 'The Founders\u2019 Reunion', tally: () => loadFReunion().held, gate: () => freunionStands(), prev: ['gilt', 'reeve'],   need: 3 },
+    { id: 'portrait', icon: '\u{1F5BC}', name: 'The Green Portrait',   tally: () => loadVPortrait().looks,   gate: () => portraitHangs(),     prev: 'freunion',           need: 3 },
+    { id: 'fday',     icon: '\u{1F38A}', name: 'The Founding Day',     tally: () => loadFDay().toasts,       gate: () => foundingCounts(),    prev: 'portrait',           need: 3 },
+    { id: 'register', icon: '\u{1F4D6}', name: 'The Hall Register',    tally: () => loadRegister().leafs,    gate: () => registerOut(),       prev: 'fday',               need: 3 },
+    { id: 'gbench',   icon: '\u{1FA91}', name: 'The Green Bench',      tally: () => loadGBench().sits,       gate: () => gbenchBuilt(),       prev: 'register',           need: 3 },
+    { id: 'htale',    icon: '\u{1F525}', name: 'The Hearth Tale',      tally: () => loadHTale().tellings,    gate: () => htaleReady(),        prev: 'gbench',             need: 3 },
+    { id: 'ballad',   icon: '\u{1FA95}', name: 'The Minstrel\u2019s Ballad', tally: () => loadBallad().hearings, gate: () => balladReady(),  prev: 'htale',              need: 3 },
+    { id: 'casket',   icon: '\u{1F5DD}', name: 'The Founders\u2019 Casket', tally: () => loadCasket().opens, gate: () => casketSealed(),     prev: 'ballad',             need: 3 },
+    { id: 'fresco',   icon: '\u{1F3A8}', name: 'The Hall Fresco',      tally: () => loadFresco().walks,      gate: () => frescoPainted(),     prev: 'casket',             need: 3 },
+    { id: 'warden',   icon: '\u{1F9ED}', name: 'The Hall Warden',      tally: () => loadWarden().walks,      gate: () => wardenPosted(),      prev: 'fresco',             need: 3 },
+    { id: 'mark',     icon: '\u{270D}',  name: 'The Newcomer\u2019s Panel', tally: () => loadMark().panels, gate: () => markEarned(),        prev: 'warden',             need: 3 },
+    { id: 'gall',     icon: '\u{1F3DB}', name: 'The Long Gallery',     tally: () => loadGall().sits,         gate: () => gallOffered(),       prev: 'mark',               need: 3 },
+    { id: 'plaster',  icon: '\u{1F9F1}', name: 'The Fresh Plaster',    tally: () => (loadPlaster().up ? 1 : 0), gate: () => plasterEarned(),  prev: 'gall',               need: PLASTER_AT },
+  ];
+
+  function chainState() {
+    const rows = HVALE_CHAIN.map(r => {
+      const open = !r.gate || !!r.gate();
+      const n = Math.max(0, Math.floor(r.tally() || 0));
+      const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+      return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+    });
+    const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+    return { rows, nextIdx, doneCount: rows.filter(r => r.tally > 0).length, total: rows.length };
+  }
+  function renderChain() {
+    const listEl = document.getElementById('chain-list');
+    const progEl = document.getElementById('chain-progress');
+    if (!listEl) return;
+    const st = chainState();
+    if (progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+    const byId = {}; st.rows.forEach(r => { byId[r.id] = r; });
+    listEl.innerHTML = st.rows.map((r, i) => {
+      const started = r.tally > 0;
+      const isNext = i === st.nextIdx;
+      // Past the one you are on, rows stay unnamed: it should say the
+      // chain keeps going, not hand over the list.
+      const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+      const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+      let note;
+      if (started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+      else if (isNext) note = 'yours to do next';
+      else if (r.open) note = 'open';
+      else if (r.prev.length) {
+        // Name the predecessor furthest behind: the one actually
+        // holding this row up.
+        const behind = r.prev.map(p => byId[p]).filter(Boolean)
+          .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+        note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+      }
+      else note = 'not yet';
+      const cls = started ? 'chain-done' : isNext ? 'chain-next' : r.open ? 'chain-open' : 'chain-locked';
+      return '<div class="chain-row ' + cls + '"><span class="chain-name">' + label
+        + '</span><span class="chain-note">' + note + '</span></div>';
+    }).join('');
+  }
+  function openChain() {
+    renderChain();
+    const m = document.getElementById('chain-modal');
+    if (m) m.classList.add('open');
+  }
+  {
+    const cb = document.getElementById('chain-btn');
+    if (cb) cb.onclick = openChain;
+    const cc = document.getElementById('chain-close');
+    if (cc) cc.onclick = () => document.getElementById('chain-modal').classList.remove('open');
+    const cm = document.getElementById('chain-modal');
+    if (cm) cm.addEventListener('click', e => { if (e.target === cm) cm.classList.remove('open'); });
   }
 
   // One control at two stages of its life: the building while there is
