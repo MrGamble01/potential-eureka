@@ -617,6 +617,24 @@ function loadHvCan(){
 function saveHvCan(c){ try{ localStorage.setItem(HVCAN_KEY, JSON.stringify(c)); }catch(e){} }
 function canBuried(){ return loadHvSong().plays>=3; }
 function canDish(){ return HVCAN_BASE + HVCAN_PER*Math.min(loadHvSong().plays||0,5); }
+// HV-50: the mural round under the bridge. The community mural
+// (HV-11) filled its four panels long ago; after three digs of the
+// coffee can, somebody primes a fifth beside them and paints the
+// whole bridge story along it — the wall of names, the fridge,
+// the bench, the fire, the ballad, the can by the piling. Once a
+// session standing with it pays: 9 food base + 1 per dig (cap 5).
+// Stands tallied in 'hv-mural'.
+var HVPAN_KEY='hv-mural', HVPAN_BASE=9, HVPAN_PER=1;
+var panelStood=false;
+function loadHvPanel(){
+  try{ var q=JSON.parse(localStorage.getItem(HVPAN_KEY)||'null');
+    if(q&&typeof q==='object') return {stands:Math.max(0,Math.floor(q.stands||0))};
+  }catch(e){}
+  return {stands:0};
+}
+function saveHvPanel(q){ try{ localStorage.setItem(HVPAN_KEY, JSON.stringify(q)); }catch(e){} }
+function panelPainted(){ return loadHvCan().digs>=3; }
+function panelDish(){ return HVPAN_BASE + HVPAN_PER*Math.min(loadHvCan().digs||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -695,6 +713,7 @@ var ACTIONS = [
   {id:'story',     icon:'🔥', label:'Tell the Fire Story', time:2000, cooldown:30000, tooltip:'Three sits on the bench and somebody has the whole bridge story by heart — the wall, the notebook, the reunions, every name in the spiral. Tell it around the fire once a session, and somebody always shows up with dinner before it\u2019s done.'},
   {id:'ballad',    icon:'🎸', label:'Play the Bridge Ballad', time:2000, cooldown:30000, tooltip:'Three tellings of the fire story and the busker sets it to a tune — the whole bridge story, three chords, everybody hums along. Play it once a session, and the hat by the fire always fills before the last verse.'},
   {id:'can',       icon:'📦', label:'Dig Up the Coffee Can', time:2000, cooldown:30000, tooltip:'Three playings of the ballad and somebody buries a coffee can by the piling — a notebook page, a snapshot, a guitar pick, the wall\u2019s numbers copied out. Dig it up once a session, and there\u2019s always something tucked in with it.'},
+  {id:'panel',     icon:'🎨', label:'Stand at the Fifth Panel', time:2000, cooldown:30000, tooltip:'Three digs of the coffee can and somebody primes a fifth panel beside the finished mural — the wall of names, the fridge, the bench, the fire, the ballad, the can by the piling, all of it painted the length of the underpass. Stand with it once a session, and somebody who slowed down to read it always leaves something.'},
 ];
 
 var WORKER_DEFS = [
@@ -753,6 +772,7 @@ var GOALS = [
   {id:'story2',     desc:'Tell the fire story on 2 sessions', target:2, reward:5, value:function(){ return loadHvStory().tellings; }},
   {id:'ballad2',    desc:'Play the bridge ballad on 2 sessions', target:2, reward:5, value:function(){ return loadHvSong().plays; }},
   {id:'can2',       desc:'Dig up the coffee can on 2 sessions', target:2, reward:5, value:function(){ return loadHvCan().digs; }},
+  {id:'panel2',     desc:'Stand at the fifth panel on 2 sessions', target:2, reward:5, value:function(){ return loadHvPanel().stands; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
