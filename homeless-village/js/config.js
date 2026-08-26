@@ -635,6 +635,23 @@ function loadHvPanel(){
 function saveHvPanel(q){ try{ localStorage.setItem(HVPAN_KEY, JSON.stringify(q)); }catch(e){} }
 function panelPainted(){ return loadHvCan().digs>=3; }
 function panelDish(){ return HVPAN_BASE + HVPAN_PER*Math.min(loadHvCan().digs||0,5); }
+// HV-51: the docent round under the bridge. After three stands at
+// the fifth panel, whoever has been here longest starts walking
+// every newcomer down the whole underpass on their first night --
+// the four panels, the fifth, the wall of names, the fridge, the
+// bench, the can by the piling. Once a session a walk pays: 10 food
+// base + 1 per stand (cap 5). Walks tallied in 'hv-docent'.
+var HVWALK_KEY='hv-docent', HVWALK_BASE=10, HVWALK_PER=1;
+var walkGiven=false;
+function loadHvWalk(){
+  try{ var w=JSON.parse(localStorage.getItem(HVWALK_KEY)||'null');
+    if(w&&typeof w==='object') return {walks:Math.max(0,Math.floor(w.walks||0))};
+  }catch(e){}
+  return {walks:0};
+}
+function saveHvWalk(w){ try{ localStorage.setItem(HVWALK_KEY, JSON.stringify(w)); }catch(e){} }
+function walkUp(){ return loadHvPanel().stands>=3; }
+function walkDish(){ return HVWALK_BASE + HVWALK_PER*Math.min(loadHvPanel().stands||0,5); }
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -714,6 +731,7 @@ var ACTIONS = [
   {id:'ballad',    icon:'🎸', label:'Play the Bridge Ballad', time:2000, cooldown:30000, tooltip:'Three tellings of the fire story and the busker sets it to a tune — the whole bridge story, three chords, everybody hums along. Play it once a session, and the hat by the fire always fills before the last verse.'},
   {id:'can',       icon:'📦', label:'Dig Up the Coffee Can', time:2000, cooldown:30000, tooltip:'Three playings of the ballad and somebody buries a coffee can by the piling — a notebook page, a snapshot, a guitar pick, the wall\u2019s numbers copied out. Dig it up once a session, and there\u2019s always something tucked in with it.'},
   {id:'panel',     icon:'🎨', label:'Stand at the Fifth Panel', time:2000, cooldown:30000, tooltip:'Three digs of the coffee can and somebody primes a fifth panel beside the finished mural — the wall of names, the fridge, the bench, the fire, the ballad, the can by the piling, all of it painted the length of the underpass. Stand with it once a session, and somebody who slowed down to read it always leaves something.'},
+  {id:'walk',      icon:'🧭', label:'Walk a Newcomer Down', time:2000, cooldown:30000, tooltip:'Three stands at the fifth panel and whoever has been here longest starts walking every newcomer down the whole underpass on their first night — the four panels, the fifth, the wall of names, the fridge, the bench, the can by the piling. Do it once a session, and they stop being a stranger by morning.'},
 ];
 
 var WORKER_DEFS = [
@@ -773,6 +791,7 @@ var GOALS = [
   {id:'ballad2',    desc:'Play the bridge ballad on 2 sessions', target:2, reward:5, value:function(){ return loadHvSong().plays; }},
   {id:'can2',       desc:'Dig up the coffee can on 2 sessions', target:2, reward:5, value:function(){ return loadHvCan().digs; }},
   {id:'panel2',     desc:'Stand at the fifth panel on 2 sessions', target:2, reward:5, value:function(){ return loadHvPanel().stands; }},
+  {id:'walk2',      desc:'Walk a newcomer down the underpass on 2 sessions', target:2, reward:5, value:function(){ return loadHvWalk().walks; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
