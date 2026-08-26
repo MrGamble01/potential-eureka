@@ -348,6 +348,20 @@ function finishAction(a){
       floatText('+'+wd2+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='mark'){
+    // HV-52: the newcomer's own name on the wall, added once a session.
+    if(!markUp()){ log('\u270d\ufe0f Nobody new has been shown the whole wall yet \u2014 three walks down the underpass and somebody takes the chalk.'); }
+    else if(markAdded){ log('\u270d\ufe0f A name went up tonight \u2014 the wall grows at the pace people stay.'); }
+    else {
+      markAdded=true;
+      var md2=markDish();
+      var mk2=loadHvMark();
+      saveHvMark({names:(mk2.names||0)+1});
+      G.food=(G.food||0)+md2;
+      log('\u270d\ufe0f A NAME ON THE WALL \u2014 the newcomer who got shown all of it takes the chalk and writes their own name up there, in their hand. The fire is fuller that night than it has any right to be: +'+md2+'\ud83c\udf5e');
+      floatText('+'+md2+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
