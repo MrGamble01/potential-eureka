@@ -362,6 +362,34 @@ function finishAction(a){
       floatText('+'+md2+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='dry'){
+    // HV-53: the first link that asks for something back. Unbuilt, the
+    // button is the build and it charges; roofed, the same button is
+    // the sitting and it pays.
+    if(!dryOffered()){ log('\u26f1\ufe0f The wall is still one hand\u2019s work \u2014 three names in three different hands before anyone talks about a roof.'); }
+    else if(!dryBuilt()){
+      if((G.scraps||0)<HVDRY_SCRAPS || (G.cardboard||0)<HVDRY_CARD){
+        log('\u26f1\ufe0f Not enough to roof it \u2014 it takes '+HVDRY_SCRAPS+'\ud83e\uddf1 and '+HVDRY_CARD+'\ud83d\udce6, and the corner stays open to the sky.');
+        sfx('error');
+      } else {
+        G.scraps-=HVDRY_SCRAPS; G.cardboard-=HVDRY_CARD;
+        saveHvDry({built:true, sits:loadHvDry().sits});
+        log('\u26f1\ufe0f THE DRY CORNER \u2014 sheeting over the piling, pallets under it, and everything the bridge remembers carried in out of the weather: the notebook, the can, the snapshot, the panels, every name. It feeds nobody. The rain stops editing the story.');
+        buildActionUI();
+        saveGame();
+      }
+    }
+    else if(drySat){ log('\u26f1\ufe0f Somebody has already had their hour in the dry corner tonight \u2014 the roof keeps, and so does the habit.'); }
+    else {
+      drySat=true;
+      var dd2=dryDish();
+      var dr2=loadHvDry();
+      saveHvDry({built:true, sits:(dr2.sits||0)+1});
+      G.food=(G.food||0)+dd2;
+      log('\u26f1\ufe0f THE DRY CORNER \u2014 an hour under the sheeting with the whole bridge on the walls, dry. People come in out of the rain to read it, and nobody comes in empty-handed: +'+dd2+'\ud83c\udf5e');
+      floatText('+'+dd2+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];

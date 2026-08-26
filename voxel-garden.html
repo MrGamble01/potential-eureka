@@ -1413,6 +1413,74 @@ function tieTheirKnot(){
   if(typeof checkAch==='function')checkAch();
   refreshMarkHud();
 }
+// VOX-48: the paid link on the water. Twelve links along this shore
+// and not one has ever asked for a coin. The boarding has run out of
+// harbor wall: the marked line ends at the ways and the newest knot
+// is tied at the last inch of it. The Long Shed is the first thing
+// the isle has to buy \u2014 350 coins, once ever, for a roofed run
+// off the end of the boarding that grows nothing, moors nothing and
+// sells nothing. What it does is give the line somewhere to go: the
+// chest up on trestles, the log open on a stand, the wreath out of
+// the salt, every knot since the first mooring along one wall, and
+// bare boarding at the far end. Sit in it once a session and the
+// whole harbor finds a reason to walk out: 70 coins base + 5 per
+// knot (cap 5). Built flag and sittings both live in 'vox-longshed'.
+const SHED_KEY='vox-longshed',SHED_COST=350,SHED_BASE=70,SHED_PER=5;
+let shedSat=false;
+function loadShed(){
+  try{const d=JSON.parse(localStorage.getItem(SHED_KEY)||'null');
+    if(d&&typeof d==='object')return{built:!!d.built,sits:Math.max(0,Math.floor(d.sits||0))};
+  }catch(e){}
+  return{built:false,sits:0};
+}
+function saveShed(d){try{localStorage.setItem(SHED_KEY,JSON.stringify(d));}catch(e){}}
+function shedOffered(){ return loadMark().knots>=3; }
+function shedBuilt(){ return loadShed().built; }
+function shedPurse(){ return SHED_BASE + SHED_PER*Math.min(loadMark().knots||0,5); }
+function refreshShedHud(){
+  const h=document.getElementById('shedHud'),tx=document.getElementById('shedTxt');
+  if(!h)return;
+  h.style.display=shedOffered()?'flex':'none';
+  if(!shedBuilt()){
+    h.style.opacity=(state.coins||0)>=SHED_COST?'':'0.45';
+    if(tx)tx.textContent='\u{1F6D6} raise the shed for '+SHED_COST+' \u{1FA99}';
+    return;
+  }
+  h.style.opacity=shedSat?'0.45':'';
+  if(tx)tx.textContent=shedSat?'\u{1F6D6} sat':'\u{1F6D6} an hour in the shed for +'+shedPurse()+' \u{1FA99}';
+}
+function buyLongShed(){
+  if(!shedOffered()||shedBuilt())return false;
+  if((state.coins||0)<SHED_COST){
+    toast('\u{1F6D6} The Long Shed runs '+SHED_COST+' \u{1FA99} \u2014 the shipwrights will not lay a keel short.');
+    return false;
+  }
+  state.coins-=SHED_COST;
+  saveShed({built:true,sits:loadShed().sits});
+  toast('\u{1F6D6} THE LONG SHED \u2014 the shipwrights roof the ways and run the boarding straight out through it. The chest goes up on trestles, the log open on a stand, the wreath in out of the salt, every knot since the first mooring along one wall \u2014 and the far end left bare for whoever ships out next season.');
+  if(typeof checkAch==='function')checkAch();
+  refreshShedHud();
+  return true;
+}
+function sitInLongShed(){
+  if(!shedBuilt()||shedSat)return false;
+  shedSat=true;
+  const p=shedPurse();
+  const d=loadShed();
+  saveShed({built:true,sits:d.sits+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u{1F6D6} THE LONG SHED \u2014 an hour out at the end of the boarding with the whole shore along one wall, dry: the chest, the log, the wreath, every knot to the newest hand. Half the harbor finds a reason to walk out, and nobody walks out and back empty: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshShedHud();
+  return true;
+}
+// One control at two stages of its life: the raising while there is
+// no shed, the sitting the moment there is.
+function useLongShed(){
+  if(!shedOffered())return;
+  if(!shedBuilt()){ buyLongShed(); return; }
+  sitInLongShed();
+}
 // VOX-28: the letters round on the shore. Every fresh isle that
 // rises with a history to cite finds a bottle washed up by the
 // starter plots — the message quotes the lantern's greeted isles and
@@ -5217,6 +5285,7 @@ const ACH=[
   ['mural3','The Harbor Mural','Walk the mural on three sessions',()=>loadMural().walks>=3],
   ['pilot3','The Pilot\u2019s Walk','Walk a green hand down the boarding on three sessions',()=>loadPilot().walks>=3],
   ['mark3','Their Own Knot','Tie a green hand\u2019s knot into the boarding on three sessions',()=>loadMark().knots>=3],
+  ['longshed','The Long Shed','Sit in the Long Shed on three sessions',()=>loadShed().sits>=3],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
   ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
   ['angler','Compleat Angler','Land every species in the pond',
@@ -5471,7 +5540,7 @@ function boot(){
   initHud();
   // VOX-26/27: the chips live at the foot of the document — defer the
   // first paint until the parser has built them
-  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();});
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();refreshShedHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -5560,6 +5629,7 @@ boot();
 <div id="muralHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="walkHarborMural()" title="The Harbor Mural: three hauls of the chest and a painter takes the long boarding of the harbor wall — the first mooring, the log’s best haul, the bench, the yarn’s ships, the shanty’s verses, the marked line. Walk it once a session, and there’s always coin left at the end of the boarding."><span id="muralTxt">🎨 —</span></div>
 <div id="pilotHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="walkTheGreenhand()" title="The Pilot’s Walk: three walks of the mural and the oldest pilot on the water takes every green hand down the boarding on their first morning — the first mooring, the best haul, the bench, the ships, the verses, the marked line. Do it once a session, and they row like they were born to it by dusk."><span id="pilotTxt">🧭 —</span></div>
 <div id="markHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="tieTheirKnot()" title="Their Own Knot: three walks and the green hand the pilot took down the boarding asks for a length of line and ties their own knot in at the end of the marked line — their first season, their hand. Do it once a session; the whole harbor stops to watch."><span id="markTxt">✍️ —</span></div>
+<div id="shedHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="useLongShed()" title="The Long Shed: three knots in three different hands and the boarding has run out of harbor wall. 350 🪙 roofs the ways once, forever, and the marked line runs straight out through it — the chest on trestles, the log on a stand, the wreath out of the salt, bare boarding at the far end. Then sit in it once a session."><span id="shedTxt">🛖 —</span></div>
 </div>
 </body>
 </html>

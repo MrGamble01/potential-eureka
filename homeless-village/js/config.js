@@ -670,6 +670,42 @@ function loadHvMark(){
 function saveHvMark(m){ try{ localStorage.setItem(HVMARK_KEY, JSON.stringify(m)); }catch(e){} }
 function markUp(){ return loadHvWalk().walks>=3; }
 function markDish(){ return HVMARK_BASE + HVMARK_PER*Math.min(loadHvWalk().walks||0,5); }
+
+// HV-53: the paid link. Twelve links under this bridge and not one of
+// them has ever asked for anything back — the wall, the notebook, the
+// bench, the ballad, the can, the fifth panel, the walk, the names.
+// They are all chalk and paper under an open underpass, and every
+// hard rain takes a little more of them. The Dry Corner is the first
+// one the camp has to buy: 12 scraps and 8 cardboard build a roofed,
+// sheeted corner by the piling, and everything the bridge remembers
+// goes under it out of the weather. Nothing about it feeds anyone.
+// What it does is stop the rain from editing the story. Sit in it
+// once a session and somebody always comes by: 12 food base + 1 per
+// name on the wall (cap 5). Built flag and sittings both live in
+// 'hv-drycorner', so the corner and the habit survive separately.
+var HVDRY_KEY='hv-drycorner', HVDRY_SCRAPS=12, HVDRY_CARD=8, HVDRY_BASE=12, HVDRY_PER=1;
+var drySat=false;
+function loadHvDry(){
+  try{ var d=JSON.parse(localStorage.getItem(HVDRY_KEY)||'null');
+    if(d&&typeof d==='object') return {built:!!d.built, sits:Math.max(0,Math.floor(d.sits||0))};
+  }catch(e){}
+  return {built:false, sits:0};
+}
+function saveHvDry(d){ try{ localStorage.setItem(HVDRY_KEY, JSON.stringify(d)); }catch(e){} }
+function dryOffered(){ return loadHvMark().names>=3; }
+function dryBuilt(){ return loadHvDry().built; }
+function dryDish(){ return HVDRY_BASE + HVDRY_PER*Math.min(loadHvMark().names||0,5); }
+// One button at two stages of its life: the build while the corner is
+// open to the sky, the sitting the moment it has a roof.
+function dryAvailable(){ return dryOffered(); }
+function dryAction(){
+  if(!dryBuilt()){
+    return { id:'dry', icon:'\u26F1\uFE0F', label:'Roof the Dry Corner ('+HVDRY_SCRAPS+'\ud83e\uddf1 + '+HVDRY_CARD+'\ud83d\udce6)', time:6000, cooldown:0,
+      tooltip:'Three names in three different hands and the wall has outgrown the weather. '+HVDRY_SCRAPS+' scraps and '+HVDRY_CARD+' cardboard sheet and roof the corner by the piling, and everything the bridge remembers \u2014 the notebook, the can, the snapshot, the panels, the names \u2014 goes under it. It feeds nobody. It just stops the rain from taking the story.' };
+  }
+  return { id:'dry', icon:'\u26F1\uFE0F', label:'Sit in the Dry Corner', time:2000, cooldown:30000,
+    tooltip:'The corner is roofed and sheeted and the whole bridge is under it, dry. Sit in it once a session \u2014 people come in out of the rain to read, and nobody comes in empty-handed.' };
+}
 function thermosPower(){
   return THERMOS_BASE + Math.min(loadHvRec().beats||0,5) + Math.min(loadHvNote().read||0,3);
 }
@@ -812,6 +848,7 @@ var GOALS = [
   {id:'panel2',     desc:'Stand at the fifth panel on 2 sessions', target:2, reward:5, value:function(){ return loadHvPanel().stands; }},
   {id:'walk2',      desc:'Walk a newcomer down the underpass on 2 sessions', target:2, reward:5, value:function(){ return loadHvWalk().walks; }},
   {id:'mark2',      desc:'Add a newcomer’s name to the wall on 2 sessions', target:2, reward:5, value:function(){ return loadHvMark().names; }},
+  {id:'dry2',       desc:'Sit in the dry corner on 2 sessions', target:2, reward:5, value:function(){ return loadHvDry().sits; }},
   {id:'board3',     desc:'See the fridge earn its bulletin board (3 camps welcomed)', target:3, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'shelf6',     desc:'See the fridge grow its community shelf (6 camps welcomed)', target:6, reward:5, value:function(){ return loadFridge().built ? loadFridge().camps : 0; }},
   {id:'potluck3',   desc:'Open three fresh camps with a potluck', target:3, reward:5, value:function(){ return loadPotluck().days; }},
