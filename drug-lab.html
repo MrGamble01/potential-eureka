@@ -595,6 +595,14 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #song-toggle{bottom:680px;right:8px;font-size:11px;padding:5px 9px;} }
+/* -- The Shoebox (LAB-51) -- */
+#shoebox-toggle{
+  position:fixed;bottom:14px;right:3520px;z-index:30;
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #shoebox-toggle{bottom:718px;right:8px;font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   position:fixed;bottom:14px;right:540px;z-index:30;
@@ -694,6 +702,7 @@ canvas{display:block;touch-action:none;}
 <button id="stoop-toggle" style="display:none" title="The Stoop: three reads of the wall and the crew builds a bench out front — a seat with the whole story at its back. Sit once a session, and somebody always sits down with a proposition.">🪑 THE STOOP</button>
 <button id="sstory-toggle" style="display:none" title="The Stoop Story: three sits and the crew has the whole block story by heart. Tell it once a session — somebody at the edge of the stoop always calls in an order before it's done.">🎙️ THE STORY</button>
 <button id="song-toggle" style="display:none" title="The Block Track: three tellings and somebody cuts the story to a beat — one track, everybody knows the hook. Play it once a session, and an order comes in before the hook comes back around.">🎧 THE TRACK</button>
+<button id="shoebox-toggle" style="display:none" title="The Shoebox: three plays of the track and the crew buries a shoebox under the stoop — the polaroid, a rubbing of the wall, a burned CD. Dig it up once a session, and there's always a little extra folded inside.">📦 THE SHOEBOX</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 <div id="heat-hud">
@@ -2542,6 +2551,46 @@ function playBlockTrack() {
   checkGrowAchievements();
   refreshTrackBtn();
 }
+// LAB-51: the capsule round on the corner \u2014 after three
+// plays of the Block Track, the crew buries a shoebox under the
+// stoop: the polaroid, a rubbing of the wall, the zippo's story,
+// a burned CD of the track. Once a session a dig-up pays: $110
+// base + $55 per play (cap 5). Digs tallied in 'growop-capsule'.
+const SHOEBOX_KEY = 'growop-capsule', SHOEBOX_BASE = 110, SHOEBOX_PER = 55;
+let shoeboxDug = false;
+function loadShoebox() {
+  try { const s = JSON.parse(localStorage.getItem(SHOEBOX_KEY) || 'null');
+    if (s && typeof s === 'object') return { digs: Math.max(0, Math.floor(s.digs || 0)) };
+  } catch(e){}
+  return { digs: 0 };
+}
+function saveShoebox(s) { try { localStorage.setItem(SHOEBOX_KEY, JSON.stringify(s)); } catch(e){} }
+function shoeboxBuried() { return loadTrack().plays >= 3; }
+function shoeboxPurse() { return SHOEBOX_BASE + SHOEBOX_PER * Math.min(loadTrack().plays || 0, 5); }
+function refreshShoeboxBtn() {
+  const b = document.getElementById('shoebox-toggle');
+  if (!b) return;
+  b.onclick = digUpShoebox;
+  if (!shoeboxBuried()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = shoeboxDug ? '0.45' : '';
+  b.title = shoeboxDug
+    ? 'The Shoebox got its dig this session. Once a day \u2014 the stoop keeps.'
+    : 'The Shoebox \u2014 three plays of the track and the crew buried one under the stoop: the polaroid, the rubbing, the CD. Dig it up, and there\u2019s always a little extra folded inside: +$' + shoeboxPurse()
+      + '. Dug ' + loadShoebox().digs + ' time' + (loadShoebox().digs === 1 ? '' : 's') + '.';
+}
+function digUpShoebox() {
+  if (!shoeboxBuried() || shoeboxDug) return;
+  shoeboxDug = true;
+  const p = shoeboxPurse();
+  const s = loadShoebox();
+  saveShoebox({ digs: s.digs + 1 });
+  state.cash += p;
+  addFeed('📦 The crew digs up the shoebox under the stoop \u2014 the polaroid, the rubbing, the burned CD. There\u2019s a little extra folded inside, like always: +$' + p);
+  showToast('📦 The Shoebox \u2014 +$' + p + '. The stoop remembers.', 'good');
+  checkGrowAchievements();
+  refreshShoeboxBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -2968,6 +3017,7 @@ function refreshRouteBtn() {
   refreshStoopBtn(); // LAB-48: and the seat built to sit with them
   refreshSStoryBtn(); // LAB-49: and the story told from that seat
   refreshTrackBtn(); // LAB-50: and the beat it got cut to
+  refreshShoeboxBtn(); // LAB-51: and the box buried under it all
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3424,6 +3474,7 @@ const GROW_ACH = [
   { id: 'the_stoop', name: 'The Stoop', test: () => (loadStoop().sits || 0) >= 3 },   // LAB-48
   { id: 'stoop_story', name: 'The Stoop Story', test: () => (loadSStory().tellings || 0) >= 3 },   // LAB-49
   { id: 'block_track', name: 'The Block Track', test: () => (loadTrack().plays || 0) >= 3 },   // LAB-50
+  { id: 'the_shoebox', name: 'The Shoebox', test: () => (loadShoebox().digs || 0) >= 3 },   // LAB-51
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
