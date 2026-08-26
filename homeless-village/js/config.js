@@ -896,3 +896,50 @@ var GOALS = [
 ];
 
 var activeJobs = {};
+
+// ── HV-55: the Bridge ────────────────────────────────────────
+// Sixteen links under this bridge and no way to see they are one
+// thing: each action only appears once the one before it is done, so
+// nobody halfway along knows there is a halfway.
+//
+// NOTE ON PLACEMENT: this table sits at the END of config.js on
+// purpose. It cites HVSTAR_AT and HVHOOK_AT, and declared above
+// either of them it would evaluate in their temporal dead zone and
+// take the page down on load — which is what happened to the Tycoon
+// wall and then, one tranche later, to the Grow Op one.
+//
+// Every row calls the SAME function the game calls, and states the
+// gate that opens it as its predecessor(s) plus a threshold, which
+// tests/headless/wall.js cross-checks against the game's own
+// predicate. A wrong number here fails the battery instead of quietly
+// lying to a player.
+var HV_CHAIN = [
+  {id:'rec',      icon:'\ud83d\udcc8', name:'The Long Memory',       tally:function(){return loadHvRec().beats;},      gate:null,                        prev:null,                need:0},
+  {id:'star',     icon:'\u2b50',        name:'The Chalk Star',        tally:function(){return loadHvStar().cheers;},    gate:function(){return wallHasStar();},      prev:'rec',    need:HVSTAR_AT},
+  {id:'marisol',  icon:'\ud83d\ude97', name:'Marisol Drops By',      tally:function(){return loadMarisol().visits;},   gate:null,                        prev:null,                need:0},
+  {id:'reunion',  icon:'\ud83c\udf82', name:'The Bridge Reunion',    tally:function(){return loadHvReunion().held;},   gate:function(){return hvReunionStands();},  prev:['star','marisol'], need:3},
+  {id:'snap',     icon:'\ud83d\udcf7', name:'The Snapshot',          tally:function(){return loadHvSnap().looks;},     gate:function(){return snapshotHangs();},    prev:'reunion',need:3},
+  {id:'anniv',    icon:'\ud83d\udd6f\ufe0f', name:'The Anniversary', tally:function(){return loadHvAnniv().toasts;},  gate:function(){return annivCounts();},      prev:'snap',   need:3},
+  {id:'gb',       icon:'\ud83d\udcd3', name:'The Spiral Notebook',   tally:function(){return loadHvGb().leafs;},       gate:function(){return notebookOut();},      prev:'anniv',  need:3},
+  {id:'bench',    icon:'\ud83e\ude91', name:'The Bench by the Fridge',tally:function(){return loadHvBench().sits;},    gate:function(){return hvBenchBuilt();},     prev:'gb',     need:3},
+  {id:'story',    icon:'\ud83d\udd25', name:'The Fire Story',        tally:function(){return loadHvStory().tellings;}, gate:function(){return hvStoryByHeart();},   prev:'bench',  need:3},
+  {id:'song',     icon:'\ud83c\udfb8', name:'The Bridge Ballad',     tally:function(){return loadHvSong().plays;},     gate:function(){return balladSet();},        prev:'story',  need:3},
+  {id:'can',      icon:'\ud83d\udce6', name:'The Coffee Can',        tally:function(){return loadHvCan().digs;},       gate:function(){return canBuried();},        prev:'song',   need:3},
+  {id:'panel',    icon:'\ud83c\udfa8', name:'The Fifth Panel',       tally:function(){return loadHvPanel().stands;},   gate:function(){return panelPainted();},     prev:'can',    need:3},
+  {id:'walk',     icon:'\ud83e\udded', name:'The Walk Down',         tally:function(){return loadHvWalk().walks;},     gate:function(){return walkUp();},           prev:'panel',  need:3},
+  {id:'mark',     icon:'\u270d\ufe0f', name:'A Name on the Wall',    tally:function(){return loadHvMark().names;},     gate:function(){return markUp();},           prev:'walk',   need:3},
+  {id:'dry',      icon:'\u26f1\ufe0f', name:'The Dry Corner',        tally:function(){return loadHvDry().sits;},       gate:function(){return dryOffered();},       prev:'mark',   need:3},
+  {id:'hook',     icon:'\ud83e\udde3', name:'The Empty Hook',        tally:function(){return loadHvHook().up?1:0;},    gate:function(){return hookEarned();},       prev:'dry',    need:HVHOOK_AT},
+];
+function chainState(){
+  var rows = HV_CHAIN.map(function(r){
+    var open = !r.gate || !!r.gate();
+    var n = Math.max(0, Math.floor(r.tally() || 0));
+    var prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+    return {id:r.id, icon:r.icon, name:r.name, open:open, tally:n, need:r.need, prev:prev};
+  });
+  var nextIdx = -1;
+  for (var i = 0; i < rows.length; i++) { if (rows[i].open && rows[i].tally === 0) { nextIdx = i; break; } }
+  var done = rows.filter(function(r){ return r.tally > 0; }).length;
+  return {rows:rows, nextIdx:nextIdx, doneCount:done, total:rows.length};
+}

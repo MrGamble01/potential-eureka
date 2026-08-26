@@ -63,6 +63,17 @@ const GAMES = [
       painting: ['aow-portrait','looks'], salute: ['aow-anniversary','toasts'] },
     extraClear: ['aow-blankpanels'],
     pre: () => ({ 'aow-welcome-seen': '1' }) },
+  { name: 'Homeless Village', file: 'homeless-village/js/config.js', table: 'HV_CHAIN',
+    url: '/homeless-village.html', btn: '#chain-btn', modal: '#chain-modal',
+    list: '#chain-list', prog: '#chain-progress', row: '.chain-row',
+    nameCls: '.chain-name', noteCls: '.chain-note', pfx: 'chain',
+    twoWay: 'reunion', midChain: 'mark', midPrev: 'walk', wrongPrev: 'can',
+    nextAfter: /Spiral Notebook/,
+    seedKeys: { rec: ['hv-record','beats'], star: ['hv-plaque','cheers'],
+      marisol: ['hv-visitor','visits'], reunion: ['hv-reunion','held'],
+      snap: ['hv-portrait','looks'], anniv: ['hv-anniversary','toasts'] },
+    extraClear: ['hv-emptyhook'],
+    pre: () => ({}) },
 ];
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
@@ -73,17 +84,25 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 function parseChain(src, tableName) {
   // The table may sit at top level or indented inside an IIFE, so
   // allow leading whitespace on both the opening and closing lines.
-  const m = src.match(new RegExp('const ' + tableName + ' = \\[([\\s\\S]*?)\\n\\s*\\];'));
+  // Declaration form varies by house (const in three, var in the
+  // classic-script one), as does indentation — the table may sit at
+  // top level or inside an IIFE. Accept all of it; a table this
+  // check cannot find reports 0 rows and fails loudly, which is the
+  // right way for a static analyser to be wrong.
+  const m = src.match(new RegExp('(?:const|let|var)\\s+' + tableName + '\\s*=\\s*\\[([\\s\\S]*?)\\n\\s*\\];'));
   if (!m) return null;
   const rows = [];
   for (const line of m[1].split('\n')) {
     const id = line.match(/id:\s*'([^']+)'/);
     if (!id) continue;
-    const tally = line.match(/tally:\s*\(\)\s*=>\s*\(?\s*(load[A-Za-z]+)\(\)\.([a-zA-Z]+)/);
-    const gate = line.match(/gate:\s*\(\)\s*=>\s*([a-zA-Z]+)\(\)/);
+    // Arrow bodies (`() => loadX().f`) and classic ones
+    // (`function(){return loadX().f;}`) both appear across the houses.
+    const tally = line.match(/tally:\s*(?:\(\)\s*=>|function\s*\(\)\s*\{\s*return)\s*\(?\s*(load[A-Za-z]+)\(\)\.([a-zA-Z]+)/);
+    const gate = line.match(/gate:\s*(?:\(\)\s*=>|function\s*\(\)\s*\{\s*return)\s*([a-zA-Z]+)\(\)/);
     const prevOne = line.match(/prev:\s*'([^']+)'/);
     const prevMany = line.match(/prev:\s*\[([^\]]*)\]/);
     const need = line.match(/need:\s*([A-Z0-9_]+)\s*\}/);
+    if (!need) continue;
     rows.push({
       id: id[1],
       loader: tally ? tally[1] : null,
