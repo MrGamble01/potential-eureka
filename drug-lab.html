@@ -626,6 +626,13 @@ canvas{display:block;touch-action:none;}
   padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
 }
 @media (max-width:640px){ #mark-toggle{font-size:11px;padding:5px 9px;} }
+/* -- The Back Room (LAB-55) -- */
+#room-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #room-toggle{font-size:11px;padding:5px 9px;} }
 /* ── The Storage Unit (LAB-22) ── */
 #unit-toggle{
   background:rgba(4,8,10,0.92);border:1px solid rgba(122,178,255,0.4);
@@ -728,6 +735,7 @@ canvas{display:block;touch-action:none;}
 <button id="mural-toggle" style="display:none" title="The Alley Mural: three digs of the shoebox and somebody paints the whole block down the alley wall — the stoop, the zippo, the polaroid, the shoebox seam. Stand at it once a session; the block always leaves something at the base.">🎨 THE MURAL</button>
 <button id="docent-toggle" style="display:none" title="The Walk-Down: three stands at the mural and the oldest head on the block starts walking every new kid down the alley wall — the stoop, the zippo, the polaroid, the shoebox seam, panel by panel. Do it once a session; the block always squares up after.">🧭 THE WALK-DOWN</button>
 <button id="mark-toggle" style="display:none" title="The New Kid's Tag: three walk-downs and the kid who got walked down the alley wall comes back with their own can — their piece goes up after the shoebox seam, in their hand. Do it once a session; the whole block comes out for it.">✍️ THE TAG</button>
+<button id="room-toggle" style="display:none" title="The Back Room: three tags and the wall has outgrown the alley. $20,000 buys the room behind the shop and puts the whole thing indoors — the polaroid, the wall of names, the shoebox, every panel. The money is gone either way; what it buys is the deepest sit on the block.">🛋️ THE BACK ROOM</button>
 <button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
 <button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
 </div>
@@ -2740,6 +2748,68 @@ function tagTheWall() {
   checkGrowAchievements();
   refreshMarkBtn();
 }
+// LAB-55: Round Forty-Six on the corner. Eleven links of the wall so
+// far, every one of them free money for a click. This one costs. Three
+// tags in and the wall has outgrown the alley: $20,000 takes the room
+// behind the shop and puts the whole thing indoors, out of the weather
+// and out of sight of anyone official. Money's gone either way. What it
+// buys is the deepest sit on the block: $140 base + $70 per tag (cap 5).
+// Sits tallied in 'growop-backroom'.
+const ROOM_KEY = 'growop-backroom', ROOM_COST = 20000, ROOM_BASE = 140, ROOM_PER = 70;
+let roomSat = false;
+function loadRoom() {
+  try { const r = JSON.parse(localStorage.getItem(ROOM_KEY) || 'null');
+    if (r && typeof r === 'object') return { built: !!r.built, sits: Math.max(0, Math.floor(r.sits || 0)) };
+  } catch(e){}
+  return { built: false, sits: 0 };
+}
+function saveRoom(r) { try { localStorage.setItem(ROOM_KEY, JSON.stringify(r)); } catch(e){} }
+function roomOffered() { return loadMark().tags >= 3; }
+function roomBuilt() { return loadRoom().built; }
+function roomPurse() { return ROOM_BASE + ROOM_PER * Math.min(loadMark().tags || 0, 5); }
+function buyBackRoom() {
+  if (!roomOffered() || roomBuilt()) return false;
+  if (state.cash < ROOM_COST) return false;
+  state.cash -= ROOM_COST;
+  const r = loadRoom();
+  saveRoom({ built: true, sits: r.sits });
+  addFeed('\u{1F6CB}\uFE0F The Back Room \u2014 $' + ROOM_COST.toLocaleString() + ' for the space behind the shop, cash, no lease. The polaroid, the wall of names, the shoebox, every panel off the alley: indoors now, out of the weather and out of sight of anyone official.');
+  showToast('\u{1F6CB}\uFE0F The Back Room \u2014 \u2212$' + ROOM_COST.toLocaleString() + '. The block has somewhere to sit.', 'good');
+  checkGrowAchievements();
+  refreshRoomBtn();
+  return true;
+}
+function refreshRoomBtn() {
+  const b = document.getElementById('room-toggle');
+  if (!b) return;
+  b.onclick = () => { roomBuilt() ? sitInBackRoom() : buyBackRoom(); };
+  if (!roomOffered()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  if (!roomBuilt()) {
+    b.style.opacity = state.cash >= ROOM_COST ? '' : '0.45';
+    b.title = 'The Back Room \u2014 three tags and the wall has outgrown the alley. $' + ROOM_COST.toLocaleString()
+      + ', cash, no lease, and the money is gone either way. What it buys is the deepest sit on the block: +$' + roomPurse() + ' a session.'
+      + (state.cash >= ROOM_COST ? ' Click to take it.' : ' You cannot cover it yet.');
+    return;
+  }
+  b.style.opacity = roomSat ? '0.45' : '';
+  b.title = roomSat
+    ? 'The Back Room had its sit this session. It keeps \u2014 that was the point of paying for it.'
+    : 'The Back Room \u2014 the whole block indoors, out of the weather. A sit pays +$' + roomPurse()
+      + '. Sat ' + loadRoom().sits + ' time' + (loadRoom().sits === 1 ? '' : 's') + '.';
+}
+function sitInBackRoom() {
+  if (!roomBuilt() || roomSat) return;
+  roomSat = true;
+  const p = roomPurse();
+  const r = loadRoom();
+  saveRoom({ built: true, sits: r.sits + 1 });
+  state.cash += p;
+  addFeed('\u{1F6CB}\uFE0F A sit in the Back Room \u2014 the polaroid, the wall of names, the shoebox, the panel the new kid put up last month, all of it on the walls and nobody outside any the wiser. Business gets done in there: +$' + p);
+  showToast('\u{1F6CB}\uFE0F The Back Room \u2014 +$' + p + '. It keeps.', 'good');
+  checkGrowAchievements();
+  refreshRoomBtn();
+}
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
@@ -3170,6 +3240,7 @@ function refreshRouteBtn() {
   refreshMuralBtn();   // LAB-52: and the wall it all ends up on
   refreshDocentBtn();  // LAB-53: and the one who walks you down it
   refreshMarkBtn();    // LAB-54: and the piece the walked-down kid adds
+  refreshRoomBtn();    // LAB-55: and the room you buy to keep it all in
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
     : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
@@ -3630,6 +3701,7 @@ const GROW_ACH = [
   { id: 'the_mural', name: 'The Alley Mural', test: () => (loadMural().stands || 0) >= 3 },  // LAB-52
   { id: 'the_walkdown', name: 'The Walk-Down', test: () => (loadDocent().walks || 0) >= 3 },  // LAB-53
   { id: 'the_tag', name: 'The New Kid\u2019s Tag', test: () => (loadMark().tags || 0) >= 3 },  // LAB-54
+  { id: 'the_backroom', name: 'The Back Room', test: () => (loadRoom().sits || 0) >= 3 },  // LAB-55
   { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
   { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
   { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
