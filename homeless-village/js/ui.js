@@ -435,3 +435,56 @@ function showGameOver(){
     '<button onclick="localStorage.removeItem(SAVE_KEY);location.reload()" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">START OVER</button>';
   document.body.appendChild(d);
 }
+
+// HV-55: the Bridge. Always available — a chain you cannot see is the
+// thing this exists to fix, so it is never gated on progress.
+function renderChain(){
+  var listEl = document.getElementById('chain-list');
+  var progEl = document.getElementById('chain-progress');
+  if(!listEl) return;
+  var st = chainState();
+  if(progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+  var byId = {}; st.rows.forEach(function(r){ byId[r.id] = r; });
+  listEl.innerHTML = st.rows.map(function(r, i){
+    var started = r.tally > 0;
+    var isNext = i === st.nextIdx;
+    // Past the one you're on, rows stay unnamed: the bridge should say
+    // it keeps going, not hand over the list.
+    var ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+    var label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+    var note;
+    if(started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+    else if(isNext) note = 'yours to do next';
+    else if(r.open) note = 'open';
+    else if(r.prev.length){
+      // Name the predecessor furthest behind: that is the one actually
+      // holding this row up.
+      var behind = null;
+      r.prev.forEach(function(p){
+        var b = byId[p];
+        if(!b) return;
+        if(!behind || b.tally < behind.tally) behind = b;
+      });
+      note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+    }
+    else note = 'not yet';
+    var cls = started ? 'chain-done' : isNext ? 'chain-next' : r.open ? 'chain-open' : 'chain-locked';
+    return '<div class="chain-row ' + cls + '"><span class="chain-name">' + label
+      + '</span><span class="chain-note">' + note + '</span></div>';
+  }).join('');
+}
+function openChain(){
+  renderChain();
+  var m = document.getElementById('chain-modal');
+  if(m) m.classList.add('open');
+}
+(function(){
+  var b = document.getElementById('chain-btn');
+  if(b) b.onclick = openChain;
+  var c = document.getElementById('chain-close');
+  if(c) c.onclick = function(){ document.getElementById('chain-modal').classList.remove('open'); };
+  var m = document.getElementById('chain-modal');
+  if(m) m.addEventListener('click', function(e){
+    if(e.target === m) m.classList.remove('open');
+  });
+})();
