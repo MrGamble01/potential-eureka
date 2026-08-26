@@ -333,6 +333,7 @@
     <button id="m-bench">Sit on the Green Bench</button>
     <button id="m-tale">Hear the Hearth Tale</button>
     <button id="m-ballad">Hear the Minstrel's Ballad</button>
+    <button id="m-casket">Open the Founders' Casket</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1699,6 +1700,7 @@
     { id: 'green_bench', emoji: '\u{1FA91}', name: 'The Green Bench', desc: 'Sit on the bench on three sessions.', done: () => loadGBench().sits >= 3 },
     { id: 'hearth_tale', emoji: '\u{1F525}', name: 'The Hearth Tale', desc: 'Hear the tale on three sessions.', done: () => loadHTale().tellings >= 3 },
     { id: 'minstrels_ballad', emoji: '\u{1FA95}', name: 'The Minstrel\u2019s Ballad', desc: 'Hear the ballad on three sessions.', done: () => loadBallad().hearings >= 3 },
+    { id: 'founders_casket', emoji: '\u{1F5DD}\u{FE0F}', name: 'The Founders\u2019 Casket', desc: 'Open the casket on three sessions.', done: () => loadCasket().opens >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3077,6 +3079,36 @@
     state.res.gold += p;
     chron('\u{1FA95}', 'THE MINSTREL\u2019S BALLAD \u2014 the whole valley story set to song, verse by verse, and the hall sings the chorus. A cap passed down the benches comes back heavy: +' + p + ' gold');
     toast('\u{1FA95} The Minstrel\u2019s Ballad \u2014 +' + p + ' gold. The chorus pays.');
+    checkAchievements();
+  }
+  // ---- the Founders' Casket (HVALE-46) ------------------------
+  // The capsule round in the valley: after three hearings of the
+  // Minstrel's Ballad, the town seals a casket under the Founders'
+  // Oak \u2014 a ledger page, the letter from under the oak, a leaf
+  // of the register, the ballad written out. Once a session an
+  // opening pays: 45 gold base + 5 per hearing (cap 5). Openings
+  // tallied in 'hvale-capsule'.
+  const CASKET_KEY = 'hvale-capsule', CASKET_BASE = 45, CASKET_PER = 5;
+  let casketOpened = false;
+  function loadCasket() {
+    try { const c = JSON.parse(localStorage.getItem(CASKET_KEY) || 'null');
+      if (c && typeof c === 'object') return { opens: Math.max(0, Math.floor(c.opens || 0)) };
+    } catch (e) { }
+    return { opens: 0 };
+  }
+  function saveCasket(c) { try { localStorage.setItem(CASKET_KEY, JSON.stringify(c)); } catch (e) { } }
+  function casketSealed() { return loadBallad().hearings >= 3; }
+  function casketPurse() { return CASKET_BASE + CASKET_PER * Math.min(loadBallad().hearings || 0, 5); }
+  function openFoundersCasket() {
+    if (!casketSealed()) { toast('\u{1F5DD}\u{FE0F} No casket under the oak yet \u2014 three hearings of the ballad and the town seals one.'); return; }
+    if (casketOpened) { toast('\u{1F5DD}\u{FE0F} The Founders\u2019 Casket had its opening today \u2014 the oak keeps it.'); return; }
+    casketOpened = true;
+    const p = casketPurse();
+    const c = loadCasket();
+    saveCasket({ opens: c.opens + 1 });
+    state.res.gold += p;
+    chron('\u{1F5DD}\u{FE0F}', 'THE FOUNDERS\u2019 CASKET \u2014 a ledger page, the letter from under the oak, a leaf of the register, the ballad written out. A purse is folded in with them: +' + p + ' gold');
+    toast('\u{1F5DD}\u{FE0F} The Founders\u2019 Casket \u2014 +' + p + ' gold. The oak remembers.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5526,6 +5558,7 @@
     { const mb = document.getElementById('m-bench'); if (mb) mb.onclick = () => { menu.classList.remove('show'); sitGreenBench(); }; }
     { const mt = document.getElementById('m-tale'); if (mt) mt.onclick = () => { menu.classList.remove('show'); hearHearthTale(); }; }
     { const mbd = document.getElementById('m-ballad'); if (mbd) mbd.onclick = () => { menu.classList.remove('show'); hearMinstrelsBallad(); }; }
+    { const mck = document.getElementById('m-casket'); if (mck) mck.onclick = () => { menu.classList.remove('show'); openFoundersCasket(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
