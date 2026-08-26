@@ -38,6 +38,7 @@
       <span id="days-counter">Days Survived: 0</span>
       <div id="goal-pill"><span class="icon">🎯</span><span id="goal-text">—</span></div>
       <button id="chain-btn" title="The Bridge — everything this camp remembers, in the order it happened, and what the next one is waiting on.">&#129521; The Bridge</button>
+      <button id="help-btn" title="How the camp works">?</button>
     </div>
     <div class="right">
       <div class="stat-pill"><span class="icon">🍞</span><span class="val" id="stat-food">0</span><span> food</span></div>
@@ -75,6 +76,29 @@
   <div id="tooltip"></div>
 
   <button id="craft-toggle" aria-controls="craft-panel" aria-expanded="false">&#9881; Craft</button>
+  <div id="intro-modal" role="dialog" aria-modal="true" aria-label="How the camp works">
+    <div id="intro-panel">
+      <div id="intro-head">
+        <span id="intro-title">&#127957;&#65039; SURVIVING THE WINTER</span>
+        <button id="intro-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="intro-flavor">A camp under the overpass. Keep everyone alive, and build something that lasts.</div>
+      <div id="intro-body">
+        &bull; <b>Walk there first.</b> Move with <b>WASD</b> or the arrow keys, or tap the ground.
+        &#128465;&#65039; <b>Scavenge</b> only works stood next to a dumpster &mdash; the button greys out when you are too far.<br>
+        &bull; <b>Four ways to bring something home:</b> &#128465;&#65039; scavenge (cans, scraps, food),
+        &#127795; forage (wood, cardboard), &#129309; panhandle (goodwill), &#128564; rest (health).<br>
+        &bull; <b>Build the &#128295; Workbench early.</b> It costs 5 wood and 4 scraps, and
+        <b>13 of the 18 recipes stay locked until it stands</b>.<br>
+        &bull; <b>Cold is what kills you.</b> Warmth drains every night; below <b>20%</b> the camp starts losing
+        health at dawn, and so does an empty larder. Firewood, blankets and a tent hold it back.<br>
+        &bull; <b>The weather and the season matter.</b> Winter halves what the dumpsters give;
+        rain closes the panhandling corner. A &#128251; radio shows you tomorrow&rsquo;s sky.<br>
+        &bull; Sweeps come. A &#128371;&#65039; hidden stash means they take half.
+      </div>
+      <button id="intro-go">Start the first day &rarr;</button>
+    </div>
+  </div>
   <div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Bridge">
     <div id="chain-panel">
       <div id="chain-head">

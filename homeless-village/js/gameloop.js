@@ -401,6 +401,11 @@ function checkGameOver(){
 
 function tickDay(dt){
   if(gameOverShown) return; // time stops behind the game-over overlay
+  // HV-56: and behind the crash course. Reading how the camp works should
+  // not cost you the daylight you are reading about — a new player who
+  // takes a minute over it would otherwise come back to a colder night
+  // than the one they started with.
+  if(introOpen()) return;
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 

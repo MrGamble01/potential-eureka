@@ -488,3 +488,55 @@ function openChain(){
     if(e.target === m) m.classList.remove('open');
   });
 })();
+
+// HV-56: the opening.
+//
+// Five of the six flagships greet a new player with a crash course. This
+// one dropped them beside 47 live controls, a goal that said "Survive 3
+// days", and not one word about how. The two things a newcomer reliably
+// bounces off are both invisible from the screen:
+//   - Scavenge is proximity-gated (HV-2). Standing anywhere else the
+//     button just greys out; the explanation lives in a title tooltip,
+//     which is nothing at all on a touch screen.
+//   - The Workbench gates 13 of the 18 recipes. Miss it and most of the
+//     craft panel stays dark for no stated reason.
+// Both are stated in the panel. The panel quotes real numbers (5 wood +
+// 4 scraps, 13 of 18, warmth below 20%), and quoted numbers rot: the
+// tests/headless/hvintro.js suite recomputes each one from RECIPES and
+// the dawn code and fails if the copy and the game disagree. Copy that
+// lies to a new player is worse than the silence it replaced.
+var HVINTRO_KEY = 'hv-intro-seen';
+function introSeen(){
+  try { return localStorage.getItem(HVINTRO_KEY) === '1'; } catch(e){ return false; }
+}
+function markIntroSeen(){
+  try { localStorage.setItem(HVINTRO_KEY, '1'); } catch(e){}
+}
+function openIntro(){
+  var m = document.getElementById('intro-modal');
+  if(m) m.classList.add('open');
+}
+function closeIntro(){
+  var m = document.getElementById('intro-modal');
+  if(m) m.classList.remove('open');
+  markIntroSeen();
+}
+(function(){
+  var b = document.getElementById('help-btn');
+  if(b) b.onclick = openIntro;
+  var c = document.getElementById('intro-close');
+  if(c) c.onclick = closeIntro;
+  var g = document.getElementById('intro-go');
+  if(g) g.onclick = closeIntro;
+  var m = document.getElementById('intro-modal');
+  if(m) m.addEventListener('click', function(e){
+    // Click the backdrop to dismiss, same as the Bridge.
+    if(e.target === m) closeIntro();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && m && m.classList.contains('open')) closeIntro();
+  });
+  // First run only: a returning camp gets straight back to work. The
+  // ? button in the top bar reopens it whenever they want it.
+  if(!introSeen()) openIntro();
+})();

@@ -128,6 +128,15 @@ const PROBE = (sel) => {
     const ctx = await browser.newContext({ viewport: vp });
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+    // HV-56 put a first-run crash course in front of a brand-new camp. It is
+    // modal on purpose, so measuring through it reports every control as
+    // unreachable — true of the greeting, meaningless about the game. This
+    // suite is about the PLAYING surface, so arrive as a returning camp.
+    // That the controls are clear once it is dismissed is asserted where it
+    // belongs, in tests/headless/hvintro.js.
+    await page.addInitScript(() => {
+      try { localStorage.setItem('hv-intro-seen', '1'); } catch (e) {}
+    });
     await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
     await page.waitForTimeout(3000);
     const stuck = await page.evaluate(() => {

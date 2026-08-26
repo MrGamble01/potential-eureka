@@ -943,3 +943,11 @@ function chainState(){
   var done = rows.filter(function(r){ return r.tally > 0; }).length;
   return {rows:rows, nextIdx:nextIdx, doneCount:done, total:rows.length};
 }
+
+// HV-56: the crash-course panel pauses the day. Declared here, in the
+// first script the page loads, because gameloop.js consults it on every
+// tick and ui.js (which owns the panel) is loaded after both.
+function introOpen(){
+  var m = document.getElementById('intro-modal');
+  return !!(m && m.classList.contains('open'));
+}
