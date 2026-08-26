@@ -25,7 +25,7 @@ SUITES=(
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
   hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural hvstash hvfire hvmeeting hvpetition hvticket hvsnap hvbusk hvdeposit hvnewcomer hvpantry hvcoats hvtoolbox hvcompost hvawning hvbarrel hvrainbet hvgarage hvborrow hvfridge hvrecord hvnote hvwall hvthermos hvboard hvpotluck hvstar hvshelf hvmarisol hvmugs hvreunion hvsnapshot hvanniv hvnotebook hvbench hvstory hvballad hvcan hvpanel
-  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat voxrainbow voxduck voxlight voxobs voxballoon voxdove voxwinter voxice voxferry voxsugar voxmuseum voxowl voxpig voxcrib voxjam voxcloud voxpolicy voxnote voxlantern voxbell voxbottle voxtablet voxconch voxwick voxfest voxwreath voxbeacon voxkeeper voxoar voxreunion voxframe voxmooring voxhlog voxbench voxyarn voxshanty voxchest
+  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat voxrainbow voxduck voxlight voxobs voxballoon voxdove voxwinter voxice voxferry voxsugar voxmuseum voxowl voxpig voxcrib voxjam voxcloud voxpolicy voxnote voxlantern voxbell voxbottle voxtablet voxconch voxwick voxfest voxwreath voxbeacon voxkeeper voxoar voxreunion voxframe voxmooring voxhlog voxbench voxyarn voxshanty voxchest voxmural
   pwa
 )
 
