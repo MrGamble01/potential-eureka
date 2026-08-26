@@ -601,6 +601,7 @@ const AgeOfWarGame = (() => {
     { id: 'march3', icon: '\u{1F3BA}', title: 'The Marching Song', desc: 'Sing the song on three sessions.' },
     { id: 'cache3', icon: '\u{1F9F1}', title: 'The Cornerstone Cache', desc: 'Open the cache on three sessions.' },
     { id: 'fresco3', icon: '\u{1F3A8}', title: 'The Long Fresco', desc: 'Walk the fresco on three sessions.' },
+    { id: 'guide3', icon: '\u{1F9ED}', title: 'The Recruit\u2019s Walk', desc: 'Walk a recruit down the fresco on three sessions.' },
     { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
@@ -732,6 +733,7 @@ const AgeOfWarGame = (() => {
     if (loadMSong().sings >= 3) unlock('march3');
     if (loadCache().opens >= 3) unlock('cache3');
     if (loadFresco().walks >= 3) unlock('fresco3');
+    if (loadGuide().walks >= 3) unlock('guide3');
     if (dispatchRead >= 3) unlock('war_mail');
     if (loadAnnals().opens >= 3) unlock('annalist');
     if (loadStd().uses >= 3) unlock('old_standard');
@@ -2513,7 +2515,39 @@ const AgeOfWarGame = (() => {
     renderHud();
   }
 
-  // \u2500\u2500 The Veterans' Hall (AOW-35) \u2500\u2500
+  // -- The Recruit's Walk (AOW-55) --
+  // The docent round on the battlefield: after three walks of the
+  // Long Fresco, the oldest sergeant in the muster takes every new
+  // recruit down it on their first morning \u2014 the first muster,
+  // the bench, the fire, the cadence, the cornerstone seam, panel by
+  // panel. Once a session a walk pays: 120 gold base + 60 per fresco
+  // walk (cap 5). Walks tallied in 'aow-docent'.
+  const GUIDE_KEY = 'aow-docent', GUIDE_BASE = 120, GUIDE_PER = 60;
+  let guideWalked = false;
+  function loadGuide() {
+    try { const g = JSON.parse(localStorage.getItem(GUIDE_KEY) || 'null');
+      if (g && typeof g === 'object') return { walks: Math.max(0, Math.floor(g.walks || 0)) };
+    } catch {}
+    return { walks: 0 };
+  }
+  function saveGuide(g) { try { localStorage.setItem(GUIDE_KEY, JSON.stringify(g)); } catch {} }
+  function guidePosted() { return loadFresco().walks >= 3; }
+  function guidePurse() { return GUIDE_BASE + GUIDE_PER * Math.min(loadFresco().walks || 0, 5); }
+  function walkTheRecruit() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!guidePosted() || guideWalked) return;
+    guideWalked = true;
+    const p = guidePurse();
+    const g = loadGuide();
+    saveGuide({ walks: g.walks + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F9ED} THE RECRUIT'S WALK \u2014 the oldest sergeant takes a new recruit down the fresco on their first morning, panel by panel. They fight like they were there for all of it, and the quartermaster pays for the hour: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Veterans' Hall (AOW-35) ──
   // The legacy round on the battlefield: 500 gold, once ever, raises
   // a hall OUTSIDE the run — like the relics, no defeat tears it
   // down. Every muster that forms in its shadow sends its first three
@@ -2708,6 +2742,8 @@ const AgeOfWarGame = (() => {
     if (cacheBtn) cacheBtn.onclick = openCornerstoneCache;
     const frescoBtn = document.getElementById('aow-fresco-btn');
     if (frescoBtn) frescoBtn.onclick = walkTheFresco;
+    const guideBtn = document.getElementById('aow-guide-btn');
+    if (guideBtn) guideBtn.onclick = walkTheRecruit;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
@@ -8672,6 +8708,21 @@ const AgeOfWarGame = (() => {
         frescoEl.title = frescoWalked
           ? 'The Long Fresco has had its walk this session \u2014 the wall keeps.'
           : `The Long Fresco \u2014 three openings of the cache and the painters took the base's inner wall: the first muster, the bench, the fire, the cadence, the cornerstone seam. Walk it, and the purse walks with the ranks: +${frescoPurse()} gold. Walked ${loadFresco().walks} time${loadFresco().walks === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Recruit's Walk (AOW-55)
+    const guideEl = document.getElementById('aow-guide-btn');
+    const guideCdEl = document.getElementById('aow-guide-cd');
+    if (guideEl) {
+      if (!guidePosted()) { guideEl.style.display = 'none'; }
+      else {
+        guideEl.style.display = '';
+        guideEl.style.opacity = guideWalked ? '0.45' : '';
+        if (guideCdEl) guideCdEl.textContent = guideWalked ? 'walked' : `+${guidePurse()}g`;
+        guideEl.title = guideWalked
+          ? 'A recruit has had their walk down the fresco this session \u2014 the next one musters tomorrow.'
+          : `The Recruit's Walk \u2014 three walks of the fresco and the oldest sergeant takes every new recruit down it on their first morning, panel by panel. They fight like they were there for all of it: +${guidePurse()} gold. Walked ${loadGuide().walks} time${loadGuide().walks === 1 ? '' : 's'}.`;
       }
     }
 
