@@ -1231,7 +1231,11 @@
     /* ── 3rd-person "walk the office" toggle ── */
     #tp-toggle {
       position: fixed;
-      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      /* #ipo-btn owns bottom:18px/right:18px and stands ~45px tall, so it
+         occupies 18..63 from the bottom edge. This toggle sat at 16px in the
+         same corner with z-index 120 over it — invisible while the IPO button
+         was, and directly on top of it once revealed. Cleared to 76px. */
+      bottom: calc(76px + env(safe-area-inset-bottom, 0px));
       right: calc(16px + env(safe-area-inset-right, 0px));
       display: inline-flex; align-items: center; gap: 7px;
       padding: 9px 14px;
@@ -12094,7 +12098,12 @@ const seasonBadge  = document.getElementById('season-badge');
 
 function checkIPOAvailable() {
   if (state.allTimeCash >= 100000) {
-    ipoBtnEl.style.display = '';
+    // #ipo-btn is hidden by the stylesheet (`display: none` in its rule), not
+    // by an inline style. Assigning '' clears the *inline* property, which
+    // lets the stylesheet's `none` apply again — so this line revealed
+    // nothing, and IPO (the only caller of openIPOModal is this button's
+    // click handler) was unreachable at any cash level. Needs a real value.
+    ipoBtnEl.style.display = 'block';
   }
 }
 
