@@ -23,12 +23,35 @@ const Telemetry = (() => {
 
   let current = null;    // { view, startedAt }
 
+  // `typeof s === 'object'` was only half a guard: an array passes it, and so
+  // does any object missing the three sub-maps. Every reader below indexes
+  // s.launches / s.seconds / s.days directly (Object.keys(s.seconds), etc.),
+  // so a stored `[1,2,3]` took down the hub's FRONT PAGE, not just Insights.
+  // Repair the shape field by field and keep whatever was still readable —
+  // a damaged stats book should cost you the damaged part, not the arcade.
+  const plain = o => !!o && typeof o === 'object' && !Array.isArray(o);
+  const numMap = m => {
+    if (!plain(m)) return {};
+    const out = {};
+    for (const [k, v] of Object.entries(m)) {
+      if (typeof v === 'number' && isFinite(v) && v >= 0) out[k] = v;
+    }
+    return out;
+  };
   function load() {
-    try {
-      const s = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (s && typeof s === 'object') return s;
-    } catch {}
-    return { firstSeen: Date.now(), launches: {}, seconds: {}, days: {} };
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+    if (!plain(s)) s = {};
+    // Spread first, then overwrite: repair the fields that can crash a reader
+    // and carry everything else through untouched. A repair that whitelisted
+    // known fields would quietly delete any field added later — that is a
+    // data purge wearing a guard's coat.
+    return Object.assign({}, s, {
+      firstSeen: (typeof s.firstSeen === 'number' && isFinite(s.firstSeen)) ? s.firstSeen : Date.now(),
+      launches: numMap(s.launches),
+      seconds: numMap(s.seconds),
+      days: numMap(s.days),
+    });
   }
   function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
 
