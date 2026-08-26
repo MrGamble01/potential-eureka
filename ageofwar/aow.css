@@ -1375,3 +1375,17 @@
   touch-action: manipulation;
   -webkit-user-select: none; user-select: none;
 }
+
+/* AOW-59: the Line — the memory chain, in order, with live state. */
+#aow-chain-list { max-height: 62vh; overflow-y: auto; }
+.aow-chain-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; padding: 7px 10px; border-radius: 6px; margin-bottom: 4px;
+  font-size: 13px;
+}
+.aow-chain-row .aow-chain-name { font-weight: 600; color: #e6edf3; }
+.aow-chain-row .aow-chain-note { opacity: 0.68; font-size: 12px; white-space: nowrap; color: #8b949e; }
+.aow-chain-done   { background: rgba(63,185,80,0.13); }
+.aow-chain-next   { background: rgba(252,211,77,0.16); outline: 1px solid rgba(252,211,77,0.4); }
+.aow-chain-open   { background: rgba(255,255,255,0.05); }
+.aow-chain-locked { opacity: 0.5; }

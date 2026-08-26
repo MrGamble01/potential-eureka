@@ -52,6 +52,17 @@ const GAMES = [
     // the whole page; pick one so the test measures the wall.
     dismiss: '#diff-careful',
     pre: () => ({}) },
+  { name: 'Age of War', file: 'ageofwar/ageofwar.js', table: 'AOW_CHAIN',
+    url: '/ageofwar/index.html', btn: '#aow-chain-btn', modal: '#aow-chain-modal',
+    list: '#aow-chain-list', prog: '#aow-chain-progress', row: '.aow-chain-row',
+    nameCls: '.aow-chain-name', noteCls: '.aow-chain-note', pfx: 'aow-chain',
+    twoWay: 'vreunion', midChain: 'mark', midPrev: 'guide', wrongPrev: 'cache',
+    nextAfter: /Muster Roll/,
+    seedKeys: { chron: ['aow-chronicle','beats'], laurel: ['aow-plaque','cheers'],
+      gen: ['aow-visitor','visits'], vreunion: ['aow-reunion','held'],
+      painting: ['aow-portrait','looks'], salute: ['aow-anniversary','toasts'] },
+    extraClear: ['aow-blankpanels'],
+    pre: () => ({ 'aow-welcome-seen': '1' }) },
 ];
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
@@ -60,7 +71,9 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 // ---- parsing the table out of a game's source ---------------------
 function parseChain(src, tableName) {
-  const m = src.match(new RegExp('const ' + tableName + ' = \\[([\\s\\S]*?)\\n\\];'));
+  // The table may sit at top level or indented inside an IIFE, so
+  // allow leading whitespace on both the opening and closing lines.
+  const m = src.match(new RegExp('const ' + tableName + ' = \\[([\\s\\S]*?)\\n\\s*\\];'));
   if (!m) return null;
   const rows = [];
   for (const line of m[1].split('\n')) {
@@ -185,7 +198,10 @@ function gateClauses(src, fnName) {
       }
       await page.waitForSelector(G.btn, { timeout: 25000 });
       await page.click(G.btn);
-      await page.waitForSelector(`${G.modal}.open ${G.row}`, { timeout: 10000 });
+      // Tycoon and Grow Op mark an open modal with a class; Age of War
+      // sets style.display. Waiting on a VISIBLE row inside the modal
+      // is true for all three without caring which.
+      await page.waitForSelector(`${G.modal} ${G.row}`, { state: 'visible', timeout: 10000 });
       const out = await page.evaluate(([list, row, nameCls, noteCls, prog, modal, pfx]) => {
         const rs = [...document.querySelectorAll(list + ' ' + row)];
         return {
