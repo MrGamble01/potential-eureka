@@ -8,10 +8,11 @@
  * geometry — every other suite asserts behaviour through the DOM, which is
  * blind to an element parked at left:-2553.
  *
- * A. Grow Op: all 28 tray buttons on screen at desktop, laptop and phone.
+ * A. Grow Op: all 29 tray buttons on screen at desktop, laptop and phone.
  *    (The count is part of the guard: a control that never registers is as
  *    broken as one parked off-screen. Bump it deliberately when a round adds
- *    a tray button — LAB-55's back room and VOX-48's long shed each did.)
+ *    a tray button — LAB-55's back room, VOX-48's long shed and LAB-57's
+ *    Corner each did.)
  * B. Voxel Isle: no chip clipped at 900/800/720/650 tall.
  * C. The trays actually wrap/scroll rather than overflowing the viewport.
  * Z. Zero page errors.
@@ -52,7 +53,7 @@ const PROBE = (sel) => {
     await page.waitForTimeout(2500);
     const r = await page.evaluate(PROBE, '#lab-tray > [id$="-toggle"]');
     const gone = r.filter(x => x.off);
-    ok(r.length === 28 && gone.length === 0,
+    ok(r.length === 29 && gone.length === 0,
       `Grow Op ${vp.width}x${vp.height}: all ${r.length} tray buttons on screen`
       + (gone.length ? ` — OFF: ${gone.map(g => g.id + '@' + g.left).join(', ')}` : ''));
     await ctx.close();
