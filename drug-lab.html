@@ -873,15 +873,24 @@ let state = {
 };
 
 // ── Upgrade definitions ──
+// LAB-58: every `desc` below is a promise the player spends money on, so
+// it has to say what the code does. Three of these did not. The worst was
+// Bigger Yield, advertised as "+20% product per harvest per level" while
+// `bags = 1 + upgLv('yield1')` actually adds a whole bag a level — Lv1 is
+// +100%, not +20%. Read against Premium Product's honest "+40% for $500",
+// the strongest buy in the game looked like the weakest.
+// tests/headless/labupg.js now recomputes each stated figure from the
+// function that applies it, so a description cannot drift from its effect
+// again. If you change an effect, change its `desc` in the same edit.
 const UPG = [
-  {id:'lights1',  name:'Better Grow Lights',    icon:'💡', cat:'Grow Op',       maxLv:3, base:120, mult:2.2, desc:'Plants grow 30% faster per level'},
-  {id:'yield1',   name:'Bigger Yield',           icon:'🌿', cat:'Grow Op',       maxLv:4, base:200, mult:2.0, desc:'+20% product per harvest per level'},
+  {id:'lights1',  name:'Better Grow Lights',    icon:'💡', cat:'Grow Op',       maxLv:3, base:120, mult:2.2, desc:'Plants grow 30% faster per level \u2014 and you move 5% quicker'},
+  {id:'yield1',   name:'Bigger Yield',           icon:'🌿', cat:'Grow Op',       maxLv:4, base:200, mult:2.0, desc:'+1 bag per trimmed batch per level \u2014 Lv1 doubles your output'},
   {id:'trim',     name:'Electric Trimmer',       icon:'✂️', cat:'Processing',    maxLv:3, base:180, mult:2.0, desc:'Trim 25% faster per level'},
   {id:'bags',     name:'Vac-Seal Bags',          icon:'📦', cat:'Processing',    maxLv:3, base:250, mult:2.0, desc:'+15% sale price per level'},
   {id:'network',  name:'Distribution Network',   icon:'🚗', cat:'Sales',         maxLv:4, base:400, mult:1.8, desc:'Buyers arrive 30% faster per level'},
   {id:'price',    name:'Premium Product',        icon:'💎', cat:'Sales',         maxLv:3, base:500, mult:2.2, desc:'+40% sale price per level'},
-  {id:'lookout_sys',name:'Lookout System',       icon:'📡', cat:'Security',      maxLv:3, base:300, mult:2.0, desc:'Heat builds 20% slower per level'},
-  {id:'cleanup',  name:'Clean Operation',        icon:'🧹', cat:'Security',      maxLv:2, base:600, mult:2.5, desc:'Heat drains 25% faster per level'},
+  {id:'lookout_sys',name:'Lookout System',       icon:'📡', cat:'Security',      maxLv:3, base:300, mult:2.0, desc:'Sales run 25% cooler per level \u2014 75% at Lv3'},
+  {id:'cleanup',  name:'Clean Operation',        icon:'🧹', cat:'Security',      maxLv:2, base:600, mult:2.5, desc:'+0.5 heat cleared per second per level'},
   {id:'chemistry',name:'Chemistry Equipment',    icon:'⚗️', cat:'The Next Level',maxLv:1, base:2500,mult:1.0, desc:'Unlock the cook station — harder product, way more $'},
 ];
 
