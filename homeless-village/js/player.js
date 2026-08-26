@@ -334,6 +334,20 @@ function finishAction(a){
       floatText('+'+pd2+'\ud83c\udf5e');
       saveGame();
     }
+  } else if(a.id==='walk'){
+    // HV-51: the walk down the whole underpass, given once a session.
+    if(!walkUp()){ log('\ud83e\udded Nobody walks the wall yet \u2014 three stands at the fifth panel and somebody starts.'); }
+    else if(walkGiven){ log('\ud83e\udded Somebody already got the walk tonight \u2014 the next newcomer gets theirs tomorrow.'); }
+    else {
+      walkGiven=true;
+      var wd2=walkDish();
+      var wk2=loadHvWalk();
+      saveHvWalk({walks:(wk2.walks||0)+1});
+      G.food=(G.food||0)+wd2;
+      log('\ud83e\udded THE WALK DOWN \u2014 the four panels, the fifth, the wall of names, the fridge, the bench, the can by the piling. They stop being a stranger by morning, and they brought something to the fire: +'+wd2+'\ud83c\udf5e');
+      floatText('+'+wd2+'\ud83c\udf5e');
+      saveGame();
+    }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];

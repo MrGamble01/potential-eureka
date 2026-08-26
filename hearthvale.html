@@ -335,6 +335,7 @@
     <button id="m-ballad">Hear the Minstrel's Ballad</button>
     <button id="m-casket">Open the Founders' Casket</button>
     <button id="m-fresco">Walk the Hall Fresco</button>
+    <button id="m-warden">Walk a Newcomer Down the Hall</button>
     <button id="m-achv">Achievements</button>
     <button id="m-new">New Game</button>
   </div>
@@ -1703,6 +1704,7 @@
     { id: 'minstrels_ballad', emoji: '\u{1FA95}', name: 'The Minstrel\u2019s Ballad', desc: 'Hear the ballad on three sessions.', done: () => loadBallad().hearings >= 3 },
     { id: 'founders_casket', emoji: '\u{1F5DD}\u{FE0F}', name: 'The Founders\u2019 Casket', desc: 'Open the casket on three sessions.', done: () => loadCasket().opens >= 3 },
     { id: 'hall_fresco', emoji: '\u{1F3A8}', name: 'The Hall Fresco', desc: 'Walk the fresco on three sessions.', done: () => loadFresco().walks >= 3 },
+    { id: 'hall_warden', emoji: '\u{1F9ED}', name: 'The Hall Warden', desc: 'Walk a newcomer down the hall on three sessions.', done: () => loadWarden().walks >= 3 },
   ];
   function checkAchievements() {
     if (!state || !state.achievements) return;
@@ -3142,6 +3144,36 @@
     state.res.gold += p;
     chron('\u{1F3A8}', 'THE HALL FRESCO \u2014 the first hearth, the oak, the ledger\u2019s best year, the register\u2019s names, the ballad\u2019s verses, the casket under the roots. Somebody walks the whole wall and leaves a purse at the end of it: +' + p + ' gold');
     toast('\u{1F3A8} The Hall Fresco \u2014 +' + p + ' gold. The wall tells the valley.');
+    checkAchievements();
+  }
+  // ---- the Hall Warden (HVALE-48) -----------------------------
+  // The docent round in the valley: after three walks of the Hall
+  // Fresco, the oldest hand in the hall takes every newcomer down it
+  // on the night they arrive \u2014 the first hearth, the oak, the
+  // ledger's best year, the register's names, the ballad's verses,
+  // the casket under the roots. Once a session a walk pays: 55 gold
+  // base + 5 per fresco walk (cap 5). Walks tallied in 'hvale-docent'.
+  const WARDEN_KEY = 'hvale-docent', WARDEN_BASE = 55, WARDEN_PER = 5;
+  let wardenWalked = false;
+  function loadWarden() {
+    try { const w = JSON.parse(localStorage.getItem(WARDEN_KEY) || 'null');
+      if (w && typeof w === 'object') return { walks: Math.max(0, Math.floor(w.walks || 0)) };
+    } catch (e) { }
+    return { walks: 0 };
+  }
+  function saveWarden(w) { try { localStorage.setItem(WARDEN_KEY, JSON.stringify(w)); } catch (e) { } }
+  function wardenPosted() { return loadFresco().walks >= 3; }
+  function wardenPurse() { return WARDEN_BASE + WARDEN_PER * Math.min(loadFresco().walks || 0, 5); }
+  function walkTheNewcomer() {
+    if (!wardenPosted()) { toast('\u{1F9ED} Nobody keeps the hall wall yet \u2014 three walks of the fresco and the oldest hand takes it up.'); return; }
+    if (wardenWalked) { toast('\u{1F9ED} A newcomer has had their walk tonight \u2014 the next arrives when they arrive.'); return; }
+    wardenWalked = true;
+    const p = wardenPurse();
+    const w = loadWarden();
+    saveWarden({ walks: w.walks + 1 });
+    state.res.gold += p;
+    chron('\u{1F9ED}', 'THE HALL WARDEN \u2014 the oldest hand takes a newcomer down the fresco on the night they arrive: the first hearth, the oak, the best year, the names, the verses, the casket under the roots. They are of the valley by morning, and they came with something: +' + p + ' gold');
+    toast('\u{1F9ED} The Hall Warden \u2014 +' + p + ' gold. Somebody else carries it now.');
     checkAchievements();
   }
   function ledgerAtDawn() {
@@ -5593,6 +5625,7 @@
     { const mbd = document.getElementById('m-ballad'); if (mbd) mbd.onclick = () => { menu.classList.remove('show'); hearMinstrelsBallad(); }; }
     { const mck = document.getElementById('m-casket'); if (mck) mck.onclick = () => { menu.classList.remove('show'); openFoundersCasket(); }; }
     { const mfr = document.getElementById('m-fresco'); if (mfr) mfr.onclick = () => { menu.classList.remove('show'); walkTheHallFresco(); }; }
+    { const mwd = document.getElementById('m-warden'); if (mwd) mwd.onclick = () => { menu.classList.remove('show'); walkTheNewcomer(); }; }
     document.getElementById('decree-close').onclick = () => document.getElementById('decrees').classList.remove('show');
     document.querySelectorAll('#speedctl button').forEach(b => b.addEventListener('click', () => {
       const sp = parseInt(b.dataset.sp, 10);
