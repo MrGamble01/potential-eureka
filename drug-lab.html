@@ -98,6 +98,20 @@ canvas{display:block;touch-action:none;}
 #diff-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
   display:none;align-items:center;justify-content:center;z-index:280;}
 #diff-modal.open{display:flex;animation:bustIn 0.3s ease;}
+/* LAB-57: the Wall. Same shell as the difficulty picker so it reads
+   like the rest of the corner rather than a bolted-on panel. */
+#chain-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
+  display:none;align-items:center;justify-content:center;z-index:281;}
+#chain-modal.open{display:flex;animation:bustIn 0.3s ease;}
+#chain-modal .diff-panel{max-width:460px;text-align:left;max-height:82vh;overflow-y:auto;}
+.chain-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:6px 9px;border-radius:6px;margin-bottom:3px;font-size:12px;}
+.chain-row .chain-name{font-weight:700;color:#bfe8c8;}
+.chain-row .chain-note{opacity:0.65;font-size:11px;white-space:nowrap;color:#88bb95;}
+.chain-done{background:rgba(0,180,60,0.13);}
+.chain-next{background:rgba(255,210,90,0.14);outline:1px solid rgba(255,210,90,0.4);}
+.chain-open{background:rgba(255,255,255,0.05);}
+.chain-locked{opacity:0.45;}
 .diff-panel{background:rgba(4,12,4,0.98);border:1px solid rgba(0,180,60,0.35);
   border-radius:12px;padding:26px;max-width:420px;width:92vw;text-align:center;
   font-family:"Courier New",monospace;box-shadow:0 0 60px rgba(0,180,60,0.15);}
@@ -710,6 +724,7 @@ canvas{display:block;touch-action:none;}
 <div id="wave-hud" style="display:none" title="A crackdown sweep: every sale runs 2× hotter and street buyers come half as often. Sell nothing until it lifts and the clean streets pay −10 heat">🚨 <span id="wave-val"></span></div>
 <div id="party-hud" style="display:none" title="A block party: buyers pay +25% and come twice as fast — but every sale runs 1.5× hotter and the crowd hides badges (2× sting odds). Sell hard or sit it out">🎉 <span id="party-val"></span></div>
 <div id="lab-tray">
+<button id="chain-toggle" title="The Corner — everything this block remembers, in the order it happened, and what the next one is waiting on.">🧱 THE CORNER</button>
 <button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
 <button id="burner-toggle" style="display:none" title="The Burner Phone: $800 for a clean number. While it holds charge (10 street sales), undercover buyers make the corner half as often — then the number’s burned and you buy another">📱 BURNER $800</button>
 <button id="unit-toggle" style="display:none" title="The Storage Unit: a $1,500 rental across town under a clean name. Stash cap 15 → 45, and if you ever skip town, the unit isn’t on the warrant — up to 15 bags survive">📦 RENT A UNIT $1,500</button>
@@ -795,6 +810,14 @@ canvas{display:block;touch-action:none;}
     <div class="bust-sub" id="bust-sub">The feds kicked in the door.<br>Everything's gone.</div>
     <div class="bust-stats" id="bust-stats"></div>
     <button class="bust-restart" id="bust-restart-btn">Start Over</button>
+  </div>
+</div>
+<div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Corner">
+  <div class="diff-panel">
+    <div class="diff-title">🧱 THE CORNER</div>
+    <div class="diff-sub" id="chain-progress">0 of 0 begun</div>
+    <div id="chain-list"></div>
+    <button class="diff-opt" id="chain-close" style="text-align:center;margin-top:14px">CLOSE</button>
   </div>
 </div>
 <div id="diff-modal">
@@ -2779,6 +2802,17 @@ function buyBackRoom() {
   refreshRoomBtn();
   return true;
 }
+// LAB-57: the Corner. Wired once at load and always available,
+// unlike every other tray button — a chain you cannot see is the
+// thing this exists to fix.
+{
+  const cb = document.getElementById('chain-toggle');
+  if (cb) cb.onclick = openChain;
+  const cc = document.getElementById('chain-close');
+  if (cc) cc.onclick = () => document.getElementById('chain-modal').classList.remove('open');
+  const cm = document.getElementById('chain-modal');
+  if (cm) cm.addEventListener('click', e => { if (e.target === cm) cm.classList.remove('open'); });
+}
 function refreshRoomBtn() {
   const b = document.getElementById('room-toggle');
   if (!b) return;
@@ -2850,6 +2884,84 @@ function maybeHangTheFrame() {
   checkGrowAchievements();
   return true;
 }
+// -- The Corner (LAB-57) ---
+// NOTE ON PLACEMENT: this table must come AFTER every block whose
+// threshold constant it cites (FRAME_AT, below). Declared above them
+// it evaluates in their temporal dead zone and takes the page down on
+// load -- which is exactly what happened to the Tycoon wall first.--------------------------------------
+// Same gap the Tycoon wall closed, on the corner: sixteen links deep
+// and no way to see they are one thing. Each button only shows up
+// once the one before it is done, so nobody halfway along knows
+// there is a halfway.
+//
+// LAB_CHAIN is the chain, declared once, in order. Every row calls the
+// SAME function the game calls, and every row states the gate that
+// opens it as its predecessor(s) plus a threshold -- which is the
+// part `tests/headless/wall.js` cross-checks against the game's own
+// predicate, so a wrong number here fails the battery instead of
+// quietly lying to a player. `prev` takes a list because the Block
+// Reunion waits on two things at once.
+const LAB_CHAIN = [
+  { id: 'hwm',       icon: '\u{1F4C8}', name: 'The High-Water Mark',   tally: () => loadHwm().beats,        gate: null,                     prev: null,                  need: 0 },
+  { id: 'gplaque',   icon: '\u{1F4BF}', name: 'The Gold Record',       tally: () => loadGPlaque().cheers,   gate: () => gplaqueStands(),    prev: 'hwm',                 need: GPLAQUE_AT },
+  { id: 'og',        icon: '\u{1F9E2}', name: 'The OG from the Block', tally: () => loadOg().visits,        gate: null,                     prev: null,                  need: 0 },
+  { id: 'breunion',  icon: '\u{1F3AA}', name: 'The Block Reunion',     tally: () => loadBReunion().held,    gate: () => breunionStands(),   prev: ['gplaque', 'og'],     need: 3 },
+  { id: 'polaroid',  icon: '\u{1F4F8}', name: 'The Cookout Polaroid',  tally: () => loadPolaroid().looks,   gate: () => polaroidHangs(),    prev: 'breunion',            need: 3 },
+  { id: 'canniv',    icon: '\u{1F382}', name: 'The Corner Anniversary',tally: () => loadCAnniv().toasts,    gate: () => annivStands(),      prev: 'polaroid',            need: 3 },
+  { id: 'wall',      icon: '\u{1F58A}', name: 'The Wall of Names',     tally: () => loadWall().leafs,       gate: () => wallUp(),           prev: 'canniv',              need: 3 },
+  { id: 'stoop',     icon: '\u{1FA91}', name: 'The Stoop Bench',       tally: () => loadStoop().sits,       gate: () => stoopBuilt(),       prev: 'wall',                need: 3 },
+  { id: 'sstory',    icon: '\u{1F399}', name: 'The Stoop Story',       tally: () => loadSStory().tellings,  gate: () => sstoryReady(),      prev: 'stoop',               need: 3 },
+  { id: 'track',     icon: '\u{1F3A7}', name: 'The Block Track',       tally: () => loadTrack().plays,      gate: () => trackReady(),       prev: 'sstory',              need: 3 },
+  { id: 'shoebox',   icon: '\u{1F4E6}', name: 'The Shoebox',           tally: () => loadShoebox().digs,     gate: () => shoeboxBuried(),    prev: 'track',               need: 3 },
+  { id: 'mural',     icon: '\u{1F3A8}', name: 'The Alley Mural',       tally: () => loadMural().stands,     gate: () => muralUp(),          prev: 'shoebox',             need: 3 },
+  { id: 'docent',    icon: '\u{1F9ED}', name: 'The Walk-Down',         tally: () => loadDocent().walks,     gate: () => docentUp(),         prev: 'mural',               need: 3 },
+  { id: 'mark',      icon: '\u{270D}',  name: 'The New Kid\u2019s Tag', tally: () => loadMark().tags,      gate: () => markUp(),           prev: 'docent',              need: 3 },
+  { id: 'room',      icon: '\u{1F6CB}', name: 'The Back Room',         tally: () => loadRoom().sits,        gate: () => roomOffered(),      prev: 'mark',                need: 3 },
+  { id: 'frame',     icon: '\u{1F5BC}', name: 'The Empty Frame',       tally: () => (loadFrame().up ? 1 : 0), gate: () => frameEarned(),    prev: 'room',                need: FRAME_AT },
+];
+function chainState(){
+  const rows = LAB_CHAIN.map(r => {
+    const open = !r.gate || !!r.gate();
+    const n = Math.max(0, Math.floor(r.tally() || 0));
+    const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+    return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+  });
+  const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+  return { rows, nextIdx, doneCount: rows.filter(r => r.tally > 0).length, total: rows.length };
+}
+function renderChain(){
+  const listEl = document.getElementById('chain-list');
+  const progEl = document.getElementById('chain-progress');
+  if(!listEl) return;
+  const st = chainState();
+  if(progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+  const byId = {}; st.rows.forEach(r => { byId[r.id] = r; });
+  listEl.innerHTML = st.rows.map((r, i) => {
+    const started = r.tally > 0;
+    const isNext = i === st.nextIdx;
+    // Past the one you're on, rows stay unnamed: the wall should say
+    // there is more, not hand over the list.
+    const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+    const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+    let note;
+    if(started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+    else if(isNext) note = 'yours to do next';
+    else if(r.open) note = 'open';
+    else if(r.prev.length){
+      // With more than one thing in the way, name the one furthest
+      // behind -- that is what a player has to go and do.
+      const behind = r.prev.map(p => byId[p]).filter(Boolean)
+        .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+      note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+    }
+    else note = 'not yet';
+    const cls = started ? 'chain-done' : isNext ? 'chain-next' : r.open ? 'chain-open' : 'chain-locked';
+    return '<div class="chain-row ' + cls + '"><span class="chain-name">' + label
+      + '</span><span class="chain-note">' + note + '</span></div>';
+  }).join('');
+}
+function openChain(){ renderChain(); document.getElementById('chain-modal').classList.add('open'); }
+
 function refreshHwmChip() {
   const b = document.getElementById('hwm-toggle');
   if (!b) return;
