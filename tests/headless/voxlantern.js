@@ -82,7 +82,15 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     Storage.prototype.setItem = function (k, v) { if (k === 'voxel-garden-v1') return; real(k, v); };
   });
   await page.reload({ waitUntil: 'load' });
-  await page.waitForTimeout(3500);
+  // Wait for the thing this assertion is about rather than for a fixed
+  // number of milliseconds. Booting a three.js scene and seeding the
+  // fresh isle takes however long the machine takes, and a flat 3500ms
+  // was long enough alone and NOT long enough under a full battery —
+  // which is a fragile test, not a fragile lantern.
+  await page.waitForFunction(
+    () => typeof W !== 'undefined' && W.plants
+      && [...W.plants.values()].filter(p => p.type === 'sunflower').length >= 3,
+    null, { timeout: 30000 });
   const reborn = await t(() => {
     const ripe = [...W.plants.values()].filter(p => p.type === 'sunflower' && p.stage === 2);
     return { isles: loadLantern().isles, ripe: ripe.length, total: W.plants.size };

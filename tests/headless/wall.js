@@ -74,6 +74,31 @@ const GAMES = [
       snap: ['hv-portrait','looks'], anniv: ['hv-anniversary','toasts'] },
     extraClear: ['hv-emptyhook'],
     pre: () => ({}) },
+  { name: 'Hearthvale', file: 'hearthvale.html', table: 'HVALE_CHAIN',
+    url: '/hearthvale.html', btn: '#chain-btn', modal: '#chain-modal',
+    list: '#chain-list', prog: '#chain-progress', row: '.chain-row',
+    nameCls: '.chain-name', noteCls: '.chain-note', pfx: 'chain',
+    twoWay: 'freunion', midChain: 'mark', midPrev: 'warden', wrongPrev: 'casket',
+    nextAfter: /Hall Register/,
+    seedKeys: { ledger: ['hvale-record','beats'], gilt: ['hvale-plaque','cheers'],
+      reeve: ['hvale-visitor','visits'], freunion: ['hvale-reunion','held'],
+      portrait: ['hvale-portrait','looks'], fday: ['hvale-anniversary','toasts'] },
+    extraClear: ['hvale-plaster'],
+    // A fresh valley opens on a full-screen welcome, and the Hall
+    // itself lives on the pause menu — so two clicks before the button.
+    dismiss: ['#welcome-close', '#menu-btn'],
+    pre: () => ({}) },
+  { name: 'Voxel Isle', file: 'voxel-garden.html', table: 'VOX_CHAIN',
+    url: '/voxel-garden.html', btn: '#chain-btn', modal: '#chain-modal',
+    list: '#chain-list', prog: '#chain-progress', row: '.chain-row',
+    nameCls: '.chain-name', noteCls: '.chain-note', pfx: 'chain',
+    twoWay: 'sreunion', midChain: 'mark', midPrev: 'pilot', wrongPrev: 'chest',
+    nextAfter: /Harbor Log/,
+    seedKeys: { vrec: ['vox-record','beats'], wreath: ['vox-plaque','cheers'],
+      keeper: ['vox-visitor','visits'], sreunion: ['vox-reunion','held'],
+      dframe: ['vox-portrait','looks'], mooring: ['vox-anniversary','toasts'] },
+    extraClear: ['vox-bareline'],
+    pre: () => ({}) },
 ];
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
@@ -211,9 +236,9 @@ function gateClauses(src, fnName) {
         }
       }, [G.seedKeys, seed, G.pre(), G.extraClear]);
       await page.goto(BASE + G.url, { waitUntil: 'load' });
-      if (G.dismiss) {
-        await page.waitForSelector(G.dismiss, { timeout: 25000 });
-        await page.click(G.dismiss);
+      for (const sel of [].concat(G.dismiss || [])) {
+        await page.waitForSelector(sel, { state: 'visible', timeout: 25000 });
+        await page.click(sel);
       }
       await page.waitForSelector(G.btn, { timeout: 25000 });
       await page.click(G.btn);
