@@ -73,7 +73,9 @@ const GAMES = [
       marisol: ['hv-visitor','visits'], reunion: ['hv-reunion','held'],
       snap: ['hv-portrait','looks'], anniv: ['hv-anniversary','toasts'] },
     extraClear: ['hv-emptyhook'],
-    pre: () => ({}) },
+    // HV-56's first-run crash course is modal and would swallow the click
+    // on the Bridge button. Arrive as a returning camp, same as reach.js.
+    pre: () => ({ 'hv-intro-seen': '1' }) },
   { name: 'Hearthvale', file: 'hearthvale.html', table: 'HVALE_CHAIN',
     url: '/hearthvale.html', btn: '#chain-btn', modal: '#chain-modal',
     list: '#chain-list', prog: '#chain-progress', row: '.chain-row',

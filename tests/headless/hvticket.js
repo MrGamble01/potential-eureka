@@ -68,6 +68,16 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the fare
   const sent = await t(() => {
+    // Section B set G.days = 20 to open the ask, which leaves the goal
+    // ladder owing "Survive 3 days" (+3 goodwill). finishAction() calls
+    // buildActionUI(), which checks the ladder — so that payout can land
+    // INSIDE the measurement below and be read as part of the fare.
+    // Whether it did was decided by whether a background tick had already
+    // collected it, i.e. by the clock: the assertion passed for years on
+    // that accident and broke the moment HV-56 paused the day behind the
+    // crash course. Settle the ladder first, so this measures the fare
+    // and nothing else.
+    checkGoals();
     const before = {
       pop: G.population, morale: (G.morale = 50), rep: G.rep,
       figures: figures.filter(f => f.userData && f.userData.type === 'community').length,
