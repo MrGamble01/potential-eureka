@@ -30,6 +30,16 @@
  * `arcade-achievements` fail on the hub root as well as the Hall of
  * Fame, and that difference is the whole severity argument. Losing the
  * Hall of Fame is losing a screen; losing the root is losing the arcade.
+ *
+ * PREFLIGHT. The static server died under this suite once, and every row
+ * came back FAIL with a connection error — ten lines that looked exactly
+ * like ten product crashes. A suite that cannot tell "the site is broken"
+ * from "the server is down" is worse than no suite, because it spends the
+ * reader's trust on noise. So: one reachability check before any browser
+ * starts, which exits 2 with the reason, and connection errors during the
+ * run are reported as ENVIRONMENT rather than counted as product failures.
+ * (Same lesson as QA-24, which found the audit calling twelve sandbox
+ * network errors a "baseline".)
  */
 const { chromium } = require('playwright');
 
@@ -87,20 +97,39 @@ async function boot(browser, key, json, url) {
   return errs.length ? errs[0] : (alive ? null : 'no DOM');
 }
 
+// Environmental: the harness could not reach the site at all. Never a
+// product finding — the page never ran.
+const isEnvironmental = why => /ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|ECONNREFUSED/.test(why || '');
+
 (async () => {
+  // Preflight — fail fast and unmistakably if the server isn't up.
+  try {
+    const res = await fetch(BASE + '/index.html');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  } catch (e) {
+    console.log(`ENV   cannot reach ${BASE} (${e.message}) — start the static server first:`);
+    console.log('        python3 -m http.server 8099 --bind 127.0.0.1');
+    console.log('\nnot run (environment)');
+    process.exit(2);
+  }
+
   const browser = await chromium.launch({
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
 
   for (const { key, owner } of KEYS) {
     for (const view of VIEWS) {
-      const bad = [];
+      const bad = [], env = [];
       for (const [label, json] of PAYLOADS) {
         const why = await boot(browser, key, json, view.url);
-        if (why) bad.push(`${label}: ${why}`);
+        if (!why) continue;
+        (isEnvironmental(why) ? env : bad).push(`${label}: ${why}`);
+      }
+      if (env.length) {
+        console.log(`ENV   ${view.label} / "${key}" — ${env.length} row(s) unreachable, not counted: ${env[0]}`);
       }
       ok(bad.length === 0,
-        `${view.label} survives a corrupt "${key}" (${owner}, ${PAYLOADS.length} payloads)${bad.length ? ' — ' + bad.join(' | ') : ''}`);
+        `${view.label} survives a corrupt "${key}" (${owner}, ${PAYLOADS.length - env.length}/${PAYLOADS.length} payloads run)${bad.length ? ' — ' + bad.join(' | ') : ''}`);
     }
   }
 
