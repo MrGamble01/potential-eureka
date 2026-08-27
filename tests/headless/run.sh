@@ -40,10 +40,10 @@ SUITES=(
 )
 
 # Preflight. Without this, a server that isn't up (or died mid-run) makes
-# every one of the suites below fail with a connection error — ~128 red
-# lines that read exactly like ~128 broken pages, after twenty-five minutes
-# of spending Chromium on nothing. A battery that cannot tell "the site is
-# broken" from "the server is down" spends the reader's trust on noise.
+# every one of the suites below fail with a connection error — one red line
+# per suite, each reading exactly like a broken page, after twenty-five
+# minutes of spending Chromium on nothing. A battery that cannot tell "the
+# site is broken" from "the server is down" spends the reader's trust on noise.
 # Fail in two seconds with the reason instead. Exit 2, not 1: this is an
 # environment problem, not a product failure, and the distinction is the
 # whole point (see QA-24, and audit.js's environmental classifier).
