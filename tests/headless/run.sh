@@ -39,6 +39,21 @@ SUITES=(
   pwa
 )
 
+# Preflight. Without this, a server that isn't up (or died mid-run) makes
+# every one of the suites below fail with a connection error — ~128 red
+# lines that read exactly like ~128 broken pages, after twenty-five minutes
+# of spending Chromium on nothing. A battery that cannot tell "the site is
+# broken" from "the server is down" spends the reader's trust on noise.
+# Fail in two seconds with the reason instead. Exit 2, not 1: this is an
+# environment problem, not a product failure, and the distinction is the
+# whole point (see QA-24, and audit.js's environmental classifier).
+if ! curl -fs -o /dev/null --max-time 5 "$BASE/index.html" 2>/dev/null; then
+  echo "ENV: cannot reach $BASE — the battery needs a static server."
+  echo "     From the repo root:  python3 -m http.server 8099 --bind 127.0.0.1"
+  echo "     Or point BASE elsewhere:  BASE=http://host:port ./tests/headless/run.sh"
+  exit 2
+fi
+
 fails=0
 for s in "${SUITES[@]}"; do
   echo "===== $s ====="
