@@ -1171,7 +1171,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">GAME OF LIFE</div>
-        <div class="game-subtitle">Conway's cellular automaton — click to draw cells</div>
+        <div class="game-subtitle">Conway's cellular automaton — click to draw or erase cells</div>
       </div>
       <div class="game-controls">
         <button class="primary" id="life-play-btn" onclick="LifeGame.togglePlay()">Play</button>
@@ -1199,7 +1199,7 @@
         <button onclick="LifeGame.loadPreset('rpentomino')">R-pentomino</button>
         <button onclick="LifeGame.loadPreset('gliderGun')">Gosper Gun</button>
       </div>
-      <canvas id="life-canvas" class="game-canvas" role="img" aria-label="Game of Life grid — click or tap to draw cells"></canvas>
+      <canvas id="life-canvas" class="game-canvas" role="img" aria-label="Game of Life grid — click or tap to draw or erase cells"></canvas>
       <div style="margin-top:8px; font-size:11px; color: var(--text-dim)">
         Cell age: <span style="color:#eaffff">newborn</span> ·
         <span style="color:#3FB950">young</span> ·

@@ -21,6 +21,7 @@ const LifeGame = (() => {
   let intervalId = null;
   let speed = 100;
   let drawing = false;
+  let paintValue = 1;    // cell value applied for the rest of the current drag
   let popHistory = [];   // recent population, for the sparkline
 
   // Age → colour ramp: newborns burn bright cyan-white; survivors cool
@@ -52,13 +53,13 @@ const LifeGame = (() => {
     age = makeGrid();
     nextAge = makeGrid();
 
-    canvas.addEventListener('mousedown', e => { drawing = true; toggleCell(e); });
+    canvas.addEventListener('mousedown', e => { drawing = true; startCell(e); });
     canvas.addEventListener('mousemove', e => { if (drawing) toggleCell(e); });
     canvas.addEventListener('mouseup', () => drawing = false);
     canvas.addEventListener('mouseleave', () => drawing = false);
 
     // Touch support
-    canvas.addEventListener('touchstart', e => { drawing = true; toggleCell(e.touches[0]); e.preventDefault(); });
+    canvas.addEventListener('touchstart', e => { drawing = true; startCell(e.touches[0]); e.preventDefault(); });
     canvas.addEventListener('touchmove', e => { if (drawing) toggleCell(e.touches[0]); e.preventDefault(); }, { passive: false });
     canvas.addEventListener('touchend', () => drawing = false);
     canvas.addEventListener('touchcancel', () => drawing = false);
@@ -71,7 +72,9 @@ const LifeGame = (() => {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
   }
 
-  function toggleCell(e) {
+  // Maps a mouse/touch event to a [row, col] grid cell, or null if it landed
+  // outside the board.
+  function cellFromEvent(e) {
     const rect = canvas.getBoundingClientRect();
     // Use logical WIDTH/HEIGHT (not the DPR-scaled backing store) so the
     // click-to-cell mapping isn't thrown off by devicePixelRatio.
@@ -79,12 +82,32 @@ const LifeGame = (() => {
     const scaleY = HEIGHT / rect.height;
     const c = Math.floor((e.clientX - rect.left) * scaleX / CELL);
     const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
-    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-      grid[r][c] = 1;
-      if (!age[r][c]) age[r][c] = 1;
-      draw();
-      updateInfo();
-    }
+    return (r >= 0 && r < ROWS && c >= 0 && c < COLS) ? [r, c] : null;
+  }
+
+  // Start of a click/drag: flips the cell under the cursor (dead↔alive) and
+  // remembers that value so the rest of the drag paints, rather than
+  // flickers, as it crosses other cells — the same convention paint tools
+  // use so a drag can draw OR erase depending on where it started.
+  function startCell(e) {
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    const [r, c] = cell;
+    paintValue = grid[r][c] ? 0 : 1;
+    grid[r][c] = paintValue;
+    age[r][c] = paintValue ? 1 : 0;
+    draw();
+    updateInfo();
+  }
+
+  function toggleCell(e) {
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    const [r, c] = cell;
+    grid[r][c] = paintValue;
+    age[r][c] = paintValue ? (age[r][c] || 1) : 0;
+    draw();
+    updateInfo();
   }
 
   function step() {
