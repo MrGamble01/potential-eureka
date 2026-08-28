@@ -1,6 +1,14 @@
 /* P4-A11Y-1 focus management: tycoon Founder Shop focuses its first
    control on open, Tab wraps inside, and closing restores the opener;
-   hub calendar modal (display-based) gets the same. */
+   hub calendar modal (display-based) gets the same.
+
+   TYC-60: Escape closes every browsing modal in Tycoon (tip, ipo,
+   elevator, achievements, win, theme, dashboard, help) except two —
+   Founder Shop and the Wall were both in the P4-A11Y-1 focus-trap
+   roster and both have a working X button and backdrop click, but
+   neither line ever made it into the keydown handler's Escape branch.
+   Founder Shop close is now tested via Escape instead of the button
+   (below), and the Wall gets its own block proving the same. */
 const { chromium } = require('playwright');
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
@@ -43,10 +51,47 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     }
     ok(!seen.has('ESCAPED'), `Tab stays trapped (cycled: ${[...seen].join(', ').slice(0, 60)})`);
 
-    await page.click('#founder-close');
+    // TYC-60: Escape used to do nothing here — close via Escape rather
+    // than the button, so the closed-state and restore-focus checks
+    // below prove the keydown handler, not just founder-close's onclick.
+    await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
+    const closedByEsc = await page.evaluate(() =>
+      !document.getElementById('founder-modal').classList.contains('open'));
+    ok(closedByEsc, 'TYC-60: Escape closes the Founder Shop modal');
     const restored = await page.evaluate(() => document.activeElement.id);
     ok(restored === 'open-founder-btn', `close restores the opener (${restored})`);
+    ok(errs.length === 0, `tycoon: no page errors${errs.length ? ' — ' + errs[0] : ''}`);
+    await page.context().close();
+  }
+
+  // TYC-60: the Wall — same bug, same fix, its own modal.
+  {
+    const page = await (await browser.newContext({ viewport: { width: 1400, height: 900 } })).newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
+    await page.goto('http://127.0.0.1:8099/tycoon/play.html', { waitUntil: 'load' });
+    await page.waitForTimeout(5000);
+    await page.evaluate(() => {
+      localStorage.setItem('tycoon:tipsEnabled', '0');
+      localStorage.setItem('tycoon:welcomeSeen-v1', '1');
+    });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(4000);
+
+    await page.click('#open-wall-btn');
+    await page.waitForTimeout(400);
+    const openedInModal = await page.evaluate(() =>
+      document.getElementById('wall-modal').classList.contains('open'));
+    ok(openedInModal, 'the Wall modal opens from its settings-panel button');
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const closedByEsc = await page.evaluate(() =>
+      !document.getElementById('wall-modal').classList.contains('open'));
+    ok(closedByEsc, 'TYC-60: Escape closes the Wall modal');
+    const restored = await page.evaluate(() => document.activeElement.id);
+    ok(restored === 'open-wall-btn', `close restores the opener (${restored})`);
     ok(errs.length === 0, `tycoon: no page errors${errs.length ? ' — ' + errs[0] : ''}`);
     await page.context().close();
   }

@@ -11446,7 +11446,14 @@ addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
-  // Escape dismisses any open modal (tip, ipo, elevator)
+  // Escape dismisses any open modal (tip, ipo, elevator, ...). TYC-60:
+  // this list drifted from the trapModalFocus() roster below — Founder
+  // Shop and the Wall both browse-only, both closable by their own X
+  // button and backdrop click same as Achievements/Theme/Dashboard/Help
+  // right above them, but neither was ever added here, so Escape did
+  // nothing while every other non-decision modal in the game closed on
+  // it. (board-modal is deliberately left out: it's a timed board vote,
+  // not a browsing panel, and "No"/"Table it" is the real decline.)
   if (k === 'escape') {
     tipModalEl.classList.remove('open');
     ipoModal.classList.remove('open');
@@ -11455,6 +11462,8 @@ addEventListener('keydown', e => {
     winModalEl.classList.remove('open');
     dashModalEl.classList.remove('open');
     themeModalEl.classList.remove('open');
+    founderModalEl.classList.remove('open');
+    wallModalEl.classList.remove('open');
     document.getElementById('help-modal').classList.remove('open');
   }
   // "?" or "/" opens the help / hotkeys modal. (No movement conflict
