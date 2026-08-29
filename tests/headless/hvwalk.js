@@ -37,7 +37,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvPanel({ stands: 2 });
     saveHvWalk({ walks: 0 });
     const started2 = walkUp();
-    walkGiven = false;
+    G.walkDay = -1;
     G.food = 10;
     finishAction({ id: 'walk' });
     return { key: HVWALK_KEY, base: HVWALK_BASE, per: HVWALK_PER,
@@ -64,7 +64,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    walkGiven = false;
+    G.walkDay = -1;
     G.food = 10;
     finishAction({ id: 'walk' });
     const food1 = G.food, w1 = loadHvWalk().walks;
@@ -77,7 +77,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    walkGiven = false;
+    G.walkDay = -1;
     G.food = 0;
     finishAction({ id: 'walk' });
     const g = GOALS.find(x => x.id === 'walk2');

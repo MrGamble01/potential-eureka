@@ -175,9 +175,9 @@ function finishAction(a){
   } else if(a.id==='thermos'){
     // HV-35: the heirloom pays out of the bridge's memory, once a session.
     if(!thermosHasWarmth()){ log('\ud83e\uded6 The thermos is cold \u2014 this bridge has no story to warm it yet.'); }
-    else if(thermosUsed){ log('\ud83e\uded6 The thermos made its round already \u2014 it refills tomorrow.'); }
+    else if(G.thermosDay===G.days){ log('\ud83e\uded6 The thermos made its round already \u2014 it refills tomorrow.'); }
     else {
-      thermosUsed=true;
+      G.thermosDay=G.days;
       var tp=thermosPower();
       var tt=loadThermos();
       saveThermos({uses:(tt.uses||0)+1});
@@ -197,9 +197,9 @@ function finishAction(a){
   } else if(a.id==='marisol'){
     // HV-40: the visitor pays out of the bridge's story, once a session.
     if(!marisolHasStory()){ log('\ud83d\ude97 Marisol\u2019s tow truck rolls past without slowing \u2014 this bridge has no story she\u2019d know yet.'); }
-    else if(marisolCame){ log('\ud83d\ude97 Marisol already came by today \u2014 she has a garage to run.'); }
+    else if(G.marisolDay===G.days){ log('\ud83d\ude97 Marisol already came by today \u2014 she has a garage to run.'); }
     else {
-      marisolCame=true;
+      G.marisolDay=G.days;
       var md=marisolDish();
       var mm=loadMarisol();
       saveMarisol({visits:(mm.visits||0)+1});
@@ -211,9 +211,9 @@ function finishAction(a){
   } else if(a.id==='reunion'){
     // HV-42: the whole story shows up at once, once a session.
     if(!hvReunionStands()){ log('\ud83c\udf82 The reunion needs the whole story \u2014 the chalk star\u2019s holds and Marisol\u2019s visits both. Not yet.'); }
-    else if(bridgeReunionHeld){ log('\ud83c\udf82 The reunion already went off today \u2014 people have places to be.'); }
+    else if(G.hvReunionDay===G.days){ log('\ud83c\udf82 The reunion already went off today \u2014 people have places to be.'); }
     else {
-      bridgeReunionHeld=true;
+      G.hvReunionDay=G.days;
       var rd=hvReunionDish();
       var rr=loadHvReunion();
       saveHvReunion({held:(rr.held||0)+1});
@@ -225,9 +225,9 @@ function finishAction(a){
   } else if(a.id==='snapshot'){
     // HV-43: the picture that proves the reunion happened, once a session.
     if(!snapshotHangs()){ log('\ud83d\udcf7 No snapshot in the fridge door yet \u2014 three reunions put one there.'); }
-    else if(snapshotLooked){ log('\ud83d\udcf7 The snapshot got its look today \u2014 it fades if you stare.'); }
+    else if(G.snapshotDay===G.days){ log('\ud83d\udcf7 The snapshot got its look today \u2014 it fades if you stare.'); }
     else {
-      snapshotLooked=true;
+      G.snapshotDay=G.days;
       var sd=snapshotDish();
       var ss=loadHvSnap();
       saveHvSnap({looks:(ss.looks||0)+1});
@@ -239,9 +239,9 @@ function finishAction(a){
   } else if(a.id==='anniv'){
     // HV-44: a candle for the year the camp held, once a session.
     if(!annivCounts()){ log('\ud83d\udd6f\ufe0f Nobody has counted the winters yet \u2014 three looks at the snapshot and the year adds up.'); }
-    else if(annivMarked){ log('\ud83d\udd6f\ufe0f The candle already burned today \u2014 the year keeps.'); }
+    else if(G.annivDay===G.days){ log('\ud83d\udd6f\ufe0f The candle already burned today \u2014 the year keeps.'); }
     else {
-      annivMarked=true;
+      G.annivDay=G.days;
       var ad=annivDish();
       var av=loadHvAnniv();
       saveHvAnniv({toasts:(av.toasts||0)+1});
@@ -253,9 +253,9 @@ function finishAction(a){
   } else if(a.id==='guestbook'){
     // HV-45: the names by the fridge, leafed once a session.
     if(!notebookOut()){ log('\ud83d\udcd3 No notebook by the fridge yet \u2014 three candles and somebody leaves one out.'); }
-    else if(notebookLeafed){ log('\ud83d\udcd3 The notebook got its leaf-through today \u2014 the names keep.'); }
+    else if(G.notebookDay===G.days){ log('\ud83d\udcd3 The notebook got its leaf-through today \u2014 the names keep.'); }
     else {
-      notebookLeafed=true;
+      G.notebookDay=G.days;
       var gd=notebookDish();
       var gb=loadHvGb();
       saveHvGb({leafs:(gb.leafs||0)+1});
@@ -267,9 +267,9 @@ function finishAction(a){
   } else if(a.id==='bench'){
     // HV-46: the seat with every name at its back, once a session.
     if(!hvBenchBuilt()){ log('\ud83e\ude91 No bench by the fridge yet \u2014 three leafs through the notebook and somebody starts building.'); }
-    else if(benchSat){ log('\ud83e\ude91 The bench got its sit today \u2014 the seat keeps.'); }
+    else if(G.benchDay===G.days){ log('\ud83e\ude91 The bench got its sit today \u2014 the seat keeps.'); }
     else {
-      benchSat=true;
+      G.benchDay=G.days;
       var bd=hvBenchDish();
       var bb=loadHvBench();
       saveHvBench({sits:(bb.sits||0)+1});
@@ -281,9 +281,9 @@ function finishAction(a){
   } else if(a.id==='story'){
     // HV-47: the whole bridge by heart, told once a session.
     if(!hvStoryByHeart()){ log('\ud83d\udd25 Nobody has the whole story yet \u2014 three sits on the bench and it comes together.'); }
-    else if(hvStoryTold){ log('\ud83d\udd25 The story got its telling tonight \u2014 the fire remembers.'); }
+    else if(G.storyDay===G.days){ log('\ud83d\udd25 The story got its telling tonight \u2014 the fire remembers.'); }
     else {
-      hvStoryTold=true;
+      G.storyDay=G.days;
       var fd=hvStoryDish();
       var fs=loadHvStory();
       saveHvStory({tellings:(fs.tellings||0)+1});
@@ -295,9 +295,9 @@ function finishAction(a){
   } else if(a.id==='ballad'){
     // HV-48: the story set to a tune, played once a session.
     if(!balladSet()){ log('\ud83c\udfb8 No ballad yet \u2014 three tellings of the fire story and the busker finds the tune.'); }
-    else if(balladPlayed){ log('\ud83c\udfb8 The ballad got its playing tonight \u2014 the tune keeps.'); }
+    else if(G.songDay===G.days){ log('\ud83c\udfb8 The ballad got its playing tonight \u2014 the tune keeps.'); }
     else {
-      balladPlayed=true;
+      G.songDay=G.days;
       var bd2=balladDish();
       var bs2=loadHvSong();
       saveHvSong({plays:(bs2.plays||0)+1});
@@ -309,9 +309,9 @@ function finishAction(a){
   } else if(a.id==='can'){
     // HV-49: the can buried by the piling, dug up once a session.
     if(!canBuried()){ log('\ud83d\udce6 Nothing buried by the piling yet \u2014 three playings of the ballad and somebody puts a can down.'); }
-    else if(canDug){ log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.'); }
+    else if(G.canDay===G.days){ log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.'); }
     else {
-      canDug=true;
+      G.canDay=G.days;
       var cd2=canDish();
       var cn2=loadHvCan();
       saveHvCan({digs:(cn2.digs||0)+1});
@@ -323,9 +323,9 @@ function finishAction(a){
   } else if(a.id==='fifth'){
     // HV-50: the fifth panel beside the finished mural, stood with once a session.
     if(!panelPainted()){ log('\ud83c\udfa8 The fifth panel is still bare block \u2014 three digs of the can and somebody primes it.'); }
-    else if(panelStood){ log('\ud83c\udfa8 The panel got its stand today \u2014 the paint is still going on.'); }
+    else if(G.panelDay===G.days){ log('\ud83c\udfa8 The panel got its stand today \u2014 the paint is still going on.'); }
     else {
-      panelStood=true;
+      G.panelDay=G.days;
       var pd2=panelDish();
       var pn2=loadHvPanel();
       saveHvPanel({stands:(pn2.stands||0)+1});
@@ -337,9 +337,9 @@ function finishAction(a){
   } else if(a.id==='walk'){
     // HV-51: the walk down the whole underpass, given once a session.
     if(!walkUp()){ log('\ud83e\udded Nobody walks the wall yet \u2014 three stands at the fifth panel and somebody starts.'); }
-    else if(walkGiven){ log('\ud83e\udded Somebody already got the walk tonight \u2014 the next newcomer gets theirs tomorrow.'); }
+    else if(G.walkDay===G.days){ log('\ud83e\udded Somebody already got the walk tonight \u2014 the next newcomer gets theirs tomorrow.'); }
     else {
-      walkGiven=true;
+      G.walkDay=G.days;
       var wd2=walkDish();
       var wk2=loadHvWalk();
       saveHvWalk({walks:(wk2.walks||0)+1});
@@ -351,9 +351,9 @@ function finishAction(a){
   } else if(a.id==='mark'){
     // HV-52: the newcomer's own name on the wall, added once a session.
     if(!markUp()){ log('\u270d\ufe0f Nobody new has been shown the whole wall yet \u2014 three walks down the underpass and somebody takes the chalk.'); }
-    else if(markAdded){ log('\u270d\ufe0f A name went up tonight \u2014 the wall grows at the pace people stay.'); }
+    else if(G.markDay===G.days){ log('\u270d\ufe0f A name went up tonight \u2014 the wall grows at the pace people stay.'); }
     else {
-      markAdded=true;
+      G.markDay=G.days;
       var md2=markDish();
       var mk2=loadHvMark();
       saveHvMark({names:(mk2.names||0)+1});
@@ -379,9 +379,9 @@ function finishAction(a){
         saveGame();
       }
     }
-    else if(drySat){ log('\u26f1\ufe0f Somebody has already had their hour in the dry corner tonight \u2014 the roof keeps, and so does the habit.'); }
+    else if(G.dryDay===G.days){ log('\u26f1\ufe0f Somebody has already had their hour in the dry corner tonight \u2014 the roof keeps, and so does the habit.'); }
     else {
-      drySat=true;
+      G.dryDay=G.days;
       var dd2=dryDish();
       var dr2=loadHvDry();
       saveHvDry({built:true, sits:(dr2.sits||0)+1});

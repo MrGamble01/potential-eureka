@@ -36,7 +36,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvReunion({ held: 2 });
     saveHvSnap({ looks: 0 });
     const hangs2 = snapshotHangs();
-    snapshotLooked = false;
+    G.snapshotDay = -1;
     G.food = 10;
     finishAction({ id: 'snapshot' });
     return { key: HVSNAP_KEY, base: HVSNAP_BASE, per: HVSNAP_PER,
@@ -63,7 +63,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    snapshotLooked = false;
+    G.snapshotDay = -1;
     G.food = 10;
     finishAction({ id: 'snapshot' });
     const food1 = G.food, looks1 = loadHvSnap().looks;
@@ -76,7 +76,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    snapshotLooked = false;
+    G.snapshotDay = -1;
     G.food = 0;
     finishAction({ id: 'snapshot' });
     const g = GOALS.find(x => x.id === 'snapshot2');

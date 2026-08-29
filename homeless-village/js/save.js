@@ -73,5 +73,22 @@ function loadGame(){
     if(typeof G.rayLoans!=='number') G.rayLoans=0;
     if(typeof G.fridgeSeeded!=='boolean') G.fridgeSeeded=true;     // saves from before HV-31 were never fresh camps to count
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
+    // HV-57: the 14 Bridge-chain links (thermos through the dry corner)
+    // used to gate on bare in-memory booleans instead of a day in G —
+    // saves from before the fix never wrote these keys at all.
+    if(typeof G.thermosDay!=='number') G.thermosDay=-1;
+    if(typeof G.marisolDay!=='number') G.marisolDay=-1;
+    if(typeof G.hvReunionDay!=='number') G.hvReunionDay=-1;
+    if(typeof G.snapshotDay!=='number') G.snapshotDay=-1;
+    if(typeof G.annivDay!=='number') G.annivDay=-1;
+    if(typeof G.notebookDay!=='number') G.notebookDay=-1;
+    if(typeof G.benchDay!=='number') G.benchDay=-1;
+    if(typeof G.storyDay!=='number') G.storyDay=-1;
+    if(typeof G.songDay!=='number') G.songDay=-1;
+    if(typeof G.canDay!=='number') G.canDay=-1;
+    if(typeof G.panelDay!=='number') G.panelDay=-1;
+    if(typeof G.walkDay!=='number') G.walkDay=-1;
+    if(typeof G.markDay!=='number') G.markDay=-1;
+    if(typeof G.dryDay!=='number') G.dryDay=-1;
   }catch(e){}
 }

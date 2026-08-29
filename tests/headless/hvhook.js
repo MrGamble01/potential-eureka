@@ -119,7 +119,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvMark({ names: 3 });
     saveHvDry({ built: true, sits: 2 });
     saveHvHook({ up: false });
-    drySat = false;
+    G.dryDay = -1;
     G.food = 10;
     finishAction({ id: 'dry' });
     G.season = 3;

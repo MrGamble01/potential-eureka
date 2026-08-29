@@ -35,7 +35,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvSong({ plays: 2 });
     saveHvCan({ digs: 0 });
     const buried2 = canBuried();
-    canDug = false;
+    G.canDay = -1;
     G.food = 10;
     finishAction({ id: 'can' });
     return { key: HVCAN_KEY, base: HVCAN_BASE, per: HVCAN_PER,
@@ -60,7 +60,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     `the dish scales with playings, capped at 5 (${dishes.d3}, ${dishes.dCap})`);
 
   const seam = await t(() => {
-    canDug = false;
+    G.canDay = -1;
     G.food = 10;
     finishAction({ id: 'can' });
     const food1 = G.food, digs1 = loadHvCan().digs;
@@ -72,7 +72,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(seam.food2 === 21 && seam.digs2 === 1, 'the same session digs once');
 
   const goal = await t(() => {
-    canDug = false;
+    G.canDay = -1;
     G.food = 0;
     finishAction({ id: 'can' });
     const g = GOALS.find(x => x.id === 'can2');
