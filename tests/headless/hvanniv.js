@@ -36,7 +36,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvSnap({ looks: 2 });
     saveHvAnniv({ toasts: 0 });
     const counts2 = annivCounts();
-    annivMarked = false;
+    G.annivDay = -1;
     G.food = 10;
     finishAction({ id: 'anniv' });
     return { key: HVANN_KEY, base: HVANN_BASE, per: HVANN_PER,
@@ -63,7 +63,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    annivMarked = false;
+    G.annivDay = -1;
     G.food = 10;
     finishAction({ id: 'anniv' });
     const food1 = G.food, toasts1 = loadHvAnniv().toasts;
@@ -76,7 +76,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    annivMarked = false;
+    G.annivDay = -1;
     G.food = 0;
     finishAction({ id: 'anniv' });
     const g = GOALS.find(x => x.id === 'anniv2');
