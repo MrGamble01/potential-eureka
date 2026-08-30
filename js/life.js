@@ -21,6 +21,7 @@ const LifeGame = (() => {
   let intervalId = null;
   let speed = 100;
   let drawing = false;
+  let erasing = false;   // which button started the current drag
   let popHistory = [];   // recent population, for the sparkline
 
   // Age → colour ramp: newborns burn bright cyan-white; survivors cool
@@ -52,14 +53,17 @@ const LifeGame = (() => {
     age = makeGrid();
     nextAge = makeGrid();
 
-    canvas.addEventListener('mousedown', e => { drawing = true; toggleCell(e); });
-    canvas.addEventListener('mousemove', e => { if (drawing) toggleCell(e); });
+    // Left button paints; right button erases — otherwise a misplaced cell
+    // could only be fixed by wiping the whole board with Clear.
+    canvas.addEventListener('mousedown', e => { drawing = true; erasing = e.button === 2; toggleCell(e, erasing); });
+    canvas.addEventListener('mousemove', e => { if (drawing) toggleCell(e, erasing); });
     canvas.addEventListener('mouseup', () => drawing = false);
     canvas.addEventListener('mouseleave', () => drawing = false);
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Touch support
-    canvas.addEventListener('touchstart', e => { drawing = true; toggleCell(e.touches[0]); e.preventDefault(); });
-    canvas.addEventListener('touchmove', e => { if (drawing) toggleCell(e.touches[0]); e.preventDefault(); }, { passive: false });
+    // Touch support (no right-click equivalent, so touch stays paint-only)
+    canvas.addEventListener('touchstart', e => { drawing = true; erasing = false; toggleCell(e.touches[0], false); e.preventDefault(); });
+    canvas.addEventListener('touchmove', e => { if (drawing) toggleCell(e.touches[0], false); e.preventDefault(); }, { passive: false });
     canvas.addEventListener('touchend', () => drawing = false);
     canvas.addEventListener('touchcancel', () => drawing = false);
 
@@ -71,7 +75,7 @@ const LifeGame = (() => {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
   }
 
-  function toggleCell(e) {
+  function toggleCell(e, erase) {
     const rect = canvas.getBoundingClientRect();
     // Use logical WIDTH/HEIGHT (not the DPR-scaled backing store) so the
     // click-to-cell mapping isn't thrown off by devicePixelRatio.
@@ -80,8 +84,8 @@ const LifeGame = (() => {
     const c = Math.floor((e.clientX - rect.left) * scaleX / CELL);
     const r = Math.floor((e.clientY - rect.top) * scaleY / CELL);
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-      grid[r][c] = 1;
-      if (!age[r][c]) age[r][c] = 1;
+      grid[r][c] = erase ? 0 : 1;
+      age[r][c] = erase ? 0 : (age[r][c] || 1);
       draw();
       updateInfo();
     }
@@ -283,7 +287,7 @@ const LifeGame = (() => {
       ctx.fillStyle = '#E6EDF3';
       ctx.font = '18px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Click or tap to draw cells', WIDTH / 2, HEIGHT / 2 - 8);
+      ctx.fillText('Click or tap to draw cells (right-click to erase)', WIDTH / 2, HEIGHT / 2 - 8);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('…or pick a pattern below, then press Play', WIDTH / 2, HEIGHT / 2 + 16);
