@@ -24,6 +24,7 @@ SUITES=(
   nohooks
   audit
   wall
+  hvaleesc
   pacing
   reach
   storagekeys
