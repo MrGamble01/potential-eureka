@@ -3185,6 +3185,27 @@ const AgeOfWarGame = (() => {
     document.addEventListener('keydown', e => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
+      // AOW-60: browsing-only dialogs (The Line / Awards / Settings)
+      // already close on × and backdrop, but this handler used to
+      // return the instant modalPaused was set, so Escape never ran
+      // a close. Welcome keeps its own one-shot listener (~656).
+      // Closing here does not touch userPaused — P-pause and a modal
+      // still compose.
+      if (e.key === 'Escape') {
+        let closed = false;
+        for (const id of ['aow-chain-modal', 'aow-ach-modal', 'aow-settings-modal']) {
+          const m = document.getElementById(id);
+          if (m && m.style.display && m.style.display !== 'none') {
+            m.style.display = 'none';
+            closed = true;
+          }
+        }
+        if (closed) {
+          setModalPaused(anyModalOpen());
+          e.preventDefault();
+          return;
+        }
+      }
       if (modalPaused) return; // ignore game keys while a modal has the sim paused
       if (e.key === 'p' || e.key === 'P') {
         setUserPaused(!userPaused);
