@@ -487,6 +487,16 @@ function openChain(){
   if(m) m.addEventListener('click', function(e){
     if(e.target === m) m.classList.remove('open');
   });
+  // HV-58: Escape too. × and backdrop already dismiss; the page's only
+  // keydown is the HV-56 intro handler, which keys off #intro-modal and
+  // never sees this overlay. Do not call closeIntro() from here — that
+  // would mark the crash course seen. Confirmed the miss is this overlay
+  // only: it is the one CLOSE+backdrop dialog that Escape ignores.
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && m && m.classList.contains('open')){
+      m.classList.remove('open');
+    }
+  });
 })();
 
 // HV-56: the opening.
