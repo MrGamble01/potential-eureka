@@ -2,7 +2,7 @@
    MEMORY MATRIX — Simon on a 3×3 light grid.
    Watch the pattern, play it back. One more
    step every round, a little faster each time;
-   one wrong pad ends the run.
+   three misses end the run.
    ============================================ */
 
 const MemoryMatrixGame = (() => {
