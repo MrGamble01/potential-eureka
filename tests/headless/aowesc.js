@@ -17,6 +17,7 @@
  * C. Escape closes Awards.
  * D. Escape closes Settings.
  * E. Escape while P-paused closes The Line but does not resume.
+ * E2. Escape with no browsing modal still does not resume P-pause.
  * F. Welcome still closes via its own listener (welcome-seen set).
  * Z. Zero page errors.
  */
@@ -113,6 +114,15 @@ function isOpen(display) {
     });
     ok(!isOpen(afterEsc.line) && afterEsc.ov === 'flex' && afterEsc.resume,
       'AOW-60: Escape does not resume a game the player paused with P');
+
+    // Same pause, no browsing dialog this time: Escape must still
+    // leave the overlay up. (P is the only live key while user-paused.)
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    const stillPaused = await page.evaluate(() =>
+      document.getElementById('aow-overlay').style.display);
+    ok(stillPaused === 'flex',
+      'AOW-60: Escape with no browsing modal does not resume P-pause');
 
     await page.context().close();
   }
