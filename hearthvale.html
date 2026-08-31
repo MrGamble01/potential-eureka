@@ -5618,7 +5618,11 @@
   const keys = {};
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); }
+    // HVALE-53: The Hall (#chain-modal) is browsing-only — × and backdrop
+    // already dismiss it, matching Achievements/Chronicle/Decrees — but
+    // Escape never did. Leave #event (an active choice) and #welcome
+    // (first-run) alone; #trader is a separate ticket.
+    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); document.getElementById('chain-modal').classList.remove('open'); }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);

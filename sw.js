@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v60';  // rolls LAB-58 (Grow Op's upgrade descriptions now say what the upgrades do) to installed PWAs
+const SW_VERSION = 'eureka-v61';  // rolls HVALE-53 (Escape now closes The Hall in Hearthvale) to installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
