@@ -24,6 +24,7 @@ SUITES=(
   nohooks
   audit
   wall
+  tycbusy
   pacing
   reach
   storagekeys
