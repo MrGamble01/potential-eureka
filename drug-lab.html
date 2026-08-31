@@ -2821,6 +2821,18 @@ function buyBackRoom() {
   if (cc) cc.onclick = () => document.getElementById('chain-modal').classList.remove('open');
   const cm = document.getElementById('chain-modal');
   if (cm) cm.addEventListener('click', e => { if (e.target === cm) cm.classList.remove('open'); });
+  // LAB-61: Escape too. CLOSE and backdrop already dismiss; the page's
+  // only keydown just tracks movement (`keys[e.code]=true`). Do not
+  // close #diff-modal (must pick Careful/Kingpin to start a run),
+  // #event-modal (active event choice), or #bust-modal (game over) —
+  // those are forced choices, not browsing panels. Confirmed the miss
+  // is this overlay only: it is the one CLOSE+backdrop dialog in the
+  // file.
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && cm && cm.classList.contains('open')) {
+      cm.classList.remove('open');
+    }
+  });
 }
 function refreshRoomBtn() {
   const b = document.getElementById('room-toggle');

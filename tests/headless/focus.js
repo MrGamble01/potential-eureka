@@ -1,6 +1,14 @@
 /* P4-A11Y-1 focus management: tycoon Founder Shop focuses its first
    control on open, Tab wraps inside, and closing restores the opener;
-   hub calendar modal (display-based) gets the same. */
+   hub calendar modal (display-based) gets the same.
+
+   LAB-61: Grow Op's The Corner (`#chain-modal`) already dismissed via
+   CLOSE and backdrop click, same as every other browsing overlay —
+   Escape did nothing, because the page's only keydown just tracks
+   movement. Same class of drift as TYC-60 (Tycoon Escape missed
+   Founder Shop / Wall). The difficulty picker, the event choice and
+   the bust screen are forced choices and must stay closed-only-by-
+   picking, so they are asserted here as the negative. */
 const { chromium } = require('playwright');
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
@@ -72,6 +80,61 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       document.getElementById('calendar-modal').contains(document.activeElement));
     ok(inCal, `hub modal focuses inside on open (${opened})`);
     ok(errs.length === 0, `hub: no page errors${errs.length ? ' — ' + errs[0] : ''}`);
+    await page.context().close();
+  }
+
+  // LAB-61: Grow Op — The Corner. Escape used to do nothing; CLOSE and
+  // backdrop already dismissed. The other three overlays on the page
+  // are forced choices and must stay put.
+  {
+    const page = await (await browser.newContext({ viewport: { width: 1400, height: 900 } })).newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
+    await page.goto('http://127.0.0.1:8099/drug-lab.html', { waitUntil: 'load' });
+    await page.waitForSelector('#diff-careful', { state: 'visible', timeout: 25000 });
+
+    const diffOpen = await page.evaluate(() =>
+      document.getElementById('diff-modal').classList.contains('open'));
+    ok(diffOpen, 'a fresh corner opens on the difficulty picker');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const diffStill = await page.evaluate(() =>
+      document.getElementById('diff-modal').classList.contains('open'));
+    ok(diffStill, 'LAB-61: Escape does not close the difficulty picker');
+
+    await page.click('#diff-careful');
+    await page.waitForSelector('#chain-toggle', { timeout: 25000 });
+    await page.click('#chain-toggle');
+    await page.waitForSelector('#chain-modal.open', { timeout: 10000 });
+    const cornerOpen = await page.evaluate(() =>
+      document.getElementById('chain-modal').classList.contains('open'));
+    ok(cornerOpen, 'The Corner opens from the tray');
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const cornerClosed = await page.evaluate(() =>
+      !document.getElementById('chain-modal').classList.contains('open'));
+    ok(cornerClosed, 'LAB-61: Escape closes The Corner');
+
+    // Force-open the two other choice-gated overlays (no hook: the
+    // handler keys off classList, which is what CLOSE/backdrop use).
+    await page.evaluate(() => document.getElementById('event-modal').classList.add('open'));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    const eventStill = await page.evaluate(() =>
+      document.getElementById('event-modal').classList.contains('open'));
+    ok(eventStill, 'LAB-61: Escape does not close an active event');
+    await page.evaluate(() => document.getElementById('event-modal').classList.remove('open'));
+
+    await page.evaluate(() => document.getElementById('bust-modal').classList.add('open'));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    const bustStill = await page.evaluate(() =>
+      document.getElementById('bust-modal').classList.contains('open'));
+    ok(bustStill, 'LAB-61: Escape does not close the bust screen');
+    await page.evaluate(() => document.getElementById('bust-modal').classList.remove('open'));
+
+    ok(errs.length === 0, `grow-op: no page errors${errs.length ? ' — ' + errs[0] : ''}`);
     await page.context().close();
   }
 
