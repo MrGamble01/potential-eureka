@@ -4826,8 +4826,11 @@ function bindInput(){
     else if(e.key==='m'||e.key==='M')toggleMute();
     else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
     else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
+    // VOX-51: The Shore (#chain-modal) is browsing-only — × and backdrop
+    // already dismiss it, matching help/ach/almanac — but Escape never did.
+    // First-person Esc returns earlier when fp.on; leave that path alone.
     else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
-      document.body.classList.remove('photo');closePanels();}
+      document.body.classList.remove('photo');closePanels();$('chain-modal').classList.remove('open');}
     else if(e.key>='1'&&e.key<='5'){
       const tools=['hoe','water','seed','block','pick'];
       selectTool(tools[+e.key-1]);
