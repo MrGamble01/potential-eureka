@@ -64,6 +64,9 @@ function isOpen(display) {
     const lineClosed = await page.evaluate(() =>
       document.getElementById('aow-chain-modal').style.display);
     ok(!isOpen(lineClosed), 'AOW-60: Escape closes The Line');
+    // If Escape missed, × still works — dismiss so later clicks aren't
+    // trapped under a leftover overlay (the named assertion already failed).
+    if (isOpen(lineClosed)) await page.click('#aow-chain-close');
 
     // C — Awards, same CLOSE+backdrop miss.
     await page.click('#aow-ach-btn');
@@ -76,6 +79,7 @@ function isOpen(display) {
     const achClosed = await page.evaluate(() =>
       document.getElementById('aow-ach-modal').style.display);
     ok(!isOpen(achClosed), 'AOW-60: Escape closes Awards');
+    if (isOpen(achClosed)) await page.click('#aow-ach-close');
 
     // D — Settings, same miss.
     await page.click('#aow-settings-btn');
@@ -88,6 +92,7 @@ function isOpen(display) {
     const setClosed = await page.evaluate(() =>
       document.getElementById('aow-settings-modal').style.display);
     ok(!isOpen(setClosed), 'AOW-60: Escape closes Settings');
+    if (isOpen(setClosed)) await page.click('#aow-settings-close');
 
     // E — P-pause and a browsing modal compose. Escape must close
     // The Line without dropping the pause overlay the player asked for.
