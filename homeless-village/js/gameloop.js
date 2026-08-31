@@ -406,6 +406,14 @@ function tickDay(dt){
   // takes a minute over it would otherwise come back to a colder night
   // than the one they started with.
   if(introOpen()) return;
+  // HV-59: The Bridge is the same class of reading. A full-screen overlay
+  // of everything the camp remembers should not burn the day behind it —
+  // a player who spends a minute on it would otherwise come back to a
+  // later hour, a colder night, possibly a new dawn. DOM classList read
+  // on purpose: ui.js owns the overlay, but this file already consults
+  // the intro the same way, and that PR is staying off ui.js.
+  var chain=document.getElementById('chain-modal');
+  if(chain&&chain.classList.contains('open')) return;
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
