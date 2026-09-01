@@ -1600,7 +1600,18 @@
   const FOOD_PER_VILLAGER = 1; // per production cycle
 
   // ---- Game state ---------------------------------------------
-  let state, cam, view, tiles, tileObj, occ;
+  // HVALE-53: cam/view used to start out undefined and were only ever
+  // given real values inside init(), which itself only runs on
+  // DOMContentLoaded. But the canvas's pointermove/wheel handlers are
+  // wired up at top-level script scope — before that — so a pointer
+  // event arriving in that window (a mouse already resting over the
+  // canvas when a touch/mobile viewport switch reflows the page, which
+  // is exactly what reach.js's own isMobile+hasTouch phone check does
+  // for Tycoon and Voxel Isle) read `cam.x`/`view.w` off `undefined`
+  // and threw before the town ever finished loading. Seeding real
+  // starting values here — the same defaults init() sets anyway —
+  // closes the window instead of narrowing it.
+  let state, cam = { x: 0, y: 0, z: 3 }, view = { w: 0, h: 0 }, tiles, tileObj, occ;
   let decos = [];  // cosmetic props regenerated from seed: {kind, tx, ty}
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap

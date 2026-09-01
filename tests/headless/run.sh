@@ -26,6 +26,7 @@ SUITES=(
   wall
   pacing
   reach
+  hvalecam
   storagekeys
   saves
   hubstore
