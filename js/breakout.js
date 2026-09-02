@@ -461,6 +461,15 @@ const BreakoutGame = (() => {
       ctx.font = '16px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Move to aim · Click, tap or Space to launch', WIDTH / 2, HEIGHT - 70);
+    } else if (running && !gameOver && balls.some(b => b.stuck != null)) {
+      // The sticky paddle catches the ball and holds it until you release it
+      // — the same click/tap/Space that launches. Nothing else on screen says
+      // so once the run is under way (the launch prompt above is gated on
+      // `!launched`), so a caught ball read as the game having frozen.
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '16px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⊙ Caught · Move to aim · Click, tap or Space to release', WIDTH / 2, HEIGHT - 70);
     }
     if (!running && !gameOver) {
       ctx.fillStyle = 'rgba(13,17,23,0.72)';
