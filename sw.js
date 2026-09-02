@@ -15,7 +15,9 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v61-aow-records';  // recover malformed endless records on installed PWAs
+const SW_VERSION = 'eureka-v62';  // rolls MAZE-2 (Maze Runner's New Game survives the pending next-level build) to installed PWAs
+// Distinct from main's eureka-v61-aow-records. The version is an identity,
+// not an ordering — activate() drops every cache that doesn't match.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
