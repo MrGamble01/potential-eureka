@@ -27,6 +27,7 @@ const MazeGame = (() => {
     return v && v.classList.contains('active');
   };
   let bump = 0;      // brief red-flash timer when you walk into a wall
+  let nextLevelTimer = null;  // pending next-level build, owned by the run that armed it
   let winFlash = 0;
   let sparks = [];
   let rafId = null;
@@ -92,6 +93,11 @@ const MazeGame = (() => {
   function generate() { newGame(); }
 
   function newGame() {
+    // The next-level build belongs to the run that armed it. N / New Game
+    // used to leave it running: it fired 900ms into the maze you had just
+    // been given and replaced it, taking the steps you had already walked
+    // and the clock you were racing with it.
+    clearTimeout(nextLevelTimer); nextLevelTimer = null;
     level = 1; score = 0;
     dailyRun = (typeof Daily !== 'undefined') && Daily.begin('maze');
     buildLevel();
@@ -186,7 +192,7 @@ const MazeGame = (() => {
     if (dailyRun && typeof Daily !== 'undefined') clearMsg += ' &nbsp;·&nbsp; ' + Daily.result('maze', score);
     updateStatus(clearMsg);
     level++;
-    setTimeout(() => buildLevel(), 900);
+    nextLevelTimer = setTimeout(() => { nextLevelTimer = null; buildLevel(); }, 900);
   }
 
   function spark(c, r, color, n) {
