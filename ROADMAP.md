@@ -38,7 +38,7 @@ afterwards.
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
-| **Still open** | ✅ none — all closed Aug 2026 |
+| **Still open** | ⚠️ two — **QA-29** (a partly-failed Restore blends two arcades and reports success) and **QA-30** (six suites ignore `$BASE` and test whatever is on port 8099), both filed Sep 2026 by QA-28 |
 | **P2** | ✅ all closed, DEBT-1 included |
 | **P3** | ✅ **complete** — every concrete ticket shipped (Aug 2026); only the dashboard repurpose/rebrand product calls remain open |
 | **P4** | self-directed polish backlog, opened Aug 2026 — see the P4 section |
@@ -177,10 +177,78 @@ on exit and resumes on re-entry.
 
 ## Still open
 
-**Nothing.** Every ticket in this document is closed as of August 2026 — P0,
-P1, P2, and the three that were still open at the start of that pass (A11Y-2,
-THUMB-1, DEBT-1). What remains is the P3 ideas backlog, which is optional
-feature work rather than outstanding defects.
+### QA-29 · A partly-failed Restore blends two arcades and reports success — **OPEN**
+
+Found while working QA-28; filed rather than folded in, because it is a
+different fix and this repo ships one ticket per PR.
+
+`index.html`, the `hof-restore-file` change handler:
+
+```js
+keys.forEach(k => { try { localStorage.setItem(k, data[k]); } catch {} });
+location.reload();   // every module re-reads its keys on boot
+```
+
+Every write is individually swallowed, nothing is read back, and the page then
+reloads as though the restore had worked. **Reproduced headlessly**: a profile
+holding `snake-high=11, tetris-high=22, g2048-best=33` restored a five-key
+backup with one write refused, and came back as `snake-high=77` (backup),
+`tetris-high=22` (this profile), `g2048-best=4096` (backup) — a state belonging
+to neither arcade, with no dialog, no console error and no way for the player
+to know. The confirm they accepted said *"Matching progress here will be
+overwritten"*, so the half that did overwrite is gone for good.
+
+Severity is not the odds of a failed write — it is that **this is the recovery
+path**. It is the tool you reach for after you have already lost something, and
+it is the one write in the arcade that touches every game at once.
+
+Suggested fix: make it transactional. Snapshot the origin first, write with a
+read-back check on each key, and on any failure put the snapshot back and say
+so plainly — *"Restore failed, nothing was changed"* beats a silent blend. The
+quota is reachable on this origin (measured: writes begin throwing
+`QuotaExceededError` somewhere under 4 MB of stored characters, and all 21
+games, six flagships and the productivity apps share it), but the fix should
+not depend on why a write failed.
+
+---
+
+### QA-30 · Six suites ignore `$BASE` and silently test whatever is on port 8099 — **OPEN**
+
+`run.sh` exports `BASE` and most suites read `process.env.BASE`, so the
+battery can be pointed at any server. Six do not:
+
+| Suite | Line |
+|---|---|
+| `coins` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+| `focus` | `await page.goto('http://127.0.0.1:8099/tycoon/play.html', …)` |
+| `insights` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+| `pwa` | `const BASE='http://127.0.0.1:8099';` — shadows the env var entirely |
+| `resume` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+| `search` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+
+The failure is not that they break — it is that they **pass**. Point the
+battery at a branch on another port and these six quietly test whichever
+tree happens to be serving 8099, then report green for the branch they
+never loaded. That is a suite claiming to have checked something it did
+not, which is the same species as QA-24's audit that could never fail.
+
+Fix: route all six through `process.env.BASE || 'http://127.0.0.1:8099'`
+like the other 123. Small and mechanical; the reason it is filed rather
+than folded into QA-28 is that it touches six suites unrelated to that
+ticket.
+
+*Note on provenance:* a comment on PR #675 named ten suites for this —
+`pacing`, `promises`, `nohooks` and `storagekeys` as well. Those four are
+**pure static analysis**: they never launch a browser and never reference
+a URL, so there is nothing in them to point at a port. The list above is
+the verified six.
+
+---
+
+**Otherwise nothing.** Every other ticket in this document is closed as of
+August 2026 — P0, P1, P2, and the three that were still open at the start of
+that pass (A11Y-2, THUMB-1, DEBT-1). What remains is the P3 ideas backlog,
+which is optional feature work rather than outstanding defects.
 
 ### ~~A11Y-2 · `user-scalable=no` came back on the two newest game pages~~ ✅ *(closed Aug 2026)*
 `hearthvale.html` and `voxel-garden.html` both carried `user-scalable=no`
@@ -494,6 +562,8 @@ gameplay system for one flagship, verified headless before merge.*
 - **~~AOW-56 · Age of War: the Recruit's Panel~~** ✅ — The mark round on the battlefield: after **three walks**, the recruit who was taken down the fresco on their first morning asks for the brush and paints the panel after the cornerstone seam — their own first muster, in their own hand — and the whole line falls out to watch. Once a session a ✍️ **Panel** pays **130 gold base + 65 per walk (cap 5, to 455)**, tallied in `aow-mark`; the HUD button sits after the walk's and **The Recruit's Panel** unlocks at three panels. Verified via a temp hook (8 assertions, green first run), hook stripped before commit, `node --check` clean, audit at its 12/32 baseline. The patch anchors on the now-restored `// ── The Veterans' Hall (AOW-35) ──` separator and leaves it intact — the AOW-54 mangling repaired in AOW-55 stayed repaired.
 
 - **~~HV-52 · Homeless Village: a Name on the Wall~~** ✅ — The mark round under the bridge: after **three walks down the underpass**, the newcomer who got shown all of it takes the chalk and puts their own name up on the wall of names, in their hand — and the fire is fuller that night than it has any right to be. Once a session an ✍️ **Add a Name to the Wall** pays **11 food base + 1 per walk (cap 5, to 16)**, tallied in `hv-mark`; the row joins `ACTIONS` after the walk's, the branch lands before `oddjob`, and the **mark2** goal completes at two names. Hook-free, so `hvmark` is **promoted into the committed battery: 113 → 114 suites** (7 assertions, green first run), the tests README row extending to match; audit at its 12/32 baseline. This is the round closing on the oldest thing in the game: HV-34's Writing on the Wall chalked the *bridge's* numbers where anyone could read them — now the newest person there writes their own name beside them.
+
+- **~~QA-28 · "Reset progress" cleared 7 of 34 keys and left a whole flagship town standing~~** ✅ — The Hall of Fame's reset button asked *"Clear all your high scores and game saves? This can’t be undone."* and then ran `HOF_KEYS.forEach(removeItem)` over **a hand-kept list of 27 key names**. **The backup button twenty lines below it does the opposite on purpose**, and says why in a comment that has been sitting there since P6: *"new games' keys are covered automatically without a registry to forget"*. The reset used exactly such a registry. Forty-eight rounds of memory-chain keys later it had forgotten most of the arcade. **Measured, not assumed** — five flagships booted so their real saves existed, plus a long-time player's meta layer seeded: **34 keys before, 7 cleared, 27 survived.** Among the survivors: **`hearthvale-v1`, an entire flagship town**, never on the list at all; the hub's whole meta layer (`arcade-achievements`, `arcade-coins`, `arcade-rivals`, `eureka-stats`) so every achievement, coin and rival record stayed; and the complete sixteen-link memory arc in all six games. A player asking for a clean slate — to hand the device to a friend, or to see the opening HV-56 had just written — got **a blend of a fresh arcade and an old one, and was told it could not be undone.** The button's own label (*"Reset my scores"*), its confirm (*"high scores and game saves"*) and its behaviour were **three different promises, and the code matched none of them**. **The fix inverts the list.** Everything on the origin goes except the few things that are not a game: the productivity apps, the `eureka-personal-` vault, the `studio-` namespace (Eureka Studio's store holds a GitHub token, not progress), and three site-wide preferences — theme, mute, weather opt-in — kept because they describe the browser rather than the run. **That set changes when an app is added, not when a round ships**, which is the whole point: the next memory key is cleared by default instead of needing to be remembered. A game's own settings go with the game, so a reset hands back the game as it ships. The confirm now names the real count, says the flagship towns are included, says what is *not* touched, and points at Backup before destroying anything; an empty arcade says *"nothing to clear"* rather than asking. It also **reloads**, as Restore already does — every module holds its state in memory and writes it back on the next tick, so re-rendering the board would have left a wiped store and a live page disagreeing, and the next save would have resurrected what was cleared. New suite **`tests/headless/reset.js`, 28 assertions**, in the battery. Half is a **drift guard** in the `storagekeys.js` mould — it reads `RESET_KEEP` out of the shipped page rather than restating it, and fails if an app key drops off the list or a game key lands on it. **That half earned its keep on its first run**, catching two things before either shipped: `studio-ci` and `studio-fcache` were missing from my keep-list, so the new reset would have deleted two of Eureka Studio's stores — fixed by keeping the **whole `studio-` namespace** instead of naming its current members, which is the same derivation argument one level down. The other was **a fault in the guard itself**: `js/calendar.js` writes through `Utils.store.set(STORAGE_KEY, …)` and my extractor only knew `setItem(KEY, …)`, so it reported `eureka-calendar-config` as a stale keep-entry. A guard that cannot see a write is a guard that will bless a deletion. The other half drives the real thing: five flagships booted for their genuine saves, reset clicked, **every game key gone and every app key byte-identical**, and the wipe still gone after the reload it triggers. Non-vacuous: against the pre-fix `index.html` the suite goes **28/28 green to 17 failures**, naming `hearthvale-v1`, the four hub stores and the memory keys individually — and a game key planted on `RESET_KEEP` fails the drift guard by name. (Two of those seventeen are artifacts of the reverted tree having no keep-list for the suite to parse; the other fifteen are the defect.) **Scope checked.** Backup was re-examined in the same pass and is **clean** — it already derives, and it round-trips a 3.8 MB origin through its `data:` URI intact. **Restore is not**, and is filed as QA-29 rather than folded in here. **Battery now 129 suites.**
 
 - **~~LAB-58 · Grow Op advertised its strongest upgrade as its weakest~~** ✅ — An upgrade's description is a **promise the player spends money on**. Grow Op sells nine; **three did not say what the code did, and a fourth effect was not mentioned at all.** The worst by far: **Bigger Yield**, sold as *"+20% product per harvest per level"* for $200, while `bags = 1 + upgLv('yield1')` adds **a whole bag per level** — Lv1 is **+100%, not +20%**, a **5× understatement**, rising to +400% at Lv4. Read beside Premium Product's honest *"+40% for $500"*, any player doing the arithmetic buys Premium — and the strongest buy in the game sat there looking like the weakest. That is not a typo; that is a purchase made on bad information. Also wrong: **Lookout System** said *"20% slower per level"* where `Math.max(1, 6 - lv*1.5)` is **25% of base per level** (75% at Lv3), and **Clean Operation** said *"25% faster per level"* where `+ lv*0.5` is a **flat half-point of drain a second** — not a percentage at all, and on a bare operation Lv1 is +167%. **Better Grow Lights** also quietly raises `playerSpeed()` 5% a level and never said so. **The copy was corrected to the code, not the reverse** — the code is the balance this game has actually been played and tested on, and nerfing Bigger Yield 5× to match a wrong sentence would break every save in exchange for nothing. New suite **`tests/headless/promises.js`, 20 assertions**, which pins each sentence to the exact expression implementing it. **Static, and necessarily so**: Grow Op's game script is `<script type="module">`, so `UPG` and `salePrice()` are module-scoped and unreachable from `page.evaluate` — and the only way to reach them would be to bolt on a `window.__` hook, which is precisely what **QA-23's `nohooks.js` exists to forbid** after a leaked one shipped for four rounds. Reading the source is both the honest instrument and the better one here, since *"does the sentence match the coefficient"* is a source-level question. Non-vacuous: restoring the three original descriptions fails **7 assertions by name**. **Scope checked, not assumed.** All six flagships were examined for numeric purchase copy. Four state no percentages at all. **Voxel Isle makes five such promises and gets all five right** — `1.4` and `+6` for the Barn, `1.2` for the Farmhouse, `0.15` on a 60s cooldown for the Compost Heap, `1.25` for the Weather Vane, `DOVE_PREMIUM = 1.75` with a 90s window for the Dovecote — so its assertions are there to keep it that way, not to fix anything. **Grow Op was the outlier, not the tip of something.** One note on the suite itself: two of my own extraction regexes initially matched nothing (`animalGrowMult`'s trailing semicolon, and `compostT=(\d+)` catching the `let compostT=0` declaration instead of the cooldown), and **the "guards the guard" assertion caught both** — which is exactly the job it was added to do. **Battery now 128 suites.**
 

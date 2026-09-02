@@ -29,7 +29,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Area | Suites |
 |---|---|
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
-| Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card) |
+| Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `reset` (QA-28: "Reset progress" clears every game key on the shared origin and no app key — a drift guard over the keep-list plus a played arcade with five flagships really booted; the hand-kept list it replaced cleared 7 of 34 keys and left a whole flagship town standing), `hofcard` (PNG score card) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
 | Cross-game geometry | `reach` (UI-1/UI-2: every flagship control stays on screen at desktop, laptop, short-laptop and phone viewports) |
@@ -45,6 +45,17 @@ Suites that need a temporary `window.__*` test hook in a game file
 recorded in the merge commits that shipped each feature.
 
 ## Last full run
+
+2026-09-02 (QA-28) — **ALL SUITES GREEN (129 suites)**, 1,409 assertions,
+first pass, zero flakes, with the audit row holding its baseline exactly:
+**0 product issues across 32 targets**, 12 environmental (blocked
+cross-origin hosts, Chromium's console echo of those failures,
+`agentic-os.html` probing a dev backend that is not running here, and the
+agent proxy's CA missing from Chromium's trust store). First battery
+carrying `reset` — the QA-28 guard over what the Hall of Fame's reset
+clears — and the first run on `eureka-v61`, so the `pwa` suite re-confirmed
+the offline shell, the 3D boot from cache and the clean-URL fallback under
+the new service-worker version.
 
 2026-08-25 (QA-14, post-Round-Twenty-Nine) — **all 83 suites green
 end-to-end**, zero stale assertions, with the audit row holding its
