@@ -43,7 +43,13 @@ const AsteroidsGame = (() => {
     resetGame(false);
 
     document.addEventListener('keydown', Utils.whenViewActive('view-asteroids', onKeyDown));
+    // AST-1: keyup is deliberately NOT gated on the active view — a release is
+    // the end of a command, not one that needs permission — but the release
+    // that never arrives at all is a lost window focus. Alt-tab mid-turn and
+    // the keyup lands in the other window: the ship kept spinning and the
+    // engine kept burning until you came back. Same guard as PONG-1.
     document.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', clearKeys);
     // On-screen controls (mobile) — wired by index after render
     bindTouchButtons();
     canvas.addEventListener('touchstart', e => { if (!running || gameOver) start(); e.preventDefault(); }, { passive: false });
@@ -94,6 +100,10 @@ const AsteroidsGame = (() => {
       case 'ArrowRight': case 'd': keys.right = false; break;
       case 'ArrowUp': case 'w': keys.thrust = false; break;
     }
+  }
+
+  function clearKeys() {
+    keys.left = keys.right = keys.thrust = false;
   }
 
   function bindTouchButtons() {
@@ -477,7 +487,7 @@ const AsteroidsGame = (() => {
 
   function destroy() {
     loop.stop();
-    keys.left = keys.right = keys.thrust = false;
+    clearKeys();
     dailyRun = false;
     if (typeof Daily !== 'undefined') Daily.disarm('asteroids');
     // Shell re-inits a view only once and won't redraw on return — paint the
