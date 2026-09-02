@@ -484,6 +484,9 @@ const VectorDefenseGame = (() => {
     running = false; over = false;
     const ov = document.getElementById('vd-overlay'); if (ov) ov.style.display = 'none';
     reset(false);
+    // reset() rolls cash/lives/wave back to their pre-run values — repaint the
+    // HUD too, or the info bar keeps quoting the run you just walked away from.
+    updateInfo();
     draw();
   }
 

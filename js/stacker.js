@@ -259,6 +259,9 @@ const StackerGame = (() => {
     running = false; over = false;
     const ov = document.getElementById('stacker-overlay'); if (ov) ov.style.display = 'none';
     reset(false);
+    // reset() rolls the run back to the idle tower — repaint the HUD too, or
+    // the info bar keeps quoting the run you just walked away from.
+    updateInfo();
     draw();
   }
 

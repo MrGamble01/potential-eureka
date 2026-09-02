@@ -327,6 +327,9 @@ const WordCascadeGame = (() => {
     running = false; over = false;
     const ov = document.getElementById('wc-overlay'); if (ov) ov.style.display = 'none';
     reset(false);
+    // reset() zeroes score/words and empties the last-words strip — repaint the
+    // HUD too, or the info bar keeps quoting the run you just walked away from.
+    updateInfo();
     draw();
   }
 
