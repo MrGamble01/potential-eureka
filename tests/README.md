@@ -46,6 +46,17 @@ recorded in the merge commits that shipped each feature.
 
 ## Last full run
 
+2026-09-02 (QA-28) — **ALL SUITES GREEN (129 suites)**, 1,409 assertions,
+first pass, zero flakes, with the audit row holding its baseline exactly:
+**0 product issues across 32 targets**, 12 environmental (blocked
+cross-origin hosts, Chromium's console echo of those failures,
+`agentic-os.html` probing a dev backend that is not running here, and the
+agent proxy's CA missing from Chromium's trust store). First battery
+carrying `reset` — the QA-28 guard over what the Hall of Fame's reset
+clears — and the first run on `eureka-v61`, so the `pwa` suite re-confirmed
+the offline shell, the 3D boot from cache and the clean-URL fallback under
+the new service-worker version.
+
 2026-08-25 (QA-14, post-Round-Twenty-Nine) — **all 83 suites green
 end-to-end**, zero stale assertions, with the audit row holding its
 12/32 environment baseline. One flake on the first pass: the
