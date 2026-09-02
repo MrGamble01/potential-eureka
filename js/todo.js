@@ -411,6 +411,13 @@ const TodoList = (() => {
     initTodoEvents();
     renderTodos();
     gtUpdateStatus();
+    // UI-7: Esc closes the Google Tasks dialog, the way it closes every other
+    // dialog in the hub. It is aria-modal with focus trapped inside it, so
+    // without this the only way back out is the mouse.
+    document.addEventListener('keydown', e => {
+      const m = document.getElementById('gt-modal');
+      if (e.key === 'Escape' && m && m.style.display === 'flex') closeGTSettings();
+    });
   }
 
   return {
