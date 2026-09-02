@@ -38,7 +38,7 @@ afterwards.
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
-| **Still open** | ⚠️ one — **QA-29** (a partly-failed Restore blends two arcades and reports success), filed Sep 2026 by QA-28 |
+| **Still open** | ⚠️ two — **QA-29** (a partly-failed Restore blends two arcades and reports success) and **QA-30** (six suites ignore `$BASE` and test whatever is on port 8099), both filed Sep 2026 by QA-28 |
 | **P2** | ✅ all closed, DEBT-1 included |
 | **P3** | ✅ **complete** — every concrete ticket shipped (Aug 2026); only the dashboard repurpose/rebrand product calls remain open |
 | **P4** | self-directed polish backlog, opened Aug 2026 — see the P4 section |
@@ -209,6 +209,39 @@ quota is reachable on this origin (measured: writes begin throwing
 `QuotaExceededError` somewhere under 4 MB of stored characters, and all 21
 games, six flagships and the productivity apps share it), but the fix should
 not depend on why a write failed.
+
+---
+
+### QA-30 · Six suites ignore `$BASE` and silently test whatever is on port 8099 — **OPEN**
+
+`run.sh` exports `BASE` and most suites read `process.env.BASE`, so the
+battery can be pointed at any server. Six do not:
+
+| Suite | Line |
+|---|---|
+| `coins` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+| `focus` | `await page.goto('http://127.0.0.1:8099/tycoon/play.html', …)` |
+| `insights` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+| `pwa` | `const BASE='http://127.0.0.1:8099';` — shadows the env var entirely |
+| `resume` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+| `search` | `await page.goto('http://127.0.0.1:8099/index.html', …)` |
+
+The failure is not that they break — it is that they **pass**. Point the
+battery at a branch on another port and these six quietly test whichever
+tree happens to be serving 8099, then report green for the branch they
+never loaded. That is a suite claiming to have checked something it did
+not, which is the same species as QA-24's audit that could never fail.
+
+Fix: route all six through `process.env.BASE || 'http://127.0.0.1:8099'`
+like the other 123. Small and mechanical; the reason it is filed rather
+than folded into QA-28 is that it touches six suites unrelated to that
+ticket.
+
+*Note on provenance:* a comment on PR #675 named ten suites for this —
+`pacing`, `promises`, `nohooks` and `storagekeys` as well. Those four are
+**pure static analysis**: they never launch a browser and never reference
+a URL, so there is nothing in them to point at a port. The list above is
+the verified six.
 
 ---
 

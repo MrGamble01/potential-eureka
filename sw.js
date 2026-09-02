@@ -15,7 +15,13 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v61';  // rolls QA-28 (Reset progress clears the whole arcade, not a list of 27 keys) to installed PWAs
+const SW_VERSION = 'eureka-v63';  // rolls QA-28 (Reset progress clears the whole arcade, not a list of 27 keys) to installed PWAs
+// v61 and v62 are spoken for by other open PRs (C4-1 and MAZE-2), so this
+// takes v63 rather than colliding. The version is an identity, not an
+// ordering — activate() drops every cache that doesn't match, so any change
+// of the string refreshes an installed PWA whatever order these land in.
+// Two PRs shipping the SAME string is the only harmful case: the second one
+// would find the cache already valid and never refresh.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
