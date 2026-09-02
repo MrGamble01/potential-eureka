@@ -312,7 +312,15 @@ const CrateEscapeGame = (() => {
   function destroy() {
     const ov = document.getElementById('crate-overlay');
     if (ov) ov.style.display = 'none';
-    solvedNow = false;
+    // The other arcade games rewind to their idle start screen here, because
+    // SPACE always begins a fresh run there. This is a ladder, not a run: the
+    // only thing that advances it is the overlay's "press SPACE for the next
+    // puzzle", so clearing solvedNow and hiding that prompt left the player
+    // coming back to a finished board with nothing left to press — SPACE
+    // inert, every crate already on its pad, the game looking over. Advance
+    // the ladder exactly as that SPACE would; the last rung has no next one,
+    // so re-deal it, which is the replay its own hint offers.
+    if (solvedNow) { loadLevel(level < MAX_LEVEL ? level + 1 : level); return; }
     draw();
   }
 
