@@ -15,7 +15,6 @@ const WordFiveGame = (() => {
   let answer, guesses, current, row, state, gridEl, kbEl, msgEl;
   let streak = 0, bestStreak = 0;
   let keyState = {};   // letter -> 'correct' | 'present' | 'absent'
-  let boundKey = null;
 
   function init() {
     gridEl = document.getElementById('word5-grid');
@@ -24,8 +23,7 @@ const WordFiveGame = (() => {
     if (!gridEl) return;
     bestStreak = Utils.highScore.load('word5-streak');
     buildKeyboard();
-    boundKey = Utils.whenViewActive('view-word5', onKey);
-    document.addEventListener('keydown', boundKey);
+    document.addEventListener('keydown', Utils.whenViewActive('view-word5', onKey));
     newGame();
   }
 
@@ -216,7 +214,16 @@ const WordFiveGame = (() => {
   }
 
   function destroy() {
-    if (boundKey) document.removeEventListener('keydown', boundKey);
+    // W5-2: deliberately empty. This used to remove the keydown listener,
+    // which the shell can never put back — it inits a view once and only
+    // calls destroy() on the way out, so one trip to any other view left
+    // Word Five deaf to the physical keyboard for the rest of the session.
+    // The on-screen keys kept working (their handlers are rebuilt with the
+    // keyboard), which is what made it read as a quirk instead of a break.
+    // Nothing needed removing in the first place: the handler is wrapped in
+    // Utils.whenViewActive('view-word5', ...), so it already no-ops while
+    // you are anywhere else. Same shape as Minefield's and Drop Four's
+    // documented teardowns; there is no loop, timer or overlay to stop.
   }
 
   return { init, newGame, share, destroy };
