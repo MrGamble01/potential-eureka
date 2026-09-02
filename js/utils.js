@@ -49,6 +49,13 @@ const Utils = {
   },
   closeModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'none'; },
 
+  // True while any hub dialog is on screen. Every one of them is
+  // `aria-modal`, which is a promise that the page behind it is inert.
+  modalOpen() {
+    return [...document.querySelectorAll('.modal-overlay')]
+      .some(m => m.style.display === 'flex');
+  },
+
   // ---- Arcade game plumbing ----
   // Shared by the canvas games (snake/tetris/breakout/asteroids/2048), which
   // each used to hand-roll their own copy of these four idioms.
@@ -61,6 +68,12 @@ const Utils = {
     return function (e) {
       const view = document.getElementById(viewId);
       if (!view || !view.classList.contains('active')) return;
+      // UI-6: a dialog over the board is aria-modal, so the keys belong to it,
+      // not to the game underneath — the cheat-sheet you opened mid-run was
+      // spending 2048 moves and filling Word Five rows behind itself.
+      // Releases are exempt on purpose: a key held when the dialog opened
+      // must still be able to end, or the guard would strand it (PONG-1).
+      if (e.type !== 'keyup' && Utils.modalOpen()) return;
       return handler(e);
     };
   },
