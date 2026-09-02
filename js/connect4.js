@@ -23,6 +23,7 @@ const ConnectFourGame = (() => {
   let flash = 0;
   let rafId = null;
   let aiThinking = false;
+  let thinkTimer = null;   // pending AI think delay, owned by the board that armed it
 
   const sfx = Utils.sfx;
   const viewActive = () => {
@@ -55,6 +56,12 @@ const ConnectFourGame = (() => {
   }
 
   function newGame() {
+    // The AI's think delay belongs to the board that armed it. New Game
+    // (and the mode/difficulty buttons, which come through here) used to
+    // leave the timer running: it fired against the fresh board and the AI
+    // opened the game for you — or, if you had already dropped, replaced
+    // the disc still falling and swallowed your move.
+    clearTimeout(thinkTimer); thinkTimer = null;
     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     turn = PLAYER; state = 'playing';
     winLine = null; anim = null; confetti = []; flash = 0; aiThinking = false;
@@ -137,12 +144,15 @@ const ConnectFourGame = (() => {
     if (mode === 'ai' && turn === AI) {
       aiThinking = true;
       // brief think delay so it doesn't feel instant
-      setTimeout(aiMove, 260);
+      thinkTimer = setTimeout(aiMove, 260);
     }
   }
 
   function aiMove() {
-    if (state !== 'playing') { aiThinking = false; return; }
+    thinkTimer = null;
+    // Only ever play the position this timer was armed for: still an AI
+    // game, still the AI's turn, nothing else already falling.
+    if (state !== 'playing' || mode !== 'ai' || turn !== AI || anim) { aiThinking = false; return; }
     const col = bestMove(board, DEPTHS[difficulty]);
     aiThinking = false;
     const r = dropRow(board, col);

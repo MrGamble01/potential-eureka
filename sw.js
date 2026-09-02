@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v60';  // rolls LAB-58 (Grow Op's upgrade descriptions now say what the upgrades do) to installed PWAs
+const SW_VERSION = 'eureka-v61';  // rolls C4-1 (Drop Four's New Game no longer lets the AI's pending move land on the fresh board) to installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
