@@ -430,7 +430,10 @@ const TetrisGame = (() => {
         break;
       case 'ArrowUp': case 'x': case 'X': rotateCW();  touchLockDelay(); break;
       case 'z': case 'Z':                 rotateCCW(); touchLockDelay(); break;
-      case ' ':  hardDrop(); e.preventDefault(); return;
+      // Falls through to the draw()/updateInfo() below like every other
+      // action: returning early here left the board and the score showing
+      // the pre-drop frame until gravity ticked (a full second at level 1).
+      case ' ':  hardDrop(); break;
       case 'c': case 'C':   holdPiece(); break;
       default: return;
     }
