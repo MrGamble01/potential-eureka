@@ -257,8 +257,18 @@ const Telemetry = (() => {
     });
   }
 
+  // Hiding the tab banks the time played so far — and coming back has to
+  // RESTART the clock. flush() leaves startedAt at the moment of the hide,
+  // so without the second half every minute the tab spent in a background
+  // window or a minimised browser landed in the book as time spent playing:
+  // open Snake, switch tabs for an hour, come back, and the arcade credited
+  // you with an hour of Snake it never saw. It inflated "played", the
+  // favourite game, the busiest day and the day streak alike.
   function init() {
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush();
+      else if (current) current.startedAt = Date.now();
+    });
     window.addEventListener('pagehide', flush);
   }
 
