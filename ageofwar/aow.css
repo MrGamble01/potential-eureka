@@ -204,7 +204,13 @@
   color: #fff; font-weight: 900;
   text-shadow: 0 0 8px rgba(255,180,120,0.6);
 }
-.aow-diff {
+/* Pill rows in the HUD. The war-banner row shares this look but carries its
+   own class: code that fans out over every difficulty pill (`.aow-diff
+   button`) must not reach the banner buttons, or picking a difficulty in the
+   Settings modal clears the banner's highlight while the banner is still on.
+   Same hazard the standalone .aow-endless-btn below sidesteps. */
+.aow-diff,
+.aow-banner-pills {
   display: inline-flex;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
@@ -212,7 +218,8 @@
   padding: 2px;
   gap: 1px;
 }
-.aow-diff button {
+.aow-diff button,
+.aow-banner-pills button {
   background: transparent;
   border: none;
   color: var(--text-dim);
@@ -226,7 +233,8 @@
   cursor: pointer;
   transition: all 0.15s;
 }
-.aow-diff button:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.aow-diff button:hover,
+.aow-banner-pills button:hover { color: var(--text); background: rgba(255,255,255,0.06); }
 /* Endless-mode toggle: styled like a difficulty chip but standalone, since
    the difficulty container binds a difficulty-setting click to every button
    inside it. */
@@ -250,7 +258,8 @@
   background: linear-gradient(135deg, #fcd34d, #f0883e);
   border-color: transparent;
 }
-.aow-diff button.active {
+.aow-diff button.active,
+.aow-banner-pills button.active {
   background: rgba(88,166,255,0.18);
   color: #cce5ff;
   box-shadow: 0 0 10px rgba(88,166,255,0.25);
@@ -874,8 +883,10 @@
   .aow-wave     { grid-column: 2 / 3; grid-row: 1; min-width: 0; justify-self: end; padding: 4px 10px; }
   .aow-combo    { grid-column: 1 / -1; grid-row: 2;              justify-self: center; }
   .aow-era-pill { grid-column: 1 / -1; min-width: 0; padding: 5px 12px; }
-  .aow-diff     { grid-column: 1 / -1; justify-self: stretch; }
-  .aow-diff button { flex: 1; padding: 6px 4px; }
+  .aow-diff,
+  .aow-banner-pills { grid-column: 1 / -1; justify-self: stretch; }
+  .aow-diff button,
+  .aow-banner-pills button { flex: 1; padding: 6px 4px; }
   .aow-turret-list { grid-template-columns: 1fr 1fr; }
   .aow-battle-strip { gap: 8px; }
   .aow-vs { display: none; }
@@ -934,9 +945,10 @@
   .aow-combo { padding: 2px 8px; }
   .aow-combo-x { font-size: 14px; }
   .aow-combo-label { font-size: 8px; }
-  /* Hide the inline topbar difficulty pills on phones (they don't fit),
-     but keep the copy inside the Settings modal accessible. */
-  .aow-topbar .aow-diff { display: none; }
+  /* Hide the inline topbar difficulty and banner pills on phones (they
+     don't fit), but keep the copy inside the Settings modal accessible. */
+  .aow-topbar .aow-diff,
+  .aow-topbar .aow-banner-pills { display: none; }
 
   /* Battle strip on mobile: hide entirely. The canvas already renders
      base HP bars above each base (drawBaseHpBar), so this DOM strip is
@@ -1369,7 +1381,7 @@
 
 /* ===== Touch hygiene (mobile): kill double-tap zoom, tap-flash, selection
    when mashing controls during play. Harmless on desktop. ===== */
-.aow-action, .aow-spawn-btn, .aow-tab, .aow-diff button,
+.aow-action, .aow-spawn-btn, .aow-tab, .aow-diff button, .aow-banner-pills button,
 .aow-turret-buy, .aow-modal-close, .aow-welcome-start {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
