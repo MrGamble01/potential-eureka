@@ -915,6 +915,8 @@ gameplay system for one flagship, verified headless before merge.*
 
 ## P8 — Coverage pass (opened Aug 2026)
 
+- **~~P8-MM-1 · Memory Matrix answered the tap next door on a phone~~** ✅ — the pad grid is laid out in its own 510px space, and `canvas.game-canvas`'s `max-width:100%` paints it smaller than that on any narrow window: 366px on a 390px phone. Every other canvas game scales the pointer back into board space (`clientX × W / rect.width`, as Drop Four and Minefield do); Memory Matrix compared the raw client offset against the unscaled layout, so at phone width five of the nine pads answered for a neighbour — a tap on the middle pad lit the one to its left — and the bottom-right pad, furthest from the origin, fell past the last cell into no pad at all. Keys 1-9 were unaffected, which is the tell: the hit test was wrong, not the game. One scale on each axis at the single call site (plus a zero-size guard). New re-runnable suite `mmtap` taps the visual centre of all nine pads at desktop and at 390×844 and reads back which pad lit — **2 hard failures before the fix (5 of 9 pads mismapped on the phone), 24/24 green after**, with `audit` and `reach` still green.
+
 - **~~P8-ACH-1 · Trophies for the newest games~~** ✅ — 🏗️ High Rise, 🛰️ Perimeter Held, 🔤 Rainmaker, 🥇 Pathfinder; their keys join SCORE_KEYS so Completionist means all 15 tracked games (20 trophies total).
 - **~~P8-DAILY-2 · Word Cascade joins the daily~~** ✅ — seeded letter draws (the game's only randomness), 7th banner chip, 📅 line on the game-over card.
 - **~~P8-SNAKE-2 · Pace settings~~** ✅ — Chill/Classic/Blitz base tick persisted in `snake-pace`, live mid-run retiming, daily runs locked to Classic.

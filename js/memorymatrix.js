@@ -55,7 +55,12 @@ const MemoryMatrixGame = (() => {
     canvas.addEventListener('click', e => {
       if (phase === 'idle' || phase === 'over') { start(); return; }
       const r = canvas.getBoundingClientRect();
-      const pad = padAt(e.clientX - r.left, e.clientY - r.top);
+      if (!r.width || !r.height) return;
+      // The board is laid out in its own 510px space but `max-width:100%`
+      // paints it smaller on a phone — scale the tap into board space or the
+      // pads answer for their neighbours (and the far corner for nobody).
+      const pad = padAt((e.clientX - r.left) * (WIDTH / r.width),
+                        (e.clientY - r.top) * (HEIGHT / r.height));
       if (pad >= 0) pressPad(pad);
     });
   }
