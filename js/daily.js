@@ -95,9 +95,13 @@ const Daily = (() => {
       best = Utils.highScore.save(key, score, prev);
     }
     refreshBanner();
+    // Same reason the banner badges these differently: a Minefield daily
+    // is seconds on the clock, so print the unit rather than leaving a
+    // bare number that reads as points.
+    const n = v => (dir === 'min' ? `${v}s` : `${v}`);
     return improved
-      ? `📅 Daily: ${score} — new best for today!`
-      : `📅 Daily: ${score} · today's best ${best}`;
+      ? `📅 Daily: ${n(score)} — new best for today!`
+      : `📅 Daily: ${n(score)} · today's best ${n(best)}`;
   }
 
   // ── Hub banner ──
@@ -106,8 +110,20 @@ const Daily = (() => {
     if (!list) return;
     list.innerHTML = GAMES.map(g => {
       const best = Utils.highScore.load(bestKey(g.id));
-      return `<button class="daily-chip" data-game="${g.id}" data-hash="${g.hash}">${g.name}` +
-        (best > 0 ? `<span class="daily-best">★ ${best}</span>` : '') +
+      // Minefield's daily best is a clear TIME, not a score — which is what
+      // the `dir` above has always said. A bare "★ 45" beside Snake's
+      // "★ 1240" reads as a score you beat by going higher, when in fact
+      // you beat it by going lower. Badge it as a clock, and let the title
+      // say which way is better on every chip.
+      const low = g.dir === 'min';
+      const shown = low ? `⏱ ${best}s` : `★ ${best}`;
+      const title = best === 0
+        ? `No score on today's ${g.name} challenge yet`
+        : low
+          ? `Today's best ${g.name} clear: ${best}s — beat it by going faster`
+          : `Today's best ${g.name} score: ${best} — beat it by going higher`;
+      return `<button class="daily-chip" data-game="${g.id}" data-hash="${g.hash}" title="${title}">${g.name}` +
+        (best > 0 ? `<span class="daily-best">${shown}</span>` : '') +
         `</button>`;
     }).join('');
     const dateEl = document.getElementById('daily-date');
