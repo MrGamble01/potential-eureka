@@ -15,7 +15,12 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v61-aow-records';  // recover malformed endless records on installed PWAs
+const SW_VERSION = 'eureka-v65';  // rolls SNAKE-1 (Snake's Pace button names the pace the run is really on) to installed PWAs
+// Distinct from main's eureka-v61-aow-records. v62 is #676, v63 #678, v64 #675,
+// so this keeps v65. The version is an identity, not an ordering — activate()
+// drops every cache that doesn't match. Two PRs shipping the SAME string is
+// the only harmful case; whoever resolves a conflict should bump, never
+// collapse two tickets onto one version.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
