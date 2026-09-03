@@ -4718,7 +4718,7 @@ function placeSelected(x,y,z){
     if(state.level<d.lvl){toast('Unlocks at level '+d.lvl);SFX.play('error');return;}
     if(!getB(x,y-1,z)){toast('Decor needs ground under it');return;}
     if(!spendCoins(d.cost))return;
-    addPlant(x,y,z,sel);
+    addPlant(x,y,z,sel,false,0,2);   // decor has no growth stages — place it fully "grown"
     state.decor++;SFX.play('place');
     burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
     questCheck();
@@ -5063,7 +5063,7 @@ function load(){
     if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
   });
   (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
-  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,p.stage,p.harvested));
+  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,PLANTS[p.type]?p.stage:2,p.harvested));   // decor self-heals to fully-grown even from old saves
   (data.animals||[]).forEach(a=>{if(ANIMALS[a.type])spawnAnimal(a.type,a.x,a.z,a.stage,a.grow);});
   (data.workers||[]).forEach(w=>spawnWorker(w.role,w.name,w.x,w.z));
   if(state.farmerHired&&!W.workers.length){spawnWorker('all');delete state.farmerHired;}   // migrate old farmhand
