@@ -46,6 +46,13 @@ const Game2048 = (() => {
       canvas.addEventListener('mousedown', onMouseDown);
       canvas.addEventListener('touchstart', onTouchStart, { passive: true });
       canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+      // G2048-1: the game-over card says "tap to play again", but the restart
+      // tap lived on the canvas — and the card sits over the canvas, so on a
+      // phone the tap landed on the card and died; the only way on was the
+      // New Game button. Wire the card itself, as every other hub game with
+      // that hint already does.
+      const ov = document.getElementById('g2048-overlay');
+      if (ov) ov.addEventListener('click', () => { if (over || !running) newGame(true); });
     }
     updateInfo();
     draw();
