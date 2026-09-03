@@ -134,6 +134,7 @@ const SnakeGame = (() => {
     // Daily runs always play Classic pace: a shared-fate board isn't
     // comparable if one player crawled it on Chill.
     speed = dailyRun ? PACES.classic : PACES[pace];
+    paceBtn();   // the run's pace just became knowable — show that one
     spawnFood();
     sfx('start');
     updateInfo();
@@ -496,6 +497,7 @@ const SnakeGame = (() => {
     clearInterval(gameLoop);
     dailyRun = false;
     if (typeof Daily !== 'undefined') Daily.disarm('snake');
+    paceBtn();   // leaving the daily hands the control back
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;
@@ -506,12 +508,38 @@ const SnakeGame = (() => {
   function paceBtn() {
     const btn = document.getElementById('snake-pace-btn');
     if (!btn) return;
+    // SNAKE-1: paint the pace the run is ACTUALLY ticking at. A daily run
+    // overrides `speed` to Classic (start(), so scores stay comparable) and
+    // the arm is sticky for the view, so every restart in here is daily too
+    // — but this button kept showing the saved pace through all of it, and a
+    // click still cycled the label. So the control read BLITZ, answered when
+    // you pressed it, and the snake crawled at Classic regardless. The rule
+    // was written down only in the button's `title`, which a touch screen
+    // never shows. Say it on the button instead, and stop taking the click.
+    if (dailyRun) {
+      btn.textContent = 'Pace: CLASSIC (daily)';
+      btn.title = 'Daily runs always play Classic so scores stay comparable. ' +
+        'Leave the daily to change pace.';
+      btn.disabled = true;
+      btn.style.borderColor = '';
+      btn.style.color = '';
+      btn.style.opacity = '0.45';       // matches .shop-chip:disabled
+      btn.style.cursor = 'not-allowed';
+      return;
+    }
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+    btn.title = 'Base tick speed. Daily runs always play Classic so scores stay comparable.';
     btn.textContent = 'Pace: ' + pace.toUpperCase();
     const col = pace === 'blitz' ? '#F85149' : pace === 'chill' ? '#58A6FF' : '';
     btn.style.borderColor = col;
     btn.style.color = col;
   }
   function cyclePace() {
+    // The button is disabled during a daily run, but the inline onclick is
+    // still reachable, so the lock lives here as well as in the styling.
+    if (dailyRun) return;
     pace = PACE_ORDER[(PACE_ORDER.indexOf(pace) + 1) % PACE_ORDER.length];
     try { localStorage.setItem('snake-pace', pace); } catch {}
     paceBtn();
