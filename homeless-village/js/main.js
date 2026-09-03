@@ -175,7 +175,13 @@ function frame(ts){
     var dx=f.userData.target.x-f.position.x, dz=f.userData.target.z-f.position.z;
     var dist=Math.sqrt(dx*dx+dz*dz);
     if(dist>.1){
-      var sp=f.userData.speed*dt*.016*60;
+      // `speed` is units per 60fps frame (see spawnFigure), so the dt
+      // normaliser is frames-elapsed — dt/16.667, the same one
+      // Utils.gameLoop hands the hub games. It read `dt*.016*60`
+      // (=dt*0.96) — 16x too fast, which both sprinted residents past
+      // the player and overshot the 0.1 arrival test below into a
+      // permanent ping-pong across the target.
+      var sp=f.userData.speed*(dt/16.667);
       f.position.x+=dx/dist*sp; f.position.z+=dz/dist*sp;
       f.rotation.y=Math.atan2(dx,dz);
     }
