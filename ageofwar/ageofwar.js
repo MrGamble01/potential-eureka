@@ -9271,6 +9271,7 @@ const AgeOfWarGame = (() => {
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
+        <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Gold Earned</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${Math.floor(runStats.gold).toLocaleString()}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
