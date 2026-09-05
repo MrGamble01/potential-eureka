@@ -62,13 +62,13 @@ const Telemetry = (() => {
     s.launches[view] = (s.launches[view] || 0) + 1;
     s.lastPlayed = view;
     save(s);
-    current = { view, startedAt: Date.now() };
+    current = { view, startedAt: document.visibilityState === 'hidden' ? null : Date.now() };
   }
 
   // Accrue the open session's time. Called on view switches, tab-hides
   // and unloads, so a long session in one game still lands in the book.
   function flush() {
-    if (!current) return;
+    if (!current || current.startedAt === null) return;
     const secs = Math.round((Date.now() - current.startedAt) / 1000);
     current.startedAt = Date.now();
     if (secs <= 0 || secs > 6 * 3600) return;   // clock jumped — drop it
@@ -257,9 +257,24 @@ const Telemetry = (() => {
     });
   }
 
+  // A null timestamp pauses accrual, including later flushes/pagehide while
+  // hidden. Resume from now when visible again or restored from bfcache.
+  function pause() {
+    flush();
+    if (current) current.startedAt = null;
+  }
+  function resume() {
+    if (current && current.startedAt === null && document.visibilityState !== 'hidden') {
+      current.startedAt = Date.now();
+    }
+  }
   function init() {
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
-    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') pause();
+      else resume();
+    });
+    window.addEventListener('pagehide', pause);
+    window.addEventListener('pageshow', resume);
   }
 
   return { init, enter, flush, renderInto, renderResume };

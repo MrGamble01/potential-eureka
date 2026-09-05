@@ -15,7 +15,13 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v60';  // rolls LAB-58 (Grow Op's upgrade descriptions now say what the upgrades do) to installed PWAs
+const SW_VERSION = 'eureka-v66';  // rolls INSIGHTS-1 (a hidden tab stops counting as time played) to installed PWAs
+// v60 is main's; v61-v65 are claimed by open PRs, so this takes v66. The
+// version is an identity, not an ordering — activate() drops every cache
+// that doesn't match, so any distinct value refreshes an installed PWA.
+// Two PRs shipping the SAME string is the harmful case: the second to
+// merge finds the cache already valid and never refreshes. Keep them
+// distinct when resolving a conflict here — bump, never collapse.
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

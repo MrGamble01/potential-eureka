@@ -30,7 +30,7 @@ SUITES=(
   saves
   hubstore
   promises
-  meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
+  meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights insightsvis
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
   hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural hvstash hvfire hvmeeting hvpetition hvticket hvsnap hvbusk hvdeposit hvnewcomer hvpantry hvcoats hvtoolbox hvcompost hvawning hvbarrel hvrainbet hvgarage hvborrow hvfridge hvrecord hvnote hvwall hvthermos hvboard hvpotluck hvstar hvshelf hvmarisol hvmugs hvreunion hvsnapshot hvanniv hvnotebook hvbench hvstory hvballad hvcan hvpanel hvwalk hvmark hvdry hvhook hvintro
