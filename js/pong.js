@@ -189,16 +189,18 @@ const PongGame = (() => {
         }
       }
 
-      // Point scored
+      // Point scored — every ball that exits pays its own point (SPLIT can
+      // have up to 3 in flight at once); only the *next serve* waits for the
+      // field to clear.
       if (b.x < -BALL_R * 2 || b.x > WIDTH + BALL_R * 2) {
         const scorer = b.x < 0 ? 1 : 0;
         balls.splice(bi, 1);
-        if (balls.length === 0) {
-          scores[scorer]++;
-          sfx(scorer === 0 ? 'bonus' : 'die');
-          updateInfo();
+        scores[scorer]++;
+        sfx(scorer === 0 ? 'bonus' : 'die');
+        updateInfo();
+        if (!matchOver) {
           if (scores[scorer] >= WIN_SCORE) endMatch(scorer);
-          else serveTimer = 55;
+          else if (balls.length === 0) serveTimer = 55;
         }
       }
     }
