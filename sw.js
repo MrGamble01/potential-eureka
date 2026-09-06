@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v67-hv-keys';  // HV-61: Keys in Hand comes back after a reload
+const SW_VERSION = 'eureka-v187-hv-deeroute';  // HV-187: Dee's route is the walk home from night shift
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
