@@ -28,6 +28,8 @@ var G = {
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.
   friendDay: -1,
+  // HV-83: the night Fire Went Out burned. Dawn skips "the fire held".
+  fireOutDay: -1,
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
   // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),

@@ -206,7 +206,9 @@ function onNewDay(){
   G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
-  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
+  // HV-83: a night the barrel died is not a night the fire held —
+  // even if the camp still wakes warm enough for the +2.
+  if(G.warmth>=50 && G.fireOutDay!==G.days-1){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
   // HV-15: the sanitation unit keeps everyone a little healthier
   if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
   // HV-16: friends ask, and sometimes stop asking
@@ -540,6 +542,9 @@ var EVENTS_BAD=[
      G.lastEventDay=G.days;
      G.warmth=Math.max(0,G.warmth-rand(15,25));
      G.fireOutUntil = Date.now()+30000;
+     // HV-83: stamp the night so dawn does not then log that the
+     // fire held. HV-81 (#744) owns how long the barrel stays dim.
+     G.fireOutDay=G.days;
      log("The fire burned out. It's cold and dark.");
    }},
 ];
