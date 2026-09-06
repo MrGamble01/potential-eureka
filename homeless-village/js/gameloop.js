@@ -107,6 +107,14 @@ function ticketAtDawn(){
 function pantryAtDawn(){
   if(!G.structures.pantry) return;
   if(Math.random()>=PANTRY_CHANCE) return;
+  // HV-203: a leftover in a box on a post does not keep through
+  // two brutal days. The snap still found something in the box;
+  // the pot does not. The fill tally waits for a dawn the food
+  // can actually be eaten.
+  if(snapActive()){
+    log('🥣 The snap froze what was left in the pantry box overnight — a little box on a post does not keep a leftover through two brutal days.');
+    return;
+  }
   G.food=(G.food||0)+PANTRY_FOOD;
   G.pantryFills=(G.pantryFills||0)+1;
   if(G.pantryFills%PANTRY_REP_EVERY===0){
