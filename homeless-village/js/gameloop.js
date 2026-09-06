@@ -538,7 +538,7 @@ var EVENTS_BAD=[
    desc:'The barrel fire died overnight. Everything is colder.',
    effect:function(){
      G.lastEventDay=G.days;
-     // HV-161: Firewood said keep the barrel burning. The overnight
+     // HV-162: Firewood said keep the barrel burning. The overnight
      // death never asked whether you stacked wood last night (or
      // earlier today, for a same-day card). A blanket is also
      // +warmth and never stamps the feed.

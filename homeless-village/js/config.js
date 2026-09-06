@@ -25,7 +25,7 @@ var G = {
   sweepWarned: false, sweepCountdown: 0, packedUp: false,
   dumpsterLockDay: -1,   // HV-63: Dumpsters Locked lasts the rest of that day
   injuredUntil: 0, lastEventDay: -2,
-  fireFedDay: -9,   // HV-161: the day Firewood last fed the barrel
+  fireFedDay: -9,   // HV-162: the day Firewood last fed the barrel
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.
   friendDay: -1,

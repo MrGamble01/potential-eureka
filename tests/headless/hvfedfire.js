@@ -1,5 +1,5 @@
 /*
- * HV-161 — Firewood said keep the barrel burning, then
+ * HV-162 — Firewood said keep the barrel burning, then
  * Fire Went Out still killed it overnight.
  *
  * Firewood's card says keep the barrel burning. Fire Went
@@ -46,9 +46,9 @@ ok(/id:'fire_ration'[\s\S]{0,180}?Keep the barrel burning/.test(cfg)
   && /died overnight/.test(loop),
   'Firewood still keeps the barrel burning; Fire Went Out still died overnight');
 ok(finish && /fire_ration/.test(finish[1]) && /fireFedDay/.test(finish[1]),
-  'HV-161: finishCraft stamps fireFedDay when the recipe is Firewood');
+  'HV-162: finishCraft stamps fireFedDay when the recipe is Firewood');
 ok(fireOut && /fireFedDay/.test(fireOut[1]),
-  'HV-161: the overnight card reads whether the barrel was fed');
+  'HV-162: the overnight card reads whether the barrel was fed');
 
 (async () => {
   const launch = {
@@ -92,7 +92,7 @@ ok(fireOut && /fireFedDay/.test(fireOut[1]),
     };
   });
   ok(held.stamped && held.warmth === 70 && !held.dark && held.named,
-    'HV-161: a stacked night holds warmth, keeps the lights, and names the wood');
+    'HV-162: a stacked night holds warmth, keeps the lights, and names the wood');
 
   const unfed = await page.evaluate(() => {
     const ev = EVENTS_BAD.find(e => e.id === 'fire_out');
