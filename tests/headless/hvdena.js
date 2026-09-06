@@ -46,7 +46,7 @@ ok(/people fed/i.test(card) && /fire going/i.test(card),
 ok(/hold together/.test(main),
   'A. intro log still says Dena visits camps that hold together');
 
-const stage0 = (check.match(/arcStage\s*===\s*0[\s\S]{0,220}/) || [''])[0];
+const stage0 = (check.match(/if\s*\(\s*G\.arcStage\s*===\s*0[^)]*\)/) || [''])[0];
 ok(/G\.food/.test(stage0) && /G\.warmth/.test(stage0),
   'A. stage-0 gate reads leftover food and warmth, not only days + goodwill');
 ok(/G\.population/.test(stage0),
@@ -73,64 +73,79 @@ ok(!/arcStage/.test(ui) && !/checkArc/.test(ui),
   await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load', timeout: 25000 });
   await page.waitForTimeout(2200);
 
-  const starving = await page.evaluate(() => {
+  const cardOn = () => page.evaluate(() => {
+    const banner = document.getElementById('event-banner');
+    const titleEl = document.getElementById('ev-title');
+    const shown = !!(banner && banner.style.display === 'block');
+    return {
+      stage: G.arcStage,
+      title: shown && titleEl ? titleEl.textContent : '',
+      shown
+    };
+  });
+
+  await page.evaluate(() => {
+    closeEvent();
     Object.assign(G, {
       days: 10, goodwill: 20, food: 0, warmth: 15, population: 2,
-      morale: 70, health: 80, arcStage: 0, arcDone: false,
-      event: null, eventLock: false
+      morale: 70, health: 80, arcStage: 0, arcDone: false
     });
     checkArc();
-    return { stage: G.arcStage, title: G.event && G.event.title };
   });
+  const starving = await cardOn();
   ok(starving.stage === 0 && starving.title !== 'The Case Worker',
     `B. empty pot + dying fire must not fire Dena (stage ${starving.stage}, ${starving.title || 'no card'})`);
 
-  const dyingFire = await page.evaluate(() => {
+  await page.evaluate(() => {
+    closeEvent();
     Object.assign(G, {
       days: 10, goodwill: 20, food: 4, warmth: 20, population: 2,
-      arcStage: 0, event: null, eventLock: false, arcDone: false
+      arcStage: 0, arcDone: false
     });
     checkArc();
-    return G.arcStage;
   });
-  ok(dyingFire === 0,
-    `B. leftover food with a dying fire still is not "fire going" (stage ${dyingFire})`);
+  const dyingFire = await cardOn();
+  ok(dyingFire.stage === 0,
+    `B. leftover food with a dying fire still is not "fire going" (stage ${dyingFire.stage})`);
 
-  const held = await page.evaluate(() => {
+  await page.evaluate(() => {
+    closeEvent();
     Object.assign(G, {
       days: 10, goodwill: 20, food: 3, warmth: 62, population: 2,
-      morale: 70, health: 80, arcStage: 0, arcDone: false,
-      event: null, eventLock: false
+      morale: 70, health: 80, arcStage: 0, arcDone: false
     });
     checkArc();
-    return { stage: G.arcStage, title: G.event && G.event.title };
   });
+  const held = await cardOn();
   ok(held.stage === 1 && held.title === 'The Case Worker',
     `B. fed + fire going + two people fires Dena (stage ${held.stage}, ${held.title || 'no card'})`);
 
-  const lowGw = await page.evaluate(() => {
+  await page.evaluate(() => {
+    closeEvent();
     Object.assign(G, {
       days: 12, goodwill: 14, food: 6, warmth: 70, population: 3,
-      arcStage: 0, event: null, eventLock: false, arcDone: false
+      arcStage: 0, arcDone: false
     });
     checkArc();
-    return G.arcStage;
   });
-  ok(lowGw === 0,
-    `B. 14 goodwill still stays off Dena even when the camp holds together (stage ${lowGw})`);
+  const lowGw = await cardOn();
+  ok(lowGw.stage === 0,
+    `B. 14 goodwill still stays off Dena even when the camp holds together (stage ${lowGw.stage})`);
 
-  const solo = await page.evaluate(() => {
+  await page.evaluate(() => {
+    closeEvent();
     Object.assign(G, {
       days: 11, goodwill: 20, food: 5, warmth: 70, population: 1,
-      arcStage: 0, event: null, eventLock: false, arcDone: false
+      arcStage: 0, arcDone: false
     });
     checkArc();
-    return G.arcStage;
   });
-  ok(solo === 0,
-    `B. a one-person camp is not "people" / order (stage ${solo})`);
+  const solo = await cardOn();
+  ok(solo.stage === 0,
+    `B. a one-person camp is not "people" / order (stage ${solo.stage})`);
 
   const emptyDawn = await page.evaluate(() => {
+    closeEvent();
     Object.assign(G, {
       dog: 1, dogMetDay: 999, lastEventDay: 9999, goalIndex: 9999,
       days: 9, timeOfDay: 0.98, goodwill: 20, food: 1, warmth: 70,
@@ -139,16 +154,23 @@ ok(!/arcStage/.test(ui) && !/checkArc/.test(ui),
       rayDebt: 0, rainBetOn: false,
       workers: { scrapper: false, builder: false, cook: false, lookout: false },
       structures: { tent: false, fire: true, stash: false, garden: false, kitchen: false, clinic: false, soup_kitchen: false },
-      arcStage: 0, arcDone: false, event: null, eventLock: false
+      arcStage: 0, arcDone: false
     });
     Math.random = () => 0.9;
     onNewDay();
-    return { food: G.food, stage: G.arcStage, title: G.event && G.event.title };
+    const banner = document.getElementById('event-banner');
+    const titleEl = document.getElementById('ev-title');
+    const shown = !!(banner && banner.style.display === 'block');
+    return {
+      food: G.food, stage: G.arcStage,
+      title: shown && titleEl ? titleEl.textContent : ''
+    };
   });
   ok(emptyDawn.food === 0 && emptyDawn.stage === 0 && emptyDawn.title !== 'The Case Worker',
     `C. dawn that empties the pot must not fire Dena (food ${emptyDawn.food}, stage ${emptyDawn.stage})`);
 
   const leftover = await page.evaluate(() => {
+    closeEvent();
     Object.assign(G, {
       dog: 1, dogMetDay: 999, lastEventDay: 9999, goalIndex: 9999,
       days: 9, timeOfDay: 0.98, goodwill: 20, food: 5, warmth: 70,
@@ -157,13 +179,16 @@ ok(!/arcStage/.test(ui) && !/checkArc/.test(ui),
       rayDebt: 0, rainBetOn: false,
       workers: { scrapper: false, builder: false, cook: false, lookout: false },
       structures: { tent: false, fire: true, stash: false, garden: false, kitchen: false, clinic: false, soup_kitchen: false },
-      arcStage: 0, arcDone: false, event: null, eventLock: false
+      arcStage: 0, arcDone: false
     });
     Math.random = () => 0.9;
     onNewDay();
+    const banner = document.getElementById('event-banner');
+    const titleEl = document.getElementById('ev-title');
+    const shown = !!(banner && banner.style.display === 'block');
     return {
       food: G.food, warmth: G.warmth, stage: G.arcStage,
-      title: G.event && G.event.title
+      title: shown && titleEl ? titleEl.textContent : ''
     };
   });
   ok(leftover.food > 0 && leftover.warmth >= 50 && leftover.stage === 1 && leftover.title === 'The Case Worker',

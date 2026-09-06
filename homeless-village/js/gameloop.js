@@ -391,7 +391,11 @@ var ARC_EVENTS={
 };
 function checkArc(){
   if(G.arcDone) return;
-  if(G.arcStage===0 && G.days>=10 && G.goodwill>=15){
+  // HV-80: the card sells people fed, fire going, something like
+  // order. Day 10 + 15 goodwill is not that camp. Leftover food
+  // after breakfast, warmth still at the "fire held" bar, and at
+  // least two people.
+  if(G.arcStage===0 && G.days>=10 && G.goodwill>=15 && G.food>0 && G.warmth>=50 && G.population>=2){
     G.arcStage=1; triggerEvent(ARC_EVENTS.card,true); saveGame();
   } else if(G.arcStage===1 && G.structures.soup_kitchen && G.population>=4){
     G.arcStage=2; triggerEvent(ARC_EVENTS.paperwork,true); saveGame();
