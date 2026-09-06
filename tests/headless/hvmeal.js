@@ -32,7 +32,8 @@ const loop   = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'
 
 const mealLine = (cfg.split('\n').find(l => /id:'meal'/.test(l)) || '');
 const finishAt = player.indexOf('function finishCraft(r){');
-const finish = finishAt >= 0 ? player.slice(finishAt, finishAt + 700) : '';
+const finishEnd = player.indexOf('function resumeCrafts()', finishAt);
+const finish = finishAt >= 0 ? player.slice(finishAt, finishEnd > finishAt ? finishEnd : finishAt + 1600) : '';
 
 ok(/Feed a community member/.test(mealLine),
    'Hot Meal still sells a feed on the recipe');
