@@ -55,22 +55,6 @@ ok(!/FRIDGE_SHELF_WARMTH/.test(ui) && !/fridgeHasShelf/.test(ui),
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
   await page.addInitScript(() => {
-    // The on-screen feed keeps 6 lines. Capture every append so a
-    // potluck + note cannot hide the shelf welcome.
-    window.__blanketsLog = [];
-    var watch = new MutationObserver(function () {
-      var feed = document.getElementById('log-feed');
-      if (!feed || feed.__blanketsObs) return;
-      feed.__blanketsObs = true;
-      new MutationObserver(function (muts) {
-        muts.forEach(function (m) {
-          m.addedNodes.forEach(function (n) {
-            window.__blanketsLog.push(n.textContent || '');
-          });
-        });
-      }).observe(feed, { childList: true });
-    });
-    watch.observe(document.documentElement, { childList: true, subtree: true });
     if (!sessionStorage.getItem('hvblankets-init')) {
       sessionStorage.setItem('hvblankets-init', '1');
       localStorage.setItem('hv-intro-seen', '1');
@@ -89,8 +73,7 @@ ok(!/FRIDGE_SHELF_WARMTH/.test(ui) && !/fridgeHasShelf/.test(ui),
     warm: typeof FRIDGE_SHELF_WARMTH === 'number' ? FRIDGE_SHELF_WARMTH : null,
     camps: loadFridge().camps, hasShelf: fridgeHasShelf(),
     goodwill: G.goodwill, warmth: G.warmth,
-    log: (window.__blanketsLog || []).join(' ') + ' ' +
-      Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
+    log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
   }));
   ok(sixth.at === 6 && sixth.seed3 === 7 && sixth.warm === 8,
      'shelf at 6 camps / seven known / +8 warmth — the constants stand');
@@ -113,8 +96,7 @@ ok(!/FRIDGE_SHELF_WARMTH/.test(ui) && !/fridgeHasShelf/.test(ui),
   const board = await t(() => ({
     camps: loadFridge().camps, hasShelf: fridgeHasShelf(), board: fridgeHasBoard(),
     goodwill: G.goodwill, warmth: G.warmth,
-    log: (window.__blanketsLog || []).join(' ') + ' ' +
-      Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
+    log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
   }));
   ok(board.camps === 4 && !board.hasShelf && board.board && board.goodwill === 5 && board.warmth === 80,
      `a fourth camp starts board-only — five known, barrel still 80 (${board.goodwill}, ${board.warmth})`);
