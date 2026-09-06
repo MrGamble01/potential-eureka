@@ -85,5 +85,6 @@ function loadGame(){
     if(typeof G.sickDay!=='number') G.sickDay=-1; // saves from before HV-210
     if(typeof G.grantDay!=='number') G.grantDay=-1; // saves from before HV-225
     if(typeof G.gentrifyDay!=='number') G.gentrifyDay=-1; // saves from before HV-234
+    if(typeof G.sickUntil!=='number') G.sickUntil=-1; // saves from before HV-240
   }catch(e){}
 }

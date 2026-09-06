@@ -307,7 +307,15 @@ function onNewDay(){
   }
   // HV-208: Biscuit's keep is one food a day. The Cook used to
   // spend the last three bowls first and leave him hungry.
-  if(G.workers.cook&&G.food>=3+(G.dog===2?1:0)){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
+  if(G.workers.cook&&G.food>=3+(G.dog===2?1:0)){
+    // HV-240: the card says everyone feels terrible. The Cook is
+    // one of everyone. Rest and sanitation are not this card.
+    if(typeof G.sickUntil==='number' && G.sickUntil>=0 && G.days<=G.sickUntil){
+      log('The Cook is down with the bug. No meals today.');
+    } else {
+      G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.');
+    }
+  }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
     G.barrelWater=(G.barrelWater||0)+1;
@@ -636,6 +644,9 @@ var EVENTS_BAD=[
      G.sickDay=G.days;
      G.health=Math.max(0,G.health-rand(12,22));
      G.food  =Math.max(0,G.food  -rand(2,5));
+     // HV-240: a bug going through the camp keeps the Cook down
+     // through tomorrow's breakfast. This dawn already plated.
+     G.sickUntil=G.days+1;
      log('Sickness hit the community. Health fell.');
    }},
   {id:'dumpster_locked',title:'Dumpsters Locked',type:'bad',weight:7,
