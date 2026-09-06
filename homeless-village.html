@@ -10,9 +10,9 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Homeless Village — Eureka Games">
 <meta property="og:description" content="Survive under the bridge, scavenge and craft, and build a village from nothing.">
-<meta property="og:image" content="/assets/thumbs/homeless.jpg">
-<meta property="og:url" content="/homeless-village.html">
-<link rel="canonical" href="/homeless-village.html">
+<meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/homeless.jpg">
+<meta property="og:url" content="https://potential-eureka-gilt.vercel.app/homeless-village">
+<link rel="canonical" href="https://potential-eureka-gilt.vercel.app/homeless-village">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="homeless-village/css/game.css">
 <link rel="stylesheet" href="/css/arcade-chrome.css">
@@ -25,7 +25,11 @@
 
 <div id="hud">
   <div id="night-overlay"></div>
-  <div id="sweep-warning">POLICE SWEEP INCOMING</div>
+  <div id="sweep-warning">
+    <span id="sweep-text">POLICE SWEEP INCOMING</span>
+    <span id="sweep-eta"></span>
+    <button id="pack-up-btn" title="Scramble to stash your supplies (costs 5 morale). A packed camp loses far less in the sweep.">📦 PACK UP CAMP</button>
+  </div>
 
   <div id="top-bar">
     <div class="left">
@@ -33,6 +37,8 @@
       <div id="season-badge">AUTUMN</div>
       <span id="days-counter">Days Survived: 0</span>
       <div id="goal-pill"><span class="icon">🎯</span><span id="goal-text">—</span></div>
+      <button id="chain-btn" title="The Bridge — everything this camp remembers, in the order it happened, and what the next one is waiting on.">&#129521; The Bridge</button>
+      <button id="help-btn" title="How the camp works">?</button>
     </div>
     <div class="right">
       <div class="stat-pill"><span class="icon">🍞</span><span class="val" id="stat-food">0</span><span> food</span></div>
@@ -52,6 +58,7 @@
   <div id="workers-panel">
     <h3>&#128101; Community</h3>
     <div id="workers-list"></div>
+    <div id="regulars-list"></div>
   </div>
 
   <div id="action-panel">
@@ -69,6 +76,39 @@
   <div id="tooltip"></div>
 
   <button id="craft-toggle" aria-controls="craft-panel" aria-expanded="false">&#9881; Craft</button>
+  <div id="intro-modal" role="dialog" aria-modal="true" aria-label="How the camp works">
+    <div id="intro-panel">
+      <div id="intro-head">
+        <span id="intro-title">&#127957;&#65039; SURVIVING THE WINTER</span>
+        <button id="intro-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="intro-flavor">A camp under the overpass. Keep everyone alive, and build something that lasts.</div>
+      <div id="intro-body">
+        &bull; <b>Walk there first.</b> Move with <b>WASD</b> or the arrow keys, or tap the ground.
+        &#128465;&#65039; <b>Scavenge</b> only works stood next to a dumpster &mdash; the button greys out when you are too far.<br>
+        &bull; <b>Four ways to bring something home:</b> &#128465;&#65039; scavenge (cans, scraps, food),
+        &#127795; forage (wood, cardboard), &#129309; panhandle (goodwill), &#128564; rest (health).<br>
+        &bull; <b>Build the &#128295; Workbench early.</b> It costs 5 wood and 4 scraps, and
+        <b>13 of the 18 recipes stay locked until it stands</b>.<br>
+        &bull; <b>Cold is what kills you.</b> Warmth drains every night; below <b>20%</b> the camp starts losing
+        health at dawn, and so does an empty larder. Firewood, blankets and a tent hold it back.<br>
+        &bull; <b>The weather and the season matter.</b> Winter halves what the dumpsters give;
+        rain closes the panhandling corner. A &#128251; radio shows you tomorrow&rsquo;s sky.<br>
+        &bull; Sweeps come. A &#128371;&#65039; hidden stash means they take half.
+      </div>
+      <button id="intro-go">Start the first day &rarr;</button>
+    </div>
+  </div>
+  <div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Bridge">
+    <div id="chain-panel">
+      <div id="chain-head">
+        <span id="chain-title">&#129521; THE BRIDGE</span>
+        <span id="chain-progress">0 of 0 begun</span>
+        <button id="chain-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="chain-list"></div>
+    </div>
+  </div>
 
   <div id="bottom-bar">
     <div class="stat-pill">
@@ -80,6 +120,9 @@
     </div>
     <div class="stat-pill" id="morale-pill">
       <span class="icon">😔</span><span id="morale-val" class="val">50</span><span> morale</span>
+    </div>
+    <div class="stat-pill" id="rep-pill" title="Word on the Street — earned by odd jobs, trades and kindness; fades a little each day.">
+      <span class="icon" id="rep-icon">💬</span><span id="rep-name" class="val">A Stranger</span>
     </div>
     <div class="stat-pill">
       <span class="icon">👥</span><span id="pop-val" class="val">1</span><span> residents</span>

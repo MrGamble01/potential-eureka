@@ -1,24 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    // Theme boot (SITE-6): applied before first paint so there's no flash.
+    // Stored pick wins; otherwise light-preferring systems get daylight.
+    try {
+      var t = localStorage.getItem('eureka-theme');
+      if (t === null && matchMedia('(prefers-color-scheme: light)').matches) t = 'daylight';
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EUREKA GAMES</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;&#127918;&lt;/text&gt;&lt;/svg&gt;">
-  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Fourteen games plus a live dev-office dashboard, no install, no sign-up.">
+  <meta name="description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Homeless Village, Snake, Tetris, Minesweeper, Wordle-style word puzzles and more. Twenty-one games with daily challenges, achievements and rival leaderboards, plus a live dev-office dashboard — no install, no sign-up, works offline.">
 
   <meta name="theme-color" content="#060608">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Eureka Games">
-  <meta property="og:description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Snake, Tetris and more. No install, no sign-up.">
-  <meta property="og:image" content="/assets/thumbs/ageofwar.jpg">
-  <meta property="og:url" content="/">
-  <link rel="canonical" href="/">
+  <meta property="og:description" content="Browser games you can play free — Age of War, Startup Tycoon, Grow Op, Snake, Tetris and 16 more, with daily challenges and rival leaderboards. No install, no sign-up, works offline.">
+  <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/ageofwar.jpg">
+  <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/">
+  <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Linked individually, in the order css/style.css used to @import them.
+       As @imports the browser couldn't discover these until style.css had been
+       fetched AND parsed, so they cost a second serial round trip before any
+       styled paint. As <link>s they're all found in the initial HTML scan and
+       fetch in parallel. Order still decides the cascade, so keep it. -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/effects.css">
+  <link rel="stylesheet" href="css/arcade.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/games.css">
+  <link rel="stylesheet" href="css/productivity.css">
+  <link rel="stylesheet" href="css/personal.css">
+  <link rel="stylesheet" href="css/orgchart.css">
 </head>
 <body>
 
@@ -35,6 +57,7 @@
   <nav>
     <button class="logo logo-btn glitch" data-text=">_ EUREKA GAMES" data-view="arcade">&gt;_ EUREKA GAMES</button>
     <div class="nav-spacer"></div>
+    <button class="nav-sfx-toggle" id="nav-theme-toggle" title="Theme" aria-label="Cycle color theme">&#127912;</button>
     <button class="nav-sfx-toggle" id="nav-sfx-toggle" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
     <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
   </nav>
@@ -53,11 +76,23 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; FOURTEEN GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
+      <div class="arcade-hero-kicker">&#9679; TWENTY-ONE GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
 
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
+      <button class="hof-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; PATCH NOTES</button>
+    </div>
+    <div class="card-search-wrap">
+      <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
+             aria-label="Filter games" autocomplete="off">
+      <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
+    </div>
+    <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
+    <div id="daily-banner" role="region" aria-label="Today's challenge">
+      <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
+      <span class="daily-sub">One shared seed — same pieces, same food, same rocks for everyone. Set today's mark:</span>
+      <span id="daily-games"></span>
     </div>
     <div class="arcade-grid">
 
@@ -123,7 +158,7 @@
 
       <a class="arcade-card arcade-card-dim" href="hearthvale.html" style="--accent:#7fbf63">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" alt="Hearthvale gameplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'><rect width='320' height='200' fill='%237cba5f'/><g fill='%235f9a4c' opacity='0.5'><rect x='30' y='40' width='3' height='3'/><rect x='90' y='150' width='3' height='3'/><rect x='150' y='60' width='3' height='3'/><rect x='210' y='120' width='3' height='3'/><rect x='60' y='100' width='3' height='3'/><rect x='250' y='40' width='3' height='3'/></g><rect x='286' y='0' width='34' height='200' fill='%2357abdd'/><rect x='276' y='0' width='10' height='200' fill='%23e4d29e'/><rect x='128' y='120' width='28' height='80' fill='%23c49a63'/><rect x='128' y='120' width='158' height='22' fill='%23c49a63'/><g fill='%233f8a4c'><polygon points='120,44 133,74 107,74'/><polygon points='120,58 135,86 105,86'/><rect x='117' y='86' width='6' height='8' fill='%237a5232'/><polygon points='240,64 251,90 229,90'/><polygon points='240,76 253,100 227,100'/><rect x='237' y='100' width='6' height='7' fill='%237a5232'/><polygon points='40,150 51,176 29,176'/><rect x='37' y='176' width='6' height='7' fill='%237a5232'/></g><g><rect x='42' y='100' width='54' height='32' fill='%23ecdcb4'/><rect x='42' y='128' width='54' height='6' fill='%238f97a3'/><path d='M36 101 L69 70 L102 101 Z' fill='%23c1564d'/><rect x='40' y='96' width='6' height='5' fill='%236a4830'/><rect x='62' y='110' width='14' height='22' fill='%237a5230'/><rect x='48' y='106' width='9' height='9' fill='%23ffdf9e'/><rect x='82' y='106' width='9' height='9' fill='%23ffdf9e'/></g><g><rect x='172' y='104' width='46' height='28' fill='%23ecdcb4'/><rect x='172' y='128' width='46' height='6' fill='%238f97a3'/><path d='M166 105 L195 78 L224 105 Z' fill='%235a7ec2'/><rect x='188' y='114' width='12' height='18' fill='%237a5230'/><rect x='176' y='110' width='8' height='8' fill='%23ffdf9e'/></g><rect x='140' y='150' width='6' height='9' fill='%23e06a5c'/><rect x='139' y='146' width='4' height='4' fill='%23f1bf95'/><rect x='205' y='158' width='6' height='9' fill='%237bbf63'/><rect x='204' y='154' width='4' height='4' fill='%23f1bf95'/></svg>">
+          <img class="arcade-card-poster" src="assets/thumbs/hearthvale.jpg" alt="Hearthvale gameplay" width="640" height="400" loading="lazy">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="hearthvale"></div>
         </div>
@@ -152,7 +187,7 @@
 
       <a class="arcade-card arcade-card-dim" href="agentic-os.html" style="--accent:#BC8CFF">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" alt="Agentic OS desktop" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'><rect width='320' height='200' fill='%23070b12'/><g stroke='%23121c2a' stroke-width='1'><line x1='0' y1='50' x2='320' y2='50'/><line x1='0' y1='100' x2='320' y2='100'/><line x1='0' y1='150' x2='320' y2='150'/><line x1='64' y1='0' x2='64' y2='200'/><line x1='128' y1='0' x2='128' y2='200'/><line x1='192' y1='0' x2='192' y2='200'/><line x1='256' y1='0' x2='256' y2='200'/></g><g><rect x='22' y='26' width='150' height='104' rx='6' fill='%230b0f15' stroke='%2358a6ff'/><rect x='22' y='26' width='150' height='16' rx='6' fill='%230e141c'/><circle cx='160' cy='34' r='3' fill='%23f85149'/><circle cx='150' cy='34' r='3' fill='%23d29922'/><rect x='32' y='52' width='90' height='5' rx='2' fill='%23223349'/><rect x='32' y='64' width='128' height='6' rx='3' fill='%23101822'/><rect x='32' y='64' width='96' height='6' rx='3' fill='%233fb950'/><rect x='32' y='78' width='70' height='5' rx='2' fill='%23223349'/><rect x='32' y='90' width='128' height='6' rx='3' fill='%23101822'/><rect x='32' y='90' width='58' height='6' rx='3' fill='%2358a6ff'/><rect x='32' y='104' width='104' height='5' rx='2' fill='%23223349'/><rect x='32' y='116' width='128' height='6' rx='3' fill='%23101822'/><rect x='32' y='116' width='24' height='6' rx='3' fill='%23bc8cff'/></g><g><rect x='140' y='58' width='158' height='110' rx='6' fill='%23090d13' stroke='%23bc8cff'/><rect x='140' y='58' width='158' height='16' rx='6' fill='%230e141c'/><circle cx='288' cy='66' r='3' fill='%23f85149'/><rect x='150' y='84' width='96' height='5' rx='2' fill='%233fb950'/><rect x='150' y='96' width='120' height='5' rx='2' fill='%23295c38'/><rect x='150' y='108' width='72' height='5' rx='2' fill='%233fb950'/><rect x='150' y='120' width='108' height='5' rx='2' fill='%23295c38'/><rect x='150' y='132' width='40' height='5' rx='2' fill='%233fb950'/><rect x='150' y='144' width='10' height='8' fill='%233fb950'/></g><rect x='0' y='182' width='320' height='18' fill='%23080c12'/><line x1='0' y1='182' x2='320' y2='182' stroke='%231c2836'/><rect x='8' y='187' width='34' height='9' rx='3' fill='%23bc8cff' opacity='0.5'/><rect x='48' y='187' width='26' height='9' rx='3' fill='%23223349'/><rect x='80' y='187' width='26' height='9' rx='3' fill='%23223349'/><rect x='282' y='188' width='28' height='7' rx='2' fill='%23223349'/></svg>">
+          <img class="arcade-card-poster" src="assets/thumbs/studio.jpg" alt="Eureka Studio dev office" width="640" height="400" loading="lazy">
           <div class="arcade-card-shine"></div>
         </div>
         <div class="arcade-card-body">
@@ -248,6 +283,104 @@
           <div class="arcade-card-title">MINEFIELD</div>
           <div class="arcade-card-tags"><span>Puzzle</span><span>Logic</span></div>
           <div class="arcade-card-desc">Flag the mines, clear the board, beat your best time.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="lightcycles" style="--accent:#22d3ee">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/lightcycles.jpg" alt="Light Cycles gameplay" width="640" height="432" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="lightcycles"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">LIGHT CYCLES</div>
+          <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Arcade</span></div>
+          <div class="arcade-card-desc">Trap the AI in your light trail &mdash; or duel a friend on one keyboard.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="pong" style="--accent:#58A6FF">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/pong.jpg" alt="Pong++ gameplay" width="640" height="405" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="pong"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">PONG++</div>
+          <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Power-ups</span></div>
+          <div class="arcade-card-desc">The old table, new tricks &mdash; split the ball, grow your paddle, first to 7.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="stacker" style="--accent:#F7C948">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/stacker.jpg" alt="Stacker gameplay" width="640" height="853" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="stacker"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">STACKER</div>
+          <div class="arcade-card-tags"><span>Timing</span><span>Zen</span></div>
+          <div class="arcade-card-desc">Drop the slider, keep what lands, watch the tower climb. Perfects snap flush.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="crateescape" style="--accent:#F0883E">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/crateescape.jpg" alt="Crate Escape gameplay" width="640" height="560" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="crateescape"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">CRATE ESCAPE</div>
+          <div class="arcade-card-tags"><span>Puzzle</span><span>Sokoban</span><span>Zen</span></div>
+          <div class="arcade-card-desc">Push every crate onto its pad &mdash; a generated ladder of solvable puzzles, undo included.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="vectordefense" style="--accent:#8B83FF">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/vectordefense.jpg" alt="Vector Defense gameplay" width="640" height="480" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="vectordefense"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">VECTOR DEFENSE</div>
+          <div class="arcade-card-tags"><span>Tower Defense</span><span>Waves</span></div>
+          <div class="arcade-card-desc">Raiders crawl the neon path &mdash; pulse and rail turrets, ten waves, ten lives.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="wordcascade" style="--accent:#3FB950">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/wordcascade.jpg" alt="Word Cascade gameplay" width="640" height="640" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="wordcascade"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">WORD CASCADE</div>
+          <div class="arcade-card-tags"><span>Words</span><span>Falling</span></div>
+          <div class="arcade-card-desc">Letters fall, you spell — words clear across and down, chains multiply.</div>
+          <div class="arcade-card-play">&#9654; PLAY</div>
+        </div>
+      </button>
+
+      <button class="arcade-card" data-view="memorymatrix" style="--accent:#a78bfa">
+        <div class="arcade-card-screen">
+          <img class="arcade-card-poster" src="assets/thumbs/memorymatrix.jpg" alt="Memory Matrix gameplay" width="640" height="640" loading="lazy">
+          <div class="arcade-card-shine"></div>
+          <div class="arcade-card-hi" data-hi="memorymatrix"></div>
+        </div>
+        <div class="arcade-card-body">
+          <div class="arcade-card-title">MEMORY MATRIX</div>
+          <div class="arcade-card-tags"><span>Memory</span><span>Simon</span><span>Zen</span></div>
+          <div class="arcade-card-desc">Watch the lights, echo the melody &mdash; how long a pattern can you hold?</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -548,9 +681,168 @@
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="SnakeGame.start()">New Game</button>
         <button id="snake-wrap-btn" onclick="SnakeGame.toggleWallWrap()">Wrap: OFF</button>
+        <button id="snake-pace-btn" onclick="SnakeGame.cyclePace()" title="Base tick speed. Daily runs always play Classic so scores stay comparable.">Pace: CLASSIC</button>
       </div>
       <div style="font-size:11px; color: var(--text-dim); margin-top:6px; text-align:center">
         Gold food = +50 pts &nbsp;·&nbsp; Spawns every 5 apples &nbsp;·&nbsp; Disappears in 5s
+      </div>
+    </div>
+  </section>
+
+  <section id="view-lightcycles" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">LIGHT CYCLES</div>
+        <div class="game-subtitle">Trap your rival in your trail &middot; last rider alive wins</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Wins: <strong id="cycles-wins">0</strong></span>
+        <span>Losses: <strong id="cycles-losses">0</strong></span>
+        <span>Streak: <strong id="cycles-streak">0</strong></span>
+        <span>Best Streak: <strong id="cycles-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="cycles-canvas" class="game-canvas" role="img" aria-label="Light Cycles game board"></canvas>
+        <div id="cycles-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button id="cycles-mode-btn" onclick="LightCyclesGame.toggleMode()">Mode: VS AI</button>
+        <button id="cycles-third-btn" onclick="LightCyclesGame.toggleThird()" title="Add a third, gold AI rider to the grid">Riders: 2</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-pong" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">PONG++</div>
+        <div class="game-subtitle">First to 7 &middot; catch the power-ups with the ball</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>You: <strong id="pong-p1">0</strong></span>
+        <span>Rival: <strong id="pong-p2">0</strong></span>
+        <span>Streak: <strong id="pong-streak">0</strong></span>
+        <span>Best Streak: <strong id="pong-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="pong-canvas" class="game-canvas" role="img" aria-label="Pong table"></canvas>
+        <div id="pong-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button id="pong-mode-btn" onclick="PongGame.toggleMode()">Mode: VS AI</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-stacker" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">STACKER</div>
+        <div class="game-subtitle">Drop the slider on the tower &middot; overhangs get sliced &middot; perfects snap flush</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Height: <strong id="stacker-height">0</strong></span>
+        <span>Block: <strong id="stacker-width">180</strong>px</span>
+        <span>Best: <strong id="stacker-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="stacker-canvas" class="game-canvas" role="img" aria-label="Stacker tower"></canvas>
+        <div id="stacker-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-crateescape" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">CRATE ESCAPE</div>
+        <div class="game-subtitle">Arrows/WASD push &middot; Z undo &middot; R restart &middot; swipe on touch</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Level: <strong id="crate-level">1</strong></span>
+        <span>Moves: <strong id="crate-moves-hud">0</strong></span>
+        <span>Level best: <strong id="crate-par">&mdash;</strong></span>
+        <span>Solved: <strong id="crate-solved">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="crate-canvas" class="game-canvas" role="img" aria-label="Crate Escape warehouse"></canvas>
+        <div id="crate-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button onclick="CrateEscapeGame.prevLevel()" title="Previous level">&#9664; Level</button>
+        <button onclick="CrateEscapeGame.nextLevel()" title="Next solved level">Level &#9654;</button>
+        <button onclick="CrateEscapeGame.undoBtn()" title="Undo (Z)">&#8630; Undo</button>
+        <button onclick="CrateEscapeGame.restart()" title="Restart level (R)">&#10226; Restart</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-vectordefense" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">VECTOR DEFENSE</div>
+        <div class="game-subtitle">Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Cash: <strong id="vd-cash">$120</strong></span>
+        <span>Lives: <strong id="vd-lives">10</strong></span>
+        <span>Wave: <strong id="vd-wave">0 / 10</strong></span>
+        <span>Best: <strong id="vd-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="vd-canvas" class="game-canvas" role="img" aria-label="Vector Defense battlefield"></canvas>
+        <div id="vd-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div class="game-controls" style="margin-top:12px">
+        <button id="vd-pulse-btn" class="active">⚡ Pulse $50</button>
+        <button id="vd-rail-btn">▭ Rail $120</button>
+        <button id="vd-upg-btn" hidden>⬆ Upgrade</button>
+        <button id="vd-sell-btn" hidden>♻ Sell</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-wordcascade" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">WORD CASCADE</div>
+        <div class="game-subtitle">Steer the letters &middot; spell across or down &middot; plurals and -ed/-ing count &middot; chains multiply</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Score: <strong id="wc-score">0</strong></span>
+        <span>Words: <strong id="wc-words">0</strong></span>
+        <span>Best: <strong id="wc-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="wc-canvas" class="game-canvas" role="img" aria-label="Word Cascade board"></canvas>
+        <div id="wc-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
+      </div>
+      <div id="wc-lastwords" class="wc-lastwords" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="view-memorymatrix" class="view">
+    <div class="game-container">
+      <div class="game-header">
+        <button class="game-back-btn" data-view="arcade">&larr; Games</button>
+        <div class="game-title">MEMORY MATRIX</div>
+        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; one wrong pad ends the run</div>
+      </div>
+      <div class="game-info" role="status" aria-live="polite">
+        <span>Round: <strong id="mm-round">1</strong></span>
+        <span>Pattern: <strong id="mm-len">0</strong> steps</span>
+        <span>Lives: <strong id="mm-lives">&hearts;&hearts;&hearts;</strong></span>
+        <span>Best: <strong id="mm-best">0</strong></span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="mm-canvas" class="game-canvas" role="img" aria-label="Memory Matrix pad grid"></canvas>
+        <div id="mm-overlay" class="game-overlay" role="alert" aria-live="assertive" style="display:none"></div>
       </div>
     </div>
   </section>
@@ -621,7 +913,7 @@
         <div class="tetris-side">
           <div class="tetris-panel">
             <div class="tetris-panel-label">NEXT</div>
-            <canvas id="tetris-next-canvas" width="120" height="90"></canvas>
+            <canvas id="tetris-next-canvas" width="120" height="216"></canvas>
           </div>
           <div class="tetris-panel">
             <div class="tetris-panel-label">HIGH SCORE</div>
@@ -662,6 +954,7 @@
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="Game2048.start()">New Game</button>
+        <button id="g2048-undo-btn" onclick="Game2048.undo()" title="Take back the last move (Z). Not available on daily runs." disabled>&#8630; Undo</button>
       </div>
     </div>
   </section>
@@ -702,9 +995,27 @@
       <button class="game-back-btn" data-view="arcade">&larr; Games</button>
       <div class="hof-title">&#9733; HALL OF FAME &#9733;</div>
       <div class="hof-sub">YOUR PERSONAL BESTS</div>
+      <div id="hof-rivals" class="hof-rivals">
+        <div class="hof-rivals-row">
+          <button id="hof-share" class="hof-share">⚔ Share my scores</button>
+          <input id="hof-rival-code" class="hof-rival-input" type="text"
+                 placeholder="paste a rival's code…" aria-label="Paste a rival's share code">
+          <button id="hof-rival-add" class="hof-share">Add rival</button>
+          <button id="hof-card-btn" class="hof-share" title="Render your bests as a PNG score card">🖼 Score card</button>
+        </div>
+        <div id="hof-share-out" class="hof-share-out" hidden></div>
+        <div id="hof-card-out" class="hof-share-out" hidden style="text-align:center"></div>
+        <div id="hof-rival-list" class="hof-rival-list"></div>
+      </div>
       <div id="hof-board" class="hof-board"></div>
+      <div id="hof-achievements"></div>
+      <div id="hof-shop"></div>
+      <div id="hof-insights"></div>
       <div class="hof-footer">
         <button id="hof-reset" class="hof-reset">Reset my scores</button>
+        <button id="hof-backup" class="hof-reset" title="Download every score, save and unlock as a JSON file">&#11015; Backup</button>
+        <button id="hof-restore" class="hof-reset" title="Restore progress from a backup file">&#11014; Restore</button>
+        <input id="hof-restore-file" type="file" accept="application/json,.json" hidden aria-label="Choose a backup file to restore">
         <span class="hof-coin arcade-blink">&#9646;</span> PICK A GAME AND BEAT THEM
       </div>
     </div>
@@ -751,6 +1062,7 @@
         <span>Streak: <strong id="word5-streak">0</strong></span>
         <span>Best: <strong id="word5-best">0</strong></span>
         <button class="primary" onclick="WordFiveGame.newGame()" style="padding:4px 12px">New Word</button>
+        <button id="w5-share-btn" onclick="WordFiveGame.share()" style="padding:4px 12px;display:none">📋 Share</button>
       </div>
       <div class="w5-wrap">
         <div id="word5-msg" class="w5-msg" role="status" aria-live="polite"></div>
@@ -810,6 +1122,7 @@
         <span><button id="mines-face" onclick="MinesweeperGame.newGame()" title="New game" style="background:none;border:0;cursor:pointer;font-size:20px;line-height:1">🙂</button></span>
         <span>⏱ <strong id="mines-time">0</strong>s</span>
         <span>Best: <strong id="mines-best">—</strong></span>
+        <span id="mines-status" style="color:#F7C948"></span>
       </div>
       <div class="canvas-wrapper" style="overflow:auto;max-width:100%">
         <canvas id="mines-canvas" class="game-canvas" role="img" aria-label="Minefield board — reveal cells, flag mines"></canvas>
@@ -826,7 +1139,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR STORM</div>
-        <div class="game-subtitle">Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; buttons on touch</div>
+        <div class="game-subtitle">Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="asteroids-score">0</strong></span>
@@ -844,6 +1157,7 @@
         <button id="ast-thrust" aria-label="Thrust">&#9650;</button>
         <button id="ast-right" aria-label="Rotate right">&#8635;</button>
         <button id="ast-fire" aria-label="Fire">&#9679; FIRE</button>
+        <button id="ast-hyper" aria-label="Hyperspace jump">&#10530; WARP</button>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="AsteroidsGame.start()">New Game</button>
@@ -897,6 +1211,39 @@
   </section>
 
   <!-- GOOGLE TASKS SETTINGS MODAL -->
+  <!-- Keyboard shortcuts cheat-sheet (P7) — press ? anywhere on the hub -->
+  <div id="shortcuts-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <div class="modal-content" style="max-width:560px">
+      <h3 style="margin-bottom:12px">&#9000; Keyboard shortcuts</h3>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:13px;line-height:1.5">
+        <strong>?</strong><span>Open or close this cheat-sheet</span>
+        <strong>Space / Enter</strong><span>Start, serve, restart in every arcade game</span>
+        <strong>&larr; &uarr; &rarr; &darr; / WASD</strong><span>Steer, rotate, thrust, slide</span>
+        <strong>Z</strong><span>2048 — undo the last move (not in daily runs)</span>
+        <strong>H</strong><span>Vector Storm — hyperspace jump</span>
+        <strong>1&ndash;9</strong><span>Memory Matrix — press the pads</span>
+        <strong>P</strong><span>Age of War — pause &amp; open the Relic Vault</span>
+        <strong>W/S + arrows</strong><span>Pong++ &amp; Light Cycles — two players, one keyboard</span>
+        <strong>Esc</strong><span>Clear the game search &middot; close dialogs</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:12px">Gamepads work across the arcade too — press any button on the pad.</div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="primary" onclick="Utils.closeModal('shortcuts-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="patch-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Patch notes">
+    <div class="modal-content" style="max-width:640px">
+      <h3 style="margin-bottom:4px">&#128240; Patch notes</h3>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px">What the studio shipped lately — every update is live for everyone, saves always migrate.</div>
+      <div id="patch-list" style="max-height:56vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px"></div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="primary" onclick="Utils.closeModal('patch-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="gt-modal" class="modal-overlay">
     <div class="modal-content">
       <h3>Google Tasks</h3>
@@ -960,6 +1307,28 @@
   <script src="js/minesweeper.js" defer></script>
   <script src="js/connect4.js" defer></script>
   <script src="js/word5.js" defer></script>
+  <script src="js/lightcycles.js" defer></script>
+  <script src="js/pong.js" defer></script>
+  <script src="js/stacker.js" defer></script>
+  <script src="js/crateescape.js" defer></script>
+  <script src="js/vectordefense.js" defer></script>
+  <script src="js/wordcascade.js" defer></script>
+  <script src="js/memorymatrix.js" defer></script>
+  <script src="js/gamepad.js" defer></script>
+  <script src="js/daily.js" defer></script>
+  <script src="js/rivals.js" defer></script>
+  <script src="js/achievements.js" defer></script>
+  <script src="js/telemetry.js" defer></script>
+  <script src="js/coins.js" defer></script>
+  <script>
+  // PWA (IDEA-SITE-1): the arcade installs and runs fully offline. The
+  // service worker precaches the shell — including vendored three.js, which
+  // is what SITE-1's vendoring bought us. Registered from the hub only; its
+  // scope ('/') covers every game page once a visitor has been here once.
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
+  </script>
   <script src="js/orgchart.js" defer></script>
   <script>
   // The scripts above are now `defer`red, so they run in order right before
@@ -989,6 +1358,18 @@
       minesweeper: () => MinesweeperGame.destroy(),
       connect4: () => ConnectFourGame.destroy(),
       word5: () => WordFiveGame.destroy(),
+      lightcycles: () => LightCyclesGame.destroy(),
+      pong: () => PongGame.destroy(),
+      stacker: () => StackerGame.destroy(),
+      crateescape: () => CrateEscapeGame.destroy(),
+      vectordefense: () => VectorDefenseGame.destroy(),
+      wordcascade: () => WordCascadeGame.destroy(),
+      memorymatrix: () => MemoryMatrixGame.destroy(),
+      // Non-game views leak too: Studio Crew ran a 60fps physics sim and the
+      // dashboard six timers, both for the life of the session regardless of
+      // which view was on screen.
+      orgchart: () => OrgChart.destroy(),
+      dashboard: () => { Dashboard.destroy(); CalendarWidget.destroy(); },
     };
 
     function switchView(name) {
@@ -1018,11 +1399,30 @@
           case 'minesweeper':  MinesweeperGame.init(); break;
           case 'connect4':     ConnectFourGame.init(); break;
           case 'word5':        WordFiveGame.init(); break;
+          case 'lightcycles':  LightCyclesGame.init(); break;
+          case 'pong':         PongGame.init(); break;
+          case 'stacker':      StackerGame.init(); break;
+          case 'crateescape':  CrateEscapeGame.init(); break;
+          case 'vectordefense': VectorDefenseGame.init(); break;
+          case 'wordcascade':  WordCascadeGame.init(); break;
+          case 'memorymatrix': MemoryMatrixGame.init(); break;
           case 'orgchart':     OrgChart.init(); break;
         }
       }
+      // init() only ever runs once per view, so the views we now tear down on
+      // exit need their loop/timers restarted when the visitor comes back.
+      // Both resume() calls are no-ops if already running, so this is safe on
+      // the first visit too.
+      if (name === 'orgchart') OrgChart.resume();
+      if (name === 'dashboard') { Dashboard.resume(); CalendarWidget.resume(); }
+      if (typeof Achievements !== 'undefined') Achievements.check();
+      if (typeof Coins !== 'undefined') Coins.credit();
+      if (typeof Telemetry !== 'undefined') Telemetry.enter(name);
       if (name === 'halloffame') renderHallOfFame();
-      if (name === 'arcade') refreshArcadeBadges();
+      if (name === 'arcade') {
+        refreshArcadeBadges();
+        if (typeof Telemetry !== 'undefined') Telemetry.renderResume('jump-back-in', switchView);
+      }
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
       setTimeout(() => Effects.init3DTilt(), 50);
@@ -1035,29 +1435,55 @@
       { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
       { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
-        best: () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : null; } },
+        best: () => {
+          const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
+          const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
+          if (v <= 0 && n <= 0) return null;
+          const parts = [];
+          if (v > 0) parts.push(Scores.fmtMoney(v) + ' earned');
+          if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
+          return parts.join(' · ');
+        } },
       { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
-        best: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? d + ' days survived' : null; } },
+        best: () => {
+          const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0;
+          if (d <= 0) return null;
+          return d + ' days survived' + (s.arcStage >= 3 ? ' · 🔑 housed' : '');
+        } },
       { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
         best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
-      { name: 'Snake',            accent: '#6C63FF', go: () => switchView('snake'),
+      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => switchView('snake'),
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Tetris',           accent: '#F778BA', go: () => switchView('tetris'),
+      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', go: () => switchView('tetris'),
         best: () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Neon Breaker',     accent: '#22d3ee', go: () => switchView('breakout'),
+      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', go: () => switchView('breakout'),
         best: () => { const v = Scores.num('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Vector Storm',     accent: '#a78bfa', go: () => switchView('asteroids'),
+      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', go: () => switchView('asteroids'),
         best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: '2048',             accent: '#facc15', go: () => switchView('2048'),
+      { name: '2048',             accent: '#facc15', rid: 'g2048-best', go: () => switchView('2048'),
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Minefield',        accent: '#F0883E', go: () => switchView('minesweeper'),
+      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', go: () => switchView('minesweeper'),
         best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
-      { name: 'Drop Four',        accent: '#f7c948', go: () => switchView('connect4'),
+      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', go: () => switchView('connect4'),
         best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Word Five',        accent: '#3FB950', go: () => switchView('word5'),
+      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', go: () => switchView('word5'),
         best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
+      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', go: () => switchView('lightcycles'),
+        best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
+      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => switchView('pong'),
+        best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
+      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => switchView('stacker'),
+        best: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : null; } },
+      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', go: () => switchView('crateescape'),
+        best: () => { const v = Scores.num('crate-best'); return v > 0 ? v + ' puzzles' : null; } },
+      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', go: () => switchView('vectordefense'),
+        best: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves held' : null; } },
+      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', go: () => switchView('wordcascade'),
+        best: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
+      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => switchView('memorymatrix'),
+        best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
@@ -1067,18 +1493,175 @@
         const best = g.best();
         if (best) played++;
         const rank = String(i + 1).padStart(2, '0');
+        // Rivals (SITE-2): show the best imported mark beside your own,
+        // lit up when the rival currently holds the lead.
+        let rivalHtml = '';
+        if (g.rid && typeof Rivals !== 'undefined') {
+          const r = Rivals.bestFor(g.rid);
+          if (r) {
+            const leads = Rivals.rivalLeads(g.rid);
+            rivalHtml = '<span class="hof-rival' + (leads ? ' hof-rival-leads' : '') + '" title="' +
+              (leads ? 'They hold the lead' : 'You hold the lead') + '">⚔ ' +
+              r.name + ' · ' + Rivals.fmt(g.rid, r.value) + '</span>';
+          }
+        }
         return '<button class="hof-row' + (best ? '' : ' hof-row-empty') + '" data-hof="' + i + '" style="--accent:' + g.accent + '">' +
                  '<span class="hof-rank">' + rank + '</span>' +
                  '<span class="hof-dot"></span>' +
                  '<span class="hof-name">' + g.name + '</span>' +
                  '<span class="hof-dots"></span>' +
+                 rivalHtml +
                  '<span class="hof-score">' + (best || '— not played —') + '</span>' +
                '</button>';
       }).join('');
       board.querySelectorAll('.hof-row').forEach(row => {
         row.addEventListener('click', () => HOF_GAMES[+row.dataset.hof].go());
       });
+      renderRivalsBar();
+      if (typeof Achievements !== 'undefined') Achievements.renderInto('hof-achievements');
+      if (typeof Coins !== 'undefined') Coins.renderInto('hof-shop');
+      if (typeof Telemetry !== 'undefined') Telemetry.renderInto('hof-insights');
     }
+
+    // ---- Rivals bar (SITE-2) ----
+    function renderRivalsBar() {
+      const listEl = document.getElementById('hof-rival-list');
+      if (!listEl || typeof Rivals === 'undefined') return;
+      const rivals = Object.entries(Rivals.list());
+      listEl.innerHTML = rivals.length
+        ? rivals.map(([name, r]) =>
+            '<span class="hof-rival-chip">⚔ ' + name +
+            ' <span class="hof-rival-n">(' + Object.keys(r.s).length + ' games)</span>' +
+            '<button class="hof-rival-x" data-rname="' + name.replace(/"/g, '') + '" title="Remove ' + name + '">✕</button></span>').join('')
+        : '<span class="hof-rival-none">No rivals yet — trade codes with a friend and race the board.</span>';
+      listEl.querySelectorAll('.hof-rival-x').forEach(btn => {
+        btn.addEventListener('click', () => { Rivals.remove(btn.dataset.rname); renderHallOfFame(); });
+      });
+    }
+
+    document.getElementById('hof-share').addEventListener('click', () => {
+      if (typeof Rivals === 'undefined') return;
+      if (!Rivals.myName()) {
+        const n = prompt('Name to put on your share code (shown to your rivals):', 'PLAYER 1');
+        if (n === null) return;
+        Rivals.setMyName(n.trim() || 'PLAYER 1');
+      }
+      const url = Rivals.shareUrl();
+      const out = document.getElementById('hof-share-out');
+      out.hidden = false;
+      out.textContent = url;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(
+          () => { out.textContent = '✓ Copied to clipboard: ' + url; },
+          () => {});
+      }
+    });
+    document.getElementById('hof-rival-add').addEventListener('click', () => {
+      if (typeof Rivals === 'undefined') return;
+      const input = document.getElementById('hof-rival-code');
+      const raw = input.value.trim().replace(/^.*#hof=/, '');
+      const rival = raw && Rivals.decode(decodeURIComponent(raw));
+      const out = document.getElementById('hof-share-out');
+      out.hidden = false;
+      if (!rival || !Object.keys(rival.s).length) {
+        out.textContent = '✗ That code didn\'t decode — check it was pasted whole.';
+        return;
+      }
+      out.textContent = Rivals.add(rival)
+        ? '✓ Rival added: ' + rival.name
+        : '✗ Rival list is full — remove one first.';
+      input.value = '';
+      renderHallOfFame();
+    });
+
+    // P5: render the board as a downloadable PNG score card. Canvas-drawn
+    // (no html2canvas dep), 2× backing store so it stays crisp when saved.
+    function renderHofCard() {
+      const out = document.getElementById('hof-card-out');
+      if (!out) return;
+      if (!out.hidden) { out.hidden = true; out.innerHTML = ''; return; }   // toggle off
+      const rows = HOF_GAMES.map(g => ({ name: g.name, accent: g.accent, best: g.best() }))
+        .filter(r => r.best);
+      const W = 640, rowH = 30, headH = 92, footH = 54;
+      const H = headH + Math.max(1, rows.length) * rowH + footH;
+      const c = document.createElement('canvas');
+      const dpr = 2;
+      c.width = W * dpr; c.height = H * dpr;
+      const x = c.getContext('2d');
+      x.scale(dpr, dpr);
+      x.fillStyle = '#0d1117'; x.fillRect(0, 0, W, H);
+      x.strokeStyle = 'rgba(108,99,255,0.55)'; x.lineWidth = 2; x.strokeRect(6, 6, W - 12, H - 12);
+      x.fillStyle = '#F7C948'; x.font = "800 21px 'JetBrains Mono', monospace"; x.textAlign = 'center';
+      x.fillText('★ EUREKA GAMES · HALL OF FAME ★', W / 2, 40);
+      x.fillStyle = '#7D8590'; x.font = '12px Inter, sans-serif';
+      x.fillText(Utils.todayKey() + ' · ' + rows.length + ' of ' + HOF_GAMES.length + ' games on the board', W / 2, 62);
+      x.textAlign = 'left';
+      rows.forEach((r, i) => {
+        const y = headH + i * rowH;
+        if (i % 2 === 0) { x.fillStyle = 'rgba(255,255,255,0.035)'; x.fillRect(14, y - 19, W - 28, rowH - 4); }
+        x.fillStyle = r.accent; x.beginPath(); x.arc(30, y - 5, 5, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#E6EDF3'; x.font = '600 14px Inter, sans-serif';
+        x.fillText(r.name, 46, y);
+        x.textAlign = 'right';
+        x.fillStyle = '#F7C948'; x.font = "700 14px 'JetBrains Mono', monospace";
+        x.fillText(String(r.best), W - 30, y);
+        x.textAlign = 'left';
+      });
+      if (!rows.length) {
+        x.fillStyle = '#7D8590'; x.font = '13px Inter, sans-serif';
+        x.fillText('No scores on the board yet — go play something!', 46, headH);
+      }
+      const achN = (typeof Achievements !== 'undefined') ? Object.keys(Achievements.unlocked()).length : 0;
+      const coinN = (typeof Coins !== 'undefined') ? Coins.load().balance : 0;
+      x.fillStyle = '#7D8590'; x.font = '12px Inter, sans-serif'; x.textAlign = 'center';
+      x.fillText('🏆 ' + achN + ' achievements · 🪙 ' + coinN + ' coins · ' + (location.hostname || 'eureka games'), W / 2, H - 26);
+      const url = c.toDataURL('image/png');
+      out.innerHTML =
+        '<img id="hof-card-img" src="' + url + '" alt="Your Hall of Fame score card" style="max-width:100%;border-radius:10px">' +
+        '<div><a id="hof-card-dl" class="hof-share" download="eureka-hall-of-fame.png" href="' + url + '"' +
+        ' style="display:inline-block;margin-top:8px;text-decoration:none">⬇ Download PNG</a></div>';
+      out.hidden = false;
+    }
+    document.getElementById('hof-card-btn').addEventListener('click', renderHofCard);
+
+    // P6: whole-arcade backup/restore. Everything the arcade owns lives in
+    // same-origin localStorage, so the backup is simply all of it — new
+    // games' keys are covered automatically without a registry to forget.
+    document.getElementById('hof-backup').addEventListener('click', () => {
+      const data = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        data[k] = localStorage.getItem(k);
+      }
+      const payload = JSON.stringify({ v: 1, when: new Date().toISOString(), data }, null, 1);
+      const a = document.createElement('a');
+      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(payload);
+      a.download = 'eureka-backup-' + Utils.todayKey() + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+    document.getElementById('hof-restore').addEventListener('click', () => {
+      document.getElementById('hof-restore-file').click();
+    });
+    document.getElementById('hof-restore-file').addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        let obj = null;
+        try { obj = JSON.parse(reader.result); } catch {}
+        const data = obj && obj.data;
+        const keys = data && typeof data === 'object' ? Object.keys(data).filter(k => typeof data[k] === 'string') : [];
+        if (!keys.length) { alert('That file didn’t look like a Eureka backup.'); return; }
+        if (!confirm('Restore ' + keys.length + ' saved entries from ' +
+          (obj.when ? obj.when.slice(0, 10) : 'this backup') + '? Matching progress here will be overwritten.')) return;
+        keys.forEach(k => { try { localStorage.setItem(k, data[k]); } catch {} });
+        location.reload();   // every module re-reads its keys on boot
+      };
+      reader.readAsText(file);
+    });
 
     document.getElementById('hof-reset').addEventListener('click', () => {
       if (!confirm('Clear all your high scores and game saves? This can’t be undone.')) return;
@@ -1095,6 +1678,28 @@
       navUtilsToggle.setAttribute('aria-expanded', navUtils.classList.contains('open') ? 'true' : 'false');
     }
     // Global sound toggle (SFX from js/sfx.js persists mute in localStorage).
+    // Theme cycler (SITE-6): default → CRT → synthwave → daylight → …
+    const THEMES = [
+      { id: '',          label: 'Midnight (default)' },
+      { id: 'crt',       label: 'CRT' },
+      { id: 'synthwave', label: 'Synthwave' },
+      { id: 'daylight',  label: 'Daylight' },
+    ];
+    const themeToggle = document.getElementById('nav-theme-toggle');
+    function applyTheme(id, persist) {
+      if (id) document.documentElement.dataset.theme = id;
+      else delete document.documentElement.dataset.theme;
+      if (persist) { try { localStorage.setItem('eureka-theme', id); } catch {} }
+      const cur = THEMES.find(t => t.id === id) || THEMES[0];
+      themeToggle.title = 'Theme: ' + cur.label;
+    }
+    applyTheme(document.documentElement.dataset.theme || '', false);
+    themeToggle.addEventListener('click', () => {
+      const cur = document.documentElement.dataset.theme || '';
+      const idx = THEMES.findIndex(t => t.id === cur);
+      applyTheme(THEMES[(idx + 1) % THEMES.length].id, true);
+    });
+
     const sfxToggle = document.getElementById('nav-sfx-toggle');
     const syncSfxIcon = () => {
       const m = SFX.isMuted();
@@ -1119,12 +1724,24 @@
         asteroids: () => { const v = Scores.num('asteroids-high'); return v > 0 ? 'HI ' + v.toLocaleString() : ''; },
         ageofwar: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' ★' : ''; },
         tycoon:   () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? 'BEST ' + Scores.fmtMoney(v) : ''; },
-        growop:   () => { const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' earned' : ''; },
+        growop:   () => {
+          const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
+          if (v > 0) return Scores.fmtMoney(v) + ' earned';
+          const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
+          return n > 0 ? n + ' 🏅' : '';
+        },
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
         voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
         minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },
         connect4: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : ''; },
         word5: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' streak' : ''; },
+        lightcycles: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : ''; },
+        pong: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : ''; },
+        stacker: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : ''; },
+        crateescape: () => { const v = Scores.num('crate-best'); return v > 0 ? v + ' solved' : ''; },
+        vectordefense: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves' : ''; },
+        wordcascade: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : ''; },
+        memorymatrix: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'ROUND ' + v : ''; },
       };
       document.querySelectorAll('.arcade-card-hi').forEach(el => {
         const fn = HI[el.dataset.hi];
@@ -1190,15 +1807,474 @@
     //  pages reached by their links, not hash-routed views.)
     function viewFromHash() {
       const h = (location.hash || '').replace(/^#/, '').toLowerCase();
-      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'halloffame'];
+      const known = ['arcade', 'dashboard', 'productivity', 'orgchart', 'personal', 'snake', 'maze', 'life', 'tetris', 'breakout', 'asteroids', '2048', 'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker', 'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix', 'halloffame'];
       return known.includes(h) ? h : null;
     }
+    // A '#hof=<code>' link is an import, not a view: store the rival,
+    // clean the hash, land on the Hall of Fame with the result showing.
+    function handleRivalHash() {
+      if (typeof Rivals === 'undefined' || !/^#hof=/.test(location.hash || '')) return false;
+      const res = Rivals.tryImportFromHash();
+      switchView('halloffame');
+      const out = document.getElementById('hof-share-out');
+      if (out && res) {
+        out.hidden = false;
+        out.textContent = res.ok ? '✓ Rival added: ' + res.name
+          : res.full ? '✗ Rival list is full — remove one first.'
+          : '✗ That share code didn\'t decode.';
+      }
+      renderHallOfFame();
+      return true;
+    }
+
     window.addEventListener('hashchange', () => {
+      if (handleRivalHash()) return;
       const v = viewFromHash();
       if (v && v !== currentView) switchView(v);
     });
 
-    Effects.init().then(() => switchView(viewFromHash() || 'arcade'));
+    // Card search (P4): filters the arcade grid by title or tag text.
+    const searchEl = document.getElementById('card-search');
+    const searchCountEl = document.getElementById('card-search-count');
+    if (searchEl) {
+      const applyFilter = () => {
+        const q = searchEl.value.trim().toLowerCase();
+        const cards = document.querySelectorAll('.arcade-grid .arcade-card');
+        let shown = 0;
+        cards.forEach(card => {
+          const title = (card.querySelector('.arcade-card-title') || {}).textContent || '';
+          const tags = (card.querySelector('.arcade-card-tags') || {}).textContent || '';
+          const hit = !q || (title + ' ' + tags).toLowerCase().includes(q);
+          card.style.display = hit ? '' : 'none';
+          if (hit) shown++;
+        });
+        searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
+      };
+      searchEl.addEventListener('input', applyFilter);
+      searchEl.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { searchEl.value = ''; applyFilter(); searchEl.blur(); }
+        e.stopPropagation();   // typing must not trigger game hotkeys
+      });
+    }
+
+    // P7: ? toggles the shortcuts cheat-sheet; Esc closes it. Ignored while
+    // typing in an input so "?" in the journal/search stays a character.
+    document.addEventListener('keydown', e => {
+      const t = e.target;
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      const modal = document.getElementById('shortcuts-modal');
+      if (e.key === '?' && !typing) {
+        e.preventDefault();
+        if (modal.style.display === 'flex') Utils.closeModal('shortcuts-modal');
+        else Utils.openModal('shortcuts-modal');
+      } else if (e.key === 'Escape' && modal.style.display === 'flex') {
+        Utils.closeModal('shortcuts-modal');
+      }
+    });
+    document.getElementById('shortcuts-modal').addEventListener('click', e => {
+      if (e.target.id === 'shortcuts-modal') Utils.closeModal('shortcuts-modal');
+    });
+
+    // Patch notes: the studio changelog, newest first. Hand-curated —
+    // every entry here shipped, verified headless, and is live for
+    // everyone (installed PWAs pick waves up on service-worker bumps).
+    const PATCH_NOTES = [
+      { date: '2026-08-26', title: 'Round Forty-Nine', items: [
+        '\u{1F6E0}\u{FE0F} A save can go bad on you \u2014 a browser crash mid-write, an extension, a tab killed at the wrong moment. Your save is read before any of the game exists, so when it goes wrong there is nothing on screen to say so: Hearthvale, Voxel Isle and Grow Op would each hand you a blank page, every time, with no way back in. That is fixed. All six games now start from a broken save instead of refusing to start, and keep whatever of it was still readable.',
+        '\u{1F50E} Found by finally testing the one thing every player supplies and nobody checks. The battery now boots every game from a deliberately wrecked save before each release \u2014 so this class of thing gets caught here, not on your town.',
+        '\u{1F3C6} Same problem one floor up, and worse: a damaged scoreboard file could blank the Hall of Fame \u2014 or the front page itself \u2014 leaving you no way in to any game. Your rivals, coins, stats and trophies now survive a bad write: whatever is still readable is kept, and the rest is quietly rebuilt.',
+        '\u{1F4B0} Grow Op\u2019s upgrade list was telling you the wrong numbers. <b>Bigger Yield</b> said \u201C+20% per level\u201D while it actually <b>doubles</b> what every batch produces \u2014 the best buy in the game, priced and described like the worst. The Lookout System and Clean Operation were off too, and Better Grow Lights never mentioned it also makes you quicker on your feet. Every description now says what the upgrade really does. <b>Nothing about the upgrades themselves changed</b> \u2014 only what they told you.',
+        '\u{1F3D5}\u{FE0F} Homeless Village used to open on forty-seven buttons and no explanation. It now starts by telling you how the camp actually works \u2014 that you have to walk up to a dumpster before you can scavenge, that the Workbench unlocks thirteen of the eighteen recipes, and that cold is what kills you. The day holds still while you read it, and the <b>?</b> up top brings it back any time.' ] },
+      { date: '2026-08-26', title: 'Round Forty-Eight', items: [
+        '\u{1F9F1} Eighteen rounds of memory links have gone into these games, and until now there was no way to see that they are one thing \u2014 every link only appeared once the one before it was done. Each flagship now has one screen that shows the whole chain: what you have begun and how many times, what is yours to do next, and how far off the one after that is. What comes later stays unnamed \u2014 it should say there is more, not hand over the list.',
+        '\u{1F9F1} Startup Tycoon: <b>The Wall</b>, beside Achievements. Grow Op: <b>The Corner</b>, in the tray. Age of War: <b>The Line</b>, beside Awards. Homeless Village: <b>The Bridge</b>, in the top bar. Hearthvale: <b>The Hall</b>, on the pause menu. Voxel Isle: <b>The Shore</b>, in the tray.',
+        '\u{1F50E} Each screen is checked against the game it describes: a test walks every row and proves the number it quotes is the number the game actually uses. A wall that lies about how close you are would be worse than no wall.' ] },
+      { date: '2026-08-26', title: 'Round Forty-Seven', items: [
+        '\u{1F5BC}\u{FE0F} Every room you paid for last round shipped with its far end left bare on purpose. This round fills them \u2014 and for the first time in fourteen links, the reward is not a payout. Each one changes a live system, permanently, and none of them has a button: they go up on their own the third time you visit.',
+        '\u{1F5D3}\u{FE0F} Startup Tycoon: the Next Five Years \u2014 the years ahead pinned up beside the years behind. Every hire from then on starts +3 XP in.',
+        '\u{1F5BC}\u{FE0F} Grow Op: the Empty Frame \u2014 glass in, nothing behind it, for whoever\u2019s next. Undercover buyers come at 0.7\u00D7 on every run from here.',
+        '\u{1F5BC}\u{FE0F} Age of War: the Blank Panels \u2014 frames for the musters that have not marched yet, dated forward. Veteran at 22s instead of 25, Elite at 54 instead of 60, for every soldier in every war.',
+        '\u{1F9E3} Homeless Village: the Empty Hook \u2014 a spare blanket on a hook by the door, no name on it. Every season\u2019s base warmth drain comes down 2.',
+        '\u{1F9F1} Hearthvale: the Fresh Plaster \u2014 panels primed for winters nobody has survived yet. Every villager born in the valley starts +4 mastery XP.',
+        '\u{1FAA2} Voxel Isle: the Bare Line \u2014 a fresh coil on a cleat, unknotted, for whoever ships out next season. Every hand on the isle walks quicker, forever.',
+        '\u{1F6E1}\u{FE0F} And a fix that matters more than any of it: a debug hook left in Grow Op four rounds ago let anyone set their own cash from the browser console. Removed, and the battery now refuses to ship another one.' ] },
+      { date: '2026-08-26', title: 'Round Forty-Six', items: [
+        '\u{1F3DB}\u{FE0F} Twelve links in and every one of them has been free. This round each flagship gets the first that asks for something back \u2014 one control that is the purchase while the room is unbuilt and the visit the moment it stands.',
+        '\u{1F5C3}\u{FE0F} Startup Tycoon: the Archive Wing \u2014 $25,000 out of the account for a floor that ships nothing. Then once a session: to $500.',
+        '\u{1F6AA} Grow Op: the Back Room \u2014 $20,000 for a room behind the corner that moves no weight. Then once a session: to +$490.',
+        '\u{1F3DB}\u{FE0F} Age of War: the Long Room \u2014 900 gold for a hall that fires no shot. Then once a session: to +490 gold.',
+        '\u{26F1}\u{FE0F} Homeless Village: the Dry Corner \u2014 12\u{1F9F1} and 8\u{1F4E6} to roof the corner so the rain stops taking the story. Then once a session: to +17 food.',
+        '\u{1F3DB}\u{FE0F} Hearthvale: the Long Gallery \u2014 400 gold for a run off the hall that houses nobody. Then once a session: to +95 gold.',
+        '\u{1F6D6} Voxel Isle: the Long Shed \u2014 350 \u{1FA99} to roof the ways so the boarding can keep going. Then once a session: to +95 \u{1FA99}.' ] },
+      { date: '2026-08-26', title: 'Round Forty-Five', items: [
+        '\u{270D}\u{FE0F} Startup Tycoon: the New Hire\u2019s Panel \u2014 three tours and the hire who got walked down the wall paints the next panel herself. Once a session: to $490.',
+        '\u{270D}\u{FE0F} Grow Op: the New Kid\u2019s Tag \u2014 three walk-downs and the kid comes back with their own can. Once a session: to +$490.',
+        '\u{270D}\u{FE0F} Age of War: the Recruit\u2019s Panel \u2014 three walks and the recruit asks for the brush. Once a session: to +455 gold.',
+        '\u{270D}\u{FE0F} Homeless Village: a Name on the Wall \u2014 three walks and the newcomer takes the chalk and writes their own name. Once a session: to +16 food.',
+        '\u{270D}\u{FE0F} Hearthvale: the Newcomer\u2019s Panel \u2014 three walks and the newcomer paints their own first winter. Once a session: to +85 gold.',
+        '\u{270D}\u{FE0F} Voxel Isle: Their Own Knot \u2014 three walks and the green hand ties their own knot into the boarding. Once a session: to +85 \u{1FA99}.' ] },
+      { date: '2026-08-26', title: 'Round Forty-Four', items: [
+        '\u{1F9ED} Startup Tycoon: the Lobby Docent \u2014 three sittings with the mural and the longest-tenured engineer walks every new hire down it. Once a session: to $455.',
+        '\u{1F9ED} Grow Op: the Walk-Down \u2014 three stands at the mural and the oldest head on the block walks every new kid down it. Once a session: to +$455.',
+        '\u{1F9ED} Age of War: the Recruit\u2019s Walk \u2014 three walks of the fresco and the oldest sergeant takes every recruit down it. Once a session: to +420 gold.',
+        '\u{1F9ED} Homeless Village: the Walk Down \u2014 three stands at the fifth panel and the longest resident walks every newcomer down the underpass. Once a session: to +15 food.',
+        '\u{1F9ED} Hearthvale: the Hall Warden \u2014 three walks of the fresco and the oldest hand takes every newcomer down it. Once a session: to +80 gold.',
+        '\u{1F9ED} Voxel Isle: the Pilot\u2019s Walk \u2014 three walks of the mural and the oldest pilot takes every green hand down the boarding. Once a session: to +80 \u{1FA99}.' ] },
+      { date: '2026-08-26', title: 'Round Forty-Three', items: [
+        '\u{1F3A8} Startup Tycoon: the Lobby Mural \u2014 three visits to the capsule and a designer paints the whole saga down the lobby wall. Sit with it once a session: to $420.',
+        '\u{1F3A8} Grow Op: the Alley Mural \u2014 three digs of the shoebox and somebody paints the whole block down the alley. Stand at it once a session: to +$420.',
+        '\u{1F3A8} Age of War: the Long Fresco \u2014 three openings of the cache and the painters take the base\u2019s inner wall. Walk it once a session: to +385 gold.',
+        '\u{1F3A8} Homeless Village: the Fifth Panel \u2014 three digs of the can and somebody primes a fifth panel beside the finished mural. Stand at it once a session: to +14 food.',
+        '\u{1F3A8} Hearthvale: the Hall Fresco \u2014 three openings of the casket and a painter takes the great hall\u2019s long wall. Walk it once a session: to +75 gold.',
+        '\u{1F3A8} Voxel Isle: the Harbor Mural \u2014 three hauls of the chest and a painter takes the harbor boarding. Walk it once a session: to +75 \u{1FA99}.' ] },
+      { date: '2026-08-26', title: 'Round Forty-Two', items: [
+        '\u{1F4E6} Startup Tycoon: the Time Capsule — three sings of the anthem and the company seals one in the lobby wall. Visit it once a session: to $385.',
+        '\u{1F4E6} Grow Op: the Shoebox — three plays of the track and the crew buries one under the stoop. Dig it up once a session: to +$385.',
+        '\u{1F9F1} Age of War: the Cornerstone Cache — three sings of the song and the masons seal one in the base. Open it once a session: to +350 gold.',
+        '\u{1F4E6} Homeless Village: the Coffee Can — three playings of the ballad and somebody buries one by the piling. Dig it up once a session: to +13 food.',
+        '\u{1F5DD}\u{FE0F} Hearthvale: the Founders\u2019 Casket — three hearings of the ballad and the town seals one under the oak. Open it once a session: to +70 gold.',
+        '\u{1F5DD}\u{FE0F} Voxel Isle: the Sunken Chest — three sings of the shanty and the fleet sinks one off the pier. Haul it once a session: to +70 \u{1FA99}.' ] },
+      { date: '2026-08-25', title: 'Round Forty-One', items: [
+        '\u{1F3BA} Startup Tycoon: the Company Anthem — three tellings of the story and somebody sets it to music. Sing it at all-hands once a session: to $350.',
+        '\u{1F3A7} Grow Op: the Block Track — three tellings and somebody cuts the story to a beat. Play it once a session: to +$350.',
+        '\u{1F3BA} Age of War: the Marching Song — three hearings of the tale and the drummers set it to a cadence. Sing it once a session: to +315 gold.',
+        '\u{1F3B8} Homeless Village: the Bridge Ballad — three tellings and the busker finds the tune. Play it once a session: to +12 food.',
+        '\u{1FA95} Hearthvale: the Minstrel\u2019s Ballad — three hearings of the tale and the minstrel sets it to song. Hear it once a session: to +65 gold.',
+        '\u{1FA97} Voxel Isle: the Sea Shanty — three tellings of the yarn and the fleet sets it to call and response. Sing it once a session: to +65 \u{1FA99}.' ] },
+      { date: '2026-08-25', title: 'Round Forty', items: [
+        '\u{1F399}\u{FE0F} Startup Tycoon: the All-Hands Story — three sits on the lobby bench and the founder has the whole story by heart. Tell it at all-hands once a session: to $315.',
+        '\u{1F399}\u{FE0F} Grow Op: the Stoop Story — three sits on the stoop and the crew has the whole block story by heart. Tell it once a session: to +$315.',
+        '\u{1F525} Age of War: the Campfire Tale — three sits on the veterans\u2019 bench and the oldest campaigner has the whole war by heart. Hear it once a session: to +280 gold.',
+        '\u{1F525} Homeless Village: the Fire Story — three sits on the bench and somebody has the whole bridge story by heart. Tell it once a session: to +11 food.',
+        '\u{1F525} Hearthvale: the Hearth Tale — three sits on the green bench and the elder has the whole valley story by heart. Hear it once a session: to +60 gold.',
+        '\u{1F9F6} Voxel Isle: the Harbor Yarn — three sits on the harbor bench and the oldest trader spins the whole shore story. Hear it once a session: to +60 \u{1FA99}.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Nine', items: [
+        '🪑 Startup Tycoon: the Lobby Bench — three leafs through the guest book and the alumni chip in for a seat. Sit once a session: to $280.',
+        '🪑 Grow Op: the Stoop — three reads of the wall and the crew builds a bench out front. Sit once a session: to +$280.',
+        '🪑 Age of War: the Veterans\u2019 Bench — three readings of the roll and the veterans build a seat outside the hall. Sit once a session: to +245 gold.',
+        '🪑 Homeless Village: the Bench under the Bridge — three leafs through the notebook and folks build a seat by the fridge. Sit once a session: to +10 food.',
+        '🪑 Hearthvale: the Green Bench — three leafs through the register and the families build a seat on the green. Sit once a session: to +55 gold.',
+        '🪑 Voxel Isle: the Harbor Bench — three leafs through the log and the fleet builds a seat by the bell. Sit once a session: to +55 🪙.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Eight', items: [
+        '📔 Startup Tycoon: the Guest Book — three toasts and a book sits open in the lobby, every visitor signed in. Leaf it once a session: to $245.',
+        '🖊️ Grow Op: the Wall of Names — three anniversaries and everyone who ever copped signs the shop wall. Read it once a session: to +$245.',
+        '📜 Age of War: the Muster Roll — three salutes and every campaigner signs in by the hall door. Read it once a session: to +210 gold.',
+        '📓 Homeless Village: the Spiral Notebook — three candles and a notebook sits by the fridge, every name signed through. Leaf it once a session: to +9 food.',
+        '📖 Hearthvale: the Hall Register — three founding days and every family signs in by the hall door. Leaf it once a session: to +50 gold.',
+        '📒 Voxel Isle: the Harbor Log — three mooring days and every boat signs in by the bell. Leaf it once a session: to +50 🪙.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Seven', items: [
+        '🥂 Startup Tycoon: the Founding Toast — three looks at the photo and the founding day gets its due. Raise it once a session: to $210.',
+        '🎂 Grow Op: the Corner Anniversary — three looks at the polaroid and the shop\u2019s been open a whole year. Toast it once a session: to +$210.',
+        '🎇 Age of War: the Founding Salute — three unveilings and the first muster gets powder and brass. Fire it once a session: to +175 gold.',
+        '🕯️ Homeless Village: the Bridge Anniversary — three looks at the snapshot and the camp counts a whole year held. Light the candle once a session: to +8 food.',
+        '🎊 Hearthvale: Founding Day — three viewings and the portrait tells the town its own age. Keep it once a session: to +45 gold.',
+        '⚓ Voxel Isle: the First Mooring — three looks at the frame and the isle counts back to the first boat. Ring it in once a session: to +45 🪙.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Six', items: [
+        '📸 Startup Tycoon: the Reunion Photo — three reunions frame the whole crowd by the plaque. Straighten it once a session: to $175.',
+        '📸 Grow Op: the Cookout Polaroid — three reunions tape it behind the counter. Look once a session: to +$175.',
+        '🖼️ Age of War: the Campaign Painting — three musters put the campaign on canvas. Unveil it once a session: to +140 gold.',
+        '📷 Homeless Village: the Reunion Snapshot — three reunions tuck it in the fridge door. Look once a session: to +7 food.',
+        '🖼️ Hearthvale: the Green Portrait — three reunions hang the families in the hall. View it once a session: to +40 gold.',
+        '🖼️ Voxel Isle: the Driftwood Frame — three reunions frame the fleet by the bell. Look once a session: to +40 🪙.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Five', items: [
+        '🥂 Startup Tycoon: the Company Reunion — when the plaque’s toasts and Employee #1’s visits both stand, call everyone back once a session: to $400.',
+        '🎪 Grow Op: the Block Reunion — when the gold record’s marks and the OG’s visits both stand, throw it once a session: to +$400.',
+        '🎗️ Age of War: the Veterans’ Reunion — when the laurel’s pages and the general’s reviews both stand, muster once a session: to +140 gold.',
+        '🎂 Homeless Village: the Bridge Reunion — when the chalk star’s holds and Marisol’s visits both stand, throw it once a session: to +8 food.',
+        '🍻 Hearthvale: the Founders’ Reunion — when the gilded pages and the reeve’s greetings both stand, throw it once a session: to +50 gold, +5 happy.',
+        '🎏 Voxel Isle: the Shore Reunion — when the wreath’s rings and the keeper’s greetings both stand, throw it once a session: to +50 🪙.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Four', items: [
+        '🪪 Startup Tycoon: the Badge in the Drawer — after three visits, Employee #1’s first badge stays in the desk drawer: +$100 on every ring rally beside it.',
+        '🫙 Grow Op: the Tin of Fluid — after three visits, the OG’s tin stays behind the counter: every Zippo flick burns heat −3 extra.',
+        '🔭 Age of War: the General’s Field Glasses — after three reviews they ride the colors: +15 gold on every standard raised beside them.',
+        '☕ Homeless Village: the Spare Mugs — after three visits Marisol’s mugs stay on the shelf: +2 food with every thermos round.',
+        '📯 Hearthvale: the Reeve’s Seal — after three greetings the brass seal stamps the mantel: +5 gold with every hearthstone warming.',
+        '🛶 Voxel Isle: the Spare Oar — after three greetings it hangs above the tide line: +5 🪙 with every conch sounded beneath it.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Three', items: [
+        '🪪 Startup Tycoon: the First Employee — once a session, Employee #1 badges back into any office with a story: +$150, +$50 per champagne bell under the brass plaque.',
+        '🧢 Grow Op: the OG from the Block — once a session, the OG walks any corner with a story: a regular locked on the spot, heat cooled deeper for every gold-record mark.',
+        '🎖️ Age of War: the Old General — once a session, the first commander reviews any war with a story: +20 gold, +10 per page beneath the laurel.',
+        '🚗 Homeless Village: Marisol Drops By — once a session, wave her down at any bridge with a story: a casserole of +2 food, +1 per chalk-star hold.',
+        '🧓 Hearthvale: the First Reeve Returns — once a session, he walks the green of any valley with a story: +10 gold, +5 per gilded page.',
+        '🛶 Voxel Isle: the Old Keeper Rows Past — once a session, he rows past any shore with a story: +10 xp, +5 per shell-wreath ring.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-Two', items: [
+        '🏢 Startup Tycoon: the Corner Office — ten hard days steadied and the scholarship endows it: the morale floor rises again, 55 → 60, forever.',
+        '🏀 Grow Op: the Rec League — at six fresh starts the gym annex fields it year-round, and every fresh start locks three regulars.',
+        '🏫 Age of War: the War College — at six musters the hall opens it: the first two recruits of every muster march out Elite.',
+        '🧺 Homeless Village: the Community Shelf — at six camps the fridge grows it, and every fresh camp starts seven goodwill known.',
+        '🛖 Hearthvale: the Treehouse — at six towns the children build it in the oak, and every founding starts 15 happiness glad.',
+        '🔥 Voxel Isle: the Beacon Flame — at six isles the lantern braids it, and every new isle rises with a 60 🪙 kindling purse.' ] },
+      { date: '2026-08-25', title: 'Round Thirty-One', items: [
+        '🍾 Startup Tycoon: the Brass Plaque — three record bells hang it over the floor, and every bell rung under it means champagne: +$250 on the spot.',
+        '💿 Grow Op: the Gold Record — three smashed marks hang it over the stash, and every mark smashed under it sells the legend with the hand: +$200.',
+        '🏵️ Age of War: the Laurel — three Chronicle pages earn it, and every page written beneath it marches the purse out with the scribes: +30 gold.',
+        '⭐ Homeless Village: the Chalk Star — three beaten holds chalk it on the wall, and every hold beaten under it brings groceries to the fence: +3 food.',
+        '✨ Hearthvale: the Gilded Page — three ledger pages gild the cover, and every page turned under the gilt brings the merchants to toast the town: +15 gold.',
+        '🐚 Voxel Isle: the Shell Wreath — three bell rings hang it, and every ring beneath it draws the traders in early: +10 🪙.' ] },
+      { date: '2026-08-25', title: 'Round Thirty', items: [
+        '🎉 Startup Tycoon: Founders’ Day — every prestige under the second chair opens to a parade: +$500 seed and +5 morale. The memory throws a party.',
+        '🍖 Grow Op: the Block Cookout — every fresh start under the gym annex opens with grills on the sidewalk: +$300 and heat −5.',
+        '🎺 Age of War: the Triumph — every muster under the officers’ mess opens with the colors marched down the field: +50 gold, +25 xp.',
+        '🍲 Homeless Village: the Potluck — every camp under the bulletin board opens with folding tables by the fridge: +4 food, +5 morale.',
+        '🎪 Hearthvale: the Green Fair — every founding under the rope swing opens with stalls under the oak: +20 gold, +5 happiness.',
+        '🏮 Voxel Isle: the Lantern Festival — every isle under the second wick rises to paper lanterns over the water: +30 xp.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Nine', items: [
+        '🪑 Startup Tycoon: the Second Chair — five hard days steadied and the scholarship endows a second chair. The morale floor rises from 50 to 55, forever.',
+        '🏀 Grow Op: the Gym Annex — three fresh starts and the Youth Center opens its annex. Every fresh start from then on locks two regulars.',
+        '🍽️ Age of War: the Officers’ Mess — three musters and the hall opens its mess. The first recruit marches out Elite; a fourth takes the stripe.',
+        '📌 Homeless Village: the Bulletin Board — three camps welcomed and the fridge earns its board. Fresh camps start 5 goodwill known.',
+        '🪢 Hearthvale: the Rope Swing — three towns shaded and the children hang a swing from the oak. Foundings start 12 happiness glad.',
+        '🏮 Voxel Isle: the Second Wick — three isles greeted and the lantern burns brighter. New isles rise with a 40 🪙 kindling purse.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Eight', items: [
+        '💍 Startup Tycoon: the Founder’s Ring — tap it once a session and the floor rallies. +2 morale base, +1 per record bell, +1 per letter read: the memory has weight.',
+        '🔥 Grow Op: the Zippo from the Block — the OG’s lighter, passed down. Flick it once a session and heat burns off, sized by the mark’s sessions and the kites read.',
+        '🚩 Age of War: the Old Standard — raise the colors once a session and the men dig in: a gold grant sized by the Chronicle’s pages and the dispatches taken.',
+        '🫖 Homeless Village: the Old Thermos — pass it around once a session. The deeper the bridge’s memory, the further the coffee goes: up to +10 morale.',
+        '🪨 Hearthvale: the Hearthstone — the first town’s stone, warmed once a session. Happiness lifts by the ledger’s pages and the letters dug up.',
+        '🐚 Voxel Isle: the Keeper’s Conch — sound it once a session; the call carries xp sized by the bell’s rings and the bottles read.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Seven', items: [
+        '📜 Startup Tycoon: the Company History — the whole cross-prestige memory bound in one book: the House Record, the scholarship, the founder’s letters, each by its real number, read straight into the feed.',
+        '📒 Grow Op: the Corner Ledger — the block’s whole memory in one set of books: the Youth Center’s runs, the high-water hand, the kites read. The corner keeps its own accounts.',
+        '📚 Age of War: the Regimental Annals — every war’s cross-run memory on one slate: the hall’s musters, the Chronicle’s deepest wave, the dispatches, the relic count.',
+        '🧱 Homeless Village: the Writing on the Wall — somebody chalked the bridge’s numbers on the underpass wall; reading them out loud is an action like any other.',
+        '📔 Hearthvale: the Elder’s Recital — ask the Elder and the valley’s whole memory enters the chronicle: the oak’s towns, the richest dawn, the letters dug up.',
+        '📊 Voxel Isle: the Tide Tablet — the Town Almanac’s last page is a stone slab carved with the lantern’s isles, the bell’s best day, and the bottles read.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Six', items: [
+        '✉️ Startup Tycoon: the Founder’s Letter — every newly prestiged company finds a letter from the old shop citing the House Record and the scholarship. Reading it steadies the floor: +3 morale.',
+        '✉️ Grow Op: the Kite from Upstate — every fresh start with a history gets a kite citing the Youth Center and the best hand ever sold. Word from upstate cools heat by 3.',
+        '✉️ Age of War: the Dispatch from the Old Guard — every fresh muster with a history gets a dispatch citing the hall and the Chronicle, 25 gold enclosed.',
+        '📝 Homeless Village: the Note in the Fridge Door — every fresh camp with a history finds a note citing the fridge’s camps and the longest hold. +2 morale.',
+        '✉️ Hearthvale: the Letter under the Oak — every founding with a history digs up a letter citing the oak’s towns and the richest dawn. +2 happiness.',
+        '🍾 Voxel Isle: the Message in a Bottle — every fresh isle with a history finds a bottle citing the lantern’s isles and the best day. +15 xp.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Five', items: [
+        '📈 Startup Tycoon: the House Record — the all-time cash high-water mark, kept across every prestige. Beat the standing mark once a session and the record bell pays +5 morale to the whole floor.',
+        '📈 Grow Op: the High-Water Mark — the biggest single hand ever sold, kept across every bust. Smash it once a session and the story cools heat by 5.',
+        '📜 Age of War: the Chronicle of Wars — the deepest wave any war has reached, kept across every defeat. A new page pays a relic, once a session.',
+        '📈 Homeless Village: the Long Memory — the most dawns any camp has held, kept across Start Over. Outlast the old mark and the fire feels it: +3 morale.',
+        '📖 Hearthvale: the Valley Ledger — the richest coffer ever counted at dawn, kept across every founding. A new page glows the town +3 happiness.',
+        '🔔 Voxel Isle: the Harvest Bell — the richest single day this shore has earned, weighed dawn to dawn. Ring it and take +25 xp.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Four', items: [
+        '🎓 Startup Tycoon: the Endowment — \$25,000 endows the Founders’ Scholarship, once ever. No blow lands the office below 50 morale again.',
+        '🏀 Grow Op: the Youth Center — \$20,000 builds the block something no bust can touch; every fresh run starts with one regular already locked.',
+        '🎖️ Age of War: the Veterans’ Hall — 500 gold raises it forever; the first three recruits of every muster march out already Veterans.',
+        '🧊 Homeless Village: the Corner Fridge — 15 goodwill sets it humming; Start Over can’t unplug it, and every fresh camp starts 3 goodwill known.',
+        '🌳 Hearthvale: the Founders’ Oak — 40 gold plants it on the green; every town founded in its shade starts 8 happiness glad.',
+        '🏮 Voxel Isle: the Stone Lantern — 150 🪙 lights the shore forever; every new isle rises with its first three plots already grown.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Three', items: [
+        '🏦 Startup Tycoon: the Factoring Desk — sell the next 60 seconds of receivables for cash now at 0.9× the run rate. The books still book; the cash rides the desk.',
+        '📤 Grow Op: the Pre-Sale — the van pays now for the next five bags off the line at 0.85× today’s list. The van feeds first.',
+        '🏦 Age of War: the War Loan — 400 gold now against 500 of the field’s coins; the lender takes every second coin until the ledger clears.',
+        '🤲 Homeless Village: the Borrowed Favor — Ray fronts 4 goodwill; his ledger takes one back each dawn until 5 clears. He never presses — he remembers.',
+        '📜 Hearthvale: the Merchant’s Advance — 30 gold now against 12 food due in four days. Honour it for cheer; come up short and pay the difference.',
+        '📝 Voxel Isle: the Trader’s Note — 60 🪙 now against 75 of future trade; half of every sale and meal rides the note till it clears.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-Two', items: [
+        '🛟 Startup Tycoon: the Hedge — insure the race for 15 seconds of revenue. A rival win pays 3×; your own bell burns the premium, which is the point.',
+        '⚖️ Grow Op: the Lawyer — a \$1,500 retainer argues the next sting down: the bags’ list value back as damages, the heat spike cut to 8.',
+        '🛡️ Age of War: the Rebuilder’s Bond — 250 gold insures the walls for the wave; end below the signing mark and half the loss is rebuilt on the spot.',
+        '🚙 Homeless Village: Marisol’s Garage — 2 goodwill stows the loose goods across the street; the next sweep’s confiscation finds nothing.',
+        '🐴 Hearthvale: the Guild Surety — 10 gold insures the caravan; a waylaying pays the 45-gold gap, so the town comes home whole either way.',
+        '🛟 Voxel Isle: the Assessor’s Policy — 25 🪙 covers the fields till dawn; a landed crow peck pays 50 in damages.' ] },
+      { date: '2026-08-25', title: 'Round Twenty-One', items: [
+        '🚀 Startup Tycoon: the Moonshot — mid-race, stake half a minute of revenue on beating the rival to the bell. A won race pays 2.2×.',
+        '🎲 Grow Op: the Hot Hand — \$600 says three clean street sales land inside 45 seconds. The streak pays double; a sting ends it.',
+        '🛡️ Age of War: the Ironside Wager — 200 gold at the horn that the walls end the wave no worse than they started. Held ground pays double.',
+        '🌧️ Homeless Village: the Rain Bet — Dee lays 5 goodwill against your 2 that tomorrow stays dry. You always hold the rain side; the radio is the read.',
+        '🐴 Hearthvale: the Teamster’s Odds — 20 gold at the caravan’s departure says the road is clean; a safe return pays 28 on top of the cargo.',
+        '☁️ Voxel Isle: the Cloud Wager — 30 🪙 says rain falls within 90 seconds, paying 60. The vane’s early call is the whole edge.' ] },
+      { date: '2026-08-24', title: 'Round Twenty', items: [
+        '💵 Startup Tycoon: the Dividend — hold two straight BUY ratings and a check clears every minute at 10% of a minute of revenue. Lose the streak, lose the check.',
+        '🔒 Grow Op: the Floor Safe — \$1,000 chunks banked bust-proof at a 10% fee, paid into the next run’s starting pocket.',
+        '🧰 Age of War: the War Chest — lock 150-gold deposits; a fallen boss opens them at 150%. Die first and they’re gone.',
+        '🛢️ Homeless Village: the Rain Barrel — rainy dawns store water (up to 3); dry garden days spend it for +1 food.',
+        '🧊 Hearthvale: the Icehouse — every winter dawn packs a block (cap 4); every summer dawn sells one back for 6 gold.',
+        '🫙 Voxel Isle: the Preserve Shed — one jar a day, four on the shelf, sold to every festival crowd at 12 🪙 a jar.' ] },
+      { date: '2026-08-24', title: 'Round Nineteen', items: [
+        '☁️ Startup Tycoon: the Migration — \$8,000 once ever, and every pager window runs 25% longer, forever. Fewer fires, not faster work.',
+        '🏛️ Grow Op: the Variance — \$12,000 rezones the block mixed-use: the empire’s ambient heat radiates 40% lighter, forever.',
+        '🏰 Age of War: the Masons — 350 gold once per run from Age III: the walls rise 25% thicker on the spot, healed. The workshop closes at five.',
+        '⛱️ Homeless Village: the Awning — a salvaged shop awning over the corner: rain-day panhandling runs at clear-day odds.',
+        '🪵 Hearthvale: the Palisade — a ring of sharpened timber that counts as one steady guard: always awake, never staffed.',
+        '🌽 Voxel Isle: the Corn Crib — a fed crow pecks half-heartedly: raid damage drops from 0.35× to 0.15× a crop’s growth, isle-wide.' ] },
+      { date: '2026-08-24', title: 'Round Eighteen', items: [
+        '💼 Startup Tycoon: the Licensing Desk — from three patents, royalty checks clear every 45 seconds at \$6 a patent. The wall finally pays its own rent.',
+        '🤝 Grow Op: the Clientele — every 25th clean sale locks a regular (to five), each bringing the whole street back 5% sooner.',
+        '💰 Age of War: the Paymaster — 400 gold once per run from Age III: the gold trickle runs 25% richer. The workshop staff is a quartet.',
+        '\u267B\uFE0F Homeless Village: the Compost Bin — the garden yields +1 every day it gives, and the bin\u2019s heat keeps one bed alive through frost.',
+        '🍎 Hearthvale: the Cider Press — every third day of autumn the orchards pour: 4 gold a roof, capped at 16. The seasons\u2019 calendar is complete.',
+        '🐖 Voxel Isle: the Truffle Pig — every shower that passes, she roots the wet ground for a 20 🪙 truffle. The weather itself pays out.' ] },
+      { date: '2026-08-24', title: 'Round Seventeen', items: [
+        '📋 Startup Tycoon: the Retro — every bell banks learnings (two on a BUY season): each is a permanent +1% on every desk, capped at +12%.',
+        '🌱 Grow Op: the Mother Plant — \$1,500 of prize genetics rooted once: every batch off the trim table bags one extra, forever.',
+        '🥁 Age of War: the Drillmaster — 275 gold once per run from Age II: every recruit trains 20% faster. The workshop staff is a trio.',
+        '🧰 Homeless Village: the Tool Box — the workbench never falls apart again, and the daily odd job pays +2 goodwill with the right tools.',
+        '🏹 Hearthvale: the Hunter\u2019s Lodge — every third winter day the party comes in with +5 food, and every second hunt hangs a pelt for the Furrier.',
+        '🦉 Voxel Isle: the Owl Roost — after dark the owl hunts every couple of minutes for 9 🪙, double on a wet night. The balloon has the day; the owl has the dark.' ] },
+      { date: '2026-08-24', title: 'Round Sixteen', items: [
+        '🧑‍🚒 Startup Tycoon: the SRE Retainer — once the pager has bitten, a greybeard SRE sells a shield: the next outage never fires. Keeps across seasons until spent.',
+        '🐋 Grow Op: the Whale — every 12th clean street sale primes a big fish: 3 bags at triple list, never a badge — but he won\u2019t show in a sweep or a crowd.',
+        '🪶 Age of War: the Fletcher — 250 gold once per run from Age II: every turret reloads 15% faster. The Armorer\u2019s opposite number.',
+        '🧥 Homeless Village: the Coat Rack — donated coats by the fire halve the cold weather\u2019s bite and the snap\u2019s extra on bitter dawns.',
+        '🐝 Hearthvale: Swarm Day — the first summer morning brings wild bees: 8 gold of comb a hive (capped 24), +6 if the blossom holds them.',
+        '🏛️ Voxel Isle: the Isle Museum — the first of every species landed is mounted for a 30 🪙 finder\u2019s bounty. Eight mounts fill the cabinet.' ] },
+      { date: '2026-08-24', title: 'Round Fifteen', items: [
+        '📊 Startup Tycoon: the Analyst — at every IPO coverage updates: a clean win rates BUY (+5% deals next season), a lost race rates SELL (−5% until you prove them wrong).',
+        '📱 Grow Op: the Burner Phone — \$800 for a clean number: undercover odds halved for its first ten street sales, then the number\u2019s burned.',
+        '🛡️ Age of War: the Armorer — 300 gold once per run from Age II: every recruit trained after marches out at +15% hp.',
+        '🥣 Homeless Village: the Little Free Pantry — a box on a post: neighbors fill it half of dawns (+2 food), and every fifth fill is remembered (+1 rep).',
+        '🎻 Hearthvale: the Wandering Minstrel — every eighth day, if a tavern stands: +6 cheer and a Chronicle verse about this town\u2019s own deeds.',
+        '🍁 Voxel Isle: the Sugar Shack — spring boils pay 12 🪙 and run double in the rain. Every season now has its own earner.' ] },
+      { date: '2026-08-24', title: 'Round Fourteen', items: [
+        '🎤 Startup Tycoon: the Keynote — once a season DevWorld books the founder: 20 seconds on stage at 85% office speed, then a 90-second glow closing every deal 20% richer.',
+        '🎉 Grow Op: the Block Party — 60 seconds of +25% prices and doubled buyers, against 1.5× heat and badges hiding in the crowd. The mirror of the crackdown.',
+        '🏷️ Age of War: the Bounty Board — every non-boss wave posts a named bounty: three of one enemy line for triple gold, re-posted each wave.',
+        '🫂 Homeless Village: the Newcomer — every nine days someone asks to stay: six food and four wood make a bed. The mirror of the bus ticket.',
+        '📯 Hearthvale: the Reeve\u2019s Reckoning — every year ends on the record: a 2-gold dividend per roof and the year\u2019s headline in the Chronicle.',
+        '⛴️ Voxel Isle: the Ferry Landing — day-trippers tip 8 🪙 +2 per decor piece (capped at 40). The decoration shop stops being vanity.' ] },
+      { date: '2026-08-24', title: 'Round Thirteen', items: [
+        '💸 Startup Tycoon: the Bridge Round — under \$500 post-IPO the board slides a term sheet: instant runway, every deal 5% lighter until the next IPO.',
+        '📦 Grow Op: the Storage Unit — a \$1,500 rental across town lifts the stash cap 15 → 45, and a getaway skip keeps up to 15 bags. Never on the warrant.',
+        '⛑️ Age of War: the Triage Tent — 400 gold raises a rear-line tent once per run: friendlies within 220px of the base heal 4 hp a second.',
+        '🛒 Homeless Village: the Cart & the Deposit Run — a liberated cart hauls every can once a day: 1 goodwill per 2 cans, +1 rep per 10 hauled.',
+        '🌿 Hearthvale: the Fever & the Physic Garden — from year two autumn can break a fever (workshops ×0.75, three days). Feverfew breaks it in one.',
+        '🛖 Voxel Isle: the Ice Hut — ice fishing opens the frozen pond: Arctic Char, Burbot and the pale 🌙 Moon Koi, all in the Angler\u2019s Log.' ] },
+      { date: '2026-08-24', title: 'Round Twelve', items: [
+        '🔥 Startup Tycoon: the Outage — post-IPO the servers melt: the floor drops to ×0.25 until you page the on-call. Inside 15 seconds is a heroic save.',
+        '🎒 Grow Op: the Getaway Bag — \$2,500 by the back door. If the DEA kicks the door in, you weren\'t home: half the cash walks, the run survives.',
+        '🏹 Age of War: the Ballista — a 200g bolt skewers the front of the enemy line for 40 × (era + 1), on a 45-second winch.',
+        '🎸 Homeless Village: the Busker\'s Guitar — craft it, then one set a day: the take rides the camp\'s spirits, doubled on a scorcher.',
+        '🗿 Hearthvale: the Stonemason — stone into coin by day, and ninety worked cycles raise a four-stage Monument worth +8 cheer for good.',
+        '🏮 Voxel Isle: the Winter Market — lantern stalls that only open in the snow: skaters pay 12 🪙 +3 per villager. The dead season works now.' ] },
+      { date: '2026-08-24', title: 'Round Eleven', items: [
+        '🚨 Startup Tycoon: the War Room — when the rival crosses 75% and leads, fund one 90-second ×1.5 sprint per race. Then the crash hits.',
+        '🚔 Grow Op: the Heat Wave — periodic crackdown sweeps run every sale 2× hotter. Sell nothing until it lifts and the clean streets pay −10 heat.',
+        '🛠️ Age of War: the Sappers — a repair corps patches a quarter of the base back, one gold per point, on a two-minute rearm.',
+        '❄️ Homeless Village: the Cold Snap — two brutal winter days; the fire drains harder, the block checks in with goodwill, and weathering it pays morale.',
+        '🌞 Hearthvale: Twin Festivals — Midsummer and Frostfire Night, kept by the town itself. The bonfires keep the wolves to the treeline.',
+        '🕊️ Voxel Isle: the Dovecote — carrier doves bring mainland letters: small goods orders at a 75% premium on a 90-second window.' ] },
+      { date: '2026-08-24', title: 'Round Ten', items: [
+        '🎓 Startup Tycoon: the Mentor — fund a stipend and your most-shipped engineer runs office hours: they slow to 90%, every other desk logs DOUBLE XP per ship.',
+        '📓 Grow Op: the Chemist\'s Notebook — every batch writes a page; 10/30/75/150 batches step four tiers of permanent price edge, each tearing out a guaranteed-pure eureka page.',
+        '🗡️ Age of War: the Champion\'s Duel — challenge a named warlord to single combat for a 250g purse. Odds ride raw stats; win and they fall where they stand.',
+        '🚌 Homeless Village: the Bus Ticket — buy a resident the way home. A smaller camp, a prouder one — and letters with a little something inside come back.',
+        '🪙 Hearthvale: the Wishing Well — a coin a day buys seeded fate: bread, timber, stone, interest — or a Golden Day running the whole town at ×1.5.',
+        '🎈 Voxel Isle: Balloon Tours — a moored balloon lifts sightseers every few minutes; tips scale with every building standing.' ] },
+      { date: '2026-08-24', title: 'Round Nine', items: [
+        '📨 Startup Tycoon: the Patent Troll — a demand letter lands post-IPO. Pay the license, or fight it in court where the lab\'s patents are prior art.',
+        '📦 Grow Op: the Distributor — Act III opens a wholesale route: a van, 3 bags every 45s at 0.85× list, and a route that can get burned.',
+        '⛏️ Age of War: the Trenchworks — dig a midfield trench from Age II; everything wading it bogs down to half speed.',
+        '🤝 Homeless Village: Regulars\' Favors — friends ask small favors at dawn; filling them pays goodwill back with interest.',
+        '🕯️ Hearthvale: the Beacon Tower — caravans waylaid half as often, and wolf packs spotted a full day out.',
+        '🌦️ Voxel Isle: the Weather Vane — every shower called half a minute early, and rain lingers 25% longer.' ] },
+      { date: '2026-08-24', title: 'Round Eight', items: [
+        '⚡ Startup Tycoon: the Hackathon — pizza money buys 48 seconds at double speed, then the demo ships for cash. Sleep-deprived code ships bugs.',
+        '🔨 Grow Op: Going Once — two buyers, one 5-bag lot. Hammer at the bid or let them climb 1.2× → 1.5× → 2×… if nobody spooks.',
+        '🚩 Age of War: War Banners — pick a standard before the horns: faster lines, thicker shields, or a golden toll on every kill.',
+        '📋 Homeless Village: City Petitions — Respected camps spend goodwill on civic wins no sweep can take: sanitation, a street light, a grant.',
+        '🪶 Hearthvale: the Town Elder — every dawn the most seasoned hands take the title, and their whole trade works +15%.',
+        '🔭 Voxel Isle: the Observatory — chart the night sky: stardust falls twice as often and every wish lands twice as hard.' ] },
+      { date: '2026-08-24', title: 'Round Seven', items: [
+        '📜 Hearthvale: merchant standing orders — the trader leaves work behind: a fixed load due in six days at a fat premium. Deliver or watch it lapse.',
+        'ℹ️ Grow Op: the Informant — past the garage, a voice on the corner sells 90 seconds of wire at 3× list. Every undercover buyer made on sight.',
+        '📑 Startup Tycoon: the RFP — bid head-to-head against your rival for an enterprise account. Win and they lose the client; pass and they book it.',
+        '⚔️ Age of War: the Warlords — from wave 14, endless boss waves arrive named: five faces, five quirks, one lifetime roster to cross off.',
+        '🗣️ Homeless Village: the Camp Meeting — an evening circle every three days: morale a head, a pot everyone feeds, a block that hears a village.',
+        '🗼 Voxel Isle: the Lighthouse — show the shipping lanes a light and freighters heave cargo crates overboard: triple coin, always a good.' ] },
+      { date: '2026-08-24', title: 'Round Six', items: [
+        '📚 Hearthvale: Schoolhouse night classes — every worker learns +1 mastery XP per cycle while a school stands.',
+        '👁️ Grow Op: the Security Post comes online — every Lookout counts half again on drain and rival suppression.',
+        '🧲 Age of War: the Lodestone relic — coins leap to your purse the moment they land, and they count as collected.',
+        '🎓 Startup Tycoon: the Alumni Network — engineers who walked vouch for you; new hires start +1 XP per alum (to +5).',
+        '🔥 Homeless Village: The Fire Held — wake with 50+ warmth and the camp starts the day +2 morale up.',
+        '🦆 Voxel Isle: the Duck\'s Dabble — the duck surfaces pond finds every few minutes; rarely, an old locket.',
+        '🏰 Plus: the Hall of Fame Saga cards now show retreats, caravans, bell saves, the mural and cat gifts.' ] },
+      { date: '2026-08-24', title: 'Round Five', items: [
+        '🐴 Hearthvale: the Caravan — load the Market\'s wagon with goods and it returns in three days with gold, if the road is kind. A staffed watch lends outriders.',
+        '👑 Grow Op: the Penthouse brand — move upstairs and every sale pays 10% more. Nobody haggles with the man in the penthouse.',
+        '🏆 Startup Tycoon: the Trophy Shelf — every season won adds +2% deal value, up to +20%. The shelf finally pays.',
+        '🚩 Age of War: the Last Stand — once per run, at the brink, the garrison rallies: everyone heals half and earns the Veteran stripe.',
+        '🕳️ Homeless Village: the Hidden Stash — a buried cache that halves what thieves and sweeps take. Nobody ever finds the hole.',
+        '🌈 Voxel Isle: Rainbow\'s End — while the arc holds, everything sells +25%. Weather finally touches the economy.' ] },
+      { date: '2026-08-24', title: 'Round Four', items: [
+        '🏰 Hall of Fame: the Flagship Saga — one card per flagship save in this browser, lifetime stats read straight from each game. Play a flagship to add its card.',
+        '🎨 Homeless Village: the Underpass Mural — a four-panel community art project; the finished wall pays morale every dawn, and sweeps can\'t touch paint.',
+        '🐈 Voxel Isle: cat gifts — five hellos and the Tavern cat starts bringing you little bundles: pocket change, stockpile goods, sometimes a ring.',
+        '🔔 Hearthvale: the Chapel Bell — on a night the watch can\'t hold, the bell rings the town awake: raid losses halved, and it peals over every festival.',
+        '⛺ Startup Tycoon: the Retreat — book the cabin, the office empties for 60s, and everyone comes back +3 XP with every bug squashed.',
+        '💈 Grow Op: the Laundry Front finally earns its rent — heat lands 25% lighter and drains faster with the spin cycle running.',
+        '🪖 Age of War: Mercenary Contracts — pay 2.5× and two veterans of your best line walk on instantly (M). 60s rearm.' ] },
+      { date: '2026-08-24', title: 'Round Three', items: [
+        '🧱 Age of War: Bastion Plating — three purchasable armor tiers in the Turrets tab, up to −30% base damage. Gold can finally buy walls.',
+        '🌙 Grow Op: Crunch Mode — flip night shifts on for 30% faster production, at 1.5× heat on every spike.',
+        '✨ Voxel Isle: stardust falls from the night sky — three shards make a wish and the whole garden surges.',
+        '🍲 Homeless Village: Soup Night — the Soup Kitchen finally feeds everyone at dusk; neighbors sometimes chip in.',
+        '🎯 Startup Tycoon: The Poach — a rival makes a run at your most senior engineer; counter-offer or lose the seniority.',
+        '🛤️ Hearthvale: the Cobbled Way — road-link a workshop to the Market and it trades along the route for +10%.' ] },
+      { date: '2026-08-24', title: 'Six Flagships, Six Features', items: [
+        '🎺 Age of War: the Warcry — sound the horns (W) from Age II and every friendly attacks 50% faster for 6s, on its own 45s cooldown.',
+        '🕶️ Grow Op: Corner Wars — a rival crew posts up and poaches your buyers; Lookouts thin the poaching, or pay them off at 6× list.',
+        '🧺 Voxel Isle: flotsam crates bob up in the pond — crack them before they sink; the new ⚓ Pier doubles the traffic and the haul.',
+        '💬 Homeless Village: Word on the Street — neighborhood rep from odd jobs, trades and friendships; Known lifts panhandling, Respected thins sweeps, Beloved leaves gifts on the fence.',
+        '🚀 Startup Tycoon: product launches — ship hot for ×1.3 and risk bugging every desk, or give QA 45 seconds and ship clean.',
+        '📖 Hearthvale: the Town Chronicle — the settlement\'s whole story, dated and kept: foundings, buildings, raids, festivals, rank-ups and every new spring.' ] },
+      { date: '2026-08-24', title: 'The Flagship Leaderboard', items: [
+        'Rival share codes now carry every flagship\'s headline record — AoW ∞ waves, Tycoon lifetime cash, Hearthvale peak villagers, Homeless Village days survived, Grow Op earnings, Voxel Isle coins.',
+        'Patch notes! You\'re reading them.' ] },
+      { date: '2026-08-24', title: 'Hearthvale: the Furrier · Age of War: vault restock', items: [
+        '🧥 Repelled raids bank wolf pelts; the new Furrier works them into gold and warm coats.',
+        '🥁 March Drums and 🔥 Forge Credit join the Relic Vault with mid-run effects.' ] },
+      { date: '2026-08-24', title: 'Grow Op: pure batches · Voxel Isle: compost', items: [
+        '✨ Every cook rolls purity (better odds per Cook) — pure bags sell at 1.6× and travel the ✨ ledger from station to sale.',
+        '♻️ The Compost Heap turns 5 surplus goods into a +15% growth surge for every crop.' ] },
+      { date: '2026-08-24', title: 'Tycoon: on-site · Homeless Village: odd jobs', items: [
+        '🧳 Enterprise clients buy 60 seconds of half-speed engineering for a guaranteed lump payment.',
+        '📋 One odd job a day on the bulletin board — chunky, themed payouts, done and gone till dawn.' ] },
+      { date: '2026-08-24', title: 'Hearthvale: natural talents · AoW: War Councils', items: [
+        'Every villager nature now has real hands — Green thumbs farm harder, Dreamers learn double, Curious workers halve their workshop\'s intake.',
+        '🏛️ Endless mode: every 5 waves the council offers a pick of two run-long boons.' ] },
+      { date: '2026-08-24', title: 'Voxel Isle: the Angler\'s Log · crows!', items: [
+        '🎣 Catches have weights and records now; the 🎏 Golden Koi headlines the pond.',
+        '🐦‍⬛ Crows raid growing crops — shoo them, or finally give that 🎃 scarecrow a job.' ] },
+      { date: '2026-08-24', title: 'Homeless Village: the regulars · Grow Op: stings', items: [
+        '🌮 Marisol, 🎖️ Old Ray and 🩺 Dee learn your name and return favors.',
+        '🚔 ~1 in 8 buyers is an undercover cop — a hired Lookout makes the wire.' ] },
+      { date: '2026-08-24', title: 'AoW: War Trials · Village: Biscuit the dog', items: [
+        '🏆 Five one-time relic bounties over feats your runs already track.',
+        '🐕 A stray at the fence line becomes the camp\'s best morale, warmth and theft insurance.' ] },
+      { date: '2026-08-24', title: 'Tycoon: acqui-hires & season climates · Grow Op: the street market', items: [
+        '🏷️ Fold struggling startups in for permanent work speed; every post-IPO season opens under a market climate.',
+        '📊 Street demand drifts, surges and crashes — when you sell finally matters.' ] },
+      { date: '2026-08-24', title: 'Hearthvale: wolves at the door · Village: weather', items: [
+        '🐺 Cold-season night raids, watchtowers and keepers standing between the pack and the larders.',
+        '☀️🌧️❄️🥵 One sky per day touching warmth, panhandling and the garden — the Lookout or a 📻 Radio reads tomorrow\'s.' ] },
+    ];
+    function renderPatchNotes() {
+      const list = document.getElementById('patch-list');
+      list.innerHTML = PATCH_NOTES.map(r =>
+        `<div style="border-left:3px solid var(--accent,#3FB950);padding-left:12px">
+          <div style="font-size:11px;color:var(--text-dim);letter-spacing:1px">${r.date}</div>
+          <div style="font-weight:800;font-size:14px;margin:2px 0 6px">${r.title}</div>
+          <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.55;color:var(--text,inherit)">
+            ${r.items.map(i => `<li>${i}</li>`).join('')}
+          </ul>
+        </div>`).join('');
+    }
+    document.getElementById('patch-notes-btn').addEventListener('click', () => {
+      renderPatchNotes();
+      Utils.openModal('patch-modal');
+    });
+    document.getElementById('patch-modal').addEventListener('click', e => {
+      if (e.target.id === 'patch-modal') Utils.closeModal('patch-modal');
+    });
+    document.addEventListener('keydown', e => {
+      const pm = document.getElementById('patch-modal');
+      if (e.key === 'Escape' && pm.style.display === 'flex') Utils.closeModal('patch-modal');
+    });
+
+    Daily.init();
+    if (typeof Coins !== 'undefined') Coins.init();
+    if (typeof Telemetry !== 'undefined') Telemetry.init();
+    if (typeof Achievements !== 'undefined') Achievements.check();
+    Effects.init().then(() => { if (!handleRivalHash()) switchView(viewFromHash() || 'arcade'); });
   });
   </script>
 

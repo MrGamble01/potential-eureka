@@ -59,6 +59,13 @@ const SFX = (() => {
     if (fn) try { fn(); } catch {}
   }
 
+  // A raw pitched note for games whose audio IS the gameplay (Memory
+  // Matrix's pads each own a pitch). Respects the mute toggle like play().
+  function note(freq, dur = 0.22) {
+    if (muted) return;
+    try { tone(freq, dur, { type: 'triangle', gain: 0.13 }); } catch {}
+  }
+
   function setMuted(m) {
     muted = !!m;
     try { localStorage.setItem('arcade-muted', muted ? '1' : '0'); } catch {}
@@ -66,5 +73,5 @@ const SFX = (() => {
   function toggle() { setMuted(!muted); return muted; }
   function isMuted() { return muted; }
 
-  return { play, setMuted, toggle, isMuted };
+  return { play, note, setMuted, toggle, isMuted };
 })();

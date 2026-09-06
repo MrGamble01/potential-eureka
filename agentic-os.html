@@ -10,6 +10,10 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="EUREKA STUDIO — LIVE">
   <meta property="og:description" content="A voxel dev office on a floating island, wired to GitHub: agents work when real PRs are open, and play ping pong when it's quiet.">
+  <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/studio.jpg">
+  <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/agentic-os">
+  <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/agentic-os">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap">
@@ -318,7 +322,16 @@ const API = 'https://api.github.com/repos/' + REPO;
 const POLL_MS = 60000;
 
 const $ = (s, el) => (el || document).querySelector(s);
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Escapes quotes as well as angle brackets: this page renders live GitHub
+// data (PR titles, issue titles, branch names, commit messages, author
+// logins — all of which anyone opening a PR on a public repo controls) and
+// several of those interpolations land inside double-quoted HTML attributes.
+// Angle-bracket-only escaping left an attribute-injection hole open the
+// moment any such value reached an attribute. Entities still render as the
+// original characters in text, so nothing looks different.
+const esc = s => String(s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 /* Each desk: agent, repo paths, and its desk position in the world (x,z).
    Desks face +z: the monitor sits on the far edge, the agent stands at z+1.2. */
@@ -1381,6 +1394,13 @@ setInterval(() => { if (soundOn && pong && !document.hidden) pock(); }, 550);
    API key stays in the backend's .env — this page never sees it.
    ===================================================================== */
 const AI_BASE = location.port === '3001' ? '' : 'http://localhost:3001';
+// The backend is local-only by design, so it can only ever be reachable from
+// a local page. On the deployed https:// site a fetch to http://localhost is
+// active mixed content: the browser blocks it outright and logs a console
+// error on every single visit, for a request that could never have succeeded.
+// Only probe when the page itself is running somewhere the backend could be.
+const AI_REACHABLE = location.protocol !== 'https:' ||
+                     ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 const AI_MODELS = [
   ['claude-opus-4-8', 'OPUS 4.8'],
   ['claude-sonnet-5', 'SONNET 5'],
@@ -1423,7 +1443,10 @@ function saveChats() { try { localStorage.setItem(CHAT_KEY, JSON.stringify(chatS
 let aiOnline = false, aiErr = '';
 async function aiHealth() {
   const pill = $('#ai-pill');
-  try {
+  if (!AI_REACHABLE) {
+    aiOnline = false;
+    aiErr = 'runs on your own machine';
+  } else try {
     const r = await fetch(AI_BASE + '/api/health');
     const j = await r.json();
     aiOnline = !!j.ok;

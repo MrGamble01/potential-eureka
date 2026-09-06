@@ -206,14 +206,19 @@ const Dashboard = (() => {
     }
   }
 
-  function initWeather() {
+  // Geolocation is opt-in (P3 dashboard cleanup): the widget never asks
+  // for the browser permission until the user clicks it, and the consent
+  // is remembered so later visits can fetch weather without re-clicking.
+  const WEATHER_OPTIN_KEY = 'eureka-weather-optin';
+  function requestWeather() {
     if (!navigator.geolocation) {
       setWeatherDisplay('📍', '--°F', 'Geolocation not supported', '');
       return;
     }
-
+    setWeatherDisplay('📍', '--°F', 'Locating…', '');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        try { localStorage.setItem(WEATHER_OPTIN_KEY, '1'); } catch (_) {}
         weatherLat = pos.coords.latitude;
         weatherLon = pos.coords.longitude;
         fetchWeather(weatherLat, weatherLon);
@@ -223,6 +228,21 @@ const Dashboard = (() => {
       },
       { timeout: 10000 }
     );
+  }
+  function initWeather() {
+    let opted = null;
+    try { opted = localStorage.getItem(WEATHER_OPTIN_KEY); } catch (_) {}
+    if (opted === '1') { requestWeather(); return; }
+    setWeatherDisplay('📍', '--°F', 'Local weather is off', 'Click to enable — uses your location, never stored');
+    const card = document.querySelector('.weather-display');
+    if (card) {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function onOpt() {
+        card.removeEventListener('click', onOpt);
+        card.style.cursor = '';
+        requestWeather();
+      });
+    }
   }
 
   function refreshWeather() {
@@ -246,12 +266,32 @@ const Dashboard = (() => {
     if (textEl) textEl.textContent = `"${q.text}"`;
     if (authorEl) authorEl.textContent = `— ${q.author}`;
 
-    setInterval(updateClock, 1000);
-    setInterval(updateStats, 2000);
-    setInterval(updateActivity, 3000);
-    setInterval(rotateQuote, 8000);
-    setInterval(refreshWeather, 300000); // refresh weather every 5 min
+    resume();
   }
 
-  return { init };
+  // These five timers used to be started and never cleared, so the dashboard
+  // kept ticking (clock, fake stats, activity graph, quote rotation, weather
+  // refetch) for the rest of the session no matter which view you were on.
+  // The shell calls init() once per view, so start/stop live in their own
+  // idempotent pair and the teardown map in index.html drives them.
+  const TIMERS = [
+    [updateClock, 1000],
+    [updateStats, 2000],
+    [updateActivity, 3000],
+    [rotateQuote, 8000],
+    [refreshWeather, 300000], // refresh weather every 5 min
+  ];
+  let timerIds = [];
+
+  function resume() {
+    if (timerIds.length) return; // already running
+    timerIds = TIMERS.map(([fn, ms]) => setInterval(fn, ms));
+  }
+
+  function destroy() {
+    timerIds.forEach(clearInterval);
+    timerIds = [];
+  }
+
+  return { init, destroy, resume };
 })();

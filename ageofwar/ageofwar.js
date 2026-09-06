@@ -27,8 +27,12 @@ const AgeOfWarGame = (() => {
       special: { name: 'Artillery', icon: '💣', dmg: 560, color: '#888' } },
     { id: 'modern',   name: 'Modern',      icon: '🪖', sky: ['#1d3a45', '#356575'], baseColor: '#5a7a85', upXP:   4500,
       special: { name: 'Air Strike', icon: '✈️', dmg: 900, color: '#ddd' } },
-    { id: 'future',   name: 'Future',      icon: '🚀', sky: ['#0e1438', '#243460'], baseColor: '#88a8ff', upXP:  10000,
+    { id: 'future',   name: 'Future',      icon: '🚀', sky: ['#0e1438', '#243460'], baseColor: '#88a8ff', upXP:  25000,
       special: { name: 'Orbital Laser', icon: '🛰️', dmg: 1500, color: '#6ec4ff' } },
+    // Era 6 (IDEA-AOW-3): gated behind the max_age achievement — you must
+    // have SEEN the Future in some past run before you can transcend it.
+    { id: 'singularity', name: 'Singularity', icon: '🌌', sky: ['#170a2e', '#3a1560'], baseColor: '#c86bff', upXP: 99999,
+      special: { name: 'Reality Tear', icon: '🌀', dmg: 2400, color: '#c86bff' } },
   ];
 
   // ---- Unit catalog ----
@@ -63,6 +67,22 @@ const AgeOfWarGame = (() => {
     laser:    { era: 4, name: 'Laser Trooper', icon: '🪖', sprite: '👽',  cost: 1700, hp: 700,  dmg: 360, range: 280, atkSpd: 0.55, speed: 48, color: '#6ec4ff', xp: 540, gold: 800,  silhouette: 'humanoid' },
     mech:     { era: 4, name: 'Mech',          icon: '🤖', sprite: '🤖',  cost: 3000, hp: 3600, dmg: 540, range: 110, atkSpd: 0.85, speed: 38, color: '#a89cff', xp: 1100,gold: 1450, silhouette: 'vehicle' },
     flier:    { era: 4, name: 'Hover',         icon: '🛸', sprite: '🛸',  cost: 4500, hp: 1500, dmg: 820, range: 250, atkSpd: 1.3,  speed: 56, color: '#ff90ee', xp: 1600,gold: 2150, silhouette: 'flier' },
+
+    // Singularity (IDEA-AOW-3)
+    nano:     { era: 5, name: 'Nanite Swarm',  icon: '🦠', sprite: '🦠', cost: 3200, hp: 1300, dmg: 650,  range: 290, atkSpd: 0.5,  speed: 52, color: '#c86bff', xp: 900,  gold: 1400, silhouette: 'humanoid' },
+    construct:{ era: 5, name: 'War Construct', icon: '🗿', sprite: '🗿', cost: 5600, hp: 6500, dmg: 950,  range: 120, atkSpd: 0.9,  speed: 36, color: '#8f6bff', xp: 1900, gold: 2600, silhouette: 'vehicle' },
+    seraph:   { era: 5, name: 'Void Seraph',   icon: '🪽', sprite: '🪽', cost: 8200, hp: 2600, dmg: 1500, range: 270, atkSpd: 1.2,  speed: 58, color: '#ff6bd8', xp: 2800, gold: 3900, silhouette: 'flier' },
+
+    // Walls (IDEA-AOW-4): role:'wall' — no attack, no movement, pure HP
+    // planted at your gate. Cheap lane-stall so a rush can be absorbed
+    // while the real army trains; kill rewards are deliberately meager
+    // so feeding one to the enemy never pays for itself.
+    wall0: { era: 0, role: 'wall', name: 'Rock Pile',      icon: '🪨', cost: 45,   hp: 340,  dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#8a8a80', xp: 8,   gold: 8,   silhouette: 'humanoid' },
+    wall1: { era: 1, role: 'wall', name: 'Palisade',       icon: '🪵', cost: 160,  hp: 1000, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#8a6a40', xp: 20,  gold: 22,  silhouette: 'humanoid' },
+    wall2: { era: 2, role: 'wall', name: 'Sandbag Wall',   icon: '🧱', cost: 480,  hp: 2600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#9a8a60', xp: 60,  gold: 65,  silhouette: 'humanoid' },
+    wall3: { era: 3, role: 'wall', name: 'Barricade',      icon: '🚧', cost: 950,  hp: 4600, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#7a7a7a', xp: 120, gold: 130, silhouette: 'humanoid' },
+    wall4: { era: 4, role: 'wall', name: 'Energy Barrier', icon: '🛡️', cost: 1800, hp: 7800, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#4cc9f0', xp: 240, gold: 260, silhouette: 'humanoid' },
+    wall5: { era: 5, role: 'wall', name: 'Phase Wall',     icon: '🌀', cost: 3400, hp: 14000, dmg: 0, range: 0, atkSpd: 1, speed: 0, color: '#c86bff', xp: 480, gold: 520, silhouette: 'humanoid' },
   };
 
   function unitsForEra(era) {
@@ -90,6 +110,7 @@ const AgeOfWarGame = (() => {
     { era: 2, name: 'Cannon Turret', icon: '💣', cost: 2000, dmg: 130, range: 260, atkSpd: 1.4, color: '#555' },
     { era: 3, name: 'MG Nest',       icon: '🔫', cost: 5000, dmg: 240, range: 300, atkSpd: 0.8, color: '#5a7a45' },
     { era: 4, name: 'Plasma Turret', icon: '✨', cost: 12000, dmg: 700, range: 340, atkSpd: 0.9, color: '#6ec4ff' },
+    { era: 5, name: 'Singularity Beam', icon: '🌌', cost: 30000, dmg: 1600, range: 380, atkSpd: 1.0, color: '#c86bff' },
   ];
   // Player starts with 2 turret slots and can purchase up to 2 more (max 4).
   // Enemy keeps all 4 unlocked so the AI ramps as it would in canon.
@@ -139,12 +160,57 @@ const AgeOfWarGame = (() => {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
     if (userPaused) {
+      // P4-AOW-1: the pause screen doubles as the Relic Vault, so perks
+      // aren't locked behind dying first. Perks arm for the NEXT run —
+      // the Restart button right there makes pre-run arming one click.
       ov.innerHTML = `
         <h2 style="color:#fcd34d">⏸ PAUSED</h2>
         <p>Press <strong>P</strong>, click here, or hit Resume to continue</p>
+        <div id="relic-vault-pause" style="margin-top:16px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
+          <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
+            🏺 Relic Vault &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
+            <span style="color:var(--text-dim);font-weight:600;text-transform:none;letter-spacing:0"> — bonuses apply to your next run</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center">
+            ${RELIC_PERKS.map(pk => `
+              <button class="relic-perk" data-perk="${pk.id}" title="${pk.desc}"
+                style="background:rgba(252,211,77,${pendingPerks[pk.id] ? 0.25 : 0.08});border:1px solid ${pendingPerks[pk.id] ? '#3FB950' : 'rgba(252,211,77,0.35)'};color:var(--text,#E6EDF3);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+                ${pk.icon} ${pk.name} <span style="color:#fcd34d">${pendingPerks[pk.id] ? 'ARMED' : pk.cost + '🏺'}</span>
+              </button>`).join('')}
+          </div>
+          <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Arm a perk, then restart to cash it in.</div>
+          <button id="relic-restart" style="margin-top:10px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.45);color:#3FB950;border-radius:8px;padding:7px 16px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">↻ Restart with perks</button>
+          <div style="margin-top:12px;border-top:1px solid rgba(252,211,77,0.2);padding-top:10px;text-align:left">
+            <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">🏆 War Trials <span style="color:var(--text-dim);font-weight:600;text-transform:none;letter-spacing:0">— one-time relic bounties</span></div>
+            ${trialsListHtml()}
+          </div>
+        </div>
       `;
       ov.style.cursor = 'pointer';
       ov.onclick = () => setUserPaused(false);
+      const vault = document.getElementById('relic-vault-pause');
+      if (vault) vault.onclick = e => e.stopPropagation();   // buying must not resume
+      ov.querySelectorAll('.relic-perk').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const pk = RELIC_PERKS.find(x => x.id === btn.dataset.perk);
+          const msg = document.getElementById('relic-msg');
+          if (pendingPerks[pk.id]) { msg.textContent = `${pk.name} already armed.`; return; }
+          if (relics < pk.cost) { msg.textContent = `Not enough relics for ${pk.name} (need ${pk.cost}).`; return; }
+          relics -= pk.cost;
+          saveRelics();
+          pendingPerks[pk.id] = true;
+          document.getElementById('relic-count').textContent = relics;
+          btn.style.background = 'rgba(63,185,80,0.2)';
+          btn.style.borderColor = '#3FB950';
+          const tag = btn.querySelector('span');
+          if (tag) tag.textContent = 'ARMED';
+          msg.textContent = `${pk.name} armed — restart to cash it in.`;
+          SFX.gold && SFX.gold();
+        });
+      });
+      const rbtn = document.getElementById('relic-restart');
+      if (rbtn) rbtn.addEventListener('click', e => { e.stopPropagation(); reset(); });
       ov.style.display = 'flex';
     } else {
       // Solid resume path: drop the click handler + cursor we added so the
@@ -155,7 +221,10 @@ const AgeOfWarGame = (() => {
     }
   }
   function anyModalOpen() {
-    for (const id of ['aow-welcome-modal','aow-ach-modal','aow-settings-modal']) {
+    // AOW-59: the Line pauses the run like every other modal, so it
+    // has to count here too — otherwise closing a different modal
+    // while it is open unpauses the game behind a full-screen panel.
+    for (const id of ['aow-welcome-modal','aow-ach-modal','aow-settings-modal','aow-chain-modal']) {
       const m = document.getElementById(id);
       if (m && m.style.display && m.style.display !== 'none') return true;
     }
@@ -165,6 +234,13 @@ const AgeOfWarGame = (() => {
   let gold = 0, xp = 0;
   let playerBaseHp = 1000, playerBaseMax = 1000;
   let enemyBaseHp  = 1000, enemyBaseMax  = 1000;
+  // AOW-14: Bastion Plating — purchasable base armor, bought in the
+  // Turrets tab. Each tier shaves 10% off damage the player base takes
+  // (melee and projectiles alike; the overtime whistle ignores armor by
+  // design — it's the fairness clock). Resets with the run.
+  const ARMOR_MAX = 3, ARMOR_COSTS = [150, 350, 700];
+  let armorTier = 0;
+  function armorMult() { return 1 - 0.1 * armorTier; }
   let units = [];
   let projectiles = [];
   let nextSpawnId = 1;
@@ -192,13 +268,33 @@ const AgeOfWarGame = (() => {
   function trainingTimeFor(def) {
     // Cost / 500 (s) but always between 0.6s and 7s so cheap units cycle
     // fast while expensive units feel weighty without locking up the lane.
-    return Math.max(0.6, Math.min(7, def.cost / 500));
+    const t = Math.max(0.6, Math.min(7, def.cost / 500));
+    const drummed = runPerks.drums ? t * 0.85 : t;   // AOW-11: March Drums
+    return drummed * (typeof drillTimeMult === 'function' ? drillTimeMult() : 1);   // AOW-28: the drillmaster keeps the beat
   }
   let spawnCooldowns = {};                   // kept for legacy refs (always empty now)
   let enemySpawnT = 1.6;
   let goldTrickleT = 0;
   let specialReadyT = 6;
   const specialCooldownMax = 20;
+  // AOW-13: the Warcry — an active rally independent of the era Special.
+  // From Age II on, sound the horns and every friendly unit attacks 50%
+  // faster for a short window, on its own long cooldown.
+  const WARCRY_DUR = 6, WARCRY_CD = 45, WARCRY_HASTE = 1.5;
+  let warcryT = 0, warcryCd = 0;
+  // AOW-15: mercenary contracts — gold for instant boots on the ground.
+  const MERC_CD = 60, MERC_COUNT = 2, MERC_COST_MULT = 2.5;
+  // AOW-20: the Trenchworks — dig once, slow everything that wades it.
+  // A midfield trench lasts 25s on a 90s rearm; enemies crossing the
+  // 120px band move at half speed. From Age II — you need shovels.
+  const TRENCH_LAST = 25, TRENCH_CD = 90, TRENCH_SLOW = 0.5, TRENCH_W = 60;
+  let trenchT = 0, trenchCd = 0, trenchX = 0;
+  let mercCd = 0;
+  // AOW-16: the Last Stand — once per run, when the base first drops
+  // below a quarter, the garrison rallies on its own: every friendly
+  // heals half its max and earns the Veteran stripe on the spot.
+  const LAST_STAND_AT = 0.25;
+  let lastStandUsed = false;
   // Enemy tech + specials (see enemyTechTick / enemySpecialTick)
   let enemyXP = 0;              // enemy's internal economy toward its next era
   let enemySpecialT = 45;       // seconds until the enemy may fire its special
@@ -212,6 +308,160 @@ const AgeOfWarGame = (() => {
   let ageFlash = 0;                // 1 → 0 right after aging up
   let ageBannerT = 0;              // seconds banner stays visible
   let ageBannerText = '';
+  // Overtime sudden-death (IDEA-AOW-7): classic-mode stalemates resolve.
+  const OVERTIME_AT = 360;         // seconds before chip damage starts
+  let overtimeWarned = false, overtimeOn = false;
+
+  // Relics (IDEA-AOW-2): persistent prestige currency. Earned at every
+  // game-over from the run's totals (gold looted, kills, a win bonus),
+  // spent on next-run starting bonuses from the run-over screen. This
+  // finally surfaces runStats.gold, which was tracked but never shown.
+  const RELIC_KEY = 'aow-relics';
+  const RELIC_PERKS = [
+    { id: 'chest', icon: '💰', name: 'War Chest',       cost: 3, desc: '+150 starting gold' },
+    { id: 'gate',  icon: '🛡️', name: 'Reinforced Gate', cost: 5, desc: '+20% base HP' },
+    { id: 'cadre', icon: '⚔️', name: 'Veteran Cadre',   cost: 4, desc: 'Your opening units spawn as Veterans' },
+    // AOW-11: two perks whose effect lives DURING the run rather than at
+    // the starting line — carried by runPerks, armed from pendingPerks in
+    // reset() before the one-shot consume.
+    { id: 'drums', icon: '🥁', name: 'March Drums',  cost: 5, desc: 'Units train 15% faster this run' },
+    { id: 'forge', icon: '🔥', name: 'Forge Credit', cost: 6, desc: 'Your first turret this run is free' },
+    // AOW-17: latency is money in a tempo game — and the lodestone's
+    // pickups still count toward the Collector tallies, hands-free.
+    { id: 'magnet', icon: '🧲', name: 'Lodestone', cost: 4, desc: 'Coins leap to your purse the moment they land this run' },
+  ];
+  let relics = 0;
+  try { relics = Math.max(0, parseInt(localStorage.getItem(RELIC_KEY) || '0', 10) || 0); } catch {}
+  let pendingPerks = {};           // id → true, applied + consumed by reset()
+  let runPerks = { forge: false, drums: false, magnet: false };   // AOW-11/17: perks that act mid-run
+  function saveRelics() { try { localStorage.setItem(RELIC_KEY, String(relics)); } catch {} }
+
+  // ---- War Trials (AOW-9) ----------------------------------
+  // A passive challenge ladder over stats every run already tracks: no
+  // pre-selection, no mid-run enforcement — finish a run and whichever
+  // feats it happened to achieve are honoured, once each, in relics.
+  const TRIALS = [
+    { id: 'purist', icon: '🏛️', name: 'Antiquity Purist', reward: 5,
+      desc: 'Win a classic match without ever aging up.',
+      check: won => won && !endlessMode && runStats.agesReached === 0 },
+    { id: 'open',   icon: '🏹', name: 'Open Field',       reward: 4,
+      desc: 'Win without building a single turret.',
+      check: won => won && runStats.turretsBuilt === 0 },
+    { id: 'nohero', icon: '🚷', name: 'No Chosen One',    reward: 3,
+      desc: 'Win without summoning a hero.',
+      check: won => won && runStats.heroesSummoned === 0 },
+    { id: 'blitz',  icon: '⚡', name: 'Blitzkrieg',       reward: 4,
+      desc: 'Win in under 8 minutes.',
+      check: won => won && runStats.time < 480 },
+    { id: 'watch',  icon: '🌙', name: 'The Long Watch',   reward: 5,
+      desc: 'Survive 10 endless waves in one run.',
+      check: () => endlessMode && Math.max(0, waveNum - 1) >= 10 },
+  ];
+  let trialsDone = {};
+  try { trialsDone = JSON.parse(localStorage.getItem('aow-trials') || '{}') || {}; } catch {}
+  function checkTrials(won) {
+    const newly = [];
+    for (const t of TRIALS) {
+      if (trialsDone[t.id]) continue;
+      let hit = false;
+      try { hit = !!t.check(won); } catch {}
+      if (hit) { trialsDone[t.id] = Date.now(); relics += t.reward; newly.push(t); }
+    }
+    if (newly.length) {
+      saveRelics();
+      try { localStorage.setItem('aow-trials', JSON.stringify(trialsDone)); } catch {}
+    }
+    return newly;
+  }
+  function trialsListHtml(compact) {
+    return TRIALS.map(t => {
+      const done = !!trialsDone[t.id];
+      return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;` +
+        `color:${done ? '#3FB950' : 'var(--text-dim)'};padding:2px 0" title="${t.desc}">` +
+        `<span>${done ? '✅' : t.icon}</span><span style="font-weight:700">${t.name}</span>` +
+        `<span style="margin-left:auto">${done ? 'done' : '+' + t.reward + '🏺'}</span></div>`;
+    }).join('');
+  }
+  function relicsEarned(won) {
+    return Math.floor(runStats.gold / 800) + Math.floor(runStats.kills / 25) + (won ? 3 : 0);
+  }
+
+  // ---- War Councils (AOW-10) --------------------------------
+  // Endless roguelite layer: every 5 waves survived, the council convenes
+  // and offers a pick of two run-long boons. Enemies hold their charge
+  // while the choice is open (the breather is pinned), so a council is a
+  // breath, not a distraction. Boons reset with the run.
+  const COUNCIL_BOONS = [
+    { id: 'warchest', icon: '💰', name: 'War Chest',       desc: '+25% gold from kills' },
+    { id: 'steel',    icon: '⚔️', name: 'Sharpened Steel', desc: 'Your units deal +10% damage' },
+    { id: 'medics',   icon: '⛑️', name: 'Field Medics',    desc: 'Your units regenerate 2 HP/s' },
+    { id: 'masons',   icon: '🧱', name: 'Masons',          desc: 'Your base repairs itself 3 HP/s' },
+  ];
+  let councilBoons = {};       // id → true, run-scoped
+  let councilPending = null;   // the two options while a council is open
+  function boonGoldMult() { return councilBoons.warchest ? 1.25 : 1; }
+  function councilIcons() { return COUNCIL_BOONS.filter(b => councilBoons[b.id]).map(b => b.icon).join(''); }
+  function councilEl() {
+    let el = document.getElementById('aow-council');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'aow-council';
+      el.style.cssText = 'position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:60;display:none;' +
+        'background:rgba(8,12,20,0.96);border:1px solid rgba(252,211,77,0.5);border-radius:12px;padding:14px 18px;' +
+        'max-width:420px;text-align:center;color:var(--text,#E6EDF3);box-shadow:0 12px 40px rgba(0,0,0,0.6)';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function openCouncil() {
+    const pool = COUNCIL_BOONS.filter(b => !councilBoons[b.id]);
+    if (pool.length === 0) {
+      // Every boon already sits at the table — the council sends relics.
+      relics += 5; saveRelics();
+      ageBannerText = '🏛️ The council sends tribute: +5🏺';
+      ageBannerT = 2.2;
+      return;
+    }
+    const picks = [];
+    while (picks.length < Math.min(2, pool.length)) {
+      const b = pool[Math.floor(Math.random() * pool.length)];
+      if (!picks.includes(b)) picks.push(b);
+    }
+    councilPending = picks;
+    const el = councilEl();
+    el.innerHTML = '<div style="font-size:12px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">' +
+      '🏛️ War Council — wave ' + (waveNum - 1) + ' held</div>' +
+      '<div style="font-size:12px;color:var(--text-dim);margin:4px 0 10px">Choose a boon for the rest of the run. The enemy holds while you decide.</div>' +
+      '<div style="display:flex;gap:10px;justify-content:center">' +
+      picks.map((b, i) =>
+        '<button class="council-boon" data-boon="' + b.id + '" style="flex:1;background:rgba(252,211,77,0.08);' +
+        'border:1px solid rgba(252,211,77,0.4);color:var(--text,#E6EDF3);border-radius:10px;padding:10px 12px;' +
+        'font-family:inherit;cursor:pointer;text-align:center">' +
+        '<div style="font-size:20px">' + b.icon + '</div>' +
+        '<div style="font-weight:800;font-size:13px;margin:2px 0">' + b.name + '</div>' +
+        '<div style="font-size:11px;color:var(--text-dim)">' + b.desc + '</div>' +
+        '<div style="font-size:10px;color:#fcd34d;margin-top:4px">[' + (i + 1) + ']</div></button>').join('') +
+      '</div>';
+    el.style.display = 'block';
+    el.querySelectorAll('.council-boon').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); chooseBoon(btn.dataset.boon); });
+    });
+    SFX.warn && SFX.warn();
+  }
+  function chooseBoon(id) {
+    if (!councilPending || !councilPending.some(b => b.id === id)) return;
+    const b = COUNCIL_BOONS.find(x => x.id === id);
+    councilBoons[id] = true;
+    councilPending = null;
+    councilEl().style.display = 'none';
+    ageBannerText = b.icon + ' ' + b.name + ' — ' + b.desc;
+    ageBannerT = 2.2;
+  }
+  function closeCouncil() {
+    councilPending = null;
+    const el = document.getElementById('aow-council');
+    if (el) el.style.display = 'none';
+  }
   let bgClouds = [];               // parallax cloud x positions
   let ambient = [];                // era-themed background particles (birds, smoke, snow, neon)
   let deadUnits = [];              // { x, y, w, h, color, rot, vrot, t } toppling corpses
@@ -241,6 +491,29 @@ const AgeOfWarGame = (() => {
     insane: { label: 'Insane', spawnMult: 0.55, dmgMult: 1.55, hpMult: 1.45, goldMult: 1.35, techMult: 1.8, techLead: 4, specialCd: 28, color: '#F85149' },
   };
   let difficulty = 'normal';
+  // Endless survival (IDEA-AOW-1): razing the enemy stronghold rebuilds it
+  // tougher instead of ending the run; the score is waves survived, and the
+  // best run persists in 'aow-best-run' — the key the Reset button has
+  // cleared since day one while nothing ever wrote it.
+  let endlessMode = false;
+  try { endlessMode = localStorage.getItem('aow-mode') === 'endless'; } catch {}
+
+  // AOW-19: War Banners — pick a standard before the horns sound. A
+  // banner is a small permanent lean, not a power spike: the Charge
+  // moves your line 10% faster, the Shieldwall thickens it 10%, and
+  // the Golden Toll pays 10% more gold on every kill. Sticky across
+  // runs like difficulty; switching mid-run resets, same rule.
+  const BANNERS = {
+    none:       { name: 'No banner',                 icon: '🏳️' },
+    charge:     { name: 'Banner of the Charge',      icon: '🚩', speed: 1.1 },
+    shieldwall: { name: 'Banner of the Shieldwall',  icon: '🛡️', hp: 1.1 },
+    toll:       { name: 'Banner of the Golden Toll', icon: '🪙', gold: 1.1 },
+  };
+  let warBanner = 'none';
+  try { const b = localStorage.getItem('aow-banner'); if (b && BANNERS[b]) warBanner = b; } catch {}
+  function bannerDef() { return BANNERS[warBanner] || BANNERS.none; }
+  function bannerGoldMult() { return bannerDef().gold || 1; }
+  let strongholdsRazed = 0;
 
   // ---- Combo / streak ----
   let combo = 0;
@@ -290,6 +563,52 @@ const AgeOfWarGame = (() => {
     { id: 'turret_full',  icon: '🛡️',  title: 'Fortified',        desc: 'Fill all 4 turret slots.' },
     { id: 'hero_summon',  icon: '🦸',  title: 'A Legend Arrives', desc: 'Summon your first Hero.' },
     { id: 'special_5',    icon: '💥',  title: 'Pyromaniac',       desc: 'Cast 5 specials in one run.' },
+    { id: 'warcry_3',     icon: '🎺',  title: 'Hear the Horns',   desc: 'Sound 3 warcries in one run.' },
+    { id: 'mercs_3',      icon: '🪖',  title: 'Soldiers of Fortune', desc: 'Hire the mercenary company 3 times in one run.' },
+    { id: 'last_stand',   icon: '🚩',  title: 'Hold the Line',    desc: 'See the garrison rally at the brink.' },
+    { id: 'warlord_1',    icon: '⚔️',  title: 'Headhunter',       desc: 'Fell a named warlord in an endless run.' },
+    { id: 'warlord_all',  icon: '🏴',  title: 'Wastes Pacified',  desc: 'Fell all five named warlords across your runs.' },
+    { id: 'standard_bearer', icon: '🚩', title: 'Standard Bearer', desc: 'Take 50 kills in one run under a war banner.' },
+    { id: 'dig_in',       icon: '⛏️',  title: 'Dig In',           desc: 'Bog down 15 enemies in one run with the Trenchworks.' },
+    { id: 'giantslayer',  icon: '🗡️',  title: 'Giantslayer',      desc: 'Win two single-combat duels against named warlords in one run.' },
+    { id: 'patchwork',    icon: '🛠️',  title: 'Patchwork',        desc: 'Call the sappers three times in one run.' },
+    { id: 'skewer',       icon: '🏹',  title: 'Shish Kebab',      desc: 'Skewer three enemies with a single ballista bolt.' },
+    { id: 'field_hosp',   icon: '⛑️',  title: 'Field Hospital',   desc: 'Heal 300 hp at the triage tent in one run.' },
+    { id: 'headhunter',   icon: '🏷️',  title: 'Headhunter',       desc: 'Fill five bounties in one run.' },
+    { id: 'quartermaster', icon: '🛡️', title: 'Quartermaster',    desc: 'March 30 plated recruits in one run.' },
+    { id: 'true_flight',  icon: '🪶',  title: 'True Flight',      desc: 'Loose 40 fletched turret shots in one run.' },
+    { id: 'drill_sergeant', icon: '🥁', title: 'Drill Sergeant',   desc: 'Train 25 drilled recruits in one run.' },
+    { id: 'bursar',       icon: '💰',  title: 'The Bursar',       desc: 'Mint 400 extra gold from one Paymaster.' },
+    { id: 'high_walls',   icon: '🏰',  title: 'Keep and Castle',  desc: 'Mortar 350 fresh stone onto the walls in one run.' },
+    { id: 'war_banker',   icon: '🧰',  title: 'War Banker',       desc: 'Earn 300 gold of war-chest interest in one run.' },
+    { id: 'iron_nerve',   icon: '🎲',  title: 'Iron Nerve',       desc: 'Win three Ironside wagers in one run.' },
+    { id: 'underwritten', icon: '\u{1F6DF}', title: 'Underwritten',     desc: 'Collect three bond payouts in one run.' },
+    { id: 'leveraged',    icon: '\u{1F3E6}', title: 'Leveraged',        desc: 'Clear two war loans in one run.' },
+    { id: 'old_guard',    icon: '\u{1F396}\u{FE0F}', title: 'Old Guard',        desc: 'Raise the Veterans\u2019 Hall and see three musters through beneath it.' },
+    { id: 'officers_mess', icon: '\u{1F37D}\u{FE0F}', title: 'Officers\u2019 Mess',   desc: 'See the hall open its officers\u2019 mess after three musters.' },
+    { id: 'war_college', icon: '\u{1F3EB}', title: 'War College',      desc: 'See the hall open its war college after six musters.' },
+    { id: 'triumph',      icon: '\u{1F3BA}', title: 'Triumph',          desc: 'Open three fresh musters to the veterans\u2019 parade.' },
+    { id: 'chronicled',   icon: '\u{1F4DC}', title: 'Chronicled',       desc: 'Write three new pages in the Chronicle of Wars.' },
+    { id: 'laureled',     icon: '\u{1F3F5}\u{FE0F}', title: 'Laureled',         desc: 'Write three pages beneath the laurel.' },
+    { id: 'war_mail',     icon: '\u2709\uFE0F', title: 'War Correspondence', desc: 'Take three dispatches from the Old Guard.' },
+    { id: 'annalist',     icon: '\u{1F4D4}', title: 'Annalist',         desc: 'Read the Regimental Annals out three times.' },
+    { id: 'old_standard', icon: '\u{1F6A9}', title: 'Colors That Held', desc: 'Raise the Old Standard on three separate sessions.' },
+    { id: 'old_general', icon: '\u{1F396}\u{FE0F}', title: 'The General\u2019s Review', desc: 'Welcome the Old General on three sessions.' },
+    { id: 'field_glasses', icon: '\u{1F52D}', title: 'The Field Glasses', desc: 'Raise the standard beside the glasses on three sessions.' },
+    { id: 'vets_reunion', icon: '\u{1F397}\u{FE0F}', title: 'The Veterans\u2019 Reunion', desc: 'Muster the whole story on three sessions.' },
+    { id: 'painting3', icon: '\u{1F5BC}\u{FE0F}', title: 'The Campaign Painting', desc: 'Unveil the painting on three sessions.' },
+    { id: 'salute3', icon: '\u{1F387}', title: 'The Founding Salute', desc: 'Fire the salute on three sessions.' },
+    { id: 'roll3', icon: '\u{1F4DC}', title: 'The Muster Roll', desc: 'Read the roll on three sessions.' },
+    { id: 'vbench3', icon: '\u{1FA91}', title: 'The Veterans\u2019 Bench', desc: 'Sit on the bench on three sessions.' },
+    { id: 'tale3', icon: '\u{1F525}', title: 'The Campfire Tale', desc: 'Hear the tale on three sessions.' },
+    { id: 'march3', icon: '\u{1F3BA}', title: 'The Marching Song', desc: 'Sing the song on three sessions.' },
+    { id: 'cache3', icon: '\u{1F9F1}', title: 'The Cornerstone Cache', desc: 'Open the cache on three sessions.' },
+    { id: 'fresco3', icon: '\u{1F3A8}', title: 'The Long Fresco', desc: 'Walk the fresco on three sessions.' },
+    { id: 'guide3', icon: '\u{1F9ED}', title: 'The Recruit\u2019s Walk', desc: 'Walk a recruit down the fresco on three sessions.' },
+    { id: 'mark3', icon: '\u{270D}\u{FE0F}', title: 'The Recruit\u2019s Panel', desc: 'Add a recruit\u2019s panel on three sessions.' },
+    { id: 'the_long_room', icon: '\u{1F3DB}\u{FE0F}', title: 'The Long Room', desc: 'Sit in the Long Room on three sessions.' },  // AOW-57
+    { id: 'blank_panels', icon: '\u{1F5BC}\u{FE0F}', title: 'The Blank Panels', desc: 'Prime the far end of the Long Room.' },  // AOW-58
+    { id: 'bastion',      icon: '🧱',  title: 'Bastion',          desc: 'Max the base plating in one run.' },
     { id: 'win_easy',     icon: '🏆',  title: 'Warmup',           desc: 'Win on Easy or higher.' },
     { id: 'win_hard',     icon: '⚜️',  title: 'Tactician',        desc: 'Win on Hard.' },
     { id: 'win_insane',   icon: '👑',  title: 'Unstoppable',      desc: 'Win on Insane.' },
@@ -342,6 +661,13 @@ const AgeOfWarGame = (() => {
   function saveAchievements() {
     try { localStorage.setItem('aow-achievements', JSON.stringify(earnedAchievements)); } catch {}
   }
+  // AOW-18: lifetime tally of named warlords felled, by name — survives
+  // across runs so the full roster can be hunted down over many sittings.
+  let slainWarlords = {};
+  try { slainWarlords = JSON.parse(localStorage.getItem('aow-warlords') || '{}') || {}; } catch { slainWarlords = {}; }
+  function saveWarlords() {
+    try { localStorage.setItem('aow-warlords', JSON.stringify(slainWarlords)); } catch {}
+  }
   function unlock(id) {
     if (earnedAchievements[id]) return;
     const a = ACHIEVEMENTS.find(x => x.id === id);
@@ -379,6 +705,47 @@ const AgeOfWarGame = (() => {
     if (runStats.kills >= 100) unlock('kill_100');
     if (runStats.coinsCollected >= 50) unlock('collect_50');
     if (runStats.specialsFired >= 5) unlock('special_5');
+    if ((runStats.warcries || 0) >= 3) unlock('warcry_3');
+    if ((runStats.mercs || 0) >= 3) unlock('mercs_3');
+    if (warBanner !== 'none' && runStats.kills >= 50) unlock('standard_bearer');
+    if ((runStats.trenchSlowed || 0) >= 15) unlock('dig_in');
+    if ((runStats.duelsWon || 0) >= 2) unlock('giantslayer');
+    if ((runStats.repairs || 0) >= 3) unlock('patchwork');
+    if ((runStats.triaged || 0) >= 300) unlock('field_hosp');
+    if ((runStats.bounties || 0) >= 5) unlock('headhunter');
+    if ((runStats.plated || 0) >= 30) unlock('quartermaster');
+    if ((runStats.fletched || 0) >= 40) unlock('true_flight');
+    if ((runStats.drilled || 0) >= 25) unlock('drill_sergeant');
+    if ((runStats.minted || 0) >= 400) unlock('bursar');
+    if ((runStats.mortared || 0) >= 350) unlock('high_walls');
+    if ((runStats.chested || 0) >= 300) unlock('war_banker');
+    if ((runStats.ironWon || 0) >= 3) unlock('iron_nerve');
+    if ((runStats.bondsPaid || 0) >= 3) unlock('underwritten');
+    if ((runStats.loansCleared || 0) >= 2) unlock('leveraged');
+    if (hallStanding && hallRuns >= 3) unlock('old_guard');
+    if (hallHasMess()) unlock('officers_mess');
+    if (hallHasCollege()) unlock('war_college');
+    if (loadTriumph().days >= 3) unlock('triumph');
+    if (chronBeats >= 3) unlock('chronicled');
+    if (loadLaurel().cheers >= 3) unlock('laureled');
+    if (loadGen().visits >= 3) unlock('old_general');
+    if (loadGlasses().pays >= 3) unlock('field_glasses');
+    if (loadVReunion().held >= 3) unlock('vets_reunion');
+    if (loadPainting().looks >= 3) unlock('painting3');
+    if (loadSalute().toasts >= 3) unlock('salute3');
+    if (loadRoll().leafs >= 3) unlock('roll3');
+    if (loadVBench().sits >= 3) unlock('vbench3');
+    if (loadTale().tellings >= 3) unlock('tale3');
+    if (loadMSong().sings >= 3) unlock('march3');
+    if (loadCache().opens >= 3) unlock('cache3');
+    if (loadFresco().walks >= 3) unlock('fresco3');
+    if (loadGuide().walks >= 3) unlock('guide3');
+    if (loadMark().panels >= 3) unlock('mark3');
+    if (loadLroom().sits >= 3) unlock('the_long_room');
+    if (panelsUp()) unlock('blank_panels');
+    if (dispatchRead >= 3) unlock('war_mail');
+    if (loadAnnals().opens >= 3) unlock('annalist');
+    if (loadStd().uses >= 3) unlock('old_standard');
   }
   function renderAchievementsModal() {
     const list = document.getElementById('aow-ach-list');
@@ -412,6 +779,7 @@ const AgeOfWarGame = (() => {
     { era: 2, key: 'hero_general', name: 'The General',      icon: '🎖️', sprite: '🎖️',  cost: 3200, hp: 3600, dmg: 240, range: 240, atkSpd: 0.9, speed: 40, color: '#5d7b3a', xp: 700, gold: 1500, silhouette: 'humanoid', cd: 60 },
     { era: 3, key: 'hero_seal',    name: 'Black Ops',         icon: '🎯', sprite: '🕵',   cost: 7000, hp: 4500, dmg: 480, range: 320, atkSpd: 1.6, speed: 42, color: '#2a3520', xp: 1300, gold: 2600, silhouette: 'humanoid', cd: 65 },
     { era: 4, key: 'hero_titan',   name: 'Titan',            icon: '⚡', sprite: '👹',  cost: 15000, hp: 8000, dmg: 900, range: 140, atkSpd: 0.7, speed: 38, color: '#7ec8ff', xp: 2800, gold: 5500, silhouette: 'vehicle', cd: 70 },
+    { era: 5, key: 'hero_avatar',  name: 'The Avatar',       icon: '🌌', sprite: '🌌',  cost: 32000, hp: 15000, dmg: 1700, range: 260, atkSpd: 0.8, speed: 42, color: '#c86bff', xp: 5600, gold: 11000, silhouette: 'humanoid', cd: 80 },
   ];
   let heroReadyT = 0;   // seconds until current era's hero is available
   let currentHeroCd = 0;
@@ -429,6 +797,23 @@ const AgeOfWarGame = (() => {
   // first boss hit before players could even age up, which felt like an
   // early-game wall. Wave 7 gives ~2 min of room to push to Medieval first.
   function isBossWave(n) { return n > 0 && n % 7 === 0; }
+
+  // AOW-18: from wave 14 on, every endless boss wave is led by a NAMED
+  // warlord — the same boss body with a face, a quirk and a fatter
+  // legend. The name is derived from the wave number, so wave 21 is
+  // always the same warlord in every run, and the roster cycles.
+  const WARLORDS = [
+    { name: 'Gorlok the Brute',  icon: '🪓', trait: 'brute',    blurb: 'hits 40% harder' },
+    { name: 'Vasha Ironhide',    icon: '🛡️', trait: 'ironhide', blurb: '40% thicker hide' },
+    { name: 'Skix the Swift',    icon: '💨', trait: 'swift',    blurb: 'a third faster' },
+    { name: 'Mool the Hoarder',  icon: '💰', trait: 'hoarder',  blurb: 'double bounty' },
+    { name: 'Old King Rust',     icon: '👑', trait: 'butcher',  blurb: 'harder and thicker' },
+  ];
+  const WARLORD_FROM_WAVE = 14;
+  function warlordForWave(n) {
+    if (!endlessMode || !isBossWave(n) || n < WARLORD_FROM_WAVE) return null;
+    return WARLORDS[(n / 7 - 2) % WARLORDS.length];
+  }
 
   function heroForEra(era) { return HEROES[era]; }
   function trySummonHero() {
@@ -645,8 +1030,8 @@ const AgeOfWarGame = (() => {
         type: 'jet', x: -120 - Math.random() * 200, y: 40 + Math.random() * 50,
         vx: 80 + Math.random() * 40,
       });
-    } else if (eraIdx === 4) {
-      // Future: floating neon hex particles
+    } else if (eraIdx >= 4) {
+      // Future/Singularity: floating neon hex particles
       for (let i = 0; i < 16; i++) ambient.push({
         type: 'hex', x: Math.random() * WIDTH, y: 30 + Math.random() * (GROUND_Y - 60),
         vx: 6 + Math.random() * 10, vy: -3 + Math.random() * 6,
@@ -725,11 +1110,12 @@ const AgeOfWarGame = (() => {
     running = true;
     gameOver = false;
     outcome = null;
+    strongholdsRazed = 0;
     playerEra = 0;
     enemyEra = 0;
-    gold = 140;
+    gold = 140 + (pendingPerks.chest ? 150 : 0);
     xp = 0;
-    playerBaseHp = playerBaseMax = 1500;
+    playerBaseHp = playerBaseMax = Math.round(1500 * (pendingPerks.gate ? 1.2 : 1));
     enemyBaseHp  = enemyBaseMax  = 1500;
     units = [];
     projectiles = [];
@@ -738,6 +1124,8 @@ const AgeOfWarGame = (() => {
     enemySpawnT = 1.0;
     goldTrickleT = 0;
     specialReadyT = 6;
+    warcryT = 0; warcryCd = 0;
+    armorTier = 0;
     enemyXP = 0;
     enemySpecialT = 45;       // opening grace: no enemy special in the first minute
     enemySpecialWarnT = 0;
@@ -756,10 +1144,46 @@ const AgeOfWarGame = (() => {
     enemyTurrets  = [null, null, null, null];
     playerSlotsOwned = 2;
     combo = 0; comboT = 0; comboBest = 0;
+    overtimeWarned = false; overtimeOn = false;
     runStats.kills = 0; runStats.gold = 0; runStats.time = 0;
     runStats.specialsFired = 0; runStats.coinsCollected = 0;
     runStats.biggestCombo = 0; runStats.agesReached = 0;
     runStats.turretsBuilt = 0; runStats.heroesSummoned = 0;
+    runStats.warcries = 0;
+    runStats.mercs = 0; mercCd = 0;
+    runStats.warlordsSlain = 0;
+    runStats.trenches = 0; runStats.trenchSlowed = 0; trenchT = 0; trenchCd = 0;
+    runStats.duels = 0; runStats.duelsWon = 0;
+    runStats.repairs = 0; sapperCd = 0;
+    runStats.bolts = 0; boltCd = 0;
+    runStats.triaged = 0; tentBought = false;
+    runStats.bounties = 0; bounty = null;
+    runStats.plated = 0; armorerBought = false;
+    runStats.fletched = 0; fletcherBought = false;
+    runStats.drilled = 0; drillBought = false;
+    runStats.minted = 0; paymasterBought = false;
+    runStats.mortared = 0; masonsBought = false;
+    runStats.chested = 0; chestGold = 0;
+    runStats.ironWon = 0; runStats.ironLost = 0; ironBet = null;
+    runStats.bondsPaid = 0; runStats.bondsExpired = 0; runStats.bondHealed = 0; bond = null;
+    runStats.loansTaken = 0; runStats.loansCleared = 0; runStats.loanRepaid = 0; loan = null;
+    // AOW-35: the hall outlives every defeat — each fresh muster
+    // forms under its roof and its first recruits arrive striped.
+    { const hh = loadHall();
+      hallStanding = hh.built; hallTrained = 0; runStats.hallVets = 0;
+      if (hh.built) { hh.runs = (hh.runs || 0) + 1; saveHall(hh); hallRuns = hh.runs; }
+      else hallRuns = 0;
+      // AOW-41: with the mess open, the fresh muster opens to a
+      // Triumph — colors down the field, gold and xp to the new war.
+      if (hallHasMess()) {
+        const tr = loadTriumph();
+        saveTriumph({ days: tr.days + 1 });
+        gold += TRIUMPH_GOLD; xp += TRIUMPH_XP;
+        setTimeout(() => goldFloaters.push({ text: `\u{1F3BA} TRIUMPH \u2014 the veterans march the colors down the field. +${TRIUMPH_GOLD} gold, +${TRIUMPH_XP} xp`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.6 }), 800);
+        checkAchievementsDuringRun();
+      } }
+    setTimeout(deliverDispatch, 1200);   // AOW-37: the mail rides in once the muster forms
+    lastStandUsed = false;
     heroReadyT = 6;   // first summon available 6s in
     currentHeroCd = HEROES[0].cd;
     waveNum = 1;
@@ -767,12 +1191,17 @@ const AgeOfWarGame = (() => {
     waveBreatherT = 4.0;          // give the player ~4s to orient before enemies surge
     bossWaveActive = false;
     bossKilledThisWave = false;
+    councilBoons = {};            // AOW-10: boons are run-scoped
+    closeCouncil();
     killFeed = [];
     shakeT = 0; shakeMag = 0;
     setUserPaused(false);      // never carry a pause into a fresh run
     // Initial units so the battlefield isn't empty when you arrive.
-    spawnUnit('player', 'club');
-    spawnUnit('player', 'club');
+    const u1 = spawnUnit('player', 'club');
+    const u2 = spawnUnit('player', 'club');
+    if (pendingPerks.cadre) { if (u1) u1.aliveT = 25; if (u2) u2.aliveT = 25; }
+    runPerks = { forge: !!pendingPerks.forge, drums: !!pendingPerks.drums, magnet: !!pendingPerks.magnet };   // AOW-11/17
+    pendingPerks = {};   // perks are one-shot: consumed by this run
     spawnUnit('enemy',  'club');
     renderHud();
     renderSpawnPanel();
@@ -807,6 +1236,7 @@ const AgeOfWarGame = (() => {
     const u = {
       id: nextSpawnId++,
       side, key,
+      role: def.role || null,
       name: def.name, icon: def.icon, color: def.color,
       silhouette: def.silhouette,
       x: side === 'player' ? PLAYER_BASE_X + BASE_W + 14 : ENEMY_BASE_X - 14,
@@ -816,11 +1246,104 @@ const AgeOfWarGame = (() => {
       speed: def.speed, xp: def.xp, gold: def.gold,
       w, h,
       hitFlash: 0,
+      aliveT: 0,                           // veterancy clock (AOW-5)
       walkPhase: Math.random() * Math.PI * 2,
       attackPose: 0,                       // seconds remaining in strike pose
     };
+    // AOW-19: the war banner leans player units — never walls or enemies
+    if (side === 'player' && !def.role) {
+      const b = bannerDef();
+      if (b.speed) u.speed = Math.round(u.speed * b.speed);
+      if (b.hp) { u.hp = Math.round(u.hp * b.hp); u.hpMax = u.hp; }
+      // AOW-26: issued plate — recruits trained after the buy march thicker
+      if (armorerBought) {
+        u.hp = Math.round(u.hp * ARMORER_HP); u.hpMax = u.hp;
+        u.plated = true;
+        runStats.plated = (runStats.plated || 0) + 1;
+      }
+      // AOW-35: the hall drills the first recruits of every muster —
+      // they march out already wearing the stripe
+      if (hallStanding && hallTrained < (hallHasCollege() ? HALL_FIRST + 2 : hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST)) {
+        // AOW-40: with the officers' mess open, the first recruit
+        // marches out Elite and a fourth takes the stripe.
+        // AOW-43: the war college drills a second Elite and a fifth stripe.
+        const messElite = hallHasMess() && (hallTrained === 0 || (hallHasCollege() && hallTrained === 1));
+        u.aliveT = Math.max(u.aliveT || 0, messElite ? 60 : 25);
+        hallTrained++;
+        runStats.hallVets = (runStats.hallVets || 0) + 1;
+      }
+    }
     units.push(u);
     return u;
+  }
+
+  // -- The Blank Panels (AOW-58) --
+  // The Long Room went up with the far end deliberately unpainted --
+  // "room left at the end". Three sittings in, the painters come back
+  // and prime it: not a panel of anything that happened, but the
+  // frames for the musters that have not marched yet, squared off,
+  // primed and dated forward. Blank canvas with next year's date on
+  // it, hung where every recruit files past.
+  //
+  // Fourteen links deep on this field and this is the first that does
+  // not pay a purse. What it does instead is shorten the road to the
+  // stripe for EVERY soldier in EVERY war from here: a line that can
+  // see its own frames already hanging fights like it intends to fill
+  // them. Veteran at 22s instead of 25, Elite at 54 instead of 60.
+  // Primed once, costs nothing, and lives outside the run like the
+  // room it hangs in -- no defeat takes it down.
+  //
+  // The shortened bars are stated outright rather than derived from a
+  // multiplier. A 0.9 factor reads tidier and puts the Veteran bar at
+  // 22.5s -- a threshold no player can see, count or reason about, and
+  // one that quietly makes "22 seconds" in the copy above a lie. Two
+  // integers say what the game actually does.
+  const PANELS_KEY = 'aow-blankpanels', PANELS_AT = 3;
+  const PANELS_VETERAN = 22, PANELS_ELITE = 54;
+  function loadPanels() {
+    try { const p = JSON.parse(localStorage.getItem(PANELS_KEY) || 'null');
+      if (p && typeof p === 'object') return { up: !!p.up };
+    } catch {}
+    return { up: false };
+  }
+  function savePanels(p) { try { localStorage.setItem(PANELS_KEY, JSON.stringify(p)); } catch {} }
+  function panelsEarned() { return loadPanels && loadLroom().sits >= PANELS_AT; }
+  function panelsUp() { return loadPanels().up; }
+  // The pair of bars in force right now, primed or not.
+  function vetBars() {
+    return panelsUp() ? { veteran: PANELS_VETERAN, elite: PANELS_ELITE }
+                      : { veteran: VET_VETERAN, elite: VET_ELITE };
+  }
+  // Primed automatically on the third sitting -- nothing to buy, no
+  // decision to make, so there is no control for it.
+  function maybePrimeThePanels() {
+    if (!panelsEarned() || panelsUp()) return false;
+    savePanels({ up: true });
+    goldFloaters.push({ text: '\u{1F5BC}\u{FE0F} THE BLANK PANELS \u2014 the painters square off the far end of the Long Room and prime it: not a panel of anything that happened, but the frames for the musters that have not marched yet, dated forward. Every recruit files past next year already hanging', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 230, color: '#fcd34d', t: 3.0 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+    return true;
+  }
+
+  // -- Veterancy (IDEA-AOW-5) --
+  // Units that stay alive get better: 25s = Veteran (+10% damage, gold
+  // chevron), 60s = Elite (+20%, double chevron). Time only counts while
+  // the sim runs, so pausing doesn't farm stripes.
+  // AOW-58: with the blank panels primed, both thresholds come down
+  // 10%. The hall still SEEDS aliveT at the un-shortened 25/60 (see
+  // spawnUnit), which stays correct either way -- 60 clears a 54-second
+  // Elite bar and 25 clears a 22-second Veteran bar. Seeding above the
+  // bar is the point; the panels only move the bar.
+  const VET_ELITE = 60, VET_VETERAN = 25;
+  function vetTier(u) {
+    const b = vetBars();
+    return u.aliveT >= b.elite ? 2 : u.aliveT >= b.veteran ? 1 : 0;
+  }
+  function vetDmg(u) {
+    const t = vetTier(u);
+    const steel = u.side === 'player' && councilBoons.steel ? 1.1 : 1;   // AOW-10
+    return Math.round(u.dmg * (1 + 0.1 * t) * steel);
   }
 
   function tryPlayerSpawn(key) {
@@ -832,6 +1355,7 @@ const AgeOfWarGame = (() => {
     if (trainingQueue.length >= TRAINING_MAX) return;
     gold -= def.cost;
     const total = trainingTimeFor(def);
+    if (drillBought) runStats.drilled = (runStats.drilled || 0) + 1;   // AOW-28
     trainingQueue.push({ key, total, remaining: total });
     SFX.spawn();
     renderHud();
@@ -869,6 +1393,13 @@ const AgeOfWarGame = (() => {
   function ageUp() {
     if (gameOver || userPaused) return;
     if (playerEra >= ERAS.length - 1) return;
+    // Singularity gate (AOW-3): the sixth era needs the max_age
+    // achievement from a PAST run — reach the Future once, then ascend.
+    if (playerEra === 4 && !earnedAchievements.max_age) {
+      ageBannerText = '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era';
+      ageBannerT = 2.4;
+      return;
+    }
     const need = ERAS[playerEra].upXP;
     if (xp < need) return;
     xp -= need;
@@ -878,6 +1409,7 @@ const AgeOfWarGame = (() => {
     if (playerEra === 2) unlock('industrial');
     if (playerEra === 3) unlock('modern');
     if (playerEra === 4) unlock('max_age');
+    if (playerEra === 5) { ageBannerText = '🌌 SINGULARITY — beyond the Future'; ageBannerT = 3.0; }
     // New era → new hero costs/CD baseline. GAME-1f: don't touch the
     // player's actual remaining cooldown here -- clamping it to <=10s let
     // repeated age-ups (whenever XP allowed) shortcut a long hero cooldown
@@ -959,6 +1491,1368 @@ const AgeOfWarGame = (() => {
     shake(12, 0.35);
   }
 
+  // AOW-13: sound the horns. Gated behind Age II so the opening minute
+  // stays about unit reads, not button rotations.
+  function soundWarcry() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '🎺 The horns are forged in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (warcryCd > 0 || warcryT > 0) return;
+    warcryT = WARCRY_DUR;
+    warcryCd = WARCRY_CD;
+    runStats.warcries = (runStats.warcries || 0) + 1;
+    goldFloaters.push({ text: '🎺 WARCRY! +50% attack speed', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.6 });
+    shake(3, 0.2);
+    checkAchievementsDuringRun();
+  }
+
+  // AOW-15: the mercenary company. No drills, no training queue — two
+  // veterans of your best line walk on the moment the coin lands, at a
+  // 2.5× premium and a long rearm. An emergency valve for banked gold,
+  // distinct from the Warcry (tempo) and Bastion Plating (defense).
+  function mercUnitKey() {
+    let best = null;
+    for (const k in UNITS) {
+      const d = UNITS[k];
+      if (d.era > playerEra) continue;
+      if (d.role) continue;                    // fighters only — no walls
+      if (!best || d.cost > UNITS[best].cost) best = k;
+    }
+    return best;
+  }
+  function mercCost() { const k = mercUnitKey(); return k ? Math.round(UNITS[k].cost * MERC_COST_MULT) : 0; }
+  function digTrench() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) { goldFloaters.push({ text: '⛏️ Trenchworks come with Age II', x: WIDTH / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 }); return; }
+    if (trenchCd > 0) return;
+    trenchX = (PLAYER_BASE_X + ENEMY_BASE_X) / 2;
+    trenchT = TRENCH_LAST;
+    trenchCd = TRENCH_CD;
+    runStats.trenches = (runStats.trenches || 0) + 1;
+    goldFloaters.push({ text: '⛏️ TRENCH DUG — the line bogs down', x: trenchX, y: GROUND_Y - 140, color: '#d9b98a', t: 1.8 });
+    shake(4, 0.25);
+    SFX.warn && SFX.warn();
+  }
+  function hireMercs() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (mercCd > 0) return;
+    const key = mercUnitKey();
+    if (!key) return;
+    const cost = mercCost();
+    if (gold < cost) {
+      goldFloaters.push({ text: `🪖 The mercs want ${cost} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    const hired = [];
+    for (let i = 0; i < MERC_COUNT; i++) {
+      const u = spawnUnit('player', key);
+      if (!u) break;
+      u.aliveT = 25;                           // they arrive as Veterans
+      u.x += i * 26;
+      hired.push(u);
+    }
+    if (!hired.length) {
+      goldFloaters.push({ text: '🪖 The ranks are full', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= cost;
+    mercCd = MERC_CD;
+    runStats.mercs = (runStats.mercs || 0) + 1;
+    goldFloaters.push({ text: `🪖 MERCENARIES! ${hired.length}× veteran ${UNITS[key].name}`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.6 });
+    shake(3, 0.2);
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Champion's Duel (AOW-21) ──────────────────────────
+  // The named warlords answer a challenge. While one leads the field,
+  // pay the purse and your foremost soldier steps out for single
+  // combat, resolved on the spot from raw stats: win odds are the
+  // champion's dmg×hp share of the pair, clamped 15–85%. Win and the
+  // warlord falls where they stand (full kill credit and bounty flow
+  // through the normal kill resolution) with the champion bloodied to
+  // 70%; lose and the champion dies, but the warlord limps on at 75%.
+  // One challenge per warlord — they don't answer twice.
+  const DUEL_COST = 250;
+  function fieldWarlord() {
+    for (const u of units) {
+      if (u.side === 'enemy' && u.warlord && !u._dead && u.hp > 0 && !u.dueled) return u;
+    }
+    return null;
+  }
+  function duelChampion() {
+    let best = null;
+    for (const u of units) {
+      if (u.side === 'player' && !u._dead && u.hp > 0 && (!best || u.x > best.x)) best = u;
+    }
+    return best;
+  }
+  function duelChance(c, w) {
+    const cp = c.dmg * c.hp, wp = w.dmg * w.hp;
+    return Math.min(0.85, Math.max(0.15, cp / (cp + wp)));
+  }
+  function challengeDuel() {
+    if (gameOver || modalPaused || userPaused) return;
+    const w = fieldWarlord();
+    if (!w) return;
+    const c = duelChampion();
+    if (!c) {
+      goldFloaters.push({ text: '⚔ No champion stands to answer', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (gold < DUEL_COST) {
+      goldFloaters.push({ text: `⚔ The duel purse is ${DUEL_COST} gold`, x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= DUEL_COST;
+    w.dueled = true;
+    runStats.duels = (runStats.duels || 0) + 1;
+    const won = Math.random() < duelChance(c, w);
+    if (won) {
+      w.hp = 0;   // falls where they stand — kill resolution pays full credit
+      c.hp = Math.max(1, Math.round(c.hp * 0.7));
+      runStats.duelsWon = (runStats.duelsWon || 0) + 1;
+      goldFloaters.push({ text: `⚔ ${w.name} FALLS IN SINGLE COMBAT!`, x: w.x, y: GROUND_Y - w.h - 40, color: '#fcd34d', t: 2.2 });
+      shake(8, 0.4);
+    } else {
+      c.hp = 0;
+      w.hp = Math.max(1, Math.round(w.hp * 0.75));
+      goldFloaters.push({ text: `⚔ The champion falls — ${w.name} is bloodied`, x: w.x, y: GROUND_Y - w.h - 40, color: '#f85149', t: 2.0 });
+      shake(4, 0.3);
+    }
+    SFX.special();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Sappers (AOW-22) ──────────────────────────────────
+  // The base finally has a repair corps. From Age II, pay the crew and
+  // they patch a quarter of the walls' full strength back (never past
+  // full) — one gold per point of stone, 150 minimum, on a two-minute
+  // rearm. The Bastion Plating keeps damage OUT; the sappers put walls
+  // BACK; a run needs both late.
+  const SAPPER_CD = 120;
+  const SAPPER_HEAL = 0.25;
+  let sapperCd = 0;
+  function sapperHeal() {
+    const missing = Math.max(0, playerBaseMax - playerBaseHp);
+    return Math.min(missing, Math.round(playerBaseMax * SAPPER_HEAL));
+  }
+  function sapperCost() { return Math.max(150, Math.round(sapperHeal())); }
+  function repairBase() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '🛠️ The sapper corps musters in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (sapperCd > 0) return;
+    const heal = sapperHeal();
+    if (heal <= 0) {
+      goldFloaters.push({ text: '🛠️ The walls stand whole', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    const cost = sapperCost();
+    if (gold < cost) {
+      goldFloaters.push({ text: `🛠️ The sappers want ${cost} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= cost;
+    playerBaseHp = Math.min(playerBaseMax, playerBaseHp + heal);
+    sapperCd = SAPPER_CD;
+    runStats.repairs = (runStats.repairs || 0) + 1;
+    goldFloaters.push({ text: `🛠️ SAPPERS — +${heal} to the walls`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(3, 0.2);
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Ballista (AOW-23) ─────────────────────────────────
+  // Siege artillery for the line itself. From Age III, a 200-gold
+  // bolt on a 45-second winch: it skewers the FOREMOST enemy and
+  // everyone marching within 60px behind them, for 40 × (era + 1)
+  // damage each. Kills pay the normal bounty through the ordinary
+  // kill resolution — the bolt just does the opening argument.
+  const BOLT_CD = 45;
+  const BOLT_COST = 200;
+  const BOLT_BAND = 60;
+  let boltCd = 0;
+  function boltDmg() { return 40 * (playerEra + 1); }
+  function fireBallista() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 2) {
+      goldFloaters.push({ text: '🏹 The ballista is winched in Age III', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (boltCd > 0) return;
+    let fore = null;
+    for (const u of units) {
+      if (u.side === 'enemy' && !u._dead && u.hp > 0 && (!fore || u.x < fore.x)) fore = u;
+    }
+    if (!fore) {
+      goldFloaters.push({ text: '🏹 No line to skewer', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (gold < BOLT_COST) {
+      goldFloaters.push({ text: `🏹 The bolt costs ${BOLT_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= BOLT_COST;
+    boltCd = BOLT_CD;
+    const dmg = boltDmg();
+    let hit = 0;
+    for (const u of units) {
+      if (u.side === 'enemy' && !u._dead && u.hp > 0 && u.x - fore.x <= BOLT_BAND && u.x >= fore.x) {
+        u.hp -= dmg;
+        hit++;
+      }
+    }
+    runStats.bolts = (runStats.bolts || 0) + 1;
+    if (hit >= 3) unlock('skewer');
+    goldFloaters.push({ text: `🏹 BALLISTA — ${hit} skewered for ${dmg}`, x: fore.x, y: GROUND_Y - 140, color: '#fcd34d', t: 1.8 });
+    shake(4, 0.25);
+    SFX.special();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Triage Tent (AOW-24) ──────────────────────────────
+  // The rear line finally matters. From Age II, 400 gold raises a
+  // triage tent by the base — once per run, permanent for the run:
+  // every friendly soldier within 220px of the base wall heals 4 hp a
+  // second while they hold there. Fall back, patch up, push again.
+  const TENT_COST = 400;
+  const TENT_RANGE = 220;
+  const TENT_HEAL = 4;
+  let tentBought = false;
+  function triageTick(u, dt) {
+    if (!tentBought || u.side !== 'player' || u.hp <= 0 || u.hp >= u.hpMax) return 0;
+    if (u.x > PLAYER_BASE_X + TENT_RANGE) return 0;
+    const th = Math.min(u.hpMax - u.hp, TENT_HEAL * dt);
+    u.hp += th;
+    runStats.triaged = (runStats.triaged || 0) + th;
+    return th;
+  }
+  function buyTent() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '⛑️ The tent goes up in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (tentBought) return;
+    if (gold < TENT_COST) {
+      goldFloaters.push({ text: `⛑️ The tent costs ${TENT_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= TENT_COST;
+    tentBought = true;
+    goldFloaters.push({ text: '⛑️ TRIAGE TENT — the rear line heals 4 hp/s', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
+  // ── The Bounty Board (AOW-25) ─────────────────────────────
+  // Every non-boss wave posts a named bounty: fell THREE of one enemy
+  // line before the wave turns and the board pays triple that unit's
+  // gold. The board wipes and re-posts with each new wave — fill it
+  // or let it lapse, no penalty. Boss waves post nothing: the boss IS
+  // the bounty.
+  const BOUNTY_NEED = 3;
+  let bounty = null;   // { key, need, got, reward }
+  function postBounty() {
+    const pool = unitsForEra(enemyEra).filter(k => !UNITS[k].role);
+    if (!pool.length) { bounty = null; return; }
+    const key = pool[Math.floor(Math.random() * pool.length)];
+    bounty = { key, need: BOUNTY_NEED, got: 0, reward: Math.round(UNITS[key].gold * 3) };
+  }
+  function bountyKill(u) {
+    if (!bounty || u.side !== 'enemy' || u.key !== bounty.key) return;
+    bounty.got++;
+    if (bounty.got >= bounty.need) {
+      gold += bounty.reward;
+      runStats.gold += bounty.reward;
+      runStats.bounties = (runStats.bounties || 0) + 1;
+      goldFloaters.push({ text: `🏷️ BOUNTY FILLED +${bounty.reward}g`, x: u.x, y: GROUND_Y - u.h - 46, color: '#fcd34d', t: 2.0 });
+      bounty = null;
+      renderHud();
+    }
+  }
+
+  // ── The Armorer (AOW-26) ──────────────────────────────────
+  // Issued plate for the training line. From Age II, 300 gold stands
+  // an armorer by the barracks — once per run, permanent for the run:
+  // every friendly soldier trained AFTER the buy marches out with
+  // +15% hp. The troops already fielded keep the kit they left with;
+  // walls and the enemy line get nothing.
+  const ARMORER_COST = 300;
+  const ARMORER_HP = 1.15;
+  let armorerBought = false;
+  function buyArmorer() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F6E1}\uFE0F The armorer signs on in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (armorerBought) return;
+    if (gold < ARMORER_COST) {
+      goldFloaters.push({ text: `\u{1F6E1}\uFE0F The armorer costs ${ARMORER_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= ARMORER_COST;
+    armorerBought = true;
+    goldFloaters.push({ text: '\u{1F6E1}\uFE0F ARMORER — new recruits march out in plate (+15% hp)', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
+  // The Fletcher (AOW-27) — the Armorer's opposite number. He works
+  // the towers, not the barracks: 250 gold once per run from Age II,
+  // and every player turret reloads 15% faster for the rest of the
+  // run. The enemy's towers never see him.
+  const FLETCHER_COST = 250;
+  const FLETCHER_RATE = 0.85;
+  let fletcherBought = false;
+  function fletcherRateMult() { return fletcherBought ? FLETCHER_RATE : 1; }
+  function buyFletcher() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1FAB6} The fletcher signs on in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (fletcherBought) return;
+    if (gold < FLETCHER_COST) {
+      goldFloaters.push({ text: `\u{1FAB6} The fletcher costs ${FLETCHER_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= FLETCHER_COST;
+    fletcherBought = true;
+    goldFloaters.push({ text: '\u{1FAB6} FLETCHER — every tower reloads 15% faster', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
+  // The Drillmaster (AOW-28) — third of the workshop staff. The
+  // Armorer plates the line and the Fletcher speeds the towers; the
+  // Drillmaster runs the parade ground: 275 gold once per run from
+  // Age II, and every recruit trains 20% faster. Stacks with the
+  // March Drums relic — drums set the beat, the drillmaster keeps it.
+  const DRILL_COST = 275;
+  const DRILL_RATE = 0.8;
+  let drillBought = false;
+  function drillTimeMult() { return drillBought ? DRILL_RATE : 1; }
+  function buyDrillmaster() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F941} The drillmaster signs on in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (drillBought) return;
+    if (gold < DRILL_COST) {
+      goldFloaters.push({ text: `\u{1F941} The drillmaster costs ${DRILL_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= DRILL_COST;
+    drillBought = true;
+    goldFloaters.push({ text: '\u{1F941} DRILLMASTER — every recruit trains 20% faster', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
+  // The Paymaster (AOW-29) — fourth of the workshop staff, and the
+  // only one who works the treasury: 400 gold once per run from Age
+  // III, and the every-second gold trickle runs 25% richer for the
+  // rest of the run. The ledger counts every extra coin he mints.
+  const PAYMASTER_COST = 400;
+  const PAYMASTER_RATE = 1.25;
+  let paymasterBought = false;
+  function payTrickle() {
+    const base = Math.round((9 + playerEra * 4) * DIFFICULTIES[difficulty].goldMult);
+    const paid = paymasterBought ? Math.round(base * PAYMASTER_RATE) : base;
+    if (paymasterBought) runStats.minted = (runStats.minted || 0) + (paid - base);
+    gold += paid;
+    renderHud();
+    return paid;
+  }
+  function buyPaymaster() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 2) {
+      goldFloaters.push({ text: '\u{1F4B0} The paymaster signs on in Age III', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (paymasterBought) return;
+    if (gold < PAYMASTER_COST) {
+      goldFloaters.push({ text: `\u{1F4B0} The paymaster costs ${PAYMASTER_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= PAYMASTER_COST;
+    paymasterBought = true;
+    goldFloaters.push({ text: '\u{1F4B0} PAYMASTER — the trickle runs 25% richer', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
+  // The Masons (AOW-30) — the fifth and last workshop hire, and the
+  // only one who works the base itself. 350 gold from Age III, once
+  // per run: the crew mortars the walls 25% thicker on the spot —
+  // max hp rises and the fresh stone lands already healed. The
+  // ledger keeps the tonnage.
+  const MASONS_COST = 350;
+  const MASONS_HP = 1.25;
+  let masonsBought = false;
+  function buyMasons() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 2) {
+      goldFloaters.push({ text: '\u{1F3F0} The masons sign on in Age III', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (masonsBought) return;
+    if (gold < MASONS_COST) {
+      goldFloaters.push({ text: `\u{1F3F0} The masons cost ${MASONS_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= MASONS_COST;
+    masonsBought = true;
+    const added = Math.round(playerBaseMax * (MASONS_HP - 1));
+    playerBaseMax += added;
+    playerBaseHp = Math.min(playerBaseMax, playerBaseHp + added);
+    runStats.mortared = added;
+    checkAchievementsDuringRun();
+    goldFloaters.push({ text: `\u{1F3F0} MASONS \u2014 the walls rise ${added} stone thicker`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    shake(2, 0.15);
+    SFX.spawn();
+    renderHud();
+  }
+
+  // The War Chest (AOW-31) — the stored-value round reaches the
+  // front. From Age II, 150-gold deposits lock in the chest; when a
+  // BOSS falls it opens at 150%. But the lid only lifts for a boss —
+  // a run that dies with gold locked loses every coin of it.
+  const CHEST_DEPOSIT = 150;
+  const CHEST_RATE = 1.5;
+  let chestGold = 0;
+  function depositChest() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F9F0} The war chest unlocks in Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (gold < CHEST_DEPOSIT) {
+      goldFloaters.push({ text: `\u{1F9F0} A chest deposit is ${CHEST_DEPOSIT} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= CHEST_DEPOSIT;
+    chestGold += CHEST_DEPOSIT;
+    goldFloaters.push({ text: `\u{1F9F0} ${CHEST_DEPOSIT} gold into the war chest \u2014 ${chestGold} locked till a boss falls`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    SFX.spawn();
+    renderHud();
+  }
+  function openWarChest(x, y) {
+    if (chestGold <= 0) return 0;
+    const opened = Math.round(chestGold * CHEST_RATE);
+    const interest = opened - chestGold;
+    gold += opened;
+    runStats.chested = (runStats.chested || 0) + interest;
+    goldFloaters.push({ text: `\u{1F9F0} The war chest opens \u2014 ${opened} gold (+${interest} interest)`, x, y, color: '#fcd34d', t: 2.2 });
+    chestGold = 0;
+    checkAchievementsDuringRun();
+    renderHud();
+    return opened;
+  }
+
+  // The Ironside Wager (AOW-32) — the wager round reaches the wall.
+  // From Age II, 200 gold says the base ends the CURRENT wave no
+  // worse than the moment you shook on it — healing counts, hits
+  // don't wash out. Held pays 2× at the wave's turn; one wager a
+  // wave; the stake is spent either way.
+  const IRON_STAKE = 200, IRON_MULT = 2;
+  let ironBet = null;   // { stake, hpAtBet }
+  function placeIronWager() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F3B2} The herald takes wagers from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (ironBet) return;
+    if (gold < IRON_STAKE) {
+      goldFloaters.push({ text: `\u{1F3B2} The wager is ${IRON_STAKE} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= IRON_STAKE;
+    ironBet = { stake: IRON_STAKE, hpAtBet: playerBaseHp };
+    goldFloaters.push({ text: `\u{1F3B2} ${IRON_STAKE} gold says the walls hold this wave`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    SFX.spawn();
+    renderHud();
+  }
+  function resolveIronWager() {
+    if (!ironBet) return;
+    const held = playerBaseHp >= ironBet.hpAtBet;
+    const stake = ironBet.stake;
+    ironBet = null;
+    if (held) {
+      gold += stake * IRON_MULT;
+      runStats.ironWon = (runStats.ironWon || 0) + 1;
+      goldFloaters.push({ text: `\u{1F3B2} The walls held \u2014 the herald pays ${stake * IRON_MULT} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.0 });
+      checkAchievementsDuringRun();
+    } else {
+      runStats.ironLost = (runStats.ironLost || 0) + 1;
+      goldFloaters.push({ text: '\u{1F3B2} The walls bled \u2014 the wager is forfeit', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#f85149', t: 2.0 });
+    }
+    renderHud();
+  }
+
+  // The Rebuilder's Bond (AOW-33) — the insurance round reaches the
+  // wall, and it is the Ironside Wager's mirror. From Age II, 250
+  // gold insures the base for the CURRENT wave: end it below where
+  // it stood at the signing and the underwriter rebuilds half the
+  // loss on the spot; end at-or-above and the premium expires
+  // worthless — the outcome you were paying for. One bond a wave.
+  const BOND_COST = 250, BOND_HEAL = 0.5;
+  let bond = null;   // { hpAtBond }
+  function buyBond() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F6DF} The underwriter signs bonds from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (bond) return;
+    if (gold < BOND_COST) {
+      goldFloaters.push({ text: `\u{1F6DF} The bond runs ${BOND_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= BOND_COST;
+    bond = { hpAtBond: playerBaseHp };
+    goldFloaters.push({ text: `\u{1F6DF} ${BOND_COST} gold bonds the walls at ${Math.round(playerBaseHp)} hp this wave`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 1.8 });
+    SFX.spawn();
+    renderHud();
+  }
+  function resolveBond() {
+    if (!bond) return;
+    const mark = bond.hpAtBond;
+    bond = null;
+    if (playerBaseHp < mark) {
+      const heal = Math.round((mark - playerBaseHp) * BOND_HEAL);
+      playerBaseHp = Math.min(playerBaseMax, playerBaseHp + heal);
+      runStats.bondsPaid = (runStats.bondsPaid || 0) + 1;
+      runStats.bondHealed = (runStats.bondHealed || 0) + heal;
+      goldFloaters.push({ text: `\u{1F6DF} The bond pays \u2014 masons rebuild ${heal} hp of the wave's damage`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.2 });
+      checkAchievementsDuringRun();
+    } else {
+      runStats.bondsExpired = (runStats.bondsExpired || 0) + 1;
+      goldFloaters.push({ text: '\u{1F6DF} The walls stood \u2014 the bond expires worthless', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#9aa0a6', t: 1.8 });
+    }
+    renderHud();
+  }
+
+  // The War Loan (AOW-34) — the credit round marches on the wall.
+  // From Age II, 400 gold NOW against the field's future coins: the
+  // lender's men stand at the coin pile and take every second coin
+  // until 500 is repaid (principal + a 25% vig). One loan at a time;
+  // a run that ends mid-debt takes the ledger down with it. Borrowed
+  // tempo is the whole point — a turret bought a wave early pays for
+  // its own vig.
+  const LOAN_PRINCIPAL = 400, LOAN_OWED = 500;
+  let loan = null;   // { owed }
+  function takeLoan() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F3E6} The lender signs from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (loan) {
+      goldFloaters.push({ text: `\u{1F3E6} The ledger still reads ${loan.owed} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold += LOAN_PRINCIPAL;
+    loan = { owed: LOAN_OWED };
+    runStats.loansTaken = (runStats.loansTaken || 0) + 1;
+    goldFloaters.push({ text: `\u{1F3E6} ${LOAN_PRINCIPAL} gold wired \u2014 the field owes ${LOAN_OWED} back, every second coin`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 2.0 });
+    SFX.spawn();
+    renderHud();
+  }
+  function garnishCoins(n) {
+    // Every second coin to the ledger until the debt clears.
+    if (!loan || n <= 0) return n;
+    const take = Math.min(Math.ceil(n / 2), loan.owed);
+    loan.owed -= take;
+    runStats.loanRepaid = (runStats.loanRepaid || 0) + take;
+    if (loan.owed <= 0) {
+      loan = null;
+      runStats.loansCleared = (runStats.loansCleared || 0) + 1;
+      goldFloaters.push({ text: '\u{1F3E6} The ledger clears \u2014 the lender tips his hat', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.0 });
+      checkAchievementsDuringRun();
+    }
+    renderHud();
+    return n - take;
+  }
+
+  // ── The Chronicle of Wars (AOW-36) ──
+  // The record round on the battlefield: the deepest wave any war
+  // has ever reached lives in its own key, across every defeat. The
+  // mark standing when the session opened is the bar — push past it
+  // once a session and the scribes write a new page and pay a relic.
+  const CHRON_KEY = 'aow-chronicle';
+  function loadChron() {
+    try { const c = JSON.parse(localStorage.getItem(CHRON_KEY) || 'null');
+      if (c && typeof c === 'object') return { wave: Math.max(0, Math.floor(c.wave || 0)), beats: Math.max(0, Math.floor(c.beats || 0)) };
+    } catch {}
+    return { wave: 0, beats: 0 };
+  }
+  function saveChron(c) { try { localStorage.setItem(CHRON_KEY, JSON.stringify(c)); } catch {} }
+  // \u2500\u2500 The Laurel (AOW-42) \u2500\u2500
+  // The plaque round on the battlefield: the records round comes
+  // back around. Three pages in the Chronicle earn the army a
+  // laurel over the gate \u2014 and every new page written under it
+  // marches the purse out with the scribes: +30 gold on the spot,
+  // because an army this storied fights on its name.
+  const LAUREL_KEY = 'aow-plaque', LAUREL_AT = 3, LAUREL_GOLD = 30;
+  function loadLaurel() {
+    try { const l = JSON.parse(localStorage.getItem(LAUREL_KEY) || 'null');
+      if (l && typeof l === 'object') return { cheers: Math.max(0, Math.floor(l.cheers || 0)) };
+    } catch {}
+    return { cheers: 0 };
+  }
+  function saveLaurel(l) { try { localStorage.setItem(LAUREL_KEY, JSON.stringify(l)); } catch {} }
+  function laurelStands() { return (loadChron().beats || 0) >= LAUREL_AT; }
+  let chronBest = loadChron().wave, chronBeats = loadChron().beats;
+  let chronMark = null, chronRung = false;
+  function recordWave(w) {
+    if (chronMark === null) chronMark = chronBest;
+    if (w > chronBest) { chronBest = w; saveChron({ wave: chronBest, beats: chronBeats }); }
+    if (!chronRung && chronMark > 0 && w > chronMark) {
+      chronRung = true;
+      const laurelStood = chronBeats >= LAUREL_AT;
+      chronBeats += 1;
+      saveChron({ wave: chronBest, beats: chronBeats });
+      relics += 1; saveRelics();
+      goldFloaters.push({ text: `\u{1F4DC} A new page in the Chronicle \u2014 wave ${w} beats the old mark of ${chronMark}. The scribes pay a relic`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.4 });
+      // AOW-42: under the laurel, the new page pays gold too.
+      if (laurelStood) {
+        const ll = loadLaurel();
+        saveLaurel({ cheers: ll.cheers + 1 });
+        gold += LAUREL_GOLD;
+        goldFloaters.push({ text: `\u{1F3F5}\u{FE0F} THE LAUREL \u2014 the army fights on its name: +${LAUREL_GOLD} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 230, color: '#fbbf24', t: 2.4 });
+      }
+      checkAchievementsDuringRun();
+    }
+  }
+
+  // ── The Dispatch from the Old Guard (AOW-37) ──
+  // The letters round on the battlefield: every fresh muster with a
+  // history to cite gets a dispatch — it quotes the hall's musters
+  // and the Chronicle's deepest wave by their real numbers, and
+  // encloses a little of the old guard's coin.
+  const DISPATCH_KEY = 'aow-letter', DISPATCH_GOLD = 25;
+  function loadDispatch() {
+    try { const d = JSON.parse(localStorage.getItem(DISPATCH_KEY) || 'null');
+      if (d && typeof d === 'object') return { read: Math.max(0, Math.floor(d.read || 0)) };
+    } catch {}
+    return { read: 0 };
+  }
+  function saveDispatch(d) { try { localStorage.setItem(DISPATCH_KEY, JSON.stringify(d)); } catch {} }
+  let dispatchRead = loadDispatch().read;
+  function composeDispatch() {
+    const hh = loadHall(), cc = loadChron();
+    let s = '\u2709\uFE0F Dispatch from the Old Guard: ';
+    if (hh.built) s += `${hh.runs} muster${hh.runs === 1 ? '' : 's'} under the hall. `;
+    if (cc.wave > 0) s += `Our deepest war reached wave ${cc.wave}. `;
+    s += `${DISPATCH_GOLD} gold enclosed \u2014 spend it like it matters`;
+    return s;
+  }
+  function deliverDispatch() {
+    if (gameOver) return;
+    if (!(loadHall().built || loadChron().wave > 0)) return;
+    dispatchRead = (loadDispatch().read || 0) + 1;
+    saveDispatch({ read: dispatchRead });
+    gold += DISPATCH_GOLD;
+    goldFloaters.push({ text: composeDispatch(), x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.6 });
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Regimental Annals (AOW-38) ──
+  // The almanac round on the battlefield: one slate binds everything
+  // the war remembers — the hall's musters, the Chronicle's deepest
+  // wave, the dispatches taken, the relics in the vault. The tooltip
+  // is the whole annals; a click reads them out as floaters.
+  const ANNALS_KEY = 'aow-annals';
+  function loadAnnals() {
+    try { const a = JSON.parse(localStorage.getItem(ANNALS_KEY) || 'null');
+      if (a && typeof a === 'object') return { opens: Math.max(0, Math.floor(a.opens || 0)) };
+    } catch {}
+    return { opens: 0 };
+  }
+  function saveAnnals(a) { try { localStorage.setItem(ANNALS_KEY, JSON.stringify(a)); } catch {} }
+  function warHasAnnals() {
+    return loadHall().built || loadChron().wave > 0 || loadDispatch().read > 0 || relics > 0;
+  }
+  function composeAnnals() {
+    const hh = loadHall(), cc = loadChron(), dd = loadDispatch();
+    const lines = [];
+    lines.push(hh.built ? `\u{1F396}\u{FE0F} ${hh.runs} muster${hh.runs === 1 ? '' : 's'} under the Veterans\u2019 Hall` : '\u{1F396}\u{FE0F} No hall raised yet');
+    lines.push(cc.wave > 0 ? `\u{1F4DC} Deepest war: wave ${cc.wave} (${cc.beats} page${cc.beats === 1 ? '' : 's'} written)` : '\u{1F4DC} The Chronicle is blank');
+    lines.push(`\u2709\uFE0F ${dd.read} dispatch${dd.read === 1 ? '' : 'es'} taken`);
+    lines.push(`\u{1F3FA} ${relics} relic${relics === 1 ? '' : 's'} in the vault`);
+    return lines;
+  }
+  function openAnnals() {
+    if (!warHasAnnals()) return;
+    const a = loadAnnals();
+    saveAnnals({ opens: a.opens + 1 });
+    composeAnnals().forEach((s, i) => {
+      setTimeout(() => goldFloaters.push({ text: s, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170 - i * 26, color: '#fcd34d', t: 2.4 }), i * 500);
+    });
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Old Standard (AOW-39) ──
+  // The heirloom round: the memory starts paying. The colors every
+  // fallen war marched under, kept in the vault. Once a session,
+  // raise them over the field and the men dig in — a gold grant that
+  // scales with the memory itself: 25 base, +10 per Chronicle page
+  // (to 5), +10 per dispatch taken (to 3).
+  const STD_KEY = 'aow-standard', STD_BASE = 25;
+  let standardRaised = false;
+  function loadStd() {
+    try { const s = JSON.parse(localStorage.getItem(STD_KEY) || 'null');
+      if (s && typeof s === 'object') return { uses: Math.max(0, Math.floor(s.uses || 0)) };
+    } catch {}
+    return { uses: 0 };
+  }
+  function saveStd(s) { try { localStorage.setItem(STD_KEY, JSON.stringify(s)); } catch {} }
+  function stdHasColors() { return loadChron().wave > 0 || loadDispatch().read > 0; }
+  function stdPower() {
+    return STD_BASE + 10 * Math.min(loadChron().beats || 0, 5) + 10 * Math.min(loadDispatch().read || 0, 3);
+  }
+  function raiseStandard() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!stdHasColors() || standardRaised) return;
+    standardRaised = true;
+    const p = stdPower();
+    const s = loadStd();
+    saveStd({ uses: s.uses + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F6A9} The Old Standard rises over the field \u2014 the men dig in. +${p} gold, carried by every war before this one`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.4 });
+    // AOW-45: with the field glasses beside the colors, the raise reads deeper.
+    if (stdHasGlasses()) {
+      const fg = loadGlasses();
+      saveGlasses({ pays: fg.pays + 1 });
+      gold += GLASS_GOLD;
+      goldFloaters.push({ text: `\u{1F52D} The general\u2019s field glasses sweep the line \u2014 +${GLASS_GOLD} gold more. Keepsakes pay`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 200, color: '#fcd34d', t: 2.4 });
+    }
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Old General (AOW-44) ──
+  // The visitor round on the battlefield: once a session, the Old
+  // General rides out to review the troops of any army with a
+  // memory. His purse opens for a storied army: 20 gold base, +10
+  // per page written beneath the laurel (cap 3).
+  const GEN_KEY = 'aow-visitor', GEN_BASE = 20;
+  let generalCame = false;
+  function loadGen() {
+    try { const g = JSON.parse(localStorage.getItem(GEN_KEY) || 'null');
+      if (g && typeof g === 'object') return { visits: Math.max(0, Math.floor(g.visits || 0)) };
+    } catch {}
+    return { visits: 0 };
+  }
+  function saveGen(g) { try { localStorage.setItem(GEN_KEY, JSON.stringify(g)); } catch {} }
+  function genHasStory() { return loadChron().wave > 0 || loadDispatch().read > 0; }
+  function genPurse() { return GEN_BASE + 10 * Math.min(loadLaurel().cheers || 0, 3); }
+  function welcomeGeneral() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!genHasStory() || generalCame) return;
+    generalCame = true;
+    const p = genPurse();
+    const g = loadGen();
+    saveGen({ visits: g.visits + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F396}\u{FE0F} THE OLD GENERAL REVIEWS THE TROOPS \u2014 he salutes the laurel and opens his purse. +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // \u2500\u2500 The General's Field Glasses (AOW-45) \u2500\u2500
+  // The keepsake round on the battlefield: after three reviews, the
+  // Old General leaves his field glasses with the standard-bearer.
+  // Every Old Standard raised beside them reads the field better:
+  // +15 gold extra on the spot. Pays tallied in 'aow-keepsake'.
+  const GLASS_KEY = 'aow-keepsake', GLASS_GOLD = 15;
+  function loadGlasses() {
+    try { const k = JSON.parse(localStorage.getItem(GLASS_KEY) || 'null');
+      if (k && typeof k === 'object') return { pays: Math.max(0, Math.floor(k.pays || 0)) };
+    } catch {}
+    return { pays: 0 };
+  }
+  function saveGlasses(k) { try { localStorage.setItem(GLASS_KEY, JSON.stringify(k)); } catch {} }
+  function stdHasGlasses() { return loadGen().visits >= 3; }
+
+  // \u2500\u2500 The Veterans' Reunion (AOW-46) \u2500\u2500
+  // The reunion round on the battlefield: when the whole story
+  // stands \u2014 three pages beneath the laurel AND three of the Old
+  // General's reviews \u2014 the army musters the veterans' reunion
+  // once a session. Every old campaigner brings a purse: 50 gold
+  // base + 15 per page + 15 per review (caps 3). Held tallied in
+  // 'aow-reunion'.
+  const VREU_KEY = 'aow-reunion', VREU_BASE = 50, VREU_PER = 15;
+  let vetsReunionHeld = false;
+  function loadVReunion() {
+    try { const r = JSON.parse(localStorage.getItem(VREU_KEY) || 'null');
+      if (r && typeof r === 'object') return { held: Math.max(0, Math.floor(r.held || 0)) };
+    } catch {}
+    return { held: 0 };
+  }
+  function saveVReunion(r) { try { localStorage.setItem(VREU_KEY, JSON.stringify(r)); } catch {} }
+  function vreunionStands() { return (loadLaurel().cheers || 0) >= 3 && loadGen().visits >= 3; }
+  function vreunionPurse() {
+    return VREU_BASE + VREU_PER * Math.min(loadLaurel().cheers || 0, 3)
+      + VREU_PER * Math.min(loadGen().visits || 0, 3);
+  }
+  function holdVetsReunion() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!vreunionStands() || vetsReunionHeld) return;
+    vetsReunionHeld = true;
+    const p = vreunionPurse();
+    const r = loadVReunion();
+    saveVReunion({ held: r.held + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F397}\u{FE0F} THE VETERANS' REUNION \u2014 the old campaigners muster, laurels and field glasses and all. Every one brings a purse: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // \u2500\u2500 The Campaign Painting (AOW-47) \u2500\u2500
+  // The portrait round on the battlefield: after three Veterans'
+  // Reunions, a regimental painting of the muster hangs in the
+  // hall. Once a session an unveiling pays: 40 gold base + 20 per
+  // reunion held (cap 5). Unveilings tallied in 'aow-portrait'.
+  const PAINT_KEY = 'aow-portrait', PAINT_BASE = 40, PAINT_PER = 20;
+  let paintingUnveiled = false;
+  function loadPainting() {
+    try { const p = JSON.parse(localStorage.getItem(PAINT_KEY) || 'null');
+      if (p && typeof p === 'object') return { looks: Math.max(0, Math.floor(p.looks || 0)) };
+    } catch {}
+    return { looks: 0 };
+  }
+  function savePainting(p) { try { localStorage.setItem(PAINT_KEY, JSON.stringify(p)); } catch {} }
+  function paintingHangs() { return loadVReunion().held >= 3; }
+  function paintingPurse() { return PAINT_BASE + PAINT_PER * Math.min(loadVReunion().held || 0, 5); }
+  function unveilPainting() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!paintingHangs() || paintingUnveiled) return;
+    paintingUnveiled = true;
+    const p = paintingPurse();
+    const pt = loadPainting();
+    savePainting({ looks: pt.looks + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F5BC}\u{FE0F} THE CAMPAIGN PAINTING \u2014 the muster on canvas, unveiled in the hall. The patrons pay: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Founding Salute (AOW-48) ──
+  // The anniversary round on the battlefield: after three
+  // unveilings of the Campaign Painting, the regiment marks the day
+  // it first mustered. Once a session a salute fires: 50 gold base
+  // + 25 per unveiling (cap 5). Salutes tallied in
+  // 'aow-anniversary'.
+  const SAL_KEY = 'aow-anniversary', SAL_BASE = 50, SAL_PER = 25;
+  let saluteFired = false;
+  function loadSalute() {
+    try { const s = JSON.parse(localStorage.getItem(SAL_KEY) || 'null');
+      if (s && typeof s === 'object') return { toasts: Math.max(0, Math.floor(s.toasts || 0)) };
+    } catch {}
+    return { toasts: 0 };
+  }
+  function saveSalute(s) { try { localStorage.setItem(SAL_KEY, JSON.stringify(s)); } catch {} }
+  function saluteStands() { return loadPainting().looks >= 3; }
+  function salutePurse() { return SAL_BASE + SAL_PER * Math.min(loadPainting().looks || 0, 5); }
+  function fireFoundingSalute() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!saluteStands() || saluteFired) return;
+    saluteFired = true;
+    const p = salutePurse();
+    const s = loadSalute();
+    saveSalute({ toasts: s.toasts + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F387} THE FOUNDING SALUTE \u2014 the day the regiment first mustered, marked with powder and brass. The patrons stand a round: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Muster Roll (AOW-49) ──
+  // The guest-book round on the battlefield: after three Founding
+  // Salutes, a muster roll hangs by the hall door \u2014 every
+  // campaigner who ever answered the horns, signed in. Once a
+  // session a reading pays: 60 gold base + 30 per salute (cap 5).
+  // Readings tallied in 'aow-guestbook'.
+  const ROLL_KEY = 'aow-guestbook', ROLL_BASE = 60, ROLL_PER = 30;
+  let rollRead = false;
+  function loadRoll() {
+    try { const r = JSON.parse(localStorage.getItem(ROLL_KEY) || 'null');
+      if (r && typeof r === 'object') return { leafs: Math.max(0, Math.floor(r.leafs || 0)) };
+    } catch {}
+    return { leafs: 0 };
+  }
+  function saveRoll(r) { try { localStorage.setItem(ROLL_KEY, JSON.stringify(r)); } catch {} }
+  function rollHangs() { return loadSalute().toasts >= 3; }
+  function rollPurse() { return ROLL_BASE + ROLL_PER * Math.min(loadSalute().toasts || 0, 5); }
+  function readMusterRoll() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!rollHangs() || rollRead) return;
+    rollRead = true;
+    const p = rollPurse();
+    const r = loadRoll();
+    saveRoll({ leafs: r.leafs + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F4DC} THE MUSTER ROLL \u2014 every campaigner who ever answered the horns, read out by the hall door. One of the names sends gold: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Veterans' Bench (AOW-50) ──
+  // The bench round on the battlefield: after three readings of
+  // the Muster Roll, the veterans build a bench outside the hall
+  // \u2014 a seat with every name at its back. Once a session a
+  // sit pays: 70 gold base + 35 per reading (cap 5). Sits tallied
+  // in 'aow-bench'.
+  const VBENCH_KEY = 'aow-bench', VBENCH_BASE = 70, VBENCH_PER = 35;
+  let vbenchSat = false;
+  function loadVBench() {
+    try { const b = JSON.parse(localStorage.getItem(VBENCH_KEY) || 'null');
+      if (b && typeof b === 'object') return { sits: Math.max(0, Math.floor(b.sits || 0)) };
+    } catch {}
+    return { sits: 0 };
+  }
+  function saveVBench(b) { try { localStorage.setItem(VBENCH_KEY, JSON.stringify(b)); } catch {} }
+  function vbenchBuilt() { return loadRoll().leafs >= 3; }
+  function vbenchPurse() { return VBENCH_BASE + VBENCH_PER * Math.min(loadRoll().leafs || 0, 5); }
+  function sitVeteransBench() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!vbenchBuilt() || vbenchSat) return;
+    vbenchSat = true;
+    const p = vbenchPurse();
+    const b = loadVBench();
+    saveVBench({ sits: b.sits + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1FA91} THE VETERANS' BENCH \u2014 a seat outside the hall with every name at its back. An old campaigner sits down with a purse: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Campfire Tale (AOW-51) ──
+  // The story-hour round on the battlefield: after three sits on
+  // the Veterans' Bench, the oldest campaigner has the whole war
+  // by heart \u2014 the chronicle, the dispatches, the reunions,
+  // every name on the roll. Once a session a telling pays: 80 gold
+  // base + 40 per sit (cap 5). Tellings tallied in 'aow-storyhour'.
+  const TALE_KEY = 'aow-storyhour', TALE_BASE = 80, TALE_PER = 40;
+  let taleTold = false;
+  function loadTale() {
+    try { const t = JSON.parse(localStorage.getItem(TALE_KEY) || 'null');
+      if (t && typeof t === 'object') return { tellings: Math.max(0, Math.floor(t.tellings || 0)) };
+    } catch {}
+    return { tellings: 0 };
+  }
+  function saveTale(t) { try { localStorage.setItem(TALE_KEY, JSON.stringify(t)); } catch {} }
+  function taleReady() { return loadVBench().sits >= 3; }
+  function talePurse() { return TALE_BASE + TALE_PER * Math.min(loadVBench().sits || 0, 5); }
+  function hearCampfireTale() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!taleReady() || taleTold) return;
+    taleTold = true;
+    const p = talePurse();
+    const t = loadTale();
+    saveTale({ tellings: t.tellings + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F525} THE CAMPFIRE TALE \u2014 the whole war by heart, told around the fire. Somebody pays for the next chapter: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // ── The Marching Song (AOW-52) ──
+  // The song round on the battlefield: after three hearings of the
+  // Campfire Tale, the drummers set it to a cadence \u2014 the
+  // whole war, one song, every rank knows the words. Once a
+  // session a singing pays: 90 gold base + 45 per telling (cap 5).
+  // Sings tallied in 'aow-song'.
+  const MSONG_KEY = 'aow-song', MSONG_BASE = 90, MSONG_PER = 45;
+  let msongSung = false;
+  function loadMSong() {
+    try { const s = JSON.parse(localStorage.getItem(MSONG_KEY) || 'null');
+      if (s && typeof s === 'object') return { sings: Math.max(0, Math.floor(s.sings || 0)) };
+    } catch {}
+    return { sings: 0 };
+  }
+  function saveMSong(s) { try { localStorage.setItem(MSONG_KEY, JSON.stringify(s)); } catch {} }
+  function msongReady() { return loadTale().tellings >= 3; }
+  function msongPurse() { return MSONG_BASE + MSONG_PER * Math.min(loadTale().tellings || 0, 5); }
+  function singMarchingSong() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!msongReady() || msongSung) return;
+    msongSung = true;
+    const p = msongPurse();
+    const s = loadMSong();
+    saveMSong({ sings: s.sings + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F3BA} THE MARCHING SONG \u2014 the whole war set to a cadence, and every rank knows the words. The quartermaster finds a purse in the chorus: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // -- The Cornerstone Cache (AOW-53) --
+  // The capsule round on the battlefield: after three sings of the
+  // Marching Song, the masons seal a cache in the base's
+  // cornerstone \u2014 a chronicle page, a thread of the old
+  // standard, a scrap of drum skin. Once a session an opening
+  // pays: 100 gold base + 50 per sing (cap 5). Openings tallied
+  // in 'aow-capsule'.
+  const CACHE_KEY = 'aow-capsule', CACHE_BASE = 100, CACHE_PER = 50;
+  let cacheOpened = false;
+  function loadCache() {
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (c && typeof c === 'object') return { opens: Math.max(0, Math.floor(c.opens || 0)) };
+    } catch {}
+    return { opens: 0 };
+  }
+  function saveCache(c) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch {} }
+  function cacheSealed() { return loadMSong().sings >= 3; }
+  function cachePurse() { return CACHE_BASE + CACHE_PER * Math.min(loadMSong().sings || 0, 5); }
+  function openCornerstoneCache() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!cacheSealed() || cacheOpened) return;
+    cacheOpened = true;
+    const p = cachePurse();
+    const c = loadCache();
+    saveCache({ opens: c.opens + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F9F1} THE CORNERSTONE CACHE \u2014 a chronicle page, a thread of the standard, a scrap of drum skin. A purse is tucked in with the memories, like always: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // -- The Long Fresco (AOW-54) --
+  // The mural round on the battlefield: after three openings of the
+  // Cornerstone Cache, the painters take the base's long inner wall
+  // and lay the whole war along it \u2014 the first muster, the
+  // bench under the tower, the tale's fire, the song's cadence, the
+  // seam where the cache went in. Once a session a walk pays: 110
+  // gold base + 55 per opening (cap 5). Walks tallied in 'aow-mural'.
+  const FRESCO_KEY = 'aow-mural', FRESCO_BASE = 110, FRESCO_PER = 55;
+  let frescoWalked = false;
+  function loadFresco() {
+    try { const f = JSON.parse(localStorage.getItem(FRESCO_KEY) || 'null');
+      if (f && typeof f === 'object') return { walks: Math.max(0, Math.floor(f.walks || 0)) };
+    } catch {}
+    return { walks: 0 };
+  }
+  function saveFresco(f) { try { localStorage.setItem(FRESCO_KEY, JSON.stringify(f)); } catch {} }
+  function frescoPainted() { return loadCache().opens >= 3; }
+  function frescoPurse() { return FRESCO_BASE + FRESCO_PER * Math.min(loadCache().opens || 0, 5); }
+  function walkTheFresco() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!frescoPainted() || frescoWalked) return;
+    frescoWalked = true;
+    const p = frescoPurse();
+    const f = loadFresco();
+    saveFresco({ walks: f.walks + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F3A8} THE LONG FRESCO \u2014 the first muster, the bench under the tower, the fire, the cadence, the cornerstone seam. The ranks walk it and the quartermaster's purse walks with them: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // -- The Recruit's Walk (AOW-55) --
+  // The docent round on the battlefield: after three walks of the
+  // Long Fresco, the oldest sergeant in the muster takes every new
+  // recruit down it on their first morning \u2014 the first muster,
+  // the bench, the fire, the cadence, the cornerstone seam, panel by
+  // panel. Once a session a walk pays: 120 gold base + 60 per fresco
+  // walk (cap 5). Walks tallied in 'aow-docent'.
+  const GUIDE_KEY = 'aow-docent', GUIDE_BASE = 120, GUIDE_PER = 60;
+  let guideWalked = false;
+  function loadGuide() {
+    try { const g = JSON.parse(localStorage.getItem(GUIDE_KEY) || 'null');
+      if (g && typeof g === 'object') return { walks: Math.max(0, Math.floor(g.walks || 0)) };
+    } catch {}
+    return { walks: 0 };
+  }
+  function saveGuide(g) { try { localStorage.setItem(GUIDE_KEY, JSON.stringify(g)); } catch {} }
+  function guidePosted() { return loadFresco().walks >= 3; }
+  function guidePurse() { return GUIDE_BASE + GUIDE_PER * Math.min(loadFresco().walks || 0, 5); }
+  function walkTheRecruit() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!guidePosted() || guideWalked) return;
+    guideWalked = true;
+    const p = guidePurse();
+    const g = loadGuide();
+    saveGuide({ walks: g.walks + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F9ED} THE RECRUIT'S WALK \u2014 the oldest sergeant takes a new recruit down the fresco on their first morning, panel by panel. They fight like they were there for all of it, and the quartermaster pays for the hour: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // -- The Recruit's Panel (AOW-56) --
+  // The mark round on the battlefield, and the beat the whole arc
+  // was walking toward: after three walks, the recruit who was taken
+  // down the fresco on their first morning asks for the brush and
+  // paints the panel after the cornerstone seam \u2014 their own
+  // first muster, in their own hand. Once a session a panel pays:
+  // 130 gold base + 65 per walk (cap 5). Panels tallied in 'aow-mark'.
+  const MARK_KEY = 'aow-mark', MARK_BASE = 130, MARK_PER = 65;
+  let markAdded = false;
+  function loadMark() {
+    try { const m = JSON.parse(localStorage.getItem(MARK_KEY) || 'null');
+      if (m && typeof m === 'object') return { panels: Math.max(0, Math.floor(m.panels || 0)) };
+    } catch {}
+    return { panels: 0 };
+  }
+  function saveMark(m) { try { localStorage.setItem(MARK_KEY, JSON.stringify(m)); } catch {} }
+  function markEarned() { return loadGuide().walks >= 3; }
+  function markPurse() { return MARK_BASE + MARK_PER * Math.min(loadGuide().walks || 0, 5); }
+  function addTheirPanel() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!markEarned() || markAdded) return;
+    markAdded = true;
+    const p = markPurse();
+    const m = loadMark();
+    saveMark({ panels: m.panels + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{270D}\u{FE0F} THE RECRUIT'S PANEL \u2014 the recruit who was walked down the fresco asks for the brush and paints the panel after the cornerstone seam: their own first muster, their own hand. The whole line falls out to watch, and the quartermaster opens the purse for it: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
+  // -- The Long Room (AOW-57) --
+  // Eleven links of pure upside, and then this one. Three recruits
+  // have painted their own panel now, and the fresco has run out of
+  // wall: the panels turn the corner and stop at the armoury door.
+  // The Long Room is the wall you buy so the line can keep going --
+  // 900 gold out of the war chest, once ever, for a room that fires
+  // no shot and raises no rampart. What it does is hold the whole
+  // thing: the roll by the door, the cache stone, every panel from
+  // the first muster to the recruit who painted last week. Sit in it
+  // once a session and the quartermaster pays for the hour, because
+  // a line that can see where it came from fights like it intends to
+  // be remembered. Built flag and sittings both live in 'aow-longroom'.
+  const LROOM_KEY = 'aow-longroom', LROOM_COST = 900, LROOM_BASE = 140, LROOM_PER = 70;
+  let lroomSat = false;
+  function loadLroom() {
+    try { const r = JSON.parse(localStorage.getItem(LROOM_KEY) || 'null');
+      if (r && typeof r === 'object') return { built: !!r.built, sits: Math.max(0, Math.floor(r.sits || 0)) };
+    } catch {}
+    return { built: false, sits: 0 };
+  }
+  function saveLroom(r) { try { localStorage.setItem(LROOM_KEY, JSON.stringify(r)); } catch {} }
+  function lroomOffered() { return loadMark().panels >= 3; }
+  function lroomBuilt() { return loadLroom().built; }
+  function lroomPurse() { return LROOM_BASE + LROOM_PER * Math.min(loadMark().panels || 0, 5); }
+  function buyLongRoom() {
+    if (!lroomOffered() || lroomBuilt()) return false;
+    if (gold < LROOM_COST) {
+      goldFloaters.push({ text: `\u{1F3DB}\u{FE0F} The Long Room runs ${LROOM_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return false;
+    }
+    gold -= LROOM_COST;
+    const r = loadLroom();
+    saveLroom({ built: true, sits: r.sits });
+    goldFloaters.push({ text: '\u{1F3DB}\u{FE0F} THE LONG ROOM \u2014 the masons take the armoury wall out and run the fresco through it. The roll comes off the door, the cache stone comes up out of the yard, and every panel since the first muster goes up in one line with room left at the end', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 190, color: '#fcd34d', t: 2.6 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+    return true;
+  }
+  function sitInLongRoom() {
+    if (!lroomBuilt() || lroomSat) return false;
+    lroomSat = true;
+    const p = lroomPurse();
+    const r = loadLroom();
+    saveLroom({ built: true, sits: r.sits + 1 });
+    gold += p;
+    goldFloaters.push({ text: `\u{1F3DB}\u{FE0F} THE LONG ROOM \u2014 an hour in the room where the whole line hangs: the roll, the stone, every panel to the newest hand. The muster comes out of it walking taller and the quartermaster pays for the hour: +${p} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 210, color: '#fcd34d', t: 2.4 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    maybePrimeThePanels();   // AOW-58: the third sitting primes the far end
+    renderHud();
+    return true;
+  }
+  // The control does double duty: while the room is unbuilt it is the
+  // purchase, and the moment it stands it is the sitting. One button,
+  // because it is one thing at two stages of its life.
+  function useLongRoom() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (!lroomOffered()) return;
+    if (!lroomBuilt()) { buyLongRoom(); return; }
+    sitInLongRoom();
+  }
+
+  // -- The Line (AOW-59) --
+  // Sixteen links deep on this field and no way to see they are one
+  // thing: each control only appears once the one before it is done,
+  // so nobody halfway along knows there is a halfway.
+  //
+  // NOTE ON PLACEMENT: this table must sit AFTER every block whose
+  // threshold constant it cites (LAUREL_AT, PANELS_AT). Declared
+  // above them it evaluates in their temporal dead zone and takes the
+  // page down on load -- which is what happened to the Tycoon wall
+  // and then, one tranche later, to the Grow Op one.
+  //
+  // Every row calls the SAME function the game calls, and states the
+  // gate that opens it as its predecessor(s) plus a threshold, which
+  // `tests/headless/wall.js` cross-checks against the game's own
+  // predicate. A wrong number here fails the battery instead of
+  // quietly lying to a player.
+  const AOW_CHAIN = [
+    { id: 'chron',     icon: '\u{1F4DC}', name: 'The Chronicle of Wars',  tally: () => loadChron().beats,      gate: null,                    prev: null,                need: 0 },
+    { id: 'laurel',    icon: '\u{1F3F5}', name: 'The Laurel',             tally: () => loadLaurel().cheers,    gate: () => laurelStands(),    prev: 'chron',             need: LAUREL_AT },
+    { id: 'gen',       icon: '\u{1F396}', name: 'The Old General',        tally: () => loadGen().visits,       gate: null,                    prev: null,                need: 0 },
+    { id: 'vreunion',  icon: '\u{1F397}', name: 'The Veterans\u2019 Reunion', tally: () => loadVReunion().held, gate: () => vreunionStands(), prev: ['laurel', 'gen'],  need: 3 },
+    { id: 'painting',  icon: '\u{1F5BC}', name: 'The Campaign Painting',  tally: () => loadPainting().looks,   gate: () => paintingHangs(),   prev: 'vreunion',          need: 3 },
+    { id: 'salute',    icon: '\u{1F387}', name: 'The Founding Salute',    tally: () => loadSalute().toasts,    gate: () => saluteStands(),    prev: 'painting',          need: 3 },
+    { id: 'roll',      icon: '\u{1F4DC}', name: 'The Muster Roll',        tally: () => loadRoll().leafs,       gate: () => rollHangs(),       prev: 'salute',            need: 3 },
+    { id: 'vbench',    icon: '\u{1FA91}', name: 'The Veterans\u2019 Bench', tally: () => loadVBench().sits,   gate: () => vbenchBuilt(),     prev: 'roll',              need: 3 },
+    { id: 'tale',      icon: '\u{1F525}', name: 'The Campfire Tale',      tally: () => loadTale().tellings,    gate: () => taleReady(),       prev: 'vbench',            need: 3 },
+    { id: 'msong',     icon: '\u{1F3BA}', name: 'The Marching Song',      tally: () => loadMSong().sings,      gate: () => msongReady(),      prev: 'tale',              need: 3 },
+    { id: 'cache',     icon: '\u{1F9F1}', name: 'The Cornerstone Cache',  tally: () => loadCache().opens,      gate: () => cacheSealed(),     prev: 'msong',             need: 3 },
+    { id: 'fresco',    icon: '\u{1F3A8}', name: 'The Long Fresco',        tally: () => loadFresco().walks,     gate: () => frescoPainted(),   prev: 'cache',             need: 3 },
+    { id: 'guide',     icon: '\u{1F9ED}', name: 'The Recruit\u2019s Walk', tally: () => loadGuide().walks,    gate: () => guidePosted(),     prev: 'fresco',            need: 3 },
+    { id: 'mark',      icon: '\u{270D}',  name: 'The Recruit\u2019s Panel', tally: () => loadMark().panels,   gate: () => markEarned(),      prev: 'guide',             need: 3 },
+    { id: 'lroom',     icon: '\u{1F3DB}', name: 'The Long Room',          tally: () => loadLroom().sits,       gate: () => lroomOffered(),    prev: 'mark',              need: 3 },
+    { id: 'blank',     icon: '\u{1F5BC}', name: 'The Blank Panels',       tally: () => (loadPanels().up ? 1 : 0), gate: () => panelsEarned(), prev: 'lroom',             need: PANELS_AT },
+  ];
+  function chainState() {
+    const rows = AOW_CHAIN.map(r => {
+      const open = !r.gate || !!r.gate();
+      const n = Math.max(0, Math.floor(r.tally() || 0));
+      const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+      return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+    });
+    const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+    return { rows, nextIdx, doneCount: rows.filter(r => r.tally > 0).length, total: rows.length };
+  }
+  function renderChain() {
+    const listEl = document.getElementById('aow-chain-list');
+    const progEl = document.getElementById('aow-chain-progress');
+    if (!listEl) return;
+    const st = chainState();
+    if (progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+    const byId = {}; st.rows.forEach(r => { byId[r.id] = r; });
+    listEl.innerHTML = st.rows.map((r, i) => {
+      const started = r.tally > 0;
+      const isNext = i === st.nextIdx;
+      // Past the one you're on, rows stay unnamed: the line should say
+      // it keeps going, not hand over the list.
+      const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+      const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+      let note;
+      if (started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+      else if (isNext) note = 'yours to do next';
+      else if (r.open) note = 'open';
+      else if (r.prev.length) {
+        // Name the predecessor furthest behind: that is the one
+        // actually holding this row up.
+        const behind = r.prev.map(p => byId[p]).filter(Boolean)
+          .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+        note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+      }
+      else note = 'not yet';
+      const cls = started ? 'aow-chain-done' : isNext ? 'aow-chain-next' : r.open ? 'aow-chain-open' : 'aow-chain-locked';
+      return '<div class="aow-chain-row ' + cls + '"><span class="aow-chain-name">' + label
+        + '</span><span class="aow-chain-note">' + note + '</span></div>';
+    }).join('');
+  }
+  function openChain() {
+    renderChain();
+    const m = document.getElementById('aow-chain-modal');
+    if (m) { m.style.display = 'flex'; setModalPaused(true); }
+  }
+
+  // ── The Veterans' Hall (AOW-35) ──
+  // The legacy round on the battlefield: 500 gold, once ever, raises
+  // a hall OUTSIDE the run — like the relics, no defeat tears it
+  // down. Every muster that forms in its shadow sends its first three
+  // recruits out already striped: the hall drills them before they
+  // ever see the field. The war chest's first purchase that outlives
+  // the war.
+  const HALL_KEY = 'aow-hall', HALL_COST = 500, HALL_FIRST = 3;
+  // AOW-40: the officers' mess — the second-story round. Once the
+  // hall has seen three musters, it opens an officers' mess: the
+  // first recruit of every muster marches out Elite, and a fourth
+  // recruit takes the stripe. The building earned it.
+  const HALL_MESS_AT = 3;
+  let hallStanding = false, hallRuns = 0, hallTrained = 0;
+  function hallHasMess() { return hallStanding && hallRuns >= HALL_MESS_AT; }
+  // AOW-43: the third-story round — at six musters the hall opens a
+  // WAR COLLEGE: the first two recruits of every muster march out
+  // Elite, and a fifth takes the stripe. The hall keeps building on
+  // what it already built.
+  const HALL_COLLEGE_AT = 6;
+  function hallHasCollege() { return hallStanding && hallRuns >= HALL_COLLEGE_AT; }
+  // AOW-41: the Triumph — the festival round. When the officers'
+  // mess stands, every fresh muster opens with a Triumph: the
+  // veterans march the colors down the field before the first enemy
+  // shows. +50 gold and +25 xp to the new war, tallied across runs.
+  const TRIUMPH_KEY = 'aow-festival', TRIUMPH_GOLD = 50, TRIUMPH_XP = 25;
+  function loadTriumph() {
+    try { const t = JSON.parse(localStorage.getItem(TRIUMPH_KEY) || 'null');
+      if (t && typeof t === 'object') return { days: Math.max(0, Math.floor(t.days || 0)) };
+    } catch {}
+    return { days: 0 };
+  }
+  function saveTriumph(t) { try { localStorage.setItem(TRIUMPH_KEY, JSON.stringify(t)); } catch {} }
+  function loadHall() {
+    try { const h = JSON.parse(localStorage.getItem(HALL_KEY) || 'null');
+      if (h && typeof h === 'object') return { built: !!h.built, runs: Math.max(0, Math.floor(h.runs || 0)) };
+    } catch {}
+    return { built: false, runs: 0 };
+  }
+  function saveHall(h) { try { localStorage.setItem(HALL_KEY, JSON.stringify(h)); } catch {} }
+  function buyHall() {
+    if (gameOver || modalPaused || userPaused) return;
+    if (hallStanding) {
+      goldFloaters.push({ text: '\u{1F396}\u{FE0F} The Veterans\u2019 Hall already stands \u2014 its doors never close', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    if (playerEra < 1) {
+      goldFloaters.push({ text: '\u{1F396}\u{FE0F} The masons take commissions from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
+      return;
+    }
+    if (gold < HALL_COST) {
+      goldFloaters.push({ text: `\u{1F396}\u{FE0F} The hall runs ${HALL_COST} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
+    gold -= HALL_COST;
+    hallStanding = true; hallRuns = 0;
+    saveHall({ built: true, runs: 0 });
+    goldFloaters.push({ text: '\u{1F396}\u{FE0F} The Veterans\u2019 Hall rises \u2014 the first stone this war laid for the men who fight it', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#fcd34d', t: 2.2 });
+    SFX.spawn();
+    checkAchievementsDuringRun();
+    renderHud();
+  }
+
   function fireSpecial() {
     if (gameOver || userPaused) return;
     if (specialReadyT > 0) return;
@@ -977,9 +2871,17 @@ const AgeOfWarGame = (() => {
     // If slot already has same-or-higher era, can't replace.
     const existing = playerTurrets[slot];
     if (existing && existing.era >= era) return;
-    if (gold < tdef.cost) return;
-    gold -= tdef.cost;
-    playerTurrets[slot] = { ...tdef, atkT: 0 };
+    // AOW-11: Forge Credit covers the first turret bought this run.
+    const cost = runPerks.forge ? 0 : tdef.cost;
+    if (gold < cost) return;
+    gold -= cost;
+    if (runPerks.forge) {
+      runPerks.forge = false;
+      goldFloaters.push({ text: '🔥 Forge credit!', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 130, color: '#fcd34d', t: 1.4 });
+    }
+    // An upgraded turret keeps its targeting mode — re-picking it after
+    // every era bump would punish using the feature.
+    playerTurrets[slot] = { ...tdef, atkT: 0, mode: existing ? existing.mode : undefined };
     runStats.turretsBuilt++;
     SFX.turret();
     renderHud();
@@ -1003,6 +2905,22 @@ const AgeOfWarGame = (() => {
     renderHud();
     renderTurretPanel();
   }
+  // AOW-14: reinforce the walls. Instant, run-scoped, three tiers.
+  function tryBuyArmor() {
+    if (gameOver || armorTier >= ARMOR_MAX) return;
+    const cost = ARMOR_COSTS[armorTier];
+    if (gold < cost) {
+      goldFloaters.push({ text: 'Need $' + cost, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 140, color: '#8b949e', t: 1.2 });
+      return;
+    }
+    gold -= cost;
+    armorTier++;
+    goldFloaters.push({ text: '🧱 Plating T' + armorTier + ' — base takes ' + armorTier * 10 + '% less', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 140, color: '#9ad2e0', t: 1.6 });
+    SFX.ageUp();
+    if (armorTier >= ARMOR_MAX) unlock('bastion');
+    renderTurretPanel();
+  }
+
   function tryBuyTurretSlot() {
     if (gameOver || userPaused) return;
     if (playerSlotsOwned >= TURRET_SLOTS_MAX) return;
@@ -1023,10 +2941,74 @@ const AgeOfWarGame = (() => {
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
     if (specialBtn) specialBtn.onclick = fireSpecial;
+    const warcryBtn = document.getElementById('aow-warcry-btn');
+    if (warcryBtn) warcryBtn.onclick = soundWarcry;
+    const fletchBtn = document.getElementById('aow-fletch-btn');
+    if (fletchBtn) fletchBtn.onclick = buyFletcher;
+    const drillBtn = document.getElementById('aow-drill-btn');
+    if (drillBtn) drillBtn.onclick = buyDrillmaster;
+    const payBtn = document.getElementById('aow-pay-btn');
+    if (payBtn) payBtn.onclick = buyPaymaster;
+    const masonBtn = document.getElementById('aow-mason-btn');
+    if (masonBtn) masonBtn.onclick = buyMasons;
+    const chestBtn = document.getElementById('aow-chest-btn');
+    if (chestBtn) chestBtn.onclick = depositChest;
+    const ironBtn = document.getElementById('aow-iron-btn');
+    if (ironBtn) ironBtn.onclick = placeIronWager;
+    const bondBtn = document.getElementById('aow-bond-btn');
+    if (bondBtn) bondBtn.onclick = buyBond;
+    const loanBtn = document.getElementById('aow-loan-btn');
+    if (loanBtn) loanBtn.onclick = takeLoan;
+    const hallBtn = document.getElementById('aow-hall-btn');
+    if (hallBtn) hallBtn.onclick = buyHall;
+    const annalsBtn = document.getElementById('aow-annals-btn');
+    if (annalsBtn) annalsBtn.onclick = openAnnals;
+    const stdBtn = document.getElementById('aow-standard-btn');
+    if (stdBtn) stdBtn.onclick = raiseStandard;
+    const genBtn = document.getElementById('aow-general-btn');
+    if (genBtn) genBtn.onclick = welcomeGeneral;
+    const reuBtn = document.getElementById('aow-reunion-btn');
+    if (reuBtn) reuBtn.onclick = holdVetsReunion;
+    const pntBtn = document.getElementById('aow-painting-btn');
+    if (pntBtn) pntBtn.onclick = unveilPainting;
+    const salBtn = document.getElementById('aow-salute-btn');
+    if (salBtn) salBtn.onclick = fireFoundingSalute;
+    const rollBtn = document.getElementById('aow-roll-btn');
+    if (rollBtn) rollBtn.onclick = readMusterRoll;
+    const vbBtn = document.getElementById('aow-bench-btn');
+    if (vbBtn) vbBtn.onclick = sitVeteransBench;
+    const taleBtn = document.getElementById('aow-tale-btn');
+    if (taleBtn) taleBtn.onclick = hearCampfireTale;
+    const msongBtn = document.getElementById('aow-song-btn');
+    if (msongBtn) msongBtn.onclick = singMarchingSong;
+    const cacheBtn = document.getElementById('aow-cache-btn');
+    if (cacheBtn) cacheBtn.onclick = openCornerstoneCache;
+    const frescoBtn = document.getElementById('aow-fresco-btn');
+    if (frescoBtn) frescoBtn.onclick = walkTheFresco;
+    const guideBtn = document.getElementById('aow-guide-btn');
+    if (guideBtn) guideBtn.onclick = walkTheRecruit;
+    const markBtn = document.getElementById('aow-mark-btn');
+    if (markBtn) markBtn.onclick = addTheirPanel;
+    const lroomBtn = document.getElementById('aow-lroom-btn');
+    if (lroomBtn) lroomBtn.onclick = useLongRoom;
     const heroBtn = document.getElementById('aow-hero-btn');
     if (heroBtn) heroBtn.onclick = trySummonHero;
     const pauseBtn = document.getElementById('aow-pause-btn');
     if (pauseBtn) pauseBtn.onclick = () => setUserPaused(!userPaused);
+    const chainBtn = document.getElementById('aow-chain-btn');
+    if (chainBtn) chainBtn.onclick = openChain;
+    const chainClose = document.getElementById('aow-chain-close');
+    if (chainClose) chainClose.onclick = () => {
+      const m = document.getElementById('aow-chain-modal');
+      if (m) m.style.display = 'none';
+      setModalPaused(anyModalOpen());
+    };
+    const chainModal = document.getElementById('aow-chain-modal');
+    if (chainModal) chainModal.addEventListener('click', e => {
+      if (e.target !== chainModal) return;
+      chainModal.style.display = 'none';
+      setModalPaused(anyModalOpen());
+    });
     const achBtn = document.getElementById('aow-ach-btn');
     if (achBtn) achBtn.onclick = () => {
       renderAchievementsModal();
@@ -1162,6 +3144,35 @@ const AgeOfWarGame = (() => {
         });
       });
     }
+    // AOW-19: banner selector — same reset rule as difficulty, since a
+    // mid-run banner swap would be the same class of exploit.
+    const banEl = document.getElementById('aow-banner');
+    if (banEl) {
+      banEl.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.banner === warBanner);
+        btn.addEventListener('click', () => {
+          warBanner = BANNERS[btn.dataset.banner] ? btn.dataset.banner : 'none';
+          try { localStorage.setItem('aow-banner', warBanner); } catch {}
+          banEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+          reset();
+        });
+      });
+    }
+    // Endless-mode toggle. Like the difficulty switch it resets the run —
+    // flipping the win condition mid-run would be the same class of exploit
+    // GAME-1c closed for difficulty.
+    const relicBtn = document.getElementById('aow-relic-btn');
+    if (relicBtn) relicBtn.addEventListener('click', () => setUserPaused(true));
+    const endlessBtn = document.getElementById('aow-endless-btn');
+    if (endlessBtn) {
+      endlessBtn.classList.toggle('active', endlessMode);
+      endlessBtn.addEventListener('click', () => {
+        endlessMode = !endlessMode;
+        try { localStorage.setItem('aow-mode', endlessMode ? 'endless' : 'classic'); } catch {}
+        endlessBtn.classList.toggle('active', endlessMode);
+        reset();
+      });
+    }
     // Tab switching (Units / Turrets)
     document.querySelectorAll('.aow-tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -1181,6 +3192,13 @@ const AgeOfWarGame = (() => {
         return;
       }
       if (userPaused) return;  // only P (above) is live while user-paused
+      // AOW-10: while a War Council is open, 1/2 pick the boon instead of
+      // training units.
+      if (councilPending) {
+        const c = parseInt(e.key, 10);
+        if (c >= 1 && c <= councilPending.length) { chooseBoon(councilPending[c - 1].id); e.preventDefault(); }
+        return;
+      }
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 9) {
         const keys = visibleUnitKeys();
@@ -1196,6 +3214,57 @@ const AgeOfWarGame = (() => {
         e.preventDefault();
       } else if (e.key === 'h' || e.key === 'H') {
         trySummonHero();
+        e.preventDefault();
+      } else if (e.key === 'w' || e.key === 'W') {
+        soundWarcry();
+        e.preventDefault();
+      } else if (e.key === 'm' || e.key === 'M') {
+        hireMercs();
+        e.preventDefault();
+      } else if (e.key === 't' || e.key === 'T') {
+        digTrench();
+        e.preventDefault();
+      } else if (e.key === 'c' || e.key === 'C') {
+        challengeDuel();
+        e.preventDefault();
+      } else if (e.key === 'r' || e.key === 'R') {
+        repairBase();
+        e.preventDefault();
+      } else if (e.key === 'b' || e.key === 'B') {
+        fireBallista();
+        e.preventDefault();
+      } else if (e.key === 'v' || e.key === 'V') {
+        buyTent();
+        e.preventDefault();
+      } else if (e.key === 'n' || e.key === 'N') {
+        buyArmorer();
+        e.preventDefault();
+      } else if (e.key === 'f' || e.key === 'F') {
+        buyFletcher();
+        e.preventDefault();
+      } else if (e.key === 'd' || e.key === 'D') {
+        buyDrillmaster();
+        e.preventDefault();
+      } else if (e.key === 'g' || e.key === 'G') {
+        buyPaymaster();
+        e.preventDefault();
+      } else if (e.key === 'k' || e.key === 'K') {
+        buyMasons();
+        e.preventDefault();
+      } else if (e.key === 'j' || e.key === 'J') {
+        depositChest();
+        e.preventDefault();
+      } else if (e.key === 'u' || e.key === 'U') {
+        placeIronWager();
+        e.preventDefault();
+      } else if (e.key === 'i' || e.key === 'I') {
+        buyBond();
+        e.preventDefault();
+      } else if (e.key === 'l' || e.key === 'L') {
+        takeLoan();
+        e.preventDefault();
+      } else if (e.key === 'e' || e.key === 'E') {
+        buyHall();
         e.preventDefault();
       }
     });
@@ -1278,6 +3347,8 @@ const AgeOfWarGame = (() => {
   }
 
   function enemyTick(dt) {
+    // AOW-10: the enemy holds while a War Council decision is open.
+    if (councilPending) { waveBreatherT = Math.max(waveBreatherT, 0.5); }
     // Wave breather (gap between waves)
     if (waveBreatherT > 0) {
       waveBreatherT -= dt;
@@ -1287,13 +3358,19 @@ const AgeOfWarGame = (() => {
     if (waveEnemiesRemaining <= 0) {
       // Boss wave check: ended via boss death — credit + advance.
       if (bossWaveActive && !bossKilledThisWave) return;  // wait for boss
+      resolveIronWager();   // AOW-32: the herald settles at the wave's turn
+      resolveBond();   // AOW-33: and the underwriter squares the ledger
       waveNum++;
+      recordWave(waveNum);   // AOW-36: the Chronicle sees every wave reached
       bossWaveActive = isBossWave(waveNum);
       bossKilledThisWave = false;
+      // AOW-10: every 5 waves survived, the council convenes.
+      if (endlessMode && waveNum > 1 && (waveNum - 1) % 5 === 0) openCouncil();
       // Smaller first few waves, gentler growth.
       waveEnemiesRemaining = bossWaveActive ? 1 : (2 + Math.floor(waveNum * 0.35));
       waveBreatherT = bossWaveActive ? 4.0 : 3.0;
       // Announce
+      if (!bossWaveActive) postBounty(); else bounty = null;   // AOW-25: the board re-posts each wave
       const txt = bossWaveActive ? `BOSS WAVE ${waveNum}` : `WAVE ${waveNum}`;
       ageBannerText = txt;
       ageBannerT = 1.8;
@@ -1305,7 +3382,7 @@ const AgeOfWarGame = (() => {
     // Enemy era catch-up: faster so player isn't always fighting much
     // weaker enemies (which made the mid-game trivial).
     if (enemyEra < playerEra && Math.random() < 0.45) enemyEra++;
-    const choices = unitsForEra(enemyEra);
+    const choices = unitsForEra(enemyEra).filter(k => !UNITS[k].role);
     if (bossWaveActive && waveEnemiesRemaining === 1) {
       // Spawn a single beefy boss instead of normal unit.
       // Boss strength now scales with wave# rather than a flat 5x, so
@@ -1324,6 +3401,15 @@ const AgeOfWarGame = (() => {
       // wave 5 -> ~2.4x HP, wave 10 -> ~3.2x, wave 15 -> ~3.9x, cap ~5x.
       const hpScale  = Math.min(5.0, 2.4 + (waveNum - 5) * 0.15);
       const dmgScale = Math.min(2.4, 1.3 + (waveNum - 5) * 0.08);
+      // AOW-18: a named warlord's quirk rides the spawn overrides so the
+      // shared UNITS entry stays generic, same as the wave scaling.
+      const wl = warlordForWave(waveNum);
+      let hpS = hpScale, dmgS = dmgScale;
+      if (wl) {
+        if (wl.trait === 'brute')    dmgS *= 1.4;
+        if (wl.trait === 'ironhide') hpS *= 1.4;
+        if (wl.trait === 'butcher')  { dmgS *= 1.25; hpS *= 1.15; }
+      }
       if (!UNITS[bossKey]) {
         UNITS[bossKey] = {
           ...baseDef,
@@ -1337,14 +3423,24 @@ const AgeOfWarGame = (() => {
       // UNITS[bossKey] entry stays generic (era-scaling lives on the
       // instance, matching the old per-wave-key numbers exactly).
       const bossUnit = spawnUnit('enemy', bossKey, {
-        hp:  Math.round(baseDef.hp  * hpScale),
-        dmg: Math.round(baseDef.dmg * dmgScale),
+        hp:  Math.round(baseDef.hp  * hpS),
+        dmg: Math.round(baseDef.dmg * dmgS),
       });
       if (bossUnit) {
         bossUnit.w = Math.round(bossUnit.w * 1.7);
         bossUnit.h = Math.round(bossUnit.h * 1.5);
         bossUnit.isBoss = true;
         bossUnit.icon = '👑';
+        if (wl) {
+          bossUnit.warlord = wl;
+          bossUnit.name = wl.name;
+          bossUnit.icon = wl.icon;
+          if (wl.trait === 'swift')   bossUnit.speed = Math.round(bossUnit.speed * 1.33);
+          if (wl.trait === 'hoarder') bossUnit.gold  = bossUnit.gold * 2;
+          ageBannerText = `⚔ ${wl.name} leads the horde — ${wl.blurb}!`;
+          ageBannerT = 2.2;
+          SFX.warn && SFX.warn();
+        }
       }
       waveEnemiesRemaining = 0;  // breather waits for boss death
     } else {
@@ -1414,17 +3510,22 @@ const AgeOfWarGame = (() => {
     // waves don't also starve the player economically.
     goldTrickleT -= dt;
     if (goldTrickleT <= 0) {
-      gold += Math.round((9 + playerEra * 4) * DIFFICULTIES[difficulty].goldMult);
+      payTrickle();   // AOW-29: the paymaster's ledger runs the treasury
       goldTrickleT = 1.0;
-      renderHud();
     }
 
     // Tick the training queue: front entry trains down, spawns when done.
     tickTraining(dt);
     if (specialReadyT > 0) {
       specialReadyT = Math.max(0, specialReadyT - dt);
+      warcryT = Math.max(0, warcryT - dt);
+      warcryCd = Math.max(0, warcryCd - dt);
       renderHud();
     }
+    mercCd = Math.max(0, mercCd - dt);   // AOW-15 — the rearm never stalls
+    sapperCd = Math.max(0, sapperCd - dt);   // AOW-22 — same clock
+    boltCd = Math.max(0, boltCd - dt);   // AOW-23 — and the winch
+    trenchT = Math.max(0, trenchT - dt); trenchCd = Math.max(0, trenchCd - dt);   // AOW-20
 
     enemyTick(dt);
     enemyTechTick(dt);
@@ -1439,7 +3540,33 @@ const AgeOfWarGame = (() => {
       comboT -= dt;
       if (comboT <= 0) { combo = 0; }
     }
+    if (councilBoons.masons && !gameOver && playerBaseHp > 0)   // AOW-10
+      playerBaseHp = Math.min(playerBaseMax, playerBaseHp + 3 * dt);
     runStats.time += dt;
+
+    // Overtime (AOW-7): after 6 minutes in classic mode, both bases take
+    // escalating chip damage — whoever built the bigger HP lead (or ends
+    // the game first) wins, so a turtled stalemate can't run forever.
+    // Endless mode is exempt: its economy already forces engagement.
+    if (!endlessMode && !gameOver) {
+      if (!overtimeWarned && runStats.time >= OVERTIME_AT - 30) {
+        overtimeWarned = true;
+        ageBannerText = '⚡ OVERTIME IN 30s — BASES WILL TAKE CHIP DAMAGE';
+        ageBannerT = 2.4;
+      }
+      if (runStats.time >= OVERTIME_AT) {
+        if (!overtimeOn) {
+          overtimeOn = true;
+          ageBannerText = '⚡ OVERTIME — FINISH IT';
+          ageBannerT = 2.4;
+          SFX.hit();
+        }
+        // 2 hp/s at the whistle, +2 every 30s of overtime.
+        const rate = 2 + Math.floor((runStats.time - OVERTIME_AT) / 30) * 2;
+        playerBaseHp -= rate * dt;
+        enemyBaseHp -= rate * dt;
+      }
+    }
     // Screen shake decay
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
     else            shakeMag *= 0.85;
@@ -1465,6 +3592,11 @@ const AgeOfWarGame = (() => {
     for (const u of units) {
       if (u.hp <= 0) continue;
       u.hitFlash = Math.max(0, u.hitFlash - dt);
+      u.aliveT += dt;
+      if (u.side === 'player' && councilBoons.medics && u.hp < u.hpMax)   // AOW-10
+        u.hp = Math.min(u.hpMax, u.hp + 2 * dt);
+      triageTick(u, dt);   // AOW-24 — the tent works the rear line
+      if (u.role === 'wall') continue;   // walls just stand there and take it
       const ownBucket = u.side === 'player' ? playerBucket : enemyBucket;
       const foeBucket  = u.side === 'player' ? enemyBucket  : playerBucket;
       let target = null, bestDist = Infinity;
@@ -1494,14 +3626,21 @@ const AgeOfWarGame = (() => {
       u.attackPose = Math.max(0, u.attackPose - dt);
       if (dist > u.range) {
         if (!ahead) {
-          u.x += dirX * u.speed * dt;
+          let step = u.speed;
+          // AOW-20: enemies wading the trench move at half speed
+          if (u.side === 'enemy' && trenchT > 0 && Math.abs(u.x - trenchX) < TRENCH_W) {
+            step *= TRENCH_SLOW;
+            if (!u._trenchHit) { u._trenchHit = true; runStats.trenchSlowed = (runStats.trenchSlowed || 0) + 1; }
+          }
+          u.x += dirX * step * dt;
           u.walkPhase += dt * 7;
         }
         u.atkT = Math.max(0, u.atkT - dt);
       } else {
         u.atkT -= dt;
         if (u.atkT <= 0) {
-          u.atkT = u.atkSpd;
+          // AOW-13: rallied friendlies swing 50% faster while the horns sound
+          u.atkT = u.atkSpd / (u.side === 'player' && warcryT > 0 ? WARCRY_HASTE : 1);
           u.attackPose = 0.22;  // hold strike pose ~220ms
           if (isBase) {
             // GAME-1a: reuse the same projectile/impact path unit-vs-unit
@@ -1514,19 +3653,22 @@ const AgeOfWarGame = (() => {
               const arc = projectileArc(kind, dist, 360);
               projectiles.push({
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
-                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                vx: dirX * 360, dmg: vetDmg(u), life: 1.5, color: u.color,
                 kind, vy: arc.vy, grav: arc.grav,
                 trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
-              if (u.side === 'player') enemyBaseHp -= u.dmg;
-              else                   { playerBaseHp -= u.dmg; vibrateBaseHit(); }
-              spawnDmgFloater(u.dmg, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
+              const dd0 = vetDmg(u);
+              // AOW-14: plating blunts hits on the player base only
+              const dd = u.side === 'player' ? dd0 : Math.max(1, Math.round(dd0 * armorMult()));
+              if (u.side === 'player') enemyBaseHp -= dd;
+              else                   { playerBaseHp -= dd; vibrateBaseHit(); }
+              spawnDmgFloater(dd, baseTargetX, GROUND_Y - 90, u.side === 'player' ? '#F85149' : '#fcd34d');
               spawnHitSparks(baseTargetX, GROUND_Y - 90, u.color);
               SFX.hit();
               // Heavy hit = noticeable shake; small hit = light shake.
-              shake(Math.min(8, 1 + u.dmg / 80), 0.18);
+              shake(Math.min(8, 1 + vetDmg(u) / 80), 0.18);
             }
           } else if (target) {
             if (u.range > 60) {
@@ -1534,14 +3676,15 @@ const AgeOfWarGame = (() => {
               const arc = projectileArc(kind, dist, 360);
               projectiles.push({
                 side: u.side, x: u.x, y: GROUND_Y - u.h * 0.6 - u.yOffset,
-                vx: dirX * 360, dmg: u.dmg, life: 1.5, color: u.color,
+                vx: dirX * 360, dmg: vetDmg(u), life: 1.5, color: u.color,
                 kind, vy: arc.vy, grav: arc.grav,
                 trail: [],
               });
               muzzleFlashes.push({ x: u.x + dirX * 8, y: GROUND_Y - u.h * 0.6 - u.yOffset, t: 0.12, color: u.color });
             } else {
-              target.hp -= u.dmg; target.hitFlash = 0.2;
-              spawnDmgFloater(u.dmg, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
+              const dd = vetDmg(u);
+              target.hp -= dd; target.hitFlash = 0.2;
+              spawnDmgFloater(dd, target.x, GROUND_Y - target.h - 6, '#ffd2c0');
               spawnHitSparks(target.x, GROUND_Y - target.h * 0.5);
               SFX.hit();
             }
@@ -1571,8 +3714,17 @@ const AgeOfWarGame = (() => {
         if (p.y > GROUND_Y - 8) { p.y = GROUND_Y - 8; p.vy = 0; p.grav = 0; }
       }
       p.life -= dt;
-      const targets = units.filter(u => u.side !== p.side && u.hp > 0);
-      for (const u of targets) {
+      // Reuse this frame's per-side buckets, the same way the unit loop and
+      // fireTurrets above already do. This was the one collision scan still
+      // rebuilding a filtered array per projectile per frame — with the
+      // 150-per-side cap that's up to 300 units re-scanned and a fresh
+      // garbage array allocated for every projectile in flight, every frame.
+      // Kill resolution doesn't run until well below, so bucket membership
+      // is still exact here; liveness is checked at scan time because hp
+      // mutates as projectiles resolve within this very loop.
+      const foes = p.side === 'player' ? enemyBucket : playerBucket;
+      for (const u of foes) {
+        if (u.hp <= 0) continue;
         if (Math.abs(u.x - p.x) < (u.w / 2 + 6)) {
           u.hp -= p.dmg; u.hitFlash = 0.2;
           spawnDmgFloater(p.dmg, u.x, GROUND_Y - u.h - 6, '#ffd2c0');
@@ -1591,9 +3743,10 @@ const AgeOfWarGame = (() => {
           shake(Math.min(8, 1 + p.dmg / 80), 0.18);
           p.life = 0;
         } else if (p.side === 'enemy' && p.x <= PLAYER_BASE_X + BASE_W) {
-          playerBaseHp -= p.dmg;
+          const pd = Math.max(1, Math.round(p.dmg * armorMult()));   // AOW-14
+          playerBaseHp -= pd;
           vibrateBaseHit();
-          spawnDmgFloater(p.dmg, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
+          spawnDmgFloater(pd, PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, '#F85149');
           spawnHitSparks(PLAYER_BASE_X + BASE_W - 10, GROUND_Y - 90, p.color);
           SFX.hit();
           shake(Math.min(8, 1 + p.dmg / 80), 0.18);
@@ -1675,10 +3828,20 @@ const AgeOfWarGame = (() => {
           runStats.kills++;
           if (runStats.kills === 1) unlock('first_blood');
           if (combo > runStats.biggestCombo) runStats.biggestCombo = combo;
-          runStats.gold += u.gold * mult;
-          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult));
+          runStats.gold += u.gold * mult * boonGoldMult() * bannerGoldMult();
+          dropCoins(u.x, GROUND_Y - u.h, Math.round(u.gold * mult * boonGoldMult() * bannerGoldMult()));
+          bountyKill(u);   // AOW-25: the board keeps count
           if (u.isBoss) {
             bossKilledThisWave = true;
+            openWarChest(u.x, GROUND_Y - u.h - 56);   // AOW-31: the lid only lifts for a boss
+            if (u.warlord) {
+              runStats.warlordsSlain = (runStats.warlordsSlain || 0) + 1;
+              slainWarlords[u.warlord.name] = (slainWarlords[u.warlord.name] || 0) + 1;
+              saveWarlords();
+              unlock('warlord_1');
+              if (WARLORDS.every(w => slainWarlords[w.name])) unlock('warlord_all');
+              goldFloaters.push({ text: `⚔ ${u.warlord.name} has fallen!`, x: u.x, y: GROUND_Y - u.h - 30, color: '#fcd34d', t: 2.2 });
+            }
             shake(10, 0.5);
             ageFlash = Math.max(ageFlash, 0.4);
             // Boss explosion
@@ -1761,13 +3924,18 @@ const AgeOfWarGame = (() => {
         }
       } else if (!c.autoCollected) {
         c.landedT = (c.landedT || 0) + dt;
-        if (c.landedT >= 3.0) {
+        // AOW-17: with the Lodestone armed, coins leap to the purse the
+        // moment they settle — and they count as COLLECTED, so the
+        // Collector tallies fill hands-free.
+        if (c.landedT >= (runPerks.magnet ? 0.25 : 3.0)) {
           // Silent auto-collect: full value, no combo bonus, no toast spam.
           c.autoCollected = true;
-          gold += c.gold;
+          const kept = garnishCoins(c.gold);   // AOW-34: the lender reads the lodestone too
+          gold += kept;
+          if (runPerks.magnet) runStats.coinsCollected++;
           goldFloaters.push({
-            text: '+$' + c.gold, x: c.x, y: c.y - 14,
-            color: '#9ad48a', t: 0.9,
+            text: '+$' + kept, x: c.x, y: c.y - 14,
+            color: runPerks.magnet ? '#fcd34d' : '#9ad48a', t: 0.9,
           });
           c.t = 0;
         }
@@ -1775,18 +3943,55 @@ const AgeOfWarGame = (() => {
     }
     coinDrops = coinDrops.filter(c => c.t > 0);
 
+    // AOW-16: the brink. Checked before the end conditions so the rally
+    // fires the moment the line breaks, not after.
+    if (!lastStandUsed && !gameOver && playerBaseHp > 0 && playerBaseMax > 0
+        && playerBaseHp / playerBaseMax < LAST_STAND_AT) {
+      lastStandUsed = true;
+      let rallied = 0;
+      for (const u of units) {
+        if (u.side !== 'player') continue;
+        u.hp = Math.min(u.hpMax, u.hp + u.hpMax * 0.5);
+        if (u.aliveT < 25) u.aliveT = 25;   // the stripe is earned tonight
+        rallied++;
+      }
+      goldFloaters.push({ text: `🚩 LAST STAND! The garrison rallies${rallied ? ` — ${rallied} defender${rallied === 1 ? '' : 's'} healed` : ''}`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 170, color: '#f87171', t: 2.0 });
+      shake(8, 0.3);
+      ageFlash = Math.max(ageFlash, 0.5);
+      unlock('last_stand');
+    }
+
     // End conditions
     if (playerBaseHp <= 0 && !gameOver) {
       gameOver = true; running = false; outcome = 'lose';
+      if (endlessMode) recordBestRun();
       SFX.defeat();
       showOverlay(false);
     } else if (enemyBaseHp <= 0 && !gameOver) {
-      gameOver = true; running = false; outcome = 'win';
-      SFX.victory();
+      // Razing the stronghold is the same feat either way, so the win
+      // achievements unlock in both modes; only what happens NEXT differs.
       unlock('win_easy');
       if (difficulty === 'hard'   || difficulty === 'insane') unlock('win_hard');
       if (difficulty === 'insane') unlock('win_insane');
-      showOverlay(true);
+      if (!endlessMode) {
+        gameOver = true; running = false; outcome = 'win';
+        SFX.victory();
+        showOverlay(true);
+      } else {
+        // Endless: the enemy rebuilds tougher, pays out a razing bounty,
+        // and the waves keep coming.
+        strongholdsRazed++;
+        const bounty = Math.round(300 * Math.pow(1.5, strongholdsRazed - 1));
+        gold += bounty;
+        runStats.gold += bounty;
+        enemyBaseMax = Math.round(enemyBaseMax * 1.5);
+        enemyBaseHp = enemyBaseMax;
+        if (enemyEra < ERAS.length - 1) enemyEra++;
+        ageBannerText = `STRONGHOLD REBUILT · +$${bounty}`;
+        ageBannerT = 2.4;
+        SFX.victory();
+        shake(8, 0.4);
+      }
     }
 
     // Hero CD + achievement scans
@@ -1804,13 +4009,21 @@ const AgeOfWarGame = (() => {
       if (!t) continue;
       t.atkT = Math.max(0, t.atkT - dt);
       if (t.atkT > 0) continue;
-      // Find nearest opposing unit in range
+      // Targeting mode (IDEA-AOW-6): 'near' picks the closest threat (the
+      // default and the enemy AI's behavior), 'weak' snipes the lowest-HP
+      // unit to finish kills and pop coins, 'strong' focuses the beefiest
+      // target so tanks and bosses don't arrive at the base intact.
       const turretX = side === 'player' ? PLAYER_BASE_X + BASE_W * 0.85 : ENEMY_BASE_X + BASE_W * 0.15;
-      let target = null, bestDist = Infinity;
+      const mode = t.mode || 'near';
+      let target = null, bestScore = Infinity, bestDist = Infinity;
       for (const u of enemies) {
         if (u.hp <= 0) continue;
         const d = Math.abs(u.x - turretX);
-        if (d <= t.range && d < bestDist) { bestDist = d; target = u; }
+        if (d > t.range) continue;
+        const score = mode === 'weak' ? u.hp : mode === 'strong' ? -u.hp : d;
+        if (score < bestScore || (score === bestScore && d < bestDist)) {
+          bestScore = score; bestDist = d; target = u;
+        }
       }
       if (target) {
         const tKind = TURRET_PROJECTILE_KINDS[t.era] || null;
@@ -1823,7 +4036,8 @@ const AgeOfWarGame = (() => {
           kind: tKind, vy: tArc.vy, grav: tArc.grav,
         });
         muzzleFlashes.push({ x: turretX, y: GROUND_Y - 90, t: 0.12, color: t.color });
-        t.atkT = t.atkSpd;
+        t.atkT = t.atkSpd * (side === 'player' ? fletcherRateMult() : 1);   // AOW-27: fletched bolts nock faster
+        if (side === 'player' && fletcherBought) runStats.fletched = (runStats.fletched || 0) + 1;
       }
     }
   }
@@ -1883,6 +4097,7 @@ const AgeOfWarGame = (() => {
       }
     }
     if (collected > 0) {
+      collected = garnishCoins(collected);   // AOW-34: the lender's men stand at the pile
       gold += collected;
       runStats.coinsCollected += coinsHit;
       goldFloaters.push({
@@ -2287,9 +4502,10 @@ const AgeOfWarGame = (() => {
     ['#a9a0b8', '#dcc498'],  // industrial — smoggy sunset
     ['#5d8fb4', '#c2d0d8'],  // modern — overcast
     ['#2c3d80', '#7c92d2'],  // future — twilight
+    ['#170a2e', '#5a2a92'],  // singularity — violet void
   ];
-  const OG_SUN = ['#ffe488', '#fffaca', '#ff9c4a', null, '#a8e0ff'];
-  const OG_HILL = ['#d28a3a', '#3a8a3a', '#5a4a3a', '#3a4a48', '#2a3a68'];
+  const OG_SUN = ['#ffe488', '#fffaca', '#ff9c4a', null, '#a8e0ff', '#e0a8ff'];
+  const OG_HILL = ['#d28a3a', '#3a8a3a', '#5a4a3a', '#3a4a48', '#2a3a68', '#2a1548'];
   const OG_GROUND = ['#a9824e', '#88aa50', '#7a6648', '#6a7060', '#4a5a90'];
   // Grass/decor tint per era
   const GROUND_COLORS = OG_GROUND;
@@ -2310,6 +4526,7 @@ const AgeOfWarGame = (() => {
     { color: '#ffcc77', glow: 'rgba(255,180,100,0.30)', r: 16, x: 0.84, y: 70, halo: false },  // industrial — smoky sun
     { color: '#dde0e6', glow: 'rgba(220,225,235,0.25)', r: 13, x: 0.18, y: 56, halo: false },  // modern — overcast moon
     { color: '#7ec8ff', glow: 'rgba(120,200,255,0.55)', r: 20, x: 0.80, y: 64, halo: true },   // future — neon sun
+    { color: '#d88bff', glow: 'rgba(200,107,255,0.6)',  r: 22, x: 0.50, y: 56, halo: true },   // singularity — the tear itself
   ];
 
   function drawSunOrMoon(eraIdx) {
@@ -2356,6 +4573,16 @@ const AgeOfWarGame = (() => {
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(WIDTH, GROUND_Y); ctx.stroke();
+
+    // AOW-20: the dug trench — a dark churned band across midfield
+    if (trenchT > 0) {
+      const fadeT = Math.min(1, trenchT / 3);
+      ctx.fillStyle = `rgba(60, 40, 22, ${0.55 * fadeT})`;
+      ctx.fillRect(trenchX - TRENCH_W, GROUND_Y, TRENCH_W * 2, 26);
+      ctx.strokeStyle = `rgba(30, 20, 10, ${0.8 * fadeT})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(trenchX - TRENCH_W, GROUND_Y, TRENCH_W * 2, 26);
+    }
 
     // Deeper-front vertical vignette (the foreground recedes into shadow)
     const fade = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
@@ -2600,7 +4827,7 @@ const AgeOfWarGame = (() => {
       ctx.save();
       ctx.globalAlpha = 0.7;
       if (eraIdx === 2) drawConifer(s.x, scale, '#1f4520');
-      else if (eraIdx === 4) drawNeonPylon(s.x, scale);
+      else if (eraIdx >= 4) drawNeonPylon(s.x, scale);
       else drawTree(s.x, scale, '#1f5a25', '#3b8a3b');
       ctx.restore();
     }
@@ -2661,8 +4888,8 @@ const AgeOfWarGame = (() => {
         ctx.beginPath();
         ctx.moveTo(xi - 5, yi + 5); ctx.lineTo(xi + 5, yi + 5);
         ctx.stroke();
-      } else if (eraIdx === 4) {
-        // Future: glowing hex chips
+      } else if (eraIdx >= 4) {
+        // Future/Singularity: glowing hex chips
         ctx.fillStyle = 'rgba(110,196,255,0.45)';
         ctx.beginPath();
         ctx.arc(xi, yi + 4, 1.6, 0, Math.PI * 2);
@@ -3742,6 +5969,41 @@ const AgeOfWarGame = (() => {
   }
 
   // ---- Unit-specific drawers ----
+  // Walls: a squat stack of blocks in the unit colour; the era-4 energy
+  // barrier renders as a glowing translucent panel instead.
+  function drawWall(u, x, y, facing, walk, bodyColor) {
+    const w = u.w * 0.78, h = u.h * 0.6;
+    const baseY = y + u.h;                 // feet line
+    if (u.key === 'wall4' || u.key === 'wall5') {
+      ctx.fillStyle = 'rgba(76,201,240,0.28)';
+      ctx.strokeStyle = bodyColor;
+      ctx.lineWidth = 2.5;
+      ctx.fillRect(x - w / 2, baseY - h, w, h);
+      ctx.strokeRect(x - w / 2, baseY - h, w, h);
+      ctx.strokeStyle = 'rgba(76,201,240,0.5)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2, baseY - (h / 4) * i);
+        ctx.lineTo(x + w / 2, baseY - (h / 4) * i);
+        ctx.stroke();
+      }
+      return;
+    }
+    const rows = 4, cols = 3;
+    const bw = w / cols, bh = h / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const off = (r % 2) * (bw / 2);
+        const bx = x - w / 2 + c * bw + off - bw / 4;
+        ctx.fillStyle = (r + c) % 2 ? bodyColor : shadeColor(bodyColor, -18);
+        ctx.fillRect(bx, baseY - (r + 1) * bh, bw - 2, bh - 2);
+      }
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(x - w / 2 - bw / 4, baseY - h, w, 3);
+  }
+
   function drawGenericHumanoid(u, x, y, facing, walk, bodyColor) {
     const swing = walk * 3;
     const base = drawHumanoidBase(x, y, u.h, u.w, facing, swing, bodyColor, { skin: '#e8b48a' });
@@ -5951,6 +8213,7 @@ const AgeOfWarGame = (() => {
     laser:        drawLaserTrooper,
     mech:         drawMech,
     flier:        drawHover,
+    wall0: drawWall, wall1: drawWall, wall2: drawWall, wall3: drawWall, wall4: drawWall, wall5: drawWall,
     hero_grog:    drawHeroGrog,
     hero_paladin: drawHeroPaladin,
     hero_general: drawHeroGeneral,
@@ -6084,6 +8347,23 @@ const AgeOfWarGame = (() => {
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(255,80,255,0.6)'; ctx.shadowBlur = 8;
       ctx.fillText('👑 BOSS', u.x, feetY - drawH - 4);
+      ctx.shadowBlur = 0;
+    }
+
+    // Veterancy chevrons (AOW-5): gold stripes above the HP bar.
+    const _vt = (typeof vetTier === 'function') ? vetTier(u) : 0;
+    if (_vt > 0) {
+      ctx.strokeStyle = '#fcd34d';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'rgba(252,211,77,0.7)'; ctx.shadowBlur = 6;
+      for (let i = 0; i < _vt; i++) {
+        const yy = feetY - drawH - (isHero || isBoss ? 26 : 12) - i * 6;
+        ctx.beginPath();
+        ctx.moveTo(u.x - 6, yy);
+        ctx.lineTo(u.x, yy - 5);
+        ctx.lineTo(u.x + 6, yy);
+        ctx.stroke();
+      }
       ctx.shadowBlur = 0;
     }
 
@@ -6312,13 +8592,445 @@ const AgeOfWarGame = (() => {
       specEl.disabled = specialReadyT > 0;
     }
 
+    // Warcry button (AOW-13)
+    const wcEl = document.getElementById('aow-warcry-btn');
+    const wcCdEl = document.getElementById('aow-warcry-cd');
+    if (wcEl) {
+      if (wcCdEl) wcCdEl.textContent = warcryT > 0 ? `⚔️ ${Math.ceil(warcryT)}s`
+        : playerEra < 1 ? 'AGE II' : warcryCd > 0 ? `${Math.ceil(warcryCd)}s` : 'READY';
+      wcEl.disabled = playerEra < 1 || warcryCd > 0 || warcryT > 0;
+    }
+
+    // Mercenary button (AOW-15)
+    const mcEl = document.getElementById('aow-merc-btn');
+    const mcCdEl = document.getElementById('aow-merc-cd');
+    if (mcEl) {
+      const mk = mercUnitKey();
+      if (mcCdEl) mcCdEl.textContent = mercCd > 0 ? `${Math.ceil(mercCd)}s` : mk ? `${mercCost()}g` : '—';
+      mcEl.disabled = mercCd > 0 || !mk;
+      if (mk) mcEl.title = `Hire mercenaries (M) — ${MERC_COUNT}× veteran ${UNITS[mk].name} walk on instantly for ${mercCost()} gold. ${MERC_CD}s rearm.`;
+    }
+
+    // Trench button (AOW-20)
+    const trEl = document.getElementById('aow-trench-btn');
+    const trCdEl = document.getElementById('aow-trench-cd');
+    if (trEl) {
+      if (trCdEl) trCdEl.textContent = trenchT > 0 ? `${Math.ceil(trenchT)}s ⛏️` : trenchCd > 0 ? `${Math.ceil(trenchCd)}s` : playerEra < 1 ? 'Age II' : 'ready';
+      trEl.disabled = trenchCd > 0 || playerEra < 1;
+    }
+
+    // Duel button (AOW-21)
+    const duEl = document.getElementById('aow-duel-btn');
+    const duCdEl = document.getElementById('aow-duel-cd');
+    if (duEl) {
+      const w = fieldWarlord();
+      if (duCdEl) duCdEl.textContent = w ? `${DUEL_COST}g` : '—';
+      duEl.disabled = !w;
+      duEl.title = w
+        ? `Challenge ${w.name} to single combat (C) — ${DUEL_COST} gold. Your foremost soldier steps out; odds ride raw stats. One challenge per warlord.`
+        : "Champion's Duel (C) — answers only while a named warlord leads an endless boss wave.";
+    }
+
+    // Repair button (AOW-22)
+    const rpEl = document.getElementById('aow-repair-btn');
+    const rpCdEl = document.getElementById('aow-repair-cd');
+    if (rpEl) {
+      const heal = sapperHeal();
+      if (rpCdEl) rpCdEl.textContent = playerEra < 1 ? 'Age II' : sapperCd > 0 ? `${Math.ceil(sapperCd)}s` : heal > 0 ? `${sapperCost()}g` : 'whole';
+      rpEl.disabled = playerEra < 1 || sapperCd > 0 || heal <= 0;
+      rpEl.title = heal > 0
+        ? `Call the Sappers (R) — patch +${heal} onto the walls for ${sapperCost()} gold. ${SAPPER_CD}s rearm.`
+        : 'Call the Sappers (R) — repairs a quarter of the base per call. The walls stand whole.';
+    }
+
+    // Ballista button (AOW-23)
+    const boEl = document.getElementById('aow-bolt-btn');
+    const boCdEl = document.getElementById('aow-bolt-cd');
+    if (boEl) {
+      if (boCdEl) boCdEl.textContent = playerEra < 2 ? 'Age III' : boltCd > 0 ? `${Math.ceil(boltCd)}s` : `${BOLT_COST}g`;
+      boEl.disabled = playerEra < 2 || boltCd > 0;
+      boEl.title = `Fire the Ballista (B) — skewer the foremost enemy and everyone within ${BOLT_BAND}px behind them for ${boltDmg()} damage. ${BOLT_CD}s winch. From Age III.`;
+    }
+
+    // Triage tent button (AOW-24)
+    const ttEl = document.getElementById('aow-tent-btn');
+    const ttCdEl = document.getElementById('aow-tent-cd');
+    if (ttEl) {
+      if (ttCdEl) ttCdEl.textContent = playerEra < 1 ? 'Age II' : tentBought ? 'up' : `${TENT_COST}g`;
+      ttEl.disabled = playerEra < 1 || tentBought;
+      ttEl.title = tentBought
+        ? `The triage tent stands — friendlies within ${TENT_RANGE}px of the base heal ${TENT_HEAL} hp/s. ${Math.round(runStats.triaged || 0)} hp patched this run.`
+        : `Raise the Triage Tent (V) — ${TENT_COST} gold, once per run: friendlies within ${TENT_RANGE}px of the base heal ${TENT_HEAL} hp/s.`;
+    }
+
+    // Bounty board (AOW-25)
+    const btyEl = document.getElementById('aow-bounty');
+    if (btyEl) {
+      if (bounty) {
+        btyEl.style.display = '';
+        btyEl.textContent = `🏷️ ${UNITS[bounty.key].icon} ${bounty.got}/${bounty.need} · ${bounty.reward}g`;
+        btyEl.title = `The bounty board: fell ${bounty.need} of the ${UNITS[bounty.key].name} line this wave for +${bounty.reward} gold. Re-posts each wave; lapses cost nothing.`;
+      } else btyEl.style.display = 'none';
+    }
+
+    // Armorer button (AOW-26)
+    const arEl = document.getElementById('aow-armor-btn');
+    const arCdEl = document.getElementById('aow-armor-cd');
+    if (arEl) {
+      if (arCdEl) arCdEl.textContent = playerEra < 1 ? 'Age II' : armorerBought ? 'issued' : `${ARMORER_COST}g`;
+      arEl.disabled = playerEra < 1 || armorerBought;
+      arEl.title = armorerBought
+        ? `The armorer works the barracks — every new recruit marches out at +15% hp. ${runStats.plated || 0} plated this run.`
+        : `Stand the Armorer (N) — ${ARMORER_COST} gold, once per run: every friendly trained after the buy marches out with +15% hp.`;
+    }
+
+    // Fletcher button (AOW-27)
+    const flEl = document.getElementById('aow-fletch-btn');
+    const flCdEl = document.getElementById('aow-fletch-cd');
+    if (flEl) {
+      if (flCdEl) flCdEl.textContent = playerEra < 1 ? 'Age II' : fletcherBought ? 'signed' : `${FLETCHER_COST}g`;
+      flEl.disabled = playerEra < 1 || fletcherBought;
+      flEl.title = fletcherBought
+        ? `The fletcher works the towers — every turret reloads 15% faster. ${runStats.fletched || 0} fletched shots this run.`
+        : `Sign the Fletcher (F) — ${FLETCHER_COST} gold, once per run: every turret reloads 15% faster.`;
+    }
+
+    // Drillmaster button (AOW-28)
+    const drEl = document.getElementById('aow-drill-btn');
+    const drCdEl = document.getElementById('aow-drill-cd');
+    if (drEl) {
+      if (drCdEl) drCdEl.textContent = playerEra < 1 ? 'Age II' : drillBought ? 'hired' : `${DRILL_COST}g`;
+      drEl.disabled = playerEra < 1 || drillBought;
+      drEl.title = drillBought
+        ? `The drillmaster runs the parade ground — every recruit trains 20% faster. ${runStats.drilled || 0} drilled this run.`
+        : `Hire the Drillmaster (D) — ${DRILL_COST} gold, once per run: every recruit trains 20% faster.`;
+    }
+
+    // Paymaster button (AOW-29)
+    const pmEl = document.getElementById('aow-pay-btn');
+    const pmCdEl = document.getElementById('aow-pay-cd');
+    if (pmEl) {
+      if (pmCdEl) pmCdEl.textContent = playerEra < 2 ? 'Age III' : paymasterBought ? 'seated' : `${PAYMASTER_COST}g`;
+      pmEl.disabled = playerEra < 2 || paymasterBought;
+      pmEl.title = paymasterBought
+        ? `The paymaster works the treasury — the trickle runs 25% richer. ${runStats.minted || 0} extra gold minted this run.`
+        : `Seat the Paymaster (G) — ${PAYMASTER_COST} gold, once per run: the every-second gold trickle runs 25% richer.`;
+    }
+
+    // Masons button (AOW-30)
+    const msEl = document.getElementById('aow-mason-btn');
+    const msCdEl = document.getElementById('aow-mason-cd');
+    if (msEl) {
+      if (msCdEl) msCdEl.textContent = playerEra < 2 ? 'Age III' : masonsBought ? 'mortared' : `${MASONS_COST}g`;
+      msEl.disabled = playerEra < 2 || masonsBought;
+      msEl.title = masonsBought
+        ? `The masons have been through — the walls stand ${runStats.mortared || 0} stone thicker, already healed.`
+        : `Call the Masons (K) — ${MASONS_COST} gold, once per run: the walls go up 25% thicker on the spot and the fresh stone lands healed.`;
+    }
+
+    // War Chest button (AOW-31)
+    const chEl = document.getElementById('aow-chest-btn');
+    const chCdEl = document.getElementById('aow-chest-cd');
+    if (chEl) {
+      if (chCdEl) chCdEl.textContent = playerEra < 1 ? 'Age II' : chestGold > 0 ? `${chestGold}g in` : `+${CHEST_DEPOSIT}g`;
+      chEl.disabled = playerEra < 1;
+      chEl.title = chestGold > 0
+        ? `The war chest holds ${chestGold} gold — it opens at 150% when a boss falls. A run that dies first loses it all. ${runStats.chested || 0} interest earned this run.`
+        : `The War Chest (J) — lock ${CHEST_DEPOSIT} gold per press; a fallen boss opens it at 150%. Die first and it's gone.`;
+    }
+
+    // Ironside Wager button (AOW-32)
+    const irEl = document.getElementById('aow-iron-btn');
+    const irCdEl = document.getElementById('aow-iron-cd');
+    if (irEl) {
+      if (irCdEl) irCdEl.textContent = playerEra < 1 ? 'Age II' : ironBet ? 'riding' : `${IRON_STAKE}g`;
+      irEl.disabled = playerEra < 1 || !!ironBet;
+      irEl.title = ironBet
+        ? `The wager rides — the walls must end this wave at or above ${Math.round(ironBet.hpAtBet)} hp. ${runStats.ironWon || 0} won, ${runStats.ironLost || 0} lost this run.`
+        : `The Ironside Wager (U) — ${IRON_STAKE} gold says the walls end this wave no worse than they stand right now. Held pays 2× at the wave's turn.`;
+    }
+
+    // Rebuilder's Bond button (AOW-33)
+    const bdEl = document.getElementById('aow-bond-btn');
+    const bdCdEl = document.getElementById('aow-bond-cd');
+    if (bdEl) {
+      if (bdCdEl) bdCdEl.textContent = playerEra < 1 ? 'Age II' : bond ? 'bonded' : `${BOND_COST}g`;
+      bdEl.disabled = playerEra < 1 || !!bond;
+      bdEl.title = bond
+        ? `The bond rides \u2014 end the wave below ${Math.round(bond.hpAtBond)} hp and the underwriter rebuilds half the loss. ${runStats.bondsPaid || 0} claimed, ${runStats.bondsExpired || 0} expired this run.`
+        : `The Rebuilder's Bond (I) \u2014 ${BOND_COST} gold insures the walls for this wave: end it below the signing mark and half the loss is rebuilt on the spot.`;
+    }
+
+    // War Loan button (AOW-34)
+    const lnEl = document.getElementById('aow-loan-btn');
+    const lnCdEl = document.getElementById('aow-loan-cd');
+    if (lnEl) {
+      if (lnCdEl) lnCdEl.textContent = playerEra < 1 ? 'Age II' : loan ? `${loan.owed}g owed` : `+${LOAN_PRINCIPAL}g`;
+      lnEl.disabled = playerEra < 1 || !!loan;
+      lnEl.title = loan
+        ? `The ledger reads ${loan.owed} gold \u2014 the lender takes every second coin off the field until it clears. ${runStats.loansCleared || 0} cleared this run.`
+        : `The War Loan (L) \u2014 ${LOAN_PRINCIPAL} gold now against ${LOAN_OWED} of the field's future coins, every second coin to the ledger. Borrowed tempo pays for its own vig.`;
+    }
+
+    // Veterans' Hall button (AOW-35)
+    const hlEl = document.getElementById('aow-hall-btn');
+    const hlCdEl = document.getElementById('aow-hall-cd');
+    if (hlEl) {
+      if (hlCdEl) hlCdEl.textContent = hallStanding ? 'stands' : playerEra < 1 ? 'Age II' : `${HALL_COST}g`;
+      hlEl.disabled = playerEra < 1 || hallStanding;
+      hlEl.title = hallStanding
+        ? `The Veterans\u2019 Hall stands \u2014 the first ${hallHasCollege() ? HALL_FIRST + 2 : hallHasMess() ? HALL_FIRST + 1 : HALL_FIRST} recruits of every muster arrive striped. ${runStats.hallVets || 0} drilled this run, ${hallRuns} muster${hallRuns === 1 ? '' : 's'} under its roof.` + (hallHasCollege() ? ' The war college is open \u2014 the first two recruits arrive Elite.' : hallHasMess() ? ' The officers\u2019 mess is open \u2014 the first recruit arrives Elite.' : '')
+        : `The Veterans\u2019 Hall (E) \u2014 ${HALL_COST} gold raises it once, forever: no defeat tears it down, and the first ${HALL_FIRST} recruits of every future muster march out already Veterans.`;
+    }
+
+    // Chronicle slate (AOW-36)
+    const crEl = document.getElementById('aow-chron-btn');
+    const crCdEl = document.getElementById('aow-chron-cd');
+    if (crEl) {
+      if (chronBest <= 0) { crEl.style.display = 'none'; }
+      else {
+        crEl.style.display = '';
+        if (crCdEl) crCdEl.textContent = `wave ${chronBest}`;
+        crEl.title = `The Chronicle of Wars \u2014 the deepest wave any war of yours has ever reached, kept across every defeat. Push past the mark that stood when you sat down and the scribes pay a relic, once a session. ${chronBeats} page${chronBeats === 1 ? '' : 's'} written.`;
+      }
+    }
+
+    // Regimental Annals slate (AOW-38)
+    const anEl = document.getElementById('aow-annals-btn');
+    const anCdEl = document.getElementById('aow-annals-cd');
+    if (anEl) {
+      if (!warHasAnnals()) { anEl.style.display = 'none'; }
+      else {
+        anEl.style.display = '';
+        if (anCdEl) anCdEl.textContent = `${loadAnnals().opens} read`;
+        anEl.title = `The Regimental Annals \u2014 everything this war remembers:\n` + composeAnnals().join('\n') + `\nClick to read them out over the field.`;
+      }
+    }
+
+    // The Old Standard (AOW-39)
+    const stEl = document.getElementById('aow-standard-btn');
+    const stCdEl = document.getElementById('aow-standard-cd');
+    if (stEl) {
+      if (!stdHasColors()) { stEl.style.display = 'none'; }
+      else {
+        stEl.style.display = '';
+        stEl.style.opacity = standardRaised ? '0.45' : '';
+        if (stCdEl) stCdEl.textContent = standardRaised ? 'raised' : `+${stdPower()}g`;
+        stEl.title = standardRaised
+          ? 'The Old Standard already flies \u2014 it rises once a session.'
+          : `The Old Standard \u2014 the colors every fallen war marched under. Raise them and the men dig in: +${stdPower()} gold, carried by the Chronicle\u2019s pages and the dispatches taken. Raised ${loadStd().uses} time${loadStd().uses === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Old General (AOW-44)
+    const genEl = document.getElementById('aow-general-btn');
+    const genCdEl = document.getElementById('aow-general-cd');
+    if (genEl) {
+      if (!genHasStory()) { genEl.style.display = 'none'; }
+      else {
+        genEl.style.display = '';
+        genEl.style.opacity = generalCame ? '0.45' : '';
+        if (genCdEl) genCdEl.textContent = generalCame ? 'reviewed' : `+${genPurse()}g`;
+        genEl.title = generalCame
+          ? 'The Old General has already reviewed the troops \u2014 he rides once a session.'
+          : `The Old General \u2014 he rides out for any army with a story. Welcome him and his purse opens: +${genPurse()} gold, deepened by every page beneath the laurel. He has reviewed the troops ${loadGen().visits} time${loadGen().visits === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Veterans' Reunion (AOW-46)
+    const reuEl = document.getElementById('aow-reunion-btn');
+    const reuCdEl = document.getElementById('aow-reunion-cd');
+    if (reuEl) {
+      if (!vreunionStands()) { reuEl.style.display = 'none'; }
+      else {
+        reuEl.style.display = '';
+        reuEl.style.opacity = vetsReunionHeld ? '0.45' : '';
+        if (reuCdEl) reuCdEl.textContent = vetsReunionHeld ? 'mustered' : `+${vreunionPurse()}g`;
+        reuEl.title = vetsReunionHeld
+          ? 'The Veterans\u2019 Reunion has already mustered \u2014 once a session, the men have wars to rest from.'
+          : `The Veterans' Reunion \u2014 the whole story stands: the laurel's pages and the general's reviews. Muster them and every old campaigner brings a purse: +${vreunionPurse()} gold. Held ${loadVReunion().held} time${loadVReunion().held === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Campaign Painting (AOW-47)
+    const pntEl = document.getElementById('aow-painting-btn');
+    const pntCdEl = document.getElementById('aow-painting-cd');
+    if (pntEl) {
+      if (!paintingHangs()) { pntEl.style.display = 'none'; }
+      else {
+        pntEl.style.display = '';
+        pntEl.style.opacity = paintingUnveiled ? '0.45' : '';
+        if (pntCdEl) pntCdEl.textContent = paintingUnveiled ? 'unveiled' : `+${paintingPurse()}g`;
+        pntEl.title = paintingUnveiled
+          ? 'The Campaign Painting has been unveiled this session \u2014 the canvas keeps.'
+          : `The Campaign Painting \u2014 the muster on canvas, hung in the hall. Unveil it and the patrons pay: +${paintingPurse()} gold. Unveiled ${loadPainting().looks} time${loadPainting().looks === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Founding Salute (AOW-48)
+    const salEl = document.getElementById('aow-salute-btn');
+    const salCdEl = document.getElementById('aow-salute-cd');
+    if (salEl) {
+      if (!saluteStands()) { salEl.style.display = 'none'; }
+      else {
+        salEl.style.display = '';
+        salEl.style.opacity = saluteFired ? '0.45' : '';
+        if (salCdEl) salCdEl.textContent = saluteFired ? 'fired' : `+${salutePurse()}g`;
+        salEl.title = saluteFired
+          ? 'The Founding Salute has fired this session \u2014 the powder is spent.'
+          : `The Founding Salute \u2014 three unveilings and the founding day gets its due. Fire it and the patrons stand a round: +${salutePurse()} gold. Fired ${loadSalute().toasts} time${loadSalute().toasts === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Muster Roll (AOW-49)
+    const rollEl = document.getElementById('aow-roll-btn');
+    const rollCdEl = document.getElementById('aow-roll-cd');
+    if (rollEl) {
+      if (!rollHangs()) { rollEl.style.display = 'none'; }
+      else {
+        rollEl.style.display = '';
+        rollEl.style.opacity = rollRead ? '0.45' : '';
+        if (rollCdEl) rollCdEl.textContent = rollRead ? 'read' : `+${rollPurse()}g`;
+        rollEl.title = rollRead
+          ? 'The Muster Roll has been read this session \u2014 the names keep.'
+          : `The Muster Roll \u2014 three salutes and every campaigner who ever answered the horns signs in by the hall door. Read it and one of the names sends gold: +${rollPurse()} gold. Read ${loadRoll().leafs} time${loadRoll().leafs === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Veterans' Bench (AOW-50)
+    const vbEl = document.getElementById('aow-bench-btn');
+    const vbCdEl = document.getElementById('aow-bench-cd');
+    if (vbEl) {
+      if (!vbenchBuilt()) { vbEl.style.display = 'none'; }
+      else {
+        vbEl.style.display = '';
+        vbEl.style.opacity = vbenchSat ? '0.45' : '';
+        if (vbCdEl) vbCdEl.textContent = vbenchSat ? 'sat' : `+${vbenchPurse()}g`;
+        vbEl.title = vbenchSat
+          ? 'The Veterans\u2019 Bench has had its sit this session \u2014 the seat keeps.'
+          : `The Veterans' Bench \u2014 three readings of the roll and the veterans built a seat outside the hall. Sit, and an old campaigner sits down with a purse: +${vbenchPurse()} gold. Sat ${loadVBench().sits} time${loadVBench().sits === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Campfire Tale (AOW-51)
+    const taleEl = document.getElementById('aow-tale-btn');
+    const taleCdEl = document.getElementById('aow-tale-cd');
+    if (taleEl) {
+      if (!taleReady()) { taleEl.style.display = 'none'; }
+      else {
+        taleEl.style.display = '';
+        taleEl.style.opacity = taleTold ? '0.45' : '';
+        if (taleCdEl) taleCdEl.textContent = taleTold ? 'told' : `+${talePurse()}g`;
+        taleEl.title = taleTold
+          ? 'The Campfire Tale has been told this session \u2014 the fire burns low.'
+          : `The Campfire Tale \u2014 three sits on the bench and the oldest campaigner has the whole war by heart. Hear it, and somebody around the fire pays for the next chapter: +${talePurse()} gold. Told ${loadTale().tellings} time${loadTale().tellings === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Marching Song (AOW-52)
+    const msongEl = document.getElementById('aow-song-btn');
+    const msongCdEl = document.getElementById('aow-song-cd');
+    if (msongEl) {
+      if (!msongReady()) { msongEl.style.display = 'none'; }
+      else {
+        msongEl.style.display = '';
+        msongEl.style.opacity = msongSung ? '0.45' : '';
+        if (msongCdEl) msongCdEl.textContent = msongSung ? 'sung' : `+${msongPurse()}g`;
+        msongEl.title = msongSung
+          ? 'The Marching Song has had its singing this session \u2014 the cadence keeps.'
+          : `The Marching Song \u2014 three hearings of the tale and the drummers set it to a cadence: the whole war, one song, every rank knows the words. Sing it, and the quartermaster finds a purse in the chorus: +${msongPurse()} gold. Sung ${loadMSong().sings} time${loadMSong().sings === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Cornerstone Cache (AOW-53)
+    const cacheEl = document.getElementById('aow-cache-btn');
+    const cacheCdEl = document.getElementById('aow-cache-cd');
+    if (cacheEl) {
+      if (!cacheSealed()) { cacheEl.style.display = 'none'; }
+      else {
+        cacheEl.style.display = '';
+        cacheEl.style.opacity = cacheOpened ? '0.45' : '';
+        if (cacheCdEl) cacheCdEl.textContent = cacheOpened ? 'opened' : `+${cachePurse()}g`;
+        cacheEl.title = cacheOpened
+          ? 'The Cornerstone Cache has had its opening this session \u2014 the stone keeps.'
+          : `The Cornerstone Cache \u2014 three sings of the song and the masons sealed one in the base's cornerstone. Open it, and there's a purse tucked in with the memories: +${cachePurse()} gold. Opened ${loadCache().opens} time${loadCache().opens === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Long Fresco (AOW-54)
+    const frescoEl = document.getElementById('aow-fresco-btn');
+    const frescoCdEl = document.getElementById('aow-fresco-cd');
+    if (frescoEl) {
+      if (!frescoPainted()) { frescoEl.style.display = 'none'; }
+      else {
+        frescoEl.style.display = '';
+        frescoEl.style.opacity = frescoWalked ? '0.45' : '';
+        if (frescoCdEl) frescoCdEl.textContent = frescoWalked ? 'walked' : `+${frescoPurse()}g`;
+        frescoEl.title = frescoWalked
+          ? 'The Long Fresco has had its walk this session \u2014 the wall keeps.'
+          : `The Long Fresco \u2014 three openings of the cache and the painters took the base's inner wall: the first muster, the bench, the fire, the cadence, the cornerstone seam. Walk it, and the purse walks with the ranks: +${frescoPurse()} gold. Walked ${loadFresco().walks} time${loadFresco().walks === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Recruit's Walk (AOW-55)
+    const guideEl = document.getElementById('aow-guide-btn');
+    const guideCdEl = document.getElementById('aow-guide-cd');
+    if (guideEl) {
+      if (!guidePosted()) { guideEl.style.display = 'none'; }
+      else {
+        guideEl.style.display = '';
+        guideEl.style.opacity = guideWalked ? '0.45' : '';
+        if (guideCdEl) guideCdEl.textContent = guideWalked ? 'walked' : `+${guidePurse()}g`;
+        guideEl.title = guideWalked
+          ? 'A recruit has had their walk down the fresco this session \u2014 the next one musters tomorrow.'
+          : `The Recruit's Walk \u2014 three walks of the fresco and the oldest sergeant takes every new recruit down it on their first morning, panel by panel. They fight like they were there for all of it: +${guidePurse()} gold. Walked ${loadGuide().walks} time${loadGuide().walks === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Recruit's Panel (AOW-56)
+    const markEl = document.getElementById('aow-mark-btn');
+    const markCdEl = document.getElementById('aow-mark-cd');
+    if (markEl) {
+      if (!markEarned()) { markEl.style.display = 'none'; }
+      else {
+        markEl.style.display = '';
+        markEl.style.opacity = markAdded ? '0.45' : '';
+        if (markCdEl) markCdEl.textContent = markAdded ? 'painted' : `+${markPurse()}g`;
+        markEl.title = markAdded
+          ? 'A panel went up this session \u2014 the wall grows at the pace recruits muster.'
+          : `The Recruit's Panel \u2014 three walks and the recruit taken down the fresco asks for the brush: the panel after the cornerstone seam, their own first muster, their own hand. The whole line falls out to watch: +${markPurse()} gold. Painted ${loadMark().panels} time${loadMark().panels === 1 ? '' : 's'}.`;
+      }
+    }
+
+    // The Long Room (AOW-57) -- one control, two stages: the purchase
+    // while it is unbuilt, the sitting once it stands.
+    const lroomEl = document.getElementById('aow-lroom-btn');
+    const lroomCdEl = document.getElementById('aow-lroom-cd');
+    if (lroomEl) {
+      if (!lroomOffered()) { lroomEl.style.display = 'none'; }
+      else if (!lroomBuilt()) {
+        lroomEl.style.display = 'inline-flex';
+        lroomEl.style.opacity = gold >= LROOM_COST ? '' : '0.45';
+        if (lroomCdEl) lroomCdEl.textContent = `${LROOM_COST}g`;
+        lroomEl.title = `The Long Room \u2014 the fresco has run out of wall. ${LROOM_COST} gold, once ever, takes the armoury wall out and runs the whole line through it: the roll, the cache stone, every panel to the newest hand, with room left at the end. Then sit in it once a session for +${lroomPurse()} gold.`;
+      } else {
+        lroomEl.style.display = 'inline-flex';
+        lroomEl.style.opacity = lroomSat ? '0.45' : '';
+        if (lroomCdEl) lroomCdEl.textContent = lroomSat ? 'sat' : `+${lroomPurse()}g`;
+        lroomEl.title = lroomSat
+          ? 'The muster has had its hour in the Long Room this session \u2014 the room keeps, and so does the line.'
+          : `The Long Room \u2014 an hour among the whole line: the roll, the stone, every panel since the first muster. The quartermaster pays for it: +${lroomPurse()} gold. Sat ${loadLroom().sits} time${loadLroom().sits === 1 ? '' : 's'}.`;
+      }
+    }
+
     // Wave indicator
     const waveEl = document.getElementById('aow-wave');
     const waveNumEl = document.getElementById('aow-wave-num');
     const waveSubEl = document.getElementById('aow-wave-sub');
     if (waveEl) {
       waveEl.classList.toggle('aow-wave-boss', bossWaveActive);
-      if (waveNumEl) waveNumEl.textContent = (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum;
+      if (waveNumEl) waveNumEl.textContent = (endlessMode ? '∞ ' : '') + (bossWaveActive ? 'BOSS · ' : '') + 'WAVE ' + waveNum
+        + (councilIcons() ? ' ' + councilIcons() : '');
       if (waveSubEl) {
         if (waveBreatherT > 0) waveSubEl.textContent = `next in ${Math.ceil(waveBreatherT)}s`;
         else if (bossWaveActive && !bossKilledThisWave) waveSubEl.textContent = 'kill the boss';
@@ -6459,6 +9171,7 @@ const AgeOfWarGame = (() => {
           <span class="aow-turret-current">${current.icon}<small>${current.name}</small></span>
           <div class="aow-turret-actions">
             ${nextDef ? `<button class="aow-turret-buy" data-slot="${i}" data-era="${next}">⬆️ ${nextDef.icon} $${nextDef.cost}</button>` : '<span class="aow-turret-maxed">MAX</span>'}
+            <button class="aow-turret-mode" data-mode-slot="${i}" title="Targeting: ${TURRET_MODE_LABELS[current.mode || 'near'].title} — click to cycle">${TURRET_MODE_LABELS[current.mode || 'near'].label}</button>
             <button class="aow-turret-sell" data-sell="${i}" title="Sell turret for $${refund}">Sell $${refund}</button>
           </div>
         `;
@@ -6471,6 +9184,21 @@ const AgeOfWarGame = (() => {
       }
       list.appendChild(slot);
     }
+    // AOW-14: the plating card rides at the end of the turret rack
+    const armor = document.createElement('div');
+    armor.className = 'aow-turret-slot';
+    if (armorTier >= ARMOR_MAX) {
+      armor.innerHTML = `<span class="aow-turret-current">🧱<small>Plating T${armorTier}</small></span><span class="aow-turret-maxed">MAX · −30% dmg</span>`;
+    } else {
+      armor.innerHTML = `
+        <span class="${armorTier ? 'aow-turret-current' : 'aow-turret-empty'}">${armorTier ? `🧱<small>Plating T${armorTier}</small>` : '🧱 base plating'}</span>
+        <button class="aow-turret-buy" id="aow-armor-buy" title="Each tier: the base takes 10% less damage this run">Reinforce · $${ARMOR_COSTS[armorTier]} (−${(armorTier + 1) * 10}%)</button>
+      `;
+    }
+    list.appendChild(armor);
+    const ab = document.getElementById('aow-armor-buy');
+    if (ab) ab.addEventListener('click', tryBuyArmor);
+
     list.querySelectorAll('.aow-turret-buy:not(.aow-turret-slot-buy)').forEach(b => {
       b.addEventListener('click', () => tryBuyTurret(+b.dataset.slot, +b.dataset.era));
     });
@@ -6480,38 +9208,114 @@ const AgeOfWarGame = (() => {
     list.querySelectorAll('.aow-turret-sell').forEach(b => {
       b.addEventListener('click', () => trySellTurret(+b.dataset.sell));
     });
+    list.querySelectorAll('.aow-turret-mode').forEach(b => {
+      b.addEventListener('click', () => {
+        const t = playerTurrets[+b.dataset.modeSlot];
+        if (!t) return;
+        t.mode = TURRET_MODE_ORDER[(TURRET_MODE_ORDER.indexOf(t.mode || 'near') + 1) % TURRET_MODE_ORDER.length];
+        SFX.click ? SFX.click() : 0;
+        renderTurretPanel();
+      });
+    });
   }
+
+  const TURRET_MODE_ORDER = ['near', 'weak', 'strong'];
+  const TURRET_MODE_LABELS = {
+    near:   { label: '🎯 Near',   title: 'nearest enemy' },
+    weak:   { label: '🎯 Weak',   title: 'lowest-HP enemy (finish kills)' },
+    strong: { label: '🎯 Strong', title: 'highest-HP enemy (focus tanks/bosses)' },
+  };
 
   // ---- Overlay ----
   function hideOverlay() {
     const ov = document.getElementById('aow-overlay');
     if (ov) ov.style.display = 'none';
   }
+  // Endless best run: waves survived is the score (dying during wave N
+  // means N-1 survived). Kept as small JSON under the 'aow-best-run' key the
+  // Reset button already clears.
+  let lastRunSummary = null;
+  function recordBestRun() {
+    const waves = Math.max(0, waveNum - 1);
+    let prev = null;
+    try { prev = JSON.parse(localStorage.getItem('aow-best-run') || 'null'); } catch {}
+    const isBest = !prev || waves > (prev.waves || 0);
+    const run = { waves, kills: runStats.kills, time: Math.round(runStats.time),
+                  strongholds: strongholdsRazed, difficulty,
+                  warlords: runStats.warlordsSlain || 0 };
+    if (isBest) { try { localStorage.setItem('aow-best-run', JSON.stringify(run)); } catch {} }
+    lastRunSummary = { run, prev, isBest };
+  }
+
   function showOverlay(won) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
+    const earned = relicsEarned(won);
+    relics += earned;
+    saveRelics();
+    const newTrials = checkTrials(won);   // AOW-9: feats this run achieved
+    pendingPerks = {};
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
     ov.style.display = 'flex';
     ov.innerHTML = `
       <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
-        ${won ? '🏆 VICTORY' : '💀 DEFEAT'}
+        ${won ? '🏆 VICTORY' : (endlessMode ? '☠️ RUN OVER' : '💀 DEFEAT')}
       </h2>
-      <p>${won ? 'You wiped the enemy base.' : 'Your base has fallen.'}</p>
+      <p>${won ? 'You wiped the enemy base.' : (endlessMode && lastRunSummary
+        ? `You survived <b style="color:#fcd34d">${lastRunSummary.run.waves}</b> wave${lastRunSummary.run.waves === 1 ? '' : 's'}`
+          + (lastRunSummary.run.strongholds ? ` and razed <b style="color:#fcd34d">${lastRunSummary.run.strongholds}</b> stronghold${lastRunSummary.run.strongholds === 1 ? '' : 's'}` : '')
+          + (lastRunSummary.isBest ? ' — <b style="color:#3FB950">NEW BEST!</b>'
+             : ` <span style="color:var(--text-dim)">(best: ${lastRunSummary.prev ? lastRunSummary.prev.waves : 0})</span>`)
+        : 'Your base has fallen.')}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Best Combo</div><div style="font-weight:800;font-size:18px;color:#ff77c8">×${Math.min(3, 1 + comboBest * 0.04).toFixed(1)}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Reached</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${ERAS[playerEra].name}</div></div>
       </div>
-      <p style="font-size:12px; color: var(--text-dim); margin-top:18px">Press SPACE or click Restart</p>
+      ${newTrials.length ? `<div style="margin-top:14px">${newTrials.map(t =>
+        `<div style="color:#3FB950;font-weight:800;font-size:14px">🏆 War Trial complete: ${t.icon} ${t.name} — +${t.reward}🏺</div>`).join('')}</div>` : ''}
+      <div id="relic-vault" style="margin-top:18px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
+        <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
+          🏺 Relics &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
+          <span style="color:var(--text-dim);font-weight:600;text-transform:none;letter-spacing:0"> — +${earned} this run (${runStats.gold}g looted · ${runStats.kills} kills${won ? ' · victory' : ''})</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center">
+          ${RELIC_PERKS.map(pk => `
+            <button class="relic-perk" data-perk="${pk.id}" title="${pk.desc}"
+              style="background:rgba(252,211,77,0.08);border:1px solid rgba(252,211,77,0.35);color:var(--text,#E6EDF3);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+              ${pk.icon} ${pk.name} <span style="color:#fcd34d">${pk.cost}🏺</span>
+            </button>`).join('')}
+        </div>
+        <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Buy a bonus for your NEXT run, then restart.</div>
+      </div>
+      <p style="font-size:12px; color: var(--text-dim); margin-top:14px">Press SPACE or click Restart</p>
     `;
+    ov.querySelectorAll('.relic-perk').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const pk = RELIC_PERKS.find(x => x.id === btn.dataset.perk);
+        const msg = document.getElementById('relic-msg');
+        if (pendingPerks[pk.id]) { msg.textContent = `${pk.name} already armed for the next run.`; return; }
+        if (relics < pk.cost) { msg.textContent = `Not enough relics for ${pk.name} (need ${pk.cost}).`; return; }
+        relics -= pk.cost;
+        saveRelics();
+        pendingPerks[pk.id] = true;
+        document.getElementById('relic-count').textContent = relics;
+        btn.style.background = 'rgba(63,185,80,0.2)';
+        btn.style.borderColor = '#3FB950';
+        msg.textContent = `${pk.name} armed — it applies when you restart.`;
+        SFX.gold && SFX.gold();
+      });
+    });
   }
 
   function destroy() {
     cancelAnimationFrame(rafId);
     running = false;
+    closeCouncil();
   }
 
-  return { init, start: reset, destroy };
+return { init, start: reset, destroy };
 })();

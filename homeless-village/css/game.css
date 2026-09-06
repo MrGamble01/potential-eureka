@@ -66,6 +66,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
 .action-btn:hover{background:rgba(180,120,40,.25);border-color:rgba(180,120,40,.6)}
 .action-btn:disabled{opacity:.35;cursor:not-allowed}
 .action-btn.active-job{border-color:#c84020;color:#e86040;animation:pulse-red 1.5s infinite}
+/* Proximity gate: still clickable (the click explains itself in the log),
+   but visibly dimmed and struck with a 🚶 hint until you reach a dumpster. */
+.action-btn.out-of-range{opacity:.45;border-style:dashed;filter:saturate(.4)}
+.action-btn.out-of-range::after{content:'🚶';position:absolute;right:8px;top:50%;transform:translateY(-50%)}
 @keyframes pulse-red{0%,100%{box-shadow:0 0 0 rgba(200,64,32,0)}50%{box-shadow:0 0 6px rgba(200,64,32,.5)}}
 
 #craft-panel{
@@ -135,9 +139,21 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   position:absolute;top:65px;left:50%;transform:translateX(-50%);
   display:none;background:rgba(200,40,20,.15);
   border:1px solid rgba(200,40,20,.4);border-radius:4px;
-  padding:6px 16px;font-size:11px;color:#e06040;letter-spacing:1px;
-  pointer-events:none;animation:blink-warn 1s infinite;
+  padding:6px 12px;font-size:11px;color:#e06040;letter-spacing:1px;
+  pointer-events:none;text-align:center;
 }
+/* The blink lives on the text, not the whole banner — a flashing button
+   would fight the player trying to click it. */
+#sweep-text{animation:blink-warn 1s infinite}
+#sweep-eta{margin-left:8px;font-weight:700;color:#f0a060}
+#pack-up-btn{
+  display:block;margin:6px auto 0;pointer-events:auto;cursor:pointer;
+  background:rgba(200,40,20,.25);color:#f0c8b0;
+  border:1px solid rgba(200,40,20,.55);border-radius:4px;
+  padding:4px 12px;font-family:inherit;font-size:11px;letter-spacing:1px;
+}
+#pack-up-btn:hover:not(:disabled){background:rgba(200,40,20,.45)}
+#pack-up-btn:disabled{cursor:default;color:#8fbf8f;border-color:rgba(80,160,80,.5);background:rgba(40,120,40,.18)}
 @keyframes blink-warn{0%,100%{opacity:1}50%{opacity:.4}}
 
 #workers-panel{
@@ -209,6 +225,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
    Side panels don't fit a phone: actions become a horizontal
    strip above the bottom bar, craft + community become a
    toggleable bottom sheet, top bar scrolls horizontally. */
+/* ── UI-3: the side panels learn to scroll ──
+   Both columns were laid out as "vertically centred, height whatever the
+   content is". That was fine when the lists were short. Seven rounds of new
+   ACTIONS rows later, #action-list measured 1035px tall in a 900px viewport:
+   the last two actions sat underneath #bottom-bar and could not be clicked,
+   and #craft-panel had grown down over #workers-panel far enough to bury five
+   craft buttons. Nothing scrolled, because nothing was ever bounded.
+
+   Desktop only — the <=700px block below already solves this its own way
+   (horizontal strip for actions, bottom sheet for crafting), so these rules
+   are scoped above that breakpoint and cannot reach it. */
+@media (min-width:701px){
+  /* Pinned between the top HUD and the community panel instead of centred,
+     so it can never grow down into it. */
+  #craft-panel{
+    top:64px;bottom:230px;transform:none;
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+  #workers-panel{
+    max-height:140px;
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+  /* Still centred, but bounded clear of the bottom bar. */
+  #action-panel{
+    max-height:calc(100vh - 150px);
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+}
+
 @media (max-width:700px){
   #craft-toggle{display:block}
 
@@ -273,3 +318,89 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:
   #event-banner{top:56px}
   #sweep-warning{top:52px}
 }
+
+/* HV-55: the Bridge — the memory chain, in order, with live state.
+   Homeless Village had no modal of any kind before this, so the shell
+   is built here rather than borrowed. */
+/* In the top bar rather than floated over the play area. The left and
+   right columns are both fully occupied by panels at desktop (craft
+   0–195, actions 1210–1400), so a floating button there covers action
+   rows — which is exactly what the reachability guard caught when this
+   first sat at bottom-right. The bar is the one place that cannot
+   collide with a panel. */
+#chain-btn{
+  cursor:pointer;
+  background:rgba(10,8,6,.6);border:1px solid rgba(120,80,40,.5);
+  color:#c8a060;font-size:11px;font-weight:bold;
+  font-family:'Courier New',monospace;
+  padding:4px 9px;border-radius:4px;white-space:nowrap;
+}
+#chain-btn:hover{background:rgba(20,16,10,.95);border-color:rgba(160,110,50,.7)}
+#chain-modal{
+  position:absolute;inset:0;z-index:90;
+  background:rgba(0,0,0,.82);
+  display:none;align-items:center;justify-content:center;
+  pointer-events:auto;
+}
+#chain-modal.open{display:flex}
+#chain-panel{
+  background:rgba(10,8,6,.97);border:1px solid rgba(120,80,40,.55);
+  border-radius:6px;padding:16px 18px;
+  width:min(460px,92vw);max-height:76vh;overflow-y:auto;
+  font-family:'Courier New',monospace;
+}
+#chain-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+#chain-title{font-size:14px;font-weight:bold;color:#e0c880;letter-spacing:1px;flex:1}
+#chain-progress{font-size:11px;color:#7a6040}
+#chain-close{background:none;border:none;color:#7a6040;font-size:20px;
+  cursor:pointer;line-height:1;padding:0 2px}
+#chain-close:hover{color:#e0c880}
+.chain-row{display:flex;justify-content:space-between;align-items:baseline;
+  gap:12px;padding:6px 9px;border-radius:4px;margin-bottom:3px;font-size:12px}
+.chain-row .chain-name{font-weight:bold;color:#d8c098}
+.chain-row .chain-note{opacity:.7;font-size:11px;white-space:nowrap;color:#8a7050}
+.chain-done{background:rgba(80,180,80,.13)}
+.chain-next{background:rgba(224,200,128,.15);outline:1px solid rgba(224,200,128,.4)}
+.chain-open{background:rgba(255,255,255,.05)}
+.chain-locked{opacity:.45}
+@media (max-width:700px){ #chain-btn{font-size:10px;padding:3px 7px} }
+
+/* HV-56: the opening. Five flagships greet a new player; this one dropped
+   them beside 47 live controls and said nothing. Same shell as #chain-modal
+   so the camp keeps one voice. */
+#help-btn{
+  background:rgba(10,8,6,.9);border:1px solid rgba(120,80,40,.55);
+  color:#c8a860;border-radius:4px;cursor:pointer;
+  font-family:'Courier New',monospace;font-size:12px;
+  line-height:1;padding:4px 9px;
+}
+#help-btn:hover{background:rgba(20,16,10,.95);border-color:rgba(160,110,50,.7);color:#e0c880}
+#intro-modal{
+  position:absolute;inset:0;z-index:95;
+  background:rgba(0,0,0,.86);
+  display:none;align-items:center;justify-content:center;
+  pointer-events:auto;
+}
+#intro-modal.open{display:flex}
+#intro-panel{
+  background:rgba(10,8,6,.97);border:1px solid rgba(120,80,40,.55);
+  border-radius:6px;padding:16px 18px;
+  width:min(520px,92vw);max-height:82vh;overflow-y:auto;
+  font-family:'Courier New',monospace;
+}
+#intro-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+#intro-title{font-size:14px;font-weight:bold;color:#e0c880;letter-spacing:1px;flex:1}
+#intro-close{background:none;border:none;color:#7a6040;font-size:20px;
+  cursor:pointer;line-height:1;padding:0 2px}
+#intro-close:hover{color:#e0c880}
+.intro-flavor{font-size:12px;color:#8a7050;margin-bottom:12px;font-style:italic}
+#intro-body{font-size:12.5px;line-height:1.75;color:#d8c098}
+#intro-body b{color:#e0c880}
+#intro-go{
+  display:block;width:100%;margin-top:16px;padding:9px;
+  background:rgba(120,80,40,.35);border:1px solid rgba(160,110,50,.7);
+  color:#e0c880;border-radius:4px;cursor:pointer;
+  font-family:'Courier New',monospace;font-size:13px;letter-spacing:.5px;
+}
+#intro-go:hover{background:rgba(160,110,50,.45)}
+@media (max-width:700px){ #help-btn{font-size:10px;padding:3px 7px} #intro-body{font-size:11.5px} }

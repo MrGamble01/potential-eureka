@@ -42,6 +42,38 @@ const WordFiveGame = (() => {
     buildKeyboard();
     updateHud();
     msg('');
+    shareBtn(false);
+  }
+
+  // ── P5: spoiler-free emoji result grid ──
+  function shareBtn(show) {
+    const b = document.getElementById('w5-share-btn');
+    if (b) b.style.display = show ? '' : 'none';
+  }
+  function shareText() {
+    const EMOJI = { correct: '🟩', present: '🟨', absent: '⬛' };
+    const head = `Word Five ${state === 'won' ? guesses.length : 'X'}/${ROWS}`;
+    const rows = guesses.map(g => score(g).map(s => EMOJI[s]).join(''));
+    return head + '\n\n' + rows.join('\n');
+  }
+  function share() {
+    if (state === 'playing') return;
+    const text = shareText();
+    const done = () => msg('Result copied — paste it anywhere!', 'good');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch { msg('Copy failed — long-press to select', 'bad'); }
+    ta.remove();
   }
 
   function buildGrid() {
@@ -150,6 +182,7 @@ const WordFiveGame = (() => {
         if (window.Effects) Effects.shakeCanvas(gridEl, 4, 200);
         msg(['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!', 'Phew!'][guessRow] + ' Streak: ' + streak, 'good');
         updateHud();
+        shareBtn(true);
       }, LEN * 130 + 60);
     } else if (row >= ROWS) {
       setTimeout(() => {
@@ -158,6 +191,7 @@ const WordFiveGame = (() => {
         Utils.sfx('die');
         msg('The word was ' + answer.toUpperCase(), 'bad');
         updateHud();
+        shareBtn(true);
       }, LEN * 130 + 60);
     }
   }
@@ -185,5 +219,5 @@ const WordFiveGame = (() => {
     if (boundKey) document.removeEventListener('keydown', boundKey);
   }
 
-  return { init, newGame, destroy };
+  return { init, newGame, share, destroy };
 })();

@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Voxel Isle — Sky Garden</title>
 <meta name="description" content="A cozy voxel garden on a floating island. Till, plant, water, harvest — grow your sky isle.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Voxel Isle — Sky Garden">
+<meta property="og:description" content="A cozy voxel farm-and-town builder on a floating sky island. Plant with the seasons, raise livestock, and grow a settlement in the clouds.">
+<meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/voxelisle.jpg">
+<meta property="og:url" content="https://potential-eureka-gilt.vercel.app/voxel-garden">
+<link rel="canonical" href="https://potential-eureka-gilt.vercel.app/voxel-garden">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root{
     --panel:#20262e; --panel2:#2a323c; --ink:#e8eef4; --dim:#9fb0bf;
@@ -12,8 +19,13 @@
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    background:#0e1830;color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
-  canvas{display:block}
+    background:#0e1830;color:var(--ink);user-select:none;-webkit-user-select:none}
+  /* touch-action lives on the canvas rather than the whole page, and the
+     viewport no longer carries user-scalable=no / maximum-scale=1 (A11Y-2 /
+     WCAG 1.4.4). The canvas keeps `none` because it consumes one-finger
+     drags to orbit and two-finger pinches to zoom the camera; the HUD and
+     panels around it are pinch-zoomable again. */
+  canvas{display:block;touch-action:none}
   .hud{position:fixed;z-index:10}
   .chip{background:rgba(18,24,32,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
     border-radius:12px;padding:8px 12px;font-size:14px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.35)}
@@ -122,7 +134,12 @@
     #coinChip{font-size:15px}
     #lvlChip{min-width:96px}
     #dayChip{font-size:12px}
-    #back{max-width:58vw;gap:6px}
+    /* UI-5: #topbar (the chips) and #back (the nav cluster) were both
+       pinned at top:10px and overlapped at phone width - the chips won
+       the hit test, so five nav buttons were not tappable at their own
+       centres. #back drops to its own row under the chips and spans the
+       full width so it wraps into two rows instead of three. */
+    #back{top:64px;left:10px;right:10px;max-width:none;gap:6px}
     #back a,#back button{padding:7px 8px;font-size:15px;min-width:38px;min-height:38px}
     #back a{font-size:11px}
     .panel{grid-template-columns:repeat(3,1fr);bottom:78px;max-width:96vw}
@@ -142,6 +159,42 @@
     #hotbar{bottom:8px}
   }
   @media (max-width:640px){ #goodsHud{font-size:12px;padding:5px 8px;gap:5px} }
+</style>
+<style>
+/* The chip tray (UI-2). Every chip below used to be its own position:fixed
+   element on a vertical ladder climbing to bottom:698px. At 1400x720 the top
+   of that ladder clipped off the screen, and at 650px three chips were gone.
+   They stack inside one scrollable column now, so the ladder reflows to the
+   viewport instead of climbing past it. Ordered by the bottom offset each
+   chip used to carry, so the visible order is unchanged. */
+#chain-modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.82);
+  display:none;align-items:center;justify-content:center}
+#chain-modal.open{display:flex}
+#chain-panel{background:rgba(10,8,14,.97);border:1px solid rgba(190,170,140,.5);
+  border-radius:8px;padding:16px 18px;width:min(470px,92vw);max-height:78vh;overflow-y:auto}
+#chain-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+#chain-title{font-size:14px;font-weight:800;color:#e8dcc4;letter-spacing:1px;flex:1}
+#chain-progress{font-size:11px;color:#9a8a70}
+#chain-close{background:none;border:none;color:#9a8a70;font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
+#chain-close:hover{color:#e8dcc4}
+.chain-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:6px 9px;border-radius:5px;margin-bottom:3px;font-size:12px}
+.chain-row .chain-name{font-weight:700;color:#e8dcc4}
+.chain-row .chain-note{opacity:.68;font-size:11px;white-space:nowrap;color:#9a8a70}
+.chain-done{background:rgba(90,190,110,.13)}
+.chain-next{background:rgba(240,210,140,.16);outline:1px solid rgba(240,210,140,.4)}
+.chain-open{background:rgba(255,255,255,.05)}
+.chain-locked{opacity:.45}
+#vox-tray{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:40;
+  display:flex;flex-direction:column-reverse;align-items:center;
+  gap:6px;
+  max-height:calc(100vh - 28px);
+  max-width:calc(100vw - 16px);
+  overflow-y:auto;overflow-x:hidden;
+  pointer-events:none;
+}
+#vox-tray > *{ pointer-events:auto;flex:0 0 auto; }
 </style>
 </head>
 <body>
@@ -206,11 +259,31 @@
     <li>Moonpetals only grow at night. The stars are good for something. 🌙</li>
     <li><b>🎣 Tap the pond</b> to fish &mdash; reel in 🐟🐠🦀 for coins (and goods for your stockpile); it freezes over in winter</li>
     <li>Seasons turn every 3 days &mdash; spring speeds growth, winter slows it and brings <b>snow</b> ❄️</li>
+    <li><b>🐦‍⬛ Crows</b> land on growing crops and peck growth away &mdash; <b>tap to shoo</b> them, or post a <b>🎃 scarecrow</b> to guard the plots around it</li>
+    <li><b>🧺 Flotsam</b> crates bob up in the pond &mdash; <b>tap to crack them open</b> (coins, sometimes a good) before they sink; a <b>⚓ Pier</b> doubles the traffic and the haul</li>
+    <li>A <b>🗼 Lighthouse</b> (level 8) shows the isle to the shipping lanes: passing freighters heave <b>📦 cargo crates</b> overboard &mdash; triple the coin and always carrying a good</li>
+    <li>The <b>🔭 Observatory</b> (level 9) charts the night sky: <b>✨ stardust falls twice as often</b> and every wish surges the crops <b>twice as hard</b></li>
+    <li>A <b>🌦️ Weather Vane</b> (level 6) reads the sky: every shower is <b>called half a minute out</b>, and rain <b>lingers 25% longer</b> over the isle</li>
+    <li><b>🎈 Balloon Tours</b> (level 10) lift sightseers over the isle every few minutes — <b>tips scale with every building standing</b> (grounded in rain and winter)</li>
+    <li>A <b>🕊️ Dovecote</b> (level 7) receives mainland letters — <b>small goods orders at a 75% premium</b>; tap the banner to send the dove home heavy (90s window)</li>
+    <li>The <b>🏮 Winter Market</b> (level 8) only opens in the snow — skaters cross the ice every couple of minutes, <b>paying 12 🪙 +3 per villager</b>, turning the dead season into a working one</li>
+    <li>The <b>🛖 Ice Hut</b> (level 8) sits out on the hard water &mdash; <b>ice fishing</b> opens the frozen pond: Arctic Char, Burbot and the pale 🌙 Moon Koi at a premium, all logged in the Angler&rsquo;s Log</li>
+    <li>The <b>⛴️ Ferry Landing</b> (level 6) brings day-trippers in the green seasons &mdash; the ferry docks every couple of minutes and the visitors <b>tip 8 🪙 +2 per decor piece</b> (capped at 40): the prettier the isle, the fatter the tips</li>
+    <li>The <b>🍁 Sugar Shack</b> (level 7) taps the maples &mdash; <b>spring boils every couple of minutes</b> pay 12 🪙, and a <b>boil in the rain runs double</b>: every season now has its own earner</li>
+    <li>The <b>🏛️ Isle Museum</b> (level 9) keeps a curator&rsquo;s cabinet &mdash; the <b>first of every species</b> you land is mounted for a <b>30 🪙 finder&rsquo;s bounty</b>, and the winter table counts: eight mounts fill the cabinet</li>
+    <li>The <b>🦉 Owl Roost</b> (level 8) works the night shift &mdash; <b>after dark the owl hunts every couple of minutes</b> for 9 🪙, and a <b>wet night pays double</b>: the balloon has the day, the owl has the dark</li>
+    <li>The <b>🐖 Truffle Pig</b> (level 9) works the after-rain &mdash; <b>every shower that passes</b>, she roots the wet ground for a <b>20 🪙 truffle</b>: the weather itself now pays out</li>
+    <li>The <b>🌽 Corn Crib</b> (level 8) buys peace with the crows &mdash; a raider that fills up at the crib <b>pecks less than half as hard</b> (0.15× a crop's growth instead of 0.35×), everywhere on the isle, forever</li>
+    <li>The <b>🫙 Preserve Shed</b> (level 8) jars the quiet days &mdash; <b>one preserve a day, four on the shelf</b>, and every seasonal <b>festival the crowd buys the whole shelf</b> at 12 🪙 a jar: patience, sold at a premium</li>
+    <li>The <b>🎲 Cloud Wager</b> (needs the 🌦️ vane) &mdash; tap the chip to stake <b>30 🪙 on rain inside 90 seconds</b>, paying 60: the vane calls showers half a minute early, so <b>a called sky is the whole edge</b></li>
+    <li>The <b>🛟 Assessor's Policy</b> &mdash; 25 🪙 insures the fields till dawn: <b>a landed crow peck pays 50 in damages</b>, a quiet day lapses the premium &mdash; the scarecrow and the crib are for prevention, <b>the policy is for the day they miss</b></li>
+    <li>The <b>📝 Trader's Note</b> (needs the Market) &mdash; <b>60 🪙 now against 75 of future trade</b>: half of every Market sale and Tavern meal rides the note till it clears &mdash; farm income and tips stay whole, <b>the debt is a lien on trade alone</b></li>
+    <li><b>✨ Stardust</b> falls from the night sky &mdash; tap the glowing shard before dawn; <b>three shards make a wish</b> and the whole garden surges</li>
     <li><b>🌸 In-season crops</b> &mdash; each seed has a <b>favoured season</b> (shown by its icon in the seed picker); plant it then and it <b>grows 1.5× faster and sells for +40%</b></li>
     <li>Press <b>F</b> (or 👁️) for <b>first person</b> &mdash; WASD walk, mouse look, click to use your tool, F/Esc to exit</li>
     <li>Hire <b>🧑‍🌾 villagers</b> (LV 3) &mdash; a crew that roams doing whatever&rsquo;s needed: harvest, collect goods, water &amp; tend animals. Build the Tavern to give them <b>roles</b> (tap a villager)</li>
     <li><b>🐮 Livestock</b> &mdash; buy a baby, <b>raise it</b>, then <b>tap to sell</b> for a lump sum, or keep it: grown animals drop 🥚🍄🧶🥛🧀 goods on the grass to collect. Keep a pair and they&rsquo;ll have <b>babies</b> ❤️</li>
-    <li><b>🐈 Companions</b> &mdash; a <b>cat</b> (with the Tavern), a coin-digging <b>dog</b> (with the Farmhouse), and a <b>duck</b> on the pond come to live on your isle &mdash; each has a name; <b>tap</b> to say hello</li>
+    <li><b>🐈 Companions</b> &mdash; a <b>cat</b> (with the Tavern), a coin-digging <b>dog</b> (with the Farmhouse), and a <b>duck</b> on the pond come to live on your isle &mdash; each has a name; <b>tap</b> to say hello. Greet the cat five times and it starts bringing you <b>little gifts</b></li>
     <li><b>🏘️ Town</b> &mdash; buy <b>land expansions</b> to raise new islets, then <b>buildings</b>: Tavern (roles), Market, Barn (more animals), Farmhouse (faster crops)</li>
     <li><b>🏪 Trader&rsquo;s Market</b> &mdash; once built, animal goods 🥚🧶 <i>and</i> your harvested crops 🌾 pile into a <b>stockpile</b> (top-left) that a roaming <b>Trader wagon</b> drives in to buy in bulk; tap the Market to sell on the spot</li>
     <li><b>🍺 Tavern</b> &mdash; besides unlocking roles, it <b>cooks &amp; serves your stockpiled goods</b> for a steady stream of coins (a bigger crew keeps it busier); when it <b>rains ☔</b>, the villagers duck inside to wait out the shower</li>
@@ -319,7 +392,17 @@ const SEASONS=[
   {key:'autumn',name:'Autumn',ico:'🍂',grass:0xa8a03c,growMult:0.9},
   {key:'winter',name:'Winter',ico:'❄️',grass:0xe6edf2,growMult:0.65},
 ];
-const seasonOf=day=>SEASONS[Math.floor((day-1)/SEASON_DAYS)%4];
+// JS keeps the sign through %, so a save carrying day:0 or day:-1 made this
+// return SEASONS[-1] — undefined — and the very first `.grass` read threw
+// before a single frame drew. seasonIndexOf is total: negative, non-finite
+// and non-numeric days all land in 0..3. load() repairs state.day as well,
+// so the isle doesn't merely stop crashing while showing "Day -999".
+const seasonIndexOf=day=>{
+  const d=Math.floor(Number(day));
+  if(!Number.isFinite(d))return 0;
+  return ((Math.floor((d-1)/SEASON_DAYS)%4)+4)%4;
+};
+const seasonOf=day=>SEASONS[seasonIndexOf(day)];
 const BLOCKS={
   1:{name:'Grass', ico:'🟩', top:0x6fc24e, side:0x7a5b3c, sideTint:0x5aa042, bottom:0x6b4a30, cost:2},
   2:{name:'Dirt',  ico:'🟫', top:0x8a6a42, side:0x82613c, bottom:0x6b4a30, cost:1},
@@ -674,25 +757,981 @@ function updateWater(){
 // Fishing: tap the pond to cast; after a beat you reel in a catch worth coins
 // (and, with a Market/Tavern, a 'fish' good for the stockpile). Frozen in winter.
 let fishingT=0;
+// VOX-2: real species carry an id + a size range (kg) for the Angler's
+// Log — per-species counts and record weights, kept in state.fishLog and
+// shown in the Almanac. The 🎏 Golden Koi is the pond's rare prize.
 const FISH_CATCH=[
-  {ico:'🐟',coins:14,w:5},{ico:'🐠',coins:26,w:3},{ico:'🦀',coins:20,w:2},
-  {ico:'🐡',coins:40,w:1},{ico:'🥾',coins:0,w:2},{ico:'🌿',coins:4,w:2}];
+  {id:'perch', name:'Perch',      ico:'🐟',coins:14, w:5,   min:0.4,max:2.5},
+  {id:'tropic',name:'Sunfin',     ico:'🐠',coins:26, w:3,   min:0.3,max:1.8},
+  {id:'crab',  name:'Crab',       ico:'🦀',coins:20, w:2,   min:0.5,max:3.0},
+  {id:'puffer',name:'Puffer',     ico:'🐡',coins:40, w:1,   min:0.8,max:4.0},
+  {id:'koi',   name:'Golden Koi', ico:'🎏',coins:120,w:0.35,min:2.0,max:8.0},
+  {ico:'🥾',coins:0,w:2},{ico:'🌿',coins:4,w:2}];
+// VOX-15: the winter table — hardy cold-water species at a premium, only
+// reachable through the Ice Hut's jig hole. The 🌙 Moon Koi is winter's
+// answer to the Golden Koi.
+const ICE_CATCH=[
+  {id:'char',  name:'Arctic Char',ico:'🐟',coins:34, w:5,   min:1.0,max:5.0},
+  {id:'burbot',name:'Burbot',     ico:'🐡',coins:48, w:3,   min:1.5,max:6.0},
+  {id:'icekoi',name:'Moon Koi',   ico:'🌙',coins:200,w:0.3, min:3.0,max:9.0},
+  {ico:'🧊',coins:6,w:2}];
+function icehutBuilt(){return !!(state.buildings&&state.buildings.icehut);}
+// VOX-18: the Isle Museum — a collection the whole pond feeds. The
+// FIRST of every species landed (either table) is mounted in the
+// curator's cabinet and pays a finder's bounty on the spot.
+const MUSEUM_BOUNTY=30;
+function museumBuilt(){return !!(state.buildings&&state.buildings.museum);}
+
+// VOX-19: the Owl Roost — night's own earner, the way the balloon
+// works the day, the market the snow and the ferry the green. After
+// dark the owl hunts every couple of minutes; a WET night drives the
+// voles from their burrows and the hunt pays double.
+function owlBuilt(){return !!(state.buildings&&state.buildings.owlroost);}
+function owlPay(){return rainActive?18:9;}
+let owlNextT=140+Math.random()*120;
+function updateOwlRoost(dt){
+  if(!owlBuilt())return;
+  if(!isNight())return;                    // she sleeps through the daylight
+  owlNextT-=dt;
+  if(owlNextT>0)return;
+  owlNextT=140+Math.random()*120;
+  const pay=owlPay();
+  const b=state.buildings.owlroost;
+  grantCoins(pay,b.x,2.8,b.z);
+  state.owlCatches=(state.owlCatches||0)+1;
+  toast(rainActive?'🦉 A wet-night hunt — the voles are out and the owl eats well: '+pay+' 🪙':'🦉 The owl ghosts over the beds and comes back heavy — '+pay+' 🪙');
+  checkAch();
+}
+
+// VOX-20: the Truffle Pig — the rain's own payoff. The owl works the
+// dark and the shack works the spring wet; the pig works the AFTER:
+// every shower that passes over the isle, she roots the soft ground
+// where it fell and comes up with a truffle.
+const TRUFFLE_PAY=20;
+function pigBuilt(){return !!(state.buildings&&state.buildings.trufflepig);}
+// VOX-21: the Corn Crib — architecture ends the crow war. A crow that
+// finds a free meal on the way in pecks the crops half-heartedly.
+const CRIB_BITE=0.15, CROW_BITE=0.35;
+function cribBuilt(){return !!(state.buildings&&state.buildings.corncrib);}
+// VOX-22: the Preserve Shed — the stored-value round on the isle's
+// own clock. Quiet days go into jars; festivals empty the shelf.
+const JAM_CAP=4, JAM_PAY=12;
+function jamBuilt(){return !!(state.buildings&&state.buildings.preserves);}
+function sellPreserves(){
+  if(!jamBuilt()||!(state.jars>0))return 0;
+  const jars=state.jars, pay=jars*JAM_PAY;
+  state.jars=0;
+  state.jamsSold=(state.jamsSold||0)+jars;
+  const b=state.buildings.preserves;
+  grantCoins(pay,(b.x||0)+0.5,2.6,(b.z||0)+0.5);
+  toast('🫙 The festival crowd clears the preserve shelf — '+jars+' jar'+(jars===1?'':'s')+' for '+pay+' 🪙!');
+  SFX.play('coin');
+  checkAch();
+  return pay;
+}
+let pigWasRaining=false;
+// VOX-25: the Trader's Note — the credit round closes on the isle.
+// The Trader advances 60 🪙 NOW against 75 of the isle's future
+// trade: half of every Market sale and Tavern meal goes to the note
+// until it clears. Farm income, tips and truffles stay whole — the
+// debt is a lien on TRADE, the Trader's own lane.
+const NOTE_ADV=60, NOTE_OWED=75;
+function takeTraderNote(){
+  if(!hasMarket()){toast('📝 The note needs a 🛒 Trader\u2019s Market to sign at.');return;}
+  if((state.traderNote||0)>0){toast('📝 The Trader taps the standing note — '+state.traderNote+' 🪙 still owed.');return;}
+  state.traderNote=NOTE_OWED;
+  grantCoins(NOTE_ADV,undefined,undefined,undefined);
+  toast('📝 The Trader counts out '+NOTE_ADV+' 🪙 — half of every sale and meal rides the note till '+NOTE_OWED+' clears.');
+  SFX.play('coin');
+  refreshNoteHud();
+}
+function refreshNoteHud(){
+  const h=document.getElementById('noteHud'),tx=document.getElementById('noteTxt');
+  if(!h)return;
+  h.style.display=hasMarket()?'flex':'none';
+  if(tx)tx.textContent=(state.traderNote||0)>0
+    ? '📝 '+state.traderNote+' 🪙 owed'
+    : '📝 '+NOTE_ADV+' 🪙 advance';
+}
+// VOX-26: the legacy round on the shore. The Stone Lantern lives in
+// its own localStorage key OUTSIDE the save — a lost or cleared isle
+// never puts it out. 150 🪙 lights it once, and every fresh isle that
+// rises after it starts with the three starter plots already grown:
+// the lantern kept the first seeds warm.
+const LANTERN_KEY='vox-lantern',LANTERN_COST=150;
+// VOX-31: the second wick — the second-story round. Once the
+// lantern has greeted three isles, the keeper fits a second wick:
+// the flame doubles, and every new isle rises with a kindling purse
+// of 40 coins beside its grown plots. The light earned it.
+const LANTERN_WICK_AT=3,WICK_COINS=40;
+function lanternHasWick(){const l=loadLantern();return l.lit&&(l.isles||0)>=LANTERN_WICK_AT;}
+// VOX-34: the third-story round on the shore — at six isles the
+// lantern's wicks braid into a BEACON FLAME, and every new isle
+// rises with a 60-coin kindling purse instead of 40. The light
+// keeps growing on what it already grew.
+const LANTERN_BEACON_AT=6,BEACON_COINS=60;
+function lanternHasBeacon(){const l=loadLantern();return l.lit&&(l.isles||0)>=LANTERN_BEACON_AT;}
+function kindlingPurse(){return lanternHasBeacon()?BEACON_COINS:WICK_COINS;}
+// VOX-32: the Lantern Festival — the festival round. When the
+// second wick burns, every new isle rises to a festival: paper
+// lanterns strung over the water to welcome it. +30 xp once the
+// shore is set. Festivals tallied across isles.
+const VFEST_KEY='vox-festival',VFEST_XP=30;
+function loadVfest(){
+  try{const f=JSON.parse(localStorage.getItem(VFEST_KEY)||'null');
+    if(f&&typeof f==='object')return{days:Math.max(0,Math.floor(f.days||0))};
+  }catch(e){}
+  return{days:0};
+}
+function saveVfest(f){try{localStorage.setItem(VFEST_KEY,JSON.stringify(f));}catch(e){}}
+function loadLantern(){
+  try{const l=JSON.parse(localStorage.getItem(LANTERN_KEY)||'null');
+    if(l&&typeof l==='object')return{lit:!!l.lit,isles:Math.max(0,Math.floor(l.isles||0))};
+  }catch(e){}
+  return{lit:false,isles:0};
+}
+function saveLantern(l){try{localStorage.setItem(LANTERN_KEY,JSON.stringify(l));}catch(e){}}
+function lightLantern(){
+  const l=loadLantern();
+  if(l.lit){toast('🏮 The Stone Lantern already burns on the shore \u2014 nothing puts it out.');return;}
+  if(!spendCoins(LANTERN_COST))return;
+  saveLantern({lit:true,isles:0});
+  toast('🏮 The Stone Lantern is lit \u2014 whatever happens to this isle, the light stays. New isles rise ready.');
+  SFX.play('coin');
+  checkAch();
+  refreshLanternHud();
+  save();
+}
+function refreshLanternHud(){
+  const h=document.getElementById('lanternHud'),tx=document.getElementById('lanternTxt');
+  if(!h)return;
+  const l=loadLantern();
+  h.style.display=(l.lit||state.totalEarned>=LANTERN_COST)?'flex':'none';
+  if(tx)tx.textContent=l.lit
+    ? '🏮 lit \u2014 '+l.isles+' isle'+(l.isles===1?'':'s')+' greeted'+(lanternHasBeacon()?' \u00b7 beacon flame':lanternHasWick()?' \u00b7 second wick':'')
+    : '🏮 light for '+LANTERN_COST+' 🪙';
+}
+// VOX-27: the record round on the isle. The richest single day this
+// shore has ever earned lives in its own key. The day's take is the
+// honest measure — the totalEarned delta between one dawn and the
+// next — and beating the mark that stood when the session opened
+// rings the harvest bell: +25 xp, once a session.
+const VREC_KEY='vox-record', VREC_XP=25;
+let vrecMark=null, vrecRung=false;
+function loadVrec(){
+  try{const r=JSON.parse(localStorage.getItem(VREC_KEY)||'null');
+    if(r&&typeof r==='object')return{coins:Math.max(0,Math.floor(r.coins||0)),beats:Math.max(0,Math.floor(r.beats||0))};
+  }catch(e){}
+  return{coins:0,beats:0};
+}
+function saveVrec(r){try{localStorage.setItem(VREC_KEY,JSON.stringify(r));}catch(e){}}
+// VOX-33: the plaque round on the shore — the records round comes
+// back around. Three harvest-bell rings earn the bell a wreath of
+// shells, and every ring beneath it draws the traders in early:
+// +10 coins on the spot, because a shore this storied sells the
+// story with the harvest. Cheers tallied across isles.
+const WREATH_KEY='vox-plaque',WREATH_AT=3,WREATH_COINS=10;
+function loadWreath(){
+  try{const w=JSON.parse(localStorage.getItem(WREATH_KEY)||'null');
+    if(w&&typeof w==='object')return{cheers:Math.max(0,Math.floor(w.cheers||0))};
+  }catch(e){}
+  return{cheers:0};
+}
+function saveWreath(w){try{localStorage.setItem(WREATH_KEY,JSON.stringify(w));}catch(e){}}
+function bellHasWreath(){return(loadVrec().beats||0)>=WREATH_AT;}
+function refreshBellHud(){
+  const h=document.getElementById('bellHud'),tx=document.getElementById('bellTxt');
+  if(!h)return;
+  const r=loadVrec();
+  h.style.display=r.coins>0?'flex':'none';
+  if(tx)tx.textContent='🔔 best day '+r.coins+' 🪙'+((r.beats||0)>0?' · rung '+r.beats+'×':'')+(bellHasWreath()?' · 🐚 wreath':'');
+}
+function recordHarvestDay(gained){
+  const r=loadVrec();
+  if(vrecMark===null)vrecMark=r.coins;
+  if(gained>r.coins){r.coins=gained;saveVrec(r);}
+  if(!vrecRung&&vrecMark>0&&gained>vrecMark){
+    vrecRung=true;
+    const r2=loadVrec();
+    const wreathStood=(r2.beats||0)>=WREATH_AT;
+    saveVrec({coins:r2.coins,beats:r2.beats+1});
+    grantXP(VREC_XP);
+    toast('🔔 The harvest bell rings \u2014 '+gained+' 🪙 in one day, the richest this shore has ever seen. +'+VREC_XP+' xp');
+    // VOX-33: under the shell wreath, the ring draws the traders in.
+    if(wreathStood){
+      const w=loadWreath();
+      saveWreath({cheers:w.cheers+1});
+      state.coins=(state.coins||0)+WREATH_COINS;
+      setTimeout(()=>toast('\u{1F41A} The shell wreath rattles on the bell \u2014 traders row in early for a story like that: +'+WREATH_COINS+' 🪙'),1400);
+      if(typeof checkAch==='function')setTimeout(checkAch,1600);
+    }
+  }
+  refreshBellHud();
+}
+// VOX-30: the heirloom round on the shore. The old keeper's conch
+// shell, kept dry above the tide line. Once a session, sound it
+// over the water — an xp grant that scales with the shore's memory:
+// 10 base, +5 per bell ring (to 5), +5 per bottle read (to 3). A
+// shore with no memory has no voice to carry.
+const CONCH_KEY='vox-conch', CONCH_BASE=10;
+let conchSounded=false;
+function loadConch(){
+  try{const c=JSON.parse(localStorage.getItem(CONCH_KEY)||'null');
+    if(c&&typeof c==='object')return{uses:Math.max(0,Math.floor(c.uses||0))};
+  }catch(e){}
+  return{uses:0};
+}
+function saveConch(c){try{localStorage.setItem(CONCH_KEY,JSON.stringify(c));}catch(e){}}
+function conchHasVoice(){ return loadVrec().coins>0||loadBottle().read>0; }
+function conchPower(){
+  return CONCH_BASE+5*Math.min(loadVrec().beats||0,5)+5*Math.min(loadBottle().read||0,3);
+}
+function refreshConchHud(){
+  const h=document.getElementById('conchHud'),tx=document.getElementById('conchTxt');
+  if(!h)return;
+  h.style.display=conchHasVoice()?'flex':'none';
+  h.style.opacity=conchSounded?'0.45':'';
+  if(tx)tx.textContent=conchSounded?'🐚 sounded':'🐚 sound for +'+conchPower()+' xp';
+}
+function soundConch(){
+  if(!conchHasVoice()||conchSounded)return;
+  conchSounded=true;
+  const p=conchPower();
+  const c=loadConch();
+  saveConch({uses:c.uses+1});
+  grantXP(p);
+  toast('🐚 The keeper\u2019s conch sounds over the water \u2014 +'+p+' xp, carried by everything the shore remembers.');
+  // VOX-36: beneath the spare oar, the sounding carries a tip in.
+  if(conchHasOar()){
+    const ko=loadOar();
+    saveOar({pays:ko.pays+1});
+    state.coins=(state.coins||0)+OAR_COINS;
+    setTimeout(()=>toast('🛶 The keeper\u2019s spare oar rattles above the tide line \u2014 a trader rows in on the wake: +'+OAR_COINS+' 🪙'),1200);
+  }
+  if(typeof checkAch==='function')checkAch();
+  refreshConchHud();
+}
+// VOX-35: the visitor round on the shore. Once a session, the old
+// keeper rows past any shore with a story \u2014 he kept this light
+// before anyone, and he pays the memory forward: 10 xp base, +5 per
+// ring beneath the shell wreath (cap 3). Visits tallied across isles.
+const KEEPER_KEY='vox-visitor',KEEPER_BASE=10;
+let keeperCame=false;
+function loadKeeper(){
+  try{const k=JSON.parse(localStorage.getItem(KEEPER_KEY)||'null');
+    if(k&&typeof k==='object')return{visits:Math.max(0,Math.floor(k.visits||0))};
+  }catch(e){}
+  return{visits:0};
+}
+function saveKeeper(k){try{localStorage.setItem(KEEPER_KEY,JSON.stringify(k));}catch(e){}}
+function keeperHasStory(){ return loadVrec().coins>0||loadBottle().read>0; }
+function keeperGift(){ return KEEPER_BASE+5*Math.min(loadWreath().cheers||0,3); }
+function refreshKeeperHud(){
+  const h=document.getElementById('keeperHud'),tx=document.getElementById('keeperTxt');
+  if(!h)return;
+  h.style.display=keeperHasStory()?'flex':'none';
+  h.style.opacity=keeperCame?'0.45':'';
+  if(tx)tx.textContent=keeperCame?'🛶 greeted':'🛶 greet for +'+keeperGift()+' xp';
+}
+function greetKeeper(){
+  if(!keeperHasStory()||keeperCame)return;
+  keeperCame=true;
+  const g=keeperGift();
+  const k=loadKeeper();
+  saveKeeper({visits:k.visits+1});
+  grantXP(g);
+  toast('🛶 THE OLD KEEPER ROWS PAST \u2014 he reads the shore a long while, tips his hat, and leaves +'+g+' xp. He kept this light before anyone.');
+  if(typeof checkAch==='function')checkAch();
+  refreshKeeperHud();
+}
+// VOX-36: the keepsake round on the shore. After three greetings,
+// the old keeper leaves his spare oar hung above the tide line.
+// Every conch sounded beneath it carries a trader's tip in on the
+// wake: +5 coins on the spot. Pays tallied in 'vox-keepsake'.
+const OAR_KEY='vox-keepsake',OAR_COINS=5;
+function loadOar(){
+  try{const k=JSON.parse(localStorage.getItem(OAR_KEY)||'null');
+    if(k&&typeof k==='object')return{pays:Math.max(0,Math.floor(k.pays||0))};
+  }catch(e){}
+  return{pays:0};
+}
+function saveOar(k){try{localStorage.setItem(OAR_KEY,JSON.stringify(k));}catch(e){}}
+function conchHasOar(){ return loadKeeper().visits>=3; }
+// VOX-37: the reunion round on the shore. When the whole story
+// stands \u2014 three rings beneath the shell wreath AND three of the
+// old keeper's greetings \u2014 the isle throws the shore reunion
+// once a session. Every boat that ever moored here rows back in:
+// 20 coins base + 5 per ring + 5 per greeting (caps 3). Held
+// tallied in 'vox-reunion'.
+const SREU_KEY='vox-reunion',SREU_BASE=20,SREU_PER=5;
+let shoreReunionHeld=false;
+function loadSReunion(){
+  try{const r=JSON.parse(localStorage.getItem(SREU_KEY)||'null');
+    if(r&&typeof r==='object')return{held:Math.max(0,Math.floor(r.held||0))};
+  }catch(e){}
+  return{held:0};
+}
+function saveSReunion(r){try{localStorage.setItem(SREU_KEY,JSON.stringify(r));}catch(e){}}
+function sreunionStands(){ return (loadWreath().cheers||0)>=3 && loadKeeper().visits>=3; }
+function sreunionPurse(){
+  return SREU_BASE + SREU_PER*Math.min(loadWreath().cheers||0,3)
+    + SREU_PER*Math.min(loadKeeper().visits||0,3);
+}
+function refreshSReunionHud(){
+  const h=document.getElementById('sreunionHud'),tx=document.getElementById('sreunionTxt');
+  if(!h)return;
+  h.style.display=sreunionStands()?'flex':'none';
+  h.style.opacity=shoreReunionHeld?'0.45':'';
+  if(tx)tx.textContent=shoreReunionHeld?'🎏 thrown':'🎏 reunion for +'+sreunionPurse()+' 🪙';
+}
+function throwShoreReunion(){
+  if(!sreunionStands()||shoreReunionHeld)return;
+  shoreReunionHeld=true;
+  const p=sreunionPurse();
+  const r=loadSReunion();
+  saveSReunion({held:r.held+1});
+  state.coins=(state.coins||0)+p;
+  toast('🎏 THE SHORE REUNION \u2014 every boat that ever moored here rows back in, wreaths and oars and all. Every one brings a purse: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshSReunionHud();
+}
+// VOX-38: the portrait round on the shore. After three Shore
+// Reunions, a photo of the reunion fleet hangs in a driftwood
+// frame by the harvest bell. Once a session a look pays: 15 coins
+// base + 5 per reunion held (cap 5). Looks tallied in
+// 'vox-portrait'.
+const DFRAME_KEY='vox-portrait',DFRAME_BASE=15,DFRAME_PER=5;
+let dframeLooked=false;
+function loadDFrame(){
+  try{const d=JSON.parse(localStorage.getItem(DFRAME_KEY)||'null');
+    if(d&&typeof d==='object')return{looks:Math.max(0,Math.floor(d.looks||0))};
+  }catch(e){}
+  return{looks:0};
+}
+function saveDFrame(d){try{localStorage.setItem(DFRAME_KEY,JSON.stringify(d));}catch(e){}}
+function dframeHangs(){ return loadSReunion().held>=3; }
+function dframePurse(){ return DFRAME_BASE + DFRAME_PER*Math.min(loadSReunion().held||0,5); }
+function refreshDFrameHud(){
+  const h=document.getElementById('dframeHud'),tx=document.getElementById('dframeTxt');
+  if(!h)return;
+  h.style.display=dframeHangs()?'flex':'none';
+  h.style.opacity=dframeLooked?'0.45':'';
+  if(tx)tx.textContent=dframeLooked?'🖼️ looked':'🖼️ frame for +'+dframePurse()+' 🪙';
+}
+function lookAtDFrame(){
+  if(!dframeHangs()||dframeLooked)return;
+  dframeLooked=true;
+  const p=dframePurse();
+  const d=loadDFrame();
+  saveDFrame({looks:d.looks+1});
+  state.coins=(state.coins||0)+p;
+  toast('🖼️ A long look at the driftwood frame \u2014 the whole reunion fleet in one photo. A trader in the shot rows by with a tip: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshDFrameHud();
+}
+// VOX-39: the anniversary round on the shore. After three looks at
+// the Driftwood Frame, the isle counts back to the day the first
+// boat moored. Once a session the bell rings it in: 20 coins base
+// + 5 per look (cap 5). Ringings tallied in 'vox-anniversary'.
+const MOOR_KEY='vox-anniversary',MOOR_BASE=20,MOOR_PER=5;
+let mooringRung=false;
+function loadMooring(){
+  try{const m=JSON.parse(localStorage.getItem(MOOR_KEY)||'null');
+    if(m&&typeof m==='object')return{toasts:Math.max(0,Math.floor(m.toasts||0))};
+  }catch(e){}
+  return{toasts:0};
+}
+function saveMooring(m){try{localStorage.setItem(MOOR_KEY,JSON.stringify(m));}catch(e){}}
+function mooringCounts(){ return loadDFrame().looks>=3; }
+function mooringPurse(){ return MOOR_BASE + MOOR_PER*Math.min(loadDFrame().looks||0,5); }
+function refreshMooringHud(){
+  const h=document.getElementById('mooringHud'),tx=document.getElementById('mooringTxt');
+  if(!h)return;
+  h.style.display=mooringCounts()?'flex':'none';
+  h.style.opacity=mooringRung?'0.45':'';
+  if(tx)tx.textContent=mooringRung?'⚓ rung':'⚓ mooring day for +'+mooringPurse()+' 🪙';
+}
+function ringFirstMooring(){
+  if(!mooringCounts()||mooringRung)return;
+  mooringRung=true;
+  const p=mooringPurse();
+  const m=loadMooring();
+  saveMooring({toasts:m.toasts+1});
+  state.coins=(state.coins||0)+p;
+  toast('⚓ THE FIRST MOORING \u2014 the day the first boat tied up here, rung in on the harvest bell. The fleet answers with a round: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshMooringHud();
+}
+// VOX-40: the guest-book round on the shore. After three First
+// Mooring ringings, a harbor log sits open by the bell \u2014
+// every boat that ever tied up signs it. Once a session a
+// leaf-through pays: 25 coins base + 5 per ringing (cap 5). Leafs
+// tallied in 'vox-guestbook'.
+const HLOG_KEY='vox-guestbook',HLOG_BASE=25,HLOG_PER=5;
+let hlogLeafed=false;
+function loadHLog(){
+  try{const h=JSON.parse(localStorage.getItem(HLOG_KEY)||'null');
+    if(h&&typeof h==='object')return{leafs:Math.max(0,Math.floor(h.leafs||0))};
+  }catch(e){}
+  return{leafs:0};
+}
+function saveHLog(h){try{localStorage.setItem(HLOG_KEY,JSON.stringify(h));}catch(e){}}
+function hlogOut(){ return loadMooring().toasts>=3; }
+function hlogPurse(){ return HLOG_BASE + HLOG_PER*Math.min(loadMooring().toasts||0,5); }
+function refreshHLogHud(){
+  const h=document.getElementById('hlogHud'),tx=document.getElementById('hlogTxt');
+  if(!h)return;
+  h.style.display=hlogOut()?'flex':'none';
+  h.style.opacity=hlogLeafed?'0.45':'';
+  if(tx)tx.textContent=hlogLeafed?'📒 leafed':'📒 log for +'+hlogPurse()+' 🪙';
+}
+function leafHarborLog(){
+  if(!hlogOut()||hlogLeafed)return;
+  hlogLeafed=true;
+  const p=hlogPurse();
+  const h=loadHLog();
+  saveHLog({leafs:h.leafs+1});
+  state.coins=(state.coins||0)+p;
+  toast('📒 A leaf through the harbor log \u2014 every boat that ever tied up here, signed in by the bell. One of the names sails by with a purse: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshHLogHud();
+}
+// VOX-41: the bench round on the shore. After three leafs through
+// the harbor log, the fleet builds a bench by the bell from
+// driftwood and old oars \u2014 a seat with every boat at its
+// back. Once a session a sit pays: 30 coins base + 5 per leaf
+// (cap 5). Sits tallied in 'vox-bench'.
+const HBEN_KEY='vox-bench',HBEN_BASE=30,HBEN_PER=5;
+let hbenchSat=false;
+function loadHBench(){
+  try{const b=JSON.parse(localStorage.getItem(HBEN_KEY)||'null');
+    if(b&&typeof b==='object')return{sits:Math.max(0,Math.floor(b.sits||0))};
+  }catch(e){}
+  return{sits:0};
+}
+function saveHBench(b){try{localStorage.setItem(HBEN_KEY,JSON.stringify(b));}catch(e){}}
+function hbenchBuilt(){ return loadHLog().leafs>=3; }
+function hbenchPurse(){ return HBEN_BASE + HBEN_PER*Math.min(loadHLog().leafs||0,5); }
+function refreshHBenchHud(){
+  const h=document.getElementById('hbenchHud'),tx=document.getElementById('hbenchTxt');
+  if(!h)return;
+  h.style.display=hbenchBuilt()?'flex':'none';
+  h.style.opacity=hbenchSat?'0.45':'';
+  if(tx)tx.textContent=hbenchSat?'🪑 sat':'🪑 bench for +'+hbenchPurse()+' 🪙';
+}
+function sitHarborBench(){
+  if(!hbenchBuilt()||hbenchSat)return;
+  hbenchSat=true;
+  const p=hbenchPurse();
+  const b=loadHBench();
+  saveHBench({sits:b.sits+1});
+  state.coins=(state.coins||0)+p;
+  toast('🪑 A sit on the harbor bench \u2014 driftwood, old oars, every boat at its back. A trader ties up and sits down with a purse: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshHBenchHud();
+}
+// VOX-42: the story-hour round on the shore. After three sits on
+// the harbor bench, the oldest trader has the whole shore story by
+// heart \u2014 the log, the letters, the reunions, every boat by
+// the bell. Once a session a yarn pays: 35 coins base + 5 per sit
+// (cap 5). Yarns tallied in 'vox-storyhour'.
+const YARN_KEY='vox-storyhour',YARN_BASE=35,YARN_PER=5;
+let yarnTold=false;
+function loadYarn(){
+  try{const y=JSON.parse(localStorage.getItem(YARN_KEY)||'null');
+    if(y&&typeof y==='object')return{tellings:Math.max(0,Math.floor(y.tellings||0))};
+  }catch(e){}
+  return{tellings:0};
+}
+function saveYarn(y){try{localStorage.setItem(YARN_KEY,JSON.stringify(y));}catch(e){}}
+function yarnReady(){ return loadHBench().sits>=3; }
+function yarnPurse(){ return YARN_BASE + YARN_PER*Math.min(loadHBench().sits||0,5); }
+function refreshYarnHud(){
+  const h=document.getElementById('yarnHud'),tx=document.getElementById('yarnTxt');
+  if(!h)return;
+  h.style.display=yarnReady()?'flex':'none';
+  h.style.opacity=yarnTold?'0.45':'';
+  if(tx)tx.textContent=yarnTold?'🧶 told':'🧶 yarn for +'+yarnPurse()+' 🪙';
+}
+function tellHarborYarn(){
+  if(!yarnReady()||yarnTold)return;
+  yarnTold=true;
+  const p=yarnPurse();
+  const y=loadYarn();
+  saveYarn({tellings:y.tellings+1});
+  state.coins=(state.coins||0)+p;
+  toast('🧶 THE HARBOR YARN \u2014 the log, the letters, the reunions, every boat by the bell, spun out on the bench. A listener drops a purse for the next telling: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshYarnHud();
+}
+// VOX-43: the song round on the shore. After three tellings of
+// the Harbor Yarn, the fleet sets it to a shanty \u2014 the whole
+// shore story, call and response, every deck knows the chorus.
+// Once a session a singing pays: 40 coins base + 5 per telling
+// (cap 5). Sings tallied in 'vox-song'.
+const SHANTY_KEY='vox-song',SHANTY_BASE=40,SHANTY_PER=5;
+let shantySung=false;
+function loadShanty(){
+  try{const s=JSON.parse(localStorage.getItem(SHANTY_KEY)||'null');
+    if(s&&typeof s==='object')return{sings:Math.max(0,Math.floor(s.sings||0))};
+  }catch(e){}
+  return{sings:0};
+}
+function saveShanty(s){try{localStorage.setItem(SHANTY_KEY,JSON.stringify(s));}catch(e){}}
+function shantyReady(){ return loadYarn().tellings>=3; }
+function shantyPurse(){ return SHANTY_BASE + SHANTY_PER*Math.min(loadYarn().tellings||0,5); }
+function refreshShantyHud(){
+  const h=document.getElementById('shantyHud'),tx=document.getElementById('shantyTxt');
+  if(!h)return;
+  h.style.display=shantyReady()?'flex':'none';
+  h.style.opacity=shantySung?'0.45':'';
+  if(tx)tx.textContent=shantySung?'🪗 sung':'🪗 shanty for +'+shantyPurse()+' 🪙';
+}
+function singSeaShanty(){
+  if(!shantyReady()||shantySung)return;
+  shantySung=true;
+  const p=shantyPurse();
+  const s=loadShanty();
+  saveShanty({sings:s.sings+1});
+  state.coins=(state.coins||0)+p;
+  toast('🪗 THE SEA SHANTY \u2014 the whole shore story set to call and response, and every deck knows the chorus. A cap comes round the harbor and comes back heavy: +'+p+' 🪙');
+  if(typeof checkAch==='function')checkAch();
+  refreshShantyHud();
+}
+// VOX-44: the capsule round on the shore. After three sings of
+// the Sea Shanty, the fleet sinks a chest off the pier on a
+// marked line \u2014 a log page, the bottle's letter, a shell off
+// the wreath, the shanty on a card. Once a session a haul pays:
+// 45 coins base + 5 per sing (cap 5). Hauls tallied in
+// 'vox-capsule'.
+const CHEST_KEY='vox-capsule',CHEST_BASE=45,CHEST_PER=5;
+let chestHauled=false;
+function loadChest(){
+  try{const c=JSON.parse(localStorage.getItem(CHEST_KEY)||'null');
+    if(c&&typeof c==='object')return{hauls:Math.max(0,Math.floor(c.hauls||0))};
+  }catch(e){}
+  return{hauls:0};
+}
+function saveChest(c){try{localStorage.setItem(CHEST_KEY,JSON.stringify(c));}catch(e){}}
+function chestSunk(){ return loadShanty().sings>=3; }
+function chestPurse(){ return CHEST_BASE + CHEST_PER*Math.min(loadShanty().sings||0,5); }
+function refreshChestHud(){
+  const h=document.getElementById('chestHud'),tx=document.getElementById('chestTxt');
+  if(!h)return;
+  h.style.display=chestSunk()?'flex':'none';
+  h.style.opacity=chestHauled?'0.45':'';
+  if(tx)tx.textContent=chestHauled?'\u{1F5DD}\u{FE0F} hauled':'\u{1F5DD}\u{FE0F} chest for +'+chestPurse()+' \u{1FA99}';
+}
+function haulSunkenChest(){
+  if(!chestSunk()||chestHauled)return;
+  chestHauled=true;
+  const p=chestPurse();
+  const c=loadChest();
+  saveChest({hauls:c.hauls+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u{1F5DD}\u{FE0F} THE SUNKEN CHEST \u2014 up on the marked line: a log page, the bottle\u2019s letter, a shell off the wreath, the shanty on a card. Coin is wedged in the lid, like always: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshChestHud();
+}
+// VOX-45: the mural round on the shore. After three hauls of the
+// Sunken Chest, a painter takes the long boarding of the harbor
+// wall and lays the whole isle along it \u2014 the first mooring,
+// the log's best haul, the bench, the yarn's ships, the shanty's
+// verses, the marked line the chest goes back down on. Once a
+// session a walk pays: 50 coins base + 5 per haul (cap 5). Walks
+// tallied in 'vox-mural'.
+const MURAL_KEY='vox-mural',MURAL_BASE=50,MURAL_PER=5;
+let muralWalked=false;
+function loadMural(){
+  try{const m=JSON.parse(localStorage.getItem(MURAL_KEY)||'null');
+    if(m&&typeof m==='object')return{walks:Math.max(0,Math.floor(m.walks||0))};
+  }catch(e){}
+  return{walks:0};
+}
+function saveMural(m){try{localStorage.setItem(MURAL_KEY,JSON.stringify(m));}catch(e){}}
+function muralPainted(){ return loadChest().hauls>=3; }
+function muralPurse(){ return MURAL_BASE + MURAL_PER*Math.min(loadChest().hauls||0,5); }
+function refreshMuralHud(){
+  const h=document.getElementById('muralHud'),tx=document.getElementById('muralTxt');
+  if(!h)return;
+  h.style.display=muralPainted()?'flex':'none';
+  h.style.opacity=muralWalked?'0.45':'';
+  if(tx)tx.textContent=muralWalked?'\u{1F3A8} walked':'\u{1F3A8} mural for +'+muralPurse()+' \u{1FA99}';
+}
+function walkHarborMural(){
+  if(!muralPainted()||muralWalked)return;
+  muralWalked=true;
+  const p=muralPurse();
+  const m=loadMural();
+  saveMural({walks:m.walks+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u{1F3A8} THE HARBOR MURAL \u2014 the first mooring, the log\u2019s best haul, the bench, the yarn\u2019s ships, the shanty\u2019s verses, the marked line the chest goes back down on. Somebody walks the whole boarding and leaves coin at the end: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshMuralHud();
+}
+// VOX-46: the docent round on the shore. After three walks of the
+// Harbor Mural, the oldest pilot on the water takes every green
+// hand down the boarding on their first morning \u2014 the first
+// mooring, the log's best haul, the bench, the yarn's ships, the
+// shanty's verses, the marked line. Once a session a walk pays: 55
+// coins base + 5 per mural walk (cap 5). Walks tallied in 'vox-docent'.
+const PILOT_KEY='vox-docent',PILOT_BASE=55,PILOT_PER=5;
+let pilotWalked=false;
+function loadPilot(){
+  try{const q=JSON.parse(localStorage.getItem(PILOT_KEY)||'null');
+    if(q&&typeof q==='object')return{walks:Math.max(0,Math.floor(q.walks||0))};
+  }catch(e){}
+  return{walks:0};
+}
+function savePilot(q){try{localStorage.setItem(PILOT_KEY,JSON.stringify(q));}catch(e){}}
+function pilotPosted(){ return loadMural().walks>=3; }
+function pilotPurse(){ return PILOT_BASE + PILOT_PER*Math.min(loadMural().walks||0,5); }
+function refreshPilotHud(){
+  const h=document.getElementById('pilotHud'),tx=document.getElementById('pilotTxt');
+  if(!h)return;
+  h.style.display=pilotPosted()?'flex':'none';
+  h.style.opacity=pilotWalked?'0.45':'';
+  if(tx)tx.textContent=pilotWalked?'\u{1F9ED} walked':'\u{1F9ED} green hand for +'+pilotPurse()+' \u{1FA99}';
+}
+function walkTheGreenhand(){
+  if(!pilotPosted()||pilotWalked)return;
+  pilotWalked=true;
+  const p=pilotPurse();
+  const q=loadPilot();
+  savePilot({walks:q.walks+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u{1F9ED} THE PILOT\u2019S WALK \u2014 the oldest pilot on the water takes a green hand down the boarding on their first morning: the first mooring, the best haul, the bench, the ships, the verses, the marked line. They row like they were born to it by dusk, and the harbor pays for the hour: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshPilotHud();
+}
+// VOX-47: the mark round on the shore, and the beat the whole arc
+// was walking toward. After three walks, the green hand the pilot
+// took down the boarding asks for a length of line and ties their
+// own knot into the boarding at the end of the marked line \u2014
+// their first season, their hand. The boarding stops being
+// something the harbor keeps and starts being something it grows.
+// Once a session a knot pays: 60 coins base + 5 per walk (cap 5).
+// Knots tallied in 'vox-mark'.
+const MARK_KEY='vox-mark',MARK_BASE=60,MARK_PER=5;
+let markAdded=false;
+function loadMark(){
+  try{const m=JSON.parse(localStorage.getItem(MARK_KEY)||'null');
+    if(m&&typeof m==='object')return{knots:Math.max(0,Math.floor(m.knots||0))};
+  }catch(e){}
+  return{knots:0};
+}
+function saveMark(m){try{localStorage.setItem(MARK_KEY,JSON.stringify(m));}catch(e){}}
+function markEarned(){ return loadPilot().walks>=3; }
+function markPurse(){ return MARK_BASE + MARK_PER*Math.min(loadPilot().walks||0,5); }
+function refreshMarkHud(){
+  const h=document.getElementById('markHud'),tx=document.getElementById('markTxt');
+  if(!h)return;
+  h.style.display=markEarned()?'flex':'none';
+  h.style.opacity=markAdded?'0.45':'';
+  if(tx)tx.textContent=markAdded?'\u270D\uFE0F tied':'\u270D\uFE0F their knot for +'+markPurse()+' \u{1FA99}';
+}
+function tieTheirKnot(){
+  if(!markEarned()||markAdded)return;
+  markAdded=true;
+  const p=markPurse();
+  const m=loadMark();
+  saveMark({knots:m.knots+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u270D\uFE0F THEIR OWN KNOT \u2014 the green hand the pilot walked down the boarding asks for a length of line and ties their own into it, right at the end of the marked line: their first season, their hand. The whole harbor stops to watch a knot get tied, and nobody who stopped left without buying something: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  refreshMarkHud();
+}
+// VOX-48: the paid link on the water. Twelve links along this shore
+// and not one has ever asked for a coin. The boarding has run out of
+// harbor wall: the marked line ends at the ways and the newest knot
+// is tied at the last inch of it. The Long Shed is the first thing
+// the isle has to buy \u2014 350 coins, once ever, for a roofed run
+// off the end of the boarding that grows nothing, moors nothing and
+// sells nothing. What it does is give the line somewhere to go: the
+// chest up on trestles, the log open on a stand, the wreath out of
+// the salt, every knot since the first mooring along one wall, and
+// bare boarding at the far end. Sit in it once a session and the
+// whole harbor finds a reason to walk out: 70 coins base + 5 per
+// knot (cap 5). Built flag and sittings both live in 'vox-longshed'.
+const SHED_KEY='vox-longshed',SHED_COST=350,SHED_BASE=70,SHED_PER=5;
+let shedSat=false;
+function loadShed(){
+  try{const d=JSON.parse(localStorage.getItem(SHED_KEY)||'null');
+    if(d&&typeof d==='object')return{built:!!d.built,sits:Math.max(0,Math.floor(d.sits||0))};
+  }catch(e){}
+  return{built:false,sits:0};
+}
+function saveShed(d){try{localStorage.setItem(SHED_KEY,JSON.stringify(d));}catch(e){}}
+function shedOffered(){ return loadMark().knots>=3; }
+function shedBuilt(){ return loadShed().built; }
+function shedPurse(){ return SHED_BASE + SHED_PER*Math.min(loadMark().knots||0,5); }
+function refreshShedHud(){
+  const h=document.getElementById('shedHud'),tx=document.getElementById('shedTxt');
+  if(!h)return;
+  h.style.display=shedOffered()?'flex':'none';
+  if(!shedBuilt()){
+    h.style.opacity=(state.coins||0)>=SHED_COST?'':'0.45';
+    if(tx)tx.textContent='\u{1F6D6} raise the shed for '+SHED_COST+' \u{1FA99}';
+    return;
+  }
+  h.style.opacity=shedSat?'0.45':'';
+  if(tx)tx.textContent=shedSat?'\u{1F6D6} sat':'\u{1F6D6} an hour in the shed for +'+shedPurse()+' \u{1FA99}';
+}
+function buyLongShed(){
+  if(!shedOffered()||shedBuilt())return false;
+  if((state.coins||0)<SHED_COST){
+    toast('\u{1F6D6} The Long Shed runs '+SHED_COST+' \u{1FA99} \u2014 the shipwrights will not lay a keel short.');
+    return false;
+  }
+  state.coins-=SHED_COST;
+  saveShed({built:true,sits:loadShed().sits});
+  toast('\u{1F6D6} THE LONG SHED \u2014 the shipwrights roof the ways and run the boarding straight out through it. The chest goes up on trestles, the log open on a stand, the wreath in out of the salt, every knot since the first mooring along one wall \u2014 and the far end left bare for whoever ships out next season.');
+  if(typeof checkAch==='function')checkAch();
+  refreshShedHud();
+  return true;
+}
+function sitInLongShed(){
+  if(!shedBuilt()||shedSat)return false;
+  shedSat=true;
+  const p=shedPurse();
+  const d=loadShed();
+  saveShed({built:true,sits:d.sits+1});
+  state.coins=(state.coins||0)+p;
+  toast('\u{1F6D6} THE LONG SHED \u2014 an hour out at the end of the boarding with the whole shore along one wall, dry: the chest, the log, the wreath, every knot to the newest hand. Half the harbor finds a reason to walk out, and nobody walks out and back empty: +'+p+' \u{1FA99}');
+  if(typeof checkAch==='function')checkAch();
+  maybeHangTheLine();   // VOX-49: the third sitting hangs the bare line
+  refreshShedHud();
+  return true;
+}
+// One control at two stages of its life: the raising while there is
+// no shed, the sitting the moment there is.
+function useLongShed(){
+  if(!shedOffered())return;
+  if(!shedBuilt()){ buyLongShed(); return; }
+  sitInLongShed();
+}
+// VOX-49: the Long Shed was roofed with the far end left bare on
+// purpose -- "bare boarding at the far end". Three hours in the shed
+// and somebody drives a cleat into it and hangs a fresh coil of line:
+// unknotted, uncut, nobody's hand in it yet. It is for whoever ships
+// out next season, and it stays there for whoever ships out after.
+//
+// Fourteen links deep on this shore and this is the first that does
+// not pay a coin. What it does instead is quicken every hand on the
+// isle for good: a crew that never has to go looking for line never
+// stands about waiting for it. +0.2 to the walking speed, the same
+// step the Tavern gives, and it stacks with it. Hung once, costs
+// nothing, and lives outside the isle's save like the shed it hangs
+// in, so it carries to every isle that rises after.
+const LINE_KEY='vox-bareline', LINE_AT=3, LINE_SPEED=0.2;
+function loadLine(){
+  try{const l=JSON.parse(localStorage.getItem(LINE_KEY)||'null');
+    if(l&&typeof l==='object')return{up:!!l.up};
+  }catch(e){}
+  return{up:false};
+}
+function saveLine(l){try{localStorage.setItem(LINE_KEY,JSON.stringify(l));}catch(e){}}
+function lineEarned(){ return (loadShed().sits||0)>=LINE_AT; }
+function lineUp(){ return loadLine().up; }
+function lineSpeedBonus(){ return lineUp() ? LINE_SPEED : 0; }
+// Hung automatically on the third sitting -- nothing to buy and
+// nothing to choose, so there is no chip for it.
+function maybeHangTheLine(){
+  if(!lineEarned()||lineUp())return false;
+  saveLine({up:true});
+  toast('\u{1FAA2} THE BARE LINE \u2014 somebody drives a cleat into the far end of the shed boarding and hangs a fresh coil on it: unknotted, uncut, nobody\u2019s hand in it yet. It is for whoever ships out next season. Nobody on this isle stands about waiting for line again.');
+  if(typeof checkAch==='function')checkAch();
+  return true;
+}
+// VOX-28: the letters round on the shore. Every fresh isle that
+// rises with a history to cite finds a bottle washed up by the
+// starter plots — the message quotes the lantern's greeted isles and
+// the Harvest Bell's best day by their real numbers.
+const BOTTLE_KEY='vox-letter', BOTTLE_XP=15;
+function loadBottle(){
+  try{const b=JSON.parse(localStorage.getItem(BOTTLE_KEY)||'null');
+    if(b&&typeof b==='object')return{read:Math.max(0,Math.floor(b.read||0))};
+  }catch(e){}
+  return{read:0};
+}
+function saveBottle(b){try{localStorage.setItem(BOTTLE_KEY,JSON.stringify(b));}catch(e){}}
+function composeBottle(){
+  const l=loadLantern(),r=loadVrec();
+  let s='🍾 A bottle washes ashore: "';
+  if(l.isles>0)s+='Isle #'+l.isles+' under the lantern\u2019s light. ';
+  if(r.coins>0)s+='Our best day weighed '+r.coins+' 🪙. ';
+  s+='The sea remembers."';
+  return s;
+}
+function deliverBottle(){
+  if(!(loadLantern().isles>0||loadVrec().coins>0))return;
+  const b=loadBottle();
+  saveBottle({read:(b.read||0)+1});
+  grantXP(BOTTLE_XP);
+  const s=composeBottle();
+  setTimeout(()=>toast(s+' (+'+BOTTLE_XP+' xp)'),3000);
+}
+// VOX-29: the almanac round on the shore. The Town Almanac's last
+// page is a stone tablet carved with everything the sea keeps across
+// isles — the lantern's greetings, the Harvest Bell's best day, the
+// bottles read. Consultations are tallied in 'vox-history'.
+const VTAB_KEY='vox-history';
+function loadVtab(){
+  try{const t=JSON.parse(localStorage.getItem(VTAB_KEY)||'null');
+    if(t&&typeof t==='object')return{opens:Math.max(0,Math.floor(t.opens||0))};
+  }catch(e){}
+  return{opens:0};
+}
+function saveVtab(t){try{localStorage.setItem(VTAB_KEY,JSON.stringify(t));}catch(e){}}
+function isleHasTablet(){
+  const l=loadLantern();
+  return l.lit||l.isles>0||loadVrec().coins>0||loadBottle().read>0;
+}
+function composeTablet(){
+  const l=loadLantern(),r=loadVrec(),b=loadBottle();
+  const lines=[];
+  lines.push(l.lit?'🏮 The lantern has greeted '+l.isles+' isle'+(l.isles===1?'':'s'):'🏮 No lantern on the shore yet');
+  lines.push(r.coins>0?'🔔 Best day the sea remembers: '+r.coins+' 🪙 (rung '+(r.beats||0)+'×)':'🔔 The bell has never rung');
+  lines.push('🍾 '+b.read+' message'+(b.read===1?'':'s')+' read from bottles');
+  return lines;
+}
+function garnishTrade(n){
+  // Half of every trade coin to the note until it clears.
+  if(!((state.traderNote||0)>0)||n<=0)return n;
+  const take=Math.min(Math.ceil(n/2),state.traderNote);
+  state.traderNote-=take;
+  if(state.traderNote<=0){
+    state.notesCleared=(state.notesCleared||0)+1;
+    toast('📝 The Trader\u2019s note clears — square again. ('+state.notesCleared+' settled)');
+    checkAch();
+  }
+  refreshNoteHud();
+  return n-take;
+}
+// VOX-24: the Assessor's Policy — the insurance round on the isle.
+// 25 🪙 insures the fields for the day: a crow peck that actually
+// lands pays 50 in damages; a quiet day lapses the policy at dawn.
+// The scarecrow guards and the crib blunts — the policy is for the
+// day the defenses miss anyway.
+const POLICY_COST=25, POLICY_PAY=50;
+function buyCropPolicy(){
+  if(state.cropPolicy){toast('🛟 The fields are already covered till dawn.');return;}
+  if(!spendCoins(POLICY_COST))return;
+  state.cropPolicy=true;
+  toast('🛟 '+POLICY_COST+' 🪙 covers the fields till dawn — a landed peck pays '+POLICY_PAY+'.');
+  SFX.play('place');
+  refreshPolicyHud();
+}
+function refreshPolicyHud(){
+  const tx=document.getElementById('polTxt');
+  if(tx)tx.textContent=state.cropPolicy
+    ? '🛟 covered till dawn'
+    : '🛟 '+POLICY_COST+' 🪙 crop policy';
+}
+function settleCropPolicy(x,y,z){
+  if(!state.cropPolicy)return;
+  state.cropPolicy=false;
+  state.policyClaims=(state.policyClaims||0)+1;
+  grantCoins(POLICY_PAY,x,y,z);
+  toast('🛟 The assessor pays '+POLICY_PAY+' 🪙 on the pecked field. ('+state.policyClaims+' claimed)');
+  checkAch();
+  refreshPolicyHud();
+}
+// VOX-23: the Cloud Wager — the wager round on the isle's own sky.
+// 30 🪙 say rain falls within 90 seconds; rain already falling takes
+// no bet. Blind it's a gamble on the season — but the 🌦️ vane calls
+// showers half a minute early, so a called sky is nearly a sure
+// thing: the wager is the vane's second payoff.
+const CLOUD_STAKE=30, CLOUD_PAY=60, CLOUD_SECS=90;
+let cloudBet=null;   // { timeLeft }
+function placeCloudBet(){
+  if(!vaneBuilt()){toast('🎲 The wager needs a 🌦️ Weather Vane to read the sky.');return;}
+  if(cloudBet){toast('🎲 A wager is already riding — '+Math.ceil(cloudBet.timeLeft)+'s on the clock.');return;}
+  if(rainActive){toast('🎲 No book takes a bet on rain already falling.');return;}
+  if(!spendCoins(CLOUD_STAKE))return;
+  cloudBet={timeLeft:CLOUD_SECS};
+  toast('🎲 '+CLOUD_STAKE+' 🪙 on the clouds — rain inside '+CLOUD_SECS+' seconds pays '+CLOUD_PAY+'.');
+  SFX.play('place');
+  refreshCloudHud();
+}
+function refreshCloudHud(){
+  const h=document.getElementById('cloudHud'),tx=document.getElementById('cloudTxt');
+  if(!h)return;
+  h.style.display=vaneBuilt()?'flex':'none';
+  if(tx)tx.textContent=cloudBet
+    ? '🎲 rain in '+Math.ceil(cloudBet.timeLeft)+'s…'
+    : '🎲 '+CLOUD_STAKE+' 🪙 on rain';
+}
+function updateCloudBet(dt){
+  refreshCloudHud();
+  if(!cloudBet)return;
+  if(rainActive){
+    cloudBet=null;
+    state.cloudWins=(state.cloudWins||0)+1;
+    grantCoins(CLOUD_PAY,undefined,undefined,undefined);
+    toast('🎲 The sky opens in time — the wager pays '+CLOUD_PAY+' 🪙! ('+state.cloudWins+' won)');
+    SFX.play('coin');
+    checkAch();
+    refreshCloudHud();
+    return;
+  }
+  cloudBet.timeLeft-=dt;
+  if(cloudBet.timeLeft<=0){
+    cloudBet=null;
+    state.cloudLosses=(state.cloudLosses||0)+1;
+    toast('🎲 The clouds never came — the stake blows away.');
+    SFX.play('error');
+    refreshCloudHud();
+  }
+}
+function updateTrufflePig(dt){
+  if(!pigBuilt()){pigWasRaining=rainActive;return;}
+  if(rainActive){pigWasRaining=true;return;}
+  if(!pigWasRaining)return;
+  pigWasRaining=false;                     // the shower just lifted — she's off
+  const b=state.buildings.trufflepig;
+  grantCoins(TRUFFLE_PAY,b.x,2.4,b.z);
+  state.truffles=(state.truffles||0)+1;
+  toast('🐖 The rain lifts and the pig gets to work — a truffle! +'+TRUFFLE_PAY+' 🪙');
+  checkAch();
+}
 function goFishing(x,z){
-  if(seasonOf(state.day).key==='winter'){toast('❄️ The pond is frozen solid');return;}
+  const iceMode=seasonOf(state.day).key==='winter';   // VOX-15
+  if(iceMode&&!icehutBuilt()){toast('❄️ The pond is frozen solid');return;}
   if(fishingT>0){return;}
   fishingT=1.4;
   const y=(W.waterY||5)+0.4;
   floatText(x,y+0.8,z,'🎣','#bfe0f5');
   SFX.tone(680,0.08,'sine',0.05,420);
   setTimeout(()=>{
-    let tot=0;for(const f of FISH_CATCH)tot+=f.w;let r=Math.random()*tot,pick=FISH_CATCH[0];
-    for(const f of FISH_CATCH){if((r-=f.w)<=0){pick=f;break;}}
+    const TB=iceMode?ICE_CATCH:FISH_CATCH;   // VOX-15: the hard-water table
+    let tot=0;for(const f of TB)tot+=f.w;let r=Math.random()*tot,pick=TB[0];
+    for(const f of TB){if((r-=f.w)<=0){pick=f;break;}}
     if(pick.coins>0){grantCoins(pick.coins,x,y+1,z);SFX.play('coin');
-      if(stockpiles()&&pick.ico!=='🌿'){state.goods.fish=(state.goods.fish||0)+1;refreshGoodsHud();}}
+      if(stockpiles()&&pick.ico!=='🌿'&&pick.ico!=='🧊'){state.goods.fish=(state.goods.fish||0)+1;refreshGoodsHud();}}
     else SFX.play('error');
     floatText(x,y+1.2,z,pick.ico+(pick.coins?' +'+pick.coins:''),pick.coins?'#ffe9a8':'#9fb0bf');
+    if(pick.id){   // VOX-2: weigh the catch and keep the log
+      if(!state.fishLog)state.fishLog={};
+      const l=state.fishLog[pick.id]||(state.fishLog[pick.id]={n:0,best:0});
+      const size=+(pick.min+Math.random()*(pick.max-pick.min)).toFixed(1);
+      l.n++;
+      if(pick.id==='koi'&&l.n===1){toast('🎏 A GOLDEN KOI! The pond’s rarest prize is yours.');state.achFlags.koi=true;}
+      if(pick.id==='icekoi'&&l.n===1)toast('🌙 A MOON KOI — the winter pond’s pale secret!');   // VOX-15
+      if(size>l.best){
+        l.best=size;
+        if(l.n>1)floatText(x,y+1.8,z,'⚖️ '+size+'kg — record!','#ffd23e');
+      }
+      if(museumBuilt()&&!(state.mounted&&state.mounted[pick.id])){   // VOX-18: first of its kind
+        if(!state.mounted)state.mounted={};
+        state.mounted[pick.id]=1;
+        grantCoins(MUSEUM_BOUNTY,x,y+2,z);
+        toast('🏛️ '+pick.name+' mounted in the Isle Museum — +'+MUSEUM_BOUNTY+' 🪙 finder\u2019s bounty!');
+      }
+    }
     burst(x,y+0.5,z,0x6fc3ff,7,{up:1.4,g:5,spread:1});
     state.fishCount=(state.fishCount||0)+(pick.coins>0?1:0);
+    if(iceMode&&pick.id)state.iceCatches=(state.iceCatches||0)+1;   // VOX-15
     state.achFlags.fish=true;checkAch();
   },700);
 }
@@ -815,7 +1854,7 @@ function ensureTownName(){
   const b=Math.abs(Math.floor(W.seed/97))%TOWN_SUF.length;
   state.townName=TOWN_PRE[a]+TOWN_SUF[b];
 }
-function townLabel(){return (state.townName?state.townName+' · ':'')+TOWN_RANKS[state.townRank||0].name;}
+function townLabel(){return (state.townName?state.townName+' · ':'')+(TOWN_RANKS[state.townRank]||TOWN_RANKS[0]).name;}
 function checkTownRank(){
   ensureTownName();
   const idx=townRankIdx();
@@ -1029,7 +2068,8 @@ function updateWorker(w,dt){
   positionWorker(w);
 }
 function updateWorkers(dt){for(const w of W.workers)updateWorker(w,dt);}
-function WORKER_SPEED(){return state.buildings&&state.buildings.tavern?2.1:1.9;}
+// VOX-49: the bare line adds its own step on top of the Tavern's.
+function WORKER_SPEED(){return (state.buildings&&state.buildings.tavern?2.1:1.9)+lineSpeedBonus();}
 function rolesUnlocked(){return !!(state.buildings&&state.buildings.tavern);}
 function cycleWorkerRole(w){
   if(!rolesUnlocked()){toast('🍺 Build the Tavern to assign villager roles');return;}
@@ -1195,7 +2235,8 @@ function updateBreeding(dt){
 function cashInAnimal(a){
   const def=ANIMALS[a.type];
   if(a.stage===0){toast(def.ico+' still growing — '+Math.round(a.grow*100)+'%');return;}
-  const pay=Math.round(def.sell*sellMult());
+  const pay=Math.round(def.sell*sellMult()*rainbowMult());
+  if(rainbow)state.achFlags.rainbowSale=true;   // VOX-7
   const gy=(surfaceY(Math.round(a.x),Math.round(a.z))||4)+1;
   grantCoins(pay,a.x,gy+0.9,a.z);
   burst(a.x,gy+0.6,a.z,0xffd166,16,{up:2.4,g:6});
@@ -1308,8 +2349,9 @@ function sellStockpile(bulk){
   const coins=Math.round(goodsSellValue()*(bulk?1.6:1.25)*(festivalActive()?FESTIVAL_BONUS:1));   // bulk premium; hot good +50%; festival +35%
   for(const t of goodsKeys())state.goods[t]=0;
   const b=state.buildings.market,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
-  grantCoins(coins,gx+0.5,gy,gz+0.5);
-  floatText(gx+0.5,gy+0.6,gz+0.5,'🛒 +'+coins,'#ffd166');
+  const kept=garnishTrade(coins);   // VOX-25: the note settles out of trade
+  grantCoins(kept,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.6,gz+0.5,'🛒 +'+kept,'#ffd166');
   burst(gx+0.5,gy,gz+0.5,0xffd166,18,{up:2.4,g:5});
   SFX.play('harvest');setTimeout(()=>SFX.play('coin'),120);
   toast((bulk?'🛒 The Trader bought ':'🛒 Sold ')+tot+' goods for '+coins+' 🪙');
@@ -1355,8 +2397,9 @@ function serveMeal(){
   state.goods[bestT]--;
   const coins=Math.max(2,Math.round(goodDef(bestT).yield*2*demandMult(bestT)*(festivalActive()?FESTIVAL_BONUS:1)));
   const b=state.buildings.tavern,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
-  grantCoins(coins,gx+0.5,gy,gz+0.5);
-  floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+coins,'#ffcf6b');
+  const kept=garnishTrade(coins);   // VOX-25: the tavern pays the note too
+  grantCoins(kept,gx+0.5,gy,gz+0.5);
+  floatText(gx+0.5,gy+0.5,gz+0.5,'🍺 +'+kept,'#ffcf6b');
   SFX.tone(300,0.07,'triangle',0.05);
   state.meals=(state.meals||0)+1;
   if(mealMsgT<=0){toast('🍺 The Tavern served '+goodDef(bestT).product+' for '+coins+' 🪙');mealMsgT=22;}
@@ -1504,6 +2547,22 @@ const BUILDINGS={
   greenhouse:{ico:'🪴',name:'Greenhouse',cost:820,lvl:6,desc:'Crops keep growing through winter',roof:0xbfe6d6,wall:0xcfeef0,kind:'glass'},
   apiary:   {ico:'🐝',name:'Apiary',   cost:640,lvl:5,desc:'Bees make 🍯 honey over time',roof:0xe6b422,wall:0xd8a41e,kind:'hive'},
   brewery:  {ico:'🍶',name:'Brewery',  cost:980,lvl:7,desc:'Ferments 🍯 honey into 🍶 mead (worth ~2.5×)',roof:0x6a4a2a,wall:0xb89a6a,kind:'brew'},
+  compost:  {ico:'♻️',name:'Compost Heap',cost:380,lvl:5,desc:'Tap: feed it 5 stockpiled goods → every growing crop surges +15% (60s cooldown)',roof:0x5a7a3a,wall:0x7a5a34,kind:'heap'},
+  pier:     {ico:'⚓',name:'Pier',      cost:560,lvl:5,desc:'Flotsam crates drift up twice as often and carry richer salvage',roof:0x8a5a34,wall:0x9a7a52,kind:'pier'},
+  lighthouse:{ico:'🗼',name:'Lighthouse',cost:1200,lvl:8,desc:'A beam over the water: freighters pass the isle and heave 📦 cargo crates overboard — triple the coin, always a good',roof:0xd94f30,wall:0xe8e0d0,kind:'light'},
+  observatory:{ico:'🔭',name:'Observatory',cost:1500,lvl:9,desc:'Charts the night sky: ✨ stardust falls twice as often, and every wish surges crops twice as hard',roof:0x6a5acd,wall:0xd8d8e8,kind:'obs'},
+  vane:      {ico:'🌦️',name:'Weather Vane',cost:450,lvl:6,desc:'Reads the sky: calls each shower half a minute before it lands, and showers linger 25% longer over the isle',roof:0x8a8fb0,wall:0xd0d4e0,kind:'vane'},
+  balloon:   {ico:'🎈',name:'Balloon Tours',cost:1800,lvl:10,desc:'A moored balloon lifts sightseers over the isle — every tour tips coins by how much there is to see',roof:0xd94f6a,wall:0xc9a06a,kind:'balloon'},
+  dovecote:  {ico:'🕊️',name:'Dovecote',cost:700,lvl:7,desc:'Carrier doves bring letters from the mainland — small standing orders that pay a 75% premium over base value',roof:0xe8e0d0,wall:0xc9b8a0,kind:'dove'},
+  wintermarket:{ico:'🏮',name:'Winter Market',cost:900,lvl:8,desc:'Lantern stalls that only open in the snow — skaters cross the ice for mulled mead, paying more the bigger your crew',roof:0xc0392b,wall:0x8a6a52,kind:'wmarket'},
+  icehut:   {ico:'🛖',name:'Ice Hut',cost:750,lvl:8,desc:'A hut out on the hard water — the frozen pond opens for ice fishing: hardy cold-water catches at a premium, logged in the Angler’s Log',roof:0x4a6a8a,wall:0xa8c4d8,kind:'icehut'},
+  ferry:    {ico:'⛴️',name:'Ferry Landing',cost:650,lvl:6,desc:'A jetty for the mainland ferry — day-trippers visit in the green seasons, tipping more the prettier the isle (every fence, lantern, gnome and bloom counts)',roof:0x4a6a8a,wall:0x9a7a52,kind:'ferry'},
+  sugarshack:{ico:'🍁',name:'Sugar Shack',cost:700,lvl:7,desc:'Taps the maples when the sap rises — the pans boil every couple of minutes through spring, and a boil in the rain runs double',roof:0x8a4b2f,wall:0xb8875a,kind:'sugar'},
+  museum:   {ico:'🏛️',name:'Isle Museum',cost:800,lvl:9,desc:'A curator\u2019s cabinet by the shore — the first of every species you land is mounted and pays a 30 🪙 finder\u2019s bounty (the winter table counts)',roof:0x8a8f96,wall:0xe8e2d4,kind:'museum'},
+  owlroost: {ico:'🦉',name:'Owl Roost',cost:720,lvl:8,desc:'A high pole-box for a resident owl — she hunts the fields every couple of minutes after dark, and a wet night drives the voles out of their burrows: the hunt pays double in the rain',roof:0x5a4a3a,wall:0x7a6a52,kind:'owl'},
+  trufflepig:{ico:'🐖',name:'Truffle Pig',cost:760,lvl:9,desc:'A snuffling companion with a sty by the fence — every shower that passes over the isle, she roots the wet ground and comes up with a truffle: 20 🪙, right where the rain was',roof:0x8a5a6a,wall:0xd8a0a8,kind:'pig'},
+  corncrib: {ico:'🌽',name:'Corn Crib',cost:680,lvl:8,desc:'An open-slat crib of last season’s corn set out by the fields — a crow with a full belly pecks the crops half-heartedly: peck damage drops from 0.35× to 0.15× a crop’s growth, forever',roof:0x8a6a3a,wall:0xd8b86a,kind:'crib'},
+  preserves:{ico:'🫙',name:'Preserve Shed',cost:700,lvl:8,desc:'A cool little shed of shelves and wax seals — every day it puts one jar of preserves up (holds 4), and every seasonal festival the whole shelf sells into the crowd at 12 🪙 a jar',roof:0x7a5a6a,wall:0xe8d8c8,kind:'jam'},
 };
 function buildingCubes(def){
   if(def.kind==='mill')return millCubes(def);
@@ -1511,6 +2570,22 @@ function buildingCubes(def){
   if(def.kind==='glass')return glassCubes(def);
   if(def.kind==='hive')return hiveCubes(def);
   if(def.kind==='brew')return brewCubes(def);
+  if(def.kind==='heap')return heapCubes(def);
+  if(def.kind==='pier')return pierCubes(def);
+  if(def.kind==='light')return lightCubes(def);
+  if(def.kind==='obs')return obsCubes(def);
+  if(def.kind==='vane')return vaneCubes(def);
+  if(def.kind==='balloon')return balloonCubes(def);
+  if(def.kind==='dove')return doveCubes(def);
+  if(def.kind==='wmarket')return wmarketCubes(def);
+  if(def.kind==='icehut')return icehutCubes(def);
+  if(def.kind==='ferry')return ferryCubes(def);
+  if(def.kind==='sugar')return sugarCubes(def);
+  if(def.kind==='museum')return museumCubes(def);
+  if(def.kind==='owl')return owlCubes(def);
+  if(def.kind==='pig')return pigCubes(def);
+  if(def.kind==='crib')return cribCubes(def);
+  if(def.kind==='jam')return jamCubes(def);
   const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
   a(0,0.55,0,1.7,1.1,1.7,def.wall);              // walls
   a(0,1.28,0,1.95,0.42,1.95,def.roof);           // eaves
@@ -1518,6 +2593,221 @@ function buildingCubes(def){
   a(0,0.42,0.9,0.5,0.72,0.12,0x5a3a24);          // door
   a(-0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); a(0.55,0.7,0.9,0.3,0.3,0.06,0x9ad2e0); // windows
   a(0.55,1.7,-0.4,0.3,0.9,0.3,0x6b4a3a);         // chimney
+  return c;
+}
+function heapCubes(def){
+  // VOX-3: a slatted wooden box with a dark mound and one hopeful sprout
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.3,0.75,1.7,0.6,0.14,def.wall); a(0,0.3,-0.75,1.7,0.6,0.14,def.wall);   // slats
+  a(0.75,0.3,0,0.14,0.6,1.7,def.wall); a(-0.75,0.3,0,0.14,0.6,1.7,def.wall);
+  a(0,0.5,0,1.3,0.5,1.3,0x4a3a24);               // the mound
+  a(0.2,0.82,0.1,0.5,0.2,0.5,0x3c2f1e);          // fresher layer on top
+  a(-0.2,0.95,-0.15,0.1,0.3,0.1,0x3a6020);       // sprout stem
+  a(-0.2,1.15,-0.15,0.3,0.14,0.3,def.roof);      // sprout leaves
+  return c;
+}
+function pierCubes(def){
+  // VOX-4: a plank walkway on posts reaching for the pond, lantern lit
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(-0.5,0.25,0,0.16,0.5,0.16,def.roof); a(0.5,0.25,0,0.16,0.5,0.16,def.roof);   // shore posts
+  a(-0.5,0.25,0.9,0.16,0.5,0.16,def.roof); a(0.5,0.25,0.9,0.16,0.5,0.16,def.roof); // water posts
+  a(0,0.55,0.45,1.5,0.14,2.0,def.wall);          // plank deck
+  a(0,0.62,0.45,0.2,0.04,1.9,0x7a5c3c);          // worn centre boards
+  a(0.6,0.95,1.2,0.12,0.7,0.12,0x5a4028);        // lantern post
+  a(0.6,1.38,1.2,0.26,0.26,0.26,0xffd166);       // the lantern
+  a(-0.55,0.72,1.3,0.3,0.2,0.4,0x8a6a4a);        // moored bait box
+  return c;
+}
+function lightCubes(def){
+  // VOX-9: a banded tower tapering to the lamp room, gallery rail and all
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.3,0,1.5,0.6,1.5,0x9aa0a6);               // stone footing
+  a(0,0.95,0,1.15,0.8,1.15,def.wall);            // lower band (white)
+  a(0,1.6,0,1.0,0.5,1.0,def.roof);               // red band
+  a(0,2.1,0,0.85,0.5,0.85,def.wall);             // upper band
+  a(0,2.5,0,1.1,0.12,1.1,0x5a4028);              // gallery deck
+  a(0,2.78,0,0.6,0.45,0.6,0xffd166);             // the lamp
+  a(0,3.1,0,0.8,0.18,0.8,def.roof);              // cap
+  a(0,0.45,0.78,0.4,0.6,0.1,0x5a3a24);           // door
+  return c;
+}
+function vaneCubes(def){
+  // VOX-11: a slender post with a swinging arrow and a strutting rooster
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.2,0,0.9,0.4,0.9,0x9aa0a6);               // stone foot
+  a(0,1.2,0,0.18,1.8,0.18,0x5a4028);             // the post
+  a(0,2.2,0,1.1,0.12,0.16,def.roof);             // the arrow shaft
+  a(0.62,2.2,0,0.22,0.26,0.2,def.roof);          // arrow head
+  a(-0.5,2.2,0,0.16,0.4,0.18,def.roof);          // tail feathers
+  a(0,2.5,0,0.26,0.3,0.18,0xd97a29);             // the rooster
+  a(0,2.72,0,0.1,0.14,0.1,0xc0392b);             // his comb
+  return c;
+}
+function balloonCubes(def){
+  // VOX-12: a wicker basket moored to a post, big striped canopy overhead
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0.7,0.5,0.7,0.16,1.0,0.16,0x5a4028);         // mooring post
+  a(0,0.35,0,0.9,0.5,0.9,def.wall);              // the wicker basket
+  a(0,0.62,0,1.0,0.1,1.0,0x8a5a34);              // basket rim
+  a(0,1.5,0,0.2,1.3,0.2,0x9a8a6a);               // rigging
+  a(0,2.5,0,1.5,0.9,1.5,def.roof);               // canopy, lower bulge
+  a(0,3.15,0,1.2,0.5,1.2,0xe8e0d0);              // canopy, white band
+  a(0,3.6,0,0.8,0.4,0.8,def.roof);               // canopy crown
+  return c;
+}
+function doveCubes(def){
+  // VOX-13: a little dove-house on a post, perch rail and a resident bird
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.2,0,0.9,0.4,0.9,0x9aa0a6);               // stone foot
+  a(0,1.0,0,0.2,1.4,0.2,0x5a4028);               // the post
+  a(0,1.9,0,1.1,0.7,1.1,def.wall);               // the house
+  a(0,2.35,0,1.25,0.24,1.25,def.roof);           // the roof
+  a(0,1.75,0.58,0.24,0.24,0.06,0x2a2a2a);        // a round door
+  a(0.7,1.55,0,0.5,0.08,0.14,0x5a4028);          // the perch rail
+  a(0.82,1.75,0,0.2,0.2,0.16,0xe8e0d0);          // the resident dove
+  a(0.9,1.9,0,0.1,0.1,0.1,0xd94f30);             // her beak
+  return c;
+}
+function wmarketCubes(def){
+  // VOX-14: a lantern stall — counter, striped awning, two glowing lanterns
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.35,0,1.6,0.7,1.0,def.wall);              // the counter
+  a(0,0.74,0,1.7,0.1,1.1,0x5a4028);              // counter top
+  a(-0.75,1.3,0,0.12,1.2,0.12,0x5a4028);         // awning posts
+  a(0.75,1.3,0,0.12,1.2,0.12,0x5a4028);
+  a(0,1.95,0,1.9,0.16,1.2,def.roof);             // striped awning
+  a(0,2.06,0,1.9,0.08,1.2,0xe8e0d0);
+  a(-0.65,1.5,0.5,0.22,0.3,0.22,0xffb347);       // glowing lanterns
+  a(0.65,1.5,0.5,0.22,0.3,0.22,0xffb347);
+  return c;
+}
+function icehutCubes(def){
+  // VOX-15: a squat hut for the hard water — a snow skirt, a dusted
+  // roof, a black jig-hole and a rod leaning at the door
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.15,0,1.7,0.3,1.4,0xdfeaf2);              // packed snow skirt
+  a(0,0.75,0,1.3,1.0,1.1,def.wall);              // the hut
+  a(0,1.4,0,1.5,0.24,1.3,def.roof);              // flat roof
+  a(0,1.58,0,1.5,0.1,1.3,0xf2f7fa);              // snow cap
+  a(0,0.7,0.58,0.4,0.7,0.08,0x2a3a4a);           // door flap
+  a(0.55,1.05,0.5,0.2,0.2,0.06,0x9ad2e0);        // little window
+  a(0.85,0.35,0.35,0.26,0.1,0.26,0x1a2630);      // the jig hole
+  a(0.95,0.9,0.1,0.08,1.1,0.08,0x5a4028);        // the rod at the door
+  return c;
+}
+function ferryCubes(def){
+  // VOX-16: a jetty for the mainland ferry — planks on posts, a bench,
+  // a mooring bollard and a little flag
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.5,0,1.9,0.14,1.0,def.wall);              // the deck
+  a(-0.7,0.2,-0.3,0.16,0.5,0.16,0x5a4028);       // posts
+  a(0.7,0.2,-0.3,0.16,0.5,0.16,0x5a4028);
+  a(-0.7,0.2,0.3,0.16,0.5,0.16,0x5a4028);
+  a(0.7,0.2,0.3,0.16,0.5,0.16,0x5a4028);
+  a(-0.45,0.78,-0.25,0.8,0.3,0.3,0x8a6a42);      // the bench
+  a(0.7,0.72,0.25,0.2,0.3,0.2,0x2a3a4a);         // the mooring bollard
+  a(-0.05,1.15,0.3,0.06,1.2,0.06,0x5a4028);      // the flagpole
+  a(0.16,1.6,0.3,0.4,0.24,0.04,0xd94f30);        // the flag
+  return c;
+}
+function jamCubes(def){
+  // VOX-22: a snug shed, a window full of shelves, and amber jars
+  // glowing on every one of them
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.6,0,1.5,1.2,1.2,def.wall);               // the shed
+  a(0,1.35,0,1.8,0.3,1.5,def.roof);              // the roof
+  a(0,0.5,0.62,0.44,0.8,0.1,0x5a3a24);           // the door
+  a(-0.45,0.75,0.62,0.44,0.5,0.06,0x9ad2e0);     // the shelf window
+  a(-0.55,0.62,0.66,0.12,0.16,0.06,0xe8a23e);    // amber jars in the glass
+  a(-0.35,0.62,0.66,0.12,0.16,0.06,0xd88a3e);
+  a(-0.45,0.92,0.66,0.12,0.16,0.06,0xe8b25e);
+  a(0.55,1.55,-0.3,0.24,0.5,0.24,0x6b4a3a);      // the chimney
+  return c;
+}
+function cribCubes(def){
+  // VOX-21: an open-slat crib on stilts, golden corn heaped past the
+  // rails — and one well-fed crow perched on the ridge, off duty
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(-0.6,0.25,-0.5,0.14,0.5,0.14,0x6a5a44);      // stilts
+  a(0.6,0.25,-0.5,0.14,0.5,0.14,0x6a5a44);
+  a(-0.6,0.25,0.5,0.14,0.5,0.14,0x6a5a44);
+  a(0.6,0.25,0.5,0.14,0.5,0.14,0x6a5a44);
+  a(0,0.62,0,1.6,0.24,1.2,0x8a6a4a);             // the bed
+  a(-0.72,1.0,0,0.12,0.6,1.1,def.wall);          // slat walls
+  a(0.72,1.0,0,0.12,0.6,1.1,def.wall);
+  a(0,1.0,-0.52,1.4,0.6,0.12,def.wall);
+  a(0,1.0,0.52,1.4,0.6,0.12,def.wall);
+  a(0,1.05,0,1.3,0.5,0.9,0xffd23e);              // the corn heap
+  a(0,1.5,0,1.8,0.22,1.4,def.roof);              // the roof
+  a(0.4,1.72,0,0.3,0.24,0.24,0x23242c);          // the well-fed crow
+  a(0.58,1.78,0,0.12,0.1,0.1,0xe0a23e);          // her beak
+  return c;
+}
+function pigCubes(def){
+  // VOX-20: a low sty with an open rail — and the pig herself, round
+  // and pink, snout down in the mud
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.35,-0.4,1.6,0.7,0.8,def.wall);           // the sty
+  a(0,0.85,-0.4,1.8,0.2,1.0,def.roof);           // low roof
+  a(-0.7,0.2,0.45,0.1,0.4,0.7,0x8a6a4a);         // rail posts
+  a(0.7,0.2,0.45,0.1,0.4,0.7,0x8a6a4a);
+  a(0,0.34,0.78,1.5,0.08,0.08,0x8a6a4a);         // the rail
+  a(0.1,0.3,0.3,0.7,0.5,0.5,0xf0a8b8);           // the pig
+  a(0.5,0.26,0.3,0.24,0.24,0.24,0xf0a8b8);       // snout down
+  a(0.62,0.2,0.3,0.1,0.1,0.12,0xd88a9a);         // in the mud
+  return c;
+}
+function owlCubes(def){
+  // VOX-19: a tall pole, a snug box under a little shake roof, and the
+  // owl herself on the perch — two amber eyes for the night shift
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.9,0,0.22,1.8,0.22,0x6a5a44);             // the pole
+  a(0,1.95,0,0.9,0.7,0.8,def.wall);              // the box
+  a(0,2.42,0,1.1,0.24,1.0,def.roof);             // shake roof
+  a(0,1.85,0.42,0.3,0.3,0.06,0x241c14);          // the round door
+  a(0.42,1.62,0.2,0.5,0.1,0.14,0x8a7a5e);        // the perch
+  a(0.42,1.85,0.2,0.3,0.36,0.26,0x9a8a6e);       // the owl
+  a(0.42,2.0,0.32,0.24,0.1,0.06,0xffd23e);       // amber eyes
+  return c;
+}
+function museumCubes(def){
+  // VOX-18: a stately little hall — pale stone walls, a low pediment,
+  // twin columns flanking the door, a gull-grey roof
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.6,0,2.0,1.2,1.4,def.wall);               // the hall
+  a(0,1.35,0,2.2,0.3,1.6,def.roof);              // roof slab
+  a(0,1.6,0,1.4,0.24,1.0,def.roof);              // pediment cap
+  a(-0.6,0.55,0.76,0.18,1.1,0.14,0xd8d2c4);      // column
+  a(0.6,0.55,0.76,0.18,1.1,0.14,0xd8d2c4);       // column
+  a(0,0.5,0.74,0.5,0.9,0.08,0x4a4038);           // tall door
+  a(0,1.05,0.78,0.9,0.18,0.06,0x8a8f96);         // lintel plaque
+  return c;
+}
+function sugarCubes(def){
+  // VOX-17: a boil-shack in the maples — steep roof, a fat chimney
+  // trailing steam-white, a stack of sap pails at the door
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.55,0,1.6,1.1,1.2,def.wall);              // the shack
+  a(0,1.35,0,1.8,0.5,1.4,def.roof);              // steep roof
+  a(0,1.75,0,1.2,0.3,1.0,def.roof);              // roof ridge
+  a(0.5,1.9,0.2,0.3,0.7,0.3,0x6a5a4a);           // the fat chimney
+  a(0.5,2.4,0.2,0.42,0.24,0.42,0xf2f7fa);        // steam-white puff
+  a(0,0.4,0.66,0.4,0.7,0.08,0x5a3a24);           // door
+  a(-0.7,0.2,0.5,0.24,0.4,0.24,0x9aa0a6);        // sap pails
+  a(-0.7,0.5,0.5,0.2,0.2,0.2,0x9aa0a6);
+  return c;
+}
+function obsCubes(def){
+  // VOX-10: a stout tower under a violet dome, scope poking at the sky
+  const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.3,0,1.6,0.6,1.6,0x9aa0a6);               // stone footing
+  a(0,1.0,0,1.3,0.9,1.3,def.wall);               // tower
+  a(0,1.55,0,1.45,0.2,1.45,0x8a8fb0);            // cornice
+  a(0,1.9,0,1.1,0.5,1.1,def.roof);               // dome base
+  a(0,2.25,0,0.8,0.3,0.8,def.roof);              // dome cap
+  a(0.35,2.5,0.15,0.18,0.7,0.18,0x3a3a4a);       // the scope, tilted proud
+  a(0,0.5,0.72,0.42,0.6,0.1,0x5a3a24);           // door
+  a(-0.45,1.1,0.68,0.26,0.26,0.06,0x9ad2e0);     // window
   return c;
 }
 function millCubes(def){
@@ -1727,7 +3017,67 @@ function petCat(){
   floatText(t.x,gy+1.1,t.z,['❤️','🐾','😻'][(Math.random()*3)|0],'#ff9ec4');
   SFX.tone(760,0.12,'sine',0.05,900);
   if(t.name)toast('🐈 '+t.name+' purrs happily');
+  // VOX-6: every hello builds trust; at five the gift loop opens
+  state.catPets=(state.catPets||0)+1;
+  if(state.catPets===5)toast('🐈 '+(t.name||'The cat')+' trusts you now — keep an eye out for little presents');
   state.achFlags.cat=true;checkAch();
+}
+
+/* ============================== cat gifts (VOX-6) ============================== */
+// A trusted cat (five hellos) brings little bundles: dropped mid-amble
+// wherever it happens to be, sitting patiently until tapped. Mostly
+// pocket change and string; sometimes a good for the stockpile; rarely
+// something it dug out of somewhere it shouldn't have been.
+let catGift=null,catGiftT=60+Math.random()*90;
+function catTrusts(){return (state.catPets||0)>=5;}
+function giftCubes(){const c=[],a=(x,y,z,sx,sy,sz,col)=>c.push([x,y,z,sx,sy,sz,col]);
+  a(0,0.13,0,0.34,0.22,0.3,0x8a6a48);            // cloth bundle
+  a(0,0.26,0,0.12,0.1,0.12,0xc9a86a);            // knot on top
+  a(0,0.2,0.14,0.3,0.05,0.05,0xb04a5a);          // ribbon
+  a(0,0.2,-0.14,0.3,0.05,0.05,0xb04a5a);
+  return c;}
+function spawnCatGift(){
+  if(catGift||!townCat)return;
+  const x=Math.round(townCat.x),z=Math.round(townCat.z);
+  const gy=surfaceY(x,z);
+  if(gy==null){catGiftT=6;return;}
+  const mesh=new THREE.Mesh(buildPlantGeometry(giftCubes()),plantMat);
+  mesh.userData.catgift=true;
+  mesh.position.set(x+0.5,gy+1,z+0.5);
+  scene.add(mesh);
+  catGift={mesh,x:x+0.5,y:gy+1,z:z+0.5,t:0};
+  if(!state.achFlags.catGiftSeen){state.achFlags.catGiftSeen=1;
+    toast('🐈 '+(townCat.name||'The cat')+' trots up and drops a little bundle — tap it to see!');}
+  else toast('🐈 '+(townCat.name||'The cat')+' left a little something');
+}
+function openCatGift(){
+  const g=catGift;if(!g)return;
+  const m=g.mesh.position;
+  g.mesh.geometry.dispose();scene.remove(g.mesh);catGift=null;
+  state.catGifts=(state.catGifts||0)+1;
+  const r=Math.random();
+  if(r<0.12){
+    grantCoins(45,m.x,m.y+0.9,m.z);
+    toast('🐈 A ring lost long ago — the cat looks very pleased with itself. +45 🪙');
+  } else if(r<0.45){
+    const ks=goodsKeys(),k=ks[(r*ks.length)|0];
+    state.goods[k]=(state.goods[k]||0)+1;
+    refreshGoodsHud();
+    toast('🐈 The bundle held '+goodDef(k).product+' for the stockpile');
+  } else {
+    const coins=8+((r*10)|0);
+    grantCoins(coins,m.x,m.y+0.9,m.z);
+    toast('🐈 Feathers, string… and +'+coins+' 🪙');
+  }
+  burst(m.x,m.y+0.3,m.z,0xd9782f,10,{up:2,g:4});
+  SFX.play('coin');
+  checkAch();
+}
+function updateCatGift(dt){
+  if(catGift){catGift.t+=dt;catGift.mesh.position.y=catGift.y+Math.sin(catGift.t*2)*0.05;return;}
+  if(!townCat||!catTrusts())return;
+  catGiftT-=dt;
+  if(catGiftT<=0){catGiftT=150+Math.random()*120;spawnCatGift();}
 }
 // A loyal farm dog turns up with the Farmhouse — ambles the isle, tap for a happy bark.
 let townDog=null;
@@ -1822,6 +3172,35 @@ function positionDuck(){
   const t=pondDuck;if(!t)return;
   const y=(W.waterY||5)+0.12+Math.sin(perf*1.6+t.paddle)*0.03;   // bob on the water
   t.mesh.position.set(t.x,y,t.z);t.mesh.rotation.y=t.face+Math.sin(t.paddle*4)*0.05;
+}
+/* ============================== the Duck's Dabble (VOX-8) ============================== */
+// Every few minutes the duck up-ends and comes up with something lost
+// in the pond — usually pocket change, rarely an old locket. Granted
+// on the spot with a floater (no tap loop; the duck keeps what it
+// wants and shares the rest). The pond ices over in winter.
+let duckDabbleT=90+Math.random()*90;
+function duckDabble(){
+  const t=pondDuck;if(!t)return;
+  const y=(W.waterY||5)+1.1;
+  const r=Math.random();
+  state.duckFinds=(state.duckFinds||0)+1;
+  if(r<0.12){
+    grantCoins(30,t.x,y,t.z);
+    toast('🦆 '+(t.name||'The duck')+' surfaced an old locket from the pond bottom! +30 🪙');
+  } else {
+    const coins=5+((r*8)|0);
+    grantCoins(coins,t.x,y,t.z);
+    toast('🦆 '+(t.name||'The duck')+' dabbled up something shiny — +'+coins+' 🪙');
+  }
+  burst(t.x,y-0.5,t.z,0x9ad2e0,10,{up:1.8,g:4});
+  SFX.play('coin');
+  checkAch();
+}
+function updateDuckDabble(dt){
+  if(!pondDuck)return;
+  if(seasonOf(state.day).key==='winter')return;   // the pond is iced over
+  duckDabbleT-=dt;
+  if(duckDabbleT<=0){duckDabbleT=150+Math.random()*120;duckDabble();}
 }
 function updateDuck(dt){
   const t=pondDuck;if(!t){if(W.pondCells&&W.pondCells.length)spawnDuck();return;}
@@ -2184,6 +3563,9 @@ function refreshPlantMesh(p){
 let scene,camera,renderer,sunLight,hemiLight,ambLight,sunMesh,moonMesh,stars,starMat;
 let highlightBox,ghostCube,fireflies,ffMat,cloudGroup,butterflies=[];
 let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=0,rainWaterT=0;
+// VOX-11: the Weather Vane calls the shower before it lands
+let vaneCalled=false;
+function vaneBuilt(){return !!(state.buildings&&state.buildings.vane);}
 let leaves,leafMat,bird=null;
 const pickables=[];
 function initScene(){
@@ -2476,6 +3858,12 @@ function updateDay(dt){
   if(state.time>=CYCLE){
     const prevSeason=seasonOf(state.day);
     state.time-=CYCLE;state.day++;el.day.textContent=state.day;
+    // VOX-27: the harvest bell weighs the day just ended
+    { const base=state.dayEarnBase||0, gained=Math.max(0,Math.floor((state.totalEarned||0)-base));
+      state.dayEarnBase=state.totalEarned||0;
+      recordHarvestDay(gained); }
+    if(state.cropPolicy){state.cropPolicy=false;state.policyLapsed=(state.policyLapsed||0)+1;toast('🛟 The crop policy lapsed at dawn — no crow came.');refreshPolicyHud();}   // VOX-24
+    if(jamBuilt()&&(state.jars||0)<JAM_CAP){state.jars=(state.jars||0)+1;}   // VOX-22: another day on the shelf
     const s=seasonOf(state.day);
     if(s!==prevSeason){
       // repaint every grass top in the new season's colours
@@ -2488,6 +3876,7 @@ function updateDay(dt){
         s.key==='autumn'?'Leaves drift on the wind. Harvests feel golden.':
         'Long bright days. The garden basks.');
       townFestival(s);
+      sellPreserves();   // VOX-22: the crowd buys out the shelf
       checkAch();
     } else toast('☀️ Day '+state.day+' begins — 📈 '+goodDef(demandGoodKey()).product+' is in demand today');
     if(stockpiles())refreshGoodsHud();
@@ -2610,6 +3999,467 @@ function updateWet(dt){
       const [x,y,z]=k.split(',').map(Number);
       if(getB(x,y,z)===6)setB(x,y,z,5);
     } else W.wet.set(k,nt);
+  }
+}
+
+/* ============================== the compost heap (VOX-3) ============================== */
+// A sink for surplus goods with an agricultural payoff: tap the heap to
+// feed it 5 stockpiled goods (cheapest first) and every growing crop
+// surges +15% of its grow bar. Ripening runs through updatePlants' normal
+// stage transition, so boosted crops still roll golden. 60s cooldown.
+let compostT=0;
+function spreadCompost(){
+  if(!state.buildings||!state.buildings.compost)return;
+  if(compostT>0){toast('♻️ The heap is still brewing — '+Math.ceil(compostT)+'s');return;}
+  if(goodsTotal()<5){toast('♻️ Feed the heap 5 stockpiled goods to brew compost');SFX.play('error');return;}
+  let need=5;
+  const order=goodsKeys().slice().sort((a,b)=>goodDef(a).yield-goodDef(b).yield);
+  for(const k of order){
+    if(need<=0)break;
+    const take=Math.min(need,state.goods[k]||0);
+    state.goods[k]-=take;need-=take;
+  }
+  refreshGoodsHud();
+  let boosted=0;
+  for(const p of W.plants.values()){
+    const def=PLANTS[p.type];
+    if(!def||p.stage>=2)continue;
+    p.prog+=def.grow*0.15;
+    burst(p.x+0.5,p.y+0.6,p.z+0.5,0x7a5a2e,6,{up:1.4,g:4});
+    boosted++;
+  }
+  compostT=60;
+  state.composted=(state.composted||0)+1;
+  toast(boosted?'♻️ Compost spread — '+boosted+' crop'+(boosted>1?'s':'')+' surge ahead!':'♻️ Compost spread, but nothing is growing right now');
+  SFX.play('grow');
+  checkAch();
+}
+
+/* ============================== crows & the scarecrow (VOX-1) ============================== */
+// The 🎃 scarecrow was pure decor — now it has a job. Every so often (never
+// in winter) a crow lands on a growing, unguarded crop; left alone for ~18s
+// it pecks a chunk of growth away and flies off. Tap it to shoo it, or post
+// a scarecrow within CROW_GUARD_R blocks to keep that patch crow-free.
+const CROW_GUARD_R=6, CROW_SIT=18;
+let crow=null, crowNextT=55+Math.random()*65;
+function scarecrowGuards(p){
+  for(const s of W.plants.values())
+    if(s.type==='scarecrow'&&Math.hypot(s.x-p.x,s.z-p.z)<=CROW_GUARD_R)return true;
+  return false;
+}
+function buildCrowMesh(){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshLambertMaterial({color:0x23242c});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.24,0.22),mat);
+  body.position.y=0.14;g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.16),mat);
+  head.position.set(0.2,0.3,0);g.add(head);
+  const beak=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.05,0.06),new THREE.MeshLambertMaterial({color:0xe0a13a}));
+  beak.position.set(0.32,0.28,0);g.add(beak);
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.05,0.12),mat);
+  tail.position.set(-0.22,0.2,0);tail.rotation.z=0.35;g.add(tail);
+  g.traverse(o=>{if(o.isMesh)o.userData.crow=true;});
+  return g;
+}
+function spawnCrow(){
+  const targets=[...W.plants.values()].filter(p=>PLANTS[p.type]&&p.stage<2&&!scarecrowGuards(p));
+  if(!targets.length)return;
+  const p=targets[(Math.random()*targets.length)|0];
+  crow={p,mesh:buildCrowMesh(),t:0,state:'sit',vx:0,vz:0};
+  crow.mesh.position.set(p.x+0.5,p.y+0.5,p.z+0.5);
+  scene.add(crow.mesh);
+  if(!state.achFlags.crowSeen){state.achFlags.crowSeen=1;
+    toast('🐦‍⬛ A crow is eyeing your crops — tap it to shoo it, or post a 🎃 scarecrow nearby!');}
+  else toast('🐦‍⬛ A crow lands in the field!');
+}
+function shooCrow(byTap){
+  if(!crow||crow.state==='flee')return;
+  crow.state='flee';crow.t=0;
+  crow.vx=(Math.random()<0.5?-1:1)*(4+Math.random()*3);
+  crow.vz=(Math.random()<0.5?-1:1)*(4+Math.random()*3);
+  if(byTap){
+    state.crowsShooed=(state.crowsShooed||0)+1;
+    const m=crow.mesh.position;
+    burst(m.x,m.y+0.3,m.z,0x23242c,10,{up:2,g:3});
+    floatText(m.x,m.y+0.8,m.z,'Shoo! 🐦‍⬛','#c9d4df');
+    SFX.play('place');
+    checkAch();
+  }
+}
+function updateCrow(dt){
+  if(!crow){
+    if(seasonOf(state.day).key==='winter')return;   // crows sit out the snow
+    crowNextT-=dt;
+    if(crowNextT<=0){crowNextT=55+Math.random()*65;spawnCrow();}
+    return;
+  }
+  const m=crow.mesh;
+  if(crow.state==='sit'){
+    crow.t+=dt;
+    m.position.y=crow.p.y+0.5+Math.abs(Math.sin(perf*6+1))*0.06;   // pecking hop
+    // crop harvested or dug out from under it → nothing left to steal
+    if(W.plants.get(k3(crow.p.x,crow.p.y,crow.p.z))!==crow.p||crow.p.stage>=2){shooCrow(false);return;}
+    if(crow.t>=CROW_SIT){
+      const def=PLANTS[crow.p.type];
+      if(def){
+        const bite=cribBuilt()?CRIB_BITE:CROW_BITE;   // VOX-21: a full crow pecks lazily
+        crow.p.prog=Math.max(0,crow.p.prog-def.grow*bite);
+        if(cribBuilt())state.cribMeals=(state.cribMeals||0)+1;
+        const ns=stageFor(crow.p);
+        if(ns!==crow.p.stage){crow.p.stage=ns;refreshPlantMesh(crow.p);}
+        floatText(crow.p.x+0.5,crow.p.y+1.2,crow.p.z+0.5,'🐦‍⬛ pecked!','#e0705c');
+        settleCropPolicy(crow.p.x,crow.p.y+1,crow.p.z);   // VOX-24: the assessor pays on a landed peck
+        toast(cribBuilt()
+          ?'🐦‍⬛ A crow pecked your '+def.name+' — but it filled up at the crib first: barely a scratch.'
+          :'🐦‍⬛ A crow pecked your '+def.name+' — it lost some growth.');
+      }
+      shooCrow(false);
+    }
+  } else {
+    crow.t+=dt;
+    m.position.x+=crow.vx*dt;m.position.z+=crow.vz*dt;m.position.y+=3.2*dt;
+    m.rotation.y+=dt*4;
+    if(crow.t>2.2){
+      m.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
+      scene.remove(m);crow=null;
+    }
+  }
+}
+
+/* ============================== flotsam & the Pier (VOX-4) ============================== */
+// Every few minutes (never through winter ice) a battered crate bobs up in
+// the pond. Tap it to crack it open — coins, sometimes a good for the
+// stockpile — before it takes on water and sinks (~60s). A ⚓ Pier makes
+// the isle a port of call: crates drift up twice as often and pay richer.
+const FLOTSAM_DRIFT=60;
+let flotsam=null, flotsamNextT=140+Math.random()*100;
+function pierBuilt(){return !!(state.buildings&&state.buildings.pier);}
+function buildFlotsamMesh(cargo){
+  // VOX-9: a freighter's cargo crate is the same silhouette, bigger and
+  // red-strapped, so the tap target and pickable plumbing stay shared.
+  const g=new THREE.Group(), s=cargo?1.25:1;
+  const wood=new THREE.MeshLambertMaterial({color:cargo?0x8a6236:0x9a6f42});
+  const strap=new THREE.MeshLambertMaterial({color:cargo?0xb03a2a:0x5a4028});
+  const box=new THREE.Mesh(new THREE.BoxGeometry(0.6*s,0.44*s,0.6*s),wood);
+  box.position.y=0.2*s;g.add(box);
+  const b1=new THREE.Mesh(new THREE.BoxGeometry(0.64*s,0.1*s,0.64*s),strap);
+  b1.position.y=0.3*s;g.add(b1);
+  const b2=new THREE.Mesh(new THREE.BoxGeometry(0.64*s,0.1*s,0.64*s),strap);
+  b2.position.y=0.1*s;g.add(b2);
+  const knot=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.14,0.14),new THREE.MeshLambertMaterial({color:0xd8c9a0}));
+  knot.position.set(0.2*s,0.48*s,0.1*s);g.add(knot);   // rope knot on the lid
+  g.traverse(o=>{if(o.isMesh)o.userData.flotsam=true;});
+  return g;
+}
+function spawnFlotsam(cargo){
+  if(!W.pondCells||!W.pondCells.length)return;
+  const [x,z]=W.pondCells[(Math.random()*W.pondCells.length)|0];
+  flotsam={x,z,t:0,cargo:!!cargo,mesh:buildFlotsamMesh(cargo)};
+  flotsam.mesh.position.set(x+0.5,(W.waterY||5)+0.16,z+0.5);
+  scene.add(flotsam.mesh);
+  if(cargo)return;   // VOX-9: the freighter toast already announced it
+  if(!state.achFlags.flotsamSeen){state.achFlags.flotsamSeen=1;
+    toast('🧺 A crate drifts up in the pond — tap it before it sinks! (A ⚓ Pier brings more.)');}
+  else toast('🧺 Flotsam bumps against the bank!');
+}
+function removeFlotsam(){
+  if(!flotsam)return;
+  flotsam.mesh.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
+  scene.remove(flotsam.mesh);flotsam=null;
+}
+function openFlotsam(){
+  if(!flotsam)return;
+  const m=flotsam.mesh.position, pier=pierBuilt(), cargo=flotsam.cargo;
+  let coins=25+((Math.random()*36)|0);
+  if(pier)coins=Math.round(coins*1.6);
+  if(cargo)coins=coins*3;   // VOX-9: freight pays like freight
+  grantCoins(coins,m.x,m.y+0.9,m.z);
+  let extra='';
+  if(cargo||Math.random()<(pier?0.5:0.3)){   // cargo always carries a good
+    const ks=goodsKeys(), k=ks[(Math.random()*ks.length)|0];
+    state.goods[k]=(state.goods[k]||0)+1;
+    extra=' + '+goodDef(k).product+' for the stockpile';
+    refreshGoodsHud();
+  }
+  state.flotsamOpened=(state.flotsamOpened||0)+1;
+  if(cargo)state.cargoOpened=(state.cargoOpened||0)+1;
+  burst(m.x,m.y+0.3,m.z,cargo?0xb03a2a:0x9a6f42,cargo?16:12,{up:2.2,g:4});
+  SFX.play('coin');
+  toast((cargo?'📦 Pried the cargo crate open — +':'🧺 Cracked the crate open — +')+coins+' 🪙'+extra);
+  removeFlotsam();
+  checkAch();
+}
+function updateFlotsam(dt){
+  if(!flotsam){
+    if(seasonOf(state.day).key==='winter')return;   // the pond is iced over
+    flotsamNextT-=dt*(pierBuilt()?2:1);             // the pier draws them in
+    if(flotsamNextT<=0){flotsamNextT=140+Math.random()*100;spawnFlotsam();}
+    return;
+  }
+  flotsam.t+=dt;
+  flotsam.mesh.position.y=(W.waterY||5)+0.16+Math.sin(perf*1.4+flotsam.x)*0.06;
+  flotsam.mesh.rotation.y+=dt*0.15;
+  if(flotsam.t>=FLOTSAM_DRIFT||seasonOf(state.day).key==='winter'){
+    const m=flotsam.mesh.position;
+    burst(m.x,m.y,m.z,0x9ad2e0,8,{up:1.5,g:4});
+    toast(flotsam.cargo?'📦 The cargo crate took on water and sank.':'🧺 The crate took on water and sank.');
+    removeFlotsam();
+  }
+}
+
+/* ============================== the Lighthouse (VOX-9) ============================== */
+// The isle finally shows a light to the shipping lanes. With the 🗼
+// Lighthouse built, freighters follow the beam past the isle every few
+// minutes (never through winter ice) and heave a cargo crate overboard —
+// flotsam's big sibling: triple the coin and always carrying a good.
+// One crate bobs at a time, so a passing ship waits for a clear pond.
+let shipNextT=200+Math.random()*160;
+function lighthouseBuilt(){return !!(state.buildings&&state.buildings.lighthouse);}
+function updateShips(dt){
+  if(!lighthouseBuilt())return;
+  if(seasonOf(state.day).key==='winter')return;      // the lanes ice shut
+  shipNextT-=dt;
+  if(shipNextT>0)return;
+  if(flotsam){shipNextT=30;return;}                  // the pond already has a crate
+  shipNextT=200+Math.random()*160;
+  spawnFlotsam(true);
+  if(flotsam)toast('🚢 A freighter follows the beam past the isle — cargo overboard!');
+}
+
+/* ============================== balloon tours (VOX-12) ============================== */
+// The isle finally has something to show off. With the balloon moored,
+// sightseers drift in every few minutes (the basket stays lashed down
+// through rain and winter storms) and tip by how much there is to see:
+// 10 coins plus 3 for every town building standing.
+let tourNextT=180+Math.random()*120;
+function balloonBuilt(){return !!(state.buildings&&state.buildings.balloon);}
+function tourPay(){return 10+3*Object.values(state.buildings||{}).filter(Boolean).length;}
+function updateTours(dt){
+  if(!balloonBuilt())return;
+  if(rainActive||seasonOf(state.day).key==='winter')return;   // lashed down
+  tourNextT-=dt;
+  if(tourNextT>0)return;
+  tourNextT=180+Math.random()*120;
+  const pay=tourPay();
+  const b=state.buildings.balloon;
+  grantCoins(pay,b.x,3.8,b.z);
+  state.tours=(state.tours||0)+1;
+  toast('🎈 A tour lifts off over the isle — the sightseers tip '+pay+' 🪙');
+  checkAch();
+}
+
+/* ============================== carrier doves (VOX-13) ============================== */
+// Letters from the mainland. With the dovecote up and a stockpile
+// running, a dove lands every few minutes with a small standing order:
+// a good you actually hold, 2–4 of it, at a 75% premium over base
+// value. Fill it before the dove flies home (90s) or the letter goes
+// unanswered. Filled orders tally toward Par Avion.
+const DOVE_PREMIUM = 1.75, DOVE_WINDOW = 90;
+let doveOrder = null, doveNextT = 240 + Math.random() * 120;
+function dovecoteBuilt(){return !!(state.buildings&&state.buildings.dovecote);}
+function doveOrderPay(t, qty){return Math.round(qty * goodDef(t).yield * DOVE_PREMIUM);}
+function refreshDoveHud(){
+  const el = document.getElementById('doveHud');
+  if (!el) return;
+  if (doveOrder) {
+    el.style.display = 'flex';
+    document.getElementById('doveTxt').textContent =
+      '🕊️ ' + doveOrder.qty + '× ' + goodDef(doveOrder.good).product + ' → ' + doveOrder.pay + ' 🪙 (' + Math.ceil(doveOrder.expire) + 's)';
+  } else el.style.display = 'none';
+}
+function fillDoveOrder(){
+  if (!doveOrder) return;
+  const { good, qty, pay } = doveOrder;
+  if ((state.goods[good] || 0) < qty) { toast('🕊️ The letter asks for ' + qty + '× ' + goodDef(good).product + ' — the stockpile is short'); return; }
+  state.goods[good] -= qty;
+  doveOrder = null;
+  const b = state.buildings.dovecote;
+  grantCoins(pay, b.x, 3, b.z);
+  state.doveFilled = (state.doveFilled || 0) + 1;
+  toast('🕊️ The dove flies home heavy — ' + qty + ' goods for ' + pay + ' 🪙 (' + state.doveFilled + ' filled)');
+  doveNextT = 240 + Math.random() * 120;
+  refreshDoveHud(); refreshGoodsHud();
+  checkAch();
+}
+function updateDoves(dt){
+  if (!dovecoteBuilt() || !stockpiles()) return;
+  if (doveOrder) {
+    doveOrder.expire -= dt;
+    refreshDoveHud();
+    if (doveOrder.expire <= 0) {
+      doveOrder = null;
+      refreshDoveHud();
+      toast('🕊️ The dove flew home with the letter unanswered.');
+      doveNextT = 240 + Math.random() * 120;
+    }
+    return;
+  }
+  doveNextT -= dt;
+  if (doveNextT > 0) return;
+  const held = goodsKeys().filter(t => (state.goods[t] || 0) > 0);
+  const good = held.length ? held[(Math.random() * held.length) | 0] : 'crop';
+  const qty = 2 + ((Math.random() * 3) | 0);
+  doveOrder = { good, qty, pay: doveOrderPay(good, qty), expire: DOVE_WINDOW };
+  refreshDoveHud();
+  toast('🕊️ A dove lands with a letter — the mainland wants ' + qty + '× ' + goodDef(good).product + ' at a premium.');
+}
+
+/* ============================== the winter market (VOX-14) ============================== */
+// Winter used to be the isle's dead season: crops frozen, the balloon
+// lashed down, the shipping lanes iced shut. The lantern stalls only
+// open IN the snow — every couple of minutes a party of skaters
+// crosses the ice for mulled mead and lantern-light, paying 12 coins
+// plus 3 for every villager working the stalls.
+let wmNextT=150+Math.random()*100;
+function wintermarketBuilt(){return !!(state.buildings&&state.buildings.wintermarket);}
+function wmPay(){return 12+3*W.workers.length;}
+function updateWinterMarket(dt){
+  if(!wintermarketBuilt())return;
+  if(seasonOf(state.day).key!=='winter')return;   // the stalls stand dark till the snow
+  wmNextT-=dt;
+  if(wmNextT>0)return;
+  wmNextT=150+Math.random()*100;
+  const pay=wmPay();
+  const b=state.buildings.wintermarket;
+  grantCoins(pay,b.x,2.6,b.z);
+  state.wmSales=(state.wmSales||0)+1;
+  toast('🏮 Skaters cross the ice for mulled mead — the stalls take '+pay+' 🪙');
+  checkAch();
+}
+
+// VOX-16: the Ferry Landing — day-trippers in the green seasons. A
+// jetty on the shore: every couple of minutes outside winter a ferry
+// docks and the visitors tip by how pretty the isle is — 8 coins base
+// +2 per decor piece placed (fences, lanterns, gnomes, blooms…),
+// capped at 40. Winter freezes the crossing solid.
+function ferryBuilt(){return !!(state.buildings&&state.buildings.ferry);}
+function decorCount(){let n=0;for(const p of W.plants.values())if(DECOR[p.type])n++;return n;}
+function ferryPay(){return Math.min(40, 8 + 2*decorCount());}
+let ferryNextT=120+Math.random()*120;
+function updateFerry(dt){
+  if(!ferryBuilt())return;
+  if(seasonOf(state.day).key==='winter')return;   // the crossing is frozen solid
+  ferryNextT-=dt;
+  if(ferryNextT>0)return;
+  ferryNextT=120+Math.random()*120;
+  const pay=ferryPay();
+  const b=state.buildings.ferry;
+  grantCoins(pay,b.x,2.6,b.z);
+  state.ferryVisits=(state.ferryVisits||0)+1;
+  toast('⛴️ The ferry docks — day-trippers wander the isle and tip '+pay+' 🪙');
+  checkAch();
+}
+
+// VOX-17: the Sugar Shack — spring's signature. When the sap rises,
+// the pans boil every couple of minutes; a boil in the rain runs
+// DOUBLE (wet springs run the sap hard). The other three seasons the
+// shack just smells faintly of last year's syrup.
+function sugarBuilt(){return !!(state.buildings&&state.buildings.sugarshack);}
+function sugarPay(){return rainActive?24:12;}
+let sugarNextT=130+Math.random()*110;
+function updateSugarShack(dt){
+  if(!sugarBuilt())return;
+  if(seasonOf(state.day).key!=='spring')return;   // the sap only rises in spring
+  sugarNextT-=dt;
+  if(sugarNextT>0)return;
+  sugarNextT=130+Math.random()*110;
+  const pay=sugarPay();
+  const b=state.buildings.sugarshack;
+  grantCoins(pay,b.x,2.6,b.z);
+  state.sapBoils=(state.sapBoils||0)+1;
+  toast(rainActive?'🍁 A boil in the rain — the sap runs double: '+pay+' 🪙':'🍁 The pans boil down a batch of syrup — '+pay+' 🪙');
+  checkAch();
+}
+
+/* ============================== stardust & wishes (VOX-5) ============================== */
+// The how-to always said the stars were good for something. At night a
+// shooting star occasionally sheds a glowing shard over the garden —
+// tap it before it fades with the morning light. Three shards make a
+// wish, and the whole garden surges.
+let shard=null, shardNextT=100+Math.random()*80;
+// VOX-10: the Observatory charts the sky — stardust falls twice as
+// often and every wish lands twice as hard under the dome.
+function observatoryBuilt(){return !!(state.buildings&&state.buildings.observatory);}
+function buildShardMesh(){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshLambertMaterial({color:0xffe98a,emissive:0xd9a520});
+  const a=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.34,0.34),mat);
+  a.rotation.set(0.6,0.4,0.5);g.add(a);
+  const b=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.5,0.22),mat);
+  b.rotation.set(-0.3,0.7,0.2);g.add(b);
+  g.traverse(o=>{if(o.isMesh)o.userData.shard=true;});
+  return g;
+}
+function spawnShard(){
+  // land anywhere on the island's surface (never on the pond); fall back
+  // to hovering over a plant if the dice keep missing solid ground
+  let x=null,y=null,z=null;
+  const anchor=(W.pondCells&&W.pondCells[0])||[8,8];
+  for(let i=0;i<14&&x===null;i++){
+    const tx=anchor[0]+((Math.random()*21)|0)-10, tz=anchor[1]+((Math.random()*21)|0)-10;
+    if(W.pondCells&&W.pondCells.some(c=>c[0]===tx&&c[1]===tz))continue;
+    const sy=surfaceY(tx,tz);
+    if(sy===null)continue;
+    x=tx;y=sy;z=tz;
+  }
+  if(x===null){
+    const hosts=[...W.plants.values()];
+    if(!hosts.length)return;
+    const p=hosts[(Math.random()*hosts.length)|0];
+    x=p.x;y=p.y;z=p.z;
+  }
+  shard={x,y,z,t:0,mesh:buildShardMesh()};
+  shard.mesh.position.set(x+0.5,y+1.6,z+0.5);
+  scene.add(shard.mesh);
+  if(!state.achFlags.shardSeen){state.achFlags.shardSeen=1;
+    toast('✨ A shooting star shed stardust over the garden — tap it before dawn! Three shards make a wish.');}
+  else toast('✨ Stardust glitters in the garden!');
+}
+function removeShard(){
+  if(!shard)return;
+  shard.mesh.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
+  scene.remove(shard.mesh);shard=null;
+}
+function wishGranted(){
+  state.stardust-=3;
+  state.wishes=(state.wishes||0)+1;
+  const obs=observatoryBuilt();
+  if(obs)state.achFlags.obsWish=1;   // VOX-10
+  let touched=0;
+  for(const p of W.plants.values()){
+    const def=PLANTS[p.type];
+    if(!def||!def.grow||p.stage>=2)continue;
+    p.prog+=def.grow*(obs?0.40:0.20);   // ripening runs through the normal stage roll
+    touched++;
+  }
+  toast('🌠 A wish comes true — '+touched+' growing crop'+(touched===1?'':'s')+' surge with starlight'+(obs?', doubled under the dome':'')+'!');
+  SFX.play('level');
+  checkAch();
+}
+function collectShard(){
+  if(!shard)return;
+  const m=shard.mesh.position;
+  state.stardust=(state.stardust||0)+1;
+  burst(m.x,m.y,m.z,0xffe98a,14,{up:2.6,g:3});
+  SFX.play('ach');
+  removeShard();
+  if(state.stardust>=3)wishGranted();
+  else toast('✨ Stardust collected — '+state.stardust+'/3 toward a wish.');
+  checkAch();
+}
+function updateShard(dt){
+  if(!shard){
+    if(!isNight())return;               // shards only fall under the stars
+    shardNextT-=dt*(observatoryBuilt()?2:1);   // the scope finds them first (VOX-10)
+    if(shardNextT<=0){shardNextT=100+Math.random()*80;spawnShard();}
+    return;
+  }
+  shard.t+=dt;
+  shard.mesh.position.y=shard.y+1.6+Math.sin(perf*2.2)*0.08;
+  shard.mesh.rotation.y+=dt*1.4;
+  if(!isNight()){
+    toast('✨ The stardust faded with the morning light.');
+    removeShard();
   }
 }
 
@@ -2747,8 +4597,13 @@ function doAction(hit){
   if(ud.cat)return petCat();                              // pet the town cat
   if(ud.dog)return petDog();                              // pet the farm dog
   if(ud.duck)return petDuck();                            // greet the pond duck
+  if(ud.crow)return shooCrow(true);                       // shoo a crop-raiding crow
+  if(ud.flotsam)return openFlotsam();                     // crack a drifting crate (VOX-4)
+  if(ud.shard)return collectShard();                      // catch fallen stardust (VOX-5)
+  if(ud.catgift)return openCatGift();                     // unwrap the cat's bundle (VOX-6)
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
+    if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
@@ -2827,6 +4682,7 @@ function actOnPlant(p){
     let pay=gold?def.sell*2:def.sell;
     const season=inSeason(def);
     if(season)pay=Math.round(pay*1.4);                                // in-season harvest sells for +40%
+    if(rainbow){pay=Math.round(pay*rainbowMult());state.achFlags.rainbowSale=true;}   // VOX-7
     grantCoins(pay,p.x+0.5,p.y+0.9,p.z+0.5);
     if(season){state.achFlags.inseason=true;floatText(p.x+0.5,p.y+1.5,p.z+0.5,seasonOf(state.day).ico+' in season!','#ffe08a');}
     grantXP(def.xp);
@@ -2862,7 +4718,7 @@ function placeSelected(x,y,z){
     if(state.level<d.lvl){toast('Unlocks at level '+d.lvl);SFX.play('error');return;}
     if(!getB(x,y-1,z)){toast('Decor needs ground under it');return;}
     if(!spendCoins(d.cost))return;
-    addPlant(x,y,z,sel,false,0,2);   // decor has no growth stages — place it fully "grown"
+    addPlant(x,y,z,sel,false,0,2);   // decorations have no growth stages
     state.decor++;SFX.play('place');
     burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
     questCheck();
@@ -2894,6 +4750,10 @@ function getPickables(){
   if(townCat)arr.push(townCat.mesh);
   if(townDog)arr.push(townDog.mesh);
   if(pondDuck)arr.push(pondDuck.mesh);
+  if(crow&&crow.mesh)crow.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
+  if(flotsam&&flotsam.mesh)flotsam.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
+  if(shard&&shard.mesh)shard.mesh.traverse(o=>{if(o.isMesh)arr.push(o);});
+  if(catGift&&catGift.mesh)arr.push(catGift.mesh);
   return arr;
 }
 function raycastAt(clientX,clientY){
@@ -3183,6 +5043,18 @@ function load(){
   Object.assign(state,data.state);
   if(!state.buildings)state.buildings={};
   if(!state.goods)state.goods={};
+  // A save is untrusted input and this is a blanket merge, so every number in
+  // it arrives unchecked. Clamp the ones the game turns into array indices or
+  // renders directly — day reached SEASONS[-1] and bricked the isle at boot.
+  const sNum=(v,d,lo,hi)=>{const n=Number(v);return Number.isFinite(n)?Math.min(hi,Math.max(lo,n)):d;};
+  const sInt=(v,d,lo,hi)=>Math.floor(sNum(v,d,lo,hi));
+  state.day=sInt(state.day,1,1,1e7);
+  state.time=sNum(state.time,CYCLE*0.2,0,CYCLE);
+  state.coins=sInt(state.coins,20,0,1e12);
+  state.xp=sInt(state.xp,0,0,1e12);
+  state.level=sInt(state.level,1,1,999);
+  state.questIdx=sInt(state.questIdx,0,0,QUESTS.length);
+  state.townRank=sInt(state.townRank,0,0,TOWN_RANKS.length-1);
   genIsland(0,0,15,0);
   const islets=data.islets||[];
   islets.forEach(id=>{const it=ISLETS.find(i=>i.id===id);if(it)unlockIslet(it,true);});
@@ -3191,7 +5063,7 @@ function load(){
     if(id===0)W.blocks.delete(k);else W.blocks.set(k,id);
   });
   (data.wet||[]).forEach(([k,t])=>W.wet.set(k,t));
-  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,PLANTS[p.type]?p.stage:2,p.harvested));   // decor self-heals to fully-grown even from old saves
+  (data.plants||[]).forEach(p=>addPlant(p.x,p.y,p.z,p.type,true,p.prog,PLANTS[p.type]?p.stage:2,p.harvested)); // heal legacy decorations
   (data.animals||[]).forEach(a=>{if(ANIMALS[a.type])spawnAnimal(a.type,a.x,a.z,a.stage,a.grow);});
   (data.workers||[]).forEach(w=>spawnWorker(w.role,w.name,w.x,w.z));
   if(state.farmerHired&&!W.workers.length){spawnWorker('all');delete state.farmerHired;}   // migrate old farmhand
@@ -3251,7 +5123,9 @@ const MUSIC={t:0,next:3,scale:[262,294,330,392,440,523,587],
 
 /* ============================== weather ============================== */
 // A rainbow arcs over the isle when a shower clears (not in winter).
+// VOX-7: Rainbow's End — while the arc holds, everything sells +25%.
 let rainbow=null,rainbowT=0;
+function rainbowMult(){return rainbow?1.25:1;}
 function spawnRainbow(){
   if(rainbow){scene.remove(rainbow);rainbow.geometry.dispose();rainbow.material.dispose();rainbow=null;}
   const bands=[0xff5b5b,0xff9a3e,0xffe14d,0x66d16b,0x4db6ff,0x6b6bff,0xb06ff0];
@@ -3273,6 +5147,7 @@ function spawnRainbow(){
   rainbow=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
   rainbow.renderOrder=-1;scene.add(rainbow);
   rainbowT=24;
+  toast('🌈 Rainbow’s End — everything sells +25% while it arcs!');
 }
 function updateRainbow(dt){
   if(!rainbow)return;
@@ -3288,8 +5163,16 @@ function updateRain(dt){
       if(seasonOf(state.day).key!=='winter'&&!isNight()){spawnRainbow();state.achFlags.rainbow=true;checkAch();}}
   } else {
     rainT-=dt;
+    // VOX-11: the vane swings before the sky breaks
+    if(vaneBuilt()&&!vaneCalled&&rainT<=30&&rainT>0){
+      vaneCalled=true;
+      state.vaneCalls=(state.vaneCalls||0)+1;
+      toast(seasonOf(state.day).key==='winter'?'🌦️ The vane swings north — snow inside half a minute.':'🌦️ The vane swings west — a shower inside half a minute.');
+      checkAch();
+    }
     if(rainT<=0){
-      rainActive=true;rainLeft=22+Math.random()*20;
+      rainActive=true;rainLeft=(22+Math.random()*20)*(vaneBuilt()?1.25:1);   // VOX-11: showers linger over a read sky
+      vaneCalled=false;
       const winter=seasonOf(state.day).key==='winter';
       toast(winter?'❄️ Snow drifts across the isle — soft and slow':
         '🌧️ A gentle shower rolls in — your garden drinks it up');
@@ -3441,7 +5324,58 @@ const ACH=[
   ['snow','First Snow','See snowfall on the isle',()=>!!state.achFlags.snow],
   ['rainbow','Over the Rainbow','Catch a rainbow after a shower',()=>!!state.achFlags.rainbow],
   ['wish','Make a Wish','Spot a shooting star on a clear night',()=>!!state.achFlags.wish],
+  ['tours5','Head in the Clouds','Send five balloon tours over the isle',()=>(state.tours||0)>=5],
+  ['dove5','Par Avion','Fill five carrier-dove orders',()=>(state.doveFilled||0)>=5],
+  ['wm5','Lantern-Lit','Host five winter-market nights',()=>(state.wmSales||0)>=5],
+  ['ice5','Hard Water','Land five catches through the winter ice',()=>(state.iceCatches||0)>=5],
+  ['ferry5','Day-Trippers','Welcome five ferry crossings',()=>(state.ferryVisits||0)>=5],
+  ['sap5','Sugar Rush','Boil five batches of syrup',()=>(state.sapBoils||0)>=5],
+  ['mount5','Curator','Mount five species in the Isle Museum',()=>Object.keys(state.mounted||{}).length>=5],
+  ['owl10','Night Watch','See the owl home from ten hunts',()=>(state.owlCatches||0)>=10],
+  ['truffle5','Snout of Gold','Root up five truffles',()=>(state.truffles||0)>=5],
+  ['crib10','Corn Diplomacy','Blunt ten crow raids with the Corn Crib',()=>(state.cribMeals||0)>=10],
+  ['jam12','Shelf of Summers','Sell twelve festival jars from the Preserve Shed',()=>(state.jamsSold||0)>=12],
+  ['cloud6','Cloud Reader','Win six cloud wagers',()=>(state.cloudWins||0)>=6],
+  ['policy4','Acts of Crow','Collect four crop-policy payouts',()=>(state.policyClaims||0)>=4],
+  ['notes3','Square with the Trader','Clear three of the Trader\u2019s notes',()=>(state.notesCleared||0)>=3],
+  ['lantern2','Keeper of the Shore','See the lantern greet two new isles',()=>{const l=loadLantern();return l.lit&&l.isles>=2;}],
+  ['bell3','Harvest Bell','Ring the harvest bell on three sessions',()=>loadVrec().beats>=3],
+  ['bottles3','The Sea Remembers','Read three messages in bottles',()=>loadBottle().read>=3],
+  ['tablet3','Written in Tide','Consult the tide tablet three times',()=>loadVtab().opens>=3],
+  ['conch3','Heard Across the Water','Sound the keeper\u2019s conch on three sessions',()=>loadConch().uses>=3],
+  ['wick2','The Second Wick','See the lantern greet three isles and earn its second wick',()=>lanternHasWick()],
+  ['beacon6','The Beacon Flame','See the lantern greet six isles and braid its beacon flame',()=>lanternHasBeacon()],
+  ['lanternfest3','Lantern Festival','See three new isles rise to the festival',()=>loadVfest().days>=3],
+  ['wreath3','The Shell Wreath','Ring the harvest bell three times beneath the wreath',()=>loadWreath().cheers>=3],
+  ['keeper3','The Old Keeper','Greet the old keeper rowing past on three sessions',()=>loadKeeper().visits>=3],
+  ['oar3','The Spare Oar','Sound the conch beneath the spare oar on three sessions',()=>loadOar().pays>=3],
+  ['sreunion3','The Shore Reunion','Throw the whole story a reunion on three sessions',()=>loadSReunion().held>=3],
+  ['dframe3','The Driftwood Frame','Look at the reunion photo on three sessions',()=>loadDFrame().looks>=3],
+  ['mooring3','The First Mooring','Ring in the mooring day on three sessions',()=>loadMooring().toasts>=3],
+  ['hlog3','The Harbor Log','Leaf through the log on three sessions',()=>loadHLog().leafs>=3],
+  ['hbench3','The Harbor Bench','Sit on the bench on three sessions',()=>loadHBench().sits>=3],
+  ['yarn3','The Harbor Yarn','Hear the yarn on three sessions',()=>loadYarn().tellings>=3],
+  ['shanty3','The Sea Shanty','Sing the shanty on three sessions',()=>loadShanty().sings>=3],
+  ['chest3','The Sunken Chest','Haul the chest on three sessions',()=>loadChest().hauls>=3],
+  ['mural3','The Harbor Mural','Walk the mural on three sessions',()=>loadMural().walks>=3],
+  ['pilot3','The Pilot\u2019s Walk','Walk a green hand down the boarding on three sessions',()=>loadPilot().walks>=3],
+  ['mark3','Their Own Knot','Tie a green hand\u2019s knot into the boarding on three sessions',()=>loadMark().knots>=3],
+  ['longshed','The Long Shed','Sit in the Long Shed on three sessions',()=>loadShed().sits>=3],
+  ['bare_line','The Bare Line','Hang the bare line at the far end of the Long Shed',()=>lineUp()],
   ['fish','Gone Fishing','Reel in a catch from the pond',()=>!!state.achFlags.fish],
+  ['crow5','Crow Patrol','Shoo 5 crows off your crops',()=>(state.crowsShooed||0)>=5],
+  ['angler','Compleat Angler','Land every species in the pond',
+    ()=>['perch','tropic','crab','puffer','koi'].every(id=>state.fishLog&&state.fishLog[id])],
+  ['compost5','Black Gold','Spread compost five times',()=>(state.composted||0)>=5],
+  ['flotsam5','Beachcomber','Crack open five flotsam crates',()=>(state.flotsamOpened||0)>=5],
+  ['cargo3','Harbormaster','Pry open three freighter cargo crates',()=>(state.cargoOpened||0)>=3],
+  ['charted','Star Charts','Make a wish under the Observatory\'s dome',()=>!!state.achFlags.obsWish],
+  ['stormcaller','Stormcaller','The vane calls five showers before they land',()=>(state.vaneCalls||0)>=5],
+  ['wish1','Upon a Star','Collect three stardust shards and make a wish',()=>(state.wishes||0)>=1],
+  ['catgift5','Little Hunter','Unwrap five of the cat’s gifts',()=>(state.catGifts||0)>=5],
+  ['potofgold','Pot of Gold','Make a sale while a rainbow arcs',()=>!!state.achFlags.rainbowSale],
+  ['duckfinds5','Duck’s Hoard','The duck shares five pond finds',()=>(state.duckFinds||0)>=5],
+  ['koi','The Golden One','Catch the elusive Golden Koi',()=>!!state.achFlags.koi],
   ['cat','Cat Person','Pet the town cat',()=>!!state.achFlags.cat],
   ['dog','Good Dog','Say hi to the farm dog',()=>!!state.achFlags.dog],
   ['duck','Duck, Duck…','Greet the duck on the pond',()=>!!state.achFlags.duck],
@@ -3538,7 +5472,25 @@ function renderAlmanac(){
     html+='<div class="alm-head" style="margin-top:14px">COMPANIONS</div>';
     html+='<div class="alm-stat" style="text-align:left">'+pets.join(' &nbsp;·&nbsp; ')+'</div>';
   }
+  if((state.fishCount||0)>0){   // VOX-2: the Angler's Log
+    const log=state.fishLog||{};
+    html+='<div class="alm-head" style="margin-top:14px">🎣 ANGLER’S LOG</div>';
+    html+='<div class="alm-stat" style="text-align:left;line-height:1.8">'+
+      FISH_CATCH.concat(ICE_CATCH).filter(f=>f.id).map(f=>{   // VOX-15: winter species tease as ??? until landed
+        const l=log[f.id];
+        return l?f.ico+' '+f.name+' ×'+l.n+' <span style="color:var(--dim)">best '+l.best+'kg</span>'
+                :'<span style="color:var(--dim)">'+f.ico+' ???</span>';
+      }).join(' &nbsp;·&nbsp; ')+'</div>';
+  }
   if(state.request)html+='<div class="alm-head" style="margin-top:14px">CURRENT REQUEST</div><div class="alm-stat">'+state.request.text+'</div>';
+  if(isleHasTablet()){
+    // VOX-29: the tide tablet — the shore's cross-isle memory, carved
+    // where the almanac ends. Every consultation is counted.
+    html+='<div class="alm-head" style="margin-top:14px">THE TIDE TABLET</div>';
+    composeTablet().forEach(s=>{html+='<div class="alm-stat">'+s+'</div>';});
+    saveVtab({opens:loadVtab().opens+1});
+    if(typeof checkAch==='function')checkAch();
+  }
   $('almBody').innerHTML=html;
 }
 
@@ -3627,6 +5579,32 @@ function boot(){
         if(y!==null&&(getB(ox,y,oz)===1||getB(ox,y,oz)===2))setB(ox,y,oz,5,true);
       });
     }
+    // VOX-26: the Stone Lantern greets every isle that rises after it
+    const lan=loadLantern();
+    if(lan.lit){
+      lan.isles=(lan.isles||0)+1;saveLantern(lan);
+      [[0,0],[1,0],[0,1]].forEach(([ox,oz])=>{
+        const y=surfaceY(ox,oz);
+        if(y!==null&&getB(ox,y,oz)===5)addPlant(ox,y+1,oz,'sunflower',true,999,2,false);
+      });
+      if(lanternHasWick()){
+        // VOX-31: the second wick sends every new isle off funded.
+        // VOX-34: and the beacon flame deepens the purse to 60.
+        const purse=kindlingPurse();
+        state.coins=(state.coins||0)+purse;
+        setTimeout(()=>toast(lanternHasBeacon()
+          ? '\u{1F525} The lantern burns as a beacon now \u2014 a kindling purse of '+purse+' 🪙 waits by the plots.'
+          : '🏮 The lantern burns on its second wick \u2014 a kindling purse of '+purse+' 🪙 waits by the plots.'),2600);
+        // VOX-32: and the shore strings a festival for the new isle.
+        const vf=loadVfest();
+        saveVfest({days:vf.days+1});
+        setTimeout(()=>{grantXP(VFEST_XP);toast('\u{1F3EE} LANTERN FESTIVAL \u2014 paper lanterns over the water to welcome the new isle. +'+VFEST_XP+' xp');},1000);
+        if(typeof checkAch==='function')setTimeout(checkAch,1200);
+      }
+      setTimeout(()=>toast('🏮 The Stone Lantern kept the first seeds warm \u2014 the new isle rises already grown.'),2000);
+      save();
+    }
+    setTimeout(deliverBottle,600);   // VOX-28: the tide brings word once the shore is set (after initHud)
   }
   markAllDirty();flushChunks();buildFoliage();buildWater();buildTrees();
   rebuildBuildings();
@@ -3636,6 +5614,9 @@ function boot(){
   cam.cy=(surfaceY(0,0)||5)+1;
   fitCamera(true);
   initHud();
+  // VOX-26/27: the chips live at the foot of the document — defer the
+  // first paint until the parser has built them
+  addEventListener('DOMContentLoaded',()=>{refreshLanternHud();refreshBellHud();refreshConchHud();refreshKeeperHud();refreshSReunionHud();refreshDFrameHud();refreshMooringHud();refreshHLogHud();refreshHBenchHud();refreshYarnHud();refreshShantyHud();refreshChestHud();refreshMuralHud();refreshPilotHud();refreshMarkHud();refreshShedHud();});
   bindInput();
   $('muteBtn').textContent=state.muted?'🔇':'🔊';
   addEventListener('visibilitychange',()=>{if(document.hidden)save();});
@@ -3653,6 +5634,19 @@ function boot(){
     updatePlants(dt,dn);
     updateSprinklers(dt);
     updateBird(dt,dn);
+    updateCrow(dt);
+    updateFlotsam(dt);
+    updateShips(dt);
+    updateTours(dt);
+    updateDoves(dt);
+    updateWinterMarket(dt);
+    updateFerry(dt);
+    updateSugarShack(dt);
+    updateOwlRoost(dt);
+    updateTrufflePig(dt);
+    updateCloudBet(dt);
+    updateShard(dt);
+    if(compostT>0)compostT-=dt;
     updateWorkers(dt);
     updateAnimals(dt);
     updateDrops(dt);
@@ -3675,7 +5669,9 @@ function boot(){
     updateCat(dt);
     updateDog(dt);
     updateDuck(dt);
+    updateDuckDabble(dt);
     updatePetFriends(dt);
+    updateCatGift(dt);
     if(fishingT>0)fishingT-=dt;
     updateAmbient(dt,dn);
     updateShootingStars(dt,dn);
@@ -3688,6 +5684,130 @@ function boot(){
   requestAnimationFrame(frame);
 }
 boot();
+// VOX-50: the Shore -- the memory chain, in order, with live state.
+// Sixteen links along this water and no way to see they are one thing:
+// each chip only appears once the one before it is done, so nobody
+// halfway along knows there is a halfway.
+//
+// NOTE ON PLACEMENT: this table lives at the END of the script, and
+// that is the rule rather than a preference. It cites WREATH_AT and
+// LINE_AT, and anywhere above either of them it evaluates in their
+// temporal dead zone and takes the page down on load. I made exactly
+// that mistake four times across six houses by anchoring "after the
+// block I was thinking of" instead of "after all of them" -- so the
+// rule is the end of the file, where it cannot be got wrong.
+//
+// Every row calls the SAME function the game calls, and states the
+// gate that opens it as its predecessor(s) plus a threshold, which
+// tests/headless/wall.js cross-checks against the game's own
+// predicate. A wrong number here fails the battery rather than
+// quietly lying to a player.
+const VOX_CHAIN = [
+  { id: 'vrec',     icon: '\u{1F514}', name: 'The Harvest Bell',     tally: () => loadVrec().beats,       gate: null,                    prev: null,                need: 0 },
+  { id: 'wreath',   icon: '\u{1F41A}', name: 'The Shell Wreath',     tally: () => loadWreath().cheers,    gate: () => bellHasWreath(),   prev: 'vrec',              need: WREATH_AT },
+  { id: 'keeper',   icon: '\u{1F6F6}', name: 'The Old Keeper',       tally: () => loadKeeper().visits,    gate: null,                    prev: null,                need: 0 },
+  { id: 'sreunion', icon: '\u{1F38F}', name: 'The Shore Reunion',    tally: () => loadSReunion().held,    gate: () => sreunionStands(),  prev: ['wreath', 'keeper'], need: 3 },
+  { id: 'dframe',   icon: '\u{1F5BC}', name: 'The Driftwood Frame',  tally: () => loadDFrame().looks,     gate: () => dframeHangs(),     prev: 'sreunion',          need: 3 },
+  { id: 'mooring',  icon: '\u{2693}',  name: 'The First Mooring',    tally: () => loadMooring().toasts,   gate: () => mooringCounts(),   prev: 'dframe',            need: 3 },
+  { id: 'hlog',     icon: '\u{1F4D2}', name: 'The Harbor Log',       tally: () => loadHLog().leafs,       gate: () => hlogOut(),         prev: 'mooring',           need: 3 },
+  { id: 'hbench',   icon: '\u{1FA91}', name: 'The Harbor Bench',     tally: () => loadHBench().sits,      gate: () => hbenchBuilt(),     prev: 'hlog',              need: 3 },
+  { id: 'yarn',     icon: '\u{1F9F6}', name: 'The Harbor Yarn',      tally: () => loadYarn().tellings,    gate: () => yarnReady(),       prev: 'hbench',            need: 3 },
+  { id: 'shanty',   icon: '\u{1FA97}', name: 'The Sea Shanty',       tally: () => loadShanty().sings,     gate: () => shantyReady(),     prev: 'yarn',              need: 3 },
+  { id: 'chest',    icon: '\u{1F5DD}', name: 'The Sunken Chest',     tally: () => loadChest().hauls,      gate: () => chestSunk(),       prev: 'shanty',            need: 3 },
+  { id: 'mural',    icon: '\u{1F3A8}', name: 'The Harbor Mural',     tally: () => loadMural().walks,      gate: () => muralPainted(),    prev: 'chest',             need: 3 },
+  { id: 'pilot',    icon: '\u{1F9ED}', name: 'The Pilot\u2019s Walk', tally: () => loadPilot().walks,    gate: () => pilotPosted(),     prev: 'mural',             need: 3 },
+  { id: 'mark',     icon: '\u{270D}',  name: 'Their Own Knot',       tally: () => loadMark().knots,       gate: () => markEarned(),      prev: 'pilot',             need: 3 },
+  { id: 'shed',     icon: '\u{1F6D6}', name: 'The Long Shed',        tally: () => loadShed().sits,        gate: () => shedOffered(),     prev: 'mark',              need: 3 },
+  { id: 'line',     icon: '\u{1FAA2}', name: 'The Bare Line',        tally: () => (loadLine().up ? 1 : 0), gate: () => lineEarned(),     prev: 'shed',              need: LINE_AT },
+];
+function chainState() {
+  const rows = VOX_CHAIN.map(r => {
+    const open = !r.gate || !!r.gate();
+    const n = Math.max(0, Math.floor(r.tally() || 0));
+    const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+    return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+  });
+  const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+  return { rows, nextIdx, doneCount: rows.filter(r => r.tally > 0).length, total: rows.length };
+}
+function renderChain() {
+  const listEl = document.getElementById('chain-list');
+  const progEl = document.getElementById('chain-progress');
+  if (!listEl) return;
+  const st = chainState();
+  if (progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+  const byId = {}; st.rows.forEach(r => { byId[r.id] = r; });
+  listEl.innerHTML = st.rows.map((r, i) => {
+    const started = r.tally > 0;
+    const isNext = i === st.nextIdx;
+    // Past the one you are on, rows stay unnamed: it should say the
+    // shore keeps going, not hand over the list.
+    const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+    const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+    let note;
+    if (started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+    else if (isNext) note = 'yours to do next';
+    else if (r.open) note = 'open';
+    else if (r.prev.length) {
+      // Name the predecessor furthest behind: the one actually
+      // holding this row up.
+      const behind = r.prev.map(p => byId[p]).filter(Boolean)
+        .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+      note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+    }
+    else note = 'not yet';
+    const cls = started ? 'chain-done' : isNext ? 'chain-next' : r.open ? 'chain-open' : 'chain-locked';
+    return '<div class="chain-row ' + cls + '"><span class="chain-name">' + label
+      + '</span><span class="chain-note">' + note + '</span></div>';
+  }).join('');
+}
+function openChain() {
+  renderChain();
+  const m = document.getElementById('chain-modal');
+  if (m) m.classList.add('open');
+}
+addEventListener('DOMContentLoaded', () => {
+  const cb = document.getElementById('chain-btn');
+  if (cb) cb.onclick = openChain;
+  const cc = document.getElementById('chain-close');
+  if (cc) cc.onclick = () => document.getElementById('chain-modal').classList.remove('open');
+  const cm = document.getElementById('chain-modal');
+  if (cm) cm.addEventListener('click', e => { if (e.target === cm) cm.classList.remove('open'); });
+});
+
 </script>
+<div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Shore">
+  <div id="chain-panel">
+    <div id="chain-head">
+      <span id="chain-title">🧱 THE SHORE</span>
+      <span id="chain-progress">0 of 0 begun</span>
+      <button id="chain-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="chain-list"></div>
+  </div>
+</div>
+<div id="vox-tray">
+<div id="chain-btn" style="background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;display:flex;gap:8px;align-items:center" title="The Shore — everything this isle remembers, in the order it happened, and what the next one is waiting on.">🧱 the shore</div>
+<div id="doveHud" style="display:none;background:rgba(20,16,8,0.92);border:1px solid rgba(232,224,208,0.5);color:#e8e0d0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="fillDoveOrder()" title="A mainland letter: tap to fill the order from your stockpile at a 75% premium"><span id="doveTxt"></span></div>
+<div id="cloudHud" style="display:none;background:rgba(8,14,20,0.92);border:1px solid rgba(150,200,240,0.5);color:#cfe6f8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="placeCloudBet()" title="The Cloud Wager: 30 🪙 says rain falls within 90 seconds — the vane's early call is the whole edge"><span id="cloudTxt">🎲 30 🪙 on rain</span></div>
+<div id="polHud" style="display:flex;background:rgba(14,12,6,0.92);border:1px solid rgba(240,210,140,0.5);color:#f4e4bd;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="buyCropPolicy()" title="The Assessor's Policy: 25 🪙 insures the fields till dawn — a landed crow peck pays 50 in damages"><span id="polTxt">🛟 25 🪙 crop policy</span></div>
+<div id="noteHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(200,170,240,0.5);color:#e2d4f4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="takeTraderNote()" title="The Trader's Note: 60 🪙 now against 75 of future trade — half of every Market sale and Tavern meal rides the note till it clears"><span id="noteTxt">📝 60 🪙 advance</span></div>
+<div id="lanternHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(255,200,140,0.5);color:#ffe4c0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lightLantern()" title="The Stone Lantern: 150 🪙 lights it once, forever — it lives outside the isle's save, and every new isle that rises after it starts with the three starter plots already grown"><span id="lanternTxt">🏮 light for 150 🪙</span></div>
+<div id="bellHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(255,225,130,0.5);color:#ffefb8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:default;gap:8px;align-items:center" title="The Harvest Bell: the richest single day this shore has ever earned, weighed dawn to dawn. Beat the mark that stood when you sat down and the bell rings — +25 xp, once a session."><span id="bellTxt">🔔 —</span></div>
+<div id="conchHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(160,220,255,0.5);color:#cfeaff;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="soundConch()" title="The Keeper’s Conch: the old keeper’s shell, kept dry above the tide line. Sound it once a session — the deeper the shore’s memory, the further it carries."><span id="conchTxt">🐚 —</span></div>
+<div id="keeperHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(180,255,200,0.5);color:#d2ffe0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="greetKeeper()" title="The Old Keeper: he kept this light before anyone, and he rows past once a session — any shore with a story gets a greeting, and the greeting pays. The gift grows with the shell wreath."><span id="keeperTxt">🛶 —</span></div>
+<div id="sreunionHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(255,190,220,0.5);color:#ffd6ea;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="throwShoreReunion()" title="The Shore Reunion: when the whole story stands — the wreath’s rings and the keeper’s greetings — the isle throws it once a session, and every boat that ever moored here rows back in."><span id="sreunionTxt">🎏 —</span></div>
+<div id="dframeHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(210,190,150,0.5);color:#eaddc0;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="lookAtDFrame()" title="The Driftwood Frame: a photo of the reunion fleet, framed in driftwood by the harvest bell. Look at it once a session — somebody in the shot always rows by with a tip."><span id="dframeTxt">🖼️ —</span></div>
+<div id="mooringHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(150,200,230,0.5);color:#cfe8f5;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="ringFirstMooring()" title="The First Mooring: three looks at the driftwood frame and the isle counts back to the day the first boat tied up here. Ring it in on the bell once a session — the fleet answers with a round."><span id="mooringTxt">⚓ —</span></div>
+<div id="hlogHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(220,200,160,0.5);color:#f0e4c8;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="leafHarborLog()" title="The Harbor Log: three mooring days and a log sits open by the bell — every boat that ever tied up, signed in. Leaf through it once a session, and one of the names always sails by with a purse."><span id="hlogTxt">📒 —</span></div>
+<div id="hbenchHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="sitHarborBench()" title="The Harbor Bench: three leafs through the log and the fleet builds a bench by the bell — driftwood, old oars, every boat at its back. Sit once a session, and a trader always ties up and sits down with a purse."><span id="hbenchTxt">🪑 —</span></div>
+<div id="yarnHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="tellHarborYarn()" title="The Harbor Yarn: three sits on the bench and the oldest trader has the whole shore story by heart — the log, the letters, the reunions, every boat by the bell. Hear it once a session, and a listener always drops a purse for the next telling."><span id="yarnTxt">🧶 —</span></div>
+<div id="shantyHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="singSeaShanty()" title="The Sea Shanty: three tellings of the yarn and the fleet sets it to call and response — every deck knows the chorus. Sing it once a session, and a cap comes round the harbor and comes back heavy."><span id="shantyTxt">🪗 —</span></div>
+<div id="chestHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="haulSunkenChest()" title="The Sunken Chest: three sings of the shanty and the fleet sinks a chest off the pier on a marked line — a log page, the bottle's letter, a shell off the wreath, the shanty on a card. Haul it once a session, and there's always coin wedged in the lid."><span id="chestTxt">🗝️ —</span></div>
+<div id="muralHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="walkHarborMural()" title="The Harbor Mural: three hauls of the chest and a painter takes the long boarding of the harbor wall — the first mooring, the log’s best haul, the bench, the yarn’s ships, the shanty’s verses, the marked line. Walk it once a session, and there’s always coin left at the end of the boarding."><span id="muralTxt">🎨 —</span></div>
+<div id="pilotHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="walkTheGreenhand()" title="The Pilot’s Walk: three walks of the mural and the oldest pilot on the water takes every green hand down the boarding on their first morning — the first mooring, the best haul, the bench, the ships, the verses, the marked line. Do it once a session, and they row like they were born to it by dusk."><span id="pilotTxt">🧭 —</span></div>
+<div id="markHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="tieTheirKnot()" title="Their Own Knot: three walks and the green hand the pilot took down the boarding asks for a length of line and ties their own knot in at the end of the marked line — their first season, their hand. Do it once a session; the whole harbor stops to watch."><span id="markTxt">✍️ —</span></div>
+<div id="shedHud" style="display:none;background:rgba(10,8,14,0.92);border:1px solid rgba(190,170,140,0.5);color:#e8dcc4;font-weight:800;font-size:13px;padding:6px 14px;border-radius:8px;user-select:none;cursor:pointer;gap:8px;align-items:center" onclick="useLongShed()" title="The Long Shed: three knots in three different hands and the boarding has run out of harbor wall. 350 🪙 roofs the ways once, forever, and the marked line runs straight out through it — the chest on trestles, the log on a stand, the wreath out of the salt, bare boarding at the far end. Then sit in it once a session."><span id="shedTxt">🛖 —</span></div>
+</div>
 </body>
 </html>

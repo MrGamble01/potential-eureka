@@ -10,9 +10,9 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Grow Op — Eureka Games">
 <meta property="og:description" content="Expand your operation room by room, hire a crew, and watch the heat.">
-<meta property="og:image" content="/assets/thumbs/growop.jpg">
-<meta property="og:url" content="/drug-lab.html">
-<link rel="canonical" href="/drug-lab.html">
+<meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/growop.jpg">
+<meta property="og:url" content="https://potential-eureka-gilt.vercel.app/drug-lab">
+<link rel="canonical" href="https://potential-eureka-gilt.vercel.app/drug-lab">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/css/arcade-chrome.css">
 <style>
@@ -42,9 +42,20 @@ canvas{display:block;touch-action:none;}
   display:flex;align-items:center;justify-content:center;
   color:#22dd55;font-size:8px;font-weight:900;}
 
+#market-hud{
+  position:fixed;top:60px;right:16px;
+  background:rgba(4,10,4,0.92);
+  border:1px solid rgba(0,180,60,0.35);
+  color:#8fd9a0;font-weight:800;font-size:13px;
+  padding:5px 12px;border-radius:6px;
+  pointer-events:none;user-select:none;letter-spacing:0.5px;
+}
+#market-hud.hot{color:#ffd166;border-color:rgba(255,209,102,0.55);text-shadow:0 0 8px rgba(255,209,102,0.4);}
+#market-hud.cold{color:#7fb4ff;border-color:rgba(127,180,255,0.45);}
+
 /* ── Heat meter ── */
 #heat-hud{
-  position:fixed;top:62px;right:16px;
+  position:fixed;top:96px;right:16px;
   background:rgba(4,10,4,0.92);
   border:1px solid rgba(180,30,0,0.35);
   border-radius:6px;padding:8px 14px;min-width:160px;
@@ -61,7 +72,7 @@ canvas{display:block;touch-action:none;}
 
 /* ── Goal tracker ── */
 #goal-hud{
-  position:fixed;top:126px;right:16px;
+  position:fixed;top:160px;right:16px;
   background:rgba(4,10,4,0.92);
   border:1px solid rgba(200,160,0,0.3);
   border-radius:6px;padding:8px 14px;min-width:160px;
@@ -82,6 +93,41 @@ canvas{display:block;touch-action:none;}
   letter-spacing:1.5px;text-transform:uppercase;
   pointer-events:none;user-select:none;
 }
+
+/* ── Difficulty pick (LAB-5) ── */
+#diff-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
+  display:none;align-items:center;justify-content:center;z-index:280;}
+#diff-modal.open{display:flex;animation:bustIn 0.3s ease;}
+/* LAB-57: the Wall. Same shell as the difficulty picker so it reads
+   like the rest of the corner rather than a bolted-on panel. */
+#chain-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
+  display:none;align-items:center;justify-content:center;z-index:281;}
+#chain-modal.open{display:flex;animation:bustIn 0.3s ease;}
+#chain-modal .diff-panel{max-width:460px;text-align:left;max-height:82vh;overflow-y:auto;}
+.chain-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:6px 9px;border-radius:6px;margin-bottom:3px;font-size:12px;}
+.chain-row .chain-name{font-weight:700;color:#bfe8c8;}
+.chain-row .chain-note{opacity:0.65;font-size:11px;white-space:nowrap;color:#88bb95;}
+.chain-done{background:rgba(0,180,60,0.13);}
+.chain-next{background:rgba(255,210,90,0.14);outline:1px solid rgba(255,210,90,0.4);}
+.chain-open{background:rgba(255,255,255,0.05);}
+.chain-locked{opacity:0.45;}
+.diff-panel{background:rgba(4,12,4,0.98);border:1px solid rgba(0,180,60,0.35);
+  border-radius:12px;padding:26px;max-width:420px;width:92vw;text-align:center;
+  font-family:"Courier New",monospace;box-shadow:0 0 60px rgba(0,180,60,0.15);}
+.diff-title{font-size:18px;font-weight:900;color:#44cc66;letter-spacing:1.5px;margin-bottom:6px;}
+.diff-sub{font-size:11px;color:#557755;margin-bottom:18px;}
+.diff-opt{display:block;width:100%;text-align:left;cursor:pointer;
+  background:rgba(0,120,40,0.08);border:1px solid rgba(0,180,60,0.3);
+  border-radius:8px;padding:12px 16px;margin-bottom:10px;
+  font-family:inherit;transition:all 0.15s;}
+.diff-opt:hover{background:rgba(0,120,40,0.2);border-color:#44cc66;}
+.diff-opt--king{background:rgba(140,110,0,0.08);border-color:rgba(220,180,40,0.35);}
+.diff-opt--king:hover{background:rgba(140,110,0,0.2);border-color:#ddbb44;}
+.diff-opt-name{display:block;font-size:15px;font-weight:900;color:#ddffdd;letter-spacing:1px;}
+.diff-opt--king .diff-opt-name{color:#ffeeaa;}
+.diff-opt-desc{display:block;font-size:11px;color:#668866;margin-top:4px;line-height:1.5;}
+.diff-opt--king .diff-opt-desc{color:#998855;}
 
 /* ── Status bar ── */
 #status-bar{
@@ -279,7 +325,7 @@ canvas{display:block;touch-action:none;}
 
 /* ── Activity feed ── */
 #activity-feed{
-  position:fixed;top:196px;right:16px;
+  position:fixed;top:230px;right:16px;
   background:rgba(4,10,4,0.92);
   border:1px solid rgba(0,180,60,0.12);
   border-radius:6px;padding:9px 12px;
@@ -330,6 +376,312 @@ canvas{display:block;touch-action:none;}
   box-shadow:0 4px 16px rgba(0,0,0,0.5);
 }
 
+/* ── Big buyer contracts (LAB-8) ── */
+#contract-hud{
+  position:fixed;top:82px;left:50%;transform:translateX(-50%);
+  background:rgba(4,10,4,0.92);
+  border:1px solid rgba(255,209,102,0.45);
+  color:#ffd166;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;
+  pointer-events:none;user-select:none;letter-spacing:0.5px;z-index:30;
+}
+#contract-hud.late{color:#ff6b5c;border-color:rgba(255,107,92,0.55);text-shadow:0 0 8px rgba(255,107,92,0.4);}
+/* ── Corner Wars (LAB-11) ── */
+#rival-hud{
+  position:fixed;top:118px;left:50%;transform:translateX(-50%);
+  background:rgba(10,4,4,0.92);
+  border:1px solid rgba(255,107,92,0.5);
+  color:#ff8f80;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+  display:flex;gap:10px;align-items:center;
+}
+#rival-pay{
+  background:rgba(34,221,85,0.12);border:1px solid rgba(34,221,85,0.5);color:#22dd55;
+  font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
+}
+/* ── The Informant (LAB-16) ── */
+#tip-hud{
+  position:fixed;top:150px;left:50%;transform:translateX(-50%);
+  background:rgba(4,8,12,0.92);
+  border:1px solid rgba(154,210,224,0.5);
+  color:#9ad2e0;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+  display:flex;gap:10px;align-items:center;
+}
+#tip-buy{
+  background:rgba(154,210,224,0.12);border:1px solid rgba(154,210,224,0.5);color:#9ad2e0;
+  font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
+}
+/* ── Going Once (LAB-17) ── */
+#bw-hud{
+  position:fixed;top:186px;left:50%;transform:translateX(-50%);
+  background:rgba(12,8,4,0.92);
+  border:1px solid rgba(240,180,41,0.5);
+  color:#f0b429;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+  display:flex;gap:10px;align-items:center;
+}
+#bw-hammer,#bw-wait{
+  background:rgba(240,180,41,0.12);border:1px solid rgba(240,180,41,0.5);color:#f0b429;
+  font-family:inherit;font-weight:800;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;
+}
+#bw-wait{background:rgba(255,255,255,0.05);border-color:#444;color:#999}
+#wave-hud{
+  position:fixed;top:224px;left:50%;transform:translateX(-50%);
+  background:rgba(20,4,4,0.92);
+  border:1px solid rgba(248,81,73,0.6);
+  color:#f85149;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+}
+/* ── The Block Party (LAB-23) ── */
+#party-hud{
+  position:fixed;top:258px;left:50%;transform:translateX(-50%);
+  background:rgba(14,4,20,0.92);
+  border:1px solid rgba(210,168,255,0.6);
+  color:#d2a8ff;font-weight:800;font-size:13px;
+  padding:5px 14px;border-radius:6px;user-select:none;letter-spacing:0.5px;z-index:30;
+}
+/* ── Crunch Mode (LAB-12) ── */
+#crunch-toggle{
+  background:rgba(4,10,4,0.92);border:1px solid rgba(154,210,224,0.4);
+  color:#9ad2e0;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#crunch-toggle.on{color:#ffd166;border-color:rgba(255,209,102,0.6);text-shadow:0 0 8px rgba(255,209,102,0.35);}
+@media (max-width:640px){ #crunch-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Distributor (LAB-18) ── */
+#route-toggle{
+  background:rgba(10,6,2,0.92);border:1px solid rgba(240,180,41,0.4);
+  color:#f0b429;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#route-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+#route-toggle.cold{color:#ff6a5a;border-color:rgba(255,106,90,0.6);}
+@media (max-width:640px){ #route-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Burner Phone (LAB-24) ── */
+#burner-toggle{
+  background:rgba(10,8,4,0.92);border:1px solid rgba(255,209,102,0.4);
+  color:#ffd166;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#burner-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #burner-toggle{font-size:11px;padding:5px 9px;} }
+#mother-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#mother-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #mother-toggle{font-size:11px;padding:5px 9px;} }
+#zoning-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#zoning-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #zoning-toggle{font-size:11px;padding:5px 9px;} }
+#vault-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#vault-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #vault-toggle{font-size:11px;padding:5px 9px;} }
+#dice-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#dice-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #dice-toggle{font-size:11px;padding:5px 9px;} }
+#lawyer-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#lawyer-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #lawyer-toggle{font-size:11px;padding:5px 9px;} }
+#presale-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#presale-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #presale-toggle{font-size:11px;padding:5px 9px;} }
+#center-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#center-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #center-toggle{font-size:11px;padding:5px 9px;} }
+#hwm-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:default;font-family:inherit;
+}
+@media (max-width:640px){ #hwm-toggle{font-size:11px;padding:5px 9px;} }
+#ledger-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #ledger-toggle{font-size:11px;padding:5px 9px;} }
+#zippo-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #zippo-toggle{font-size:11px;padding:5px 9px;} }
+#og-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(120,220,120,0.4);
+  color:#8ce68c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #og-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Block Reunion (LAB-44) ── */
+#reunion-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(230,180,90,0.45);
+  color:#f0c060;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #reunion-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Cookout Polaroid (LAB-45) ── */
+#polaroid-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(200,200,255,0.45);
+  color:#c8c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #polaroid-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Corner Anniversary (LAB-46) ── */
+#anniv-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(255,215,120,0.45);
+  color:#ffd778;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #anniv-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Wall of Names (LAB-47) ── */
+#wall-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(180,230,180,0.45);
+  color:#b4e6b4;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #wall-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Stoop (LAB-48) ── */
+#stoop-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(210,180,140,0.45);
+  color:#d2b48c;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #stoop-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Stoop Story (LAB-49) ── */
+#sstory-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #sstory-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Block Track (LAB-50) ── */
+#song-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #song-toggle{font-size:11px;padding:5px 9px;} }
+/* -- The Shoebox (LAB-51) -- */
+#shoebox-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #shoebox-toggle{font-size:11px;padding:5px 9px;} }
+/* -- The Alley Mural (LAB-52) -- */
+#mural-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #mural-toggle{font-size:11px;padding:5px 9px;} }
+/* -- The Walk-Down (LAB-53) -- */
+#docent-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #docent-toggle{font-size:11px;padding:5px 9px;} }
+/* -- The control tray (UI-1) --
+   Every one of these buttons used to be its own position:fixed element on a
+   horizontal ladder that ran out to right:3904px. On a 1400px viewport that
+   put 18 of 27 of them off the left edge of the screen, unreachable; the
+   640px mobile media query was the only thing that ever rescued them. They
+   live in one wrapping tray now, so the row reflows to the viewport instead
+   of running off it. */
+#lab-tray{
+  position:fixed;right:8px;bottom:14px;z-index:30;
+  display:flex;flex-wrap:wrap-reverse;justify-content:flex-end;align-items:flex-end;
+  gap:6px;
+  max-width:calc(100vw - 16px);
+  max-height:calc(100vh - 28px);
+  overflow-y:auto;overflow-x:hidden;
+  pointer-events:none;
+}
+#lab-tray > *{ pointer-events:auto;flex:0 0 auto; }
+/* #manage-btn is fixed at bottom:14px;right:14px and only appears at
+   <=700px. The tray's own bottom-right corner used to be hand-cleared of it
+   by each button's per-button mobile offset; those offsets are gone, so the
+   tray lifts above the button instead. */
+@media (max-width:700px){
+  #lab-tray{ bottom:62px;max-height:calc(100vh - 76px); }
+}
+/* -- The New Kid's Tag (LAB-54) -- */
+#mark-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #mark-toggle{font-size:11px;padding:5px 9px;} }
+/* -- The Back Room (LAB-55) -- */
+#room-toggle{
+  background:rgba(6,10,5,0.92);border:1px solid rgba(160,200,255,0.45);
+  color:#a0c8ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+@media (max-width:640px){ #room-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Storage Unit (LAB-22) ── */
+#unit-toggle{
+  background:rgba(4,8,10,0.92);border:1px solid rgba(122,178,255,0.4);
+  color:#7ab2ff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#unit-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #unit-toggle{font-size:11px;padding:5px 9px;} }
+/* ── The Getaway Bag (LAB-21) ── */
+#bag-toggle{
+  background:rgba(8,4,10,0.92);border:1px solid rgba(190,140,255,0.4);
+  color:#be8cff;font-weight:800;font-size:12px;letter-spacing:0.5px;
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+#bag-toggle.on{color:#3fdd77;border-color:rgba(63,221,119,0.6);text-shadow:0 0 8px rgba(63,221,119,0.35);}
+@media (max-width:640px){ #bag-toggle{font-size:11px;padding:5px 9px;} }
+#contract-offer{
+  position:fixed;top:82px;left:50%;transform:translateX(-50%);
+  background:rgba(4,10,4,0.96);
+  border:1px solid rgba(255,209,102,0.5);
+  color:#e8f0e8;font-size:13px;line-height:1.5;
+  padding:12px 16px;border-radius:10px;
+  max-width:340px;text-align:center;z-index:80;
+  box-shadow:0 8px 30px rgba(0,0,0,0.6);
+}
+#contract-offer .co-title{color:#ffd166;font-weight:800;margin-bottom:4px;}
+#contract-offer .co-btns{display:flex;gap:10px;justify-content:center;margin-top:10px;}
+#contract-offer button{
+  font-family:inherit;font-weight:800;font-size:12px;
+  padding:7px 18px;border-radius:7px;cursor:pointer;
+}
+#contract-offer .co-accept{background:rgba(34,221,85,0.12);border:1px solid rgba(34,221,85,0.5);color:#22dd55;}
+#contract-offer .co-decline{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.2);color:#9ab09a;}
+#contract-offer .co-timer{color:#7a8a7a;font-size:11px;margin-top:6px;}
+
 /* ── Mobile layout: HUD compacts, side panels become a bottom sheet ── */
 @media (max-width:700px){
   #manage-btn{display:block;}
@@ -347,6 +699,10 @@ canvas{display:block;touch-action:none;}
   #act-badge{top:8px;font-size:11px;padding:4px 10px;}
   #status-bar{top:34px;font-size:10px;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #cash-hud{top:8px;right:8px;font-size:15px;padding:6px 10px;}
+  #market-hud{top:8px;left:8px;right:auto;font-size:11px;padding:4px 9px;}
+  #contract-hud{top:60px;font-size:11px;padding:4px 10px;}
+  #contract-offer{top:60px;max-width:88vw;font-size:12px;}
+  #rival-hud{top:96px;font-size:11px;padding:4px 9px;gap:6px;}
   #heat-hud{top:44px;right:8px;min-width:120px;padding:6px 10px;}
   #goal-hud{top:94px;right:8px;min-width:120px;padding:6px 10px;}
   #back-btn{bottom:14px;left:14px;z-index:70;}
@@ -359,6 +715,45 @@ canvas{display:block;touch-action:none;}
 <div id="status-bar">Tending the plants...</div>
 <div id="labels"></div>
 <div id="cash-hud"><span class="bill"></span><span id="cash-val">0</span></div>
+<div id="market-hud" title="Street demand — prices drift, surge and crash. Sell high.">📊 <span id="market-val">1.00×</span></div>
+<div id="contract-hud" style="display:none" title="Active contract — units delivered / needed, time left">📦 <span id="contract-val"></span></div>
+<div id="contract-offer" style="display:none"></div>
+<div id="rival-hud" style="display:none" title="A rival crew is poaching your buyers — Lookouts thin the poaching; pay them off to clear the corner">🕶️ <span id="rival-val"></span><button id="rival-pay"></button></div>
+<div id="tip-hud" style="display:none" title="The informant sells the street wire: for 90 seconds every undercover buyer is made on sight — no Lookout needed">ℹ️ <span id="tip-val"></span><button id="tip-buy"></button></div>
+<div id="bw-hud" style="display:none" title="Two buyers want the same 5-bag lot. Hammer to sell at the standing bid, or let them bid each other up — they might spook and walk">🔨 <span id="bw-val"></span><button id="bw-hammer"></button><button id="bw-wait"></button></div>
+<div id="wave-hud" style="display:none" title="A crackdown sweep: every sale runs 2× hotter and street buyers come half as often. Sell nothing until it lifts and the clean streets pay −10 heat">🚨 <span id="wave-val"></span></div>
+<div id="party-hud" style="display:none" title="A block party: buyers pay +25% and come twice as fast — but every sale runs 1.5× hotter and the crowd hides badges (2× sting odds). Sell hard or sit it out">🎉 <span id="party-val"></span></div>
+<div id="lab-tray">
+<button id="chain-toggle" title="The Corner — everything this block remembers, in the order it happened, and what the next one is waiting on.">🧱 THE CORNER</button>
+<button id="crunch-toggle" title="Night shifts: the whole operation runs 30% faster — but every heat spike lands 1.5× harder">🌙 NIGHT SHIFTS: OFF</button>
+<button id="burner-toggle" style="display:none" title="The Burner Phone: $800 for a clean number. While it holds charge (10 street sales), undercover buyers make the corner half as often — then the number’s burned and you buy another">📱 BURNER $800</button>
+<button id="unit-toggle" style="display:none" title="The Storage Unit: a $1,500 rental across town under a clean name. Stash cap 15 → 45, and if you ever skip town, the unit isn’t on the warrant — up to 15 bags survive">📦 RENT A UNIT $1,500</button>
+<button id="mother-toggle" style="display:none" title="The Mother Plant: $1,500 of prize genetics rooted in the corner — the cuttings run true, and every batch off the trim table bags one extra, forever">🌱 MOTHER $1,500</button>
+<button id="zoning-toggle" style="display:none" title="The Variance: a friend at City Hall reclassifies the block mixed-use commercial — $12,000 once, and an empire’s ambient heat radiates 40% lighter, forever">🏛️ VARIANCE $12k</button>
+<button id="vault-toggle" style="display:none" title="The Floor Safe: bank $1,000 under the laundry floor (the launderer keeps 10%) — the safe survives a bust, and the balance lands in your next run’s pocket">🔒 VAULT $0</button>
+<button id="dice-toggle" style="display:none" title="The Hot Hand: stake $600 on moving three clean street sales in the next 45 seconds — make it and the stake doubles, run dry and it’s gone">🎲 HOT HAND $600</button>
+<button id="lawyer-toggle" style="display:none" title="The Lawyer: a $1,500 retainer buys one case — the next sting’s bags still walk, but their full list value comes back as damages and the heat spike is argued down to 8">⚖️ LAWYER $1,500</button>
+<button id="presale-toggle" style="display:none" title="The Pre-Sale: the Distributor pays now for the next five bags off the line at 0.85× today’s list — the van intercepts them before they ever touch the shelf">📤 PRE-SELL 5</button>
+<button id="center-toggle" style="display:none" title="The Youth Center: $20,000 builds the block something no bust can touch — it stands across every run, and every fresh start begins with one regular already locked. The block remembers.">🏀 CENTER $20,000</button>
+<button id="hwm-toggle" style="display:none" title="The High-Water Mark: the biggest single hand this corner has ever sold, kept across every bust and fresh identity. Smash the mark that stood when you sat down and the story does the corner’s talking — heat cools 5, once a session.">📈 —</button>
+<button id="ledger-toggle" style="display:none" title="The Corner Ledger: everything the block remembers across every bust, bound in one book. Click to read it into the feed.">📔 LEDGER</button>
+<button id="zippo-toggle" style="display:none" title="The Zippo from the Block: the OG’s lighter, passed down. Flick it once a session and the corner settles — the deeper the block’s memory, the more heat it burns off.">🔥 ZIPPO</button>
+<button id="og-toggle" style="display:none" title="The OG from the Block: once a session the man himself drops by — he vouches for you on the corner, and the block settles.">🧢 THE OG</button>
+<button id="reunion-toggle" style="display:none" title="The Block Reunion: when the whole story stands — the gold record’s marks and the OG’s visits — the corner throws it once a session, and everyone who ever copped comes back through.">🎪 REUNION</button>
+<button id="polaroid-toggle" style="display:none" title="The Cookout Polaroid: a shot from the block reunion, taped up behind the counter next to the gold record. Look at it once a session — the memory still moves product.">📸 POLAROID</button>
+<button id="anniv-toggle" style="display:none" title="The Corner Anniversary: three looks at the polaroid and somebody does the math — the shop's been open a whole year. Toast it once a session and the block buys a round.">🎂 ANNIVERSARY</button>
+<button id="wall-toggle" style="display:none" title="The Wall of Names: three anniversaries and everyone who ever copped starts signing the shop wall. Read it once a session — one of the names always calls in an order.">🖊️ THE WALL</button>
+<button id="stoop-toggle" style="display:none" title="The Stoop: three reads of the wall and the crew builds a bench out front — a seat with the whole story at its back. Sit once a session, and somebody always sits down with a proposition.">🪑 THE STOOP</button>
+<button id="sstory-toggle" style="display:none" title="The Stoop Story: three sits and the crew has the whole block story by heart. Tell it once a session — somebody at the edge of the stoop always calls in an order before it's done.">🎙️ THE STORY</button>
+<button id="song-toggle" style="display:none" title="The Block Track: three tellings and somebody cuts the story to a beat — one track, everybody knows the hook. Play it once a session, and an order comes in before the hook comes back around.">🎧 THE TRACK</button>
+<button id="shoebox-toggle" style="display:none" title="The Shoebox: three plays of the track and the crew buries a shoebox under the stoop — the polaroid, a rubbing of the wall, a burned CD. Dig it up once a session, and there's always a little extra folded inside.">📦 THE SHOEBOX</button>
+<button id="mural-toggle" style="display:none" title="The Alley Mural: three digs of the shoebox and somebody paints the whole block down the alley wall — the stoop, the zippo, the polaroid, the shoebox seam. Stand at it once a session; the block always leaves something at the base.">🎨 THE MURAL</button>
+<button id="docent-toggle" style="display:none" title="The Walk-Down: three stands at the mural and the oldest head on the block starts walking every new kid down the alley wall — the stoop, the zippo, the polaroid, the shoebox seam, panel by panel. Do it once a session; the block always squares up after.">🧭 THE WALK-DOWN</button>
+<button id="mark-toggle" style="display:none" title="The New Kid's Tag: three walk-downs and the kid who got walked down the alley wall comes back with their own can — their piece goes up after the shoebox seam, in their hand. Do it once a session; the whole block comes out for it.">✍️ THE TAG</button>
+<button id="room-toggle" style="display:none" title="The Back Room: three tags and the wall has outgrown the alley. $20,000 buys the room behind the shop and puts the whole thing indoors — the polaroid, the wall of names, the shoebox, every panel. The money is gone either way; what it buys is the deepest sit on the block.">🛋️ THE BACK ROOM</button>
+<button id="bag-toggle" style="display:none" title="The Getaway Bag: $2,500 packed by the back door. If the door ever comes down, you weren't home — skip town with half the cash, the run survives. One bag, one miracle">🎒 PACK A BAG $2,500</button>
+<button id="route-toggle" style="display:none" title="The Distributor: a standing wholesale route — every 45s a van takes 3 bags from the stash at 0.85× list. No street exposure, +1 heat a shipment, and a hot route can get burned (2 minutes cold)">📦 ROUTE: OFF</button>
+</div>
 <div id="heat-hud">
   <div class="heat-label">🚔 Heat / Suspicion</div>
   <div class="heat-bar-bg"><div class="heat-bar-fill" id="heat-fill"></div></div>
@@ -417,6 +812,28 @@ canvas{display:block;touch-action:none;}
     <button class="bust-restart" id="bust-restart-btn">Start Over</button>
   </div>
 </div>
+<div id="chain-modal" role="dialog" aria-modal="true" aria-label="The Corner">
+  <div class="diff-panel">
+    <div class="diff-title">🧱 THE CORNER</div>
+    <div class="diff-sub" id="chain-progress">0 of 0 begun</div>
+    <div id="chain-list"></div>
+    <button class="diff-opt" id="chain-close" style="text-align:center;margin-top:14px">CLOSE</button>
+  </div>
+</div>
+<div id="diff-modal">
+  <div class="diff-panel">
+    <div class="diff-title">HOW DO YOU WANT TO RUN THIS?</div>
+    <div class="diff-sub">Picked once per run — a bust starts you over.</div>
+    <button class="diff-opt" id="diff-careful">
+      <span class="diff-opt-name">🐢 CAREFUL</span>
+      <span class="diff-opt-desc">The classic balance. $50 seed money, heat you can manage.</span>
+    </button>
+    <button class="diff-opt diff-opt--king" id="diff-kingpin">
+      <span class="diff-opt-name">👑 KINGPIN</span>
+      <span class="diff-opt-desc">$150 up front and +25% on every sale — but heat climbs 1.5× and drains slow. Empires burn fast.</span>
+    </button>
+  </div>
+</div>
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="manage-btn">🔧 Manage</button>
 <script>
@@ -438,9 +855,11 @@ const LS_KEY = 'drug-lab-v1';
 // ── Game state ──
 let state = {
   cash: 50,
+  difficulty: 'careful',
   totalEarned: 0,
   totalSold: 0,
   heat: 0,
+  crunch: false,   // LAB-12: night shifts — faster production, hotter heat
   upgrades: {},
   ownedRooms: ['garage'],
   trimmers: 0,
@@ -454,15 +873,24 @@ let state = {
 };
 
 // ── Upgrade definitions ──
+// LAB-58: every `desc` below is a promise the player spends money on, so
+// it has to say what the code does. Three of these did not. The worst was
+// Bigger Yield, advertised as "+20% product per harvest per level" while
+// `bags = 1 + upgLv('yield1')` actually adds a whole bag a level — Lv1 is
+// +100%, not +20%. Read against Premium Product's honest "+40% for $500",
+// the strongest buy in the game looked like the weakest.
+// tests/headless/labupg.js now recomputes each stated figure from the
+// function that applies it, so a description cannot drift from its effect
+// again. If you change an effect, change its `desc` in the same edit.
 const UPG = [
-  {id:'lights1',  name:'Better Grow Lights',    icon:'💡', cat:'Grow Op',       maxLv:3, base:120, mult:2.2, desc:'Plants grow 30% faster per level'},
-  {id:'yield1',   name:'Bigger Yield',           icon:'🌿', cat:'Grow Op',       maxLv:4, base:200, mult:2.0, desc:'+20% product per harvest per level'},
+  {id:'lights1',  name:'Better Grow Lights',    icon:'💡', cat:'Grow Op',       maxLv:3, base:120, mult:2.2, desc:'Plants grow 30% faster per level \u2014 and you move 5% quicker'},
+  {id:'yield1',   name:'Bigger Yield',           icon:'🌿', cat:'Grow Op',       maxLv:4, base:200, mult:2.0, desc:'+1 bag per trimmed batch per level \u2014 Lv1 doubles your output'},
   {id:'trim',     name:'Electric Trimmer',       icon:'✂️', cat:'Processing',    maxLv:3, base:180, mult:2.0, desc:'Trim 25% faster per level'},
   {id:'bags',     name:'Vac-Seal Bags',          icon:'📦', cat:'Processing',    maxLv:3, base:250, mult:2.0, desc:'+15% sale price per level'},
   {id:'network',  name:'Distribution Network',   icon:'🚗', cat:'Sales',         maxLv:4, base:400, mult:1.8, desc:'Buyers arrive 30% faster per level'},
   {id:'price',    name:'Premium Product',        icon:'💎', cat:'Sales',         maxLv:3, base:500, mult:2.2, desc:'+40% sale price per level'},
-  {id:'lookout_sys',name:'Lookout System',       icon:'📡', cat:'Security',      maxLv:3, base:300, mult:2.0, desc:'Heat builds 20% slower per level'},
-  {id:'cleanup',  name:'Clean Operation',        icon:'🧹', cat:'Security',      maxLv:2, base:600, mult:2.5, desc:'Heat drains 25% faster per level'},
+  {id:'lookout_sys',name:'Lookout System',       icon:'📡', cat:'Security',      maxLv:3, base:300, mult:2.0, desc:'Sales run 25% cooler per level \u2014 75% at Lv3'},
+  {id:'cleanup',  name:'Clean Operation',        icon:'🧹', cat:'Security',      maxLv:2, base:600, mult:2.5, desc:'+0.5 heat cleared per second per level'},
   {id:'chemistry',name:'Chemistry Equipment',    icon:'⚗️', cat:'The Next Level',maxLv:1, base:2500,mult:1.0, desc:'Unlock the cook station — harder product, way more $'},
 ];
 
@@ -707,7 +1135,7 @@ const growPlots = [];
 const GROW_TIME_BASE = 18; // seconds
 
 function upgLv(id) { return state.upgrades[id] || 0; }
-function growTime() { return GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3); }
+function growTime() { return GROW_TIME_BASE / (1 + upgLv('lights1') * 0.3) / (state.crunch ? 1.3 : 1); }   // LAB-12
 
 function buildGrowPlot(x, z, roomId) {
   const g = new THREE.Group();
@@ -837,6 +1265,250 @@ buildTrimStation(0, 2, 'garage');
 // ── Stash spot ──
 let stashCount = 0;
 const STASH_MAX_BASE = 15;
+// ── The Storage Unit (LAB-22) ──────────────────────────────
+// A rental across town under a clean name. $1,500 once (Act II+):
+// the stash cap grows 15 → 45 — and because the unit is never on
+// the warrant, a getaway-bag skip keeps up to 15 bags instead of
+// losing the lot. One rental, permanent.
+const UNIT_COST = 1500, UNIT_CAP_BONUS = 30, UNIT_KEEP = 15;
+// ── The Burner Phone (LAB-24) ──────────────────────────────
+// $800 for a clean number (Act II+). While the burner holds charge —
+// its first 10 street sales — the corner reads safer: undercover
+// buyers spawn at HALF the odds. Then the number's burned, the odds
+// snap back, and the counter goes dark until you buy another.
+// Interlocks with the Block Party: a fresh burner halves even the
+// party's doubled badge odds.
+const BURNER_COST = 800, BURNER_SALES = 10;
+function burnerFresh() { return (state.burnerLeft || 0) > 0; }
+function burnerStingMult() { return burnerFresh() ? 0.5 : 1; }
+function refreshBurnerBtn() {
+  const b = document.getElementById('burner-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', burnerFresh());
+  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : '📱 BURNER $' + fmtCash(BURNER_COST);
+}
+function buyBurner() {
+  if (burnerFresh()) { showToast('📱 The number still holds — ' + state.burnerLeft + ' sales of charge left.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < BURNER_COST) { showToast("Can't afford a clean number yet ($" + fmtCash(BURNER_COST) + ').', 'bust'); return; }
+  state.cash -= BURNER_COST;
+  state.burnerLeft = BURNER_SALES;
+  state.burnersBought = (state.burnersBought || 0) + 1;
+  refreshBurnerBtn();
+  showToast('📱 A clean number — undercover buyers make the corner half as often for ' + BURNER_SALES + ' sales.', 'good');
+  addFeed('📱 Bought a burner — the corner reads safer');
+  checkGrowAchievements();
+  saveGame();
+}
+function burnStreetSale() {
+  if (!burnerFresh()) return;
+  state.burnerLeft--;
+  if (state.burnerLeft <= 0) {
+    state.burnerLeft = 0;
+    showToast('📱 The burner’s burned — toss it. The corner reads normal again.', 'bust');
+    addFeed('📱 The burner burned out');
+  }
+  refreshBurnerBtn();
+}
+
+// LAB-26: the Mother Plant. $1,500 of prize genetics rooted ONCE in
+// the corner of the grow room — the cuttings run true, and every
+// batch off the trim table bags one extra, forever. The ledger
+// remembers exactly how much of the stash owes her.
+const MOTHER_COST = 1500;
+function motherRooted() { return !!state.motherRooted; }
+function refreshMotherBtn() {
+  const b = document.getElementById('mother-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', motherRooted());
+  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')' : '🌱 MOTHER $' + fmtCash(MOTHER_COST);
+}
+function rootMother() {
+  if (motherRooted()) { showToast('🌱 The mother is already rooted — every batch bags one extra.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < MOTHER_COST) { showToast("Can't afford the prize genetics yet ($" + fmtCash(MOTHER_COST) + ').', 'bust'); return; }
+  state.cash -= MOTHER_COST;
+  state.motherRooted = true;
+  refreshMotherBtn();
+  showToast('🌱 Prize genetics rooted in the corner — every trimmed batch bags one extra, forever.', 'good');
+  addFeed('🌱 The Mother Plant is rooted');
+  checkGrowAchievements();
+  saveGame();
+}
+// LAB-28: the Variance. Act III empires radiate ambient heat just by
+// existing — until a friend at City Hall reclassifies the block
+// "mixed-use commercial" ONCE for $12,000, and the same empire reads
+// 40% quieter on paper, forever. Architecture, not a bribe.
+const ZONING_COST = 12000;
+const ZONING_CUT = 0.6;
+function zonedVariance() { return !!state.zoned; }
+function refreshZoningBtn() {
+  const b = document.getElementById('zoning-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 3 ? '' : 'none';
+  b.classList.toggle('on', zonedVariance());
+  b.textContent = zonedVariance() ? '🏛️ ZONED · −40% AMBIENT' : '🏛️ VARIANCE $' + fmtCash(ZONING_COST);
+}
+function buyVariance() {
+  if (zonedVariance()) { showToast('🏛️ The block is already zoned mixed-use — the paperwork holds forever.', ''); return; }
+  if (currentAct() < 3) return;
+  if (state.cash < ZONING_COST) { showToast("Can't afford the friend at City Hall yet ($" + fmtCash(ZONING_COST) + ').', 'bust'); return; }
+  state.cash -= ZONING_COST;
+  state.zoned = true;
+  refreshZoningBtn();
+  showToast('🏛️ The variance clears — the block reads mixed-use commercial and the empire radiates 40% lighter, forever.', 'good');
+  addFeed('🏛️ A friend at City Hall rezones the block');
+  checkGrowAchievements();
+  saveGame();
+}
+// LAB-30: the Hot Hand. The wager round hits the corner: $600 says
+// you move THREE clean street sales in the next 45 seconds. Make it
+// and the stake doubles on the spot; run dry and it's gone. The
+// clock only counts real sales — stings, sweeps and empty shelves
+// are your problem.
+const DICE_SECS = 45, DICE_TARGET = 3, DICE_MULT = 2, DICE_STAKE = 600;
+let diceBet = null;   // { stake, timeLeft, sales }
+function refreshDiceBtn() {
+  const b = document.getElementById('dice-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', !!diceBet);
+  b.textContent = diceBet
+    ? '🎲 ' + diceBet.sales + '/' + DICE_TARGET + ' · ' + Math.ceil(diceBet.timeLeft) + 's'
+    : '🎲 HOT HAND $' + fmtCash(DICE_STAKE);
+}
+function placeDice() {
+  if (diceBet) { showToast('🎲 The dice are already rolling — ' + diceBet.sales + '/' + DICE_TARGET + ' with ' + Math.ceil(diceBet.timeLeft) + 's left.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < DICE_STAKE) { showToast("Can't cover the hot hand yet ($" + fmtCash(DICE_STAKE) + ').', 'bust'); return; }
+  state.cash -= DICE_STAKE;
+  diceBet = { stake: DICE_STAKE, timeLeft: DICE_SECS, sales: 0 };
+  refreshDiceBtn();
+  showToast('🎲 $' + fmtCash(DICE_STAKE) + ' on the table — ' + DICE_TARGET + ' clean sales in ' + DICE_SECS + ' seconds. Move.', 'good');
+  addFeed('🎲 Hot hand: $' + fmtCash(DICE_STAKE) + ' riding on the next ' + DICE_SECS + 's');
+  saveGame();
+}
+function diceSaleTick() {
+  if (!diceBet) return;
+  diceBet.sales++;
+  if (diceBet.sales >= DICE_TARGET) {
+    const payout = diceBet.stake * DICE_MULT;
+    diceBet = null;
+    state.cash += payout;
+    state.diceWon = (state.diceWon || 0) + 1;
+    refreshDiceBtn();
+    showToast('🎲 HOT HAND — three moved with time on the clock: +$' + fmtCash(payout) + '.', 'good');
+    addFeed('🎲 Hot hand WON — +$' + fmtCash(payout) + ' (' + state.diceWon + ' lifetime)');
+    checkGrowAchievements();
+    saveGame();
+  } else {
+    refreshDiceBtn();
+  }
+}
+function updateDice(dt) {
+  if (!diceBet) return;
+  diceBet.timeLeft -= dt;
+  if (diceBet.timeLeft > 0) { refreshDiceBtn(); return; }
+  const stake = diceBet.stake;
+  diceBet = null;
+  state.diceLost = (state.diceLost || 0) + 1;
+  refreshDiceBtn();
+  showToast('🎲 The clock beats the corner — $' + fmtCash(stake) + ' swept off the table.', 'bust');
+  addFeed('🎲 Hot hand lost — $' + fmtCash(stake) + ' gone');
+  saveGame();
+}
+// LAB-31: the insurance round reaches the corner. The Lookout and
+// the burner shorten the odds of a sting; the Lawyer is for when the
+// odds miss anyway. $1,500 retains one case: the next badge still
+// takes the bags, but their full list value comes back as damages
+// and the heat spike is argued down to 8. Then the retainer's spent.
+const LAWYER_COST = 1500, LAWYER_HEAT = 8;
+function refreshLawyerBtn() {
+  const b = document.getElementById('lawyer-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', !!state.lawyer);
+  b.textContent = state.lawyer ? '⚖️ RETAINED' : '⚖️ LAWYER $' + fmtCash(LAWYER_COST);
+}
+function retainLawyer() {
+  if (state.lawyer) { showToast('⚖️ Counsel is already on retainer — one case, whenever it comes.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < LAWYER_COST) { showToast("Can't cover the retainer yet ($" + fmtCash(LAWYER_COST) + ').', 'bust'); return; }
+  state.cash -= LAWYER_COST;
+  state.lawyer = true;
+  refreshLawyerBtn();
+  showToast('⚖️ Retainer paid — the next sting gets argued down. One case.', 'good');
+  addFeed('⚖️ Lawyer retained — $' + fmtCash(LAWYER_COST) + ' against the next badge');
+  saveGame();
+}
+// LAB-32: the credit round reaches the corner. The Distributor pays
+// NOW for the next five bags off the line at 0.85× today's list,
+// locked at signing — future production, not shelf stock. The van
+// intercepts bags as they come off the line, before they touch the
+// stash. Sign at a demand peak and you banked it; sign before a
+// surge and you sold the upside for cash in hand.
+const PRESALE_BAGS = 5, PRESALE_RATE = 0.85;
+function refreshPreSaleBtn() {
+  const b = document.getElementById('presale-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', (state.preSaleOwed || 0) > 0);
+  b.textContent = (state.preSaleOwed || 0) > 0
+    ? '📤 OWED ' + state.preSaleOwed
+    : '📤 PRE-SELL ' + PRESALE_BAGS + ' @ $' + fmtCash(Math.round(salePrice() * PRESALE_RATE));
+}
+function takePreSale() {
+  if ((state.preSaleOwed || 0) > 0) { showToast('📤 The van is still owed ' + state.preSaleOwed + ' bags — finish the order first.', ''); return; }
+  if (currentAct() < 2) return;
+  const perBag = Math.round(salePrice() * PRESALE_RATE);
+  const advance = perBag * PRESALE_BAGS;
+  addCash(advance);
+  state.preSaleOwed = PRESALE_BAGS;
+  refreshPreSaleBtn();
+  showToast('📤 Advance in hand — $' + fmtCash(advance) + ' now, and the next ' + PRESALE_BAGS + ' bags off the line ride the van.', 'good');
+  addFeed('📤 Pre-sold ' + PRESALE_BAGS + ' bags forward at $' + fmtCash(perBag) + ' each');
+  saveGame();
+}
+function preSaleIntercept(n) {
+  // The van takes owed bags off the line before they reach the shelf.
+  if (!(state.preSaleOwed > 0) || n <= 0) return n;
+  const take = Math.min(n, state.preSaleOwed);
+  state.preSaleOwed -= take;
+  if (state.preSaleOwed <= 0) {
+    state.preSales = (state.preSales || 0) + 1;
+    showToast('📤 The pre-sale is filled — the van pulls out. (' + state.preSales + ' completed)', 'good');
+    addFeed('📤 Pre-sale filled — the van took the last ' + take);
+    checkGrowAchievements();
+  } else {
+    addFeed('📤 The van took ' + take + ' off the line — ' + state.preSaleOwed + ' still owed');
+  }
+  refreshPreSaleBtn();
+  saveGame();
+  return n - take;
+}
+function stashMax() { return STASH_MAX_BASE + (state.unitRented ? UNIT_CAP_BONUS : 0); }
+function refreshUnitBtn() {
+  const b = document.getElementById('unit-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  b.classList.toggle('on', !!state.unitRented);
+  b.textContent = state.unitRented ? '📦 UNIT RENTED · CAP 45' : '📦 RENT A UNIT $' + fmtCash(UNIT_COST);
+}
+function rentUnit() {
+  if (state.unitRented) { showToast('📦 The unit across town is already yours.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < UNIT_COST) { showToast("Can't afford the deposit yet ($" + fmtCash(UNIT_COST) + ').', 'bust'); return; }
+  state.cash -= UNIT_COST;
+  state.unitRented = true;
+  refreshUnitBtn();
+  setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+  showToast('📦 A unit across town, rented under a clean name. Stash cap 45.', 'good');
+  addFeed('📦 Rented a storage unit — the operation has depth now.');
+  checkGrowAchievements();
+  saveGame();
+}
 let stashNode = null;
 
 function buildStash(x, z) {
@@ -929,8 +1601,26 @@ let pTargetDealer = null;
 const dealers = [];
 const DEALER_COLORS = [0x1a1a1a, 0x2a1a1a, 0x1a2a22, 0x221a2a, 0x1a1a2a];
 let dealerSpawnTimer = 0;
+// LAB-27: the Clientele. Every 25th clean street sale, a face on the
+// corner becomes a regular customer — each locked-in regular brings
+// the whole street back 5% sooner, capped at five (a fifth of the
+// foot traffic is repeat business). Slow, permanent, and earned one
+// sale at a time — the corner's answer to the office's retro board.
+const CLIENT_EVERY = 25, CLIENT_CAP = 5, CLIENT_SPEED = 0.05;
+function clienteleMult() { return 1 / (1 + Math.min(CLIENT_CAP, state.clientele || 0) * CLIENT_SPEED); }
+function clientTick() {
+  state.clientMeter = (state.clientMeter || 0) + 1;
+  if (state.clientMeter >= CLIENT_EVERY && (state.clientele || 0) < CLIENT_CAP) {
+    state.clientMeter = 0;
+    state.clientele = (state.clientele || 0) + 1;
+    showToast('🤝 A face on the corner becomes a REGULAR — buyers come ' + Math.round(Math.min(CLIENT_CAP, state.clientele) * CLIENT_SPEED * 100) + '% sooner now (' + state.clientele + '/' + CLIENT_CAP + ').', 'good');
+    addFeed('🤝 Locked in regular #' + state.clientele + ' — the street comes back sooner');
+    checkGrowAchievements();
+  }
+}
 function dealerArrivalTime() {
-  return 25 / (1 + upgLv('network')*0.3);
+  // LAB-20: buyers come half as often while a crackdown sweep runs
+  return 25 / (1 + upgLv('network')*0.3) * (typeof waveActive === 'function' && waveActive() ? 2 : 1) * (typeof partyActive === 'function' && partyActive() ? 0.5 : 1) * clienteleMult();   // LAB-27: repeat business
 }
 
 function buildDealer() {
@@ -979,15 +1669,30 @@ function buildDealer() {
 let dealerSeq = 0;
 function spawnDealer() {
   if (stashCount < 1) return;
+  // LAB-11: a posted rival crew peels buyers off before they reach you
+  if (rival && Math.random() < rivalPoachChance()) {
+    state.buyersPoached = (state.buyersPoached || 0) + 1;
+    addFeed('🕶️ A buyer peeled off to the rival corner.');
+    return;
+  }
   // Spawn at edge, walk to stash
   const spawnX = (Math.random()-0.5)*12;
   const g = buildDealer();
   g.position.set(spawnX, 0, 9);
   scene.add(g);
   // Stable id so labels don't shift when a middle dealer is spliced out.
-  const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: 1 + Math.floor(Math.random()*2)};
+  // LAB-9: past the garage act, ~1 in 8 "buyers" is an undercover cop.
+  // The feed gives no tell — only a hired Lookout flags them on sight.
+  const whale = typeof whaleDue === 'function' && whaleDue();   // LAB-25: the meter is due and the street is quiet
+  const d = {id: ++dealerSeq, group:g, state:'walking', paid:false, buyCount: whale ? WHALE_BAGS : 1 + Math.floor(Math.random()*2),
+             whale,
+             undercover: !whale && currentAct() >= 2 && Math.random() < 0.12 * (typeof partyActive === 'function' && partyActive() ? 2 : 1) * (typeof burnerStingMult === 'function' ? burnerStingMult() : 1) * (typeof frameStingMult === 'function' ? frameStingMult() : 1), waitT: 0};   // LAB-23/24: the crowd hides badges; a fresh burner reads them out. LAB-56: under a hung frame the block reads them for you
   dealers.push(d);
-  addFeed(`👤 Buyer incoming`);
+  if (whale) {
+    state.whaleMeter = 0;
+    g.scale.set(1.35, 1.35, 1.35);   // a big fish reads big from across the lot
+    addFeed('🐋 The Whale is coming down the block');
+  } else addFeed(`👤 Buyer incoming`);
 }
 
 // ── Trimmer NPCs ──
@@ -1134,6 +1839,55 @@ let chemProgress = 0;
 let chemQueue = 0;
 let chemProduct = 0;
 const CHEM_TIME = 12;
+// ── Pure batches (LAB-10) ──────────────────────────────────
+// Each finished batch rolls purity — 10% base, +15% per Cook hired — and
+// pure bags sell for 1.6× list. The ✨ count travels the same physical
+// route as the product: cook station pool → carrier → stash → sale.
+let chemPure = 0;    // pure units still sitting at the cook station
+let pureBags = 0;    // pure units banked in the stash
+function stashLabel() { return `📦 Stash [${stashCount}${pureBags > 0 ? ` · ${pureBags}✨` : ''}]`; }
+function pureChance() { return 0.10 + 0.15 * (state.cooks || 0); }
+
+// ── The Chemist's Notebook (LAB-19) ────────────────────────
+// Every batch — trimmed or cooked — writes a page. Fill enough pages
+// and the recipe itself improves: a permanent sale-price edge, and
+// each new tier tears out a "eureka page" that guarantees the NEXT
+// chem batch comes out pure. The tier is derived from state.batches
+// (already persisted); only the pending eureka page rides its own
+// save key.
+const NOTEBOOK = [
+  { at: 10,  name: 'Margin Notes',    mult: 1.05 },
+  { at: 30,  name: 'Dog-Eared Pages', mult: 1.10 },
+  { at: 75,  name: 'The Good Recipe', mult: 1.15 },
+  { at: 150, name: 'Signature Blend', mult: 1.20 },
+];
+let nbPure = false;   // a torn-out eureka page: the next cook is pure
+function notebookTier() {
+  let t = 0;
+  for (let i = 0; i < NOTEBOOK.length; i++) if ((state.batches || 0) >= NOTEBOOK[i].at) t = i + 1;
+  return t;
+}
+function notebookMult() { const t = notebookTier(); return t ? NOTEBOOK[t - 1].mult : 1; }
+function bumpBatches() {
+  const before = notebookTier();
+  state.batches++;
+  const after = notebookTier();
+  if (after > before) {
+    const pg = NOTEBOOK[after - 1];
+    nbPure = true;
+    showToast(`📓 ${pg.name} — the recipe improves: prices ×${pg.mult} for good. A eureka page guarantees the next cook comes out PURE.`, 'cash');
+    addFeed(`📓 The notebook fills — ${pg.name} (prices ×${pg.mult})`);
+    saveGame();
+  }
+}
+function rollPure() {
+  if (nbPure) {
+    nbPure = false;
+    addFeed('📓 The eureka page pays off — a guaranteed PURE cook');
+    return true;
+  }
+  return Math.random() < pureChance();
+}
 
 function buildChemStation(x, z) {
   const parts = []; // every mesh/light, so the station can relocate
@@ -1195,7 +1949,7 @@ const EVENTS = [
     body:'Word on the street — a buyer got pinched and is singing to stay out of jail. Your name might be coming up.',
     choices:[
       {text:'Pay for legal advice. Stay calm.', cost:300, effect:()=>{ if(state.cash<300){showToast("Can't afford it!",'bust');return null;} state.cash-=300; addHeat(-25); return 'Lawyer says you\'re not a target. Heat reduced.'; }, type:'safe'},
-      {text:'Move the stash. Burn the evidence.', effect:()=>{ const lost=Math.floor(stashCount*0.3); stashCount=Math.max(0,stashCount-lost); setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z); addHeat(-10); return `Burned ${lost} bags. Heat slightly reduced.`; }, type:'risky'},
+      {text:'Move the stash. Burn the evidence.', effect:()=>{ const lost=Math.floor(stashCount*0.3); stashCount=Math.max(0,stashCount-lost); pureBags=Math.min(pureBags,stashCount); setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z); addHeat(-10); return `Burned ${lost} bags. Heat slightly reduced.`; }, type:'risky'},
     ]
   },
   {
@@ -1207,8 +1961,9 @@ const EVENTS = [
         if(bags===0){showToast('Nothing in stash!',''); return null;}
         const price = salePrice() * bags * 2.5;
         addCash(price); stashCount -= bags;
+        pureBags = Math.min(pureBags, stashCount);   // LAB-10 ledger clamp
         addHeat(30);
-        setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+        setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
         return `Moved ${bags} units. +$${fmtCash(price)}. Major heat increase.`;
       }, type:'risky'},
       {text:'Pass. Too sketchy.', effect:()=>{ return 'Passed on the deal. Heat unchanged.'; }, type:'safe'},
@@ -1239,9 +1994,9 @@ const EVENTS = [
   },
 ];
 
-function triggerEvent() {
+function triggerEvent(forced) {
   if (activeEvent || raidActive) return;
-  const ev = EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  const ev = forced || EVENTS[Math.floor(Math.random()*EVENTS.length)];
   activeEvent = ev;
   document.getElementById('ev-icon').textContent = ev.icon;
   document.getElementById('ev-title').textContent = ev.title;
@@ -1294,7 +2049,7 @@ function triggerRaid() {
     cashSeized = Math.floor(state.cash * 0.15);
     state.cash -= cashSeized;
   }
-  setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+  setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
   showToast(cashSeized>0
     ? `🚔 RAID! Lost ${lost} bags + $${fmtCash(cashSeized)} seized. Lie low for 15s.`
     : `🚔 RAID! Lost ${lost} bags. Lie low for 15s.`, 'bust');
@@ -1302,8 +2057,1012 @@ function triggerRaid() {
   addHeat(-40); // fear makes you careful after (also refreshes the HUD)
 }
 
+// ── Difficulty (IDEA-LAB-5) ──
+// Picked once on a fresh save. Careful is the balance the game always
+// had; Kingpin pays ~25% more per sale and starts richer, but heat
+// climbs half again as fast and drains slower — the bust math that Act
+// III's pressure curve enforces arrives a whole act earlier.
+const DIFFS = {
+  careful: { label: '🐢 CAREFUL', startCash: 50,  price: 1,    heatGain: 1,   drain: 1,    ambient: 1 },
+  kingpin: { label: '👑 KINGPIN', startCash: 150, price: 1.25, heatGain: 1.5, drain: 0.75, ambient: 1.3 },
+};
+function DIFF() { return DIFFS[state.difficulty] || DIFFS.careful; }
+
+// ── Prestige: New Identity (IDEA-LAB-3) ──
+// Lives in its own key so it survives resetGame()'s save wipe — that's
+// the whole point: the run dies, the reputation doesn't. A bust that
+// earned real money ($2k+) forges one identity (+4% street prices,
+// permanently); completing the empire forges two. Capped at six.
+const LEGACY_KEY = 'growop-legacy';
+function loadLegacy() {
+  try { const l = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
+    if (l && typeof l === 'object') return { points: l.points|0, runs: l.runs|0 }; } catch(e){}
+  return { points: 0, runs: 0 };
+}
+function addLegacy(pts) {
+  const l = loadLegacy();
+  l.points = Math.min(6, l.points + pts);
+  l.runs++;
+  try { localStorage.setItem(LEGACY_KEY, JSON.stringify(l)); } catch(e){}
+  return l;
+}
+function legacyMult() { return 1 + Math.min(6, loadLegacy().points) * 0.04; }
+
+// LAB-29: the Floor Safe. A second thing the DEA never finds — like
+// the legacy record, it lives outside the run's save. $1,000 chunks
+// go under the laundry floor at a 10% fee; the balance survives any
+// bust and lands in the next run's starting pocket.
+const VAULT_KEY = 'growop-vault';
+// LAB-33: the legacy round on the corner. The Youth Center lives in
+// its own key, OUTSIDE the run — like the floor safe, busts can't
+// touch it. $20,000 once, and every run that starts in its shadow
+// starts with one regular already locked: the block remembers who
+// built it. The empire's first purchase that isn't for the empire.
+const CENTER_KEY = 'growop-center', CENTER_COST = 20000;
+// LAB-38: the gym annex — the second-story round. Once the center
+// has seen three fresh starts, it opens a gym annex, and every
+// fresh start from then on locks TWO regulars. The building earned it.
+const CENTER_ANNEX_AT = 3;
+function centerHasAnnex() { const c = loadCenter(); return c.built && (c.runs || 0) >= CENTER_ANNEX_AT; }
+// LAB-41: the third-story round on the corner — at six fresh starts
+// the annex fields a year-round REC LEAGUE, and every fresh start
+// under it locks three regulars instead of two. The center keeps
+// growing on what it already grew.
+const CENTER_LEAGUE_AT = 6;
+function centerHasLeague() { const c = loadCenter(); return c.built && (c.runs || 0) >= CENTER_LEAGUE_AT; }
+// LAB-39: the block cookout — the festival round. When the gym
+// annex stands, every fresh start opens with the cookout: grills
+// out on the sidewalk, the whole block eating. +$300 and heat −5
+// before the first bag is bagged. Cookouts tallied across runs.
+const COOKOUT_KEY = 'growop-festival', COOKOUT_CASH = 300, COOKOUT_COOL = 5;
+function loadCookout() {
+  try { const c = JSON.parse(localStorage.getItem(COOKOUT_KEY) || 'null');
+    if (c && typeof c === 'object') return { days: Math.max(0, Math.floor(c.days || 0)) };
+  } catch(e){}
+  return { days: 0 };
+}
+function saveCookout(c) { try { localStorage.setItem(COOKOUT_KEY, JSON.stringify(c)); } catch(e){} }
+function loadCenter() {
+  try { const c = JSON.parse(localStorage.getItem(CENTER_KEY) || 'null');
+    if (c && typeof c === 'object') return { built: !!c.built, runs: Math.max(0, Math.floor(c.runs || 0)) };
+  } catch(e){}
+  return { built: false, runs: 0 };
+}
+function saveCenter(c) { try { localStorage.setItem(CENTER_KEY, JSON.stringify(c)); } catch(e){} }
+// LAB-34: the record round on the corner. The biggest single hand
+// ever sold lives in its own key, OUTSIDE the run — busts and fresh
+// identities can't erase it. The mark standing when the session
+// opened is the bar: smash it once a session and the story does the
+// corner's talking — heat cools 5. The block keeps score.
+const HWM_KEY = 'growop-record', HWM_RELIEF = 5;
+let hwmMark = null, hwmRung = false;
+function loadHwm() {
+  try { const h = JSON.parse(localStorage.getItem(HWM_KEY) || 'null');
+    if (h && typeof h === 'object') return { sale: Math.max(0, h.sale || 0), beats: Math.max(0, Math.floor(h.beats || 0)) };
+  } catch(e){}
+  return { sale: 0, beats: 0 };
+}
+function saveHwm(h) { try { localStorage.setItem(HWM_KEY, JSON.stringify(h)); } catch(e){} }
+// LAB-40: the plaque round on the corner — the records round comes
+// back around. Three smashed marks earn the corner a gold record
+// over the stash, and every mark smashed under it sells the legend
+// with the hand: +$200 on the spot, because a corner this storied
+// charges for the story. Cheers tallied across sessions.
+const GPLAQUE_KEY='growop-plaque',GPLAQUE_AT=3,GPLAQUE_CASH=200;
+function loadGPlaque(){
+  try{const p=JSON.parse(localStorage.getItem(GPLAQUE_KEY)||'null');
+    if(p&&typeof p==='object')return{cheers:Math.max(0,Math.floor(p.cheers||0))};
+  }catch(e){}
+  return{cheers:0};
+}
+function saveGPlaque(p){try{localStorage.setItem(GPLAQUE_KEY,JSON.stringify(p));}catch(e){}}
+function gplaqueStands(){return(loadHwm().beats||0)>=GPLAQUE_AT;}
+// LAB-35: the letters round on the corner — someone upstate writes
+// every fresh start that has a history to cite. The kite quotes the
+// Youth Center's survived runs and the High-Water Mark's best hand
+// by their real numbers, and word from upstate calms the block.
+const KITE_KEY = 'growop-letter', KITE_COOL = 3;
+function loadKite() {
+  try { const k = JSON.parse(localStorage.getItem(KITE_KEY) || 'null');
+    if (k && typeof k === 'object') return { read: Math.max(0, Math.floor(k.read || 0)) };
+  } catch(e){}
+  return { read: 0 };
+}
+function saveKite(k) { try { localStorage.setItem(KITE_KEY, JSON.stringify(k)); } catch(e){} }
+function composeKite() {
+  const cc = loadCenter(), hw = loadHwm();
+  let s = '\u2709\uFE0F A kite from upstate: "';
+  if (cc.built) s += 'Heard the center\u2019s seen ' + (cc.runs || 0) + ' fresh start' + ((cc.runs || 0) === 1 ? '' : 's') + '. ';
+  if (hw.sale > 0) s += 'Best hand I ever saw on that corner was $' + fmtCash(Math.floor(hw.sale)) + '. ';
+  s += 'Keep your head down, kid."';
+  return s;
+}
+function deliverKite() {
+  if (!(loadCenter().built || loadHwm().sale > 0)) return;
+  const k = loadKite();
+  saveKite({ read: (k.read || 0) + 1 });
+  addHeat(-KITE_COOL);
+  const s = composeKite();
+  addFeed(s);
+  setTimeout(() => showToast(s + ' (heat \u2212' + KITE_COOL + ')', 'good'), 2600);
+  checkGrowAchievements();
+}
+// LAB-36: the almanac round on the corner — one book binds everything
+// the block remembers: the center's runs, the best hand, the kites,
+// the floor safe. The tooltip is the whole ledger; a click reads it
+// into the feed.
+const CLEDGER_KEY = 'growop-history';
+function loadCLedger() {
+  try { const h = JSON.parse(localStorage.getItem(CLEDGER_KEY) || 'null');
+    if (h && typeof h === 'object') return { opens: Math.max(0, Math.floor(h.opens || 0)) };
+  } catch(e){}
+  return { opens: 0 };
+}
+function saveCLedger(h) { try { localStorage.setItem(CLEDGER_KEY, JSON.stringify(h)); } catch(e){} }
+function cornerHasHistory() {
+  return loadCenter().built || loadHwm().sale > 0 || loadKite().read > 0 || (loadVault().bal || 0) > 0;
+}
+function composeCLedger() {
+  const cc = loadCenter(), hw = loadHwm(), kk = loadKite(), vv = loadVault();
+  const lines = [];
+  lines.push(cc.built ? '🏀 The Youth Center stands — ' + (cc.runs || 0) + ' fresh start' + ((cc.runs || 0) === 1 ? '' : 's') + ' in its shadow' : '🏀 No center on the corner yet');
+  lines.push(hw.sale > 0 ? '📈 Best hand ever: $' + fmtCash(Math.floor(hw.sale)) + ', smashed on ' + hw.beats + ' session' + (hw.beats === 1 ? '' : 's') : '📈 No high-water mark yet');
+  lines.push('\u2709\uFE0F ' + (kk.read || 0) + ' kite' + ((kk.read || 0) === 1 ? '' : 's') + ' from upstate');
+  lines.push('🔒 $' + fmtCash(Math.floor(vv.bal || 0)) + ' in the floor safe');
+  return lines;
+}
+function refreshCLedgerBtn() {
+  const b = document.getElementById('ledger-toggle');
+  if (!b) return;
+  if (!cornerHasHistory()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.title = 'The Corner Ledger — everything the block remembers across every bust:\n' + composeCLedger().join('\n') + '\nClick to read it into the feed. Read ' + loadCLedger().opens + ' time' + (loadCLedger().opens === 1 ? '' : 's') + '.';
+}
+function openCLedger() {
+  if (!cornerHasHistory()) return;
+  const h = loadCLedger();
+  saveCLedger({ opens: h.opens + 1 });
+  addFeed('📔 THE CORNER LEDGER — read out on the stoop');
+  composeCLedger().forEach(s => addFeed('📔 ' + s));
+  showToast('📔 The Corner Ledger, read out loud — every number the block keeps.', 'good');
+  checkGrowAchievements();
+  refreshCLedgerBtn();
+}
+// ---- the Zippo from the Block (LAB-37) ------------------------
+// The heirloom round: the memory starts paying. The OG's lighter,
+// passed down. Once a session, flick it and the corner settles —
+// heat drops by 2 base, +1 per high-water session (to 5), +1 per
+// kite read (to 3). A corner with no memory has nothing to burn.
+const ZIPPO_KEY = 'growop-lighter', ZIPPO_BASE = 2;
+let zippoUsed = false;
+function loadZippo() {
+  try { const z = JSON.parse(localStorage.getItem(ZIPPO_KEY) || 'null');
+    if (z && typeof z === 'object') return { uses: Math.max(0, Math.floor(z.uses || 0)) };
+  } catch(e){}
+  return { uses: 0 };
+}
+function saveZippo(z) { try { localStorage.setItem(ZIPPO_KEY, JSON.stringify(z)); } catch(e){} }
+function zippoHasWeight() { return loadHwm().sale > 0 || loadKite().read > 0; }
+function zippoPower() {
+  return ZIPPO_BASE + Math.min(loadHwm().beats || 0, 5) + Math.min(loadKite().read || 0, 3);
+}
+function refreshZippoBtn() {
+  const b = document.getElementById('zippo-toggle');
+  if (!b) return;
+  b.onclick = flickZippo;
+  if (!zippoHasWeight()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = zippoUsed ? '0.45' : '';
+  b.title = zippoUsed
+    ? 'The Zippo from the Block — already flicked this session. Once a day, that\u2019s the deal.'
+    : 'The Zippo from the Block — the OG\u2019s lighter, passed down. Flick it and the corner settles: heat \u2212' + zippoPower()
+      + '. The weight comes from the memory: the mark\u2019s sessions and the kites read. Flicked '
+      + loadZippo().uses + ' time' + (loadZippo().uses === 1 ? '' : 's') + '.'
+      + (zippoHasTin() ? ' The OG\u2019s tin of fluid sits behind the counter \u2014 heat \u2212' + GKEEP_COOL + ' extra when it flicks.' : '');
+}
+function flickZippo() {
+  if (!zippoHasWeight() || zippoUsed) return;
+  zippoUsed = true;
+  const p = zippoPower();
+  const z = loadZippo();
+  saveZippo({ uses: z.uses + 1 });
+  addHeat(-p);
+  addFeed('🔥 The OG\u2019s Zippo clicks open \u2014 the corner settles. Heat \u2212' + p + ', carried by everything the block remembers');
+  showToast('🔥 The Zippo from the Block \u2014 heat cools ' + p + '. The memory has weight.', 'good');
+  // LAB-43: with the tin on the shelf, the flick burns deeper.
+  if (zippoHasTin()) {
+    const gk = loadGKeep();
+    saveGKeep({ pays: gk.pays + 1 });
+    addHeat(-GKEEP_COOL);
+    addFeed('🫙 The OG\u2019s tin of fluid tops the lighter off \u2014 the corner settles deeper. Heat \u2212' + GKEEP_COOL + ' extra');
+    showToast('🫙 The tin of fluid \u2014 heat cools ' + GKEEP_COOL + ' more. Keepsakes pay.', 'good');
+  }
+  checkGrowAchievements();
+  refreshZippoBtn();
+}
+// LAB-42: the visitor round on the corner — once a session, the OG
+// himself drops by any corner with a memory. He vouches: one
+// regular locks in, and the block settles — heat drops 2 base + 1
+// per gold-record cheer (cap 3). The man the lighter came from.
+const OG_KEY = 'growop-visitor', OG_COOL_BASE = 2;
+let ogCame = false;
+function loadOg() {
+  try { const o = JSON.parse(localStorage.getItem(OG_KEY) || 'null');
+    if (o && typeof o === 'object') return { visits: Math.max(0, Math.floor(o.visits || 0)) };
+  } catch(e){}
+  return { visits: 0 };
+}
+function saveOg(o) { try { localStorage.setItem(OG_KEY, JSON.stringify(o)); } catch(e){} }
+function ogHasStory() { return loadHwm().sale > 0 || loadKite().read > 0; }
+function ogCool() { return OG_COOL_BASE + Math.min(loadGPlaque().cheers || 0, 3); }
+function refreshOgBtn() {
+  const b = document.getElementById('og-toggle');
+  if (!b) return;
+  b.onclick = welcomeOg;
+  if (!ogHasStory()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = ogCame ? '0.45' : '';
+  b.title = ogCame
+    ? 'The OG already came through this session. He keeps his own schedule.'
+    : 'The OG from the Block — the man the lighter came from. Welcome him and he vouches: one regular locks in, heat −' + ogCool()
+      + '. The cool grows with the gold record’s cheers. He has come by '
+      + loadOg().visits + ' time' + (loadOg().visits === 1 ? '' : 's') + '.';
+}
+function welcomeOg() {
+  if (!ogHasStory() || ogCame) return;
+  ogCame = true;
+  const c = ogCool();
+  const o = loadOg();
+  saveOg({ visits: o.visits + 1 });
+  state.clientele = Math.min(CLIENT_CAP, (state.clientele || 0) + 1);
+  addHeat(-c);
+  addFeed('🧢 THE OG COMES THROUGH — he vouches for you loud enough for the block to hear. A regular locks in, heat −' + c);
+  showToast('🧢 The OG from the Block — a regular locks in and heat cools ' + c + '. Old friends remember.', 'good');
+  checkGrowAchievements();
+  refreshOgBtn();
+}
+// LAB-43: the keepsake round on the corner \u2014 after three visits,
+// the OG leaves a tin of lighter fluid behind the counter. Every
+// Zippo flick with the tin on the shelf burns deeper: heat \u22123
+// extra on the spot. Pays tallied in 'growop-keepsake'.
+const GKEEP_KEY = 'growop-keepsake', GKEEP_COOL = 3;
+function loadGKeep() {
+  try { const k = JSON.parse(localStorage.getItem(GKEEP_KEY) || 'null');
+    if (k && typeof k === 'object') return { pays: Math.max(0, Math.floor(k.pays || 0)) };
+  } catch(e){}
+  return { pays: 0 };
+}
+function saveGKeep(k) { try { localStorage.setItem(GKEEP_KEY, JSON.stringify(k)); } catch(e){} }
+function zippoHasTin() { return loadOg().visits >= 3; }
+// LAB-44: the reunion round on the corner \u2014 when the whole story
+// stands (three gold-record marks AND three of the OG's visits),
+// the corner throws the block reunion once a session. Everyone who
+// ever copped comes back through: $100 base + $50 per mark + $50
+// per visit (caps 3). Held tallied in 'growop-reunion'.
+const BRE_KEY = 'growop-reunion', BRE_BASE = 100, BRE_PER = 50;
+let blockReunionHeld = false;
+function loadBReunion() {
+  try { const r = JSON.parse(localStorage.getItem(BRE_KEY) || 'null');
+    if (r && typeof r === 'object') return { held: Math.max(0, Math.floor(r.held || 0)) };
+  } catch(e){}
+  return { held: 0 };
+}
+function saveBReunion(r) { try { localStorage.setItem(BRE_KEY, JSON.stringify(r)); } catch(e){} }
+function breunionStands() { return (loadGPlaque().cheers || 0) >= 3 && loadOg().visits >= 3; }
+function breunionPurse() {
+  return BRE_BASE + BRE_PER * Math.min(loadGPlaque().cheers || 0, 3)
+    + BRE_PER * Math.min(loadOg().visits || 0, 3);
+}
+function refreshReunionBtn() {
+  const b = document.getElementById('reunion-toggle');
+  if (!b) return;
+  b.onclick = holdBlockReunion;
+  if (!breunionStands()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = blockReunionHeld ? '0.45' : '';
+  b.title = blockReunionHeld
+    ? 'The Block Reunion already went off this session. Once a day \u2014 the block has business.'
+    : 'The Block Reunion \u2014 the whole story stands: the gold record\u2019s marks and the OG\u2019s visits. Throw it and everyone who ever copped comes back through: +$' + breunionPurse()
+      + '. Held ' + loadBReunion().held + ' time' + (loadBReunion().held === 1 ? '' : 's') + '.';
+}
+function holdBlockReunion() {
+  if (!breunionStands() || blockReunionHeld) return;
+  blockReunionHeld = true;
+  const p = breunionPurse();
+  const r = loadBReunion();
+  saveBReunion({ held: r.held + 1 });
+  state.cash += p;
+  addFeed('🎪 THE BLOCK REUNION \u2014 grills out, gold record down off the wall, the OG holding court. Everyone who ever copped comes back through: +$' + p);
+  showToast('🎪 The Block Reunion \u2014 +$' + p + '. The whole story showed up.', 'good');
+  checkGrowAchievements();
+  refreshReunionBtn();
+}
+// LAB-45: the portrait round on the corner \u2014 after three Block
+// Reunions, a polaroid from the reunion is taped up behind the
+// counter next to the gold record. Once a session a look pays:
+// $50 base + $25 per reunion held (cap 5). Looks tallied in
+// 'growop-portrait'.
+const POLA_KEY = 'growop-portrait', POLA_BASE = 50, POLA_PER = 25;
+let polaroidLooked = false;
+function loadPolaroid() {
+  try { const p = JSON.parse(localStorage.getItem(POLA_KEY) || 'null');
+    if (p && typeof p === 'object') return { looks: Math.max(0, Math.floor(p.looks || 0)) };
+  } catch(e){}
+  return { looks: 0 };
+}
+function savePolaroid(p) { try { localStorage.setItem(POLA_KEY, JSON.stringify(p)); } catch(e){} }
+function polaroidHangs() { return loadBReunion().held >= 3; }
+function polaroidPurse() { return POLA_BASE + POLA_PER * Math.min(loadBReunion().held || 0, 5); }
+function refreshPolaroidBtn() {
+  const b = document.getElementById('polaroid-toggle');
+  if (!b) return;
+  b.onclick = lookAtPolaroid;
+  if (!polaroidHangs()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = polaroidLooked ? '0.45' : '';
+  b.title = polaroidLooked
+    ? 'The Cookout Polaroid got its look this session. Once a day \u2014 it fades if you stare.'
+    : 'The Cookout Polaroid \u2014 the whole block, mid-cookout, taped next to the gold record. Look and the memory still moves product: +$' + polaroidPurse()
+      + '. Looked at ' + loadPolaroid().looks + ' time' + (loadPolaroid().looks === 1 ? '' : 's') + '.';
+}
+function lookAtPolaroid() {
+  if (!polaroidHangs() || polaroidLooked) return;
+  polaroidLooked = true;
+  const p = polaroidPurse();
+  const pl = loadPolaroid();
+  savePolaroid({ looks: pl.looks + 1 });
+  state.cash += p;
+  addFeed('📸 A long look at the cookout polaroid \u2014 the whole block in one frame. Somebody in the shot still calls in an order: +$' + p);
+  showToast('📸 The Cookout Polaroid \u2014 +$' + p + '. The memory moves product.', 'good');
+  checkGrowAchievements();
+  refreshPolaroidBtn();
+}
+// LAB-46: the anniversary round on the corner \u2014 after three
+// looks at the Cookout Polaroid, somebody does the math: the shop's
+// been open a whole year. Once a session the crew toasts it: $60
+// base + $30 per polaroid look (cap 5). Toasts tallied in
+// 'growop-anniversary'.
+const CANNIV_KEY = 'growop-anniversary', CANNIV_BASE = 60, CANNIV_PER = 30;
+let annivToasted = false;
+function loadCAnniv() {
+  try { const a = JSON.parse(localStorage.getItem(CANNIV_KEY) || 'null');
+    if (a && typeof a === 'object') return { toasts: Math.max(0, Math.floor(a.toasts || 0)) };
+  } catch(e){}
+  return { toasts: 0 };
+}
+function saveCAnniv(a) { try { localStorage.setItem(CANNIV_KEY, JSON.stringify(a)); } catch(e){} }
+function annivStands() { return loadPolaroid().looks >= 3; }
+function annivPurse() { return CANNIV_BASE + CANNIV_PER * Math.min(loadPolaroid().looks || 0, 5); }
+function refreshAnnivBtn() {
+  const b = document.getElementById('anniv-toggle');
+  if (!b) return;
+  b.onclick = toastCornerAnniv;
+  if (!annivStands()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = annivToasted ? '0.45' : '';
+  b.title = annivToasted
+    ? 'The Corner Anniversary got its toast this session. Once a day \u2014 the block went home.'
+    : 'The Corner Anniversary \u2014 the shop\u2019s been open a whole year and the polaroid proves it. Toast it and the block buys a round: +$' + annivPurse()
+      + '. Toasted ' + loadCAnniv().toasts + ' time' + (loadCAnniv().toasts === 1 ? '' : 's') + '.';
+}
+function toastCornerAnniv() {
+  if (!annivStands() || annivToasted) return;
+  annivToasted = true;
+  const p = annivPurse();
+  const a = loadCAnniv();
+  saveCAnniv({ toasts: a.toasts + 1 });
+  state.cash += p;
+  addFeed('🎂 The Corner Anniversary \u2014 a whole year on the block, and the polaroid to prove it. The block buys a round: +$' + p);
+  showToast('🎂 The Corner Anniversary \u2014 +$' + p + '. A whole year.', 'good');
+  checkGrowAchievements();
+  refreshAnnivBtn();
+}
+// LAB-47: the guest-book round on the corner \u2014 after three
+// Corner Anniversary toasts, everyone who ever copped starts
+// signing the shop wall. Once a session the crew reads it: $70
+// base + $35 per toast (cap 5). Reads tallied in
+// 'growop-guestbook'.
+const WALL_KEY = 'growop-guestbook', WALL_BASE = 70, WALL_PER = 35;
+let wallRead = false;
+function loadWall() {
+  try { const w = JSON.parse(localStorage.getItem(WALL_KEY) || 'null');
+    if (w && typeof w === 'object') return { leafs: Math.max(0, Math.floor(w.leafs || 0)) };
+  } catch(e){}
+  return { leafs: 0 };
+}
+function saveWall(w) { try { localStorage.setItem(WALL_KEY, JSON.stringify(w)); } catch(e){} }
+function wallUp() { return loadCAnniv().toasts >= 3; }
+function wallPurse() { return WALL_BASE + WALL_PER * Math.min(loadCAnniv().toasts || 0, 5); }
+function refreshWallBtn() {
+  const b = document.getElementById('wall-toggle');
+  if (!b) return;
+  b.onclick = readWallOfNames;
+  if (!wallUp()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = wallRead ? '0.45' : '';
+  b.title = wallRead
+    ? 'The Wall of Names got its read this session. Once a day \u2014 the ink keeps.'
+    : 'The Wall of Names \u2014 three anniversaries and everyone who ever copped signs the shop wall. Read it and one of the names calls in an order: +$' + wallPurse()
+      + '. Read ' + loadWall().leafs + ' time' + (loadWall().leafs === 1 ? '' : 's') + '.';
+}
+function readWallOfNames() {
+  if (!wallUp() || wallRead) return;
+  wallRead = true;
+  const p = wallPurse();
+  const w = loadWall();
+  saveWall({ leafs: w.leafs + 1 });
+  state.cash += p;
+  addFeed('🖊️ The crew reads the Wall of Names \u2014 every tag, every signature, everyone who ever came through. One of the names calls in an order: +$' + p);
+  showToast('🖊️ The Wall of Names \u2014 +$' + p + '. The names pay.', 'good');
+  checkGrowAchievements();
+  refreshWallBtn();
+}
+// LAB-48: the bench round on the corner \u2014 after three reads
+// of the Wall of Names, the crew builds a bench on the stoop out
+// front: a seat with the whole story at its back. Once a session a
+// sit pays: $80 base + $40 per read (cap 5). Sits tallied in
+// 'growop-bench'.
+const STOOP_KEY = 'growop-bench', STOOP_BASE = 80, STOOP_PER = 40;
+let stoopSat = false;
+function loadStoop() {
+  try { const s = JSON.parse(localStorage.getItem(STOOP_KEY) || 'null');
+    if (s && typeof s === 'object') return { sits: Math.max(0, Math.floor(s.sits || 0)) };
+  } catch(e){}
+  return { sits: 0 };
+}
+function saveStoop(s) { try { localStorage.setItem(STOOP_KEY, JSON.stringify(s)); } catch(e){} }
+function stoopBuilt() { return loadWall().leafs >= 3; }
+function stoopPurse() { return STOOP_BASE + STOOP_PER * Math.min(loadWall().leafs || 0, 5); }
+function refreshStoopBtn() {
+  const b = document.getElementById('stoop-toggle');
+  if (!b) return;
+  b.onclick = sitTheStoop;
+  if (!stoopBuilt()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = stoopSat ? '0.45' : '';
+  b.title = stoopSat
+    ? 'The Stoop got its sit this session. Once a day \u2014 the seat keeps.'
+    : 'The Stoop \u2014 three reads of the wall and the crew built a bench out front. Sit, and somebody always sits down with a proposition: +$' + stoopPurse()
+      + '. Sat ' + loadStoop().sits + ' time' + (loadStoop().sits === 1 ? '' : 's') + '.';
+}
+function sitTheStoop() {
+  if (!stoopBuilt() || stoopSat) return;
+  stoopSat = true;
+  const p = stoopPurse();
+  const s = loadStoop();
+  saveStoop({ sits: s.sits + 1 });
+  state.cash += p;
+  addFeed('🪑 The crew sits the stoop \u2014 the bench with the whole story at its back. Somebody sits down with a proposition: +$' + p);
+  showToast('🪑 The Stoop \u2014 +$' + p + '. The seat pays.', 'good');
+  checkGrowAchievements();
+  refreshStoopBtn();
+}
+// LAB-49: the story-hour round on the corner \u2014 after three
+// sits on the stoop, the crew has the whole block story by heart:
+// the record, the kites, the reunions, every name on the wall.
+// Once a session a telling pays: $90 base + $45 per sit (cap 5).
+// Tellings tallied in 'growop-storyhour'.
+const SSTORY_KEY = 'growop-storyhour', SSTORY_BASE = 90, SSTORY_PER = 45;
+let sstoryTold = false;
+function loadSStory() {
+  try { const s = JSON.parse(localStorage.getItem(SSTORY_KEY) || 'null');
+    if (s && typeof s === 'object') return { tellings: Math.max(0, Math.floor(s.tellings || 0)) };
+  } catch(e){}
+  return { tellings: 0 };
+}
+function saveSStory(s) { try { localStorage.setItem(SSTORY_KEY, JSON.stringify(s)); } catch(e){} }
+function sstoryReady() { return loadStoop().sits >= 3; }
+function sstoryPurse() { return SSTORY_BASE + SSTORY_PER * Math.min(loadStoop().sits || 0, 5); }
+function refreshSStoryBtn() {
+  const b = document.getElementById('sstory-toggle');
+  if (!b) return;
+  b.onclick = tellStoopStory;
+  if (!sstoryReady()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = sstoryTold ? '0.45' : '';
+  b.title = sstoryTold
+    ? 'The Stoop Story got its telling this session. Once a day \u2014 the block remembers.'
+    : 'The Stoop Story \u2014 three sits and the crew has the whole thing by heart. Tell it, and somebody at the edge of the stoop calls in an order: +$' + sstoryPurse()
+      + '. Told ' + loadSStory().tellings + ' time' + (loadSStory().tellings === 1 ? '' : 's') + '.';
+}
+function tellStoopStory() {
+  if (!sstoryReady() || sstoryTold) return;
+  sstoryTold = true;
+  const p = sstoryPurse();
+  const s = loadSStory();
+  saveSStory({ tellings: s.tellings + 1 });
+  state.cash += p;
+  addFeed('🎙️ The crew tells the Stoop Story \u2014 the record, the kites, the reunions, every name on the wall. Somebody at the edge calls in an order before it\u2019s done: +$' + p);
+  showToast('🎙️ The Stoop Story \u2014 +$' + p + '. The story pays.', 'good');
+  checkGrowAchievements();
+  refreshSStoryBtn();
+}
+// LAB-50: the song round on the corner \u2014 after three tellings
+// of the Stoop Story, somebody cuts it to a beat: the whole block
+// story, one track, everybody knows the hook. Once a session a
+// play pays: $100 base + $50 per telling (cap 5). Plays tallied
+// in 'growop-song'.
+const TRACK_KEY = 'growop-song', TRACK_BASE = 100, TRACK_PER = 50;
+let trackPlayed = false;
+function loadTrack() {
+  try { const t = JSON.parse(localStorage.getItem(TRACK_KEY) || 'null');
+    if (t && typeof t === 'object') return { plays: Math.max(0, Math.floor(t.plays || 0)) };
+  } catch(e){}
+  return { plays: 0 };
+}
+function saveTrack(t) { try { localStorage.setItem(TRACK_KEY, JSON.stringify(t)); } catch(e){} }
+function trackReady() { return loadSStory().tellings >= 3; }
+function trackPurse() { return TRACK_BASE + TRACK_PER * Math.min(loadSStory().tellings || 0, 5); }
+function refreshTrackBtn() {
+  const b = document.getElementById('song-toggle');
+  if (!b) return;
+  b.onclick = playBlockTrack;
+  if (!trackReady()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = trackPlayed ? '0.45' : '';
+  b.title = trackPlayed
+    ? 'The Block Track got its play this session. Once a day \u2014 the hook keeps.'
+    : 'The Block Track \u2014 three tellings and somebody cut the story to a beat: one track, everybody knows the hook. Play it, and an order comes in before the hook comes back around: +$' + trackPurse()
+      + '. Played ' + loadTrack().plays + ' time' + (loadTrack().plays === 1 ? '' : 's') + '.';
+}
+function playBlockTrack() {
+  if (!trackReady() || trackPlayed) return;
+  trackPlayed = true;
+  const p = trackPurse();
+  const t = loadTrack();
+  saveTrack({ plays: t.plays + 1 });
+  state.cash += p;
+  addFeed('🎧 The crew plays the Block Track \u2014 the whole story cut to a beat, and everybody knows the hook. An order comes in before it comes back around: +$' + p);
+  showToast('🎧 The Block Track \u2014 +$' + p + '. The hook pays.', 'good');
+  checkGrowAchievements();
+  refreshTrackBtn();
+}
+// LAB-51: the capsule round on the corner \u2014 after three
+// plays of the Block Track, the crew buries a shoebox under the
+// stoop: the polaroid, a rubbing of the wall, the zippo's story,
+// a burned CD of the track. Once a session a dig-up pays: $110
+// base + $55 per play (cap 5). Digs tallied in 'growop-capsule'.
+const SHOEBOX_KEY = 'growop-capsule', SHOEBOX_BASE = 110, SHOEBOX_PER = 55;
+let shoeboxDug = false;
+function loadShoebox() {
+  try { const s = JSON.parse(localStorage.getItem(SHOEBOX_KEY) || 'null');
+    if (s && typeof s === 'object') return { digs: Math.max(0, Math.floor(s.digs || 0)) };
+  } catch(e){}
+  return { digs: 0 };
+}
+function saveShoebox(s) { try { localStorage.setItem(SHOEBOX_KEY, JSON.stringify(s)); } catch(e){} }
+function shoeboxBuried() { return loadTrack().plays >= 3; }
+function shoeboxPurse() { return SHOEBOX_BASE + SHOEBOX_PER * Math.min(loadTrack().plays || 0, 5); }
+function refreshShoeboxBtn() {
+  const b = document.getElementById('shoebox-toggle');
+  if (!b) return;
+  b.onclick = digUpShoebox;
+  if (!shoeboxBuried()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = shoeboxDug ? '0.45' : '';
+  b.title = shoeboxDug
+    ? 'The Shoebox got its dig this session. Once a day \u2014 the stoop keeps.'
+    : 'The Shoebox \u2014 three plays of the track and the crew buried one under the stoop: the polaroid, the rubbing, the CD. Dig it up, and there\u2019s always a little extra folded inside: +$' + shoeboxPurse()
+      + '. Dug ' + loadShoebox().digs + ' time' + (loadShoebox().digs === 1 ? '' : 's') + '.';
+}
+function digUpShoebox() {
+  if (!shoeboxBuried() || shoeboxDug) return;
+  shoeboxDug = true;
+  const p = shoeboxPurse();
+  const s = loadShoebox();
+  saveShoebox({ digs: s.digs + 1 });
+  state.cash += p;
+  addFeed('📦 The crew digs up the shoebox under the stoop \u2014 the polaroid, the rubbing, the burned CD. There\u2019s a little extra folded inside, like always: +$' + p);
+  showToast('📦 The Shoebox \u2014 +$' + p + '. The stoop remembers.', 'good');
+  checkGrowAchievements();
+  refreshShoeboxBtn();
+}
+// LAB-52: the mural round on the corner \u2014 after three digs
+// of the shoebox, somebody paints the whole block down the long
+// alley wall: the stoop, the zippo, the polaroid, the seam where
+// the box goes back under. Once a session standing at it pays:
+// $120 base + $60 per dig (cap 5). Stands tallied in 'growop-mural'.
+const MURAL_KEY = 'growop-mural', MURAL_BASE = 120, MURAL_PER = 60;
+let muralSeen = false;
+function loadMural() {
+  try { const m = JSON.parse(localStorage.getItem(MURAL_KEY) || 'null');
+    if (m && typeof m === 'object') return { stands: Math.max(0, Math.floor(m.stands || 0)) };
+  } catch(e){}
+  return { stands: 0 };
+}
+function saveMural(m) { try { localStorage.setItem(MURAL_KEY, JSON.stringify(m)); } catch(e){} }
+function muralUp() { return loadShoebox().digs >= 3; }
+function muralPurse() { return MURAL_BASE + MURAL_PER * Math.min(loadShoebox().digs || 0, 5); }
+function refreshMuralBtn() {
+  const b = document.getElementById('mural-toggle');
+  if (!b) return;
+  b.onclick = standAtMural;
+  if (!muralUp()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = muralSeen ? '0.45' : '';
+  b.title = muralSeen
+    ? 'The Alley Mural got its stand this session. It\u2019s not going anywhere.'
+    : 'The Alley Mural \u2014 three digs and somebody painted the whole block down the alley wall: the stoop, the zippo, the polaroid, the seam. Stand at it, and the block leaves something at the base: +$' + muralPurse()
+      + '. Stood ' + loadMural().stands + ' time' + (loadMural().stands === 1 ? '' : 's') + '.';
+}
+function standAtMural() {
+  if (!muralUp() || muralSeen) return;
+  muralSeen = true;
+  const p = muralPurse();
+  const m = loadMural();
+  saveMural({ stands: m.stands + 1 });
+  state.cash += p;
+  addFeed('\u{1F3A8} The crew stands at the alley mural \u2014 the stoop, the zippo, the polaroid, the seam where the box goes back under. Somebody\u2019s left an envelope at the base again: +$' + p);
+  showToast('\u{1F3A8} The Alley Mural \u2014 +$' + p + '. The block sees itself.', 'good');
+  checkGrowAchievements();
+  refreshMuralBtn();
+}
+// LAB-53: the docent round on the corner \u2014 after three stands
+// at the mural, the oldest head on the block starts walking every
+// new kid down the alley wall on their first day: the stoop, the
+// zippo, the polaroid, the shoebox seam, panel by panel. Once a
+// session a walk-down pays: $130 base + $65 per stand (cap 5).
+// Walk-downs tallied in 'growop-docent'.
+const DOCENT_KEY = 'growop-docent', DOCENT_BASE = 130, DOCENT_PER = 65;
+let docentWalked = false;
+function loadDocent() {
+  try { const d = JSON.parse(localStorage.getItem(DOCENT_KEY) || 'null');
+    if (d && typeof d === 'object') return { walks: Math.max(0, Math.floor(d.walks || 0)) };
+  } catch(e){}
+  return { walks: 0 };
+}
+function saveDocent(d) { try { localStorage.setItem(DOCENT_KEY, JSON.stringify(d)); } catch(e){} }
+function docentUp() { return loadMural().stands >= 3; }
+function docentPurse() { return DOCENT_BASE + DOCENT_PER * Math.min(loadMural().stands || 0, 5); }
+function refreshDocentBtn() {
+  const b = document.getElementById('docent-toggle');
+  if (!b) return;
+  b.onclick = walkThemDown;
+  if (!docentUp()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = docentWalked ? '0.45' : '';
+  b.title = docentWalked
+    ? 'Somebody already got the walk-down this session. The next new kid starts tomorrow.'
+    : 'The Walk-Down \u2014 three stands and the oldest head on the block started walking every new kid down the wall on their first day: the stoop, the zippo, the polaroid, the shoebox seam. The block squares up after: +$' + docentPurse()
+      + '. Walked ' + loadDocent().walks + ' time' + (loadDocent().walks === 1 ? '' : 's') + '.';
+}
+function walkThemDown() {
+  if (!docentUp() || docentWalked) return;
+  docentWalked = true;
+  const p = docentPurse();
+  const d = loadDocent();
+  saveDocent({ walks: d.walks + 1 });
+  state.cash += p;
+  addFeed('\u{1F9ED} The oldest head on the block walks a new kid down the alley wall \u2014 the stoop, the zippo, the polaroid, the seam where the box goes back under, panel by panel. The block squares up after, like it always does: +$' + p);
+  showToast('\u{1F9ED} The Walk-Down \u2014 +$' + p + '. Somebody else knows it now.', 'good');
+  checkGrowAchievements();
+  refreshDocentBtn();
+}
+// LAB-54: the round that closes the arc on the corner \u2014 after
+// three walk-downs, the kid who got walked down the alley wall
+// comes back with their own can and puts their piece up after the
+// shoebox seam, in their hand. The wall stops being something the
+// block keeps and starts being something it grows. Once a session
+// a tag pays: $140 base + $70 per walk-down (cap 5). Tags tallied
+// in 'growop-mark'.
+const MARK_KEY = 'growop-mark', MARK_BASE = 140, MARK_PER = 70;
+let tagAdded = false;
+function loadMark() {
+  try { const m = JSON.parse(localStorage.getItem(MARK_KEY) || 'null');
+    if (m && typeof m === 'object') return { tags: Math.max(0, Math.floor(m.tags || 0)) };
+  } catch(e){}
+  return { tags: 0 };
+}
+function saveMark(m) { try { localStorage.setItem(MARK_KEY, JSON.stringify(m)); } catch(e){} }
+function markUp() { return loadDocent().walks >= 3; }
+function markPurse() { return MARK_BASE + MARK_PER * Math.min(loadDocent().walks || 0, 5); }
+function refreshMarkBtn() {
+  const b = document.getElementById('mark-toggle');
+  if (!b) return;
+  b.onclick = tagTheWall;
+  if (!markUp()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.style.opacity = tagAdded ? '0.45' : '';
+  b.title = tagAdded
+    ? 'A piece went up this session. The wall grows at the pace people come back.'
+    : 'The New Kid\u2019s Tag \u2014 three walk-downs and the kid who got shown the wall comes back with their own can: their piece, after the shoebox seam, in their hand. The whole block comes out: +$' + markPurse()
+      + '. Up ' + loadMark().tags + ' time' + (loadMark().tags === 1 ? '' : 's') + '.';
+}
+function tagTheWall() {
+  if (!markUp() || tagAdded) return;
+  tagAdded = true;
+  const p = markPurse();
+  const m = loadMark();
+  saveMark({ tags: m.tags + 1 });
+  state.cash += p;
+  addFeed('\u270D\ufe0f The kid who got walked down the wall comes back with their own can and puts their piece up after the shoebox seam \u2014 their hand, their block, their turn. The whole corner comes out for it, and everybody who came out spent something: +$' + p);
+  showToast('\u270D\ufe0f The New Kid\u2019s Tag \u2014 +$' + p + '. The wall grows now.', 'good');
+  checkGrowAchievements();
+  refreshMarkBtn();
+}
+// LAB-55: Round Forty-Six on the corner. Eleven links of the wall so
+// far, every one of them free money for a click. This one costs. Three
+// tags in and the wall has outgrown the alley: $20,000 takes the room
+// behind the shop and puts the whole thing indoors, out of the weather
+// and out of sight of anyone official. Money's gone either way. What it
+// buys is the deepest sit on the block: $140 base + $70 per tag (cap 5).
+// Sits tallied in 'growop-backroom'.
+const ROOM_KEY = 'growop-backroom', ROOM_COST = 20000, ROOM_BASE = 140, ROOM_PER = 70;
+let roomSat = false;
+function loadRoom() {
+  try { const r = JSON.parse(localStorage.getItem(ROOM_KEY) || 'null');
+    if (r && typeof r === 'object') return { built: !!r.built, sits: Math.max(0, Math.floor(r.sits || 0)) };
+  } catch(e){}
+  return { built: false, sits: 0 };
+}
+function saveRoom(r) { try { localStorage.setItem(ROOM_KEY, JSON.stringify(r)); } catch(e){} }
+function roomOffered() { return loadMark().tags >= 3; }
+function roomBuilt() { return loadRoom().built; }
+function roomPurse() { return ROOM_BASE + ROOM_PER * Math.min(loadMark().tags || 0, 5); }
+function buyBackRoom() {
+  if (!roomOffered() || roomBuilt()) return false;
+  if (state.cash < ROOM_COST) return false;
+  state.cash -= ROOM_COST;
+  const r = loadRoom();
+  saveRoom({ built: true, sits: r.sits });
+  addFeed('\u{1F6CB}\uFE0F The Back Room \u2014 $' + ROOM_COST.toLocaleString() + ' for the space behind the shop, cash, no lease. The polaroid, the wall of names, the shoebox, every panel off the alley: indoors now, out of the weather and out of sight of anyone official.');
+  showToast('\u{1F6CB}\uFE0F The Back Room \u2014 \u2212$' + ROOM_COST.toLocaleString() + '. The block has somewhere to sit.', 'good');
+  checkGrowAchievements();
+  refreshRoomBtn();
+  return true;
+}
+// LAB-57: the Corner. Wired once at load and always available,
+// unlike every other tray button — a chain you cannot see is the
+// thing this exists to fix.
+{
+  const cb = document.getElementById('chain-toggle');
+  if (cb) cb.onclick = openChain;
+  const cc = document.getElementById('chain-close');
+  if (cc) cc.onclick = () => document.getElementById('chain-modal').classList.remove('open');
+  const cm = document.getElementById('chain-modal');
+  if (cm) cm.addEventListener('click', e => { if (e.target === cm) cm.classList.remove('open'); });
+}
+function refreshRoomBtn() {
+  const b = document.getElementById('room-toggle');
+  if (!b) return;
+  b.onclick = () => { roomBuilt() ? sitInBackRoom() : buyBackRoom(); };
+  if (!roomOffered()) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  if (!roomBuilt()) {
+    b.style.opacity = state.cash >= ROOM_COST ? '' : '0.45';
+    b.title = 'The Back Room \u2014 three tags and the wall has outgrown the alley. $' + ROOM_COST.toLocaleString()
+      + ', cash, no lease, and the money is gone either way. What it buys is the deepest sit on the block: +$' + roomPurse() + ' a session.'
+      + (state.cash >= ROOM_COST ? ' Click to take it.' : ' You cannot cover it yet.');
+    return;
+  }
+  b.style.opacity = roomSat ? '0.45' : '';
+  b.title = roomSat
+    ? 'The Back Room had its sit this session. It keeps \u2014 that was the point of paying for it.'
+    : 'The Back Room \u2014 the whole block indoors, out of the weather. A sit pays +$' + roomPurse()
+      + '. Sat ' + loadRoom().sits + ' time' + (loadRoom().sits === 1 ? '' : 's') + '.';
+}
+function sitInBackRoom() {
+  if (!roomBuilt() || roomSat) return;
+  roomSat = true;
+  const p = roomPurse();
+  const r = loadRoom();
+  saveRoom({ built: true, sits: r.sits + 1 });
+  state.cash += p;
+  addFeed('\u{1F6CB}\uFE0F A sit in the Back Room \u2014 the polaroid, the wall of names, the shoebox, the panel the new kid put up last month, all of it on the walls and nobody outside any the wiser. Business gets done in there: +$' + p);
+  showToast('\u{1F6CB}\uFE0F The Back Room \u2014 +$' + p + '. It keeps.', 'good');
+  checkGrowAchievements();
+  maybeHangTheFrame();   // LAB-56: the third sit hangs the empty frame
+  refreshRoomBtn();
+}
+// -- The Empty Frame (LAB-56) ----------------------------------
+// The Back Room went up with one thing deliberately unfinished: an
+// empty frame on the wall past the new kid's panel, glass in it,
+// nothing behind the glass. Three sits in, somebody hangs it
+// properly and dates it -- still empty, still for whoever's next.
+// Everybody who comes through that room sees a space with their
+// name not in it yet.
+//
+// Thirteen links deep on this corner and this is the first that does
+// not pay. What it does instead is put the block on your side for
+// good: every face out there has been on that wall or knows somebody
+// who is, and nobody sells to a stranger any more without somebody
+// saying something first. Undercover buyers come at 0.7x from the
+// day it hangs, on every run, forever. It hangs once, costs nothing,
+// and survives New Identity like the room it hangs in.
+const FRAME_KEY = 'growop-frame', FRAME_AT = 3, FRAME_STING = 0.7;
+function loadFrame() {
+  try { const f = JSON.parse(localStorage.getItem(FRAME_KEY) || 'null');
+    if (f && typeof f === 'object') return { up: !!f.up };
+  } catch(e){}
+  return { up: false };
+}
+function saveFrame(f) { try { localStorage.setItem(FRAME_KEY, JSON.stringify(f)); } catch(e){} }
+function frameEarned() { return (loadRoom().sits || 0) >= FRAME_AT; }
+function frameUp() { return loadFrame().up; }
+// Multiplies into the same undercover roll the burner already rides,
+// so the two stack: a fresh burner under a hung frame reads the
+// corner twice over.
+function frameStingMult() { return frameUp() ? FRAME_STING : 1; }
+// Hung automatically on the third sit -- there is nothing to buy and
+// nothing to choose, so there is no control for it.
+function maybeHangTheFrame() {
+  if (!frameEarned() || frameUp()) return false;
+  saveFrame({ up: true });
+  addFeed('\u{1F5BC}\uFE0F THE EMPTY FRAME \u2014 somebody hangs the spare frame past the new kid\u2019s panel and dates the back of it. Glass in, nothing behind the glass. Everybody who comes through that room from now on sees a space with their name not in it yet.');
+  showToast('\u{1F5BC}\uFE0F The Empty Frame \u2014 the block watches the corner for you now. Badges come thinner.', 'good');
+  checkGrowAchievements();
+  return true;
+}
+// -- The Corner (LAB-57) ---
+// NOTE ON PLACEMENT: this table must come AFTER every block whose
+// threshold constant it cites (FRAME_AT, below). Declared above them
+// it evaluates in their temporal dead zone and takes the page down on
+// load -- which is exactly what happened to the Tycoon wall first.--------------------------------------
+// Same gap the Tycoon wall closed, on the corner: sixteen links deep
+// and no way to see they are one thing. Each button only shows up
+// once the one before it is done, so nobody halfway along knows
+// there is a halfway.
+//
+// LAB_CHAIN is the chain, declared once, in order. Every row calls the
+// SAME function the game calls, and every row states the gate that
+// opens it as its predecessor(s) plus a threshold -- which is the
+// part `tests/headless/wall.js` cross-checks against the game's own
+// predicate, so a wrong number here fails the battery instead of
+// quietly lying to a player. `prev` takes a list because the Block
+// Reunion waits on two things at once.
+const LAB_CHAIN = [
+  { id: 'hwm',       icon: '\u{1F4C8}', name: 'The High-Water Mark',   tally: () => loadHwm().beats,        gate: null,                     prev: null,                  need: 0 },
+  { id: 'gplaque',   icon: '\u{1F4BF}', name: 'The Gold Record',       tally: () => loadGPlaque().cheers,   gate: () => gplaqueStands(),    prev: 'hwm',                 need: GPLAQUE_AT },
+  { id: 'og',        icon: '\u{1F9E2}', name: 'The OG from the Block', tally: () => loadOg().visits,        gate: null,                     prev: null,                  need: 0 },
+  { id: 'breunion',  icon: '\u{1F3AA}', name: 'The Block Reunion',     tally: () => loadBReunion().held,    gate: () => breunionStands(),   prev: ['gplaque', 'og'],     need: 3 },
+  { id: 'polaroid',  icon: '\u{1F4F8}', name: 'The Cookout Polaroid',  tally: () => loadPolaroid().looks,   gate: () => polaroidHangs(),    prev: 'breunion',            need: 3 },
+  { id: 'canniv',    icon: '\u{1F382}', name: 'The Corner Anniversary',tally: () => loadCAnniv().toasts,    gate: () => annivStands(),      prev: 'polaroid',            need: 3 },
+  { id: 'wall',      icon: '\u{1F58A}', name: 'The Wall of Names',     tally: () => loadWall().leafs,       gate: () => wallUp(),           prev: 'canniv',              need: 3 },
+  { id: 'stoop',     icon: '\u{1FA91}', name: 'The Stoop Bench',       tally: () => loadStoop().sits,       gate: () => stoopBuilt(),       prev: 'wall',                need: 3 },
+  { id: 'sstory',    icon: '\u{1F399}', name: 'The Stoop Story',       tally: () => loadSStory().tellings,  gate: () => sstoryReady(),      prev: 'stoop',               need: 3 },
+  { id: 'track',     icon: '\u{1F3A7}', name: 'The Block Track',       tally: () => loadTrack().plays,      gate: () => trackReady(),       prev: 'sstory',              need: 3 },
+  { id: 'shoebox',   icon: '\u{1F4E6}', name: 'The Shoebox',           tally: () => loadShoebox().digs,     gate: () => shoeboxBuried(),    prev: 'track',               need: 3 },
+  { id: 'mural',     icon: '\u{1F3A8}', name: 'The Alley Mural',       tally: () => loadMural().stands,     gate: () => muralUp(),          prev: 'shoebox',             need: 3 },
+  { id: 'docent',    icon: '\u{1F9ED}', name: 'The Walk-Down',         tally: () => loadDocent().walks,     gate: () => docentUp(),         prev: 'mural',               need: 3 },
+  { id: 'mark',      icon: '\u{270D}',  name: 'The New Kid\u2019s Tag', tally: () => loadMark().tags,      gate: () => markUp(),           prev: 'docent',              need: 3 },
+  { id: 'room',      icon: '\u{1F6CB}', name: 'The Back Room',         tally: () => loadRoom().sits,        gate: () => roomOffered(),      prev: 'mark',                need: 3 },
+  { id: 'frame',     icon: '\u{1F5BC}', name: 'The Empty Frame',       tally: () => (loadFrame().up ? 1 : 0), gate: () => frameEarned(),    prev: 'room',                need: FRAME_AT },
+];
+function chainState(){
+  const rows = LAB_CHAIN.map(r => {
+    const open = !r.gate || !!r.gate();
+    const n = Math.max(0, Math.floor(r.tally() || 0));
+    const prev = r.prev == null ? [] : (Array.isArray(r.prev) ? r.prev : [r.prev]);
+    return { id: r.id, icon: r.icon, name: r.name, open, tally: n, need: r.need, prev };
+  });
+  const nextIdx = rows.findIndex(r => r.open && r.tally === 0);
+  return { rows, nextIdx, doneCount: rows.filter(r => r.tally > 0).length, total: rows.length };
+}
+function renderChain(){
+  const listEl = document.getElementById('chain-list');
+  const progEl = document.getElementById('chain-progress');
+  if(!listEl) return;
+  const st = chainState();
+  if(progEl) progEl.textContent = st.doneCount + ' of ' + st.total + ' begun';
+  const byId = {}; st.rows.forEach(r => { byId[r.id] = r; });
+  listEl.innerHTML = st.rows.map((r, i) => {
+    const started = r.tally > 0;
+    const isNext = i === st.nextIdx;
+    // Past the one you're on, rows stay unnamed: the wall should say
+    // there is more, not hand over the list.
+    const ahead = !r.open && !started && (st.nextIdx === -1 || i > st.nextIdx);
+    const label = ahead ? '\u2014' : r.icon + ' ' + r.name;
+    let note;
+    if(started) note = 'done ' + r.tally + ' time' + (r.tally === 1 ? '' : 's');
+    else if(isNext) note = 'yours to do next';
+    else if(r.open) note = 'open';
+    else if(r.prev.length){
+      // With more than one thing in the way, name the one furthest
+      // behind -- that is what a player has to go and do.
+      const behind = r.prev.map(p => byId[p]).filter(Boolean)
+        .reduce((a, b) => (a && a.tally <= b.tally ? a : b), null);
+      note = behind ? behind.tally + ' / ' + r.need + ' toward it' : 'not yet';
+    }
+    else note = 'not yet';
+    const cls = started ? 'chain-done' : isNext ? 'chain-next' : r.open ? 'chain-open' : 'chain-locked';
+    return '<div class="chain-row ' + cls + '"><span class="chain-name">' + label
+      + '</span><span class="chain-note">' + note + '</span></div>';
+  }).join('');
+}
+function openChain(){ renderChain(); document.getElementById('chain-modal').classList.add('open'); }
+
+function refreshHwmChip() {
+  const b = document.getElementById('hwm-toggle');
+  if (!b) return;
+  const h = loadHwm();
+  if (h.sale <= 0) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.textContent = '📈 best $' + fmtCash(Math.floor(h.sale));
+  b.title = 'The High-Water Mark: $' + fmtCash(Math.floor(h.sale)) + ' in one hand — the biggest sale this corner has ever seen, kept across every bust. Smashed on ' + h.beats + ' session' + (h.beats === 1 ? '' : 's') + '. Beat the mark that stood when you sat down and heat cools ' + HWM_RELIEF + ', once a session.' + (gplaqueStands() ? ' A gold record hangs over the stash \u2014 the legend sells with every new mark: +$' + GPLAQUE_CASH + '.' : '');
+}
+function recordSale(amount) {
+  const h = loadHwm();
+  if (hwmMark === null) hwmMark = h.sale;
+  if (amount > h.sale) saveHwm({ sale: amount, beats: h.beats });
+  if (!hwmRung && hwmMark > 0 && amount > hwmMark) {
+    hwmRung = true;
+    const h2 = loadHwm();
+    saveHwm({ sale: h2.sale, beats: h2.beats + 1 });
+    addHeat(-HWM_RELIEF);
+    showToast('📈 A record hand — $' + fmtCash(amount) + ' in one sale. The story does the corner\u2019s talking; heat cools ' + HWM_RELIEF + '.', 'good');
+    addFeed('📈 HIGH-WATER MARK — $' + fmtCash(amount) + ' in one hand. The block will tell it for years');
+    // LAB-40: under the gold record, the legend sells with the hand.
+    if (h2.beats >= GPLAQUE_AT) {
+      const gp = loadGPlaque();
+      saveGPlaque({ cheers: gp.cheers + 1 });
+      state.cash += GPLAQUE_CASH;
+      addFeed('\u{1F4BF} THE GOLD RECORD \u2014 the legend sells with the hand: +$' + GPLAQUE_CASH + '.');
+      setTimeout(() => showToast('\u{1F4BF} The gold record gleams over the stash \u2014 the story is worth +$' + GPLAQUE_CASH + ' by itself.', 'good'), 1200);
+    }
+    checkGrowAchievements();
+  }
+  refreshHwmChip();
+}
+function refreshCenterBtn() {
+  const b = document.getElementById('center-toggle');
+  if (!b) return;
+  const c = loadCenter();
+  b.style.display = (currentAct() >= 2 || c.built) ? '' : 'none';
+  b.classList.toggle('on', c.built);
+  b.textContent = c.built ? (centerHasLeague() ? '🏀 CENTER + LEAGUE' : centerHasAnnex() ? '🏀 CENTER + ANNEX' : '🏀 CENTER STANDS') : '🏀 CENTER $' + fmtCash(CENTER_COST);
+}
+function buildCenter() {
+  const c = loadCenter();
+  if (c.built) { showToast('🏀 The Youth Center already stands — the block runs its own leagues now.', ''); return; }
+  if (currentAct() < 2) return;
+  if (state.cash < CENTER_COST) { showToast("Can't cover the build yet ($" + fmtCash(CENTER_COST) + ').', 'bust'); return; }
+  state.cash -= CENTER_COST;
+  saveCenter({ built: true, runs: 0 });
+  state.clientele = Math.max(state.clientele || 0, 1);
+  refreshCenterBtn();
+  showToast('🏀 The Youth Center opens its doors — the first thing this money ever built that wasn\u2019t for the empire. The block will remember.', 'good');
+  addFeed('🏀 Built the Youth Center — $' + fmtCash(CENTER_COST) + ', and it outlives every run');
+  checkGrowAchievements();
+  saveGame();
+}
+const VAULT_CHUNK = 1000, VAULT_FEE = 0.10;
+function loadVault() {
+  try { const v = JSON.parse(localStorage.getItem(VAULT_KEY) || 'null');
+    if (v && typeof v === 'object') return { bal: Math.max(0, Math.floor(v.bal || 0)), life: Math.max(0, Math.floor(v.life || 0)) }; } catch(e){}
+  return { bal: 0, life: 0 };
+}
+function saveVault(v) { try { localStorage.setItem(VAULT_KEY, JSON.stringify(v)); } catch(e){} }
+function refreshVaultBtn() {
+  const b = document.getElementById('vault-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 2 ? '' : 'none';
+  const v = loadVault();
+  b.classList.toggle('on', v.bal > 0);
+  b.textContent = '🔒 VAULT $' + fmtCash(v.bal) + ' · +$' + fmtCash(VAULT_CHUNK);
+}
+function depositVault() {
+  if (currentAct() < 2) return;
+  if (state.cash < VAULT_CHUNK) { showToast("Can't spare $" + fmtCash(VAULT_CHUNK) + ' for the floor safe yet.', 'bust'); return; }
+  state.cash -= VAULT_CHUNK;
+  const kept = Math.round(VAULT_CHUNK * (1 - VAULT_FEE));
+  const v = loadVault();
+  v.bal += kept; v.life += kept;
+  saveVault(v);
+  refreshVaultBtn();
+  showToast('🔒 $' + fmtCash(kept) + ' goes under the floor — the launderer keeps $' + fmtCash(VAULT_CHUNK - kept) + '. The safe survives anything.', 'good');
+  addFeed('🔒 Banked $' + fmtCash(kept) + ' in the floor safe ($' + fmtCash(v.bal) + ' vaulted)');
+  checkGrowAchievements();
+  saveGame();
+}
+
 // ── Heat system ──
 function addHeat(amount) {
+  // LAB-12: a crew on night shifts is louder, brighter, sloppier — every
+  // heat GAIN lands half again as hard. Reductions are untouched.
+  if (amount > 0 && state.crunch) amount *= 1.5;
+  // LAB-13: the Laundry Front gives the whole block a clean story —
+  // every heat GAIN lands a quarter lighter (stacks with the crunch tax).
+  if (amount > 0 && ownedRoomSet.has('front')) amount *= 0.75;
   state.heat = Math.max(0, Math.min(100, state.heat + amount));
   if (state.heat >= 100) triggerBust();
   refreshHud();
@@ -1311,7 +3070,7 @@ function addHeat(amount) {
 // qty scales the heat hit so selling more units in one sale isn't
 // strictly better than making the same number of smaller sales.
 function heatGainPerSale(qty = 1) {
-  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure();
+  return Math.max(1, 6 - upgLv('lookout_sys')*1.5) * qty * heatPressure() * DIFF().heatGain;
 }
 // Big operations attract big attention: past the Act III threshold
 // ($15k lifetime) every sale runs hotter, up to 2.5x — otherwise maxed
@@ -1325,14 +3084,65 @@ function heatPressure() {
 // Zero before Act III so the early game is untouched.
 function ambientHeatPerSec() {
   if (currentAct() < 3) return 0;
-  return Math.min(1.6, (state.totalEarned / 50000) * 0.6);
+  // LAB-28: a rezoned block reads 40% quieter on paper, forever.
+  return Math.min(1.6, (state.totalEarned / 50000) * 0.6) * DIFF().ambient * (zonedVariance() ? ZONING_CUT : 1);
 }
+// LAB-15: a proper Security Post gives the Lookouts monitors, radios and
+// sightlines — every hired Lookout counts half again wherever they matter.
+function lookoutPower() { return (state.lookouts || 0) * (ownedRoomSet.has('security') ? 1.5 : 1); }
 function heatDrainPerSec() {
-  return 0.3 + state.lookouts * 0.4 + upgLv('cleanup')*0.5;
+  // LAB-13: an open laundromat out front cools things off on its own —
+  // customers coming and going are the best cover there is.
+  return (0.3 + lookoutPower() * 0.4 + upgLv('cleanup')*0.5 + (ownedRoomSet.has('front') ? 0.35 : 0)) * DIFF().drain;
+}
+
+// ── The Getaway Bag (LAB-21) ──────────────────────────────
+// Insurance for people who can't buy insurance. Past the Lab, $2,500
+// packs a bag by the back door: cash, keys, a clean phone. If the
+// DEA ever kicks the door in while it's packed, you simply weren't
+// home — the bag is spent, HALF the cash walks out the back with
+// you, the stash is lost, heat resets to 40, and the run survives.
+// One bag at a time; skips tally toward Gone Before Dawn.
+const BAG_COST = 2500;
+function refreshBagBtn() {
+  const b = document.getElementById('bag-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 3 ? '' : 'none';
+  b.classList.toggle('on', !!state.bagPacked);
+  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+}
+function packBag() {
+  if (state.bagPacked) { showToast('🎒 The bag is already by the back door.', ''); return; }
+  if (currentAct() < 3) return;
+  if (state.cash < BAG_COST) { showToast("Can't afford the bag yet ($" + fmtCash(BAG_COST) + ').', 'bust'); return; }
+  state.cash -= BAG_COST;
+  state.bagPacked = true;
+  refreshBagBtn();
+  showToast('🎒 A bag by the back door — cash, keys, a clean phone. Just in case.', 'good');
+  addFeed('🎒 Packed a getaway bag. Sleep comes easier.');
+  saveGame();
+}
+function skipTown() {
+  state.bagPacked = false;
+  state.cash = Math.floor(state.cash / 2);
+  // LAB-22: the storage unit was never on the warrant.
+  const kept = state.unitRented ? Math.min(stashCount, UNIT_KEEP) : 0;
+  stashCount = kept; pureBags = Math.min(pureBags, kept); trimBags = 0;
+  if (kept > 0) addFeed('📦 ' + kept + ' bags ride out the raid in the unit across town');
+  setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+  state.heat = 40;
+  state.skips = (state.skips || 0) + 1;
+  refreshBagBtn();
+  showToast('🚪 The door came down — but you weren\'t home. Half the cash walks out the back. (' + state.skips + ' clean exits)', 'bust');
+  addFeed('🚪 Skipped town ahead of the raid — the bag paid for itself');
+  checkGrowAchievements();
+  saveGame();
+  refreshHud();
 }
 
 // ── Bust ──
 function triggerBust() {
+  if (state.bagPacked) { skipTown(); return; }   // LAB-21: you weren't home
   busted = true;
   // Make the loss stick: stop the sim/autosave and wipe the save so a reload
   // can't resume the busted run.
@@ -1345,8 +3155,13 @@ function triggerBust() {
     <div class="row"><span>Total Earned</span><strong>$${fmtCash(state.totalEarned)}</strong></div>
     <div class="row"><span>Units Sold</span><strong>${state.totalSold}</strong></div>
     <div class="row"><span>Batches Cooked</span><strong>${state.batches}</strong></div>
+    <div class="row"><span>Notebook</span><strong>${notebookTier() ? NOTEBOOK[notebookTier()-1].name : 'Blank pages'}</strong></div>
     <div class="row"><span>Time Running</span><strong>${Math.floor((Date.now()-state.sessionStart)/60000)}m</strong></div>
   `;
+  if (state.totalEarned >= 2000) {
+    const l = addLegacy(1);
+    stats.innerHTML += `<div class="row"><span>🪪 New identity forged</span><strong>+4% prices forever (${Math.min(6,l.points)*4}% total)</strong></div>`;
+  }
   document.getElementById('bust-modal').classList.add('open');
   addFeed('💀 BUSTED — Game Over');
 }
@@ -1364,14 +3179,592 @@ function resetGame() {
 }
 
 // ── Sale value ──
+// ── Street market (LAB-7) ──────────────────────────────────
+// Demand drifts on a slow cycle and occasionally surges or crashes, so
+// WHEN you sell finally matters: a surge sale earns the same heat for
+// half again the cash. Long-run average stays ~1.0× — the market adds a
+// decision, not inflation.
+let market = { mult: 1.0, target: 1.0, shiftIn: 25, surge: null, surgeIn: 150 };
+function marketMult(){ return +(market.mult * (market.surge ? market.surge.mult : 1)).toFixed(2); }
+function updateMarket(dt) {
+  // slow drift toward a wandering target
+  market.shiftIn -= dt;
+  if (market.shiftIn <= 0) {
+    market.target = 0.75 + Math.random() * 0.6;      // 0.75×–1.35×
+    market.shiftIn = 30 + Math.random() * 30;
+  }
+  const d = market.target - market.mult;
+  market.mult += Math.sign(d) * Math.min(Math.abs(d), 0.012 * dt * 10);
+  // surges & crashes
+  if (market.surge) {
+    market.surge.left -= dt;
+    if (market.surge.left <= 0) {
+      addFeed(market.surge.mult > 1 ? '📉 The surge cools off — prices settle.' : '📈 The block clears — prices recover.');
+      market.surge = null;
+      market.surgeIn = 140 + Math.random() * 120;
+    }
+  } else {
+    market.surgeIn -= dt;
+    if (market.surgeIn <= 0) {
+      const hot = Math.random() < 0.5;
+      market.surge = hot
+        ? { mult: 1.5 + Math.random() * 0.3, left: 60 + Math.random() * 30 }
+        : { mult: 0.6 + Math.random() * 0.15, left: 60 + Math.random() * 30 };
+      if (hot) { showToast('🔥 Drought uptown — buyers pay premium. SELL NOW.','good'); addFeed('🔥 Demand surge — street prices spike.'); }
+      else { showToast('🚔 Rivals flooding the block — prices tank.','bad'); addFeed('🧊 Market crash — hold your stash if you can.'); }
+    }
+  }
+  updateMarketHUD();
+}
+let _lastMktShown = 0;
+function updateMarketHUD() {
+  const eff = marketMult();
+  if (Math.abs(eff - _lastMktShown) < 0.01) return;
+  _lastMktShown = eff;
+  const el = document.getElementById('market-val');
+  const hud = document.getElementById('market-hud');
+  if (!el || !hud) return;
+  el.textContent = (eff >= 1.05 ? '📈 ' : eff <= 0.95 ? '📉 ' : '') + eff.toFixed(2) + '×';
+  hud.classList.toggle('hot', eff >= 1.3);
+  hud.classList.toggle('cold', eff <= 0.75);
+}
+
 function salePrice() {
   const base = 25;
   const purity = 1 + upgLv('bags')*0.15 + upgLv('price')*0.4;
   const chemiBonus = chemStation ? 1.8 : 1;
-  return Math.floor(base * purity * chemiBonus);
+  // LAB-14: the Penthouse brand — nobody haggles with the man upstairs.
+  const brand = ownedRoomSet.has('penthouse') ? 1.1 : 1;
+  return Math.floor(base * purity * chemiBonus * brand * DIFF().price * legacyMult() * marketMult() * notebookMult() * partyPriceMult());
+}
+
+// ── Big buyers (LAB-8) ─────────────────────────────────────
+// Once the operation is past the garage phase, a big buyer occasionally
+// calls: move N units inside a window and the whole lot pays a clean
+// completion bonus on top of the street price — no extra heat. Walking
+// away costs nothing; accepting and blowing the deadline costs +6 heat,
+// because word gets around. Regular sales fill the order, so a contract
+// is really a bet that your pipeline can keep up.
+let contract = null;        // {need, filled, timeLeft, bonusMult}
+let contractIn = 120;       // seconds until the next cold call
+let contractOffer = null;   // {need, window, bonusMult, expire}
+function updateContract(dt) {
+  if (contractOffer) {
+    contractOffer.expire -= dt;
+    const t = document.getElementById('co-expire');
+    if (t) t.textContent = `Offer expires in ${Math.max(0, Math.ceil(contractOffer.expire))}s`;
+    if (contractOffer.expire <= 0) declineContract(true);
+    return;
+  }
+  if (contract) {
+    contract.timeLeft -= dt;
+    updateContractHUD();
+    if (contract.timeLeft <= 0) failContract();
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody big calls a garage
+  contractIn -= dt;
+  if (contractIn <= 0) makeContractOffer();
+}
+function makeContractOffer() {
+  const big = currentAct() >= 3;
+  const need = big ? 18 + Math.floor(Math.random() * 10) : 8 + Math.floor(Math.random() * 6);
+  const windowS = 90 + Math.floor(Math.random() * 45);
+  const bonusMult = +(0.6 + Math.random() * 0.4).toFixed(2);
+  contractOffer = { need, window: windowS, bonusMult, expire: 25 };
+  const est = Math.floor(need * salePrice() * bonusMult);
+  const el = document.getElementById('contract-offer');
+  el.innerHTML = `
+    <div class="co-title">📟 Big buyer on the line</div>
+    <div>Wants <b>${need} units</b> inside <b>${windowS}s</b>.
+    Fill it and the lot pays <b style="color:#22dd55">≈ +$${fmtCash(est)}</b> on top — clean money, no heat.
+    Blow the deadline: <b style="color:#ff6b5c">+6 heat</b>.</div>
+    <div class="co-btns">
+      <button class="co-accept" id="co-accept">✅ Take the deal</button>
+      <button class="co-decline" id="co-decline">Pass</button>
+    </div>
+    <div class="co-timer" id="co-expire">Offer expires in 25s</div>`;
+  el.style.display = 'block';
+  document.getElementById('co-accept').onclick = acceptContract;
+  document.getElementById('co-decline').onclick = () => declineContract(false);
+  addFeed('📟 A big buyer is calling…');
+}
+function acceptContract() {
+  if (!contractOffer) return;
+  contract = { need: contractOffer.need, filled: 0,
+               timeLeft: contractOffer.window, bonusMult: contractOffer.bonusMult };
+  contractOffer = null;
+  document.getElementById('contract-offer').style.display = 'none';
+  showToast(`📦 Contract on: ${contract.need} units, clock is running`, 'good');
+  addFeed(`📦 Contract accepted — ${contract.need} units on the clock`);
+  updateContractHUD();
+  saveGame();
+}
+function declineContract(expired) {
+  contractOffer = null;
+  document.getElementById('contract-offer').style.display = 'none';
+  addFeed(expired ? '📵 The call went unanswered — buyer moved on.' : '📵 You passed on the deal.');
+  contractIn = 150 + Math.random() * 120;
+  saveGame();
+}
+function failContract() {
+  contract = null;
+  document.getElementById('contract-hud').style.display = 'none';
+  addHeat(6);
+  showToast('📦 Contract blown — the buyer is furious. +6 heat', 'bad');
+  addFeed('❌ Contract failed — word gets around.');
+  contractIn = 200 + Math.random() * 150;
+  saveGame();
+}
+function completeContract() {
+  const bonus = Math.floor(contract.need * salePrice() * contract.bonusMult);
+  contract = null;
+  document.getElementById('contract-hud').style.display = 'none';
+  addCash(bonus);
+  state.contractsDone = (state.contractsDone || 0) + 1;
+  showToast(`📦 Contract filled — +$${fmtCash(bonus)} bonus, clean money`, 'good');
+  addFeed(`💼 Contract filled — +$${fmtCash(bonus)} clean bonus`);
+  contractIn = 220 + Math.random() * 160;
+  saveGame();
+}
+function updateContractHUD() {
+  if (!contract) return;
+  const hud = document.getElementById('contract-hud');
+  hud.style.display = 'block';
+  hud.classList.toggle('late', contract.timeLeft < 20);
+  document.getElementById('contract-val').textContent =
+    `${contract.filled}/${contract.need} · ${Math.max(0, Math.ceil(contract.timeLeft))}s`;
 }
 
 // ── Act system ──
+// ── Crunch Mode (LAB-12) ──────────────────────────────────
+// One lever, two edges: with night shifts on, grow plots and the chem
+// station run 30% faster — and every heat GAIN lands 1.5× harder.
+// Reductions (bribes, lawyers, lying low) are untouched, so crunching
+// is a bet that you can outrun the attention you're attracting.
+function refreshCrunchBtn() {
+  const b = document.getElementById('crunch-toggle');
+  if (!b) return;
+  b.textContent = state.crunch ? '🌙 NIGHT SHIFTS: ON' : '🌙 NIGHT SHIFTS: OFF';
+  b.classList.toggle('on', !!state.crunch);
+}
+function toggleCrunch() {
+  state.crunch = !state.crunch;
+  refreshCrunchBtn();
+  if (state.crunch) {
+    showToast('🌙 Night shifts — everything runs faster, and hotter.', 'bad');
+    addFeed('🌙 The crew starts pulling night shifts — +30% output, heat spikes ×1.5.');
+  } else {
+    showToast('😮‍💨 Back to day work. The block cools off.', 'good');
+    addFeed('😮‍💨 Night shifts called off — the operation breathes again.');
+  }
+  saveGame();
+}
+{ const cb = document.getElementById('crunch-toggle'); if (cb) cb.onclick = toggleCrunch; }
+
+// ── The Distributor (LAB-18) ──────────────────────────────
+// Act III unlocks wholesale: flip the route on and every 45 seconds a
+// van takes 3 bags straight from the stash at 0.85× list — no buyer on
+// the corner, no sting to walk into. The catch: every shipment adds a
+// point of heat, and a route run hot has a 5% chance per run of being
+// BURNED — two minutes cold before the van dares roll again. An empty
+// stash just means the van waits.
+const ROUTE_EVERY = 45, ROUTE_BAGS = 3, ROUTE_CUT = 0.85, ROUTE_COLD = 120;
+let routeT = ROUTE_EVERY, routeCold = 0;
+function refreshRouteBtn() {
+  const b = document.getElementById('route-toggle');
+  if (!b) return;
+  b.style.display = currentAct() >= 3 ? '' : 'none';
+  b.classList.toggle('on', !!state.route && routeCold <= 0);
+  refreshBagBtn();   // LAB-21: the bag rides the same act gate
+  refreshUnitBtn();  // LAB-22: so does the unit (one act earlier inside)
+  refreshBurnerBtn(); // LAB-24: and the burner rides the same gate
+  refreshMotherBtn(); // LAB-26: the mother too
+  refreshZoningBtn(); // LAB-28: and the variance
+  refreshVaultBtn(); // LAB-29: and the floor safe
+  refreshDiceBtn(); // LAB-30: and the hot hand
+  refreshLawyerBtn(); // LAB-31: and the retainer
+  refreshPreSaleBtn(); // LAB-32: and the van's ledger
+  refreshCenterBtn(); // LAB-33: and the block's own building
+  refreshHwmChip(); // LAB-34: and the corner's record book
+  refreshCLedgerBtn(); // LAB-36: and the book that binds it all
+  refreshZippoBtn(); // LAB-37: and the flame that draws on it
+  refreshOgBtn(); // LAB-42: and the man the flame came from
+  refreshReunionBtn(); // LAB-44: and the day the whole story shows up
+  refreshPolaroidBtn(); // LAB-45: and the picture that proves it happened
+  refreshAnnivBtn(); // LAB-46: and the year it all added up to
+  refreshWallBtn(); // LAB-47: and every name the year collected
+  refreshStoopBtn(); // LAB-48: and the seat built to sit with them
+  refreshSStoryBtn(); // LAB-49: and the story told from that seat
+  refreshTrackBtn(); // LAB-50: and the beat it got cut to
+  refreshShoeboxBtn(); // LAB-51: and the box buried under it all
+  refreshMuralBtn();   // LAB-52: and the wall it all ends up on
+  refreshDocentBtn();  // LAB-53: and the one who walks you down it
+  refreshMarkBtn();    // LAB-54: and the piece the walked-down kid adds
+  refreshRoomBtn();    // LAB-55: and the room you buy to keep it all in
+  b.classList.toggle('cold', routeCold > 0);
+  b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
+    : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
+}
+function toggleRoute() {
+  if (currentAct() < 3) return;
+  state.route = !state.route;
+  routeT = ROUTE_EVERY;
+  refreshRouteBtn();
+  if (state.route) {
+    showToast('📦 The route is live — a van rolls every 45 seconds.', 'good');
+    addFeed('📦 Opened the wholesale route — 3 bags a run at 0.85× list.');
+  } else {
+    showToast('📦 Route closed. The van goes home.', '');
+    addFeed('📦 Closed the wholesale route.');
+  }
+  saveGame();
+}
+// ── The Heat Wave (LAB-20) ─────────────────────────────────
+// Past the basement, the city runs periodic CRACKDOWN sweeps: for 45
+// seconds every sale runs 2× hotter and street buyers come half as
+// often. A hired Lookout hears the scanner 15 seconds out. Sell
+// nothing until it lifts and the clean streets pay out: −10 heat and
+// a tally toward Cold Streets. The van and the corner both count.
+const WAVE_SECS = 45, WAVE_WARN = 15;
+let waveT = 300, waveLeft = 0, waveWarned = false, waveSales = 0;
+function waveActive() { return waveLeft > 0; }
+function waveHeatMult() { return waveActive() ? 2 : 1; }
+function refreshWaveHud() {
+  const el = document.getElementById('wave-hud');
+  if (!el) return;
+  if (waveActive()) {
+    el.style.display = '';
+    document.getElementById('wave-val').textContent = 'CRACKDOWN ' + Math.ceil(waveLeft) + 's';
+  } else el.style.display = 'none';
+}
+function updateWave(dt) {
+  if (currentAct() < 2) return;   // the garage is beneath notice
+  if (waveActive()) {
+    waveLeft -= dt;
+    refreshWaveHud();
+    if (waveLeft <= 0) {
+      waveLeft = 0;
+      refreshWaveHud();
+      if (waveSales === 0) {
+        state.cleanWaves = (state.cleanWaves || 0) + 1;
+        addHeat(-10);
+        showToast('🚨 The sweep rolls out empty-handed — clean streets. −10 heat.', 'cash');
+        addFeed('🚨 Rode out the crackdown without a sale (−10 heat, ' + state.cleanWaves + ' clean)');
+        checkGrowAchievements();
+      } else {
+        showToast('🚨 The sweep rolls out — the corner breathes again.', '');
+        addFeed('🚨 The crackdown lifted (' + waveSales + ' hot sale' + (waveSales === 1 ? '' : 's') + ')');
+      }
+      waveT = 270 + Math.random() * 90;
+      waveWarned = false;
+      saveGame();
+    }
+    return;
+  }
+  waveT -= dt;
+  if (!waveWarned && waveT <= WAVE_WARN && (state.lookouts || 0) >= 1) {
+    waveWarned = true;
+    showToast('📻 Scanner chatter — a crackdown sweep rolls in ' + WAVE_WARN + ' seconds.', 'bad');
+    addFeed('📻 The Lookout heard the sweep coming');
+  }
+  if (waveT <= 0) {
+    waveLeft = WAVE_SECS;
+    waveSales = 0;
+    refreshWaveHud();
+    showToast('🚨 CRACKDOWN — every sale runs 2× hotter for ' + WAVE_SECS + 's. Lie low or pay for it.', 'bad');
+    addFeed('🚨 A crackdown sweep rolls onto the block');
+  }
+}
+// ── The Block Party (LAB-23) ────────────────────────────
+// The mirror of the crackdown. Every so often past the garage, the
+// block throws a party for 60 seconds: buyers pay +25% and come twice
+// as fast — but every sale runs 1.5× hotter and the crowd hides
+// badges (2× undercover odds). The Heat Wave says lie low; the party
+// says sell hard. A party never starts during a sweep — but a sweep
+// can absolutely crash a party.
+const PARTY_SECS = 60;
+let partyT = 420, partyLeft = 0, partySalesNow = 0;
+function partyActive() { return partyLeft > 0; }
+function partyPriceMult() { return partyActive() ? 1.25 : 1; }
+function partyHeatMult() { return partyActive() ? 1.5 : 1; }
+// ── The Whale (LAB-25) ───────────────────────────────────────────────
+// The corner talks. Every 12th clean street sale, word reaches a big
+// fish: the next buyer down the block is the 🐋 Whale — 3 bags at
+// TRIPLE list, never a badge. But he's skittish: he won't show during
+// a crackdown or a block party (the meter just holds), and if the
+// shelf can't stock him he walks and the word has to spread again.
+const WHALE_EVERY = 12, WHALE_BAGS = 3, WHALE_MULT = 3;
+function whaleDue() {
+  return currentAct() >= 2 && (state.whaleMeter || 0) >= WHALE_EVERY
+    && !waveActive() && !partyActive();
+}
+function refreshPartyHud() {
+  const el = document.getElementById('party-hud');
+  if (!el) return;
+  if (partyActive()) {
+    el.style.display = '';
+    document.getElementById('party-val').textContent = 'BLOCK PARTY ' + Math.ceil(partyLeft) + 's';
+  } else el.style.display = 'none';
+}
+function updateParty(dt) {
+  if (currentAct() < 2) return;   // nobody parties outside a garage
+  if (partyActive()) {
+    partyLeft -= dt;
+    refreshPartyHud();
+    if (partyLeft <= 0) {
+      partyLeft = 0;
+      refreshPartyHud();
+      if (partySalesNow > 0) {
+        showToast('🎉 The party winds down — ' + partySalesNow + ' sale' + (partySalesNow === 1 ? '' : 's') + ' in the crowd.', 'cash');
+        addFeed('🎉 The block party wound down (' + partySalesNow + ' party sale' + (partySalesNow === 1 ? '' : 's') + ')');
+      } else {
+        showToast('🎉 The party winds down — you sat this one out.', '');
+        addFeed('🎉 The block party wound down (sat out)');
+      }
+      partyT = 360 + Math.random() * 180;
+      saveGame();
+    }
+    return;
+  }
+  partyT -= dt;
+  if (partyT <= 0) {
+    if (waveActive()) { partyT = 30; return; }   // nobody parties through a sweep
+    partyLeft = PARTY_SECS;
+    partySalesNow = 0;
+    refreshPartyHud();
+    showToast('🎉 BLOCK PARTY — 60s of packed corners: +25% prices, twice the buyers… and badges in the crowd.', 'cash');
+    addFeed('🎉 The block threw a party — the corner is packed');
+  }
+}
+
+function updateRoute(dt) {
+  if (routeCold > 0) {
+    routeCold = Math.max(0, routeCold - dt);
+    refreshRouteBtn();
+    if (routeCold === 0) addFeed('📦 The route cooled off — the van rolls again.');
+    return;
+  }
+  if (!state.route || currentAct() < 3) return;
+  routeT -= dt;
+  if (routeT > 0) return;
+  routeT = ROUTE_EVERY;
+  if (stashCount < ROUTE_BAGS) { addFeed('📦 The van waited on an empty stash.'); return; }
+  stashCount -= ROUTE_BAGS;
+  pureBags = Math.min(pureBags, stashCount);
+  setLabel('stash', stashLabel(), stashNode.x, 2.6, stashNode.z);
+  const pay = Math.floor(ROUTE_BAGS * salePrice() * ROUTE_CUT);
+  addCash(pay);
+  state.totalSold = (state.totalSold||0) + ROUTE_BAGS;
+  addHeat(Math.round(1 * waveHeatMult() * partyHeatMult()));   // LAB-20/23: the van isn't invisible in a sweep — or a crowd
+  if (waveActive()) waveSales++;
+  if (partyActive()) { partySalesNow++; state.partySales = (state.partySales || 0) + 1; checkGrowAchievements(); }
+  state.routeShipped = (state.routeShipped||0) + ROUTE_BAGS;
+  addFeed('📦 The van moved ' + ROUTE_BAGS + ' bags wholesale (+$' + fmtCash(pay) + ')');
+  checkGrowAchievements();
+  if (Math.random() < 0.05) {
+    routeCold = ROUTE_COLD;
+    showToast('🔥 The route got BURNED — somebody talked. Two minutes cold.', 'bad');
+    addFeed('🔥 Route burned — the van lies low.');
+  }
+  refreshRouteBtn();
+}
+{ const rb = document.getElementById('route-toggle'); if (rb) rb.onclick = toggleRoute; }
+{ const gb = document.getElementById('bag-toggle'); if (gb) gb.onclick = packBag; }
+{ const ub = document.getElementById('unit-toggle'); if (ub) ub.onclick = rentUnit; }
+{ const bb = document.getElementById('burner-toggle'); if (bb) bb.onclick = buyBurner; }
+{ const mb = document.getElementById('mother-toggle'); if (mb) mb.onclick = rootMother; }
+{ const zb = document.getElementById('zoning-toggle'); if (zb) zb.onclick = buyVariance; }
+{ const vb = document.getElementById('vault-toggle'); if (vb) vb.onclick = depositVault; }
+{ const db = document.getElementById('dice-toggle'); if (db) db.onclick = placeDice; }
+{ const lb = document.getElementById('lawyer-toggle'); if (lb) lb.onclick = retainLawyer; }
+{ const pb = document.getElementById('presale-toggle'); if (pb) pb.onclick = takePreSale; }
+{ const cb = document.getElementById('center-toggle'); if (cb) cb.onclick = buildCenter; }
+{ const lb = document.getElementById('ledger-toggle'); if (lb) lb.onclick = openCLedger; }
+
+// ── Corner Wars (LAB-11) ──────────────────────────────────
+// Past the garage act, a rival crew occasionally posts up on the block
+// for ~90 seconds and poaches buyers before they ever reach you — lost
+// volume, not lower prices. Lookouts thin the poaching (−10pp each);
+// cash clears the corner instantly (payoff locked at 6× list when they
+// arrive); or you grit your teeth and wait them out.
+let rival = null, rivalIn = 200 + Math.random() * 140;
+function rivalPoachChance() { return Math.max(0.05, 0.35 - 0.10 * lookoutPower()); }   // LAB-15: the Post sharpens them
+function rivalArrives() {
+  rival = { left: 90, payoff: 6 * salePrice() };
+  state.rivalRunIns = (state.rivalRunIns || 0) + 1;
+  showToast("🕶️ A rival crew posts up on the corner — they're taking your buyers.", 'bad');
+  addFeed('🕶️ Rival crew on the block — buyers are peeling off.');
+  const btn = document.getElementById('rival-pay');
+  if (btn) btn.onclick = payOffRival;
+  updateRivalHUD();
+}
+function payOffRival() {
+  if (!rival) return;
+  if (state.cash < rival.payoff) { showToast("Can't cover the payoff!", 'bust'); return; }
+  state.cash -= rival.payoff;
+  addFeed(`🤝 Paid the rival crew $${rival.payoff} to move along.`);
+  showToast('🤝 The corner clears — buyers come back to you.', 'good');
+  rivalLeaves(false);
+}
+function rivalLeaves(expired) {
+  rival = null;
+  rivalIn = 260 + Math.random() * 180;
+  if (expired) addFeed('🕶️ The rival crew packed up and drifted off.');
+  updateRivalHUD();
+  refreshHud();
+  saveGame();
+}
+function updateRivalHUD() {
+  const hud = document.getElementById('rival-hud');
+  if (!hud) return;
+  if (!rival) { hud.style.display = 'none'; return; }
+  hud.style.display = 'flex';
+  const v = document.getElementById('rival-val');
+  if (v) v.textContent = `Rival crew · ${Math.max(0, Math.ceil(rival.left))}s · poaching ${Math.round(rivalPoachChance() * 100)}%`;
+  const btn = document.getElementById('rival-pay');
+  if (btn) btn.textContent = `Pay off $${rival.payoff}`;
+}
+function updateRival(dt) {
+  if (rival) {
+    rival.left -= dt;
+    updateRivalHUD();
+    if (rival.left <= 0) rivalLeaves(true);
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody contests a garage
+  rivalIn -= dt;
+  if (rivalIn <= 0) rivalArrives();
+}
+
+/* ── The Informant (LAB-16) ── */
+// Past the garage, a voice on the corner occasionally has word for
+// sale: pay 3× list and every undercover buyer is made on sight for
+// 90 seconds — the Lookout's wire, rented. Money for information.
+let tip = null, tipIn = 200 + Math.random() * 160, wireLeft = 0;
+function wireActive() { return (state.lookouts||0) > 0 || wireLeft > 0; }
+function tipArrives() {
+  tip = { left: 45, cost: 3 * salePrice() };
+  showToast('ℹ️ A voice on the corner has word about the next badge — $'+fmtCash(tip.cost)+' buys the wire.','');
+  addFeed('ℹ️ The informant surfaced — word for sale');
+  const b = document.getElementById('tip-buy');
+  if (b) b.onclick = buyTip;
+  updateTipHUD();
+}
+function buyTip() {
+  if (!tip) return;
+  if (state.cash < tip.cost) { showToast('ℹ️ Not enough cash — the informant shrugs and melts away.','bad'); return; }
+  state.cash -= tip.cost;
+  wireLeft = 90;
+  state.tipsBought = (state.tipsBought||0) + 1;
+  showToast('ℹ️ Wired in — every badge on the block is made for 90 seconds.','good');
+  addFeed('ℹ️ Bought the wire — badges glow for 90s');
+  tip = null; tipIn = 260 + Math.random() * 200;
+  updateTipHUD(); refreshHud(); saveGame();
+}
+function updateTipHUD() {
+  const hud = document.getElementById('tip-hud');
+  if (!hud) return;
+  const v = document.getElementById('tip-val'), b = document.getElementById('tip-buy');
+  if (tip) {
+    hud.style.display = 'flex';
+    if (v) v.textContent = 'Informant · ' + Math.max(0, Math.ceil(tip.left)) + 's';
+    if (b) { b.style.display = ''; b.textContent = 'Buy wire $' + fmtCash(tip.cost); }
+  } else if (wireLeft > 0) {
+    hud.style.display = 'flex';
+    if (v) v.textContent = '🚨 Wired in · ' + Math.ceil(wireLeft) + 's';
+    if (b) b.style.display = 'none';
+  } else hud.style.display = 'none';
+}
+function updateTip(dt) {
+  if (wireLeft > 0) {
+    wireLeft = Math.max(0, wireLeft - dt);
+    updateTipHUD();
+    if (wireLeft === 0) addFeed('ℹ️ The wire went quiet');
+  }
+  if (tip) {
+    tip.left -= dt;
+    updateTipHUD();
+    if (tip.left <= 0) { tip = null; tipIn = 200 + Math.random() * 160; addFeed('ℹ️ The informant drifted off'); updateTipHUD(); }
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody sells word on a garage
+  tipIn -= dt;
+  if (tipIn <= 0) tipArrives();
+}
+
+/* ── Going Once (LAB-17) ── */
+// Past the garage, two buyers occasionally want the same batch and an
+// impromptu auction breaks out over a 5-bag lot. Hammer at the standing
+// bid for instant cash (+2 heat — a crowd draws eyes), or let them bid
+// each other up: each raise climbs the ladder (1.2× → 1.5× → 2.0× list)
+// with a 30% chance the pair spooks and walks. The final bid hammers
+// itself — nobody outbids 2× list.
+const BW_STEPS = [1.2, 1.5, 2.0];
+const BW_LOT = 5;
+let bw = null, bwIn = 240 + Math.random() * 200;
+function bwPrice() { return Math.round(BW_LOT * salePrice() * BW_STEPS[bw ? bw.step : 0]); }
+function bwArrives() {
+  bw = { step: 0, left: 12 };
+  showToast('🔨 Two buyers want the same batch — an auction breaks out!','');
+  addFeed('🔨 Bidding war — two buyers, one 5-bag lot');
+  const h = document.getElementById('bw-hammer'), w = document.getElementById('bw-wait');
+  if (h) h.onclick = bwHammer;
+  if (w) w.onclick = bwRaise;
+  updateBwHUD();
+}
+function bwHammer() {
+  if (!bw) return;
+  const mult = BW_STEPS[bw.step], pay = bwPrice();
+  addCash(pay);
+  addHeat(2);
+  state.bidWars = (state.bidWars||0) + 1;
+  showToast('🔨 SOLD — the lot goes for $' + fmtCash(pay) + ' at ' + mult + '× list.','good');
+  addFeed('🔨 Hammered the lot at ' + mult + '× list (+$' + fmtCash(pay) + ')');
+  bw = null; bwIn = 300 + Math.random() * 240;
+  updateBwHUD(); refreshHud(); saveGame(); checkGrowAchievements();
+}
+function bwRaise() {
+  if (!bw) return;
+  if (Math.random() < 0.3) {
+    showToast('🔨 The pair spooks — both buyers melt into the block. No sale.','bad');
+    addFeed('🔨 The auction collapsed — greed has a price');
+    bw = null; bwIn = 280 + Math.random() * 200;
+    updateBwHUD(); return;
+  }
+  bw.step++;
+  bw.left = 12;
+  if (bw.step >= BW_STEPS.length - 1) {
+    addFeed('🔨 Final bid — the hammer falls at 2× list');
+    bwHammer();
+    return;
+  }
+  addFeed('🔨 The bid climbs — ' + BW_STEPS[bw.step] + '× list on the table');
+  updateBwHUD();
+}
+function updateBwHUD() {
+  const hud = document.getElementById('bw-hud');
+  if (!hud) return;
+  const v = document.getElementById('bw-val'), h = document.getElementById('bw-hammer'), w = document.getElementById('bw-wait');
+  if (bw) {
+    hud.style.display = 'flex';
+    if (v) v.textContent = 'Auction · ' + BW_STEPS[bw.step] + '× · ' + Math.max(0, Math.ceil(bw.left)) + 's';
+    if (h) h.textContent = 'Hammer $' + fmtCash(bwPrice());
+    if (w) w.textContent = 'Let them bid';
+  } else hud.style.display = 'none';
+}
+function updateBw(dt) {
+  if (bw) {
+    bw.left -= dt;
+    updateBwHUD();
+    if (bw.left <= 0) { bw = null; bwIn = 240 + Math.random() * 200; addFeed('🔨 Nobody closed — the buyers wandered off'); updateBwHUD(); }
+    return;
+  }
+  if (currentAct() < 2) return;   // nobody fights over garage product
+  bwIn -= dt;
+  if (bwIn <= 0) bwArrives();
+}
+
 function currentAct() {
   if (state.totalEarned >= 15000) return 3;
   if (state.totalEarned >= 2000) return 2;
@@ -1416,6 +3809,86 @@ function refreshGoalHud() {
   progEl.textContent=g.prog();
 }
 
+// ── Achievements → Hall of Fame (IDEA-LAB-6) ──
+// Milestones written to their own key (like aow-achievements) so the
+// arcade hub can badge the Grow Op card and HOF row without parsing
+// the whole save. Unlocks never re-lock; a bust wipes the run's save
+// but the trophies live in this separate key and survive.
+const GROW_ACH = [
+  { id: 'first_deal',   name: 'First Deal',      test: () => state.totalSold >= 1 },
+  { id: 'the_rise',     name: 'The Rise',        test: () => state.totalEarned >= 2000 },
+  { id: 'the_empire',   name: 'The Empire',      test: () => state.totalEarned >= 15000 },
+  { id: 'landlord',     name: 'Landlord',        test: () => ownedRoomSet.size >= 4 },
+  { id: 'staffed_up',   name: 'Staffed Up',      test: () => (state.trimmers + state.lookouts + state.runners + state.cooks) >= 5 },
+  { id: 'chemist',      name: 'Chemist',         test: () => !!chemStation },
+  { id: 'quarter_kilo', name: 'Quarter Kilo',    test: () => state.totalSold >= 250 },
+  { id: 'high_roller',  name: 'High Roller',     test: () => state.cash >= 25000 },
+  { id: 'fresh_linen',  name: 'Fresh Linen',     test: () => ownedRoomSet.has('front') },   // LAB-13
+  { id: 'top_floor',    name: 'The View From the Top', test: () => ownedRoomSet.has('penthouse') },   // LAB-14
+  { id: 'eyes_up',      name: 'Eyes Everywhere', test: () => ownedRoomSet.has('security') && state.lookouts >= 2 },   // LAB-15
+  { id: 'wired_in',     name: 'Wired In',        test: () => (state.tipsBought || 0) >= 3 },   // LAB-16
+  { id: 'going_once',   name: 'Going Once',      test: () => (state.bidWars || 0) >= 3 },      // LAB-17
+  { id: 'wholesale',    name: 'Wholesale',       test: () => (state.routeShipped || 0) >= 30 }, // LAB-18
+  { id: 'signature',    name: 'Signature Blend', test: () => (state.batches || 0) >= 150 },     // LAB-19
+  { id: 'cold_streets', name: 'Cold Streets',    test: () => (state.cleanWaves || 0) >= 3 },    // LAB-20
+  { id: 'block_famous', name: 'The Block Knows', test: () => (state.partySales || 0) >= 12 },   // LAB-23
+  { id: 'whale_club', name: 'The Whale Club', test: () => (state.whalesServed || 0) >= 5 },   // LAB-25
+  { id: 'mother50', name: 'Prize Genetics', test: () => (state.motherBags || 0) >= 50 },   // LAB-26
+  { id: 'client5', name: 'Repeat Business', test: () => (state.clientele || 0) >= 5 },   // LAB-27
+  { id: 'zoned', name: 'Friends Downtown', test: () => !!state.zoned && (state.totalEarned || 0) >= 50000 },   // LAB-28
+  { id: 'squirrel', name: 'Rainy-Day Fund', test: () => (loadVault().life || 0) >= 5000 },   // LAB-29
+  { id: 'hot_hand', name: 'The Hot Hand', test: () => (state.diceWon || 0) >= 5 },   // LAB-30
+  { id: 'retained', name: 'Habeas Corpus', test: () => (state.casesWon || 0) >= 3 },   // LAB-31
+  { id: 'sold_forward', name: 'Sold Forward', test: () => (state.preSales || 0) >= 4 },   // LAB-32
+  { id: 'cornerstone', name: 'Cornerstone', test: () => loadCenter().built && (loadCenter().runs || 0) >= 2 },   // LAB-33
+  { id: 'gym_annex', name: 'The Gym Annex', test: () => centerHasAnnex() },   // LAB-38
+  { id: 'rec_league', name: 'The Rec League', test: () => centerHasLeague() },   // LAB-41
+  { id: 'block_cookout', name: 'Block Cookout', test: () => (loadCookout().days || 0) >= 3 },   // LAB-39
+  { id: 'high_water', name: 'High-Water Mark', test: () => (loadHwm().beats || 0) >= 3 },   // LAB-34
+  { id: 'gold_record', name: 'The Gold Record', test: () => (loadGPlaque().cheers || 0) >= 3 },   // LAB-40
+  { id: 'pen_pals', name: 'Pen Pals', test: () => (loadKite().read || 0) >= 3 },   // LAB-35
+  { id: 'corner_ledger', name: 'Corner Ledger', test: () => (loadCLedger().opens || 0) >= 3 },   // LAB-36
+  { id: 'old_flame', name: 'Old Flame', test: () => (loadZippo().uses || 0) >= 3 },   // LAB-37
+  { id: 'og_visit', name: 'The OG Came Through', test: () => (loadOg().visits || 0) >= 3 },   // LAB-42
+  { id: 'tin_fluid', name: 'The Tin of Fluid', test: () => (loadGKeep().pays || 0) >= 3 },   // LAB-43
+  { id: 'block_reunion', name: 'The Block Reunion', test: () => (loadBReunion().held || 0) >= 3 },   // LAB-44
+  { id: 'polaroid3', name: 'The Cookout Polaroid', test: () => (loadPolaroid().looks || 0) >= 3 },   // LAB-45
+  { id: 'corner_anniv', name: 'The Corner Anniversary', test: () => (loadCAnniv().toasts || 0) >= 3 },   // LAB-46
+  { id: 'wall_names', name: 'The Wall of Names', test: () => (loadWall().leafs || 0) >= 3 },   // LAB-47
+  { id: 'the_stoop', name: 'The Stoop', test: () => (loadStoop().sits || 0) >= 3 },   // LAB-48
+  { id: 'stoop_story', name: 'The Stoop Story', test: () => (loadSStory().tellings || 0) >= 3 },   // LAB-49
+  { id: 'block_track', name: 'The Block Track', test: () => (loadTrack().plays || 0) >= 3 },   // LAB-50
+  { id: 'the_shoebox', name: 'The Shoebox', test: () => (loadShoebox().digs || 0) >= 3 },   // LAB-51
+  { id: 'the_mural', name: 'The Alley Mural', test: () => (loadMural().stands || 0) >= 3 },  // LAB-52
+  { id: 'the_walkdown', name: 'The Walk-Down', test: () => (loadDocent().walks || 0) >= 3 },  // LAB-53
+  { id: 'the_tag', name: 'The New Kid\u2019s Tag', test: () => (loadMark().tags || 0) >= 3 },  // LAB-54
+  { id: 'the_backroom', name: 'The Back Room', test: () => (loadRoom().sits || 0) >= 3 },  // LAB-55
+  { id: 'the_empty_frame', name: 'The Empty Frame', test: () => frameUp() },  // LAB-56
+  { id: 'ghost',        name: 'Gone Before Dawn', test: () => (state.skips || 0) >= 2 },        // LAB-21
+  { id: 'off_books',    name: 'Off the Books',    test: () => !!state.unitRented },             // LAB-22
+  { id: 'clean_line',   name: 'Clean Line',       test: () => (state.burnersBought || 0) >= 3 },// LAB-24
+];
+const GROW_ACH_KEY = 'growop-achievements';
+function growAchUnlocked() {
+  try { return JSON.parse(localStorage.getItem(GROW_ACH_KEY) || '{}'); } catch(e){ return {}; }
+}
+function checkGrowAchievements() {
+  const have = growAchUnlocked();
+  let changed = false;
+  for (const a of GROW_ACH) {
+    if (have[a.id]) continue;
+    let hit = false;
+    try { hit = !!a.test(); } catch(e){}
+    if (hit) {
+      have[a.id] = Date.now();
+      changed = true;
+      showToast(`🏅 Achievement: ${a.name}`, 'good');
+      addFeed(`🏅 ${a.name}`);
+    }
+  }
+  if (changed) { try { localStorage.setItem(GROW_ACH_KEY, JSON.stringify(have)); } catch(e){} }
+}
+
 function updateGoals() {
   if(state.goalIndex<GOALS.length){
     const g=GOALS[state.goalIndex];
@@ -1428,11 +3901,15 @@ function updateGoals() {
         state.won=true;
         showToast('👑 EMPIRE COMPLETE — from a garage to the whole city. Keep it running... or walk away clean.','good');
         addFeed('👑 EMPIRE COMPLETE');
+        const l = addLegacy(2);
+        showToast(`🪪 The name retires a legend — legacy +8% street prices (now +${Math.min(6,l.points)*4}%).`,'good');
+        addFeed('🪪 Legacy secured');
         setStatus('👑 Empire complete. The city is yours.', 12);
       }
       saveGame();
     }
   }
+  checkGrowAchievements();
   refreshGoalHud();
 }
 
@@ -1466,7 +3943,8 @@ function refreshHud() {
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
-  document.getElementById('act-badge').textContent = ACT_LABELS[currentAct()];
+  document.getElementById('act-badge').textContent =
+    ACT_LABELS[currentAct()] + (state.difficulty === 'kingpin' ? ' · 👑' : '');
 
   // Employee counts
   document.getElementById('trimmer-count').textContent = state.trimmers+'/3';
@@ -1498,7 +3976,7 @@ function refreshHud() {
   document.getElementById('cook-row').style.display   = chemStation?'':'none';
 
   // Stash label
-  if (stashNode) setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+  if (stashNode) setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
   // Trim label
   if (trimStation) setLabel('trim',
     trimQueue>0?`✂️ Trimming... (${trimQueue} waiting)`:trimBags>0?`✂️ Ready [${trimBags} bags]`:'✂️ Trim Station',
@@ -1543,6 +4021,21 @@ function buyRoom(id) {
   renderExpandPanel();
   showToast(`${def.label} unlocked!`, 'good');
   addFeed(`🏗️ ${def.label} opened`);
+  // LAB-13: the front is the one room the neighbors are glad to see
+  if (id === 'front') {
+    showToast('💈 The laundromat opens — heat builds 25% lighter and drains faster. Every cop on the block has a reason you’re here.', 'good');
+    addFeed('💈 Spin cycle running — the block finally has a clean story');
+  }
+  // LAB-15: the Post puts eyes on every corner
+  if (id === 'security') {
+    showToast('👁️ Security Post online — every Lookout counts half again: heat drains harder, rivals poach less.', 'good');
+    addFeed('👁️ Monitors up — the Lookouts finally have sightlines');
+  }
+  // LAB-14: the view from the top sells itself
+  if (id === 'penthouse') {
+    showToast('👑 The Penthouse. The brand commands respect now — every sale pays 10% more.', 'good');
+    addFeed('👑 Moved upstairs — nobody haggles with the man in the penthouse');
+  }
   saveGame();
 }
 
@@ -1759,6 +4252,35 @@ function saveGame() {
     chemQueue, chemProduct, chemProgress,
     pCarrying,
     plots: growPlots.map(p=>({r:p.roomId, g:+p.progress.toFixed(4)})),
+    savedAt: Date.now(),
+    difficulty: state.difficulty,
+    market: { mult: market.mult, target: market.target, shiftIn: market.shiftIn,
+              surge: market.surge, surgeIn: market.surgeIn },
+    contract, contractIn: Math.round(contractIn),
+    contractsDone: state.contractsDone || 0,
+    pureBags, chemPure,
+    nbPure,   // LAB-19: the pending eureka page
+    waveT: Math.round(waveT), waveLeft: Math.round(waveLeft),  // LAB-20
+    partyT: Math.round(partyT), partyLeft: Math.round(partyLeft), partySales: state.partySales || 0,  // LAB-23
+    whaleMeter: state.whaleMeter || 0, whalesServed: state.whalesServed || 0,  // LAB-25
+    waveSales, cleanWaves: state.cleanWaves || 0,
+    bagPacked: !!state.bagPacked, skips: state.skips || 0,   // LAB-21
+    unitRented: !!state.unitRented,   // LAB-22
+    burnerLeft: Math.max(0, Math.min(10, Math.floor(state.burnerLeft || 0))), burnersBought: state.burnersBought || 0,   // LAB-24
+    motherRooted: !!state.motherRooted, motherBags: state.motherBags || 0,   // LAB-26
+    zoned: !!state.zoned,   // LAB-28
+    diceWon: state.diceWon || 0, diceLost: state.diceLost || 0,   // LAB-30
+    lawyer: !!state.lawyer, casesWon: state.casesWon || 0,   // LAB-31
+    preSaleOwed: state.preSaleOwed || 0, preSales: state.preSales || 0,   // LAB-32
+    clientele: Math.max(0, Math.min(5, Math.floor(state.clientele || 0))), clientMeter: state.clientMeter || 0,   // LAB-27
+    rival, rivalIn: Math.round(rivalIn),
+    rivalRunIns: state.rivalRunIns || 0, buyersPoached: state.buyersPoached || 0,
+    crunch: !!state.crunch,
+    tipIn: Math.round(tipIn), wireLeft: Math.round(wireLeft),   // LAB-16
+    tipsBought: state.tipsBought || 0,
+    bwIn: Math.round(bwIn), bidWars: state.bidWars || 0,        // LAB-17
+    route: !!state.route, routeShipped: state.routeShipped || 0, // LAB-18
+    routeT: Math.round(routeT), routeCold: Math.round(routeCold),
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
 }
@@ -1767,6 +4289,7 @@ function loadGame() {
     const sv = JSON.parse(localStorage.getItem(LS_KEY)||'null');
     if(!sv) return;
     state.cash=sv.cash||50;
+    state.difficulty = sv.difficulty === 'kingpin' ? 'kingpin' : 'careful';
     state.totalEarned=sv.totalEarned||0;
     state.totalSold=sv.totalSold||0;
     state.heat=Math.min(99,sv.heat||0); // don't load at 100
@@ -1777,9 +4300,92 @@ function loadGame() {
     state.cooks=sv.cooks||0;
     state.batches=sv.batches||0;
     state.sessionStart=sv.sessionStart||Date.now();
-    state.goalIndex=sv.goalIndex||0;
+    // `goalIndex>=GOALS.length` guards the top of this index at both read
+    // sites, but nothing guarded the bottom: a save carrying -1 reached
+    // GOALS[-1], and the undefined `.label` read threw before the lab drew.
+    // A save is untrusted input, so clamp here rather than at each reader.
+    { const gi=Math.floor(Number(sv.goalIndex));
+      state.goalIndex=Number.isFinite(gi)?Math.min(GOALS.length,Math.max(0,gi)):0; }
     state.won=!!sv.won;
-    stashCount=Math.min(STASH_MAX_BASE, sv.stashCount||0);
+    if (sv.market && typeof sv.market.mult === 'number') {
+      market.mult = Math.max(0.5, Math.min(2, sv.market.mult));
+      market.target = sv.market.target || 1;
+      market.shiftIn = sv.market.shiftIn || 25;
+      market.surge = sv.market.surge || null;
+      market.surgeIn = sv.market.surgeIn || 150;
+      updateMarketHUD();
+    }
+    if (sv.contract && typeof sv.contract.need === 'number' && sv.contract.need > 0) {
+      contract = { need: Math.floor(sv.contract.need), filled: Math.max(0, Math.floor(sv.contract.filled || 0)),
+                   timeLeft: Math.min(300, Math.max(1, sv.contract.timeLeft || 30)),
+                   bonusMult: Math.min(1.2, Math.max(0.3, sv.contract.bonusMult || 0.8)) };
+      updateContractHUD();
+    }
+    if (typeof sv.contractIn === 'number') contractIn = Math.min(600, Math.max(5, sv.contractIn));
+    state.contractsDone = sv.contractsDone || 0;
+    // LAB-11: a posted rival survives a reload with clamped countdown/payoff
+    if (sv.rival && typeof sv.rival.payoff === 'number' && sv.rival.payoff > 0) {
+      rival = { left: Math.min(90, Math.max(1, sv.rival.left || 30)), payoff: Math.round(sv.rival.payoff) };
+      const rb = document.getElementById('rival-pay');
+      if (rb) rb.onclick = payOffRival;
+      updateRivalHUD();
+    }
+    if (typeof sv.rivalIn === 'number') rivalIn = Math.min(600, Math.max(5, sv.rivalIn));
+    state.rivalRunIns = sv.rivalRunIns || 0;
+    state.buyersPoached = sv.buyersPoached || 0;
+    state.crunch = !!sv.crunch;   // LAB-12
+    refreshCrunchBtn();
+    refreshRouteBtn();
+    // LAB-16: the wire and the informant's clock survive a reload
+    if (typeof sv.tipIn === 'number') tipIn = Math.min(600, Math.max(5, sv.tipIn));
+    if (typeof sv.wireLeft === 'number') wireLeft = Math.min(90, Math.max(0, sv.wireLeft));
+    state.tipsBought = sv.tipsBought || 0;
+    updateTipHUD();
+    // LAB-17: the auction clock and the hammer tally survive a reload
+    if (typeof sv.bwIn === 'number') bwIn = Math.min(600, Math.max(5, sv.bwIn));
+    state.bidWars = sv.bidWars || 0;
+    // LAB-18: the route, its clock and the cold spell survive a reload
+    state.route = !!sv.route;
+    state.routeShipped = sv.routeShipped || 0;
+    if (typeof sv.routeT === 'number') routeT = Math.min(ROUTE_EVERY, Math.max(1, sv.routeT));
+    if (typeof sv.routeCold === 'number') routeCold = Math.min(ROUTE_COLD, Math.max(0, sv.routeCold));
+    refreshRouteBtn();
+    pureBags = Math.max(0, Math.min(sv.pureBags || 0, sv.stashCount || 0));   // LAB-10
+    chemPure = Math.max(0, Math.min(sv.chemPure || 0, sv.chemProduct || 0));
+    nbPure = !!sv.nbPure;   // LAB-19
+    if (typeof sv.waveT === 'number') waveT = Math.min(400, Math.max(5, sv.waveT));   // LAB-20
+    if (typeof sv.partyT === 'number') partyT = Math.min(600, Math.max(5, sv.partyT));   // LAB-23
+    if (typeof sv.partyLeft === 'number') partyLeft = Math.min(PARTY_SECS, Math.max(0, sv.partyLeft));
+    state.partySales = Math.max(0, Math.floor(sv.partySales || 0));
+    state.whaleMeter = Math.min(WHALE_EVERY, Math.max(0, Math.floor(sv.whaleMeter || 0)));   // LAB-25
+    state.whalesServed = Math.max(0, Math.floor(sv.whalesServed || 0));
+    refreshPartyHud();
+    if (typeof sv.waveLeft === 'number') waveLeft = Math.min(WAVE_SECS, Math.max(0, sv.waveLeft));
+    waveSales = Math.max(0, Math.floor(sv.waveSales || 0));
+    state.cleanWaves = Math.max(0, Math.floor(sv.cleanWaves || 0));
+    state.bagPacked = !!sv.bagPacked;   // LAB-21
+    state.skips = Math.max(0, Math.floor(sv.skips || 0));
+    state.unitRented = !!sv.unitRented;   // LAB-22
+    state.burnerLeft = Math.max(0, Math.min(BURNER_SALES, Math.floor(sv.burnerLeft || 0)));   // LAB-24
+    state.motherRooted = !!sv.motherRooted;   // LAB-26
+    state.zoned = !!sv.zoned;   // LAB-28
+    state.diceWon = Math.max(0, Math.floor(sv.diceWon || 0));   // LAB-30
+    state.diceLost = Math.max(0, Math.floor(sv.diceLost || 0));
+    state.lawyer = !!sv.lawyer;   // LAB-31 (older corners had no counsel)
+    state.casesWon = Math.max(0, Math.floor(sv.casesWon || 0));
+    state.preSaleOwed = Math.max(0, Math.floor(sv.preSaleOwed || 0));   // LAB-32 (older lines sold nothing forward)
+    state.preSales = Math.max(0, Math.floor(sv.preSales || 0));
+    state.motherBags = Math.max(0, Math.floor(sv.motherBags || 0));
+    state.clientele = Math.max(0, Math.min(CLIENT_CAP, Math.floor(sv.clientele || 0)));   // LAB-27
+    state.clientMeter = Math.max(0, Math.floor(sv.clientMeter || 0));
+    refreshMotherBtn();
+    refreshZoningBtn();
+    state.burnersBought = Math.max(0, Math.floor(sv.burnersBought || 0));
+    refreshBurnerBtn();
+    refreshUnitBtn();
+    refreshBagBtn();
+    refreshWaveHud();
+    stashCount=Math.min(sv.unitRented?45:STASH_MAX_BASE, sv.stashCount||0);   // LAB-22: the rented ceiling travels with the flag
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
     // Restore rooms
@@ -1831,6 +4437,44 @@ function loadGame() {
         updatePlantMesh(p);
       }
     }
+    // Offline catch-up (IDEA-LAB-1): the operation doesn't stop when the
+    // tab closes. Plants keep growing (self-capping at ripe — they don't
+    // harvest themselves, so there's nothing to compound or exploit) and
+    // heat keeps draining (lying low overnight SHOULD cool you off). Only
+    // the passive drain applies while away — ambient late-game heat comes
+    // from running the operation, which you weren't; being busted in
+    // absentia by a timer would be hostile, so heat can only fall here.
+    if (sv.savedAt) {
+      const away = (Date.now() - sv.savedAt) / 1000;
+      if (away >= 60 && isFinite(away)) {
+        let ripened = 0;
+        const gt = growTime();
+        for (const p of growPlots) {
+          if (p.ready || p.progress >= 1) continue;
+          // progress 0 is a freshly-harvested plot, not a dormant one —
+          // every plot regrows automatically, so all of them get credit.
+          p.progress = Math.min(1, p.progress + away / gt);
+          if (p.progress >= 1) ripened++;
+          updatePlantMesh(p);
+        }
+        const heatBefore = state.heat;
+        state.heat = Math.max(0, state.heat - heatDrainPerSec() * away);
+        const cooled = Math.round(heatBefore - state.heat);
+        const mins = Math.round(away / 60);
+        const label = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+        const bits = [];
+        if (ripened) bits.push(`${ripened} plant${ripened > 1 ? 's' : ''} ripened`);
+        if (cooled >= 1) bits.push(`heat −${cooled}`);
+        if (bits.length) {
+          // Deferred a beat so the toast lands after the boot sequence's
+          // own messages instead of being instantly replaced by them.
+          setTimeout(() => {
+            showToast(`🌙 While you were away (${label}): ${bits.join(' · ')}`, 'good');
+            addFeed(`🌙 Away ${label} — ${bits.join(' · ')}`);
+          }, 900);
+        }
+      }
+    }
     // A bud that was in-hand at save time becomes a queued trim job —
     // exactly what delivering it would do. (A carried 'bag' needs
     // nothing: its count lives in trimBags/chemProduct, saved above.)
@@ -1838,7 +4482,73 @@ function loadGame() {
   }catch(e){console.warn('Load failed',e);}
 }
 
+const hadSave = !!localStorage.getItem(LS_KEY);
 loadGame();
+if (hadSave && loadLegacy().points > 0) {
+  setTimeout(function(){ setStatus(`🪪 Legacy: +${Math.min(6,loadLegacy().points)*4}% street prices carried over`, 6); }, 2500);
+}
+
+// Fresh run: pick a difficulty before the first plant goes in. An
+// existing save keeps whatever it was started on (old saves = careful).
+if (!hadSave) {
+  const dm = document.getElementById('diff-modal');
+  const lg = loadLegacy();
+  if (lg.points > 0) {
+    document.querySelector('.diff-sub').textContent =
+      `Picked once per run — a bust starts you over. 🪪 Legacy: +${Math.min(6,lg.points)*4}% street prices from ${lg.runs} past li${lg.runs===1?'fe':'ves'}.`;
+  }
+  dm.classList.add('open');
+  const pick = d => {
+    state.difficulty = d;
+    state.cash = DIFFS[d].startCash;
+    // LAB-29: the floor safe made it through the last fall.
+    const vv = loadVault();
+    if (vv.bal > 0) {
+      state.cash += vv.bal;
+      addFeed('🔒 Recovered $' + fmtCash(vv.bal) + ' from the old floor safe');
+      setTimeout(() => showToast('🔒 The floor safe made it through — $' + fmtCash(vv.bal) + ' waits under the new floor.', 'good'), 1200);
+      vv.bal = 0; saveVault(vv);
+    }
+    // LAB-33: the Youth Center still stands on the corner.
+    const cc = loadCenter();
+    if (cc.built) {
+      cc.runs = (cc.runs || 0) + 1; saveCenter(cc);
+      if (centerHasAnnex()) {
+        // LAB-41: the rec league locks a third regular once it runs.
+        state.clientele = Math.max(state.clientele || 0, centerHasLeague() ? 3 : 2);
+        if (centerHasLeague()) {
+          addFeed('🏀 The Youth Center, the annex and the REC LEAGUE all stand — three regulars are already yours');
+          setTimeout(() => showToast('🏀 The rec league runs year-round now — three regulars walk over from the court.', 'good'), 1800);
+        } else {
+          addFeed('🏀 The Youth Center and its gym annex still stand — the block knows you twice over');
+          setTimeout(() => showToast('🏀 The gym annex made this corner home — two regulars are already yours.', 'good'), 1800);
+        }
+        // LAB-39: the annex means the cookout — the block throws one
+        // for every fresh start now.
+        const ck = loadCookout();
+        saveCookout({ days: ck.days + 1 });
+        state.cash += COOKOUT_CASH;
+        state.heat = Math.max(0, state.heat - COOKOUT_COOL);
+        addFeed('🍖 BLOCK COOKOUT — grills out on the sidewalk, the whole block eating. +$' + COOKOUT_CASH + ', heat −' + COOKOUT_COOL);
+        setTimeout(() => showToast('🍖 The block throws a cookout for the fresh start — +$' + COOKOUT_CASH + ' and heat cools ' + COOKOUT_COOL + '.', 'good'), 2400);
+        checkGrowAchievements();
+      } else {
+        state.clientele = Math.max(state.clientele || 0, 1);
+        addFeed('🏀 The Youth Center still stands — the block already knows you');
+        setTimeout(() => showToast('🏀 The Youth Center made this corner home — one regular is already yours.', 'good'), 1800);
+      }
+    }
+    deliverKite();   // LAB-35: and the mail finds the new corner
+    dm.classList.remove('open');
+    saveGame();
+    refreshHud();
+    setStatus(d === 'kingpin'
+      ? '👑 Kingpin run — big margins, bigger heat. Watch the meter.'
+      : '🐢 Careful run — slow and steady. Good luck.', 6);
+  };
+  document.getElementById('diff-careful').addEventListener('click', () => pick('careful'));
+  document.getElementById('diff-kingpin').addEventListener('click', () => pick('kingpin'));
+}
 
 // ── Main game loop ──
 let lastTime = performance.now();
@@ -1877,8 +4587,9 @@ function updateTrimStation(dt) {
   trimProgress += (dt/TRIM_TIME)*speedMult;
   if (trimProgress>=1) {
     trimProgress=0; trimQueue--;
-    const bags = 1 + upgLv('yield1');
-    trimBags += bags; state.batches++;
+    let bags = 1 + upgLv('yield1');
+    if (motherRooted()) { bags += 1; state.motherBags = (state.motherBags || 0) + 1; refreshMotherBtn(); }   // LAB-26: her cutting in every batch
+    trimBags += bags; bumpBatches();
     addFeed(`✂️ Trimmed batch → ${bags} bags`);
   }
   // Trimmer NPC movement is handled once per frame in updateTrimmerNPCs().
@@ -1888,13 +4599,18 @@ function updateTrimStation(dt) {
 function updateChemStation_tick(dt) {
   if (!chemStation) return;
   if (chemQueue<=0) return;
-  const speedMult = 1 + (state.cooks||0)*0.5;
+  const speedMult = (1 + (state.cooks||0)*0.5) * (state.crunch ? 1.3 : 1);   // LAB-12
   chemProgress += (dt/CHEM_TIME)*speedMult;
   if (chemProgress>=1) {
     chemProgress=0; chemQueue--;
-    chemProduct+=2; state.batches++;
-    addFeed('⚗️ Batch cooked → 2 units');
-    setLabel('chem',`⚗️ Cook Station [${chemProduct} units]`, chemStation.x, 2.2, chemStation.z);
+    chemProduct+=2; bumpBatches();
+    if (rollPure()) {   // LAB-10 roll, LAB-19 eureka page
+      chemPure += 2;
+      addFeed('✨ PURE batch cooked → 2 units at premium');
+    } else {
+      addFeed('⚗️ Batch cooked → 2 units');
+    }
+    setLabel('chem',`⚗️ Cook Station [${chemProduct} units${chemPure>0?` · ${chemPure}✨`:''}]`, chemStation.x, 2.2, chemStation.z);
   }
   // Steam from station
   if (Math.random()<dt*3) spawnSteam(chemStation.x, chemStation.z);
@@ -2005,20 +4721,22 @@ function depositAtTrim() {
 
 function depositAtStash() {
   if(trimBags>0) {
-    const b=trimBags; trimBags=0;
-    const room=Math.max(0, STASH_MAX_BASE-stashCount);
+    const b=preSaleIntercept(trimBags); trimBags=0;   // LAB-32: the van feeds first
+    const room=Math.max(0, stashMax()-stashCount);
     const added=Math.min(b, room);
     stashCount+=added;
-    setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+    setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
     addFeed(`📦 Stashed ${added} bags`);
     if(added<b) showToast(`📦 Stash full! Lost ${b-added} bags.`,'event');
   }
   if(chemProduct>0) {
-    const room=Math.max(0, STASH_MAX_BASE-stashCount);
+    chemProduct=preSaleIntercept(chemProduct);   // LAB-32: the van feeds first
+    const room=Math.max(0, stashMax()-stashCount);
     const added=Math.min(chemProduct, room);
     const lost=chemProduct-added;
     stashCount+=added; chemProduct=0;
-    setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+    pureBags+=Math.min(chemPure, added); chemPure=0;   // LAB-10: the ✨ travel with the load
+    setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
     if(lost>0) showToast(`📦 Stash full! Lost ${lost} product.`,'event');
   }
   pCarrying=null;
@@ -2058,19 +4776,93 @@ function sellToDealer(d, idx) {
   if (stashCount<=0) {
     setStatus('Stash empty!'); return;
   }
+  if (d.undercover) {
+    // LAB-9: the sting. Product seized, no cash, heat spikes hard.
+    d.paid=true; d.state='leaving';
+    const seized=Math.min(stashCount, d.buyCount);
+    stashCount-=seized;
+    pureBags=Math.min(pureBags, stashCount);   // LAB-10: the ✨ ledger can't exceed what's left
+    setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
+    if (state.lawyer) {
+      // LAB-31: one case on retainer — the bags still walk, but their
+      // list value comes back as damages and the spike is argued down.
+      const damages = salePrice() * seized;
+      state.lawyer = false;
+      state.casesWon = (state.casesWon || 0) + 1;
+      addCash(damages);
+      addHeat(LAWYER_HEAT);
+      refreshLawyerBtn();
+      showToast('⚖️ The badge took ' + seized + ' bag' + (seized > 1 ? 's' : '') + ' — and the lawyer took the department for $' + fmtCash(damages) + '.', 'good');
+      addFeed('⚖️ Sting argued down — +$' + fmtCash(damages) + ' damages (' + state.casesWon + ' case' + (state.casesWon > 1 ? 's' : '') + ' won)');
+      checkGrowAchievements();
+    } else {
+      addHeat(15);
+      showToast('🚔 The buyer flashed a badge — '+seized+' bag'+(seized>1?'s':'')+' seized. Heat is spiking.','bad');
+      addFeed('🚔 Sting! An undercover cop seized '+seized+' bags');
+    }
+    saveGame();
+    return;
+  }
+  if (d.whale) {
+    // LAB-25: 3 bags at triple list — or a walk if the shelf is short
+    if (stashCount < WHALE_BAGS) {
+      d.paid=true; d.state='leaving';
+      state.whaleMeter = Math.floor(WHALE_EVERY / 2);   // he'll hear you're stocked again, eventually
+      showToast('🐋 The Whale wanted ' + WHALE_BAGS + ' bags — the shelf is short. He walks.', 'bad');
+      addFeed('🐋 The Whale walked — not enough stock');
+      saveGame();
+      return;
+    }
+    d.paid=true;
+    const price = salePrice() * WHALE_MULT * WHALE_BAGS;
+    stashCount -= WHALE_BAGS; state.totalSold += WHALE_BAGS;
+    pureBags = Math.min(pureBags, stashCount);   // the ✨ ledger can't exceed what's left
+    addCash(price);
+    recordSale(price);   // LAB-34: the book sees every hand — whales included
+    addHeat(heatGainPerSale(WHALE_BAGS) * waveHeatMult() * partyHeatMult());
+    burnStreetSale();   // a sale is a sale — the burner burns
+    if (waveActive()) waveSales++;
+    state.whalesServed = (state.whalesServed || 0) + 1;
+    checkGrowAchievements();
+    const sw=worldToScreen(d.group.position.x,2,d.group.position.z);
+    cashPop(sw.x,sw.y,price);
+    addFeed('🐋 The Whale took ' + WHALE_BAGS + ' bags at triple list → +$' + fmtCash(price) + ' (' + state.whalesServed + ' landed)');
+    showToast('🐋 +$' + fmtCash(price) + ' — the Whale pays triple list.', 'good');
+    d.state='leaving';
+    setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
+    saveGame();
+    renderUpgradesPanel();
+    renderExpandPanel();
+    return;
+  }
   d.paid=true;
   const qty=Math.min(stashCount, d.buyCount);
-  const price=salePrice()*qty;
+  // LAB-10: pure bags move first and fetch 1.6× list
+  const pureUsed=Math.min(pureBags, qty);
+  const price=salePrice()*(qty-pureUsed)+Math.round(salePrice()*1.6)*pureUsed;
+  pureBags-=pureUsed;
   stashCount-=qty; state.totalSold+=qty;
+  state.whaleMeter = (state.whaleMeter || 0) + 1;   // LAB-25: the corner talks — word reaches the Whale
+  clientTick();   // LAB-27: and a face becomes familiar
+  diceSaleTick();   // LAB-30: and the hot hand counts it
   addCash(price);
-  addHeat(heatGainPerSale(qty));
+  recordSale(price);   // LAB-34: the corner's record book sees the hand
+  addHeat(heatGainPerSale(qty) * waveHeatMult() * partyHeatMult());   // LAB-20/23: sweeps and crowds both price the heat in
+  burnStreetSale();   // LAB-24: the corner burns the number
+  if (waveActive()) waveSales++;
+  if (partyActive()) { partySalesNow++; state.partySales = (state.partySales || 0) + 1; checkGrowAchievements(); }
+  if (contract) {   // LAB-8: every street sale fills the open order
+    contract.filled += qty;
+    if (contract.filled >= contract.need) completeContract();
+    else updateContractHUD();
+  }
   const s=worldToScreen(d.group.position.x,2,d.group.position.z);
   cashPop(s.x,s.y,price);
   if(state.heat<85) heatPop(s.x,s.y+20);
-  addFeed(`💰 Sold ${qty} bags → +$${fmtCash(price)}`);
+  addFeed(`💰 Sold ${qty} bags${pureUsed>0?` (${pureUsed}✨ pure)`:''} → +$${fmtCash(price)}`);
   showToast(`+$${fmtCash(price)} — ${qty} unit${qty>1?'s':''} moved`,'good');
   d.state='leaving';
-  setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+  setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
   saveGame();
   renderUpgradesPanel();
   renderExpandPanel();
@@ -2082,7 +4874,7 @@ function updateDealers(dt) {
     const d=dealers[i];
     if(d.state==='walking') {
       const arrived=stepToward(d.group, stashNode.x+(Math.random()-0.5)*2, stashNode.z+3, 2.2, dt);
-      if(arrived) { d.state='waiting'; setLabel('deal_'+d.id,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
+      if(arrived) { d.state='waiting'; setLabel('deal_'+d.id, d.whale ? '🐋 The Whale' : '💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
     } else if(d.state==='leaving') {
       removeLabel('deal_'+d.id);
       const gone=stepToward(d.group,d.group.position.x+(Math.random()-0.5)*4,10,2.5,dt);
@@ -2090,6 +4882,12 @@ function updateDealers(dt) {
     } else if(d.state==='waiting') {
       // If no stash, leave
       if(stashCount<=0){ d.state='leaving'; removeLabel('deal_'+d.id); }
+      // LAB-9: an undercover cop won't loiter forever waiting for a deal
+      // that never comes — 25s unserved and they drift off.
+      else if(d.undercover){
+        d.waitT+=dt;
+        if(d.waitT>25){ d.state='leaving'; removeLabel('deal_'+d.id); addFeed('👀 The odd buyer drifts off empty-handed'); }
+      }
     }
   }
 }
@@ -2138,7 +4936,10 @@ function updateRunnerNPCs(dt) {
       else if(state.heat<85) {
         // Runners lie low at high heat — an auto-sale should never be
         // the thing that pushes the bar over 100.
-        const d = dealers.find(d=>d.state==='waiting' && !d.paid && !d.runnerClaim);
+        // LAB-9: runners heed the Lookout's warning and skip flagged cops;
+        // without a Lookout on the payroll they can walk into the sting.
+        const d = dealers.find(d=>d.state==='waiting' && !d.paid && !d.runnerClaim
+          && !(d.undercover && wireActive()));   // LAB-16: the rented wire counts too
         if(d && stashCount>0) { d.runnerClaim=true; r.dealer=d; r.state='toDealer'; }
       }
       if(r.state==='idle') {
@@ -2157,20 +4958,23 @@ function updateRunnerNPCs(dt) {
       if(stepToward(r.group, chemStation.x, chemStation.z+1.2, 3.0, dt)) {
         if(chemProduct>0) {
           r.carry=chemProduct; chemProduct=0;
+          r.carryPure=chemPure; chemPure=0;   // LAB-10
           setLabel('chem','⚗️ Cook Station', chemStation.x, 2.2, chemStation.z);
           r.group.userData.carryMesh.visible=true; r.state='toStash';
         } else r.state='idle';
       }
     } else if(r.state==='toStash') {
       if(stepToward(r.group, stashNode.x, stashNode.z+1.5, 3.0, dt)) {
-        const room=Math.max(0, STASH_MAX_BASE-stashCount);
+        r.carry=preSaleIntercept(r.carry);   // LAB-32: the van feeds first
+        const room=Math.max(0, stashMax()-stashCount);
         const added=Math.min(r.carry, room);
         stashCount+=added;
+        pureBags+=Math.min(r.carryPure||0, added); r.carryPure=0;   // LAB-10
         // No room? Leave the overflow back on the trim table instead of losing it.
         if(added<r.carry) trimBags+=r.carry-added;
         r.carry=0; r.group.userData.carryMesh.visible=false;
         if(added>0) addFeed(`🏃 Runner stashed ${added} bags`);
-        setLabel('stash',`📦 Stash [${stashCount}]`,stashNode.x,2.6,stashNode.z);
+        setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
         r.state='idle';
       }
     } else if(r.state==='toDealer') {
@@ -2201,11 +5005,42 @@ function updateHeatDrain(dt) {
 }
 
 // ── Events ──
+// Pre-raid bribe (IDEA-LAB-4): the first time heat crosses the raid line,
+// a captain on the take offers a way out — pay a cut that scales with the
+// size of the operation, or let the raid come. One offer per approach:
+// refusing (or being too broke to pay — the button disables, LAB-3 rules)
+// means the raid fires, and the offer only re-arms after heat has fallen
+// back below 90 so it can't be used as a repeating raid-snooze.
+let bribeOffered = false;
+function makeBribeEvent() {
+  const cost = Math.min(25000, Math.max(400, Math.floor(state.totalEarned * 0.12)));
+  return {
+    id:'bribe', icon:'🚔', title:'Blue Lights Outside',
+    body:'A captain you\'ve seen before leans on the fence. "Warrant\'s being typed up right now. Shame if the paperwork got lost — for a price."',
+    choices:[
+      {text:'Pay him off. Lose the paperwork.', cost, type:'safe', effect:()=>{
+        if(state.cash<cost){showToast("Can't afford it!",'bust');return null;}
+        state.cash-=cost; addHeat(-35);
+        return 'The cruisers roll past. Heat way down — but he knows your name now.';
+      }},
+      {text:'Refuse. Let them come.', type:'risky', effect:()=>{
+        triggerRaid();
+        return 'You put the lights out and wait. Here they come.';
+      }},
+    ]
+  };
+}
+
 function updateEvents(dt) {
   if(activeEvent) return;
   eventCooldown -= dt;
-  // Trigger DEA raid at 95+ heat
-  if(state.heat>=95 && !raidActive) { triggerRaid(); eventCooldown=90; return; }
+  // Re-arm the bribe once the operation has genuinely cooled off.
+  if(bribeOffered && state.heat<90 && !raidActive) bribeOffered=false;
+  // At the raid line: one bribe window per approach, then the raid.
+  if(state.heat>=95 && !raidActive) {
+    if(!bribeOffered) { bribeOffered=true; triggerEvent(makeBribeEvent()); eventCooldown=90; return; }
+    triggerRaid(); eventCooldown=90; return;
+  }
   if(eventCooldown<=0 && state.totalEarned>100) {
     eventCooldown=50+Math.random()*50;
     if(Math.random()<0.4) triggerEvent();
@@ -2225,7 +5060,9 @@ function updateLabels() {
   for(let i=0;i<dealers.length;i++) {
     const d=dealers[i];
     if(d.state==='waiting') {
-      setLabel('deal_'+d.id,'💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt');
+      // LAB-9: a Lookout on the payroll makes the wire, and the label warns
+      setLabel('deal_'+d.id, d.undercover && wireActive() ? '🚨 Something\'s off…' : d.whale ? '🐋 The Whale' : '💰 Buyer',
+        d.group.position.x,2.2,d.group.position.z,'prompt');
     }
   }
   // Trim station label
@@ -2285,6 +5122,7 @@ function animate(now_ms) {
   if(!raidActive && !activeEvent) {
     updateGrowPlots(dt);
     updateTrimStation(dt);
+  updateDice(dt);
     updateChemStation_tick(dt);
     _chemDepositCheck(dt);
     updatePlayer(dt);
@@ -2296,6 +5134,14 @@ function animate(now_ms) {
     updateHeatDrain(dt);
     updateEvents(dt);
     updateDealerSpawn(dt);
+    updateMarket(dt);
+    updateContract(dt);
+    updateRival(dt);
+    updateTip(dt);
+    updateBw(dt);
+    updateRoute(dt);
+    updateWave(dt);
+    updateParty(dt);
     updateGoals();
   } else if(raidActive) {
     raidTimer-=dt;
@@ -2316,6 +5162,7 @@ function animate(now_ms) {
   updateLabels();
   renderer.render(scene,camera);
 }
+
 
 </script>
 </body>

@@ -9,9 +9,9 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Age of War — Eureka Games">
   <meta property="og:description" content="Spawn units, push the enemy base, age up through 5 eras. Last base standing wins.">
-  <meta property="og:image" content="/assets/thumbs/ageofwar.jpg">
-  <meta property="og:url" content="/ageofwar/">
-  <link rel="canonical" href="/ageofwar/">
+  <meta property="og:image" content="https://potential-eureka-gilt.vercel.app/assets/thumbs/ageofwar.jpg">
+  <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/ageofwar">
+  <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/ageofwar">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23080a12'/><text x='50%25' y='58%25' font-size='40' text-anchor='middle' dominant-baseline='middle'>⚔</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,6 +97,7 @@
         <div class="aow-wave" id="aow-wave">
           <span class="aow-wave-num" id="aow-wave-num">WAVE 1</span>
           <span class="aow-wave-sub" id="aow-wave-sub">4 left</span>
+          <span class="aow-wave-sub" id="aow-bounty" style="display:none"></span>
         </div>
         <div class="aow-combo" id="aow-combo" style="display:none">
           <span class="aow-combo-x" id="aow-combo-x">×1.0</span>
@@ -108,6 +109,16 @@
           <button data-diff="hard">Hard</button>
           <button data-diff="insane">Insane</button>
         </div>
+        <div class="aow-diff" id="aow-banner" title="War banner: a small permanent lean for the whole run — switching restarts the battle">
+          <button data-banner="none" class="active">🏳️</button>
+          <button data-banner="charge" title="Banner of the Charge: your units move 10% faster">🚩</button>
+          <button data-banner="shieldwall" title="Banner of the Shieldwall: your units carry 10% more HP">🛡️</button>
+          <button data-banner="toll" title="Banner of the Golden Toll: kills pay 10% more gold">🪙</button>
+        </div>
+        <button class="aow-endless-btn" id="aow-endless-btn"
+          title="Endless survival: razing the enemy stronghold rebuilds it tougher and the waves keep coming. Score is waves survived — your best run is saved.">∞ Endless</button>
+        <button class="aow-endless-btn" id="aow-relic-btn"
+          title="Relic Vault: spend relics earned from past runs on bonuses for your next run">🏺 Relics</button>
         <button class="aow-settings-btn" id="aow-settings-btn" aria-label="Settings" title="Settings">⚙</button>
       </header>
 
@@ -140,7 +151,40 @@
         <button id="aow-ageup-btn" class="aow-action aow-action-age"><span class="aow-action-ico">⬆️</span><span class="aow-action-lbl">Age Up</span></button>
         <button id="aow-special-btn" class="aow-action aow-action-special"><span class="aow-action-ico">💥</span><span class="aow-action-lbl">Special</span><span class="aow-action-cd" id="aow-special-cd"></span></button>
         <button id="aow-hero-btn" class="aow-action aow-action-hero"><span class="aow-action-ico">🦸</span><span class="aow-action-lbl">Hero</span><span class="aow-action-cd" id="aow-hero-cd"></span></button>
-        <button id="aow-ach-btn" class="aow-action aow-action-ach"><span class="aow-action-ico">🏅</span><span class="aow-action-lbl">Awards</span></button>
+        <button id="aow-warcry-btn" class="aow-action aow-action-special" title="Sound the horns (W) — every friendly unit attacks 50% faster for 6 seconds. Unlocked from Age II."><span class="aow-action-ico">🎺</span><span class="aow-action-lbl">Warcry</span><span class="aow-action-cd" id="aow-warcry-cd"></span></button>
+        <button id="aow-merc-btn" class="aow-action aow-action-special" title="Hire mercenaries (M) — two veterans of your best line walk on instantly, at a premium."><span class="aow-action-ico">🪖</span><span class="aow-action-lbl">Mercs</span><span class="aow-action-cd" id="aow-merc-cd"></span></button>
+        <button id="aow-trench-btn" class="aow-action aow-action-special" title="Dig the Trenchworks (T) — a midfield trench for 25s; enemies wading it move at half speed. 90s rearm. From Age II."><span class="aow-action-ico">⛏️</span><span class="aow-action-lbl">Trench</span><span class="aow-action-cd" id="aow-trench-cd"></span></button>
+        <button id="aow-duel-btn" class="aow-action aow-action-special" title="Champion's Duel (C) — answers only while a named warlord leads an endless boss wave."><span class="aow-action-ico">🗡️</span><span class="aow-action-lbl">Duel</span><span class="aow-action-cd" id="aow-duel-cd"></span></button>
+        <button id="aow-repair-btn" class="aow-action aow-action-special" title="Call the Sappers (R) — repairs a quarter of the base per call. From Age II."><span class="aow-action-ico">🛠️</span><span class="aow-action-lbl">Repair</span><span class="aow-action-cd" id="aow-repair-cd"></span></button>
+        <button id="aow-bolt-btn" class="aow-action aow-action-special" title="Fire the Ballista (B) — skewer the front of the enemy line. From Age III."><span class="aow-action-ico">🏹</span><span class="aow-action-lbl">Bolt</span><span class="aow-action-cd" id="aow-bolt-cd"></span></button>
+        <button id="aow-tent-btn" class="aow-action aow-action-special" title="Raise the Triage Tent (V) — the rear line heals. From Age II."><span class="aow-action-ico">⛑️</span><span class="aow-action-lbl">Tent</span><span class="aow-action-cd" id="aow-tent-cd"></span></button>
+        <button id="aow-armor-btn" class="aow-action aow-action-special" title="Stand the Armorer (N) — new recruits march out in plate. From Age II."><span class="aow-action-ico">🛡️</span><span class="aow-action-lbl">Armor</span><span class="aow-action-cd" id="aow-armor-cd"></span></button>
+        <button id="aow-fletch-btn" class="aow-action aow-action-special" title="Sign the Fletcher (F) — every turret reloads faster. From Age II."><span class="aow-action-ico">🪶</span><span class="aow-action-lbl">Fletch</span><span class="aow-action-cd" id="aow-fletch-cd"></span></button>
+        <button id="aow-drill-btn" class="aow-action aow-action-special" title="Hire the Drillmaster (D) — every recruit trains faster. From Age II."><span class="aow-action-ico">🥁</span><span class="aow-action-lbl">Drill</span><span class="aow-action-cd" id="aow-drill-cd"></span></button>
+        <button id="aow-pay-btn" class="aow-action aow-action-special" title="Seat the Paymaster (G) — the gold trickle runs richer. From Age III."><span class="aow-action-ico">💰</span><span class="aow-action-lbl">Pay</span><span class="aow-action-cd" id="aow-pay-cd"></span></button>
+        <button id="aow-mason-btn" class="aow-action aow-action-special" title="Call the Masons (K) — the walls go up thicker. From Age III."><span class="aow-action-ico">🏰</span><span class="aow-action-lbl">Mason</span><span class="aow-action-cd" id="aow-mason-cd"></span></button>
+        <button id="aow-chest-btn" class="aow-action aow-action-special" title="The War Chest (J) — lock gold now, open it at 150% when a boss falls. From Age II."><span class="aow-action-ico">🧰</span><span class="aow-action-lbl">Chest</span><span class="aow-action-cd" id="aow-chest-cd"></span></button>
+        <button id="aow-iron-btn" class="aow-action aow-action-special" title="The Ironside Wager (U) — gold says the walls hold this wave. From Age II."><span class="aow-action-ico">🎲</span><span class="aow-action-lbl">Wager</span><span class="aow-action-cd" id="aow-iron-cd"></span></button>
+        <button id="aow-bond-btn" class="aow-action aow-action-special" title="The Rebuilder's Bond (I) — gold insures the walls this wave: end below the signing mark and half the loss is rebuilt. From Age II."><span class="aow-action-ico">🛟</span><span class="aow-action-lbl">Bond</span><span class="aow-action-cd" id="aow-bond-cd"></span></button>
+        <button id="aow-loan-btn" class="aow-action aow-action-special" title="The War Loan (L) — gold now against the field's future coins; the lender takes every second coin until the ledger clears. From Age II."><span class="aow-action-ico">🏦</span><span class="aow-action-lbl">Loan</span><span class="aow-action-cd" id="aow-loan-cd"></span></button>
+        <button id="aow-hall-btn" class="aow-action aow-action-special" title="The Veterans' Hall (E) — 500 gold raises it once, forever; every future muster sends its first three recruits out already Veterans. From Age II."><span class="aow-action-ico">🎖️</span><span class="aow-action-lbl">Hall</span><span class="aow-action-cd" id="aow-hall-cd"></span></button>
+        <button id="aow-chron-btn" class="aow-action aow-action-special" style="display:none" disabled title="The Chronicle of Wars — the deepest wave any war of yours has ever reached, kept across every defeat. Beat the standing mark once a session and the scribes pay a relic."><span class="aow-action-ico">📜</span><span class="aow-action-lbl">Best</span><span class="aow-action-cd" id="aow-chron-cd"></span></button>
+        <button id="aow-annals-btn" class="aow-action aow-action-special" style="display:none" title="The Regimental Annals — everything this war remembers, bound in one slate. Click to read them out over the field."><span class="aow-action-ico">📔</span><span class="aow-action-lbl">Annals</span><span class="aow-action-cd" id="aow-annals-cd"></span></button>
+        <button id="aow-standard-btn" class="aow-action aow-action-special" style="display:none" title="The Old Standard — the colors every fallen war marched under. Raise them once a session and the men dig in: a gold grant carried by everything the war remembers."><span class="aow-action-ico">🚩</span><span class="aow-action-lbl">Standard</span><span class="aow-action-cd" id="aow-standard-cd"></span></button>
+        <button id="aow-general-btn" class="aow-action aow-action-special" style="display:none" title="The Old General — once a session he rides out to review the troops of any army with a story, and his purse opens."><span class="aow-action-ico">🎖️</span><span class="aow-action-lbl">General</span><span class="aow-action-cd" id="aow-general-cd"></span></button>
+        <button id="aow-reunion-btn" class="aow-action aow-action-special" style="display:none" title="The Veterans' Reunion — when the whole story stands, the old campaigners muster once a session, and every one of them brings a purse."><span class="aow-action-ico">🎗️</span><span class="aow-action-lbl">Reunion</span><span class="aow-action-cd" id="aow-reunion-cd"></span></button>
+        <button id="aow-painting-btn" class="aow-action aow-action-special" style="display:none" title="The Campaign Painting — the muster on canvas, hung in the hall. Unveil it once a session and the patrons pay."><span class="aow-action-ico">🖼️</span><span class="aow-action-lbl">Painting</span><span class="aow-action-cd" id="aow-painting-cd"></span></button>
+        <button id="aow-salute-btn" class="aow-action aow-action-special" style="display:none" title="The Founding Salute — three unveilings and the regiment marks the day it first mustered. Fire it once a session and the patrons stand a round."><span class="aow-action-ico">🎇</span><span class="aow-action-lbl">Salute</span><span class="aow-action-cd" id="aow-salute-cd"></span></button>
+        <button id="aow-roll-btn" class="aow-action aow-action-special" style="display:none" title="The Muster Roll — three salutes and a roll hangs by the hall door, every campaigner who ever answered the horns signed in. Read it once a session and one of the names sends gold."><span class="aow-action-ico">📜</span><span class="aow-action-lbl">Roll</span><span class="aow-action-cd" id="aow-roll-cd"></span></button>
+        <button id="aow-bench-btn" class="aow-action aow-action-special" style="display:none" title="The Veterans' Bench — three readings of the roll and the veterans build a bench outside the hall. Sit once a session, and an old campaigner always sits down with a purse."><span class="aow-action-ico">🪑</span><span class="aow-action-lbl">Bench</span><span class="aow-action-cd" id="aow-bench-cd"></span></button>
+        <button id="aow-tale-btn" class="aow-action aow-action-special" style="display:none" title="The Campfire Tale — three sits on the bench and the oldest campaigner has the whole war by heart. Hear it once a session, and somebody around the fire always pays for the next chapter."><span class="aow-action-ico">🔥</span><span class="aow-action-lbl">Tale</span><span class="aow-action-cd" id="aow-tale-cd"></span></button>
+        <button id="aow-song-btn" class="aow-action aow-action-special" style="display:none" title="The Marching Song — three hearings of the tale and the drummers set it to a cadence: the whole war, one song, every rank knows the words. Sing it once a session, and the quartermaster always finds a purse in the chorus."><span class="aow-action-ico">🎺</span><span class="aow-action-lbl">Song</span><span class="aow-action-cd" id="aow-song-cd"></span></button>
+        <button id="aow-cache-btn" class="aow-action aow-action-special" style="display:none" title="The Cornerstone Cache — three sings of the song and the masons seal a cache in the base's cornerstone: a chronicle page, a thread of the standard, a scrap of drum skin. Open it once a session, and there's always a purse tucked in with the memories."><span class="aow-action-ico">🧱</span><span class="aow-action-lbl">Cache</span><span class="aow-action-cd" id="aow-cache-cd"></span></button>
+        <button id="aow-fresco-btn" class="aow-action aow-action-special" style="display:none" title="The Long Fresco — three openings of the cache and the painters take the base's inner wall: the first muster, the bench under the tower, the tale's fire, the song's cadence, the cornerstone seam. Walk it once a session, and the ranks who read it fight the next hour lighter."><span class="aow-action-ico">🎨</span><span class="aow-action-lbl">Fresco</span><span class="aow-action-cd" id="aow-fresco-cd"></span></button>
+        <button id="aow-guide-btn" class="aow-action aow-action-special" style="display:none" title="The Recruit's Walk — three walks of the fresco and the oldest sergeant in the muster takes every new recruit down it on their first morning: the first muster, the bench, the fire, the cadence, the cornerstone seam, panel by panel. Do it once a session, and the recruit fights like they were there for all of it."><span class="aow-action-ico">🧭</span><span class="aow-action-lbl">Walk</span><span class="aow-action-cd" id="aow-guide-cd"></span></button>
+        <button id="aow-mark-btn" class="aow-action aow-action-special" style="display:none" title="The Recruit's Panel — three walks and the recruit who was taken down the fresco on their first morning asks for the brush: the panel after the cornerstone seam, their own first muster, in their own hand. Do it once a session; the whole line falls out to watch."><span class="aow-action-ico">✍️</span><span class="aow-action-lbl">Panel</span><span class="aow-action-cd" id="aow-mark-cd"></span></button>
+        <button id="aow-lroom-btn" class="aow-action aow-action-special" style="display:none" title="The Long Room — the fresco has run out of wall. 900 gold, once ever, takes the armoury wall out and runs the whole line through it; then sit in it once a session."><span class="aow-action-ico">🏛️</span><span class="aow-action-lbl">Long Room</span><span class="aow-action-cd" id="aow-lroom-cd"></span></button>
+        <button id="aow-chain-btn" class="aow-action aow-action-ach" title="The Line — everything this army remembers, in the order it happened, and what the next one is waiting on."><span class="aow-action-ico">🧱</span><span class="aow-action-lbl">The Line</span></button><button id="aow-ach-btn" class="aow-action aow-action-ach"><span class="aow-action-ico">🏅</span><span class="aow-action-lbl">Awards</span></button>
         <button id="aow-pause-btn" class="aow-action"><span class="aow-action-ico">⏸️</span><span class="aow-action-lbl">Pause</span></button>
         <button id="aow-restart-btn" class="aow-action aow-action-restart"><span class="aow-action-ico">🔄</span><span class="aow-action-lbl">Restart</span></button>
       </div>
@@ -184,6 +228,16 @@
   </div>
 
   <!-- Achievements modal -->
+  <div id="aow-chain-modal" class="aow-modal" role="dialog" aria-modal="true" aria-label="The Line" style="display:none">
+    <div class="aow-modal-card">
+      <div class="aow-modal-header">
+        <span class="aow-modal-title">🧱 The Line</span>
+        <span class="aow-modal-prog" id="aow-chain-progress">0 of 0 begun</span>
+        <button class="aow-modal-close" id="aow-chain-close" aria-label="Close">×</button>
+      </div>
+      <div class="aow-ach-list" id="aow-chain-list"></div>
+    </div>
+  </div>
   <div id="aow-ach-modal" class="aow-modal" style="display:none">
     <div class="aow-modal-card">
       <div class="aow-modal-header">

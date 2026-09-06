@@ -20,6 +20,8 @@ const AsteroidsGame = (() => {
   let running, gameOver;
   let nextLifeAt, lifeFlashUntil = 0, thrustSoundAt = 0;
   let ufo, ufoShots, ufoTimer;                 // hunting saucer + its shots
+  let hyperCd = 0;                             // P6: hyperspace cooldown (frames)
+  const HYPER_CD = 300;                        // ~5s between jumps
   const keys = { left: false, right: false, thrust: false };
 
   const loop = Utils.gameLoop(dt => {
@@ -55,7 +57,36 @@ const AsteroidsGame = (() => {
       case 'ArrowRight': case 'd': keys.right = true; e.preventDefault(); break;
       case 'ArrowUp': case 'w': keys.thrust = true; e.preventDefault(); break;
       case ' ': if (!running || gameOver) start(); else fire(); e.preventDefault(); break;
+      case 'h': case 'H': hyperspace(); e.preventDefault(); break;
     }
+  }
+
+  // P6: hyperspace — emergency teleport with a cooldown. Tries hard to
+  // land clear of rocks, but after 40 misses it takes the last roll: the
+  // classic risk that made the button a last resort, not a dodge spam.
+  // Deliberately Math.random even in daily runs — the jump is triggered at
+  // an arbitrary wall-clock moment, so seeding it can't stay in sync and
+  // would desync the rock stream instead.
+  function hyperspace() {
+    if (!running || gameOver || hyperCd > 0) return;
+    burst(ship.x, ship.y, 2, '#A371F7');
+    let x = ship.x, y = ship.y;
+    for (let tries = 0; tries < 40; tries++) {
+      x = 30 + Math.random() * (WIDTH - 60);
+      y = 30 + Math.random() * (HEIGHT - 60);
+      let clear = true;
+      for (const r of rocks) {
+        if (Math.hypot(x - r.x, y - r.y) < r.r + 70) { clear = false; break; }
+      }
+      if (clear && ufo && Math.hypot(x - ufo.x, y - ufo.y) < 90) clear = false;
+      if (clear) break;
+    }
+    ship.x = x; ship.y = y;
+    ship.vx = 0; ship.vy = 0;
+    invuln = Math.max(invuln, 40);   // re-materialize blinking, briefly safe
+    hyperCd = HYPER_CD;
+    burst(x, y, 2, '#A371F7');
+    if (typeof SFX !== 'undefined' && SFX.note) { SFX.note(880, 0.08); SFX.note(440, 0.12); }
   }
   function onKeyUp(e) {
     switch (e.key) {
@@ -83,7 +114,22 @@ const AsteroidsGame = (() => {
       fireBtn.addEventListener('touchstart', f, { passive: false });
       fireBtn.addEventListener('pointerdown', f);
     }
+    const hyperBtn = document.getElementById('ast-hyper');
+    if (hyperBtn && !hyperBtn.dataset.bound) {
+      hyperBtn.dataset.bound = '1';
+      const h = e => { hyperspace(); e.preventDefault(); };
+      hyperBtn.addEventListener('touchstart', h, { passive: false });
+      hyperBtn.addEventListener('pointerdown', h);
+    }
   }
+
+  // Daily-challenge plumbing (SITE-3): rock spawns, kinematics and shapes
+  // draw from the seeded daily stream — same opening field and same split
+  // behaviour for everyone. UFO timing/aim and particles deliberately stay
+  // on Math.random: their consumption count depends on wall-clock play,
+  // and pulling them from the seeded stream would desync the rocks.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('asteroids') : Math.random(); }
 
   function resetGame(startRun) {
     ship = { x: WIDTH / 2, y: HEIGHT / 2, a: -Math.PI / 2, vx: 0, vy: 0 };
@@ -91,6 +137,8 @@ const AsteroidsGame = (() => {
     score = 0; lives = 3; wave = 1; fireTimer = 0; invuln = 90;
     nextLifeAt = 10000; lifeFlashUntil = 0;
     ufo = null; ufoShots = []; ufoTimer = 1100 + Math.random() * 500;
+    hyperCd = 0;
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('asteroids');
     spawnWave();
     running = !!startRun; gameOver = false;
     updateInfo();
@@ -102,7 +150,7 @@ const AsteroidsGame = (() => {
     for (let i = 0; i < n; i++) {
       // Spawn away from the ship's center so you aren't hit instantly.
       let x, y;
-      do { x = Math.random() * WIDTH; y = Math.random() * HEIGHT; }
+      do { x = drand() * WIDTH; y = drand() * HEIGHT; }
       while (Math.hypot(x - WIDTH / 2, y - HEIGHT / 2) < 140);
       rocks.push(makeRock(x, y, 3));
     }
@@ -112,15 +160,15 @@ const AsteroidsGame = (() => {
     const r = SIZES[tier];
     // Rocks drift a little faster on later waves (capped so it stays fair).
     const waveBoost = 1 + Math.min(wave - 1, 10) * 0.06;
-    const speed = (0.6 + Math.random() * 1.1) * (4 - tier) * 0.6 * waveBoost;
-    const ang = Math.random() * Math.PI * 2;
-    const verts = 8 + Math.floor(Math.random() * 5);
+    const speed = (0.6 + drand() * 1.1) * (4 - tier) * 0.6 * waveBoost;
+    const ang = drand() * Math.PI * 2;
+    const verts = 8 + Math.floor(drand() * 5);
     const shape = [];
-    for (let i = 0; i < verts; i++) shape.push(0.7 + Math.random() * 0.5);
+    for (let i = 0; i < verts; i++) shape.push(0.7 + drand() * 0.5);
     return {
       x, y, tier, r,
       vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
-      rot: (Math.random() - 0.5) * 0.04, a: 0, shape,
+      rot: (drand() - 0.5) * 0.04, a: 0, shape,
       hue: [190, 265, 330][tier - 1] || 200,
     };
   }
@@ -153,6 +201,7 @@ const AsteroidsGame = (() => {
   function update(dt) {
     if (fireTimer > 0) fireTimer -= dt;
     if (invuln > 0) invuln -= dt;
+    if (hyperCd > 0) hyperCd -= dt;
 
     if (keys.left) ship.a -= TURN * dt;
     if (keys.right) ship.a += TURN * dt;
@@ -312,8 +361,10 @@ const AsteroidsGame = (() => {
     running = false; gameOver = true;
     sfx('over');
     high = Utils.highScore.save('asteroids-high', score, high);
+    const lines = ['Score: ' + score + ' &nbsp;·&nbsp; Wave: ' + wave];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('asteroids', score));
     Utils.showGameOver('asteroids-overlay', {
-      lines: ['Score: ' + score + ' &nbsp;·&nbsp; Wave: ' + wave],
+      lines,
       hint: 'Press Space or tap to play again',
     });
     updateInfo();
@@ -395,6 +446,13 @@ const AsteroidsGame = (() => {
       ctx.shadowBlur = 0;
     }
 
+    // Hyperspace readiness — dim while recharging so H isn't a mystery.
+    if (running) {
+      ctx.font = '11px JetBrains Mono, monospace';
+      ctx.fillStyle = hyperCd <= 0 ? '#A371F7' : 'rgba(163,113,247,0.30)';
+      ctx.fillText(hyperCd <= 0 ? 'H · HYPERSPACE READY' : 'H · RECHARGING', 10, HEIGHT - 10);
+    }
+
     // Extra-life callout
     if (lifeFlashUntil > performance.now()) {
       ctx.fillStyle = '#3FB950'; ctx.shadowColor = '#3FB950'; ctx.shadowBlur = 10;
@@ -411,7 +469,7 @@ const AsteroidsGame = (() => {
       ctx.font = 'bold 22px JetBrains Mono, monospace';
       ctx.fillText('VECTOR STORM', WIDTH / 2, HEIGHT / 2 - 14);
       ctx.font = '13px Inter, sans-serif'; ctx.fillStyle = '#7D8590';
-      ctx.fillText('Rotate ← → · thrust ↑ · fire Space  (buttons on touch)', WIDTH / 2, HEIGHT / 2 + 12);
+      ctx.fillText('Rotate ← → · thrust ↑ · fire Space · hyperspace H  (buttons on touch)', WIDTH / 2, HEIGHT / 2 + 12);
       ctx.fillText('Click or tap to start', WIDTH / 2, HEIGHT / 2 + 34);
       ctx.textAlign = 'left';
     }
@@ -420,6 +478,8 @@ const AsteroidsGame = (() => {
   function destroy() {
     loop.stop();
     keys.left = keys.right = keys.thrust = false;
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('asteroids');
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;

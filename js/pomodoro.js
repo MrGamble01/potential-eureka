@@ -13,21 +13,34 @@ const Pomodoro = (() => {
   let pomoTime = POMO_MODES.focus.duration;
   let pomoRunning = false;
   let pomoInterval = null;
+  // Wall-clock deadline while running. The old version decremented a
+  // counter once per interval tick — background tabs throttle timers, so
+  // a "25-minute" focus block silently stretched. Recomputing remaining
+  // time from Date.now() makes the clock honest no matter how the tab is
+  // treated; the tick interval only controls how often the UI repaints.
+  let pomoEndAt = null;
   let pomoSessions = parseInt(Utils.store.getRaw('eureka-pomo-sessions') || '0');
 
   function toggle() {
     if (pomoRunning) {
       pomoRunning = false;
+      pomoTime = remaining();      // freeze what's actually left
+      pomoEndAt = null;
       clearInterval(pomoInterval);
     } else {
       pomoRunning = true;
-      pomoInterval = setInterval(pomoTick, 1000);
+      pomoEndAt = Date.now() + pomoTime * 1000;
+      pomoInterval = setInterval(pomoTick, 500);
     }
     pomoUpdateUI();
   }
 
+  function remaining() {
+    return pomoEndAt === null ? pomoTime : Math.max(0, Math.ceil((pomoEndAt - Date.now()) / 1000));
+  }
+
   function pomoTick() {
-    pomoTime--;
+    pomoTime = remaining();
     if (pomoTime <= 0) {
       pomoBeep();
       clearInterval(pomoInterval);
@@ -40,6 +53,7 @@ const Pomodoro = (() => {
         pomoMode = 'focus';
       }
       pomoTime = POMO_MODES[pomoMode].duration;
+      pomoEndAt = null;
     }
     pomoUpdateUI();
   }
@@ -47,6 +61,7 @@ const Pomodoro = (() => {
   function skip() {
     clearInterval(pomoInterval);
     pomoRunning = false;
+    pomoEndAt = null;
     if (pomoMode === 'focus') {
       pomoSessions++;
       Utils.store.setRaw('eureka-pomo-sessions', pomoSessions);
@@ -61,6 +76,7 @@ const Pomodoro = (() => {
   function reset() {
     clearInterval(pomoInterval);
     pomoRunning = false;
+    pomoEndAt = null;
     pomoTime = POMO_MODES[pomoMode].duration;
     pomoUpdateUI();
   }
@@ -92,6 +108,12 @@ const Pomodoro = (() => {
       bar.className = `pomo-fill pomo-${pomoMode}`;
     }
   }
+
+  // A throttled background tab may not have ticked for minutes — snap the
+  // display (and any completion) the moment the tab is visible again.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && pomoRunning) pomoTick();
+  });
 
   function pomoBeep() {
     try {

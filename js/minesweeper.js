@@ -57,7 +57,15 @@ const MinesweeperGame = (() => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  // Daily-challenge plumbing (SITE-3 extension): the mine shuffle draws
+  // from the seeded stream on daily runs. First-click safety still moves
+  // mines out of your opening — the shared seed shares the SEQUENCE, so
+  // identical first clicks get identical boards.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('minesweeper') : Math.random(); }
+
   function newGame() {
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('minesweeper');
     cells = Array.from({ length: cols * rows }, () => ({ mine: false, revealed: false, flagged: false, count: 0, pop: 0 }));
     state = 'ready';
     placed = false;
@@ -99,7 +107,7 @@ const MinesweeperGame = (() => {
     for (let i = 0; i < cols * rows; i++) if (!safe.has(i)) pool.push(i);
     // Fisher–Yates partial shuffle for the mine positions.
     for (let i = 0; i < mineCount && pool.length; i++) {
-      const j = i + Math.floor(Math.random() * (pool.length - i));
+      const j = i + Math.floor(drand() * (pool.length - i));
       [pool[i], pool[j]] = [pool[j], pool[i]];
       cells[pool[i]].mine = true;
     }
@@ -242,6 +250,11 @@ const MinesweeperGame = (() => {
     for (const cell of cells) if (cell.mine && !cell.flagged) { cell.flagged = true; flags++; }
     burstConfetti();
     saveBest();
+    if (dailyRun && typeof Daily !== 'undefined') {
+      const line = Daily.result('minesweeper', Math.max(1, Math.floor(elapsed / 1000)), 'min');
+      const st = document.getElementById('mines-status');
+      if (st) st.textContent = line.replace(/&[a-z]+;/g, ' ');
+    }
     updateHud();
   }
 
@@ -391,6 +404,8 @@ const MinesweeperGame = (() => {
     // Loop lives for the page's lifetime (init runs once) and no-ops while
     // hidden — nothing to tear down but the confetti/shake, which fade out.
     confetti = []; shake = 0; flash = 0;
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('minesweeper');
   }
 
   return { init, newGame, setDifficulty, toggleFlagMode, destroy };

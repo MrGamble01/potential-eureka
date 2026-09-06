@@ -41,7 +41,12 @@ const Utils = {
   },
 
   // Modal helpers
-  openModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'flex'; },
+  openModal(id) {
+    const m = document.getElementById(id);
+    if (!m) return;
+    m.style.display = 'flex';
+    Utils.trapFocus(m, 'display');   // P4-A11Y-1
+  },
   closeModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'none'; },
 
   // ---- Arcade game plumbing ----
@@ -116,6 +121,45 @@ const Utils = {
     const linesHtml = lines.map(l => `<p>${l}</p>`).join('');
     const hintHtml = hint ? `<p style="font-size:12px;color:var(--text-dim)">${hint}</p>` : '';
     overlay.innerHTML = `<h2>GAME OVER</h2>${linesHtml}${hintHtml}`;
+  },
+
+  // Modal focus management (P4-A11Y-1). Call when a modal opens:
+  // focuses its first control, traps Tab inside, and restores focus to
+  // the opener when the modal loses its open state. Returns a release
+  // function; callers may ignore it — the MutationObserver self-cleans
+  // when `openClass` drops off the element.
+  trapFocus(modalEl, openClass = 'open') {
+    if (!modalEl) return () => {};
+    const opener = document.activeElement;
+    const focusables = () => [...modalEl.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )].filter(el => !el.disabled && el.offsetParent !== null);
+    const first = focusables()[0];
+    if (first) first.focus();
+    const onKey = e => {
+      if (e.key !== 'Tab') return;
+      const els = focusables();
+      if (!els.length) return;
+      const i = els.indexOf(document.activeElement);
+      if (e.shiftKey && (i <= 0)) { e.preventDefault(); els[els.length - 1].focus(); }
+      else if (!e.shiftKey && (i === els.length - 1 || i === -1)) { e.preventDefault(); els[0].focus(); }
+    };
+    modalEl.addEventListener('keydown', onKey);
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      modalEl.removeEventListener('keydown', onKey);
+      if (opener && document.contains(opener)) opener.focus();
+    };
+    const mo = new MutationObserver(() => {
+      const stillOpen = openClass === 'open'
+        ? modalEl.classList.contains('open')
+        : modalEl.style.display !== 'none';
+      if (!stillOpen) { release(); mo.disconnect(); }
+    });
+    mo.observe(modalEl, { attributes: true, attributeFilter: ['class', 'style'] });
+    return release;
   },
 
   // typeof-guarded SFX.play — every game repeated

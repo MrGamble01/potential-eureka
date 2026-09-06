@@ -21,8 +21,11 @@ const TetrisGame = (() => {
   const PIECE_KEYS = Object.keys(PIECES);
 
   let canvas, ctx, nextCanvas, nextCtx, holdCanvas, holdCtx;
-  let board, current, next, held;
+  let nextQ = [];   // 3-piece preview queue (P4) — bag order untouched
+  let board, current, held;
   let score, highScore, level, linesCleared;
+  // P8: consecutive-clear combo + back-to-back Tetris bonus.
+  let combo = 0, lastWasTetris = false, bonusFlash = null;
   let gameLoop, running, gameOver, canHold;
   let bag = [];
   let clearingRows = null;   // rows flashing white before they collapse
@@ -30,12 +33,18 @@ const TetrisGame = (() => {
   let sparks = [], sparkRaf = null;
   const sfx = Utils.sfx;
 
+  // Daily-challenge plumbing (SITE-3): the bag shuffle is the ONLY layout
+  // randomness Tetris has, so a seeded stream gives everyone the same
+  // piece sequence. Line-clear sparks stay on Math.random.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('tetris') : Math.random(); }
+
   // 7-bag randomiser for fair piece distribution
   function drawFromBag() {
     if (bag.length === 0) {
       bag = [...PIECE_KEYS];
       for (let i = bag.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(drand() * (i + 1));
         [bag[i], bag[j]] = [bag[j], bag[i]];
       }
     }
@@ -82,7 +91,7 @@ const TetrisGame = (() => {
     board = createBoard();
     running = gameOver = false;
     score = level = 0; linesCleared = 0;
-    current = next = held = null;
+    current = held = null; nextQ = [];
     bag = [];
 
     updateInfo();
@@ -196,12 +205,28 @@ const TetrisGame = (() => {
     clearLines();
   }
 
+  // Render the 3-piece queue stacked in the next canvas; the on-deck
+  // piece full-strength, the two behind it dimmed.
+  function drawNextQueue() {
+    if (!nextCtx) return;
+    const W = nextCanvas.width, H = nextCanvas.height;
+    nextCtx.fillStyle = '#0d1117';
+    nextCtx.fillRect(0, 0, W, H);
+    const slotH = Math.floor(H / 3);
+    for (let i = 0; i < 3; i++) {
+      if (!nextQ[i]) continue;
+      nextCtx.globalAlpha = i === 0 ? 1 : 0.55;
+      drawPreview(nextCtx, nextQ[i], { x: 0, y: i * slotH, w: W, h: slotH });
+    }
+    nextCtx.globalAlpha = 1;
+  }
+
   function spawnNext() {
     cancelLock(); lockResets = 0;
     canHold = true;
-    current = next;
-    next = drawFromBag();
-    drawPreview(nextCtx, next);
+    current = nextQ.shift();
+    nextQ.push(drawFromBag());
+    drawNextQueue();
     if (collides(current.shape, current.x, current.y)) endGame();
   }
 
@@ -210,7 +235,7 @@ const TetrisGame = (() => {
     for (let r = 0; r < ROWS; r++) {
       if (board[r].every(cell => cell !== null)) full.push(r);
     }
-    if (!full.length) { spawnNext(); return; }
+    if (!full.length) { combo = 0; spawnNext(); return; }
     sfx('clear');
     // Flash the rows white for a beat before collapsing them. The piece is
     // parked at null so the gravity interval no-ops until the collapse; the
@@ -234,8 +259,14 @@ const TetrisGame = (() => {
       board.unshift(Array(COLS).fill(null));
     }
     clearingRows = null;
-    const pts = [0, 100, 300, 500, 800];
-    score += (pts[Math.min(cleared, 4)]) * level;
+    combo++;
+    let pts = [0, 100, 300, 500, 800][Math.min(cleared, 4)] * level;
+    const tags = [];
+    if (cleared === 4 && lastWasTetris) { pts = Math.round(pts * 1.5); tags.push('B2B TETRIS ×1.5'); }
+    lastWasTetris = cleared === 4;
+    if (combo > 1) { pts += 50 * (combo - 1) * level; tags.push('COMBO ×' + combo); }
+    score += pts;
+    if (tags.length) bonusFlash = { text: tags.join(' · ') + '  +' + pts, until: performance.now() + 1600 };
     linesCleared += cleared;
     const newLevel = Math.floor(linesCleared / 10) + 1;
     if (newLevel !== level) { level = newLevel; restartLoop(); }
@@ -324,9 +355,9 @@ const TetrisGame = (() => {
       current = swapIn;
     } else {
       held = swapOut;
-      current = next;
-      next = drawFromBag();
-      drawPreview(nextCtx, next);
+      current = nextQ.shift();
+      nextQ.push(drawFromBag());
+      drawNextQueue();
     }
     drawPreview(holdCtx, held);
     if (collides(current.shape, current.x, current.y)) endGame();
@@ -337,16 +368,18 @@ const TetrisGame = (() => {
     bag = [];
     board = createBoard();
     score = 0; level = 1; linesCleared = 0;
+    combo = 0; lastWasTetris = false; bonusFlash = null;
     held = null; canHold = true;
     gameOver = false; running = true;
     cancelLock(); lockResets = 0;
     clearTimeout(clearTimer);
     clearingRows = null;
     sparks = [];
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('tetris');
     sfx('start');
     current = drawFromBag();
-    next    = drawFromBag();
-    drawPreview(nextCtx, next);
+    nextQ = [drawFromBag(), drawFromBag(), drawFromBag()];
+    drawNextQueue();
     drawPreview(holdCtx, null);
 
     const ov = document.getElementById('tetris-overlay');
@@ -367,8 +400,10 @@ const TetrisGame = (() => {
     const prevHigh = highScore;
     highScore = Utils.highScore.save('tetris-high', score, highScore);
     if (highScore !== prevHigh) updateInfo();
+    const lines = [`Score: ${score}`, `Level ${level} &middot; ${linesCleared} lines`];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('tetris', score));
     Utils.showGameOver('tetris-overlay', {
-      lines: [`Score: ${score}`, `Level ${level} &middot; ${linesCleared} lines`],
+      lines,
       hint: 'Press SPACE to restart',
     });
   }
@@ -439,6 +474,21 @@ const TetrisGame = (() => {
       for (const r of clearingRows) ctx.fillRect(0, r * CELL, WIDTH, CELL);
     }
 
+    // Combo / back-to-back callout, fading out
+    if (bonusFlash) {
+      const left = bonusFlash.until - performance.now();
+      if (left <= 0) bonusFlash = null;
+      else {
+        ctx.globalAlpha = Math.min(1, left / 500);
+        ctx.fillStyle = '#F7C948';
+        ctx.font = 'bold 15px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(bonusFlash.text, WIDTH / 2, 30);
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+      }
+    }
+
     // Line-clear sparks
     for (const s of sparks) {
       ctx.globalAlpha = Math.max(0, Math.min(1, s.life / 20));
@@ -486,11 +536,16 @@ const TetrisGame = (() => {
     }
   }
 
-  function drawPreview(c, piece) {
+  function drawPreview(c, piece, region) {
     if (!c) return;
-    const W = c.canvas.width, H = c.canvas.height;
-    c.fillStyle = '#0d1117';
-    c.fillRect(0, 0, W, H);
+    const full = !region;
+    const W = full ? c.canvas.width : region.w;
+    const H = full ? c.canvas.height : region.h;
+    const ox = full ? 0 : region.x, oy = full ? 0 : region.y;
+    if (full) {
+      c.fillStyle = '#0d1117';
+      c.fillRect(0, 0, W, H);
+    }
     if (!piece) return;
 
     const shape = piece.shape;
@@ -503,8 +558,8 @@ const TetrisGame = (() => {
         }
     const bR = maxR - minR + 1, bC = maxC - minC + 1;
     const cell = Math.min(Math.floor((W - 16) / bC), Math.floor((H - 16) / bR), 28);
-    const sx = Math.floor((W - bC * cell) / 2);
-    const sy = Math.floor((H - bR * cell) / 2);
+    const sx = ox + Math.floor((W - bC * cell) / 2);
+    const sy = oy + Math.floor((H - bR * cell) / 2);
 
     for (let r = minR; r <= maxR; r++) {
       for (let col = minC; col <= maxC; col++) {
@@ -536,6 +591,8 @@ const TetrisGame = (() => {
   function destroy() {
     clearInterval(gameLoop);
     clearTimeout(clearTimer);
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('tetris');
     if (sparkRaf) { cancelAnimationFrame(sparkRaf); sparkRaf = null; }
     clearingRows = null; sparks = [];
     // Shell re-inits a view only once and won't redraw on return — paint the

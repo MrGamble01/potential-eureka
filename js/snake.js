@@ -13,10 +13,34 @@ const SnakeGame = (() => {
   let snake, direction, nextDirection;
   let food, bonusFood, score, highScore, speed;
   let foodCount, wallWrap;
+  // P8: base tick pace, persisted. Classic is the original 120ms feel.
+  const PACES = { chill: 150, classic: 120, blitz: 92 };
+  const PACE_ORDER = ['chill', 'classic', 'blitz'];
+  let pace = 'classic';
+  try { if (PACES[localStorage.getItem('snake-pace')]) pace = localStorage.getItem('snake-pace'); } catch {}
   let walls = [];                     // rock cells added as levels climb
   let gameLoop, running, gameOver;
   let particles = [];
   const sfx = Utils.sfx;
+
+  // Daily-challenge plumbing (SITE-3): layout randomness (food, walls,
+  // bonus food) draws from the seeded daily stream during a daily run and
+  // from Math.random otherwise. Cosmetic particles never touch it.
+  let dailyRun = false;
+  function drand() { return (typeof Daily !== 'undefined') ? Daily.rand('snake') : Math.random(); }
+
+  // Power-ups (P4): one on the board at a time, rare and short-lived.
+  //   🟨 gold  — double points for 15s
+  //   👻 ghost — pass through your own tail for 8s
+  //   🐌 slow  — knocks 30ms back onto the tick (relief valve)
+  // Spawn cadence is deterministic (every 7th food, offset 3) so daily
+  // runs stay shared-fate; only the position draws from the seeded stream.
+  let powerUp = null, goldUntil = 0, ghostUntil = 0;
+  const POWER_KINDS = [
+    { kind: 'gold',  color: '#F7C948' },
+    { kind: 'ghost', color: '#a78bfa' },
+    { kind: 'slow',  color: '#3FB950' },
+  ];
 
   function init() {
     canvas = document.getElementById('snake-canvas');
@@ -37,6 +61,7 @@ const SnakeGame = (() => {
     foodCount = 0;
     bonusFood = null;
     wallWrap = false;
+    paceBtn();
     updateInfo();
     draw();
 
@@ -100,11 +125,15 @@ const SnakeGame = (() => {
     score = 0;
     foodCount = 0;
     bonusFood = null;
+    powerUp = null; goldUntil = 0; ghostUntil = 0;
     walls = [];
     particles = [];
     gameOver = false;
     running = true;
-    speed = 120;
+    dailyRun = (typeof Daily !== 'undefined') && Daily.begin('snake');
+    // Daily runs always play Classic pace: a shared-fate board isn't
+    // comparable if one player crawled it on Chill.
+    speed = dailyRun ? PACES.classic : PACES[pace];
     spawnFood();
     sfx('start');
     updateInfo();
@@ -119,8 +148,8 @@ const SnakeGame = (() => {
   function spawnFood() {
     do {
       food = {
-        x: Math.floor(Math.random() * COLS),
-        y: Math.floor(Math.random() * ROWS),
+        x: Math.floor(drand() * COLS),
+        y: Math.floor(drand() * ROWS),
       };
     } while (snake.some(s => s.x === food.x && s.y === food.y) ||
              walls.some(w => w.x === food.x && w.y === food.y));
@@ -133,10 +162,10 @@ const SnakeGame = (() => {
   function addWallSegment() {
     if (walls.length >= 36) return;
     for (let tries = 0; tries < 60; tries++) {
-      const horiz = Math.random() < 0.5;
-      const len = 2 + Math.floor(Math.random() * 3);
-      const x0 = 2 + Math.floor(Math.random() * (COLS - len - 4));
-      const y0 = 2 + Math.floor(Math.random() * (ROWS - len - 4));
+      const horiz = drand() < 0.5;
+      const len = 2 + Math.floor(drand() * 3);
+      const x0 = 2 + Math.floor(drand() * (COLS - len - 4));
+      const y0 = 2 + Math.floor(drand() * (ROWS - len - 4));
       const cells = [];
       for (let i = 0; i < len; i++) cells.push({ x: x0 + (horiz ? i : 0), y: y0 + (horiz ? 0 : i) });
       const head = snake[0];
@@ -157,8 +186,8 @@ const SnakeGame = (() => {
     let pos, attempts = 0;
     do {
       pos = {
-        x: Math.floor(Math.random() * COLS),
-        y: Math.floor(Math.random() * ROWS),
+        x: Math.floor(drand() * COLS),
+        y: Math.floor(drand() * ROWS),
       };
       attempts++;
     } while (attempts < 100 && (
@@ -167,6 +196,21 @@ const SnakeGame = (() => {
       (food && food.x === pos.x && food.y === pos.y)
     ));
     bonusFood = { ...pos, expireAt: Date.now() + 5000 };
+  }
+
+  function spawnPowerUp() {
+    let pos, attempts = 0;
+    do {
+      pos = { x: Math.floor(drand() * COLS), y: Math.floor(drand() * ROWS) };
+      attempts++;
+    } while (attempts < 100 && (
+      snake.some(s => s.x === pos.x && s.y === pos.y) ||
+      walls.some(w => w.x === pos.x && w.y === pos.y) ||
+      (food && food.x === pos.x && food.y === pos.y) ||
+      (bonusFood && bonusFood.x === pos.x && bonusFood.y === pos.y)
+    ));
+    const def = POWER_KINDS[Math.floor(drand() * POWER_KINDS.length)];
+    powerUp = { ...pos, ...def, expireAt: Date.now() + 8000 };
   }
 
   function getLevel() {
@@ -205,9 +249,12 @@ const SnakeGame = (() => {
     // moves; killing the player for entering that cell would be unfair.
     const willEat = (head.x === food.x && head.y === food.y) ||
       (bonusFood && Date.now() <= bonusFood.expireAt &&
-       head.x === bonusFood.x && head.y === bonusFood.y);
+       head.x === bonusFood.x && head.y === bonusFood.y) ||
+      (powerUp && Date.now() <= powerUp.expireAt &&
+       head.x === powerUp.x && head.y === powerUp.y);
     const tail = snake[snake.length - 1];
-    if (snake.some(s => s.x === head.x && s.y === head.y && (willEat || s !== tail))) {
+    const ghosting = Date.now() < ghostUntil;   // 👻: your own tail is vapor
+    if (!ghosting && snake.some(s => s.x === head.x && s.y === head.y && (willEat || s !== tail))) {
       return endGame();
     }
 
@@ -217,13 +264,14 @@ const SnakeGame = (() => {
     if (bonusFood && Date.now() > bonusFood.expireAt) {
       bonusFood = null;
     }
+    if (powerUp && Date.now() > powerUp.expireAt) powerUp = null;
 
     let ate = false;
 
     // Eat regular food
     if (head.x === food.x && head.y === food.y) {
       ate = true;
-      score += 10;
+      score += Date.now() < goldUntil ? 20 : 10;   // 🟨 doubles the take
       const prevLevel = getLevel();
       foodCount++;
       if (getLevel() > prevLevel && getLevel() >= 2) { addWallSegment(); sfx('lock'); }
@@ -233,6 +281,8 @@ const SnakeGame = (() => {
       spawnFood();
       // Spawn bonus food every 5 regular foods
       if (foodCount % 5 === 0) spawnBonusFood();
+      // Power-up every 7th food (offset so it never collides with bonus)
+      if (foodCount % 7 === 3 && !powerUp) spawnPowerUp();
       // Speed up slightly
       if (speed > 60) {
         speed -= 2;
@@ -242,11 +292,23 @@ const SnakeGame = (() => {
     } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
       // Eat bonus food (snake also grows)
       ate = true;
-      score += 50;
+      score += Date.now() < goldUntil ? 100 : 50;
       bonusFood = null;
       sfx('bonus');
       spawnBurst(head.x, head.y, '#F7C948');
       highScore = Utils.highScore.save('snake-high', score, highScore);
+    } else if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
+      ate = true;
+      if (powerUp.kind === 'gold') goldUntil = Date.now() + 15000;
+      else if (powerUp.kind === 'ghost') ghostUntil = Date.now() + 8000;
+      else if (powerUp.kind === 'slow' && speed < 140) {
+        speed = Math.min(140, speed + 30);
+        clearInterval(gameLoop);
+        gameLoop = setInterval(tick, speed);
+      }
+      spawnBurst(head.x, head.y, powerUp.color);
+      if (typeof SFX !== 'undefined' && SFX.note) SFX.note(880, 0.15);
+      powerUp = null;
     }
 
     if (!ate) snake.pop();
@@ -282,8 +344,10 @@ const SnakeGame = (() => {
     Effects.shakeCanvas(canvas, 8, 300);
     clearInterval(gameLoop);
 
+    const lines = [`Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}`];
+    if (dailyRun && typeof Daily !== 'undefined') lines.push(Daily.result('snake', score));
     Utils.showGameOver('snake-overlay', {
-      lines: [`Score: ${score} &nbsp;·&nbsp; Level: ${getLevel()}`],
+      lines,
       hint: 'Press SPACE or tap to restart',
     });
   }
@@ -300,6 +364,13 @@ const SnakeGame = (() => {
   function draw() {
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    if (dailyRun) {
+      ctx.fillStyle = '#F7C948';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('📅 DAILY', WIDTH - 8, 16);
+      ctx.textAlign = 'left';
+    }
 
     // Grid lines (subtle)
     ctx.strokeStyle = 'rgba(255,255,255,0.03)';
@@ -322,7 +393,8 @@ const SnakeGame = (() => {
     }
     ctx.globalAlpha = 1;
 
-    // Snake
+    // Snake (translucent while ghosting — the tail is vapor)
+    if (Date.now() < ghostUntil) ctx.globalAlpha = 0.55;
     snake.forEach((seg, i) => {
       const brightness = 1 - (i / snake.length) * 0.5;
       if (i === 0) {
@@ -335,6 +407,7 @@ const SnakeGame = (() => {
       }
       ctx.fillRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2);
     });
+    ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
 
     // Regular food
@@ -346,6 +419,35 @@ const SnakeGame = (() => {
       ctx.arc(food.x * GRID + GRID / 2, food.y * GRID + GRID / 2, GRID / 2 - 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Power-up (pulsing ring so it reads as special, fading near expiry)
+    if (powerUp) {
+      const left = powerUp.expireAt - Date.now();
+      ctx.globalAlpha = left < 1500 ? Math.max(0.15, left / 1500) : 1;
+      const cx = powerUp.x * GRID + GRID / 2, cy = powerUp.y * GRID + GRID / 2;
+      ctx.fillStyle = powerUp.color;
+      ctx.shadowColor = powerUp.color; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(cx, cy, GRID / 2 - 3, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = powerUp.color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, GRID / 2 + 1 + Math.sin(Date.now() / 150) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // Active effect badges
+    {
+      let bx = 8;
+      const badge = (txt, color) => {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.fillText(txt, bx, 16);
+        bx += ctx.measureText(txt).width + 12;
+      };
+      if (Date.now() < goldUntil) badge(`🟨 2× ${Math.ceil((goldUntil - Date.now()) / 1000)}s`, '#F7C948');
+      if (Date.now() < ghostUntil) badge(`👻 ${Math.ceil((ghostUntil - Date.now()) / 1000)}s`, '#a78bfa');
     }
 
     // Food-burst particles
@@ -392,6 +494,8 @@ const SnakeGame = (() => {
 
   function destroy() {
     clearInterval(gameLoop);
+    dailyRun = false;
+    if (typeof Daily !== 'undefined') Daily.disarm('snake');
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false;
@@ -399,5 +503,26 @@ const SnakeGame = (() => {
     draw();
   }
 
-  return { init, start, destroy, toggleWallWrap };
+  function paceBtn() {
+    const btn = document.getElementById('snake-pace-btn');
+    if (!btn) return;
+    btn.textContent = 'Pace: ' + pace.toUpperCase();
+    const col = pace === 'blitz' ? '#F85149' : pace === 'chill' ? '#58A6FF' : '';
+    btn.style.borderColor = col;
+    btn.style.color = col;
+  }
+  function cyclePace() {
+    pace = PACE_ORDER[(PACE_ORDER.indexOf(pace) + 1) % PACE_ORDER.length];
+    try { localStorage.setItem('snake-pace', pace); } catch {}
+    paceBtn();
+    // Mid-run (non-daily), retime the loop in place so the pick is felt
+    // immediately; power-up slow relief still layers on top next spawn.
+    if (running && !gameOver && !dailyRun) {
+      speed = PACES[pace];
+      clearInterval(gameLoop);
+      gameLoop = setInterval(tick, speed);
+    }
+  }
+
+  return { init, start, destroy, toggleWallWrap, cyclePace };
 })();

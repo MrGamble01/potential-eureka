@@ -14,8 +14,58 @@ function buildGarden(x,z){
   grp.position.set(x,0,z); scene.add(grp); gardenMesh=grp;
 }
 
+// ── The Underpass Mural (HV-11) ──
+// One bright panel per bridge pillar on the camp side, revealed as
+// painting sessions land. Meshes sync to G.mural, so load, paint and
+// (never) sweeps all route through the same refresh.
+var muralMeshes=[];
+var MURAL_COLORS=[0xd4682a,0x2a9d8f,0xe9c46a,0x9b5de5];
+function refreshMural(){
+  var want=Math.min(G.mural||0,MURAL_PANELS);
+  while(muralMeshes.length>want){ scene.remove(muralMeshes.pop()); }
+  var px=[-14,-6,2,10];
+  while(muralMeshes.length<want){
+    var i=muralMeshes.length;
+    var m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.6),
+      new THREE.MeshLambertMaterial({color:MURAL_COLORS[i],transparent:true,opacity:.92}));
+    m.position.set(px[i],1.7,5.62);
+    scene.add(m); muralMeshes.push(m);
+  }
+}
+
+// ── The stray dog (HV-6) ──
+var dogMesh=null;
+function buildDog(){
+  var grp=new THREE.Group();
+  var fur=new THREE.MeshLambertMaterial({color:0x8a6a42});
+  var body=new THREE.Mesh(new THREE.BoxGeometry(.7,.35,.3),fur);
+  body.position.y=.45; grp.add(body);
+  var head=new THREE.Mesh(new THREE.BoxGeometry(.28,.26,.26),fur);
+  head.position.set(.42,.62,0); grp.add(head);
+  var snout=new THREE.Mesh(new THREE.BoxGeometry(.14,.12,.14),new THREE.MeshLambertMaterial({color:0x6a4e2e}));
+  snout.position.set(.58,.56,0); grp.add(snout);
+  var tail=new THREE.Mesh(new THREE.BoxGeometry(.22,.06,.06),fur);
+  tail.position.set(-.42,.58,0); tail.rotation.z=.5; grp.add(tail);
+  for(var i=0;i<4;i++){
+    var leg=new THREE.Mesh(new THREE.BoxGeometry(.07,.3,.07),fur);
+    leg.position.set(i<2?.24:-.24,.15,i%2?.1:-.1); grp.add(leg);
+  }
+  return grp;
+}
+function refreshDog(){
+  if(G.dog>0&&!dogMesh){ dogMesh=buildDog(); scene.add(dogMesh); }
+  if(G.dog===0&&dogMesh){ scene.remove(dogMesh); dogMesh=null; }
+  // wary: watches from the fence line. Friend: curled up by the barrel fire.
+  if(dogMesh){
+    if(G.dog===2){ dogMesh.position.set(2.2,0,1.6); dogMesh.rotation.y=-.6; }
+    else { dogMesh.position.set(9,0,8); dogMesh.rotation.y=Math.PI*.8; }
+  }
+}
+
 // ── Structures (authoritative version) ──
 function refreshStructures(){
+  refreshDog();
+  refreshMural();
   if(G.structures.workbench&&!workbenchMesh)    buildWorkbench(3,2);
   if(!G.structures.workbench&&workbenchMesh){   scene.remove(workbenchMesh); workbenchMesh=null; }
   if(G.structures.tent&&!tentMesh)              buildTent(-4,-2);
@@ -27,12 +77,132 @@ function refreshStructures(){
 }
 
 // ── Day / New Day ──
+// HV-17: the bus-ticket arc lives at dawn — the ask opens, the ask
+// expires, and once someone has gone home, letters come back.
+function ticketAtDawn(){
+  if(G.ticketAsk && G.days - G.ticketAsk.day >= TICKET_ASK_DAYS){
+    G.ticketAsk=null;
+    log('🚌 The talk of home fades — the moment passed.');
+    buildActionUI();
+  }
+  if(!G.ticketAsk && G.population>=3 && repTier()>=2
+     && G.days - (typeof G.ticketLastDay==='number'?G.ticketLastDay:-9) >= TICKET_EVERY){
+    G.ticketAsk={day:G.days};
+    G.ticketLastDay=G.days;
+    log('🚌 Around the fire, one of the residents talks about a sister two towns over. A bus ticket would do it.');
+    buildActionUI();
+  }
+  if((G.ticketsSent||0)>0 && G.days - (typeof G.lastLetterDay==='number'?G.lastLetterDay:-9) >= LETTER_EVERY){
+    G.lastLetterDay=G.days;
+    var lk=['food','scraps','cans'][rand(0,2)];
+    G[lk]=(G[lk]||0)+2;
+    G.morale=Math.min(100,G.morale+2);
+    log('✉️ A letter from the city — doing okay, misses the fire. Tucked inside, a little something: +2 '+({food:'🍞',scraps:'🧱',cans:'🫙'}[lk])+'.');
+  }
+}
+
+// HV-22: the pantry lives at dawn — some mornings the neighborhood
+// leaves a little something in the box, and a kept box gets the camp
+// remembered.
+function pantryAtDawn(){
+  if(!G.structures.pantry) return;
+  if(Math.random()>=PANTRY_CHANCE) return;
+  G.food=(G.food||0)+PANTRY_FOOD;
+  G.pantryFills=(G.pantryFills||0)+1;
+  if(G.pantryFills%PANTRY_REP_EVERY===0){
+    addRep(1);
+    log('🥣 The pantry box was full at dawn again \u2014 the block knows who keeps it up. +'+PANTRY_FOOD+' 🍞, +1 rep.');
+  } else {
+    log('🥣 Someone left a little something in the pantry box overnight. +'+PANTRY_FOOD+' 🍞.');
+  }
+}
+
+// HV-21: the newcomer stands at the edge of the light at dawn —
+// the ask opens, holds three days, and moves on if the fire never
+// decides.
+function newcomerAtDawn(){
+  if(G.newcomerAsk && G.days - G.newcomerAsk.day >= NEWCOMER_ASK_DAYS){
+    G.newcomerAsk=null;
+    log('🫂 The stranger moved on before the camp decided.');
+    buildActionUI();
+  }
+  if(!G.newcomerAsk && repTier()>=2 && !!G.structures.tent
+     && (G.population||1) < NEWCOMER_POP_MAX
+     && G.days - (typeof G.newcomerLastDay==='number'?G.newcomerLastDay:-9) >= NEWCOMER_EVERY){
+    G.newcomerAsk={day:G.days};
+    G.newcomerLastDay=G.days;
+    log('🫂 Someone new stands at the edge of the firelight — heard this camp treats people right. They ask to stay.');
+    buildActionUI();
+  }
+}
+
+// HV-18: the cold snap lives at dawn — it breaks, it rallies the
+// block, or it rolls in fresh off a hard winter sky.
+function snapAtDawn(){
+  if(typeof G.snapUntil==='number'&&G.snapUntil!==null&&!snapActive()&&G.days>=G.snapUntil){
+    G.snapUntil=null;
+    G.snapsSurvived=(G.snapsSurvived||0)+1;
+    G.morale=Math.min(100,G.morale+4);
+    log('❄️ The cold snap breaks — the camp came through it. +4 morale.');
+  }
+  if(snapActive()){
+    var rt=repTier();
+    if(rt>=1){ G.goodwill+=rt; log('❄️ Neighbors check in on the camp with hand-warmers and change. +'+rt+' goodwill.'); }
+    return;
+  }
+  if(G.season===3&&Math.random()<SNAP_CHANCE){
+    G.snapUntil=G.days+SNAP_DAYS;
+    log('❄️ A cold snap grips the block — two brutal days. Keep the fire fed and the pot full.');
+  }
+}
+
 function onNewDay(){
   G.days++; saveGame();
+  recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
   G.season=Math.floor(G.days/7)%4;
+  // yesterday's forecast becomes today's sky; tomorrow gets its own roll
+  G.weather=G.forecast||rollWeather();
+  G.forecast=rollWeather();
+  // HV-28: Dee settles the rain bet against the morning sky.
+  if(G.rainBetOn){
+    G.rainBetOn=false;
+    if(G.weather==='rain'){
+      G.goodwill+=RAINBET_PAY; G.rainBetsWon=(G.rainBetsWon||0)+1;
+      log('\ud83c\udfb2 Rain on the tarps — Dee pays up. +'+RAINBET_PAY+' goodwill.');
+    } else {
+      log('\ud83c\udfb2 Dry morning — Dee pockets the stake.');
+    }
+  }
+  // HV-30: Ray's ledger — one goodwill a morning until the debt
+  // clears. He never presses a broke morning; he just remembers.
+  if((G.rayDebt||0)>0 && (G.goodwill||0)>0){
+    G.goodwill--; G.rayDebt--;
+    if(G.rayDebt<=0){ G.rayLoans=(G.rayLoans||0)+1; log('\uD83E\uDD1D Ray\u2019s ledger clears \u2014 paid in full, the extra for the trouble.'); }
+    else log('\uD83E\uDD1D One goodwill to Ray\u2019s ledger \u2014 '+G.rayDebt+' to go.');
+  }
+  snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
-  G.warmth=Math.max(0,G.warmth-(G.season===3?18:8));
+  // HV-23: coats off the rack blunt the cold's edge — the weather's
+  // bite (only when it IS a bite) and the snap's extra — but never
+  // the season's base drain, and never a heat wave's gift.
+  var wBite=weatherDef().warmth, snapBite=snapActive()?SNAP_WARMTH:0;
+  if(G.structures.coats&&(wBite>0||snapBite>0)){
+    if(wBite>0) wBite*=COATS_CUT;
+    snapBite*=COATS_CUT;
+    G.coldCut=(G.coldCut||0)+1;
+    log('🧥 Coats off the rack at dawn — the cold cuts half as deep.');
+  }
+  // HV-54: the empty hook eases the season's own base drain, which is
+  // the one part of the cold the coat rack above never touches.
+  G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
+  // HV-13: a fire kept fed pays for itself — a camp that wakes warm
+  // (50+ after the night's drain) starts the day with its chin up.
+  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
+  // HV-15: the sanitation unit keeps everyone a little healthier
+  if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
+  // HV-16: friends ask, and sometimes stop asking
+  favorLapsed(); maybePostFavor();
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
@@ -41,16 +211,186 @@ function onNewDay(){
     G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
   }
   if(G.structures.workbench&&Math.random()<.04){
-    G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
+    if(G.structures.toolbox){
+      // HV-24: the wobble gets tightened instead of collapsing
+      G.benchSaves=(G.benchSaves||0)+1;
+      log('🧰 The workbench wobbled \u2014 the tool box tightened it back up.');
+    } else {
+      G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
+    }
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
-  if(G.structures.garden){ var y=rand(1,3); G.food+=y; floatText('+'+y+'🍞'); log('Garden yielded '+y+' food.'); }
+  // HV-27: every rainy dawn tops the barrel up, garden or not.
+  if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
+    G.barrelWater=(G.barrelWater||0)+1;
+    log('\ud83d\udee2\ufe0f The rain barrel catches the day \u2014 '+G.barrelWater+'/'+BARREL_CAP+' stored.');
+  }
+  if(G.structures.garden){
+    if(G.weather==='cold'){
+      if(G.structures.compost){
+        // HV-25: the bin's heat keeps one bed alive through frost
+        G.food+=1; G.compostDays=(G.compostDays||0)+1;
+        floatText('+1\ud83c\udf5e');
+        log('\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
+      } else {
+        log('Frost on the beds — the garden gave nothing today.');
+      }
+    }
+    else {
+      var y=rand(1,3);
+      if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
+      if(G.weather!=='rain'&&(G.barrelWater||0)>0){ G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.'); }   // HV-27
+      G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
+    }
+  }
+  if(G.dog===2){
+    // Biscuit's keep: one food a day. Fed, he's warmth against your back
+    // and a reason to get up; hungry, he's a guilt that wears on everyone.
+    if(G.food>=1){
+      G.food-=1; G.dogHungry=false;
+      G.morale=Math.min(100,G.morale+2); G.warmth=Math.min(100,G.warmth+3);
+    } else {
+      G.dogHungry=true; G.morale=Math.max(0,G.morale-2);
+      log('No scraps left for Biscuit. He curls up hungry.');
+    }
+  }
+  regularFavorsAtDawn();
+  repAtDawn();
+  soupNightAtDawn();
+  muralAtDawn();
+  ticketAtDawn();
+  newcomerAtDawn();
+  pantryAtDawn();
 
-  log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'.');
-  buildCraftUI(); buildWorkersUI(); updateHUD();
+  log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
+  if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
+  if(G.weather==='heat') log('\ud83e\udd75 A scorcher. Foot traffic is up — a good day to panhandle.');
+  if(forecastVisible()&&G.forecast&&WEATHERS[G.forecast]) log('\ud83d\udcfb Tomorrow: '+WEATHERS[G.forecast].icon+' '+WEATHERS[G.forecast].name+'.');
+  buildCraftUI(); buildWorkersUI(); buildActionUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
+  checkArc();
+  checkDog();
   checkGameOver(); // after maybeEvent so same-day event damage counts
+}
+
+// ── The regulars (HV-7) ──
+// Affinity bumps arrive from finishAction (trade → Marisol, rest → Ray,
+// panhandle success → Dee). Knowing someone (1+) puts a name to a face;
+// friendship (5+) unlocks their standing favor, applied here and in
+// scavenge's empty-roll.
+function bumpRegular(id){
+  if(!G.regulars) G.regulars={marisol:0,ray:0,dee:0};
+  var before=regularStage(id);
+  G.regulars[id]=Math.min(10,(G.regulars[id]||0)+1);
+  var after=regularStage(id), d=regularDef(id);
+  if(d&&after!==before){
+    if(after===1) log(d.icon+' You learn the name of the one who '+d.who+': '+d.name+'.');
+    else { log(d.icon+' '+d.name+' counts you as a friend now — '+d.name.split(' ')[0]+' '+d.perk+'.');
+      addRep(5); }   // HV-9: a friend who vouches for you carries real weight
+  }
+  buildRegularsUI();
+}
+function regularFavorsAtDawn(){
+  // Marisol: some mornings there's a bag of leftovers on the fence post.
+  if(regularStage('marisol')===2&&Math.random()<.3){
+    var f=rand(2,4); G.food+=f;
+    log('🌮 Marisol left a bag of tamales on the fence post. +'+f+' food.');
+  }
+  // Dee: finds you in bad shape on her way home, once every few days.
+  if(regularStage('dee')===2&&G.health<30&&G.days-(G.lastDeeDay||-9)>=3){
+    G.health=Math.min(100,G.health+10);
+    G.lastDeeDay=G.days;
+    log('🩺 Dee spotted you looking rough and patched you up. +10 health.');
+  }
+}
+
+// ── HV-10: Soup Night — the Soup Kitchen finally does its promised job.
+// If the pot could feed everyone last night (1 food per resident), the
+// camp wakes fed: morale and health up, and sometimes a neighbor who
+// smelled the cooking leaves a little goodwill on the counter. A short
+// pantry just means the pot stayed cold — no punishment for being broke.
+function soupNightAtDawn(){
+  if(!G.structures.soup_kitchen||G.population<1) return;
+  if(G.food<G.population){ log('🍲 The pot stayed cold last night — not enough food to serve everyone.'); return; }
+  G.food-=G.population;
+  G.morale=Math.min(100,G.morale+4);
+  G.health=Math.min(100,G.health+2);
+  G.soupNights=(G.soupNights||0)+1;
+  var extra='';
+  if(Math.random()<.25){ var gg=rand(1,2); G.goodwill+=gg; addRep(1); extra=' A neighbor smelled the cooking and left +'+gg+' goodwill.'; }
+  log('🍲 Soup night — everyone ate hot. +4 morale, +2 health.'+extra);
+}
+
+// ── HV-11: the finished mural greets every morning — a fixed +2 morale
+// at dawn, the permanent payoff for the four-session project.
+function muralAtDawn(){
+  if((G.mural||0)<MURAL_PANELS) return;
+  G.morale=Math.min(100,G.morale+2);
+  if(Math.random()<.15) log('🎨 Morning light on the mural. It helps more than it should.');
+}
+
+// ── HV-9: reputation at dawn — word fades, and Beloved camps wake to
+// the occasional gift on the fence post (once a day at most).
+function repAtDawn(){
+  if(G.days>1&&(G.rep||0)>0) addRep(-1);
+  if(repTier()>=3&&G.repGiftDay!==G.days&&Math.random()<.2){
+    G.repGiftDay=G.days;
+    if(Math.random()<.5){ var gf=rand(1,3); G.food+=gf; log('💛 A neighbor left a covered plate on the fence post. +'+gf+' food.'); }
+    else { var gg=rand(2,4); G.goodwill+=gg; log('💛 An envelope on the fence post — a neighbor saying thanks. +'+gg+' goodwill.'); }
+  }
+}
+
+// ── The stray dog arc (HV-6) ──
+// Staged deterministically like the Case Worker: a thin dog appears at
+// the fence on day 4, and two days later — if the camp can spare food —
+// he decides you're worth trusting. From then on he eats one food a day,
+// buys morale and night warmth, makes panhandling land more often, chases
+// off thieves, and barks a 15-second warning before unwatched sweeps.
+var DOG_EVENTS={
+  stray:{id:'dog_stray',title:'A Stray Dog',type:'good',
+    desc:'A thin dog with one torn ear watches the camp from the fence line. He keeps his distance, but he doesn’t leave. Someone starts calling him Biscuit.',
+    effect:function(){ G.lastEventDay=G.days; G.morale=Math.min(100,G.morale+4);
+      log('A stray dog is hanging around the fence. Keep some food on hand and he may come closer.'); }},
+  joins:{id:'dog_joins',title:'Biscuit Comes Closer',type:'good',
+    desc:'The dog walks into camp like he’s always lived here, eats what’s offered, and falls asleep against the barrel fire. That’s that, then.',
+    effect:function(){ G.lastEventDay=G.days; G.food=Math.max(0,G.food-2);
+      G.morale=Math.min(100,G.morale+10); refreshDog();
+      log('Biscuit joined the camp. One food a day keeps him fed — he earns it.'); }},
+};
+function checkDog(){
+  if(G.dog===0&&G.days>=4){
+    G.dog=1; G.dogMetDay=G.days; refreshDog(); triggerEvent(DOG_EVENTS.stray,true); saveGame();
+  } else if(G.dog===1&&G.days>=G.dogMetDay+2&&G.food>=3){
+    G.dog=2; triggerEvent(DOG_EVENTS.joins,true); saveGame();
+  }
+}
+
+// ── The Case Worker arc (IDEA-HV-3) ──
+// The one storyline with an exit. Three staged milestones checked each
+// new day — not random-pool events, so the chain can't be missed — and
+// the finale is an actual ending: keys to transitional housing, with a
+// sandbox continue for players who want to keep building the camp.
+var ARC_EVENTS={
+  card:{id:'arc_card',title:'The Case Worker',type:'good',
+    desc:'A county case worker named Dena stops by. She looks around — people fed, fire going, something like order. "This isn\u2019t nothing," she says, and leaves her card.',
+    effect:function(){ G.lastEventDay=G.days; G.morale=Math.min(100,G.morale+8);
+      log('Dena the case worker left her card. Keep the camp strong — build the Soup Kitchen, grow to 4 people.'); }},
+  paperwork:{id:'arc_paperwork',title:'Paperwork, Hope',type:'good',
+    desc:'Dena is back with forms. A transitional-housing pilot wants people who can hold a community together. "Keep morale up and put some goodwill aside — I\u2019ll file it."',
+    effect:function(){ G.lastEventDay=G.days; G.morale=Math.min(100,G.morale+10);
+      log('Housing paperwork started. Dena needs: 25 goodwill saved and morale above 60.'); }},
+};
+function checkArc(){
+  if(G.arcDone) return;
+  if(G.arcStage===0 && G.days>=10 && G.goodwill>=15){
+    G.arcStage=1; triggerEvent(ARC_EVENTS.card,true); saveGame();
+  } else if(G.arcStage===1 && G.structures.soup_kitchen && G.population>=4){
+    G.arcStage=2; triggerEvent(ARC_EVENTS.paperwork,true); saveGame();
+  } else if(G.arcStage===2 && G.goodwill>=25 && G.morale>60){
+    G.arcStage=3; saveGame();
+    showGraduation();
+  }
 }
 
 // The warmth/food drain and events above clamp health at 0 but nothing
@@ -61,6 +401,11 @@ function checkGameOver(){
 
 function tickDay(dt){
   if(gameOverShown) return; // time stops behind the game-over overlay
+  // HV-56: and behind the crash course. Reading how the camp works should
+  // not cost you the daylight you are reading about — a new player who
+  // takes a minute over it would otherwise come back to a colder night
+  // than the one they started with.
+  if(introOpen()) return;
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
@@ -90,9 +435,31 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
-     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.3+Math.random()*.4)));
-     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.2+Math.random()*.3)));
+     // A packed camp keeps 75% of what the sweep would have taken —
+     // the payoff for spending the Lookout's warning window on the
+     // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
+     // stash halves the take again — they can't confiscate what they
+     // can't find, and the hole itself is never discovered.
+     var keep=(G.packedUp?0.25:1)*(G.structures.stash?0.5:1);
+     // HV-29: a camp covered by Marisol's garage has nothing out to
+     // take — the confiscation comes up empty and the cover is spent.
+     if(G.garageCover){
+       keep=0; G.garageCover=false; G.garageSaves=(G.garageSaves||0)+1;
+       log('\uD83D\uDE99 The sweep found nothing loose \u2014 it all spent the night in Marisol\u2019s garage.');
+     }
+     var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
+     var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
+     G.scraps=Math.max(0,G.scraps-lostScraps);
+     G.food  =Math.max(0,G.food  -lostFood);
      G.morale=Math.max(0,G.morale-rand(15,25));
+     // HV-11: they can tear down tents, not paint — a finished mural
+     // blunts the demoralizing part of watching the camp get cleared.
+     if((G.mural||0)>=MURAL_PANELS){
+       G.morale=Math.min(100,G.morale+5);
+       log('The mural still stands over the wreckage. It helps.');
+     }
+     if(G.packedUp) log('Packing up paid off — most supplies were saved.');
+     G.packedUp=false;
      refreshStructures(); showSweepWarning(false);
    }},
   {id:'cold_snap',title:'Cold Snap',type:'bad',weight:14,
@@ -108,10 +475,13 @@ var EVENTS_BAD=[
    desc:'Someone raided your stash in the night. Trust no one.',
    effect:function(){
      G.lastEventDay=G.days;
-     G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)));
-     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)));
-     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)));
-     G.morale=Math.max(0,G.morale-rand(12,20)); log('Stash raided in the night.');
+     var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
+     var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
+     G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
+     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
+     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
+     G.morale=Math.max(0,G.morale-rand(12,20));
+     log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
@@ -200,13 +570,25 @@ var EVENTS_GOOD=[
 
 function maybeEvent(){
   if(G.days<2||Math.random()>.55) return;
-  if(Math.random()<.18&&!G.sweepWarned){
+  // HV-9: a Respected camp draws fewer complaint calls — sweeps come
+  // a third less often once the neighborhood vouches for you.
+  if(Math.random()<.18*(repTier()>=2?.67:1)&&!G.sweepWarned){
     if(G.workers.lookout){
-      G.sweepWarned=true; showSweepWarning(true);
+      G.sweepWarned=true; G.packedUp=false;
+      showSweepWarning(true, Date.now()+30000);
       log('LOOKOUT: Police activity nearby. Sweep in ~30 seconds!');
       setTimeout(function(){
         if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
       },30000);
+    } else if(G.dog===2){
+      // HV-6: no Lookout, but Biscuit hears the trucks — half the warning
+      // window a paid Lookout gives, still enough to hit PACK UP.
+      G.sweepWarned=true; G.packedUp=false;
+      showSweepWarning(true, Date.now()+15000);
+      log('Biscuit will not stop barking at the road. Something is coming — ~15 seconds!');
+      setTimeout(function(){
+        if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
+      },15000);
     } else {
       triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
     }
@@ -284,6 +666,7 @@ function sfx(kind){
   if(!audioCtx) return;
   var notes={
     action:  [440,660],
+    error:   [220,175],
     craft:   [523,659,784],
     hire:    [392,523,659],
     goal:    [523,659,784,1047],
