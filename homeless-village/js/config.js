@@ -373,7 +373,7 @@ function fridgeCamps(){ return loadFridge().camps; }
 // here has ever seen lives in its own key, across every Start Over.
 // The mark standing when the session opened is the bar — outlast it
 // once a session and the fire feels it. The bridge keeps score.
-var HVREC_KEY='hv-record', HVREC_MORALE=3;
+var HVREC_KEY='hv-record', HVREC_MORALE=3, HVREC_WARMTH=8;
 var hvRecMark=null, hvRecRung=false;
 function loadHvRec(){
   try{ var r=JSON.parse(localStorage.getItem(HVREC_KEY)||'null');
@@ -762,8 +762,12 @@ function recordDays(d){
     var starStood=(r.beats||0)>=HVSTAR_AT;
     r.beats=(r.beats||0)+1; saveHvRec(r);
     G.morale=Math.min(100,(G.morale||0)+HVREC_MORALE);
-    floatText('+'+HVREC_MORALE+'\ud83d\ude0a');
-    log('\ud83d\udcc8 Day '+d+' \u2014 no camp under this bridge has ever held longer. The fire feels it.');
+    // HV-123: the line said the fire feels it. Morale is the camp's
+    // chin. The barrel is the fire. A beaten morning used to leave
+    // the lights exactly where they were.
+    G.warmth=Math.min(100,(G.warmth||0)+HVREC_WARMTH);
+    floatText('+'+HVREC_MORALE+'\ud83d\ude0a +'+HVREC_WARMTH+'\ud83d\udd25');
+    log('\ud83d\udcc8 Day '+d+' \u2014 no camp under this bridge has ever held longer. The fire feels it. +'+HVREC_MORALE+'\ud83d\ude0a, +'+HVREC_WARMTH+'\ud83d\udd25');
     // HV-38: under the chalk star, the story feeds the camp.
     if(starStood){
       var st=loadHvStar(); saveHvStar({cheers:st.cheers+1});
