@@ -107,13 +107,22 @@ function finishAction(a){
     // HV-7: Old Ray knows which dumpsters are worth the walk — empty
     // hauls happen half as often once he's a friend.
     if(Math.random()<.2*wm*(regularStage('ray')===2?.5:1)){
-      log('The dumpster is empty. Nothing today.');
+      // HV-113: the miss used to say "today". The cooldown is eight
+      // seconds and Ray's friend can still find scraps the same day.
+      log('The dumpster is empty. Nothing this time.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
-      G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
-      var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
-      if(parts.length) floatText(parts.join(' '));
-      log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
+      // HV-113: winter halves the yield. floor(rand * 0.5) can be
+      // 0/0/0 — that is an empty bin, not a dumpster dug.
+      if(c+s+f<=0){
+        log('The dumpster is empty. Nothing this time.');
+      } else {
+        G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
+        var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
+        if(parts.length) floatText(parts.join(' '));
+        log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.');
+      }
+    }
   } else if(a.id==='forage'){
     var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
     floatText('+'+w+'🪵 +'+cb+'📦');
