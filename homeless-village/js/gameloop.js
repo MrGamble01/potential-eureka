@@ -212,7 +212,17 @@ function onNewDay(){
   // HV-16: friends ask, and sometimes stop asking
   favorLapsed(); maybePostFavor();
   G.morale=Math.max(0,G.morale-3);
-  if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
+  if(G.warmth<20){
+    var coldBite=rand(5,12);
+    // HV-144: spare socks on the community shelf — wet feet stay
+    // dry, so the cold's health bite comes in half. The empty
+    // larder below is hunger, not feet; it stays full.
+    if(fridgeHasShelf()){
+      coldBite=shelfSockBite(coldBite);
+      log('\ud83e\udde6 Spare socks off the community shelf \u2014 wet feet stay dry. The cold bite is half.');
+    }
+    G.health=Math.max(0,G.health-coldBite);
+  }
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
 
   if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
