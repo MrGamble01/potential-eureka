@@ -81,13 +81,16 @@ ok(!/tamales/.test(ui) && !/fence post/.test(ui),
     G.lastEventDay = G.days + 5;
     G.forecast = weather;
     G.snapUntil = null;
+    log('HV191-MARK');
     onNewDay();
     Math.random = real;
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
+    const mark = lines.findLastIndex(t => /HV191-MARK/.test(t));
+    const newest = (mark >= 0 ? lines.slice(mark + 1) : lines.slice(-8)).join('\n');
     return {
       food: G.food,
-      soaked: /rain|soak/i.test(log) && /tamales|fence post/i.test(log),
-      dry: /left a bag of tamales on the fence post\. \+/.test(log),
+      soaked: /soaked/i.test(newest) && /tamales|fence post/i.test(newest),
+      dry: /left a bag of tamales on the fence post\. \+\d+ food/.test(newest),
     };
   }, { weather, friend });
 
