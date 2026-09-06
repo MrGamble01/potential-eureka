@@ -438,13 +438,14 @@ const DECOR={
   snowman:{name:'Snowman', ico:'☃️', cost:30, lvl:3},
   birdbath:{name:'Bird Bath',ico:'🐦', cost:50, lvl:4},
   sprinkler:{name:'Sprinkler',ico:'⛲', cost:60, lvl:5},
+  kite:   {name:'Kite',     ico:'🪁', cost:150, lvl:11},
 };
 const LVL_XP=[0,30,90,200,380,650,1050,1600,2400,3500,5000,6800,9000];   // cumulative; level = idx+1
 const UNLOCKS={2:'Carrot seeds · Planks, Path, Fences',3:'Lavender seeds · Lanterns',
   4:'Pumpkin seeds · Garden gnome · 🏝️ EAST ISLET appears!',5:'Chili peppers · Berry bushes · Sprinklers',
   6:'Moonpetal seeds · 🏝️ WEST ISLET appears!',7:'Star tree saplings · Frostbloom seeds',
   8:'Glowshrooms · 🏝️ SOUTH ISLET appears!',9:'Crystalberry crystals',
-  10:'A master gardener of the skies 🌈',11:'The isle hums with life',
+  10:'A master gardener of the skies 🌈',11:'Kites · the isle hums with life',
   12:'Nothing left to prove — everything left to grow 🌟'};
 const ISLETS=[
   {id:0,x:27,z:6,r:7,lvl:4,seedOff:101,name:'East Islet'},
@@ -3470,6 +3471,15 @@ function cubesFor(type,stage,vseed){
       add(0,0.48,0,0.26,0.1,0.26,0x5a9fd4);
       add(0,0.56,0,0.1,0.08,0.1,0x7ec8ff);
       break;
+    case 'kite':
+      add(0,0.3,0,0.06,0.6,0.06,0x8a6740);          // post
+      add(0.05,0.65,0.05,0.03,0.35,0.03,0xd9d9d9);  // taut string
+      add(0.06,1.0,0.1,0.2,0.2,0.04,0xff5c7a);       // kite body — left half
+      add(0.26,1.0,0.1,0.2,0.2,0.04,0xffcf3e);       // kite body — right half
+      add(0.16,0.86,0.1,0.06,0.06,0.04,0x4a3a2a);    // center spar
+      add(0.13,0.68,0.1,0.05,0.05,0.03,0x7ec8ff);    // tail bow
+      add(0.2,0.58,0.1,0.05,0.05,0.03,0xffcf3e);     // tail bow
+      break;
     case 'glowshroom':
       add(0,0.16,0,0.12,0.32,0.12,0xd8e8e0);
       if(stage>=2){
@@ -4720,6 +4730,7 @@ function placeSelected(x,y,z){
     if(!spendCoins(d.cost))return;
     addPlant(x,y,z,sel);
     state.decor++;SFX.play('place');
+    if(sel==='kite')state.achFlags.kite=true;
     burst(x+0.5,y+0.5,z+0.5,0xffe9b8,8,{up:1.6,g:5});
     questCheck();
   } else {
@@ -5384,6 +5395,7 @@ const ACH=[
   ['inseason','Perfect Timing','Harvest a crop in its favoured season',()=>!!state.achFlags.inseason],
   ['mead','Meadery','Ferment a cask of mead at the Brewery',()=>!!state.achFlags.mead],
   ['breed','New Arrivals','Have a baby animal born on your isle',()=>!!state.achFlags.breed],
+  ['kite','Catch the Wind','Fly a Kite',()=>!!state.achFlags.kite],
   ['rich','Rich Soil','Earn 1,000 coins in total',()=>state.totalEarned>=1000],
   ['bloom','Full Bloom','Have 20 plants growing at once',
     ()=>[...W.plants.values()].filter(p=>PLANTS[p.type]).length>=20],
