@@ -69,7 +69,8 @@ ok(!/FRIDGE_SHELF_WARMTH/.test(ui) && !/fridgeHasShelf/.test(ui),
 
   // --- B. the sixth camp under the shelf --------------------------------
   const sixth = await t(() => ({
-    at: FRIDGE_SHELF_AT, seed3: FRIDGE_SEED3, warm: FRIDGE_SHELF_WARMTH,
+    at: FRIDGE_SHELF_AT, seed3: FRIDGE_SEED3,
+    warm: typeof FRIDGE_SHELF_WARMTH === 'number' ? FRIDGE_SHELF_WARMTH : null,
     camps: loadFridge().camps, hasShelf: fridgeHasShelf(),
     goodwill: G.goodwill, warmth: G.warmth,
     log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
