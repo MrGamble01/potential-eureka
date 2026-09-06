@@ -594,7 +594,7 @@ function hvStoryDish(){ return HVSTORY_BASE + HVSTORY_PER*Math.min(loadHvBench()
 // whole bridge story, three chords, everybody hums along. Once a
 // session a playing pays: 7 food base + 1 per telling (cap 5).
 // Playings tallied in 'hv-song'.
-var HVSONG_KEY='hv-song', HVSONG_BASE=7, HVSONG_PER=1;
+var HVSONG_KEY='hv-song', HVSONG_BASE=7, HVSONG_PER=1, HVSONG_HAT=3;
 var balladPlayed=false;
 function loadHvSong(){
   try{ var s=JSON.parse(localStorage.getItem(HVSONG_KEY)||'null');
