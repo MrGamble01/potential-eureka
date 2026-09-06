@@ -40,6 +40,8 @@ function doAction(a){
   if(a.id==='oddjob' && oddJobDone()){ log('Today’s odd job is done — check the board tomorrow.'); return; }
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
+    // HV-170: wet paint needs a dry night. Rain on the wall is a wash.
+    if(G.weather==='rain'){ log('🎨 The paint won’t dry in this rain — wait for a clearer sky.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
@@ -437,21 +439,24 @@ function finishAction(a){
     // HV-11: one painting session. doAction gates cost and cadence, but
     // re-check here so a queued double-fire can't paint two panels a day.
     if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
-      G.scraps-=2; G.mural=(G.mural||0)+1; G.muralDay=G.days;
-      G.morale=Math.min(100,G.morale+3);
-      addRep(2);
-      floatText('🎨 +3😊');
-      log('🎨 '+MURAL_LINES[G.mural-1]);
-      var painters=REGULARS.filter(function(r){ return regularStage(r.id)===2; });
-      if(painters.length) log(painters[0].icon+' '+painters[0].name+' came by to paint a while.');
-      if(G.mural>=MURAL_PANELS){
-        G.goodwill+=5;
-        addRep(5);
-        log('🎨 The mural is finished. People slow down to look now. +5 goodwill.');
+      if(G.weather==='rain'){ log('🎨 The paint won’t dry in this rain — wait for a clearer sky.'); }
+      else {
+        G.scraps-=2; G.mural=(G.mural||0)+1; G.muralDay=G.days;
+        G.morale=Math.min(100,G.morale+3);
+        addRep(2);
+        floatText('🎨 +3😊');
+        log('🎨 '+MURAL_LINES[G.mural-1]);
+        var painters=REGULARS.filter(function(r){ return regularStage(r.id)===2; });
+        if(painters.length) log(painters[0].icon+' '+painters[0].name+' came by to paint a while.');
+        if(G.mural>=MURAL_PANELS){
+          G.goodwill+=5;
+          addRep(5);
+          log('🎨 The mural is finished. People slow down to look now. +5 goodwill.');
+        }
+        refreshStructures();
+        saveGame();
+        buildActionUI();
       }
-      refreshStructures();
-      saveGame();
-      buildActionUI();
     }
   } else if(a.id==='meeting'){
     // HV-14: re-check so a queued double-fire can't hold two circles.
