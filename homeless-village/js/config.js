@@ -28,6 +28,10 @@ var G = {
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.
   friendDay: -1,
+  // HV-75: the day a Blanket was crafted. Dawn skips that night's
+  // seasonDrain — "tonight", not a daytime +15 that winter eats.
+  // -1 = no night pending.
+  blanketNight: -1,
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
   // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),

@@ -567,6 +567,9 @@ function finishCraft(r){
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
+  // HV-75: a Blanket is "tonight". The +15 is the wrap; the night
+  // is a dawn latch. Firewood is also +warmth and must not stamp.
+  if(r.id==='blanket') G.blanketNight=G.days;
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
   sfx('craft');

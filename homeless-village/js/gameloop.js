@@ -203,7 +203,16 @@ function onNewDay(){
   }
   // HV-54: the empty hook eases the season's own base drain, which is
   // the one part of the cold the coat rack above never touches.
-  G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
+  var nightDrain=seasonDrain();
+  // HV-75: a Blanket promised tonight, not a daytime +15. The next
+  // dawn skips the season's base drain — the night the recipe named.
+  // Weather bite and the snap still land (that's the coat rack).
+  if(typeof G.blanketNight==='number' && G.blanketNight>=0 && G.days>G.blanketNight){
+    nightDrain=0;
+    G.blanketNight=-1;
+    log('🧣 The blanket held through the night.');
+  }
+  G.warmth=Math.max(0,Math.min(100,G.warmth-nightDrain-wBite-snapBite));
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
