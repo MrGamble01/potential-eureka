@@ -203,7 +203,14 @@ function onNewDay(){
   }
   // HV-54: the empty hook eases the season's own base drain, which is
   // the one part of the cold the coat rack above never touches.
-  G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
+  // HV-84: a standing tent is the roof — half that remaining base.
+  // seasonDrain() itself stays 8/18 so hvhook's contract does not move.
+  var nightCold=seasonDrain();
+  if(G.structures.tent){
+    nightCold=Math.floor(nightCold*TENT_CUT);
+    log('\ud83c\udfd5\ufe0f The tent held the night \u2014 a roof of sorts.');
+  }
+  G.warmth=Math.max(0,Math.min(100,G.warmth-nightCold-wBite-snapBite));
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
