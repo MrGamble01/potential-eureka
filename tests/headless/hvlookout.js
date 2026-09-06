@@ -35,7 +35,7 @@ const look = lookAt >= 0 ? cfg.slice(lookAt, lookAt + 220) : '';
 const radioAt = cfg.indexOf("id:'radio'");
 const radio = radioAt >= 0 ? cfg.slice(radioAt, radioAt + 280) : '';
 const dawnAt = loop.indexOf("if(forecastVisible()");
-const dawn = dawnAt >= 0 ? loop.slice(dawnAt, dawnAt + 280) : '';
+const dawn = dawnAt >= 0 ? loop.slice(dawnAt, dawnAt + 420) : '';
 
 ok(/lookout/.test(look) && /tomorrow|sky|forecast|weather/i.test(look),
   'A. Lookout hire copy mentions tomorrow\'s sky, not only sweeps');
@@ -63,48 +63,41 @@ ok(!/Tomorrow/.test(ui) && /forecastVisible/.test(ui),
   await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load', timeout: 25000 });
   await page.waitForTimeout(2200);
 
-  const newLines = (before) => page.evaluate((n) =>
-    Array.from(document.querySelectorAll('.log-line')).slice(n).map(d => d.textContent).join('\n'), before);
-
-  const lineCount = () => page.evaluate(() => document.querySelectorAll('.log-line').length);
-
-  const quietDawn = (workers, structures) => page.evaluate((w, s) => {
+  const quietDawn = (who) => page.evaluate((flags) => {
     Object.assign(G, {
       dog: 1, dogMetDay: 999, lastEventDay: 9999, goalIndex: 9999,
       days: 5, timeOfDay: 0.98, food: 12, warmth: 70, population: 1,
       morale: 70, health: 80, goodwill: 10, money: 20,
       weather: 'clear', forecast: 'clear', snapUntil: null,
-      rayDebt: 0, rainBetOn: false, arcStage: 1, arcDone: false,
-      workers: Object.assign({ scrapper: false, builder: false, cook: false, lookout: false }, w || {}),
-      structures: Object.assign({
-        tent: false, fire: true, stash: false, garden: false,
-        kitchen: false, clinic: false, soup_kitchen: false, radio: false
-      }, s || {})
+      rayDebt: 0, rainBetOn: false, arcStage: 1, arcDone: false
     });
+    G.workers.scrapper = false; G.workers.builder = false;
+    G.workers.cook = false;
+    G.workers.lookout = !!flags.lookout;
+    G.structures.garden = false; G.structures.soup_kitchen = false;
+    G.structures.radio = !!flags.radio;
     Math.random = () => 0.9;
+    // The feed only keeps 6 lines. Flush leftovers so this dawn is
+    // the only thing we read.
+    for (var i = 0; i < 6; i++) log('---');
     onNewDay();
-  }, workers, structures);
+    return Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
+  }, who);
 
-  let n = await lineCount();
-  await quietDawn({ lookout: true }, { radio: false });
-  const eye = await newLines(n);
-  const eyeLine = (eye.split('\n').find(l => /Tomorrow/.test(l)) || '');
+  const eye = await quietDawn({ lookout: true, radio: false });
+  const eyeLine = (eye.find(l => /Tomorrow/.test(l)) || '');
   ok(/Tomorrow/.test(eyeLine),
     `B. Lookout, no radio — dawn still prints Tomorrow (${eyeLine || 'no line'})`);
   ok(eyeLine && !/\ud83d\udcfb/.test(eyeLine) && !/📻/.test(eyeLine),
     `B. that Tomorrow line is not a radio the camp never built (${eyeLine})`);
 
-  n = await lineCount();
-  await quietDawn({ lookout: false }, { radio: true });
-  const band = await newLines(n);
-  const bandLine = (band.split('\n').find(l => /Tomorrow/.test(l)) || '');
+  const band = await quietDawn({ lookout: false, radio: true });
+  const bandLine = (band.find(l => /Tomorrow/.test(l)) || '');
   ok(/Tomorrow/.test(bandLine),
     `B. Radio, no Lookout — the weather band still prints Tomorrow (${bandLine || 'no line'})`);
 
-  n = await lineCount();
-  await quietDawn({ lookout: false }, { radio: false });
-  const blind = await newLines(n);
-  ok(!/Tomorrow/.test(blind),
+  const blind = await quietDawn({ lookout: false, radio: false });
+  ok(!blind.some(l => /Tomorrow/.test(l)),
     'B. neither Lookout nor Radio — no Tomorrow line');
 
   await browser.close();
