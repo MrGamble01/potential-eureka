@@ -99,6 +99,8 @@ ok(!/G\.cardboard\s*=/.test(ui),
     `cans, food, and scraps still go (${theft.cans}/${theft.food}/${theft.scraps})`);
   ok(theft.wood === 20,
     `wood still sits — not this ticket (${theft.wood})`);
+  ok(/cardboard/i.test(theft.log),
+    `the log names the cardboard (${theft.log.slice(-80)})`);
 
   const sweep = await page.evaluate(() => {
     const real = Math.random;
