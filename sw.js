@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v184-hv-pantrysweep';  // HV-184: sweep kicks over the pantry box
+const SW_VERSION = 'eureka-v185-hv-pantrysweep';  // HV-185: sweep kicks over the pantry box
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

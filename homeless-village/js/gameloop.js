@@ -451,7 +451,7 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
-     // HV-184: the pantry promised a box on a post. City Sweep
+     // HV-185: the pantry promised a box on a post. City Sweep
      // destroys shelters. The box sits in the open, so unlike the
      // buried stash it is not a coin-flip.
      if(G.structures.pantry){ G.structures.pantry=false; log('The pantry box was kicked over and smashed.'); }
