@@ -1,4 +1,4 @@
-/* HV-78 — City Sweep said confiscate supplies and left the cans.
+/* HV-79 — City Sweep said confiscate supplies and left the cans.
  *
  * The card promises: "They destroy shelters and confiscate supplies."
  * The effect took scraps and food. Cans — the dumpster haul, the
@@ -39,7 +39,7 @@ ok(/G\.scraps/.test(sweep) && /G\.food/.test(sweep),
    'the sweep still takes scraps and food — we did not drop the old haul');
 
 ok(/G\.cans/.test(sweep) && /lostCans/.test(sweep),
-   'HV-78: that same effect subtracts G.cans');
+   'HV-79: that same effect subtracts G.cans');
 
 ok(/packedUp/.test(sweep) && /stash/.test(sweep) && /garageCover/.test(sweep),
    'Pack Up, the stash and the garage still own the keep — cans ride the same cover');
@@ -105,7 +105,7 @@ ok(!/sweep/.test(ui) || !/lostCans/.test(ui),
   ok(raw.scraps === 10 && raw.food === 13,
      `isolation: scraps and food still move (scraps ${raw.scraps}, food ${raw.food})`);
   ok(raw.cans === 13,
-     `HV-78: an uncovered sweep confiscates cans too (cans ${raw.cans})`);
+     `HV-79: an uncovered sweep confiscates cans too (cans ${raw.cans})`);
 
   const covered = await page.evaluate(() => {
     const real = Math.random;
