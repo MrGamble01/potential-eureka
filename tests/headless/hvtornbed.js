@@ -91,14 +91,15 @@ ok(door && /structures\.tent/.test(door[1]) && welcome && /structures\.tent/.tes
     G.wood = 10;
     G.morale = 50;
     G.rep = 60;
+    const before = document.querySelectorAll('.log-line').length;
     finishAction(newcomerAction());
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    const added = Array.from(document.querySelectorAll('.log-line')).slice(before).map(d => d.textContent).join('\n');
     return {
       pop: G.population,
       food: G.food,
       wood: G.wood,
       ask: !!G.newcomerAsk,
-      seated: /bed by the fire/i.test(log) && /one bigger/i.test(log),
+      seated: /bed by the fire/i.test(added),
     };
   });
   ok(torn.pop === 2 && torn.food === 10 && torn.wood === 10 && !torn.seated,
