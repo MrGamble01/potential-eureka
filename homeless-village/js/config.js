@@ -563,6 +563,8 @@ function notebookDish(){ return HVGB_BASE + HVGB_PER*Math.min(loadHvAnniv().toas
 // from scrap and good intentions. Once a session a sit pays: 5
 // food base + 1 per leaf (cap 5). Sits tallied in 'hv-bench'.
 var HVBEN_KEY='hv-bench', HVBEN_BASE=5, HVBEN_PER=1;
+// HV-113: "something warm" is warmth, not just the food dish.
+var HVBEN_WARMTH=3;
 var benchSat=false;
 function loadHvBench(){
   try{ var b=JSON.parse(localStorage.getItem(HVBEN_KEY)||'null');
