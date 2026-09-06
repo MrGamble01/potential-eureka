@@ -411,6 +411,10 @@ function tickDay(dt){
   // a player who spends a minute on it would otherwise come back to a
   // later hour, a colder night, possibly a new dawn.
   if(bridgeOpen()) return;
+  // HV-72: City Sweep / Kind Stranger / Cold Snap land in #event-banner.
+  // Reading a card near dawn must not burn the morning — same pause
+  // as the intro and The Bridge. ui.js still only shows and hides it.
+  if(eventOpen()) return;
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 

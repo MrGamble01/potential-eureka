@@ -959,3 +959,11 @@ function bridgeOpen(){
   var m = document.getElementById('chain-modal');
   return !!(m && m.classList.contains('open'));
 }
+
+// HV-72: the event banner is the same class of reading. Declared here
+// beside bridgeOpen so tickDay can ask it without adding an API to
+// ui.js (which owns showEvent / closeEvent).
+function eventOpen(){
+  var b = document.getElementById('event-banner');
+  return !!(b && b.style.display === 'block');
+}
