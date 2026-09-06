@@ -450,7 +450,16 @@ var EVENTS_BAD=[
      // The Garden's own description ("Gets destroyed in sweeps") promised
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
-     if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
+     if(G.structures.garden){
+       G.structures.garden=false; log('The garden was trampled and torn up.');
+       // HV-145: the compost lives in those beds. A sweep that tears
+       // up the plot takes the bin with it. A bin with no garden
+       // standing is not in the beds and stays.
+       if(G.structures.compost){
+         G.structures.compost=false;
+         log('The compost bin went over with the beds.');
+       }
+     }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
