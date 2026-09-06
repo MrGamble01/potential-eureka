@@ -3059,10 +3059,17 @@ const AgeOfWarGame = (() => {
       btn.onclick = () => {
         difficulty = btn.dataset.diff;
         try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
-        // Reflect in both pill rows
-        document.querySelectorAll('.aow-diff button').forEach(b => {
+        // Only the two difficulty rows. The banner row used to share
+        // `.aow-diff` and this fan-out cleared every banner pill (AOW-19b).
+        document.querySelectorAll('#aow-diff button, #aow-diff-modal button').forEach(b => {
           b.classList.toggle('active', b.dataset.diff === difficulty);
         });
+        const banRow = document.getElementById('aow-banner');
+        if (banRow) {
+          banRow.querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b.dataset.banner === warBanner);
+          });
+        }
         // GAME-1c: unify with the HUD difficulty switch, which already
         // resets the run on change (below). Without this, switching here
         // changed difficulty mid-run with none of the HUD switch's reset,
