@@ -216,6 +216,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-244: Sit on the Bench said once a session. finishAction
+  // already logs the seat keeps and no-ops. Clicking 🪑 after
+  // the sit still started the 2s job and charged the 30s lock.
+  // A missing bench is HV-222.
+  if(a.id==='bench' && hvBenchBuilt() && benchSat){
+    log('\ud83e\ude91 The bench got its sit today — the seat keeps.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
