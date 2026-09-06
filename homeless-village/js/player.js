@@ -168,9 +168,18 @@ function finishAction(a){
       bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
-    var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
+    var h=rand(5,15), m=rand(3,8);
+    // HV-210: Illness Spreading said everyone feels terrible. The
+    // same well-day rest used to wipe the bug in three seconds.
+    if(G.sickDay===G.days){
+      h=Math.max(1,Math.floor(h/2));
+      m=Math.max(1,Math.floor(m/2));
+    }
+    G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+m);
     floatText('+'+h+'❤️');
-    log('You rest. Health +'+h+'.');
+    log(G.sickDay===G.days
+      ? 'You rest, but the bug is still going around. Health +'+h+'.'
+      : 'You rest. Health +'+h+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
     if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
