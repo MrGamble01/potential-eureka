@@ -159,6 +159,10 @@ function snapAtDawn(){
 function onNewDay(){
   G.days++; saveGame();
   recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
+  // HV-112: the fifth panel's refusal promised today. panelStood was
+  // a session latch that never cleared, so the paint never dried
+  // unless the tab reloaded.
+  panelStood=false;
   G.season=Math.floor(G.days/7)%4;
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll
   G.weather=G.forecast||rollWeather();
