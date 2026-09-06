@@ -959,3 +959,10 @@ function bridgeOpen(){
   var m = document.getElementById('chain-modal');
   return !!(m && m.classList.contains('open'));
 }
+
+// HV-64: Keys in Hand is the same class of reading — the ending card.
+// Declared here beside introOpen / bridgeOpen so tickDay can ask it
+// without adding an API to ui.js (which owns the overlay).
+function keysOpen(){
+  return !!document.getElementById('hv-graduation');
+}
