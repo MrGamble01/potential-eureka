@@ -19,6 +19,7 @@
  *  D. A bare camp, pinned roll: full dose (health −12, food −2).
  *  E. The same roll with the unit: half dose, and the log names it.
  *  F. Injury still ignores the unit. Dawn +1 still lands.
+ *  G. Sickness keeps the same-day Rest and next-breakfast Cook stamps.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives triggerEvent on the production sickness path.
@@ -38,6 +39,10 @@ const sick = /id:'sickness'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.ex
 ok(!!sick, 'sickness event is still in gameloop.js');
 ok(sick && /petitions/.test(sick[1]) && /sanitation/.test(sick[1]),
   'HV-181: sickness effect consults the sanitation unit');
+ok(sick && /G\.sickDay\s*=\s*G\.days\s*;/.test(sick[1]),
+  'HV-210: sickness still stamps the same-day Rest penalty');
+ok(sick && /G\.sickUntil\s*=\s*G\.days\s*\+\s*1\s*;/.test(sick[1]),
+  'HV-240: sickness still stamps the next-breakfast Cook penalty');
 ok(/title:'Illness Spreading'/.test(loop) && /bug is going through the camp/.test(loop),
   'the card is still Illness Spreading — a bug through the camp');
 ok(/id:'sanitation'[\s\S]{0,180}?Everyone wakes \+1 health at dawn/.test(cfg),
