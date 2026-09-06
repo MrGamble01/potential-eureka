@@ -104,7 +104,10 @@ var RECIPES = [
 var WEATHERS = {
   clear: {icon:'\u2600\ufe0f',  name:'Clear',     warmth:0,   pan:1,    scav:1},
   rain:  {icon:'\ud83c\udf27\ufe0f', name:'Rain',      warmth:5,   pan:0.5,  scav:1.25},
-  cold:  {icon:'\u2744\ufe0f',  name:'Cold Snap', warmth:12,  pan:0.75, scav:0.75},
+  // HV-90: this is a single-day sky. The Cold Snap is G.snapUntil —
+  // two winter days, a goal, a break. Sharing the name made a quiet
+  // cold morning read as the snap.
+  cold:  {icon:'\u2744\ufe0f',  name:'Hard Freeze', warmth:12,  pan:0.75, scav:0.75},
   heat:  {icon:'\ud83e\udd75',  name:'Heat Wave', warmth:-8,  pan:1.5,  scav:1},
 };
 function rollWeather(){
