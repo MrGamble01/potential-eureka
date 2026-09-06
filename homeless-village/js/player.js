@@ -115,7 +115,11 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
+    // HV-125: a cold morning said the cold gets into everything.
+    // Dumpsters already read the sky. The woods never did.
+    var wm=G.weather==='cold'?.5:1;
+    var w=Math.floor(rand(1,4)*wm), cb=Math.floor(rand(2,6)*wm);
+    G.wood+=w; G.cardboard+=cb;
     floatText('+'+w+'🪵 +'+cb+'📦');
     log('Found '+w+' wood and '+cb+' cardboard.');
   } else if(a.id==='panhandle'){
