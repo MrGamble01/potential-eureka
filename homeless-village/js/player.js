@@ -173,7 +173,7 @@ function doAction(a){
   }
   // HV-225: Pass the Thermos said it goes around the fire.
   // Fire Went Out dims the barrel; do not start the 2s job or
-  // stamp thermosUsed. A cold thermos and a already-poured
+  // stamp thermosUsed. A cold thermos and an already-poured
   // round are other tickets. The pour stays morale.
   if(a.id==='thermos' && thermosHasWarmth() && !thermosUsed && Date.now()<(G.fireOutUntil||0)){
     log('\ud83e\uded6 The fire is out — the thermos waits until the barrel is lit.');
