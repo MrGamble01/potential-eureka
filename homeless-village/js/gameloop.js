@@ -306,7 +306,9 @@ function regularFavorsAtDawn(){
     log('🌮 Marisol left a bag of tamales on the fence post. +'+f+' food.');
   }
   // Dee: finds you in bad shape on her way home, once every few days.
-  if(regularStage('dee')===2&&G.health<30&&G.days-(G.lastDeeDay||-9)>=3){
+  // HV-115: the perk says bad shape. The latch was health<30, so a
+  // HUD that read 30 walked past her. Thirty percent is the line.
+  if(regularStage('dee')===2&&G.health<=30&&G.days-(G.lastDeeDay||-9)>=3){
     G.health=Math.min(100,G.health+10);
     G.lastDeeDay=G.days;
     log('🩺 Dee spotted you looking rough and patched you up. +10 health.');
