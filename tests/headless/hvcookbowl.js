@@ -33,8 +33,7 @@ ok(/One food a day keeps him fed/.test(src),
   'Biscuit still says one food a day keeps him fed');
 ok(/The Cook prepared meals/.test(src),
   'the Cook still prepares meals at dawn');
-const cookLine = (src.match(/if\(G\.workers\.cook&&[^)]+\)\{ G\.food-=3;/) || [])[0] || '';
-ok(/G\.dog===2/.test(cookLine),
+ok(/G\.workers\.cook&&G\.food>=3\+\(G\.dog===2\?1:0\)/.test(src),
   'HV-208: the Cook leaves a bowl when Biscuit is in camp');
 
 (async () => {
