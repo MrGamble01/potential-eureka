@@ -248,6 +248,9 @@ function onNewDay(){
     else {
       var y=rand(1,3);
       if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
+      // HV-150: the barrel said the sky does the work. Stored rain
+      // already pays +1 on a dry day; a live rain now pays the same.
+      if(G.weather==='rain'){ y+=1; log('\ud83c\udf27\ufe0f Rain on the beds. +1 food.'); }
       if(G.weather!=='rain'&&(G.barrelWater||0)>0){ G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.'); }   // HV-27
       G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
     }
