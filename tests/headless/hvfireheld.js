@@ -94,12 +94,13 @@ ok(!/fireOutDay/.test(ui) && !/fire_out/.test(ui),
     G.structures.soup_kitchen = false; G.structures.garden = false;
     G.structures.coats = false; G.mural = 0; G.season = 0;
     G.warmth = 80; G.morale = 50; G.fireOutDay = -1;
+    const heard = [];
+    const prev = log;
+    log = function (msg) { heard.push(String(msg)); prev(msg); };
     onNewDay();
+    log = prev;
     Math.random = real;
-    return {
-      warmth: G.warmth, morale: G.morale,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
-    };
+    return { warmth: G.warmth, morale: G.morale, log: heard.join(' ') };
   });
   ok(quiet.warmth === 72 && quiet.morale === 49 && /fire held/.test(quiet.log),
      `isolation: a warm dawn with no fire-out still holds (warmth ${quiet.warmth}, morale ${quiet.morale})`);
@@ -122,11 +123,15 @@ ok(!/fireOutDay/.test(ui) && !/fire_out/.test(ui),
     const afterBurn = { warmth: G.warmth, day: G.fireOutDay, days: G.days };
     Math.random = () => 0.99;
     G.lastEventDay = G.days + 5;
+    const heard = [];
+    const prev = log;
+    log = function (msg) { heard.push(String(msg)); prev(msg); };
     onNewDay();
+    log = prev;
     Math.random = real;
     return {
       afterBurn, warmth: G.warmth, morale: G.morale, days: G.days, before,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
+      log: heard.join(' '),
     };
   });
   ok(burned.afterBurn.warmth === 60 && burned.warmth === 52,
@@ -146,12 +151,13 @@ ok(!/fireOutDay/.test(ui) && !/fire_out/.test(ui),
     G.structures.soup_kitchen = false; G.structures.garden = false;
     G.structures.coats = false; G.mural = 0; G.season = 0;
     G.warmth = 80; G.morale = 50;
+    const heard = [];
+    const prev = log;
+    log = function (msg) { heard.push(String(msg)); prev(msg); };
     onNewDay();
+    log = prev;
     Math.random = real;
-    return {
-      warmth: G.warmth, morale: G.morale,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
-    };
+    return { warmth: G.warmth, morale: G.morale, log: heard.join(' ') };
   });
   ok(later.morale === 49 && /fire held/.test(later.log),
      `a later warm dawn can hold again (morale ${later.morale})`);
