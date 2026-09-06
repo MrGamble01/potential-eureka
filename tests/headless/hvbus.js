@@ -1,5 +1,5 @@
 /*
- * HV-99 — Buy the bus ticket said "morning bus" and sent them at night.
+ * HV-100 — Buy the bus ticket said "morning bus" and sent them at night.
  *
  * The tooltip and the success log both put them on the morning bus.
  * finishAction sent them the moment the 6s job ended, even at Night
@@ -37,7 +37,7 @@ const dawn = /function ticketAtDawn\(\)\{([\s\S]*?)\n\}/.exec(loop);
 ok(!!ticket && !!dawn, 'ticket finishAction and ticketAtDawn are still in place');
 ok(ticket && /ticketPending|morningBusHere/.test(ticket[1]) &&
     dawn && /ticketPending/.test(dawn[1]),
-  'HV-99: off-morning fares wait for ticketAtDawn (pending), they do not board at Night');
+  'HV-100: off-morning fares wait for ticketAtDawn (pending), they do not board at Night');
 ok(/morning bus/.test(cfg), 'the tooltip still promises the morning bus');
 
 (async () => {
@@ -90,7 +90,7 @@ ok(/morning bus/.test(cfg), 'the tooltip still promises the morning bus');
   });
   ok(/morning bus/.test(night.tip), 'the live tooltip still says morning bus');
   ok(night.pop === 3 && night.sent === 0 && night.pending && !night.ask,
-    `HV-99: a Night fare does not board them (pop=${night.pop}, sent=${night.sent}, pending=${night.pending})`);
+    `HV-100: a Night fare does not board them (pop=${night.pop}, sent=${night.sent}, pending=${night.pending})`);
   ok(night.gw === 8 && night.scraps === 12 && night.morale === 50 && night.tod === 0.85,
     `the fare is taken and the clock stays Night (gw ${night.gw}, scraps ${night.scraps}, tod ${night.tod})`);
 

@@ -68,7 +68,7 @@ var G = {
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,
-  // HV-99: fare paid after Morning — they catch the next morning bus.
+  // HV-100: fare paid after Morning — they catch the next morning bus.
   ticketPending: false,
 };
 

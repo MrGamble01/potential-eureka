@@ -80,7 +80,7 @@ function refreshStructures(){
 // HV-17: the bus-ticket arc lives at dawn — the ask opens, the ask
 // expires, and once someone has gone home, letters come back.
 function ticketAtDawn(){
-  // HV-99: a fare paid after Morning waits here — the morning bus.
+  // HV-100: a fare paid after Morning waits here — the morning bus.
   if(G.ticketPending) boardMorningBus();
   if(G.ticketAsk && G.days - G.ticketAsk.day >= TICKET_ASK_DAYS){
     G.ticketAsk=null;

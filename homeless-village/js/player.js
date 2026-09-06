@@ -96,7 +96,7 @@ function doAction(a){
   setTimeout(function(){ finishAction(a); }, duration);
 }
 
-// HV-99: the morning bus. Dawn/Morning board here; a later fare
+// HV-100: the morning bus. Dawn/Morning board here; a later fare
 // stamps ticketPending and ticketAtDawn calls this at the next dawn.
 function boardMorningBus(){
   if((G.population||1)<2){ G.ticketPending=false; return; }
@@ -544,7 +544,7 @@ function finishAction(a){
   } else if(a.id==='ticket'){
     // HV-17: re-check — the ask can expire mid-action, and a queued
     // double-fire must not send two people on one fare.
-    // HV-99: the card says the morning bus. Dawn/Morning still
+    // HV-100: the card says the morning bus. Dawn/Morning still
     // board now. A later fare waits for ticketAtDawn.
     if(G.ticketAsk && G.goodwill>=TICKET_COST_GW && G.scraps>=TICKET_COST_SCRAPS && G.population>=2){
       G.goodwill-=TICKET_COST_GW; G.scraps-=TICKET_COST_SCRAPS;
