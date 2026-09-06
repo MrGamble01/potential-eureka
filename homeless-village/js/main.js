@@ -99,6 +99,7 @@ function movePlayer(dt){
 loadGame();
 refreshStructures();
 for (var i = 1; i < G.population; i++) { spawnFigure((Math.random()-.5)*10, (Math.random()-.5)*10, 'community'); }
+refreshFridgeTip();
 buildActionUI();
 buildCraftUI();
 buildWorkersUI();
@@ -136,6 +137,10 @@ if(!G.fridgeSeeded){
     } else {
       log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+_seed+'\ud83e\ude76');
     }
+    // HV-106: camps just crossed 3 or 6 — the 🧊 tip has to name
+    // the new seed before the next hover, not wait for a reload.
+    refreshFridgeTip();
+    buildActionUI();
     updateHUD();
   }
   deliverHvNote();   // HV-33: and the door holds a note for whoever comes next

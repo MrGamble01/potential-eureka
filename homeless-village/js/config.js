@@ -361,6 +361,11 @@ function loadPotluck(){
 }
 function savePotluck(p){ try{ localStorage.setItem(POTLUCK_KEY, JSON.stringify(p)); }catch(e){} }
 function fridgeSeedNow(){ return fridgeHasShelf() ? FRIDGE_SEED3 : fridgeHasBoard() ? FRIDGE_SEED2 : FRIDGE_SEED; }
+// HV-106: the 🧊 tip used to freeze "starts 3 goodwill known" even
+// after the board (5) and the shelf (7). One string, live seed.
+function fridgeTooltip(){
+  return '15 goodwill sets a donated fridge humming on the corner — anyone can give, anyone can take. It isn’t the camp’s: Start Over can’t unplug it, and every fresh camp that forms beside it starts '+fridgeSeedNow()+' goodwill known.';
+}
 function loadFridge(){
   try{ var f=JSON.parse(localStorage.getItem(FRIDGE_KEY)||'null');
     if(f&&typeof f==='object') return {built:!!f.built, camps:Math.max(0,Math.floor(f.camps||0))};
@@ -815,7 +820,7 @@ var ACTIONS = [
   {id:'rainbet',   icon:'🎲', label:'Rain Bet',           time:2000, cooldown:30000, tooltip:'Dee’s 5 goodwill against your 2 that tomorrow stays dry. You take the rain side — one bet a day. A radio is the whole edge.'},
   {id:'garage',    icon:'🚙', label:'Garage Favor',       time:2000, cooldown:30000, tooltip:'2 goodwill stows the camp’s loose goods in Marisol’s garage till the next sweep — when it comes, the confiscation finds nothing. Tents still fall.'},
   {id:'borrow',    icon:'🤲', label:'Borrow from Ray',    time:2000, cooldown:30000, tooltip:'Old Ray fronts 4 goodwill on the spot; his ledger takes one back every dawn until 5 is repaid. He never presses — he remembers.'},
-  {id:'fridge',    icon:'🧊', label:'Corner Fridge',      time:4000, cooldown:30000, tooltip:'15 goodwill sets a donated fridge humming on the corner — anyone can give, anyone can take. It isn’t the camp’s: Start Over can’t unplug it, and every fresh camp that forms beside it starts 3 goodwill known.'},
+  {id:'fridge',    icon:'🧊', label:'Corner Fridge',      time:4000, cooldown:30000, tooltip:fridgeTooltip()},
   {id:'wall',      icon:'🧱', label:'Read the Wall',      time:2000, cooldown:30000, tooltip:'Somebody chalked the bridge’s numbers on the underpass wall — the fridge’s camps, the longest hold, the notes found. Read them out to whoever’s around.'},
   {id:'thermos',   icon:'🫖', label:'Pass the Thermos',   time:2000, cooldown:30000, tooltip:'Somebody’s grandfather’s thermos, left at the fridge years ago and never claimed. Pass it around once a session — the deeper the bridge’s memory, the further the coffee goes.'},
   {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a session — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
@@ -831,6 +836,12 @@ var ACTIONS = [
   {id:'walk',      icon:'🧭', label:'Walk a Newcomer Down', time:2000, cooldown:30000, tooltip:'Three stands at the fifth panel and whoever has been here longest starts walking every newcomer down the whole underpass on their first night — the four panels, the fifth, the wall of names, the fridge, the bench, the can by the piling. Do it once a session, and they stop being a stranger by morning.'},
   {id:'mark',      icon:'✍️', label:'Add a Name to the Wall', time:2000, cooldown:30000, tooltip:'Three walks down the underpass and the newcomer who got shown all of it takes the chalk and puts their own name up on the wall of names, in their hand. Do it once a session, and the fire is fuller that night than it has any right to be.'},
 ];
+function refreshFridgeTip(){
+  for(var i=0;i<ACTIONS.length;i++){
+    if(ACTIONS[i].id==='fridge'){ ACTIONS[i].tooltip=fridgeTooltip(); return; }
+  }
+}
+refreshFridgeTip();
 
 var WORKER_DEFS = [
   {id:'scrapper', icon:'🔍', name:'Scrapper', cost:8,  desc:'Auto-scavenges every day'},
