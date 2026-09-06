@@ -1,5 +1,14 @@
 function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 
+// HV-173: the newcomer asked because a tent stood. Wind and sweeps
+// take the tent; the ask has to leave with it — there is no bed.
+function lapseNewcomerNoTent(){
+  if(!G.newcomerAsk || G.structures.tent) return;
+  G.newcomerAsk=null;
+  log('🫂 The stranger moved on — the tent is gone, and there is no bed to offer.');
+  if(typeof buildActionUI==='function') buildActionUI();
+}
+
 // ── Proximity gate (IDEA-HV-2) ──
 // Scavenging only works standing at a dumpster: walk (WASD or tap the
 // ground) up to one of the three bins. Range is generous — the bins are
@@ -47,6 +56,9 @@ function doAction(a){
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
     if(!G.newcomerAsk) return;
+    // HV-173: the ask opened because a tent stood. A torn tent is
+    // no bed — refuse before the timer, same as a short pantry.
+    if(!G.structures.tent){ log('🫂 The tent is gone — there’s no bed to offer until one stands again.'); sfx('error'); return; }
     if(G.food<NEWCOMER_COST_FOOD || G.wood<NEWCOMER_COST_WOOD){
       log('🫂 A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood — the camp comes up short.'); sfx('error'); return;
     }
@@ -506,7 +518,7 @@ function finishAction(a){
   } else if(a.id==='newcomer'){
     // HV-21: re-check — the ask can lapse mid-action, and a queued
     // double-fire must not seat two people on one bed.
-    if(G.newcomerAsk && G.food>=NEWCOMER_COST_FOOD && G.wood>=NEWCOMER_COST_WOOD && (G.population||1)<NEWCOMER_POP_MAX){
+    if(G.newcomerAsk && G.structures.tent && G.food>=NEWCOMER_COST_FOOD && G.wood>=NEWCOMER_COST_WOOD && (G.population||1)<NEWCOMER_POP_MAX){
       G.food-=NEWCOMER_COST_FOOD; G.wood-=NEWCOMER_COST_WOOD;
       G.newcomerAsk=null;
       G.population+=1;
