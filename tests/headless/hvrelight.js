@@ -88,17 +88,20 @@ ok(/id:'fire_ration'[\s\S]{0,180}?Keep the barrel burning/.test(cfg),
     G.warmth = 60;
     triggerEvent(ev, false);
     const outAfterEvent = Date.now() < (G.fireOutUntil || 0);
+    const warmthAfterEvent = G.warmth;
     G.activeCrafts[recipe.id] = { start: Date.now(), duration: 1 };
     finishCraft(recipe);
     return {
       outAfterEvent,
       stillOut: Date.now() < (G.fireOutUntil || 0),
+      warmthAfterEvent,
       warmth: G.warmth,
     };
   });
   ok(blanket.outAfterEvent && blanket.stillOut,
     'a Blanket after Fire Went Out does not relight the barrel');
-  ok(blanket.warmth === 75, `a Blanket still adds +15 warmth (${blanket.warmth})`);
+  ok(blanket.warmth === blanket.warmthAfterEvent + 15,
+    `a Blanket still adds +15 warmth (${blanket.warmthAfterEvent} → ${blanket.warmth})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
