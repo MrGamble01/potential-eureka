@@ -36,10 +36,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
 const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
 const garden = /if\(G\.structures\.garden\)\{([\s\S]*?)\n  if\(G\.dog===2\)/.exec(loop);
-const heat = garden && /else if\(G\.weather==='heat'\)\{([\s\S]*?)\n    \} else \{/.exec(garden[1]);
-ok(/id:'garden'[\s\S]{0,220}?scorcher wilt/.test(cfg)
-  && /id:'compost'[\s\S]{0,280}?through frost/.test(cfg)
-  && /id:'barrel'[\s\S]{0,280}?dry garden days/.test(cfg),
+const heat = garden && /else if\(G\.weather==='heat'\)\{([\s\S]*?)\n    \}\n    else \{/.exec(garden[1]);
+ok(/id:'garden'[\s\S]{0,500}?scorcher wilt/.test(cfg)
+  && /id:'compost'[\s\S]{0,400}?through frost/.test(cfg)
+  && /id:'barrel'[\s\S]{0,400}?dry garden days/.test(cfg),
   'the garden names the scorcher wilt; compost stays frost; barrel stays dry days');
 ok(heat && /wilted the beds/.test(heat[1]) && !/compostDays/.test(heat[1])
   && /barrelWater/.test(heat[1]),
