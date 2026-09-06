@@ -431,7 +431,11 @@ function finishAction(a){
     var sickCut=(G.sickDay===G.days)?0.5:1;
     if(Math.random()<.55*weatherDef().pan*awningDry*dogBoost*repBoost*muralBoost*snapCut*sickCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
       if(awningDry>1){ G.awningSaves=(G.awningSaves||0)+1; log('\u26F1\uFE0F Dry under the awning \u2014 the corner stayed open.'); }
-      bumpRegular('dee'); addRep(1); }
+      // HV-187: Dee said she walks home from night shifts. A midday
+      // stop is not her route. The coins still land; she does not.
+      if(deeOnRoute()) bumpRegular('dee');
+      else if(regularStage('dee')>=1) log('🩺 Dee is still on the night shift — her route is the walk home.');
+      addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
     var h=rand(5,15), m=rand(3,8);
