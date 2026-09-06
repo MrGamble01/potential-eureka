@@ -48,6 +48,7 @@ const ConnectFourGame = (() => {
     canvas.addEventListener('mouseleave', () => { hoverCol = -1; });
     canvas.addEventListener('click', e => drop(colAt(e.clientX)));
     canvas.addEventListener('touchstart', e => { drop(colAt(e.touches[0].clientX)); e.preventDefault(); }, { passive: false });
+    document.addEventListener('keydown', Utils.whenViewActive('view-connect4', onKey));
 
     newGame();
     startLoop();
@@ -80,6 +81,16 @@ const ConnectFourGame = (() => {
     const rect = canvas.getBoundingClientRect();
     const c = Math.floor((clientX - rect.left) * (W / rect.width) / CELL);
     return c >= 0 && c < COLS ? c : -1;
+  }
+
+  // Keyboard play: Left/Right walk the hover column (mirroring the mouse
+  // hover highlight already drawn in draw()), Enter/Space drops into it.
+  function onKey(e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+    if (k === 'ArrowLeft') { hoverCol = hoverCol < 0 ? Math.floor(COLS / 2) : Math.max(0, hoverCol - 1); e.preventDefault(); }
+    else if (k === 'ArrowRight') { hoverCol = hoverCol < 0 ? Math.floor(COLS / 2) : Math.min(COLS - 1, hoverCol + 1); e.preventDefault(); }
+    else if (k === 'Enter' || k === ' ') { if (hoverCol >= 0) drop(hoverCol); e.preventDefault(); }
   }
 
   // ---- board helpers (operate on a passed board so the AI can search) ----
