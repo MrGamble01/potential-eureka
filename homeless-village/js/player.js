@@ -83,6 +83,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-163: the lock card says nothing to scavenge today. The
+  // scrapyard posting is a scraps-and-cans haul — same goods
+  // the bins give. Refuse before the 8s job, like the bins.
+  if(a.id==='oddjob' && todaysJob().id==='scrapyd' && G.dumpsterLockDay===G.days){
+    log('Dumpsters are locked today.');
+    sfx('error');
+    return;
+  }
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
     sfx('error');
@@ -421,6 +429,12 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
+    // HV-163: a queued finish must not pay the yard haul on a
+    // locked day. Leave oddJobDay unset so dawn can reopen it.
+    if(j.id==='scrapyd' && G.dumpsterLockDay===G.days){
+      log('Dumpsters are locked today.');
+      return;
+    }
     for(var k in j.gives){
       if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
       else G[k]=(G[k]||0)+j.gives[k];
