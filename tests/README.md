@@ -32,6 +32,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card) |
 | Age of War records | `aowrecords` (AOW-60: a malformed `aow-best-run` no longer freezes future bests; valid bests stay byte-for-byte. Drives the production writer through `vm`, no hook. Non-vacuous: the old `waves > (prev.waves \|\| 0)` comparison is replayed and writes nothing on the freeze payloads) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
+| Tetris | `tetdrop` (P8-TET-2: Space hard-drops and the well + score must repaint within 150ms, not on the next gravity tick) |
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
 | Cross-game geometry | `reach` (UI-1/UI-2: every flagship control stays on screen at desktop, laptop, short-laptop and phone viewports) |
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
