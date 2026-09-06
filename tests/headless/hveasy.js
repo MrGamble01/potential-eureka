@@ -66,6 +66,9 @@ ok(block && /garden/.test(block[1]) && /cold/.test(block[1]),
 
   const sky = (opts) => page.evaluate((o) => {
     const ev = EVENTS_GOOD.find(e => e.id === o.id);
+    const lines = [];
+    const realLog = log;
+    log = function (s) { lines.push(String(s)); realLog(s); };
     const real = Math.random;
     Math.random = () => o.roll;
     G.weather = o.weather;
@@ -79,6 +82,7 @@ ok(block && /garden/.test(block[1]) && /cold/.test(block[1]),
     G.lastEventDay = G.days;
     triggerEvent(ev, true);
     Math.random = real;
+    log = realLog;
     return {
       food: G.food,
       weather: G.weather,
@@ -87,7 +91,7 @@ ok(block && /garden/.test(block[1]) && /cold/.test(block[1]),
       morale: G.morale,
       banner: document.getElementById('ev-title').textContent,
       body: document.getElementById('ev-body').textContent,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
+      log: lines.join(' '),
     };
   }, opts);
 
