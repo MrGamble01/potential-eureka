@@ -516,7 +516,7 @@ function finishAction(a){
       addRep(2);
       spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
       floatText('🫂 +6😊');
-      log('🫂 A bed by the fire and a bowl of something hot — the camp is one bigger tonight. +6 morale, +2 rep.');
+      log('🫂 A bed by the fire and a bowl of something hot — the camp is one bigger. +6 morale, +2 rep.');
       saveGame();
       buildActionUI();
     }
