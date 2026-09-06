@@ -82,6 +82,8 @@ ok(block && !/G\.structures\.barrel\s*=\s*false/.test(block[1]),
     G.structures.workbench = false;
     G.structures.garden = !!o.garden;
     G.lastEventDay = G.days;
+    if (typeof logFeed !== 'undefined') { logFeed.innerHTML = ''; }
+    if (typeof logLines !== 'undefined') { logLines.length = 0; }
     triggerEvent(ev, false);
     Math.random = real;
     return {
