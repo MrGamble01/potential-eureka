@@ -1,4 +1,4 @@
-/* HV-184 — the Free Pantry said a little box on a post,
+/* HV-185 — the Free Pantry said a little box on a post,
  * then the sweep left it standing.
  *
  * The pantry recipe promises a box on a post: take what you need,
@@ -39,7 +39,7 @@ const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8')
 const block = /id:'sweep'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.exec(loop);
 ok(!!block, 'city sweep is still in gameloop.js');
 ok(block && /G\.structures\.pantry\s*=\s*false/.test(block[1]),
-  'HV-184: sweep effect kicks over the pantry box');
+  'HV-185: sweep effect kicks over the pantry box');
 ok(/id:'pantry'[\s\S]{0,220}?A little box on a post/.test(cfg),
   'the pantry still promises a box on a post');
 ok(/destroy shelters and confiscate supplies/.test(loop),
@@ -88,7 +88,7 @@ ok(!/G\.structures\.pantry\s*=\s*false/.test(ui),
     };
   });
   ok(hit.pantry === false,
-    `HV-184: the sweep kicks over the pantry box (pantry ${hit.pantry})`);
+    `HV-185: the sweep kicks over the pantry box (pantry ${hit.pantry})`);
   ok(/pantry|box/i.test(hit.log),
     `the log names the box (${hit.log.slice(-100)})`);
 
