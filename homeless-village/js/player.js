@@ -226,7 +226,7 @@ function finishAction(a){
     if(!marisolHasStory()){ log('\ud83d\ude97 Marisol\u2019s tow truck rolls past without slowing \u2014 this bridge has no story she\u2019d know yet.'); }
     else if(marisolCame){ log('\ud83d\ude97 Marisol already came by today \u2014 she has a garage to run.'); }
     else if(G.weather==='rain'){
-      // HV-210: a casserole left in the rain is not still warm from the hotplate.
+      // HV-211: a casserole left in the rain is not still warm from the hotplate.
       // Do not spend the visit latch or the tally — she did not drop a plate.
       log('\ud83d\ude97 Marisol left the casserole on the running board \u2014 the rain soaked it before anyone got a plate.');
     }

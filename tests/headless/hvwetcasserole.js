@@ -1,4 +1,4 @@
-/* HV-210 — Wave Marisol Down said she leaves a casserole still
+/* HV-211 — Wave Marisol Down said she leaves a casserole still
  * warm from the garage hotplate, then a rainy day still delivered
  * it dry.
  *
@@ -42,7 +42,7 @@ ok(/still warm from the garage hotplate/.test(player)
   && /MARISOL DROPS BY/.test(player),
   'Wave Marisol Down still leaves a casserole warm from the hotplate');
 ok(body && /G\.weather/.test(body),
-  'HV-210: the casserole payout reads the sky');
+  'HV-211: the casserole payout reads the sky');
 ok(!/casserole sat in the rain|soaked it before/.test(ui),
   'ui.js untouched — the rain lives on the wave');
 
@@ -94,7 +94,7 @@ ok(!/casserole sat in the rain|soaked it before/.test(ui),
 
   const wet = await wave('rain');
   ok(wet.food === 10 && wet.visits === 0 && !wet.latch && wet.soaked && !wet.paid,
-    `HV-210: rain soaks the casserole (food ${wet.food}, visits ${wet.visits}, latch ${wet.latch})`);
+    `HV-211: rain soaks the casserole (food ${wet.food}, visits ${wet.visits}, latch ${wet.latch})`);
 
   const dry = await wave('clear');
   ok(dry.food === 12 && dry.visits === 1 && dry.latch && dry.paid && !dry.soaked,
