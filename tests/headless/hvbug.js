@@ -74,9 +74,12 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop) && !/homeless-village\/js\/ui\.js/
     G.lastEventDay = G.days + 9;
     G.forecast = 'clear';
     G.sickUntil = -1;
-    const n = document.querySelectorAll('.log-line').length;
+    const lines = [];
+    const old = window.log;
+    window.log = function (m) { lines.push(String(m)); old(m); };
     onNewDay();
-    const log = Array.from(document.querySelectorAll('.log-line')).slice(n).map(d => d.textContent).join('\n');
+    window.log = old;
+    const log = lines.join('\n');
     return { food: G.food, gw: G.goodwill, cooked: /Cook prepared meals/.test(log) };
   });
   ok(well.cooked && well.gw === 2,
@@ -108,9 +111,12 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop) && !/homeless-village\/js\/ui\.js/
     G.food = 20; G.goodwill = 0; G.population = 1;
     G.lastEventDay = G.days + 9;
     G.forecast = 'clear';
-    const n = document.querySelectorAll('.log-line').length;
+    const lines = [];
+    const old = window.log;
+    window.log = function (m) { lines.push(String(m)); old(m); };
     onNewDay();
-    const log = Array.from(document.querySelectorAll('.log-line')).slice(n).map(d => d.textContent).join('\n');
+    window.log = old;
+    const log = lines.join('\n');
     return { food: G.food, gw: G.goodwill, cooked: /Cook prepared meals/.test(log), down: /down with the bug/.test(log), day: G.days };
   });
   ok(!down.cooked && down.down && down.gw === 0,
@@ -122,9 +128,12 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop) && !/homeless-village\/js\/ui\.js/
     G.food = 20; G.goodwill = 0; G.population = 1;
     G.lastEventDay = G.days + 9;
     G.forecast = 'clear';
-    const n = document.querySelectorAll('.log-line').length;
+    const lines = [];
+    const old = window.log;
+    window.log = function (m) { lines.push(String(m)); old(m); };
     onNewDay();
-    const log = Array.from(document.querySelectorAll('.log-line')).slice(n).map(d => d.textContent).join('\n');
+    window.log = old;
+    const log = lines.join('\n');
     return { gw: G.goodwill, cooked: /Cook prepared meals/.test(log) };
   });
   ok(back.cooked && back.gw === 2,
