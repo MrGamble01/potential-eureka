@@ -30,6 +30,7 @@ var G = {
   friendDay: -1,
   // HV-210: the day Illness Spreading hit. Rest is worse that day.
   sickDay: -1,
+  gentrifyDay: -1,   // HV-234: Gentrification lasts the rest of that day
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
   // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),
@@ -249,7 +250,15 @@ function meetingAction(){
 // the player too (+2 morale).
 function buskAvailable(){ return !!G.structures.guitar; }
 function buskDone(){ return G.buskDay===G.days; }
-function buskPay(){ var base=1+Math.floor((G.morale||0)/25); return G.weather==='heat'?base*2:base; }
+function gentrifyHostile(){ return G.gentrifyDay===G.days; }
+function buskPay(){
+  var base=1+Math.floor((G.morale||0)/25);
+  var take=G.weather==='heat'?base*2:base;
+  // HV-234: harassment is increasing. The guitar is a set on
+  // the corner — the same locals. Panhandle is HV-76.
+  if(gentrifyHostile()) take=Math.max(1,Math.floor(take/2));
+  return take;
+}
 function buskAction(){
   return { id:'busk', icon:'🎸', label:'Busk a set', time:6000, cooldown:0,
     tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (+1 goodwill per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
