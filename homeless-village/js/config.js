@@ -59,6 +59,9 @@ var G = {
   meetings: 0, meetingDay: -9,
   // HV-15: city petitions won at the notice board
   petitions: {},
+  // HV-225: the day the community grant landed. Today's sweep
+  // cannot confiscate that delivery. -1 = none this camp.
+  grantDay: -1,
   // HV-16: a friend's favor on the books, and the running tally
   favor: null, favorsDone: 0, lastFavorDay: -9,
 
