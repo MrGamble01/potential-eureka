@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v198-hv-foragerain';  // HV-198: rain soaks forage cardboard
+const SW_VERSION = 'eureka-v199-hv-stargroceries';  // HV-199: a snap keeps star groceries off the fence
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

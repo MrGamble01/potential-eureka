@@ -767,9 +767,16 @@ function recordDays(d){
     // HV-38: under the chalk star, the story feeds the camp.
     if(starStood){
       var st=loadHvStar(); saveHvStar({cheers:st.cheers+1});
-      G.food=(G.food||0)+HVSTAR_FOOD;
-      floatText('+'+HVSTAR_FOOD+'\ud83c\udf5e');
-      log('\u2b50 A hold like that under the chalk star \u2014 word gets around, and neighbors leave groceries at the fence. +'+HVSTAR_FOOD+'\ud83c\udf5e');
+      // HV-199: nobody lingers outside in a snap. The hold still
+      // cheers. The fire still feels it. The groceries do not
+      // make the fence.
+      if(snapActive()){
+        log('\u2b50 A hold like that under the chalk star — word got around, but the snap kept neighbors inside. The fence stayed empty.');
+      } else {
+        G.food=(G.food||0)+HVSTAR_FOOD;
+        floatText('+'+HVSTAR_FOOD+'\ud83c\udf5e');
+        log('\u2b50 A hold like that under the chalk star \u2014 word gets around, and neighbors leave groceries at the fence. +'+HVSTAR_FOOD+'\ud83c\udf5e');
+      }
     }
   }
 }
