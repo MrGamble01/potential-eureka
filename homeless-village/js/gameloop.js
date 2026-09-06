@@ -190,6 +190,13 @@ function onNewDay(){
   }
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
+  // HV-74: Biscuit's join card says he "eats what's offered" and the
+  // stray log said "Keep some food on hand." checkDog used to read
+  // G.food *after* this drain (and after the Cook), so a camp that
+  // kept 5 for two people woke with leftover 2 — under the >=3 gate —
+  // and he stayed at the fence. "Food on hand" is what you stored
+  // overnight, not what breakfast left.
+  var foodOnHand=G.food;
   G.food  =Math.max(0,G.food  -G.population*1.5);
   // HV-23: coats off the rack blunt the cold's edge — the weather's
   // bite (only when it IS a bite) and the snap's extra — but never
@@ -278,7 +285,7 @@ function onNewDay(){
   buildCraftUI(); buildWorkersUI(); buildActionUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
   checkArc();
-  checkDog();
+  checkDog(foodOnHand);
   checkGameOver(); // after maybeEvent so same-day event damage counts
 }
 
@@ -351,8 +358,9 @@ function repAtDawn(){
 
 // ── The stray dog arc (HV-6) ──
 // Staged deterministically like the Case Worker: a thin dog appears at
-// the fence on day 4, and two days later — if the camp can spare food —
-// he decides you're worth trusting. From then on he eats one food a day,
+// the fence on day 4, and two days later — if the camp kept food on
+// hand overnight (HV-74: not leftover after breakfast) — he decides
+// you're worth trusting. From then on he eats one food a day,
 // buys morale and night warmth, makes panhandling land more often, chases
 // off thieves, and barks a 15-second warning before unwatched sweeps.
 var DOG_EVENTS={
@@ -366,10 +374,11 @@ var DOG_EVENTS={
       G.morale=Math.min(100,G.morale+10); refreshDog();
       log('Biscuit joined the camp. One food a day keeps him fed — he earns it.'); }},
 };
-function checkDog(){
+function checkDog(foodOnHand){
+  if(typeof foodOnHand!=='number') foodOnHand=G.food;
   if(G.dog===0&&G.days>=4){
     G.dog=1; G.dogMetDay=G.days; refreshDog(); triggerEvent(DOG_EVENTS.stray,true); saveGame();
-  } else if(G.dog===1&&G.days>=G.dogMetDay+2&&G.food>=3){
+  } else if(G.dog===1&&G.days>=G.dogMetDay+2&&foodOnHand>=3){
     G.dog=2; triggerEvent(DOG_EVENTS.joins,true); saveGame();
   }
 }
