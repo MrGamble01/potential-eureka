@@ -244,6 +244,11 @@ function onNewDay(){
       } else {
         log('Frost on the beds — the garden gave nothing today.');
       }
+    } else if(G.season===3){
+      // HV-168: winter dormancy. Frost is weather; this is the season.
+      // Compost heat keeps a frost bed — it cannot wake a winter bed.
+      // The barrel's stored rain waits for spring.
+      log('Winter on the beds — the garden gave nothing today.');
     }
     else {
       var y=rand(1,3);
