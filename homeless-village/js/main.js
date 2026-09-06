@@ -42,7 +42,13 @@ document.addEventListener('keydown', function(e){
     var m = document.getElementById('chain-modal');
     if(m && m.classList.contains('open')){
       m.classList.remove('open');
+      return;
     }
+    // HV-66: Keys in Hand is the same class of card. Keep Building is
+    // the non-destructive dismiss — click that button rather than
+    // invent a third closer.
+    var stay = document.getElementById('hv-grad-stay');
+    if(stay) stay.click();
   }
 });
 
