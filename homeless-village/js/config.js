@@ -244,7 +244,15 @@ function meetingAction(){
 // the player too (+2 morale).
 function buskAvailable(){ return !!G.structures.guitar; }
 function buskDone(){ return G.buskDay===G.days; }
-function buskPay(){ var base=1+Math.floor((G.morale||0)/25); return G.weather==='heat'?base*2:base; }
+function buskPay(){
+  var base=1+Math.floor((G.morale||0)/25);
+  var take=G.weather==='heat'?base*2:base;
+  // HV-179: rain already halves the panhandle odds on this corner.
+  // A set on the same corner paid the dry take. The awning puts
+  // the spot back. Do not touch heat, snap, or mural.
+  if(G.weather==='rain' && !G.structures.awning) take=Math.max(1,Math.floor(take/2));
+  return take;
+}
 function buskAction(){
   return { id:'busk', icon:'🎸', label:'Busk a set', time:6000, cooldown:0,
     tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (+1 goodwill per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
