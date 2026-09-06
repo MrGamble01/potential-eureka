@@ -75,6 +75,21 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-148: a cold thermos (no long hold, no fridge-door note) used to
+  // start the 2s job anyway; finishAction then charged the 30s cooldown
+  // for a pass that never happened. Refuse here, same as Trade / Rain Bet
+  // / Garage / Fridge — no job, no lock.
+  if(a.id==='thermos'){
+    if(!thermosHasWarmth()){
+      log('\ud83e\uded6 The thermos is cold \u2014 this bridge has no story to warm it yet.');
+      sfx('error');
+      return;
+    }
+    if(thermosUsed){
+      log('\ud83e\uded6 The thermos made its round already \u2014 it refills tomorrow.');
+      return;
+    }
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
