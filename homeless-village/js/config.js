@@ -801,7 +801,7 @@ function newcomerAction(){
 // infrastructure no sweep can take and no thief can carry off.
 var PETITIONS = [
   {id:'sanitation',  icon:'🚻', name:'Sanitation unit', cost:15, desc:'The city drops a portable unit by the underpass. Everyone wakes +1 health at dawn.'},
-  {id:'streetlight', icon:'💡', name:'Street light',    cost:20, desc:'A working light over the camp. Thieves take half as much at night.'},
+  {id:'streetlight', icon:'💡', name:'Street light',    cost:20, desc:'A working light over the camp. Thieves take half as much.'},
   {id:'grant',       icon:'📋', name:'Community grant', cost:30, desc:'A one-time neighborhood grant: +8 food, +8 wood, +8 scraps delivered.'},
 ];
 function petitionsAvailable(){ return repTier()>=2; }   // Respected (50 rep)
