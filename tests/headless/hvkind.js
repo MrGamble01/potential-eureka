@@ -19,7 +19,7 @@
  *  B. Source: the effect still applies morale, and its log() names
  *     morale. ui.js is not this ticket.
  *  C. Live: a pinned drop (Math.random = 0) pays +3 food and +5
- *     morale, and the log says morale +5. Food still moves.
+ *     morale, and the log says +5 morale. Food still moves.
  *     Reverting the log to food-only fails the named line.
  *  Z. Zero page errors.
  *
@@ -88,7 +88,7 @@ const kindLog = (kind.match(/log\(([^)]+)\)/) || [])[1] || '';
      `a pinned drop still pays +3 food (10 → ${live.food})`);
   ok(live.morale === 55,
      `and +5 morale — rand(5,10) at 0 is 5 (50 → ${live.morale})`);
-  ok(/morale\s*\+5/i.test(live.log),
+  ok(/\+5\s*morale/i.test(live.log),
      `HV-86: Kind Stranger's log counts the morale it paid (log has ${JSON.stringify(live.log.slice(-140))})`);
 
   await browser.close();
