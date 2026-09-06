@@ -244,7 +244,14 @@ function meetingAction(){
 // the player too (+2 morale).
 function buskAvailable(){ return !!G.structures.guitar; }
 function buskDone(){ return G.buskDay===G.days; }
-function buskPay(){ var base=1+Math.floor((G.morale||0)/25); return G.weather==='heat'?base*2:base; }
+function buskPay(){
+  var base=1+Math.floor((G.morale||0)/25);
+  var take=G.weather==='heat'?base*2:base;
+  // HV-140: HV-18 thins foot traffic on the corner. Panhandle already
+  // rolled 0.75 inside a snap; the hat ignored it.
+  if(snapActive()) take=Math.max(1,Math.floor(take*0.75));
+  return take;
+}
 function buskAction(){
   return { id:'busk', icon:'🎸', label:'Busk a set', time:6000, cooldown:0,
     tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (+1 goodwill per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
