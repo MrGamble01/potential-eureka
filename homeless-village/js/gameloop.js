@@ -227,7 +227,15 @@ function onNewDay(){
       G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
     }
   }
-  if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
+  if(G.workers.scrapper){
+    // HV-108: the crash course halves winter dumpsters. The Scrapper
+    // auto-scavenges those bins — same season cut, same weather scav
+    // multiplier the player's own dig already used.
+    var swm=(G.season===3?.5:1)*weatherDef().scav;
+    G.scraps+=Math.max(0,Math.floor(rand(1,3)*swm));
+    G.cans+=Math.max(0,Math.floor(rand(0,2)*swm));
+    log('The Scrapper found some supplies.');
+  }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
