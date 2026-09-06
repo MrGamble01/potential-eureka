@@ -57,6 +57,24 @@ function doAction(a){
       log('🚌 The fare is short — it takes '+TICKET_COST_GW+'🩶 and '+TICKET_COST_SCRAPS+' scraps.'); sfx('error'); return;
     }
   }
+  // HV-61: these four already knew how to refuse in finishAction — after
+  // a 2–4s job and with the full cooldown charged as if they had paid.
+  // Trade is the early-camp one: the tooltip says 3 cans → 2 food, a
+  // new camp has zero cans, and the miss locked the button for 18s.
+  if(a.id==='trade' && G.cans<3){ log('Not enough cans to trade.'); sfx('error'); return; }
+  if(a.id==='rainbet'){
+    if(G.rainBetDay===G.days){ log('\ud83c\udfb2 Dee laughs — one bet a day.'); return; }
+    if(G.goodwill<RAINBET_STAKE){ log('\ud83c\udfb2 Not enough goodwill to cover the stake.'); sfx('error'); return; }
+  }
+  if(a.id==='garage'){
+    if(G.garageCover){ log('\uD83D\uDE99 Everything loose is already in Marisol\u2019s garage.'); return; }
+    if(G.goodwill<GARAGE_COST){ log('\uD83D\uDE99 Not enough goodwill to ask the favor.'); sfx('error'); return; }
+  }
+  if(a.id==='fridge'){
+    var frGate=loadFridge();
+    if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
+    if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
@@ -439,7 +457,9 @@ function finishAction(a){
     // HV-14: re-check so a queued double-fire can't hold two circles.
     if(!meetingDone() && (G.population||1)>=2){
       var heads=G.population;
-      var gain=Math.min(10, 2*heads);
+      // HV-64: the tooltip says +2 morale a head. The silent cap of
+      // 10 made a six-person circle pay the same as five.
+      var gain=2*heads;
       G.morale=Math.min(100, G.morale+gain);
       // everyone but you tosses something in the pot
       var pot={}, potKeys=['food','cans','scraps','wood','cardboard'];
@@ -549,6 +569,10 @@ function finishCraft(r){
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
+  // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
+  // only dimmed the lights on a wall-clock; this is the feed that
+  // actually relights it. A blanket is also +warmth and must not.
+  if(r.id==='fire_ration') G.fireOutUntil=0;
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
   sfx('craft');
