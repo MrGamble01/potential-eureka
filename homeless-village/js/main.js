@@ -52,6 +52,10 @@ renderer.domElement.addEventListener('pointerdown', function(e){
 });
 
 function movePlayer(dt){
+  // HV-63: an open overlay is reading, not walking. Drop held keys and
+  // a queued tap-walk so closing the panel does not lurch the figure
+  // the player could not see moving.
+  if(overlayOpen()){ keysDown={}; walkTarget=null; return; }
   var dx=0, dz=0;
   if(keysDown.up)    dz-=1;
   if(keysDown.down)  dz+=1;

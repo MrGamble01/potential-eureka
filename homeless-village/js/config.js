@@ -959,3 +959,15 @@ function bridgeOpen(){
   var m = document.getElementById('chain-modal');
   return !!(m && m.classList.contains('open'));
 }
+
+// HV-63: reading an overlay must not walk the camp. WASD and a queued
+// tap-walk kept driving movePlayer behind The Bridge, the crash course
+// and Keys in Hand — the clock already paused (HV-56 / HV-59), the
+// figure did not. Declared here beside those helpers so main.js can
+// ask without reaching into each modal (and without touching ui.js).
+function overlayOpen(){
+  if(introOpen()) return true;
+  if(bridgeOpen()) return true;
+  if(typeof gameOverShown!=='undefined' && gameOverShown) return true;
+  return !!document.getElementById('hv-graduation');
+}
