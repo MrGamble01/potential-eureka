@@ -465,8 +465,15 @@ var EVENTS_BAD=[
      }
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
+     // HV-166: the card confiscates supplies. Wood is the firewood
+     // pile — Firewood, the Workbench, the Tent. Cans and cardboard
+     // are different tickets. The keep multiplier already covers
+     // stash / pack-up / Marisol's garage.
+     var lostWood  =Math.floor(G.wood  *(.3+Math.random()*.4)*keep);
      G.scraps=Math.max(0,G.scraps-lostScraps);
      G.food  =Math.max(0,G.food  -lostFood);
+     G.wood  =Math.max(0,G.wood  -lostWood);
+     if(lostWood>0) log('They hauled off the woodpile.');
      G.morale=Math.max(0,G.morale-rand(15,25));
      // HV-11: they can tear down tents, not paint — a finished mural
      // blunts the demoralizing part of watching the camp get cleared.
