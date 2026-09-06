@@ -23,6 +23,7 @@ var G = {
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
   sweepWarned: false, sweepCountdown: 0, packedUp: false,
+  dumpsterLockDay: -1,   // HV-63: Dumpsters Locked lasts the rest of that day
   injuredUntil: 0, lastEventDay: -2,
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
