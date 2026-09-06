@@ -575,6 +575,10 @@ function finishCraft(r){
   log('Crafted '+r.name+'.');
   saveGame();
   updateHUD(); buildCraftUI();
+  // HV-89: the cart (and the guitar) unlock a new verb on the action
+  // rail. buildCraftUI only refreshes recipes; without this rebuild
+  // the deposit run stayed off the board until the next dawn.
+  if(typeof buildActionUI==='function') buildActionUI();
 }
 
 // Crafts that were mid-flight when the page closed: the cost was paid
@@ -600,6 +604,9 @@ function hireWorker(id){
   sfx('hire');
   log(def.name+' joined the community.');
   buildWorkersUI(); updateHUD();
+  // HV-89: a first hire makes the camp two people, which is what
+  // unlocks Hold a camp meeting. Same missing rebuild as finishCraft.
+  if(typeof buildActionUI==='function') buildActionUI();
 }
 
 // HV-15: goodwill spent at the notice board becomes civic
