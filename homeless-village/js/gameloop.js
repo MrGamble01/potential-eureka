@@ -410,8 +410,43 @@ function checkGameOver(){
   if(G.health<=0) showGameOver();
 }
 
+// HV-114: the Lookout promised ~30 seconds. HV-59 already pauses the
+// day behind The Bridge; the trucks were still on a wall clock.
+var sweepHoldArmed=false, sweepHoldMs=0, sweepEtaRewriteAt=0, sweepHoldPaused=false;
+function armSweepHold(ms){
+  sweepHoldArmed=true; sweepHoldMs=ms; sweepHoldPaused=false; sweepEtaRewriteAt=0;
+}
+function tickSweepHold(dt){
+  if(!sweepHoldArmed) return;
+  if(!G.sweepWarned){ sweepHoldArmed=false; return; }
+  if(introOpen()||bridgeOpen()){
+    sweepHoldPaused=true;
+    // ui.js closes over etaAt. Rewrite the end time so the painted
+    // ~Ns stay with the hold. Skip after Pack Up — showSweepWarning
+    // would re-enable the scramble button.
+    if(!G.packedUp){
+      var now=Date.now();
+      if(now-sweepEtaRewriteAt>200){
+        sweepEtaRewriteAt=now;
+        showSweepWarning(true, now+sweepHoldMs);
+      }
+    }
+    return;
+  }
+  if(sweepHoldPaused){
+    sweepHoldPaused=false;
+    if(!G.packedUp) showSweepWarning(true, Date.now()+sweepHoldMs);
+  }
+  sweepHoldMs-=dt;
+  if(sweepHoldMs<=0){
+    sweepHoldArmed=false;
+    triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
+  }
+}
+
 function tickDay(dt){
   if(gameOverShown) return; // time stops behind the game-over overlay
+  tickSweepHold(dt);
   // HV-56: and behind the crash course. Reading how the camp works should
   // not cost you the daylight you are reading about — a new player who
   // takes a minute over it would otherwise come back to a colder night
@@ -600,18 +635,14 @@ function maybeEvent(){
       G.sweepWarned=true; G.packedUp=false;
       showSweepWarning(true, Date.now()+30000);
       log('LOOKOUT: Police activity nearby. Sweep in ~30 seconds!');
-      setTimeout(function(){
-        if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
-      },30000);
+      armSweepHold(30000);
     } else if(G.dog===2){
       // HV-6: no Lookout, but Biscuit hears the trucks — half the warning
       // window a paid Lookout gives, still enough to hit PACK UP.
       G.sweepWarned=true; G.packedUp=false;
       showSweepWarning(true, Date.now()+15000);
       log('Biscuit will not stop barking at the road. Something is coming — ~15 seconds!');
-      setTimeout(function(){
-        if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
-      },15000);
+      armSweepHold(15000);
     } else {
       triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
     }
@@ -629,6 +660,7 @@ function maybeEvent(){
 }
 
 function triggerEvent(ev,isGood){
+  sweepHoldArmed=false;
   showEvent(ev,!!isGood); ev.effect();
   G.sweepWarned=false; showSweepWarning(false);
   refreshStructures(); updateHUD();
