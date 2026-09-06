@@ -75,6 +75,22 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-98: Read the Wall (and the next two buttons a new camp tries)
+  // already knew how to refuse in finishAction — after a 2s job and
+  // with the full 30s cooldown charged as if the bridge had a story.
+  // Same shape as HV-61's purse gates. The log lines stay finishAction's.
+  if(a.id==='wall' && !bridgeHasWall()){
+    log('\ud83e\uddf1 The wall is bare \u2014 this bridge has no story yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='thermos' && !thermosHasWarmth()){
+    log('\ud83e\uded6 The thermos is cold \u2014 this bridge has no story to warm it yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='marisol' && !marisolHasStory()){
+    log('\ud83d\ude97 Marisol\u2019s tow truck rolls past without slowing \u2014 this bridge has no story she\u2019d know yet.');
+    sfx('error'); return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
