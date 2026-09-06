@@ -21,7 +21,8 @@ function loadGame(){
     // A save written mid-warning restores sweepWarned:true, but the timer
     // that would fire the sweep died with the old tab — leaving it set
     // blocks every future lookout warning for the rest of the save.
-    G.sweepWarned=false; G.packedUp=false;
+    // packedUp is a paid scramble, not a timer. Keep it. HV-95.
+    G.sweepWarned=false;
     if(!WEATHERS[G.weather]) G.weather='clear';                    // saves from before HV-5
     if(G.forecast!==null&&!WEATHERS[G.forecast]) G.forecast=null;
     if(typeof G.structures.radio==='undefined') G.structures.radio=false;

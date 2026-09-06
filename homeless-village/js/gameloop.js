@@ -594,7 +594,7 @@ function maybeEvent(){
   // a third less often once the neighborhood vouches for you.
   if(Math.random()<.18*(repTier()>=2?.67:1)&&!G.sweepWarned){
     if(G.workers.lookout){
-      G.sweepWarned=true; G.packedUp=false;
+      G.sweepWarned=true;
       showSweepWarning(true, Date.now()+30000);
       log('LOOKOUT: Police activity nearby. Sweep in ~30 seconds!');
       setTimeout(function(){
@@ -603,7 +603,7 @@ function maybeEvent(){
     } else if(G.dog===2){
       // HV-6: no Lookout, but Biscuit hears the trucks — half the warning
       // window a paid Lookout gives, still enough to hit PACK UP.
-      G.sweepWarned=true; G.packedUp=false;
+      G.sweepWarned=true;
       showSweepWarning(true, Date.now()+15000);
       log('Biscuit will not stop barking at the road. Something is coming — ~15 seconds!');
       setTimeout(function(){
