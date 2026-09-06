@@ -832,6 +832,11 @@ var ACTIONS = [
   {id:'mark',      icon:'✍️', label:'Add a Name to the Wall', time:2000, cooldown:30000, tooltip:'Three walks down the underpass and the newcomer who got shown all of it takes the chalk and puts their own name up on the wall of names, in their hand. Do it once a session, and the fire is fuller that night than it has any right to be.'},
 ];
 
+// HV-138: the hire card says Speeds up crafting x2. doCraft already
+// applies this at start. hireWorker must also cut remaining time on
+// crafts already ticking — otherwise a blanket on the bench still
+// takes the full four seconds after the Builder joins.
+var BUILDER_CRAFT = 0.5;
 var WORKER_DEFS = [
   {id:'scrapper', icon:'🔍', name:'Scrapper', cost:8,  desc:'Auto-scavenges every day'},
   {id:'builder',  icon:'🔨', name:'Builder',  cost:12, desc:'Speeds up crafting x2'},
