@@ -431,6 +431,13 @@ function finishAction(a){
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+    // HV-158: Walk the neighbor's dogs says wagging tails. Biscuit
+    // is the camp dog — a hungry camp dog wears the growl. The walk
+    // takes him along. The other four postings do not.
+    if(j.id==='dogwalk' && G.dog===2){
+      G.dogHungry=false;
+      log('🐕 Biscuit came along — wagging tails.');
+    }
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
