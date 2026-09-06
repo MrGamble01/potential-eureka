@@ -1,5 +1,5 @@
 /*
- * HV-156 — City Sweep said they destroy shelters, then the
+ * HV-157 — City Sweep said they destroy shelters, then the
  * awning still kept the corner dry.
  *
  * The sweep card says police destroy shelters and confiscate
@@ -38,7 +38,7 @@ const sweep = /id:'sweep'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.exec
 ok(/destroy shelters/.test(loop) && /shop awning/.test(cfg),
   'the sweep still destroys shelters; the awning is still a shop awning over the corner');
 ok(sweep && /G\.structures\.awning/.test(sweep[1]) && /awning=false/.test(sweep[1]),
-  'HV-156: the sweep effect tears the awning off the corner');
+  'HV-157: the sweep effect tears the awning off the corner');
 
 (async () => {
   const launch = {
@@ -84,7 +84,7 @@ ok(sweep && /G\.structures\.awning/.test(sweep[1]) && /awning=false/.test(sweep[
     };
   });
   ok(!lifted.awning && lifted.named,
-    `HV-156: a live sweep takes the awning and names it (awning ${lifted.awning})`);
+    `HV-157: a live sweep takes the awning and names it (awning ${lifted.awning})`);
   ok(!lifted.tent && lifted.stash,
     'the tent still falls; the hole is still never found');
 

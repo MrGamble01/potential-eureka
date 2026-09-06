@@ -445,7 +445,7 @@ var EVENTS_BAD=[
    effect:function(){
      G.timesSwept++; G.lastEventDay=G.days;
      if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); }
-     // HV-156: the card destroys shelters. The awning is a salvaged
+     // HV-157: the card destroys shelters. The awning is a salvaged
      // shop roof over the corner — same class as the tent, not a crate
      // Marisol's garage can hide.
      if(G.structures.awning){ G.structures.awning=false; log('\u26F1\uFE0F They tore the awning off the corner.'); }
