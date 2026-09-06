@@ -306,8 +306,14 @@ function bumpRegular(id){
 function regularFavorsAtDawn(){
   // Marisol: some mornings there's a bag of leftovers on the fence post.
   if(regularStage('marisol')===2&&Math.random()<.3){
-    var f=rand(2,4); G.food+=f;
-    log('🌮 Marisol left a bag of tamales on the fence post. +'+f+' food.');
+    // HV-191: the bag sits on the fence post. A rainy dawn soaks
+    // it through — she still left them; they are not breakfast.
+    if(G.weather==='rain'){
+      log('\uD83C\uDF2E Marisol left a bag of tamales on the fence post \u2014 the rain soaked them through.');
+    } else {
+      var f=rand(2,4); G.food+=f;
+      log('\uD83C\uDF2E Marisol left a bag of tamales on the fence post. +'+f+' food.');
+    }
   }
   // Dee: finds you in bad shape on her way home, once every few days.
   if(regularStage('dee')===2&&G.health<30&&G.days-(G.lastDeeDay||-9)>=3){
