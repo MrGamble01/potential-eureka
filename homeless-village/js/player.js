@@ -110,6 +110,9 @@ function finishAction(a){
       log('The dumpster is empty. Nothing today.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
+      // HV-143: the community shelf said a can opener that works.
+      // A real haul gets one extra can. An empty dumpster stays empty.
+      if(fridgeHasShelf()) c+=(typeof FRIDGE_SHELF_CAN==='number'?FRIDGE_SHELF_CAN:1);
       G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
       var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
       if(parts.length) floatText(parts.join(' '));

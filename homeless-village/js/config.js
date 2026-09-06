@@ -347,6 +347,9 @@ function fridgeHasBoard(){ var f=loadFridge(); return f.built && (f.camps||0) >=
 // socks, a can opener that works. Every fresh camp starts seven
 // goodwill known instead of five. The corner keeps growing.
 var FRIDGE_SHELF_AT = 6, FRIDGE_SEED3 = 7;
+// HV-143: a working can opener on the community shelf — one extra
+// can on every dumpster haul that actually finds something.
+var FRIDGE_SHELF_CAN = 1;
 function fridgeHasShelf(){ var f=loadFridge(); return f.built && (f.camps||0) >= FRIDGE_SHELF_AT; }
 // HV-37: the potluck — the festival round. When the bulletin board
 // stands, every fresh camp opens with a potluck: folding tables by
