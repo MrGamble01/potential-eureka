@@ -89,8 +89,8 @@ ok(!/homeless-village\/js\/ui\.js/.test(player) && !/function buildActionUI/.tes
     `Forage Area reads locked-today — not gold (${locked.forageCls})`);
   ok(/\blocked-today\b/.test(locked.scavCls) && !/\bout-of-range\b/.test(locked.scavCls),
     `Scavenge is locked-today too, not a 🚶 on the bin (${locked.scavCls})`);
-  ok(/locked today/i.test(locked.forageTitle),
-    `Forage Area's title admits the lock (${locked.forageTitle})`);
+  ok(/locked today/i.test(locked.forageTip),
+    `Forage Area's tip admits the lock (${locked.forageTip})`);
   ok(!locked.forageStarted,
     'a click still refuses — the day stamp is still the lock');
 

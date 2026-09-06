@@ -39,8 +39,10 @@ function updateScavengeGate(){
   var fbtn=document.getElementById('action-forage');
   if(fbtn){
     fbtn.classList.toggle('locked-today', locked);
-    fbtn.title=locked ? 'Dumpsters are locked today.'
-                      : 'Search the surroundings for cardboard and wood.';
+    var ftip=locked ? 'Dumpsters are locked today.'
+                    : 'Search the surroundings for cardboard and wood.';
+    fbtn.title=ftip;
+    fbtn.setAttribute('data-tip', ftip);
   }
 }
 
