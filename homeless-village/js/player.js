@@ -494,12 +494,20 @@ function finishAction(a){
     // HV-19: re-check — a queued double-fire must not play two sets.
     if(buskAvailable() && !buskDone()){
       var take=buskPay();
+      // HV-158: the finished mural said passers-by slow down.
+      // Panhandle already uses that linger on the success window.
+      // Busk is the other corner verb — same foot traffic, a hat —
+      // and the take never read the wall. buskPay() stays the
+      // spirits table so a bare wall still pays 1/3/5.
+      var muralLinger=(G.mural||0)>=MURAL_PANELS;
+      if(muralLinger) take+=1;
       G.goodwill+=take;
       G.morale=Math.min(100,G.morale+2);
       addRep(1);
       G.busks=(G.busks||0)+1; G.buskDay=G.days;
       floatText('🎸 +'+take+'🩶 +2😊');
       log('🎸 Played a set on the corner — '+(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen')+'. +'+take+' goodwill, +1 rep.');
+      if(muralLinger) log('\uD83C\uDFA8 People lingered at the mural and stayed for the set.');
       saveGame();
       buildActionUI();
     }
