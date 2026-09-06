@@ -527,8 +527,8 @@ function saveHvSnap(s){ try{ localStorage.setItem(HVSNAP_KEY, JSON.stringify(s))
 function snapshotHangs(){ return loadHvReunion().held>=3; }
 function snapshotDish(){ return HVSNAP_BASE + HVSNAP_PER*Math.min(loadHvReunion().held||0,5); }
 // HV-44: the anniversary round under the bridge \u2014 after three
-// looks at the snapshot, somebody counts the winters: the camp has
-// held a whole year. Once a session a candle is lit for it: 3 food
+// looks at the snapshot, somebody counts the winters. Once a
+// session a candle is lit for it: 3 food
 // base + 1 per snapshot look (cap 5). Markings tallied in
 // 'hv-anniversary'.
 var HVANN_KEY='hv-anniversary', HVANN_BASE=3, HVANN_PER=1;
@@ -821,7 +821,7 @@ var ACTIONS = [
   {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a session — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
   {id:'reunion',   icon:'🎂', label:'Throw the Reunion',  time:2000, cooldown:30000, tooltip:'When the whole story stands — the chalk star’s holds and Marisol’s visits — the camp throws the bridge reunion once a session, and everyone who ever slept here comes back through with something for the pot.'},
   {id:'snapshot',  icon:'📷', label:'Look at the Snapshot', time:2000, cooldown:30000, tooltip:'A snapshot from the bridge reunion, tucked into the fridge door. Look at it once a session — somebody in the frame always swings by with a little something after.'},
-  {id:'anniv',     icon:'🕯️', label:'Mark the Anniversary', time:2000, cooldown:30000, tooltip:'Three looks at the snapshot and somebody counts the winters — the camp has held a whole year under this bridge. Light a candle for it once a session, and the bridge remembers who kept it lit.'},
+  {id:'anniv',     icon:'🕯️', label:'Mark the Anniversary', time:2000, cooldown:30000, tooltip:'Three looks at the snapshot and somebody counts the winters. Light a candle for it once a session, and the bridge remembers who kept it lit.'},
   {id:'guestbook', icon:'📓', label:'Leaf the Notebook', time:2000, cooldown:30000, tooltip:'Three candles and a spiral notebook sits by the fridge — everyone who ever slept here signs it on the way through. Leaf through it once a session, and one of the names always left something behind.'},
   {id:'bench',     icon:'🪑', label:'Sit on the Bench', time:2000, cooldown:30000, tooltip:'Three leafs through the notebook and folks build a bench by the fridge — scrap wood and good intentions, a seat with every name at its back. Sit once a session, and somebody always sits down with something warm.'},
   {id:'story',     icon:'🔥', label:'Tell the Fire Story', time:2000, cooldown:30000, tooltip:'Three sits on the bench and somebody has the whole bridge story by heart — the wall, the notebook, the reunions, every name in the spiral. Tell it around the fire once a session, and somebody always shows up with dinner before it\u2019s done.'},
