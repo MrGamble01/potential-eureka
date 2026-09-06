@@ -20,7 +20,7 @@
  *  E. A clear winter morning still pays +5 / +2 — season is
  *     #857's fight, not this one.
  *  F. The toolbox still adds +2 on a cold sort. Depot on a
- *     cold day still pays +5 (different posting).
+ *     cold day pays +2 via HV-182 / #872 (different posting).
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production odd-job payout.
@@ -118,8 +118,8 @@ ok(!/scrapyd/.test(ui) && !/weather\s*===\s*'cold'/.test(ui),
     finishAction(oddJobAction());
     return { job: todaysJob().id, gw: G.goodwill };
   });
-  ok(depot.job === 'depot' && depot.gw === 5,
-    `a cold depot lift still pays +5 (different posting, gw ${depot.gw})`);
+  ok(depot.job === 'depot' && depot.gw === 2,
+    `HV-182 / #872: a cold depot lift pays +2 (different posting, gw ${depot.gw})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);

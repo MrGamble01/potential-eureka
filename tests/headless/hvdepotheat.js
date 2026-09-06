@@ -10,7 +10,7 @@
  *
  * Distinct from HV-246 / #941 (scrapyard vs heat — that
  * ticket left the depot on the posted take), HV-243 / #938
- * (Deposit vs heat), HV-172 / #872 (depot vs cold), HV-152 /
+ * (Deposit vs heat), HV-182 / #872 (depot vs cold), HV-152 /
  * #844 (depot vs night), HV-231 / #925 (depot vs Word).
  * Main already sat HV-246 as the yard vs heat, so ROADMAP
  * takes HV-247. This ticket is the heat vs the dock. ui.js
@@ -24,7 +24,7 @@
  *  C. Live: the same shift on heat paid the cool-day lift
  *     (the bug). After the fix it pays 0.75, and the log
  *     names the scorcher.
- *  D. Rain and cold do not steal the cut. The scrapyard
+ *  D. Rain stays full; cold keeps HV-182’s half lift. The scrapyard
  *     still pays its #941 scorcher cut. Flyers pay their
  *     HV-250 scorcher walk.
  *  E. One run a day still holds.
@@ -58,8 +58,8 @@ ok(/j\.id==='depot' && G\.weather==='heat'/.test(body) && /0\.75/.test(body),
   'HV-247: the depot finisher cuts the lift on a heat-wave sky');
 ok(/j\.id==='scrapyd' && G\.weather==='heat'/.test(body),
   'the scrapyard still has its HV-246 / #941 scorcher cut — not this ticket');
-ok(!/j\.id==='depot' && G\.weather==='rain'/.test(body) && !/j\.id==='depot' && G\.weather==='cold'/.test(body),
-  'rain and cold are not this ticket — depot-vs-cold is #872');
+ok(!/j\.id==='depot' && G\.weather==='rain'/.test(body) && /j\.id==='depot' && G\.weather==='cold'/.test(body),
+  'rain stays full; HV-182 / #872 now owns depot cold');
 ok(!/G\.weather==='heat'/.test(ui),
   'ui.js untouched — the heat cut lives on the odd-job lift');
 
@@ -130,8 +130,8 @@ ok(!/G\.weather==='heat'/.test(ui),
     `rain without heat still pays the posted lift (${rain.goodwill})`);
 
   const cold = await shift('cold', 0);
-  ok(cold.goodwill === 5,
-    `cold without heat still pays the posted lift — depot-vs-cold is #872 (${cold.goodwill})`);
+  ok(cold.goodwill === 2,
+    `HV-182 / #872: cold pays half the lift (${cold.goodwill})`);
 
   const yard = await shift('heat', 3);
   ok(yard.id === 'scrapyd' && yard.scraps === 3 && yard.cans === 1,
