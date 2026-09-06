@@ -568,6 +568,7 @@ function finishCraft(r){
   delete G.activeCrafts[r.id];
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
+  if(typeof ensureForecast==='function') ensureForecast();
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
@@ -599,6 +600,7 @@ function hireWorker(id){
   spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
   sfx('hire');
   log(def.name+' joined the community.');
+  if(typeof ensureForecast==='function') ensureForecast();
   buildWorkersUI(); updateHUD();
 }
 
