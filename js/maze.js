@@ -224,22 +224,31 @@ const MazeGame = (() => {
     let found = false;
     updateStatus('🤖 ' + algorithm.toUpperCase() + ' solving…');
 
-    if (algorithm === 'bfs') found = await solveBFS(myRun, sr, sc, er, ec, visited, parent);
-    else if (algorithm === 'dfs') found = await solveDFS(myRun, sr, sc, er, ec, visited, parent);
-    else if (algorithm === 'astar') found = await solveAStar(myRun, sr, sc, er, ec, visited, parent);
+    try {
+      if (algorithm === 'bfs') found = await solveBFS(myRun, sr, sc, er, ec, visited, parent);
+      else if (algorithm === 'dfs') found = await solveDFS(myRun, sr, sc, er, ec, visited, parent);
+      else if (algorithm === 'astar') found = await solveAStar(myRun, sr, sc, er, ec, visited, parent);
 
-    if (myRun !== solveRun) return;
-    if (found) {
-      const path = [];
-      let cur = [er, ec];
-      while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]]; }
-      path.reverse();
-      await animateSolution(myRun, path, visited);
       if (myRun !== solveRun) return;
-      updateStatus('🤖 ' + algorithm.toUpperCase() + ' path: ' + path.length + ' steps. Press N for a new game.');
+      if (found) {
+        const path = [];
+        let cur = [er, ec];
+        while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]]; }
+        path.reverse();
+        await animateSolution(myRun, path, visited);
+        if (myRun !== solveRun) return;
+        updateStatus('🤖 ' + algorithm.toUpperCase() + ' path: ' + path.length + ' steps. Press N for a new game.');
+      }
+    } finally {
+      // Only the live run cleans up. A cancelled run is already torn down
+      // by cancelSolve() (which also re-arms `playing` so a mid-demo leave
+      // doesn't freeze the runner the same way a finished demo used to).
+      if (myRun === solveRun) {
+        solving = false;
+        playing = true;            // MAZE-1: resume once the demo is over
+        solveVisited = null; solvePath = null;
+      }
     }
-    solving = false;
-    solveVisited = null; solvePath = null;
   }
 
   // The solver draws through these shared buffers so the main render loop
@@ -442,9 +451,14 @@ const MazeGame = (() => {
   }, 100);
 
   function cancelSolve() {
+    const wasSolving = solving;
     solving = false;
     solveRun++;
     solveVisited = null; solvePath = null;
+    // MAZE-1: New Game and leaving the view abort the demo here.
+    // destroy() leaves `playing` alone on purpose so a mid-run leave
+    // resumes where you were — unless we were the ones who paused it.
+    if (wasSolving) playing = true;
   }
 
   function destroy() {
