@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v209-hv-cookbowl';  // HV-209: Cook leaves Biscuit’s daily bowl
+const SW_VERSION = 'eureka-v210-hv-wallname';  // HV-210: Read the Wall cites the names that went up
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
