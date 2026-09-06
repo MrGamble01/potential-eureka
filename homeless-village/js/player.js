@@ -43,6 +43,13 @@ function doAction(a){
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
+  // HV-161: the tooltip says gather around the fire. Fire Went Out
+  // dims the barrel for 30s — the circle waits until it is lit.
+  if(a.id==='meeting' && Date.now()<(G.fireOutUntil||0)){
+    log('🗣️ The fire is out — the circle waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
