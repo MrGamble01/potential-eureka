@@ -88,7 +88,9 @@ function doAction(a){
     sfx('error');
     return;
   }
-  var duration=now<G.injuredUntil ? a.time*1.8 : a.time;
+  // HV-84: Injury is "the next while" — the rest of today, not 90s.
+  var injured=typeof G.injuredDay==='number' && G.injuredDay>=0 && G.injuredDay===G.days;
+  var duration=injured ? a.time*1.8 : a.time;
   activeJobs[a.id]={startTime:now,duration:duration};
   var btn=document.getElementById('action-'+a.id);
   if(btn){ btn.classList.add('active-job'); btn.disabled=true; }
