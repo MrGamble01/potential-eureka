@@ -216,7 +216,14 @@ function onNewDay(){
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
 
   if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
-    G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
+    // HV-78: a patched sleeping spot takes the wind once. The city
+    // can still demolish the tent — this is weather, not the sweep.
+    if(G.shelterPatched){
+      G.shelterPatched=false;
+      log('⛺ The patch held — the tent stayed up.');
+    } else {
+      G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
+    }
   }
   if(G.structures.workbench&&Math.random()<.04){
     if(G.structures.toolbox){
