@@ -394,10 +394,21 @@ function checkArc(){
   if(G.arcStage===0 && G.days>=10 && G.goodwill>=15){
     G.arcStage=1; triggerEvent(ARC_EVENTS.card,true); saveGame();
   } else if(G.arcStage===1 && G.structures.soup_kitchen && G.population>=4){
-    G.arcStage=2; triggerEvent(ARC_EVENTS.paperwork,true); saveGame();
-  } else if(G.arcStage===2 && G.goodwill>=25 && G.morale>60){
-    G.arcStage=3; saveGame();
-    showGraduation();
+    G.arcStage=2;
+    // HV-98: the forms say "put some goodwill aside." If the camp
+    // already has 25 when Dena files, that aside is in. Spending the
+    // wallet later (a street light, a fridge) must not un-file it.
+    if(G.goodwill>=25) G.arcGoodwillSaved=true;
+    triggerEvent(ARC_EVENTS.paperwork,true); saveGame();
+  } else if(G.arcStage===2){
+    if(G.goodwill>=25 && !G.arcGoodwillSaved){
+      G.arcGoodwillSaved=true;
+      saveGame();
+    }
+    if((G.arcGoodwillSaved || G.goodwill>=25) && G.morale>60){
+      G.arcStage=3; saveGame();
+      showGraduation();
+    }
   } else if(G.arcStage>=3){
     // HV-61: the overlay is not in the save. Re-show until arcDone.
     showGraduation();

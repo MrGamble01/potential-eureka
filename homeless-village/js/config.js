@@ -64,7 +64,8 @@ var G = {
   goalIndex: 0,
   // Case Worker arc (IDEA-HV-3): 0 = not met, 1 = card left, 2 = paperwork
   // started, 3 = housed. arcDone marks the post-ending sandbox.
-  arcStage: 0, arcDone: false,
+  // HV-98: paperwork said "25 goodwill saved" — a latch, not the live purse.
+  arcStage: 0, arcDone: false, arcGoodwillSaved: false,
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,

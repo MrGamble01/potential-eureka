@@ -55,7 +55,8 @@ ok(/arcGoodwillSaved/.test(arc) && /morale\s*>\s*60/.test(arc),
   'HV-98: checkArc() files the aside as a latch and still wants morale above 60');
 ok(/arcGoodwillSaved:\s*false/.test(cfg),
   'G defaults arcGoodwillSaved to false on a fresh camp');
-ok(/typeof G\.arcGoodwillSaved!=='boolean'/.test(save),
+ok(/typeof parsed\.arcGoodwillSaved!=='boolean'/.test(save)
+  && /arcStage>=2 && G\.goodwill>=25/.test(save),
   'loadGame migrates a pre-HV-98 save that never wrote the stamp');
 ok(!/arcGoodwillSaved/.test(ui),
   'ui.js is not this ticket — it still only paints Keys in Hand');
@@ -271,6 +272,8 @@ ok(!/arcGoodwillSaved/.test(ui),
         population: 4,
         structures: { soup_kitchen: true },
         fridgeSeeded: true,
+        goalIndex: 9999,
+        lastEventDay: 9999,
       }));
     });
     await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load', timeout: 25000 });

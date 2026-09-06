@@ -5,7 +5,8 @@ function saveGame(){
 function loadGame(){
   try{
     var raw = localStorage.getItem(SAVE_KEY);
-    if(raw){ Object.assign(G, JSON.parse(raw)); }
+    var parsed = raw ? JSON.parse(raw) : null;
+    if(parsed){ Object.assign(G, parsed); }
     // HV-62: tickDay subtracts 1 and calls onNewDay once a frame while
     // timeOfDay >= 1. A hostile save (50, Infinity, NaN, -1) therefore
     // either burns a dawn per frame until the camp dies, or paints a
@@ -18,6 +19,15 @@ function loadGame(){
     if(typeof G.goalIndex!=='number'||G.goalIndex<0) G.goalIndex=0; // saves from before the goal ladder
     if(typeof G.arcStage!=='number'||G.arcStage<0) G.arcStage=0;    // saves from before the Case Worker arc
     G.arcDone=!!G.arcDone;
+    // HV-98: paperwork's "25 goodwill saved" is a latch. G defaults
+    // the flag to false, so a missing key after Object.assign still
+    // looks like a boolean. Read the blob: an older save sitting at
+    // stage 2 with 25+ on hand already met it; stage 3+ already
+    // graduated. Do not invent an aside for a camp that spent down
+    // before this stamp existed.
+    if(!parsed || typeof parsed.arcGoodwillSaved!=='boolean'){
+      G.arcGoodwillSaved = G.arcStage>=3 || (G.arcStage>=2 && G.goodwill>=25);
+    }
     // A save written mid-warning restores sweepWarned:true, but the timer
     // that would fire the sweep died with the old tab — leaving it set
     // blocks every future lookout warning for the rest of the save.
