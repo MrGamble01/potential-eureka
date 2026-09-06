@@ -402,6 +402,8 @@ function wallHasStar(){ return (loadHvRec().beats||0)>=HVSTAR_AT; }
 // bridge's longest hold by their real numbers, and reading it lifts
 // the fire.
 var HVNOTE_KEY='hv-letter', HVNOTE_MORALE=2;
+// HV-136: the note says take the milk. A story is morale. Milk is food.
+var HVNOTE_FOOD=2;
 function loadHvNote(){
   try{ var n=JSON.parse(localStorage.getItem(HVNOTE_KEY)||'null');
     if(n&&typeof n==='object') return {read:Math.max(0,Math.floor(n.read||0))};
@@ -422,9 +424,10 @@ function deliverHvNote(){
   var n=loadHvNote();
   saveHvNote({read:(n.read||0)+1});
   G.morale=Math.min(100,(G.morale||0)+HVNOTE_MORALE);
+  G.food=(G.food||0)+HVNOTE_FOOD;
   var s=composeHvNote();
-  log(s+' (+'+HVNOTE_MORALE+'\ud83d\ude0a)');
-  floatText('+'+HVNOTE_MORALE+'\ud83d\ude0a');
+  log(s+' (+'+HVNOTE_MORALE+'\ud83d\ude0a +'+HVNOTE_FOOD+'\ud83c\udf5e)');
+  floatText('+'+HVNOTE_MORALE+'\ud83d\ude0a +'+HVNOTE_FOOD+'\ud83c\udf5e');
 }
 // HV-34: the almanac round under the bridge. Somebody chalked the
 // numbers on the underpass wall — the fridge's camps, the longest
