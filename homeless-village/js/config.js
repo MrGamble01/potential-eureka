@@ -130,6 +130,22 @@ var REGULARS = [
    how:'Panhandle her route — she always stops', perk:'patches you up when you’re in bad shape'},
 ];
 function regularDef(id){ for(var i=0;i<REGULARS.length;i++) if(REGULARS[i].id===id) return REGULARS[i]; return null; }
+// HV-131: Ray likes company by the fire. The two barrel spots match
+// scene.js (west fire at -3,0 and the south-east one at 2,-3). Range
+// is the same generosity as a dumpster walk-up.
+var FIRE_SPOTS=[{x:-3,z:0},{x:2,z:-3}];
+var REST_NEAR=3.2;
+function restNearRay(){
+  if(typeof player==='undefined'||!player||!player.position) return true;
+  var best=Infinity;
+  for(var i=0;i<FIRE_SPOTS.length;i++){
+    var dx=FIRE_SPOTS[i].x-player.position.x;
+    var dz=FIRE_SPOTS[i].z-player.position.z;
+    var d=Math.sqrt(dx*dx+dz*dz);
+    if(d<best) best=d;
+  }
+  return best<=REST_NEAR;
+}
 function regularStage(id){ var a=(G.regulars&&G.regulars[id])||0; return a>=5?2:(a>=1?1:0); } // 0 stranger, 1 known, 2 friend
 
 // ── HV-16: Regulars' Favors ──────────────────────────────────

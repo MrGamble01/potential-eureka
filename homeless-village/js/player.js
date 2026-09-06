@@ -139,7 +139,9 @@ function finishAction(a){
     var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
     floatText('+'+h+'❤️');
     log('You rest. Health +'+h+'.');
-    bumpRegular('ray');
+    // HV-131: Ray's roster says Rest nearby. A rest across the lot
+    // still healed — it just is not his company.
+    if(restNearRay()) bumpRegular('ray');
   } else if(a.id==='trade'){
     if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
       bumpRegular('marisol'); addRep(1); }
