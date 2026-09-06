@@ -239,6 +239,9 @@ const MazeGame = (() => {
       updateStatus('🤖 ' + algorithm.toUpperCase() + ' path: ' + path.length + ' steps. Press N for a new game.');
     }
     solving = false;
+    playing = true;                // MAZE-1: the pause above is "while it demos" —
+                                    // resume the runner once the demo is over instead
+                                    // of leaving it stuck for good.
     solveVisited = null; solvePath = null;
   }
 
