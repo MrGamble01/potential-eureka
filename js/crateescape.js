@@ -309,12 +309,14 @@ const CrateEscapeGame = (() => {
   function restart() { loadLevel(level); }
   function undoBtn() { undo(); }
 
-  function destroy() {
-    const ov = document.getElementById('crate-overlay');
-    if (ov) ov.style.display = 'none';
-    solvedNow = false;
-    draw();
-  }
+  // Nothing to tear down: Crate Escape runs no loop and no timer, and the
+  // board only changes on a keypress. The solved state deliberately survives
+  // a view switch — clearing `solvedNow` and hiding the win overlay here
+  // stranded anyone who solved a puzzle and stepped out to another view: they
+  // came back to a board with every crate already on its pad, no win panel,
+  // and SPACE / Enter / tapping the overlay all silently dead, because the
+  // only path to the next puzzle is gated on the flag destroy() had wiped.
+  function destroy() {}
 
   return { init, start, destroy, prevLevel, nextLevel, restart, undoBtn };
 })();
