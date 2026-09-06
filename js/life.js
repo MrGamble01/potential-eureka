@@ -113,8 +113,11 @@ const LifeGame = (() => {
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         if (dr === 0 && dc === 0) continue;
-        const nr = (r + dr + ROWS) % ROWS;
-        const nc = (c + dc + COLS) % COLS;
+        // Finite board — the `% ROWS` wrap looked like a bounds guard and
+        // made the 60×40 grid a torus. Gosper-gun gliders came back around
+        // and tore the gun apart around generation 180.
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
         count += grid[nr][nc];
       }
     }
