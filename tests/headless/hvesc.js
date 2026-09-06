@@ -30,15 +30,18 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 // closeIntro() (that would mark the crash course seen). Lives in
 // main.js so this ticket stays off ui.js (HV-57 / #654).
 const main = fs.readFileSync(path.join(ROOT, 'homeless-village/js/main.js'), 'utf8');
-const closesBridge = /e\.key\s*===\s*['"]Escape['"][\s\S]{0,240}chain-modal[\s\S]{0,200}classList\.remove\(\s*['"]open['"]\s*\)/.test(main);
-const ridesIntro = /closeIntro\s*\(/.test(main);
+const handler = /document\.addEventListener\(\s*['"]keydown['"][\s\S]{0,400}chain-modal[\s\S]{0,220}classList\.remove\(\s*['"]open['"]\s*\)/.exec(main);
+const closesBridge = !!handler;
+const ridesIntro = handler ? /closeIntro\s*\(/.test(handler[0]) : true;
 ok(closesBridge, 'HV-58: main.js Escape handler removes open from #chain-modal');
 ok(!ridesIntro, 'HV-58: that handler does not call closeIntro()');
 
 (async () => {
-  const browser = await chromium.launch({
+  const launch = {
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
-  });
+  };
+  if (process.env.CHROME_PATH) launch.executablePath = process.env.CHROME_PATH;
+  const browser = await chromium.launch(launch);
 
   // --- A. intro Escape still works ---------------------------------
   {
