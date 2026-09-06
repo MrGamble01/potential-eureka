@@ -191,13 +191,15 @@ function onNewDay(){
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
-  // HV-23: coats off the rack blunt the cold's edge — the weather's
-  // bite (only when it IS a bite) and the snap's extra — but never
-  // the season's base drain, and never a heat wave's gift.
+  // HV-23: coats off the rack blunt the cold's edge — a Cold Snap
+  // sky and the snap's extra — but never the season's base drain,
+  // never a heat wave's gift, and never rain. HV-105: the card said
+  // bitter dawns; wBite>0 let a rainy morning borrow the coats.
   var wBite=weatherDef().warmth, snapBite=snapActive()?SNAP_WARMTH:0;
-  if(G.structures.coats&&(wBite>0||snapBite>0)){
-    if(wBite>0) wBite*=COATS_CUT;
-    snapBite*=COATS_CUT;
+  var bitter=G.weather==='cold'||snapBite>0;
+  if(G.structures.coats&&bitter){
+    if(G.weather==='cold'&&wBite>0) wBite*=COATS_CUT;
+    if(snapBite>0) snapBite*=COATS_CUT;
     G.coldCut=(G.coldCut||0)+1;
     log('🧥 Coats off the rack at dawn — the cold cuts half as deep.');
   }
