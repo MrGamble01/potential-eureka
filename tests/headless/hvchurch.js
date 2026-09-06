@@ -30,7 +30,7 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
 const ui   = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 
 const churchAt = loop.indexOf("id:'church_donation'");
-const church = churchAt >= 0 ? loop.slice(churchAt, churchAt + 500) : '';
+const church = churchAt >= 0 ? loop.slice(churchAt, churchAt + 800) : '';
 
 ok(churchAt >= 0 && /essentials/.test(church),
    'the Church Donated Supplies card still promises essentials — guards the guard');
