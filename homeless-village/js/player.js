@@ -541,9 +541,17 @@ function finishCraft(r){
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
+  // HV-71: Hot Meal sells "Feed a community member." finishCraft only
+  // knew structure / warmth / goodwill, so 4 food + a can bought a
+  // reputation bump and the camp woke just as hungry. Soup Night is
+  // the game's own feed (+4 morale, +2 health); pay those when a
+  // recipe declares them. A Blanket still only warms.
+  if(r.gives.morale)   G.morale=Math.min(100,G.morale+r.gives.morale);
+  if(r.gives.health)   G.health=Math.min(100,G.health+r.gives.health);
   G.totalCrafted++;
   sfx('craft');
-  log('Crafted '+r.name+'.');
+  if(r.id==='meal') log('🥣 Hot Meal — a community member ate. +'+r.gives.morale+' morale, +'+r.gives.health+' health.');
+  else log('Crafted '+r.name+'.');
   saveGame();
   updateHUD(); buildCraftUI();
 }
