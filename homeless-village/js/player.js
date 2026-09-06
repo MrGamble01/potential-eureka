@@ -171,6 +171,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-225: Pass the Thermos said it goes around the fire.
+  // Fire Went Out dims the barrel; do not start the 2s job or
+  // stamp thermosUsed. A cold thermos and a already-poured
+  // round are other tickets. The pour stays morale.
+  if(a.id==='thermos' && thermosHasWarmth() && !thermosUsed && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83e\uded6 The fire is out — the thermos waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
