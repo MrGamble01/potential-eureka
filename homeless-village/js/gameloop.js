@@ -294,7 +294,7 @@ function bumpRegular(id){
   var after=regularStage(id), d=regularDef(id);
   if(d&&after!==before){
     if(after===1) log(d.icon+' You learn the name of the one who '+d.who+': '+d.name+'.');
-    // HV-99: Old Ray is two words. split(' ')[0] called him Old.
+    // HV-99: Old Ray is two words. The first token called him Old.
     // Last token keeps Marisol / Dee and names Ray.
     else { log(d.icon+' '+d.name+' counts you as a friend now — '+d.name.split(' ').pop()+' '+d.perk+'.');
       addRep(5); }   // HV-9: a friend who vouches for you carries real weight
