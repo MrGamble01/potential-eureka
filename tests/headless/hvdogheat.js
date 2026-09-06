@@ -86,6 +86,8 @@ ok(!/dogwalk/.test(ui) || !/weather==='heat'/.test(ui),
     `HV-171: a scorcher walk does not add the +6 (50 → ${heat.morale})`);
   ok(heat.goodwill === 2,
     `the neighbor still pays +2 goodwill (${heat.goodwill})`);
+  ok(/fresh air/i.test(heat.log),
+    `the log names the missing fresh air (${heat.log.slice(-90)})`);
 
   const clear = await walk('clear');
   ok(clear.morale === 56 && clear.goodwill === 2,
