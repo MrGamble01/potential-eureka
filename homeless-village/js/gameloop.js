@@ -563,6 +563,10 @@ var EVENTS_GOOD=[
    desc:'Clear skies and mild temps. A rare easy day.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-67: the card promised clear skies. Warmth and morale used
+     // to rise while G.weather stayed rain / cold / heat — the badge
+     // and every weatherDef() reader (panhandle, scavenge) never saw it.
+     G.weather='clear';
      G.warmth=Math.min(100,G.warmth+rand(10,18));
      G.morale=Math.min(100,G.morale+rand(8,14));
      log('Nice weather today. Warmth and morale up.');
