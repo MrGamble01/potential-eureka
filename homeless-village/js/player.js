@@ -634,6 +634,10 @@ function doFavor(){
   Object.entries(f.need).forEach(function(e){ G[e[0]]-=e[1]; });
   Object.entries(f.give).forEach(function(e){ G[e[0]]=(G[e[0]]||0)+e[1]; });
   G.favorsDone=(G.favorsDone||0)+1;
+  // HV-127: the log says they won't forget this. Trade / Rest / Borrow
+  // / Garage / Rain Bet already call bumpRegular. The favor itself
+  // never did — friendship ran one way.
+  bumpRegular(G.favor.who);
   G.favor=null;
   addRep(2);
   sfx('hire');
