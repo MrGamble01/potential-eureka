@@ -156,6 +156,17 @@ function snapAtDawn(){
   }
 }
 
+// HV-109: names on an open wall do not survive a rainy night the way
+// the Dry Corner's tooltip said they would. Roofed, or no story yet,
+// rain stays Dee's bet and the barrel's fill.
+function rainEditsStory(){
+  if(G.weather!=='rain') return;
+  if(typeof dryBuilt==='function'&&dryBuilt()) return;
+  if((loadHvMark().names||0)<=0) return;
+  G.morale=Math.max(0,G.morale-2);
+  log('\u26f1\ufe0f Rain on the open wall \u2014 the chalk ran. The rain edited the story. -2 morale.');
+}
+
 function onNewDay(){
   G.days++; saveGame();
   recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
@@ -274,6 +285,9 @@ function onNewDay(){
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
   if(G.weather==='heat') log('\ud83e\udd75 A scorcher. Foot traffic is up — a good day to panhandle.');
+  // HV-109: after the sky is named, so the chalk line stays on the
+  // six-line feed with the rain. The tally stays — later links stay unlocked.
+  rainEditsStory();
   if(forecastVisible()&&G.forecast&&WEATHERS[G.forecast]) log('\ud83d\udcfb Tomorrow: '+WEATHERS[G.forecast].icon+' '+WEATHERS[G.forecast].name+'.');
   buildCraftUI(); buildWorkersUI(); buildActionUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
