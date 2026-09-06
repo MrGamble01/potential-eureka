@@ -75,6 +75,14 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-122: Tell the Fire Story is on the rail from day one. The
+  // tooltip says three sits first. finishAction already knew the
+  // refuse line — after a 2s job and the full 30s lock.
+  if(a.id==='story' && !hvStoryByHeart()){
+    log('\ud83d\udd25 Nobody has the whole story yet \u2014 three sits on the bench and it comes together.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
