@@ -225,6 +225,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-278: Wave Marisol Down said once a session. finishAction
+  // already named the garage-to-run refuse after a 2s job and a
+  // 30s lock. A storyless bridge is HV-101. The casserole stays food.
+  if(a.id==='marisol' && marisolCame){
+    log('\ud83d\ude97 Marisol already came by today \u2014 she has a garage to run.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
