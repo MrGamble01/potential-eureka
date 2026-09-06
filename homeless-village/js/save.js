@@ -49,6 +49,7 @@ function loadGame(){
     if(typeof G.ticketLastDay!=='number') G.ticketLastDay=-9;
     if(typeof G.lastLetterDay!=='number') G.lastLetterDay=-9;
     if(G.ticketAsk&&typeof G.ticketAsk.day!=='number') G.ticketAsk=null;
+    if(typeof G.ticketPending!=='boolean') G.ticketPending=false; // saves from before HV-99
     if(typeof G.snapUntil!=='number') G.snapUntil=null;             // saves from before HV-18
     if(typeof G.snapsSurvived!=='number') G.snapsSurvived=0;
     if(typeof G.structures.guitar!=='boolean') G.structures.guitar=false; // saves from before HV-19

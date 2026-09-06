@@ -68,6 +68,8 @@ var G = {
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,
+  // HV-99: fare paid after Morning — they catch the next morning bus.
+  ticketPending: false,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
@@ -283,6 +285,9 @@ var TICKET_COST_GW = 12, TICKET_COST_SCRAPS = 8;
 var TICKET_ASK_DAYS = 4;    // the moment passes if the fare never comes
 var TICKET_EVERY = 10;      // days before someone else opens up
 var LETTER_EVERY = 6;       // a letter from the city every few days
+// HUD labels split the day into six: Dawn, Morning, Midday,
+// Afternoon, Dusk, Night. The morning bus runs in the first two.
+function morningBusHere(){ return (G.timeOfDay||0) < 2/6; }
 function ticketAvailable(){ return !!G.ticketAsk; }
 function ticketAction(){
   return { id:'ticket', icon:'🚌', label:'Buy the bus ticket ('+TICKET_COST_GW+'🩶 + '+TICKET_COST_SCRAPS+'🧱)', time:6000, cooldown:0,
