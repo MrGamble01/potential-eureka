@@ -93,6 +93,8 @@ ok(!/G\.cardboard\s*=/.test(ui),
     `cans still sit — not this ticket (${church.cans})`);
   ok(church.wood === 20,
     `wood still sits — not this ticket (${church.wood})`);
+  ok(/cardboard/i.test(church.log),
+    `the log names the cardboard (${church.log.slice(-80)})`);
 
   const kind = await page.evaluate(() => {
     const real = Math.random;
