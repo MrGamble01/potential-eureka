@@ -27,11 +27,13 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 const player = fs.readFileSync(path.join(ROOT, 'homeless-village/js/player.js'), 'utf8');
 const config = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
-const oddAt = player.indexOf("a.id==='oddjob'");
-const muralAt = player.indexOf("a.id==='mural'");
-const oddBlock = oddAt >= 0 && muralAt > oddAt ? player.slice(oddAt, muralAt) : '';
+const finishAt = player.indexOf('function finishAction(a){');
+const finish = finishAt >= 0 ? player.slice(finishAt) : '';
+const oddAt = finish.indexOf("a.id==='oddjob'");
+const muralAt = finish.indexOf("a.id==='mural'");
+const oddBlock = oddAt >= 0 && muralAt > oddAt ? finish.slice(oddAt, muralAt) : '';
 
-ok(oddAt >= 0 && /todaysJob/.test(oddBlock),
+ok(finishAt >= 0 && oddAt >= 0 && /todaysJob/.test(oddBlock),
   'odd-job payout is still in finishAction');
 ok(/scrapyd/.test(oddBlock) && /weather==='rain'/.test(oddBlock),
   'HV-237: the scrapyard payout names rain');
