@@ -451,6 +451,10 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
+     // HV-184: the pantry promised a box on a post. City Sweep
+     // destroys shelters. The box sits in the open, so unlike the
+     // buried stash it is not a coin-flip.
+     if(G.structures.pantry){ G.structures.pantry=false; log('The pantry box was kicked over and smashed.'); }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
