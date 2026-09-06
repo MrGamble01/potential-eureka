@@ -308,6 +308,11 @@ function finishAction(a){
     // HV-43: the picture that proves the reunion happened, once a session.
     if(!snapshotHangs()){ log('\ud83d\udcf7 No snapshot in the fridge door yet \u2014 three reunions put one there.'); }
     else if(snapshotLooked){ log('\ud83d\udcf7 The snapshot got its look today \u2014 it fades if you stare.'); }
+    else if(G.weather==='rain'){
+      // HV-213: somebody in the shot does not swing by with a little
+      // something in the rain. Do not spend the look latch or the tally.
+      log('\ud83d\udcf7 Somebody in the shot started over \u2014 the rain turned them back. Nobody swings by with a little something in this.');
+    }
     else {
       snapshotLooked=true;
       var sd=snapshotDish();
