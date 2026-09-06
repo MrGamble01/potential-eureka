@@ -244,6 +244,17 @@ function onNewDay(){
       } else {
         log('Frost on the beds — the garden gave nothing today.');
       }
+    } else if(G.weather==='heat'){
+      // HV-165: a scorcher wilts the beds the way frost does.
+      // Compost heat keeps a frost bed — it cannot save a wilt.
+      // The barrel's stored rain is still a dry-day watering.
+      if((G.barrelWater||0)>0){
+        G.barrelWater--; G.barrelDays=(G.barrelDays||0)+1;
+        G.food+=1; floatText('+1\ud83c\udf5e');
+        log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.');
+      } else {
+        log('The scorcher wilted the beds — the garden gave nothing today.');
+      }
     }
     else {
       var y=rand(1,3);
