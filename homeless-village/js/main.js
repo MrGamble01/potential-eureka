@@ -29,6 +29,23 @@ window.addEventListener('keyup', function(e){
 // Alt-tabbing away mid-press must not leave a key "stuck" down forever.
 window.addEventListener('blur', function(){ keysDown = {}; });
 
+// HV-58: Escape closes The Bridge.
+//
+// #chain-modal already dismisses via × and backdrop (ui.js). Escape was
+// only wired for the HV-56 first-run intro, which keys off #intro-modal
+// and never sees this overlay. Same class of drift as TYC-60 / LAB-61.
+// Lives here — not in ui.js — so this ticket does not collide with
+// HV-57's payout work on that file. Do not call closeIntro(): that
+// would mark the crash course seen.
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    var m = document.getElementById('chain-modal');
+    if(m && m.classList.contains('open')){
+      m.classList.remove('open');
+    }
+  }
+});
+
 // Tap/click-to-walk: the touch-input HV never had (IDEA-HV-2's gate would
 // otherwise brick scavenging on phones, which have no WASD). A tap on the
 // ground raycasts to the y=0 plane and the player walks there; any key
@@ -175,7 +192,18 @@ function frame(ts){
     var dx=f.userData.target.x-f.position.x, dz=f.userData.target.z-f.position.z;
     var dist=Math.sqrt(dx*dx+dz*dz);
     if(dist>.1){
-      var sp=f.userData.speed*dt*.016*60;
+      // `speed` is units per 60fps frame (see spawnFigure). frame()'s dt
+      // is raw milliseconds (clamped to 100), so the step is speed ×
+      // frames-elapsed: dt/16.667. It used to read `dt*.016*60`
+      // (=dt*0.96) — 16× too fast — which both sprinted residents past
+      // the player and overshot the 0.1 arrival test into a permanent
+      // ping-pong across the target.
+      // Never stride past the target: the arrival test above is a 0.1
+      // window, and a laggy frame (dt clamps at 100ms, six frames) gives
+      // the fastest residents a 0.21 stride that can still straddle it
+      // and ping-pong. Capping the step at the remaining distance lands
+      // them on the spot whatever the frame rate.
+      var sp=Math.min(f.userData.speed*(dt/16.667),dist);
       f.position.x+=dx/dist*sp; f.position.z+=dz/dist*sp;
       f.rotation.y=Math.atan2(dx,dz);
     }
