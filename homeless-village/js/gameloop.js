@@ -446,7 +446,17 @@ var EVENTS_BAD=[
      G.timesSwept++; G.lastEventDay=G.days;
      if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); }
      if(G.structures.soup_kitchen&&Math.random()<.7){ G.structures.soup_kitchen=false; log('Soup kitchen torn down.'); }
-     if(G.structures.workbench&&Math.random()<.5){ G.structures.workbench=false; log('Workbench smashed.'); }
+     if(G.structures.workbench&&Math.random()<.5){
+       // HV-96: the Tool Box said the workbench never falls apart
+       // again. Dawn wobble already honored that. The sweep still
+       // smashed the bench on a coin flip. #742 is the cans.
+       if(G.structures.toolbox){
+         G.benchSaves=(G.benchSaves||0)+1;
+         log('🧰 They went for the workbench — the tool box held the joints.');
+       } else {
+         G.structures.workbench=false; refreshStructures(); log('Workbench smashed.');
+       }
+     }
      // The Garden's own description ("Gets destroyed in sweeps") promised
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
