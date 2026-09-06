@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v65-hv-friend';  // HV-65: Old Friend's surge fades at dawn, not on a timer that dies on reload
+const SW_VERSION = 'eureka-v73-hv-scrap';  // HV-73: the Scrapper's dawn haul counts as a scavenge
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

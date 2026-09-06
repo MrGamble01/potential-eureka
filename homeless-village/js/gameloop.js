@@ -227,7 +227,17 @@ function onNewDay(){
       G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
     }
   }
-  if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
+  // HV-73: the Scrapper sells "Auto-scavenges every day." Walking a
+  // dumpster ticks totalScavenged (Keys in Hand: "dumpsters dug
+  // through") and finds food about 45% of the time. The hired hand
+  // only pocketed scraps and cans, so the Bridge never counted the
+  // work and the camp never ate.
+  if(G.workers.scrapper){
+    G.scraps+=rand(1,3); G.cans+=rand(0,2);
+    if(Math.random()<.45) G.food+=rand(1,3);
+    G.totalScavenged++;
+    log('The Scrapper found some supplies.');
+  }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
