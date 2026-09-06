@@ -498,6 +498,14 @@ var EVENTS_BAD=[
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
      log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
+     // HV-188: the coat rack hangs donated coats on a rail by the
+     // fire. A raid in the night takes the wearable stash sitting
+     // out there — the hole never holds a rail, and the next cold
+     // dawn should feel the full bite.
+     if(G.structures.coats){
+       G.structures.coats=false;
+       log('\uD83E\uDDE5 They stripped the coat rack \u2014 the rail is empty.');
+     }
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
