@@ -252,6 +252,11 @@ function onNewDay(){
       G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
     }
   }
+  // HV-184: Marisol's leftovers are breakfast. They used to land after
+  // Biscuit's keep, so a drop on an empty pot arrived once he had
+  // already curled up hungry. Dee's patch does not care about the
+  // order; the tamales do.
+  regularFavorsAtDawn();
   if(G.dog===2){
     // Biscuit's keep: one food a day. Fed, he's warmth against your back
     // and a reason to get up; hungry, he's a guilt that wears on everyone.
@@ -263,7 +268,6 @@ function onNewDay(){
       log('No scraps left for Biscuit. He curls up hungry.');
     }
   }
-  regularFavorsAtDawn();
   repAtDawn();
   soupNightAtDawn();
   muralAtDawn();
