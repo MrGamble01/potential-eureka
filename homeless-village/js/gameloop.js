@@ -498,6 +498,14 @@ var EVENTS_BAD=[
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
      log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
+     // HV-154: the guitar recipe is one set a day on the corner. A
+     // raid in the night takes the instrument sitting out there —
+     // the hole never holds a guitar, and Biscuit sleeps by the fire.
+     if(G.structures.guitar){
+       G.structures.guitar=false;
+       log('🎸 They took the scrap guitar off the corner.');
+       if(typeof buildActionUI==='function') buildActionUI();
+     }
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
