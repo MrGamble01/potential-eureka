@@ -496,8 +496,14 @@ var EVENTS_BAD=[
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
+     // HV-169: the card raided your stash. Cardboard is stash cargo —
+     // the Hidden Stash is built with it. Wood is a different ticket.
+     // The dm/sm stack already covers Biscuit / stash / streetlight.
+     var lostCard=Math.floor(G.cardboard*(.1+Math.random()*.2)*dm*sm);
+     G.cardboard=Math.max(0,G.cardboard-lostCard);
      G.morale=Math.max(0,G.morale-rand(12,20));
      log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
+     if(lostCard>0) log('They took the cardboard too.');
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
