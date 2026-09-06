@@ -421,10 +421,18 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
-    for(var k in j.gives){
-      if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
-      else G[k]=(G[k]||0)+j.gives[k];
-      parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+    // HV-159: the co-op shares the harvest. Frost on the beds
+    // means there is no harvest to share — the same cold sky
+    // that zeros the camp garden. Do not mutate j.gives.
+    var pays={}; for(var pk in j.gives) pays[pk]=j.gives[pk];
+    if(j.id==='gardenh' && G.weather==='cold'){
+      pays={};
+      log('\u2744\ufe0f Frost on the co-op beds — nothing to share today.');
+    }
+    for(var k in pays){
+      if(k==='morale') G.morale=Math.min(100,G.morale+pays[k]);
+      else G[k]=(G[k]||0)+pays[k];
+      parts.push('+'+pays[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
     }
     G.oddJobDay=G.days;
     if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
