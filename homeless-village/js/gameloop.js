@@ -606,6 +606,15 @@ var EVENTS_BAD=[
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
+     // HV-240: raided your stash includes the stored rainfall.
+     // The drum is infrastructure (pantry / radio / cart); the
+     // water is a camp supply sitting in it. Biscuit, the stash,
+     // and the street light do not half a dumped drum. Sweep
+     // dumping the water is HV-201 / #891. Word fade is HV-236.
+     if((G.barrelWater||0)>0){
+       G.barrelWater=0;
+       log('\ud83d\udee2\ufe0f They dumped the stored rainfall.');
+     }
      // HV-236: the card says trust no one. Goods leaving in the night
      // is how the block learns a camp cannot keep its own. Dawn's
      // ordinary fade is not this card. Gentrify's Word fade is HV-216;

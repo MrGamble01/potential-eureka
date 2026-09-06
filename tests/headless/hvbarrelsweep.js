@@ -17,7 +17,7 @@
  *  F. An empty drum does not log a dump.
  *  G. Pack-up and the stash still dump all of it — water is not halved.
  *  H. Garden still tramples; tent still falls; scraps/food still take
- *     the pinned cut. Theft still leaves the water.
+ *     the pinned cut. Theft dumping the water is HV-241.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives triggerEvent() on the production event.
@@ -156,8 +156,8 @@ ok(block && !/G\.structures\.barrel\s*=\s*false/.test(block[1]),
     Math.random = real;
     return { water: G.barrelWater || 0, barrel: !!G.structures.barrel };
   });
-  ok(theft.water === 3 && theft.barrel,
-    `theft still leaves the stored rainfall (water=${theft.water})`);
+  ok(theft.water === 0 && theft.barrel,
+    `theft dumping the stored rainfall is HV-241 (water=${theft.water}); the drum still stands`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
