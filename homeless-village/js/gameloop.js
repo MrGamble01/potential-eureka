@@ -570,6 +570,10 @@ var EVENTS_GOOD=[
      // to rise while G.weather stayed rain / cold / heat — the badge
      // and every weatherDef() reader (panhandle, scavenge) never saw it.
      G.weather='clear';
+     // HV-107: mild temps and a rare easy day — a gripping snap is
+     // neither. Stamp today so snapActive() is false now and dawn's
+     // official break can still credit tomorrow.
+     if(snapActive()) G.snapUntil=G.days;
      G.warmth=Math.min(100,G.warmth+rand(10,18));
      G.morale=Math.min(100,G.morale+rand(8,14));
      log('Nice weather today. Warmth and morale up.');
