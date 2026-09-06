@@ -329,8 +329,9 @@ function finishAction(a){
       var bs2=loadHvSong();
       saveHvSong({plays:(bs2.plays||0)+1});
       G.food=(G.food||0)+bd2;
-      log('\ud83c\udfb8 THE BRIDGE BALLAD \u2014 the whole story set to three chords, and everybody hums along. The hat by the fire fills before the last verse: +'+bd2+'\ud83c\udf5e');
-      floatText('+'+bd2+'\ud83c\udf5e');
+      G.goodwill=(G.goodwill||0)+HVSONG_HAT;
+      log('\ud83c\udfb8 THE BRIDGE BALLAD \u2014 the whole story set to three chords, and everybody hums along. The hat by the fire fills before the last verse: +'+bd2+'\ud83c\udf5e, +'+HVSONG_HAT+'\ud83e\ude76');
+      floatText('+'+bd2+'\ud83c\udf5e +'+HVSONG_HAT+'\ud83e\ude76');
       saveGame();
     }
   } else if(a.id==='can'){
