@@ -497,6 +497,9 @@ var EVENTS_BAD=[
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
+     // HV-85: the card said trust no one. Trade is the handshake —
+     // it sits out the rest of this day. Dawn lifts it.
+     G.theftDay=G.days;
      log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,

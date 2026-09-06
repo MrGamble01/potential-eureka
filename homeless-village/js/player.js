@@ -62,6 +62,12 @@ function doAction(a){
   // Trade is the early-camp one: the tooltip says 3 cans → 2 food, a
   // new camp has zero cans, and the miss locked the button for 18s.
   if(a.id==='trade' && G.cans<3){ log('Not enough cans to trade.'); sfx('error'); return; }
+  // HV-85: Theft said trust no one. The handshake sits out the day.
+  if(a.id==='trade' && G.theftDay===G.days){
+    log('\ud83e\udd1d Trust no one \u2014 not after last night.');
+    sfx('error');
+    return;
+  }
   if(a.id==='rainbet'){
     if(G.rainBetDay===G.days){ log('\ud83c\udfb2 Dee laughs — one bet a day.'); return; }
     if(G.goodwill<RAINBET_STAKE){ log('\ud83c\udfb2 Not enough goodwill to cover the stake.'); sfx('error'); return; }
@@ -141,7 +147,8 @@ function finishAction(a){
     log('You rest. Health +'+h+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
-    if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
+    if(G.theftDay===G.days){ log('\ud83e\udd1d Trust no one \u2014 not after last night.'); }
+    else if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
       bumpRegular('marisol'); addRep(1); }
     else log('Not enough cans to trade.');
   } else if(a.id==='rainbet'){
