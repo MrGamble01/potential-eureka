@@ -1,4 +1,4 @@
-/* HV-83 — Injury said "the next while" and wore off in 90 seconds.
+/* HV-84 — Injury said "the next while" and wore off in 90 seconds.
  *
  * The event card promises: "Moving slowly for the next while."
  * The effect wrote G.injuredUntil = Date.now()+90000. A day is
@@ -18,7 +18,7 @@
  *    minutes, not ~90s. Wiping the wall-clock still leaves Rest
  *    slow. A new dawn lifts it.
  *
- * Named assertion: HV-83: Injury lasts the rest of the day, not 90 seconds.
+ * Named assertion: HV-84: Injury lasts the rest of the day, not 90 seconds.
  */
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -57,7 +57,7 @@ const doAct = doAt >= 0 ? player.slice(doAt, doAt + 2200) : '';
      'G defaults injuredDay to -1 — a fresh camp is not limping');
 
   ok(/typeof G\.injuredDay!=='number'/.test(save),
-     'loadGame migrates a pre-HV-83 save that never wrote injuredDay');
+     'loadGame migrates a pre-HV-84 save that never wrote injuredDay');
 
   ok(!/injuredDay/.test(ui) && !/id:'injury'/.test(ui),
      'ui.js is not this ticket — it still only shows the event banner');
@@ -115,7 +115,7 @@ const doAct = doAt >= 0 ? player.slice(doAt, doAt + 2200) : '';
   ok(mid.dur === Math.floor(mid.restTime * 1.8) || mid.dur === mid.restTime * 1.8,
      `Rest is 1.8x while injured (dur ${mid.dur}, rest ${mid.restTime})`);
   ok(mid.remaining > 240000 && mid.remaining <= 300000,
-     `HV-83: Injury lasts the rest of the day, not 90 seconds (remaining ${mid.remaining}ms)`);
+     `HV-84: Injury lasts the rest of the day, not 90 seconds (remaining ${mid.remaining}ms)`);
 
   const wiped = await page.evaluate(() => {
     const rest = ACTIONS.find(a => a.id === 'rest');

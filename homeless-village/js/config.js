@@ -25,6 +25,9 @@ var G = {
   sweepWarned: false, sweepCountdown: 0, packedUp: false,
   dumpsterLockDay: -1,   // HV-63: Dumpsters Locked lasts the rest of that day
   injuredUntil: 0, lastEventDay: -2,
+  // HV-84: the day Injury slowed you. Dawn lifts it.
+  // -1 = not injured. A 90s wall-clock used to do this.
+  injuredDay: -1,
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.
   friendDay: -1,

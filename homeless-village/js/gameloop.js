@@ -158,6 +158,13 @@ function snapAtDawn(){
 
 function onNewDay(){
   G.days++; saveGame();
+  // HV-84: the limp was a day, not a 90s clock. Dawn lifts the stamp
+  // and zeros injuredUntil so walk/craft checks that still read the
+  // wall-clock do not keep you slow after yesterday.
+  if(typeof G.injuredDay==='number' && G.injuredDay>=0 && G.days>G.injuredDay){
+    G.injuredDay=-1;
+    G.injuredUntil=0;
+  }
   recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
   G.season=Math.floor(G.days/7)%4;
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll
@@ -504,7 +511,12 @@ var EVENTS_BAD=[
    effect:function(){
      G.lastEventDay=G.days;
      G.health=Math.max(0,G.health-rand(15,30));
-     G.injuredUntil=Date.now()+90000;
+     // HV-84: the card says "the next while". A 90s wall-clock
+     // cleared the limp in the same morning. Stamp the day so
+     // Rest stays slow until dawn. injuredUntil still tracks the
+     // remaining day so a live session (and HV-69 walk/crafts) see it.
+     G.injuredDay=G.days;
+     G.injuredUntil=Date.now()+Math.max(0,(1-(G.timeOfDay||0))*DAY_LENGTH_MS);
      log('Injured. Actions will be slower for a while.');
    }},
   {id:'gentrify',title:'Gentrification',type:'bad',weight:8,
