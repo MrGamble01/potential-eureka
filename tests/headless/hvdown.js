@@ -39,7 +39,7 @@ const walkAt = doBlock.indexOf("a.id==='walk'");
 ok(doAt >= 0 && timeoutAt > 0, 'doAction still starts the job with setTimeout');
 ok(walkAt >= 0 && walkAt < timeoutAt && /!walkUp\(\)/.test(doBlock),
   'HV-219: doAction refuses Walk a Newcomer Down before the timer when nobody walks the wall');
-ok(/three stands at the fifth panel/.test(config),
+ok(/three stands at the fifth panel/i.test(config),
   'the card still asks for three stands at the fifth panel');
 ok(!/homeless-village\/js\/ui\.js/.test(player),
   'the refuse lives in doAction — ui.js is not this ticket');

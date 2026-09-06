@@ -111,6 +111,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-219: Walk a Newcomer Down said three stands start the walk.
+  // The button is on the list from day one. A miss used to run the
+  // 2s job, play the success sound, and lock 30s as if the walk paid.
+  // Reunion, Snapshot, and the coffee can are not this card.
+  if(a.id==='walk'&&!walkUp()){
+    log('\ud83e\udded Nobody walks the wall yet \u2014 three stands at the fifth panel and somebody starts.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.

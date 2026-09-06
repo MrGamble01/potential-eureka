@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v219-hv-snapscav';  // HV-219: named snap thins the dumpsters
+const SW_VERSION = 'eureka-v221-hv-down';  // HV-221: Walk a Newcomer Down refuses before the timer
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
