@@ -221,7 +221,7 @@ function muralAvailable(){ return repTier()>=1 && (G.mural||0)<MURAL_PANELS; }
 function muralDone(){ return G.muralDay===G.days; }
 function muralAction(){
   return { id:'mural', icon:'🎨', label:'Paint the mural ('+(G.mural||0)+'/'+MURAL_PANELS+')', time:7000, cooldown:0,
-    tooltip:'One session a day on the underpass wall. Costs 2 scraps of salvaged paint. +3 morale, and the block takes notice.' };
+    tooltip:'One session a day on the underpass wall. Costs 2 scraps of salvaged paint. +3 morale, and the block takes notice. The panel needs a dry night — rain washes wet paint.' };
 }
 
 // ── HV-14: the Camp Meeting ──────────────────────────────────
