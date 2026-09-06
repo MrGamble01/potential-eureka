@@ -429,6 +429,10 @@ function finishAction(a){
     G.oddJobDay=G.days;
     if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
+    // HV-156: Hand out flyers says the owner is kind. Marisol runs
+    // the taquería on the corner — that kindness is the same bump
+    // Trade already pays. The other four postings do not borrow it.
+    if(j.id==='flyers') bumpRegular('marisol');
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
     saveGame();
