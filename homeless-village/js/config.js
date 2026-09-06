@@ -70,6 +70,10 @@ var G = {
   fridgeSeeded: false,
 };
 
+// HV-132: Biscuit Comes Closer said he fell asleep against the
+// barrel fire. Daily keep is still +3. The first night is the join.
+var BISCUIT_JOIN_WARMTH = 8;
+
 // `requires` gates a recipe on an already-built structure (checked by
 // canCraft() in ui.js). Only the Workbench's "upgrade" recipes — the
 // bigger structures — are gated; basic survival crafts stay available

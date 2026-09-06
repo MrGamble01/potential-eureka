@@ -363,8 +363,12 @@ var DOG_EVENTS={
   joins:{id:'dog_joins',title:'Biscuit Comes Closer',type:'good',
     desc:'The dog walks into camp like he’s always lived here, eats what’s offered, and falls asleep against the barrel fire. That’s that, then.',
     effect:function(){ G.lastEventDay=G.days; G.food=Math.max(0,G.food-2);
-      G.morale=Math.min(100,G.morale+10); refreshDog();
-      log('Biscuit joined the camp. One food a day keeps him fed — he earns it.'); }},
+      G.morale=Math.min(100,G.morale+10);
+      // HV-132: the card laid him against the barrel. Eating is food.
+      // The barrel is warmth.
+      G.warmth=Math.min(100,(G.warmth||0)+BISCUIT_JOIN_WARMTH);
+      refreshDog();
+      log('Biscuit joined the camp. He falls asleep against the barrel fire. One food a day keeps him fed — he earns it. +'+BISCUIT_JOIN_WARMTH+'\ud83d\udd25'); }},
 };
 function checkDog(){
   if(G.dog===0&&G.days>=4){
