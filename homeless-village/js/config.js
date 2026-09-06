@@ -418,6 +418,10 @@ function composeHvNote(){
   return s;
 }
 function deliverHvNote(){
+  // HV-206: the note is taped in the fridge door. A beaten hold
+  // without a fridge is a story with nowhere to tape it. Start
+  // Over keeps the long memory; it does not invent a door.
+  if(!loadFridge().built) return;
   if(!(loadFridge().camps>0 || loadHvRec().days>0)) return;
   var n=loadHvNote();
   saveHvNote({read:(n.read||0)+1});
