@@ -523,7 +523,12 @@ function doCraft(r){
   // click on a still-running recipe deducted its cost twice.
   if(G.activeCrafts[r.id]) return;
   if(!canCraft(r)) return;
+  var now=Date.now();
   var dur=r.time*(G.workers.builder?.5:1);
+  // HV-69: Injury's "actions will be slower" skipped crafts. doAction
+  // already uses time*1.8 while injuredUntil is live; crafts are
+  // actions — Firewood and Blanket used to finish at full speed.
+  if(now<G.injuredUntil) dur*=1.8;
   Object.entries(r.cost).forEach(function(e){ G[e[0]]-=e[1]; });
   // Persist the in-flight job in the same write as the cost — closing
   // the tab mid-craft used to destroy the resources with no result.
