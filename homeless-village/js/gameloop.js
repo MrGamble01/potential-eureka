@@ -451,6 +451,9 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
+     // HV-151: the cart said it was liberated. Police confiscate
+     // supplies — a stolen cart is the first thing they take.
+     if(G.structures.cart){ G.structures.cart=false; log('🛒 They took the liberated cart.'); }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
@@ -476,7 +479,9 @@ var EVENTS_BAD=[
      }
      if(G.packedUp) log('Packing up paid off — most supplies were saved.');
      G.packedUp=false;
-     refreshStructures(); showSweepWarning(false);
+     refreshStructures();
+     if(typeof buildActionUI==='function') buildActionUI();
+     showSweepWarning(false);
    }},
   {id:'cold_snap',title:'Cold Snap',type:'bad',weight:14,
    desc:"Temperature drops hard tonight. Everyone's suffering.",
