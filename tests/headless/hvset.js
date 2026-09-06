@@ -29,9 +29,11 @@ const player = fs.readFileSync(path.join(ROOT, 'homeless-village/js/player.js'),
 const cfg    = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
 const ui     = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 
-const buskAt = player.indexOf("a.id==='busk'");
-const nextAt = player.indexOf("a.id==='newcomer'");
-const busk = buskAt >= 0 && nextAt > buskAt ? player.slice(buskAt, nextAt) : '';
+const finAt = player.indexOf('function finishAction(a){');
+const fin = finAt >= 0 ? player.slice(finAt) : '';
+const buskAt = fin.indexOf("a.id==='busk'");
+const nextAt = fin.indexOf("a.id==='newcomer'");
+const busk = buskAt >= 0 && nextAt > buskAt ? fin.slice(buskAt, nextAt) : '';
 const logLine = /log\('🎸[\s\S]*?\);/.exec(busk);
 const tip = /id:'busk'[\s\S]{0,400}?tooltip:'([^']+)'/.exec(cfg)
          || /buskAction[\s\S]{0,400}?tooltip:'([^']+)'/.exec(cfg);
