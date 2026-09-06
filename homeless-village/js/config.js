@@ -497,6 +497,8 @@ function thermosHasMugs(){ return loadMarisol().visits>=3; }
 // the camp throws the bridge reunion once a session. Everyone who
 // ever slept here comes back through: 2 food base + 1 per hold + 1
 // per visit (caps 3). Held tallied in 'hv-reunion'.
+// HV-139: the ones who can come back are the ones who left on the
+// morning bus. The pot adds +1 per ticket home (cap 5).
 var HVREU_KEY='hv-reunion', HVREU_BASE=2, HVREU_PER=1;
 var bridgeReunionHeld=false;
 function loadHvReunion(){
@@ -509,7 +511,8 @@ function saveHvReunion(r){ try{ localStorage.setItem(HVREU_KEY, JSON.stringify(r
 function hvReunionStands(){ return (loadHvStar().cheers||0)>=3 && loadMarisol().visits>=3; }
 function hvReunionDish(){
   return HVREU_BASE + HVREU_PER*Math.min(loadHvStar().cheers||0,3)
-    + HVREU_PER*Math.min(loadMarisol().visits||0,3);
+    + HVREU_PER*Math.min(loadMarisol().visits||0,3)
+    + HVREU_PER*Math.min(G.ticketsSent||0,5);
 }
 // HV-43: the portrait round under the bridge — after three Bridge
 // Reunions, a snapshot from the reunion is tucked into the corner
