@@ -9,20 +9,36 @@
    "re-select" it restarted the battle for nothing.
 
    The row now carries its own `.aow-banner-pills` class (styled identically),
-   so difficulty code can't reach it. This suite pins the behaviour and the
-   look. */
+   and the handler paints only `#aow-diff` / `#aow-diff-modal` then re-asserts
+   the banner highlight from `warBanner`. This suite pins both the source
+   scope and the player-facing look. */
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
+const ROOT = path.resolve(__dirname, '..', '..');
 let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
 
+const js = fs.readFileSync(path.join(ROOT, 'ageofwar/ageofwar.js'), 'utf8');
+const settingsBlock = /Difficulty buttons inside the modal[\s\S]*?Mute toggle/.exec(js);
+
 (async () => {
+  ok(!!settingsBlock, 'settings difficulty handler was found in ageofwar.js');
+  ok(!!(settingsBlock && !/querySelectorAll\(['"]\.aow-diff button['"]\)/.test(settingsBlock[0])),
+    'settings difficulty handler no longer fans out over every .aow-diff button');
+  ok(!!(settingsBlock && /#aow-diff button/.test(settingsBlock[0]) && /#aow-diff-modal button/.test(settingsBlock[0])),
+    'settings difficulty handler paints only the two difficulty rows');
+  ok(!!(settingsBlock && /aow-banner/.test(settingsBlock[0]) && /warBanner/.test(settingsBlock[0])),
+    'settings difficulty handler re-asserts the banner highlight after the difficulty paint');
+
   const browser = await chromium.launch({ args: ['--no-sandbox','--disable-dev-shm-usage','--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
 
+  await page.addInitScript(() => { try { localStorage.setItem('aow-welcome-seen', '1'); } catch (e) {} });
   await page.goto(BASE + '/ageofwar/index.html', { waitUntil: 'load' });
   await page.waitForTimeout(1200);
   const welcome = await page.$('#aow-welcome-close');
