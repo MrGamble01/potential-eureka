@@ -606,7 +606,7 @@ var EVENTS_BAD=[
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
-     // HV-240: raided your stash includes the stored rainfall.
+     // HV-241: raided your stash includes the stored rainfall.
      // The drum is infrastructure (pantry / radio / cart); the
      // water is a camp supply sitting in it. Biscuit, the stash,
      // and the street light do not half a dumped drum. Sweep

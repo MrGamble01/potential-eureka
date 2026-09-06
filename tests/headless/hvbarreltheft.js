@@ -1,5 +1,5 @@
 /*
- * HV-240 — Theft said they raided your stash, then left
+ * HV-241 — Theft said they raided your stash, then left
  * the stored rainfall in the drum.
  *
  * The Rain Barrel recipe stores a day of water on rainy
@@ -52,7 +52,7 @@ ok(/raided your stash in the night/.test(loop)
    && /stored rainfall waters the beds/.test(cfg),
   'theft still raids the stash; the drum still stores a rainfall');
 ok(theft && /barrelWater/.test(theft[1]) && /barrelWater\s*=\s*0/.test(theft[1]),
-  'HV-240: the theft effect dumps the stored rainfall');
+  'HV-241: the theft effect dumps the stored rainfall');
 ok(!/barrelWater\s*=\s*0/.test(ui),
   'ui.js untouched — the take lives on the theft effect');
 ok(theft && /addRep\s*\(\s*-3\s*\)/.test(theft[1]),
@@ -108,7 +108,7 @@ ok(sweep && /barrelWater\s*=\s*0/.test(sweep[1]),
     };
   });
   ok(lifted.barrel && lifted.water === 0 && lifted.named,
-    `HV-240: a live theft dumps the water and leaves the drum (water ${lifted.water}, barrel ${lifted.barrel})`);
+    `HV-241: a live theft dumps the water and leaves the drum (water ${lifted.water}, barrel ${lifted.barrel})`);
   ok(lifted.cans < 20, `goods still leave with them (cans 20 → ${lifted.cans})`);
 
   const empty = await page.evaluate(() => {
