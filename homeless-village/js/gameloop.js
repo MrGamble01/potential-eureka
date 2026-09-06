@@ -106,12 +106,17 @@ function ticketAtDawn(){
 // remembered.
 function pantryAtDawn(){
   if(!G.structures.pantry) return;
-  if(Math.random()>=PANTRY_CHANCE) return;
+  // HV-89: "take what you need" is the empty pot. A stocked camp
+  // still waits on the neighbor roll — that is "leave what you can."
+  var need=(G.food||0)<=0;
+  if(!need && Math.random()>=PANTRY_CHANCE) return;
   G.food=(G.food||0)+PANTRY_FOOD;
   G.pantryFills=(G.pantryFills||0)+1;
   if(G.pantryFills%PANTRY_REP_EVERY===0){
     addRep(1);
     log('🥣 The pantry box was full at dawn again \u2014 the block knows who keeps it up. +'+PANTRY_FOOD+' 🍞, +1 rep.');
+  } else if(need){
+    log('🥣 The pantry had what the camp needed. +'+PANTRY_FOOD+' 🍞.');
   } else {
     log('🥣 Someone left a little something in the pantry box overnight. +'+PANTRY_FOOD+' 🍞.');
   }
