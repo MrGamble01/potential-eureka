@@ -1,11 +1,12 @@
 /*
- * HV-172 — Make room said a bed by the fire,
+ * HV-173 — Make room said a bed by the fire,
  * then seated them after the tent tore.
  *
  * The ask only opens when a tent stands (warm enough to share).
  * #821 is the word "tonight". #735 is a full camp. #827 is Keys
  * tent size. #746 / #749 are the tent's own roof and patch.
- * #861 took HV-171 (dogwalk scorcher). finishAction still
+ * #861 took HV-171 (dogwalk scorcher). #862 took HV-172
+ * (Cook vs the soup pot). finishAction still
  * spent the bed and grew the camp with no tent left.
  *
  *  A. Source: the ask still needs a tent; the welcome and the
@@ -42,7 +43,7 @@ ok(/newcomerAtDawn[\s\S]{0,400}?structures\.tent/.test(loop) && /NEWCOMER_COST_F
 ok(door && /structures\.tent/.test(door[1]) && welcome && /structures\.tent/.test(welcome[1])
   && /tent tore[\s\S]{0,120}lapseNewcomerNoTent/.test(loop)
   && /tent was demolished[\s\S]{0,120}lapseNewcomerNoTent/.test(loop),
-  'HV-172: doAction and finishAction refuse a torn tent; a tear or sweep lapses the ask');
+  'HV-173: doAction and finishAction refuse a torn tent; a tear or sweep lapses the ask');
 
 (async () => {
   const launch = {
@@ -101,10 +102,10 @@ ok(door && /structures\.tent/.test(door[1]) && welcome && /structures\.tent/.tes
     };
   });
   ok(torn.pop === 2 && torn.food === 10 && torn.wood === 10 && !torn.seated,
-    `HV-172: no tent, no bed (pop ${torn.pop}, food ${torn.food}, wood ${torn.wood})`);
+    `HV-173: no tent, no bed (pop ${torn.pop}, food ${torn.food}, wood ${torn.wood})`);
 
   if (SHOT) {
-    await page.screenshot({ path: path.join(SHOT, 'hv172-no-tent-no-bed.png'), fullPage: true });
+    await page.screenshot({ path: path.join(SHOT, 'hv173-no-tent-no-bed.png'), fullPage: true });
   }
 
   const doorLive = await page.evaluate(() => {

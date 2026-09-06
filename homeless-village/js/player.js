@@ -1,6 +1,6 @@
 function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 
-// HV-172: the newcomer asked because a tent stood. Wind and sweeps
+// HV-173: the newcomer asked because a tent stood. Wind and sweeps
 // take the tent; the ask has to leave with it — there is no bed.
 function lapseNewcomerNoTent(){
   if(!G.newcomerAsk || G.structures.tent) return;
@@ -56,7 +56,7 @@ function doAction(a){
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
     if(!G.newcomerAsk) return;
-    // HV-172: the ask opened because a tent stood. A torn tent is
+    // HV-173: the ask opened because a tent stood. A torn tent is
     // no bed — refuse before the timer, same as a short pantry.
     if(!G.structures.tent){ log('🫂 The tent is gone — there’s no bed to offer until one stands again.'); sfx('error'); return; }
     if(G.food<NEWCOMER_COST_FOOD || G.wood<NEWCOMER_COST_WOOD){
