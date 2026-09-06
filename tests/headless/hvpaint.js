@@ -29,12 +29,12 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 const player = fs.readFileSync(path.join(ROOT, 'homeless-village/js/player.js'), 'utf8');
 const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
-const mural = /a\.id==='mural'[\s\S]*?else if\(a\.id==='meeting'/.exec(player);
+const mural = /else if\(a\.id==='mural'\)\{[\s\S]*?else if\(a\.id==='meeting'/.exec(player);
 ok(!!mural, 'the mural branch is still in player.js');
 ok(mural && /came by to paint a while/.test(mural[0]),
   'the mural branch still logs the visit');
-ok(mural && /bumpRegular\s*\(/.test(mural[0]),
-  'HV-145: the mural visit calls bumpRegular');
+ok(mural && /bumpRegular\s*\(\s*painters/.test(mural[0]),
+  'HV-145: the mural visit calls bumpRegular for the friend who came');
 ok(!/came by to paint a while/.test(ui) && !/bumpRegular/.test(ui),
   'ui.js is untouched');
 
@@ -90,18 +90,19 @@ ok(!/came by to paint a while/.test(ui) && !/bumpRegular/.test(ui),
     G.scraps = 10; G.morale = 40;
     const rep0 = G.rep;
     finishAction(muralAction());
+    const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
     return {
       affinity: G.regulars.marisol,
       mural: G.mural,
       morale: G.morale,
       rep: G.rep - rep0,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
+      last: lines[lines.length - 1] || '',
     };
   });
   ok(alone.mural === 2 && alone.morale === 43 && alone.rep === 2 && alone.affinity === 0,
     `no friends: the session still pays, affinity stays 0 (${alone.affinity})`);
-  ok(!/came by to paint a while/.test(alone.log),
-    'no friends: the visit line stays quiet');
+  ok(/Second panel/.test(alone.last) && !/came by to paint a while/.test(alone.last),
+    `no friends: the last line is the panel, not a visit (${alone.last.slice(-80)})`);
 
   const trade = await t(() => {
     G.cans = 30; G.cooldowns = {};
