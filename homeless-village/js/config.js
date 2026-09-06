@@ -348,6 +348,14 @@ function fridgeHasBoard(){ var f=loadFridge(); return f.built && (f.camps||0) >=
 // goodwill known instead of five. The corner keeps growing.
 var FRIDGE_SHELF_AT = 6, FRIDGE_SEED3 = 7;
 function fridgeHasShelf(){ var f=loadFridge(); return f.built && (f.camps||0) >= FRIDGE_SHELF_AT; }
+// HV-144: spare socks on that same shelf. Blankets are welcome
+// warmth (#808). The opener is a can on a successful dig (#828).
+// Socks are feet — a bitter dawn's health bite comes in half.
+var FRIDGE_SHELF_SOCK = 0.5;
+function shelfSockBite(n){
+  n=Math.max(0,Math.floor(+n||0));
+  return Math.max(1,Math.ceil(n*FRIDGE_SHELF_SOCK));
+}
 // HV-37: the potluck — the festival round. When the bulletin board
 // stands, every fresh camp opens with a potluck: folding tables by
 // the fridge, everyone brings a dish. +4 food and +5 morale before
