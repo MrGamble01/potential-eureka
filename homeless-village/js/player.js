@@ -134,7 +134,8 @@ function finishAction(a){
     if(Math.random()<.55*weatherDef().pan*awningDry*dogBoost*repBoost*muralBoost*snapCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
       if(awningDry>1){ G.awningSaves=(G.awningSaves||0)+1; log('\u26F1\uFE0F Dry under the awning \u2014 the corner stayed open.'); }
       bumpRegular('dee'); addRep(1); }
-    else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
+    else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.');
+      bumpRegular('dee'); } // HV-98: she always stops — a miss still meets her
   } else if(a.id==='rest'){
     var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
     floatText('+'+h+'❤️');
