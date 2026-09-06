@@ -421,7 +421,11 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
+    // HV-171: the posting promised fresh air. A Heat Wave is a
+    // scorcher. The neighbor still pays; the walk does not lift you.
+    var wilted=j.id==='dogwalk'&&G.weather==='heat';
     for(var k in j.gives){
+      if(k==='morale'&&wilted) continue;
       if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
       else G[k]=(G[k]||0)+j.gives[k];
       parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -431,6 +435,7 @@ function finishAction(a){
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+    if(wilted) log('🐕 The scorcher was not fresh air. The dogs wilted — no lift.');
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
