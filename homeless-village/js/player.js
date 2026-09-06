@@ -102,6 +102,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-212: Dig Up the Coffee Can said three playings bury a can.
+  // The button is on the list from day one. A miss used to run the
+  // 2s job, play the success sound, and lock 30s as if the dig paid.
+  // Snapshot and Anniversary are not this card.
+  if(a.id==='can'&&!canBuried()){
+    log('\ud83d\udce6 Nothing buried by the piling yet \u2014 three playings of the ballad and somebody puts a can down.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
