@@ -200,7 +200,8 @@ function finishAction(a){
       saveGame();
     }
   } else if(a.id==='thermos'){
-    // HV-35: the heirloom pays out of the bridge's memory, once a session.
+    // HV-35: the heirloom pays out of the bridge's memory.
+    // HV-93: once a day — the refuse log said tomorrow, so dawn clears it.
     if(!thermosHasWarmth()){ log('\ud83e\uded6 The thermos is cold \u2014 this bridge has no story to warm it yet.'); }
     else if(thermosUsed){ log('\ud83e\uded6 The thermos made its round already \u2014 it refills tomorrow.'); }
     else {
