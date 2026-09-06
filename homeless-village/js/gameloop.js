@@ -590,6 +590,12 @@ var EVENTS_BAD=[
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
      log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
+     // HV-234: the card says trust no one. Goods leaving in the night
+     // is how the block learns a camp cannot keep its own. Dawn's
+     // ordinary fade is not this card. Gentrify's harassment is not
+     // this card.
+     addRep(-3);
+     log('\uD83D\uDCAC Trust frays \u2014 the block heard a camp that could not keep its own.');
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
