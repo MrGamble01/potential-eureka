@@ -963,3 +963,11 @@ function bridgeOpen(){
   var m = document.getElementById('chain-modal');
   return !!(m && m.classList.contains('open'));
 }
+
+// HV-77: the Lookout sweep warning is the same class of reading.
+// Declared here beside bridgeOpen so tickDay can ask it without
+// adding an API to ui.js (which owns showSweepWarning).
+function sweepOpen(){
+  var b = document.getElementById('sweep-warning');
+  return !!(b && b.style.display === 'block');
+}
