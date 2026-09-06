@@ -338,15 +338,17 @@ function muralAtDawn(){
   if(Math.random()<.15) log('🎨 Morning light on the mural. It helps more than it should.');
 }
 
-// ── HV-9: reputation at dawn — word fades, and Beloved camps wake to
-// the occasional gift on the fence post (once a day at most).
+// ── HV-9 / HV-128: reputation at dawn — Beloved camps wake to the
+// occasional gift on the fence post (once a day at most), then word
+// fades a point. The gift is judged first so a camp that just became
+// Beloved (75) still rolls the plate before decaying to Respected.
 function repAtDawn(){
-  if(G.days>1&&(G.rep||0)>0) addRep(-1);
   if(repTier()>=3&&G.repGiftDay!==G.days&&Math.random()<.2){
     G.repGiftDay=G.days;
     if(Math.random()<.5){ var gf=rand(1,3); G.food+=gf; log('💛 A neighbor left a covered plate on the fence post. +'+gf+' food.'); }
     else { var gg=rand(2,4); G.goodwill+=gg; log('💛 An envelope on the fence post — a neighbor saying thanks. +'+gg+' goodwill.'); }
   }
+  if(G.days>1&&(G.rep||0)>0) addRep(-1);
 }
 
 // ── The stray dog arc (HV-6) ──
