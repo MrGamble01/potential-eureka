@@ -411,6 +411,11 @@ function tickDay(dt){
   // a player who spends a minute on it would otherwise come back to a
   // later hour, a colder night, possibly a new dawn.
   if(bridgeOpen()) return;
+  // HV-64: Keys in Hand is the same class of reading. The ending card
+  // should not burn a dawn behind it — a player who sits with it would
+  // otherwise come back to a later hour, a colder night, a new day
+  // counted while they were still reading the one they just finished.
+  if(keysOpen()) return;
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
