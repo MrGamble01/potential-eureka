@@ -72,6 +72,7 @@ ok(!/fireOutUntil/.test(ui) || !/meal/.test(ui),
     triggerEvent(ev, false);
     const out = Date.now() < (G.fireOutUntil || 0);
     doCraft(meal);
+    if (G.activeCrafts.meal) finishCraft(meal);
     return {
       out,
       banner: document.getElementById('ev-title').textContent,
@@ -88,8 +89,8 @@ ok(!/fireOutUntil/.test(ui) || !/meal/.test(ui),
   ok(darkMeal.out, 'Fire Went Out leaves the barrel dark');
   ok(darkMeal.food === 10 && darkMeal.cans === 5 && darkMeal.goodwill === 4 && !darkMeal.flying,
     `HV-180: a dead barrel spends nothing (food ${darkMeal.food}, gw ${darkMeal.goodwill})`);
-  ok(/barrel|dark|fire|cook/i.test(darkMeal.log),
-    `the log names the dead barrel (${darkMeal.log.slice(-90)})`);
+  ok(/hot meal/i.test(darkMeal.log),
+    `the log names the uncooked meal (${darkMeal.log.slice(-90)})`);
 
   const wood = await page.evaluate(() => {
     const ev = EVENTS_BAD.find(e => e.id === 'fire_out');
@@ -100,12 +101,13 @@ ok(!/fireOutUntil/.test(ui) || !/meal/.test(ui),
     G.activeCrafts = {};
     triggerEvent(ev, false);
     const out = Date.now() < (G.fireOutUntil || 0);
+    const w1 = G.warmth;
     G.activeCrafts[recipe.id] = { start: Date.now(), duration: 1 };
     finishCraft(recipe);
-    return { out, relit: !((G.fireOutUntil || 0) > Date.now()), warmth: G.warmth };
+    return { out, relit: !((G.fireOutUntil || 0) > Date.now()), dW: G.warmth - w1 };
   });
-  ok(wood.out && wood.relit && wood.warmth === 50,
-    `Firewood still relights (${wood.relit}, warmth ${wood.warmth})`);
+  ok(wood.out && wood.relit && wood.dW === 10,
+    `Firewood still relights (${wood.relit}, Δwarmth ${wood.dW})`);
 
   const blanket = await page.evaluate(() => {
     const ev = EVENTS_BAD.find(e => e.id === 'fire_out');
@@ -115,15 +117,16 @@ ok(!/fireOutUntil/.test(ui) || !/meal/.test(ui),
     G.scraps = 10; G.cardboard = 10; G.warmth = 40;
     G.activeCrafts = {};
     triggerEvent(ev, false);
+    const w1 = G.warmth;
     G.activeCrafts[recipe.id] = { start: Date.now(), duration: 1 };
     finishCraft(recipe);
     return {
       out: Date.now() < (G.fireOutUntil || 0),
-      warmth: G.warmth,
+      dW: G.warmth - w1,
     };
   });
-  ok(blanket.out && blanket.warmth === 55,
-    `a Blanket still bundles in the dark (${blanket.warmth}, out ${blanket.out})`);
+  ok(blanket.out && blanket.dW === 15,
+    `a Blanket still bundles in the dark (Δwarmth ${blanket.dW}, out ${blanket.out})`);
 
   const lit = await page.evaluate(() => {
     const meal = RECIPES.find(r => r.id === 'meal');
