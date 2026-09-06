@@ -207,8 +207,13 @@ function onNewDay(){
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
-  // HV-15: the sanitation unit keeps everyone a little healthier
-  if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
+  // HV-15 / HV-94: the unit keeps everyone a little healthier —
+  // +1 a head, not a flat +1 that ignores how many people live here.
+  if(G.petitions&&G.petitions.sanitation){
+    var sanGain=G.population||1;
+    G.health=Math.min(100,G.health+sanGain);
+    log('🚻 The sanitation unit earns its keep. +'+sanGain+' health.');
+  }
   // HV-16: friends ask, and sometimes stop asking
   favorLapsed(); maybePostFavor();
   G.morale=Math.max(0,G.morale-3);
