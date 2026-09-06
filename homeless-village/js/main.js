@@ -46,6 +46,22 @@ document.addEventListener('keydown', function(e){
   }
 });
 
+// HV-68: Escape closes the event banner.
+//
+// #event-banner already dismisses via × (closeEvent in ui.js) and
+// auto-hides after 7s. Escape was only wired for the intro and The
+// Bridge, neither of which sees this banner. Same class of drift as
+// TYC-60 / HV-58. Lives here — not in ui.js. Do not go through the
+// intro closer: that would mark the crash course seen.
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    var b = document.getElementById('event-banner');
+    if(b && b.style.display === 'block'){
+      b.style.display = 'none';
+    }
+  }
+});
+
 // Tap/click-to-walk: the touch-input HV never had (IDEA-HV-2's gate would
 // otherwise brick scavenging on phones, which have no WASD). A tap on the
 // ground raycasts to the y=0 plane and the player walks there; any key
