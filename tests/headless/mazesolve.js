@@ -4,7 +4,9 @@
  * `solve()` in js/maze.js pauses the runner (`playing = false`) so the
  * BFS/DFS/A* demo can animate without the player also moving underneath
  * it — a deliberate, commented pause. But when the demo finished, nothing
- * ever set `playing` back to `true`. `move()` refuses every arrow key
+ * ever set `playing` back to `true`. Leaving mid-demo hit the same freeze:
+ * `destroy()` → `cancelSolve()` invalidated the run so `solve()` returned
+ * without re-arming. `move()` refuses every arrow key
  * while `!playing`, and the only thing that resets `playing = true` is
  * `buildLevel()` — reached only by "New Game" or a level win. So once a
  * player pressed Solve out of curiosity, their runner was frozen on that
@@ -34,7 +36,11 @@
  *      name.
  *   D. Same again with a second algorithm (A*) from a fresh game, so the
  *      fix isn't shown to be an artifact of one algorithm's code path.
- *   E. Zero page errors.
+ *   E. Leave mid-solve (Back to Games) and come back. destroy() calls
+ *      cancelSolve(), which used to increment solveRun and early-return
+ *      from solve() without ever re-arming `playing` — the same freeze,
+ *      via the leave-view path. ArrowRight after return must still move.
+ *   F. Zero page errors.
  */
 const { chromium } = require('playwright');
 const crypto = require('crypto');
@@ -108,6 +114,29 @@ async function waitForSolveDone(page, timeoutMs = 20000) {
   const sAfterAstarMove = await snap(page);
   ok(sig(sAfterAstar) !== sig(sAfterAstarMove),
      'after the A* demo finishes too, ArrowRight still moves the runner');
+
+  // ---- E. leave mid-solve and come back — cancelSolve must re-arm ----
+  await page.click('#view-maze button:has-text("New Game")');
+  await page.waitForTimeout(200);
+  await page.click('#maze-canvas');
+  await page.evaluate(() => { document.getElementById('maze-algo').value = 'bfs'; });
+  await page.click('#view-maze button:has-text("Solve")');
+  await page.waitForFunction(
+    () => /solving/.test(document.getElementById('maze-status').innerHTML),
+    null,
+    { timeout: 3000 }
+  );
+  await page.evaluate(() => { location.hash = '#arcade'; });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { location.hash = '#maze'; });
+  await page.waitForTimeout(500);
+  await page.click('#maze-canvas');
+  const sAfterLeave = await snap(page);
+  await page.keyboard.press('ArrowRight');   // (1,0) -> (1,1), always open
+  await page.waitForTimeout(150);
+  const sAfterLeaveMove = await snap(page);
+  ok(sig(sAfterLeave) !== sig(sAfterLeaveMove),
+     'after leaving mid-solve and coming back, ArrowRight still moves the runner');
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
