@@ -420,17 +420,26 @@ function finishAction(a){
     }
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
-    var j=todaysJob(), parts=[];
-    for(var k in j.gives){
-      if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
-      else G[k]=(G[k]||0)+j.gives[k];
-      parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+    var j=todaysJob(), parts=[], pay={};
+    for(var k in j.gives) pay[k]=j.gives[k];
+    // HV-167: winter halves the dumpsters. The scrapyard is the
+    // same goods on the board — a summer haul through a winter
+    // sky was the lie. Floor so +5/+2 becomes +2/+1.
+    if(j.id==='scrapyd'&&G.season===3){
+      if(pay.scraps) pay.scraps=Math.floor(pay.scraps/2);
+      if(pay.cans) pay.cans=Math.floor(pay.cans/2);
+    }
+    for(var k in pay){
+      if(k==='morale') G.morale=Math.min(100,G.morale+pay[k]);
+      else G[k]=(G[k]||0)+pay[k];
+      parts.push('+'+pay[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
     }
     G.oddJobDay=G.days;
     if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+    if(j.id==='scrapyd'&&G.season===3) log('\u2744\ufe0f Winter halves the yard — a thinner haul.');
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
