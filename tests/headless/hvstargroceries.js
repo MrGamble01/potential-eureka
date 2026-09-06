@@ -78,10 +78,10 @@ ok(!/groceries at the fence/.test(ui) && !/snapActive/.test(ui),
     G.food = 10;
     G.morale = 50;
     G.snapUntil = opts.snap ? 99 : null;
-    log('HV198-MARK');
+    log('HV199-MARK');
     recordDays(6);
     const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
-    const at = lines.findLastIndex(t => /HV198-MARK/.test(t));
+    const at = lines.findLastIndex(t => /HV199-MARK/.test(t));
     const newest = (at >= 0 ? lines.slice(at + 1) : lines.slice(-6)).join('\n');
     return {
       food: G.food,
