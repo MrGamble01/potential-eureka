@@ -583,7 +583,7 @@ var EVENTS_GOOD=[
    desc:'A volunteer group dropped off some essentials.',
    effect:function(){
      G.lastEventDay=G.days; G.food+=rand(4,9); G.scraps+=rand(2,5);
-     // HV-87: the card says essentials. Cans are the third dumpster
+     // HV-88: the card says essentials. Cans are the third dumpster
      // staple — Theft already takes them, Trade spends them. The
      // volunteers left them out of the bag.
      G.cans+=rand(2,5);

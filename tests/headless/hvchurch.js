@@ -1,4 +1,4 @@
-/* HV-87 — Church Donated Supplies said essentials and left the cans.
+/* HV-88 — Church Donated Supplies said essentials and left the cans.
  *
  * The card promises: "A volunteer group dropped off some essentials."
  * The effect added food and scraps. Cans — the third dumpster staple,
@@ -39,7 +39,7 @@ ok(/G\.food/.test(church) && /G\.scraps/.test(church),
    'the drop still includes food and scraps — we did not drop the old haul');
 
 ok(/G\.cans/.test(church),
-   'HV-87: that same effect adds G.cans');
+   'HV-88: that same effect adds G.cans');
 
 ok(/cans gained/.test(church) || /and cans/.test(church),
    'the log names the cans so the card and the feed agree');
@@ -92,7 +92,7 @@ ok(!/church/.test(ui) && !/church_donation/.test(ui),
   ok(drop.morale === 58,
      `isolation: the morale lift still lands (${drop.morale})`);
   ok(drop.cans === 14,
-     `HV-87: the essentials include cans (cans ${drop.cans})`);
+     `HV-88: the essentials include cans (cans ${drop.cans})`);
   ok(/can/i.test(drop.log),
      'the live log names the cans');
 
