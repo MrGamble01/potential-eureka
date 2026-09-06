@@ -239,7 +239,7 @@ function meetingAction(){
 // ── HV-19: the Busker's Guitar ───────────────────────────────
 // A second street verb, earned not begged: a scrap guitar built at
 // the workbench buys one set a day on the corner. The take rides the
-// camp's spirits — +1 goodwill per 25 morale — doubles on a scorcher
+// camp's spirits — 1 goodwill plus 1 per 25 morale — doubles on a scorcher
 // (foot traffic), and a good set is remembered (+1 rep) and lifts
 // the player too (+2 morale).
 function buskAvailable(){ return !!G.structures.guitar; }
@@ -247,7 +247,7 @@ function buskDone(){ return G.buskDay===G.days; }
 function buskPay(){ var base=1+Math.floor((G.morale||0)/25); return G.weather==='heat'?base*2:base; }
 function buskAction(){
   return { id:'busk', icon:'🎸', label:'Busk a set', time:6000, cooldown:0,
-    tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (+1 goodwill per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
+    tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (1 goodwill plus 1 per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
 }
 
 // ── HV-20: the Cart & the Deposit Run ────────────────────────
