@@ -491,6 +491,13 @@ var EVENTS_BAD=[
    desc:'Someone raided your stash in the night. Trust no one.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-112: Garage Favor said the loose goods spend their nights
+     // in Marisol's garage. Theft is a night raid. The cover is sweep
+     // insurance — it stays armed for the confiscation, not spent here.
+     if(G.garageCover){
+       log('\uD83D\uDE99 Thieves found nothing loose \u2014 it all spent the night in Marisol\u2019s garage.');
+       return;
+     }
      var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
      var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
