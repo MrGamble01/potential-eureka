@@ -309,7 +309,11 @@ function regularFavorsAtDawn(){
   if(regularStage('dee')===2&&G.health<30&&G.days-(G.lastDeeDay||-9)>=3){
     G.health=Math.min(100,G.health+10);
     G.lastDeeDay=G.days;
-    log('🩺 Dee spotted you looking rough and patched you up. +10 health.');
+    // HV-152: "patches you up" — Injury left you moving slowly.
+    // The +10 used to land and the limp stayed.
+    var wasHurt=Date.now()<(G.injuredUntil||0);
+    G.injuredUntil=0;
+    log('🩺 Dee spotted you looking rough and patched you up. +10 health.'+(wasHurt?' The limp eased.':''));
   }
 }
 
