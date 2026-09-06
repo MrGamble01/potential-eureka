@@ -44,6 +44,8 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   await page.goto(BASE + '/index.html#word5', { waitUntil: 'load' });
   await page.waitForTimeout(1200);
   ok(await activeView() === 'view-word5', 'Word Five is the active view');
+  // The exported initializer must not bind a second physical-key handler.
+  await page.evaluate(() => { WordFiveGame.init(); WordFiveGame.init(); });
 
   // A — first visit
   await page.keyboard.type('cr', { delay: 40 });
@@ -79,6 +81,12 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   await page.keyboard.type('e', { delay: 40 });
   await page.waitForTimeout(250);
   ok(await row0() === 'CRANE', `second round trip: typing still works (got "${await row0()}")`);
+
+  // The same board must remain reachable through its on-screen keyboard.
+  await page.locator('#word5-kb button').filter({ hasText: '⌫' }).click();
+  ok(await row0() === 'CRAN', 'on-screen Backspace works after returning');
+  await page.locator('#word5-kb button').filter({ hasText: /^E$/ }).click();
+  ok(await row0() === 'CRANE', 'on-screen letters work on the same board');
 
   ok(errs.length === 0, `no page errors${errs.length ? ': ' + errs.join(' | ') : ''}`);
 
