@@ -454,7 +454,7 @@ function composeHvWall(){
 // claimed. Once a session, pass it around — morale lifts by 2 base,
 // +1 per longest-hold morning (to 5), +1 per note found (to 3). The
 // deeper the bridge's memory, the further the coffee goes.
-var THERMOS_KEY='hv-thermos', THERMOS_BASE=2;
+var THERMOS_KEY='hv-thermos', THERMOS_BASE=2, THERMOS_WARMTH=3;
 var thermosUsed=false;
 function loadThermos(){
   try{ var t=JSON.parse(localStorage.getItem(THERMOS_KEY)||'null');

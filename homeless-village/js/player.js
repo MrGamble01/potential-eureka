@@ -209,8 +209,10 @@ function finishAction(a){
       var tt=loadThermos();
       saveThermos({uses:(tt.uses||0)+1});
       G.morale=Math.min(100,(G.morale||0)+tp);
-      log('\ud83e\uded6 The old thermos goes around the fire \u2014 +'+tp+'\ud83d\ude0a, carried by everything the bridge remembers.');
-      floatText('+'+tp+'\ud83d\ude0a');
+      // HV-114: coffee going around the fire is warmth, not just morale.
+      G.warmth=Math.min(100,(G.warmth||0)+THERMOS_WARMTH);
+      log('\ud83e\uded6 The old thermos goes around the fire \u2014 coffee still warm. +'+tp+'\ud83d\ude0a, +'+THERMOS_WARMTH+'\ud83c\udf21\ufe0f, carried by everything the bridge remembers.');
+      floatText('+'+tp+'\ud83d\ude0a +'+THERMOS_WARMTH+'\ud83c\udf21\ufe0f');
       // HV-41: with Marisol's spare mugs on the shelf, the round stretches.
       if(thermosHasMugs()){
         var km=loadHvKeep();
