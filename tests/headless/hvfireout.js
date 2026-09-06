@@ -1,4 +1,4 @@
-/* HV-80 — Fire Went Out said overnight and relit in 30 seconds.
+/* HV-81 — Fire Went Out said overnight and relit in 30 seconds.
  *
  * The event card promises: "The barrel fire died overnight."
  * The effect wrote G.fireOutUntil = Date.now()+30000. A day is
@@ -18,7 +18,7 @@
  *    and fireOutDay === today. Wiping the wall-clock still leaves
  *    the barrel dark. A new dawn lifts it.
  *
- * Named assertion: HV-80: Fire Went Out lasts until dawn, not 30 seconds.
+ * Named assertion: HV-81: Fire Went Out lasts until dawn, not 30 seconds.
  */
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -55,7 +55,7 @@ const ev = evAt >= 0 ? loop.slice(evAt, evAt + 420) : '';
      'G defaults fireOutDay to -1 — a fresh camp is not dark');
 
   ok(/typeof G\.fireOutDay!=='number'/.test(save),
-     'loadGame migrates a pre-HV-80 save that never wrote fireOutDay');
+     'loadGame migrates a pre-HV-81 save that never wrote fireOutDay');
 
   ok(!/fireOutDay/.test(ui) && !/fire_out/.test(ui),
      'ui.js is not this ticket — it still only shows the event banner');
@@ -105,7 +105,7 @@ const ev = evAt >= 0 ? loop.slice(evAt, evAt + 420) : '';
   ok(mid.lockDay === 4 && mid.dark,
      `the dark is stamped on today (fireOutDay ${mid.lockDay}, dark=${mid.dark})`);
   ok(mid.remaining > 240000 && mid.remaining <= 300000,
-     `HV-80: Fire Went Out lasts until dawn, not 30 seconds (remaining ${mid.remaining}ms)`);
+     `HV-81: Fire Went Out lasts until dawn, not 30 seconds (remaining ${mid.remaining}ms)`);
 
   // The tell of the old bug: wipe the 30s timer. If the night was only
   // that timer, the barrel lights. If the night is the day, it stays dark.

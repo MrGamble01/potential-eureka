@@ -178,7 +178,7 @@ function frame(ts){
   camera.lookAt(0,0,0);
 
   // Fire flicker (dimmed while a "fire burned out" event is active)
-  // HV-80: the card said overnight. A 30s Date.now() check relit
+  // HV-81: the card said overnight. A 30s Date.now() check relit
   // the barrel before dawn. The day stamp survives a reload; dawn
   // increments G.days and the lights come back.
   var fireOut = typeof G.fireOutDay==='number' && G.fireOutDay>=0 && G.fireOutDay===G.days;

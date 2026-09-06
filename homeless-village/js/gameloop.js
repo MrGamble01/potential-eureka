@@ -539,7 +539,7 @@ var EVENTS_BAD=[
    effect:function(){
      G.lastEventDay=G.days;
      G.warmth=Math.max(0,G.warmth-rand(15,25));
-     // HV-80: the card says overnight. A 30s wall-clock relit the
+     // HV-81: the card says overnight. A 30s wall-clock relit the
      // barrel in the same day. Stamp the day so the dark holds
      // until dawn, matching Dumpsters Locked. fireOutUntil still
      // tracks the remaining night so a live session dims the same.
