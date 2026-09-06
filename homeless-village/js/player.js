@@ -499,7 +499,9 @@ function finishAction(a){
       addRep(1);
       G.busks=(G.busks||0)+1; G.buskDay=G.days;
       floatText('🎸 +'+take+'🩶 +2😊');
-      log('🎸 Played a set on the corner — '+(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen')+'. +'+take+' goodwill, +1 rep.');
+      // HV-100: the tooltip says playing lifts you (+2 morale). The
+      // take and the rep were named. The lift was not.
+      log('🎸 Played a set on the corner — '+(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen')+'. +'+take+' goodwill, +1 rep, +2 morale.');
       saveGame();
       buildActionUI();
     }
