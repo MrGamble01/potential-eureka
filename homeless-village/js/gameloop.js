@@ -274,7 +274,13 @@ function onNewDay(){
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
   if(G.weather==='heat') log('\ud83e\udd75 A scorcher. Foot traffic is up — a good day to panhandle.');
-  if(forecastVisible()&&G.forecast&&WEATHERS[G.forecast]) log('\ud83d\udcfb Tomorrow: '+WEATHERS[G.forecast].icon+' '+WEATHERS[G.forecast].name+'.');
+  // HV-90: the Radio recipe sells the weather band. The Lookout
+  // already sees tomorrow (forecastVisible, the HUD arrow). Dawn
+  // still printed a radio the camp never built.
+  if(forecastVisible()&&G.forecast&&WEATHERS[G.forecast]){
+    var skyMark=G.structures.radio?'\ud83d\udcfb':(G.workers.lookout?'\ud83d\udc41\ufe0f':'\ud83d\udcfb');
+    log(skyMark+' Tomorrow: '+WEATHERS[G.forecast].icon+' '+WEATHERS[G.forecast].name+'.');
+  }
   buildCraftUI(); buildWorkersUI(); buildActionUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
   checkArc();
