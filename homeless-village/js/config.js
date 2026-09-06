@@ -303,6 +303,11 @@ var PANTRY_REP_EVERY = 5;
 // base drain stays (winter is winter, coats or not), and a heat
 // wave's warmth is never touched.
 var COATS_CUT = 0.5;
+// HV-84: a tent is a roof of sorts. Coat Rack blunts weather and snap.
+// The Empty Hook eases the base by 2, for good. Blanket is one night.
+// The tent halves the season's own drain while it stands — sleeping
+// under canvas, not in the open. Weather bite is still the coats.
+var TENT_CUT = 0.5;
 
 // HV-26: the awning. Rain halves the panhandle odds (pan 0.5) --- a
 // salvaged shop awning over the corner puts them back to clear-day
