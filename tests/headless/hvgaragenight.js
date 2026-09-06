@@ -31,9 +31,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
 const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
 const theftAt = loop.indexOf("id:'theft'");
-const theft = theftAt >= 0 ? loop.slice(theftAt, theftAt + 900) : '';
+const nextEv = loop.indexOf("{id:", theftAt + 5);
+const theft = theftAt >= 0 ? loop.slice(theftAt, nextEv > theftAt ? nextEv : theftAt + 2500) : '';
 const effectAt = theft.indexOf('effect:function(){');
-const effect = effectAt >= 0 ? theft.slice(effectAt, theft.indexOf('}},', effectAt) + 1) : '';
+const effect = effectAt >= 0 ? theft.slice(effectAt) : '';
 const takeAt = effect.search(/G\.cans\s*=/);
 
 ok(theftAt >= 0 && /id:'theft'/.test(theft),
