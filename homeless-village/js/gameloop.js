@@ -182,6 +182,14 @@ function onNewDay(){
   }
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
+  // HV-67: the Cook works the leftover pot BEFORE dawn hunger, not
+  // after. "Makes meals from food automatically" is 3 food → +2
+  // goodwill. Run after the drain and a camp of two with 5 food
+  // (enough for the meal) wakes with 2 and no cook line — you paid
+  // 10 goodwill for a worker who never acted. Soup Night is a
+  // different pot and stays later in this function.
+  if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
+
   G.food  =Math.max(0,G.food  -G.population*1.5);
   // HV-23: coats off the rack blunt the cold's edge — the weather's
   // bite (only when it IS a bite) and the snap's extra — but never
@@ -220,7 +228,6 @@ function onNewDay(){
     }
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
-  if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
     G.barrelWater=(G.barrelWater||0)+1;
