@@ -75,6 +75,15 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-98: Read the Wall on a bare bridge is the same miss HV-61
+  // taught Trade. The tooltip says read the numbers out. A fresh
+  // camp has none. The 2s job still started, finishAction logged
+  // "The wall is bare", then the button locked for 30s.
+  if(a.id==='wall' && !bridgeHasWall()){
+    log('\ud83e\uddf1 The wall is bare \u2014 this bridge has no story yet.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
