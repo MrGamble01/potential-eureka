@@ -189,6 +189,10 @@ function onNewDay(){
     log('The good feeling from yesterday is gone.');
   }
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
+  // HV-64: soup night is last night's pot — judge it on the pantry
+  // the camp went to sleep with. The daily pop*1.5 drain used to run
+  // first, so "1 food each" needed 2.5 and a stocked kitchen woke cold.
+  soupNightAtDawn();
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
   // HV-23: coats off the rack blunt the cold's edge — the weather's
@@ -265,7 +269,6 @@ function onNewDay(){
   }
   regularFavorsAtDawn();
   repAtDawn();
-  soupNightAtDawn();
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
