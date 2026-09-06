@@ -86,6 +86,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-204: Look at the Snapshot says the picture is in the fridge
+  // door. finishAction already named a bare door — after a 2s job
+  // and with the 30s lock charged as if the look had landed.
+  if(a.id==='snapshot' && !snapshotHangs()){
+    log('\ud83d\udcf7 No snapshot in the fridge door yet \u2014 three reunions put one there.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.

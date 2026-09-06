@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v203-hv-snapbox';  // HV-203: a snap freezes the pantry leftover
+const SW_VERSION = 'eureka-v204-hv-snapbare';  // HV-204: bare fridge door refuses before the timer
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
