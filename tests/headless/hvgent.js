@@ -1,4 +1,4 @@
-/* HV-75 — Gentrification said harassment is increasing, and the
+/* HV-76 — Gentrification said harassment is increasing, and the
  * corner never got more hostile.
  *
  * The card promises: "New development nearby. Harassment from locals
@@ -55,10 +55,10 @@ ok(/function gentrifyHostile\s*\(/.test(cfg) && /GENTRIFY_PAN/.test(cfg),
    'gentrifyHostile() and GENTRIFY_PAN live in config.js next to snapActive');
 
 ok(/gentrifyHostile\s*\(/.test(pan) && /GENTRIFY_PAN/.test(pan),
-   'HV-75: panhandle multiplies by GENTRIFY_PAN while the corner is hostile');
+   'HV-76: panhandle multiplies by GENTRIFY_PAN while the corner is hostile');
 
 ok(/typeof G\.gentrifyDay!=='number'/.test(save),
-   'loadGame migrates a pre-HV-75 save that never wrote gentrifyDay');
+   'loadGame migrates a pre-HV-76 save that never wrote gentrifyDay');
 
 ok(!/gentrify/.test(ui) && !/gentrifyDay/.test(ui),
    'ui.js is not this ticket — it still only shows the event banner');
@@ -162,7 +162,7 @@ ok(!/gentrify/.test(ui) && !/gentrifyDay/.test(ui),
     return { gw: G.goodwill, morale: G.morale, feed };
   });
   ok(during.gw === 10 && during.morale === 37,
-     `HV-75: a 0.40 roll that still pays on a quiet corner is ignored while harassment is up (gw ${during.gw}, morale ${during.morale})`);
+     `HV-76: a 0.40 roll that still pays on a quiet corner is ignored while harassment is up (gw ${during.gw}, morale ${during.morale})`);
   ok(/Ignored again/.test(during.feed),
      'the ignored-again line is the player-visible harassment');
 
