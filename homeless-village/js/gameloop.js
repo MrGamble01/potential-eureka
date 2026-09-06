@@ -493,6 +493,13 @@ var EVENTS_BAD=[
      if(G.garageCover){
        keep=0; G.garageCover=false; G.garageSaves=(G.garageSaves||0)+1;
        log('\uD83D\uDE99 The sweep found nothing loose \u2014 it all spent the night in Marisol\u2019s garage.');
+     } else if((G.barrelWater||0)>0){
+       // HV-201: confiscate supplies includes the stored rainfall.
+       // The drum is infrastructure (pantry / radio / cart); the water
+       // is a camp supply sitting in it. Pack-up and the stash do not
+       // half a dumped drum — they dump it or they don't.
+       G.barrelWater=0;
+       log('\ud83d\udee2\ufe0f They dumped the stored rainfall.');
      }
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
