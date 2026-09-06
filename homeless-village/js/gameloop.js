@@ -213,7 +213,10 @@ function onNewDay(){
   favorLapsed(); maybePostFavor();
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
-  if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
+  // HV-103: the HUD floors food. A lone mouth drains 1.5, two bowls
+  // become 0.5, the pill reads 0, and `<=0` walked away. An empty
+  // larder is a pot that cannot serve a bowl — food < 1.
+  if(G.food<1)    G.health=Math.max(0,G.health-rand(4,10));
 
   if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
     G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
