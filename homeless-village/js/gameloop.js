@@ -586,8 +586,13 @@ var EVENTS_GOOD=[
    desc:'A volunteer group dropped off some essentials.',
    effect:function(){
      G.lastEventDay=G.days; G.food+=rand(4,9); G.scraps+=rand(2,5);
+     // HV-175: the card dropped essentials. Cardboard is tent canvas,
+     // blankets, the stash. Cans and wood are different tickets.
+     var gainedCard=rand(2,5);
+     G.cardboard=(G.cardboard||0)+gainedCard;
      G.morale=Math.min(100,G.morale+rand(5,10));
-     log('Volunteers dropped supplies. Food and scraps gained.');
+     log('Volunteers dropped supplies. Food, scraps and cardboard gained.');
+     if(gainedCard>0) log('They left a stack of cardboard too.');
    }},
 ];
 
