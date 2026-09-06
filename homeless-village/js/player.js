@@ -385,8 +385,12 @@ function finishAction(a){
       var mk2=loadHvMark();
       saveHvMark({names:(mk2.names||0)+1});
       G.food=(G.food||0)+md2;
-      log('\u270d\ufe0f A NAME ON THE WALL \u2014 the newcomer who got shown all of it takes the chalk and writes their own name up there, in their hand. The fire is fuller that night than it has any right to be: +'+md2+'\ud83c\udf5e');
-      floatText('+'+md2+'\ud83c\udf5e');
+      // HV-104: the card says the fire is fuller that night. Food
+      // in the pot is not that. Long Memory's "the fire feels it"
+      // is morale — this is the same beat.
+      G.morale=Math.min(100,(G.morale||0)+HVMARK_MORALE);
+      log('\u270d\ufe0f A NAME ON THE WALL \u2014 the newcomer who got shown all of it takes the chalk and writes their own name up there, in their hand. The fire is fuller that night than it has any right to be: +'+md2+'\ud83c\udf5e, +'+HVMARK_MORALE+'\ud83d\ude0a');
+      floatText('+'+md2+'\ud83c\udf5e +'+HVMARK_MORALE+'\ud83d\ude0a');
       saveGame();
     }
   } else if(a.id==='dry'){

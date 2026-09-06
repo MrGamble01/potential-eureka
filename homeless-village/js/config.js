@@ -664,6 +664,8 @@ function walkDish(){ return HVWALK_BASE + HVWALK_PER*Math.min(loadHvPanel().stan
 // something it grows. Once a session a name pays: 11 food base +
 // 1 per walk (cap 5). Names tallied in 'hv-mark'.
 var HVMARK_KEY='hv-mark', HVMARK_BASE=11, HVMARK_PER=1;
+// HV-104: "the fire is fuller" is morale, same beat as Long Memory.
+var HVMARK_MORALE=3;
 var markAdded=false;
 function loadHvMark(){
   try{ var m=JSON.parse(localStorage.getItem(HVMARK_KEY)||'null');
