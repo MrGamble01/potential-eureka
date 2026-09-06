@@ -1,5 +1,5 @@
 /*
- * HV-68 — Firewood said keep the barrel burning, then left it dark.
+ * HV-69 — Firewood said keep the barrel burning, then left it dark.
  *
  * Fire Went Out dims the barrel for 30s (G.fireOutUntil). Firewood's
  * card says "Keep the barrel burning." finishCraft only added +10
@@ -30,7 +30,7 @@ const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'u
 const finish = /function finishCraft\(r\)\{([\s\S]*?)\n\}/.exec(player);
 ok(!!finish, 'finishCraft is still in player.js');
 ok(finish && /fire_ration/.test(finish[1]) && /fireOutUntil/.test(finish[1]),
-  'HV-68: finishCraft clears fireOutUntil when the recipe is Firewood');
+  'HV-69: finishCraft clears fireOutUntil when the recipe is Firewood');
 ok(/id:'fire_ration'[\s\S]{0,180}?Keep the barrel burning/.test(cfg),
   'Firewood still promises to keep the barrel burning');
 
