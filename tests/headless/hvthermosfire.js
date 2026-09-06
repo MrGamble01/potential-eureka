@@ -1,5 +1,5 @@
 /*
- * HV-225 — Pass the Thermos said it goes around the fire,
+ * HV-229 — Pass the Thermos said it goes around the fire,
  * then Fire Went Out still poured it.
  *
  * finishAction logs "The old thermos goes around the fire".
@@ -59,7 +59,7 @@ ok(/id:'fire_out'[\s\S]{0,220}?fireOutUntil/.test(loop),
 ok(doAt >= 0 && timeoutAt > 0, 'doAction still starts the job with setTimeout');
 ok(thermosAt >= 0 && fireAt >= 0 && thermosAt < timeoutAt && fireAt < timeoutAt
    && /thermosHasWarmth\(\)/.test(doBlock) && /!thermosUsed/.test(doBlock),
-  'HV-225: doAction refuses a warm unused thermos by a dead fire before the timer');
+  'HV-229: doAction refuses a warm unused thermos by a dead fire before the timer');
 ok(!/homeless-village\/js\/ui\.js/.test(player),
   'the dead-fire gate lives in doAction — ui.js is not this ticket');
 
@@ -142,7 +142,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
   ok(dark.out && dark.warmthAfter < 60,
     `Fire Went Out leaves the barrel dark and colder (${dark.warmthAfter})`);
   ok(!dark.job && !dark.btnOn && !dark.used && dark.morale === 50 && dark.uses === 0 && dark.cd === 0,
-    `HV-225: a dead fire does not pour the thermos (job ${dark.job}, used ${dark.used}, morale ${dark.morale}, uses ${dark.uses})`);
+    `HV-229: a dead fire does not pour the thermos (job ${dark.job}, used ${dark.used}, morale ${dark.morale}, uses ${dark.uses})`);
   ok(/fire is out|barrel|thermos|dark|lit/i.test(dark.added),
     `the refuse names the dead fire — not a silent no-op (${dark.added.slice(-90)})`);
 

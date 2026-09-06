@@ -171,7 +171,7 @@ function doAction(a){
     sfx('error');
     return;
   }
-  // HV-225: Pass the Thermos said it goes around the fire.
+  // HV-229: Pass the Thermos said it goes around the fire.
   // Fire Went Out dims the barrel; do not start the 2s job or
   // stamp thermosUsed. A cold thermos and an already-poured
   // round are other tickets. The pour stays morale.
