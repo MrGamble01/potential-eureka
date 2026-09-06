@@ -465,8 +465,14 @@ var EVENTS_BAD=[
      }
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
+     // HV-150: the card confiscates supplies. Cardboard sits in the
+     // same pile as scraps — blankets, patch-shelters, the tent.
+     // Cans are a different ticket. The keep multiplier already
+     // covers stash / pack-up / Marisol's garage.
+     var lostCard =Math.floor(G.cardboard*(.3+Math.random()*.4)*keep);
      G.scraps=Math.max(0,G.scraps-lostScraps);
      G.food  =Math.max(0,G.food  -lostFood);
+     G.cardboard=Math.max(0,G.cardboard-lostCard);
      G.morale=Math.max(0,G.morale-rand(15,25));
      // HV-11: they can tear down tents, not paint — a finished mural
      // blunts the demoralizing part of watching the camp get cleared.
