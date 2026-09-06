@@ -80,7 +80,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
-| Homeless Village | 188 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
+| Homeless Village | 189 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
 | Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
@@ -192,6 +192,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvsky` (HV-67: Good Weather actually clears the sky)
 - `hvrelight` (HV-69: Firewood relights the barrel after Fire Went Out)
 - `hvfive` (HV-70: Found $5 pays five goodwill)
+- `hvbuilder` (HV-138: hiring the Builder mid-craft halves the remaining duration)
 - `hvcoldlift` (HV-182: a cold snap sky halves the depot lift — heat still 0.75 / HV-247; yard cold still HV-189)
 - `hvcoldyard` (HV-189: a cold sky halves the scrapyard haul)
 - `hvbeds` (HV-190: the Community Garden harvests before the empty-larder bite)
