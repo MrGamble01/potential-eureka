@@ -199,7 +199,10 @@ const PongGame = (() => {
         sfx(scorer === 0 ? 'bonus' : 'die');
         updateInfo();
         if (!matchOver) {
-          if (scores[scorer] >= WIN_SCORE) endMatch(scorer);
+          if (scores[scorer] >= WIN_SCORE) {
+            endMatch(scorer);
+            return; // endMatch draws the final state; no later ball may change it.
+          }
           else if (balls.length === 0) serveTimer = 55;
         }
       }
