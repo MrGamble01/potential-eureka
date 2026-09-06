@@ -75,6 +75,13 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-174: Sit in the Dry Corner says people come in out of the
+  // rain. A clear street still hosted the hour and paid the dish.
+  if(a.id==='dry' && dryBuilt() && !drySat && G.weather!=='rain'){
+    log('\u26f1\ufe0f The corner is dry — and so is the street. People come in out of the rain; today nobody is wet.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
