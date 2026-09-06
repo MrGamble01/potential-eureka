@@ -569,6 +569,10 @@ function finishCraft(r){
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
+  // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
+  // only dimmed the lights on a wall-clock; this is the feed that
+  // actually relights it. A blanket is also +warmth and must not.
+  if(r.id==='fire_ration') G.fireOutUntil=0;
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
   sfx('craft');
