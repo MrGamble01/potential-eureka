@@ -233,6 +233,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-230: Look at the Snapshot said once a session. finishAction
+  // already named the fade-if-you-stare refuse after a 2s job and
+  // a 30s lock. A bare fridge door is HV-204. The look stays food.
+  if(a.id==='snapshot' && snapshotLooked){
+    log('\ud83d\udcf7 The snapshot got its look today \u2014 it fades if you stare.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
