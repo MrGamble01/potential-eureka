@@ -210,6 +210,7 @@ function frame(ts){
   });
   movePlayer(dt);
   updateScavengeGate();
+  updateGoodsGates();   // HV-73: Deposit Run / Make Room follow the live purse
 
   // Action progress bars + cooldown disable
   ACTIONS.forEach(function(a){

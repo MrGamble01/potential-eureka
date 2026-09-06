@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v65-hv-clock';  // HV-62: a hostile clock no longer burns days on load
+const SW_VERSION = 'eureka-v66-hv-goods';  // HV-73: Deposit Run / Make Room follow the live purse
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
