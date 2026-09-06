@@ -217,7 +217,7 @@ var MURAL_LINES = [
   'Third panel: every regular on the block gets a face on the wall.',
   'The last panel: a door standing open. Everyone paints a piece of it.',
 ];
-function muralAvailable(){ return repTier()>=1 && (G.mural||0)<MURAL_PANELS; }
+function muralAvailable(){ return (repTier()>=1 || (G.mural||0)>0) && (G.mural||0)<MURAL_PANELS; } // HV-110: fade does not hide an unfinished wall
 function muralDone(){ return G.muralDay===G.days; }
 function muralAction(){
   return { id:'mural', icon:'🎨', label:'Paint the mural ('+(G.mural||0)+'/'+MURAL_PANELS+')', time:7000, cooldown:0,
