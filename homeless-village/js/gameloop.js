@@ -513,6 +513,10 @@ var EVENTS_BAD=[
      G.lastEventDay=G.days;
      G.morale  =Math.max(0,G.morale  -rand(18,28));
      G.goodwill=Math.max(0,G.goodwill-rand(3,8));
+     // HV-76: the card said increasing. A one-shot hit left the
+     // corner as friendly as before. Stamp the day so panhandle
+     // stays hostile until dawn.
+     G.gentrifyDay=G.days;
      log('More hostility in the area. Morale suffers.');
    }},
   {id:'sickness',title:'Illness Spreading',type:'bad',weight:11,

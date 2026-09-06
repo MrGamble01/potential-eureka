@@ -28,6 +28,9 @@ var G = {
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.
   friendDay: -1,
+  // HV-76: the day Gentrification made the corner hostile.
+  // -1 = locals are no more hostile than usual.
+  gentrifyDay: -1,
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
   // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),
@@ -272,6 +275,15 @@ var SNAP_DAYS = 2;          // a snap grips the block for two days
 var SNAP_WARMTH = 10;       // extra warmth lost at each snap dawn
 var SNAP_CHANCE = 0.25;     // rolled at every quiet winter dawn
 function snapActive(){ return typeof G.snapUntil==='number' && G.snapUntil!==null && G.days < G.snapUntil; }
+
+// HV-76: Gentrification said "Harassment from locals is increasing."
+// The card was a one-shot morale/goodwill hit; panhandle never got
+// harder. Stamp the day — same dawn-latch as dumpsterLockDay — and
+// halve the corner's odds until morning.
+var GENTRIFY_PAN = 0.5;
+function gentrifyHostile(){
+  return typeof G.gentrifyDay==='number' && G.gentrifyDay>=0 && G.gentrifyDay===G.days;
+}
 
 // ── HV-17: the Bus Ticket ────────────────────────────────────
 // The village's best ending isn't a bigger camp — it's someone going
