@@ -52,6 +52,7 @@ function doAction(a){
     }
   }
   if(a.id==='ticket'){
+    if(G.ticketPending){ log('🚌 The fare is already paid — they catch the morning bus.'); return; }
     if(!G.ticketAsk) return;
     if(G.goodwill<TICKET_COST_GW || G.scraps<TICKET_COST_SCRAPS){
       log('🚌 The fare is short — it takes '+TICKET_COST_GW+'🩶 and '+TICKET_COST_SCRAPS+' scraps.'); sfx('error'); return;
@@ -93,6 +94,26 @@ function doAction(a){
   var btn=document.getElementById('action-'+a.id);
   if(btn){ btn.classList.add('active-job'); btn.disabled=true; }
   setTimeout(function(){ finishAction(a); }, duration);
+}
+
+// HV-100: the morning bus. Dawn/Morning board here; a later fare
+// stamps ticketPending and ticketAtDawn calls this at the next dawn.
+function boardMorningBus(){
+  if((G.population||1)<2){ G.ticketPending=false; return; }
+  G.ticketPending=false;
+  G.population-=1;
+  G.ticketsSent=(G.ticketsSent||0)+1;
+  G.morale=Math.min(100,G.morale+8);
+  addRep(3);
+  for(var fi=figures.length-1; fi>=0; fi--){
+    if(figures[fi].userData && figures[fi].userData.type==='community'){
+      scene.remove(figures[fi]); figures.splice(fi,1); break;
+    }
+  }
+  floatText('🚌 +8😊');
+  log('🚌 The morning bus pulls away with one less resident and one more person going home. The whole camp waves it out of sight. +8 morale, +3 rep.');
+  saveGame();
+  if(typeof buildActionUI==='function') buildActionUI();
 }
 
 function finishAction(a){
@@ -523,23 +544,19 @@ function finishAction(a){
   } else if(a.id==='ticket'){
     // HV-17: re-check — the ask can expire mid-action, and a queued
     // double-fire must not send two people on one fare.
+    // HV-100: the card says the morning bus. Dawn/Morning still
+    // board now. A later fare waits for ticketAtDawn.
     if(G.ticketAsk && G.goodwill>=TICKET_COST_GW && G.scraps>=TICKET_COST_SCRAPS && G.population>=2){
       G.goodwill-=TICKET_COST_GW; G.scraps-=TICKET_COST_SCRAPS;
       G.ticketAsk=null;
-      G.population-=1;
-      G.ticketsSent=(G.ticketsSent||0)+1;
-      G.morale=Math.min(100,G.morale+8);
-      addRep(3);
-      // one community figure boards the bus
-      for(var fi=figures.length-1; fi>=0; fi--){
-        if(figures[fi].userData && figures[fi].userData.type==='community'){
-          scene.remove(figures[fi]); figures.splice(fi,1); break;
-        }
+      if(morningBusHere()){
+        boardMorningBus();
+      } else {
+        G.ticketPending=true;
+        log('🚌 The fare is paid — they catch the morning bus.');
+        saveGame();
+        buildActionUI();
       }
-      floatText('🚌 +8😊');
-      log('🚌 The morning bus pulls away with one less resident and one more person going home. The whole camp waves it out of sight. +8 morale, +3 rep.');
-      saveGame();
-      buildActionUI();
     }
   }
   sfx('action');
