@@ -213,6 +213,28 @@ function onNewDay(){
   favorLapsed(); maybePostFavor();
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
+  // HV-190: the beds are breakfast. They used to land after the
+  // empty-larder bite, so a harvest on a pot the night just emptied
+  // arrived once the camp had already taken the health hit. Cook and
+  // soup stay where they are; the garden is the one that fills the pot.
+  if(G.structures.garden){
+    if(G.weather==='cold'){
+      if(G.structures.compost){
+        // HV-25: the bin's heat keeps one bed alive through frost
+        G.food+=1; G.compostDays=(G.compostDays||0)+1;
+        floatText('+1\ud83c\udf5e');
+        log('\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
+      } else {
+        log('Frost on the beds — the garden gave nothing today.');
+      }
+    }
+    else {
+      var y=rand(1,3);
+      if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
+      if(G.weather!=='rain'&&(G.barrelWater||0)>0){ G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.'); }   // HV-27
+      G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
+    }
+  }
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
 
   if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
@@ -233,24 +255,6 @@ function onNewDay(){
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
     G.barrelWater=(G.barrelWater||0)+1;
     log('\ud83d\udee2\ufe0f The rain barrel catches the day \u2014 '+G.barrelWater+'/'+BARREL_CAP+' stored.');
-  }
-  if(G.structures.garden){
-    if(G.weather==='cold'){
-      if(G.structures.compost){
-        // HV-25: the bin's heat keeps one bed alive through frost
-        G.food+=1; G.compostDays=(G.compostDays||0)+1;
-        floatText('+1\ud83c\udf5e');
-        log('\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
-      } else {
-        log('Frost on the beds — the garden gave nothing today.');
-      }
-    }
-    else {
-      var y=rand(1,3);
-      if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
-      if(G.weather!=='rain'&&(G.barrelWater||0)>0){ G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.'); }   // HV-27
-      G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
-    }
   }
   if(G.dog===2){
     // Biscuit's keep: one food a day. Fed, he's warmth against your back
