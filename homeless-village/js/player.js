@@ -648,6 +648,13 @@ function finishAction(a){
     G.oddJobDay=G.days;
     if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
+    // HV-279: Hand out flyers said the owner is kind. Honest work
+    // is the +3 every posting gets. The shopkeeper vouching is Word
+    // on the Street — Marisol hearing the owner is not this card.
+    if(j.id==='flyers'){
+      addRep(1);
+      log('\uD83D\uDCAC The owner puts in a kind word \u2014 the block hears it.');
+    }
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
     if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
