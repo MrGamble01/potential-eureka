@@ -421,18 +421,29 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
-    for(var k in j.gives){
-      if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
-      else G[k]=(G[k]||0)+j.gives[k];
-      parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+    // HV-177: Hand out flyers is paper on the sidewalk. Rain pulps
+    // the stack and the shop calls it off. Kind (Marisol) is a
+    // different ticket. The day still closes — the sky will not
+    // change until dawn.
+    if(j.id==='flyers' && G.weather==='rain'){
+      G.oddJobDay=G.days;
+      log('📄 Rain pulped the flyers — the shop called it off.');
+      saveGame();
+      buildActionUI();
+    } else {
+      for(var k in j.gives){
+        if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
+        else G[k]=(G[k]||0)+j.gives[k];
+        parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+      }
+      G.oddJobDay=G.days;
+      if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
+      addRep(3);   // HV-9: honest work is how the neighborhood learns your name
+      floatText(parts.join(' '));
+      log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+      saveGame();
+      buildActionUI();
     }
-    G.oddJobDay=G.days;
-    if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
-    addRep(3);   // HV-9: honest work is how the neighborhood learns your name
-    floatText(parts.join(' '));
-    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
-    saveGame();
-    buildActionUI();
   } else if(a.id==='mural'){
     // HV-11: one painting session. doAction gates cost and cadence, but
     // re-check here so a queued double-fire can't paint two panels a day.
