@@ -552,6 +552,14 @@ function doCraft(r){
   // click on a still-running recipe deducted its cost twice.
   if(G.activeCrafts[r.id]) return;
   if(!canCraft(r)) return;
+  // HV-180: Hot Meal said feed someone. Fire Went Out said the
+  // barrel died. Cooking on a dark fire is a cold pot. Firewood
+  // is the relight; a blanket is +warmth and does not cook.
+  if(r.id==='meal' && G.fireOutUntil && Date.now()<G.fireOutUntil){
+    log('🥣 The barrel is dark — no one can cook a hot meal until the fire is back.');
+    sfx('error');
+    return;
+  }
   var dur=r.time*(G.workers.builder?.5:1);
   Object.entries(r.cost).forEach(function(e){ G[e[0]]-=e[1]; });
   // Persist the in-flight job in the same write as the cost — closing
