@@ -59,7 +59,7 @@ function sources(dir = ROOT, out = []) {
 }
 
 const files = sources();
-const rel = f => path.relative(ROOT, f);
+const rel = f => path.relative(ROOT, f).split(path.sep).join('/');
 
 // D — guard the guard, before trusting any of the clean results below.
 ok(files.length >= 20,
@@ -115,3 +115,4 @@ const read = f => fs.readFileSync(f, 'utf8');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
+
