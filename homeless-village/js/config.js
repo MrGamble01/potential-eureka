@@ -231,9 +231,14 @@ function muralAction(){
 var MEETING_EVERY = 3;
 function meetingAvailable(){ return (G.population||1) >= 2; }
 function meetingDone(){ return G.days - (typeof G.meetingDay==='number'?G.meetingDay:-9) < MEETING_EVERY; }
+// HV-94: the rest is three days. "A day or two" let a player wait
+// two dawns and still bounce off the lock.
+function meetingRestLine(){
+  return 'The camp met recently — give it '+MEETING_EVERY+' days.';
+}
 function meetingAction(){
   return { id:'meeting', icon:'🗣️', label:'Hold a camp meeting', time:6000, cooldown:0,
-    tooltip:'Gather everyone around the fire. +2 morale a head, a little something for the pot from each resident — and the block hears a village, not a camp.' };
+    tooltip:'Gather everyone around the fire. +2 morale a head, a little something for the pot from each resident — and the block hears a village, not a camp. Every '+MEETING_EVERY+' days.' };
 }
 
 // ── HV-19: the Busker's Guitar ───────────────────────────────
