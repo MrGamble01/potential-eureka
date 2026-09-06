@@ -36,7 +36,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvBench({ sits: 2 });
     saveHvStory({ tellings: 0 });
     const heart2 = hvStoryByHeart();
-    hvStoryTold = false;
+    G.storyDay = -1;
     G.food = 10;
     finishAction({ id: 'story' });
     return { key: HVSTORY_KEY, base: HVSTORY_BASE, per: HVSTORY_PER,
@@ -63,7 +63,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    hvStoryTold = false;
+    G.storyDay = -1;
     G.food = 10;
     finishAction({ id: 'story' });
     const food1 = G.food, tellings1 = loadHvStory().tellings;
@@ -76,7 +76,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    hvStoryTold = false;
+    G.storyDay = -1;
     G.food = 0;
     finishAction({ id: 'story' });
     const g = GOALS.find(x => x.id === 'story2');

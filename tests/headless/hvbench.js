@@ -36,7 +36,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvGb({ leafs: 2 });
     saveHvBench({ sits: 0 });
     const built2 = hvBenchBuilt();
-    benchSat = false;
+    G.benchDay = -1;
     G.food = 10;
     finishAction({ id: 'bench' });
     return { key: HVBEN_KEY, base: HVBEN_BASE, per: HVBEN_PER,
@@ -63,7 +63,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    benchSat = false;
+    G.benchDay = -1;
     G.food = 10;
     finishAction({ id: 'bench' });
     const food1 = G.food, sits1 = loadHvBench().sits;
@@ -76,7 +76,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    benchSat = false;
+    G.benchDay = -1;
     G.food = 0;
     finishAction({ id: 'bench' });
     const g = GOALS.find(x => x.id === 'bench2');

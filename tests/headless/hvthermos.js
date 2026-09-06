@@ -79,7 +79,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const after = G.morale;
     const one = loadThermos().uses;
     finishAction({ id: 'thermos' });
-    return { before, after, one, two: loadThermos().uses, used: thermosUsed };
+    return { before, after, one, two: loadThermos().uses, used: (G.thermosDay===G.days) };
   });
   ok(passed.after - passed.before === 8 && passed.one === 1,
     `a pass lifts morale by exactly the power (${passed.before} -> ${passed.after})`);
@@ -87,7 +87,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // E — rearm to the goal + Start Over survival
   const goal = await t(() => {
-    thermosUsed = false;
+    G.thermosDay = -1;
     finishAction({ id: 'thermos' });
     const g = GOALS.find(x => x.id === 'thermos2');
     return { v: g.value(), target: g.target };
@@ -100,7 +100,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(3000);
-  const back = await t(() => ({ th: loadThermos(), used: thermosUsed }));
+  const back = await t(() => ({ th: loadThermos(), used: (G.thermosDay===G.days) }));
   ok(back.th.uses === 2 && !back.used, 'the tally survives Start Over in its own key — and the thermos refills');
 
   await browser.close();

@@ -36,7 +36,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvAnniv({ toasts: 2 });
     saveHvGb({ leafs: 0 });
     const out2 = notebookOut();
-    notebookLeafed = false;
+    G.notebookDay = -1;
     G.food = 10;
     finishAction({ id: 'guestbook' });
     return { key: HVGB_KEY, base: HVGB_BASE, per: HVGB_PER,
@@ -63,7 +63,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    notebookLeafed = false;
+    G.notebookDay = -1;
     G.food = 10;
     finishAction({ id: 'guestbook' });
     const food1 = G.food, leafs1 = loadHvGb().leafs;
@@ -76,7 +76,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    notebookLeafed = false;
+    G.notebookDay = -1;
     G.food = 0;
     finishAction({ id: 'guestbook' });
     const g = GOALS.find(x => x.id === 'guest2');

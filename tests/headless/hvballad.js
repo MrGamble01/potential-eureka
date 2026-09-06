@@ -36,7 +36,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvStory({ tellings: 2 });
     saveHvSong({ plays: 0 });
     const set2 = balladSet();
-    balladPlayed = false;
+    G.songDay = -1;
     G.food = 10;
     finishAction({ id: 'ballad' });
     return { key: HVSONG_KEY, base: HVSONG_BASE, per: HVSONG_PER,
@@ -63,7 +63,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    balladPlayed = false;
+    G.songDay = -1;
     G.food = 10;
     finishAction({ id: 'ballad' });
     const food1 = G.food, plays1 = loadHvSong().plays;
@@ -76,7 +76,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    balladPlayed = false;
+    G.songDay = -1;
     G.food = 0;
     finishAction({ id: 'ballad' });
     const g = GOALS.find(x => x.id === 'ballad2');

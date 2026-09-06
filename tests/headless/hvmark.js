@@ -37,7 +37,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvWalk({ walks: 2 });
     saveHvMark({ names: 0 });
     const added2 = markUp();
-    markAdded = false;
+    G.markDay = -1;
     G.food = 10;
     finishAction({ id: 'mark' });
     return { key: HVMARK_KEY, base: HVMARK_BASE, per: HVMARK_PER,
@@ -64,7 +64,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    markAdded = false;
+    G.markDay = -1;
     G.food = 10;
     finishAction({ id: 'mark' });
     const food1 = G.food, n1 = loadHvMark().names;
@@ -77,7 +77,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    markAdded = false;
+    G.markDay = -1;
     G.food = 0;
     finishAction({ id: 'mark' });
     const g = GOALS.find(x => x.id === 'mark2');

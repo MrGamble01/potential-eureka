@@ -39,7 +39,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveMarisol({ visits: 2 });
     saveHvKeep({ pays: 0 });
     const mugs2 = thermosHasMugs();
-    thermosUsed = false;
+    G.thermosDay = -1;
     G.food = 10;
     const m0 = G.morale;
     finishAction({ id: 'thermos' });
@@ -56,7 +56,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const seam = await t(() => {
     saveMarisol({ visits: 3 });
     const mugs3 = thermosHasMugs();
-    thermosUsed = false;
+    G.thermosDay = -1;
     G.food = 10;
     finishAction({ id: 'thermos' });
     return { mugs3, food: G.food, pays: loadHvKeep().pays };
@@ -74,7 +74,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    thermosUsed = false;
+    G.thermosDay = -1;
     G.food = 0;
     finishAction({ id: 'thermos' });
     const g = GOALS.find(x => x.id === 'mugs2');

@@ -38,7 +38,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveMarisol({ visits: 2 });
     saveHvReunion({ held: 0 });
     const stands = hvReunionStands();
-    bridgeReunionHeld = false;
+    G.hvReunionDay = -1;
     G.food = 10;
     finishAction({ id: 'reunion' });
     return { key: HVREU_KEY, base: HVREU_BASE, per: HVREU_PER,
@@ -67,7 +67,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    bridgeReunionHeld = false;
+    G.hvReunionDay = -1;
     G.food = 10;
     finishAction({ id: 'reunion' });
     const food1 = G.food, held1 = loadHvReunion().held;
@@ -80,7 +80,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    bridgeReunionHeld = false;
+    G.hvReunionDay = -1;
     G.food = 0;
     finishAction({ id: 'reunion' });
     const g = GOALS.find(x => x.id === 'reunion2');

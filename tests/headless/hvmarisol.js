@@ -75,7 +75,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — the seam
   const visit = await t(() => {
-    marisolCame = false;
+    G.marisolDay = -1;
     G.food = 10;
     finishAction({ id: 'marisol' });
     const food1 = G.food, visits1 = loadMarisol().visits;
@@ -88,7 +88,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // E — rearm and the goal
   const goal = await t(() => {
-    marisolCame = false;
+    G.marisolDay = -1;
     G.food = 0;
     finishAction({ id: 'marisol' });
     const g = GOALS.find(x => x.id === 'marisol2');

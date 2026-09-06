@@ -37,7 +37,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     saveHvCan({ digs: 2 });
     saveHvPanel({ stands: 0 });
     const painted2 = panelPainted();
-    panelStood = false;
+    G.panelDay = -1;
     G.food = 10;
     finishAction({ id: 'fifth' });
     return { key: HVPAN_KEY, base: HVPAN_BASE, per: HVPAN_PER,
@@ -64,7 +64,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // C — the seam
   const seam = await t(() => {
-    panelStood = false;
+    G.panelDay = -1;
     G.food = 10;
     finishAction({ id: 'fifth' });
     const food1 = G.food, s1 = loadHvPanel().stands;
@@ -77,7 +77,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // D — rearm and the goal
   const goal = await t(() => {
-    panelStood = false;
+    G.panelDay = -1;
     G.food = 0;
     finishAction({ id: 'fifth' });
     const g = GOALS.find(x => x.id === 'panel2');

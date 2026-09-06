@@ -64,6 +64,17 @@ var G = {
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,
+
+  // HV-57: the day each Bridge-chain link (thermos through the dry
+  // corner) last paid out. These used to be bare in-memory booleans
+  // that never reset (a payout was stuck "already happened" forever)
+  // and never persisted (a page reload cleared them, letting every
+  // link be replayed for free). Storing the day in G, like every
+  // other once-a-day action, fixes both.
+  thermosDay: -1, marisolDay: -1, hvReunionDay: -1, snapshotDay: -1,
+  annivDay: -1, notebookDay: -1, benchDay: -1, storyDay: -1,
+  songDay: -1, canDay: -1, panelDay: -1, walkDay: -1, markDay: -1,
+  dryDay: -1,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
@@ -451,7 +462,6 @@ function composeHvWall(){
 // +1 per longest-hold morning (to 5), +1 per note found (to 3). The
 // deeper the bridge's memory, the further the coffee goes.
 var THERMOS_KEY='hv-thermos', THERMOS_BASE=2;
-var thermosUsed=false;
 function loadThermos(){
   try{ var t=JSON.parse(localStorage.getItem(THERMOS_KEY)||'null');
     if(t&&typeof t==='object') return {uses:Math.max(0,Math.floor(t.uses||0))};
@@ -465,7 +475,6 @@ function thermosHasWarmth(){ return loadHvRec().days>0 || loadHvNote().read>0; }
 // brings a casserole: 2 food base, +1 per hold beaten under the
 // chalk star (cap 3). Old friends check on the camp.
 var MARISOL_KEY='hv-visitor', MARISOL_BASE=2;
-var marisolCame=false;
 function loadMarisol(){
   try{ var m=JSON.parse(localStorage.getItem(MARISOL_KEY)||'null');
     if(m&&typeof m==='object') return {visits:Math.max(0,Math.floor(m.visits||0))};
@@ -494,7 +503,6 @@ function thermosHasMugs(){ return loadMarisol().visits>=3; }
 // ever slept here comes back through: 2 food base + 1 per hold + 1
 // per visit (caps 3). Held tallied in 'hv-reunion'.
 var HVREU_KEY='hv-reunion', HVREU_BASE=2, HVREU_PER=1;
-var bridgeReunionHeld=false;
 function loadHvReunion(){
   try{ var r=JSON.parse(localStorage.getItem(HVREU_KEY)||'null');
     if(r&&typeof r==='object') return {held:Math.max(0,Math.floor(r.held||0))};
@@ -512,7 +520,6 @@ function hvReunionDish(){
 // fridge door. Once a session a look pays: 2 food base + 1 per
 // reunion held (cap 5). Looks tallied in 'hv-portrait'.
 var HVSNAP_KEY='hv-portrait', HVSNAP_BASE=2, HVSNAP_PER=1;
-var snapshotLooked=false;
 function loadHvSnap(){
   try{ var s=JSON.parse(localStorage.getItem(HVSNAP_KEY)||'null');
     if(s&&typeof s==='object') return {looks:Math.max(0,Math.floor(s.looks||0))};
@@ -528,7 +535,6 @@ function snapshotDish(){ return HVSNAP_BASE + HVSNAP_PER*Math.min(loadHvReunion(
 // base + 1 per snapshot look (cap 5). Markings tallied in
 // 'hv-anniversary'.
 var HVANN_KEY='hv-anniversary', HVANN_BASE=3, HVANN_PER=1;
-var annivMarked=false;
 function loadHvAnniv(){
   try{ var a=JSON.parse(localStorage.getItem(HVANN_KEY)||'null');
     if(a&&typeof a==='object') return {toasts:Math.max(0,Math.floor(a.toasts||0))};
@@ -544,7 +550,6 @@ function annivDish(){ return HVANN_BASE + HVANN_PER*Math.min(loadHvSnap().looks|
 // leaf-through pays: 4 food base + 1 per candle (cap 5). Leafs
 // tallied in 'hv-guestbook'.
 var HVGB_KEY='hv-guestbook', HVGB_BASE=4, HVGB_PER=1;
-var notebookLeafed=false;
 function loadHvGb(){
   try{ var g=JSON.parse(localStorage.getItem(HVGB_KEY)||'null');
     if(g&&typeof g==='object') return {leafs:Math.max(0,Math.floor(g.leafs||0))};
@@ -559,7 +564,6 @@ function notebookDish(){ return HVGB_BASE + HVGB_PER*Math.min(loadHvAnniv().toas
 // from scrap and good intentions. Once a session a sit pays: 5
 // food base + 1 per leaf (cap 5). Sits tallied in 'hv-bench'.
 var HVBEN_KEY='hv-bench', HVBEN_BASE=5, HVBEN_PER=1;
-var benchSat=false;
 function loadHvBench(){
   try{ var b=JSON.parse(localStorage.getItem(HVBEN_KEY)||'null');
     if(b&&typeof b==='object') return {sits:Math.max(0,Math.floor(b.sits||0))};
@@ -575,7 +579,6 @@ function hvBenchDish(){ return HVBEN_BASE + HVBEN_PER*Math.min(loadHvGb().leafs|
 // Once a session a telling pays: 6 food base + 1 per sit (cap 5).
 // Tellings tallied in 'hv-storyhour'.
 var HVSTORY_KEY='hv-storyhour', HVSTORY_BASE=6, HVSTORY_PER=1;
-var hvStoryTold=false;
 function loadHvStory(){
   try{ var s=JSON.parse(localStorage.getItem(HVSTORY_KEY)||'null');
     if(s&&typeof s==='object') return {tellings:Math.max(0,Math.floor(s.tellings||0))};
@@ -591,7 +594,6 @@ function hvStoryDish(){ return HVSTORY_BASE + HVSTORY_PER*Math.min(loadHvBench()
 // session a playing pays: 7 food base + 1 per telling (cap 5).
 // Playings tallied in 'hv-song'.
 var HVSONG_KEY='hv-song', HVSONG_BASE=7, HVSONG_PER=1;
-var balladPlayed=false;
 function loadHvSong(){
   try{ var s=JSON.parse(localStorage.getItem(HVSONG_KEY)||'null');
     if(s&&typeof s==='object') return {plays:Math.max(0,Math.floor(s.plays||0))};
@@ -607,7 +609,6 @@ function balladDish(){ return HVSONG_BASE + HVSONG_PER*Math.min(loadHvStory().te
 // wall's numbers copied out. Once a session a dig-up pays: 8 food
 // base + 1 per playing (cap 5). Digs tallied in 'hv-capsule'.
 var HVCAN_KEY='hv-capsule', HVCAN_BASE=8, HVCAN_PER=1;
-var canDug=false;
 function loadHvCan(){
   try{ var c=JSON.parse(localStorage.getItem(HVCAN_KEY)||'null');
     if(c&&typeof c==='object') return {digs:Math.max(0,Math.floor(c.digs||0))};
@@ -625,7 +626,6 @@ function canDish(){ return HVCAN_BASE + HVCAN_PER*Math.min(loadHvSong().plays||0
 // session standing with it pays: 9 food base + 1 per dig (cap 5).
 // Stands tallied in 'hv-mural'.
 var HVPAN_KEY='hv-mural', HVPAN_BASE=9, HVPAN_PER=1;
-var panelStood=false;
 function loadHvPanel(){
   try{ var q=JSON.parse(localStorage.getItem(HVPAN_KEY)||'null');
     if(q&&typeof q==='object') return {stands:Math.max(0,Math.floor(q.stands||0))};
@@ -642,7 +642,6 @@ function panelDish(){ return HVPAN_BASE + HVPAN_PER*Math.min(loadHvCan().digs||0
 // bench, the can by the piling. Once a session a walk pays: 10 food
 // base + 1 per stand (cap 5). Walks tallied in 'hv-docent'.
 var HVWALK_KEY='hv-docent', HVWALK_BASE=10, HVWALK_PER=1;
-var walkGiven=false;
 function loadHvWalk(){
   try{ var w=JSON.parse(localStorage.getItem(HVWALK_KEY)||'null');
     if(w&&typeof w==='object') return {walks:Math.max(0,Math.floor(w.walks||0))};
@@ -660,7 +659,6 @@ function walkDish(){ return HVWALK_BASE + HVWALK_PER*Math.min(loadHvPanel().stan
 // something it grows. Once a session a name pays: 11 food base +
 // 1 per walk (cap 5). Names tallied in 'hv-mark'.
 var HVMARK_KEY='hv-mark', HVMARK_BASE=11, HVMARK_PER=1;
-var markAdded=false;
 function loadHvMark(){
   try{ var m=JSON.parse(localStorage.getItem(HVMARK_KEY)||'null');
     if(m&&typeof m==='object') return {names:Math.max(0,Math.floor(m.names||0))};
@@ -684,7 +682,6 @@ function markDish(){ return HVMARK_BASE + HVMARK_PER*Math.min(loadHvWalk().walks
 // name on the wall (cap 5). Built flag and sittings both live in
 // 'hv-drycorner', so the corner and the habit survive separately.
 var HVDRY_KEY='hv-drycorner', HVDRY_SCRAPS=12, HVDRY_CARD=8, HVDRY_BASE=12, HVDRY_PER=1;
-var drySat=false;
 function loadHvDry(){
   try{ var d=JSON.parse(localStorage.getItem(HVDRY_KEY)||'null');
     if(d&&typeof d==='object') return {built:!!d.built, sits:Math.max(0,Math.floor(d.sits||0))};

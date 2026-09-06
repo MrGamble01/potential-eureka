@@ -10,7 +10,11 @@
  * E. The sitting pays once a session, tallies separately from the
  *    build, and cannot buy the roof twice.
  * F. The dish scales with names, cap 5; two sittings complete dry2.
- * G. The roof survives a reload; the session latch does not.
+ * G. The roof survives a reload — so does the once-a-session latch, since
+ *    it now rides G like every other daily action; only a new dawn clears
+ *    it (HV-57 — it used to be a bare in-memory flag: permanently stuck
+ *    "already done" for the rest of the tab, and wiped for free by any
+ *    reload).
  * Z. Zero page errors.
  */
 const { chromium } = require('playwright');
@@ -43,7 +47,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const bare = await t(() => {
     saveHvMark({ names: 2 });
     saveHvDry({ built: false, sits: 0 });
-    drySat = false;
+    G.dryDay = -1;
     G.scraps = 40; G.cardboard = 40; G.food = 10;
     buildActionUI();
     finishAction({ id: 'dry' });
@@ -94,7 +98,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     finishAction({ id: 'dry' });
     const b = document.getElementById('action-dry');
     return { s: G.scraps, c: G.cardboard, food: G.food,
-      built: dryBuilt(), sits: loadHvDry().sits, sat: drySat,
+      built: dryBuilt(), sits: loadHvDry().sits, sat: (G.dryDay===G.days),
       label: b ? b.textContent.trim() : '' };
   });
   ok(built.built && built.s === 18 && built.c === 12,
@@ -138,13 +142,23 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(3000);
   const after = await t(() => ({
-    built: dryBuilt(), sits: loadHvDry().sits, sat: drySat,
+    built: dryBuilt(), sits: loadHvDry().sits, sat: (G.dryDay===G.days),
     offered: dryOffered(), btn: !!document.getElementById('action-dry'),
   }));
   ok(after.built && after.sits === 2 && after.offered && after.btn,
     'the roof and the tally survive a reload');
-  ok(!after.sat,
-    'the once-a-session latch does not survive a reload');
+  ok(after.sat,
+    'the once-a-session latch survives a reload too — no free replay from an F5');
+
+  // H — only a new dawn clears the latch
+  const nextDay = await t(() => {
+    G.days += 1;
+    G.food = 10;
+    finishAction({ id: 'dry' });
+    return { sits: loadHvDry().sits, food: G.food };
+  });
+  ok(nextDay.sits === 3 && nextDay.food > 10,
+    'a new dawn clears the latch — the sit pays out again');
 
   ok(errs.length === 0, `no page errors (${errs.length ? errs[0] : 'clean'})`);
 
