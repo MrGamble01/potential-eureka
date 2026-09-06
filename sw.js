@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v229-hv-thermosfire';  // HV-229: thermos waits while the barrel is dark
+const SW_VERSION = 'eureka-v230-hv-gtrsweep';  // HV-233: the sweep takes the scrap guitar off the corner
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

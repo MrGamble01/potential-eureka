@@ -516,6 +516,13 @@ var EVENTS_BAD=[
      // rail by the fire — a sweep that takes the tent does not leave
      // the rack. Theft is a different verb.
      if(G.structures.coats){ G.structures.coats=false; log('The donated coats came off the rail.'); }
+     // HV-233: the guitar recipe is one set a day on the corner.
+     // Confiscate supplies — a guitar left on the corner is the
+     // first thing they take. Theft taking it is HV-154.
+     if(G.structures.guitar){
+       G.structures.guitar=false;
+       log('\ud83c\udfb8 The scrap guitar came off the corner.');
+     }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
