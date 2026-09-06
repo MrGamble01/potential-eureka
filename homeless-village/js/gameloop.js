@@ -567,9 +567,17 @@ var EVENTS_GOOD=[
   {id:'kind_stranger',title:'Kind Stranger',type:'good',weight:10,
    desc:'Someone left a bag of food near the bridge. Small mercy.',
    effect:function(){
-     G.lastEventDay=G.days; var f=rand(3,8); G.food+=f;
+     G.lastEventDay=G.days; var f=rand(3,8);
      G.morale=Math.min(100,G.morale+rand(5,10));
-     log('Found donated food. +'+f+' food.');
+     // HV-194: the card leaves the bag near the bridge. Rain
+     // already soaks the corner. A wet bag is still a mercy —
+     // it is not breakfast.
+     if(G.weather==='rain'){
+       log('Someone left a bag of food near the bridge — the rain soaked it through.');
+     } else {
+       G.food+=f;
+       log('Found donated food. +'+f+' food.');
+     }
    }},
   {id:'found_money',title:'Found $5',type:'good',weight:9,
    desc:'A crumpled bill on the sidewalk. Small win.',
