@@ -131,6 +131,9 @@ var REGULARS = [
 ];
 function regularDef(id){ for(var i=0;i<REGULARS.length;i++) if(REGULARS[i].id===id) return REGULARS[i]; return null; }
 function regularStage(id){ var a=(G.regulars&&G.regulars[id])||0; return a>=5?2:(a>=1?1:0); } // 0 stranger, 1 known, 2 friend
+// HV-187: Dee walks home from night shifts. Her route is the walk
+// home — Night and Dawn on the day clock. Midday is not her corner.
+function deeOnRoute(){ return G.timeOfDay<1/6 || G.timeOfDay>=5/6; }
 
 // ── HV-16: Regulars' Favors ──────────────────────────────────
 // Friendship runs both ways. Once a regular counts you as a friend,
