@@ -468,7 +468,7 @@ function thermosHasWarmth(){ return loadHvRec().days>0 || loadHvNote().read>0; }
 // Marisol from the garage swings past any bridge with a story. She
 // brings a casserole: 2 food base, +1 per hold beaten under the
 // chalk star (cap 3). Old friends check on the camp.
-var MARISOL_KEY='hv-visitor', MARISOL_BASE=2;
+var MARISOL_KEY='hv-visitor', MARISOL_BASE=2, MARISOL_WARMTH=3;
 var marisolCame=false;
 function loadMarisol(){
   try{ var m=JSON.parse(localStorage.getItem(MARISOL_KEY)||'null');
