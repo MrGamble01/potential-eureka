@@ -22,14 +22,16 @@ function scavengeInRange(){ return nearestDumpsterDist()<=SCAVENGE_RANGE; }
 // rather than mysteriously dead. Only touches the DOM on state changes.
 var _scavGateOut=null;
 function updateScavengeGate(){
-  var out=!scavengeInRange();
+  var locked=G.dumpsterLockDay===G.days;
+  var out=!scavengeInRange()||locked;
   if(out===_scavGateOut) return;
   _scavGateOut=out;
   var btn=document.getElementById('action-scavenge');
   if(!btn) return;
   btn.classList.toggle('out-of-range',out);
-  btn.title=out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
-                : 'Dig through dumpsters for scraps, cans, or food.';
+  btn.title=locked ? 'Dumpsters are locked today.'
+                : (out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
+                       : 'Dig through dumpsters for scraps, cans, or food.');
 }
 
 function doAction(a){
@@ -56,6 +58,13 @@ function doAction(a){
     }
   }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
+  // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
+  // let the bins reopen in the same day the card was still reading.
+  if((a.id==='scavenge'||a.id==='forage') && G.dumpsterLockDay===G.days){
+    log('Dumpsters are locked today.');
+    sfx('error');
+    return;
+  }
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
     sfx('error');
