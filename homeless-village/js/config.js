@@ -116,6 +116,12 @@ function rollWeather(){
 }
 function weatherDef(){ return WEATHERS[G.weather]||WEATHERS.clear; }
 function forecastVisible(){ return G.workers.lookout || G.structures.radio; }
+// HV-91: Radio (and Lookout) promised tomorrow's sky now, not at
+// the next dawn. A fresh camp starts with forecast null; the only
+// writer used to be onNewDay. Seed once the band can be heard.
+function ensureForecast(){
+  if(forecastVisible() && !G.forecast) G.forecast=rollWeather();
+}
 
 // ── The regulars (HV-7) ───────────────────────────────────────
 // Everyone on this block has a name if you're around long enough to learn
