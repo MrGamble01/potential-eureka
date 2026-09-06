@@ -227,7 +227,6 @@ function onNewDay(){
       G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
     }
   }
-  if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
@@ -277,6 +276,15 @@ function onNewDay(){
   if(forecastVisible()&&G.forecast&&WEATHERS[G.forecast]) log('\ud83d\udcfb Tomorrow: '+WEATHERS[G.forecast].icon+' '+WEATHERS[G.forecast].name+'.');
   buildCraftUI(); buildWorkersUI(); buildActionUI(); updateHUD();
   if(G.days-G.lastEventDay>=2) maybeEvent();
+  // HV-87: Dumpsters Locked says nothing to scavenge today. The
+  // player's walk already honors dumpsterLockDay. The hired
+  // Scrapper used to haul before maybeEvent could stamp the lock,
+  // then haul again on the locked morning. Dig after the card
+  // can land, and skip a locked day. #730 is food/count on the haul.
+  if(G.workers.scrapper && G.dumpsterLockDay!==G.days){
+    G.scraps+=rand(1,3); G.cans+=rand(0,2);
+    log('The Scrapper found some supplies.');
+  }
   checkArc();
   checkDog();
   checkGameOver(); // after maybeEvent so same-day event damage counts
