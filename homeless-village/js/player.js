@@ -94,6 +94,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-207: Mark the Anniversary says three looks count the
+  // winters. finishAction already named an uncounted year — after a
+  // 2s job and with the 30s lock charged as if the candle had lit.
+  if(a.id==='anniv' && !annivCounts()){
+    log('\ud83d\udd6f\ufe0f Nobody has counted the winters yet \u2014 three looks at the snapshot and the year adds up.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
