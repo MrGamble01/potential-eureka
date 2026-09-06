@@ -180,6 +180,14 @@ function onNewDay(){
     if(G.rayDebt<=0){ G.rayLoans=(G.rayLoans||0)+1; log('\uD83E\uDD1D Ray\u2019s ledger clears \u2014 paid in full, the extra for the trouble.'); }
     else log('\uD83E\uDD1D One goodwill to Ray\u2019s ledger \u2014 '+G.rayDebt+' to go.');
   }
+  // HV-65: Old Friend's surge fades at dawn, not on a 2-minute
+  // setTimeout that died the moment the tab closed. The log already
+  // said "yesterday" — that is this latch.
+  if(typeof G.friendDay==='number' && G.friendDay>=0 && G.days>G.friendDay){
+    G.morale=Math.max(0,G.morale-rand(8,14));
+    G.friendDay=-1;
+    log('The good feeling from yesterday is gone.');
+  }
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
@@ -561,10 +569,7 @@ var EVENTS_GOOD=[
    effect:function(){
      G.lastEventDay=G.days;
      G.morale=Math.min(100,G.morale+rand(12,20));
-     setTimeout(function(){
-       G.morale=Math.max(0,G.morale-rand(8,14));
-       log('The good feeling from yesterday is gone.');
-     },120000);
+     G.friendDay=G.days;
      log('A familiar face. Morale surged — briefly.');
    }},
   {id:'church_donation',title:'Church Donated Supplies',type:'good',weight:8,
