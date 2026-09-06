@@ -38,6 +38,18 @@ function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
   if(a.id==='oddjob' && oddJobDone()){ log('Today’s odd job is done — check the board tomorrow.'); return; }
+  // HV-155: Unload at the depot is "a morning of honest lifting."
+  // The HUD already names Dawn→Night. Night still started the 8s job
+  // and paid +5. Refuse after Morning — flyers and the rest of the
+  // board stay all-day work.
+  if(a.id==='oddjob'){
+    var jGate=todaysJob();
+    if(jGate.id==='depot' && Math.floor((G.timeOfDay||0)*6)>1){
+      log('📦 The depot shift is a morning of honest lifting — the dock is closed.');
+      sfx('error');
+      return;
+    }
+  }
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
