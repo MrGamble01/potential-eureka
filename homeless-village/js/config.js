@@ -28,6 +28,9 @@ var G = {
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.
   friendDay: -1,
+  // HV-186: the day Gentrification made the shops unkind.
+  // -1 = the owner is as kind as usual.
+  gentrifyDay: -1,
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
   // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),

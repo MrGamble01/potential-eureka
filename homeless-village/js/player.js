@@ -421,16 +421,22 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
+    // HV-186: Gentrification said harassment is increasing. The
+    // flyer posting promised the owner is kind. The shop still
+    // pays; the kindness does not, until dawn.
+    var unkind=j.id==='flyers'&&typeof G.gentrifyDay==='number'&&G.gentrifyDay===G.days;
     for(var k in j.gives){
-      if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
-      else G[k]=(G[k]||0)+j.gives[k];
-      parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+      var amt=j.gives[k];
+      if(unkind&&k==='morale') amt=0;
+      if(k==='morale') G.morale=Math.min(100,G.morale+amt);
+      else G[k]=(G[k]||0)+amt;
+      if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
     }
     G.oddJobDay=G.days;
     if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
     floatText(parts.join(' '));
-    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.'+(unkind?' The owner was not kind — the block has been hostile.':''));
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
