@@ -188,6 +188,10 @@ function onNewDay(){
     G.friendDay=-1;
     log('The good feeling from yesterday is gone.');
   }
+  // HV-93: the thermos refuse log said tomorrow. Dawn pours it again.
+  // The other memory-chain latches stay session-scoped — only this
+  // one named the next day.
+  thermosUsed=false;
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
