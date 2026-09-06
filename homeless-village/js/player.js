@@ -75,6 +75,16 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-101: Wave Marisol Down on a storyless bridge is the same miss
+  // HV-61 taught Trade. The tooltip says she leaves a casserole. A
+  // fresh camp has no story she'd know. The 2s job still started,
+  // finishAction logged "the tow truck rolls past", then the button
+  // locked for 30s.
+  if(a.id==='marisol' && !marisolHasStory()){
+    log('\ud83d\ude97 Marisol\u2019s tow truck rolls past without slowing \u2014 this bridge has no story she\u2019d know yet.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
