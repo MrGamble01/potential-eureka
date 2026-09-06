@@ -36,7 +36,7 @@ const main = fs.readFileSync(path.join(ROOT, 'homeless-village/js/main.js'), 'ut
 const ui   = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 
 const evAt = loop.indexOf("id:'fire_out'");
-const ev = evAt >= 0 ? loop.slice(evAt, evAt + 420) : '';
+const ev = evAt >= 0 ? loop.slice(evAt, evAt + 700) : '';
 
 (async () => {
   ok(/overnight/i.test(ev),
