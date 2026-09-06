@@ -955,3 +955,11 @@ function introOpen(){
   var m = document.getElementById('intro-modal');
   return !!(m && m.classList.contains('open'));
 }
+
+// HV-59: The Bridge is the same class of reading. Declared here beside
+// introOpen so tickDay can ask it without adding an API to ui.js (which
+// owns the overlay and is a conflict hotspot).
+function bridgeOpen(){
+  var m = document.getElementById('chain-modal');
+  return !!(m && m.classList.contains('open'));
+}
