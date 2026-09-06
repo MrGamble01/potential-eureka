@@ -75,6 +75,14 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-77: Borrow from Ray already knew how to refuse a standing loan
+  // in finishAction — after a 2s job and with the full 30s cooldown
+  // charged as if he had fronted again. Same shape as HV-61's four.
+  if(a.id==='borrow' && (G.rayDebt||0)>0){
+    log('\uD83E\uDD1D Ray taps his ledger \u2014 '+G.rayDebt+' still owed. One at a time.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
