@@ -29,6 +29,23 @@ window.addEventListener('keyup', function(e){
 // Alt-tabbing away mid-press must not leave a key "stuck" down forever.
 window.addEventListener('blur', function(){ keysDown = {}; });
 
+// HV-58: Escape closes The Bridge.
+//
+// #chain-modal already dismisses via × and backdrop (ui.js). Escape was
+// only wired for the HV-56 first-run intro, which keys off #intro-modal
+// and never sees this overlay. Same class of drift as TYC-60 / LAB-61.
+// Lives here — not in ui.js — so this ticket does not collide with
+// HV-57's payout work on that file. Do not call closeIntro(): that
+// would mark the crash course seen.
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    var m = document.getElementById('chain-modal');
+    if(m && m.classList.contains('open')){
+      m.classList.remove('open');
+    }
+  }
+});
+
 // Tap/click-to-walk: the touch-input HV never had (IDEA-HV-2's gate would
 // otherwise brick scavenging on phones, which have no WASD). A tap on the
 // ground raycasts to the y=0 plane and the player walks there; any key
