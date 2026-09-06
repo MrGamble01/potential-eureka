@@ -39,6 +39,12 @@ window.addEventListener('blur', function(){ keysDown = {}; });
 // would mark the crash course seen.
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape'){
+    // HV-66: Keys in Hand is the same class of card. Keep Building is
+    // the non-destructive dismiss — click that button rather than
+    // invent a third closer. Graduation sits on top of The Bridge, so
+    // it wins if both are up.
+    var stay = document.getElementById('hv-grad-stay');
+    if(stay){ stay.click(); return; }
     var m = document.getElementById('chain-modal');
     if(m && m.classList.contains('open')){
       m.classList.remove('open');
