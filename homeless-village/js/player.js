@@ -23,15 +23,27 @@ function scavengeInRange(){ return nearestDumpsterDist()<=SCAVENGE_RANGE; }
 var _scavGateOut=null;
 function updateScavengeGate(){
   var locked=G.dumpsterLockDay===G.days;
-  var out=!scavengeInRange()||locked;
-  if(out===_scavGateOut) return;
-  _scavGateOut=out;
+  var far=!scavengeInRange();
+  var key=(locked?'L':'o')+(far?'F':'n');
+  if(key===_scavGateOut) return;
+  _scavGateOut=key;
   var btn=document.getElementById('action-scavenge');
-  if(!btn) return;
-  btn.classList.toggle('out-of-range',out);
-  btn.title=locked ? 'Dumpsters are locked today.'
-                : (out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
-                       : 'Dig through dumpsters for scraps, cans, or food.');
+  if(btn){
+    // HV-112: a lock day is not a walk-up. Stood on the bin, 🚶 was a lie.
+    btn.classList.toggle('out-of-range', far && !locked);
+    btn.classList.toggle('locked-today', locked);
+    btn.title=locked ? 'Dumpsters are locked today.'
+                  : (far ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
+                         : 'Dig through dumpsters for scraps, cans, or food.');
+  }
+  var fbtn=document.getElementById('action-forage');
+  if(fbtn){
+    fbtn.classList.toggle('locked-today', locked);
+    var ftip=locked ? 'Dumpsters are locked today.'
+                    : 'Search the surroundings for cardboard and wood.';
+    fbtn.title=ftip;
+    fbtn.setAttribute('data-tip', ftip);
+  }
 }
 
 function doAction(a){
