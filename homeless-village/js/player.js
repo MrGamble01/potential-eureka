@@ -197,6 +197,12 @@ function finishAction(a){
       saveHvWall({opens:(ww.opens||0)+1});
       log('\ud83e\uddf1 THE WRITING ON THE WALL \u2014 read out to whoever\u2019s around:');
       composeHvWall().forEach(function(s){ log('\ud83e\uddf1 '+s); });
+      // HV-123: the fridge-door note is these same numbers read privately
+      // and already lifts the fire. Reading them out loud to whoever is
+      // around is the public telling — the camp hears it.
+      G.morale=Math.min(100,(G.morale||0)+HVNOTE_MORALE);
+      log('\ud83e\uddf1 Whoever was around heard it. The fire is a little fuller. +'+HVNOTE_MORALE+'\ud83d\ude0a');
+      floatText('+'+HVNOTE_MORALE+'\ud83d\ude0a');
       saveGame();
     }
   } else if(a.id==='thermos'){
