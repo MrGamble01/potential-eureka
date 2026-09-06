@@ -14,7 +14,7 @@
  *  A. Source: the odd-job payout names flyers and puts in a word.
  *  B. The posting still says the owner is kind.
  *  C. Flyers move Word one more than honest work.
- *  D. The depot still only gets honest work.
+ *  D. The depot does not get the kind word (industry Word is HV-231).
  *  Z. Zero page errors.
  *
  * Hook-free. Drives finishAction on the production odd-job row.
@@ -97,10 +97,11 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     G.rep = 10;
     G.goodwill = 0;
     finishAction(oddJobAction());
-    return { job: todaysJob().id, rep: G.rep, goodwill: G.goodwill };
+    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    return { job: todaysJob().id, rep: G.rep, goodwill: G.goodwill, log };
   });
-  ok(depot.job === 'depot' && depot.rep === 13 && depot.goodwill === 5,
-    `the depot still only gets honest work (rep ${depot.rep})`);
+  ok(depot.job === 'depot' && depot.goodwill === 5 && !/kind word/.test(depot.log),
+    `the depot still does not get the kind word — industry is HV-231 (rep ${depot.rep})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);

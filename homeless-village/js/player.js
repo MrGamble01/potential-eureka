@@ -667,6 +667,14 @@ function finishAction(a){
       addRep(1);
       log('\uD83D\uDCAC The owner puts in a kind word \u2014 the block hears it.');
     }
+    // HV-231: Unload at the depot said a morning of honest lifting.
+    // Honest work is the +3 every posting gets. The deposit run
+    // already names industry; the depot lift is the same honest day
+    // and Word never heard it. Flyers' kind owner is HV-279 / #922.
+    if(j.id==='depot'){
+      addRep(1);
+      log('\uD83D\uDCAC Honest lifting \u2014 the block notices industry.');
+    }
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
     if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
