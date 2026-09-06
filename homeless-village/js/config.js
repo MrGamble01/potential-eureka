@@ -765,7 +765,7 @@ function recordDays(d){
     floatText('+'+HVREC_MORALE+'\ud83d\ude0a');
     log('\ud83d\udcc8 Day '+d+' \u2014 no camp under this bridge has ever held longer. The fire feels it.');
     // HV-38: under the chalk star, the story feeds the camp.
-    // HV-127: the log said word gets around. That is Word on the
+    // HV-129: the log said word gets around. That is Word on the
     // Street — the same phrase a tier crossing uses. Groceries
     // landed; addRep never ran.
     if(starStood){

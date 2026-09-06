@@ -1,5 +1,5 @@
 /*
- * HV-127 — the Chalk Star said word gets around.
+ * HV-129 — the Chalk Star said word gets around.
  *
  * A beaten hold under the star logs "word gets around, and neighbors
  * leave groceries." Groceries land (+3 food). Word on the Street is
@@ -33,7 +33,7 @@ ok(!!rec && !!star, 'recordDays still pays the chalk star in config.js');
 ok(star && /word gets around/.test(star[1]),
   'the chalk star still says word gets around');
 ok(star && /addRep\s*\(\s*HVSTAR_REP\s*\)/.test(star[1]),
-  'HV-127: a hold under the star moves Word on the Street');
+  'HV-129: a hold under the star moves Word on the Street');
 ok(/HVSTAR_REP\s*=\s*2/.test(cfg) && /HVSTAR_FOOD\s*=\s*3/.test(cfg),
   'HVSTAR_REP is 2 and the groceries are still +3 food');
 
@@ -80,7 +80,7 @@ ok(/HVSTAR_REP\s*=\s*2/.test(cfg) && /HVSTAR_FOOD\s*=\s*3/.test(cfg),
   ok(under.food === 13 && under.cheers === 1 && under.beats === 4,
     `groceries still land under the star (food ${under.food}, cheers ${under.cheers})`);
   ok(under.rep === 22,
-    `HV-127: word gets around — Word moves 20 → ${under.rep}`);
+    `HV-129: word gets around — Word moves 20 → ${under.rep}`);
   ok(/word gets around/i.test(under.log) && /\+2/.test(under.log),
     `the log names Word (${under.log.slice(-120)})`);
 
