@@ -78,6 +78,7 @@ when they touched different cards. Append yours; git merges the rest.*
 
 - `hvweather`
 - `hvdog` (Biscuit)
+- `hvtamale` (HV-184: Marisol leftovers land before Biscuit’s breakfast — miss still hungry; dog=0 still pays 10.5)
 - `hvregulars`
 - `hvdeeroute` (HV-187: Dee's route is the walk home from night shift — midday panhandle pays coins, does not bump)
 - `hvoddjobs`

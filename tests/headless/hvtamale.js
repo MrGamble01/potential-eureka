@@ -4,7 +4,7 @@
  *
  * Marisol's friendship perk is a bag of tamales some mornings.
  * Biscuit's keep is one food a day — fed, he earns it; empty,
- * he curls up hungry. onNewDay runs the dog's breakfast, then
+ * he curls up hungry. onNewDay used to run the dog's breakfast, then
  * regularFavorsAtDawn. A friend-Marisol drop on an empty pot
  * arrives after the hungry latch is already set. The tamales
  * sit in the pot. He already went without.
@@ -36,9 +36,11 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
 const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
 const onNew = /function onNewDay\(\)\{([\s\S]*?)\nfunction /.exec(loop);
 const body = onNew ? onNew[1] : '';
-const dogAt = body.indexOf('G.dog===2');
+// Target the food keep, not HV-200's earlier warmth peek.
+const hungryAt = body.indexOf('No scraps left for Biscuit');
+const dogAt = body.lastIndexOf('if(G.dog===2){', hungryAt);
 const mariAt = body.indexOf('regularFavorsAtDawn');
-ok(!!onNew && dogAt >= 0 && mariAt >= 0, 'onNewDay still feeds Biscuit and calls regularFavorsAtDawn');
+ok(!!onNew && hungryAt >= 0 && dogAt >= 0 && mariAt >= 0, 'onNewDay still feeds Biscuit and calls regularFavorsAtDawn');
 ok(mariAt < dogAt,
   'HV-184: Marisol\'s leftovers land before Biscuit\'s breakfast');
 ok(/sends leftovers to the camp some mornings/.test(cfg),
