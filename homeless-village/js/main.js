@@ -122,7 +122,10 @@ if(!G.fridgeSeeded){
     if(fridgeHasBoard()){
       // HV-39: the shelf tells the deeper welcome.
       if(fridgeHasShelf()){
-        log('\uD83E\uDDCA The corner fridge hums under its community shelf \u2014 blankets, socks, a working can opener. The block knows this camp like family. +'+_seed+'\ud83e\ude76');
+        // HV-126: the log already named the blankets. The barrel
+        // never moved. Goodwill is how the block knows you.
+        G.warmth=Math.min(100,(G.warmth||0)+FRIDGE_SHELF_WARMTH);
+        log('\uD83E\uDDCA The corner fridge hums under its community shelf \u2014 blankets, socks, a working can opener. The block knows this camp like family. +'+_seed+'\ud83e\ude76 +'+FRIDGE_SHELF_WARMTH+'\ud83d\udd25');
       } else {
         log('\uD83E\uDDCA The corner fridge still hums, its bulletin board full \u2014 the block already knows this camp well. +'+_seed+'\ud83e\ude76');
       }
