@@ -519,9 +519,15 @@ var EVENTS_BAD=[
    desc:'A bug is going through the camp. Everyone feels terrible.',
    effect:function(){
      G.lastEventDay=G.days;
-     G.health=Math.max(0,G.health-rand(12,22));
-     G.food  =Math.max(0,G.food  -rand(2,5));
-     log('Sickness hit the community. Health fell.');
+     // HV-181: the sanitation unit is the civic health the city already
+     // dropped. A bug going through the camp is the one event that
+     // should feel it. Half dose — contained, not immune. Injury is
+     // a limp, not a bug, and must not steal the cut.
+     var hm=G.petitions&&G.petitions.sanitation?0.5:1;
+     G.health=Math.max(0,G.health-Math.floor(rand(12,22)*hm));
+     G.food  =Math.max(0,G.food  -Math.floor(rand(2,5)*hm));
+     if(hm<1) log('🚻 The sanitation unit contained the bug — it could have been worse.');
+     else log('Sickness hit the community. Health fell.');
    }},
   {id:'dumpster_locked',title:'Dumpsters Locked',type:'bad',weight:7,
    desc:'Property management put locks on the dumpsters. Nothing to scavenge today.',
