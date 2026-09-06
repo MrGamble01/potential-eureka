@@ -97,7 +97,10 @@ function ticketAtDawn(){
     var lk=['food','scraps','cans'][rand(0,2)];
     G[lk]=(G[lk]||0)+2;
     G.morale=Math.min(100,G.morale+2);
-    log('✉️ A letter from the city — doing okay, misses the fire. Tucked inside, a little something: +2 '+({food:'🍞',scraps:'🧱',cans:'🫙'}[lk])+'.');
+    // HV-96: the letter always lifts morale by 2. Name both halves —
+    // soup night and a snap breaking already do. The goods emoji alone
+    // left the morale looking like it never arrived.
+    log('✉️ A letter from the city — doing okay, misses the fire. Tucked inside, a little something: +2 '+({food:'🍞',scraps:'🧱',cans:'🫙'}[lk])+', +2 morale.');
   }
 }
 
