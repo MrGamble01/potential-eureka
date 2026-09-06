@@ -548,9 +548,12 @@ var EVENTS_GOOD=[
   {id:'kind_stranger',title:'Kind Stranger',type:'good',weight:10,
    desc:'Someone left a bag of food near the bridge. Small mercy.',
    effect:function(){
-     G.lastEventDay=G.days; var f=rand(3,8); G.food+=f;
-     G.morale=Math.min(100,G.morale+rand(5,10));
-     log('Found donated food. +'+f+' food.');
+     G.lastEventDay=G.days; var f=rand(3,8), m=rand(5,10);
+     G.food+=f;
+     // HV-86: the card is a small mercy. Food and morale both
+     // applied; the log only counted the crate.
+     G.morale=Math.min(100,G.morale+m);
+     log('Found donated food. +'+f+' food, +'+m+' morale.');
    }},
   {id:'found_money',title:'Found $5',type:'good',weight:9,
    desc:'A crumpled bill on the sidewalk. Small win.',
