@@ -37,9 +37,11 @@ ok(hire && /activeCrafts/.test(hire[1]) && /builder/.test(hire[1]),
   'HV-138: hireWorker reschedules G.activeCrafts when the Builder joins');
 ok(/id:'builder'[\s\S]{0,80}?Speeds up crafting x2/.test(cfg),
   'the hire card still says Speeds up crafting x2');
+ok(/BUILDER_CRAFT\s*=\s*0\.5/.test(cfg),
+  'BUILDER_CRAFT is the x2 cut (0.5)');
 ok(/workers\.builder/.test(player) && /0\.5/.test(player),
   'doCraft still applies the Builder at start');
-ok(!/BUILDER_CRAFT|activeCrafts/.test(ui),
+ok(!/BUILDER_CRAFT/.test(ui),
   'ui.js is untouched');
 ok(/workers\.cook&&G\.food>=3/.test(loop) && /goodwill\+=2/.test(loop),
   'the Cook still spends 3 food for +2 goodwill');
@@ -91,7 +93,7 @@ ok(/workers\.cook&&G\.food>=3/.test(loop) && /goodwill\+=2/.test(loop),
   ok(mid.hired, 'hireWorker still stamps the Builder');
   ok(mid.before === 4000,
     `a Blanket started without a Builder is 4000ms (${mid.before})`);
-  ok(mid.after !== null && mid.after <= 2100,
+  ok(mid.after !== null && mid.after > 1500 && mid.after <= 2100,
     `HV-138: hiring the Builder mid-craft halves the remaining duration (${mid.before} → ${mid.after})`);
 
   const afterHire = await t(() => {

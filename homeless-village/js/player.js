@@ -1108,7 +1108,7 @@ function doCraft(r){
     sfx('error');
     return;
   }
-  var dur=r.time*(G.workers.builder?.5:1);
+  var dur=r.time*(G.workers.builder?BUILDER_CRAFT:1);
   Object.entries(r.cost).forEach(function(e){ G[e[0]]-=e[1]; });
   // Persist the in-flight job in the same write as the cost — closing
   // the tab mid-craft used to destroy the resources with no result.
@@ -1149,6 +1149,14 @@ function resumeCrafts(){
     var r=RECIPES.find(function(x){ return x.id===id; });
     if(!r){ delete G.activeCrafts[id]; return; }
     var j=G.activeCrafts[id], remaining=(j.start+j.duration)-Date.now();
+    // HV-138: a reload after the Builder joined used to keep the
+    // saved full duration. If the job still has the recipe's unsped
+    // time, cut what is left. Crafts that already started at x2
+    // (duration already half) are left alone.
+    if(G.workers.builder && j.duration>=r.time && remaining>0){
+      remaining=remaining*BUILDER_CRAFT;
+      j.start=Date.now(); j.duration=remaining;
+    }
     if(remaining<=0) finishCraft(r);
     else setTimeout(function(){ finishCraft(r); }, remaining);
   });
@@ -1165,6 +1173,21 @@ function hireWorker(id){
   sfx('hire');
   log(def.name+' joined the community.');
   if(typeof ensureForecast==='function') ensureForecast();
+  // HV-138: Speeds up crafting x2 is present tense. A craft already
+  // on the bench keeps the old setTimeout unless we cut remaining
+  // and arm a new one. finishCraft is idempotent — the original
+  // timer becomes a no-op once the job is gone.
+  if(id==='builder'){
+    Object.keys(G.activeCrafts||{}).forEach(function(cid){
+      var r=RECIPES.find(function(x){ return x.id===cid; });
+      if(!r) return;
+      var j=G.activeCrafts[cid], remaining=(j.start+j.duration)-Date.now();
+      if(remaining<=0) return;
+      var dur=remaining*BUILDER_CRAFT;
+      G.activeCrafts[cid]={start:Date.now(),duration:dur};
+      setTimeout(function(){ finishCraft(r); }, dur);
+    });
+  }
   saveGame();
   buildWorkersUI(); updateHUD();
   // HV-89: a first hire makes the camp two people, which is what
