@@ -584,6 +584,11 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
+     // HV-185: the Free Pantry is a little box on a post. The
+     // card destroys shelters and confiscates supplies. The
+     // trucks took the tent and the garden and left the box
+     // standing — a generous dawn still filled it. Kick it over.
+     if(G.structures.pantry){ G.structures.pantry=false; log('The pantry box was kicked over and smashed.'); }
      // HV-215: the card confiscates supplies. Donated coats hang on a
      // rail by the fire — a sweep that takes the tent does not leave
      // the rack. Theft is a different verb.
