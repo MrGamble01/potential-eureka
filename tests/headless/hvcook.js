@@ -71,10 +71,10 @@ ok(!/workers\.cook/.test(ui) && !/function onNewDay/.test(ui),
      'a returning camp can hire a Cook — not behind the crash course');
 
   // Quiet dawn: no dog arc, no soup kitchen, no garden, no events.
-  // random=0.5 keeps weather/events boring.
+  // random=0.9 skips maybeEvent (it returns when Math.random() > .55).
   const dawn = () => page.evaluate(() => {
     const real = Math.random;
-    Math.random = () => 0.5;
+    Math.random = () => 0.9; // >.55 so maybeEvent returns immediately
     G.dog = 1; G.dogMetDay = 999;
     G.structures.tent = false; G.structures.workbench = false;
     G.structures.toolbox = false; G.structures.garden = false;
@@ -82,14 +82,18 @@ ok(!/workers\.cook/.test(ui) && !/function onNewDay/.test(ui),
     G.structures.coats = false; G.structures.compost = false;
     G.workers.scrapper = false;
     G.rep = 0; G.snapUntil = null; G.warmth = 40; G.forecast = 'clear';
-    G.lastEventDay = G.days + 5; G.rainBetOn = false; G.mural = 0;
+    G.lastEventDay = 9999; G.rainBetOn = false; G.mural = 0;
     G.petitions = {}; G.arcStage = 3; G.arcDone = true;
     G.regulars = { marisol: 0, ray: 0, dee: 0 };
-    G.goalIndex = 99;
+    G.goalIndex = 9999;
+    if (typeof logFeed !== 'undefined') { logFeed.innerHTML = ''; }
+    if (typeof logLines !== 'undefined') { logLines.length = 0; }
+    const gw0 = G.goodwill;
+    const food0 = G.food;
     onNewDay();
     Math.random = real;
     const feed = Array.from(document.querySelectorAll('.log-line')).map(el => el.textContent).join('\n');
-    return { food: G.food, gw: G.goodwill, feed, days: G.days };
+    return { food: G.food, gw: G.goodwill, gw0, food0, feed, days: G.days };
   });
 
   // Named case: two mouths, 5 food. The meal costs 3; hunger costs 3.
@@ -105,8 +109,8 @@ ok(!/workers\.cook/.test(ui) && !/function onNewDay/.test(ui),
   const cooked = await dawn();
   ok(/The Cook prepared meals/.test(cooked.feed),
      'the Cook logs the meal on a dawn that has 5 food for 2 people');
-  ok(cooked.gw === 6,
-     `HV-67: the Cook pays +2 goodwill before hunger (goodwill ${cooked.gw})`);
+  ok(cooked.gw === cooked.gw0 + 2,
+     `HV-67: the Cook pays +2 goodwill before hunger (${cooked.gw0} -> ${cooked.gw})`);
   ok(cooked.food === 0,
      `the meal then the two mouths leave the larder empty (food ${cooked.food})`);
 
