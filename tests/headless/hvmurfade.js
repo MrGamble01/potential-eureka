@@ -1,4 +1,4 @@
-/* HV-109 — Word faded, and the unfinished mural went with it.
+/* HV-110 — Word faded, and the unfinished mural went with it.
  *
  * The session button is labeled Paint the mural (N/4). The tooltip
  * says one session a day on the underpass wall. Known unlocks the
@@ -31,7 +31,7 @@ const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'u
 const avail = /function muralAvailable\(\)\{([^}]+)\}/.exec(cfg);
 ok(!!avail, 'muralAvailable is still in config.js');
 ok(avail && /\(G\.mural\s*\|\|\s*0\)\s*>\s*0/.test(avail[1]),
-  'HV-109: an in-progress mural stays offered after word fades');
+  'HV-110: an in-progress mural stays offered after word fades');
 ok(/One session a day on the underpass wall/.test(cfg),
   'the tooltip still says one session a day');
 
@@ -102,7 +102,7 @@ ok(/One session a day on the underpass wall/.test(cfg),
   ok(faded.afterPaint.mural === 1,
     `the first session paints panel 1 (mural ${faded.afterPaint.mural})`);
   ok(faded.fadedBtn && faded.fadedAvail && /1\/4/.test(faded.fadedLabel),
-    `HV-109: word at 24 still offers Paint the mural (1/4) (${faded.fadedLabel})`);
+    `HV-110: word at 24 still offers Paint the mural (1/4) (${faded.fadedLabel})`);
   ok(faded.mural === 2 && faded.scraps === 6,
     `and the faded session still paints panel 2 (mural ${faded.mural}, scraps ${faded.scraps})`);
 
