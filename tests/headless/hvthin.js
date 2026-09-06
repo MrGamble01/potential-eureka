@@ -1,5 +1,5 @@
 /*
- * HV-139 — the Cold Snap said foot traffic thins, then Busk still
+ * HV-140 — the Cold Snap said foot traffic thins, then Busk still
  * paid the full take.
  *
  * HV-18 thins the street: panhandle success is cut to 0.75 inside a
@@ -35,7 +35,7 @@ const src = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'u
 const pay = /function buskPay\(\)\{([\s\S]*?)\n\}/.exec(src);
 ok(!!pay, 'buskPay is still in config.js');
 ok(pay && /snapActive\s*\(/.test(pay[1]),
-  'HV-139: buskPay reads snapActive — the snap thins the hat');
+  'HV-140: buskPay reads snapActive — the snap thins the hat');
 ok(/traffic thins/.test(src) && /doubles on a scorcher/.test(src),
   'HV-18 still promises thin traffic; HV-19 still doubles on a scorcher');
 
@@ -80,7 +80,7 @@ ok(/traffic thins/.test(src) && /doubles on a scorcher/.test(src),
   ok(table.quiet === 3 && table.high === 5,
     `a quiet set still rides the spirits (50→${table.quiet}, 100→${table.high})`);
   ok(table.snap === 2,
-    `HV-139: a 50-morale clear set inside a snap pays 2, not 3 (${table.snap})`);
+    `HV-140: a 50-morale clear set inside a snap pays 2, not 3 (${table.snap})`);
   ok(table.heat === 6,
     `a scorcher still doubles (50→${table.heat})`);
   ok(table.heatSnap === 4,

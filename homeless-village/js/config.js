@@ -247,7 +247,7 @@ function buskDone(){ return G.buskDay===G.days; }
 function buskPay(){
   var base=1+Math.floor((G.morale||0)/25);
   var take=G.weather==='heat'?base*2:base;
-  // HV-139: HV-18 thins foot traffic on the corner. Panhandle already
+  // HV-140: HV-18 thins foot traffic on the corner. Panhandle already
   // rolled 0.75 inside a snap; the hat ignored it.
   if(snapActive()) take=Math.max(1,Math.floor(take*0.75));
   return take;
