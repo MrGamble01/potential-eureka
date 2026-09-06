@@ -3059,8 +3059,14 @@ const AgeOfWarGame = (() => {
       btn.onclick = () => {
         difficulty = btn.dataset.diff;
         try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
-        // Reflect in both pill rows
-        document.querySelectorAll('.aow-diff button').forEach(b => {
+        // Reflect in both difficulty pill rows (HUD + this modal) — and
+        // only those. The war-banner row (#aow-banner) borrows the
+        // `.aow-diff` class for its look, so a fan-out over every
+        // `.aow-diff button` also swept the banner pills: none of them
+        // carries data-diff, so every one lost `.active` and the HUD
+        // stopped showing which banner was still in force (AOW-19b).
+        // Select by the attribute the toggle actually compares against.
+        document.querySelectorAll('.aow-diff button[data-diff]').forEach(b => {
           b.classList.toggle('active', b.dataset.diff === difficulty);
         });
         // GAME-1c: unify with the HUD difficulty switch, which already

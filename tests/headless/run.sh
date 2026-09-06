@@ -21,7 +21,7 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 # then the cross-game guards (geometry, storage keys, corrupt saves),
 # then the hub meta-layer, then the per-game suites.
 SUITES=(
-  nohooks aowrecords
+  nohooks aowrecords aowbanner
   audit
   wall
   pacing
