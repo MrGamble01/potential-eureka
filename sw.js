@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v194-hv-bag';  // HV-194: Kind Stranger's bag soaks in the rain
+const SW_VERSION = 'eureka-v195-hv-raincandle';  // HV-195: rain drowns the anniversary candle
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

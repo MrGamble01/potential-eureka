@@ -278,6 +278,13 @@ function finishAction(a){
     // HV-44: a candle for the year the camp held, once a session.
     if(!annivCounts()){ log('\ud83d\udd6f\ufe0f Nobody has counted the winters yet \u2014 three looks at the snapshot and the year adds up.'); }
     else if(annivMarked){ log('\ud83d\udd6f\ufe0f The candle already burned today \u2014 the year keeps.'); }
+    else if(G.weather==='rain'){
+      // HV-195: the tooltip is "kept it lit." Rain drowns an open
+      // flame. They still struck it; nobody comes by a dead flame.
+      // The session is spent. The pot is not.
+      annivMarked=true;
+      log('\ud83d\udd6f\ufe0f The rain drowned the anniversary candle — folks didn\'t come by a dead flame.');
+    }
     else {
       annivMarked=true;
       var ad=annivDish();
