@@ -482,6 +482,11 @@ var EVENTS_BAD=[
    desc:"Temperature drops hard tonight. Everyone's suffering.",
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-149: the card said temperature drops hard tonight. Warmth
+     // fell; G.weather stayed heat / rain / clear. The badge and
+     // every weatherDef() reader (panhandle, scavenge, garden frost)
+     // never saw it. HV-67 is the mirror on Good Weather.
+     G.weather='cold';
      G.warmth=Math.max(0,G.warmth-rand(20,35));
      G.health=Math.max(0,G.health-rand(8,18));
      G.morale=Math.max(0,G.morale-rand(10,15));
