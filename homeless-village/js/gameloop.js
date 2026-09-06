@@ -557,7 +557,7 @@ var EVENTS_GOOD=[
    effect:function(){
      G.lastEventDay=G.days;
      // HV-70: the card is titled Found $5. Goodwill is the camp's
-     // money. It used to pay rand(3,6) and log "a few dollars."
+     // money. The payout used to be a three-to-six roll.
      G.goodwill+=5;
      G.morale=Math.min(100,G.morale+rand(4,8));
      log('Found a five on the sidewalk. +5 goodwill.');
