@@ -1,5 +1,5 @@
 /*
- * HV-237 — Throw the Reunion said once a session, then a
+ * HV-238 — Throw the Reunion said once a session, then a
  * second click still ran the job.
  *
  * The tooltip says the camp throws the bridge reunion once a
@@ -58,7 +58,7 @@ ok(/THE BRIDGE REUNION/.test(finishBlock) && /something for the pot/.test(finish
 ok(doAt >= 0 && timeoutAt > 0, 'doAction still starts the job with setTimeout');
 ok(reunionAt >= 0 && heldAt >= 0 && reunionAt < timeoutAt && heldAt < timeoutAt
    && /hvReunionStands\(\)/.test(doBlock),
-  'HV-237: doAction refuses a standing already-thrown reunion before the timer');
+  'HV-238: doAction refuses a standing already-thrown reunion before the timer');
 ok(!/homeless-village\/js\/ui\.js/.test(player),
   'the already-thrown gate lives in doAction — ui.js is not this ticket');
 
@@ -128,7 +128,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
   });
   ok(!thrown.job && !thrown.btnOn && thrown.held && thrown.food === 10
      && thrown.tally === 1 && thrown.cd === 0,
-    `HV-237: an already-thrown reunion does not start the job (job ${thrown.job}, food ${thrown.food}, held ${thrown.tally})`);
+    `HV-238: an already-thrown reunion does not start the job (job ${thrown.job}, food ${thrown.food}, held ${thrown.tally})`);
   ok(/already went off|places to be/i.test(thrown.added),
     `the refuse names the already-thrown party — not a silent no-op (${thrown.added.slice(-90)})`);
 
