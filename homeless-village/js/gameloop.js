@@ -213,7 +213,10 @@ function onNewDay(){
   favorLapsed(); maybePostFavor();
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
-  if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
+  // HV-102: the crash course says an empty larder costs health. Dawn
+  // eats 1.5 a head, so 2 food leaves 0.5. The HUD floors that crumb
+  // to 0 — the pot reads empty. <=0 let a half-meal count as full.
+  if(G.food<1)    G.health=Math.max(0,G.health-rand(4,10));
 
   if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
     G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
