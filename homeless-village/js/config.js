@@ -386,8 +386,8 @@ function saveHvRec(r){ try{ localStorage.setItem(HVREC_KEY, JSON.stringify(r)); 
 // back around. Three beaten holds earn the underpass wall a chalk
 // star over its numbers, and every hold beaten under it spreads the
 // story: neighbors leave groceries at the fence, +3 food on the
-// spot. The bridge's score starts feeding the camp.
-var HVSTAR_KEY='hv-plaque', HVSTAR_AT=3, HVSTAR_FOOD=3;
+// spot, and word gets around — Word on the Street hears it.
+var HVSTAR_KEY='hv-plaque', HVSTAR_AT=3, HVSTAR_FOOD=3, HVSTAR_REP=2;
 function loadHvStar(){
   try{ var s=JSON.parse(localStorage.getItem(HVSTAR_KEY)||'null');
     if(s&&typeof s==='object') return {cheers:Math.max(0,Math.floor(s.cheers||0))};
@@ -765,11 +765,15 @@ function recordDays(d){
     floatText('+'+HVREC_MORALE+'\ud83d\ude0a');
     log('\ud83d\udcc8 Day '+d+' \u2014 no camp under this bridge has ever held longer. The fire feels it.');
     // HV-38: under the chalk star, the story feeds the camp.
+    // HV-129: the log said word gets around. That is Word on the
+    // Street — the same phrase a tier crossing uses. Groceries
+    // landed; addRep never ran.
     if(starStood){
       var st=loadHvStar(); saveHvStar({cheers:st.cheers+1});
       G.food=(G.food||0)+HVSTAR_FOOD;
+      addRep(HVSTAR_REP);
       floatText('+'+HVSTAR_FOOD+'\ud83c\udf5e');
-      log('\u2b50 A hold like that under the chalk star \u2014 word gets around, and neighbors leave groceries at the fence. +'+HVSTAR_FOOD+'\ud83c\udf5e');
+      log('\u2b50 A hold like that under the chalk star \u2014 word gets around, and neighbors leave groceries at the fence. +'+HVSTAR_FOOD+'\ud83c\udf5e, +'+HVSTAR_REP+'⭐');
     }
   }
 }
