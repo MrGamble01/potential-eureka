@@ -83,7 +83,11 @@ function movePlayer(dt){
   } else return;
   var len=Math.sqrt(dx*dx+dz*dz);
   dx/=len; dz/=len;
-  var dist=PLAYER_SPEED*(dt/1000);
+  // HV-69: Injury sells "Moving slowly for the next while." doAction
+  // already takes 1.8×. The walk used a flat PLAYER_SPEED, so you
+  // limped on the progress bar and sprinted across camp.
+  var spd=Date.now()<(G.injuredUntil||0) ? PLAYER_SPEED/1.8 : PLAYER_SPEED;
+  var dist=spd*(dt/1000);
   var nx=player.position.x+dx*dist, nz=player.position.z+dz*dist;
   player.position.x=Math.max(-PLAYER_BOUNDS.x,Math.min(PLAYER_BOUNDS.x,nx));
   player.position.z=Math.max(PLAYER_BOUNDS.zMin,Math.min(PLAYER_BOUNDS.zMax,nz));
