@@ -157,7 +157,7 @@ function snapAtDawn(){
 }
 
 function onNewDay(){
-  G.days++; saveGame();
+  G.days++;
   recordDays(G.days);   // HV-32: the bridge's long memory sees every dawn
   G.season=Math.floor(G.days/7)%4;
   // yesterday's forecast becomes today's sky; tomorrow gets its own roll
@@ -280,6 +280,7 @@ function onNewDay(){
   checkArc();
   checkDog();
   checkGameOver(); // after maybeEvent so same-day event damage counts
+  saveGame();      // HV-102: the night belongs on disk before a reload
 }
 
 // ── The regulars (HV-7) ──
