@@ -98,6 +98,8 @@ ok(/🐕💢/.test(ui) && !/id:'theft'/.test(ui),
     Math.random = () => 0.1;
     G.days = 4; G.dog = 2; G.dogHungry = hungry;
     G.workers.lookout = false; G.sweepWarned = false; G.packedUp = false;
+    if (typeof logFeed !== 'undefined') logFeed.innerHTML = '';
+    if (typeof logLines !== 'undefined') logLines.length = 0;
     const swept0 = G.timesSwept;
     maybeEvent();
     Math.random = real;
