@@ -491,13 +491,16 @@ var EVENTS_BAD=[
    desc:'Someone raided your stash in the night. Trust no one.',
    effect:function(){
      G.lastEventDay=G.days;
-     var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
+     // HV-76: a fed Biscuit halves the take. A hungry one curled up
+     // at dawn (🐕💢) — panhandle already drops his boost. Theft still
+     // treated dog===2 as always on watch.
+     var dm=(G.dog===2&&!G.dogHungry)?.5:1;
      var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
-     log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
+     log((G.dog===2&&!G.dogHungry)?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
@@ -596,9 +599,10 @@ function maybeEvent(){
       setTimeout(function(){
         if(G.sweepWarned) triggerEvent(EVENTS_BAD.find(function(e){return e.id==='sweep';}),false);
       },30000);
-    } else if(G.dog===2){
-      // HV-6: no Lookout, but Biscuit hears the trucks — half the warning
-      // window a paid Lookout gives, still enough to hit PACK UP.
+    } else if(G.dog===2&&!G.dogHungry){
+      // HV-6: no Lookout, but a fed Biscuit hears the trucks — half
+      // the warning window a paid Lookout gives. HV-76: a hungry dog
+      // curled up; he does not bark.
       G.sweepWarned=true; G.packedUp=false;
       showSweepWarning(true, Date.now()+15000);
       log('Biscuit will not stop barking at the road. Something is coming — ~15 seconds!');
