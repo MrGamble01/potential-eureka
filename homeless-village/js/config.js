@@ -792,7 +792,7 @@ var NEWCOMER_POP_MAX = 6;
 function newcomerAvailable(){ return !!G.newcomerAsk; }
 function newcomerAction(){
   return { id:'newcomer', icon:'🫂', label:'Make room ('+NEWCOMER_COST_FOOD+'🍞 + '+NEWCOMER_COST_WOOD+'🪵)', time:6000, cooldown:0,
-    tooltip:'Someone stands at the edge of the light asking to stay. '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood make a bed and a first meal — a bigger camp, another pair of hands.' };
+    tooltip:'Someone stands at the edge of the light asking to stay. '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood make a bed and a first meal — a bigger camp, another pair of hands. The tent has to still be standing.' };
 }
 
 // ── HV-15: City Petitions ────────────────────────────────────

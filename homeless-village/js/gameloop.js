@@ -217,6 +217,7 @@ function onNewDay(){
 
   if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
     G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
+    lapseNewcomerNoTent();
   }
   if(G.structures.workbench&&Math.random()<.04){
     if(G.structures.toolbox){
@@ -445,6 +446,7 @@ var EVENTS_BAD=[
    effect:function(){
      G.timesSwept++; G.lastEventDay=G.days;
      if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); }
+     lapseNewcomerNoTent();
      if(G.structures.soup_kitchen&&Math.random()<.7){ G.structures.soup_kitchen=false; log('Soup kitchen torn down.'); }
      if(G.structures.workbench&&Math.random()<.5){ G.structures.workbench=false; log('Workbench smashed.'); }
      // The Garden's own description ("Gets destroyed in sweeps") promised
