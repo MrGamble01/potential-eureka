@@ -75,6 +75,16 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-183: Tell the Fire Story said around the fire. Fire Went Out
+  // dims the barrel. A telling still started the 2s job and paid
+  // dinner as if the fire were still there to sit around. Refuse
+  // before the timer — do not stamp hvStoryTold. A lit barrel and
+  // a story nobody has yet are other tickets.
+  if(a.id==='story' && hvStoryByHeart() && !hvStoryTold && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83d\udd25 The fire is out — the story waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
