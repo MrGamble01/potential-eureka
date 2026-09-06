@@ -301,8 +301,11 @@ function finishAction(a){
       var bb=loadHvBench();
       saveHvBench({sits:(bb.sits||0)+1});
       G.food=(G.food||0)+bd;
-      log('\ud83e\ude91 A sit on the bench by the fridge \u2014 scrap wood, good intentions, every name at its back. Somebody sits down with something warm: +'+bd+'\ud83c\udf5e');
-      floatText('+'+bd+'\ud83c\udf5e');
+      // HV-113: the card says something warm. Food in the pot is not
+      // that. A sit now lifts warmth and the log names it.
+      G.warmth=Math.min(100,(G.warmth||0)+HVBEN_WARMTH);
+      log('\ud83e\ude91 A sit on the bench by the fridge \u2014 scrap wood, good intentions, every name at its back. Somebody sits down with something warm: +'+bd+'\ud83c\udf5e, +'+HVBEN_WARMTH+'\ud83c\udf21\ufe0f');
+      floatText('+'+bd+'\ud83c\udf5e +'+HVBEN_WARMTH+'\ud83c\udf21\ufe0f');
       saveGame();
     }
   } else if(a.id==='story'){
