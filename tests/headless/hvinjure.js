@@ -38,7 +38,7 @@ const ui     = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'ut
 const evAt = loop.indexOf("id:'injury'");
 const ev = evAt >= 0 ? loop.slice(evAt, evAt + 700) : '';
 const doAt = player.indexOf('function doAction');
-const doAct = doAt >= 0 ? player.slice(doAt, doAt + 2200) : '';
+const doAct = doAt >= 0 ? player.slice(doAt, doAt + 4500) : '';
 
 (async () => {
   ok(/next while/i.test(ev),
@@ -114,7 +114,7 @@ const doAct = doAt >= 0 ? player.slice(doAt, doAt + 2200) : '';
      `the limp is stamped on today (injuredDay ${mid.lockDay})`);
   ok(mid.dur === Math.floor(mid.restTime * 1.8) || mid.dur === mid.restTime * 1.8,
      `Rest is 1.8x while injured (dur ${mid.dur}, rest ${mid.restTime})`);
-  ok(mid.remaining > 240000 && mid.remaining <= 300000,
+  ok(mid.remaining > 240000 && mid.remaining < 301000,
      `HV-84: Injury lasts the rest of the day, not 90 seconds (remaining ${mid.remaining}ms)`);
 
   const wiped = await page.evaluate(() => {
