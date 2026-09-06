@@ -9239,7 +9239,11 @@ const AgeOfWarGame = (() => {
     const waves = Math.max(0, waveNum - 1);
     let prev = null;
     try { prev = JSON.parse(localStorage.getItem('aow-best-run') || 'null'); } catch {}
-    const isBest = !prev || waves > (prev.waves || 0);
+    // Malformed or incompatible saves must not freeze future records.
+    // Only waves ranks a run; older valid records may omit other fields.
+    if (!prev || typeof prev !== 'object' || Array.isArray(prev) ||
+        !Number.isSafeInteger(prev.waves) || prev.waves < 0) prev = null;
+    const isBest = !prev || waves > prev.waves;
     const run = { waves, kills: runStats.kills, time: Math.round(runStats.time),
                   strongholds: strongholdsRazed, difficulty,
                   warlords: runStats.warlordsSlain || 0 };
