@@ -539,7 +539,12 @@ var EVENTS_BAD=[
    effect:function(){
      G.lastEventDay=G.days;
      G.warmth=Math.max(0,G.warmth-rand(15,25));
-     G.fireOutUntil = Date.now()+30000;
+     // HV-81: the card says overnight. A 30s wall-clock relit the
+     // barrel in the same day. Stamp the day so the dark holds
+     // until dawn, matching Dumpsters Locked. fireOutUntil still
+     // tracks the remaining night so a live session dims the same.
+     G.fireOutDay=G.days;
+     G.fireOutUntil=Date.now()+Math.max(0,(1-(G.timeOfDay||0))*DAY_LENGTH_MS);
      log("The fire burned out. It's cold and dark.");
    }},
 ];

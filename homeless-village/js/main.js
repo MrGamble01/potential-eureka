@@ -178,7 +178,10 @@ function frame(ts){
   camera.lookAt(0,0,0);
 
   // Fire flicker (dimmed while a "fire burned out" event is active)
-  var fireOut = Date.now() < (G.fireOutUntil||0);
+  // HV-81: the card said overnight. A 30s Date.now() check relit
+  // the barrel before dawn. The day stamp survives a reload; dawn
+  // increments G.days and the lights come back.
+  var fireOut = typeof G.fireOutDay==='number' && G.fireOutDay>=0 && G.fireOutDay===G.days;
   fireLights.forEach(function(fl,i){
     if(fireOut){ fl.intensity=0.1; fl.color.setRGB(1,.3,.04); return; }
     fl.intensity=2.0+Math.sin(ts*.003+i*1.7)*.6+Math.sin(ts*.007+i*.9)*.3;
