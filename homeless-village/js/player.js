@@ -129,6 +129,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-220: Roof the Dry Corner names 12 scraps and 8 cardboard.
+  // Three names put the button on the board. A short purse used to
+  // run the 6s job and chime as if the sheeting had gone up.
+  // Walk and Leaf the Notebook are not this card.
+  if(a.id==='dry'&&!dryBuilt()&&((G.scraps||0)<HVDRY_SCRAPS||(G.cardboard||0)<HVDRY_CARD)){
+    log('\u26f1\ufe0f Not enough to roof it \u2014 it takes '+HVDRY_SCRAPS+'\ud83e\uddf1 and '+HVDRY_CARD+'\ud83d\udce6, and the corner stays open to the sky.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
