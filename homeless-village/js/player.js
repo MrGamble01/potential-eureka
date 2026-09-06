@@ -572,7 +572,8 @@ function finishCraft(r){
   // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
   // only dimmed the lights on a wall-clock; this is the feed that
   // actually relights it. A blanket is also +warmth and must not.
-  if(r.id==='fire_ration') G.fireOutUntil=0;
+  // HV-161: stamp the day so the overnight card can see the stack.
+  if(r.id==='fire_ration'){ G.fireOutUntil=0; G.fireFedDay=G.days; }
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
   sfx('craft');
