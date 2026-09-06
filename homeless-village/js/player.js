@@ -396,7 +396,10 @@ function finishAction(a){
     }
   } else if(a.id==='fifth'){
     // HV-50: the fifth panel beside the finished mural, stood with once a session.
+    // HV-208: a fifth with no four is not a fifth — three holes beside
+    // four still-bare squares do not pay, and do not spend the stand latch.
     if(!panelPainted()){ log('\ud83c\udfa8 The fifth panel is still bare block \u2014 three digs of the can and somebody primes it.'); }
+    else if((G.mural||0)<MURAL_PANELS){ log('\ud83c\udfa8 The fifth is waiting on the four — the mural is still unfinished, four squares still bare.'); }
     else if(panelStood){ log('\ud83c\udfa8 The panel got its stand today \u2014 the paint is still going on.'); }
     else {
       panelStood=true;
