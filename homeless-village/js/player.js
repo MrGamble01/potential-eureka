@@ -443,7 +443,13 @@ function finishAction(a){
       floatText('🎨 +3😊');
       log('🎨 '+MURAL_LINES[G.mural-1]);
       var painters=REGULARS.filter(function(r){ return regularStage(r.id)===2; });
-      if(painters.length) log(painters[0].icon+' '+painters[0].name+' came by to paint a while.');
+      if(painters.length){
+        log(painters[0].icon+' '+painters[0].name+' came by to paint a while.');
+        // HV-145: the log named a visit. Trade, rest and a landed
+        // panhandle each call bumpRegular — painting together is the
+        // same class of time spent.
+        bumpRegular(painters[0].id);
+      }
       if(G.mural>=MURAL_PANELS){
         G.goodwill+=5;
         addRep(5);
