@@ -236,13 +236,15 @@ function onNewDay(){
   }
   if(G.structures.garden){
     if(G.weather==='cold'){
+      // HV-110: the garden card says each day. Frost used to yield
+      // nothing unless the compost was already built. The beds still
+      // give 1; the bin (HV-25) is the extra bed through frost.
+      G.food+=1; floatText('+1\ud83c\udf5e');
+      log('Garden yielded 1 food.');
       if(G.structures.compost){
-        // HV-25: the bin's heat keeps one bed alive through frost
         G.food+=1; G.compostDays=(G.compostDays||0)+1;
         floatText('+1\ud83c\udf5e');
         log('\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
-      } else {
-        log('Frost on the beds — the garden gave nothing today.');
       }
     }
     else {

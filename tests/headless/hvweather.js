@@ -2,8 +2,8 @@
  * HV-5 — Homeless Village weather & forecast (re-runnable; page scripts are
  * classic scripts, so globals are directly reachable — no shipped hook).
  *  A. Dawn promotes the forecast to today's sky and rolls a new forecast.
- *  B. A cold snap stacks warmth drain (winter 18 + cold 12) and frosts the
- *     garden; a heat wave gives warmth back.
+ *  B. A cold snap stacks warmth drain (winter 18 + cold 12); the garden
+ *     still yields its day (HV-110). A heat wave gives warmth back.
  *  C. Panhandle odds ride the weather (stubbed RNG: 0.7 succeeds only in a
  *     heat wave).
  *  D. The HUD badge shows today's icon, and the forecast arrow only once a
@@ -45,7 +45,7 @@ const ok = (cond, name) => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS
   ok(cold.weather === 'cold' && cold.validForecast, `forecast became the day's sky, new forecast rolled (${cold.forecast})`);
   ok(cold.season === 3, 'day 21 is winter');
   ok(cold.warmth === 80 - 18 - 12, `cold snap stacks winter drain (warmth ${cold.warmth})`);
-  ok(cold.foodDelta <= 0, `frost kept the garden barren (Δfood ${cold.foodDelta} — population upkeep only)`);
+  ok(cold.foodDelta === 1, `frost still yields the garden's day (Δfood ${cold.foodDelta})`);
 
   // heat wave gives warmth back
   const heat = await page.evaluate(() => {
