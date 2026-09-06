@@ -538,6 +538,14 @@ var EVENTS_BAD=[
    desc:'The barrel fire died overnight. Everything is colder.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-162: Firewood said keep the barrel burning. The overnight
+     // death never asked whether you stacked wood last night (or
+     // earlier today, for a same-day card). A blanket is also
+     // +warmth and never stamps the feed.
+     if((G.fireFedDay|| -9)===G.days || (G.fireFedDay|| -9)===G.days-1){
+       log('\ud83d\udd25 The firewood you stacked kept the barrel going.');
+       return;
+     }
      G.warmth=Math.max(0,G.warmth-rand(15,25));
      G.fireOutUntil = Date.now()+30000;
      log("The fire burned out. It's cold and dark.");
