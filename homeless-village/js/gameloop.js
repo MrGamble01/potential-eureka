@@ -398,6 +398,9 @@ function checkArc(){
   } else if(G.arcStage===2 && G.goodwill>=25 && G.morale>60){
     G.arcStage=3; saveGame();
     showGraduation();
+  } else if(G.arcStage>=3){
+    // HV-61: the overlay is not in the save. Re-show until arcDone.
+    showGraduation();
   }
 }
 
