@@ -538,6 +538,11 @@ var EVENTS_BAD=[
    desc:'The barrel fire died overnight. Everything is colder.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-153: the card said everything is colder. Warmth fell and
+     // the lights dimmed; G.weather stayed heat / rain / clear.
+     // Same sky assignment as Good Weather (HV-67) and Cold Snap
+     // (HV-149). Does not start snapUntil.
+     G.weather='cold';
      G.warmth=Math.max(0,G.warmth-rand(15,25));
      G.fireOutUntil = Date.now()+30000;
      log("The fire burned out. It's cold and dark.");
