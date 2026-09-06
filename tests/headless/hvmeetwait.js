@@ -39,10 +39,12 @@ ok(/MEETING_EVERY\s*=\s*3/.test(cfg),
   'A. MEETING_EVERY is still 3 — hvmeeting\'s three-day rest stays true');
 ok(/\+2 morale a head/.test(meet),
   'A. the live tooltip still promises +2 morale a head');
-ok(!/day or two/i.test(rest) && /3|three|MEETING_EVERY/.test(rest),
-  'A. doAction rest copy cites the three-day wait, not "a day or two"');
-ok(!/day or two/i.test(tip) && /meetingRestLine|3|three|MEETING_EVERY/.test(tip),
-  'A. the greyed-button tip cites the same wait, not "a day or two"');
+ok(/function meetingRestLine/.test(cfg) && /MEETING_EVERY/.test(cfg.slice(cfg.indexOf('meetingRestLine'), cfg.indexOf('meetingRestLine') + 180)),
+  'A. meetingRestLine() cites MEETING_EVERY — one wait, not a frozen "day or two"');
+ok(/meetingRestLine/.test(rest) && !/day or two/i.test(rest),
+  'A. doAction rest copy calls that helper, not "a day or two"');
+ok(/meetingRestLine/.test(tip) && !/day or two/i.test(tip),
+  'A. the greyed-button tip cites the same helper, not "a day or two"');
 
 (async () => {
   const browser = await chromium.launch({

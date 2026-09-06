@@ -42,7 +42,7 @@ function doAction(a){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
   }
-  if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
+  if(a.id==='meeting' && meetingDone()){ log(meetingRestLine()); return; }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
