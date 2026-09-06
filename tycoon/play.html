@@ -4083,7 +4083,7 @@ scene.add(player);
 let playerSpeed = CONFIG.playerBaseSpeed;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
 let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
-let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
+let dealValueMult = 1;   // prestige × Enterprise × live boosts — only recomputeDealValueMult() assigns it (TYC-60)
 // Prestige (IPO seasons)
 let prestigeLevel = 0;
 // sessionGen increments on IPO reset so any in-flight setTimeouts
@@ -8551,12 +8551,15 @@ function updateMetricsHUD() {
     metricsPerShipEl.textContent = '$' + fmtCash(per);
     const parts = [`base $${featurePrice}`];
     if (productVersionMult !== 1) parts.push(`${currentProductVersion.ver} ×${productVersionMult}`);
-    if (prestigeMultiplier > 1) parts.push(`S${prestigeLevel + 1} ×${prestigeMultiplier}`);
+    // Same guarded prestige the recompute uses (TYC-60), so a corrupt
+    // save can't make this breakdown invent a factor to close its sum.
+    const pm = (Number.isFinite(prestigeMultiplier) && prestigeMultiplier > 0) ? prestigeMultiplier : 1;
+    if (pm > 1) parts.push(`S${prestigeLevel + 1} ×${pm}`);
     if (legacyBonus() > 1) parts.push(`Legacy ×${legacyBonus().toFixed(1)}`);
     const entLv = upgLevels.enterprise || 0;
-    const entMult = [1,3,8,20][entLv];
+    const entMult = ENT_DEAL_MULTS[entLv] || 1;
     if (entMult > 1) parts.push(`Enterprise Lv${entLv} ×${entMult}`);
-    const eventFactor = dealValueMult / Math.max(0.01, prestigeMultiplier * entMult);
+    const eventFactor = dealValueMult / Math.max(0.01, pm * entMult);
     if (eventFactor > 1.05) parts.push(`Event ×${eventFactor.toFixed(1)}`);
     else if (eventFactor < 0.95) parts.push(`Penalty ×${eventFactor.toFixed(2)}`);
     if (metricsPerShipRowEl) metricsPerShipRowEl.title = parts.join(' × ') + ` = $${per} per shipped feature`;
@@ -8982,10 +8985,9 @@ const INVESTOR_TYPES = [
       addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor');
       addFeedEntry(teamOK ? '🦈 VC: "Big team, big check"' : '🦈 VC: "Come back when you scale"'); } },
   { id: 'corpdev',    label: 'Corp Dev',        icon: '🏦', baseReward: 0,    windowSec: 32, color: 0x3a4a5a,
-    onGreet: (inv) => { const prev = dealValueMult; dealValueMult *= 1.5;
+    onGreet: (inv) => { const token = addDealBoost('corpdev', 1.5);
       addFeedEntry('🏦 Corp Dev: deal value ×1.5 for 60s');
-      const g = sessionGen;
-      setTimeout(() => { if (sessionGen !== g) return; dealValueMult = Math.max(1, prev); }, 60000); } },
+      setTimeout(() => removeDealBoost('corpdev', token), 60000); } },
   { id: 'advisor',    label: 'Advisor',         icon: '🎓', baseReward: 0,    windowSec: 30, color: 0x3a6a4a,
     onGreet: (inv) => { changeMorale(+20, 'Advisor pep talk'); } },
   { id: 'tirekicker', label: 'Tire-kicker',     icon: '🚪', baseReward: 150,  windowSec: 18, color: 0x6a6a6a,
@@ -9535,8 +9537,8 @@ const UPGRADES = [
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; },
     describe: lv => { const v=[5,8,12,18,26]; return lv < v.length - 1 ? `$${v[lv]} → $${v[lv+1]} per shipped feature` : `$${v[lv]} / feature (max)`; } },
   { id:'enterprise',cat:'revenue',     label:'🏢 Enterprise Tier',    base:500, scale:2.5, max:3,
-    apply: lv => { dealValueMult = prestigeMultiplier * [1,3,8,20][lv]; },
-    describe: lv => { const v=[1,3,8,20]; return lv < v.length - 1 ? `×${v[lv]} → ×${v[lv+1]} deal-value multiplier` : `×${v[lv]} deal-value (max)`; } },
+    apply: lv => { recomputeDealValueMult(); },
+    describe: lv => { const v=ENT_DEAL_MULTS; return lv < v.length - 1 ? `×${v[lv]} → ×${v[lv+1]} deal-value multiplier` : `×${v[lv]} deal-value (max)`; } },
 ];
 
 // ── Activity Feed ───────────────────────────────────────
@@ -9619,12 +9621,12 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=1; showToast('Competitor hype passed. Revenue normalizing.','milestone'); } },
   { id:'demo', label:'🎤 Demo Day', dur:30,
     msg:'🎤 Demo Day! Investors watching — feature value 3×!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=3; changeMorale(+4, 'Demo Day spotlight'); },
-    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/3); showToast('Demo Day over.','','ambient'); } },
+    onStart:()=>{ addDealBoost('demo', 3); changeMorale(+4, 'Demo Day spotlight'); },
+    onEnd:()=>{ removeDealBoost('demo'); showToast('Demo Day over.','','ambient'); } },
   { id:'award', label:'🏅 Award', dur:20,
     msg:'🏅 Best Startup Award! Deal value 4× for 20s!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=4; changeMorale(+6, 'Best Startup Award!'); },
-    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/4); showToast('Award spotlight fading...','','ambient'); } },
+    onStart:()=>{ addDealBoost('award', 4); changeMorale(+6, 'Best Startup Award!'); },
+    onEnd:()=>{ removeDealBoost('award'); showToast('Award spotlight fading...','','ambient'); } },
   { id:'marketdown', label:'📉 Downturn', dur:15,
     msg:'📉 Market turbulence! Deal speed halved for 15s.', cls:'',
     onStart:()=>{ dealSpeedMult=Math.max(0.1, dealSpeedMult*0.5); changeMorale(-4, 'Market downturn'); },
@@ -9951,6 +9953,46 @@ function updateRushHour(dt) {
 
 const upgLevels = {};
 for (const u of UPGRADES) upgLevels[u.id] = 0;
+
+// ── Deal-value multiplier (TYC-60) ─────────────────────────
+// dealValueMult used to be a single variable that five places wrote
+// to directly: the Enterprise upgrade assigned prestige × tier, the
+// prestige loader assigned prestige alone, Demo Day / the Award
+// multiplied and divided it, and Corp Dev saved-and-restored it. Any
+// two of those overlapping lost one of them — most visibly on every
+// reload after the first IPO, where the schema applied Enterprise
+// first and the prestige read then overwrote it with prestige alone.
+// Now it is derived, every time, from the parts that own it:
+//   permanent  prestigeMultiplier × ENT_DEAL_MULTS[Enterprise level]
+//   temporary  the product of the boosts currently on the floor
+// Nothing else assigns dealValueMult — tests/headless/tycdeal.js
+// keeps it that way.
+const ENT_DEAL_MULTS = [1, 3, 8, 20];
+const dealBoosts = new Map();   // id → { factor, token }
+function recomputeDealValueMult() {
+  const pm = (Number.isFinite(prestigeMultiplier) && prestigeMultiplier > 0) ? prestigeMultiplier : 1;
+  const lv = Math.max(0, Math.min(upgLevels.enterprise || 0, ENT_DEAL_MULTS.length - 1));
+  let m = pm * ENT_DEAL_MULTS[lv];
+  for (const b of dealBoosts.values()) m *= b.factor;
+  dealValueMult = (Number.isFinite(m) && m > 0) ? m : pm;
+  return dealValueMult;
+}
+// A boost is keyed by id, so re-granting one (a second Corp Dev inside
+// the first's window) replaces it instead of stacking. The token lets
+// the earlier grant's timer expire harmlessly instead of cutting the
+// later one short.
+function addDealBoost(id, factor) {
+  const token = {};
+  dealBoosts.set(id, { factor, token });
+  recomputeDealValueMult();
+  return token;
+}
+function removeDealBoost(id, token) {
+  const b = dealBoosts.get(id);
+  if (!b || (token && b.token !== token)) return;
+  dealBoosts.delete(id);
+  recomputeDealValueMult();
+}
 function upgCost(u) {
   return Math.floor(u.base * Math.pow(u.scale, upgLevels[u.id]));
 }
@@ -12476,12 +12518,17 @@ function doIPO() {
   bridgeTakenSeason = false; bridgeOffer = null; refreshBridgeChip();   // TYC-24: the IPO washes the dilution out
   rollClimate();     // ...and its own market climate (TYC-10)
   fundingRoundIdx = 0;
-  dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
+  dealSpeedMult = 1; ideaSpeedMult = 1;
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
   playerSpeed = CONFIG.playerBaseSpeed; featurePrice = CONFIG.featurePriceBase;
   for (const u of UPGRADES) upgLevels[u.id] = 0;
+  // The new season's deal value is prestige alone: no Enterprise tier
+  // yet, and whatever Demo Day / Award / Corp Dev was running does not
+  // carry its premium across the bell (TYC-60).
+  dealBoosts.clear();
+  recomputeDealValueMult();
 
   // Remove idea workers
   for (const w of ideaWorkers) scene.remove(w.group);
@@ -12705,7 +12752,9 @@ const SAVE_SCHEMA = [
         // corruption, future schema) would index past the fixed price/mult
         // arrays in u.apply and NaN-poison every deal from then on.
         const lv = Math.max(0, Math.min(Number(p.upgrades[u.id]) || 0, u.max));
-        for (let i = 1; i <= lv; i++) u.apply(i);
+        // Level first, then apply — the same order buyUpgrade() uses, so
+        // an apply that derives from upgLevels (Enterprise) sees itself.
+        for (let i = 1; i <= lv; i++) { upgLevels[u.id] = i; u.apply(i); }
         upgLevels[u.id] = lv;
       }
     },
@@ -12726,9 +12775,12 @@ const SAVE_SCHEMA = [
     read: p => {
       if (typeof p.prestigeLevel      === 'number') prestigeLevel      = p.prestigeLevel;
       if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
-      // Apply prestige multiplier to deal value
+      // Fold the prestige multiplier into the deal value. Recomputed
+      // from its parts rather than assigned, so it no longer matters
+      // that the Enterprise upgrade was applied a few entries above
+      // this one (TYC-60: that order wiped the tier on every reload).
       if (prestigeLevel > 0) {
-        dealValueMult = prestigeMultiplier;
+        recomputeDealValueMult();
         seasonBadge.style.display = 'inline-block';
         seasonBadge.textContent   = `S${prestigeLevel + 1}`;
       }
