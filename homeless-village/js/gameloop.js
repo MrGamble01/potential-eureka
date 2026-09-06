@@ -516,9 +516,12 @@ var EVENTS_BAD=[
    desc:'Property management put locks on the dumpsters. Nothing to scavenge today.',
    effect:function(){
      G.lastEventDay=G.days;
-     G.cooldowns['scavenge']=Date.now()+60000;
-     G.cooldowns['forage']  =Date.now()+45000;
-     log('Dumpsters locked. Scavenging blocked for a while.');
+     // HV-63: the card says today. A 60s/45s cooldown let the bins
+     // reopen in the same day. Stamp the day so doAction refuses
+     // until dawn, matching every other once-a-day gate.
+     G.dumpsterLockDay=G.days;
+     if(typeof _scavGateOut!=='undefined') _scavGateOut=null;
+     log('Dumpsters locked. Nothing to scavenge today.');
    }},
   {id:'fire_out',title:'Fire Went Out',type:'bad',weight:9,
    desc:'The barrel fire died overnight. Everything is colder.',
