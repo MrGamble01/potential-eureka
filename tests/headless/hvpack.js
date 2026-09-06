@@ -48,9 +48,10 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
 const ui   = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 
 const maybeAt = loop.indexOf('function maybeEvent(){');
-const maybe = maybeAt >= 0 ? loop.slice(maybeAt, maybeAt + 1600) : '';
-const sweepAt = loop.indexOf("id:'sweep'");
-const sweep = sweepAt >= 0 ? loop.slice(sweepAt, sweepAt + 1600) : '';
+const trigAt = loop.indexOf('function triggerEvent(');
+const maybe = maybeAt >= 0 && trigAt > maybeAt ? loop.slice(maybeAt, trigAt) : '';
+const sweepFx = /id:'sweep'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.exec(loop);
+const sweep = sweepFx ? sweepFx[1] : '';
 
 ok(/G\.sweepWarned\s*=\s*false/.test(save),
   'loadGame still clears the dead warning timer');
