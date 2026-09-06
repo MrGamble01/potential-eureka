@@ -73,5 +73,9 @@ function loadGame(){
     if(typeof G.rayLoans!=='number') G.rayLoans=0;
     if(typeof G.fridgeSeeded!=='boolean') G.fridgeSeeded=true;     // saves from before HV-31 were never fresh camps to count
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
+    // HV-57: saves from before the chain's latches lived in G never
+    // wrote this key; a damaged one must not be able to throw in
+    // linkDoneToday on every action.
+    if(!G.linkDays||typeof G.linkDays!=='object'||Array.isArray(G.linkDays)) G.linkDays={};
   }catch(e){}
 }

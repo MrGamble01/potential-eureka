@@ -64,6 +64,14 @@ var G = {
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,
+  // HV-57: action id → the day each Bridge-chain link (the thermos
+  // through the dry corner) last paid out. These were fourteen bare
+  // `var x=false` booleans in this file: a dawn never cleared them,
+  // so the "refills tomorrow" the log promised never came, and a
+  // reload cleared all of them, so an F5 replayed every payout for
+  // free. Stored in G like every other once-a-day action (muralDay,
+  // buskDay, depositDay …) — onNewDay's G.days++ is the reset.
+  linkDays: {},
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
@@ -445,13 +453,22 @@ function composeHvWall(){
   lines.push('\ud83d\udcdd '+(nt.read||0)+' note'+((nt.read||0)===1?'':'s')+' found in the door');
   return lines;
 }
+// HV-57: the once-a-day gate shared by the fourteen Bridge-chain links
+// below. `id` is the action id finishAction receives, so the gate and
+// the mark both key straight off it.
+function linkDoneToday(id){
+  return !!(G.linkDays && typeof G.linkDays==='object' && G.linkDays[id]===G.days);
+}
+function markLinkDone(id){
+  if(!G.linkDays || typeof G.linkDays!=='object' || Array.isArray(G.linkDays)) G.linkDays={};
+  G.linkDays[id]=G.days;
+}
 // HV-35: the heirloom round under the bridge. Somebody's
 // grandfather's thermos, left at the fridge years ago and never
 // claimed. Once a session, pass it around — morale lifts by 2 base,
 // +1 per longest-hold morning (to 5), +1 per note found (to 3). The
 // deeper the bridge's memory, the further the coffee goes.
 var THERMOS_KEY='hv-thermos', THERMOS_BASE=2;
-var thermosUsed=false;
 function loadThermos(){
   try{ var t=JSON.parse(localStorage.getItem(THERMOS_KEY)||'null');
     if(t&&typeof t==='object') return {uses:Math.max(0,Math.floor(t.uses||0))};
@@ -460,12 +477,11 @@ function loadThermos(){
 }
 function saveThermos(t){ try{ localStorage.setItem(THERMOS_KEY, JSON.stringify(t)); }catch(e){} }
 function thermosHasWarmth(){ return loadHvRec().days>0 || loadHvNote().read>0; }
-// HV-40: the visitor round under the bridge — once a session,
+// HV-40: the visitor round under the bridge — once a day,
 // Marisol from the garage swings past any bridge with a story. She
 // brings a casserole: 2 food base, +1 per hold beaten under the
 // chalk star (cap 3). Old friends check on the camp.
 var MARISOL_KEY='hv-visitor', MARISOL_BASE=2;
-var marisolCame=false;
 function loadMarisol(){
   try{ var m=JSON.parse(localStorage.getItem(MARISOL_KEY)||'null');
     if(m&&typeof m==='object') return {visits:Math.max(0,Math.floor(m.visits||0))};
@@ -490,11 +506,10 @@ function saveHvKeep(k){ try{ localStorage.setItem(HVKEEP_KEY, JSON.stringify(k))
 function thermosHasMugs(){ return loadMarisol().visits>=3; }
 // HV-42: the reunion round under the bridge — when the whole story
 // stands (three chalk-star holds AND three of Marisol's visits),
-// the camp throws the bridge reunion once a session. Everyone who
+// the camp throws the bridge reunion once a day. Everyone who
 // ever slept here comes back through: 2 food base + 1 per hold + 1
 // per visit (caps 3). Held tallied in 'hv-reunion'.
 var HVREU_KEY='hv-reunion', HVREU_BASE=2, HVREU_PER=1;
-var bridgeReunionHeld=false;
 function loadHvReunion(){
   try{ var r=JSON.parse(localStorage.getItem(HVREU_KEY)||'null');
     if(r&&typeof r==='object') return {held:Math.max(0,Math.floor(r.held||0))};
@@ -512,7 +527,6 @@ function hvReunionDish(){
 // fridge door. Once a session a look pays: 2 food base + 1 per
 // reunion held (cap 5). Looks tallied in 'hv-portrait'.
 var HVSNAP_KEY='hv-portrait', HVSNAP_BASE=2, HVSNAP_PER=1;
-var snapshotLooked=false;
 function loadHvSnap(){
   try{ var s=JSON.parse(localStorage.getItem(HVSNAP_KEY)||'null');
     if(s&&typeof s==='object') return {looks:Math.max(0,Math.floor(s.looks||0))};
@@ -528,7 +542,6 @@ function snapshotDish(){ return HVSNAP_BASE + HVSNAP_PER*Math.min(loadHvReunion(
 // base + 1 per snapshot look (cap 5). Markings tallied in
 // 'hv-anniversary'.
 var HVANN_KEY='hv-anniversary', HVANN_BASE=3, HVANN_PER=1;
-var annivMarked=false;
 function loadHvAnniv(){
   try{ var a=JSON.parse(localStorage.getItem(HVANN_KEY)||'null');
     if(a&&typeof a==='object') return {toasts:Math.max(0,Math.floor(a.toasts||0))};
@@ -544,7 +557,6 @@ function annivDish(){ return HVANN_BASE + HVANN_PER*Math.min(loadHvSnap().looks|
 // leaf-through pays: 4 food base + 1 per candle (cap 5). Leafs
 // tallied in 'hv-guestbook'.
 var HVGB_KEY='hv-guestbook', HVGB_BASE=4, HVGB_PER=1;
-var notebookLeafed=false;
 function loadHvGb(){
   try{ var g=JSON.parse(localStorage.getItem(HVGB_KEY)||'null');
     if(g&&typeof g==='object') return {leafs:Math.max(0,Math.floor(g.leafs||0))};
@@ -559,7 +571,6 @@ function notebookDish(){ return HVGB_BASE + HVGB_PER*Math.min(loadHvAnniv().toas
 // from scrap and good intentions. Once a session a sit pays: 5
 // food base + 1 per leaf (cap 5). Sits tallied in 'hv-bench'.
 var HVBEN_KEY='hv-bench', HVBEN_BASE=5, HVBEN_PER=1;
-var benchSat=false;
 function loadHvBench(){
   try{ var b=JSON.parse(localStorage.getItem(HVBEN_KEY)||'null');
     if(b&&typeof b==='object') return {sits:Math.max(0,Math.floor(b.sits||0))};
@@ -575,7 +586,6 @@ function hvBenchDish(){ return HVBEN_BASE + HVBEN_PER*Math.min(loadHvGb().leafs|
 // Once a session a telling pays: 6 food base + 1 per sit (cap 5).
 // Tellings tallied in 'hv-storyhour'.
 var HVSTORY_KEY='hv-storyhour', HVSTORY_BASE=6, HVSTORY_PER=1;
-var hvStoryTold=false;
 function loadHvStory(){
   try{ var s=JSON.parse(localStorage.getItem(HVSTORY_KEY)||'null');
     if(s&&typeof s==='object') return {tellings:Math.max(0,Math.floor(s.tellings||0))};
@@ -591,7 +601,6 @@ function hvStoryDish(){ return HVSTORY_BASE + HVSTORY_PER*Math.min(loadHvBench()
 // session a playing pays: 7 food base + 1 per telling (cap 5).
 // Playings tallied in 'hv-song'.
 var HVSONG_KEY='hv-song', HVSONG_BASE=7, HVSONG_PER=1;
-var balladPlayed=false;
 function loadHvSong(){
   try{ var s=JSON.parse(localStorage.getItem(HVSONG_KEY)||'null');
     if(s&&typeof s==='object') return {plays:Math.max(0,Math.floor(s.plays||0))};
@@ -607,7 +616,6 @@ function balladDish(){ return HVSONG_BASE + HVSONG_PER*Math.min(loadHvStory().te
 // wall's numbers copied out. Once a session a dig-up pays: 8 food
 // base + 1 per playing (cap 5). Digs tallied in 'hv-capsule'.
 var HVCAN_KEY='hv-capsule', HVCAN_BASE=8, HVCAN_PER=1;
-var canDug=false;
 function loadHvCan(){
   try{ var c=JSON.parse(localStorage.getItem(HVCAN_KEY)||'null');
     if(c&&typeof c==='object') return {digs:Math.max(0,Math.floor(c.digs||0))};
@@ -625,7 +633,6 @@ function canDish(){ return HVCAN_BASE + HVCAN_PER*Math.min(loadHvSong().plays||0
 // session standing with it pays: 9 food base + 1 per dig (cap 5).
 // Stands tallied in 'hv-mural'.
 var HVPAN_KEY='hv-mural', HVPAN_BASE=9, HVPAN_PER=1;
-var panelStood=false;
 function loadHvPanel(){
   try{ var q=JSON.parse(localStorage.getItem(HVPAN_KEY)||'null');
     if(q&&typeof q==='object') return {stands:Math.max(0,Math.floor(q.stands||0))};
@@ -642,7 +649,6 @@ function panelDish(){ return HVPAN_BASE + HVPAN_PER*Math.min(loadHvCan().digs||0
 // bench, the can by the piling. Once a session a walk pays: 10 food
 // base + 1 per stand (cap 5). Walks tallied in 'hv-docent'.
 var HVWALK_KEY='hv-docent', HVWALK_BASE=10, HVWALK_PER=1;
-var walkGiven=false;
 function loadHvWalk(){
   try{ var w=JSON.parse(localStorage.getItem(HVWALK_KEY)||'null');
     if(w&&typeof w==='object') return {walks:Math.max(0,Math.floor(w.walks||0))};
@@ -660,7 +666,6 @@ function walkDish(){ return HVWALK_BASE + HVWALK_PER*Math.min(loadHvPanel().stan
 // something it grows. Once a session a name pays: 11 food base +
 // 1 per walk (cap 5). Names tallied in 'hv-mark'.
 var HVMARK_KEY='hv-mark', HVMARK_BASE=11, HVMARK_PER=1;
-var markAdded=false;
 function loadHvMark(){
   try{ var m=JSON.parse(localStorage.getItem(HVMARK_KEY)||'null');
     if(m&&typeof m==='object') return {names:Math.max(0,Math.floor(m.names||0))};
@@ -680,11 +685,10 @@ function markDish(){ return HVMARK_BASE + HVMARK_PER*Math.min(loadHvWalk().walks
 // sheeted corner by the piling, and everything the bridge remembers
 // goes under it out of the weather. Nothing about it feeds anyone.
 // What it does is stop the rain from editing the story. Sit in it
-// once a session and somebody always comes by: 12 food base + 1 per
+// once a day and somebody always comes by: 12 food base + 1 per
 // name on the wall (cap 5). Built flag and sittings both live in
 // 'hv-drycorner', so the corner and the habit survive separately.
 var HVDRY_KEY='hv-drycorner', HVDRY_SCRAPS=12, HVDRY_CARD=8, HVDRY_BASE=12, HVDRY_PER=1;
-var drySat=false;
 function loadHvDry(){
   try{ var d=JSON.parse(localStorage.getItem(HVDRY_KEY)||'null');
     if(d&&typeof d==='object') return {built:!!d.built, sits:Math.max(0,Math.floor(d.sits||0))};
@@ -704,7 +708,7 @@ function dryAction(){
       tooltip:'Three names in three different hands and the wall has outgrown the weather. '+HVDRY_SCRAPS+' scraps and '+HVDRY_CARD+' cardboard sheet and roof the corner by the piling, and everything the bridge remembers \u2014 the notebook, the can, the snapshot, the panels, the names \u2014 goes under it. It feeds nobody. It just stops the rain from taking the story.' };
   }
   return { id:'dry', icon:'\u26F1\uFE0F', label:'Sit in the Dry Corner', time:2000, cooldown:30000,
-    tooltip:'The corner is roofed and sheeted and the whole bridge is under it, dry. Sit in it once a session \u2014 people come in out of the rain to read, and nobody comes in empty-handed.' };
+    tooltip:'The corner is roofed and sheeted and the whole bridge is under it, dry. Sit in it once a day \u2014 people come in out of the rain to read, and nobody comes in empty-handed.' };
 }
 
 // HV-54: the Dry Corner went up with one thing left bare on purpose --
@@ -813,19 +817,19 @@ var ACTIONS = [
   {id:'borrow',    icon:'🤲', label:'Borrow from Ray',    time:2000, cooldown:30000, tooltip:'Old Ray fronts 4 goodwill on the spot; his ledger takes one back every dawn until 5 is repaid. He never presses — he remembers.'},
   {id:'fridge',    icon:'🧊', label:'Corner Fridge',      time:4000, cooldown:30000, tooltip:'15 goodwill sets a donated fridge humming on the corner — anyone can give, anyone can take. It isn’t the camp’s: Start Over can’t unplug it, and every fresh camp that forms beside it starts 3 goodwill known.'},
   {id:'wall',      icon:'🧱', label:'Read the Wall',      time:2000, cooldown:30000, tooltip:'Somebody chalked the bridge’s numbers on the underpass wall — the fridge’s camps, the longest hold, the notes found. Read them out to whoever’s around.'},
-  {id:'thermos',   icon:'🫖', label:'Pass the Thermos',   time:2000, cooldown:30000, tooltip:'Somebody’s grandfather’s thermos, left at the fridge years ago and never claimed. Pass it around once a session — the deeper the bridge’s memory, the further the coffee goes.'},
-  {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a session — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
-  {id:'reunion',   icon:'🎂', label:'Throw the Reunion',  time:2000, cooldown:30000, tooltip:'When the whole story stands — the chalk star’s holds and Marisol’s visits — the camp throws the bridge reunion once a session, and everyone who ever slept here comes back through with something for the pot.'},
-  {id:'snapshot',  icon:'📷', label:'Look at the Snapshot', time:2000, cooldown:30000, tooltip:'A snapshot from the bridge reunion, tucked into the fridge door. Look at it once a session — somebody in the frame always swings by with a little something after.'},
-  {id:'anniv',     icon:'🕯️', label:'Mark the Anniversary', time:2000, cooldown:30000, tooltip:'Three looks at the snapshot and somebody counts the winters — the camp has held a whole year under this bridge. Light a candle for it once a session, and the bridge remembers who kept it lit.'},
-  {id:'guestbook', icon:'📓', label:'Leaf the Notebook', time:2000, cooldown:30000, tooltip:'Three candles and a spiral notebook sits by the fridge — everyone who ever slept here signs it on the way through. Leaf through it once a session, and one of the names always left something behind.'},
-  {id:'bench',     icon:'🪑', label:'Sit on the Bench', time:2000, cooldown:30000, tooltip:'Three leafs through the notebook and folks build a bench by the fridge — scrap wood and good intentions, a seat with every name at its back. Sit once a session, and somebody always sits down with something warm.'},
-  {id:'story',     icon:'🔥', label:'Tell the Fire Story', time:2000, cooldown:30000, tooltip:'Three sits on the bench and somebody has the whole bridge story by heart — the wall, the notebook, the reunions, every name in the spiral. Tell it around the fire once a session, and somebody always shows up with dinner before it\u2019s done.'},
-  {id:'ballad',    icon:'🎸', label:'Play the Bridge Ballad', time:2000, cooldown:30000, tooltip:'Three tellings of the fire story and the busker sets it to a tune — the whole bridge story, three chords, everybody hums along. Play it once a session, and the hat by the fire always fills before the last verse.'},
-  {id:'can',       icon:'📦', label:'Dig Up the Coffee Can', time:2000, cooldown:30000, tooltip:'Three playings of the ballad and somebody buries a coffee can by the piling — a notebook page, a snapshot, a guitar pick, the wall\u2019s numbers copied out. Dig it up once a session, and there\u2019s always something tucked in with it.'},
-  {id:'fifth',     icon:'🎨', label:'Stand at the Fifth Panel', time:2000, cooldown:30000, tooltip:'Three digs of the coffee can and somebody primes a fifth panel beside the finished mural — the wall of names, the fridge, the bench, the fire, the ballad, the can by the piling, all of it painted the length of the underpass. Stand with it once a session, and somebody who slowed down to read it always leaves something.'},
-  {id:'walk',      icon:'🧭', label:'Walk a Newcomer Down', time:2000, cooldown:30000, tooltip:'Three stands at the fifth panel and whoever has been here longest starts walking every newcomer down the whole underpass on their first night — the four panels, the fifth, the wall of names, the fridge, the bench, the can by the piling. Do it once a session, and they stop being a stranger by morning.'},
-  {id:'mark',      icon:'✍️', label:'Add a Name to the Wall', time:2000, cooldown:30000, tooltip:'Three walks down the underpass and the newcomer who got shown all of it takes the chalk and puts their own name up on the wall of names, in their hand. Do it once a session, and the fire is fuller that night than it has any right to be.'},
+  {id:'thermos',   icon:'🫖', label:'Pass the Thermos',   time:2000, cooldown:30000, tooltip:'Somebody’s grandfather’s thermos, left at the fridge years ago and never claimed. Pass it around once a day — the deeper the bridge’s memory, the further the coffee goes.'},
+  {id:'marisol',   icon:'🚗', label:'Wave Marisol Down',  time:2000, cooldown:30000, tooltip:'Marisol from the garage swings past once a day — wave her down and she leaves a casserole. The dish grows with the chalk star’s story.'},
+  {id:'reunion',   icon:'🎂', label:'Throw the Reunion',  time:2000, cooldown:30000, tooltip:'When the whole story stands — the chalk star’s holds and Marisol’s visits — the camp throws the bridge reunion once a day, and everyone who ever slept here comes back through with something for the pot.'},
+  {id:'snapshot',  icon:'📷', label:'Look at the Snapshot', time:2000, cooldown:30000, tooltip:'A snapshot from the bridge reunion, tucked into the fridge door. Look at it once a day — somebody in the frame always swings by with a little something after.'},
+  {id:'anniv',     icon:'🕯️', label:'Mark the Anniversary', time:2000, cooldown:30000, tooltip:'Three looks at the snapshot and somebody counts the winters — the camp has held a whole year under this bridge. Light a candle for it once a day, and the bridge remembers who kept it lit.'},
+  {id:'guestbook', icon:'📓', label:'Leaf the Notebook', time:2000, cooldown:30000, tooltip:'Three candles and a spiral notebook sits by the fridge — everyone who ever slept here signs it on the way through. Leaf through it once a day, and one of the names always left something behind.'},
+  {id:'bench',     icon:'🪑', label:'Sit on the Bench', time:2000, cooldown:30000, tooltip:'Three leafs through the notebook and folks build a bench by the fridge — scrap wood and good intentions, a seat with every name at its back. Sit once a day, and somebody always sits down with something warm.'},
+  {id:'story',     icon:'🔥', label:'Tell the Fire Story', time:2000, cooldown:30000, tooltip:'Three sits on the bench and somebody has the whole bridge story by heart — the wall, the notebook, the reunions, every name in the spiral. Tell it around the fire once a day, and somebody always shows up with dinner before it\u2019s done.'},
+  {id:'ballad',    icon:'🎸', label:'Play the Bridge Ballad', time:2000, cooldown:30000, tooltip:'Three tellings of the fire story and the busker sets it to a tune — the whole bridge story, three chords, everybody hums along. Play it once a day, and the hat by the fire always fills before the last verse.'},
+  {id:'can',       icon:'📦', label:'Dig Up the Coffee Can', time:2000, cooldown:30000, tooltip:'Three playings of the ballad and somebody buries a coffee can by the piling — a notebook page, a snapshot, a guitar pick, the wall\u2019s numbers copied out. Dig it up once a day, and there\u2019s always something tucked in with it.'},
+  {id:'fifth',     icon:'🎨', label:'Stand at the Fifth Panel', time:2000, cooldown:30000, tooltip:'Three digs of the coffee can and somebody primes a fifth panel beside the finished mural — the wall of names, the fridge, the bench, the fire, the ballad, the can by the piling, all of it painted the length of the underpass. Stand with it once a day, and somebody who slowed down to read it always leaves something.'},
+  {id:'walk',      icon:'🧭', label:'Walk a Newcomer Down', time:2000, cooldown:30000, tooltip:'Three stands at the fifth panel and whoever has been here longest starts walking every newcomer down the whole underpass on their first night — the four panels, the fifth, the wall of names, the fridge, the bench, the can by the piling. Do it once a day, and they stop being a stranger by morning.'},
+  {id:'mark',      icon:'✍️', label:'Add a Name to the Wall', time:2000, cooldown:30000, tooltip:'Three walks down the underpass and the newcomer who got shown all of it takes the chalk and puts their own name up on the wall of names, in their hand. Do it once a day, and the fire is fuller that night than it has any right to be.'},
 ];
 
 var WORKER_DEFS = [
