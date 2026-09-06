@@ -20,13 +20,18 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 (async () => {
   const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  const page = await (await browser.newContext({ viewport: { width: 1400, height: 900 } })).newPage();
+  const page = await (await browser.newContext({ viewport: { width: 1400, height: 900 }, hasTouch: true })).newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
   await page.goto(BASE + '/index.html', { waitUntil: 'load' });
   await page.waitForTimeout(800);
   await page.evaluate(() => { location.hash = '#life'; });
   await page.waitForTimeout(400);
+  await page.evaluate(() => document.fonts.ready);
+  // The view animates by 8px on entry; measuring during that animation
+  // can send a later click into the neighboring row on a busy machine.
+  await page.locator('#view-life').evaluate(el =>
+    Promise.all(el.getAnimations().map(animation => animation.finished)));
 
   const canvas = page.locator('#life-canvas');
   const box = await canvas.boundingBox();
@@ -65,6 +70,12 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.mouse.move(d2.x, d2.y);
   await page.mouse.up();
   ok(await pop() === 0, `a drag starting on a live cell erases every cell it crosses (population ${await pop()})`);
+
+  // Real touch taps use the same start-cell toggle, without a mouse button.
+  await page.touchscreen.tap(p5.x, p5.y);
+  ok(await pop() === 1, 'touching a dead cell paints it');
+  await page.touchscreen.tap(p5.x, p5.y);
+  ok(await pop() === 0, 'touching a live cell erases it');
 
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
 
