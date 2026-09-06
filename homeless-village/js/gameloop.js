@@ -191,6 +191,13 @@ function onNewDay(){
   snapAtDawn();   // HV-18: the snap rolls before the fire drains
 
   G.food  =Math.max(0,G.food  -G.population*1.5);
+  // HV-146: the snap said keep the pot full. The fire already
+  // drains SNAP_WARMTH extra; the pot now takes another bowl.
+  if(snapActive()){
+    var pot=(typeof SNAP_POT==='number'?SNAP_POT:2);
+    G.food=Math.max(0,G.food-pot);
+    log('\u2744\ufe0f The snap takes another bowl from the pot. \u2212'+pot+' food.');
+  }
   // HV-23: coats off the rack blunt the cold's edge — the weather's
   // bite (only when it IS a bite) and the snap's extra — but never
   // the season's base drain, and never a heat wave's gift.
