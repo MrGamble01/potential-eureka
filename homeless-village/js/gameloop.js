@@ -422,6 +422,10 @@ function tickDay(dt){
   // a player who spends a minute on it would otherwise come back to a
   // later hour, a colder night, possibly a new dawn.
   if(bridgeOpen()) return;
+  // HV-77: the Lookout's 30s scramble lands in #sweep-warning.
+  // Packing up near dawn must not burn the morning — same pause
+  // as the intro and The Bridge. ui.js still only shows and hides it.
+  if(sweepOpen()) return;
   G.timeOfDay+=dt/DAY_LENGTH_MS;
   if(G.timeOfDay>=1){ G.timeOfDay-=1; onNewDay(); }
 
