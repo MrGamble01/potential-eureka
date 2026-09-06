@@ -120,6 +120,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-219: Leaf the Notebook says three candles put a spiral
+  // notebook by the fridge. finishAction already named a bare
+  // fridge — after a 2s job and with the 30s lock charged as if
+  // a name had left something behind.
+  if(a.id==='guestbook' && !notebookOut()){
+    log('\ud83d\udcd3 No notebook by the fridge yet \u2014 three candles and somebody leaves one out.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
