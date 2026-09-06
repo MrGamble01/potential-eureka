@@ -612,7 +612,10 @@ function maybeEvent(){
 
 function triggerEvent(ev,isGood){
   showEvent(ev,!!isGood); ev.effect();
-  G.sweepWarned=false; showSweepWarning(false);
+  // HV-71: only the sweep itself dismisses a Lookout/Biscuit warning.
+  // Clearing on every event (stray dog, Case Worker card, theft) made
+  // the 30s timer's `if(G.sweepWarned)` a no-op — the sweep never landed.
+  if(ev.id==='sweep'){ G.sweepWarned=false; showSweepWarning(false); }
   refreshStructures(); updateHUD();
 }
 
