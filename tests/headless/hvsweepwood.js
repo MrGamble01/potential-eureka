@@ -88,6 +88,7 @@ ok(!/G\.wood\s*=/.test(ui),
       tent: !!G.structures.tent,
       banner: document.getElementById('ev-title').textContent,
       body: document.getElementById('ev-body').textContent,
+      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
     };
   }, extra);
 
@@ -104,6 +105,8 @@ ok(!/G\.wood\s*=/.test(ui),
     `scraps and food still go (${sweep.scraps}/${sweep.food})`);
   ok(sweep.cans === 20,
     `cans still sit — not this ticket (${sweep.cans})`);
+  ok(/woodpile/i.test(sweep.log),
+    `the log names the woodpile (${sweep.log.slice(-80)})`);
 
   const theft = await page.evaluate(() => {
     const real = Math.random;
