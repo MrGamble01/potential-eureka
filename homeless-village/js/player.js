@@ -136,9 +136,12 @@ function finishAction(a){
       bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
-    var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
-    floatText('+'+h+'❤️');
-    log('You rest. Health +'+h+'.');
+    // HV-78: the tooltip promises health and morale. Both always
+    // applied; the float and the log only counted health.
+    var h=rand(5,15), m=rand(3,8);
+    G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+m);
+    floatText('+'+h+'❤️ +'+m+'😊');
+    log('You rest. Health +'+h+', morale +'+m+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
     if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
