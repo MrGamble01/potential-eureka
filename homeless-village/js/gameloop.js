@@ -580,7 +580,10 @@ var EVENTS_GOOD=[
      G.lastEventDay=G.days;
      G.morale=Math.min(100,G.morale+rand(12,20));
      G.friendDay=G.days;
-     log('A familiar face. Morale surged — briefly.');
+     // HV-135: the card says someone recognized you. That is Word
+     // on the Street — the neighborhood just learned the name.
+     addRep(3);
+     log('A familiar face. Morale surged — briefly. Word on the Street heard it.');
    }},
   {id:'church_donation',title:'Church Donated Supplies',type:'good',weight:8,
    desc:'A volunteer group dropped off some essentials.',
