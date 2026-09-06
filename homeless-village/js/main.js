@@ -181,7 +181,12 @@ function frame(ts){
       // (=dt*0.96) — 16× too fast — which both sprinted residents past
       // the player and overshot the 0.1 arrival test into a permanent
       // ping-pong across the target.
-      var sp=f.userData.speed*(dt/16.667);
+      // Never stride past the target: the arrival test above is a 0.1
+      // window, and a laggy frame (dt clamps at 100ms, six frames) gives
+      // the fastest residents a 0.21 stride that can still straddle it
+      // and ping-pong. Capping the step at the remaining distance lands
+      // them on the spot whatever the frame rate.
+      var sp=Math.min(f.userData.speed*(dt/16.667),dist);
       f.position.x+=dx/dist*sp; f.position.z+=dz/dist*sp;
       f.rotation.y=Math.atan2(dx,dz);
     }

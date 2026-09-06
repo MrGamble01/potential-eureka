@@ -19,6 +19,10 @@
  *  C. Residents shuffle slower than the player's 4.2 u/s, not 4x faster.
  *  D. A resident approaching its target settles on it instead of
  *     oscillating across it forever.
+ *  E. And still settles under lag: at frame()'s 100ms dt clamp the
+ *     fastest resident strides 0.21u, which can straddle the 0.1
+ *     arrival window from 0.1-0.11 out — so the stride is capped at
+ *     the remaining distance and lands on the spot at any frame rate.
  *  Z. Zero page errors.
  *
  * Drives frame(ts) by hand with chosen timestamps rather than trusting
@@ -97,6 +101,29 @@ const FRAME = 1000 / 60;   // ms for one 60fps frame — frame()'s dt unit
     `a resident that walks up to its target stops on it (ended ${settle.final.toFixed(3)}u away)`);
   ok(settle.spread < 1e-6,
     `and stays put instead of oscillating across it (last 120 frames spread ${settle.spread.toFixed(4)}u)`);
+
+  // ---- E. a laggy frame rate settles too ----
+  // frame() clamps dt to 100ms. At that dt the fastest resident (.035)
+  // strides 0.21u; planted 0.105u out, an uncapped stride lands 0.105u
+  // past the target, outside the 0.1 window, and bounces back forever.
+  const laggy = await page.evaluate(() => {
+    const f = figures.find(x => x.userData.type === 'community')
+      || spawnFigure(0, 0, 'community');
+    f.userData.wanderTimer = 1e9;
+    f.userData.speed = 0.035;
+    f.userData.target.set(0, 0, 0);
+    f.position.set(0.105, 0, 0);
+    let ts = 3e6;
+    frame(ts);
+    const seen = [];
+    for (let i = 0; i < 300; i++) { frame(ts += 100); seen.push(f.position.x); }
+    const tail = seen.slice(-60);
+    return { final: Math.abs(f.position.x), spread: Math.max(...tail) - Math.min(...tail) };
+  });
+  ok(laggy.final <= 0.1 + 1e-6,
+    `at 10fps the fastest resident still stops on its target (ended ${laggy.final.toFixed(3)}u away)`);
+  ok(laggy.spread < 1e-6,
+    `and does not bounce across it (last 60 frames spread ${laggy.spread.toFixed(4)}u)`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
