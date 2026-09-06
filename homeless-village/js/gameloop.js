@@ -396,7 +396,13 @@ function checkArc(){
   } else if(G.arcStage===1 && G.structures.soup_kitchen && G.population>=4){
     G.arcStage=2; triggerEvent(ARC_EVENTS.paperwork,true); saveGame();
   } else if(G.arcStage===2 && G.goodwill>=25 && G.morale>60){
-    G.arcStage=3; saveGame();
+    G.arcStage=3;
+    // HV-142: Keys in Hand says someone else moves into your tent.
+    G.population+=1;
+    G.peakPopulation=Math.max(G.peakPopulation||0, G.population);
+    if(typeof spawnFigure==='function') spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
+    log('\ud83d\udd11 Someone else moves into your tent.');
+    saveGame();
     showGraduation();
   } else if(G.arcStage>=3){
     // HV-61: the overlay is not in the save. Re-show until arcDone.
