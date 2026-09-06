@@ -140,6 +140,9 @@ function finishAction(a){
 
   if(a.id==='scavenge'){
     var wm=(G.season===3?.5:1)*weatherDef().scav;
+    // HV-217: nobody lingers outside in a named snap — the dumpsters
+    // thin the same way the corner does, even under a clear sky.
+    if(snapActive()) wm*=0.75;
     // HV-7: Old Ray knows which dumpsters are worth the walk — empty
     // hauls happen half as often once he's a friend.
     if(Math.random()<.2*wm*(regularStage('ray')===2?.5:1)){
