@@ -125,7 +125,7 @@ var REGULARS = [
   {id:'marisol', icon:'🌮', name:'Marisol', who:'runs the taquería on the corner',
    how:'Trade goods — she respects honest dealing', perk:'sends leftovers to the camp some mornings'},
   {id:'ray',     icon:'🎖️', name:'Old Ray', who:'holds the bench by the bridge',
-   how:'Rest nearby — he likes the company', perk:'points out which dumpsters are worth the walk'},
+   how:'Rest nearby — he likes the company', perk:'empty dumpster hauls happen half as often'},
   {id:'dee',     icon:'🩺', name:'Dee',     who:'walks home from night shifts at County',
    how:'Panhandle her route — she always stops', perk:'patches you up when you’re in bad shape'},
 ];
