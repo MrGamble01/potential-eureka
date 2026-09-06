@@ -228,7 +228,15 @@ function onNewDay(){
     }
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
-  if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
+  if(G.workers.cook&&G.food>=3){
+    // HV-85: "Makes meals from food automatically" — the pot feeds
+    // the camp (same morale/health as a soup night), and still pays
+    // the +2 goodwill the log already promised.
+    G.food-=3; G.goodwill+=2;
+    G.morale=Math.min(100,G.morale+4);
+    G.health=Math.min(100,G.health+2);
+    log('The Cook prepared meals. +2 goodwill.');
+  }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
     G.barrelWater=(G.barrelWater||0)+1;
