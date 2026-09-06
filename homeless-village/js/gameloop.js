@@ -218,14 +218,23 @@ function onNewDay(){
   // arrived once the camp had already taken the health hit. Cook and
   // soup stay where they are; the garden is the one that fills the pot.
   if(G.structures.garden){
-    if(G.weather==='cold'){
+    // HV-193: a named snap freezes the beds the same way weather
+    // frost does. Today's sky can still be clear — snapActive() is
+    // its own two-day grip. Stacked cold+snap keeps the frost log
+    // so hvweather / hvcompost stay on the weather line.
+    if(G.weather==='cold' || snapActive()){
+      var snapOnly=G.weather!=='cold' && snapActive();
       if(G.structures.compost){
         // HV-25: the bin's heat keeps one bed alive through frost
         G.food+=1; G.compostDays=(G.compostDays||0)+1;
         floatText('+1\ud83c\udf5e');
-        log('\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
+        log(snapOnly
+          ? '\u267B\uFE0F The snap froze the beds — but the compost\u2019s heat kept one alive. +1 food.'
+          : '\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
       } else {
-        log('Frost on the beds — the garden gave nothing today.');
+        log(snapOnly
+          ? 'The snap froze the beds — the garden gave nothing today.'
+          : 'Frost on the beds — the garden gave nothing today.');
       }
     }
     else {
