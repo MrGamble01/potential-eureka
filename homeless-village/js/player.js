@@ -231,8 +231,10 @@ function finishAction(a){
       var mm=loadMarisol();
       saveMarisol({visits:(mm.visits||0)+1});
       G.food=(G.food||0)+md;
-      log('\ud83d\ude97 MARISOL DROPS BY \u2014 she leaves a casserole still warm from the garage hotplate. +'+md+'\ud83c\udf5e');
-      floatText('+'+md+'\ud83c\udf5e');
+      // HV-134: a hotplate casserole is warmth, not just the dish.
+      G.warmth=Math.min(100,(G.warmth||0)+MARISOL_WARMTH);
+      log('\ud83d\ude97 MARISOL DROPS BY \u2014 she leaves a casserole still warm from the garage hotplate. +'+md+'\ud83c\udf5e, +'+MARISOL_WARMTH+'\ud83c\udf21\ufe0f');
+      floatText('+'+md+'\ud83c\udf5e +'+MARISOL_WARMTH+'\ud83c\udf21\ufe0f');
       saveGame();
     }
   } else if(a.id==='reunion'){
