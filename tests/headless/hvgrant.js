@@ -43,7 +43,7 @@ const petBlock = petAt >= 0 ? player.slice(petAt, petAt + 900) : '';
 const sweepAt = loop.indexOf("id:'sweep'");
 const nextBad = loop.indexOf("id:'cold_snap'");
 const sweepBlock = sweepAt >= 0 && nextBad > sweepAt ? loop.slice(sweepAt, nextBad) : '';
-const applyAt = sweepBlock.indexOf('G.food');
+const applyAt = sweepBlock.indexOf('G.scraps=Math.max');
 
 ok(petAt >= 0 && /id==='grant'/.test(petBlock),
   'doPetition still delivers the community grant');
