@@ -45,7 +45,7 @@ ok(/people come in out of the rain/.test(cfg),
   'Sit in the Dry Corner still promises people come in out of the rain');
 ok(doAt >= 0 && timeoutAt > 0, 'doAction still starts the job with setTimeout');
 ok(dryAt >= 0 && rainAt >= 0 && dryAt < timeoutAt && rainAt < timeoutAt,
-  'HV-173: doAction refuses a dry-street sitting before the timer');
+  'HV-174: doAction refuses a dry-street sitting before the timer');
 ok(/homeless-village\/js\/ui\.js/.test(player) === false,
   'the rain gate lives in doAction — ui.js is not this ticket');
 
@@ -113,7 +113,7 @@ ok(/homeless-village\/js\/ui\.js/.test(player) === false,
     };
   });
   ok(!clear.job && !clear.sat && clear.sits === 0 && clear.food === 10,
-    `HV-173: a clear sitting does not start a job or pay (job ${clear.job}, food ${clear.food})`);
+    `HV-174: a clear sitting does not start a job or pay (job ${clear.job}, food ${clear.food})`);
   ok(/rain/i.test(clear.added),
     `the refuse names the rain — not a silent no-op (${clear.added.slice(-80)})`);
 
