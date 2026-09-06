@@ -258,6 +258,10 @@ function onNewDay(){
     if(G.food>=1){
       G.food-=1; G.dogHungry=false;
       G.morale=Math.min(100,G.morale+2); G.warmth=Math.min(100,G.warmth+3);
+      // HV-92: the join card said one food a day — he earns it. Hunger
+      // already logged. A fed dawn spent the food and paid the keep
+      // with no line.
+      log('Biscuit earned his keep. +2 morale, +3 warmth.');
     } else {
       G.dogHungry=true; G.morale=Math.max(0,G.morale-2);
       log('No scraps left for Biscuit. He curls up hungry.');
