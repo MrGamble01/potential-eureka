@@ -421,16 +421,22 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
+    // HV-182: dawn said the cold gets into everything. The depot
+    // lift is the other outdoor walk that morning. A cold snap
+    // sky halves the posted goodwill.
+    var stung=j.id==='depot'&&G.weather==='cold';
     for(var k in j.gives){
-      if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
-      else G[k]=(G[k]||0)+j.gives[k];
-      parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+      var amt=j.gives[k];
+      if(stung) amt=Math.floor(amt/2);
+      if(k==='morale') G.morale=Math.min(100,G.morale+amt);
+      else G[k]=(G[k]||0)+amt;
+      parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
     }
     G.oddJobDay=G.days;
     if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
     addRep(3);   // HV-9: honest work is how the neighborhood learns your name
     floatText(parts.join(' '));
-    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.'+(stung?' The cold got into the lift.':''));
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
