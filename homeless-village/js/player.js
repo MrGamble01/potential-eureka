@@ -373,6 +373,18 @@ function finishAction(a){
       G.food=(G.food||0)+wd2;
       log('\ud83e\udded THE WALK DOWN \u2014 the four panels, the fifth, the wall of names, the fridge, the bench, the can by the piling. They stop being a stranger by morning, and they brought something to the fire: +'+wd2+'\ud83c\udf5e');
       floatText('+'+wd2+'\ud83c\udf5e');
+      // HV-97: the card says they stop being a stranger by morning.
+      // A waiting newcomer (G.newcomerAsk) is that stranger. Seat
+      // them when there is room — Make Room's full-camp refuse stays.
+      // No ask: the walk is still the dish, not a free hire.
+      if(G.newcomerAsk && (G.population||1)<NEWCOMER_POP_MAX){
+        G.newcomerAsk=null;
+        G.population+=1;
+        G.peakPopulation=Math.max(G.peakPopulation||0,G.population);
+        G.welcomes=(G.welcomes||0)+1;
+        spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
+        if(typeof buildActionUI==='function') buildActionUI();
+      }
       saveGame();
     }
   } else if(a.id==='mark'){
