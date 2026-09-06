@@ -147,7 +147,11 @@ function snapAtDawn(){
   }
   if(snapActive()){
     var rt=repTier();
-    if(rt>=1){ G.goodwill+=rt; log('❄️ Neighbors check in on the camp with hand-warmers and change. +'+rt+' goodwill.'); }
+    if(rt>=1){
+      G.goodwill+=rt;
+      G.warmth=Math.min(100,G.warmth+rt);
+      log('❄️ Neighbors check in on the camp with hand-warmers and change. +'+rt+' warmth, +'+rt+' goodwill.');
+    }
     return;
   }
   if(G.season===3&&Math.random()<SNAP_CHANCE){
