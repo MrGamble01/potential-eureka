@@ -227,6 +227,10 @@ function onNewDay(){
       G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
     }
   }
+  // HV-172: Soup Kitchen said feeds everyone. The Cook used to spend
+  // the pot first and leave a cold kitchen. Last night's supper is
+  // served before breakfast.
+  soupNightAtDawn();
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
   if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
@@ -265,7 +269,6 @@ function onNewDay(){
   }
   regularFavorsAtDawn();
   repAtDawn();
-  soupNightAtDawn();
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
