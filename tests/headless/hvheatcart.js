@@ -10,14 +10,14 @@
  * floor(cans/10) rep as if the sky were clear.
  *
  * Distinct from HV-232 / #926 (rain vs the cart — that ticket
- * left heat on the posted rate), HV-178 / #868 (cold vs the
- * cart), HV-169 / #861 (Walk the dogs vs a scorcher). This
- * ticket is the heat vs the cart. ui.js is not this ticket.
+ * halves the take), HV-178 / #868 (cold vs the cart), HV-169 /
+ * #861 (Walk the dogs vs a scorcher). This ticket is the heat
+ * vs the cart. ui.js is not this ticket.
  *
  *  A. Source: the deposit finisher still hauls every can. Heat
  *     Wave is still named in WEATHERS. The finisher reads
- *     weather==='heat' and applies 0.75. Rain and cold are not
- *     this ticket. ui.js is not this ticket.
+ *     weather==='heat' and applies 0.75. Rain's half-cut is
+ *     HV-232. Cold is not this ticket. ui.js is not this ticket.
  *  B. Live: 10 cans on a clear sky still pay +5🩶 +1⭐.
  *  C. Live: the same 10 cans on heat paid the cool-day haul
  *     (the bug). After the fix they pay 0.75, and the log
@@ -53,8 +53,8 @@ ok(/a\.id==='deposit'/.test(player) && /hauled=G\.cans/.test(body),
   'the deposit finisher still hauls every can');
 ok(/G\.weather==='heat'/.test(body) && /0\.75/.test(body),
   'HV-243: the deposit finisher cuts the haul on a heat-wave sky');
-ok(!/G\.weather==='rain'/.test(body),
-  'rain is not this ticket — the rain cart haul is #926');
+ok(/G\.weather==='rain'/.test(body) && /Math\.floor\(gw\s*\/\s*2\)/.test(body),
+  'HV-232 rain cut still lives on the deposit haul');
 ok(!/G\.weather==='cold'/.test(body),
   'cold is not this ticket — the cold cart haul is #868');
 ok(!/G\.weather==='heat'/.test(ui),
@@ -118,8 +118,8 @@ ok(!/G\.weather==='heat'/.test(ui),
     `the log names the scorcher — not a silent cut (${heat.log.slice(-80)})`);
 
   const rain = await haul('rain', 10);
-  ok(rain.gw === 5 && rain.rep === 1,
-    `rain without heat still pays the posted rate — rain cart is #926 (${rain.gw} / ${rain.rep})`);
+  ok(rain.gw === 2 && rain.rep === 0,
+    `rain without heat still halves — rain cart is HV-232 / #926 (${rain.gw} / ${rain.rep})`);
 
   const cold = await haul('cold', 10);
   ok(cold.gw === 5 && cold.rep === 1,
