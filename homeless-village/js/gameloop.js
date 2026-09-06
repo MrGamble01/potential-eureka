@@ -518,7 +518,11 @@ var EVENTS_BAD=[
      G.lastEventDay=G.days;
      G.health=Math.max(0,G.health-rand(12,22));
      G.food  =Math.max(0,G.food  -rand(2,5));
-     log('Sickness hit the community. Health fell.');
+     // HV-74: "Everyone feels terrible." Theft, Gentrification and a
+     // sweep already hit morale. Sickness only dropped health and food,
+     // so the 😞 pill stayed put while Health fell.
+     G.morale=Math.max(0,G.morale-rand(10,18));
+     log('Sickness hit the community. Health and morale fell.');
    }},
   {id:'dumpster_locked',title:'Dumpsters Locked',type:'bad',weight:7,
    desc:'Property management put locks on the dumpsters. Nothing to scavenge today.',
