@@ -59,7 +59,7 @@ const failArm = panhandleFn && panhandleFn[0].match(
 );
 ok(!!failArm, 'panhandle miss arm (Ignored again) is still in player.js');
 ok(failArm && /bumpRegular\(\s*['"]dee['"]\s*\)/.test(failArm[0]),
-  NAMED + ' — miss arm never calls bumpRegular(\'dee\')');
+  NAMED + ' — miss arm calls bumpRegular(\'dee\')');
 ok(failArm && !/addRep\(/.test(failArm[0]),
   'a miss still does not add reputation');
 ok(!/\bbumpRegular\b/.test(uiSrc),
