@@ -98,13 +98,14 @@ ok(dawn && /weather==='rain'/.test(dawn[1]) && /muralDay/.test(dawn[1])
     G.lastEventDay = G.days + 5;
     G.food = 20;
     G.warmth = 40;
+    const before = document.querySelectorAll('.log-line').length;
     onNewDay();
     Math.random = real;
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    const added = Array.from(document.querySelectorAll('.log-line')).slice(before).map(d => d.textContent).join('\n');
     return {
       mural: G.mural,
       weather: G.weather,
-      washed: /washed/i.test(log) && /panel/i.test(log),
+      washed: /washed/i.test(added) && /panel/i.test(added),
     };
   }, weather);
 
