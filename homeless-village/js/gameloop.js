@@ -555,9 +555,12 @@ var EVENTS_GOOD=[
   {id:'found_money',title:'Found $5',type:'good',weight:9,
    desc:'A crumpled bill on the sidewalk. Small win.',
    effect:function(){
-     G.lastEventDay=G.days; G.goodwill+=rand(3,6);
+     G.lastEventDay=G.days;
+     // HV-70: the card is titled Found $5. Goodwill is the camp's
+     // money. It used to pay rand(3,6) and log "a few dollars."
+     G.goodwill+=5;
      G.morale=Math.min(100,G.morale+rand(4,8));
-     log('Found a few dollars. +goodwill.');
+     log('Found a five on the sidewalk. +5 goodwill.');
    }},
   {id:'good_weather',title:'Good Weather',type:'good',weight:11,
    desc:'Clear skies and mild temps. A rare easy day.',
