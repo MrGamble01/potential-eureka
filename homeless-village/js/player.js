@@ -115,8 +115,13 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
-    floatText('+'+w+'🪵 +'+cb+'📦');
+    // HV-160: the crash course says the season matters. Winter
+    // already halves the dumpsters. Forage is how you get the wood
+    // winter burns, and it used to pay a summer armful year-round.
+    var wm=(G.season===3?.5:1);
+    var w=Math.floor(rand(1,4)*wm), cb=Math.floor(rand(2,6)*wm);
+    G.wood+=w; G.cardboard+=cb;
+    if(w||cb) floatText('+'+w+'🪵 +'+cb+'📦');
     log('Found '+w+' wood and '+cb+' cardboard.');
   } else if(a.id==='panhandle'){
     // HV-6: people stop for the dog — a fed Biscuit at your side makes
