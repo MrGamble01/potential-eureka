@@ -179,9 +179,14 @@ function frame(ts){
       // normaliser is frames-elapsed — dt/16.667, the same one
       // Utils.gameLoop hands the hub games. It read `dt*.016*60`
       // (=dt*0.96) — 16x too fast, which both sprinted residents past
-      // the player and overshot the 0.1 arrival test below into a
+      // the player and overshot the 0.1 arrival test above into a
       // permanent ping-pong across the target.
-      var sp=f.userData.speed*(dt/16.667);
+      // The step is also capped at the remaining distance: dt clamps at
+      // 100ms (top of frame()), and at that clamp the fastest resident
+      // (.035) would still stride 0.21 — past the 0.1 window and into the
+      // same ping-pong on a slow or tabbed-out frame. A figure can now
+      // land on its target but never cross it, at any frame rate.
+      var sp=Math.min(f.userData.speed*(dt/16.667), dist);
       f.position.x+=dx/dist*sp; f.position.z+=dz/dist*sp;
       f.rotation.y=Math.atan2(dx,dz);
     }

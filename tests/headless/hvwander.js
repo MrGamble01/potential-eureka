@@ -14,6 +14,10 @@
  *  C. Residents shuffle slower than the player's 4.2 u/s, not 4x faster.
  *  D. A resident approaching its target settles on it instead of
  *     oscillating across it forever.
+ *  E. The same holds at the 100ms slow-frame clamp: the speed fix alone
+ *     leaves the fastest resident (.035) striding 0.21 per clamped frame,
+ *     twice the 0.1 window, so the step is also capped at the remaining
+ *     distance — a figure lands on its target and never crosses it.
  *  Z. Zero page errors.
  */
 const { chromium } = require('playwright');
@@ -88,6 +92,30 @@ const FRAME = 1000 / 60;   // the ms the hub's dt normalisation is built around
     `a resident that walks up to its target stops on it (ended ${settle.final.toFixed(3)}u away)`);
   ok(settle.spread < 1e-6,
     `and stays put instead of oscillating across it (last 120 frames spread ${settle.spread.toFixed(4)}u)`);
+
+  // ---- E. slow frames: the step is capped at the remaining distance ----
+  // frame() clamps dt at 100ms. At that clamp a .035 resident's raw
+  // stride is 0.21, so a figure 0.105 out would (with the speed fix
+  // alone) hop to -0.105, still outside the window, and back — forever.
+  const slow = await page.evaluate(() => {
+    const f = figures.find(x => x.userData.type === 'community')
+      || spawnFigure(0, 0, 'community');
+    f.userData.wanderTimer = 1e9;
+    f.userData.speed = 0.035;
+    f.userData.target.set(0, 0, 0);
+    f.position.set(0.315, 0, 0);                 // one 0.21 stride out from the band
+    let ts = 3e6;
+    frame(ts);
+    let minX = Infinity;
+    const seen = [];
+    for (let i = 0; i < 60; i++) { frame(ts += 100); minX = Math.min(minX, f.position.x); seen.push(f.position.x); }
+    const tail = seen.slice(-20);
+    return { minX, final: Math.abs(f.position.x), spread: Math.max(...tail) - Math.min(...tail) };
+  });
+  ok(slow.minX >= -1e-9,
+    `at the 100ms frame clamp a .035 resident never crosses its target (min x ${slow.minX.toFixed(4)})`);
+  ok(slow.final < 1e-9 && slow.spread < 1e-9,
+    `and lands exactly on it, holding still (ended ${slow.final.toFixed(4)}u away, spread ${slow.spread.toFixed(4)}u)`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
