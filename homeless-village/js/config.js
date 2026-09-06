@@ -832,6 +832,10 @@ var ACTIONS = [
   {id:'mark',      icon:'✍️', label:'Add a Name to the Wall', time:2000, cooldown:30000, tooltip:'Three walks down the underpass and the newcomer who got shown all of it takes the chalk and puts their own name up on the wall of names, in their hand. Do it once a session, and the fire is fuller that night than it has any right to be.'},
 ];
 
+// HV-142: Auto-scavenges every day. Scavenge's own tooltip (and the
+// crash course) name food as a dumpster haul. Dawn used to add only
+// scraps and cans.
+var SCRAPPER_FOOD_CHANCE = 0.45;
 var WORKER_DEFS = [
   {id:'scrapper', icon:'🔍', name:'Scrapper', cost:8,  desc:'Auto-scavenges every day'},
   {id:'builder',  icon:'🔨', name:'Builder',  cost:12, desc:'Speeds up crafting x2'},

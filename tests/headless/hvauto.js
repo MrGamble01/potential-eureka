@@ -34,6 +34,8 @@ ok(scrap && /G\.food\s*\+=/.test(scrap[1]),
   'HV-142: the Scrapper dawn line assigns food');
 ok(/id:'scrapper'[\s\S]{0,80}?Auto-scavenges every day/.test(cfg),
   'the hire card still says Auto-scavenges every day');
+ok(/SCRAPPER_FOOD_CHANCE\s*=\s*0\.45/.test(cfg),
+  'SCRAPPER_FOOD_CHANCE matches Scavenge\'s food roll');
 ok(/scavenge \(cans, scraps, food\)/.test(html) || /cans, scraps, food/.test(html),
   'the crash course still names food as a scavenge haul');
 ok(/workers\.cook&&G\.food>=3/.test(loop) && /goodwill\+=2/.test(loop),
