@@ -1,5 +1,5 @@
 /*
- * HV-173 — Sit in the Dry Corner said people come in out of the
+ * HV-174 — Sit in the Dry Corner said people come in out of the
  * rain, then a clear day still paid.
  *
  * Once the corner is roofed, the button becomes the sitting.
