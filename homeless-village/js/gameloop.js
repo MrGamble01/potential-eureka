@@ -485,6 +485,10 @@ var EVENTS_BAD=[
      G.warmth=Math.max(0,G.warmth-rand(20,35));
      G.health=Math.max(0,G.health-rand(8,18));
      G.morale=Math.max(0,G.morale-rand(10,15));
+     // HV-72: the card is titled Cold Snap and says tonight. The
+     // instant hit left snapUntil untouched, so Weather 2 cold snaps
+     // never saw it. Start tonight's snap if one is not already on.
+     if(!snapActive()) G.snapUntil=G.days+1;
      log('Cold snap hit. Warmth and health dropped.');
    }},
   {id:'theft',title:'Theft',type:'bad',weight:12,
