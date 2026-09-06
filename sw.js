@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v215-hv-wetsnap';  // HV-215: rain turns the snapshot visitor back
+const SW_VERSION = 'eureka-v216-hv-wetcan';  // HV-216: rain soaks an unroofed coffee can
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
