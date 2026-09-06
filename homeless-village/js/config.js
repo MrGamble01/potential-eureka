@@ -24,6 +24,9 @@ var G = {
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
   sweepWarned: false, sweepCountdown: 0, packedUp: false,
   dumpsterLockDay: -1,   // HV-63: Dumpsters Locked lasts the rest of that day
+  // HV-78: Patch Shelter reinforces the sleeping spot until the wind
+  // would take the tent. +8 warmth still wraps; the stamp is the patch.
+  shelterPatched: false,
   injuredUntil: 0, lastEventDay: -2,
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.

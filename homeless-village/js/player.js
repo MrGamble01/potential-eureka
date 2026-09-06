@@ -570,6 +570,9 @@ function finishCraft(r){
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
+  // HV-78: Patch Shelter is +8 warmth AND a patch on the sleeping
+  // spot. Blanket and Firewood are also +warmth and do not stamp.
+  if(r.id==='shelter') G.shelterPatched=true;
   G.totalCrafted++;
   sfx('craft');
   log('Crafted '+r.name+'.');
