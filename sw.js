@@ -22,7 +22,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v261-hv-deeroute';  // HV-187: Dee's route is the night-shift walk home
+const SW_VERSION = 'eureka-v262-hv-gentfly';  // HV-186: the hostile block takes the flyer shop's kindness
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
