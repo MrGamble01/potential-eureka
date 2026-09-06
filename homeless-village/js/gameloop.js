@@ -519,9 +519,15 @@ var EVENTS_BAD=[
    desc:'A bug is going through the camp. Everyone feels terrible.',
    effect:function(){
      G.lastEventDay=G.days;
-     G.health=Math.max(0,G.health-rand(12,22));
-     G.food  =Math.max(0,G.food  -rand(2,5));
-     log('Sickness hit the community. Health fell.');
+     // HV-164: the card says a bug is going through the camp.
+     // One health bar is the whole village — extra heads mean an
+     // extra dose. A solo camp still takes the original 12–22 / 2–5.
+     var heads=Math.max(1,G.population||1);
+     var h=rand(12,22)+(heads-1)*rand(4,8);
+     var f=rand(2,5)+(heads-1)*rand(1,2);
+     G.health=Math.max(0,G.health-h);
+     G.food  =Math.max(0,G.food  -f);
+     log('Sickness hit the community'+(heads>1?' — all '+heads+' caught it':'')+'. Health fell.');
    }},
   {id:'dumpster_locked',title:'Dumpsters Locked',type:'bad',weight:7,
    desc:'Property management put locks on the dumpsters. Nothing to scavenge today.',
