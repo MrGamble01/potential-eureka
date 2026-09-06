@@ -481,12 +481,17 @@ function finishAction(a){
     if(depositAvailable() && !depositDone()){
       var hauled=G.cans||0;
       var gw=Math.floor(hauled/2), rp=Math.floor(hauled/10);
+      // HV-178: dawn said the cold gets into everything. Scavenge
+      // already rides the sky; the cart haul is the other outdoor
+      // walk that day. A cold snap sky halves the take.
+      var coldCut=G.weather==='cold';
+      if(coldCut){ gw=Math.floor(gw/2); rp=Math.floor(rp/2); }
       G.cans=0;
       G.goodwill+=gw;
       if(rp>0) addRep(rp);
       G.deposits=(G.deposits||0)+1; G.depositDay=G.days;
       floatText('🛒 +'+gw+'🩶'+(rp>0?' +'+rp+'⭐':''));
-      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.');
+      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.'+(coldCut?' The cold got into the haul.':''));
       saveGame();
       buildActionUI();
     }
