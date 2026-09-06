@@ -47,7 +47,8 @@ const Coins = (() => {
     }
     if (minted) {
       save(s);
-      toast(`🪙 +${minted} coins from achievements`);
+      // toast() draws the 🪙 itself — the message must not carry a second one.
+      toast(`+${minted} coins from achievements`);
     }
     return minted;
   }
@@ -78,6 +79,27 @@ const Coins = (() => {
     return true;
   }
 
+  // The coin pill rides the achievement pill's styling, which means it also
+  // rides its position: bottom-right, fixed, same corner. The two always
+  // arrive together — switchView() runs Achievements.check() and then
+  // Coins.credit() — so the pill announcing the coins landed squarely on top
+  // of the trophy that minted them, and a player's first unlock was hidden by
+  // its own reward. Sit above whatever is already down there instead.
+  function stackAbove(el) {
+    el.style.bottom = '';                                    // back to the stylesheet's slot
+    let bottom = parseFloat(getComputedStyle(el).bottom) || 0;
+    for (const other of document.querySelectorAll('.ach-toast')) {
+      if (other === el) continue;
+      // offsetHeight + the resolved `bottom`, not getBoundingClientRect():
+      // a pill mid-entry-animation is still translated down, and measuring
+      // that would park this one on the seam. Reading another stacked pill's
+      // inline bottom is what lets a third one stack on both.
+      const below = (parseFloat(getComputedStyle(other).bottom) || 0) + other.offsetHeight;
+      if (other.offsetHeight) bottom = Math.max(bottom, below + 10);
+    }
+    el.style.bottom = bottom + 'px';
+  }
+
   let toastT = null;
   function toast(msg) {
     let el = document.getElementById('coin-toast');
@@ -90,6 +112,7 @@ const Coins = (() => {
     }
     el.innerHTML = `<span class="ach-toast-icon">🪙</span><span>${msg}</span>`;
     el.classList.remove('ach-toast-out');
+    stackAbove(el);
     clearTimeout(toastT);
     toastT = setTimeout(() => { el.classList.add('ach-toast-out'); }, 2600);
   }
