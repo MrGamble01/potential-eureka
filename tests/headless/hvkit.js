@@ -100,6 +100,9 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop) && !/homeless-village\/js\/ui\.js/
 
   const bare = await t(() => {
     const real = Math.random; Math.random = () => 0.5;
+    const heard = [];
+    const realLog = window.log;
+    window.log = function (msg) { heard.push(String(msg)); return realLog.apply(this, arguments); };
     G.structures.toolbox = false;
     G.structures.tent = false;
     G.structures.soup_kitchen = false;
@@ -109,12 +112,16 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop) && !/homeless-village\/js\/ui\.js/
     G.packedUp = false;
     G.scraps = 20; G.food = 20; G.morale = 50;
     triggerEvent(EVENTS_BAD.find(e => e.id === 'sweep'), false);
+    window.log = realLog;
     Math.random = real;
-    const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
-    return { box: G.structures.toolbox, scraps: G.scraps, log: lines.join(' ') };
+    return {
+      box: G.structures.toolbox,
+      scraps: G.scraps,
+      named: heard.filter(l => /tool box/i.test(l)).length,
+    };
   });
-  ok(!bare.box && bare.scraps < 20 && !/They took the tool box/.test(bare.log),
-    `no box: the sweep still takes goods and does not invent a kit (scraps=${bare.scraps})`);
+  ok(!bare.box && bare.scraps < 20 && bare.named === 0,
+    `no box: the sweep still takes goods and does not invent a kit (scraps=${bare.scraps}, named=${bare.named})`);
 
   const bonus = await t(() => {
     G.days = 3;
