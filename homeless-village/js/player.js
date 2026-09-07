@@ -623,10 +623,19 @@ function doPetition(id){
   if(G.goodwill<def.cost){ log('Not enough goodwill to back the petition (need '+def.cost+'🩶).'); sfx('error'); return; }
   G.goodwill-=def.cost;
   G.petitions[id]=true;
-  if(id==='grant'){ G.food+=8; G.wood+=8; G.scraps+=8; floatText('+8🍞 +8🪵 +8🧱'); }
+  // HV-256: the grant is a crate delivered to the corner. Rain soaks
+  // an outdoor drop — food, wood and scraps come in at half. Heat
+  // and cold are not this card. The sweep taking the same-day load
+  // is a different ticket.
+  var grantNote=def.desc;
+  if(id==='grant'){
+    var gf=8, gw=8, gs=8;
+    if(G.weather==='rain'){ gf=4; gw=4; gs=4; grantNote='Rain got into the crates. +4 food, +4 wood, +4 scraps delivered.'; }
+    G.food+=gf; G.wood+=gw; G.scraps+=gs; floatText('+'+gf+'🍞 +'+gw+'🪵 +'+gs+'🧱');
+  }
   addRep(2);
   sfx('craft');
-  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+def.desc);
+  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+grantNote);
   saveGame();
   buildWorkersUI(); updateHUD();
 }
