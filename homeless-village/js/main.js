@@ -1,4 +1,5 @@
 var lastTime=0, autosaveTimer=0, camSwayT=0;
+var barsLit={};   // HV-73: progress bars filled last frame, by job id
 
 // ── Player input ──
 // Previously there was NO player control: `player` (scene.js) was just
@@ -222,13 +223,29 @@ function frame(ts){
   movePlayer(dt);
   updateScavengeGate();
 
-  // Action progress bars + cooldown disable
+  // Cooldown disable for the fixed action list.
   ACTIONS.forEach(function(a){
-    var job=activeJobs[a.id];
-    var pb=document.getElementById('progress-'+a.id);
-    if(pb) pb.style.width=job?Math.min(100,((Date.now()-job.startTime)/job.duration)*100)+'%':'0%';
     var btn=document.getElementById('action-'+a.id);
-    if(btn&&!job){ var cd=G.cooldowns[a.id]; btn.disabled=!!(cd&&Date.now()<cd); }
+    if(btn&&!activeJobs[a.id]){ var cd=G.cooldowns[a.id]; btn.disabled=!!(cd&&Date.now()<cd); }
+  });
+  // HV-73: progress bars ride every running job, not just ACTIONS. The
+  // odd job, mural, meeting, deposit run, busk, newcomer, ticket and
+  // dry corner are appended by buildActionUI outside that table, and
+  // this loop used to walk ACTIONS only — so their bar sat at 0% for
+  // the whole 6–8s job while the border pulsed. Bars lit last frame
+  // are reset to 0% the moment their job is gone, without waiting on
+  // a panel rebuild (a lapsed ask or a refused build never rebuilds).
+  var nowMs=Date.now();
+  Object.keys(activeJobs).forEach(function(id){
+    var job=activeJobs[id], pb=document.getElementById('progress-'+id);
+    if(pb) pb.style.width=Math.min(100,((nowMs-job.startTime)/job.duration)*100)+'%';
+    barsLit[id]=true;
+  });
+  Object.keys(barsLit).forEach(function(id){
+    if(activeJobs[id]) return;
+    delete barsLit[id];
+    var pb=document.getElementById('progress-'+id);
+    if(pb) pb.style.width='0%';
   });
 
   tickDay(dt);
