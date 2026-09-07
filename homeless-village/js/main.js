@@ -29,6 +29,30 @@ window.addEventListener('keyup', function(e){
 // Alt-tabbing away mid-press must not leave a key "stuck" down forever.
 window.addEventListener('blur', function(){ keysDown = {}; });
 
+// HV-271: save when the player leaves. The 30s autosave below is the
+// only write the grind actions (Scavenge, Forage, Panhandle, Rest,
+// Trade) and hireWorker ever get, so closing the tab — or a phone
+// killing a backgrounded one — threw away up to half a minute of
+// hauls. Tycoon, Grow Op and Voxel Isle all save on pagehide and on
+// visibilitychange→hidden (iOS Safari never fires beforeunload for a
+// killed tab); this is the same handler. One guard: Start Over and
+// Start a New Camp clear the save key and reload, and a leave-save
+// would write the dead camp straight back over the wipe — so stand
+// down while either overlay is up. showGameOver already saved. Two:
+// if the key no longer holds what this page last wrote or loaded,
+// another writer owns it now (a second tab you kept playing in, the
+// hub's Reset progress) — leave it alone rather than stomp it.
+function saveOnLeave(){
+  if(typeof gameOverShown!=='undefined' && gameOverShown) return;
+  if(document.getElementById('hv-graduation')) return;
+  try{ if(localStorage.getItem(SAVE_KEY)!==hvLastWrite) return; }catch(e){ return; }
+  saveGame();
+}
+window.addEventListener('pagehide', saveOnLeave);
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='hidden') saveOnLeave();
+});
+
 // HV-58: Escape closes The Bridge.
 //
 // #chain-modal already dismisses via × and backdrop (ui.js). Escape was
