@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import { fileToAttachment, blocksFor, summaryOf, formatBytes } from "./attachments.js";
+import MissionsPanel from "./Missions.jsx";
 
 // $/MTok (standard rates)
 const MODELS = [
@@ -17,6 +19,9 @@ const ACTIVE_KEY = "agentic-os-chat.active.v1";
 // remembers its tool work next turn. Web results carry encrypted payloads,
 // so cap what one message may hold and what the whole store may grow to.
 const MAX_RAW_CHARS = 300_000;
+// A user turn's attachment blocks (images, PDFs) kept for replay.
+const MAX_BLOCK_CHARS = 1_500_000;
+const MAX_ATTACHMENTS = 8;
 const MAX_STORE_CHARS = 4_000_000;
 
 marked.setOptions({ gfm: true, breaks: true });
@@ -61,7 +66,7 @@ function loadConversations() {
 
 function stripRaw(list, keepId) {
   return list.map((c) =>
-    c.id === keepId ? c : { ...c, messages: c.messages.map((m) => (m.raw ? { ...m, raw: undefined, rawDropped: true } : m)) }
+    c.id === keepId ? c : { ...c, messages: c.messages.map((m) => (m.raw || m.blocks ? { ...m, raw: undefined, blocks: undefined, rawDropped: true } : m)) }
   );
 }
 
@@ -183,16 +188,30 @@ function closeOpenTools(parts) {
 
 // The history the API sees: user text, and for assistant turns the stored
 // transcript when we have it (tool memory), else just the text.
-function buildHistory(messages, text) {
+// Plain chat has no tool loop, so it gets the assistant's text instead of
+// a replayed transcript; the user's own attachment blocks are kept either way.
+function buildHistory(messages, text, blocks = null, { plain = false } = {}) {
   const h = [];
   for (const m of messages) {
     if (m.error || !m.content || !m.content.trim()) continue;
-    if (m.role === "user") h.push({ role: "user", content: m.content });
-    else if (m.raw?.length) h.push(...m.raw);
+    if (m.role === "user") h.push({ role: "user", content: m.blocks?.length ? m.blocks : m.content });
+    else if (m.raw?.length && !plain) h.push(...m.raw);
     else h.push({ role: "assistant", content: m.content });
   }
-  h.push({ role: "user", content: text });
+  h.push({ role: "user", content: blocks?.length ? blocks : text });
   return h;
+}
+
+// Rough markdown-to-speech: drop code, links' urls, emphasis marks.
+function speakable(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, " code block omitted. ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/[*_>#]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function Markdown({ text }) {
@@ -525,7 +544,16 @@ export default function App() {
   const [efforts, setEfforts] = useState(DEFAULT_EFFORTS);
   const [catalog, setCatalog] = useState([]);
   const [panel, setPanel] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
   const [editor, setEditor] = useState(null); // {mode, initial}
+  const [attachments, setAttachments] = useState([]);
+  const [attachErr, setAttachErr] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recRef = useRef(null);
+  const fileRef = useRef(null);
+  const SpeechRec = typeof window !== "undefined" ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
+  const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const abortRef = useRef(null);
@@ -599,23 +627,115 @@ export default function App() {
     });
   }
 
+  async function addFiles(files) {
+    const list = Array.from(files || []).filter(Boolean);
+    if (!list.length) return;
+    setAttachErr("");
+    for (const f of list) {
+      try {
+        const a = await fileToAttachment(f);
+        setAttachments((arr) => (arr.length >= MAX_ATTACHMENTS ? arr : [...arr, a]));
+      } catch (e) {
+        setAttachErr(e.message || "could not attach file");
+      }
+    }
+  }
+
+  function onPaste(e) {
+    const files = Array.from(e.clipboardData?.files || []);
+    if (files.length) {
+      e.preventDefault();
+      addFiles(files);
+    }
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    addFiles(e.dataTransfer?.files);
+  }
+
+  function toggleMic() {
+    if (listening) {
+      recRef.current?.stop();
+      return;
+    }
+    if (!SpeechRec) return;
+    const rec = new SpeechRec();
+    rec.lang = navigator.language || "en-US";
+    rec.interimResults = true;
+    rec.continuous = true;
+    const base = input ? input.replace(/\s*$/, " ") : "";
+    rec.onresult = (ev) => {
+      let heard = "";
+      for (const r of ev.results) heard += r[0].transcript;
+      setInput(base + heard);
+    };
+    rec.onend = () => {
+      setListening(false);
+      recRef.current = null;
+      inputRef.current?.focus();
+    };
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
+
+  function speak(text) {
+    if (!canSpeak) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(speakable(text).slice(0, 4000));
+    window.speechSynthesis.speak(u);
+  }
+
   async function send() {
     const text = input.trim();
-    if (!text || streaming || !active) return;
-    const conv = active;
-    const history = buildHistory(conv.messages, text);
+    if ((!text && !attachments.length) || streaming || !active) return;
+    const files = attachments;
+    const userText = text || `(${files.length} attachment${files.length === 1 ? "" : "s"})`;
+    const blocks = files.length ? blocksFor(files, userText) : null;
     setInput("");
+    setAttachments([]);
+    setAttachErr("");
+    await runTurn(active, { text: userText, blocks, attachSummary: files.length ? summaryOf(files) : undefined, messagesBefore: active.messages });
+  }
+
+  // Re-run the last user message (dropping the answer it got).
+  async function regenerate() {
+    if (streaming || !active) return;
+    const msgs = active.messages;
+    let i = msgs.length - 1;
+    while (i >= 0 && msgs[i].role !== "user") i--;
+    if (i < 0) return;
+    const u = msgs[i];
+    await runTurn(active, { text: u.content, blocks: u.blocks || null, attachSummary: u.attachments, messagesBefore: msgs.slice(0, i) });
+  }
+
+  // Put the last user message back in the box (attachments are not restored).
+  function editLast() {
+    if (streaming || !active) return;
+    const msgs = active.messages;
+    let i = msgs.length - 1;
+    while (i >= 0 && msgs[i].role !== "user") i--;
+    if (i < 0) return;
+    setInput(msgs[i].content);
+    update(active.id, (c) => ({ ...c, messages: c.messages.slice(0, i) }));
+    inputRef.current?.focus();
+  }
+
+  async function runTurn(conv, { text, blocks, attachSummary, messagesBefore }) {
+    const history = buildHistory(messagesBefore, text, blocks, { plain: !conv.agentId });
+    const stored = { role: "user", content: text };
+    if (blocks) {
+      stored.attachments = attachSummary;
+      if (JSON.stringify(blocks).length <= MAX_BLOCK_CHARS) stored.blocks = blocks;
+      else stored.rawDropped = true;
+    }
     update(conv.id, (c) => ({
       ...c,
-      title:
-        c.messages.length === 0 && c.title === "New chat"
-          ? text.slice(0, 48)
-          : c.title,
-      messages: [
-        ...c.messages,
-        { role: "user", content: text },
-        { role: "assistant", content: "", parts: [], sources: [] },
-      ],
+      title: messagesBefore.length === 0 && c.title === "New chat" ? text.slice(0, 48) : c.title,
+      messages: [...messagesBefore, stored, { role: "assistant", content: "", parts: [], sources: [] }],
     }));
     setStreaming(true);
     const controller = new AbortController();
@@ -627,7 +747,7 @@ export default function App() {
         isAgent ? "/api/agent" : "/api/chat",
         isAgent
           ? { agentId: conv.agentId, messages: history, model, effort: conv.effort || undefined, systemPrompt: conv.systemPrompt }
-          : { messages: history.map((m) => (typeof m.content === "string" ? m : null)).filter(Boolean), model, systemPrompt: conv.systemPrompt },
+          : { messages: history, model, systemPrompt: conv.systemPrompt },
         {
           signal: controller.signal,
           onEvent: (ev) => {
@@ -773,6 +893,13 @@ export default function App() {
   const builtins = agents.filter((a) => a.builtin);
   const customs = agents.filter((a) => !a.builtin);
   const roleLabel = agent ? `${agent.emoji} ${agent.name}` : active.agentId ? "agent" : "claude";
+  let lastUserIdx = -1;
+  for (let i = active.messages.length - 1; i >= 0; i--) {
+    if (active.messages[i].role === "user") {
+      lastUserIdx = i;
+      break;
+    }
+  }
 
   return (
     <div className="app">
@@ -837,6 +964,9 @@ export default function App() {
         </div>
         <button className="sidebar-agents" onClick={() => setPanel(true)} title="Create and manage agents">
           🤖 Agents <span className="count">{agents.length || ""}</span>
+        </button>
+        <button className="sidebar-agents" onClick={() => setMissionsOpen(true)} title="Agents that run on a schedule and report back">
+          🛰️ Missions
         </button>
         <div className="sidebar-foot">
           <span
@@ -1004,6 +1134,7 @@ export default function App() {
           {active.messages.map((m, i) => {
             const isLast = i === active.messages.length - 1;
             const live = streaming && isLast;
+            const isLastUser = m.role === "user" && i === lastUserIdx;
             return (
               <div key={i} className={`msg ${m.role}`}>
                 <div className="msg-meta">
@@ -1011,9 +1142,40 @@ export default function App() {
                   {m.role === "assistant" && m.content && (
                     <CopyButton text={m.content} />
                   )}
+                  {m.role === "assistant" && m.content && canSpeak && (
+                    <button className="copy-btn" title="Read aloud" onClick={() => speak(m.content)}>
+                      🔊
+                    </button>
+                  )}
+                  {m.role === "assistant" && isLast && !streaming && !agentMissing && (
+                    <button className="copy-btn" title="Ask again" onClick={regenerate}>
+                      ↻ regenerate
+                    </button>
+                  )}
+                  {isLastUser && !streaming && (
+                    <button className="copy-btn" title="Edit this message and resend" onClick={editLast}>
+                      ✎ edit
+                    </button>
+                  )}
                 </div>
                 {m.role === "user" ? (
-                  <div className="msg-body">{m.content}</div>
+                  <>
+                    {m.attachments?.length > 0 && (
+                      <div className="attachments">
+                        {m.attachments.map((a) =>
+                          a.kind === "image" && a.preview ? (
+                            <img key={a.id} src={a.preview} alt={a.name} title={a.name} />
+                          ) : (
+                            <span key={a.id} className="attach-chip" title={a.name}>
+                              <span className="attach-kind">{a.kind === "pdf" ? "PDF" : "TXT"}</span>
+                              <span className="attach-name">{a.name}</span>
+                            </span>
+                          )
+                        )}
+                      </div>
+                    )}
+                    <div className="msg-body">{m.content}</div>
+                  </>
                 ) : (
                   <AssistantBody m={m} agents={agents} live={live} />
                 )}
@@ -1030,28 +1192,74 @@ export default function App() {
           <div ref={bottomRef} />
         </div>
 
-        <div className="composer">
+        {attachments.length > 0 && (
+          <div className="attach-row">
+            {attachments.map((a) => (
+              <span key={a.id} className="attach-chip" title={a.name}>
+                {a.kind === "image" ? <img src={a.preview} alt="" /> : <span className="attach-kind">{a.kind === "pdf" ? "PDF" : "TXT"}</span>}
+                <span className="attach-name">{a.name}</span>
+                <span className="attach-size">{formatBytes(a.size)}</span>
+                <button className="icon-btn" title="Remove" onClick={() => setAttachments((arr) => arr.filter((x) => x.id !== a.id))}>
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        {attachErr && <div className="composer-toast">{attachErr}</div>}
+        <div
+          className={`composer ${dragOver ? "drop" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+        >
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.txt,.md,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.yml,.yaml,.xml,.sh,.log,text/*"
+            hidden
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <button className="icon-round" title="Attach images, PDFs or text files (or paste / drop them)" onClick={() => fileRef.current?.click()} disabled={streaming}>
+            📎
+          </button>
           <textarea
             ref={inputRef}
             className="input"
-            placeholder={agent ? `Message ${agent.name}… (Enter to send, Shift+Enter for newline)` : "Message… (Enter to send, Shift+Enter for newline)"}
+            placeholder={agent ? `Message ${agent.name}… (Enter to send, Shift+Enter for newline, paste or drop files)` : "Message… (Enter to send, Shift+Enter for newline, paste or drop files)"}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
             rows={Math.min(8, Math.max(1, input.split("\n").length))}
           />
+          {SpeechRec && (
+            <button className={`icon-round ${listening ? "on" : ""}`} title={listening ? "Stop listening" : "Speak your message"} onClick={toggleMic} disabled={streaming}>
+              🎤
+            </button>
+          )}
           {streaming ? (
             <button className="btn stop" onClick={stop}>
               ⏹ Stop
             </button>
           ) : (
-            <button className="btn send" onClick={send} disabled={!input.trim() || agentMissing}>
+            <button className="btn send" onClick={send} disabled={(!input.trim() && !attachments.length) || agentMissing}>
               Send
             </button>
           )}
         </div>
       </main>
 
+      {missionsOpen && (
+        <MissionsPanel agents={agents} models={agentModels} efforts={efforts} Markdown={Markdown} onClose={() => setMissionsOpen(false)} />
+      )}
       {panel && (
         <AgentsPanel
           agents={agents}

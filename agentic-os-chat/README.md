@@ -57,6 +57,33 @@ answers. Delegation is one level deep: a delegated agent cannot delegate
 again, and orchestrators cannot delegate to each other. The specialist's
 token usage is folded into the conversation's counter.
 
+### Missions: agents that run on their own
+
+Click **🛰️ Missions** in the sidebar. A mission is an agent plus a prompt
+that runs every N minutes while the server is up (minimum 5, or 0 for
+on-demand only), or whenever you press **Run now**. Runs happen in the
+background with no browser attached; the panel shows each run's answer,
+the tools it called, sources, token usage and any error, and keeps the
+last 20 runs per mission. Pause, resume, edit, cancel a running mission,
+or delete it. Stored in `agentic-os-chat/data/missions.json` (gitignored).
+Runs that were in flight when the server stopped are marked interrupted.
+
+### Attachments
+
+Paste, drop, or 📎-attach **images** (JPEG, PNG, GIF, WebP; downscaled to
+1568px on the longest edge before upload), **PDFs** (up to 15 MB), and
+**text files** (code, CSV, JSON, Markdown…; first 200K characters). They go
+to the model as content blocks with your message, in agent mode and in
+plain chat, and are kept for the conversation so later turns can refer to
+them. Thumbnails and file chips show in the sent message.
+
+### Regenerate, edit, voice
+
+Hover an answer for **↻ regenerate** (asks the same thing again, replacing
+the answer) and **🔊** read-aloud; hover your last message for **✎ edit**.
+The **🎤** button dictates into the box. Voice uses the browser's speech
+APIs and only appears where they exist (Chrome, Edge, Safari).
+
 ### Tools
 
 **Anthropic-hosted** (run on Anthropic's servers, no setup):
@@ -128,15 +155,22 @@ Shift+Enter for a newline.
 ## Test
 
 ```bash
-npm test
+npm test          # offline unit tests (no key needed)
+npm run smoke:live          # one real turn per agent against the API
+npm run smoke:live -- repo  # just one agent
 ```
 
-Runs the server's `node --test` suites: the agent loop against a fake
-streaming client (tool round-trip, `pause_turn` resume, server-tool result
-summaries, iteration cap, abort), delegation (nested events, bad targets,
-depth limit), the turn transcript, citations, tool-set validation, the
-custom-agent store (CRUD, read-only built-ins, persistence), and the repo
-tools' path sandboxing.
+`smoke:live` needs `ANTHROPIC_API_KEY` in `.env`, spends a few cents, and
+prints each agent's stop reason, tool calls, token counts and the start of
+its answer. Run it after changing an agent's tools or prompt.
+
+`npm test` runs the server's `node --test` suites: the agent loop against
+a fake streaming client (tool round-trip, `pause_turn` resume, server-tool
+result summaries, iteration cap, abort), delegation (nested events, bad
+targets, depth limit), the turn transcript, citations, tool-set
+validation, the custom-agent store (CRUD, read-only built-ins,
+persistence), missions (validation, runs with answers and tool activity,
+error runs, the scheduler tick), and the repo tools' path sandboxing.
 
 ## Talk to the office agents
 
@@ -169,6 +203,10 @@ offline) — the API key is only ever read by the local server.
   can run agents, the effort levels, and the tool catalog.
   `POST /api/agents`, `PUT /api/agents/:id`, `DELETE /api/agents/:id`
   manage your agents (same-origin only; built-ins are read-only).
+- `GET/POST /api/missions`, `PUT/DELETE /api/missions/:id`,
+  `POST /api/missions/:id/run` (returns 202; poll the list) and
+  `POST /api/missions/:id/cancel` manage missions; a scheduler tick every
+  30 s starts due ones. Runs go through the same loop with a 10-minute cap.
 - `POST /api/agent` accepts `{ agentId, messages, model?, effort?, systemPrompt? }`
   and runs the tool-use loop in `server/agent-loop.js`: stream one model
   turn, execute any local tool calls (concurrently), send the results back,
@@ -179,7 +217,9 @@ offline) — the API key is only ever read by the local server.
   totals for the turn), `done` (with the turn's `transcript`), and
   `error` events; events from a delegated agent carry `parent`. Messages
   may be plain text or arrays of content blocks (the replayed transcript),
-  so the loop stays stateless on the server.
+  so the loop stays stateless on the server. The last message may carry
+  `image` (base64 JPEG/PNG/GIF/WebP) and `document` (base64 PDF) blocks
+  alongside its text; `/api/chat` accepts the same.
 - Agent requests use adaptive thinking with a summarized display,
   `output_config.effort`, and a cached system prompt.
 - `GET /api/health` makes a 1-token call to verify the key works.
@@ -194,18 +234,21 @@ offline) — the API key is only ever read by the local server.
 agentic-os-chat/
 ├── package.json        # npm run dev (concurrently), npm test, installs both workspaces
 ├── .env.example        # ANTHROPIC_API_KEY=
-├── data/               # memory.json + agents.json (created on first use, gitignored)
+├── data/               # memory.json, agents.json, missions.json (gitignored)
 ├── server/             # Express API on :3001
-│   ├── index.js        # routes: /api/chat, /api/agents (+CRUD), /api/agent, /api/health
+│   ├── index.js        # routes: /api/chat, /api/agents (+CRUD), /api/agent, /api/missions, /api/health
 │   ├── agents.js       # the built-in roster: persona + tools + default model/effort
 │   ├── agent-store.js  # your agents: validation + data/agents.json
+│   ├── missions.js     # scheduled / on-demand background runs + data/missions.json
 │   ├── tools.js        # local tools, the tool catalog, tool-set validation
 │   ├── agent-loop.js   # the streaming tool-use loop, delegation, transcript
-│   ├── agent-loop.test.js
-│   └── agents-and-store.test.js
+│   ├── live-smoke.js   # npm run smoke:live
+│   └── *.test.js
 └── client/             # React + Vite app on :5173
     ├── vite.config.js  # proxies /api → :3001
     └── src/
-        ├── App.jsx
+        ├── App.jsx         # chat, agent editor, composer
+        ├── Missions.jsx    # the missions panel
+        ├── attachments.js  # files → content blocks
         └── styles.css
 ```

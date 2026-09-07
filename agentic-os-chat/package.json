@@ -6,7 +6,8 @@
   "scripts": {
     "postinstall": "npm --prefix server install && npm --prefix client install",
     "dev": "concurrently -k -n api,web -c blue,green \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
-    "test": "npm --prefix server test"
+    "test": "npm --prefix server test",
+    "smoke:live": "npm --prefix server run smoke:live --"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

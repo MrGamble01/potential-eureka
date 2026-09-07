@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node --watch index.js",
     "start": "node index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "smoke:live": "node live-smoke.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.113.0",
