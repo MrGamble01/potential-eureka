@@ -11759,6 +11759,17 @@ tpToggleEl.addEventListener('click', () => setThirdPerson(!thirdPerson));
 renderer.domElement.addEventListener('pointerdown', e => {
   if (!thirdPerson) return;
   if (e.pointerType === 'touch' && activeCanvasTouches.size > 1) return; // pinch, not orbit
+  // TYC-65: a bugged desk says "click to fix" in walk mode too, and the
+  // click used to orbit the camera instead — the top-down handler above
+  // returns early in walk mode and raycasts through the top-down camera
+  // anyway. Test the click against the walk camera first; a hotfix wins
+  // over an orbit, exactly as it wins over tap-to-move up top.
+  if (e.button === 0) {
+    pointer.x = (e.clientX / innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, pcam);
+    if (tryFixBugAt(raycaster)) return;
+  }
   tpLookId = e.pointerId; tpLookX = e.clientX; tpLookY = e.clientY;
   // Capture so we still get pointerup even if released off-canvas/off-window.
   try { renderer.domElement.setPointerCapture(e.pointerId); } catch (err) {}
