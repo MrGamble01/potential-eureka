@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v64-aow-banner';  // AOW-19b: HUD keeps showing which war banner is in force
+const SW_VERSION = 'eureka-v68-aow-banner';  // AOW-19b: HUD keeps showing which war banner is in force
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
