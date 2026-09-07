@@ -75,6 +75,14 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-253: Dig it up once a session. finishAction already logged
+  // "the piling keeps it" and no-op'd. The click still started the
+  // 2s job and charged the 30s lock as if the can filled again.
+  if(a.id==='can' && canBuried() && canDug){
+    log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
