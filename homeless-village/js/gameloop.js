@@ -324,6 +324,13 @@ function regularFavorsAtDawn(){
 // pantry just means the pot stayed cold — no punishment for being broke.
 function soupNightAtDawn(){
   if(!G.structures.soup_kitchen||G.population<1) return;
+  // HV-264: they ate hot. A scorcher is the last sky for firing
+  // the pot. Do not spend the food — the next cool dawn can still
+  // serve. Illness is not this card. A dusk stamp is not this card.
+  if(G.weather==='heat'){
+    log('🍲 A scorcher — nobody wanted the pot fired.');
+    return;
+  }
   if(G.food<G.population){ log('🍲 The pot stayed cold last night — not enough food to serve everyone.'); return; }
   G.food-=G.population;
   G.morale=Math.min(100,G.morale+4);
