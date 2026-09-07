@@ -4082,7 +4082,7 @@ scene.add(player);
 // ── Tunables (mutated by upgrades) ──
 let playerSpeed = CONFIG.playerBaseSpeed;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
-let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
+let ideaSpeedMult = 1;   // ideation upgrades × Standup × live boosts — only recomputeIdeaSpeedMult() assigns it (TYC-61)
 let dealValueMult = 1;   // prestige × Enterprise × live boosts — only recomputeDealValueMult() assigns it (TYC-60)
 // Prestige (IPO seasons)
 let prestigeLevel = 0;
@@ -8900,7 +8900,7 @@ function buyAmenity(id) {
   am.isOwned = true;
   am.stock = 0; // Support staff will stock it
   buildAmenity(am);
-  if (id === 'standup') ideaSpeedMult *= 1.3;
+  if (id === 'standup') recomputeIdeaSpeedMult();
   refreshHud();
   SFX.purchase(); Haptics.purchase();
 }
@@ -9511,19 +9511,19 @@ const UPGRADE_CATS = [
 const UPGRADES = [
   // ── Ideation ──
   { id:'growth',    cat:'ideation',    label:'💡 Faster Ideation',    base:20,  scale:1.6, max:10,
-    apply: lv => { ideaSpeedMult = 1 + lv * 0.25; },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => lv === 0 ? '+25% engineer speed / level' : `${Math.round((1 + lv*0.25)*100)}% eng speed → ${Math.round((1 + (lv+1)*0.25)*100)}%` },
   { id:'farmexp',   cat:'ideation',    label:'🧘 Deep Focus',         base:150, scale:2.0, max:2,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.3, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `+30% flat to engineer speed (stacks)` },
   { id:'dev',       cat:'ideation',    label:'💭 Brainstorm Sessions',base:50,  scale:1.6, max:10,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.15, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `+15% flat to engineer speed / level (stacks)` },
   { id:'aicopilot', cat:'ideation',    label:'🧠 AI Copilot',         base:300, scale:1.9, max:3,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.5, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `×1.5 engineer speed (multiplicative, cap 8×)` },
   { id:'cdnspeed',  cat:'ideation',    label:'☁️ Cloud Compute',      base:400, scale:2.0, max:1,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.4, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `×1.4 engineer speed (multiplicative, cap 8×)` },
   // ── Engineering ──
   { id:'speed',     cat:'engineering', label:'👟 Running Shoes',      base:25,  scale:1.5, max:10,
@@ -9601,8 +9601,8 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=1; showToast('TechCrunch wave done.','rush','ambient'); } },
   { id:'hackathon', label:'💡 Hackathon', dur:40,
     msg:'💡 Internal hackathon! Ideas flowing 3× faster!', cls:'milestone',
-    onStart:()=>{ ideaSpeedMult=3; changeMorale(+4, 'Hackathon energy'); },
-    onEnd:()=>{ ideaSpeedMult=1; showToast('Hackathon over — back to normal velocity.','','ambient'); } },
+    onStart:()=>{ addIdeaBoost('hackathon', 3); changeMorale(+4, 'Hackathon energy'); },
+    onEnd:()=>{ removeIdeaBoost('hackathon'); showToast('Hackathon over — back to normal velocity.','','ambient'); } },
   { id:'bug', label:'🐛 Prod Bug', dur:18,
     msg:'🐛 Critical bug in prod! Deals paused — devs on it...', cls:'',
     onStart:()=>{ dealSpeedMult=0; changeMorale(-10, 'Prod bug in flight'); },
@@ -9638,10 +9638,10 @@ const EVENT_POOL = [
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
     onStart:()=>{ dealSpeedMult=0; changeMorale(-8, 'Prod outage'); },
-    onEnd:()=>{ dealSpeedMult=1; const prevMult=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*3,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prevMult; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
+    onEnd:()=>{ dealSpeedMult=1; const token=addIdeaBoost('outage-burst', 3); setTimeout(()=>removeIdeaBoost('outage-burst', token),8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
   { id:'pivot', label:'🔄 Pivot', dur:0,
     msg:'🔄 Brilliant pivot! Ideas flow 2× faster for 30s!', cls:'milestone',
-    onStart:()=>{ const prev=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*2,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prev; },30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
+    onStart:()=>{ const token=addIdeaBoost('pivot', 2); setTimeout(()=>removeIdeaBoost('pivot', token),30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
     onEnd:()=>{} },
 ];
 let activeEvent = null;
@@ -9995,6 +9995,47 @@ function removeDealBoost(id, token) {
 }
 function upgCost(u) {
   return Math.floor(u.base * Math.pow(u.scale, upgLevels[u.id]));
+}
+
+// ── Engineer-speed multiplier (TYC-61) ────────────────────────
+// The same shape as dealValueMult one line up, with twelve writers
+// instead of five: Faster Ideation *assigned* 1 + lv × 0.25 (wiping any
+// Deep Focus / Brainstorm / Copilot / Cloud bought before it), the
+// Standup multiplied in, the Hackathon event assigned 3 and then 1 —
+// erasing every ideation upgrade on the floor until the next reload —
+// and the Outage burst and Pivot saved-and-restored across each other.
+// Now derived, every time, in the order the save loader always applied
+// it (so a reload changes nothing):
+//   permanent  (1 + growth × 0.25) then +0.3/Deep Focus, +0.15/Brainstorm,
+//              ×1.5/Copilot, ×1.4/Cloud — each step capped at 8 — × 1.3 Standup
+//   temporary  the product of the boosts currently on the floor
+// Nothing else assigns ideaSpeedMult — tests/headless/tycspeed.js keeps
+// it that way.
+const IDEA_STACK_CAP = 8;
+const ideaBoosts = new Map();   // id → { factor, token }
+function recomputeIdeaSpeedMult() {
+  const lv = id => Math.max(0, Math.floor(Number(upgLevels[id]) || 0));
+  let m = 1 + lv('growth') * 0.25;
+  for (let i = 0; i < lv('farmexp');   i++) m = Math.min(m + 0.3,  IDEA_STACK_CAP);
+  for (let i = 0; i < lv('dev');       i++) m = Math.min(m + 0.15, IDEA_STACK_CAP);
+  for (let i = 0; i < lv('aicopilot'); i++) m = Math.min(m * 1.5,  IDEA_STACK_CAP);
+  for (let i = 0; i < lv('cdnspeed');  i++) m = Math.min(m * 1.4,  IDEA_STACK_CAP);
+  if (amenities.some(a => a.id === 'standup' && a.isOwned)) m *= 1.3;
+  for (const b of ideaBoosts.values()) m *= b.factor;
+  ideaSpeedMult = (Number.isFinite(m) && m > 0) ? m : 1;
+  return ideaSpeedMult;
+}
+function addIdeaBoost(id, factor) {
+  const token = {};
+  ideaBoosts.set(id, { factor, token });
+  recomputeIdeaSpeedMult();
+  return token;
+}
+function removeIdeaBoost(id, token) {
+  const b = ideaBoosts.get(id);
+  if (!b || (token && b.token !== token)) return;
+  ideaBoosts.delete(id);
+  recomputeIdeaSpeedMult();
 }
 function buyUpgrade(id) {
   const u = UPGRADES.find(x => x.id === id);
@@ -12518,7 +12559,7 @@ function doIPO() {
   bridgeTakenSeason = false; bridgeOffer = null; refreshBridgeChip();   // TYC-24: the IPO washes the dilution out
   rollClimate();     // ...and its own market climate (TYC-10)
   fundingRoundIdx = 0;
-  dealSpeedMult = 1; ideaSpeedMult = 1;
+  dealSpeedMult = 1;
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
@@ -12559,6 +12600,10 @@ function doIPO() {
     if (a.isOwned && a.group) { scene.remove(a.group); a.group = null; }
     a.isOwned = false; a.stock = 0;
   }
+  // Engineer speed is back to ×1: upgrades and the Standup are gone, and
+  // no Hackathon / burst / Pivot premium crosses the bell (TYC-61).
+  ideaBoosts.clear();
+  recomputeIdeaSpeedMult();
 
   // Reset room expansion — remove all non-starter rooms
   for (const roomId of Array.from(ownedRooms)) {
@@ -12923,7 +12968,7 @@ const SAVE_SCHEMA = [
           am.isOwned = true;
           am.stock = typeof saved.stock === 'number' ? saved.stock : 0;
           buildAmenity(am);
-          if (saved.id === 'standup') ideaSpeedMult *= 1.3;
+          if (saved.id === 'standup') recomputeIdeaSpeedMult();
         }
       }
     },

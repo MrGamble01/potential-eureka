@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v68-tyc-deal';  // TYC-60: Enterprise Tier survives a reload on installed PWAs
+const SW_VERSION = 'eureka-v69-tyc-speed';  // TYC-61: the Hackathon no longer erases the ideation upgrades on installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
