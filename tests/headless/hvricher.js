@@ -86,12 +86,13 @@ ok(!/homeless-village\/js\/ui\.js/.test(player) && !/homeless-village\/js\/ui\.j
     finishAction(ACTIONS.find(a => a.id === 'scavenge'));
     Math.random = real;
     const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
+    const last = lines[lines.length - 1] || '';
     return {
       scraps: G.scraps,
       cans: G.cans,
       food: G.food,
-      empty: lines.some(l => l.includes('Nothing today')),
-      last: lines[lines.length - 1] || '',
+      empty: /Nothing today/.test(last),
+      last,
     };
   }, { weather, emptyRoll, ray });
 
