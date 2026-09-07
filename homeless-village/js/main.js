@@ -42,7 +42,13 @@ document.addEventListener('keydown', function(e){
     var m = document.getElementById('chain-modal');
     if(m && m.classList.contains('open')){
       m.classList.remove('open');
+      return;
     }
+    // HV-66: Keys in Hand is the same class of card. Keep Building is
+    // the non-destructive dismiss — click that button rather than
+    // invent a third closer.
+    var stay = document.getElementById('hv-grad-stay');
+    if(stay) stay.click();
   }
 });
 
@@ -138,6 +144,11 @@ if(!G.fridgeSeeded){
 // A save whose health already hit 0 (lost, then tab closed without
 // pressing Start Over) must not resume as a playable camp.
 if(G.health<=0) showGameOver();
+// HV-61: same shape for the ending. checkArc() writes arcStage:3 and
+// saveGame()s BEFORE the player picks Keep building or Start a new
+// camp. There is no stage-3 branch, so a reload left the hub reading
+// 🔑 housed and the camp with no Keys in Hand overlay.
+if(G.arcStage>=3 && !G.arcDone) showGraduation();
 
 // The next frame used to be scheduled BEFORE the body ran, so any
 // per-frame exception (e.g. the three.js CDN failing → camera
