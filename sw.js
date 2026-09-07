@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v70-tyc-race';  // TYC-62: a won race survives a reload to the IPO on installed PWAs
+const SW_VERSION = 'eureka-v71-tyc-ipo';  // TYC-63: the bell closes the books on installed PWAs
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

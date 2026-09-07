@@ -10303,6 +10303,12 @@ function updateMoonshot(dt) {
   moonshot.timeLeft -= dt;
   refreshMoonshotChip();
   if (moonshot.timeLeft > 0) return;
+  settleMoonshot();
+}
+// Settle the open wager against the race as it stands — the tick calls
+// this at the window's end, the IPO calls it at the bell (TYC-63).
+function settleMoonshot() {
+  if (!moonshot) return;
   const stake = moonshot.stake;
   moonshot = null;
   const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
@@ -10417,6 +10423,12 @@ function updateFactor(dt) {
   factor.timeLeft -= dt;
   refreshFactorChip();
   if (factor.timeLeft > 0) return;
+  settleFactor();
+}
+// Close the open window and score it — the tick calls this when the
+// window runs out, the IPO calls it at the bell (TYC-63).
+function settleFactor() {
+  if (!factor) return;
   const edge = factor.advance - factor.diverted;
   factorsTaken++;
   factorProfit += edge;
@@ -12532,7 +12544,88 @@ function rollAnalyst() {
   checkAchievements();
 }
 
+// ── The bell closes the books (TYC-63) ─────────────────────────
+// doIPO() below resets the company to $200 × season and an empty floor,
+// but it used to leave everything in flight where it was: an on-site
+// engagement or a launch polish paid its old-season purse (min $2,000)
+// into the new company a minute later, a hackathon shipped for the old
+// rate, an outage carried its ≥$1,000 page into a $200 season and then
+// hit the fresh roster with −6 morale, a moonshot placed while ahead
+// lost automatically once the goal bar and rival reset to zero, the
+// factoring desk kept diverting the new season's first receivables, and
+// Jeff Jackets — the one hire the reset forgot — churned $60+ every ten
+// seconds out of a company that starts with $200. Every open pitch
+// stayed on screen over the season card, its clock still running,
+// while its "expire" path could still charge a default judgment.
+// Everything is settled or shelved HERE, before the reset, so nothing
+// computed at the old season's scale lands in the new one.
+function settleSeasonAtIPO() {
+  // Wagers settle against the season as it stands.
+  if (moonshot) settleMoonshot();
+  if (factor) settleFactor();
+  if (hedge) {
+    hedge = null;
+    hedgesBurned++;
+    addFeedEntry('\u{1F6DF} The hedge expires at the bell \u2014 the race it insured is over');
+    refreshHedgeChip();
+  }
+  // Engagements, polish passes, offsites, all-nighters and fires end
+  // with the company that started them.
+  onsite = null;        refreshOnsiteChip();
+  launchPolish = null;  refreshLaunchChip();
+  retreat = null;       refreshRetreatChip();
+  hackathon = null;     refreshHackChip();
+  if (outage) {
+    outage = null;
+    const banner = document.getElementById('outage-banner');
+    if (banner) banner.style.display = 'none';
+  }
+  // Open pitches close without a verdict — no charge, no penalty, no
+  // scoreboard tick. (War, keynote, SRE and bridge are nulled by doIPO
+  // already; their panels are hidden here with the rest.)
+  acqOffer = null; onsiteOffer = null; launchOffer = null; poachOffer = null;
+  retreatOffer = null; rfpOffer = null; hackOffer = null; trollOffer = null;
+  mentorOffer = null; migrateOffer = null;
+  for (const id of ['acq', 'onsite', 'launch', 'poach', 'retreat', 'rfp', 'hack', 'troll',
+                    'mentor', 'migrate', 'war', 'bridge', 'keynote', 'sre']) {
+    const el = document.getElementById(id + '-offer');
+    if (el) el.style.display = 'none';
+  }
+  // The board adjourns and its running effects lapse.
+  if (boardActive) {
+    clearInterval(boardInterval);
+    boardModalEl().classList.remove('open');
+    boardActive = null;
+  }
+  boardDealMult = 1; boardDealT = 0; boardSpeedMult = 1; boardSpeedT = 0; boardNextT = 180;
+  // The wire event and rush hour end with the season.
+  if (activeEvent) {
+    activeEvent = null;
+    eventSepEl.style.display = 'none';
+    eventLabelEl.style.display = 'none';
+  }
+  nextEventIn = 75 + Math.random() * 65;
+  if (rushActive) {
+    rushActive = false;
+    statusBarEl.classList.remove('rush');
+    rushSepEl.style.display = 'none';
+    rushLabelEl.style.display = 'none';
+  }
+  rushT = 0;
+  // Jeff Jackets leaves with everyone else.
+  if (jeff) {
+    scene.remove(jeff.group);
+    jeff = null;
+    setJeffButton();
+  }
+  // The season's first knocks land minutes into the new season, as
+  // their declarations promise.
+  acqNextT = 300; onsiteNextT = 420; launchNextT = 360; poachNextT = 480; retreatNextT = 540;
+  rfpNextT = 360; hackNextT = 480; trollNextT = 660; mentorNextT = 540; migrateNextT = 150;
+}
+
 function doIPO() {
+  settleSeasonAtIPO();   // TYC-63: close the books before the reset
   founderEarn();   // TYC-8: every IPO mints a Founder Point
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
