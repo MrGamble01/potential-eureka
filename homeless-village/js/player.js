@@ -241,6 +241,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-249: Tell the Fire Story said once a session. finishAction
+  // already logs the fire remembers and no-ops. Clicking 🔥 after
+  // the telling still started the 2s job and charged the 30s lock.
+  // An unlearned story is HV-122; a dead barrel is HV-183.
+  if(a.id==='story' && hvStoryByHeart() && hvStoryTold){
+    log('\ud83d\udd25 The story got its telling tonight — the fire remembers.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.

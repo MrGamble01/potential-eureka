@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v252-hv-band';  // HV-248: Theft takes the weather band
+const SW_VERSION = 'eureka-v253-hv-storytold';  // HV-249: an already-told story does not start the job
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
