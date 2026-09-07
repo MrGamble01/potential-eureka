@@ -15,7 +15,7 @@ const WordFiveGame = (() => {
   let answer, guesses, current, row, state, gridEl, kbEl, msgEl;
   let streak = 0, bestStreak = 0;
   let keyState = {};   // letter -> 'correct' | 'present' | 'absent'
-  let boundKey = null;
+  let bound = false;
 
   function init() {
     gridEl = document.getElementById('word5-grid');
@@ -24,8 +24,10 @@ const WordFiveGame = (() => {
     if (!gridEl) return;
     bestStreak = Utils.highScore.load('word5-streak');
     buildKeyboard();
-    boundKey = Utils.whenViewActive('view-word5', onKey);
-    document.addEventListener('keydown', boundKey);
+    if (!bound) {
+      bound = true;
+      document.addEventListener('keydown', Utils.whenViewActive('view-word5', onKey));
+    }
     newGame();
   }
 
@@ -215,9 +217,13 @@ const WordFiveGame = (() => {
     const b = document.getElementById('word5-best'); if (b) b.textContent = bestStreak;
   }
 
-  function destroy() {
-    if (boundKey) document.removeEventListener('keydown', boundKey);
-  }
+  // Leaving the view. The keydown handler is Utils.whenViewActive-wrapped, so
+  // it is already inert while another view is on screen, and the shell only
+  // ever calls init() once per view — nothing re-binds it. Unbinding it here
+  // killed the physical keyboard for the rest of the session the first time
+  // you left Word Five and came back: the on-screen keys still worked, so it
+  // read as the game quietly ignoring you rather than as a broken listener.
+  function destroy() {}
 
   return { init, newGame, share, destroy };
 })();
