@@ -86,6 +86,7 @@ const LightCyclesGame = (() => {
     running = false; gameOver = false; roundMsg = null;
     wins = 0; losses = 0; streak = 0;
     updateInfo();
+    clearOverlay();
     draw();
   }
 
@@ -372,12 +373,22 @@ const LightCyclesGame = (() => {
     }
   }
 
+  // Take the game-over card down. Anything that clears `gameOver` has to do
+  // this too: the card is opaque and covers the board, and its own click
+  // handler only fires while `gameOver` is set — so a card left behind is a
+  // dead control over a live game, and on touch it hides the only way to
+  // start the next round.
+  function clearOverlay() {
+    const ov = document.getElementById('cycles-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+
   function destroy() {
     clearInterval(gameLoop);
     // Shell re-inits a view only once and won't redraw on return — paint the
     // idle start screen now so returning doesn't show a frozen frame.
     running = false; gameOver = false; roundMsg = null;
-    const ov = document.getElementById('cycles-overlay'); if (ov) ov.style.display = 'none';
+    clearOverlay();
     draw();
   }
 
@@ -396,6 +407,7 @@ const LightCyclesGame = (() => {
     running = false; gameOver = false; roundMsg = null;
     wins = 0; losses = 0; streak = 0;
     updateInfo();
+    clearOverlay();
     draw();
   }
 
