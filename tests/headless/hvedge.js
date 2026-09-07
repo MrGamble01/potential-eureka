@@ -28,7 +28,8 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
 const at = loop.indexOf('function newcomerAtDawn()');
-const body = at >= 0 ? loop.slice(at, at + 900) : '';
+const end = loop.indexOf('function snapAtDawn()');
+const body = at >= 0 && end > at ? loop.slice(at, end) : '';
 
 ok(/edge of the firelight/.test(loop),
   'the ask still says someone stands at the edge of the firelight');
