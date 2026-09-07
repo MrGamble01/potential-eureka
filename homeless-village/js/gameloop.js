@@ -87,10 +87,18 @@ function ticketAtDawn(){
   }
   if(!G.ticketAsk && G.population>=3 && repTier()>=2
      && G.days - (typeof G.ticketLastDay==='number'?G.ticketLastDay:-9) >= TICKET_EVERY){
-    G.ticketAsk={day:G.days};
-    G.ticketLastDay=G.days;
-    log('🚌 Around the fire, one of the residents talks about a sister two towns over. A bus ticket would do it.');
-    buildActionUI();
+    // HV-262: they talk around the fire. Rain already keeps
+    // people off the sidewalk. Do not spend the cadence — the
+    // next clear dawn can still open. Do not return — a letter
+    // from the city is not this card. A named snap is not this card.
+    if(G.weather==='rain'){
+      log('🚌 Rain kept the circle off the fire — nobody talked about the sister tonight.');
+    } else {
+      G.ticketAsk={day:G.days};
+      G.ticketLastDay=G.days;
+      log('🚌 Around the fire, one of the residents talks about a sister two towns over. A bus ticket would do it.');
+      buildActionUI();
+    }
   }
   if((G.ticketsSent||0)>0 && G.days - (typeof G.lastLetterDay==='number'?G.lastLetterDay:-9) >= LETTER_EVERY){
     G.lastLetterDay=G.days;
