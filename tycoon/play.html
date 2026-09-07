@@ -13001,11 +13001,16 @@ const SAVE_SCHEMA = [
   },
   {
     key: 'rivalRace', // TYC-3: the ghost competitor persists mid-season
-    write: p => { p.rivalRace = { rev: rivalRev, done: rivalDone, name: rivalName }; },
+    // `won` (TYC-62): whether YOU rang the bell first. rollAnalyst() reads
+    // it at the IPO, and the flag used to live only in memory — a reload
+    // between the bell and the IPO rated a clean win SELL, reset the BUY
+    // streak (killing the dividend) and banked one retro learning, not two.
+    write: p => { p.rivalRace = { rev: rivalRev, done: rivalDone, name: rivalName, won: raceWonSeason }; },
     read: p => {
       if (!p.rivalRace || typeof p.rivalRace !== 'object') return;
       rivalRev = typeof p.rivalRace.rev === 'number' ? p.rivalRace.rev : 0;
       rivalDone = !!p.rivalRace.done;
+      raceWonSeason = !!p.rivalRace.won;
       if (typeof p.rivalRace.name === 'string' && p.rivalRace.name) rivalName = p.rivalRace.name;
     },
   },
