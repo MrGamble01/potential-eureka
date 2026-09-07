@@ -38,6 +38,15 @@ function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
   if(a.id==='oddjob' && oddJobDone()){ log('Today’s odd job is done — check the board tomorrow.'); return; }
+  // HV-267: the walk posting promises fresh air. A named snap is two
+  // brutal days — the neighbor keeps the dogs in. Refuse before the
+  // timer so a miss does not burn the morning. Heat is not this card.
+  // Hungry Biscuit is not this card.
+  if(a.id==='oddjob' && todaysJob().id==='dogwalk' && snapActive()){
+    log('🐕 The snap has the block inside — the neighbor kept the dogs in. No walk today.');
+    sfx('error');
+    return;
+  }
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
@@ -421,25 +430,32 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
-    // HV-189: dawn says the cold gets into everything. Dumpsters
-    // already feel a cold sky. The scrapyard is the same outdoor
-    // metal — a decent haul halves.
-    var coldYard=j.id==='scrapyd'&&G.weather==='cold';
-    for(var k in j.gives){
-      var amt=j.gives[k];
-      if(coldYard) amt=Math.floor(amt/2);
-      if(k==='morale') G.morale=Math.min(100,G.morale+amt);
-      else G[k]=(G[k]||0)+amt;
-      if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+    // HV-267: a queued walk must not pay after the snap gripped the
+    // block. Do not stamp the day — the board stays open if the snap
+    // breaks. Depot and the other postings still pay.
+    if(j.id==='dogwalk' && snapActive()){
+      log('🐕 The snap has the block inside — the neighbor kept the dogs in. No walk today.');
+    } else {
+      // HV-189: dawn says the cold gets into everything. Dumpsters
+      // already feel a cold sky. The scrapyard is the same outdoor
+      // metal — a decent haul halves.
+      var coldYard=j.id==='scrapyd'&&G.weather==='cold';
+      for(var k in j.gives){
+        var amt=j.gives[k];
+        if(coldYard) amt=Math.floor(amt/2);
+        if(k==='morale') G.morale=Math.min(100,G.morale+amt);
+        else G[k]=(G[k]||0)+amt;
+        if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+      }
+      G.oddJobDay=G.days;
+      if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
+      addRep(3);   // HV-9: honest work is how the neighborhood learns your name
+      floatText(parts.join(' '));
+      log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+      if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
+      saveGame();
+      buildActionUI();
     }
-    G.oddJobDay=G.days;
-    if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
-    addRep(3);   // HV-9: honest work is how the neighborhood learns your name
-    floatText(parts.join(' '));
-    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
-    if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
-    saveGame();
-    buildActionUI();
   } else if(a.id==='mural'){
     // HV-11: one painting session. doAction gates cost and cadence, but
     // re-check here so a queued double-fire can't paint two panels a day.
