@@ -6084,10 +6084,16 @@ function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLev
 let seasonGoalHit = false;
 let trophiesWon = 0;
 // Personal bests per season tier: { prestigeLevel: seconds }.
-// Fastest time from sessionStart to crossing that season's goal.
+// Fastest PLAYED time from the season's start to crossing its goal —
+// seasonPlaySec below, which accumulates frame dt (so a hidden tab or a
+// closed laptop adds nothing), rides the save, and resets at the IPO.
+// It used to be measured from page load (TYC-64): a reload just before
+// the bell recorded a 0:30 "personal best", and a second season in the
+// same tab carried the first season's minutes into its time.
 // Persisted across runs and IPOs so each season has its own PB.
 // Legacy bestTimeToGoal (single number) migrates into tier 0 on load.
 const bestTimesToGoal = {}; // e.g. { 0: 98, 1: 184, 2: 322 }
+let seasonPlaySec = 0;      // played seconds this season (TYC-64)
 function bestTimeFor(prestige) {
   const v = bestTimesToGoal[prestige];
   return (typeof v === 'number' && v > 0) ? v : null;
@@ -8485,7 +8491,7 @@ function triggerWin(cumulative) {
   }
   launchConfetti({ pieces: 100, duration: 3400 });
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
-  const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+  const elapsed = Math.floor(seasonPlaySec);   // TYC-64: played time this season, not time since page load
   // Personal best: compare against THIS season's previous record only
   // (not a global best, since higher seasons always take longer).
   const priorPB = bestTimeFor(prestigeLevel);
@@ -12275,6 +12281,7 @@ function fatalFrame(msg) {
 function frameBody(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
+  seasonPlaySec += dt;   // TYC-64: the season clock only runs while the game does
 
   let dx = 0, dz = 0;
   if (keys['w'] || keys['arrowup'])    dz -= 1;
@@ -12726,6 +12733,7 @@ function doIPO() {
   // New season — finish line resets and the bar's target scales up
   seasonGoalHit = false;
   seasonRecurringRevenue = 0;
+  seasonPlaySec = 0;   // TYC-64: the new season's clock starts at the bell
   revenueLog.length = 0;
   sparkSamples.length = 0;
   winModalEl.classList.remove('open');
@@ -13201,6 +13209,11 @@ const SAVE_SCHEMA = [
     key: 'seasonRecurringRevenue',
     write: p => { p.seasonRecurringRevenue = seasonRecurringRevenue; },
     read: p => { if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue; },
+  },
+  {
+    key: 'seasonPlaySec', // TYC-64: played seconds this season, for the PB
+    write: p => { p.seasonPlaySec = Math.round(seasonPlaySec); },
+    read: p => { if (Number.isFinite(p.seasonPlaySec) && p.seasonPlaySec > 0) seasonPlaySec = p.seasonPlaySec; },
   },
   {
     key: 'trophiesWon',
