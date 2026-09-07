@@ -455,6 +455,9 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
+     // HV-254: confiscate supplies. The tool box is a kit sitting
+     // out — they take it. The workbench perk (#96) is not this card.
+     if(G.structures.toolbox){ G.structures.toolbox=false; log('They took the tool box.'); }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
