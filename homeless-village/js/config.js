@@ -23,7 +23,11 @@ var G = {
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
   sweepWarned: false, sweepCountdown: 0, packedUp: false,
+  dumpsterLockDay: -1,   // HV-63: Dumpsters Locked lasts the rest of that day
   injuredUntil: 0, lastEventDay: -2,
+  // HV-65: the day Old Friend boosted morale. Dawn fades it.
+  // -1 = no fade pending. A setTimeout used to do this and died on reload.
+  friendDay: -1,
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
   // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),
@@ -949,5 +953,13 @@ function chainState(){
 // tick and ui.js (which owns the panel) is loaded after both.
 function introOpen(){
   var m = document.getElementById('intro-modal');
+  return !!(m && m.classList.contains('open'));
+}
+
+// HV-59: The Bridge is the same class of reading. Declared here beside
+// introOpen so tickDay can ask it without adding an API to ui.js (which
+// owns the overlay and is a conflict hotspot).
+function bridgeOpen(){
+  var m = document.getElementById('chain-modal');
   return !!(m && m.classList.contains('open'));
 }

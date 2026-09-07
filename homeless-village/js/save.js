@@ -6,6 +6,14 @@ function loadGame(){
   try{
     var raw = localStorage.getItem(SAVE_KEY);
     if(raw){ Object.assign(G, JSON.parse(raw)); }
+    // HV-62: tickDay subtracts 1 and calls onNewDay once a frame while
+    // timeOfDay >= 1. A hostile save (50, Infinity, NaN, -1) therefore
+    // either burns a dawn per frame until the camp dies, or paints a
+    // broken day bar. Park anything outside [0, 1) at dawn — do not
+    // modulo; that would pick a random hour.
+    if(typeof G.timeOfDay!=='number' || !isFinite(G.timeOfDay) || G.timeOfDay<0 || G.timeOfDay>=1){
+      G.timeOfDay=0;
+    }
     if(!G.activeCrafts) G.activeCrafts={}; // saves from before crafts were persisted
     if(typeof G.goalIndex!=='number'||G.goalIndex<0) G.goalIndex=0; // saves from before the goal ladder
     if(typeof G.arcStage!=='number'||G.arcStage<0) G.arcStage=0;    // saves from before the Case Worker arc
@@ -73,5 +81,6 @@ function loadGame(){
     if(typeof G.rayLoans!=='number') G.rayLoans=0;
     if(typeof G.fridgeSeeded!=='boolean') G.fridgeSeeded=true;     // saves from before HV-31 were never fresh camps to count
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
+    if(typeof G.friendDay!=='number') G.friendDay=-1; // saves from before HV-65
   }catch(e){}
 }
