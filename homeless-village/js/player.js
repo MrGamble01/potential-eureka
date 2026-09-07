@@ -428,6 +428,8 @@ function finishAction(a){
     for(var k in j.gives){
       var amt=j.gives[k];
       if(coldYard) amt=Math.floor(amt/2);
+      // HV-252: weeding the lot in a scorcher. Shop-walk heat is #945.
+      if(j.id==='gardenh' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
       if(k==='morale') G.morale=Math.min(100,G.morale+amt);
       else G[k]=(G[k]||0)+amt;
       if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -438,6 +440,7 @@ function finishAction(a){
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
     if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
+    if(j.id==='gardenh' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lot.');
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
