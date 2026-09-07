@@ -189,16 +189,19 @@ const PongGame = (() => {
         }
       }
 
-      // Point scored
+      // Point scored — credited the moment each ball leaves, not just the
+      // last one: with SPLIT in play, two balls can exit the same frame and
+      // both scorers need their point, not just whichever happened to be
+      // the one that emptied the array.
       if (b.x < -BALL_R * 2 || b.x > WIDTH + BALL_R * 2) {
         const scorer = b.x < 0 ? 1 : 0;
         balls.splice(bi, 1);
-        if (balls.length === 0) {
+        if (!matchOver) {
           scores[scorer]++;
           sfx(scorer === 0 ? 'bonus' : 'die');
           updateInfo();
           if (scores[scorer] >= WIN_SCORE) endMatch(scorer);
-          else serveTimer = 55;
+          else if (balls.length === 0) serveTimer = 55;
         }
       }
     }
