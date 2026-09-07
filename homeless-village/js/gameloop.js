@@ -237,7 +237,13 @@ function onNewDay(){
   }
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
 
-  if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
+  // HV-257: a tent is a roof of sorts. Winter already doubles the
+  // tear (15%). Rain tests a roof — a wet non-winter dawn uses 10%,
+  // so a roll that a clear spring shrugs off will pull the sheeting
+  // down. Heat is not this card. Winter's 15% is not this card.
+  var tentTear=(G.season===3?.15:.05);
+  if(G.weather==='rain') tentTear=Math.max(tentTear,0.10);
+  if(G.structures.tent&&Math.random()<tentTear){
     G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
   }
   if(G.structures.workbench&&Math.random()<.04){
