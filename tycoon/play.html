@@ -4330,6 +4330,27 @@ function ideaWorkerHireCost() {
 function deskAcceptsRole(desk, role) {
   return desk.role === role || desk.role === 'any' || !desk.role;
 }
+// TYC-66: a hire's seat, as the save remembers it, and the desk to put
+// them back at. Every spawn used to take the first free desk in `plots`
+// order, so a reload reseated the roster in schema order (engineers,
+// then BDRs, then AEs, then the VP) rather than hire order — and when
+// a BDR or AE landed on a starter 'any' desk that the Lead Engineer
+// had been sitting at, spawnVP() found no vp-accepting desk and the
+// promotion (up to $21,500 through CTO) silently vanished from the
+// roster. Now each hire remembers its desk by position and goes back
+// to it; the first free desk is only the fallback for saves that
+// predate the field.
+function seatOf(desk) {
+  return desk && desk.group ? { x: desk.group.position.x, z: desk.group.position.z } : null;
+}
+function findDeskFor(role, seat) {
+  if (seat && Number.isFinite(seat.x) && Number.isFinite(seat.z)) {
+    const exact = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, role)
+      && Math.abs(p.group.position.x - seat.x) < 0.01 && Math.abs(p.group.position.z - seat.z) < 0.01);
+    if (exact) return exact;
+  }
+  return plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, role));
+}
 
 // External cost multipliers + stat bonuses. Internals use the scrappy
 // hoodie look; externals spawn in a collared button-down, cost 3× the
@@ -4340,7 +4361,7 @@ const EXTERNAL_BDR_DEAL_BONUS = CONFIG.externalBdrDealBonus;
 
 function spawnIdeaWorker(opts = {}) {
   // (TYC-8 Founder U applies after the spawn succeeds — see the return.)
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
+  const desk = findDeskFor('eng', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
 
@@ -4905,7 +4926,7 @@ const BDR_SOLO_FRACTION = CONFIG.bdrSoloFraction;
 function bdrCost() { return Math.floor(CONFIG.bdrBaseCost * Math.pow(CONFIG.bdrCostScale, bdrs.length)); }
 
 function spawnBDR(opts = {}) {
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
+  const desk = findDeskFor('bdr', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
   const idx = bdrs.length;
@@ -5468,8 +5489,8 @@ const aes = [];
 const AE_PROCESS_MULT = CONFIG.aeProcessMult;
 function aeCost() { return Math.floor(CONFIG.aeBaseCost * Math.pow(CONFIG.aeCostScale, aes.length)); }
 
-function spawnAE() {
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
+function spawnAE(opts = {}) {
+  const desk = findDeskFor('ae', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
   const idx = aes.length;
@@ -5732,8 +5753,8 @@ function vpButtonLabel() {
   return `⬆️ Promote to ${next.label}`;
 }
 
-function spawnVP() {
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
+function spawnVP(opts = {}) {
+  const desk = findDeskFor('vp', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
   const look = {
@@ -13017,6 +13038,7 @@ const SAVE_SCHEMA = [
       p.ideaWorkers = ideaWorkers.length;
       p.ideaWorkerExternals = ideaWorkers.map(w => !!w.external);
       p.ideaWorkerXP = ideaWorkers.map(w => w.xp || 0);   // TYC-5
+      p.ideaWorkerSeats = ideaWorkers.map(w => seatOf(w.desk));   // TYC-66
     },
     // Re-spawn idea workers silently (free on load).
     // (p.supportStaff — legacy barista + runner roles; ignored.)
@@ -13024,9 +13046,10 @@ const SAVE_SCHEMA = [
       if (!p.ideaWorkers) return;
       const flags = Array.isArray(p.ideaWorkerExternals) ? p.ideaWorkerExternals : [];
       const xps = Array.isArray(p.ideaWorkerXP) ? p.ideaWorkerXP : [];
+      const seats = Array.isArray(p.ideaWorkerSeats) ? p.ideaWorkerSeats : [];
       for (let i = 0; i < p.ideaWorkers; i++) {
         // spawnIdeaWorker returns a boolean — grab the roster tail for XP.
-        if (spawnIdeaWorker({ external: !!flags[i] }) && typeof xps[i] === 'number') {
+        if (spawnIdeaWorker({ external: !!flags[i], seat: seats[i] }) && typeof xps[i] === 'number') {
           ideaWorkers[ideaWorkers.length - 1].xp = xps[i];
         }
       }
@@ -13042,27 +13065,34 @@ const SAVE_SCHEMA = [
     write: p => {
       p.bdrCount = bdrs.length;
       p.bdrExternals = bdrs.map(b => !!b.external);
+      p.bdrSeats = bdrs.map(b => seatOf(b.desk));   // TYC-66
     },
     read: p => {
       if (typeof p.bdrCount !== 'number') return;
       const bflags = Array.isArray(p.bdrExternals) ? p.bdrExternals : [];
-      for (let i = 0; i < p.bdrCount; i++) spawnBDR({ external: !!bflags[i] });
+      const seats = Array.isArray(p.bdrSeats) ? p.bdrSeats : [];
+      for (let i = 0; i < p.bdrCount; i++) spawnBDR({ external: !!bflags[i], seat: seats[i] });
     },
   },
   {
     key: 'aeCount',
-    write: p => { p.aeCount = aes.length; },
-    read: p => { if (typeof p.aeCount === 'number') for (let i = 0; i < p.aeCount; i++) spawnAE(); },
+    write: p => { p.aeCount = aes.length; p.aeSeats = aes.map(a => seatOf(a.desk)); },   // TYC-66
+    read: p => {
+      if (typeof p.aeCount !== 'number') return;
+      const seats = Array.isArray(p.aeSeats) ? p.aeSeats : [];
+      for (let i = 0; i < p.aeCount; i++) spawnAE({ seat: seats[i] });
+    },
   },
   {
     key: 'vpCount', // count + tier travel together
     write: p => {
       p.vpCount = vps.length;
       p.vpTier = vps.length > 0 ? vps[0].tier : 0;
+      p.vpSeat = vps.length > 0 ? seatOf(vps[0].desk) : null;   // TYC-66
     },
     read: p => {
       if (typeof p.vpCount !== 'number' || p.vpCount <= 0) return;
-      spawnVP();
+      spawnVP({ seat: p.vpSeat });
       if (vps[0] && typeof p.vpTier === 'number') {
         vps[0].tier = Math.max(0, Math.min(VP_TIERS.length - 1, p.vpTier));
       }
