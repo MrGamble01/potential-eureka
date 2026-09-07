@@ -30,8 +30,8 @@ let pass = 0, fail = 0;
 const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
 
 const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
-const tentAt = loop.indexOf('G.structures.tent&&Math.random()');
-const tent = tentAt >= 0 ? loop.slice(tentAt, tentAt + 280) : '';
+const tentAt = loop.indexOf('Your tent tore in the wind');
+const tent = tentAt >= 0 ? loop.slice(Math.max(0, tentAt - 420), tentAt + 40) : '';
 
 ok(/tore in the wind/.test(loop),
   'the tent still tears in the wind');
