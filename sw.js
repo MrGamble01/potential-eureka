@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v253-hv-storytold';  // HV-249: an already-told story does not start the job
+const SW_VERSION = 'eureka-v254-hv-flyerheat';  // HV-250: the flyer walk thins on a scorcher
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
