@@ -2041,6 +2041,7 @@ function triggerRaid() {
   // Lose 30% of stash
   const lost = Math.floor(stashCount * 0.3);
   stashCount = Math.max(0, stashCount - lost);
+  pureBags = Math.min(pureBags, stashCount);   // LAB-10: the ✨ ledger can't exceed what's left
   // Late-game raids hit the books too: in Act III the DEA seizes a cut
   // of your cash on top of the product, so a raid on a rich empire
   // actually hurts.
@@ -4386,6 +4387,11 @@ function loadGame() {
     refreshBagBtn();
     refreshWaveHud();
     stashCount=Math.min(sv.unitRented?45:STASH_MAX_BASE, sv.stashCount||0);   // LAB-22: the rented ceiling travels with the flag
+    // The LAB-10 clamp above ran against the SAVED bag count, which the
+    // rented ceiling then cuts down — so a save claiming more bags than
+    // its cap allows landed with more ✨ than stash. Re-clamp on the
+    // count the run actually starts with.
+    pureBags = Math.min(pureBags, stashCount);
     trimQueue=sv.trimQueue||0;
     trimBags=sv.trimBags||0;
     // Restore rooms
