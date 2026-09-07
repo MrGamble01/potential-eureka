@@ -106,6 +106,12 @@ function ticketAtDawn(){
 // remembered.
 function pantryAtDawn(){
   if(!G.structures.pantry) return;
+  // HV-259: a little box on a post. Rain keeps the overnight
+  // leave off the sidewalk. A named snap is not this card.
+  if(G.weather==='rain'){
+    log('🥣 Rain kept the pantry box empty overnight.');
+    return;
+  }
   if(Math.random()>=PANTRY_CHANCE) return;
   G.food=(G.food||0)+PANTRY_FOOD;
   G.pantryFills=(G.pantryFills||0)+1;
