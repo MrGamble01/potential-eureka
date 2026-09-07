@@ -34,6 +34,54 @@ function updateScavengeGate(){
                        : 'Dig through dumpsters for scraps, cans, or food.');
 }
 
+// HV-73: two buttons on the rail are gated on goods, and both read the
+// purse only when buildActionUI rebuilt the whole list — at dawn, or
+// after a once-a-day action. Deposit Run computed "(3🫙)" and disabled
+// at build; scavenging up to five cans changed nothing on screen until
+// the next morning, when the cans it had just earned were the ones the
+// run would have hauled. Make Room did the same with the newcomer's 6
+// food + 4 wood, against a three-day ask. Same shape as the scavenge
+// gate above: called every frame from main.js, touches the DOM only
+// when the state it renders actually changes. ui.js stays untouched —
+// the copy here mirrors buildActionUI's exactly, so a rebuild and a
+// refresh paint the same button.
+var _depositGateKey=null, _newcomerGateKey=null;
+function updateGoodsGates(){
+  if(typeof G==='undefined' || typeof depositAction!=='function') return;
+  // Deposit Run: the label carries the live can count and the button
+  // greys out under DEPOSIT_MIN. Both were frozen at build time.
+  var dpb=document.getElementById('action-deposit');
+  if(dpb){
+    var cans=G.cans||0, dpShort=cans<DEPOSIT_MIN, dpDone=depositDone();
+    // The job flag rides the key so the button is re-read the moment a
+    // run ends: finishAction's generic tail re-enables whatever it ran.
+    var dpKey=cans+'|'+dpShort+'|'+dpDone+'|'+!!activeJobs.deposit;
+    if(dpKey!==_depositGateKey){
+      _depositGateKey=dpKey;
+      var dpa=depositAction();
+      dpb.setAttribute('data-tip', dpDone ? 'One load a day — the cart rests till dawn.'
+        : dpShort ? 'Not worth the walk under '+DEPOSIT_MIN+' cans.' : dpa.tooltip);
+      var dpp=document.getElementById('progress-deposit');
+      var dpw=dpp?dpp.style.width:'0%';
+      dpb.innerHTML='<span class="btn-progress" id="progress-deposit" style="width:'+dpw+'"></span>'+dpa.icon+' '+dpa.label+(dpDone?' ✓':'');
+      if(!activeJobs.deposit) dpb.disabled=dpDone||dpShort;
+      dpb.style.opacity=(dpDone||dpShort)?'.5':'';
+    }
+  } else _depositGateKey=null;
+  // Make Room: greyed out while the pantry is short of the bed.
+  var ncb=document.getElementById('action-newcomer');
+  if(ncb){
+    var ncShort=(G.food||0)<NEWCOMER_COST_FOOD||(G.wood||0)<NEWCOMER_COST_WOOD;
+    var ncKey=ncShort+'|'+!!activeJobs.newcomer;
+    if(ncKey!==_newcomerGateKey){
+      _newcomerGateKey=ncKey;
+      ncb.setAttribute('data-tip', ncShort ? 'A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood.' : newcomerAction().tooltip);
+      if(!activeJobs.newcomer) ncb.disabled=ncShort;
+      ncb.style.opacity=ncShort?'.5':'';
+    }
+  } else _newcomerGateKey=null;
+}
+
 function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
