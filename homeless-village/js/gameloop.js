@@ -515,6 +515,9 @@ var EVENTS_BAD=[
    desc:'New development nearby. Harassment from locals is increasing.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-258: the card says locals. Trade is dealing with locals.
+     // Stamp the day so the swap sours for a couple of dawns.
+     G.gentrifyDay=G.days;
      G.morale  =Math.max(0,G.morale  -rand(18,28));
      G.goodwill=Math.max(0,G.goodwill-rand(3,8));
      log('More hostility in the area. Morale suffers.');

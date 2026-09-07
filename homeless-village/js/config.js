@@ -68,6 +68,9 @@ var G = {
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,
+  // HV-258: the day Gentrification soured the corner. Trade halves
+  // for two days. -9 = never.
+  gentrifyDay: -9,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
