@@ -457,7 +457,9 @@ function finishAction(a){
     // HV-14: re-check so a queued double-fire can't hold two circles.
     if(!meetingDone() && (G.population||1)>=2){
       var heads=G.population;
-      var gain=Math.min(10, 2*heads);
+      // HV-64: the tooltip says +2 morale a head. The silent cap of
+      // 10 made a six-person circle pay the same as five.
+      var gain=2*heads;
       G.morale=Math.min(100, G.morale+gain);
       // everyone but you tosses something in the pot
       var pot={}, potKeys=['food','cans','scraps','wood','cardboard'];
@@ -567,6 +569,10 @@ function finishCraft(r){
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
+  // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
+  // only dimmed the lights on a wall-clock; this is the feed that
+  // actually relights it. A blanket is also +warmth and must not.
+  if(r.id==='fire_ration') G.fireOutUntil=0;
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
   sfx('craft');
