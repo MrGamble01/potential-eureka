@@ -4082,8 +4082,8 @@ scene.add(player);
 // ── Tunables (mutated by upgrades) ──
 let playerSpeed = CONFIG.playerBaseSpeed;
 let dealSpeedMult = 1;   // multiplied deal frequency (events / rush / upgrades)
-let ideaSpeedMult = 1;   // multiplied idea grow speed (hackathon event)
-let dealValueMult = 1;   // multiplied deal value (enterprise upgrade)
+let ideaSpeedMult = 1;   // ideation upgrades × Standup × live boosts — only recomputeIdeaSpeedMult() assigns it (TYC-61)
+let dealValueMult = 1;   // prestige × Enterprise × live boosts — only recomputeDealValueMult() assigns it (TYC-60)
 // Prestige (IPO seasons)
 let prestigeLevel = 0;
 // sessionGen increments on IPO reset so any in-flight setTimeouts
@@ -4330,6 +4330,27 @@ function ideaWorkerHireCost() {
 function deskAcceptsRole(desk, role) {
   return desk.role === role || desk.role === 'any' || !desk.role;
 }
+// TYC-66: a hire's seat, as the save remembers it, and the desk to put
+// them back at. Every spawn used to take the first free desk in `plots`
+// order, so a reload reseated the roster in schema order (engineers,
+// then BDRs, then AEs, then the VP) rather than hire order — and when
+// a BDR or AE landed on a starter 'any' desk that the Lead Engineer
+// had been sitting at, spawnVP() found no vp-accepting desk and the
+// promotion (up to $21,500 through CTO) silently vanished from the
+// roster. Now each hire remembers its desk by position and goes back
+// to it; the first free desk is only the fallback for saves that
+// predate the field.
+function seatOf(desk) {
+  return desk && desk.group ? { x: desk.group.position.x, z: desk.group.position.z } : null;
+}
+function findDeskFor(role, seat) {
+  if (seat && Number.isFinite(seat.x) && Number.isFinite(seat.z)) {
+    const exact = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, role)
+      && Math.abs(p.group.position.x - seat.x) < 0.01 && Math.abs(p.group.position.z - seat.z) < 0.01);
+    if (exact) return exact;
+  }
+  return plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, role));
+}
 
 // External cost multipliers + stat bonuses. Internals use the scrappy
 // hoodie look; externals spawn in a collared button-down, cost 3× the
@@ -4340,7 +4361,7 @@ const EXTERNAL_BDR_DEAL_BONUS = CONFIG.externalBdrDealBonus;
 
 function spawnIdeaWorker(opts = {}) {
   // (TYC-8 Founder U applies after the spawn succeeds — see the return.)
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'eng'));
+  const desk = findDeskFor('eng', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
 
@@ -4905,7 +4926,7 @@ const BDR_SOLO_FRACTION = CONFIG.bdrSoloFraction;
 function bdrCost() { return Math.floor(CONFIG.bdrBaseCost * Math.pow(CONFIG.bdrCostScale, bdrs.length)); }
 
 function spawnBDR(opts = {}) {
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'bdr'));
+  const desk = findDeskFor('bdr', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
   const idx = bdrs.length;
@@ -5468,8 +5489,8 @@ const aes = [];
 const AE_PROCESS_MULT = CONFIG.aeProcessMult;
 function aeCost() { return Math.floor(CONFIG.aeBaseCost * Math.pow(CONFIG.aeCostScale, aes.length)); }
 
-function spawnAE() {
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'ae'));
+function spawnAE(opts = {}) {
+  const desk = findDeskFor('ae', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
   const idx = aes.length;
@@ -5732,8 +5753,8 @@ function vpButtonLabel() {
   return `⬆️ Promote to ${next.label}`;
 }
 
-function spawnVP() {
-  const desk = plots.find(p => p.active && !p.occupied && deskAcceptsRole(p, 'vp'));
+function spawnVP(opts = {}) {
+  const desk = findDeskFor('vp', opts.seat);
   if (!desk) return false;
   desk.occupied = true;
   const look = {
@@ -6084,10 +6105,16 @@ function currentGoalTarget() { return GOAL_TARGET_BASE * Math.pow(2, prestigeLev
 let seasonGoalHit = false;
 let trophiesWon = 0;
 // Personal bests per season tier: { prestigeLevel: seconds }.
-// Fastest time from sessionStart to crossing that season's goal.
+// Fastest PLAYED time from the season's start to crossing its goal —
+// seasonPlaySec below, which accumulates frame dt (so a hidden tab or a
+// closed laptop adds nothing), rides the save, and resets at the IPO.
+// It used to be measured from page load (TYC-64): a reload just before
+// the bell recorded a 0:30 "personal best", and a second season in the
+// same tab carried the first season's minutes into its time.
 // Persisted across runs and IPOs so each season has its own PB.
 // Legacy bestTimeToGoal (single number) migrates into tier 0 on load.
 const bestTimesToGoal = {}; // e.g. { 0: 98, 1: 184, 2: 322 }
+let seasonPlaySec = 0;      // played seconds this season (TYC-64)
 function bestTimeFor(prestige) {
   const v = bestTimesToGoal[prestige];
   return (typeof v === 'number' && v > 0) ? v : null;
@@ -8485,7 +8512,7 @@ function triggerWin(cumulative) {
   }
   launchConfetti({ pieces: 100, duration: 3400 });
   const headcount = ideaWorkers.length + eas.length + bdrs.length + aes.length + vps.length;
-  const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+  const elapsed = Math.floor(seasonPlaySec);   // TYC-64: played time this season, not time since page load
   // Personal best: compare against THIS season's previous record only
   // (not a global best, since higher seasons always take longer).
   const priorPB = bestTimeFor(prestigeLevel);
@@ -8551,12 +8578,15 @@ function updateMetricsHUD() {
     metricsPerShipEl.textContent = '$' + fmtCash(per);
     const parts = [`base $${featurePrice}`];
     if (productVersionMult !== 1) parts.push(`${currentProductVersion.ver} ×${productVersionMult}`);
-    if (prestigeMultiplier > 1) parts.push(`S${prestigeLevel + 1} ×${prestigeMultiplier}`);
+    // Same guarded prestige the recompute uses (TYC-60), so a corrupt
+    // save can't make this breakdown invent a factor to close its sum.
+    const pm = (Number.isFinite(prestigeMultiplier) && prestigeMultiplier > 0) ? prestigeMultiplier : 1;
+    if (pm > 1) parts.push(`S${prestigeLevel + 1} ×${pm}`);
     if (legacyBonus() > 1) parts.push(`Legacy ×${legacyBonus().toFixed(1)}`);
     const entLv = upgLevels.enterprise || 0;
-    const entMult = [1,3,8,20][entLv];
+    const entMult = ENT_DEAL_MULTS[entLv] || 1;
     if (entMult > 1) parts.push(`Enterprise Lv${entLv} ×${entMult}`);
-    const eventFactor = dealValueMult / Math.max(0.01, prestigeMultiplier * entMult);
+    const eventFactor = dealValueMult / Math.max(0.01, pm * entMult);
     if (eventFactor > 1.05) parts.push(`Event ×${eventFactor.toFixed(1)}`);
     else if (eventFactor < 0.95) parts.push(`Penalty ×${eventFactor.toFixed(2)}`);
     if (metricsPerShipRowEl) metricsPerShipRowEl.title = parts.join(' × ') + ` = $${per} per shipped feature`;
@@ -8897,7 +8927,7 @@ function buyAmenity(id) {
   am.isOwned = true;
   am.stock = 0; // Support staff will stock it
   buildAmenity(am);
-  if (id === 'standup') ideaSpeedMult *= 1.3;
+  if (id === 'standup') recomputeIdeaSpeedMult();
   refreshHud();
   SFX.purchase(); Haptics.purchase();
 }
@@ -8982,10 +9012,9 @@ const INVESTOR_TYPES = [
       addCash(amt, 'investor'); popCashAt(inv.group.position.x, inv.group.position.z, amt, 'investor');
       addFeedEntry(teamOK ? '🦈 VC: "Big team, big check"' : '🦈 VC: "Come back when you scale"'); } },
   { id: 'corpdev',    label: 'Corp Dev',        icon: '🏦', baseReward: 0,    windowSec: 32, color: 0x3a4a5a,
-    onGreet: (inv) => { const prev = dealValueMult; dealValueMult *= 1.5;
+    onGreet: (inv) => { const token = addDealBoost('corpdev', 1.5);
       addFeedEntry('🏦 Corp Dev: deal value ×1.5 for 60s');
-      const g = sessionGen;
-      setTimeout(() => { if (sessionGen !== g) return; dealValueMult = Math.max(1, prev); }, 60000); } },
+      setTimeout(() => removeDealBoost('corpdev', token), 60000); } },
   { id: 'advisor',    label: 'Advisor',         icon: '🎓', baseReward: 0,    windowSec: 30, color: 0x3a6a4a,
     onGreet: (inv) => { changeMorale(+20, 'Advisor pep talk'); } },
   { id: 'tirekicker', label: 'Tire-kicker',     icon: '🚪', baseReward: 150,  windowSec: 18, color: 0x6a6a6a,
@@ -9509,19 +9538,19 @@ const UPGRADE_CATS = [
 const UPGRADES = [
   // ── Ideation ──
   { id:'growth',    cat:'ideation',    label:'💡 Faster Ideation',    base:20,  scale:1.6, max:10,
-    apply: lv => { ideaSpeedMult = 1 + lv * 0.25; },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => lv === 0 ? '+25% engineer speed / level' : `${Math.round((1 + lv*0.25)*100)}% eng speed → ${Math.round((1 + (lv+1)*0.25)*100)}%` },
   { id:'farmexp',   cat:'ideation',    label:'🧘 Deep Focus',         base:150, scale:2.0, max:2,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.3, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `+30% flat to engineer speed (stacks)` },
   { id:'dev',       cat:'ideation',    label:'💭 Brainstorm Sessions',base:50,  scale:1.6, max:10,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult + 0.15, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `+15% flat to engineer speed / level (stacks)` },
   { id:'aicopilot', cat:'ideation',    label:'🧠 AI Copilot',         base:300, scale:1.9, max:3,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.5, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `×1.5 engineer speed (multiplicative, cap 8×)` },
   { id:'cdnspeed',  cat:'ideation',    label:'☁️ Cloud Compute',      base:400, scale:2.0, max:1,
-    apply: lv => { ideaSpeedMult = Math.min(ideaSpeedMult * 1.4, 8); },
+    apply: lv => { recomputeIdeaSpeedMult(); },
     describe: lv => `×1.4 engineer speed (multiplicative, cap 8×)` },
   // ── Engineering ──
   { id:'speed',     cat:'engineering', label:'👟 Running Shoes',      base:25,  scale:1.5, max:10,
@@ -9535,8 +9564,8 @@ const UPGRADES = [
     apply: lv => { featurePrice = [5,8,12,18,26][lv]; },
     describe: lv => { const v=[5,8,12,18,26]; return lv < v.length - 1 ? `$${v[lv]} → $${v[lv+1]} per shipped feature` : `$${v[lv]} / feature (max)`; } },
   { id:'enterprise',cat:'revenue',     label:'🏢 Enterprise Tier',    base:500, scale:2.5, max:3,
-    apply: lv => { dealValueMult = prestigeMultiplier * [1,3,8,20][lv]; },
-    describe: lv => { const v=[1,3,8,20]; return lv < v.length - 1 ? `×${v[lv]} → ×${v[lv+1]} deal-value multiplier` : `×${v[lv]} deal-value (max)`; } },
+    apply: lv => { recomputeDealValueMult(); },
+    describe: lv => { const v=ENT_DEAL_MULTS; return lv < v.length - 1 ? `×${v[lv]} → ×${v[lv+1]} deal-value multiplier` : `×${v[lv]} deal-value (max)`; } },
 ];
 
 // ── Activity Feed ───────────────────────────────────────
@@ -9599,8 +9628,8 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=1; showToast('TechCrunch wave done.','rush','ambient'); } },
   { id:'hackathon', label:'💡 Hackathon', dur:40,
     msg:'💡 Internal hackathon! Ideas flowing 3× faster!', cls:'milestone',
-    onStart:()=>{ ideaSpeedMult=3; changeMorale(+4, 'Hackathon energy'); },
-    onEnd:()=>{ ideaSpeedMult=1; showToast('Hackathon over — back to normal velocity.','','ambient'); } },
+    onStart:()=>{ addIdeaBoost('hackathon', 3); changeMorale(+4, 'Hackathon energy'); },
+    onEnd:()=>{ removeIdeaBoost('hackathon'); showToast('Hackathon over — back to normal velocity.','','ambient'); } },
   { id:'bug', label:'🐛 Prod Bug', dur:18,
     msg:'🐛 Critical bug in prod! Deals paused — devs on it...', cls:'',
     onStart:()=>{ dealSpeedMult=0; changeMorale(-10, 'Prod bug in flight'); },
@@ -9619,12 +9648,12 @@ const EVENT_POOL = [
     onEnd:()=>{ dealSpeedMult=1; showToast('Competitor hype passed. Revenue normalizing.','milestone'); } },
   { id:'demo', label:'🎤 Demo Day', dur:30,
     msg:'🎤 Demo Day! Investors watching — feature value 3×!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=3; changeMorale(+4, 'Demo Day spotlight'); },
-    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/3); showToast('Demo Day over.','','ambient'); } },
+    onStart:()=>{ addDealBoost('demo', 3); changeMorale(+4, 'Demo Day spotlight'); },
+    onEnd:()=>{ removeDealBoost('demo'); showToast('Demo Day over.','','ambient'); } },
   { id:'award', label:'🏅 Award', dur:20,
     msg:'🏅 Best Startup Award! Deal value 4× for 20s!', cls:'milestone',
-    onStart:()=>{ dealValueMult*=4; changeMorale(+6, 'Best Startup Award!'); },
-    onEnd:()=>{ dealValueMult=Math.max(1,dealValueMult/4); showToast('Award spotlight fading...','','ambient'); } },
+    onStart:()=>{ addDealBoost('award', 4); changeMorale(+6, 'Best Startup Award!'); },
+    onEnd:()=>{ removeDealBoost('award'); showToast('Award spotlight fading...','','ambient'); } },
   { id:'marketdown', label:'📉 Downturn', dur:15,
     msg:'📉 Market turbulence! Deal speed halved for 15s.', cls:'',
     onStart:()=>{ dealSpeedMult=Math.max(0.1, dealSpeedMult*0.5); changeMorale(-4, 'Market downturn'); },
@@ -9636,10 +9665,10 @@ const EVENT_POOL = [
   { id:'outage', label:'🔥 Outage', dur:12,
     msg:'🔥 AWS outage! Deals paused — DevOps scrambling...', cls:'',
     onStart:()=>{ dealSpeedMult=0; changeMorale(-8, 'Prod outage'); },
-    onEnd:()=>{ dealSpeedMult=1; const prevMult=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*3,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prevMult; },8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
+    onEnd:()=>{ dealSpeedMult=1; const token=addIdeaBoost('outage-burst', 3); setTimeout(()=>removeIdeaBoost('outage-burst', token),8000); showToast('🔥 Systems restored! 3× burst for 8s!','rush'); } },
   { id:'pivot', label:'🔄 Pivot', dur:0,
     msg:'🔄 Brilliant pivot! Ideas flow 2× faster for 30s!', cls:'milestone',
-    onStart:()=>{ const prev=ideaSpeedMult; ideaSpeedMult=Math.min(ideaSpeedMult*2,8); const g=sessionGen; setTimeout(()=>{ if (sessionGen!==g) return; ideaSpeedMult=prev; },30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
+    onStart:()=>{ const token=addIdeaBoost('pivot', 2); setTimeout(()=>removeIdeaBoost('pivot', token),30000); showToast('🔄 Pivot! 2× idea speed for 30s!','milestone'); },
     onEnd:()=>{} },
 ];
 let activeEvent = null;
@@ -9951,8 +9980,89 @@ function updateRushHour(dt) {
 
 const upgLevels = {};
 for (const u of UPGRADES) upgLevels[u.id] = 0;
+
+// ── Deal-value multiplier (TYC-60) ─────────────────────────
+// dealValueMult used to be a single variable that five places wrote
+// to directly: the Enterprise upgrade assigned prestige × tier, the
+// prestige loader assigned prestige alone, Demo Day / the Award
+// multiplied and divided it, and Corp Dev saved-and-restored it. Any
+// two of those overlapping lost one of them — most visibly on every
+// reload after the first IPO, where the schema applied Enterprise
+// first and the prestige read then overwrote it with prestige alone.
+// Now it is derived, every time, from the parts that own it:
+//   permanent  prestigeMultiplier × ENT_DEAL_MULTS[Enterprise level]
+//   temporary  the product of the boosts currently on the floor
+// Nothing else assigns dealValueMult — tests/headless/tycdeal.js
+// keeps it that way.
+const ENT_DEAL_MULTS = [1, 3, 8, 20];
+const dealBoosts = new Map();   // id → { factor, token }
+function recomputeDealValueMult() {
+  const pm = (Number.isFinite(prestigeMultiplier) && prestigeMultiplier > 0) ? prestigeMultiplier : 1;
+  const lv = Math.max(0, Math.min(upgLevels.enterprise || 0, ENT_DEAL_MULTS.length - 1));
+  let m = pm * ENT_DEAL_MULTS[lv];
+  for (const b of dealBoosts.values()) m *= b.factor;
+  dealValueMult = (Number.isFinite(m) && m > 0) ? m : pm;
+  return dealValueMult;
+}
+// A boost is keyed by id, so re-granting one (a second Corp Dev inside
+// the first's window) replaces it instead of stacking. The token lets
+// the earlier grant's timer expire harmlessly instead of cutting the
+// later one short.
+function addDealBoost(id, factor) {
+  const token = {};
+  dealBoosts.set(id, { factor, token });
+  recomputeDealValueMult();
+  return token;
+}
+function removeDealBoost(id, token) {
+  const b = dealBoosts.get(id);
+  if (!b || (token && b.token !== token)) return;
+  dealBoosts.delete(id);
+  recomputeDealValueMult();
+}
 function upgCost(u) {
   return Math.floor(u.base * Math.pow(u.scale, upgLevels[u.id]));
+}
+
+// ── Engineer-speed multiplier (TYC-61) ────────────────────────
+// The same shape as dealValueMult one line up, with twelve writers
+// instead of five: Faster Ideation *assigned* 1 + lv × 0.25 (wiping any
+// Deep Focus / Brainstorm / Copilot / Cloud bought before it), the
+// Standup multiplied in, the Hackathon event assigned 3 and then 1 —
+// erasing every ideation upgrade on the floor until the next reload —
+// and the Outage burst and Pivot saved-and-restored across each other.
+// Now derived, every time, in the order the save loader always applied
+// it (so a reload changes nothing):
+//   permanent  (1 + growth × 0.25) then +0.3/Deep Focus, +0.15/Brainstorm,
+//              ×1.5/Copilot, ×1.4/Cloud — each step capped at 8 — × 1.3 Standup
+//   temporary  the product of the boosts currently on the floor
+// Nothing else assigns ideaSpeedMult — tests/headless/tycspeed.js keeps
+// it that way.
+const IDEA_STACK_CAP = 8;
+const ideaBoosts = new Map();   // id → { factor, token }
+function recomputeIdeaSpeedMult() {
+  const lv = id => Math.max(0, Math.floor(Number(upgLevels[id]) || 0));
+  let m = 1 + lv('growth') * 0.25;
+  for (let i = 0; i < lv('farmexp');   i++) m = Math.min(m + 0.3,  IDEA_STACK_CAP);
+  for (let i = 0; i < lv('dev');       i++) m = Math.min(m + 0.15, IDEA_STACK_CAP);
+  for (let i = 0; i < lv('aicopilot'); i++) m = Math.min(m * 1.5,  IDEA_STACK_CAP);
+  for (let i = 0; i < lv('cdnspeed');  i++) m = Math.min(m * 1.4,  IDEA_STACK_CAP);
+  if (amenities.some(a => a.id === 'standup' && a.isOwned)) m *= 1.3;
+  for (const b of ideaBoosts.values()) m *= b.factor;
+  ideaSpeedMult = (Number.isFinite(m) && m > 0) ? m : 1;
+  return ideaSpeedMult;
+}
+function addIdeaBoost(id, factor) {
+  const token = {};
+  ideaBoosts.set(id, { factor, token });
+  recomputeIdeaSpeedMult();
+  return token;
+}
+function removeIdeaBoost(id, token) {
+  const b = ideaBoosts.get(id);
+  if (!b || (token && b.token !== token)) return;
+  ideaBoosts.delete(id);
+  recomputeIdeaSpeedMult();
 }
 function buyUpgrade(id) {
   const u = UPGRADES.find(x => x.id === id);
@@ -10220,6 +10330,12 @@ function updateMoonshot(dt) {
   moonshot.timeLeft -= dt;
   refreshMoonshotChip();
   if (moonshot.timeLeft > 0) return;
+  settleMoonshot();
+}
+// Settle the open wager against the race as it stands — the tick calls
+// this at the window's end, the IPO calls it at the bell (TYC-63).
+function settleMoonshot() {
+  if (!moonshot) return;
   const stake = moonshot.stake;
   moonshot = null;
   const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
@@ -10334,6 +10450,12 @@ function updateFactor(dt) {
   factor.timeLeft -= dt;
   refreshFactorChip();
   if (factor.timeLeft > 0) return;
+  settleFactor();
+}
+// Close the open window and score it — the tick calls this when the
+// window runs out, the IPO calls it at the bell (TYC-63).
+function settleFactor() {
+  if (!factor) return;
   const edge = factor.advance - factor.diverted;
   factorsTaken++;
   factorProfit += edge;
@@ -11658,6 +11780,17 @@ tpToggleEl.addEventListener('click', () => setThirdPerson(!thirdPerson));
 renderer.domElement.addEventListener('pointerdown', e => {
   if (!thirdPerson) return;
   if (e.pointerType === 'touch' && activeCanvasTouches.size > 1) return; // pinch, not orbit
+  // TYC-65: a bugged desk says "click to fix" in walk mode too, and the
+  // click used to orbit the camera instead — the top-down handler above
+  // returns early in walk mode and raycasts through the top-down camera
+  // anyway. Test the click against the walk camera first; a hotfix wins
+  // over an orbit, exactly as it wins over tap-to-move up top.
+  if (e.button === 0) {
+    pointer.x = (e.clientX / innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, pcam);
+    if (tryFixBugAt(raycaster)) return;
+  }
   tpLookId = e.pointerId; tpLookX = e.clientX; tpLookY = e.clientY;
   // Capture so we still get pointerup even if released off-canvas/off-window.
   try { renderer.domElement.setPointerCapture(e.pointerId); } catch (err) {}
@@ -12180,6 +12313,7 @@ function fatalFrame(msg) {
 function frameBody(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
+  seasonPlaySec += dt;   // TYC-64: the season clock only runs while the game does
 
   let dx = 0, dz = 0;
   if (keys['w'] || keys['arrowup'])    dz -= 1;
@@ -12449,7 +12583,88 @@ function rollAnalyst() {
   checkAchievements();
 }
 
+// ── The bell closes the books (TYC-63) ─────────────────────────
+// doIPO() below resets the company to $200 × season and an empty floor,
+// but it used to leave everything in flight where it was: an on-site
+// engagement or a launch polish paid its old-season purse (min $2,000)
+// into the new company a minute later, a hackathon shipped for the old
+// rate, an outage carried its ≥$1,000 page into a $200 season and then
+// hit the fresh roster with −6 morale, a moonshot placed while ahead
+// lost automatically once the goal bar and rival reset to zero, the
+// factoring desk kept diverting the new season's first receivables, and
+// Jeff Jackets — the one hire the reset forgot — churned $60+ every ten
+// seconds out of a company that starts with $200. Every open pitch
+// stayed on screen over the season card, its clock still running,
+// while its "expire" path could still charge a default judgment.
+// Everything is settled or shelved HERE, before the reset, so nothing
+// computed at the old season's scale lands in the new one.
+function settleSeasonAtIPO() {
+  // Wagers settle against the season as it stands.
+  if (moonshot) settleMoonshot();
+  if (factor) settleFactor();
+  if (hedge) {
+    hedge = null;
+    hedgesBurned++;
+    addFeedEntry('\u{1F6DF} The hedge expires at the bell \u2014 the race it insured is over');
+    refreshHedgeChip();
+  }
+  // Engagements, polish passes, offsites, all-nighters and fires end
+  // with the company that started them.
+  onsite = null;        refreshOnsiteChip();
+  launchPolish = null;  refreshLaunchChip();
+  retreat = null;       refreshRetreatChip();
+  hackathon = null;     refreshHackChip();
+  if (outage) {
+    outage = null;
+    const banner = document.getElementById('outage-banner');
+    if (banner) banner.style.display = 'none';
+  }
+  // Open pitches close without a verdict — no charge, no penalty, no
+  // scoreboard tick. (War, keynote, SRE and bridge are nulled by doIPO
+  // already; their panels are hidden here with the rest.)
+  acqOffer = null; onsiteOffer = null; launchOffer = null; poachOffer = null;
+  retreatOffer = null; rfpOffer = null; hackOffer = null; trollOffer = null;
+  mentorOffer = null; migrateOffer = null;
+  for (const id of ['acq', 'onsite', 'launch', 'poach', 'retreat', 'rfp', 'hack', 'troll',
+                    'mentor', 'migrate', 'war', 'bridge', 'keynote', 'sre']) {
+    const el = document.getElementById(id + '-offer');
+    if (el) el.style.display = 'none';
+  }
+  // The board adjourns and its running effects lapse.
+  if (boardActive) {
+    clearInterval(boardInterval);
+    boardModalEl().classList.remove('open');
+    boardActive = null;
+  }
+  boardDealMult = 1; boardDealT = 0; boardSpeedMult = 1; boardSpeedT = 0; boardNextT = 180;
+  // The wire event and rush hour end with the season.
+  if (activeEvent) {
+    activeEvent = null;
+    eventSepEl.style.display = 'none';
+    eventLabelEl.style.display = 'none';
+  }
+  nextEventIn = 75 + Math.random() * 65;
+  if (rushActive) {
+    rushActive = false;
+    statusBarEl.classList.remove('rush');
+    rushSepEl.style.display = 'none';
+    rushLabelEl.style.display = 'none';
+  }
+  rushT = 0;
+  // Jeff Jackets leaves with everyone else.
+  if (jeff) {
+    scene.remove(jeff.group);
+    jeff = null;
+    setJeffButton();
+  }
+  // The season's first knocks land minutes into the new season, as
+  // their declarations promise.
+  acqNextT = 300; onsiteNextT = 420; launchNextT = 360; poachNextT = 480; retreatNextT = 540;
+  rfpNextT = 360; hackNextT = 480; trollNextT = 660; mentorNextT = 540; migrateNextT = 150;
+}
+
 function doIPO() {
+  settleSeasonAtIPO();   // TYC-63: close the books before the reset
   founderEarn();   // TYC-8: every IPO mints a Founder Point
   prestigeLevel++;
   prestigeMultiplier = Math.pow(2, prestigeLevel);
@@ -12476,12 +12691,17 @@ function doIPO() {
   bridgeTakenSeason = false; bridgeOffer = null; refreshBridgeChip();   // TYC-24: the IPO washes the dilution out
   rollClimate();     // ...and its own market climate (TYC-10)
   fundingRoundIdx = 0;
-  dealSpeedMult = 1; ideaSpeedMult = 1; dealValueMult = prestigeMultiplier;
+  dealSpeedMult = 1;
   productVersionMult = 1; currentProductVersion = PRODUCT_VERSIONS[0];
 
   // Clear upgrades (apply resets tunables)
   playerSpeed = CONFIG.playerBaseSpeed; featurePrice = CONFIG.featurePriceBase;
   for (const u of UPGRADES) upgLevels[u.id] = 0;
+  // The new season's deal value is prestige alone: no Enterprise tier
+  // yet, and whatever Demo Day / Award / Corp Dev was running does not
+  // carry its premium across the bell (TYC-60).
+  dealBoosts.clear();
+  recomputeDealValueMult();
 
   // Remove idea workers
   for (const w of ideaWorkers) scene.remove(w.group);
@@ -12512,6 +12732,10 @@ function doIPO() {
     if (a.isOwned && a.group) { scene.remove(a.group); a.group = null; }
     a.isOwned = false; a.stock = 0;
   }
+  // Engineer speed is back to ×1: upgrades and the Standup are gone, and
+  // no Hackathon / burst / Pivot premium crosses the bell (TYC-61).
+  ideaBoosts.clear();
+  recomputeIdeaSpeedMult();
 
   // Reset room expansion — remove all non-starter rooms
   for (const roomId of Array.from(ownedRooms)) {
@@ -12541,6 +12765,7 @@ function doIPO() {
   // New season — finish line resets and the bar's target scales up
   seasonGoalHit = false;
   seasonRecurringRevenue = 0;
+  seasonPlaySec = 0;   // TYC-64: the new season's clock starts at the bell
   revenueLog.length = 0;
   sparkSamples.length = 0;
   winModalEl.classList.remove('open');
@@ -12705,7 +12930,9 @@ const SAVE_SCHEMA = [
         // corruption, future schema) would index past the fixed price/mult
         // arrays in u.apply and NaN-poison every deal from then on.
         const lv = Math.max(0, Math.min(Number(p.upgrades[u.id]) || 0, u.max));
-        for (let i = 1; i <= lv; i++) u.apply(i);
+        // Level first, then apply — the same order buyUpgrade() uses, so
+        // an apply that derives from upgLevels (Enterprise) sees itself.
+        for (let i = 1; i <= lv; i++) { upgLevels[u.id] = i; u.apply(i); }
         upgLevels[u.id] = lv;
       }
     },
@@ -12726,9 +12953,12 @@ const SAVE_SCHEMA = [
     read: p => {
       if (typeof p.prestigeLevel      === 'number') prestigeLevel      = p.prestigeLevel;
       if (typeof p.prestigeMultiplier === 'number') prestigeMultiplier = p.prestigeMultiplier;
-      // Apply prestige multiplier to deal value
+      // Fold the prestige multiplier into the deal value. Recomputed
+      // from its parts rather than assigned, so it no longer matters
+      // that the Enterprise upgrade was applied a few entries above
+      // this one (TYC-60: that order wiped the tier on every reload).
       if (prestigeLevel > 0) {
-        dealValueMult = prestigeMultiplier;
+        recomputeDealValueMult();
         seasonBadge.style.display = 'inline-block';
         seasonBadge.textContent   = `S${prestigeLevel + 1}`;
       }
@@ -12808,6 +13038,7 @@ const SAVE_SCHEMA = [
       p.ideaWorkers = ideaWorkers.length;
       p.ideaWorkerExternals = ideaWorkers.map(w => !!w.external);
       p.ideaWorkerXP = ideaWorkers.map(w => w.xp || 0);   // TYC-5
+      p.ideaWorkerSeats = ideaWorkers.map(w => seatOf(w.desk));   // TYC-66
     },
     // Re-spawn idea workers silently (free on load).
     // (p.supportStaff — legacy barista + runner roles; ignored.)
@@ -12815,9 +13046,10 @@ const SAVE_SCHEMA = [
       if (!p.ideaWorkers) return;
       const flags = Array.isArray(p.ideaWorkerExternals) ? p.ideaWorkerExternals : [];
       const xps = Array.isArray(p.ideaWorkerXP) ? p.ideaWorkerXP : [];
+      const seats = Array.isArray(p.ideaWorkerSeats) ? p.ideaWorkerSeats : [];
       for (let i = 0; i < p.ideaWorkers; i++) {
         // spawnIdeaWorker returns a boolean — grab the roster tail for XP.
-        if (spawnIdeaWorker({ external: !!flags[i] }) && typeof xps[i] === 'number') {
+        if (spawnIdeaWorker({ external: !!flags[i], seat: seats[i] }) && typeof xps[i] === 'number') {
           ideaWorkers[ideaWorkers.length - 1].xp = xps[i];
         }
       }
@@ -12833,27 +13065,34 @@ const SAVE_SCHEMA = [
     write: p => {
       p.bdrCount = bdrs.length;
       p.bdrExternals = bdrs.map(b => !!b.external);
+      p.bdrSeats = bdrs.map(b => seatOf(b.desk));   // TYC-66
     },
     read: p => {
       if (typeof p.bdrCount !== 'number') return;
       const bflags = Array.isArray(p.bdrExternals) ? p.bdrExternals : [];
-      for (let i = 0; i < p.bdrCount; i++) spawnBDR({ external: !!bflags[i] });
+      const seats = Array.isArray(p.bdrSeats) ? p.bdrSeats : [];
+      for (let i = 0; i < p.bdrCount; i++) spawnBDR({ external: !!bflags[i], seat: seats[i] });
     },
   },
   {
     key: 'aeCount',
-    write: p => { p.aeCount = aes.length; },
-    read: p => { if (typeof p.aeCount === 'number') for (let i = 0; i < p.aeCount; i++) spawnAE(); },
+    write: p => { p.aeCount = aes.length; p.aeSeats = aes.map(a => seatOf(a.desk)); },   // TYC-66
+    read: p => {
+      if (typeof p.aeCount !== 'number') return;
+      const seats = Array.isArray(p.aeSeats) ? p.aeSeats : [];
+      for (let i = 0; i < p.aeCount; i++) spawnAE({ seat: seats[i] });
+    },
   },
   {
     key: 'vpCount', // count + tier travel together
     write: p => {
       p.vpCount = vps.length;
       p.vpTier = vps.length > 0 ? vps[0].tier : 0;
+      p.vpSeat = vps.length > 0 ? seatOf(vps[0].desk) : null;   // TYC-66
     },
     read: p => {
       if (typeof p.vpCount !== 'number' || p.vpCount <= 0) return;
-      spawnVP();
+      spawnVP({ seat: p.vpSeat });
       if (vps[0] && typeof p.vpTier === 'number') {
         vps[0].tier = Math.max(0, Math.min(VP_TIERS.length - 1, p.vpTier));
       }
@@ -12871,7 +13110,7 @@ const SAVE_SCHEMA = [
           am.isOwned = true;
           am.stock = typeof saved.stock === 'number' ? saved.stock : 0;
           buildAmenity(am);
-          if (saved.id === 'standup') ideaSpeedMult *= 1.3;
+          if (saved.id === 'standup') recomputeIdeaSpeedMult();
         }
       }
     },
@@ -12904,11 +13143,16 @@ const SAVE_SCHEMA = [
   },
   {
     key: 'rivalRace', // TYC-3: the ghost competitor persists mid-season
-    write: p => { p.rivalRace = { rev: rivalRev, done: rivalDone, name: rivalName }; },
+    // `won` (TYC-62): whether YOU rang the bell first. rollAnalyst() reads
+    // it at the IPO, and the flag used to live only in memory — a reload
+    // between the bell and the IPO rated a clean win SELL, reset the BUY
+    // streak (killing the dividend) and banked one retro learning, not two.
+    write: p => { p.rivalRace = { rev: rivalRev, done: rivalDone, name: rivalName, won: raceWonSeason }; },
     read: p => {
       if (!p.rivalRace || typeof p.rivalRace !== 'object') return;
       rivalRev = typeof p.rivalRace.rev === 'number' ? p.rivalRace.rev : 0;
       rivalDone = !!p.rivalRace.done;
+      raceWonSeason = !!p.rivalRace.won;
       if (typeof p.rivalRace.name === 'string' && p.rivalRace.name) rivalName = p.rivalRace.name;
     },
   },
@@ -13006,6 +13250,11 @@ const SAVE_SCHEMA = [
     key: 'seasonRecurringRevenue',
     write: p => { p.seasonRecurringRevenue = seasonRecurringRevenue; },
     read: p => { if (typeof p.seasonRecurringRevenue === 'number') seasonRecurringRevenue = p.seasonRecurringRevenue; },
+  },
+  {
+    key: 'seasonPlaySec', // TYC-64: played seconds this season, for the PB
+    write: p => { p.seasonPlaySec = Math.round(seasonPlaySec); },
+    read: p => { if (Number.isFinite(p.seasonPlaySec) && p.seasonPlaySec > 0) seasonPlaySec = p.seasonPlaySec; },
   },
   {
     key: 'trophiesWon',
