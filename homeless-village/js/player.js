@@ -47,6 +47,14 @@ function doAction(a){
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
     if(!G.newcomerAsk) return;
+    // HV-270: the ask opens while the camp is under the cap, then holds
+    // three days — and hireWorker fills beds with no cap check. Once six
+    // are by the fire, finishAction's re-check quietly seats nobody but
+    // its shared tail still plays the success blip. Refuse here, before
+    // the 6s timer, the way the short pantry already does.
+    if((G.population||1)>=NEWCOMER_POP_MAX){
+      log('🫂 No room by the fire — the camp is full at '+NEWCOMER_POP_MAX+'.'); sfx('error'); return;
+    }
     if(G.food<NEWCOMER_COST_FOOD || G.wood<NEWCOMER_COST_WOOD){
       log('🫂 A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood — the camp comes up short.'); sfx('error'); return;
     }
