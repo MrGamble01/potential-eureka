@@ -6,17 +6,25 @@
 // Events emitted:
 //   { type: "text", text }                          streamed answer text
 //   { type: "thinking", text }                      streamed thinking summary
+//   { type: "citation", url, title, cited_text }    a web source the text cites
 //   { type: "tool_start", id, name, server }        model began a tool call
 //   { type: "tool_input", id, name, input }         its arguments, once complete
 //   { type: "tool_result", id, name, ok, summary, results? }
 //   { type: "usage", ...token counts, iteration }   once per model turn
 //   { type: "done", stop_reason, iterations }
 //   { type: "error", message }                      (emitted by the caller)
+// Events from a delegated sub-agent carry `parent: <delegate tool_use id>`.
+//
+// runAgent resolves with { stop_reason, iterations, usage, transcript }:
+// `transcript` is every message the turn appended (assistant blocks and
+// tool results). A client that sends it back verbatim on the next turn
+// gives the agent memory of what it searched, read and ran.
 
-import { resolveTools, executeTool } from "./tools.js";
+import { resolveTools, executeTool, toolError } from "./tools.js";
 
 const MAX_TOKENS = 64000;
 const RESULT_PREVIEW = 600;
+const MAX_DELEGATION_DEPTH = 1;
 
 function summarizeServerResult(block) {
   const c = block.content;
@@ -71,6 +79,16 @@ export function buildParams({ model, effort, system, tools, messages }) {
   };
 }
 
+// The roster text a delegating agent sees, so it can pick ids.
+function rosterText(agents, self) {
+  const others = agents.filter((a) => a.id !== self.id && !a.hidden && !(a.tools || []).includes("delegate"));
+  if (!others.length) return "No other agents are available to delegate to.";
+  return (
+    "Agents you can delegate to (use the id):\n" +
+    others.map((a) => `- ${a.id}: ${a.name} — ${a.tagline || a.description || ""} (tools: ${(a.tools || []).join(", ") || "none"})`).join("\n")
+  );
+}
+
 export async function runAgent({
   client,
   agent,
@@ -81,22 +99,69 @@ export async function runAgent({
   signal,
   emit,
   maxIterations = 12,
+  // Delegation: how to look up other agents, and how deep we already are.
+  getAgent = () => null,
+  listAgents = () => [],
+  depth = 0,
 }) {
-  const { defs, runners } = resolveTools(agent.tools);
-  const system = [{ type: "text", text: agent.system, cache_control: { type: "ephemeral" } }];
+  const totals = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+
+  const delegate = async (input, block) => {
+    if (depth >= MAX_DELEGATION_DEPTH) throw toolError("delegation limit reached: a delegated agent cannot delegate further");
+    const target = getAgent(String(input.agent || "").trim());
+    if (!target || target.hidden) throw toolError(`unknown agent id: ${input.agent}`);
+    if (target.id === agent.id) throw toolError("an agent cannot delegate to itself");
+    if ((target.tools || []).includes("delegate")) throw toolError(`${target.id} is an orchestrator; delegate to a specialist instead`);
+    const task = String(input.task || "").trim();
+    if (!task) throw toolError("task is required");
+
+    let answer = "";
+    const sub = await runAgent({
+      client,
+      agent: target,
+      messages: [{ role: "user", content: task }],
+      signal,
+      getAgent,
+      listAgents,
+      depth: depth + 1,
+      maxIterations,
+      emit: (e) => {
+        if (e.type === "usage") return; // folded into the parent's totals below
+        if (e.type === "text") answer += e.text;
+        emit({ ...e, parent: block.id });
+      },
+    });
+    for (const k of Object.keys(totals)) totals[k] += sub.usage[k] || 0;
+    if (sub.stop_reason === "aborted") throw toolError("delegation was cancelled");
+    if (!answer.trim()) throw toolError(`${target.name} finished without an answer (${sub.stop_reason})`);
+    return `[${target.name} answered]\n${answer.trim()}`;
+  };
+
+  const { defs, runners } = resolveTools(agent.tools, { delegate });
+  const systemText = (agent.tools || []).includes("delegate")
+    ? `${agent.system}\n\n${rosterText(listAgents(), agent)}`
+    : agent.system;
+  const system = [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }];
   if (typeof systemPrompt === "string" && systemPrompt.trim()) {
     system.push({ type: "text", text: systemPrompt.trim() });
   }
 
   const history = messages.map(({ role, content }) => ({ role, content }));
-  const totals = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  const base = history.length;
   let current = null;
   const onAbort = () => current?.abort();
   signal?.addEventListener("abort", onAbort, { once: true });
+  const finish = (stop_reason, iterations, extra = {}) => ({
+    stop_reason,
+    iterations,
+    usage: totals,
+    transcript: history.slice(base),
+    ...extra,
+  });
 
   try {
     for (let iteration = 1; iteration <= maxIterations; iteration++) {
-      if (signal?.aborted) return { stop_reason: "aborted", iterations: iteration - 1, usage: totals };
+      if (signal?.aborted) return finish("aborted", iteration - 1);
 
       const stream = client.messages.stream(
         buildParams({ model, effort, system, tools: defs, messages: history }),
@@ -107,6 +172,9 @@ export async function runAgent({
       stream.on("text", (text) => emit({ type: "text", text }));
       stream.on("thinking", (text) => {
         if (text) emit({ type: "thinking", text });
+      });
+      stream.on("citation", (c) => {
+        if (c?.url) emit({ type: "citation", url: c.url, title: c.title || "", cited_text: (c.cited_text || "").slice(0, 300) });
       });
       stream.on("streamEvent", (ev) => {
         if (ev.type !== "content_block_start") return;
@@ -153,12 +221,13 @@ export async function runAgent({
           });
         });
         history.push({ role: "user", content: results });
+        if (signal?.aborted) return finish("aborted", iteration);
         continue;
       }
 
-      return { stop_reason: message.stop_reason, iterations: iteration, usage: totals, stop_details: message.stop_details ?? null };
+      return finish(message.stop_reason, iteration, { stop_details: message.stop_details ?? null });
     }
-    return { stop_reason: "max_iterations", iterations: maxIterations, usage: totals };
+    return finish("max_iterations", maxIterations);
   } finally {
     signal?.removeEventListener("abort", onAbort);
   }

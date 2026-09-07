@@ -3,8 +3,10 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
-import { AGENT_BY_ID, AGENT_MODELS, publicAgents } from "./agents.js";
+import { AGENT_MODELS } from "./agents.js";
 import { runAgent } from "./agent-loop.js";
+import { TOOL_CATALOG } from "./tools.js";
+import { EFFORTS, listAgents, getAgent, createAgent, updateAgent, deleteAgent, publicShape } from "./agent-store.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // The .env file lives at the app root, next to .env.example
@@ -159,43 +161,79 @@ app.post("/api/chat", async (req, res) => {
 
 // ---- agents -------------------------------------------------------------
 
-app.get("/api/agents", (req, res) => {
-  res.json({ agents: publicAgents(), models: AGENT_MODELS });
+app.get("/api/agents", async (req, res) => {
+  const agents = (await listAgents()).map(publicShape);
+  res.json({ agents, models: AGENT_MODELS, efforts: EFFORTS, tools: TOOL_CATALOG });
 });
 
-const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
+// Creating and editing agents is for the app itself, not for arbitrary
+// pages that can reach this local server through the permissive CORS above.
+function sameOriginOnly(req, res, next) {
+  const origin = req.get("origin");
+  if (!origin) return next();
+  try {
+    const host = new URL(origin).hostname;
+    if (["localhost", "127.0.0.1", "[::1]", "::1"].includes(host)) return next();
+  } catch {
+    /* fall through */
+  }
+  res.status(403).json({ error: "agents can only be edited from the local app" });
+}
+
+app.post("/api/agents", sameOriginOnly, async (req, res) => {
+  const r = await createAgent(req.body ?? {});
+  if (r.error) return res.status(r.status || 400).json({ error: r.error });
+  res.status(201).json({ agent: publicShape(r.agent) });
+});
+
+app.put("/api/agents/:id", sameOriginOnly, async (req, res) => {
+  const r = await updateAgent(req.params.id, req.body ?? {});
+  if (r.error) return res.status(r.status || 400).json({ error: r.error });
+  res.json({ agent: publicShape(r.agent) });
+});
+
+app.delete("/api/agents/:id", sameOriginOnly, async (req, res) => {
+  const r = await deleteAgent(req.params.id);
+  if (r.error) return res.status(r.status || 400).json({ error: r.error });
+  res.json({ ok: true });
+});
+
+// A message is either plain text or an array of content blocks: the
+// client replays the transcript from earlier turns (assistant blocks,
+// tool results) so the agent remembers what it searched, read and ran.
+function validMessage(m) {
+  if (!m || (m.role !== "user" && m.role !== "assistant")) return false;
+  if (typeof m.content === "string") return m.content.trim().length > 0;
+  return (
+    Array.isArray(m.content) &&
+    m.content.length > 0 &&
+    m.content.every((b) => b && typeof b === "object" && typeof b.type === "string")
+  );
+}
 
 // Same SSE contract as /api/chat (text / usage / done / error) plus the
-// agent events documented in agent-loop.js. The client sends the plain
-// text history; the tool-use loop for the current turn happens here.
+// agent events documented in agent-loop.js. The tool-use loop for the
+// current turn happens here; `done` carries the turn's transcript.
 app.post("/api/agent", async (req, res) => {
   const { agentId, messages, model, effort, systemPrompt } = req.body ?? {};
 
-  const agent = AGENT_BY_ID.get(agentId);
+  const agent = await getAgent(typeof agentId === "string" ? agentId : "");
   if (!agent) return res.status(400).json({ error: `Unknown agent: ${agentId}` });
   const useModel = model ?? agent.model;
   if (!AGENT_MODELS.includes(useModel)) {
     return res.status(400).json({ error: `Model ${useModel} cannot run agents. Use one of: ${AGENT_MODELS.join(", ")}` });
   }
   const useEffort = effort ?? agent.effort;
-  if (useEffort != null && !EFFORTS.has(useEffort)) {
+  if (useEffort != null && !EFFORTS.includes(useEffort)) {
     return res.status(400).json({ error: `Unknown effort: ${useEffort}` });
   }
-  const valid =
-    Array.isArray(messages) &&
-    messages.length > 0 &&
-    messages.every(
-      (m) =>
-        m &&
-        (m.role === "user" || m.role === "assistant") &&
-        typeof m.content === "string" &&
-        m.content.trim().length > 0
-    );
+  const valid = Array.isArray(messages) && messages.length > 0 && messages.every(validMessage);
   if (!valid) {
     return res.status(400).json({ error: "messages must be a non-empty array of {role, content}" });
   }
-  if (messages[messages.length - 1].role !== "user") {
-    return res.status(400).json({ error: "the last message must be from the user" });
+  const last = messages[messages.length - 1];
+  if (last.role !== "user" || typeof last.content !== "string") {
+    return res.status(400).json({ error: "the last message must be the user's text" });
   }
 
   let anthropic;
@@ -219,6 +257,7 @@ app.post("/api/agent", async (req, res) => {
     if (!res.writableEnded) controller.abort();
   });
 
+  const roster = await listAgents();
   try {
     const out = await runAgent({
       client: anthropic,
@@ -229,9 +268,17 @@ app.post("/api/agent", async (req, res) => {
       messages,
       signal: controller.signal,
       emit: send,
+      getAgent: (id) => roster.find((a) => a.id === id) || null,
+      listAgents: () => roster,
     });
     if (out.stop_reason !== "aborted") {
-      send({ type: "done", stop_reason: out.stop_reason, iterations: out.iterations, stop_details: out.stop_details ?? null });
+      send({
+        type: "done",
+        stop_reason: out.stop_reason,
+        iterations: out.iterations,
+        stop_details: out.stop_details ?? null,
+        transcript: out.transcript,
+      });
     }
   } catch (err) {
     if (!(err instanceof Anthropic.APIUserAbortError) && !controller.signal.aborted) {

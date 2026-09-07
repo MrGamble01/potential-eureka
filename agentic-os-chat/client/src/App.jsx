@@ -9,10 +9,15 @@ const MODELS = [
   { id: "claude-sonnet-5", label: "Claude Sonnet 5", in: 2, out: 10 },
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", in: 1, out: 5 },
 ];
-const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
+const DEFAULT_EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 
 const STORAGE_KEY = "agentic-os-chat.conversations.v1";
 const ACTIVE_KEY = "agentic-os-chat.active.v1";
+// A turn's transcript (assistant blocks + tool results) is kept so the agent
+// remembers its tool work next turn. Web results carry encrypted payloads,
+// so cap what one message may hold and what the whole store may grow to.
+const MAX_RAW_CHARS = 300_000;
+const MAX_STORE_CHARS = 4_000_000;
 
 marked.setOptions({ gfm: true, breaks: true });
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
@@ -54,6 +59,32 @@ function loadConversations() {
   return [newConversation()];
 }
 
+function stripRaw(list, keepId) {
+  return list.map((c) =>
+    c.id === keepId ? c : { ...c, messages: c.messages.map((m) => (m.raw ? { ...m, raw: undefined, rawDropped: true } : m)) }
+  );
+}
+
+// Persist, shedding transcripts (oldest conversations first) if the store
+// outgrows localStorage.
+function persist(list, activeId) {
+  let candidate = list;
+  let json = JSON.stringify(candidate);
+  if (json.length > MAX_STORE_CHARS) {
+    candidate = stripRaw(candidate, activeId);
+    json = JSON.stringify(candidate);
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, json);
+  } catch {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stripRaw(candidate, null)));
+    } catch {
+      /* storage unavailable */
+    }
+  }
+}
+
 // Streams SSE `data:` lines from a POST and hands each parsed event to onEvent.
 async function streamEvents(url, body, { signal, onEvent }) {
   const res = await fetch(url, {
@@ -89,17 +120,79 @@ async function streamEvents(url, body, { signal, onEvent }) {
   }
 }
 
-// Assistant messages are a list of parts so tool activity can sit inline
-// with the streamed text: {kind:"text"|"thinking"|"tool", ...}.
-function appendPart(msg, kind, text) {
-  const parts = msg.parts ? msg.parts.slice() : [];
-  const last = parts[parts.length - 1];
-  if (last && last.kind === kind) {
-    parts[parts.length - 1] = { ...last, text: last.text + text };
-  } else {
-    parts.push({ kind, text });
+async function api(url, method, body) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let j = null;
+  try {
+    j = await res.json();
+  } catch {
+    /* no body */
   }
-  return parts;
+  if (!res.ok) throw new Error(j?.error || `Request failed (${res.status})`);
+  return j;
+}
+
+// Assistant messages are a list of parts so tool activity can sit inline
+// with the streamed text: {kind:"text"|"thinking"|"tool", ...}. A delegate
+// tool part carries the sub-agent's own parts in `sub`.
+function appendPart(parts, kind, text) {
+  const next = parts.slice();
+  const last = next[next.length - 1];
+  if (last && last.kind === kind) {
+    next[next.length - 1] = { ...last, text: last.text + text };
+  } else {
+    next.push({ kind, text });
+  }
+  return next;
+}
+
+function applyEvent(parts, ev) {
+  if (ev.parent) {
+    const inner = { ...ev, parent: undefined };
+    return parts.map((p) => (p.kind === "tool" && p.id === ev.parent ? { ...p, sub: applyEvent(p.sub || [], inner) } : p));
+  }
+  switch (ev.type) {
+    case "text":
+      return appendPart(parts, "text", ev.text);
+    case "thinking":
+      return appendPart(parts, "thinking", ev.text);
+    case "tool_start":
+      return [...parts, { kind: "tool", id: ev.id, name: ev.name, server: ev.server, done: false, sub: [] }];
+    case "tool_input":
+      return parts.map((p) => (p.kind === "tool" && p.id === ev.id ? { ...p, input: ev.input } : p));
+    case "tool_result":
+      return parts.map((p) =>
+        p.kind === "tool" && p.id === ev.id ? { ...p, done: true, ok: ev.ok, summary: ev.summary, results: ev.results } : p
+      );
+    default:
+      return parts;
+  }
+}
+
+function closeOpenTools(parts) {
+  return parts.map((p) => {
+    if (p.kind !== "tool") return p;
+    const next = p.sub?.length ? { ...p, sub: closeOpenTools(p.sub) } : p;
+    return next.done ? next : { ...next, done: true, ok: false, summary: "no result" };
+  });
+}
+
+// The history the API sees: user text, and for assistant turns the stored
+// transcript when we have it (tool memory), else just the text.
+function buildHistory(messages, text) {
+  const h = [];
+  for (const m of messages) {
+    if (m.error || !m.content || !m.content.trim()) continue;
+    if (m.role === "user") h.push({ role: "user", content: m.content });
+    else if (m.raw?.length) h.push(...m.raw);
+    else h.push({ role: "assistant", content: m.content });
+  }
+  h.push({ role: "user", content: text });
+  return h;
 }
 
 function Markdown({ text }) {
@@ -142,28 +235,38 @@ const TOOL_LABELS = {
   remember: "Saving a memory",
   recall: "Recalling memory",
   forget: "Forgetting a memory",
+  delegate: "Delegating",
 };
 
 function inputPreview(input) {
   if (!input || typeof input !== "object") return "";
-  const v = input.query ?? input.url ?? input.path ?? input.pattern ?? input.note ?? input.kind ?? input.code ?? input.command;
+  const v = input.query ?? input.url ?? input.path ?? input.pattern ?? input.note ?? input.kind ?? input.code ?? input.command ?? input.task;
   if (typeof v === "string") return v.length > 120 ? v.slice(0, 120) + "…" : v;
   const keys = Object.keys(input);
   return keys.length ? JSON.stringify(input).slice(0, 120) : "";
 }
 
-function ToolCard({ part }) {
+function ToolCard({ part, agents, live }) {
+  const isDelegate = part.name === "delegate";
   const [open, setOpen] = useState(false);
-  const label = TOOL_LABELS[part.name] || part.name;
   const status = !part.done ? "running" : part.ok ? "ok" : "failed";
+  const target = isDelegate && part.input?.agent ? agents.find((a) => a.id === part.input.agent) : null;
+  const label = isDelegate
+    ? `Delegating to ${target ? `${target.emoji} ${target.name}` : part.input?.agent || "…"}`
+    : TOOL_LABELS[part.name] || part.name;
   return (
-    <div className={`tool ${status}`}>
+    <div className={`tool ${status} ${isDelegate ? "delegate" : ""}`}>
       <button className="tool-head" onClick={() => setOpen((v) => !v)}>
         <span className="tool-dot" />
         <span className="tool-label">{label}</span>
         <span className="tool-preview">{inputPreview(part.input)}</span>
         <span className="tool-toggle">{open ? "▾" : "▸"}</span>
       </button>
+      {isDelegate && part.sub?.length > 0 && (
+        <div className="tool-sub">
+          <Parts parts={part.sub} agents={agents} live={live && !part.done} />
+        </div>
+      )}
       {open && (
         <div className="tool-detail">
           {part.input && Object.keys(part.input).length > 0 && (
@@ -201,25 +304,212 @@ function ThinkingBlock({ text, live }) {
   );
 }
 
-function AssistantBody({ m, live }) {
-  if (m.parts?.length) {
-    return (
-      <>
-        {m.parts.map((p, i) =>
-          p.kind === "text" ? (
-            <Markdown key={i} text={p.text} />
-          ) : p.kind === "tool" ? (
-            <ToolCard key={i} part={p} />
-          ) : (
-            <ThinkingBlock key={i} text={p.text} live={live && i === m.parts.length - 1} />
-          )
-        )}
-      </>
-    );
-  }
-  if (m.content) return <Markdown text={m.content} />;
-  return null;
+function Parts({ parts, agents, live }) {
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.kind === "text" ? (
+          <Markdown key={i} text={p.text} />
+        ) : p.kind === "tool" ? (
+          <ToolCard key={i} part={p} agents={agents} live={live} />
+        ) : (
+          <ThinkingBlock key={i} text={p.text} live={live && i === parts.length - 1} />
+        )
+      )}
+    </>
+  );
 }
+
+function AssistantBody({ m, agents, live }) {
+  return (
+    <>
+      {m.parts?.length ? <Parts parts={m.parts} agents={agents} live={live} /> : m.content ? <Markdown text={m.content} /> : null}
+      {m.sources?.length > 0 && (
+        <div className="sources">
+          <div className="sources-head">Sources</div>
+          <ol>
+            {m.sources.map((s, i) => (
+              <li key={i}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" title={s.cited_text || ""}>
+                  {s.title || s.url}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---- agent editor ------------------------------------------------------
+
+const EMPTY_AGENT = { name: "", emoji: "🤖", tagline: "", description: "", system: "", model: "claude-opus-5", effort: "medium", tools: [] };
+
+function AgentEditor({ initial, mode, catalog, models, efforts, onSaved, onClose }) {
+  const [form, setForm] = useState(() => ({ ...EMPTY_AGENT, ...initial }));
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const hasCode = form.tools.includes("code_execution");
+  const hasWeb = form.tools.includes("web_search") || form.tools.includes("web_fetch");
+
+  function toggleTool(name) {
+    setForm((f) => ({ ...f, tools: f.tools.includes(name) ? f.tools.filter((t) => t !== name) : [...f.tools, name] }));
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const body = { name: form.name, emoji: form.emoji, tagline: form.tagline, description: form.description, system: form.system, model: form.model, effort: form.effort, tools: form.tools };
+      const j = mode === "edit" ? await api(`/api/agents/${encodeURIComponent(initial.id)}`, "PUT", body) : await api("/api/agents", "POST", body);
+      onSaved(j.agent);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <form className="modal editor" onSubmit={submit}>
+        <div className="modal-head">
+          <span className="modal-title">{mode === "edit" ? "Edit agent" : mode === "duplicate" ? "Duplicate agent" : "New agent"}</span>
+          <button type="button" className="icon-btn" onClick={onClose} title="Close">
+            ×
+          </button>
+        </div>
+        <div className="form-row">
+          <label className="field emoji-field">
+            <span>Emoji</span>
+            <input value={form.emoji} onChange={(e) => set("emoji", e.target.value)} maxLength={8} />
+          </label>
+          <label className="field grow">
+            <span>Name</span>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} maxLength={40} required autoFocus />
+          </label>
+        </div>
+        <label className="field">
+          <span>Tagline</span>
+          <input value={form.tagline} onChange={(e) => set("tagline", e.target.value)} maxLength={120} placeholder="One line shown on the agent card" />
+        </label>
+        <label className="field">
+          <span>Description</span>
+          <input value={form.description} onChange={(e) => set("description", e.target.value)} maxLength={400} placeholder="What it is for" />
+        </label>
+        <label className="field">
+          <span>System prompt</span>
+          <textarea value={form.system} onChange={(e) => set("system", e.target.value)} rows={8} required placeholder="Who the agent is, how it works, what it must never do…" />
+        </label>
+        <div className="form-row">
+          <label className="field grow">
+            <span>Model</span>
+            <select value={form.model} onChange={(e) => set("model", e.target.value)}>
+              {models.map((m) => (
+                <option key={m} value={m}>
+                  {MODELS.find((x) => x.id === m)?.label || m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field grow">
+            <span>Effort</span>
+            <select value={form.effort} onChange={(e) => set("effort", e.target.value)}>
+              {efforts.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="field">
+          <span>Tools</span>
+          <div className="tool-grid">
+            {catalog.map((t) => {
+              const conflict = (t.name === "code_execution" && hasWeb) || ((t.name === "web_search" || t.name === "web_fetch") && hasCode);
+              return (
+                <label key={t.name} className={`tool-opt ${conflict ? "off" : ""}`} title={t.description}>
+                  <input type="checkbox" checked={form.tools.includes(t.name)} disabled={conflict} onChange={() => toggleTool(t.name)} />
+                  <span className="tool-opt-name">
+                    {t.label}
+                    {t.server && <span className="tool-opt-tag">hosted</span>}
+                  </span>
+                  <span className="tool-opt-desc">{t.description}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+        {error && <div className="msg-error">{error}</div>}
+        <div className="modal-foot">
+          <button type="button" className="btn ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn send" disabled={busy || !form.name.trim() || !form.system.trim()}>
+            {busy ? "Saving…" : mode === "edit" ? "Save changes" : "Create agent"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function AgentsPanel({ agents, onNew, onEdit, onDuplicate, onDelete, onPick, onClose }) {
+  return (
+    <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-head">
+          <span className="modal-title">Agents</span>
+          <span className="spacer" />
+          <button className="btn" onClick={onNew}>
+            + New agent
+          </button>
+          <button className="icon-btn" onClick={onClose} title="Close">
+            ×
+          </button>
+        </div>
+        <div className="agent-rows">
+          {agents.map((a) => (
+            <div key={a.id} className="agent-row">
+              <span className="agent-row-emoji">{a.emoji}</span>
+              <div className="agent-row-main">
+                <div className="agent-row-name">
+                  {a.name} {a.builtin ? <span className="tag">built-in</span> : <span className="tag custom">custom</span>}
+                </div>
+                <div className="agent-row-tag">{a.tagline || a.description}</div>
+                <div className="agent-row-tools">{a.tools.join(" · ") || "no tools"}</div>
+              </div>
+              <div className="agent-row-actions">
+                <button className="btn ghost" onClick={() => onPick(a.id)}>
+                  Chat
+                </button>
+                <button className="btn ghost" onClick={() => onDuplicate(a)}>
+                  Duplicate
+                </button>
+                {!a.builtin && (
+                  <>
+                    <button className="btn ghost" onClick={() => onEdit(a)}>
+                      Edit
+                    </button>
+                    <button className="btn ghost danger" onClick={() => onDelete(a)}>
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- app ---------------------------------------------------------------
 
 export default function App() {
   const [conversations, setConversations] = useState(loadConversations);
@@ -232,6 +522,10 @@ export default function App() {
   const [health, setHealth] = useState(null); // null=checking, {ok} or {ok:false,error}
   const [agents, setAgents] = useState([]);
   const [agentModels, setAgentModels] = useState([]);
+  const [efforts, setEfforts] = useState(DEFAULT_EFFORTS);
+  const [catalog, setCatalog] = useState([]);
+  const [panel, setPanel] = useState(false);
+  const [editor, setEditor] = useState(null); // {mode, initial}
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const abortRef = useRef(null);
@@ -241,14 +535,27 @@ export default function App() {
   const active =
     conversations.find((c) => c.id === activeId) ?? conversations[0];
   const agent = active?.agentId ? agents.find((a) => a.id === active.agentId) : null;
+  const agentMissing = !!active?.agentId && agents.length > 0 && !agent;
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    persist(conversations, active?.id);
   }, [conversations]);
 
   useEffect(() => {
     if (active) localStorage.setItem(ACTIVE_KEY, active.id);
   }, [active?.id]);
+
+  function loadAgents() {
+    return fetch("/api/agents")
+      .then((r) => r.json())
+      .then((j) => {
+        setAgents(j.agents || []);
+        setAgentModels(j.models || []);
+        if (j.efforts?.length) setEfforts(j.efforts);
+        setCatalog(j.tools || []);
+      })
+      .catch(() => {});
+  }
 
   useEffect(() => {
     fetch("/api/health")
@@ -257,13 +564,7 @@ export default function App() {
       .catch(() =>
         setHealth({ ok: false, error: "Backend not reachable on :3001" })
       );
-    fetch("/api/agents")
-      .then((r) => r.json())
-      .then((j) => {
-        setAgents(j.agents || []);
-        setAgentModels(j.models || []);
-      })
-      .catch(() => {});
+    loadAgents();
   }, []);
 
   useEffect(() => {
@@ -302,12 +603,7 @@ export default function App() {
     const text = input.trim();
     if (!text || streaming || !active) return;
     const conv = active;
-    const history = [
-      ...conv.messages
-        .filter((m) => m.content && m.content.trim() && !m.error)
-        .map(({ role, content }) => ({ role, content })),
-      { role: "user", content: text },
-    ];
+    const history = buildHistory(conv.messages, text);
     setInput("");
     update(conv.id, (c) => ({
       ...c,
@@ -318,7 +614,7 @@ export default function App() {
       messages: [
         ...c.messages,
         { role: "user", content: text },
-        { role: "assistant", content: "", parts: [] },
+        { role: "assistant", content: "", parts: [], sources: [] },
       ],
     }));
     setStreaming(true);
@@ -331,39 +627,29 @@ export default function App() {
         isAgent ? "/api/agent" : "/api/chat",
         isAgent
           ? { agentId: conv.agentId, messages: history, model, effort: conv.effort || undefined, systemPrompt: conv.systemPrompt }
-          : { messages: history, model, systemPrompt: conv.systemPrompt },
+          : { messages: history.map((m) => (typeof m.content === "string" ? m : null)).filter(Boolean), model, systemPrompt: conv.systemPrompt },
         {
           signal: controller.signal,
           onEvent: (ev) => {
             switch (ev.type) {
               case "text":
-                updateLast(conv.id, (last) => ({
-                  ...last,
-                  content: last.content + ev.text,
-                  parts: appendPart(last, "text", ev.text),
-                }));
-                break;
               case "thinking":
-                updateLast(conv.id, (last) => ({ ...last, parts: appendPart(last, "thinking", ev.text) }));
-                break;
               case "tool_start":
-                updateLast(conv.id, (last) => ({
-                  ...last,
-                  parts: [...(last.parts || []), { kind: "tool", id: ev.id, name: ev.name, server: ev.server, done: false }],
-                }));
-                break;
               case "tool_input":
               case "tool_result":
                 updateLast(conv.id, (last) => ({
                   ...last,
-                  parts: (last.parts || []).map((p) =>
-                    p.kind === "tool" && p.id === ev.id
-                      ? ev.type === "tool_input"
-                        ? { ...p, input: ev.input }
-                        : { ...p, done: true, ok: ev.ok, summary: ev.summary, results: ev.results }
-                      : p
-                  ),
+                  content: ev.type === "text" && !ev.parent ? last.content + ev.text : last.content,
+                  parts: applyEvent(last.parts || [], ev),
                 }));
+                break;
+              case "citation":
+                if (ev.parent) break;
+                updateLast(conv.id, (last) => {
+                  const sources = last.sources || [];
+                  if (sources.some((s) => s.url === ev.url)) return last;
+                  return { ...last, sources: [...sources, { url: ev.url, title: ev.title, cited_text: ev.cited_text }] };
+                });
                 break;
               case "usage": {
                 const p = MODELS.find((m) => m.id === model) ?? MODELS[0];
@@ -395,6 +681,10 @@ export default function App() {
                 markError(conv.id, ev.message);
                 break;
               case "done":
+                if (Array.isArray(ev.transcript) && ev.transcript.length) {
+                  const small = JSON.stringify(ev.transcript).length <= MAX_RAW_CHARS;
+                  updateLast(conv.id, (last) => (small ? { ...last, raw: ev.transcript } : { ...last, rawDropped: true }));
+                }
                 if (ev.stop_reason === "refusal") markError(conv.id, "The model declined to answer this request.");
                 else if (ev.stop_reason === "max_iterations") markError(conv.id, "Stopped after too many tool calls in one turn.");
                 else if (ev.stop_reason === "max_tokens") markError(conv.id, "Response hit the output limit.");
@@ -411,10 +701,7 @@ export default function App() {
       }
     } finally {
       update(conv.id, (c) => ({ ...c, turnUsage: undefined }));
-      updateLast(conv.id, (last) => ({
-        ...last,
-        parts: (last.parts || []).map((p) => (p.kind === "tool" && !p.done ? { ...p, done: true, ok: false, summary: "no result" } : p)),
-      }));
+      updateLast(conv.id, (last) => ({ ...last, parts: closeOpenTools(last.parts || []) }));
       setStreaming(false);
       abortRef.current = null;
       inputRef.current?.focus();
@@ -459,10 +746,33 @@ export default function App() {
     }
   }
 
+  async function removeAgent(a) {
+    if (!confirm(`Delete the agent "${a.name}"? Conversations with it stay, but cannot continue.`)) return;
+    try {
+      await api(`/api/agents/${encodeURIComponent(a.id)}`, "DELETE");
+      await loadAgents();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  function onAgentSaved(saved) {
+    setEditor(null);
+    loadAgents().then(() => {
+      if (editor?.mode !== "edit") {
+        setPanel(false);
+        addConversation(saved.id);
+      }
+    });
+  }
+
   if (!active) return null;
 
   const modelOptions = agent ? MODELS.filter((m) => agentModels.includes(m.id)) : MODELS;
-  const agentEmoji = (id) => agents.find((a) => a.id === id)?.emoji || "";
+  const agentEmoji = (id) => agents.find((a) => a.id === id)?.emoji || "🤖";
+  const builtins = agents.filter((a) => a.builtin);
+  const customs = agents.filter((a) => !a.builtin);
+  const roleLabel = agent ? `${agent.emoji} ${agent.name}` : active.agentId ? "agent" : "claude";
 
   return (
     <div className="app">
@@ -525,6 +835,9 @@ export default function App() {
             </div>
           ))}
         </div>
+        <button className="sidebar-agents" onClick={() => setPanel(true)} title="Create and manage agents">
+          🤖 Agents <span className="count">{agents.length || ""}</span>
+        </button>
         <div className="sidebar-foot">
           <span
             className={`dot ${
@@ -551,11 +864,25 @@ export default function App() {
             title="Agent"
           >
             <option value="">Plain chat</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.emoji} {a.name}
-              </option>
-            ))}
+            {builtins.length > 0 && (
+              <optgroup label="Built-in">
+                {builtins.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.emoji} {a.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {customs.length > 0 && (
+              <optgroup label="Yours">
+                {customs.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.emoji} {a.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {agentMissing && <option value={active.agentId}>(deleted agent)</option>}
           </select>
           <select
             className="model-select"
@@ -580,7 +907,7 @@ export default function App() {
               onChange={(e) => update(active.id, (c) => ({ ...c, effort: e.target.value }))}
               title="Effort: how hard the model thinks and how many tool calls it makes"
             >
-              {EFFORTS.map((e) => (
+              {efforts.map((e) => (
                 <option key={e} value={e}>
                   effort: {e}
                 </option>
@@ -630,8 +957,10 @@ export default function App() {
                   <div className="empty-agent">
                     <span className="empty-emoji">{agent.emoji}</span>
                     <div>
-                      <div className="empty-title">{agent.name}</div>
-                      <div className="empty-sub">{agent.description}</div>
+                      <div className="empty-title">
+                        {agent.name} {!agent.builtin && <span className="tag custom">custom</span>}
+                      </div>
+                      <div className="empty-sub">{agent.description || agent.tagline}</div>
                       <div className="empty-tools">
                         {agent.tools.map((t) => (
                           <span key={t} className="chip">
@@ -650,10 +979,19 @@ export default function App() {
                     {agents.map((a) => (
                       <button key={a.id} className="agent-card" onClick={() => setAgent(active.id, a.id)}>
                         <span className="agent-card-emoji">{a.emoji}</span>
-                        <span className="agent-card-name">{a.name}</span>
+                        <span className="agent-card-name">
+                          {a.name} {!a.builtin && <span className="tag custom">custom</span>}
+                        </span>
                         <span className="agent-card-tag">{a.tagline}</span>
                       </button>
                     ))}
+                    {agents.length > 0 && (
+                      <button className="agent-card new" onClick={() => setEditor({ mode: "create", initial: {} })}>
+                        <span className="agent-card-emoji">＋</span>
+                        <span className="agent-card-name">New agent</span>
+                        <span className="agent-card-tag">Your own prompt, model and tools</span>
+                      </button>
+                    )}
                   </div>
                   <div className="empty-hint">
                     {agents.length ? "Plain chat has no tools. " : health?.ok === false ? "Agents load once the backend is up. " : ""}
@@ -669,9 +1007,7 @@ export default function App() {
             return (
               <div key={i} className={`msg ${m.role}`}>
                 <div className="msg-meta">
-                  <span className="role">
-                    {m.role === "user" ? "you" : agent ? `${agent.emoji} ${agent.name}` : "claude"}
-                  </span>
+                  <span className="role">{m.role === "user" ? "you" : roleLabel}</span>
                   {m.role === "assistant" && m.content && (
                     <CopyButton text={m.content} />
                   )}
@@ -679,7 +1015,7 @@ export default function App() {
                 {m.role === "user" ? (
                   <div className="msg-body">{m.content}</div>
                 ) : (
-                  <AssistantBody m={m} live={live} />
+                  <AssistantBody m={m} agents={agents} live={live} />
                 )}
                 {m.role === "assistant" &&
                   !m.content &&
@@ -709,12 +1045,39 @@ export default function App() {
               ⏹ Stop
             </button>
           ) : (
-            <button className="btn send" onClick={send} disabled={!input.trim()}>
+            <button className="btn send" onClick={send} disabled={!input.trim() || agentMissing}>
               Send
             </button>
           )}
         </div>
       </main>
+
+      {panel && (
+        <AgentsPanel
+          agents={agents}
+          onClose={() => setPanel(false)}
+          onNew={() => setEditor({ mode: "create", initial: {} })}
+          onEdit={(a) => setEditor({ mode: "edit", initial: a })}
+          onDuplicate={(a) => setEditor({ mode: "duplicate", initial: { ...a, id: undefined, name: `${a.name} copy`, builtin: undefined } })}
+          onDelete={removeAgent}
+          onPick={(id) => {
+            setPanel(false);
+            if (active.messages.length === 0) setAgent(active.id, id);
+            else addConversation(id);
+          }}
+        />
+      )}
+      {editor && (
+        <AgentEditor
+          mode={editor.mode}
+          initial={editor.initial}
+          catalog={catalog}
+          models={agentModels}
+          efforts={efforts}
+          onSaved={onAgentSaved}
+          onClose={() => setEditor(null)}
+        />
+      )}
     </div>
   );
 }

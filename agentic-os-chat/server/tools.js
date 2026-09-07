@@ -343,7 +343,57 @@ export const SERVER_TOOLS = {
   code_execution: { type: "code_execution_20260521", name: "code_execution" },
 };
 
-export function resolveTools(names) {
+// Hands a sub-task to another agent and returns its final answer. The
+// runner lives in agent-loop.js because it needs the loop itself; only
+// the definition is here so the catalog and validation see it.
+export const DELEGATE_TOOL = {
+  name: "delegate",
+  description:
+    "Hand a self-contained sub-task to another agent and get its final answer back. Use it when a specialist would do the job better than you: research questions to a research agent, code to a code agent, questions about this repository to the repo agent. Give the full task in one message: the agent has no memory of this conversation. You can call it several times, in parallel for independent sub-tasks.",
+  input_schema: {
+    type: "object",
+    properties: {
+      agent: { type: "string", description: "The id of the agent to delegate to (from the roster in your instructions)" },
+      task: { type: "string", description: "The complete task, with all the context the agent needs" },
+    },
+    required: ["agent", "task"],
+    additionalProperties: false,
+  },
+};
+
+// What the agent editor shows. `server` tools run on Anthropic's side.
+export const TOOL_CATALOG = [
+  { name: "web_search", server: true, label: "Web search", description: "Search the web for current information" },
+  { name: "web_fetch", server: true, label: "Web fetch", description: "Read the full text of a web page" },
+  { name: "code_execution", server: true, label: "Code execution", description: "Run Python and bash in a sandbox (cannot be combined with the web tools)" },
+  { name: "current_time", server: false, label: "Current time", description: "Know today's date and time" },
+  { name: "list_files", server: false, label: "List files", description: "Browse the repository's folders" },
+  { name: "read_file", server: false, label: "Read file", description: "Read a source file from the repository" },
+  { name: "search_files", server: false, label: "Search files", description: "Regex search across the repository" },
+  { name: "github_activity", server: false, label: "GitHub activity", description: "Live PRs, issues and commits" },
+  { name: "remember", server: false, label: "Remember", description: "Save a note to long-term memory" },
+  { name: "recall", server: false, label: "Recall", description: "Read notes from long-term memory" },
+  { name: "forget", server: false, label: "Forget", description: "Delete notes from long-term memory" },
+  { name: "delegate", server: false, label: "Delegate", description: "Hand sub-tasks to other agents and use their answers" },
+];
+export const TOOL_NAMES = new Set(TOOL_CATALOG.map((t) => t.name));
+
+// The 20260209 web tools already run code under the hood; declaring
+// code_execution alongside them gives the model two sandboxes and confuses it.
+export function validateToolSet(names) {
+  if (!Array.isArray(names)) return "tools must be an array";
+  const unknown = names.filter((n) => !TOOL_NAMES.has(n));
+  if (unknown.length) return `unknown tool(s): ${unknown.join(", ")}`;
+  if (new Set(names).size !== names.length) return "tools must not repeat";
+  if (names.includes("code_execution") && (names.includes("web_search") || names.includes("web_fetch"))) {
+    return "code_execution cannot be combined with web_search or web_fetch";
+  }
+  return null;
+}
+
+// `extra` maps a tool name to a runner for tools whose implementation
+// lives outside this file (delegate).
+export function resolveTools(names, extra = {}) {
   const defs = [];
   const runners = new Map();
   for (const n of names) {
@@ -352,6 +402,9 @@ export function resolveTools(names) {
       runners.set(n, LOCAL_TOOLS[n].run);
     } else if (SERVER_TOOLS[n]) {
       defs.push(SERVER_TOOLS[n]);
+    } else if (n === "delegate" && extra.delegate) {
+      defs.push(DELEGATE_TOOL);
+      runners.set(n, extra.delegate);
     } else {
       throw new Error(`unknown tool: ${n}`);
     }
@@ -366,10 +419,14 @@ export async function executeTool(runners, block) {
     return { type: "tool_result", tool_use_id: block.id, is_error: true, content: `unknown tool ${block.name}` };
   }
   try {
-    const out = await run(block.input ?? {});
+    const out = await run(block.input ?? {}, block);
     return { type: "tool_result", tool_use_id: block.id, content: String(out ?? "") };
   } catch (e) {
     const msg = e?.toolError ? e.message : `tool failed: ${e?.message || e}`;
     return { type: "tool_result", tool_use_id: block.id, is_error: true, content: msg };
   }
+}
+
+export function toolError(msg) {
+  return err(msg);
 }
