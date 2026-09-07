@@ -129,6 +129,13 @@ function newcomerAtDawn(){
   if(!G.newcomerAsk && repTier()>=2 && !!G.structures.tent
      && (G.population||1) < NEWCOMER_POP_MAX
      && G.days - (typeof G.newcomerLastDay==='number'?G.newcomerLastDay:-9) >= NEWCOMER_EVERY){
+    // HV-261: they stand at the edge of the firelight. Rain
+    // keeps a stranger moving. Do not spend the cadence — the
+    // next clear dawn can still open. A named snap is not this card.
+    if(G.weather==='rain'){
+      log('🫂 Rain kept the stranger moving — nobody waited at the edge of the light.');
+      return;
+    }
     G.newcomerAsk={day:G.days};
     G.newcomerLastDay=G.days;
     log('🫂 Someone new stands at the edge of the firelight — heard this camp treats people right. They ask to stay.');
