@@ -1,10 +1,17 @@
+// HV-271: the last save string this page wrote or loaded. The leave-save
+// in main.js compares the key against it and stands down when another
+// writer (a second tab on the same camp, the hub's Reset progress, a
+// hand edit) has changed the key since — a page you are leaving must not
+// stomp the one you kept playing in.
+var hvLastWrite = null;
 function saveGame(){
-  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){}
+  try{ var s=JSON.stringify(G); localStorage.setItem(SAVE_KEY, s); hvLastWrite=s; }catch(e){}
 }
 
 function loadGame(){
   try{
     var raw = localStorage.getItem(SAVE_KEY);
+    hvLastWrite = raw;
     if(raw){ Object.assign(G, JSON.parse(raw)); }
     // HV-62: tickDay subtracts 1 and calls onNewDay once a frame while
     // timeOfDay >= 1. A hostile save (50, Infinity, NaN, -1) therefore
