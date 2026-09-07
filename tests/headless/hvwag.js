@@ -87,6 +87,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     G.oddJobDay = -1;
     G.goodwill = 0;
     G.morale = 50;
+    G.goalIndex = GOALS.length;
     G.structures.toolbox = false;
     const captured = [];
     const prev = window.log;
@@ -113,6 +114,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     G.oddJobDay = -1;
     G.goodwill = 0;
     G.morale = 50;
+    G.goalIndex = GOALS.length;
     G.structures.toolbox = false;
     delete activeJobs.oddjob;
     G.cooldowns = {};
@@ -148,6 +150,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     G.oddJobDay = -1;
     G.goodwill = 0;
     G.morale = 50;
+    G.goalIndex = GOALS.length;
     G.structures.toolbox = false;
     finishAction(oddJobAction());
     return { job: todaysJob().id, gw: G.goodwill, day: G.oddJobDay, active: snapActive() };
