@@ -621,8 +621,14 @@ var EVENTS_BAD=[
      // its Busk stamp is HV-234. Same log line as the raid so
      // Biscuit's credit stays the last line hvdog reads.
      addRep(-3);
-     log((G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.')
-       + ' Trust frays \u2014 the block heard a camp that could not keep its own.');
+     // HV-248: a radio sitting in camp is a supply. Fold the take into
+     // the same last line so hvdog's "Biscuit chased" still matches.
+     var tookRadio=!!G.structures.radio;
+     if(tookRadio) G.structures.radio=false;
+     var raid=(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.')
+       + ' Trust frays \u2014 the block heard a camp that could not keep its own.';
+     if(tookRadio) raid+=' They took the weather band.';
+     log(raid);
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
