@@ -61,9 +61,9 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop),
   });
   await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
   await page.waitForTimeout(2500);
-  const t = fn => page.evaluate(fn);
+  const t = (fn, arg) => page.evaluate(fn, arg);
 
-  const dawn = (forecast, warmth) => t((fc, w) => {
+  const dawn = (forecast, warmth) => t(({ fc, w }) => {
     const captured = [];
     const prev = window.log;
     window.log = function (m) { captured.push(String(m)); prev(m); };
@@ -83,7 +83,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop),
       held: captured.some(m => /fire held all night/.test(m)),
       sky: captured.some(m => /sky, not the barrel/.test(m)),
     };
-  }, forecast, warmth);
+  }, { fc: forecast, w: warmth });
 
   const dry = await dawn('clear', 80);
   ok(dry.weather === 'clear' && dry.held && !dry.sky,
