@@ -29,8 +29,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 const player = fs.readFileSync(path.join(ROOT, 'homeless-village/js/player.js'), 'utf8');
 const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
-const tradeAt = player.indexOf("a.id==='trade'");
-const trade = tradeAt >= 0 ? player.slice(tradeAt, tradeAt + 900) : '';
+const finishAt = player.indexOf('function finishAction(a){');
+const finish = finishAt >= 0 ? player.slice(finishAt) : '';
+const tradeAt = finish.indexOf("a.id==='trade'");
+const trade = tradeAt >= 0 ? finish.slice(tradeAt, tradeAt + 900) : '';
 const gentAt = loop.indexOf("id:'gentrify'");
 const gent = gentAt >= 0 ? loop.slice(gentAt, gentAt + 500) : '';
 
@@ -68,9 +70,14 @@ ok(!/homeless-village\/js\/ui\.js/.test(player) && !/homeless-village\/js\/ui\.j
     G.gentrifyDay = -9;
     G.cans = 3; G.food = 0;
     G.goalIndex = GOALS.length;
+    if (!G.regulars) G.regulars = {};
+    G.regulars.marisol = 2;
+    const captured = [];
+    const prev = window.log;
+    window.log = function (m) { captured.push(String(m)); prev(m); };
     finishAction({ id: 'trade' });
-    const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
-    return { food: G.food, cans: G.cans, last: lines[lines.length - 1] || '' };
+    window.log = prev;
+    return { food: G.food, cans: G.cans, last: captured[captured.length - 1] || '' };
   });
   ok(quiet.food === 2 && quiet.cans === 0,
     `a quiet corner still pays 3 → 2 (food=${quiet.food})`);
@@ -86,13 +93,18 @@ ok(!/homeless-village\/js\/ui\.js/.test(player) && !/homeless-village\/js\/ui\.j
     triggerEvent(ev, false);
     Math.random = real;
     G.cans = 3; G.food = 0;
+    if (!G.regulars) G.regulars = {};
+    G.regulars.marisol = 2;
+    const captured = [];
+    const prev = window.log;
+    window.log = function (m) { captured.push(String(m)); prev(m); };
     finishAction({ id: 'trade' });
-    const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
+    window.log = prev;
     return {
       day: G.gentrifyDay,
       food: G.food,
       cans: G.cans,
-      last: lines[lines.length - 1] || '',
+      last: captured[captured.length - 1] || '',
     };
   });
   ok(sour.day === 8,
