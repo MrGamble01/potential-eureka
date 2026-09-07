@@ -486,7 +486,15 @@ var EVENTS_BAD=[
    desc:"Temperature drops hard tonight. Everyone's suffering.",
    effect:function(){
      G.lastEventDay=G.days;
-     G.warmth=Math.max(0,G.warmth-rand(20,35));
+     var hit=rand(20,35);
+     // HV-252: the Coat Rack says bitter cold cuts half as deep.
+     // Dawn weather already uses COATS_CUT; the card was a full hit.
+     if(G.structures.coats){
+       hit=Math.floor(hit*COATS_CUT);
+       G.coldCut=(G.coldCut||0)+1;
+       log('\ud83e\udde5 Coats off the rack — the snap cuts half as deep.');
+     }
+     G.warmth=Math.max(0,G.warmth-hit);
      G.health=Math.max(0,G.health-rand(8,18));
      G.morale=Math.max(0,G.morale-rand(10,15));
      log('Cold snap hit. Warmth and health dropped.');
