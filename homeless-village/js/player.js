@@ -136,9 +136,13 @@ function finishAction(a){
       bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
-    var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
+    var h=rand(5,15), m=rand(3,8);
+    // HV-260: dawn says the cold gets into everything. Rest is
+    // sleep in the open. Illness × rest is not this card.
+    if(G.weather==='cold'){ h=Math.max(1,Math.floor(h/2)); m=Math.max(1,Math.floor(m/2)); }
+    G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+m);
     floatText('+'+h+'❤️');
-    log('You rest. Health +'+h+'.');
+    log(G.weather==='cold'?'You rest, but the cold gets into the sleep. Health +'+h+'.':'You rest. Health +'+h+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
     if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
