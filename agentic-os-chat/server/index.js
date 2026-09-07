@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
+import { AGENT_BY_ID, AGENT_MODELS, publicAgents } from "./agents.js";
+import { runAgent } from "./agent-loop.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // The .env file lives at the app root, next to .env.example
@@ -11,6 +13,7 @@ dotenv.config({ path: path.join(__dirname, "..", ".env") });
 const PORT = 3001;
 
 const ALLOWED_MODELS = new Set([
+  "claude-opus-5",
   "claude-opus-4-8",
   "claude-sonnet-5",
   "claude-haiku-4-5-20251001",
@@ -148,6 +151,90 @@ app.post("/api/chat", async (req, res) => {
     send({ type: "done", stop_reason: final.stop_reason });
   } catch (err) {
     if (!(err instanceof Anthropic.APIUserAbortError)) {
+      send({ type: "error", message: friendlyError(err) });
+    }
+  }
+  res.end();
+});
+
+// ---- agents -------------------------------------------------------------
+
+app.get("/api/agents", (req, res) => {
+  res.json({ agents: publicAgents(), models: AGENT_MODELS });
+});
+
+const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
+
+// Same SSE contract as /api/chat (text / usage / done / error) plus the
+// agent events documented in agent-loop.js. The client sends the plain
+// text history; the tool-use loop for the current turn happens here.
+app.post("/api/agent", async (req, res) => {
+  const { agentId, messages, model, effort, systemPrompt } = req.body ?? {};
+
+  const agent = AGENT_BY_ID.get(agentId);
+  if (!agent) return res.status(400).json({ error: `Unknown agent: ${agentId}` });
+  const useModel = model ?? agent.model;
+  if (!AGENT_MODELS.includes(useModel)) {
+    return res.status(400).json({ error: `Model ${useModel} cannot run agents. Use one of: ${AGENT_MODELS.join(", ")}` });
+  }
+  const useEffort = effort ?? agent.effort;
+  if (useEffort != null && !EFFORTS.has(useEffort)) {
+    return res.status(400).json({ error: `Unknown effort: ${useEffort}` });
+  }
+  const valid =
+    Array.isArray(messages) &&
+    messages.length > 0 &&
+    messages.every(
+      (m) =>
+        m &&
+        (m.role === "user" || m.role === "assistant") &&
+        typeof m.content === "string" &&
+        m.content.trim().length > 0
+    );
+  if (!valid) {
+    return res.status(400).json({ error: "messages must be a non-empty array of {role, content}" });
+  }
+  if (messages[messages.length - 1].role !== "user") {
+    return res.status(400).json({ error: "the last message must be from the user" });
+  }
+
+  let anthropic;
+  try {
+    anthropic = getClient();
+  } catch (err) {
+    return res.status(500).json({ error: friendlyError(err) });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const send = (obj) => {
+    if (!res.writableEnded) res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  };
+
+  const controller = new AbortController();
+  req.on("close", () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  try {
+    const out = await runAgent({
+      client: anthropic,
+      agent,
+      model: useModel,
+      effort: useEffort,
+      systemPrompt,
+      messages,
+      signal: controller.signal,
+      emit: send,
+    });
+    if (out.stop_reason !== "aborted") {
+      send({ type: "done", stop_reason: out.stop_reason, iterations: out.iterations, stop_details: out.stop_details ?? null });
+    }
+  } catch (err) {
+    if (!(err instanceof Anthropic.APIUserAbortError) && !controller.signal.aborted) {
       send({ type: "error", message: friendlyError(err) });
     }
   }
