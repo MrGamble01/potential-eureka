@@ -23,6 +23,15 @@ const LifeGame = (() => {
   let drawing = false;
   let popHistory = [];   // recent population, for the sparkline
 
+  // Stability detection: remember recent board states so a still-life,
+  // an oscillator (blinker, pulsar, pentadecathlon...) or full extinction
+  // auto-pauses the sim instead of looping unwatched forever. Bounded to
+  // MAX_STATE_HISTORY so long, non-repeating soups (or a glider's very
+  // long toroidal orbit) don't grow this without limit.
+  const MAX_STATE_HISTORY = 32;
+  let stateHistory = [];
+  let stabilityAnnounced = false;
+
   // Age → colour ramp: newborns burn bright cyan-white; survivors cool
   // through green and blue; long-lived still-lifes settle into deep violet.
   // So gliders (forever young) shimmer while stable structures glow old.
@@ -82,9 +91,57 @@ const LifeGame = (() => {
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
       grid[r][c] = 1;
       if (!age[r][c]) age[r][c] = 1;
+      resetStabilityTracking();
       draw();
       updateInfo();
     }
+  }
+
+  // A hand edit branches the board away from whatever trajectory the
+  // history was tracking, so old snapshots can no longer prove a period —
+  // drop them and let the next run's detection start fresh.
+  function resetStabilityTracking() {
+    stateHistory = [];
+    stabilityAnnounced = false;
+    setStatus('');
+  }
+
+  function encodeState() {
+    let s = '';
+    for (let r = 0; r < ROWS; r++) s += grid[r].join('');
+    return s;
+  }
+
+  // Checks the just-computed board against recent history. Extinction gets
+  // its own wording; a repeat of any earlier snapshot means the sim has
+  // locked into an oscillator (or a still life, period 1) — either way,
+  // further stepping only replays the same cycle, so pause and say so.
+  function checkStability() {
+    if (stabilityAnnounced) return;
+    if (population === 0) {
+      pause();
+      setStatus(`Extinct at generation ${generation}`);
+      stabilityAnnounced = true;
+      return;
+    }
+    const state = encodeState();
+    const matchAt = stateHistory.indexOf(state);
+    if (matchAt !== -1) {
+      const period = stateHistory.length - matchAt;
+      pause();
+      setStatus(period === 1
+        ? `Stable — still life locked at generation ${generation}`
+        : `Stable — repeats every ${period} generations (locked at generation ${generation})`);
+      stabilityAnnounced = true;
+      return;
+    }
+    stateHistory.push(state);
+    if (stateHistory.length > MAX_STATE_HISTORY) stateHistory.shift();
+  }
+
+  function setStatus(msg) {
+    const el = document.getElementById('life-status');
+    if (el) el.textContent = msg;
   }
 
   function step() {
@@ -104,6 +161,7 @@ const LifeGame = (() => {
     generation++;
     draw();
     updateInfo();
+    checkStability();
     popHistory.push(population);
     if (popHistory.length > 120) popHistory.shift();
   }
@@ -159,6 +217,7 @@ const LifeGame = (() => {
     grid = makeGrid();
     generation = 0;
     syncAge();
+    resetStabilityTracking();
     draw();
     updateInfo();
   }
@@ -172,6 +231,7 @@ const LifeGame = (() => {
       }
     }
     syncAge();
+    resetStabilityTracking();
     draw();
     updateInfo();
   }
@@ -240,6 +300,7 @@ const LifeGame = (() => {
     });
 
     syncAge();
+    resetStabilityTracking();
     draw();
     updateInfo();
   }
