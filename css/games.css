@@ -193,6 +193,14 @@ canvas.game-canvas {
 .maze-legend .solution::before { background: var(--primary); }
 
 /* ---- LIFE SPECIFIC ---- */
+.life-status {
+  min-height: 16px;
+  text-align: center;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--secondary, #58A6FF);
+}
+
 .life-presets {
   display: flex;
   justify-content: center;
