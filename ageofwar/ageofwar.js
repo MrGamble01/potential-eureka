@@ -155,7 +155,8 @@ const AgeOfWarGame = (() => {
       const ico = btn.querySelector('.aow-action-ico');
       const lbl = btn.querySelector('.aow-action-lbl');
       if (ico) ico.textContent = userPaused ? '▶️' : '⏸️';
-      if (lbl) lbl.textContent = userPaused ? 'Resume' : 'Pause';
+      if (lbl) lbl.innerHTML = userPaused ? 'Resume<small>P</small>' : 'Pause<small>P</small>';
+      btn.title = userPaused ? 'Resume — press P any time to pause or resume' : 'Pause — press P any time to pause or resume';
     }
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
