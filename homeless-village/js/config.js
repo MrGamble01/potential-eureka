@@ -447,10 +447,16 @@ function bridgeHasWall(){
 }
 function composeHvWall(){
   var fr=loadFridge(), rec=loadHvRec(), nt=loadHvNote();
+  var mk=loadHvMark();
   var lines=[];
   lines.push(fr.built ? '\ud83e\uddca The fridge hums \u2014 '+(fr.camps||0)+' camp'+((fr.camps||0)===1?'':'s')+' welcomed' : '\ud83e\uddca No fridge on the corner yet');
   lines.push(rec.days>0 ? '\ud83d\udcc8 Longest hold: '+rec.days+' dawns (beaten '+(rec.beats||0)+' morning'+((rec.beats||0)===1?'':'s')+')' : '\ud83d\udcc8 No hold marked yet');
   lines.push('\ud83d\udcdd '+(nt.read||0)+' note'+((nt.read||0)===1?'':'s')+' found in the door');
+  // HV-209: Add a Name puts a newcomer's hand on the wall of names.
+  // Read the Wall is the reading. A name that is not cited is not on the wall.
+  if((mk.names||0)>0){
+    lines.push('\u270d\ufe0f '+(mk.names)+' name'+((mk.names)===1?'':'s')+' in a newcomer\'s hand');
+  }
   return lines;
 }
 // HV-35: the heirloom round under the bridge. Somebody's
