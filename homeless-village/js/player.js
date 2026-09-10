@@ -602,6 +602,10 @@ function finishAction(a){
     for(var k in j.gives){
       var amt=j.gives[k];
       if(coldYard) amt=Math.floor(amt/2);
+      // HV-237: the yard is outdoor dirty work. Rain cuts the haul
+      // the same way it halves the corner. Cold morning and winter
+      // are not this card. Flyers and the deposit run are not this card.
+      if(j.id==='scrapyd' && G.weather==='rain') amt=Math.max(1, Math.floor(amt/2));
       if(k==='morale') G.morale=Math.min(100,G.morale+amt);
       else G[k]=(G[k]||0)+amt;
       if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -612,6 +616,7 @@ function finishAction(a){
     floatText(parts.join(' '));
     log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
     if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
+    if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
