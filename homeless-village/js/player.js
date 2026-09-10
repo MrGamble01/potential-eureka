@@ -41,6 +41,15 @@ function doAction(a){
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
+    // HV-268: the session is on the underpass wall. A scorcher cooks
+    // the block — refuse before the timer so a miss does not burn the
+    // morning. Rain / wet paint is not this card. The fire circle is
+    // not this card.
+    if(G.weather==='heat'){
+      log('🎨 A scorcher — the underpass wall is too hot to paint. The panel waits.');
+      sfx('error');
+      return;
+    }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
@@ -443,7 +452,11 @@ function finishAction(a){
   } else if(a.id==='mural'){
     // HV-11: one painting session. doAction gates cost and cadence, but
     // re-check here so a queued double-fire can't paint two panels a day.
-    if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
+    // HV-268: a queued session must not lay a panel after the sky
+    // turned into a scorcher. Do not stamp the day — the wall waits.
+    if(G.weather==='heat'){
+      log('🎨 A scorcher — the underpass wall is too hot to paint. The panel waits.');
+    } else if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
       G.scraps-=2; G.mural=(G.mural||0)+1; G.muralDay=G.days;
       G.morale=Math.min(100,G.morale+3);
       addRep(2);
