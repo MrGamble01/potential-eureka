@@ -198,6 +198,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-238: Throw the Reunion said once a session. finishAction
+  // already logs people have places to be and no-ops. Clicking 🎂
+  // after the party still started the 2s job and charged the 30s
+  // lock. A half story is HV-218.
+  if(a.id==='reunion' && hvReunionStands() && bridgeReunionHeld){
+    log('\ud83c\udf82 The reunion already went off today — people have places to be.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
