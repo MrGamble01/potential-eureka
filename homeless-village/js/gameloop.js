@@ -512,6 +512,10 @@ var EVENTS_BAD=[
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
+     // HV-215: the card confiscates supplies. Donated coats hang on a
+     // rail by the fire — a sweep that takes the tent does not leave
+     // the rack. Theft is a different verb.
+     if(G.structures.coats){ G.structures.coats=false; log('The donated coats came off the rail.'); }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
