@@ -216,7 +216,9 @@ function onNewDay(){
   // HV-190: the beds are breakfast. They used to land after the
   // empty-larder bite, so a harvest on a pot the night just emptied
   // arrived once the camp had already taken the health hit. Cook and
-  // soup stay where they are; the garden is the one that fills the pot.
+  // soup stay where they are.
+  // HV-274: the pantry box was already filled overnight — same side
+  // of the bite as the beds. Their gift is not a dawn harvest.
   if(G.structures.garden){
     if(G.weather==='cold'){
       if(G.structures.compost){
@@ -235,6 +237,7 @@ function onNewDay(){
       G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
     }
   }
+  pantryAtDawn();   // HV-274: overnight leave lands before the empty pot bites
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
 
   if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
@@ -273,7 +276,6 @@ function onNewDay(){
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
-  pantryAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
