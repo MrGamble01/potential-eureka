@@ -267,9 +267,10 @@ function depositAction(){
 
 // ── HV-18: the Cold Snap ─────────────────────────────────────
 // Winter already bites; some winters bite harder. A quarter of winter
-// dawns open a two-day cold snap — the fire drains faster and foot
-// traffic thins — but the block shows up for a camp it respects, and
-// a camp that weathers it comes out prouder.
+// dawns open a two-day cold snap — the fire drains faster, foot
+// traffic thins, and the dumpsters thin with them — but the block
+// shows up for a camp it respects, and a camp that weathers it comes
+// out prouder.
 var SNAP_DAYS = 2;          // a snap grips the block for two days
 var SNAP_WARMTH = 10;       // extra warmth lost at each snap dawn
 var SNAP_CHANCE = 0.25;     // rolled at every quiet winter dawn
