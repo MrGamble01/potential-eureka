@@ -662,7 +662,7 @@ function finishAction(a){
       addRep(1);
       G.busks=(G.busks||0)+1; G.buskDay=G.days;
       floatText('🎸 +'+take+'🩶 +2😊');
-      log('🎸 Played a set on the corner — '+(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen')+'. +'+take+' goodwill, +1 rep.');
+      log('🎸 Played a set on the corner — '+(gentrifyHostile()?'the new neighbors did not linger':(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen'))+'. +'+take+' goodwill, +1 rep.');
       saveGame();
       buildActionUI();
     }
