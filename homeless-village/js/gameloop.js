@@ -593,6 +593,7 @@ var EVENTS_GOOD=[
    desc:'Clear skies and mild temps. A rare easy day.',
    effect:function(){
      G.lastEventDay=G.days;
+     var was=G.weather;
      // HV-67: the card promised clear skies. Warmth and morale used
      // to rise while G.weather stayed rain / cold / heat — the badge
      // and every weatherDef() reader (panhandle, scavenge) never saw it.
@@ -600,6 +601,15 @@ var EVENTS_GOOD=[
      G.warmth=Math.min(100,G.warmth+rand(10,18));
      G.morale=Math.min(100,G.morale+rand(8,14));
      log('Nice weather today. Warmth and morale up.');
+     // HV-196: maybeEvent runs after the garden. A frost morning
+     // the card then calls easy has already given nothing. Rain
+     // and heat already grew — do not pay those twice.
+     if(G.structures.garden&&was==='cold'){
+       var y=rand(1,3);
+       if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }
+       G.food+=y; floatText('+'+y+'\ud83c\udf5e');
+       log('Garden yielded '+y+' food.');
+     }
    }},
   {id:'old_friend',title:'Old Friend',type:'good',weight:6,
    desc:'Someone from before recognized you. The feeling fades quickly.',
