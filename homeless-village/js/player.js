@@ -154,6 +154,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-223: Add a Name says three walks put chalk in a newcomer's
+  // hand. finishAction already named an unshown wall — after a
+  // 2s job and with the 30s lock charged as if a name went up.
+  if(a.id==='mark' && !markUp()){
+    log('\u270d\ufe0f Nobody new has been shown the whole wall yet \u2014 three walks down the underpass and somebody takes the chalk.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.

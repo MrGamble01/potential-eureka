@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v225-hv-benchbare';  // HV-225: unbuilt bench refuses before the timer
+const SW_VERSION = 'eureka-v226-hv-markbare';  // HV-226: unshown wall refuses before the timer
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
