@@ -354,7 +354,9 @@ function soupNightAtDawn(){
 function muralAtDawn(){
   if((G.mural||0)<MURAL_PANELS) return;
   G.morale=Math.min(100,G.morale+2);
-  if(Math.random()<.15) log('🎨 Morning light on the mural. It helps more than it should.');
+  // HV-197: the greeting is morning light. Rain has none. The mural
+  // still helps; the log does not name a sun that is not there.
+  if(G.weather!=='rain'&&Math.random()<.15) log('🎨 Morning light on the mural. It helps more than it should.');
 }
 
 // ── HV-9: reputation at dawn — word fades, and Beloved camps wake to
