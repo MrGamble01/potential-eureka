@@ -587,6 +587,9 @@ var EVENTS_BAD=[
    desc:'A bug is going through the camp. Everyone feels terrible.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-210: the card says everyone feels terrible. Rest used to
+     // roll a well-day recovery on the same day and wipe the bug.
+     G.sickDay=G.days;
      G.health=Math.max(0,G.health-rand(12,22));
      G.food  =Math.max(0,G.food  -rand(2,5));
      log('Sickness hit the community. Health fell.');

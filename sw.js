@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v212-hv-out';  // HV-212: Fire Went Out does not land after the same dawn said the fire held
+const SW_VERSION = 'eureka-v213-hv-sickrest';  // HV-213: sick-day rest is half a well day
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
