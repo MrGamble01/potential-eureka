@@ -146,6 +146,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-222: Sit on the Bench says three leafs put a bench by the
+  // fridge. finishAction already named a missing bench — after a
+  // 2s job and with the 30s lock charged as if someone sat down.
+  if(a.id==='bench' && !hvBenchBuilt()){
+    log('\ud83e\ude91 No bench by the fridge yet \u2014 three leafs through the notebook and somebody starts building.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
