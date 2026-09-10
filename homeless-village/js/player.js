@@ -189,6 +189,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-237: Pass the Thermos said once a session. finishAction
+  // already logs the refill and no-ops. Clicking 🫖 after the
+  // round still started the 2s job and charged the 30s lock.
+  // A cold thermos is HV-148; a dead barrel is HV-229 / #920.
+  if(a.id==='thermos' && thermosHasWarmth() && thermosUsed){
+    log('\ud83e\uded6 The thermos made its round already — it refills tomorrow.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
