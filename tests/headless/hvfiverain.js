@@ -68,14 +68,15 @@ ok(!/found_money/.test(ui) && !/weather\s*===\s*'rain'/.test(ui),
     G.lastEventDay = G.days;
     triggerEvent(ev, true);
     Math.random = real;
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    const lines = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent);
+    const last = lines[lines.length - 1] || '';
     return {
       banner: document.getElementById('ev-title').textContent,
       body: document.getElementById('ev-body').textContent,
       gw: G.goodwill,
       morale: G.morale,
-      soaked: /soak|rain|wet/i.test(log),
-      five: /\+5/.test(log),
+      soaked: /soak|rain|wet/i.test(last),
+      five: /\+5/.test(last),
     };
   }, weather);
 
