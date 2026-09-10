@@ -11,8 +11,8 @@
  *  A. Source: the gentrify effect calls addRep with a loss. The card
  *     still says harassment is increasing. ui.js is not this ticket.
  *  B. A Known camp (26) drops to A Stranger (21) and the fade logs.
- *  C. Morale and goodwill still fall. Theft / Illness / City Sweep
- *     do not steal the Word latch.
+ *  C. Morale and goodwill still fall. Illness / City Sweep do not
+ *     steal the Word latch. Theft fading Word is HV-236.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives triggerEvent() on the production event.
@@ -105,8 +105,10 @@ ok(!/function buildActionUI/.test(loop) && !/gentrify/.test(ui),
     };
     return { theft: fire('theft'), sick: fire('sickness'), sweep: fire('sweep') };
   });
-  ok(other.theft === 40 && other.sick === 40 && other.sweep === 40,
-    `Theft / Illness / City Sweep leave Word standing (${other.theft}, ${other.sick}, ${other.sweep})`);
+  ok(other.theft === 37,
+    `Theft fading Word is HV-236, not this latch (rep ${other.theft})`);
+  ok(other.sick === 40 && other.sweep === 40,
+    `Illness / City Sweep leave Word standing (${other.sick}, ${other.sweep})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
