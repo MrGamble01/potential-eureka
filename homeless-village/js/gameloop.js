@@ -352,7 +352,12 @@ function onNewDay(){
     if(typeof G.sickUntil==='number' && G.sickUntil>=0 && G.days<=G.sickUntil){
       log('The Cook is down with the bug. No meals today.');
     } else {
-      G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.');
+      // HV-277: a scorcher leaves the hired pot dark.
+      if(G.weather==='heat'){
+        log('🍳 A scorcher — the Cook left the pot dark. Nobody wanted a hot meal.');
+      } else {
+        G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.');
+      }
     }
   }
   // HV-27: every rainy dawn tops the barrel up, garden or not.

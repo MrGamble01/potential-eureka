@@ -39,7 +39,7 @@ const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8')
 
 const onNew = /function onNewDay\(\)\{([\s\S]*?)\nfunction /.exec(loop);
 const body = onNew ? onNew[1] : '';
-const cook = /if\(G\.workers\.cook&&G\.food>=3\)\{[\s\S]*?The Cook prepared meals[\s\S]*?\}/.exec(body);
+const cook = /if\(G\.workers\.cook&&G\.food>=3[^\n]*\)\{[\s\S]*?The Cook prepared meals[\s\S]*?\}/.exec(body);
 const pot = cook ? cook[0] : '';
 
 ok(/A scorcher\. Foot traffic is up/.test(loop)
@@ -78,6 +78,7 @@ ok(!/workers\.cook/.test(ui) && !/weather\s*===\s*'heat'/.test(ui),
     Math.random = () => o.roll;
     G.days = 2;
     G.dog = 0;
+    G.sickUntil = null;
     G.regulars = { marisol: 0, ray: 0, dee: 0 };
     G.food = 10;
     G.population = 1;
