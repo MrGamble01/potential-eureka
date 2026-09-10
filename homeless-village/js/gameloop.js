@@ -250,7 +250,16 @@ function onNewDay(){
     }
   }
   if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
-  if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
+  if(G.workers.cook&&G.food>=3){
+    // HV-277: dawn says a scorcher. The Cook makes meals from
+    // food automatically — hot meals. Soup night already feels
+    // the heat. The hired pot never did.
+    if(G.weather==='heat'){
+      log('\ud83c\udf73 A scorcher — the Cook left the pot dark. Nobody wanted a hot meal.');
+    } else {
+      G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.');
+    }
+  }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
     G.barrelWater=(G.barrelWater||0)+1;
