@@ -204,6 +204,15 @@ function onNewDay(){
   // HV-54: the empty hook eases the season's own base drain, which is
   // the one part of the cold the coat rack above never touches.
   G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
+  // HV-200: Biscuit's keep is warmth against your back — it lands
+  // before the fire-held check, so a camp he pushed over 50 hears
+  // the fire held. Food and morale still settle in the keep block
+  // after cook / garden / the empty-larder bite.
+  var biscuitWarmed=false;
+  if(G.dog===2&&G.food>=1){
+    G.warmth=Math.min(100,G.warmth+3);
+    biscuitWarmed=true;
+  }
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
   if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
@@ -270,7 +279,8 @@ function onNewDay(){
     // and a reason to get up; hungry, he's a guilt that wears on everyone.
     if(G.food>=1){
       G.food-=1; G.dogHungry=false;
-      G.morale=Math.min(100,G.morale+2); G.warmth=Math.min(100,G.warmth+3);
+      G.morale=Math.min(100,G.morale+2);
+      if(!biscuitWarmed) G.warmth=Math.min(100,G.warmth+3);
     } else {
       G.dogHungry=true; G.morale=Math.max(0,G.morale-2);
       log('No scraps left for Biscuit. He curls up hungry.');
