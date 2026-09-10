@@ -11,8 +11,9 @@
  * Distinct from HV-218 / #911 (the whole story wasn't standing),
  * HV-230 / #924 (the snapshot already got its look), HV-227 /
  * #921 (Marisol already came by), HV-236 / #931 (the thermos
- * already made its round). This ticket is the standing reunion
- * after it already went off. ui.js is not this ticket.
+ * already made its round), and HV-237 / #932 (scrapyard vs
+ * rain). This ticket is the standing reunion after it already
+ * went off. ui.js is not this ticket.
  *
  *  A. Source: doAction names the bridgeReunionHeld gate before
  *     setTimeout, only when the whole story stands. The refuse
