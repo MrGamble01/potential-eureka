@@ -302,8 +302,16 @@ function finishAction(a){
     }
   } else if(a.id==='guestbook'){
     // HV-45: the names by the fridge, leafed once a session.
+    // HV-202: rain takes the paper while the Dry Corner is still
+    // open to the sky. The roof exists to carry the notebook in
+    // out of the weather. A leaf-through on soaked pages does
+    // not pay — they still opened it; the names ran.
     if(!notebookOut()){ log('\ud83d\udcd3 No notebook by the fridge yet \u2014 three candles and somebody leaves one out.'); }
     else if(notebookLeafed){ log('\ud83d\udcd3 The notebook got its leaf-through today \u2014 the names keep.'); }
+    else if(G.weather==='rain' && !dryBuilt()){
+      notebookLeafed=true;
+      log('\ud83d\udcd3 Rain took the spiral notebook \u2014 the pages are open to the sky, and the names ran. Nobody left anything on a soaked leaf.');
+    }
     else {
       notebookLeafed=true;
       var gd=notebookDish();
