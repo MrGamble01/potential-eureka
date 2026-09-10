@@ -563,8 +563,16 @@ var EVENTS_GOOD=[
      // HV-70: the card is titled Found $5. Goodwill is the camp's
      // money. The payout used to be a three-to-six roll.
      G.goodwill+=5;
+     // HV-276: the sidewalk is the card. Rain already soaks Kind
+     // Stranger's bag (#884). A wet five is still a five — soaked
+     // through, it spends like two.
+     if(G.weather==='rain'){
+       G.goodwill-=3;
+       log('Found a five on the sidewalk — soaked through. +2 goodwill.');
+     } else {
+       log('Found a five on the sidewalk. +5 goodwill.');
+     }
      G.morale=Math.min(100,G.morale+rand(4,8));
-     log('Found a five on the sidewalk. +5 goodwill.');
    }},
   {id:'good_weather',title:'Good Weather',type:'good',weight:11,
    desc:'Clear skies and mild temps. A rare easy day.',
