@@ -685,12 +685,16 @@ function finishAction(a){
     if(depositAvailable() && !depositDone()){
       var hauled=G.cans||0;
       var gw=Math.floor(hauled/2), rp=Math.floor(hauled/10);
+      // HV-243: a scorcher wears the cart walk. Rain vs the
+      // cart is #926; cold vs the cart is #868.
+      var heatCut=G.weather==='heat';
+      if(heatCut){ gw=Math.floor(gw*0.75); rp=Math.floor(rp*0.75); }
       G.cans=0;
       G.goodwill+=gw;
       if(rp>0) addRep(rp);
       G.deposits=(G.deposits||0)+1; G.depositDay=G.days;
       floatText('🛒 +'+gw+'🩶'+(rp>0?' +'+rp+'⭐':''));
-      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.');
+      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.'+(heatCut?' The scorcher got into the haul.':''));
       saveGame();
       buildActionUI();
     }
