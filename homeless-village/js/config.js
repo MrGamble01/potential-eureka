@@ -74,6 +74,10 @@ var G = {
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,
+  // HV-240: the dawn the bug keeps the Cook down. Illness fires at
+  // the end of a day, after breakfast already landed, so this stamp
+  // is tomorrow. -1 = no bug pending.
+  sickUntil: -1,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
