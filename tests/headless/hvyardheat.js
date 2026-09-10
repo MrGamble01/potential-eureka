@@ -1,5 +1,5 @@
 /*
- * HV-245 — Sort at the scrapyard said dirty work, then a
+ * HV-246 — Sort at the scrapyard said dirty work, then a
  * heat-wave day still paid a cool-day haul.
  *
  * The posting is "Dirty work, decent haul. +5 scraps, +2 cans."
@@ -8,23 +8,25 @@
  * finishAction still paid the posted +5 / +2 as if the sky
  * were clear.
  *
- * Distinct from HV-237 / #932 (rain vs the yard — that ticket
- * left heat on the posted take), HV-167 / #857 (winter vs the
- * yard), HV-189 / #879 (cold vs the yard), HV-243 / #938
- * (Deposit vs heat), HV-169 / #861 (Walk the dogs vs a
- * scorcher). This ticket is the heat vs the yard. ui.js is
- * not this ticket.
+ * Distinct from HV-237 / #932 (rain vs the yard), HV-167 /
+ * #857 (winter vs the yard), HV-189 / #879 (cold vs the
+ * yard), HV-243 / #938 (Deposit vs heat), HV-169 / #861
+ * (Walk the dogs vs a scorcher), HV-245 / #940 (Respected
+ * halves sweeps — that ticket already sat HV-245). This
+ * ticket is the heat vs the yard. ui.js is not this ticket.
  *
  *  A. Source: the odd-job finisher still pays the scrapyard
  *     posting. Heat Wave is still named. The finisher reads
- *     scrapyd + weather==='heat' and applies 0.75. Rain and
- *     cold are not this ticket. ui.js is not this ticket.
+ *     scrapyd + weather==='heat' and applies 0.75. Rain's
+ *     half-cut is HV-237. Cold's half is HV-189. ui.js is
+ *     not this ticket.
  *  B. Live: a clear scrapyard shift still pays +5 / +2.
  *  C. Live: the same shift on heat paid the cool-day haul
  *     (the bug). After the fix it pays 0.75, and the log
  *     names the scorcher.
- *  D. Rain and cold do not steal the cut. Depot and flyers
- *     still pay their posted take in the heat.
+ *  D. Rain still halves — wet yard is #932. Cold still
+ *     halves — cold yard is #879. Depot and flyers still
+ *     pay their posted take in the heat.
  *  E. One run a day still holds.
  *  Z. Zero page errors.
  *
@@ -53,11 +55,11 @@ ok(/name:'Heat Wave'/.test(cfg) && /pan:\s*1\.5/.test(cfg),
 ok(/a\.id==='oddjob'/.test(player) && /todaysJob\(\)/.test(body),
   'the odd-job finisher still pays today’s posting');
 ok(/scrapyd/.test(body) && /G\.weather==='heat'/.test(body) && /0\.75/.test(body),
-  'HV-245: the scrapyard finisher cuts the haul on a heat-wave sky');
-ok(!/G\.weather==='rain'/.test(body),
-  'rain is not this ticket — the wet yard is #932');
-ok(!/G\.weather==='cold'/.test(body),
-  'cold is not this ticket — the cold yard is #879');
+  'HV-246: the scrapyard finisher cuts the haul on a heat-wave sky');
+ok(/G\.weather==='rain'/.test(body) && /Math\.floor\(amt\/2\)/.test(body),
+  'HV-237 rain cut still lives on the scrapyard haul');
+ok(/weather==='cold'/.test(body),
+  'HV-189 cold cut still lives on the scrapyard haul');
 ok(!/scrapyd/.test(ui) || !/G\.weather==='heat'/.test(ui),
   'ui.js untouched — the heat cut lives on the odd-job haul');
 
@@ -119,17 +121,17 @@ ok(!/scrapyd/.test(ui) || !/G\.weather==='heat'/.test(ui),
 
   const heat = await shift('heat', 3);
   ok(heat.id === 'scrapyd' && heat.scraps === 3 && heat.cans === 1 && heat.done,
-    `HV-245: a scorcher yard is +3 / +1, not the cool-day +5 / +2 (${heat.scraps} / ${heat.cans})`);
+    `HV-246: a scorcher yard is +3 / +1, not the cool-day +5 / +2 (${heat.scraps} / ${heat.cans})`);
   ok(/scorcher|heat/i.test(heat.log),
     `the log names the scorcher — not a silent cut (${heat.log.slice(-90)})`);
 
   const rain = await shift('rain', 3);
-  ok(rain.scraps === 5 && rain.cans === 2,
-    `rain without heat still pays the posted haul — wet yard is #932 (${rain.scraps} / ${rain.cans})`);
+  ok(rain.scraps === 2 && rain.cans === 1,
+    `rain without heat still halves — wet yard is HV-237 / #932 (${rain.scraps} / ${rain.cans})`);
 
   const cold = await shift('cold', 3);
-  ok(cold.scraps === 5 && cold.cans === 2,
-    `cold without heat still pays the posted haul — cold yard is #879 (${cold.scraps} / ${cold.cans})`);
+  ok(cold.scraps === 2 && cold.cans === 1,
+    `cold without heat still halves — cold yard is HV-189 / #879 (${cold.scraps} / ${cold.cans})`);
 
   const depot = await shift('heat', 0);
   ok(depot.id === 'depot' && depot.goodwill === 5,
