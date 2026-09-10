@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v234-hv-thermoused';  // HV-237: an already-poured thermos does not start the job
+const SW_VERSION = 'eureka-v235-hv-yard';  // HV-237: scrapyard rain cuts the dry-day haul
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
