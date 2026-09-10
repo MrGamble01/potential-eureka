@@ -138,6 +138,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-221: Play the Bridge Ballad says three tellings set the
+  // tune. finishAction already named an unset ballad — after a
+  // 2s job and with the 30s lock charged as if the hat had filled.
+  if(a.id==='ballad' && !balladSet()){
+    log('\ud83c\udfb8 No ballad yet \u2014 three tellings of the fire story and the busker finds the tune.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
