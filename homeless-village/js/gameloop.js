@@ -746,9 +746,10 @@ var EVENTS_GOOD=[
 
 function maybeEvent(){
   if(G.days<2||Math.random()>.55) return;
-  // HV-9: a Respected camp draws fewer complaint calls — sweeps come
-  // a third less often once the neighborhood vouches for you.
-  if(Math.random()<.18*(repTier()>=2?.67:1)&&!G.sweepWarned){
+  // HV-9 / HV-245: a Respected camp draws fewer complaint calls —
+  // Word on the Street said halves, not a third less. The .18 gate
+  // becomes .09 once the neighborhood vouches for you.
+  if(Math.random()<.18*(repTier()>=2?.5:1)&&!G.sweepWarned){
     if(G.workers.lookout){
       G.sweepWarned=true; G.packedUp=false;
       showSweepWarning(true, Date.now()+30000);
