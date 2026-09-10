@@ -603,9 +603,7 @@ var EVENTS_BAD=[
    desc:'New development nearby. Harassment from locals is increasing.',
    effect:function(){
      G.lastEventDay=G.days;
-     // HV-234: the card named a lasting condition. Stamp the day
-     // so Busk thins until dawn. Panhandle is HV-76.
-     G.gentrifyDay=G.days;
+     G.gentrifyDay=G.days; // HV-234: Busk thins until dawn
      G.morale  =Math.max(0,G.morale  -rand(18,28));
      G.goodwill=Math.max(0,G.goodwill-rand(3,8));
      // HV-216: the card says harassment from locals is increasing.
