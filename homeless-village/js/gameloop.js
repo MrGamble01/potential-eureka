@@ -223,7 +223,11 @@ function onNewDay(){
   }
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
-  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
+  // HV-210: maybeEvent runs after this line. Fire Went Out says the
+  // barrel died overnight — it cannot land on a dawn that already
+  // heard the hold. Tomorrow's hold is HV-83 (#747), not this ticket.
+  G.fireHeldThisDawn=false;
+  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); G.fireHeldThisDawn=true; log('🔥 The fire held all night — the camp wakes warm.'); }
   // HV-15: the sanitation unit keeps everyone a little healthier
   if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
   // HV-16: friends ask, and sometimes stop asking
@@ -704,7 +708,11 @@ function maybeEvent(){
   // honors the Lookout's warning). Leaving 'sweep' in this general
   // pool let ~38% of sweeps fire instantly with no warning even when
   // the player had paid for a Lookout.
-  EVENTS_BAD.forEach(function(e){ if(e.id==='sweep') return; for(var i=0;i<Math.floor(e.weight*bm);i++) pool.push({ev:e,good:false}); });
+  EVENTS_BAD.forEach(function(e){
+    if(e.id==='sweep') return;
+    if(e.id==='fire_out'&&G.fireHeldThisDawn) return;
+    for(var i=0;i<Math.floor(e.weight*bm);i++) pool.push({ev:e,good:false});
+  });
   EVENTS_GOOD.forEach(function(e){ for(var i=0;i<e.weight;i++) pool.push({ev:e,good:true}); });
   var pick=pool[Math.floor(Math.random()*pool.length)];
   triggerEvent(pick.ev,pick.good);
