@@ -654,8 +654,11 @@ function finishAction(a){
       // are not this card. Flyers and the deposit run are not this card.
       if(j.id==='scrapyd' && G.weather==='rain') amt=Math.max(1, Math.floor(amt/2));
       // HV-246: a scorcher wears the shift. Rain vs the yard is
-      // #932. Cold is #879. Depot heat is not this card.
+      // #932. Cold is #879. Depot heat is HV-247.
       if(j.id==='scrapyd' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+      // HV-247: honest lifting in a scorcher. The yard vs heat
+      // is HV-246 / #941; cold vs the dock is #872.
+      if(j.id==='depot' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
       if(k==='morale') G.morale=Math.min(100,G.morale+amt);
       else G[k]=(G[k]||0)+amt;
       if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -683,6 +686,7 @@ function finishAction(a){
     if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
     if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
     if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
+    if(j.id==='depot' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lift.');
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){

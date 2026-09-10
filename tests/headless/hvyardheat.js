@@ -25,8 +25,8 @@
  *     (the bug). After the fix it pays 0.75, and the log
  *     names the scorcher.
  *  D. Rain still halves — wet yard is #932. Cold still
- *     halves — cold yard is #879. Depot and flyers still
- *     pay their posted take in the heat.
+ *     halves — cold yard is #879. Flyers still pay the
+ *     posted take in the heat. Depot heat is HV-247.
  *  E. One run a day still holds.
  *  Z. Zero page errors.
  *
@@ -134,8 +134,8 @@ ok(!/scrapyd/.test(ui) || !/G\.weather==='heat'/.test(ui),
     `cold without heat still halves — cold yard is HV-189 / #879 (${cold.scraps} / ${cold.cans})`);
 
   const depot = await shift('heat', 0);
-  ok(depot.id === 'depot' && depot.goodwill === 5,
-    `Unload at the depot still pays +5 goodwill in the heat (${depot.goodwill})`);
+  ok(depot.id === 'depot' && depot.goodwill === 3,
+    `Unload at the depot pays the scorcher lift — depot heat is HV-247 (${depot.goodwill})`);
 
   const flyers = await shift('heat', 1);
   ok(flyers.id === 'flyers' && flyers.goodwill === 3 && flyers.morale === 54,
