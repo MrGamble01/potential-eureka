@@ -89,12 +89,13 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     G.rep = 10;
     G.goodwill = 0;
     G.morale = 40;
+    const before = document.querySelectorAll('.log-line').length;
     finishAction(oddJobAction());
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    const log = Array.from(document.querySelectorAll('.log-line')).slice(before).map(d => d.textContent).join('\n');
     return { job: todaysJob().id, rep: G.rep, goodwill: G.goodwill, log };
   });
   ok(flyers.job === 'flyers' && flyers.rep === 14 && flyers.goodwill === 3
-      && !/notices industry/.test(flyers.log),
+      && /kind word/.test(flyers.log) && !/notices industry/.test(flyers.log),
     `flyers still get the kind-owner Word (HV-279) — not industry (rep ${flyers.rep})`);
 
   await browser.close();

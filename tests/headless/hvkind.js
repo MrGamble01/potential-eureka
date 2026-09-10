@@ -96,8 +96,9 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     G.oddJobDay = -1;
     G.rep = 10;
     G.goodwill = 0;
+    const before = document.querySelectorAll('.log-line').length;
     finishAction(oddJobAction());
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    const log = Array.from(document.querySelectorAll('.log-line')).slice(before).map(d => d.textContent).join('\n');
     return { job: todaysJob().id, rep: G.rep, goodwill: G.goodwill, log };
   });
   ok(depot.job === 'depot' && depot.goodwill === 5 && !/kind word/.test(depot.log),
