@@ -1,20 +1,18 @@
 /*
- * HV-279 — Hand out flyers said the owner is kind, then Word
- * on the Street never heard the shop.
+ * HV-231 — Unload at the depot said a morning of honest lifting,
+ * then Word on the Street never heard the honest day.
  *
- * The posting: a local shop pays, and the owner is kind.
- * Odd jobs already add +3 rep for honest work. The kind owner
- * is a second system — a shopkeeper who vouches. finishAction
- * treated flyers like Unload at the depot: the honest-work +3
- * and nothing for the shop.
+ * The posting: a morning of honest lifting. The deposit run already
+ * names industry when the block notices (+1 Word per 10 cans). The
+ * depot odd job paid the same honest-work +3 every posting gets and
+ * never named Word. Flyers' kind owner is HV-279 / #922 — that
+ * card already puts in a shop word. Cold morning and night are
+ * not this card.
  *
- * Marisol hearing the owner (#845) is not this card. Rain and
- * Gentrification are not this card. Depot is not this card.
- *
- *  A. Source: the odd-job payout names flyers and puts in a word.
- *  B. The posting still says the owner is kind.
- *  C. Flyers move Word one more than honest work.
- *  D. The depot does not get the kind word (industry Word is HV-231).
+ *  A. Source: the odd-job payout names depot and notices industry.
+ *  B. The posting still says honest lifting.
+ *  C. Depot moves Word one more than honest work.
+ *  D. Flyers still get the kind-owner Word, not industry.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives finishAction on the production odd-job row.
@@ -36,13 +34,13 @@ const oddBlock = oddAt >= 0 && muralAt > oddAt ? player.slice(oddAt, muralAt) : 
 
 ok(oddAt >= 0 && /addRep\(3\)/.test(oddBlock),
   'odd jobs still pay the honest-work +3 Word');
-ok(/j\.id==='flyers'/.test(oddBlock) && /addRep\(1\)/.test(oddBlock)
-    && /kind word/.test(oddBlock),
-  'HV-279: flyers put in a kind word after honest work');
-ok(/id:'flyers'/.test(config) && /the owner is kind/.test(config),
-  'the posting still says the owner is kind');
+ok(/j\.id==='depot'/.test(oddBlock) && /addRep\(1\)/.test(oddBlock)
+    && /notices industry/.test(oddBlock),
+  'HV-231: the depot notices industry after honest work');
+ok(/id:'depot'/.test(config) && /honest lifting/.test(config),
+  'the posting still says a morning of honest lifting');
 ok(!/homeless-village\/js\/ui\.js/.test(player),
-  'the kind word lives in finishAction — ui.js is not this ticket');
+  'the industry word lives in finishAction — ui.js is not this ticket');
 
 (async () => {
   const launch = {
@@ -55,8 +53,8 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
   await page.addInitScript(() => {
-    if (!sessionStorage.getItem('hvkind-init')) {
-      sessionStorage.setItem('hvkind-init', '1');
+    if (!sessionStorage.getItem('hvlift-init')) {
+      sessionStorage.setItem('hvlift-init', '1');
       localStorage.setItem('hv-intro-seen', '1');
       localStorage.removeItem('homeless_village_v1');
     }
@@ -65,44 +63,40 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
   await page.waitForTimeout(2500);
   const t = fn => page.evaluate(fn);
 
-  const flyers = await t(() => {
-    G.days = 1;
+  const depot = await t(() => {
+    G.days = 0;
     G.oddJobDay = -1;
     G.rep = 10;
     G.goodwill = 0;
-    G.morale = 40;
-    G.regulars = { marisol: 0, ray: 0, dee: 0 };
     finishAction(oddJobAction());
     const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
     return {
       job: todaysJob().id,
       rep: G.rep,
       goodwill: G.goodwill,
-      morale: G.morale,
-      marisol: G.regulars.marisol,
       log,
     };
   });
-  ok(flyers.job === 'flyers', 'day 1 is still Hand out flyers');
-  ok(flyers.rep === 14 && flyers.goodwill === 3 && flyers.morale === 44,
-    `flyers move Word +4 (honest 3 + kind 1) and still pay the shop (rep ${flyers.rep})`);
-  ok(/kind word/.test(flyers.log),
-    'the feed names the kind word the block heard');
-  ok(flyers.marisol === 0,
-    'Marisol hearing the owner is not this card');
+  ok(depot.job === 'depot', 'day 0 is still Unload at the depot');
+  ok(depot.rep === 14 && depot.goodwill === 5,
+    `depot moves Word +4 (honest 3 + industry 1) and still pays the lift (rep ${depot.rep})`);
+  ok(/notices industry/.test(depot.log),
+    'the feed names the industry the block noticed');
 
-  const depot = await t(() => {
-    G.days = 0;
+  const flyers = await t(() => {
+    G.days = 1;
     G.oddJobDay = -1;
     G.rep = 10;
     G.goodwill = 0;
+    G.morale = 40;
     const before = document.querySelectorAll('.log-line').length;
     finishAction(oddJobAction());
     const log = Array.from(document.querySelectorAll('.log-line')).slice(before).map(d => d.textContent).join('\n');
     return { job: todaysJob().id, rep: G.rep, goodwill: G.goodwill, log };
   });
-  ok(depot.job === 'depot' && depot.goodwill === 5 && !/kind word/.test(depot.log),
-    `the depot still does not get the kind word — industry is HV-231 (rep ${depot.rep})`);
+  ok(flyers.job === 'flyers' && flyers.rep === 14 && flyers.goodwill === 3
+      && /kind word/.test(flyers.log) && !/notices industry/.test(flyers.log),
+    `flyers still get the kind-owner Word (HV-279) — not industry (rep ${flyers.rep})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);

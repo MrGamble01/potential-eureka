@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v247-hv-snaplooked';  // HV-230: a second look at the snapshot refuses before the timer
+const SW_VERSION = 'eureka-v248-hv-lift';  // HV-231: depot honest lifting reaches Word
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
