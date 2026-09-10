@@ -295,7 +295,16 @@ function onNewDay(){
       G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
     }
   }
-  if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
+  if(G.workers.scrapper){
+    // HV-239: a named snap thins the dawn haul the same way
+    // the corner thins — even under a clear sky. Winter vs
+    // the Scrapper is #788; Dumpsters Locked is #753.
+    var sm=snapActive()?0.75:1;
+    var scraps=Math.max(1,Math.floor(rand(1,3)*sm));
+    var cans=Math.max(0,Math.floor(rand(0,2)*sm));
+    G.scraps+=scraps; G.cans+=cans;
+    log('The Scrapper found some supplies.');
+  }
   // HV-208: Biscuit's keep is one food a day. The Cook used to
   // spend the last three bowls first and leave him hungry.
   if(G.workers.cook&&G.food>=3+(G.dog===2?1:0)){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
