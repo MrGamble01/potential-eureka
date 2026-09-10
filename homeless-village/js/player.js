@@ -126,7 +126,12 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
+    var w=rand(1,4),cb=rand(2,6);
+    // HV-198: Forage Area said cardboard and wood. Rain soaks
+    // cardboard — the same search paid the dry-day sheet count.
+    // Wood still comes home wet. Heat and cold are other tickets.
+    if(G.weather==='rain') cb=Math.max(1,Math.floor(cb/2));
+    G.wood+=w; G.cardboard+=cb;
     floatText('+'+w+'🪵 +'+cb+'📦');
     log('Found '+w+' wood and '+cb+' cardboard.');
   } else if(a.id==='panhandle'){
