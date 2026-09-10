@@ -189,6 +189,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-237: Tell the Fire Story says it is told around the fire.
+  // Fire Went Out dims the barrel; do not start the 2s job or
+  // stamp hvStoryTold. Nobody has the whole story yet is HV-47's
+  // own gate (finishAction, untouched). The dinner stays food.
+  if(a.id==='story' && hvStoryByHeart() && !hvStoryTold && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83d\udd25 The fire is out — there’s no fire to tell it around.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
