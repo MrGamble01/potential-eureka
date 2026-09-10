@@ -206,7 +206,14 @@ function onNewDay(){
   G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
-  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
+  if(G.warmth>=50){
+    G.morale=Math.min(100,G.morale+2);
+    // HV-265: they woke warm. A heat wave's bite is a gift —
+    // the sky held the camp, not the barrel. A dead barrel is
+    // not this card. The +2 still lands: they did wake warm.
+    if(G.weather==='heat') log('🥵 A scorcher held the camp warm — that was the sky, not the barrel.');
+    else log('🔥 The fire held all night — the camp wakes warm.');
+  }
   // HV-15: the sanitation unit keeps everyone a little healthier
   if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
   // HV-16: friends ask, and sometimes stop asking
