@@ -668,6 +668,10 @@ function finishAction(a){
       // HV-247: honest lifting in a scorcher. The yard vs heat
       // is HV-246 / #941; cold vs the dock is #872.
       if(j.id==='depot' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+      // HV-250: the shop walk is outdoor walking in the same
+      // scorcher. Depot heat is HV-247 / #942; yard heat is
+      // HV-246 / #941. Rain vs flyers is #867.
+      if(j.id==='flyers' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
       if(k==='morale') G.morale=Math.min(100,G.morale+amt);
       else G[k]=(G[k]||0)+amt;
       if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -696,6 +700,7 @@ function finishAction(a){
     if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
     if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
     if(j.id==='depot' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lift.');
+    if(j.id==='flyers' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the walk.');
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
