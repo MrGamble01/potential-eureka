@@ -1,32 +1,32 @@
 /*
- * HV-246 — Sort at the scrapyard said dirty work, then a
- * heat-wave day still paid a cool-day haul.
+ * HV-247 — Unload at the depot said honest lifting, then a
+ * heat-wave day still paid a cool-day lift.
  *
- * The posting is "Dirty work, decent haul. +5 scraps, +2 cans."
+ * The posting is "A morning of honest lifting. +5 goodwill."
  * Heat Wave already gifts the corner (pan 1.5) and doubles a
- * busk. The yard is outdoor dirty work in that same scorcher.
- * finishAction still paid the posted +5 / +2 as if the sky
- * were clear.
+ * busk. The depot is outdoor lifting in that same scorcher.
+ * finishAction still paid the posted +5 as if the sky were
+ * clear.
  *
- * Distinct from HV-237 / #932 (rain vs the yard), HV-167 /
- * #857 (winter vs the yard), HV-189 / #879 (cold vs the
- * yard), HV-243 / #938 (Deposit vs heat), HV-169 / #861
- * (Walk the dogs vs a scorcher), HV-245 / #940 (Respected
- * halves sweeps — that ticket already sat HV-245). This
- * ticket is the heat vs the yard. ui.js is not this ticket.
+ * Distinct from HV-246 / #941 (scrapyard vs heat — that
+ * ticket left the depot on the posted take), HV-243 / #938
+ * (Deposit vs heat), HV-172 / #872 (depot vs cold), HV-152 /
+ * #844 (depot vs night), HV-231 / #925 (depot vs Word).
+ * Main already sat HV-246 as the yard vs heat, so ROADMAP
+ * takes HV-247. This ticket is the heat vs the dock. ui.js
+ * is not this ticket.
  *
- *  A. Source: the odd-job finisher still pays the scrapyard
+ *  A. Source: the odd-job finisher still pays the depot
  *     posting. Heat Wave is still named. The finisher reads
- *     scrapyd + weather==='heat' and applies 0.75. Rain's
- *     half-cut is HV-237. Cold's half is HV-189. ui.js is
- *     not this ticket.
- *  B. Live: a clear scrapyard shift still pays +5 / +2.
- *  C. Live: the same shift on heat paid the cool-day haul
+ *     depot + weather==='heat' and applies 0.75. The yard's
+ *     scorcher cut is HV-246 / #941. ui.js is not this ticket.
+ *  B. Live: a clear depot shift still pays +5 goodwill.
+ *  C. Live: the same shift on heat paid the cool-day lift
  *     (the bug). After the fix it pays 0.75, and the log
  *     names the scorcher.
- *  D. Rain still halves — wet yard is #932. Cold still
- *     halves — cold yard is #879. Flyers still pay the
- *     posted take in the heat. Depot heat is HV-247.
+ *  D. Rain and cold do not steal the cut. The scrapyard
+ *     still pays its #941 scorcher cut. Flyers still pay
+ *     the posted take in the heat.
  *  E. One run a day still holds.
  *  Z. Zero page errors.
  *
@@ -48,20 +48,20 @@ const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8')
 const oddBlock = /else if\(a\.id==='oddjob'\)\{[\s\S]*?else if\(a\.id==='mural'\)/.exec(player);
 const body = oddBlock ? oddBlock[0] : '';
 
-ok(/Dirty work, decent haul/.test(cfg) && /id:'scrapyd'/.test(cfg),
-  'the scrapyard still promises a dirty +5 / +2 haul');
+ok(/A morning of honest lifting/.test(cfg) && /id:'depot'/.test(cfg),
+  'the depot still promises a morning of honest lifting for +5 goodwill');
 ok(/name:'Heat Wave'/.test(cfg) && /pan:\s*1\.5/.test(cfg),
   'Heat Wave still gifts the panhandle corner');
 ok(/a\.id==='oddjob'/.test(player) && /todaysJob\(\)/.test(body),
   'the odd-job finisher still pays today’s posting');
-ok(/scrapyd/.test(body) && /G\.weather==='heat'/.test(body) && /0\.75/.test(body),
-  'HV-246: the scrapyard finisher cuts the haul on a heat-wave sky');
-ok(/G\.weather==='rain'/.test(body) && /Math\.floor\(amt\/2\)/.test(body),
-  'HV-237 rain cut still lives on the scrapyard haul');
-ok(/weather==='cold'/.test(body),
-  'HV-189 cold cut still lives on the scrapyard haul');
-ok(!/scrapyd/.test(ui) || !/G\.weather==='heat'/.test(ui),
-  'ui.js untouched — the heat cut lives on the odd-job haul');
+ok(/j\.id==='depot' && G\.weather==='heat'/.test(body) && /0\.75/.test(body),
+  'HV-247: the depot finisher cuts the lift on a heat-wave sky');
+ok(/j\.id==='scrapyd' && G\.weather==='heat'/.test(body),
+  'the scrapyard still has its HV-246 / #941 scorcher cut — not this ticket');
+ok(!/j\.id==='depot' && G\.weather==='rain'/.test(body) && !/j\.id==='depot' && G\.weather==='cold'/.test(body),
+  'rain and cold are not this ticket — depot-vs-cold is #872');
+ok(!/G\.weather==='heat'/.test(ui),
+  'ui.js untouched — the heat cut lives on the odd-job lift');
 
 (async () => {
   const launch = {
@@ -74,8 +74,8 @@ ok(!/scrapyd/.test(ui) || !/G\.weather==='heat'/.test(ui),
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).split('\n')[0].slice(0, 110)));
   await page.addInitScript(() => {
-    if (!sessionStorage.getItem('hvyardheat-init')) {
-      sessionStorage.setItem('hvyardheat-init', '1');
+    if (!sessionStorage.getItem('hvdepotheat-init')) {
+      sessionStorage.setItem('hvdepotheat-init', '1');
       localStorage.setItem('hv-intro-seen', '1');
       localStorage.removeItem('homeless_village_v1');
     }
@@ -105,55 +105,55 @@ ok(!/scrapyd/.test(ui) || !/G\.weather==='heat'/.test(ui),
   `));
 
   const boot = await t(() => {
-    G.days = 3;
+    G.days = 0;
     return {
       job: todaysJob().id,
-      desc: ODD_JOBS.find(j => j.id === 'scrapyd') && ODD_JOBS.find(j => j.id === 'scrapyd').desc,
+      desc: ODD_JOBS.find(j => j.id === 'depot') && ODD_JOBS.find(j => j.id === 'depot').desc,
       heat: WEATHERS.heat && WEATHERS.heat.name,
     };
   });
-  ok(boot.job === 'scrapyd' && /Dirty work/.test(boot.desc) && boot.heat === 'Heat Wave',
-    `day 3 is still the scrapyard under a Heat Wave sky (${boot.job}, ${boot.heat})`);
+  ok(boot.job === 'depot' && /honest lifting/.test(boot.desc) && boot.heat === 'Heat Wave',
+    `day 0 is still the depot under a Heat Wave sky (${boot.job}, ${boot.heat})`);
 
-  const clear = await shift('clear', 3);
-  ok(clear.id === 'scrapyd' && clear.scraps === 5 && clear.cans === 2 && clear.done,
-    `a clear-sky yard still pays +5 scraps +2 cans (${clear.scraps} / ${clear.cans})`);
+  const clear = await shift('clear', 0);
+  ok(clear.id === 'depot' && clear.goodwill === 5 && clear.done,
+    `a clear-sky lift still pays +5 goodwill (${clear.goodwill})`);
 
-  const heat = await shift('heat', 3);
-  ok(heat.id === 'scrapyd' && heat.scraps === 3 && heat.cans === 1 && heat.done,
-    `HV-246: a scorcher yard is +3 / +1, not the cool-day +5 / +2 (${heat.scraps} / ${heat.cans})`);
+  const heat = await shift('heat', 0);
+  ok(heat.id === 'depot' && heat.goodwill === 3 && heat.done,
+    `HV-247: a scorcher lift is +3 goodwill, not the cool-day +5 (${heat.goodwill})`);
   ok(/scorcher|heat/i.test(heat.log),
     `the log names the scorcher — not a silent cut (${heat.log.slice(-90)})`);
 
-  const rain = await shift('rain', 3);
-  ok(rain.scraps === 2 && rain.cans === 1,
-    `rain without heat still halves — wet yard is HV-237 / #932 (${rain.scraps} / ${rain.cans})`);
+  const rain = await shift('rain', 0);
+  ok(rain.goodwill === 5,
+    `rain without heat still pays the posted lift (${rain.goodwill})`);
 
-  const cold = await shift('cold', 3);
-  ok(cold.scraps === 2 && cold.cans === 1,
-    `cold without heat still halves — cold yard is HV-189 / #879 (${cold.scraps} / ${cold.cans})`);
+  const cold = await shift('cold', 0);
+  ok(cold.goodwill === 5,
+    `cold without heat still pays the posted lift — depot-vs-cold is #872 (${cold.goodwill})`);
 
-  const depot = await shift('heat', 0);
-  ok(depot.id === 'depot' && depot.goodwill === 3,
-    `Unload at the depot pays the scorcher lift — depot heat is HV-247 (${depot.goodwill})`);
+  const yard = await shift('heat', 3);
+  ok(yard.id === 'scrapyd' && yard.scraps === 3 && yard.cans === 1,
+    `the scrapyard still pays its HV-246 / #941 scorcher cut (+3 / +1) (${yard.scraps} / ${yard.cans})`);
 
   const flyers = await shift('heat', 1);
   ok(flyers.id === 'flyers' && flyers.goodwill === 3 && flyers.morale === 54,
     `Hand out flyers still pays the posted take in the heat (${flyers.goodwill} / ${flyers.morale})`);
 
   const twice = await t(() => {
-    G.days = 3;
+    G.days = 0;
     G.oddJobDay = -9;
     G.weather = 'heat';
     G.structures.toolbox = false;
-    G.scraps = 0; G.cans = 0;
+    G.goodwill = 0;
     finishAction(oddJobAction());
-    const first = { scraps: G.scraps, cans: G.cans, day: G.oddJobDay };
+    const first = { gw: G.goodwill, day: G.oddJobDay };
     doAction(oddJobAction());
-    return { first, scraps2: G.scraps, cans2: G.cans };
+    return { first, gw2: G.goodwill };
   });
-  ok(twice.first.scraps === 3 && twice.scraps2 === 3 && twice.cans2 === 1,
-    'one run a day still holds — a second yard shift is refused');
+  ok(twice.first.gw === 3 && twice.gw2 === 3,
+    'one run a day still holds — a second lift is refused');
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
