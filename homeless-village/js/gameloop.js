@@ -523,6 +523,9 @@ var EVENTS_BAD=[
    desc:'A bug is going through the camp. Everyone feels terrible.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-273: the card says everyone feels terrible. Panhandle used
+     // to roll a well-day take on the same day and never feel the bug.
+     G.sickDay=G.days;
      G.health=Math.max(0,G.health-rand(12,22));
      G.food  =Math.max(0,G.food  -rand(2,5));
      log('Sickness hit the community. Health fell.');
