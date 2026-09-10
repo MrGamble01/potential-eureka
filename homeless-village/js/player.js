@@ -412,6 +412,12 @@ function finishAction(a){
     // HV-49: the can buried by the piling, dug up once a session.
     if(!canBuried()){ log('\ud83d\udce6 Nothing buried by the piling yet \u2014 three playings of the ballad and somebody puts a can down.'); }
     else if(canDug){ log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.'); }
+    else if(G.weather==='rain' && !dryBuilt()){
+      // HV-214: the Dry Corner sheets the can in so the rain stops
+      // taking the story. An open hole by the piling is not a dry capsule.
+      // Do not spend the dig latch or the tally.
+      log('\ud83d\udce6 The rain filled the hole by the piling \u2014 the notebook page, the snapshot, the pick, all soaked. Nothing tucked in worth keeping.');
+    }
     else {
       canDug=true;
       var cd2=canDish();
