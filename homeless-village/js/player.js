@@ -162,6 +162,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-224: Stand at the Fifth Panel says three digs prime the
+  // fifth panel. finishAction already named bare block — after a
+  // 2s job and with the 30s lock charged as if someone stood.
+  // HV-208 is G.mural < 4; this gate is panelPainted() (digs).
+  if(a.id==='fifth' && !panelPainted()){
+    log('\ud83c\udfa8 The fifth panel is still bare block \u2014 three digs of the can and somebody primes it.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
