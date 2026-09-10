@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v244-hv-marisolcame';  // HV-278: Marisol's second wave refuses before the timer
+const SW_VERSION = 'eureka-v245-hv-kind';  // HV-279: flyers' kind owner reaches Word
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
