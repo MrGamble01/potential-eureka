@@ -43,6 +43,13 @@ function doAction(a){
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
+  // HV-263: they gather around the fire. A scorcher is the last
+  // sky for sitting by a barrel. Refuse before the timer — do not
+  // spend the cadence. A dead barrel is not this card.
+  if(a.id==='meeting' && G.weather==='heat'){
+    log('🗣️ Nobody wanted to circle the fire on a scorcher.');
+    return;
+  }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
@@ -461,8 +468,11 @@ function finishAction(a){
       buildActionUI();
     }
   } else if(a.id==='meeting'){
-    // HV-14: re-check so a queued double-fire can't hold two circles.
-    if(!meetingDone() && (G.population||1)>=2){
+    // HV-263: the tooltip says around the fire. A scorcher still
+    // must not host the circle if the job was already queued.
+    if(G.weather==='heat'){
+      log('🗣️ Nobody wanted to circle the fire on a scorcher.');
+    } else if(!meetingDone() && (G.population||1)>=2){
       var heads=G.population;
       // HV-64: the tooltip says +2 morale a head. The silent cap of
       // 10 made a six-person circle pay the same as five.
