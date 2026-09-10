@@ -253,11 +253,27 @@ function onNewDay(){
           ? 'The snap froze the beds — the garden gave nothing today.'
           : 'Frost on the beds — the garden gave nothing today.');
       }
+      // HV-205: a stored rainfall sitting through a snap is ice.
+      // HV-193 already skips the harvest pour; the drum still
+      // needs its own line so ice is named and the tally stays.
+      if(snapActive() && G.weather!=='rain' && (G.barrelWater||0)>0){
+        log('\ud83d\udee2\ufe0f The snap froze the drum — a stored rainfall stays ice. The beds go without.');
+      }
     }
     else {
       var y=rand(1,3);
       if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
-      if(G.weather!=='rain'&&(G.barrelWater||0)>0){ G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.'); }   // HV-27
+      if(G.weather!=='rain'&&(G.barrelWater||0)>0){
+        // HV-205: a stored rainfall sitting through a snap is ice.
+        // Ice does not water the beds, and the drum stays full until
+        // a thaw. Frost already left the drum alone (#819); the snap
+        // is the same physics under a clear sky.
+        if(snapActive()){
+          log('\ud83d\udee2\ufe0f The snap froze the drum — a stored rainfall stays ice. The beds go without.');
+        } else {
+          G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.');
+        }
+      }   // HV-27
       G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
     }
   }
