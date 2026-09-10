@@ -338,11 +338,16 @@ function onNewDay(){
     // HV-239: a named snap thins the dawn haul the same way
     // the corner thins — even under a clear sky. Winter vs
     // the Scrapper is #788; Dumpsters Locked is #753.
-    var sm=snapActive()?0.75:1;
+    // HV-274: dawn says the cold gets into everything. Player
+    // dumpsters already feel a cold sky (scav 0.75). The hired
+    // haul is the same outdoor metal and never did (HV-239 left
+    // weather-cold paying in full on purpose — that seam).
+    var sm=G.weather==='cold'?weatherDef().scav:(snapActive()?0.75:1);
     var scraps=Math.max(1,Math.floor(rand(1,3)*sm));
     var cans=Math.max(0,Math.floor(rand(0,2)*sm));
     G.scraps+=scraps; G.cans+=cans;
     log('The Scrapper found some supplies.');
+    if(G.weather==='cold') log('\u2744\ufe0f The cold gets into the haul — a thinner morning.');
   }
   // HV-208: Biscuit's keep is one food a day. The Cook used to
   // spend the last three bowls first and leave him hungry.

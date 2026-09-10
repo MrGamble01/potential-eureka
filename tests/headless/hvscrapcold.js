@@ -20,8 +20,8 @@
  *  D. The same roll on a clear dawn still pays 3 / 2.
  *  E. A clear winter morning still pays 3 / 2 — season
  *     is HV-108's fight, not this one.
- *  F. A named snap under a clear sky still pays 3 / 2
- *     — the snap is HV-239's fight, not this one.
+ *  F. A named snap under clear still pays the snap cut 2 / 1
+ *     — the snap is HV-239, not this ticket.
  *  G. Rain and heat still pay 3 / 2. A camp with no
  *     Scrapper still pays nothing.
  *  Z. Zero page errors.
@@ -135,8 +135,12 @@ ok(!/workers\.scrapper/.test(ui) && !/weather\s*===\s*'cold'/.test(ui),
     `a clear winter morning still pays 3 / 2 (season is not this ticket)`);
 
   const snap = await dawn({ hire: true, weather: 'clear', days: 2, roll: 0.99, snap: true });
-  ok(snap.weather === 'clear' && snap.scraps === 3 && snap.cans === 2,
-    `a named snap under a clear sky still pays 3 / 2 (the snap is not this ticket)`);
+  ok(snap.weather === 'clear' && snap.scraps === 2 && snap.cans === 1,
+    `a named snap under clear still pays the snap cut 2 / 1 — the snap is HV-239, not this ticket`);
+
+  const coldSnap = await dawn({ hire: true, weather: 'cold', days: 2, roll: 0.99, snap: true });
+  ok(coldSnap.weather === 'cold' && coldSnap.scraps === 2 && coldSnap.cans === 1,
+    'cold plus a named snap cuts the haul once: 2 / 1');
 
   const rain = await dawn({ hire: true, weather: 'rain', days: 2, roll: 0.99, snap: false });
   ok(rain.weather === 'rain' && rain.scraps === 3 && rain.cans === 2,

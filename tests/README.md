@@ -53,7 +53,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
-| Homeless Village | 159 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
+| Homeless Village | 160 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
 | Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
@@ -190,6 +190,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvyard` (HV-237: Sort at the scrapyard said dirty work, then a rainy day still paid a dry-day haul)
 - `hvreunionheld` (HV-238: Throw the Reunion ran a job when it already went off today)
 - `hvscrappersnap` (HV-239: the Scrapper said auto-scavenges every day, then a named snap still paid a quiet-day haul)
+- `hvscrapcold` (HV-274: a cold sky thins the Scrapper haul)
 - `hvbug` (HV-240: Illness Spreading said a bug is going through the camp, then the Cook still prepared meals)
 - `hvbarreltheft` (HV-241: Theft said they raided your stash, then left the stored rainfall)
 - `hvnotebookleaf` (HV-242: Leaf the Notebook ran a job when it already got its leaf-through today)
