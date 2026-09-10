@@ -585,6 +585,9 @@ var EVENTS_BAD=[
      G.lastEventDay=G.days;
      G.morale  =Math.max(0,G.morale  -rand(18,28));
      G.goodwill=Math.max(0,G.goodwill-rand(3,8));
+     // HV-216: the card says harassment from locals is increasing.
+     // Word on the Street is that neighborhood. It never heard.
+     addRep(-5);
      log('More hostility in the area. Morale suffers.');
    }},
   {id:'sickness',title:'Illness Spreading',type:'bad',weight:11,
