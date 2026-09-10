@@ -1,5 +1,5 @@
 /*
- * HV-247 — Theft said they raided your stash, then left the weather band.
+ * HV-248 — Theft said they raided your stash, then left the weather band.
  *
  * The Radio's card says a crackly weather band — see tomorrow's sky
  * coming. Theft says someone raided your stash in the night. A radio
@@ -41,7 +41,7 @@ ok(!!radioRec && /tomorrow/.test(radioRec[1]),
 ok(theftAt >= 0 && /raided your stash/.test(theftBlock),
   'the theft card still says they raided your stash');
 ok(/structures\.radio\s*=\s*false/.test(theftBlock),
-  'HV-247: the theft effect takes the weather band');
+  'HV-248: the theft effect takes the weather band');
 ok(!/homeless-village\/js\/ui\.js/.test(loop) && !/homeless-village\/js\/ui\.js/.test(config),
   'the raid lives on the theft card — ui.js is not this ticket');
 
@@ -87,7 +87,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(loop) && !/homeless-village\/js\/ui\.js/
     };
   });
   ok(!raid.radio && !raid.sky,
-    `HV-247: a radio-only camp loses tomorrow's sky (radio=${raid.radio}, sky=${raid.sky})`);
+    `HV-248: a radio-only camp loses tomorrow's sky (radio=${raid.radio}, sky=${raid.sky})`);
   ok(raid.cans < 20, `the raid still takes goods (cans 20→${raid.cans})`);
   ok(/weather band/i.test(raid.log),
     `the log names the weather band (${raid.last.slice(-80)})`);
