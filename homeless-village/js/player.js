@@ -770,7 +770,14 @@ function doPetition(id){
   if(G.goodwill<def.cost){ log('Not enough goodwill to back the petition (need '+def.cost+'🩶).'); sfx('error'); return; }
   G.goodwill-=def.cost;
   G.petitions[id]=true;
-  if(id==='grant'){ G.food+=8; G.wood+=8; G.scraps+=8; floatText('+8🍞 +8🪵 +8🧱'); }
+  if(id==='grant'){
+    G.food+=8; G.wood+=8; G.scraps+=8;
+    // HV-225: the grant is civic. Stamp the day so today's City
+    // Sweep cannot confiscate the delivery as ordinary supplies.
+    // Theft is not this card. Tomorrow's sweep is not this card.
+    G.grantDay=G.days;
+    floatText('+8🍞 +8🪵 +8🧱');
+  }
   addRep(2);
   sfx('craft');
   log('📋 The petition went through: '+def.name.toLowerCase()+'. '+def.desc);

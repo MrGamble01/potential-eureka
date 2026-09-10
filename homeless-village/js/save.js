@@ -83,5 +83,6 @@ function loadGame(){
     if(G.newcomerAsk && typeof G.newcomerAsk.day!=='number') G.newcomerAsk=null;
     if(typeof G.friendDay!=='number') G.friendDay=-1; // saves from before HV-65
     if(typeof G.sickDay!=='number') G.sickDay=-1; // saves from before HV-210
+    if(typeof G.grantDay!=='number') G.grantDay=-1; // saves from before HV-225
   }catch(e){}
 }

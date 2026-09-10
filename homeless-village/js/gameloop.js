@@ -537,6 +537,19 @@ var EVENTS_BAD=[
      }
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
+     // HV-225: Community Grant is civic infrastructure. The
+     // delivery is not ordinary supplies — today's sweep cannot
+     // confiscate it. Theft is not this card. Tomorrow's sweep
+     // is not this card.
+     if(G.grantDay===G.days){
+       var capFood=Math.max(0,(G.food||0)-8);
+       var capScraps=Math.max(0,(G.scraps||0)-8);
+       if(lostFood>capFood || lostScraps>capScraps){
+         lostFood=Math.min(lostFood,capFood);
+         lostScraps=Math.min(lostScraps,capScraps);
+         log('\uD83D\uDCCB The community grant is civic \u2014 this sweep cannot confiscate the delivery.');
+       }
+     }
      G.scraps=Math.max(0,G.scraps-lostScraps);
      G.food  =Math.max(0,G.food  -lostFood);
      G.morale=Math.max(0,G.morale-rand(15,25));
