@@ -276,7 +276,11 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    var w=rand(1,4),cb=rand(2,6);
+    // HV-280: nobody lingers outside in a named snap — the
+    // surroundings thin the same way the corner does, even
+    // under a clear sky. Rain cardboard is HV-198.
+    var fm=snapActive()?0.75:1;
+    var w=Math.max(1,Math.floor(rand(1,4)*fm)), cb=Math.max(1,Math.floor(rand(2,6)*fm));
     // HV-198: Forage Area said cardboard and wood. Rain soaks
     // cardboard — the same search paid the dry-day sheet count.
     // Wood still comes home wet. Heat and cold are other tickets.
