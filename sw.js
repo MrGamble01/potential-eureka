@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v246-hv-foragesnap';  // HV-280: forage thins inside a named snap
+const SW_VERSION = 'eureka-v247-hv-snaplooked';  // HV-230: a second look at the snapshot refuses before the timer
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
