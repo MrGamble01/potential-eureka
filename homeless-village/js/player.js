@@ -180,6 +180,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-235: Mark the Anniversary said light a candle and keep
+  // it lit. Fire Went Out dims the barrel; do not start the 2s
+  // job or stamp annivMarked. Uncounted winters are HV-207.
+  // The pot stays food.
+  if(a.id==='anniv' && annivCounts() && !annivMarked && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83d\udd6f\ufe0f The fire is out — the candle waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.

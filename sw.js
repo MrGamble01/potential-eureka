@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v231-hv-gentbusk';  // HV-234: Busk thins while the block is hostile
+const SW_VERSION = 'eureka-v232-hv-annivfire';  // HV-235: the anniversary candle waits while the barrel is dark
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
