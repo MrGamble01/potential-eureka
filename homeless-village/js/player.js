@@ -83,6 +83,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-269: the search is in the surroundings. A scorcher cooks
+  // the block — refuse before the timer so a miss does not burn
+  // the morning. Rain / a wet woods is not this card. The
+  // dumpsters are not this card.
+  if(a.id==='forage' && G.weather==='heat'){
+    log('🌿 A scorcher — the surroundings are too hot to search. The woods wait.');
+    sfx('error');
+    return;
+  }
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
     sfx('error');
@@ -115,9 +124,16 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
-    floatText('+'+w+'🪵 +'+cb+'📦');
-    log('Found '+w+' wood and '+cb+' cardboard.');
+    // HV-269: a queued search must not pay a cool-day haul after
+    // the sky turned into a scorcher. The woods wait. Rain is
+    // not this card.
+    if(G.weather==='heat'){
+      log('🌿 A scorcher — the surroundings are too hot to search. The woods wait.');
+    } else {
+      var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
+      floatText('+'+w+'🪵 +'+cb+'📦');
+      log('Found '+w+' wood and '+cb+' cardboard.');
+    }
   } else if(a.id==='panhandle'){
     // HV-6: people stop for the dog — a fed Biscuit at your side makes
     // strangers noticeably more generous.
