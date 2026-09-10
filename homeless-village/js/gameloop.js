@@ -495,13 +495,19 @@ var EVENTS_BAD=[
    desc:'Someone raided your stash in the night. Trust no one.',
    effect:function(){
      G.lastEventDay=G.days;
-     var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
+     // HV-266: panhandle already knows a hungry dog does not help.
+     // Theft still credited the chase after dawn said he curled up
+     // hungry. The sweep bark is not this card.
+     var dogHelps=G.dog===2&&!G.dogHungry;
+     var dm=dogHelps?.5:1; // HV-6: a fed Biscuit's barking cuts the losses in half
      var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
      G.morale=Math.max(0,G.morale-rand(12,20));
-     log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
+     log(dogHelps?'Thieves in the night — Biscuit chased them off before they got everything.'
+       :(G.dog===2?'Thieves in the night — Biscuit had curled up hungry and never left the blanket.'
+         :'Stash raided in the night.'));
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
