@@ -207,6 +207,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-242: Leaf the Notebook said once a session. finishAction
+  // already logs the names keep and no-ops. Clicking 📓 after
+  // the leaf still started the 2s job and charged the 30s lock.
+  // A missing notebook is HV-222.
+  if(a.id==='guestbook' && notebookOut() && notebookLeafed){
+    log('\ud83d\udcd3 The notebook got its leaf-through today — the names keep.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
