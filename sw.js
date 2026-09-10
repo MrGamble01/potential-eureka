@@ -15,7 +15,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v233-hv-storyfire';  // HV-236: the fire story waits while the barrel is dark
+const SW_VERSION = 'eureka-v234-hv-storyfire';  // HV-237: the fire story waits while the barrel is dark
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

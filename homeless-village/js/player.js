@@ -189,7 +189,7 @@ function doAction(a){
     sfx('error');
     return;
   }
-  // HV-236: Tell the Fire Story says it is told around the fire.
+  // HV-237: Tell the Fire Story says it is told around the fire.
   // Fire Went Out dims the barrel; do not start the 2s job or
   // stamp hvStoryTold. Nobody has the whole story yet is HV-47's
   // own gate (finishAction, untouched). The dinner stays food.

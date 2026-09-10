@@ -1,5 +1,5 @@
 /*
- * HV-236 — Tell the Fire Story said it is told around the fire,
+ * HV-237 — Tell the Fire Story said it is told around the fire,
  * then Fire Went Out still filled the pot.
  *
  * The tooltip says "Tell it around the fire once a session, and
@@ -61,7 +61,7 @@ ok(/id:'fire_out'[\s\S]{0,220}?fireOutUntil/.test(loop),
 ok(doAt >= 0 && timeoutAt > 0, 'doAction still starts the job with setTimeout');
 ok(storyAt >= 0 && fireAt >= 0 && storyAt < timeoutAt && fireAt < timeoutAt
    && /hvStoryByHeart\(\)/.test(doBlock) && /!hvStoryTold/.test(doBlock),
-  'HV-236: doAction refuses a known untold story by a dead fire before the timer');
+  'HV-237: doAction refuses a known untold story by a dead fire before the timer');
 ok(!/homeless-village\/js\/ui\.js/.test(player),
   'the dead-fire gate lives in doAction — ui.js is not this ticket');
 
@@ -135,7 +135,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
   });
   ok(dark.out, 'Fire Went Out leaves the barrel dark');
   ok(!dark.job && !dark.btnOn && !dark.told && dark.food === 10 && dark.tellings === 0 && dark.cd === 0,
-    `HV-236: a dead fire does not tell the story (job ${dark.job}, told ${dark.told}, food ${dark.food})`);
+    `HV-237: a dead fire does not tell the story (job ${dark.job}, told ${dark.told}, food ${dark.food})`);
   ok(/fire is out|barrel|fire|dark|lit/i.test(dark.added),
     `the refuse names the dead fire — not a silent no-op (${dark.added.slice(-90)})`);
 
