@@ -106,7 +106,9 @@ function finishAction(a){
     var wm=(G.season===3?.5:1)*weatherDef().scav;
     // HV-7: Old Ray knows which dumpsters are worth the walk — empty
     // hauls happen half as often once he's a friend.
-    if(Math.random()<.2*wm*(regularStage('ray')===2?.5:1)){
+    // HV-250: scav is a yield multiplier. Rain's 1.25 fattens the haul,
+    // not the empty gate — otherwise a wet day empties a dry-day bin.
+    if(Math.random()<.2*(G.season===3?.5:1)*(regularStage('ray')===2?.5:1)){
       log('The dumpster is empty. Nothing today.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
