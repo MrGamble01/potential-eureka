@@ -75,6 +75,14 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // HV-275: dawn says the cold gets into everything. Ray holds the
+  // bench by the bridge. A Cold Snap sky already thins the corner.
+  // The bench never emptied — he still fronted a summer stake.
+  if(a.id==='borrow' && G.weather==='cold'){
+    log('\uD83C\uDF96\uFE0F Ray\u2019s gone in from the cold \u2014 the ledger waits for a milder morning.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
@@ -168,7 +176,9 @@ function finishAction(a){
   } else if(a.id==='borrow'){
     // HV-30: Ray's front. One standing loan at a time — the ledger
     // remembers even when the mornings are broke.
-    if((G.rayDebt||0)>0){ log('\uD83E\uDD1D Ray taps his ledger \u2014 '+G.rayDebt+' still owed. One at a time.'); }
+    // HV-275: a cold sky sends him in. A queued job must not pay.
+    if(G.weather==='cold'){ log('\uD83C\uDF96\uFE0F Ray\u2019s gone in from the cold \u2014 the ledger waits for a milder morning.'); }
+    else if((G.rayDebt||0)>0){ log('\uD83E\uDD1D Ray taps his ledger \u2014 '+G.rayDebt+' still owed. One at a time.'); }
     else {
       G.goodwill=(G.goodwill||0)+BORROW_AMT; G.rayDebt=BORROW_OWED;
       floatText('+'+BORROW_AMT+'\ud83e\ude76');
