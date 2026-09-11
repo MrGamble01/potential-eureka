@@ -22,7 +22,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v254-hv-storybare';  // HV-281: an unlearned story does not start the job
+const SW_VERSION = 'eureka-v255-hv-storyfire';  // HV-183: a dead barrel does not host the fire story
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
