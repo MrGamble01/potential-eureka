@@ -241,6 +241,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-183: Tell the Fire Story is told around the fire. Fire
+  // Went Out dims the barrel; do not start the 2s job or stamp
+  // hvStoryTold. An unlearned story is HV-122; an already-told
+  // one is HV-249. The pot stays food.
+  if(a.id==='story' && hvStoryByHeart() && !hvStoryTold && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83d\udd25 The fire is out — the story waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
   // HV-249: Tell the Fire Story said once a session. finishAction
   // already logs the fire remembers and no-ops. Clicking 🔥 after
   // the telling still started the 2s job and charged the 30s lock.
