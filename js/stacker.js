@@ -17,7 +17,7 @@ const StackerGame = (() => {
   const CAMERA_ROWS = 12;         // floors visible before the view slides
 
   let canvas, ctx, loop;
-  let stack, current, floors, best, running, over, perfectStreak;
+  let stack, current, floors, best, running, over, perfectStreak, peakStreak, bestStreak;
   let cameraY, flashT, particles;
   const sfx = Utils.sfx;
 
@@ -35,6 +35,7 @@ const StackerGame = (() => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     best = Utils.highScore.load('stacker-best');
+    bestStreak = Utils.highScore.load('stacker-perfect-best');
     reset(false);
     updateInfo();
 
@@ -58,6 +59,7 @@ const StackerGame = (() => {
     stack = [{ x: (WIDTH - BASE_W) / 2, w: BASE_W }];
     floors = 0;
     perfectStreak = 0;
+    peakStreak = 0;
     cameraY = 0;
     flashT = 0;
     particles = [];
@@ -103,6 +105,7 @@ const StackerGame = (() => {
       // PERFECT: snap flush, keep the full width, small reward pulse.
       x = top.x; width = top.w;
       perfectStreak++;
+      if (perfectStreak > peakStreak) peakStreak = perfectStreak;
       flashT = 0.35;
       if (typeof SFX !== 'undefined' && SFX.note) SFX.note(660 + Math.min(6, perfectStreak) * 80, 0.12);
       burst(x + width / 2, HEIGHT - (stack.length + 1) * BLOCK_H + cameraY, '#F7C948', 18);
@@ -148,10 +151,14 @@ const StackerGame = (() => {
     sfx('over');
     Effects.shakeCanvas(canvas, 8, 300);
     best = Utils.highScore.save('stacker-best', floors, best);
+    bestStreak = Utils.highScore.save('stacker-perfect-best', peakStreak, bestStreak);
     updateInfo();
     draw();
     Utils.showGameOver('stacker-overlay', {
-      lines: [`Height: ${floors} floor${floors === 1 ? '' : 's'} &nbsp;·&nbsp; Best: ${best}`],
+      lines: [
+        `Height: ${floors} floor${floors === 1 ? '' : 's'} &nbsp;·&nbsp; Best: ${best}`,
+        `Longest perfect streak: ${peakStreak} &nbsp;·&nbsp; Best: ${bestStreak}`,
+      ],
       hint: 'Press SPACE or tap to build again',
     });
   }
@@ -251,6 +258,7 @@ const StackerGame = (() => {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set('stacker-height', floors);
     set('stacker-best', best);
+    set('stacker-perfect-best', bestStreak);
     set('stacker-width', current ? Math.round(stack[stack.length - 1].w) : BASE_W);
   }
 

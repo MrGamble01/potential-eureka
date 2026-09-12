@@ -6,6 +6,8 @@
  *  C. Completionist now requires all 15 keys: with only the 11 legacy keys
  *     set it stays locked; with all 15 it unlocks.
  *  D. Zero page errors.
+ *  E. A 5+ perfect-streak seed unlocks Stacker's Flush trophy; a 4-streak
+ *     seed does not.
  */
 const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
@@ -64,6 +66,13 @@ async function boot(browser, seeds) {
   });
   ok(d.unlocked.includes('completionist'), 'all 16 keys unlock Completionist');
   ok(d.errs.length === 0 && c.errs.length === 0 && b.errs.length === 0, 'no page errors (other boots)');
+
+  // E. Stacker's Flush trophy (5+ perfect streak)
+  const e = await boot(browser, { 'stacker-perfect-best': '5' });
+  ok(e.unlocked.includes('stacker-flush'), 'stacker-flush unlocks at a 5-streak');
+  const f = await boot(browser, { 'stacker-perfect-best': '4' });
+  ok(!f.unlocked.includes('stacker-flush'), 'stacker-flush stays locked at a 4-streak');
+  ok(e.errs.length === 0 && f.errs.length === 0, 'no page errors (streak boots)');
 
   await browser.close();
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);

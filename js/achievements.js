@@ -51,6 +51,8 @@ const Achievements = (() => {
       desc: 'Reach round 8 in Memory Matrix', test: () => num('matrix-best') >= 8 },
     { id: 'stacker-12',   icon: '🏗️', name: 'High Rise',
       desc: 'Stack 12+ floors in Stacker', test: () => num('stacker-best') >= 12 },
+    { id: 'stacker-flush', icon: '🎯', name: 'Flush',
+      desc: '5 perfect drops in a row in Stacker', test: () => num('stacker-perfect-best') >= 5 },
     { id: 'vector-8',     icon: '🛰️', name: 'Perimeter Held',
       desc: 'Reach wave 8 in Vector Defense', test: () => num('vector-best') >= 8 },
     { id: 'cascade-300',  icon: '🔤', name: 'Rainmaker',
