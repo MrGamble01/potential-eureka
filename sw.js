@@ -8,6 +8,13 @@
 
 // Bump on any precache-list or caching-strategy change: activate() drops
 // every cache that doesn't match, which is how updates roll out.
+//
+// BUMP ONCE PER MERGE TRAIN, NOT ONCE PER PR. Every open PR rewriting this
+// one line meant every pair of them conflicted here, and a branch cut before
+// its neighbour merged carried a LOWER serial than main — landing it would
+// have handed installed PWAs a backwards version and pinned them to a stale
+// shell. The serial is now plain (no per-ticket suffix), so a fix PR leaves
+// it alone and whoever lands the batch bumps it once.
 // v6: rolls out the Flagship Depth campaign (AoW trials/councils/vault,
 // Hearthvale raids/mastery/talents/Furrier, Grow Op market/contracts/
 // stings/pure batches, Homeless Village weather/dog/regulars/board,
@@ -15,7 +22,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v253-hv-storytold';  // HV-249: an already-told story does not start the job
+const SW_VERSION = 'eureka-v254';  // merge train: the HV-250…276 fix batch
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
