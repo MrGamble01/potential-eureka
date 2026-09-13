@@ -179,7 +179,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvstorytold` (HV-249: Tell the Fire Story ran a job when it already got its telling tonight)
 - `hvdry` (HV-53: the Dry Corner — the first link under the bridge that asks for something back: the build debits 12 scraps + 8 cardboard exactly, then the same button becomes the sitting)
 - `hvhook` (HV-54: the Empty Hook — the third sit hangs it and the season's BASE warmth drain comes down 2, without touching the weather's bite or the snap's extra, which are the coat rack's job)
-- `hvflyerheat` (HV-250: Hand out flyers said a local shop pays, then a heat-wave day still paid a cool-day take — the walk is outdoor work in the same scorcher the depot and the yard already feel)
+- `hvflyerheat` (HV-250: Hand out flyers said a local shop pays, then a heat-wave day still paid a cool-day take — the walk is outdoor work in the same scorcher the depot and the yard already feel)- `hvricher` (HV-250: Rain said richer dumpster yield, then a wet day emptied a dry-day bin — rain's 1.25 fattens the haul and no longer raises the empty-bin roll with it)
 ### Voxel Isle suites
 
 - `voxcrow` (crows & scarecrow)
