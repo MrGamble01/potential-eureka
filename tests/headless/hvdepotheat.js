@@ -25,8 +25,8 @@
  *     (the bug). After the fix it pays 0.75, and the log
  *     names the scorcher.
  *  D. Rain and cold do not steal the cut. The scrapyard
- *     still pays its #941 scorcher cut. Flyers still pay
- *     the posted take in the heat.
+ *     still pays its #941 scorcher cut. Flyers pay their
+ *     HV-250 scorcher walk.
  *  E. One run a day still holds.
  *  Z. Zero page errors.
  *
@@ -138,8 +138,8 @@ ok(!/G\.weather==='heat'/.test(ui),
     `the scrapyard still pays its HV-246 / #941 scorcher cut (+3 / +1) (${yard.scraps} / ${yard.cans})`);
 
   const flyers = await shift('heat', 1);
-  ok(flyers.id === 'flyers' && flyers.goodwill === 3 && flyers.morale === 54,
-    `Hand out flyers still pays the posted take in the heat (${flyers.goodwill} / ${flyers.morale})`);
+  ok(flyers.id === 'flyers' && flyers.goodwill === 2 && flyers.morale === 53,
+    `Hand out flyers pays the HV-250 scorcher walk (+2 / +3) (${flyers.goodwill} / ${flyers.morale})`);
 
   const twice = await t(() => {
     G.days = 0;

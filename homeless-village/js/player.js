@@ -682,6 +682,8 @@ function finishAction(a){
       // scorcher. Depot heat is HV-247 / #942; yard heat is
       // HV-246 / #941. Rain vs flyers is #867.
       if(j.id==='flyers' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+      // HV-252: weeding the lot in a scorcher. Shop-walk heat is #945.
+      if(j.id==='gardenh' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
       if(k==='morale') G.morale=Math.min(100,G.morale+amt);
       else G[k]=(G[k]||0)+amt;
       if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -711,6 +713,7 @@ function finishAction(a){
     if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
     if(j.id==='depot' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lift.');
     if(j.id==='flyers' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the walk.');
+    if(j.id==='gardenh' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lot.');
     saveGame();
     buildActionUI();
   } else if(a.id==='mural'){
