@@ -248,7 +248,16 @@ function onNewDay(){
   // barrel died overnight — it cannot land on a dawn that already
   // heard the hold. Tomorrow's hold is HV-83 (#747), not this ticket.
   G.fireHeldThisDawn=false;
-  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); G.fireHeldThisDawn=true; log('🔥 The fire held all night — the camp wakes warm.'); }
+  if(G.warmth>=50){
+    G.morale=Math.min(100,G.morale+2);
+    G.fireHeldThisDawn=true;
+    // HV-265: they woke warm. On a scorcher that was the sky, not
+    // the barrel — say so rather than crediting a fire nobody fed.
+    // The +2 still lands: they did wake warm. A dead barrel is not
+    // this card, and the HV-210 stamp holds either way.
+    if(G.weather==='heat') log('🥵 A scorcher held the camp warm — that was the sky, not the barrel.');
+    else log('🔥 The fire held all night — the camp wakes warm.');
+  }
   // HV-15: the sanitation unit keeps everyone a little healthier
   if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
   // HV-16: friends ask, and sometimes stop asking
