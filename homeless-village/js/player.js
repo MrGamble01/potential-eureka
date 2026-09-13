@@ -348,11 +348,20 @@ function finishAction(a){
       h=Math.max(1,Math.floor(h/2));
       m=Math.max(1,Math.floor(m/2));
     }
+    // HV-260: dawn says the cold gets into everything, and Rest is
+    // sleep in the open — it halves the same way. A sick night in
+    // the cold is both, which is the night it should be.
+    if(G.weather==='cold'){
+      h=Math.max(1,Math.floor(h/2));
+      m=Math.max(1,Math.floor(m/2));
+    }
     G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+m);
     floatText('+'+h+'❤️');
     log(G.sickDay===G.days
       ? 'You rest, but the bug is still going around. Health +'+h+'.'
-      : 'You rest. Health +'+h+'.');
+      : G.weather==='cold'
+        ? 'You rest, but the cold gets into the sleep. Health +'+h+'.'
+        : 'You rest. Health +'+h+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
     if(G.cans>=3){
