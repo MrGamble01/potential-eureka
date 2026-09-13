@@ -105,8 +105,8 @@ ok(block && /G\.weather\s*===\s*['"]rain['"]/.test(block[1]),
     triggerEvent(ev, true);
     return { goodwill: G.goodwill, weather: G.weather };
   });
-  ok(five.goodwill === 15 && five.weather === 'rain',
-    `Found $5 in the rain is still five goodwill (${five.goodwill})`);
+  ok(five.goodwill === 12 && five.weather === 'rain',
+    `Found $5 in the rain is HV-276's soaked bill (+2), not the bag's soak (${five.goodwill})`);
 
   const leftovers = await t(() => {
     const real = Math.random;
