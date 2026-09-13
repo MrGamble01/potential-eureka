@@ -299,6 +299,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-269: the search is in the surroundings. A scorcher cooks
+  // the block — refuse before the timer so a miss does not burn
+  // the morning. Rain / a wet woods is not this card. The
+  // dumpsters are not this card.
+  if(a.id==='forage' && G.weather==='heat'){
+    log('🌿 A scorcher — the surroundings are too hot to search. The woods wait.');
+    sfx('error');
+    return;
+  }
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
     sfx('error');
@@ -336,18 +345,25 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    // HV-280: nobody lingers outside in a named snap — the
-    // surroundings thin the same way the corner does, even
-    // under a clear sky. Rain cardboard is HV-198.
-    var fm=snapActive()?0.75:1;
-    var w=Math.max(1,Math.floor(rand(1,4)*fm)), cb=Math.max(1,Math.floor(rand(2,6)*fm));
-    // HV-198: Forage Area said cardboard and wood. Rain soaks
-    // cardboard — the same search paid the dry-day sheet count.
-    // Wood still comes home wet. Heat and cold are other tickets.
-    if(G.weather==='rain') cb=Math.max(1,Math.floor(cb/2));
-    G.wood+=w; G.cardboard+=cb;
-    floatText('+'+w+'🪵 +'+cb+'📦');
-    log('Found '+w+' wood and '+cb+' cardboard.');
+    // HV-269: a queued search must not pay a cool-day haul after
+    // the sky turned into a scorcher. The woods wait. Rain is
+    // not this card.
+    if(G.weather==='heat'){
+      log('\ud83c\udf3f A scorcher \u2014 the surroundings are too hot to search. The woods wait.');
+    } else {
+      // HV-280: nobody lingers outside in a named snap — the
+      // surroundings thin the same way the corner does, even
+      // under a clear sky. Rain cardboard is HV-198.
+      var fm=snapActive()?0.75:1;
+      var w=Math.max(1,Math.floor(rand(1,4)*fm)), cb=Math.max(1,Math.floor(rand(2,6)*fm));
+      // HV-198: Forage Area said cardboard and wood. Rain soaks
+      // cardboard — the same search paid the dry-day sheet count.
+      // Wood still comes home wet. Heat and cold are other tickets.
+      if(G.weather==='rain') cb=Math.max(1,Math.floor(cb/2));
+      G.wood+=w; G.cardboard+=cb;
+      floatText('+'+w+'🪵 +'+cb+'📦');
+      log('Found '+w+' wood and '+cb+' cardboard.');
+    }
   } else if(a.id==='panhandle'){
     // HV-6: people stop for the dog — a fed Biscuit at your side makes
     // strangers noticeably more generous.
