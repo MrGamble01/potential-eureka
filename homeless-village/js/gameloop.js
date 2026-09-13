@@ -659,7 +659,10 @@ var EVENTS_BAD=[
    desc:'New development nearby. Harassment from locals is increasing.',
    effect:function(){
      G.lastEventDay=G.days;
-     G.gentrifyDay=G.days; // HV-234: Busk thins until dawn
+     // HV-234: Busk thins until dawn. HV-258: the card says locals,
+     // and Trade is dealing with locals — the same stamp sours the
+     // corner swap for as long as it holds.
+     G.gentrifyDay=G.days;
      G.morale  =Math.max(0,G.morale  -rand(18,28));
      G.goodwill=Math.max(0,G.goodwill-rand(3,8));
      // HV-216: the card says harassment from locals is increasing.

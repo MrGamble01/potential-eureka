@@ -355,8 +355,20 @@ function finishAction(a){
       : 'You rest. Health +'+h+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
-    if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
-      bumpRegular('marisol'); addRep(1); }
+    if(G.cans>=3){
+      G.cans-=3;
+      // HV-258: Gentrification said harassment from locals is
+      // increasing. Trade is the corner swap, so while the card
+      // holds the take is half — 3 cans → 1 food. Same window as
+      // the busk it already thins (HV-234), read off the same
+      // helper. Theft is not this card. Panhandle / flyers / Word
+      // are not this card.
+      var hostile=gentrifyHostile();
+      var fed=hostile?1:2;
+      G.food+=fed; floatText('+'+fed+'🍞');
+      log(hostile?'Traded 3 cans → '+fed+' food. The corner is too hostile for a fair swap.':'Traded 3 cans → 2 food.');
+      bumpRegular('marisol'); addRep(1);
+    }
     else log('Not enough cans to trade.');
   } else if(a.id==='rainbet'){
     // HV-28: Dee's standing wager — one bet a day, rain side only.
