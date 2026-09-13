@@ -250,6 +250,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-281: Play the Bridge Ballad said once a session. finishAction
+  // already logs the tune keeps and no-ops. Clicking 🎸 after the
+  // playing still started the 2s job and charged the 30s lock as if
+  // the hat had filled twice. An unset ballad is HV-221.
+  if(a.id==='ballad' && balladSet() && balladPlayed){
+    log('\ud83c\udfb8 The ballad got its playing tonight — the tune keeps.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
