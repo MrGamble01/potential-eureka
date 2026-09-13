@@ -130,9 +130,12 @@ if(!G.fridgeSeeded){
       // for every fresh camp now.
       var _pl=loadPotluck();
       savePotluck({days:_pl.days+1});
-      G.food=(G.food||0)+POTLUCK_FOOD;
-      G.morale=Math.min(100,(G.morale||0)+POTLUCK_MORALE);
-      log('\ud83c\udf72 POTLUCK \u2014 folding tables by the fridge, everyone brings a dish. +'+POTLUCK_FOOD+'\ud83e\udd63, +'+POTLUCK_MORALE+'\ud83d\ude0a');
+      // HV-255: folding tables by the fridge. Rain soaks the dishes.
+      var _pf=POTLUCK_FOOD, _pm=POTLUCK_MORALE, _wet=G.weather==='rain';
+      if(_wet) _pf=Math.floor(POTLUCK_FOOD/2);
+      G.food=(G.food||0)+_pf;
+      G.morale=Math.min(100,(G.morale||0)+_pm);
+      log('\ud83c\udf72 POTLUCK \u2014 folding tables by the fridge, '+(_wet?'and the rain got into the dishes':'everyone brings a dish')+'. +'+_pf+'\ud83e\udd63, +'+_pm+'\ud83d\ude0a');
     } else {
       log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+_seed+'\ud83e\ude76');
     }
