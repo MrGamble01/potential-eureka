@@ -132,8 +132,8 @@ ok(block && /G\.weather\s*===\s*['"]rain['"]/.test(block[1]),
       log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
     };
   });
-  ok(leftovers.log.includes('Marisol left a bag of tamales') && leftovers.food >= 10,
-    `Marisol leftovers are not this card (food=${leftovers.food})`);
+  ok(leftovers.log.includes('Marisol left a bag of tamales') && /soaked them through/.test(leftovers.log),
+    `Marisol's rainy bag is HV-191's soaked tamales, not this card (food=${leftovers.food})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
