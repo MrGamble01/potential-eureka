@@ -28,7 +28,8 @@ var G = {
   // HV-65: the day Old Friend boosted morale. Dawn fades it.
   // -1 = no fade pending. A setTimeout used to do this and died on reload.
   friendDay: -1,
-  // HV-210: the day Illness Spreading hit. Rest is worse that day.
+  // HV-210: the day Illness Spreading hit. Rest is worse that day,
+  // and HV-273 the panhandle with it.
   sickDay: -1,
   gentrifyDay: -1,   // HV-234: Gentrification lasts the rest of that day
 
