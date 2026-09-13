@@ -86,6 +86,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-251: Play it once a session. finishAction already logged
+  // "the tune keeps" and no-op'd. The click still started the 2s
+  // job and charged the 30s lock as if the hat filled again.
+  if(a.id==='ballad' && balladSet() && balladPlayed){
+    log('\ud83c\udfb8 The ballad got its playing tonight \u2014 the tune keeps.');
+    sfx('error');
+    return;
+  }
   // HV-204: Look at the Snapshot says the picture is in the fridge
   // door. finishAction already named a bare door — after a 2s job
   // and with the 30s lock charged as if the look had landed.
