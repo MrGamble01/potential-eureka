@@ -119,6 +119,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-253: Dig it up once a session. finishAction already logged
+  // "the piling keeps it" and no-op'd. The click still started the
+  // 2s job and charged the 30s lock as if the can filled again.
+  if(a.id==='can' && canBuried() && canDug){
+    log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.');
+    sfx('error');
+    return;
+  }
   // HV-219: Walk a Newcomer Down said three stands start the walk.
   // The button is on the list from day one. A miss used to run the
   // 2s job, play the success sound, and lock 30s as if the walk paid.
