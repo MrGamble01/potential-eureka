@@ -914,17 +914,23 @@ function doPetition(id){
   if(G.goodwill<def.cost){ log('Not enough goodwill to back the petition (need '+def.cost+'🩶).'); sfx('error'); return; }
   G.goodwill-=def.cost;
   G.petitions[id]=true;
+  // HV-256: the grant is a crate delivered to the corner. Rain soaks
+  // an outdoor drop — food, wood and scraps come in at half. Heat
+  // and cold are not this card.
+  var grantNote=def.desc;
   if(id==='grant'){
-    G.food+=8; G.wood+=8; G.scraps+=8;
+    var gf=8, gw=8, gs=8;
+    if(G.weather==='rain'){ gf=4; gw=4; gs=4; grantNote='Rain got into the crates. +4 food, +4 wood, +4 scraps delivered.'; }
+    G.food+=gf; G.wood+=gw; G.scraps+=gs;
     // HV-225: the grant is civic. Stamp the day so today's City
     // Sweep cannot confiscate the delivery as ordinary supplies.
     // Theft is not this card. Tomorrow's sweep is not this card.
     G.grantDay=G.days;
-    floatText('+8🍞 +8🪵 +8🧱');
+    floatText('+'+gf+'🍞 +'+gw+'🪵 +'+gs+'🧱');
   }
   addRep(2);
   sfx('craft');
-  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+def.desc);
+  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+grantNote);
   saveGame();
   buildWorkersUI(); updateHUD();
 }
