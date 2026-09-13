@@ -654,7 +654,11 @@ var EVENTS_BAD=[
    desc:'Someone raided your stash in the night. Trust no one.',
    effect:function(){
      G.lastEventDay=G.days;
-     var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
+     // HV-266: panhandle already knows a hungry dog does not help.
+     // Theft still credited the chase after dawn said he curled up
+     // hungry. The sweep bark is not this card.
+     var dogHelps=G.dog===2&&!G.dogHungry;
+     var dm=dogHelps?.5:1; // HV-6: a fed Biscuit's barking cuts the losses in half
      var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
@@ -679,7 +683,11 @@ var EVENTS_BAD=[
      // the same last line so hvdog's "Biscuit chased" still matches.
      var tookRadio=!!G.structures.radio;
      if(tookRadio) G.structures.radio=false;
-     var raid=(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.')
+     // HV-266: a hungry Biscuit never left the blanket — panhandle
+     // already knows that, and the raid line credited the chase anyway.
+     var raid=(dogHelps?'Thieves in the night — Biscuit chased them off before they got everything.'
+       :(G.dog===2?'Thieves in the night — Biscuit had curled up hungry and never left the blanket.'
+         :'Stash raided in the night.'))
        + ' Trust frays \u2014 the block heard a camp that could not keep its own.';
      if(tookRadio) raid+=' They took the weather band.';
      log(raid);
