@@ -207,6 +207,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `primer` (SITE-4: the hub's START HERE primer — a first-time visitor is greeted once, a player with history never is, ? stays the shortcuts sheet, and every claim it makes is checked against something that really exists on the page)
 - `sessiontag` (SITE-5: the session tag on every game card — the six flagships read Hours and the fifteen arcade games Few minutes, the studio claims neither, the tag leads its row, and the hub's existing filter picks it up for free (hours → 6, few minutes → 15))
 - `objective` (SITE-6: every arcade game states its goal and not just its keys — Crate Escape's stated goal is the one checkSolved tests, Vector Defense's wave and life counts are recomputed from the source, and a vocabulary guard catches any game that lists controls and never says what a run is for)
+- `controls` (SITE-7: every arcade game names an input and not just a goal — the seven subtitles that stated a goal and left the keys unsaid now carry them, each claim recomputed from the handler that owns it, plus a guard against a subtitle rendering a literal HTML entity)
 ### Voxel Isle suites
 
 - `voxcrow` (crows & scarecrow)
