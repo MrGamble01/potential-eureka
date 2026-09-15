@@ -205,6 +205,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvfiverain` (HV-276: Found $5 said a crumpled bill on the sidewalk, then a rainy day still paid a dry-day five)
 - `labintro` (LAB-62: Grow Op's crash course — the sixth flagship finally explains itself, and every number the panel quotes (heat per unit, the 95 raid line, the 100 bust line, the demand band, the stash cap) is recomputed from the source so the copy cannot rot)
 - `primer` (SITE-4: the hub's START HERE primer — a first-time visitor is greeted once, a player with history never is, ? stays the shortcuts sheet, and every claim it makes is checked against something that really exists on the page)
+- `sessiontag` (SITE-5: the session tag on every game card — the six flagships read Hours and the fifteen arcade games Few minutes, the studio claims neither, the tag leads its row, and the hub's existing filter picks it up for free (hours → 6, few minutes → 15))
 ### Voxel Isle suites
 
 - `voxcrow` (crows & scarecrow)

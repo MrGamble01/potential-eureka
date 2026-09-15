@@ -320,6 +320,19 @@ nav .logo-btn {
   flex-wrap: wrap;
 }
 
+/* SITE-5: the session tag. The grid never said which of these is five
+   minutes and which is five hours — the primer says it once, and a
+   newcomer choosing between twenty-one cards is exactly who needs it on
+   the card. It leads the tag row and is coloured apart from the genre
+   tags beside it, because it answers a different question. */
+.arcade-card-tags .tag-session {
+  color: var(--accent, #7cc4ff);
+  border-color: color-mix(in srgb, var(--accent, #7cc4ff) 45%, transparent);
+  background: color-mix(in srgb, var(--accent, #7cc4ff) 10%, transparent);
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
 .arcade-card-tags span {
   font-family: var(--font-mono);
   font-size: 9px;
