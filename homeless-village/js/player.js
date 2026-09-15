@@ -250,6 +250,16 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-250: Sit in the Dry Corner said once a session. finishAction
+  // already logs the roof keeps and no-ops. Clicking the corner
+  // after drySat still started the 2s job and charged the 30s lock
+  // — the button only disables on the next buildActionUI(), which
+  // the payout branch never calls. An unroofed corner is HV-220.
+  if(a.id==='dry' && dryBuilt() && drySat){
+    log('⛱️ Somebody has already had their hour in the dry corner tonight — the roof keeps, and so does the habit.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
