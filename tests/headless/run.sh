@@ -25,7 +25,7 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 # rather than listed here. They used to live on one line apiece, so every
 # pair of PRs that each added a suite conflicted on that line even though
 # neither touched the other's game. Adding a suite is now just adding a
-# file. Order within a family doesn't matter; the lead list does.
+# file (including hvstorybare for HV-281). Order within a family doesn't matter; the lead list does.
 LEAD=(
   nohooks aowrecords aowsession aowqueue aowspace aowdifficulty
   audit

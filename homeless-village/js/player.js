@@ -291,10 +291,24 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-281: Tell the Fire Story said three sits on the bench bring
+  // the whole story together. Every other link in the chain refuses
+  // its own not-yet-earned case before the timer (HV-204 snapshot,
+  // HV-207 anniv, HV-212 can, HV-219 walk/notebook, HV-220 dry,
+  // HV-221 ballad, HV-222 bench, HV-223 mark, HV-224 fifth) — Tell
+  // the Fire Story never got the same gate. finishAction already
+  // names an unlearned story and no-ops, but clicking 🔥 before three
+  // sits still started the 2s job, played the success chime, and
+  // charged the full 30s lock as if a telling had paid. A dead
+  // barrel is a separate ticket. ui.js is not this ticket.
+  if(a.id==='story' && !hvStoryByHeart()){
+    log('🔥 Nobody has the whole story yet — three sits on the bench and it comes together.');
+    sfx('error');
+    return;
+  }
   // HV-249: Tell the Fire Story said once a session. finishAction
   // already logs the fire remembers and no-ops. Clicking 🔥 after
   // the telling still started the 2s job and charged the 30s lock.
-  // An unlearned story is HV-122; a dead barrel is HV-183.
   if(a.id==='story' && hvStoryByHeart() && hvStoryTold){
     log('\ud83d\udd25 The story got its telling tonight — the fire remembers.');
     sfx('error');
