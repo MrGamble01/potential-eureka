@@ -212,6 +212,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-282: Stand at the Fifth Panel said beside the finished mural.
+  // finishAction already named waiting on the four — after a 2s job
+  // and with the 30s lock charged as if someone stood. HV-227 is
+  // bare block (digs). This gate is G.mural < 4.
+  if(a.id==='fifth' && panelPainted() && (G.mural||0)<MURAL_PANELS){
+    log('\ud83c\udfa8 The fifth is waiting on the four — the mural is still unfinished, four squares still bare.');
+    sfx('error');
+    return;
+  }
   // HV-229: Pass the Thermos said it goes around the fire.
   // Fire Went Out dims the barrel; do not start the 2s job or
   // stamp thermosUsed. A cold thermos and an already-poured
