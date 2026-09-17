@@ -38,11 +38,36 @@ function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
   if(a.id==='oddjob' && oddJobDone()){ log('Today’s odd job is done — check the board tomorrow.'); return; }
+  // HV-267: the walk posting promises fresh air. A named snap is two
+  // brutal days — the neighbor keeps the dogs in. Refuse before the
+  // timer so a miss does not burn the morning. Heat is not this card.
+  // Hungry Biscuit is not this card.
+  if(a.id==='oddjob' && todaysJob().id==='dogwalk' && snapActive()){
+    log('🐕 The snap has the block inside — the neighbor kept the dogs in. No walk today.');
+    sfx('error');
+    return;
+  }
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
+    // HV-268: the session is on the underpass wall. A scorcher cooks
+    // the block — refuse before the timer so a miss does not burn the
+    // morning. Rain / wet paint is not this card. The fire circle is
+    // not this card.
+    if(G.weather==='heat'){
+      log('🎨 A scorcher — the underpass wall is too hot to paint. The panel waits.');
+      sfx('error');
+      return;
+    }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
+  // HV-263: they gather around the fire. A scorcher is the last
+  // sky for sitting by a barrel. Refuse before the timer — do not
+  // spend the cadence. A dead barrel is not this card.
+  if(a.id==='meeting' && G.weather==='heat'){
+    log('🗣️ Nobody wanted to circle the fire on a scorcher.');
+    return;
+  }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
@@ -86,6 +111,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-251: Play it once a session. finishAction already logged
+  // "the tune keeps" and no-op'd. The click still started the 2s
+  // job and charged the 30s lock as if the hat filled again.
+  if(a.id==='ballad' && balladSet() && balladPlayed){
+    log('\ud83c\udfb8 The ballad got its playing tonight \u2014 the tune keeps.');
+    sfx('error');
+    return;
+  }
   // HV-204: Look at the Snapshot says the picture is in the fridge
   // door. finishAction already named a bare door — after a 2s job
   // and with the 30s lock charged as if the look had landed.
@@ -108,6 +141,14 @@ function doAction(a){
   // Snapshot and Anniversary are not this card.
   if(a.id==='can'&&!canBuried()){
     log('\ud83d\udce6 Nothing buried by the piling yet \u2014 three playings of the ballad and somebody puts a can down.');
+    sfx('error');
+    return;
+  }
+  // HV-253: Dig it up once a session. finishAction already logged
+  // "the piling keeps it" and no-op'd. The click still started the
+  // 2s job and charged the 30s lock as if the can filled again.
+  if(a.id==='can' && canBuried() && canDug){
+    log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.');
     sfx('error');
     return;
   }
@@ -258,6 +299,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-269: the search is in the surroundings. A scorcher cooks
+  // the block — refuse before the timer so a miss does not burn
+  // the morning. Rain / a wet woods is not this card. The
+  // dumpsters are not this card.
+  if(a.id==='forage' && G.weather==='heat'){
+    log('🌿 A scorcher — the surroundings are too hot to search. The woods wait.');
+    sfx('error');
+    return;
+  }
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
     sfx('error');
@@ -284,7 +334,9 @@ function finishAction(a){
     if(snapActive()) wm*=0.75;
     // HV-7: Old Ray knows which dumpsters are worth the walk — empty
     // hauls happen half as often once he's a friend.
-    if(Math.random()<.2*wm*(regularStage('ray')===2?.5:1)){
+    // HV-250: scav is a yield multiplier. Rain's 1.25 fattens the haul,
+    // not the empty gate — otherwise a wet day empties a dry-day bin.
+    if(Math.random()<.2*(G.season===3?.5:1)*(regularStage('ray')===2?.5:1)){
       log('The dumpster is empty. Nothing today.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
@@ -293,18 +345,25 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    // HV-280: nobody lingers outside in a named snap — the
-    // surroundings thin the same way the corner does, even
-    // under a clear sky. Rain cardboard is HV-198.
-    var fm=snapActive()?0.75:1;
-    var w=Math.max(1,Math.floor(rand(1,4)*fm)), cb=Math.max(1,Math.floor(rand(2,6)*fm));
-    // HV-198: Forage Area said cardboard and wood. Rain soaks
-    // cardboard — the same search paid the dry-day sheet count.
-    // Wood still comes home wet. Heat and cold are other tickets.
-    if(G.weather==='rain') cb=Math.max(1,Math.floor(cb/2));
-    G.wood+=w; G.cardboard+=cb;
-    floatText('+'+w+'🪵 +'+cb+'📦');
-    log('Found '+w+' wood and '+cb+' cardboard.');
+    // HV-269: a queued search must not pay a cool-day haul after
+    // the sky turned into a scorcher. The woods wait. Rain is
+    // not this card.
+    if(G.weather==='heat'){
+      log('\ud83c\udf3f A scorcher \u2014 the surroundings are too hot to search. The woods wait.');
+    } else {
+      // HV-280: nobody lingers outside in a named snap — the
+      // surroundings thin the same way the corner does, even
+      // under a clear sky. Rain cardboard is HV-198.
+      var fm=snapActive()?0.75:1;
+      var w=Math.max(1,Math.floor(rand(1,4)*fm)), cb=Math.max(1,Math.floor(rand(2,6)*fm));
+      // HV-198: Forage Area said cardboard and wood. Rain soaks
+      // cardboard — the same search paid the dry-day sheet count.
+      // Wood still comes home wet. Heat and cold are other tickets.
+      if(G.weather==='rain') cb=Math.max(1,Math.floor(cb/2));
+      G.wood+=w; G.cardboard+=cb;
+      floatText('+'+w+'🪵 +'+cb+'📦');
+      log('Found '+w+' wood and '+cb+' cardboard.');
+    }
   } else if(a.id==='panhandle'){
     // HV-6: people stop for the dog — a fed Biscuit at your side makes
     // strangers noticeably more generous.
@@ -318,7 +377,10 @@ function finishAction(a){
     // HV-26: a salvaged awning keeps the corner open in the rain ---
     // the weather's pan cut is undone (0.5 x 2), clear-day odds.
     var awningDry=(G.structures.awning&&G.weather==='rain')?AWNING_DRY:1;
-    if(Math.random()<.55*weatherDef().pan*awningDry*dogBoost*repBoost*muralBoost*snapCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+    // HV-273: Illness Spreading said everyone feels terrible. The
+    // same well-day corner used to land while the bug was going around.
+    var sickCut=(G.sickDay===G.days)?0.5:1;
+    if(Math.random()<.55*weatherDef().pan*awningDry*dogBoost*repBoost*muralBoost*snapCut*sickCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
       if(awningDry>1){ G.awningSaves=(G.awningSaves||0)+1; log('\u26F1\uFE0F Dry under the awning \u2014 the corner stayed open.'); }
       bumpRegular('dee'); addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
@@ -330,15 +392,36 @@ function finishAction(a){
       h=Math.max(1,Math.floor(h/2));
       m=Math.max(1,Math.floor(m/2));
     }
+    // HV-260: dawn says the cold gets into everything, and Rest is
+    // sleep in the open — it halves the same way. A sick night in
+    // the cold is both, which is the night it should be.
+    if(G.weather==='cold'){
+      h=Math.max(1,Math.floor(h/2));
+      m=Math.max(1,Math.floor(m/2));
+    }
     G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+m);
     floatText('+'+h+'❤️');
     log(G.sickDay===G.days
       ? 'You rest, but the bug is still going around. Health +'+h+'.'
-      : 'You rest. Health +'+h+'.');
+      : G.weather==='cold'
+        ? 'You rest, but the cold gets into the sleep. Health +'+h+'.'
+        : 'You rest. Health +'+h+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
-    if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
-      bumpRegular('marisol'); addRep(1); }
+    if(G.cans>=3){
+      G.cans-=3;
+      // HV-258: Gentrification said harassment from locals is
+      // increasing. Trade is the corner swap, so while the card
+      // holds the take is half — 3 cans → 1 food. Same window as
+      // the busk it already thins (HV-234), read off the same
+      // helper. Theft is not this card. Panhandle / flyers / Word
+      // are not this card.
+      var hostile=gentrifyHostile();
+      var fed=hostile?1:2;
+      G.food+=fed; floatText('+'+fed+'🍞');
+      log(hostile?'Traded 3 cans → '+fed+' food. The corner is too hostile for a fair swap.':'Traded 3 cans → 2 food.');
+      bumpRegular('marisol'); addRep(1);
+    }
     else log('Not enough cans to trade.');
   } else if(a.id==='rainbet'){
     // HV-28: Dee's standing wager — one bet a day, rain side only.
@@ -651,57 +734,76 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
-    // HV-189: dawn says the cold gets into everything. Dumpsters
-    // already feel a cold sky. The scrapyard is the same outdoor
-    // metal — a decent haul halves.
-    var coldYard=j.id==='scrapyd'&&G.weather==='cold';
-    for(var k in j.gives){
-      var amt=j.gives[k];
-      if(coldYard) amt=Math.floor(amt/2);
-      // HV-237: the yard is outdoor dirty work. Rain cuts the haul
-      // the same way it halves the corner. Cold morning and winter
-      // are not this card. Flyers and the deposit run are not this card.
-      if(j.id==='scrapyd' && G.weather==='rain') amt=Math.max(1, Math.floor(amt/2));
-      // HV-246: a scorcher wears the shift. Rain vs the yard is
-      // #932. Cold is #879. Depot heat is HV-247.
-      if(j.id==='scrapyd' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
-      // HV-247: honest lifting in a scorcher. The yard vs heat
-      // is HV-246 / #941; cold vs the dock is #872.
-      if(j.id==='depot' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
-      if(k==='morale') G.morale=Math.min(100,G.morale+amt);
-      else G[k]=(G[k]||0)+amt;
-      if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+    // HV-267: a queued walk must not pay after the snap gripped the
+    // block. Do not stamp the day — the board stays open if the snap
+    // breaks. Depot and the other postings still pay.
+    if(j.id==='dogwalk' && snapActive()){
+      log('\ud83d\udc15 The snap has the block inside \u2014 the neighbor kept the dogs in. No walk today.');
+    } else {
+      // HV-189: dawn says the cold gets into everything. Dumpsters
+      // already feel a cold sky. The scrapyard is the same outdoor
+      // metal — a decent haul halves.
+      var coldYard=j.id==='scrapyd'&&G.weather==='cold';
+      for(var k in j.gives){
+        var amt=j.gives[k];
+        if(coldYard) amt=Math.floor(amt/2);
+        // HV-237: the yard is outdoor dirty work. Rain cuts the haul
+        // the same way it halves the corner. Cold morning and winter
+        // are not this card. Flyers and the deposit run are not this card.
+        if(j.id==='scrapyd' && G.weather==='rain') amt=Math.max(1, Math.floor(amt/2));
+        // HV-246: a scorcher wears the shift. Rain vs the yard is
+        // #932. Cold is #879. Depot heat is HV-247.
+        if(j.id==='scrapyd' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        // HV-247: honest lifting in a scorcher. The yard vs heat
+        // is HV-246 / #941; cold vs the dock is #872.
+        if(j.id==='depot' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        // HV-250: the shop walk is outdoor walking in the same
+        // scorcher. Depot heat is HV-247 / #942; yard heat is
+        // HV-246 / #941. Rain vs flyers is #867.
+        if(j.id==='flyers' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        // HV-252: weeding the lot in a scorcher. Shop-walk heat is #945.
+        if(j.id==='gardenh' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        if(k==='morale') G.morale=Math.min(100,G.morale+amt);
+        else G[k]=(G[k]||0)+amt;
+        if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+      }
+      G.oddJobDay=G.days;
+      if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
+      addRep(3);   // HV-9: honest work is how the neighborhood learns your name
+      // HV-279: Hand out flyers said the owner is kind. Honest work
+      // is the +3 every posting gets. The shopkeeper vouching is Word
+      // on the Street — Marisol hearing the owner is not this card.
+      if(j.id==='flyers'){
+        addRep(1);
+        log('\uD83D\uDCAC The owner puts in a kind word \u2014 the block hears it.');
+      }
+      // HV-231: Unload at the depot said a morning of honest lifting.
+      // Honest work is the +3 every posting gets. The deposit run
+      // already names industry; the depot lift is the same honest day
+      // and Word never heard it. Flyers' kind owner is HV-279 / #922.
+      if(j.id==='depot'){
+        addRep(1);
+        log('\uD83D\uDCAC Honest lifting \u2014 the block notices industry.');
+      }
+      floatText(parts.join(' '));
+      log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+      if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
+      if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
+      if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
+      if(j.id==='depot' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lift.');
+      if(j.id==='flyers' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the walk.');
+      if(j.id==='gardenh' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lot.');
+      saveGame();
+      buildActionUI();
     }
-    G.oddJobDay=G.days;
-    if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
-    addRep(3);   // HV-9: honest work is how the neighborhood learns your name
-    // HV-279: Hand out flyers said the owner is kind. Honest work
-    // is the +3 every posting gets. The shopkeeper vouching is Word
-    // on the Street — Marisol hearing the owner is not this card.
-    if(j.id==='flyers'){
-      addRep(1);
-      log('\uD83D\uDCAC The owner puts in a kind word \u2014 the block hears it.');
-    }
-    // HV-231: Unload at the depot said a morning of honest lifting.
-    // Honest work is the +3 every posting gets. The deposit run
-    // already names industry; the depot lift is the same honest day
-    // and Word never heard it. Flyers' kind owner is HV-279 / #922.
-    if(j.id==='depot'){
-      addRep(1);
-      log('\uD83D\uDCAC Honest lifting \u2014 the block notices industry.');
-    }
-    floatText(parts.join(' '));
-    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
-    if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
-    if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
-    if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
-    if(j.id==='depot' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lift.');
-    saveGame();
-    buildActionUI();
   } else if(a.id==='mural'){
     // HV-11: one painting session. doAction gates cost and cadence, but
     // re-check here so a queued double-fire can't paint two panels a day.
-    if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
+    // HV-268: a queued session must not lay a panel after the sky
+    // turned into a scorcher. Do not stamp the day — the wall waits.
+    if(G.weather==='heat'){
+      log('🎨 A scorcher — the underpass wall is too hot to paint. The panel waits.');
+    } else if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
       G.scraps-=2; G.mural=(G.mural||0)+1; G.muralDay=G.days;
       G.morale=Math.min(100,G.morale+3);
       addRep(2);
@@ -719,8 +821,11 @@ function finishAction(a){
       buildActionUI();
     }
   } else if(a.id==='meeting'){
-    // HV-14: re-check so a queued double-fire can't hold two circles.
-    if(!meetingDone() && (G.population||1)>=2){
+    // HV-263: the tooltip says around the fire. A scorcher still
+    // must not host the circle if the job was already queued.
+    if(G.weather==='heat'){
+      log('🗣️ Nobody wanted to circle the fire on a scorcher.');
+    } else if(!meetingDone() && (G.population||1)>=2){
       var heads=G.population;
       // HV-64: the tooltip says +2 morale a head. The silent cap of
       // 10 made a six-person circle pay the same as five.
@@ -888,17 +993,23 @@ function doPetition(id){
   if(G.goodwill<def.cost){ log('Not enough goodwill to back the petition (need '+def.cost+'🩶).'); sfx('error'); return; }
   G.goodwill-=def.cost;
   G.petitions[id]=true;
+  // HV-256: the grant is a crate delivered to the corner. Rain soaks
+  // an outdoor drop — food, wood and scraps come in at half. Heat
+  // and cold are not this card.
+  var grantNote=def.desc;
   if(id==='grant'){
-    G.food+=8; G.wood+=8; G.scraps+=8;
+    var gf=8, gw=8, gs=8;
+    if(G.weather==='rain'){ gf=4; gw=4; gs=4; grantNote='Rain got into the crates. +4 food, +4 wood, +4 scraps delivered.'; }
+    G.food+=gf; G.wood+=gw; G.scraps+=gs;
     // HV-225: the grant is civic. Stamp the day so today's City
     // Sweep cannot confiscate the delivery as ordinary supplies.
     // Theft is not this card. Tomorrow's sweep is not this card.
     G.grantDay=G.days;
-    floatText('+8🍞 +8🪵 +8🧱');
+    floatText('+'+gf+'🍞 +'+gw+'🪵 +'+gs+'🧱');
   }
   addRep(2);
   sfx('craft');
-  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+def.desc);
+  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+grantNote);
   saveGame();
   buildWorkersUI(); updateHUD();
 }

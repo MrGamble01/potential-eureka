@@ -110,8 +110,8 @@ ok(!/pantry box overnight/.test(ui) && !/snapActive/.test(ui) && !/froze what wa
     'a stingy snap dawn still leaves nothing — nobody left a leftover to freeze');
 
   const rain = await drip(false, 'rain', 0, 0);
-  ok(rain.food === 12 && rain.fills === 1 && rain.left && !rain.frozen,
-    `rain without a snap still pays the leftover (food ${rain.food})`);
+  ok(rain.food === 10 && rain.fills === 0 && !rain.frozen,
+    `rain keeps the box empty on its own now (HV-259), with no snap to freeze (food ${rain.food})`);
 
   const fifth = await drip(false, 'clear', 0, 4);
   ok(fifth.food === 12 && fifth.fills === 5 && fifth.remembered && !fifth.frozen,

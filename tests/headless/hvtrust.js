@@ -117,6 +117,9 @@ ok(gentrifyAt >= 0 && /addRep\s*\(\s*-5\s*\)/.test(gentrifyBlock) && !/addRep\s*
 
   const trade = await t(() => {
     G.cans = 6; G.food = 0; G.rep = 10;
+    // the gentrify step above stamped the day, and HV-258 halves the swap
+    // while that stamp holds — this step is about the raid, so clear it.
+    G.gentrifyDay = -1;
     finishAction({ id: 'trade', time: 2000, cooldown: 18000 });
     return { cans: G.cans, food: G.food, rep: G.rep };
   });

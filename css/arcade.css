@@ -320,6 +320,19 @@ nav .logo-btn {
   flex-wrap: wrap;
 }
 
+/* SITE-5: the session tag. The grid never said which of these is five
+   minutes and which is five hours — the primer says it once, and a
+   newcomer choosing between twenty-one cards is exactly who needs it on
+   the card. It leads the tag row and is coloured apart from the genre
+   tags beside it, because it answers a different question. */
+.arcade-card-tags .tag-session {
+  color: var(--accent, #7cc4ff);
+  border-color: color-mix(in srgb, var(--accent, #7cc4ff) 45%, transparent);
+  background: color-mix(in srgb, var(--accent, #7cc4ff) 10%, transparent);
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
 .arcade-card-tags span {
   font-family: var(--font-mono);
   font-size: 9px;
@@ -509,6 +522,33 @@ nav .logo-btn {
 }
 
 /* ── Daily challenge banner (SITE-3) ── */
+/* SITE-4: the first-visit strip. Deliberately NOT a modal — the front
+   page of an arcade should not be ambushed by a wall of text, and an
+   overlay here would also sit on top of every click the page wants. */
+#primer-hint {
+  max-width: 1100px;
+  margin: 0 auto 18px;
+  padding: 10px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  background: rgba(124, 196, 255, 0.06);
+  border: 1px solid rgba(124, 196, 255, 0.25);
+  border-radius: 10px;
+  font-size: 13px;
+}
+#primer-hint .primer-hint-text { color: var(--text-dim); }
+#primer-hint .primer-hint-open {
+  background: rgba(124, 196, 255, 0.14);
+  border: 1px solid rgba(124, 196, 255, 0.4);
+  color: var(--text); font: inherit; font-weight: 700;
+  padding: 5px 12px; border-radius: 7px; cursor: pointer;
+}
+#primer-hint .primer-hint-open:hover { background: rgba(124, 196, 255, 0.24); }
+#primer-hint .primer-hint-x {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 17px; line-height: 1; padding: 2px 6px;
+}
+#primer-hint .primer-hint-x:hover { color: var(--text); }
+
 #daily-banner {
   max-width: 1100px;
   margin: 0 auto 26px;

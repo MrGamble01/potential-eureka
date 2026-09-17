@@ -105,8 +105,8 @@ ok(block && /G\.weather\s*===\s*['"]rain['"]/.test(block[1]),
     triggerEvent(ev, true);
     return { goodwill: G.goodwill, weather: G.weather };
   });
-  ok(five.goodwill === 15 && five.weather === 'rain',
-    `Found $5 in the rain is still five goodwill (${five.goodwill})`);
+  ok(five.goodwill === 12 && five.weather === 'rain',
+    `Found $5 in the rain is HV-276's soaked bill (+2), not the bag's soak (${five.goodwill})`);
 
   const leftovers = await t(() => {
     const real = Math.random;
@@ -132,8 +132,8 @@ ok(block && /G\.weather\s*===\s*['"]rain['"]/.test(block[1]),
       log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
     };
   });
-  ok(leftovers.log.includes('Marisol left a bag of tamales') && leftovers.food >= 10,
-    `Marisol leftovers are not this card (food=${leftovers.food})`);
+  ok(leftovers.log.includes('Marisol left a bag of tamales') && /soaked them through/.test(leftovers.log),
+    `Marisol's rainy bag is HV-191's soaked tamales, not this card (food=${leftovers.food})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);

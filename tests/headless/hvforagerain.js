@@ -123,8 +123,8 @@ ok(/homeless-village\/js\/ui\.js/.test(player) === false,
     Math.random = real;
     return { heat, cold };
   });
-  ok(otherSky.heat.wood === 4 && otherSky.heat.card === 6,
-    `heat keeps the dry-day cardboard (${otherSky.heat.card}) — the cut is rain`);
+  ok(otherSky.heat.wood === 0 && otherSky.heat.card === 0,
+    `heat is HV-269's refusal now, not a dry-day haul to cut (${otherSky.heat.card})`);
   ok(otherSky.cold.wood === 4 && otherSky.cold.card === 6,
     `cold keeps the dry-day cardboard (${otherSky.cold.card}) — that sky is another ticket`);
 

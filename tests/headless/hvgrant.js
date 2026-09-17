@@ -39,7 +39,9 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
 const config = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
 
 const petAt = player.indexOf('function doPetition(id){');
-const petBlock = petAt >= 0 ? player.slice(petAt, petAt + 900) : '';
+// 1400, not 900: the HV-256 rain branch sits between the function head and
+// the HV-225 stamp, and a fixed window that tight reads as a regression.
+const petBlock = petAt >= 0 ? player.slice(petAt, petAt + 1400) : '';
 const sweepAt = loop.indexOf("id:'sweep'");
 const nextBad = loop.indexOf("id:'cold_snap'");
 const sweepBlock = sweepAt >= 0 && nextBad > sweepAt ? loop.slice(sweepAt, nextBad) : '';

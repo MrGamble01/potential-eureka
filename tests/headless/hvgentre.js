@@ -30,7 +30,9 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
 const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 
 const gentAt = loop.indexOf("id:'gentrify'");
-const gent = gentAt >= 0 ? loop.slice(gentAt, gentAt + 500) : '';
+// 800, not 500: HV-258 notes on the stamp sit between the card's copy and
+// its addRep, and a window that tight reads the distance as a regression.
+const gent = gentAt >= 0 ? loop.slice(gentAt, gentAt + 800) : '';
 
 ok(gentAt >= 0 && /Harassment from locals is increasing/.test(gent),
   'the card still says harassment from locals is increasing');

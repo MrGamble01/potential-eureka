@@ -20,7 +20,13 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 # Order: the whole-site audit first (it catches page errors everywhere),
 # then the cross-game guards (geometry, storage keys, corrupt saves),
 # then the hub meta-layer, then the per-game suites.
-SUITES=(
+#
+# The per-game families (hv*, vox*) are DISCOVERED from this directory
+# rather than listed here. They used to live on one line apiece, so every
+# pair of PRs that each added a suite conflicted on that line even though
+# neither touched the other's game. Adding a suite is now just adding a
+# file. Order within a family doesn't matter; the lead list does.
+LEAD=(
   nohooks aowrecords
   audit
   wall
@@ -33,10 +39,36 @@ SUITES=(
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
-  hvweather hvdog hvregulars hvoddjobs hvrep hvsoup hvmural hvstash hvfire hvmeeting hvpetition hvticket hvsnap hvbusk hvdeposit hvnewcomer hvpantry hvcoats hvtoolbox hvcompost hvawning hvbarrel hvrainbet hvgarage hvborrow hvfridge hvrecord hvnote hvwall hvthermos hvboard hvpotluck hvstar hvshelf hvmarisol hvmugs hvreunion hvsnapshot hvanniv hvnotebook hvbench hvstory hvballad hvcan hvpanel hvwalk hvmark hvdry hvhook hvintro hvwander hvbridge hvesc hvlock hvrefuse hvclock hvfriend hvgradesc hvarc hvmeetcap hvsky hvrelight hvfive hvcoldyard hvbeds hvwettamale hvballadfire hvsnapbeds hvbag hvraincandle hveasy hvmurallight hvforagerain hvstargroceries hvkeep hvbarrelsweep hvwetleaf hvsnapbox hvsnapbare hvsnapdrum hvnotedoor hvannivbare hvfifthmural hvcookbowl hvwallname hvwetcasserole hvout hvsickrest hvdig hvwetsnap hvwetcan hvrail hvgentre hvsnapscav hvthrow hvdown hvleafbare hvroof hvballadbare hvbenchbare hvmarkbare hvpanelbare hvgrant hvthermosfire hvgtrsweep hvgentbusk hvannivfire hvtrust hvthermoused hvyard hvreunionheld hvscrappersnap hvbug hvbarreltheft hvnotebookleaf hvheatcart hvbenchsat hvhalf hvmarisolcame hvkind hvforagesnap hvsnaplooked hvlift hvraincart hvyardheat hvdepotheat hvband hvstorytold
-  voxcrow voxangler voxcompost voxflotsam voxstardust voxcat voxrainbow voxduck voxlight voxobs voxballoon voxdove voxwinter voxice voxferry voxsugar voxmuseum voxowl voxpig voxcrib voxjam voxcloud voxpolicy voxnote voxlantern voxbell voxbottle voxtablet voxconch voxwick voxfest voxwreath voxbeacon voxkeeper voxoar voxreunion voxframe voxmooring voxhlog voxbench voxyarn voxshanty voxchest voxmural voxpilot voxmark voxshed voxline
-  pwa
+  labintro primer sessiontag objective controls
 )
+TRAIL=( pwa )
+
+shopt -s nullglob
+FAMILY=()
+for f in hv*.js vox*.js; do FAMILY+=( "${f%.js}" ); done
+shopt -u nullglob
+if [ "${#FAMILY[@]}" -gt 0 ]; then
+  mapfile -t FAMILY < <(printf '%s\n' "${FAMILY[@]}" | LC_ALL=C sort)
+fi
+
+SUITES=( "${LEAD[@]}" "${FAMILY[@]}" "${TRAIL[@]}" )
+
+# A suite file that matches neither the lead/trail lists nor a family glob
+# would be silently skipped — a new game's prefix (hvale*, say) is exactly
+# how that happens. Fail loudly instead.
+unlisted=()
+for f in *.js; do
+  n="${f%.js}"
+  case " ${SUITES[*]} " in
+    *" $n "*) ;;
+    *) unlisted+=( "$n" ) ;;
+  esac
+done
+if [ "${#unlisted[@]}" -gt 0 ]; then
+  echo "run.sh: suite file(s) no list or glob covers: ${unlisted[*]}" >&2
+  echo "        add the name to LEAD/TRAIL above, or extend the family globs." >&2
+  exit 1
+fi
 
 fails=0
 for s in "${SUITES[@]}"; do

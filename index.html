@@ -82,6 +82,7 @@
       <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
       <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
       <button class="hof-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; PATCH NOTES</button>
+      <button class="hof-link" id="primer-btn" title="What this place is and how it fits together">&#10024; START HERE</button>
     </div>
     <div class="card-search-wrap">
       <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
@@ -89,6 +90,11 @@
       <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
     </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
+    <div id="primer-hint" role="region" aria-label="New here" hidden>
+      <span class="primer-hint-text">&#10024; <b>First time here?</b> Twenty-one games, six long ones, and a scoreboard that is yours alone.</span>
+      <button class="primer-hint-open" id="primer-hint-open">How this place works &rarr;</button>
+      <button class="primer-hint-x" id="primer-hint-x" aria-label="Dismiss">&times;</button>
+    </div>
     <div id="daily-banner" role="region" aria-label="Today's challenge">
       <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
       <span class="daily-sub">One shared seed — same pieces, same food, same rocks for everyone. Set today's mark:</span>
@@ -105,7 +111,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">AGE OF WAR</div>
-          <div class="arcade-card-tags"><span>Strategy</span><span>Waves</span><span>Bosses</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Strategy</span><span>Waves</span><span>Bosses</span></div>
           <div class="arcade-card-desc">March your army through the ages and crush the enemy base.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -120,7 +126,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">STARTUP TYCOON</div>
-          <div class="arcade-card-tags"><span>Idle</span><span>3D</span><span>Story</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Idle</span><span>3D</span><span>Story</span></div>
           <div class="arcade-card-desc">Hire engineers, ship features, and grind your way to IPO.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -135,7 +141,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">GROW OP</div>
-          <div class="arcade-card-tags"><span>Builder</span><span>3D</span><span>Risk</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>3D</span><span>Risk</span></div>
           <div class="arcade-card-desc">Expand the operation room by room &mdash; and watch the heat.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -150,7 +156,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">HOMELESS VILLAGE</div>
-          <div class="arcade-card-tags"><span>Survival</span><span>3D</span><span>Idle</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Survival</span><span>3D</span><span>Idle</span></div>
           <div class="arcade-card-desc">Survive under the bridge and build a village from nothing.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -164,7 +170,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">HEARTHVALE</div>
-          <div class="arcade-card-tags"><span>Builder</span><span>Cozy</span><span>Pixel</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Cozy</span><span>Pixel</span></div>
           <div class="arcade-card-desc">Grow a cozy riverside town &mdash; homes, workers, trade, seasons &amp; wildlife.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -179,7 +185,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VOXEL ISLE</div>
-          <div class="arcade-card-tags"><span>Voxel</span><span>3D</span><span>Cozy</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Voxel</span><span>3D</span><span>Cozy</span></div>
           <div class="arcade-card-desc">A floating voxel island, all yours &mdash; till, plant, water, harvest, grow.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -207,7 +213,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">SNAKE</div>
-          <div class="arcade-card-tags"><span>Classic</span><span>Arcade</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Arcade</span></div>
           <div class="arcade-card-desc">Chase the food, grow long, don't bite yourself.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -222,7 +228,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">TETRIS</div>
-          <div class="arcade-card-tags"><span>Classic</span><span>Puzzle</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Puzzle</span></div>
           <div class="arcade-card-desc">Stack the blocks, clear the lines, don't top out.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -237,7 +243,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">NEON BREAKER</div>
-          <div class="arcade-card-tags"><span>Classic</span><span>Arcade</span><span>Power-ups</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Arcade</span><span>Power-ups</span></div>
           <div class="arcade-card-desc">Smash neon bricks, grab power-ups, chase the combo.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -252,7 +258,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VECTOR STORM</div>
-          <div class="arcade-card-tags"><span>Shooter</span><span>Arcade</span><span>Vector</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Shooter</span><span>Arcade</span><span>Vector</span></div>
           <div class="arcade-card-desc">Drift, thrust and blast splitting asteroids to dust.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -267,7 +273,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">2048</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Numbers</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Numbers</span></div>
           <div class="arcade-card-desc">Slide the tiles, merge the numbers, reach 2048.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -281,7 +287,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">MINEFIELD</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Logic</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Logic</span></div>
           <div class="arcade-card-desc">Flag the mines, clear the board, beat your best time.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -295,7 +301,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">LIGHT CYCLES</div>
-          <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Arcade</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span><span>Arcade</span></div>
           <div class="arcade-card-desc">Trap the AI in your light trail &mdash; or duel a friend on one keyboard.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -309,7 +315,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">PONG++</div>
-          <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Power-ups</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span><span>Power-ups</span></div>
           <div class="arcade-card-desc">The old table, new tricks &mdash; split the ball, grow your paddle, first to 7.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -323,7 +329,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">STACKER</div>
-          <div class="arcade-card-tags"><span>Timing</span><span>Zen</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Timing</span><span>Zen</span></div>
           <div class="arcade-card-desc">Drop the slider, keep what lands, watch the tower climb. Perfects snap flush.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -337,7 +343,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">CRATE ESCAPE</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Sokoban</span><span>Zen</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Sokoban</span><span>Zen</span></div>
           <div class="arcade-card-desc">Push every crate onto its pad &mdash; a generated ladder of solvable puzzles, undo included.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -351,7 +357,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VECTOR DEFENSE</div>
-          <div class="arcade-card-tags"><span>Tower Defense</span><span>Waves</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Tower Defense</span><span>Waves</span></div>
           <div class="arcade-card-desc">Raiders crawl the neon path &mdash; pulse and rail turrets, ten waves, ten lives.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -365,7 +371,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">WORD CASCADE</div>
-          <div class="arcade-card-tags"><span>Words</span><span>Falling</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Words</span><span>Falling</span></div>
           <div class="arcade-card-desc">Letters fall, you spell — words clear across and down, chains multiply.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -379,7 +385,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">MEMORY MATRIX</div>
-          <div class="arcade-card-tags"><span>Memory</span><span>Simon</span><span>Zen</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Memory</span><span>Simon</span><span>Zen</span></div>
           <div class="arcade-card-desc">Watch the lights, echo the melody &mdash; how long a pattern can you hold?</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -393,7 +399,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">DROP FOUR</div>
-          <div class="arcade-card-tags"><span>Strategy</span><span>vs AI</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Strategy</span><span>vs AI</span></div>
           <div class="arcade-card-desc">Connect four in a row against a thinking opponent.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -407,7 +413,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">WORD FIVE</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Words</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Words</span></div>
           <div class="arcade-card-desc">Guess the hidden five-letter word in six tries.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -667,7 +673,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">SNAKE</div>
-        <div class="game-subtitle">Arrow keys / WASD &middot; swipe on mobile</div>
+        <div class="game-subtitle">Eat to grow &mdash; never hit a wall or your own tail &middot; Arrow keys / WASD &middot; swipe on mobile</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="snake-score">0</strong></span>
@@ -694,7 +700,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">LIGHT CYCLES</div>
-        <div class="game-subtitle">Trap your rival in your trail &middot; last rider alive wins</div>
+        <div class="game-subtitle">Trap your rival in your trail &middot; last rider alive wins &middot; Arrows or WASD steer &middot; swipe on mobile &middot; in 2 PLAYERS, WASD is P1 and arrows are P2</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Wins: <strong id="cycles-wins">0</strong></span>
@@ -718,7 +724,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">PONG++</div>
-        <div class="game-subtitle">First to 7 &middot; catch the power-ups with the ball</div>
+        <div class="game-subtitle">First to 7 &middot; catch the power-ups with the ball &middot; W/S or &uarr;/&darr; &middot; drag your half on touch &middot; Space serves</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>You: <strong id="pong-p1">0</strong></span>
@@ -741,7 +747,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">STACKER</div>
-        <div class="game-subtitle">Drop the slider on the tower &middot; overhangs get sliced &middot; perfects snap flush</div>
+        <div class="game-subtitle">Stack as high as you can &mdash; miss the tower completely and the run ends &middot; Drop the slider on the tower &middot; overhangs get sliced &middot; perfects snap flush &middot; Space, &darr; or click drops</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Height: <strong id="stacker-height">0</strong></span>
@@ -760,7 +766,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">CRATE ESCAPE</div>
-        <div class="game-subtitle">Arrows/WASD push &middot; Z undo &middot; R restart &middot; swipe on touch</div>
+        <div class="game-subtitle">Push every crate onto a lit pad to clear the level &middot; Arrows/WASD push &middot; Z undo &middot; R restart &middot; swipe on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Level: <strong id="crate-level">1</strong></span>
@@ -786,7 +792,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR DEFENSE</div>
-        <div class="game-subtitle">Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave</div>
+        <div class="game-subtitle">Hold ten waves &mdash; every leak costs one of your ten lives &middot; Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Cash: <strong id="vd-cash">$120</strong></span>
@@ -812,7 +818,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">WORD CASCADE</div>
-        <div class="game-subtitle">Steer the letters &middot; spell across or down &middot; plurals and -ed/-ing count &middot; chains multiply</div>
+        <div class="game-subtitle">Steer the letters &middot; spell across or down &middot; plurals and -ed/-ing count &middot; chains multiply &middot; &larr; &rarr; move &middot; &darr; soft drop &middot; Space hard drop &middot; tap either side on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="wc-score">0</strong></span>
@@ -832,7 +838,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">MEMORY MATRIX</div>
-        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; one wrong pad ends the run</div>
+        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; one wrong pad ends the run &middot; click the pads, or keys 1-9 in reading order</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Round: <strong id="mm-round">1</strong></span>
@@ -885,7 +891,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">TETRIS</div>
-        <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
+        <div class="game-subtitle">Clear lines before the stack reaches the top &middot; ← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
       </div>
       <div class="tetris-layout">
         <div class="tetris-side">
@@ -965,7 +971,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">NEON BREAKER</div>
-        <div class="game-subtitle">Move to aim &middot; catch power-ups &middot; clear every brick</div>
+        <div class="game-subtitle">Move to aim &middot; catch power-ups &middot; clear every brick &middot; mouse, touch or &larr; &rarr; moves the paddle &middot; Space launches</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="breakout-score">0</strong></span>
@@ -1056,7 +1062,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">WORD FIVE</div>
-        <div class="game-subtitle">Guess the five-letter word in six tries &middot; green = right spot, gold = wrong spot</div>
+        <div class="game-subtitle">Guess the five-letter word in six tries &middot; green = right spot, gold = wrong spot &middot; type or tap the keys &middot; Enter submits, Backspace deletes</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Streak: <strong id="word5-streak">0</strong></span>
@@ -1109,7 +1115,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">MINEFIELD</div>
-        <div class="game-subtitle">Click reveal &middot; right-click / long-press flags &middot; click a number to chord &middot; first click is always safe</div>
+        <div class="game-subtitle">Reveal every safe square without setting off a mine &middot; Click reveal &middot; right-click / long-press flags &middot; click a number to chord &middot; first click is always safe</div>
       </div>
       <div class="game-controls" style="flex-wrap:wrap">
         <button class="mines-diff-btn" data-diff="beginner" onclick="MinesweeperGame.setDifficulty('beginner')">Beginner</button>
@@ -1139,7 +1145,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR STORM</div>
-        <div class="game-subtitle">Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
+        <div class="game-subtitle">Clear every rock &mdash; the big ones break into smaller ones &middot; Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="asteroids-score">0</strong></span>
@@ -1229,6 +1235,41 @@
       <div style="font-size:12px;color:var(--text-dim);margin-top:12px">Gamepads work across the arcade too — press any button on the pad.</div>
       <div class="modal-actions" style="margin-top:16px">
         <button class="primary" onclick="Utils.closeModal('shortcuts-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SITE-4: the primer. The hub had twenty-one games, six flagships and a
+       whole meta-layer on top — daily seeds, trophies, coins, rivals, a Hall
+       of Fame — and the only thing it said to a first-time visitor was PICK A
+       GAME. All of it was documented in the README, which players do not
+       read. This says it on the page, once, and then gets out of the way. -->
+  <div id="primer-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="How Eureka Games works">
+    <div class="modal-content" style="max-width:600px">
+      <h3 style="margin-bottom:4px">&#10024; How this place works</h3>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">
+        Twenty-one games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
+      </div>
+      <div style="display:grid;gap:11px;font-size:13px;line-height:1.55">
+        <div><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
+          The <b>flagships</b> (Age of War, Startup Tycoon, Grow Op, Homeless Village, Voxel Isle, Hearthvale) are their own
+          pages and run for hours; each opens with a crash course, and a <b>?</b> button reopens it.</div>
+        <div><strong>&#128197; The daily challenge.</strong> One shared seed a day: the same pieces, food and rocks for
+          everybody who plays it. It is the one honest way to compare a score with someone else.</div>
+        <div><strong>&#127942; The Hall of Fame</strong> keeps your best in every game, and hands out
+          <b>trophies</b> for milestones. Each trophy mints <b>&#129689; coins</b>, which buy accent palettes in the shop.</div>
+        <div><strong>&#128101; Rivals, without a server.</strong> Share a code from the Hall of Fame and a friend's bests
+          sit next to yours, lit up wherever they are ahead. Nothing is uploaded &mdash; the code <em>is</em> the data.</div>
+        <div><strong>&#128190; It is all yours, locally.</strong> Saves, scores and trophies live in this browser and never
+          leave it. <b>&#11015; Backup</b> in the Hall of Fame writes the lot to a file; <b>&#11014; Restore</b> puts it back
+          on another machine.</div>
+        <div><strong>&#128246; It works offline.</strong> Install it and the whole arcade &mdash; flagships included &mdash;
+          keeps playing with no connection at all.</div>
+        <div><strong>&#127912; Make it yours.</strong> A &#127912; theme cycler and the coin shop's accents re-skin the site;
+          press <b>?</b> for every keyboard shortcut, and gamepads work throughout.</div>
+      </div>
+      <div class="modal-actions" style="margin-top:18px">
+        <button class="primary" id="primer-go">Pick a game &rarr;</button>
       </div>
     </div>
   </div>
@@ -1874,6 +1915,58 @@
     document.getElementById('shortcuts-modal').addEventListener('click', e => {
       if (e.target.id === 'shortcuts-modal') Utils.closeModal('shortcuts-modal');
     });
+
+    // SITE-4: the primer.
+    //
+    // The hub explained none of itself. The daily banner says what a seed
+    // is, and everything else — trophies, coins, rivals, the backup that
+    // makes any of it portable, the fact that it all runs offline and none
+    // of it leaves the browser — was documented only in the README.
+    //
+    // It opens ONCE, and only for somebody with no play history at all:
+    // eureka-stats carries a seconds-per-game map, so a returning player
+    // who has simply never seen this panel is not interrupted by it. The
+    // ✨ START HERE button reopens it whenever they want it. ? stays the
+    // shortcuts sheet — this is the other half of that pairing, not a
+    // second claim on the same key.
+    const PRIMER_KEY = 'eureka-primer-seen';
+    const primerSeen = () => { try { return localStorage.getItem(PRIMER_KEY) === '1'; } catch { return false; } };
+    const markPrimerSeen = () => { try { localStorage.setItem(PRIMER_KEY, '1'); } catch {} };
+    const closePrimer = () => { Utils.closeModal('primer-modal'); markPrimerSeen(); };
+    const openPrimer = () => {
+      Utils.openModal('primer-modal');
+      // trapFocus (P4-A11Y-1) focuses the first control, which here is the
+      // button at the BOTTOM — on a phone that scrolls the panel past its
+      // own title and opens it mid-sentence. Put it back to the top.
+      const c = document.querySelector('#primer-modal .modal-content');
+      if (c) c.scrollTop = 0;
+    };
+    const primerBtn = document.getElementById('primer-btn');
+    if (primerBtn) primerBtn.addEventListener('click', openPrimer);
+    const primerGo = document.getElementById('primer-go');
+    if (primerGo) primerGo.addEventListener('click', closePrimer);
+    document.getElementById('primer-modal').addEventListener('click', e => {
+      if (e.target.id === 'primer-modal') closePrimer();
+    });
+    document.addEventListener('keydown', e => {
+      const pm = document.getElementById('primer-modal');
+      if (e.key === 'Escape' && pm && pm.style.display === 'flex') closePrimer();
+    });
+    const hint = document.getElementById('primer-hint');
+    const dismissHint = () => { if (hint) hint.hidden = true; markPrimerSeen(); };
+    const hintOpen = document.getElementById('primer-hint-open');
+    if (hintOpen) hintOpen.addEventListener('click', () => { dismissHint(); openPrimer(); });
+    const hintX = document.getElementById('primer-hint-x');
+    if (hintX) hintX.addEventListener('click', dismissHint);
+    (function firstVisit() {
+      // A strip, not an overlay. A newcomer gets an offer they can read in
+      // one line and take or ignore; nobody gets a modal between them and
+      // the game they came to click.
+      if (primerSeen() || !hint) return;
+      const stats = Scores.readJSON('eureka-stats');
+      const played = stats && stats.seconds && Object.keys(stats.seconds).length > 0;
+      if (!played) hint.hidden = false;
+    })();
 
     // Patch notes: the studio changelog, newest first. Hand-curated —
     // every entry here shipped, verified headless, and is live for

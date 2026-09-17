@@ -1,32 +1,32 @@
 /*
- * HV-247 — Unload at the depot said honest lifting, then a
- * heat-wave day still paid a cool-day lift.
+ * HV-250 — Hand out flyers said a local shop pays, then a
+ * heat-wave day still paid a cool-day take.
  *
- * The posting is "A morning of honest lifting. +5 goodwill."
- * Heat Wave already gifts the corner (pan 1.5) and doubles a
- * busk. The depot is outdoor lifting in that same scorcher.
- * finishAction still paid the posted +5 as if the sky were
- * clear.
+ * The posting is "A local shop pays a little, and the owner
+ * is kind. +3 goodwill, +4 morale." Heat Wave already gifts
+ * the corner (pan 1.5) and doubles a busk. Flyers are outdoor
+ * walking in that same scorcher. finishAction still paid the
+ * posted +3 / +4 as if the sky were clear.
  *
- * Distinct from HV-246 / #941 (scrapyard vs heat — that
- * ticket left the depot on the posted take), HV-243 / #938
- * (Deposit vs heat), HV-172 / #872 (depot vs cold), HV-152 /
- * #844 (depot vs night), HV-231 / #925 (depot vs Word).
- * Main already sat HV-246 as the yard vs heat, so ROADMAP
- * takes HV-247. This ticket is the heat vs the dock. ui.js
- * is not this ticket.
+ * Distinct from HV-177 / #867 (rain vs flyers), HV-186 /
+ * #876 (gentrify vs flyers), HV-279 / #922 (flyers vs Word),
+ * HV-247 / #942 (depot vs heat), HV-246 / #941 (scrapyard vs
+ * heat). Main already sat HV-249 as the fire story already
+ * told (#944), so ROADMAP takes HV-250. This ticket is the
+ * heat vs the shop walk. ui.js is not this ticket.
  *
- *  A. Source: the odd-job finisher still pays the depot
+ *  A. Source: the odd-job finisher still pays the flyers
  *     posting. Heat Wave is still named. The finisher reads
- *     depot + weather==='heat' and applies 0.75. The yard's
- *     scorcher cut is HV-246 / #941. ui.js is not this ticket.
- *  B. Live: a clear depot shift still pays +5 goodwill.
- *  C. Live: the same shift on heat paid the cool-day lift
+ *     flyers + weather==='heat' and applies 0.75. Depot and
+ *     scrapyard already have their scorcher cuts. Rain is
+ *     not this ticket. ui.js is not this ticket.
+ *  B. Live: a clear flyers shift still pays +3 goodwill / +4
+ *     morale.
+ *  C. Live: the same shift on heat paid the cool-day take
  *     (the bug). After the fix it pays 0.75, and the log
  *     names the scorcher.
- *  D. Rain and cold do not steal the cut. The scrapyard
- *     still pays its #941 scorcher cut. Flyers pay their
- *     HV-250 scorcher walk.
+ *  D. Rain and cold do not steal the cut. Depot and the
+ *     scrapyard still pay their #942 / #941 scorcher cuts.
  *  E. One run a day still holds.
  *  Z. Zero page errors.
  *
@@ -48,20 +48,22 @@ const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8')
 const oddBlock = /else if\(a\.id==='oddjob'\)\{[\s\S]*?else if\(a\.id==='mural'\)/.exec(player);
 const body = oddBlock ? oddBlock[0] : '';
 
-ok(/A morning of honest lifting/.test(cfg) && /id:'depot'/.test(cfg),
-  'the depot still promises a morning of honest lifting for +5 goodwill');
+ok(/A local shop pays a little/.test(cfg) && /id:'flyers'/.test(cfg),
+  'flyers still promise a kind shop and +3 goodwill / +4 morale');
 ok(/name:'Heat Wave'/.test(cfg) && /pan:\s*1\.5/.test(cfg),
   'Heat Wave still gifts the panhandle corner');
 ok(/a\.id==='oddjob'/.test(player) && /todaysJob\(\)/.test(body),
   'the odd-job finisher still pays today’s posting');
-ok(/j\.id==='depot' && G\.weather==='heat'/.test(body) && /0\.75/.test(body),
-  'HV-247: the depot finisher cuts the lift on a heat-wave sky');
+ok(/j\.id==='flyers' && G\.weather==='heat'/.test(body) && /0\.75/.test(body),
+  'HV-250: the flyers finisher cuts the take on a heat-wave sky');
+ok(/j\.id==='depot' && G\.weather==='heat'/.test(body),
+  'the depot still has its HV-247 / #942 scorcher cut — not this ticket');
 ok(/j\.id==='scrapyd' && G\.weather==='heat'/.test(body),
   'the scrapyard still has its HV-246 / #941 scorcher cut — not this ticket');
-ok(!/j\.id==='depot' && G\.weather==='rain'/.test(body) && !/j\.id==='depot' && G\.weather==='cold'/.test(body),
-  'rain and cold are not this ticket — depot-vs-cold is #872');
+ok(!/j\.id==='flyers' && G\.weather==='rain'/.test(body) && !/j\.id==='flyers' && G\.weather==='cold'/.test(body),
+  'rain and cold are not this ticket — flyers-vs-rain is #867');
 ok(!/G\.weather==='heat'/.test(ui),
-  'ui.js untouched — the heat cut lives on the odd-job lift');
+  'ui.js untouched — the heat cut lives on the odd-job walk');
 
 (async () => {
   const launch = {
@@ -74,8 +76,8 @@ ok(!/G\.weather==='heat'/.test(ui),
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).split('\n')[0].slice(0, 110)));
   await page.addInitScript(() => {
-    if (!sessionStorage.getItem('hvdepotheat-init')) {
-      sessionStorage.setItem('hvdepotheat-init', '1');
+    if (!sessionStorage.getItem('hvflyerheat-init')) {
+      sessionStorage.setItem('hvflyerheat-init', '1');
       localStorage.setItem('hv-intro-seen', '1');
       localStorage.removeItem('homeless_village_v1');
     }
@@ -105,55 +107,55 @@ ok(!/G\.weather==='heat'/.test(ui),
   `));
 
   const boot = await t(() => {
-    G.days = 0;
+    G.days = 1;
     return {
       job: todaysJob().id,
-      desc: ODD_JOBS.find(j => j.id === 'depot') && ODD_JOBS.find(j => j.id === 'depot').desc,
+      desc: ODD_JOBS.find(j => j.id === 'flyers') && ODD_JOBS.find(j => j.id === 'flyers').desc,
       heat: WEATHERS.heat && WEATHERS.heat.name,
     };
   });
-  ok(boot.job === 'depot' && /honest lifting/.test(boot.desc) && boot.heat === 'Heat Wave',
-    `day 0 is still the depot under a Heat Wave sky (${boot.job}, ${boot.heat})`);
+  ok(boot.job === 'flyers' && /local shop pays/.test(boot.desc) && boot.heat === 'Heat Wave',
+    `day 1 is still flyers under a Heat Wave sky (${boot.job}, ${boot.heat})`);
 
-  const clear = await shift('clear', 0);
-  ok(clear.id === 'depot' && clear.goodwill === 5 && clear.done,
-    `a clear-sky lift still pays +5 goodwill (${clear.goodwill})`);
+  const clear = await shift('clear', 1);
+  ok(clear.id === 'flyers' && clear.goodwill === 3 && clear.morale === 54 && clear.done,
+    `a clear-sky walk still pays +3 goodwill / +4 morale (${clear.goodwill} / ${clear.morale})`);
 
-  const heat = await shift('heat', 0);
-  ok(heat.id === 'depot' && heat.goodwill === 3 && heat.done,
-    `HV-247: a scorcher lift is +3 goodwill, not the cool-day +5 (${heat.goodwill})`);
+  const heat = await shift('heat', 1);
+  ok(heat.id === 'flyers' && heat.goodwill === 2 && heat.morale === 53 && heat.done,
+    `HV-250: a scorcher walk is +2 / +3, not the cool-day +3 / +4 (${heat.goodwill} / ${heat.morale})`);
   ok(/scorcher|heat/i.test(heat.log),
     `the log names the scorcher — not a silent cut (${heat.log.slice(-90)})`);
 
-  const rain = await shift('rain', 0);
-  ok(rain.goodwill === 5,
-    `rain without heat still pays the posted lift (${rain.goodwill})`);
+  const rain = await shift('rain', 1);
+  ok(rain.goodwill === 3 && rain.morale === 54,
+    `rain without heat still pays the posted take — flyers-vs-rain is #867 (${rain.goodwill} / ${rain.morale})`);
 
-  const cold = await shift('cold', 0);
-  ok(cold.goodwill === 5,
-    `cold without heat still pays the posted lift — depot-vs-cold is #872 (${cold.goodwill})`);
+  const cold = await shift('cold', 1);
+  ok(cold.goodwill === 3 && cold.morale === 54,
+    `cold without heat still pays the posted take (${cold.goodwill} / ${cold.morale})`);
+
+  const depot = await shift('heat', 0);
+  ok(depot.id === 'depot' && depot.goodwill === 3,
+    `the depot still pays its HV-247 / #942 scorcher lift (+3) (${depot.goodwill})`);
 
   const yard = await shift('heat', 3);
   ok(yard.id === 'scrapyd' && yard.scraps === 3 && yard.cans === 1,
     `the scrapyard still pays its HV-246 / #941 scorcher cut (+3 / +1) (${yard.scraps} / ${yard.cans})`);
 
-  const flyers = await shift('heat', 1);
-  ok(flyers.id === 'flyers' && flyers.goodwill === 2 && flyers.morale === 53,
-    `Hand out flyers pays the HV-250 scorcher walk (+2 / +3) (${flyers.goodwill} / ${flyers.morale})`);
-
   const twice = await t(() => {
-    G.days = 0;
+    G.days = 1;
     G.oddJobDay = -9;
     G.weather = 'heat';
     G.structures.toolbox = false;
-    G.goodwill = 0;
+    G.goodwill = 0; G.morale = 50;
     finishAction(oddJobAction());
-    const first = { gw: G.goodwill, day: G.oddJobDay };
+    const first = { gw: G.goodwill, morale: G.morale };
     doAction(oddJobAction());
-    return { first, gw2: G.goodwill };
+    return { first, gw2: G.goodwill, morale2: G.morale };
   });
-  ok(twice.first.gw === 3 && twice.gw2 === 3,
-    'one run a day still holds — a second lift is refused');
+  ok(twice.first.gw === 2 && twice.gw2 === 2 && twice.morale2 === 53,
+    'one run a day still holds — a second walk is refused');
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
