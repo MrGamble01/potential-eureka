@@ -119,6 +119,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     saveHvCan({ digs: 3 });
     saveHvPanel({ stands: 0 });
     panelStood = false;
+    G.mural = 4;
     G.food = 10;
     G.cooldowns = {};
     finishAction(ACTIONS.find(x => x.id === 'fifth'));
