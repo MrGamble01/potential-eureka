@@ -38,7 +38,7 @@ LEAD=(
   promises
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
-  undo2048 w5share cycles3
+  undo2048 w5share cycles3 lifepenta
   labintro primer sessiontag objective controls
 )
 TRAIL=( pwa )
