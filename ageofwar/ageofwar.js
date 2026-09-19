@@ -192,6 +192,7 @@ const AgeOfWarGame = (() => {
       `;
       ov.style.cursor = 'pointer';
       ov.onclick = () => setUserPaused(false);
+      saveSession();
       const vault = document.getElementById('relic-vault-pause');
       if (vault) vault.onclick = e => e.stopPropagation();   // buying must not resume
       ov.querySelectorAll('.relic-perk').forEach(btn => {
@@ -432,6 +433,10 @@ const AgeOfWarGame = (() => {
       const b = pool[Math.floor(Math.random() * pool.length)];
       if (!picks.includes(b)) picks.push(b);
     }
+    renderCouncil(picks, true);
+  }
+  function renderCouncil(picks, announce) {
+    if (!picks || !picks.length) return;
     councilPending = picks;
     const el = councilEl();
     el.innerHTML = '<div style="font-size:12px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">' +
@@ -451,7 +456,16 @@ const AgeOfWarGame = (() => {
     el.querySelectorAll('.council-boon').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); chooseBoon(btn.dataset.boon); });
     });
-    SFX.warn && SFX.warn();
+    if (announce) SFX.warn && SFX.warn();
+  }
+  function restoreCouncil(ids) {
+    if (!Array.isArray(ids) || !ids.length) return;
+    const picks = [];
+    for (const id of ids) {
+      const b = COUNCIL_BOONS.find(x => x.id === id);
+      if (b && !councilBoons[b.id] && !picks.includes(b)) picks.push(b);
+    }
+    if (picks.length) renderCouncil(picks, false);
   }
   function chooseBoon(id) {
     if (!councilPending || !councilPending.some(b => b.id === id)) return;
@@ -1225,10 +1239,9 @@ const AgeOfWarGame = (() => {
   // per-wave scaling lives on the unit, not the shared table. Returns the
   // spawned unit, or null if the def is unknown or the side is at its
   // population cap (see MAX_UNITS_PER_SIDE).
-  function spawnUnit(side, key, overrides) {
+  function mintUnit(side, key, overrides) {
     const def = UNITS[key];
     if (!def) return null;
-    if (sideUnitCount(side) >= MAX_UNITS_PER_SIDE) return null;
     // Per-silhouette sizing — significantly larger than the original
     // so units are legible on phone-sized canvases (reference: Max
     // Games' Age of War, where units occupy ~25-30% of canvas height).
@@ -1241,7 +1254,7 @@ const AgeOfWarGame = (() => {
     const dmgMult = side === 'enemy' ? D.dmgMult : 1;
     const baseHp  = overrides && overrides.hp  != null ? overrides.hp  : def.hp;
     const baseDmg = overrides && overrides.dmg != null ? overrides.dmg : def.dmg;
-    const u = {
+    return {
       id: nextSpawnId++,
       side, key,
       role: def.role || null,
@@ -1258,6 +1271,13 @@ const AgeOfWarGame = (() => {
       walkPhase: Math.random() * Math.PI * 2,
       attackPose: 0,                       // seconds remaining in strike pose
     };
+  }
+  function spawnUnit(side, key, overrides) {
+    const def = UNITS[key];
+    if (!def) return null;
+    if (sideUnitCount(side) >= MAX_UNITS_PER_SIDE) return null;
+    const u = mintUnit(side, key, overrides);
+    if (!u) return null;
     // AOW-19: the war banner leans player units — never walls or enemies
     if (side === 'player' && !def.role) {
       const b = bannerDef();
@@ -9275,6 +9295,7 @@ const AgeOfWarGame = (() => {
 
   // ---- Overlay ----
   const SESSION_KEY = 'aow-session';
+  let heldCouncil = null;
 
   function overlayCtas(primaryId, primaryLabel) {
     return `<div class="aow-cta-row">
@@ -9315,16 +9336,131 @@ const AgeOfWarGame = (() => {
     }
     return out;
   }
+  function sessionFloat(v, fallback, lo, hi) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(hi, Math.max(lo, n));
+  }
+  function ensureUnitDef(snap) {
+    if (!snap || typeof snap.key !== 'string') return null;
+    const key = snap.key.slice(0, 40);
+    if (UNITS[key]) return key;
+    const hero = HEROES.find(h => h.key === key);
+    if (hero) {
+      UNITS[key] = {
+        era: hero.era, name: hero.name, icon: hero.icon, sprite: hero.sprite, cost: hero.cost,
+        hp: hero.hp, dmg: hero.dmg, range: hero.range, atkSpd: hero.atkSpd,
+        speed: hero.speed, color: hero.color, xp: hero.xp, gold: hero.gold,
+        silhouette: hero.silhouette, isHero: true,
+      };
+      return key;
+    }
+    const d = snap.def && typeof snap.def === 'object' ? snap.def : null;
+    if (!d) return null;
+    const sil = d.silhouette === 'vehicle' || d.silhouette === 'beast' || d.silhouette === 'flier' ? d.silhouette : 'humanoid';
+    UNITS[key] = {
+      era: sessionInt(d.era, 0, 0, ERAS.length - 1),
+      name: String(d.name || key).slice(0, 48),
+      icon: String(d.icon || '💀').slice(0, 8),
+      hp: sessionInt(d.hp, 80, 1, 1e7),
+      dmg: sessionInt(d.dmg, 10, 0, 1e6),
+      range: sessionInt(d.range, 26, 0, 800),
+      atkSpd: sessionFloat(d.atkSpd, 1, 0.1, 8),
+      speed: sessionInt(d.speed, 40, 0, 200),
+      color: typeof d.color === 'string' ? d.color.slice(0, 24) : '#888',
+      xp: sessionInt(d.xp, 10, 0, 1e6),
+      gold: sessionInt(d.gold, 10, 0, 1e6),
+      silhouette: sil,
+      role: d.role === 'wall' ? 'wall' : null,
+      isHero: !!d.isHero,
+    };
+    return key;
+  }
+  function packUnits(arr) {
+    return (arr || []).slice(0, MAX_UNITS_PER_SIDE * 2).map(u => {
+      if (!u || (u.side !== 'player' && u.side !== 'enemy') || !u.key) return null;
+      const packed = {
+        side: u.side,
+        key: String(u.key).slice(0, 40),
+        x: Math.round(u.x),
+        hp: Math.round(u.hp),
+        hpMax: Math.round(u.hpMax),
+        dmg: Math.round(u.dmg),
+        aliveT: Math.round((u.aliveT || 0) * 10) / 10,
+      };
+      if (u.plated) packed.plated = 1;
+      if (String(u.key).startsWith('boss_') || (UNITS[u.key] && UNITS[u.key].isHero)) {
+        packed.def = {
+          name: u.name, icon: u.icon, color: u.color, silhouette: u.silhouette,
+          role: u.role || undefined, range: u.range, atkSpd: u.atkSpd, speed: u.speed,
+          hp: Math.round(u.hpMax), dmg: Math.round(u.dmg),
+          isHero: !!(UNITS[u.key] && UNITS[u.key].isHero),
+        };
+      }
+      return packed;
+    }).filter(Boolean);
+  }
+  function unpackUnits(raw) {
+    const out = [];
+    if (!Array.isArray(raw)) return out;
+    for (const s of raw.slice(0, MAX_UNITS_PER_SIDE * 2)) {
+      if (!s || typeof s !== 'object') continue;
+      const side = s.side === 'enemy' ? 'enemy' : s.side === 'player' ? 'player' : null;
+      if (!side) continue;
+      const key = ensureUnitDef(s);
+      if (!key) continue;
+      if (out.filter(u => u.side === side).length >= MAX_UNITS_PER_SIDE) continue;
+      const u = mintUnit(side, key);
+      if (!u) continue;
+      u.x = sessionInt(s.x, u.x, -40, WIDTH + 40);
+      u.hpMax = sessionInt(s.hpMax, u.hpMax, 1, 1e7);
+      u.hp = sessionInt(s.hp, u.hpMax, 1, u.hpMax);
+      if (s.dmg != null) u.dmg = sessionInt(s.dmg, u.dmg, 0, 1e6);
+      u.aliveT = sessionFloat(s.aliveT, 0, 0, 600);
+      if (s.plated) u.plated = true;
+      out.push(u);
+    }
+    return out;
+  }
+  function packQueue(q) {
+    return (q || []).slice(0, TRAINING_MAX).map(e => {
+      if (!e || !UNITS[e.key]) return null;
+      return {
+        key: e.key,
+        total: sessionFloat(e.total, 1, 0.2, 60),
+        remaining: sessionFloat(e.remaining, 0, 0, 60),
+      };
+    }).filter(Boolean);
+  }
+  function unpackQueue(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.slice(0, TRAINING_MAX).map(e => {
+      if (!e || !UNITS[e.key]) return null;
+      return {
+        key: e.key,
+        total: sessionFloat(e.total, 1, 0.2, 60),
+        remaining: sessionFloat(e.remaining, 0, 0, 60),
+      };
+    }).filter(Boolean);
+  }
+  function packPerkMap(src) {
+    const out = {};
+    if (!src || typeof src !== 'object') return out;
+    for (const pk of RELIC_PERKS) if (src[pk.id]) out[pk.id] = true;
+    return out;
+  }
   function sessionWorthSaving() {
     if (gameOver || !running || resumePrompt) return false;
     return waveNum > 1 || playerEra > 0 || runStats.time >= 8 ||
-      playerTurrets.some(Boolean) || gold > 160;
+      playerTurrets.some(Boolean) || gold > 160 ||
+      trainingQueue.length > 0 || units.length > 3 ||
+      !!(ironBet || bond || loan);
   }
   function saveSession() {
     if (!sessionWorthSaving()) return;
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify({
-        v: 1,
+        v: 2,
         waveNum, waveEnemiesRemaining,
         gold, xp, playerEra, enemyEra,
         playerBaseHp, playerBaseMax, enemyBaseHp, enemyBaseMax,
@@ -9337,8 +9473,16 @@ const AgeOfWarGame = (() => {
         paymasterBought, masonsBought, hallTrained,
         specialReadyT, heroReadyT, currentHeroCd,
         runPerks: { ...runPerks },
+        pendingPerks: packPerkMap(pendingPerks),
         councilBoons: { ...councilBoons },
+        councilPending: councilPending ? councilPending.map(b => b.id) : undefined,
         strongholdsRazed, chestGold,
+        units: packUnits(units),
+        trainingQueue: packQueue(trainingQueue),
+        ironBet: ironBet ? { stake: sessionInt(ironBet.stake, IRON_STAKE, 1, 1e6), hpAtBet: sessionInt(ironBet.hpAtBet, playerBaseHp, 1, 1e7) } : null,
+        bond: bond ? { hpAtBond: sessionInt(bond.hpAtBond, playerBaseHp, 1, 1e7) } : null,
+        loan: loan ? { owed: sessionInt(loan.owed, 1, 1, LOAN_OWED) } : null,
+        waveBreatherT,
       }));
     } catch {}
   }
@@ -9348,7 +9492,7 @@ const AgeOfWarGame = (() => {
   function loadSession() {
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { raw = null; }
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.v !== 1) return null;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw) || (raw.v !== 1 && raw.v !== 2)) return null;
     const wave = sessionInt(raw.waveNum, 0, 1, 9999);
     const g = sessionInt(raw.gold, -1, 0, 1e12);
     if (wave < 1 || g < 0) return null;
@@ -9398,16 +9542,28 @@ const AgeOfWarGame = (() => {
         magnet: !!snap.runPerks.magnet,
       };
     }
+    pendingPerks = packPerkMap(snap.pendingPerks);
     if (snap.councilBoons && typeof snap.councilBoons === 'object' && !Array.isArray(snap.councilBoons)) {
       councilBoons = { ...snap.councilBoons };
     }
     strongholdsRazed = sessionInt(snap.strongholdsRazed, 0, 0, 999);
     chestGold = sessionInt(snap.chestGold, 0, 0, 1e12);
-    units = [];
     projectiles = [];
     coinDrops = [];
-    waveBreatherT = 4;
+    units = unpackUnits(snap.units);
+    trainingQueue = unpackQueue(snap.trainingQueue);
+    ironBet = snap.ironBet && typeof snap.ironBet === 'object'
+      ? { stake: sessionInt(snap.ironBet.stake, IRON_STAKE, 1, 1e6), hpAtBet: sessionInt(snap.ironBet.hpAtBet, playerBaseHp, 1, 1e7) }
+      : null;
+    bond = snap.bond && typeof snap.bond === 'object'
+      ? { hpAtBond: sessionInt(snap.bond.hpAtBond, playerBaseHp, 1, 1e7) }
+      : null;
+    loan = snap.loan && typeof snap.loan === 'object'
+      ? { owed: sessionInt(snap.loan.owed, 1, 1, LOAN_OWED) }
+      : null;
+    waveBreatherT = snap.waveBreatherT != null ? sessionFloat(snap.waveBreatherT, 1, 0, 8) : 1;
     bossWaveActive = isBossWave(waveNum);
+    heldCouncil = Array.isArray(snap.councilPending) ? snap.councilPending : null;
     seedAmbient(playerEra);
     document.querySelectorAll('.aow-diff button').forEach(b => {
       b.classList.toggle('active', b.dataset.diff === difficulty);
@@ -9443,11 +9599,15 @@ const AgeOfWarGame = (() => {
     const era = ERAS[sessionInt(snap.playerEra, 0, 0, ERAS.length - 1)] || ERAS[0];
     const wave = sessionInt(snap.waveNum, 1, 1, 9999);
     const g = sessionInt(snap.gold, 0, 0, 1e12);
+    const onField = Array.isArray(snap.units) ? snap.units.length : 0;
+    const fieldLine = onField
+      ? `The line is still on the field (${onField}). One tap continues.`
+      : 'The war is held — one tap continues.';
     ov.onclick = null;
     ov.style.cursor = '';
     ov.innerHTML = `
       <h2 style="color:#fcd34d">↩ WAR IN PROGRESS</h2>
-      <p>Wave <b style="color:#fcd34d">${wave}</b> · ${era.name} · <b style="color:#fcd34d">${g}</b> gold. The field is held — one tap continues.</p>
+      <p>Wave <b style="color:#fcd34d">${wave}</b> · ${era.name} · <b style="color:#fcd34d">${g}</b> gold. ${fieldLine}</p>
       ${overlayCtas('aow-resume-cta', 'Resume war')}
       <button type="button" class="aow-cta aow-cta-ghost" id="aow-newwar-cta">New war</button>
     `;
@@ -9457,13 +9617,17 @@ const AgeOfWarGame = (() => {
     if (nw) nw.addEventListener('click', e => { e.stopPropagation(); dismissResumePrompt(true); });
   }
   function dismissResumePrompt(fresh) {
+    const councilIds = heldCouncil;
+    heldCouncil = null;
     resumePrompt = false;
     if (fresh) { startNewWar(); return; }
     hideOverlay();
     setUserPaused(false);
+    restoreCouncil(councilIds);
   }
   function startNewWar() {
     resumePrompt = false;
+    heldCouncil = null;
     clearSession();
     reset();
   }
@@ -9473,6 +9637,7 @@ const AgeOfWarGame = (() => {
       if (document.visibilityState === 'hidden') flush();
     });
     window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', flush);
   }
   function hideOverlay() {
     const ov = document.getElementById('aow-overlay');

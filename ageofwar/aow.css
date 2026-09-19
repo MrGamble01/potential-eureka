@@ -1165,11 +1165,16 @@
 }
 .aow-modal-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   padding-bottom: 14px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   margin-bottom: 14px;
+}
+.aow-modal-hub {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 11px;
 }
 .aow-modal-title {
   font-size: 18px;
@@ -1238,15 +1243,17 @@
   font-weight: 800;
 }
 
-/* Action bar — 5 buttons.
-   Desktop: comfortable 5 in a row.
-   Tablet (<=900): still 5 across but tighter.
+/* Action bar — 5 buttons on desktop.
+   Tablet (<=1024): auto-fill + scroll so thirty actions don't lock to five leftover columns.
    Phone (<=720): icon-first compact row pinned to the bottom of the page so
    it's always reachable without scrolling. */
 .aow-actionbar { grid-template-columns: repeat(5, 1fr); }
 
 @media (max-width: 1024px) {
   .ea-topbar { padding: 8px 12px 4px; }
+  .aow-topbar .aow-diff,
+  .aow-topbar .aow-endless-btn,
+  .aow-topbar .aow-relic-btn { display: none; }
   .aow-actionbar {
     grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
     max-height: 132px;
@@ -1384,6 +1391,13 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--text);
+}
+.aow-welcome-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
 }
 .aow-welcome-start {
   background: linear-gradient(135deg, #fcd34d, #f59e0b);
