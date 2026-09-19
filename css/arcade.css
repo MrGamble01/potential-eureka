@@ -64,12 +64,12 @@ nav .logo-btn {
   flex-direction: column;
   gap: 2px;
   position: sticky;
-  top: var(--nav-height);
+  top: calc(var(--nav-height) + var(--shell-height));
   z-index: 99;
   max-width: 220px;
   margin: 0 0 0 auto;
   padding: 6px;
-  background: rgba(6, 6, 8, 0.92);
+  background: var(--drawer-bg);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   border: 1px solid var(--border-subtle);
@@ -130,6 +130,9 @@ nav .logo-btn {
   text-shadow: 0 0 12px rgba(63, 185, 80, 0.5);
   margin-bottom: 10px;
 }
+:root[data-theme="daylight"] .arcade-hero-kicker {
+  text-shadow: none;
+}
 
 .arcade-hero-title {
   font-family: var(--font-mono);
@@ -167,7 +170,7 @@ nav .logo-btn {
   border: 1px solid rgba(210, 153, 34, 0.42);
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(135deg, rgba(210, 153, 34, 0.12), rgba(6, 6, 8, 0.55) 55%),
+    var(--flagship-wash),
     var(--bg-widget);
   box-shadow: 0 0 28px rgba(240, 197, 82, 0.12);
   transition:
@@ -294,15 +297,30 @@ nav .logo-btn {
   color: var(--text-muted);
 }
 
-/* Demoted front doors — secondary nav, not competing CTAs */
+/* Studio doors live in the site shell so HoF / games keep the same hierarchy. */
 .arcade-secondary-nav {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 4px 6px;
+  gap: 2px 4px;
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid var(--border-subtle);
+}
+.arcade-shell {
+  position: sticky;
+  top: var(--nav-height);
+  z-index: 98;
+  margin: 0;
+  padding: 3px 10px;
+  min-height: var(--shell-height);
+  box-sizing: border-box;
+  background: var(--nav-bg);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border-top: none;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
 }
 
 .arcade-secondary-nav .sec-link {
@@ -417,7 +435,7 @@ nav .logo-btn {
   margin: 0 auto 28px;
   padding: 2px 4px 0 14px;
   border-left: 3px solid var(--section-accent);
-  scroll-margin-top: calc(var(--nav-height) + 12px);
+  scroll-margin-top: calc(var(--nav-height) + var(--shell-height) + 12px);
 }
 
 .arcade-section--long { --section-accent: #D29922; }
@@ -521,7 +539,7 @@ button.arcade-card {
   border-color: var(--accent);
   transform: translateY(-5px);
   box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.5),
+    var(--card-lift),
     0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
@@ -771,7 +789,7 @@ button.arcade-card {
   padding: 28px 20px 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: rgba(6, 6, 8, 0.6);
+  background: var(--hof-panel);
   overflow: hidden;
 }
 .hof-scanlines {
@@ -976,10 +994,6 @@ button.arcade-card {
   .arcade-hero-alt {
     margin-top: 8px;
   }
-  .arcade-secondary-nav {
-    margin-top: 8px;
-    padding-top: 6px;
-  }
   .arcade-card-screen {
     aspect-ratio: 16 / 9;
   }
@@ -989,6 +1003,15 @@ button.arcade-card {
   .card-search-wrap,
   .jump-back-in {
     margin-bottom: 8px;
+  }
+}
+
+/* Desktop leftover after the 900 3-across pass: auto-fit at 1280
+   laid the six flagships 4+2. Two even rows of three matches the
+   tablet scan. */
+@media (min-width: 1021px) {
+  .arcade-grid--long {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1027,8 +1050,9 @@ button.arcade-card {
   .arcade-hero-title {
     letter-spacing: 3px;
   }
-  .arcade-secondary-nav {
-    gap: 2px;
+  .arcade-shell .sec-link {
+    padding: 5px 8px;
+    font-size: 10px;
   }
   .arcade-grid {
     grid-template-columns: 1fr;
@@ -1093,7 +1117,7 @@ button.arcade-card {
   background: rgba(247, 201, 72, 0.05);
   border: 1px solid rgba(247, 201, 72, 0.2);
   border-radius: 10px;
-  scroll-margin-top: calc(var(--nav-height) + 12px);
+  scroll-margin-top: calc(var(--nav-height) + var(--shell-height) + 12px);
 }
 #daily-banner[hidden] { display: none; }
 .daily-title { font-weight: 800; font-size: 13px; letter-spacing: 1px; color: #F7C948; white-space: nowrap; }
