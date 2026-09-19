@@ -9,6 +9,10 @@
  *  F. Challenge, primer and patch notes still live in the secondary nav.
  *  G. PLAY rows line up after the 16:10 normalize leftovers.
  *  H. ~900×700 lays out three long-game columns without overflowing.
+ *  I. Empty filter is a state, not a blank catalogue.
+ *  J. A Long hop during search clears the filter and lands.
+ *  K. Studio stays one card wide after the 3-across density pass.
+ *  L. Age of War's catalogue card shares the billboard's flagship mark.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -92,6 +96,58 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(filtered.count === '6 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
     'searching "hours" keeps Long, hides Quick, and tucks the scan bar');
 
+  await page.fill('#card-search', 'zzzz');
+  await page.waitForTimeout(200);
+  const empty = await page.evaluate(() => {
+    const box = document.getElementById('arcade-empty');
+    const r = box.getBoundingClientRect();
+    return {
+      shown: !box.hidden && r.height > 0,
+      copy: /No games match/.test(box.textContent),
+      count: document.getElementById('card-search-count').textContent,
+    };
+  });
+  ok(empty.shown && empty.copy && empty.count === '0 games',
+    'a miss shows an empty state instead of a blank catalogue');
+
+  await page.click('#arcade-empty-clear');
+  await page.waitForTimeout(200);
+  const cleared = await page.evaluate(() => ({
+    q: document.getElementById('card-search').value,
+    emptyHidden: document.getElementById('arcade-empty').hidden,
+    longShown: !document.querySelector('[data-section="long"]').hidden,
+  }));
+  ok(!cleared.q && cleared.emptyHidden && cleared.longShown,
+    'Clear filter restores the catalogues');
+
+  await page.fill('#card-search', 'snake');
+  await page.waitForTimeout(200);
+  await page.click('.hero-alt-link[data-jump="long"]');
+  await page.waitForTimeout(1600);
+  const hopFromFilter = await page.evaluate(() => {
+    const long = document.querySelector('[data-section="long"]');
+    const r = long.getBoundingClientRect();
+    return {
+      q: document.getElementById('card-search').value,
+      longShown: !long.hidden,
+      landed: r.top >= 0 && r.top < window.innerHeight * 0.55,
+      here: long.classList.contains('is-landed'),
+      scan: document.querySelector('.arcade-scan-link--long').getAttribute('aria-current') === 'true',
+    };
+  });
+  ok(!hopFromFilter.q && hopFromFilter.longShown && hopFromFilter.landed,
+    'the Long hop during a Quick filter clears search and lands Long');
+  ok(hopFromFilter.here && hopFromFilter.scan,
+    'the landed section and scan hop mark where you are');
+
+  const flagCard = await page.evaluate(() => {
+    const card = document.querySelector('.arcade-grid--long .arcade-card--flagship');
+    const badge = card && card.querySelector('.arcade-card-flag');
+    const tags = ((card && card.querySelector('.arcade-card-tags')) || {}).textContent || '';
+    return !!(card && badge && /Flagship/.test(badge.textContent) && /Hours/.test(tags));
+  });
+  ok(flagCard, 'the Age of War catalogue card carries the billboard Flagship mark');
+
   await page.fill('#card-search', '');
   await page.waitForTimeout(200);
 
@@ -145,6 +201,36 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     `900×700 shows the six long games three-across without overflow (${dense.cols} cols)`);
   ok(dense.cta === 1 && dense.flagship,
     'the tablet hero still has one Age of War path');
+
+  const studioWide = await tp.evaluate(() => {
+    const card = document.querySelector('.arcade-grid--studio .arcade-card');
+    const tags = card.querySelector('.arcade-card-tags');
+    const w = card.getBoundingClientRect().width;
+    return {
+      width: w,
+      tagsFit: tags.scrollWidth <= tags.clientWidth + 1,
+    };
+  });
+  ok(studioWide.width >= 200 && studioWide.tagsFit,
+    `900×700 Studio is one card wide, not a squeezed third (${Math.round(studioWide.width)}px)`);
+
+  const chrome = await tp.evaluate(() => {
+    const a = document.querySelector('.arcade-grid--long .arcade-card');
+    const b = document.querySelector('.arcade-grid--quick .arcade-card');
+    const as = getComputedStyle(a);
+    const bs = getComputedStyle(b);
+    const tagHeights = [...document.querySelectorAll('.arcade-card-tags')]
+      .map(t => t.getBoundingClientRect().height);
+    return {
+      appear: bs.appearance === 'none',
+      font: as.font === bs.font,
+      tagsFlat: Math.max(...tagHeights) - Math.min(...tagHeights) <= 2,
+    };
+  });
+  ok(chrome.appear && chrome.font,
+    'Quick button cards inherit the same chrome as Long anchors');
+  ok(chrome.tagsFlat,
+    '900×700 tag pills stay one row after the 3-across squeeze');
 
   await browser.close();
   ok(errs.length === 0 && errs2.length === 0,

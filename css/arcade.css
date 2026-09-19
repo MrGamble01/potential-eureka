@@ -368,6 +368,13 @@ nav .logo-btn {
   outline: none;
 }
 
+.arcade-scan-link[aria-current="true"] {
+  background: var(--color-white-08);
+}
+.arcade-scan-link--long[aria-current="true"] { border-color: #f0c552; }
+.arcade-scan-link--quick[aria-current="true"] { border-color: #8b83ff; }
+.arcade-scan-link--studio[aria-current="true"] { border-color: #d2b4ff; }
+
 .arcade-scan-link--long { border-color: rgba(210, 153, 34, 0.4); }
 .arcade-scan-link--long:hover,
 .arcade-scan-link--long:focus-visible { border-color: #f0c552; }
@@ -413,6 +420,7 @@ nav .logo-btn {
 .arcade-section--long { --section-accent: #D29922; }
 .arcade-section--quick { --section-accent: #8b83ff; }
 .arcade-section--studio { --section-accent: #BC8CFF; margin-bottom: 20px; }
+.arcade-section.is-landed { border-left-width: 5px; }
 
 .arcade-section-head {
   margin: 0 0 12px 2px;
@@ -460,6 +468,7 @@ nav .logo-btn {
 }
 
 .arcade-grid--studio {
+  grid-template-columns: minmax(0, 1fr);
   max-width: 400px;
   margin-left: 0;
 }
@@ -474,6 +483,14 @@ nav .logo-btn {
 }
 
 /* ---- CABINET CARD ---- */
+button.arcade-card {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  font: inherit;
+  line-height: inherit;
+}
+
 .arcade-card {
   --accent: var(--primary);
   display: flex;
@@ -508,6 +525,16 @@ nav .logo-btn {
 .arcade-card:focus-visible {
   outline: 2px solid #8b83ff;
   outline-offset: 2px;
+}
+
+/* Same gold rail as the Age of War billboard, so the catalogue card
+   is the same path — not a second unmarked door. */
+.arcade-card--flagship {
+  border-color: rgba(210, 153, 34, 0.42);
+}
+.arcade-card--flagship:hover,
+.arcade-card--flagship:focus-visible {
+  border-color: #f0c552;
 }
 
 /* The screen: poster underneath, clip fades in on hover once playing */
@@ -563,6 +590,25 @@ nav .logo-btn {
 .arcade-card-dim .arcade-card-poster,
 .arcade-card-dim .arcade-card-clip {
   filter: brightness(1.35) saturate(1.25);
+}
+
+/* Same word as the billboard kicker, pinned on the poster so the
+   Hours tag — and the PLAY baseline — stay a single row. */
+.arcade-card-flag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #1a1204;
+  background: linear-gradient(135deg, #D29922, #f0c552);
+  border-radius: 999px;
+  padding: 3px 9px;
+  pointer-events: none;
 }
 
 /* High-score / best-stat badge in the screen corner (filled by JS) */
@@ -662,6 +708,8 @@ nav .logo-btn {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .arcade-card-desc {
@@ -848,6 +896,7 @@ nav .logo-btn {
     gap: 10px;
   }
   .arcade-grid--studio {
+    grid-template-columns: minmax(0, 1fr);
     max-width: calc((100% - 20px) / 3);
   }
   .arcade-card-body {
@@ -940,6 +989,7 @@ nav .logo-btn {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .arcade-grid--studio {
+    grid-template-columns: minmax(0, 1fr);
     max-width: calc((100% - 10px) / 2);
   }
   .arcade-flagship {
@@ -969,6 +1019,7 @@ nav .logo-btn {
     max-width: 480px;
   }
   .arcade-grid--studio {
+    grid-template-columns: minmax(0, 1fr);
     max-width: 480px;
   }
   .arcade-card-body {
@@ -1183,3 +1234,41 @@ nav .logo-btn {
 .card-search:focus { border-color: var(--primary, #6C63FF); box-shadow: var(--glow-primary); }
 .card-search::placeholder { color: var(--text-muted, #8b949e); }
 .card-search-count { font-size: 12px; color: var(--text-dim, #7D8590); font-weight: 700; }
+
+.arcade-empty {
+  max-width: 1200px;
+  margin: 0 auto 28px;
+  padding: 28px 18px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--color-white-05);
+}
+.arcade-empty[hidden] { display: none; }
+.arcade-empty-copy {
+  margin: 0 0 12px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-family: var(--font-sans);
+}
+.arcade-empty-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--color-white-05);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+}
+.arcade-empty-clear:hover,
+.arcade-empty-clear:focus-visible {
+  background: var(--color-white-08);
+  border-color: #8b83ff;
+  outline: none;
+}
