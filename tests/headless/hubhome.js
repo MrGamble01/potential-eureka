@@ -32,6 +32,12 @@
  *     catalogue you actually launched — not the hero.
  *  AA. Studio hop stays on the hero while the scan is tucked.
  *  AB. 390 scrolled: sticky shell sits under the wrapped nav.
+ *  AC. HoF lists all six flagships (Hearthvale was missing) and
+ *      groups Long / Quick the way the catalogue does.
+ *  AD. A Hearthvale save fills the homepage badge and the HoF row;
+ *      Reset my scores clears hearthvale-v1.
+ *  AE. Daylight HoF chrome uses theme tokens, not midnight wash.
+ *  AF. 390 HoF keeps the Hearthvale score on one card, not overflowing.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -611,9 +617,157 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(!studioHop.q && studioHop.shown && studioHop.onScreen && studioHop.here,
     'the Studio hop during a filter clears search and lands Studio');
 
+  const board = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const bp = await board.newPage();
+  const errs9 = [];
+  bp.on('pageerror', e => errs9.push(String(e).slice(0, 300)));
+  bp.on('dialog', d => d.accept());
+  await bp.addInitScript(() => {
+    localStorage.setItem('eureka-primer-seen', '1');
+    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17, day: 12, seenIntro: true }));
+  });
+  await bp.goto(BASE + '/index.html', { waitUntil: 'load' });
+  await bp.waitForTimeout(1800);
+  const valeBadge = await bp.evaluate(() => {
+    const el = document.querySelector('.arcade-card-hi[data-hi="hearthvale"]');
+    const r = el && el.getBoundingClientRect();
+    return {
+      text: (el && el.textContent) || '',
+      shown: !!(el && r && r.height > 0 && getComputedStyle(el).display !== 'none'),
+    };
+  });
+  ok(valeBadge.shown && /PEAK\s*17/.test(valeBadge.text),
+    `Hearthvale catalogue badge fills from the save (${valeBadge.text})`);
+
+  await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
+  await bp.waitForTimeout(500);
+  const hofBoard = await bp.evaluate(() => {
+    const rows = [...document.querySelectorAll('.hof-row')];
+    const names = rows.map(r => (r.querySelector('.hof-name') || {}).textContent || '');
+    const vale = rows.find(r => /Hearthvale/.test(r.textContent));
+    const long = document.querySelector('.hof-lane--long');
+    const quick = document.querySelector('.hof-lane--quick');
+    return {
+      rows: rows.length,
+      names,
+      vale: vale ? (vale.querySelector('.hof-score') || {}).textContent : '',
+      longTitle: !!(long && /Long games/.test(long.textContent) && /6/.test((long.querySelector('.hof-lane-count') || {}).textContent || '')),
+      quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /15/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
+      longRows: long ? long.querySelectorAll('.hof-row').length : 0,
+      quickRows: quick ? quick.querySelectorAll('.hof-row').length : 0,
+    };
+  });
+  ok(hofBoard.rows === 21 && hofBoard.longRows === 6 && hofBoard.quickRows === 15 && hofBoard.longTitle && hofBoard.quickTitle,
+    `HoF board is 6 Long + 15 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
+  ok(hofBoard.names.includes('Hearthvale') && /17 villagers at peak/.test(hofBoard.vale),
+    `HoF lists Hearthvale with the seeded peak (${hofBoard.vale})`);
+
+  await Promise.all([
+    bp.waitForURL(/hearthvale/, { timeout: 20000 }),
+    bp.locator('.hof-row', { hasText: 'Hearthvale' }).click(),
+  ]);
+  await bp.waitForSelector('a.ea-back', { timeout: 20000 });
+  await Promise.all([
+    bp.waitForURL(url => {
+      const u = String(url);
+      return /\/$|index\.html/.test(u) && !/hearthvale/.test(u);
+    }, { timeout: 20000 }),
+    bp.click('a.ea-back'),
+  ]);
+  await bp.waitForTimeout(1600);
+  const fromVale = await bp.evaluate(() => {
+    const long = document.querySelector('[data-section="long"]');
+    const r = long && long.getBoundingClientRect();
+    return {
+      onScreen: !!(r && r.top >= 0 && r.top < window.innerHeight * 0.7),
+      here: !!(long && long.classList.contains('is-landed')),
+      scan: document.querySelector('.arcade-scan-link--long').getAttribute('aria-current') === 'true',
+    };
+  });
+  ok(fromVale.onScreen && fromVale.here && fromVale.scan,
+    'HoF Hearthvale → Games restores the Long scan');
+
+  await bp.click('.arcade-secondary-nav [data-view="halloffame"]');
+  await bp.waitForTimeout(400);
+  await bp.click('#hof-reset');
+  await bp.waitForTimeout(400);
+  const afterReset = await bp.evaluate(() => {
+    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Hearthvale/.test(r.textContent));
+    return {
+      save: localStorage.getItem('hearthvale-v1'),
+      score: ((vale && vale.querySelector('.hof-score')) || {}).textContent || '',
+    };
+  });
+  ok(!afterReset.save && /not played/.test(afterReset.score),
+    `Reset my scores clears hearthvale-v1 (${afterReset.score})`);
+  await board.close();
+
+  const dayHof = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
+  const dhp = await dayHof.newPage();
+  const errs10 = [];
+  dhp.on('pageerror', e => errs10.push(String(e).slice(0, 300)));
+  await dhp.addInitScript(() => {
+    localStorage.setItem('eureka-theme', 'daylight');
+    localStorage.setItem('eureka-primer-seen', '1');
+  });
+  await dhp.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
+  await dhp.waitForTimeout(1800);
+  const lightHof = await dhp.evaluate(() => {
+    const input = getComputedStyle(document.querySelector('.hof-rival-input'));
+    const out = getComputedStyle(document.getElementById('hof-share-out'));
+    const wrap = getComputedStyle(document.querySelector('.hof-wrap'));
+    const rgb = s => {
+      const m = (s || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      return m ? [+m[1], +m[2], +m[3]] : null;
+    };
+    const lum = c => c ? (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 : 0;
+    return {
+      theme: document.documentElement.dataset.theme,
+      inputBg: input.backgroundColor,
+      inputFg: input.color,
+      wrapBg: wrap.backgroundColor,
+      outColor: out.color,
+      textDark: lum(rgb(input.color)) < 0.45,
+      wrapLight: lum(rgb(wrap.backgroundColor)) > 0.7,
+      inkTint: /15,\s*23,\s*42/.test(input.backgroundColor),
+      midnightWash: /rgba\(255,\s*255,\s*255,\s*0\.0/.test(input.backgroundColor),
+    };
+  });
+  ok(lightHof.theme === 'daylight' && lightHof.wrapLight && lightHof.textDark && lightHof.inkTint && !lightHof.midnightWash,
+    `daylight HoF input/panel use light tokens (bg ${lightHof.inputBg}, fg ${lightHof.inputFg})`);
+  await dayHof.close();
+
+  const phoneHof = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const php = await phoneHof.newPage();
+  const errs11 = [];
+  php.on('pageerror', e => errs11.push(String(e).slice(0, 300)));
+  await php.addInitScript(() => {
+    localStorage.setItem('eureka-primer-seen', '1');
+    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17 }));
+  });
+  await php.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
+  await php.waitForTimeout(1800);
+  const phoneBoard = await php.evaluate(() => {
+    const vale = [...document.querySelectorAll('.hof-row')].find(r => /Hearthvale/.test(r.textContent));
+    const score = vale && vale.querySelector('.hof-score');
+    const name = vale && vale.querySelector('.hof-name');
+    const vr = vale && vale.getBoundingClientRect();
+    const sr = score && score.getBoundingClientRect();
+    const nr = name && name.getBoundingClientRect();
+    return {
+      overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      scoreIn: !!(sr && vr && sr.right <= vr.right + 2 && sr.left >= vr.left - 2),
+      nameIn: !!(nr && vr && nr.right <= vr.right + 2 && nr.left >= vr.left - 2),
+      score: score ? score.textContent : '',
+    };
+  });
+  ok(!phoneBoard.overflow && phoneBoard.scoreIn && phoneBoard.nameIn && /17 villagers/.test(phoneBoard.score),
+    `390 HoF keeps the Hearthvale score on the card (overflow ${phoneBoard.overflow})`);
+  await phoneHof.close();
+
   await browser.close();
-  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0 && errs5.length === 0 && errs6.length === 0 && errs7.length === 0 && errs8.length === 0,
-    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : errs4.length ? ' — ' + errs4[0] : errs5.length ? ' — ' + errs5[0] : errs6.length ? ' — ' + errs6[0] : errs7.length ? ' — ' + errs7[0] : errs8.length ? ' — ' + errs8[0] : ''}`);
+  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0 && errs5.length === 0 && errs6.length === 0 && errs7.length === 0 && errs8.length === 0 && errs9.length === 0 && errs10.length === 0 && errs11.length === 0,
+    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : errs4.length ? ' — ' + errs4[0] : errs5.length ? ' — ' + errs5[0] : errs6.length ? ' — ' + errs6[0] : errs7.length ? ' — ' + errs7[0] : errs8.length ? ' — ' + errs8[0] : errs9.length ? ' — ' + errs9[0] : errs10.length ? ' — ' + errs10[0] : errs11.length ? ' — ' + errs11[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
