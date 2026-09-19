@@ -76,14 +76,30 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; FREE TO PLAY &mdash; NO SIGN-UP</div>
+      <div class="arcade-hero-kicker">&#9679; FREE &mdash; TWENTY-ONE GAMES &mdash; NO SIGN-UP</div>
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
-      <div class="arcade-hero-sub">ONE FLAGSHIP. ONE QUICK PLAY. <span class="arcade-blink">&#9646;</span></div>
+      <p class="arcade-hero-sub">The flagship is Age of War. Everything else is a hop down the page.</p>
 
-      <div class="arcade-hero-primary" role="group" aria-label="Primary play">
-        <a class="hero-cta hero-cta--flagship" href="ageofwar">&#9654; Play Age of War</a>
-        <button type="button" class="hero-cta hero-cta--quick" data-view="snake">&#9889; Quick play &mdash; Snake</button>
-      </div>
+      <a class="arcade-flagship" href="ageofwar" aria-label="Play Age of War">
+        <div class="arcade-flagship-art" aria-hidden="true">
+          <img class="arcade-flagship-poster" src="assets/thumbs/ageofwar.jpg" alt="" width="642" height="280">
+        </div>
+        <div class="arcade-flagship-copy">
+          <div class="arcade-flagship-kicker">Flagship &middot; Hours</div>
+          <div class="arcade-flagship-name">AGE OF WAR</div>
+          <p class="arcade-flagship-pitch">March through the ages. Crush the enemy base.</p>
+          <span class="hero-cta hero-cta--flagship">&#9654; Play Age of War</span>
+        </div>
+      </a>
+
+      <p class="arcade-hero-alt">
+        Or
+        <button type="button" class="hero-alt-link" data-view="snake">quick play Snake</button>
+        <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
+        <button type="button" class="hero-alt-link" data-jump="long">6 long games</button>
+        <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
+        <button type="button" class="hero-alt-link" data-jump="quick">15 quick games</button>
+      </p>
 
       <nav class="arcade-secondary-nav" aria-label="Studio links">
         <button type="button" class="sec-link" data-view="halloffame">&#127942; Hall of Fame</button>
@@ -97,6 +113,21 @@
       <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
              aria-label="Filter games" autocomplete="off">
       <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
+      <nav class="arcade-scan" aria-label="Jump by session length">
+        <button type="button" class="arcade-scan-link arcade-scan-link--long" data-jump="long">
+          <span class="arcade-scan-time">Hours</span>
+          Long
+          <span class="arcade-scan-count">6</span>
+        </button>
+        <button type="button" class="arcade-scan-link arcade-scan-link--studio" data-jump="studio">
+          Studio
+        </button>
+        <button type="button" class="arcade-scan-link arcade-scan-link--quick" data-jump="quick">
+          <span class="arcade-scan-time">Minutes</span>
+          Quick
+          <span class="arcade-scan-count">15</span>
+        </button>
+      </nav>
     </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
     <div id="primer-hint" role="region" aria-label="New here" hidden>
@@ -110,22 +141,26 @@
       <span id="daily-games"></span>
     </div>
 
-    <div class="arcade-section" data-section="long">
+    <div class="arcade-section arcade-section--long" id="arcade-long" data-section="long">
       <div class="arcade-section-head">
-        <h2 class="arcade-section-title">Long games</h2>
-        <p class="arcade-section-lede">Hours-long flagships — save and come back.</p>
+        <div class="arcade-section-label">
+          <h2 class="arcade-section-title">Long games</h2>
+          <span class="arcade-section-count">6</span>
+          <span class="arcade-section-chip">Hours</span>
+        </div>
+        <p class="arcade-section-lede">Save and come back. These are the flagships.</p>
       </div>
       <div class="arcade-grid arcade-grid--long">
 <a class="arcade-card" href="ageofwar" style="--accent:#D29922">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay" width="642" height="280">
+          <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay" width="642" height="280" data-crop="wide">
           <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="ageofwar"></div>
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">AGE OF WAR</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Strategy</span><span>Waves</span><span>Bosses</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Strategy</span><span>Waves</span></div>
           <div class="arcade-card-desc">March through the ages. Crush the enemy base.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -140,7 +175,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">STARTUP TYCOON</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Idle</span><span>3D</span><span>Story</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Idle</span><span>Story</span></div>
           <div class="arcade-card-desc">Hire, ship, grind your way to IPO.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -155,7 +190,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">GROW OP</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>3D</span><span>Risk</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Risk</span></div>
           <div class="arcade-card-desc">Expand room by room — watch the heat.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -170,7 +205,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">HOMELESS VILLAGE</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Survival</span><span>3D</span><span>Idle</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Survival</span><span>Idle</span></div>
           <div class="arcade-card-desc">Survive under the bridge. Build a village.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -184,7 +219,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">HEARTHVALE</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Cozy</span><span>Pixel</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Cozy</span></div>
           <div class="arcade-card-desc">Cozy riverside town — homes, trade, seasons.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -199,7 +234,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VOXEL ISLE</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Voxel</span><span>3D</span><span>Cozy</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Voxel</span><span>Cozy</span></div>
           <div class="arcade-card-desc">Till, plant, water, harvest your floating isle.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -208,7 +243,14 @@
             </div>
     </div>
 
-    <div class="arcade-section arcade-section--studio" data-section="studio">
+    <div class="arcade-section arcade-section--studio" id="arcade-studio" data-section="studio">
+      <div class="arcade-section-head">
+        <div class="arcade-section-label">
+          <h2 class="arcade-section-title">Studio</h2>
+          <span class="arcade-section-chip arcade-section-chip--meta">Not a game</span>
+        </div>
+        <p class="arcade-section-lede">The live office sits between the two catalogues.</p>
+      </div>
       <div class="arcade-grid arcade-grid--studio">
 <a class="arcade-card arcade-card-dim" href="agentic-os.html" style="--accent:#BC8CFF">
         <div class="arcade-card-screen">
@@ -226,10 +268,14 @@
             </div>
     </div>
 
-    <div class="arcade-section" data-section="quick">
+    <div class="arcade-section arcade-section--quick" id="arcade-quick" data-section="quick">
       <div class="arcade-section-head">
-        <h2 class="arcade-section-title">Quick games</h2>
-        <p class="arcade-section-lede">A few minutes — jump in, jump out.</p>
+        <div class="arcade-section-label">
+          <h2 class="arcade-section-title">Quick games</h2>
+          <span class="arcade-section-count">15</span>
+          <span class="arcade-section-chip">Few minutes</span>
+        </div>
+        <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
       </div>
       <div class="arcade-grid arcade-grid--quick">
 <button class="arcade-card" data-view="snake" style="--accent:#6C63FF">
@@ -249,7 +295,7 @@
 
       <button class="arcade-card" data-view="tetris" style="--accent:#F778BA">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/tetris.jpg" alt="Tetris gameplay" width="641" height="482" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/tetris.jpg" alt="Tetris gameplay" width="641" height="482" loading="lazy" data-crop="right">
           <video class="arcade-card-clip" src="assets/thumbs/tetris.webm" muted loop playsinline preload="none"></video>
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="tetris"></div>
@@ -271,7 +317,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">NEON BREAKER</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Arcade</span><span>Power-ups</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Power-ups</span></div>
           <div class="arcade-card-desc">Smash bricks. Grab power-ups. Chase combos.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -286,7 +332,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VECTOR STORM</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Shooter</span><span>Arcade</span><span>Vector</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Shooter</span><span>Vector</span></div>
           <div class="arcade-card-desc">Drift, thrust, blast splitting rocks.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -294,7 +340,7 @@
 
       <button class="arcade-card" data-view="2048" style="--accent:#facc15">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/2048.jpg" alt="2048 gameplay" width="560" height="560" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/2048.jpg" alt="2048 gameplay" width="560" height="560" loading="lazy" data-crop="mid">
           <video class="arcade-card-clip" src="assets/thumbs/2048.webm" muted loop playsinline preload="none"></video>
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="g2048"></div>
@@ -329,7 +375,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">LIGHT CYCLES</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span><span>Arcade</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span></div>
           <div class="arcade-card-desc">Trap the AI — or duel a friend.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -343,7 +389,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">PONG++</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span><span>Power-ups</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span></div>
           <div class="arcade-card-desc">Split balls, grow paddles. First to 7.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -351,7 +397,7 @@
 
       <button class="arcade-card" data-view="stacker" style="--accent:#F7C948">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/stacker.jpg" alt="Stacker gameplay" width="640" height="853" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/stacker.jpg" alt="Stacker gameplay" width="640" height="853" loading="lazy" data-crop="low">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="stacker"></div>
         </div>
@@ -371,7 +417,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">CRATE ESCAPE</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Sokoban</span><span>Zen</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Sokoban</span></div>
           <div class="arcade-card-desc">Push crates onto pads. Undo included.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -393,7 +439,7 @@
 
       <button class="arcade-card" data-view="wordcascade" style="--accent:#3FB950">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/wordcascade.jpg" alt="Word Cascade gameplay" width="640" height="640" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/wordcascade.jpg" alt="Word Cascade gameplay" width="640" height="640" loading="lazy" data-crop="low">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="wordcascade"></div>
         </div>
@@ -413,7 +459,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">MEMORY MATRIX</div>
-          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Memory</span><span>Simon</span><span>Zen</span></div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Memory</span><span>Simon</span></div>
           <div class="arcade-card-desc">Echo the lights. How long can you hold?</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -435,7 +481,7 @@
 
       <button class="arcade-card" data-view="word5" style="--accent:#3FB950">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/word5.jpg" alt="Word Five gameplay" width="300" height="358" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/word5.jpg" alt="Word Five gameplay" width="300" height="358" loading="lazy" data-crop="high">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="word5"></div>
         </div>
@@ -1922,6 +1968,8 @@
           const any = [...sec.querySelectorAll('.arcade-card')].some(c => c.style.display !== 'none');
           sec.hidden = q ? !any : false;
         });
+        const scan = document.querySelector('.arcade-scan');
+        if (scan) scan.hidden = !!q;
         searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
       };
       searchEl.addEventListener('input', applyFilter);
@@ -1982,6 +2030,14 @@
       if (!banner) return;
       if (currentView !== 'arcade') switchView('arcade');
       requestAnimationFrame(() => banner.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    });
+    document.querySelectorAll('[data-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sec = document.querySelector('.arcade-section[data-section="' + btn.dataset.jump + '"]');
+        if (!sec) return;
+        if (currentView !== 'arcade') switchView('arcade');
+        requestAnimationFrame(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      });
     });
     const primerGo = document.getElementById('primer-go');
     if (primerGo) primerGo.addEventListener('click', closePrimer);
