@@ -45,6 +45,13 @@
   #back a.ea-back{gap:7px;padding:7px 15px 7px 12px;border-radius:999px;font-family:'JetBrains Mono',ui-monospace,monospace;
     font-size:12px;font-weight:600;letter-spacing:1.5px;color:#c9d1d9;min-width:auto}
   #resumeChip{color:var(--green);font-weight:700}
+  #resumeChip.warn{color:var(--gold)}
+  .help-ghost{background:transparent;color:var(--dim);border:1px solid rgba(255,255,255,.16);
+    border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer}
+  .help-ghost:hover{color:var(--ink)}
+  #achOv .help-cta-row,#almanacOv .help-cta-row{margin-top:14px}
+  #achOv .help-cta-row button,#almanacOv .help-cta-row button{margin-top:0}
+  #chain-head .ea-back{padding:5px 10px 5px 8px;font-size:10px;min-height:28px}
   #quests{top:58px;right:10px;width:230px;font-size:13px}
   #quests .q-title{font-weight:700;color:var(--green);margin-bottom:4px;font-size:12px;letter-spacing:.08em}
   #quests .q-text{color:var(--ink)}
@@ -157,6 +164,7 @@
     #banner h2{font-size:26px}
     #banner p{font-size:13px}
     #fpTool{font-size:110px;left:82%}
+    #vox-tray{bottom:78px;max-height:calc(100vh - 106px)}
   }
   #goodsHud{position:fixed;top:58px;left:10px;z-index:10;display:none;gap:8px;align-items:center;
     background:rgba(18,24,32,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
@@ -167,6 +175,7 @@
     #quests{display:none}
     .slot{width:46px;height:46px}
     #hotbar{bottom:8px}
+    #vox-tray{bottom:62px;max-height:calc(100vh - 80px)}
   }
   @media (max-width:640px){ #goodsHud{font-size:12px;padding:5px 8px;gap:5px} }
 </style>
@@ -196,10 +205,10 @@
 .chain-open{background:rgba(255,255,255,.05)}
 .chain-locked{opacity:.45}
 #vox-tray{
-  position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:40;
+  position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:40;
   display:flex;flex-direction:column-reverse;align-items:center;
   gap:6px;
-  max-height:calc(100vh - 28px);
+  max-height:calc(100vh - 112px);
   max-width:calc(100vw - 16px);
   overflow-y:auto;overflow-x:hidden;
   pointer-events:none;
@@ -251,12 +260,18 @@
 <div id="achOv"><div class="card">
   <h2>🏆 Achievements</h2>
   <div class="ach-grid" id="achGrid"></div>
-  <button id="achClose">Back to the garden</button>
+  <div class="help-cta-row">
+    <button id="achClose">Back to the garden</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
 </div></div>
 <div id="almanacOv"><div class="card">
   <h2 id="almTitle">📊 Town Almanac</h2>
   <div id="almBody"></div>
-  <button id="almClose">Back to the garden</button>
+  <div class="help-cta-row">
+    <button id="almClose">Back to the garden</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
 </div></div>
 <div id="helpOv"><div class="card">
   <h2>🏝️ Voxel Isle</h2>
@@ -264,6 +279,7 @@
   <div class="help-cta-row">
     <button id="helpClose">Let's grow</button>
     <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+    <button type="button" class="help-ghost" id="helpNewIsle" hidden>New isle</button>
   </div>
   <ul>
     <li><b>Drag</b> to orbit &middot; <b>scroll / pinch</b> to zoom &middot; <b>Q / E</b> rotate</li>
@@ -4915,7 +4931,13 @@ function initHud(){
     s.addEventListener('click',()=>selectTool(s.dataset.tool,true));
   });
   $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
-  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;SFX.play('click');});
+  $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;save();SFX.play('click');});
+  const neu=$('helpNewIsle');
+  if(neu) neu.addEventListener('click',()=>{
+    if(!confirm('Start a new isle? The kept garden is dropped. The Stone Lantern still stands.')) return;
+    try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+    location.reload();
+  });
   $('muteBtn').addEventListener('click',toggleMute);
   $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
   $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
@@ -5048,6 +5070,29 @@ function save(){
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
   }catch(e){}
+}
+function savePresent(){
+  try{return !!localStorage.getItem(SAVE_KEY);}catch(e){return false;}
+}
+function paintResume(loaded,rejected){
+  const chip=document.getElementById('resumeChip');
+  if(!chip)return;
+  if(rejected){
+    chip.hidden=false;
+    chip.classList.add('warn');
+    chip.textContent='↩ the garden could not be read · a new isle rose';
+    return;
+  }
+  if(loaded&&((state.day||1)>1||(state.level||1)>1||(state.totalEarned||0)>0||Object.keys(state.buildings||{}).length)){
+    chip.hidden=false;
+    chip.classList.remove('warn');
+    const d=document.getElementById('resumeDay');
+    const l=document.getElementById('resumeLv');
+    if(d)d.textContent=String(state.day||1);
+    if(l)l.textContent=String(state.level||1);
+  }
+  const neu=document.getElementById('helpNewIsle');
+  if(neu) neu.hidden=!(loaded||savePresent());
 }
 function load(){
   let data=null;
@@ -5582,17 +5627,10 @@ function updateAmbient(dt,dn){
 let perf=0,saveTimer=0;
 function boot(){
   initScene();
+  const had=savePresent();
   const loaded=load();
-  if(loaded){
-    const chip=document.getElementById('resumeChip');
-    if(chip&&((state.day||1)>1||(state.level||1)>1||(state.totalEarned||0)>0)){
-      chip.hidden=false;
-      const d=document.getElementById('resumeDay');
-      const l=document.getElementById('resumeLv');
-      if(d)d.textContent=String(state.day||1);
-      if(l)l.textContent=String(state.level||1);
-    }
-  }
+  if(had && !loaded){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
+  paintResume(loaded, had && !loaded);
   if(!loaded){
     genIsland(0,0,15,0);
     // starter: pre-till a few plots near spawn so first steps are obvious
@@ -5805,6 +5843,7 @@ addEventListener('DOMContentLoaded', () => {
     <div id="chain-head">
       <span id="chain-title">🧱 THE SHORE</span>
       <span id="chain-progress">0 of 0 begun</span>
+      <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
       <button id="chain-close" aria-label="Close">&times;</button>
     </div>
     <div id="chain-list"></div>

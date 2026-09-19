@@ -1,10 +1,10 @@
 /*
- * FLAGSHIP — Age of War return chrome.
+ * FLAGSHIP — Age of War return chrome leftovers.
  *
- * Leaving mid-war used to throw the battle away. The pause and
- * game-over sheets told you to press a key and never offered Games.
- * Tablet width still laid thirty actions on a five-column grid left
- * over from when the bar had five buttons.
+ * #996 kept the war's numbers. This pass holds the field itself —
+ * units, the training queue, a riding wager — and puts Games on
+ * every sheet that used to trap you. Tablet width 1024 tucks the
+ * leftover difficulty rail the way 900 already tucked banners.
  *
  *  A. A fresh war has no resume sheet — Wave 1 is already the loop.
  *  B. A kept session opens on one Resume war CTA (not a silent start).
@@ -15,6 +15,11 @@
  *  G. Game-over source has a Play again CTA and a hub exit.
  *  H. 768×700 tucks the banner / endless / relic rail out of the
  *     topbar (they live in Settings) and keeps Games on screen.
+ *  I. A v2 snapshot with units on the field names the held line
+ *     and flush-on-leave writes those units, the queue and the wager.
+ *  J. 1024×700 tucks difficulty / banner / endless / relics.
+ *  K. Welcome is Let's go plus Back to Games.
+ *  L. Settings, Awards and The Line each carry Back to Games.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -35,11 +40,13 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const browser = await chromium.launch(launch);
   const errs = [];
 
-  const open = async (viewport, init) => {
+  const open = async (viewport, init, opts) => {
     const ctx = await browser.newContext({ viewport });
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
-    await page.addInitScript(() => { try { localStorage.setItem('aow-welcome-seen', '1'); } catch {} });
+    if (!opts || !opts.freshWelcome) {
+      await page.addInitScript(() => { try { localStorage.setItem('aow-welcome-seen', '1'); } catch {} });
+    }
     if (init) await page.addInitScript(init);
     await page.goto(BASE + '/ageofwar/', { waitUntil: 'load' });
     await page.waitForTimeout(1600);
@@ -194,6 +201,128 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       '768×700 tucks banner / endless / relics; Settings and Games stay');
     ok(tablet.cols !== 5, 'tablet action bar is no longer locked to five leftover columns');
     await ctx.close();
+  }
+
+  // I — the field, the queue and a riding wager survive leave
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+      localStorage.setItem('aow-session', JSON.stringify({
+        v: 2, waveNum: 4, gold: 300, xp: 40, playerEra: 1, enemyEra: 0,
+        playerBaseHp: 900, playerBaseMax: 1500, enemyBaseHp: 1100, enemyBaseMax: 1500,
+        units: [
+          { side: 'player', key: 'club', x: 200, hp: 70, hpMax: 84, dmg: 12, aliveT: 8 },
+          { side: 'player', key: 'sling', x: 240, hp: 30, hpMax: 36, dmg: 21, aliveT: 2 },
+          { side: 'enemy', key: 'club', x: 980, hp: 50, hpMax: 84, dmg: 12, aliveT: 5 },
+        ],
+        trainingQueue: [{ key: 'dino', total: 4, remaining: 2.2 }],
+        ironBet: { stake: 200, hpAtBet: 900 },
+      }));
+    });
+    const copy = await page.evaluate(() => {
+      const ov = document.getElementById('aow-overlay');
+      return ov ? ov.textContent : '';
+    });
+    ok(/line is still on the field/.test(copy) && /\(3\)/.test(copy),
+      'resume names the held line of three');
+    await page.click('#aow-resume-cta');
+    await page.waitForTimeout(250);
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    const saved = await page.evaluate(() => {
+      try { return JSON.parse(localStorage.getItem('aow-session') || 'null'); }
+      catch { return null; }
+    });
+    ok(saved && saved.v === 2 && Array.isArray(saved.units) && saved.units.length === 3 &&
+      saved.units.some(u => u.key === 'sling' && u.side === 'player') &&
+      saved.trainingQueue && saved.trainingQueue[0] && saved.trainingQueue[0].key === 'dino' &&
+      saved.ironBet && saved.ironBet.stake === 200,
+      'leave flush writes the field, the queue and the wager');
+    await ctx.close();
+  }
+
+  // J
+  {
+    const { ctx, page } = await open({ width: 1024, height: 700 });
+    const tablet = await page.evaluate(() => {
+      const vis = el => {
+        if (!el) return false;
+        const s = getComputedStyle(el);
+        if (s.display === 'none' || s.visibility === 'hidden') return false;
+        const b = el.getBoundingClientRect();
+        return b.width > 0 && b.height > 0 && b.bottom > 0 && b.top < innerHeight;
+      };
+      return {
+        diff: vis(document.getElementById('aow-diff')),
+        banner: vis(document.getElementById('aow-banner')),
+        endless: vis(document.getElementById('aow-endless-btn')),
+        relic: vis(document.getElementById('aow-relic-btn')),
+        settings: vis(document.getElementById('aow-settings-btn')),
+        games: vis(document.querySelector('a.ea-back')),
+      };
+    });
+    ok(!tablet.diff && !tablet.banner && !tablet.endless && !tablet.relic &&
+      tablet.settings && tablet.games,
+      '1024×700 tucks difficulty / banner / endless / relics; Settings and Games stay');
+    await ctx.close();
+  }
+
+  // K
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, null, { freshWelcome: true });
+    const welcome = await page.evaluate(() => {
+      const m = document.getElementById('aow-welcome-modal');
+      const hub = m && m.querySelector('a.aow-cta-hub');
+      const go = document.getElementById('aow-welcome-close');
+      return {
+        open: m && getComputedStyle(m).display !== 'none',
+        go: go && /Let's go/.test(go.textContent || ''),
+        hub: hub && hub.getAttribute('href'),
+      };
+    });
+    ok(welcome.open && welcome.go && welcome.hub === '/',
+      "welcome is Let's go plus Back to Games");
+    await ctx.close();
+  }
+
+  // L
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.click('#aow-settings-btn');
+    await page.waitForTimeout(150);
+    const settings = await page.evaluate(() => {
+      const m = document.getElementById('aow-settings-modal');
+      const hub = m && m.querySelector('a.aow-cta-hub');
+      return { open: m && getComputedStyle(m).display !== 'none', hub: hub && hub.getAttribute('href') };
+    });
+    ok(settings.open && settings.hub === '/', 'Settings carries Back to Games');
+    await page.click('#aow-settings-close');
+    await page.waitForTimeout(80);
+    await page.click('#aow-ach-btn');
+    await page.waitForTimeout(150);
+    const awards = await page.evaluate(() => {
+      const m = document.getElementById('aow-ach-modal');
+      const hub = m && m.querySelector('a.aow-cta-hub');
+      return { open: m && getComputedStyle(m).display !== 'none', hub: hub && hub.getAttribute('href') };
+    });
+    ok(awards.open && awards.hub === '/', 'Awards carries Back to Games');
+    await page.click('#aow-ach-close');
+    await page.waitForTimeout(80);
+    await page.click('#aow-chain-btn');
+    await page.waitForTimeout(150);
+    const line = await page.evaluate(() => {
+      const m = document.getElementById('aow-chain-modal');
+      const hub = m && m.querySelector('a.aow-cta-hub');
+      return { open: m && getComputedStyle(m).display !== 'none', hub: hub && hub.getAttribute('href') };
+    });
+    ok(line.open && line.hub === '/', 'The Line carries Back to Games');
+    await ctx.close();
+  }
+
+  {
+    const src = fs.readFileSync(path.join(__dirname, '../../ageofwar/ageofwar.js'), 'utf8');
+    ok(src.includes('function packUnits') && src.includes('function unpackUnits') &&
+      src.includes('units: packUnits(units)') && src.includes('beforeunload') &&
+      /applySession[\s\S]*unpackUnits/.test(src),
+      'session v2 packs the field and flushes on beforeunload');
   }
 
   await browser.close();

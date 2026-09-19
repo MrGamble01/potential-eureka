@@ -30,7 +30,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 |---|---|
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card), `hubhome` (Age of War billboard, Long/Quick scan, empty filter, hop-after-search, 900×700 density, scan-mark reset, 720×700 compact flagship, filter-mode chrome, 390 first-visit fold, Games-back restore, shell on HoF, daylight chrome, 1280 Long 3-across, description search, 1280 Studio one-card / Quick 3-across, HoF+resume restore, Studio hop, 390 shell under wrapped nav, HoF Long/Quick + sixth flagship, Hearthvale badge/reset, daylight HoF tokens, 390 HoF score wrap, HoF opens at the title after a scrolled catalogue, HoF per-lane ranks, daylight Patch Notes / Primer / overlay / PEAK / Studio Crew chips) |
-| Age of War records | `aowrecords` (AOW-60: a malformed `aow-best-run` no longer freezes future bests; valid bests stay byte-for-byte. Drives the production writer through `vm`, no hook. Non-vacuous: the old `waves > (prev.waves \|\| 0)` comparison is replayed and writes nothing on the freeze payloads), `aowsession` (return chrome: a kept war opens on one Resume CTA, New war drops it, pause/game-over carry Back to Games, 768×700 tucks the topbar rail) |
+| Age of War records | `aowrecords` (AOW-60: a malformed `aow-best-run` no longer freezes future bests; valid bests stay byte-for-byte. Drives the production writer through `vm`, no hook. Non-vacuous: the old `waves > (prev.waves \|\| 0)` comparison is replayed and writes nothing on the freeze payloads), `aowsession` (return chrome leftovers: a kept war holds the field / queue / wager, New war drops it, pause/game-over/welcome/settings/awards/The Line carry Back to Games, 768 and 1024 tuck the topbar rail) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
 | Cross-game geometry | `reach` (UI-1/UI-2: every flagship control stays on screen at desktop, laptop, short-laptop and phone viewports) |
@@ -239,7 +239,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `voxbell` (the Harvest Bell)
 - `voxbottle` (the Message in a Bottle)
 - `voxtablet` (the Tide Tablet)
-- `voxchrome` (return chrome: shared Games pill, Let's grow + hub exit, resume chip, 768×700 quest/tool split)
+- `voxchrome` (return chrome leftovers: shared Games pill, Let's grow + hub exit, resume chip, 768×700 quest/tool split, Achievements/Almanac/Shore Games, corrupt-garden chip, New isle, tray above the hotbar)
 - `voxconch` (the Keeper's Conch)
 - `voxwick` (the Second Wick)
 - `voxfest` (the Lantern Festival)
