@@ -20,6 +20,10 @@
  *  J. 1024×700 tucks difficulty / banner / endless / relics.
  *  K. Welcome is Let's go plus Back to Games.
  *  L. Settings, Awards and The Line each carry Back to Games.
+ *  M. A v2 snapshot holds the specials — last stand, trench, horns,
+ *     merc rearm — and resume names the ones that are still live.
+ *  N. 390×700 scrolls the action rail instead of locking leftover
+ *     five-column rows over the field.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -317,12 +321,82 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     await ctx.close();
   }
 
+  // M — the specials still on the field survive leave
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+      localStorage.setItem('aow-session', JSON.stringify({
+        v: 2, waveNum: 8, gold: 300, xp: 80, playerEra: 1, enemyEra: 0,
+        playerBaseHp: 200, playerBaseMax: 1500, enemyBaseHp: 1100, enemyBaseMax: 1500,
+        lastStandUsed: true,
+        trenchT: 18, trenchCd: 90, trenchX: 640,
+        warcryT: 4, warcryCd: 45,
+        mercCd: 30,
+        units: [
+          { side: 'enemy', key: 'boss_8', x: 900, hp: 400, hpMax: 800, dmg: 40, aliveT: 10,
+            warlord: 'Gorlok the Brute', dueled: 1,
+            def: { name: 'Gorlok the Brute', icon: '🪓', hp: 800, dmg: 40 } },
+        ],
+      }));
+    });
+    const copy = await page.evaluate(() => {
+      const ov = document.getElementById('aow-overlay');
+      return ov ? ov.textContent : '';
+    });
+    ok(/garrison already rallied/.test(copy) && /trench is still open/.test(copy) &&
+      /line is still on the field/.test(copy),
+      'resume names the rallied garrison and the open trench');
+    await page.click('#aow-resume-cta');
+    await page.waitForTimeout(250);
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    const saved = await page.evaluate(() => {
+      try { return JSON.parse(localStorage.getItem('aow-session') || 'null'); }
+      catch { return null; }
+    });
+    ok(saved && saved.lastStandUsed === true && saved.trenchT > 0 &&
+      saved.warcryCd > 0 && saved.mercCd > 0 &&
+      saved.units && saved.units.some(u => u.warlord === 'Gorlok the Brute' && u.dueled),
+      'leave flush writes last stand, trench, horns, mercs and the warlord');
+    await ctx.close();
+  }
+
+  // N
+  {
+    const { ctx, page } = await open({ width: 390, height: 700 });
+    const phone = await page.evaluate(() => {
+      const bar = document.querySelector('.aow-actionbar');
+      const canvas = document.getElementById('aow-canvas');
+      const games = document.querySelector('a.ea-back');
+      if (!bar) return { ok: false };
+      const s = getComputedStyle(bar);
+      const bb = bar.getBoundingClientRect();
+      const cb = canvas ? canvas.getBoundingClientRect() : { height: 0 };
+      const vis = el => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.top < innerHeight && r.bottom > 0;
+      };
+      return {
+        ok: true,
+        maxH: parseFloat(s.maxHeight),
+        overflow: s.overflowY,
+        barH: bb.height,
+        canvasH: cb.height,
+        games: vis(games),
+      };
+    });
+    ok(phone.ok && phone.maxH > 0 && phone.maxH <= 140 && /auto/.test(phone.overflow) &&
+      phone.barH <= 140 && phone.canvasH > 80 && phone.games,
+      '390×700 action rail scrolls instead of locking leftover rows over the field');
+    await ctx.close();
+  }
+
   {
     const src = fs.readFileSync(path.join(__dirname, '../../ageofwar/ageofwar.js'), 'utf8');
     ok(src.includes('function packUnits') && src.includes('function unpackUnits') &&
       src.includes('units: packUnits(units)') && src.includes('beforeunload') &&
+      src.includes('lastStandUsed') && src.includes('trenchT') &&
       /applySession[\s\S]*unpackUnits/.test(src),
-      'session v2 packs the field and flushes on beforeunload');
+      'session v2 packs the field, the specials and flushes on beforeunload');
   }
 
   await browser.close();

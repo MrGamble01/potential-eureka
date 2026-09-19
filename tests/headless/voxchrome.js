@@ -16,6 +16,9 @@
  *  H. A corrupt garden paints the unread chip and still boots.
  *  I. A kept isle offers New isle on help.
  *  J. 768×700 keeps the chip tray above the hotbar.
+ *  K. Opening the plant sheet tucks the chip tray so till / water / plant
+ *     stay reachable and the chips are not sitting on the sheet.
+ *  L. A kept isle offers New isle on the resume chip.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -313,6 +316,84 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     });
     ok(tray.ok && !tray.overlap && tray.trayAbove,
       '768×700 chip tray sits above the hotbar');
+    await ctx.close();
+  }
+
+  // K
+  {
+    const { ctx, page } = await open({ width: 768, height: 700 }, () => {
+      localStorage.setItem('voxel-garden-v1', JSON.stringify({
+        v: 1, seed: 1, savedAt: Date.now(),
+        state: { helpSeen: true, muted: true, musicOff: true, buildings: {}, goods: {} },
+        edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
+      }));
+    });
+    await page.click('[data-tool="seed"]');
+    await page.waitForTimeout(200);
+    const tucked = await page.evaluate(() => {
+      const t = document.getElementById('vox-tray');
+      const p = document.getElementById('seedPanel');
+      if (!t || !p) return { ok: false };
+      const ts = getComputedStyle(t);
+      return {
+        ok: true,
+        open: p.classList.contains('open'),
+        body: document.body.classList.contains('panel-open'),
+        tucked: ts.opacity === '0' || ts.pointerEvents === 'none',
+      };
+    });
+    ok(tucked.ok && tucked.open && tucked.body && tucked.tucked,
+      'opening the plant sheet tucks the chip tray');
+    await ctx.close();
+  }
+
+  // L — plant after first paint; hold the unload writer so it cannot
+  // overwrite the kept garden with the fresh isle still in memory.
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.evaluate(() => {
+      localStorage.setItem('voxel-garden-v1', JSON.stringify({
+        v: 1, seed: 7, savedAt: Date.now(),
+        state: {
+          day: 4, level: 3, coins: 80, totalEarned: 240, xp: 20, time: 30,
+          helpSeen: true, muted: true, musicOff: true, buildings: {}, goods: {},
+        },
+        edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
+      }));
+      if (typeof droppingIsle !== 'undefined') droppingIsle = true;
+    });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(2800);
+    const neu = await page.evaluate(() => {
+      const btn = document.getElementById('resumeNewIsle');
+      const chip = document.getElementById('resumeChip');
+      return {
+        on: !!(btn && !btn.hidden && getComputedStyle(btn).display !== 'none'),
+        label: btn && btn.textContent.trim(),
+        chipOn: !!(chip && !chip.hidden),
+      };
+    });
+    ok(neu.on && neu.label === 'New isle' && neu.chipOn,
+      'a kept isle offers New isle on the resume chip');
+    page.once('dialog', d => d.accept());
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'load' }).catch(() => {}),
+      page.click('#resumeNewIsle'),
+    ]);
+    await page.waitForTimeout(2800);
+    const after = await page.evaluate(() => {
+      let data = null;
+      try { data = JSON.parse(localStorage.getItem('voxel-garden-v1') || 'null'); } catch {}
+      const el = document.getElementById('resumeChip');
+      const dayHud = (document.getElementById('day') || {}).textContent || '';
+      return {
+        day: data && data.state ? data.state.day : 0,
+        hud: dayHud,
+        chipHidden: !el || el.hidden || getComputedStyle(el).display === 'none',
+      };
+    });
+    ok(after.chipHidden && (after.day === 1 || after.day === 0) && /1/.test(after.hud),
+      'resume-chip New isle drops the kept garden');
     await ctx.close();
   }
 
