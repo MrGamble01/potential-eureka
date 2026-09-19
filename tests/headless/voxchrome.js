@@ -170,14 +170,16 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       const ov = document.getElementById('achOv');
       const close = document.getElementById('achClose');
       const hub = ov && ov.querySelector('a.ea-back');
+      const first = ov && ov.querySelector('.ach');
       return {
         open: ov && ov.classList.contains('open'),
         back: close && close.textContent.trim(),
         hub: hub && hub.getAttribute('href'),
+        stacked: !!(close && first && close.getBoundingClientRect().bottom <= first.getBoundingClientRect().top + 2),
       };
     });
-    ok(ach.open && ach.back === 'Back to the garden' && ach.hub === '/',
-      'Achievements is Back to the garden plus Games');
+    ok(ach.open && ach.back === 'Back to the garden' && ach.hub === '/' && ach.stacked,
+      'Achievements is Back to the garden plus Games above the list');
     await page.click('#achClose');
     await page.waitForTimeout(80);
     await page.click('#almanacBtn');
