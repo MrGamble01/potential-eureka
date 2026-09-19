@@ -451,7 +451,8 @@ const AgeOfWarGame = (() => {
         '<div style="font-weight:800;font-size:13px;margin:2px 0">' + b.name + '</div>' +
         '<div style="font-size:11px;color:var(--text-dim)">' + b.desc + '</div>' +
         '<div style="font-size:10px;color:#fcd34d;margin-top:4px">[' + (i + 1) + ']</div></button>').join('') +
-      '</div>';
+      '</div>' +
+      '<div style="margin-top:12px"><a class="aow-cta aow-cta-hub" href="/">Back to Games</a></div>';
     el.style.display = 'block';
     el.querySelectorAll('.council-boon').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); chooseBoon(btn.dataset.boon); });
@@ -9625,6 +9626,12 @@ const AgeOfWarGame = (() => {
     if (snap.lastStandUsed) bits.push('the garrison already rallied');
     if (sessionFloat(snap.trenchT, 0, 0, TRENCH_LAST) > 0) bits.push('the trench is still open');
     if (sessionFloat(snap.warcryT, 0, 0, WARCRY_DUR) > 0) bits.push('the horns are still sounding');
+    if (Array.isArray(snap.trainingQueue) && snap.trainingQueue.length) bits.push('recruits are still training');
+    if (snap.ironBet && typeof snap.ironBet === 'object') bits.push('a wager is still riding');
+    if (snap.bond && typeof snap.bond === 'object') bits.push('the bond is still signed');
+    if (snap.loan && typeof snap.loan === 'object') bits.push('the lender is still collecting');
+    if (sessionInt(snap.chestGold, 0, 0, 1e12) > 0) bits.push('the war chest is still locked');
+    if (Array.isArray(snap.councilPending) && snap.councilPending.length) bits.push('the council is still sitting');
     const fieldLine = bits.length
       ? `${bits.join(' · ')}. One tap continues.`
       : 'The war is held — one tap continues.';
@@ -9721,6 +9728,8 @@ const AgeOfWarGame = (() => {
       </div>
       ${newTrials.length ? `<div style="margin-top:14px">${newTrials.map(t =>
         `<div style="color:#3FB950;font-weight:800;font-size:14px">🏆 War Trial complete: ${t.icon} ${t.name} — +${t.reward}🏺</div>`).join('')}</div>` : ''}
+      ${overlayCtas('aow-again-cta', 'Play again')}
+      <p style="font-size:12px; color: var(--text-dim); margin-top:10px">Space plays again</p>
       <div id="relic-vault" style="margin-top:18px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
         <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
           🏺 Relics &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
@@ -9735,8 +9744,6 @@ const AgeOfWarGame = (() => {
         </div>
         <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Buy a bonus for your NEXT run, then play again.</div>
       </div>
-      ${overlayCtas('aow-again-cta', 'Play again')}
-      <p style="font-size:12px; color: var(--text-dim); margin-top:10px">Space plays again</p>
     `;
     wireOverlayPrimary('aow-again-cta', e => { e.stopPropagation(); startNewWar(); });
     ov.querySelectorAll('.relic-perk').forEach(btn => {

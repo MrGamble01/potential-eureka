@@ -24,6 +24,10 @@
  *     merc rearm — and resume names the ones that are still live.
  *  N. 390×700 scrolls the action rail instead of locking leftover
  *     five-column rows over the field.
+ *  O. Resume names a riding wager, locked chest and sitting council.
+ *  P. Game-over CTAs sit above the relic vault (not below the fold).
+ *  Q. 768×700 gives the field more than the leftover 200px chrome cap.
+ *  R. An open council carries Back to Games.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -397,6 +401,82 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       src.includes('lastStandUsed') && src.includes('trenchT') &&
       /applySession[\s\S]*unpackUnits/.test(src),
       'session v2 packs the field, the specials and flushes on beforeunload');
+  }
+
+  // O — paid holds already in the snapshot must be named on return
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+      localStorage.setItem('aow-session', JSON.stringify({
+        v: 2, waveNum: 6, gold: 280, xp: 60, playerEra: 1, enemyEra: 0,
+        playerBaseHp: 800, playerBaseMax: 1500, enemyBaseHp: 1100, enemyBaseMax: 1500,
+        trainingQueue: [{ key: 'club', total: 3, remaining: 1.4 }],
+        ironBet: { stake: 200, hpAtBet: 800 },
+        chestGold: 150,
+        councilPending: ['steel', 'medics'],
+      }));
+    });
+    const copy = await page.evaluate(() => {
+      const ov = document.getElementById('aow-overlay');
+      return ov ? ov.textContent : '';
+    });
+    ok(/wager is still riding/.test(copy) && /war chest is still locked/.test(copy) &&
+      /council is still sitting/.test(copy) && /recruits are still training/.test(copy),
+      'resume names the riding wager, locked chest, sitting council and queue');
+    await ctx.close();
+  }
+
+  // P — source order so Play again / Games cannot fall under the vault
+  {
+    const src = fs.readFileSync(path.join(__dirname, '../../ageofwar/ageofwar.js'), 'utf8');
+    const start = src.indexOf('function showOverlay(won)');
+    const end = src.indexOf('\n  function destroy()', start);
+    const body = start >= 0 && end > start ? src.slice(start, end) : '';
+    const ctaAt = body.indexOf("overlayCtas('aow-again-cta'");
+    const vaultAt = body.indexOf('id="relic-vault"');
+    ok(ctaAt >= 0 && vaultAt >= 0 && ctaAt < vaultAt,
+      'game-over Play again / Back to Games sit above the relic vault');
+  }
+
+  // Q
+  {
+    const { ctx, page } = await open({ width: 768, height: 700 });
+    const field = await page.evaluate(() => {
+      const canvas = document.getElementById('aow-canvas');
+      const games = document.querySelector('a.ea-back');
+      const cb = canvas ? canvas.getBoundingClientRect() : { height: 0 };
+      const vis = el => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.top < innerHeight && r.bottom > 0;
+      };
+      return { h: cb.height, games: vis(games) };
+    });
+    ok(field.h >= 260 && field.games,
+      '768×700 field is taller than the leftover 200px chrome cap');
+    await ctx.close();
+  }
+
+  // R
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+      localStorage.setItem('aow-session', JSON.stringify({
+        v: 2, waveNum: 6, gold: 280, xp: 60, playerEra: 1, enemyEra: 0,
+        playerBaseHp: 800, playerBaseMax: 1500, enemyBaseHp: 1100, enemyBaseMax: 1500,
+        councilPending: ['steel', 'medics'],
+      }));
+    });
+    await page.click('#aow-resume-cta');
+    await page.waitForTimeout(250);
+    const council = await page.evaluate(() => {
+      const el = document.getElementById('aow-council');
+      const hub = el && el.querySelector('a.aow-cta-hub');
+      return {
+        open: !!(el && getComputedStyle(el).display !== 'none'),
+        hub: hub && hub.getAttribute('href'),
+      };
+    });
+    ok(council.open && council.hub === '/', 'open council carries Back to Games');
+    await ctx.close();
   }
 
   await browser.close();
