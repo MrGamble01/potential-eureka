@@ -100,9 +100,11 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     longHidden: document.querySelector('[data-section="long"]').hidden,
     quickHidden: document.querySelector('[data-section="quick"]').hidden,
     scanHidden: getComputedStyle(document.querySelector('.arcade-scan')).display === 'none',
+    dailyHidden: getComputedStyle(document.getElementById('daily-banner')).display === 'none',
   }));
   ok(filtered.count === '6 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
     'searching "hours" keeps Long, hides Quick, and tucks the scan bar');
+  ok(filtered.dailyHidden, 'a hit filter tucks the daily banner so the matches come up');
 
   await page.fill('#card-search', 'zzzz');
   await page.waitForTimeout(200);
@@ -119,7 +121,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   });
   ok(empty.shown && empty.copy && empty.count === '0 games',
     'a miss shows an empty state instead of a blank catalogue');
-  ok(empty.dailyHidden, 'a miss tucks the daily banner so the empty state is the page');
+  ok(!empty.dailyHidden, 'a miss keeps today\'s chips as a way out');
 
   await page.click('#arcade-empty-clear');
   await page.waitForTimeout(200);

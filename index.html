@@ -1988,9 +1988,10 @@
       if (scan) scan.hidden = !!q;
       if (searchCountEl) searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
       if (emptyEl) emptyEl.hidden = !(q && shown === 0);
-      // Filter is a mode: daily / resume / primer are other doors.
-      // Leave them up and a miss still reads like the front page.
-      if (dailyBanner) dailyBanner.hidden = !!q;
+      // Filter is a mode: resume / primer are other doors. Daily stays
+      // on a miss (today's chips are a way out) and tucks when the
+      // filter still has matches, so the catalogue can come up.
+      if (dailyBanner) dailyBanner.hidden = !!(q && shown > 0);
       if (resumeRow) resumeRow.hidden = !!q || !resumeRow.querySelector('.resume-chip');
       if (primerHint) {
         if (q) primerHint.hidden = true;
