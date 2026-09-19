@@ -167,6 +167,7 @@
     /* One-CTA rows: the play tap, then Games — sheets used to bury the hub pill. */
     .sheet-ctas { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
     .sheet-ctas .closebtn { margin-top: 0; }
+    .trader-card .sheet-ctas .closebtn { margin-top: 0; }
     .sheet-ctas .ea-back { justify-content: center; width: 100%; }
     #chain-head .ea-back { padding: 5px 10px 5px 8px; font-size: 11px; letter-spacing: 1.2px; }
 
@@ -251,6 +252,7 @@
     .trader-card {
       width: min(440px, 92vw); background: var(--panel-2); border: 1px solid var(--line);
       border-radius: 18px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      max-height: min(86vh, 640px); overflow-y: auto;
     }
     .trader-card h2 { font-size: 20px; margin-bottom: 2px; display: flex; align-items: center; gap: 9px; }
     .trader-card .flavor { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; font-style: italic; }
@@ -318,6 +320,11 @@
     #paused.show { display: flex; }
     #paused.held { pointer-events: auto; z-index: 610; }
     #paused .pause-kicker { text-align: center; letter-spacing: 1.4px; }
+    #pause-holds {
+      text-align: center; letter-spacing: 0; font-size: 12px; font-weight: 600;
+      color: var(--ink); line-height: 1.45; max-width: 28em; margin: 0 auto;
+    }
+    #pause-holds[hidden] { display: none; }
     #paused .closebtn {
       width: 100%; padding: 11px; border-radius: 11px; border: none;
       background: var(--gold); color: #2b2410; font-weight: 800; font-size: 14px;
@@ -438,6 +445,7 @@
 </div>
 <div id="paused">
     <div class="pause-kicker">&#9208; the valley is held</div>
+    <div id="pause-holds" hidden></div>
     <button type="button" class="closebtn" id="pause-resume">Resume the valley</button>
     <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
   </div>
@@ -445,7 +453,7 @@
   <canvas id="game"></canvas>
 
   <div id="hud">
-    <div id="resumeChip" hidden>↩ the valley kept · <span id="resumeName">Hearthvale</span> · Day <span id="resumeDay">1</span> · <span id="resumePop">0</span> villagers
+    <div id="resumeChip" hidden>↩ the valley kept · <span id="resumeName">Hearthvale</span> · Day <span id="resumeDay">1</span> · <span id="resumePop">0</span> villagers<span id="resumeHolds"></span>
       <button type="button" id="resumeNewTown" hidden>New town</button>
     </div>
     <div class="res wood" title="Wood — from woodcutters. Builds almost everything."><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span><span class="net" id="r-woodnet"></span></div>
@@ -492,7 +500,10 @@
       <h2><span>&#128658;</span><span>Traveling Merchant</span></h2>
       <div class="flavor" id="trader-flavor">"Fine wares from far-off roads! What'll it be?"</div>
       <div id="trade-rows"></div>
-      <button class="closebtn" id="trader-close">Send them on their way</button>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="trader-close">Send them on their way</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
     </div>
   </div>
 
@@ -501,6 +512,9 @@
       <h2><span id="ev-emoji">&#127881;</span><span id="ev-title">Something happens</span></h2>
       <div class="flavor" id="ev-text">&mdash;</div>
       <div id="ev-choices"></div>
+      <div class="sheet-ctas">
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
     </div>
   </div>
 
@@ -4002,6 +4016,7 @@
       wrap.appendChild(btn);
     });
     SFX('trader');
+    tuckGear();
     document.getElementById('event').classList.add('show');
     pauseForModal();
   }
@@ -4035,6 +4050,7 @@
       chron('📜', 'The merchant posted a standing order: ' + qty + ' ' + g.name.toLowerCase() + ' by day ' + state.order.byDay);
     }
     renderTrader();
+    tuckGear();
     document.getElementById('trader').classList.add('show');
     SFX('trader');
     pauseForModal();
@@ -5279,6 +5295,7 @@
       const held = playerHeld();
       pe.classList.toggle('show', held);
       pe.classList.toggle('held', held);
+      if (held) paintHolds();
     }
     const sb = document.getElementById('m-speed'); if (sb && gameSpeed > 0) sb.innerHTML = 'Speed: ' + gameSpeed + '&times;';
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
@@ -5709,7 +5726,20 @@
   const keys = {};
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === 'Escape') { buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState(); document.getElementById('achv').classList.remove('show'); document.getElementById('chronicle').classList.remove('show'); document.getElementById('decrees').classList.remove('show'); }
+    if (e.key === 'Escape') {
+      buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState();
+      document.getElementById('achv').classList.remove('show');
+      document.getElementById('chronicle').classList.remove('show');
+      document.getElementById('decrees').classList.remove('show');
+      const trader = document.getElementById('trader');
+      const event = document.getElementById('event');
+      const hall = document.getElementById('chain-modal');
+      const modalWas = (trader && trader.classList.contains('show')) || (event && event.classList.contains('show'));
+      if (trader) trader.classList.remove('show');
+      if (event) event.classList.remove('show');
+      if (hall) hall.classList.remove('open');
+      if (modalWas) resumeFromModal();
+    }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
@@ -5791,6 +5821,7 @@
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
     } catch (e) { /* private mode / quota — ignore */ }
   }
+  window.addEventListener('beforeunload', save);
   // Every number in a save is attacker- (or bit-rot-) controlled. `x || dflt`
   // only catches 0/NaN/undefined — it waves through -1, Infinity and "lots",
   // which is how a bad day reached the season lookup. These two clamp instead.
@@ -5928,6 +5959,44 @@
       (state.buildings && state.buildings.length)));
   }
 
+  // Paid / live holds the snapshot already keeps — name them the way
+  // AoW names a riding wager. Coming back used to hide the caravan.
+  function holdBits() {
+    const bits = [];
+    if (!state) return bits;
+    if (state.caravan && typeof state.caravan.returnDay === 'number')
+      bits.push('the caravan is still on the road');
+    if (state.caravanStake) bits.push('a stake is still riding');
+    if (state.caravanSurety) bits.push('the surety is still signed');
+    if (state.order && typeof state.order.byDay === 'number')
+      bits.push('an order is still posted');
+    if (state.merchantAdvance && typeof state.merchantAdvance.due === 'number')
+      bits.push('the advance is still due');
+    if (state.raidTonight) bits.push('the wolves are still out');
+    if (state.festival && typeof state.festival.endDay === 'number')
+      bits.push('the festival is still on');
+    if (typeof state.feverUntil === 'number' && state.feverUntil >= (state.day || 1))
+      bits.push('the fever still holds');
+    return bits;
+  }
+
+  function paintHolds() {
+    const bits = holdBits();
+    const line = bits.length ? ' · ' + bits.join(' · ') : '';
+    const chipHolds = document.getElementById('resumeHolds');
+    if (chipHolds) chipHolds.textContent = line;
+    const pauseHolds = document.getElementById('pause-holds');
+    if (pauseHolds) {
+      pauseHolds.hidden = !bits.length;
+      pauseHolds.textContent = bits.length ? bits.join(' · ') + '. One tap continues.' : '';
+    }
+  }
+
+  function tuckGear() {
+    const menu = document.getElementById('menu');
+    if (menu) menu.classList.remove('show');
+  }
+
   function paintResume(loaded, unread) {
     const chip = document.getElementById('resumeChip');
     if (!chip) return;
@@ -5949,6 +6018,7 @@
       if (p) p.textContent = String((state.villagers || []).length);
       if (n) n.textContent = state.townName || 'Hearthvale';
       if (neu) neu.hidden = false;
+      paintHolds();
     } else {
       chip.hidden = true;
       if (neu) neu.hidden = true;
@@ -6153,7 +6223,8 @@
       '<div style="max-width:420px;line-height:1.6">' + msg +
       '<br><br>Your town is saved — reloading picks up where you left off.</div>' +
       '<button id="hv-fatal-reload" style="background:#3a2b1b;color:#f2e3c8;border:1px solid #7a5c34;' +
-      'padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">RELOAD</button>';
+      'padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">RELOAD</button>' +
+      '<a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>';
     document.body.appendChild(d);
     d.querySelector('#hv-fatal-reload').addEventListener('click', () => location.reload());
   }
