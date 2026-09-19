@@ -181,7 +181,7 @@
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--text-dim);
-  background: rgba(6, 6, 8, 0.55);
+  background: var(--chip-wash);
   padding: 8px 12px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -206,7 +206,7 @@
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--text-muted);
-  background: rgba(6, 6, 8, 0.55);
+  background: var(--chip-wash);
   padding: 6px 10px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);

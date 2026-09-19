@@ -40,6 +40,11 @@
  *  AF. 390 HoF keeps the Hearthvale score on one card, not overflowing.
  *  AG. Opening HoF from a scrolled catalogue starts at the title,
  *      not mid-board with the leftover arcade offset.
+ *  AH. HoF Quick ranks restart at 01 (the #994 split left 07–21).
+ *  AI. Daylight Patch Notes / Primer sheets are light — not dark
+ *      ink on a midnight modal after --text followed the theme.
+ *  AJ. Daylight game-over overlay and catalogue PEAK chips follow
+ *      the same tokens; Studio Crew chips are not a black wash.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -657,12 +662,19 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       quickTitle: !!(quick && /Quick games/.test(quick.textContent) && /15/.test((quick.querySelector('.hof-lane-count') || {}).textContent || '')),
       longRows: long ? long.querySelectorAll('.hof-row').length : 0,
       quickRows: quick ? quick.querySelectorAll('.hof-row').length : 0,
+      longRanks: long ? [...long.querySelectorAll('.hof-rank')].map(el => el.textContent.trim()) : [],
+      quickRanks: quick ? [...quick.querySelectorAll('.hof-rank')].map(el => el.textContent.trim()) : [],
+      quickFirst: quick && ((quick.querySelector('.hof-row .hof-name') || {}).textContent || ''),
     };
   });
   ok(hofBoard.rows === 21 && hofBoard.longRows === 6 && hofBoard.quickRows === 15 && hofBoard.longTitle && hofBoard.quickTitle,
     `HoF board is 6 Long + 15 Quick (${hofBoard.longRows}+${hofBoard.quickRows})`);
   ok(hofBoard.names.includes('Hearthvale') && /17 villagers at peak/.test(hofBoard.vale),
     `HoF lists Hearthvale with the seeded peak (${hofBoard.vale})`);
+  ok(hofBoard.longRanks.join() === '01,02,03,04,05,06'
+    && hofBoard.quickRanks[0] === '01' && hofBoard.quickRanks[14] === '15'
+    && /Snake/.test(hofBoard.quickFirst),
+    `HoF ranks restart per lane (Quick ${hofBoard.quickRanks[0]}–${hofBoard.quickRanks[14]}, first ${hofBoard.quickFirst})`);
 
   await Promise.all([
     bp.waitForURL(/hearthvale/, { timeout: 20000 }),
@@ -711,6 +723,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await dhp.addInitScript(() => {
     localStorage.setItem('eureka-theme', 'daylight');
     localStorage.setItem('eureka-primer-seen', '1');
+    localStorage.setItem('hearthvale-v1', JSON.stringify({ peakPop: 17 }));
   });
   await dhp.goto(BASE + '/index.html#halloffame', { waitUntil: 'load' });
   await dhp.waitForTimeout(1800);
@@ -737,6 +750,78 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   });
   ok(lightHof.theme === 'daylight' && lightHof.wrapLight && lightHof.textDark && lightHof.inkTint && !lightHof.midnightWash,
     `daylight HoF input/panel use light tokens (bg ${lightHof.inputBg}, fg ${lightHof.inputFg})`);
+
+  await dhp.click('#patch-notes-btn');
+  await dhp.waitForTimeout(300);
+  const lightPatch = await dhp.evaluate(() => {
+    const overlay = getComputedStyle(document.getElementById('patch-modal'));
+    const sheet = getComputedStyle(document.querySelector('#patch-modal .modal-content'));
+    const rgb = s => {
+      const m = (s || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      return m ? [+m[1], +m[2], +m[3]] : null;
+    };
+    const lum = c => c ? (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 : 0;
+    return {
+      overlayBg: overlay.backgroundColor,
+      sheetBg: sheet.backgroundColor,
+      sheetFg: sheet.color,
+      sheetLight: lum(rgb(sheet.backgroundColor)) > 0.7,
+      textDark: lum(rgb(sheet.color)) < 0.45,
+      midnightSheet: /rgba\(10,\s*10,\s*15/.test(sheet.backgroundColor),
+      midnightScrim: /rgba\(2,\s*2,\s*3/.test(overlay.backgroundColor),
+    };
+  });
+  ok(lightPatch.sheetLight && lightPatch.textDark && !lightPatch.midnightSheet && !lightPatch.midnightScrim,
+    `daylight Patch Notes is ink on a light sheet (bg ${lightPatch.sheetBg})`);
+  await dhp.keyboard.press('Escape');
+  await dhp.waitForTimeout(200);
+  await dhp.click('#primer-btn');
+  await dhp.waitForTimeout(300);
+  const lightPrimer = await dhp.evaluate(() => {
+    const sheet = getComputedStyle(document.querySelector('#primer-modal .modal-content'));
+    return {
+      sheetBg: sheet.backgroundColor,
+      midnightSheet: /rgba\(10,\s*10,\s*15/.test(sheet.backgroundColor),
+    };
+  });
+  ok(!lightPrimer.midnightSheet,
+    `daylight How it works drops the midnight sheet (${lightPrimer.sheetBg})`);
+  await dhp.keyboard.press('Escape');
+  await dhp.waitForTimeout(200);
+  await dhp.click('button.logo');
+  await dhp.waitForTimeout(500);
+  const lightHi = await dhp.evaluate(() => {
+    const hi = document.querySelector('.arcade-card-hi[data-hi="hearthvale"]');
+    return {
+      bg: hi ? getComputedStyle(hi).backgroundColor : '',
+      shown: !!(hi && getComputedStyle(hi).display !== 'none'),
+      midnight: hi ? /rgba\(2,\s*2,\s*3/.test(getComputedStyle(hi).backgroundColor) : true,
+    };
+  });
+  ok(lightHi.shown && !lightHi.midnight,
+    `daylight PEAK chip is not a midnight pill (${lightHi.bg})`);
+  await dhp.click('[data-view="snake"]');
+  await dhp.waitForTimeout(600);
+  const lightOver = await dhp.evaluate(() => {
+    const ov = document.getElementById('snake-overlay');
+    ov.style.display = 'flex';
+    const bg = getComputedStyle(ov).backgroundColor;
+    return { bg, midnight: /rgba\(2,\s*2,\s*3/.test(bg) };
+  });
+  ok(!lightOver.midnight,
+    `daylight game-over overlay follows theme tokens (${lightOver.bg})`);
+  await dhp.click('#nav-utils-toggle');
+  await dhp.click('[data-view="orgchart"]');
+  await dhp.waitForTimeout(500);
+  const lightCrew = await dhp.evaluate(() => {
+    const legend = getComputedStyle(document.querySelector('.orgchart-legend'));
+    return {
+      bg: legend.backgroundColor,
+      midnight: /rgba\(6,\s*6,\s*8/.test(legend.backgroundColor),
+    };
+  });
+  ok(!lightCrew.midnight,
+    `daylight Studio Crew chips drop the midnight wash (${lightCrew.bg})`);
   await dayHof.close();
 
   const phoneHof = await browser.newContext({ viewport: { width: 390, height: 844 } });

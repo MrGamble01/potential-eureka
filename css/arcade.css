@@ -647,7 +647,7 @@ button.arcade-card {
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--accent);
-  background: rgba(2, 2, 3, 0.72);
+  background: var(--chip-wash);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
