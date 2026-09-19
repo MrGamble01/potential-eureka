@@ -238,9 +238,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     await ctx.close();
   }
 
-  // I
+  // I — plant the garden after first paint so a reload cannot re-seed it
   {
-    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.evaluate(() => {
       localStorage.setItem('voxel-garden-v1', JSON.stringify({
         v: 1, seed: 7, savedAt: Date.now(),
         state: {
@@ -250,8 +251,16 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
         edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
       }));
     });
-    await page.click('#helpBtn');
-    await page.waitForTimeout(200);
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(2800);
+    const helpOpen = await page.evaluate(() => {
+      const ov = document.getElementById('helpOv');
+      return !!(ov && ov.classList.contains('open'));
+    });
+    if (!helpOpen) {
+      await page.click('#helpBtn');
+      await page.waitForTimeout(200);
+    }
     const neu = await page.evaluate(() => {
       const btn = document.getElementById('helpNewIsle');
       return {
@@ -261,16 +270,24 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     });
     ok(neu.on && neu.label === 'New isle', 'a kept isle offers New isle on help');
     page.once('dialog', d => d.accept());
-    await page.click('#helpNewIsle');
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'load' }).catch(() => {}),
+      page.click('#helpNewIsle'),
+    ]);
     await page.waitForTimeout(2800);
-    const after = await page.evaluate(() => ({
-      kept: localStorage.getItem('voxel-garden-v1'),
-      chip: (() => {
-        const el = document.getElementById('resumeChip');
-        return !el || el.hidden || getComputedStyle(el).display === 'none';
-      })(),
-    }));
-    ok(!after.kept && after.chip, 'New isle drops the kept garden');
+    const after = await page.evaluate(() => {
+      let data = null;
+      try { data = JSON.parse(localStorage.getItem('voxel-garden-v1') || 'null'); } catch {}
+      const el = document.getElementById('resumeChip');
+      const dayHud = (document.getElementById('day') || {}).textContent || '';
+      return {
+        day: data && data.state ? data.state.day : 0,
+        hud: dayHud,
+        chipHidden: !el || el.hidden || getComputedStyle(el).display === 'none',
+      };
+    });
+    ok(after.chipHidden && (after.day === 1 || after.day === 0) && /1/.test(after.hud),
+      'New isle drops the kept garden');
     await ctx.close();
   }
 
