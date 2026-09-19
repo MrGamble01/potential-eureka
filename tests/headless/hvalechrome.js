@@ -447,8 +447,8 @@ const keptTown = () => {
   {
     const src = fs.readFileSync(path.join(__dirname, '../../hearthvale.html'), 'utf8');
     ok(src.includes("addEventListener('beforeunload', save)") &&
-      src.includes('if (townDropped) return'),
-      'beforeunload flushes; a dropped town still cannot be rewritten');
+      src.includes('if (townDropped || !townKept()) return'),
+      'beforeunload flushes a kept town; a dropped or unstarted town cannot be rewritten');
   }
 
   // P

@@ -593,7 +593,7 @@
 
   const SAVE_KEY = 'hearthvale-v1';
   let bootUnread = false;   // a kept blob that could not be read
-  let townDropped = false;  // New town must not be rewritten by a late save()
+  let townDropped = false;  // New town / welcome must not be rewritten by a late save()
   const TILE = 16;               // base pixel size of one tile
   const MAP_W = 56, MAP_H = 42;  // world size in tiles
   const WORLD_PX_W = MAP_W * TILE, WORLD_PX_H = MAP_H * TILE;
@@ -5760,7 +5760,7 @@
   //  Save / load
   // ============================================================
   function save() {
-    if (townDropped) return;
+    if (townDropped || !townKept()) return;
     try {
       const s = {
         res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 })),
