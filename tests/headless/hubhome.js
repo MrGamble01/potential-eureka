@@ -142,10 +142,11 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   const flagCard = await page.evaluate(() => {
     const card = document.querySelector('.arcade-grid--long .arcade-card--flagship');
+    const badge = card && card.querySelector('.arcade-card-flag');
     const tags = ((card && card.querySelector('.arcade-card-tags')) || {}).textContent || '';
-    return !!(card && /Flagship/.test(tags) && /Hours/.test(tags));
+    return !!(card && badge && /Flagship/.test(badge.textContent) && /Hours/.test(tags));
   });
-  ok(flagCard, 'the Age of War catalogue card carries the Flagship · Hours mark');
+  ok(flagCard, 'the Age of War catalogue card carries the billboard Flagship mark');
 
   await page.fill('#card-search', '');
   await page.waitForTimeout(200);
@@ -216,9 +217,20 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const chrome = await tp.evaluate(() => {
     const a = document.querySelector('.arcade-grid--long .arcade-card');
     const b = document.querySelector('.arcade-grid--quick .arcade-card');
-    return Math.abs(a.getBoundingClientRect().height - b.getBoundingClientRect().height);
+    const as = getComputedStyle(a);
+    const bs = getComputedStyle(b);
+    const tagHeights = [...document.querySelectorAll('.arcade-card-tags')]
+      .map(t => t.getBoundingClientRect().height);
+    return {
+      appear: bs.appearance === 'none',
+      font: as.font === bs.font,
+      tagsFlat: Math.max(...tagHeights) - Math.min(...tagHeights) <= 2,
+    };
   });
-  ok(chrome <= 4, `button and anchor cards share a height at 900×700 (Δ ${chrome.toFixed(1)}px)`);
+  ok(chrome.appear && chrome.font,
+    'Quick button cards inherit the same chrome as Long anchors');
+  ok(chrome.tagsFlat,
+    '900×700 tag pills stay one row after the 3-across squeeze');
 
   await browser.close();
   ok(errs.length === 0 && errs2.length === 0,

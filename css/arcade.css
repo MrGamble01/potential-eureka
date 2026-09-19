@@ -592,6 +592,25 @@ button.arcade-card {
   filter: brightness(1.35) saturate(1.25);
 }
 
+/* Same word as the billboard kicker, pinned on the poster so the
+   Hours tag — and the PLAY baseline — stay a single row. */
+.arcade-card-flag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #1a1204;
+  background: linear-gradient(135deg, #D29922, #f0c552);
+  border-radius: 999px;
+  padding: 3px 9px;
+  pointer-events: none;
+}
+
 /* High-score / best-stat badge in the screen corner (filled by JS) */
 .arcade-card-hi {
   display: none;
@@ -689,6 +708,8 @@ button.arcade-card {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .arcade-card-desc {
