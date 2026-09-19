@@ -140,6 +140,10 @@
       <span class="daily-sub">Same seed for everyone — set today's mark:</span>
       <span id="daily-games"></span>
     </div>
+    <div id="arcade-empty" class="arcade-empty" hidden>
+      <p class="arcade-empty-copy">No games match that filter.</p>
+      <button type="button" class="arcade-empty-clear" id="arcade-empty-clear">Clear filter</button>
+    </div>
 
     <div class="arcade-section arcade-section--long" id="arcade-long" data-section="long">
       <div class="arcade-section-head">
@@ -151,7 +155,7 @@
         <p class="arcade-section-lede">Save and come back. These are the flagships.</p>
       </div>
       <div class="arcade-grid arcade-grid--long">
-<a class="arcade-card" href="ageofwar" style="--accent:#D29922">
+      <a class="arcade-card arcade-card--flagship" href="ageofwar" style="--accent:#D29922">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay" width="642" height="280" data-crop="wide">
           <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
@@ -160,7 +164,7 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">AGE OF WAR</div>
-          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Strategy</span><span>Waves</span></div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Flagship · Hours</span><span>Strategy</span><span>Waves</span></div>
           <div class="arcade-card-desc">March through the ages. Crush the enemy base.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
@@ -1952,32 +1956,42 @@
     // Card search (P4): filters the arcade grid by title or tag text.
     const searchEl = document.getElementById('card-search');
     const searchCountEl = document.getElementById('card-search-count');
+    const emptyEl = document.getElementById('arcade-empty');
+    const applyFilter = () => {
+      if (!searchEl) return;
+      const q = searchEl.value.trim().toLowerCase();
+      const cards = document.querySelectorAll('.arcade-grid .arcade-card');
+      let shown = 0;
+      cards.forEach(card => {
+        const title = (card.querySelector('.arcade-card-title') || {}).textContent || '';
+        const tags = (card.querySelector('.arcade-card-tags') || {}).textContent || '';
+        const hit = !q || (title + ' ' + tags).toLowerCase().includes(q);
+        card.style.display = hit ? '' : 'none';
+        if (hit) shown++;
+      });
+      document.querySelectorAll('.arcade-section').forEach(sec => {
+        const any = [...sec.querySelectorAll('.arcade-card')].some(c => c.style.display !== 'none');
+        sec.hidden = q ? !any : false;
+      });
+      const scan = document.querySelector('.arcade-scan');
+      if (scan) scan.hidden = !!q;
+      if (searchCountEl) searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
+      if (emptyEl) emptyEl.hidden = !(q && shown === 0);
+    };
     if (searchEl) {
-      const applyFilter = () => {
-        const q = searchEl.value.trim().toLowerCase();
-        const cards = document.querySelectorAll('.arcade-grid .arcade-card');
-        let shown = 0;
-        cards.forEach(card => {
-          const title = (card.querySelector('.arcade-card-title') || {}).textContent || '';
-          const tags = (card.querySelector('.arcade-card-tags') || {}).textContent || '';
-          const hit = !q || (title + ' ' + tags).toLowerCase().includes(q);
-          card.style.display = hit ? '' : 'none';
-          if (hit) shown++;
-        });
-        document.querySelectorAll('.arcade-section').forEach(sec => {
-          const any = [...sec.querySelectorAll('.arcade-card')].some(c => c.style.display !== 'none');
-          sec.hidden = q ? !any : false;
-        });
-        const scan = document.querySelector('.arcade-scan');
-        if (scan) scan.hidden = !!q;
-        searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
-      };
       searchEl.addEventListener('input', applyFilter);
       searchEl.addEventListener('keydown', e => {
         if (e.key === 'Escape') { searchEl.value = ''; applyFilter(); searchEl.blur(); }
         e.stopPropagation();   // typing must not trigger game hotkeys
       });
     }
+    const emptyClear = document.getElementById('arcade-empty-clear');
+    if (emptyClear) emptyClear.addEventListener('click', () => {
+      if (!searchEl) return;
+      searchEl.value = '';
+      applyFilter();
+      searchEl.focus();
+    });
 
     // P7: ? toggles the shortcuts cheat-sheet; Esc closes it. Ignored while
     // typing in an input so "?" in the journal/search stays a character.
@@ -2033,9 +2047,23 @@
     });
     document.querySelectorAll('[data-jump]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const sec = document.querySelector('.arcade-section[data-section="' + btn.dataset.jump + '"]');
+        // A hop during search used to target a hidden section and go
+        // nowhere. Clear the filter first so Long / Quick / Studio land.
+        if (searchEl && searchEl.value) {
+          searchEl.value = '';
+          applyFilter();
+        }
+        const key = btn.dataset.jump;
+        const sec = document.querySelector('.arcade-section[data-section="' + key + '"]');
         if (!sec) return;
         if (currentView !== 'arcade') switchView('arcade');
+        document.querySelectorAll('.arcade-scan-link[data-jump]').forEach(b => {
+          if (b.dataset.jump === key) b.setAttribute('aria-current', 'true');
+          else b.removeAttribute('aria-current');
+        });
+        document.querySelectorAll('.arcade-section').forEach(s => {
+          s.classList.toggle('is-landed', s.dataset.section === key);
+        });
         requestAnimationFrame(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       });
     });
