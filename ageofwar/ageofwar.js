@@ -132,6 +132,7 @@ const AgeOfWarGame = (() => {
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false, modalPaused = false, userPaused = false;
+  let resumePrompt = false;
   let outcome = null;
   // Any modal opening calls setModalPaused(true), closing calls (false).
   // Centralised so the sim/render code only checks one flag.
@@ -148,7 +149,9 @@ const AgeOfWarGame = (() => {
   function setUserPaused(p) {
     p = !!p;
     if (p && gameOver) return;        // nothing to pause post-game
-    if (p === userPaused) return;
+    if (p === userPaused && !resumePrompt) return;
+    if (resumePrompt && p) resumePrompt = false;
+    if (!p) resumePrompt = false;
     userPaused = p;
     const btn = document.getElementById('aow-pause-btn');
     if (btn) {
@@ -165,7 +168,8 @@ const AgeOfWarGame = (() => {
       // the Restart button right there makes pre-run arming one click.
       ov.innerHTML = `
         <h2 style="color:#fcd34d">⏸ PAUSED</h2>
-        <p>Press <strong>P</strong>, click here, or hit Resume to continue</p>
+        <p>One tap resumes the war. Games takes you back to the hub — the battle is kept.</p>
+        ${overlayCtas('aow-resume-cta', 'Resume war')}
         <div id="relic-vault-pause" style="margin-top:16px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
           <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
             🏺 Relic Vault &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
@@ -210,7 +214,8 @@ const AgeOfWarGame = (() => {
         });
       });
       const rbtn = document.getElementById('relic-restart');
-      if (rbtn) rbtn.addEventListener('click', e => { e.stopPropagation(); reset(); });
+      if (rbtn) rbtn.addEventListener('click', e => { e.stopPropagation(); startNewWar(); });
+      wireOverlayPrimary('aow-resume-cta', e => { e.stopPropagation(); setUserPaused(false); });
       ov.style.display = 'flex';
     } else {
       // Solid resume path: drop the click handler + cursor we added so the
@@ -982,7 +987,10 @@ const AgeOfWarGame = (() => {
     loadAchievements();
     reset();
     bindControls();
-    maybeShowWelcome();
+    bindSessionLife();
+    const snap = loadSession();
+    if (snap && applySession(snap)) showResumeOverlay(snap);
+    else maybeShowWelcome();
     cancelAnimationFrame(rafId);
     lastFrame = performance.now();
     rafId = requestAnimationFrame(loop);
@@ -2936,7 +2944,7 @@ const AgeOfWarGame = (() => {
   // ---- Input ----
   function bindControls() {
     const restartBtn = document.getElementById('aow-restart-btn');
-    if (restartBtn) restartBtn.onclick = reset;
+    if (restartBtn) restartBtn.onclick = startNewWar;
     const ageBtn = document.getElementById('aow-ageup-btn');
     if (ageBtn) ageBtn.onclick = ageUp;
     const specialBtn = document.getElementById('aow-special-btn');
@@ -3068,10 +3076,41 @@ const AgeOfWarGame = (() => {
         // changed difficulty mid-run with none of the HUD switch's reset,
         // making win_hard/win_insane gameable (start Easy, flip to Insane
         // right before the kill).
-        reset();
+        startNewWar();
         closeSettings();
       };
     });
+    const banModal = document.getElementById('aow-banner-modal');
+    if (banModal) {
+      banModal.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.banner === warBanner);
+        btn.addEventListener('click', () => {
+          warBanner = BANNERS[btn.dataset.banner] ? btn.dataset.banner : 'none';
+          try { localStorage.setItem('aow-banner', warBanner); } catch {}
+          document.querySelectorAll('#aow-banner button, #aow-banner-modal button').forEach(b => {
+            b.classList.toggle('active', b.dataset.banner === warBanner);
+          });
+          startNewWar();
+          closeSettings();
+        });
+      });
+    }
+    const endlessToggle = document.getElementById('aow-endless-toggle');
+    const syncEndlessToggle = () => {
+      if (!endlessToggle) return;
+      endlessToggle.setAttribute('aria-pressed', String(!!endlessMode));
+      endlessToggle.textContent = endlessMode ? '∞ Endless on' : '∞ Endless off';
+    };
+    syncEndlessToggle();
+    if (endlessToggle) endlessToggle.onclick = () => {
+      endlessMode = !endlessMode;
+      try { localStorage.setItem('aow-mode', endlessMode ? 'endless' : 'classic'); } catch {}
+      const endlessBtn = document.getElementById('aow-endless-btn');
+      if (endlessBtn) endlessBtn.classList.toggle('active', endlessMode);
+      syncEndlessToggle();
+      startNewWar();
+      closeSettings();
+    };
     // Mute toggle
     const muteToggle = document.getElementById('aow-mute-toggle');
     if (muteToggle) muteToggle.onclick = () => {
@@ -3093,6 +3132,7 @@ const AgeOfWarGame = (() => {
       try {
         localStorage.removeItem('aow-achievements');
         localStorage.removeItem('aow-best-run');
+        localStorage.removeItem('aow-session');
       } catch {}
       earnedAchievements = {};
       closeSettings();
@@ -3140,7 +3180,7 @@ const AgeOfWarGame = (() => {
           difficulty = btn.dataset.diff;
           try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
           diffEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-          reset();
+          startNewWar();
         });
       });
     }
@@ -3154,7 +3194,7 @@ const AgeOfWarGame = (() => {
           warBanner = BANNERS[btn.dataset.banner] ? btn.dataset.banner : 'none';
           try { localStorage.setItem('aow-banner', warBanner); } catch {}
           banEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-          reset();
+          startNewWar();
         });
       });
     }
@@ -3170,7 +3210,7 @@ const AgeOfWarGame = (() => {
         endlessMode = !endlessMode;
         try { localStorage.setItem('aow-mode', endlessMode ? 'endless' : 'classic'); } catch {}
         endlessBtn.classList.toggle('active', endlessMode);
-        reset();
+        startNewWar();
       });
     }
     // Tab switching (Units / Turrets)
@@ -3186,6 +3226,13 @@ const AgeOfWarGame = (() => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
       if (modalPaused) return; // ignore game keys while a modal has the sim paused
+      if (resumePrompt) {
+        if (e.key === ' ' || e.key === 'p' || e.key === 'P' || e.key === 'Enter') {
+          dismissResumePrompt(false);
+          e.preventDefault();
+        }
+        return;
+      }
       if (e.key === 'p' || e.key === 'P') {
         setUserPaused(!userPaused);
         e.preventDefault();
@@ -3206,7 +3253,7 @@ const AgeOfWarGame = (() => {
         if (key) tryPlayerSpawn(key);
         e.preventDefault();
       } else if (e.key === ' ') {
-        if (gameOver) reset();
+        if (gameOver) startNewWar();
         else fireSpecial();
         e.preventDefault();
       } else if (e.key === 'q' || e.key === 'Q') {
@@ -9227,9 +9274,212 @@ const AgeOfWarGame = (() => {
   };
 
   // ---- Overlay ----
+  const SESSION_KEY = 'aow-session';
+
+  function overlayCtas(primaryId, primaryLabel) {
+    return `<div class="aow-cta-row">
+      <button type="button" class="aow-cta aow-cta-primary" id="${primaryId}">${primaryLabel}</button>
+      <a class="aow-cta aow-cta-hub" href="/">Back to Games</a>
+    </div>`;
+  }
+  function wireOverlayPrimary(id, fn) {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', fn);
+    const hub = document.querySelector('#aow-overlay .aow-cta-hub');
+    if (hub) hub.addEventListener('click', e => e.stopPropagation());
+  }
+  function sessionInt(v, fallback, lo, hi) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(hi, Math.max(lo, Math.floor(n)));
+  }
+  function packTurrets(arr) {
+    return (arr || []).slice(0, TURRET_SLOTS_MAX).map(t => {
+      if (!t || typeof t !== 'object') return null;
+      const era = sessionInt(t.era, -1, 0, TURRETS.length - 1);
+      if (era < 0) return null;
+      const mode = t.mode === 'weak' || t.mode === 'strong' ? t.mode : undefined;
+      return mode ? { era, mode } : { era };
+    });
+  }
+  function unpackTurrets(raw) {
+    const out = [null, null, null, null];
+    if (!Array.isArray(raw)) return out;
+    for (let i = 0; i < TURRET_SLOTS_MAX; i++) {
+      const t = raw[i];
+      if (!t || typeof t !== 'object') continue;
+      const era = sessionInt(t.era, -1, 0, TURRETS.length - 1);
+      if (era < 0 || !TURRETS[era]) continue;
+      const mode = t.mode === 'weak' || t.mode === 'strong' ? t.mode : undefined;
+      out[i] = { ...TURRETS[era], atkT: 0, mode };
+    }
+    return out;
+  }
+  function sessionWorthSaving() {
+    if (gameOver || !running || resumePrompt) return false;
+    return waveNum > 1 || playerEra > 0 || runStats.time >= 8 ||
+      playerTurrets.some(Boolean) || gold > 160;
+  }
+  function saveSession() {
+    if (!sessionWorthSaving()) return;
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        v: 1,
+        waveNum, waveEnemiesRemaining,
+        gold, xp, playerEra, enemyEra,
+        playerBaseHp, playerBaseMax, enemyBaseHp, enemyBaseMax,
+        armorTier, playerSlotsOwned,
+        difficulty, endlessMode, warBanner,
+        runStats: { ...runStats },
+        playerTurrets: packTurrets(playerTurrets),
+        enemyTurrets: packTurrets(enemyTurrets),
+        tentBought, armorerBought, fletcherBought, drillBought,
+        paymasterBought, masonsBought, hallTrained,
+        specialReadyT, heroReadyT, currentHeroCd,
+        runPerks: { ...runPerks },
+        councilBoons: { ...councilBoons },
+        strongholdsRazed, chestGold,
+      }));
+    } catch {}
+  }
+  function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+  }
+  function loadSession() {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { raw = null; }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.v !== 1) return null;
+    const wave = sessionInt(raw.waveNum, 0, 1, 9999);
+    const g = sessionInt(raw.gold, -1, 0, 1e12);
+    if (wave < 1 || g < 0) return null;
+    const era = sessionInt(raw.playerEra, 0, 0, ERAS.length - 1);
+    if (!ERAS[era]) return null;
+    return raw;
+  }
+  function applySession(raw) {
+    const snap = raw || loadSession();
+    if (!snap) return false;
+    waveNum = sessionInt(snap.waveNum, 1, 1, 9999);
+    waveEnemiesRemaining = sessionInt(snap.waveEnemiesRemaining, 4, 0, 99);
+    gold = sessionInt(snap.gold, 140, 0, 1e12);
+    xp = sessionInt(snap.xp, 0, 0, 1e12);
+    playerEra = sessionInt(snap.playerEra, 0, 0, ERAS.length - 1);
+    enemyEra = sessionInt(snap.enemyEra, 0, 0, ERAS.length - 1);
+    playerBaseMax = sessionInt(snap.playerBaseMax, 1500, 200, 1e7);
+    playerBaseHp = sessionInt(snap.playerBaseHp, playerBaseMax, 1, playerBaseMax);
+    enemyBaseMax = sessionInt(snap.enemyBaseMax, 1500, 200, 1e7);
+    enemyBaseHp = sessionInt(snap.enemyBaseHp, enemyBaseMax, 1, enemyBaseMax);
+    armorTier = sessionInt(snap.armorTier, 0, 0, ARMOR_MAX);
+    playerSlotsOwned = sessionInt(snap.playerSlotsOwned, 2, 2, TURRET_SLOTS_MAX);
+    if (snap.difficulty && DIFFICULTIES[snap.difficulty]) difficulty = snap.difficulty;
+    endlessMode = !!snap.endlessMode;
+    if (snap.warBanner && BANNERS[snap.warBanner]) warBanner = snap.warBanner;
+    if (snap.runStats && typeof snap.runStats === 'object') {
+      for (const k of Object.keys(runStats)) {
+        if (snap.runStats[k] != null) runStats[k] = sessionInt(snap.runStats[k], runStats[k], 0, 1e12);
+      }
+    }
+    playerTurrets = unpackTurrets(snap.playerTurrets);
+    enemyTurrets = unpackTurrets(snap.enemyTurrets);
+    tentBought = !!snap.tentBought;
+    armorerBought = !!snap.armorerBought;
+    fletcherBought = !!snap.fletcherBought;
+    drillBought = !!snap.drillBought;
+    paymasterBought = !!snap.paymasterBought;
+    masonsBought = !!snap.masonsBought;
+    hallTrained = sessionInt(snap.hallTrained, 0, 0, 20);
+    specialReadyT = sessionInt(snap.specialReadyT, 0, 0, 120);
+    heroReadyT = sessionInt(snap.heroReadyT, 0, 0, 180);
+    currentHeroCd = sessionInt(snap.currentHeroCd, HEROES[playerEra] ? HEROES[playerEra].cd : 20, 1, 180);
+    if (snap.runPerks && typeof snap.runPerks === 'object') {
+      runPerks = {
+        forge: !!snap.runPerks.forge,
+        drums: !!snap.runPerks.drums,
+        magnet: !!snap.runPerks.magnet,
+      };
+    }
+    if (snap.councilBoons && typeof snap.councilBoons === 'object' && !Array.isArray(snap.councilBoons)) {
+      councilBoons = { ...snap.councilBoons };
+    }
+    strongholdsRazed = sessionInt(snap.strongholdsRazed, 0, 0, 999);
+    chestGold = sessionInt(snap.chestGold, 0, 0, 1e12);
+    units = [];
+    projectiles = [];
+    coinDrops = [];
+    waveBreatherT = 4;
+    bossWaveActive = isBossWave(waveNum);
+    seedAmbient(playerEra);
+    document.querySelectorAll('.aow-diff button').forEach(b => {
+      b.classList.toggle('active', b.dataset.diff === difficulty);
+    });
+    document.querySelectorAll('#aow-banner button, #aow-banner-modal button').forEach(b => {
+      b.classList.toggle('active', b.dataset.banner === warBanner);
+    });
+    const endlessBtn = document.getElementById('aow-endless-btn');
+    if (endlessBtn) endlessBtn.classList.toggle('active', endlessMode);
+    const endlessToggle = document.getElementById('aow-endless-toggle');
+    if (endlessToggle) {
+      endlessToggle.setAttribute('aria-pressed', String(!!endlessMode));
+      endlessToggle.textContent = endlessMode ? '∞ Endless on' : '∞ Endless off';
+    }
+    renderHud();
+    renderSpawnPanel();
+    renderTrainingQueue();
+    renderTurretPanel();
+    return true;
+  }
+  function showResumeOverlay(snap) {
+    const ov = document.getElementById('aow-overlay');
+    if (!ov) return;
+    resumePrompt = true;
+    userPaused = true;
+    const btn = document.getElementById('aow-pause-btn');
+    if (btn) {
+      const ico = btn.querySelector('.aow-action-ico');
+      const lbl = btn.querySelector('.aow-action-lbl');
+      if (ico) ico.textContent = '▶️';
+      if (lbl) lbl.textContent = 'Resume';
+    }
+    const era = ERAS[sessionInt(snap.playerEra, 0, 0, ERAS.length - 1)] || ERAS[0];
+    const wave = sessionInt(snap.waveNum, 1, 1, 9999);
+    const g = sessionInt(snap.gold, 0, 0, 1e12);
+    ov.onclick = null;
+    ov.style.cursor = '';
+    ov.innerHTML = `
+      <h2 style="color:#fcd34d">↩ WAR IN PROGRESS</h2>
+      <p>Wave <b style="color:#fcd34d">${wave}</b> · ${era.name} · <b style="color:#fcd34d">${g}</b> gold. The field is held — one tap continues.</p>
+      ${overlayCtas('aow-resume-cta', 'Resume war')}
+      <button type="button" class="aow-cta aow-cta-ghost" id="aow-newwar-cta">New war</button>
+    `;
+    ov.style.display = 'flex';
+    wireOverlayPrimary('aow-resume-cta', e => { e.stopPropagation(); dismissResumePrompt(false); });
+    const nw = document.getElementById('aow-newwar-cta');
+    if (nw) nw.addEventListener('click', e => { e.stopPropagation(); dismissResumePrompt(true); });
+  }
+  function dismissResumePrompt(fresh) {
+    resumePrompt = false;
+    if (fresh) { startNewWar(); return; }
+    hideOverlay();
+    setUserPaused(false);
+  }
+  function startNewWar() {
+    resumePrompt = false;
+    clearSession();
+    reset();
+  }
+  function bindSessionLife() {
+    const flush = () => { try { saveSession(); } catch {} };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush();
+    });
+    window.addEventListener('pagehide', flush);
+  }
   function hideOverlay() {
     const ov = document.getElementById('aow-overlay');
-    if (ov) ov.style.display = 'none';
+    if (!ov) return;
+    ov.style.display = 'none';
+    ov.onclick = null;
+    ov.style.cursor = '';
   }
   // Endless best run: waves survived is the score (dying during wave N
   // means N-1 survived). Kept as small JSON under the 'aow-best-run' key the
@@ -9254,6 +9504,7 @@ const AgeOfWarGame = (() => {
   function showOverlay(won) {
     const ov = document.getElementById('aow-overlay');
     if (!ov) return;
+    clearSession();
     const earned = relicsEarned(won);
     relics += earned;
     saveRelics();
@@ -9292,10 +9543,12 @@ const AgeOfWarGame = (() => {
               ${pk.icon} ${pk.name} <span style="color:#fcd34d">${pk.cost}🏺</span>
             </button>`).join('')}
         </div>
-        <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Buy a bonus for your NEXT run, then restart.</div>
+        <div id="relic-msg" style="font-size:11px;color:var(--text-dim);margin-top:8px">Buy a bonus for your NEXT run, then play again.</div>
       </div>
-      <p style="font-size:12px; color: var(--text-dim); margin-top:14px">Press SPACE or click Restart</p>
+      ${overlayCtas('aow-again-cta', 'Play again')}
+      <p style="font-size:12px; color: var(--text-dim); margin-top:10px">Space plays again</p>
     `;
+    wireOverlayPrimary('aow-again-cta', e => { e.stopPropagation(); startNewWar(); });
     ov.querySelectorAll('.relic-perk').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();

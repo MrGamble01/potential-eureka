@@ -12,6 +12,7 @@
 <meta property="og:url" content="https://potential-eureka-gilt.vercel.app/voxel-garden">
 <link rel="canonical" href="https://potential-eureka-gilt.vercel.app/voxel-garden">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/css/arcade-chrome.css">
 <style>
   :root{
     --panel:#20262e; --panel2:#2a323c; --ink:#e8eef4; --dim:#9fb0bf;
@@ -41,6 +42,9 @@
     background:rgba(18,24,32,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 11px;
     min-width:38px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
   #back a:hover,#back button:hover{color:var(--ink)}
+  #back a.ea-back{gap:7px;padding:7px 15px 7px 12px;border-radius:999px;font-family:'JetBrains Mono',ui-monospace,monospace;
+    font-size:12px;font-weight:600;letter-spacing:1.5px;color:#c9d1d9;min-width:auto}
+  #resumeChip{color:var(--green);font-weight:700}
   #quests{top:58px;right:10px;width:230px;font-size:13px}
   #quests .q-title{font-weight:700;color:var(--green);margin-bottom:4px;font-size:12px;letter-spacing:.08em}
   #quests .q-text{color:var(--ink)}
@@ -88,6 +92,8 @@
   #helpOv ul{margin:8px 0 14px 18px}
   #helpOv button{margin-top:8px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
     padding:10px 22px;font-size:14px;cursor:pointer}
+  .help-cta-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
+  .help-cta-row .ea-back{margin-top:8px}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(6,10,18,.38) 100%)}
   #achOv,#almanacOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
@@ -118,11 +124,15 @@
   body.fpmode #crosshair,body.fpmode #fpTool{display:block}
   body.fpmode #hotbar{bottom:8px}
   body.fpmode .arcade-card,body.fpmode #quests{opacity:.85}
-  /* tablets / iPad */
+  /* tablets / iPad — keep the tool cluster and garden goal from stacking
+     on the same top-right corner. Quests drop above the hotbar; the
+     shared Games pill stays in #back. */
   @media (max-width:1024px){
-    #quests{width:200px;font-size:12px}
-    #back{max-width:44vw}
+    #quests{width:210px;font-size:12px;top:auto;bottom:84px;right:10px}
+    #back{top:64px;left:10px;right:10px;max-width:none;justify-content:flex-end}
+    #goodsHud{top:112px}
     .panel{max-width:min(96vw,460px)}
+    #resumeChip{font-size:12px}
   }
   /* phones */
   @media (max-width:640px){
@@ -205,6 +215,7 @@
   <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
   <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
+  <div class="chip" id="resumeChip" hidden>↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span></div>
 </div>
 <div id="goodsHud"></div>
 <div id="back">
@@ -217,7 +228,7 @@
   <button id="musicBtn" title="Music on/off">🎵</button>
   <button id="muteBtn" title="Mute (M)">🔊</button>
   <button id="helpBtn" title="Help (H)">?</button>
-  <a href="index.html">&larr; ARCADE</a>
+  <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 </div>
 <div class="hud chip" id="quests">
   <div class="q-title">✦ GARDEN GOAL</div>
@@ -298,7 +309,10 @@
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
-  <button id="helpClose">Let's grow</button>
+  <div class="help-cta-row">
+    <button id="helpClose">Let's grow</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
 </div></div>
 
 <script src="vendor/three-r128.min.js"></script>
@@ -5569,6 +5583,16 @@ let perf=0,saveTimer=0;
 function boot(){
   initScene();
   const loaded=load();
+  if(loaded){
+    const chip=document.getElementById('resumeChip');
+    if(chip&&((state.day||1)>1||(state.level||1)>1||(state.totalEarned||0)>0)){
+      chip.hidden=false;
+      const d=document.getElementById('resumeDay');
+      const l=document.getElementById('resumeLv');
+      if(d)d.textContent=String(state.day||1);
+      if(l)l.textContent=String(state.level||1);
+    }
+  }
   if(!loaded){
     genIsland(0,0,15,0);
     // starter: pre-till a few plots near spawn so first steps are obvious
