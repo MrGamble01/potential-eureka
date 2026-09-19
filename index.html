@@ -105,6 +105,8 @@
         <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
         <button type="button" class="hero-alt-link" data-jump="long">6 long games</button>
         <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
+        <button type="button" class="hero-alt-link" data-jump="studio">the studio</button>
+        <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
         <button type="button" class="hero-alt-link" data-jump="quick">15 quick games</button>
       </p>
     </div>
@@ -1498,20 +1500,36 @@
       document.querySelectorAll('.arcade-section.is-landed').forEach(s => s.classList.remove('is-landed'));
     }
     const RETURN_KEY = 'eureka-arcade-return';
+    const QUICK_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
+      'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
+      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix']);
     function sectionForEl(el) {
       const sec = el && el.closest && el.closest('[data-section]');
       return (sec && sec.dataset.section) || '';
     }
-    function rememberLeave(fromEl) {
+    function rememberLeave(fromEl, destView) {
       let section = sectionForEl(fromEl)
         || ((document.querySelector('.arcade-section.is-landed') || {}).dataset || {}).section
         || '';
+      const view = destView || ((fromEl && fromEl.dataset) || {}).view || '';
       if (!section && fromEl && fromEl.classList && fromEl.classList.contains('arcade-flagship')) section = 'long';
-      if (!section && fromEl && fromEl.dataset && fromEl.dataset.view === 'snake') section = 'quick';
+      if (!section && QUICK_VIEWS.has(view)) section = 'quick';
       if (!section && fromEl && fromEl.classList && fromEl.classList.contains('daily-chip')) section = 'quick';
       const q = ((document.getElementById('card-search') || {}).value) || '';
       try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ section, q })); } catch {}
     }
+    function rememberLaunch(section) {
+      try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ section: section || '', q: '' })); } catch {}
+    }
+    function syncChrome() {
+      const bar = document.querySelector('nav');
+      const shell = document.querySelector('.arcade-shell');
+      if (bar) document.documentElement.style.setProperty('--nav-height', bar.offsetHeight + 'px');
+      if (shell) document.documentElement.style.setProperty('--shell-height', shell.offsetHeight + 'px');
+    }
+    syncChrome();
+    addEventListener('resize', syncChrome);
+    addEventListener('load', syncChrome);
     function readLeave() {
       try {
         const raw = sessionStorage.getItem(RETURN_KEY);
@@ -1536,7 +1554,8 @@
     }
     function switchView(name) {
       if (currentView === 'arcade' && name !== 'arcade') {
-        if (!readLeave()) rememberLeave();
+        const pending = readLeave();
+        if (!pending || !pending.section) rememberLeave(null, name);
         clearScanLand();
       }
       if (currentView && currentView !== name && teardown[currentView]) {
@@ -1593,7 +1612,12 @@
           if (searchEl && pending.q) searchEl.value = pending.q;
         }
         refreshArcadeBadges();
-        if (typeof Telemetry !== 'undefined') Telemetry.renderResume('jump-back-in', switchView);
+        if (typeof Telemetry !== 'undefined') {
+          Telemetry.renderResume('jump-back-in', view => {
+            rememberLeave(null, view);
+            switchView(view);
+          });
+        }
         if (searchEl && searchEl.value) applyFilter();
         else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
         if (pending && pending.section) landSection(pending.section, { smooth: false });
@@ -1605,11 +1629,11 @@
 
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
-      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar/',
+      { name: 'Age of War',       accent: '#D29922', go: () => { rememberLaunch('long'); location.href = 'ageofwar/'; },
         best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
-      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon/',
+      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => { rememberLaunch('long'); location.href = 'tycoon/'; },
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
-      { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
+      { name: 'Grow Op',          accent: '#3FB950', go: () => { rememberLaunch('long'); location.href = 'drug-lab.html'; },
         best: () => {
           const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
           const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
@@ -1619,43 +1643,43 @@
           if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
           return parts.join(' · ');
         } },
-      { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
+      { name: 'Homeless Village', accent: '#F0883E', go: () => { rememberLaunch('long'); location.href = 'homeless-village.html'; },
         best: () => {
           const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0;
           if (d <= 0) return null;
           return d + ' days survived' + (s.arcStage >= 3 ? ' · 🔑 housed' : '');
         } },
-      { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
+      { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => { rememberLaunch('long'); location.href = 'voxel-garden.html'; },
         best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
-      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => switchView('snake'),
+      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => { rememberLaunch('quick'); switchView('snake'); },
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', go: () => switchView('tetris'),
+      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', go: () => { rememberLaunch('quick'); switchView('tetris'); },
         best: () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', go: () => switchView('breakout'),
+      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', go: () => { rememberLaunch('quick'); switchView('breakout'); },
         best: () => { const v = Scores.num('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', go: () => switchView('asteroids'),
+      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', go: () => { rememberLaunch('quick'); switchView('asteroids'); },
         best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: '2048',             accent: '#facc15', rid: 'g2048-best', go: () => switchView('2048'),
+      { name: '2048',             accent: '#facc15', rid: 'g2048-best', go: () => { rememberLaunch('quick'); switchView('2048'); },
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', go: () => switchView('minesweeper'),
+      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', go: () => { rememberLaunch('quick'); switchView('minesweeper'); },
         best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
-      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', go: () => switchView('connect4'),
+      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', go: () => { rememberLaunch('quick'); switchView('connect4'); },
         best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', go: () => switchView('word5'),
+      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', go: () => { rememberLaunch('quick'); switchView('word5'); },
         best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', go: () => switchView('lightcycles'),
+      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', go: () => { rememberLaunch('quick'); switchView('lightcycles'); },
         best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => switchView('pong'),
+      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => { rememberLaunch('quick'); switchView('pong'); },
         best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => switchView('stacker'),
+      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => { rememberLaunch('quick'); switchView('stacker'); },
         best: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : null; } },
-      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', go: () => switchView('crateescape'),
+      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', go: () => { rememberLaunch('quick'); switchView('crateescape'); },
         best: () => { const v = Scores.num('crate-best'); return v > 0 ? v + ' puzzles' : null; } },
-      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', go: () => switchView('vectordefense'),
+      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', go: () => { rememberLaunch('quick'); switchView('vectordefense'); },
         best: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves held' : null; } },
-      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', go: () => switchView('wordcascade'),
+      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', go: () => { rememberLaunch('quick'); switchView('wordcascade'); },
         best: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => switchView('memorymatrix'),
+      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
     const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];

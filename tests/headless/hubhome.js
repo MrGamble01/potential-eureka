@@ -26,6 +26,12 @@
  *  T. Daylight no longer paints midnight wash on the billboard / nav.
  *  U. 1280 Long games scan as two even rows of three.
  *  V. Search matches card descriptions (Studio "office").
+ *  W. 1280 Studio stays one card wide (not a 1200px banner).
+ *  X. 1280 Quick scans as five even rows of three.
+ *  Y. HoF / resume / a stale hours filter still restore the
+ *     catalogue you actually launched — not the hero.
+ *  AA. Studio hop stays on the hero while the scan is tucked.
+ *  AB. 390 scrolled: sticky shell sits under the wrapped nav.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -293,6 +299,28 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(desktopLong.cols === 3 && desktopLong.rows === 2 && desktopLong.last === 3 && !desktopLong.overflow,
     `1280 Long games scan as two even rows of three (${desktopLong.cols}+${desktopLong.last})`);
 
+  const desktopStudio = await page.evaluate(() => {
+    const card = document.querySelector('.arcade-grid--studio .arcade-card');
+    const r = card.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height) };
+  });
+  ok(desktopStudio.w >= 200 && desktopStudio.w <= 420,
+    `1280 Studio is one card wide, not a stretched banner (${desktopStudio.w}px)`);
+
+  const desktopQuick = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('.arcade-grid--quick .arcade-card')];
+    const tops = [...new Set(cards.map(c => Math.round(c.getBoundingClientRect().top)))];
+    const widths = tops.map(t => cards.filter(c => Math.round(c.getBoundingClientRect().top) === t).length);
+    return {
+      rows: tops.length,
+      cols: widths[0],
+      last: widths[widths.length - 1],
+      even: widths.every(n => n === 3),
+    };
+  });
+  ok(desktopQuick.cols === 3 && desktopQuick.rows === 5 && desktopQuick.even,
+    `1280 Quick games scan as five even rows of three (${desktopQuick.cols}×${desktopQuick.rows})`);
+
   await page.click('.arcade-secondary-nav [data-view="halloffame"]');
   await page.waitForTimeout(400);
   const shellOnHof = await page.evaluate(() => {
@@ -424,6 +452,20 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(fold390.hintOn && fold390.hintBelow && fold390.dailyBelow,
     '390 first-visit keeps primer and daily, but under the catalogue');
 
+  await pp.evaluate(() => window.scrollTo(0, 400));
+  await pp.waitForTimeout(200);
+  const phoneShell = await pp.evaluate(() => {
+    const nav = document.querySelector('nav').getBoundingClientRect();
+    const shell = document.querySelector('.arcade-shell').getBoundingClientRect();
+    return {
+      navBottom: Math.round(nav.bottom),
+      shellTop: Math.round(shell.top),
+      overlap: Math.round(nav.bottom - shell.top),
+    };
+  });
+  ok(phoneShell.overlap <= 1,
+    `390 scrolled: shell sits under the wrapped nav (overlap ${phoneShell.overlap}px)`);
+
   const day = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
   const dp = await day.newPage();
   const errs5 = [];
@@ -495,9 +537,86 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     'Age of War GAMES back restores the hours filter and Long scan');
   await aow.close();
 
+  const hof = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const hp = await hof.newPage();
+  const errs7 = [];
+  hp.on('pageerror', e => errs7.push(String(e).slice(0, 300)));
+  await hp.addInitScript(() => localStorage.setItem('eureka-primer-seen', '1'));
+  await hp.goto(BASE + '/index.html', { waitUntil: 'load' });
+  await hp.waitForTimeout(1800);
+  await hp.fill('#card-search', 'hours');
+  await hp.waitForTimeout(200);
+  await hp.click('.arcade-secondary-nav [data-view="halloffame"]');
+  await hp.waitForTimeout(400);
+  await hp.evaluate(() => {
+    const row = [...document.querySelectorAll('.hof-row')].find(r => /Snake/.test(r.textContent));
+    if (row) row.click();
+  });
+  await hp.waitForTimeout(700);
+  await hp.click('#view-snake .game-back-btn');
+  await hp.waitForTimeout(900);
+  const fromHof = await hp.evaluate(() => {
+    const q = document.querySelector('[data-section="quick"]');
+    const r = q.getBoundingClientRect();
+    return {
+      q: document.getElementById('card-search').value,
+      onScreen: r.top >= 0 && r.top < window.innerHeight * 0.55,
+      here: q.classList.contains('is-landed'),
+      scan: document.querySelector('.arcade-scan-link--quick').getAttribute('aria-current') === 'true',
+    };
+  });
+  ok(!fromHof.q && fromHof.onScreen && fromHof.here && fromHof.scan,
+    'HoF Snake → Games restores Quick, not a stale hours filter');
+  await hof.close();
+
+  const resu = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const rp = await resu.newPage();
+  const errs8 = [];
+  rp.on('pageerror', e => errs8.push(String(e).slice(0, 300)));
+  await rp.addInitScript(() => {
+    localStorage.setItem('eureka-primer-seen', '1');
+    localStorage.setItem('eureka-stats', JSON.stringify({
+      firstSeen: Date.now(), launches: { snake: 2 }, seconds: { snake: 90 }, days: {}, lastPlayed: 'snake',
+    }));
+  });
+  await rp.goto(BASE + '/index.html', { waitUntil: 'load' });
+  await rp.waitForTimeout(1800);
+  await rp.click('.resume-chip');
+  await rp.waitForTimeout(700);
+  await rp.click('#view-snake .game-back-btn');
+  await rp.waitForTimeout(900);
+  const fromResume = await rp.evaluate(() => {
+    const q = document.querySelector('[data-section="quick"]');
+    const r = q.getBoundingClientRect();
+    return {
+      onScreen: r.top >= 0 && r.top < window.innerHeight * 0.55,
+      here: q.classList.contains('is-landed'),
+    };
+  });
+  ok(fromResume.onScreen && fromResume.here,
+    'Jump back in → Games restores the Quick scan');
+  await resu.close();
+
+  await page.fill('#card-search', 'snake');
+  await page.waitForTimeout(200);
+  await page.click('.hero-alt-link[data-jump="studio"]');
+  await page.waitForTimeout(1600);
+  const studioHop = await page.evaluate(() => {
+    const s = document.querySelector('[data-section="studio"]');
+    const r = s.getBoundingClientRect();
+    return {
+      q: document.getElementById('card-search').value,
+      shown: !s.hidden,
+      onScreen: r.top >= 0 && r.top < window.innerHeight * 0.55,
+      here: s.classList.contains('is-landed'),
+    };
+  });
+  ok(!studioHop.q && studioHop.shown && studioHop.onScreen && studioHop.here,
+    'the Studio hop during a filter clears search and lands Studio');
+
   await browser.close();
-  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0 && errs5.length === 0 && errs6.length === 0,
-    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : errs4.length ? ' — ' + errs4[0] : errs5.length ? ' — ' + errs5[0] : errs6.length ? ' — ' + errs6[0] : ''}`);
+  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0 && errs5.length === 0 && errs6.length === 0 && errs7.length === 0 && errs8.length === 0,
+    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : errs4.length ? ' — ' + errs4[0] : errs5.length ? ' — ' + errs5[0] : errs6.length ? ' — ' + errs6[0] : errs7.length ? ' — ' + errs7[0] : errs8.length ? ' — ' + errs8[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

@@ -488,12 +488,6 @@ nav .logo-btn {
   line-height: 1.4;
 }
 
-.arcade-grid--studio {
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 400px;
-  margin-left: 0;
-}
-
 /* ---- ARCADE GAME GRID ---- */
 .arcade-grid {
   display: grid;
@@ -501,6 +495,15 @@ nav .logo-btn {
   gap: 16px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* After .arcade-grid on purpose: same-specificity max-width / columns
+   were losing to auto-fit 1200px, so the one Studio card became a
+   1179×867 banner at 1280. One card wide, like the 900 leftover. */
+.arcade-grid--studio {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 400px;
+  margin-left: 0;
 }
 
 /* ---- CABINET CARD ---- */
@@ -1008,9 +1011,10 @@ button.arcade-card {
 
 /* Desktop leftover after the 900 3-across pass: auto-fit at 1280
    laid the six flagships 4+2. Two even rows of three matches the
-   tablet scan. */
+   tablet scan. Quick was still 4+4+4+3 — same even-three language. */
 @media (min-width: 1021px) {
-  .arcade-grid--long {
+  .arcade-grid--long,
+  .arcade-grid--quick {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
