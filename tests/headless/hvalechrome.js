@@ -279,9 +279,12 @@ const keptTown = () => {
     await ctx.close();
   }
 
-  // J
+  // J — plant after first paint so a reload cannot re-seed the kept blob
   {
-    const { ctx, page } = await open({ width: 1280, height: 800 }, keptTown);
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.evaluate(keptTown);
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(2200);
     const neu = await page.evaluate(() => {
       const btn = document.getElementById('resumeNewTown');
       return {
@@ -291,14 +294,17 @@ const keptTown = () => {
     });
     ok(neu.on && neu.label === 'New town', 'a kept town offers New town on the resume chip');
     page.once('dialog', d => d.accept());
-    await page.click('#resumeNewTown');
-    await page.waitForTimeout(2200);
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'load' }),
+      page.click('#resumeNewTown'),
+    ]);
+    await page.waitForTimeout(2400);
     const after = await page.evaluate(() => {
       const el = document.getElementById('resumeChip');
       const welcome = document.getElementById('welcome');
       return {
         chipGone: !el || el.hidden || getComputedStyle(el).display === 'none',
-        welcome: welcome && welcome.classList.contains('show'),
+        welcome: !!(welcome && welcome.classList.contains('show')),
         kept: localStorage.getItem('hearthvale-v1'),
       };
     });
@@ -329,7 +335,9 @@ const keptTown = () => {
       };
     });
     ok(phone.ok && phone.chipOn && phone.gamesOn && phone.gearOn && !phone.buryGames && !phone.buryGear,
-      '390×844 kept resume does not bury Games or the gear');
+      '390×844 kept resume does not bury Games or the gear'
+      + (phone.ok && phone.chipOn && phone.gamesOn && phone.gearOn && !phone.buryGames && !phone.buryGear
+        ? '' : ` — ${JSON.stringify(phone)}`));
     await ctx.close();
   }
 

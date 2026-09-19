@@ -368,7 +368,7 @@
       #goals { bottom: 104px; width: 160px; padding: 7px 10px; }
     }
     @media (max-width: 640px) {
-      #hud { padding: 46px 8px 6px 8px; font-size: 12px; }
+      #hud { padding: 54px 8px 6px 8px; font-size: 12px; }
       #panel { top: auto; bottom: 90px; right: 8px; left: 8px; width: auto; }
       #goals { top: auto; bottom: 92px; left: 8px; width: 170px; }
       #hint { display: none; }
@@ -579,6 +579,7 @@
 
   const SAVE_KEY = 'hearthvale-v1';
   let bootUnread = false;   // a kept blob that could not be read
+  let townDropped = false;  // New town must not be rewritten by a late save()
   const TILE = 16;               // base pixel size of one tile
   const MAP_W = 56, MAP_H = 42;  // world size in tiles
   const WORLD_PX_W = MAP_W * TILE, WORLD_PX_H = MAP_H * TILE;
@@ -5727,6 +5728,7 @@
   //  Save / load
   // ============================================================
   function save() {
+    if (townDropped) return;
     try {
       const s = {
         res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 })),
@@ -5953,6 +5955,7 @@
 
   function dropKeptTown() {
     if (!confirm('Start a new town? Your current progress will be lost.')) return;
+    townDropped = true;
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
     location.reload();
   }
