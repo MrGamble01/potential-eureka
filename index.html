@@ -113,6 +113,21 @@
       <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
              aria-label="Filter games" autocomplete="off">
       <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
+      <nav class="arcade-scan" aria-label="Jump by session length">
+        <button type="button" class="arcade-scan-link arcade-scan-link--long" data-jump="long">
+          <span class="arcade-scan-time">Hours</span>
+          Long
+          <span class="arcade-scan-count">6</span>
+        </button>
+        <button type="button" class="arcade-scan-link arcade-scan-link--studio" data-jump="studio">
+          Studio
+        </button>
+        <button type="button" class="arcade-scan-link arcade-scan-link--quick" data-jump="quick">
+          <span class="arcade-scan-time">Minutes</span>
+          Quick
+          <span class="arcade-scan-count">15</span>
+        </button>
+      </nav>
     </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
     <div id="primer-hint" role="region" aria-label="New here" hidden>
@@ -125,22 +140,6 @@
       <span class="daily-sub">Same seed for everyone — set today's mark:</span>
       <span id="daily-games"></span>
     </div>
-
-    <nav class="arcade-scan" aria-label="Jump by session length">
-      <button type="button" class="arcade-scan-link arcade-scan-link--long" data-jump="long">
-        <span class="arcade-scan-time">Hours</span>
-        Long
-        <span class="arcade-scan-count">6</span>
-      </button>
-      <button type="button" class="arcade-scan-link arcade-scan-link--studio" data-jump="studio">
-        Studio
-      </button>
-      <button type="button" class="arcade-scan-link arcade-scan-link--quick" data-jump="quick">
-        <span class="arcade-scan-time">Minutes</span>
-        Quick
-        <span class="arcade-scan-count">15</span>
-      </button>
-    </nav>
 
     <div class="arcade-section arcade-section--long" id="arcade-long" data-section="long">
       <div class="arcade-section-head">

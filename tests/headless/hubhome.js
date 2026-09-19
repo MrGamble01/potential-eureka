@@ -73,7 +73,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(scan.studio && scan.jumps, 'Studio is labeled and the scan hops reach long, quick and studio');
 
   await page.click('.arcade-scan-link--quick');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1600);
   const jumped = await page.evaluate(() => {
     const q = document.querySelector('[data-section="quick"]');
     const r = q.getBoundingClientRect();
