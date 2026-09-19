@@ -92,8 +92,8 @@
   #helpOv ul{margin:8px 0 14px 18px}
   #helpOv button{margin-top:8px;background:var(--green);color:#12281a;font-weight:700;border:0;border-radius:10px;
     padding:10px 22px;font-size:14px;cursor:pointer}
-  .help-cta-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
-  .help-cta-row .ea-back{margin-top:8px}
+  .help-cta-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 12px}
+  .help-cta-row .ea-back{margin-top:0}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(6,10,18,.38) 100%)}
   #achOv,#almanacOv{position:fixed;inset:0;background:rgba(8,12,18,.86);z-index:40;display:none;align-items:center;justify-content:center}
@@ -261,6 +261,10 @@
 <div id="helpOv"><div class="card">
   <h2>🏝️ Voxel Isle</h2>
   <p>A tiny floating island, all yours. Grow a garden in the sky.</p>
+  <div class="help-cta-row">
+    <button id="helpClose">Let's grow</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
   <ul>
     <li><b>Drag</b> to orbit &middot; <b>scroll / pinch</b> to zoom &middot; <b>Q / E</b> rotate</li>
     <li><b>⚒️ Till</b> grass into soil, <b>🌱 plant</b> a seed, <b>💧 water</b> it (grows 2&times; faster)</li>
@@ -309,10 +313,6 @@
     <li><b>Town ranks</b> &mdash; as you add buildings, villagers, land &amp; wealth your settlement climbs from 🏛️ <b>Homestead → Hamlet → Village → Township → Sky City</b>, each with a coin gift (rank shown atop the Town panel)</li>
     <li>Keys <b>1&ndash;5</b> pick tools &middot; <b>M</b> mute &middot; <b>P</b> photo mode &middot; <b>🏆</b> achievements &middot; autosaves</li>
   </ul>
-  <div class="help-cta-row">
-    <button id="helpClose">Let's grow</button>
-    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
-  </div>
 </div></div>
 
 <script src="vendor/three-r128.min.js"></script>

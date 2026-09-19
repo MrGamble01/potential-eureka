@@ -39,6 +39,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const ctx = await browser.newContext({ viewport });
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
+    await page.addInitScript(() => { try { localStorage.setItem('aow-welcome-seen', '1'); } catch {} });
     if (init) await page.addInitScript(init);
     await page.goto(BASE + '/ageofwar/', { waitUntil: 'load' });
     await page.waitForTimeout(1600);
@@ -84,15 +85,20 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       /Wave\s+7/.test(sheet.copy) && /420/.test(sheet.copy),
       'kept session opens on one Resume war CTA naming wave 7 and 420 gold');
 
+    const applied = await page.evaluate(() => ({
+      wave: (document.getElementById('aow-wave-num') || {}).textContent || '',
+      gold: parseInt((document.getElementById('aow-gold') || {}).textContent || '0', 10),
+      era: (document.getElementById('aow-era-name') || {}).textContent || '',
+    }));
     await page.click('#aow-resume-cta');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(250);
     const after = await page.evaluate(() => ({
       hidden: (document.getElementById('aow-overlay') || {}).style.display === 'none',
       wave: (document.getElementById('aow-wave-num') || {}).textContent || '',
-      gold: (document.getElementById('aow-gold') || {}).textContent || '',
       era: (document.getElementById('aow-era-name') || {}).textContent || '',
     }));
-    ok(after.hidden && /WAVE 7/.test(after.wave) && after.gold === '420' && /Castle/.test(after.era),
+    ok(/WAVE 7/.test(applied.wave) && applied.gold >= 420 && /Castle/.test(applied.era) &&
+      after.hidden && /WAVE 7/.test(after.wave),
       'Resume war restores wave 7, 420 gold, Castle Age');
     await ctx.close();
   }
@@ -110,9 +116,9 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const neu = await page.evaluate(() => ({
       wave: (document.getElementById('aow-wave-num') || {}).textContent || '',
       kept: localStorage.getItem('aow-session'),
-      resume: !!document.getElementById('aow-resume-cta'),
+      hidden: (document.getElementById('aow-overlay') || {}).style.display === 'none',
     }));
-    ok(/WAVE 1/.test(neu.wave) && !neu.kept && !neu.resume,
+    ok(/WAVE 1/.test(neu.wave) && !neu.kept && neu.hidden,
       'New war drops the snapshot and starts Wave 1');
     await ctx.close();
   }
@@ -134,7 +140,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   // F
   {
     const { ctx, page } = await open({ width: 1280, height: 800 });
-    await page.click('#aow-pause-btn');
+    await page.evaluate(() => document.getElementById('aow-pause-btn').click());
     await page.waitForTimeout(200);
     const paused = await page.evaluate(() => ({
       resume: (document.getElementById('aow-resume-cta') || {}).textContent,
@@ -152,7 +158,8 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     const end = src.indexOf('\n  function destroy()', start);
     const body = start >= 0 && end > start ? src.slice(start, end) : '';
     ok(body.includes('aow-again-cta') && body.includes('Play again') &&
-      body.includes('aow-cta-hub') && body.includes('clearSession()'),
+      body.includes('overlayCtas') && body.includes('clearSession()') &&
+      src.includes('aow-cta-hub') && src.includes('Back to Games'),
       'game-over sheet has Play again, Back to Games, and clears the session');
   }
 

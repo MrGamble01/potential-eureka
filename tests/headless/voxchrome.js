@@ -73,8 +73,14 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
         hub: hub && hub.getAttribute('href'),
       };
     });
-    ok(help.open && help.grow === "Let's grow" && help.hub === '/',
-      "help's one play CTA is Let's grow; Games sits beside it");
+    const stacked = await page.evaluate(() => {
+      const grow = document.getElementById('helpClose');
+      const first = document.querySelector('#helpOv li');
+      if (!grow || !first) return false;
+      return grow.getBoundingClientRect().bottom <= first.getBoundingClientRect().top + 2;
+    });
+    ok(help.open && help.grow === "Let's grow" && help.hub === '/' && stacked,
+      "help's one play CTA is Let's grow above the how-to; Games sits beside it");
     await ctx.close();
   }
 
