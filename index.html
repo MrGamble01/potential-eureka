@@ -1621,6 +1621,11 @@
         if (searchEl && (searchEl.value || pending)) applyFilter();
         else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
         if (pending && pending.section) landSection(pending.section, { smooth: false });
+        else window.scrollTo(0, 0);
+      } else {
+        // Leftover after HoF became site shell: a scrolled catalogue
+        // handed its offset to the board, so the title sat off-screen.
+        window.scrollTo(0, 0);
       }
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards

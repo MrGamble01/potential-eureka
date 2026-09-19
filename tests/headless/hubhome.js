@@ -38,6 +38,8 @@
  *      Reset my scores clears hearthvale-v1.
  *  AE. Daylight HoF chrome uses theme tokens, not midnight wash.
  *  AF. 390 HoF keeps the Hearthvale score on one card, not overflowing.
+ *  AG. Opening HoF from a scrolled catalogue starts at the title,
+ *      not mid-board with the leftover arcade offset.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -764,6 +766,23 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(!phoneBoard.overflow && phoneBoard.scoreIn && phoneBoard.nameIn && /17 villagers/.test(phoneBoard.score),
     `390 HoF keeps the Hearthvale score on the card (overflow ${phoneBoard.overflow})`);
   await phoneHof.close();
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(200);
+  await page.click('.arcade-secondary-nav [data-view="halloffame"]');
+  await page.waitForTimeout(400);
+  const hofTop = await page.evaluate(() => {
+    const title = document.querySelector('.hof-title');
+    const long = document.querySelector('.hof-lane--long');
+    const r = title && title.getBoundingClientRect();
+    return {
+      titleOn: !!(r && r.top >= 0 && r.bottom < window.innerHeight),
+      longOn: !!(long && long.getBoundingClientRect().top < window.innerHeight),
+      y: Math.round(window.scrollY),
+    };
+  });
+  ok(hofTop.titleOn && hofTop.longOn && hofTop.y < 40,
+    `HoF from a scrolled catalogue starts at the title (scrollY ${hofTop.y})`);
 
   await browser.close();
   ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0 && errs5.length === 0 && errs6.length === 0 && errs7.length === 0 && errs8.length === 0 && errs9.length === 0 && errs10.length === 0 && errs11.length === 0,
