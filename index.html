@@ -62,6 +62,13 @@
     <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
   </nav>
 
+  <nav class="arcade-secondary-nav arcade-shell" aria-label="Studio links">
+    <button type="button" class="sec-link" data-view="halloffame">&#127942; Hall of Fame</button>
+    <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
+    <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
+    <button type="button" class="sec-link" id="challenge-jump-btn">&#128197; Challenge</button>
+  </nav>
+
   <!-- Tucked-away utility views + toys — not games, kept out of the way -->
   <div class="nav-utils" id="nav-utils">
     <button data-view="dashboard">Dashboard</button>
@@ -80,7 +87,7 @@
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <p class="arcade-hero-sub">The flagship is Age of War. Everything else is a hop down the page.</p>
 
-      <a class="arcade-flagship" href="ageofwar" aria-label="Play Age of War">
+      <a class="arcade-flagship" href="ageofwar/" aria-label="Play Age of War">
         <div class="arcade-flagship-art" aria-hidden="true">
           <img class="arcade-flagship-poster" src="assets/thumbs/ageofwar.jpg" alt="" width="642" height="280">
         </div>
@@ -100,13 +107,6 @@
         <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
         <button type="button" class="hero-alt-link" data-jump="quick">15 quick games</button>
       </p>
-
-      <nav class="arcade-secondary-nav" aria-label="Studio links">
-        <button type="button" class="sec-link" data-view="halloffame">&#127942; Hall of Fame</button>
-        <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
-        <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
-        <button type="button" class="sec-link" id="challenge-jump-btn">&#128197; Challenge</button>
-      </nav>
     </div>
 
     <div class="card-search-wrap">
@@ -155,7 +155,7 @@
         <p class="arcade-section-lede">Save and come back. These are the flagships.</p>
       </div>
       <div class="arcade-grid arcade-grid--long">
-      <a class="arcade-card arcade-card--flagship" href="ageofwar" style="--accent:#D29922">
+      <a class="arcade-card arcade-card--flagship" href="ageofwar/" style="--accent:#D29922">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay" width="642" height="280" data-crop="wide">
           <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
@@ -171,7 +171,7 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="tycoon" style="--accent:#58A6FF">
+      <a class="arcade-card" href="tycoon/" style="--accent:#58A6FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/tycoon.jpg" alt="Startup Tycoon gameplay" width="640" height="400">
           <video class="arcade-card-clip" src="assets/thumbs/tycoon.webm" muted loop playsinline preload="none"></video>
@@ -1497,7 +1497,48 @@
       document.querySelectorAll('.arcade-scan-link[aria-current]').forEach(b => b.removeAttribute('aria-current'));
       document.querySelectorAll('.arcade-section.is-landed').forEach(s => s.classList.remove('is-landed'));
     }
+    const RETURN_KEY = 'eureka-arcade-return';
+    function sectionForEl(el) {
+      const sec = el && el.closest && el.closest('[data-section]');
+      return (sec && sec.dataset.section) || '';
+    }
+    function rememberLeave(fromEl) {
+      let section = sectionForEl(fromEl)
+        || ((document.querySelector('.arcade-section.is-landed') || {}).dataset || {}).section
+        || '';
+      if (!section && fromEl && fromEl.classList && fromEl.classList.contains('arcade-flagship')) section = 'long';
+      if (!section && fromEl && fromEl.dataset && fromEl.dataset.view === 'snake') section = 'quick';
+      if (!section && fromEl && fromEl.classList && fromEl.classList.contains('daily-chip')) section = 'quick';
+      const q = ((document.getElementById('card-search') || {}).value) || '';
+      try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ section, q })); } catch {}
+    }
+    function readLeave() {
+      try {
+        const raw = sessionStorage.getItem(RETURN_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    }
+    function clearLeave() {
+      try { sessionStorage.removeItem(RETURN_KEY); } catch {}
+    }
+    function landSection(key, opts) {
+      const sec = document.querySelector('.arcade-section[data-section="' + key + '"]');
+      if (!sec) return;
+      document.querySelectorAll('.arcade-scan-link[data-jump]').forEach(b => {
+        if (b.dataset.jump === key) b.setAttribute('aria-current', 'true');
+        else b.removeAttribute('aria-current');
+      });
+      document.querySelectorAll('.arcade-section').forEach(s => {
+        s.classList.toggle('is-landed', s.dataset.section === key);
+      });
+      const smooth = !opts || opts.smooth !== false;
+      requestAnimationFrame(() => sec.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' }));
+    }
     function switchView(name) {
+      if (currentView === 'arcade' && name !== 'arcade') {
+        if (!readLeave()) rememberLeave();
+        clearScanLand();
+      }
       if (currentView && currentView !== name && teardown[currentView]) {
         try { teardown[currentView](); } catch (e) {}
       }
@@ -1546,10 +1587,16 @@
       if (name === 'halloffame') renderHallOfFame();
       if (name !== 'arcade') clearScanLand();
       if (name === 'arcade') {
+        const pending = readLeave();
+        if (pending) {
+          clearLeave();
+          if (searchEl && pending.q) searchEl.value = pending.q;
+        }
         refreshArcadeBadges();
         if (typeof Telemetry !== 'undefined') Telemetry.renderResume('jump-back-in', switchView);
         if (searchEl && searchEl.value) applyFilter();
         else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
+        if (pending && pending.section) landSection(pending.section, { smooth: false });
       }
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
@@ -1558,9 +1605,9 @@
 
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
-      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar',
+      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar/',
         best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
-      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
+      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon/',
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
       { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
         best: () => {
@@ -1799,7 +1846,10 @@
     });
 
     navButtons.forEach(btn => {
-      btn.addEventListener('click', () => switchView(btn.dataset.view));
+      btn.addEventListener('click', () => {
+        if (currentView === 'arcade' && btn.dataset.view && btn.dataset.view !== 'arcade') rememberLeave(btn);
+        switchView(btn.dataset.view);
+      });
     });
 
     function syncNavUtilsExpanded() {
@@ -1820,6 +1870,11 @@
       if (persist) { try { localStorage.setItem('eureka-theme', id); } catch {} }
       const cur = THEMES.find(t => t.id === id) || THEMES[0];
       themeToggle.title = 'Theme: ' + cur.label;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        const token = getComputedStyle(document.documentElement).getPropertyValue('--theme-color').trim();
+        meta.content = token || '#060608';
+      }
     }
     applyTheme(document.documentElement.dataset.theme || '', false);
     themeToggle.addEventListener('click', () => {
@@ -1976,7 +2031,8 @@
       cards.forEach(card => {
         const title = (card.querySelector('.arcade-card-title') || {}).textContent || '';
         const tags = (card.querySelector('.arcade-card-tags') || {}).textContent || '';
-        const hit = !q || (title + ' ' + tags).toLowerCase().includes(q);
+        const desc = (card.querySelector('.arcade-card-desc') || {}).textContent || '';
+        const hit = !q || (title + ' ' + tags + ' ' + desc).toLowerCase().includes(q);
         card.style.display = hit ? '' : 'none';
         if (hit) shown++;
       });
@@ -2067,12 +2123,21 @@
     if (challengeJump) challengeJump.addEventListener('click', () => {
       const banner = document.getElementById('daily-banner');
       if (!banner) return;
+      clearLeave();
       if (searchEl && searchEl.value) {
         searchEl.value = '';
         applyFilter();
       }
       if (currentView !== 'arcade') switchView('arcade');
       requestAnimationFrame(() => banner.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    });
+    document.querySelectorAll('a.arcade-card[href], a.arcade-flagship').forEach(a => {
+      a.addEventListener('click', () => rememberLeave(a));
+    });
+    const dailyGames = document.getElementById('daily-games');
+    if (dailyGames) dailyGames.addEventListener('click', e => {
+      const chip = e.target.closest('.daily-chip');
+      if (chip) rememberLeave(chip);
     });
     document.querySelectorAll('[data-jump]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2082,18 +2147,11 @@
           searchEl.value = '';
           applyFilter();
         }
+        clearLeave();
         const key = btn.dataset.jump;
-        const sec = document.querySelector('.arcade-section[data-section="' + key + '"]');
-        if (!sec) return;
+        if (!key) return;
         if (currentView !== 'arcade') switchView('arcade');
-        document.querySelectorAll('.arcade-scan-link[data-jump]').forEach(b => {
-          if (b.dataset.jump === key) b.setAttribute('aria-current', 'true');
-          else b.removeAttribute('aria-current');
-        });
-        document.querySelectorAll('.arcade-section').forEach(s => {
-          s.classList.toggle('is-landed', s.dataset.section === key);
-        });
-        requestAnimationFrame(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        landSection(key);
       });
     });
     const primerGo = document.getElementById('primer-go');

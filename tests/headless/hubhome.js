@@ -18,9 +18,14 @@
  *     pushes Long games off the fold.
  *  O. Filter mode tucks daily / resume / primer so a miss is the page.
  *  P. Challenge and a daily chip clear an armed filter.
- *  Q. Leaving a game drops the scan "you are here" mark.
+ *  Q. Leaving a game drops the scan mark; Games back restores the
+ *     section you left (hash games and standalone Age of War).
  *  R. ~390 first-visit: Long games start on the fold (primer/daily
  *     no longer sit between scan and the catalogue).
+ *  S. Secondary nav is site shell — still there on Hall of Fame.
+ *  T. Daylight no longer paints midnight wash on the billboard / nav.
+ *  U. 1280 Long games scan as two even rows of three.
+ *  V. Search matches card descriptions (Studio "office").
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -60,7 +65,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       twentyOne: /\bTWENTY-ONE\b/.test(kicker),
     };
   });
-  ok(hero.flagHref === 'ageofwar' && hero.flagCta && hero.ctaCount === 1,
+  ok(hero.flagHref === 'ageofwar/' && hero.flagCta && hero.ctaCount === 1,
     'the only hero CTA is Play Age of War, on the flagship billboard');
   ok(!hero.quickDoor && hero.snakeHop,
     'Snake is a text hop under the billboard, not a second primary door');
@@ -169,15 +174,27 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.waitForTimeout(400);
   await page.evaluate(() => { location.hash = '#snake'; });
   await page.waitForTimeout(600);
-  await page.evaluate(() => { location.hash = '#arcade'; });
-  await page.waitForTimeout(600);
-  const trip = await page.evaluate(() => ({
-    arcade: document.getElementById('view-arcade').classList.contains('active'),
+  const away = await page.evaluate(() => ({
+    snake: document.getElementById('view-snake').classList.contains('active'),
     landed: !!document.querySelector('.arcade-section.is-landed'),
     aria: !!document.querySelector('.arcade-scan-link[aria-current]'),
   }));
-  ok(trip.arcade && !trip.landed && !trip.aria,
-    'coming back from a game drops the scan "you are here" mark');
+  ok(away.snake && !away.landed && !away.aria,
+    'leaving arcade drops the scan "you are here" mark');
+  await page.click('#view-snake .game-back-btn');
+  await page.waitForTimeout(800);
+  const trip = await page.evaluate(() => {
+    const q = document.querySelector('[data-section="quick"]');
+    const r = q.getBoundingClientRect();
+    return {
+      arcade: document.getElementById('view-arcade').classList.contains('active'),
+      onScreen: r.top >= 0 && r.top < window.innerHeight * 0.55,
+      here: q.classList.contains('is-landed'),
+      scan: document.querySelector('.arcade-scan-link--quick').getAttribute('aria-current') === 'true',
+    };
+  });
+  ok(trip.arcade && trip.onScreen && trip.here && trip.scan,
+    'Games back restores the Quick scan you left from');
 
   const flagCard = await page.evaluate(() => {
     const card = document.querySelector('.arcade-grid--long .arcade-card--flagship');
@@ -238,6 +255,19 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await page.evaluate(() => { location.hash = '#arcade'; });
   await page.waitForTimeout(600);
 
+  await page.fill('#card-search', 'office');
+  await page.waitForTimeout(200);
+  const descHit = await page.evaluate(() => ({
+    count: document.getElementById('card-search-count').textContent,
+    studio: !document.querySelector('[data-section="studio"]').hidden,
+    empty: document.getElementById('arcade-empty').hidden,
+    title: ((document.querySelector('.arcade-grid--studio .arcade-card-title') || {}).textContent || ''),
+  }));
+  ok(descHit.studio && descHit.empty && /studio/i.test(descHit.title) && descHit.count === '1 game',
+    'search "office" matches the Studio card description');
+  await page.fill('#card-search', '');
+  await page.waitForTimeout(200);
+
   const playLined = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('.arcade-grid--long .arcade-card')];
     const rowTop = Math.round(cards[0].getBoundingClientRect().top);
@@ -247,6 +277,40 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return bottoms.length >= 2 && Math.max(...bottoms) - Math.min(...bottoms) <= 2;
   });
   ok(playLined, 'PLAY sits on one baseline across a Long-game row');
+
+  const desktopLong = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('.arcade-grid--long .arcade-card')];
+    const tops = [...new Set(cards.map(c => Math.round(c.getBoundingClientRect().top)))];
+    const first = cards.filter(c => Math.round(c.getBoundingClientRect().top) === tops[0]);
+    const last = cards.filter(c => Math.round(c.getBoundingClientRect().top) === tops[tops.length - 1]);
+    return {
+      cols: first.length,
+      rows: tops.length,
+      last: last.length,
+      overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+    };
+  });
+  ok(desktopLong.cols === 3 && desktopLong.rows === 2 && desktopLong.last === 3 && !desktopLong.overflow,
+    `1280 Long games scan as two even rows of three (${desktopLong.cols}+${desktopLong.last})`);
+
+  await page.click('.arcade-secondary-nav [data-view="halloffame"]');
+  await page.waitForTimeout(400);
+  const shellOnHof = await page.evaluate(() => {
+    const primer = document.getElementById('primer-btn');
+    const chal = document.getElementById('challenge-jump-btn');
+    const patch = document.getElementById('patch-notes-btn');
+    const vis = el => !!(el && el.getClientRects().length);
+    return {
+      hof: document.getElementById('view-halloffame').classList.contains('active'),
+      primer: vis(primer),
+      chal: vis(chal),
+      patch: vis(patch),
+    };
+  });
+  ok(shellOnHof.hof && shellOnHof.primer && shellOnHof.chal && shellOnHof.patch,
+    'Hall of Fame still has How it works, Challenge and Patch Notes in the shell');
+  await page.click('#view-halloffame .game-back-btn');
+  await page.waitForTimeout(600);
 
   const tablet = await browser.newContext({ viewport: { width: 900, height: 700 } });
   const tp = await tablet.newPage();
@@ -360,9 +424,80 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(fold390.hintOn && fold390.hintBelow && fold390.dailyBelow,
     '390 first-visit keeps primer and daily, but under the catalogue');
 
+  const day = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
+  const dp = await day.newPage();
+  const errs5 = [];
+  dp.on('pageerror', e => errs5.push(String(e).slice(0, 300)));
+  await dp.addInitScript(() => {
+    localStorage.setItem('eureka-theme', 'daylight');
+    localStorage.setItem('eureka-primer-seen', '1');
+  });
+  await dp.goto(BASE + '/index.html', { waitUntil: 'load' });
+  await dp.waitForTimeout(1800);
+  const light = await dp.evaluate(() => {
+    const nav = getComputedStyle(document.querySelector('nav')).backgroundColor;
+    const flag = getComputedStyle(document.querySelector('.arcade-flagship')).backgroundImage;
+    const utils = getComputedStyle(document.querySelector('.nav-utils')).backgroundColor;
+    const hof = getComputedStyle(document.querySelector('.hof-wrap')).backgroundColor;
+    return {
+      theme: document.documentElement.dataset.theme,
+      nav,
+      flag,
+      utils,
+      hof,
+      themeColor: document.querySelector('meta[name="theme-color"]').content,
+      midnightNav: /rgba\(6,\s*6,\s*8/.test(nav),
+      midnightWash: /rgba\(6,\s*6,\s*8,\s*0\.55/.test(flag),
+    };
+  });
+  ok(light.theme === 'daylight' && !light.midnightNav && !light.midnightWash,
+    `daylight nav/billboard drop the midnight wash (nav ${light.nav})`);
+  ok(/^#eef1f6$/i.test(light.themeColor),
+    `theme-color follows daylight (${light.themeColor})`);
+  await day.close();
+
+  const aow = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'dark' });
+  const ap = await aow.newPage();
+  const errs6 = [];
+  ap.on('pageerror', e => errs6.push(String(e).slice(0, 300)));
+  await ap.addInitScript(() => {
+    localStorage.setItem('eureka-primer-seen', '1');
+    localStorage.setItem('aow-welcome-seen', '1');
+  });
+  await ap.goto(BASE + '/index.html', { waitUntil: 'load' });
+  await ap.waitForTimeout(1800);
+  await ap.fill('#card-search', 'hours');
+  await ap.waitForTimeout(200);
+  await Promise.all([
+    ap.waitForURL(/ageofwar/, { timeout: 20000 }),
+    ap.click('.arcade-grid--long .arcade-card--flagship'),
+  ]);
+  await ap.waitForSelector('a.ea-back', { timeout: 20000 });
+  await Promise.all([
+    ap.waitForURL(url => {
+      const u = String(url);
+      return /\/$|index\.html/.test(u) && !/ageofwar/.test(u);
+    }, { timeout: 20000 }),
+    ap.click('a.ea-back'),
+  ]);
+  await ap.waitForTimeout(1600);
+  const fromAow = await ap.evaluate(() => {
+    const long = document.querySelector('[data-section="long"]');
+    const r = long && long.getBoundingClientRect();
+    return {
+      q: (document.getElementById('card-search') || {}).value || '',
+      count: (document.getElementById('card-search-count') || {}).textContent || '',
+      onScreen: !!(r && r.top >= 0 && r.top < window.innerHeight * 0.7),
+      here: !!(long && long.classList.contains('is-landed')),
+    };
+  });
+  ok(fromAow.q === 'hours' && fromAow.count === '6 games' && fromAow.onScreen && fromAow.here,
+    'Age of War GAMES back restores the hours filter and Long scan');
+  await aow.close();
+
   await browser.close();
-  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0,
-    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : errs4.length ? ' — ' + errs4[0] : ''}`);
+  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0 && errs5.length === 0 && errs6.length === 0,
+    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : errs4.length ? ' — ' + errs4[0] : errs5.length ? ' — ' + errs5[0] : errs6.length ? ' — ' + errs6[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
