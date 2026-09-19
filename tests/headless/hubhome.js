@@ -16,6 +16,11 @@
  *  M. Clearing the filter drops the scan "you are here" mark.
  *  N. 720×700 keeps the compact flagship — not a 16:9 stack that
  *     pushes Long games off the fold.
+ *  O. Filter mode tucks daily / resume / primer so a miss is the page.
+ *  P. Challenge and a daily chip clear an armed filter.
+ *  Q. Leaving a game drops the scan "you are here" mark.
+ *  R. ~390 first-visit: Long games start on the fold (primer/daily
+ *     no longer sit between scan and the catalogue).
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -104,14 +109,17 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const empty = await page.evaluate(() => {
     const box = document.getElementById('arcade-empty');
     const r = box.getBoundingClientRect();
+    const daily = document.getElementById('daily-banner');
     return {
       shown: !box.hidden && r.height > 0,
       copy: /No games match/.test(box.textContent),
       count: document.getElementById('card-search-count').textContent,
+      dailyHidden: getComputedStyle(daily).display === 'none',
     };
   });
   ok(empty.shown && empty.copy && empty.count === '0 games',
     'a miss shows an empty state instead of a blank catalogue');
+  ok(empty.dailyHidden, 'a miss tucks the daily banner so the empty state is the page');
 
   await page.click('#arcade-empty-clear');
   await page.waitForTimeout(200);
@@ -119,9 +127,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     q: document.getElementById('card-search').value,
     emptyHidden: document.getElementById('arcade-empty').hidden,
     longShown: !document.querySelector('[data-section="long"]').hidden,
+    dailyShown: getComputedStyle(document.getElementById('daily-banner')).display !== 'none',
   }));
-  ok(!cleared.q && cleared.emptyHidden && cleared.longShown,
-    'Clear filter restores the catalogues');
+  ok(!cleared.q && cleared.emptyHidden && cleared.longShown && cleared.dailyShown,
+    'Clear filter restores the catalogues and the daily banner');
 
   await page.fill('#card-search', 'snake');
   await page.waitForTimeout(200);
@@ -154,6 +163,20 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(!scanReset.landed && !scanReset.aria,
     'clearing the filter drops the scan "you are here" mark');
 
+  await page.click('.arcade-scan-link--quick');
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { location.hash = '#snake'; });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => { location.hash = '#arcade'; });
+  await page.waitForTimeout(600);
+  const trip = await page.evaluate(() => ({
+    arcade: document.getElementById('view-arcade').classList.contains('active'),
+    landed: !!document.querySelector('.arcade-section.is-landed'),
+    aria: !!document.querySelector('.arcade-scan-link[aria-current]'),
+  }));
+  ok(trip.arcade && !trip.landed && !trip.aria,
+    'coming back from a game drops the scan "you are here" mark');
+
   const flagCard = await page.evaluate(() => {
     const card = document.querySelector('.arcade-grid--long .arcade-card--flagship');
     const badge = card && card.querySelector('.arcade-card-flag');
@@ -182,6 +205,36 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     return r.top >= 0 && r.top < window.innerHeight;
   });
   ok(dailyOnScreen, 'Challenge still scrolls to today\'s banner');
+
+  await page.fill('#card-search', 'zzzz');
+  await page.waitForTimeout(200);
+  await page.click('#challenge-jump-btn');
+  await page.waitForTimeout(400);
+  const chalFromMiss = await page.evaluate(() => {
+    const b = document.getElementById('daily-banner');
+    const r = b.getBoundingClientRect();
+    return {
+      q: document.getElementById('card-search').value,
+      dailyShown: getComputedStyle(b).display !== 'none',
+      onScreen: r.top >= 0 && r.top < window.innerHeight,
+      emptyHidden: document.getElementById('arcade-empty').hidden,
+    };
+  });
+  ok(!chalFromMiss.q && chalFromMiss.dailyShown && chalFromMiss.onScreen && chalFromMiss.emptyHidden,
+    'Challenge during a miss clears the filter and lands the banner');
+
+  await page.fill('#card-search', 'zzzz');
+  await page.waitForTimeout(200);
+  await page.click('.daily-chip[data-game="snake"]');
+  await page.waitForTimeout(800);
+  const dailyChip = await page.evaluate(() => ({
+    q: document.getElementById('card-search').value,
+    snake: document.getElementById('view-snake').classList.contains('active'),
+  }));
+  ok(!dailyChip.q && dailyChip.snake,
+    'a daily chip during a miss clears the filter before launching');
+  await page.evaluate(() => { location.hash = '#arcade'; });
+  await page.waitForTimeout(600);
 
   const playLined = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('.arcade-grid--long .arcade-card')];
@@ -276,9 +329,38 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(/188,\s*140,\s*255|210,\s*180,\s*255|d2b4ff/i.test(fold720.studioTint),
     `Studio scan pill has the matching rail tint (${fold720.studioTint})`);
 
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const pp = await phone.newPage();
+  const errs4 = [];
+  pp.on('pageerror', e => errs4.push(String(e).slice(0, 300)));
+  await pp.addInitScript(() => {
+    localStorage.removeItem('eureka-primer-seen');
+    localStorage.removeItem('eureka-stats');
+  });
+  await pp.goto(BASE + '/index.html', { waitUntil: 'load' });
+  await pp.waitForTimeout(1800);
+  const fold390 = await pp.evaluate(() => {
+    const first = document.querySelector('.arcade-grid--long .arcade-card');
+    const hint = document.getElementById('primer-hint');
+    const daily = document.getElementById('daily-banner');
+    const fr = first.getBoundingClientRect();
+    return {
+      firstTop: Math.round(fr.top),
+      onFold: fr.top < window.innerHeight - 40,
+      hintOn: !hint.hidden && hint.getBoundingClientRect().height > 0,
+      hintBelow: hint.getBoundingClientRect().top > fr.top,
+      dailyBelow: daily.getBoundingClientRect().top > fr.top,
+      overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+    };
+  });
+  ok(fold390.onFold && !fold390.overflow,
+    `390 first-visit Long card starts on the fold (top ${fold390.firstTop})`);
+  ok(fold390.hintOn && fold390.hintBelow && fold390.dailyBelow,
+    '390 first-visit keeps primer and daily, but under the catalogue');
+
   await browser.close();
-  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0,
-    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : ''}`);
+  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0 && errs4.length === 0,
+    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : errs4.length ? ' — ' + errs4[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

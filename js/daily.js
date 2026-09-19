@@ -129,6 +129,13 @@ const Daily = (() => {
       list.addEventListener('click', e => {
         const btn = e.target.closest('.daily-chip');
         if (!btn) return;
+        // A chip during search used to leave the filter armed, so
+        // coming back to #arcade still showed the empty miss.
+        const search = document.getElementById('card-search');
+        if (search && search.value) {
+          search.value = '';
+          search.dispatchEvent(new Event('input'));
+        }
         arm(btn.dataset.game);
         location.hash = '#' + btn.dataset.hash;
       });

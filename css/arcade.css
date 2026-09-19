@@ -1005,6 +1005,22 @@ button.arcade-card {
 }
 
 @media (max-width: 640px) {
+  /* Phone leftover after the 720 fold: primer + daily sat between
+     scan and Long and buried the catalogue (first card ~838 on 844).
+     Catalogue first; Challenge still scrolls to the banner. */
+  #view-arcade.view.active {
+    display: flex;
+    flex-direction: column;
+  }
+  #view-arcade .arcade-hero { order: 0; }
+  #view-arcade .card-search-wrap { order: 1; }
+  #view-arcade .jump-back-in { order: 2; }
+  #view-arcade #arcade-empty { order: 3; }
+  #view-arcade .arcade-section--long { order: 4; }
+  #view-arcade .arcade-section--studio { order: 5; }
+  #view-arcade .arcade-section--quick { order: 6; }
+  #view-arcade #primer-hint { order: 7; }
+  #view-arcade #daily-banner { order: 8; }
   .arcade-hero {
     margin: 14px auto 14px;
   }
@@ -1079,6 +1095,7 @@ button.arcade-card {
   border-radius: 10px;
   scroll-margin-top: calc(var(--nav-height) + 12px);
 }
+#daily-banner[hidden] { display: none; }
 .daily-title { font-weight: 800; font-size: 13px; letter-spacing: 1px; color: #F7C948; white-space: nowrap; }
 #daily-date { color: var(--text-muted, #7D8590); font-weight: 600; margin-left: 4px; }
 .daily-sub { font-size: 12px; color: var(--text-muted, #7D8590); }
@@ -1214,6 +1231,7 @@ button.arcade-card {
   max-width: 1100px; margin: 0 auto 14px;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
+.jump-back-in[hidden] { display: none; }
 .resume-label { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-dim, #7D8590); }
 .resume-chip {
   display: inline-flex; align-items: center; gap: 8px;

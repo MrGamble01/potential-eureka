@@ -1493,6 +1493,10 @@
       dashboard: () => { Dashboard.destroy(); CalendarWidget.destroy(); },
     };
 
+    function clearScanLand() {
+      document.querySelectorAll('.arcade-scan-link[aria-current]').forEach(b => b.removeAttribute('aria-current'));
+      document.querySelectorAll('.arcade-section.is-landed').forEach(s => s.classList.remove('is-landed'));
+    }
     function switchView(name) {
       if (currentView && currentView !== name && teardown[currentView]) {
         try { teardown[currentView](); } catch (e) {}
@@ -1540,9 +1544,12 @@
       if (typeof Coins !== 'undefined') Coins.credit();
       if (typeof Telemetry !== 'undefined') Telemetry.enter(name);
       if (name === 'halloffame') renderHallOfFame();
+      if (name !== 'arcade') clearScanLand();
       if (name === 'arcade') {
         refreshArcadeBadges();
         if (typeof Telemetry !== 'undefined') Telemetry.renderResume('jump-back-in', switchView);
+        if (searchEl && searchEl.value) applyFilter();
+        else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
       }
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
@@ -1958,6 +1965,9 @@
     const searchEl = document.getElementById('card-search');
     const searchCountEl = document.getElementById('card-search-count');
     const emptyEl = document.getElementById('arcade-empty');
+    const dailyBanner = document.getElementById('daily-banner');
+    const resumeRow = document.getElementById('jump-back-in');
+    const primerHint = document.getElementById('primer-hint');
     const applyFilter = () => {
       if (!searchEl) return;
       const q = searchEl.value.trim().toLowerCase();
@@ -1978,10 +1988,19 @@
       if (scan) scan.hidden = !!q;
       if (searchCountEl) searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
       if (emptyEl) emptyEl.hidden = !(q && shown === 0);
+      // Filter is a mode: daily / resume / primer are other doors.
+      // Leave them up and a miss still reads like the front page.
+      if (dailyBanner) dailyBanner.hidden = !!q;
+      if (resumeRow) resumeRow.hidden = !!q || !resumeRow.querySelector('.resume-chip');
+      if (primerHint) {
+        if (q) primerHint.hidden = true;
+        else if (primerHint.dataset.offer === '1') {
+          try { if (localStorage.getItem('eureka-primer-seen') !== '1') primerHint.hidden = false; } catch {}
+        }
+      }
       // A hop marks "you are here". Filtering (or clearing) puts the
       // full catalogue — or a different slice — back, so the mark lies.
-      document.querySelectorAll('.arcade-scan-link[aria-current]').forEach(b => b.removeAttribute('aria-current'));
-      document.querySelectorAll('.arcade-section.is-landed').forEach(s => s.classList.remove('is-landed'));
+      clearScanLand();
     };
     if (searchEl) {
       searchEl.addEventListener('input', applyFilter);
@@ -2047,6 +2066,10 @@
     if (challengeJump) challengeJump.addEventListener('click', () => {
       const banner = document.getElementById('daily-banner');
       if (!banner) return;
+      if (searchEl && searchEl.value) {
+        searchEl.value = '';
+        applyFilter();
+      }
       if (currentView !== 'arcade') switchView('arcade');
       requestAnimationFrame(() => banner.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     });
@@ -2094,7 +2117,7 @@
       if (primerSeen() || !hint) return;
       const stats = Scores.readJSON('eureka-stats');
       const played = stats && stats.seconds && Object.keys(stats.seconds).length > 0;
-      if (!played) hint.hidden = false;
+      if (!played) { hint.hidden = false; hint.dataset.offer = '1'; }
     })();
 
     // Patch notes: the studio changelog, newest first. Hand-curated —
