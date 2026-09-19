@@ -88,6 +88,10 @@
   --drawer-bg: rgba(6, 6, 8, 0.92);
   --flagship-wash: linear-gradient(135deg, rgba(210, 153, 34, 0.12), rgba(6, 6, 8, 0.55) 55%);
   --hof-panel: rgba(6, 6, 8, 0.6);
+  --modal-scrim: rgba(2, 2, 3, 0.8);
+  --modal-sheet: rgba(10, 10, 15, 0.95);
+  --overlay-scrim: rgba(2, 2, 3, 0.92);
+  --chip-wash: rgba(2, 2, 3, 0.72);
   --card-lift: 0 16px 40px rgba(0, 0, 0, 0.5);
   --theme-color: #060608;
   --widget-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--border-subtle);
@@ -323,7 +327,7 @@ nav button.active {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 2, 3, 0.8);
+  background: var(--modal-scrim);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 5000;
@@ -334,7 +338,7 @@ nav button.active {
 }
 
 .modal-content {
-  background: rgba(10, 10, 15, 0.95);
+  background: var(--modal-sheet);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   border: 1px solid var(--border);
@@ -637,6 +641,10 @@ nav button.active {
   --drawer-bg: #ffffff;
   --flagship-wash: linear-gradient(135deg, rgba(210, 153, 34, 0.18), rgba(255, 255, 255, 0.76) 55%);
   --hof-panel: rgba(255, 255, 255, 0.94);
+  --modal-scrim: rgba(232, 235, 242, 0.72);
+  --modal-sheet: rgba(255, 255, 255, 0.96);
+  --overlay-scrim: rgba(246, 248, 250, 0.88);
+  --chip-wash: rgba(255, 255, 255, 0.82);
   --card-lift: 0 12px 28px rgba(15, 23, 42, 0.12);
   --theme-color: #eef1f6;
 }

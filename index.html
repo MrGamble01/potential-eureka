@@ -1695,10 +1695,12 @@
       const board = document.getElementById('hof-board');
       if (!board) return;
       let played = 0;
-      const rowHtml = (g, i) => {
+      const rowHtml = (g, i, laneN) => {
         const best = g.best();
         if (best) played++;
-        const rank = String(i + 1).padStart(2, '0');
+        // Leftover after the Long/Quick board: rank still used the
+        // flat 01–21 index, so Quick opened at 07. Number inside the lane.
+        const rank = String((laneN != null ? laneN : i) + 1).padStart(2, '0');
         // Rivals (SITE-2): show the best imported mark beside your own,
         // lit up when the rival currently holds the lead.
         let rivalHtml = '';
@@ -1734,7 +1736,7 @@
             '<span class="hof-lane-count">' + items.length + '</span>' +
             '<span class="hof-lane-chip">' + lane.chip + '</span>' +
           '</div>' +
-          items.map(({ g, i }) => rowHtml(g, i)).join('') +
+          items.map(({ g, i }, n) => rowHtml(g, i, n)).join('') +
         '</div>';
       }).join('');
       board.querySelectorAll('.hof-row').forEach(row => {
