@@ -3513,6 +3513,8 @@
     }).join('');
   }
   function openChain() {
+    const menu = document.getElementById('menu');
+    if (menu) menu.classList.remove('show');
     renderChain();
     const m = document.getElementById('chain-modal');
     if (m) m.classList.add('open');

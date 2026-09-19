@@ -15,7 +15,7 @@
  *     keeps Games on screen, and leaves the field taller than a
  *     leftover 200px strip.
  *  F. Achievements, Chronicle and Decrees carry Games beside Back to town.
- *  G. The Hall carries Games.
+ *  G. The Hall carries Games and tucks the leftover gear menu.
  *  H. A corrupt valley paints the unread chip and drops the blob.
  *  I. Pause is Resume the valley plus Games, and does not cover welcome.
  *  J. A kept town offers New town on the resume chip.
@@ -223,7 +223,11 @@ const keptTown = () => {
         hub: hub && hub.getAttribute('href'),
       };
     });
-    ok(hall.open && hall.hub === '/', 'The Hall carries Games');
+    const menuShut = await page.evaluate(() => {
+      const menu = document.getElementById('menu');
+      return !menu || !menu.classList.contains('show');
+    });
+    ok(hall.open && hall.hub === '/' && menuShut, 'The Hall carries Games and tucks the gear menu');
     await ctx.close();
   }
 
