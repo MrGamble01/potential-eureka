@@ -20,10 +20,18 @@
  *  I. Pause is Resume the valley plus Games, and does not cover welcome.
  *  J. A kept town offers New town on the resume chip.
  *  K. 390×844 kept resume does not bury Games or the gear.
+ *  L. Trader and the event sheet carry Games (z-index 600 buried the pill).
+ *  M. Resume names a caravan, a riding stake, a posted order, an advance
+ *     and wolves still out — the snapshot already held them.
+ *  N. Pause names those holds; one tap still resumes.
+ *  O. beforeunload flushes; a dropped town still cannot be rewritten.
+ *  P. Escape closes the trader and The Hall.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
  */
+const fs = require('fs');
+const path = require('path');
 const { chromium } = require('playwright');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
@@ -342,6 +350,134 @@ const keptTown = () => {
       '390×844 kept resume does not bury Games or the gear'
       + (phone.ok && phone.chipOn && phone.gamesOn && phone.gearOn && !phone.buryGames && !phone.buryGear
         ? '' : ` — ${JSON.stringify(phone)}`));
+    await ctx.close();
+  }
+
+  // L
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, keptTown);
+    await page.click('#menu-btn');
+    await page.waitForTimeout(80);
+    const sheets = await page.evaluate(() => {
+      const trader = document.getElementById('trader');
+      const event = document.getElementById('event');
+      const menu = document.getElementById('menu');
+      const float = document.querySelector('a.ea-back.ea-back--float');
+      trader.classList.add('show');
+      const tHub = trader.querySelector('a.ea-back');
+      const tClose = document.getElementById('trader-close');
+      const tb = trader.getBoundingClientRect();
+      const fb = float.getBoundingClientRect();
+      const bury = !(fb.right < tb.left || fb.left > tb.right || fb.bottom < tb.top || fb.top > tb.bottom);
+      trader.classList.remove('show');
+      event.classList.add('show');
+      const eHub = event.querySelector('a.ea-back');
+      const evCtas = event.querySelector('.sheet-ctas');
+      event.classList.remove('show');
+      return {
+        tHub: tHub && tHub.getAttribute('href'),
+        tClose: tClose && tClose.textContent.trim(),
+        tBury: bury,
+        eHub: eHub && eHub.getAttribute('href'),
+        eCtas: !!(evCtas && evCtas.querySelector('a.ea-back')),
+        gearWas: menu && menu.classList.contains('show'),
+      };
+    });
+    ok(sheets.tHub === '/' && sheets.tClose === 'Send them on their way' && sheets.tBury,
+      'Trader is Send them on their way plus Games (sheet covers the float pill)');
+    ok(sheets.eHub === '/' && sheets.eCtas,
+      'the event sheet carries Games beside the choices');
+    const src = fs.readFileSync(path.join(__dirname, '../../hearthvale.html'), 'utf8');
+    ok(src.includes('function openTrader') && src.includes('function openEvent') &&
+      /function openTrader[\s\S]*tuckGear\(\)/.test(src) &&
+      /function openEvent[\s\S]*tuckGear\(\)/.test(src),
+      'opening trader or an event tucks the leftover gear menu');
+    await ctx.close();
+  }
+
+  // M + N
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+      localStorage.setItem('hearthvale-v1', JSON.stringify({
+        seed: 12345, day: 12, time: 10, seenIntro: true,
+        townName: 'Riverside', happy: 55, goalIndex: 0, _nextId: 10,
+        res: { wood: 40, stone: 20, food: 30, gold: 25 },
+        buildings: [],
+        villagers: [
+          { id: 1, tx: 20, ty: 20, name: 'Asha' },
+          { id: 2, tx: 21, ty: 20, name: 'Bren' },
+        ],
+        caravan: { returnDay: 15 },
+        caravanStake: true,
+        order: { k: 'food', qty: 15, pay: 60, byDay: 18 },
+        merchantAdvance: { due: 16 },
+        raidTonight: true,
+      }));
+    });
+    const named = await page.evaluate(() => {
+      const el = document.getElementById('resumeChip');
+      return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+    });
+    ok(/Riverside/.test(named) && /caravan is still on the road/.test(named) &&
+      /stake is still riding/.test(named) && /order is still posted/.test(named) &&
+      /advance is still due/.test(named) && /wolves are still out/.test(named),
+      'resume names a caravan, a riding stake, a posted order, an advance and wolves'
+      + (/caravan/.test(named) ? '' : ` — ${named}`));
+
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(200);
+    const held = await page.evaluate(() => {
+      const pe = document.getElementById('paused');
+      const holds = document.getElementById('pause-holds');
+      const resume = document.getElementById('pause-resume');
+      return {
+        show: pe && pe.classList.contains('show') && pe.classList.contains('held'),
+        text: holds ? holds.textContent.replace(/\s+/g, ' ').trim() : '',
+        hidden: !holds || holds.hidden,
+        resume: resume && resume.textContent.trim(),
+      };
+    });
+    ok(held.show && !held.hidden && /caravan is still on the road/.test(held.text) &&
+      /One tap continues/.test(held.text) && held.resume === 'Resume the valley',
+      'pause names the holds; one tap still resumes');
+    await ctx.close();
+  }
+
+  // O
+  {
+    const src = fs.readFileSync(path.join(__dirname, '../../hearthvale.html'), 'utf8');
+    ok(src.includes("addEventListener('beforeunload', save)") &&
+      src.includes('if (townDropped || !townKept()) return'),
+      'beforeunload flushes a kept town; a dropped or unstarted town cannot be rewritten');
+  }
+
+  // P
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, keptTown);
+    await page.evaluate(() => document.getElementById('trader').classList.add('show'));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(120);
+    const traderShut = await page.evaluate(() => {
+      const t = document.getElementById('trader');
+      return !t || !t.classList.contains('show');
+    });
+    ok(traderShut, 'Escape closes the trader');
+
+    await page.click('#menu-btn');
+    await page.waitForTimeout(80);
+    await page.click('#chain-btn');
+    await page.waitForTimeout(160);
+    const hallOpen = await page.evaluate(() => {
+      const m = document.getElementById('chain-modal');
+      return m && m.classList.contains('open');
+    });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(120);
+    const hallShut = await page.evaluate(() => {
+      const m = document.getElementById('chain-modal');
+      return !m || !m.classList.contains('open');
+    });
+    ok(hallOpen && hallShut, 'Escape closes The Hall');
     await ctx.close();
   }
 
