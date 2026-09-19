@@ -87,7 +87,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     count: document.getElementById('card-search-count').textContent,
     longHidden: document.querySelector('[data-section="long"]').hidden,
     quickHidden: document.querySelector('[data-section="quick"]').hidden,
-    scanHidden: document.querySelector('.arcade-scan').hidden,
+    scanHidden: getComputedStyle(document.querySelector('.arcade-scan')).display === 'none',
   }));
   ok(filtered.count === '6 games' && !filtered.longHidden && filtered.quickHidden && filtered.scanHidden,
     'searching "hours" keeps Long, hides Quick, and tucks the scan bar');
