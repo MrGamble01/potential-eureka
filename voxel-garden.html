@@ -44,8 +44,13 @@
   #back a:hover,#back button:hover{color:var(--ink)}
   #back a.ea-back{gap:7px;padding:7px 15px 7px 12px;border-radius:999px;font-family:'JetBrains Mono',ui-monospace,monospace;
     font-size:12px;font-weight:600;letter-spacing:1.5px;color:#c9d1d9;min-width:auto}
-  #resumeChip{color:var(--green);font-weight:700}
+  #resumeChip{color:var(--green);font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   #resumeChip.warn{color:var(--gold)}
+  #resumeChip[hidden]{display:none}
+  #resumeNewIsle{background:transparent;color:var(--dim);border:1px solid rgba(255,255,255,.16);
+    border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer}
+  #resumeNewIsle:hover{color:var(--ink)}
+  body.panel-open #vox-tray{opacity:0;pointer-events:none}
   .help-ghost{background:transparent;color:var(--dim);border:1px solid rgba(255,255,255,.16);
     border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer}
   .help-ghost:hover{color:var(--ink)}
@@ -224,7 +229,9 @@
   <div class="chip" id="coinChip">🪙 <span id="coins">0</span></div>
   <div class="chip" id="lvlChip"><span style="font-size:12px">🌿 Garden <b id="lvl">LV 1</b> <span id="xpTxt" style="color:var(--dim);font-size:11px"></span></span><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
   <div class="chip" id="dayChip">☀️ Day <span id="day">1</span> <span id="seasonTag" style="color:var(--dim);font-size:12px"></span></div>
-  <div class="chip" id="resumeChip" hidden>↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span></div>
+  <div class="chip" id="resumeChip" hidden>↩ the garden kept · Day <span id="resumeDay">1</span> · LV <span id="resumeLv">1</span>
+    <button type="button" id="resumeNewIsle" hidden>New isle</button>
+  </div>
 </div>
 <div id="goodsHud"></div>
 <div id="back">
@@ -4932,12 +4939,15 @@ function initHud(){
   });
   $('helpBtn').addEventListener('click',()=>el.helpOv.classList.add('open'));
   $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;save();SFX.play('click');});
-  const neu=$('helpNewIsle');
-  if(neu) neu.addEventListener('click',()=>{
+  function dropKeptIsle(){
     if(!confirm('Start a new isle? The kept garden is dropped. The Stone Lantern still stands.')) return;
     try{localStorage.removeItem(SAVE_KEY);}catch(e){}
     location.reload();
-  });
+  }
+  const neu=$('helpNewIsle');
+  if(neu) neu.addEventListener('click',dropKeptIsle);
+  const resumeNeu=$('resumeNewIsle');
+  if(resumeNeu) resumeNeu.addEventListener('click',dropKeptIsle);
   $('muteBtn').addEventListener('click',toggleMute);
   $('achBtn').addEventListener('click',()=>{renderAchievements();$('achOv').classList.add('open');SFX.play('click');});
   $('fpBtn').addEventListener('click',()=>{toggleFP();SFX.play('click');});
@@ -4983,8 +4993,8 @@ function selectTool(t,fromClick){
   else closePanels();
   refreshFpTool();
 }
-function openPanel(id){closePanels();$(id).classList.add('open');}
-function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));}
+function openPanel(id){closePanels();$(id).classList.add('open');document.body.classList.add('panel-open');}
+function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));document.body.classList.remove('panel-open');}
 function buildSeedPanel(){
   const p=$('seedPanel');p.innerHTML='';
   for(const [key,def] of Object.entries(PLANTS)){
@@ -5077,10 +5087,12 @@ function savePresent(){
 function paintResume(loaded,rejected){
   const chip=document.getElementById('resumeChip');
   if(!chip)return;
+  const resumeNeu=document.getElementById('resumeNewIsle');
   if(rejected){
     chip.hidden=false;
     chip.classList.add('warn');
     chip.textContent='↩ the garden could not be read · a new isle rose';
+    if(resumeNeu) resumeNeu.hidden=true;
     return;
   }
   if(loaded&&((state.day||1)>1||(state.level||1)>1||(state.totalEarned||0)>0||Object.keys(state.buildings||{}).length)){
@@ -5090,7 +5102,8 @@ function paintResume(loaded,rejected){
     const l=document.getElementById('resumeLv');
     if(d)d.textContent=String(state.day||1);
     if(l)l.textContent=String(state.level||1);
-  }
+    if(resumeNeu) resumeNeu.hidden=false;
+  } else if(resumeNeu) resumeNeu.hidden=true;
   const neu=document.getElementById('helpNewIsle');
   if(neu) neu.hidden=!(loaded||savePresent());
 }

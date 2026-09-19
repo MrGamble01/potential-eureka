@@ -9389,6 +9389,8 @@ const AgeOfWarGame = (() => {
         aliveT: Math.round((u.aliveT || 0) * 10) / 10,
       };
       if (u.plated) packed.plated = 1;
+      if (u.dueled) packed.dueled = 1;
+      if (u.warlord && u.warlord.name) packed.warlord = String(u.warlord.name).slice(0, 48);
       if (String(u.key).startsWith('boss_') || (UNITS[u.key] && UNITS[u.key].isHero)) {
         packed.def = {
           name: u.name, icon: u.icon, color: u.color, silhouette: u.silhouette,
@@ -9418,6 +9420,11 @@ const AgeOfWarGame = (() => {
       if (s.dmg != null) u.dmg = sessionInt(s.dmg, u.dmg, 0, 1e6);
       u.aliveT = sessionFloat(s.aliveT, 0, 0, 600);
       if (s.plated) u.plated = true;
+      if (s.dueled) u.dueled = true;
+      if (s.warlord) {
+        const wl = WARLORDS.find(w => w.name === s.warlord);
+        if (wl) u.warlord = wl;
+      }
       out.push(u);
     }
     return out;
@@ -9483,6 +9490,10 @@ const AgeOfWarGame = (() => {
         bond: bond ? { hpAtBond: sessionInt(bond.hpAtBond, playerBaseHp, 1, 1e7) } : null,
         loan: loan ? { owed: sessionInt(loan.owed, 1, 1, LOAN_OWED) } : null,
         waveBreatherT,
+        lastStandUsed: !!lastStandUsed,
+        trenchT, trenchCd, trenchX,
+        warcryT, warcryCd,
+        mercCd, sapperCd, boltCd,
       }));
     } catch {}
   }
@@ -9562,6 +9573,15 @@ const AgeOfWarGame = (() => {
       ? { owed: sessionInt(snap.loan.owed, 1, 1, LOAN_OWED) }
       : null;
     waveBreatherT = snap.waveBreatherT != null ? sessionFloat(snap.waveBreatherT, 1, 0, 8) : 1;
+    lastStandUsed = !!snap.lastStandUsed;
+    trenchT = sessionFloat(snap.trenchT, 0, 0, TRENCH_LAST);
+    trenchCd = sessionFloat(snap.trenchCd, 0, 0, TRENCH_CD);
+    trenchX = sessionInt(snap.trenchX, (PLAYER_BASE_X + ENEMY_BASE_X) / 2, 0, WIDTH);
+    warcryT = sessionFloat(snap.warcryT, 0, 0, WARCRY_DUR);
+    warcryCd = sessionFloat(snap.warcryCd, 0, 0, WARCRY_CD);
+    mercCd = sessionFloat(snap.mercCd, 0, 0, MERC_CD);
+    sapperCd = sessionFloat(snap.sapperCd, 0, 0, SAPPER_CD);
+    boltCd = sessionFloat(snap.boltCd, 0, 0, BOLT_CD);
     bossWaveActive = isBossWave(waveNum);
     heldCouncil = Array.isArray(snap.councilPending) ? snap.councilPending : null;
     seedAmbient(playerEra);
@@ -9600,8 +9620,13 @@ const AgeOfWarGame = (() => {
     const wave = sessionInt(snap.waveNum, 1, 1, 9999);
     const g = sessionInt(snap.gold, 0, 0, 1e12);
     const onField = Array.isArray(snap.units) ? snap.units.length : 0;
-    const fieldLine = onField
-      ? `The line is still on the field (${onField}). One tap continues.`
+    const bits = [];
+    if (onField) bits.push(`The line is still on the field (${onField})`);
+    if (snap.lastStandUsed) bits.push('the garrison already rallied');
+    if (sessionFloat(snap.trenchT, 0, 0, TRENCH_LAST) > 0) bits.push('the trench is still open');
+    if (sessionFloat(snap.warcryT, 0, 0, WARCRY_DUR) > 0) bits.push('the horns are still sounding');
+    const fieldLine = bits.length
+      ? `${bits.join(' · ')}. One tap continues.`
       : 'The war is held — one tap continues.';
     ov.onclick = null;
     ov.style.cursor = '';
