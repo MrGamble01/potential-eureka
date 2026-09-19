@@ -13,6 +13,9 @@
  *  J. A Long hop during search clears the filter and lands.
  *  K. Studio stays one card wide after the 3-across density pass.
  *  L. Age of War's catalogue card shares the billboard's flagship mark.
+ *  M. Clearing the filter drops the scan "you are here" mark.
+ *  N. 720×700 keeps the compact flagship — not a 16:9 stack that
+ *     pushes Long games off the fold.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production hub.
@@ -140,6 +143,17 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(hopFromFilter.here && hopFromFilter.scan,
     'the landed section and scan hop mark where you are');
 
+  await page.fill('#card-search', 'hours');
+  await page.waitForTimeout(200);
+  await page.fill('#card-search', '');
+  await page.waitForTimeout(200);
+  const scanReset = await page.evaluate(() => ({
+    landed: !!document.querySelector('.arcade-section.is-landed'),
+    aria: !!document.querySelector('.arcade-scan-link[aria-current]'),
+  }));
+  ok(!scanReset.landed && !scanReset.aria,
+    'clearing the filter drops the scan "you are here" mark');
+
   const flagCard = await page.evaluate(() => {
     const card = document.querySelector('.arcade-grid--long .arcade-card--flagship');
     const badge = card && card.querySelector('.arcade-card-flag');
@@ -232,9 +246,39 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   ok(chrome.tagsFlat,
     '900×700 tag pills stay one row after the 3-across squeeze');
 
+  const narrow = await browser.newContext({ viewport: { width: 720, height: 700 } });
+  const np = await narrow.newPage();
+  const errs3 = [];
+  np.on('pageerror', e => errs3.push(String(e).slice(0, 300)));
+  await np.addInitScript(() => localStorage.setItem('eureka-primer-seen', '1'));
+  await np.goto(BASE + '/index.html', { waitUntil: 'load' });
+  await np.waitForTimeout(1800);
+  const fold720 = await np.evaluate(() => {
+    const flag = document.querySelector('.arcade-flagship');
+    const first = document.querySelector('.arcade-grid--long .arcade-card');
+    const studio = document.querySelector('.arcade-scan-link--studio');
+    const cta = document.querySelector('.hero-cta--flagship');
+    const fr = flag && flag.getBoundingClientRect();
+    const cr = cta && cta.getBoundingClientRect();
+    return {
+      flagH: fr ? Math.round(fr.height) : 0,
+      firstTop: first ? Math.round(first.getBoundingClientRect().top) : 0,
+      onFold: first ? first.getBoundingClientRect().top < window.innerHeight : false,
+      overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      studioTint: studio ? getComputedStyle(studio).borderColor : '',
+      ctaIn: !!(fr && cr && cr.bottom <= fr.bottom + 2 && cr.top >= fr.top - 2),
+    };
+  });
+  ok(fold720.flagH > 0 && fold720.flagH <= 160 && fold720.ctaIn && !fold720.overflow,
+    `720×700 keeps the compact flagship (${fold720.flagH}px), CTA inside, not a 16:9 stack`);
+  ok(fold720.onFold,
+    `720×700 first Long card stays on the fold (top ${fold720.firstTop})`);
+  ok(/188,\s*140,\s*255|210,\s*180,\s*255|d2b4ff/i.test(fold720.studioTint),
+    `Studio scan pill has the matching rail tint (${fold720.studioTint})`);
+
   await browser.close();
-  ok(errs.length === 0 && errs2.length === 0,
-    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : ''}`);
+  ok(errs.length === 0 && errs2.length === 0 && errs3.length === 0,
+    `no page errors${errs.length ? ' — ' + errs[0] : errs2.length ? ' — ' + errs2[0] : errs3.length ? ' — ' + errs3[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

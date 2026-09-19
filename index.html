@@ -1978,6 +1978,10 @@
       if (scan) scan.hidden = !!q;
       if (searchCountEl) searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
       if (emptyEl) emptyEl.hidden = !(q && shown === 0);
+      // A hop marks "you are here". Filtering (or clearing) puts the
+      // full catalogue — or a different slice — back, so the mark lies.
+      document.querySelectorAll('.arcade-scan-link[aria-current]').forEach(b => b.removeAttribute('aria-current'));
+      document.querySelectorAll('.arcade-section.is-landed').forEach(s => s.classList.remove('is-landed'));
     };
     if (searchEl) {
       searchEl.addEventListener('input', applyFilter);

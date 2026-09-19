@@ -381,6 +381,9 @@ nav .logo-btn {
 .arcade-scan-link--quick { border-color: rgba(108, 99, 255, 0.4); }
 .arcade-scan-link--quick:hover,
 .arcade-scan-link--quick:focus-visible { border-color: #8b83ff; }
+.arcade-scan-link--studio { border-color: rgba(188, 140, 255, 0.4); }
+.arcade-scan-link--studio:hover,
+.arcade-scan-link--studio:focus-visible { border-color: #d2b4ff; }
 
 .arcade-scan-time,
 .arcade-scan-count,
@@ -886,6 +889,11 @@ button.arcade-card {
     padding: 8px 12px 10px;
     gap: 3px;
   }
+  /* 112px is kicker + name + CTA. Pitch only fits the 148px laptop
+     billboard — leaving it on here clipped the gold button. */
+  .arcade-flagship-pitch {
+    display: none;
+  }
   .hero-cta {
     padding: 10px 16px;
     font-size: 12px;
@@ -992,15 +1000,8 @@ button.arcade-card {
     grid-template-columns: minmax(0, 1fr);
     max-width: calc((100% - 10px) / 2);
   }
-  .arcade-flagship {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  .arcade-flagship-art {
-    min-height: 140px;
-    height: auto;
-    aspect-ratio: 16 / 9;
-  }
+  /* Keep the compact side-by-side billboard. A full-width 16:9 stack
+     here was 425px at 720×700 and pushed Long games off the fold. */
 }
 
 @media (max-width: 640px) {
