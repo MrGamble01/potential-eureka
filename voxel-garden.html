@@ -161,9 +161,14 @@
        the hit test, so five nav buttons were not tappable at their own
        centres. #back drops to its own row under the chips and spans the
        full width so it wraps into two rows instead of three. */
-    #back{top:64px;left:10px;right:10px;max-width:none;gap:6px}
+    #back{top:var(--vox-back-top, 64px);left:10px;right:10px;max-width:none;gap:6px}
     #back a,#back button{padding:7px 8px;font-size:15px;min-width:38px;min-height:38px}
     #back a{font-size:11px}
+    /* leftover from the resume chip: Day/LV + New isle wraps onto the
+       same band #back was pinned to, so town / livestock / awards were
+       not tappable on return. paintResume measures the chip and drops
+       the rail under it. */
+    #topbar:has(#resumeChip:not([hidden])) ~ #back{top:var(--vox-back-top, 118px)}
     .panel{grid-template-columns:repeat(3,1fr);bottom:78px;max-width:96vw}
     .p-item .nm{font-size:10px}
     #banner h2{font-size:26px}
@@ -4865,6 +4870,7 @@ function bindInput(){
     else if(e.key==='h'||e.key==='H'||e.key==='?')el.helpOv.classList.toggle('open');
     else if(e.key==='p'||e.key==='P')document.body.classList.toggle('photo');
     else if(e.key==='Escape'){el.helpOv.classList.remove('open');$('achOv').classList.remove('open');$('almanacOv').classList.remove('open');
+      const shore=document.getElementById('chain-modal');if(shore)shore.classList.remove('open');
       document.body.classList.remove('photo');closePanels();}
     else if(e.key>='1'&&e.key<='5'){
       const tools=['hoe','water','seed','block','pick'];
@@ -4883,6 +4889,7 @@ function bindInput(){
     renderer.setSize(innerWidth,innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));
     fitCamera();
+    if(typeof placePhoneBack==='function')placePhoneBack();
   });
 }
 // Pull the camera back on narrow / portrait screens (phones, iPad portrait) so
@@ -5087,6 +5094,17 @@ function save(){
 function savePresent(){
   try{return !!localStorage.getItem(SAVE_KEY);}catch(e){return false;}
 }
+function placePhoneBack(){
+  const chip=document.getElementById('resumeChip');
+  const back=document.getElementById('back');
+  if(!back)return;
+  if(chip&&!chip.hidden&&innerWidth<=640){
+    const b=chip.getBoundingClientRect();
+    document.documentElement.style.setProperty('--vox-back-top', Math.round(b.bottom+8)+'px');
+  } else {
+    document.documentElement.style.removeProperty('--vox-back-top');
+  }
+}
 function paintResume(loaded,rejected){
   const chip=document.getElementById('resumeChip');
   if(!chip)return;
@@ -5096,6 +5114,7 @@ function paintResume(loaded,rejected){
     chip.classList.add('warn');
     chip.textContent='↩ the garden could not be read · a new isle rose';
     if(resumeNeu) resumeNeu.hidden=true;
+    placePhoneBack();
     return;
   }
   if(loaded&&((state.day||1)>1||(state.level||1)>1||(state.totalEarned||0)>0||Object.keys(state.buildings||{}).length)){
@@ -5106,9 +5125,13 @@ function paintResume(loaded,rejected){
     if(d)d.textContent=String(state.day||1);
     if(l)l.textContent=String(state.level||1);
     if(resumeNeu) resumeNeu.hidden=false;
-  } else if(resumeNeu) resumeNeu.hidden=true;
+  } else {
+    if(resumeNeu) resumeNeu.hidden=true;
+  }
   const neu=document.getElementById('helpNewIsle');
   if(neu) neu.hidden=!(loaded||savePresent());
+  placePhoneBack();
+  requestAnimationFrame(() => { placePhoneBack(); requestAnimationFrame(placePhoneBack); });
 }
 function load(){
   let data=null;

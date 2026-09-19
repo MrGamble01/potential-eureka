@@ -19,6 +19,8 @@
  *  K. Opening the plant sheet tucks the chip tray so till / water / plant
  *     stay reachable and the chips are not sitting on the sheet.
  *  L. A kept isle offers New isle on the resume chip.
+ *  M. 390×844 kept resume does not bury town / awards / Games.
+ *  N. Escape closes The Shore.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -394,6 +396,73 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     });
     ok(after.chipHidden && (after.day === 1 || after.day === 0) && /1/.test(after.hud),
       'resume-chip New isle drops the kept garden');
+    await ctx.close();
+  }
+
+  // M — a kept resume on the phone must not bury the first nav row
+  {
+    const { ctx, page } = await open({ width: 390, height: 844 }, () => {
+      localStorage.setItem('voxel-garden-v1', JSON.stringify({
+        v: 1, seed: 7, savedAt: Date.now(),
+        state: {
+          day: 4, level: 3, coins: 80, totalEarned: 240, xp: 20, time: 30,
+          helpSeen: true, muted: true, musicOff: true, buildings: {}, goods: {},
+        },
+        edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
+      }));
+    });
+    const phone = await page.evaluate(() => {
+      const hit = id => {
+        const el = document.getElementById(id);
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        return !!(top && (top === el || el.contains(top)));
+      };
+      const games = document.querySelector('#back a.ea-back');
+      let gamesHit = false;
+      if (games) {
+        const r = games.getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        gamesHit = !!(top && (top === games || games.contains(top)));
+      }
+      const chip = document.getElementById('resumeChip');
+      return {
+        chipOn: !!(chip && !chip.hidden),
+        town: hit('townBtn'),
+        ach: hit('achBtn'),
+        games: gamesHit,
+      };
+    });
+    ok(phone.chipOn && phone.town && phone.ach && phone.games,
+      '390×844 kept resume leaves town, awards and Games tappable');
+    await ctx.close();
+  }
+
+  // N
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+      localStorage.setItem('voxel-garden-v1', JSON.stringify({
+        v: 1, seed: 1, savedAt: Date.now(),
+        state: { helpSeen: true, muted: true, musicOff: true, buildings: {}, goods: {} },
+        edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
+      }));
+    });
+    await page.click('#chain-btn');
+    await page.waitForTimeout(200);
+    const open = await page.evaluate(() => {
+      const m = document.getElementById('chain-modal');
+      return !!(m && m.classList.contains('open'));
+    });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    const closed = await page.evaluate(() => {
+      const m = document.getElementById('chain-modal');
+      return !m || !m.classList.contains('open');
+    });
+    ok(open && closed, 'Escape closes The Shore');
     await ctx.close();
   }
 

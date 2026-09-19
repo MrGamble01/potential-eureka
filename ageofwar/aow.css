@@ -1264,6 +1264,16 @@
   .aow-action-lbl { font-size: 11px; }
   .aow-overlay h2 { font-size: 30px; }
 }
+/* Short tablet leftover: the 500px chrome budget was written before
+   the action rail scrolled. At 768×700 / 1024×700 it left ~200px of
+   field under a still-tall lower rail. Give the canvas the leftover. */
+@media (max-width: 1024px) and (max-height: 800px) {
+  .aow-stage {
+    max-height: calc(100dvh - 340px);
+    max-width: calc((100dvh - 340px) * 1280 / 560);
+    min-height: 260px;
+  }
+}
 @media (max-width: 900px) {
   .aow-topbar .aow-diff,
   .aow-topbar .aow-endless-btn,
