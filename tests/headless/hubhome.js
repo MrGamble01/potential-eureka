@@ -65,7 +65,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       twentyOne: /\bTWENTY-ONE\b/.test(kicker),
     };
   });
-  ok(hero.flagHref === 'ageofwar' && hero.flagCta && hero.ctaCount === 1,
+  ok(hero.flagHref === 'ageofwar/' && hero.flagCta && hero.ctaCount === 1,
     'the only hero CTA is Play Age of War, on the flagship billboard');
   ok(!hero.quickDoor && hero.snakeHop,
     'Snake is a text hop under the billboard, not a second primary door');
@@ -460,7 +460,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const ap = await aow.newPage();
   const errs6 = [];
   ap.on('pageerror', e => errs6.push(String(e).slice(0, 300)));
-  await ap.addInitScript(() => localStorage.setItem('eureka-primer-seen', '1'));
+  await ap.addInitScript(() => {
+    localStorage.setItem('eureka-primer-seen', '1');
+    localStorage.setItem('aow-welcome-seen', '1');
+  });
   await ap.goto(BASE + '/index.html', { waitUntil: 'load' });
   await ap.waitForTimeout(1800);
   await ap.fill('#card-search', 'hours');

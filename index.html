@@ -87,7 +87,7 @@
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
       <p class="arcade-hero-sub">The flagship is Age of War. Everything else is a hop down the page.</p>
 
-      <a class="arcade-flagship" href="ageofwar" aria-label="Play Age of War">
+      <a class="arcade-flagship" href="ageofwar/" aria-label="Play Age of War">
         <div class="arcade-flagship-art" aria-hidden="true">
           <img class="arcade-flagship-poster" src="assets/thumbs/ageofwar.jpg" alt="" width="642" height="280">
         </div>
@@ -155,7 +155,7 @@
         <p class="arcade-section-lede">Save and come back. These are the flagships.</p>
       </div>
       <div class="arcade-grid arcade-grid--long">
-      <a class="arcade-card arcade-card--flagship" href="ageofwar" style="--accent:#D29922">
+      <a class="arcade-card arcade-card--flagship" href="ageofwar/" style="--accent:#D29922">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay" width="642" height="280" data-crop="wide">
           <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
@@ -171,7 +171,7 @@
         </div>
       </a>
 
-      <a class="arcade-card" href="tycoon" style="--accent:#58A6FF">
+      <a class="arcade-card" href="tycoon/" style="--accent:#58A6FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/tycoon.jpg" alt="Startup Tycoon gameplay" width="640" height="400">
           <video class="arcade-card-clip" src="assets/thumbs/tycoon.webm" muted loop playsinline preload="none"></video>
@@ -1605,9 +1605,9 @@
 
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
-      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar',
+      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar/',
         best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
-      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
+      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon/',
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
       { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
         best: () => {
