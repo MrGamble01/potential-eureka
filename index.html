@@ -1621,6 +1621,11 @@
         if (searchEl && (searchEl.value || pending)) applyFilter();
         else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
         if (pending && pending.section) landSection(pending.section, { smooth: false });
+        else window.scrollTo(0, 0);
+      } else {
+        // Leftover after HoF became site shell: a scrolled catalogue
+        // handed its offset to the board, so the title sat off-screen.
+        window.scrollTo(0, 0);
       }
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
@@ -1629,11 +1634,11 @@
 
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
-      { name: 'Age of War',       accent: '#D29922', go: () => { rememberLaunch('long'); location.href = 'ageofwar/'; },
+      { name: 'Age of War',       accent: '#D29922', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'ageofwar/'; },
         best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
-      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => { rememberLaunch('long'); location.href = 'tycoon/'; },
+      { name: 'Startup Tycoon',   accent: '#58A6FF', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'tycoon/'; },
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
-      { name: 'Grow Op',          accent: '#3FB950', go: () => { rememberLaunch('long'); location.href = 'drug-lab.html'; },
+      { name: 'Grow Op',          accent: '#3FB950', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'drug-lab.html'; },
         best: () => {
           const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
           const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
@@ -1643,13 +1648,15 @@
           if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
           return parts.join(' · ');
         } },
-      { name: 'Homeless Village', accent: '#F0883E', go: () => { rememberLaunch('long'); location.href = 'homeless-village.html'; },
+      { name: 'Homeless Village', accent: '#F0883E', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'homeless-village.html'; },
         best: () => {
           const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0;
           if (d <= 0) return null;
           return d + ' days survived' + (s.arcStage >= 3 ? ' · 🔑 housed' : '');
         } },
-      { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => { rememberLaunch('long'); location.href = 'voxel-garden.html'; },
+      { name: 'Hearthvale',       accent: '#7fbf63', lane: 'long', rid: 'hearthvale-v1', go: () => { rememberLaunch('long'); location.href = 'hearthvale.html'; },
+        best: () => { const s = Scores.readJSON('hearthvale-v1'); const v = s && s.peakPop || 0; return v > 0 ? v + ' villagers at peak' : null; } },
+      { name: 'Voxel Isle',       accent: '#7EC8FF', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'voxel-garden.html'; },
         best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
       { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => { rememberLaunch('quick'); switchView('snake'); },
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
@@ -1682,13 +1689,13 @@
       { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'hearthvale-v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
       if (!board) return;
       let played = 0;
-      board.innerHTML = HOF_GAMES.map((g, i) => {
+      const rowHtml = (g, i) => {
         const best = g.best();
         if (best) played++;
         const rank = String(i + 1).padStart(2, '0');
@@ -1712,6 +1719,23 @@
                  rivalHtml +
                  '<span class="hof-score">' + (best || '— not played —') + '</span>' +
                '</button>';
+      };
+      // Leftover after the homepage Long/Quick split: the board was still
+      // a flat pre-#988 list, and it skipped the sixth flagship.
+      const lanes = [
+        { key: 'long', title: 'Long games', chip: 'Hours' },
+        { key: 'quick', title: 'Quick games', chip: 'Minutes' },
+      ];
+      board.innerHTML = lanes.map(lane => {
+        const items = HOF_GAMES.map((g, i) => ({ g, i })).filter(x => (x.g.lane || 'quick') === lane.key);
+        return '<div class="hof-lane hof-lane--' + lane.key + '">' +
+          '<div class="hof-lane-head">' +
+            '<h3 class="hof-lane-title">' + lane.title + '</h3>' +
+            '<span class="hof-lane-count">' + items.length + '</span>' +
+            '<span class="hof-lane-chip">' + lane.chip + '</span>' +
+          '</div>' +
+          items.map(({ g, i }) => rowHtml(g, i)).join('') +
+        '</div>';
       }).join('');
       board.querySelectorAll('.hof-row').forEach(row => {
         row.addEventListener('click', () => HOF_GAMES[+row.dataset.hof].go());
@@ -1938,6 +1962,7 @@
           return n > 0 ? n + ' 🏅' : '';
         },
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
+        hearthvale: () => { const s = Scores.readJSON('hearthvale-v1'); const v = s && s.peakPop || 0; return v > 0 ? 'PEAK ' + v : ''; },
         voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
         minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },
         connect4: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : ''; },

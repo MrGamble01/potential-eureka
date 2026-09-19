@@ -819,6 +819,53 @@ button.arcade-card {
   margin: 6px 0 20px;
 }
 .hof-board { display: flex; flex-direction: column; gap: 4px; position: relative; z-index: 1; }
+/* Leftover after the homepage Long/Quick split: the board was still
+   one flat list. Same rails / count chips as the catalogue. */
+.hof-lane {
+  --section-accent: var(--text-dim);
+  margin: 0 0 16px;
+  padding: 2px 0 0 12px;
+  border-left: 3px solid var(--section-accent);
+}
+.hof-lane--long { --section-accent: #D29922; }
+.hof-lane--quick { --section-accent: #8b83ff; margin-bottom: 0; }
+.hof-lane-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 0 0 8px;
+}
+.hof-lane-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.hof-lane-count,
+.hof-lane-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.hof-lane-count {
+  color: var(--text);
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+}
+.hof-lane-chip {
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.hof-lane--long .hof-lane-chip { color: #f0c552; border-color: rgba(240, 197, 82, 0.45); }
+.hof-lane--quick .hof-lane-chip { color: #b4afff; border-color: rgba(139, 131, 255, 0.5); }
 
 .hof-row {
   --accent: var(--primary);
@@ -1082,6 +1129,13 @@ button.arcade-card {
     max-width: none;
     margin: 0;
   }
+  /* 390 leftover: HoF rows were a single nowrap strip, so a long
+     score (Hearthvale's "n villagers at peak") shoved the name off. */
+  .hof-wrap { margin: 12px 8px 0; padding: 18px 12px 16px; }
+  .hof-row { flex-wrap: wrap; gap: 6px 8px; padding: 8px 6px; }
+  .hof-dots { display: none; }
+  .hof-score { margin-left: auto; }
+  .hof-rival { width: 100%; margin: 0; }
 }
 
 /* ── Daily challenge banner (SITE-3) ── */
@@ -1149,13 +1203,13 @@ button.arcade-card {
 .hof-share:hover { background: rgba(108, 99, 255, 0.28); }
 .hof-rival-input {
   flex: 1; min-width: 180px; max-width: 320px;
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14);
+  background: var(--color-white-08); border: 1px solid var(--border);
   color: var(--text); font-family: inherit; font-size: 12px;
   border-radius: 6px; padding: 7px 10px;
 }
 .hof-share-out {
-  margin-top: 10px; font-size: 11px; color: #7D8590; word-break: break-all;
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  margin-top: 10px; font-size: 11px; color: var(--text-dim); word-break: break-all;
+  background: var(--color-white-05); border: 1px solid var(--border-subtle);
   border-radius: 6px; padding: 8px 10px; text-align: left;
 }
 .hof-rival-list { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
@@ -1165,15 +1219,15 @@ button.arcade-card {
   color: var(--text); font-size: 12px; font-weight: 700;
   border-radius: 14px; padding: 4px 10px;
 }
-.hof-rival-n { color: #7D8590; font-weight: 600; }
+.hof-rival-n { color: var(--text-dim); font-weight: 600; }
 .hof-rival-x {
-  background: none; border: none; color: #7D8590; cursor: pointer;
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
   font-size: 11px; padding: 0 2px; font-family: inherit;
 }
 .hof-rival-x:hover { color: #F85149; }
-.hof-rival-none { font-size: 12px; color: #7D8590; }
+.hof-rival-none { font-size: 12px; color: var(--text-dim); }
 .hof-rival {
-  font-size: 11px; font-weight: 700; color: #7D8590; white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: var(--text-dim); white-space: nowrap;
   margin-right: 10px;
 }
 .hof-rival-leads { color: #F778BA; text-shadow: 0 0 8px rgba(247, 120, 186, 0.4); }
@@ -1181,10 +1235,10 @@ button.arcade-card {
 /* ── Achievements (SITE-4) ── */
 #hof-achievements { max-width: 720px; margin: 26px auto 0; }
 .ach-head { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #F7C948; margin-bottom: 12px; text-align: center; }
-.ach-count { color: #7D8590; font-weight: 700; margin-left: 6px; }
+.ach-count { color: var(--text-dim); font-weight: 700; margin-left: 6px; }
 .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 .ach-card {
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  background: var(--color-white-05); border: 1px solid var(--border-subtle);
   border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px;
   opacity: 0.55; text-align: left;
 }
@@ -1194,12 +1248,12 @@ button.arcade-card {
 }
 .ach-icon { font-size: 20px; }
 .ach-name { font-size: 12px; font-weight: 800; color: var(--text); }
-.ach-desc { font-size: 10px; color: #7D8590; line-height: 1.4; }
+.ach-desc { font-size: 10px; color: var(--text-dim); line-height: 1.4; }
 .ach-toast {
   position: fixed; bottom: 18px; right: 18px; z-index: 9999;
   display: flex; align-items: center; gap: 10px;
-  background: rgba(13, 17, 23, 0.95); border: 1px solid rgba(247, 201, 72, 0.55);
-  border-radius: 10px; padding: 10px 16px; color: #E6EDF3; font-size: 12px;
+  background: var(--drawer-bg); border: 1px solid rgba(247, 201, 72, 0.55);
+  border-radius: 10px; padding: 10px 16px; color: var(--text); font-size: 12px;
   box-shadow: 0 4px 24px rgba(247, 201, 72, 0.18);
   animation: achIn 0.25s ease; transition: opacity 0.6s, transform 0.6s;
 }
