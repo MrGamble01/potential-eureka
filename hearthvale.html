@@ -144,7 +144,31 @@
     }
     #speedctl button:hover { border-color: rgba(242,193,78,0.7); color: var(--ink); }
     #speedctl button.on { color: var(--gold); border-color: rgba(242,193,78,0.8); background: linear-gradient(180deg, #5c4730, #453520); }
-    @media (max-width: 640px) { #speedctl { top: 96px; right: 8px; } }
+
+    /* Resume chip — names a kept valley the way Voxel names a kept isle. */
+    #resumeChip {
+      display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      background: linear-gradient(180deg, #3d4a32, #2c3826);
+      border: 1px solid #6b8a4e; border-top-color: #8eaf68;
+      border-radius: 9px; padding: 6px 11px;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      color: #cfe8b8; pointer-events: auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    #resumeChip.warn { color: #f2d9a0; border-color: rgba(242,193,78,0.55); background: linear-gradient(180deg, #4a3826, #362819); }
+    #resumeChip[hidden] { display: none; }
+    #resumeNewTown {
+      background: transparent; color: var(--ink-dim); border: 1px solid rgba(255,255,255,.16);
+      border-radius: 7px; padding: 3px 8px; font-family: var(--font); font-size: 11px;
+      font-weight: 700; cursor: pointer;
+    }
+    #resumeNewTown:hover { color: var(--ink); border-color: rgba(242,193,78,0.65); }
+
+    /* One-CTA rows: the play tap, then Games — sheets used to bury the hub pill. */
+    .sheet-ctas { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .sheet-ctas .closebtn { margin-top: 0; }
+    .sheet-ctas .ea-back { justify-content: center; width: 100%; }
+    #chain-head .ea-back { padding: 5px 10px 5px 8px; font-size: 11px; letter-spacing: 1.2px; }
 
     .res .net { font-size: 10.5px; font-weight: 700; font-family: var(--mono); }
     .res .net.up { color: #9fd487; }
@@ -273,6 +297,7 @@
       position: fixed; top: 96px; right: 12px; z-index: 390; display: none;
       flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line);
       border-radius: 10px; padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      max-height: min(70vh, 520px); overflow-y: auto;
     }
     #menu.show { display: flex; }
     #menu button {
@@ -282,12 +307,23 @@
     }
     #menu button:hover { border-color: var(--gold); }
     #paused {
-      position: fixed; top: 96px; left: 50%; transform: translateX(-50%); z-index: 385;
-      display: none; background: rgba(24,20,14,0.9); border: 1px solid var(--line);
-      border-radius: 10px; padding: 8px 16px; font-family: var(--mono); font-size: 13px;
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 385;
+      display: none; flex-direction: column; align-items: stretch; gap: 12px;
+      background: rgba(24,20,14,0.94); border: 1px solid var(--line);
+      border-radius: 14px; padding: 18px 22px; min-width: min(280px, 86vw);
+      font-family: var(--mono); font-size: 13px;
       letter-spacing: 1px; color: var(--gold); pointer-events: none;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.55);
     }
-    #paused.show { display: block; }
+    #paused.show { display: flex; }
+    #paused.held { pointer-events: auto; z-index: 610; }
+    #paused .pause-kicker { text-align: center; letter-spacing: 1.4px; }
+    #paused .closebtn {
+      width: 100%; padding: 11px; border-radius: 11px; border: none;
+      background: var(--gold); color: #2b2410; font-weight: 800; font-size: 14px;
+      font-family: var(--font); cursor: pointer; letter-spacing: 0;
+    }
+    #paused .ea-back { justify-content: center; }
 
     /* ---- Minimap ---- */
     #minimap {
@@ -306,11 +342,37 @@
       backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); pointer-events: none;
       transition: opacity .4s;
     }
+
+    /* Tablet leftover chrome: the 7-chip HUD wrapped under the Games pill,
+       goals sat on that wrap, and the speed rail locked a second row over
+       the field. Speed lives in the gear menu (m-speed already did);
+       the goal drops to the build edge; the HUD clears the hub pill. */
+    @media (max-width: 1024px) {
+      #hud { padding: 48px 10px 6px 10px; font-size: 12px; gap: 6px; }
+      #speedctl { display: none; }
+      #goals { top: auto; bottom: 118px; left: 8px; width: 180px; }
+      #hint { display: none; }
+      #resumeChip { font-size: 11px; }
+      #menu-btn { top: calc(10px + env(safe-area-inset-top, 0px)); }
+      #menu { top: 52px; max-height: min(62vh, 440px); }
+    }
+    /* Short tablet — the leftover chrome budget the tucked rail freed
+       goes back to the field (AoW 768×700 did the same). */
+    @media (max-width: 1024px) and (max-height: 760px) {
+      #minimap { width: 110px; height: 82px; bottom: 88px; }
+      #toasts { bottom: 88px; }
+      #buildtabs { bottom: 84px; }
+      .btab { padding: 4px 10px; font-size: 11px; }
+      #buildbar { padding: 6px; gap: 5px; bottom: 8px; }
+      .btn { width: 50px; height: 54px; }
+      #goals { bottom: 104px; width: 160px; padding: 7px 10px; }
+    }
     @media (max-width: 640px) {
-      #hud { padding-left: 10px; font-size: 12px; }
+      #hud { padding: 54px 8px 6px 8px; font-size: 12px; }
       #panel { top: auto; bottom: 90px; right: 8px; left: 8px; width: auto; }
       #goals { top: auto; bottom: 92px; left: 8px; width: 170px; }
       #hint { display: none; }
+      #paused { left: 8px; right: 8px; top: 50%; transform: translateY(-50%); min-width: 0; }
     }
   </style>
 <style>
@@ -336,7 +398,7 @@
 </style>
 </head>
 <body>
-  <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">ARCADE</span></a>
+  <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 
   <button id="menu-btn" title="Menu">&#9881;</button>
   <div id="menu">
@@ -368,16 +430,24 @@
     <div id="chain-head">
       <span id="chain-title">🧱 THE HALL</span>
       <span id="chain-progress">0 of 0 begun</span>
+      <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
       <button id="chain-close" aria-label="Close">&times;</button>
     </div>
     <div id="chain-list"></div>
   </div>
 </div>
-<div id="paused">&#9208; PAUSED &middot; press Space</div>
+<div id="paused">
+    <div class="pause-kicker">&#9208; the valley is held</div>
+    <button type="button" class="closebtn" id="pause-resume">Resume the valley</button>
+    <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+  </div>
 
   <canvas id="game"></canvas>
 
   <div id="hud">
+    <div id="resumeChip" hidden>↩ the valley kept · <span id="resumeName">Hearthvale</span> · Day <span id="resumeDay">1</span> · <span id="resumePop">0</span> villagers
+      <button type="button" id="resumeNewTown" hidden>New town</button>
+    </div>
     <div class="res wood" title="Wood — from woodcutters. Builds almost everything."><span class="ic">&#129717;</span><span class="val" id="r-wood">0</span><span class="rate" id="r-woodcap"></span><span class="net" id="r-woodnet"></span></div>
     <div class="res stone" title="Stone — from quarries. For sturdier buildings."><span class="ic">&#129704;</span><span class="val" id="r-stone">0</span><span class="rate" id="r-stonecap"></span><span class="net" id="r-stonenet"></span></div>
     <div class="res food" title="Food — from farms, orchards & fishing. Villagers eat it each cycle."><span class="ic">&#127822;</span><span class="val" id="r-food">0</span><span class="rate" id="r-foodcap"></span><span class="net" id="r-foodnet"></span></div>
@@ -439,7 +509,10 @@
       <h2><span>&#127942;</span><span>Achievements</span></h2>
       <div class="flavor" id="achv-count">&mdash;</div>
       <div id="achv-list"></div>
-      <button class="closebtn" id="achv-close">Back to town</button>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="achv-close">Back to town</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
     </div>
   </div>
   <div id="decrees">
@@ -447,7 +520,10 @@
       <h2><span>&#128220;</span><span>Town Decrees</span></h2>
       <div class="flavor" id="decree-sub">&mdash;</div>
       <div id="decree-list"></div>
-      <button class="closebtn" id="decree-close">Back to town</button>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="decree-close">Back to town</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
     </div>
   </div>
   <div id="chronicle">
@@ -455,7 +531,10 @@
       <h2><span>&#128220;</span><span id="chron-title">Town Chronicle</span></h2>
       <div class="flavor" id="chron-sub">&mdash;</div>
       <div id="chron-list"></div>
-      <button class="closebtn" id="chron-close">Back to town</button>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="chron-close">Back to town</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
     </div>
   </div>
 
@@ -482,7 +561,10 @@
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Name your town</label>
       <input id="townname-input" type="text" maxlength="20" placeholder="Hearthvale" autocomplete="off"
         style="width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-family:var(--font); font-size:14px; font-weight:600;">
-      <button class="closebtn" id="welcome-close">Begin building</button>
+      <div class="sheet-ctas">
+        <button class="closebtn" id="welcome-close">Begin building</button>
+        <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
+      </div>
     </div>
   </div>
 
@@ -496,6 +578,8 @@
   // ============================================================
 
   const SAVE_KEY = 'hearthvale-v1';
+  let bootUnread = false;   // a kept blob that could not be read
+  let townDropped = false;  // New town must not be rewritten by a late save()
   const TILE = 16;               // base pixel size of one tile
   const MAP_W = 56, MAP_H = 42;  // world size in tiles
   const WORLD_PX_W = MAP_W * TILE, WORLD_PX_H = MAP_H * TILE;
@@ -3429,6 +3513,8 @@
     }).join('');
   }
   function openChain() {
+    const menu = document.getElementById('menu');
+    if (menu) menu.classList.remove('show');
     renderChain();
     const m = document.getElementById('chain-modal');
     if (m) m.classList.add('open');
@@ -5188,7 +5274,12 @@
   }
 
   function syncPaused() {
-    const pe = document.getElementById('paused'); if (pe) pe.classList.toggle('show', gameSpeed === 0);
+    const pe = document.getElementById('paused');
+    if (pe) {
+      const held = playerHeld();
+      pe.classList.toggle('show', held);
+      pe.classList.toggle('held', held);
+    }
     const sb = document.getElementById('m-speed'); if (sb && gameSpeed > 0) sb.innerHTML = 'Speed: ' + gameSpeed + '&times;';
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
@@ -5639,6 +5730,7 @@
   //  Save / load
   // ============================================================
   function save() {
+    if (townDropped) return;
     try {
       const s = {
         res: state.res, buildings: state.buildings.map(b => ({ id: b.id, type: b.type, tx: b.tx, ty: b.ty, bonus: b.bonus, level: b.level || 1, done: b.done !== false, buildLeft: b.buildLeft || 0, buildTotal: b.buildTotal || 0, preserves: b.preserves || 0 })),
@@ -5823,7 +5915,60 @@
       if (state.traderDay === state.day && state.time >= 8 && state.time < 19)
         cart = { x: cartParkX(), y: cartRoadY(), phase: 'parked', parkX: cartParkX(), face: -1 };
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e2) { }
+      bootUnread = true;
+      return false;
+    }
+  }
+
+  function townKept() {
+    return !!(state && (state.seenIntro || state.day > 1 ||
+      (state.villagers && state.villagers.length) ||
+      (state.buildings && state.buildings.length)));
+  }
+
+  function paintResume(loaded, unread) {
+    const chip = document.getElementById('resumeChip');
+    if (!chip) return;
+    const neu = document.getElementById('resumeNewTown');
+    if (unread) {
+      chip.hidden = false;
+      chip.classList.add('warn');
+      chip.textContent = '↩ the valley could not be read · a new town rose';
+      if (neu) neu.hidden = true;
+      return;
+    }
+    if (loaded && townKept()) {
+      chip.hidden = false;
+      chip.classList.remove('warn');
+      const d = document.getElementById('resumeDay');
+      const p = document.getElementById('resumePop');
+      const n = document.getElementById('resumeName');
+      if (d) d.textContent = String(state.day || 1);
+      if (p) p.textContent = String((state.villagers || []).length);
+      if (n) n.textContent = state.townName || 'Hearthvale';
+      if (neu) neu.hidden = false;
+    } else {
+      chip.hidden = true;
+      if (neu) neu.hidden = true;
+    }
+  }
+
+  function dropKeptTown() {
+    if (!confirm('Start a new town? Your current progress will be lost.')) return;
+    townDropped = true;
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    location.reload();
+  }
+
+  function playerHeld() {
+    if (gameSpeed !== 0 || _modalPrevSpeed !== null) return false;
+    const blocked = ['welcome', 'trader', 'event', 'achv', 'chronicle', 'decrees'];
+    return !blocked.some(id => {
+      const el = document.getElementById(id);
+      return el && el.classList.contains('show');
+    });
   }
 
   window.__hvReset = function () {
@@ -5880,6 +6025,7 @@
     if (!loaded) newGame();
     else if (cam == null) cam = { x: MAP_W * TILE / 2, y: MAP_H * TILE / 2, z: 3 };
     if (!cam) cam = { x: 0, y: 0, z: 3 };
+    paintResume(loaded, bootUnread);
 
     resize();
     clampCam();
@@ -5925,8 +6071,13 @@
     syncPaused();
     const speedBtn = document.getElementById('m-speed');
     speedBtn.onclick = () => { gameSpeed = gameSpeed >= 3 ? 1 : (gameSpeed < 1 ? 1 : gameSpeed + 1); prevSpeed = gameSpeed; speedBtn.innerHTML = 'Speed: ' + gameSpeed + '&times;'; syncPaused(); };
-    document.getElementById('m-new').onclick = () => {
-      if (confirm('Start a new town? Your current progress will be lost.')) { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } location.reload(); }
+    document.getElementById('m-new').onclick = dropKeptTown;
+    const resumeNeu = document.getElementById('resumeNewTown');
+    if (resumeNeu) resumeNeu.onclick = dropKeptTown;
+    const pauseResume = document.getElementById('pause-resume');
+    if (pauseResume) pauseResume.onclick = () => {
+      gameSpeed = prevSpeed || 1;
+      syncPaused();
     };
     syncSound();
 
