@@ -491,6 +491,7 @@ const ISLETS=[
 
 /* ============================== state ============================== */
 const SAVE_KEY='voxel-garden-v1';
+let droppingIsle=false;
 let state={coins:20,xp:0,level:1,day:1,time:CYCLE*0.2,totalEarned:0,
   harvests:0,tills:0,waters:0,planted:0,decor:0,questIdx:0,
   muted:false,tool:'hoe',seedSel:'sunflower',blockSel:2,helpSeen:false,
@@ -4941,6 +4942,7 @@ function initHud(){
   $('helpClose').addEventListener('click',()=>{el.helpOv.classList.remove('open');state.helpSeen=true;save();SFX.play('click');});
   function dropKeptIsle(){
     if(!confirm('Start a new isle? The kept garden is dropped. The Stone Lantern still stands.')) return;
+    droppingIsle=true;
     try{localStorage.removeItem(SAVE_KEY);}catch(e){}
     location.reload();
   }
@@ -5068,6 +5070,7 @@ function floatText(wx,wy,wz,str,color){
 
 /* ============================== save / load ============================== */
 function save(){
+  if(droppingIsle)return;
   try{
     const data={v:1,seed:W.seed,savedAt:Date.now(),
       state:{...state},

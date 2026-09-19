@@ -347,9 +347,11 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     await ctx.close();
   }
 
-  // L
+  // L — plant after first paint; hold the unload writer so it cannot
+  // overwrite the kept garden with the fresh isle still in memory.
   {
-    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.evaluate(() => {
       localStorage.setItem('voxel-garden-v1', JSON.stringify({
         v: 1, seed: 7, savedAt: Date.now(),
         state: {
@@ -358,7 +360,10 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
         },
         edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
       }));
+      if (typeof droppingIsle !== 'undefined') droppingIsle = true;
     });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(2800);
     const neu = await page.evaluate(() => {
       const btn = document.getElementById('resumeNewIsle');
       const chip = document.getElementById('resumeChip');
