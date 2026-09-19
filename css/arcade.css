@@ -119,7 +119,7 @@ nav .logo-btn {
 .arcade-hero {
   text-align: center;
   max-width: 900px;
-  margin: 44px auto 40px;
+  margin: 28px auto 24px;
 }
 
 .arcade-hero-kicker {
@@ -128,13 +128,13 @@ nav .logo-btn {
   letter-spacing: 3px;
   color: var(--success);
   text-shadow: 0 0 12px rgba(63, 185, 80, 0.5);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .arcade-hero-title {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: clamp(32px, 7vw, 64px);
+  font-size: clamp(28px, 6vw, 56px);
   letter-spacing: 6px;
   color: var(--text);
   text-shadow:
@@ -143,11 +143,93 @@ nav .logo-btn {
 }
 
 .arcade-hero-sub {
-  margin-top: 14px;
+  margin-top: 10px;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 12px;
   font-family: var(--font-mono);
-  letter-spacing: 4px;
+  letter-spacing: 3px;
+}
+
+/* One clear primary path: flagship + quick play */
+.arcade-hero-primary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 12px;
+  margin-top: 18px;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast), border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.hero-cta--flagship {
+  background: linear-gradient(135deg, #D29922, #f0c552);
+  color: #1a1204;
+  border-color: #f0c552;
+  box-shadow: 0 0 24px rgba(240, 197, 82, 0.35);
+}
+
+.hero-cta--flagship:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(240, 197, 82, 0.45);
+}
+
+.hero-cta--quick {
+  background: rgba(108, 99, 255, 0.18);
+  color: var(--text);
+  border-color: rgba(108, 99, 255, 0.55);
+}
+
+.hero-cta--quick:hover {
+  background: rgba(108, 99, 255, 0.32);
+  border-color: #8b83ff;
+  transform: translateY(-2px);
+}
+
+/* Demoted front doors — secondary nav, not competing CTAs */
+.arcade-secondary-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 6px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.arcade-secondary-nav .sec-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+.arcade-secondary-nav .sec-link:hover,
+.arcade-secondary-nav .sec-link:focus-visible {
+  color: var(--text-dim);
+  background: var(--color-white-05);
+  outline: none;
 }
 
 .arcade-blink {
@@ -159,13 +241,50 @@ nav .logo-btn {
   50% { opacity: 0; }
 }
 
+/* ---- SECTION HEADS (Long vs Quick) ---- */
+.arcade-section {
+  max-width: 1200px;
+  margin: 0 auto 28px;
+  padding: 0 4px;
+}
+
+.arcade-section-head {
+  margin: 0 0 12px 2px;
+}
+
+.arcade-section-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.arcade-section-lede {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.arcade-section--studio {
+  margin-bottom: 20px;
+}
+
+.arcade-grid--studio {
+  max-width: 400px;
+  margin-left: 0;
+}
+
 /* ---- ARCADE GAME GRID ---- */
 .arcade-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
   max-width: 1200px;
-  margin: 0 auto 40px;
+  margin: 0 auto;
 }
 
 /* ---- CABINET CARD ---- */
@@ -209,9 +328,12 @@ nav .logo-btn {
 .arcade-card-screen {
   position: relative;
   aspect-ratio: 16 / 10;
+  width: 100%;
   background: var(--color-black-deep);
   overflow: hidden;
   border-bottom: 1px solid var(--border-subtle);
+  /* Fixed frame so uneven poster assets crop the same way */
+  flex-shrink: 0;
 }
 
 .arcade-card-poster,
@@ -296,8 +418,10 @@ nav .logo-btn {
 .arcade-card-body {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 14px 16px 16px;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  min-height: 118px;
+  box-sizing: border-box;
 }
 
 .arcade-card-title {
@@ -345,9 +469,14 @@ nav .logo-btn {
 }
 
 .arcade-card-desc {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-dim);
-  line-height: 1.55;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.9em;
 }
 
 .arcade-card-play {
@@ -495,25 +624,59 @@ nav .logo-btn {
 
 /* ---- RESPONSIVE ---- */
 @media (max-width: 1020px) {
+  .arcade-hero {
+    margin: 22px auto 18px;
+  }
+  .arcade-hero-primary {
+    gap: 8px;
+  }
+  .hero-cta {
+    padding: 10px 18px;
+    font-size: 12px;
+  }
   .arcade-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .arcade-card-body {
+    min-height: 108px;
+    padding: 10px 12px 12px;
+  }
+  .arcade-section {
+    margin-bottom: 20px;
+  }
+  #daily-banner {
+    margin-bottom: 18px;
+    padding: 10px 14px;
   }
 }
 
 @media (max-width: 640px) {
   .arcade-hero {
-    margin: 26px auto 26px;
+    margin: 18px auto 16px;
   }
   .arcade-hero-title {
     letter-spacing: 3px;
   }
+  .arcade-hero-primary {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 8px;
+  }
+  .arcade-secondary-nav {
+    gap: 2px;
+  }
   .arcade-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
+    max-width: 480px;
+  }
+  .arcade-grid--studio {
     max-width: 480px;
   }
   .arcade-card-body {
-    padding: 12px 14px 14px;
+    padding: 10px 12px 12px;
+    min-height: 0;
   }
   .nav-utils {
     max-width: none;
@@ -550,12 +713,12 @@ nav .logo-btn {
 #primer-hint .primer-hint-x:hover { color: var(--text); }
 
 #daily-banner {
-  max-width: 1100px;
-  margin: 0 auto 26px;
-  padding: 12px 18px;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
-  background: rgba(247, 201, 72, 0.06);
-  border: 1px solid rgba(247, 201, 72, 0.25);
+  max-width: 1200px;
+  margin: 0 auto 22px;
+  padding: 10px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  background: rgba(247, 201, 72, 0.05);
+  border: 1px solid rgba(247, 201, 72, 0.2);
   border-radius: 10px;
 }
 .daily-title { font-weight: 800; font-size: 13px; letter-spacing: 1px; color: #F7C948; white-space: nowrap; }
