@@ -1609,7 +1609,7 @@
         const pending = readLeave();
         if (pending) {
           clearLeave();
-          if (searchEl && pending.q) searchEl.value = pending.q;
+          if (searchEl) searchEl.value = pending.q || '';
         }
         refreshArcadeBadges();
         if (typeof Telemetry !== 'undefined') {
@@ -1618,7 +1618,7 @@
             switchView(view);
           });
         }
-        if (searchEl && searchEl.value) applyFilter();
+        if (searchEl && (searchEl.value || pending)) applyFilter();
         else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
         if (pending && pending.section) landSection(pending.section, { smooth: false });
       }

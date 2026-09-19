@@ -548,10 +548,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   await hp.waitForTimeout(200);
   await hp.click('.arcade-secondary-nav [data-view="halloffame"]');
   await hp.waitForTimeout(400);
-  await hp.evaluate(() => {
-    const row = [...document.querySelectorAll('.hof-row')].find(r => /Snake/.test(r.textContent));
-    if (row) row.click();
-  });
+  await hp.locator('.hof-row', { hasText: 'Snake' }).click();
   await hp.waitForTimeout(700);
   await hp.click('#view-snake .game-back-btn');
   await hp.waitForTimeout(900);
