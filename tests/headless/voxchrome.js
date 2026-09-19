@@ -452,17 +452,17 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
     });
     await page.click('#chain-btn');
     await page.waitForTimeout(200);
-    const open = await page.evaluate(() => {
+    const shoreOpen = await page.evaluate(() => {
       const m = document.getElementById('chain-modal');
       return !!(m && m.classList.contains('open'));
     });
     await page.keyboard.press('Escape');
     await page.waitForTimeout(150);
-    const closed = await page.evaluate(() => {
+    const shoreClosed = await page.evaluate(() => {
       const m = document.getElementById('chain-modal');
       return !m || !m.classList.contains('open');
     });
-    ok(open && closed, 'Escape closes The Shore');
+    ok(shoreOpen && shoreClosed, 'Escape closes The Shore');
     await ctx.close();
   }
 
