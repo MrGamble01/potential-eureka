@@ -9153,6 +9153,10 @@ const AgeOfWarGame = (() => {
     const root = document.getElementById('aow-train-slots');
     if (!root) return;
     root.innerHTML = '';
+    const status = document.getElementById('aow-train-status');
+    if (status) status.textContent = trainingQueue.length >= TRAINING_MAX
+      ? `Queue full (${TRAINING_MAX}/${TRAINING_MAX}) — wait, or tap a queued unit to cancel + refund.`
+      : `${trainingQueue.length}/${TRAINING_MAX} queued — tap a queued unit to cancel + refund.`;
     for (let i = 0; i < TRAINING_MAX; i++) {
       const slot = document.createElement('button');
       slot.className = 'aow-train-slot';
@@ -9201,7 +9205,12 @@ const AgeOfWarGame = (() => {
           <span class="aow-spawn-name">${def.name}</span>
           <span class="aow-spawn-cost">$${def.cost}</span>
         `;
-        btn.title = `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
+        const unitTitle = `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
+        const queueFull = trainingQueue.length >= TRAINING_MAX;
+        btn.disabled = queueFull;
+        btn.classList.toggle('aow-queue-full', queueFull);
+        btn.title = (queueFull ? 'Queue full — wait for training or cancel a queued unit for a refund. ' : '') + unitTitle;
+        btn.setAttribute('aria-describedby', 'aow-train-status');
         btn.onclick = () => tryPlayerSpawn(key);
         list.appendChild(btn);
         idx++;
