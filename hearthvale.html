@@ -5757,7 +5757,14 @@
       if (modalWas) resumeFromModal();
     }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
-    if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
+    if (e.key === ' ') {
+      // Decision sheets own the pause. Leave Space to their focused buttons
+      // without restarting time behind a trade or an unresolved choice.
+      if (_modalPrevSpeed !== null) return;
+      e.preventDefault();
+      if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; }
+      syncPaused();
+    }
     const n = parseInt(e.key, 10);
     if (n >= 1) { const list = activeTabTypes(); if (n <= list.length) selectBuild(list[n - 1]); }
     // Leave Tab / Shift+Tab to the browser so Games and sheet CTAs are reachable.
