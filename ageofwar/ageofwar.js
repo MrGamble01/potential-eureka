@@ -3277,6 +3277,9 @@ const AgeOfWarGame = (() => {
         if (key) tryPlayerSpawn(key);
         e.preventDefault();
       } else if (e.key === ' ') {
+        // Let focused controls activate normally instead of spending a special
+        // (or restarting a finished war) when the player presses their button.
+        if (e.target.closest('button, a')) return;
         if (gameOver) startNewWar();
         else fireSpecial();
         e.preventDefault();
