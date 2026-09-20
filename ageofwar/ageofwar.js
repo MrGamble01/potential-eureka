@@ -3248,6 +3248,9 @@ const AgeOfWarGame = (() => {
       if (!view || !view.classList.contains('active')) return;
       if (modalPaused) return; // ignore game keys while a modal has the sim paused
       if (resumePrompt) {
+        // Let focused CTAs activate themselves: the page shortcut must not
+        // turn New war or Back to Games into Resume war.
+        if ((e.key === ' ' || e.key === 'Enter') && e.target.closest('button, a')) return;
         if (e.key === ' ' || e.key === 'p' || e.key === 'P' || e.key === 'Enter') {
           dismissResumePrompt(false);
           e.preventDefault();
