@@ -18,8 +18,8 @@
  *     gw 0) and names the scorcher.
  *  D. A clear dawn still cooks (food 5.5, gw 2).
  *  E. Cold and rain still cook. No hire still spends
- *     nothing. Soup night on a scorcher still fires
- *     (not this ticket).
+ *     nothing. Soup night still runs its
+ *     existing scorcher guard (not this ticket).
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production dawn cook.
@@ -88,6 +88,7 @@ ok(!/workers\.cook/.test(ui) && !/weather\s*===\s*'heat'/.test(ui),
     G.structures.garden = false;
     G.structures.compost = false;
     G.structures.soup_kitchen = !!o.soup;
+    G.soupNights = 0;
     G.structures.pantry = false;
     G.structures.tent = false;
     G.structures.workbench = false;
@@ -111,7 +112,8 @@ ok(!/workers\.cook/.test(ui) && !/weather\s*===\s*'heat'/.test(ui),
       gw: G.goodwill,
       cooked: /The Cook prepared meals/.test(text),
       named: /left the pot|pot dark|nobody wanted a hot meal/i.test(text),
-      soup: /Soup night/.test(text),
+      soup: /nobody wanted the pot fired/.test(text),
+      soupNights: G.soupNights,
     };
   }, opts);
 
@@ -138,8 +140,8 @@ ok(!/workers\.cook/.test(ui) && !/weather\s*===\s*'heat'/.test(ui),
     `no Cook still spends nothing on a scorcher`);
 
   const soup = await dawn({ hire: true, weather: 'heat', soup: true, roll: 0.99 });
-  ok(soup.soup,
-    'soup night on a scorcher still fires (the kitchen is not this ticket)');
+  ok(soup.soup && soup.soupNights === 0 && soup.food === 8.5 && soup.gw === 0,
+    'soup night still runs its HV-264 scorcher guard (the kitchen is not this ticket)');
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
