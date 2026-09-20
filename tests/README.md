@@ -229,6 +229,8 @@ when they touched different cards. Append yours; git merges the rest.*
 
 ### Voxel Isle suites
 
+- `voxgestures` (cancelled touches and either pinch release order leave terrain intact; zoom, drag, and deliberate taps still work)
+
 - `voxcrow` (crows & scarecrow)
 - `voxangler` (Angler's Log)
 - `voxcompost`

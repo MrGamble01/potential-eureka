@@ -4812,7 +4812,7 @@ function bindInput(){
     SFX.ensure();
     if(fp.on){const hit=raycastAt(innerWidth/2,innerHeight/2);if(hit)doAction(hit);return;}
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pointers.size===2){
+    if(pointers.size>=2){
       twoFinger=true;
       const ps=[...pointers.values()];
       pinchD=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
@@ -4846,11 +4846,14 @@ function bindInput(){
     hoverHit={x:e.clientX,y:e.clientY};
   });
   const endPointer=e=>{
-    pointers.delete(e.pointerId);
-    if(pointers.size<2){twoFinger=false;pinchD=0;}
-    if(!pointerDown)return;
+    if(!pointers.delete(e.pointerId))return;
+    // A pinch owns the whole gesture, including the last finger's release.
+    // Cancellation is cleanup only; it must never harvest, dig or spend.
+    const tap=e.type==='pointerup'&&pointerDown&&pointers.size===0&&dragDist<=6&&!twoFinger;
     pointerDown=false;
-    if(dragDist<=6&&!twoFinger){
+    if(pointers.size<2)pinchD=0;
+    if(pointers.size===0)twoFinger=false;
+    if(tap){
       const hit=raycastAt(e.clientX,e.clientY);
       if(hit)doAction(hit);
     }
