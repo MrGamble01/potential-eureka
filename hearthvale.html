@@ -5744,7 +5744,7 @@
     if (e.key === ' ') { e.preventDefault(); if (gameSpeed > 0) { prevSpeed = gameSpeed; gameSpeed = 0; } else { gameSpeed = prevSpeed || 1; } syncPaused(); }
     const n = parseInt(e.key, 10);
     if (n >= 1) { const list = activeTabTypes(); if (n <= list.length) selectBuild(list[n - 1]); }
-    if (e.key === 'Tab') { e.preventDefault(); const i = BUILD_TABS.findIndex(t => t.id === buildTab); buildTab = BUILD_TABS[(i + 1) % BUILD_TABS.length].id; buildBar(); }
+    // Leave Tab / Shift+Tab to the browser so Games and sheet CTAs are reachable.
   });
   window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
   function keyboardPan(dt) {

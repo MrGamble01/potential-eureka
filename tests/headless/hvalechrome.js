@@ -26,6 +26,7 @@
  *  N. Pause names those holds; one tap still resumes.
  *  O. beforeunload flushes; a dropped town still cannot be rewritten.
  *  P. Escape closes the trader and The Hall.
+ *  Q. Tab / Shift+Tab reach Games on welcome and pause without changing builds.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -478,6 +479,33 @@ const keptTown = () => {
       return !m || !m.classList.contains('open');
     });
     ok(hallOpen && hallShut, 'Escape closes The Hall');
+    await ctx.close();
+  }
+
+  // Q — the build-category shortcut must not consume browser focus navigation.
+  for (const returning of [false, true]) {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, returning ? keptTown : null);
+    if (returning) await page.keyboard.press('Space');
+    const sheet = returning ? '#paused' : '#welcome';
+    const cta = returning ? '#pause-resume' : '#welcome-close';
+    const category = await page.locator('#buildtabs .on').textContent();
+    await page.focus(cta);
+    await page.keyboard.press('Tab');
+    const reached = await page.locator(sheet + ' a.ea-back').evaluate(el => el === document.activeElement);
+    ok(reached && await page.locator('#buildtabs .on').textContent() === category,
+      `${returning ? 'pause' : 'welcome'}: Tab reaches Games without changing the build category`);
+    await page.keyboard.press('Shift+Tab');
+    ok(await page.locator(cta).evaluate(el => el === document.activeElement) &&
+      await page.locator('#buildtabs .on').textContent() === category,
+      `${returning ? 'pause' : 'welcome'}: Shift+Tab returns to the play CTA without changing builds`);
+    if (reached) {
+      await page.keyboard.press('Tab');
+      await Promise.all([
+        page.waitForURL(BASE + '/'),
+        page.keyboard.press('Enter'),
+      ]);
+      ok(new URL(page.url()).pathname === '/', `${returning ? 'pause' : 'welcome'}: keyboard Games exits to the hub`);
+    }
     await ctx.close();
   }
 
