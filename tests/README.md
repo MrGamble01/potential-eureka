@@ -99,7 +99,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvpanel` (the Fifth Panel)
 - `hvwalk` (the Walk Down)
 - `hvmark` (a Name on the Wall)
-- `hvintro` (HV-56: the first-run crash course, and a drift guard proving every number it quotes still matches the game)
+- `hvintro` (HV-56: the first-run crash course, a drift guard for its numbers, and visible Games exits from the course and The Bridge with real navigation at desktop/phone widths)
 - `hvwander` (HV-60: the wander step is `speed * (dt/16.667)` so residents shuffle at their own `speed` and settle on a target instead of sprinting to it and ping-ponging across it — at 60fps and at the 100ms lag clamp)
 - `hvbridge` (HV-59: The Bridge pauses the day clock — daylight, warmth and dawn hold while the overlay is open)
 - `hvesc` (HV-58: Escape closes The Bridge)
