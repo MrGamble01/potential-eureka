@@ -26,6 +26,10 @@ python3 -m http.server 8099 --bind 127.0.0.1
 
 ## What's covered
 
+`aowspace` is hook-free: during play, Space activates focused Pause, Settings,
+and recruit buttons without spending a ready special. It also checks keyboard
+Resume and the unfocused Space special shortcut at desktop/tablet widths.
+
 | Area | Suites |
 |---|---|
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
