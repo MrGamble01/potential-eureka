@@ -685,6 +685,16 @@ var EVENTS_BAD=[
        G.barrelWater=0;
        log('\ud83d\udee2\ufe0f They dumped the stored rainfall.');
      }
+     // HV-188: the coat rack hangs donated coats on a rail by the
+     // fire. A raid in the night takes the wearable stash sitting
+     // out there — the hole never holds a rail, and the next cold
+     // dawn should feel the full bite. Sweep taking the rack is
+     // HV-217 / #908 (different verb). Log before the final raid
+     // line so hvdog's last-line Biscuit credit still matches.
+     if(G.structures.coats){
+       G.structures.coats=false;
+       log('\uD83E\uDDE5 They stripped the coat rack \u2014 the rail is empty.');
+     }
      // HV-236: the card says trust no one. Goods leaving in the night
      // is how the block learns a camp cannot keep its own. Dawn's
      // ordinary fade is not this card. Gentrify's Word fade is HV-216;

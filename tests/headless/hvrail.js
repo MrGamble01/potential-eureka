@@ -14,7 +14,7 @@
  *  B. The card still promises confiscate supplies.
  *  C. A standing rack comes off the rail, and the log names it.
  *  D. The tent still falls when both stand.
- *  E. Theft is not this card — the coats stay on the rail.
+ *  E. Theft also strips the rack — owned by HV-188 / #878.
  *  F. A coatless sweep does not log the rail.
  *  Z. Zero page errors.
  *
@@ -37,8 +37,8 @@ ok(sweepBlock && /G\.structures\.coats\s*=\s*false/.test(sweepBlock[1]),
   'HV-215: sweep effect takes the donated coats off the rail');
 ok(/destroy shelters and confiscate supplies/.test(src),
   'the card still promises confiscate supplies');
-ok(theftBlock && !/G\.structures\.coats/.test(theftBlock[1]),
-  'Theft is not this card — it does not touch the rack');
+ok(!!theftBlock,
+  'Theft remains a separate event; its coat strip is HV-188 / #878');
 
 (async () => {
   const launch = {
@@ -98,12 +98,13 @@ ok(theftBlock && !/G\.structures\.coats/.test(theftBlock[1]),
     const realRand = Math.random;
     Math.random = () => 0.5;
     G.structures.coats = true;
+    G.dogHungry = false; G.barrelWater = 0; G.structures.radio = false;
     G.cans = 20; G.food = 20; G.scraps = 20; G.morale = 50; G.dog = 0;
     EVENTS_BAD.find(e => e.id === 'theft').effect();
     Math.random = realRand;
     return !!G.structures.coats;
   });
-  ok(theft, 'Theft is not this card — the coats stay hanging on the rail');
+  ok(!theft, 'Theft strips the rack under HV-188 / #878; sweep has its own take');
 
   const bare = await t(() => {
     const lines = [];
