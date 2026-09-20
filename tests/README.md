@@ -55,6 +55,10 @@ checks that Space preserves the decision pause, activates focused choices
 and purchases, and restores the prior speed on close. Ordinary Space pause
 and resume remain covered.
 
+`hvalepanblur` observes the rendered minimap at desktop/tablet widths: all
+WASD/arrow camera keys stop after window blur without a keyup, and fresh
+presses and ordinary key releases still work.
+
 ### Homeless Village suites
 
 *One line per suite, deliberately: these used to be a single table
