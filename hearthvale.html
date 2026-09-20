@@ -5770,6 +5770,9 @@
     // Leave Tab / Shift+Tab to the browser so Games and sheet CTAs are reachable.
   });
   window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  // A key released outside the window sends no keyup here. Stop the camera
+  // on focus loss so returning to the valley cannot leave it drifting.
+  window.addEventListener('blur', () => { for (const key in keys) delete keys[key]; });
   function keyboardPan(dt) {
     const sp = 260 * dt / cam.z;
     if (keys['w'] || keys['arrowup']) cam.y -= sp;
