@@ -46,6 +46,11 @@ Suites that need a temporary `window.__*` test hook in a game file
 **one-shot by design** and are not in this battery — their results are
 recorded in the merge commits that shipped each feature.
 
+Hearthvale also runs `hvaledecisionkeys`: hook-free event/trader keyboard
+checks that Space preserves the decision pause, activates focused choices
+and purchases, and restores the prior speed on close. Ordinary Space pause
+and resume remain covered.
+
 ### Homeless Village suites
 
 *One line per suite, deliberately: these used to be a single table
