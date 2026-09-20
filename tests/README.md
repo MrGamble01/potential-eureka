@@ -26,6 +26,11 @@ python3 -m http.server 8099 --bind 127.0.0.1
 
 ## What's covered
 
+`aowdifficulty` is hook-free: reselecting the current difficulty with a click
+or Enter preserves the saved war, training queue, and pause/sheet. Covers the
+desktop HUD and Settings at 1280px/768px, and verifies that changing difficulty
+still restarts the war and persists the new selection.
+
 `aowspace` is hook-free: during play, Space activates focused Pause, Settings,
 and recruit buttons without spending a ready special. It also checks keyboard
 Resume and the unfocused Space special shortcut at desktop/tablet widths.
