@@ -795,6 +795,10 @@ function finishAction(a){
     if(j.id==='dogwalk' && snapActive()){
       log('\ud83d\udc15 The snap has the block inside \u2014 the neighbor kept the dogs in. No walk today.');
     } else {
+      // HV-186: Gentrification said harassment is increasing. The
+      // flyer posting promised the owner is kind. The shop still
+      // pays; the kindness does not, until dawn.
+      var unkind=j.id==='flyers'&&gentrifyHostile();
       // HV-189: dawn says the cold gets into everything. Dumpsters
       // already feel a cold sky. The scrapyard is the same outdoor
       // metal — a decent haul halves.
@@ -818,6 +822,7 @@ function finishAction(a){
         if(j.id==='flyers' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
         // HV-252: weeding the lot in a scorcher. Shop-walk heat is #945.
         if(j.id==='gardenh' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        if(unkind&&k==='morale') amt=0;
         if(k==='morale') G.morale=Math.min(100,G.morale+amt);
         else G[k]=(G[k]||0)+amt;
         if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -828,7 +833,7 @@ function finishAction(a){
       // HV-279: Hand out flyers said the owner is kind. Honest work
       // is the +3 every posting gets. The shopkeeper vouching is Word
       // on the Street — Marisol hearing the owner is not this card.
-      if(j.id==='flyers'){
+      if(j.id==='flyers'&&!unkind){
         addRep(1);
         log('\uD83D\uDCAC The owner puts in a kind word \u2014 the block hears it.');
       }
@@ -841,7 +846,7 @@ function finishAction(a){
         log('\uD83D\uDCAC Honest lifting \u2014 the block notices industry.');
       }
       floatText(parts.join(' '));
-      log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
+      log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.'+(unkind?' The owner was not kind — the block has been hostile.':''));
       if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
       if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
       if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');

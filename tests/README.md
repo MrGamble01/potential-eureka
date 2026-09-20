@@ -53,7 +53,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
-| Homeless Village | 162 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
+| Homeless Village | 163 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
 | Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
@@ -186,6 +186,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvthermosfire` (HV-229: Pass the Thermos said it goes around the fire, then a dead barrel still poured)
 - `hvgtrsweep` (HV-233: City Sweep said confiscate supplies, then left the scrap guitar on the corner)
 - `hvgentbusk` (HV-234: Gentrification said harassment is increasing, then Busk still paid the quiet-corner take)
+- `hvgentfly` (HV-186: Gentrification takes the flyer shop's kindness — shop still pays +3, +4 morale gone until dawn; hostile flyers also silence the kind word)
 - `hvannivfire` (HV-235: Mark the Anniversary said light a candle, then a dead barrel still filled the pot)
 - `hvtrust` (HV-236: Theft said trust no one, then Word never faded)
 - `hvthermoused` (HV-237: Pass the Thermos ran a job when it already made its round)
