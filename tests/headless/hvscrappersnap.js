@@ -24,9 +24,9 @@
  *  B. A hired Scrapper at a clear named-snap dawn: a pinned
  *     0.99 roll that pays 3 scraps / 2 cans on a quiet morning
  *     pays 2 / 1 inside the snap.
- *  C. A quiet clear dawn still pays 3 / 2. Rain, winter, and
- *     weather-cold without a named snap still pay the full
- *     haul — those are other tickets.
+ *  C. A quiet clear dawn still pays 3 / 2. Rain and winter
+ *     still pay the full haul. Weather-cold without a named
+ *     snap pays 2 / 1 under HV-274 / #972.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives onNewDay.
@@ -144,8 +144,8 @@ ok(!/snapActive\(\)\s*\?\s*0\.75/.test(ui),
 
   const frost = await haulAt({ days: 1, weather: 'cold', snap: false });
   ok(frost.weather === 'cold' && !frost.snap
-     && frost.scraps === 3 && frost.cans === 2,
-    `weather-cold without a named snap still pays the full haul (${frost.scraps} / ${frost.cans})`);
+     && frost.scraps === 2 && frost.cans === 1,
+    `HV-274 / #972: weather-cold without a named snap pays 2 / 1 (${frost.scraps} / ${frost.cans})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
