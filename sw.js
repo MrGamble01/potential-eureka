@@ -22,7 +22,7 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-const SW_VERSION = 'eureka-v264-hv-sanbug';  // HV-181: the sanitation unit contains the Illness dose
+const SW_VERSION = 'eureka-v265-hv-sanbug';  // HV-181: the sanitation unit contains the Illness dose
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
