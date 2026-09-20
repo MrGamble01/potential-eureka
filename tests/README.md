@@ -40,7 +40,7 @@ python3 -m http.server 8099 --bind 127.0.0.1
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
 | Homeless Village | 128 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
-| Voxel Isle | 49 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
+| Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
 (the hook is added for the test and stripped before commit) are
 **one-shot by design** and are not in this battery — their results are
@@ -247,6 +247,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `voxbell` (the Harvest Bell)
 - `voxbottle` (the Message in a Bottle)
 - `voxtablet` (the Tide Tablet)
+- `voxalmanac` (open Almanac follows dawn market demand and automatic production; preserves scroll and idle DOM, skips closed sheets, counts Tide Tablet consultations only on opening)
 - `voxchrome` (return chrome leftovers: shared Games pill, Let's grow + hub exit, resume chip, 768×700 quest/tool split, Achievements/Almanac/Shore Games, corrupt-garden chip, New isle, tray above the hotbar, plant sheet tucks the tray, resume-chip New isle, 390 kept resume leaves town/awards/Games tappable, Escape closes The Shore)
 - `voxconch` (the Keeper's Conch)
 - `voxwick` (the Second Wick)

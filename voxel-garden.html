@@ -5519,7 +5519,20 @@ function renderAchievements(){
     grid.appendChild(d);
   }
 }
-function renderAlmanac(){
+let almanacRefreshT=0,almanacHTML='';
+function updateAlmanac(dt){
+  if(!$('almanacOv').classList.contains('open')){almanacRefreshT=0;return;}
+  almanacRefreshT+=dt;
+  if(almanacRefreshT<0.5)return;
+  almanacRefreshT=0;
+  renderAlmanac(false);
+}
+function renderAlmanac(consult=true){
+  // Only an explicit consultation counts; live paints must not award tablet visits.
+  if(consult&&isleHasTablet()){
+    saveVtab({opens:loadVtab().opens+1});
+    if(typeof checkAch==='function')checkAch();
+  }
   ensureTownName&&ensureTownName();
   $('almTitle').textContent='📊 '+(state.townName?state.townName+' Almanac':'Town Almanac');
   const nb=Object.values(state.buildings||{}).filter(Boolean).length;
@@ -5586,10 +5599,14 @@ function renderAlmanac(){
     // where the almanac ends. Every consultation is counted.
     html+='<div class="alm-head" style="margin-top:14px">THE TIDE TABLET</div>';
     composeTablet().forEach(s=>{html+='<div class="alm-stat">'+s+'</div>';});
-    saveVtab({opens:loadVtab().opens+1});
-    if(typeof checkAch==='function')checkAch();
   }
-  $('almBody').innerHTML=html;
+  // Leave unchanged content alone, and keep the reader's place when data changes.
+  if(html!==almanacHTML){
+    const card=$('almanacOv').querySelector('.card'),scrollTop=card.scrollTop;
+    $('almBody').innerHTML=html;
+    almanacHTML=html;
+    card.scrollTop=scrollTop;
+  }
 }
 
 /* ============================== ambient life ============================== */
@@ -5778,6 +5795,7 @@ function boot(){
     updateShootingStars(dt,dn);
     if(fp.on)updateFP(dt); else updateCamera(dt);
     updateHover();
+    updateAlmanac(dt);
     saveTimer+=dt;
     if(saveTimer>12){saveTimer=0;save();refreshQuestHud();}
     renderer.render(scene,camera);
