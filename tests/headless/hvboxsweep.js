@@ -38,7 +38,8 @@ const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8')
 
 const block = /id:'sweep'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.exec(loop);
 ok(!!block, 'city sweep is still in gameloop.js');
-ok(block && /G\.structures\.pantry\s*=\s*false/.test(block[1]),
+ok(block && /G\.structures\.pantry\s*=\s*false/.test(block[1]) &&
+  /log\('The pantry box was kicked over and smashed\.'\)/.test(block[1]),
   'HV-185: sweep effect kicks over the pantry box');
 ok(/id:'pantry'[\s\S]{0,220}?A little box on a post/.test(cfg),
   'the pantry still promises a box on a post');
@@ -73,17 +74,25 @@ ok(!/G\.structures\.pantry\s*=\s*false/.test(ui),
     G.structures.tent = true;
     G.structures.garden = true;
     G.structures.stash = true;
+    G.structures.coats = true;
+    G.structures.guitar = true;
+    G.structures.toolbox = true;
     G.structures.soup_kitchen = false;
     G.structures.workbench = false;
     G.packedUp = false;
     G.garageCover = false;
     G.scraps = 20; G.food = 20; G.morale = 50;
-    ev.effect();
+    const mr = Math.random;
+    Math.random = () => 0;
+    try { ev.effect(); } finally { Math.random = mr; }
     return {
       pantry: !!G.structures.pantry,
       tent: !!G.structures.tent,
       garden: !!G.structures.garden,
       stash: !!G.structures.stash,
+      coats: !!G.structures.coats,
+      guitar: !!G.structures.guitar,
+      toolbox: !!G.structures.toolbox,
       log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
     };
   });
@@ -97,8 +106,8 @@ ok(!/G\.structures\.pantry\s*=\s*false/.test(ui),
     const mr = Math.random;
     Math.random = () => 0;
     G.food = 10; G.pantryFills = 0;
-    pantryAtDawn();
-    Math.random = mr;
+    G.weather = 'clear'; G.snapUntil = null;
+    try { pantryAtDawn(); } finally { Math.random = mr; }
     return { food: G.food, fills: G.pantryFills || 0, pantry: !!G.structures.pantry };
   });
   ok(dawn.pantry === false && dawn.food === 10 && dawn.fills === 0,
@@ -107,6 +116,8 @@ ok(!/G\.structures\.pantry\s*=\s*false/.test(ui),
   // E — tent and garden still fall; the hole is never found
   ok(hit.tent === false && hit.garden === false,
     'tent and garden still fall');
+  ok(!hit.coats && !hit.guitar && !hit.toolbox,
+    'modern sweep still takes coats, guitar, and toolbox');
   ok(hit.stash === true,
     'a sweep never finds the buried stash');
 
