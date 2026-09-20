@@ -23,7 +23,7 @@
  *     coat log, no half cut.
  *  E. The hole is still never found. Goods still halve. The
  *     coats still fall — they were on the rail, not in the hole.
- *  F. A sweep still leaves the rack (control — different event).
+ *  F. HV-217 sweeps also take the rack, with their own rail log.
  *     The tent still falls.
  *  Z. Zero page errors.
  *
@@ -80,18 +80,25 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
     G.structures.coats = true;
     G.structures.stash = false;
     G.dog = 0;
+    G.dogHungry = false;
+    G.barrelWater = 0;
+    G.structures.radio = false;
     G.petitions = {};
     G.food = 20; G.cans = 20; G.scraps = 20; G.morale = 50;
+    const lines = [];
+    const realLog = log;
+    log = function(m) { lines.push(String(m)); realLog.apply(this, arguments); };
     EVENTS_BAD.find(e => e.id === 'theft').effect();
+    log = realLog;
     Math.random = real;
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
     return {
       coats: !!G.structures.coats,
-      named: /coat rack|rail/i.test(log),
+      named: lines.some(line => /They stripped the coat rack.*the rail is empty/.test(line) && !/Stash raided|Thieves in the night/.test(line)),
+      raidLast: /Stash raided in the night/.test(lines[lines.length - 1]),
       cans: G.cans,
     };
   });
-  ok(!lifted.coats && lifted.named,
+  ok(!lifted.coats && lifted.named && lifted.raidLast,
     `HV-188: a live theft strips the rack and names the rail (coats ${lifted.coats})`);
   ok(lifted.cans < 20, `goods still leave with them (cans 20 → ${lifted.cans})`);
 
@@ -103,9 +110,13 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
     G.structures.stash = false;
     G.structures.tent = false;
     G.structures.garden = false;
-    G.workers.scrapper = null;
-    G.workers.cook = null;
+    Object.keys(G.workers).forEach(k => { G.workers[k] = null; });
+    const realSnapChance = SNAP_CHANCE;
+    SNAP_CHANCE = 0;
     G.dog = 0;
+    G.dogHungry = false;
+    G.barrelWater = 0;
+    G.structures.radio = false;
     G.petitions = {};
     G.rep = 0;
     G.population = 1;
@@ -114,6 +125,9 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
     G.coldCut = 0;
     EVENTS_BAD.find(e => e.id === 'theft').effect();
     const coatsAfterRaid = !!G.structures.coats;
+    const lines = [];
+    const realLog = log;
+    log = function(m) { lines.push(String(m)); realLog.apply(this, arguments); };
     G.days = 1;
     G.warmth = 90;
     G.forecast = 'cold';
@@ -121,8 +135,7 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
     onNewDay();
     const lossRaid = 90 - G.warmth;
     const ticksRaid = G.coldCut;
-    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
-    const borrowed = /Coats off the rack/.test(log) && coatsAfterRaid;
+    const borrowed = lines.some(line => /Coats off the rack/.test(line));
     G.structures.coats = false;
     G.coldCut = 0;
     G.days = 1;
@@ -131,6 +144,8 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
     G.snapUntil = null;
     onNewDay();
     const lossBare = 90 - G.warmth;
+    log = realLog;
+    SNAP_CHANCE = realSnapChance;
     Math.random = real;
     return { coatsAfterRaid, lossRaid, lossBare, ticksRaid, borrowed };
   });
@@ -144,6 +159,9 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
     G.structures.coats = true;
     G.structures.stash = true;
     G.dog = 0;
+    G.dogHungry = false;
+    G.barrelWater = 0;
+    G.structures.radio = false;
     G.petitions = {};
     G.cans = 20; G.food = 20; G.scraps = 20; G.morale = 50;
     EVENTS_BAD.find(e => e.id === 'theft').effect();
@@ -159,7 +177,7 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
   ok(hole.cans === 17 && hole.food === 17 && hole.scraps === 18,
     `stash still halves the take (cans ${hole.cans}, food ${hole.food}, scraps ${hole.scraps})`);
 
-  // F — sweep still leaves the rack
+  // F — HV-217 sweep coexistence: both verbs take coats
   const sweep = await t(() => {
     const real = Math.random;
     Math.random = () => 0.5;
@@ -172,12 +190,16 @@ ok(!/G\.structures\.coats\s*=\s*false/.test(ui),
     G.packedUp = false;
     G.garageCover = false;
     G.scraps = 20; G.food = 20; G.morale = 50;
+    const lines = [];
+    const realLog = log;
+    log = function(m) { lines.push(String(m)); realLog.apply(this, arguments); };
     EVENTS_BAD.find(e => e.id === 'sweep').effect();
+    log = realLog;
     Math.random = real;
-    return { coats: !!G.structures.coats, tent: !!G.structures.tent };
+    return { coats: !!G.structures.coats, tent: !!G.structures.tent, named: lines.some(line => /The donated coats came off the rail/.test(line)) };
   });
-  ok(sweep.coats && !sweep.tent,
-    'a sweep still leaves the rack (control); the tent still falls');
+  ok(!sweep.coats && !sweep.tent && sweep.named,
+    'HV-217 sweep takes the rack with its own rail log; the tent still falls');
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
