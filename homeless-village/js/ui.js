@@ -56,19 +56,14 @@ function buildActionUI(){
   }
   // HV-20: the cart makes the daily deposit run possible.
   if(!!G.structures.cart){
-    var dpa=depositAction();
     var dpb=document.createElement('button');
     dpb.className='action-btn'; dpb.id='action-deposit';
-    var dpShort=(G.cans||0)<DEPOSIT_MIN;
-    dpb.setAttribute('data-tip', depositDone() ? 'One load a day — the cart rests till dawn.'
-      : dpShort ? 'Not worth the walk under '+DEPOSIT_MIN+' cans.' : dpa.tooltip);
-    dpb.innerHTML='<span class="btn-progress" id="progress-deposit" style="width:0%"></span>'+dpa.icon+' '+dpa.label+(depositDone()?' ✓':'');
-    dpb.disabled=depositDone()||dpShort;
-    if(depositDone()||dpShort) dpb.style.opacity='.5';
+    dpb.innerHTML='<span class="btn-progress" id="progress-deposit" style="width:0%"></span><span id="deposit-label"></span><small id="deposit-status" style="display:block;margin-top:3px"></small>';
     dpb.onclick=function(){ doAction(depositAction()); };
     dpb.addEventListener('mouseenter',showTip);
     dpb.addEventListener('mouseleave',hideTip);
     el.appendChild(dpb);
+    refreshDepositAction();
   }
   // HV-19: the guitar earns a daily set once it's built.
   if(buskAvailable()){
@@ -274,7 +269,29 @@ function updateGoalHUD(){
   el.textContent=g.desc+' ('+Math.min(g.value(),g.target)+'/'+g.target+')';
 }
 
+// Resource gains/spending do not rebuild the action list. Keep the cart's
+// count and gate current, preserving its progress element and active job.
+function refreshDepositAction(){
+  var btn=document.getElementById('action-deposit');
+  if(!btn) return;
+  var job=activeJobs.deposit, done=depositDone();
+  var missing=Math.max(0,DEPOSIT_MIN-(G.cans||0));
+  var status=job?'Hauling…':done?'Tomorrow — one run a day':missing?'Need '+missing+' more can'+(missing===1?'':'s'):'Ready — haul all cans';
+  var a=depositAction();
+  var label=document.getElementById('deposit-label');
+  var detail=document.getElementById('deposit-status');
+  var text=a.icon+' '+a.label+(done?' ✓':'');
+  if(label.textContent!==text) label.textContent=text;
+  if(detail.textContent!==status) detail.textContent=status;
+  btn.disabled=!!job||done||missing>0;
+  btn.style.opacity=btn.disabled?'.5':'';
+  btn.classList.toggle('active-job',!!job);
+  btn.setAttribute('data-tip',status+'. '+a.tooltip);
+  document.getElementById('progress-deposit').style.width=job?Math.min(100,(Date.now()-job.startTime)/job.duration*100)+'%':'0%';
+}
+
 function updateHUD(){
+  refreshDepositAction();
   checkGoals(); updateGoalHUD();
   document.getElementById('stat-food').textContent    =Math.floor(G.food);
   document.getElementById('stat-scraps').textContent  =Math.floor(G.scraps);

@@ -67,6 +67,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvsnap` (the Cold Snap)
 - `hvbusk` (the Busker's Guitar)
 - `hvdeposit` (the Cart & the Deposit Run)
+- `hvdepositlive` (hook-free: Deposit Run live count, shortfall, progress, and daily lock at desktop/tablet widths)
 - `hvnewcomer` (the Newcomer)
 - `hvpantry` (the Little Free Pantry)
 - `hvcoats` (the Coat Rack)
