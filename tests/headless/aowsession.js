@@ -28,6 +28,8 @@
  *  P. Game-over CTAs sit above the relic vault (not below the fold).
  *  Q. 768×700 gives the field more than the leftover 200px chrome cap.
  *  R. An open council carries Back to Games.
+ *  S. Resume-sheet keyboard activation respects the focused CTA;
+ *     unfocused resume shortcuts still restore a held council.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -476,6 +478,42 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       };
     });
     ok(council.open && council.hub === '/', 'open council carries Back to Games');
+    await ctx.close();
+  }
+
+  // S — native CTA activation must win over the document resume shortcut.
+  for (const [selector, key, action] of [
+    ['#aow-overlay .aow-cta-hub', 'Enter', 'games'],
+    ['#aow-newwar-cta', 'Enter', 'new'],
+    ['#aow-newwar-cta', 'Space', 'new'],
+    ['#aow-resume-cta', 'Enter', 'resume'],
+    ['#aow-resume-cta', 'Space', 'resume'],
+    [null, 'Enter', 'resume'],
+    [null, 'Space', 'resume'],
+    [null, 'p', 'resume'],
+  ]) {
+    const { ctx, page } = await open({ width: 1280, height: 800 }, () => {
+      localStorage.setItem('aow-session', JSON.stringify({
+        v: 2, waveNum: 6, gold: 280, playerEra: 1,
+        councilPending: ['steel', 'medics'],
+      }));
+    });
+    if (selector) await page.locator(selector).focus();
+    await page.keyboard.press(key);
+    await page.waitForTimeout(350);
+    const result = await page.evaluate(() => ({
+      path: location.pathname,
+      wave: document.getElementById('aow-wave-num')?.textContent || '',
+      hidden: document.getElementById('aow-overlay')?.style.display === 'none',
+      saved: JSON.parse(localStorage.getItem('aow-session') || 'null'),
+      council: !!document.querySelector('#aow-council .council-boon'),
+    }));
+    ok(action === 'games'
+      ? result.path === '/' && result.saved?.waveNum === 6 && result.saved?.councilPending?.length === 2
+      : action === 'new'
+        ? /WAVE 1/.test(result.wave) && result.hidden && !result.saved && !result.council
+        : /WAVE 6/.test(result.wave) && result.hidden && result.council,
+      `${key} on ${selector || 'the page'} performs ${action} and preserves the appropriate session`);
     await ctx.close();
   }
 
