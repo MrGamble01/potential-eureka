@@ -39,9 +39,8 @@ ok(/One set a day on the corner/.test(cfg),
   'the Scrap Guitar still promises one set a day on the corner');
 ok(!!payFn, 'buskPay is still in config.js');
 ok(payFn && /rain/.test(payFn[1]),
-  'HV-178: buskPay names rain');
-ok(/homeless-village\/js\/ui\.js/.test(player) === false && /homeless-village\/js\/ui\.js/.test(cfg) === false,
-  'the rain cut lives in buskPay — ui.js is not this ticket');
+  'HV-179: buskPay names rain');
+ok(payFn && /if\(gentrifyHostile\(\)\)/.test(payFn[1]), 'HV-234 gentrification cut remains');
 
 (async () => {
   const launch = {
@@ -85,7 +84,7 @@ ok(/homeless-village\/js\/ui\.js/.test(player) === false && /homeless-village\/j
   ok(table.clear === 3, `a clear set at 50 morale still pays 3 (${table.clear})`);
   ok(table.heat === 6, `a scorcher still doubles to 6 (${table.heat})`);
   ok(table.rain === 1,
-    `HV-178: rain halves the corner take — 3 becomes 1, not 3 (${table.rain})`);
+    `HV-179: rain halves the corner take — 3 becomes 1, not 3 (${table.rain})`);
   ok(table.awning === 3,
     `the awning puts a rainy set back to the dry take (${table.awning})`);
 

@@ -262,6 +262,11 @@ function gentrifyHostile(){ return G.gentrifyDay===G.days; }
 function buskPay(){
   var base=1+Math.floor((G.morale||0)/25);
   var take=G.weather==='heat'?base*2:base;
+  // HV-179: rain already halves the panhandle odds on this corner.
+  // A set on the same corner paid the dry take. The awning puts
+  // the spot back. Do not touch heat, snap, or mural. HV-234
+  // gentrifyHostile stays.
+  if(G.weather==='rain' && !G.structures.awning) take=Math.max(1,Math.floor(take/2));
   // HV-234: harassment is increasing. The guitar is a set on
   // the corner — the same locals. Panhandle is HV-76.
   if(gentrifyHostile()) take=Math.max(1,Math.floor(take/2));

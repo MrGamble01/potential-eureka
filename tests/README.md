@@ -53,7 +53,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
-| Homeless Village | 173 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
+| Homeless Village | 174 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
 | Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
@@ -72,6 +72,7 @@ presses and ordinary key releases still work.
 
 ### Homeless Village suites
 
+- `hvbuskrain` — HV-179: Rain halves busk take unless an awning shelters the corner.
 - `hvmealfire` — HV-180: dark-barrel Hot Meal refusal, Firewood relight, Blanket, and lit meal.
 
 *One line per suite, deliberately: these used to be a single table
