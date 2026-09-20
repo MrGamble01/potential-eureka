@@ -3086,6 +3086,8 @@ const AgeOfWarGame = (() => {
     // Difficulty buttons inside the modal
     settingsModal && settingsModal.querySelectorAll('#aow-diff-modal button').forEach(btn => {
       btn.onclick = () => {
+        // Reselecting the current setting must not discard the ongoing war.
+        if (btn.dataset.diff === difficulty) return;
         difficulty = btn.dataset.diff;
         try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
         // Reflect in both pill rows
@@ -3198,6 +3200,7 @@ const AgeOfWarGame = (() => {
       diffEl.querySelectorAll('button').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.diff === difficulty);
         btn.addEventListener('click', () => {
+          if (btn.dataset.diff === difficulty) return;
           difficulty = btn.dataset.diff;
           try { localStorage.setItem('aow-difficulty', difficulty); } catch {}
           diffEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
