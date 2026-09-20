@@ -924,12 +924,17 @@ function finishAction(a){
       var heatCut=G.weather==='heat';
       if(rainCut){ gw=Math.floor(gw/2); rp=Math.floor(rp/2); }
       if(heatCut){ gw=Math.floor(gw*0.75); rp=Math.floor(rp*0.75); }
+      // HV-178: dawn said the cold gets into everything. Scavenge
+      // already rides the sky; the cart haul is the other outdoor
+      // walk that day. A cold snap sky halves the take.
+      var coldCut=G.weather==='cold';
+      if(coldCut){ gw=Math.floor(gw/2); rp=Math.floor(rp/2); }
       G.cans=0;
       G.goodwill+=gw;
       if(rp>0) addRep(rp);
       G.deposits=(G.deposits||0)+1; G.depositDay=G.days;
       floatText('🛒 +'+gw+'🩶'+(rp>0?' +'+rp+'⭐':''));
-      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.'+(rainCut?' The rain got into the haul.':'')+(heatCut?' The scorcher got into the haul.':''));
+      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.'+(rainCut?' The rain got into the haul.':'')+(heatCut?' The scorcher got into the haul.':'')+(coldCut?' The cold got into the haul.':''));
       saveGame();
       buildActionUI();
     }

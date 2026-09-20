@@ -1,24 +1,4 @@
-/* HV-178 — a cold morning said the cold gets into everything,
- * then the Deposit run still paid a summer haul.
- *
- * Dawn writes "The cold gets into everything — keep the fire fed."
- * Scavenge already rides weatherDef().scav (0.75 on a cold snap sky).
- * The cart haul is the other outdoor walk that day: every can to the
- * redemption center, in one trip, in that same cold. finishAction
- * still paid floor(cans/2) goodwill and floor(cans/10) rep as if the
- * sky were clear.
- *
- * Write-first against unfixed main. Hook-free. ui.js untouched.
- *
- * A. Source: the cold-dawn log still exists; the deposit finisher
- *    has no weather==='cold' cut.
- * B. Live: 10 cans on a clear sky still pay +5🩶 +1⭐.
- * C. Live: the same 10 cans on a cold snap sky paid the summer haul
- *    (the bug). After the fix they pay half, and the log names the cold.
- * D. Heat and rain do not steal the cut — this is the cold's walk.
- * E. A short haul is still refused; one run a day still holds.
- * Z. Zero page errors.
- */
+/* HV-178: cold deposit half haul; preserve rain/heat cuts and daily guards. Hook-free. */
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -39,10 +19,13 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
     'dawn still writes that the cold gets into everything');
   ok(/a\.id==='deposit'/.test(player) && /hauled=G\.cans/.test(body),
     'the deposit finisher still hauls every can');
-  ok(/G\.weather==='cold'/.test(body) && /Math\.floor\(gw\s*\/\s*2\)/.test(body),
+  ok(/coldCut/.test(body) && /G\.weather==='cold'/.test(body) && /Math\.floor\(gw\s*\/\s*2\)/.test(body),
     'HV-178: the deposit finisher cuts the haul on a cold snap sky');
 
+  ok(/rainCut/.test(body) && /heatCut/.test(body), 'rain and heat cuts remain');
+
   const browser = await chromium.launch({
+    executablePath: process.env.CHROME_PATH || undefined,
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
@@ -52,6 +35,7 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
   await page.addInitScript(() => {
     if (!sessionStorage.getItem('hvcoldcart-init')) {
       sessionStorage.setItem('hvcoldcart-init', '1');
+      localStorage.setItem('hv-intro-seen', '1');
       localStorage.removeItem('homeless_village_v1');
     }
   });
@@ -90,11 +74,11 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
   ok(/cold got into the haul|cold got into everything/i.test(cold.log),
     'the log names the cold on the haul');
 
-  // D — heat and rain are not this ticket
+  // D — preserve modern main weather cuts
   const heat = await haul('heat', 10);
   const rain = await haul('rain', 10);
-  ok(heat.gw === 5 && rain.gw === 5,
-    `heat and rain still pay the posted rate (heat +${heat.gw}, rain +${rain.gw})`);
+  ok(heat.gw === 3 && heat.rep === 0 && rain.gw === 2 && rain.rep === 0,
+    `heat and rain retain their existing cuts (heat +${heat.gw}, rain +${rain.gw})`);
 
   // E — the existing doors still hold
   const short = await t(() => {
