@@ -596,8 +596,15 @@
    "not afford" red cost styling still wins when both apply. */
 .aow-spawn-btn.aow-queue-full {
   opacity: 0.45;
-  pointer-events: none;
   filter: saturate(0.6);
+}
+
+/* Keep the block reason readable on touch screens as well as hover. */
+.aow-train-status {
+  margin: 5px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* ── Training queue (5 slots above the unit cards) ── */
