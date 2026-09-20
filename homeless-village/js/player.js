@@ -306,6 +306,14 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-183: Tell the Fire Story waits for a lit barrel before
+  // starting the job or charging its cooldown. Unlearned and
+  // already-told stories keep their HV-281 and HV-249 gates.
+  if(a.id==='story' && hvStoryByHeart() && !hvStoryTold && Date.now()<(G.fireOutUntil||0)){
+    log('🔥 The fire is out — the story waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
   // HV-249: Tell the Fire Story said once a session. finishAction
   // already logs the fire remembers and no-ops. Clicking 🔥 after
   // the telling still started the 2s job and charged the 30s lock.
