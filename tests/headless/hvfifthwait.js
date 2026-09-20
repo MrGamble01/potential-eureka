@@ -1,28 +1,34 @@
 /*
- * HV-224 — Stand at the Fifth Panel ran a job when the fifth
- * panel was still bare block.
+ * HV-282 — Stand at the Fifth Panel ran a job when the four
+ * were still bare.
  *
- * The tooltip says three digs of the coffee can prime a fifth
- * panel beside the finished mural. panelPainted() is three digs.
- * finishAction already logs "The fifth panel is still bare block
- * — three digs of the can and somebody primes it." doAction
- * never asked. Clicking 🎨 with two digs started the 2s job,
- * then finishAction logged the bare block and locked the button
+ * The tooltip says somebody primes a fifth panel beside the
+ * finished mural. finishAction already logs "The fifth is
+ * waiting on the four — the mural is still unfinished, four
+ * squares still bare." and leaves the pot, the tally, and the
+ * session latch alone (HV-208). doAction never asked. Clicking
+ * 🎨 with three digs and G.mural at 0 started the 2s job, then
+ * finishAction named the missing four and locked the button
  * for the full 30s cooldown — the same lock a real stand earns.
- * hvpanel.js only drives finishAction, so the timer seam stayed
- * invisible.
+ * hvfifthmural.js only drives finishAction, so the timer seam
+ * stayed invisible. hvpanelbare.js owns the other gate
+ * (panelPainted() / two digs).
  *
- * HV-208 (paid while the community mural was still four-panels
- * short) is a different gate: G.mural < 4, not panelPainted().
- * Dig Up the Coffee Can's own buried-can refuse is not this card.
+ * Distinct from HV-208 / hvfifthmural (paid while four-panels
+ * short — finishAction only), HV-227 / hvpanelbare (bare block,
+ * two digs), HV-224 (same button, digs gate), #794 (stand latch
+ * vs dawn), #860 (wet paint). Already-today on this button is
+ * not this card. ui.js is not this ticket.
  *
- *  A. Source: doAction refuses a bare fifth panel before setTimeout,
- *     same log finishAction already uses. ui.js is not this ticket.
- *  B. Two digs do not start a job, do not stamp panelStood, and
- *     take no cooldown even after the old 2s timer would have
- *     fired.
- *  C. Three digs still pay through finishAction and still take
- *     the lock. Trade still refuses a short purse.
+ *  A. Source: doAction refuses a fifth waiting on the four
+ *     before setTimeout, same log finishAction already uses.
+ *     ui.js is not this ticket.
+ *  B. Three digs beside zero panels do not start a job, do
+ *     not stamp panelStood, and take no cooldown even after
+ *     the old 2s timer would have fired.
+ *  C. Three digs beside a finished mural still pay through
+ *     finishAction and still take the lock. Two digs still
+ *     name bare block. Trade still refuses a short purse.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives doAction() on the production action.
@@ -42,13 +48,13 @@ const doAt = player.indexOf('function doAction(a){');
 const finishAt = player.indexOf('function finishAction(a){');
 const doBlock = doAt >= 0 && finishAt > doAt ? player.slice(doAt, finishAt) : '';
 const timeoutAt = doBlock.indexOf('setTimeout');
-const fifthAt = doBlock.indexOf("a.id==='fifth'");
+const waitLogAt = doBlock.indexOf('waiting on the four');
 
 ok(doAt >= 0 && timeoutAt > 0, 'doAction still starts the job with setTimeout');
-ok(fifthAt >= 0 && fifthAt < timeoutAt && /!panelPainted\(\)/.test(doBlock),
-  'HV-224: doAction refuses Stand at the Fifth Panel before the timer when the fifth panel is still bare block');
-ok(/Three digs of the coffee can and somebody primes a fifth panel beside the finished mural/.test(config),
-  'the card still asks for three digs and a fifth panel beside the mural');
+ok(waitLogAt >= 0 && waitLogAt < timeoutAt,
+  'HV-282: doAction refuses Stand at the Fifth Panel before the timer when the four are still bare');
+ok(/beside the finished mural/.test(config) && /MURAL_PANELS\s*=\s*4/.test(config),
+  'the card still asks for a fifth panel beside the finished mural');
 ok(!/homeless-village\/js\/ui\.js/.test(player),
   'the refuse lives in doAction — ui.js is not this ticket');
 
@@ -63,8 +69,8 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
   await page.addInitScript(() => {
-    if (!sessionStorage.getItem('hvpanelbare-init')) {
-      sessionStorage.setItem('hvpanelbare-init', '1');
+    if (!sessionStorage.getItem('hvfifthwait-init')) {
+      sessionStorage.setItem('hvfifthwait-init', '1');
       localStorage.setItem('hv-intro-seen', '1');
       localStorage.removeItem('homeless_village_v1');
       localStorage.removeItem('hv-capsule');
@@ -73,19 +79,22 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
   });
   await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
   await page.waitForTimeout(2500);
-  const t = fn => page.evaluate(fn);
+  const t = (fn, arg) => arg === undefined ? page.evaluate(fn) : page.evaluate(fn, arg);
 
-  const bare = await t(() => {
-    saveHvCan({ digs: 2 });
+  const waiting = await t(() => {
+    saveHvCan({ digs: 3 });
     saveHvPanel({ stands: 0 });
     panelStood = false;
+    G.mural = 0;
     G.food = 10;
     G.cooldowns = {};
+    G.goalIndex = GOALS.length;
     const a = ACTIONS.find(x => x.id === 'fifth');
     doAction(a);
     const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
     return {
       painted: panelPainted(),
+      mural: G.mural,
       job: !!activeJobs.fifth,
       cd: G.cooldowns.fifth || 0,
       food: G.food,
@@ -96,12 +105,12 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
         && document.getElementById('action-fifth').classList.contains('active-job')),
     };
   });
-  ok(!bare.painted, 'two digs still leave the fifth panel bare block');
-  ok(!bare.job && !bare.btnOn,
-    'a bare fifth panel does not start a job — the button is not active-job');
-  ok(bare.cd === 0 && bare.food === 10 && bare.stands === 0 && !bare.stood,
-    `a bare fifth panel takes no cooldown and does not fill the pot (cd ${bare.cd}, food ${bare.food})`);
-  ok(/still bare block/.test(bare.log),
+  ok(waiting.painted && waiting.mural === 0, 'three digs still leave the four unfinished');
+  ok(!waiting.job && !waiting.btnOn,
+    'HV-282: a fifth waiting on the four does not start a job — the button is not active-job');
+  ok(waiting.cd === 0 && waiting.food === 10 && waiting.stands === 0 && !waiting.stood,
+    `a fifth waiting on the four takes no cooldown and does not fill the pot (cd ${waiting.cd}, food ${waiting.food})`);
+  ok(/waiting on the four/.test(waiting.log),
     'the refuse is the same line finishAction already used');
 
   await page.waitForTimeout(2500);
@@ -122,6 +131,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     G.mural = 4;
     G.food = 10;
     G.cooldowns = {};
+    G.goalIndex = GOALS.length;
     finishAction(ACTIONS.find(x => x.id === 'fifth'));
     return {
       painted: panelPainted(),
@@ -132,7 +142,28 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     };
   });
   ok(standing.painted && standing.food > 10 && standing.stands === 1 && standing.stood && standing.cd > Date.now(),
-    `three digs still fill the pot and still take the lock (food ${standing.food}, stands ${standing.stands})`);
+    `three digs beside a finished mural still fill the pot and still take the lock (food ${standing.food}, stands ${standing.stands})`);
+
+  const bare = await t(() => {
+    saveHvCan({ digs: 2 });
+    saveHvPanel({ stands: 0 });
+    panelStood = false;
+    G.mural = 0;
+    G.food = 10;
+    G.cooldowns = {};
+    G.goalIndex = GOALS.length;
+    doAction(ACTIONS.find(x => x.id === 'fifth'));
+    const log = Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join('\n');
+    return {
+      painted: panelPainted(),
+      job: !!activeJobs.fifth,
+      cd: G.cooldowns.fifth || 0,
+      food: G.food,
+      log,
+    };
+  });
+  ok(!bare.painted && !bare.job && bare.cd === 0 && bare.food === 10 && /still bare block/.test(bare.log),
+    'two digs still name bare block before the timer — HV-227 stays on that gate');
 
   const trade = await t(() => {
     G.cans = 0; G.food = 0; G.cooldowns = {};
