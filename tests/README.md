@@ -26,6 +26,12 @@ python3 -m http.server 8099 --bind 127.0.0.1
 
 ## What's covered
 
+`labsheetpause` is hook-free: Grow Op holds production, heat, market and
+contract deadlines behind The Corner, the crash course and the initial
+difficulty picker at 1280px/768px. Closing resumes without catching up the
+paused time; real close buttons, backdrop clicks and crash-course Escape
+are exercised.
+
 `aowdifficulty` is hook-free: reselecting the current difficulty with a click
 or Enter preserves the saved war, training queue, and pause/sheet. Covers the
 desktop HUD and Settings at 1280px/768px, and verifies that changing difficulty

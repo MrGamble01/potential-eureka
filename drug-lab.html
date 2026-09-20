@@ -5215,12 +5215,17 @@ function animate(now_ms) {
     return;
   }
 
+  // Reading a sheet holds the operation too: production, movement and
+  // deadlines must not advance behind The Corner or the crash course.
+  const readingSheet = document.querySelector(
+    '#chain-modal.open, #intro-modal.open, #diff-modal.open');
+
   // Pause the whole sim while an event modal is open: clicks were
   // already blocked, but WASD movement kept working — a sale made
   // behind the modal could push heat to 100 and stack the bust modal
   // on top of the still-open event, and updateEvents' early-return
   // while activeEvent let heat skip past the 95% raid check entirely.
-  if(!raidActive && !activeEvent) {
+  if(!raidActive && !activeEvent && !readingSheet) {
     updateGrowPlots(dt);
     updateTrimStation(dt);
   updateDice(dt);
@@ -5244,7 +5249,7 @@ function animate(now_ms) {
     updateWave(dt);
     updateParty(dt);
     updateGoals();
-  } else if(raidActive) {
+  } else if(raidActive && !readingSheet) {
     raidTimer-=dt;
     if(raidTimer<=0) {
       raidActive=false;
