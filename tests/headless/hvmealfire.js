@@ -102,7 +102,7 @@ ok(!/fireOutUntil/.test(ui) || !/meal/.test(ui),
     triggerEvent(ev, false);
     const out = Date.now() < (G.fireOutUntil || 0);
     const w1 = G.warmth;
-    G.activeCrafts[recipe.id] = { start: Date.now(), duration: 1 };
+    doCraft(recipe);
     finishCraft(recipe);
     return { out, relit: !((G.fireOutUntil || 0) > Date.now()), dW: G.warmth - w1 };
   });
@@ -118,7 +118,7 @@ ok(!/fireOutUntil/.test(ui) || !/meal/.test(ui),
     G.activeCrafts = {};
     triggerEvent(ev, false);
     const w1 = G.warmth;
-    G.activeCrafts[recipe.id] = { start: Date.now(), duration: 1 };
+    doCraft(recipe);
     finishCraft(recipe);
     return {
       out: Date.now() < (G.fireOutUntil || 0),
@@ -133,7 +133,7 @@ ok(!/fireOutUntil/.test(ui) || !/meal/.test(ui),
     G.fireOutUntil = 0;
     G.food = 10; G.cans = 5; G.goodwill = 4;
     G.activeCrafts = {};
-    G.activeCrafts[meal.id] = { start: Date.now(), duration: 1 };
+    doCraft(meal);
     finishCraft(meal);
     return { goodwill: G.goodwill, food: G.food, cans: G.cans };
   });
