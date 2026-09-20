@@ -370,6 +370,12 @@ function onNewDay(){
     G.barrelWater=(G.barrelWater||0)+1;
     log('\ud83d\udee2\ufe0f The rain barrel catches the day \u2014 '+G.barrelWater+'/'+BARREL_CAP+' stored.');
   }
+  // HV-184: Marisol's leftovers are breakfast. They used to land after
+  // Biscuit's keep, so a drop on an empty pot arrived once he had
+  // already curled up hungry. Dee's patch does not care about the
+  // order; the tamales do. Pantry/soup/other dawn donors stay where
+  // main already put them relative to the keep.
+  regularFavorsAtDawn();
   if(G.dog===2){
     // Biscuit's keep: one food a day. Fed, he's warmth against your back
     // and a reason to get up; hungry, he's a guilt that wears on everyone.
@@ -382,7 +388,6 @@ function onNewDay(){
       log('No scraps left for Biscuit. He curls up hungry.');
     }
   }
-  regularFavorsAtDawn();
   repAtDawn();
   soupNightAtDawn();
   muralAtDawn();
