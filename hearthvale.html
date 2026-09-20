@@ -2290,6 +2290,10 @@
       if (state.villagers.some(v => v.buildId === b.id && Math.max(Math.abs(v.tx - d.tx), Math.abs(v.ty - d.ty)) <= 1)) rate += 2.5;
       b.buildLeft -= rate * sdt;
       if (b.buildLeft <= 0) completeBuilding(b);
+      if (selected === b) {
+        if (b.done !== false) showPanel(b);
+        else refreshConstructionPanel(b);
+      }
     }
   }
 
@@ -5484,6 +5488,19 @@
   }
 
   let selected = null;
+  function refreshConstructionPanel(b) {
+    const pct = Math.round(Math.max(0, Math.min(1, 1 - b.buildLeft / (b.buildTotal || 1))) * 100);
+    const hasBuilder = state.villagers.some(v => v.buildId === b.id);
+    const values = {
+      'p-build-progress': pct + '%',
+      'p-build-worker': hasBuilder ? 'On the job 🔨' : (state.villagers.length ? 'On their way…' : 'You pitch in yourself'),
+    };
+    // Keep the action button in place while work advances (including focus).
+    for (const id in values) {
+      const el = document.getElementById(id);
+      if (el.textContent !== values[id]) el.textContent = values[id];
+    }
+  }
   function showPanel(b) {
     selected = b; buildMode = null; canvas.classList.remove('building'); refreshBarState();
     if (b.done === false) {   // construction site view
@@ -5491,11 +5508,10 @@
       document.getElementById('p-emoji').textContent = '🏗️';
       document.getElementById('p-name').textContent = sdef.name;
       document.getElementById('p-sub').textContent = 'Under construction';
-      const pct = Math.round(Math.max(0, Math.min(1, 1 - b.buildLeft / (b.buildTotal || 1))) * 100);
-      const hasBuilder = state.villagers.some(v => v.buildId === b.id);
       document.getElementById('p-stats').innerHTML =
-        statRow('Progress', pct + '%') +
-        statRow('Builder', hasBuilder ? 'On the job 🔨' : (state.villagers.length ? 'On their way…' : 'You pitch in yourself'));
+        statRow('Progress', '<span id="p-build-progress"></span>') +
+        statRow('Builder', '<span id="p-build-worker"></span>');
+      refreshConstructionPanel(b);
       const actions = document.getElementById('p-actions');
       actions.innerHTML = '<button class="danger" id="p-demolish">Cancel</button>';
       document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
