@@ -816,6 +816,11 @@ function finishAction(a){
         // HV-247: honest lifting in a scorcher. The yard vs heat
         // is HV-246 / #941; cold vs the dock is #872.
         if(j.id==='depot' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        // HV-182: dawn says the cold gets into everything. The depot
+        // lift is the other outdoor walk that morning. Heat vs the dock
+        // is HV-247 / #942; the yard's cold is HV-189. A cold snap sky
+        // halves the posted goodwill.
+        if(j.id==='depot' && G.weather==='cold') amt=Math.floor(amt/2);
         // HV-250: the shop walk is outdoor walking in the same
         // scorcher. Depot heat is HV-247 / #942; yard heat is
         // HV-246 / #941. Rain vs flyers is #867.
@@ -847,6 +852,7 @@ function finishAction(a){
       }
       floatText(parts.join(' '));
       log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.'+(unkind?' The owner was not kind — the block has been hostile.':''));
+      if(j.id==='depot' && G.weather==='cold') log('\u2744\ufe0f The cold got into the lift.');
       if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
       if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
       if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
