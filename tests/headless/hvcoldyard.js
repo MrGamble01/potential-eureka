@@ -17,8 +17,7 @@
  *  C. Live: a pinned cold sort pays half (2 scraps, 1 can)
  *     and names the cold.
  *  D. The same sort on a clear day still pays +5 / +2.
- *  E. A clear winter morning still pays +5 / +2 — season is
- *     #857's fight, not this one.
+ *  E. A clear winter morning pays +2 / +1 via HV-167 / #857.
  *  F. The toolbox still adds +2 on a cold sort. Depot on a
  *     cold day pays +2 via HV-182 / #872 (different posting).
  *  Z. Zero page errors.
@@ -102,8 +101,8 @@ ok(!/scrapyd/.test(ui) && !/weather\s*===\s*'cold'/.test(ui),
     `a clear sort still pays the posted haul (scraps ${clear.scraps}, cans ${clear.cans})`);
 
   const winter = await sortAt('clear', 3, false);
-  ok(winter.job === 'scrapyd' && winter.scraps === 5 && winter.cans === 2,
-    `a clear winter morning still pays +5 / +2 (season is not this ticket)`);
+  ok(winter.job === 'scrapyd' && winter.scraps === 2 && winter.cans === 1,
+    `HV-167: a clear winter morning pays +2 / +1`);
 
   const tools = await sortAt('cold', 0, true);
   ok(tools.scraps === 2 && tools.cans === 1 && tools.gw === 2,

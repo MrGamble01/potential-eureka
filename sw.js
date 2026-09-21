@@ -27,7 +27,8 @@
 // HV-171: A scorcher dogwalk pays goodwill without a morale lift.
 // HV-170: Rain washes wet mural panels and refuses painting.
 // HV-169: Theft takes cardboard with existing stash protections.
-const SW_VERSION = 'eureka-v278-hv-wintbed';  // HV-168: Winter garden beds sleep without spending compost or stored rain
+// HV-168: Winter garden beds sleep without spending compost or stored rain
+const SW_VERSION = 'eureka-v279-hv-yardwin';  // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
