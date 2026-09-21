@@ -1,119 +1,43 @@
-/*
- * HV-175 — Church Donated Supplies said essentials, then left the cardboard.
- *
- * The card body is "A volunteer group dropped off some essentials."
- * The effect gives food and scraps. Cans are a different ticket. Wood
- * is a different ticket. Cardboard is tent canvas, blankets, the
- * stash — and it never moved.
- *
- *  A. Source: the church effect assigns G.cardboard; ui.js is untouched.
- *  B. The card still promises essentials.
- *  C. A pinned donation with 20 cardboard adds some.
- *  D. Food and scraps still rise. Cans and wood still sit (other tickets).
- *  E. Kind Stranger still leaves the cardboard (control — different event).
- *  Z. Zero page errors.
- *
- * Hook-free. Drives triggerEvent() on the production donation.
- */
+// Hook-free regression coverage against production globals.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-
+const ROOT = path.resolve(__dirname, '../..');
+const source = name => fs.readFileSync(path.join(ROOT, 'homeless-village/js', name+'.js'), 'utf8');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
-const ROOT = path.resolve(__dirname, '..', '..');
-let pass = 0, fail = 0;
-const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
+let pass=0, fail=0;
+const ok=(v,label)=>{ if(v) pass++; else fail++; console.log(`${v?'PASS':'FAIL'}  ${label}`); };
+(async()=>{
+ const browser=await chromium.launch({ ...(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH}:{}), args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
+ try {
+ const page=await browser.newPage();
+ const errors=[];
+ page.on('pageerror',e=>errors.push(String(e)));
+ await page.addInitScript(()=>{localStorage.setItem('hv-intro-seen','1');localStorage.removeItem('homeless_village_v1');});
+ await page.goto(BASE+'/homeless-village.html');
+ await page.waitForFunction(()=>typeof G!=='undefined' && typeof finishAction==='function');
+ const donation=source('gameloop').split("id:'church_donation'")[1].split('];')[0];
+ ok(/G\.cardboard/.test(donation)&&/stack of cardboard/.test(donation),'church source names cardboard grant and log');
+ for(const roll of [0,0.999]){
+ const r=await page.evaluate(roll=>{
+  G.food=10; G.scraps=10; G.cardboard=10; G.morale=40; G.days=7; G.lastEventDay=-1;
+  G.wood=17; G.cans=19;
+  const original=Math.random;
+  try { Math.random=()=>roll; EVENTS_GOOD.find(e=>e.id==='church_donation').effect(); }
+  finally { Math.random=original; }
+  return {food:G.food,scraps:G.scraps,card:G.cardboard,morale:G.morale,day:G.lastEventDay,wood:G.wood,cans:G.cans,
+    log:Array.from(document.querySelectorAll('.log-line')).map(e=>e.textContent).join(' ')};
+ },roll);
+ ok(r.card===(roll===0?12:15),'donation cardboard bound at roll '+roll);
+ ok(r.food===(roll===0?14:19)&&r.scraps===(roll===0?12:15)&&r.morale===(roll===0?45:50),'food, scraps and morale still granted');
+ ok(r.day===7&&r.wood===17&&r.cans===19,'event stamp and unrelated resources remain correct');
+ ok(/Food, scraps and cardboard gained/.test(r.log)&&/stack of cardboard/.test(r.log),'log names supplies and cardboard');
+ }
+ const cap=await page.evaluate(()=>{G.cardboard=undefined;G.morale=99;EVENTS_GOOD.find(e=>e.id==='church_donation').effect();return {card:G.cardboard,mo:G.morale};});
+ ok(cap.card>=2&&cap.card<=5&&cap.mo===100,'missing cardboard initializes and morale caps at 100');
 
-const src = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
-const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
-const block = /id:'church_donation'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.exec(src);
-ok(!!block, 'church donation is still in gameloop.js');
-ok(block && /G\.cardboard/.test(block[1]),
-  'HV-175: church effect donates cardboard');
-ok(/dropped off some essentials/.test(src),
-  'the card still promises essentials');
-ok(!/G\.cardboard\s*=/.test(ui),
-  'ui.js untouched — the gift lives on the church effect');
-
-(async () => {
-  const launch = {
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
-  };
-  if (process.env.CHROME_PATH) launch.executablePath = process.env.CHROME_PATH;
-  const browser = await chromium.launch(launch);
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  const page = await ctx.newPage();
-  const errs = [];
-  page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
-  await page.addInitScript(() => {
-    if (!sessionStorage.getItem('hvchurchcard-init')) {
-      sessionStorage.setItem('hvchurchcard-init', '1');
-      localStorage.setItem('hv-intro-seen', '1');
-      localStorage.removeItem('homeless_village_v1');
-    }
-  });
-  await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
-  await page.waitForTimeout(2500);
-
-  const pinChurch = (extra) => page.evaluate((extra) => {
-    const real = Math.random;
-    Math.random = () => 0.5;
-    G.goalIndex = GOALS.length;
-    G.lastEventDay = G.days;
-    G.food = 20; G.scraps = 20; G.cans = 20; G.wood = 20; G.cardboard = 20;
-    G.morale = 50;
-    Object.assign(G, extra || {});
-    const ev = EVENTS_GOOD.find(e => e.id === 'church_donation');
-    triggerEvent(ev, true);
-    Math.random = real;
-    return {
-      scraps: G.scraps,
-      food: G.food,
-      cans: G.cans,
-      wood: G.wood,
-      cardboard: G.cardboard,
-      banner: document.getElementById('ev-title').textContent,
-      body: document.getElementById('ev-body').textContent,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
-    };
-  }, extra);
-
-  const church = await pinChurch();
-  ok(church.banner === 'Church Donated Supplies',
-    `the card still titles itself Church Donated Supplies (${church.banner})`);
-  ok(/essentials/i.test(church.body),
-    'the body still names essentials');
-  ok(church.cardboard > 20,
-    `HV-175: a pinned donation adds cardboard (20 → ${church.cardboard})`);
-  ok(church.cardboard === 24,
-    `HV-175: the 0.5 roll adds 4 cardboard like scraps (20 → ${church.cardboard})`);
-  ok(church.food > 20 && church.scraps > 20,
-    `food and scraps still rise (${church.food}/${church.scraps})`);
-  ok(church.cans === 20,
-    `cans still sit — not this ticket (${church.cans})`);
-  ok(church.wood === 20,
-    `wood still sits — not this ticket (${church.wood})`);
-  ok(/cardboard/i.test(church.log),
-    `the log names the cardboard (${church.log.slice(-80)})`);
-
-  const kind = await page.evaluate(() => {
-    const real = Math.random;
-    Math.random = () => 0.5;
-    G.cardboard = 20;
-    G.goalIndex = GOALS.length;
-    G.lastEventDay = G.days;
-    triggerEvent(EVENTS_GOOD.find(e => e.id === 'kind_stranger'), true);
-    Math.random = real;
-    return G.cardboard;
-  });
-  ok(kind === 20,
-    `Kind Stranger still leaves the cardboard — different event (${kind})`);
-
-  await browser.close();
-  ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
-  console.log(`\n=== ${pass} passed, ${fail} failed ===`);
-  process.exit(fail ? 1 : 0);
-})().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+ ok(errors.length===0, 'zero page errors: '+errors.join('; '));
+ } finally { await browser.close(); }
+ console.log(`=== ${pass} passed, ${fail} failed ===`);
+ process.exitCode=fail?1:0;
+})().catch(e=>{console.error(e);process.exitCode=1;});
