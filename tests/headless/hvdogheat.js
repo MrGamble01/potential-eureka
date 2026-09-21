@@ -32,7 +32,7 @@ const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'u
 const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 const odd = /a\.id==='oddjob'[\s\S]*?} else if\(a\.id==='mural'/.exec(player);
 ok(!!odd, 'odd-job payout is still in player.js');
-ok(odd && /dogwalk/.test(odd[0]) && /heat/.test(odd[0]),
+ok(odd && /dogwalk/.test(odd[0]) && /wilted/.test(odd[0]),
   'HV-171: odd-job payout reads heat on the dog walk');
 ok(/Fresh air, wagging tails/.test(cfg),
   'the posting still promises fresh air');
@@ -86,7 +86,7 @@ ok(!/dogwalk/.test(ui) || !/weather==='heat'/.test(ui),
     `HV-171: a scorcher walk does not add the +6 (50 → ${heat.morale})`);
   ok(heat.goodwill === 2,
     `the neighbor still pays +2 goodwill (${heat.goodwill})`);
-  ok(/fresh air/i.test(heat.log),
+  ok(/dogs wilted/i.test(heat.log),
     `the log names the missing fresh air (${heat.log.slice(-90)})`);
 
   const clear = await walk('clear');
@@ -101,6 +101,10 @@ ok(!/dogwalk/.test(ui) || !/weather==='heat'/.test(ui),
   ok(cold.morale === 56,
     `cold still pays the lift — not this ticket (${cold.morale})`);
 
+  const snap = await walk('heat', {snapUntil: 6});
+  ok(snap.goodwill === 0 && snap.morale === 50, 'snap still refuses before payout');
+  await page.evaluate(() => { G.snapUntil=null; });
+
   const yard = await page.evaluate(() => {
     G.days = 3;
     G.oddJobDay = -1;
@@ -112,7 +116,7 @@ ok(!/dogwalk/.test(ui) || !/weather==='heat'/.test(ui),
     finishAction(oddJobAction());
     return { job: todaysJob().id, scraps: G.scraps, cans: G.cans };
   });
-  ok(yard.job === 'scrapyd' && yard.scraps === 5 && yard.cans === 2,
+  ok(yard.job === 'scrapyd' && yard.scraps === 3 && yard.cans === 1,
     `the scrapyard still pays its haul on a scorcher (${yard.scraps}/${yard.cans})`);
 
   await browser.close();

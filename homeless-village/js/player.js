@@ -836,6 +836,8 @@ function finishAction(a){
       // already feel a cold sky. The scrapyard is the same outdoor
       // metal — a decent haul halves.
       var coldYard=j.id==='scrapyd'&&G.weather==='cold';
+      // HV-171: a scorcher is not fresh air. Snap refusal is HV-267; hungry Biscuit is #848.
+      var wilted=j.id==='dogwalk'&&G.weather==='heat';
       for(var k in j.gives){
         var amt=j.gives[k];
         if(coldYard) amt=Math.floor(amt/2);
@@ -861,6 +863,7 @@ function finishAction(a){
         // HV-252: weeding the lot in a scorcher. Shop-walk heat is #945.
         if(j.id==='gardenh' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
         if(unkind&&k==='morale') amt=0;
+        if(wilted&&k==='morale') amt=0;
         if(k==='morale') G.morale=Math.min(100,G.morale+amt);
         else G[k]=(G[k]||0)+amt;
         if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
@@ -886,6 +889,7 @@ function finishAction(a){
       floatText(parts.join(' '));
       log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.'+(unkind?' The owner was not kind — the block has been hostile.':''));
       if(j.id==='depot' && G.weather==='cold') log('\u2744\ufe0f The cold got into the lift.');
+      if(wilted) log('🐕 The scorcher was not fresh air. The dogs wilted — no lift.');
       if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
       if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
       if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
