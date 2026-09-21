@@ -53,7 +53,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
-| Homeless Village | 165 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
+| Homeless Village | 166 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
 | Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
@@ -242,6 +242,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvsickpan` (HV-273: Illness Spreading said everyone feels terrible, then Panhandle still paid a well-day take)
 - `hvfiverain` (HV-276: Found $5 said a crumpled bill on the sidewalk, then a rainy day still paid a dry-day five)
 - `hvfifthwait` (HV-282: Stand at the Fifth Panel ran a job when the four were still bare — the HV-208 waiting-on-the-four refuse moves ahead of the 2s job and the 30s lock; HV-227 keeps the two-dig bare-block gate)
+- `hvgranttheft` (HV-283: Community Grant said civic infrastructure no thief can carry off, then the same day's Theft raided the delivery; HV-225 keeps the same-day sweep latch)
 - `labintro` (LAB-62: Grow Op's crash course — the sixth flagship finally explains itself, and every number the panel quotes (heat per unit, the 95 raid line, the 100 bust line, the demand band, the stash cap) is recomputed from the source so the copy cannot rot)
 - `primer` (SITE-4: the hub's START HERE primer — a first-time visitor is greeted once, a player with history never is, ? stays the shortcuts sheet, and every claim it makes is checked against something that really exists on the page)
 - `sessiontag` (SITE-5: the session tag on every game card — the six flagships read Hours and the fifteen arcade games Few minutes, the studio claims neither, the tag leads its row, and the hub's existing filter picks it up for free (hours → 6, few minutes → 15))

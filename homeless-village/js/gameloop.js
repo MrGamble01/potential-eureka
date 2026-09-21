@@ -631,8 +631,8 @@ var EVENTS_BAD=[
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
      // HV-225: Community Grant is civic infrastructure. The
      // delivery is not ordinary supplies — today's sweep cannot
-     // confiscate it. Theft is not this card. Tomorrow's sweep
-     // is not this card.
+     // confiscate it. HV-283 is the same-day theft. Tomorrow's
+     // sweep is not this card.
      if(G.grantDay===G.days){
        var capFood=Math.max(0,(G.food||0)-8);
        var capScraps=Math.max(0,(G.scraps||0)-8);
@@ -682,9 +682,26 @@ var EVENTS_BAD=[
      var dogHelps=G.dog===2&&!G.dogHungry;
      var dm=dogHelps?.5:1; // HV-6: a fed Biscuit's barking cuts the losses in half
      var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
-     G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
-     G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
-     G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
+     var lostCans=Math.floor(G.cans*(.2+Math.random()*.35)*dm*sm);
+     var lostFood=Math.floor(G.food*(.15+Math.random()*.3)*dm*sm);
+     var lostScraps=Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm);
+     // HV-283: the grant is civic. HV-225 stamped grantDay so today's
+     // sweep cannot confiscate the delivery. HV-15 said a thief cannot
+     // carry it off either — the raid still treated the eight as
+     // ordinary supplies. Same-day sweep is HV-225. Tomorrow's raid
+     // is not this card. Coats / radio / rainfall are not this card.
+     if(G.grantDay===G.days){
+       var capFood=Math.max(0,(G.food||0)-8);
+       var capScraps=Math.max(0,(G.scraps||0)-8);
+       if(lostFood>capFood || lostScraps>capScraps){
+         lostFood=Math.min(lostFood,capFood);
+         lostScraps=Math.min(lostScraps,capScraps);
+         log('\uD83D\uDCCB The community grant is civic \u2014 this raid cannot carry off the delivery.');
+       }
+     }
+     G.cans  =Math.max(0,G.cans  -lostCans);
+     G.food  =Math.max(0,G.food  -lostFood);
+     G.scraps=Math.max(0,G.scraps-lostScraps);
      G.morale=Math.max(0,G.morale-rand(12,20));
      // HV-241: raided your stash includes the stored rainfall.
      // The drum is infrastructure (pantry / radio / cart); the

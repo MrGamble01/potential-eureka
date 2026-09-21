@@ -1069,7 +1069,7 @@ function doPetition(id){
     G.food+=gf; G.wood+=gw; G.scraps+=gs;
     // HV-225: the grant is civic. Stamp the day so today's City
     // Sweep cannot confiscate the delivery as ordinary supplies.
-    // Theft is not this card. Tomorrow's sweep is not this card.
+    // HV-283 is the same-day theft. Tomorrow's sweep is not this card.
     G.grantDay=G.days;
     floatText('+'+gf+'🍞 +'+gw+'🪵 +'+gs+'🧱');
   }
