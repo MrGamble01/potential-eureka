@@ -471,8 +471,8 @@ function soupNightAtDawn(){
 // ── HV-11: the finished mural greets every morning — a fixed +2 morale
 // at dawn, the permanent payoff for the four-session project.
 function muralAtDawn(){
-  // HV-170: a finished wall is sealed. An in-progress panel from last
-  // night is still wet — rain washes the work before it can dry.
+  // HV-170: finished walls are sealed; last night's unfinished panel is still wet.
+  // Scorcher refusal is HV-268; morning-light naming is HV-197.
   if((G.mural||0)>0 && (G.mural||0)<MURAL_PANELS && G.muralDay===G.days-1 && G.weather==='rain'){
     G.mural-=1;
     log('🎨 Overnight rain washed last night’s wet panel. The wall is back to '+G.mural+' of '+MURAL_PANELS+'.');

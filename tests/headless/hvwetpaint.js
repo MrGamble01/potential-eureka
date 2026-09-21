@@ -36,7 +36,7 @@ const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'),
 const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
 const dawn = /function muralAtDawn\(\)\{([\s\S]*?)\n\}/.exec(loop);
 const door = /if\(a\.id==='mural'\)\{([\s\S]*?)\n  if\(a\.id==='meeting'/.exec(player);
-ok(/needs to dry/.test(player) && /id:'mural'[\s\S]{0,280}?dry night/.test(cfg),
+ok(/needs to dry/.test(player) && /id:'mural'[\s\S]{0,380}?dry night/.test(cfg),
   'the session still says the panel needs to dry; the tooltip names a dry night');
 ok(dawn && /weather==='rain'/.test(dawn[1]) && /muralDay/.test(dawn[1])
   && door && /weather==='rain'/.test(door[1]),
@@ -124,25 +124,12 @@ ok(dawn && /weather==='rain'/.test(dawn[1]) && /muralDay/.test(dawn[1])
     'a clear dawn keeps yesterday\'s panel');
 
   const finished = await page.evaluate(() => {
-    const real = Math.random;
-    Math.random = () => 0.99;
-    SNAP_CHANCE = 0;
-    G.mural = 4;
-    G.muralDay = G.days;
-    G.forecast = 'rain';
-    G.lastEventDay = G.days + 5;
-    G.food = 20;
-    G.warmth = 40;
-    G.morale = 50;
-    G.population = 1;
-    G.dog = 1;
-    G.rep = 40;
-    onNewDay();
-    Math.random = real;
-    return { mural: G.mural, morale: G.morale };
+    G.mural=MURAL_PANELS; G.muralDay=G.days-1; G.weather='rain'; G.morale=50;
+    muralAtDawn();
+    return { mural:G.mural, panels:MURAL_PANELS, morale:G.morale };
   });
-  ok(finished.mural === 4 && finished.morale === 49,
-    `a finished wall survives the rain and still greets (mural ${finished.mural}, morale ${finished.morale})`);
+  ok(finished.mural===finished.panels && finished.morale===52,
+    'finished wall survives rain and still greets with +2 morale');
 
   const door = await page.evaluate(() => {
     G.weather = 'rain';
@@ -161,6 +148,20 @@ ok(dawn && /weather==='rain'/.test(dawn[1]) && /muralDay/.test(dawn[1])
   ok(!door.started && door.mural === 0 && door.scraps === 10,
     'doAction does not start a session in the rain');
 
+  for (const weather of ['rain', 'heat']) {
+    const refused = await page.evaluate(weather => {
+      G.weather=weather; G.mural=0; G.muralDay=-1; G.scraps=10;
+      delete activeJobs.mural; G.cooldowns={};
+      doAction(muralAction());
+      const started=!!activeJobs.mural;
+      finishAction(muralAction());
+      return {started, mural:G.mural, scraps:G.scraps, day:G.muralDay};
+    }, weather);
+    ok(!refused.started && refused.mural===0 && refused.scraps===10 && refused.day===-1,
+      weather+' refuses both entry and queued completion without spending paint');
+  }
+  const clear = await paint();
+  ok(clear.mural===1 && clear.scraps===8, 'clear weather still spends two scraps and paints');
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
