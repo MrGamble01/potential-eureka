@@ -471,6 +471,15 @@ function soupNightAtDawn(){
 // ── HV-11: the finished mural greets every morning — a fixed +2 morale
 // at dawn, the permanent payoff for the four-session project.
 function muralAtDawn(){
+  // HV-170: finished walls are sealed; last night's unfinished panel is still wet.
+  // Scorcher refusal is HV-268; morning-light naming is HV-197.
+  if((G.mural||0)>0 && (G.mural||0)<MURAL_PANELS && G.muralDay===G.days-1 && G.weather==='rain'){
+    G.mural-=1;
+    log('🎨 Overnight rain washed last night’s wet panel. The wall is back to '+G.mural+' of '+MURAL_PANELS+'.');
+    refreshMural();
+    buildActionUI();
+    return;
+  }
   if((G.mural||0)<MURAL_PANELS) return;
   G.morale=Math.min(100,G.morale+2);
   // HV-197: the greeting is morning light. Rain has none. The mural

@@ -67,6 +67,8 @@ function doAction(a){
   }
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
+    // HV-170: wet paint needs a dry night.
+    if(G.weather==='rain'){ log('🎨 The paint won’t dry in this rain — wait for a clearer sky.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
     // HV-268: the session is on the underpass wall. A scorcher cooks
     // the block — refuse before the timer so a miss does not burn the
@@ -906,6 +908,8 @@ function finishAction(a){
     // turned into a scorcher. Do not stamp the day — the wall waits.
     if(G.weather==='heat'){
       log('🎨 A scorcher — the underpass wall is too hot to paint. The panel waits.');
+    } else if(G.weather==='rain'){
+      log('🎨 The paint won’t dry in this rain — wait for a clearer sky.');
     } else if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
       G.scraps-=2; G.mural=(G.mural||0)+1; G.muralDay=G.days;
       G.morale=Math.min(100,G.morale+3);
