@@ -22,8 +22,8 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-// HV-174: Only rain hosts a Dry Corner sit; clear-sky roofing still works.
-const SW_VERSION = 'eureka-v272-hv-dryrain';
+// HV-173: Make room requires a standing tent and wind or sweep lapses the ask.
+const SW_VERSION = 'eureka-v273-hv-tentbed';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
