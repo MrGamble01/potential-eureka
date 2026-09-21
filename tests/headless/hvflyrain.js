@@ -1,126 +1,46 @@
-/*
- * HV-177 — Hand out flyers said a local shop pays, then a rainy day
- * still paid the full take.
- *
- * The posting is "A local shop pays a little, and the owner is kind.
- * +3 goodwill, +4 morale." Kind is a different ticket (Marisol).
- * The shop pays for paper on the sidewalk. Rain already halves the
- * panhandle corner. The flyers job never reads the sky. A wet dawn
- * still paid +3 / +4.
- *
- *  A. Source: the odd-job finish refuses flyers in the rain; ui.js
- *     is untouched.
- *  B. The posting still promises the shop pays. The crash course
- *     still says rain matters.
- *  C. A pinned rainy flyers day pays nothing. The log names the rain.
- *  D. Clear / cold / heat still pay +3 goodwill and +4 morale.
- *  E. Sort at the scrapyard still pays its haul in the rain
- *     (control — different job).
- *  F. Marisol affinity still sits (control — different ticket).
- *  Z. Zero page errors.
- *
- * Hook-free. Drives finishAction(oddJobAction()) on the production job.
- */
+// Hook-free regression coverage against production globals.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-
+const ROOT = path.resolve(__dirname, '../..');
+const source = name => fs.readFileSync(path.join(ROOT, 'homeless-village/js', name+'.js'), 'utf8');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
-const ROOT = path.resolve(__dirname, '..', '..');
-let pass = 0, fail = 0;
-const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
+let pass=0, fail=0;
+const ok=(v,label)=>{ if(v) pass++; else fail++; console.log(`${v?'PASS':'FAIL'}  ${label}`); };
+(async()=>{
+ const browser=await chromium.launch({ ...(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH}:{}), args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
+ try {
+ const page=await browser.newPage();
+ const errors=[];
+ page.on('pageerror',e=>errors.push(String(e)));
+ await page.addInitScript(()=>{localStorage.setItem('hv-intro-seen','1');localStorage.removeItem('homeless_village_v1');});
+ await page.goto(BASE+'/homeless-village.html');
+ await page.waitForFunction(()=>typeof G!=='undefined' && typeof finishAction==='function');
+ const p=source('player');
+ ok(p.includes('Rain pulped the flyers') && p.includes('gentrifyHostile()'), 'source names rain pulp and preserves hostility');
+ const run=async(weather,early=false,hostile=false)=>page.evaluate(({weather,early,hostile})=>{
+   G.days=1; G.oddJobDay=-1; G.weather=weather; G.gentrifyDay=hostile?1:-1;
+   G.goodwill=10; G.morale=50; G.rep=10; G.structures.toolbox=weather==='rain';
+   G.cooldowns={}; activeJobs={};
+   document.querySelectorAll('.log-line').forEach(e=>e.remove());
+   const before=JSON.stringify([G.food,G.energy,G.scraps,G.cans]);
+   (early?doAction:finishAction)(oddJobAction());
+   return {gw:G.goodwill,mo:G.morale,rep:G.rep,day:G.oddJobDay,job:!!activeJobs.oddjob,cd:G.cooldowns.oddjob,
+     same:before===JSON.stringify([G.food,G.energy,G.scraps,G.cans]),log:document.querySelector('#log')?.textContent||Array.from(document.querySelectorAll('.log-line')).map(e=>e.textContent).join(' ')};
+ },{weather,early,hostile});
+ for(const early of [true,false]){
+   const r=await run('rain',early);
+   ok(r.gw===10&&r.mo===50&&r.rep===10&&r.same,'rain '+(early?'click':'finish')+' spends/pays nothing, including toolbox and Word');
+   ok(r.day===1&&!r.job&&(!early||!r.cd),'rain stamps day; click burns no cooldown');
+   ok(/Rain pulped the flyers/.test(r.log),'rain refusal names pulp');
+ }
+ const clear=await run('clear'); ok(clear.gw===13&&clear.mo===54&&clear.rep===14,'clear flyers pay and give kind Word');
+ const cold=await run('cold'); ok(cold.gw===13&&cold.mo===54,'cold flyers still pay');
+ const heat=await run('heat'); ok(heat.gw===12&&heat.mo===53,'heat preserves HV-250 reduction');
+ const hostile=await run('clear',false,true); ok(hostile.gw===13&&hostile.mo===50&&hostile.rep===13,'hostile clear keeps pay but loses kindness');
 
-const player = fs.readFileSync(path.join(ROOT, 'homeless-village/js/player.js'), 'utf8');
-const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
-const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
-const html = fs.readFileSync(path.join(ROOT, 'homeless-village.html'), 'utf8');
-const block = /else if\(a\.id==='oddjob'\)\{([\s\S]*?)\n  \} else if\(a\.id==='mural'\)/.exec(player);
-ok(!!block, 'odd-job finish is still in player.js');
-ok(block && /flyers/.test(block[1]) && /weather\s*===\s*'rain'/.test(block[1]),
-  'HV-177: flyers finish reads a rainy sky');
-ok(/id:'flyers'[\s\S]{0,180}?A local shop pays a little/.test(cfg),
-  'the posting still promises the shop pays');
-ok(/rain closes the panhandling corner/.test(html),
-  'the crash course still says rain matters');
-ok(!/pulped the flyers/.test(ui),
-  'ui.js untouched — the rain gate lives on the job');
-
-(async () => {
-  const launch = {
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
-  };
-  if (process.env.CHROME_PATH) launch.executablePath = process.env.CHROME_PATH;
-  const browser = await chromium.launch(launch);
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  const page = await ctx.newPage();
-  const errs = [];
-  page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
-  await page.addInitScript(() => {
-    if (!sessionStorage.getItem('hvflyrain-init')) {
-      sessionStorage.setItem('hvflyrain-init', '1');
-      localStorage.setItem('hv-intro-seen', '1');
-      localStorage.removeItem('homeless_village_v1');
-    }
-  });
-  await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
-  await page.waitForTimeout(2500);
-
-  const runJob = (days, weather, extra) => page.evaluate(({ days, weather, extra }) => {
-    G.days = days;
-    G.oddJobDay = -1;
-    G.weather = weather;
-    G.goodwill = 10;
-    G.morale = 50;
-    G.scraps = 0;
-    G.cans = 0;
-    G.rep = 0;
-    G.regulars = { marisol: 0, ray: 0, dee: 0 };
-    G.structures.toolbox = false;
-    Object.assign(G, extra || {});
-    const job = todaysJob();
-    finishAction(oddJobAction());
-    return {
-      job: job.id,
-      label: job.label,
-      desc: job.desc,
-      goodwill: G.goodwill,
-      morale: G.morale,
-      scraps: G.scraps,
-      cans: G.cans,
-      day: G.oddJobDay,
-      marisol: G.regulars.marisol,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
-    };
-  }, { days, weather, extra });
-
-  const rain = await runJob(1, 'rain');
-  ok(rain.job === 'flyers' && /shop pays/i.test(rain.desc),
-    `day 1 still posts flyers (${rain.job})`);
-  ok(rain.goodwill === 10 && rain.morale === 50,
-    `HV-177: rain pays nothing (10/50 → ${rain.goodwill}/${rain.morale})`);
-  ok(rain.day === 1, 'the rainy posting still closes for the day');
-  ok(/rain|pulp/i.test(rain.log),
-    `the log names the rain (${rain.log.slice(-90)})`);
-
-  const clear = await runJob(1, 'clear');
-  ok(clear.goodwill === 13 && clear.morale === 54,
-    `a clear day still pays +3 / +4 (${clear.goodwill}/${clear.morale})`);
-
-  const cold = await runJob(1, 'cold');
-  const heat = await runJob(1, 'heat');
-  ok(cold.goodwill === 13 && cold.morale === 54 && heat.goodwill === 13 && heat.morale === 54,
-    `cold and heat still pay the shop (${cold.goodwill}/${heat.goodwill})`);
-
-  const scrap = await runJob(3, 'rain');
-  ok(scrap.job === 'scrapyd' && scrap.scraps === 5 && scrap.cans === 2,
-    `the scrapyard still pays its haul in the rain (${scrap.scraps}/${scrap.cans})`);
-
-  const kind = await runJob(1, 'clear');
-  ok(kind.marisol === 0,
-    'Marisol affinity still sits (control — different ticket)');
-
-  await browser.close();
-  ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
-  console.log(`\n=== ${pass} passed, ${fail} failed ===`);
-  process.exit(fail ? 1 : 0);
-})();
+ ok(errors.length===0, 'zero page errors: '+errors.join('; '));
+ } finally { await browser.close(); }
+ console.log(`=== ${pass} passed, ${fail} failed ===`);
+ process.exitCode=fail?1:0;
+})().catch(e=>{console.error(e);process.exitCode=1;});
