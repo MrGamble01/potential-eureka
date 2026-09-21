@@ -608,6 +608,9 @@ var EVENTS_BAD=[
      // HV-254: confiscate supplies. The tool box is a kit sitting
      // out — they take it. The workbench perk (#96) is not this card.
      if(G.structures.toolbox){ G.structures.toolbox=false; log('They took the tool box.'); }
+     // HV-176: the weather band sat in camp among the supplies.
+     // Theft taking the radio is HV-248 — a different verb.
+     if(G.structures.radio){ G.structures.radio=false; log('They took the radio.'); }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
