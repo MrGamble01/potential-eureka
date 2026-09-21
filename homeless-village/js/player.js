@@ -349,6 +349,13 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-174: people come in out of the rain. Only a wet street hosts
+  // the sit; unbuilt roofing and the HV-250 already-sat gate stay separate.
+  if(a.id==='dry' && dryBuilt() && !drySat && G.weather!=='rain'){
+    log('⛱️ The corner is dry — and so is the street. People come in out of the rain; today nobody is wet.');
+    sfx('error');
+    return;
+  }
   if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
@@ -784,6 +791,7 @@ function finishAction(a){
       }
     }
     else if(drySat){ log('\u26f1\ufe0f Somebody has already had their hour in the dry corner tonight \u2014 the roof keeps, and so does the habit.'); }
+    else if(G.weather!=='rain'){ log('⛱️ The corner is dry — and so is the street. People come in out of the rain; today nobody is wet.'); }
     else {
       drySat=true;
       var dd2=dryDish();
