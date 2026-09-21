@@ -153,6 +153,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     `Rest still works after the refuse (health ${rest.health})`);
 
   const first = await page.evaluate(() => {
+    G.weather = 'rain'; // HV-174: only rain hosts the sit.
     saveHvMark({ names: 3 });
     saveHvDry({ built: true, sits: 0 });
     drySat = false;
