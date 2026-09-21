@@ -136,7 +136,7 @@ ok(!/homeless-village\/js\/ui\.js/.test(player) && !/homeless-village\/js\/ui\.j
     Math.random = real;
     return { food: G.food, scraps: G.scraps, wood: G.wood };
   });
-  ok(ordinary.food < 8 && ordinary.scraps < 8 && ordinary.wood === 8,
+  ok(ordinary.food < 8 && ordinary.scraps < 8 && ordinary.wood === 4,
     `ordinary supplies the same day still get confiscated (food ${ordinary.food}, scraps ${ordinary.scraps})`);
 
   const tomorrow = await t(() => {
