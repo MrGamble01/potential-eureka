@@ -350,6 +350,8 @@ function onNewDay(){
     log('The Scrapper found some supplies.');
     if(G.weather==='cold') log('\u2744\ufe0f The cold gets into the haul — a thinner morning.');
   }
+  // HV-172: serve the kitchen's soup before the Cook spends breakfast.
+  soupNightAtDawn();
   // HV-208: Biscuit's keep is one food a day. The Cook used to
   // spend the last three bowls first and leave him hungry.
   if(G.workers.cook&&G.food>=3+(G.dog===2?1:0)){
@@ -390,7 +392,6 @@ function onNewDay(){
     }
   }
   repAtDawn();
-  soupNightAtDawn();
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
