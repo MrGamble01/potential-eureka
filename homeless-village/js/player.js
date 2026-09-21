@@ -838,11 +838,15 @@ function finishAction(a){
       // already feel a cold sky. The scrapyard is the same outdoor
       // metal — a decent haul halves.
       var coldYard=j.id==='scrapyd'&&G.weather==='cold';
-      // HV-171: a scorcher is not fresh air. Snap refusal is HV-267; hungry Biscuit is #848.
+// HV-171: a scorcher is not fresh air. Snap refusal is HV-267; hungry Biscuit is #848.
       var wilted=j.id==='dogwalk'&&G.weather==='heat';
+      // HV-167: winter halves the same goods as the dumpsters: +5/+2 becomes +2/+1.
+      // Cold sky is HV-189; rain is HV-237; heat is HV-246.
+      var winterYard=j.id==='scrapyd'&&G.season===3;
       for(var k in j.gives){
         var amt=j.gives[k];
         if(coldYard) amt=Math.floor(amt/2);
+        if(winterYard) amt=Math.floor(amt/2);
         // HV-237: the yard is outdoor dirty work. Rain cuts the haul
         // the same way it halves the corner. Cold morning and winter
         // are not this card. Flyers and the deposit run are not this card.
@@ -892,6 +896,7 @@ function finishAction(a){
       log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.'+(unkind?' The owner was not kind — the block has been hostile.':''));
       if(j.id==='depot' && G.weather==='cold') log('\u2744\ufe0f The cold got into the lift.');
       if(wilted) log('🐕 The scorcher was not fresh air. The dogs wilted — no lift.');
+      if(winterYard) log('❄️ Winter halves the yard — a thinner haul.');
       if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
       if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
       if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');

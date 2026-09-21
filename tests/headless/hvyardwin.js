@@ -59,6 +59,7 @@ ok(odd && /scrapyd/.test(odd[1]) && /season===3/.test(odd[1]),
   await page.waitForTimeout(2500);
 
   const winter = await page.evaluate(() => {
+    G.weather = 'clear';
     G.days = 3;
     G.season = 3;
     G.oddJobDay = -9;
@@ -83,6 +84,7 @@ ok(odd && /scrapyd/.test(odd[1]) && /season===3/.test(odd[1]),
   }
 
   const spring = await page.evaluate(() => {
+    G.weather = 'clear';
     G.days = 3;
     G.season = 0;
     G.oddJobDay = -9;
@@ -113,6 +115,20 @@ ok(odd && /scrapyd/.test(odd[1]) && /season===3/.test(odd[1]),
   ok(others.depot === 5 && others.garden === 4,
     'depot and the garden lot still pay full in winter');
 
+  const tools = await page.evaluate(() => {
+    G.days=3; G.season=3; G.weather='clear'; G.oddJobDay=-1;
+    G.structures.toolbox=true; G.scraps=0; G.cans=0; G.goodwill=0;
+    finishAction(oddJobAction());
+    return {scraps:G.scraps, cans:G.cans, goodwill:G.goodwill};
+  });
+  ok(tools.scraps===2 && tools.cans===1 && tools.goodwill===2,
+    'toolbox still adds +2 goodwill to a winter yard haul');
+  const cold = await page.evaluate(() => {
+    G.weather='cold'; G.scraps=0; G.cans=0; G.oddJobDay=-1;
+    finishAction(oddJobAction());
+    return {scraps:G.scraps, cans:G.cans};
+  });
+  ok(cold.scraps===1 && cold.cans===0, 'cold and winter cuts stack with flooring');
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
