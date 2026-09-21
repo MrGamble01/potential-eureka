@@ -12,7 +12,7 @@
  *  C. A pinned theft with 20 cardboard takes some of it.
  *  D. Cans, food, and scraps still go. Wood still sits (not this ticket).
  *  E. City Sweep still leaves the cardboard (control — different event).
- *  F. Church Donated Supplies still leaves the cardboard.
+ *  F. Church Donated Supplies still adds 2–5 cardboard (merged HV-175).
  *  G. Biscuit still halves the cardboard take.
  *  H. The buried stash still halves the cardboard take.
  *  Z. Zero page errors.
@@ -134,8 +134,8 @@ ok(!/G\.cardboard\s*=/.test(ui),
     triggerEvent(EVENTS_GOOD.find(e => e.id === 'church_donation'), true);
     return G.cardboard;
   });
-  ok(church === 20,
-    `Church Donated Supplies still leaves the cardboard (${church})`);
+  ok(church >= 22 && church <= 25,
+    `Church Donated Supplies still adds 2–5 cardboard — HV-175 (${church})`);
 
   const biscuit = await pinTheft({ dog: 2, cardboard: 20 });
   ok(biscuit.cardboard === 18,
