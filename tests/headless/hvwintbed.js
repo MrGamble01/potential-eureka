@@ -34,7 +34,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 const loop = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
 const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
 const garden = /if\(G\.structures\.garden\)\{([\s\S]*?)\n  if\(G\.dog===2\)/.exec(loop);
-const winter = garden && /else if\(G\.season===3\)\{([\s\S]*?)\n    \}\n    else \{/.exec(garden[1]);
+const winter = garden && /else if\(G\.season===3\)\{([\s\S]*?)\n    \} else \{/.exec(garden[1]);
 ok(/id:'garden'[\s\S]{0,500}?Winter sleeps/.test(cfg)
   && /id:'compost'[\s\S]{0,400}?through frost/.test(cfg),
   'the garden names winter sleep; compost stays frost');
@@ -87,6 +87,7 @@ ok(winter && /Winter on the beds/.test(winter[1]) && !/compostDays/.test(winter[
     G.forecast = w;
     G.lastEventDay = G.days + 5;
     G.food = 20;
+    document.querySelectorAll('.log-line').forEach(el => el.remove());
     onNewDay();
     Math.random = real;
     const log = Array.from(document.querySelectorAll('.log-line')).map(x => x.textContent).join('\n');
