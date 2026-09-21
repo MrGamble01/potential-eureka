@@ -25,7 +25,8 @@
 // HV-173: Make room requires a standing tent and wind or sweep lapses the ask.
 // HV-172: Soup night serves before Cook spends the breakfast pot.
 // HV-171: A scorcher dogwalk pays goodwill without a morale lift.
-const SW_VERSION = 'eureka-v276-hv-wetpaint';  // HV-170: Rain washes wet mural panels and refuses painting
+// HV-170: Rain washes wet mural panels and refuses painting.
+const SW_VERSION = 'eureka-v277-hv-theftcard';  // HV-169: Theft takes cardboard with existing stash protections
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 

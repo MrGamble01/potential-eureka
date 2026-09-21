@@ -32,7 +32,7 @@ const src = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 
 const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 const block = /id:'theft'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.exec(src);
 ok(!!block, 'theft event is still in gameloop.js');
-ok(block && /G\.cardboard\s*=\s*Math\.max\s*\(\s*0\s*,\s*G\.cardboard/.test(block[1]),
+ok(block && /G\.cardboard\s*=\s*Math\.max\(0,\(G\.cardboard\|\|0\)-lostCard\)/.test(block[1]),
   'HV-169: theft effect confiscates cardboard');
 ok(/raided your stash/.test(src),
   'the card still promises they raided your stash');
@@ -67,6 +67,8 @@ ok(!/G\.cardboard\s*=/.test(ui),
     G.dog = 0;
     G.dogHungry = false;
     G.structures.stash = false;
+    G.structures.coats = true; G.structures.radio = true;
+    G.barrelWater = 5;
     if (G.petitions) G.petitions.streetlight = false;
     G.cans = 20; G.food = 20; G.scraps = 20; G.wood = 20; G.cardboard = 20;
     G.morale = 50;
@@ -75,6 +77,7 @@ ok(!/G\.cardboard\s*=/.test(ui),
     triggerEvent(ev, false);
     Math.random = real;
     return {
+      coats: G.structures.coats, radio: G.structures.radio, water: G.barrelWater,
       scraps: G.scraps,
       food: G.food,
       cans: G.cans,
@@ -101,6 +104,8 @@ ok(!/G\.cardboard\s*=/.test(ui),
     `wood still sits — not this ticket (${theft.wood})`);
   ok(/cardboard/i.test(theft.log),
     `the log names the cardboard (${theft.log.slice(-80)})`);
+
+  ok(!theft.coats && !theft.radio && theft.water===0, 'raid still strips coats, takes radio, and dumps barrel');
 
   const sweep = await page.evaluate(() => {
     const real = Math.random;
@@ -140,6 +145,10 @@ ok(!/G\.cardboard\s*=/.test(ui),
   ok(stash.cardboard === 18,
     `the buried stash still halves the cardboard take (${stash.cardboard})`);
 
+  const stacked = await pinTheft({dog:2, structures:{stash:true}, petitions:{streetlight:true}});
+  ok(stacked.cardboard===20, 'Biscuit, stash, and streetlight stack before flooring');
+  const hungry = await pinTheft({dog:2, dogHungry:true});
+  ok(hungry.cardboard===16 && /curled up hungry/.test(hungry.log), 'hungry Biscuit does not protect the cardboard');
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);

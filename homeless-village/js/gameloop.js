@@ -699,6 +699,10 @@ var EVENTS_BAD=[
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
+     // HV-169: cardboard is stash cargo; the Hidden Stash is built with it.
+     // dm/sm already cover Biscuit, the stash, and the streetlight. Wood is separate.
+     var lostCard=Math.floor((G.cardboard||0)*(.1+Math.random()*.2)*dm*sm);
+     G.cardboard=Math.max(0,(G.cardboard||0)-lostCard);
      G.morale=Math.max(0,G.morale-rand(12,20));
      // HV-241: raided your stash includes the stored rainfall.
      // The drum is infrastructure (pantry / radio / cart); the
@@ -735,6 +739,7 @@ var EVENTS_BAD=[
        :(G.dog===2?'Thieves in the night — Biscuit had curled up hungry and never left the blanket.'
          :'Stash raided in the night.'))
        + ' Trust frays \u2014 the block heard a camp that could not keep its own.';
+     if(lostCard>0) raid+=' They took the cardboard too.';
      if(tookRadio) raid+=' They took the weather band.';
      log(raid);
    }},
