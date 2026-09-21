@@ -24,7 +24,7 @@
 // v7: patch notes land on the hub (index.html inline module + hero button).
 // HV-173: Make room requires a standing tent and wind or sweep lapses the ask.
 // HV-172: Soup night serves before Cook spends the breakfast pot.
-const SW_VERSION = 'eureka-v274-hv-cookpot';
+const SW_VERSION = 'eureka-v275-hv-dogheat';  // HV-171: A scorcher dogwalk pays goodwill without a morale lift
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
