@@ -1,161 +1,58 @@
-/*
- * HV-172 — Soup Kitchen said feeds everyone, then the Cook spent the pot.
- *
- * The kitchen card is "Soup night: feeds everyone at dusk (1 food each)."
- * The Cook "Makes meals from food automatically." Dawn runs the Cook
- * first. A camp of four with just enough left after the night drain
- * watches the Cook take three bowls and leave a cold pot. The kitchen
- * assigned nothing. Hunger-before-cook is a different ticket. Soup
- * before the drain is a different ticket.
- *
- *  A. Source: soupNightAtDawn runs before the Cook spends food; ui.js
- *     is untouched. Both cards still say what they say.
- *  B. A tight dawn with a cook and a kitchen serves soup, not a cold pot.
- *  C. A leftover pot still lets the Cook cook.
- *  D. No kitchen: the Cook still cooks.
- *  E. No cook: the kitchen still serves.
- *  Z. Zero page errors.
- *
- * Hook-free. Drives onNewDay() on the production dawn.
- */
+// Hook-free regression coverage against production globals.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-
+const ROOT = path.resolve(__dirname, '../..');
+const source = name => fs.readFileSync(path.join(ROOT, 'homeless-village/js', name+'.js'), 'utf8');
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
-const ROOT = path.resolve(__dirname, '..', '..');
-let pass = 0, fail = 0;
-const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); };
+let pass=0, fail=0;
+const ok=(v,label)=>{ if(v) pass++; else fail++; console.log(`${v?'PASS':'FAIL'}  ${label}`); };
+(async()=>{
+ const browser=await chromium.launch({ ...(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH}:{}), args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
+ try {
+ const page=await browser.newPage();
+ const errors=[];
+ page.on('pageerror',e=>errors.push(String(e)));
+ await page.addInitScript(()=>{localStorage.setItem('hv-intro-seen','1');localStorage.removeItem('homeless_village_v1');});
+ await page.goto(BASE+'/homeless-village.html');
+ await page.waitForFunction(()=>typeof G!=='undefined' && typeof finishAction==='function');
+ const dawnSource=source('gameloop').split('function onNewDay(){')[1].split('// ── The regulars')[0];
+ const soupAt=dawnSource.indexOf('soupNightAtDawn();'),cookAt=dawnSource.indexOf('if(G.workers.cook');
+ ok(soupAt>=0&&soupAt<cookAt&&(dawnSource.match(/soupNightAtDawn\(\);/g)||[]).length===1,'soup serves exactly once before Cook');
+ const ordered=['pantryAtDawn();','if(G.food<=0)','if(G.workers.scrapper','soupNightAtDawn();','if(G.workers.cook','if(G.structures.barrel','regularFavorsAtDawn();','if(G.dog===2)','repAtDawn();','muralAtDawn();','ticketAtDawn();','newcomerAtDawn();'];
+ const positions=ordered.map(x=>dawnSource.indexOf(x));
+ ok(positions.every((v,i)=>v>=0&&(!i||v>positions[i-1])),'other dawn steps retain their relative order');
+ const dawn=async(opts={})=>page.evaluate(opts=>{
+  G.days=5;G.lastEventDay=99;G.forecast=opts.weather||'clear';G.weather='clear';G.season=0;
+  G.population=opts.pop||1;G.food=opts.food===undefined?4.5:opts.food;
+  G.morale=50;G.health=80;G.warmth=80;G.goodwill=0;G.soupNights=0;G.goalIndex=GOALS.length;
+  G.snapUntil=null;G.sickUntil=opts.sick?8:null;G.dog=opts.dog||1;G.dogMetDay=99;G.dogHungry=false;G.rep=0;
+  G.regulars={marisol:0,ray:0,dee:0};G.workers.cook=opts.cook!==false;G.workers.scrapper=false;
+  for(const k of Object.keys(G.structures))G.structures[k]=false;
+  G.structures.soup_kitchen=opts.kitchen!==false;G.favor=null;G.mural=0;G.rayDebt=0;G.rainBetOn=false;G.friendDay=-1;
+  document.querySelectorAll('.log-line').forEach(e=>e.remove());
+  const original=Math.random;
+  try {Math.random=()=>0.9;onNewDay();} finally {Math.random=original;}
+  return {food:G.food,nights:G.soupNights,gw:G.goodwill,hungry:G.dogHungry,
+   log:Array.from(document.querySelectorAll('.log-line')).map(e=>e.textContent).join(' ')};
+ },opts);
+ for(const opts of [{food:4.5},{food:7.5,pop:3},{food:3}]){
+  const r=await dawn(opts);
+  ok(r.nights===1&&/Soup night/.test(r.log)&&!/pot stayed cold/.test(r.log),'tight pot serves everyone: '+JSON.stringify(opts));
+  ok(r.gw===0&&!/The Cook prepared meals/.test(r.log),'Cook leaves served pot alone when less than three remain');
+ }
+ const plenty=await dawn({food:10});
+ ok(plenty.nights===1&&plenty.gw===2&&plenty.food===4.5&&plenty.log.indexOf('Soup night')<plenty.log.indexOf('The Cook prepared meals'),'ample pot serves soup then Cook');
+ const none=await dawn({kitchen:false});
+ ok(none.nights===0&&none.gw===2&&none.food===0&&/The Cook prepared meals/.test(none.log),'without kitchen Cook still breakfasts');
+ const noCook=await dawn({cook:false});ok(noCook.nights===1&&noCook.food===2&&noCook.gw===0,'without Cook soup still serves');
+ const heat=await dawn({weather:'heat',food:10});
+ ok(heat.nights===0&&heat.gw===0&&heat.food===8.5&&/nobody wanted the pot fired/.test(heat.log)&&/Cook left the pot dark/.test(heat.log),'HV-264 and HV-277 heat skips both pots without spending');
+ const sick=await dawn({sick:true,food:10});ok(sick.nights===1&&sick.gw===0&&/Cook is down with the bug/.test(sick.log),'HV-240 sick Cook still stands down');
+ const dog=await dawn({dog:2,food:5.5});ok(dog.nights===1&&!dog.hungry&&dog.gw===0&&dog.food===2,'HV-208 Cook still leaves Biscuit a bowl after soup');
 
-const src = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 'utf8');
-const cfg = fs.readFileSync(path.join(ROOT, 'homeless-village/js/config.js'), 'utf8');
-const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
-const iCook = src.indexOf('G.workers.cook&&G.food>=3');
-const iSoup = src.indexOf('soupNightAtDawn()');
-ok(iCook > 0 && iSoup > 0, 'the Cook and soup night are still in onNewDay');
-ok(iSoup < iCook,
-  'HV-172: soup night runs before the Cook spends the pot');
-ok(/feeds everyone at dusk/.test(cfg),
-  'the kitchen still promises to feed everyone');
-ok(/Makes meals from food automatically/.test(cfg),
-  'the Cook still promises automatic meals');
-ok(!/soupNightAtDawn/.test(ui) && !/workers\.cook/.test(ui),
-  'ui.js untouched — the order lives in onNewDay');
-
-(async () => {
-  const launch = {
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
-  };
-  if (process.env.CHROME_PATH) launch.executablePath = process.env.CHROME_PATH;
-  const browser = await chromium.launch(launch);
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  const page = await ctx.newPage();
-  const errs = [];
-  page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
-  await page.addInitScript(() => {
-    if (!sessionStorage.getItem('hvcookpot-init')) {
-      sessionStorage.setItem('hvcookpot-init', '1');
-      localStorage.setItem('hv-intro-seen', '1');
-      localStorage.removeItem('homeless_village_v1');
-    }
-  });
-  await page.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
-  await page.waitForTimeout(2500);
-
-  const dawn = (extra) => page.evaluate((extra) => {
-    const real = Math.random;
-    Math.random = () => 0.9;
-    G.days = 5;
-    G.lastEventDay = 99;
-    G.forecast = 'clear';
-    G.weather = 'clear';
-    G.season = 0;
-    G.population = 4;
-    G.food = 10;
-    G.morale = 50;
-    G.health = 80;
-    G.warmth = 80;
-    G.goodwill = 0;
-    G.soupNights = 0;
-    G.goalIndex = GOALS.length;
-    G.snapUntil = null;
-    G.dog = 1;
-    G.dogMetDay = 99;
-    G.rep = 0;
-    G.regulars = { marisol: 0, ray: 0, dee: 0 };
-    G.workers.cook = true;
-    G.workers.scrapper = false;
-    G.structures.soup_kitchen = true;
-    G.structures.garden = false;
-    G.structures.pantry = false;
-    G.structures.tent = false;
-    G.structures.barrel = false;
-    G.favor = null;
-    Object.assign(G, extra || {});
-    onNewDay();
-    Math.random = real;
-    return {
-      food: G.food,
-      nights: G.soupNights || 0,
-      goodwill: G.goodwill,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' '),
-    };
-  }, extra);
-
-  const tight = await dawn();
-  ok(tight.nights === 1,
-    `HV-172: a tight pot still serves soup night (nights ${tight.nights})`);
-  ok(/Soup night/i.test(tight.log) && !/pot stayed cold/i.test(tight.log),
-    `the kitchen fed everyone, not a cold pot (${tight.log.slice(-90)})`);
-  ok(!/Cook prepared meals/i.test(tight.log),
-    'the Cook left the pot for the kitchen when there was no leftover');
-
-  const leftover = await dawn({ food: 20 });
-  ok(leftover.nights === 1 && leftover.goodwill === 2,
-    `a leftover pot still lets the Cook cook (${leftover.nights} night, +${leftover.goodwill} goodwill)`);
-  ok(/Cook prepared meals/i.test(leftover.log),
-    'the leftover dawn still names the Cook');
-
-  const noKitchen2 = await page.evaluate(() => {
-    const real = Math.random;
-    Math.random = () => 0.9;
-    G.days = 5; G.lastEventDay = 99; G.forecast = 'clear';
-    G.population = 4; G.food = 10; G.goodwill = 0; G.soupNights = 0;
-    G.goalIndex = GOALS.length; G.dog = 1; G.dogMetDay = 99; G.rep = 0;
-    G.workers.cook = true; G.structures.soup_kitchen = false;
-    G.structures.garden = false; G.structures.pantry = false;
-    onNewDay();
-    Math.random = real;
-    return { nights: G.soupNights || 0, goodwill: G.goodwill,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' ') };
-  });
-  ok(noKitchen2.nights === 0 && noKitchen2.goodwill === 2,
-    `no kitchen: the Cook still cooks (${noKitchen2.goodwill} goodwill)`);
-
-  const noCook = await page.evaluate(() => {
-    const real = Math.random;
-    Math.random = () => 0.9;
-    G.days = 5; G.lastEventDay = 99; G.forecast = 'clear';
-    G.population = 4; G.food = 10; G.goodwill = 0; G.soupNights = 0;
-    G.morale = 50; G.health = 80; G.warmth = 80;
-    G.goalIndex = GOALS.length; G.dog = 1; G.dogMetDay = 99; G.rep = 0;
-    G.workers.cook = false; G.structures.soup_kitchen = true;
-    G.structures.garden = false; G.structures.pantry = false;
-    onNewDay();
-    Math.random = real;
-    return { nights: G.soupNights || 0, goodwill: G.goodwill,
-      log: Array.from(document.querySelectorAll('.log-line')).map(d => d.textContent).join(' ') };
-  });
-  ok(noCook.nights === 1 && noCook.goodwill === 0,
-    `no cook: the kitchen still serves (${noCook.nights} night)`);
-  ok(/Soup night/i.test(noCook.log),
-    'the cook-less dawn still names soup night');
-
-  await browser.close();
-  ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
-  console.log(`\n=== ${pass} passed, ${fail} failed ===`);
-  process.exit(fail ? 1 : 0);
-})().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+ ok(errors.length===0, 'zero page errors: '+errors.join('; '));
+ } finally { await browser.close(); }
+ console.log(`=== ${pass} passed, ${fail} failed ===`);
+ process.exitCode=fail?1:0;
+})().catch(e=>{console.error(e);process.exitCode=1;});
