@@ -657,9 +657,11 @@ var EVENTS_BAD=[
      if(G.grantDay===G.days){
        var capFood=Math.max(0,(G.food||0)-8);
        var capScraps=Math.max(0,(G.scraps||0)-8);
-       if(lostFood>capFood || lostScraps>capScraps){
+       var capWood=Math.max(0,(G.wood||0)-8);
+       if(lostFood>capFood || lostScraps>capScraps || lostWood>capWood){
          lostFood=Math.min(lostFood,capFood);
          lostScraps=Math.min(lostScraps,capScraps);
+         lostWood=Math.min(lostWood,capWood);
          log('\uD83D\uDCCB The community grant is civic \u2014 this sweep cannot confiscate the delivery.');
        }
      }

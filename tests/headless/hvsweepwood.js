@@ -146,9 +146,11 @@ ok(!/G\.wood\s*=/.test(ui),
   const both = await pinSweep({packedUp:true, structures:{stash:true}});
   ok(both.wood===19, 'stash and packing up stack for wood');
   const grantDay = await page.evaluate(() => G.days);
-  const grant = await pinSweep({grantDay, food:8, scraps:8});
-  ok(grant.food===8 && grant.scraps===8 && grant.wood===10,
-    'same-day grant cap protects only food and scraps, not wood');
+  const grant = await pinSweep({grantDay, food:8, scraps:8, wood:8});
+  ok(grant.food===8 && grant.scraps===8 && grant.wood===8,
+    'same-day grant cap protects food, scraps, and wood');
+  const extraWood = await pinSweep({grantDay, wood:12});
+  ok(extraWood.wood===8, 'same-day sweep takes surplus wood while preserving the grant');
 
   const tentFell = await page.evaluate(() => {
     const real = Math.random;
