@@ -7,8 +7,8 @@
  * the heat. The mural never read G.weather, so a scorcher
  * still spent 2 scraps, painted a panel, and stamped the day.
  *
- * A clear day still paints. Rain still paints — wet paint is
- * not this card. The fire circle is not this card. ui.js is
+ * A clear day still paints. HV-170 rain refusal remains.
+ * The fire circle is not this card. ui.js is
  * not this ticket.
  *
  *  A. Source: the mural tooltip still names the underpass wall;
@@ -16,7 +16,7 @@
  *  B. A clear day still paints a panel.
  *  C. A scorcher refuses before the timer and does not paint
  *     or stamp the day.
- *  D. A rainy day still paints — wet paint is not this card.
+ *  D. HV-170: rain refuses without spending paint or stamping the day.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives production doAction / finishAction.
@@ -134,8 +134,8 @@ ok(!/homeless-village\/js\/ui\.js/.test(player),
     finishAction(muralAction());
     return { scraps: G.scraps, mural: G.mural, day: G.muralDay };
   });
-  ok(rain.scraps === 8 && rain.mural === 1 && rain.day === 2,
-    `a rainy day still paints — wet paint is not this card (mural=${rain.mural})`);
+  ok(rain.scraps === 10 && rain.mural === 0 && rain.day === -1,
+    `HV-170: rain refuses without spending paint or stamping the day (scraps=${rain.scraps}, mural=${rain.mural}, day=${rain.day})`);
 
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
