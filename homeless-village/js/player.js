@@ -47,6 +47,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-177: rain pulps the paper on the sidewalk. Stamp the day;
+  // the sky will not clear until dawn. Kind Word is a different ticket.
+  if(a.id==='oddjob' && todaysJob().id==='flyers' && G.weather==='rain'){
+    G.oddJobDay=G.days;
+    log('📄 Rain pulped the flyers — the shop called it off.');
+    sfx('error');
+    if(typeof buildActionUI==='function') buildActionUI();
+    return;
+  }
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
@@ -794,6 +803,12 @@ function finishAction(a){
     // breaks. Depot and the other postings still pay.
     if(j.id==='dogwalk' && snapActive()){
       log('\ud83d\udc15 The snap has the block inside \u2014 the neighbor kept the dogs in. No walk today.');
+    } else if(j.id==='flyers' && G.weather==='rain'){
+      // HV-177: queued paper cannot pay after the rain arrives either.
+      G.oddJobDay=G.days;
+      log('📄 Rain pulped the flyers — the shop called it off.');
+      saveGame();
+      if(typeof buildActionUI==='function') buildActionUI();
     } else {
       // HV-186: Gentrification said harassment is increasing. The
       // flyer posting promised the owner is kind. The shop still
