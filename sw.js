@@ -22,8 +22,8 @@
 // the flagship rival leaderboard) to installed PWAs — cache-first
 // shells only refresh when this version changes.
 // v7: patch notes land on the hub (index.html inline module + hero button).
-// HV-176: City Sweep confiscates the radio while Lookout forecasts remain.
-const SW_VERSION = 'eureka-v270-hv-radiosweep';
+// HV-175: Church donations include two to five cardboard with the existing supplies.
+const SW_VERSION = 'eureka-v271-hv-churchcard';
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
