@@ -293,8 +293,12 @@ function onNewDay(){
       if(snapActive() && G.weather!=='rain' && (G.barrelWater||0)>0){
         log('\ud83d\udee2\ufe0f The snap froze the drum — a stored rainfall stays ice. The beds go without.');
       }
-    }
-    else {
+    } else if(G.season===3){
+      // HV-168: winter dormancy is the season, not frost weather.
+      // Compost heat keeps a frost bed but cannot wake a winter bed.
+      // Stored rain waits for spring.
+      log('Winter on the beds — the garden gave nothing today.');
+    } else {
       var y=rand(1,3);
       if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
       if(G.weather!=='rain'&&(G.barrelWater||0)>0){

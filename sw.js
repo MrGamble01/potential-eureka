@@ -26,7 +26,8 @@
 // HV-172: Soup night serves before Cook spends the breakfast pot.
 // HV-171: A scorcher dogwalk pays goodwill without a morale lift.
 // HV-170: Rain washes wet mural panels and refuses painting.
-const SW_VERSION = 'eureka-v277-hv-theftcard';  // HV-169: Theft takes cardboard with existing stash protections
+// HV-169: Theft takes cardboard with existing stash protections.
+const SW_VERSION = 'eureka-v278-hv-wintbed';  // HV-168: Winter garden beds sleep without spending compost or stored rain
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
