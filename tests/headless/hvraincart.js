@@ -21,7 +21,7 @@
  *  B. Live: 10 cans on a clear sky still pay +5🩶 +1⭐.
  *  C. Live: the same 10 cans on rain paid the dry-day haul (the
  *     bug). After the fix they pay half, and the log names the rain.
- *  D. Cold still pays the posted rate — cold cart is HV-178.
+ *  D. Cold still halves the haul — cold cart is HV-178.
  *     Heat still pays the scorcher 0.75 — heat cart is HV-243.
  *  E. A short haul is still refused; one run a day still holds.
  *  Z. Zero page errors.
@@ -52,8 +52,8 @@ ok(/a\.id==='deposit'/.test(player) && /hauled=G\.cans/.test(body),
   'the deposit finisher still hauls every can');
 ok(/G\.weather==='rain'/.test(body) && /Math\.floor\(gw\s*\/\s*2\)/.test(body),
   'HV-232: the deposit finisher cuts the haul on a rainy sky');
-ok(!/G\.weather==='cold'/.test(body),
-  'cold is not this ticket — the cold cart haul is HV-178');
+ok(/coldCut/.test(body) && /G\.weather==='cold'/.test(body),
+  'cold cart half haul remains — HV-178');
 ok(!/G\.weather==='rain'/.test(ui),
   'ui.js untouched — the rain cut lives on the deposit haul');
 
@@ -110,8 +110,8 @@ ok(!/G\.weather==='rain'/.test(ui),
     `the refuse names the rain — not a silent half (${rain.log.slice(-80)})`);
 
   const cold = await haul('cold', 10);
-  ok(cold.gw === 5 && cold.rep === 1,
-    `cold without rain still pays the posted rate — cold cart is #868 (${cold.gw} / ${cold.rep})`);
+  ok(cold.gw === 2 && cold.rep === 0,
+    `cold without rain still halves the haul — cold cart is #868 (${cold.gw} / ${cold.rep})`);
 
   const heat = await haul('heat', 10);
   ok(heat.gw === 3 && heat.rep === 0,
