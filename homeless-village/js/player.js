@@ -90,9 +90,7 @@ function doAction(a){
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
     if(!G.newcomerAsk) return;
-    // HV-173: the ask opened because a tent stood. A torn tent is
-    // no bed — refuse before the timer, same as a short pantry.
-    if(!G.structures.tent){ log('🫂 The tent is gone — there’s no bed to offer until one stands again.'); sfx('error'); return; }
+    if(!G.structures.tent){ log("🫂 The tent is gone — there's no bed to offer until one stands again."); sfx('error'); return; }
     if(G.food<NEWCOMER_COST_FOOD || G.wood<NEWCOMER_COST_WOOD){
       log('🫂 A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood — the camp comes up short.'); sfx('error'); return;
     }

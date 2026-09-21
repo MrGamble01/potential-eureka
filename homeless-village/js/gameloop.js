@@ -583,8 +583,7 @@ var EVENTS_BAD=[
    desc:'Police are clearing the camp. They destroy shelters and confiscate supplies.',
    effect:function(){
      G.timesSwept++; G.lastEventDay=G.days;
-     if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); }
-     lapseNewcomerNoTent();
+     if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); lapseNewcomerNoTent(); }
      if(G.structures.soup_kitchen&&Math.random()<.7){ G.structures.soup_kitchen=false; log('Soup kitchen torn down.'); }
      if(G.structures.workbench&&Math.random()<.5){ G.structures.workbench=false; log('Workbench smashed.'); }
      // The Garden's own description ("Gets destroyed in sweeps") promised
