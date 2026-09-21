@@ -645,6 +645,9 @@ var EVENTS_BAD=[
        G.barrelWater=0;
        log('\ud83d\udee2\ufe0f They dumped the stored rainfall.');
      }
+     // HV-166: the firewood pile is a supply. Cans and cardboard are separate.
+     // keep already covers the stash, pack-up, and Marisol's garage.
+     var lostWood=Math.floor((G.wood||0)*(.3+Math.random()*.4)*keep);
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
      // HV-225: Community Grant is civic infrastructure. The
@@ -660,6 +663,8 @@ var EVENTS_BAD=[
          log('\uD83D\uDCCB The community grant is civic \u2014 this sweep cannot confiscate the delivery.');
        }
      }
+     G.wood=Math.max(0,(G.wood||0)-lostWood);
+     if(lostWood>0) log('They hauled off the woodpile.');
      G.scraps=Math.max(0,G.scraps-lostScraps);
      G.food  =Math.max(0,G.food  -lostFood);
      G.morale=Math.max(0,G.morale-rand(15,25));

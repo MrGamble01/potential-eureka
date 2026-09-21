@@ -34,7 +34,7 @@ const src = fs.readFileSync(path.join(ROOT, 'homeless-village/js/gameloop.js'), 
 const ui = fs.readFileSync(path.join(ROOT, 'homeless-village/js/ui.js'), 'utf8');
 const block = /id:'sweep'[\s\S]*?effect:function\(\)\{([\s\S]*?)\n\s*\}\},/.exec(src);
 ok(!!block, 'sweep event is still in gameloop.js');
-ok(block && /G\.wood\s*=\s*Math\.max\s*\(\s*0\s*,\s*G\.wood/.test(block[1]),
+ok(block && /G\.wood\s*=\s*Math\.max\(0,\(G\.wood\|\|0\)-lostWood\)/.test(block[1]),
   'HV-166: sweep effect confiscates wood');
 ok(/confiscate supplies/.test(src),
   'the card still promises they confiscate supplies');
@@ -74,7 +74,7 @@ ok(!/G\.wood\s*=/.test(ui),
     G.structures.garden = false;
     G.structures.stash = false;
     G.scraps = 20; G.food = 20; G.cans = 20; G.wood = 20; G.cardboard = 20;
-    G.morale = 50;
+    G.morale = 50; G.rep=0; G.grantDay=-1;
     Object.assign(G, extra || {});
     const ev = EVENTS_BAD.find(e => e.id === 'sweep');
     triggerEvent(ev, false);
@@ -108,6 +108,8 @@ ok(!/G\.wood\s*=/.test(ui),
   ok(/woodpile/i.test(sweep.log),
     `the log names the woodpile (${sweep.log.slice(-80)})`);
 
+  ok(sweep.cardboard===20, 'sweep still leaves cardboard');
+
   const theft = await page.evaluate(() => {
     const real = Math.random;
     Math.random = () => 0.5;
@@ -136,6 +138,17 @@ ok(!/G\.wood\s*=/.test(ui),
   const garage = await pinSweep({ garageCover: true, wood: 20, scraps: 20, food: 20 });
   ok(garage.wood === 20,
     `Marisol's garage still zeroes the wood take (${garage.wood})`);
+
+  const stash = await pinSweep({structures:{stash:true}});
+  ok(stash.wood===15, 'hidden stash halves the wood loss');
+  const packed = await pinSweep({packedUp:true});
+  ok(packed.wood===18, 'packing up quarters the wood loss before flooring');
+  const both = await pinSweep({packedUp:true, structures:{stash:true}});
+  ok(both.wood===19, 'stash and packing up stack for wood');
+  const grantDay = await page.evaluate(() => G.days);
+  const grant = await pinSweep({grantDay, food:8, scraps:8});
+  ok(grant.food===8 && grant.scraps===8 && grant.wood===10,
+    'same-day grant cap protects only food and scraps, not wood');
 
   const tentFell = await page.evaluate(() => {
     const real = Math.random;
