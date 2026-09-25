@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+Age of War — Space during Special cooldown now shows “Special cooling — Ns”
+on the field without spending a special or restarting the wait. Hook-free
+`aowspecialcd` covers repeated refusals and ready Space at 1280px/768px.
+
 Shipped: Age of War — broke recruits now show the missing gold on the field
 and lead their tooltips with the shortfall while keeping unit stats. Full-queue
 feedback stays intact; `aowbroke` covers clicks and keys at desktop/tablet widths.
