@@ -21,9 +21,9 @@
  *  J. A kept town offers New town on the resume chip.
  *  K. 390×844 kept resume does not bury Games or the gear.
  *  L. Trader and the event sheet carry Games (z-index 600 buried the pill).
- *  M. Resume names a caravan, a riding stake, a posted order, an advance
- *     and wolves still out — the snapshot already held them.
- *  N. Pause names those holds; one tap still resumes.
+ *  M. Resume names caravan/order/advance/festival/fever deadlines and
+ *     undated stake/surety/wolves holds from the kept snapshot.
+ *  N. Pause names the same deadlines and holds; one tap still resumes.
  *  O. beforeunload flushes; a dropped town still cannot be rewritten.
  *  P. Escape closes the trader and The Hall.
  *  Q. Tab / Shift+Tab reach Games on welcome and pause without changing builds.
@@ -410,6 +410,9 @@ const keptTown = () => {
         ],
         caravan: { returnDay: 15 },
         caravanStake: true,
+        caravanSurety: true,
+        festival: { endDay: 17, x: 640, y: 640 },
+        feverUntil: 14,
         order: { k: 'food', qty: 15, pay: 60, byDay: 18 },
         merchantAdvance: { due: 16 },
         raidTonight: true,
@@ -419,11 +422,14 @@ const keptTown = () => {
       const el = document.getElementById('resumeChip');
       return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
     });
-    ok(/Riverside/.test(named) && /caravan is still on the road/.test(named) &&
-      /stake is still riding/.test(named) && /order is still posted/.test(named) &&
-      /advance is still due/.test(named) && /wolves are still out/.test(named),
-      'resume names a caravan, a riding stake, a posted order, an advance and wolves'
-      + (/caravan/.test(named) ? '' : ` — ${named}`));
+    const expectedHolds = [
+      'the caravan returns day 15', 'a stake is still riding',
+      'the surety is still signed', 'an order is due by day 18',
+      'the advance is due day 16', 'the wolves are still out',
+      'the festival ends day 17', 'the fever ends day 14',
+    ];
+    ok(/Riverside/.test(named) && expectedHolds.every(bit => named.includes(bit)),
+      'resume names all five deadlines and undated stake/surety/wolves holds — ' + named);
 
     await page.keyboard.press('Space');
     await page.waitForTimeout(200);
@@ -438,9 +444,9 @@ const keptTown = () => {
         resume: resume && resume.textContent.trim(),
       };
     });
-    ok(held.show && !held.hidden && /caravan is still on the road/.test(held.text) &&
+    ok(held.show && !held.hidden && expectedHolds.every(bit => held.text.includes(bit)) &&
       /One tap continues/.test(held.text) && held.resume === 'Resume the valley',
-      'pause names the holds; one tap still resumes');
+      'pause names all five deadlines and undated holds; one tap still resumes — ' + held.text);
     await ctx.close();
   }
 
