@@ -1380,8 +1380,11 @@ const AgeOfWarGame = (() => {
     const def = UNITS[key];
     if (!def) return;
     if (def.era > playerEra) return;
-    if (gold < def.cost) return;
     if (trainingQueue.length >= TRAINING_MAX) return;
+    if (gold < def.cost) {
+      goldFloaters.push({ text: `Need $${Math.ceil(def.cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     gold -= def.cost;
     const total = trainingTimeFor(def);
     if (drillBought) runStats.drilled = (runStats.drilled || 0) + 1;   // AOW-28
@@ -9157,6 +9160,7 @@ const AgeOfWarGame = (() => {
           const def = UNITS[key];
           const btn = list.children[i];
           if (btn) {
+            btn.title = recruitTitle(def, queueFull);
             btn.classList.toggle('aow-not-afford', gold < def.cost);
             btn.classList.toggle('aow-queue-full', queueFull);
           }
@@ -9202,6 +9206,12 @@ const AgeOfWarGame = (() => {
     }
   }
 
+  function recruitTitle(def, queueFull) {
+    const reason = queueFull ? 'Queue full — wait for training or cancel a queued unit for a refund. '
+      : gold < def.cost ? `Need $${Math.ceil(def.cost - gold)} more. ` : '';
+    return reason + `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
+  }
+
   function renderSpawnPanel() {
     const list = document.getElementById('aow-spawn-list');
     if (!list) return;
@@ -9222,11 +9232,10 @@ const AgeOfWarGame = (() => {
           <span class="aow-spawn-name">${def.name}</span>
           <span class="aow-spawn-cost">$${def.cost}</span>
         `;
-        const unitTitle = `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
         const queueFull = trainingQueue.length >= TRAINING_MAX;
         btn.disabled = queueFull;
         btn.classList.toggle('aow-queue-full', queueFull);
-        btn.title = (queueFull ? 'Queue full — wait for training or cancel a queued unit for a refund. ' : '') + unitTitle;
+        btn.title = recruitTitle(def, queueFull);
         btn.setAttribute('aria-describedby', 'aow-train-status');
         btn.onclick = () => tryPlayerSpawn(key);
         list.appendChild(btn);

@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-v283-tyc-esc';  // Startup Tycoon: Escape closes The Wall and Founder Shop
+const SW_VERSION = 'eureka-v284-aow-broke';  // Age of War: explain unaffordable recruits
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
