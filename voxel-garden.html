@@ -187,7 +187,7 @@
     #hotbar{bottom:8px}
     #vox-tray{bottom:62px;max-height:calc(100vh - 80px)}
   }
-  @media (max-width:640px){ #goodsHud{font-size:12px;padding:5px 8px;gap:5px} }
+  @media (max-width:640px){ #goodsHud{top:var(--vox-goods-top, 112px);font-size:12px;padding:5px 8px;gap:5px} }
 </style>
 <style>
 /* The chip tray (UI-2). Every chip below used to be its own position:fixed
@@ -5104,8 +5104,11 @@ function placePhoneBack(){
   if(chip&&!chip.hidden&&innerWidth<=640){
     const b=chip.getBoundingClientRect();
     document.documentElement.style.setProperty('--vox-back-top', Math.round(b.bottom+8)+'px');
+    // Keep banked goods below both New isle and the relocated nav rail.
+    document.documentElement.style.setProperty('--vox-goods-top', Math.ceil(Math.max(b.bottom,back.getBoundingClientRect().bottom)+8)+'px');
   } else {
     document.documentElement.style.removeProperty('--vox-back-top');
+    document.documentElement.style.removeProperty('--vox-goods-top');
   }
 }
 function paintResume(loaded,rejected){
