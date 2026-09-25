@@ -43,6 +43,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 
 | Area | Suites |
 |---|---|
+| Voxel weather vane sky report | `voxvane` (hook-free: next shower/snow ETA, falling seconds, call window, 25% linger, call tally, wager clock or no-book refusal, read-only taps at 1280px/768px, zero page errors) |
 | Homeless Village action cooldowns | `hvactioncd` (hook-free: production completion/button clicks, named rounded-up seconds in the live log, unchanged resources/deadlines/jobs, and normal starts at expiry for Trade, Rest and Forage) |
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |

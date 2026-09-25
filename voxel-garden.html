@@ -3609,6 +3609,31 @@ let rain,rainMat,rainAmt=0,rainActive=false,rainT=70+Math.random()*120,rainLeft=
 // VOX-11: the Weather Vane calls the shower before it lands
 let vaneCalled=false;
 function vaneBuilt(){return !!(state.buildings&&state.buildings.vane);}
+function vaneSky(cap){
+  const winter=seasonOf(state.day).key==='winter';
+  const w=winter?'snow':'shower';
+  return cap?w[0].toUpperCase()+w.slice(1):w;
+}
+function vaneWagerBit(){
+  if(cloudBet)return 'Wager '+Math.max(0,Math.ceil(cloudBet.timeLeft))+'s';
+  return rainActive?'No book on falling rain':'No wager';
+}
+function reportVane(){
+  const calls='Calls '+(state.vaneCalls||0);
+  const linger='Showers linger 25% longer';
+  const wager=vaneWagerBit();
+  const sky=vaneSky(false),Sky=vaneSky(true);
+  if(rainActive){
+    const left=Math.max(0,Math.ceil(rainLeft));
+    const when=left===0?'The '+sky+' is lifting':Sky+' falling · '+left+'s left';
+    return toast('🌦️ '+when+' · '+linger+' · '+calls+' · '+wager);
+  }
+  const eta=Math.max(0,Math.ceil(rainT));
+  if(eta===0)return toast('🌦️ The '+sky+' is about to land · '+linger+' · '+calls+' · '+wager);
+  const called=vaneCalled||eta<=30;
+  const when=called?'Called · '+Sky+' in '+eta+'s':'Next '+sky+' in '+eta+'s · Calls inside 30s';
+  return toast('🌦️ '+when+' · '+linger+' · '+calls+' · '+wager);
+}
 let leaves,leafMat,bird=null;
 const pickables=[];
 function initScene(){
@@ -4647,6 +4672,7 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='vane')return reportVane();
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
