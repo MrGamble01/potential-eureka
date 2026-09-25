@@ -45,6 +45,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 |---|---|
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |
+| Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
 | Age of War training ETA | `aowtraineta` (hook-free: page-clock countdown titles and accessible labels, cheap tick updates, waiting/empty slots, exact cancel refund, and completion spawn at 1280px/768px) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |

@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-v293-aow-traineta';  // Age of War: training queue countdown labels
+const SW_VERSION = 'eureka-v294-hvale-order';  // Hearthvale: explain standing-order shortfalls
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
