@@ -2426,11 +2426,16 @@ function refreshGoodsHud(){
 // busier town with more villagers serves faster. This is the "buildings consume
 // what you gather" loop, running alongside the Trader's bulk buys.
 let tavernT=0,mealMsgT=0;
+function tavernInterval(){return 14/(1+W.workers.length*0.12);}   // more villagers → a livelier tavern
+function nextMealKey(){
+  let bestT=null,bestQ=0;
+  for(const t of goodsKeys()){const q=state.goods[t]||0;if(q>bestQ){bestQ=q;bestT=t;}}
+  return bestT;
+}
 function updateTavern(dt){
   if(!hasTavern()||goodsTotal()<=0){tavernT=0;return;}
-  const interval=14/(1+W.workers.length*0.12);   // more villagers → a livelier tavern
   tavernT+=dt;
-  if(tavernT>=interval){tavernT=0;serveMeal();}
+  if(tavernT>=tavernInterval()){tavernT=0;serveMeal();}
 }
 function serveMeal(){
   // serve the good you have the most of
@@ -2448,6 +2453,15 @@ function serveMeal(){
   if(mealMsgT<=0){toast('🍺 The Tavern served '+goodDef(bestT).product+' for '+coins+' 🪙');mealMsgT=22;}
   refreshGoodsHud();
   if(typeof checkAch==='function')checkAch();
+}
+function reportTavern(){
+  const tot=goodsTotal(), meals=state.meals||0, crew=W.workers.length;
+  const crewBit=crew?(crew===1?' · 1 villager at the tables':' · '+crew+' villagers at the tables'):'';
+  if(tot<=0)return toast('🍺 The kitchen waits for goods · Goods stock 0 · Meals served '+meals+crewBit);
+  const eta=Math.max(0,Math.ceil(tavernInterval()-tavernT));
+  const product=goodDef(nextMealKey()).product;
+  const when=eta===0?'The next meal is ready':'Next meal in '+eta+'s';
+  return toast('🍺 '+when+' · '+product+' next · Goods remaining '+tot+' · Meals served '+meals+crewBit);
 }
 /* ---- the Bakery turns raw crops into bread (value-add) ---- */
 // A production step in the chain: the Bakery periodically takes one 🌾 crop from
@@ -4647,6 +4661,7 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='tavern')return reportTavern();
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
