@@ -5316,6 +5316,20 @@
     const sb = document.getElementById('m-speed'); if (sb && gameSpeed > 0) sb.innerHTML = 'Speed: ' + gameSpeed + '&times;';
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
+  function lodgePanelStats() {
+    const hunts = state.hunts || 0;
+    const cycleDay = yearDay(state.day) % HUNT_EVERY;
+    let status = '🏹 Sleeps until winter';
+    if (seasonIdx() === 3) {
+      const days = HUNT_EVERY - cycleDay;
+      status = cycleDay === 0
+        ? (state.lastHuntDay === state.day ? '🏹 Returned at dawn' : '🏹 Party out today')
+        : '🏹 Next hunt in ' + days + ' day' + (days === 1 ? '' : 's');
+    }
+    return statRow('Season / Hunt', status) + statRow('Hunts', hunts) +
+      statRow('Next pelt', hunts % 2 === 1 ? 'Next hunt brings a pelt' : 'In 2 hunts');
+  }
+
   function updateHUD() {
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
     document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
@@ -5365,6 +5379,8 @@
       if (state.raining) { const snow = seasonOf(state.day).name === 'Winter'; wx.textContent = snow ? ' ❄️' : ' 🌧️'; wx.title = snow ? 'Snowing' : 'Rain — crops thrive (+25% food)'; }
       else { wx.textContent = ''; wx.title = ''; }
     }
+    const lodge = document.getElementById('p-lodge');
+    if (lodge) lodge.innerHTML = lodgePanelStats();
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
@@ -5546,6 +5562,7 @@
     if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
     if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
     if (def.charm) html += statRow('Charm', '+' + def.charm + ' town beauty');
+    if (b.type === 'lodge') html += '<span id="p-lodge">' + lodgePanelStats() + '</span>';
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
