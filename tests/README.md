@@ -43,6 +43,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 
 | Area | Suites |
 |---|---|
+| HV fire-dark ETA | `hvfiredark` (hook-free: rounded-up warmth-pill title ticks down, meal refusal seconds without spending, expiry and Firewood clear the countdown, affordable meal recovery, zero page errors) |
 | Homeless Village action cooldowns | `hvactioncd` (hook-free: production completion/button clicks, named rounded-up seconds in the live log, unchanged resources/deadlines/jobs, and normal starts at expiry for Trade, Rest and Forage) |
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |

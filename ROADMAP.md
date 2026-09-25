@@ -33,6 +33,14 @@ afterwards.
 
 ## Status at a glance
 
+HV — A dark barrel now titles the warmth pill with live rounded-up seconds
+until relight, and Hot Meal refusals include the remaining wait. Hook-free
+`hvfiredark` covers ticking, no-spend refusal, expiry and Firewood recovery.
+
+| Area | Player feedback | Verification | Cache |
+|---|---|---|---|
+| HV fire-dark ETA | Live warmth-pill countdown and meal refusal seconds | `hvfiredark` | eureka-v317-hv-firedark |
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
