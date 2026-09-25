@@ -8902,6 +8902,9 @@ function buyAmenity(id) {
   SFX.purchase(); Haptics.purchase();
 }
 const amenitiesList = document.getElementById('amenities-list');
+function hasAmenityStock(am) {
+  return am.id !== 'pingpong' && am.id !== 'standup' && am.id !== 'pet';
+}
 function renderAmenities() {
   while (amenitiesList.children.length < amenities.length) {
     const btn = document.createElement('button');
@@ -8911,9 +8914,10 @@ function renderAmenities() {
   for (let i = 0; i < amenities.length; i++) {
     const am = amenities[i];
     const btn = amenitiesList.children[i];
+    btn.title = '';
     if (am.isOwned) {
       btn.className = 'amenity-btn owned';
-      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">Owned</span>`;
+      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">${hasAmenityStock(am) ? `${am.stock}/${am.maxStock}` : 'Owned'}</span>`;
       btn.disabled = true;
       btn.onclick = null;
     } else if (!am.unlockReq()) {
@@ -8922,10 +8926,13 @@ function renderAmenities() {
       btn.disabled = true;
       btn.onclick = null;
     } else {
+      const canAfford = state.cash >= am.buyCost;
+      const tag = canAfford ? `$${am.buyCost}` : `Need $${fmtCash(am.buyCost - state.cash)} more`;
       btn.className = 'amenity-btn';
-      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">$${am.buyCost}</span>`;
-      btn.disabled = state.cash < am.buyCost;
-      btn.onclick = () => buyAmenity(am.id);
+      btn.innerHTML = `${am.icon} ${am.name}<span class="tag">${tag}</span>`;
+      btn.disabled = !canAfford;
+      btn.title = canAfford ? '' : tag;
+      btn.onclick = canAfford ? () => buyAmenity(am.id) : null;
     }
   }
 }
@@ -12100,11 +12107,15 @@ function updateLabels() {
   }
   // (Legacy support-staff carry bubbles removed with the role.)
   // Amenity stock labels
-  for (const am of amenities) {
-    if (!am.isOwned || am.id === 'pingpong' || am.id === 'standup' || am.id === 'pet') continue;
+  for (let i = 0; i < amenities.length; i++) {
+    const am = amenities[i];
+    if (!am.isOwned || !hasAmenityStock(am)) continue;
+    const stock = `${am.stock}/${am.maxStock}`;
+    const tag = amenitiesList.children[i]?.querySelector('.tag');
+    if (tag && tag.textContent !== stock) tag.textContent = stock;
     const p = worldToScreen(am.position.x, 2.8, am.position.z);
     const empty = am.stock === 0;
-    wants.push({ text: `${am.icon} ${am.stock}/${am.maxStock}`, cls: empty ? 'max' : 'stock', x: p.x, y: p.y });
+    wants.push({ text: `${am.icon} ${stock}`, cls: empty ? 'max' : 'stock', x: p.x, y: p.y });
   }
   // (Supply closet removed — paper/supplies live on the Supply Rack amenity.)
   // Player proximity work indicator
