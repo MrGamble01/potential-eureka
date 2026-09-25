@@ -1401,11 +1401,19 @@ const AI_BASE = location.port === '3001' ? '' : 'http://localhost:3001';
 // Only probe when the page itself is running somewhere the backend could be.
 const AI_REACHABLE = location.protocol !== 'https:' ||
                      ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+// Agent-capable models only (the desk robots use tools; Haiku 4.5 cannot).
 const AI_MODELS = [
-  ['claude-opus-4-8', 'OPUS 4.8'],
   ['claude-sonnet-5', 'SONNET 5'],
-  ['claude-haiku-4-5-20251001', 'HAIKU 4.5']
+  ['claude-opus-5', 'OPUS 5'],
+  ['claude-opus-4-8', 'OPUS 4.8']
 ];
+const TOOL_NOTES = {
+  github_activity: '*checks the PR board*',
+  list_files: '*pokes around the repo*',
+  read_file: '*reads the source*',
+  search_files: '*greps the codebase*',
+  current_time: '*glances at the clock*'
+};
 
 const PERSONAS = {
   ageofwar: "FORGE is gruff and no-nonsense, with the energy of a blacksmith who builds war machines. Obsessed with unit balance and damage numbers, forever muttering that the catapult is still overpowered. Respects hard work, distrusts flashy features.",
@@ -1429,7 +1437,7 @@ function personaFor(d) {
   return [
     'You are ' + d.agent + ', one of eight robot developer agents at EUREKA STUDIO — a voxel dev office on a floating sky island, the live studio of Eureka Games (GitHub repo: ' + REPO + '). You sit at the ' + d.game + ' desk. A visitor to the office page is chatting with you.',
     'Personality: ' + PERSONAS[d.key],
-    'Rules: stay in character at all times. Keep replies short — one to three sentences unless the visitor clearly wants more. Plain text only, no markdown formatting. Never use emojis or emoticons. You may reference the live studio state below; do not invent PRs or commits that are not listed.',
+    'Rules: stay in character at all times. Keep replies short — one to three sentences unless the visitor clearly wants more. Plain text only, no markdown formatting. Never use emojis or emoticons. You may reference the live studio state below, and you have tools to read the real source code and GitHub activity — use them when asked about the code or the work, and do not invent PRs, commits, or code that you did not actually see.',
     'Coworkers: ' + coworkers + '. The island has a lounge, a coffee machine, a garden fringe with flowers and trees, and a ping pong table you all use when off duty. There is also an office cat. It answers to no one.',
     'LIVE STUDIO STATE\nYour status: ' + status + (shipped ? '\nCareer: ' + shipped + ' PR' + (shipped > 1 ? 's' : '') + ' shipped on this desk all-time' : '') + (prLines ? '\nOpen work on your desk:\n' + prLines : '')
   ].join('\n\n');
@@ -1565,10 +1573,13 @@ async function kSend() {
   chatAbort = controller;
   const last = hist[hist.length - 1];
   try {
-    const res = await fetch(AI_BASE + '/api/chat', {
+    // /api/agent runs the "desk" agent: the persona below plus read-only
+    // tools over the repo and live GitHub, so the robots answer from real
+    // code and real PRs instead of guessing.
+    const res = await fetch(AI_BASE + '/api/agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: msgs, model: $('#k-model').value, systemPrompt: personaFor(d) }),
+      body: JSON.stringify({ agentId: 'desk', messages: msgs, model: $('#k-model').value, systemPrompt: personaFor(d) }),
       signal: controller.signal
     });
     if (!res.ok) {
@@ -1591,6 +1602,13 @@ async function kSend() {
         if (ev.type === 'text') {
           last.content += ev.text;
           if (liveEl && chatDesk === d) { liveEl.textContent = last.content; $('#k-msgs').scrollTop = $('#k-msgs').scrollHeight; }
+        } else if (ev.type === 'tool_start') {
+          // Show what the robot is doing while the tool runs; the text
+          // that follows replaces it.
+          if (liveEl && chatDesk === d && !last.content) {
+            liveEl.textContent = TOOL_NOTES[ev.name] || ('*' + ev.name + '*');
+            $('#k-msgs').scrollTop = $('#k-msgs').scrollHeight;
+          }
         } else if (ev.type === 'error') {
           throw new Error(ev.message);
         } else if (ev.type === 'done' && ev.stop_reason === 'refusal') {
