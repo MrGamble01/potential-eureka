@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+LAB — Cook and trim stations show live rounded-up seconds for the current batch,
+including cooks/crunch and trim upgrades/trimmers. Queue rollover keeps the ETA;
+finished work restores product/ready labels. Hook-free `labcooketa` covers both.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **LAB cook/trim ETA** | ✅ live batch countdowns with speed bonuses; `labcooketa`; cache `eureka-v309-lab-cooketa` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
