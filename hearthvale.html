@@ -5317,6 +5317,8 @@
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
   function updateHUD() {
+    const monument = document.getElementById('p-monument');
+    if (monument && selected && selected.type === 'mason' && selected.done !== false) monument.textContent = monumentProgress();
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
     document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
     document.getElementById('r-food').textContent = Math.floor(state.res.food);
@@ -5513,6 +5515,12 @@
       if (el.textContent !== values[id]) el.textContent = values[id];
     }
   }
+  function monumentProgress() {
+    const cycles = state.masonCycles || 0, stage = monumentStage();
+    const next = MONUMENT_STAGES[stage];
+    return next ? cycles + ' / ' + next.at + ' cycles — next: ' + next.name
+      : MONUMENT_STAGES[stage - 1].name;
+  }
   function showPanel(b) {
     selected = b; buildMode = null; canvas.classList.remove('building'); refreshBarState();
     if (b.done === false) {   // construction site view
@@ -5549,6 +5557,7 @@
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
+    if (b.type === 'mason') html += statRow('Monument', '<span id="p-monument">' + monumentProgress() + '</span>');
     if (b.type === 'school') html += statRow('Night classes', '📚 every worker learns +1 XP / cycle');
     if (def.guard) {
       html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
