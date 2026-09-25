@@ -43,6 +43,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 
 | Area | Suites |
 |---|---|
+| Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |
 | Age of War broke recruiting | `aowbroke` (hook-free: click/key gold refusals, unchanged purse and queue, affordable controls, and stat-preserving tooltips at 1280px/768px); `aowqueue` guards queue-full recovery |
 | Startup Tycoon browsing dialogs | `tycesc` (TYC-60, hook-free: real Wall/Founder Shop controls and Escape; existing tip/IPO/elevator/achievements/win/dashboard/theme/help dismissals; forced Board Meeting stays open; zero page errors) |
