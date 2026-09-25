@@ -3597,7 +3597,10 @@ function convertRoom(roomId, opts = {}) {
   if (!next) return false;
   if (!opts.auto) {
     if (cur.nextReq && !cur.nextReq()) return false;
-    if (state.cash < (cur.nextCost || 0)) return false;
+    if (state.cash < (cur.nextCost || 0)) {
+      showToast(`Need $${fmtCash(cur.nextCost - state.cash)} more to convert to ${next.label}.`, '');
+      return false;
+    }
   }
   // Gather hires currently seated in this room and plan migration
   const seatedRecords = [];
@@ -3672,7 +3675,10 @@ function addDeskToCurrentRoom() {
   const def = getPlayerRoom();
   if (!def) return;
   const cost = addDeskCost(def.id);
-  if (state.cash < cost) return;
+  if (state.cash < cost) {
+    showToast(`Need $${fmtCash(cost - state.cash)} more to add a desk in ${roomLabel(def)}.`, '');
+    return;
+  }
   if (!addExtraDeskToRoom(def.id)) return;
   state.cash -= cost; showSpendPop(cost);
   refreshHud();
@@ -3751,8 +3757,10 @@ function renderRoomPanel() {
     const btn = document.createElement('button');
     btn.className = 'room-btn room-convert';
     btn.disabled = !reqMet || !canAfford;
+    const costLabel = canAfford ? `$${fmtCash(cur.nextCost)}` : `Need $${fmtCash(cur.nextCost - state.cash)} more`;
+    if (reqMet) btn.title = `Convert to ${next.label} — ${costLabel}.`;
     btn.innerHTML = reqMet
-      ? `⚡ Convert to ${next.label}<span class="tag">$${fmtCash(cur.nextCost)}</span>`
+      ? `⚡ Convert to ${next.label}<span class="tag">${costLabel}</span>`
       : `🔒 ${next.label}<span class="tag" style="color:#7D8590">${cur.nextReqText || ''}</span>`;
     btn.onclick = () => convertRoom(roomId);
     if (reqMet) showTip('conversion');
@@ -3773,6 +3781,7 @@ function renderAddDeskButton() {
   // room, when the room is at extra-desk cap, or when they can't
   // afford the next desk.
   addDeskBtnEl.style.display = '';
+  addDeskBtnEl.title = '';
   const def = getPlayerRoom();
   if (!def) {
     addDeskBtnEl.disabled = true;
@@ -3786,8 +3795,11 @@ function renderAddDeskButton() {
     return;
   }
   const cost = addDeskCost(def.id);
-  addDeskBtnEl.disabled = state.cash < cost;
-  addDeskBtnEl.innerHTML = `🪑 Add Desk to ${roomLabel(def)}<span class="tag">$${fmtCash(cost)}</span>`;
+  const canAfford = state.cash >= cost;
+  const costLabel = canAfford ? `$${fmtCash(cost)}` : `Need $${fmtCash(cost - state.cash)} more`;
+  addDeskBtnEl.disabled = !canAfford;
+  addDeskBtnEl.title = `Add Desk to ${roomLabel(def)} — ${costLabel}.`;
+  addDeskBtnEl.innerHTML = `🪑 Add Desk to ${roomLabel(def)}<span class="tag">${costLabel}</span>`;
 }
 addDeskBtnEl.onclick = addDeskToCurrentRoom;
 

@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+Startup Tycoon — Add Desk and eligible room conversions now name the missing cash
+in disabled tags and titles. Affordable prices and locked/full copy stay intact;
+hook-free `tycdesk` covers shortfalls and purchases. Cache: **eureka-v313-tyc-deskshort**.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Tycoon desk/convert shortfalls** | ✅ tags/titles name missing cash; `tycdesk` verifies prices, purchases, locks and zero page errors |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
