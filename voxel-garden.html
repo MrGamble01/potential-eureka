@@ -2494,15 +2494,17 @@ function updateWell(dt){
   }
   if(any){flushChunks();const gy=(surfaceY(b.x,b.z)||4)+1.2;burst(b.x+0.5,gy,b.z+0.5,0x6fc3ff,6,{up:1.2,g:4,spread:1.4});}
 }
+function bakeryCycle(){return hasWindmill()?5.5:9;}   // a Windmill speeds the grind
+function bakeryLoaves(){return hasWindmill()?2:1;}    // a Windmill yields an extra loaf
 function updateBakery(dt){
   if(!hasBakery()||(state.goods.crop||0)<=0){bakeT=0;return;}
   bakeT+=dt;
-  if(bakeT>=(hasWindmill()?5.5:9)){bakeT=0;bake();}   // a Windmill speeds the grind
+  if(bakeT>=bakeryCycle()){bakeT=0;bake();}
 }
 function bake(){
   if((state.goods.crop||0)<=0)return;
   state.goods.crop--;
-  const loaves=hasWindmill()?2:1;                      // a Windmill yields an extra loaf
+  const loaves=bakeryLoaves();
   state.goods.bread=(state.goods.bread||0)+loaves;
   state.loaves=(state.loaves||0)+loaves;
   const b=state.buildings.bakery,gx=b?b.x:0,gz=b?b.z:0,gy=(surfaceY(gx,gz)||4)+2.2;
@@ -2512,6 +2514,15 @@ function bake(){
   if(bakeMsgT<=0){toast('🥖 The Bakery baked a fresh loaf 🍞');bakeMsgT=26;}
   refreshGoodsHud();
   if(typeof checkAch==='function')checkAch();
+}
+function reportBakery(){
+  const crops=state.goods.crop||0, bread=state.goods.bread||0, mill=hasWindmill();
+  if(crops<=0)return toast('🥖 The oven waits for crops · 🌾 Crop stock 0 · Bread on hand '+bread+(mill?' · Windmill ready':''));
+  const eta=Math.max(0,Math.ceil(bakeryCycle()-bakeT));
+  const when=eta===0
+    ? (mill?'The windmill bake (2 loaves) is ready':'The next loaf is ready')
+    : ('Next '+(mill?'bake (2 loaves)':'loaf')+' in '+eta+'s');
+  return toast('🥖 '+when+' · 🌾 Crops remaining '+crops+' · Bread on hand '+bread);
 }
 /* ---- the Trader wagon (drives in to buy the stockpile) ---- */
 let traderT=0,trader=null;
@@ -4647,6 +4658,7 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='bakery')return reportBakery();
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
