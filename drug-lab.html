@@ -4996,12 +4996,19 @@ function sellToDealer(d, idx) {
 }
 
 // ── Update dealers ──
+const UNDERCOVER_WAIT_SECONDS = 25;
+function dealerWaitingLabel(d) {
+  const name = d.undercover && wireActive() ? "🚨 Something's off…" : d.whale ? '🐋 The Whale' : '💰 Buyer';
+  return d.undercover && stashCount > 0
+    ? `${name} · ${Math.max(0, Math.ceil(UNDERCOVER_WAIT_SECONDS - d.waitT))}s`
+    : name;
+}
 function updateDealers(dt) {
   for(let i=dealers.length-1;i>=0;i--) {
     const d=dealers[i];
     if(d.state==='walking') {
       const arrived=stepToward(d.group, stashNode.x+(Math.random()-0.5)*2, stashNode.z+3, 2.2, dt);
-      if(arrived) { d.state='waiting'; setLabel('deal_'+d.id, d.whale ? '🐋 The Whale' : '💰 Buyer',d.group.position.x,2.2,d.group.position.z,'prompt'); }
+      if(arrived) { d.state='waiting'; setLabel('deal_'+d.id, dealerWaitingLabel(d),d.group.position.x,2.2,d.group.position.z,'prompt'); }
     } else if(d.state==='leaving') {
       removeLabel('deal_'+d.id);
       const gone=stepToward(d.group,d.group.position.x+(Math.random()-0.5)*4,10,2.5,dt);
@@ -5013,7 +5020,7 @@ function updateDealers(dt) {
       // that never comes — 25s unserved and they drift off.
       else if(d.undercover){
         d.waitT+=dt;
-        if(d.waitT>25){ d.state='leaving'; removeLabel('deal_'+d.id); addFeed('👀 The odd buyer drifts off empty-handed'); }
+        if(d.waitT>UNDERCOVER_WAIT_SECONDS){ d.state='leaving'; removeLabel('deal_'+d.id); addFeed('👀 The odd buyer drifts off empty-handed'); }
       }
     }
   }
@@ -5188,7 +5195,7 @@ function updateLabels() {
     const d=dealers[i];
     if(d.state==='waiting') {
       // LAB-9: a Lookout on the payroll makes the wire, and the label warns
-      setLabel('deal_'+d.id, d.undercover && wireActive() ? '🚨 Something\'s off…' : d.whale ? '🐋 The Whale' : '💰 Buyer',
+      setLabel('deal_'+d.id, dealerWaitingLabel(d),
         d.group.position.x,2.2,d.group.position.z,'prompt');
     }
   }
