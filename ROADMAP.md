@@ -33,6 +33,15 @@ afterwards.
 
 ## Status at a glance
 
+LAB — Grow Op burner purchases name the missing cash on the live button,
+in its title and in refusal toasts; Act I explains the Act II unlock.
+Hook-free `labburner` covers unchanged refused purchases, normal charge,
+and live cash gains at 1280px/768px. Cache: `eureka-v328-lab-burner`.
+
+| Grow Op polish | Status | Verification |
+|---|---|---|
+| Burner cash shortfall | Complete — live missing-cash label/title, refusal toast and Act II gate; $800 cost and 10-sale charge unchanged | `tests/headless/labburner.js` — 1280px/768px, purchases/refusals/live cash gains, zero page errors |
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.

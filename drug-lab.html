@@ -1324,17 +1324,21 @@ const UNIT_COST = 1500, UNIT_CAP_BONUS = 30, UNIT_KEEP = 15;
 const BURNER_COST = 800, BURNER_SALES = 10;
 function burnerFresh() { return (state.burnerLeft || 0) > 0; }
 function burnerStingMult() { return burnerFresh() ? 0.5 : 1; }
+const BURNER_TITLE = document.getElementById('burner-toggle').title;
 function refreshBurnerBtn() {
   const b = document.getElementById('burner-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 2 ? '' : 'none';
   b.classList.toggle('on', burnerFresh());
-  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : '📱 BURNER $' + fmtCash(BURNER_COST);
+  const short = !burnerFresh() && currentAct() >= 2 && state.cash < BURNER_COST;
+  const need = 'Need $' + fmtCash(BURNER_COST - state.cash) + ' more';
+  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : short ? '📱 BURNER ' + need : '📱 BURNER $' + fmtCash(BURNER_COST);
+  b.title = short ? need + ' to buy a clean number. ' + BURNER_TITLE : BURNER_TITLE;
 }
 function buyBurner() {
   if (burnerFresh()) { showToast('📱 The number still holds — ' + state.burnerLeft + ' sales of charge left.', ''); return; }
-  if (currentAct() < 2) return;
-  if (state.cash < BURNER_COST) { showToast("Can't afford a clean number yet ($" + fmtCash(BURNER_COST) + ').', 'bust'); return; }
+  if (currentAct() < 2) { showToast('📱 Clean numbers unlock in Act II', 'bust'); return; }
+  if (state.cash < BURNER_COST) { showToast('📱 Need $' + fmtCash(BURNER_COST - state.cash) + ' more to buy a clean number.', 'bust'); return; }
   state.cash -= BURNER_COST;
   state.burnerLeft = BURNER_SALES;
   state.burnersBought = (state.burnersBought || 0) + 1;
@@ -4002,6 +4006,7 @@ function hireRefusal(role, cost, count, max) {
 
 function refreshHud() {
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
+  refreshBurnerBtn(); // Keep the shortfall live after every cash change.
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
   document.getElementById('act-badge').textContent =
