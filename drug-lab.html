@@ -1360,18 +1360,23 @@ function burnStreetSale() {
 // batch off the trim table bags one extra, forever. The ledger
 // remembers exactly how much of the stash owes her.
 const MOTHER_COST = 1500;
+const MOTHER_TITLE = document.getElementById('mother-toggle').title;
 function motherRooted() { return !!state.motherRooted; }
 function refreshMotherBtn() {
   const b = document.getElementById('mother-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 2 ? '' : 'none';
   b.classList.toggle('on', motherRooted());
-  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')' : '🌱 MOTHER $' + fmtCash(MOTHER_COST);
+  const short = !motherRooted() && currentAct() >= 2 && state.cash < MOTHER_COST
+    ? 'Need $' + fmtCash(MOTHER_COST - state.cash) + ' more' : '';
+  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')'
+    : '🌱 MOTHER ' + (short || '$' + fmtCash(MOTHER_COST));
+  b.title = short ? short + ' to root the prize genetics.' : MOTHER_TITLE;
 }
 function rootMother() {
   if (motherRooted()) { showToast('🌱 The mother is already rooted — every batch bags one extra.', ''); return; }
-  if (currentAct() < 2) return;
-  if (state.cash < MOTHER_COST) { showToast("Can't afford the prize genetics yet ($" + fmtCash(MOTHER_COST) + ').', 'bust'); return; }
+  if (currentAct() < 2) { showToast('🌱 Prize genetics unlock in Act II', 'bust'); return; }
+  if (state.cash < MOTHER_COST) { showToast('🌱 Need $' + fmtCash(MOTHER_COST - state.cash) + ' more to root the prize genetics.', 'bust'); return; }
   state.cash -= MOTHER_COST;
   state.motherRooted = true;
   refreshMotherBtn();
@@ -4001,6 +4006,7 @@ function hireRefusal(role, cost, count, max) {
 }
 
 function refreshHud() {
+  refreshMotherBtn();
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
