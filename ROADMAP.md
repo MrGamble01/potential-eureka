@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Balloon Tours taps name rounded-up seconds until the next lift, or
+grounding during rain/winter. Hook-free `voxtour` covers real mesh taps,
+advancing/resumed ETA, both weather gates and unchanged sibling descriptions.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
