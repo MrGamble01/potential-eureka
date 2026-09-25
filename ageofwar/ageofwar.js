@@ -3249,6 +3249,17 @@ const AgeOfWarGame = (() => {
     document.addEventListener('keydown', e => {
       const view = document.getElementById('view-ageofwar');
       if (!view || !view.classList.contains('active')) return;
+      if (e.key === 'Escape') {
+        // Browsing sheets share the same dismissal as their X/backdrop.
+        // Leave welcome's own keys and forced-choice/run-ending sheets alone.
+        let closed = false;
+        for (const modal of [settingsModal, achModal, chainModal]) {
+          if (!modal || !modal.style.display || modal.style.display === 'none') continue;
+          modal.style.display = 'none';
+          closed = true;
+        }
+        if (closed) setModalPaused(anyModalOpen());
+      }
       if (modalPaused) return; // ignore game keys while a modal has the sim paused
       if (resumePrompt) {
         // Let focused CTAs activate themselves: the page shortcut must not

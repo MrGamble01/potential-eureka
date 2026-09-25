@@ -33,6 +33,9 @@ afterwards.
 
 ## Status at a glance
 
+Shipped: Age of War — Escape closes Settings, Awards, and The Line and releases
+their modal pause. Welcome keys, intentional pause, and War Council stay intact.
+
 | Band | State |
 |---|---|
 | **P0** (3 tickets) | ✅ all closed |
