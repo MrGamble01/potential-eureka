@@ -33,6 +33,13 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Tapping the weather vane reports the live sky: rounded-up seconds until
+the next shower or snow, seconds left while it falls, the 30s call window,
+the 25% linger, and how many calls it has made. A riding cloud wager shows
+its clock; rain already falling says no book will take the bet. Hook-free
+`voxvane` verifies read-only taps at desktop/tablet widths. Cache:
+`eureka-v338-vox-vane`.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +95,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Voxel vane sky report** | ✅ next shower/snow ETA, falling seconds, call window, 25% linger, call tally, wager clock or no-book refusal; `voxvane` at 1280px/768px |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
