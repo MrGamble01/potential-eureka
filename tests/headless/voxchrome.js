@@ -21,6 +21,7 @@
  *  L. A kept isle offers New isle on the resume chip.
  *  M. 390×844 kept resume does not bury town / awards / Games.
  *  N. Escape closes The Shore.
+ *  O. 390×844 stockpile sits below kept resume; New isle stays tappable.
  *  Z. Zero page errors.
  *
  * Hook-free. Drives the production page.
@@ -463,6 +464,61 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
       return !m || !m.classList.contains('open');
     });
     ok(shoreOpen && shoreClosed, 'Escape closes The Shore');
+    await ctx.close();
+  }
+
+  // O — banked goods must not cover New isle on a kept phone resume
+  {
+    const { ctx, page } = await open({ width: 390, height: 844 }, () => {
+      localStorage.setItem('voxel-garden-v1', JSON.stringify({
+        v: 1, seed: 7, savedAt: Date.now(),
+        state: {
+          day: 4, level: 3, coins: 80, totalEarned: 240, xp: 20, time: 30,
+          helpSeen: true, muted: true, musicOff: true,
+          buildings: { market: { x: 0, z: 0 } }, goods: { chicken: 5 },
+        },
+        edits: [], wet: [], islets: [], plants: [], animals: [], workers: [],
+      }));
+    });
+    const stockpile = () => page.evaluate(async () => {
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const chip = document.getElementById('resumeChip');
+      const btn = document.getElementById('resumeNewIsle');
+      const goods = document.getElementById('goodsHud');
+      const c = chip.getBoundingClientRect();
+      const b = btn.getBoundingClientRect();
+      const g = goods.getBoundingClientRect();
+      const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return {
+        chipOn: !chip.hidden && c.height > 0,
+        newIsleHit: hit === btn || btn.contains(hit),
+        visible: getComputedStyle(goods).display !== 'none' && g.height > 0 && /STOCKPILE/.test(goods.textContent),
+        below: g.top >= c.bottom + 7,
+        left: g.left,
+        top: g.top,
+        inView: g.right <= innerWidth && g.bottom <= innerHeight,
+        navClear: [...document.querySelectorAll('#townBtn, #achBtn, #back a.ea-back')].every(el => {
+          const r = el.getBoundingClientRect();
+          const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return top === el || el.contains(top);
+        }),
+        phoneOffset: document.documentElement.style.getPropertyValue('--vox-goods-top'),
+      };
+    });
+    const phone = await stockpile();
+    ok(phone.chipOn && phone.visible && phone.newIsleHit,
+      '390×844 kept resume with stockpile leaves New isle tappable at its centre');
+    ok(phone.below && phone.left === 10 && phone.inView,
+      '390×844 stockpile is readable and left-aligned below the resume chip');
+    ok(phone.navClear, '390×844 stockpile also leaves town, awards and Games tappable');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const desktop = await stockpile();
+    ok(desktop.visible && desktop.top === 58 && desktop.left === 10 && !desktop.phoneOffset,
+      'resizing to desktop restores the original stockpile position');
+    await page.setViewportSize({ width: 390, height: 844 });
+    const returned = await stockpile();
+    ok(returned.newIsleHit && returned.below && returned.inView,
+      'resizing back to phone repositions the stockpile below the resume chip');
     await ctx.close();
   }
 

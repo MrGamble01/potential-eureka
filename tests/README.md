@@ -306,7 +306,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `voxbottle` (the Message in a Bottle)
 - `voxtablet` (the Tide Tablet)
 - `voxalmanac` (open Almanac follows dawn market demand and automatic production; preserves scroll and idle DOM, skips closed sheets, counts Tide Tablet consultations only on opening)
-- `voxchrome` (return chrome leftovers: shared Games pill, Let's grow + hub exit, resume chip, 768×700 quest/tool split, Achievements/Almanac/Shore Games, corrupt-garden chip, New isle, tray above the hotbar, plant sheet tucks the tray, resume-chip New isle, 390 kept resume leaves town/awards/Games tappable, Escape closes The Shore)
+- `voxchrome` (return chrome leftovers: shared Games pill, Let's grow + hub exit, resume chip, 768×700 quest/tool split, Achievements/Almanac/Shore Games, corrupt-garden chip, New isle, tray above the hotbar, plant sheet tucks the tray, resume-chip New isle, 390 kept resume leaves town/awards/Games tappable, Escape closes The Shore, 390 kept resume with stockpile keeps New isle tappable and goods below the chip, desktop/phone stockpile resize)
 - `voxconch` (the Keeper's Conch)
 - `voxwick` (the Second Wick)
 - `voxfest` (the Lantern Festival)

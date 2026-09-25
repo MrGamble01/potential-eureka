@@ -29,7 +29,7 @@
 // HV-169: Theft takes cardboard with existing stash protections.
 // HV-168: Winter garden beds sleep without spending compost or stored rain
 // HV-167: Winter halves the scrapyard haul and preserves the toolbox bonus
-const SW_VERSION = 'eureka-v280-hv-sweepwood';  // HV-166: City Sweep confiscates the woodpile with existing supply protections
+const SW_VERSION = 'eureka-v281-vox-phone-stockpile';  // Keep New isle clear of the phone stockpile
 const PRECACHE = SW_VERSION + '-shell';
 const RUNTIME = SW_VERSION + '-runtime';
 
