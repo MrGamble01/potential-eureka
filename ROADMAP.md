@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — Resume and pause holds name the saved caravan return, standing-order
+deadline, advance due day, festival end and fever end. Hook-free `hvalechrome`
+legs M/N check all five dates alongside undated stake/surety/wolves holds.
+
 LAB — Street-demand surges and crashes show rounded-up seconds beside the
 multiplier, with live sell-high/hold-stash titles and calm drift-only recovery.
 Hook-free `labmarket` seeds production saves and advances page time at desktop/tablet widths.

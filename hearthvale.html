@@ -6009,18 +6009,18 @@
     const bits = [];
     if (!state) return bits;
     if (state.caravan && typeof state.caravan.returnDay === 'number')
-      bits.push('the caravan is still on the road');
+      bits.push('the caravan returns day ' + state.caravan.returnDay);
     if (state.caravanStake) bits.push('a stake is still riding');
     if (state.caravanSurety) bits.push('the surety is still signed');
     if (state.order && typeof state.order.byDay === 'number')
-      bits.push('an order is still posted');
+      bits.push('an order is due by day ' + state.order.byDay);
     if (state.merchantAdvance && typeof state.merchantAdvance.due === 'number')
-      bits.push('the advance is still due');
+      bits.push('the advance is due day ' + state.merchantAdvance.due);
     if (state.raidTonight) bits.push('the wolves are still out');
     if (state.festival && typeof state.festival.endDay === 'number')
-      bits.push('the festival is still on');
+      bits.push('the festival ends day ' + state.festival.endDay);
     if (typeof state.feverUntil === 'number' && state.feverUntil >= (state.day || 1))
-      bits.push('the fever still holds');
+      bits.push('the fever ends day ' + state.feverUntil);
     return bits;
   }
 
