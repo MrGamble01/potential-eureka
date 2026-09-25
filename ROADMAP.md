@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Tapping the Corn Crib reports live blunted crow raids and the permanent
+0.15× growth peck (down from 0.35×), with a ready message at zero. Hook-free
+`voxcribmeals` checks real meshes, unchanged coins/meals and the generic vane toast.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **VOX corn crib inspect** | ✅ live raid tally, ready-at-zero copy and permanent peck reduction; `voxcribmeals`; cache `eureka-v315-vox-cribmeals` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
