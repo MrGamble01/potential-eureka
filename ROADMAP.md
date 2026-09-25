@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — Finished palisades name their sleepless +1 guard, need no keeper, and
+show the current town watch including the wall. Hook-free `hvalepalisade`
+covers desktop/tablet inspection, construction, and unchanged saved state.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **HVALE palisade panel** | ✅ Finished walls show their keeper-free +1 and current town watch; `hvalepalisade` verifies both widths. |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
