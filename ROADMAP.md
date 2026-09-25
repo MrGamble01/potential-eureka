@@ -41,6 +41,10 @@ VOX — Placing a block or decor on an occupied block now says “Something is i
 the way” and plays the error sound, without spending coins or counting decor.
 Hook-free `voxplace` covers repeat placement, successful decor, and plant refusal.
 
+Homeless Village — refused crafts now name missing resources, the required
+structure, or an already-built structure in the feed and hover tip. Hook-free
+`hvcraftrefuse` covers refusals without spending and affordable crafting.
+
 LAB — Grow Op hire refusals name the role and price or full crew; disabled
 buttons explain the same reason on hover. Hook-free `labhire` checks all four
 roles, unchanged cash/crew on refusal, and successful hires.

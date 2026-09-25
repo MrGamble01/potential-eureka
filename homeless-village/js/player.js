@@ -1045,7 +1045,11 @@ function doCraft(r){
   // the whole panel (fresh clickable nodes), so without this a second
   // click on a still-running recipe deducted its cost twice.
   if(G.activeCrafts[r.id]) return;
-  if(!canCraft(r)) return;
+  if(!canCraft(r)){
+    log(craftRefusal(r));
+    sfx('error');
+    return;
+  }
   // HV-180: Hot Meal said feed someone. Fire Went Out said the
   // barrel died. Cooking on a dark fire is a cold pot. Firewood
   // is the relight; a blanket is +warmth and does not cook.
