@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+Shipped: Age of War — broke recruits now show the missing gold on the field
+and lead their tooltips with the shortfall while keeping unit stats. Full-queue
+feedback stays intact; `aowbroke` covers clicks and keys at desktop/tablet widths.
+
 - **~~TYC-60 · Escape closes The Wall and Founder Shop~~** ✅ — Both browsing dialogs now dismiss with Escape and return players to the office. Existing Escape dismissals, including IPO, stay wired; Board Meeting still requires yes/no/timeout. Hook-free `tests/headless/tycesc.js` covers both real open controls, existing dismissals, Board isolation, and zero page errors. `SW_VERSION` → **eureka-v283-tyc-esc**.
 
 Shipped: Age of War — Escape closes Settings, Awards, and The Line and releases

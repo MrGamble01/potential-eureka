@@ -27,7 +27,7 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 # neither touched the other's game. Adding a suite is now just adding a
 # file (including hvstorybare for HV-281). Order within a family doesn't matter; the lead list does.
 LEAD=(
-  nohooks aowrecords aowsession aowqueue aowspace aowdifficulty
+  nohooks aowrecords aowsession aowqueue aowbroke aowspace aowdifficulty
   audit
   wall
   pacing
