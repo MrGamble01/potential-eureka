@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — Finished Stonemason panels show live monument cycles toward the next
+named stage, then the unveiled state. Hook-free `hvalemason` covers thresholds,
+construction/non-mason isolation and unchanged inspection resources at 1280px/768px.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **HVALE — mason monument** | ✅ finished mason panel shows live next-stage progress and unveiling; `hvalemason`; cache `eureka-v319-hvale-mason` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
