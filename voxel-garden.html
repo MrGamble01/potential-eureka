@@ -4647,6 +4647,10 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='preserves'){
+      const jars=state.jars||0;
+      return toast('🫙 Preserve Shed · '+jars+'/'+JAM_CAP+' jars · '+(jars<JAM_CAP?'Next jar at dawn':'Shelf full — waiting for a seasonal festival to clear')+' · '+JAM_PAY+'🪙/jar at festivals');
+    }
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
