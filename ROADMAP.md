@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+LAB — Growing plots show rounded-up seconds until ready, using live grow
+speed from lights and night shifts. Ready pulses and harvest clearing remain;
+hook-free `labgroweta` covers ticking, speed changes, empty plots and harvest.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **LAB grow ETA** | ✅ Growing plots show live seconds; Ready pulses and harvest clearing preserved. Hook-free `labgroweta`; cache `eureka-v305-lab-groweta`. |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
