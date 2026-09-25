@@ -4647,6 +4647,11 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='brewery'){
+      const honey=state.goods.honey||0,mead=state.goods.mead||0;
+      if(honey<=0)return toast('🍶 The still waits for honey · 🍯 Honey stock 0 · Mead on hand '+mead);
+      return toast('🍶 Next mead bottle in '+Math.max(0,Math.ceil(12-brewT))+'s · 🍯 Honey remaining '+honey+' · Mead on hand '+mead);
+    }
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
