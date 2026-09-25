@@ -9247,6 +9247,7 @@ function refreshHud() {
   checkIPOAvailable();
   renderNextAction();
   refreshAffordability();
+  if (archiveChipReady) refreshArchiveChip();
 }
 
 // Toggle .can-afford on every purchasable button after a render pass.
@@ -11189,6 +11190,8 @@ function addTheirPanel() {
 // hire. What it buys is the deepest visit on the wall: $150 base +
 // $75 per panel (cap 5). Visits tallied in 'tyc-archive'.
 const ARCHIVE_KEY = 'tyc-archive', ARCHIVE_COST = 25000, ARCHIVE_BASE = 150, ARCHIVE_PER = 75;
+// refreshHud also runs before this section initializes.
+var archiveChipReady = true;
 let archiveVisited = false;
 function loadArchive() {
   try { const a = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || 'null');
@@ -11202,7 +11205,10 @@ function archiveBuilt() { return loadArchive().built; }
 function archivePurse() { return ARCHIVE_BASE + ARCHIVE_PER * Math.min(loadMark().panels || 0, 5); }
 function buyArchive() {
   if (!archiveOffered() || archiveBuilt()) return false;
-  if (state.cash < ARCHIVE_COST) return false;
+  if (state.cash < ARCHIVE_COST) {
+    showToast('Need $' + fmtCash(ARCHIVE_COST - state.cash) + ' more to build the Archive Wing.', 'warn', 'standard');
+    return false;
+  }
   state.cash -= ARCHIVE_COST;
   const a = loadArchive();
   saveArchive({ built: true, visits: a.visits });
@@ -11342,15 +11348,17 @@ function renderWall() {
 function refreshArchiveChip() {
   const el = document.getElementById('archive-chip');
   if (!el) return;
+  el.style.pointerEvents = 'auto';
   el.onclick = () => { archiveBuilt() ? visitArchive() : buyArchive(); };
   if (!archiveOffered()) { el.style.display = 'none'; el.textContent = ''; return; }
   el.style.display = '';
   if (!archiveBuilt()) {
     el.style.opacity = state.cash >= ARCHIVE_COST ? '' : '0.45';
-    el.textContent = '\u{1F5C4}\u{FE0F} wing $' + (ARCHIVE_COST / 1000) + 'k';
+    const shortfall = 'Need $' + fmtCash(ARCHIVE_COST - state.cash) + ' more';
+    el.textContent = '\u{1F5C4}\u{FE0F} ' + (state.cash >= ARCHIVE_COST ? 'wing $' + (ARCHIVE_COST / 1000) + 'k' : shortfall);
     el.title = 'The Archive Wing \u2014 three painted panels and the wall has outgrown the lobby. $' + ARCHIVE_COST.toLocaleString()
       + ', once ever, and the money is gone whether or not you were saving it. What it buys is the deepest visit on the wall: $' + archivePurse() + ' a session.'
-      + (state.cash >= ARCHIVE_COST ? ' Click to build it.' : ' You cannot afford it yet.');
+      + (state.cash >= ARCHIVE_COST ? ' Click to build it.' : ' ' + shortfall + ' to build it.');
     return;
   }
   el.style.opacity = archiveVisited ? '0.45' : '';
