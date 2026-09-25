@@ -49,6 +49,10 @@ LAB — Grow Op hire refusals name the role and price or full crew; disabled
 buttons explain the same reason on hover. Hook-free `labhire` checks all four
 roles, unchanged cash/crew on refusal, and successful hires.
 
+Age of War — training queue hover and accessible labels now show rounded-up
+seconds left, updating during battle; waiting recruits keep their refund hint.
+Hook-free `aowtraineta` covers ticking labels, cancellation refunds, and spawning.
+
 Age of War — Space during Special cooldown now shows “Special cooling — Ns”
 on the field without spending a special or restarting the wait. Hook-free
 `aowspecialcd` covers repeated refusals and ready Space at 1280px/768px.

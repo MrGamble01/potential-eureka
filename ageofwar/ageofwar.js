@@ -1416,9 +1416,12 @@ const AgeOfWarGame = (() => {
       renderTrainingQueue();
       renderSpawnPanel();
     } else {
-      // Cheap update: just push the progress style update for the front slot.
+      // Cheap update: keep front-slot progress and countdown current.
       const slot = document.getElementById('aow-train-slot-0');
-      if (slot) slot.style.setProperty('--aow-train', ((1 - front.remaining / front.total) * 100) + '%');
+      if (slot) {
+        slot.style.setProperty('--aow-train', ((1 - front.remaining / front.total) * 100) + '%');
+        updateTrainingLabel(slot, front, true);
+      }
     }
   }
 
@@ -9173,6 +9176,16 @@ const AgeOfWarGame = (() => {
     }
   }
 
+  function updateTrainingLabel(slot, entry, isFront) {
+    const def = UNITS[entry.key];
+    const timing = isFront ? `${Math.ceil(Math.max(0, entry.remaining))}s left` : 'queued';
+    const label = `${def?.name || entry.key} — ${timing} · cancel refunds $${def?.cost}`;
+    if (slot.title !== label) {
+      slot.title = label;
+      slot.setAttribute('aria-label', label);
+    }
+  }
+
   function renderTrainingQueue() {
     const root = document.getElementById('aow-train-slots');
     if (!root) return;
@@ -9193,7 +9206,7 @@ const AgeOfWarGame = (() => {
           ? `<img class="aow-train-sprite" alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgFn('run'))}"/>`
           : `<span class="aow-train-icon">${def?.icon || '?'}</span>`;
         slot.innerHTML = iconHtml + `<span class="aow-train-cancel" aria-hidden="true">×</span>`;
-        slot.title = `${def?.name || entry.key} — click to cancel + refund $${def?.cost}`;
+        updateTrainingLabel(slot, entry, i === 0);
         slot.onclick = () => cancelTrainingAt(i);
         if (i === 0) {
           slot.style.setProperty('--aow-train', ((1 - entry.remaining / entry.total) * 100) + '%');
