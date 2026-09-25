@@ -44,6 +44,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Area | Suites |
 |---|---|
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
+| Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |
 | Age of War broke recruiting | `aowbroke` (hook-free: click/key gold refusals, unchanged purse and queue, affordable controls, and stat-preserving tooltips at 1280px/768px); `aowqueue` guards queue-full recovery |
@@ -60,7 +61,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Purchase copy | `promises` (the numbers on things you buy match the code that implements them — Grow Op's nine upgrades and Voxel Isle's five building effects; found three wrong descriptions in Grow Op, one understated 5×) |
 | Shared hub storage | `hubstore` (the hub root and the Hall of Fame both boot with a corrupt shared key — rivals, coins, stats, achievements; 6 of its 8 payloads are valid JSON, because the parse is not where this bug class lives) |
 | Cross-game save integrity | `saves` (every flagship boots from a deliberately damaged save — 7 malformed shapes plus hostile numbers in real fields; found three boot crashes where a saved number was used as an array index unchecked. Each row also asserts the game actually *read* the key, so a drifted key list fails loudly instead of passing clean) |
-| Homeless Village | 187 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
+| Homeless Village | 188 suites — one per line under [Homeless Village suites](#homeless-village-suites) |
 
 | Voxel Isle | 50 suites — one per line under [Voxel Isle suites](#voxel-isle-suites) |
 Suites that need a temporary `window.__*` test hook in a game file
@@ -88,6 +89,7 @@ presses and ordinary key releases still work.
 - `hvcoldcart` — HV-178: Cold halves deposit haul while preserving rain and heat cuts.
 
 - `hvbuskrain` — HV-179: Rain halves busk take unless an awning shelters the corner.
+- `hvcraftrefuse` — Craft refusal reasons in the feed and hover, no spend/start, affordable recovery and active-craft mutex.
 - `hvmealfire` — HV-180: dark-barrel Hot Meal refusal, Firewood relight, Blanket, and lit meal.
 - `hvdogheat` (HV-171: A scorcher dogwalk pays goodwill without a morale lift)
 - `hvwetpaint` (HV-170: Rain washes wet mural panels and refuses painting)
