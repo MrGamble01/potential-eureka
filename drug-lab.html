@@ -3147,17 +3147,21 @@ function heatDrainPerSec() {
 // you, the stash is lost, heat resets to 40, and the run survives.
 // One bag at a time; skips tally toward Gone Before Dawn.
 const BAG_COST = 2500;
+const BAG_TITLE = document.getElementById('bag-toggle').title;
 function refreshBagBtn() {
   const b = document.getElementById('bag-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 3 ? '' : 'none';
   b.classList.toggle('on', !!state.bagPacked);
-  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+  const short = !state.bagPacked && currentAct() >= 3 && state.cash < BAG_COST;
+  const need = 'Need $' + fmtCash(BAG_COST - state.cash) + ' more';
+  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : short ? '🎒 PACK A BAG ' + need : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+  b.title = short ? need + ' to pack a getaway bag. ' + BAG_TITLE : BAG_TITLE;
 }
 function packBag() {
   if (state.bagPacked) { showToast('🎒 The bag is already by the back door.', ''); return; }
-  if (currentAct() < 3) return;
-  if (state.cash < BAG_COST) { showToast("Can't afford the bag yet ($" + fmtCash(BAG_COST) + ').', 'bust'); return; }
+  if (currentAct() < 3) { showToast('🎒 Getaway bags unlock in Act III', 'bust'); return; }
+  if (state.cash < BAG_COST) { showToast('🎒 Need $' + fmtCash(BAG_COST - state.cash) + ' more to pack a getaway bag.', 'bust'); return; }
   state.cash -= BAG_COST;
   state.bagPacked = true;
   refreshBagBtn();
@@ -4002,6 +4006,7 @@ function hireRefusal(role, cost, count, max) {
 
 function refreshHud() {
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
+  refreshBagBtn(); // Keep the shortfall live after every cash change.
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
   document.getElementById('act-badge').textContent =

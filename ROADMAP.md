@@ -33,6 +33,15 @@ afterwards.
 
 ## Status at a glance
 
+LAB — Grow Op getaway-bag purchases name the missing cash on the live button,
+in its title and in refusal toasts; Act II explains the Act III unlock.
+Hook-free `labgobag` covers unchanged refused packs, a normal pack,
+and live cash gains at 1280px/768px. Cache: `eureka-v334-lab-gobag`.
+
+| Grow Op polish | Status | Verification |
+|---|---|---|
+| Getaway bag cash shortfall | Complete — live missing-cash label/title, refusal toast and Act III gate; $2,500 cost and one-bag pack unchanged | `tests/headless/labgobag.js` — 1280px/768px, packs/refusals/live cash gains, zero page errors |
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
