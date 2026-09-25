@@ -1649,6 +1649,8 @@
   const WISH_COST = 3;
   function wellBuilt() { return state.buildings.some(b => b.type === 'well' && b.done !== false); }
   function wishedToday() { return state.wishDay === state.day; }
+  function wishStatus() { return wishedToday() ? '💧 Heard today’s wish' : 'Ready · ' + WISH_COST + '🪙'; }
+  function wishTally() { return (state.wishes || 0) ? state.wishes + ' granted' : 'No wishes yet'; }
   function wishRoll() { return rrand(state.day * 31 + (state.wishes || 0) * 7); }
   function goldenMult() { return state.goldenDay === state.day ? 1.5 : 1; }
   function wishGain(res, n) { state.res[res] = Math.min(capOf(res), state.res[res] + n); }
@@ -5317,6 +5319,11 @@
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
   function updateHUD() {
+    const wish = document.getElementById('p-wish-stat');
+    if (wish && selected && selected.type === 'well' && selected.done !== false) {
+      wish.textContent = wishStatus();
+      document.getElementById('p-wishes-stat').textContent = wishTally();
+    }
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
     document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
     document.getElementById('r-food').textContent = Math.floor(state.res.food);
@@ -5546,6 +5553,10 @@
     if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
     if (def.unique && b.type === 'market') html += statRow('Merchant', 'visits every few days');
     if (def.charm) html += statRow('Charm', '+' + def.charm + ' town beauty');
+    if (b.type === 'well') {
+      html += statRow('Wish', '<span id="p-wish-stat">' + wishStatus() + '</span>');
+      html += statRow('Wishes', '<span id="p-wishes-stat">' + wishTally() + '</span>');
+    }
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
