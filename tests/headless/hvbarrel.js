@@ -9,6 +9,7 @@
  *    compost.
  * F. Six waterings clear the goal value; barrel, water and tally ride
  *    the save; a legacy save migrates clean.
+ * G. Live craft-panel stock inspection, inert clicks and recipe controls.
  * Z. Zero page errors.
  */
 const { chromium } = require('playwright');
@@ -18,6 +19,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 (async () => {
   const browser = await chromium.launch({
+    executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
@@ -105,8 +107,63 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const legacy = await t(() => ({ days: G.barrelDays, water: G.barrelWater, built: G.structures.barrel }));
   ok(legacy.days === 0 && legacy.water === 0 && legacy.built === false, 'a pre-HV-27 save migrates clean');
 
+  // G — production state/UI/clicks, with no injected test hooks or mocks.
+  const inspect = await t(() => {
+    G.goalIndex = GOALS.length;
+    G.activeCrafts = {};
+    G.structures.workbench = true;
+    G.structures.barrel = true;
+    G.scraps = 10; G.cans = 5;
+    const snapshot = () => JSON.stringify({ scraps: G.scraps, cans: G.cans,
+      water: G.barrelWater, structures: G.structures, active: G.activeCrafts });
+    buildCraftUI();
+    const button = document.getElementById('craft-barrel');
+    const stocks = [0, 1, BARREL_CAP, 0].map(water => {
+      G.barrelWater = water;
+      updateHUD(); // Must stay live without rebuilding the panel.
+      const before = snapshot();
+      const oldLast = document.querySelector('.log-line:last-child');
+      button.click();
+      const last = document.querySelector('.log-line:last-child');
+      return { water, cost: button.querySelector('.ci-cost').textContent,
+        tip: button.getAttribute('data-tip'), log: last !== oldLast ? last.textContent : '',
+        same: before === snapshot() };
+    });
+    delete G.barrelWater;
+    buildCraftUI();
+    const fallback = document.querySelector('#craft-barrel .ci-cost').textContent;
+    const bench = document.getElementById('craft-workbench');
+    bench.click();
+    const workbench = { tip: bench.getAttribute('data-tip'),
+      log: document.querySelector('.log-line:last-child').textContent };
+    G.structures.barrel = false;
+    updateHUD();
+    const barrel = document.getElementById('craft-barrel');
+    const unbuilt = { cost: barrel.querySelector('.ci-cost').textContent,
+      tip: barrel.getAttribute('data-tip') };
+    barrel.click();
+    unbuilt.started = !!G.activeCrafts.barrel;
+    unbuilt.scraps = G.scraps; unbuilt.cans = G.cans;
+    return { cap: BARREL_CAP, stocks, fallback, workbench, unbuilt };
+  });
+  for (const stock of inspect.stocks) {
+    const text = `${stock.water}/${inspect.cap} stored`;
+    ok(stock.cost === text && stock.tip.includes('Rain Barrel holds ' + text),
+      `live panel and tip show ${text}`);
+    ok(stock.log.includes('Rain Barrel holds ' + text) && stock.same,
+      `click inspects ${text} without spending, changing structures or starting craft`);
+  }
+  ok(inspect.fallback === `0/${inspect.cap} stored`, 'missing water defaults to empty on panel rebuild');
+  ok([inspect.workbench.tip, inspect.workbench.log].every(text =>
+    /Workbench is already built/.test(text) && !/stored|holds/.test(text)),
+    'built Workbench keeps already-built feedback without water copy');
+  ok(inspect.unbuilt.cost === '5scraps 1cans' && !/\d+\/\d+ stored|Rain Barrel holds/.test(inspect.unbuilt.tip),
+    'unbuilt barrel restores build cost and ordinary tip');
+  ok(inspect.unbuilt.started && inspect.unbuilt.scraps === 5 && inspect.unbuilt.cans === 4,
+    'affordable unbuilt barrel starts and spends its exact build cost');
+
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
-})();
+})().catch(e => { console.error(e); process.exitCode = 1; });

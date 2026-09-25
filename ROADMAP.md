@@ -57,6 +57,14 @@ VOX — Placing a block or decor on an occupied block now says “Something is i
 the way” and plays the error sound, without spending coins or counting decor.
 Hook-free `voxplace` covers repeat placement, successful decor, and plant refusal.
 
+Homeless Village — built Rain Barrels show live stored water on the craft panel,
+hover tip and click log. Hook-free `hvbarrel` covers stock inspection without
+spending, plus existing barrel economy/save checks. Cache: `eureka-v307-hv-barrelwater`.
+
+| HV improvement | Verification |
+|---|---|
+| Rain Barrel live stored water in craft panel, tip and click log | `hvbarrel`; `hvcraftrefuse` preserves other craft refusals |
+
 Homeless Village — refused crafts now name missing resources, the required
 structure, or an already-built structure in the feed and hover tip. Hook-free
 `hvcraftrefuse` covers refusals without spending and affordable crafting.
