@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Tapping the Ferry Landing reports rounded-up seconds to the next dock and
+the live decor tip, or a frozen-for-winter message. Hook-free `voxferrydock`
+covers mesh taps, decor changes, seasonal clocks and inspection without payouts.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **VOX — ferry dock inspection** | ✅ live next-dock seconds + decor tip; winter freeze; hook-free `voxferrydock` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
