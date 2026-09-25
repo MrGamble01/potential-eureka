@@ -3982,6 +3982,12 @@ renderer.domElement.addEventListener('click', e => {
 });
 
 // ── HUD refresh ──
+function hireRefusal(role, cost, count, max) {
+  if (count >= max) return role + ' crew is full (' + max + '/' + max + ').';
+  if (state.cash < cost) return "Can't afford a " + role + ' yet ($' + fmtCash(cost) + ').';
+  return '';
+}
+
 function refreshHud() {
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
   document.getElementById('heat-fill').style.width = state.heat+'%';
@@ -4000,17 +4006,21 @@ function refreshHud() {
   document.getElementById('trimmer-cost').textContent = '$'+fmtCash(trimCost);
   document.getElementById('lookout-cost').textContent = '$'+fmtCash(lookCost);
   document.getElementById('hire-trimmer-btn').disabled = state.cash<trimCost || state.trimmers>=3;
+  document.getElementById('hire-trimmer-btn').title = hireRefusal('Trimmer', trimCost, state.trimmers||0, 3) || 'Hire Trimmer';
   document.getElementById('hire-lookout-btn').disabled = state.cash<lookCost || state.lookouts>=2;
+  document.getElementById('hire-lookout-btn').title = hireRefusal('Lookout', lookCost, state.lookouts||0, 2) || 'Hire Lookout';
 
   if (state.runners!==undefined) {
     const rCost = 400*(1+(state.runners||0));
     document.getElementById('runner-cost').textContent = '$'+fmtCash(rCost);
     document.getElementById('hire-runner-btn').disabled = state.cash<rCost || (state.runners||0)>=3;
+    document.getElementById('hire-runner-btn').title = hireRefusal('Runner', rCost, state.runners||0, 3) || 'Runners auto-haul finished product to the stash and close deals with waiting buyers';
   }
   if (state.cooks!==undefined) {
     const cCost = 800*(1+(state.cooks||0));
     document.getElementById('cook-cost').textContent = '$'+fmtCash(cCost);
     document.getElementById('hire-cook-btn').disabled = state.cash<cCost || (state.cooks||0)>=3;
+    document.getElementById('hire-cook-btn').title = hireRefusal('Cook', cCost, state.cooks||0, 3) || 'Hire Cook';
   }
 
   // Show cook/runner rows once relevant
@@ -4170,7 +4180,8 @@ function buyUpgrade(id) {
 // ── Hire buttons ──
 document.getElementById('hire-trimmer-btn').onclick = () => {
   const cost = 150*(1+state.trimmers);
-  if (state.cash<cost||state.trimmers>=3) return;
+  const refusal = hireRefusal('Trimmer', cost, state.trimmers||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.trimmers++;
   const g = buildTrimmerNPC();
   g.position.set(trimStation.x+(Math.random()-0.5)*1.5, 0, trimStation.z+(Math.random()-0.5)*1.5);
@@ -4182,7 +4193,8 @@ document.getElementById('hire-trimmer-btn').onclick = () => {
 };
 document.getElementById('hire-lookout-btn').onclick = () => {
   const cost = 300*(1+state.lookouts);
-  if (state.cash<cost||state.lookouts>=2) return;
+  const refusal = hireRefusal('Lookout', cost, state.lookouts||0, 2);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.lookouts++;
   const g = buildLookoutNPC();
   g.position.set(6+(Math.random()-0.5)*3, 0, 7+(Math.random()-0.5)*3);
@@ -4194,7 +4206,8 @@ document.getElementById('hire-lookout-btn').onclick = () => {
 };
 document.getElementById('hire-runner-btn').onclick = () => {
   const cost=400*(1+(state.runners||0));
-  if(state.cash<cost||(state.runners||0)>=3) return;
+  const refusal = hireRefusal('Runner', cost, state.runners||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.runners=(state.runners||0)+1;
   spawnRunnerNPC();
   showToast('🏃 Runner hired — hauls product & closes deals.','good');
@@ -4203,7 +4216,8 @@ document.getElementById('hire-runner-btn').onclick = () => {
 };
 document.getElementById('hire-cook-btn').onclick = () => {
   const cost=800*(1+(state.cooks||0));
-  if(state.cash<cost||(state.cooks||0)>=3) return;
+  const refusal = hireRefusal('Cook', cost, state.cooks||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.cooks=(state.cooks||0)+1;
   showToast('🧪 Cook hired.','good');
   addFeed('👤 Cook on deck');
