@@ -33,6 +33,14 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Truffle Pig taps report waiting for the rain to lift (20 🪙 per truffle)
+or readiness for the next shower with lifetime truffles. Hook-free `voxtruffle`
+covers both widths and read-only taps; rain payouts and timing stay unchanged.
+
+| ID | Ticket | Verification |
+|---|---|---|
+| VOX-TRUFFLE | Truffle Pig taps report live rain/work status | ✅ Read-only rain-lift payout preview and dry lifetime tally; `voxtruffle` at 1280px/768px, zero page errors. |
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
