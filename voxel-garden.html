@@ -4647,6 +4647,12 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='corncrib'){
+      const meals=state.cribMeals||0;
+      toast('🌽 Corn Crib — blunted '+meals+' crow raid'+(meals===1?'':'s')+
+        (meals?'':' · stands ready')+' · pecks permanently softened to '+CRIB_BITE+'× growth (from '+CROW_BITE+'×)');
+      return;
+    }
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
