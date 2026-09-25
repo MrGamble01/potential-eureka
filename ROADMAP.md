@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+Age of War — Wager clicks name an already riding bet; Duel clicks name a missing
+warlord. Both refuse without spending gold. Hook-free `aowdueliron` covers
+clicks/keys and a first wager at 1280px/768px; cache `eureka-v321-aow-dueliron`.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Age of War duel/iron refusals** | ✅ Named refusals, unchanged purse/bet, and first-wager smoke; `aowdueliron` at desktop/tablet widths |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
