@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Placing a block or decor on an occupied block now says “Something is in
+the way” and plays the error sound, without spending coins or counting decor.
+Hook-free `voxplace` covers repeat placement, successful decor, and plant refusal.
+
 LAB — Grow Op hire refusals name the role and price or full crew; disabled
 buttons explain the same reason on hover. Hook-free `labhire` checks all four
 roles, unchanged cash/crew on refusal, and successful hires.

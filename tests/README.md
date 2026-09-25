@@ -43,6 +43,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 
 | Area | Suites |
 |---|---|
+| Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |
 | Age of War broke recruiting | `aowbroke` (hook-free: click/key gold refusals, unchanged purse and queue, affordable controls, and stat-preserving tooltips at 1280px/768px); `aowqueue` guards queue-full recovery |

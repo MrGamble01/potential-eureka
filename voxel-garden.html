@@ -4753,7 +4753,7 @@ function actOnPlant(p){
 }
 function placeSelected(x,y,z){
   if(Math.abs(x)>46||Math.abs(z)>46||y<-24||y>26){toast('Too far out into the sky…');return;}
-  if(getB(x,y,z)){return;}
+  if(getB(x,y,z)){toast('Something is in the way');SFX.play('error');return;}
   if(W.plants.has(k3(x,y,z))){toast('Something is in the way');return;}
   const sel=state.blockSel;
   if(typeof sel==='string'){ // decor
