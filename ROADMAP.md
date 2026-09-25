@@ -69,6 +69,10 @@ LAB — Grow Op hire refusals name the role and price or full crew; disabled
 buttons explain the same reason on hover. Hook-free `labhire` checks all four
 roles, unchanged cash/crew on refusal, and successful hires.
 
+Age of War — full-queue recruit refusals now show the live wait until the next
+slot on the field and in recruit titles, with cancel/refund hints and unit stats.
+Hook-free `aowqueueeta` covers countdown and recovery at 1280px/768px; cache `eureka-v306-aow-queueeta`.
+
 Age of War — training queue hover and accessible labels now show rounded-up
 seconds left, updating during battle; waiting recruits keep their refund hint.
 Hook-free `aowtraineta` covers ticking labels, cancellation refunds, and spawning.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **AoW queue-full next slot** | ✅ Live next-slot seconds in recruit refusal floaters and titles; `aowqueueeta`, `aowqueue`, and `aowbroke` cover feedback and recovery. |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |

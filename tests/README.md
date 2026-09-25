@@ -50,6 +50,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
+| Age of War queue-full next-slot | `aowqueueeta` (hook-free: live rounded-up wait in refusal floaters and recruit titles, unchanged gold/queue, ticking front trainee, and cancel/recruit recovery at 1280px/768px) |
 | Age of War training ETA | `aowtraineta` (hook-free: page-clock countdown titles and accessible labels, cheap tick updates, waiting/empty slots, exact cancel refund, and completion spawn at 1280px/768px) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |
 | Age of War broke recruiting | `aowbroke` (hook-free: click/key gold refusals, unchanged purse and queue, affordable controls, and stat-preserving tooltips at 1280px/768px); `aowqueue` guards queue-full recovery |
