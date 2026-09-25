@@ -134,7 +134,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
       });
 
       await run('underway', {
-        day: 5, festival: { endDay: 7 }, lastFestivalDay: 5,
+        day: 5, festival: { endDay: 7, x: 472, y: 352 }, lastFestivalDay: 5,
         res: { wood: 40, stone: 20, food: 40, gold: 40 },
       }, async (page, button, read) => {
         const on = await read();
@@ -172,7 +172,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
       });
 
       await run('live fair', {
-        day: 5, time: 23, lastFestivalDay: 5, festival: { endDay: 7 },
+        day: 5, time: 23, lastFestivalDay: 5, festival: { endDay: 7, x: 472, y: 352 },
         res: { wood: 40, stone: 20, food: 40, gold: 40 },
       }, async (page, button, read) => {
         assert.equal((await read()).text, '🎪 Festival underway · 2 days left');
