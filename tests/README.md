@@ -45,6 +45,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 |---|---|
 | Homeless Village action cooldowns | `hvactioncd` (hook-free: production completion/button clicks, named rounded-up seconds in the live log, unchanged resources/deadlines/jobs, and normal starts at expiry for Trade, Rest and Forage) |
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
+| Voxel Isle scarecrow inspection | `voxscare` (hook-free: production mesh taps report live growing-crop count and guard radius, inclusive horizontal boundary, ripe/decor exclusions, empty patch, other decor silence, pickaxe removal, zero page errors) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |
 | Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
