@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+HV — Clicks reaching an action’s cooldown now name the action and rounded-up
+seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
+unchanged resources/deadlines, and normal starts at expiry.
+
 LAB — The live wholesale Route button shows rounded-up seconds until the next
 van, with a matching title. OFF and burned labels stay intact; hook-free
 `labroute` covers ticking, title restoration, cold seconds and empty-stash waits.

@@ -368,7 +368,11 @@ function doAction(a){
     sfx('error');
     return;
   }
-  if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
+  if(G.cooldowns[a.id] && now<G.cooldowns[a.id]){
+    log(a.icon+' '+a.label+' ready in '+Math.ceil((G.cooldowns[a.id]-now)/1000)+'s');
+    sfx('error');
+    return;
+  }
   // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
   // let the bins reopen in the same day the card was still reading.
   if((a.id==='scavenge'||a.id==='forage') && G.dumpsterLockDay===G.days){
