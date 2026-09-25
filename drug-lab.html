@@ -1005,7 +1005,7 @@ const labelMap = new Map(); // key → div
 function setLabel(key, text, x, y, z, cls='') {
   let div = labelMap.get(key);
   if (!div) { div = document.createElement('div'); labelsEl.appendChild(div); labelMap.set(key, div); }
-  div.textContent = text;
+  if (div.textContent !== text) div.textContent = text;
   div.className = cls;
   const s = worldToScreen(x,y,z);
   div.style.transform = `translate(calc(-50% + ${s.x}px), calc(-100% + ${s.y}px - 4px))`;
@@ -4690,6 +4690,17 @@ function setStatus(msg, duration=4) {
 
 
 // ── Update grow plots ──
+function updateGrowPlotLabel(p, index) {
+  const key = 'plot_'+index;
+  if (p.ready) {
+    setLabel(key,'🌿 READY!',p.x,1.8+Math.sin(now()*3)*0.05,p.z,'ready');
+  } else if (p.progress > 0) {
+    const seconds = Math.ceil(Math.max(0, (1-p.progress)*growTime()));
+    setLabel(key,`🌿 ${seconds}s`,p.x,1.8,p.z);
+  } else {
+    removeLabel(key);
+  }
+}
 function updateGrowPlots(dt) {
   const speed = 1/growTime();
   for (const p of growPlots) {
@@ -4697,8 +4708,8 @@ function updateGrowPlots(dt) {
     p.progress = Math.min(1, p.progress + speed*dt);
     if (p.progress>=1 && !p.ready) {
       p.ready=true;
-      setLabel('plot_'+growPlots.indexOf(p),'🌿 Ready!', p.x, 1.8, p.z, 'ready');
     }
+    updateGrowPlotLabel(p, growPlots.indexOf(p));
     if (p.stage !== Math.floor(p.progress*3)+1) updatePlantMesh(p);
     // UV flicker
     p.uvLight.intensity = 0.5 + Math.sin(now()*3+p.x)*0.1;
@@ -5178,10 +5189,7 @@ function updateEvents(dt) {
 function updateLabels() {
   // Update plant labels
   for(let i=0;i<growPlots.length;i++) {
-    const p=growPlots[i];
-    if(p.ready) {
-      setLabel('plot_'+i,'🌿 READY!',p.x,1.8+Math.sin(now()*3)*0.05,p.z,'ready');
-    }
+    updateGrowPlotLabel(growPlots[i], i);
   }
   // Update dealer labels
   for(let i=0;i<dealers.length;i++) {
