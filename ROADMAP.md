@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+AOW — Refused Age Up Q now names the remaining XP and next era in a short
+field banner. Live button titles and accessible labels explain XP shortfalls
+and readiness; hook-free `aowagexp` covers refusal, success, Max Age and Singularity.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
