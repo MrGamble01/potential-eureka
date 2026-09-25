@@ -47,6 +47,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |
 | Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
+| Hearthvale tavern festival | `hvalefest` (hook-free: food/coin shortfalls, rest countdown, fair days left, real click refusals, one paid fair, live dawn and orchard updates at 1280px/768px; zero page errors) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |

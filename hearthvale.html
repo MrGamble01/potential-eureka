@@ -1389,11 +1389,68 @@
   function festivalCost() { const pop = state.villagers.length; return { food: 6 + pop * 2, gold: 8 + pop * 2 }; }
   function festivalActive() { return !!(state.festival && state.day < state.festival.endDay); }
   function festivalReady() { return (state.day - (state.lastFestivalDay != null ? state.lastFestivalDay : -99)) >= FEST_COOLDOWN; }
-  function holdFestival(tav) {
-    if (festivalActive()) { toast('🎪 A festival is already underway!'); SFX('error'); return; }
-    if (!festivalReady()) { toast('The town needs a few days to recover before the next festival.'); SFX('error'); return; }
+  function festivalDayWord(n) { return n === 1 ? 'day' : 'days'; }
+  function festivalRunDays() { return Math.max(1, state.festival.endDay - state.day); }
+  function festivalWaitDays() {
+    const last = state.lastFestivalDay != null ? state.lastFestivalDay : -99;
+    return Math.max(1, FEST_COOLDOWN - (state.day - last));
+  }
+  function festivalGap() {
     const cost = festivalCost();
-    if (!Object.keys(cost).every(k => state.res[k] >= cost[k])) { toast("Not enough food & coin for a festival yet."); SFX('error'); return; }
+    const parts = [];
+    const food = cost.food - state.res.food;
+    const gold = cost.gold - state.res.gold;
+    if (food > 0) parts.push(Math.ceil(food) + shortRes('food'));
+    if (gold > 0) parts.push(Math.ceil(gold) + shortRes('gold'));
+    return parts;
+  }
+  function festivalButtonCopy() {
+    if (festivalActive()) {
+      const days = festivalRunDays();
+      const left = days + ' ' + festivalDayWord(days) + ' left';
+      return { html: '🎪 Festival underway · ' + left, title: 'The fair has ' + left + '.' };
+    }
+    if (!festivalReady()) {
+      const days = festivalWaitDays();
+      const word = festivalDayWord(days);
+      return {
+        html: '🎪 Resting · ready in ' + days + ' ' + word,
+        title: 'The town needs ' + days + ' more ' + word + ' before the next festival.',
+      };
+    }
+    const missing = festivalGap();
+    if (missing.length) {
+      const need = 'Need ' + missing.join(' and ') + ' more';
+      return { html: '🎪 ' + need, title: need + ' to hold a festival.' };
+    }
+    const cost = festivalCost();
+    const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
+    return {
+      html: '🎪 Hold a Festival <span style="opacity:.7;font-size:11px">' + costStr + '</span>',
+      title: 'Spend ' + costStr + ' — the fair lasts ' + FEST_DAYS + ' days.',
+    };
+  }
+  function refreshFestivalBtn() {
+    const b = document.getElementById('p-festival');
+    if (!b) return;
+    const copy = festivalButtonCopy();
+    if (b.dataset.copy !== copy.html) { b.innerHTML = copy.html; b.dataset.copy = copy.html; }
+    if (b.title !== copy.title) b.title = copy.title;
+  }
+  function holdFestival(tav) {
+    if (festivalActive()) {
+      const days = festivalRunDays();
+      toast('🎪 A festival is already underway — ' + days + ' ' + festivalDayWord(days) + ' left.');
+      SFX('error'); return;
+    }
+    if (!festivalReady()) {
+      const days = festivalWaitDays();
+      toast('The town is resting — the next festival is ' + days + ' ' + festivalDayWord(days) + ' away.');
+      SFX('error'); return;
+    }
+    const missing = festivalGap();
+    if (missing.length) { toast('Need ' + missing.join(' and ') + ' more to hold a festival.'); SFX('error'); return; }
+    const cost = festivalCost();
     Object.keys(cost).forEach(k => state.res[k] -= cost[k]);
     const def = BUILDINGS[tav.type];
     state.festival = { endDay: state.day + FEST_DAYS, x: (tav.tx + def.w / 2) * TILE, y: (tav.ty + def.h / 2) * TILE };
@@ -5365,6 +5422,7 @@
       if (state.raining) { const snow = seasonOf(state.day).name === 'Winter'; wx.textContent = snow ? ' ❄️' : ' 🌧️'; wx.title = snow ? 'Snowing' : 'Rain — crops thrive (+25% food)'; }
       else { wx.textContent = ''; wx.title = ''; }
     }
+    refreshFestivalBtn();
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
@@ -5563,13 +5621,7 @@
       const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
       btns += '<button id="p-upgrade">⬆️ Upgrade <span style="opacity:.7;font-size:11px">' + costStr + '</span></button>';
     }
-    if (b.type === 'tavern' && b.done !== false) {
-      const fc = festivalCost();
-      const fcStr = Object.keys(fc).map(k => fc[k] + shortRes(k)).join(' ');
-      const on = festivalActive(), ready = festivalReady();
-      const lbl = on ? '🎪 Festival underway…' : !ready ? '🎪 Festival (town resting)' : '🎪 Hold a Festival <span style="opacity:.7;font-size:11px">' + fcStr + '</span>';
-      btns += '<button id="p-festival"' + (on || !ready ? ' disabled' : '') + '>' + lbl + '</button>';
-    }
+    if (b.type === 'tavern' && b.done !== false) btns += '<button id="p-festival"></button>';
     if (b.type === 'market' && b.done !== false) {
       const out = caravanOut();
       const clbl = out ? '🐴 Caravan on the road — back day ' + state.caravan.returnDay
@@ -5590,6 +5642,7 @@
     }
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
+    refreshFestivalBtn();
     const upBtn = document.getElementById('p-upgrade');
     if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
     const fBtn = document.getElementById('p-festival');
