@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Tapping a scarecrow reports its six-block guard radius and live growing-crop
+count. Pickaxe removal is unchanged; hook-free `voxscare` covers mesh taps,
+radius boundaries, ripe/decor exclusions, live/empty counts and removal.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
