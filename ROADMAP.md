@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — Escape resumes a Space-paused valley at its previous speed. Other
+sheets dismiss first, preserving modal pause ownership and welcome behavior.
+Hook-free `hvaleescpause` covers moving time, overlay priority, and trader/event holds.
+
 VOX — Placing a block or decor on an occupied block now says “Something is in
 the way” and plays the error sound, without spending coins or counting decor.
 Hook-free `voxplace` covers repeat placement, successful decor, and plant refusal.

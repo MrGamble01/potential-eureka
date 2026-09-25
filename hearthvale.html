@@ -5743,6 +5743,7 @@
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'Escape') {
+      const sheetWas = document.querySelector('#trader.show, #event.show, #chain-modal.open, #achv.show, #chronicle.show, #decrees.show');
       buildMode = null; canvas.classList.remove('building'); hidePanel(); refreshBarState();
       document.getElementById('achv').classList.remove('show');
       document.getElementById('chronicle').classList.remove('show');
@@ -5755,6 +5756,11 @@
       if (event) event.classList.remove('show');
       if (hall) hall.classList.remove('open');
       if (modalWas) resumeFromModal();
+      // One Escape dismisses a sheet first; a later Escape lifts the player hold.
+      else if (!sheetWas && document.getElementById('paused').classList.contains('show') && playerHeld()) {
+        gameSpeed = prevSpeed || 1;
+        syncPaused();
+      }
     }
     if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
     if (e.key === ' ') {
