@@ -1436,7 +1436,11 @@ const AgeOfWarGame = (() => {
       return;
     }
     const need = ERAS[playerEra].upXP;
-    if (xp < need) return;
+    if (xp < need) {
+      ageBannerText = `Need ${need - xp} more XP for ${ERAS[playerEra + 1].name}`;
+      ageBannerT = 2.4;
+      return;
+    }
     xp -= need;
     playerEra++;
     runStats.agesReached = Math.max(runStats.agesReached, playerEra);
@@ -8669,10 +8673,20 @@ const AgeOfWarGame = (() => {
         if (ico) ico.textContent = '🌟';
         if (lbl) lbl.textContent = 'Max Age';
         ageBtn.disabled = true;
+        ageBtn.title = 'Max Age';
+        ageBtn.setAttribute('aria-label', 'Max Age');
       } else {
         if (ico) ico.textContent = '⬆️';
         if (lbl) lbl.innerHTML = `Age Up<small>${ERAS[playerEra + 1].name}</small>`;
         ageBtn.disabled = xp < era.upXP;
+        const nextEra = ERAS[playerEra + 1].name;
+        const hint = playerEra === 4 && !earnedAchievements.max_age
+          ? '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era'
+          : xp < era.upXP
+            ? `Need ${era.upXP - xp} more XP for ${nextEra}`
+            : `Ready to age up to ${nextEra}`;
+        ageBtn.title = hint;
+        ageBtn.setAttribute('aria-label', hint);
       }
     }
 
