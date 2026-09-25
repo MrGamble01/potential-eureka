@@ -1632,7 +1632,10 @@ const AgeOfWarGame = (() => {
   function challengeDuel() {
     if (gameOver || modalPaused || userPaused) return;
     const w = fieldWarlord();
-    if (!w) return;
+    if (!w) {
+      goldFloaters.push({ text: '⚔ No warlord on the field to challenge', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     const c = duelChampion();
     if (!c) {
       goldFloaters.push({ text: '⚔ No champion stands to answer', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
@@ -2015,7 +2018,10 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: '\u{1F3B2} The herald takes wagers from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
       return;
     }
-    if (ironBet) return;
+    if (ironBet) {
+      goldFloaters.push({ text: '🎲 A wager already rides this clash', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     if (gold < IRON_STAKE) {
       goldFloaters.push({ text: `\u{1F3B2} The wager is ${IRON_STAKE} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
@@ -2991,6 +2997,8 @@ const AgeOfWarGame = (() => {
     if (masonBtn) masonBtn.onclick = buyMasons;
     const chestBtn = document.getElementById('aow-chest-btn');
     if (chestBtn) chestBtn.onclick = depositChest;
+    const duelBtn = document.getElementById('aow-duel-btn');
+    if (duelBtn) duelBtn.onclick = challengeDuel;
     const ironBtn = document.getElementById('aow-iron-btn');
     if (ironBtn) ironBtn.onclick = placeIronWager;
     const bondBtn = document.getElementById('aow-bond-btn');
@@ -8722,7 +8730,7 @@ const AgeOfWarGame = (() => {
     if (duEl) {
       const w = fieldWarlord();
       if (duCdEl) duCdEl.textContent = w ? `${DUEL_COST}g` : '—';
-      duEl.disabled = !w;
+      duEl.disabled = false; // Refused clicks explain the missing warlord.
       duEl.title = w
         ? `Challenge ${w.name} to single combat (C) — ${DUEL_COST} gold. Your foremost soldier steps out; odds ride raw stats. One challenge per warlord.`
         : "Champion's Duel (C) — answers only while a named warlord leads an endless boss wave.";
@@ -8841,7 +8849,7 @@ const AgeOfWarGame = (() => {
     const irCdEl = document.getElementById('aow-iron-cd');
     if (irEl) {
       if (irCdEl) irCdEl.textContent = playerEra < 1 ? 'Age II' : ironBet ? 'riding' : `${IRON_STAKE}g`;
-      irEl.disabled = playerEra < 1 || !!ironBet;
+      irEl.disabled = playerEra < 1; // A riding wager explains itself on click.
       irEl.title = ironBet
         ? `The wager rides — the walls must end this wave at or above ${Math.round(ironBet.hpAtBet)} hp. ${runStats.ironWon || 0} won, ${runStats.ironLost || 0} lost this run.`
         : `The Ironside Wager (U) — ${IRON_STAKE} gold says the walls end this wave no worse than they stand right now. Held pays 2× at the wave's turn.`;
