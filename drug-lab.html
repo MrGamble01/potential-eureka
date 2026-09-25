@@ -3422,6 +3422,7 @@ function toggleCrunch() {
 // stash just means the van waits.
 const ROUTE_EVERY = 45, ROUTE_BAGS = 3, ROUTE_CUT = 0.85, ROUTE_COLD = 120;
 let routeT = ROUTE_EVERY, routeCold = 0;
+const ROUTE_TITLE = document.getElementById('route-toggle').title;
 function refreshRouteBtn() {
   const b = document.getElementById('route-toggle');
   if (!b) return;
@@ -3455,7 +3456,9 @@ function refreshRouteBtn() {
   refreshRoomBtn();    // LAB-55: and the room you buy to keep it all in
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
-    : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
+    : state.route ? '📦 ROUTE: ON · ' + Math.ceil(routeT) + 's' : '📦 ROUTE: OFF';
+  b.title = state.route && routeCold <= 0
+    ? 'Next wholesale van in ' + Math.ceil(routeT) + 's. ' + ROUTE_TITLE : ROUTE_TITLE;
 }
 function toggleRoute() {
   if (currentAct() < 3) return;
@@ -3598,8 +3601,9 @@ function updateRoute(dt) {
   }
   if (!state.route || currentAct() < 3) return;
   routeT -= dt;
-  if (routeT > 0) return;
+  if (routeT > 0) { refreshRouteBtn(); return; }
   routeT = ROUTE_EVERY;
+  refreshRouteBtn();
   if (stashCount < ROUTE_BAGS) { addFeed('📦 The van waited on an empty stash.'); return; }
   stashCount -= ROUTE_BAGS;
   pureBags = Math.min(pureBags, stashCount);

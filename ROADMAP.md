@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+LAB — The live wholesale Route button shows rounded-up seconds until the next
+van, with a matching title. OFF and burned labels stay intact; hook-free
+`labroute` covers ticking, title restoration, cold seconds and empty-stash waits.
+
 HVALE — Resume and pause holds name the saved caravan return, standing-order
 deadline, advance due day, festival end and fever end. Hook-free `hvalechrome`
 legs M/N check all five dates alongside undated stake/surety/wolves holds.
