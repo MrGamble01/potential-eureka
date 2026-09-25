@@ -45,6 +45,10 @@ Homeless Village — refused crafts now name missing resources, the required
 structure, or an already-built structure in the feed and hover tip. Hook-free
 `hvcraftrefuse` covers refusals without spending and affordable crafting.
 
+HVALE — Standing-order refusals explain the required goods, current stock and
+shortfall in a toast and disabled Deliver title, with error SFX. Hook-free
+`hvaleorder` covers unchanged refused orders and one-time successful delivery.
+
 LAB — Grow Op hire refusals name the role and price or full crew; disabled
 buttons explain the same reason on hover. Hook-free `labhire` checks all four
 roles, unchanged cash/crew on refusal, and successful hires.

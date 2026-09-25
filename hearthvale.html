@@ -4060,9 +4060,18 @@
     pauseForModal();
   }
   // HVALE-11: deliver the standing order — goods out, premium in.
+  function orderShortfall(o) {
+    const good = TRADE_GOODS.find(g => g.k === o.k);
+    const have = Math.floor(state.res[o.k]);
+    return 'Standing order needs ' + o.qty + ' ' + good.name.toLowerCase() +
+      '; you have ' + have + ' (' + (o.qty - have) + ' short).';
+  }
   function fillOrder() {
     const o = state.order;
-    if (!o || state.res[o.k] < o.qty) return;
+    if (!o) return;
+    if (state.res[o.k] < o.qty) {
+      toast(orderShortfall(o)); SFX('error'); return;
+    }
     state.res[o.k] -= o.qty;
     state.res.gold += o.pay;
     state.ordersFilled = (state.ordersFilled || 0) + 1;
@@ -4092,7 +4101,10 @@
         ' by day ' + state.order.byDay + ' → <b style="color:#f2c14e">' + state.order.pay + '🪙</b> ' +
         '<button id="order-fill"' + (can ? '' : ' disabled') + ' style="margin-left:8px">Deliver</button>';
       const fb = document.getElementById('order-fill');
-      if (fb) fb.onclick = fillOrder;
+      if (fb) {
+        fb.onclick = fillOrder;
+        fb.title = can ? '' : orderShortfall(state.order);
+      }
     } else { strip.style.display = 'none'; strip.innerHTML = ''; }
     TRADE_GOODS.forEach(g => {
       const p = traderPrices[g.k];
