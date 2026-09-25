@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — The finished Icehouse panel shows ice blocks / capacity like the
+cellar stock row, with seasonal packing, selling and waiting hints. Hook-free
+`hvaleice` covers desktop/tablet stock, exclusions and unchanged resources.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **HVALE · Icehouse stock** | ✅ panel shows live blocks / 4 and seasonal hints, parallel to cellar jars; `hvaleice` verified at 1280px/768px; cache `eureka-v304-hvale-icehouse` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
