@@ -4647,6 +4647,12 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='sugarshack'){
+      if(!sugarBuilt())return toast('🍁 Build a Sugar Shack to boil maple sap');
+      const season=seasonOf(state.day);
+      if(season.key!=='spring')return toast('🍁 Sugar Shack — '+season.name+': the sap sleeps until spring');
+      return toast('🍁 Next boil in '+Math.max(0,Math.ceil(sugarNextT))+'s · '+sugarPay()+' 🪙 '+(rainActive?'wet (rain doubles the pay)':'dry (24 in rain)')+' · '+(state.sapBoils||0)+' boils so far');
+    }
     const bd=BUILDINGS[ud.buildingKey];toast(bd.ico+' '+bd.name+' — '+bd.desc);return;
   }
   const [x,y,z]=cellFromHit(hit,true);
