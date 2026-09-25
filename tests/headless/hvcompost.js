@@ -17,6 +17,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
 (async () => {
   const browser = await chromium.launch({
+    executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
@@ -99,6 +100,62 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const legacy = await t(() => ({ days: G.compostDays, built: G.structures.compost }));
   ok(legacy.days === 0 && legacy.built === false, 'a pre-HV-25 save migrates clean');
 
+  await ctx.close();
+  // Craft-panel feedback uses only production globals, DOM and actions.
+  for (const width of [1280, 768]) {
+    const panelContext = await browser.newContext({ viewport: { width, height: 900 } });
+    const panel = await panelContext.newPage();
+    panel.on('pageerror', e => errs.push(String(e)));
+    await panel.addInitScript(() => {
+      localStorage.setItem('hv-intro-seen', '1');
+      localStorage.setItem('homeless_village_v1', JSON.stringify({
+        structures: { compost: true, garden: true, workbench: true, barrel: true },
+        compostDays: 7, goalIndex: 999, days: 1, lastEventDay: 99,
+        food: 20, scraps: 10, timeOfDay: 0,
+      }));
+    });
+    await panel.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
+    await panel.waitForSelector('#craft-compost', { state: 'attached' });
+    if (await panel.locator('#craft-toggle').isVisible()) await panel.locator('#craft-toggle').click();
+    const row = panel.locator('#craft-compost');
+    const cost = row.locator('.ci-cost');
+    ok(await cost.textContent() === '7 garden days', `${width}: saved tally replaces built cost`);
+    const snapshot = () => panel.evaluate(() => JSON.stringify({
+      days: G.compostDays, food: G.food, scraps: G.scraps,
+      structures: G.structures, crafts: G.activeCrafts,
+    }));
+    for (const days of [7, 0, null]) {
+      if (days !== 7) await panel.evaluate(days => {
+        if (days === null) delete G.compostDays;
+        else G.compostDays = days;
+        buildCraftUI();
+      }, days);
+      const tally = days || 0;
+      const message = `Compost Bin has warmed ${tally} garden days.`;
+      ok(await cost.textContent() === `${tally} garden days` &&
+        (await row.getAttribute('data-tip')).startsWith(message),
+        `${width}: ${days === null ? 'missing' : days} tally in cost and tip`);
+      const before = await snapshot();
+      await row.click();
+      ok((await panel.locator('.log-line').last().textContent()).includes(message),
+        `${width}: click names ${tally} garden days`);
+      ok(await snapshot() === before, `${width}: click leaves tally, resources and crafts unchanged`);
+    }
+    await panel.evaluate(() => {
+      G.compostDays = 7; G.days = 1; G.forecast = 'clear';
+      G.lastEventDay = 99; G.snapUntil = null;
+      onNewDay();
+    });
+    ok(await cost.textContent() === '8 garden days' &&
+      (await row.getAttribute('data-tip')).includes('warmed 8 garden days'),
+      `${width}: existing dawn rebuild shows the new tally`);
+    ok(await panel.locator('#craft-barrel .ci-cost').textContent() === '5scraps 1cans' &&
+      (await panel.locator('#craft-barrel').getAttribute('data-tip')).includes('is already built.'),
+      `${width}: barrel retains ordinary cost and refusal`);
+    await panel.evaluate(() => { G.structures.compost = false; buildCraftUI(); });
+    ok(await cost.textContent() === '3scraps 2food', `${width}: unbuilt compost keeps recipe cost`);
+    await panelContext.close();
+  }
   await browser.close();
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);

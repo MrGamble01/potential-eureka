@@ -122,6 +122,11 @@ function buildActionUI(){
   }
 }
 
+function craftCostText(r){
+  if(r.gives && r.gives.structure==='compost' && G.structures.compost) return (G.compostDays||0)+' garden days';
+  return Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
+}
+
 function buildCraftUI(){
   var el=document.getElementById('craft-list');
   hideTip(); // an item being hovered may be destroyed by innerHTML reset
@@ -131,7 +136,7 @@ function buildCraftUI(){
     div.type='button';
     div.className='craft-item'+(canCraft(r)?'':' cant-afford');
     div.id='craft-'+r.id;
-    var costStr=Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
+    var costStr=craftCostText(r);
     div.innerHTML='<span class="ci-icon">'+r.icon+'</span><div class="ci-info"><span class="ci-name">'+r.name+'</span><span class="ci-cost">'+costStr+'</span></div>';
     div.setAttribute('data-tip',craftTip(r));
     div.onclick=function(){ doCraft(r); };
@@ -238,7 +243,10 @@ function buildRegularsUI(){
 
 function craftRefusal(r){
   // Keep the same priority for click feedback, hover text and availability.
-  if(r.gives && r.gives.structure && G.structures[r.gives.structure]) return r.name+' is already built.';
+  if(r.gives && r.gives.structure && G.structures[r.gives.structure]){
+    if(r.gives.structure==='compost') return r.name+' has warmed '+(G.compostDays||0)+' garden days.';
+    return r.name+' is already built.';
+  }
   if(r.requires && !G.structures[r.requires]){
     var required=RECIPES.find(function(recipe){ return recipe.gives && recipe.gives.structure===r.requires; });
     return r.name+' requires a '+(required?required.name:r.requires.replace(/_/g,' '))+'.';
