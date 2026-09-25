@@ -2887,7 +2887,10 @@ const AgeOfWarGame = (() => {
 
   function fireSpecial() {
     if (gameOver || userPaused) return;
-    if (specialReadyT > 0) return;
+    if (specialReadyT > 0) {
+      goldFloaters.push({ text: `Special cooling — ${Math.ceil(specialReadyT)}s`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     launchSpecial('player', playerEra);
     runStats.specialsFired++;
     specialReadyT = specialCooldownMax;
