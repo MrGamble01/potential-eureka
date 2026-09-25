@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Tapping the Sugar Shack reports the next boil in rounded-up seconds,
+dry/wet pay and lifetime boils; outside spring, the sap sleeps until spring.
+Hook-free `voxsugar` checks real canvas taps at 1280/768 without changing the timer or coins.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Voxel sugar boil report** | ✅ Sugar Shack tap shows spring ETA, rain-double pay and lifetime tally; seasonal sleep and read-only canvas taps covered by `voxsugar`. Cache `eureka-v322-vox-sugar`. |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
