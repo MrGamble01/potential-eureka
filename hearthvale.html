@@ -1318,6 +1318,20 @@
       return Math.abs(wx - cx) <= WINDMILL_RANGE && Math.abs(wy - cy) <= WINDMILL_RANGE;
     });
   }
+  function farmsLiftedBy(windmill) {
+    if (windmill.type !== 'windmill' || windmill.done === false) return 0;
+    const wd = BUILDINGS.windmill, wx = windmill.tx + wd.w / 2, wy = windmill.ty + wd.h / 2;
+    return state.buildings.filter(b => {
+      if (b.type !== 'farm' || b.done === false) return false;
+      const fd = BUILDINGS.farm, fx = b.tx + fd.w / 2, fy = b.ty + fd.h / 2;
+      return Math.abs(wx - fx) <= WINDMILL_RANGE && Math.abs(wy - fy) <= WINDMILL_RANGE;
+    }).length;
+  }
+  function windmillLiftReport(b) {
+    const count = farmsLiftedBy(b);
+    return count ? '🌬️ Lifts ' + count + ' farm' + (count === 1 ? '' : 's') + ' nearby (+50% food)'
+      : '🌬️ No farms in range yet (+50% food when a Farm is close)';
+  }
   // ---- Supply chains: buildings earn a bonus when placed near a partner. --
   // This turns layout into a puzzle — cluster a Farm + Windmill + Bakery into
   // a "grain district", a Woodcutter + Carpenter into a "timber yard", etc.
@@ -5317,6 +5331,8 @@
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
   function updateHUD() {
+    const windmill = document.getElementById('p-windmill');
+    if (windmill && selected && selected.type === 'windmill' && selected.done !== false) windmill.textContent = windmillLiftReport(selected);
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
     document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
     document.getElementById('r-food').textContent = Math.floor(state.res.food);
@@ -5540,7 +5556,7 @@
     if (def.worker) { const wk = workerOf(b); const wm = wk && masteryOf(wk); const wt = wk && traitOf(wk); html += statRow('Worker', wk ? '👤 ' + wk.name + ' ' + wt.emoji + (wm.star ? ' ' + wm.star : '') + (wm.mult > 1 ? ' (' + wm.name + ' +' + Math.round((wm.mult - 1) * 100) + '%)' : '') : 'Needs a villager 💤'); }
     if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const cwv = cobbledMult(b); if (cwv !== 1) base = Math.max(1, Math.round(base * cwv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); if (cwv > 1) html += statRow('Trade route', '🛤️ On the Cobbled Way (+10%)'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
-    if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
+    if (def.boostFarms) html += statRow('Windmill', '<span id="p-windmill">' + windmillLiftReport(b) + '</span>');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
     if (def.happy) html += statRow('Happiness', '+' + (Math.ceil(def.happy / 6) * lvl) + ' / cycle');
     if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
