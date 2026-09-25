@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+VOX — Tapping the Owl Roost reports its hunt tally while asleep until dusk,
+or rounded-up seconds to the next hunt and current wet/dry pay at night.
+Hook-free `voxowl` checks real mesh taps, timer holds and unchanged tap economy.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **VOX · Owl Roost inspect** | ✅ Live asleep tally / next-hunt ETA and wet/dry pay; `voxowl` verified; cache `eureka-v311-vox-owlhunt` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
