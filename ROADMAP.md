@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+Homeless Village — recruitment buttons and refusal logs name the rounded-up
+goodwill shortfall. HUD updates keep labels live; affordable costs and active
+workers stay intact. Hook-free `hvhire` covers both widths and successful hiring.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -108,6 +112,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | ID | Ticket | Verified closed by |
 |---|---|---|
+| HV-HIRE | Recruitment goodwill shortfalls | ✅ `hvhire`: named rounded-up shortfalls in buttons/logs, live HUD refresh, refusal without spending and successful hires at 1280/768. |
 | SEC-1 | Real personal/employer data in `js/orgchart.js` | `PEOPLE` is now an explicitly fictional cast (Vex Pixelheart, Glitch Ramirez, …); page reframed as "Studio Crew". |
 | SEC-2 | Personal PIN presented as security | Lock UI now carries an honest disclosure ("Casual screen lock only — entries are stored unencrypted in this browser"), and `unlock()` is no longer exported from `PersonalAuth`, so it can't be called to bypass the gate. |
 | SEC-3 | Unescaped calendar event titles (XSS) | `js/calendar.js:143-144` runs `Utils.escHtml()` on both interpolations; the settings rows now assign `.value` instead of interpolating into `value="…"`. |
