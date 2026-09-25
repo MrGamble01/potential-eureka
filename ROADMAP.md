@@ -73,6 +73,11 @@ Age of War — training queue hover and accessible labels now show rounded-up
 seconds left, updating during battle; waiting recruits keep their refund hint.
 Hook-free `aowtraineta` covers ticking labels, cancellation refunds, and spawning.
 
+Age of War — Horns, Trench, Mercs, Sappers and Ballista now explain cooldown
+refusals on the field for clicks and hotkeys, with rounded-up seconds and an
+active Warcry countdown. Existing refusals take priority; no resources are spent.
+Hook-free `aowabilitycd` covers 1280px/768px; cache `eureka-v312-aow-abilitycd`.
+
 Age of War — Space during Special cooldown now shows “Special cooling — Ns”
 on the field without spending a special or restarting the wait. Hook-free
 `aowspecialcd` covers repeated refusals and ready Space at 1280px/768px.
@@ -88,6 +93,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **AoW ability cooldown feedback** | ✅ Done — five ability click/key countdown refusals, active Warcry and existing refusal priority; hook-free `aowabilitycd` at 1280/768 |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
