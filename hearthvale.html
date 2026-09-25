@@ -5550,6 +5550,10 @@
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
     if (b.type === 'school') html += statRow('Night classes', '📚 every worker learns +1 XP / cycle');
+    if (def.palisade) {
+      html += statRow('Sleepless watch', '+1 guard that never sleeps — needs no keeper');
+      html += statRow('Town watch', guardStrength() + ' — includes this finished wall’s +1');
+    }
     if (def.guard) {
       html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
       html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT' : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
