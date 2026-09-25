@@ -5549,6 +5549,11 @@
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
+    if (def.beacon) {
+      html += statRow('High road', 'Caravans are waylaid half as often');
+      const warns = state.beaconWarns || 0;
+      html += statRow('Watchfire', warns > 0 ? 'Spotted ' + warns + ' pack' + (warns === 1 ? '' : 's') + ' a night early' : 'Spots wolf packs a day out');
+    }
     if (b.type === 'school') html += statRow('Night classes', '📚 every worker learns +1 XP / cycle');
     if (def.guard) {
       html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
