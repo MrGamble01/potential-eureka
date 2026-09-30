@@ -1,5 +1,14 @@
 function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 
+// HV-173: the newcomer asked because a tent stood. Wind and sweeps
+// take the tent; the ask has to leave with it — there is no bed.
+function lapseNewcomerNoTent(){
+  if(!G.newcomerAsk || G.structures.tent) return;
+  G.newcomerAsk=null;
+  log('🫂 The stranger moved on — the tent is gone, and there is no bed to offer.');
+  if(typeof buildActionUI==='function') buildActionUI();
+}
+
 // ── Proximity gate (IDEA-HV-2) ──
 // Scavenging only works standing at a dumpster: walk (WASD or tap the
 // ground) up to one of the three bins. Range is generous — the bins are
@@ -22,29 +31,68 @@ function scavengeInRange(){ return nearestDumpsterDist()<=SCAVENGE_RANGE; }
 // rather than mysteriously dead. Only touches the DOM on state changes.
 var _scavGateOut=null;
 function updateScavengeGate(){
-  var out=!scavengeInRange();
+  var locked=G.dumpsterLockDay===G.days;
+  var out=!scavengeInRange()||locked;
   if(out===_scavGateOut) return;
   _scavGateOut=out;
   var btn=document.getElementById('action-scavenge');
   if(!btn) return;
   btn.classList.toggle('out-of-range',out);
-  btn.title=out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
-                : 'Dig through dumpsters for scraps, cans, or food.';
+  btn.title=locked ? 'Dumpsters are locked today.'
+                : (out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
+                       : 'Dig through dumpsters for scraps, cans, or food.');
 }
 
 function doAction(a){
   var now=Date.now();
   if(activeJobs[a.id]) return;
   if(a.id==='oddjob' && oddJobDone()){ log('Today’s odd job is done — check the board tomorrow.'); return; }
+  // HV-267: the walk posting promises fresh air. A named snap is two
+  // brutal days — the neighbor keeps the dogs in. Refuse before the
+  // timer so a miss does not burn the morning. Heat is not this card.
+  // Hungry Biscuit is not this card.
+  if(a.id==='oddjob' && todaysJob().id==='dogwalk' && snapActive()){
+    log('🐕 The snap has the block inside — the neighbor kept the dogs in. No walk today.');
+    sfx('error');
+    return;
+  }
+  // HV-177: rain pulps the paper on the sidewalk. Stamp the day;
+  // the sky will not clear until dawn. Kind Word is a different ticket.
+  if(a.id==='oddjob' && todaysJob().id==='flyers' && G.weather==='rain'){
+    G.oddJobDay=G.days;
+    log('📄 Rain pulped the flyers — the shop called it off.');
+    sfx('error');
+    if(typeof buildActionUI==='function') buildActionUI();
+    return;
+  }
   if(a.id==='mural'){
     if(muralDone()){ log('Today’s panel needs to dry — one session a day is all the wall gets.'); return; }
+    // HV-170: wet paint needs a dry night.
+    if(G.weather==='rain'){ log('🎨 The paint won’t dry in this rain — wait for a clearer sky.'); return; }
     if(G.scraps<2){ log('Not enough scraps to mix paint (need 2).'); sfx('error'); return; }
+    // HV-268: the session is on the underpass wall. A scorcher cooks
+    // the block — refuse before the timer so a miss does not burn the
+    // morning. Rain / wet paint is not this card. The fire circle is
+    // not this card.
+    if(G.weather==='heat'){
+      log('🎨 A scorcher — the underpass wall is too hot to paint. The panel waits.');
+      sfx('error');
+      return;
+    }
   }
   if(a.id==='meeting' && meetingDone()){ log('The camp met recently — give it a day or two.'); return; }
+  // HV-263: they gather around the fire. A scorcher is the last
+  // sky for sitting by a barrel. Refuse before the timer — do not
+  // spend the cadence. A dead barrel is not this card.
+  if(a.id==='meeting' && G.weather==='heat'){
+    log('🗣️ Nobody wanted to circle the fire on a scorcher.');
+    return;
+  }
   if(a.id==='busk' && buskDone()){ log('One set a day — your fingers need the rest.'); return; }
   if(a.id==='deposit' && depositDone()){ log('The center took one load today — the cart rests till dawn.'); return; }
   if(a.id==='newcomer'){
     if(!G.newcomerAsk) return;
+    if(!G.structures.tent){ log("🫂 The tent is gone — there's no bed to offer until one stands again."); sfx('error'); return; }
     if(G.food<NEWCOMER_COST_FOOD || G.wood<NEWCOMER_COST_WOOD){
       log('🫂 A bed takes '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood — the camp comes up short.'); sfx('error'); return;
     }
@@ -55,7 +103,292 @@ function doAction(a){
       log('🚌 The fare is short — it takes '+TICKET_COST_GW+'🩶 and '+TICKET_COST_SCRAPS+' scraps.'); sfx('error'); return;
     }
   }
-  if(G.cooldowns[a.id] && now<G.cooldowns[a.id]) return;
+  // HV-61: these four already knew how to refuse in finishAction — after
+  // a 2–4s job and with the full cooldown charged as if they had paid.
+  // Trade is the early-camp one: the tooltip says 3 cans → 2 food, a
+  // new camp has zero cans, and the miss locked the button for 18s.
+  if(a.id==='trade' && G.cans<3){ log('Not enough cans to trade.'); sfx('error'); return; }
+  if(a.id==='rainbet'){
+    if(G.rainBetDay===G.days){ log('\ud83c\udfb2 Dee laughs — one bet a day.'); return; }
+    if(G.goodwill<RAINBET_STAKE){ log('\ud83c\udfb2 Not enough goodwill to cover the stake.'); sfx('error'); return; }
+  }
+  if(a.id==='garage'){
+    if(G.garageCover){ log('\uD83D\uDE99 Everything loose is already in Marisol\u2019s garage.'); return; }
+    if(G.goodwill<GARAGE_COST){ log('\uD83D\uDE99 Not enough goodwill to ask the favor.'); sfx('error'); return; }
+  }
+  if(a.id==='fridge'){
+    var frGate=loadFridge();
+    if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
+    if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
+  }
+  // HV-275: dawn says the cold gets into everything. Ray holds the
+  // bench by the bridge. A Cold Snap sky already thins the corner.
+  // The bench never emptied — he still fronted a summer stake.
+  if(a.id==='borrow' && G.weather==='cold'){
+    log('\uD83C\uDF96\uFE0F Ray\u2019s gone in from the cold \u2014 the ledger waits for a milder morning.');
+    sfx('error');
+    return;
+  }
+  // HV-192: Play the Bridge Ballad said the hat by the fire.
+  // Fire Went Out dims the barrel. A playing still started the
+  // 2s job and filled the hat as if the fire were still there
+  // to sit by. Refuse before the timer — do not stamp
+  // balladPlayed. A lit barrel and a tune nobody has yet are
+  // other tickets. The hat stays food.
+  if(a.id==='ballad' && balladSet() && !balladPlayed && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83c\udfb8 The fire is out — the hat by the fire waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
+  // HV-251: Play it once a session. finishAction already logged
+  // "the tune keeps" and no-op'd. The click still started the 2s
+  // job and charged the 30s lock as if the hat filled again.
+  if(a.id==='ballad' && balladSet() && balladPlayed){
+    log('\ud83c\udfb8 The ballad got its playing tonight \u2014 the tune keeps.');
+    sfx('error');
+    return;
+  }
+  // HV-204: Look at the Snapshot says the picture is in the fridge
+  // door. finishAction already named a bare door — after a 2s job
+  // and with the 30s lock charged as if the look had landed.
+  if(a.id==='snapshot' && !snapshotHangs()){
+    log('\ud83d\udcf7 No snapshot in the fridge door yet \u2014 three reunions put one there.');
+    sfx('error');
+    return;
+  }
+  // HV-207: Mark the Anniversary says three looks count the
+  // winters. finishAction already named an uncounted year — after a
+  // 2s job and with the 30s lock charged as if the candle had lit.
+  if(a.id==='anniv' && !annivCounts()){
+    log('\ud83d\udd6f\ufe0f Nobody has counted the winters yet \u2014 three looks at the snapshot and the year adds up.');
+    sfx('error');
+    return;
+  }
+  // HV-212: Dig Up the Coffee Can said three playings bury a can.
+  // The button is on the list from day one. A miss used to run the
+  // 2s job, play the success sound, and lock 30s as if the dig paid.
+  // Snapshot and Anniversary are not this card.
+  if(a.id==='can'&&!canBuried()){
+    log('\ud83d\udce6 Nothing buried by the piling yet \u2014 three playings of the ballad and somebody puts a can down.');
+    sfx('error');
+    return;
+  }
+  // HV-253: Dig it up once a session. finishAction already logged
+  // "the piling keeps it" and no-op'd. The click still started the
+  // 2s job and charged the 30s lock as if the can filled again.
+  if(a.id==='can' && canBuried() && canDug){
+    log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.');
+    sfx('error');
+    return;
+  }
+  // HV-219: Walk a Newcomer Down said three stands start the walk.
+  // The button is on the list from day one. A miss used to run the
+  // 2s job, play the success sound, and lock 30s as if the walk paid.
+  // Reunion, Snapshot, and the coffee can are not this card.
+  if(a.id==='walk'&&!walkUp()){
+    log('\ud83e\udded Nobody walks the wall yet \u2014 three stands at the fifth panel and somebody starts.');
+    sfx('error');
+    return;
+  }
+  // HV-219: Leaf the Notebook says three candles put a spiral
+  // notebook by the fridge. finishAction already named a bare
+  // fridge — after a 2s job and with the 30s lock charged as if
+  // a name had left something behind.
+  if(a.id==='guestbook' && !notebookOut()){
+    log('\ud83d\udcd3 No notebook by the fridge yet \u2014 three candles and somebody leaves one out.');
+    sfx('error');
+    return;
+  }
+  // HV-220: Roof the Dry Corner names 12 scraps and 8 cardboard.
+  // Three names put the button on the board. A short purse used to
+  // run the 6s job and chime as if the sheeting had gone up.
+  // Walk and Leaf the Notebook are not this card.
+  if(a.id==='dry'&&!dryBuilt()&&((G.scraps||0)<HVDRY_SCRAPS||(G.cardboard||0)<HVDRY_CARD)){
+    log('\u26f1\ufe0f Not enough to roof it \u2014 it takes '+HVDRY_SCRAPS+'\ud83e\uddf1 and '+HVDRY_CARD+'\ud83d\udce6, and the corner stays open to the sky.');
+    sfx('error');
+    return;
+  }
+  // HV-221: Play the Bridge Ballad says three tellings set the
+  // tune. finishAction already named an unset ballad — after a
+  // 2s job and with the 30s lock charged as if the hat had filled.
+  if(a.id==='ballad' && !balladSet()){
+    log('\ud83c\udfb8 No ballad yet \u2014 three tellings of the fire story and the busker finds the tune.');
+    sfx('error');
+    return;
+  }
+  // HV-222: Sit on the Bench says three leafs put a bench by the
+  // fridge. finishAction already named a missing bench — after a
+  // 2s job and with the 30s lock charged as if someone sat down.
+  if(a.id==='bench' && !hvBenchBuilt()){
+    log('\ud83e\ude91 No bench by the fridge yet \u2014 three leafs through the notebook and somebody starts building.');
+    sfx('error');
+    return;
+  }
+  // HV-223: Add a Name says three walks put chalk in a newcomer's
+  // hand. finishAction already named an unshown wall — after a
+  // 2s job and with the 30s lock charged as if a name went up.
+  if(a.id==='mark' && !markUp()){
+    log('\u270d\ufe0f Nobody new has been shown the whole wall yet \u2014 three walks down the underpass and somebody takes the chalk.');
+    sfx('error');
+    return;
+  }
+  // HV-224: Stand at the Fifth Panel says three digs prime the
+  // fifth panel. finishAction already named bare block — after a
+  // 2s job and with the 30s lock charged as if someone stood.
+  // HV-208 is G.mural < 4; this gate is panelPainted() (digs).
+  if(a.id==='fifth' && !panelPainted()){
+    log('\ud83c\udfa8 The fifth panel is still bare block \u2014 three digs of the can and somebody primes it.');
+    sfx('error');
+    return;
+  }
+  // HV-282: Stand at the Fifth Panel said beside the finished mural.
+  // finishAction already named waiting on the four — after a 2s job
+  // and with the 30s lock charged as if someone stood. HV-227 is
+  // bare block (digs). This gate is G.mural < 4.
+  if(a.id==='fifth' && panelPainted() && (G.mural||0)<MURAL_PANELS){
+    log('\ud83c\udfa8 The fifth is waiting on the four — the mural is still unfinished, four squares still bare.');
+    sfx('error');
+    return;
+  }
+  // HV-229: Pass the Thermos said it goes around the fire.
+  // Fire Went Out dims the barrel; do not start the 2s job or
+  // stamp thermosUsed. A cold thermos and an already-poured
+  // round are other tickets. The pour stays morale.
+  if(a.id==='thermos' && thermosHasWarmth() && !thermosUsed && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83e\uded6 The fire is out — the thermos waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
+  // HV-235: Mark the Anniversary said light a candle and keep
+  // it lit. Fire Went Out dims the barrel; do not start the 2s
+  // job or stamp annivMarked. Uncounted winters are HV-207.
+  // The pot stays food.
+  if(a.id==='anniv' && annivCounts() && !annivMarked && Date.now()<(G.fireOutUntil||0)){
+    log('\ud83d\udd6f\ufe0f The fire is out — the candle waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
+  // HV-237: Pass the Thermos said once a session. finishAction
+  // already logs the refill and no-ops. Clicking 🫖 after the
+  // round still started the 2s job and charged the 30s lock.
+  // A cold thermos is HV-148; a dead barrel is HV-229 / #920.
+  if(a.id==='thermos' && thermosHasWarmth() && thermosUsed){
+    log('\ud83e\uded6 The thermos made its round already — it refills tomorrow.');
+    sfx('error');
+    return;
+  }
+  // HV-238: Throw the Reunion said once a session. finishAction
+  // already logs people have places to be and no-ops. Clicking 🎂
+  // after the party still started the 2s job and charged the 30s
+  // lock. A half story is HV-218.
+  if(a.id==='reunion' && hvReunionStands() && bridgeReunionHeld){
+    log('\ud83c\udf82 The reunion already went off today — people have places to be.');
+    sfx('error');
+    return;
+  }
+  // HV-242: Leaf the Notebook said once a session. finishAction
+  // already logs the names keep and no-ops. Clicking 📓 after
+  // the leaf still started the 2s job and charged the 30s lock.
+  // A missing notebook is HV-222.
+  if(a.id==='guestbook' && notebookOut() && notebookLeafed){
+    log('\ud83d\udcd3 The notebook got its leaf-through today — the names keep.');
+    sfx('error');
+    return;
+  }
+  // HV-244: Sit on the Bench said once a session. finishAction
+  // already logs the seat keeps and no-ops. Clicking 🪑 after
+  // the sit still started the 2s job and charged the 30s lock.
+  // A missing bench is HV-222.
+  if(a.id==='bench' && hvBenchBuilt() && benchSat){
+    log('\ud83e\ude91 The bench got its sit today — the seat keeps.');
+    sfx('error');
+    return;
+  }
+  // HV-278: Wave Marisol Down said once a session. finishAction
+  // already named the garage-to-run refuse after a 2s job and a
+  // 30s lock. A storyless bridge is HV-101. The casserole stays food.
+  if(a.id==='marisol' && marisolCame){
+    log('\ud83d\ude97 Marisol already came by today \u2014 she has a garage to run.');
+    sfx('error');
+    return;
+  }
+  // HV-230: Look at the Snapshot said once a session. finishAction
+  // already named the fade-if-you-stare refuse after a 2s job and
+  // a 30s lock. A bare fridge door is HV-204. The look stays food.
+  if(a.id==='snapshot' && snapshotLooked){
+    log('\ud83d\udcf7 The snapshot got its look today \u2014 it fades if you stare.');
+    sfx('error');
+    return;
+  }
+  // HV-281: Tell the Fire Story said three sits on the bench bring
+  // the whole story together. Every other link in the chain refuses
+  // its own not-yet-earned case before the timer (HV-204 snapshot,
+  // HV-207 anniv, HV-212 can, HV-219 walk/notebook, HV-220 dry,
+  // HV-221 ballad, HV-222 bench, HV-223 mark, HV-224 fifth) — Tell
+  // the Fire Story never got the same gate. finishAction already
+  // names an unlearned story and no-ops, but clicking 🔥 before three
+  // sits still started the 2s job, played the success chime, and
+  // charged the full 30s lock as if a telling had paid. A dead
+  // barrel is a separate ticket. ui.js is not this ticket.
+  if(a.id==='story' && !hvStoryByHeart()){
+    log('🔥 Nobody has the whole story yet — three sits on the bench and it comes together.');
+    sfx('error');
+    return;
+  }
+  // HV-183: Tell the Fire Story waits for a lit barrel before
+  // starting the job or charging its cooldown. Unlearned and
+  // already-told stories keep their HV-281 and HV-249 gates.
+  if(a.id==='story' && hvStoryByHeart() && !hvStoryTold && Date.now()<(G.fireOutUntil||0)){
+    log('🔥 The fire is out — the story waits until the barrel is lit.');
+    sfx('error');
+    return;
+  }
+  // HV-249: Tell the Fire Story said once a session. finishAction
+  // already logs the fire remembers and no-ops. Clicking 🔥 after
+  // the telling still started the 2s job and charged the 30s lock.
+  if(a.id==='story' && hvStoryByHeart() && hvStoryTold){
+    log('\ud83d\udd25 The story got its telling tonight — the fire remembers.');
+    sfx('error');
+    return;
+  }
+  // HV-250: Sit in the Dry Corner said once a session. finishAction
+  // already logs the roof keeps and no-ops. Clicking the corner
+  // after drySat still started the 2s job and charged the 30s lock
+  // — the button only disables on the next buildActionUI(), which
+  // the payout branch never calls. An unroofed corner is HV-220.
+  if(a.id==='dry' && dryBuilt() && drySat){
+    log('⛱️ Somebody has already had their hour in the dry corner tonight — the roof keeps, and so does the habit.');
+    sfx('error');
+    return;
+  }
+  // HV-174: people come in out of the rain. Only a wet street hosts
+  // the sit; unbuilt roofing and the HV-250 already-sat gate stay separate.
+  if(a.id==='dry' && dryBuilt() && !drySat && G.weather!=='rain'){
+    log('⛱️ The corner is dry — and so is the street. People come in out of the rain; today nobody is wet.');
+    sfx('error');
+    return;
+  }
+  if(G.cooldowns[a.id] && now<G.cooldowns[a.id]){
+    log(a.icon+' '+a.label+' ready in '+Math.ceil((G.cooldowns[a.id]-now)/1000)+'s');
+    sfx('error');
+    return;
+  }
+  // HV-63: the Dumpsters Locked card says "today". A 60s cooldown
+  // let the bins reopen in the same day the card was still reading.
+  if((a.id==='scavenge'||a.id==='forage') && G.dumpsterLockDay===G.days){
+    log('Dumpsters are locked today.');
+    sfx('error');
+    return;
+  }
+  // HV-269: the search is in the surroundings. A scorcher cooks
+  // the block — refuse before the timer so a miss does not burn
+  // the morning. Rain / a wet woods is not this card. The
+  // dumpsters are not this card.
+  if(a.id==='forage' && G.weather==='heat'){
+    log('🌿 A scorcher — the surroundings are too hot to search. The woods wait.');
+    sfx('error');
+    return;
+  }
   if(a.id==='scavenge' && !scavengeInRange()){
     log('Too far from a dumpster — walk up to one first (WASD or tap the ground).');
     sfx('error');
@@ -77,9 +410,14 @@ function finishAction(a){
 
   if(a.id==='scavenge'){
     var wm=(G.season===3?.5:1)*weatherDef().scav;
+    // HV-217: nobody lingers outside in a named snap — the dumpsters
+    // thin the same way the corner does, even under a clear sky.
+    if(snapActive()) wm*=0.75;
     // HV-7: Old Ray knows which dumpsters are worth the walk — empty
     // hauls happen half as often once he's a friend.
-    if(Math.random()<.2*wm*(regularStage('ray')===2?.5:1)){
+    // HV-250: scav is a yield multiplier. Rain's 1.25 fattens the haul,
+    // not the empty gate — otherwise a wet day empties a dry-day bin.
+    if(Math.random()<.2*(G.season===3?.5:1)*(regularStage('ray')===2?.5:1)){
       log('The dumpster is empty. Nothing today.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
@@ -88,9 +426,25 @@ function finishAction(a){
       if(parts.length) floatText(parts.join(' '));
       log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
   } else if(a.id==='forage'){
-    var w=rand(1,4),cb=rand(2,6); G.wood+=w; G.cardboard+=cb;
-    floatText('+'+w+'🪵 +'+cb+'📦');
-    log('Found '+w+' wood and '+cb+' cardboard.');
+    // HV-269: a queued search must not pay a cool-day haul after
+    // the sky turned into a scorcher. The woods wait. Rain is
+    // not this card.
+    if(G.weather==='heat'){
+      log('\ud83c\udf3f A scorcher \u2014 the surroundings are too hot to search. The woods wait.');
+    } else {
+      // HV-280: nobody lingers outside in a named snap — the
+      // surroundings thin the same way the corner does, even
+      // under a clear sky. Rain cardboard is HV-198.
+      var fm=snapActive()?0.75:1;
+      var w=Math.max(1,Math.floor(rand(1,4)*fm)), cb=Math.max(1,Math.floor(rand(2,6)*fm));
+      // HV-198: Forage Area said cardboard and wood. Rain soaks
+      // cardboard — the same search paid the dry-day sheet count.
+      // Wood still comes home wet. Heat and cold are other tickets.
+      if(G.weather==='rain') cb=Math.max(1,Math.floor(cb/2));
+      G.wood+=w; G.cardboard+=cb;
+      floatText('+'+w+'🪵 +'+cb+'📦');
+      log('Found '+w+' wood and '+cb+' cardboard.');
+    }
   } else if(a.id==='panhandle'){
     // HV-6: people stop for the dog — a fed Biscuit at your side makes
     // strangers noticeably more generous.
@@ -104,18 +458,55 @@ function finishAction(a){
     // HV-26: a salvaged awning keeps the corner open in the rain ---
     // the weather's pan cut is undone (0.5 x 2), clear-day odds.
     var awningDry=(G.structures.awning&&G.weather==='rain')?AWNING_DRY:1;
-    if(Math.random()<.55*weatherDef().pan*awningDry*dogBoost*repBoost*muralBoost*snapCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
+    // HV-273: Illness Spreading said everyone feels terrible. The
+    // same well-day corner used to land while the bug was going around.
+    var sickCut=(G.sickDay===G.days)?0.5:1;
+    if(Math.random()<.55*weatherDef().pan*awningDry*dogBoost*repBoost*muralBoost*snapCut*sickCut){ var g=rand(1,4); G.goodwill+=g; floatText('+'+g+'🩶'); log('Someone gave you a few coins. +'+g+' goodwill.');
       if(awningDry>1){ G.awningSaves=(G.awningSaves||0)+1; log('\u26F1\uFE0F Dry under the awning \u2014 the corner stayed open.'); }
-      bumpRegular('dee'); addRep(1); }
+      // HV-187: Dee said she walks home from night shifts. A midday
+      // stop is not her route. The coins still land; she does not.
+      if(deeOnRoute()) bumpRegular('dee');
+      else if(regularStage('dee')>=1) log('🩺 Dee is still on the night shift — her route is the walk home.');
+      addRep(1); }
     else { G.morale=Math.max(0,G.morale-3); log('Ignored again. Morale fades a little.'); }
   } else if(a.id==='rest'){
-    var h=rand(5,15); G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+rand(3,8));
+    var h=rand(5,15), m=rand(3,8);
+    // HV-210: Illness Spreading said everyone feels terrible. The
+    // same well-day rest used to wipe the bug in three seconds.
+    if(G.sickDay===G.days){
+      h=Math.max(1,Math.floor(h/2));
+      m=Math.max(1,Math.floor(m/2));
+    }
+    // HV-260: dawn says the cold gets into everything, and Rest is
+    // sleep in the open — it halves the same way. A sick night in
+    // the cold is both, which is the night it should be.
+    if(G.weather==='cold'){
+      h=Math.max(1,Math.floor(h/2));
+      m=Math.max(1,Math.floor(m/2));
+    }
+    G.health=Math.min(100,G.health+h); G.morale=Math.min(100,G.morale+m);
     floatText('+'+h+'❤️');
-    log('You rest. Health +'+h+'.');
+    log(G.sickDay===G.days
+      ? 'You rest, but the bug is still going around. Health +'+h+'.'
+      : G.weather==='cold'
+        ? 'You rest, but the cold gets into the sleep. Health +'+h+'.'
+        : 'You rest. Health +'+h+'.');
     bumpRegular('ray');
   } else if(a.id==='trade'){
-    if(G.cans>=3){ G.cans-=3; G.food+=2; floatText('+2🍞'); log('Traded 3 cans → 2 food.');
-      bumpRegular('marisol'); addRep(1); }
+    if(G.cans>=3){
+      G.cans-=3;
+      // HV-258: Gentrification said harassment from locals is
+      // increasing. Trade is the corner swap, so while the card
+      // holds the take is half — 3 cans → 1 food. Same window as
+      // the busk it already thins (HV-234), read off the same
+      // helper. Theft is not this card. Panhandle / flyers / Word
+      // are not this card.
+      var hostile=gentrifyHostile();
+      var fed=hostile?1:2;
+      G.food+=fed; floatText('+'+fed+'🍞');
+      log(hostile?'Traded 3 cans → '+fed+' food. The corner is too hostile for a fair swap.':'Traded 3 cans → 2 food.');
+      bumpRegular('marisol'); addRep(1);
+    }
     else log('Not enough cans to trade.');
   } else if(a.id==='rainbet'){
     // HV-28: Dee's standing wager — one bet a day, rain side only.
@@ -141,7 +532,9 @@ function finishAction(a){
   } else if(a.id==='borrow'){
     // HV-30: Ray's front. One standing loan at a time — the ledger
     // remembers even when the mornings are broke.
-    if((G.rayDebt||0)>0){ log('\uD83E\uDD1D Ray taps his ledger \u2014 '+G.rayDebt+' still owed. One at a time.'); }
+    // HV-275: a cold sky sends him in. A queued job must not pay.
+    if(G.weather==='cold'){ log('\uD83C\uDF96\uFE0F Ray\u2019s gone in from the cold \u2014 the ledger waits for a milder morning.'); }
+    else if((G.rayDebt||0)>0){ log('\uD83E\uDD1D Ray taps his ledger \u2014 '+G.rayDebt+' still owed. One at a time.'); }
     else {
       G.goodwill=(G.goodwill||0)+BORROW_AMT; G.rayDebt=BORROW_OWED;
       floatText('+'+BORROW_AMT+'\ud83e\ude76');
@@ -198,6 +591,11 @@ function finishAction(a){
     // HV-40: the visitor pays out of the bridge's story, once a session.
     if(!marisolHasStory()){ log('\ud83d\ude97 Marisol\u2019s tow truck rolls past without slowing \u2014 this bridge has no story she\u2019d know yet.'); }
     else if(marisolCame){ log('\ud83d\ude97 Marisol already came by today \u2014 she has a garage to run.'); }
+    else if(G.weather==='rain'){
+      // HV-210: a casserole left in the rain is not still warm from the hotplate.
+      // Do not spend the visit latch or the tally — she did not drop a plate.
+      log('\ud83d\ude97 Marisol left the casserole on the running board \u2014 the rain soaked it before anyone got a plate.');
+    }
     else {
       marisolCame=true;
       var md=marisolDish();
@@ -226,6 +624,11 @@ function finishAction(a){
     // HV-43: the picture that proves the reunion happened, once a session.
     if(!snapshotHangs()){ log('\ud83d\udcf7 No snapshot in the fridge door yet \u2014 three reunions put one there.'); }
     else if(snapshotLooked){ log('\ud83d\udcf7 The snapshot got its look today \u2014 it fades if you stare.'); }
+    else if(G.weather==='rain'){
+      // HV-213: somebody in the shot does not swing by with a little
+      // something in the rain. Do not spend the look latch or the tally.
+      log('\ud83d\udcf7 Somebody in the shot started over \u2014 the rain turned them back. Nobody swings by with a little something in this.');
+    }
     else {
       snapshotLooked=true;
       var sd=snapshotDish();
@@ -240,6 +643,13 @@ function finishAction(a){
     // HV-44: a candle for the year the camp held, once a session.
     if(!annivCounts()){ log('\ud83d\udd6f\ufe0f Nobody has counted the winters yet \u2014 three looks at the snapshot and the year adds up.'); }
     else if(annivMarked){ log('\ud83d\udd6f\ufe0f The candle already burned today \u2014 the year keeps.'); }
+    else if(G.weather==='rain'){
+      // HV-195: the tooltip is "kept it lit." Rain drowns an open
+      // flame. They still struck it; nobody comes by a dead flame.
+      // The session is spent. The pot is not.
+      annivMarked=true;
+      log('\ud83d\udd6f\ufe0f The rain drowned the anniversary candle — folks didn\'t come by a dead flame.');
+    }
     else {
       annivMarked=true;
       var ad=annivDish();
@@ -252,8 +662,16 @@ function finishAction(a){
     }
   } else if(a.id==='guestbook'){
     // HV-45: the names by the fridge, leafed once a session.
+    // HV-202: rain takes the paper while the Dry Corner is still
+    // open to the sky. The roof exists to carry the notebook in
+    // out of the weather. A leaf-through on soaked pages does
+    // not pay — they still opened it; the names ran.
     if(!notebookOut()){ log('\ud83d\udcd3 No notebook by the fridge yet \u2014 three candles and somebody leaves one out.'); }
     else if(notebookLeafed){ log('\ud83d\udcd3 The notebook got its leaf-through today \u2014 the names keep.'); }
+    else if(G.weather==='rain' && !dryBuilt()){
+      notebookLeafed=true;
+      log('\ud83d\udcd3 Rain took the spiral notebook \u2014 the pages are open to the sky, and the names ran. Nobody left anything on a soaked leaf.');
+    }
     else {
       notebookLeafed=true;
       var gd=notebookDish();
@@ -310,6 +728,12 @@ function finishAction(a){
     // HV-49: the can buried by the piling, dug up once a session.
     if(!canBuried()){ log('\ud83d\udce6 Nothing buried by the piling yet \u2014 three playings of the ballad and somebody puts a can down.'); }
     else if(canDug){ log('\ud83d\udce6 The can got its dig today \u2014 the piling keeps it.'); }
+    else if(G.weather==='rain' && !dryBuilt()){
+      // HV-214: the Dry Corner sheets the can in so the rain stops
+      // taking the story. An open hole by the piling is not a dry capsule.
+      // Do not spend the dig latch or the tally.
+      log('\ud83d\udce6 The rain filled the hole by the piling \u2014 the notebook page, the snapshot, the pick, all soaked. Nothing tucked in worth keeping.');
+    }
     else {
       canDug=true;
       var cd2=canDish();
@@ -322,7 +746,10 @@ function finishAction(a){
     }
   } else if(a.id==='fifth'){
     // HV-50: the fifth panel beside the finished mural, stood with once a session.
+    // HV-208: a fifth with no four is not a fifth — three holes beside
+    // four still-bare squares do not pay, and do not spend the stand latch.
     if(!panelPainted()){ log('\ud83c\udfa8 The fifth panel is still bare block \u2014 three digs of the can and somebody primes it.'); }
+    else if((G.mural||0)<MURAL_PANELS){ log('\ud83c\udfa8 The fifth is waiting on the four — the mural is still unfinished, four squares still bare.'); }
     else if(panelStood){ log('\ud83c\udfa8 The panel got its stand today \u2014 the paint is still going on.'); }
     else {
       panelStood=true;
@@ -380,6 +807,7 @@ function finishAction(a){
       }
     }
     else if(drySat){ log('\u26f1\ufe0f Somebody has already had their hour in the dry corner tonight \u2014 the roof keeps, and so does the habit.'); }
+    else if(G.weather!=='rain'){ log('⛱️ The corner is dry — and so is the street. People come in out of the rain; today nobody is wet.'); }
     else {
       drySat=true;
       var dd2=dryDish();
@@ -394,22 +822,104 @@ function finishAction(a){
   } else if(a.id==='oddjob'){
     // HV-8: today's bulletin-board posting pays out and closes for the day
     var j=todaysJob(), parts=[];
-    for(var k in j.gives){
-      if(k==='morale') G.morale=Math.min(100,G.morale+j.gives[k]);
-      else G[k]=(G[k]||0)+j.gives[k];
-      parts.push('+'+j.gives[k]+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+    // HV-267: a queued walk must not pay after the snap gripped the
+    // block. Do not stamp the day — the board stays open if the snap
+    // breaks. Depot and the other postings still pay.
+    if(j.id==='dogwalk' && snapActive()){
+      log('\ud83d\udc15 The snap has the block inside \u2014 the neighbor kept the dogs in. No walk today.');
+    } else if(j.id==='flyers' && G.weather==='rain'){
+      // HV-177: queued paper cannot pay after the rain arrives either.
+      G.oddJobDay=G.days;
+      log('📄 Rain pulped the flyers — the shop called it off.');
+      saveGame();
+      if(typeof buildActionUI==='function') buildActionUI();
+    } else {
+      // HV-186: Gentrification said harassment is increasing. The
+      // flyer posting promised the owner is kind. The shop still
+      // pays; the kindness does not, until dawn.
+      var unkind=j.id==='flyers'&&gentrifyHostile();
+      // HV-189: dawn says the cold gets into everything. Dumpsters
+      // already feel a cold sky. The scrapyard is the same outdoor
+      // metal — a decent haul halves.
+      var coldYard=j.id==='scrapyd'&&G.weather==='cold';
+// HV-171: a scorcher is not fresh air. Snap refusal is HV-267; hungry Biscuit is #848.
+      var wilted=j.id==='dogwalk'&&G.weather==='heat';
+      // HV-167: winter halves the same goods as the dumpsters: +5/+2 becomes +2/+1.
+      // Cold sky is HV-189; rain is HV-237; heat is HV-246.
+      var winterYard=j.id==='scrapyd'&&G.season===3;
+      for(var k in j.gives){
+        var amt=j.gives[k];
+        if(coldYard) amt=Math.floor(amt/2);
+        if(winterYard) amt=Math.floor(amt/2);
+        // HV-237: the yard is outdoor dirty work. Rain cuts the haul
+        // the same way it halves the corner. Cold morning and winter
+        // are not this card. Flyers and the deposit run are not this card.
+        if(j.id==='scrapyd' && G.weather==='rain') amt=Math.max(1, Math.floor(amt/2));
+        // HV-246: a scorcher wears the shift. Rain vs the yard is
+        // #932. Cold is #879. Depot heat is HV-247.
+        if(j.id==='scrapyd' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        // HV-247: honest lifting in a scorcher. The yard vs heat
+        // is HV-246 / #941; cold vs the dock is #872.
+        if(j.id==='depot' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        // HV-182: dawn says the cold gets into everything. The depot
+        // lift is the other outdoor walk that morning. Heat vs the dock
+        // is HV-247 / #942; the yard's cold is HV-189. A cold snap sky
+        // halves the posted goodwill.
+        if(j.id==='depot' && G.weather==='cold') amt=Math.floor(amt/2);
+        // HV-250: the shop walk is outdoor walking in the same
+        // scorcher. Depot heat is HV-247 / #942; yard heat is
+        // HV-246 / #941. Rain vs flyers is #867.
+        if(j.id==='flyers' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        // HV-252: weeding the lot in a scorcher. Shop-walk heat is #945.
+        if(j.id==='gardenh' && G.weather==='heat') amt=Math.max(1, Math.floor(amt*0.75));
+        if(unkind&&k==='morale') amt=0;
+        if(wilted&&k==='morale') amt=0;
+        if(k==='morale') G.morale=Math.min(100,G.morale+amt);
+        else G[k]=(G[k]||0)+amt;
+        if(amt) parts.push('+'+amt+({goodwill:'🩶',food:'🍞',scraps:'🧱',cans:'🫙',morale:'😊'}[k]||k));
+      }
+      G.oddJobDay=G.days;
+      if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
+      addRep(3);   // HV-9: honest work is how the neighborhood learns your name
+      // HV-279: Hand out flyers said the owner is kind. Honest work
+      // is the +3 every posting gets. The shopkeeper vouching is Word
+      // on the Street — Marisol hearing the owner is not this card.
+      if(j.id==='flyers'&&!unkind){
+        addRep(1);
+        log('\uD83D\uDCAC The owner puts in a kind word \u2014 the block hears it.');
+      }
+      // HV-231: Unload at the depot said a morning of honest lifting.
+      // Honest work is the +3 every posting gets. The deposit run
+      // already names industry; the depot lift is the same honest day
+      // and Word never heard it. Flyers' kind owner is HV-279 / #922.
+      if(j.id==='depot'){
+        addRep(1);
+        log('\uD83D\uDCAC Honest lifting \u2014 the block notices industry.');
+      }
+      floatText(parts.join(' '));
+      log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.'+(unkind?' The owner was not kind — the block has been hostile.':''));
+      if(j.id==='depot' && G.weather==='cold') log('\u2744\ufe0f The cold got into the lift.');
+      if(wilted) log('🐕 The scorcher was not fresh air. The dogs wilted — no lift.');
+      if(winterYard) log('❄️ Winter halves the yard — a thinner haul.');
+      if(coldYard) log('\u2744\ufe0f The cold gets into the yard \u2014 half a haul.');
+      if(j.id==='scrapyd' && G.weather==='rain') log('\uD83C\uDF27\uFE0F The yard was slick \u2014 a wet haul, not the dry-day take.');
+      if(j.id==='scrapyd' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the yard.');
+      if(j.id==='depot' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lift.');
+      if(j.id==='flyers' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the walk.');
+      if(j.id==='gardenh' && G.weather==='heat') log('\ud83e\udd75 The scorcher got into the lot.');
+      saveGame();
+      buildActionUI();
     }
-    G.oddJobDay=G.days;
-    if(G.structures.toolbox){ G.goodwill=(G.goodwill||0)+TOOLBOX_JOB_BONUS; parts.push('+'+TOOLBOX_JOB_BONUS+'🩶'); }   // HV-24: the right tools
-    addRep(3);   // HV-9: honest work is how the neighborhood learns your name
-    floatText(parts.join(' '));
-    log('Odd job done: '+j.label.toLowerCase()+'. '+parts.join(' ')+'.');
-    saveGame();
-    buildActionUI();
   } else if(a.id==='mural'){
     // HV-11: one painting session. doAction gates cost and cadence, but
     // re-check here so a queued double-fire can't paint two panels a day.
-    if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
+    // HV-268: a queued session must not lay a panel after the sky
+    // turned into a scorcher. Do not stamp the day — the wall waits.
+    if(G.weather==='heat'){
+      log('🎨 A scorcher — the underpass wall is too hot to paint. The panel waits.');
+    } else if(G.weather==='rain'){
+      log('🎨 The paint won’t dry in this rain — wait for a clearer sky.');
+    } else if(!muralDone() && G.scraps>=2 && (G.mural||0)<MURAL_PANELS){
       G.scraps-=2; G.mural=(G.mural||0)+1; G.muralDay=G.days;
       G.morale=Math.min(100,G.morale+3);
       addRep(2);
@@ -427,10 +937,15 @@ function finishAction(a){
       buildActionUI();
     }
   } else if(a.id==='meeting'){
-    // HV-14: re-check so a queued double-fire can't hold two circles.
-    if(!meetingDone() && (G.population||1)>=2){
+    // HV-263: the tooltip says around the fire. A scorcher still
+    // must not host the circle if the job was already queued.
+    if(G.weather==='heat'){
+      log('🗣️ Nobody wanted to circle the fire on a scorcher.');
+    } else if(!meetingDone() && (G.population||1)>=2){
       var heads=G.population;
-      var gain=Math.min(10, 2*heads);
+      // HV-64: the tooltip says +2 morale a head. The silent cap of
+      // 10 made a six-person circle pay the same as five.
+      var gain=2*heads;
       G.morale=Math.min(100, G.morale+gain);
       // everyone but you tosses something in the pot
       var pot={}, potKeys=['food','cans','scraps','wood','cardboard'];
@@ -452,12 +967,24 @@ function finishAction(a){
     if(depositAvailable() && !depositDone()){
       var hauled=G.cans||0;
       var gw=Math.floor(hauled/2), rp=Math.floor(hauled/10);
+      // HV-232: rain already halves the corner. The cart haul is
+      // the other outdoor walk that day. A rainy sky halves the
+      // take. Cold is HV-178. HV-243 is the scorcher walk.
+      var rainCut=G.weather==='rain';
+      var heatCut=G.weather==='heat';
+      if(rainCut){ gw=Math.floor(gw/2); rp=Math.floor(rp/2); }
+      if(heatCut){ gw=Math.floor(gw*0.75); rp=Math.floor(rp*0.75); }
+      // HV-178: dawn said the cold gets into everything. Scavenge
+      // already rides the sky; the cart haul is the other outdoor
+      // walk that day. A cold snap sky halves the take.
+      var coldCut=G.weather==='cold';
+      if(coldCut){ gw=Math.floor(gw/2); rp=Math.floor(rp/2); }
       G.cans=0;
       G.goodwill+=gw;
       if(rp>0) addRep(rp);
       G.deposits=(G.deposits||0)+1; G.depositDay=G.days;
       floatText('🛒 +'+gw+'🩶'+(rp>0?' +'+rp+'⭐':''));
-      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.');
+      log('🛒 Hauled '+hauled+' cans to the redemption center. +'+gw+' goodwill'+(rp>0?', +'+rp+' rep — the block notices industry':'')+'.'+(rainCut?' The rain got into the haul.':'')+(heatCut?' The scorcher got into the haul.':'')+(coldCut?' The cold got into the haul.':''));
       saveGame();
       buildActionUI();
     }
@@ -470,14 +997,14 @@ function finishAction(a){
       addRep(1);
       G.busks=(G.busks||0)+1; G.buskDay=G.days;
       floatText('🎸 +'+take+'🩶 +2😊');
-      log('🎸 Played a set on the corner — '+(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen')+'. +'+take+' goodwill, +1 rep.');
+      log('🎸 Played a set on the corner — '+(gentrifyHostile()?'the new neighbors did not linger':(G.weather==='heat'?'the scorcher crowd was generous':'a few folks stopped to listen'))+'. +'+take+' goodwill, +1 rep.');
       saveGame();
       buildActionUI();
     }
   } else if(a.id==='newcomer'){
     // HV-21: re-check — the ask can lapse mid-action, and a queued
     // double-fire must not seat two people on one bed.
-    if(G.newcomerAsk && G.food>=NEWCOMER_COST_FOOD && G.wood>=NEWCOMER_COST_WOOD && (G.population||1)<NEWCOMER_POP_MAX){
+    if(G.newcomerAsk && G.structures.tent && G.food>=NEWCOMER_COST_FOOD && G.wood>=NEWCOMER_COST_WOOD && (G.population||1)<NEWCOMER_POP_MAX){
       G.food-=NEWCOMER_COST_FOOD; G.wood-=NEWCOMER_COST_WOOD;
       G.newcomerAsk=null;
       G.population+=1;
@@ -522,7 +1049,19 @@ function doCraft(r){
   // the whole panel (fresh clickable nodes), so without this a second
   // click on a still-running recipe deducted its cost twice.
   if(G.activeCrafts[r.id]) return;
-  if(!canCraft(r)) return;
+  if(!canCraft(r)){
+    log(craftRefusal(r));
+    sfx('error');
+    return;
+  }
+  // HV-180: Hot Meal said feed someone. Fire Went Out said the
+  // barrel died. Cooking on a dark fire is a cold pot. Firewood
+  // is the relight; a blanket is +warmth and does not cook.
+  if(r.id==='meal' && G.fireOutUntil && Date.now()<G.fireOutUntil){
+    log('🥣 The barrel is dark — no one can cook a hot meal until the fire is back.');
+    sfx('error');
+    return;
+  }
   var dur=r.time*(G.workers.builder?.5:1);
   Object.entries(r.cost).forEach(function(e){ G[e[0]]-=e[1]; });
   // Persist the in-flight job in the same write as the cost — closing
@@ -540,6 +1079,10 @@ function finishCraft(r){
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
+  // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
+  // only dimmed the lights on a wall-clock; this is the feed that
+  // actually relights it. A blanket is also +warmth and must not.
+  if(r.id==='fire_ration') G.fireOutUntil=0;
   if(r.gives.goodwill) G.goodwill+=r.gives.goodwill;
   G.totalCrafted++;
   sfx('craft');
@@ -583,10 +1126,23 @@ function doPetition(id){
   if(G.goodwill<def.cost){ log('Not enough goodwill to back the petition (need '+def.cost+'🩶).'); sfx('error'); return; }
   G.goodwill-=def.cost;
   G.petitions[id]=true;
-  if(id==='grant'){ G.food+=8; G.wood+=8; G.scraps+=8; floatText('+8🍞 +8🪵 +8🧱'); }
+  // HV-256: the grant is a crate delivered to the corner. Rain soaks
+  // an outdoor drop — food, wood and scraps come in at half. Heat
+  // and cold are not this card.
+  var grantNote=def.desc;
+  if(id==='grant'){
+    var gf=8, gw=8, gs=8;
+    if(G.weather==='rain'){ gf=4; gw=4; gs=4; grantNote='Rain got into the crates. +4 food, +4 wood, +4 scraps delivered.'; }
+    G.food+=gf; G.wood+=gw; G.scraps+=gs;
+    // HV-225: the grant is civic. Stamp the day so today's City
+    // Sweep cannot confiscate the delivery as ordinary supplies.
+    // Theft is not this card. Tomorrow's sweep is not this card.
+    G.grantDay=G.days;
+    floatText('+'+gf+'🍞 +'+gw+'🪵 +'+gs+'🧱');
+  }
   addRep(2);
   sfx('craft');
-  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+def.desc);
+  log('📋 The petition went through: '+def.name.toLowerCase()+'. '+grantNote);
   saveGame();
   buildWorkersUI(); updateHUD();
 }

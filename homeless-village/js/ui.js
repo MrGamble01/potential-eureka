@@ -56,19 +56,14 @@ function buildActionUI(){
   }
   // HV-20: the cart makes the daily deposit run possible.
   if(!!G.structures.cart){
-    var dpa=depositAction();
     var dpb=document.createElement('button');
     dpb.className='action-btn'; dpb.id='action-deposit';
-    var dpShort=(G.cans||0)<DEPOSIT_MIN;
-    dpb.setAttribute('data-tip', depositDone() ? 'One load a day — the cart rests till dawn.'
-      : dpShort ? 'Not worth the walk under '+DEPOSIT_MIN+' cans.' : dpa.tooltip);
-    dpb.innerHTML='<span class="btn-progress" id="progress-deposit" style="width:0%"></span>'+dpa.icon+' '+dpa.label+(depositDone()?' ✓':'');
-    dpb.disabled=depositDone()||dpShort;
-    if(depositDone()||dpShort) dpb.style.opacity='.5';
+    dpb.innerHTML='<span class="btn-progress" id="progress-deposit" style="width:0%"></span><span id="deposit-label"></span><small id="deposit-status" style="display:block;margin-top:3px"></small>';
     dpb.onclick=function(){ doAction(depositAction()); };
     dpb.addEventListener('mouseenter',showTip);
     dpb.addEventListener('mouseleave',hideTip);
     el.appendChild(dpb);
+    refreshDepositAction();
   }
   // HV-19: the guitar earns a daily set once it's built.
   if(buskAvailable()){
@@ -138,9 +133,7 @@ function buildCraftUI(){
     div.id='craft-'+r.id;
     var costStr=Object.entries(r.cost).map(function(e){return e[1]+e[0];}).join(' ');
     div.innerHTML='<span class="ci-icon">'+r.icon+'</span><div class="ci-info"><span class="ci-name">'+r.name+'</span><span class="ci-cost">'+costStr+'</span></div>';
-    var tipText=r.desc;
-    if(r.requires && !G.structures[r.requires]) tipText+=' Requires a '+r.requires.replace('_',' ')+'.';
-    div.setAttribute('data-tip',tipText);
+    div.setAttribute('data-tip',craftTip(r));
     div.onclick=function(){ doCraft(r); };
     div.addEventListener('mouseenter',showTip);
     div.addEventListener('mouseleave',hideTip);
@@ -243,13 +236,24 @@ function buildRegularsUI(){
   });
 }
 
-function canCraft(r){
-  // A permanent structure that's already built can't be crafted again.
-  if(r.gives && r.gives.structure && G.structures[r.gives.structure]) return false;
-  // Workbench-gated "crafting upgrades" (Tent, Soup Kitchen, Garden) stay
-  // locked until the Workbench structure actually exists.
-  if(r.requires && !G.structures[r.requires]) return false;
-  return Object.entries(r.cost).every(function(e){ return G[e[0]]>=e[1]; });
+function craftRefusal(r){
+  // Keep the same priority for click feedback, hover text and availability.
+  if(r.gives && r.gives.structure && G.structures[r.gives.structure]) return r.name+' is already built.';
+  if(r.requires && !G.structures[r.requires]){
+    var required=RECIPES.find(function(recipe){ return recipe.gives && recipe.gives.structure===r.requires; });
+    return r.name+' requires a '+(required?required.name:r.requires.replace(/_/g,' '))+'.';
+  }
+  var missing=Object.entries(r.cost).filter(function(e){ return G[e[0]]<e[1]; }).map(function(e){
+    return Math.ceil(e[1]-G[e[0]])+' '+e[0];
+  });
+  return missing.length ? 'Cannot craft '+r.name+' — missing '+missing.join(', ')+'.' : '';
+}
+
+function canCraft(r){ return !craftRefusal(r); }
+
+function craftTip(r){
+  var reason=craftRefusal(r);
+  return (reason?reason+' ':'')+r.desc;
 }
 
 function currentGoal(){ return G.goalIndex<GOALS.length ? GOALS[G.goalIndex] : null; }
@@ -274,7 +278,29 @@ function updateGoalHUD(){
   el.textContent=g.desc+' ('+Math.min(g.value(),g.target)+'/'+g.target+')';
 }
 
+// Resource gains/spending do not rebuild the action list. Keep the cart's
+// count and gate current, preserving its progress element and active job.
+function refreshDepositAction(){
+  var btn=document.getElementById('action-deposit');
+  if(!btn) return;
+  var job=activeJobs.deposit, done=depositDone();
+  var missing=Math.max(0,DEPOSIT_MIN-(G.cans||0));
+  var status=job?'Hauling…':done?'Tomorrow — one run a day':missing?'Need '+missing+' more can'+(missing===1?'':'s'):'Ready — haul all cans';
+  var a=depositAction();
+  var label=document.getElementById('deposit-label');
+  var detail=document.getElementById('deposit-status');
+  var text=a.icon+' '+a.label+(done?' ✓':'');
+  if(label.textContent!==text) label.textContent=text;
+  if(detail.textContent!==status) detail.textContent=status;
+  btn.disabled=!!job||done||missing>0;
+  btn.style.opacity=btn.disabled?'.5':'';
+  btn.classList.toggle('active-job',!!job);
+  btn.setAttribute('data-tip',status+'. '+a.tooltip);
+  document.getElementById('progress-deposit').style.width=job?Math.min(100,(Date.now()-job.startTime)/job.duration*100)+'%':'0%';
+}
+
 function updateHUD(){
+  refreshDepositAction();
   checkGoals(); updateGoalHUD();
   document.getElementById('stat-food').textContent    =Math.floor(G.food);
   document.getElementById('stat-scraps').textContent  =Math.floor(G.scraps);
@@ -293,7 +319,10 @@ function updateHUD(){
   document.getElementById('time-label').textContent=labels[Math.floor(G.timeOfDay*labels.length)%labels.length];
   RECIPES.forEach(function(r){
     var el=document.getElementById('craft-'+r.id);
-    if(el) el.className='craft-item'+(canCraft(r)?'':' cant-afford');
+    if(el){
+      el.className='craft-item'+(canCraft(r)?'':' cant-afford');
+      el.setAttribute('data-tip',craftTip(r));
+    }
   });
   var nf=Math.max(0,Math.sin(G.timeOfDay*Math.PI*2-Math.PI*1.2));
   document.getElementById('night-overlay').style.background='rgba(5,10,20,'+(nf*.55)+')';

@@ -98,6 +98,29 @@ canvas{display:block;touch-action:none;}
 #diff-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
   display:none;align-items:center;justify-content:center;z-index:280;}
 #diff-modal.open{display:flex;animation:bustIn 0.3s ease;}
+/* LAB-62: the crash course. Same shell again — a new player's first
+   screen should look like the game, not like a manual bolted to it. */
+#intro-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
+  display:none;align-items:center;justify-content:center;z-index:282;}
+#intro-modal.open{display:flex;animation:bustIn 0.3s ease;}
+#intro-modal .diff-panel{max-width:470px;text-align:left;max-height:84vh;overflow-y:auto;}
+#intro-flavor{font-size:12px;color:#7fae8c;font-style:italic;margin-bottom:14px;line-height:1.5;}
+#intro-body{font-size:12.5px;color:#a8d8b4;line-height:1.75;}
+#intro-body b{color:#44cc66;}
+#intro-body .intro-row{margin-bottom:9px;}
+#intro-go{display:block;width:100%;margin-top:18px;background:rgba(0,180,60,0.16);
+  border:1px solid rgba(0,180,60,0.5);color:#22dd55;font-family:inherit;
+  font-size:13px;font-weight:800;padding:11px;border-radius:8px;cursor:pointer;}
+#intro-go:hover{background:rgba(0,180,60,0.26);}
+#intro-close{background:none;border:none;color:#557755;font-size:20px;
+  cursor:pointer;font-family:inherit;line-height:1;padding:0 4px;}
+#intro-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+#lab-help-btn{position:fixed;bottom:14px;left:14px;z-index:70;
+  background:rgba(4,10,4,0.95);border:1px solid rgba(0,180,60,0.4);
+  color:#22dd55;font-size:13px;font-weight:800;font-family:inherit;
+  padding:8px 13px;border-radius:8px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,0.5);}
+#lab-help-btn:hover{background:rgba(0,180,60,0.18);}
 /* LAB-57: the Wall. Same shell as the difficulty picker so it reads
    like the rest of the corner rather than a bolted-on panel. */
 #chain-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
@@ -834,6 +857,26 @@ canvas{display:block;touch-action:none;}
     </button>
   </div>
 </div>
+<div id="intro-modal" role="dialog" aria-modal="true" aria-label="How the corner works">
+  <div class="diff-panel">
+    <div id="intro-head">
+      <span class="diff-title">🌱 RUNNING THE CORNER</span>
+      <button id="intro-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="intro-flavor">A grow in the back of a garage. Turn it into something bigger before the block turns on you.</div>
+    <div id="intro-body">
+      <div class="intro-row">&bull; <b>The loop is plant → harvest → sell.</b> Click a plot to plant, wait for it to ripen, then bag it. Cash buys rooms, gear and people.</div>
+      <div class="intro-row">&bull; <b>Heat is the whole game.</b> Every sale adds heat — <b>6 per unit</b> before upgrades, and selling five at once costs five times as much as selling one. It bleeds off slowly on its own.</div>
+      <div class="intro-row">&bull; <b>At 95 heat the raid comes; at 100 you are busted</b> and the run is over. A captain on the take will offer you a way out on the way up — once per approach.</div>
+      <div class="intro-row">&bull; <b>Cool it down on purpose.</b> Lookouts, cleanup gear and the laundromat out front all drain heat, and they are the difference between a run that ends and one that compounds.</div>
+      <div class="intro-row">&bull; <b>Your stash holds <span id="intro-stash">15</span> bags</b> until you buy more room. Product past the cap is product you cannot sell.</div>
+      <div class="intro-row">&bull; <b>📊 Watch the street price.</b> Demand drifts between <b>0.75× and 1.35×</b> and sometimes surges or crashes. Same bags, very different money — timing is a real decision.</div>
+      <div class="intro-row">&bull; <b>A bust is not the end.</b> Earn enough and it forges a new identity: permanently better street prices on every run after.</div>
+    </div>
+    <button id="intro-go">Open up shop &rarr;</button>
+  </div>
+</div>
+<button id="lab-help-btn" title="How the corner works">? Help</button>
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="manage-btn">🔧 Manage</button>
 <script>
@@ -3216,15 +3259,23 @@ function updateMarket(dt) {
   }
   updateMarketHUD();
 }
-let _lastMktShown = 0;
+let _lastMktShown = 0, _lastMktSeconds = null, _lastMktWindow = '';
 function updateMarketHUD() {
   const eff = marketMult();
-  if (Math.abs(eff - _lastMktShown) < 0.01) return;
-  _lastMktShown = eff;
+  const seconds = market.surge ? Math.ceil(market.surge.left) : null;
+  const window = market.surge ? (market.surge.mult > 1 ? 'surge' : 'crash') : '';
+  if (Math.abs(eff - _lastMktShown) < 0.01 && seconds === _lastMktSeconds && window === _lastMktWindow) return;
   const el = document.getElementById('market-val');
   const hud = document.getElementById('market-hud');
   if (!el || !hud) return;
-  el.textContent = (eff >= 1.05 ? '📈 ' : eff <= 0.95 ? '📉 ' : '') + eff.toFixed(2) + '×';
+  _lastMktShown = eff;
+  _lastMktSeconds = seconds;
+  _lastMktWindow = window;
+  const icon = window ? (window === 'surge' ? '🔥 ' : '🧊 ') : (eff >= 1.05 ? '📈 ' : eff <= 0.95 ? '📉 ' : '');
+  el.textContent = icon + eff.toFixed(2) + '×' + (seconds !== null ? ` · ${seconds}s` : '');
+  hud.title = window
+    ? `Street demand ${window} — ${window === 'surge' ? 'sell high' : 'hold your stash'}. ${seconds}s left.`
+    : 'Street demand — prices drift, surge and crash. Sell high.';
   hud.classList.toggle('hot', eff >= 1.3);
   hud.classList.toggle('cold', eff <= 0.75);
 }
@@ -3371,6 +3422,7 @@ function toggleCrunch() {
 // stash just means the van waits.
 const ROUTE_EVERY = 45, ROUTE_BAGS = 3, ROUTE_CUT = 0.85, ROUTE_COLD = 120;
 let routeT = ROUTE_EVERY, routeCold = 0;
+const ROUTE_TITLE = document.getElementById('route-toggle').title;
 function refreshRouteBtn() {
   const b = document.getElementById('route-toggle');
   if (!b) return;
@@ -3404,7 +3456,9 @@ function refreshRouteBtn() {
   refreshRoomBtn();    // LAB-55: and the room you buy to keep it all in
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
-    : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
+    : state.route ? '📦 ROUTE: ON · ' + Math.ceil(routeT) + 's' : '📦 ROUTE: OFF';
+  b.title = state.route && routeCold <= 0
+    ? 'Next wholesale van in ' + Math.ceil(routeT) + 's. ' + ROUTE_TITLE : ROUTE_TITLE;
 }
 function toggleRoute() {
   if (currentAct() < 3) return;
@@ -3547,8 +3601,9 @@ function updateRoute(dt) {
   }
   if (!state.route || currentAct() < 3) return;
   routeT -= dt;
-  if (routeT > 0) return;
+  if (routeT > 0) { refreshRouteBtn(); return; }
   routeT = ROUTE_EVERY;
+  refreshRouteBtn();
   if (stashCount < ROUTE_BAGS) { addFeed('📦 The van waited on an empty stash.'); return; }
   stashCount -= ROUTE_BAGS;
   pureBags = Math.min(pureBags, stashCount);
@@ -3939,6 +3994,12 @@ renderer.domElement.addEventListener('click', e => {
 });
 
 // ── HUD refresh ──
+function hireRefusal(role, cost, count, max) {
+  if (count >= max) return role + ' crew is full (' + max + '/' + max + ').';
+  if (state.cash < cost) return "Can't afford a " + role + ' yet ($' + fmtCash(cost) + ').';
+  return '';
+}
+
 function refreshHud() {
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
   document.getElementById('heat-fill').style.width = state.heat+'%';
@@ -3957,17 +4018,21 @@ function refreshHud() {
   document.getElementById('trimmer-cost').textContent = '$'+fmtCash(trimCost);
   document.getElementById('lookout-cost').textContent = '$'+fmtCash(lookCost);
   document.getElementById('hire-trimmer-btn').disabled = state.cash<trimCost || state.trimmers>=3;
+  document.getElementById('hire-trimmer-btn').title = hireRefusal('Trimmer', trimCost, state.trimmers||0, 3) || 'Hire Trimmer';
   document.getElementById('hire-lookout-btn').disabled = state.cash<lookCost || state.lookouts>=2;
+  document.getElementById('hire-lookout-btn').title = hireRefusal('Lookout', lookCost, state.lookouts||0, 2) || 'Hire Lookout';
 
   if (state.runners!==undefined) {
     const rCost = 400*(1+(state.runners||0));
     document.getElementById('runner-cost').textContent = '$'+fmtCash(rCost);
     document.getElementById('hire-runner-btn').disabled = state.cash<rCost || (state.runners||0)>=3;
+    document.getElementById('hire-runner-btn').title = hireRefusal('Runner', rCost, state.runners||0, 3) || 'Runners auto-haul finished product to the stash and close deals with waiting buyers';
   }
   if (state.cooks!==undefined) {
     const cCost = 800*(1+(state.cooks||0));
     document.getElementById('cook-cost').textContent = '$'+fmtCash(cCost);
     document.getElementById('hire-cook-btn').disabled = state.cash<cCost || (state.cooks||0)>=3;
+    document.getElementById('hire-cook-btn').title = hireRefusal('Cook', cCost, state.cooks||0, 3) || 'Hire Cook';
   }
 
   // Show cook/runner rows once relevant
@@ -4127,7 +4192,8 @@ function buyUpgrade(id) {
 // ── Hire buttons ──
 document.getElementById('hire-trimmer-btn').onclick = () => {
   const cost = 150*(1+state.trimmers);
-  if (state.cash<cost||state.trimmers>=3) return;
+  const refusal = hireRefusal('Trimmer', cost, state.trimmers||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.trimmers++;
   const g = buildTrimmerNPC();
   g.position.set(trimStation.x+(Math.random()-0.5)*1.5, 0, trimStation.z+(Math.random()-0.5)*1.5);
@@ -4139,7 +4205,8 @@ document.getElementById('hire-trimmer-btn').onclick = () => {
 };
 document.getElementById('hire-lookout-btn').onclick = () => {
   const cost = 300*(1+state.lookouts);
-  if (state.cash<cost||state.lookouts>=2) return;
+  const refusal = hireRefusal('Lookout', cost, state.lookouts||0, 2);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.lookouts++;
   const g = buildLookoutNPC();
   g.position.set(6+(Math.random()-0.5)*3, 0, 7+(Math.random()-0.5)*3);
@@ -4151,7 +4218,8 @@ document.getElementById('hire-lookout-btn').onclick = () => {
 };
 document.getElementById('hire-runner-btn').onclick = () => {
   const cost=400*(1+(state.runners||0));
-  if(state.cash<cost||(state.runners||0)>=3) return;
+  const refusal = hireRefusal('Runner', cost, state.runners||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.runners=(state.runners||0)+1;
   spawnRunnerNPC();
   showToast('🏃 Runner hired — hauls product & closes deals.','good');
@@ -4160,7 +4228,8 @@ document.getElementById('hire-runner-btn').onclick = () => {
 };
 document.getElementById('hire-cook-btn').onclick = () => {
   const cost=800*(1+(state.cooks||0));
-  if(state.cash<cost||(state.cooks||0)>=3) return;
+  const refusal = hireRefusal('Cook', cost, state.cooks||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.cooks=(state.cooks||0)+1;
   showToast('🧪 Cook hired.','good');
   addFeed('👤 Cook on deck');
@@ -4546,9 +4615,67 @@ if (!hadSave) {
       ? '👑 Kingpin run — big margins, bigger heat. Watch the meter.'
       : '🐢 Careful run — slow and steady. Good luck.', 6);
   };
-  document.getElementById('diff-careful').addEventListener('click', () => pick('careful'));
-  document.getElementById('diff-kingpin').addEventListener('click', () => pick('kingpin'));
+  document.getElementById('diff-careful').addEventListener('click', () => { pick('careful'); maybeOpenIntro(); });
+  document.getElementById('diff-kingpin').addEventListener('click', () => { pick('kingpin'); maybeOpenIntro(); });
 }
+
+// ── LAB-62: the crash course ──
+//
+// Grow Op was the one flagship that never explained itself. The
+// difficulty picker was the entire first screen, and it offered "heat
+// you can manage" to a player who had not yet been told what heat is.
+// The three things a newcomer reliably bounces off are all invisible
+// until they have already cost the run:
+//   - Heat is per UNIT, so one five-bag sale costs five times a single.
+//   - 95 is the raid line and 100 ends the run; the bribe only offers
+//     itself on the way up, once per approach.
+//   - The stash caps, and product over the cap cannot be sold.
+// Every number the panel quotes is a real constant, and
+// tests/headless/labintro.js recomputes each one from this file and
+// fails if the copy and the game ever disagree. Copy that lies to a new
+// player is worse than the silence it replaced (HV-56 said it first).
+const LABINTRO_KEY = 'growop-intro-seen';
+function introSeen() {
+  try { return localStorage.getItem(LABINTRO_KEY) === '1'; } catch (e) { return false; }
+}
+function markIntroSeen() {
+  try { localStorage.setItem(LABINTRO_KEY, '1'); } catch (e) {}
+}
+function openIntro() {
+  // The cap is read from the constant rather than typed into the copy,
+  // so buying more room can never make the panel wrong.
+  const cap = document.getElementById('intro-stash');
+  if (cap) cap.textContent = String(STASH_MAX_BASE);
+  const m = document.getElementById('intro-modal');
+  if (m) m.classList.add('open');
+}
+function closeIntro() {
+  const m = document.getElementById('intro-modal');
+  if (m) m.classList.remove('open');
+  markIntroSeen();
+}
+function maybeOpenIntro() {
+  // First visit only: a player who already knows the corner gets back to
+  // work. The ? button reopens it whenever they want it.
+  if (!introSeen()) openIntro();
+}
+(function () {
+  const h = document.getElementById('lab-help-btn');
+  if (h) h.addEventListener('click', openIntro);
+  const c = document.getElementById('intro-close');
+  if (c) c.addEventListener('click', closeIntro);
+  const g = document.getElementById('intro-go');
+  if (g) g.addEventListener('click', closeIntro);
+  const m = document.getElementById('intro-modal');
+  if (m) m.addEventListener('click', e => { if (e.target === m) closeIntro(); });
+  // LAB-61 gave every other overlay here an Escape; this one matches.
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && m && m.classList.contains('open')) closeIntro();
+  });
+  // A fresh run opens it after the difficulty pick instead, so the two
+  // panels never stack.
+  if (hadSave) maybeOpenIntro();
+})();
 
 // ── Main game loop ──
 let lastTime = performance.now();
@@ -5114,12 +5241,17 @@ function animate(now_ms) {
     return;
   }
 
+  // Reading a sheet holds the operation too: production, movement and
+  // deadlines must not advance behind The Corner or the crash course.
+  const readingSheet = document.querySelector(
+    '#chain-modal.open, #intro-modal.open, #diff-modal.open');
+
   // Pause the whole sim while an event modal is open: clicks were
   // already blocked, but WASD movement kept working — a sale made
   // behind the modal could push heat to 100 and stack the bust modal
   // on top of the still-open event, and updateEvents' early-return
   // while activeEvent let heat skip past the 95% raid check entirely.
-  if(!raidActive && !activeEvent) {
+  if(!raidActive && !activeEvent && !readingSheet) {
     updateGrowPlots(dt);
     updateTrimStation(dt);
   updateDice(dt);
@@ -5143,7 +5275,7 @@ function animate(now_ms) {
     updateWave(dt);
     updateParty(dt);
     updateGoals();
-  } else if(raidActive) {
+  } else if(raidActive && !readingSheet) {
     raidTimer-=dt;
     if(raidTimer<=0) {
       raidActive=false;
