@@ -33,6 +33,10 @@ afterwards.
 
 ## Status at a glance
 
+Startup Tycoon — The Archive Wing chip and refused build toast name the cash
+shortfall. HUD refreshes keep it live; the $25,000 cost and visit purse stay
+unchanged. Hook-free `tycarchive` covers broke, funded and visit states at 1280/768.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -88,6 +92,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Startup Tycoon archive shortfall** | ✅ live Need-more chip/title and refusal toast; `tycarchive`; cache `eureka-v333-tyc-archive` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
