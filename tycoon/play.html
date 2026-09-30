@@ -5407,10 +5407,13 @@ function setJeffButton() {
   if (!btn) return;
   if (!jeff) {
     btn.style.display = '';
-    btn.innerHTML = '🧥 Recruit Jeff Jackets<span class="cost">$' + fmtCash(JEFF_COST) + '</span>';
-    btn.title = 'A legendary closer, by all accounts. Steep signing bonus — but a closer like this pays for himself, right?';
+    const short = state.cash < JEFF_COST ? `Need $${fmtCash(JEFF_COST - state.cash)} more` : null;
+    btn.disabled = !!short;
+    btn.innerHTML = '🧥 Recruit Jeff Jackets<span class="cost">' + (short || '$' + fmtCash(JEFF_COST)) + '</span>';
+    btn.title = short ? `${short} to pay Jeff Jackets’ signing bonus.` : 'A legendary closer, by all accounts. Steep signing bonus — but a closer like this pays for himself, right?';
   } else if (jeff.stage === 'bdr') {
     btn.style.display = '';
+    btn.disabled = false;
     btn.innerHTML = '⬆️ Promote Jeff to AM';
     btn.title = 'Reward your star closer with a management role. What could possibly go wrong?';
   } else {
@@ -5449,10 +5452,12 @@ function updateJeff(dt) {
 
 const recruitJeffBtnEl = document.getElementById('recruit-jeff-btn');
 if (recruitJeffBtnEl) {
-  setJeffButton();
   recruitJeffBtnEl.addEventListener('click', () => {
     if (!jeff) {
-      if (state.cash < JEFF_COST) return;
+      if (state.cash < JEFF_COST) {
+        showToast(`Need $${fmtCash(JEFF_COST - state.cash)} more to pay Jeff Jackets’ signing bonus.`);
+        return;
+      }
       state.cash -= JEFF_COST; showSpendPop(JEFF_COST);
       spawnJeff();
       SFX.hire(); Haptics.hire();
@@ -9240,6 +9245,7 @@ function refreshHud() {
   // so the number ticks up smoothly instead of snapping.
   renderUpgrades();
   renderHirePanel();
+  setJeffButton();
   renderAmenities();
   renderRoomPanel();
   renderFunding();
