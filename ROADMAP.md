@@ -33,9 +33,11 @@ afterwards.
 
 ## Status at a glance
 
-HVALE — Finished Stonemason panels show live monument cycles toward the next
-named stage, then the unveiled state. Hook-free `hvalemason` covers thresholds,
-construction/non-mason isolation and unchanged inspection resources at 1280px/768px.
+HVALE — Stonemason inspection shows live monument cycles toward the next named stage and the unveiled state. `hvalemason` covers thresholds, live progression, and panel isolation at desktop/tablet widths.
+
+HVALE — On raid nights, the Watchtower panel shows total town watch versus pack
+size and distinguishes this post’s strength. Hook-free `hvaleraidwatch` covers
+staffed posts, palisade completion, Frontier, and unchanged day/Cozy copy.
 
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
@@ -92,7 +94,6 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
-| **HVALE — mason monument** | ✅ finished mason panel shows live next-stage progress and unveiling; `hvalemason`; cache `eureka-v319-hvale-mason` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
