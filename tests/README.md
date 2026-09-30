@@ -49,6 +49,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Hearthvale windmill lift | `hvalewind` (hook-free: finished farms in this windmill’s range, zero/singular/plural copy, live completion, removal, and zero page errors at 1280/768) |
 | Hearthvale mason monument | `hvalemason` (hook-free: stage thresholds, live progress, unveiled state, construction/non-mason isolation, unchanged cycles/gold; 1280px/768px, zero page errors) |
 | Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
+| Hearthvale tavern festival | `hvalefest` (hook-free: food/coin shortfalls, rest countdown, fair days left, real click refusals, one paid fair, live dawn and orchard updates at 1280px/768px; zero page errors) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |

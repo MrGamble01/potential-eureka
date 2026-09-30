@@ -33,6 +33,15 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — The tavern festival button names missing food and coin, days left on
+the fair, and days until the town can celebrate again. The label and title
+stay live as stores and dawns change. A click that will not start still says
+why. Cost, length, and the one-fair cooldown are unchanged. Hook-free
+`hvalefest` covers shortfalls, refusals, a real fair, and live updates.
+
+| Hearthvale polish | Status | Verification |
+|---|---|---|
+| Tavern festival feedback | Complete — live shortfall, fair ETA, and rest countdown on the button and title; refusal toasts name the same | `tests/headless/hvalefest.js` — 1280px/768px, clicks, dawns, orchard food, zero page errors |
 HVALE — Windmill panels report how many finished farms this windmill lifts,
 refresh live as construction finishes, and retain the +50% food reminder.
 Hook-free `hvalewind` verifies range, counts and removal at desktop/tablet widths.
@@ -97,6 +106,7 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Hearthvale tavern festival** | ✅ Live shortfall, fair days, and rest countdown; `hvalefest` at 1280px/768px; cache `eureka-20260929-hvale-festival` |
 | **Hearthvale windmill lift** | ✅ live finished-farm count and +50% reminder; `hvalewind` at 1280/768; cache `eureka-20260929-hvale-windmill` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
