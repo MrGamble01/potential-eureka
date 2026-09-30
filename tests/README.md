@@ -515,3 +515,5 @@ features can append to.
   containers.
 
 `hvalecam` checks pointer/wheel input before DOMContentLoaded, normal mobile/desktop loads, and drag/zoom after initialization. The startup event regression fails against the prior uninitialized camera.
+
+`hvalewatchlive` keeps a watchtower panel open across palisade completion and raid resolution, checking live matchup changes and retained action controls at desktop/tablet widths.

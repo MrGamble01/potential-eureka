@@ -5403,6 +5403,7 @@
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
   function updateHUD() {
+    refreshWatchPanel();
     const windmill = document.getElementById('p-windmill');
     if (windmill && selected && selected.type === 'windmill' && selected.done !== false) windmill.textContent = windmillLiftReport(selected);
     const monument = document.getElementById('p-monument');
@@ -5610,6 +5611,23 @@
     return next ? cycles + ' / ' + next.at + ' cycles — next: ' + next.name
       : MONUMENT_STAGES[stage - 1].name;
   }
+  function watchPostReport(b) {
+    return b.staffed ? (state.raidTonight ? 'this post ' : '') + 'holds off a pack of ' + (b.level || 1)
+      : 'needs a keeper — no watch stands';
+  }
+  function raidReport() {
+    return state.raidTonight ? '🐺 TONIGHT — town watch ' + guardStrength() + ' vs pack ' + packSize()
+      : diffCfg().raids === false ? 'never (Cozy)'
+      : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons';
+  }
+  function refreshWatchPanel() {
+    if (!selected || selected.done === false || !BUILDINGS[selected.type].guard) return;
+    const values = { 'p-watch': watchPostReport(selected), 'p-raid': raidReport() };
+    for (const id in values) {
+      const el = document.getElementById(id);
+      if (el && el.textContent !== values[id]) el.textContent = values[id];
+    }
+  }
   function showPanel(b) {
     selected = b; buildMode = null; canvas.classList.remove('building'); refreshBarState();
     if (b.done === false) {   // construction site view
@@ -5649,8 +5667,8 @@
     if (b.type === 'mason') html += statRow('Monument', '<span id="p-monument">' + monumentProgress() + '</span>');
     if (b.type === 'school') html += statRow('Night classes', '📚 every worker learns +1 XP / cycle');
     if (def.guard) {
-      html += statRow('Watch', (b.staffed ? (state.raidTonight ? 'this post ' : '') + 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
-      html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT — town watch ' + guardStrength() + ' vs pack ' + packSize() : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
+      html += statRow('Watch', '<span id="p-watch">' + watchPostReport(b) + '</span>');
+      html += statRow('Next raid', '<span id="p-raid">' + raidReport() + '</span>');
     }
     if (!def.decor) html += statRow('Level', lvl + ' / ' + MAX_LEVEL);
     stats.innerHTML = html;
