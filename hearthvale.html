@@ -193,7 +193,7 @@
       background: var(--panel-2); color: var(--ink); font-family: var(--font);
       font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s, border-color .12s;
     }
-    #panel #p-festival { flex: 1 0 100%; order: -1; }
+    #panel #p-festival { flex: 1 0 100%; }
     #panel button:hover { border-color: rgba(242,193,78,0.6); }
     #panel button.danger:hover { border-color: #e06a5c; color: #ffb3aa; }
 
@@ -5680,7 +5680,7 @@
       const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
       btns += '<button id="p-upgrade">⬆️ Upgrade <span style="opacity:.7;font-size:11px">' + costStr + '</span></button>';
     }
-    if (b.type === 'tavern' && b.done !== false) btns += '<button id="p-festival"></button>';
+    if (b.type === 'tavern' && b.done !== false) btns = '<button id="p-festival"></button>' + btns;
     if (b.type === 'market' && b.done !== false) {
       const out = caravanOut();
       const clbl = out ? '🐴 Caravan on the road — back day ' + state.caravan.returnDay
