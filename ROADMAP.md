@@ -42,6 +42,14 @@ why. Cost, length, and the one-fair cooldown are unchanged. Hook-free
 | Hearthvale polish | Status | Verification |
 |---|---|---|
 | Tavern festival feedback | Complete — live shortfall, fair ETA, and rest countdown on the button and title; refusal toasts name the same | `tests/headless/hvalefest.js` — 1280px/768px, clicks, dawns, orchard food, zero page errors |
+HVALE — Windmill panels report how many finished farms this windmill lifts,
+refresh live as construction finishes, and retain the +50% food reminder.
+Hook-free `hvalewind` verifies range, counts and removal at desktop/tablet widths.
+HVALE — Stonemason inspection shows live monument cycles toward the next named stage and the unveiled state. `hvalemason` covers thresholds, live progression, and panel isolation at desktop/tablet widths.
+
+HVALE — On raid nights, the Watchtower panel shows total town watch versus pack
+size and distinguishes this post’s strength. Hook-free `hvaleraidwatch` covers
+staffed posts, palisade completion, Frontier, and unchanged day/Cozy copy.
 
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
@@ -98,7 +106,8 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
-| **Hearthvale tavern festival** | ✅ Live shortfall, fair days, and rest countdown; `hvalefest` at 1280px/768px; cache `eureka-v335-hvale-fest` |
+| **Hearthvale tavern festival** | ✅ Live shortfall, fair days, and rest countdown; `hvalefest` at 1280px/768px; cache `eureka-20260929-hvale-festival` |
+| **Hearthvale windmill lift** | ✅ live finished-farm count and +50% reminder; `hvalewind` at 1280/768; cache `eureka-20260929-hvale-windmill` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
