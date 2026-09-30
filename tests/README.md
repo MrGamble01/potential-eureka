@@ -513,3 +513,5 @@ features can append to.
 - Every suite ends with a zero-page-errors check; `chromium.launch`
   uses `--no-sandbox --use-gl=swiftshader` so WebGL games run in CI
   containers.
+
+`hvalecam` checks pointer/wheel input before DOMContentLoaded, normal mobile/desktop loads, and drag/zoom after initialization. The startup event regression fails against the prior uninitialized camera.

@@ -1773,7 +1773,9 @@
   const FOOD_PER_VILLAGER = 1; // per production cycle
 
   // ---- Game state ---------------------------------------------
-  let state, cam, view, tiles, tileObj, occ;
+  // Pointer/wheel handlers can run while the document is still loading,
+  // before init(). Keep their camera and viewport reads safe in that window.
+  let state, cam = { x: 0, y: 0, z: 3 }, view = { w: 0, h: 0 }, tiles, tileObj, occ;
   let decos = [];  // cosmetic props regenerated from seed: {kind, tx, ty}
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap

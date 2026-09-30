@@ -33,6 +33,8 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — Camera/view defaults exist before pointer handlers run. `hvalecam` covers events before DOMContentLoaded, mobile and desktop loads, drag, and wheel.
+
 HVALE — The tavern festival button names missing food and coin, days left on
 the fair, and days until the town can celebrate again. The label and title
 stay live as stores and dawns change. A click that will not start still says
