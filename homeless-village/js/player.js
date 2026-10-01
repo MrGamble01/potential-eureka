@@ -448,13 +448,20 @@ function finishAction(a){
     // HV-250: scav is a yield multiplier. Rain's 1.25 fattens the haul,
     // not the empty gate — otherwise a wet day empties a dry-day bin.
     if(Math.random()<.2*(G.season===3?.5:1)*(regularStage('ray')===2?.5:1)){
-      log('The dumpster is empty. Nothing today.');
+      log('The dumpster is empty. Nothing this time.');
     } else {
       var c=Math.floor(rand(0,3)*wm), s=Math.floor(rand(1,4)*wm), f=Math.random()<.45?Math.floor(rand(1,3)*wm):0;
-      G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
-      var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
-      if(parts.length) floatText(parts.join(' '));
-      log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.'); }
+      // HV-113: winter halves the yield. floor(rand * 0.5) can be
+      // 0/0/0 — that is an empty bin, not a dumpster dug.
+      if(c+s+f<=0){
+        log('The dumpster is empty. Nothing this time.');
+      } else {
+        G.cans+=c; G.scraps+=s; G.food+=f; G.totalScavenged++;
+        var parts=[]; if(c>0)parts.push('+'+c+'🫙'); if(s>0)parts.push('+'+s+'🧱'); if(f>0)parts.push('+'+f+'🍞');
+        if(parts.length) floatText(parts.join(' '));
+        log('Scavenged: '+c+' cans, '+s+' scraps'+(f>0?', '+f+' food':'')+'.');
+      }
+    }
   } else if(a.id==='forage'){
     // HV-269: a queued search must not pay a cool-day haul after
     // the sky turned into a scorcher. The woods wait. Rain is
