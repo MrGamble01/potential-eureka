@@ -148,6 +148,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvawning` (the Awning)
 - `hvbarrel` (the Rain Barrel)
 - `hvrainbet` (the Rain Bet)
+- `hvbetlook` (HV-284: Rain Bet said a radio is the whole edge, then a Lookout already saw tomorrow's sky)
 - `hvgarage` (Marisol's Garage)
 - `hvborrow` (the Borrowed Favor)
 - `hvraycold` (HV-275: a cold sky sends Ray in from the bench)
