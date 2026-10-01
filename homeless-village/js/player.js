@@ -1058,7 +1058,8 @@ function doCraft(r){
   // barrel died. Cooking on a dark fire is a cold pot. Firewood
   // is the relight; a blanket is +warmth and does not cook.
   if(r.id==='meal' && G.fireOutUntil && Date.now()<G.fireOutUntil){
-    log('🥣 The barrel is dark — no one can cook a hot meal until the fire is back.');
+    var fireSeconds=Math.ceil((G.fireOutUntil-Date.now())/1000);
+    log('🥣 The barrel is dark — no one can cook a hot meal. '+fireSeconds+'s until the fire is back.');
     sfx('error');
     return;
   }

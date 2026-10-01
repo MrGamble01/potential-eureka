@@ -181,7 +181,14 @@ function frame(ts){
   camera.lookAt(0,0,0);
 
   // Fire flicker (dimmed while a "fire burned out" event is active)
-  var fireOut = Date.now() < (G.fireOutUntil||0);
+  var fireSeconds = Math.max(0,Math.ceil(((G.fireOutUntil||0)-Date.now())/1000));
+  var fireOut = fireSeconds > 0;
+  var warmthPill = document.getElementById('stat-warmth').parentElement;
+  if(fireOut){
+    warmthPill.title='🔥 Barrel dark — '+fireSeconds+'s until the fire is back';
+  } else {
+    warmthPill.removeAttribute('title');
+  }
   fireLights.forEach(function(fl,i){
     if(fireOut){ fl.intensity=0.1; fl.color.setRGB(1,.3,.04); return; }
     fl.intensity=2.0+Math.sin(ts*.003+i*1.7)*.6+Math.sin(ts*.007+i*.9)*.3;
