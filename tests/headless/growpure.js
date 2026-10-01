@@ -89,6 +89,7 @@ function readLedger(text) {
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(String(e).slice(0, 300)));
     await page.addInitScript(sv => {
+      localStorage.setItem('growop-intro-seen', '1'); // returning run; raid choice must be reachable
       try { localStorage.setItem('drug-lab-v1', JSON.stringify(sv)); } catch (e) {}
     }, save(over));
     await page.goto(BASE + '/drug-lab.html', { waitUntil: 'load' });
