@@ -1106,7 +1106,7 @@ function resumeCrafts(){
 function hireWorker(id){
   var def=WORKER_DEFS.find(function(w){ return w.id===id; });
   if(!def) return;
-  if(G.goodwill<def.cost){ log('Not enough goodwill to recruit '+def.name+'.'); return; }
+  if(G.goodwill<def.cost){ log('Need '+Math.ceil(def.cost-G.goodwill)+' more goodwill to recruit '+def.name+'.'); return; }
   G.goodwill-=def.cost; G.workers[id]=true;
   G.population=Math.min(20,G.population+1);
   G.peakPopulation=Math.max(G.peakPopulation,G.population); // was tracked in G but never updated

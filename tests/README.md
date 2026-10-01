@@ -43,11 +43,15 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 
 | Area | Suites |
 |---|---|
+| Voxel bakery loaf report | `voxbake` (hook-free: next-loaf ETA, crop/bread stock, windmill two-loaf cycle, empty-crop wait, read-only taps at 1280px/768px, zero page errors) |
 | Homeless Village action cooldowns | `hvactioncd` (hook-free: production completion/button clicks, named rounded-up seconds in the live log, unchanged resources/deadlines/jobs, and normal starts at expiry for Trade, Rest and Forage) |
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
+| Homeless Village rain barrel stock | `hvbarrel` (hook-free: live empty/mid/full stock in craft cost, tip and click log; no spend/start; Workbench and unbuilt barrel controls; existing economy/save coverage) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |
+| Hearthvale windmill lift | `hvalewind` (hook-free: finished farms in this windmill’s range, zero/singular/plural copy, live completion, removal, and zero page errors at 1280/768) |
+| Hearthvale mason monument | `hvalemason` (hook-free: stage thresholds, live progress, unveiled state, construction/non-mason isolation, unchanged cycles/gold; 1280px/768px, zero page errors) |
 | Hearthvale standing orders | `hvaleorder` (hook-free: all three goods at 1280px/768px; disabled titles, refusal toasts/error SFX, unchanged resources/order/count, and successful delivery exactly once) |
-| Grow Op burner shortfall | `labburner` (hook-free: shortfall label/title and click refusal, affordable purchase and fresh charge, Act I gate, live partial cash gain at 1280px/768px; zero page errors) |
+| Hearthvale tavern festival | `hvalefest` (hook-free: food/coin shortfalls, rest countdown, fair days left, real click refusals, one paid fair, live dawn and orchard updates at 1280px/768px; zero page errors) |
 | Grow Op wholesale route | `labroute` (hook-free: saved Act III route, rounded-up live van ETA/title, OFF restoration, burned cooldown and empty-stash rearm) |
 | Grow Op street demand | `labmarket` (hook-free: seeded production market, stable-multiplier surge/crash countdowns and titles, expiry and calm recovery at 1280px/768px) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
@@ -59,6 +63,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Whole site | `audit` (loads every page + hub view, fails on console/page errors beyond the environment baseline), `pwa` (service worker, offline shell), `meta20` (hero/meta copy) |
 | Hub meta-layer | `daily` (7-game shared-seed challenge), `rivals` + `rivalsaow` + `rivalsflag` (share codes incl. all six flagship records), `ach`/`ach2` (achievements + completionist), `coins`, `insights`, `search`, `resume`, `theme`, `focus`, `shortcuts`, `patchnotes`, `backup` (whole-arcade backup/restore), `hofcard` (PNG score card), `hubhome` (Age of War billboard, Long/Quick scan, empty filter, hop-after-search, 900×700 density, scan-mark reset, 720×700 compact flagship, filter-mode chrome, 390 first-visit fold, Games-back restore, shell on HoF, daylight chrome, 1280 Long 3-across, description search, 1280 Studio one-card / Quick 3-across, HoF+resume restore, Studio hop, 390 shell under wrapped nav, HoF Long/Quick + sixth flagship, Hearthvale badge/reset, daylight HoF tokens, 390 HoF score wrap, HoF opens at the title after a scrolled catalogue, HoF per-lane ranks, daylight Patch Notes / Primer / overlay / PEAK / Studio Crew chips) |
 | Age of War records | `aowrecords` (AOW-60: a malformed `aow-best-run` no longer freezes future bests; valid bests stay byte-for-byte. Drives the production writer through `vm`, no hook. Non-vacuous: the old `waves > (prev.waves \|\| 0)` comparison is replayed and writes nothing on the freeze payloads), `aowsession` (return chrome leftovers: a kept war holds the field / queue / wager / specials, New war drops it, pause/game-over/welcome/settings/awards/The Line carry Back to Games, 768 and 1024 tuck the topbar rail, 390 scrolls the leftover action bar, resume names wager/chest/council, game-over CTAs sit above the vault, 768×700 field taller than the leftover 200px cap, council carries Games, keyboard activation of resume/New war/Games plus unfocused resume shortcuts) |
+| Hearthvale raid watch | `hvaleraidwatch` (hook-free desktop/tablet tower selection: tonight’s total watch vs population-scaled pack, Frontier bonus, unfinished palisade, unstaffed keeper warning, day/Cozy and non-guard controls) |
 | Hearthvale | `hvaleescpause` (Space → Escape resumes at prior speed with moving time; browsing/Hall dismiss first; trader/event preserve pause ownership; welcome unchanged; zero page errors) |
 | Hearthvale | `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall, Tab/Shift+Tab reach welcome/pause Games without changing builds and Enter exits to the hub) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
@@ -510,3 +515,7 @@ features can append to.
 - Every suite ends with a zero-page-errors check; `chromium.launch`
   uses `--no-sandbox --use-gl=swiftshader` so WebGL games run in CI
   containers.
+
+`hvalecam` checks pointer/wheel input before DOMContentLoaded, normal mobile/desktop loads, and drag/zoom after initialization. The startup event regression fails against the prior uninitialized camera.
+
+`hvalewatchlive` keeps a watchtower panel open across palisade completion and raid resolution, checking live matchup changes and retained action controls at desktop/tablet widths.
