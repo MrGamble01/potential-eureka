@@ -1109,6 +1109,7 @@ function finishCraft(r){
   delete G.activeCrafts[r.id];
   markCraftBusy(r.id,false);
   if(r.gives.structure){ G.structures[r.gives.structure]=true; refreshStructures(); }
+  if(typeof ensureForecast==='function') ensureForecast();
   if(r.gives.warmth)   G.warmth=Math.min(100,G.warmth+r.gives.warmth);
   // HV-69: Firewood's card says keep the barrel burning. Fire Went Out
   // only dimmed the lights on a wall-clock; this is the feed that
@@ -1148,6 +1149,8 @@ function hireWorker(id){
   spawnFigure((Math.random()-.5)*10,(Math.random()-.5)*10,'community');
   sfx('hire');
   log(def.name+' joined the community.');
+  if(typeof ensureForecast==='function') ensureForecast();
+  saveGame();
   buildWorkersUI(); updateHUD();
   // HV-89: a first hire makes the camp two people, which is what
   // unlocks Hold a camp meeting. Same missing rebuild as finishCraft.

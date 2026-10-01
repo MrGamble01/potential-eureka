@@ -86,5 +86,7 @@ function loadGame(){
     if(typeof G.grantDay!=='number') G.grantDay=-1; // saves from before HV-225
     if(typeof G.gentrifyDay!=='number') G.gentrifyDay=-1; // saves from before HV-234
     if(typeof G.sickUntil!=='number') G.sickUntil=-1; // saves from before HV-240
+    // Persist a newly revealed legacy forecast so reload cannot reroll it.
+    if(ensureForecast()) saveGame();
   }catch(e){}
 }
