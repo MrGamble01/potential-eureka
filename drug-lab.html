@@ -98,6 +98,29 @@ canvas{display:block;touch-action:none;}
 #diff-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
   display:none;align-items:center;justify-content:center;z-index:280;}
 #diff-modal.open{display:flex;animation:bustIn 0.3s ease;}
+/* LAB-62: the crash course. Same shell again — a new player's first
+   screen should look like the game, not like a manual bolted to it. */
+#intro-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
+  display:none;align-items:center;justify-content:center;z-index:282;}
+#intro-modal.open{display:flex;animation:bustIn 0.3s ease;}
+#intro-modal .diff-panel{max-width:470px;text-align:left;max-height:84vh;overflow-y:auto;}
+#intro-flavor{font-size:12px;color:#7fae8c;font-style:italic;margin-bottom:14px;line-height:1.5;}
+#intro-body{font-size:12.5px;color:#a8d8b4;line-height:1.75;}
+#intro-body b{color:#44cc66;}
+#intro-body .intro-row{margin-bottom:9px;}
+#intro-go{display:block;width:100%;margin-top:18px;background:rgba(0,180,60,0.16);
+  border:1px solid rgba(0,180,60,0.5);color:#22dd55;font-family:inherit;
+  font-size:13px;font-weight:800;padding:11px;border-radius:8px;cursor:pointer;}
+#intro-go:hover{background:rgba(0,180,60,0.26);}
+#intro-close{background:none;border:none;color:#557755;font-size:20px;
+  cursor:pointer;font-family:inherit;line-height:1;padding:0 4px;}
+#intro-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+#lab-help-btn{position:fixed;bottom:14px;left:14px;z-index:70;
+  background:rgba(4,10,4,0.95);border:1px solid rgba(0,180,60,0.4);
+  color:#22dd55;font-size:13px;font-weight:800;font-family:inherit;
+  padding:8px 13px;border-radius:8px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,0.5);}
+#lab-help-btn:hover{background:rgba(0,180,60,0.18);}
 /* LAB-57: the Wall. Same shell as the difficulty picker so it reads
    like the rest of the corner rather than a bolted-on panel. */
 #chain-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);
@@ -834,6 +857,26 @@ canvas{display:block;touch-action:none;}
     </button>
   </div>
 </div>
+<div id="intro-modal" role="dialog" aria-modal="true" aria-label="How the corner works">
+  <div class="diff-panel">
+    <div id="intro-head">
+      <span class="diff-title">🌱 RUNNING THE CORNER</span>
+      <button id="intro-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="intro-flavor">A grow in the back of a garage. Turn it into something bigger before the block turns on you.</div>
+    <div id="intro-body">
+      <div class="intro-row">&bull; <b>The loop is plant → harvest → sell.</b> Click a plot to plant, wait for it to ripen, then bag it. Cash buys rooms, gear and people.</div>
+      <div class="intro-row">&bull; <b>Heat is the whole game.</b> Every sale adds heat — <b>6 per unit</b> before upgrades, and selling five at once costs five times as much as selling one. It bleeds off slowly on its own.</div>
+      <div class="intro-row">&bull; <b>At 95 heat the raid comes; at 100 you are busted</b> and the run is over. A captain on the take will offer you a way out on the way up — once per approach.</div>
+      <div class="intro-row">&bull; <b>Cool it down on purpose.</b> Lookouts, cleanup gear and the laundromat out front all drain heat, and they are the difference between a run that ends and one that compounds.</div>
+      <div class="intro-row">&bull; <b>Your stash holds <span id="intro-stash">15</span> bags</b> until you buy more room. Product past the cap is product you cannot sell.</div>
+      <div class="intro-row">&bull; <b>📊 Watch the street price.</b> Demand drifts between <b>0.75× and 1.35×</b> and sometimes surges or crashes. Same bags, very different money — timing is a real decision.</div>
+      <div class="intro-row">&bull; <b>A bust is not the end.</b> Earn enough and it forges a new identity: permanently better street prices on every run after.</div>
+    </div>
+    <button id="intro-go">Open up shop &rarr;</button>
+  </div>
+</div>
+<button id="lab-help-btn" title="How the corner works">? Help</button>
 <a class="ea-back ea-back--float" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
 <button id="manage-btn">🔧 Manage</button>
 <script>
@@ -962,7 +1005,7 @@ const labelMap = new Map(); // key → div
 function setLabel(key, text, x, y, z, cls='') {
   let div = labelMap.get(key);
   if (!div) { div = document.createElement('div'); labelsEl.appendChild(div); labelMap.set(key, div); }
-  div.textContent = text;
+  if (div.textContent !== text) div.textContent = text;
   div.className = cls;
   const s = worldToScreen(x,y,z);
   div.style.transform = `translate(calc(-50% + ${s.x}px), calc(-100% + ${s.y}px - 4px))`;
@@ -1281,17 +1324,21 @@ const UNIT_COST = 1500, UNIT_CAP_BONUS = 30, UNIT_KEEP = 15;
 const BURNER_COST = 800, BURNER_SALES = 10;
 function burnerFresh() { return (state.burnerLeft || 0) > 0; }
 function burnerStingMult() { return burnerFresh() ? 0.5 : 1; }
+const BURNER_TITLE = document.getElementById('burner-toggle').title;
 function refreshBurnerBtn() {
   const b = document.getElementById('burner-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 2 ? '' : 'none';
   b.classList.toggle('on', burnerFresh());
-  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : '📱 BURNER $' + fmtCash(BURNER_COST);
+  const short = !burnerFresh() && currentAct() >= 2 && state.cash < BURNER_COST;
+  const need = 'Need $' + fmtCash(BURNER_COST - state.cash) + ' more';
+  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : short ? '📱 BURNER ' + need : '📱 BURNER $' + fmtCash(BURNER_COST);
+  b.title = short ? need + ' to buy a clean number. ' + BURNER_TITLE : BURNER_TITLE;
 }
 function buyBurner() {
   if (burnerFresh()) { showToast('📱 The number still holds — ' + state.burnerLeft + ' sales of charge left.', ''); return; }
-  if (currentAct() < 2) return;
-  if (state.cash < BURNER_COST) { showToast("Can't afford a clean number yet ($" + fmtCash(BURNER_COST) + ').', 'bust'); return; }
+  if (currentAct() < 2) { showToast('📱 Clean numbers unlock in Act II', 'bust'); return; }
+  if (state.cash < BURNER_COST) { showToast('📱 Need $' + fmtCash(BURNER_COST - state.cash) + ' more to buy a clean number.', 'bust'); return; }
   state.cash -= BURNER_COST;
   state.burnerLeft = BURNER_SALES;
   state.burnersBought = (state.burnersBought || 0) + 1;
@@ -1317,18 +1364,23 @@ function burnStreetSale() {
 // batch off the trim table bags one extra, forever. The ledger
 // remembers exactly how much of the stash owes her.
 const MOTHER_COST = 1500;
+const MOTHER_TITLE = document.getElementById('mother-toggle').title;
 function motherRooted() { return !!state.motherRooted; }
 function refreshMotherBtn() {
   const b = document.getElementById('mother-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 2 ? '' : 'none';
   b.classList.toggle('on', motherRooted());
-  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')' : '🌱 MOTHER $' + fmtCash(MOTHER_COST);
+  const short = !motherRooted() && currentAct() >= 2 && state.cash < MOTHER_COST
+    ? 'Need $' + fmtCash(MOTHER_COST - state.cash) + ' more' : '';
+  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')'
+    : '🌱 MOTHER ' + (short || '$' + fmtCash(MOTHER_COST));
+  b.title = short ? short + ' to root the prize genetics.' : MOTHER_TITLE;
 }
 function rootMother() {
   if (motherRooted()) { showToast('🌱 The mother is already rooted — every batch bags one extra.', ''); return; }
-  if (currentAct() < 2) return;
-  if (state.cash < MOTHER_COST) { showToast("Can't afford the prize genetics yet ($" + fmtCash(MOTHER_COST) + ').', 'bust'); return; }
+  if (currentAct() < 2) { showToast('🌱 Prize genetics unlock in Act II', 'bust'); return; }
+  if (state.cash < MOTHER_COST) { showToast('🌱 Need $' + fmtCash(MOTHER_COST - state.cash) + ' more to root the prize genetics.', 'bust'); return; }
   state.cash -= MOTHER_COST;
   state.motherRooted = true;
   refreshMotherBtn();
@@ -3110,17 +3162,21 @@ function heatDrainPerSec() {
 // you, the stash is lost, heat resets to 40, and the run survives.
 // One bag at a time; skips tally toward Gone Before Dawn.
 const BAG_COST = 2500;
+const BAG_TITLE = document.getElementById('bag-toggle').title;
 function refreshBagBtn() {
   const b = document.getElementById('bag-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 3 ? '' : 'none';
   b.classList.toggle('on', !!state.bagPacked);
-  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+  const short = !state.bagPacked && currentAct() >= 3 && state.cash < BAG_COST;
+  const need = 'Need $' + fmtCash(BAG_COST - state.cash) + ' more';
+  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : short ? '🎒 PACK A BAG ' + need : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+  b.title = short ? need + ' to pack a getaway bag. ' + BAG_TITLE : BAG_TITLE;
 }
 function packBag() {
   if (state.bagPacked) { showToast('🎒 The bag is already by the back door.', ''); return; }
-  if (currentAct() < 3) return;
-  if (state.cash < BAG_COST) { showToast("Can't afford the bag yet ($" + fmtCash(BAG_COST) + ').', 'bust'); return; }
+  if (currentAct() < 3) { showToast('🎒 Getaway bags unlock in Act III', 'bust'); return; }
+  if (state.cash < BAG_COST) { showToast('🎒 Need $' + fmtCash(BAG_COST - state.cash) + ' more to pack a getaway bag.', 'bust'); return; }
   state.cash -= BAG_COST;
   state.bagPacked = true;
   refreshBagBtn();
@@ -3226,15 +3282,23 @@ function updateMarket(dt) {
   }
   updateMarketHUD();
 }
-let _lastMktShown = 0;
+let _lastMktShown = 0, _lastMktSeconds = null, _lastMktWindow = '';
 function updateMarketHUD() {
   const eff = marketMult();
-  if (Math.abs(eff - _lastMktShown) < 0.01) return;
-  _lastMktShown = eff;
+  const seconds = market.surge ? Math.ceil(market.surge.left) : null;
+  const window = market.surge ? (market.surge.mult > 1 ? 'surge' : 'crash') : '';
+  if (Math.abs(eff - _lastMktShown) < 0.01 && seconds === _lastMktSeconds && window === _lastMktWindow) return;
   const el = document.getElementById('market-val');
   const hud = document.getElementById('market-hud');
   if (!el || !hud) return;
-  el.textContent = (eff >= 1.05 ? '📈 ' : eff <= 0.95 ? '📉 ' : '') + eff.toFixed(2) + '×';
+  _lastMktShown = eff;
+  _lastMktSeconds = seconds;
+  _lastMktWindow = window;
+  const icon = window ? (window === 'surge' ? '🔥 ' : '🧊 ') : (eff >= 1.05 ? '📈 ' : eff <= 0.95 ? '📉 ' : '');
+  el.textContent = icon + eff.toFixed(2) + '×' + (seconds !== null ? ` · ${seconds}s` : '');
+  hud.title = window
+    ? `Street demand ${window} — ${window === 'surge' ? 'sell high' : 'hold your stash'}. ${seconds}s left.`
+    : 'Street demand — prices drift, surge and crash. Sell high.';
   hud.classList.toggle('hot', eff >= 1.3);
   hud.classList.toggle('cold', eff <= 0.75);
 }
@@ -3381,6 +3445,7 @@ function toggleCrunch() {
 // stash just means the van waits.
 const ROUTE_EVERY = 45, ROUTE_BAGS = 3, ROUTE_CUT = 0.85, ROUTE_COLD = 120;
 let routeT = ROUTE_EVERY, routeCold = 0;
+const ROUTE_TITLE = document.getElementById('route-toggle').title;
 function refreshRouteBtn() {
   const b = document.getElementById('route-toggle');
   if (!b) return;
@@ -3414,7 +3479,9 @@ function refreshRouteBtn() {
   refreshRoomBtn();    // LAB-55: and the room you buy to keep it all in
   b.classList.toggle('cold', routeCold > 0);
   b.textContent = routeCold > 0 ? '📦 ROUTE BURNED · ' + Math.ceil(routeCold) + 's'
-    : state.route ? '📦 ROUTE: ON' : '📦 ROUTE: OFF';
+    : state.route ? '📦 ROUTE: ON · ' + Math.ceil(routeT) + 's' : '📦 ROUTE: OFF';
+  b.title = state.route && routeCold <= 0
+    ? 'Next wholesale van in ' + Math.ceil(routeT) + 's. ' + ROUTE_TITLE : ROUTE_TITLE;
 }
 function toggleRoute() {
   if (currentAct() < 3) return;
@@ -3557,8 +3624,9 @@ function updateRoute(dt) {
   }
   if (!state.route || currentAct() < 3) return;
   routeT -= dt;
-  if (routeT > 0) return;
+  if (routeT > 0) { refreshRouteBtn(); return; }
   routeT = ROUTE_EVERY;
+  refreshRouteBtn();
   if (stashCount < ROUTE_BAGS) { addFeed('📦 The van waited on an empty stash.'); return; }
   stashCount -= ROUTE_BAGS;
   pureBags = Math.min(pureBags, stashCount);
@@ -3949,8 +4017,17 @@ renderer.domElement.addEventListener('click', e => {
 });
 
 // ── HUD refresh ──
+function hireRefusal(role, cost, count, max) {
+  if (count >= max) return role + ' crew is full (' + max + '/' + max + ').';
+  if (state.cash < cost) return "Can't afford a " + role + ' yet ($' + fmtCash(cost) + ').';
+  return '';
+}
+
 function refreshHud() {
+  refreshMotherBtn();
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
+  refreshBurnerBtn(); // Keep the shortfall live after every cash change.
+  refreshBagBtn(); // Keep the shortfall live after every cash change.
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
   document.getElementById('act-badge').textContent =
@@ -3967,17 +4044,21 @@ function refreshHud() {
   document.getElementById('trimmer-cost').textContent = '$'+fmtCash(trimCost);
   document.getElementById('lookout-cost').textContent = '$'+fmtCash(lookCost);
   document.getElementById('hire-trimmer-btn').disabled = state.cash<trimCost || state.trimmers>=3;
+  document.getElementById('hire-trimmer-btn').title = hireRefusal('Trimmer', trimCost, state.trimmers||0, 3) || 'Hire Trimmer';
   document.getElementById('hire-lookout-btn').disabled = state.cash<lookCost || state.lookouts>=2;
+  document.getElementById('hire-lookout-btn').title = hireRefusal('Lookout', lookCost, state.lookouts||0, 2) || 'Hire Lookout';
 
   if (state.runners!==undefined) {
     const rCost = 400*(1+(state.runners||0));
     document.getElementById('runner-cost').textContent = '$'+fmtCash(rCost);
     document.getElementById('hire-runner-btn').disabled = state.cash<rCost || (state.runners||0)>=3;
+    document.getElementById('hire-runner-btn').title = hireRefusal('Runner', rCost, state.runners||0, 3) || 'Runners auto-haul finished product to the stash and close deals with waiting buyers';
   }
   if (state.cooks!==undefined) {
     const cCost = 800*(1+(state.cooks||0));
     document.getElementById('cook-cost').textContent = '$'+fmtCash(cCost);
     document.getElementById('hire-cook-btn').disabled = state.cash<cCost || (state.cooks||0)>=3;
+    document.getElementById('hire-cook-btn').title = hireRefusal('Cook', cCost, state.cooks||0, 3) || 'Hire Cook';
   }
 
   // Show cook/runner rows once relevant
@@ -3989,7 +4070,7 @@ function refreshHud() {
   if (stashNode) setLabel('stash',stashLabel(),stashNode.x,2.6,stashNode.z);
   // Trim label
   if (trimStation) setLabel('trim',
-    trimQueue>0?`✂️ Trimming... (${trimQueue} waiting)`:trimBags>0?`✂️ Ready [${trimBags} bags]`:'✂️ Trim Station',
+    trimQueue>0?trimBatchLabel():trimBags>0?`✂️ Ready [${trimBags} bags]`:'✂️ Trim Station',
     trimStation.x, 1.6, trimStation.z);
 }
 
@@ -4137,7 +4218,8 @@ function buyUpgrade(id) {
 // ── Hire buttons ──
 document.getElementById('hire-trimmer-btn').onclick = () => {
   const cost = 150*(1+state.trimmers);
-  if (state.cash<cost||state.trimmers>=3) return;
+  const refusal = hireRefusal('Trimmer', cost, state.trimmers||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.trimmers++;
   const g = buildTrimmerNPC();
   g.position.set(trimStation.x+(Math.random()-0.5)*1.5, 0, trimStation.z+(Math.random()-0.5)*1.5);
@@ -4149,7 +4231,8 @@ document.getElementById('hire-trimmer-btn').onclick = () => {
 };
 document.getElementById('hire-lookout-btn').onclick = () => {
   const cost = 300*(1+state.lookouts);
-  if (state.cash<cost||state.lookouts>=2) return;
+  const refusal = hireRefusal('Lookout', cost, state.lookouts||0, 2);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash -= cost; state.lookouts++;
   const g = buildLookoutNPC();
   g.position.set(6+(Math.random()-0.5)*3, 0, 7+(Math.random()-0.5)*3);
@@ -4161,7 +4244,8 @@ document.getElementById('hire-lookout-btn').onclick = () => {
 };
 document.getElementById('hire-runner-btn').onclick = () => {
   const cost=400*(1+(state.runners||0));
-  if(state.cash<cost||(state.runners||0)>=3) return;
+  const refusal = hireRefusal('Runner', cost, state.runners||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.runners=(state.runners||0)+1;
   spawnRunnerNPC();
   showToast('🏃 Runner hired — hauls product & closes deals.','good');
@@ -4170,7 +4254,8 @@ document.getElementById('hire-runner-btn').onclick = () => {
 };
 document.getElementById('hire-cook-btn').onclick = () => {
   const cost=800*(1+(state.cooks||0));
-  if(state.cash<cost||(state.cooks||0)>=3) return;
+  const refusal = hireRefusal('Cook', cost, state.cooks||0, 3);
+  if (refusal) { showToast(refusal, 'bust'); return; }
   state.cash-=cost; state.cooks=(state.cooks||0)+1;
   showToast('🧪 Cook hired.','good');
   addFeed('👤 Cook on deck');
@@ -4559,9 +4644,67 @@ if (!hadSave) {
       ? '👑 Kingpin run — big margins, bigger heat. Watch the meter.'
       : '🐢 Careful run — slow and steady. Good luck.', 6);
   };
-  document.getElementById('diff-careful').addEventListener('click', () => pick('careful'));
-  document.getElementById('diff-kingpin').addEventListener('click', () => pick('kingpin'));
+  document.getElementById('diff-careful').addEventListener('click', () => { pick('careful'); maybeOpenIntro(); });
+  document.getElementById('diff-kingpin').addEventListener('click', () => { pick('kingpin'); maybeOpenIntro(); });
 }
+
+// ── LAB-62: the crash course ──
+//
+// Grow Op was the one flagship that never explained itself. The
+// difficulty picker was the entire first screen, and it offered "heat
+// you can manage" to a player who had not yet been told what heat is.
+// The three things a newcomer reliably bounces off are all invisible
+// until they have already cost the run:
+//   - Heat is per UNIT, so one five-bag sale costs five times a single.
+//   - 95 is the raid line and 100 ends the run; the bribe only offers
+//     itself on the way up, once per approach.
+//   - The stash caps, and product over the cap cannot be sold.
+// Every number the panel quotes is a real constant, and
+// tests/headless/labintro.js recomputes each one from this file and
+// fails if the copy and the game ever disagree. Copy that lies to a new
+// player is worse than the silence it replaced (HV-56 said it first).
+const LABINTRO_KEY = 'growop-intro-seen';
+function introSeen() {
+  try { return localStorage.getItem(LABINTRO_KEY) === '1'; } catch (e) { return false; }
+}
+function markIntroSeen() {
+  try { localStorage.setItem(LABINTRO_KEY, '1'); } catch (e) {}
+}
+function openIntro() {
+  // The cap is read from the constant rather than typed into the copy,
+  // so buying more room can never make the panel wrong.
+  const cap = document.getElementById('intro-stash');
+  if (cap) cap.textContent = String(STASH_MAX_BASE);
+  const m = document.getElementById('intro-modal');
+  if (m) m.classList.add('open');
+}
+function closeIntro() {
+  const m = document.getElementById('intro-modal');
+  if (m) m.classList.remove('open');
+  markIntroSeen();
+}
+function maybeOpenIntro() {
+  // First visit only: a player who already knows the corner gets back to
+  // work. The ? button reopens it whenever they want it.
+  if (!introSeen()) openIntro();
+}
+(function () {
+  const h = document.getElementById('lab-help-btn');
+  if (h) h.addEventListener('click', openIntro);
+  const c = document.getElementById('intro-close');
+  if (c) c.addEventListener('click', closeIntro);
+  const g = document.getElementById('intro-go');
+  if (g) g.addEventListener('click', closeIntro);
+  const m = document.getElementById('intro-modal');
+  if (m) m.addEventListener('click', e => { if (e.target === m) closeIntro(); });
+  // LAB-61 gave every other overlay here an Escape; this one matches.
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && m && m.classList.contains('open')) closeIntro();
+  });
+  // A fresh run opens it after the difficulty pick instead, so the two
+  // panels never stack.
+  if (hadSave) maybeOpenIntro();
+})();
 
 // ── Main game loop ──
 let lastTime = performance.now();
@@ -4576,6 +4719,17 @@ function setStatus(msg, duration=4) {
 
 
 // ── Update grow plots ──
+function updateGrowPlotLabel(p, index) {
+  const key = 'plot_'+index;
+  if (p.ready) {
+    setLabel(key,'🌿 READY!',p.x,1.8+Math.sin(now()*3)*0.05,p.z,'ready');
+  } else if (p.progress > 0) {
+    const seconds = Math.ceil(Math.max(0, (1-p.progress)*growTime()));
+    setLabel(key,`🌿 ${seconds}s`,p.x,1.8,p.z);
+  } else {
+    removeLabel(key);
+  }
+}
 function updateGrowPlots(dt) {
   const speed = 1/growTime();
   for (const p of growPlots) {
@@ -4583,8 +4737,8 @@ function updateGrowPlots(dt) {
     p.progress = Math.min(1, p.progress + speed*dt);
     if (p.progress>=1 && !p.ready) {
       p.ready=true;
-      setLabel('plot_'+growPlots.indexOf(p),'🌿 Ready!', p.x, 1.8, p.z, 'ready');
     }
+    updateGrowPlotLabel(p, growPlots.indexOf(p));
     if (p.stage !== Math.floor(p.progress*3)+1) updatePlantMesh(p);
     // UV flicker
     p.uvLight.intensity = 0.5 + Math.sin(now()*3+p.x)*0.1;
@@ -4594,9 +4748,14 @@ function now(){return performance.now()/1000;}
 
 // ── Update trim station ──
 let trimAutoTimer = 0;
+function trimSpeedMult() { return 1 + upgLv('trim')*0.25 + trimmerNPCs.length*0.4; }
+function trimBatchLabel() {
+  const seconds = Math.ceil(Math.max(0, (1-trimProgress)*TRIM_TIME/trimSpeedMult()));
+  return `✂️ Trimming — ${seconds}s · ${trimQueue} queued`;
+}
 function updateTrimStation(dt) {
   if (trimQueue<=0) return;
-  const speedMult = 1 + upgLv('trim')*0.25 + trimmerNPCs.length*0.4;
+  const speedMult = trimSpeedMult();
   trimProgress += (dt/TRIM_TIME)*speedMult;
   if (trimProgress>=1) {
     trimProgress=0; trimQueue--;
@@ -4609,10 +4768,17 @@ function updateTrimStation(dt) {
 }
 
 // ── Update chemistry station ──
+function chemSpeedMult() { return (1 + (state.cooks||0)*0.5) * (state.crunch ? 1.3 : 1); }
+function updateChemBatchLabel() {
+  if (!chemStation || chemQueue<=0) return;
+  const seconds = Math.ceil(Math.max(0, (1-chemProgress)*CHEM_TIME/chemSpeedMult()));
+  const text = `⚗️ Cooking — ${seconds}s · ${chemQueue} queued`;
+  setLabel('chem', text, chemStation.x, 2.2, chemStation.z);
+}
 function updateChemStation_tick(dt) {
   if (!chemStation) return;
   if (chemQueue<=0) return;
-  const speedMult = (1 + (state.cooks||0)*0.5) * (state.crunch ? 1.3 : 1);   // LAB-12
+  const speedMult = chemSpeedMult();   // LAB-12
   chemProgress += (dt/CHEM_TIME)*speedMult;
   if (chemProgress>=1) {
     chemProgress=0; chemQueue--;
@@ -4625,6 +4791,7 @@ function updateChemStation_tick(dt) {
     }
     setLabel('chem',`⚗️ Cook Station [${chemProduct} units${chemPure>0?` · ${chemPure}✨`:''}]`, chemStation.x, 2.2, chemStation.z);
   }
+  updateChemBatchLabel();
   // Steam from station
   if (Math.random()<dt*3) spawnSteam(chemStation.x, chemStation.z);
   // Glow flicker
@@ -4782,7 +4949,7 @@ function depositAtChem() {
   pCarrying=null;
   player.userData.carryMesh.visible=false;
   setStatus('Batch queued in cook station.');
-  setLabel('chem',`⚗️ Cooking... [${chemQueue} queued]`, chemStation.x, 2.2, chemStation.z);
+  updateChemBatchLabel();
 }
 
 function sellToDealer(d, idx) {
@@ -5062,12 +5229,10 @@ function updateEvents(dt) {
 
 // ── Label update every frame ──
 function updateLabels() {
+  updateChemBatchLabel();
   // Update plant labels
   for(let i=0;i<growPlots.length;i++) {
-    const p=growPlots[i];
-    if(p.ready) {
-      setLabel('plot_'+i,'🌿 READY!',p.x,1.8+Math.sin(now()*3)*0.05,p.z,'ready');
-    }
+    updateGrowPlotLabel(growPlots[i], i);
   }
   // Update dealer labels
   for(let i=0;i<dealers.length;i++) {
@@ -5080,7 +5245,7 @@ function updateLabels() {
   }
   // Trim station label
   if(trimStation) {
-    const msg=trimQueue>0?`✂️ Trimming... [${trimQueue}]`:trimBags>0?`✂️ ${trimBags} bags ready`:'✂️ Trim Station';
+    const msg=trimQueue>0?trimBatchLabel():trimBags>0?`✂️ ${trimBags} bags ready`:'✂️ Trim Station';
     setLabel('trim',msg,trimStation.x,1.6,trimStation.z);
   }
 }
@@ -5127,12 +5292,17 @@ function animate(now_ms) {
     return;
   }
 
+  // Reading a sheet holds the operation too: production, movement and
+  // deadlines must not advance behind The Corner or the crash course.
+  const readingSheet = document.querySelector(
+    '#chain-modal.open, #intro-modal.open, #diff-modal.open');
+
   // Pause the whole sim while an event modal is open: clicks were
   // already blocked, but WASD movement kept working — a sale made
   // behind the modal could push heat to 100 and stack the bust modal
   // on top of the still-open event, and updateEvents' early-return
   // while activeEvent let heat skip past the 95% raid check entirely.
-  if(!raidActive && !activeEvent) {
+  if(!raidActive && !activeEvent && !readingSheet) {
     updateGrowPlots(dt);
     updateTrimStation(dt);
   updateDice(dt);
@@ -5156,7 +5326,7 @@ function animate(now_ms) {
     updateWave(dt);
     updateParty(dt);
     updateGoals();
-  } else if(raidActive) {
+  } else if(raidActive && !readingSheet) {
     raidTimer-=dt;
     if(raidTimer<=0) {
       raidActive=false;

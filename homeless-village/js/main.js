@@ -29,6 +29,29 @@ window.addEventListener('keyup', function(e){
 // Alt-tabbing away mid-press must not leave a key "stuck" down forever.
 window.addEventListener('blur', function(){ keysDown = {}; });
 
+// HV-58: Escape closes The Bridge.
+//
+// #chain-modal already dismisses via × and backdrop (ui.js). Escape was
+// only wired for the HV-56 first-run intro, which keys off #intro-modal
+// and never sees this overlay. Same class of drift as TYC-60 / LAB-61.
+// Lives here — not in ui.js — so this ticket does not collide with
+// HV-57's payout work on that file. Do not call closeIntro(): that
+// would mark the crash course seen.
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    var m = document.getElementById('chain-modal');
+    if(m && m.classList.contains('open')){
+      m.classList.remove('open');
+      return;
+    }
+    // HV-66: Keys in Hand is the same class of card. Keep Building is
+    // the non-destructive dismiss — click that button rather than
+    // invent a third closer.
+    var stay = document.getElementById('hv-grad-stay');
+    if(stay) stay.click();
+  }
+});
+
 // Tap/click-to-walk: the touch-input HV never had (IDEA-HV-2's gate would
 // otherwise brick scavenging on phones, which have no WASD). A tap on the
 // ground raycasts to the y=0 plane and the player walks there; any key
@@ -107,9 +130,12 @@ if(!G.fridgeSeeded){
       // for every fresh camp now.
       var _pl=loadPotluck();
       savePotluck({days:_pl.days+1});
-      G.food=(G.food||0)+POTLUCK_FOOD;
-      G.morale=Math.min(100,(G.morale||0)+POTLUCK_MORALE);
-      log('\ud83c\udf72 POTLUCK \u2014 folding tables by the fridge, everyone brings a dish. +'+POTLUCK_FOOD+'\ud83e\udd63, +'+POTLUCK_MORALE+'\ud83d\ude0a');
+      // HV-255: folding tables by the fridge. Rain soaks the dishes.
+      var _pf=POTLUCK_FOOD, _pm=POTLUCK_MORALE, _wet=G.weather==='rain';
+      if(_wet) _pf=Math.floor(POTLUCK_FOOD/2);
+      G.food=(G.food||0)+_pf;
+      G.morale=Math.min(100,(G.morale||0)+_pm);
+      log('\ud83c\udf72 POTLUCK \u2014 folding tables by the fridge, '+(_wet?'and the rain got into the dishes':'everyone brings a dish')+'. +'+_pf+'\ud83e\udd63, +'+_pm+'\ud83d\ude0a');
     } else {
       log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+_seed+'\ud83e\ude76');
     }
@@ -121,6 +147,11 @@ if(!G.fridgeSeeded){
 // A save whose health already hit 0 (lost, then tab closed without
 // pressing Start Over) must not resume as a playable camp.
 if(G.health<=0) showGameOver();
+// HV-61: same shape for the ending. checkArc() writes arcStage:3 and
+// saveGame()s BEFORE the player picks Keep building or Start a new
+// camp. There is no stage-3 branch, so a reload left the hub reading
+// 🔑 housed and the camp with no Keys in Hand overlay.
+if(G.arcStage>=3 && !G.arcDone) showGraduation();
 
 // The next frame used to be scheduled BEFORE the body ran, so any
 // per-frame exception (e.g. the three.js CDN failing → camera
@@ -150,7 +181,14 @@ function frame(ts){
   camera.lookAt(0,0,0);
 
   // Fire flicker (dimmed while a "fire burned out" event is active)
-  var fireOut = Date.now() < (G.fireOutUntil||0);
+  var fireSeconds = Math.max(0,Math.ceil(((G.fireOutUntil||0)-Date.now())/1000));
+  var fireOut = fireSeconds > 0;
+  var warmthPill = document.getElementById('stat-warmth').parentElement;
+  if(fireOut){
+    warmthPill.title='🔥 Barrel dark — '+fireSeconds+'s until the fire is back';
+  } else {
+    warmthPill.removeAttribute('title');
+  }
   fireLights.forEach(function(fl,i){
     if(fireOut){ fl.intensity=0.1; fl.color.setRGB(1,.3,.04); return; }
     fl.intensity=2.0+Math.sin(ts*.003+i*1.7)*.6+Math.sin(ts*.007+i*.9)*.3;
@@ -175,7 +213,18 @@ function frame(ts){
     var dx=f.userData.target.x-f.position.x, dz=f.userData.target.z-f.position.z;
     var dist=Math.sqrt(dx*dx+dz*dz);
     if(dist>.1){
-      var sp=f.userData.speed*dt*.016*60;
+      // `speed` is units per 60fps frame (see spawnFigure). frame()'s dt
+      // is raw milliseconds (clamped to 100), so the step is speed ×
+      // frames-elapsed: dt/16.667. It used to read `dt*.016*60`
+      // (=dt*0.96) — 16× too fast — which both sprinted residents past
+      // the player and overshot the 0.1 arrival test into a permanent
+      // ping-pong across the target.
+      // Never stride past the target: the arrival test above is a 0.1
+      // window, and a laggy frame (dt clamps at 100ms, six frames) gives
+      // the fastest residents a 0.21 stride that can still straddle it
+      // and ping-pong. Capping the step at the remaining distance lands
+      // them on the spot whatever the frame rate.
+      var sp=Math.min(f.userData.speed*(dt/16.667),dist);
       f.position.x+=dx/dist*sp; f.position.z+=dz/dist*sp;
       f.rotation.y=Math.atan2(dx,dz);
     }

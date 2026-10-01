@@ -23,7 +23,15 @@ var G = {
   cooldowns: {},
   activeCrafts: {},   // id → {start, duration}; persisted so paid-for crafts survive reloads
   sweepWarned: false, sweepCountdown: 0, packedUp: false,
+  dumpsterLockDay: -1,   // HV-63: Dumpsters Locked lasts the rest of that day
   injuredUntil: 0, lastEventDay: -2,
+  // HV-65: the day Old Friend boosted morale. Dawn fades it.
+  // -1 = no fade pending. A setTimeout used to do this and died on reload.
+  friendDay: -1,
+  // HV-210: the day Illness Spreading hit. Rest is worse that day,
+  // and HV-273 the panhandle with it.
+  sickDay: -1,
+  gentrifyDay: -1,   // HV-234: Gentrification lasts the rest of that day
 
   // HV-6: the stray dog. 0 = not met, 1 = wary stray at the fence line,
   // 2 = Biscuit is part of the camp. Staged deterministically (checkDog),
@@ -53,6 +61,9 @@ var G = {
   meetings: 0, meetingDay: -9,
   // HV-15: city petitions won at the notice board
   petitions: {},
+  // HV-225: the day the community grant landed. Today's sweep
+  // cannot confiscate that delivery. -1 = none this camp.
+  grantDay: -1,
   // HV-16: a friend's favor on the books, and the running tally
   favor: null, favorsDone: 0, lastFavorDay: -9,
 
@@ -64,6 +75,10 @@ var G = {
   // HV-31: true once the corner fridge's ledger has counted (and
   // seeded) this camp — a genuinely fresh camp starts false.
   fridgeSeeded: false,
+  // HV-240: the dawn the bug keeps the Cook down. Illness fires at
+  // the end of a day, after breakfast already landed, so this stamp
+  // is tomorrow. -1 = no bug pending.
+  sickUntil: -1,
 };
 
 // `requires` gates a recipe on an already-built structure (checked by
@@ -78,7 +93,7 @@ var RECIPES = [
   {id:'tent',        icon:'🏕️', name:'Tent',           cost:{cardboard:8,scraps:6,wood:3},   gives:{structure:'tent',warmth:20}, time:10000, desc:'A roof of sorts.', requires:'workbench'},
   {id:'fire_ration', icon:'🔥', name:'Firewood',       cost:{wood:3},                         gives:{warmth:10},              time:2000,  desc:'Keep the barrel burning.'},
   {id:'soup_kitchen',icon:'🍲', name:'Soup Kitchen',   cost:{wood:10,scraps:8,cans:5,goodwill:5}, gives:{structure:'soup_kitchen'}, time:15000, desc:'Soup night: feeds everyone at dusk (1 food each) for +4 morale, +2 health — and neighbors sometimes chip in.', requires:'workbench'},
-  {id:'garden',      icon:'🌱', name:'Community Garden',cost:{wood:6,goodwill:8,food:3},      gives:{structure:'garden'},     time:12000, desc:'Slowly generates food each day. Gets destroyed in sweeps.', requires:'workbench'},
+  {id:'garden',      icon:'🌱', name:'Community Garden',cost:{wood:6,goodwill:8,food:3},      gives:{structure:'garden'},     time:12000, desc:'Slowly generates food each day. Winter sleeps the beds. Gets destroyed in sweeps.', requires:'workbench'},
   {id:'radio',       icon:'📻', name:'Radio',           cost:{scraps:5,cans:3},                gives:{structure:'radio'},      time:6000,  desc:'A crackly weather band — see tomorrow\u2019s sky coming.', requires:'workbench'},
   {id:'stash',       icon:'🕳️', name:'Hidden Stash',    cost:{wood:4,scraps:3,cardboard:2},    gives:{structure:'stash'},      time:7000,  desc:'A buried cache under the fence line. Thieves and sweeps take half as much — and nobody ever finds the hole itself.', requires:'workbench'},
   {id:'guitar',      icon:'🎸', name:'Scrap Guitar',    cost:{scraps:8,wood:4},                gives:{structure:'guitar'},     time:9000,  desc:'Strings from a fence, a body from a pallet. One set a day on the corner — the take rides the camp\u2019s spirits.', requires:'workbench'},
@@ -127,6 +142,9 @@ var REGULARS = [
 ];
 function regularDef(id){ for(var i=0;i<REGULARS.length;i++) if(REGULARS[i].id===id) return REGULARS[i]; return null; }
 function regularStage(id){ var a=(G.regulars&&G.regulars[id])||0; return a>=5?2:(a>=1?1:0); } // 0 stranger, 1 known, 2 friend
+// HV-187: Dee walks home from night shifts. Her route is the walk
+// home — Night and Dawn on the day clock. Midday is not her corner.
+function deeOnRoute(){ return G.timeOfDay<1/6 || G.timeOfDay>=5/6; }
 
 // ── HV-16: Regulars' Favors ──────────────────────────────────
 // Friendship runs both ways. Once a regular counts you as a friend,
@@ -217,7 +235,7 @@ function muralAvailable(){ return repTier()>=1 && (G.mural||0)<MURAL_PANELS; }
 function muralDone(){ return G.muralDay===G.days; }
 function muralAction(){
   return { id:'mural', icon:'🎨', label:'Paint the mural ('+(G.mural||0)+'/'+MURAL_PANELS+')', time:7000, cooldown:0,
-    tooltip:'One session a day on the underpass wall. Costs 2 scraps of salvaged paint. +3 morale, and the block takes notice.' };
+    tooltip:'One session a day on the underpass wall. Costs 2 scraps of salvaged paint. +3 morale, and the block takes notice. The panel needs a dry night — rain washes wet paint.' };
 }
 
 // ── HV-14: the Camp Meeting ──────────────────────────────────
@@ -240,7 +258,20 @@ function meetingAction(){
 // the player too (+2 morale).
 function buskAvailable(){ return !!G.structures.guitar; }
 function buskDone(){ return G.buskDay===G.days; }
-function buskPay(){ var base=1+Math.floor((G.morale||0)/25); return G.weather==='heat'?base*2:base; }
+function gentrifyHostile(){ return G.gentrifyDay===G.days; }
+function buskPay(){
+  var base=1+Math.floor((G.morale||0)/25);
+  var take=G.weather==='heat'?base*2:base;
+  // HV-179: rain already halves the panhandle odds on this corner.
+  // A set on the same corner paid the dry take. The awning puts
+  // the spot back. Do not touch heat, snap, or mural. HV-234
+  // gentrifyHostile stays.
+  if(G.weather==='rain' && !G.structures.awning) take=Math.max(1,Math.floor(take/2));
+  // HV-234: harassment is increasing. The guitar is a set on
+  // the corner — the same locals. Panhandle is HV-76.
+  if(gentrifyHostile()) take=Math.max(1,Math.floor(take/2));
+  return take;
+}
 function buskAction(){
   return { id:'busk', icon:'🎸', label:'Busk a set', time:6000, cooldown:0,
     tooltip:'Play for the block — one set a day. The take rides the camp\u2019s spirits (+1 goodwill per 25 morale, doubled on a scorcher), a good set is remembered (+1 rep), and playing lifts you (+2 morale).' };
@@ -261,9 +292,10 @@ function depositAction(){
 
 // ── HV-18: the Cold Snap ─────────────────────────────────────
 // Winter already bites; some winters bite harder. A quarter of winter
-// dawns open a two-day cold snap — the fire drains faster and foot
-// traffic thins — but the block shows up for a camp it respects, and
-// a camp that weathers it comes out prouder.
+// dawns open a two-day cold snap — the fire drains faster, foot
+// traffic thins, and the dumpsters thin with them — but the block
+// shows up for a camp it respects, and a camp that weathers it comes
+// out prouder.
 var SNAP_DAYS = 2;          // a snap grips the block for two days
 var SNAP_WARMTH = 10;       // extra warmth lost at each snap dawn
 var SNAP_CHANCE = 0.25;     // rolled at every quiet winter dawn
@@ -414,6 +446,10 @@ function composeHvNote(){
   return s;
 }
 function deliverHvNote(){
+  // HV-206: the note is taped in the fridge door. A beaten hold
+  // without a fridge is a story with nowhere to tape it. Start
+  // Over keeps the long memory; it does not invent a door.
+  if(!loadFridge().built) return;
   if(!(loadFridge().camps>0 || loadHvRec().days>0)) return;
   var n=loadHvNote();
   saveHvNote({read:(n.read||0)+1});
@@ -439,10 +475,16 @@ function bridgeHasWall(){
 }
 function composeHvWall(){
   var fr=loadFridge(), rec=loadHvRec(), nt=loadHvNote();
+  var mk=loadHvMark();
   var lines=[];
   lines.push(fr.built ? '\ud83e\uddca The fridge hums \u2014 '+(fr.camps||0)+' camp'+((fr.camps||0)===1?'':'s')+' welcomed' : '\ud83e\uddca No fridge on the corner yet');
   lines.push(rec.days>0 ? '\ud83d\udcc8 Longest hold: '+rec.days+' dawns (beaten '+(rec.beats||0)+' morning'+((rec.beats||0)===1?'':'s')+')' : '\ud83d\udcc8 No hold marked yet');
   lines.push('\ud83d\udcdd '+(nt.read||0)+' note'+((nt.read||0)===1?'':'s')+' found in the door');
+  // HV-209: Add a Name puts a newcomer's hand on the wall of names.
+  // Read the Wall is the reading. A name that is not cited is not on the wall.
+  if((mk.names||0)>0){
+    lines.push('\u270d\ufe0f '+(mk.names)+' name'+((mk.names)===1?'':'s')+' in a newcomer\'s hand');
+  }
   return lines;
 }
 // HV-35: the heirloom round under the bridge. Somebody's
@@ -763,9 +805,16 @@ function recordDays(d){
     // HV-38: under the chalk star, the story feeds the camp.
     if(starStood){
       var st=loadHvStar(); saveHvStar({cheers:st.cheers+1});
-      G.food=(G.food||0)+HVSTAR_FOOD;
-      floatText('+'+HVSTAR_FOOD+'\ud83c\udf5e');
-      log('\u2b50 A hold like that under the chalk star \u2014 word gets around, and neighbors leave groceries at the fence. +'+HVSTAR_FOOD+'\ud83c\udf5e');
+      // HV-199: nobody lingers outside in a snap. The hold still
+      // cheers. The fire still feels it. The groceries do not
+      // make the fence.
+      if(snapActive()){
+        log('\u2b50 A hold like that under the chalk star — word got around, but the snap kept neighbors inside. The fence stayed empty.');
+      } else {
+        G.food=(G.food||0)+HVSTAR_FOOD;
+        floatText('+'+HVSTAR_FOOD+'\ud83c\udf5e');
+        log('\u2b50 A hold like that under the chalk star \u2014 word gets around, and neighbors leave groceries at the fence. +'+HVSTAR_FOOD+'\ud83c\udf5e');
+      }
     }
   }
 }
@@ -788,7 +837,7 @@ var NEWCOMER_POP_MAX = 6;
 function newcomerAvailable(){ return !!G.newcomerAsk; }
 function newcomerAction(){
   return { id:'newcomer', icon:'🫂', label:'Make room ('+NEWCOMER_COST_FOOD+'🍞 + '+NEWCOMER_COST_WOOD+'🪵)', time:6000, cooldown:0,
-    tooltip:'Someone stands at the edge of the light asking to stay. '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood make a bed and a first meal — a bigger camp, another pair of hands.' };
+    tooltip:'Someone stands at the edge of the light asking to stay. '+NEWCOMER_COST_FOOD+' food and '+NEWCOMER_COST_WOOD+' wood make a bed and a first meal — a bigger camp, another pair of hands. The tent has to still be standing.' };
 }
 
 // ── HV-15: City Petitions ────────────────────────────────────
@@ -949,5 +998,13 @@ function chainState(){
 // tick and ui.js (which owns the panel) is loaded after both.
 function introOpen(){
   var m = document.getElementById('intro-modal');
+  return !!(m && m.classList.contains('open'));
+}
+
+// HV-59: The Bridge is the same class of reading. Declared here beside
+// introOpen so tickDay can ask it without adding an API to ui.js (which
+// owns the overlay and is a conflict hotspot).
+function bridgeOpen(){
+  var m = document.getElementById('chain-modal');
   return !!(m && m.classList.contains('open'));
 }
