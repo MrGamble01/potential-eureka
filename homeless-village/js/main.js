@@ -1,4 +1,5 @@
 var lastTime=0, autosaveTimer=0, camSwayT=0;
+var barsLit={};   // HV-73: progress bars filled last frame, by job id
 
 // ── Player input ──
 // Previously there was NO player control: `player` (scene.js) was just
@@ -42,7 +43,13 @@ document.addEventListener('keydown', function(e){
     var m = document.getElementById('chain-modal');
     if(m && m.classList.contains('open')){
       m.classList.remove('open');
+      return;
     }
+    // HV-66: Keys in Hand is the same class of card. Keep Building is
+    // the non-destructive dismiss — click that button rather than
+    // invent a third closer.
+    var stay = document.getElementById('hv-grad-stay');
+    if(stay) stay.click();
   }
 });
 
@@ -140,9 +147,12 @@ if(!G.fridgeSeeded){
       // for every fresh camp now.
       var _pl=loadPotluck();
       savePotluck({days:_pl.days+1});
-      G.food=(G.food||0)+POTLUCK_FOOD;
-      G.morale=Math.min(100,(G.morale||0)+POTLUCK_MORALE);
-      log('\ud83c\udf72 POTLUCK \u2014 folding tables by the fridge, everyone brings a dish. +'+POTLUCK_FOOD+'\ud83e\udd63, +'+POTLUCK_MORALE+'\ud83d\ude0a');
+      // HV-255: folding tables by the fridge. Rain soaks the dishes.
+      var _pf=POTLUCK_FOOD, _pm=POTLUCK_MORALE, _wet=G.weather==='rain';
+      if(_wet) _pf=Math.floor(POTLUCK_FOOD/2);
+      G.food=(G.food||0)+_pf;
+      G.morale=Math.min(100,(G.morale||0)+_pm);
+      log('\ud83c\udf72 POTLUCK \u2014 folding tables by the fridge, '+(_wet?'and the rain got into the dishes':'everyone brings a dish')+'. +'+_pf+'\ud83e\udd63, +'+_pm+'\ud83d\ude0a');
     } else {
       log('\uD83E\uDDCA The corner fridge still hums \u2014 the block already knows this camp. +'+_seed+'\ud83e\ude76');
     }
@@ -154,6 +164,11 @@ if(!G.fridgeSeeded){
 // A save whose health already hit 0 (lost, then tab closed without
 // pressing Start Over) must not resume as a playable camp.
 if(G.health<=0) showGameOver();
+// HV-61: same shape for the ending. checkArc() writes arcStage:3 and
+// saveGame()s BEFORE the player picks Keep building or Start a new
+// camp. There is no stage-3 branch, so a reload left the hub reading
+// 🔑 housed and the camp with no Keys in Hand overlay.
+if(G.arcStage>=3 && !G.arcDone) showGraduation();
 
 // The next frame used to be scheduled BEFORE the body ran, so any
 // per-frame exception (e.g. the three.js CDN failing → camera
@@ -183,7 +198,14 @@ function frame(ts){
   camera.lookAt(0,0,0);
 
   // Fire flicker (dimmed while a "fire burned out" event is active)
-  var fireOut = Date.now() < (G.fireOutUntil||0);
+  var fireSeconds = Math.max(0,Math.ceil(((G.fireOutUntil||0)-Date.now())/1000));
+  var fireOut = fireSeconds > 0;
+  var warmthPill = document.getElementById('stat-warmth').parentElement;
+  if(fireOut){
+    warmthPill.title='🔥 Barrel dark — '+fireSeconds+'s until the fire is back';
+  } else {
+    warmthPill.removeAttribute('title');
+  }
   fireLights.forEach(function(fl,i){
     if(fireOut){ fl.intensity=0.1; fl.color.setRGB(1,.3,.04); return; }
     fl.intensity=2.0+Math.sin(ts*.003+i*1.7)*.6+Math.sin(ts*.007+i*.9)*.3;
@@ -227,13 +249,29 @@ function frame(ts){
   movePlayer(dt);
   updateScavengeGate();
 
-  // Action progress bars + cooldown disable
+  // Cooldown disable for the fixed action list.
   ACTIONS.forEach(function(a){
-    var job=activeJobs[a.id];
-    var pb=document.getElementById('progress-'+a.id);
-    if(pb) pb.style.width=job?Math.min(100,((Date.now()-job.startTime)/job.duration)*100)+'%':'0%';
     var btn=document.getElementById('action-'+a.id);
-    if(btn&&!job){ var cd=G.cooldowns[a.id]; btn.disabled=!!(cd&&Date.now()<cd); }
+    if(btn&&!activeJobs[a.id]){ var cd=G.cooldowns[a.id]; btn.disabled=!!(cd&&Date.now()<cd); }
+  });
+  // HV-73: progress bars ride every running job, not just ACTIONS. The
+  // odd job, mural, meeting, deposit run, busk, newcomer, ticket and
+  // dry corner are appended by buildActionUI outside that table, and
+  // this loop used to walk ACTIONS only — so their bar sat at 0% for
+  // the whole 6–8s job while the border pulsed. Bars lit last frame
+  // are reset to 0% the moment their job is gone, without waiting on
+  // a panel rebuild (a lapsed ask or a refused build never rebuilds).
+  var nowMs=Date.now();
+  Object.keys(activeJobs).forEach(function(id){
+    var job=activeJobs[id], pb=document.getElementById('progress-'+id);
+    if(pb) pb.style.width=Math.min(100,((nowMs-job.startTime)/job.duration)*100)+'%';
+    barsLit[id]=true;
+  });
+  Object.keys(barsLit).forEach(function(id){
+    if(activeJobs[id]) return;
+    delete barsLit[id];
+    var pb=document.getElementById('progress-'+id);
+    if(pb) pb.style.width='0%';
   });
 
   tickDay(dt);
