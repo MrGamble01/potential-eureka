@@ -187,12 +187,13 @@
     #panel .sub { font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; }
     #panel .stat { display: flex; justify-content: space-between; font-size: 12.5px; font-family: var(--mono); padding: 3px 0; }
     #panel .stat b { color: var(--gold); }
-    #panel .row { display: flex; gap: 8px; margin-top: 11px; }
+    #panel .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
     #panel button {
       flex: 1; padding: 8px; border-radius: 9px; border: 1px solid var(--line);
       background: var(--panel-2); color: var(--ink); font-family: var(--font);
       font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s, border-color .12s;
     }
+    #panel #p-festival { flex: 1 0 100%; }
     #panel button:hover { border-color: rgba(242,193,78,0.6); }
     #panel button.danger:hover { border-color: #e06a5c; color: #ffb3aa; }
 
@@ -238,8 +239,12 @@
     .achv-row .aname { font-size: 13px; font-weight: 700; }
     .achv-row .adesc { font-size: 11.5px; color: var(--ink-dim); }
     .achv-row.locked { opacity: 0.45; }
+    .achv-row.locked.has-progress { opacity: 0.7; }
     .achv-row.locked .aemoji { filter: grayscale(1); }
     .achv-row.done { border-color: rgba(242,193,78,0.45); }
+    .achv-row .aprog-bar { height: 4px; margin-top: 4px; border-radius: 3px; background: rgba(0,0,0,0.35); overflow: hidden; }
+    .achv-row .aprog-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #8ec26b, #f2c14e); }
+    .achv-row .aprog-text { font-size: 10px; color: var(--ink-dim); margin-top: 2px; font-family: var(--mono); }
     #ev-choices { display: flex; flex-direction: column; gap: 9px; }
     .ev-choice {
       width: 100%; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line);
@@ -1318,6 +1323,20 @@
       return Math.abs(wx - cx) <= WINDMILL_RANGE && Math.abs(wy - cy) <= WINDMILL_RANGE;
     });
   }
+  function farmsLiftedBy(windmill) {
+    if (windmill.type !== 'windmill' || windmill.done === false) return 0;
+    const wd = BUILDINGS.windmill, wx = windmill.tx + wd.w / 2, wy = windmill.ty + wd.h / 2;
+    return state.buildings.filter(b => {
+      if (b.type !== 'farm' || b.done === false) return false;
+      const fd = BUILDINGS.farm, fx = b.tx + fd.w / 2, fy = b.ty + fd.h / 2;
+      return Math.abs(wx - fx) <= WINDMILL_RANGE && Math.abs(wy - fy) <= WINDMILL_RANGE;
+    }).length;
+  }
+  function windmillLiftReport(b) {
+    const count = farmsLiftedBy(b);
+    return count ? '🌬️ Lifts ' + count + ' farm' + (count === 1 ? '' : 's') + ' nearby (+50% food)'
+      : '🌬️ No farms in range yet (+50% food when a Farm is close)';
+  }
   // ---- Supply chains: buildings earn a bonus when placed near a partner. --
   // This turns layout into a puzzle — cluster a Farm + Windmill + Bakery into
   // a "grain district", a Woodcutter + Carpenter into a "timber yard", etc.
@@ -1389,11 +1408,68 @@
   function festivalCost() { const pop = state.villagers.length; return { food: 6 + pop * 2, gold: 8 + pop * 2 }; }
   function festivalActive() { return !!(state.festival && state.day < state.festival.endDay); }
   function festivalReady() { return (state.day - (state.lastFestivalDay != null ? state.lastFestivalDay : -99)) >= FEST_COOLDOWN; }
-  function holdFestival(tav) {
-    if (festivalActive()) { toast('🎪 A festival is already underway!'); SFX('error'); return; }
-    if (!festivalReady()) { toast('The town needs a few days to recover before the next festival.'); SFX('error'); return; }
+  function festivalDayWord(n) { return n === 1 ? 'day' : 'days'; }
+  function festivalRunDays() { return Math.max(1, state.festival.endDay - state.day); }
+  function festivalWaitDays() {
+    const last = state.lastFestivalDay != null ? state.lastFestivalDay : -99;
+    return Math.max(1, FEST_COOLDOWN - (state.day - last));
+  }
+  function festivalGap() {
     const cost = festivalCost();
-    if (!Object.keys(cost).every(k => state.res[k] >= cost[k])) { toast("Not enough food & coin for a festival yet."); SFX('error'); return; }
+    const parts = [];
+    const food = cost.food - state.res.food;
+    const gold = cost.gold - state.res.gold;
+    if (food > 0) parts.push(Math.ceil(food) + shortRes('food'));
+    if (gold > 0) parts.push(Math.ceil(gold) + shortRes('gold'));
+    return parts;
+  }
+  function festivalButtonCopy() {
+    if (festivalActive()) {
+      const days = festivalRunDays();
+      const left = days + ' ' + festivalDayWord(days) + ' left';
+      return { html: '🎪 Festival underway · ' + left, title: 'The fair has ' + left + '.' };
+    }
+    if (!festivalReady()) {
+      const days = festivalWaitDays();
+      const word = festivalDayWord(days);
+      return {
+        html: '🎪 Resting · ready in ' + days + ' ' + word,
+        title: 'The town needs ' + days + ' more ' + word + ' before the next festival.',
+      };
+    }
+    const missing = festivalGap();
+    if (missing.length) {
+      const need = 'Need ' + missing.join(' and ') + ' more';
+      return { html: '🎪 ' + need, title: need + ' to hold a festival.' };
+    }
+    const cost = festivalCost();
+    const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
+    return {
+      html: '🎪 Hold a Festival <span style="opacity:.7;font-size:11px">' + costStr + '</span>',
+      title: 'Spend ' + costStr + ' — the fair lasts ' + FEST_DAYS + ' days.',
+    };
+  }
+  function refreshFestivalBtn() {
+    const b = document.getElementById('p-festival');
+    if (!b) return;
+    const copy = festivalButtonCopy();
+    if (b.dataset.copy !== copy.html) { b.innerHTML = copy.html; b.dataset.copy = copy.html; }
+    if (b.title !== copy.title) b.title = copy.title;
+  }
+  function holdFestival(tav) {
+    if (festivalActive()) {
+      const days = festivalRunDays();
+      toast('🎪 A festival is already underway — ' + days + ' ' + festivalDayWord(days) + ' left.');
+      SFX('error'); return;
+    }
+    if (!festivalReady()) {
+      const days = festivalWaitDays();
+      toast('The town is resting — the next festival is ' + days + ' ' + festivalDayWord(days) + ' away.');
+      SFX('error'); return;
+    }
+    const missing = festivalGap();
+    if (missing.length) { toast('Need ' + missing.join(' and ') + ' more to hold a festival.'); SFX('error'); return; }
+    const cost = festivalCost();
     Object.keys(cost).forEach(k => state.res[k] -= cost[k]);
     const def = BUILDINGS[tav.type];
     state.festival = { endDay: state.day + FEST_DAYS, x: (tav.tx + def.w / 2) * TILE, y: (tav.ty + def.h / 2) * TILE };
@@ -1652,9 +1728,21 @@
   function wishRoll() { return rrand(state.day * 31 + (state.wishes || 0) * 7); }
   function goldenMult() { return state.goldenDay === state.day ? 1.5 : 1; }
   function wishGain(res, n) { state.res[res] = Math.min(capOf(res), state.res[res] + n); }
+  function wishShortfall() { return 'Need ' + Math.ceil(WISH_COST - state.res.gold) + ' gold more'; }
+  function refreshWishBtn() {
+    if (!selected || selected.type !== 'well' || selected.done === false) return;
+    const btn = document.getElementById('p-wish');
+    if (!btn) return;
+    const heard = wishedToday();
+    const label = heard ? '💧 Wish heard — returns at dawn'
+      : state.res.gold < WISH_COST ? '🪙 ' + wishShortfall()
+      : '🪙 Make a wish · ' + WISH_COST + ' gold';
+    if (btn.textContent !== label) btn.textContent = label;
+    btn.disabled = heard;
+  }
   function makeWish() {
     if (wishedToday()) { toast('💧 The well has heard today’s wish already.'); SFX('error'); return; }
-    if (state.res.gold < WISH_COST) { toast('A wish takes ' + WISH_COST + ' gold.'); SFX('error'); return; }
+    if (state.res.gold < WISH_COST) { toast(wishShortfall() + ' to make a wish.'); SFX('error'); return; }
     const r = wishRoll();
     state.res.gold -= WISH_COST;
     state.wishDay = state.day;
@@ -1698,7 +1786,9 @@
   const FOOD_PER_VILLAGER = 1; // per production cycle
 
   // ---- Game state ---------------------------------------------
-  let state, cam, view, tiles, tileObj, occ;
+  // Pointer/wheel handlers can run while the document is still loading,
+  // before init(). Keep their camera and viewport reads safe in that window.
+  let state, cam = { x: 0, y: 0, z: 3 }, view = { w: 0, h: 0 }, tiles, tileObj, occ;
   let decos = [];  // cosmetic props regenerated from seed: {kind, tx, ty}
   const FLAT_DECO = { crop: 1, pebble: 1, mushroom: 1, tallgrass: 1, reeds: 1 }; // drawn on the ground
   let miniTerrain = null;  // baked 1px-per-tile terrain image for the minimap
@@ -1774,9 +1864,9 @@
   }
   const ACHIEVEMENTS = [
     { id: 'first_home', emoji: '🏠', name: 'Homestead', desc: 'Build your first cottage.', done: () => countType('house') >= 1 },
-    { id: 'hamlet', emoji: '👪', name: 'Hamlet', desc: 'Reach 5 villagers.', done: () => state.villagers.length >= 5 },
-    { id: 'village', emoji: '🏘️', name: 'Village', desc: 'Reach 10 villagers.', done: () => state.villagers.length >= 10 },
-    { id: 'township', emoji: '🏙️', name: 'Township', desc: 'Reach 18 villagers.', done: () => state.villagers.length >= 18 },
+    { id: 'hamlet', emoji: '👪', name: 'Hamlet', desc: 'Reach 5 villagers.', done: () => state.villagers.length >= 5, prog: () => [state.villagers.length, 5] },
+    { id: 'village', emoji: '🏘️', name: 'Village', desc: 'Reach 10 villagers.', done: () => state.villagers.length >= 10, prog: () => [state.villagers.length, 10] },
+    { id: 'township', emoji: '🏙️', name: 'Township', desc: 'Reach 18 villagers.', done: () => state.villagers.length >= 18, prog: () => [state.villagers.length, 18] },
     { id: 'harvest', emoji: '🌾', name: 'Breadbasket', desc: 'Build a farm.', done: () => countType('farm') >= 1 },
     { id: 'riverfolk', emoji: '🎣', name: 'Riverfolk', desc: 'Build a fishing hut.', done: () => countType('fishing') >= 1 },
     { id: 'market', emoji: '🏪', name: 'Open for Business', desc: 'Open a market.', done: () => countType('market') >= 1 },
@@ -1785,23 +1875,23 @@
     { id: 'orchardist', emoji: '🍎', name: 'Orchardist', desc: 'Plant an orchard.', done: () => countType('orchard') >= 1 },
     { id: 'supplychain', emoji: '⚡', name: 'Supply Chain', desc: 'Boost a building by placing it beside its supplier.', done: () => state.buildings.some(b => BUILDINGS[b.type].likes && b.done !== false && adjSupplier(b)) },
     { id: 'first_trade', emoji: '🤝', name: 'Fair Deal', desc: 'Strike a deal with the traveling merchant.', done: () => (state.trades || 0) >= 1 },
-    { id: 'trade_baron', emoji: '🐴', name: 'Friend of the Road', desc: 'Make 25 trades with the merchant.', done: () => (state.trades || 0) >= 25 },
+    { id: 'trade_baron', emoji: '🐴', name: 'Friend of the Road', desc: 'Make 25 trades with the merchant.', done: () => (state.trades || 0) >= 25, prog: () => [state.trades || 0, 25] },
     { id: 'gardener', emoji: '🌷', name: 'Green Thumb', desc: 'Place your first decoration.', done: () => state.buildings.some(b => BUILDINGS[b.type].decor) },
     { id: 'square', emoji: '⛲', name: 'Town Square', desc: 'Build a fountain.', done: () => countType('fountain') >= 1 },
-    { id: 'beautiful', emoji: '✨', name: 'A Beautiful Town', desc: 'Reach 40 town charm.', done: () => townCharm() >= 40 },
-    { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.filter(b => b.done !== false).length >= 10 },
+    { id: 'beautiful', emoji: '✨', name: 'A Beautiful Town', desc: 'Reach 40 town charm.', done: () => townCharm() >= 40, prog: () => [townCharm(), 40] },
+    { id: 'builder', emoji: '🧱', name: 'Master Builder', desc: 'Have 10 buildings standing.', done: () => state.buildings.filter(b => b.done !== false).length >= 10, prog: () => [state.buildings.filter(b => b.done !== false).length, 10] },
     { id: 'architect', emoji: '⬆️', name: 'Architect', desc: 'Upgrade a building to Level 3.', done: () => state.buildings.some(b => (b.level || 1) >= 3) },
-    { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300 },
-    { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20 },
-    { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95 },
+    { id: 'wealthy', emoji: '💰', name: 'Coffers Full', desc: 'Bank 300 gold.', done: () => state.res.gold >= 300, prog: () => [Math.floor(state.res.gold), 300] },
+    { id: 'endurance', emoji: '📅', name: 'Seasoned', desc: 'Reach day 20.', done: () => state.day >= 20, prog: () => [state.day, 20] },
+    { id: 'overjoyed', emoji: '😄', name: 'Overjoyed', desc: 'Reach 95% happiness.', done: () => state.happy >= 95, prog: () => [Math.floor(state.happy), 95] },
     { id: 'festival', emoji: '🎪', name: "Let's Celebrate", desc: 'Throw a town festival at the tavern.', done: () => state.lastFestivalDay != null && state.lastFestivalDay >= 0 },
     { id: 'school', emoji: '📚', name: 'Three Rs', desc: 'Build a schoolhouse.', done: () => countType('school') >= 1 },
     { id: 'beekeeper', emoji: '🐝', name: 'Beekeeper', desc: 'Set up an apiary.', done: () => countType('apiary') >= 1 },
     { id: 'cityhall', emoji: '🏛️', name: 'Civic Pride', desc: 'Raise a Town Hall in a City.', done: () => countType('townhall') >= 1 },
-    { id: 'city', emoji: '🏙️', name: 'Metropolis', desc: 'Grow to 20 villagers — a true City.', done: () => state.villagers.length >= 20 },
-    { id: 'festivals5', emoji: '🎉', name: 'Life of the Party', desc: 'Hold five town festivals.', done: () => (state.festivalsHeld || 0) >= 5 },
+    { id: 'city', emoji: '🏙️', name: 'Metropolis', desc: 'Grow to 20 villagers — a true City.', done: () => state.villagers.length >= 20, prog: () => [state.villagers.length, 20] },
+    { id: 'festivals5', emoji: '🎉', name: 'Life of the Party', desc: 'Hold five town festivals.', done: () => (state.festivalsHeld || 0) >= 5, prog: () => [state.festivalsHeld || 0, 5] },
     { id: 'lamplighter', emoji: '🏮', name: 'Lamplighter', desc: 'Place a lamppost.', done: () => countType('lamppost') >= 1 },
-    { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19 },
+    { id: 'winterborne', emoji: '❄️', name: 'Winterborne', desc: 'See the valley through to winter.', done: () => state.day >= 19, prog: () => [state.day, 19] },
     { id: 'dockworker', emoji: '⚓', name: 'On the Waterfront', desc: 'Build a dock.', done: () => countType('dock') >= 1 },
     { id: 'lawgiver', emoji: '📜', name: 'Lawgiver', desc: 'Enact your first Town Decree.', done: () => (state.decrees || []).length >= 1 },
     { id: 'nightwatch', emoji: '🗼', name: 'The Night Watch', desc: 'Raise a Watchtower and post a keeper.', done: () => state.buildings.some(b => BUILDINGS[b.type].guard && b.done !== false && b.staffed) },
@@ -1874,7 +1964,16 @@
     document.getElementById('achv-count').textContent = got.length + ' of ' + ACHIEVEMENTS.length + ' earned';
     wrap.innerHTML = ACHIEVEMENTS.map(a => {
       const done = got.indexOf(a.id) >= 0;
-      return '<div class="achv-row ' + (done ? 'done' : 'locked') + '"><span class="aemoji">' + a.emoji + '</span><span><div class="aname">' + a.name + '</div><div class="adesc">' + a.desc + '</div></span></div>';
+      let progHtml = '';
+      if (!done && a.prog) {
+        const p = a.prog();
+        const cur = Math.max(0, Math.min(p[1], p[0]));
+        const pct = Math.max(0, Math.min(100, (cur / p[1]) * 100));
+        progHtml = '<div class="aprog-bar"><div class="aprog-fill" style="width:' + pct + '%"></div></div>'
+          + '<div class="aprog-text">' + cur + ' / ' + p[1] + '</div>';
+      }
+      const rowClass = 'achv-row ' + (done ? 'done' : 'locked') + (progHtml ? ' has-progress' : '');
+      return '<div class="' + rowClass + '"><span class="aemoji">' + a.emoji + '</span><span><div class="aname">' + a.name + '</div><div class="adesc">' + a.desc + '</div>' + progHtml + '</span></div>';
     }).join('');
     document.getElementById('achv').classList.add('show');
   }
@@ -5317,6 +5416,11 @@
     document.querySelectorAll('#speedctl button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.sp, 10) === gameSpeed));
   }
   function updateHUD() {
+    refreshWatchPanel();
+    const windmill = document.getElementById('p-windmill');
+    if (windmill && selected && selected.type === 'windmill' && selected.done !== false) windmill.textContent = windmillLiftReport(selected);
+    const monument = document.getElementById('p-monument');
+    if (monument && selected && selected.type === 'mason' && selected.done !== false) monument.textContent = monumentProgress();
     document.getElementById('r-wood').textContent = Math.floor(state.res.wood);
     document.getElementById('r-stone').textContent = Math.floor(state.res.stone);
     document.getElementById('r-food').textContent = Math.floor(state.res.food);
@@ -5365,6 +5469,8 @@
       if (state.raining) { const snow = seasonOf(state.day).name === 'Winter'; wx.textContent = snow ? ' ❄️' : ' 🌧️'; wx.title = snow ? 'Snowing' : 'Rain — crops thrive (+25% food)'; }
       else { wx.textContent = ''; wx.title = ''; }
     }
+    refreshFestivalBtn();
+    refreshWishBtn();
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
@@ -5513,6 +5619,29 @@
       if (el.textContent !== values[id]) el.textContent = values[id];
     }
   }
+  function monumentProgress() {
+    const cycles = state.masonCycles || 0, stage = monumentStage();
+    const next = MONUMENT_STAGES[stage];
+    return next ? cycles + ' / ' + next.at + ' cycles — next: ' + next.name
+      : MONUMENT_STAGES[stage - 1].name;
+  }
+  function watchPostReport(b) {
+    return b.staffed ? (state.raidTonight ? 'this post ' : '') + 'holds off a pack of ' + (b.level || 1)
+      : 'needs a keeper — no watch stands';
+  }
+  function raidReport() {
+    return state.raidTonight ? '🐺 TONIGHT — town watch ' + guardStrength() + ' vs pack ' + packSize()
+      : diffCfg().raids === false ? 'never (Cozy)'
+      : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons';
+  }
+  function refreshWatchPanel() {
+    if (!selected || selected.done === false || !BUILDINGS[selected.type].guard) return;
+    const values = { 'p-watch': watchPostReport(selected), 'p-raid': raidReport() };
+    for (const id in values) {
+      const el = document.getElementById(id);
+      if (el && el.textContent !== values[id]) el.textContent = values[id];
+    }
+  }
   function showPanel(b) {
     selected = b; buildMode = null; canvas.classList.remove('building'); refreshBarState();
     if (b.done === false) {   // construction site view
@@ -5540,7 +5669,7 @@
     if (def.worker) { const wk = workerOf(b); const wm = wk && masteryOf(wk); const wt = wk && traitOf(wk); html += statRow('Worker', wk ? '👤 ' + wk.name + ' ' + wt.emoji + (wm.star ? ' ' + wm.star : '') + (wm.mult > 1 ? ' (' + wm.name + ' +' + Math.round((wm.mult - 1) * 100) + '%)' : '') : 'Needs a villager 💤'); }
     if (def.prod) { const k = Object.keys(def.prod)[0]; let base = def.prod[k] * lvl; if (b.bonus) base = Math.ceil(base * 1.5); const milled = windmillBoostsFarm(b); if (milled) base = Math.ceil(base * 1.5); const ch = adjMult(b); if (ch > 1) base = Math.ceil(base * ch); const rn = cropRainMult(b); if (rn > 1 && k === 'food') base = Math.ceil(base * rn); const sm = k === 'food' ? seasonCropMult(b) : 1; if (sm !== 1) base = Math.max(1, Math.round(base * sm)); const dmv = decreeProdMult(b, k); if (dmv !== 1) base = Math.max(1, Math.round(base * dmv)); const mo = moraleMult(); if (mo !== 1) base = Math.max(1, Math.round(base * mo)); const wkp = def.worker ? workerOf(b) : null; const mmv = wkp ? masteryOf(wkp).mult : 1; if (mmv !== 1) base = Math.max(1, Math.round(base * mmv)); const tmv = wkp ? traitMult(wkp, b) : 1; if (tmv !== 1) base = Math.max(1, Math.round(base * tmv)); const cwv = cobbledMult(b); if (cwv !== 1) base = Math.max(1, Math.round(base * cwv)); const tag = b.bonus ? ' (rich site!)' : milled ? ' (windmill!)' : (rn > 1 && k === 'food') ? ' (rain!)' : sm >= 1.25 ? ' (harvest!)' : sm < 1 ? (b.type === 'fishing' ? ' (iced over)' : ' (fallow)') : ''; html += statRow('Produces', base + ' ' + shortRes(k) + tag + ' / cycle'); if (cwv > 1) html += statRow('Trade route', '🛤️ On the Cobbled Way (+10%)'); }
     if (def.likes) { const sup = adjSupplier(b); html += statRow('Supply chain', sup ? '⚡ +' + Math.round(def.likes.bonus * 100) + '% · ' + BUILDINGS[sup.type].name + ' nearby' : 'Place near ' + def.likes.label + ' → +' + Math.round(def.likes.bonus * 100) + '%'); }
-    if (def.boostFarms) html += statRow('Windmill', '+50% food to farms nearby');
+    if (def.boostFarms) html += statRow('Windmill', '<span id="p-windmill">' + windmillLiftReport(b) + '</span>');
     if (def.cons) { const k = Object.keys(def.cons)[0]; html += statRow('Consumes', def.cons[k] + ' ' + shortRes(k) + ' / cycle'); }
     if (def.happy) html += statRow('Happiness', '+' + (Math.ceil(def.happy / 6) * lvl) + ' / cycle');
     if (def.storage) html += statRow('Storage', '+' + (def.storage * lvl) + ' cap (wood/stone/food)');
@@ -5549,10 +5678,11 @@
     if (b.type === 'furrier') html += statRow('Pelts', (state.pelts || 0) + ' on the bench' + ((state.pelts || 0) < 1 ? ' — repel a raid to stock up' : ''));
     if (b.type === 'cellar') html += statRow('Preserves', (b.preserves || 0) + ' / ' + 12 * (b.level || 1) + ' jars' + (seasonOf(state.day).name === 'Autumn' ? ' — pickling the surplus' : seasonOf(state.day).name === 'Winter' ? ' — opening the pantry' : ''));
     if (b.type === 'chapel') html += statRow('Alarm bell', '🔔 halves raid losses' + ((state.bellSaves || 0) ? ' — rung on ' + state.bellSaves + ' bad night' + (state.bellSaves === 1 ? '' : 's') : ''));
+    if (b.type === 'mason') html += statRow('Monument', '<span id="p-monument">' + monumentProgress() + '</span>');
     if (b.type === 'school') html += statRow('Night classes', '📚 every worker learns +1 XP / cycle');
     if (def.guard) {
-      html += statRow('Watch', (b.staffed ? 'holds off a pack of ' + lvl : 'needs a keeper — no watch stands') );
-      html += statRow('Next raid', state.raidTonight ? '🐺 TONIGHT' : (diffCfg().raids === false ? 'never (Cozy)' : 'day ' + Math.max(state.nextRaidDay || 9, 8) + '+, in the cold seasons'));
+      html += statRow('Watch', '<span id="p-watch">' + watchPostReport(b) + '</span>');
+      html += statRow('Next raid', '<span id="p-raid">' + raidReport() + '</span>');
     }
     if (!def.decor) html += statRow('Level', lvl + ' / ' + MAX_LEVEL);
     stats.innerHTML = html;
@@ -5563,13 +5693,7 @@
       const costStr = Object.keys(cost).map(k => cost[k] + shortRes(k)).join(' ');
       btns += '<button id="p-upgrade">⬆️ Upgrade <span style="opacity:.7;font-size:11px">' + costStr + '</span></button>';
     }
-    if (b.type === 'tavern' && b.done !== false) {
-      const fc = festivalCost();
-      const fcStr = Object.keys(fc).map(k => fc[k] + shortRes(k)).join(' ');
-      const on = festivalActive(), ready = festivalReady();
-      const lbl = on ? '🎪 Festival underway…' : !ready ? '🎪 Festival (town resting)' : '🎪 Hold a Festival <span style="opacity:.7;font-size:11px">' + fcStr + '</span>';
-      btns += '<button id="p-festival"' + (on || !ready ? ' disabled' : '') + '>' + lbl + '</button>';
-    }
+    if (b.type === 'tavern' && b.done !== false) btns = '<button id="p-festival"></button>' + btns;
     if (b.type === 'market' && b.done !== false) {
       const out = caravanOut();
       const clbl = out ? '🐴 Caravan on the road — back day ' + state.caravan.returnDay
@@ -5583,13 +5707,11 @@
         : '🌳 Plant the Founders\u2019 Oak <span style="opacity:.7;font-size:11px">' + OAK_COST + '🪙 · once, forever</span>';
       btns += '<button id="p-oak"' + (oaked ? ' disabled' : '') + '>' + olbl + '</button>';
     }
-    if (b.type === 'well' && b.done !== false) {
-      const wlbl = wishedToday() ? '💧 The well has heard today’s wish'
-        : '🪙 Make a wish <span style="opacity:.7;font-size:11px">' + WISH_COST + '🪙</span>';
-      btns += '<button id="p-wish"' + (wishedToday() ? ' disabled' : '') + '>' + wlbl + '</button>';
-    }
+    if (b.type === 'well') btns += '<button id="p-wish"></button>';
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
+    refreshFestivalBtn();
+    refreshWishBtn();
     const upBtn = document.getElementById('p-upgrade');
     if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
     const fBtn = document.getElementById('p-festival');
@@ -5601,7 +5723,7 @@
     const oakBtn = document.getElementById('p-oak');
     if (oakBtn) oakBtn.onclick = () => { plantOak(); if (selected === b) showPanel(b); };
     const wBtn = document.getElementById('p-wish');
-    if (wBtn) wBtn.onclick = () => { makeWish(); if (selected === b) showPanel(b); };
+    if (wBtn) wBtn.onclick = () => { makeWish(); refreshWishBtn(); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
