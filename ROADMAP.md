@@ -79,7 +79,7 @@ Hook-free `voxplace` covers repeat placement, successful decor, and plant refusa
 
 Homeless Village — built Rain Barrels show live stored water on the craft panel,
 hover tip and click log. Hook-free `hvbarrel` covers stock inspection without
-spending, plus existing barrel economy/save checks. Cache: `eureka-v307-hv-barrelwater`.
+spending, plus existing barrel economy/save checks. Cache: `eureka-20261001-pr1039`.
 
 | HV improvement | Verification |
 |---|---|
