@@ -106,6 +106,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
 
   // E — the sitting
   const sat = await t(() => {
+    G.weather = 'rain'; // HV-174: only rain hosts the sit.
     G.food = 10;
     finishAction({ id: 'dry' });
     const f1 = G.food, s1 = loadHvDry().sits;
