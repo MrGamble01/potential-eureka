@@ -120,6 +120,11 @@ function buildActionUI(){
     dyb.addEventListener('mouseleave',hideTip);
     el.appendChild(dyb);
   }
+  // A craft or hire can rebuild this list while other actions are running.
+  Object.keys(activeJobs).forEach(function(id){
+    var btn=document.getElementById('action-'+id);
+    if(btn){ btn.classList.add('active-job'); btn.disabled=true; }
+  });
   // Newly created action nodes need the current lock/range state.
   _scavGateOut=null;
   updateScavengeGate();
