@@ -53,6 +53,12 @@ HVALE — On raid nights, the Watchtower panel shows total town watch versus pac
 size and distinguishes this post’s strength. Hook-free `hvaleraidwatch` covers
 staffed posts, palisade completion, Frontier, and unchanged day/Cozy copy.
 
+HV — Walk a Newcomer Down refuses a second walk tonight before
+the 2s job or the 30s lock. finishAction already named the next
+newcomer; `doAction` now matches. Food math unchanged. Hook-free
+`hvwalked` covers the already-walked refuse, the first-walk pay,
+two-stand refuse, Rest, and Trade.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
