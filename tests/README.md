@@ -172,6 +172,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvcan` (the Coffee Can)
 - `hvpanel` (the Fifth Panel)
 - `hvwalk` (the Walk Down)
+- `hvwalked` (HV-285: Walk a Newcomer Down ran a job when somebody already got the walk tonight)
 - `hvmark` (a Name on the Wall)
 - `hvintro` (HV-56: the first-run crash course, a drift guard for its numbers, and visible Games exits from the course and The Bridge with real navigation at desktop/phone widths)
 - `hvwander` (HV-60: the wander step is `speed * (dt/16.667)` so residents shuffle at their own `speed` and settle on a target instead of sprinting to it and ping-ponging across it — at 60fps and at the 100ms lag clamp)
