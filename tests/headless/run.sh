@@ -7,6 +7,7 @@
 #
 #   python3 -m http.server 8099 --bind 127.0.0.1   # from the repo root
 #   ./tests/headless/run.sh
+#   ./tests/headless/run.sh --list  # validate discovery without running browsers
 #
 # Each suite prints PASS/FAIL lines and a summary; this script exits
 # non-zero if any suite fails. BASE / NODE_PATH may be overridden.
@@ -21,11 +22,11 @@ export NODE_PATH="${NODE_PATH:-$(npm root -g)}"
 # then the cross-game guards (geometry, storage keys, corrupt saves),
 # then the hub meta-layer, then the per-game suites.
 #
-# The per-game families (hv*, vox*) are DISCOVERED from this directory
+# The flagship families (aow*, grow*, hv*, lab*, tyc*, vox*) are discovered here
 # rather than listed here. They used to live on one line apiece, so every
 # pair of PRs that each added a suite conflicted on that line even though
 # neither touched the other's game. Adding a suite is now just adding a
-# file (including hvstorybare for HV-281). Order within a family doesn't matter; the lead list does.
+# file. Explicit lead/trail entries keep their position and run only once.
 LEAD=(
   nohooks aowrecords aowsession aowqueue aowbroke aowspace aowdifficulty
   audit
@@ -46,7 +47,13 @@ TRAIL=( pwa )
 
 shopt -s nullglob
 FAMILY=()
-for f in hv*.js vox*.js; do FAMILY+=( "${f%.js}" ); done
+for f in aow*.js grow*.js hv*.js lab*.js tyc*.js vox*.js; do
+  n="${f%.js}"
+  case " ${LEAD[*]} ${TRAIL[*]} " in
+    *" $n "*) ;; # Already scheduled explicitly; do not run it twice.
+    *) FAMILY+=( "$n" ) ;;
+  esac
+done
 shopt -u nullglob
 if [ "${#FAMILY[@]}" -gt 0 ]; then
   mapfile -t FAMILY < <(printf '%s\n' "${FAMILY[@]}" | LC_ALL=C sort)
@@ -69,6 +76,11 @@ if [ "${#unlisted[@]}" -gt 0 ]; then
   echo "run.sh: suite file(s) no list or glob covers: ${unlisted[*]}" >&2
   echo "        add the name to LEAD/TRAIL above, or extend the family globs." >&2
   exit 1
+fi
+
+if [ "${1:-}" = "--list" ]; then
+  printf '%s\n' "${SUITES[@]}"
+  exit 0
 fi
 
 fails=0
