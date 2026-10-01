@@ -32,15 +32,28 @@ function scavengeInRange(){ return nearestDumpsterDist()<=SCAVENGE_RANGE; }
 var _scavGateOut=null;
 function updateScavengeGate(){
   var locked=G.dumpsterLockDay===G.days;
-  var out=!scavengeInRange()||locked;
-  if(out===_scavGateOut) return;
-  _scavGateOut=out;
+  var far=!scavengeInRange();
+  var key=(locked?'L':'o')+(far?'F':'n');
+  if(key===_scavGateOut) return;
+  _scavGateOut=key;
   var btn=document.getElementById('action-scavenge');
-  if(!btn) return;
-  btn.classList.toggle('out-of-range',out);
-  btn.title=locked ? 'Dumpsters are locked today.'
-                : (out ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
-                       : 'Dig through dumpsters for scraps, cans, or food.');
+  if(btn){
+    // HV-112: a lock day is not a walk-up. Stood on the bin, 🚶 was a lie.
+    btn.classList.toggle('out-of-range', far && !locked);
+    btn.classList.toggle('locked-today', locked);
+    btn.title=locked ? 'Dumpsters are locked today.'
+                  : (far ? 'Too far — walk up to a dumpster first (WASD or tap the ground)'
+                         : 'Dig through dumpsters for scraps, cans, or food.');
+    btn.setAttribute('data-tip',btn.title);
+  }
+  var fbtn=document.getElementById('action-forage');
+  if(fbtn){
+    fbtn.classList.toggle('locked-today', locked);
+    var ftip=locked ? 'Dumpsters are locked today.'
+                    : 'Search the surroundings for cardboard and wood.';
+    fbtn.title=ftip;
+    fbtn.setAttribute('data-tip', ftip);
+  }
 }
 
 function doAction(a){
@@ -1107,6 +1120,10 @@ function finishCraft(r){
   log('Crafted '+r.name+'.');
   saveGame();
   updateHUD(); buildCraftUI();
+  // HV-89: the cart (and the guitar) unlock a new verb on the action
+  // rail. buildCraftUI only refreshes recipes; without this rebuild
+  // the deposit run stayed off the board until the next dawn.
+  if(typeof buildActionUI==='function') buildActionUI();
 }
 
 // Crafts that were mid-flight when the page closed: the cost was paid
@@ -1132,6 +1149,9 @@ function hireWorker(id){
   sfx('hire');
   log(def.name+' joined the community.');
   buildWorkersUI(); updateHUD();
+  // HV-89: a first hire makes the camp two people, which is what
+  // unlocks Hold a camp meeting. Same missing rebuild as finishCraft.
+  if(typeof buildActionUI==='function') buildActionUI();
 }
 
 // HV-15: goodwill spent at the notice board becomes civic
