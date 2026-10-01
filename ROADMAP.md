@@ -33,6 +33,26 @@ afterwards.
 
 ## Status at a glance
 
+HVALE — Camera/view defaults exist before pointer handlers run. `hvalecam` covers events before DOMContentLoaded, mobile and desktop loads, drag, and wheel.
+
+HVALE — The tavern festival button names missing food and coin, days left on
+the fair, and days until the town can celebrate again. The label and title
+stay live as stores and dawns change. A click that will not start still says
+why. Cost, length, and the one-fair cooldown are unchanged. Hook-free
+`hvalefest` covers shortfalls, refusals, a real fair, and live updates.
+
+| Hearthvale polish | Status | Verification |
+|---|---|---|
+| Tavern festival feedback | Complete — live shortfall, fair ETA, and rest countdown on the button and title; refusal toasts name the same | `tests/headless/hvalefest.js` — 1280px/768px, clicks, dawns, orchard food, zero page errors |
+HVALE — Windmill panels report how many finished farms this windmill lifts,
+refresh live as construction finishes, and retain the +50% food reminder.
+Hook-free `hvalewind` verifies range, counts and removal at desktop/tablet widths.
+HVALE — Stonemason inspection shows live monument cycles toward the next named stage and the unveiled state. `hvalemason` covers thresholds, live progression, and panel isolation at desktop/tablet widths.
+
+HVALE — On raid nights, the Watchtower panel shows total town watch versus pack
+size and distinguishes this post’s strength. Hook-free `hvaleraidwatch` covers
+staffed posts, palisade completion, Frontier, and unchanged day/Cozy copy.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
@@ -57,6 +77,14 @@ VOX — Placing a block or decor on an occupied block now says “Something is i
 the way” and plays the error sound, without spending coins or counting decor.
 Hook-free `voxplace` covers repeat placement, successful decor, and plant refusal.
 
+Homeless Village — built Rain Barrels show live stored water on the craft panel,
+hover tip and click log. Hook-free `hvbarrel` covers stock inspection without
+spending, plus existing barrel economy/save checks. Cache: `eureka-20261001-pr1039`.
+
+| HV improvement | Verification |
+|---|---|
+| Rain Barrel live stored water in craft panel, tip and click log | `hvbarrel`; `hvcraftrefuse` preserves other craft refusals |
+
 Homeless Village — refused crafts now name missing resources, the required
 structure, or an already-built structure in the feed and hover tip. Hook-free
 `hvcraftrefuse` covers refusals without spending and affordable crafting.
@@ -73,11 +101,6 @@ Age of War — training queue hover and accessible labels now show rounded-up
 seconds left, updating during battle; waiting recruits keep their refund hint.
 Hook-free `aowtraineta` covers ticking labels, cancellation refunds, and spawning.
 
-Age of War — Horns, Trench, Mercs, Sappers and Ballista now explain cooldown
-refusals on the field for clicks and hotkeys, with rounded-up seconds and an
-active Warcry countdown. Existing refusals take priority; no resources are spent.
-Hook-free `aowabilitycd` covers 1280px/768px; cache `eureka-v312-aow-abilitycd`.
-
 Age of War — Space during Special cooldown now shows “Special cooling — Ns”
 on the field without spending a special or restarting the wait. Hook-free
 `aowspecialcd` covers repeated refusals and ready Space at 1280px/768px.
@@ -93,7 +116,8 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
-| **AoW ability cooldown feedback** | ✅ Done — five ability click/key countdown refusals, active Warcry and existing refusal priority; hook-free `aowabilitycd` at 1280/768 |
+| **Hearthvale tavern festival** | ✅ Live shortfall, fair days, and rest countdown; `hvalefest` at 1280px/768px; cache `eureka-20260929-hvale-festival` |
+| **Hearthvale windmill lift** | ✅ live finished-farm count and +50% reminder; `hvalewind` at 1280/768; cache `eureka-20260929-hvale-windmill` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |

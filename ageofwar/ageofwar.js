@@ -1375,12 +1375,20 @@ const AgeOfWarGame = (() => {
     return Math.round(u.dmg * (1 + 0.1 * t) * steel);
   }
 
+  function queueFullMessage() {
+    const seconds = Math.ceil(Math.max(0, trainingQueue[0]?.remaining || 0));
+    return seconds > 0 ? `Queue full — next slot in ${seconds}s` : 'Queue full';
+  }
+
   function tryPlayerSpawn(key) {
     if (gameOver || userPaused) return;
     const def = UNITS[key];
     if (!def) return;
     if (def.era > playerEra) return;
-    if (trainingQueue.length >= TRAINING_MAX) return;
+    if (trainingQueue.length >= TRAINING_MAX) {
+      goldFloaters.push({ text: queueFullMessage(), x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     if (gold < def.cost) {
       goldFloaters.push({ text: `Need $${Math.ceil(def.cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
@@ -1436,7 +1444,11 @@ const AgeOfWarGame = (() => {
       return;
     }
     const need = ERAS[playerEra].upXP;
-    if (xp < need) return;
+    if (xp < need) {
+      ageBannerText = `Need ${need - xp} more XP for ${ERAS[playerEra + 1].name}`;
+      ageBannerT = 2.4;
+      return;
+    }
     xp -= need;
     playerEra++;
     runStats.agesReached = Math.max(runStats.agesReached, playerEra);
@@ -1649,7 +1661,10 @@ const AgeOfWarGame = (() => {
   function challengeDuel() {
     if (gameOver || modalPaused || userPaused) return;
     const w = fieldWarlord();
-    if (!w) return;
+    if (!w) {
+      goldFloaters.push({ text: '⚔ No warlord on the field to challenge', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     const c = duelChampion();
     if (!c) {
       goldFloaters.push({ text: '⚔ No champion stands to answer', x: WIDTH / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
@@ -2038,7 +2053,10 @@ const AgeOfWarGame = (() => {
       goldFloaters.push({ text: '\u{1F3B2} The herald takes wagers from Age II', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#9aa0a6', t: 1.4 });
       return;
     }
-    if (ironBet) return;
+    if (ironBet) {
+      goldFloaters.push({ text: '🎲 A wager already rides this clash', x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     if (gold < IRON_STAKE) {
       goldFloaters.push({ text: `\u{1F3B2} The wager is ${IRON_STAKE} gold`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
@@ -3022,6 +3040,8 @@ const AgeOfWarGame = (() => {
     if (masonBtn) masonBtn.onclick = buyMasons;
     const chestBtn = document.getElementById('aow-chest-btn');
     if (chestBtn) chestBtn.onclick = depositChest;
+    const duelBtn = document.getElementById('aow-duel-btn');
+    if (duelBtn) duelBtn.onclick = challengeDuel;
     const ironBtn = document.getElementById('aow-iron-btn');
     if (ironBtn) ironBtn.onclick = placeIronWager;
     const bondBtn = document.getElementById('aow-bond-btn');
@@ -8700,10 +8720,20 @@ const AgeOfWarGame = (() => {
         if (ico) ico.textContent = '🌟';
         if (lbl) lbl.textContent = 'Max Age';
         ageBtn.disabled = true;
+        ageBtn.title = 'Max Age';
+        ageBtn.setAttribute('aria-label', 'Max Age');
       } else {
         if (ico) ico.textContent = '⬆️';
         if (lbl) lbl.innerHTML = `Age Up<small>${ERAS[playerEra + 1].name}</small>`;
         ageBtn.disabled = xp < era.upXP;
+        const nextEra = ERAS[playerEra + 1].name;
+        const hint = playerEra === 4 && !earnedAchievements.max_age
+          ? '🔒 SINGULARITY — reach the Future Age once to unlock the sixth era'
+          : xp < era.upXP
+            ? `Need ${era.upXP - xp} more XP for ${nextEra}`
+            : `Ready to age up to ${nextEra}`;
+        ageBtn.title = hint;
+        ageBtn.setAttribute('aria-label', hint);
       }
     }
 
@@ -8754,7 +8784,7 @@ const AgeOfWarGame = (() => {
     if (duEl) {
       const w = fieldWarlord();
       if (duCdEl) duCdEl.textContent = w ? `${DUEL_COST}g` : '—';
-      duEl.disabled = !w;
+      duEl.disabled = false; // Refused clicks explain the missing warlord.
       duEl.title = w
         ? `Challenge ${w.name} to single combat (C) — ${DUEL_COST} gold. Your foremost soldier steps out; odds ride raw stats. One challenge per warlord.`
         : "Champion's Duel (C) — answers only while a named warlord leads an endless boss wave.";
@@ -8873,7 +8903,7 @@ const AgeOfWarGame = (() => {
     const irCdEl = document.getElementById('aow-iron-cd');
     if (irEl) {
       if (irCdEl) irCdEl.textContent = playerEra < 1 ? 'Age II' : ironBet ? 'riding' : `${IRON_STAKE}g`;
-      irEl.disabled = playerEra < 1 || !!ironBet;
+      irEl.disabled = playerEra < 1; // A riding wager explains itself on click.
       irEl.title = ironBet
         ? `The wager rides — the walls must end this wave at or above ${Math.round(ironBet.hpAtBet)} hp. ${runStats.ironWon || 0} won, ${runStats.ironLost || 0} lost this run.`
         : `The Ironside Wager (U) — ${IRON_STAKE} gold says the walls end this wave no worse than they stand right now. Held pays 2× at the wave's turn.`;
@@ -9255,7 +9285,7 @@ const AgeOfWarGame = (() => {
   }
 
   function recruitTitle(def, queueFull) {
-    const reason = queueFull ? 'Queue full — wait for training or cancel a queued unit for a refund. '
+    const reason = queueFull ? `${queueFullMessage()}. Wait for training or cancel a queued unit for a refund. `
       : gold < def.cost ? `Need $${Math.ceil(def.cost - gold)} more. ` : '';
     return reason + `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
   }
