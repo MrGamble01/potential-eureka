@@ -207,6 +207,15 @@ function doAction(a){
     sfx('error');
     return;
   }
+  // HV-285: Walk a Newcomer Down said once a session. finishAction
+  // already logs the next newcomer gets theirs tomorrow and no-ops.
+  // Clicking 🧭 after walkGiven still started the 2s job and charged
+  // the 30s lock. An unstarted walk is HV-219.
+  if(a.id==='walk' && walkUp() && walkGiven){
+    log('\ud83e\udded Somebody already got the walk tonight \u2014 the next newcomer gets theirs tomorrow.');
+    sfx('error');
+    return;
+  }
   // HV-219: Leaf the Notebook says three candles put a spiral
   // notebook by the fridge. finishAction already named a bare
   // fridge — after a 2s job and with the 30s lock charged as if
