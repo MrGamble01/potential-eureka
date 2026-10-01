@@ -130,11 +130,12 @@ ok(!/function buildActionUI/.test(doBlock),
     saveFridge({ built: true, camps: 1 });
     G.cooldowns = {};
     delete activeJobs.wall;
-    finishAction(ACTIONS.find(a => a.id === 'wall'));
-    return { opens: loadHvWall().opens, cd: G.cooldowns.wall || 0, has: bridgeHasWall() };
+    document.getElementById('action-wall').click();
   });
-  ok(painted.has && painted.opens === 1 && painted.cd > Date.now(),
-    `a wall with a story still reads and still takes the lock (opens ${painted.opens})`);
+  await page.waitForTimeout(2300);
+  const paid = await page.evaluate(() => ({ opens: loadHvWall().opens, cd: G.cooldowns.wall || 0, has: bridgeHasWall() }));
+  ok(paid.has && paid.opens === 1 && paid.cd > Date.now(),
+    `a wall with a story still reads and still takes the lock (opens ${paid.opens})`);
 
   const thermos = await page.evaluate(() => {
     G.cooldowns = {};

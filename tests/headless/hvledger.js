@@ -39,7 +39,7 @@ const doAt = player.indexOf('function doAction(a){');
 const finishAt = player.indexOf('function finishAction(a){');
 const doBlock = doAt >= 0 && finishAt > doAt ? player.slice(doAt, finishAt) : '';
 const finishBorrowAt = player.indexOf("} else if(a.id==='borrow')");
-const finish = finishBorrowAt >= 0 ? player.slice(finishBorrowAt, finishBorrowAt + 400) : '';
+const finish = finishBorrowAt >= 0 ? player.slice(finishBorrowAt, player.indexOf("} else if(a.id==='fridge')", finishBorrowAt)) : '';
 
 ok(doAt >= 0 && /function doAction\(a\)\{/.test(doBlock),
   'doAction is still in player.js — guards the guard');
@@ -130,11 +130,12 @@ ok(!/function buildActionUI/.test(doBlock) && !/rayDebt/.test(ui),
     G.rayDebt = 0;
     G.goodwill = 1;
     G.cooldowns = {};
-    finishAction(ACTIONS.find(a => a.id === 'borrow'));
-    return { gw: G.goodwill, debt: G.rayDebt, cd: G.cooldowns.borrow || 0 };
+    document.getElementById('action-borrow').click();
   });
-  ok(clear.gw === 5 && clear.debt === 5 && clear.cd > Date.now(),
-    `a clear ledger still fronts 4, books 5, and still takes the lock (gw ${clear.gw}, debt ${clear.debt})`);
+  await page.waitForTimeout(2300);
+  const paid = await page.evaluate(() => ({ gw: G.goodwill, debt: G.rayDebt, cd: G.cooldowns.borrow || 0 }));
+  ok(paid.gw === 5 && paid.debt === 5 && paid.cd > Date.now(),
+    `a clear ledger still fronts 4, books 5, and still takes the lock (gw ${paid.gw}, debt ${paid.debt})`);
 
   ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
 
