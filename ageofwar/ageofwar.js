@@ -1375,12 +1375,20 @@ const AgeOfWarGame = (() => {
     return Math.round(u.dmg * (1 + 0.1 * t) * steel);
   }
 
+  function queueFullMessage() {
+    const seconds = Math.ceil(Math.max(0, trainingQueue[0]?.remaining || 0));
+    return seconds > 0 ? `Queue full — next slot in ${seconds}s` : 'Queue full';
+  }
+
   function tryPlayerSpawn(key) {
     if (gameOver || userPaused) return;
     const def = UNITS[key];
     if (!def) return;
     if (def.era > playerEra) return;
-    if (trainingQueue.length >= TRAINING_MAX) return;
+    if (trainingQueue.length >= TRAINING_MAX) {
+      goldFloaters.push({ text: queueFullMessage(), x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
+      return;
+    }
     if (gold < def.cost) {
       goldFloaters.push({ text: `Need $${Math.ceil(def.cost - gold)} more`, x: PLAYER_BASE_X + BASE_W / 2, y: GROUND_Y - 150, color: '#8b949e', t: 1.4 });
       return;
@@ -9223,7 +9231,7 @@ const AgeOfWarGame = (() => {
   }
 
   function recruitTitle(def, queueFull) {
-    const reason = queueFull ? 'Queue full — wait for training or cancel a queued unit for a refund. '
+    const reason = queueFull ? `${queueFullMessage()}. Wait for training or cancel a queued unit for a refund. `
       : gold < def.cost ? `Need $${Math.ceil(def.cost - gold)} more. ` : '';
     return reason + `${def.name} — HP ${def.hp} · DMG ${def.dmg} · Range ${def.range} · Speed ${def.speed}`;
   }
