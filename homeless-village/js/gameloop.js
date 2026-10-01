@@ -87,10 +87,18 @@ function ticketAtDawn(){
   }
   if(!G.ticketAsk && G.population>=3 && repTier()>=2
      && G.days - (typeof G.ticketLastDay==='number'?G.ticketLastDay:-9) >= TICKET_EVERY){
-    G.ticketAsk={day:G.days};
-    G.ticketLastDay=G.days;
-    log('🚌 Around the fire, one of the residents talks about a sister two towns over. A bus ticket would do it.');
-    buildActionUI();
+    // HV-262: they talk around the fire. Rain already keeps
+    // people off the sidewalk. Do not spend the cadence — the
+    // next clear dawn can still open. Do not return — a letter
+    // from the city is not this card. A named snap is not this card.
+    if(G.weather==='rain'){
+      log('🚌 Rain kept the circle off the fire — nobody talked about the sister tonight.');
+    } else {
+      G.ticketAsk={day:G.days};
+      G.ticketLastDay=G.days;
+      log('🚌 Around the fire, one of the residents talks about a sister two towns over. A bus ticket would do it.');
+      buildActionUI();
+    }
   }
   if((G.ticketsSent||0)>0 && G.days - (typeof G.lastLetterDay==='number'?G.lastLetterDay:-9) >= LETTER_EVERY){
     G.lastLetterDay=G.days;
@@ -106,7 +114,21 @@ function ticketAtDawn(){
 // remembered.
 function pantryAtDawn(){
   if(!G.structures.pantry) return;
+  // HV-259: a little box on a post. Rain keeps the overnight
+  // leave off the sidewalk. A named snap is not this card.
+  if(G.weather==='rain'){
+    log('🥣 Rain kept the pantry box empty overnight.');
+    return;
+  }
   if(Math.random()>=PANTRY_CHANCE) return;
+  // HV-203: a leftover in a box on a post does not keep through
+  // two brutal days. The snap still found something in the box;
+  // the pot does not. The fill tally waits for a dawn the food
+  // can actually be eaten.
+  if(snapActive()){
+    log('🥣 The snap froze what was left in the pantry box overnight — a little box on a post does not keep a leftover through two brutal days.');
+    return;
+  }
   G.food=(G.food||0)+PANTRY_FOOD;
   G.pantryFills=(G.pantryFills||0)+1;
   if(G.pantryFills%PANTRY_REP_EVERY===0){
@@ -129,6 +151,13 @@ function newcomerAtDawn(){
   if(!G.newcomerAsk && repTier()>=2 && !!G.structures.tent
      && (G.population||1) < NEWCOMER_POP_MAX
      && G.days - (typeof G.newcomerLastDay==='number'?G.newcomerLastDay:-9) >= NEWCOMER_EVERY){
+    // HV-261: they stand at the edge of the firelight. Rain
+    // keeps a stranger moving. Do not spend the cadence — the
+    // next clear dawn can still open. A named snap is not this card.
+    if(G.weather==='rain'){
+      log('🫂 Rain kept the stranger moving — nobody waited at the edge of the light.');
+      return;
+    }
     G.newcomerAsk={day:G.days};
     G.newcomerLastDay=G.days;
     log('🫂 Someone new stands at the edge of the firelight — heard this camp treats people right. They ask to stay.');
@@ -204,19 +233,102 @@ function onNewDay(){
   // HV-54: the empty hook eases the season's own base drain, which is
   // the one part of the cold the coat rack above never touches.
   G.warmth=Math.max(0,Math.min(100,G.warmth-seasonDrain()-wBite-snapBite));
+  // HV-200: Biscuit's keep is warmth against your back — it lands
+  // before the fire-held check, so a camp he pushed over 50 hears
+  // the fire held. Food and morale still settle in the keep block
+  // after cook / garden / the empty-larder bite.
+  var biscuitWarmed=false;
+  if(G.dog===2&&G.food>=1){
+    G.warmth=Math.min(100,G.warmth+3);
+    biscuitWarmed=true;
+  }
   // HV-13: a fire kept fed pays for itself — a camp that wakes warm
   // (50+ after the night's drain) starts the day with its chin up.
-  if(G.warmth>=50){ G.morale=Math.min(100,G.morale+2); log('🔥 The fire held all night — the camp wakes warm.'); }
+  // HV-210: maybeEvent runs after this line. Fire Went Out says the
+  // barrel died overnight — it cannot land on a dawn that already
+  // heard the hold. Tomorrow's hold is HV-83 (#747), not this ticket.
+  G.fireHeldThisDawn=false;
+  if(G.warmth>=50){
+    G.morale=Math.min(100,G.morale+2);
+    G.fireHeldThisDawn=true;
+    // HV-265: they woke warm. On a scorcher that was the sky, not
+    // the barrel — say so rather than crediting a fire nobody fed.
+    // The +2 still lands: they did wake warm. A dead barrel is not
+    // this card, and the HV-210 stamp holds either way.
+    if(G.weather==='heat') log('🥵 A scorcher held the camp warm — that was the sky, not the barrel.');
+    else log('🔥 The fire held all night — the camp wakes warm.');
+  }
   // HV-15: the sanitation unit keeps everyone a little healthier
   if(G.petitions&&G.petitions.sanitation){ G.health=Math.min(100,G.health+1); log('🚻 The sanitation unit earns its keep. +1 health.'); }
   // HV-16: friends ask, and sometimes stop asking
   favorLapsed(); maybePostFavor();
   G.morale=Math.max(0,G.morale-3);
   if(G.warmth<20) G.health=Math.max(0,G.health-rand(5,12));
+  // HV-190: the beds are breakfast. They used to land after the
+  // empty-larder bite, so a harvest on a pot the night just emptied
+  // arrived once the camp had already taken the health hit. Cook and
+  // soup stay where they are.
+  if(G.structures.garden){
+    // HV-193: a named snap freezes the beds the same way weather
+    // frost does. Today's sky can still be clear — snapActive() is
+    // its own two-day grip. Stacked cold+snap keeps the frost log
+    // so hvweather / hvcompost stay on the weather line.
+    if(G.weather==='cold' || snapActive()){
+      var snapOnly=G.weather!=='cold' && snapActive();
+      if(G.structures.compost){
+        // HV-25: the bin's heat keeps one bed alive through frost
+        G.food+=1; G.compostDays=(G.compostDays||0)+1;
+        floatText('+1\ud83c\udf5e');
+        log(snapOnly
+          ? '\u267B\uFE0F The snap froze the beds — but the compost\u2019s heat kept one alive. +1 food.'
+          : '\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
+      } else {
+        log(snapOnly
+          ? 'The snap froze the beds — the garden gave nothing today.'
+          : 'Frost on the beds — the garden gave nothing today.');
+      }
+      // HV-205: a stored rainfall sitting through a snap is ice.
+      // HV-193 already skips the harvest pour; the drum still
+      // needs its own line so ice is named and the tally stays.
+      if(snapActive() && G.weather!=='rain' && (G.barrelWater||0)>0){
+        log('\ud83d\udee2\ufe0f The snap froze the drum — a stored rainfall stays ice. The beds go without.');
+      }
+    } else if(G.season===3){
+      // HV-168: winter dormancy is the season, not frost weather.
+      // Compost heat keeps a frost bed but cannot wake a winter bed.
+      // Stored rain waits for spring.
+      log('Winter on the beds — the garden gave nothing today.');
+    } else {
+      var y=rand(1,3);
+      if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
+      if(G.weather!=='rain'&&(G.barrelWater||0)>0){
+        // HV-205: a stored rainfall sitting through a snap is ice.
+        // Ice does not water the beds, and the drum stays full until
+        // a thaw. Frost already left the drum alone (#819); the snap
+        // is the same physics under a clear sky.
+        if(snapActive()){
+          log('\ud83d\udee2\ufe0f The snap froze the drum — a stored rainfall stays ice. The beds go without.');
+        } else {
+          G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.');
+        }
+      }   // HV-27
+      G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
+    }
+  }
+  // HV-274: the pantry box was already filled overnight — same side
+  // of the bite as the beds (HV-190). Cook / soup / Biscuit keep stay put.
+  pantryAtDawn();
   if(G.food<=0)   G.health=Math.max(0,G.health-rand(4,10));
 
-  if(G.structures.tent&&Math.random()<(G.season===3?.15:.05)){
+  // HV-257: a tent is a roof of sorts. Winter already doubles the
+  // tear (15%). Rain tests a roof — a wet non-winter dawn uses 10%,
+  // so a roll that a clear spring shrugs off will pull the sheeting
+  // down. Heat is not this card. Winter's 15% is not this card.
+  var tentTear=(G.season===3?.15:.05);
+  if(G.weather==='rain') tentTear=Math.max(tentTear,0.10);
+  if(G.structures.tent&&Math.random()<tentTear){
     G.structures.tent=false; refreshStructures(); log('Your tent tore in the wind.');
+    lapseNewcomerNoTent();
   }
   if(G.structures.workbench&&Math.random()<.04){
     if(G.structures.toolbox){
@@ -227,49 +339,66 @@ function onNewDay(){
       G.structures.workbench=false; refreshStructures(); log('The workbench fell apart.');
     }
   }
-  if(G.workers.scrapper){ G.scraps+=rand(1,3); G.cans+=rand(0,2); log('The Scrapper found some supplies.'); }
-  if(G.workers.cook&&G.food>=3){ G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.'); }
+  if(G.workers.scrapper){
+    // HV-239: a named snap thins the dawn haul the same way
+    // the corner thins — even under a clear sky. Winter vs
+    // the Scrapper is #788; Dumpsters Locked is #753.
+    // HV-274: dawn says the cold gets into everything. Player
+    // dumpsters already feel a cold sky (scav 0.75). The hired
+    // haul is the same outdoor metal and never did (HV-239 left
+    // weather-cold paying in full on purpose — that seam).
+    var sm=G.weather==='cold'?weatherDef().scav:(snapActive()?0.75:1);
+    var scraps=Math.max(1,Math.floor(rand(1,3)*sm));
+    var cans=Math.max(0,Math.floor(rand(0,2)*sm));
+    G.scraps+=scraps; G.cans+=cans;
+    log('The Scrapper found some supplies.');
+    if(G.weather==='cold') log('\u2744\ufe0f The cold gets into the haul — a thinner morning.');
+  }
+  // HV-172: serve the kitchen's soup before the Cook spends breakfast.
+  soupNightAtDawn();
+  // HV-208: Biscuit's keep is one food a day. The Cook used to
+  // spend the last three bowls first and leave him hungry.
+  if(G.workers.cook&&G.food>=3+(G.dog===2?1:0)){
+    // HV-240: the card says everyone feels terrible. The Cook is
+    // one of everyone. Rest and sanitation are not this card.
+    if(typeof G.sickUntil==='number' && G.sickUntil>=0 && G.days<=G.sickUntil){
+      log('The Cook is down with the bug. No meals today.');
+    } else {
+      // HV-277: a scorcher leaves the hired pot dark.
+      if(G.weather==='heat'){
+        log('🍳 A scorcher — the Cook left the pot dark. Nobody wanted a hot meal.');
+      } else {
+        G.food-=3; G.goodwill+=2; log('The Cook prepared meals. +2 goodwill.');
+      }
+    }
+  }
   // HV-27: every rainy dawn tops the barrel up, garden or not.
   if(G.structures.barrel&&G.weather==='rain'&&(G.barrelWater||0)<BARREL_CAP){
     G.barrelWater=(G.barrelWater||0)+1;
     log('\ud83d\udee2\ufe0f The rain barrel catches the day \u2014 '+G.barrelWater+'/'+BARREL_CAP+' stored.');
   }
-  if(G.structures.garden){
-    if(G.weather==='cold'){
-      if(G.structures.compost){
-        // HV-25: the bin's heat keeps one bed alive through frost
-        G.food+=1; G.compostDays=(G.compostDays||0)+1;
-        floatText('+1\ud83c\udf5e');
-        log('\u267B\uFE0F Frost on the beds — but the compost\u2019s heat kept one alive. +1 food.');
-      } else {
-        log('Frost on the beds — the garden gave nothing today.');
-      }
-    }
-    else {
-      var y=rand(1,3);
-      if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }   // HV-25: black gold in the beds
-      if(G.weather!=='rain'&&(G.barrelWater||0)>0){ G.barrelWater--; y+=1; G.barrelDays=(G.barrelDays||0)+1; log('\ud83d\udee2\ufe0f A stored rainfall waters the beds. +1 food.'); }   // HV-27
-      G.food+=y; floatText('+'+y+'\ud83c\udf5e'); log('Garden yielded '+y+' food.');
-    }
-  }
+  // HV-184: Marisol's leftovers are breakfast. They used to land after
+  // Biscuit's keep, so a drop on an empty pot arrived once he had
+  // already curled up hungry. Dee's patch does not care about the
+  // order; the tamales do. Pantry/soup/other dawn donors stay where
+  // main already put them relative to the keep.
+  regularFavorsAtDawn();
   if(G.dog===2){
     // Biscuit's keep: one food a day. Fed, he's warmth against your back
     // and a reason to get up; hungry, he's a guilt that wears on everyone.
     if(G.food>=1){
       G.food-=1; G.dogHungry=false;
-      G.morale=Math.min(100,G.morale+2); G.warmth=Math.min(100,G.warmth+3);
+      G.morale=Math.min(100,G.morale+2);
+      if(!biscuitWarmed) G.warmth=Math.min(100,G.warmth+3);
     } else {
       G.dogHungry=true; G.morale=Math.max(0,G.morale-2);
       log('No scraps left for Biscuit. He curls up hungry.');
     }
   }
-  regularFavorsAtDawn();
   repAtDawn();
-  soupNightAtDawn();
   muralAtDawn();
   ticketAtDawn();
   newcomerAtDawn();
-  pantryAtDawn();
 
   log('Day '+G.days+'. '+['Spring','Summer','Autumn','Winter'][G.season]+'. '+weatherDef().icon+' '+weatherDef().name+'.');
   if(G.weather==='cold') log('\u2744\ufe0f The cold gets into everything — keep the fire fed.');
@@ -302,8 +431,14 @@ function bumpRegular(id){
 function regularFavorsAtDawn(){
   // Marisol: some mornings there's a bag of leftovers on the fence post.
   if(regularStage('marisol')===2&&Math.random()<.3){
-    var f=rand(2,4); G.food+=f;
-    log('🌮 Marisol left a bag of tamales on the fence post. +'+f+' food.');
+    // HV-191: the bag sits on the fence post. A rainy dawn soaks
+    // it through — she still left them; they are not breakfast.
+    if(G.weather==='rain'){
+      log('\uD83C\uDF2E Marisol left a bag of tamales on the fence post \u2014 the rain soaked them through.');
+    } else {
+      var f=rand(2,4); G.food+=f;
+      log('\uD83C\uDF2E Marisol left a bag of tamales on the fence post. +'+f+' food.');
+    }
   }
   // Dee: finds you in bad shape on her way home, once every few days.
   if(regularStage('dee')===2&&G.health<30&&G.days-(G.lastDeeDay||-9)>=3){
@@ -320,6 +455,13 @@ function regularFavorsAtDawn(){
 // pantry just means the pot stayed cold — no punishment for being broke.
 function soupNightAtDawn(){
   if(!G.structures.soup_kitchen||G.population<1) return;
+  // HV-264: they ate hot. A scorcher is the last sky for firing
+  // the pot. Do not spend the food — the next cool dawn can still
+  // serve. Illness is not this card. A dusk stamp is not this card.
+  if(G.weather==='heat'){
+    log('🍲 A scorcher — nobody wanted the pot fired.');
+    return;
+  }
   if(G.food<G.population){ log('🍲 The pot stayed cold last night — not enough food to serve everyone.'); return; }
   G.food-=G.population;
   G.morale=Math.min(100,G.morale+4);
@@ -333,9 +475,20 @@ function soupNightAtDawn(){
 // ── HV-11: the finished mural greets every morning — a fixed +2 morale
 // at dawn, the permanent payoff for the four-session project.
 function muralAtDawn(){
+  // HV-170: finished walls are sealed; last night's unfinished panel is still wet.
+  // Scorcher refusal is HV-268; morning-light naming is HV-197.
+  if((G.mural||0)>0 && (G.mural||0)<MURAL_PANELS && G.muralDay===G.days-1 && G.weather==='rain'){
+    G.mural-=1;
+    log('🎨 Overnight rain washed last night’s wet panel. The wall is back to '+G.mural+' of '+MURAL_PANELS+'.');
+    refreshMural();
+    buildActionUI();
+    return;
+  }
   if((G.mural||0)<MURAL_PANELS) return;
   G.morale=Math.min(100,G.morale+2);
-  if(Math.random()<.15) log('🎨 Morning light on the mural. It helps more than it should.');
+  // HV-197: the greeting is morning light. Rain has none. The mural
+  // still helps; the log does not name a sun that is not there.
+  if(G.weather!=='rain'&&Math.random()<.15) log('🎨 Morning light on the mural. It helps more than it should.');
 }
 
 // ── HV-9: reputation at dawn — word fades, and Beloved camps wake to
@@ -444,13 +597,35 @@ var EVENTS_BAD=[
    desc:'Police are clearing the camp. They destroy shelters and confiscate supplies.',
    effect:function(){
      G.timesSwept++; G.lastEventDay=G.days;
-     if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); }
+     if(G.structures.tent){ G.structures.tent=false; log('Your tent was demolished.'); lapseNewcomerNoTent(); }
      if(G.structures.soup_kitchen&&Math.random()<.7){ G.structures.soup_kitchen=false; log('Soup kitchen torn down.'); }
      if(G.structures.workbench&&Math.random()<.5){ G.structures.workbench=false; log('Workbench smashed.'); }
      // The Garden's own description ("Gets destroyed in sweeps") promised
      // this outright — it's an exposed, unguarded plot, so unlike the
      // workbench/soup kitchen it isn't a coin-flip.
      if(G.structures.garden){ G.structures.garden=false; log('The garden was trampled and torn up.'); }
+     // HV-185: the Free Pantry is a little box on a post. The
+     // card destroys shelters and confiscates supplies. The
+     // trucks took the tent and the garden and left the box
+     // standing — a generous dawn still filled it. Kick it over.
+     if(G.structures.pantry){ G.structures.pantry=false; log('The pantry box was kicked over and smashed.'); }
+     // HV-215: the card confiscates supplies. Donated coats hang on a
+     // rail by the fire — a sweep that takes the tent does not leave
+     // the rack. Theft is a different verb.
+     if(G.structures.coats){ G.structures.coats=false; log('The donated coats came off the rail.'); }
+     // HV-233: the guitar recipe is one set a day on the corner.
+     // Confiscate supplies — a guitar left on the corner is the
+     // first thing they take. Theft taking it is HV-154.
+     if(G.structures.guitar){
+       G.structures.guitar=false;
+       log('\ud83c\udfb8 The scrap guitar came off the corner.');
+     }
+     // HV-254: confiscate supplies. The tool box is a kit sitting
+     // out — they take it. The workbench perk (#96) is not this card.
+     if(G.structures.toolbox){ G.structures.toolbox=false; log('They took the tool box.'); }
+     // HV-176: the weather band sat in camp among the supplies.
+     // Theft taking the radio is HV-248 — a different verb.
+     if(G.structures.radio){ G.structures.radio=false; log('They took the radio.'); }
      // A packed camp keeps 75% of what the sweep would have taken —
      // the payoff for spending the Lookout's warning window on the
      // scramble instead of ignoring it (IDEA-HV-4). HV-12: a buried
@@ -462,9 +637,36 @@ var EVENTS_BAD=[
      if(G.garageCover){
        keep=0; G.garageCover=false; G.garageSaves=(G.garageSaves||0)+1;
        log('\uD83D\uDE99 The sweep found nothing loose \u2014 it all spent the night in Marisol\u2019s garage.');
+     } else if((G.barrelWater||0)>0){
+       // HV-201: confiscate supplies includes the stored rainfall.
+       // The drum is infrastructure (pantry / radio / cart); the water
+       // is a camp supply sitting in it. Pack-up and the stash do not
+       // half a dumped drum — they dump it or they don't.
+       G.barrelWater=0;
+       log('\ud83d\udee2\ufe0f They dumped the stored rainfall.');
      }
+     // HV-166: the firewood pile is a supply. Cans and cardboard are separate.
+     // keep already covers the stash, pack-up, and Marisol's garage.
+     var lostWood=Math.floor((G.wood||0)*(.3+Math.random()*.4)*keep);
      var lostScraps=Math.floor(G.scraps*(.3+Math.random()*.4)*keep);
      var lostFood  =Math.floor(G.food  *(.2+Math.random()*.3)*keep);
+     // HV-225: Community Grant is civic infrastructure. The
+     // delivery is not ordinary supplies — today's sweep cannot
+     // confiscate it. Theft is not this card. Tomorrow's sweep
+     // is not this card.
+     if(G.grantDay===G.days){
+       var capFood=Math.max(0,(G.food||0)-8);
+       var capScraps=Math.max(0,(G.scraps||0)-8);
+       var capWood=Math.max(0,(G.wood||0)-8);
+       if(lostFood>capFood || lostScraps>capScraps || lostWood>capWood){
+         lostFood=Math.min(lostFood,capFood);
+         lostScraps=Math.min(lostScraps,capScraps);
+         lostWood=Math.min(lostWood,capWood);
+         log('\uD83D\uDCCB The community grant is civic \u2014 this sweep cannot confiscate the delivery.');
+       }
+     }
+     G.wood=Math.max(0,(G.wood||0)-lostWood);
+     if(lostWood>0) log('They hauled off the woodpile.');
      G.scraps=Math.max(0,G.scraps-lostScraps);
      G.food  =Math.max(0,G.food  -lostFood);
      G.morale=Math.max(0,G.morale-rand(15,25));
@@ -482,7 +684,15 @@ var EVENTS_BAD=[
    desc:"Temperature drops hard tonight. Everyone's suffering.",
    effect:function(){
      G.lastEventDay=G.days;
-     G.warmth=Math.max(0,G.warmth-rand(20,35));
+     var hit=rand(20,35);
+     // HV-252: the Coat Rack says bitter cold cuts half as deep.
+     // Dawn weather already uses COATS_CUT; the card was a full hit.
+     if(G.structures.coats){
+       hit=Math.floor(hit*COATS_CUT);
+       G.coldCut=(G.coldCut||0)+1;
+       log('\ud83e\udde5 Coats off the rack — the snap cuts half as deep.');
+     }
+     G.warmth=Math.max(0,G.warmth-hit);
      G.health=Math.max(0,G.health-rand(8,18));
      G.morale=Math.max(0,G.morale-rand(10,15));
      log('Cold snap hit. Warmth and health dropped.');
@@ -491,13 +701,58 @@ var EVENTS_BAD=[
    desc:'Someone raided your stash in the night. Trust no one.',
    effect:function(){
      G.lastEventDay=G.days;
-     var dm=G.dog===2?.5:1; // HV-6: Biscuit's barking cuts the losses in half
+     // HV-266: panhandle already knows a hungry dog does not help.
+     // Theft still credited the chase after dawn said he curled up
+     // hungry. The sweep bark is not this card.
+     var dogHelps=G.dog===2&&!G.dogHungry;
+     var dm=dogHelps?.5:1; // HV-6: a fed Biscuit's barking cuts the losses in half
      var sm=(G.structures.stash?.5:1)*(G.petitions&&G.petitions.streetlight?.5:1); // HV-12 stash + HV-15 street light
      G.cans  =Math.max(0,G.cans  -Math.floor(G.cans  *(.2+Math.random()*.35)*dm*sm));
      G.food  =Math.max(0,G.food  -Math.floor(G.food  *(.15+Math.random()*.3)*dm*sm));
      G.scraps=Math.max(0,G.scraps-Math.floor(G.scraps*(.1+Math.random()*.2)*dm*sm));
+     // HV-169: cardboard is stash cargo; the Hidden Stash is built with it.
+     // dm/sm already cover Biscuit, the stash, and the streetlight. Wood is separate.
+     var lostCard=Math.floor((G.cardboard||0)*(.1+Math.random()*.2)*dm*sm);
+     G.cardboard=Math.max(0,(G.cardboard||0)-lostCard);
      G.morale=Math.max(0,G.morale-rand(12,20));
-     log(G.dog===2?'Thieves in the night — Biscuit chased them off before they got everything.':'Stash raided in the night.');
+     // HV-241: raided your stash includes the stored rainfall.
+     // The drum is infrastructure (pantry / radio / cart); the
+     // water is a camp supply sitting in it. Biscuit, the stash,
+     // and the street light do not half a dumped drum. Sweep
+     // dumping the water is HV-201 / #891. Word fade is HV-236.
+     if((G.barrelWater||0)>0){
+       G.barrelWater=0;
+       log('\ud83d\udee2\ufe0f They dumped the stored rainfall.');
+     }
+     // HV-188: the coat rack hangs donated coats on a rail by the
+     // fire. A raid in the night takes the wearable stash sitting
+     // out there — the hole never holds a rail, and the next cold
+     // dawn should feel the full bite. Sweep taking the rack is
+     // HV-217 / #908 (different verb). Log before the final raid
+     // line so hvdog's last-line Biscuit credit still matches.
+     if(G.structures.coats){
+       G.structures.coats=false;
+       log('\uD83E\uDDE5 They stripped the coat rack \u2014 the rail is empty.');
+     }
+     // HV-236: the card says trust no one. Goods leaving in the night
+     // is how the block learns a camp cannot keep its own. Dawn's
+     // ordinary fade is not this card. Gentrify's Word fade is HV-216;
+     // its Busk stamp is HV-234. Same log line as the raid so
+     // Biscuit's credit stays the last line hvdog reads.
+     addRep(-3);
+     // HV-248: a radio sitting in camp is a supply. Fold the take into
+     // the same last line so hvdog's "Biscuit chased" still matches.
+     var tookRadio=!!G.structures.radio;
+     if(tookRadio) G.structures.radio=false;
+     // HV-266: a hungry Biscuit never left the blanket — panhandle
+     // already knows that, and the raid line credited the chase anyway.
+     var raid=(dogHelps?'Thieves in the night — Biscuit chased them off before they got everything.'
+       :(G.dog===2?'Thieves in the night — Biscuit had curled up hungry and never left the blanket.'
+         :'Stash raided in the night.'))
+       + ' Trust frays \u2014 the block heard a camp that could not keep its own.';
+     if(lostCard>0) raid+=' They took the cardboard too.';
+     if(tookRadio) raid+=' They took the weather band.';
+     log(raid);
    }},
   {id:'injury',title:'Injury',type:'bad',weight:10,
    desc:'You hurt yourself. Moving slowly for the next while.',
@@ -511,17 +766,36 @@ var EVENTS_BAD=[
    desc:'New development nearby. Harassment from locals is increasing.',
    effect:function(){
      G.lastEventDay=G.days;
+     // HV-234: Busk thins until dawn. HV-258: the card says locals,
+     // and Trade is dealing with locals — the same stamp sours the
+     // corner swap for as long as it holds.
+     G.gentrifyDay=G.days;
      G.morale  =Math.max(0,G.morale  -rand(18,28));
      G.goodwill=Math.max(0,G.goodwill-rand(3,8));
+     // HV-216: the card says harassment from locals is increasing.
+     // Word on the Street is that neighborhood. It never heard.
+     addRep(-5);
      log('More hostility in the area. Morale suffers.');
    }},
   {id:'sickness',title:'Illness Spreading',type:'bad',weight:11,
    desc:'A bug is going through the camp. Everyone feels terrible.',
    effect:function(){
      G.lastEventDay=G.days;
-     G.health=Math.max(0,G.health-rand(12,22));
-     G.food  =Math.max(0,G.food  -rand(2,5));
-     log('Sickness hit the community. Health fell.');
+     // HV-210: the card says everyone feels terrible. Rest used to
+     // roll a well-day recovery on the same day and wipe the bug.
+     G.sickDay=G.days;
+     // HV-181: the sanitation unit is the civic health the city already
+     // dropped. A bug going through the camp is the one event that
+     // should feel it. Half dose — contained, not immune. Injury is
+     // a limp, not a bug, and must not steal the cut.
+     var hm=G.petitions&&G.petitions.sanitation?0.5:1;
+     G.health=Math.max(0,G.health-Math.floor(rand(12,22)*hm));
+     G.food  =Math.max(0,G.food  -Math.floor(rand(2,5)*hm));
+     // HV-240: a bug going through the camp keeps the Cook down
+     // through tomorrow's breakfast. This dawn already plated.
+     G.sickUntil=G.days+1;
+     if(hm<1) log('🚻 The sanitation unit contained the bug — it could have been worse.');
+     else log('Sickness hit the community. Health fell.');
    }},
   {id:'dumpster_locked',title:'Dumpsters Locked',type:'bad',weight:7,
    desc:'Property management put locks on the dumpsters. Nothing to scavenge today.',
@@ -548,21 +822,41 @@ var EVENTS_GOOD=[
   {id:'kind_stranger',title:'Kind Stranger',type:'good',weight:10,
    desc:'Someone left a bag of food near the bridge. Small mercy.',
    effect:function(){
-     G.lastEventDay=G.days; var f=rand(3,8); G.food+=f;
+     G.lastEventDay=G.days; var f=rand(3,8);
      G.morale=Math.min(100,G.morale+rand(5,10));
-     log('Found donated food. +'+f+' food.');
+     // HV-194: the card leaves the bag near the bridge. Rain
+     // already soaks the corner. A wet bag is still a mercy —
+     // it is not breakfast.
+     if(G.weather==='rain'){
+       log('Someone left a bag of food near the bridge — the rain soaked it through.');
+     } else {
+       G.food+=f;
+       log('Found donated food. +'+f+' food.');
+     }
    }},
   {id:'found_money',title:'Found $5',type:'good',weight:9,
    desc:'A crumpled bill on the sidewalk. Small win.',
    effect:function(){
-     G.lastEventDay=G.days; G.goodwill+=rand(3,6);
+     G.lastEventDay=G.days;
+     // HV-70: the card is titled Found $5. Goodwill is the camp's
+     // money. The payout used to be a three-to-six roll.
+     G.goodwill+=5;
+     // HV-276: the sidewalk is the card. Rain already soaks Kind
+     // Stranger's bag (#884). A wet five is still a five — soaked
+     // through, it spends like two.
+     if(G.weather==='rain'){
+       G.goodwill-=3;
+       log('Found a five on the sidewalk — soaked through. +2 goodwill.');
+     } else {
+       log('Found a five on the sidewalk. +5 goodwill.');
+     }
      G.morale=Math.min(100,G.morale+rand(4,8));
-     log('Found a few dollars. +goodwill.');
    }},
   {id:'good_weather',title:'Good Weather',type:'good',weight:11,
    desc:'Clear skies and mild temps. A rare easy day.',
    effect:function(){
      G.lastEventDay=G.days;
+     var was=G.weather;
      // HV-67: the card promised clear skies. Warmth and morale used
      // to rise while G.weather stayed rain / cold / heat — the badge
      // and every weatherDef() reader (panhandle, scavenge) never saw it.
@@ -570,6 +864,15 @@ var EVENTS_GOOD=[
      G.warmth=Math.min(100,G.warmth+rand(10,18));
      G.morale=Math.min(100,G.morale+rand(8,14));
      log('Nice weather today. Warmth and morale up.');
+     // HV-196: maybeEvent runs after the garden. A frost morning
+     // the card then calls easy has already given nothing. Rain
+     // and heat already grew — do not pay those twice.
+     if(G.structures.garden&&was==='cold'){
+       var y=rand(1,3);
+       if(G.structures.compost){ y+=1; G.compostDays=(G.compostDays||0)+1; }
+       G.food+=y; floatText('+'+y+'\ud83c\udf5e');
+       log('Garden yielded '+y+' food.');
+     }
    }},
   {id:'old_friend',title:'Old Friend',type:'good',weight:6,
    desc:'Someone from before recognized you. The feeling fades quickly.',
@@ -583,16 +886,22 @@ var EVENTS_GOOD=[
    desc:'A volunteer group dropped off some essentials.',
    effect:function(){
      G.lastEventDay=G.days; G.food+=rand(4,9); G.scraps+=rand(2,5);
+     // HV-175: the card dropped essentials. Cardboard is tent canvas,
+     // blankets, the stash. Cans and wood are different tickets.
+     var gainedCard=rand(2,5);
+     G.cardboard=(G.cardboard||0)+gainedCard;
      G.morale=Math.min(100,G.morale+rand(5,10));
-     log('Volunteers dropped supplies. Food and scraps gained.');
+     log('Volunteers dropped supplies. Food, scraps and cardboard gained.');
+     if(gainedCard>0) log('They left a stack of cardboard too.');
    }},
 ];
 
 function maybeEvent(){
   if(G.days<2||Math.random()>.55) return;
-  // HV-9: a Respected camp draws fewer complaint calls — sweeps come
-  // a third less often once the neighborhood vouches for you.
-  if(Math.random()<.18*(repTier()>=2?.67:1)&&!G.sweepWarned){
+  // HV-9 / HV-245: a Respected camp draws fewer complaint calls —
+  // Word on the Street said halves, not a third less. The .18 gate
+  // becomes .09 once the neighborhood vouches for you.
+  if(Math.random()<.18*(repTier()>=2?.5:1)&&!G.sweepWarned){
     if(G.workers.lookout){
       G.sweepWarned=true; G.packedUp=false;
       showSweepWarning(true, Date.now()+30000);
@@ -619,7 +928,11 @@ function maybeEvent(){
   // honors the Lookout's warning). Leaving 'sweep' in this general
   // pool let ~38% of sweeps fire instantly with no warning even when
   // the player had paid for a Lookout.
-  EVENTS_BAD.forEach(function(e){ if(e.id==='sweep') return; for(var i=0;i<Math.floor(e.weight*bm);i++) pool.push({ev:e,good:false}); });
+  EVENTS_BAD.forEach(function(e){
+    if(e.id==='sweep') return;
+    if(e.id==='fire_out'&&G.fireHeldThisDawn) return;
+    for(var i=0;i<Math.floor(e.weight*bm);i++) pool.push({ev:e,good:false});
+  });
   EVENTS_GOOD.forEach(function(e){ for(var i=0;i<e.weight;i++) pool.push({ev:e,good:true}); });
   var pick=pool[Math.floor(Math.random()*pool.length)];
   triggerEvent(pick.ev,pick.good);
