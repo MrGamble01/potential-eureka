@@ -33,9 +33,25 @@ afterwards.
 
 ## Status at a glance
 
-Homeless Village — recruitment buttons and refusal logs name the rounded-up
-goodwill shortfall. HUD updates keep labels live; affordable costs and active
-workers stay intact. Hook-free `hvhire` covers both widths and successful hiring.
+HVALE — Camera/view defaults exist before pointer handlers run. `hvalecam` covers events before DOMContentLoaded, mobile and desktop loads, drag, and wheel.
+
+HVALE — The tavern festival button names missing food and coin, days left on
+the fair, and days until the town can celebrate again. The label and title
+stay live as stores and dawns change. A click that will not start still says
+why. Cost, length, and the one-fair cooldown are unchanged. Hook-free
+`hvalefest` covers shortfalls, refusals, a real fair, and live updates.
+
+| Hearthvale polish | Status | Verification |
+|---|---|---|
+| Tavern festival feedback | Complete — live shortfall, fair ETA, and rest countdown on the button and title; refusal toasts name the same | `tests/headless/hvalefest.js` — 1280px/768px, clicks, dawns, orchard food, zero page errors |
+HVALE — Windmill panels report how many finished farms this windmill lifts,
+refresh live as construction finishes, and retain the +50% food reminder.
+Hook-free `hvalewind` verifies range, counts and removal at desktop/tablet widths.
+HVALE — Stonemason inspection shows live monument cycles toward the next named stage and the unveiled state. `hvalemason` covers thresholds, live progression, and panel isolation at desktop/tablet widths.
+
+HVALE — On raid nights, the Watchtower panel shows total town watch versus pack
+size and distinguishes this post’s strength. Hook-free `hvaleraidwatch` covers
+staffed posts, palisade completion, Frontier, and unchanged day/Cozy copy.
 
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
@@ -92,6 +108,8 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | Band | State |
 |---|---|
+| **Hearthvale tavern festival** | ✅ Live shortfall, fair days, and rest countdown; `hvalefest` at 1280px/768px; cache `eureka-20260929-hvale-festival` |
+| **Hearthvale windmill lift** | ✅ live finished-farm count and +50% reminder; `hvalewind` at 1280/768; cache `eureka-20260929-hvale-windmill` |
 | **P0** (3 tickets) | ✅ all closed |
 | **P1** (28 tickets) | ✅ all closed — SITE-2 was the last, closed Aug 2026 |
 | **P1 — new** (2 tickets) | ✅ found and closed by the August re-audit |
@@ -112,7 +130,6 @@ their modal pause. Welcome keys, intentional pause, and War Council stay intact.
 
 | ID | Ticket | Verified closed by |
 |---|---|---|
-| HV-HIRE | Recruitment goodwill shortfalls | ✅ `hvhire`: named rounded-up shortfalls in buttons/logs, live HUD refresh, refusal without spending and successful hires at 1280/768. |
 | SEC-1 | Real personal/employer data in `js/orgchart.js` | `PEOPLE` is now an explicitly fictional cast (Vex Pixelheart, Glitch Ramirez, …); page reframed as "Studio Crew". |
 | SEC-2 | Personal PIN presented as security | Lock UI now carries an honest disclosure ("Casual screen lock only — entries are stored unencrypted in this browser"), and `unlock()` is no longer exported from `PersonalAuth`, so it can't be called to bypass the gate. |
 | SEC-3 | Unescaped calendar event titles (XSS) | `js/calendar.js:143-144` runs `Utils.escHtml()` on both interpolations; the settings rows now assign `.value` instead of interpolating into `value="…"`. |
