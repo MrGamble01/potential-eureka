@@ -10,7 +10,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(BASE + '/voxel-garden.html');
     await page.waitForFunction(() => typeof placeSelected === 'function' && typeof W !== 'undefined');
-    const placed = await page.evaluate(() => {
+    const { placed, legacy } = await page.evaluate(() => {
       state.level = 99; state.coins = 10000;
       const positions = [];
       for (let x = -6; x <= 6; x++) for (let z = -6; z <= 6; z++) {
@@ -31,14 +31,17 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8099';
       const legacy = JSON.parse(localStorage.getItem(SAVE_KEY));
       legacy.plants.forEach(p => { if (DECOR[p.type]) p.stage = 0; });
       legacy.savedAt = Date.now();
-      localStorage.setItem(SAVE_KEY, JSON.stringify(legacy));
-      return results;
+      return { placed: results, legacy };
     });
     for (const p of placed) {
       assert.equal(p.stage, 2, `${p.type}: placed at full size`);
       assert.equal(p.cubes, p.expected, `${p.type}: correct model`);
     }
-    await page.reload();
+    // Seed from a neutral page so unload autosave cannot overwrite stage-zero fixtures.
+    await page.goto(BASE + '/404.html');
+    await page.evaluate(legacy => localStorage.setItem('voxel-garden-v1', JSON.stringify(legacy)), legacy);
+    await page.goto(BASE + '/voxel-garden.html');
+    await page.waitForFunction(() => typeof W !== 'undefined' && W.plants.size > 0);
     const restored = await page.evaluate(() => [...W.plants.values()].map(p => ({
       type: p.type, stage: p.stage, decor: !!DECOR[p.type]
     })));
