@@ -1324,17 +1324,21 @@ const UNIT_COST = 1500, UNIT_CAP_BONUS = 30, UNIT_KEEP = 15;
 const BURNER_COST = 800, BURNER_SALES = 10;
 function burnerFresh() { return (state.burnerLeft || 0) > 0; }
 function burnerStingMult() { return burnerFresh() ? 0.5 : 1; }
+const BURNER_TITLE = document.getElementById('burner-toggle').title;
 function refreshBurnerBtn() {
   const b = document.getElementById('burner-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 2 ? '' : 'none';
   b.classList.toggle('on', burnerFresh());
-  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : '📱 BURNER $' + fmtCash(BURNER_COST);
+  const short = !burnerFresh() && currentAct() >= 2 && state.cash < BURNER_COST;
+  const need = 'Need $' + fmtCash(BURNER_COST - state.cash) + ' more';
+  b.textContent = burnerFresh() ? '📱 BURNER · ' + state.burnerLeft + ' LEFT' : short ? '📱 BURNER ' + need : '📱 BURNER $' + fmtCash(BURNER_COST);
+  b.title = short ? need + ' to buy a clean number. ' + BURNER_TITLE : BURNER_TITLE;
 }
 function buyBurner() {
   if (burnerFresh()) { showToast('📱 The number still holds — ' + state.burnerLeft + ' sales of charge left.', ''); return; }
-  if (currentAct() < 2) return;
-  if (state.cash < BURNER_COST) { showToast("Can't afford a clean number yet ($" + fmtCash(BURNER_COST) + ').', 'bust'); return; }
+  if (currentAct() < 2) { showToast('📱 Clean numbers unlock in Act II', 'bust'); return; }
+  if (state.cash < BURNER_COST) { showToast('📱 Need $' + fmtCash(BURNER_COST - state.cash) + ' more to buy a clean number.', 'bust'); return; }
   state.cash -= BURNER_COST;
   state.burnerLeft = BURNER_SALES;
   state.burnersBought = (state.burnersBought || 0) + 1;
@@ -1360,18 +1364,23 @@ function burnStreetSale() {
 // batch off the trim table bags one extra, forever. The ledger
 // remembers exactly how much of the stash owes her.
 const MOTHER_COST = 1500;
+const MOTHER_TITLE = document.getElementById('mother-toggle').title;
 function motherRooted() { return !!state.motherRooted; }
 function refreshMotherBtn() {
   const b = document.getElementById('mother-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 2 ? '' : 'none';
   b.classList.toggle('on', motherRooted());
-  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')' : '🌱 MOTHER $' + fmtCash(MOTHER_COST);
+  const short = !motherRooted() && currentAct() >= 2 && state.cash < MOTHER_COST
+    ? 'Need $' + fmtCash(MOTHER_COST - state.cash) + ' more' : '';
+  b.textContent = motherRooted() ? '🌱 MOTHER · +1/BATCH (' + (state.motherBags || 0) + ')'
+    : '🌱 MOTHER ' + (short || '$' + fmtCash(MOTHER_COST));
+  b.title = short ? short + ' to root the prize genetics.' : MOTHER_TITLE;
 }
 function rootMother() {
   if (motherRooted()) { showToast('🌱 The mother is already rooted — every batch bags one extra.', ''); return; }
-  if (currentAct() < 2) return;
-  if (state.cash < MOTHER_COST) { showToast("Can't afford the prize genetics yet ($" + fmtCash(MOTHER_COST) + ').', 'bust'); return; }
+  if (currentAct() < 2) { showToast('🌱 Prize genetics unlock in Act II', 'bust'); return; }
+  if (state.cash < MOTHER_COST) { showToast('🌱 Need $' + fmtCash(MOTHER_COST - state.cash) + ' more to root the prize genetics.', 'bust'); return; }
   state.cash -= MOTHER_COST;
   state.motherRooted = true;
   refreshMotherBtn();
@@ -3147,17 +3156,21 @@ function heatDrainPerSec() {
 // you, the stash is lost, heat resets to 40, and the run survives.
 // One bag at a time; skips tally toward Gone Before Dawn.
 const BAG_COST = 2500;
+const BAG_TITLE = document.getElementById('bag-toggle').title;
 function refreshBagBtn() {
   const b = document.getElementById('bag-toggle');
   if (!b) return;
   b.style.display = currentAct() >= 3 ? '' : 'none';
   b.classList.toggle('on', !!state.bagPacked);
-  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+  const short = !state.bagPacked && currentAct() >= 3 && state.cash < BAG_COST;
+  const need = 'Need $' + fmtCash(BAG_COST - state.cash) + ' more';
+  b.textContent = state.bagPacked ? '🎒 BAG PACKED' : short ? '🎒 PACK A BAG ' + need : '🎒 PACK A BAG $' + fmtCash(BAG_COST);
+  b.title = short ? need + ' to pack a getaway bag. ' + BAG_TITLE : BAG_TITLE;
 }
 function packBag() {
   if (state.bagPacked) { showToast('🎒 The bag is already by the back door.', ''); return; }
-  if (currentAct() < 3) return;
-  if (state.cash < BAG_COST) { showToast("Can't afford the bag yet ($" + fmtCash(BAG_COST) + ').', 'bust'); return; }
+  if (currentAct() < 3) { showToast('🎒 Getaway bags unlock in Act III', 'bust'); return; }
+  if (state.cash < BAG_COST) { showToast('🎒 Need $' + fmtCash(BAG_COST - state.cash) + ' more to pack a getaway bag.', 'bust'); return; }
   state.cash -= BAG_COST;
   state.bagPacked = true;
   refreshBagBtn();
@@ -4001,7 +4014,10 @@ function hireRefusal(role, cost, count, max) {
 }
 
 function refreshHud() {
+  refreshMotherBtn();
   document.getElementById('cash-val').textContent = '$'+fmtCash(state.cash);
+  refreshBurnerBtn(); // Keep the shortfall live after every cash change.
+  refreshBagBtn(); // Keep the shortfall live after every cash change.
   document.getElementById('heat-fill').style.width = state.heat+'%';
   document.getElementById('heat-val').textContent = Math.floor(state.heat);
   document.getElementById('act-badge').textContent =
