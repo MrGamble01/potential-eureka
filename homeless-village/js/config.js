@@ -1027,3 +1027,16 @@ function bridgeOpen(){
   var m = document.getElementById('chain-modal');
   return !!(m && m.classList.contains('open'));
 }
+
+// Reading the ending must not consume the next morning.
+function keysOpen(){
+  return !!document.getElementById('hv-graduation');
+}
+
+// Blocking overlays also stop movement and discard queued walking input.
+function overlayOpen(){
+  if(introOpen()) return true;
+  if(bridgeOpen()) return true;
+  if(typeof gameOverShown!=='undefined' && gameOverShown) return true;
+  return !!document.getElementById('hv-graduation');
+}
