@@ -4672,6 +4672,9 @@ function doAction(hit){
   if(ud.buildingKey){                                   // tap a building
     if(ud.buildingKey==='market')return sellStockpile(false);
     if(ud.buildingKey==='compost')return spreadCompost();   // VOX-3
+    if(ud.buildingKey==='apiary'){
+      toast('🐝 Apiary — next comb in '+Math.ceil(Math.max(0,16-honeyT))+'s · '+(state.goods.honey||0)+' 🍯'+(stockpiles()?'':' · no stockpiles; combs pay coins'));return;
+    }
     if(ud.buildingKey==='brewery'){
       const honey=state.goods.honey||0,mead=state.goods.mead||0;
       if(honey<=0)return toast('🍶 The still waits for honey · 🍯 Honey stock 0 · Mead on hand '+mead);
