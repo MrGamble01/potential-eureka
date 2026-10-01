@@ -120,6 +120,9 @@ function buildActionUI(){
     dyb.addEventListener('mouseleave',hideTip);
     el.appendChild(dyb);
   }
+  // Newly created action nodes need the current lock/range state.
+  _scavGateOut=null;
+  updateScavengeGate();
 }
 
 function buildCraftUI(){
