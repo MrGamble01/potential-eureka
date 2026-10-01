@@ -1728,9 +1728,21 @@
   function wishRoll() { return rrand(state.day * 31 + (state.wishes || 0) * 7); }
   function goldenMult() { return state.goldenDay === state.day ? 1.5 : 1; }
   function wishGain(res, n) { state.res[res] = Math.min(capOf(res), state.res[res] + n); }
+  function wishShortfall() { return 'Need ' + Math.ceil(WISH_COST - state.res.gold) + ' gold more'; }
+  function refreshWishBtn() {
+    if (!selected || selected.type !== 'well' || selected.done === false) return;
+    const btn = document.getElementById('p-wish');
+    if (!btn) return;
+    const heard = wishedToday();
+    const label = heard ? '💧 Wish heard — returns at dawn'
+      : state.res.gold < WISH_COST ? '🪙 ' + wishShortfall()
+      : '🪙 Make a wish · ' + WISH_COST + ' gold';
+    if (btn.textContent !== label) btn.textContent = label;
+    btn.disabled = heard;
+  }
   function makeWish() {
     if (wishedToday()) { toast('💧 The well has heard today’s wish already.'); SFX('error'); return; }
-    if (state.res.gold < WISH_COST) { toast('A wish takes ' + WISH_COST + ' gold.'); SFX('error'); return; }
+    if (state.res.gold < WISH_COST) { toast(wishShortfall() + ' to make a wish.'); SFX('error'); return; }
     const r = wishRoll();
     state.res.gold -= WISH_COST;
     state.wishDay = state.day;
@@ -5458,6 +5470,7 @@
       else { wx.textContent = ''; wx.title = ''; }
     }
     refreshFestivalBtn();
+    refreshWishBtn();
     // (No per-cycle HUD flash — numbers just update, nothing blinks.)
   }
 
@@ -5694,14 +5707,11 @@
         : '🌳 Plant the Founders\u2019 Oak <span style="opacity:.7;font-size:11px">' + OAK_COST + '🪙 · once, forever</span>';
       btns += '<button id="p-oak"' + (oaked ? ' disabled' : '') + '>' + olbl + '</button>';
     }
-    if (b.type === 'well' && b.done !== false) {
-      const wlbl = wishedToday() ? '💧 The well has heard today’s wish'
-        : '🪙 Make a wish <span style="opacity:.7;font-size:11px">' + WISH_COST + '🪙</span>';
-      btns += '<button id="p-wish"' + (wishedToday() ? ' disabled' : '') + '>' + wlbl + '</button>';
-    }
+    if (b.type === 'well') btns += '<button id="p-wish"></button>';
     btns += '<button class="danger" id="p-demolish">Remove</button>';
     actions.innerHTML = btns;
     refreshFestivalBtn();
+    refreshWishBtn();
     const upBtn = document.getElementById('p-upgrade');
     if (upBtn) upBtn.onclick = () => { upgradeBuilding(b); if (selected === b) showPanel(b); };
     const fBtn = document.getElementById('p-festival');
@@ -5713,7 +5723,7 @@
     const oakBtn = document.getElementById('p-oak');
     if (oakBtn) oakBtn.onclick = () => { plantOak(); if (selected === b) showPanel(b); };
     const wBtn = document.getElementById('p-wish');
-    if (wBtn) wBtn.onclick = () => { makeWish(); if (selected === b) showPanel(b); };
+    if (wBtn) wBtn.onclick = () => { makeWish(); refreshWishBtn(); };
     document.getElementById('p-demolish').onclick = () => { demolish(b); hidePanel(); };
     document.getElementById('panel').classList.add('show');
   }
