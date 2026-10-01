@@ -2879,10 +2879,8 @@ function buyBackRoom() {
   if (cc) cc.onclick = () => document.getElementById('chain-modal').classList.remove('open');
   const cm = document.getElementById('chain-modal');
   if (cm) cm.addEventListener('click', e => { if (e.target === cm) cm.classList.remove('open'); });
-  // LAB-59: The Corner takes a click on the X and a click on the
-  // backdrop, but not the key every other overlay on this site
-  // answers to. `role="dialog" aria-modal="true"` promises Escape
-  // closes it (WAI-ARIA APG); it didn't.
+  // The Corner is a browsing panel, like its close button and backdrop.
+  // Forced event, difficulty and bust choices keep their own exit rules.
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && cm && cm.classList.contains('open')) cm.classList.remove('open');
   });

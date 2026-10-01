@@ -66,6 +66,7 @@ ok(!!scoped && /e\.key\s*===\s*['"]Escape['"]/.test(scoped[0]),
     await page.click('#diff-careful');
     await page.waitForSelector('#diff-modal', { state: 'hidden', timeout: 10000 });
 
+    await page.click('#intro-go'); // current first-run introduction follows difficulty
     await page.click('#chain-toggle');
     const openedRight = await page.$eval('#chain-modal', el => el.classList.contains('open'));
     ok(openedRight, 'The Corner opens from the tray button');
@@ -74,6 +75,12 @@ ok(!!scoped && /e\.key\s*===\s*['"]Escape['"]/.test(scoped[0]),
     await page.waitForTimeout(200);
     const closed = await page.$eval('#chain-modal', el => !el.classList.contains('open'));
     ok(closed, 'LAB-59: Escape closes The Corner');
+    for (const id of ['event-modal', 'bust-modal']) {
+      await page.evaluate(id => document.getElementById(id).classList.add('open'), id);
+      await page.keyboard.press('Escape');
+      ok(await page.$eval('#' + id, el => el.classList.contains('open')), 'Escape preserves forced ' + id);
+      await page.evaluate(id => document.getElementById(id).classList.remove('open'), id);
+    }
 
     ok(errs.length === 0, `no page errors${errs.length ? ' — ' + errs[0] : ''}`);
     await ctx.close();
