@@ -53,6 +53,13 @@ HVALE — On raid nights, the Watchtower panel shows total town watch versus pac
 size and distinguishes this post’s strength. Hook-free `hvaleraidwatch` covers
 staffed posts, palisade completion, Frontier, and unchanged day/Cozy copy.
 
+HV — Rain Bet’s tooltip names a radio **or a Lookout** as the
+forecast edge. `forecastVisible()` already was Lookout or Radio;
+the 🎲 row had sold the band as the whole edge. Stake and payout
+stay 2 against 5. Hook-free `hvbetlook` covers the tooltip, the
+live title, Lookout-only / radio-only / neither skies, and
+unchanged 2 / 5.
+
 HV — Clicks reaching an action’s cooldown now name the action and rounded-up
 seconds left, with an error blip. Hook-free `hvactioncd` covers the live log,
 unchanged resources/deadlines, and normal starts at expiry.
