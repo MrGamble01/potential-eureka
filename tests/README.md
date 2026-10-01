@@ -46,6 +46,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Voxel bakery loaf report | `voxbake` (hook-free: next-loaf ETA, crop/bread stock, windmill two-loaf cycle, empty-crop wait, read-only taps at 1280px/768px, zero page errors) |
 | Homeless Village action cooldowns | `hvactioncd` (hook-free: production completion/button clicks, named rounded-up seconds in the live log, unchanged resources/deadlines/jobs, and normal starts at expiry for Trade, Rest and Forage) |
 | Voxel Isle occupied placement | `voxplace` (hook-free: first block charges once, occupied block/decor attempts toast without changing coins or decor, successful decor and existing plant refusal) |
+| Homeless Village rain barrel stock | `hvbarrel` (hook-free: live empty/mid/full stock in craft cost, tip and click log; no spend/start; Workbench and unbuilt barrel controls; existing economy/save coverage) |
 | Homeless Village craft refusals | `hvcraftrefuse` (hook-free: production clicks name resource shortfalls, required structures and already-built structures; no spend or active craft on refusal; hover recovery, affordable craft and mutex controls) |
 | Hearthvale windmill lift | `hvalewind` (hook-free: finished farms in this windmill’s range, zero/singular/plural copy, live completion, removal, and zero page errors at 1280/768) |
 | Hearthvale mason monument | `hvalemason` (hook-free: stage thresholds, live progress, unveiled state, construction/non-mason isolation, unchanged cycles/gold; 1280px/768px, zero page errors) |
