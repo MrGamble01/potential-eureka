@@ -75,6 +75,7 @@ const VAULT = { bal: 900, life: 900 };
   await page.goto(BASE + '/robots.txt', { waitUntil: 'load', timeout: 25000 });
   await page.evaluate(([s, l, v]) => {
     localStorage.clear();
+    localStorage.setItem('growop-intro-seen', '1'); // returning player; keep Reset Game reachable
     localStorage.setItem('drug-lab-v1', JSON.stringify(s));
     localStorage.setItem('growop-legacy', JSON.stringify(l));
     localStorage.setItem('growop-vault', JSON.stringify(v));
