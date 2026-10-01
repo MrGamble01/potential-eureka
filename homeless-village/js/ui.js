@@ -161,13 +161,25 @@ function buildWorkersUI(){
     if(hired){
       row.innerHTML='<span class="w-icon">'+w.icon+'</span><span class="w-name">'+w.name+'</span><span class="w-status">active</span>';
     } else {
-      row.innerHTML='<span class="w-icon">'+w.icon+'</span><span class="w-name">'+w.name+'</span><button class="w-hire" onclick="hireWorker(\''+w.id+'\')" title="'+w.desc+'">'+w.cost+'🩶</button>';
+      row.innerHTML='<span class="w-icon">'+w.icon+'</span><span class="w-name">'+w.name+'</span><button id="hire-'+w.id+'" class="w-hire" onclick="hireWorker(\''+w.id+'\')" title="'+w.desc+'">'+w.cost+'🩶</button>';
     }
     el.appendChild(row);
   });
+  refreshWorkerHireButtons();
   buildPetitionsUI();  // HV-15: the notice board rides the same panel
   buildRegularsUI();   // HV-7: the roster shares the Community panel
   buildFavorUI();      // HV-16: a friend's ask rides under the roster
+}
+
+// Refresh in place so HUD ticks preserve button focus and click targets.
+function refreshWorkerHireButtons(){
+  WORKER_DEFS.forEach(function(w){
+    var button=document.getElementById('hire-'+w.id);
+    if(!button) return;
+    var shortfall=Math.ceil(w.cost-G.goodwill);
+    button.textContent=shortfall>0?'Need '+shortfall+' more':w.cost+'🩶';
+    button.title=shortfall>0?'Need '+shortfall+' more goodwill to recruit '+w.name+'.':w.desc;
+  });
 }
 
 // HV-16: the open favor renders as one row with a Give button that
@@ -302,6 +314,7 @@ function refreshDepositAction(){
 function updateHUD(){
   refreshDepositAction();
   checkGoals(); updateGoalHUD();
+  refreshWorkerHireButtons();
   document.getElementById('stat-food').textContent    =Math.floor(G.food);
   document.getElementById('stat-scraps').textContent  =Math.floor(G.scraps);
   document.getElementById('stat-cans').textContent    =Math.floor(G.cans);
