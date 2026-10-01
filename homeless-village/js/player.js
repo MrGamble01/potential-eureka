@@ -121,6 +121,23 @@ function doAction(a){
     if(frGate.built){ log('\uD83E\uDDCA The corner fridge already hums \u2014 the block keeps it stocked now.'); return; }
     if((G.goodwill||0)<FRIDGE_COST){ log('\uD83E\uDDCA A fridge for the corner takes '+FRIDGE_COST+' goodwill to set right. Not yet.'); sfx('error'); return; }
   }
+  // Refuse unmet prerequisites before starting a job or charging its cooldown.
+  if(a.id==='wall' && !bridgeHasWall()){
+    log('🧱 The wall is bare — this bridge has no story yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='thermos' && !thermosHasWarmth()){
+    log('🫖 The thermos is cold — this bridge has no story to warm it yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='marisol' && !marisolHasStory()){
+    log('🚗 Marisol’s tow truck rolls past without slowing — this bridge has no story she’d know yet.');
+    sfx('error'); return;
+  }
+  if(a.id==='borrow' && (G.rayDebt||0)>0){
+    log('🤝 Ray taps his ledger — '+G.rayDebt+' still owed. One at a time.');
+    sfx('error'); return;
+  }
   // HV-275: dawn says the cold gets into everything. Ray holds the
   // bench by the bridge. A Cold Snap sky already thins the corner.
   // The bench never emptied — he still fronted a summer stake.
