@@ -6917,7 +6917,11 @@ function updateAcq(dt) {
   acqNextT -= dt;
   if (acqNextT > 0) return;
   // Don't pitch an acquisition over another modal or an open pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  // TYC-61: Wall / Help / Dashboard / Achievements / Elevator are the
+  // same browsing overlays as Founder Shop — they have to stay on this
+  // list when a new one lands (see the focus-trap roster). board-modal
+  // stays: a live vote is also busy.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     acqNextT = 25;
     return;
   }
@@ -7019,7 +7023,7 @@ function updateOnsite(dt) {
   if (prestigeLevel < 1) return;
   onsiteNextT -= dt;
   if (onsiteNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     onsiteNextT = 25;
     return;
   }
@@ -7116,7 +7120,7 @@ function updateLaunch(dt) {
   launchNextT -= dt;
   if (launchNextT > 0) return;
   // A launch window never opens over another modal or pitch.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     launchNextT = 25;
     return;
   }
@@ -7202,7 +7206,7 @@ function updatePoach(dt) {
   if (prestigeLevel < 1) return;
   poachNextT -= dt;
   if (poachNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     poachNextT = 25;
     return;
   }
@@ -7321,7 +7325,7 @@ function updateRetreat(dt) {
   if (prestigeLevel < 1) return;
   retreatNextT -= dt;
   if (retreatNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     retreatNextT = 25;
     return;
   }
@@ -7387,7 +7391,9 @@ function updateBoard(dt) {
   boardNextT -= dt;
   if (boardNextT > 0) return;
   // Don't convene over another modal.
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open')) {
+  // TYC-61: same browsing-overlay miss as the offer spawners. board-modal
+  // is omitted because this IS the board vote.
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open')) {
     boardNextT = 20;
     return;
   }
@@ -7499,7 +7505,7 @@ function updateRfp(dt) {
   if (rivalDone || seasonGoalHit) return;
   rfpNextT -= dt;
   if (rfpNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     rfpNextT = 25;
     return;
   }
@@ -7615,7 +7621,7 @@ function updateHackathon(dt) {
   }
   hackNextT -= dt;
   if (hackNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     hackNextT = 25;
     return;
   }
@@ -7693,7 +7699,7 @@ function updateTroll(dt) {
   if (prestigeLevel < 1) return;   // trolls only sue companies worth suing
   trollNextT -= dt;
   if (trollNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     trollNextT = 25;
     return;
   }
@@ -7799,7 +7805,7 @@ function updateMentor(dt) {
   if (mentorOn()) return;   // one mentor at a time — the pitch waits for a vacancy
   mentorNextT -= dt;
   if (mentorNextT > 0) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     mentorNextT = 25;
     return;
   }
@@ -7914,7 +7920,7 @@ function updateWar(dt) {
   if (warUsedSeason || rivalDone || seasonGoalHit) return;
   const mine = typeof seasonRecurringRevenue === 'number' ? seasonRecurringRevenue : 0;
   if (rivalRev < rivalTarget() * 0.75 || mine >= rivalRev) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || bridgeOffer || keynoteOffer || sreOffer || migrateOffer) {
     warNextT = 25;
     return;
   }
@@ -8105,7 +8111,7 @@ function updateBridge(dt) {
   bridgeNextT = 20;
   if (prestigeLevel < 1 || bridgeTakenSeason) return;
   if (state.cash >= BRIDGE_FLOOR) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || keynoteOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || keynoteOffer || sreOffer || migrateOffer) {
     return;
   }
   makeBridgeOffer();
@@ -8213,7 +8219,7 @@ function updateKeynote(dt) {
   keynoteNextT = 25;
   if (prestigeLevel < 1 || keynoteDoneSeason || keynote) return;
   if (seasonRecurringRevenue < currentGoalTarget() * 0.25) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || sreOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || sreOffer || migrateOffer) {
     return;
   }
   makeKeynoteOffer();
@@ -8302,7 +8308,7 @@ function updateSre(dt) {
   if (sreNextT > 0) return;
   sreNextT = 25;
   if (prestigeLevel < 1 || outagesSeen < 1 || sreHeldSeason || sreShield || outage) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || migrateOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || migrateOffer) {
     return;
   }
   makeSreOffer();
@@ -8394,7 +8400,7 @@ function updateMigrate(dt) {
   if (migrateNextT > 0) return;
   migrateNextT = 25;
   if (prestigeLevel < 1 || outagesSeen < 2 || outage) return;
-  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
+  if (document.querySelector('#win-modal.open, #tip-modal.open, #founder-modal.open, #ipo-modal.open, #theme-modal.open, #board-modal.open, #wall-modal.open, #help-modal.open, #dash-modal.open, #achievements-modal.open, #elevator-modal.open') || acqOffer || onsiteOffer || launchOffer || poachOffer || retreatOffer || rfpOffer || hackOffer || trollOffer || mentorOffer || warOffer || bridgeOffer || keynoteOffer || sreOffer) {
     return;
   }
   makeMigrateOffer();
