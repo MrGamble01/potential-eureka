@@ -50,6 +50,7 @@ const winterHalves = /G\.season===3\?\.5:1/.test(player);
 
 (async () => {
   const browser = await chromium.launch({
+    ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
 
@@ -140,6 +141,40 @@ const winterHalves = /G\.season===3\?\.5:1/.test(player);
 
   ok(/wasd/i.test(copy) && /dumpster/i.test(copy),
      'the copy names both halves of the gate a newcomer bounces off: how to move, and that scavenging needs a dumpster');
+
+  // Both sheets cover the top-bar Games link. Their own exit must be
+  // visible without scrolling and navigate through the real anchor.
+  for (const width of [1280, 390]) {
+    for (const sheet of ['intro-modal', 'chain-modal']) {
+      const exitCtx = await browser.newContext({ viewport: { width, height: 844 } });
+      const exitPage = await exitCtx.newPage();
+      const exitErrors = [];
+      exitPage.on('pageerror', e => exitErrors.push(String(e)));
+      await exitPage.goto(BASE + '/homeless-village.html', { waitUntil: 'load' });
+      await exitPage.waitForSelector('#intro-modal.open');
+      if (sheet === 'chain-modal') {
+        await exitPage.click('#intro-close');
+        await exitPage.click('#chain-btn');
+      }
+      const reachable = await exitPage.evaluate(id => {
+        const a = document.querySelector('#' + id + ' a.ea-back');
+        if (!a || a.getAttribute('href') !== '/') return false;
+        const r = a.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return r.width > 0 && r.top >= 0 && r.bottom <= innerHeight
+          && r.left >= 0 && r.right <= innerWidth && a.contains(hit);
+      }, sheet);
+      ok(reachable, `${width}: ${sheet} offers Games above the fold without dismissing the sheet`);
+      if (reachable) {
+        await exitPage.click('#' + sheet + ' a.ea-back');
+        await exitPage.waitForURL(url => url.pathname === '/');
+        ok(await exitPage.locator('#view-arcade').isVisible(),
+          `${width}: ${sheet} Games returns to the catalogue`);
+      }
+      ok(exitErrors.length === 0, `${width}: ${sheet} exit has no page errors`);
+      await exitCtx.close();
+    }
+  }
 
   await ctx.close();
   await browser.close();

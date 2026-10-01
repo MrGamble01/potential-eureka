@@ -62,6 +62,13 @@
     <button class="nav-utils-toggle" id="nav-utils-toggle" title="Dashboard, productivity &amp; other tools" aria-controls="nav-utils" aria-expanded="false">&#8943; more</button>
   </nav>
 
+  <nav class="arcade-secondary-nav arcade-shell" aria-label="Studio links">
+    <button type="button" class="sec-link" data-view="halloffame">&#127942; Hall of Fame</button>
+    <button type="button" class="sec-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; Patch Notes</button>
+    <button type="button" class="sec-link" id="primer-btn" title="What this place is and how it fits together">&#10024; How it works</button>
+    <button type="button" class="sec-link" id="challenge-jump-btn">&#128197; Challenge</button>
+  </nav>
+
   <!-- Tucked-away utility views + toys — not games, kept out of the way -->
   <div class="nav-utils" id="nav-utils">
     <button data-view="dashboard">Dashboard</button>
@@ -76,42 +83,97 @@
   <!-- ===================== ARCADE (HOME) ===================== -->
   <section id="view-arcade" class="view active">
     <div class="arcade-hero">
-      <div class="arcade-hero-kicker">&#9679; TWENTY-ONE GAMES + A LIVE STUDIO &mdash; FREE TO PLAY</div>
-
+      <div class="arcade-hero-kicker">&#9679; FREE &mdash; TWENTY-ONE GAMES &mdash; NO SIGN-UP</div>
       <div class="arcade-hero-title glitch" data-text="EUREKA GAMES">EUREKA GAMES</div>
-      <div class="arcade-hero-sub">PICK A GAME <span class="arcade-blink">&#9646;</span></div>
-      <button class="hof-link" data-view="halloffame">&#127942; HALL OF FAME</button>
-      <button class="hof-link" id="patch-notes-btn" title="What the studio shipped lately">&#128240; PATCH NOTES</button>
+      <p class="arcade-hero-sub">The flagship is Age of War. Everything else is a hop down the page.</p>
+
+      <a class="arcade-flagship" href="ageofwar/" aria-label="Play Age of War">
+        <div class="arcade-flagship-art" aria-hidden="true">
+          <img class="arcade-flagship-poster" src="assets/thumbs/ageofwar.jpg" alt="" width="642" height="280">
+        </div>
+        <div class="arcade-flagship-copy">
+          <div class="arcade-flagship-kicker">Flagship &middot; Hours</div>
+          <div class="arcade-flagship-name">AGE OF WAR</div>
+          <p class="arcade-flagship-pitch">March through the ages. Crush the enemy base.</p>
+          <span class="hero-cta hero-cta--flagship">&#9654; Play Age of War</span>
+        </div>
+      </a>
+
+      <p class="arcade-hero-alt">
+        Or
+        <button type="button" class="hero-alt-link" data-view="snake">quick play Snake</button>
+        <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
+        <button type="button" class="hero-alt-link" data-jump="long">6 long games</button>
+        <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
+        <button type="button" class="hero-alt-link" data-jump="studio">the studio</button>
+        <span class="hero-alt-dot" aria-hidden="true">&middot;</span>
+        <button type="button" class="hero-alt-link" data-jump="quick">15 quick games</button>
+      </p>
     </div>
+
     <div class="card-search-wrap">
       <input id="card-search" class="card-search" type="search" placeholder="🔎 Filter games — name or tag…"
              aria-label="Filter games" autocomplete="off">
       <span id="card-search-count" class="card-search-count" aria-live="polite"></span>
+      <nav class="arcade-scan" aria-label="Jump by session length">
+        <button type="button" class="arcade-scan-link arcade-scan-link--long" data-jump="long">
+          <span class="arcade-scan-time">Hours</span>
+          Long
+          <span class="arcade-scan-count">6</span>
+        </button>
+        <button type="button" class="arcade-scan-link arcade-scan-link--studio" data-jump="studio">
+          Studio
+        </button>
+        <button type="button" class="arcade-scan-link arcade-scan-link--quick" data-jump="quick">
+          <span class="arcade-scan-time">Minutes</span>
+          Quick
+          <span class="arcade-scan-count">15</span>
+        </button>
+      </nav>
     </div>
     <div id="jump-back-in" class="jump-back-in" role="region" aria-label="Jump back in" hidden></div>
+    <div id="primer-hint" role="region" aria-label="New here" hidden>
+      <span class="primer-hint-text">&#10024; <b>New here?</b> Six long games, a quick arcade, and a scoreboard that stays in this browser.</span>
+      <button class="primer-hint-open" id="primer-hint-open">How it works &rarr;</button>
+      <button class="primer-hint-x" id="primer-hint-x" aria-label="Dismiss">&times;</button>
+    </div>
     <div id="daily-banner" role="region" aria-label="Today's challenge">
       <span class="daily-title">📅 TODAY'S CHALLENGE <span id="daily-date"></span></span>
-      <span class="daily-sub">One shared seed — same pieces, same food, same rocks for everyone. Set today's mark:</span>
+      <span class="daily-sub">Same seed for everyone — set today's mark:</span>
       <span id="daily-games"></span>
     </div>
-    <div class="arcade-grid">
+    <div id="arcade-empty" class="arcade-empty" hidden>
+      <p class="arcade-empty-copy">No games match that filter.</p>
+      <button type="button" class="arcade-empty-clear" id="arcade-empty-clear">Clear filter</button>
+    </div>
 
-      <a class="arcade-card" href="ageofwar" style="--accent:#D29922">
+    <div class="arcade-section arcade-section--long" id="arcade-long" data-section="long">
+      <div class="arcade-section-head">
+        <div class="arcade-section-label">
+          <h2 class="arcade-section-title">Long games</h2>
+          <span class="arcade-section-count">6</span>
+          <span class="arcade-section-chip">Hours</span>
+        </div>
+        <p class="arcade-section-lede">Save and come back. These are the flagships.</p>
+      </div>
+      <div class="arcade-grid arcade-grid--long">
+      <a class="arcade-card arcade-card--flagship" href="ageofwar/" style="--accent:#D29922">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay" width="642" height="280">
+          <img class="arcade-card-poster" src="assets/thumbs/ageofwar.jpg" alt="Age of War gameplay" width="642" height="280" data-crop="wide">
           <video class="arcade-card-clip" src="assets/thumbs/ageofwar.webm" muted loop playsinline preload="none"></video>
           <div class="arcade-card-shine"></div>
+          <div class="arcade-card-flag">Flagship</div>
           <div class="arcade-card-hi" data-hi="ageofwar"></div>
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">AGE OF WAR</div>
-          <div class="arcade-card-tags"><span>Strategy</span><span>Waves</span><span>Bosses</span></div>
-          <div class="arcade-card-desc">March your army through the ages and crush the enemy base.</div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Strategy</span><span>Waves</span></div>
+          <div class="arcade-card-desc">March through the ages. Crush the enemy base.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
 
-      <a class="arcade-card" href="tycoon" style="--accent:#58A6FF">
+      <a class="arcade-card" href="tycoon/" style="--accent:#58A6FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/tycoon.jpg" alt="Startup Tycoon gameplay" width="640" height="400">
           <video class="arcade-card-clip" src="assets/thumbs/tycoon.webm" muted loop playsinline preload="none"></video>
@@ -120,8 +182,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">STARTUP TYCOON</div>
-          <div class="arcade-card-tags"><span>Idle</span><span>3D</span><span>Story</span></div>
-          <div class="arcade-card-desc">Hire engineers, ship features, and grind your way to IPO.</div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Idle</span><span>Story</span></div>
+          <div class="arcade-card-desc">Hire, ship, grind your way to IPO.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -135,8 +197,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">GROW OP</div>
-          <div class="arcade-card-tags"><span>Builder</span><span>3D</span><span>Risk</span></div>
-          <div class="arcade-card-desc">Expand the operation room by room &mdash; and watch the heat.</div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Risk</span></div>
+          <div class="arcade-card-desc">Expand room by room — watch the heat.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -150,8 +212,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">HOMELESS VILLAGE</div>
-          <div class="arcade-card-tags"><span>Survival</span><span>3D</span><span>Idle</span></div>
-          <div class="arcade-card-desc">Survive under the bridge and build a village from nothing.</div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Survival</span><span>Idle</span></div>
+          <div class="arcade-card-desc">Survive under the bridge. Build a village.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -164,8 +226,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">HEARTHVALE</div>
-          <div class="arcade-card-tags"><span>Builder</span><span>Cozy</span><span>Pixel</span></div>
-          <div class="arcade-card-desc">Grow a cozy riverside town &mdash; homes, workers, trade, seasons &amp; wildlife.</div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Builder</span><span>Cozy</span></div>
+          <div class="arcade-card-desc">Cozy riverside town — homes, trade, seasons.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
@@ -179,13 +241,25 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VOXEL ISLE</div>
-          <div class="arcade-card-tags"><span>Voxel</span><span>3D</span><span>Cozy</span></div>
-          <div class="arcade-card-desc">A floating voxel island, all yours &mdash; till, plant, water, harvest, grow.</div>
+          <div class="arcade-card-tags"><span class="tag-session tag-session--long">⏳ Hours</span><span>Voxel</span><span>Cozy</span></div>
+          <div class="arcade-card-desc">Till, plant, water, harvest your floating isle.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </a>
 
-      <a class="arcade-card arcade-card-dim" href="agentic-os.html" style="--accent:#BC8CFF">
+            </div>
+    </div>
+
+    <div class="arcade-section arcade-section--studio" id="arcade-studio" data-section="studio">
+      <div class="arcade-section-head">
+        <div class="arcade-section-label">
+          <h2 class="arcade-section-title">Studio</h2>
+          <span class="arcade-section-chip arcade-section-chip--meta">Not a game</span>
+        </div>
+        <p class="arcade-section-lede">The live office sits between the two catalogues.</p>
+      </div>
+      <div class="arcade-grid arcade-grid--studio">
+<a class="arcade-card arcade-card-dim" href="agentic-os.html" style="--accent:#BC8CFF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/studio.jpg" alt="Eureka Studio dev office" width="640" height="400" loading="lazy">
           <div class="arcade-card-shine"></div>
@@ -193,12 +267,25 @@
         <div class="arcade-card-body">
           <div class="arcade-card-title">EUREKA STUDIO</div>
           <div class="arcade-card-tags"><span>Live</span><span>Real</span><span>Office</span></div>
-          <div class="arcade-card-desc">Our dev office, live &mdash; agents type when a real PR is open on their game.</div>
+          <div class="arcade-card-desc">Live dev office — agents type on real PRs.</div>
           <div class="arcade-card-play">&#9654; VISIT</div>
         </div>
       </a>
 
-      <button class="arcade-card" data-view="snake" style="--accent:#6C63FF">
+            </div>
+    </div>
+
+    <div class="arcade-section arcade-section--quick" id="arcade-quick" data-section="quick">
+      <div class="arcade-section-head">
+        <div class="arcade-section-label">
+          <h2 class="arcade-section-title">Quick games</h2>
+          <span class="arcade-section-count">15</span>
+          <span class="arcade-section-chip">Few minutes</span>
+        </div>
+        <p class="arcade-section-lede">Jump in, jump out. A few minutes each.</p>
+      </div>
+      <div class="arcade-grid arcade-grid--quick">
+<button class="arcade-card" data-view="snake" style="--accent:#6C63FF">
         <div class="arcade-card-screen">
           <img class="arcade-card-poster" src="assets/thumbs/snake.jpg" alt="Snake gameplay" width="512" height="320" loading="lazy">
           <video class="arcade-card-clip" src="assets/thumbs/snake.webm" muted loop playsinline preload="none"></video>
@@ -207,23 +294,23 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">SNAKE</div>
-          <div class="arcade-card-tags"><span>Classic</span><span>Arcade</span></div>
-          <div class="arcade-card-desc">Chase the food, grow long, don't bite yourself.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Arcade</span></div>
+          <div class="arcade-card-desc">Eat, grow, don't bite yourself.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
 
       <button class="arcade-card" data-view="tetris" style="--accent:#F778BA">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/tetris.jpg" alt="Tetris gameplay" width="641" height="482" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/tetris.jpg" alt="Tetris gameplay" width="641" height="482" loading="lazy" data-crop="right">
           <video class="arcade-card-clip" src="assets/thumbs/tetris.webm" muted loop playsinline preload="none"></video>
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="tetris"></div>
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">TETRIS</div>
-          <div class="arcade-card-tags"><span>Classic</span><span>Puzzle</span></div>
-          <div class="arcade-card-desc">Stack the blocks, clear the lines, don't top out.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Puzzle</span></div>
+          <div class="arcade-card-desc">Stack blocks. Clear lines. Don't top out.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -237,8 +324,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">NEON BREAKER</div>
-          <div class="arcade-card-tags"><span>Classic</span><span>Arcade</span><span>Power-ups</span></div>
-          <div class="arcade-card-desc">Smash neon bricks, grab power-ups, chase the combo.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Classic</span><span>Power-ups</span></div>
+          <div class="arcade-card-desc">Smash bricks. Grab power-ups. Chase combos.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -252,23 +339,23 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VECTOR STORM</div>
-          <div class="arcade-card-tags"><span>Shooter</span><span>Arcade</span><span>Vector</span></div>
-          <div class="arcade-card-desc">Drift, thrust and blast splitting asteroids to dust.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Shooter</span><span>Vector</span></div>
+          <div class="arcade-card-desc">Drift, thrust, blast splitting rocks.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
 
       <button class="arcade-card" data-view="2048" style="--accent:#facc15">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/2048.jpg" alt="2048 gameplay" width="560" height="560" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/2048.jpg" alt="2048 gameplay" width="560" height="560" loading="lazy" data-crop="mid">
           <video class="arcade-card-clip" src="assets/thumbs/2048.webm" muted loop playsinline preload="none"></video>
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="g2048"></div>
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">2048</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Numbers</span></div>
-          <div class="arcade-card-desc">Slide the tiles, merge the numbers, reach 2048.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Numbers</span></div>
+          <div class="arcade-card-desc">Slide, merge, reach 2048.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -281,8 +368,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">MINEFIELD</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Logic</span></div>
-          <div class="arcade-card-desc">Flag the mines, clear the board, beat your best time.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Logic</span></div>
+          <div class="arcade-card-desc">Flag mines. Clear the board. Beat your time.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -295,8 +382,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">LIGHT CYCLES</div>
-          <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Arcade</span></div>
-          <div class="arcade-card-desc">Trap the AI in your light trail &mdash; or duel a friend on one keyboard.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span></div>
+          <div class="arcade-card-desc">Trap the AI — or duel a friend.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -309,22 +396,22 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">PONG++</div>
-          <div class="arcade-card-tags"><span>Duel</span><span>2P</span><span>Power-ups</span></div>
-          <div class="arcade-card-desc">The old table, new tricks &mdash; split the ball, grow your paddle, first to 7.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Duel</span><span>2P</span></div>
+          <div class="arcade-card-desc">Split balls, grow paddles. First to 7.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
 
       <button class="arcade-card" data-view="stacker" style="--accent:#F7C948">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/stacker.jpg" alt="Stacker gameplay" width="640" height="853" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/stacker.jpg" alt="Stacker gameplay" width="640" height="853" loading="lazy" data-crop="low">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="stacker"></div>
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">STACKER</div>
-          <div class="arcade-card-tags"><span>Timing</span><span>Zen</span></div>
-          <div class="arcade-card-desc">Drop the slider, keep what lands, watch the tower climb. Perfects snap flush.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Timing</span><span>Zen</span></div>
+          <div class="arcade-card-desc">Drop flush. Climb the tower.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -337,8 +424,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">CRATE ESCAPE</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Sokoban</span><span>Zen</span></div>
-          <div class="arcade-card-desc">Push every crate onto its pad &mdash; a generated ladder of solvable puzzles, undo included.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Sokoban</span></div>
+          <div class="arcade-card-desc">Push crates onto pads. Undo included.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -351,22 +438,22 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">VECTOR DEFENSE</div>
-          <div class="arcade-card-tags"><span>Tower Defense</span><span>Waves</span></div>
-          <div class="arcade-card-desc">Raiders crawl the neon path &mdash; pulse and rail turrets, ten waves, ten lives.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Tower Defense</span><span>Waves</span></div>
+          <div class="arcade-card-desc">Turrets vs neon raiders. Ten waves.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
 
       <button class="arcade-card" data-view="wordcascade" style="--accent:#3FB950">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/wordcascade.jpg" alt="Word Cascade gameplay" width="640" height="640" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/wordcascade.jpg" alt="Word Cascade gameplay" width="640" height="640" loading="lazy" data-crop="low">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="wordcascade"></div>
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">WORD CASCADE</div>
-          <div class="arcade-card-tags"><span>Words</span><span>Falling</span></div>
-          <div class="arcade-card-desc">Letters fall, you spell — words clear across and down, chains multiply.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Words</span><span>Falling</span></div>
+          <div class="arcade-card-desc">Spell falling letters. Chains multiply.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -379,8 +466,8 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">MEMORY MATRIX</div>
-          <div class="arcade-card-tags"><span>Memory</span><span>Simon</span><span>Zen</span></div>
-          <div class="arcade-card-desc">Watch the lights, echo the melody &mdash; how long a pattern can you hold?</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Memory</span><span>Simon</span></div>
+          <div class="arcade-card-desc">Echo the lights. How long can you hold?</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
@@ -393,26 +480,27 @@
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">DROP FOUR</div>
-          <div class="arcade-card-tags"><span>Strategy</span><span>vs AI</span></div>
-          <div class="arcade-card-desc">Connect four in a row against a thinking opponent.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Strategy</span><span>vs AI</span></div>
+          <div class="arcade-card-desc">Connect four against a thinking AI.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
 
       <button class="arcade-card" data-view="word5" style="--accent:#3FB950">
         <div class="arcade-card-screen">
-          <img class="arcade-card-poster" src="assets/thumbs/word5.jpg" alt="Word Five gameplay" width="300" height="358" loading="lazy">
+          <img class="arcade-card-poster" src="assets/thumbs/word5.jpg" alt="Word Five gameplay" width="300" height="358" loading="lazy" data-crop="high">
           <div class="arcade-card-shine"></div>
           <div class="arcade-card-hi" data-hi="word5"></div>
         </div>
         <div class="arcade-card-body">
           <div class="arcade-card-title">WORD FIVE</div>
-          <div class="arcade-card-tags"><span>Puzzle</span><span>Words</span></div>
-          <div class="arcade-card-desc">Guess the hidden five-letter word in six tries.</div>
+          <div class="arcade-card-tags"><span class="tag-session">⏱ Few minutes</span><span>Puzzle</span><span>Words</span></div>
+          <div class="arcade-card-desc">Guess the five-letter word in six tries.</div>
           <div class="arcade-card-play">&#9654; PLAY</div>
         </div>
       </button>
 
+          </div>
     </div>
   </section>
 
@@ -667,7 +755,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">SNAKE</div>
-        <div class="game-subtitle">Arrow keys / WASD &middot; swipe on mobile</div>
+        <div class="game-subtitle">Eat to grow &mdash; never hit a wall or your own tail &middot; Arrow keys / WASD &middot; swipe on mobile</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="snake-score">0</strong></span>
@@ -694,7 +782,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">LIGHT CYCLES</div>
-        <div class="game-subtitle">Trap your rival in your trail &middot; last rider alive wins</div>
+        <div class="game-subtitle">Trap your rival in your trail &middot; last rider alive wins &middot; Arrows or WASD steer &middot; swipe on mobile &middot; in 2 PLAYERS, WASD is P1 and arrows are P2</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Wins: <strong id="cycles-wins">0</strong></span>
@@ -718,7 +806,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">PONG++</div>
-        <div class="game-subtitle">First to 7 &middot; catch the power-ups with the ball</div>
+        <div class="game-subtitle">First to 7 &middot; catch the power-ups with the ball &middot; W/S or &uarr;/&darr; &middot; drag your half on touch &middot; Space serves</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>You: <strong id="pong-p1">0</strong></span>
@@ -741,7 +829,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">STACKER</div>
-        <div class="game-subtitle">Drop the slider on the tower &middot; overhangs get sliced &middot; perfects snap flush</div>
+        <div class="game-subtitle">Stack as high as you can &mdash; miss the tower completely and the run ends &middot; Drop the slider on the tower &middot; overhangs get sliced &middot; perfects snap flush &middot; Space, &darr; or click drops</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Height: <strong id="stacker-height">0</strong></span>
@@ -760,7 +848,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">CRATE ESCAPE</div>
-        <div class="game-subtitle">Arrows/WASD push &middot; Z undo &middot; R restart &middot; swipe on touch</div>
+        <div class="game-subtitle">Push every crate onto a lit pad to clear the level &middot; Arrows/WASD push &middot; Z undo &middot; R restart &middot; swipe on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Level: <strong id="crate-level">1</strong></span>
@@ -786,7 +874,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR DEFENSE</div>
-        <div class="game-subtitle">Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave</div>
+        <div class="game-subtitle">Hold ten waves &mdash; every leak costs one of your ten lives &middot; Click pads to build &middot; keys 1/2 pick the turret &middot; SPACE launches the wave</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Cash: <strong id="vd-cash">$120</strong></span>
@@ -812,7 +900,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">WORD CASCADE</div>
-        <div class="game-subtitle">Steer the letters &middot; spell across or down &middot; plurals and -ed/-ing count &middot; chains multiply</div>
+        <div class="game-subtitle">Steer the letters &middot; spell across or down &middot; plurals and -ed/-ing count &middot; chains multiply &middot; &larr; &rarr; move &middot; &darr; soft drop &middot; Space hard drop &middot; tap either side on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="wc-score">0</strong></span>
@@ -832,7 +920,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">MEMORY MATRIX</div>
-        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; one wrong pad ends the run</div>
+        <div class="game-subtitle">Watch the pattern &middot; play it back &middot; one wrong pad ends the run &middot; click the pads, or keys 1-9 in reading order</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Round: <strong id="mm-round">1</strong></span>
@@ -885,7 +973,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">TETRIS</div>
-        <div class="game-subtitle">← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
+        <div class="game-subtitle">Clear lines before the stack reaches the top &middot; ← → move &middot; ↑ / X rotate &middot; ↓ soft drop &middot; Space hard drop &middot; C hold</div>
       </div>
       <div class="tetris-layout">
         <div class="tetris-side">
@@ -965,7 +1053,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">NEON BREAKER</div>
-        <div class="game-subtitle">Move to aim &middot; catch power-ups &middot; clear every brick</div>
+        <div class="game-subtitle">Move to aim &middot; catch power-ups &middot; clear every brick &middot; mouse, touch or &larr; &rarr; moves the paddle &middot; Space launches</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="breakout-score">0</strong></span>
@@ -1056,7 +1144,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">WORD FIVE</div>
-        <div class="game-subtitle">Guess the five-letter word in six tries &middot; green = right spot, gold = wrong spot</div>
+        <div class="game-subtitle">Guess the five-letter word in six tries &middot; green = right spot, gold = wrong spot &middot; type or tap the keys &middot; Enter submits, Backspace deletes</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Streak: <strong id="word5-streak">0</strong></span>
@@ -1109,7 +1197,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">MINEFIELD</div>
-        <div class="game-subtitle">Click reveal &middot; right-click / long-press flags &middot; click a number to chord &middot; first click is always safe</div>
+        <div class="game-subtitle">Reveal every safe square without setting off a mine &middot; Click reveal &middot; right-click / long-press flags &middot; click a number to chord &middot; first click is always safe</div>
       </div>
       <div class="game-controls" style="flex-wrap:wrap">
         <button class="mines-diff-btn" data-diff="beginner" onclick="MinesweeperGame.setDifficulty('beginner')">Beginner</button>
@@ -1139,7 +1227,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR STORM</div>
-        <div class="game-subtitle">Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
+        <div class="game-subtitle">Clear every rock &mdash; the big ones break into smaller ones &middot; Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="asteroids-score">0</strong></span>
@@ -1229,6 +1317,41 @@
       <div style="font-size:12px;color:var(--text-dim);margin-top:12px">Gamepads work across the arcade too — press any button on the pad.</div>
       <div class="modal-actions" style="margin-top:16px">
         <button class="primary" onclick="Utils.closeModal('shortcuts-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SITE-4: the primer. The hub had twenty-one games, six flagships and a
+       whole meta-layer on top — daily seeds, trophies, coins, rivals, a Hall
+       of Fame — and the only thing it said to a first-time visitor was PICK A
+       GAME. All of it was documented in the README, which players do not
+       read. This says it on the page, once, and then gets out of the way. -->
+  <div id="primer-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="How Eureka Games works">
+    <div class="modal-content" style="max-width:600px">
+      <h3 style="margin-bottom:4px">&#10024; How this place works</h3>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">
+        Twenty-one games and a studio. No account, no download, nothing to install &mdash; everything below lives in this browser.
+      </div>
+      <div style="display:grid;gap:11px;font-size:13px;line-height:1.55">
+        <div><strong>&#127918; Two kinds of game.</strong> The <b>arcade</b> plays in this page &mdash; a few minutes each.
+          The <b>flagships</b> (Age of War, Startup Tycoon, Grow Op, Homeless Village, Voxel Isle, Hearthvale) are their own
+          pages and run for hours; each opens with a crash course, and a <b>?</b> button reopens it.</div>
+        <div><strong>&#128197; The daily challenge.</strong> One shared seed a day: the same pieces, food and rocks for
+          everybody who plays it. It is the one honest way to compare a score with someone else.</div>
+        <div><strong>&#127942; The Hall of Fame</strong> keeps your best in every game, and hands out
+          <b>trophies</b> for milestones. Each trophy mints <b>&#129689; coins</b>, which buy accent palettes in the shop.</div>
+        <div><strong>&#128101; Rivals, without a server.</strong> Share a code from the Hall of Fame and a friend's bests
+          sit next to yours, lit up wherever they are ahead. Nothing is uploaded &mdash; the code <em>is</em> the data.</div>
+        <div><strong>&#128190; It is all yours, locally.</strong> Saves, scores and trophies live in this browser and never
+          leave it. <b>&#11015; Backup</b> in the Hall of Fame writes the lot to a file; <b>&#11014; Restore</b> puts it back
+          on another machine.</div>
+        <div><strong>&#128246; It works offline.</strong> Install it and the whole arcade &mdash; flagships included &mdash;
+          keeps playing with no connection at all.</div>
+        <div><strong>&#127912; Make it yours.</strong> A &#127912; theme cycler and the coin shop's accents re-skin the site;
+          press <b>?</b> for every keyboard shortcut, and gamepads work throughout.</div>
+      </div>
+      <div class="modal-actions" style="margin-top:18px">
+        <button class="primary" id="primer-go">Pick a game &rarr;</button>
       </div>
     </div>
   </div>
@@ -1372,7 +1495,69 @@
       dashboard: () => { Dashboard.destroy(); CalendarWidget.destroy(); },
     };
 
+    function clearScanLand() {
+      document.querySelectorAll('.arcade-scan-link[aria-current]').forEach(b => b.removeAttribute('aria-current'));
+      document.querySelectorAll('.arcade-section.is-landed').forEach(s => s.classList.remove('is-landed'));
+    }
+    const RETURN_KEY = 'eureka-arcade-return';
+    const QUICK_VIEWS = new Set(['snake', 'tetris', 'breakout', 'asteroids', '2048',
+      'minesweeper', 'connect4', 'word5', 'lightcycles', 'pong', 'stacker',
+      'crateescape', 'vectordefense', 'wordcascade', 'memorymatrix']);
+    function sectionForEl(el) {
+      const sec = el && el.closest && el.closest('[data-section]');
+      return (sec && sec.dataset.section) || '';
+    }
+    function rememberLeave(fromEl, destView) {
+      let section = sectionForEl(fromEl)
+        || ((document.querySelector('.arcade-section.is-landed') || {}).dataset || {}).section
+        || '';
+      const view = destView || ((fromEl && fromEl.dataset) || {}).view || '';
+      if (!section && fromEl && fromEl.classList && fromEl.classList.contains('arcade-flagship')) section = 'long';
+      if (!section && QUICK_VIEWS.has(view)) section = 'quick';
+      if (!section && fromEl && fromEl.classList && fromEl.classList.contains('daily-chip')) section = 'quick';
+      const q = ((document.getElementById('card-search') || {}).value) || '';
+      try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ section, q })); } catch {}
+    }
+    function rememberLaunch(section) {
+      try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ section: section || '', q: '' })); } catch {}
+    }
+    function syncChrome() {
+      const bar = document.querySelector('nav');
+      const shell = document.querySelector('.arcade-shell');
+      if (bar) document.documentElement.style.setProperty('--nav-height', bar.offsetHeight + 'px');
+      if (shell) document.documentElement.style.setProperty('--shell-height', shell.offsetHeight + 'px');
+    }
+    syncChrome();
+    addEventListener('resize', syncChrome);
+    addEventListener('load', syncChrome);
+    function readLeave() {
+      try {
+        const raw = sessionStorage.getItem(RETURN_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    }
+    function clearLeave() {
+      try { sessionStorage.removeItem(RETURN_KEY); } catch {}
+    }
+    function landSection(key, opts) {
+      const sec = document.querySelector('.arcade-section[data-section="' + key + '"]');
+      if (!sec) return;
+      document.querySelectorAll('.arcade-scan-link[data-jump]').forEach(b => {
+        if (b.dataset.jump === key) b.setAttribute('aria-current', 'true');
+        else b.removeAttribute('aria-current');
+      });
+      document.querySelectorAll('.arcade-section').forEach(s => {
+        s.classList.toggle('is-landed', s.dataset.section === key);
+      });
+      const smooth = !opts || opts.smooth !== false;
+      requestAnimationFrame(() => sec.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' }));
+    }
     function switchView(name) {
+      if (currentView === 'arcade' && name !== 'arcade') {
+        const pending = readLeave();
+        if (!pending || !pending.section) rememberLeave(null, name);
+        clearScanLand();
+      }
       if (currentView && currentView !== name && teardown[currentView]) {
         try { teardown[currentView](); } catch (e) {}
       }
@@ -1419,9 +1604,28 @@
       if (typeof Coins !== 'undefined') Coins.credit();
       if (typeof Telemetry !== 'undefined') Telemetry.enter(name);
       if (name === 'halloffame') renderHallOfFame();
+      if (name !== 'arcade') clearScanLand();
       if (name === 'arcade') {
+        const pending = readLeave();
+        if (pending) {
+          clearLeave();
+          if (searchEl) searchEl.value = pending.q || '';
+        }
         refreshArcadeBadges();
-        if (typeof Telemetry !== 'undefined') Telemetry.renderResume('jump-back-in', switchView);
+        if (typeof Telemetry !== 'undefined') {
+          Telemetry.renderResume('jump-back-in', view => {
+            rememberLeave(null, view);
+            switchView(view);
+          });
+        }
+        if (searchEl && (searchEl.value || pending)) applyFilter();
+        else if (resumeRow) resumeRow.hidden = !resumeRow.querySelector('.resume-chip');
+        if (pending && pending.section) landSection(pending.section, { smooth: false });
+        else window.scrollTo(0, 0);
+      } else {
+        // Leftover after HoF became site shell: a scrolled catalogue
+        // handed its offset to the board, so the title sat off-screen.
+        window.scrollTo(0, 0);
       }
       currentView = name;
       // Re-init 3D tilt for newly visible widgets/cards
@@ -1430,11 +1634,11 @@
 
     // ---- HALL OF FAME ----
     const HOF_GAMES = [
-      { name: 'Age of War',       accent: '#D29922', go: () => location.href = 'ageofwar',
+      { name: 'Age of War',       accent: '#D29922', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'ageofwar/'; },
         best: () => { const a = Scores.readJSON('aow-achievements'); const n = a ? Object.values(a).filter(Boolean).length : 0; return n > 0 ? n + ' achievements' : null; } },
-      { name: 'Startup Tycoon',   accent: '#58A6FF', go: () => location.href = 'tycoon',
+      { name: 'Startup Tycoon',   accent: '#58A6FF', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'tycoon/'; },
         best: () => { const s = Scores.readJSON('startup-tycoon-v7'); const v = s && (s.allTimeCash || s.cash) || 0; return v > 0 ? Scores.fmtMoney(v) + ' raised' : null; } },
-      { name: 'Grow Op',          accent: '#3FB950', go: () => location.href = 'drug-lab.html',
+      { name: 'Grow Op',          accent: '#3FB950', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'drug-lab.html'; },
         best: () => {
           const s = Scores.readJSON('drug-lab-v1'); const v = s && s.totalEarned || 0;
           const a = Scores.readJSON('growop-achievements'); const n = a ? Object.keys(a).length : 0;
@@ -1444,55 +1648,59 @@
           if (n > 0) parts.push(n + ' achievement' + (n === 1 ? '' : 's'));
           return parts.join(' · ');
         } },
-      { name: 'Homeless Village', accent: '#F0883E', go: () => location.href = 'homeless-village.html',
+      { name: 'Homeless Village', accent: '#F0883E', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'homeless-village.html'; },
         best: () => {
           const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0;
           if (d <= 0) return null;
           return d + ' days survived' + (s.arcStage >= 3 ? ' · 🔑 housed' : '');
         } },
-      { name: 'Voxel Isle',       accent: '#7EC8FF', go: () => location.href = 'voxel-garden.html',
+      { name: 'Hearthvale',       accent: '#7fbf63', lane: 'long', rid: 'hearthvale-v1', go: () => { rememberLaunch('long'); location.href = 'hearthvale.html'; },
+        best: () => { const s = Scores.readJSON('hearthvale-v1'); const v = s && s.peakPop || 0; return v > 0 ? v + ' villagers at peak' : null; } },
+      { name: 'Voxel Isle',       accent: '#7EC8FF', lane: 'long', go: () => { rememberLaunch('long'); location.href = 'voxel-garden.html'; },
         best: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; const v = st && st.totalEarned || 0; return v > 0 ? Scores.fmtMoney(v) + ' harvested · LV ' + (st.level || 1) : null; } },
-      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => switchView('snake'),
+      { name: 'Snake',            accent: '#6C63FF', rid: 'snake-high', go: () => { rememberLaunch('quick'); switchView('snake'); },
         best: () => { const v = Scores.num('snake-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', go: () => switchView('tetris'),
+      { name: 'Tetris',           accent: '#F778BA', rid: 'tetris-high', go: () => { rememberLaunch('quick'); switchView('tetris'); },
         best: () => { const v = Scores.num('tetris-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', go: () => switchView('breakout'),
+      { name: 'Neon Breaker',     accent: '#22d3ee', rid: 'breakout-high', go: () => { rememberLaunch('quick'); switchView('breakout'); },
         best: () => { const v = Scores.num('breakout-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', go: () => switchView('asteroids'),
+      { name: 'Vector Storm',     accent: '#a78bfa', rid: 'asteroids-high', go: () => { rememberLaunch('quick'); switchView('asteroids'); },
         best: () => { const v = Scores.num('asteroids-high'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: '2048',             accent: '#facc15', rid: 'g2048-best', go: () => switchView('2048'),
+      { name: '2048',             accent: '#facc15', rid: 'g2048-best', go: () => { rememberLaunch('quick'); switchView('2048'); },
         best: () => { const v = Scores.num('g2048-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', go: () => switchView('minesweeper'),
+      { name: 'Minefield',        accent: '#F0883E', rid: 'mines-best-beginner', go: () => { rememberLaunch('quick'); switchView('minesweeper'); },
         best: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? v + 's (beginner)' : null; } },
-      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', go: () => switchView('connect4'),
+      { name: 'Drop Four',        accent: '#f7c948', rid: 'connect4-streak', go: () => { rememberLaunch('quick'); switchView('connect4'); },
         best: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', go: () => switchView('word5'),
+      { name: 'Word Five',        accent: '#3FB950', rid: 'word5-streak', go: () => { rememberLaunch('quick'); switchView('word5'); },
         best: () => { const v = Scores.num('word5-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', go: () => switchView('lightcycles'),
+      { name: 'Light Cycles',     accent: '#22d3ee', rid: 'cycles-streak', go: () => { rememberLaunch('quick'); switchView('lightcycles'); },
         best: () => { const v = Scores.num('cycles-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => switchView('pong'),
+      { name: 'Pong++',           accent: '#58A6FF', rid: 'pong-streak', go: () => { rememberLaunch('quick'); switchView('pong'); },
         best: () => { const v = Scores.num('pong-streak'); return v > 0 ? v + ' win streak' : null; } },
-      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => switchView('stacker'),
+      { name: 'Stacker',          accent: '#F7C948', rid: 'stacker-best', go: () => { rememberLaunch('quick'); switchView('stacker'); },
         best: () => { const v = Scores.num('stacker-best'); return v > 0 ? v + ' floors' : null; } },
-      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', go: () => switchView('crateescape'),
+      { name: 'Crate Escape',     accent: '#F0883E', rid: 'crate-best', go: () => { rememberLaunch('quick'); switchView('crateescape'); },
         best: () => { const v = Scores.num('crate-best'); return v > 0 ? v + ' puzzles' : null; } },
-      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', go: () => switchView('vectordefense'),
+      { name: 'Vector Defense',   accent: '#8B83FF', rid: 'vector-best', go: () => { rememberLaunch('quick'); switchView('vectordefense'); },
         best: () => { const v = Scores.num('vector-best'); return v > 0 ? v + ' waves held' : null; } },
-      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', go: () => switchView('wordcascade'),
+      { name: 'Word Cascade',     accent: '#3FB950', rid: 'cascade-best', go: () => { rememberLaunch('quick'); switchView('wordcascade'); },
         best: () => { const v = Scores.num('cascade-best'); return v > 0 ? v.toLocaleString() + ' pts' : null; } },
-      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => switchView('memorymatrix'),
+      { name: 'Memory Matrix',    accent: '#a78bfa', rid: 'matrix-best', go: () => { rememberLaunch('quick'); switchView('memorymatrix'); },
         best: () => { const v = Scores.num('matrix-best'); return v > 0 ? 'round ' + v : null; } },
     ];
-    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];
+    const HOF_KEYS = ['snake-high', 'tetris-high', 'breakout-high', 'asteroids-high', 'g2048-best', 'aow-achievements', 'startup-tycoon-v7', 'drug-lab-v1', 'homeless_village_v1', 'hearthvale-v1', 'voxel-garden-v1', 'mines-best-beginner', 'mines-best-intermediate', 'mines-best-expert', 'mines-diff', 'connect4-streak', 'c4-diff', 'word5-streak', 'cycles-streak', 'matrix-best', 'pong-streak', 'stacker-best', 'crate-best', 'crate-level', 'crate-moves', 'vector-best', 'cascade-best', 'growop-achievements'];
 
     function renderHallOfFame() {
       const board = document.getElementById('hof-board');
       if (!board) return;
       let played = 0;
-      board.innerHTML = HOF_GAMES.map((g, i) => {
+      const rowHtml = (g, i, laneN) => {
         const best = g.best();
         if (best) played++;
-        const rank = String(i + 1).padStart(2, '0');
+        // Leftover after the Long/Quick board: rank still used the
+        // flat 01–21 index, so Quick opened at 07. Number inside the lane.
+        const rank = String((laneN != null ? laneN : i) + 1).padStart(2, '0');
         // Rivals (SITE-2): show the best imported mark beside your own,
         // lit up when the rival currently holds the lead.
         let rivalHtml = '';
@@ -1513,6 +1721,23 @@
                  rivalHtml +
                  '<span class="hof-score">' + (best || '— not played —') + '</span>' +
                '</button>';
+      };
+      // Leftover after the homepage Long/Quick split: the board was still
+      // a flat pre-#988 list, and it skipped the sixth flagship.
+      const lanes = [
+        { key: 'long', title: 'Long games', chip: 'Hours' },
+        { key: 'quick', title: 'Quick games', chip: 'Minutes' },
+      ];
+      board.innerHTML = lanes.map(lane => {
+        const items = HOF_GAMES.map((g, i) => ({ g, i })).filter(x => (x.g.lane || 'quick') === lane.key);
+        return '<div class="hof-lane hof-lane--' + lane.key + '">' +
+          '<div class="hof-lane-head">' +
+            '<h3 class="hof-lane-title">' + lane.title + '</h3>' +
+            '<span class="hof-lane-count">' + items.length + '</span>' +
+            '<span class="hof-lane-chip">' + lane.chip + '</span>' +
+          '</div>' +
+          items.map(({ g, i }, n) => rowHtml(g, i, n)).join('') +
+        '</div>';
       }).join('');
       board.querySelectorAll('.hof-row').forEach(row => {
         row.addEventListener('click', () => HOF_GAMES[+row.dataset.hof].go());
@@ -1671,7 +1896,10 @@
     });
 
     navButtons.forEach(btn => {
-      btn.addEventListener('click', () => switchView(btn.dataset.view));
+      btn.addEventListener('click', () => {
+        if (currentView === 'arcade' && btn.dataset.view && btn.dataset.view !== 'arcade') rememberLeave(btn);
+        switchView(btn.dataset.view);
+      });
     });
 
     function syncNavUtilsExpanded() {
@@ -1692,6 +1920,11 @@
       if (persist) { try { localStorage.setItem('eureka-theme', id); } catch {} }
       const cur = THEMES.find(t => t.id === id) || THEMES[0];
       themeToggle.title = 'Theme: ' + cur.label;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        const token = getComputedStyle(document.documentElement).getPropertyValue('--theme-color').trim();
+        meta.content = token || '#060608';
+      }
     }
     applyTheme(document.documentElement.dataset.theme || '', false);
     themeToggle.addEventListener('click', () => {
@@ -1731,6 +1964,7 @@
           return n > 0 ? n + ' 🏅' : '';
         },
         homeless: () => { const s = Scores.readJSON('homeless_village_v1'); const d = s && s.days || 0; return d > 0 ? 'DAY ' + d : ''; },
+        hearthvale: () => { const s = Scores.readJSON('hearthvale-v1'); const v = s && s.peakPop || 0; return v > 0 ? 'PEAK ' + v : ''; },
         voxelgarden: () => { const s = Scores.readJSON('voxel-garden-v1'); const st = s && s.state; return st && st.totalEarned > 0 ? 'LV ' + (st.level || 1) + ' · ' + st.totalEarned.toLocaleString() + ' 🪙' : ''; },
         minesweeper: () => { const v = Scores.num('mines-best-beginner'); return v > 0 ? 'BEST ' + v + 's' : ''; },
         connect4: () => { const v = Scores.num('connect4-streak'); return v > 0 ? v + ' win streak' : ''; },
@@ -1836,26 +2070,60 @@
     // Card search (P4): filters the arcade grid by title or tag text.
     const searchEl = document.getElementById('card-search');
     const searchCountEl = document.getElementById('card-search-count');
+    const emptyEl = document.getElementById('arcade-empty');
+    const dailyBanner = document.getElementById('daily-banner');
+    const resumeRow = document.getElementById('jump-back-in');
+    const primerHint = document.getElementById('primer-hint');
+    const applyFilter = () => {
+      if (!searchEl) return;
+      const q = searchEl.value.trim().toLowerCase();
+      const cards = document.querySelectorAll('.arcade-grid .arcade-card');
+      let shown = 0;
+      cards.forEach(card => {
+        const title = (card.querySelector('.arcade-card-title') || {}).textContent || '';
+        const tags = (card.querySelector('.arcade-card-tags') || {}).textContent || '';
+        const desc = (card.querySelector('.arcade-card-desc') || {}).textContent || '';
+        const hit = !q || (title + ' ' + tags + ' ' + desc).toLowerCase().includes(q);
+        card.style.display = hit ? '' : 'none';
+        if (hit) shown++;
+      });
+      document.querySelectorAll('.arcade-section').forEach(sec => {
+        const any = [...sec.querySelectorAll('.arcade-card')].some(c => c.style.display !== 'none');
+        sec.hidden = q ? !any : false;
+      });
+      const scan = document.querySelector('.arcade-scan');
+      if (scan) scan.hidden = !!q;
+      if (searchCountEl) searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
+      if (emptyEl) emptyEl.hidden = !(q && shown === 0);
+      // Filter is a mode: resume / primer are other doors. Daily stays
+      // on a miss (today's chips are a way out) and tucks when the
+      // filter still has matches, so the catalogue can come up.
+      if (dailyBanner) dailyBanner.hidden = !!(q && shown > 0);
+      if (resumeRow) resumeRow.hidden = !!q || !resumeRow.querySelector('.resume-chip');
+      if (primerHint) {
+        if (q) primerHint.hidden = true;
+        else if (primerHint.dataset.offer === '1') {
+          try { if (localStorage.getItem('eureka-primer-seen') !== '1') primerHint.hidden = false; } catch {}
+        }
+      }
+      // A hop marks "you are here". Filtering (or clearing) puts the
+      // full catalogue — or a different slice — back, so the mark lies.
+      clearScanLand();
+    };
     if (searchEl) {
-      const applyFilter = () => {
-        const q = searchEl.value.trim().toLowerCase();
-        const cards = document.querySelectorAll('.arcade-grid .arcade-card');
-        let shown = 0;
-        cards.forEach(card => {
-          const title = (card.querySelector('.arcade-card-title') || {}).textContent || '';
-          const tags = (card.querySelector('.arcade-card-tags') || {}).textContent || '';
-          const hit = !q || (title + ' ' + tags).toLowerCase().includes(q);
-          card.style.display = hit ? '' : 'none';
-          if (hit) shown++;
-        });
-        searchCountEl.textContent = q ? `${shown} game${shown === 1 ? '' : 's'}` : '';
-      };
       searchEl.addEventListener('input', applyFilter);
       searchEl.addEventListener('keydown', e => {
         if (e.key === 'Escape') { searchEl.value = ''; applyFilter(); searchEl.blur(); }
         e.stopPropagation();   // typing must not trigger game hotkeys
       });
     }
+    const emptyClear = document.getElementById('arcade-empty-clear');
+    if (emptyClear) emptyClear.addEventListener('click', () => {
+      if (!searchEl) return;
+      searchEl.value = '';
+      applyFilter();
+      searchEl.focus();
+    });
 
     // P7: ? toggles the shortcuts cheat-sheet; Esc closes it. Ignored while
     // typing in an input so "?" in the journal/search stays a character.
@@ -1874,6 +2142,93 @@
     document.getElementById('shortcuts-modal').addEventListener('click', e => {
       if (e.target.id === 'shortcuts-modal') Utils.closeModal('shortcuts-modal');
     });
+
+    // SITE-4: the primer.
+    //
+    // The hub explained none of itself. The daily banner says what a seed
+    // is, and everything else — trophies, coins, rivals, the backup that
+    // makes any of it portable, the fact that it all runs offline and none
+    // of it leaves the browser — was documented only in the README.
+    //
+    // It opens ONCE, and only for somebody with no play history at all:
+    // eureka-stats carries a seconds-per-game map, so a returning player
+    // who has simply never seen this panel is not interrupted by it. The
+    // ✨ START HERE button reopens it whenever they want it. ? stays the
+    // shortcuts sheet — this is the other half of that pairing, not a
+    // second claim on the same key.
+    const PRIMER_KEY = 'eureka-primer-seen';
+    const primerSeen = () => { try { return localStorage.getItem(PRIMER_KEY) === '1'; } catch { return false; } };
+    const markPrimerSeen = () => { try { localStorage.setItem(PRIMER_KEY, '1'); } catch {} };
+    const closePrimer = () => { Utils.closeModal('primer-modal'); markPrimerSeen(); };
+    const openPrimer = () => {
+      Utils.openModal('primer-modal');
+      // trapFocus (P4-A11Y-1) focuses the first control, which here is the
+      // button at the BOTTOM — on a phone that scrolls the panel past its
+      // own title and opens it mid-sentence. Put it back to the top.
+      const c = document.querySelector('#primer-modal .modal-content');
+      if (c) c.scrollTop = 0;
+    };
+    const primerBtn = document.getElementById('primer-btn');
+    if (primerBtn) primerBtn.addEventListener('click', openPrimer);
+    const challengeJump = document.getElementById('challenge-jump-btn');
+    if (challengeJump) challengeJump.addEventListener('click', () => {
+      const banner = document.getElementById('daily-banner');
+      if (!banner) return;
+      clearLeave();
+      if (searchEl && searchEl.value) {
+        searchEl.value = '';
+        applyFilter();
+      }
+      if (currentView !== 'arcade') switchView('arcade');
+      requestAnimationFrame(() => banner.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    });
+    document.querySelectorAll('a.arcade-card[href], a.arcade-flagship').forEach(a => {
+      a.addEventListener('click', () => rememberLeave(a));
+    });
+    const dailyGames = document.getElementById('daily-games');
+    if (dailyGames) dailyGames.addEventListener('click', e => {
+      const chip = e.target.closest('.daily-chip');
+      if (chip) rememberLeave(chip);
+    });
+    document.querySelectorAll('[data-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // A hop during search used to target a hidden section and go
+        // nowhere. Clear the filter first so Long / Quick / Studio land.
+        if (searchEl && searchEl.value) {
+          searchEl.value = '';
+          applyFilter();
+        }
+        clearLeave();
+        const key = btn.dataset.jump;
+        if (!key) return;
+        if (currentView !== 'arcade') switchView('arcade');
+        landSection(key);
+      });
+    });
+    const primerGo = document.getElementById('primer-go');
+    if (primerGo) primerGo.addEventListener('click', closePrimer);
+    document.getElementById('primer-modal').addEventListener('click', e => {
+      if (e.target.id === 'primer-modal') closePrimer();
+    });
+    document.addEventListener('keydown', e => {
+      const pm = document.getElementById('primer-modal');
+      if (e.key === 'Escape' && pm && pm.style.display === 'flex') closePrimer();
+    });
+    const hint = document.getElementById('primer-hint');
+    const dismissHint = () => { if (hint) hint.hidden = true; markPrimerSeen(); };
+    const hintOpen = document.getElementById('primer-hint-open');
+    if (hintOpen) hintOpen.addEventListener('click', () => { dismissHint(); openPrimer(); });
+    const hintX = document.getElementById('primer-hint-x');
+    if (hintX) hintX.addEventListener('click', dismissHint);
+    (function firstVisit() {
+      // A strip, not an overlay. A newcomer gets an offer they can read in
+      // one line and take or ignore; nobody gets a modal between them and
+      // the game they came to click.
+      if (primerSeen() || !hint) return;
+      const stats = Scores.readJSON('eureka-stats');
+      const played = stats && stats.seconds && Object.keys(stats.seconds).length > 0;
+      if (!played) { hint.hidden = false; hint.dataset.offer = '1'; }
+    })();
 
     // Patch notes: the studio changelog, newest first. Hand-curated —
     // every entry here shipped, verified headless, and is live for

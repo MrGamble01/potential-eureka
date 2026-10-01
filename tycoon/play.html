@@ -11446,7 +11446,7 @@ addEventListener('mousemove', e => { mouseScreenX = e.clientX; mouseScreenY = e.
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
-  // Escape dismisses any open modal (tip, ipo, elevator)
+  // Escape dismisses browsing modals; Board Meeting requires a decision or timeout.
   if (k === 'escape') {
     tipModalEl.classList.remove('open');
     ipoModal.classList.remove('open');
@@ -11456,6 +11456,8 @@ addEventListener('keydown', e => {
     dashModalEl.classList.remove('open');
     themeModalEl.classList.remove('open');
     document.getElementById('help-modal').classList.remove('open');
+    wallModalEl.classList.remove('open');
+    founderModalEl.classList.remove('open');
   }
   // "?" or "/" opens the help / hotkeys modal. (No movement conflict
   // since these aren't WASD/arrow keys.)
