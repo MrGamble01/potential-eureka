@@ -204,6 +204,11 @@
   color: #fff; font-weight: 900;
   text-shadow: 0 0 8px rgba(255,180,120,0.6);
 }
+/* Pill rows in the HUD. Both the difficulty row (#aow-diff, #aow-diff-modal)
+   and the war-banner row (#aow-banner) wear this class for the look alone —
+   so script that means "every difficulty pill" must select on
+   `button[data-diff]`, never on `.aow-diff button`, or it repaints the
+   banner pills too (AOW-19b). */
 .aow-diff {
   display: inline-flex;
   background: rgba(255,255,255,0.04);
