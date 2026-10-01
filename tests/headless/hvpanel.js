@@ -66,6 +66,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const seam = await t(() => {
     panelStood = false;
     G.food = 10;
+    G.mural = 4;
     finishAction({ id: 'fifth' });
     const food1 = G.food, s1 = loadHvPanel().stands;
     finishAction({ id: 'fifth' });
@@ -79,6 +80,7 @@ const ok = (c, n) => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'} 
   const goal = await t(() => {
     panelStood = false;
     G.food = 0;
+    G.mural = 4;
     finishAction({ id: 'fifth' });
     const g = GOALS.find(x => x.id === 'panel2');
     return { food: G.food, stands: loadHvPanel().stands, done: g.value() >= g.target };
