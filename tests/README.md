@@ -299,6 +299,7 @@ when they touched different cards. Append yours; git merges the rest.*
 ### Hearthvale suites
 
 - `hvalestart` (hook-free: Begin building and Games stay inside the welcome card and own their centres at desktop, short laptop, tablet and phone; scrolling the tutorial does not unpin them; a real click names the town, places a cottage, and spends 12 wood)
+- `hvalegoal` (the opening goal is two cottages, counted from zero; an unfinished site stays 0/2, a finished cottage is 1/2, and two finished cottages pay the reward and advance to the farm)
 - `hvaleconstruction` (live construction progress and completion actions in the selected inspector at desktop and tablet widths; hook-free save + clicks)
 
 - `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall)

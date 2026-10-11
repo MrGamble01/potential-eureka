@@ -2143,7 +2143,7 @@
   // ---- Town goals: a soft progression curve that gives direction --
   function countType(t) { return state.buildings.filter(b => b.type === t && b.done !== false).length; }   // finished buildings only
   const GOALS = [
-    { text: 'Build a second cottage', prog: () => [countType('house'), 2], done: () => countType('house') >= 2, reward: { gold: 20 } },
+    { text: 'Build two cottages', prog: () => [countType('house'), 2], done: () => countType('house') >= 2, reward: { gold: 20 } },
     { text: 'Build a farm to grow food', prog: () => [countType('farm'), 1], done: () => countType('farm') >= 1, reward: { wood: 15 } },
     { text: 'Grow to 5 villagers', prog: () => [state.villagers.length, 5], done: () => state.villagers.length >= 5, reward: { gold: 30 } },
     { text: 'Build a woodcutter and a quarry', prog: () => [Math.min(countType('lumber'), 1) + Math.min(countType('quarry'), 1), 2], done: () => countType('lumber') >= 1 && countType('quarry') >= 1, reward: { gold: 30 } },
@@ -2186,8 +2186,10 @@
     if (titleEl) titleEl.innerHTML = '&#10022; ' + (state.townName || 'Hearthvale').toUpperCase() + ' · ' + TIERS[townTier()].name.toUpperCase();
     if (state.goalIndex >= GOALS.length) { tEl.textContent = (state.townName || 'Hearthvale') + ' is thriving! 🎉'; fEl.style.width = '100%'; return; }
     const g = GOALS[state.goalIndex], p = g.prog();
-    tEl.textContent = g.text;
-    fEl.style.width = Math.max(0, Math.min(100, (p[0] / p[1]) * 100)) + '%';
+    const cur = Math.max(0, Math.floor(Number(p[0]) || 0));
+    const need = Math.max(1, Math.floor(Number(p[1]) || 1));
+    tEl.textContent = g.text + ' (' + cur + '/' + need + ')';
+    fEl.style.width = Math.max(0, Math.min(100, (cur / need) * 100)) + '%';
   }
 
   // Terrain codes
