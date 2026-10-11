@@ -8948,6 +8948,33 @@ const AgeOfWarGame = (() => {
         : `The Veterans\u2019 Hall (E) \u2014 ${HALL_COST} gold raises it once, forever: no defeat tears it down, and the first ${HALL_FIRST} recruits of every future muster march out already Veterans.`;
     }
 
+    // Keep era-locked orders out of the rail until they can be given.
+    // Hotkeys still call the same handlers; this only frees the grid
+    // cell so Clubman stays on screen at Stone Age.
+    const gateCmd = (id, locked) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('aow-gated', !!locked);
+    };
+    const beforeAge2 = playerEra < 1;
+    const beforeAge3 = playerEra < 2;
+    gateCmd('aow-warcry-btn', beforeAge2);
+    gateCmd('aow-merc-btn', beforeAge2);
+    gateCmd('aow-trench-btn', beforeAge2);
+    gateCmd('aow-repair-btn', beforeAge2);
+    gateCmd('aow-tent-btn', beforeAge2);
+    gateCmd('aow-armor-btn', beforeAge2);
+    gateCmd('aow-fletch-btn', beforeAge2);
+    gateCmd('aow-drill-btn', beforeAge2);
+    gateCmd('aow-chest-btn', beforeAge2);
+    gateCmd('aow-iron-btn', beforeAge2);
+    gateCmd('aow-bond-btn', beforeAge2);
+    gateCmd('aow-loan-btn', beforeAge2);
+    gateCmd('aow-hall-btn', beforeAge2);
+    gateCmd('aow-bolt-btn', beforeAge3);
+    gateCmd('aow-pay-btn', beforeAge3);
+    gateCmd('aow-mason-btn', beforeAge3);
+    gateCmd('aow-duel-btn', !fieldWarlord());
+
     // Chronicle slate (AOW-36)
     const crEl = document.getElementById('aow-chron-btn');
     const crCdEl = document.getElementById('aow-chron-cd');

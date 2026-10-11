@@ -58,6 +58,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Grow Op mother shortfall | `labmother` (hook-free: shortfall clicks, rooting, Act II gate and live cash gains at 1280px/768px; zero page errors) |
 | Grow Op hiring | `labhire` (hook-free: all four roles explain low cash/full rosters in toasts and disabled titles; refusals preserve cash/counts; affordable hires keep success copy) |
 | Age of War queue-full next-slot | `aowqueueeta` (hook-free: live rounded-up wait in refusal floaters and recruit titles, unchanged gold/queue, ticking front trainee, and cancel/recruit recovery at 1280px/768px) |
+| Age of War recruit row | `aowfield` (hook-free: unit cards fully on screen at 1280×800, 1280×900, 1366×768, 1440×900, 1920×1080 and 768×700; Stone Age hides Warcry/Mercs/Duel; Clubman queues for 25 gold; Age II puts Warcry back; 768 field stays ≥260px) |
 | Age of War training ETA | `aowtraineta` (hook-free: page-clock countdown titles and accessible labels, cheap tick updates, waiting/empty slots, exact cancel refund, and completion spawn at 1280px/768px) |
 | Age of War Age Up XP | `aowagexp` (hook-free: Q shortfall banner and expiry, live titles/accessible labels, unchanged XP/era on refusal, successful age-up, Max Age and Singularity controls at 1280px/768px) |
 | Age of War Special cooldown | `aowspecialcd` (hook-free: repeated Space refusals name the remaining seconds, no special spent or cooldown reset, ready Space fires at 1280px/768px) |

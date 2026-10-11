@@ -341,17 +341,17 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--widget-shadow);
-  /* Wrap in a centered container that respects both width and height
-     so the canvas shrinks horizontally if the viewport height is the
-     binding constraint. HUD + actionbar + tabs + spawn rail need ~420px;
-     anything left over is canvas. Uses dvh so iOS Safari's collapsing
-     URL bar doesn't push content off-screen. */
+  /* The shell below is a viewport column (see the laptop/desktop
+     block at the end of this file). The stage takes whatever height
+     is left after the HUD and the recruit row. An old budget of
+     "500px of chrome" assumed five action buttons; the command rail
+     is much taller than that now, and sizing the canvas from that
+     budget pushed the unit cards below the fold on every desktop. */
   width: 100%;
   margin-inline: auto;
   aspect-ratio: 1280 / 560;
   max-height: calc(100dvh - 500px);
   min-height: 220px;
-  /* Shrink width to keep aspect ratio when max-height is the constraint */
   max-width: calc((100dvh - 500px) * 1280 / 560);
 }
 .aow-canvas {
@@ -452,6 +452,10 @@
 }
 .aow-action:active:not(:disabled) { transform: translateY(0) scale(0.98); }
 .aow-action:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Age-gated orders stay in the DOM (hotkeys still fire) but do not
+   take a grid cell until the era that sells them. A Stone Age rail of
+   twenty locked buttons was what shoved recruiting off the screen. */
+.aow-action.aow-gated { display: none !important; }
 .aow-action-ico { font-size: 18px; }
 .aow-action-lbl {
   display: inline-flex; flex-direction: column; align-items: flex-start;
@@ -1494,3 +1498,91 @@
 .aow-chain-next   { background: rgba(252,211,77,0.16); outline: 1px solid rgba(252,211,77,0.4); }
 .aow-chain-open   { background: rgba(255,255,255,0.05); }
 .aow-chain-locked { opacity: 0.5; }
+
+/* Laptop and desktop: the page used to grow with the command rail, so
+   the unit cards lived at ~y=1000 on an 800px screen and at ~y=1270 on
+   a 1080p screen. Lock the shell to the viewport, let the battlefield
+   take the leftover, and keep recruiting directly under the field.
+   Phones (max-width 720px) keep their own stacked layout. */
+@media (min-width: 721px) {
+  html, body { height: 100%; }
+  body {
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .ea-topbar { flex: 0 0 auto; }
+  #view-ageofwar {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .aow-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    padding-bottom: 8px;
+  }
+  .aow-topbar,
+  .aow-battle-strip,
+  .aow-tabs,
+  #aow-units-tab,
+  #aow-turrets-tab,
+  .aow-hint,
+  .aow-actionbar { flex: 0 0 auto; }
+  .aow-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    max-width: 100%;
+    width: 100%;
+    aspect-ratio: auto;
+  }
+  /* Recruit row under the field; the command rail is the last strip
+     and scrolls if a late era fills it again. */
+  .aow-tabs { order: 5; }
+  #aow-units-tab,
+  #aow-turrets-tab { order: 6; }
+  .aow-hint { order: 7; }
+  .aow-actionbar {
+    order: 8;
+    max-height: 76px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  }
+  .aow-modal { overflow-y: auto; }
+}
+
+/* Short laptops: the battle-strip duplicates the HP bars drawn on the
+   canvas, and the top bar was wrapping into a second row (~150px) that
+   ate the field. One HUD row, no duplicate strip, tighter recruits. */
+@media (min-width: 721px) and (max-height: 940px) {
+  .aow-battle-strip,
+  .aow-hint { display: none; }
+  .aow-topbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 6px 10px;
+  }
+  .aow-era-pill { min-width: 0; flex: 1 1 auto; }
+  .aow-brand-name { display: none; }
+  .aow-shell { gap: 6px; padding-top: 2px; padding-bottom: 6px; }
+  .aow-spawn-sprite { width: 44px; height: 44px; }
+  .aow-spawn-btn { padding: 6px 4px 4px; }
+  .aow-train-row { margin-top: 4px; padding: 4px 6px; }
+  .aow-actionbar { max-height: 64px; }
+}
+
+/* 768×700 still owes the field 260px (aowsession Q). The compact HUD
+   above is what makes that fit beside a fully visible recruit row. */
+@media (min-width: 721px) and (max-width: 1024px) and (max-height: 800px) {
+  .aow-stage { min-height: 260px; }
+}
