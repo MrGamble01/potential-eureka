@@ -126,9 +126,10 @@ const AgeOfWarGame = (() => {
 
   // ---- State ----
   let canvas, ctx;
-  let dpr = 1; // devicePixelRatio applied to the backing store; render draws
-               // in WIDTH/HEIGHT logical units, so every ctx.setTransform
-               // call below must reapply this factor (see draw()'s shake).
+  let dpr = 1; // logical-to-backing scale. Render draws in WIDTH/HEIGHT,
+               // so every ctx.setTransform must reapply this (see draw()'s shake).
+               // It is the on-screen size, not the raw device ratio: a phone
+               // showing a ~370px field must not allocate 1280×560×dpr.
   let rafId = null;
   let lastFrame = 0;
   let running = false, gameOver = false, modalPaused = false, userPaused = false;
@@ -979,16 +980,10 @@ const AgeOfWarGame = (() => {
   function init() {
     canvas = document.getElementById('aow-canvas');
     if (!canvas) return;
-    // Size the backing store to CSS px * devicePixelRatio for crisp HiDPI
-    // rendering. The canvas's on-screen CSS size is already fully
-    // responsive (width:100%/height:100% inside an aspect-ratio-locked
-    // .aow-stage), so we deliberately do NOT touch canvas.style.width/height
-    // here — only the backing-store resolution changes.
-    dpr = Math.max(1, window.devicePixelRatio || 1);
-    canvas.width = WIDTH * dpr;
-    canvas.height = HEIGHT * dpr;
+    // CSS size stays with the stage (width 100%, locked aspect). Only the
+    // backing store changes, and only up to the pixels on screen.
     ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fitCanvas();
     try { reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
     hapticsOK = !reducedMotion;
     try {
@@ -4297,7 +4292,25 @@ const AgeOfWarGame = (() => {
     rafId = requestAnimationFrame(loop);
   }
 
+  // Match the bitmap to the stage. A 390px phone used to keep a
+  // 2560×1120 store (1280×560 at devicePixelRatio 2) and the battle
+  // dropped to ~12fps under a 4× CPU throttle.
+  function fitCanvas() {
+    if (!canvas) return;
+    const cap = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const cssW = canvas.clientWidth || WIDTH;
+    const bw = Math.max(1, Math.round(Math.min(WIDTH * cap, cssW * cap)));
+    const bh = Math.max(1, Math.round(bw * (HEIGHT / WIDTH)));
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
+    }
+    dpr = bw / WIDTH;
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
   function draw() {
+    fitCanvas();
     const era = ERAS[playerEra];
     // Screen shake — applied as a small canvas translate. shakeMag
     // decays after the timed pulse expires.
