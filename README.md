@@ -72,6 +72,7 @@ Tycoon / Beagle Sim save collision (`ROADMAP.md`, TYC-3).
 | `arcade-achievements` | Unlocked achievements with timestamps (never re-lock) |
 | `arcade-coins` | Coin balance + owned/equipped accent palettes (achievements mint 10 each) |
 | `eureka-stats` | Local-only play insights (launches/minutes per hub game — never sent anywhere) |
+| `eureka-primer-seen` | The hub's ✨ START HERE primer has been read (first-time visitors only) |
 | `arcade-muted` | `js/sfx.js` (arcade hub) |
 | `aow-achievements`, `aow-difficulty`, `aow-muted`, `aow-welcome-seen`, `aow-mode`, `aow-best-run`, `aow-relics`, `aow-trials`, `aow-warlords` | Age of War |
 | `startup-tycoon-v7`, `tycoon:*` | Startup Tycoon |

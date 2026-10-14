@@ -64,12 +64,12 @@ nav .logo-btn {
   flex-direction: column;
   gap: 2px;
   position: sticky;
-  top: var(--nav-height);
+  top: calc(var(--nav-height) + var(--shell-height));
   z-index: 99;
   max-width: 220px;
   margin: 0 0 0 auto;
   padding: 6px;
-  background: rgba(6, 6, 8, 0.92);
+  background: var(--drawer-bg);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   border: 1px solid var(--border-subtle);
@@ -119,7 +119,7 @@ nav .logo-btn {
 .arcade-hero {
   text-align: center;
   max-width: 900px;
-  margin: 44px auto 40px;
+  margin: 14px auto 12px;
 }
 
 .arcade-hero-kicker {
@@ -128,13 +128,16 @@ nav .logo-btn {
   letter-spacing: 3px;
   color: var(--success);
   text-shadow: 0 0 12px rgba(63, 185, 80, 0.5);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+}
+:root[data-theme="daylight"] .arcade-hero-kicker {
+  text-shadow: none;
 }
 
 .arcade-hero-title {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: clamp(32px, 7vw, 64px);
+  font-size: clamp(26px, 4.6vw, 42px);
   letter-spacing: 6px;
   color: var(--text);
   text-shadow:
@@ -143,11 +146,203 @@ nav .logo-btn {
 }
 
 .arcade-hero-sub {
-  margin-top: 14px;
+  margin: 6px auto 0;
+  max-width: 36em;
   color: var(--text-dim);
   font-size: 13px;
+  line-height: 1.35;
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+/* One primary path: the Age of War billboard. Snake and the catalogues
+   are hops underneath — not a second door the same size. */
+.arcade-flagship {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  max-width: 640px;
+  height: 148px;
+  margin: 10px auto 0;
+  overflow: hidden;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(210, 153, 34, 0.42);
+  border-radius: var(--radius-lg);
+  background:
+    var(--flagship-wash),
+    var(--bg-widget);
+  box-shadow: 0 0 28px rgba(240, 197, 82, 0.12);
+  transition:
+    transform var(--duration-fast),
+    box-shadow var(--duration-fast),
+    border-color var(--duration-fast);
+}
+
+.arcade-flagship:hover,
+.arcade-flagship:focus-visible {
+  transform: translateY(-2px);
+  border-color: #f0c552;
+  box-shadow: 0 10px 32px rgba(240, 197, 82, 0.28);
+  outline: none;
+}
+
+.arcade-flagship-art {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  background: var(--color-black-deep);
+  overflow: hidden;
+}
+
+.arcade-flagship-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 38% 58%;
+  display: block;
+}
+
+.arcade-flagship-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px 14px;
+}
+
+.arcade-flagship-kicker {
   font-family: var(--font-mono);
-  letter-spacing: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #f0c552;
+}
+
+.arcade-flagship-name {
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 3.2vw, 30px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.arcade-flagship-pitch {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast), border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.hero-cta--flagship {
+  background: linear-gradient(135deg, #D29922, #f0c552);
+  color: #1a1204;
+  border-color: #f0c552;
+  box-shadow: 0 0 24px rgba(240, 197, 82, 0.35);
+  margin-top: 2px;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.arcade-flagship:hover .hero-cta--flagship {
+  box-shadow: 0 8px 28px rgba(240, 197, 82, 0.45);
+}
+
+.arcade-hero-alt {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+}
+
+.hero-alt-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.hero-alt-link:hover,
+.hero-alt-link:focus-visible {
+  color: var(--text);
+  outline: none;
+}
+
+.hero-alt-dot {
+  margin: 0 6px;
+  color: var(--text-muted);
+}
+
+/* Studio doors live in the site shell so HoF / games keep the same hierarchy. */
+.arcade-secondary-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 2px 4px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.arcade-shell {
+  position: sticky;
+  top: var(--nav-height);
+  z-index: 98;
+  margin: 0;
+  padding: 3px 10px;
+  min-height: var(--shell-height);
+  box-sizing: border-box;
+  background: var(--nav-bg);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border-top: none;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+
+.arcade-secondary-nav .sec-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+.arcade-secondary-nav .sec-link:hover,
+.arcade-secondary-nav .sec-link:focus-visible {
+  color: var(--text-dim);
+  background: var(--color-white-05);
+  outline: none;
 }
 
 .arcade-blink {
@@ -159,16 +354,167 @@ nav .logo-btn {
   50% { opacity: 0; }
 }
 
+/* ---- SCAN + SECTION HEADS (Long vs Quick) ---- */
+.arcade-scan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+.arcade-scan[hidden] { display: none; }
+
+.arcade-scan-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--color-white-05);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.arcade-scan-link:hover,
+.arcade-scan-link:focus-visible {
+  background: var(--color-white-08);
+  outline: none;
+}
+
+.arcade-scan-link[aria-current="true"] {
+  background: var(--color-white-08);
+}
+.arcade-scan-link--long[aria-current="true"] { border-color: #f0c552; }
+.arcade-scan-link--quick[aria-current="true"] { border-color: #8b83ff; }
+.arcade-scan-link--studio[aria-current="true"] { border-color: #d2b4ff; }
+
+.arcade-scan-link--long { border-color: rgba(210, 153, 34, 0.4); }
+.arcade-scan-link--long:hover,
+.arcade-scan-link--long:focus-visible { border-color: #f0c552; }
+.arcade-scan-link--quick { border-color: rgba(108, 99, 255, 0.4); }
+.arcade-scan-link--quick:hover,
+.arcade-scan-link--quick:focus-visible { border-color: #8b83ff; }
+.arcade-scan-link--studio { border-color: rgba(188, 140, 255, 0.4); }
+.arcade-scan-link--studio:hover,
+.arcade-scan-link--studio:focus-visible { border-color: #d2b4ff; }
+
+.arcade-scan-time,
+.arcade-scan-count,
+.arcade-section-chip,
+.arcade-section-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.arcade-scan-time,
+.arcade-section-chip {
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.arcade-scan-count,
+.arcade-section-count {
+  color: var(--text);
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+}
+
+.arcade-section {
+  --section-accent: var(--text-dim);
+  max-width: 1200px;
+  margin: 0 auto 28px;
+  padding: 2px 4px 0 14px;
+  border-left: 3px solid var(--section-accent);
+  scroll-margin-top: calc(var(--nav-height) + var(--shell-height) + 12px);
+}
+
+.arcade-section--long { --section-accent: #D29922; }
+.arcade-section--quick { --section-accent: #8b83ff; }
+.arcade-section--studio { --section-accent: #BC8CFF; margin-bottom: 20px; }
+.arcade-section.is-landed { border-left-width: 5px; }
+
+.arcade-section-head {
+  margin: 0 0 12px 2px;
+}
+
+.arcade-section-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.arcade-section-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.arcade-section--long .arcade-section-chip,
+.arcade-scan-link--long .arcade-scan-time {
+  color: #f0c552;
+  border-color: rgba(240, 197, 82, 0.45);
+}
+
+.arcade-section--quick .arcade-section-chip,
+.arcade-scan-link--quick .arcade-scan-time {
+  color: #b4afff;
+  border-color: rgba(139, 131, 255, 0.5);
+}
+
+.arcade-section-chip--meta {
+  color: #d2b4ff;
+  border-color: rgba(188, 140, 255, 0.45);
+}
+
+.arcade-section-lede {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* ---- ARCADE GAME GRID ---- */
 .arcade-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
   max-width: 1200px;
-  margin: 0 auto 40px;
+  margin: 0 auto;
+}
+
+/* After .arcade-grid on purpose: same-specificity max-width / columns
+   were losing to auto-fit 1200px, so the one Studio card became a
+   1179×867 banner at 1280. One card wide, like the 900 leftover. */
+.arcade-grid--studio {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 400px;
+  margin-left: 0;
 }
 
 /* ---- CABINET CARD ---- */
+button.arcade-card {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  font: inherit;
+  line-height: inherit;
+}
+
 .arcade-card {
   --accent: var(--primary);
   display: flex;
@@ -196,7 +542,7 @@ nav .logo-btn {
   border-color: var(--accent);
   transform: translateY(-5px);
   box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.5),
+    var(--card-lift),
     0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
@@ -205,13 +551,26 @@ nav .logo-btn {
   outline-offset: 2px;
 }
 
+/* Same gold rail as the Age of War billboard, so the catalogue card
+   is the same path — not a second unmarked door. */
+.arcade-card--flagship {
+  border-color: rgba(210, 153, 34, 0.42);
+}
+.arcade-card--flagship:hover,
+.arcade-card--flagship:focus-visible {
+  border-color: #f0c552;
+}
+
 /* The screen: poster underneath, clip fades in on hover once playing */
 .arcade-card-screen {
   position: relative;
   aspect-ratio: 16 / 10;
+  width: 100%;
   background: var(--color-black-deep);
   overflow: hidden;
   border-bottom: 1px solid var(--border-subtle);
+  /* Fixed frame so uneven poster assets crop the same way */
+  flex-shrink: 0;
 }
 
 .arcade-card-poster,
@@ -226,7 +585,16 @@ nav .logo-btn {
 .arcade-card-poster {
   transform: scale(1);
   transition: transform 4s ease-out;
+  object-position: center;
 }
+
+/* Leftover after the 16:10 normalize: wide banners and tall boards
+   were still cropped through the middle. Pin the subject. */
+.arcade-card-poster[data-crop="wide"] { object-position: 38% 58%; }
+.arcade-card-poster[data-crop="low"] { object-position: center 84%; }
+.arcade-card-poster[data-crop="high"] { object-position: center 16%; }
+.arcade-card-poster[data-crop="right"] { object-position: 64% 46%; }
+.arcade-card-poster[data-crop="mid"] { object-position: center 42%; }
 
 .arcade-card:hover .arcade-card-poster {
   transform: scale(1.06); /* slow Ken Burns even before/without the clip */
@@ -248,6 +616,25 @@ nav .logo-btn {
   filter: brightness(1.35) saturate(1.25);
 }
 
+/* Same word as the billboard kicker, pinned on the poster so the
+   Hours tag — and the PLAY baseline — stay a single row. */
+.arcade-card-flag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #1a1204;
+  background: linear-gradient(135deg, #D29922, #f0c552);
+  border-radius: 999px;
+  padding: 3px 9px;
+  pointer-events: none;
+}
+
 /* High-score / best-stat badge in the screen corner (filled by JS) */
 .arcade-card-hi {
   display: none;
@@ -260,7 +647,7 @@ nav .logo-btn {
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--accent);
-  background: rgba(2, 2, 3, 0.72);
+  background: var(--chip-wash);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
@@ -296,8 +683,10 @@ nav .logo-btn {
 .arcade-card-body {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 14px 16px 16px;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  min-height: 96px;
+  box-sizing: border-box;
 }
 
 .arcade-card-title {
@@ -317,7 +706,21 @@ nav .logo-btn {
 .arcade-card-tags {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+/* SITE-5: the session tag. The grid never said which of these is five
+   minutes and which is five hours — the primer says it once, and a
+   newcomer choosing between twenty-one cards is exactly who needs it on
+   the card. It leads the tag row and is coloured apart from the genre
+   tags beside it, because it answers a different question. */
+.arcade-card-tags .tag-session {
+  color: var(--accent, #7cc4ff);
+  border-color: color-mix(in srgb, var(--accent, #7cc4ff) 45%, transparent);
+  background: color-mix(in srgb, var(--accent, #7cc4ff) 10%, transparent);
+  font-weight: 700;
+  letter-spacing: 1.2px;
 }
 
 .arcade-card-tags span {
@@ -329,16 +732,24 @@ nav .logo-btn {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .arcade-card-desc {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-dim);
-  line-height: 1.55;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 1.45em;
 }
 
 .arcade-card-play {
-  margin-top: 6px;
+  margin-top: auto;
+  padding-top: 6px;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -381,7 +792,7 @@ nav .logo-btn {
   padding: 28px 20px 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: rgba(6, 6, 8, 0.6);
+  background: var(--hof-panel);
   overflow: hidden;
 }
 .hof-scanlines {
@@ -408,6 +819,53 @@ nav .logo-btn {
   margin: 6px 0 20px;
 }
 .hof-board { display: flex; flex-direction: column; gap: 4px; position: relative; z-index: 1; }
+/* Leftover after the homepage Long/Quick split: the board was still
+   one flat list. Same rails / count chips as the catalogue. */
+.hof-lane {
+  --section-accent: var(--text-dim);
+  margin: 0 0 16px;
+  padding: 2px 0 0 12px;
+  border-left: 3px solid var(--section-accent);
+}
+.hof-lane--long { --section-accent: #D29922; }
+.hof-lane--quick { --section-accent: #8b83ff; margin-bottom: 0; }
+.hof-lane-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 0 0 8px;
+}
+.hof-lane-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.hof-lane-count,
+.hof-lane-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.hof-lane-count {
+  color: var(--text);
+  background: var(--color-white-08);
+  border: 1px solid var(--border);
+}
+.hof-lane-chip {
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.hof-lane--long .hof-lane-chip { color: #f0c552; border-color: rgba(240, 197, 82, 0.45); }
+.hof-lane--quick .hof-lane-chip { color: #b4afff; border-color: rgba(139, 131, 255, 0.5); }
 
 .hof-row {
   --accent: var(--primary);
@@ -482,42 +940,244 @@ nav .logo-btn {
 
 /* ---- RESPONSIVE ---- */
 @media (max-width: 1020px) {
+  .arcade-hero {
+    margin: 16px auto 12px;
+  }
+  .arcade-hero-title {
+    font-size: clamp(24px, 5vw, 40px);
+    letter-spacing: 4px;
+  }
+  .arcade-flagship {
+    grid-template-columns: 148px minmax(0, 1fr);
+    max-width: 560px;
+    height: 112px;
+    margin-top: 8px;
+  }
+  .arcade-flagship-copy {
+    padding: 8px 12px 10px;
+    gap: 3px;
+  }
+  /* 112px is kicker + name + CTA. Pitch only fits the 148px laptop
+     billboard — leaving it on here clipped the gold button. */
+  .arcade-flagship-pitch {
+    display: none;
+  }
+  .hero-cta {
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+  /* Tablet (~900px): three columns so the six long games scan in two rows. */
   .arcade-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .arcade-grid--studio {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: calc((100% - 20px) / 3);
+  }
+  .arcade-card-body {
+    min-height: 96px;
+    padding: 8px 10px 10px;
+    gap: 5px;
+  }
+  .arcade-card-title {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .arcade-card-desc {
+    min-height: 1.45em;
+    -webkit-line-clamp: 1;
+  }
+  .arcade-section {
+    margin-bottom: 16px;
+    padding-left: 12px;
+  }
+  .arcade-section-title {
+    font-size: 15px;
+  }
+  .arcade-scan {
+    margin-left: 0;
+  }
+  #daily-banner {
+    margin-bottom: 12px;
+    padding: 8px 12px;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-height: 860px) {
+  .arcade-hero-sub,
+  .arcade-section-lede,
+  .daily-sub {
+    display: none;
+  }
+}
+
+/* Short tablet landscape (~900×700): collapse chrome so the grids start on-screen. */
+@media (max-width: 1020px) and (max-height: 760px) {
   .arcade-hero {
-    margin: 26px auto 26px;
+    margin: 8px auto 8px;
+  }
+  .arcade-hero-title {
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
+  .arcade-hero-sub,
+  .arcade-section-lede,
+  .arcade-flagship-pitch,
+  .daily-sub {
+    display: none;
+  }
+  .arcade-flagship {
+    grid-template-columns: 132px minmax(0, 1fr);
+  }
+  .arcade-flagship-art {
+    min-height: 0;
+    height: 100%;
+  }
+  .arcade-flagship-copy {
+    padding: 10px 12px 12px;
+    gap: 4px;
+  }
+  .arcade-flagship-name {
+    font-size: 20px;
+  }
+  .arcade-hero-alt {
+    margin-top: 8px;
+  }
+  .arcade-card-screen {
+    aspect-ratio: 16 / 9;
+  }
+  .arcade-card-body {
+    min-height: 84px;
+  }
+  .card-search-wrap,
+  .jump-back-in {
+    margin-bottom: 8px;
+  }
+}
+
+/* Desktop leftover after the 900 3-across pass: auto-fit at 1280
+   laid the six flagships 4+2. Two even rows of three matches the
+   tablet scan. Quick was still 4+4+4+3 — same even-three language. */
+@media (min-width: 1021px) {
+  .arcade-grid--long,
+  .arcade-grid--quick {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .arcade-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .arcade-grid--studio {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: calc((100% - 10px) / 2);
+  }
+  /* Keep the compact side-by-side billboard. A full-width 16:9 stack
+     here was 425px at 720×700 and pushed Long games off the fold. */
+}
+
+@media (max-width: 640px) {
+  /* Phone leftover after the 720 fold: primer + daily sat between
+     scan and Long and buried the catalogue (first card ~838 on 844).
+     Catalogue first; Challenge still scrolls to the banner. */
+  #view-arcade.view.active {
+    display: flex;
+    flex-direction: column;
+  }
+  #view-arcade .arcade-hero { order: 0; }
+  #view-arcade .card-search-wrap { order: 1; }
+  #view-arcade .jump-back-in { order: 2; }
+  #view-arcade #arcade-empty { order: 3; }
+  #view-arcade .arcade-section--long { order: 4; }
+  #view-arcade .arcade-section--studio { order: 5; }
+  #view-arcade .arcade-section--quick { order: 6; }
+  #view-arcade #primer-hint { order: 7; }
+  #view-arcade #daily-banner { order: 8; }
+  .arcade-hero {
+    margin: 14px auto 14px;
   }
   .arcade-hero-title {
     letter-spacing: 3px;
   }
+  .arcade-shell .sec-link {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
   .arcade-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
+    max-width: 480px;
+  }
+  .arcade-grid--studio {
+    grid-template-columns: minmax(0, 1fr);
     max-width: 480px;
   }
   .arcade-card-body {
-    padding: 12px 14px 14px;
+    padding: 10px 12px 12px;
+    min-height: 0;
+  }
+  .arcade-card-desc {
+    min-height: 2.9em;
+    -webkit-line-clamp: 2;
+  }
+  .arcade-card-tags {
+    flex-wrap: wrap;
   }
   .nav-utils {
     max-width: none;
     margin: 0;
   }
+  /* 390 leftover: HoF rows were a single nowrap strip, so a long
+     score (Hearthvale's "n villagers at peak") shoved the name off. */
+  .hof-wrap { margin: 12px 8px 0; padding: 18px 12px 16px; }
+  .hof-row { flex-wrap: wrap; gap: 6px 8px; padding: 8px 6px; }
+  .hof-dots { display: none; }
+  .hof-score { margin-left: auto; }
+  .hof-rival { width: 100%; margin: 0; }
 }
 
 /* ── Daily challenge banner (SITE-3) ── */
-#daily-banner {
-  max-width: 1100px;
-  margin: 0 auto 26px;
-  padding: 12px 18px;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
-  background: rgba(247, 201, 72, 0.06);
-  border: 1px solid rgba(247, 201, 72, 0.25);
+/* SITE-4: the first-visit strip. Deliberately NOT a modal — the front
+   page of an arcade should not be ambushed by a wall of text, and an
+   overlay here would also sit on top of every click the page wants. */
+#primer-hint {
+  max-width: 1200px;
+  margin: 0 auto 10px;
+  padding: 10px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  background: rgba(124, 196, 255, 0.06);
+  border: 1px solid rgba(124, 196, 255, 0.25);
   border-radius: 10px;
+  font-size: 13px;
 }
+#primer-hint[hidden] { display: none; }
+#primer-hint .primer-hint-text { color: var(--text-dim); }
+#primer-hint .primer-hint-open {
+  background: rgba(124, 196, 255, 0.14);
+  border: 1px solid rgba(124, 196, 255, 0.4);
+  color: var(--text); font: inherit; font-weight: 700;
+  padding: 5px 12px; border-radius: 7px; cursor: pointer;
+}
+#primer-hint .primer-hint-open:hover { background: rgba(124, 196, 255, 0.24); }
+#primer-hint .primer-hint-x {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 17px; line-height: 1; padding: 2px 6px;
+}
+#primer-hint .primer-hint-x:hover { color: var(--text); }
+
+#daily-banner {
+  max-width: 1200px;
+  margin: 0 auto 12px;
+  padding: 10px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  background: rgba(247, 201, 72, 0.05);
+  border: 1px solid rgba(247, 201, 72, 0.2);
+  border-radius: 10px;
+  scroll-margin-top: calc(var(--nav-height) + var(--shell-height) + 12px);
+}
+#daily-banner[hidden] { display: none; }
 .daily-title { font-weight: 800; font-size: 13px; letter-spacing: 1px; color: #F7C948; white-space: nowrap; }
 #daily-date { color: var(--text-muted, #7D8590); font-weight: 600; margin-left: 4px; }
 .daily-sub { font-size: 12px; color: var(--text-muted, #7D8590); }
@@ -543,13 +1203,13 @@ nav .logo-btn {
 .hof-share:hover { background: rgba(108, 99, 255, 0.28); }
 .hof-rival-input {
   flex: 1; min-width: 180px; max-width: 320px;
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14);
+  background: var(--color-white-08); border: 1px solid var(--border);
   color: var(--text); font-family: inherit; font-size: 12px;
   border-radius: 6px; padding: 7px 10px;
 }
 .hof-share-out {
-  margin-top: 10px; font-size: 11px; color: #7D8590; word-break: break-all;
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  margin-top: 10px; font-size: 11px; color: var(--text-dim); word-break: break-all;
+  background: var(--color-white-05); border: 1px solid var(--border-subtle);
   border-radius: 6px; padding: 8px 10px; text-align: left;
 }
 .hof-rival-list { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
@@ -559,15 +1219,15 @@ nav .logo-btn {
   color: var(--text); font-size: 12px; font-weight: 700;
   border-radius: 14px; padding: 4px 10px;
 }
-.hof-rival-n { color: #7D8590; font-weight: 600; }
+.hof-rival-n { color: var(--text-dim); font-weight: 600; }
 .hof-rival-x {
-  background: none; border: none; color: #7D8590; cursor: pointer;
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
   font-size: 11px; padding: 0 2px; font-family: inherit;
 }
 .hof-rival-x:hover { color: #F85149; }
-.hof-rival-none { font-size: 12px; color: #7D8590; }
+.hof-rival-none { font-size: 12px; color: var(--text-dim); }
 .hof-rival {
-  font-size: 11px; font-weight: 700; color: #7D8590; white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: var(--text-dim); white-space: nowrap;
   margin-right: 10px;
 }
 .hof-rival-leads { color: #F778BA; text-shadow: 0 0 8px rgba(247, 120, 186, 0.4); }
@@ -575,10 +1235,10 @@ nav .logo-btn {
 /* ── Achievements (SITE-4) ── */
 #hof-achievements { max-width: 720px; margin: 26px auto 0; }
 .ach-head { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #F7C948; margin-bottom: 12px; text-align: center; }
-.ach-count { color: #7D8590; font-weight: 700; margin-left: 6px; }
+.ach-count { color: var(--text-dim); font-weight: 700; margin-left: 6px; }
 .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 .ach-card {
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  background: var(--color-white-05); border: 1px solid var(--border-subtle);
   border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px;
   opacity: 0.55; text-align: left;
 }
@@ -588,12 +1248,12 @@ nav .logo-btn {
 }
 .ach-icon { font-size: 20px; }
 .ach-name { font-size: 12px; font-weight: 800; color: var(--text); }
-.ach-desc { font-size: 10px; color: #7D8590; line-height: 1.4; }
+.ach-desc { font-size: 10px; color: var(--text-dim); line-height: 1.4; }
 .ach-toast {
   position: fixed; bottom: 18px; right: 18px; z-index: 9999;
   display: flex; align-items: center; gap: 10px;
-  background: rgba(13, 17, 23, 0.95); border: 1px solid rgba(247, 201, 72, 0.55);
-  border-radius: 10px; padding: 10px 16px; color: #E6EDF3; font-size: 12px;
+  background: var(--drawer-bg); border: 1px solid rgba(247, 201, 72, 0.55);
+  border-radius: 10px; padding: 10px 16px; color: var(--text); font-size: 12px;
   box-shadow: 0 4px 24px rgba(247, 201, 72, 0.18);
   animation: achIn 0.25s ease; transition: opacity 0.6s, transform 0.6s;
 }
@@ -653,6 +1313,7 @@ nav .logo-btn {
   max-width: 1100px; margin: 0 auto 14px;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
+.jump-back-in[hidden] { display: none; }
 .resume-label { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-dim, #7D8590); }
 .resume-chip {
   display: inline-flex; align-items: center; gap: 8px;
@@ -664,7 +1325,7 @@ nav .logo-btn {
 .resume-tag { font-size: 10px; color: var(--text-dim, #7D8590); font-weight: 600; }
 
 /* ── Card search (P4) ── */
-.card-search-wrap { max-width: 1100px; margin: 0 auto 14px; display: flex; align-items: center; gap: 10px; }
+.card-search-wrap { max-width: 1200px; margin: 0 auto 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .card-search {
   flex: 1; max-width: 340px;
   background: rgba(127,127,127,0.07); border: 1px solid rgba(127,127,127,0.25);
@@ -674,3 +1335,41 @@ nav .logo-btn {
 .card-search:focus { border-color: var(--primary, #6C63FF); box-shadow: var(--glow-primary); }
 .card-search::placeholder { color: var(--text-muted, #8b949e); }
 .card-search-count { font-size: 12px; color: var(--text-dim, #7D8590); font-weight: 700; }
+
+.arcade-empty {
+  max-width: 1200px;
+  margin: 0 auto 28px;
+  padding: 28px 18px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--color-white-05);
+}
+.arcade-empty[hidden] { display: none; }
+.arcade-empty-copy {
+  margin: 0 0 12px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-family: var(--font-sans);
+}
+.arcade-empty-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--color-white-05);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+}
+.arcade-empty-clear:hover,
+.arcade-empty-clear:focus-visible {
+  background: var(--color-white-08);
+  border-color: #8b83ff;
+  outline: none;
+}

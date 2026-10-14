@@ -135,7 +135,7 @@ canvas.game-canvas {
 .game-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(2, 2, 3, 0.92);
+  background: var(--overlay-scrim);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
