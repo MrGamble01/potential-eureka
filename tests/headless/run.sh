@@ -41,7 +41,7 @@ LEAD=(
   meta20 daily rivals rivalsaow rivalsflag ach ach2 coins insights
   search resume theme focus shortcuts patchnotes backup hofcard
   undo2048 w5share cycles3
-  labintro labsheetpause primer sessiontag hubhome objective controls
+  labintro labsheetpause primer sessiontag hubhome hublinks objective controls
 )
 TRAIL=( pwa )
 

@@ -19,6 +19,20 @@
   <link rel="stylesheet" href="css/productivity.css">
   <link rel="stylesheet" href="css/personal.css">
   <link rel="stylesheet" href="css/orgchart.css">
+  <script src="js/hub-routes.js"></script>
+  <script>
+    // Vercel serves this file at the missing URL, so /snake and /grow-op
+    // can still open the game they name. A direct visit to /404.html stays.
+    (function () {
+      if (!window.HubRoutes) return;
+      var slug = location.pathname.replace(/^\/+|\/+$/g, '');
+      if (!slug || slug === '404.html') return;
+      var page = HubRoutes.pageFor(slug);
+      if (page) { location.replace(page.charAt(0) === '/' ? page : '/' + page); return; }
+      var view = HubRoutes.viewFor(slug);
+      if (view && view.kind === 'view' && view.name !== 'arcade') location.replace('/#' + view.name);
+    })();
+  </script>
   <style>
     /* Logo is a plain link on this static page (no JS router here) */
     nav .logo-link { text-decoration: none; cursor: pointer; display: inline-block; }
@@ -26,6 +40,9 @@
     .notfound-hero { min-height: calc(100vh - var(--nav-height)); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
     .notfound-code { font-family: var(--font-mono); font-weight: 700; font-size: clamp(64px, 16vw, 140px); letter-spacing: 6px; color: var(--text); text-shadow: 0 0 24px rgba(108, 99, 255, 0.5), 0 0 64px rgba(108, 99, 255, 0.25); line-height: 1; }
     .notfound-actions { margin-top: 28px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .notfound-games { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 640px; }
+    .notfound-games a { color: var(--text); text-decoration: none; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.4px; border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; }
+    .notfound-games a:hover { border-color: var(--primary, #6C63FF); }
   </style>
 </head>
 <body>
@@ -49,6 +66,18 @@
     <div class="notfound-actions">
       <a class="hof-link" href="/">&#127918; BACK TO ARCADE</a>
     </div>
+    <nav class="notfound-games" aria-label="Play a game">
+      <a href="/ageofwar/">Age of War</a>
+      <a href="/tycoon/play.html">Startup Tycoon</a>
+      <a href="/drug-lab.html">Grow Op</a>
+      <a href="/homeless-village.html">Homeless Village</a>
+      <a href="/hearthvale.html">Hearthvale</a>
+      <a href="/voxel-garden.html">Voxel Isle</a>
+      <a href="/#snake">Snake</a>
+      <a href="/#tetris">Tetris</a>
+      <a href="/#2048">2048</a>
+      <a href="/#minesweeper">Minefield</a>
+    </nav>
   </section>
 
 </body>
