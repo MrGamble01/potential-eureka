@@ -71,6 +71,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Hearthvale raid watch | `hvaleraidwatch` (hook-free desktop/tablet tower selection: tonight’s total watch vs population-scaled pack, Frontier bonus, unfinished palisade, unstaffed keeper warning, day/Cozy and non-guard controls) |
 | Hearthvale | `hvaleescpause` (Space → Escape resumes at prior speed with moving time; browsing/Hall dismiss first; trader/event preserve pause ownership; welcome unchanged; zero page errors) |
 | Hearthvale | `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall, Tab/Shift+Tab reach welcome/pause Games without changing builds and Enter exits to the hub) |
+| Hearthvale welcome | `hvalestart` (hook-free: Begin building and Games stay inside the welcome card and own their centres at 1280×800, 1280×720, 1024×640, 768×700, 390×844 and 390×700; scrolling the tutorial does not unpin them; a real click names the town, places a cottage, and spends 12 wood) |
 | Hub games | `undo2048`, `w5share`, `cycles3` |
 | Grow Op | `labreset` (LAB-59: Reset Game actually resets — the unload autosave no longer writes the run back over the key it just cleared. Drives the real button through the confirm and the reload, no hook; proves the autosave is still live with a plain-reload control, and that the reset reaches the fresh-start path: picker open, legacy and floor safe kept, a Kingpin pick starts on Kingpin money plus the safe) |
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
@@ -296,6 +297,7 @@ when they touched different cards. Append yours; git merges the rest.*
 
 ### Hearthvale suites
 
+- `hvalestart` (hook-free: Begin building and Games stay inside the welcome card and own their centres at desktop, short laptop, tablet and phone; scrolling the tutorial does not unpin them; a real click names the town, places a cottage, and spends 12 wood)
 - `hvaleconstruction` (live construction progress and completion actions in the selected inspector at desktop and tablet widths; hook-free save + clicks)
 
 - `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall)

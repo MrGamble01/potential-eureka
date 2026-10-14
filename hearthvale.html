@@ -278,6 +278,15 @@
       width: 100%; margin-top: 16px; padding: 11px; border-radius: 11px; border: none;
       background: var(--gold); color: #2b2410; font-weight: 800; font-size: 14px; cursor: pointer;
     }
+    /* Welcome is the start of the valley. The card used to scroll as one
+       piece, so on a short laptop (1024×640) and a 700px-tall phone the
+       Begin building button and the Games link sat past max-height. Their
+       centres landed on the backdrop, and the click that starts the town
+       never reached the button. The copy scrolls; the two actions stay
+       pinned inside the card. */
+    #welcome .trader-card { display: flex; flex-direction: column; overflow: hidden; }
+    #welcome .welcome-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+    #welcome .sheet-ctas { flex: 0 0 auto; }
 
     /* ---- Town goal panel ---- */
     #goals {
@@ -559,6 +568,7 @@
 
   <div id="welcome">
     <div class="trader-card">
+      <div class="welcome-body">
       <h2><span>&#127794;</span><span>Welcome to Hearthvale</span></h2>
       <div class="flavor">Build a cozy riverside town and watch it come to life.</div>
       <div style="font-size:13.5px; line-height:1.7; margin-bottom:4px;">
@@ -580,6 +590,7 @@
       <label style="display:block; font-size:12px; color:var(--ink-dim); margin:12px 0 5px;">Name your town</label>
       <input id="townname-input" type="text" maxlength="20" placeholder="Hearthvale" autocomplete="off"
         style="width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-family:var(--font); font-size:14px; font-weight:600;">
+      </div>
       <div class="sheet-ctas">
         <button class="closebtn" id="welcome-close">Begin building</button>
         <a class="ea-back" href="/"><span class="ea-chevron">&#8249;</span><span class="ea-word">GAMES</span></a>
