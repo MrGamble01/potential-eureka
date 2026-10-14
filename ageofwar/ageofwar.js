@@ -8973,7 +8973,9 @@ const AgeOfWarGame = (() => {
     gateCmd('aow-bolt-btn', beforeAge3);
     gateCmd('aow-pay-btn', beforeAge3);
     gateCmd('aow-mason-btn', beforeAge3);
-    gateCmd('aow-duel-btn', !fieldWarlord());
+    // Duel stays on the rail even with no warlord. A refused click is how
+    // the game says nobody is there to challenge (aowdueliron); hiding the
+    // button made that explanation unreachable.
 
     // Chronicle slate (AOW-36)
     const crEl = document.getElementById('aow-chron-btn');

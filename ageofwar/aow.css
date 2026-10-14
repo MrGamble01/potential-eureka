@@ -1282,12 +1282,14 @@
 }
 /* Short tablet leftover: the 500px chrome budget was written before
    the action rail scrolled. At 768×700 / 1024×700 it left ~200px of
-   field under a still-tall lower rail. Give the canvas the leftover. */
-@media (max-width: 1024px) and (max-height: 800px) {
+   field under a still-tall lower rail. Give the canvas the leftover.
+   Phones are excluded — a 260px floor under a 667px screen pushed the
+   recruit cards below the fold, and a 35px max-height crushed the
+   field in landscape. The viewport column below owns 721px and up. */
+@media (min-width: 721px) and (max-width: 1024px) and (max-height: 800px) {
   .aow-stage {
     max-height: calc(100dvh - 340px);
     max-width: calc((100dvh - 340px) * 1280 / 560);
-    min-height: 260px;
   }
 }
 @media (max-width: 900px) {
@@ -1523,7 +1525,15 @@
     flex: 1 1 auto;
     min-height: 0;
     height: auto;
-    overflow: hidden;
+    /* margin: 0 auto on the shell opts it out of flex stretch, and a
+       size-contained stage no longer props the column open. Pin the
+       width so the battlefield uses the viewport, not the button row. */
+    width: 100%;
+    /* The stage shrinks so the recruit row stays put. If a very short
+       screen still overflows, scroll the shell instead of clipping the
+       cards with no way to reach them. */
+    overflow-x: hidden;
+    overflow-y: auto;
     padding-bottom: 8px;
   }
   .aow-topbar,
@@ -1534,13 +1544,27 @@
   .aow-hint,
   .aow-actionbar { flex: 0 0 auto; }
   .aow-stage {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-height: 0;
     height: auto;
     max-height: none;
     max-width: 100%;
     width: 100%;
     aspect-ratio: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* The drawing is 1280×560. Filling this box stretched the lane
+       (about 1.8× too wide at 1280×720). Size the canvas to the largest
+       rectangle of that ratio that fits the leftover. */
+    container-type: size;
+  }
+  .aow-stage > .aow-canvas {
+    width: min(100cqw, calc(100cqh * 1280 / 560));
+    height: min(100cqh, calc(100cqw * 560 / 1280));
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1280 / 560;
   }
   /* Recruit row under the field; the command rail is the last strip
      and scrolls if a late era fills it again. */
@@ -1581,8 +1605,84 @@
   .aow-actionbar { max-height: 64px; }
 }
 
-/* 768×700 still owes the field 260px (aowsession Q). The compact HUD
-   above is what makes that fit beside a fully visible recruit row. */
-@media (min-width: 721px) and (max-width: 1024px) and (max-height: 800px) {
-  .aow-stage { min-height: 260px; }
+/* Landscape phones are wider than 721px, so they get this column, but
+   a 390px height cannot also hold a 260px field. Shrink the HUD and
+   the cards until Clubman fits; the shell still scrolls if it does not. */
+@media (min-width: 721px) and (max-height: 520px) {
+  body .ea-topbar { padding: 4px 10px 2px; }
+  body .ea-back { padding: 4px 10px 4px 8px; font-size: 11px; }
+  .aow-topbar { padding: 3px 8px; gap: 6px; }
+  .aow-resource { padding: 2px 8px; font-size: 13px; min-width: 0; }
+  .aow-era-pill { padding: 2px 8px; }
+  .aow-era-icon { font-size: 16px; }
+  .aow-shell { gap: 3px; padding: 0 8px 4px; }
+  .aow-tab { padding: 3px 10px; }
+  .aow-train-row { margin-top: 2px; padding: 2px 4px; }
+  .aow-train-slot { height: 26px; }
+  .aow-train-sprite { width: 20px; height: 20px; }
+  .aow-spawn-list { margin-top: 2px; gap: 4px; }
+  .aow-spawn-sprite { width: 28px; height: 28px; }
+  .aow-spawn-btn { padding: 2px 2px 1px; gap: 0; }
+  .aow-spawn-name { font-size: 10px; }
+  .aow-spawn-cost { font-size: 11px; }
+  .aow-action { padding: 4px 6px; font-size: 12px; min-height: 0; }
+  /* Stone Age orders have to stay on one row. minmax(108px) wraps
+     the last button on an 800px-wide phone and that second row
+     steals the battlefield. */
+  .aow-actionbar {
+    max-height: none;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  }
+}
+
+/* Phone landscape is under 721px wide, so it keeps the scrolling phone
+   stack. A full-width 1280:560 canvas is taller than the screen and the
+   recruit cards sit below it. Cap the field and tighten the stack so
+   Clubman is on screen at 667×375. */
+@media (max-width: 720px) and (max-height: 480px) {
+  body .ea-topbar { padding: 4px 8px 2px; }
+  body .ea-back { padding: 3px 10px 3px 8px; font-size: 11px; }
+  .aow-shell { gap: 2px; padding-top: 2px; padding-bottom: 2px; }
+  .aow-topbar { padding: 4px 8px; gap: 6px; }
+  .aow-stage {
+    min-height: 0;
+    max-height: none;
+    max-width: 100%;
+    /* The base 1280:560 box is taller than this screen. Wrap the capped
+       canvas instead of reserving that box and shoving recruits off. */
+    aspect-ratio: auto;
+    height: auto;
+    display: flex;
+    justify-content: center;
+  }
+  .aow-canvas {
+    width: auto;
+    height: 88px;
+    max-height: 88px;
+    max-width: 100%;
+    aspect-ratio: 1280 / 560;
+  }
+  .aow-tab { padding: 4px 10px; }
+  .aow-train-row { margin-top: 2px; padding: 2px 4px; }
+  .aow-train-slot { height: 26px; }
+  .aow-spawn-list { margin-top: 2px; gap: 4px; }
+  .aow-spawn-sprite { width: 26px; height: 26px; }
+  .aow-spawn-btn { min-height: 0; padding: 2px 2px 1px; gap: 0; }
+  .aow-spawn-name { font-size: 10px; line-height: 1.1; }
+  .aow-spawn-cost { font-size: 10px; line-height: 1.1; }
+  .aow-actionbar {
+    position: static;
+    max-height: none;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  .aow-action {
+    flex-direction: row;
+    min-height: 0;
+    padding: 4px 4px;
+    gap: 4px;
+  }
+  .aow-action-ico { font-size: 14px; }
+  .aow-action-lbl { font-size: 11px; }
 }

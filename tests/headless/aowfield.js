@@ -6,7 +6,8 @@
  * 1280×800, ~1269 at 1920×1080) and a mouse player could not hire a
  * Clubman without discovering the page scrolled. Stone Age now shows
  * only the orders you can give, the shell fits the viewport, and the
- * recruit row sits under the field.
+ * recruit row sits under the field. The battlefield stays 1280:560
+ * instead of stretching to fill the leftover, including on phones.
  *
  * Hook-free. Drives the production page.
  */
@@ -50,22 +51,33 @@ const SPAWNS = () => {
   for (const vp of [
     { width: 1280, height: 800 },
     { width: 1280, height: 900 },
+    { width: 1280, height: 720 },
     { width: 1366, height: 768 },
     { width: 1440, height: 900 },
     { width: 1920, height: 1080 },
     { width: 768, height: 700 },
+    { width: 390, height: 844 },
+    { width: 375, height: 667 },
+    { width: 844, height: 390 },
+    { width: 667, height: 375 },
   ]) {
     const { ctx, page } = await open(vp);
     const sp = await page.evaluate(SPAWNS);
-    const canvasH = await page.evaluate(() => {
+    const canvas = await page.evaluate(() => {
       const c = document.getElementById('aow-canvas');
-      return c ? c.getBoundingClientRect().height : 0;
+      if (!c) return { h: 0, w: 0 };
+      const b = c.getBoundingClientRect();
+      return { h: b.height, w: b.width };
     });
     const off = sp.filter(s => !s.on);
     ok(sp.length >= 4 && off.length === 0,
       `${vp.width}×${vp.height}: all ${sp.length} recruit cards on screen`
       + (off.length ? ' — off: ' + off.map(s => s.name + '@' + s.top).join(', ') : ''));
-    if (vp.width === 768) ok(canvasH >= 260, `768×700 field is still at least 260px (was ${Math.round(canvasH)})`);
+    const ideal = 1280 / 560;
+    const ratio = canvas.h > 0 ? canvas.w / canvas.h : 0;
+    ok(canvas.h > 40 && Math.abs(ratio / ideal - 1) < 0.03,
+      `${vp.width}×${vp.height}: field keeps 1280:560 (was ${Math.round(canvas.w)}×${Math.round(canvas.h)})`);
+    if (vp.width === 768 && vp.height === 700) ok(canvas.h >= 260, `768×700 field is still at least 260px (was ${Math.round(canvas.h)})`);
     await ctx.close();
   }
 
@@ -89,7 +101,8 @@ const SPAWNS = () => {
         pause: shown('aow-pause-btn'),
       };
     });
-    ok(!gated.warcry && !gated.merc && !gated.duel, 'Stone Age does not show Warcry, Mercs or Duel');
+    ok(!gated.warcry && !gated.merc, 'Stone Age does not show Warcry or Mercs');
+    ok(gated.duel, 'Duel stays on the rail so a click can explain an empty field');
     ok(gated.age && gated.pause, 'Age Up and Pause stay on the rail');
     const before = await page.locator('#aow-gold').innerText();
     await page.locator('.aow-spawn-btn').filter({ hasText: 'Clubman' }).click();
