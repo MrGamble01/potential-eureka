@@ -72,7 +72,7 @@ Resume and the unfocused Space special shortcut at desktop/tablet widths.
 | Hearthvale | `hvaleescpause` (Space → Escape resumes at prior speed with moving time; browsing/Hall dismiss first; trader/event preserve pause ownership; welcome unchanged; zero page errors) |
 | Hearthvale | `hvalechrome` (return chrome leftovers: shared Games pill, Begin building + hub exit, resume chip names the kept valley, 768×700 tucks the speed rail and drops the goal, Achievements/Chronicle/Decrees/Hall carry Games, corrupt-valley chip, pause is Resume the valley + Games, resume-chip New town, 390 kept resume leaves Games/gear tappable, trader/event carry Games, resume and pause name caravan/order/advance/festival/fever days plus undated stake/surety/wolves holds, beforeunload flushes a kept town, Escape closes trader and The Hall, Tab/Shift+Tab reach welcome/pause Games without changing builds and Enter exits to the hub) |
 | Hearthvale welcome | `hvalestart` (hook-free: Begin building and Games stay inside the welcome card and own their centres at 1280×800, 1280×720, 1024×640, 768×700, 390×844 and 390×700; scrolling the tutorial does not unpin them; a real click names the town, places a cottage, and spends 12 wood) |
-| Hub games | `undo2048`, `w5share`, `cycles3` |
+| Hub games | `undo2048`, `tap2048` (game-over card tap starts a new run), `w5share`, `w5keys` (physical and on-screen input after repeated visits), `cycles3` |
 | Grow Op | `labreset` (LAB-59: Reset Game actually resets — the unload autosave no longer writes the run back over the key it just cleared. Drives the real button through the confirm and the reload, no hook; proves the autosave is still live with a plain-reload control, and that the reset reaches the fresh-start path: picker open, legacy and floor safe kept, a Kingpin pick starts on Kingpin money plus the safe) |
 | Cross-game storage | `storagekeys` (every game reads back the localStorage keys it writes; no key claimed by two games on the shared origin) |
 | Cross-game geometry | `reach` (UI-1/UI-2: every flagship control stays on screen at desktop, laptop, short-laptop and phone viewports) |
@@ -175,6 +175,9 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvpanel` (the Fifth Panel)
 - `hvwalk` (the Walk Down)
 - `hvmark` (a Name on the Wall)
+- `hvroom` (HV-270: Make room refuses a full camp before the timer)
+- `hvleave` (HV-271: leaving the tab writes the last half-minute)
+- `hvskew` (HV-272: a corrected clock cannot lock every action)
 - `hvintro` (HV-56: the first-run crash course, a drift guard for its numbers, and visible Games exits from the course and The Bridge with real navigation at desktop/phone widths)
 - `hvwander` (HV-60: the wander step is `speed * (dt/16.667)` so residents shuffle at their own `speed` and settle on a target instead of sprinting to it and ping-ponging across it — at 60fps and at the 100ms lag clamp)
 - `hvbridge` (HV-59: The Bridge pauses the day clock — daylight, warmth and dawn hold while the overlay is open)
