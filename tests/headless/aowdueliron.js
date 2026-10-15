@@ -51,15 +51,27 @@ const cases = [
       });
       for (const input of test.keyOnly ? ['key'] : test.key ? ['click', 'key'] : ['click']) {
         const control = page.locator(`#aow-${test.control}-btn`);
-        await control.scrollIntoViewIfNeeded();
-        const box = await control.boundingBox();
-        assert(box && box.x >= 0 && box.x + box.width <= width, 'control visible');
+        // Era-locked orders stay in the DOM for their hotkey but do not
+        // take a rail cell (Stone Age). A key-only age gate still has to
+        // reach that hidden control; a click needs the button on screen.
+        const shown = await control.evaluate(el => getComputedStyle(el).display !== 'none');
         await page.evaluate(() => { window.renderedText = []; document.activeElement.blur(); });
         const before = await snapshot();
         if (input === 'click') {
+          assert(shown, 'clickable control is on the rail');
+          await control.scrollIntoViewIfNeeded();
+          const box = await control.boundingBox();
+          assert(box && box.x >= 0 && box.x + box.width <= width, 'control visible');
           assert(await control.isEnabled(), 'real control accepts refusal clicks');
           await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-        } else await page.keyboard.press(test.key);
+        } else {
+          if (shown) {
+            await control.scrollIntoViewIfNeeded();
+            const box = await control.boundingBox();
+            assert(box && box.x >= 0 && box.x + box.width <= width, 'control visible');
+          }
+          await page.keyboard.press(test.key);
+        }
         // Read immediately while time is frozen: passive income cannot mask a charge.
         const after = await snapshot();
         assert.equal(after.gold, before.gold - (test.cost || 0), 'exact purse change');
