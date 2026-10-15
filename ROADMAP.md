@@ -33,6 +33,8 @@ afterwards.
 
 ## Status at a glance
 
+LIFE — A drag erases when it starts on a live cell and paints when it starts on a dead one. Hook-free `life`.
+
 HV — Make room on a full camp refuses before the six-second job.
 Closing or hiding the tab writes the camp, and stands down while
 game-over, graduation, or another writer owns the key. A clock that
