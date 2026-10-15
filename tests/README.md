@@ -193,6 +193,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvpack` (HV-95: Pack Up survives a reload)
 - `hvrelight` (HV-69: Firewood relights the barrel after Fire Went Out)
 - `hvfive` (HV-70: Found $5 pays five goodwill)
+- `hvbuilder` (HV-138: hiring the Builder mid-craft halves the remaining duration)
 - `hvcoldlift` (HV-182: a cold snap sky halves the depot lift — heat still 0.75 / HV-247; yard cold still HV-189)
 - `hvcoldyard` (HV-189: a cold sky halves the scrapyard haul)
 - `hvbeds` (HV-190: the Community Garden harvests before the empty-larder bite)

@@ -896,6 +896,11 @@ function refreshFridgeTip(){
 }
 refreshFridgeTip();
 
+// HV-138: the hire card says Speeds up crafting x2. doCraft already
+// applies this at start. hireWorker must also cut remaining time on
+// crafts already ticking — otherwise a blanket on the bench still
+// takes the full four seconds after the Builder joins.
+var BUILDER_CRAFT = 0.5;
 var WORKER_DEFS = [
   {id:'scrapper', icon:'🔍', name:'Scrapper', cost:8,  desc:'Auto-scavenges every day'},
   {id:'builder',  icon:'🔨', name:'Builder',  cost:12, desc:'Speeds up crafting x2'},
