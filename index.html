@@ -1228,7 +1228,7 @@
       <div class="game-header">
         <button class="game-back-btn" data-view="arcade">&larr; Games</button>
         <div class="game-title">VECTOR STORM</div>
-        <div class="game-subtitle">Clear every rock &mdash; the big ones break into smaller ones &middot; Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; buttons on touch</div>
+        <div class="game-subtitle">Clear every rock &mdash; the big ones break into smaller ones &middot; Rotate &larr; &rarr; &middot; thrust &uarr; &middot; fire Space &middot; hyperspace H &middot; pause P &middot; buttons on touch</div>
       </div>
       <div class="game-info" role="status" aria-live="polite">
         <span>Score: <strong id="asteroids-score">0</strong></span>
@@ -1247,9 +1247,11 @@
         <button id="ast-right" aria-label="Rotate right">&#8635;</button>
         <button id="ast-fire" aria-label="Fire">&#9679; FIRE</button>
         <button id="ast-hyper" aria-label="Hyperspace jump">&#10530; WARP</button>
+        <button id="ast-pause" aria-label="Pause">&#10074;&#10074;</button>
       </div>
       <div class="game-controls" style="margin-top:12px">
         <button class="primary" onclick="AsteroidsGame.start()">New Game</button>
+        <button id="asteroids-pause-btn" onclick="AsteroidsGame.togglePause()">Pause</button>
       </div>
     </div>
   </section>
