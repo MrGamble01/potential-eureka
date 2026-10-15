@@ -812,8 +812,9 @@ canvas{display:block;touch-action:none;}
     <div class="panel-title">🏗️ Expand Operation</div>
     <div id="expand-list"></div>
   </div>
-  <div class="panel">
+    <div class="panel">
     <div class="panel-title">⚙️ Options</div>
+    <div id="lab-audio"></div>
     <button class="act-btn danger" id="restart-btn">Reset Game</button>
   </div>
 </div>
@@ -886,6 +887,7 @@ document.getElementById('manage-btn').addEventListener('click', function () {
 });
 </script>
 
+<script src="/js/persist.js"></script>
 <script type="importmap">
 {"imports":{"three":"/vendor/three.module.js"}}
 </script>
@@ -3247,6 +3249,7 @@ function resetGame() {
   // stand down or it writes the live state back over the cleared key.
   resetting = true;
   try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  try{ if (window.EurekaPersist) window.EurekaPersist.progress.clear('growop'); }catch(e){}
   location.reload();
 }
 
@@ -4270,6 +4273,14 @@ document.getElementById('hire-cook-btn').onclick = () => {
 document.getElementById('restart-btn').onclick = () => {
   if (confirm('Reset all progress?')) resetGame();
 };
+if (window.EurekaPersist) {
+  const audioHost = document.getElementById('lab-audio');
+  if (audioHost) {
+    window.EurekaPersist.mount(audioHost, {
+      onReset() { resetGame(); },
+    });
+  }
+}
 
 // ── Pan input (right-click drag) ──
 let panDrag=false, panStartX=0, panStartZ=0, panMouseX=0, panMouseY=0;
@@ -4387,6 +4398,14 @@ function saveGame() {
     routeT: Math.round(routeT), routeCold: Math.round(routeCold),
   };
   try{localStorage.setItem(LS_KEY, JSON.stringify(sv));}catch(e){}
+  try {
+    if (window.EurekaPersist) {
+      window.EurekaPersist.progress.note('growop', {
+        cash: Math.round(state.cash || 0),
+        earned: Math.round(state.totalEarned || 0),
+      });
+    }
+  } catch (e) {}
 }
 function loadGame() {
   try{

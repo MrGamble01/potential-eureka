@@ -889,6 +889,11 @@ const AgeOfWarGame = (() => {
   // Persisted mute toggle (set via the settings modal).
   let soundMuted = false;
   try { soundMuted = localStorage.getItem('aow-muted') === '1'; } catch {}
+  try {
+    if (typeof EurekaPersist !== 'undefined' && EurekaPersist.settings.get().touched) {
+      soundMuted = !!EurekaPersist.settings.get().muted;
+    }
+  } catch {}
   const SFX = (() => {
     let ctxA = null, masterGain = null;
     let lastSpawn = 0, lastHit = 0;
@@ -905,7 +910,10 @@ const AgeOfWarGame = (() => {
       return ctxA;
     }
     function tone({ freq, dur = 0.12, type = 'sine', vol = 0.5, attack = 0.005, slideTo = null }) {
-      if (soundMuted) return;
+      let scale = soundMuted ? 0 : 1;
+      try { if (typeof EurekaPersist !== 'undefined') scale = EurekaPersist.audio.sfx(soundMuted); } catch {}
+      if (scale <= 0) return;
+      vol *= scale;
       const ac = ensure(); if (!ac) return;
       if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
       const t0 = ac.currentTime;
@@ -921,6 +929,10 @@ const AgeOfWarGame = (() => {
       osc.start(t0); osc.stop(t0 + dur + 0.04);
     }
     function noise({ dur = 0.18, vol = 0.18 }) {
+      let scale = soundMuted ? 0 : 1;
+      try { if (typeof EurekaPersist !== 'undefined') scale = EurekaPersist.audio.sfx(soundMuted); } catch {}
+      if (scale <= 0) return;
+      vol *= scale;
       const ac = ensure(); if (!ac) return;
       const t0 = ac.currentTime;
       const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
@@ -3200,8 +3212,26 @@ const AgeOfWarGame = (() => {
     if (muteToggle) muteToggle.onclick = () => {
       soundMuted = !soundMuted;
       try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
+      try {
+        if (typeof EurekaPersist !== 'undefined') {
+          EurekaPersist.settings.update({ muted: soundMuted, touched: true });
+        }
+      } catch {}
       muteToggle.setAttribute('aria-pressed', String(soundMuted));
     };
+    const audioHost = document.getElementById('aow-audio');
+    if (audioHost && typeof EurekaPersist !== 'undefined') {
+      EurekaPersist.mount(audioHost, {
+        showMute: false,
+        localMuted: () => soundMuted,
+        onChange(s) {
+          soundMuted = !!s.muted;
+          try { localStorage.setItem('aow-muted', soundMuted ? '1' : '0'); } catch {}
+          if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));
+        },
+      });
+    }
+    if (muteToggle) muteToggle.setAttribute('aria-pressed', String(soundMuted));
     // Replay tutorial
     const replayBtn = document.getElementById('aow-replay-tutorial');
     if (replayBtn) replayBtn.onclick = () => {
@@ -3217,6 +3247,7 @@ const AgeOfWarGame = (() => {
         localStorage.removeItem('aow-achievements');
         localStorage.removeItem('aow-best-run');
         localStorage.removeItem('aow-session');
+        if (typeof EurekaPersist !== 'undefined') EurekaPersist.progress.clear('ageofwar');
       } catch {}
       earnedAchievements = {};
       closeSettings();
@@ -9660,10 +9691,14 @@ const AgeOfWarGame = (() => {
         warcryT, warcryCd,
         mercCd, sapperCd, boltCd,
       }));
+      if (typeof EurekaPersist !== 'undefined') {
+        EurekaPersist.progress.note('ageofwar', { wave: waveNum | 0, gold: gold | 0, era: playerEra | 0 });
+      }
     } catch {}
   }
   function clearSession() {
     try { localStorage.removeItem(SESSION_KEY); } catch {}
+    try { if (typeof EurekaPersist !== 'undefined') EurekaPersist.progress.clear('ageofwar'); } catch {}
   }
   function loadSession() {
     let raw = null;
@@ -9767,6 +9802,11 @@ const AgeOfWarGame = (() => {
     renderSpawnPanel();
     renderTrainingQueue();
     renderTurretPanel();
+    try {
+      if (typeof EurekaPersist !== 'undefined') {
+        EurekaPersist.progress.note('ageofwar', { wave: waveNum | 0, gold: gold | 0, era: playerEra | 0 });
+      }
+    } catch {}
     return true;
   }
   function showResumeOverlay(snap) {

@@ -1749,6 +1749,7 @@
       <input type="checkbox" id="sfx-enabled">
       <span>🔊 Sound effects</span>
     </label>
+    <div id="tycoon-audio"></div>
     <label class="setting-row" id="haptics-row" style="display:none">
       <input type="checkbox" id="haptics-enabled">
       <span>📳 Haptic feedback</span>
@@ -1837,6 +1838,7 @@
     <button class="elev-close" id="elev-close">Close</button>
   </div>
 </div>
+<script src="/js/persist.js"></script>
 <script type="importmap">
 { "imports": { "three": "/vendor/three.module.js" } }
 </script>
@@ -2245,7 +2247,10 @@ const SFX = (() => {
 
   // ADSR-ish envelope on a single oscillator.
   function tone({ freq, dur = 0.12, type = 'sine', vol = 0.5, attack = 0.005, slideTo = null }) {
-    if (!enabled) return;
+    let scale = enabled ? 1 : 0;
+    try { if (window.EurekaPersist) scale = window.EurekaPersist.audio.sfx(!enabled); } catch {}
+    if (scale <= 0) return;
+    vol *= scale;
     const ac = ensureCtx(); if (!ac) return;
     if (ac.state === 'suspended') { try { ac.resume(); } catch {} }
     const t0 = ac.currentTime;
@@ -2265,6 +2270,9 @@ const SFX = (() => {
     setEnabled(on) {
       enabled = !!on;
       try { localStorage.setItem(LS.sfx, enabled ? '1' : '0'); } catch {}
+      try {
+        if (window.EurekaPersist) window.EurekaPersist.settings.update({ muted: !enabled, touched: true });
+      } catch {}
       if (enabled) ensureCtx();
     },
     isEnabled() { return enabled; },
@@ -11705,11 +11713,26 @@ joyToggleEl.addEventListener('change', () => setJoystickEnabled(joyToggleEl.chec
 // document is what unlocks audio in most browsers, so any hire/cash
 // after that point will be audible.
 const sfxToggleEl = document.getElementById('sfx-enabled');
+if (window.EurekaPersist && window.EurekaPersist.settings.get().touched) {
+  SFX.setEnabled(!window.EurekaPersist.settings.get().muted);
+}
 sfxToggleEl.checked = SFX.isEnabled();
 sfxToggleEl.addEventListener('change', () => {
   SFX.setEnabled(sfxToggleEl.checked);
   if (sfxToggleEl.checked) SFX.click();
 });
+if (window.EurekaPersist) {
+  const audioHost = document.getElementById('tycoon-audio');
+  if (audioHost) {
+    window.EurekaPersist.mount(audioHost, {
+      showMute: false,
+      localMuted: () => !SFX.isEnabled(),
+      onChange(s) {
+        sfxToggleEl.checked = !s.muted;
+      },
+    });
+  }
+}
 
 // Haptics toggle — only revealed on devices that actually support
 // navigator.vibrate (i.e. Android/Chrome). iOS Safari and desktop
@@ -11923,6 +11946,7 @@ document.getElementById('restart-btn').addEventListener('click', () => {
     const joy = lsGet(LS.joystick);
     lsRemove(LS.save);
     if (joy !== null) lsSet(LS.joystick, joy);
+    if (window.EurekaPersist) window.EurekaPersist.progress.clear(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon');
   } catch (_) {}
   location.reload();
 });
@@ -13348,6 +13372,11 @@ function saveGame() {
                 offlineRatePerSec: estimateOfflineRatePerSec() };
     for (const f of SAVE_SCHEMA) f.write(p);
     localStorage.setItem(SAVE_KEY, JSON.stringify(p));
+    if (window.EurekaPersist) {
+      window.EurekaPersist.progress.note(VARIANT.id === 'beagle' ? 'beagle' : 'tycoon', {
+        cash: Math.round(state.cash || 0),
+      });
+    }
   } catch (err) {
     console.warn('Tycoon save failed:', err);
     showToast('⚠️ Save failed — progress may not persist', 'save-fail', 'critical');

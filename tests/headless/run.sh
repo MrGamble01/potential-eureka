@@ -34,6 +34,7 @@ LEAD=(
   pacing
   reach
   storagekeys
+  persist
   saves
   hubstore
   promises

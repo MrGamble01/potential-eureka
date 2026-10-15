@@ -6,6 +6,23 @@
 var hvLastWrite = null;
 function saveGame(){
   try{ var s=JSON.stringify(G); localStorage.setItem(SAVE_KEY, s); hvLastWrite=s; }catch(e){}
+  try{
+    if(typeof EurekaPersist!=='undefined'){
+      EurekaPersist.progress.note('homeless',{days:G.days|0,pop:G.population|0});
+    }
+  }catch(e){}
+}
+
+// Start Over / Start a New Camp, and the shared Reset progress control.
+// Leave hvLastWrite pointing at the previous payload: saveOnLeave stands
+// down when the key no longer matches what this page last wrote, so a
+// reload cannot write the wiped camp back. Do not set hvLastWrite to
+// null here — that would look like "we never had a save" and the
+// leave-save would recreate one.
+function resetCamp(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  try{ if(typeof EurekaPersist!=='undefined') EurekaPersist.progress.clear('homeless'); }catch(e){}
+  location.reload();
 }
 
 function loadGame(){

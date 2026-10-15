@@ -468,7 +468,7 @@ function showGraduation(){
     '</div>';
   document.body.appendChild(d);
   document.getElementById('hv-grad-new').addEventListener('click',function(){
-    localStorage.removeItem(SAVE_KEY); location.reload();
+    resetCamp();
   });
   document.getElementById('hv-grad-stay').addEventListener('click',function(){
     G.arcDone=true; saveGame(); d.remove();
@@ -491,7 +491,7 @@ function showGameOver(){
   d.innerHTML='<div style="font-size:34px">🕯️</div>'+
     '<div style="font-size:17px;letter-spacing:2px;color:#e08060">THE CAMP DIDN\'T MAKE IT</div>'+
     '<div style="max-width:420px;line-height:1.6">Your health gave out. You survived <b>'+G.days+'</b> day'+(G.days===1?'':'s')+' under the bridge, with a community of <b>'+G.peakPopulation+'</b> at its peak.</div>'+
-    '<button onclick="localStorage.removeItem(SAVE_KEY);location.reload()" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">START OVER</button>';
+    '<button onclick="resetCamp()" style="background:#2a2018;color:#d8cbb0;border:1px solid #6a5030;padding:8px 22px;font-family:inherit;cursor:pointer;border-radius:4px">START OVER</button>';
   document.body.appendChild(d);
 }
 
