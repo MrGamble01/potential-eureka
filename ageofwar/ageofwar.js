@@ -658,20 +658,22 @@ const AgeOfWarGame = (() => {
       const steps = modal.querySelector('.aow-welcome-steps');
       if (steps) {
         steps.innerHTML = `
-          <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Tap a unit card</strong> at the bottom to send a soldier into battle. Each unit costs gold and has a brief cooldown.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap coins</strong> dropped by kills to scoop up gold. Drag a finger across the screen to sweep many at once. Coins you miss auto-collect after a few seconds.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with the <em>Age Up</em> button when you have enough XP. Unlocks stronger units and a new <strong>Special</strong> attack.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">1</span><div><strong>Tap Clubman</strong> at the bottom. Your castle is on the left — two soldiers are already marching right. Each extra unit costs gold.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">2</span><div><strong>Tap coins</strong> dropped by kills to scoop up gold. Drag a finger across the field to sweep many at once. Coins you miss collect themselves after a few seconds.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">3</span><div><strong>Age up</strong> with the <em>Age Up</em> button when the XP bar fills. That unlocks stronger units and a new <strong>Special</strong>.</div></div>
           <div class="aow-welcome-step"><span class="aow-welcome-num">4</span><div><strong>Summon a Hero</strong> with the <em>Hero</em> button — expensive but devastating. A new hero unlocks each era.</div></div>
-          <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> in the <em>Turrets</em> tab. They snipe enemies for you while you focus on coins.</div></div>
+          <div class="aow-welcome-step"><span class="aow-welcome-num">5</span><div><strong>Build turrets</strong> in the <em>Turrets</em> tab. They shoot enemies while you collect coins.</div></div>
         `;
       }
     }
     modal.style.display = 'flex';
     setModalPaused(true);
+    updateCoach();
     const close = () => {
       modal.style.display = 'none';
       try { localStorage.setItem('aow-welcome-seen', '1'); } catch {}
       setModalPaused(anyModalOpen());
+      updateCoach();
     };
     btn.addEventListener('click', close, { once: true });
     document.addEventListener('keydown', function onEsc(e) {
@@ -1219,6 +1221,9 @@ const AgeOfWarGame = (() => {
     waveNum = 1;
     waveEnemiesRemaining = 3;     // gentler first wave
     waveBreatherT = 4.0;          // give the player ~4s to orient before enemies surge
+    coachOrdered = false;
+    coachCoinShownAt = 0;
+    coachAgeShownAt = 0;
     bossWaveActive = false;
     bossKilledThisWave = false;
     councilBoons = {};            // AOW-10: boons are run-scoped
@@ -3037,6 +3042,10 @@ const AgeOfWarGame = (() => {
     if (repairBtn) repairBtn.onclick = repairBase;
     const boltBtn = document.getElementById('aow-bolt-btn');
     if (boltBtn) boltBtn.onclick = fireBallista;
+    const tentBtn = document.getElementById('aow-tent-btn');
+    if (tentBtn) tentBtn.onclick = buyTent;
+    const armorBtn = document.getElementById('aow-armor-btn');
+    if (armorBtn) armorBtn.onclick = buyArmorer;
     const fletchBtn = document.getElementById('aow-fletch-btn');
     if (fletchBtn) fletchBtn.onclick = buyFletcher;
     const drillBtn = document.getElementById('aow-drill-btn');
@@ -3236,9 +3245,16 @@ const AgeOfWarGame = (() => {
     const replayBtn = document.getElementById('aow-replay-tutorial');
     if (replayBtn) replayBtn.onclick = () => {
       try { localStorage.removeItem('aow-welcome-seen'); } catch {}
+      try { localStorage.removeItem(COACH_KEY); } catch {}
+      coachDone = false;
+      coachOrdered = false;
+      coachCoinShownAt = 0;
+      coachAgeShownAt = 0;
       closeSettings();
       maybeShowWelcome();
     };
+    const coachDismiss = document.getElementById('aow-coach-dismiss');
+    if (coachDismiss) coachDismiss.onclick = () => finishCoach();
     // Reset progress
     const resetBtn = document.getElementById('aow-reset-progress');
     if (resetBtn) resetBtn.onclick = () => {
@@ -8700,6 +8716,72 @@ const AgeOfWarGame = (() => {
 
 
   // ---- HUD + panels ----
+  // First-minute coach. The keyboard hint is hidden on phones and short
+  // laptops, and the welcome sheet is easy to dismiss, so the battlefield
+  // itself says the next action until the player has sent a unit, seen
+  // the coin, and had a look at Age Up — or they tap Got it.
+  const COACH_KEY = 'aow-coach-done';
+  let coachDone = false;
+  let coachOrdered = false;
+  let coachCoinShownAt = 0;
+  let coachAgeShownAt = 0;
+  try { coachDone = localStorage.getItem(COACH_KEY) === '1'; } catch {}
+  function finishCoach() {
+    coachDone = true;
+    try { localStorage.setItem(COACH_KEY, '1'); } catch {}
+    const el = document.getElementById('aow-coach');
+    if (el) el.hidden = true;
+    document.querySelectorAll('.aow-spawn-btn.aow-spawn-next').forEach(b => b.classList.remove('aow-spawn-next'));
+  }
+  function coachLine() {
+    if (!coachOrdered && trainingQueue.length === 0) {
+      return {
+        step: 'spawn',
+        text: 'Click Clubman, or press 1. Your castle is on the left — soldiers march right.',
+      };
+    }
+    coachOrdered = true;
+    if (runStats.coinsCollected < 1 && coachCoinShownAt === 0) coachCoinShownAt = runStats.time || 0.01;
+    if (runStats.coinsCollected < 1 && (runStats.time - coachCoinShownAt) < 8) {
+      return {
+        step: 'coins',
+        text: 'Click the gold coins enemies drop, or drag across them. Missed coins collect themselves.',
+      };
+    }
+    if (!coachAgeShownAt) coachAgeShownAt = runStats.time || 0.01;
+    if (playerEra > 0 || runStats.time - coachAgeShownAt >= 14) {
+      finishCoach();
+      return null;
+    }
+    const ready = xp >= ERAS[playerEra].upXP;
+    return {
+      step: 'age',
+      text: ready
+        ? 'Age Up is ready. Press Q, or the Age Up button, for stronger units.'
+        : 'Kills fill the XP bar up top. Age Up (Q) when it fills. Space fires Boulder.',
+    };
+  }
+  function updateCoach() {
+    const el = document.getElementById('aow-coach');
+    if (!el) return;
+    const welcome = document.getElementById('aow-welcome-modal');
+    const welcomeOpen = !!(welcome && welcome.style.display && welcome.style.display !== 'none');
+    const suppress = coachDone || gameOver || resumePrompt || welcomeOpen
+      || (waveNum > 1 && !coachOrdered) || (playerEra > 0 && !coachOrdered);
+    document.querySelectorAll('.aow-spawn-btn.aow-spawn-next').forEach(b => b.classList.remove('aow-spawn-next'));
+    if (suppress) { el.hidden = true; return; }
+    const line = coachLine();
+    if (!line) { el.hidden = true; return; }
+    el.hidden = false;
+    const text = document.getElementById('aow-coach-text');
+    if (text && text.textContent !== line.text) text.textContent = line.text;
+    el.dataset.step = line.step;
+    if (line.step === 'spawn') {
+      const first = document.querySelector('#aow-spawn-list .aow-spawn-btn');
+      if (first) first.classList.add('aow-spawn-next');
+    }
+  }
+
   function renderHud() {
     const era = ERAS[playerEra];
     const eEra = ERAS[enemyEra];
@@ -8798,6 +8880,11 @@ const AgeOfWarGame = (() => {
       if (lbl) lbl.textContent = spec.name;
       if (specCdEl) specCdEl.textContent = specialReadyT > 0 ? `${Math.ceil(specialReadyT)}s` : 'READY';
       specEl.disabled = specialReadyT > 0;
+      const specHint = specialReadyT > 0
+        ? `${spec.name} (Space) — cooling ${Math.ceil(specialReadyT)}s. It drops on the enemy line for ${spec.dmg} damage.`
+        : `${spec.name} (Space) — ready. Hits the enemy line for ${spec.dmg} damage.`;
+      specEl.title = specHint;
+      specEl.setAttribute('aria-label', specHint);
     }
 
     // Warcry button (AOW-13)
@@ -9315,6 +9402,7 @@ const AgeOfWarGame = (() => {
         }
       }
     }
+    updateCoach();
   }
 
   function updateTrainingLabel(slot, entry, isFront) {
@@ -9881,6 +9969,7 @@ const AgeOfWarGame = (() => {
     ov.style.display = 'none';
     ov.onclick = null;
     ov.style.cursor = '';
+    ov.classList.remove('aow-overlay-win', 'aow-overlay-lose');
   }
   // Endless best run: waves survived is the score (dying during wave N
   // means N-1 survived). Kept as small JSON under the 'aow-best-run' key the
@@ -9913,17 +10002,27 @@ const AgeOfWarGame = (() => {
     pendingPerks = {};
     const m = Math.floor(runStats.time / 60);
     const s = Math.floor(runStats.time % 60).toString().padStart(2, '0');
+    ov.classList.toggle('aow-overlay-win', !!won);
+    ov.classList.toggle('aow-overlay-lose', !won);
+    const kicker = won ? 'You win' : (endlessMode ? 'Run over' : 'You lose');
+    const title = won ? '🏆 VICTORY' : (endlessMode ? '☠️ RUN OVER' : '💀 DEFEAT');
+    let cause;
+    if (won) {
+      cause = 'The enemy base is destroyed. Yours is still standing.';
+    } else if (endlessMode && lastRunSummary) {
+      const waves = lastRunSummary.run.waves;
+      const holds = lastRunSummary.run.strongholds || 0;
+      cause = `Your base hit zero after ${waves} wave${waves === 1 ? '' : 's'}`
+        + (holds ? `, with ${holds} stronghold${holds === 1 ? '' : 's'} razed` : '')
+        + (lastRunSummary.isBest ? '. New best.' : `. Best is ${lastRunSummary.prev ? lastRunSummary.prev.waves : 0} waves.`);
+    } else {
+      cause = 'Your base hit zero. The enemy base is still standing.';
+    }
     ov.style.display = 'flex';
     ov.innerHTML = `
-      <h2 style="${won ? 'background:linear-gradient(135deg,#3FB950,#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent' : 'color:#F85149'}">
-        ${won ? '🏆 VICTORY' : (endlessMode ? '☠️ RUN OVER' : '💀 DEFEAT')}
-      </h2>
-      <p>${won ? 'You wiped the enemy base.' : (endlessMode && lastRunSummary
-        ? `You survived <b style="color:#fcd34d">${lastRunSummary.run.waves}</b> wave${lastRunSummary.run.waves === 1 ? '' : 's'}`
-          + (lastRunSummary.run.strongholds ? ` and razed <b style="color:#fcd34d">${lastRunSummary.run.strongholds}</b> stronghold${lastRunSummary.run.strongholds === 1 ? '' : 's'}` : '')
-          + (lastRunSummary.isBest ? ' — <b style="color:#3FB950">NEW BEST!</b>'
-             : ` <span style="color:var(--text-dim)">(best: ${lastRunSummary.prev ? lastRunSummary.prev.waves : 0})</span>`)
-        : 'Your base has fallen.')}</p>
+      <p class="aow-end-kicker">${kicker}</p>
+      <h2>${title}</h2>
+      <p class="aow-end-cause">${cause}</p>
       <div style="display:flex;gap:24px;margin-top:16px;font-family:var(--font-mono);font-size:13px">
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Time</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${m}:${s}</div></div>
         <div><div style="color:var(--text-dim);font-size:10px;letter-spacing:1.5px;text-transform:uppercase">Kills</div><div style="font-weight:800;font-size:18px;color:#fcd34d">${runStats.kills}</div></div>
@@ -9933,7 +10032,7 @@ const AgeOfWarGame = (() => {
       ${newTrials.length ? `<div style="margin-top:14px">${newTrials.map(t =>
         `<div style="color:#3FB950;font-weight:800;font-size:14px">🏆 War Trial complete: ${t.icon} ${t.name} — +${t.reward}🏺</div>`).join('')}</div>` : ''}
       ${overlayCtas('aow-again-cta', 'Play again')}
-      <p style="font-size:12px; color: var(--text-dim); margin-top:10px">Space plays again</p>
+      <p class="aow-end-next">Play again starts a fresh war. Space does the same.</p>
       <div id="relic-vault" style="margin-top:18px;padding:12px 16px;border:1px solid rgba(252,211,77,0.3);border-radius:10px;max-width:520px">
         <div style="font-size:11px;letter-spacing:1.5px;color:#fcd34d;font-weight:800;text-transform:uppercase">
           🏺 Relics &nbsp;<span id="relic-count" style="font-size:15px">${relics}</span>
@@ -9950,6 +10049,8 @@ const AgeOfWarGame = (() => {
       </div>
     `;
     wireOverlayPrimary('aow-again-cta', e => { e.stopPropagation(); startNewWar(); });
+    const again = document.getElementById('aow-again-cta');
+    if (again) { try { again.focus({ preventScroll: true }); } catch { again.focus(); } }
     ov.querySelectorAll('.relic-perk').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
