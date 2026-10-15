@@ -83,6 +83,7 @@ const SHELL = [
   '/js/effects.js',
   '/js/game2048.js',
   '/js/gamepad.js',
+  '/js/hub-routes.js',
   '/js/life.js',
   '/js/lightcycles.js',
   '/js/maze.js',

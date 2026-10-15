@@ -250,10 +250,14 @@ const Telemetry = (() => {
     el.hidden = false;
     el.innerHTML = `<span class="resume-label">⏵ JUMP BACK IN</span>` +
       picks.map(p =>
-        `<button class="resume-chip" data-view="${p.id}">${NAMES[p.id] || p.id}` +
-        `<span class="resume-tag">${p.tag}</span></button>`).join('');
+        `<a class="resume-chip" href="#${p.id}" data-view="${p.id}">${NAMES[p.id] || p.id}` +
+        `<span class="resume-tag">${p.tag}</span></a>`).join('');
     el.querySelectorAll('.resume-chip').forEach(btn => {
-      btn.addEventListener('click', () => go(btn.dataset.view));
+      btn.addEventListener('click', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        go(btn.dataset.view);
+      });
     });
   }
 
