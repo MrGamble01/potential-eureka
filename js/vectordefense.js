@@ -33,7 +33,7 @@ const VectorDefenseGame = (() => {
   let canvas, ctx, loop;
   let towers, enemies, shots, sparks;
   let cash, lives, wave, waveT, spawnQueue, spawnT, betweenWaves;
-  let running, over, won, best, selectedKind, railBeams;
+  let running, over, won, best, selectedKind, railBeams, paused;
   let selectedTower = null;   // P4: owned pad selected for upgrade/sell
   const sfx = Utils.sfx;
 
@@ -83,10 +83,15 @@ const VectorDefenseGame = (() => {
       }
       if (e.key === '1') selectKind('pulse');
       if (e.key === '2') selectKind('rail');
+      if (e.key === 'p' || e.key === 'P') {
+        if (e.repeat) return;
+        if (running && !over) { paused = !paused; sfx(paused ? 'lock' : 'start'); draw(); }
+      }
     }));
 
     canvas.addEventListener('click', e => {
       if (!running || over) { start(); return; }
+      if (paused) return;
       const r = canvas.getBoundingClientRect();
       const x = (e.clientX - r.left) / r.width * WIDTH;
       const y = (e.clientY - r.top) / r.height * HEIGHT;
@@ -132,7 +137,7 @@ const VectorDefenseGame = (() => {
     spawnQueue = 0;
     spawnT = 0;
     betweenWaves = true;
-    over = false; won = false;
+    over = false; won = false; paused = false;
     running = !!run;
     selectKind('pulse');
     selectTower(null);
@@ -226,6 +231,7 @@ const VectorDefenseGame = (() => {
 
   function tick(dt) {
     if (!running || over) return;
+    if (paused) { draw(); return; }
     const secs = dt / 60;   // Utils.gameLoop dt is in 60ths
 
     // Spawning
@@ -475,6 +481,16 @@ const VectorDefenseGame = (() => {
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#7D8590';
       ctx.fillText('Click pads to build · 1 = ⚡ Pulse ($50) · 2 = ▭ Rail ($120) · 10 waves', WIDTH / 2, HEIGHT / 2 + 14);
+    }
+    if (paused && running && !over) {
+      ctx.fillStyle = 'rgba(13,17,23,0.72)';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#E6EDF3';
+      ctx.font = '800 20px Inter, sans-serif';
+      ctx.fillText('PAUSED', WIDTH / 2, HEIGHT / 2 - 8);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillStyle = '#7D8590';
+      ctx.fillText('Press P to resume', WIDTH / 2, HEIGHT / 2 + 14);
     }
     ctx.textAlign = 'left';
   }
