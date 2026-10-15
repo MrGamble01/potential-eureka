@@ -475,6 +475,7 @@
   <div id="menu">
     <button id="m-speed">Speed: 1&times;</button>
     <button id="m-sound">Sound: On</button>
+    <div id="hv-audio"></div>
     <button id="m-decrees">Town Decrees</button>
     <button id="m-chronicle">Town Chronicle</button>
     <button id="m-recital">The Elder’s Recital</button>
@@ -648,6 +649,7 @@
     </div>
   </div>
 
+<script src="/js/persist.js"></script>
 <script>
 "use strict";
 (function () {
@@ -724,6 +726,8 @@
   }
   function tone(freq, dur, type, vol, when) {
     const ac = audioCtx(); if (!ac) return;
+    vol = (vol || 0.12) * (typeof _sfxScale === 'number' ? _sfxScale : 1);
+    if (vol <= 0) return;
     const t = ac.currentTime + (when || 0);
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
@@ -732,8 +736,14 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.03);
   }
+  let _sfxScale = 1;
   function SFX(kind) {
-    if (typeof state !== 'undefined' && state && state.muted) return;
+    _sfxScale = 1;
+    try {
+      if (typeof EurekaPersist !== 'undefined') _sfxScale = EurekaPersist.audio.sfx(typeof state !== 'undefined' && state && state.muted);
+      else if (typeof state !== 'undefined' && state && state.muted) _sfxScale = 0;
+    } catch (e) { if (typeof state !== 'undefined' && state && state.muted) _sfxScale = 0; }
+    if (_sfxScale <= 0) return;
     switch (kind) {
       case 'place':   tone(330, 0.08, 'square', 0.10); tone(494, 0.12, 'square', 0.09, 0.06); break;
       case 'upgrade': tone(392, 0.09, 'triangle', 0.11); tone(587, 0.10, 'triangle', 0.10, 0.07); tone(784, 0.15, 'triangle', 0.10, 0.14); break;
@@ -5995,7 +6005,13 @@
         syncPaused();
       }
     }
-    if (e.key === 'm' || e.key === 'M') { state.muted = !state.muted; toast(state.muted ? '🔇 Sound off' : '🔊 Sound on'); if (!state.muted) SFX('coin'); save(); }
+    if (e.key === 'm' || e.key === 'M') {
+      state.muted = !state.muted;
+      try { if (typeof EurekaPersist !== 'undefined') EurekaPersist.settings.update({ muted: state.muted, touched: true }); } catch (e) {}
+      toast(state.muted ? '🔇 Sound off' : '🔊 Sound on');
+      if (!state.muted) SFX('coin');
+      save();
+    }
     if (e.key === ' ') {
       // Decision sheets own the pause. Leave Space to their focused buttons
       // without restarting time behind a trade or an unresolved choice.
@@ -6084,6 +6100,13 @@
         lastFeverYear: typeof state.lastFeverYear === 'number' ? state.lastFeverYear : -1,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+      if (typeof EurekaPersist !== 'undefined') {
+        EurekaPersist.progress.note('hearthvale', {
+          day: state.day | 0,
+          name: String(state.townName || 'Hearthvale').slice(0, 40),
+          pop: (state.villagers || []).length | 0,
+        });
+      }
     } catch (e) { /* private mode / quota — ignore */ }
   }
   window.addEventListener('beforeunload', save);
@@ -6294,6 +6317,7 @@
     if (!confirm('Start a new town? Your current progress will be lost.')) return;
     townDropped = true;
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    try { if (typeof EurekaPersist !== 'undefined') EurekaPersist.progress.clear('hearthvale'); } catch (e) {}
     location.reload();
   }
 
@@ -6308,6 +6332,7 @@
 
   window.__hvReset = function () {
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    try { if (typeof EurekaPersist !== 'undefined') EurekaPersist.progress.clear('hearthvale'); } catch (e) {}
     location.reload();
   };
 
@@ -6358,6 +6383,10 @@
 
     const loaded = load();
     if (!loaded) newGame();
+    if (typeof EurekaPersist !== 'undefined' && state) {
+      const heard = EurekaPersist.audio.apply(state.muted, false);
+      state.muted = heard.muted;
+    }
     else if (cam == null) cam = { x: MAP_W * TILE / 2, y: MAP_H * TILE / 2, z: 3 };
     if (!cam) cam = { x: 0, y: 0, z: 3 };
     paintResume(loaded, bootUnread);
@@ -6375,7 +6404,31 @@
     const soundBtn = document.getElementById('m-sound');
     const syncSound = () => { soundBtn.textContent = 'Sound: ' + (state.muted ? 'Off' : 'On'); };
     menuBtn.onclick = () => { menu.classList.toggle('show'); syncSound(); const md = document.getElementById('m-decrees'); if (md) md.textContent = 'Town Decrees' + (decreesAvailable() > 0 ? ' ⭐' + decreesAvailable() : ''); };
-    soundBtn.onclick = () => { state.muted = !state.muted; syncSound(); if (!state.muted) SFX('coin'); save(); };
+    soundBtn.onclick = () => {
+      state.muted = !state.muted;
+      try { if (typeof EurekaPersist !== 'undefined') EurekaPersist.settings.update({ muted: state.muted, touched: true }); } catch (e) {}
+      syncSound();
+      if (!state.muted) SFX('coin');
+      save();
+    };
+    const audioHost = document.getElementById('hv-audio');
+    if (audioHost && typeof EurekaPersist !== 'undefined') {
+      EurekaPersist.mount(audioHost, {
+        showMute: false,
+        localMuted: () => !!(state && state.muted),
+        onChange(s) {
+          if (state) state.muted = !!s.muted;
+          syncSound();
+          save();
+        },
+        onReset() {
+          townDropped = true;
+          try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+          try { EurekaPersist.progress.clear('hearthvale'); } catch (e) {}
+          location.reload();
+        },
+      });
+    }
     document.getElementById('m-achv').onclick = () => { menu.classList.remove('show'); openAchievements(); };
     document.getElementById('achv-close').onclick = () => document.getElementById('achv').classList.remove('show');
     document.getElementById('m-chronicle').onclick = () => { menu.classList.remove('show'); openChronicle(); };

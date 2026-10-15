@@ -952,6 +952,14 @@ function triggerEvent(ev,isGood){
 
 // ── Audio ──
 var audioCtx=null;
+function campScale(music){
+  try{
+    if(typeof EurekaPersist!=='undefined'){
+      return music ? EurekaPersist.audio.music(false,false) : EurekaPersist.audio.sfx(false);
+    }
+  }catch(e){}
+  return 1;
+}
 function initAudio(){
   if(audioCtx) return;
   audioCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -964,7 +972,7 @@ function startRumble(){
     var d=buf.getChannelData(0); for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*.012;
     var src=audioCtx.createBufferSource(); src.buffer=buf;
     var filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=80;
-    var g=audioCtx.createGain(); g.gain.value=.18;
+    var g=audioCtx.createGain(); g.gain.value=.18*campScale(true);
     src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
     src.start(); src.onended=tick;
   }
@@ -978,7 +986,7 @@ function startCrackle(){
     var d=buf.getChannelData(0); for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*.4;
     var src=audioCtx.createBufferSource(); src.buffer=buf;
     var filt=audioCtx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=1200+Math.random()*800;
-    var g=audioCtx.createGain(); g.gain.setValueAtTime(.04+Math.random()*.05,t); g.gain.linearRampToValueAtTime(0,t+.1);
+    var g=audioCtx.createGain(); g.gain.setValueAtTime((.04+Math.random()*.05)*campScale(true),t); g.gain.linearRampToValueAtTime(0,t+.1);
     src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
     src.start(t); setTimeout(tick,120+Math.random()*600);
   }
@@ -993,7 +1001,7 @@ function startTraffic(){
     var src=audioCtx.createBufferSource(); src.buffer=buf;
     var filt=audioCtx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=400+Math.random()*400;
     var g=audioCtx.createGain();
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.065,t+dur*.3); g.gain.linearRampToValueAtTime(0,t+dur);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.065*campScale(true),t+dur*.3); g.gain.linearRampToValueAtTime(0,t+dur);
     src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
     src.start(t); setTimeout(tick,4000+Math.random()*12000);
   }
@@ -1017,7 +1025,7 @@ function sfx(kind){
     o.type=kind==='gameover'?'sine':'triangle'; o.frequency.value=f;
     var start=t+i*spacing;
     g.gain.setValueAtTime(0,start);
-    g.gain.linearRampToValueAtTime(.09,start+.015);
+    g.gain.linearRampToValueAtTime(.09*campScale(false),start+.015);
     g.gain.linearRampToValueAtTime(0,start+spacing+.06);
     o.connect(g); g.connect(audioCtx.destination);
     o.start(start); o.stop(start+spacing+.08);

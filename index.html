@@ -71,6 +71,7 @@
 
   <!-- Tucked-away utility views + toys — not games, kept out of the way -->
   <div class="nav-utils" id="nav-utils">
+    <div id="nav-audio"></div>
     <button data-view="dashboard">Dashboard</button>
     <button data-view="productivity">Productivity</button>
     <button data-view="orgchart">Studio Crew</button>
@@ -1406,6 +1407,7 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="js/persist.js" defer></script>
   <script src="js/sfx.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/scores.js" defer></script>
@@ -1956,6 +1958,21 @@
     };
     syncSfxIcon();
     sfxToggle.addEventListener('click', () => { SFX.toggle(); syncSfxIcon(); if (!SFX.isMuted()) SFX.play('start'); });
+    if (typeof EurekaPersist !== 'undefined') {
+      const navAudio = document.getElementById('nav-audio');
+      if (navAudio) {
+        EurekaPersist.mount(navAudio, {
+          showMute: false,
+          localMuted: () => SFX.isMuted(),
+          onChange: () => { syncSfxIcon(); },
+        });
+        EurekaPersist.settings.subscribe(() => {
+          const shared = EurekaPersist.settings.get();
+          if (shared.touched && SFX.isMuted() !== shared.muted) SFX.setMuted(shared.muted);
+          syncSfxIcon();
+        });
+      }
+    }
 
     navUtilsToggle.addEventListener('click', () => { navUtils.classList.toggle('open'); syncNavUtilsExpanded(); });
     document.addEventListener('click', (e) => {

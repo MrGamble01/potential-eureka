@@ -1,5 +1,16 @@
 function saveGame(){
   try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){}
+  try{
+    if(typeof EurekaPersist!=='undefined'){
+      EurekaPersist.progress.note('homeless',{days:G.days|0,pop:G.population|0});
+    }
+  }catch(e){}
+}
+
+function resetCamp(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  try{ if(typeof EurekaPersist!=='undefined') EurekaPersist.progress.clear('homeless'); }catch(e){}
+  location.reload();
 }
 
 function loadGame(){
