@@ -33,6 +33,12 @@ afterwards.
 
 ## Status at a glance
 
+HV — Make room on a full camp refuses before the six-second job.
+Closing or hiding the tab writes the camp, and stands down while
+game-over, graduation, or another writer owns the key. A clock that
+jumped ahead is clamped to each action's own cooldown and each
+recipe's own time. Hook-free `hvroom`, `hvleave`, `hvskew`.
+
 HVALE — Camera/view defaults exist before pointer handlers run. `hvalecam` covers events before DOMContentLoaded, mobile and desktop loads, drag, and wheel.
 
 HVALE — The tavern festival button names missing food and coin, days left on
