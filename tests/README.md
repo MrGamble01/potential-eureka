@@ -182,6 +182,7 @@ when they touched different cards. Append yours; git merges the rest.*
 - `hvwander` (HV-60: the wander step is `speed * (dt/16.667)` so residents shuffle at their own `speed` and settle on a target instead of sprinting to it and ping-ponging across it — at 60fps and at the 100ms lag clamp)
 - `hvbridge` (HV-59: The Bridge pauses the day clock — daylight, warmth and dawn hold while the overlay is open)
 - `hvesc` (HV-58: Escape closes The Bridge)
+- `hvsweep` (HV-71: a Lookout sweep warning survives an unrelated event)
 - `hvlock` (HV-63: Dumpsters Locked said "today" and actually lasted a minute)
 - `hvrefuse` (HV-61: Trade / Rain Bet / Garage / Fridge refuse a short purse before the timer, so a miss no longer charges the cooldown)
 - `hvclock` (HV-62: a hostile timeOfDay cannot burn days on load)
